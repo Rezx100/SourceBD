@@ -46,6 +46,53 @@ import {
 import { MetaLine } from "./supplier-result-card";
 import { Caption, Heading, Label } from "./type";
 
+/**
+ * The product list as the register filed it, made readable: spellings that
+ * differ only in case or spacing merge (founder, 25 Sep), the list sorts,
+ * the first eight show and the rest fold behind "+N as filed". Nothing is
+ * dropped and nothing is invented; the source is still pending per item.
+ */
+export function groupProductList(items: readonly string[]): string[] {
+  const seen = new Map<string, string>();
+  for (const raw of items) {
+    const text = raw.replace(/\s+/g, " ").trim();
+    if (!text) continue;
+    const key = text.toLowerCase();
+    if (!seen.has(key)) seen.set(key, text);
+  }
+  return [...seen.values()].sort((a, b) => a.localeCompare(b, "en", { sensitivity: "base" }));
+}
+
+const PRODUCT_LIST_SHOWN = 8;
+
+function ProductList({ items }: { items: readonly string[] }) {
+  const list = groupProductList(items);
+  const shown = list.slice(0, PRODUCT_LIST_SHOWN);
+  const rest = list.slice(PRODUCT_LIST_SHOWN);
+  const chip = (item: string) => (
+    <li key={item} className="rounded-sm bg-surface-sunken px-2 py-0.5 text-sm text-ink">
+      {item}
+    </li>
+  );
+  return (
+    <div className="flex flex-col gap-1.5" data-product-list="true">
+      <Caption>
+        Product list · {list.length} {list.length === 1 ? "item" : "items"} as filed · source pending
+      </Caption>
+      <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0">{shown.map(chip)}</ul>
+      {rest.length > 0 ? (
+        <details className="group/pl">
+          <summary className="cursor-pointer list-none text-sm font-medium text-brand-ink [&::-webkit-details-marker]:hidden">
+            <span className="group-open/pl:hidden">+{rest.length} more as filed</span>
+            <span className="hidden group-open/pl:inline">Show fewer</span>
+          </summary>
+          <ul className="m-0 mt-1.5 flex list-none flex-wrap gap-1.5 p-0">{rest.map(chip)}</ul>
+        </details>
+      ) : null}
+    </div>
+  );
+}
+
 /** "61 and 62" · "52, 55, 59 and 60" — a list a buyer reads, not an array. */
 function listWords(items: readonly string[]): string {
   if (items.length <= 1) return items.join("");
@@ -119,7 +166,7 @@ export function SupplierSheet({
             {/* The per-register read dates are the Sources section's rows and
                 the bar carries their range; a third copy here was a run-on
                 paragraph beside the contact card. */}
-            <LockCard hidden={model.contact.hidden} plan={model.contact.plan} held={model.contact.held} sanctioned={model.sanctioned} />
+            <LockCard hidden={model.contact.hidden} plan={model.contact.plan} held={model.contact.held} counts={model.contact.counts} sanctioned={model.sanctioned} />
           </div>
         </SheetSection>
         <SheetSection
@@ -183,18 +230,7 @@ export function SupplierSheet({
           {/* The list the "Product list" stat counts. With no EPB lines there
               are no tiles and no line sheets, so this is the only place a
               buyer can read what the company says it makes. */}
-          {p.productList.length > 0 ? (
-            <div className="flex flex-col gap-1.5">
-              <Caption>Product list · as filed · source pending</Caption>
-              <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0" data-product-list="true">
-                {p.productList.map((item, i) => (
-                  <li key={`${i}-${item}`} className="rounded-sm bg-surface-sunken px-2 py-0.5 text-sm text-ink">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
+          {p.productList.length > 0 ? <ProductList items={p.productList} /> : null}
           {p.tiles.length > 0 ? (
             <>
               <PhotoGrid tiles={p.tiles} lineHref={(hs) => model.lineHref(hs)} />
@@ -270,7 +306,7 @@ export function SupplierSheet({
             )}
           </SheetSection>
         ) : null}
-        <SheetSection id="sources" title="Sources" caption={model.sourcesCaption}>
+        <SheetSection id="sources" title="Sources" caption={model.sourcesCaption} collapsible>
           {model.sources.length > 0 ? (
             <SourcesList rows={model.sources} />
           ) : (
@@ -279,6 +315,7 @@ export function SupplierSheet({
         </SheetSection>
         <SheetSection
           id="locations"
+          collapsible
           title="Locations"
           caption={
             model.locations.length > 0
@@ -297,6 +334,7 @@ export function SupplierSheet({
             says so; it never says the company has no buildings. */}
         <SheetSection
           id="facilities"
+          collapsible
           title="Facilities"
           caption={model.facilities.count ? `${model.facilities.count} extension building${model.facilities.count === 1 ? "" : "s"}` : null}
         >
@@ -308,6 +346,7 @@ export function SupplierSheet({
         </SheetSection>
         <SheetSection
           id="rfqs"
+          collapsible
           title="RFQs"
           caption={model.rfqs.count === null ? null : `${model.rfqs.count} from your account`}
         >

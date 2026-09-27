@@ -16,7 +16,6 @@ import { Badge, Chip, type BadgeTone } from "./chips";
 import { Button, Count } from "./controls";
 import { Icon } from "./icons";
 import { Cell, DataTable, DetailList, EmptyState, ErrorNote, HeadCell, PageHeader, PageSection } from "./page";
-import { RFQ_ERROR_COPY } from "./rfq-list";
 import { Caption } from "./type";
 
 type RfqStatus = "open" | "accepted" | "closed" | "cancelled";
@@ -45,6 +44,13 @@ export function rfqTabOf(r: Pick<RfqRow, "status" | "quote_count">): Exclude<Rfq
 export function parseRfqTab(v: unknown): RfqTab {
   return RFQ_TABS.some((t) => t.key === v) ? (v as RfqTab) : "all";
 }
+
+/**
+ * `rfq_list` failed. "You have no RFQs yet" is a fact about the account, and a
+ * failed read does not establish it — the empty state that sells the feature
+ * must never stand in for an unread list.
+ */
+export const RFQ_ERROR_COPY = "Your RFQs could not be read just now. Nothing has been lost — try again in a moment.";
 
 /** Handoff §3.7's empty copy, as a title and its sentence. */
 export const RFQ_EMPTY_TITLE = "Your first RFQ lands here.";

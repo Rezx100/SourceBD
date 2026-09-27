@@ -18,7 +18,7 @@
 import { useEffect, useId, useRef, useState, type MouseEvent } from "react";
 import { interceptPlainClick, runExport, saveBlob } from "@/lib/dashboard/selection";
 import { Icon } from "./icons";
-import { Button } from "./controls";
+import { Button, type ButtonSize } from "./controls";
 
 export const EARLIER = "For your earlier selection: ";
 export const STILL_EXPORTING = "Still preparing the export. Its result will show here.";
@@ -29,9 +29,11 @@ export function ExportLink({
   requested,
   resetOn,
   onStatus,
+  size,
 }: {
   href: string;
   label: string;
+  size?: ButtonSize;
   requested?: number;
   /** Changes when the thing being exported changes (the bar passes the
    * buyer's selection edits). An idle message is cleared; a running export
@@ -93,7 +95,7 @@ export function ExportLink({
 
   return (
     <>
-      <Button href={href} onClick={run} aria-busy={busy || undefined} aria-describedby={status ? statusId : undefined}>
+      <Button href={href} size={size} onClick={run} aria-busy={busy || undefined} aria-describedby={status ? statusId : undefined}>
         <Icon name="download" /> {label}
       </Button>
       <span id={statusId} role="status" aria-live="polite" className="text-xs text-ink-subtle">

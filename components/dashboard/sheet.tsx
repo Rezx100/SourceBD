@@ -91,17 +91,24 @@ export function Sheet({ label, mode = "pane", children }: { label: string; mode?
 export function RecordPane({
   closeHref,
   openKey = "",
+  wide = false,
   children,
 }: {
   closeHref?: string | null;
   /** What the pane is showing (record, line or notice); focus moves to it whenever that changes. */
   openKey?: string;
+  /** The composer's width: it carries the target rail, the fields and the preview side by side, so it takes more of the region than a record does. */
+  wide?: boolean;
   children: ReactNode;
 }) {
   return (
     <div
       data-open-key={openKey}
-      className="flex min-h-0 min-w-0 flex-1 flex-col border-line lg:w-[clamp(480px,55%,760px)] lg:flex-none lg:border-l"
+      data-pane-wide={wide ? "true" : undefined}
+      className={cn(
+        "flex min-h-0 min-w-0 flex-1 flex-col border-line lg:flex-none lg:border-l",
+        wide ? "lg:w-[clamp(640px,68%,1100px)]" : "lg:w-[clamp(480px,55%,760px)]",
+      )}
     >
       {closeHref ? <DialogFocus closeHref={closeHref} openKey={openKey} /> : null}
       {children}
@@ -159,10 +166,13 @@ export function SheetTabs({ tabs }: { tabs: readonly { label: string; count: str
   // wrapping into three rows or pushing the sheet past the viewport, and
   // `tabIndex` lets a keyboard reach that scroll region (WCAG 2.1.1).
   return (
+    // Sticky: on a record that runs to 3,000px the tabs used to scroll away
+    // after the first screen, and compliance staff jumping to Sources or
+    // Locations had to scroll back up to find them.
     <nav
       aria-label="Record sections"
       tabIndex={0}
-      className="mt-2 flex gap-5 overflow-x-auto border-b border-line-subtle px-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="sticky top-0 z-10 mt-2 flex gap-5 overflow-x-auto border-b border-line-subtle bg-surface px-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {tabs.map((t) => (
         <a
@@ -188,20 +198,42 @@ export function SheetTabs({ tabs }: { tabs: readonly { label: string; count: str
   );
 }
 
-/** `.sec`: a section with its heading row. */
+/**
+ * `.sec`: a section with its heading row. `collapsible` folds it behind its
+ * heading (open by default, so a tab link still lands on its content); the
+ * long sections of a record — Sources, Locations, Facilities, RFQs — fold so a
+ * buyer can shorten a 3,000px record to the parts they are reading.
+ */
 export function SheetSection({
   id,
   title,
   caption,
   action,
+  collapsible = false,
   children,
 }: {
   id?: string;
   title?: string;
   caption?: ReactNode;
   action?: ReactNode;
+  collapsible?: boolean;
   children: ReactNode;
 }) {
+  if (collapsible && title) {
+    return (
+      <details id={id} open className="group/sec border-b border-line-subtle px-6 py-5">
+        <summary className="flex cursor-pointer list-none flex-wrap items-baseline gap-x-2 gap-y-1 [&::-webkit-details-marker]:hidden">
+          <Icon name="caret" small className="mr-0.5 self-center text-ink-subtle transition-transform duration-fast group-open/sec:rotate-180" />
+          <Heading level="sm" as="h2" className="flex-1">
+            {title}
+          </Heading>
+          {caption ? <Caption>{caption}</Caption> : null}
+          {action ? <span className="ml-auto text-sm font-medium">{action}</span> : null}
+        </summary>
+        <div className="mt-4 flex flex-col gap-4">{children}</div>
+      </details>
+    );
+  }
   return (
     <section id={id} className="flex flex-col gap-4 border-b border-line-subtle px-6 py-5">
       {title ? (
@@ -271,10 +303,10 @@ export function FactsPanel({ rows }: { rows: readonly FactRow[] }) {
             ) : r.value === null && r.checked ? (
               <Caption className="sm:whitespace-nowrap">{r.checked}</Caption>
             ) : r.pendingSource ? (
-              // Said once under the panel, not on every row: seven "source
-              // pending" captions down the right edge were louder than the
-              // facts. Each row keeps the words for a screen reader.
-              <span className="sr-only">source pending</span>
+              // In the mark's slot, quietly: an unmarked fact says so on its own
+              // row, so "every fact shows its source" is never whispered in a
+              // footnote alone.
+              <Caption className="text-quiet-ink sm:whitespace-nowrap">source pending</Caption>
             ) : null}
           </span>
         </div>
@@ -302,21 +334,41 @@ export function LockCard({
   hidden,
   plan,
   held,
+  counts,
   sanctioned = false,
 }: {
   hidden: string;
   plan: string | null;
   held?: string | null;
+  /** The counts themselves, drawn as rows (email, phone, website, contact person); `held` is the fallback sentence. */
+  counts?: { emails: number; phones: number; representatives: number; website: boolean } | null;
   /** A sanctioned record takes no RFQ, so the card must not offer one. */
   sanctioned?: boolean;
 }) {
+  const rows = counts
+    ? [
+        { label: "Email", value: counts.emails === 0 ? "none on file" : `${counts.emails} on file` },
+        { label: "Phone", value: counts.phones === 0 ? "none on file" : `${counts.phones} on file` },
+        { label: "Website", value: counts.website ? "on file" : "none on file" },
+        { label: "Contact person", value: counts.representatives === 0 ? "none on file" : `${counts.representatives} on file` },
+      ]
+    : null;
   return (
     <div data-locked="true" className="overflow-hidden rounded-md border border-locked-line">
-      <div className="locked-pattern flex flex-col gap-1.5 p-4 text-locked-ink">
+      <div className="locked-pattern flex flex-col gap-2 p-4 text-locked-ink">
         <Label className="inline-flex items-center gap-1.5 text-ink-strong">
           <Icon name="lock" /> Contact details{plan ? ` · ${plan}` : ""}
         </Label>
-        {held ? (
+        {rows ? (
+          <dl data-contact-counts="true" className="m-0 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+            {rows.map((r) => (
+              <div key={r.label} className="contents">
+                <dt className="font-medium text-ink-strong">{r.label}</dt>
+                <dd className="m-0 text-ink-muted">{r.value}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : held ? (
           <span data-contact-counts="true" className="text-xs text-ink-muted">
             {held}
           </span>
@@ -373,8 +425,9 @@ export function CertCard({ cert }: { cert: CertModel }) {
         </Badge>
       </div>
       {cert.number ? <Code className="text-ink">{cert.number}</Code> : <Caption>No certificate number on file</Caption>}
+      {cert.scope ? <CertScope scope={cert.scope} /> : null}
       <Caption>
-        {[cert.issuer, cert.scope ? `scope: ${cert.scope}` : null].filter(Boolean).join(" · ")}
+        {cert.issuer}
         {/* All seven SA8000 certificates in production carry
             `https://sa-intl.org/sa8000-search/` as their document — the search
             form `recordPage` rejects by name. The square beside this line was
@@ -387,6 +440,39 @@ export function CertCard({ cert }: { cert: CertModel }) {
         ) : null}
       </Caption>
     </div>
+  );
+}
+
+/**
+ * A certificate's scope, as the register filed it, made readable: the
+ * registers write it as `Operations: Dyeing, Knitting | Products: Men's
+ * apparel`, one run-on string, which on a GOTS card ran to eight lines. Each
+ * `|`-separated part becomes a row with its own label; a part with no label
+ * keeps the word "Scope". The words are the register's; only the layout is
+ * ours.
+ */
+export function parseCertScope(scope: string): { label: string; value: string }[] {
+  return scope
+    .split("|")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => {
+      const m = /^([A-Za-z][A-Za-z ]{1,30}):\s*(.+)$/.exec(part);
+      return m ? { label: m[1]!.trim(), value: m[2]!.trim() } : { label: "Scope", value: part };
+    });
+}
+
+function CertScope({ scope }: { scope: string }) {
+  const rows = parseCertScope(scope);
+  return (
+    <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
+      {rows.map((r, i) => (
+        <div key={`${r.label}-${i}`} className="contents">
+          <dt className="font-medium text-ink-muted">{r.label}</dt>
+          <dd className="m-0 text-ink [overflow-wrap:anywhere]">{r.value}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
@@ -699,8 +785,10 @@ export function ActionBar({
   return (
     // Wraps: three large controls plus the caption come to ~560px, which at
     // 320px pushed the caption off the sheet entirely.
+    // No Compare until /app/compare exists: a disabled control that explains
+    // itself only on hover is a live-looking button that does nothing.
     <div className="glass flex shrink-0 flex-wrap items-center gap-2 border-t border-line-subtle px-6 py-3">
-      <Button variant="primary" lg disabled={sanctioned} href={sanctioned ? undefined : (rfqHref ?? undefined)}>
+      <Button variant="primary" lg disabled={sanctioned} href={sanctioned ? undefined : (rfqHref ?? undefined)} clientNav scroll={false}>
         <Icon name="send" /> Send RFQ
       </Button>
       {save ?? (
@@ -708,9 +796,6 @@ export function ActionBar({
           <Icon name="bookmark" /> Save
         </Button>
       )}
-      <Button lg disabled title="Comparing records arrives with the compare page">
-        <Icon name="compare" /> Compare
-      </Button>
       {/* A brand disclosure list is one file listing every supplier on it, so
           a tier-4 mark never opens a page about this record — its own
           accessible name says "opens the disclosure list". The absolute

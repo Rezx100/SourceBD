@@ -16,6 +16,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import {
+  SEND_RFQ_MAX,
   announceBulkSaved,
   bulkExportHref,
   clearKeepingFocus,
@@ -27,11 +28,8 @@ import { EARLIER, ExportLink } from "./export-link";
 import { Icon } from "./icons";
 import { SELECT_ALL_ID, useSelection } from "./selection";
 
-const NOT_BUILT = `Send RFQ and Compare for several suppliers at once are not built yet. Open a supplier's record to send one an RFQ.`;
-// No `title` on the two disabled buttons: with aria-describedby present a
-// screen reader never hears it, so mouse users were told something else (a
-// 50-supplier cap on a bulk send that is not built yet). Both now get the one
-// visible note.
+/** The note beside a disabled bulk Send: the server's own cap (`rfq_create`, 50). */
+export const TOO_MANY = `One RFQ goes to up to ${SEND_RFQ_MAX} suppliers. Untick some to send.`;
 
 export const STILL_SAVING = "Still saving. Its result will show here.";
 export const SAVING = "Saving…";
@@ -40,7 +38,13 @@ export const SAVING = "Saving…";
  * selection…") ran into one sentence for a screen reader: each ends as one. */
 const sentence = (s: string) => (/[.!?…]$/.test(s) ? s : `${s}.`);
 
-export function SelectionBar({ exportHref }: { exportHref: string }) {
+/** The search URL with `rfq=` carrying the selection: the composer opens beside these results with every ticked supplier as a target. */
+export function bulkRfqHref(searchHref: string, ids: readonly string[]): string {
+  const sep = searchHref.includes("?") ? "&" : "?";
+  return `${searchHref}${sep}rfq=${ids.map(encodeURIComponent).join(",")}`;
+}
+
+export function SelectionBar({ exportHref, searchHref }: { exportHref: string; /** The search these rows belong to; the bulk RFQ opens on it. */ searchHref?: string }) {
   const sel = useSelection();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -136,7 +140,7 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
         // results, where the announcer says it is.
         // Rises into place when the first box is ticked (320 ms, 8px), so the
         // buyer's eye is led to the actions their tick just enabled.
-        className="bottom-0 z-20 flex flex-wrap items-center gap-3 border-t border-line-strong bg-surface px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] animate-rise motion-reduce:animate-none sm:px-5 [@media(min-height:32rem)]:sticky"
+        className="bottom-0 z-20 flex flex-wrap items-center gap-3 border-t border-line bg-surface px-4 py-3 shadow-md animate-rise motion-reduce:animate-none sm:px-5 [@media(min-height:32rem)]:sticky"
       >
         <span className="text-sm font-medium text-ink-strong">{count > 0 ? `${count} selected` : "Nothing selected"}</span>
         {/* With nothing selected the actions go (hidden, so the Export still
@@ -146,24 +150,26 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
             attribute's display:none, which left Save and Export working on
             nothing. */}
         <div className={hasActions ? "flex flex-wrap items-center gap-2" : "hidden"} hidden={!hasActions || undefined}>
-          <Button variant="primary" disabled aria-describedby={noteId} className="hidden sm:inline-flex">
-            <Icon name="send" /> Send RFQ
-          </Button>
+          {searchHref ? (
+            <Button
+              variant="primary"
+              href={count <= SEND_RFQ_MAX ? bulkRfqHref(searchHref, ids) : undefined}
+              clientNav
+              scroll={false}
+              disabled={count > SEND_RFQ_MAX}
+              aria-describedby={count > SEND_RFQ_MAX ? noteId : undefined}
+            >
+              <Icon name="send" /> Send RFQ
+            </Button>
+          ) : null}
           <Button
             type="button"
             aria-busy={busy || undefined}
             aria-disabled={busy || undefined}
             onClick={bulkSave}
-            className="aria-disabled:cursor-not-allowed aria-disabled:border-line aria-disabled:text-ink-disabled"
+            className="aria-disabled:cursor-not-allowed aria-disabled:text-ink-disabled"
           >
             <Icon name="bookmark" /> Save
-          </Button>
-          <Button
-            disabled
-            aria-describedby={noteId}
-            className="hidden disabled:cursor-not-allowed disabled:border-line disabled:text-ink-disabled sm:inline-flex"
-          >
-            <Icon name="compare" /> Compare
           </Button>
           <ExportLink href={bulkExportHref(exportHref, ids)} label="Export" requested={count} resetOn={sel.edits} onStatus={setExportStatus} />
         </div>
@@ -175,9 +181,11 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
             <Button type="button" variant="ghost" className="ml-auto" onClick={() => clearKeepingFocus(document.getElementById(SELECT_ALL_ID), sel.clear)}>
               Clear
             </Button>
-            <p id={noteId} className="hidden basis-full text-xs text-ink-subtle sm:block">
-              {NOT_BUILT}
-            </p>
+            {count > SEND_RFQ_MAX ? (
+              <p id={noteId} className="basis-full text-xs text-caution-ink">
+                {TOO_MANY}
+              </p>
+            ) : null}
           </>
         ) : null}
       </div>

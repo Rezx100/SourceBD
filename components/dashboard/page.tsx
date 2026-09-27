@@ -50,12 +50,19 @@ export function PageHeader({
   );
 }
 
-/** A titled block inside a page. `bare` drops the card, for a table that brings its own. */
+/**
+ * A titled block inside a page. The body is a white panel on the canvas:
+ * depth by tone, no hairline (the enterprise pass, 27 Sep 2026: every section
+ * used to be a bordered box, and a page of them read as boxes of boxes).
+ * `bare` drops the panel for content that brings its own ground; `outlined`
+ * adds the soft edge, for a panel that sits on another white surface.
+ */
 export function PageSection({
   title,
   caption,
   action,
   bare = false,
+  outlined = false,
   className,
   id,
   children,
@@ -64,6 +71,7 @@ export function PageSection({
   caption?: ReactNode;
   action?: ReactNode;
   bare?: boolean;
+  outlined?: boolean;
   className?: string;
   id?: string;
   children: ReactNode;
@@ -81,7 +89,7 @@ export function PageSection({
           {caption ? <Caption className="order-3 basis-full sm:order-2 sm:basis-auto">{caption}</Caption> : null}
         </div>
       ) : null}
-      {bare ? children : <div className="rounded-md border border-line-subtle bg-surface">{children}</div>}
+      {bare ? children : <div className={cn("rounded-md bg-surface", outlined && "shadow-edge")}>{children}</div>}
     </section>
   );
 }
@@ -180,33 +188,135 @@ export function ErrorNote({ children, className }: { children: ReactNode; classN
   );
 }
 
-/** A table in a scroll region, so a phone scrolls it sideways instead of crushing it. */
-export function DataTable({ label, minWidth = "40rem", children }: { label: string; minWidth?: string; children: ReactNode }) {
+/**
+ * The one table grammar of the app: a header row of 12px medium labels on the
+ * panel's ground, sticky at the top of the scroll region from `xl` (below
+ * that the table scrolls sideways inside its own region, which a sticky
+ * header cannot cross), rows of 44px (`dense`: 36px) divided by hairlines,
+ * numbers right-aligned and tabular, the whole row lit on hover.
+ *
+ * Sorting is a URL: `HeadCell` takes `sort` and draws the arrow, so the same
+ * header serves Discover, Saved, RFQs, Orders and Compliance.
+ */
+export function DataTable({
+  label,
+  minWidth = "40rem",
+  dense = false,
+  className,
+  children,
+}: {
+  label: string;
+  minWidth?: string;
+  dense?: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
   return (
-    <div className="overflow-x-auto" tabIndex={0} role="region" aria-label={label}>
-      <table className="w-full border-collapse text-sm" style={{ minWidth }}>
+    <div className={cn("max-xl:overflow-x-auto", className)} tabIndex={0} role="region" aria-label={label}>
+      <table
+        className={cn(
+          "w-full border-collapse text-sm",
+          "[&_thead_th]:xl:sticky [&_thead_th]:xl:top-0 [&_thead_th]:xl:z-10",
+          dense && "[&_td]:h-9 [&_th[scope=row]]:h-9",
+        )}
+        style={{ minWidth }}
+      >
         {children}
       </table>
     </div>
   );
 }
 
-export function HeadCell({ className, children }: { className?: string; children?: ReactNode }) {
+export type SortDir = "asc" | "desc";
+
+/**
+ * A column header. With `sort` it is a link that orders the list by this
+ * column and says so (`aria-sort`); `align="right"` for a numeric column.
+ */
+export function HeadCell({
+  className,
+  align = "left",
+  sort,
+  children,
+}: {
+  className?: string;
+  align?: "left" | "right";
+  /** The column's sort link, and whether it is the active order. */
+  sort?: { href: string; active: boolean; dir?: SortDir };
+  children?: ReactNode;
+}) {
+  const base = cn(
+    "h-9 border-b border-line-subtle bg-surface px-4 align-middle text-xs font-medium text-ink-muted",
+    align === "right" ? "text-right" : "text-left",
+    className,
+  );
+  if (!sort) {
+    return (
+      <th scope="col" className={base}>
+        {children}
+      </th>
+    );
+  }
   return (
-    <th
-      scope="col"
-      className={cn(
-        "h-9 border-b border-line-subtle px-4 text-left align-middle font-mono text-eyebrow font-medium uppercase text-ink-subtle",
-        className,
-      )}
-    >
-      {children}
+    <th scope="col" aria-sort={sort.active ? (sort.dir === "desc" ? "descending" : "ascending") : "none"} className={base}>
+      <a
+        href={sort.href}
+        className={cn(
+          "inline-flex items-center gap-1 rounded-xs transition-colors duration-fast hover:text-ink-strong",
+          align === "right" && "flex-row-reverse",
+          sort.active && "text-ink-strong",
+        )}
+      >
+        {children}
+        <Icon
+          name="caret"
+          small
+          className={cn("text-ink-subtle", sort.active ? (sort.dir === "asc" ? "rotate-180" : "") : "invisible")}
+        />
+      </a>
     </th>
   );
 }
 
-export function Cell({ className, children }: { className?: string; children?: ReactNode }) {
-  return <td className={cn("h-11 border-b border-line-subtle px-4 align-middle text-ink", className)}>{children}</td>;
+export function Cell({
+  className,
+  align = "left",
+  children,
+}: {
+  className?: string;
+  align?: "left" | "right";
+  children?: ReactNode;
+}) {
+  return (
+    <td className={cn("h-11 border-b border-line-subtle px-4 align-middle text-ink", align === "right" && "text-right tabular-nums", className)}>
+      {children}
+    </td>
+  );
+}
+
+/**
+ * The classes of a table row: lit on hover, marked when it is the record
+ * open beside the list (`current`), inset-ruled when selected, and carrying
+ * the reserved sanction rule when the record is sanctioned.
+ */
+export function rowClass({
+  current = false,
+  selected = false,
+  sanctioned = false,
+  className,
+}: {
+  current?: boolean;
+  selected?: boolean;
+  sanctioned?: boolean;
+  className?: string;
+} = {}): string {
+  return cn(
+    "group transition-colors duration-fast hover:bg-surface-sunken focus-within:bg-surface-sunken",
+    current && "bg-brand-tint hover:bg-brand-tint",
+    selected && "[&>*:first-child]:shadow-[inset_2px_0_0_rgb(var(--ds-brand))]",
+    sanctioned && "[&>*:first-child]:shadow-[inset_3px_0_0_rgb(var(--ds-sanction))]",
+    className,
+  );
 }
 
 /** A label/value list, for a detail page's facts. */

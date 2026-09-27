@@ -3,6 +3,7 @@
 // stop is V2 — it renders only when `askEnabled` (AI on and a key present),
 // otherwise the switch is not shown at all, not disabled.
 
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Chip } from "./chips";
 import { V2Tag } from "./controls";
@@ -31,6 +32,7 @@ export function SearchComposer({
   queryInput,
   submits = false,
   askHref,
+  filtersModeHref,
   filtersHref,
 }: {
   chips: readonly FilterChipModel[];
@@ -42,13 +44,16 @@ export function SearchComposer({
   /** The composer sits in a GET form: the go disc submits it and Add filter opens the filter form below. */
   submits?: boolean;
   askHref?: string;
+  /** The Filters stop of the Filters | Ask switch. */
+  filtersModeHref?: string;
+  /** Where "Add filter" goes: the filter pane beside the results. */
   filtersHref?: string;
 }) {
   const live = queryInput !== undefined || submits;
   return (
     <div
       className={cn(
-        "flex items-center gap-3 rounded-lg border border-line bg-surface py-2.5 pl-3.5 pr-3 shadow-sm",
+        "flex items-center gap-3 rounded-md bg-surface py-2 pl-3.5 pr-2.5 shadow-edge",
         className,
       )}
     >
@@ -85,7 +90,16 @@ export function SearchComposer({
             )}
           </Chip>
         ))}
-        {live ? (
+        {filtersHref ? (
+          <Link
+            href={filtersHref}
+            prefetch={false}
+            scroll={false}
+            className="inline-flex h-7 items-center gap-1 rounded-sm px-1.5 text-sm font-medium text-ink-muted transition-colors duration-fast hover:bg-surface-sunken hover:text-ink-strong"
+          >
+            <Icon name="plus" small /> Add filter
+          </Link>
+        ) : live ? (
           <a href="#filters" className="inline-flex h-7 items-center gap-1 px-1.5 text-sm font-medium text-ink-muted">
             <Icon name="plus" small /> Add filter
           </a>
@@ -108,9 +122,9 @@ export function SearchComposer({
         // gated behind `askEnabled` and not yet reachable on any shipped
         // screen).
         <span role="group" aria-label="Search mode" className="inline-flex h-control overflow-hidden rounded-sm border border-line-strong">
-          {filtersHref ? (
+          {filtersModeHref ? (
             <a
-              href={filtersHref}
+              href={filtersModeHref}
               aria-current={mode === "filters" ? "page" : undefined}
               className={cn(
                 "inline-flex items-center gap-1.5 px-2.5 text-sm font-medium text-ink-muted",

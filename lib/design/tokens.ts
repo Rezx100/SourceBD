@@ -249,6 +249,10 @@ export const boxShadow = {
   sm: "0 1px 3px 0 rgb(15 19 15 / 0.08), 0 1px 2px -1px rgb(15 19 15 / 0.05)",
   md: "0 6px 14px -4px rgb(15 19 15 / 0.12), 0 2px 4px -2px rgb(15 19 15 / 0.06)",
   lg: "0 16px 32px -8px rgb(15 19 15 / 0.16), 0 4px 8px -4px rgb(15 19 15 / 0.06)",
+  // The soft edge of a secondary button and a segmented control: the `line`
+  // token at 70 %, inset, so a tone button reads as a control on canvas too
+  // without adding a hairline.
+  edge: "inset 0 0 0 1px rgb(216 216 212 / 0.7)",
   bloom: "0 0 0 4px rgb(63 227 116 / 0.28)", // the signal dot's glow (artifact `shadow-signal`; named apart from the colour group so the utilities cannot collide)
   glass: "inset 0 1px 0 rgb(255 255 255 / 0.7), 0 1px 3px rgb(15 19 15 / 0.08)",
 };
@@ -382,6 +386,9 @@ export const contrastPairs: ContrastPair[] = [
   { fg: "ink.inverse", bg: "surface.inverse-raised", min: TEXT, use: "text on a raised dark card" },
   { fg: "brand.ink-inverse", bg: "surface.inverse", min: TEXT, use: "link on dark panel" },
   { fg: "brand.on", bg: "brand", min: TEXT, use: "primary button" },
+  { fg: "ink", bg: "line", min: TEXT, use: "secondary button, hover" },
+  { fg: "ink.strong", bg: "line", min: TEXT, use: "secondary button, hover" },
+  { fg: "danger.on", bg: "danger", min: TEXT, use: "danger button, hover" },
   { fg: "brand.on", bg: "brand.hover", min: TEXT, use: "primary button, hover" },
   { fg: "brand.on", bg: "brand.active", min: TEXT, use: "primary button, pressed" },
   { fg: "brand.ink", bg: "brand.tint", min: TEXT, use: "info note, active nav" },

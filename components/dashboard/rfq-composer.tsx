@@ -1,339 +1,521 @@
-// RFQComposer (REZ-A, handoff §3.6): a 1180px dialog over the results. Rail
-// on canvas (steps with counts and a caution line naming what is missing) ·
-// editor (template switch, Attach, Insert variable, the V2 Improve wording,
-// subject + body with variable chips, the product table, the question list
-// with REQUIRED stamps) · preview on `surface-sunken` as the supplier receives
-// it. Send RFQ stays disabled until the required fields are filled; Save
-// draft always works. Presentational in REZ-A; REZ-D wires the state.
+"use client";
 
-import type { ReactNode } from "react";
+// The RFQ composer (enterprise pass, 27 Sep 2026): the one place a buyer
+// writes to suppliers, opened INSIDE the shell — in the pane beside the
+// results (`/app/discover?rfq=<ids>`), beside a record, or as the content
+// region of `/app/rfqs/new` for a deep link. Never a page jump: the search,
+// the selection and the open record stay where they were, and Close returns
+// to them.
+//
+// Anatomy, after the founder's reference (27 Sep): the targets with their
+// marks at the top; the product block; the message, drawn from the
+// workspace's template with its facts filled in; the questions; a preview of
+// what the RFQ will carry, beside the form where there is room; a footer that
+// names what is still missing, saves a draft, and sends. ⌘↵ sends.
+//
+// Product truth: the server refuses a sanctioned target (`rfq_create`), so
+// the composer withholds Send for one too and says why. No contact value
+// ever reaches this component; the supplier is written to inside SourceBD.
+
+import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import Link from "next/link";
+import { useContext, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import type { SourceMarkModel } from "@/lib/dashboard/source-tiers";
+import type { TierRank } from "@/lib/design/tokens";
+import { formatQuantity, formatDay } from "@/lib/dashboard/facts";
 import { cn } from "@/lib/utils";
-import { Button, Checkbox, V2Tag } from "./controls";
+import { Button, Checkbox, Kbd } from "./controls";
+import { Field, SelectInput, TextArea, TextInput } from "./fields";
 import { Icon } from "./icons";
-import { SanctionBanner } from "./sheet";
-import { Caption, Code, Label, Title } from "./type";
+import { LogoTile, SourceMarks } from "./marks";
+import { SanctionBanner, Sheet, SheetBar, SheetScroll } from "./sheet";
+import { Caption, Label } from "./type";
 
-export type RailStep = {
-  label: string;
-  detail: string;
-  missing?: string | null;
-  count?: string | null;
-  active?: boolean;
-  v2?: boolean;
+/** A supplier this RFQ goes to. Facts only; never a contact value. */
+export type ComposerTarget = {
+  id: string;
+  slug: string;
+  name: string;
+  initials: string;
+  tier: TierRank;
+  marks: SourceMarkModel[];
+  place: string | null;
+  type: string;
+  sanctioned: boolean;
+  sanctionSample?: boolean;
 };
 
-export type VariableChip = { label: string; missing?: boolean };
+/** What the composer starts with: the line a buyer arrived from, or one of their own products. */
+export type ComposerPrefill = {
+  title?: string | null;
+  description?: string | null;
+  quantity?: string | null;
+  unit?: string | null;
+  targetPrice?: string | null;
+  currency?: string | null;
+  shipTo?: string | null;
+  shipBy?: string | null;
+  hs?: string | null;
+  productId?: string | null;
+};
 
-export type ProductLine = { product: string; hs: string | null; quantity: string; targetPrice: string | null; shipBy: string | null };
+/** The buyer's workspace, for the template's variables and the default questions. Null facts are named as missing, never invented. */
+export type ComposerWorkspace = {
+  companyName: string | null;
+  userName: string | null;
+  website: string | null;
+  questions: string[];
+  emailTemplate: string | null;
+};
 
-export type QuestionRow = { text: string; on: boolean; required: boolean };
+export const UNITS = ["pcs", "sets", "pairs", "dozens", "kg", "m"] as const;
+export const CURRENCIES = ["USD", "EUR", "GBP", "CAD", "BDT"] as const;
+export const SHIP_TO = ["United Kingdom", "United States", "Germany", "France", "Netherlands", "Italy", "Spain", "Canada", "Australia"] as const;
+
+/** The five questions a first RFQ asks when the workspace has set none. */
+export const DEFAULT_QUESTIONS = [
+  "Unit price at this quantity, FOB Chattogram",
+  "Minimum order quantity per colour",
+  "Sample lead time and cost",
+  "Which certificate scope this line ships under",
+  "Payment terms you can offer",
+] as const;
+
+export const DEFAULT_TEMPLATE =
+  "Dear {{supplier}},\n\nWe read your record on SourceBD and would like a quotation for the line below.\n\n{{product}}\n\nPlease answer the questions under the product. Reply inside SourceBD.\n\n{{user}}\n{{company}}\n{{website}}";
 
 /**
- * A target of this draft. `rfq_create` refuses a sanctioned supplier
- * (handoff §4.5), and §3.6 says Send stays disabled until every supplier is
- * published and not sanctioned — so the composer has to carry the flag, not
- * just the name.
+ * Fill the template's variables from the facts on hand; a missing fact is
+ * named in brackets so the buyer sees the gap before the supplier does.
  */
-export type ComposerTarget = { name: string; sanctioned: boolean; sanctionSample?: boolean };
-
-export type RfqComposerModel = {
-  title: string;
-  /** "to Aboni Knitwear Ltd · first contact · HS 6105" */
-  context: string;
-  /** Every supplier this draft would go to. */
-  targets: ComposerTarget[];
-  draftSaved: string | null;
-  steps: RailStep[];
-  template: "first" | "repeat";
-  subject: (string | VariableChip)[];
-  body: (string | VariableChip | "br")[][];
-  products: ProductLine[];
-  questions: QuestionRow[];
-  moreQuestions: { count: number; required: number } | null;
-  preview: {
-    from: string;
-    subject: ReactNode;
-    paragraphs: ReactNode[];
-    footer: string;
+export function fillTemplate(
+  template: string,
+  vars: { supplier: string; product: string; user: string | null; company: string | null; website: string | null },
+): { text: string; missing: string[] } {
+  const missing: string[] = [];
+  const pick = (v: string | null, label: string) => {
+    if (v && v.trim()) return v.trim();
+    missing.push(label);
+    return `[${label}]`;
   };
-  missing: string[];
-};
-
-/**
- * `aria-modal="true"` asserts everything outside is unavailable — true when
- * this is the one dialog open (the shipped app), false on the `/dev/ds`
- * gallery, which renders this beside two other live, non-inert "modal"
- * sheets and three plain screens. `assertModal` (default true) lets the
- * gallery pass `false` here the same way `Sheet` does; `role="dialog"` and
- * `aria-label` are unaffected either way.
- */
-export function Dialog({ label, assertModal = true, children }: { label: string; assertModal?: boolean; children: ReactNode }) {
-  return (
-    <div
-      role="dialog"
-      aria-label={label}
-      aria-modal={assertModal ? "true" : undefined}
-      className="absolute left-1/2 top-10 flex w-[1180px] -translate-x-1/2 flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-lg"
-    >
-      {children}
-    </div>
-  );
+  const text = template
+    .replaceAll("{{supplier}}", vars.supplier)
+    .replaceAll("{{product}}", vars.product)
+    .replaceAll("{{user}}", pick(vars.user, "your name"))
+    .replaceAll("{{company}}", pick(vars.company, "company name"))
+    .replaceAll("{{website}}", pick(vars.website, "website"));
+  return { text, missing };
 }
 
-/** `.var`: a variable chip inside the subject or body; a missing one is caution-tinted. */
-export function Variable({ label, missing = false }: VariableChip) {
-  return (
-    <span
-      data-missing={missing ? "true" : undefined}
-      className={cn(
-        "inline-flex h-[22px] items-center whitespace-nowrap rounded-xs px-1.5 align-baseline text-sm font-medium",
-        missing ? "bg-caution-tint text-caution-ink" : "bg-brand-tint text-brand-ink",
-      )}
-    >
-      {label}
-    </span>
-  );
+/** What is still required before Send: the words the footer says. */
+export function missingFields(v: { title: string; quantity: string; unit: string; targets: number }): string[] {
+  const out: string[] = [];
+  if (!v.title.trim()) out.push("product title");
+  if (!(Number(v.quantity) >= 1)) out.push("quantity");
+  if (!v.unit.trim()) out.push("unit");
+  if (v.targets === 0) out.push("a supplier");
+  return out;
 }
 
-function Runs({ runs }: { runs: readonly (string | VariableChip | "br")[] }) {
-  return (
-    <>
-      {runs.map((r, i) =>
-        r === "br" ? <br key={i} /> : typeof r === "string" ? <span key={i}>{r}</span> : <Variable key={i} {...r} />,
-      )}
-    </>
-  );
-}
+export function RfqComposer({
+  targets: initialTargets,
+  prefill = {},
+  workspace,
+  closeHref,
+  backHref,
+  addHref,
+  mode = "pane",
+  draftId: initialDraftId = null,
+}: {
+  targets: ComposerTarget[];
+  prefill?: ComposerPrefill;
+  workspace: ComposerWorkspace | null;
+  /** Where Close returns to: the search, or the record this came from. */
+  closeHref: string;
+  /** "Back to the record", when the composer replaced a record in the pane. */
+  backHref?: string | null;
+  /** Where to add suppliers: the results beside the pane, or the search. */
+  addHref?: string | null;
+  mode?: "pane" | "page";
+  draftId?: string | null;
+}) {
+  const router = useContext(AppRouterContext);
+  const id = useId();
+  const [targets, setTargets] = useState(initialTargets);
+  const [title, setTitle] = useState(prefill.title ?? "");
+  const [description, setDescription] = useState(prefill.description ?? "");
+  const [quantity, setQuantity] = useState(prefill.quantity ?? "");
+  const [unit, setUnit] = useState(prefill.unit ?? "pcs");
+  const [targetPrice, setTargetPrice] = useState(prefill.targetPrice ?? "");
+  const [currency, setCurrency] = useState(prefill.currency ?? "USD");
+  const [shipTo, setShipTo] = useState(prefill.shipTo ?? "");
+  const [shipBy, setShipBy] = useState(prefill.shipBy ?? "");
+  const baseQuestions = workspace?.questions?.length ? workspace.questions : [...DEFAULT_QUESTIONS];
+  const [questions, setQuestions] = useState<{ text: string; on: boolean }[]>(baseQuestions.map((text) => ({ text, on: true })));
+  const [newQuestion, setNewQuestion] = useState("");
+  const [messageEdited, setMessageEdited] = useState<string | null>(null);
+  const [busy, setBusy] = useState<"send" | "draft" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [draftId, setDraftId] = useState<string | null>(initialDraftId);
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
-/** A flagged gap in the preview: "⚠ date missing". */
-export function MissingFlag({ children }: { children: ReactNode }) {
-  return (
-    <span className="inline-flex items-center gap-1 font-medium text-caution-ink">
-      <Icon name="warn" small /> {children}
-    </span>
+  const sanctioned = targets.filter((t) => t.sanctioned);
+  const productLine = [title.trim() || "[product]", Number(quantity) >= 1 ? formatQuantity(Number(quantity), unit) : null, targetPrice ? `target ${targetPrice} ${currency}` : null, shipBy ? `ship by ${formatDay(shipBy) ?? shipBy}` : null]
+    .filter(Boolean)
+    .join(" · ");
+  const filled = useMemo(
+    () =>
+      fillTemplate(workspace?.emailTemplate?.trim() || DEFAULT_TEMPLATE, {
+        supplier: targets.length === 1 ? targets[0]!.name : "supplier",
+        product: productLine,
+        user: workspace?.userName ?? null,
+        company: workspace?.companyName ?? null,
+        website: workspace?.website ?? null,
+      }),
+    [workspace, targets, productLine],
   );
-}
+  const message = messageEdited ?? filled.text;
+  const missing = missingFields({ title, quantity, unit, targets: targets.length });
+  const blocked = sanctioned.length > 0 || missing.length > 0 || busy !== null;
+  const asked = questions.filter((q) => q.on).map((q) => q.text);
 
-/** `aiEnabled` false (AI off or no key): every V2 surface is not rendered — not disabled, absent (handoff §7). */
-export function RfqComposer({ model, aiEnabled = false, assertModal }: { model: RfqComposerModel; aiEnabled?: boolean; assertModal?: boolean }) {
-  const required = model.questions.filter((q) => q.required).length + (model.moreQuestions?.required ?? 0);
-  const total = model.questions.length + (model.moreQuestions?.count ?? 0);
-  const steps = aiEnabled ? model.steps : model.steps.filter((s) => !s.v2);
-  const sanctioned = model.targets.filter((t) => t.sanctioned);
-  const sanctionSample = sanctioned.length > 0 && sanctioned.every((t) => t.sanctionSample);
-  // Send is refused for a sanctioned target whatever else is filled in, and the
-  // server refuses it too (`rfq_create`, handoff §4.5).
-  const blocked = sanctioned.length > 0 || model.missing.length > 0;
+  function payload(): Record<string, unknown> {
+    const p: Record<string, unknown> = {
+      product_title: title.trim(),
+      product_description: description.trim() || undefined,
+      quantity: Number(quantity),
+      quantity_unit: unit.trim(),
+      currency,
+      target_supplier_ids: targets.map((t) => t.id),
+      message: message.trim() || undefined,
+      questions: asked,
+    };
+    if (targetPrice.trim()) p.target_unit_price = Number(targetPrice);
+    if (shipTo.trim()) p.ship_to_country = shipTo.trim();
+    if (shipBy.trim()) p.ship_by = shipBy.trim();
+    if (prefill.productId) p.product_id = prefill.productId;
+    return p;
+  }
+
+  async function post(body: Record<string, unknown>): Promise<{ ok: boolean; status: number; json: Record<string, unknown> | null }> {
+    try {
+      const res = await fetch("/api/v1/rfqs", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+      const json = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+      return { ok: res.ok, status: res.status, json };
+    } catch {
+      return { ok: false, status: 0, json: null };
+    }
+  }
+
+  /** The sentence for a refused send: the server's own reason where it gave one, in plain words otherwise. */
+  function refusal(status: number, json: Record<string, unknown> | null): string {
+    const detail = typeof json?.detail === "string" ? json.detail : typeof json?.error === "string" ? json.error : null;
+    if (status === 0) return "Could not reach SourceBD — no connection. Your draft is still here; try again.";
+    if (status === 401 || status === 403) return "Sign in with a buyer account to send an RFQ.";
+    if (status === 429) return "Too many RFQs in the last minute. Wait a minute and send again.";
+    if (detail && /not published|sanction/i.test(detail)) return "One of these suppliers cannot receive an RFQ any more. Remove it and send again.";
+    return detail ? `Could not send: ${detail}` : "Could not send this RFQ. Nothing was sent; try again in a moment.";
+  }
+
+  async function send() {
+    if (blocked) return;
+    setBusy("send");
+    setError(null);
+    const r = await post({ action: "create", ...payload(), draft_id: draftId ?? undefined });
+    setBusy(null);
+    const rfqId = typeof r.json?.rfq_id === "string" ? r.json.rfq_id : null;
+    if (!r.ok || !rfqId) {
+      setError(refusal(r.status, r.json));
+      return;
+    }
+    // Stay where the buyer was: the search (or the record) comes back with a
+    // toast saying the RFQ went, and a link to it.
+    const sep = closeHref.includes("?") ? "&" : "?";
+    const next = `${closeHref}${sep}sent=${encodeURIComponent(rfqId)}`;
+    if (router) {
+      router.replace(next, { scroll: false });
+      router.refresh();
+    } else {
+      window.location.assign(next);
+    }
+  }
+
+  async function saveDraft() {
+    setBusy("draft");
+    setError(null);
+    const r = await post({ action: "save_draft", draft_id: draftId ?? undefined, payload: payload() });
+    setBusy(null);
+    const newId = typeof r.json?.draft_id === "string" ? r.json.draft_id : null;
+    if (!r.ok || !newId) {
+      setError(r.status === 0 ? "Could not save the draft — no connection." : "Could not save the draft. It is still here; try again in a moment.");
+      return;
+    }
+    setDraftId(newId);
+    const now = new Date();
+    setDraftSavedAt(`${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`);
+  }
+
+  function onKey(e: KeyboardEvent<HTMLFormElement>) {
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      e.preventDefault();
+      void send();
+    }
+  }
+
+  // The footer's status is a live region; it must exist before the first change.
+  useEffect(() => {
+    formRef.current?.querySelector<HTMLInputElement>("input, textarea")?.focus({ preventScroll: true });
+  }, []);
+
+  const context = [
+    targets.length === 1 ? `to ${targets[0]!.name}` : `to ${targets.length} suppliers`,
+    prefill.hs ? `HS ${prefill.hs}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
-    <Dialog label={model.title} assertModal={assertModal}>
-      <div className="flex h-[52px] items-center gap-3 border-b border-line-subtle px-5">
-        <Title as="h1" className="text-sm">{model.title}</Title>
-        <Caption>{model.context}</Caption>
+    <Sheet label="New RFQ" mode={mode}>
+      <SheetBar>
+        {backHref ? (
+          <Button variant="ghost" size="sm" href={backHref} clientNav scroll={false}>
+            <Icon name="chev-l" /> Record
+          </Button>
+        ) : null}
+        <Label className="text-ink-strong">New RFQ</Label>
+        <Caption className="min-w-0 truncate">{context}</Caption>
         <span className="ml-auto flex items-center gap-2">
-          {model.draftSaved ? <Caption>Draft saved {model.draftSaved}</Caption> : null}
-          <Button variant="ghost" icon aria-label="Close">
+          {draftSavedAt ? <Caption>Draft saved {draftSavedAt}</Caption> : null}
+          <Button variant="ghost" icon size="sm" aria-label="Close" href={closeHref} clientNav scroll={false}>
             <Icon name="x" />
           </Button>
         </span>
-      </div>
+      </SheetBar>
       {sanctioned.length > 0 ? (
         <>
-          <SanctionBanner sample={sanctionSample} />
-          <div className="border-b border-line-subtle px-5 py-2 text-sm text-sanction-ink">
-            {sanctioned.length === 1 ? "This supplier is" : `${sanctioned.length} of these suppliers are`} on a sanctions
-            screen: {sanctioned.map((t) => t.name).join(", ")}. Remove {sanctioned.length === 1 ? "it" : "them"} to send
-            this RFQ.
+          <SanctionBanner sample={sanctioned.every((t) => t.sanctionSample)} />
+          <div className="border-b border-line-subtle px-6 py-2 text-sm text-sanction-ink">
+            {sanctioned.length === 1 ? "This supplier is" : `${sanctioned.length} of these suppliers are`} on a sanctions screen:{" "}
+            {sanctioned.map((t) => t.name).join(", ")}. Remove {sanctioned.length === 1 ? "it" : "them"} to send this RFQ.
           </div>
         </>
       ) : null}
-      <div className="grid min-h-0 grid-cols-[250px_1fr_330px]">
-        <nav aria-label="RFQ steps" className="flex min-w-0 flex-col gap-0.5 border-r border-line-subtle bg-canvas p-3">
-          {steps.map((s) => (
-            <a
-              key={s.label}
-              // The approved fragment (design/src/screens/rfq.html) makes every
-              // rail step inert; deriving a fragment from the label pointed
-              // four of them at anchors the page does not have, which is the
-              // dead-anchor defect cycle 5 fixed on the sheet's tabs.
-              href="#"
-              aria-disabled="true"
-              tabIndex={-1}
-              title="Stepping through the draft arrives with the composer (REZ-D)"
-              aria-current={s.active ? "step" : undefined}
-              className={cn(
-                "flex items-start gap-2 rounded-sm px-2.5 py-2 text-ink",
-                // The white card is 1.08:1 against the canvas beside it and
-                // the hairline ring is 1.33:1 — the state was invisible. The
-                // rail is `brand`, the same one the sidebar and the segmented
-                // controls use (WCAG 1.4.11 asks 3:1).
-                s.active && "bg-surface ring-1 ring-inset ring-line border-l-[3px] border-brand pl-[7px]",
-                s.v2 && "text-smart",
+      <SheetScroll measure={mode === "page"}>
+        <form ref={formRef} onSubmit={(e) => { e.preventDefault(); void send(); }} onKeyDown={onKey} className="grid gap-6 p-6 xl:grid-cols-[minmax(0,1fr)_300px]">
+          <div className="flex min-w-0 flex-col gap-6">
+            {/* Who it goes to */}
+            <section className="flex flex-col gap-2">
+              <div className="flex items-baseline gap-2">
+                <Label className="text-ink-strong">To</Label>
+                <Caption>{targets.length} {targets.length === 1 ? "supplier" : "suppliers"} · up to 50</Caption>
+                {addHref ? (
+                  <Link href={addHref} prefetch={false} scroll={false} className="ml-auto text-sm font-medium text-brand-ink hover:underline">
+                    {mode === "pane" ? "Tick more in the results" : "Add suppliers"}
+                  </Link>
+                ) : null}
+              </div>
+              {targets.length === 0 ? (
+                <p className="m-0 rounded-md border border-dashed border-quiet-line px-4 py-3 text-sm text-quiet-ink">No supplier yet. Tick suppliers in the results, or open a record and send from there.</p>
+              ) : (
+                <ul className="m-0 flex list-none flex-col divide-y divide-line-subtle rounded-md bg-surface-sunken p-0">
+                  {targets.map((t) => (
+                    <li key={t.id} className="flex items-center gap-3 px-3 py-2">
+                      <LogoTile initials={t.initials} tier={t.tier} size="sm" />
+                      <span className="flex min-w-0 flex-1 flex-col">
+                        <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                          <span className="text-sm font-medium text-ink-strong [overflow-wrap:anywhere]">{t.name}</span>
+                          <SourceMarks marks={t.marks.slice(0, 6)} caption="none" sm />
+                          {t.sanctioned ? <span className="text-xs font-medium text-sanction-ink">Sanctioned{t.sanctionSample ? " · sample" : ""}</span> : null}
+                        </span>
+                        <Caption>{[t.type, t.place].filter(Boolean).join(" · ")}</Caption>
+                      </span>
+                      <Button variant="ghost" icon size="sm" aria-label={`Remove ${t.name}`} onClick={() => setTargets((xs) => xs.filter((x) => x.id !== t.id))}>
+                        <Icon name="x" small />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
               )}
-            >
-              <span className="flex min-w-0 flex-1 flex-col gap-px">
-                <Label className={cn("inline-flex items-center gap-1.5", s.v2 ? "text-smart" : "text-ink-strong")}>
-                  {s.label}
-                  {s.v2 ? <V2Tag /> : null}
-                </Label>
-                <Caption>{s.detail}</Caption>
-                {s.missing ? <Caption className="text-caution-ink">{s.missing}</Caption> : null}
-              </span>
-              {s.count ? <span className="pt-[3px] font-mono text-[11px] text-ink-subtle">{s.count}</span> : null}
-            </a>
-          ))}
-        </nav>
-        <div className="flex min-w-0 flex-col gap-4 border-r border-line-subtle p-5">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            {/* The group's own outer border is a control outline too (its
-                buttons' own divider already uses `border-line-strong`);
-                `border-line` here was 1.44:1, short of WCAG 1.4.11's 3:1
-                (accessibility, cycle 19, BLOCKING F4). */}
-            <span role="group" aria-label="Template" className="inline-flex h-control shrink-0 overflow-hidden rounded-sm border border-line-strong">
-              {(["first", "repeat"] as const).map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  aria-pressed={model.template === t}
-                  className={cn(
-                    "whitespace-nowrap px-3 text-sm font-medium text-ink-muted",
-                    // The group's `overflow-hidden` (for its own rounded
-                    // corners) clipped the global `:focus-visible` ring,
-                    // painted 2px outside the border box: a keyboard user
-                    // tabbing here saw no focus indicator at all (WCAG
-                    // 2.4.7). Inset instead of outset keeps the ring inside
-                    // the button's own box, which `overflow-hidden` never
-                    // clips (accessibility, cycle 19, BLOCKING F3 — the same
-                    // defect as `Seg`, controls.tsx).
-                    "focus-visible:outline-offset-[-2px]",
-                    // 1.17:1 against the unpressed half beside it; the rail is 7.87:1.
-                    model.template === t && "bg-surface-sunken text-ink-strong shadow-[inset_0_-2px_0_rgb(var(--ds-brand))]",
-                  )}
-                >
-                  {t === "first" ? "First contact" : "Repeat supplier"}
-                </button>
-              ))}
-            </span>
-            <span className="flex flex-wrap items-center justify-end gap-1">
-              <Button variant="ghost">
-                <Icon name="paperclip" /> Attach
-              </Button>
-              <Button variant="ghost">
-                <Icon name="plus" /> Insert variable
-              </Button>
-              {aiEnabled ? (
-                <Button variant="ghost" className="text-smart">
-                  <Icon name="sparkle" /> Improve wording <V2Tag />
-                </Button>
+            </section>
+
+            {/* The product */}
+            <section className="flex flex-col gap-4">
+              <Label className="text-ink-strong">Product</Label>
+              <Field label="Product title" htmlFor={`${id}-title`} required>
+                <TextInput id={`${id}-title`} required value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} placeholder="e.g. Men's knitted piqué polo, 220 gsm" />
+              </Field>
+              <Field label="Description" htmlFor={`${id}-desc`} hint="Fabric, sizes, colours, packaging, certifications required.">
+                <TextArea id={`${id}-desc`} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={4000} rows={3} aria-describedby={`${id}-desc-hint`} />
+              </Field>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                <Field label="Quantity" htmlFor={`${id}-qty`} required>
+                  <TextInput id={`${id}-qty`} required type="number" min={1} step="any" inputMode="decimal" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
+                </Field>
+                <Field label="Unit" htmlFor={`${id}-unit`} required>
+                  <SelectInput id={`${id}-unit`} value={unit} onChange={(e) => setUnit(e.target.value)}>
+                    {UNITS.map((u) => (
+                      <option key={u} value={u}>
+                        {u}
+                      </option>
+                    ))}
+                  </SelectInput>
+                </Field>
+                <Field label="Target unit price" htmlFor={`${id}-price`}>
+                  <TextInput id={`${id}-price`} type="number" min={0} step="any" inputMode="decimal" value={targetPrice} onChange={(e) => setTargetPrice(e.target.value)} />
+                </Field>
+                <Field label="Currency" htmlFor={`${id}-ccy`}>
+                  <SelectInput id={`${id}-ccy`} value={currency} onChange={(e) => setCurrency(e.target.value)}>
+                    {CURRENCIES.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </SelectInput>
+                </Field>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field label="Ship to" htmlFor={`${id}-shipto`}>
+                  <TextInput id={`${id}-shipto`} list={`${id}-countries`} value={shipTo} onChange={(e) => setShipTo(e.target.value)} maxLength={64} placeholder="Country" />
+                  <datalist id={`${id}-countries`}>
+                    {SHIP_TO.map((c) => (
+                      <option key={c} value={c} />
+                    ))}
+                  </datalist>
+                </Field>
+                <Field label="Ship by" htmlFor={`${id}-shipby`}>
+                  <TextInput id={`${id}-shipby`} type="date" value={shipBy} onChange={(e) => setShipBy(e.target.value)} />
+                </Field>
+              </div>
+            </section>
+
+            {/* The message */}
+            <section className="flex flex-col gap-2">
+              <div className="flex items-baseline gap-2">
+                <Label className="text-ink-strong">Message</Label>
+                <Caption>from your workspace template · the supplier reads it inside SourceBD</Caption>
+                {messageEdited !== null ? (
+                  <button type="button" onClick={() => setMessageEdited(null)} className="ml-auto text-xs font-medium text-brand-ink hover:underline">
+                    Reset to template
+                  </button>
+                ) : null}
+              </div>
+              <TextArea id={`${id}-msg`} aria-label="Message" value={message} onChange={(e) => setMessageEdited(e.target.value)} rows={8} maxLength={8000} />
+              {filled.missing.length > 0 && messageEdited === null ? (
+                <Caption className="text-caution-ink">
+                  Your workspace has no {filled.missing.join(", ")} yet, so the template shows them in brackets.{" "}
+                  <Link href="/app/settings/workspace" prefetch={false} className="underline">
+                    Fill them in Settings
+                  </Link>
+                  .
+                </Caption>
               ) : null}
-            </span>
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-sm font-medium text-ink-muted">Subject</span>
-            <div className="flex min-h-control flex-wrap items-center gap-1 rounded-sm border border-line-strong bg-surface px-2.5 py-[5px] text-base leading-5 text-ink">
-              <Runs runs={model.subject} />
-            </div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-sm font-medium text-ink-muted">Message</span>
-            <div className="min-h-[120px] rounded-sm border border-line-strong bg-surface px-2.5 py-2 text-base leading-[22px] text-ink">
-              {model.body.map((para, i) => (
-                <p key={i} className={cn("m-0", i > 0 && "mt-[22px]")}>
-                  <Runs runs={para} />
-                </p>
-              ))}
-            </div>
-          </div>
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr>
-                {["Product", "HS", "Quantity", "Target price", "Ship by"].map((h) => (
-                  <th
-                    key={h}
-                    scope="col"
-                    className="border-b border-line-subtle px-2 py-1.5 text-left font-mono text-eyebrow font-medium uppercase text-ink-subtle"
-                  >
-                    {h}
-                  </th>
+            </section>
+
+            {/* The questions */}
+            <section className="flex flex-col gap-2">
+              <div className="flex items-baseline gap-2">
+                <Label className="text-ink-strong">Questions</Label>
+                <Caption>
+                  {asked.length} of {questions.length} asked
+                </Caption>
+              </div>
+              <ul className="m-0 flex list-none flex-col divide-y divide-line-subtle p-0">
+                {questions.map((q, i) => (
+                  <li key={`${i}-${q.text}`} className="flex min-h-9 items-center gap-2.5 py-1 text-sm">
+                    <Checkbox on={q.on} label={q.text} onToggle={() => setQuestions((qs) => qs.map((x, j) => (j === i ? { ...x, on: !x.on } : x)))} />
+                    <span className={cn("flex-1", !q.on && "text-ink-subtle")}>{q.text}</span>
+                    <Button variant="ghost" icon size="sm" aria-label={`Remove question: ${q.text}`} onClick={() => setQuestions((qs) => qs.filter((_, j) => j !== i))}>
+                      <Icon name="x" small />
+                    </Button>
+                  </li>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {model.products.map((p, i) => (
-                <tr key={i}>
-                  <td className="border-b border-line-subtle px-2 py-1.5">{p.product}</td>
-                  <td className="border-b border-line-subtle px-2 py-1.5">{p.hs ? <Code>{p.hs}</Code> : <span className="text-caution-ink">Missing</span>}</td>
-                  <td className="border-b border-line-subtle px-2 py-1.5">{p.quantity}</td>
-                  <td className={cn("border-b border-line-subtle px-2 py-1.5", !p.targetPrice && "text-caution-ink")}>{p.targetPrice ?? "Missing"}</td>
-                  <td className={cn("border-b border-line-subtle px-2 py-1.5", !p.shipBy && "text-caution-ink")}>{p.shipBy ?? "Missing"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="flex flex-col gap-1">
-            <span className="text-sm font-medium text-ink-muted">
-              Questions · {total}, {required} required
-            </span>
-            <div className="flex flex-col">
-              {model.questions.map((q) => (
-                <div key={q.text} className="flex min-h-7 items-center gap-2 border-t border-line-subtle py-[3px] text-sm first:border-t-0">
-                  <Checkbox on={q.on} label={q.text} />
-                  {q.text}
-                  {q.required ? <span className="ml-auto font-mono text-[10px] text-caution-ink">REQUIRED</span> : null}
-                </div>
-              ))}
-              {model.moreQuestions ? (
-                <div className="flex min-h-7 items-center border-t border-line-subtle py-[3px]">
-                  <Caption>
-                    +{model.moreQuestions.count} more · {model.moreQuestions.required} required
-                  </Caption>
-                </div>
-              ) : null}
+              </ul>
+              <div className="flex gap-2">
+                <TextInput
+                  aria-label="Add a question"
+                  placeholder="Add a question"
+                  value={newQuestion}
+                  onChange={(e) => setNewQuestion(e.target.value)}
+                  maxLength={200}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && newQuestion.trim()) {
+                      e.preventDefault();
+                      setQuestions((qs) => [...qs, { text: newQuestion.trim(), on: true }]);
+                      setNewQuestion("");
+                    }
+                  }}
+                />
+                <Button
+                  disabled={!newQuestion.trim() || questions.length >= 20}
+                  onClick={() => {
+                    setQuestions((qs) => [...qs, { text: newQuestion.trim(), on: true }]);
+                    setNewQuestion("");
+                  }}
+                >
+                  <Icon name="plus" /> Add
+                </Button>
+              </div>
+            </section>
+          </div>
+
+          {/* The preview: what the RFQ will carry, beside the form where there is room */}
+          <aside className="flex flex-col gap-3 xl:sticky xl:top-0 xl:self-start" aria-label="Preview">
+            <div className="flex items-center gap-2">
+              <Label className="text-ink-strong">What this RFQ carries</Label>
+              <Caption className="ml-auto">stored on the RFQ</Caption>
             </div>
-          </div>
-        </div>
-        <div className="flex min-w-0 flex-col gap-3 bg-surface-sunken p-5 text-sm">
-          <div className="flex items-center gap-2">
-            {/* Not "as the supplier receives it": 3 of 10,922 records are
-                claimed, and an unclaimed supplier is not reached at all until
-                §4.6 ships behind RFQ_EMAIL_UNCLAIMED. What this panel shows is
-                the message that will be stored against the RFQ. */}
-            <Label className="text-ink-strong">The message this RFQ carries</Label>
-            <Caption className="ml-auto">stored on the RFQ</Caption>
-          </div>
-          <div className="flex flex-col gap-2 rounded-md border border-line bg-surface p-4 text-ink">
-            <Caption>{model.preview.from}</Caption>
-            <Label className="text-ink-strong">{model.preview.subject}</Label>
-            {model.preview.paragraphs.map((p, i) => (
-              <span key={i}>{p}</span>
-            ))}
-            <Caption>{model.preview.footer}</Caption>
-          </div>
-          {/* No delivery promise: an unclaimed supplier is not reached until
-              REZ-D ships behind RFQ_EMAIL_UNCLAIMED (handoff §4.6), and the
-              RPC does not say whether this record has been claimed. */}
-          <Caption>Your email and phone are not shared. The supplier&apos;s contact details stay on their record.</Caption>
-        </div>
-      </div>
-      <div className="flex items-center gap-2 border-t border-line-subtle px-5 py-3">
-        <Caption className={cn("inline-flex flex-1 items-center gap-1", sanctioned.length > 0 && "text-sanction-ink")}>
-          {sanctioned.length > 0 ? (
+            <div className="flex flex-col gap-2 rounded-md bg-surface-sunken p-4 text-sm text-ink">
+              <Caption>To {targets.length === 0 ? "—" : targets.map((t) => t.name).join(", ")}</Caption>
+              <Label className="text-ink-strong">
+                RFQ · {title.trim() || "[product]"}
+                {Number(quantity) >= 1 ? ` · ${formatQuantity(Number(quantity), unit)}` : ""}
+                {shipBy ? ` · ship by ${formatDay(shipBy) ?? shipBy}` : ""}
+              </Label>
+              <p className="m-0 whitespace-pre-wrap text-sm leading-[22px] [overflow-wrap:anywhere]">{message}</p>
+              {asked.length > 0 ? (
+                <ol className="m-0 flex list-decimal flex-col gap-0.5 pl-5 text-sm">
+                  {asked.map((q) => (
+                    <li key={q}>{q}</li>
+                  ))}
+                </ol>
+              ) : null}
+              <Caption>
+                1 product line · {asked.length} {asked.length === 1 ? "question" : "questions"}
+              </Caption>
+            </div>
+            <Caption>Your email and phone are not shared. The supplier answers inside SourceBD, with the record attached.</Caption>
+          </aside>
+        </form>
+      </SheetScroll>
+      <div className="glass flex shrink-0 flex-wrap items-center gap-2 border-t border-line-subtle px-6 py-3">
+        <span role="status" aria-live="polite" className={cn("inline-flex min-w-0 flex-1 items-center gap-1 text-xs", error ? "text-danger-ink" : sanctioned.length > 0 ? "text-sanction-ink" : missing.length > 0 ? "text-caution-ink" : "text-ink-subtle")}>
+          {error ? (
+            <>
+              <Icon name="warn" small /> {error}
+            </>
+          ) : sanctioned.length > 0 ? (
             <>
               <Icon name="warn" small /> RFQs cannot be sent to a sanctioned supplier
             </>
-          ) : model.missing.length > 0 ? (
+          ) : missing.length > 0 ? (
             <>
-              <Icon name="warn" small /> {model.missing.length} {model.missing.length === 1 ? "field" : "fields"} missing —{" "}
-              {model.missing.join(", ")}
+              <Icon name="warn" small /> Still needed: {missing.join(", ")}
             </>
           ) : (
-            "Every required field is filled"
+            <>Ready to send to {targets.length === 1 ? targets[0]!.name : `${targets.length} suppliers`}</>
           )}
-        </Caption>
-        <Button>Save draft</Button>
-        <Button variant="primary" disabled={blocked}>
-          <Icon name="send" /> Send RFQ
+        </span>
+        <Button type="button" onClick={() => void saveDraft()} loading={busy === "draft"} disabled={busy !== null}>
+          Save draft
         </Button>
+        <Button type="submit" variant="primary" disabled={blocked} loading={busy === "send"} aria-describedby={`${id}-send-hint`}>
+          <Icon name="send" /> Send RFQ <Kbd>⌘↵</Kbd>
+        </Button>
+        <span id={`${id}-send-hint`} className="sr-only">
+          Sends to every supplier listed. Command or Control plus Enter also sends.
+        </span>
       </div>
-    </Dialog>
+    </Sheet>
   );
 }

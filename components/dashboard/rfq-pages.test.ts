@@ -7,7 +7,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 
-import { missingRequired } from "@/components/rfq-create-form";
+import { missingFields } from "./rfq-composer";
 import {
   RFQ_EMPTY_BODY,
   RFQ_EMPTY_TITLE,
@@ -17,9 +17,9 @@ import {
   rfqTabOf,
   type RfqDoc,
   type RfqRow,
+  RFQ_ERROR_COPY,
   type RfqTab,
 } from "./rfq-pages";
-import { RFQ_ERROR_COPY } from "./rfq-list";
 
 const TODAY = new Date("2026-09-27T00:00:00Z");
 
@@ -172,10 +172,10 @@ describe("RFQ detail", () => {
 });
 
 describe("RFQ composer", () => {
-  it("counts the required fields still missing", () => {
-    assert.equal(missingRequired({ title: "", quantity: "", unit: "pcs" }), 2);
-    assert.equal(missingRequired({ title: " ", quantity: "0", unit: "" }), 3);
-    assert.equal(missingRequired({ title: "Tees", quantity: "500", unit: "pcs" }), 0);
+  it("names the required fields still missing, in the buyer's words", () => {
+    assert.deepEqual(missingFields({ title: "", quantity: "", unit: "pcs", targets: 1 }), ["product title", "quantity"]);
+    assert.deepEqual(missingFields({ title: " ", quantity: "0", unit: "", targets: 0 }), ["product title", "quantity", "unit", "a supplier"]);
+    assert.deepEqual(missingFields({ title: "Tees", quantity: "500", unit: "pcs", targets: 2 }), []);
   });
 });
 

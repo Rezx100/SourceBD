@@ -1,6 +1,15 @@
-// Controls of the dashboard kit (REZ-A): buttons, the segmented toggle, the
-// checkbox, the V2 tag, meters and the live dot. Tailwind classes only; every
-// colour is a token role (`lib/design/tokens.ts`).
+// Controls of the dashboard kit: buttons, the segmented toggle, the checkbox,
+// the V2 tag, meters and the live dot. Tailwind classes only; every colour is
+// a token role (`lib/design/tokens.ts`).
+//
+// The button system (enterprise pass, 27 Sep 2026, direction B1 "Quiet"):
+// three tiers drawn by tone, not outline. `primary` is the one brand fill on a
+// screen; `default` (secondary) is a sunken tone with a soft edge; `ghost`
+// (tertiary) is text that gains a fill on hover; `danger` is the destructive
+// tier. Three sizes — 28 / 32 / 36 — and six states on every tier: rest,
+// hover, pressed (2 % smaller, 120 ms), focus (the global ring), disabled and
+// loading. Icons sit only on a verb that has one (send, save, create); an
+// icon-only button carries its accessible name.
 
 import Link from "next/link";
 import type { ButtonHTMLAttributes, MouseEventHandler, ReactNode } from "react";
@@ -8,17 +17,64 @@ import { cn } from "@/lib/utils";
 import { Icon, type IconName } from "./icons";
 import { LinkPending } from "./link-pending";
 
-export type ButtonVariant = "default" | "primary" | "ghost";
+export type ButtonVariant = "default" | "primary" | "ghost" | "danger";
+export type ButtonSize = "sm" | "md" | "lg";
+
+const SIZE: Record<ButtonSize, string> = {
+  sm: "h-7 px-2 text-xs",
+  md: "h-control px-3 text-sm",
+  lg: "h-9 px-3.5 text-sm",
+};
+const SQUARE: Record<ButtonSize, string> = { sm: "w-7 px-0", md: "w-control px-0", lg: "w-9 px-0" };
+
+const TONE: Record<ButtonVariant, string> = {
+  primary:
+    "bg-brand text-brand-on hover:bg-brand-hover active:bg-brand-active disabled:bg-surface-sunken disabled:text-ink-disabled disabled:hover:bg-surface-sunken aria-disabled:bg-surface-sunken aria-disabled:text-ink-disabled",
+  default:
+    "bg-surface-sunken text-ink shadow-edge hover:bg-line hover:text-ink-strong active:bg-line disabled:text-ink-disabled disabled:shadow-none disabled:hover:bg-surface-sunken aria-disabled:text-ink-disabled aria-disabled:shadow-none",
+  ghost:
+    "bg-transparent text-ink-muted hover:bg-surface-sunken hover:text-ink-strong active:bg-line disabled:text-ink-disabled disabled:hover:bg-transparent aria-disabled:text-ink-disabled aria-disabled:hover:bg-transparent",
+  danger:
+    "bg-danger-tint text-danger-ink hover:bg-danger hover:text-danger-on active:bg-danger disabled:bg-surface-sunken disabled:text-ink-disabled disabled:hover:bg-surface-sunken aria-disabled:bg-surface-sunken aria-disabled:text-ink-disabled",
+};
+
+/** The class list a control shares, exported so a link that must look like a button (a row action drawn by `next/link`) draws the same. */
+export function buttonClass({
+  variant = "default",
+  size = "md",
+  icon = false,
+  className,
+}: {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  icon?: boolean;
+  className?: string;
+}): string {
+  return cn(
+    // A press is felt as well as seen: the control settles 2 % smaller for as
+    // long as it is held (120 ms in and out), the way a native control does;
+    // colour and shadow move on the same clock. A disabled control takes no
+    // press, and `motion-reduce` keeps it still.
+    "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-sm border border-transparent font-medium transition-[color,background-color,border-color,box-shadow,transform] duration-fast active:scale-[0.98] motion-reduce:active:scale-100 disabled:cursor-not-allowed disabled:active:scale-100 aria-disabled:cursor-not-allowed aria-disabled:active:scale-100",
+    SIZE[size],
+    icon && SQUARE[size],
+    TONE[variant],
+    className,
+  );
+}
 
 /**
- * `.btn`: 32px, 13px medium, `line-strong` outline on `surface`. `primary` is
- * the one brand-filled control on a screen; `ghost` has no outline; `icon`
- * makes it square; `lg` is the 40px action-bar size.
+ * `.btn`. `variant` is the tier; `size` the density stop (`lg` is kept as a
+ * boolean alias for `size="lg"`); `icon` makes it square; `loading` swaps the
+ * leading icon for a spinner, says so to a screen reader and disables it,
+ * keeping the width so the bar does not jump.
  */
 export function Button({
   variant = "default",
   icon = false,
   lg = false,
+  size,
+  loading = false,
   className,
   children,
   type = "button",
@@ -30,20 +86,23 @@ export function Button({
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant;
   icon?: boolean;
+  /** Alias for `size="lg"`. */
   lg?: boolean;
+  size?: ButtonSize;
+  loading?: boolean;
   /** When set, renders as a link with the same styles. */
   href?: string;
   /**
    * Route this link through `next/link` instead of a plain anchor.
    *
-   * Opt-in, because most of the kit's links should stay document navigations:
+   * Opt-in, because some of the kit's links must stay document navigations:
    * the CSV export is an API route that must download rather than transition,
-   * and a register page is off-site entirely. It is the record links that need
-   * it — a full load there re-runs the search and drops the bulk selection,
-   * which is exactly what §3.3 says must not happen.
+   * and a register page is off-site entirely. Every navigation inside the
+   * shell wants it — a full load re-runs the search and drops the bulk
+   * selection, which is exactly what §3.3 says must not happen.
    */
   clientNav?: boolean;
-  /** `next/link` only. `false` keeps the reader where they were — the record opens over the results (§3.3's `{ scroll: false }`). */
+  /** `next/link` only. `false` keeps the reader where they were — the record opens beside the results (§3.3's `{ scroll: false }`). */
   scroll?: boolean;
   /**
    * `next/link` only. It prefetches by default; a results page draws up to 100
@@ -52,22 +111,17 @@ export function Button({
    */
   prefetch?: boolean;
 }) {
-  const classes = cn(
-    // A press is felt as well as seen: the control settles 2 % smaller for as
-    // long as the button is held (120 ms in and out), the way a native
-    // control does. Colour and shadow move on the same clock. A disabled
-    // button takes no `:active`, and `motion-reduce` keeps it still.
-    "inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm border text-sm font-medium transition-[color,background-color,border-color,box-shadow,transform] duration-fast active:scale-[0.98] motion-reduce:active:scale-100",
-    lg ? "h-control-lg px-4" : "h-control px-3",
-    icon && (lg ? "w-control-lg px-0" : "w-control px-0"),
-    icon && "justify-center",
-    variant === "default" && "border-line-strong bg-surface text-ink hover:bg-surface-sunken",
-    variant === "primary" &&
-      "border-brand bg-brand text-brand-on hover:border-brand-hover hover:bg-brand-hover active:bg-brand-active disabled:cursor-not-allowed disabled:border-line disabled:bg-surface-sunken disabled:text-ink-disabled",
-    variant === "ghost" && "border-transparent bg-transparent text-ink-muted hover:bg-surface-sunken",
-    className,
+  const classes = buttonClass({ variant, size: size ?? (lg ? "lg" : "md"), icon, className });
+  const disabled = rest.disabled || loading;
+  const body = loading ? (
+    <>
+      <Icon name="spinner" className="animate-spin motion-reduce:animate-none" />
+      {children}
+    </>
+  ) : (
+    children
   );
-  if (href && !rest.disabled) {
+  if (href && !disabled) {
     // `href` first: React emits attributes in prop order, and the kit's
     // long-name guard matches on the element that directly holds the text
     // (`class="…[overflow-wrap:anywhere]…">Name<`). Putting className first
@@ -77,6 +131,8 @@ export function Button({
       "aria-label": rest["aria-label"],
       "aria-busy": rest["aria-busy"],
       "aria-describedby": rest["aria-describedby"],
+      "aria-current": rest["aria-current"],
+      title: rest.title,
       tabIndex: rest.tabIndex,
       onClick: rest.onClick as unknown as MouseEventHandler<HTMLAnchorElement> | undefined,
     };
@@ -85,69 +141,80 @@ export function Button({
     // CSV download must not have.
     return clientNav ? (
       <Link href={href} prefetch={prefetch} scroll={scroll} {...linkProps}>
-        {children}
+        {body}
         {icon ? null : <LinkPending />}
       </Link>
     ) : (
       <a href={href} {...linkProps}>
-        {children}
+        {body}
       </a>
     );
   }
   return (
-    <button type={type} className={classes} {...rest}>
-      {children}
+    <button type={type} className={classes} {...rest} disabled={disabled} aria-busy={loading || rest["aria-busy"] || undefined}>
+      {body}
     </button>
   );
 }
 
-/** `.seg`: the card / table toggle. */
+/**
+ * `.seg`: the segmented toggle — the card / table switch, the template
+ * switch, the density stops. One component for every pair or trio of
+ * mutually exclusive stops in the app, so they cannot drift apart. Cells
+ * carry an icon, a label, or both; the active cell fills `brand-tint` with a
+ * 2px inset `brand` rule along its bottom.
+ */
 export function Seg({
   options,
   value,
   className,
   hrefFor,
+  onChange,
+  label,
 }: {
-  options: readonly { value: string; label: string; icon: IconName }[];
+  options: readonly { value: string; label: string; icon?: IconName }[];
   value: string;
   className?: string;
+  /** Links (a view switch is a URL); without it, buttons. */
   hrefFor?: (value: string) => string;
+  onChange?: (value: string) => void;
+  /** The group's accessible name. */
+  label?: string;
 }) {
-  const itemClass = (o: { value: string }, i: number) =>
+  const itemClass = (o: { value: string; icon?: IconName }, i: number) =>
     cn(
-      "grid w-9 place-items-center text-ink-muted",
+      "inline-flex h-full items-center justify-center gap-1.5 text-sm font-medium text-ink-muted transition-colors duration-fast hover:text-ink-strong",
+      o.icon ? "w-9" : "px-2.5",
       "focus-visible:outline-offset-[-2px]",
-      i > 0 && "border-l border-line-strong",
+      i > 0 && "border-l border-line",
       o.value === value && "bg-brand-tint text-brand-ink shadow-[inset_0_-2px_0_rgb(var(--ds-brand))]",
     );
   return (
-    <span
-      role="group"
-      className={cn("inline-flex h-control overflow-hidden rounded-sm border border-line-strong", className)}
-    >
+    <span role="group" aria-label={label} className={cn("inline-flex h-control overflow-hidden rounded-sm bg-surface shadow-edge", className)}>
       {options.map((o, i) =>
         hrefFor ? (
           <a
             key={o.value}
             href={hrefFor(o.value)}
-            aria-label={o.label}
+            aria-label={o.icon ? o.label : undefined}
             // "true", not "page": this is a view switch, and both views are the
             // same page. `aria-current="page"` on the Cards button announced a
             // navigation that does not happen.
             aria-current={o.value === value ? "true" : undefined}
             className={itemClass(o, i)}
           >
-            <Icon name={o.icon} />
+            {o.icon ? <Icon name={o.icon} /> : o.label}
           </a>
         ) : (
           <button
             key={o.value}
             type="button"
-            aria-label={o.label}
+            aria-label={o.icon ? o.label : undefined}
             aria-pressed={o.value === value}
+            onClick={onChange ? () => onChange(o.value) : undefined}
             className={itemClass(o, i)}
           >
-            <Icon name={o.icon} />
+            {o.icon ? <Icon name={o.icon} /> : o.label}
           </button>
         ),
       )}
@@ -163,10 +230,9 @@ export function Seg({
  * `onToggle` to make it real. It used to carry `tabIndex={0}` unconditionally,
  * which put 34 of these in the tab order across the six screens, announced
  * each as an operable checkbox, and then did nothing: Space scrolled the page
- * instead of toggling. On the RFQ composer the five required questions are
- * still these. A control with no `onToggle` keeps the kit's shape for inert
- * controls — `aria-disabled` and a title that says why — rather than a dead
- * tab stop (WCAG 2.1.1, 4.1.2).
+ * instead of toggling. A control with no `onToggle` keeps the kit's shape for
+ * inert controls — `aria-disabled` and a title that says why — rather than a
+ * dead tab stop (WCAG 2.1.1, 4.1.2).
  *
  * With `onToggle` it is a real checkbox, keyed the way a native one is: Space
  * toggles once, on key UP (keydown only stops the page scrolling), so holding
@@ -196,10 +262,6 @@ export function Checkbox({
       role="checkbox"
       aria-checked={on}
       aria-disabled={interactive ? undefined : "true"}
-      // The results work shipped (REZ-B), so "Selection arrives with the
-      // results work" became untrue wherever an inert box was still drawn —
-      // the RFQ list. The words now say what is true of THIS list: it does not
-      // support selection.
       title={interactive ? undefined : INERT_CHECKBOX_TITLE}
       aria-label={label}
       tabIndex={interactive ? 0 : undefined}
@@ -222,7 +284,7 @@ export function Checkbox({
           : undefined
       }
       className={cn(
-        "inline-grid size-4 shrink-0 place-items-center rounded-xs border border-line-strong bg-surface",
+        "inline-grid size-4 shrink-0 place-items-center rounded-xs border border-line-strong bg-surface transition-colors duration-fast",
         interactive && "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--ds-brand))]",
         on && "border-brand bg-brand text-brand-on",
         className,
@@ -295,4 +357,82 @@ export function Kbd({ children }: { children: ReactNode }) {
 /** A count in mono beside a label (`.cnt`). */
 export function Count({ children, className }: { children: ReactNode; className?: string }) {
   return <span className={cn("font-mono text-[11px] text-ink-subtle", className)}>{children}</span>;
+}
+
+/**
+ * A menu of links or actions behind a small control (sort, density, per
+ * page). Native `<details>`: it needs no script to open, and closes on
+ * Escape and on any link inside it through `MenuClose`. The panel escapes its
+ * container, so it must never sit inside `overflow-hidden`.
+ */
+export function Menu({
+  summary,
+  label,
+  align = "right",
+  up = false,
+  size = "md",
+  className,
+  children,
+}: {
+  summary: ReactNode;
+  /** The control's accessible name. */
+  label: string;
+  align?: "left" | "right";
+  /** Open upward (a footer menu). */
+  up?: boolean;
+  size?: ButtonSize;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <details className={cn("group/menu relative", className)}>
+      <summary
+        aria-label={label}
+        className={cn(buttonClass({ variant: "ghost", size }), "list-none [&::-webkit-details-marker]:hidden")}
+      >
+        {summary}
+        <Icon name="caret" small className="text-ink-subtle transition-transform duration-fast group-open/menu:rotate-180" />
+      </summary>
+      <div
+        role="menu"
+        className={cn(
+          "absolute z-20 min-w-[12rem] max-w-[calc(100vw-2rem)] rounded-md border border-line bg-surface py-1 shadow-md",
+          align === "right" ? "right-0" : "left-0",
+          up ? "bottom-full mb-1" : "top-full mt-1",
+        )}
+      >
+        {children}
+      </div>
+    </details>
+  );
+}
+
+/** One row of a `Menu`: a link (a sort is a URL) or a button, with the active one marked. */
+export function MenuItem({
+  href,
+  active = false,
+  onClick,
+  children,
+}: {
+  href?: string;
+  active?: boolean;
+  onClick?: () => void;
+  children: ReactNode;
+}) {
+  const cls = cn(
+    "flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-ink transition-colors duration-fast hover:bg-surface-sunken",
+    active && "text-ink-strong",
+  );
+  const mark = <Icon name="check" small className={active ? "text-brand-ink" : "invisible"} />;
+  return href ? (
+    <a role="menuitem" href={href} aria-current={active ? "true" : undefined} className={cls}>
+      {mark}
+      {children}
+    </a>
+  ) : (
+    <button type="button" role="menuitem" aria-pressed={active} onClick={onClick} className={cls}>
+      {mark}
+      {children}
+    </button>
+  );
 }
