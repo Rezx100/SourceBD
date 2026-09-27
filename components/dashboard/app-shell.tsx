@@ -160,7 +160,7 @@ export function Sidebar({ model, screenLabel }: { model: SidebarModel; screenLab
   return (
     <aside
       aria-label={screenLabel ? `Sidebar, ${screenLabel}` : "Sidebar"}
-      className="flex w-full shrink-0 flex-col gap-5 border-b border-line-subtle px-3 py-3 md:w-sidebar md:border-b-0 md:border-r md:py-4"
+      className="flex w-full shrink-0 flex-col gap-5 border-b border-line-subtle px-3 py-3 md:sticky md:top-0 md:h-screen md:w-sidebar md:self-start md:overflow-y-auto md:border-b-0 md:border-r md:py-4"
     >
       {/* The way home: /app has no nav item of its own. */}
       <Link href="/app" prefetch={false} aria-label="SourceBD home" className="hidden items-center gap-2.5 rounded-sm px-2 py-0.5 md:flex">
