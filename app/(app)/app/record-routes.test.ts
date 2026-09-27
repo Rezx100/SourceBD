@@ -20,7 +20,7 @@ import { createElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { after, describe, it } from "node:test";
 import path from "node:path";
-import { readdirSync, statSync } from "node:fs";
+import { existsSync, readdirSync, statSync } from "node:fs";
 
 import { aboniInput, sanctionedInput, TODAY, zaheenSampleInput } from "@/lib/dashboard/fixtures";
 import { drawsKitShell } from "@/lib/dashboard/kit-shell";
@@ -1210,6 +1210,24 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
       assert.match(kit, /PAGE-BODY/);
     } finally {
       currentPath = "/app/discover";
+    }
+  });
+
+  it("no loading boundary sits above the record or the line page: their 404 and 308 must be status codes, not streamed 200s", () => {
+    // A `loading.tsx` is a Suspense boundary. With one above the record page
+    // the shell streams first, the response is committed as 200, and every
+    // `notFound()` and `permanentRedirect()` the page then throws becomes a
+    // client-side 404 or redirect behind a 200 — a section-level
+    // `app/(app)/app/loading.tsx` shipped on 27 Sep 2026 and CI's HTTP-boundary
+    // guard (`scripts/test-profile-http-boundary.mjs`) caught exactly that.
+    // Only an outside caller sees the status; this pins the cause.
+    const under = ["", "suppliers", "suppliers/[slug]", "suppliers/[slug]/lines", "suppliers/[slug]/lines/[hs]"];
+    for (const dir of under) {
+      const file = path.join(process.cwd(), "app", "(app)", "app", dir, "loading.tsx");
+      assert.ok(!existsSync(file), `${dir || "app/(app)/app"}/loading.tsx puts the record page behind a Suspense boundary`);
+    }
+    for (const file of ["app/loading.tsx", "app/(app)/loading.tsx"]) {
+      assert.ok(!existsSync(path.join(process.cwd(), file)), `${file} puts every buyer page behind a Suspense boundary`);
     }
   });
 

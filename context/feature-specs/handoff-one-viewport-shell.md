@@ -31,9 +31,9 @@ was an 880px `absolute` sheet with a left rule floating in a centred box.
   `md:h-full`). Typeahead + SearchCarry sit in a `<Suspense>`.
 - `app/(app)/app/layout.tsx` draws `AppShell` once (`loadBuyerShell(supabase)`
   — pathname now optional; returns `account` inside the sidebar model), then
-  `TourMount`. `template.tsx` fades the content; `loading.tsx` = section
-  skeleton; `kit-loading.tsx` is now just `<Page>` (old `path`/`screenLabel`
-  props accepted and ignored, so the 14 route `loading.tsx` files still compile).
+  `TourMount`. `template.tsx` fades the content; `kit-loading.tsx` is now
+  just `<Page>`. (Session 1 also added a section-level
+  `app/(app)/app/loading.tsx`; session 2 removed it — see the CI trap below.)
 - `components/dashboard/page.tsx`: new `Page` frame (max-w, gutter, gap-4).
   All 24 pages no longer render `AppShell`: 18 migrated by script to
   `return <Page>{await Body(props)}</Page>`, plus by hand: record page
@@ -77,7 +77,8 @@ was an 880px `absolute` sheet with a left rule floating in a centred box.
    `lg:` only), `craft`, `dashboard-screens` (one dialog on the page, the two
    record screens are panes beside live results), `links.test.ts` (the shell's
    rail prefetches, never the search; content links still opt out).
-   `tsconfig.npm-test.json` gained `app/(app)/app/loading.tsx`.
+   `record-routes.test.ts` also pins that no `loading.tsx` sits above the
+   record or line page (why: the CI trap below).
 3. `pnpm exec tsc -p tsconfig.npm-test.json` clean; the dashboard, app and
    lib/dashboard suites green (797 tests); `next lint` clean.
 4. Screenshot round (built-in browser over the `static-preview` launch config,
@@ -110,6 +111,13 @@ was an 880px `absolute` sheet with a left rule floating in a centred box.
 - The competitor's sticky record name in the pane bar on scroll.
 
 ## Traps this machine set
+- CI's HTTP-boundary guard failed on the first push: a section-level
+  `app/(app)/app/loading.tsx` is a Suspense boundary above the record page,
+  so the shell streamed first with status 200 and the page's `notFound()`
+  (404) and `permanentRedirect()` (308 to the mother company) became
+  client-side fallbacks behind a 200. Removed; a route that must answer a
+  status code cannot sit under a `loading.tsx`. The routes with their own
+  loading state (discover, rfqs, …) never throw a status.
 - A Bash heredoc whose body contains an apostrophe dies with
   "unexpected EOF while looking for matching `''" — write scripts with the
   Write tool into the scratchpad and run them with `python <path>`. Source
