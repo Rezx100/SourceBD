@@ -251,8 +251,10 @@ export function Topbar({ model, screenLabel }: { model: TopbarModel; screenLabel
     <div className="glass flex h-topbar shrink-0 items-center gap-3 border-b border-line-subtle px-4 sm:gap-4 sm:px-6">
       {model.searchAction ? (
         // `next/form`: submitting runs a client navigation to the results
-        // instead of reloading the document.
+        // instead of reloading the document. Not prefetched, like the sidebar:
+        // /app/discover is rate-limited and a prefetch spends the allowance.
         <Form
+          prefetch={false}
           role="search"
           // The `search` landmark had no name. `screenLabel` was documented as
           // having been threaded into "nav/search" and had only ever reached

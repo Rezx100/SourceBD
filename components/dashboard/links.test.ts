@@ -256,3 +256,15 @@ describe("the dashboard kit's in-app links are client navigations", () => {
     assert.match(controls, /<a href=\{href\}/, "Button no longer has a plain-anchor branch");
   });
 });
+
+describe("the shell never prefetches", () => {
+  it("every Link and Form in the kit shell opts out of prefetch", () => {
+    // /app/discover is rate-limited in middleware. A prefetch is a request
+    // that passes the limiter, so a shell that prefetched its nav or its
+    // search form spent the buyer's allowance on searches they never ran.
+    const src = readFileSync(path.join(KIT, "app-shell.tsx"), "utf8");
+    const opens = src.match(/<(Link|Form)\b[^>]*?>/gs) ?? [];
+    assert.ok(opens.length >= 3, "expected the nav Link, the account Link and the search Form");
+    for (const tag of opens) assert.match(tag, /prefetch=\{false\}/, `prefetches: ${tag.slice(0, 60)}`);
+  });
+});

@@ -7,6 +7,7 @@
 // {action:'update_notifications', <key>:bool} to /api/v1/settings.
 // Optimistic update; rolls back on error.
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import {
@@ -51,6 +52,9 @@ export function SettingsNotificationToggles({
   const [error, setError] = useState<string | null>(null);
   const [savingKey, setSavingKey] = useState<keyof Notifications | null>(null);
   const [, startTransition] = useTransition();
+  // Visited pages are kept for 30s (`staleTimes`); refresh so a return
+  // visit does not show the old state.
+  const router = useRouter();
 
   function toggle(key: keyof Notifications) {
     const prev = state[key];
@@ -68,7 +72,8 @@ export function SettingsNotificationToggles({
             [key]: next,
           }),
         });
-        if (!res.ok) {
+        if (res.ok) router.refresh();
+        else {
           setState((s) => ({ ...s, [key]: prev }));
           const body = (await res.json().catch(() => null)) as
             | { error?: string }
