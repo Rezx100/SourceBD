@@ -1789,12 +1789,12 @@ const CASES = [
     auth: true,
     expect: {
       status: 200,
-      // `>1,200<span` / `>100<span`: each figure at the head of its own cell.
+      // The ledger grid (27 Sep) prints the figure bare at the default
+      // density and says what it counts in the cell's title; each figure is
+      // pinned to its own words.
       bodyIncludesAll: [
-        ">1,200<span class=\"block text-xs font-normal text-ink-subtle [overflow-wrap:anywhere]\">on the supplier record</span>",
-        "500 workers · across its buildings, not this record",
-        ">100<span",
-        "450 workers · RSC inspection",
+        "title=\"on the supplier record · 500 workers · across its buildings, not this record\">1,200</span>",
+        "title=\"on the supplier record · 450 workers · RSC inspection\">100</span>",
       ],
       bodyExcludes: ["450 workers · across this record and its buildings", "Search is under heavy load"],
     },

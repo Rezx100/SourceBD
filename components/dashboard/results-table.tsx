@@ -226,21 +226,18 @@ export function ResultsTable({
                     // as the card and the CSV carry it.
                     <span className="text-quiet-ink" title={r.workersSecond ?? undefined}>
                       —
-                      {density !== "compact" && r.workersSecond ? (
+                      {density === "comfortable" && r.workersSecond ? (
                         <span className="block text-xs font-normal text-ink-subtle [overflow-wrap:anywhere]">{r.workersSecond}</span>
                       ) : null}
                     </span>
                   ) : (
-                    // A figure printed bare hides what it counts (founder, 24 Sep):
-                    // the coverage and the profile's second figure sit under it on
-                    // every density but compact, where they travel in the title.
+                    // A figure printed bare hides what it counts: the coverage and
+                    // the profile's second figure travel in the title, and beside it
+                    // when the row is comfortable.
                     <span title={[r.workersCoverage, r.workersSecond].filter(Boolean).join(" · ") || undefined}>
                       {formatCount(r.workers)}
-                      {density !== "compact" && r.workersCoverage ? (
+                      {density === "comfortable" && r.workersCoverage ? (
                         <span className="block text-xs font-normal text-ink-subtle [overflow-wrap:anywhere]">{r.workersCoverage}</span>
-                      ) : null}
-                      {density !== "compact" && r.workersSecond ? (
-                        <span className="block text-xs font-normal text-ink-subtle [overflow-wrap:anywhere]">{r.workersSecond}</span>
                       ) : null}
                     </span>
                   )}
