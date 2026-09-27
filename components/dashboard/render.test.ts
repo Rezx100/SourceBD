@@ -2674,3 +2674,14 @@ describe("the sort menu opens inside the viewport", () => {
     );
   });
 });
+
+describe("the toast fits a phone", () => {
+  it("wraps inside the viewport rather than running off it", async () => {
+    // A failed save reads "This supplier is no longer listed, so it was not
+    // saved." — held to one line it ran off both sides of a 320px screen.
+    const { Toast } = await import("./toast");
+    const html = renderToStaticMarkup(createElement(Toast, { text: "This supplier is no longer listed, so it was not saved.", href: null }));
+    assert.doesNotMatch(html, /whitespace-nowrap/);
+    assert.match(html, /max-w-\[calc\(100vw-2rem\)\]/);
+  });
+});

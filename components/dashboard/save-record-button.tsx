@@ -4,7 +4,7 @@ import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared
 import { startTransition, useContext, useEffect, useId, useState } from "react";
 import { Button } from "@/components/dashboard/controls";
 import { Icon } from "@/components/dashboard/icons";
-import { Toast } from "@/components/dashboard/rfq-list";
+import { Toast } from "@/components/dashboard/toast";
 import { onBulkSaved, rowSaveMessage } from "@/lib/dashboard/selection";
 
 /**
