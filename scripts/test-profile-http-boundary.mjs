@@ -1791,7 +1791,7 @@ const CASES = [
       status: 200,
       // `>1,200<span` / `>100<span`: each figure at the head of its own cell.
       bodyIncludesAll: [
-        ">1,200<span class=\"block text-xs font-normal text-ink-subtle\">on the supplier record</span>",
+        ">1,200<span class=\"block text-xs font-normal text-ink-subtle [overflow-wrap:anywhere]\">on the supplier record</span>",
         "500 workers · across its buildings, not this record",
         ">100<span",
         "450 workers · RSC inspection",
