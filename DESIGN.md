@@ -1,10 +1,10 @@
 ---
 name: SourceBD buyer app
-description: A ledger of verified Bangladesh RMG suppliers; warm paper, hairlines, green spent only where the buyer acts.
+description: A ledger of verified Bangladesh RMG suppliers; neutral paper, hairlines, green spent only where the buyer acts.
 colors:
-  canvas: "#F6F7F2"
+  canvas: "#F7F7F6"
   surface: "#FFFFFF"
-  surface-sunken: "#ECEEE7"
+  surface-sunken: "#EEEEEC"
   surface-inverse: "#111411"
   surface-inverse-raised: "#181C18"
   ink-strong: "#0F130F"
@@ -15,8 +15,8 @@ colors:
   ink-inverse: "#F2F4EE"
   ink-inverse-muted: "#A9B1A8"
   ink-inverse-subtle: "#8A938A"
-  line-subtle: "#E6E8DF"
-  line: "#D5D9CC"
+  line-subtle: "#E7E7E4"
+  line: "#D8D8D4"
   line-strong: "#79837A"
   line-inverse: "#2B302B"
   brand: "#1B5E20"
@@ -46,17 +46,17 @@ colors:
   sanction: "#8F1711"
   sanction-on: "#FFFFFF"
   sanction-tint: "#FAE6E3"
-  locked: "#ECEEE7"
+  locked: "#EEEEEC"
   locked-stripe: "#DDE0D5"
   locked-ink: "#545C54"
   locked-line: "#C1C7B9"
-  quiet: "#F6F7F2"
+  quiet: "#F7F7F6"
   quiet-ink: "#545C54"
   quiet-line: "#C1C7B9"
   smart: "#6B3FA0"
   smart-tint: "#F1E8FA"
   smart-line: "#D6C2EE"
-  skeleton: "#E6E8DF"
+  skeleton: "#E7E7E4"
   tier-1: "#0F130F"
   tier-2: "#262B26"
   tier-3: "#545C54"
@@ -288,12 +288,12 @@ Scope: the buyer app under `/app/*` as drawn by `components/dashboard/*`, with e
 
 **Creative North Star: "The Ledger That Answers"**
 
-The buyer app is a ledger of receipts. Every screen is a page of warm paper (`canvas`) with white panels laid on it, separated by hairlines rather than shadows, and every fact on the page has room beside it for the mark of the register that filed it. Density is desk-level: 13px labels, 14px body, 36px table rows, 32px controls, a 232px rail and a 56px frosted topbar. Colour is spent like money. The shell is near-monochrome on a green-cast grey ramp, the brand green appears only where the buyer acts (the primary button, links, the active nav row, the logo), and status hues (teal-green, amber, red, and the reserved sanction maroon) appear only on facts that carry that status.
+The buyer app is a ledger of receipts. Every screen is a page of neutral paper (`canvas`) with white panels laid on it, separated by hairlines rather than shadows, and every fact on the page has room beside it for the mark of the register that filed it. Density is desk-level: 13px labels, 14px body, 36px table rows, 32px controls, a 232px rail and a 56px frosted topbar. Colour is spent like money. The shell is near-monochrome on a neutral grey ramp, the brand green appears only where the buyer acts (the primary button, links, the active nav row, the logo), and status hues (teal-green, amber, red, and the reserved sanction maroon) appear only on facts that carry that status.
 
 The world refuses the competitor's chat-first home and its match-score theatre: there is no score, grade, rating or star anywhere on a buyer surface. It also refuses decoration: the one flourish is the `signal` dot, a bright green point beside a live number or in a toast, and the empty-state spot illustrations, single-weight ink line art with one brand-green fill. Motion is acknowledgement, not spectacle: entrances only, opacity-led, at 120 / 200 / 320 ms, and nothing is lost when the device asks for reduced motion.
 
 **Key Characteristics:**
-- Warm paper canvas, white panels, hairline dividers; depth by tone and border, not shadow.
+- Neutral paper canvas, white panels, hairline dividers; depth by tone and border, not shadow.
 - Geist for words, Geist Mono for the ledger's stamps (register numbers, column keys, source marks, counts).
 - Brand green on the primary action, links, active nav and the logo only; never a badge, never a state.
 - Source rank drawn as a neutral lightness ramp, so colour stays free for status.
@@ -303,7 +303,7 @@ The world refuses the competitor's chat-first home and its match-score theatre: 
 
 ## Colors
 
-A green-cast neutral ramp carries the shell; one brand green is the action colour; four status hues sit on facts; one violet is reserved for AI-assisted surfaces that do not yet exist in V1.
+A neutral ramp carries the shell; one brand green is the action colour; four status hues sit on facts; one violet is reserved for AI-assisted surfaces that do not yet exist in V1.
 
 ### Primary
 - **Forest Green** (`brand`): the primary button fill, link text (`brand-ink`), the logo square, and the active nav row's hairline ring. Hover and active steps darken it (`brand-hover`, `brand-active`); `brand-tint` is the active nav row's fill and `brand-tint-strong` the selected row, the active filter chip and text selection. On a dark band, links use **Spring Green** (`brand-ink-inverse`).

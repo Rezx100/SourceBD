@@ -128,7 +128,7 @@ export function SheetFrame({
   children: ReactNode;
 }) {
   if (!overlay) {
-    return <div className="relative mx-auto min-h-[calc(100vh-11rem)] w-full max-w-[880px]">{children}</div>;
+    return <div className="relative mx-auto min-h-[calc(100vh-11rem)] w-full max-w-[880px] rounded-md border border-line-subtle bg-surface">{children}</div>;
   }
   return (
     <div className="fixed inset-0 z-50" data-open-key={openKey}>
