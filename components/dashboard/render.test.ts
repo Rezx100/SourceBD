@@ -34,7 +34,7 @@ import { Button, Checkbox, INERT_CHECKBOX_TITLE, Meter, Seg } from "./controls";
 import { Icon } from "./icons";
 import { Panel, PanelFooter, PanelHeader } from "./results-panel";
 import { ProductSheet } from "./product-sheet";
-import { ResultsTable, onRowKey } from "./results-table";
+import { ResultsTable, onRowKey, type ResultsSortKey } from "./results-table";
 import { DEFAULT_QUESTIONS, DEFAULT_TEMPLATE, RfqComposer, fillTemplate, missingFields, type ComposerPrefill, type ComposerTarget } from "./rfq-composer";
 import { AppShell } from "./app-shell";
 import { Topbar } from "./app-shell";
@@ -359,8 +359,8 @@ describe("ResultsTable (rendered) — the ledger grid", () => {
 
   it("a sortable header says which order is on, and only the active one says a direction", () => {
     const rows = [buildTableRow(aboniInput())];
-    const sortHref = (k: string) => `/app/discover?q=knit&sort=${k}`;
-    const desc = renderToStaticMarkup(createElement(ResultsTable, { rows, sort: { key: "sources", dir: "desc" }, sortHref }));
+    const sortHrefs = Object.fromEntries(["name", "sources", "cert_expiry", "hs_lines", "workers"].map((k) => [k, `/app/discover?q=knit&sort=${k}`])) as Record<ResultsSortKey, string>;
+    const desc = renderToStaticMarkup(createElement(ResultsTable, { rows, sort: { key: "sources", dir: "desc" }, sortHrefs }));
     const sorts = (html: string) =>
       [...html.matchAll(/<th scope="col"[^>]*aria-sort="([^"]+)"[^>]*>(?:(?!<\/th>)[\s\S])*?href="([^"]+)"/g)].map((m) => [m[2]!.replace(/.*sort=/, ""), m[1]!]);
     assert.deepEqual(sorts(desc), [
@@ -370,7 +370,7 @@ describe("ResultsTable (rendered) — the ledger grid", () => {
       ["hs_lines", "none"],
       ["workers", "none"],
     ]);
-    const asc = renderToStaticMarkup(createElement(ResultsTable, { rows, sort: { key: "name", dir: "asc" }, sortHref }));
+    const asc = renderToStaticMarkup(createElement(ResultsTable, { rows, sort: { key: "name", dir: "asc" }, sortHrefs }));
     assert.deepEqual(sorts(asc)[0], ["name", "ascending"]);
     // Without a sort URL the headers are plain: no link, no aria-sort claiming an order it cannot change.
     const plain = renderToStaticMarkup(createElement(ResultsTable, { rows }));
@@ -379,7 +379,7 @@ describe("ResultsTable (rendered) — the ledger grid", () => {
 
   it("no header cell is held to one line, so a narrow column wraps its label instead of clipping it", () => {
     const html = renderToStaticMarkup(
-      createElement(ResultsTable, { rows: [buildTableRow(aboniInput())], sort: { key: "sources", dir: "desc" }, sortHref: (k: string) => `?sort=${k}` }),
+      createElement(ResultsTable, { rows: [buildTableRow(aboniInput())], sort: { key: "sources", dir: "desc" }, sortHrefs: Object.fromEntries(["name", "sources", "cert_expiry", "hs_lines", "workers"].map((k) => [k, `?sort=${k}`])) as Record<ResultsSortKey, string> }),
     );
     const head = html.slice(html.indexOf("<thead"), html.indexOf("</thead>"));
     assert.ok(head.length > 0);

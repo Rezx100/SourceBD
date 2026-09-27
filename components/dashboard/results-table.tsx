@@ -42,7 +42,7 @@ export function ResultsTable({
   compact = false,
   density = "default",
   sort,
-  sortHref,
+  sortHrefs,
 }: {
   rows: readonly TableRowModel[];
   /** The record open beside the results, so its row is marked. */
@@ -52,15 +52,17 @@ export function ResultsTable({
   density?: ResultsDensity;
   /** The active sort, for the header arrow. */
   sort?: { key: string; dir: SortDir } | null;
-  /** The URL that orders the list by a column. */
-  sortHref?: (key: ResultsSortKey) => string;
+  /** The URL that orders the list by each column. Strings, not a function:
+   *  this is a client component and the search page renders it from the
+   *  server, where a function prop crashes the whole page. */
+  sortHrefs?: Record<ResultsSortKey, string>;
 }) {
   const sel = useSelection();
   const head = (key: ResultsSortKey, label: string, align: "left" | "right" = "left", className?: string) => (
     <HeadCell
       align={align}
       className={className}
-      sort={sortHref ? { href: sortHref(key), active: sort?.key === key, dir: sort?.dir } : undefined}
+      sort={sortHrefs ? { href: sortHrefs[key], active: sort?.key === key, dir: sort?.dir } : undefined}
     >
       {label}
     </HeadCell>

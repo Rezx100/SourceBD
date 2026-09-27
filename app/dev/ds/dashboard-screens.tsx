@@ -109,10 +109,13 @@ export function galleryState(): DiscoverState {
   return parseDiscoverState(new URLSearchParams({ q: GALLERY_QUERY.q, cert: GALLERY_QUERY.certKinds.join(",") }));
 }
 
-/** The ledger's column sort, as the URL /app/discover would take. */
-function sortHref(key: ResultsSortKey): string {
-  return discoverHref(galleryState(), { sort: key as DiscoverState["sort"], page: 1 });
-}
+/** The ledger's column sorts, as the URLs /app/discover would take. */
+const sortHrefs = Object.fromEntries(
+  (["name", "sources", "cert_expiry", "hs_lines", "workers"] as const).map((key) => [
+    key,
+    discoverHref(galleryState(), { sort: key as DiscoverState["sort"], page: 1 }),
+  ]),
+) as Record<ResultsSortKey, string>;
 
 /** A record's row slug: the profile's own, which is what the ledger keys rows on. */
 function slugOf(r: GalleryRecord | null): string | null {
@@ -270,7 +273,7 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
       <Panel>
         {/* A record beside the results is the page's h1; the search steps down to h2. */}
         <PanelHeader as={currentSlug ? "h2" : "h1"} model={header(d, "table", namedRows.length, SELECTION)} />
-        <ResultsTable rows={namedRows} compact currentSlug={currentSlug} sort={sort} sortHref={sortHref} />
+        <ResultsTable rows={namedRows} compact currentSlug={currentSlug} sort={sort} sortHrefs={sortHrefs} />
         <PanelFooter shown={namedRows.length} total={d.discoverError ? null : d.total} note={SELECTION} />
       </Panel>
     </>
@@ -296,7 +299,7 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
                 {search}
                 <Panel>
                   <PanelHeader model={header(d, "table", d.rows.length, tableSelection(d))} />
-                  <ResultsTable rows={ledgerRows} currentSlug={aboni} sort={sort} sortHref={sortHref} />
+                  <ResultsTable rows={ledgerRows} currentSlug={aboni} sort={sort} sortHrefs={sortHrefs} />
                   <PanelFooter shown={d.rows.length} total={d.discoverError ? null : d.total} note={tableSelection(d)} />
                 </Panel>
               </>

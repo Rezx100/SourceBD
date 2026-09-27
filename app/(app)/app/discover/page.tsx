@@ -326,7 +326,9 @@ export default async function BuyerDiscoverPage({
                   compact={paneOpen}
                   density={density}
                   sort={{ key: state.sort, dir: SORT_DIR[state.sort] ?? "desc" }}
-                  sortHref={(key) => discoverHref(state, { sort: COLUMN_SORT[key] as DiscoverState["sort"], page: 1 })}
+                  sortHrefs={Object.fromEntries(
+                    (Object.keys(COLUMN_SORT) as ResultsSortKey[]).map((key) => [key, discoverHref(state, { sort: COLUMN_SORT[key] as DiscoverState["sort"], page: 1 })]),
+                  ) as Record<ResultsSortKey, string>}
                 />
               ) : (
                 <div>
