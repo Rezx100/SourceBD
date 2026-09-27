@@ -16,6 +16,8 @@ import {
   type PillTone,
 } from "@/components/ui/page-kit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { AppShell } from "@/components/dashboard/app-shell";
+import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 
 export const dynamic = "force-dynamic";
 
@@ -62,7 +64,7 @@ type OrderRow = {
 
 const ACTIVE: OrderStatus[] = ["draft", "in_production", "shipped", "in_transit"];
 
-export default async function OrdersPage() {
+async function OrdersPageBody() {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.rpc("order_list", { p_status: null });
   const orders: OrderRow[] = error || data == null ? [] : (data as OrderRow[]);
@@ -226,4 +228,16 @@ function fmtRelative(iso: string): string {
   if (delta < day) return `${Math.floor(delta / 3_600_000)}h ago`;
   if (delta < 30 * day) return `${Math.floor(delta / day)}d ago`;
   return new Date(iso).toLocaleDateString();
+}
+
+// The kit's shell on every buyer page (one sidebar, one topbar), read in the
+// same wave as the page's own data.
+export default async function OrdersPage() {
+  const supabase = await createSupabaseServerClient();
+  const [shell, body] = await Promise.all([loadBuyerShell(supabase, "/app/orders"), OrdersPageBody()]);
+  return (
+    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Orders">
+      {body}
+    </AppShell>
+  );
 }

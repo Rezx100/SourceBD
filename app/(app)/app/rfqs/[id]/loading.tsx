@@ -1,5 +1,12 @@
-import { MasterDetailSkeleton } from "../../../skeletons";
+import { KitLoading } from "@/components/dashboard/kit-loading";
+import { PageSkeleton } from "@/components/dashboard/page-skeleton";
 
-export default function RfqDetailLoading() {
-  return <MasterDetailSkeleton kind="rfq" />;
+// Inside the kit's frame: the layout draws no shell on /app routes (`ShellSwitch`).
+
+export default function RfqLoading() {
+  return (
+    <KitLoading path="/app/rfqs/x" screenLabel="RFQ">
+      <PageSkeleton kind="detail" />
+    </KitLoading>
+  );
 }

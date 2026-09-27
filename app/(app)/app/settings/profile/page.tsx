@@ -13,6 +13,8 @@ import { SettingsChangeEmailForm } from "@/components/settings-change-email-form
 import { SettingsChangePasswordForm } from "@/components/settings-change-password-form";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/page-kit";
+import { AppShell } from "@/components/dashboard/app-shell";
+import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +32,7 @@ type SettingsDoc = {
   };
 };
 
-export default async function SettingsProfilePage() {
+async function SettingsProfilePageBody() {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.rpc("settings_get");
   const settings = (data ?? null) as SettingsDoc | null;
@@ -66,5 +68,17 @@ export default async function SettingsProfilePage() {
 
       <SettingsChangePasswordForm />
     </div>
+  );
+}
+
+// The kit's shell on every buyer page (one sidebar, one topbar), read in the
+// same wave as the page's own data.
+export default async function SettingsProfilePage() {
+  const supabase = await createSupabaseServerClient();
+  const [shell, body] = await Promise.all([loadBuyerShell(supabase, "/app/settings/profile"), SettingsProfilePageBody()]);
+  return (
+    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Profile">
+      {body}
+    </AppShell>
   );
 }

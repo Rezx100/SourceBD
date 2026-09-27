@@ -19,6 +19,8 @@ import {
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { FormGrid } from "@/components/ui/form-grid";
 import { PageHeader } from "@/components/ui/page-kit";
+import { AppShell } from "@/components/dashboard/app-shell";
+import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 
 export const dynamic = "force-dynamic";
 
@@ -75,7 +77,7 @@ function planLabel(tier: string | null): string {
   return "Starter";
 }
 
-export default async function SettingsPlanPage() {
+async function SettingsPlanPageBody() {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.rpc("settings_get");
   const settings = (data ?? null) as SettingsDoc | null;
@@ -170,5 +172,17 @@ export default async function SettingsPlanPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// The kit's shell on every buyer page (one sidebar, one topbar), read in the
+// same wave as the page's own data.
+export default async function SettingsPlanPage() {
+  const supabase = await createSupabaseServerClient();
+  const [shell, body] = await Promise.all([loadBuyerShell(supabase, "/app/settings/plan"), SettingsPlanPageBody()]);
+  return (
+    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Plan">
+      {body}
+    </AppShell>
   );
 }

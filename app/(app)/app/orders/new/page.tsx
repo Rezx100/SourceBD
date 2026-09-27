@@ -11,13 +11,15 @@ import { notFound, redirect } from "next/navigation";
 import { OrderCreateForm, type OrderSeed } from "@/components/order-create-form";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/page-kit";
+import { AppShell } from "@/components/dashboard/app-shell";
+import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 
 export const dynamic = "force-dynamic";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-export default async function NewOrderPage({
+async function NewOrderPageBody({
   searchParams,
 }: {
   searchParams: Promise<{ from_quote?: string; supplier?: string }>;
@@ -143,5 +145,17 @@ export default async function NewOrderPage({
         </div>
       </div>
     </div>
+  );
+}
+
+// The kit's shell on every buyer page (one sidebar, one topbar), read in the
+// same wave as the page's own data.
+export default async function NewOrderPage(props: Parameters<typeof NewOrderPageBody>[0]) {
+  const supabase = await createSupabaseServerClient();
+  const [shell, body] = await Promise.all([loadBuyerShell(supabase, "/app/orders/new"), NewOrderPageBody(props)]);
+  return (
+    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="New order">
+      {body}
+    </AppShell>
   );
 }
