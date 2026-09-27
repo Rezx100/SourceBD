@@ -62,6 +62,15 @@ imitation risk entirely while keeping recognition.
 
 ## 2. Asset filesystem layout
 
+> **27 Sep 2026 (founder):** the marks in use are one-colour PNGs built by
+> `scripts/build_source_marks.py` from the founder's originals in
+> `public/inapp-logos/` (BEPZA and DIFE fetched from their own sites that
+> day). They render as a CSS mask in the kit's ink, in a white frame ringed by
+> rank (`components/dashboard/marks.tsx`), and are listed in
+> `lib/dashboard/source-logos.ts`. No colour variant is shown anywhere. RJSC
+> publishes no mark of its own (its site shows the government seal) and keeps
+> its letters until §6's seal question is settled.
+
 ```
 public/icons/
 ├── sources/
@@ -95,29 +104,29 @@ the `sources` table. **Status legend:** `pending` = no asset yet ·
 
 | code | Display name | Official URL (asset source) | Asset path (mono / colour) | Licence note | Status |
 |---|---|---|---|---|---|
-| `BEPZA` | Bangladesh Export Processing Zones Authority | https://www.bepza.gov.bd | `sources/regulatory/bepza.svg` / `…-color.svg` | Bangladesh govt seal — public domain for non-misleading use | pending |
-| `DIFE` | Dept of Inspection for Factories & Establishments | https://dife.gov.bd | `sources/regulatory/dife.svg` / `…-color.svg` | Bangladesh govt seal — public domain for non-misleading use | pending |
-| `EPB` | Export Promotion Bureau | https://epb.gov.bd | `sources/regulatory/epb.svg` / `…-color.svg` | Bangladesh govt seal — public domain for non-misleading use | pending |
+| `BEPZA` | Bangladesh Export Processing Zones Authority | https://www.bepza.gov.bd | `sources/regulatory/bepza.png` (mono, built by `scripts/build_source_marks.py`) | Bangladesh govt seal — public domain for non-misleading use | locked (27 Sep 2026) |
+| `DIFE` | Dept of Inspection for Factories & Establishments | https://dife.gov.bd | `sources/regulatory/dife.png` (mono, built by `scripts/build_source_marks.py`) | Bangladesh govt seal — public domain for non-misleading use | locked (27 Sep 2026) |
+| `EPB` | Export Promotion Bureau | https://epb.gov.bd | `sources/regulatory/epb.png` (mono, built by `scripts/build_source_marks.py`) | Bangladesh govt seal — public domain for non-misleading use | locked (27 Sep 2026) |
 | `RJSC` | Registrar of Joint Stock Companies | https://www.roc.gov.bd | `sources/regulatory/rjsc.svg` / `…-color.svg` | Bangladesh govt seal — public domain for non-misleading use | pending |
-| `RSC` | RMG Sustainability Council | https://rsc-bd.org | `sources/regulatory/rsc.svg` / `…-color.svg` | Industry-statutory body; mark used under nominative fair use | pending |
+| `RSC` | RMG Sustainability Council | https://rsc-bd.org | `sources/regulatory/rsc.png` (mono, built by `scripts/build_source_marks.py`) | Industry-statutory body; mark used under nominative fair use | locked (27 Sep 2026) |
 
 ### Tier 2 — Trade associations
 
 | code | Display name | Official URL (asset source) | Asset path (mono / colour) | Licence note | Status |
 |---|---|---|---|---|---|
-| `BGMEA` | Bangladesh Garment Manufacturers & Exporters Assoc. | https://www.bgmea.com.bd | `sources/associations/bgmea.svg` / `…-color.svg` | Trade-association mark, nominative fair use | pending |
-| `BKMEA` | Bangladesh Knitwear Manufacturers & Exporters Assoc. | https://www.bkmea.com | `sources/associations/bkmea.svg` / `…-color.svg` | Trade-association mark, nominative fair use | pending |
-| `BTMA` | Bangladesh Textile Mills Association | https://btmadhaka.com | `sources/associations/btma.svg` / `…-color.svg` | Trade-association mark, nominative fair use | pending |
-| `BGAPMEA` | Bangladesh Garment Accessories & Packaging MEA | https://bgapmea.org | `sources/associations/bgapmea.svg` / `…-color.svg` | Trade-association mark, nominative fair use | pending |
+| `BGMEA` | Bangladesh Garment Manufacturers & Exporters Assoc. | https://www.bgmea.com.bd | `sources/associations/bgmea.png` (mono, built by `scripts/build_source_marks.py`) | Trade-association mark, nominative fair use | locked (27 Sep 2026) |
+| `BKMEA` | Bangladesh Knitwear Manufacturers & Exporters Assoc. | https://www.bkmea.com | `sources/associations/bkmea.png` (mono, built by `scripts/build_source_marks.py`) | Trade-association mark, nominative fair use | locked (27 Sep 2026) |
+| `BTMA` | Bangladesh Textile Mills Association | https://btmadhaka.com | `sources/associations/btma.png` (mono, built by `scripts/build_source_marks.py`) | Trade-association mark, nominative fair use | locked (27 Sep 2026) |
+| `BGAPMEA` | Bangladesh Garment Accessories & Packaging MEA | https://bgapmea.org | `sources/associations/bgapmea.png` (mono, built by `scripts/build_source_marks.py`) | Trade-association mark, nominative fair use | locked (27 Sep 2026) |
 
 ### Tier 3 — Certification bodies
 
 | code | Display name | Official URL (asset source) | Asset path (mono / colour) | Licence note | Status |
 |---|---|---|---|---|---|
-| `WRAP` | Worldwide Responsible Accredited Production | https://wrapcompliance.org | `sources/cert/wrap.svg` / `…-color.svg` | Cert mark, nominative fair use; do **not** display "WRAP-Certified" badge variants — use the corporate mark only | pending |
+| `WRAP` | Worldwide Responsible Accredited Production | https://wrapcompliance.org | `sources/cert/wrap.png` (mono, built by `scripts/build_source_marks.py`) | Cert mark, nominative fair use; do **not** display "WRAP-Certified" badge variants — use the corporate mark only | locked (27 Sep 2026) |
 | `BSCI` | amfori BSCI | https://www.amfori.org | — | **KILLED 2026-05-19** — no public surface (amfori.org has no supplier directory; platform.amfori.org is SSO-gated; no embed/PDF/transparency page). Source row deleted in migration 0012; do not display this logo. | killed |
-| `OEKO_TEX` | OEKO-TEX | https://www.oeko-tex.com | `sources/cert/oeko-tex.svg` / `…-color.svg` | Cert wordmark, nominative use only — never the "STANDARD 100 by OEKO-TEX" hangtag | pending |
-| `GOTS` | Global Organic Textile Standard | https://global-standard.org | `sources/cert/gots.svg` / `…-color.svg` | Cert mark, nominative fair use | pending |
+| `OEKO_TEX` | OEKO-TEX | https://www.oeko-tex.com | `sources/cert/oeko-tex.png` (mono, built by `scripts/build_source_marks.py`) | Cert wordmark, nominative use only — never the "STANDARD 100 by OEKO-TEX" hangtag | locked (27 Sep 2026) |
+| `GOTS` | Global Organic Textile Standard | https://global-standard.org | `sources/cert/gots.png` (mono, built by `scripts/build_source_marks.py`) | Cert mark, nominative fair use | locked (27 Sep 2026) |
 
 ### Tier 4 — Brand disclosures (RESERVED)
 

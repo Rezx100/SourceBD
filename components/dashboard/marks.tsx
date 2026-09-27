@@ -6,6 +6,7 @@
 // purpose: rank reads without a legend and colour stays free for status.
 
 import { tiers, type TierRank } from "@/lib/design/tokens";
+import { sourceLogo } from "@/lib/dashboard/source-logos";
 import { sourceCountLabel, type SourceMarkModel } from "@/lib/dashboard/source-tiers";
 import { cn } from "@/lib/utils";
 
@@ -26,13 +27,58 @@ const TIER_NAME: Record<TierRank, string> = Object.fromEntries(tiers.map((t) => 
   string
 >;
 
-/** One rank square. `sm` is the 16px form used beside a fact. Links to the register page when the record carries one. */
-export function SourceMark({ mark, sm = false, className }: { mark: SourceMarkModel; sm?: boolean; className?: string }) {
-  const classes = cn(
-    "inline-grid shrink-0 place-items-center font-mono font-medium leading-none tracking-[0.02em]",
-    sm ? "size-4 rounded-xs text-[8px]" : "size-5 rounded-sm text-[9.5px]",
-    TIER_FILL[mark.tier],
-    className,
+// The 1px ring round a logo frame carries the rank the square's fill carried:
+// the same neutral ramp, tier 1 darkest (logos.lock.md §1, "tier ring").
+const TIER_RING: Record<TierRank, string> = {
+  1: "ring-tier-1",
+  2: "ring-tier-2",
+  3: "ring-tier-3",
+  4: "ring-line-strong",
+  5: "ring-tier-5-line",
+};
+
+/**
+ * One source mark. With an approved logo (`lib/dashboard/source-logos.ts`) it
+ * is the register's own mark in one colour, in a white frame ringed by rank;
+ * without one, the two-letter square filled by rank. `sm` sits beside a fact,
+ * `lg` heads a row in the Sources list and a certificate card. Links to the
+ * register page when the record carries one.
+ */
+export function SourceMark({
+  mark,
+  sm = false,
+  lg = false,
+  className,
+}: {
+  mark: SourceMarkModel;
+  sm?: boolean;
+  lg?: boolean;
+  className?: string;
+}) {
+  const logo = sourceLogo(mark.code);
+  const classes = logo
+    ? cn(
+        "inline-grid shrink-0 place-items-center rounded-sm bg-surface ring-1 ring-inset",
+        lg ? "size-8 p-[5px]" : sm ? "size-5 p-[3px]" : "size-6 p-[3px]",
+        TIER_RING[mark.tier],
+        className,
+      )
+    : cn(
+        "inline-grid shrink-0 place-items-center font-mono font-medium leading-none tracking-[0.02em]",
+        lg ? "size-8 rounded-sm text-xs" : sm ? "size-4 rounded-xs text-[8px]" : "size-5 rounded-sm text-[9.5px]",
+        TIER_FILL[mark.tier],
+        className,
+      );
+  // A mask, so the one colour is the kit's ink token rather than whatever the
+  // file was drawn in.
+  const body = logo ? (
+    <span
+      aria-hidden
+      className="block size-full bg-ink-strong [mask-position:center] [mask-repeat:no-repeat] [mask-size:contain]"
+      style={{ maskImage: `url(${logo})`, WebkitMaskImage: `url(${logo})` }}
+    />
+  ) : (
+    mark.mark
   );
   if (mark.href) {
     return (
@@ -44,13 +90,13 @@ export function SourceMark({ mark, sm = false, className }: { mark: SourceMarkMo
         title={mark.name}
         className={classes}
       >
-        {mark.mark}
+        {body}
       </a>
     );
   }
   return (
     <span role="img" aria-label={`Source: ${mark.name}, ${TIER_NAME[mark.tier]}`} title={mark.name} className={classes}>
-      {mark.mark}
+      {body}
     </span>
   );
 }

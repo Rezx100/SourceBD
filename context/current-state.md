@@ -92,6 +92,17 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
   `/app/products` (shipped by REZ-B) still does not have — every view pays a
   316 ms function scan. Scope: `feature-specs/handoff-rez-c-start.md`.
 
+- **Buyer dashboard redesign, founder's recorded review (27 Sep)** — front end
+  only, no migration. Landed on `development` as PRs #176 (clicks no longer
+  reload the site; shell reads in one wave; 30s client page cache), #177 (the
+  record: registers named once, safety figure on one line, visible save toast,
+  no green stripe in the sidebar), #178 (every /app page draws the kit shell),
+  #179 (register logos, one colour, locked in `logos.lock.md`; RJSC keeps its
+  letters — no mark of its own), #180 (Home, Saved, RFQs, Messages, Orders,
+  Compliance, Settings rebuilt in the kit), #181 (Products and Saved searches
+  headers). Deferred: an RFQ whose only quote was withdrawn still reads
+  "Quoted" (`rfq_list` has no quote status). Reference video frames: SourceReady.
+
 ## Founder rules still in force (one line each; detail in archive)
 - EPB is a government register: show its evidence and HS codes whenever EPB has them, flagged or not. Never mint EPB-only suppliers. (15 Aug)
 - Registry columns are canonical-latest-wins: the provider's current page is the truth and shows without a review round-trip. (3 Aug)

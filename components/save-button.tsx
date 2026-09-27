@@ -14,6 +14,7 @@
 //
 // Usage: render anywhere the user has the supplier UUID + initial state.
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Bell, BellRinging } from "@phosphor-icons/react/dist/ssr";
 
@@ -43,6 +44,9 @@ export function SaveButton({
   const [saved, setSaved] = useState<boolean>(initialSaved);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // Visited pages are kept for 30s (`staleTimes`); refresh so a return
+  // visit does not show the old state.
+  const router = useRouter();
 
   function toggle(e: React.MouseEvent) {
     // Cards wrap the row in a <Link>; prevent navigation when clicking the
@@ -63,7 +67,8 @@ export function SaveButton({
           : await fetch(`/api/v1/saved?supplier_id=${supplierId}`, {
               method: "DELETE",
             });
-        if (!res.ok) {
+        if (res.ok) router.refresh();
+        else {
           setSaved(!next);
           const detail = await res.json().catch(() => null);
           setError(detail?.error ?? `Failed (${res.status})`);

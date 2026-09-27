@@ -2,21 +2,19 @@
 
 // SettingsNotificationToggles — Spec B10 client island.
 //
-// Three checkbox rows for the digest / RFQ-replies / saved-supplier-alerts
+// Three switch rows for the digest / RFQ-replies / saved-supplier-alerts
 // booleans. Each change immediately POSTs a partial-patch
 // {action:'update_notifications', <key>:bool} to /api/v1/settings.
 // Optimistic update; rolls back on error.
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardMeta,
-  CardTitle,
-} from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { Switch } from "@/components/dashboard/fields";
+import { PageSection } from "@/components/dashboard/page";
+import { FormError } from "@/components/dashboard/settings";
+import { Toast } from "@/components/dashboard/toast";
+import { useFlash } from "@/components/dashboard/use-flash";
 
 type Notifications = {
   digest: boolean;
@@ -24,7 +22,7 @@ type Notifications = {
   saved_alerts: boolean;
 };
 
-const ROWS: { key: keyof Notifications; label: string; meta: string }[] = [
+export const NOTIFICATION_ROWS: { key: keyof Notifications; label: string; meta: string }[] = [
   {
     key: "digest",
     label: "Weekly digest",
@@ -50,13 +48,18 @@ export function SettingsNotificationToggles({
   const [state, setState] = useState<Notifications>(initial);
   const [error, setError] = useState<string | null>(null);
   const [savingKey, setSavingKey] = useState<keyof Notifications | null>(null);
+  const [flash, setFlash] = useFlash();
   const [, startTransition] = useTransition();
+  // Visited pages are kept for 30s (`staleTimes`); refresh so a return
+  // visit does not show the old state.
+  const router = useRouter();
 
   function toggle(key: keyof Notifications) {
     const prev = state[key];
     const next = !prev;
     setState({ ...state, [key]: next });
     setError(null);
+    setFlash(null);
     setSavingKey(key);
     startTransition(async () => {
       try {
@@ -68,7 +71,11 @@ export function SettingsNotificationToggles({
             [key]: next,
           }),
         });
-        if (!res.ok) {
+        if (res.ok) {
+          const label = NOTIFICATION_ROWS.find((r) => r.key === key)?.label ?? "Preference";
+          setFlash(`${label} turned ${next ? "on" : "off"}`);
+          router.refresh();
+        } else {
           setState((s) => ({ ...s, [key]: prev }));
           const body = (await res.json().catch(() => null)) as
             | { error?: string }
@@ -85,50 +92,25 @@ export function SettingsNotificationToggles({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Email preferences</CardTitle>
-        <CardMeta>Changes save automatically</CardMeta>
-      </CardHeader>
-      <CardContent className="space-y-3 pt-0">
-        {ROWS.map((row) => {
-          const checked = state[row.key];
-          const saving = savingKey === row.key;
-          return (
-            <label
-              key={row.key}
-              className={cn(
-                "flex cursor-pointer items-start gap-3 rounded-card border border-hairline bg-surface-l1 p-3 transition hover:border-hairline-strong",
-                checked && "border-accent-indigo/40 bg-bg-l0",
-              )}
-            >
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={() => toggle(row.key)}
-                disabled={saving}
-                className="mt-1 h-4 w-4 cursor-pointer accent-accent-indigo"
-              />
-              <span className="flex-1">
-                <span className="block text-sm font-medium text-ink-primary">
-                  {row.label}
-                </span>
-                <span className="block text-xs text-ink-secondary">
-                  {row.meta}
-                </span>
-              </span>
-              {saving ? (
-                <span className="text-[12px] text-ink-tertiary">
-                  Saving…
-                </span>
-              ) : null}
-            </label>
-          );
-        })}
-        {error ? (
-          <p className="text-sm text-sem-red">{error}</p>
-        ) : null}
-      </CardContent>
-    </Card>
+    <PageSection title="Email preferences" caption="Changes save automatically">
+      <div className="flex flex-col divide-y divide-line-subtle px-4">
+        {NOTIFICATION_ROWS.map((row) => (
+          <Switch
+            key={row.key}
+            label={row.label}
+            description={savingKey === row.key ? `${row.meta} Saving…` : row.meta}
+            checked={state[row.key]}
+            onChange={() => toggle(row.key)}
+            disabled={savingKey === row.key}
+          />
+        ))}
+      </div>
+      {error ? (
+        <div className="border-t border-line-subtle px-4 py-3">
+          <FormError>{error}</FormError>
+        </div>
+      ) : null}
+      {flash ? <Toast text={flash} href={null} className="fixed z-[60]" /> : null}
+    </PageSection>
   );
 }

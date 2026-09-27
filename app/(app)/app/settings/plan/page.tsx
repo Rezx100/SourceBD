@@ -1,39 +1,21 @@
 // Settings — Plan (Spec B10).
 //
-// Read-only. Surfaces the current plan tier from `settings_get` and lists
-// the per-tier feature matrix. The "Manage plan" CTA is disabled until
-// Stripe billing lands in Phase 5 (phases.md line 100, M2).
+// Read-only. Surfaces the current plan tier from `settings_get` and what each
+// tier includes. "Manage plan" stays disabled until Stripe billing lands in
+// Phase 5 (phases.md line 100, M2) — no prices, renewal date or credits here
+// until billing exists.
 
-import Link from "next/link";
-import { ArrowLeft, Check } from "@phosphor-icons/react/dist/ssr";
-
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardMeta,
-  CardTitle,
-} from "@/components/ui/card";
+import { AppShell } from "@/components/dashboard/app-shell";
+import { Badge } from "@/components/dashboard/chips";
+import { Button } from "@/components/dashboard/controls";
+import { Icon } from "@/components/dashboard/icons";
+import { ErrorNote, PageSection } from "@/components/dashboard/page";
+import { SAVING, type SettingsDoc, SettingsFrame, SettingsHeader } from "@/components/dashboard/settings";
+import { Title } from "@/components/dashboard/type";
+import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { FormGrid } from "@/components/ui/form-grid";
-import { PageHeader } from "@/components/ui/page-kit";
 
 export const dynamic = "force-dynamic";
-
-type SettingsDoc = {
-  email: string | null;
-  display_name: string | null;
-  role: string | null;
-  plan_tier: string | null;
-  created_at: string | null;
-  notifications: {
-    digest: boolean;
-    rfq_replies: boolean;
-    saved_alerts: boolean;
-  };
-};
 
 type TierKey = "starter" | "growth" | "enterprise";
 
@@ -69,106 +51,94 @@ const TIERS: { key: TierKey; label: string; features: string[] }[] = [
   },
 ];
 
-function planLabel(tier: string | null): string {
-  if (tier === "growth") return "Growth";
-  if (tier === "enterprise") return "Enterprise";
-  return "Starter";
+function Features({ items }: { items: string[] }) {
+  return (
+    <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-base text-ink">
+      {items.map((f) => (
+        <li key={f} className="flex items-start gap-2">
+          <Icon name="check" className="mt-[3px] text-ink-muted" />
+          <span>{f}</span>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
-export default async function SettingsPlanPage() {
+async function SettingsPlanPageBody() {
   const supabase = await createSupabaseServerClient();
-  const { data } = await supabase.rpc("settings_get");
-  const settings = (data ?? null) as SettingsDoc | null;
+  const { data, error } = await supabase.rpc("settings_get");
+  const settings = error ? null : ((data ?? null) as SettingsDoc | null);
   const current: TierKey =
     settings?.plan_tier === "growth"
       ? "growth"
       : settings?.plan_tier === "enterprise"
         ? "enterprise"
         : "starter";
+  const mine = TIERS.find((t) => t.key === current)!;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <div className="space-y-4">
-        <Link
-          href="/app/settings"
-          className="inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-tertiary transition-colors hover:text-ink-primary"
-        >
-          <ArrowLeft size={17} weight="bold" aria-hidden />
-          Back to settings
-        </Link>
-        <PageHeader
-          kicker="Settings"
-          title="Plan"
-          description={
-            <>
-              You are currently on the{" "}
-              <Badge tone="active">{planLabel(current)}</Badge> plan.
-            </>
-          }
-        />
-      </div>
-
-      <FormGrid cols={3}>
-        {TIERS.map((tier) => {
-          const isCurrent = tier.key === current;
-          return (
-            <Card
-              key={tier.key}
-              className={
-                isCurrent ? "border-accent-indigo shadow-l1" : undefined
-              }
-            >
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>{tier.label}</CardTitle>
-                  {isCurrent ? <Badge tone="active">Current</Badge> : null}
+    <>
+      <SettingsHeader settings={settings} />
+      <SettingsFrame current="plan">
+        {settings ? (
+          <>
+            <PageSection title="Your plan">
+              <div className="flex flex-col gap-3 p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Title>{mine.label}</Title>
+                  <Badge tone="type">Current</Badge>
                 </div>
-                <CardMeta>
-                  {isCurrent ? "Your active plan" : "Available"}
-                </CardMeta>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <ul className="space-y-2 text-sm text-ink-secondary">
-                  {tier.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2">
-                      <Check
-                        size={16}
-                        weight="bold"
-                        className="mt-0.5 shrink-0 text-sem-green"
-                      />
-                      <span>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </FormGrid>
+                <Features items={mine.features} />
+              </div>
+            </PageSection>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Manage billing</CardTitle>
-          <CardMeta>
-            Stripe billing portal ships in a later spec (Phase 5)
-          </CardMeta>
-        </CardHeader>
-        <CardContent className="space-y-3 pt-0">
-          <p className="text-sm text-ink-secondary">
-            Self-service plan changes, payment methods, and invoices will
-            open here once Stripe is wired. Contact support to change your
-            plan in the meantime.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline" size="sm">
-              <Link href="/pricing">View pricing</Link>
-            </Button>
-            <Button type="button" variant="default" size="sm" disabled>
-              Manage plan
-            </Button>
+            <PageSection title="Other plans">
+              <div className="flex flex-col divide-y divide-line-subtle">
+                {TIERS.filter((t) => t.key !== current).map((t) => (
+                  <div key={t.key} className="flex flex-col gap-2 p-4 sm:flex-row sm:gap-6">
+                    <Title className="sm:w-32 sm:shrink-0">{t.label}</Title>
+                    <Features items={t.features} />
+                  </div>
+                ))}
+              </div>
+            </PageSection>
+          </>
+        ) : (
+          // Without the read we do not know the plan; saying "Starter" would be a guess.
+          <ErrorNote>Could not load your plan. Reload the page to try again.</ErrorNote>
+        )}
+
+        <PageSection title="Billing" caption="Not set up yet">
+          <div className="flex flex-col gap-3 p-4">
+            <p className="m-0 text-base text-ink">
+              Self-service plan changes, payment methods, and invoices will open here once billing is set up. Contact
+              support to change your plan in the meantime.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button href="/pricing">View pricing</Button>
+              <Button
+                disabled
+                title="Available once billing is set up"
+                className={SAVING}
+              >
+                Manage plan
+              </Button>
+            </div>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        </PageSection>
+      </SettingsFrame>
+    </>
+  );
+}
+
+// The kit's shell on every buyer page (one sidebar, one topbar), read in the
+// same wave as the page's own data.
+export default async function SettingsPlanPage() {
+  const supabase = await createSupabaseServerClient();
+  const [shell, body] = await Promise.all([loadBuyerShell(supabase, "/app/settings/plan"), SettingsPlanPageBody()]);
+  return (
+    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Plan">
+      {body}
+    </AppShell>
   );
 }

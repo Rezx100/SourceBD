@@ -1,5 +1,12 @@
-import { MasterDetailSkeleton } from "../../../skeletons";
+import { KitLoading } from "@/components/dashboard/kit-loading";
+import { PageSkeleton } from "@/components/dashboard/page-skeleton";
 
-export default function OrderDetailLoading() {
-  return <MasterDetailSkeleton kind="order" />;
+// Inside the kit's frame: the layout draws no shell on /app routes (`ShellSwitch`).
+
+export default function OrderLoading() {
+  return (
+    <KitLoading path="/app/orders/x" screenLabel="Order">
+      <PageSkeleton kind="detail" />
+    </KitLoading>
+  );
 }

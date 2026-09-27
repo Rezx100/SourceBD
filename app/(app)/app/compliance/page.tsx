@@ -1,37 +1,21 @@
-// Compliance Hub landing — Spec B9 (/app/compliance), FE-SITEWIDE Phase C7.
+// Compliance hub — Spec B9 (/app/compliance).
 //
-// Server component. Calls all three compliance RPCs in parallel under the
-// caller's session and renders three navigation tiles (expiry / UFLPA /
-// MSA) using `.proto-card.hoverable` with live counts from each RPC's
-// summary fields.
+// Server component. Calls the three compliance RPCs in parallel under the
+// caller's session and draws one row per surface: the next certificates to
+// expire, the UFLPA summary, and what the Modern Slavery Act generator makes.
 
 import Link from "next/link";
-import {
-  ArrowRight,
-  Certificate,
-  FileText,
-  ShieldCheck,
-  WarningCircle,
-} from "@phosphor-icons/react/dist/ssr";
 
-import { EmptyState, PageHeader } from "@/components/ui/page-kit";
+import { AppShell } from "@/components/dashboard/app-shell";
+import { type ExpiryPayload, ExpiryTable, plural, TableFooter, type UflpaPayload } from "@/components/dashboard/compliance";
+import { Badge } from "@/components/dashboard/chips";
+import { Button } from "@/components/dashboard/controls";
+import { EmptyState, ErrorNote, PageHeader, PageSection } from "@/components/dashboard/page";
+import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-type ExpirySummary = {
-  window_days: number;
-  bucket_30: number;
-  bucket_60: number;
-  bucket_90: number;
-  total: number;
-};
-type UflpaSummary = {
-  total: number;
-  hits: number;
-  flags: number;
-  clear: number;
-};
 type MsaSummary = {
   total_saved: number;
   total_published: number;
@@ -40,7 +24,18 @@ type MsaSummary = {
   sanctions_hits: number;
 };
 
-export default async function ComplianceHubPage() {
+/** How many upcoming renewals the hub lists before "View all". */
+const HUB_ROWS = 5;
+
+function SectionLink({ href, children }: { href: string; children: string }) {
+  return (
+    <Link href={href} prefetch={false} className="text-brand-ink hover:underline">
+      {children}
+    </Link>
+  );
+}
+
+async function ComplianceHubPageBody() {
   const supabase = await createSupabaseServerClient();
   const [exp, ufl, msa] = await Promise.all([
     supabase.rpc("compliance_expiring_certs", { p_window_days: 90 }),
@@ -48,197 +43,125 @@ export default async function ComplianceHubPage() {
     supabase.rpc("compliance_msa_inputs"),
   ]);
 
-  const expiry = (exp.data ?? null) as ExpirySummary | null;
-  const uflpa = (ufl.data ?? null) as UflpaSummary | null;
-  const msaIn = (msa.data ?? null) as MsaSummary | null;
-  const anyError = exp.error || ufl.error || msa.error;
+  const expiry = exp.error ? null : ((exp.data ?? null) as ExpiryPayload | null);
+  const uflpa = ufl.error ? null : ((ufl.data ?? null) as UflpaPayload | null);
+  const msaIn = msa.error ? null : ((msa.data ?? null) as MsaSummary | null);
+  const anyError = Boolean(exp.error || ufl.error || msa.error);
 
   const savedTotal = msaIn?.total_saved ?? 0;
-  const expCount = expiry?.total ?? 0;
-  const uflpaHits = uflpa?.hits ?? 0;
-  const uflpaFlags = uflpa?.flags ?? 0;
+  const upcoming = (expiry?.rows ?? []).slice(0, HUB_ROWS);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <>
       <PageHeader
-        kicker="Buyer"
-        title="Compliance"
-        description={`Personalised compliance posture across your ${savedTotal.toLocaleString()} saved suppliers — upcoming cert renewals, UFLPA risk, and your UK Modern Slavery Act §54 statement.`}
+        title="Compliance hub"
+        caption={
+          msaIn
+            ? `Certificate renewals, UFLPA exposure and your Modern Slavery Act statement, drawn from your ${plural(savedTotal, "saved supplier")}.`
+            : "Certificate renewals, UFLPA exposure and your Modern Slavery Act statement, drawn from your saved suppliers."
+        }
       />
 
-      {anyError ? (
-        <div className="rounded-card border border-sem-red/30 bg-sem-red-soft p-4 text-sm text-sem-red">
-          Could not load one or more compliance views.
-        </div>
-      ) : null}
+      {anyError ? <ErrorNote>Could not load one or more compliance views. Reload the page to try again.</ErrorNote> : null}
 
-      {savedTotal === 0 ? (
-        <EmptyState
-          title="No saved suppliers yet"
-          description="The Compliance page draws from your saved list. Save suppliers from Discover to begin."
-          action={
-            <Link
-              href="/app/discover"
-              className="inline-flex items-center gap-1 rounded-pill bg-brand-forest px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-forest-mid"
-            >
-              Browse Discover <ArrowRight size={17} weight="bold" />
-            </Link>
-          }
-        />
-      ) : null}
-
-      <section
-        aria-label="Compliance surfaces"
-        className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-3"
-      >
-        <HubTile
-          href="/app/compliance/expiry"
-          Icon={Certificate}
-          title="Certification expiry"
-          meta="Next 90 days"
-          value={expCount}
-          statusLabel={
-            (expiry?.bucket_30 ?? 0) > 0
-              ? "Action needed"
-              : expCount > 0
-                ? "Monitoring"
-                : "Clear"
-          }
-          chip={
-            (expiry?.bucket_30 ?? 0) > 0
-              ? "alert"
-              : expCount > 0
-                ? "active"
-                : "neutral"
-          }
-          subline={
-            expiry
-              ? `${expiry.bucket_30} <30d · ${expiry.bucket_60} 30–60d · ${expiry.bucket_90} 60–90d`
-              : "No data"
-          }
-        />
-        <HubTile
-          href="/app/compliance/uflpa"
-          Icon={ShieldCheck}
-          title="UFLPA tracker"
-          meta="Forced-labour exposure"
-          value={uflpaHits + uflpaFlags}
-          statusLabel={uflpaHits > 0 ? "Hit" : uflpaFlags > 0 ? "Review" : "Clear"}
-          chip={uflpaHits > 0 ? "alert" : uflpaFlags > 0 ? "active" : "success"}
-          subline={
-            uflpa
-              ? `${uflpa.hits} hit${uflpa.hits === 1 ? "" : "s"} · ${uflpa.flags} region flag${uflpa.flags === 1 ? "" : "s"} · ${uflpa.clear} clear`
-              : "No data"
-          }
-        />
-        <HubTile
-          href="/app/compliance/msa"
-          Icon={FileText}
-          title="MSA §54 generator"
-          meta="Modern Slavery Act"
-          value={msaIn?.total_published ?? 0}
-          statusLabel="Draft ready"
-          chip="neutral"
-          subline={
-            msaIn
-              ? `${msaIn.rsc_covered} RSC-covered · ${msaIn.expiring_certs_90d} certs expiring`
-              : "No data"
-          }
-        />
-      </section>
-
-      {expCount > 0 && (expiry?.bucket_30 ?? 0) > 0 ? (
-        <section className="proto-card space-y-2">
-          <div className="proto-card-head">
-            <h2 className="proto-card-title">Imminent renewals</h2>
-            <span className="proto-card-meta">
-              Certifications expiring in under 30 days
-            </span>
-          </div>
-          <p className="flex items-center gap-2 text-sm text-ink-secondary">
-            <WarningCircle size={16} weight="fill" className="text-sem-amber" />
-            {expiry?.bucket_30}{" "}
-            {expiry?.bucket_30 === 1 ? "certification expires" : "certifications expire"}{" "}
-            within 30 days. Review under{" "}
-            <Link
-              href="/app/compliance/expiry"
-              className="font-medium text-brand-forest underline-offset-2 hover:underline"
-            >
-              certification expiry
-            </Link>
-            .
-          </p>
+      {msaIn && savedTotal === 0 ? (
+        <section className="rounded-md border border-line-subtle bg-surface">
+          <EmptyState
+            icon="bookmark"
+            title="No saved suppliers yet"
+            action={
+              <Button variant="primary" href="/app/discover" clientNav>
+                Browse Discover
+              </Button>
+            }
+          >
+            The compliance hub draws from your saved list. Save suppliers from Discover to begin.
+          </EmptyState>
         </section>
       ) : null}
-    </div>
+
+      <PageSection
+        title="Certificate expiry"
+        caption="Next 90 days, soonest first"
+        action={<SectionLink href="/app/compliance/expiry">View all</SectionLink>}
+      >
+        {expiry === null ? (
+          <p className="m-0 px-4 py-3 text-sm text-ink-muted">Expiring certificates did not load.</p>
+        ) : upcoming.length === 0 ? (
+          <p className="m-0 px-4 py-3 text-sm text-ink-muted">
+            No certificates on your saved suppliers expire in the next 90 days.
+          </p>
+        ) : (
+          <>
+            <ExpiryTable rows={upcoming} compact />
+            <div className="flex flex-wrap items-center justify-between gap-2 pr-4">
+              <TableFooter shown={upcoming.length} total={expiry.total} />
+              <span className="text-xs text-ink-muted tabular-nums">
+                {expiry.bucket_30} within 30 days · {expiry.bucket_60} in 30–60 days · {expiry.bucket_90} in 60–90 days
+              </span>
+            </div>
+          </>
+        )}
+      </PageSection>
+
+      <PageSection
+        title="UFLPA tracker"
+        caption="Forced-labour exposure"
+        action={<SectionLink href="/app/compliance/uflpa">Open tracker</SectionLink>}
+      >
+        <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="m-0 text-base text-ink">
+            {uflpa === null
+              ? "The UFLPA tracker did not load."
+              : uflpa.total === 0
+                ? "None of your saved suppliers is published yet, so there is nothing to check."
+                : // The tracker reads published suppliers only, so this can be
+                  // fewer than the saved count in the caption.
+                  `Of your ${plural(uflpa.total, "saved supplier")} that ${uflpa.total === 1 ? "is" : "are"} published, ${uflpa.hits.toLocaleString()} ${uflpa.hits === 1 ? "matches" : "match"} the U.S. UFLPA Entity List, ${uflpa.flags.toLocaleString()} ${uflpa.flags === 1 ? "has" : "have"} Xinjiang-linked text in the record and ${uflpa.clear.toLocaleString()} ${uflpa.clear === 1 ? "is" : "are"} clear.`}
+          </p>
+          {uflpa && uflpa.hits > 0 ? (
+            <Badge tone="sanction" className="self-start sm:self-auto">
+              {plural(uflpa.hits, "Entity List hit")}
+            </Badge>
+          ) : uflpa && uflpa.flags > 0 ? (
+            <Badge tone="caution" className="self-start sm:self-auto">
+              {plural(uflpa.flags, "region flag")}
+            </Badge>
+          ) : null}
+        </div>
+      </PageSection>
+
+      <PageSection
+        title="Modern Slavery Act statement"
+        caption="UK Modern Slavery Act 2015, §54"
+        action={<SectionLink href="/app/compliance/msa">Open generator</SectionLink>}
+      >
+        <div className="flex flex-col gap-1 px-4 py-3">
+          <p className="m-0 text-base text-ink">
+            Drafts your §54 transparency statement from your saved suppliers: organisation and supply chain, policies,
+            due diligence, risk assessment, training and effectiveness. It is composed in your browser and nothing is
+            uploaded.
+          </p>
+          {msaIn ? (
+            <p className="m-0 text-sm text-ink-muted">
+              Built from {plural(msaIn.total_published, "published saved supplier")}, {msaIn.rsc_covered.toLocaleString()}{" "}
+              covered by the RSC and {plural(msaIn.expiring_certs_90d, "certificate")} expiring in 90 days.
+            </p>
+          ) : null}
+        </div>
+      </PageSection>
+    </>
   );
 }
 
-type IconCmp = React.ComponentType<{
-  size?: number;
-  weight?: "regular" | "fill" | "duotone";
-  className?: string;
-}>;
-
-function HubTile({
-  href,
-  Icon,
-  title,
-  meta,
-  value,
-  statusLabel,
-  chip,
-  subline,
-}: {
-  href: string;
-  Icon: IconCmp;
-  title: string;
-  meta: string;
-  value: number;
-  statusLabel: string;
-  chip: "neutral" | "active" | "alert" | "success";
-  subline: string;
-}) {
-  const chipClass =
-    chip === "alert"
-      ? "chip !bg-sem-red-soft !text-sem-red !border-sem-red"
-      : chip === "active"
-        ? "chip !bg-sem-amber-soft !text-sem-amber !border-sem-amber"
-        : chip === "success"
-          ? "chip claim-verified"
-          : "chip";
+// The kit's shell on every buyer page (one sidebar, one topbar), read in the
+// same wave as the page's own data.
+export default async function ComplianceHubPage() {
+  const supabase = await createSupabaseServerClient();
+  const [shell, body] = await Promise.all([loadBuyerShell(supabase, "/app/compliance"), ComplianceHubPageBody()]);
   return (
-    <Link
-      href={href}
-      className="group block rounded-card focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-forest"
-    >
-      <article className="h-full rounded-card border border-hairline bg-surface-l1 p-4 shadow-[0_1px_2px_rgba(15,15,20,0.05)] transition duration-200 group-hover:-translate-y-0.5 group-hover:border-brand-forest/30 group-hover:shadow-l2 sm:p-5">
-        <div className="flex items-start justify-between gap-3">
-          <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-neutral-200 bg-neutral-50 text-ink-secondary">
-            <Icon size={20} weight="duotone" />
-          </span>
-          <span className={chipClass}>{statusLabel}</span>
-        </div>
-
-        <div className="mt-4">
-          <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-ink-tertiary">
-            {meta}
-          </p>
-          <div className="mt-2 flex items-end justify-between gap-3">
-            <div className="min-w-0">
-              <h2 className="font-display text-base font-semibold leading-tight text-ink-primary">
-                {title}
-              </h2>
-              <p className="mt-2 text-[12px] leading-relaxed text-ink-tertiary">
-                {subline}
-              </p>
-            </div>
-            <p className="shrink-0 font-display text-3xl font-semibold tabular-nums leading-none text-ink-primary sm:text-4xl">
-              {value.toLocaleString()}
-            </p>
-          </div>
-        </div>
-      </article>
-    </Link>
+    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Compliance hub">
+      {body}
+    </AppShell>
   );
 }

@@ -1,5 +1,12 @@
-import { ExpirySkeleton } from "../../../skeletons";
+import { KitLoading } from "@/components/dashboard/kit-loading";
+import { PageSkeleton } from "@/components/dashboard/page-skeleton";
 
-export default function ComplianceExpiryLoading() {
-  return <ExpirySkeleton />;
+// Inside the kit's frame: the layout draws no shell on /app routes (`ShellSwitch`).
+
+export default function CertificateExpiryLoading() {
+  return (
+    <KitLoading path="/app/compliance/expiry" screenLabel="Certificate expiry">
+      <PageSkeleton kind="table" />
+    </KitLoading>
+  );
 }

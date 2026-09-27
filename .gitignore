@@ -101,3 +101,4 @@ API Access _ OneProvider_files/
 # Gallery evidence harness output (scripts/gallery/regen.sh)
 /_gallery-out/
 /.render-build/
+.impeccable/preview/

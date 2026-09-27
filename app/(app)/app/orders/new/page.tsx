@@ -5,19 +5,22 @@
 //     and pre-bind supplier + product + price.
 //   * `?supplier=<uuid>`    — manual entry against a chosen supplier.
 
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { Button } from "@/components/dashboard/controls";
+import { Icon } from "@/components/dashboard/icons";
+import { EmptyState, PageHeader } from "@/components/dashboard/page";
 import { OrderCreateForm, type OrderSeed } from "@/components/order-create-form";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { PageHeader } from "@/components/ui/page-kit";
+import { AppShell } from "@/components/dashboard/app-shell";
+import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 
 export const dynamic = "force-dynamic";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-export default async function NewOrderPage({
+async function NewOrderPageBody({
   searchParams,
 }: {
   searchParams: Promise<{ from_quote?: string; supplier?: string }>;
@@ -72,14 +75,14 @@ export default async function NewOrderPage({
       target_ship_date: rfq.ship_by,
     };
     return (
-      <div className="mx-auto max-w-3xl space-y-4">
+      <div className="flex max-w-3xl flex-col gap-5">
         <PageHeader
-          kicker="Buyer"
           title="New order"
+          caption={`From the accepted quote — ${supplier.company_name}`}
           actions={
-            <Link href={`/app/rfqs/${quoteRow.rfq_id}`} className="btn-proto">
-              ← Back to RFQ
-            </Link>
+            <Button href={`/app/rfqs/${quoteRow.rfq_id}`} clientNav>
+              <Icon name="chev-l" /> Back to RFQ
+            </Button>
           }
         />
         <OrderCreateForm seed={seed} />
@@ -105,14 +108,14 @@ export default async function NewOrderPage({
       supplier_name: data.company_name as string,
     };
     return (
-      <div className="mx-auto max-w-3xl space-y-4">
+      <div className="flex max-w-3xl flex-col gap-5">
         <PageHeader
-          kicker="Buyer"
           title="New order"
+          caption={`To ${data.company_name as string}`}
           actions={
-            <Link href={`/app/suppliers/${data.slug}`} className="btn-proto">
-              ← Back to profile
-            </Link>
+            <Button href={`/app/suppliers/${data.slug}`} clientNav>
+              <Icon name="chev-l" /> Back to profile
+            </Button>
           }
         />
         <OrderCreateForm seed={seed} />
@@ -124,24 +127,39 @@ export default async function NewOrderPage({
   // supplier id, which the buyer picks from a supplier profile or by
   // accepting an RFQ quote.
   return (
-    <div className="mx-auto max-w-2xl py-12">
-      <div className="proto-card space-y-3 text-center">
-        <h1 className="font-display text-2xl font-light tracking-tight text-ink-primary">
-          Pick a supplier first
-        </h1>
-        <p className="affiliation-disclaimer">
-          Open a supplier profile from Discover and use &quot;Create
-          order&quot; — or accept an RFQ quote to seed an order automatically.
-        </p>
-        <div className="flex justify-center gap-2">
-          <Link href="/app/discover" className="btn-proto">
-            Browse Discover
-          </Link>
-          <Link href="/app/rfqs" className="btn-proto">
-            View RFQs
-          </Link>
-        </div>
+    <div className="flex flex-col gap-5">
+      <PageHeader title="New order" />
+      <div className="rounded-md border border-line-subtle bg-surface">
+        <EmptyState
+          icon="building"
+          title="Pick a supplier first"
+          action={
+            <>
+              <Button variant="primary" href="/app/discover" clientNav>
+                <Icon name="search" /> Browse Discover
+              </Button>
+              <Button href="/app/rfqs" clientNav>
+                View RFQs
+              </Button>
+            </>
+          }
+        >
+          Open a supplier profile from Discover and use &quot;Create order&quot; — or accept an RFQ quote to seed an
+          order automatically.
+        </EmptyState>
       </div>
     </div>
+  );
+}
+
+// The kit's shell on every buyer page (one sidebar, one topbar), read in the
+// same wave as the page's own data.
+export default async function NewOrderPage(props: Parameters<typeof NewOrderPageBody>[0]) {
+  const supabase = await createSupabaseServerClient();
+  const [shell, body] = await Promise.all([loadBuyerShell(supabase, "/app/orders/new"), NewOrderPageBody(props)]);
+  return (
+    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="New order">
+      {body}
+    </AppShell>
   );
 }

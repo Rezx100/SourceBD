@@ -1,59 +1,50 @@
 // Settings — Notifications (Spec B10).
 //
 // Reads the three notification toggles via `settings_get` and mounts the
-// notification-toggles client island. Each toggle change debounce-POSTs
+// notification-toggles client island. Each toggle change POSTs
 // {action:'update_notifications', <key>:bool} to /api/v1/settings.
 
-import Link from "next/link";
-import { ArrowLeft } from "@phosphor-icons/react/dist/ssr";
-
+import { AppShell } from "@/components/dashboard/app-shell";
+import { ErrorNote } from "@/components/dashboard/page";
+import { type SettingsDoc, SettingsFrame, SettingsHeader } from "@/components/dashboard/settings";
 import { SettingsNotificationToggles } from "@/components/settings-notification-toggles";
+import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { PageHeader } from "@/components/ui/page-kit";
 
 export const dynamic = "force-dynamic";
 
-type SettingsDoc = {
-  email: string | null;
-  display_name: string | null;
-  role: string | null;
-  plan_tier: string | null;
-  created_at: string | null;
-  notifications: {
-    digest: boolean;
-    rfq_replies: boolean;
-    saved_alerts: boolean;
-  };
-};
-
-export default async function SettingsNotificationsPage() {
+async function SettingsNotificationsPageBody() {
   const supabase = await createSupabaseServerClient();
-  const { data } = await supabase.rpc("settings_get");
-  const settings = (data ?? null) as SettingsDoc | null;
-  const notifications = settings?.notifications ?? {
-    digest: true,
-    rfq_replies: true,
-    saved_alerts: true,
-  };
+  const { data, error } = await supabase.rpc("settings_get");
+  const settings = error ? null : ((data ?? null) as SettingsDoc | null);
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div className="space-y-4">
-        <Link
-          href="/app/settings"
-          className="inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-tertiary transition-colors hover:text-ink-primary"
-        >
-          <ArrowLeft size={17} weight="bold" aria-hidden />
-          Back to settings
-        </Link>
-        <PageHeader
-          kicker="Settings"
-          title="Notifications"
-          description="Choose which emails you receive. Delivery jobs land with the Inngest + Resend wiring in a later phase; toggling here records your preference now so you’re opted in (or out) when sending begins."
-        />
-      </div>
+    <>
+      <SettingsHeader settings={settings} />
+      <SettingsFrame current="notifications">
+        <p className="m-0 max-w-prose text-base text-ink-muted">
+          Choose which emails you receive. Sending starts in a later release; what you set here is recorded now, so you
+          are opted in or out from the first email.
+        </p>
+        {settings ? (
+          <SettingsNotificationToggles initial={settings.notifications} />
+        ) : (
+          // Switches drawn from defaults over a failed read would show a preference the buyer never set.
+          <ErrorNote>Could not load your email preferences. Reload the page to try again; nothing has changed.</ErrorNote>
+        )}
+      </SettingsFrame>
+    </>
+  );
+}
 
-      <SettingsNotificationToggles initial={notifications} />
-    </div>
+// The kit's shell on every buyer page (one sidebar, one topbar), read in the
+// same wave as the page's own data.
+export default async function SettingsNotificationsPage() {
+  const supabase = await createSupabaseServerClient();
+  const [shell, body] = await Promise.all([loadBuyerShell(supabase, "/app/settings/notifications"), SettingsNotificationsPageBody()]);
+  return (
+    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Notifications">
+      {body}
+    </AppShell>
   );
 }

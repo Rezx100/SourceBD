@@ -3,11 +3,13 @@
 // Buyer-only inline editor for order status / freight / logistics.
 // Submits to /api/v1/orders with action=update.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardMeta, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/dashboard/controls";
+import { Field, SelectInput, TextArea, TextInput } from "@/components/dashboard/fields";
+import { ErrorNote } from "@/components/dashboard/page";
+import { Toast } from "@/components/dashboard/toast";
 
 type OrderStatus =
   | "draft"
@@ -73,6 +75,13 @@ export function OrderStatusEditor({ orderId, initial }: OrderStatusEditorProps) 
   const [cancelBusy, setCancelBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
+
+  // The "Order saved" toast clears itself.
+  useEffect(() => {
+    if (!ok) return;
+    const t = setTimeout(() => setOk(false), 2500);
+    return () => clearTimeout(t);
+  }, [ok]);
 
   async function onSave(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -142,187 +151,92 @@ export function OrderStatusEditor({ orderId, initial }: OrderStatusEditorProps) 
     }
   }
 
+  // Wide enough for two columns in the side card, four on a full-width row.
+  const grid = "grid grid-cols-[repeat(auto-fill,minmax(9.5rem,1fr))] gap-3";
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Update order</CardTitle>
-        <CardMeta>Buyer-only</CardMeta>
-      </CardHeader>
-      <CardContent>
-        <form className="flex flex-col gap-4" onSubmit={onSave}>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Field label="Status">
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as OrderStatus)}
-                className={inputClass}
-              >
-                {STATUS_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Incoterm">
-              <select
-                value={incoterm}
-                onChange={(e) => setIncoterm(e.target.value)}
-                className={inputClass}
-              >
-                {INCOTERMS.map((v) => (
-                  <option key={v} value={v}>
-                    {v || "—"}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="PO number">
-              <input
-                type="text"
-                value={poNumber}
-                onChange={(e) => setPoNumber(e.target.value)}
-                maxLength={64}
-                className={inputClass}
-              />
-            </Field>
-          </div>
+    <form className="flex flex-col gap-4" onSubmit={onSave} aria-label="Update order">
+      <div className={grid}>
+        <Field label="Status" htmlFor="order-status">
+          <SelectInput id="order-status" value={status} onChange={(e) => setStatus(e.target.value as OrderStatus)}>
+            {STATUS_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </SelectInput>
+        </Field>
+        <Field label="Incoterm" htmlFor="order-edit-incoterm">
+          <SelectInput id="order-edit-incoterm" value={incoterm} onChange={(e) => setIncoterm(e.target.value)}>
+            {INCOTERMS.map((v) => (
+              <option key={v} value={v}>
+                {v || "—"}
+              </option>
+            ))}
+          </SelectInput>
+        </Field>
+        <Field label="PO number" htmlFor="order-edit-po">
+          <TextInput id="order-edit-po" type="text" value={poNumber} onChange={(e) => setPoNumber(e.target.value)} maxLength={64} />
+        </Field>
+        <Field label="Origin port" htmlFor="order-edit-origin">
+          <TextInput id="order-edit-origin" type="text" value={originPort} onChange={(e) => setOriginPort(e.target.value)} maxLength={128} />
+        </Field>
+        <Field label="Destination port" htmlFor="order-edit-destination">
+          <TextInput
+            id="order-edit-destination"
+            type="text"
+            value={destinationPort}
+            onChange={(e) => setDestinationPort(e.target.value)}
+            maxLength={128}
+          />
+        </Field>
+        <Field label="Ship to country" htmlFor="order-edit-ship-to">
+          <TextInput id="order-edit-ship-to" type="text" value={shipTo} onChange={(e) => setShipTo(e.target.value)} maxLength={64} />
+        </Field>
+        <Field label="Target ship" htmlFor="order-edit-target-ship">
+          <TextInput id="order-edit-target-ship" type="date" value={targetShip} onChange={(e) => setTargetShip(e.target.value)} />
+        </Field>
+        <Field label="Target delivery" htmlFor="order-edit-target-delivery">
+          <TextInput
+            id="order-edit-target-delivery"
+            type="date"
+            value={targetDelivery}
+            onChange={(e) => setTargetDelivery(e.target.value)}
+          />
+        </Field>
+        <Field label="Actual ship" htmlFor="order-edit-actual-ship">
+          <TextInput id="order-edit-actual-ship" type="date" value={actualShip} onChange={(e) => setActualShip(e.target.value)} />
+        </Field>
+        <Field label="Actual delivery" htmlFor="order-edit-actual-delivery">
+          <TextInput
+            id="order-edit-actual-delivery"
+            type="date"
+            value={actualDelivery}
+            onChange={(e) => setActualDelivery(e.target.value)}
+          />
+        </Field>
+        <Field label="Carrier" htmlFor="order-edit-carrier">
+          <TextInput id="order-edit-carrier" type="text" value={carrier} onChange={(e) => setCarrier(e.target.value)} maxLength={128} />
+        </Field>
+        <Field label="Tracking #" htmlFor="order-edit-tracking">
+          <TextInput id="order-edit-tracking" type="text" value={tracking} onChange={(e) => setTracking(e.target.value)} maxLength={128} />
+        </Field>
+      </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Field label="Origin port">
-              <input
-                type="text"
-                value={originPort}
-                onChange={(e) => setOriginPort(e.target.value)}
-                maxLength={128}
-                className={inputClass}
-              />
-            </Field>
-            <Field label="Destination port">
-              <input
-                type="text"
-                value={destinationPort}
-                onChange={(e) => setDestinationPort(e.target.value)}
-                maxLength={128}
-                className={inputClass}
-              />
-            </Field>
-            <Field label="Ship to country">
-              <input
-                type="text"
-                value={shipTo}
-                onChange={(e) => setShipTo(e.target.value)}
-                maxLength={64}
-                className={inputClass}
-              />
-            </Field>
-          </div>
+      <Field label="Notes" htmlFor="order-edit-notes">
+        <TextArea id="order-edit-notes" value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={4000} rows={3} />
+      </Field>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Field label="Target ship">
-              <input
-                type="date"
-                value={targetShip}
-                onChange={(e) => setTargetShip(e.target.value)}
-                className={inputClass}
-              />
-            </Field>
-            <Field label="Target delivery">
-              <input
-                type="date"
-                value={targetDelivery}
-                onChange={(e) => setTargetDelivery(e.target.value)}
-                className={inputClass}
-              />
-            </Field>
-            <Field label="Actual ship">
-              <input
-                type="date"
-                value={actualShip}
-                onChange={(e) => setActualShip(e.target.value)}
-                className={inputClass}
-              />
-            </Field>
-            <Field label="Actual delivery">
-              <input
-                type="date"
-                value={actualDelivery}
-                onChange={(e) => setActualDelivery(e.target.value)}
-                className={inputClass}
-              />
-            </Field>
-          </div>
+      {error ? <ErrorNote>{error}</ErrorNote> : null}
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Carrier">
-              <input
-                type="text"
-                value={carrier}
-                onChange={(e) => setCarrier(e.target.value)}
-                maxLength={128}
-                className={inputClass}
-              />
-            </Field>
-            <Field label="Tracking #">
-              <input
-                type="text"
-                value={tracking}
-                onChange={(e) => setTracking(e.target.value)}
-                maxLength={128}
-                className={inputClass}
-              />
-            </Field>
-          </div>
-
-          <Field label="Notes">
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              maxLength={4000}
-              rows={3}
-              className={inputClass}
-            />
-          </Field>
-
-          {error ? <p className="text-sm text-sem-red">{error}</p> : null}
-          {ok ? <p className="text-sm text-sem-green">Saved.</p> : null}
-
-          <div className="flex items-center justify-between gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={onCancel}
-              disabled={cancelBusy || busy}
-            >
-              {cancelBusy ? "Cancelling…" : "Cancel order"}
-            </Button>
-            <Button type="submit" variant="primary" size="sm" disabled={busy}>
-              {busy ? "Saving…" : "Save changes"}
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
-  );
-}
-
-const inputClass =
-  "w-full rounded-input border border-hairline-strong bg-white px-3 py-2 text-[14px] text-ink-primary placeholder:text-ink-tertiary focus:outline-none focus:ring-2 focus:ring-accent-indigo";
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-[12px] text-ink-tertiary">
-        {label}
-      </span>
-      {children}
-    </label>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Button type="button" variant="ghost" onClick={onCancel} disabled={cancelBusy || busy}>
+          {cancelBusy ? "Cancelling…" : "Cancel order"}
+        </Button>
+        <Button type="submit" variant="primary" disabled={busy}>
+          {busy ? "Saving…" : "Save changes"}
+        </Button>
+      </div>
+      {ok ? <Toast text="Order saved" href={null} className="fixed z-[60]" /> : null}
+    </form>
   );
 }

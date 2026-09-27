@@ -256,7 +256,9 @@ export default async function BuyerDiscoverPage({
   const lineCode = /^\d{4}$/.test(one(sp.line) ?? "") ? one(sp.line)! : null;
   const allLines = one(sp.lines) === "all";
   const supabase = await createSupabaseServerClient();
-  const shell = await loadBuyerShell(supabase, "/app/discover");
+  // Started, not awaited: the shell's counts, the search and the record are
+  // independent reads and all go out in the one wave below.
+  const shellPromise = loadBuyerShell(supabase, "/app/discover");
   const today = new Date();
   const askOn = askEnabled();
   // Closing the record is a link back to this same search, with `record`
@@ -304,7 +306,8 @@ export default async function BuyerDiscoverPage({
         )
       : Promise.resolve({ value: null, slow: false });
 
-  const [{ rows, total, error, failure }, recordRead, lineRead] = await Promise.all([
+  const [shell, { rows, total, error, failure }, recordRead, lineRead] = await Promise.all([
+    shellPromise,
     fetchDiscoverV32(supabase, state),
     recordPromise,
     linePromise,
@@ -325,21 +328,25 @@ export default async function BuyerDiscoverPage({
       ? await fetchFacilityParentSlug(supabase, recordSlug).catch(() => null)
       : null;
   const slugs = rows.map((r) => r.slug);
-  const hs = await fetchHsBatch(supabase, slugs);
-
+  // The photo strips and the saved flags both key off the rows and not off
+  // each other: one wave, not two.
+  const [hs, savedRows] = await Promise.all([
+    fetchHsBatch(supabase, slugs),
+    rows.length > 0
+      ? supabase
+          .from("saved_suppliers")
+          .select("supplier_id")
+          .in(
+            "supplier_id",
+            rows.map((r) => r.id),
+          )
+          .then((r) => r.data ?? [])
+      : Promise.resolve([] as unknown[]),
+  ]);
   const savedSet = new Set<string>();
-  if (rows.length > 0) {
-    const { data: savedRows } = await supabase
-      .from("saved_suppliers")
-      .select("supplier_id")
-      .in(
-        "supplier_id",
-        rows.map((r) => r.id),
-      );
-    for (const r of savedRows ?? []) {
-      if (r && typeof r === "object" && typeof (r as { supplier_id?: unknown }).supplier_id === "string") {
-        savedSet.add((r as { supplier_id: string }).supplier_id);
-      }
+  for (const r of savedRows) {
+    if (r && typeof r === "object" && typeof (r as { supplier_id?: unknown }).supplier_id === "string") {
+      savedSet.add((r as { supplier_id: string }).supplier_id);
     }
   }
 

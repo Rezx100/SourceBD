@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import { startTransition, useContext, useEffect, useId, useState } from "react";
 import { Button } from "@/components/dashboard/controls";
 import { Icon } from "@/components/dashboard/icons";
+import { Toast } from "@/components/dashboard/toast";
 import { onBulkSaved, rowSaveMessage } from "@/lib/dashboard/selection";
 
 /**
@@ -33,7 +35,19 @@ export function SaveRecordButton({
   const [on, setOn] = useState(saved);
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState<string>("");
+  // The visible confirmation. The live region below told a screen reader and
+  // nobody else: sighted buyers saw the button blink and could not tell the
+  // save had landed.
+  const [toast, setToast] = useState<string>("");
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(""), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
   const statusId = useId();
+  // Not `useRouter()`, which throws outside a mounted app router (the render
+  // tests draw this with no router at all).
+  const router = useContext(AppRouterContext);
   const label = on ? "Saved" : "Save";
 
   // `useState(saved)` reads its initial value once. The bar's bulk Save
@@ -55,6 +69,9 @@ export function SaveRecordButton({
         icon={icon}
         aria-busy={pending || undefined}
         aria-label={label}
+        // A toggle: "Saved, pressed" tells a screen reader that pressing it
+        // again unsaves the supplier.
+        aria-pressed={on}
         aria-describedby={status ? statusId : undefined}
         className={icon ? "h-7 w-7" : undefined}
         onClick={async () => {
@@ -69,10 +86,20 @@ export function SaveRecordButton({
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ supplier_id: supplierId }),
                 });
-            if (res.ok) setOn(!on);
-            setStatus(rowSaveMessage(res.ok ? 200 : res.status, !on));
+            if (res.ok) {
+              setOn(!on);
+              // The client keeps visited pages for 30s (`staleTimes` in
+              // next.config.ts), so the results behind the record and the
+              // sidebar's Saved count would otherwise read the old state when
+              // the buyer closes the record. Refreshed in the background.
+              startTransition(() => router?.refresh());
+            }
+            const message = rowSaveMessage(res.ok ? 200 : res.status, !on);
+            setStatus(message);
+            setToast(res.ok && !on ? "Saved to your list" : message);
           } catch {
             setStatus(rowSaveMessage("network", !on));
+            setToast(rowSaveMessage("network", !on));
           } finally {
             setPending(false);
           }
@@ -83,6 +110,16 @@ export function SaveRecordButton({
       <span id={statusId} role="status" aria-live="polite" className="sr-only">
         {status}
       </span>
+      {/* Not a second live region: the one above already announces it. */}
+      {toast ? (
+        <Toast
+          text={toast}
+          href={null}
+          announce={false}
+          className="fixed z-[60]"
+          link={toast === "Saved to your list" ? { href: "/app/saved", label: "View saved" } : null}
+        />
+      ) : null}
     </>
   );
 }

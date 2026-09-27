@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { ButtonHTMLAttributes, MouseEventHandler, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Icon, type IconName } from "./icons";
+import { LinkPending } from "./link-pending";
 
 export type ButtonVariant = "default" | "primary" | "ghost";
 
@@ -72,6 +73,7 @@ export function Button({
       "aria-label": rest["aria-label"],
       "aria-busy": rest["aria-busy"],
       "aria-describedby": rest["aria-describedby"],
+      tabIndex: rest.tabIndex,
       onClick: rest.onClick as unknown as MouseEventHandler<HTMLAnchorElement> | undefined,
     };
     // `next/link` only where the caller asked for it: a client navigation keeps
@@ -80,6 +82,7 @@ export function Button({
     return clientNav ? (
       <Link href={href} prefetch={prefetch} scroll={scroll} {...linkProps}>
         {children}
+        {icon ? null : <LinkPending />}
       </Link>
     ) : (
       <a href={href} {...linkProps}>

@@ -16,9 +16,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { loadBuyerShell, recordsCaption } from "./load-buyer-shell";
+import { loadBuyerShell as loadShell, recordsCaption } from "./load-buyer-shell";
 
-type Stub = Parameters<typeof loadBuyerShell>[0];
+// The published count is cached with the anon key in the app; here it is read
+// from the stub, uncached, so every case below sees its own RPC answer.
+const loadBuyerShell = (s: Parameters<typeof loadShell>[0], path: string) => loadShell(s, path, { publishedFrom: s });
+
+type Stub = Parameters<typeof loadShell>[0];
 
 function stub(over: {
   dashboard?: unknown;
@@ -176,6 +180,34 @@ describe("the buyer shell reads its counts, or says it could not", () => {
     // A real name still gets both letters.
     const named = await loadBuyerShell(stub({ user: { email: "x@y.invalid", user_metadata: { full_name: "Rezaul Karim" } } }), "/app/discover");
     assert.equal(named.topbar.initial, "RK");
+  });
+});
+
+describe("the shell's reads go out in one wave", () => {
+  it("every read has started before any of them answers", async () => {
+    // They used to run in three waves, ahead of the page's own reads, on every
+    // click: the sidebar alone cost three round trips before a record opened.
+    const started: string[] = [];
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    const held = <T,>(name: string, value: T) => {
+      started.push(name);
+      return gate.then(() => value);
+    };
+    const s = {
+      rpc: (fn: string) => held(`rpc:${fn}`, { data: fn === "buyer_dashboard" ? { saved_count: 1 } : [ROW(5)], error: null }),
+      from: () => ({ select: () => held("from:rfqs", { count: 2 }) }),
+      auth: { getUser: () => held("auth", { data: { user: { email: "a@b.invalid" } } }) },
+    } as unknown as Stub;
+    const done = loadBuyerShell(s, "/app/discover");
+    await new Promise((r) => setImmediate(r));
+    assert.deepEqual(
+      [...started].sort(),
+      ["auth", "from:rfqs", "rpc:buyer_dashboard", "rpc:discover_suppliers"],
+      "a read waited on another before starting",
+    );
+    release();
+    assert.deepEqual((await done).sidebar.counts, { suppliers: 5, rfqs: 2, saved: 1 });
   });
 });
 

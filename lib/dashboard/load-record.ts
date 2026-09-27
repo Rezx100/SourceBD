@@ -295,18 +295,24 @@ export async function loadRecordSheet(
   today: Date,
   view: SheetView = {},
 ): Promise<SupplierSheetModel | null> {
+  // Everything keyed by the slug or the session starts with the profile read,
+  // not after it: this was four waves and is now two. Each of these is
+  // fail-soft, so one left running under a missing record rejects nothing.
+  // The caller's own id lets the RFQs section filter on it rather than
+  // trusting RLS alone (see `fetchRecordRfqs`).
+  const buyerIdRead = callerId(supabase);
+  const countsRead = fetchContactCounts(supabase, slug);
+  const facilitiesRead = fetchFacilityPanel(supabase, slug);
   const record = await loadRecordInput(supabase, slug, today);
   if (!record) return null;
-  await fillRecordWorkersSafely(supabase, [record]);
   const supplierId = record.input.profile.supplier.id;
-  // The caller's own id, so the RFQs section can filter on it rather than
-  // trusting RLS alone (see `fetchRecordRfqs`).
-  const buyerId = await callerId(supabase);
-  const [contactCounts, saved, rfqs, facilities] = await Promise.all([
-    fetchContactCounts(supabase, slug),
+  const buyerId = await buyerIdRead;
+  const [, contactCounts, saved, rfqs, facilities] = await Promise.all([
+    fillRecordWorkersSafely(supabase, [record]),
+    countsRead,
     fetchRecordSaved(supabase, supplierId),
     fetchRecordRfqs(supabase, supplierId, buyerId),
-    fetchFacilityPanel(supabase, slug),
+    facilitiesRead,
   ]);
   return buildSheet(record.input, {
     plan: view.plan ?? null,

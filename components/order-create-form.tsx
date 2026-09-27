@@ -5,10 +5,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { FormGrid } from "@/components/ui/form-grid";
-import { StickyActionBar } from "@/components/ui/sticky-action-bar";
+import { Button } from "@/components/dashboard/controls";
+import { Field, SelectInput, TextArea, TextInput } from "@/components/dashboard/fields";
+import { ErrorNote } from "@/components/dashboard/page";
 
 export type OrderSeed =
   | {
@@ -112,195 +111,157 @@ export function OrderCreateForm({ seed }: { seed: OrderSeed }) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
-          {fromQuote
-            ? `Create order from accepted quote — ${seed.supplier_name}`
-            : `New order to ${seed.supplier_name}`}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form className="flex flex-col gap-4" onSubmit={onSubmit}>
-          <Field label="Product title" required>
-            <input
+    <form
+      className="flex flex-col rounded-md border border-line-subtle bg-surface"
+      onSubmit={onSubmit}
+      aria-label={fromQuote ? `Order from accepted quote — ${seed.supplier_name}` : `New order to ${seed.supplier_name}`}
+    >
+      <div className="flex flex-col gap-4 p-4 sm:p-5">
+        <h2 className="m-0 text-title font-semibold text-ink-strong">Product</h2>
+        <Field label="Product title" htmlFor="order-title" required>
+          <TextInput
+            id="order-title"
+            required
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            maxLength={200}
+          />
+        </Field>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="Quantity" htmlFor="order-quantity" required>
+            <TextInput
+              id="order-quantity"
+              required
+              type="number"
+              min={1}
+              step="any"
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+            />
+          </Field>
+          <Field label="Unit" htmlFor="order-unit" required>
+            <TextInput
+              id="order-unit"
               required
               type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              maxLength={200}
-              className={inputClass}
+              value={unit}
+              onChange={(e) => setUnit(e.target.value)}
+              maxLength={32}
             />
           </Field>
-
-          <FormGrid cols={2}>
-            <Field label="Quantity" required>
-              <input
-                required
-                type="number"
-                min={1}
-                step="any"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                className={inputClass}
-              />
-            </Field>
-            <Field label="Unit" required>
-              <input
-                required
-                type="text"
-                value={unit}
-                onChange={(e) => setUnit(e.target.value)}
-                maxLength={32}
-                className={inputClass}
-              />
-            </Field>
-          </FormGrid>
-
-          <FormGrid cols={3}>
-            <Field label="Unit price (optional)">
-              <input
-                type="number"
-                min={0}
-                step="any"
-                value={unitPrice}
-                onChange={(e) => setUnitPrice(e.target.value)}
-                className={inputClass}
-              />
-            </Field>
-            <Field label="Currency">
-              <input
-                type="text"
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value.toUpperCase())}
-                maxLength={3}
-                className={inputClass}
-              />
-            </Field>
-            <Field label="PO number (optional)">
-              <input
-                type="text"
-                value={poNumber}
-                onChange={(e) => setPoNumber(e.target.value)}
-                maxLength={64}
-                className={inputClass}
-              />
-            </Field>
-          </FormGrid>
-
-          <FormGrid cols={3}>
-            <Field label="Incoterm">
-              <select
-                value={incoterm}
-                onChange={(e) => setIncoterm(e.target.value)}
-                className={inputClass}
-              >
-                {INCOTERMS.map((v) => (
-                  <option key={v} value={v}>
-                    {v || "—"}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Origin port">
-              <input
-                type="text"
-                value={originPort}
-                onChange={(e) => setOriginPort(e.target.value)}
-                maxLength={128}
-                className={inputClass}
-              />
-            </Field>
-            <Field label="Destination port">
-              <input
-                type="text"
-                value={destinationPort}
-                onChange={(e) => setDestinationPort(e.target.value)}
-                maxLength={128}
-                className={inputClass}
-              />
-            </Field>
-          </FormGrid>
-
-          <FormGrid cols={3}>
-            <Field label="Ship to country">
-              <input
-                type="text"
-                value={shipToCountry}
-                onChange={(e) => setShipToCountry(e.target.value)}
-                maxLength={64}
-                className={inputClass}
-              />
-            </Field>
-            <Field label="Target ship date">
-              <input
-                type="date"
-                value={targetShipDate}
-                onChange={(e) => setTargetShipDate(e.target.value)}
-                className={inputClass}
-              />
-            </Field>
-            <Field label="Target delivery date">
-              <input
-                type="date"
-                value={targetDeliveryDate}
-                onChange={(e) => setTargetDeliveryDate(e.target.value)}
-                className={inputClass}
-              />
-            </Field>
-          </FormGrid>
-
-          <Field label="Notes">
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              maxLength={4000}
-              rows={3}
-              className={inputClass}
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Field label="Unit price" htmlFor="order-unit-price" hint="Optional">
+            <TextInput
+              id="order-unit-price"
+              type="number"
+              min={0}
+              step="any"
+              value={unitPrice}
+              onChange={(e) => setUnitPrice(e.target.value)}
             />
           </Field>
+          <Field label="Currency" htmlFor="order-currency">
+            <TextInput
+              id="order-currency"
+              type="text"
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value.toUpperCase())}
+              maxLength={3}
+            />
+          </Field>
+          <Field label="PO number" htmlFor="order-po" hint="Optional">
+            <TextInput
+              id="order-po"
+              type="text"
+              value={poNumber}
+              onChange={(e) => setPoNumber(e.target.value)}
+              maxLength={64}
+            />
+          </Field>
+        </div>
+      </div>
 
-          {error ? <p className="text-sm text-sem-red">{error}</p> : null}
+      <div className="flex flex-col gap-4 border-t border-line-subtle p-4 sm:p-5">
+        <h2 className="m-0 text-title font-semibold text-ink-strong">Shipping</h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Field label="Incoterm" htmlFor="order-incoterm">
+            <SelectInput id="order-incoterm" value={incoterm} onChange={(e) => setIncoterm(e.target.value)}>
+              {INCOTERMS.map((v) => (
+                <option key={v} value={v}>
+                  {v || "—"}
+                </option>
+              ))}
+            </SelectInput>
+          </Field>
+          <Field label="Origin port" htmlFor="order-origin">
+            <TextInput
+              id="order-origin"
+              type="text"
+              value={originPort}
+              onChange={(e) => setOriginPort(e.target.value)}
+              maxLength={128}
+            />
+          </Field>
+          <Field label="Destination port" htmlFor="order-destination">
+            <TextInput
+              id="order-destination"
+              type="text"
+              value={destinationPort}
+              onChange={(e) => setDestinationPort(e.target.value)}
+              maxLength={128}
+            />
+          </Field>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Field label="Ship to country" htmlFor="order-ship-to">
+            <TextInput
+              id="order-ship-to"
+              type="text"
+              value={shipToCountry}
+              onChange={(e) => setShipToCountry(e.target.value)}
+              maxLength={64}
+            />
+          </Field>
+          <Field label="Target ship date" htmlFor="order-target-ship">
+            <TextInput
+              id="order-target-ship"
+              type="date"
+              value={targetShipDate}
+              onChange={(e) => setTargetShipDate(e.target.value)}
+            />
+          </Field>
+          <Field label="Target delivery date" htmlFor="order-target-delivery">
+            <TextInput
+              id="order-target-delivery"
+              type="date"
+              value={targetDeliveryDate}
+              onChange={(e) => setTargetDeliveryDate(e.target.value)}
+            />
+          </Field>
+        </div>
+        <Field label="Notes" htmlFor="order-notes">
+          <TextArea
+            id="order-notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            maxLength={4000}
+            rows={3}
+          />
+        </Field>
+      </div>
 
-          <StickyActionBar>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => router.back()}
-              disabled={busy}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" variant="primary" size="sm" disabled={busy}>
-              {busy ? "Creating…" : "Create order"}
-            </Button>
-          </StickyActionBar>
-        </form>
-      </CardContent>
-    </Card>
-  );
-}
+      {error ? <ErrorNote className="mx-4 mb-4 sm:mx-5">{error}</ErrorNote> : null}
 
-const inputClass =
-  "w-full rounded-input border border-hairline-strong bg-white px-3 py-2 text-[14px] text-ink-primary placeholder:text-ink-tertiary focus:outline-none focus:ring-2 focus:ring-accent-indigo";
-
-function Field({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-[12px] text-ink-tertiary">
-        {label}
-        {required ? <span className="text-sem-red"> *</span> : null}
-      </span>
-      {children}
-    </label>
+      <div className="flex items-center justify-end gap-2 border-t border-line-subtle px-4 py-3 sm:px-5">
+        <Button type="button" variant="ghost" onClick={() => router.back()} disabled={busy}>
+          Cancel
+        </Button>
+        <Button type="submit" variant="primary" disabled={busy}>
+          {busy ? "Creating…" : "Create order"}
+        </Button>
+      </div>
+    </form>
   );
 }

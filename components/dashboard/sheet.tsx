@@ -232,6 +232,7 @@ export function SheetSection({
 
 /** `.fp`: the facts panel. Every row has room for a mark; a missing value reads "Not on file". */
 export function FactsPanel({ rows }: { rows: readonly FactRow[] }) {
+  const pending = rows.some((r) => r.value !== null && r.pendingSource && !(r.marks && r.marks.length > 0));
   return (
     <div className="flex flex-col">
       {rows.map((r) => (
@@ -282,13 +283,17 @@ export function FactsPanel({ rows }: { rows: readonly FactRow[] }) {
             ) : r.value === null && r.checked ? (
               <Caption className="sm:whitespace-nowrap">{r.checked}</Caption>
             ) : r.pendingSource ? (
-              <span className="text-xs text-ink-subtle sm:whitespace-nowrap" title="The register that filed this value is not attributed per field yet">
-                source pending
-              </span>
+              // Said once under the panel, not on every row: seven "source
+              // pending" captions down the right edge were louder than the
+              // facts. Each row keeps the words for a screen reader.
+              <span className="sr-only">source pending</span>
             ) : null}
           </span>
         </div>
       ))}
+      {pending ? (
+        <Caption className="mt-2">Rows without a mark: source pending. The register that filed them is not linked per field yet.</Caption>
+      ) : null}
     </div>
   );
 }
@@ -347,7 +352,7 @@ export function Stats({ items }: { items: readonly { key: string; value: string;
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
       {items.map((s) => (
-        <div key={s.key} className="flex min-w-0 flex-col gap-0.5 rounded-sm border border-line px-3 py-2.5">
+        <div key={s.key} className="flex min-w-0 flex-col gap-0.5 rounded-md border border-line-subtle bg-surface px-3.5 py-3">
           <Eyebrow>{s.key}</Eyebrow>
           <span className="whitespace-nowrap text-2xl font-normal text-ink-strong">{s.value}</span>
           {/* The sub-line carries a certificate's scope and a chapter list; held
@@ -371,9 +376,9 @@ export function CertCard({ cert }: { cert: CertModel }) {
   // source mark links to its register page" false on any sheet with a cert.
   const mark = sourceMark(cert.markCode, cert.documentUrl);
   return (
-    <div className="flex flex-col gap-1 rounded-sm border border-line px-3.5 py-3">
+    <div className="flex flex-col gap-1 rounded-md border border-line-subtle bg-surface px-4 py-3.5">
       <div className="flex items-center gap-2">
-        <SourceMark mark={mark} />
+        <SourceMark mark={mark} lg />
         <Label className="flex-1 text-ink-strong">{cert.scheme}</Label>
         <Badge tone={CERT_BADGE_TONE[cert.state]} icon={CERT_BADGE_ICON[cert.state]}>
           {certStateLabel(cert)}
@@ -422,17 +427,23 @@ export function RscBlock({
   /** Whose remediation this is — the meter needs a name, and two blocks sit on one section. */
   of: string;
 }) {
-  const words = [status, training].filter(Boolean).join(" · ");
   // "not finalised" is as much a caution as "behind schedule"; matching two of
   // the five states left the other one in the positive treatment.
   const behind = rscStatusNeedsLook(status);
+  // A caution badge already says the status; the caption beside it repeated it.
+  const words = [behind ? null : status, training].filter(Boolean).join(" · ");
   return (
-    <div className="grid items-start gap-4 sm:grid-cols-2">
-      <div className="flex flex-col gap-1.5">
-        <div className="flex items-center gap-2">
-          <Label className="text-ink-strong">
-            {progress === null ? "Remediation not on file" : `Remediation ${progress} %`}
-          </Label>
+    // One column. Side by side at 880px the label got about 90px, so
+    // "Remediation 100 %" broke over two lines beside empty space.
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span className="inline-flex items-baseline gap-2 whitespace-nowrap">
+            <Label className="text-ink-muted">Remediation</Label>
+            <span className="text-xl font-semibold tabular-nums tracking-[-0.01em] text-ink-strong">
+              {progress === null ? "not on file" : `${progress}%`}
+            </span>
+          </span>
           {behind ? (
             <Badge tone="caution" icon="shield">
               Active · {status}
@@ -487,7 +498,7 @@ export function SourcesList({ rows }: { rows: readonly SourceRow[] }) {
     <ul className="flex flex-col">
       {rows.map((r) => (
         <li key={r.mark.code} className="flex items-start gap-3 border-t border-line-subtle py-2 first:border-t-0">
-          <SourceMark mark={r.mark} />
+          <SourceMark mark={r.mark} lg />
           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
             <Label className="text-ink-strong">{r.name}</Label>
             <Caption>

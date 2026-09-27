@@ -501,17 +501,26 @@ describe("SupplierSheet (rendered)", () => {
     assert.match(html, /No active RSC record on file/);
   });
 
+  it("the remediation figure never breaks from its label, and the overview carries no read-date paragraph", () => {
+    // Founder's review, 27 Sep: "Remediation 100 %" broke over two lines
+    // beside empty space, and the read dates ran as a paragraph under the
+    // contact card while the Sources rows already carried each one.
+    const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(smKnitwearInput()) }));
+    assert.match(html, /<span class="[^"]*whitespace-nowrap[^"]*"><span[^>]*>Remediation<\/span><span[^>]*>53%<\/span><\/span>/);
+    assert.doesNotMatch(html, /Read dates:/);
+  });
+
   it("a mother whose only active RSC row is a building's shows the building, never its figures as the mother's", () => {
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(smKnitwearInput()) }));
     assert.match(html, /RSC covers S M Knitwears Limited\. \(Extension\) — the buildings, not this record/);
     const mother = motherSafety(html);
     assert.match(mother, /No active RSC record for this company itself/);
-    assert.doesNotMatch(mother, /Remediation 53 %/, "the Extension's progress is not the mother's");
+    assert.doesNotMatch(mother, /Remediation<\/span><span[^>]*>53%/, "the Extension's progress is not the mother's");
     assert.doesNotMatch(mother, /role="meter"/, "the mother has no percentage of its own to meter");
     // Cycle 6: withholding them from the mother had also withheld them from the
     // building, so the one record RSC does cover showed no progress anywhere.
     assert.match(html, rx("S M Knitwears Limited. (Extension) — the building's own RSC record"));
-    assert.match(html, /Remediation 53 %/);
+    assert.match(html, /Remediation<\/span><span[^>]*>53%/);
     assert.match(html, /role="meter"[^>]*aria-valuenow="53"/);
     assert.match(html, /Active · behind schedule/);
   });
@@ -563,7 +572,7 @@ describe("SupplierSheet (rendered)", () => {
     const mother = motherSafety(html);
     assert.doesNotMatch(html, /NaN/);
     assert.doesNotMatch(mother, /role="meter"/);
-    assert.match(mother, /Remediation not on file/);
+    assert.match(mother, /Remediation<\/span><span[^>]*>not on file/);
     // The shed's row is untouched and keeps its own meter, so the guard above
     // is about the missing value and not about meters in general.
     assert.match(html, /role="meter"[^>]*aria-valuenow="100"/);
@@ -591,12 +600,24 @@ describe("SupplierSheet (rendered)", () => {
   // Cycle 5, test-adequacy critic: flattening TIER_FILL to one colour left the
   // suite green — the rank ramp never reached an assertion on the DOM.
   it("the source-rank ramp reaches the DOM: a tier-1 mark and a tier-4 mark do not share a class", () => {
+    // A register with an approved logo carries its rank in the frame's ring;
+    // one without carries it in the square's fill. Either way each tier is
+    // drawn in its own token.
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()) }));
-    assert.match(html, /aria-label="Source: Export Promotion Bureau[^"]*"[^>]*class="[^"]*bg-tier-1 text-tier-1-on/);
-    assert.match(html, /aria-label="Source: Bangladesh Garment Manufacturers[^"]*"[^>]*class="[^"]*bg-tier-2 text-tier-2-on/);
-    assert.match(html, /aria-label="Source: Global Organic Textile Standard[^"]*"[^>]*class="[^"]*bg-tier-3 text-tier-3-on/);
+    assert.match(html, /aria-label="Source: Export Promotion Bureau[^"]*"[^>]*class="[^"]*ring-tier-1/);
+    assert.match(html, /aria-label="Source: Bangladesh Garment Manufacturers[^"]*"[^>]*class="[^"]*ring-tier-2/);
+    assert.match(html, /aria-label="Source: Global Organic Textile Standard[^"]*"[^>]*class="[^"]*ring-tier-3/);
     assert.match(html, /aria-label="Source: ASOS[^"]*"[^>]*class="[^"]*bg-tier-4 text-tier-4-on/);
-    for (const n of [1, 2, 3, 4]) assert.ok(html.includes(`bg-tier-${n} text-tier-${n}-on`), `tier ${n} has its own fill`);
+    for (const n of [1, 2, 3]) assert.ok(html.includes(`ring-tier-${n}`), `tier ${n} has its own ring`);
+  });
+
+  it("an approved register logo is drawn in one colour from its file, never in the file's own colours", () => {
+    // logos.lock.md: mono everywhere, the mark masked in the kit's ink. A
+    // source with no approved file keeps its two-letter square.
+    const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()) }));
+    assert.match(html, /bg-ink-strong[^"]*"[^>]*style="mask-image:url\(\/icons\/sources\/regulatory\/epb\.png\)/);
+    assert.doesNotMatch(html, /<img[^>]*icons\/sources/, "a logo drawn as an image keeps the file's colours");
+    assert.match(html, />AS</, "ASOS has no approved logo and keeps its letters");
   });
 
   // Cycle 5, test-adequacy critic: `hscodesError` was asserted on the model only.
@@ -1324,8 +1345,11 @@ describe("a brand list named twice by production is one mark and one name", () =
     // that explains them. The defect this guards is one register stamped twice
     // in the same row, which is what a duplicate brand row produced.
     const sheet = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(input) }));
-    assert.match(sheet, /EPB · RSC · BGMEA · OEKO-TEX · M&amp;S · NEXT/);
     const head = sheet.slice(0, sheet.indexOf('aria-label="Record sections"'));
+    // The head names each register by its square only. The names spelled out
+    // beside the squares, and again in the Registers fact row, said every
+    // register three times (founder's review, 27 Sep).
+    assert.doesNotMatch(head, /EPB · RSC · BGMEA/, "the head spells the registers out again beside their marks");
     assert.equal((head.match(/aria-label="Source: M&amp;S[^"]*"/g) ?? []).length, 1, "the M&S mark is stamped twice in the mark row");
     // And exactly once in the Sources list, which is one row per register.
     assert.equal((section(sheet, "sources").match(/aria-label="Source: M&amp;S[^"]*"/g) ?? []).length, 1);
@@ -2660,5 +2684,16 @@ describe("the sort menu opens inside the viewport", () => {
       [...cls].some((c) => c.startsWith("max-w-[")),
       `the menu has no width ceiling, so a 224px min-width can still exceed a 320px screen: ${menu}`,
     );
+  });
+});
+
+describe("the toast fits a phone", () => {
+  it("wraps inside the viewport rather than running off it", async () => {
+    // A failed save reads "This supplier is no longer listed, so it was not
+    // saved." — held to one line it ran off both sides of a 320px screen.
+    const { Toast } = await import("./toast");
+    const html = renderToStaticMarkup(createElement(Toast, { text: "This supplier is no longer listed, so it was not saved.", href: null }));
+    assert.doesNotMatch(html, /whitespace-nowrap/);
+    assert.match(html, /max-w-\[calc\(100vw-2rem\)\]/);
   });
 });

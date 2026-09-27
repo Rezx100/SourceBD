@@ -1,40 +1,37 @@
-// /app/orders/[id] — Order detail (Spec B8).
+// /app/orders/[id] — Order detail (Spec B8), in the dashboard kit.
 //
-// Server component. Calls `public.order_get(p_id)` under the caller's
-// session. Buyer sees status editor + cancel; both parties can append
-// milestones.
+// Server component. Calls `public.order_get(p_id)` under the caller's session,
+// and `thread_list()` beside it to link the conversation with this supplier
+// about this RFQ. Facts on the left, the milestone timeline in the middle, and
+// a side card with the status, the links and — for the buyer — the editor.
+// Both parties can append milestones; the server enforces who may do what.
 
-import { notFound } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle, Package, Storefront } from "@phosphor-icons/react/dist/ssr";
+import { notFound } from "next/navigation";
+import type { ReactNode } from "react";
 
+import { Button } from "@/components/dashboard/controls";
+import { Icon } from "@/components/dashboard/icons";
+import { entityLabel, fmtRelative } from "@/components/dashboard/inbox";
+import {
+  MilestoneTimeline,
+  OrderFacts,
+  OrderStatusBadge,
+  fmtDate,
+  fmtMoney,
+  fmtNum,
+  type Milestone,
+  type OrderStatus,
+} from "@/components/dashboard/orders";
+import { PageHeader, PageSection } from "@/components/dashboard/page";
+import { Caption } from "@/components/dashboard/type";
 import { OrderMilestoneForm } from "@/components/order-milestone-form";
 import { OrderStatusEditor } from "@/components/order-status-editor";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardMeta, CardTitle } from "@/components/ui/card";
-import { MasterDetail } from "@/components/ui/master-detail";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { AppShell } from "@/components/dashboard/app-shell";
+import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 
 export const dynamic = "force-dynamic";
-
-type OrderStatus =
-  | "draft"
-  | "in_production"
-  | "shipped"
-  | "in_transit"
-  | "delivered"
-  | "cancelled";
-
-type Milestone = {
-  id: string;
-  kind: string;
-  label: string | null;
-  occurred_on: string;
-  notes: string | null;
-  created_by: string | null;
-  created_at: string;
-};
 
 type OrderDoc = {
   id: string;
@@ -73,14 +70,19 @@ type OrderDoc = {
   milestones: Milestone[];
 };
 
-export default async function OrderDetailPage({
+type ThreadRef = { id: string; supplier_id: string; rfq_id: string | null };
+
+async function OrderDetailPageBody({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.rpc("order_get", { p_id: id });
+  const [{ data, error }, threadsRes] = await Promise.all([
+    supabase.rpc("order_get", { p_id: id }),
+    supabase.rpc("thread_list"),
+  ]);
   if (error || data == null) {
     notFound();
   }
@@ -88,335 +90,165 @@ export default async function OrderDetailPage({
   const isBuyer = order.viewer_role === "buyer" || order.viewer_role === "both";
   const canEdit = isBuyer && order.status !== "cancelled";
   const canMilestone = order.status !== "cancelled";
+  const thread = ((threadsRes.data ?? []) as ThreadRef[]).find(
+    (t) => t.supplier_id === order.supplier.id && t.rfq_id === order.rfq_id,
+  );
 
-  const { data: listData } = await supabase.rpc("order_list", { p_status: null });
-  const listItems = (listData as OrderListPaneItem[] | null) ?? [];
+  const place = [order.supplier.city, order.supplier.district].filter(Boolean).join(", ");
+  const facts: { label: string; value: ReactNode }[] = [
+    {
+      label: "Supplier",
+      value: (
+        <>
+          <Link
+            href={`/app/suppliers/${order.supplier.slug}`}
+            prefetch={false}
+            className="font-medium text-brand-ink hover:underline"
+          >
+            {order.supplier.company_name}
+          </Link>
+          <Caption className="block">
+            {entityLabel(order.supplier.entity_type)}
+            {place ? ` · ${place}` : ""}
+          </Caption>
+        </>
+      ),
+    },
+    {
+      label: "Quantity",
+      value: (
+        <span className="tabular-nums">
+          {fmtNum(order.quantity)} {order.quantity_unit}
+        </span>
+      ),
+    },
+  ];
+  const add = (label: string, value: ReactNode) => {
+    if (value != null && value !== "") facts.push({ label, value });
+  };
+  add("Unit price", order.unit_price != null ? fmtMoney(order.unit_price, order.currency) : null);
+  add("Total value", order.total_value != null ? fmtMoney(order.total_value, order.currency) : null);
+  add("PO number", order.po_number);
+  add("Incoterm", order.incoterm);
+  add("Origin port", order.origin_port);
+  add("Destination port", order.destination_port);
+  add("Ship to", order.ship_to_country);
+  add("Target ship", order.target_ship_date ? fmtDate(order.target_ship_date) : null);
+  add("Target delivery", order.target_delivery_date ? fmtDate(order.target_delivery_date) : null);
+  add("Actual ship", order.actual_ship_date ? fmtDate(order.actual_ship_date) : null);
+  add("Actual delivery", order.actual_delivery_date ? fmtDate(order.actual_delivery_date) : null);
+  add("Carrier", order.carrier_name);
+  add("Tracking #", order.tracking_number ? <span className="font-mono">{order.tracking_number}</span> : null);
+  add("Notes", order.notes ? <span className="whitespace-pre-wrap">{order.notes}</span> : null);
+
+  const events = order.milestones.length;
 
   return (
-    <MasterDetail
-      mode="detail"
-      className="mx-auto max-w-6xl"
-      list={<OrderListPane items={listItems} activeId={order.id} />}
-      detail={
-        <div className="space-y-6">
-          <Link
-            href="/app/orders"
-            className="inline-flex items-center gap-1 text-[13px] text-ink-tertiary hover:text-ink-primary lg:hidden"
-          >
-            ← All orders
-          </Link>
-      <header className="space-y-1">
-        <p className="text-[12px] text-ink-tertiary">
-          Order · {order.id.slice(0, 8)}
-          {order.po_number ? ` · PO ${order.po_number}` : ""}
-        </p>
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
-            {order.product_title}
-          </h1>
-          <Badge tone={statusTone(order.status)}>{statusLabel(order.status)}</Badge>
-        </div>
-        <p className="text-[13px] text-ink-tertiary">
-          Created {fmtDate(order.created_at)} · Updated {fmtRelative(order.updated_at)}
-        </p>
-      </header>
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        title={order.product_title}
+        caption={
+          <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+            <OrderStatusBadge status={order.status} />
+            <span>
+              Order {order.id.slice(0, 8)}
+              {order.po_number ? ` · PO ${order.po_number}` : ""} · Created {fmtDate(order.created_at)} · Updated{" "}
+              {fmtRelative(order.updated_at)}
+            </span>
+          </span>
+        }
+        actions={
+          <Button href="/app/orders" clientNav>
+            <Icon name="chev-l" /> All orders
+          </Button>
+        }
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Supplier</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-start gap-3">
-            <Storefront
-              size={20}
-              weight="duotone"
-              className="mt-0.5 text-accent-indigo"
-              aria-hidden
-            />
-            <div className="min-w-0 flex-1">
-              <Link
-                href={`/app/suppliers/${order.supplier.slug}`}
-                className="font-display text-sm font-semibold text-ink-primary hover:underline"
-              >
-                {order.supplier.company_name}
-              </Link>
-              <p className="text-[13px] text-ink-tertiary">
-                {entityLabel(order.supplier.entity_type)}
-                {order.supplier.city ? ` · ${order.supplier.city}` : ""}
-                {order.supplier.district ? `, ${order.supplier.district}` : ""}
-              </p>
-            </div>
-            {order.rfq_id ? (
-              <Button asChild variant="ghost" size="sm">
-                <Link href={`/app/rfqs/${order.rfq_id}`}>View RFQ</Link>
-              </Button>
-            ) : null}
+      <div className="grid items-start gap-5 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)_340px]">
+        <PageSection title="Order facts">
+          <OrderFacts rows={facts} />
+        </PageSection>
+
+        <PageSection title="Milestones" caption={`${events} ${events === 1 ? "event" : "events"}`}>
+          <div className="p-4 sm:p-5">
+            <MilestoneTimeline milestones={order.milestones} />
           </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Specification</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-[14px]">
-          <Row label="Quantity">
-            {fmtNum(order.quantity)} {order.quantity_unit}
-          </Row>
-          {order.unit_price != null ? (
-            <Row label="Unit price">
-              {fmtMoney(order.unit_price, order.currency)}
-            </Row>
-          ) : null}
-          {order.total_value != null ? (
-            <Row label="Total value">
-              {fmtMoney(order.total_value, order.currency)}
-            </Row>
-          ) : null}
-          {order.notes ? (
-            <div className="space-y-1">
-              <p className="text-[12px] text-ink-tertiary">
-                Notes
-              </p>
-              <p className="whitespace-pre-wrap text-ink-primary">{order.notes}</p>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Logistics</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-[14px]">
-          {order.incoterm ? <Row label="Incoterm">{order.incoterm}</Row> : null}
-          {order.origin_port ? <Row label="Origin port">{order.origin_port}</Row> : null}
-          {order.destination_port ? (
-            <Row label="Destination port">{order.destination_port}</Row>
-          ) : null}
-          {order.ship_to_country ? (
-            <Row label="Ship to">{order.ship_to_country}</Row>
-          ) : null}
-          {order.target_ship_date ? (
-            <Row label="Target ship">{fmtDate(order.target_ship_date)}</Row>
-          ) : null}
-          {order.target_delivery_date ? (
-            <Row label="Target delivery">{fmtDate(order.target_delivery_date)}</Row>
-          ) : null}
-          {order.actual_ship_date ? (
-            <Row label="Actual ship">{fmtDate(order.actual_ship_date)}</Row>
-          ) : null}
-          {order.actual_delivery_date ? (
-            <Row label="Actual delivery">{fmtDate(order.actual_delivery_date)}</Row>
-          ) : null}
-          {order.carrier_name ? <Row label="Carrier">{order.carrier_name}</Row> : null}
-          {order.tracking_number ? (
-            <Row label="Tracking #">
-              <span className="font-mono">{order.tracking_number}</span>
-            </Row>
-          ) : null}
-          {!order.incoterm &&
-          !order.origin_port &&
-          !order.destination_port &&
-          !order.ship_to_country &&
-          !order.target_ship_date &&
-          !order.target_delivery_date &&
-          !order.actual_ship_date &&
-          !order.actual_delivery_date &&
-          !order.carrier_name &&
-          !order.tracking_number ? (
-            <p className="text-ink-tertiary">No logistics details recorded yet.</p>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      {canEdit ? (
-        <OrderStatusEditor
-          orderId={order.id}
-          initial={{
-            status: order.status,
-            incoterm: order.incoterm,
-            origin_port: order.origin_port,
-            destination_port: order.destination_port,
-            ship_to_country: order.ship_to_country,
-            target_ship_date: order.target_ship_date,
-            target_delivery_date: order.target_delivery_date,
-            actual_ship_date: order.actual_ship_date,
-            actual_delivery_date: order.actual_delivery_date,
-            carrier_name: order.carrier_name,
-            tracking_number: order.tracking_number,
-            po_number: order.po_number,
-            notes: order.notes,
-          }}
-        />
-      ) : null}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Milestones</CardTitle>
-          <CardMeta>
-            {order.milestones.length}{" "}
-            {order.milestones.length === 1 ? "event" : "events"}
-          </CardMeta>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {order.milestones.length === 0 ? (
-            <p className="py-2 text-center text-sm text-ink-secondary">
-              <Package
-                size={24}
-                weight="duotone"
-                className="mx-auto block text-ink-tertiary"
-                aria-hidden
-              />
-              No milestones logged yet.
-            </p>
-          ) : (
-            <ol className="m-0 flex list-none flex-col gap-3 p-0">
-              {order.milestones.map((m) => (
-                <li key={m.id} className="flex items-start gap-3">
-                  <CheckCircle
-                    size={18}
-                    weight="fill"
-                    className="mt-0.5 text-accent-indigo"
-                    aria-hidden
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="font-display text-sm font-semibold text-ink-primary">
-                      {m.label && m.label.trim() ? m.label : prettyKind(m.kind)}
-                    </p>
-                    <p className="text-[13px] text-ink-tertiary">
-                      {prettyKind(m.kind)} · {fmtDate(m.occurred_on)}
-                    </p>
-                    {m.notes ? (
-                      <p className="mt-1 whitespace-pre-wrap text-[13px] text-ink-secondary">
-                        {m.notes}
-                      </p>
-                    ) : null}
-                  </div>
-                </li>
-              ))}
-            </ol>
-          )}
           {canMilestone ? (
-            <div className="border-t border-hairline pt-4">
+            <div className="border-t border-line-subtle p-4 sm:p-5">
               <OrderMilestoneForm orderId={order.id} />
             </div>
           ) : null}
-        </CardContent>
-      </Card>
-        </div>
-      }
-    />
-  );
-}
+        </PageSection>
 
-type OrderListPaneItem = {
-  id: string;
-  product_title: string;
-  status: OrderStatus;
-  updated_at: string;
-};
-
-function OrderListPane({
-  items,
-  activeId,
-}: {
-  items: OrderListPaneItem[];
-  activeId: string;
-}) {
-  return (
-    <nav
-      aria-label="All orders"
-      className="overflow-hidden rounded-[13px] border border-hairline bg-white"
-    >
-      <p className="border-b border-hairline px-4 py-2.5 text-[12px] font-semibold text-ink-tertiary">
-        Orders
-      </p>
-      <ul className="m-0 flex max-h-[70vh] list-none flex-col overflow-y-auto p-0">
-        {items.map((o) => {
-          const active = o.id === activeId;
-          return (
-            <li key={o.id}>
-              <Link
-                href={`/app/orders/${o.id}`}
-                aria-current={active ? "page" : undefined}
-                className={`flex flex-col gap-0.5 border-b border-hairline px-4 py-3 last:border-b-0 ${
-                  active ? "bg-[#FBFAF6] font-medium" : "hover:bg-[#FBFAF6]/60"
-                }`}
-              >
-                <span className="truncate font-display text-[14px] text-ink-primary">
-                  {o.product_title}
-                </span>
-                <span className="text-[12px] text-ink-tertiary">
-                  {statusLabel(o.status)} · {fmtRelative(o.updated_at)}
-                </span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
-  );
-}
-
-function Row({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-baseline gap-3">
-      <span className="w-40 shrink-0 text-[12px] text-ink-tertiary">
-        {label}
-      </span>
-      <span className="text-ink-primary">{children}</span>
+        <PageSection title="Status" className="lg:col-span-2 xl:col-span-1">
+          <div className="flex flex-col gap-3 p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <OrderStatusBadge status={order.status} />
+              <Caption>Updated {fmtRelative(order.updated_at)}</Caption>
+            </div>
+            {order.rfq_id || thread ? (
+              <div className="flex flex-wrap gap-2">
+                {order.rfq_id ? (
+                  <Button href={`/app/rfqs/${order.rfq_id}`} clientNav>
+                    View RFQ
+                  </Button>
+                ) : null}
+                {thread ? (
+                  <Button href={`/app/messages/${thread.id}`} clientNav>
+                    <Icon name="chat" /> Open conversation
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+          <div className="border-t border-line-subtle p-4">
+            {canEdit ? (
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-0.5">
+                  <h3 className="m-0 text-sm font-semibold text-ink-strong">Update order</h3>
+                  <Caption>Only the buyer can change the status and shipping details.</Caption>
+                </div>
+                <OrderStatusEditor
+                  orderId={order.id}
+                  initial={{
+                    status: order.status,
+                    incoterm: order.incoterm,
+                    origin_port: order.origin_port,
+                    destination_port: order.destination_port,
+                    ship_to_country: order.ship_to_country,
+                    target_ship_date: order.target_ship_date,
+                    target_delivery_date: order.target_delivery_date,
+                    actual_ship_date: order.actual_ship_date,
+                    actual_delivery_date: order.actual_delivery_date,
+                    carrier_name: order.carrier_name,
+                    tracking_number: order.tracking_number,
+                    po_number: order.po_number,
+                    notes: order.notes,
+                  }}
+                />
+              </div>
+            ) : (
+              <p className="m-0 text-sm text-ink-muted">
+                {order.status === "cancelled"
+                  ? "This order was cancelled. Its details and milestones stay on file."
+                  : "Only the buyer can change the status and shipping details. You can log milestones."}
+              </p>
+            )}
+          </div>
+        </PageSection>
+      </div>
     </div>
   );
 }
 
-function statusTone(s: OrderStatus): "active" | "neutral" | "alert" | "success" {
-  if (s === "delivered") return "success";
-  if (s === "cancelled") return "alert";
-  if (s === "draft") return "neutral";
-  return "active";
-}
-function statusLabel(s: OrderStatus): string {
-  if (s === "in_production") return "In production";
-  if (s === "in_transit") return "In transit";
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
-function entityLabel(et: string) {
-  if (et === "factory") return "Factory";
-  if (et === "buying_house") return "Buying house";
-  return "Supplier";
-}
-function prettyKind(k: string): string {
-  return k.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
-}
-function fmtNum(n: number) {
-  const v = Number(n);
-  return Number.isFinite(v) ? v.toLocaleString() : String(n);
-}
-function fmtMoney(n: number, ccy: string) {
-  const v = Number(n);
-  if (!Number.isFinite(v)) return `${n} ${ccy}`;
-  return `${v.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${ccy}`;
-}
-function fmtDate(iso: string) {
-  const t = new Date(iso);
-  if (Number.isNaN(t.getTime())) return iso;
-  return t.toLocaleDateString();
-}
-function fmtRelative(iso: string) {
-  const t = new Date(iso).getTime();
-  if (!Number.isFinite(t)) return "";
-  const delta = Date.now() - t;
-  const day = 86_400_000;
-  if (delta < 60_000) return "just now";
-  if (delta < 3_600_000) return `${Math.floor(delta / 60_000)}m ago`;
-  if (delta < day) return `${Math.floor(delta / 3_600_000)}h ago`;
-  if (delta < 30 * day) return `${Math.floor(delta / day)}d ago`;
-  return new Date(iso).toLocaleDateString();
+// The kit's shell on every buyer page (one sidebar, one topbar), read in the
+// same wave as the page's own data.
+export default async function OrderDetailPage(props: Parameters<typeof OrderDetailPageBody>[0]) {
+  const supabase = await createSupabaseServerClient();
+  const [shell, body] = await Promise.all([loadBuyerShell(supabase, "/app/orders/x"), OrderDetailPageBody(props)]);
+  return (
+    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Order">
+      {body}
+    </AppShell>
+  );
 }

@@ -36,11 +36,13 @@ type Allowed = Record<string, Record<string, [count: number, reason: string]>>;
 /** Raw anchors that are correct: file → exact href expression → [occurrences, reason]. */
 const RAW_ANCHORS: Allowed = {
   "app-shell.tsx": {
-    "{item.href}": [1, "the sidebar's own navigation between pages; it predates REZ-C"],
-    '"/app/settings"': [1, "the account link, another page"],
     "{`#${mainId}`}": [1, "the skip link, a same-page fragment"],
   },
   "chips.tsx": { "{moreHref}": [1, "the '+N' chip, a same-page control"] },
+  "compliance.tsx": {
+    "{r.document_url}": [1, "an expiring certificate's document, off-site"],
+    "{h.source_url}": [1, "the DHS UFLPA Entity List entry, off-site"],
+  },
   "controls.tsx": {
     "{href}": [1, "Button's own plain-anchor branch; callers in record files are checked below"],
     "{hrefFor(o.value)}": [1, "a segmented control that re-runs the search"],
@@ -52,7 +54,7 @@ const RAW_ANCHORS: Allowed = {
     "{p.href}": [1, "a page number, which re-runs the search"],
   },
   "rfq-composer.tsx": { '"#"': [1, "an attachment placeholder with no destination"] },
-  "rfq-list.tsx": { "{href}": [1, "the toast's link, which predates REZ-C"] },
+  "toast.tsx": { "{href}": [1, "the toast's link, which predates REZ-C"] },
   "search-composer.tsx": {
     "{c.removeHref}": [1, "removing a filter chip re-runs the search"],
     '"#filters"': [1, "a same-page fragment"],
@@ -256,5 +258,17 @@ describe("the dashboard kit's in-app links are client navigations", () => {
     assert.match(controls, /clientNav = false/, "clientNav must default to false: the CSV export must not client-navigate");
     assert.match(controls, /<Link href=\{href\}/, "Button no longer has a next/link branch");
     assert.match(controls, /<a href=\{href\}/, "Button no longer has a plain-anchor branch");
+  });
+});
+
+describe("the shell never prefetches", () => {
+  it("every Link and Form in the kit shell opts out of prefetch", () => {
+    // /app/discover is rate-limited in middleware. A prefetch is a request
+    // that passes the limiter, so a shell that prefetched its nav or its
+    // search form spent the buyer's allowance on searches they never ran.
+    const src = readFileSync(path.join(KIT, "app-shell.tsx"), "utf8");
+    const opens = src.match(/<(Link|Form)\b[^>]*?>/gs) ?? [];
+    assert.ok(opens.length >= 3, "expected the nav Link, the account Link and the search Form");
+    for (const tag of opens) assert.match(tag, /prefetch=\{false\}/, `prefetches: ${tag.slice(0, 60)}`);
   });
 });

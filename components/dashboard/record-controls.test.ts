@@ -206,12 +206,14 @@ describe("ShellSwitch — one shell per page, on every navigation", () => {
   const landmarks = (out: unknown) => findAll(out as never, (el) => el.type === "main" || el.props.role === "main");
 
   it("draws nothing around a kit page, and the old shell around every other", () => {
-    for (const path of ["/app/suppliers/aboni-knitwear", "/app/suppliers/aboni-knitwear/lines/6105", "/app/discover"]) {
+    // Every /app page is a kit page since 27 Sep; the supplier portal and
+    // admin still draw the old shell.
+    for (const path of ["/app", "/app/rfqs", "/app/suppliers/aboni-knitwear", "/app/suppliers/aboni-knitwear/lines/6105", "/app/discover"]) {
       const out = shell(path);
       assert.equal(textOf(out), "PAGE", `${path}: the old shell is drawn around a kit page`);
       assert.equal(landmarks(out).length, 0, `${path}: a main landmark around the kit's own`);
     }
-    for (const path of ["/app", "/app/rfqs", "/app/compliance/expiry"]) {
+    for (const path of ["/supplier", "/supplier/rfqs", "/admin/queue"]) {
       const out = shell(path);
       const main = landmarks(out);
       assert.equal(main.length, 1, `${path}: no main landmark`);
@@ -224,7 +226,7 @@ describe("ShellSwitch — one shell per page, on every navigation", () => {
     // A fragment on one side and a <main> on the other changed the parent's
     // type, so React remounted the whole page on every crossing — and the
     // onboarding tour re-opened at its first step after being dismissed.
-    const old = pathTo(shell("/app"));
+    const old = pathTo(shell("/supplier"));
     const kit = pathTo(shell("/app/suppliers/aboni-knitwear"));
     assert.ok(old.length >= 3, `guard: ${old.join(" > ")}`);
     assert.deepEqual(kit, old, `old ${old.join(" > ")} vs kit ${kit.join(" > ")}`);
