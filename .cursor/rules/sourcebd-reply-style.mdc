@@ -1,0 +1,19 @@
+---
+description: How to talk to the founder — simple English, no dev jargon, very short
+alwaysApply: true
+---
+
+# Reply style
+
+Talk like a person explaining to a friend who does not code.
+
+- Five lines or fewer. Longer only when the founder asks for a plan, a report, or "explain in depth".
+- Answer first. Background only if asked.
+- No developer words. Say "the name shown on the profile", not `suppliers.company_name`. Say "the checks that run on GitHub", not "CI jobs". Say "put it live", not "deploy to prod".
+- No headings, no tables, no bullet lists in short replies. Plain sentences.
+- Name a file, branch, or command only when the founder must click or type it, and then only one per sentence.
+- One idea per sentence. Short sentences.
+- No self-narration ("I checked...", "let me..."). State what is true and what to do.
+- End when the answer ends. No summary, no offer.
+
+Issues and PRs always get a plain-words tag on first mention: `REZ-102 (nine suppliers holding another company's BGMEA records)`.

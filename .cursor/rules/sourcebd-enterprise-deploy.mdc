@@ -11,10 +11,10 @@ When the user says **"deploy using the SourceBD deploy rules"** (or asks to depl
 
 1. Read `docs/ENTERPRISE_DEPLOYMENT.md`.
 2. Confirm target VPS is **`109.104.153.228`** only — **never** `37.49.227.151`.
-3. Run or confirm CI checks passed: `pnpm exec tsc --noEmit`, `pnpm lint`, `pnpm build`.
+3. Confirm the CI run on the exact SHA is green: `gh run list --commit <sha> --workflow CI`. Do not run tsc, lint or build locally; the CI run is the evidence.
 4. Confirm deploy ref is a **clean GitHub branch/tag/SHA** — not local dirty tree.
 5. Confirm deploy **scope** matches intended change (see scoped file lists in `ops/deploy/scopes/` when tree is contaminated).
-6. **Do not deploy** until the user explicitly confirms ref, scope, and method — unless they already said to deploy using these rules with a stated ref.
+6. The founder confirms a deploy by approving the run in the GitHub `production` environment. Never trigger or approve it yourself; never `gh workflow run`.
 
 ## Forbidden actions
 
@@ -29,12 +29,12 @@ When the user says **"deploy using the SourceBD deploy rules"** (or asks to depl
 
 ## Approved production path
 
-1. Merge scoped commits to `development` → `main` (or tag `v*`).
-2. Push to `origin` (`https://github.com/Rezx100/SourceBD.git`).
-3. Deploy via **GitHub Actions → Deploy Production** (preferred) or SSH:
-   ```bash
-   cd /opt/sourcebd && bash ops/deploy_vps.sh --ref=<tag-or-sha> --require-git
-   ```
+1. Land the work on `development` by PR with `gh pr merge --auto --squash`; the required checks merge it.
+2. Open `development` → `main` and run `gh pr merge --auto --merge` (merge commit, never squash).
+3. A green CI run on `main` starts **Deploy Production**, which waits for the founder's approval in the
+   GitHub `production` environment, then SSHes to the VPS and runs
+   `ops/deploy_vps.sh --ref=<sha> --require-git`. A manual run (Actions → Deploy Production →
+   Run workflow with a tag or SHA) waits for the same approval.
 4. Legacy scripts require explicit flags and are **not** for production:
    - `ops/deploy-quick.ps1` → `-AllowLegacyHotfix` + explicit file paths only
    - `ops/deploy-vps.ps1` → `-AllowLegacyTarballDeploy` (bootstrap/migration only)

@@ -166,7 +166,7 @@ GIT_TRACE_CURL=1 git ls-remote origin >/dev/null 2>trace.curl || true
 printf 'AUTH_N=%s\\n' "$(grep -c 'Send header: AUTHORIZATION:' trace.curl || true)"
 printf 'HAS_LEFTOVER=%s\\n' "$(grep -c expiredlocal trace.curl || true)"
 printf 'HAS_DUPE=%s\\n' "$(grep -ci 'Duplicate header' trace.curl || true)"
-printf 'LS_HTTP=%s\\n' "$(grep -E 'Recv header: HTTP/' trace.curl | head -1 | tr -d '\\r')"
+printf 'LS_HTTP=%s\\n' "$(grep -E 'Recv header: HTTP/' trace.curl | head -1 | grep -oE 'HTTP/[^ ]+ [0-9]+')"
 """
 
 
@@ -544,7 +544,7 @@ GIT_TRACE_CURL=1 git ls-remote origin >/dev/null 2>trace.curl || true
 printf 'AUTH_N=%s\\n' "$(grep -c 'Send header: AUTHORIZATION:' trace.curl || true)"
 printf 'HAS_DUPE=%s\\n' "$(grep -ci 'Duplicate header' trace.curl || true)"
 printf 'HAS_EXPIREDPAT=%s\\n' "$(grep -c expired-pat trace.curl || true)"
-printf 'LS_HTTP=%s\\n' "$(grep -E 'Recv header: HTTP/' trace.curl | head -1 | tr -d '\\r')"
+printf 'LS_HTTP=%s\\n' "$(grep -E 'Recv header: HTTP/' trace.curl | head -1 | grep -oE 'HTTP/[^ ]+ [0-9]+')"
 """
     env = {"GITHUB_TOKEN": token}
     if extra:
@@ -1192,7 +1192,7 @@ printf 'KEY=%s\\n' "${{GIT_CONFIG_KEY_0-}}"
 GIT_TRACE_CURL=1 git ls-remote origin >/dev/null 2>trace.curl || true
 printf 'AUTH_N=%s\\n' "$(grep -c 'Send header: AUTHORIZATION:' trace.curl || true)"
 printf 'HAS_DUPE=%s\\n' "$(grep -ci 'Duplicate header' trace.curl || true)"
-printf 'LS_HTTP=%s\\n' "$(grep -E 'Recv header: HTTP/' trace.curl | head -1 | tr -d '\\r')"
+printf 'LS_HTTP=%s\\n' "$(grep -E 'Recv header: HTTP/' trace.curl | head -1 | grep -oE 'HTTP/[^ ]+ [0-9]+')"
 export GIT_CONFIG_COUNT=4
 export GIT_CONFIG_KEY_3="http.{local_url}/.extraheader"
 export GIT_CONFIG_VALUE_3="${{GIT_CONFIG_VALUE_0}}"
