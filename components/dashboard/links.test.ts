@@ -36,8 +36,6 @@ type Allowed = Record<string, Record<string, [count: number, reason: string]>>;
 /** Raw anchors that are correct: file → exact href expression → [occurrences, reason]. */
 const RAW_ANCHORS: Allowed = {
   "app-shell.tsx": {
-    "{item.href}": [1, "the sidebar's own navigation between pages; it predates REZ-C"],
-    '"/app/settings"': [1, "the account link, another page"],
     "{`#${mainId}`}": [1, "the skip link, a same-page fragment"],
   },
   "chips.tsx": { "{moreHref}": [1, "the '+N' chip, a same-page control"] },

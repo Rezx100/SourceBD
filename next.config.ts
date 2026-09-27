@@ -12,6 +12,11 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   output: "standalone",
   typescript: { ignoreBuildErrors: true },
+  // Keep a visited /app page for 30s in the client router. Closing a record
+  // goes back to the exact search URL the buyer was just on; with the default
+  // of 0 that re-ran the whole search on the server before the record could
+  // close. Mutations call `router.refresh()`, which clears this cache.
+  experimental: { staleTimes: { dynamic: 30 } },
   pageExtensions: isDev
     ? ["tsx", "ts", "jsx", "js", "dev.tsx"]
     : ["tsx", "ts", "jsx", "js"],
