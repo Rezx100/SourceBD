@@ -92,7 +92,8 @@ Deploy scope must match **intended** production change — not "everything dirty
 
 ### Primary: GitHub Actions (recommended)
 
-1. The `development` → `main` PR auto-merges when its checks are green.
+1. The `development` → `main` PR auto-merges when its checks are green (`gh pr merge --auto --merge`:
+   a merge commit, never a squash, so `main` and `development` do not drift apart).
 2. A green CI run on `main` starts **Deploy Production** automatically. It waits in the `production`
    environment until the founder approves the run (GitHub → Actions → the waiting run → Review
    deployments → Approve). A manual run (Run workflow with a tag, `main`, or SHA) waits the same way.

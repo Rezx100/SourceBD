@@ -16,7 +16,8 @@ Then the lean boot set from AGENTS.md rule 3 (`context/agent-brief.md`, `context
 2. One critic pass: `/code-review` on the diff against the merge base. Fix the real findings.
 3. Push, open the PR to `development`, then `gh pr merge --auto --squash`. GitHub merges it when
    every required check is green. Read a red run with `gh run view --log-failed`, fix, push again.
-4. To go live: the same PR flow from `development` to `main`. When CI passes on `main`, Deploy
+4. To go live: a PR from `development` to `main` with `gh pr merge --auto --merge` (a merge
+   commit, never a squash, so the branches do not drift). When CI passes on `main`, Deploy
    Production starts and waits for the founder's approval in the GitHub `production` environment.
    That approval is the only human gate. Never `gh workflow run` it yourself.
 

@@ -34,8 +34,10 @@ You are a senior engineer working on **SourceBD**, a B2B intelligence SaaS for t
 8. **Never commit secrets or `context/current-issues.md`.**
 9. **Never push to `main` or `development` directly.** Work on a branch, open a PR, let the required checks merge it.
 9a. **GitHub is the gate; the founder approves only the deploy.** A PR into
-    `development`, and a PR from `development` into `main`, lands by
-    `gh pr merge --auto --squash` once every required check is green. No chat
+    `development` lands by `gh pr merge --auto --squash`; the PR from
+    `development` into `main` lands by `gh pr merge --auto --merge` (a merge
+    commit, never a squash, or the two branches drift apart and the next
+    promotion re-shows old changes), once every required check is green. No chat
     approval is asked for or needed. When CI passes on `main`, Deploy Production
     starts and waits in the GitHub `production` environment for the founder's click.
     That click is the one human gate: never trigger the workflow yourself and
