@@ -132,6 +132,21 @@ function motherSafety(html: string): string {
 }
 
 describe("SupplierResultCard (rendered)", () => {
+  it("beside an open record the card wraps rather than crushing the name: no rule keys on the viewport", () => {
+    // The results column is ~500px on a 1440 display with a record open
+    // (27 Sep 2026) while every `sm:`/`lg:` rule still fires, so the card's
+    // wrap points are widths of its own: the identity block claims 18rem
+    // before the actions may share its row, the actions never refuse to
+    // shrink or wrap, and the photo strip claims 26rem before it sits beside
+    // the tiles. Pinned by class because no DOM here can measure.
+    const html = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(aboniInput()) }));
+    assert.match(html, /<div class="flex min-w-\[min\(18rem,100%\)\] flex-1 flex-col gap-1">/, "the identity block does not claim a width of its own");
+    assert.match(html, /<div class="flex flex-wrap items-center gap-2 pt-2">/, "the action cluster refuses to wrap or shrink");
+    assert.match(html, /<div class="flex flex-wrap items-start gap-4"><div class="grid w-full grid-cols-2 gap-2 lg:w-\[352px\]">/, "the tiles row does not wrap");
+    assert.match(html, /<div class="relative min-w-\[min\(26rem,100%\)\] flex-1">/, "the photo strip does not claim a width of its own");
+    assert.doesNotMatch(html, /sm:flex-nowrap|lg:flex-row lg:items-start|lg:shrink-0/, "a viewport-keyed rule is back on the card");
+  });
+
   it("the 11-source record: name, eleven marks with names, four tiles, six photo tiles, no score anywhere", () => {
     const html = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(aboniInput()) }));
     assert.match(html, NAME_WRAPS);
@@ -322,35 +337,38 @@ describe("ResultsTable (rendered)", () => {
   });
 });
 
-// Guard-adequacy, cycle 19: cycle 18's `assertModal` repair has two halves —
-// the gallery passes `assertModal={false}` on its three simultaneously-live
-// dialogs, and the prop defaults to `true`, "the real, single-dialog
-// behaviour the shipped app always has" (the doc comments on `Sheet` and
-// `Dialog` say so explicitly). Only the gallery's own negative case was
-// guarded (`dashboard-screens.test.ts`'s "no dialog on the combined gallery
-// page claims aria-modal"); nothing anywhere asserted the *positive*
-// direction at the component boundary, so both `Sheet` and `Dialog` could
-// default to `false` — the shipped app's every real dialog silently losing
-// its modality — and the whole suite would stay green.
-describe("Sheet and Dialog default to aria-modal, at the component boundary (guard-adequacy, cycle 19)", () => {
-  it("SupplierSheet: no assertModal prop means aria-modal=\"true\"; assertModal={false} removes it and keeps role/label", () => {
-    const withDefault = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()) }));
-    assert.match(withDefault, /role="dialog"[^>]*aria-modal="true"|aria-modal="true"[^>]*role="dialog"/);
-    const withFalse = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()), assertModal: false }));
-    assert.doesNotMatch(withFalse, /aria-modal/);
-    assert.match(withFalse, /role="dialog"/);
-    assert.match(withFalse, /aria-label="Supplier record"/);
+// The record is not a dialog (27 Sep 2026): it sits beside the results in a
+// pane, both live, so `Sheet` claims no role and no modality in either mode.
+// The pane is what `DialogFocus` moves focus to (`data-record-pane`,
+// focusable by script only); the full page is a plain labelled section with
+// nothing to close. Guard-adequacy: only the routes used to assert the
+// difference, and a `Sheet` that regressed to `role="dialog"` would have told
+// a screen reader the results beside it were gone.
+describe("Sheet: a pane by default, a page on request, never a dialog", () => {
+  it("SupplierSheet: the default is the focusable pane; mode=\"page\" is neither pane nor dialog", () => {
+    const pane = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()) }));
+    assert.match(pane, /<section data-record-pane="" aria-label="Supplier record" tabindex="-1"/);
+    assert.doesNotMatch(pane, /role="dialog"|aria-modal/);
+    const page = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()), mode: "page" }));
+    assert.doesNotMatch(page, /data-record-pane|role="dialog"|aria-modal|tabindex="-1"/);
+    assert.match(page, /<section aria-label="Supplier record"/);
   });
 
-  it("ProductSheet: no assertModal prop means aria-modal=\"true\"; assertModal={false} removes it and keeps role/label", () => {
-    const withDefault = renderToStaticMarkup(createElement(ProductSheet, { model: buildProductSheet(aboniInput(), "6105") }));
-    assert.match(withDefault, /role="dialog"[^>]*aria-modal="true"|aria-modal="true"[^>]*role="dialog"/);
-    const withFalse = renderToStaticMarkup(createElement(ProductSheet, { model: buildProductSheet(aboniInput(), "6105"), assertModal: false }));
-    assert.doesNotMatch(withFalse, /aria-modal/);
-    assert.match(withFalse, /role="dialog"/);
-    assert.match(withFalse, /aria-label="Product line"/);
+  it("ProductSheet: the default is the focusable pane; mode=\"page\" is neither pane nor dialog", () => {
+    const pane = renderToStaticMarkup(createElement(ProductSheet, { model: buildProductSheet(aboniInput(), "6105") }));
+    assert.match(pane, /<section data-record-pane="" aria-label="Product line" tabindex="-1"/);
+    assert.doesNotMatch(pane, /role="dialog"|aria-modal/);
+    const page = renderToStaticMarkup(createElement(ProductSheet, { model: buildProductSheet(aboniInput(), "6105"), mode: "page" }));
+    assert.doesNotMatch(page, /data-record-pane|role="dialog"|aria-modal|tabindex="-1"/);
+    assert.match(page, /<section aria-label="Product line"/);
   });
 
+  // Guard-adequacy, cycle 19: the RFQ composer IS still a dialog, and the
+  // gallery passes `assertModal={false}` on it because five other screens
+  // are live on that one page. The prop defaults to `true`, the real
+  // single-dialog behaviour the shipped app has; only the gallery's own
+  // negative case was guarded, so `Dialog` could default to `false` and the
+  // whole suite stay green.
   it("RfqComposer: no assertModal prop means aria-modal=\"true\"; assertModal={false} removes it and keeps role/label", () => {
     const withDefault = renderToStaticMarkup(createElement(RfqComposer, { model: COMPOSER_MODEL }));
     assert.match(withDefault, /role="dialog"[^>]*aria-modal="true"|aria-modal="true"[^>]*role="dialog"/);

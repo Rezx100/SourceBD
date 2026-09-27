@@ -7,10 +7,8 @@
 
 import { Button } from "@/components/dashboard/controls";
 import { Inbox, type InboxThread } from "@/components/dashboard/inbox";
-import { PageHeader } from "@/components/dashboard/page";
+import { PageHeader, Page } from "@/components/dashboard/page";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { AppShell } from "@/components/dashboard/app-shell";
-import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +18,9 @@ async function MessagesPageBody() {
   const threads: InboxThread[] = error || data == null ? [] : (data as InboxThread[]);
 
   return (
-    <div className="flex flex-col gap-5">
+    // From `lg` the inbox fills the content region under the header and its
+    // two panes scroll on their own; the frame chain below is what lets it.
+    <div className="flex flex-col gap-5 lg:min-h-0 lg:flex-1">
       <PageHeader
         title="Messages"
         caption={
@@ -39,14 +39,6 @@ async function MessagesPageBody() {
   );
 }
 
-// The kit's shell on every buyer page (one sidebar, one topbar), read in the
-// same wave as the page's own data.
 export default async function MessagesPage() {
-  const supabase = await createSupabaseServerClient();
-  const [shell, body] = await Promise.all([loadBuyerShell(supabase, "/app/messages"), MessagesPageBody()]);
-  return (
-    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Messages">
-      {body}
-    </AppShell>
-  );
+  return <Page className="lg:min-h-0 lg:flex-1">{await MessagesPageBody()}</Page>;
 }

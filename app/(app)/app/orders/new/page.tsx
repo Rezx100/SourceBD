@@ -9,11 +9,9 @@ import { notFound, redirect } from "next/navigation";
 
 import { Button } from "@/components/dashboard/controls";
 import { Icon } from "@/components/dashboard/icons";
-import { EmptyState, PageHeader } from "@/components/dashboard/page";
+import { EmptyState, PageHeader, Page } from "@/components/dashboard/page";
 import { OrderCreateForm, type OrderSeed } from "@/components/order-create-form";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { AppShell } from "@/components/dashboard/app-shell";
-import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 
 export const dynamic = "force-dynamic";
 
@@ -152,14 +150,6 @@ async function NewOrderPageBody({
   );
 }
 
-// The kit's shell on every buyer page (one sidebar, one topbar), read in the
-// same wave as the page's own data.
 export default async function NewOrderPage(props: Parameters<typeof NewOrderPageBody>[0]) {
-  const supabase = await createSupabaseServerClient();
-  const [shell, body] = await Promise.all([loadBuyerShell(supabase, "/app/orders/new"), NewOrderPageBody(props)]);
-  return (
-    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="New order">
-      {body}
-    </AppShell>
-  );
+  return <Page>{await NewOrderPageBody(props)}</Page>;
 }

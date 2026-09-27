@@ -126,10 +126,15 @@ export function SupplierResultCard({ card }: { card: SupplierCardModel }) {
       />
       <div className="flex min-w-0 flex-1 flex-col gap-4">
         {/* Wraps, so the action cluster drops below the identity block rather
-            than pushing the card past the viewport. */}
+            than pushing the card past the viewport — and beside an open record
+            (27 Sep 2026), where the results column is ~500px on a 1440
+            display while the viewport says `xl`. Nothing here may key on the
+            viewport: the identity block claims 18rem (or the whole line on a
+            phone) before the actions may share its row, so the name and the
+            marks never crush into a sliver. */}
         <div className="flex flex-wrap items-start gap-3">
           <LogoTile initials={card.initials} tier={card.topTier} />
-          <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <div className="flex min-w-[min(18rem,100%)] flex-1 flex-col gap-1">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               {/* A heading, so heading navigation moves between results and each
                   card's Open / Send RFQ / Save sit under their supplier's name.
@@ -160,12 +165,14 @@ export function SupplierResultCard({ card }: { card: SupplierCardModel }) {
             <MetaLine facts={card.meta} />
             {card.sanctioned ? <SanctionLine sample={card.sanctionSample} href={recordHref} /> : null}
           </div>
-          {/* Not `shrink-0`: three nowrap buttons come to ~326px, and with
-              the card's padding and logo tile that set the card's minimum at
-              ~430px — so Cards, which is the default view, scrolled the page
-              sideways on a 375px phone as well as at the 320px floor. Wraps
-              under the identity block below `sm`. */}
-          <div className="flex flex-wrap items-center gap-2 pt-2 sm:shrink-0 sm:flex-nowrap">
+          {/* Never `shrink-0`, never `nowrap`: three nowrap buttons come to
+              ~326px, and with the card's padding and logo tile that set the
+              card's minimum at ~430px — so Cards, the default view, scrolled
+              the page sideways on a 375px phone and at the 320px floor, and
+              would again in the results column beside a record on a 1024
+              display. The cluster wraps under the identity block whenever
+              the row is too narrow, and wraps inside itself below ~330px. */}
+          <div className="flex flex-wrap items-center gap-2 pt-2">
             {card.supplierId ? (
               <SaveRecordButton supplierId={card.supplierId} saved={Boolean(card.saved)} />
             ) : (
@@ -191,10 +198,12 @@ export function SupplierResultCard({ card }: { card: SupplierCardModel }) {
             </Chip>
           ))}
         </Chips>
-        {/* 352px of tiles beside the photo strip does not fit a phone; below
-            `lg` they stack and the tiles take the full width. */}
-        <div className="flex flex-col items-stretch gap-4 lg:flex-row lg:items-start">
-          <div className="grid w-full grid-cols-2 gap-2 lg:w-[352px] lg:shrink-0">
+        {/* 352px of tiles beside the photo strip does not fit a phone, nor
+            the results column beside an open record; the strip claims 26rem
+            (`PhotoStrip`) and wraps under the tiles when the row cannot hold
+            both. Below `lg` the tiles take the full width on their own. */}
+        <div className="flex flex-wrap items-start gap-4">
+          <div className="grid w-full grid-cols-2 gap-2 lg:w-[352px]">
             {card.tiles.map((t) => (
               <Tile key={t.label} tile={t} />
             ))}

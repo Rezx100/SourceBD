@@ -13,6 +13,16 @@ import { cn } from "@/lib/utils";
 import { Icon, type IconName } from "./icons";
 import { Caption } from "./type";
 
+/**
+ * The frame of every page that simply scrolls: the content width, the page
+ * gutter, the rhythm between the header and its sections. The shell's
+ * `<main>` is the scroll region and this sits inside it; a workbench page
+ * (the search, the inbox) fills `<main>` with panes of its own instead.
+ */
+export function Page({ className, children }: { className?: string; children: ReactNode }) {
+  return <div className={cn("mx-auto flex w-full max-w-[calc(75rem+3rem)] flex-col gap-4 p-4 sm:p-6", className)}>{children}</div>;
+}
+
 /** The page's one `h1`, its caption, and the actions on the right. */
 export function PageHeader({
   title,

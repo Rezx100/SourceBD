@@ -7,6 +7,7 @@
 /* eslint-disable @next/next/no-img-element -- static catalogue file under /public */
 import { formatCount } from "@/lib/dashboard/facts";
 import type { ProductSheetModel } from "@/lib/dashboard/models";
+import { cn } from "@/lib/utils";
 import { Button } from "./controls";
 import { Icon } from "./icons";
 import { PHOTO_CAPTION } from "./photo-tiles";
@@ -15,16 +16,14 @@ import { Caption, Code, Eyebrow, Heading } from "./type";
 
 export function ProductSheet({
   model,
-  assertModal,
-  dialog,
+  mode = "pane",
 }: {
   model: ProductSheetModel;
-  assertModal?: boolean;
-  /** False on the full line page, which is not a dialog. */
-  dialog?: boolean;
+  /** `pane` beside the results (the default); `page` on the full line page. */
+  mode?: "pane" | "page";
 }) {
   return (
-    <Sheet label="Product line" assertModal={assertModal} dialog={dialog}>
+    <Sheet label="Product line" mode={mode}>
       <SheetBar>
         {model.backHref ? (
           <Button variant="ghost" aria-label="Back to the record" href={model.backHref} clientNav scroll={false}>
@@ -52,8 +51,10 @@ export function ProductSheet({
         </span>
       </SheetBar>
       {model.sanctioned ? <SanctionBanner sample={model.sanctionSample} /> : null}
-      <SheetScroll>
-        <div className="grid items-start gap-6 p-6 md:grid-cols-[320px_1fr]">
+      <SheetScroll measure={mode === "page"}>
+        {/* The photo beside the facts where there is room. The pane is a share
+            of the content region, so beside the results that waits for `xl`. */}
+        <div className={cn("grid items-start gap-6 p-6", mode === "page" ? "md:grid-cols-[320px_1fr]" : "xl:grid-cols-[320px_1fr]")}>
           <div>
             <div className="aspect-square w-full max-w-[320px] overflow-hidden rounded-sm border border-line-subtle bg-surface-sunken">
               {model.photo.src ? (

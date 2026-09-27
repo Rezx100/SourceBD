@@ -499,13 +499,15 @@ describe("the state a screen is in is drawn, not only announced", () => {
 });
 
 describe("a modal's background is inert, not merely covered", () => {
-  // Detected by `role="dialog"`, not `aria-modal="true"`: the gallery's three
-  // dialogs pass `assertModal={false}` (cycle 18's accessibility critic — see
-  // the `Sheet`/`Dialog` doc comments), so `aria-modal` is deliberately absent
-  // here. The background being kept out of the tab order does not depend on
-  // whether the dialog covering it also claims `aria-modal` — a dialog that
-  // makes no modality claim still must not leave its background operable
-  // behind a scrim the pointer cannot pass either.
+  // Detected by `role="dialog"`, not `aria-modal="true"`: the gallery's one
+  // dialog, the RFQ composer, passes `assertModal={false}` (cycle 18's
+  // accessibility critic — see the `Dialog` doc comment), so `aria-modal` is
+  // deliberately absent here. The background being kept out of the tab order
+  // does not depend on whether the dialog covering it also claims
+  // `aria-modal` — a dialog that makes no modality claim still must not leave
+  // its background operable behind a scrim the pointer cannot pass either.
+  // The two record sheets are no dialog at all since 27 Sep 2026: they sit
+  // beside the results in a pane, both live (asserted below).
   it("nothing outside a dialog is focusable", () => {
     const html = renderAll(galleryData());
     const frames = html.split("<figure").slice(1);
@@ -527,22 +529,42 @@ describe("a modal's background is inert, not merely covered", () => {
       assert.match(covered, /<main id="[^"]+-behind"/, "the covered shell sits outside the inert wrapper");
       assert.match(covered, /<nav aria-label="Primary"/, "the sidebar sits outside the inert wrapper");
     }
-    assert.equal(modals, 3, "the three sheet screens still draw a dialog");
+    assert.equal(modals, 1, "the RFQ composer still draws a dialog, and nothing else does");
   });
 
-  // Cycle 18's accessibility critic: three `aria-modal="true"` dialogs were
-  // simultaneously live and non-inert relative to each other on this one
-  // page — each asserting the other two (and the three plain screens) did
-  // not exist, which no assistive-technology behaviour is defined for and
-  // which was false in both directions at once for at least two of the
-  // three. `assertModal={false}` on all three gallery instances removes the
-  // false claim; `role="dialog"` and each one's own `aria-label` are kept.
-  it("no dialog on the combined gallery page claims aria-modal, since none of the three is the page's one true modal", () => {
+  it("the two record screens draw the record beside the results, both live: a pane, not a dialog", () => {
     const html = renderAll(galleryData());
-    assert.doesNotMatch(html, /aria-modal="true"/, "an aria-modal claim on this page cannot be true of more than one of three simultaneously live dialogs");
-    // The claim is dropped, not the dialog: still three labelled dialogs.
+    const frames = [...html.matchAll(/<figure[\s\S]*?data-screen="([^"]+)"[\s\S]*?(?=<figure|$)/g)];
+    const record = frames.filter((m) => m[1] === "supplier-sheet" || m[1] === "product-sheet");
+    assert.equal(record.length, 2, "guard: both record screens rendered");
+    for (const m of record) {
+      const f = m[0]!;
+      assert.match(f, /data-record-pane=""/, `${m[1]}: the record is not in the pane`);
+      assert.doesNotMatch(f, /role="dialog"|aria-modal|\sinert\b/, `${m[1]}: the record claims to be modal or inerts the results`);
+      // The results column stands beside it from lg and steps aside below.
+      const column = f.search(/<div class="(?=[^"]*\bhidden\b)(?=[^"]*\blg:flex\b)[^"]*">/);
+      assert.ok(column > -1, `${m[1]}: no results column beside the record`);
+      assert.ok(f.indexOf("data-record-pane") > column, `${m[1]}: the pane is not on the results' right`);
+      // One live shell, one landmark of each kind: the results and the record share it.
+      assert.equal((f.match(/<main\b/g) ?? []).length, 1, `${m[1]}: a second main landmark`);
+      assert.equal((f.match(/<aside\b/g) ?? []).length, 1, `${m[1]}: a second sidebar`);
+    }
+  });
+
+  // Cycle 18's accessibility critic: an `aria-modal="true"` dialog live on
+  // this page asserts the five other screens do not exist, which no
+  // assistive-technology behaviour is defined for and which is false.
+  // `assertModal={false}` on the gallery's composer removes the false claim;
+  // `role="dialog"` and its own `aria-label` are kept.
+  it("no dialog on the combined gallery page claims aria-modal, since none is the page's one true modal", () => {
+    const html = renderAll(galleryData());
+    assert.doesNotMatch(html, /aria-modal="true"/, "an aria-modal claim on this page cannot be true beside five live screens");
+    // The claim is dropped, not the dialog: still one labelled dialog, and the
+    // two record sheets are labelled sections in their pane.
     const dialogs = [...html.matchAll(/role="dialog" aria-label="([^"]+)"/g)].map((m) => m[1]!);
-    assert.deepEqual(dialogs.sort(), ["New RFQ", "Product line", "Supplier record"], "all three dialogs still render, still labelled");
+    assert.deepEqual(dialogs, ["New RFQ"], "the composer still renders as a labelled dialog, and nothing else does");
+    const panes = [...html.matchAll(/data-record-pane="" aria-label="([^"]+)"/g)].map((m) => m[1]!);
+    assert.deepEqual(panes.sort(), ["Product line", "Supplier record"], "both record sheets still render, still labelled");
   });
 });
 
@@ -738,14 +760,16 @@ describe("what the whole page may and may not say about itself", () => {
         }
       };
       // Detected by `role="dialog"`, not `aria-modal="true"`: the gallery's
-      // three dialogs pass `assertModal={false}` (cycle 18's accessibility
-      // critic — none of three simultaneously-live dialogs can truthfully
-      // claim the other two do not exist), so `aria-modal` is deliberately
+      // one dialog, the composer, passes `assertModal={false}` (cycle 18's
+      // accessibility critic — a dialog live beside five other screens cannot
+      // truthfully claim they do not exist), so `aria-modal` is deliberately
       // absent on this page. Keying this branch off `aria-modal` instead
-      // would silently stop running it at all: these three frames would then
-      // fall into the plain-screen branch below and pass by matching the
-      // inert background's own (unreachable) `main` and conflating its
-      // heading tree with the dialog's.
+      // would silently stop running it at all: the frame would then fall into
+      // the plain-screen branch below and pass by matching the inert
+      // background's own (unreachable) `main` and conflating its heading tree
+      // with the dialog's. The two record screens are plain screens now: the
+      // record sits beside live results in one shell, so the plain branch is
+      // the right one for them.
       if (/role="dialog"/.test(f)) {
         assert.match(f, /role="dialog"[^>]*aria-label="[^"]+"|aria-label="[^"]+"[^>]*role="dialog"/, "a dialog screen owes a labelled dialog");
         assert.doesNotMatch(reachable, /<main\b/, "a landmark left outside the dialog on a dialog screen");

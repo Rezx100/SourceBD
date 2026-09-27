@@ -250,7 +250,7 @@ describe("DialogFocus — focus follows the dialog's content", () => {
     const state = { search, focusedDialog: 0, listener: null as null | ((e: unknown) => void), focusedOpener: 0, focused: [] as string[] };
     stub("window", { location: { get search() { return state.search; } } });
     stub("document", {
-      querySelector: (sel: string) => (sel === '[role="dialog"]' ? { focus: () => void state.focusedDialog++ } : null),
+      querySelector: (sel: string) => (sel === "[data-record-pane]" ? { focus: () => void state.focusedDialog++ } : null),
       addEventListener: (_: string, f: (e: unknown) => void) => void (state.listener = f),
       removeEventListener: () => void (state.listener = null),
       // The results: the company and one of its buildings, each opening its own record.

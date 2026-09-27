@@ -28,19 +28,17 @@
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AppShell } from "@/components/dashboard/app-shell";
 import { Panel, PanelFooter, PanelHeader } from "@/components/dashboard/results-panel";
 import { ResultsTable } from "@/components/dashboard/results-table";
 import { SearchComposer } from "@/components/dashboard/search-composer";
 import { SelectionBar } from "@/components/dashboard/selection-bar";
 import { SelectionProvider } from "@/components/dashboard/selection";
 import { SaveRecordButton } from "@/components/dashboard/save-record-button";
-import { SheetFrame, SheetNotice } from "@/components/dashboard/sheet";
+import { RecordPane, ResultsColumn, SheetNotice } from "@/components/dashboard/sheet";
 import { SupplierResultCard } from "@/components/dashboard/supplier-result-card";
 import { SupplierSheet } from "@/components/dashboard/supplier-sheet";
 import { Caption, Title } from "@/components/dashboard/type";
 import { RecordRecentSearch } from "@/components/dashboard/record-recent-search";
-import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { ProfileReadTimeout, loadRecordLine, loadRecordSheet } from "@/lib/dashboard/load-record";
 import { fetchFacilityParentSlug } from "@/lib/facility-parent-redirect";
 import { ProductSheet } from "@/components/dashboard/product-sheet";
@@ -256,9 +254,6 @@ export default async function BuyerDiscoverPage({
   const lineCode = /^\d{4}$/.test(one(sp.line) ?? "") ? one(sp.line)! : null;
   const allLines = one(sp.lines) === "all";
   const supabase = await createSupabaseServerClient();
-  // Started, not awaited: the shell's counts, the search and the record are
-  // independent reads and all go out in the one wave below.
-  const shellPromise = loadBuyerShell(supabase, "/app/discover");
   const today = new Date();
   const askOn = askEnabled();
   // Closing the record is a link back to this same search, with `record`
@@ -306,8 +301,8 @@ export default async function BuyerDiscoverPage({
         )
       : Promise.resolve({ value: null, slow: false });
 
-  const [shell, { rows, total, error, failure }, recordRead, lineRead] = await Promise.all([
-    shellPromise,
+  // The search and the record are independent reads and go out in one wave.
+  const [{ rows, total, error, failure }, recordRead, lineRead] = await Promise.all([
     fetchDiscoverV32(supabase, state),
     recordPromise,
     linePromise,
@@ -382,152 +377,108 @@ export default async function BuyerDiscoverPage({
     }),
   );
 
+  const recordOpen = recordSlug !== null;
   return (
-    <AppShell
-      sidebar={shell.sidebar}
-      topbar={{ ...shell.topbar, searchQuery: state.q }}
-      mainId="main-content"
-      screenLabel="Search"
-      // The sheet claims `aria-modal`, so the whole shell behind it — sidebar,
-      // topbar and all — is inert while a record is open. Inerting only the
-      // results left thirteen focusable stops outside the dialog that the
-      // dialog said did not exist. The notices (slow, a building, no record)
-      // are the same modal sheet, so they inert it too.
-      inert={recordSlug !== null}
-      overlay={
-        recordSlug && !record ? (
-          // The slug resolved to nothing. Say which nothing it was.
-          <SheetFrame overlay closeHref={closeHref} openKey={`notice:${recordSlug}`}>
-            {recordRead.slow ? (
-              <SheetNotice
-                title="This record could not be read in time"
-                body="The database is under load. The company is still on SourceBD — this read simply took too long."
-                // The same view again: the expanded grid and the open line with it.
-                action={{ label: "Try again", href: withParams(`${recordParams}${lineCode ? `&line=${lineCode}` : ""}`) }}
-                closeHref={closeHref}
-              />
-            ) : motherSlug ? (
-              <SheetNotice
-                title="That is a building, not a company record"
-                body="SourceBD files this address under the company that operates it. Its record has the certificates, the registers and the export lines."
-                action={{ label: "Open the company's record", href: recordHref(motherSlug) }}
-                closeHref={closeHref}
-              />
-            ) : (
-              <SheetNotice
-                title="No record for that link"
-                body="It may have been unpublished, the link may be wrong, or it could not be read just now. Your search is still here behind this."
-                closeHref={closeHref}
-              />
-            )}
-          </SheetFrame>
-        ) : record ? (
-          <SheetFrame overlay closeHref={closeHref} openKey={`${recordSlug}:${line ? lineCode : allLines ? "all" : ""}`}>
-            {/* The line sheet sits where the record sheet would: one dialog at
-                a time, with Back to the record and Close to the search. */}
-            {line ? (
-              <ProductSheet model={line} />
-            ) : (
-              <SupplierSheet
-                model={record}
-                save={record.supplierId ? <SaveRecordButton supplierId={record.supplierId} saved={record.saved} /> : undefined}
-              />
-            )}
-          </SheetFrame>
-        ) : null
-      }
-    >
-      <RecordRecentSearch label={title} href={href} count={total} />
-      <form action={DISCOVER_PATH} method="get">
-        <HiddenState state={state} omit={COMPOSER_HIDDEN_OMIT} />
-        <SearchComposer
-          // `key` and not `label`: Dhaka, Gazipur, Narayanganj and Chittagong
-          // are each both a city and a district, so ?city=Dhaka&district=Dhaka
-          // produced two chips with identical text — and the composer keyed on
-          // the label, which is a duplicate React key and a remove link that
-          // can end up attached to the wrong chip after a navigation.
-          chips={chips.map((c) => ({
-            key: c.key,
-            label: c.label,
-            code: c.code,
-            removeHref: discoverHref(c.without),
-          }))}
-          mode={state.ask && askOn ? "ask" : "filters"}
-          askEnabled={askOn}
-          queryInput={state.q}
-          askHref={askOn ? discoverHref(state, { ask: true, page: 1 }) : undefined}
-          filtersHref={askOn ? discoverHref(state, { ask: false, page: 1 }) : undefined}
-        />
-      </form>
-      <DiscoverFilters state={state} />
-      {/* One provider around every outcome, keyed on the search: opening or
-          closing a record re-runs the search (`?record=` is a search param),
-          and a re-run that FAILS used to swap the results for the error panel
-          and unmount the provider, losing the buyer's selection. It now stays
-          mounted, and an unread page (null) prunes nothing (cycle 11). */}
-      <SelectionProvider key={serializeDiscoverState(state).toString()} pageIds={error ? null : rows.map((r) => r.id)}>
-      {error ? (
-        <Panel>
-          <div className="px-5 py-10">
-            <Title as="h1">{title}</Title>
-            <Caption className="mt-2">{discoverFailureCopy(failure ?? "unavailable")}</Caption>
-          </div>
-        </Panel>
-      ) : rows.length === 0 && state.page > 1 ? (
-        // The RPC carries total_count on each row, so a page past the end
-        // returns no rows and therefore no count — indistinguishable from a
-        // genuinely empty result. Saying "no supplier matches" here is a lie
-        // about the search; the search is fine, the page number is not.
-        <Panel>
-          <div className="px-5 py-10">
-            <Title as="h1">{title}</Title>
-            <Caption className="mt-2">
-              Page {state.page} is past the end of this result set.
-            </Caption>
-            <p className="mt-4 text-sm">
-              <Link className="underline" href={discoverHref(state, { page: 1 })}>
-                Back to the first page
-              </Link>
-            </p>
-          </div>
-        </Panel>
-      ) : total === 0 ? (
-        <Panel>
-          <div className="px-5 py-10">
-            <Title as="h1">{title}</Title>
-            <Caption className="mt-2">
-              {filterCount(state) === 0
-                ? "No published suppliers to show."
-                : `No supplier matches all ${filterCount(state)} filters.`}
-            </Caption>
-            {explain.length > 0 ? (
-              <ul className="mt-4 flex flex-col gap-1 text-sm">
-                {explain
-                  .slice()
-                  .sort((a, b) => a.remaining - b.remaining)
-                  .map((e) => {
-                    // The whole family, exactly as the RPC dropped it to
-                    // arrive at `remaining` — otherwise the link promises a
-                    // count it does not deliver, or goes nowhere at all.
-                    const without = withoutFilterFamily(state, e.dropped);
-                    if (!without) return null;
-                    return (
-                      <li key={e.dropped}>
-                        <Link href={discoverHref(without)} className="text-brand-ink">
-                          Drop {filterFamilyLabel(e.dropped)} · {e.remaining} remain
-                        </Link>
-                      </li>
-                    );
-                  })}
-              </ul>
-            ) : null}
-          </div>
-        </Panel>
-      ) : (
-        // The provider above is keyed on the whole URL state: a new filter,
-        // sort, page or view is a new page of results, and its selection
-        // starts empty (selection.tsx).
-        <>
+    // The workbench: the results column scrolls on its own, and an open record
+    // is a pane beside it from `lg` — both live, nothing modal, the search
+    // never lost. Below `lg` the record takes the content region and the
+    // results wait in the URL; Close brings them back.
+    <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+      <ResultsColumn besideRecord={recordOpen}>
+        <RecordRecentSearch label={title} href={href} count={total} />
+        {/* The filter bar: the active filters as chips, Add filter, the go
+            disc. The text lives in the topbar field, the one search box, and
+            rides along here as a hidden field so the bar keeps it. */}
+        <form action={DISCOVER_PATH} method="get">
+          <HiddenState state={state} omit={COMPOSER_HIDDEN_OMIT} />
+          {state.q ? <input type="hidden" name="q" value={state.q} /> : null}
+          <SearchComposer
+            // `key` and not `label`: Dhaka, Gazipur, Narayanganj and Chittagong
+            // are each both a city and a district, so ?city=Dhaka&district=Dhaka
+            // produced two chips with identical text — and the composer keyed on
+            // the label, which is a duplicate React key and a remove link that
+            // can end up attached to the wrong chip after a navigation.
+            chips={chips.map((c) => ({
+              key: c.key,
+              label: c.label,
+              code: c.code,
+              removeHref: discoverHref(c.without),
+            }))}
+            mode={state.ask && askOn ? "ask" : "filters"}
+            askEnabled={askOn}
+            submits
+            askHref={askOn ? discoverHref(state, { ask: true, page: 1 }) : undefined}
+            filtersHref={askOn ? discoverHref(state, { ask: false, page: 1 }) : undefined}
+          />
+        </form>
+        <DiscoverFilters state={state} />
+        {/* One provider around every outcome, keyed on the search: opening or
+            closing a record re-runs the search (`?record=` is a search param),
+            and a re-run that FAILS used to swap the results for the error panel
+            and unmount the provider, losing the selection. It now stays
+            mounted, and an unread page (null) prunes nothing (cycle 11). */}
+        <SelectionProvider key={serializeDiscoverState(state).toString()} pageIds={error ? null : rows.map((r) => r.id)}>
+        {error ? (
+          <Panel>
+            <div className="px-5 py-10">
+              <Title as="h1">{title}</Title>
+              <Caption className="mt-2">{discoverFailureCopy(failure ?? "unavailable")}</Caption>
+            </div>
+          </Panel>
+        ) : rows.length === 0 && state.page > 1 ? (
+          // The RPC carries total_count on each row, so a page past the end
+          // returns no rows and therefore no count — indistinguishable from a
+          // genuinely empty result. Saying "no supplier matches" here is a lie
+          // about the search; the search is fine, the page number is not.
+          <Panel>
+            <div className="px-5 py-10">
+              <Title as="h1">{title}</Title>
+              <Caption className="mt-2">
+                Page {state.page} is past the end of this result set.
+              </Caption>
+              <p className="mt-4 text-sm">
+                <Link className="underline" href={discoverHref(state, { page: 1 })}>
+                  Back to the first page
+                </Link>
+              </p>
+            </div>
+          </Panel>
+        ) : total === 0 ? (
+          <Panel>
+            <div className="px-5 py-10">
+              <Title as="h1">{title}</Title>
+              <Caption className="mt-2">
+                {filterCount(state) === 0
+                  ? "No published suppliers to show."
+                  : `No supplier matches all ${filterCount(state)} filters.`}
+              </Caption>
+              {explain.length > 0 ? (
+                <ul className="mt-4 flex flex-col gap-1 text-sm">
+                  {explain
+                    .slice()
+                    .sort((a, b) => a.remaining - b.remaining)
+                    .map((e) => {
+                      // The whole family, exactly as the RPC dropped it to
+                      // arrive at `remaining` — otherwise the link promises a
+                      // count it does not deliver, or goes nowhere at all.
+                      const without = withoutFilterFamily(state, e.dropped);
+                      if (!without) return null;
+                      return (
+                        <li key={e.dropped}>
+                          <Link href={discoverHref(without)} className="text-brand-ink">
+                            Drop {filterFamilyLabel(e.dropped)} · {e.remaining} remain
+                          </Link>
+                        </li>
+                      );
+                    })}
+                </ul>
+              ) : null}
+            </div>
+          </Panel>
+        ) : (
+          // The provider above is keyed on the whole URL state: a new filter,
+          // sort, page or view is a new page of results, and its selection
+          // starts empty (selection.tsx).
           <Panel>
             <PanelHeader
               model={{
@@ -567,9 +518,51 @@ export default async function BuyerDiscoverPage({
             />
             <SelectionBar exportHref={`/api/v1/discover/export?${serializeDiscoverState(state).toString()}`} />
           </Panel>
-        </>
-      )}
-      </SelectionProvider>
-    </AppShell>
+        )}
+        </SelectionProvider>
+      </ResultsColumn>
+      {recordOpen ? (
+        recordSlug && !record ? (
+          // The slug resolved to nothing. Say which nothing it was.
+          <RecordPane closeHref={closeHref} openKey={`notice:${recordSlug}`}>
+            {recordRead.slow ? (
+              <SheetNotice
+                title="This record could not be read in time"
+                body="The database is under load. The company is still on SourceBD — this read simply took too long."
+                // The same view again: the expanded grid and the open line with it.
+                action={{ label: "Try again", href: withParams(`${recordParams}${lineCode ? `&line=${lineCode}` : ""}`) }}
+                closeHref={closeHref}
+              />
+            ) : motherSlug ? (
+              <SheetNotice
+                title="That is a building, not a company record"
+                body="SourceBD files this address under the company that operates it. Its record has the certificates, the registers and the export lines."
+                action={{ label: "Open the company record", href: recordHref(motherSlug) }}
+                closeHref={closeHref}
+              />
+            ) : (
+              <SheetNotice
+                title="No record for that link"
+                body="It may have been unpublished, the link may be wrong, or it could not be read just now. Your search is still here behind this."
+                closeHref={closeHref}
+              />
+            )}
+          </RecordPane>
+        ) : record ? (
+          <RecordPane closeHref={closeHref} openKey={`${recordSlug}:${line ? lineCode : allLines ? "all" : ""}`}>
+            {/* The line sits where the record would: one pane at a time, with
+                Back to the record and Close to the search. */}
+            {line ? (
+              <ProductSheet model={line} />
+            ) : (
+              <SupplierSheet
+                model={record}
+                save={record.supplierId ? <SaveRecordButton supplierId={record.supplierId} saved={record.saved} /> : undefined}
+              />
+            )}
+          </RecordPane>
+        ) : null
+      ) : null}
+    </div>
   );
 }

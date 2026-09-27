@@ -27,12 +27,10 @@
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 
-import { AppShell } from "@/components/dashboard/app-shell";
+import { Page } from "@/components/dashboard/page";
 import { SaveRecordButton } from "@/components/dashboard/save-record-button";
-import { SheetFrame } from "@/components/dashboard/sheet";
 import { SupplierSheet } from "@/components/dashboard/supplier-sheet";
 import { Caption, Title } from "@/components/dashboard/type";
-import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { ProfileReadTimeout, loadRecordSheet } from "@/lib/dashboard/load-record";
 import {
   fetchFacilityParentSlug,
@@ -58,10 +56,8 @@ export default async function SupplierRecordPage({
   const linesRaw = sp.lines;
   const allLines = (Array.isArray(linesRaw) ? linesRaw[0] : linesRaw) === "all";
   const supabase = await createSupabaseServerClient();
-  // Started together, awaited apart: the shell must be there for the timeout
-  // state too. This page draws its own frame (the layout draws none on kit
-  // routes), so a state returned without `AppShell` had no navigation at all.
-  const shellRead = loadBuyerShell(supabase, `/app/suppliers/${slug}`);
+  // The layout draws the shell around every state this page returns, the
+  // timeout state included.
   let model: Awaited<ReturnType<typeof loadRecordSheet>>;
   try {
     model = await loadRecordSheet(supabase, slug, new Date(), {
@@ -75,16 +71,14 @@ export default async function SupplierRecordPage({
     // offered a retry; falling through to `notFound()` would answer 404 for a
     // published company because the database was busy.
     if (err instanceof ProfileReadTimeout) {
-      const shell = await shellRead;
       return (
-        <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Supplier record">
+        <Page>
           <RecordTooSlow href={allLines ? `/app/suppliers/${slug}?lines=all` : `/app/suppliers/${slug}`} />
-        </AppShell>
+        </Page>
       );
     }
     throw err;
   }
-  const shell = await shellRead;
 
   if (!model) {
     // A building's slug is not a record of its own: it redirects to the mother
@@ -97,9 +91,9 @@ export default async function SupplierRecordPage({
     } catch (err) {
       if (err instanceof Error && err.name === "ProfileStatementTimeout") {
         return (
-          <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Supplier record">
+          <Page>
             <RecordTooSlow href={`/app/suppliers/${slug}`} />
-          </AppShell>
+          </Page>
         );
       }
     }
@@ -108,16 +102,14 @@ export default async function SupplierRecordPage({
     notFound();
   }
 
+  // The record fills the content region: its bar at the top, its action bar
+  // at the bottom, the body scrolling between them at the record's measure.
   return (
-    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Supplier record">
-      <SheetFrame overlay={false}>
-        <SupplierSheet
-          model={model}
-          dialog={false}
-          save={model.supplierId ? <SaveRecordButton supplierId={model.supplierId} saved={model.saved} /> : undefined}
-        />
-      </SheetFrame>
-    </AppShell>
+    <SupplierSheet
+      model={model}
+      mode="page"
+      save={model.supplierId ? <SaveRecordButton supplierId={model.supplierId} saved={model.saved} /> : undefined}
+    />
   );
 }
 

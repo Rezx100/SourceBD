@@ -8,8 +8,7 @@
 
 import { BuyerHome as HomeView, type HomeModel } from "@/components/dashboard/buyer-home";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { AppShell } from "@/components/dashboard/app-shell";
-import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
+import { Page } from "@/components/dashboard/page";
 
 export const dynamic = "force-dynamic";
 
@@ -47,11 +46,5 @@ async function BuyerHomeBody() {
 }
 
 export default async function BuyerHome() {
-  const supabase = await createSupabaseServerClient();
-  const [shell, body] = await Promise.all([loadBuyerShell(supabase, "/app"), BuyerHomeBody()]);
-  return (
-    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Home">
-      {body}
-    </AppShell>
-  );
+  return <Page>{await BuyerHomeBody()}</Page>;
 }
