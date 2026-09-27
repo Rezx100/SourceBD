@@ -102,6 +102,7 @@
     "components/dashboard/messages-orders.test.ts",
     "components/dashboard/record-sheet.test.ts",
     "components/dashboard/links.test.ts",
+    "components/dashboard/compliance-settings.test.ts",
     "components/dashboard/dialog-focus.test.ts",
     "components/dashboard/record-controls.test.ts",
     "components/dashboard/rfq-pages.test.ts",
