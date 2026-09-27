@@ -30,7 +30,7 @@ When the user says **"deploy using the SourceBD deploy rules"** (or asks to depl
 ## Approved production path
 
 1. Land the work on `development` by PR with `gh pr merge --auto --squash`; the required checks merge it.
-2. Open `development` → `main` the same way.
+2. Open `development` → `main` and run `gh pr merge --auto --merge` (merge commit, never squash).
 3. A green CI run on `main` starts **Deploy Production**, which waits for the founder's approval in the
    GitHub `production` environment, then SSHes to the VPS and runs
    `ops/deploy_vps.sh --ref=<sha> --require-git`. A manual run (Actions → Deploy Production →
