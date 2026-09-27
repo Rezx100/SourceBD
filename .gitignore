@@ -102,3 +102,6 @@ API Access _ OneProvider_files/
 /_gallery-out/
 /.render-build/
 .impeccable/preview/
+
+# Impeccable review captures (regenerated per pass)
+.impeccable/review/

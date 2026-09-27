@@ -106,7 +106,7 @@ export function SavedList({
             </EmptyState>
           ) : (
             <EmptyState
-              icon="bookmark"
+              art="saved"
               title="No saved suppliers yet"
               action={
                 <Button variant="primary" href="/app/discover" clientNav>

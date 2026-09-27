@@ -94,7 +94,7 @@ export function RfqListBody({ rows, tab, today }: { rows: RfqRow[] | null; tab: 
       ) : rows.length === 0 ? (
         <div className="rounded-md border border-line-subtle bg-surface">
           <EmptyState
-            icon="send"
+            art="rfq"
             title={RFQ_EMPTY_TITLE}
             action={
               <Button href="/app/discover" clientNav>

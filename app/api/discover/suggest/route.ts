@@ -40,6 +40,13 @@ type TermSuggestion = {
   type: "product" | "location" | "cert";
   label: string;
   value: string;
+  /**
+   * The buyer-search parameter this term sets exactly, when there is one:
+   * a city is `city=`, a district `district=`, a certificate kind `cert=`
+   * (the v3.2 search's own keys, `lib/discover-v32-state.ts`). Without it
+   * the term runs as free text. The public `/discover` box ignores it.
+   */
+  param?: [key: string, value: string];
 };
 
 export type DiscoverSuggestion = CompanySuggestion | TermSuggestion;
@@ -131,12 +138,19 @@ export async function GET(request: Request) {
     }
 
     const seen = new Set<string>();
-    for (const loc of [...facets.cities, ...facets.districts]) {
-      if (locations.length >= MAX_LOCATIONS) break;
-      const key = loc.toLowerCase();
-      if (key.includes(lower) && !seen.has(key)) {
-        seen.add(key);
-        locations.push({ type: "location", label: loc, value: loc });
+    // Districts first: Dhaka, Gazipur, Narayanganj and Chittagong are each
+    // both a district and a city, and the district is the wider search.
+    for (const [field, list] of [
+      ["district", facets.districts],
+      ["city", facets.cities],
+    ] as const) {
+      for (const loc of list) {
+        if (locations.length >= MAX_LOCATIONS) break;
+        const key = loc.toLowerCase();
+        if (key.includes(lower) && !seen.has(key)) {
+          seen.add(key);
+          locations.push({ type: "location", label: loc, value: loc, param: [field, loc] });
+        }
       }
     }
   }
@@ -145,7 +159,7 @@ export async function GET(request: Request) {
     (c) => c.label.toLowerCase().includes(lower) || c.value.toLowerCase().includes(lower),
   )
     .slice(0, MAX_CERTS)
-    .map((c) => ({ type: "cert" as const, label: c.label, value: c.label }));
+    .map((c) => ({ type: "cert" as const, label: c.label, value: c.label, param: ["cert", c.value] }));
 
   const suggestions: DiscoverSuggestion[] = [
     ...companies,

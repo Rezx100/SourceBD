@@ -53,7 +53,11 @@ export function Button({
   prefetch?: boolean;
 }) {
   const classes = cn(
-    "inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm border text-sm font-medium transition-colors duration-fast",
+    // A press is felt as well as seen: the control settles 2 % smaller for as
+    // long as the button is held (120 ms in and out), the way a native
+    // control does. Colour and shadow move on the same clock. A disabled
+    // button takes no `:active`, and `motion-reduce` keeps it still.
+    "inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm border text-sm font-medium transition-[color,background-color,border-color,box-shadow,transform] duration-fast active:scale-[0.98] motion-reduce:active:scale-100",
     lg ? "h-control-lg px-4" : "h-control px-3",
     icon && (lg ? "w-control-lg px-0" : "w-control px-0"),
     icon && "justify-center",

@@ -74,7 +74,7 @@ export function Inbox({
     return (
       <div className="rounded-md border border-line-subtle bg-surface">
         <EmptyState
-          icon="chat"
+          art="messages"
           title={INBOX_EMPTY_TITLE}
           action={
             <Button variant="primary" href="/app/rfqs/new" clientNav>
