@@ -1,17 +1,16 @@
-// Every /app page draws exactly one shell. A page that renders the kit's
-// `AppShell` must be skipped by the app layout's own shell (or the page gets two
-// sidebars, two skip links and a `<main>` inside a `<main>`); every other page
-// must not be (or it gets none). Cycle 4 found /app/suppliers/<slug> and its
-// /lines/<hs> page drawing both, because the layout's list was not widened when
-// they moved to `AppShell`. This walks the real page files, so a new kit page
-// that is not added to `drawsKitShell` fails here.
+// Every /app page draws exactly one shell, and since 27 Sep 2026 the buyer
+// layout draws it: `app/(app)/app/layout.tsx` renders `AppShell` once around
+// every /app page, and no page file renders it again (or the page gets two
+// sidebars, two skip links and a `<main>` inside a `<main>`). The app layout
+// above skips its own older shell for every route `drawsKitShell` names, so
+// that has to be every /app route. This walks the real page files, so a page
+// that grows an `AppShell` of its own fails here.
 //
-// What this does NOT prove, and where that is proved: that every branch of a
-// kit page draws `AppShell` (a file can mention it once and return bare
-// elsewhere — the record's slow-read state did, cycle 5) is asserted per
-// branch in `app/(app)/app/record-routes.test.ts`; that the layout uses this
-// on every navigation, not only the first load, is `ShellSwitch`'s test in
-// `components/dashboard/record-controls.test.ts`.
+// What this does NOT prove, and where that is proved: that the layout uses
+// this on every navigation, not only the first load, is `ShellSwitch`'s test
+// in `components/dashboard/record-controls.test.ts`; that a page fills the
+// content region the layout hands it is asserted per route in
+// `app/(app)/app/record-routes.test.ts`.
 
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -40,21 +39,31 @@ function routeOf(file: string): string {
   return ["/app", ...segments].join("/");
 }
 
-describe("drawsKitShell — one shell per /app page", () => {
+describe("drawsKitShell — one shell per /app page, drawn by the layout", () => {
   const all = pages(ROOT);
 
-  it("finds the kit's pages, including the record and line pages", () => {
-    const kit = all.filter((f) => /<AppShell\b/.test(readFileSync(f, "utf8"))).map(routeOf);
+  it("the buyer layout draws the shell, once", () => {
+    const layout = readFileSync(path.join(ROOT, "layout.tsx"), "utf8");
+    assert.equal((layout.match(/<AppShell\b/g) ?? []).length, 1, "the layout draws the shell exactly once");
+  });
+
+  it("finds the buyer pages, including the search, the record and the line page", () => {
+    const routes = all.map(routeOf);
     for (const route of ["/app/discover", "/app/suppliers/x", "/app/suppliers/x/lines/x"]) {
-      assert.ok(kit.includes(route), `${route} renders AppShell: ${kit.join(", ")}`);
+      assert.ok(routes.includes(route), `${route} is a page: ${routes.join(", ")}`);
     }
+    assert.ok(all.length >= 20, "the /app pages were not found");
   });
 
   for (const file of all) {
     const route = routeOf(file);
-    const ownShell = /<AppShell\b/.test(readFileSync(file, "utf8"));
-    it(`${route} — ${ownShell ? "draws AppShell, so the layout draws none" : "draws no shell, so the layout draws its own"}`, () => {
-      assert.equal(drawsKitShell(route), ownShell);
+    it(`${route} — draws no shell of its own, and the app layout draws none either`, () => {
+      assert.doesNotMatch(readFileSync(file, "utf8"), /<AppShell\b/, "a second shell inside the layout's");
+      assert.equal(drawsKitShell(route), true);
     });
   }
+
+  it("the supplier portal and the admin are not the kit's", () => {
+    for (const route of ["/supplier/rfqs", "/admin", "/", "/apple"]) assert.equal(drawsKitShell(route), false, route);
+  });
 });

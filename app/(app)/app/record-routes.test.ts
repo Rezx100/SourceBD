@@ -204,11 +204,12 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     const out = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({}) })));
 
     assert.match(out, /aria-label="Supplier record"/);
-    // The buyer's plan, once the shell knows it (the loading state draws none).
-    assert.match(out, /data-plan="true"[\s\S]*Free · public beta/);
-    // `dialog={false}`: a whole page is not a dialog, and there is nothing
-    // behind it to close. Only the route passes this, so only a route test
-    // can catch it being dropped.
+    // The shell is the layout's now, so the page draws none of it.
+    assert.doesNotMatch(out, /<aside\b|data-plan=/, "the record page draws a shell inside the layout's");
+    // `mode="page"`: a whole page is not the pane beside the results, and
+    // there is nothing behind it to close. Only the route passes this, so only
+    // a route test can catch it being dropped.
+    assert.doesNotMatch(out, /data-record-pane/, "the full record page is drawn as the pane");
     assert.doesNotMatch(out, /role="dialog"/, "the full record page announces itself as a dialog");
     assert.doesNotMatch(out, /aria-label="Close"/, "the full page draws a Close with nothing to close");
     assert.match(out, /Aboni Knitwear Ltd/);
@@ -244,11 +245,12 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     given({ profile: { data: null, error: { code: "57014", message: "canceling statement due to statement timeout" } } });
     const all = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({ lines: "all" }) })));
     assert.match(all, /href="\/app\/suppliers\/aboni-knitwear\?lines=all"[^>]*>Try again/, "Try again drops ?lines=all");
-    // Inside the page's frame. The layout draws none on this route (the kit
-    // does), so a state returned bare had no navigation at all (cycle 5).
-    assert.match(out, /<main[^>]*id="main-content"/, "the slow-read state has no <main> and no frame");
-    assert.match(out, /href="#main-content"/, "the slow-read state has no skip link");
-    assert.equal((out.match(/<main\b/g) ?? []).length, 1);
+    // Inside the page's frame (`Page`): the layout draws the shell, so the
+    // state owes only the content region — and must not draw a second shell.
+    // (Cycle 5 was the opposite failure, a bare state with no navigation at
+    // all, back when every page drew its own shell.)
+    assert.match(out, /^<div class="mx-auto flex w-full max-w-/, "the slow-read state is not inside the page frame");
+    assert.doesNotMatch(out, /<main\b|<aside\b|href="#main-content"/, "the slow-read state draws a shell inside the layout's");
   });
 
   it("?lines=all expands the grid past six tiles", async () => {
@@ -277,6 +279,7 @@ describe("/app/suppliers/[slug]/lines/[hs] — the line page", () => {
     assert.match(out, /aria-label="Product line"/);
     assert.match(out, /HS 6105/);
     assert.doesNotMatch(out, /role="dialog"/, "the full line page is not a dialog");
+    assert.doesNotMatch(out, /data-record-pane/, "the full line page is drawn as the pane");
   });
 
   for (const bad of ["abcd", "61", "61059", "%", "6105a", ""]) {
@@ -374,7 +377,7 @@ describe("/app/discover?record= — the overlay over the results", () => {
   it("no ?record= renders no sheet at all", async () => {
     const out = html(await discover({ q: "knit" }));
     assert.doesNotMatch(out, /aria-label="Supplier record"/);
-    assert.doesNotMatch(out, /role="dialog"/);
+    assert.doesNotMatch(out, /data-record-pane|role="dialog"/);
   });
 
   it("?record= opens the sheet and Close returns to the same search", async () => {
@@ -383,7 +386,8 @@ describe("/app/discover?record= — the overlay over the results", () => {
 
     const withRecord = html(await discover({ q: "knit", page: "2", sort: "workers", record: "aboni-knitwear" }));
     assert.match(withRecord, /aria-label="Supplier record"/);
-    assert.match(withRecord, /role="dialog"/);
+    assert.match(withRecord, /data-record-pane/);
+    assert.doesNotMatch(withRecord, /role="dialog"/, "the record beside the results is not a dialog");
     // The whole of the founder's sentence: the search is still there to go back
     // to. A Close that dropped `q` or `page` would lose it just as surely as a
     // full reload does.
@@ -396,45 +400,31 @@ describe("/app/discover?record= — the overlay over the results", () => {
     assert.ok(!href.includes("record="), `Close keeps the record open: ${href}`);
   });
 
-  it("the WHOLE shell behind an open record is inert, and the dialog is not", async () => {
-    // `aria-modal="true"` asserts the rest of the page is unavailable, and that
-    // has to be true of the keyboard and the accessibility tree, not only the
-    // pointer. Two ways this went wrong, both caught by critics:
-    //
-    //  * inerting only the RESULTS left the skip link, ten sidebar links, the
-    //    topbar search field and the account link outside the boundary and
-    //    ahead of the dialog in the tab order — ⌘K reached the search field
-    //    from behind the scrim;
-    //  * the sheet must NOT be inside the boundary, or the dialog declares
-    //    everything else unavailable and is unavailable itself.
+  it("an open record sits BESIDE the results, both live: nothing is inert, nothing claims to be modal", async () => {
+    // The founder's one-viewport frame (27 Sep 2026): the record is a pane on
+    // the right of the results from `lg`, and the results column hides itself
+    // under it below `lg` (`hidden lg:flex`), where the search waits in the
+    // URL for Close. The record used to be a dialog over a scrim with the
+    // whole shell `inert` behind it; a pane beside live results can claim
+    // neither, and a stray `aria-modal` or `inert` here would tell a screen
+    // reader the results it can see are gone.
     const out = html(await discover({ q: "knit", record: "aboni-knitwear" }));
-    assert.match(out, /aria-modal="true"/);
-
-    const inertAt = out.search(/<div[^>]*\sinert=""/);
-    assert.ok(inertAt > -1, "nothing behind the dialog is inert");
-    // The shell's own chrome is inside it.
-    for (const [what, needle] of [
-      ["the skip link", "Skip to content"],
-      // The label carries the screen name too ("Primary, Search"), so this is
-      // a prefix.
-      ["the primary nav", 'aria-label="Primary'],
-      ["the content landmark", 'id="main-content"'],
-    ] as const) {
-      const at = out.indexOf(needle);
-      assert.ok(at > inertAt, `${what} is outside the inert boundary, in front of a dialog that says it does not exist`);
-    }
-    // And the dialog itself is after the inert subtree closes, not within it.
-    assert.ok(out.indexOf('role="dialog"') > inertAt, "guard: the dialog should come last");
-    assert.ok(
-      out.indexOf('aria-label="Supplier record"') > out.lastIndexOf("</main>"),
-      "the sheet is inside the shell, so `inert` makes the dialog itself unavailable",
-    );
+    const column = out.search(/<div class="(?=[^"]*\bhidden\b)(?=[^"]*\blg:flex\b)[^"]*">/);
+    assert.ok(column > -1, "the results column does not step aside for the record below lg");
+    // The results are still drawn in it: the buyer's search is not torn down.
+    assert.ok(out.indexOf(ROW.company_name) > column, "the results are not rendered beside the open record");
+    // The pane comes after the results column, on its right.
+    const pane = out.indexOf("data-record-pane");
+    assert.ok(pane > column, "the record pane is not beside the results");
+    assert.doesNotMatch(out, /aria-modal/, "a pane beside live results claims to be modal");
+    assert.doesNotMatch(out, /<[a-z]+\b[^>]*\sinert(?:=""|\s|>)/, "something is inert beside an open record");
   });
 
-  it("no record open means nothing is inert", async () => {
-    // Without this the assertion above passes on a page that is always inert.
+  it("no record open means the results column stands alone, at every width", async () => {
+    // Without this the assertion above passes on a column that is always hidden below lg.
     const out = html(await discover({ q: "knit" }));
-    assert.doesNotMatch(out, /<div[^>]*\sinert=""/);
+    assert.doesNotMatch(out, /<div class="(?=[^"]*\bhidden\b)(?=[^"]*\blg:flex\b)[^"]*">/);
+    assert.doesNotMatch(out, /data-record-pane/);
   });
 
   it("an unknown record says so rather than showing nothing", async () => {
@@ -682,20 +672,21 @@ describe("cycle 3: the boundaries the first route tests did not reach", () => {
     });
     const out = html(await overlay({ q: "knit", record: "aboni-knitwear-unit-2" }));
     assert.match(out, /That is a building, not a company record/);
-    const at = out.indexOf('role="dialog"');
+    const at = out.indexOf("data-record-pane");
+    assert.ok(at > -1, "the notice is not drawn in the record pane");
     assert.doesNotMatch(out.slice(0, at), /record=aboni-knitwear(?:&|")/, "guard: the results must not link the mother themselves");
     const hrefs = [...out.slice(at).matchAll(/href="([^"]+)"/g)].map((m) => m[1]!.replace(/&amp;/g, "&"));
     const open = hrefs.find((h) => /[?&]record=aboni-knitwear(?:&|$)/.test(h));
     assert.ok(open, "the notice does not link to the company's record");
     assert.match(open, /q=knit/, `the company's record leaves the search: ${open}`);
-    assert.match(out, /<div[^>]*\sinert=""/, "a notice claims aria-modal while the shell behind it stays live");
+    assert.doesNotMatch(out, /aria-modal|\sinert\b/, "a notice beside live results claims to be modal");
   });
 
-  it("an unknown slug's notice inerts the shell too, and claims no cause it cannot know", async () => {
+  it("an unknown slug's notice takes the pane too, and claims no cause it cannot know", async () => {
     given({ profile: { data: null, error: null }, discover: { data: [ROW], error: null } });
     const out = html(await overlay({ q: "knit", record: "no-such-slug" }));
-    assert.match(out, /aria-modal="true"/);
-    assert.match(out, /<div[^>]*\sinert=""/);
+    assert.match(out, /data-record-pane/);
+    assert.doesNotMatch(out, /aria-modal|\sinert\b/);
     assert.match(out, /could not be read just now/, "a failed read is presented as certainly unpublished");
   });
 
@@ -829,7 +820,7 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
   it("?lines=all rides INTO a line from the overlay, not only back out", async () => {
     given({ profile: PROFILE, hscodes: HS, discover: { data: [ROW], error: null } });
     const out = html(await overlay({ q: "knit", record: "aboni-knitwear", lines: "all" }));
-    const lineLinks = hrefsIn(out.slice(out.indexOf('role="dialog"'))).filter((h) => /[?&]line=\d{4}/.test(h));
+    const lineLinks = hrefsIn(out.slice(out.indexOf("data-record-pane"))).filter((h) => /[?&]line=\d{4}/.test(h));
     assert.ok(lineLinks.length > 6, `guard: the expanded grid drew ${lineLinks.length} line links`);
     for (const h of lineLinks) assert.match(h, /lines=all/, `a line opened from "All lines" forgets it: ${h}`);
   });
@@ -895,7 +886,7 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
     // is why cycle 4's version of this test never reached the branch it named.)
     given({ profile: { data: { supplier: null }, error: null }, hscodes: HS, discover: { data: [ROW], error: null } });
     const out = html(await overlay({ q: "knit", record: "aboni-knitwear" }));
-    assert.match(out, /aria-modal="true"/, "the failure is silent");
+    assert.match(out, /data-record-pane/, "the failure is silent");
     assert.match(out, /could not be read just now/);
     assert.doesNotMatch(out, /under load/, "a non-timeout failure is reported as the database being busy");
     assert.ok(out.includes("ABONI KNITWEAR") || out.includes("Aboni Knitwear"), "the search behind the sheet is gone");
@@ -1222,16 +1213,19 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
     }
   });
 
-  it("a kit route's loading state draws the kit's frame — the layout draws none there", async () => {
+  it("a kit route's loading state draws only the content region — the layout's shell is already on screen", async () => {
     // Rendered, not read: cycle 7 replaced KitLoading's body with its children
-    // and every source-reading check still passed.
+    // and every source-reading check still passed. Since 27 Sep the layout
+    // draws the shell once and keeps it across navigations, so a loading
+    // state that drew a sidebar, a skip link or a main landmark of its own
+    // would put a second of each inside the layout's for as long as the page
+    // took — and a plan it does not know.
     const kitLoading = walk(path.join(process.cwd(), "app", "(app)", "app"))
       .filter((f) => path.basename(f) === "loading.tsx")
       .map((f) => path.relative(process.cwd(), f).split(path.sep).join("/"))
       .filter((f) => drawsKitShell("/" + f.replace(/^app\/\(app\)\//, "").replace(/\/loading\.tsx$/, "")));
-    // Every /app route draws the kit's shell, so every /app loading state
-    // must draw its frame: one that did not showed a bare skeleton with no
-    // sidebar for as long as the page took.
+    // Every /app route is the kit's, so every /app loading state is
+    // governed by this.
     const allLoading = walk(path.join(process.cwd(), "app", "(app)", "app"))
       .filter((f) => path.basename(f) === "loading.tsx")
       .map((f) => path.relative(process.cwd(), f).split(path.sep).join("/"));
@@ -1239,15 +1233,10 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
     assert.ok(kitLoading.length >= 20, "the /app loading states were not found");
     for (const file of kitLoading) {
       const out = renderToStaticMarkup(createElement(route(file.replace(/\.tsx$/, ".js")).default));
-      assert.match(out, /href="#main-content"/, `${file}: no skip link`);
-      assert.match(out, /<main[^>]*id="main-content"/, `${file}: no main landmark for the skip link`);
-      assert.match(out, /<aside\b/, `${file}: no sidebar`);
-      assert.match(out, /aria-label="Account and settings"/, `${file}: no top bar`);
+      assert.doesNotMatch(out, /href="#main-content"|<main\b|<aside\b|aria-label="Account and settings"/, `${file}: a second shell inside the layout's`);
       assert.doesNotMatch(out, /data-plan=/, `${file}: a plan the loading state does not know`);
-      // The footer itself, not only its marker: the aside ends with the nav's
-      // rail furniture, with no bordered block after it.
-      const aside = /<aside\b[\s\S]*?<\/aside>/.exec(out)?.[0] ?? "";
-      assert.doesNotMatch(aside, /border-t/, `${file}: a plan footer drawn with nothing in it`);
+      // And it is the page frame with a skeleton inside, not an empty region.
+      assert.match(out, /role="status" aria-busy="true"/, `${file}: no skeleton in the content region`);
     }
   });
 });

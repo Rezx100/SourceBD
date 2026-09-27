@@ -1,7 +1,8 @@
 // The six buyer dashboard v3.2 screens in the gallery (REZ-A, handoff §7.1),
 // each rendered inside the app shell at 1440 from the real records loaded by
-// `lib/dashboard/gallery-data.ts`. Sheets and the dialog sit over the results
-// on a fixed-height stage, as the artifact renders them.
+// `lib/dashboard/gallery-data.ts`. The two record sheets sit beside the
+// results in a `RecordPane`, as /app/discover draws them (27 Sep 2026); only
+// the RFQ composer is still a dialog over a fixed-height stage.
 
 import type { ReactNode } from "react";
 import {
@@ -11,6 +12,8 @@ import {
   PanelFooter,
   PanelHeader,
   ProductSheet,
+  RecordPane,
+  ResultsColumn,
   ResultsTable,
   RfqComposer,
   RfqList,
@@ -105,11 +108,30 @@ function Frame({ id, title, note, height, children }: { id: string; title: strin
       </figcaption>
       {/* Breaks out of the gallery's 1200px column so a 1440 screen shows whole on a wide display; narrower displays scroll it. */}
       <div className="relative left-1/2 w-[min(100vw-2rem,1440px)] -translate-x-1/2 overflow-x-auto rounded-md border border-line bg-canvas">
-        <div style={{ width: SCREEN_WIDTH, minHeight: height }} data-screen={id}>
+        {/* `height`, not a minimum: the shell inside is `md:h-full`, so a
+            framed screen is exactly this tall and its panes scroll inside it,
+            as they do in a viewport. Without a height the shell grows to its
+            content and the frame shows the whole page. */}
+        <div style={{ width: SCREEN_WIDTH, height }} data-screen={id}>
           {children}
         </div>
       </div>
     </figure>
+  );
+}
+
+/**
+ * The results beside a record, as /app/discover lays them out from `lg`: the
+ * results column scrolls on its own and the record sits in a `RecordPane` on
+ * its right. The gallery has no URL to close to, so the pane carries no
+ * `closeHref`.
+ */
+function Workbench({ results, children }: { results: ReactNode; children: ReactNode }) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+      <ResultsColumn besideRecord>{results}</ResultsColumn>
+      <RecordPane>{children}</RecordPane>
+    </div>
   );
 }
 
@@ -142,7 +164,7 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
   return (
     <div className="space-y-10">
       <Frame id="results-list" title="ResultsList — result cards" note={ResultsHeaderNote(d)}>
-        <AppShell sidebar={results.sidebar} topbar={results.topbar} mainId="results-list-main" screenLabel="results list">
+        <AppShell className="md:h-full" sidebar={results.sidebar} topbar={results.topbar} mainId="results-list-main" screenLabel="results list">
           <SearchComposer chips={composerChips} askEnabled={false} />
           {cardsPanel}
         </AppShell>
@@ -158,7 +180,7 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
         // cycle 19).
         note={`Same header and footer, 36px rows, ${d.rows.length} rows: ${tableSelection(d)}.`}
       >
-        <AppShell sidebar={results.sidebar} topbar={tableTopbarModel(d)} mainId="results-table-main" screenLabel="results table">
+        <AppShell className="md:h-full" sidebar={results.sidebar} topbar={tableTopbarModel(d)} mainId="results-table-main" screenLabel="results table">
           <SearchComposer chips={composerChips} askEnabled={false} />
           <Panel>
             <PanelHeader model={header(d, "table", d.rows.length, tableSelection(d))} />
@@ -169,24 +191,12 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
       </Frame>
 
       {d.sheet ? (
-        <Frame id="supplier-sheet" title="SupplierSheet — the record over the results" note={`${d.sheet.name}: ${d.sheet.sourceCount} sources, ${d.sheet.certs.length} certificates, ${d.sheet.products.lines} HS lines, read ${d.sheet.readDate ?? "—"}. Contact details locked (striped, never blurred).`} height={1240}>
-          <Stage
-            height={1240}
-            behind={
-              <AppShell sidebar={results.sidebar} topbar={results.topbar} mainId="supplier-sheet-behind">
-                <SearchComposer chips={composerChips} askEnabled={false} />
-                {cardsPanel}
-              </AppShell>
-            }
-          >
-            <Scrim />
-            {/* `assertModal={false}`: this sheet, the product sheet and the
-                composer are all live and non-inert on this one gallery page
-                at once, so none of the three can truthfully claim the other
-                two (and the three plain screens) do not exist — see the
-                `Sheet`/`Dialog` doc comments. */}
-            <SupplierSheet model={d.sheet} assertModal={false} />
-          </Stage>
+        <Frame id="supplier-sheet" title="SupplierSheet — the record beside the results" note={`${d.sheet.name}: ${d.sheet.sourceCount} sources, ${d.sheet.certs.length} certificates, ${d.sheet.products.lines} HS lines, read ${d.sheet.readDate ?? "—"}. Contact details locked (striped, never blurred). The results keep their column; the record scrolls on its own.`} height={1240}>
+          <AppShell className="md:h-full" sidebar={results.sidebar} topbar={results.topbar} mainId="supplier-sheet-main" screenLabel="supplier record">
+            <Workbench results={<><SearchComposer chips={composerChips} askEnabled={false} />{cardsPanel}</>}>
+              <SupplierSheet model={d.sheet} />
+            </Workbench>
+          </AppShell>
         </Frame>
       ) : null}
 
@@ -203,19 +213,11 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
           note={`HS ${d.productSheet.hs}${d.productSheet.exported ? ` on ${d.productSheet.supplierName}'s EPB exporter page` : `, not on ${d.productSheet.supplierName}'s EPB exporter page`}. The photo is the catalogue's illustrative photo for the heading, never the supplier's own.`}
           height={760}
         >
-          <Stage
-            height={760}
-            behind={
-              <AppShell sidebar={results.sidebar} topbar={results.topbar} mainId="product-sheet-behind">
-                <SearchComposer chips={composerChips} askEnabled={false} />
-                {cardsPanel}
-              </AppShell>
-            }
-          >
-            <Scrim />
-            {/* `assertModal={false}`: see the supplier sheet above. */}
-            <ProductSheet model={d.productSheet} assertModal={false} />
-          </Stage>
+          <AppShell className="md:h-full" sidebar={results.sidebar} topbar={results.topbar} mainId="product-sheet-main" screenLabel="product line">
+            <Workbench results={<><SearchComposer chips={composerChips} askEnabled={false} />{cardsPanel}</>}>
+              <ProductSheet model={d.productSheet} />
+            </Workbench>
+          </AppShell>
         </Frame>
       ) : null}
 
@@ -224,14 +226,16 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
           <Stage
             height={860}
             behind={
-              <AppShell sidebar={results.sidebar} topbar={results.topbar} mainId="rfq-composer-behind">
+              <AppShell className="md:h-full" sidebar={results.sidebar} topbar={results.topbar} mainId="rfq-composer-behind">
                 <SearchComposer chips={composerChips} askEnabled={false} />
                 {cardsPanel}
               </AppShell>
             }
           >
             <Scrim />
-            {/* `assertModal={false}`: see the supplier sheet above. */}
+            {/* `assertModal={false}`: the composer is live beside five other
+                screens on this one gallery page, so it cannot truthfully
+                claim they do not exist — see the `Dialog` doc comment. */}
             <RfqComposer model={composer} aiEnabled={false} assertModal={false} />
           </Stage>
         </Frame>
@@ -253,7 +257,7 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
         height={700}
       >
         <Stage height={700}>
-          <AppShell {...shellModels(d, "rfqs")} contentClassName="gap-5" mainId="rfq-list-main" screenLabel="RFQ list">
+          <AppShell className="md:h-full" {...shellModels(d, "rfqs")} contentClassName="gap-5" mainId="rfq-list-main" screenLabel="RFQ list">
             <RfqList model={d.rfqs} />
           </AppShell>
         </Stage>

@@ -78,7 +78,7 @@ export function PhotoStrip({
 }) {
   if (tiles.length === 0) {
     return (
-      <div className="relative min-w-0 flex-1">
+      <div className="relative min-w-[min(26rem,100%)] flex-1">
         <div className="flex gap-2 overflow-hidden">
           <NoLinesSlot
             registerChecked={registerChecked ?? "EPB"}
@@ -92,7 +92,7 @@ export function PhotoStrip({
   }
   const more = Math.max(0, totalLines - tiles.length);
   return (
-    <div className="relative min-w-0 flex-1">
+    <div className="relative min-w-[min(26rem,100%)] flex-1">
       {/* `overflow-hidden` with no scroll hid five of six tiles at 320px
           (clientWidth 218 against scrollWidth 832) and four of six at 375,
           with nothing able to reach them: the tiles are not focusable, the

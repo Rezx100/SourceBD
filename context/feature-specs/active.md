@@ -42,6 +42,8 @@ same PR. Read once per session.
   Then D → H → G → E → F → I per §7.
 
 - **Buyer dashboard redesign** — LIVE 27 Sep (`383a31c`); follow-ups in `current-state.md`.
+  One-viewport shell (the layout draws the shell once, the record beside
+  the results): branch `redesign-one-viewport`, `handoff-one-viewport-shell.md`.
 
 ## Queued
 - **Entity resolution core** — `spec-resolution-core.md` (4 Aug). Batch

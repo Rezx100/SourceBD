@@ -106,9 +106,7 @@ export function Sidebar({ model, screenLabel }: { model: SidebarModel; screenLab
               <span className="flex min-w-0 flex-col">
                 <Label className="text-ink-strong [overflow-wrap:anywhere]">{account.name ?? account.email ?? "Your account"}</Label>
                 {account.name && account.email ? (
-                  <Caption className="truncate" title={account.email}>
-                    {account.email}
-                  </Caption>
+                  <Caption className="[overflow-wrap:anywhere]">{account.email}</Caption>
                 ) : null}
               </span>
             </Link>

@@ -117,6 +117,7 @@
     "app/(app)/app/discover/page.tsx",
     "app/(app)/layout.tsx",
     "lib/dashboard/source-logos.test.ts",
+    "app/(app)/app/loading.tsx",
     "app/(app)/app/discover/loading.tsx",
     "app/(app)/app/compliance/expiry/loading.tsx",
     "app/(app)/app/compliance/loading.tsx",

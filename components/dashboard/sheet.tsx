@@ -109,6 +109,21 @@ export function RecordPane({
   );
 }
 
+/**
+ * The results beside the record on /app/discover: the column that scrolls on
+ * its own and, with a record open, steps aside below `lg` — the record takes
+ * the content region and the search waits in the URL for Close. One
+ * definition for the page, the gallery and the preview harness, so the
+ * three cannot drift.
+ */
+export function ResultsColumn({ besideRecord = false, children }: { besideRecord?: boolean; children: ReactNode }) {
+  return (
+    <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-4 sm:p-6", besideRecord && "hidden lg:flex")}>
+      {children}
+    </div>
+  );
+}
+
 export function SheetBar({ children }: { children: ReactNode }) {
   // `min-w-0` on the row, so a long child (the breadcrumb on the line sheet)
   // shrinks instead of pushing Share and Close off a 320px screen. A minimum

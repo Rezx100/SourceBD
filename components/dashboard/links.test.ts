@@ -235,12 +235,15 @@ describe("the dashboard kit's in-app links are client navigations", () => {
     assert.doesNotMatch(tileLinks[0]!, /scroll=\{false\}/, "the tile sub-line link opens the sheet without reaching its #section");
   });
 
-  it("every next/link in the kit opts out of prefetch", () => {
+  it("every next/link in the kit's content opts out of prefetch; the shell's rail is the one exception", () => {
     // A results page draws up to 100 record links and each record sheet costs
     // six RPC round trips, so the default would fire hundreds of profile reads
-    // nobody asked for.
+    // nobody asked for. The shell's rail is a fixed dozen links drawn once by
+    // the layout (27 Sep 2026), and prefetching them is what makes a page
+    // change instant; its own rule — never the search — is the describe below.
     const missing: string[] = [];
     for (const file of kitFiles()) {
+      if (file === "app-shell.tsx" || file === "sidebar-nav.tsx") continue;
       const src = readFileSync(path.join(KIT, file), "utf8");
       // `[\s\S]` so a multi-line element is one match. `prefetch={prefetch}`
       // in `Button` is the prop whose own default is false.
@@ -261,14 +264,24 @@ describe("the dashboard kit's in-app links are client navigations", () => {
   });
 });
 
-describe("the shell never prefetches", () => {
-  it("every Link and Form in the kit shell opts out of prefetch", () => {
+describe("the shell prefetches its rail, never the search", () => {
+  it("the search form and every link to /app/discover opt out; the other rail rows prefetch", () => {
     // /app/discover is rate-limited in middleware. A prefetch is a request
-    // that passes the limiter, so a shell that prefetched its nav or its
-    // search form spent the buyer's allowance on searches they never ran.
-    const src = readFileSync(path.join(KIT, "app-shell.tsx"), "utf8");
-    const opens = src.match(/<(Link|Form)\b[^>]*?>/gs) ?? [];
-    assert.ok(opens.length >= 3, "expected the nav Link, the account Link and the search Form");
-    for (const tag of opens) assert.match(tag, /prefetch=\{false\}/, `prefetches: ${tag.slice(0, 60)}`);
+    // that passes the limiter, so a shell that prefetched its search form or
+    // the rail's Search row spent the buyer's allowance on searches they never
+    // ran. The other rows are a fixed dozen drawn once by the layout, and
+    // prefetching them is what makes a page change instant.
+    const shell = readFileSync(path.join(KIT, "app-shell.tsx"), "utf8");
+    const forms = shell.match(/<Form\b[^>]*?>/gs) ?? [];
+    assert.ok(forms.length >= 1, "expected the search Form");
+    for (const tag of forms) assert.match(tag, /prefetch=\{false\}/, `the search form prefetches: ${tag.slice(0, 60)}`);
+    for (const file of ["app-shell.tsx", "sidebar-nav.tsx"]) {
+      const src = readFileSync(path.join(KIT, file), "utf8");
+      for (const m of src.matchAll(/<Link\b[\s\S]*?>/g)) {
+        if (/href="[^"]*\/app\/discover/.test(m[0])) assert.match(m[0], /prefetch=\{false\}/, `${file}: a search link prefetches: ${m[0].slice(0, 60)}`);
+      }
+    }
+    const nav = readFileSync(path.join(KIT, "sidebar-nav.tsx"), "utf8");
+    assert.match(nav, /prefetch=\{item\.href === "\/app\/discover" \? false : undefined\}/, "the rail's Search row must not prefetch, and the other rows must");
   });
 });

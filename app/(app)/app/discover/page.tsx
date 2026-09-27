@@ -34,7 +34,7 @@ import { SearchComposer } from "@/components/dashboard/search-composer";
 import { SelectionBar } from "@/components/dashboard/selection-bar";
 import { SelectionProvider } from "@/components/dashboard/selection";
 import { SaveRecordButton } from "@/components/dashboard/save-record-button";
-import { RecordPane, SheetNotice } from "@/components/dashboard/sheet";
+import { RecordPane, ResultsColumn, SheetNotice } from "@/components/dashboard/sheet";
 import { SupplierResultCard } from "@/components/dashboard/supplier-result-card";
 import { SupplierSheet } from "@/components/dashboard/supplier-sheet";
 import { Caption, Title } from "@/components/dashboard/type";
@@ -68,7 +68,6 @@ import {
   type DiscoverState,
 } from "@/lib/discover-v32-state";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { cn } from "@/lib/utils";
 
 function HiddenState({ state, omit }: { state: DiscoverState; omit: readonly string[] }) {
   return (
@@ -385,7 +384,7 @@ export default async function BuyerDiscoverPage({
     // never lost. Below `lg` the record takes the content region and the
     // results wait in the URL; Close brings them back.
     <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-      <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-4 sm:p-6", recordOpen && "hidden lg:flex")}>
+      <ResultsColumn besideRecord={recordOpen}>
         <RecordRecentSearch label={title} href={href} count={total} />
         {/* The filter bar: the active filters as chips, Add filter, the go
             disc. The text lives in the topbar field, the one search box, and
@@ -521,7 +520,7 @@ export default async function BuyerDiscoverPage({
           </Panel>
         )}
         </SelectionProvider>
-      </div>
+      </ResultsColumn>
       {recordOpen ? (
         recordSlug && !record ? (
           // The slug resolved to nothing. Say which nothing it was.

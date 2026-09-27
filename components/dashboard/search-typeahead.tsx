@@ -63,22 +63,29 @@ export function suggestionHint(s: Suggestion): string {
   return KIND[s.type].hint;
 }
 
+/**
+ * What the field shows. The shell is drawn once by the layout and does not
+ * know the page's query, so on the results page the field reads it from the
+ * URL, and a navigation that changes `q` — choosing a suggestion, a saved
+ * search, a new page — resets it to what the URL says rather than leaving
+ * the half-typed word behind. Anywhere else it shows what the caller started
+ * it with: nothing in the app (the layout passes none), the gallery's own
+ * query on /dev/ds — which the first version of this wiped a frame after
+ * hydration, because it synced to the URL's empty `q` off the results page.
+ */
+export function fieldValue(pathname: string | null, q: string | null, defaultValue: string): string {
+  return pathname === "/app/discover" ? (q ?? "") : defaultValue;
+}
+
 export function SearchTypeahead({ defaultValue }: { defaultValue: string }) {
   const listId = useId();
-  // The shell is drawn once by the layout and does not know the page's
-  // query, so the field reads it from the URL: on the results page it shows
-  // the search the results are for, and a navigation that changes `q` —
-  // choosing a suggestion, a saved search, a new page — resets it to what the
-  // URL says rather than leaving the half-typed word behind. Off the results
-  // page it starts empty. `defaultValue` is for a render with no router (the
-  // gallery, the tests).
   const pathname = usePathname();
   const params = useSearchParams();
-  const urlQuery = pathname === "/app/discover" ? (params?.get("q") ?? "") : "";
-  const [value, setValue] = useState(urlQuery || defaultValue);
+  const urlValue = fieldValue(pathname, params?.get("q") ?? null, defaultValue);
+  const [value, setValue] = useState(urlValue);
   useEffect(() => {
-    setValue(urlQuery);
-  }, [urlQuery]);
+    setValue(urlValue);
+  }, [urlValue]);
   const [items, setItems] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);

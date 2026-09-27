@@ -75,8 +75,8 @@ export function SidebarNav({
           </Link>
         );
       })}
-      {/* Phones: bring the current item into view on the strip. */}
-      <NavCurrent />
+      {/* Phones: bring the current item into view on the strip, on every page. */}
+      <NavCurrent currentKey={current.key} />
     </nav>
   );
 }
