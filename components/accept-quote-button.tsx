@@ -6,7 +6,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/dashboard/controls";
 
 export function AcceptQuoteButton({ quoteId }: { quoteId: string }) {
   const router = useRouter();
@@ -39,17 +39,20 @@ export function AcceptQuoteButton({ quoteId }: { quoteId: string }) {
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-col items-end gap-1">
       <Button
         type="button"
-        size="sm"
         variant="primary"
         onClick={accept}
         disabled={busy || pending}
       >
         {busy || pending ? "Accepting…" : "Accept"}
       </Button>
-      {error ? <span className="text-[13px] text-sem-red">{error}</span> : null}
+      {error ? (
+        <span role="alert" className="text-xs text-danger-ink">
+          {error}
+        </span>
+      ) : null}
     </div>
   );
 }
