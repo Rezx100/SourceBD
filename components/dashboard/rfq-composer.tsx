@@ -459,7 +459,7 @@ export function RfqComposer({
               <TextArea id={`${id}-msg`} aria-label="Message" value={message} onChange={(e) => setMessageEdited(e.target.value)} rows={8} maxLength={8000} />
               {filled.missing.length > 0 && messageEdited === null ? (
                 <Caption className="text-caution-ink">
-                  Your workspace has no {listOr(filled.missing.map((m) => m.replace(/^your /, "")))} yet, so the template shows them in brackets.{" "}
+                  Your workspace has no {listOr(filled.missing.map((m) => m.replace(/^your /, "")))} yet, so the template shows {filled.missing.length === 1 ? "it" : "them"} in brackets.{" "}
                   <Link href="/app/settings/workspace" prefetch={false} className="underline">
                     Fill them in Settings
                   </Link>

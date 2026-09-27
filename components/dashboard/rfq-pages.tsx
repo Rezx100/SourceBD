@@ -289,6 +289,9 @@ export type RfqDoc = {
   ship_by: string | null;
   status: RfqStatus;
   accepted_quote_id: string | null;
+  /** 0106: what the buyer wrote in the composer; absent before it. */
+  message?: string | null;
+  questions?: string[] | null;
   created_at: string;
   updated_at: string;
   viewer_role: ViewerRole;
@@ -339,6 +342,8 @@ function entityLabel(et: string): string {
 
 /** The quotes table's column count, for the rows that span it (a note, the accept confirm). */
 const QUOTE_COLUMNS = 7;
+/** The action column, pinned right: the comparison scrolls sideways under it. */
+const QUOTE_ACTION_CELL = "sticky right-0 border-l border-line-subtle bg-surface";
 
 /**
  * The RFQ: the request, the quotes side by side, its status and its
@@ -383,6 +388,24 @@ export function RfqDetailBody({
           <p className="m-0 whitespace-pre-wrap text-base text-ink [overflow-wrap:anywhere]">{rfq.product_description}</p>
         </div>
       ) : null}
+      {rfq.message ? (
+        <div className="flex flex-col gap-1 border-t border-line-subtle px-4 py-3">
+          <span className="text-sm font-medium text-ink-muted">Message</span>
+          <p className="m-0 whitespace-pre-wrap text-base text-ink [overflow-wrap:anywhere]">{rfq.message}</p>
+        </div>
+      ) : null}
+      {rfq.questions && rfq.questions.length > 0 ? (
+        <div className="flex flex-col gap-1 border-t border-line-subtle px-4 py-3">
+          <span className="text-sm font-medium text-ink-muted">Questions asked</span>
+          <ol className="m-0 flex list-decimal flex-col gap-0.5 pl-5 text-base text-ink">
+            {rfq.questions.map((q) => (
+              <li key={q} className="[overflow-wrap:anywhere]">
+                {q}
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
     </PageSection>
   );
 
@@ -398,7 +421,8 @@ export function RfqDetailBody({
         </EmptyState>
       ) : (
         // Its own sideways scroll at every width: a comparison of seven fixed
-        // columns does not fit a pane or the middle of three page columns.
+        // columns does not fit a pane or the middle of three page columns. The
+        // action column is pinned to the right so Accept never scrolls away.
         <DataTable label="Quotes" minWidth="50rem" className="overflow-x-auto [&_table]:table-fixed">
           <thead>
             <tr>
@@ -416,7 +440,7 @@ export function RfqDetailBody({
                 Valid until
               </HeadCell>
               <HeadCell className="w-28 whitespace-nowrap">Status</HeadCell>
-              <HeadCell className="w-32">
+              <HeadCell className="w-32 sticky right-0 border-l border-line-subtle bg-surface">
                 <span className="sr-only">Action</span>
               </HeadCell>
             </tr>
@@ -480,7 +504,7 @@ export function RfqDetailBody({
                 <Fragment key={q.id}>
                   <tr className={rowClass()}>
                     {cells}
-                    <Cell align="right" className={joined}>
+                    <Cell align="right" className={cn(QUOTE_ACTION_CELL, joined)}>
                       {isBuyer && rfq.status === "accepted" && q.status === "accepted" ? (
                         <Button variant="primary" size="sm" href={`/app/orders/new?from_quote=${q.id}`} clientNav>
                           Create order

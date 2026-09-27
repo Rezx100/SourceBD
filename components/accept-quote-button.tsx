@@ -11,6 +11,7 @@ import { useContext, useState, useTransition, type ReactNode } from "react";
 
 import { Button } from "@/components/dashboard/controls";
 import { Cell, rowClass } from "@/components/dashboard/page";
+import { cn } from "@/lib/utils";
 
 export const ACCEPT_CLOSES_COPY = "This closes the RFQ to other quotes.";
 
@@ -68,7 +69,8 @@ export function AcceptQuoteRows({
     <>
       <tr className={rowClass({ current: confirming })}>
         {cells}
-        <Cell align="right" className={joined ? "border-b-0" : undefined}>
+        {/* Pinned right, as the quotes table's action column is: Accept never scrolls out of a pane. */}
+        <Cell align="right" className={cn("sticky right-0 border-l border-line-subtle bg-surface", joined && "border-b-0")}>
           <Button size="sm" onClick={() => setConfirming(true)} aria-expanded={confirming}>
             Accept
           </Button>
