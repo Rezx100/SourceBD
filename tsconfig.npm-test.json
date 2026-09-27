@@ -104,6 +104,7 @@
     "components/dashboard/dialog-focus.test.ts",
     "components/dashboard/record-controls.test.ts",
     "components/dashboard/rfq-pages.test.ts",
+    "components/dashboard/home-saved.test.ts",
     "lib/contact-text.test.ts",
     "lib/dashboard/kit-shell.ts",
     "lib/dashboard/kit-shell.test.ts",
