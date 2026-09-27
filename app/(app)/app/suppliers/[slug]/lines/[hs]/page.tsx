@@ -8,10 +8,7 @@
 
 import { notFound, redirect } from "next/navigation";
 
-import { AppShell } from "@/components/dashboard/app-shell";
 import { ProductSheet } from "@/components/dashboard/product-sheet";
-import { SheetFrame } from "@/components/dashboard/sheet";
-import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { heading4 } from "@/lib/dashboard/hs-photos";
 import { LinesUnreadable, ProfileReadTimeout, loadRecordLine } from "@/lib/dashboard/load-record";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -43,13 +40,9 @@ export default async function ProductLinePage({
   const code = heading4(hs);
 
   const supabase = await createSupabaseServerClient();
-  let shell: Awaited<ReturnType<typeof loadBuyerShell>>;
   let model: Awaited<ReturnType<typeof loadRecordLine>>;
   try {
-    [shell, model] = await Promise.all([
-      loadBuyerShell(supabase, `/app/suppliers/${slug}`),
-      loadRecordLine(supabase, slug, code, new Date(), { backHref: recordHref }),
-    ]);
+    model = await loadRecordLine(supabase, slug, code, new Date(), { backHref: recordHref });
   } catch (err) {
     // A slow read sends the reader to the record, which has its own retry
     // state — never a 404, which would say the line does not exist.
@@ -61,11 +54,5 @@ export default async function ProductLinePage({
   }
   if (!model) notFound();
 
-  return (
-    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Product line">
-      <SheetFrame overlay={false}>
-        <ProductSheet model={model} dialog={false} />
-      </SheetFrame>
-    </AppShell>
-  );
+  return <ProductSheet model={model} mode="page" />;
 }

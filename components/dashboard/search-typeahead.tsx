@@ -17,6 +17,7 @@
 // without a browser.
 
 import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Icon, type IconName } from "./icons";
@@ -64,7 +65,20 @@ export function suggestionHint(s: Suggestion): string {
 
 export function SearchTypeahead({ defaultValue }: { defaultValue: string }) {
   const listId = useId();
-  const [value, setValue] = useState(defaultValue);
+  // The shell is drawn once by the layout and does not know the page's
+  // query, so the field reads it from the URL: on the results page it shows
+  // the search the results are for, and a navigation that changes `q` —
+  // choosing a suggestion, a saved search, a new page — resets it to what the
+  // URL says rather than leaving the half-typed word behind. Off the results
+  // page it starts empty. `defaultValue` is for a render with no router (the
+  // gallery, the tests).
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const urlQuery = pathname === "/app/discover" ? (params?.get("q") ?? "") : "";
+  const [value, setValue] = useState(urlQuery || defaultValue);
+  useEffect(() => {
+    setValue(urlQuery);
+  }, [urlQuery]);
   const [items, setItems] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);

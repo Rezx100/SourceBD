@@ -9,8 +9,7 @@
 import { SAVED_SORTS, SavedList, type SavedSort } from "@/components/dashboard/saved-list";
 import { enrichDiscoverWorkers } from "@/lib/enrich-discover-workers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { AppShell } from "@/components/dashboard/app-shell";
-import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
+import { Page } from "@/components/dashboard/page";
 
 export const dynamic = "force-dynamic";
 
@@ -84,11 +83,5 @@ async function SavedSuppliersPageBody({
 }
 
 export default async function SavedSuppliersPage(props: Parameters<typeof SavedSuppliersPageBody>[0]) {
-  const supabase = await createSupabaseServerClient();
-  const [shell, body] = await Promise.all([loadBuyerShell(supabase, "/app/saved"), SavedSuppliersPageBody(props)]);
-  return (
-    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Saved">
-      {body}
-    </AppShell>
-  );
+  return <Page>{await SavedSuppliersPageBody(props)}</Page>;
 }

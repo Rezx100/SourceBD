@@ -6,12 +6,10 @@
 
 import Link from "next/link";
 
-import { AppShell } from "@/components/dashboard/app-shell";
 import { type ExpiryPayload, ExpiryTable, plural, TableFooter, type UflpaPayload } from "@/components/dashboard/compliance";
 import { Badge } from "@/components/dashboard/chips";
 import { Button } from "@/components/dashboard/controls";
-import { EmptyState, ErrorNote, PageHeader, PageSection } from "@/components/dashboard/page";
-import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
+import { EmptyState, ErrorNote, PageHeader, PageSection, Page } from "@/components/dashboard/page";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -154,14 +152,6 @@ async function ComplianceHubPageBody() {
   );
 }
 
-// The kit's shell on every buyer page (one sidebar, one topbar), read in the
-// same wave as the page's own data.
 export default async function ComplianceHubPage() {
-  const supabase = await createSupabaseServerClient();
-  const [shell, body] = await Promise.all([loadBuyerShell(supabase, "/app/compliance"), ComplianceHubPageBody()]);
-  return (
-    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Compliance hub">
-      {body}
-    </AppShell>
-  );
+  return <Page>{await ComplianceHubPageBody()}</Page>;
 }

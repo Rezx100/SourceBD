@@ -4,10 +4,8 @@
 // certificate on the buyer's saved suppliers that expires in the window,
 // soonest first (the RPC's order).
 
-import { AppShell } from "@/components/dashboard/app-shell";
 import { BackToHub, type ExpiryPayload, ExpiryTable, TableFooter } from "@/components/dashboard/compliance";
-import { EmptyState, ErrorNote, PageHeader, PageSection } from "@/components/dashboard/page";
-import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
+import { EmptyState, ErrorNote, PageHeader, PageSection, Page } from "@/components/dashboard/page";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -55,14 +53,6 @@ async function ExpiryPageBody() {
   );
 }
 
-// The kit's shell on every buyer page (one sidebar, one topbar), read in the
-// same wave as the page's own data.
 export default async function ExpiryPage() {
-  const supabase = await createSupabaseServerClient();
-  const [shell, body] = await Promise.all([loadBuyerShell(supabase, "/app/compliance/expiry"), ExpiryPageBody()]);
-  return (
-    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Certificate expiry">
-      {body}
-    </AppShell>
-  );
+  return <Page>{await ExpiryPageBody()}</Page>;
 }

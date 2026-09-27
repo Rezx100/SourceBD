@@ -2,9 +2,8 @@
 // on the row.
 
 import Link from "next/link";
-import { AppShell } from "@/components/dashboard/app-shell";
+import { Page } from "@/components/dashboard/page";
 import { Caption, Title } from "@/components/dashboard/type";
-import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { formatCount } from "@/lib/dashboard/facts";
 import { runSavedSearchesGet, savedCountLabel, type SavedSearchJson } from "@/lib/saved-searches";
 import { getServerRole } from "@/lib/auth";
@@ -19,7 +18,6 @@ export const metadata = {
 export default async function SearchesPage() {
   const supabase = await createSupabaseServerClient();
   const role = await getServerRole();
-  const shell = await loadBuyerShell(supabase, "/app/searches");
   const now = new Date();
   const listed = await runSavedSearchesGet({ role, supabase, now });
   const payload =
@@ -29,7 +27,7 @@ export default async function SearchesPage() {
   const searches = payload.searches ?? [];
 
   return (
-    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Saved searches">
+    <Page>
       <Title as="h1">Saved searches</Title>
       <Caption>
         {listed.status !== 200
@@ -55,6 +53,6 @@ export default async function SearchesPage() {
           ))}
         </ul>
       ) : null}
-    </AppShell>
+    </Page>
   );
 }

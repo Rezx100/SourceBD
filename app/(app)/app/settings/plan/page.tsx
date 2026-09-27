@@ -5,14 +5,12 @@
 // Phase 5 (phases.md line 100, M2) — no prices, renewal date or credits here
 // until billing exists.
 
-import { AppShell } from "@/components/dashboard/app-shell";
 import { Badge } from "@/components/dashboard/chips";
 import { Button } from "@/components/dashboard/controls";
 import { Icon } from "@/components/dashboard/icons";
-import { ErrorNote, PageSection } from "@/components/dashboard/page";
+import { ErrorNote, PageSection, Page } from "@/components/dashboard/page";
 import { SAVING, type SettingsDoc, SettingsFrame, SettingsHeader } from "@/components/dashboard/settings";
 import { Title } from "@/components/dashboard/type";
-import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -131,14 +129,6 @@ async function SettingsPlanPageBody() {
   );
 }
 
-// The kit's shell on every buyer page (one sidebar, one topbar), read in the
-// same wave as the page's own data.
 export default async function SettingsPlanPage() {
-  const supabase = await createSupabaseServerClient();
-  const [shell, body] = await Promise.all([loadBuyerShell(supabase, "/app/settings/plan"), SettingsPlanPageBody()]);
-  return (
-    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Plan">
-      {body}
-    </AppShell>
-  );
+  return <Page>{await SettingsPlanPageBody()}</Page>;
 }

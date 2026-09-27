@@ -4,13 +4,11 @@
 // footprint that feeds the statement template, then mounts the
 // <MsaGeneratorForm/> client island, which composes the draft in the browser.
 
-import { AppShell } from "@/components/dashboard/app-shell";
 import { Chip } from "@/components/dashboard/chips";
 import { BackToHub, prettyCert } from "@/components/dashboard/compliance";
-import { DetailList, ErrorNote, PageHeader, PageSection } from "@/components/dashboard/page";
+import { DetailList, ErrorNote, PageHeader, PageSection, Page } from "@/components/dashboard/page";
 import { Caption } from "@/components/dashboard/type";
 import { MsaGeneratorForm, type MsaInputs } from "@/components/msa-generator-form";
-import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -75,14 +73,6 @@ async function MsaPageBody() {
   );
 }
 
-// The kit's shell on every buyer page (one sidebar, one topbar), read in the
-// same wave as the page's own data.
 export default async function MsaPage() {
-  const supabase = await createSupabaseServerClient();
-  const [shell, body] = await Promise.all([loadBuyerShell(supabase, "/app/compliance/msa"), MsaPageBody()]);
-  return (
-    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Modern Slavery Act statement">
-      {body}
-    </AppShell>
-  );
+  return <Page>{await MsaPageBody()}</Page>;
 }
