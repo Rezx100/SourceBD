@@ -22,6 +22,8 @@ import {
 import { Tag } from "@/components/ui/tag";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/page-kit";
+import { AppShell } from "@/components/dashboard/app-shell";
+import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +52,7 @@ type ExpiryPayload = {
   rows: CertRow[];
 };
 
-export default async function ExpiryPage() {
+async function ExpiryPageBody() {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.rpc("compliance_expiring_certs", {
     p_window_days: 90,
@@ -333,4 +335,16 @@ function fmtDate(iso: string): string {
   } catch {
     return iso;
   }
+}
+
+// The kit's shell on every buyer page (one sidebar, one topbar), read in the
+// same wave as the page's own data.
+export default async function ExpiryPage() {
+  const supabase = await createSupabaseServerClient();
+  const [shell, body] = await Promise.all([loadBuyerShell(supabase, "/app/compliance/expiry"), ExpiryPageBody()]);
+  return (
+    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Certificate expiry">
+      {body}
+    </AppShell>
+  );
 }

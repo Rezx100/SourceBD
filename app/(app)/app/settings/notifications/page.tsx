@@ -10,6 +10,8 @@ import { ArrowLeft } from "@phosphor-icons/react/dist/ssr";
 import { SettingsNotificationToggles } from "@/components/settings-notification-toggles";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/page-kit";
+import { AppShell } from "@/components/dashboard/app-shell";
+import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +28,7 @@ type SettingsDoc = {
   };
 };
 
-export default async function SettingsNotificationsPage() {
+async function SettingsNotificationsPageBody() {
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase.rpc("settings_get");
   const settings = (data ?? null) as SettingsDoc | null;
@@ -55,5 +57,17 @@ export default async function SettingsNotificationsPage() {
 
       <SettingsNotificationToggles initial={notifications} />
     </div>
+  );
+}
+
+// The kit's shell on every buyer page (one sidebar, one topbar), read in the
+// same wave as the page's own data.
+export default async function SettingsNotificationsPage() {
+  const supabase = await createSupabaseServerClient();
+  const [shell, body] = await Promise.all([loadBuyerShell(supabase, "/app/settings/notifications"), SettingsNotificationsPageBody()]);
+  return (
+    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Notifications">
+      {body}
+    </AppShell>
   );
 }

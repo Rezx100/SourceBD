@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/responsive-table";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/page-kit";
+import { AppShell } from "@/components/dashboard/app-shell";
+import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +58,7 @@ type UflpaPayload = {
   rows: UflpaRow[];
 };
 
-export default async function UflpaPage() {
+async function UflpaPageBody() {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.rpc("compliance_uflpa_tracker");
   const payload = (data ?? null) as UflpaPayload | null;
@@ -268,4 +270,16 @@ function StatusTag({ status }: { status: "hit" | "region_flag" | "clear" }) {
   if (status === "hit") return <Tag tone="red">Hit</Tag>;
   if (status === "region_flag") return <Tag tone="amber">Region flag</Tag>;
   return <Tag tone="green">Clear</Tag>;
+}
+
+// The kit's shell on every buyer page (one sidebar, one topbar), read in the
+// same wave as the page's own data.
+export default async function UflpaPage() {
+  const supabase = await createSupabaseServerClient();
+  const [shell, body] = await Promise.all([loadBuyerShell(supabase, "/app/compliance/uflpa"), UflpaPageBody()]);
+  return (
+    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="UFLPA tracker">
+      {body}
+    </AppShell>
+  );
 }

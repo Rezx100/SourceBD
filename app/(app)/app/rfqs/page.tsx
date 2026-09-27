@@ -16,6 +16,8 @@ import {
   type PillTone,
 } from "@/components/ui/page-kit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { AppShell } from "@/components/dashboard/app-shell";
+import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +40,7 @@ type Rfq = {
   updated_at: string;
 };
 
-export default async function RfqsPage() {
+async function RfqsPageBody() {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.rpc("rfq_list", { p_status: null });
   const rfqs: Rfq[] = error || data == null ? [] : (data as Rfq[]);
@@ -150,4 +152,16 @@ function fmtRelative(iso: string) {
   if (delta < day) return `${Math.floor(delta / 3_600_000)}h ago`;
   if (delta < 30 * day) return `${Math.floor(delta / day)}d ago`;
   return new Date(iso).toLocaleDateString();
+}
+
+// The kit's shell on every buyer page (one sidebar, one topbar), read in the
+// same wave as the page's own data.
+export default async function RfqsPage() {
+  const supabase = await createSupabaseServerClient();
+  const [shell, body] = await Promise.all([loadBuyerShell(supabase, "/app/rfqs"), RfqsPageBody()]);
+  return (
+    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="RFQs">
+      {body}
+    </AppShell>
+  );
 }

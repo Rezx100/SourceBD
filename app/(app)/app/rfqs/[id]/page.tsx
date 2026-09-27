@@ -15,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardMeta, CardTitle } from "@/components/ui/card";
 import { MasterDetail } from "@/components/ui/master-detail";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { AppShell } from "@/components/dashboard/app-shell";
+import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 
 export const dynamic = "force-dynamic";
 
@@ -60,7 +62,7 @@ type RfqDoc = {
   thread_id: string | null;
 };
 
-export default async function RfqDetailPage({
+async function RfqDetailPageBody({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -382,4 +384,16 @@ function fmtRelative(iso: string) {
   if (delta < day) return `${Math.floor(delta / 3_600_000)}h ago`;
   if (delta < 30 * day) return `${Math.floor(delta / day)}d ago`;
   return new Date(iso).toLocaleDateString();
+}
+
+// The kit's shell on every buyer page (one sidebar, one topbar), read in the
+// same wave as the page's own data.
+export default async function RfqDetailPage(props: Parameters<typeof RfqDetailPageBody>[0]) {
+  const supabase = await createSupabaseServerClient();
+  const [shell, body] = await Promise.all([loadBuyerShell(supabase, "/app/rfqs/x"), RfqDetailPageBody(props)]);
+  return (
+    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="RFQ">
+      {body}
+    </AppShell>
+  );
 }

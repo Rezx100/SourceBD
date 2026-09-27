@@ -5,7 +5,9 @@
 // page. `kit-shell.test.ts` fails when a page renders `AppShell` and is not
 // matched here.
 
-const KIT_SHELL = /^\/app\/(?:discover|products|searches|suppliers\/[^/]+)(?:\/|$)/;
+// Every buyer page, since 27 Sep 2026: the founder's review found two
+// different sidebars depending on which page a buyer was on.
+const KIT_SHELL = /^\/app(?:\/|$)/;
 
 export function drawsKitShell(pathname: string): boolean {
   return KIT_SHELL.test(pathname);

@@ -12,13 +12,15 @@ import { RfqCreateForm } from "@/components/rfq-create-form";
 import { hsBuyerLabel } from "@/lib/epb-hscode-labels";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/page-kit";
+import { AppShell } from "@/components/dashboard/app-shell";
+import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 
 export const dynamic = "force-dynamic";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-export default async function NewRfqPage({
+async function NewRfqPageBody({
   searchParams,
 }: {
   searchParams: Promise<{ supplier?: string; hs?: string }>;
@@ -58,5 +60,17 @@ export default async function NewRfqPage({
         initialTitle={hs ? `HS ${hs} · ${hsBuyerLabel(hs, null)}` : undefined}
       />
     </div>
+  );
+}
+
+// The kit's shell on every buyer page (one sidebar, one topbar), read in the
+// same wave as the page's own data.
+export default async function NewRfqPage(props: Parameters<typeof NewRfqPageBody>[0]) {
+  const supabase = await createSupabaseServerClient();
+  const [shell, body] = await Promise.all([loadBuyerShell(supabase, "/app/rfqs/new"), NewRfqPageBody(props)]);
+  return (
+    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="New RFQ">
+      {body}
+    </AppShell>
   );
 }
