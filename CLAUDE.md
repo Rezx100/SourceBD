@@ -29,10 +29,11 @@ that make that true are in `docs/ENTERPRISE_DEPLOYMENT.md` (Branch and release m
 
 ## What the guard hook refuses
 
-The hook lives in `claude-config-staging/hooks/guard.py` until the founder installs it with
-`claude-config-staging/install.ps1`. It refuses: `git push` to `main`, to tags, or force; bare
-`git push` while on `main`; `gh pr merge` in every form today, including the `--auto` the workflow
-needs (relaxing that one rule is the founder's call when installing);
+`.claude/hooks/guard.py` runs before every shell command (installed 27 Sep 2026; `.claude/` is
+gitignored, so it lives on the founder's machine, with a copy in `claude-config-staging/hooks/`).
+It scans the whole command text, heredocs included, so never quote a forbidden phrase inside a
+command. It refuses: pushes to `main`, to tags, or forced; a bare push while on `main`;
+`gh pr merge` by hand (`--auto` is allowed);
 `gh workflow run`; any `--apply`; `ops/apply_*` and `ops/*_apply.*`; `ops/deploy*` and
 `ops/bootstrap-vps.sh`; `ssh`/`rsync` to the VPS; anything touching `37.49.227.151`;
 `rsync --delete`; `docker compose down -v`; `rm -rf` of `etl/raw|parsed|logs`, `.deploy`, `.env`,
