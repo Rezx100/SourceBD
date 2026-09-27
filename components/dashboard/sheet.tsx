@@ -38,7 +38,7 @@ export function Stage({ height, behind, children }: { height: number; behind?: R
 }
 
 export function Scrim() {
-  return <div aria-hidden className="absolute inset-0 bg-surface-inverse opacity-[0.32]" />;
+  return <div aria-hidden className="absolute inset-0 bg-surface-inverse opacity-[0.32] animate-scrim-in motion-reduce:animate-none" />;
 }
 
 /**

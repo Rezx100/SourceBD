@@ -63,8 +63,13 @@
     /* Native checkboxes, radios, ranges and progress bars in brand green. */
     accent-color: rgb(var(--ds-brand));
     caret-color: rgb(var(--ds-brand));
-    /* A thin scrollbar in the line colour, with no track: it reads as part of
-       the hairline system rather than as chrome. */
+  }
+
+  /* A thin scrollbar in the line colour, with no track: it reads as part of
+     the hairline system rather than as chrome. On every scroll region, not
+     only the page: `scrollbar-width` does not inherit, so set on `:root` it
+     left the record sheet's and the table's scrollbars at the browser's. */
+  * {
     scrollbar-width: thin;
     scrollbar-color: rgb(var(--ds-line-strong) / 0.55) transparent;
   }

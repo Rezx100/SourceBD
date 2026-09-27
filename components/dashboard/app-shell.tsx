@@ -281,7 +281,10 @@ export function Topbar({ model, screenLabel }: { model: TopbarModel; screenLabel
               `/api/discover/suggest`. Renders the same `<input>` on the server
               — `name="q"`, `data-search="topbar"` — so the GET form and ⌘K
               work before any script runs, and without it. */}
-          <SearchTypeahead defaultValue={model.searchQuery ?? ""} />
+          {/* Keyed on the query, so a navigation that changes `q` — choosing
+              a suggestion, a saved search — resets the field to what the URL
+              says rather than leaving the half-typed word behind. */}
+          <SearchTypeahead key={model.searchQuery ?? ""} defaultValue={model.searchQuery ?? ""} />
           <Kbd>⌘K</Kbd>
           <SearchShortcut />
         </Form>
