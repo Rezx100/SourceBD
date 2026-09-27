@@ -1,11 +1,11 @@
 import { KitLoading } from "@/components/dashboard/kit-loading";
 import { PageSkeleton } from "@/components/dashboard/page-skeleton";
 
-// Inside the kit's frame: the layout draws no shell on /app routes (`ShellSwitch`).
+// The layout draws the shell; this is the content region while the page loads.
 
 export default function NotificationsLoading() {
   return (
-    <KitLoading path="/app/settings/notifications" screenLabel="Notifications">
+    <KitLoading>
       <PageSkeleton kind="form" />
     </KitLoading>
   );

@@ -10,8 +10,7 @@ import { notFound } from "next/navigation";
 
 import { RfqDetailBody, type RfqDoc, type RfqListItem } from "@/components/dashboard/rfq-pages";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { AppShell } from "@/components/dashboard/app-shell";
-import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
+import { Page } from "@/components/dashboard/page";
 
 export const dynamic = "force-dynamic";
 
@@ -30,14 +29,6 @@ async function RfqDetailPageBody({
   return <RfqDetailBody rfq={data as RfqDoc} list={(listData as RfqListItem[] | null) ?? []} />;
 }
 
-// The kit's shell on every buyer page (one sidebar, one topbar), read in the
-// same wave as the page's own data.
 export default async function RfqDetailPage(props: Parameters<typeof RfqDetailPageBody>[0]) {
-  const supabase = await createSupabaseServerClient();
-  const [shell, body] = await Promise.all([loadBuyerShell(supabase, "/app/rfqs/x"), RfqDetailPageBody(props)]);
-  return (
-    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="RFQ">
-      {body}
-    </AppShell>
-  );
+  return <Page>{await RfqDetailPageBody(props)}</Page>;
 }

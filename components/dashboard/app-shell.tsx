@@ -1,31 +1,27 @@
-// AppShell of the dashboard kit (REZ-A, handoff §3.10): a 232px sidebar on
-// canvas, a 56px frosted topbar, content at `content` width. Presentational —
-// REZ-B wires the counts to `buyer_dashboard` and the nav to the routes.
+// AppShell of the dashboard kit: a 232px sidebar on canvas, a 56px frosted
+// topbar, and the content region. The buyer layout draws it ONCE around every
+// /app page (27 Sep 2026): the rail and the topbar stay mounted across client
+// navigations and only `<main>` changes. From `md` up the shell IS the
+// viewport — the page never scrolls; the content region does, or a pane
+// inside it (the results beside an open record, the inbox beside a thread).
+// Below `md` the rail reflows into a strip under the logo and the document
+// scrolls as one, which is what a phone expects.
 
 import Form from "next/form";
 import Link from "next/link";
-import type { ReactNode } from "react";
-import { formatCount } from "@/lib/dashboard/facts";
+import { Suspense, type ReactNode } from "react";
+import { NAV, activeNavKey, navMatch, type NavKey } from "@/lib/dashboard/nav";
 import { cn } from "@/lib/utils";
-import { Count, Kbd, LiveDot, Meter } from "./controls";
-import { Icon, type IconName } from "./icons";
-import { Caption, Label } from "./type";
-import { NavCurrent } from "./nav-current";
+import { Kbd, LiveDot, Meter } from "./controls";
+import { Icon } from "./icons";
 import { RecentSearchesSlot } from "./recent-searches";
+import { SearchCarry } from "./search-carry";
 import { SearchShortcut } from "./search-shortcut";
 import { SearchTypeahead } from "./search-typeahead";
+import { SidebarNav, type NavCounts } from "./sidebar-nav";
+import { Caption, Label } from "./type";
 
-export type NavKey =
-  | "search"
-  | "suppliers"
-  | "products"
-  | "saved"
-  | "searches"
-  | "messages"
-  | "rfqs"
-  | "orders"
-  | "compliance"
-  | "settings";
+export { NAV, activeNavKey, navMatch, type NavKey };
 
 export type SidebarModel = {
   /**
@@ -35,135 +31,40 @@ export type SidebarModel = {
    */
   activeExact?: boolean;
   /**
-   * The nav item the current URL actually is. `null` when no nav item points
-   * here: `/app/searches` (saved searches) and `/app/searches/new` both used
-   * to pass `"search"`, which put `aria-current="page"` on a link to
-   * `/app/discover` — a screen reader announced the buyer as being on a page
-   * they were not on, and the only way to tell was to follow the link (WCAG
-   * 4.1.2). Highlighting nothing is honest; highlighting the wrong thing is
-   * not.
+   * The nav item to mark current. The layout leaves it out and the rail reads
+   * the URL itself, so the mark follows every client navigation; the gallery
+   * and the tests name a screen. `null` marks nothing — `/app/searches/new`
+   * used to claim `"search"`, which put `aria-current="page"` on a link to a
+   * page the buyer was not on (WCAG 4.1.2).
    */
-  active: NavKey | null;
+  active?: NavKey | null;
   /** Live counts from `buyer_dashboard`; a count that could not be read is null and renders no pill. */
-  counts: { suppliers?: number | null; rfqs?: number | null; saved?: number | null };
+  counts: NavCounts;
   recent: { label: string; count: number | null; href: string }[];
   /** Plan line: name, and the RFQ allowance when billing exists. */
   plan: { name: string; note?: string | null; used?: number | null; allowance?: number | null };
+  /** Who is signed in, drawn at the foot of the rail above the plan; the way to Settings. */
+  account?: { initial: string | null; name: string | null; email: string | null };
 };
 
-// Order and membership follow `BUYER_SECTIONS` in components/shell/sidebar.tsx,
-// which is what every other /app page renders.
-//
-// This list used to be Search, Suppliers, Products, RFQs, Saved, Messages,
-// Compliance — so the shared items appeared in a different relative order
-// here than everywhere else (WCAG 3.2.3), and Orders, Settings and the
-// account menu had no link at all on the three kit routes. Since the kit
-// shell replaces the app shell wholesale on those routes, and the topbar
-// hamburger goes with it, a buyer who landed on /app/discover — the default
-// destination — could only reach Settings by typing the URL. That is the
-// same defect this round fixed for Products and Compliance hub, inverted.
-export const NAV: readonly { key: NavKey; label: string; icon: IconName; href: string }[] = [
-  { key: "search", label: "Search", icon: "search", href: "/app/discover" },
-  { key: "suppliers", label: "Suppliers", icon: "building", href: "/app/discover" },
-  { key: "products", label: "Products", icon: "tag", href: "/app/products" },
-  { key: "saved", label: "Saved", icon: "bookmark", href: "/app/saved" },
-  // A buyer who saved a search had no way back to it: `/app/searches` was
-  // linked from nowhere in the product — not this rail, not
-  // `components/shell/sidebar.tsx` — and the only reference to it was the
-  // redirect that puts you there once, straight after saving. The same
-  // defect the comment above describes for Products and Compliance hub, one
-  // step further along. Added to `BUYER_SECTIONS` in the same position so the
-  // two rails still agree on order (WCAG 3.2.3).
-  { key: "searches", label: "Saved searches", icon: "funnel", href: "/app/searches" },
-  { key: "messages", label: "Messages", icon: "chat", href: "/app/messages" },
-  { key: "rfqs", label: "RFQs", icon: "send", href: "/app/rfqs" },
-  { key: "orders", label: "Orders", icon: "box", href: "/app/orders" },
-  { key: "compliance", label: "Compliance hub", icon: "shield", href: "/app/compliance" },
-  { key: "settings", label: "Settings", icon: "gear", href: "/app/settings" },
-];
-
-/**
- * The nav item whose href IS this path, or null when no nav item points here.
- *
- * Callers used to name the key themselves, and `/app/searches` (saved
- * searches) and `/app/searches/new` both named `"search"` — whose href is
- * `/app/discover`. That put `aria-current="page"` on a link to a page the
- * buyer was not on (WCAG 4.1.2), and the only way to notice was to follow it.
- * Resolving the key from the path instead makes naming the wrong one
- * impossible rather than merely fixing the two that did.
- *
- * `/app/discover` matches `search` before `suppliers`; both link there and the
- * first is the one the rail has always highlighted.
- */
-export function activeNavKey(pathname: string): NavKey | null {
-  return navMatch(pathname).key;
-}
-
-/**
- * Which nav item this path belongs to, and whether it IS that item's page or
- * merely sits under it.
- *
- * The distinction is not cosmetic. The first version of the nested matching
- * returned `"searches"` for `/app/searches/new` and the rail then put
- * `aria-current="page"` on the link to `/app/searches` — announcing the buyer
- * as being on a page they were not on, which is the exact defect the nested
- * matching was added alongside a fix for. A section ancestor is
- * `aria-current="true"`.
- */
-export function navMatch(pathname: string): { key: NavKey | null; exact: boolean } {
-  const path = pathname.replace(/[?#].*$/, "").replace(/(.)\/+$/, "$1");
-  const hit = NAV.find((item) => item.href === path);
-  if (hit) return { key: hit.key, exact: true };
-  // A nested route belongs to its section: /app/rfqs/<id> and
-  // /app/settings/rfq are both §3 screens this shell will render, and an
-  // exact match alone left every one of them highlighting nothing. Longest
-  // href wins so /app/searches/new cannot be claimed by /app/search-anything.
-  const under = NAV.filter((item) => path.startsWith(item.href + "/")).sort((a, b) => b.href.length - a.href.length);
-  if (under[0]) return { key: under[0].key, exact: false };
-  // `/app/suppliers/<slug>` and `/app/suppliers/<slug>/lines/<hs>` are spec
-  // §3.3 and §3.4 — the screens a buyer actually sits on — and no nav item has
-  // that href, because the Suppliers row points at the search. They belong to
-  // Suppliers all the same.
-  if (path === "/app/suppliers" || path.startsWith("/app/suppliers/")) {
-    return { key: "suppliers", exact: false };
-  }
-  return { key: null, exact: false };
-}
-
-function navCount(key: NavKey, counts: SidebarModel["counts"]): ReactNode {
-  // The Search row used to return the literal "⌘K" here, which put a keyboard
-  // hint inside the link's accessible name ("Search ⌘K") and advertised the
-  // shortcut on every shell — including the ones with no search form for it to
-  // focus, where nothing listens for it. The topbar carries the hint, beside
-  // the field it acts on, and only when that field is there.
-  const n = key === "suppliers" ? counts.suppliers : key === "rfqs" ? counts.rfqs : key === "saved" ? counts.saved : null;
-  return n === null || n === undefined ? null : formatCount(n);
-}
-
 export function Sidebar({ model, screenLabel }: { model: SidebarModel; screenLabel?: string }) {
-  const { plan } = model;
+  const { plan, account } = model;
   const pct =
     plan.used !== null && plan.used !== undefined && plan.allowance ? Math.round((plan.used / plan.allowance) * 100) : null;
   // Below `md` there is no room for a 232px rail beside the content — at
   // 320px it left about 88px to read in. It does not follow that the nav can
-  // be hidden: an earlier pass did that and handed phones `BottomTabBar`
-  // instead, which carries the app's top five destinations and NOT Products
-  // or Compliance hub, both of which this kit's own rail lists. The kit
-  // routes render no hamburger either, so those two became unreachable below
-  // 768px while staying one click away above it — functionality lost at the
-  // narrower width (WCAG 1.4.10).
-  //
-  // So it reflows instead of hiding: a horizontal, scrollable strip of the
-  // same links under the topbar on phones, the full rail from `md`. Every
-  // destination stays reachable at every width, with no drawer, no state and
-  // no second navigation to keep in step.
+  // be hidden: an earlier pass did that and handed phones a bottom tab bar
+  // with five of the ten destinations, so Products and Compliance hub became
+  // unreachable below 768px (WCAG 1.4.10). So it reflows instead: a
+  // horizontal, scrollable strip of the same links on phones, the full rail
+  // from `md`, where it is the viewport's height and scrolls on its own.
   return (
     <aside
       aria-label={screenLabel ? `Sidebar, ${screenLabel}` : "Sidebar"}
-      className="flex w-full shrink-0 flex-col gap-5 border-b border-line-subtle px-3 py-3 md:w-sidebar md:border-b-0 md:border-r md:py-4"
+      className="flex w-full shrink-0 flex-col gap-5 border-b border-line-subtle px-3 py-3 md:h-full md:w-sidebar md:overflow-y-auto md:border-b-0 md:border-r md:py-4"
     >
       {/* The way home: /app has no nav item of its own. */}
-      <Link href="/app" prefetch={false} aria-label="SourceBD home" className="hidden items-center gap-2.5 rounded-sm px-2 py-0.5 md:flex">
+      <Link href="/app" aria-label="SourceBD home" className="hidden items-center gap-2.5 rounded-sm px-2 py-0.5 md:flex">
         <span
           aria-hidden
           className="grid size-7 place-items-center rounded-sm bg-brand font-mono text-xs font-medium tracking-[0.02em] text-brand-on"
@@ -172,51 +73,12 @@ export function Sidebar({ model, screenLabel }: { model: SidebarModel; screenLab
         </span>
         <span className="text-title font-medium tracking-[-0.01em] text-ink-strong">SourceBD</span>
       </Link>
-      <nav
-        aria-label={screenLabel ? `Primary, ${screenLabel}` : "Primary"}
-        // `overflow-x-auto` computes `overflow-y: auto` too, and an outline is
-        // not scrollable overflow — so on a 32px-tall strip the global
-        // `outline-offset-2` focus ring was cut off top and bottom and a
-        // keyboard user tabbing the phone nav saw two clipped side edges
-        // (WCAG 2.4.11). `-mx-1 px-1` already bought that room horizontally;
-        // `-my-1 py-1` is the same trade vertically, and costs no layout
-        // because the negative margin gives the padding back.
-        className="-mx-1 -my-1 flex snap-x gap-1 overflow-x-auto px-1 py-1 md:mx-0 md:my-0 md:flex-col md:gap-0.5 md:overflow-visible md:px-0 md:py-0"
-      >
-        {NAV.map((item) => {
-          const on = item.key === model.active;
-          const count = navCount(item.key, model.counts);
-          return (
-            // `Link`, not `<a>`: a plain anchor reloaded the whole document on
-            // every click — middleware, the app layout's reads, the page and a
-            // full hydrate — which is most of the five to ten seconds buyers
-            // saw between pages. Not prefetched: /app/discover is rate-limited
-            // in middleware and a prefetch would spend the buyer's allowance.
-            <Link
-              key={item.key}
-              href={item.href}
-              prefetch={false}
-              aria-current={on ? (model.activeExact === false ? "true" : "page") : undefined}
-              className={cn(
-                "flex h-8 shrink-0 snap-start items-center gap-2.5 whitespace-nowrap rounded-sm px-2 text-sm font-medium text-ink-muted transition-colors duration-fast hover:bg-surface-sunken hover:text-ink-strong md:shrink",
-                // The current page: a hairline in `brand` all the way round,
-                // the tint, brand ink and a heavier weight. The tint alone is
-                // 1.07:1 against the canvas, so it never carries the state by
-                // itself (WCAG 1.4.11 asks 3:1); the brand outline is 7.87:1.
-                // It replaces the 3px inset rail down the left edge, which the
-                // founder read as a stray colour (27 Sep).
-                on && "bg-brand-tint font-semibold text-brand-ink ring-1 ring-inset ring-brand hover:bg-brand-tint",
-              )}
-            >
-              <Icon name={item.icon} />
-              {item.label}
-              {count !== null ? <Count className={cn("ml-auto", on && "text-brand-ink")}>{count}</Count> : null}
-            </Link>
-          );
-        })}
-        {/* Phones: bring the current item into view on the strip. */}
-        <NavCurrent />
-      </nav>
+      <SidebarNav
+        label={screenLabel ? `Primary, ${screenLabel}` : "Primary"}
+        active={model.active}
+        activeExact={model.activeExact}
+        counts={model.counts}
+      />
       {/* Rail furniture, not navigation: hidden on phones where the strip
           above carries every destination. */}
       <div className="hidden md:contents">
@@ -224,7 +86,31 @@ export function Sidebar({ model, screenLabel }: { model: SidebarModel; screenLab
       </div>
       {/* No plan named (a loading state does not know it): no footer at all. */}
       {plan.name ? (
-        <div data-plan="true" className="mt-auto hidden flex-col gap-1.5 border-t border-line-subtle px-2 pt-4 md:flex">
+        <div data-plan="true" className="mt-auto hidden flex-col gap-3 border-t border-line-subtle px-2 pt-4 md:flex">
+          {account ? (
+            // The account, where every SaaS rail keeps it: who is signed in,
+            // one click from Settings. The topbar's avatar goes there too.
+            <Link
+              href="/app/settings"
+              className="-mx-2 flex items-center gap-2.5 rounded-sm px-2 py-1.5 transition-colors duration-fast hover:bg-surface-sunken"
+            >
+              <span
+                aria-hidden
+                className={cn(
+                  "grid size-7 shrink-0 place-items-center rounded-full text-xs font-medium",
+                  account.initial ? "bg-tier-2 text-tier-2-on" : "border border-line-strong bg-surface",
+                )}
+              >
+                {account.initial ?? ""}
+              </span>
+              <span className="flex min-w-0 flex-col">
+                <Label className="text-ink-strong [overflow-wrap:anywhere]">{account.name ?? account.email ?? "Your account"}</Label>
+                {account.name && account.email ? (
+                  <Caption className="[overflow-wrap:anywhere]">{account.email}</Caption>
+                ) : null}
+              </span>
+            </Link>
+          ) : null}
           <div className="flex items-center gap-2">
             <Label className="text-ink-strong">{plan.name}</Label>
             {plan.note ? <Caption className="ml-auto">{plan.note}</Caption> : null}
@@ -249,6 +135,7 @@ export type TopbarModel = {
   /** The viewer's initial; null renders an empty avatar. */
   initial: string | null;
   searchAction?: string;
+  /** What the field starts with when the URL carries no `q` (the gallery). */
   searchQuery?: string;
 };
 
@@ -257,16 +144,16 @@ export function Topbar({ model, screenLabel }: { model: TopbarModel; screenLabel
     <div className="glass flex h-topbar shrink-0 items-center gap-3 border-b border-line-subtle px-4 sm:gap-4 sm:px-6">
       {model.searchAction ? (
         // `next/form`: submitting runs a client navigation to the results
-        // instead of reloading the document. Not prefetched, like the sidebar:
-        // /app/discover is rate-limited and a prefetch spends the allowance.
+        // instead of reloading the document. Not prefetched, like the rail's
+        // Search row: /app/discover is rate-limited and a prefetch spends the
+        // allowance. The one search field in the app: on the results page the
+        // filter bar carries chips, not a second box.
         <Form
           prefetch={false}
           role="search"
-          // The `search` landmark had no name. `screenLabel` was documented as
-          // having been threaded into "nav/search" and had only ever reached
-          // nav and main, so the six shells in the /dev/ds gallery rendered six
-          // identical unnamed search landmarks (WCAG 1.3.1).
-          // Not `Search, ${screenLabel}` unconditionally: on /app/discover the
+          // Named, because /app/products renders a search landmark of its own
+          // and two unnamed ones are indistinguishable (WCAG 1.3.1). Not
+          // `Search, ${screenLabel}` unconditionally: on the results page the
           // screen label IS "Search", and the landmark read "Search, Search".
           aria-label={screenLabel && screenLabel !== "Search" ? `Search, ${screenLabel}` : "Search"}
           action={model.searchAction}
@@ -277,14 +164,16 @@ export function Topbar({ model, screenLabel }: { model: TopbarModel; screenLabel
         >
           <Icon name="search" />
           {/* The input itself, plus the suggestions under it as the buyer
-              types: records by name, products, places and certificates from
-              `/api/discover/suggest`. Renders the same `<input>` on the server
-              — `name="q"`, `data-search="topbar"` — so the GET form and ⌘K
-              work before any script runs, and without it. */}
-          {/* Keyed on the query, so a navigation that changes `q` — choosing
-              a suggestion, a saved search — resets the field to what the URL
-              says rather than leaving the half-typed word behind. */}
-          <SearchTypeahead key={model.searchQuery ?? ""} defaultValue={model.searchQuery ?? ""} />
+              types. Renders the same `<input>` on the server — `name="q"`,
+              `data-search="topbar"` — so the GET form and ⌘K work before any
+              script runs, and without it. It reads the URL's `q` on the
+              results page, and the filters ride along as hidden fields, so a
+              new query keeps them. `Suspense`: both read the URL, which a
+              statically rendered page (the gallery) has to defer. */}
+          <Suspense fallback={null}>
+            <SearchTypeahead defaultValue={model.searchQuery ?? ""} />
+            <SearchCarry />
+          </Suspense>
           <Kbd>⌘K</Kbd>
           <SearchShortcut />
         </Form>
@@ -300,12 +189,8 @@ export function Topbar({ model, screenLabel }: { model: TopbarModel; screenLabel
       </Caption>
       {/* No Help button until /app/help exists: it had no destination
           (founder decision, 24 Sep). render.test.ts holds this. */}
-      {/* A real link, not decoration. The kit shell replaces the app topbar,
-          which is where the account menu and sign-out live, so on these three
-          routes this was the only account affordance and it was aria-hidden. */}
       <Link
         href="/app/settings"
-        prefetch={false}
         aria-label="Account and settings"
         className={cn(
           "grid size-7 place-items-center rounded-full text-xs font-medium",
@@ -318,80 +203,41 @@ export function Topbar({ model, screenLabel }: { model: TopbarModel; screenLabel
   );
 }
 
-/** The shell: sidebar · (topbar + content). `Stage` wraps it when a sheet or dialog sits over it. */
+/**
+ * The shell: sidebar · (topbar + content). From `md` up it is exactly the
+ * viewport: the rail scrolls on its own, `<main>` scrolls on its own, and a
+ * page that wants panes of its own (the results beside a record) fills
+ * `<main>` and scrolls inside them instead — `Page` is the frame for every
+ * page that simply scrolls.
+ */
 export function AppShell({
   sidebar,
   topbar,
+  className,
   contentClassName,
-  /**
-   * The content landmark's id, and the skip link's target. Six screens in one
-   * gallery document all carried `ds-main`, so `getElementById` resolved every
-   * skip link to the first screen and the page shipped six duplicate ids.
-   */
+  /** The content landmark's id, and the skip link's target. Six screens in one gallery document must not share one. */
   mainId = "ds-main",
   /**
    * Distinguishes this instance's nav, search and main landmarks — and its
    * skip link's own name — from another AppShell's when both are live in the
-   * same accessible tree at once. The gallery renders several full, non-inert
-   * instances on one page; the first pass at this only threaded the label
-   * into `nav`/`search` and left three duplicate, unnamed `main` landmarks
-   * and three identical "Skip to content" links behind (the accessibility
-   * critic's cycle-18 finding — the same class of collision `mainId` already
-   * disambiguates by id, `screenLabel` must also disambiguate by name). A
-   * screen behind a modal (wrapped in `inert`) never needs one: `inert`
-   * removes it from the accessibility tree entirely, so nothing there can
-   * collide.
+   * same accessible tree at once (the gallery renders several).
    */
   screenLabel,
-  /**
-   * A dialog is open over this shell, so the whole of it — skip link, sidebar,
-   * topbar, content — is `inert`: out of the tab order, the pointer and the
-   * accessibility tree. `Sheet`'s `aria-modal="true"` asserts exactly that,
-   * and the assertion has to be true of the shell's own chrome and not only of
-   * the content, or ⌘K still reaches the topbar search field from behind the
-   * scrim.
-   */
-  inert: inertShell = false,
-  /**
-   * A dialog drawn OVER this shell, outside the `inert` boundary.
-   *
-   * It cannot be a child: `inert` applies to the whole subtree, so a sheet
-   * rendered inside `children` would be inert too — the dialog would announce
-   * everything else unavailable and then be unavailable itself.
-   */
-  overlay,
   children,
 }: {
   sidebar: SidebarModel;
   topbar: TopbarModel;
+  /** The gallery's frames have a height of their own: `md:h-full` there, the viewport here. */
+  className?: string;
   contentClassName?: string;
   mainId?: string;
   screenLabel?: string;
-  inert?: boolean;
-  overlay?: ReactNode;
   children: ReactNode;
 }) {
-  // Every screen opens with the same eight sidebar links. Without a `main`
-  // landmark and a skip link there is no way past them: no landmark marks the
-  // content, and three of the six screens rendered no heading either, so
-  // heading navigation gave nothing (WCAG 2.4.1, level A). The app shell this
-  // kit replaces already has both — `app/(app)/layout.tsx` renders `SkipLink`
-  // and `<main id="main-content">`.
+  // Every screen opens with the same ten sidebar links. Without a `main`
+  // landmark and a skip link there is no way past them (WCAG 2.4.1).
   return (
-    // `inert` covers the WHOLE shell when a dialog is open, not only `children`.
-    // Wrapping the content alone left the skip link, ten sidebar links, the
-    // topbar search field and the account link outside it and ahead of the
-    // dialog in the tab order — roughly thirteen stops the dialog's
-    // `aria-modal="true"` asserted did not exist, with their focus rings drawn
-    // under a `z-50` scrim. ⌘K reached the search field from behind it. The
-    // gallery guard already asserts the arrangement this now has
-    // (`app/dev/ds/dashboard-screens.test.ts`: `<main>` and the primary nav
-    // both INSIDE the inert wrapper); the shipped route did not have it.
-    <>
-    <div
-      className="flex min-h-full flex-col bg-canvas text-base text-ink md:flex-row"
-      {...(inertShell ? { inert: true } : {})}
-    >
+    <div className={cn("flex min-h-dvh flex-col bg-canvas text-base text-ink md:h-dvh md:flex-row md:overflow-hidden", className)}>
       <a
         href={`#${mainId}`}
         className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-sm focus:border focus:border-line-strong focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-ink-strong"
@@ -399,30 +245,23 @@ export function AppShell({
         {screenLabel ? `Skip to content, ${screenLabel}` : "Skip to content"}
       </a>
       <Sidebar model={sidebar} screenLabel={screenLabel} />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <Topbar model={topbar} screenLabel={screenLabel} />
         <main
           id={mainId}
           aria-label={screenLabel}
           // Without it the skip link relies on the browser choosing to move
           // focus to a non-focusable fragment target, which older Safari does
-          // not. `app/(app)/layout.tsx` sets it on the shell this replaces.
+          // not.
           tabIndex={-1}
-          // A page's content fades in over 200 ms when it mounts: a route
-          // change swaps the page component under the shell, so the rail and
-          // topbar hold still while the new content settles. Filter, sort and
-          // record changes on the same page re-render this element in place
-          // and draw nothing. Opacity only, and `motion-reduce` leaves it out.
-          className={cn(
-            "mx-auto flex w-full max-w-[calc(75rem+3rem)] flex-col gap-4 p-4 animate-fade motion-reduce:animate-none sm:p-6",
-            contentClassName,
-          )}
+          // The one scroll region of a plain page. A workbench page (the
+          // search, the inbox) fills it with `min-h-0 flex-1` columns that
+          // scroll themselves, and this never overflows.
+          className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto", contentClassName)}
         >
           {children}
         </main>
       </div>
-      </div>
-      {overlay}
-    </>
+    </div>
   );
 }

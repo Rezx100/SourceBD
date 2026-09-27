@@ -29,6 +29,7 @@ export function SearchComposer({
   askEnabled = false,
   className,
   queryInput,
+  submits = false,
   askHref,
   filtersHref,
 }: {
@@ -36,11 +37,14 @@ export function SearchComposer({
   mode?: "filters" | "ask";
   askEnabled?: boolean;
   className?: string;
-  /** When set, the composer is a GET search field (REZ-B). */
+  /** When set, the composer carries its own text field. The results page does not: the topbar's field is the one search box. */
   queryInput?: string;
+  /** The composer sits in a GET form: the go disc submits it and Add filter opens the filter form below. */
+  submits?: boolean;
   askHref?: string;
   filtersHref?: string;
 }) {
+  const live = queryInput !== undefined || submits;
   return (
     <div
       className={cn(
@@ -81,7 +85,7 @@ export function SearchComposer({
             )}
           </Chip>
         ))}
-        {queryInput !== undefined ? (
+        {live ? (
           <a href="#filters" className="inline-flex h-7 items-center gap-1 px-1.5 text-sm font-medium text-ink-muted">
             <Icon name="plus" small /> Add filter
           </a>
@@ -157,7 +161,7 @@ export function SearchComposer({
         </span>
       ) : null}
       <button
-        type={queryInput !== undefined ? "submit" : "button"}
+        type={live ? "submit" : "button"}
         aria-label="Search"
         className="grid size-8 shrink-0 place-items-center rounded-full bg-brand text-brand-on hover:bg-brand-hover"
       >

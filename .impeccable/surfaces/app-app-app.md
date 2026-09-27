@@ -49,8 +49,11 @@ provenance.
 
 ## Signature interactions
 
-- Record tray: scrim fades (200 ms) while the sheet slides in from the right
-  edge (320 ms, 32px). Close lands at once.
+- Record pane (27 Sep, one-viewport shell): the record slides in from the
+  right edge (320 ms, 32px) beside the results, both live, no scrim; below
+  1024px it takes the content region. Close is a navigation back to the
+  search and lands at once. The shell is drawn once by the layout and is the
+  viewport from 768px; only the content region changes between pages.
 - Page change: content fades in under a still rail and topbar (200 ms).
 - Search: suggestions listed under the field as the buyer types, four kinds,
   keyboard-complete; the field's outline steps up to brand on focus.

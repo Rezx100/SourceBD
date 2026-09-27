@@ -28,14 +28,14 @@ describe("DialogFocus — focus returns to the result that opened the record", (
     assert.equal(openerFor("aboni-knitwear", [link("/app/discover?q=knit"), link("https://edb.epb.gov.bd/x")]), null);
   });
 
-  it("every overlay frame with somewhere to close to carries it", () => {
+  it("every record pane with somewhere to close to carries it", () => {
     // `DialogFocus` renders nothing, so no HTML test can see it is mounted.
     const sheet = readFileSync(path.join(process.cwd(), "components", "dashboard", "sheet.tsx"), "utf8");
     assert.match(sheet, /\{closeHref \? <DialogFocus closeHref=\{closeHref\} openKey=\{openKey\} \/> : null\}/);
-    // And every overlay frame names what it shows, or focus stays put when it changes.
+    // And every pane names what it shows, or focus stays put when it changes.
     const discover = readFileSync(path.join(process.cwd(), "app", "(app)", "app", "discover", "page.tsx"), "utf8");
-    const frames = discover.match(/<SheetFrame overlay[^>]*>/g) ?? [];
+    const frames = discover.match(/<RecordPane\b[^>]*>/g) ?? [];
     assert.ok(frames.length >= 2 && frames.every((f) => /openKey=\{/.test(f)), frames.join(" | "));
-    assert.match(sheet, /role="dialog"[^>]*tabIndex=\{-1\}/, "the dialog cannot take focus");
+    assert.match(sheet, /data-record-pane=""[^>]*tabIndex=\{-1\}/, "the pane cannot take focus by script");
   });
 });

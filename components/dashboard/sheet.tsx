@@ -1,10 +1,10 @@
-// Sheet primitives (REZ-A, artifact SupplierSheet README): the stage a sheet
-// or dialog sits over, the 32% scrim, the 880px sheet with its 52px bar, tabs
-// with mono counts, sections, the FactsPanel (28px rows, label 150px, a mark
-// at the row's end), the striped locked contact card, stat blocks, the
-// certificate card, the RSC block and the sticky frosted action bar.
+// Sheet primitives (REZ-A, artifact SupplierSheet README): the record's frame
+// (a pane beside the results, or the full page) with its 52px bar, tabs with
+// mono counts, sections, the FactsPanel (28px rows, label 150px, a mark at
+// the row's end), the striped locked contact card, stat blocks, the
+// certificate card, the RSC block and the sticky frosted action bar. `Stage`
+// and `Scrim` remain for the gallery's RFQ composer, which is still a dialog.
 
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { certStateLabel, rscStatusNeedsLook, type CertModel } from "@/lib/dashboard/facts";
 import type { FacilityRowModel, FactRow, LocationRow, RecordRfqRow, SanctionRow, SourceRow } from "@/lib/dashboard/models";
@@ -42,109 +42,83 @@ export function Scrim() {
 }
 
 /**
- * `.sheet`: 880px, `surface`, a `line` left rule, `shadow-lg`.
+ * The record's frame: its bar, its scroll region and its action bar, filling
+ * whatever holds it.
  *
- * `aria-modal="true"` asserts that everything outside this dialog is
- * unavailable — true of the shipped app, where only one sheet or the composer
- * is ever open at once, and false on the `/dev/ds` gallery, which renders all
- * three side by side for review with none of them `inert` relative to each
- * other. `assertModal` defaults to true (the real, single-dialog behaviour);
- * the gallery passes `false` on every instance it assembles, because none of
- * three simultaneously-live dialogs can truthfully claim the other two (and
- * the three plain screens) do not exist. `role="dialog"` and `aria-label`
- * stay either way — the sheet is still a dialog, just not an exclusive one
- * here.
+ * `pane`: beside the results on /app/discover, in `RecordPane`. Focusable by
+ * script (`DialogFocus` moves focus here on open, so the label is announced),
+ * never a tab stop, and it slides in from the right edge (320 ms, a long
+ * decelerating curve, from 32px). Only the entrance is drawn: a close is a
+ * navigation and lands at once. `motion-reduce` keeps it still.
+ *
+ * `page`: the full record page at `/app/suppliers/[slug]`, filling the content
+ * region, with nothing to close.
+ *
+ * Neither is a dialog. The record used to be a modal sheet over a scrim, with
+ * the whole shell inert behind it; the founder's one-viewport frame (27 Sep
+ * 2026) puts the record beside the results with both live, so nothing is
+ * modal and nothing is inert.
  */
-export function Sheet({
-  label,
-  assertModal = true,
-  dialog = true,
-  children,
-}: {
-  label: string;
-  assertModal?: boolean;
-  /**
-   * The full record page at `/app/suppliers/[slug]` is the same component, but
-   * it is not a dialog: nothing sits behind it, there is nothing to close and
-   * `role="dialog"` on a whole page tells a screen reader something false.
-   * REZ-C passes `dialog={false}` there and it renders as a plain region.
-   */
-  dialog?: boolean;
-  children: ReactNode;
-}) {
-  const className =
-    "absolute bottom-0 right-0 top-0 flex w-[880px] max-w-full flex-col border-l border-line bg-surface shadow-lg";
-  if (!dialog) {
+export function Sheet({ label, mode = "pane", children }: { label: string; mode?: "pane" | "page"; children: ReactNode }) {
+  const base = "flex min-h-0 min-w-0 flex-1 flex-col bg-surface";
+  if (mode === "page") {
     return (
-      <section aria-label={label} className={className}>
+      <section aria-label={label} className={base}>
         {children}
       </section>
     );
   }
   return (
-    // `tabIndex={-1}`: focusable by script, not a tab stop — `DialogFocus` moves focus here on open.
-    // The record slides in from the right edge it is anchored to (320 ms,
-    // a long decelerating curve, from 32px) while the scrim fades under it.
-    // Only the entrance is drawn: a close is a navigation and lands at once,
-    // so an exit is never slower than the arrival. `motion-reduce` keeps the
-    // sheet still on a device that asked for that.
-    <aside
-      role="dialog"
-      aria-modal={assertModal ? "true" : undefined}
+    <section
+      data-record-pane=""
       aria-label={label}
       tabIndex={-1}
-      className={cn(className, "outline-none animate-sheet-in motion-reduce:animate-none")}
+      className={cn(base, "outline-none animate-sheet-in motion-reduce:animate-none")}
     >
       {children}
-    </aside>
+    </section>
   );
 }
 
 /**
- * Where a record sheet lives in the shipped app.
- *
- * `overlay`: fixed over the shell, with the scrim as the click target that
- * returns to the results.
- *
- * Otherwise: an 880px column inside the page's own shell, for the full record
- * page and its deep links.
- *
- * The scrim is `aria-hidden` and not a tab stop. It was a labelled link, which
- * put an empty viewport-sized anchor first in the overlay's reading order and
- * announced "Close the record" twice — once for it and once for the bar's own
- * Close button. A pointer can still dismiss by clicking it; a keyboard uses the
- * bar's Close, which is a real control with a real name.
+ * Where the record sits on /app/discover: a pane beside the results from
+ * `lg`, the whole content region below it — the results column hides itself
+ * under it there, the search is still in the URL, and Close returns to it.
+ * The width is a share of the content region between two stops, so the
+ * results keep a readable column on a 1280 display and the record keeps its
+ * measure on a 1920 one.
  */
-export function SheetFrame({
-  overlay,
+export function RecordPane({
   closeHref,
   openKey = "",
   children,
 }: {
-  overlay: boolean;
   closeHref?: string | null;
-  /** What the overlay is showing (record, line or notice); focus moves to the dialog whenever it changes. */
+  /** What the pane is showing (record, line or notice); focus moves to it whenever that changes. */
   openKey?: string;
   children: ReactNode;
 }) {
-  if (!overlay) {
-    return <div className="relative mx-auto min-h-[calc(100vh-11rem)] w-full max-w-[880px]">{children}</div>;
-  }
   return (
-    <div className="fixed inset-0 z-50" data-open-key={openKey}>
-      {closeHref ? (
-        <Link
-          href={closeHref}
-          prefetch={false}
-          scroll={false}
-          aria-hidden
-          tabIndex={-1}
-          className="absolute inset-0 bg-surface-inverse opacity-[0.32] animate-scrim-in motion-reduce:animate-none"
-        />
-      ) : (
-        <Scrim />
-      )}
+    <div
+      data-open-key={openKey}
+      className="flex min-h-0 min-w-0 flex-1 flex-col border-line lg:w-[clamp(480px,55%,760px)] lg:flex-none lg:border-l"
+    >
       {closeHref ? <DialogFocus closeHref={closeHref} openKey={openKey} /> : null}
+      {children}
+    </div>
+  );
+}
+
+/**
+ * The results beside the record on /app/discover: the column that scrolls on
+ * its own and, with a record open, steps aside below `lg` — the record takes
+ * the content region and the search waits in the URL for Close. One
+ * definition for the page, the gallery and the preview harness, so the
+ * three cannot drift.
+ */
+export function ResultsColumn({ besideRecord = false, children }: { besideRecord?: boolean; children: ReactNode }) {
+  return (
+    <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-4 sm:p-6", besideRecord && "hidden lg:flex")}>
       {children}
     </div>
   );
@@ -159,15 +133,18 @@ export function SheetBar({ children }: { children: ReactNode }) {
   return <div className="flex min-h-[52px] min-w-0 shrink-0 items-center gap-3 border-b border-line-subtle px-5 py-2">{children}</div>;
 }
 
-export function SheetScroll({ children }: { children: ReactNode }) {
+export function SheetScroll({ measure = false, children }: { measure?: boolean; children: ReactNode }) {
   // `data-sheet-scroll` so a guard can find this element without pinning its
   // class attribute: the one that did meant the scroll region could never
-  // gain a utility, and `overscroll-contain` — which a scroll region inside a
-  // modal wants, so its scroll does not chain into the shell behind it — was
+  // gain a utility, and `overscroll-contain` — which a pane's scroll region
+  // wants, so its scroll does not chain into the results beside it — was
   // therefore a repair the suite refused.
+  // `measure`: the full page is as wide as the content region, and a facts
+  // panel across 1600px is unreadable; the body keeps the record's measure
+  // and centres it, while the bar and the action bar run the full width.
   return (
     <div data-sheet-scroll="true" className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-      {children}
+      {measure ? <div className="mx-auto w-full max-w-[1120px]">{children}</div> : children}
     </div>
   );
 }

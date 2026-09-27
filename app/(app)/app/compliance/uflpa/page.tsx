@@ -4,11 +4,9 @@
 // saved supplier with its status (hit / region flag / clear) and any matched
 // DHS UFLPA Entity List references, hits first (the RPC's order).
 
-import { AppShell } from "@/components/dashboard/app-shell";
 import { BackToHub, plural, TableFooter, type UflpaPayload, UflpaTable } from "@/components/dashboard/compliance";
 import { Button } from "@/components/dashboard/controls";
-import { EmptyState, ErrorNote, PageHeader, PageSection } from "@/components/dashboard/page";
-import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
+import { EmptyState, ErrorNote, PageHeader, PageSection, Page } from "@/components/dashboard/page";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -60,14 +58,6 @@ async function UflpaPageBody() {
   );
 }
 
-// The kit's shell on every buyer page (one sidebar, one topbar), read in the
-// same wave as the page's own data.
 export default async function UflpaPage() {
-  const supabase = await createSupabaseServerClient();
-  const [shell, body] = await Promise.all([loadBuyerShell(supabase, "/app/compliance/uflpa"), UflpaPageBody()]);
-  return (
-    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="UFLPA tracker">
-      {body}
-    </AppShell>
-  );
+  return <Page>{await UflpaPageBody()}</Page>;
 }

@@ -6,11 +6,9 @@
 
 import Link from "next/link";
 
-import { AppShell } from "@/components/dashboard/app-shell";
 import { Button } from "@/components/dashboard/controls";
-import { DetailList, ErrorNote, PageSection } from "@/components/dashboard/page";
+import { DetailList, ErrorNote, PageSection, Page } from "@/components/dashboard/page";
 import { planLabel, type SettingsDoc, SettingsFrame, SettingsHeader } from "@/components/dashboard/settings";
-import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -88,14 +86,6 @@ async function SettingsHubPageBody() {
   );
 }
 
-// The kit's shell on every buyer page (one sidebar, one topbar), read in the
-// same wave as the page's own data.
 export default async function SettingsHubPage() {
-  const supabase = await createSupabaseServerClient();
-  const [shell, body] = await Promise.all([loadBuyerShell(supabase, "/app/settings"), SettingsHubPageBody()]);
-  return (
-    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Settings">
-      {body}
-    </AppShell>
-  );
+  return <Page>{await SettingsHubPageBody()}</Page>;
 }

@@ -62,12 +62,17 @@ const cachedPublished = unstable_cache(
 export async function loadBuyerShell(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: RpcClient & { from: (t: string) => any; auth: { getUser: () => Promise<{ data: { user: { email?: string; user_metadata?: Record<string, unknown> } | null } }> } },
-  pathname: string,
+  /**
+   * The layout draws the shell once for every page and leaves this out: the
+   * rail then marks the current item from the URL on the client, so the mark
+   * follows each navigation. A caller that knows its page may still name it.
+   */
+  pathname?: string,
   /** Read the published count from this client, uncached (tests). */
   opts: { publishedFrom?: RpcClient } = {},
 ): Promise<BuyerShellModels> {
   // Not a NavKey from the caller: see `activeNavKey`.
-  const active = activeNavKey(pathname);
+  const active = pathname === undefined ? undefined : activeNavKey(pathname);
   const planName = "Free";
   const soft = async <T,>(read: () => Promise<T>): Promise<T | null> => {
     try {
@@ -78,7 +83,7 @@ export async function loadBuyerShell(
   };
 
   // Four independent reads, one wave. They used to run in three.
-  const [saved, published, rfqs, initial] = await Promise.all([
+  const [saved, published, rfqs, account] = await Promise.all([
     soft(async () => {
       const { data: dash } = await supabase.rpc("buyer_dashboard");
       // `saved_count` is a bigint on the SQL side, which PostgREST may send
@@ -98,9 +103,14 @@ export async function loadBuyerShell(
       // reads the domain (zahir@example.invalid came out "ZI"). A name gets
       // two letters; an email gets its first.
       const fullName = typeof meta.full_name === "string" ? meta.full_name.trim() : "";
-      return fullName ? initials(fullName) : (email.trim()[0]?.toUpperCase() ?? null);
+      return {
+        initial: fullName ? initials(fullName) : (email.trim()[0]?.toUpperCase() ?? null),
+        name: fullName || null,
+        email: email.trim() || null,
+      };
     }),
   ]);
+  const initial = account?.initial ?? null;
 
   const captionParts = [
     published === null ? "published count could not be read" : `${formatCount(published)} published suppliers`,
@@ -108,10 +118,13 @@ export async function loadBuyerShell(
 
   return {
     sidebar: {
-      active,
+      ...(active === undefined ? {} : { active }),
       counts: { suppliers: published, rfqs, saved },
       recent: [],
       plan: { name: planName, note: "public beta" },
+      // An unread account draws no block: a rail saying "Your account" over a
+      // read that failed is a claim about a session it could not see.
+      ...(account ? { account } : {}),
     },
     topbar: {
       caption: captionParts.join(" · "),

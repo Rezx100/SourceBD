@@ -22,6 +22,7 @@ import { aboniInput, sanctionedInput, sanctionedWithEvidenceInput, zaheenSampleI
 import { ProductSheet } from "./product-sheet";
 import { FEEDBACK_ENDPOINT, feedbackBody } from "./report-problem";
 import { SupplierSheet } from "./supplier-sheet";
+import { RecordPane } from "./sheet";
 
 /** Every section the sheet renders, in the order a buyer scrolls them. */
 const SECTIONS = ["overview", "products", "certificates", "safety", "sources", "locations", "facilities", "rfqs"] as const;
@@ -440,12 +441,12 @@ describe("SupplierSheet — overlay and full page are one component (REZ-C §3.3
     // §3.3: Share copies the full-page URL — what it copies is asserted by
     // invoking its handler, in record-controls.test.ts.
     assert.match(overlay, /aria-label="Copy a link to this record"/);
-    assert.match(overlay, /role="dialog"/);
+    assert.match(overlay, /data-record-pane/);
 
-    const full = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()), dialog: false }));
+    const full = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()), mode: "page" }));
     // A Close on a page with nothing behind it is a control that lies.
     assert.doesNotMatch(full, /aria-label="Close"/);
-    assert.doesNotMatch(full, /role="dialog"/, "the full record page is not a dialog");
+    assert.doesNotMatch(full, /data-record-pane/, "the full record page is drawn as the pane");
     // On the full page Share is a control, not a link to where the reader already is.
     assert.match(full, /aria-label="Copy a link to this record"/);
     assert.doesNotMatch(full, /Share this record/);
@@ -456,7 +457,7 @@ describe("SupplierSheet — overlay and full page are one component (REZ-C §3.3
     // deep link and an overlay show two different companies.
     const model = buildSheet(aboniInput());
     const overlay = renderToStaticMarkup(createElement(SupplierSheet, { model: { ...model, closeHref: "/app/discover" } }));
-    const full = renderToStaticMarkup(createElement(SupplierSheet, { model, dialog: false }));
+    const full = renderToStaticMarkup(createElement(SupplierSheet, { model, mode: "page" }));
     for (const id of SECTIONS) {
       assert.ok(overlay.includes(`id="${id}"`) && full.includes(`id="${id}"`), `${id} is missing from one of the two`);
     }
@@ -470,7 +471,7 @@ describe("SupplierSheet — overlay and full page are one component (REZ-C §3.3
   it("both bars carry §3.3's more menu, and it reaches the feedback endpoint the admin queue reads", () => {
     const model = buildSheet(aboniInput());
     const overlay = renderToStaticMarkup(createElement(SupplierSheet, { model: { ...model, closeHref: "/app/discover" } }));
-    const full = renderToStaticMarkup(createElement(SupplierSheet, { model, dialog: false }));
+    const full = renderToStaticMarkup(createElement(SupplierSheet, { model, mode: "page" }));
     for (const [where, html] of [["overlay", overlay], ["full page", full]] as const) {
       // Inside the bar — before the first section — not somewhere further down.
       const bar = html.slice(0, html.indexOf('id="overview"'));
@@ -533,8 +534,16 @@ describe("SupplierSheet — it is a page now, so a phone is a real width", () =>
     assert.match(html(), /glass flex shrink-0 flex-wrap items-center/);
   });
 
-  it("the sheet never forces its 880px onto a narrower screen", () => {
-    assert.match(html(), /w-\[880px\] max-w-full/);
+  it("the sheet carries no width of its own: the pane or the page decides", () => {
+    // It used to be an 880px column, and a phone is 320px. Now the sheet
+    // fills whatever holds it — `RecordPane` beside the results from lg, the
+    // whole content region below — and the pane's width is a share of the
+    // region between two stops, never a fixed number.
+    // A plain `w-` on any element: a `max-w` caps a measure, it forces nothing.
+    assert.doesNotMatch(html(), /(?:^|[\s"])w-\[\d+px\]/);
+    const pane = renderToStaticMarkup(createElement(RecordPane, null, "x"));
+    assert.match(pane, /lg:w-\[clamp\(480px,55%,760px\)\]/, "the pane's width is not a share of the region between two stops");
+    assert.doesNotMatch(pane, /(?:^|[\s"])w-\[/, "a fixed width below lg would crush a phone");
   });
 });
 

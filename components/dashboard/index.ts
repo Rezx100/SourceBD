@@ -30,6 +30,8 @@ export {
   CertGrid,
   FactsPanel,
   LockCard,
+  RecordPane,
+  ResultsColumn,
   RscBlock,
   SanctionBanner,
   Scrim,

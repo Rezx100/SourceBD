@@ -2,10 +2,9 @@
 // files come from the generated catalogue.
 
 import Link from "next/link";
-import { AppShell } from "@/components/dashboard/app-shell";
+import { Page } from "@/components/dashboard/page";
 import { PhotoThumbs } from "@/components/dashboard/photo-tiles";
 import { Caption, Title } from "@/components/dashboard/type";
-import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { hsPhotoSrc, heading4, hsShortLabel } from "@/lib/dashboard/hs-photos";
 import { fetchHsCatalogue } from "@/lib/discover-v32-rpc";
 import { hsBuyerLabel } from "@/lib/epb-hscode-labels";
@@ -36,7 +35,7 @@ export default async function ProductsPage({
   const qRaw = sp.q;
   const q = (Array.isArray(qRaw) ? qRaw[0] : qRaw)?.trim().toLowerCase() ?? "";
   const supabase = await createSupabaseServerClient();
-  const [shell, live] = await Promise.all([loadBuyerShell(supabase, "/app/products"), fetchHsCatalogue(supabase)]);
+  const live = await fetchHsCatalogue(supabase);
 
   const rows = live.error
     ? []
@@ -47,7 +46,7 @@ export default async function ProductsPage({
       });
 
   return (
-    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Products">
+    <Page>
       <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
         <div>
           <Title as="h1">Products</Title>
@@ -130,6 +129,6 @@ export default async function ProductsPage({
         </table>
         </div>
       )}
-    </AppShell>
+    </Page>
   );
 }

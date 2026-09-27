@@ -22,12 +22,12 @@ export type ColorGroup = Record<string, string>;
 export type ColorSet = Record<string, ColorGroup>;
 
 export const light = {
-  // Page and panel backgrounds. Canvas is warm paper with a green cast — the
-  // ledger's page.
-  canvas: { DEFAULT: "#F6F7F2" },
+  // Page and panel backgrounds. Canvas is true-neutral paper; brand green is
+  // the only green in the UI.
+  canvas: { DEFAULT: "#F7F7F6" },
   surface: {
     DEFAULT: "#FFFFFF",
-    sunken: "#ECEEE7", // filter rails, table headers, code, the locked ground
+    sunken: "#EEEEEC", // filter rails, table headers, code, the locked ground
     inverse: "#111411", // dark bands, toasts
     "inverse-raised": "#181C18", // a card on a dark band
   },
@@ -46,15 +46,15 @@ export const light = {
 
   // Borders and dividers.
   line: {
-    subtle: "#E6E8DF",
-    DEFAULT: "#D5D9CC",
+    subtle: "#E7E7E4",
+    DEFAULT: "#D8D8D4",
     strong: "#79837A", // input and control outlines (3:1 against surface)
     "inverse-subtle": "#1F241F",
     inverse: "#2B302B",
   },
 
   // The dot-grid texture on marketing bands. Decoration, never a chart.
-  grid: { dot: "#CFD4C6", "dot-inverse": "#2A2F2A" },
+  grid: { dot: "#D2D2CE", "dot-inverse": "#2A2F2A" },
 
   // Brand green (fixed, founder decision 18 Sep 2026): primary action, logo,
   // active nav mark, link text. Never a state colour and never a badge fill,
@@ -123,7 +123,7 @@ export const light = {
   // Locked (needs plan or login). A real state with its own surface and
   // stripe pattern — never a blur over real data.
   locked: {
-    DEFAULT: "#ECEEE7",
+    DEFAULT: "#EEEEEC",
     stripe: "#DDE0D5",
     ink: "#545C54",
     line: "#C1C7B9",
@@ -131,7 +131,7 @@ export const light = {
 
   // Unverified fact · empty state. Deliberately quiet: no proof is not a warning.
   quiet: {
-    DEFAULT: "#F6F7F2",
+    DEFAULT: "#F7F7F6",
     ink: "#545C54",
     line: "#C1C7B9",
   },
@@ -145,7 +145,7 @@ export const light = {
   },
 
   // Loading skeleton.
-  skeleton: { DEFAULT: "#E6E8DF", shine: "#F6F7F2" },
+  skeleton: { DEFAULT: "#E7E7E4", shine: "#F7F7F6" },
 
   // Source trust rank. A neutral lightness ramp on the ink scale, darkest =
   // most trusted, so the order reads at a glance, survives colour-blindness,

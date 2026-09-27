@@ -88,7 +88,10 @@ export function Inbox({
     );
   }
   return (
-    <div className="flex flex-col rounded-md border border-line-subtle bg-surface lg:grid lg:h-[calc(100dvh-11rem)] lg:min-h-[480px] lg:grid-cols-[300px_minmax(0,1fr)]">
+    // From `lg` the inbox fills what the page gives it — the content region
+    // less the header — and the list and the conversation scroll on their
+    // own, so the shell never scrolls. A phone stacks them and scrolls as one.
+    <div className="flex flex-col rounded-md border border-line-subtle bg-surface lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[300px_minmax(0,1fr)]">
       <nav
         aria-label="Conversations"
         className={cn("min-h-0 border-line-subtle lg:overflow-y-auto lg:border-r", currentId && "hidden lg:block")}

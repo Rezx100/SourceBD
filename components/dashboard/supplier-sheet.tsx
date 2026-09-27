@@ -15,6 +15,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { onFileLabel } from "@/lib/dashboard/facts";
 import type { SupplierSheetModel } from "@/lib/dashboard/models";
+import { cn } from "@/lib/utils";
 import { Button } from "./controls";
 import { CopyLinkButton } from "./copy-link-button";
 import { Icon } from "./icons";
@@ -53,20 +54,18 @@ function listWords(items: readonly string[]): string {
 
 export function SupplierSheet({
   model,
-  assertModal,
-  dialog,
+  mode = "pane",
   save,
 }: {
   model: SupplierSheetModel;
-  assertModal?: boolean;
-  /** False on the full record page, which is not a dialog. */
-  dialog?: boolean;
+  /** `pane` beside the results (the default); `page` on the full record page. */
+  mode?: "pane" | "page";
   /** The real Save control. A caller with no session (the gallery) passes none and the bar shows it disabled. */
   save?: ReactNode;
 }) {
   const p = model.products;
   return (
-    <Sheet label="Supplier record" assertModal={assertModal} dialog={dialog}>
+    <Sheet label="Supplier record" mode={mode}>
       <SheetBar>
         {/* Close returns to the results the overlay sits over. The full page
             has nothing to close, so it offers no dead control. */}
@@ -88,7 +87,7 @@ export function SupplierSheet({
         </span>
       </SheetBar>
       {model.sanctioned ? <SanctionBanner sample={model.sanctionSample} evidenceHref="#sanctions" /> : null}
-      <SheetScroll>
+      <SheetScroll measure={mode === "page"}>
         <div className="flex flex-col gap-3 px-6 pt-5">
           <div className="flex items-start gap-4">
             <LogoTile initials={model.initials} tier={model.topTier} />
@@ -107,9 +106,12 @@ export function SupplierSheet({
         </div>
         <SheetTabs tabs={model.tabs} />
         <SheetSection id="overview">
-          {/* The locked card sits beside the facts on a desktop and under them on a
-              phone: a fixed 300px column left 20px for the facts at 320px. */}
-          <div className="grid items-start gap-6 lg:grid-cols-[1fr_300px]">
+          {/* The locked card sits beside the facts where there is room and under
+              them where there is not: a fixed 300px column left 20px for the
+              facts at 320px. The pane is a share of the content region, not
+              the viewport, so beside the results the two columns wait for a
+              wider display than they do on the full page. */}
+          <div className={cn("grid items-start gap-6", mode === "page" ? "lg:grid-cols-[1fr_300px]" : "2xl:grid-cols-[1fr_300px]")}>
             <div className="flex flex-col gap-4">
               {model.summary ? <p className="m-0 max-w-prose text-base text-ink">{model.summary}</p> : null}
               <FactsPanel rows={model.facts} />

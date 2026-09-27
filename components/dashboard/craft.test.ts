@@ -15,6 +15,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { light, resolve } from "@/lib/design/tokens";
 import { Topbar } from "./app-shell";
 import { revealCurrentNavItem } from "./nav-current";
+import { fieldValue } from "./search-typeahead";
 import { EMPTY_ART, EmptyState } from "./page";
 import { Sheet } from "./sheet";
 import { stepIndex, suggestionHint, suggestionHref, type Suggestion } from "./search-typeahead";
@@ -68,6 +69,18 @@ describe("typeahead: the topbar field as the browser receives it", () => {
     assert.doesNotMatch(html, /outline-none/, "the field must keep the global focus ring");
   });
 
+  it("shows the results page's own query, and elsewhere what the caller started it with", () => {
+    // Off the results page the URL has no query the field should mirror: the
+    // app starts it empty (the layout passes none) and the gallery keeps its
+    // own — the first version synced to the URL there too and blanked the
+    // gallery's field a frame after hydration.
+    assert.equal(fieldValue("/app/discover", "polo", "knit"), "polo");
+    assert.equal(fieldValue("/app/discover", null, "knit"), "", "a results page with no query shows a stale one");
+    assert.equal(fieldValue("/dev/ds", null, "knit"), "knit", "the gallery's field is wiped");
+    assert.equal(fieldValue("/app/rfqs", "polo", ""), "", "a query leaks off the results page");
+    assert.equal(fieldValue(null, "polo", ""), "", "no router, no results page");
+  });
+
   it("renders no listbox where there is no search form", () => {
     const html = renderToStaticMarkup(createElement(Topbar, { model: { caption: "", initial: null } }));
     assert.doesNotMatch(html, /role="listbox"/);
@@ -108,12 +121,12 @@ describe("empty states: the illustrations", () => {
 });
 
 describe("the record tray's entrance", () => {
-  it("the dialog slides in and holds still under reduced motion; the full page does not animate", () => {
+  it("the pane slides in and holds still under reduced motion; the full page does not animate", () => {
     type SheetProps = Parameters<typeof Sheet>[0];
-    const dialog = renderToStaticMarkup(createElement(Sheet, { label: "Supplier record" } as SheetProps, "x"));
-    assert.match(dialog, /role="dialog"[^>]*animate-sheet-in/);
-    assert.match(dialog, /motion-reduce:animate-none/);
-    const page = renderToStaticMarkup(createElement(Sheet, { label: "Supplier record", dialog: false } as SheetProps, "x"));
+    const pane = renderToStaticMarkup(createElement(Sheet, { label: "Supplier record" } as SheetProps, "x"));
+    assert.match(pane, /data-record-pane=""[^>]*animate-sheet-in/);
+    assert.match(pane, /motion-reduce:animate-none/);
+    const page = renderToStaticMarkup(createElement(Sheet, { label: "Supplier record", mode: "page" } as SheetProps, "x"));
     assert.doesNotMatch(page, /animate-sheet-in/);
   });
 
@@ -149,6 +162,16 @@ describe("the phone strip shows where the buyer is", () => {
   it("does nothing on a page no nav item points at", () => {
     assert.equal(revealCurrentNavItem({ scrollWidth: 900, clientWidth: 375, querySelector: () => null }), false);
     assert.equal(revealCurrentNavItem(null), false);
+  });
+
+  it("the strip follows every navigation: the reveal is keyed on the current item, and the rail passes it", () => {
+    // The rail is the layout's and lives across client navigations, so an
+    // effect that ran on mount alone revealed the first page's item and never
+    // moved again. `renderToStaticMarkup` runs no effects; the source is the guard.
+    const navCurrent = readFileSync(path.join(repoRoot, "components", "dashboard", "nav-current.tsx"), "utf8");
+    assert.match(navCurrent, /\}, \[currentKey\]\);/, "the reveal effect is not keyed on the current item");
+    const rail = readFileSync(path.join(repoRoot, "components", "dashboard", "sidebar-nav.tsx"), "utf8");
+    assert.match(rail, /<NavCurrent currentKey=\{current\.key\} \/>/, "the rail does not hand the strip the current item");
   });
 });
 

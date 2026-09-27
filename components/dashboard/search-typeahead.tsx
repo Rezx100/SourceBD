@@ -17,6 +17,7 @@
 // without a browser.
 
 import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Icon, type IconName } from "./icons";
@@ -62,9 +63,29 @@ export function suggestionHint(s: Suggestion): string {
   return KIND[s.type].hint;
 }
 
+/**
+ * What the field shows. The shell is drawn once by the layout and does not
+ * know the page's query, so on the results page the field reads it from the
+ * URL, and a navigation that changes `q` — choosing a suggestion, a saved
+ * search, a new page — resets it to what the URL says rather than leaving
+ * the half-typed word behind. Anywhere else it shows what the caller started
+ * it with: nothing in the app (the layout passes none), the gallery's own
+ * query on /dev/ds — which the first version of this wiped a frame after
+ * hydration, because it synced to the URL's empty `q` off the results page.
+ */
+export function fieldValue(pathname: string | null, q: string | null, defaultValue: string): string {
+  return pathname === "/app/discover" ? (q ?? "") : defaultValue;
+}
+
 export function SearchTypeahead({ defaultValue }: { defaultValue: string }) {
   const listId = useId();
-  const [value, setValue] = useState(defaultValue);
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const urlValue = fieldValue(pathname, params?.get("q") ?? null, defaultValue);
+  const [value, setValue] = useState(urlValue);
+  useEffect(() => {
+    setValue(urlValue);
+  }, [urlValue]);
   const [items, setItems] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);

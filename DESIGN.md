@@ -1,10 +1,10 @@
 ---
 name: SourceBD buyer app
-description: A ledger of verified Bangladesh RMG suppliers; warm paper, hairlines, green spent only where the buyer acts.
+description: A ledger of verified Bangladesh RMG suppliers; neutral paper, hairlines, green spent only where the buyer acts.
 colors:
-  canvas: "#F6F7F2"
+  canvas: "#F7F7F6"
   surface: "#FFFFFF"
-  surface-sunken: "#ECEEE7"
+  surface-sunken: "#EEEEEC"
   surface-inverse: "#111411"
   surface-inverse-raised: "#181C18"
   ink-strong: "#0F130F"
@@ -15,8 +15,8 @@ colors:
   ink-inverse: "#F2F4EE"
   ink-inverse-muted: "#A9B1A8"
   ink-inverse-subtle: "#8A938A"
-  line-subtle: "#E6E8DF"
-  line: "#D5D9CC"
+  line-subtle: "#E7E7E4"
+  line: "#D8D8D4"
   line-strong: "#79837A"
   line-inverse: "#2B302B"
   brand: "#1B5E20"
@@ -46,17 +46,17 @@ colors:
   sanction: "#8F1711"
   sanction-on: "#FFFFFF"
   sanction-tint: "#FAE6E3"
-  locked: "#ECEEE7"
+  locked: "#EEEEEC"
   locked-stripe: "#DDE0D5"
   locked-ink: "#545C54"
   locked-line: "#C1C7B9"
-  quiet: "#F6F7F2"
+  quiet: "#F7F7F6"
   quiet-ink: "#545C54"
   quiet-line: "#C1C7B9"
   smart: "#6B3FA0"
   smart-tint: "#F1E8FA"
   smart-line: "#D6C2EE"
-  skeleton: "#E6E8DF"
+  skeleton: "#E7E7E4"
   tier-1: "#0F130F"
   tier-2: "#262B26"
   tier-3: "#545C54"
@@ -260,7 +260,7 @@ components:
   sheet:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
-    width: "880px"
+    width: "clamp(480px, 55%, 760px)"
   toast:
     backgroundColor: "{colors.surface-inverse}"
     textColor: "{colors.ink-inverse}"
@@ -288,22 +288,22 @@ Scope: the buyer app under `/app/*` as drawn by `components/dashboard/*`, with e
 
 **Creative North Star: "The Ledger That Answers"**
 
-The buyer app is a ledger of receipts. Every screen is a page of warm paper (`canvas`) with white panels laid on it, separated by hairlines rather than shadows, and every fact on the page has room beside it for the mark of the register that filed it. Density is desk-level: 13px labels, 14px body, 36px table rows, 32px controls, a 232px rail and a 56px frosted topbar. Colour is spent like money. The shell is near-monochrome on a green-cast grey ramp, the brand green appears only where the buyer acts (the primary button, links, the active nav row, the logo), and status hues (teal-green, amber, red, and the reserved sanction maroon) appear only on facts that carry that status.
+The buyer app is a ledger of receipts. Every screen is a page of neutral paper (`canvas`) with white panels laid on it, separated by hairlines rather than shadows, and every fact on the page has room beside it for the mark of the register that filed it. Density is desk-level: 13px labels, 14px body, 36px table rows, 32px controls, a 232px rail and a 56px frosted topbar. Colour is spent like money. The shell is near-monochrome on a neutral grey ramp, the brand green appears only where the buyer acts (the primary button, links, the active nav row, the logo), and status hues (teal-green, amber, red, and the reserved sanction maroon) appear only on facts that carry that status.
 
 The world refuses the competitor's chat-first home and its match-score theatre: there is no score, grade, rating or star anywhere on a buyer surface. It also refuses decoration: the one flourish is the `signal` dot, a bright green point beside a live number or in a toast, and the empty-state spot illustrations, single-weight ink line art with one brand-green fill. Motion is acknowledgement, not spectacle: entrances only, opacity-led, at 120 / 200 / 320 ms, and nothing is lost when the device asks for reduced motion.
 
 **Key Characteristics:**
-- Warm paper canvas, white panels, hairline dividers; depth by tone and border, not shadow.
+- Neutral paper canvas, white panels, hairline dividers; depth by tone and border, not shadow.
 - Geist for words, Geist Mono for the ledger's stamps (register numbers, column keys, source marks, counts).
 - Brand green on the primary action, links, active nav and the logo only; never a badge, never a state.
 - Source rank drawn as a neutral lightness ramp, so colour stays free for status.
 - Locked contact details are striped, never blurred; empty and unverified are quiet, never alarming.
 - Names wrap at every size; nothing truncates a company name.
-- Entrances only: fade 200, rise 320, sheet-in 320 over a 200 ms scrim; exits land at once.
+- Entrances only: fade 200, rise 320, sheet-in 320; exits land at once. The record opens beside the results, both live: no scrim, nothing modal.
 
 ## Colors
 
-A green-cast neutral ramp carries the shell; one brand green is the action colour; four status hues sit on facts; one violet is reserved for AI-assisted surfaces that do not yet exist in V1.
+A neutral ramp carries the shell; one brand green is the action colour; four status hues sit on facts; one violet is reserved for AI-assisted surfaces that do not yet exist in V1.
 
 ### Primary
 - **Forest Green** (`brand`): the primary button fill, link text (`brand-ink`), the logo square, and the active nav row's hairline ring. Hover and active steps darken it (`brand-hover`, `brand-active`); `brand-tint` is the active nav row's fill and `brand-tint-strong` the selected row, the active filter chip and text selection. On a dark band, links use **Spring Green** (`brand-ink-inverse`).
@@ -366,7 +366,7 @@ The shell is a 232px sidebar on `canvas` (hairline right edge), a 56px frosted t
 
 Spacing sits on Tailwind's 4px grid, and the kit uses a small set of stops: 2 / 4 / 6 / 8 / 10 / 12 / 16 / 20 / 24. Card interiors are 12px by 10px (the result card) or 16px by 12px (a panel card, a cert card); a sheet section is 24px by 20px; the lock card is 16px. Fixed heights are the density stops: 32px controls and nav rows, 40px primary actions in the sheet's action bar, 36px dense result rows, 44px relaxed list rows, 28px minimum fact rows, a 52px minimum sheet bar.
 
-The record sheet is an 880px column pinned to the right edge over a 32% `surface-inverse` scrim; it takes full width below that. A fact row is a label column of 150px (160px in `DetailList`) beside a value that wraps, with the source mark and the "checked" caption at the row's end; it stacks below 640px. Stats run four across, two across below 640px. Tables live in a horizontal scroll region with a minimum width (40rem default, 62rem for results) so a phone scrolls them sideways rather than crushing them.
+From 768px the shell is the viewport: the page never scrolls, the rail and the content region scroll on their own, and a workbench page (the search, the inbox) fills the region with panes that scroll themselves. The record is such a pane, beside the results from 1024px: `clamp(480px, 55%, 760px)` of the content region with a 1px `line` left rule, the results keeping the rest; below 1024px it takes the whole region and the results wait in the URL for Close. As a page of its own (`/app/suppliers/[slug]`) the same sheet centres an 1120px measure. A fact row is a label column of 150px (160px in `DetailList`) beside a value that wraps, with the source mark and the "checked" caption at the row's end; it stacks below 640px. Stats run four across, two across below 640px. Tables live in a horizontal scroll region with a minimum width (40rem default, 62rem for results) so a phone scrolls them sideways rather than crushing them.
 
 Below 768px the sidebar becomes a horizontal snap-scrolling row of nav items under the logo; the plan block and recent searches hide. The document never goes narrower than 320px.
 
@@ -433,7 +433,7 @@ Restrained and tactile: flat, outlined, a 2% press, colour changes on a 120 ms c
 A 20px square (16px beside a single fact, 32px heading a Sources row) with a 6px radius (3px at 16px), filled by rank on the tier ramp, carrying a two-letter mono stamp; tier 5 is white with a `tier-5-line` outline. A register with an approved logo shows it in one colour (`ink-strong` through a mask) in a white frame ringed 1px by rank. Marks row up best-rank-first with a 3px gap and a 12px caption ("11 sources"), and the row wraps. Every mark carries the register's name and tier in its accessible name, and links to the register page when the record has one.
 
 ### Record Sheet (signature)
-An 880px `surface` column pinned right with a 1px `line` left rule and the `lg` shadow, over a 32% `surface-inverse` scrim. It enters by sliding 32px in from the right (320 ms, `cubic-bezier(0.16, 1, 0.3, 1)`) while the scrim fades (200 ms); closing lands at once. Inside: a 52px bar (title, read range, source count, Share), the record head (48px initials tile on the top source's rank colour, the name in Headline, facts inline, the marks row), tabs, then sections at 24px by 20px each under a hairline. The contact block is a `LockCard`: striped ground, `ink-strong` label, `locked-ink` copy, and a count sentence, never a blurred detail. The action bar at the foot holds one primary `lg` button beside default ones.
+A `surface` pane beside the results, both live: from 1024px it is `clamp(480px, 55%, 760px)` of the content region with a 1px `line` left rule, below that the whole region. Nothing modal, no scrim, no shadow. It enters by sliding 32px in from the right (320 ms, `cubic-bezier(0.16, 1, 0.3, 1)`); closing is a navigation back to the search and lands at once. Inside: a 52px bar (title, read range, source count, Share), the record head (48px initials tile on the top source's rank colour, the name in Headline, facts inline, the marks row), tabs, then sections at 24px by 20px each under a hairline. The contact block is a `LockCard`: striped ground, `ink-strong` label, `locked-ink` copy, and a count sentence, never a blurred detail. The action bar at the foot holds one primary `lg` button beside default ones.
 
 ### Empty State
 Centred in the panel: a 128px spot illustration (single-weight `ink` line art with one `brand` fill, from `public/illustrations/`, rising 8px over 320 ms), a 17px semibold title, one line of 14px `ink-muted` copy, and one action. `compact` drops to an 88px image and 32px vertical padding; `QuietEmpty` inside a sheet is a 36px `surface-sunken` icon disc and a left-aligned title. No warning colour anywhere in an empty state.
@@ -447,7 +447,7 @@ A `surface-inverse` pill (10px radius, 10px by 14px padding, `lg` shadow) with `
 - **Do** reach every colour through a Tailwind token class (`bg-brand`, `text-ink-muted`); the only place a hex may be typed is `lib/design/tokens.ts`, and `tokens.test.ts` fails the build otherwise.
 - **Do** leave room beside every fact for its source mark and a link to the register; a row with no mark reads "source pending" in a caption.
 - **Do** let names, chips and values wrap (`overflow-wrap: anywhere`); a fixed height on anything that holds a company's name is a defect.
-- **Do** keep entrances on the three lengths: 120 ms for a control's colour and press, 200 ms for a fade or the scrim, 320 ms for a rise or the sheet; opacity leads every entrance and `both` fill keeps the element visible if the stylesheet fails.
+- **Do** keep entrances on the three lengths: 120 ms for a control's colour and press, 200 ms for a fade or the composer's scrim, 320 ms for a rise or the sheet; opacity leads every entrance and `both` fill keeps the element visible if the stylesheet fails.
 - **Do** pair `animate-*` with `motion-reduce:animate-none`; `ds.css` also zeroes every duration under `prefers-reduced-motion`, and nothing depends on a frame arriving.
 - **Do** draw the locked contact state with `.locked-pattern` and a count sentence; the card claims only what the count says.
 - **Do** use Phosphor regular at 16px (12px inside a chip), taking the text colour beside it, and name it only when it is not decorative.

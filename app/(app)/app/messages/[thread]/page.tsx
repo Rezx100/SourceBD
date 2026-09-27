@@ -10,13 +10,11 @@ import { notFound } from "next/navigation";
 
 import { Button } from "@/components/dashboard/controls";
 import { ConversationHeader, Inbox, type InboxThread } from "@/components/dashboard/inbox";
-import { ErrorNote, PageHeader } from "@/components/dashboard/page";
+import { ErrorNote, PageHeader, Page } from "@/components/dashboard/page";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 import { ThreadRealtime } from "./thread-realtime";
 import type { ThreadMessage } from "./thread-realtime";
-import { AppShell } from "@/components/dashboard/app-shell";
-import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +49,9 @@ async function ThreadPageBody({
   const messages = (msgRes.data ?? []) as ThreadMessage[];
 
   return (
-    <div className="flex flex-col gap-5">
+    // From `lg` the inbox fills the content region under the header and its
+    // two panes scroll on their own; the frame chain below is what lets it.
+    <div className="flex flex-col gap-5 lg:min-h-0 lg:flex-1">
       <PageHeader
         title="Messages"
         caption={`${allThreads.length.toLocaleString()} ${allThreads.length === 1 ? "conversation" : "conversations"} with suppliers`}
@@ -74,14 +74,6 @@ async function ThreadPageBody({
   );
 }
 
-// The kit's shell on every buyer page (one sidebar, one topbar), read in the
-// same wave as the page's own data.
 export default async function ThreadPage(props: Parameters<typeof ThreadPageBody>[0]) {
-  const supabase = await createSupabaseServerClient();
-  const [shell, body] = await Promise.all([loadBuyerShell(supabase, "/app/messages/x"), ThreadPageBody(props)]);
-  return (
-    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Conversation">
-      {body}
-    </AppShell>
-  );
+  return <Page className="lg:min-h-0 lg:flex-1">{await ThreadPageBody(props)}</Page>;
 }

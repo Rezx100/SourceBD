@@ -4,11 +4,9 @@
 // notification-toggles client island. Each toggle change POSTs
 // {action:'update_notifications', <key>:bool} to /api/v1/settings.
 
-import { AppShell } from "@/components/dashboard/app-shell";
-import { ErrorNote } from "@/components/dashboard/page";
+import { ErrorNote, Page } from "@/components/dashboard/page";
 import { type SettingsDoc, SettingsFrame, SettingsHeader } from "@/components/dashboard/settings";
 import { SettingsNotificationToggles } from "@/components/settings-notification-toggles";
-import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -37,14 +35,6 @@ async function SettingsNotificationsPageBody() {
   );
 }
 
-// The kit's shell on every buyer page (one sidebar, one topbar), read in the
-// same wave as the page's own data.
 export default async function SettingsNotificationsPage() {
-  const supabase = await createSupabaseServerClient();
-  const [shell, body] = await Promise.all([loadBuyerShell(supabase, "/app/settings/notifications"), SettingsNotificationsPageBody()]);
-  return (
-    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Notifications">
-      {body}
-    </AppShell>
-  );
+  return <Page>{await SettingsNotificationsPageBody()}</Page>;
 }

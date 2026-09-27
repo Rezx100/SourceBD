@@ -1125,7 +1125,7 @@
       },
       {
         "name": "sheet",
-        "value": "880px"
+        "value": "clamp(480px, 55%, 760px)"
       },
       {
         "name": "content",
@@ -1233,7 +1233,7 @@
       "Source rank drawn as a neutral lightness ramp, so colour stays free for status.",
       "Locked contact details are striped, never blurred; empty and unverified are quiet, never alarming.",
       "Names wrap at every size; nothing truncates a company name.",
-      "Entrances only: fade 200, rise 320, sheet-in 320 over a 200 ms scrim; exits land at once."
+      "Entrances only: fade 200, rise 320, sheet-in 320; exits land at once. The record opens beside the results, both live: no scrim, nothing modal."
     ],
     "rules": [
       {
@@ -1291,7 +1291,7 @@
       "**Do** reach every colour through a Tailwind token class (`bg-brand`, `text-ink-muted`); the only place a hex may be typed is `lib/design/tokens.ts`, and `tokens.test.ts` fails the build otherwise.",
       "**Do** leave room beside every fact for its source mark and a link to the register; a row with no mark reads \"source pending\" in a caption.",
       "**Do** let names, chips and values wrap (`overflow-wrap: anywhere`); a fixed height on anything that holds a company's name is a defect.",
-      "**Do** keep entrances on the three lengths: 120 ms for a control's colour and press, 200 ms for a fade or the scrim, 320 ms for a rise or the sheet; opacity leads every entrance and `both` fill keeps the element visible if the stylesheet fails.",
+      "**Do** keep entrances on the three lengths: 120 ms for a control's colour and press, 200 ms for a fade or the composer's scrim, 320 ms for a rise or the sheet; opacity leads every entrance and `both` fill keeps the element visible if the stylesheet fails.",
       "**Do** pair `animate-*` with `motion-reduce:animate-none`; `ds.css` also zeroes every duration under `prefers-reduced-motion`, and nothing depends on a frame arriving.",
       "**Do** draw the locked contact state with `.locked-pattern` and a count sentence; the card claims only what the count says.",
       "**Do** use Phosphor regular at 16px (12px inside a chip), taking the text colour beside it, and name it only when it is not decorative.",

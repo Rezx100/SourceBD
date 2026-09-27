@@ -1,9 +1,7 @@
+import { Page } from "@/components/dashboard/page";
 import { SaveSearchForm } from "@/components/dashboard/save-search-form";
-import { AppShell } from "@/components/dashboard/app-shell";
 import { Caption, Title } from "@/components/dashboard/type";
-import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { parseDiscoverState, queryTitle, serializeDiscoverState } from "@/lib/discover-v32-state";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -23,13 +21,11 @@ export default async function SaveSearchPage({
   // search that still has results.
   const state = { ...parseDiscoverState(sp), page: 1 };
   const search = serializeDiscoverState(state).toString();
-  const supabase = await createSupabaseServerClient();
-  const shell = await loadBuyerShell(supabase, "/app/searches/new");
   return (
-    <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Save search">
+    <Page>
       <Title as="h1">Save this search</Title>
       <Caption className="mb-4">{queryTitle(state)}</Caption>
       <SaveSearchForm search={search} defaultName={queryTitle(state)} />
-    </AppShell>
+    </Page>
   );
 }
