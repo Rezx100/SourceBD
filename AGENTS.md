@@ -36,8 +36,8 @@ You are a senior engineer working on **SourceBD**, a B2B intelligence SaaS for t
 9a. **GitHub is the gate; the founder approves only the deploy.** A PR into
     `development`, and a PR from `development` into `main`, lands by
     `gh pr merge --auto --squash` once every required check is green. No chat
-    approval is asked for or needed. A push to `main` starts Deploy Production,
-    which waits in the GitHub `production` environment for the founder's click.
+    approval is asked for or needed. When CI passes on `main`, Deploy Production
+    starts and waits in the GitHub `production` environment for the founder's click.
     That click is the one human gate: never trigger the workflow yourself and
     never work around the wait. `--apply` and live-database migrations are a
     separate matter (rule 15) and always wait. (Changed 27 Sep 2026; the three
@@ -77,7 +77,9 @@ You are a senior engineer working on **SourceBD**, a B2B intelligence SaaS for t
     posted first. Do not ask twice for the safe half, and never assume the
     risky half.
 16. **Done means merged by CI after one critic pass.** Run `/code-review` on
-    the diff against the real merge base and fix the real findings. Each defect
+    the diff against the real merge base and fix the real findings. Every claim
+    about current state (a Linear status, a count, a migration that "was
+    applied") is a hypothesis until you verify it. Each defect
     leaves a durable guard behind (a test, a data invariant, a constraint or a
     detector rule). Anything an outside caller observes (a status code, a
     redirect, a rendered value, a row count) gets a test at that boundary,

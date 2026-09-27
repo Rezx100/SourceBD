@@ -1,7 +1,12 @@
 name: Deploy Production
 
 on:
-  push:
+  # Runs after CI has passed on main, never in parallel with it: a squash that
+  # goes red on main (checks are non-strict, so two green PRs can still
+  # conflict) must not reach the approval step at all.
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
     inputs:
@@ -11,8 +16,8 @@ on:
         default: main
         type: string
 
-# One deploy at a time, never cancelled mid-way: a second push to main queues
-# behind the first instead of racing it on the VPS.
+# One deploy at a time, never cancelled mid-way: a second green CI on main
+# queues behind the first instead of racing it on the VPS.
 concurrency:
   group: deploy-production
   cancel-in-progress: false
@@ -21,6 +26,7 @@ concurrency:
 # the founder's approval. That click is the single human gate in the workflow.
 jobs:
   deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: production
@@ -47,8 +53,8 @@ jobs:
       - name: Resolve expected production commit
         id: pin
         env:
-          # A push to main deploys that push; a manual run deploys the ref typed in.
-          DEPLOY_REF: ${{ github.event.inputs.ref || github.sha }}
+          # After CI on main: the commit CI just passed. Manual: the ref typed in.
+          DEPLOY_REF: ${{ github.event.inputs.ref || github.event.workflow_run.head_sha }}
         run: |
           git fetch --tags origin "${DEPLOY_REF}"
           EXPECT="$(git rev-parse "FETCH_HEAD^{commit}")"

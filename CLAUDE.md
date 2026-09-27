@@ -16,20 +16,22 @@ Then the lean boot set from AGENTS.md rule 3 (`context/agent-brief.md`, `context
 2. One critic pass: `/code-review` on the diff against the merge base. Fix the real findings.
 3. Push, open the PR to `development`, then `gh pr merge --auto --squash`. GitHub merges it when
    every required check is green. Read a red run with `gh run view --log-failed`, fix, push again.
-4. To go live: the same PR flow from `development` to `main`. The push to `main` starts Deploy
-   Production, which waits for the founder's approval in the GitHub `production` environment.
+4. To go live: the same PR flow from `development` to `main`. When CI passes on `main`, Deploy
+   Production starts and waits for the founder's approval in the GitHub `production` environment.
    That approval is the only human gate. Never `gh workflow run` it yourself.
 
 Do not run locally what CI runs. CI (`.github/workflows/ci.yml`) is `tsc`, `next lint`, `next build`,
 `pnpm test` on Node 22, the HTTP-boundary guard, the migration replay on Postgres 16, and
-`pytest etl/tests`. All six are required checks on `development` and `main`. `ruff` runs nowhere:
+`pytest etl/tests`. All five must be required checks on `development` and `main`; the settings
+that make that true are in `docs/ENTERPRISE_DEPLOYMENT.md` (Branch and release model). `ruff` runs nowhere:
 49 pre-existing findings (ruff 0.15) would make it red on day one; fix them before adding it.
 
 ## What the guard hook refuses
 
 The hook lives in `claude-config-staging/hooks/guard.py` until the founder installs it with
 `claude-config-staging/install.ps1`. It refuses: `git push` to `main`, to tags, or force; bare
-`git push` while on `main`; `gh pr merge` by hand (`--auto` is the intended exception);
+`git push` while on `main`; `gh pr merge` in every form today, including the `--auto` the workflow
+needs (relaxing that one rule is the founder's call when installing);
 `gh workflow run`; any `--apply`; `ops/apply_*` and `ops/*_apply.*`; `ops/deploy*` and
 `ops/bootstrap-vps.sh`; `ssh`/`rsync` to the VPS; anything touching `37.49.227.151`;
 `rsync --delete`; `docker compose down -v`; `rm -rf` of `etl/raw|parsed|logs`, `.deploy`, `.env`,

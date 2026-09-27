@@ -15,8 +15,8 @@ alwaysApply: true
 4. Push the branch, open the PR to `development`, then `gh pr merge --auto --squash`. GitHub
    merges it when every required check is green. Read failures with `gh run view --log-failed`,
    fix, push again.
-5. When the work is meant to go live, open `development` to `main` the same way. The push to
-   `main` starts Deploy Production, which waits for the founder's approval in the GitHub
+5. When the work is meant to go live, open `development` to `main` the same way. A green CI run
+   on `main` starts Deploy Production, which waits for the founder's approval in the GitHub
    `production` environment. That approval is the one human gate; never trigger the workflow
    yourself.
 6. Still founder-only, always: `--apply` against production, a migration on the live database,

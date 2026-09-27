@@ -31,12 +31,25 @@ Workflow:
 ```
 feature/* → PR → development   (auto-merge; the required checks land it)
 development → PR → main        (auto-merge; the required checks land it)
-push to main → Deploy Production, waits for the founder's approval in GitHub
+CI green on main → Deploy Production, waits for the founder's approval in GitHub
 ```
 
-**Do not push directly to `main` or `development`.** Branch protection on both requires the
-five CI checks (`verify`, `unit-tests`, `http-boundary`, `migrations`, `python-tests`); the
-`production` environment requires the founder as reviewer. Tags `vYYYY.MM.DD-N` stay optional pins.
+**Do not push directly to `main` or `development`.** Three GitHub settings make the flow real and
+the founder applies them once (agents are not allowed to): auto-merge on the repository, the five
+CI checks required on both branches, and the founder as required reviewer of the `production`
+environment. Tags `vYYYY.MM.DD-N` stay optional pins.
+
+```bash
+gh api -X PATCH repos/Rezx100/SourceBD -F allow_auto_merge=true
+```
+
+```bash
+for b in development main; do printf '%s' '{"required_status_checks":{"strict":false,"contexts":["verify","unit-tests","http-boundary","migrations","python-tests"]},"enforce_admins":false,"required_pull_request_reviews":null,"restrictions":null,"allow_force_pushes":false,"allow_deletions":false}' | gh api -X PUT repos/Rezx100/SourceBD/branches/$b/protection --input -; done
+```
+
+```bash
+printf '%s' '{"reviewers":[{"type":"User","id":150103177}],"prevent_self_review":false}' | gh api -X PUT repos/Rezx100/SourceBD/environments/production --input -
+```
 
 ---
 
@@ -80,7 +93,7 @@ Deploy scope must match **intended** production change — not "everything dirty
 ### Primary: GitHub Actions (recommended)
 
 1. The `development` → `main` PR auto-merges when its checks are green.
-2. The push to `main` starts **Deploy Production** automatically. It waits in the `production`
+2. A green CI run on `main` starts **Deploy Production** automatically. It waits in the `production`
    environment until the founder approves the run (GitHub → Actions → the waiting run → Review
    deployments → Approve). A manual run (Run workflow with a tag, `main`, or SHA) waits the same way.
 3. Workflow SSHs to VPS, checks out the pinned SHA, runs `ops/deploy_vps.sh --ref=<sha> --require-git`.
