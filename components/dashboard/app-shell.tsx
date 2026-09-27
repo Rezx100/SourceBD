@@ -196,12 +196,13 @@ export function Sidebar({ model, screenLabel }: { model: SidebarModel; screenLab
               aria-current={on ? (model.activeExact === false ? "true" : "page") : undefined}
               className={cn(
                 "flex h-8 shrink-0 snap-start items-center gap-2.5 whitespace-nowrap rounded-sm px-2 text-sm font-medium text-ink-muted hover:bg-surface-sunken md:shrink",
-                // The tint alone is 1.07:1 against the canvas beside it, so on
-                // a dim screen the current item was indistinguishable from the
-                // rest (WCAG 1.4.11 asks 3:1 for a state). `brand` is 7.87:1
-                // against both, so the rail carries the state and the tint
-                // only decorates it.
-                on && "bg-brand-tint text-brand-ink hover:bg-brand-tint shadow-[inset_3px_0_0_rgb(var(--ds-brand))]",
+                // The current page: a hairline in `brand` all the way round,
+                // the tint, brand ink and a heavier weight. The tint alone is
+                // 1.07:1 against the canvas, so it never carries the state by
+                // itself (WCAG 1.4.11 asks 3:1); the brand outline is 7.87:1.
+                // It replaces the 3px inset rail down the left edge, which the
+                // founder read as a stray colour (27 Sep).
+                on && "bg-brand-tint font-semibold text-brand-ink ring-1 ring-inset ring-brand hover:bg-brand-tint",
               )}
             >
               <Icon name={item.icon} />

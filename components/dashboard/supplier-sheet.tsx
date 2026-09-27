@@ -97,7 +97,11 @@ export function SupplierSheet({
                 {model.name}
               </Heading>
               <MetaLine facts={model.meta} />
-              <SourceMarks marks={model.marks} caption="names" className="mt-0.5" />
+              {/* The squares only: the names were spelled out beside them and
+                  again in the Registers row, so the head said each register
+                  three times. Each square names itself on hover and to a
+                  screen reader. */}
+              <SourceMarks marks={model.marks} caption="count" className="mt-0.5" />
             </div>
           </div>
         </div>
@@ -110,12 +114,10 @@ export function SupplierSheet({
               {model.summary ? <p className="m-0 max-w-prose text-base text-ink">{model.summary}</p> : null}
               <FactsPanel rows={model.facts} />
             </div>
-            <div className="flex flex-col gap-3">
-              <LockCard hidden={model.contact.hidden} plan={model.contact.plan} held={model.contact.held} sanctioned={model.sanctioned} />
-              {/* The dates per register are the Sources section's own rows;
-                  this line is the summary beside the locked card. */}
-              {model.readDates ? <Caption>Read dates: {model.readDates}.</Caption> : null}
-            </div>
+            {/* The per-register read dates are the Sources section's rows and
+                the bar carries their range; a third copy here was a run-on
+                paragraph beside the contact card. */}
+            <LockCard hidden={model.contact.hidden} plan={model.contact.plan} held={model.contact.held} sanctioned={model.sanctioned} />
           </div>
         </SheetSection>
         <SheetSection
@@ -184,7 +186,7 @@ export function SupplierSheet({
               <Caption>Product list · as filed · source pending</Caption>
               <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0" data-product-list="true">
                 {p.productList.map((item, i) => (
-                  <li key={`${i}-${item}`} className="rounded-sm border border-line px-2 py-0.5 text-sm text-ink">
+                  <li key={`${i}-${item}`} className="rounded-sm bg-surface-sunken px-2 py-0.5 text-sm text-ink">
                     {item}
                   </li>
                 ))}
@@ -242,7 +244,7 @@ export function SupplierSheet({
               naming the building and dropping all of them told the buyer less
               than the register holds. */}
           {model.rscBuildingBlocks.map((b) => (
-            <div key={b.name} className="flex flex-col gap-2 rounded-sm border border-line px-3.5 py-3">
+            <div key={b.name} className="flex flex-col gap-3 rounded-md border border-line-subtle bg-surface px-4 py-3.5">
               <Caption>
                 {b.name} — the building&apos;s own RSC record{b.readDate ? ` · read ${b.readDate}` : ""}
               </Caption>

@@ -4,6 +4,7 @@ import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared
 import { startTransition, useContext, useEffect, useId, useState } from "react";
 import { Button } from "@/components/dashboard/controls";
 import { Icon } from "@/components/dashboard/icons";
+import { Toast } from "@/components/dashboard/rfq-list";
 import { onBulkSaved, rowSaveMessage } from "@/lib/dashboard/selection";
 
 /**
@@ -34,6 +35,15 @@ export function SaveRecordButton({
   const [on, setOn] = useState(saved);
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState<string>("");
+  // The visible confirmation. The live region below told a screen reader and
+  // nobody else: sighted buyers saw the button blink and could not tell the
+  // save had landed.
+  const [toast, setToast] = useState<string>("");
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(""), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
   const statusId = useId();
   // Not `useRouter()`, which throws outside a mounted app router (the render
   // tests draw this with no router at all).
@@ -81,9 +91,12 @@ export function SaveRecordButton({
               // the buyer closes the record. Refreshed in the background.
               startTransition(() => router?.refresh());
             }
-            setStatus(rowSaveMessage(res.ok ? 200 : res.status, !on));
+            const message = rowSaveMessage(res.ok ? 200 : res.status, !on);
+            setStatus(message);
+            setToast(res.ok && !on ? "Saved to your list" : message);
           } catch {
             setStatus(rowSaveMessage("network", !on));
+            setToast(rowSaveMessage("network", !on));
           } finally {
             setPending(false);
           }
@@ -94,6 +107,16 @@ export function SaveRecordButton({
       <span id={statusId} role="status" aria-live="polite" className="sr-only">
         {status}
       </span>
+      {/* Not a second live region: the one above already announces it. */}
+      {toast ? (
+        <Toast
+          text={toast}
+          href={null}
+          announce={false}
+          className="fixed z-[60]"
+          link={toast === "Saved to your list" ? { href: "/app/saved", label: "View saved" } : null}
+        />
+      ) : null}
     </>
   );
 }
