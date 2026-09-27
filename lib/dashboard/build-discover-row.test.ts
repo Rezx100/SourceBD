@@ -20,6 +20,14 @@ import path from "node:path";
 
 const TODAY = new Date("2026-09-21T00:00:00Z");
 
+/** The ledger's workers cells: the visible text and the title that says what the figure counts. */
+function workerCells(html: string): { text: string; title: string }[] {
+  return [...html.matchAll(/<td[^>]*\btext-right\b[^>]*\btabular-nums\b[^>]*>([\s\S]*?)<\/td>/g)].map((m) => ({
+    text: m[1]!.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
+    title: (/title="([^"]*)"/.exec(m[1]!)?.[1] ?? "").replace(/&#x27;/g, "'"),
+  }));
+}
+
 const ROW: DiscoverV32Row = {
   id: "11111111-1111-4111-8111-111111111111",
   slug: "ar-fashion",
@@ -57,10 +65,18 @@ describe("the table's register count is the figure the default sort orders on", 
     const rows = [a, b].map((r) => buildDiscoverTableRow(r, opts));
     assert.ok(rows[1]!.marks.length > rows[0]!.marks.length, "the fixture must have more marks on the lower-ranked row");
     const html = renderToStaticMarkup(createElement(ResultsTable, { rows }));
-    const shown = [...html.matchAll(/<span class="min-w-4 text-right font-mono text-sm font-medium text-ink-strong">(\d+)<\/span>/g)].map((m) => Number(m[1]));
+    const shown = [...html.matchAll(/<span class="min-w-4 text-right font-mono [^"]*text-ink-strong">(\d+)<\/span>/g)].map((m) => Number(m[1]));
     assert.deepEqual(shown, [3, 1]);
-    assert.match(html, /<th[^>]*>Registers &amp; certifiers<\/th>/);
   });
+
+  it(
+    "the column's header says it counts registers and certifiers, not marks",
+    () => {
+      const rows = [buildDiscoverTableRow({ ...ROW, source_tags: ["BGMEA", "HM", "ASOS", "NEXT", "ZARA"], t13_source_count: 1 }, { today: TODAY, hsLines: [], hsError: false })];
+      const html = renderToStaticMarkup(createElement(ResultsTable, { rows }));
+      assert.match(html, /<th[^>]*>(?:<a[^>]*>)?Registers &amp; certifiers/);
+    },
+  );
 });
 
 describe("discover result HTML has no contact PII", () => {
@@ -306,16 +322,26 @@ describe("discover result HTML has no contact PII", () => {
     const opts = { today: TODAY, hsLines: [], hsError: false };
     const tableRows = rows.map((r) => buildDiscoverTableRow(r, opts));
     const html = renderToStaticMarkup(createElement(ResultsTable, { rows: tableRows }));
-    const cells = [...html.matchAll(/<td[^>]*text-right tabular-nums[^>]*>([\s\S]*?)<\/td>/g)].map((m) =>
-      m[1]!.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
+    // The ledger's workers cell (27 Sep 2026): the headline figure, and what
+    // it counts in the cell's title — beside it only when the rows are
+    // comfortable (below).
+    const cells = workerCells(html);
+    assert.deepEqual(
+      cells.map((c) => c.text),
+      ["5,000", "550", "400", "300", "—"],
     );
-    assert.deepEqual(cells, [
-      "5,000 on the supplier record",
-      "550 on the supplier record 500 workers · RSC inspection",
-      "400 on the supplier record 907 workers · across its buildings, not this record",
-      "300 on the supplier record 9,000 workers · across this record and its buildings",
-      "— 907 workers · across its buildings, not this record",
-    ]);
+    assert.deepEqual(
+      cells.slice(0, 4).map((c) => c.title),
+      [
+        "on the supplier record",
+        "on the supplier record · 500 workers · RSC inspection",
+        "on the supplier record · 907 workers · across its buildings, not this record",
+        "on the supplier record · 9,000 workers · across this record and its buildings",
+      ],
+    );
+    // Comfortable rows print the coverage beside the figure.
+    const comfy = workerCells(renderToStaticMarkup(createElement(ResultsTable, { rows: tableRows, density: "comfortable" })));
+    assert.equal(comfy[0]!.text, "5,000 on the supplier record");
     // The headlines read in the order the sort put the rows in.
     assert.deepEqual(tableRows.map((t) => t.workers), raw.map((r) => r.employees_total));
     // A one-site figure is never described as buildings, anywhere.
@@ -342,6 +368,22 @@ describe("discover result HTML has no contact PII", () => {
     // And the export: `workers` is the sorted figure.
     assert.deepEqual(rows.map((r) => discoverCsvValue(r, TODAY).workers), ["5000", "550", "400", "300", ""]);
   });
+
+  it(
+    "a row with no figure of its own still carries the profile's, as the card does",
+    () => {
+      const row = buildDiscoverTableRow(
+        applyDiscoverWorkersSelection(
+          [{ ...ROW, id: "c", slug: "c", employees_total: null }],
+          parseDisplayBatch({ c: { value: 907, source: "RSC", fetched_at: null, sites: 1, includes_root: false } }),
+        )[0]!,
+        { today: TODAY, hsLines: [], hsError: false },
+      );
+      assert.equal(row.workersSecond, "907 workers · across its buildings, not this record", "guard: the row model carries it");
+      const [cell] = workerCells(renderToStaticMarkup(createElement(ResultsTable, { rows: [row] })));
+      assert.match(`${cell!.text} ${cell!.title}`, /907 workers · across its buildings, not this record/);
+    },
+  );
 
   it("the Workers sort orders on the supplier's own figure — the one the page headlines", () => {
     // The headline is `workers_own`, the pre-overwrite employees_total. That

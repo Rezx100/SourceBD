@@ -6,12 +6,12 @@
 // Optimistic preview; refreshes the server tree on success so the sidebar
 // + topbar pick up the new picture.
 
-import { useId, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useContext, useId, useRef, useState, useTransition } from "react";
+import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
 import { Button } from "@/components/dashboard/controls";
 import { PageSection } from "@/components/dashboard/page";
-import { FormError, SAVING } from "@/components/dashboard/settings";
+import { FormError } from "@/components/dashboard/settings";
 import { Toast } from "@/components/dashboard/toast";
 import { useFlash } from "@/components/dashboard/use-flash";
 
@@ -27,7 +27,8 @@ export function SettingsAvatarForm({
   displayName: string;
   email: string;
 }) {
-  const router = useRouter();
+  // Not `useRouter()`, which throws outside a mounted app router (the route tests draw this with none).
+  const router = useContext(AppRouterContext);
   const hintId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [url, setUrl] = useState<string | null>(initialAvatarUrl);
@@ -65,7 +66,7 @@ export function SettingsAvatarForm({
       }
       setUrl(data?.avatar_url ?? null);
       setFlash("Profile picture saved");
-      router.refresh();
+      router?.refresh();
     });
   }
 
@@ -81,7 +82,7 @@ export function SettingsAvatarForm({
       }
       setUrl(null);
       setFlash("Profile picture removed");
-      router.refresh();
+      router?.refresh();
     });
   }
 
@@ -120,12 +121,11 @@ export function SettingsAvatarForm({
               aria-busy={pending || undefined}
               aria-describedby={hintId}
               onClick={() => inputRef.current?.click()}
-              className={SAVING}
             >
               {pending ? "Saving…" : url ? "Change picture" : "Upload picture"}
             </Button>
             {url ? (
-              <Button variant="ghost" disabled={pending} onClick={onRemove} className={SAVING}>
+              <Button variant="ghost" disabled={pending} onClick={onRemove}>
                 Remove
               </Button>
             ) : null}

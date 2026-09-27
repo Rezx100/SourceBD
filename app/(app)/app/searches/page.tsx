@@ -1,11 +1,11 @@
-// REZ-B — saved searches. Live counts from discover_suppliers, cached 10 min
-// on the row.
+// REZ-B — saved searches (/app/searches). Live counts from
+// discover_suppliers, cached 10 min on the row; the table says when each
+// count was taken, because most are remembered rather than live.
 
-import Link from "next/link";
-import { Page } from "@/components/dashboard/page";
-import { Caption, Title } from "@/components/dashboard/type";
+import { ErrorNote, Page, PageHeader } from "@/components/dashboard/page";
+import { SavedSearchesTable } from "@/components/dashboard/saved-list";
 import { formatCount } from "@/lib/dashboard/facts";
-import { runSavedSearchesGet, savedCountLabel, type SavedSearchJson } from "@/lib/saved-searches";
+import { runSavedSearchesGet, type SavedSearchJson } from "@/lib/saved-searches";
 import { getServerRole } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -25,34 +25,27 @@ export default async function SearchesPage() {
       ? (listed.body as { searches?: SavedSearchJson[]; capped?: boolean })
       : {};
   const searches = payload.searches ?? [];
+  const failed = listed.status !== 200;
 
   return (
     <Page>
-      <Title as="h1">Saved searches</Title>
-      <Caption>
-        {listed.status !== 200
-          ? "Saved searches could not be read"
-          : searches.length === 0
-            ? "None saved yet. Save a search from the results panel."
-            : payload.capped
-              ? `The ${formatCount(searches.length)} most recent of your saved searches`
-              : `${formatCount(searches.length)} saved`}
-      </Caption>
-      {searches.length > 0 ? (
-        <ul className="mt-4 divide-y divide-line-subtle rounded-md border border-line bg-surface">
-          {searches.map((s) => (
-            <li key={s.id} className="flex items-center justify-between gap-3 px-4 py-3">
-              <Link href={s.href} className="min-w-0 font-medium text-brand-ink">
-                {s.name}
-              </Link>
-              {/* Bare, the count read as live. Only ten stale counts refresh
-                  per call, so most of these are remembered numbers and the
-                  page has to say when each was taken. */}
-              <Caption>{savedCountLabel(s.last_count, s.last_counted_at, now)}</Caption>
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      <PageHeader
+        title="Saved searches"
+        caption={
+          failed
+            ? "Only you can see this list."
+            : searches.length === 0
+              ? "None saved yet · only you can see this list"
+              : payload.capped
+                ? `The ${formatCount(searches.length)} most recent of your saved searches`
+                : `${formatCount(searches.length)} saved`
+        }
+      />
+      {failed ? (
+        <ErrorNote>Saved searches could not be read. Nothing was removed; reload the page to try again.</ErrorNote>
+      ) : (
+        <SavedSearchesTable searches={searches} now={now} />
+      )}
     </Page>
   );
 }

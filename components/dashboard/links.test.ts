@@ -44,21 +44,20 @@ const RAW_ANCHORS: Allowed = {
     "{h.source_url}": [1, "the DHS UFLPA Entity List entry, off-site"],
   },
   "controls.tsx": {
-    "{href}": [1, "Button's own plain-anchor branch; callers in record files are checked below"],
+    "{href}": [
+      2,
+      "Button's own plain-anchor branch (callers in record files are checked below), and MenuItem's link: a sort, a page size or a density, each of which re-runs the search",
+    ],
     "{hrefFor(o.value)}": [1, "a segmented control that re-runs the search"],
   },
+  "page.tsx": { "{sort.href}": [1, "a column header's sort, which re-runs the search in a new order"] },
   "marks.tsx": { "{mark.href}": [1, "a source mark links to the register's own page, off-site"] },
   "recent-searches.tsx": { "{r.href}": [1, "a recent search re-runs the search"] },
-  "results-panel.tsx": {
-    "{o.href}": [1, "sort and view options, which re-run the search"],
-    "{p.href}": [1, "a page number, which re-runs the search"],
-  },
-  "rfq-composer.tsx": { '"#"': [1, "an attachment placeholder with no destination"] },
   "toast.tsx": { "{href}": [1, "the toast's link, which predates REZ-C"] },
   "search-composer.tsx": {
     "{c.removeHref}": [1, "removing a filter chip re-runs the search"],
     '"#filters"': [1, "a same-page fragment"],
-    "{filtersHref}": [1, "the Ask/Filters switch re-runs the search"],
+    "{filtersModeHref}": [1, "the Ask/Filters switch re-runs the search"],
     "{askHref}": [1, "the Ask/Filters switch re-runs the search"],
   },
   "sheet.tsx": {
@@ -77,16 +76,13 @@ const RAW_ANCHORS: Allowed = {
 /** Files that draw record or line links on the buyer's search: every Button href there must client-navigate unless listed. */
 const RECORD_FILES = ["supplier-result-card.tsx", "results-table.tsx", "photo-tiles.tsx", "supplier-sheet.tsx", "product-sheet.tsx", "sheet.tsx"];
 
+// Send RFQ is no longer here: since 27 Sep 2026 it opens the composer in the
+// pane beside the results (`?rfq=`), on the same search, so the card's, the
+// row's, the action bar's and the line sheet's all client-navigate.
 const DOCUMENT_BUTTONS: Allowed = {
-  "supplier-result-card.tsx": {
-    "{card.sanctioned ? undefined : (card.rfqHref ?? undefined)}": [1, "Send RFQ opens the composer, another page"],
-  },
-  "results-table.tsx": { "{r.sanctioned ? undefined : (r.rfqHref ?? undefined)}": [1, "Send RFQ opens the composer, another page"] },
   "product-sheet.tsx": {
-    "{model.sanctioned ? undefined : (model.rfqHref ?? undefined)}": [1, "Send RFQ for this line opens the composer, another page"],
     "{`/app/discover?hs=${model.hs}`}": [1, "Exporters of HS is a new search, which replaces the one behind the sheet"],
   },
-  "sheet.tsx": { "{sanctioned ? undefined : (rfqHref ?? undefined)}": [1, "the action bar's Send RFQ opens the composer, another page"] },
 };
 
 function kitFiles(): string[] {
@@ -171,14 +167,17 @@ describe("the dashboard kit's in-app links are client navigations", () => {
     );
   });
 
-  it("in the record and line files, every Button with an href client-navigates or is listed", () => {
+  it(
+    "in the record and line files, every Button with an href client-navigates or is listed",
+    () => {
     const offenders = RECORD_FILES.flatMap((file) => {
       const src = readFileSync(path.join(KIT, file), "utf8");
       const plain = elements(src, "Button").filter((el) => !clientNavigates(el));
       return unlisted(file, tally(plain.map(hrefOf)), DOCUMENT_BUTTONS);
     });
     assert.deepEqual(offenders, [], `add clientNav, or list the Button in DOCUMENT_BUTTONS with the reason:\n  ${offenders.join("\n  ")}`);
-  });
+    },
+  );
 
   it("neither list has a stale entry", () => {
     // An entry with nothing behind it is a licence nobody is using, and the
@@ -255,6 +254,16 @@ describe("the dashboard kit's in-app links are client navigations", () => {
     }
     assert.deepEqual(missing, [], `these <Link>s prefetch:\n  ${missing.join("\n  ")}`);
   });
+
+  it(
+    "a density change keeps the selection: the density stops client-navigate",
+    () => {
+      const panel = readFileSync(path.join(KIT, "results-panel.tsx"), "utf8");
+      const density = panel.slice(panel.indexOf('label="Row density"'), panel.indexOf("</Menu>", panel.indexOf('label="Row density"')));
+      assert.ok(density, "guard: the density menu moved");
+      assert.match(density, /<MenuItem\b[^>]*\sclientNav\b/);
+    },
+  );
 
   it("Button's client navigation is opt-in, and the export stays a download", () => {
     const controls = readFileSync(path.join(KIT, "controls.tsx"), "utf8");

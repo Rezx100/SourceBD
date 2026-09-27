@@ -1,6 +1,9 @@
-import { Page } from "@/components/dashboard/page";
+// /app/searches/new — save a search from a deep link. The search pane on
+// /app/discover (`?save=1`) is the usual way in; this page keeps old links
+// and bookmarks working, in the same page grammar as every other page.
+
+import { Page, PageHeader, PageSection } from "@/components/dashboard/page";
 import { SaveSearchForm } from "@/components/dashboard/save-search-form";
-import { Caption, Title } from "@/components/dashboard/type";
 import { parseDiscoverState, queryTitle, serializeDiscoverState } from "@/lib/discover-v32-state";
 
 export const dynamic = "force-dynamic";
@@ -22,10 +25,13 @@ export default async function SaveSearchPage({
   const state = { ...parseDiscoverState(sp), page: 1 };
   const search = serializeDiscoverState(state).toString();
   return (
-    <Page>
-      <Title as="h1">Save this search</Title>
-      <Caption className="mb-4">{queryTitle(state)}</Caption>
-      <SaveSearchForm search={search} defaultName={queryTitle(state)} />
+    <Page className="max-w-[40rem]">
+      <PageHeader title="Save this search" caption={queryTitle(state)} />
+      <PageSection>
+        <div className="p-4">
+          <SaveSearchForm search={search} defaultName={queryTitle(state)} />
+        </div>
+      </PageSection>
     </Page>
   );
 }

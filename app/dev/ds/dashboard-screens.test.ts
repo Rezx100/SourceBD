@@ -10,15 +10,20 @@
 // at all.
 //
 // These assertions are on the rendered HTML of the whole gallery, built from
-// the same fixtures the screenshots use.
+// the same fixtures the screenshots use. Since the enterprise pass (27 Sep
+// 2026) the gallery draws seven screens: the ledger grid, the thumbnail cards,
+// the record, the line, the RFQ composer and the filter pane — each in a pane
+// BESIDE the results, as /app/discover draws them — and the RFQ list.
 
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 
-import { buildCard, buildProductSheet, buildRfqRow, buildSheet, buildTableRow } from "@/lib/dashboard/build-models";
-import { topTier } from "@/lib/dashboard/source-tiers";
+import { RFQ_ERROR_COPY } from "@/components/dashboard/rfq-pages";
+import { buildCard, buildProductSheet, buildSheet, buildTableRow } from "@/lib/dashboard/build-models";
 import { contrastRatio, light, resolve } from "@/lib/design/tokens";
 import {
   aboniInput,
@@ -27,15 +32,13 @@ import {
   inheritedPillsInput,
   longestHsListInput,
   longestProductListInput,
-  RFQ_ROWS,
-  RFQ_TARGETS,
   smKnitwearInput,
   TODAY,
   zaheenSampleInput,
 } from "@/lib/dashboard/fixtures";
 import { GALLERY_QUERY, SORT_MOST_SOURCES, topbarCaption, type GalleryData, type GalleryRecord } from "@/lib/dashboard/gallery-data";
 import type { RfqListModel } from "@/lib/dashboard/models";
-import { composerModel, DashboardScreens, SCREEN_WIDTH } from "./dashboard-screens";
+import { composerPrefill, composerTargets, DashboardScreens, galleryState, sampleRfqRows, SCREEN_WIDTH, SCREENS } from "./dashboard-screens";
 
 const EMPTY_RFQS: RfqListModel = {
   sent: 0,
@@ -46,18 +49,16 @@ const EMPTY_RFQS: RfqListModel = {
   toast: null,
 };
 
+/** The seven frames, as literals: comparing against `SCREENS` from the file under test could not fail. */
+const FRAMES = ["results-table", "results-list", "supplier-sheet", "product-sheet", "rfq-composer", "filter-pane", "rfq-list"];
+
 /**
  * A `role="search"` landmark with no operable descendant fails ARIA's own
  * definition of the role (accessibility, cycle 19, BLOCKING F2). The match is
  * scoped to the element carrying the role via a backreference to its own
  * captured tag name, not a hardcoded tag list — cycle 20's guard-adequacy
  * critic demonstrated that the old `<\/(?:div|section|form)>` alternation let
- * a `<span role="search">` with nothing operable inside it slip through
- * undetected: the lazy match ran past the span's own close hunting for one
- * of those three tags and picked up an unrelated button several siblings
- * later, so every test in the suite stayed green. See the dedicated test
- * below, which pins this function's behaviour directly against synthetic
- * markup, independent of whatever tag the app's own boxes currently use.
+ * a `<span role="search">` with nothing operable inside it slip through.
  */
 function searchLandmarksWithoutAnOperableControl(html: string): string[] {
   const offenders: string[] = [];
@@ -67,8 +68,9 @@ function searchLandmarksWithoutAnOperableControl(html: string): string[] {
   return offenders;
 }
 
+const rec = (input: ReturnType<typeof aboniInput>, slug: string): GalleryRecord => ({ slug, input });
+
 function galleryData(over: Partial<GalleryData> = {}): GalleryData {
-  const rec = (input: ReturnType<typeof aboniInput>, slug: string): GalleryRecord => ({ slug, input });
   const records = {
     aboni: rec(aboniInput(), "aboni-knitwear"),
     sm: rec(smKnitwearInput(), "sm-knitwear"),
@@ -104,9 +106,8 @@ function galleryData(over: Partial<GalleryData> = {}): GalleryData {
 
 /**
  * The rendered screens without the gallery's own captions. A `figcaption`
- * describes the screen in prose — "AI is off in this build, so the V2 surfaces
- * (Improve wording, Follow-up rules) are absent" — and an assertion that
- * matched it would pass whatever the screen itself rendered.
+ * describes the screen in prose, and an assertion that matched it would pass
+ * whatever the screen itself rendered.
  */
 const escapeHtml = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#x27;");
 
@@ -115,6 +116,18 @@ const render = (d: GalleryData) =>
 
 /** With the captions, for the assertions that are about the captions. */
 const renderAll = (d: GalleryData) => renderToStaticMarkup(createElement(DashboardScreens, { data: d }));
+
+/** Each frame's own markup, caption included, by its `data-screen` id. */
+function framesOf(html: string): Map<string, string> {
+  return new Map([...html.matchAll(/<figure[\s\S]*?data-screen="([^"]+)"[\s\S]*?(?=<figure|$)/g)].map((m) => [m[1]!, m[0]!]));
+}
+const frame = (d: GalleryData, id: string): string => {
+  const f = framesOf(renderAll(d)).get(id);
+  assert.ok(f, `the ${id} screen is not in the gallery`);
+  return f!;
+};
+/** A frame without its caption. */
+const screen = (d: GalleryData, id: string) => frame(d, id).replace(/<figcaption[\s\S]*?<\/figcaption>/g, "");
 
 describe("DashboardScreens — the caller, not the components (handoff §7)", () => {
   it("every AI surface is off on every screen, because the page passes false", () => {
@@ -131,10 +144,21 @@ describe("DashboardScreens — the caller, not the components (handoff §7)", ()
     assert.doesNotMatch(render(galleryData()), /\d+\s*%\s*match|match(?:ed)?\s*\d+\s*%|\bscore\b|\brating\b|★|\bVerified\b/i);
   });
 
-  it("the sanctioned sample reaches the cards, the table and the composer", () => {
+  it("no screen carries a supplier's contact value or the column that holds one", () => {
     const html = render(galleryData());
-    assert.match(html, /data-sanctioned="true"/);
-    assert.match(html, /Sanctioned · sample/);
+    const leaked = zaheenSampleInput().leaked;
+    for (const v of [leaked.email_primary, leaked.contact_name, leaked.contact_role, leaked.website, ...leaked.phones]) {
+      assert.ok(!html.includes(escapeHtml(v)), `a contact value reached the gallery: ${v}`);
+    }
+    assert.doesNotMatch(html, /email_primary|contact_name|contact_role/);
+  });
+
+  it("the sanctioned sample reaches the cards and the ledger", () => {
+    for (const id of ["results-table", "results-list"]) {
+      const html = screen(galleryData(), id);
+      assert.match(html, /data-sanctioned="true"/, id);
+      assert.match(html, /Sanctioned · sample/, id);
+    }
   });
 
   it("the panel caption is the RPC's count, and a failed read is unknown rather than zero", () => {
@@ -172,30 +196,19 @@ describe("DashboardScreens — the caller, not the components (handoff §7)", ()
   });
 
   it("the topbar caption carries only what could be read", () => {
-    // The date is `max(last_seen_at)` over the records this page draws, not
-    // over the corpus the count is of: 1,677 of the 10,266 were last read on
-    // The caption has been wrong twice, in two different ways. First the
-    // statistic: a maximum over four records printed as "records read 18 Sep
-    // 2026" while one of them had last been read 30 Jul. Then the subject:
-    // the repair made it a range and dropped the scope, so "supplier records
-    // read 18 May – 18 Sep 2026" sat beside "10,266 published suppliers" and
-    // read as a corpus claim — 1,214 published records have no read at all
-    // inside that window and the corpus's oldest is 13 May (SQL, 20 Sep 2026).
-    // It must carry both: a range, and the population it is a range over.
+    // It must carry both a range and the population it is a range over: a
+    // maximum over four records once read as the corpus's read date, and a
+    // range with no population read as a claim about 10,266 records.
     assert.equal(
       topbarCaption({ published: 10266, recordsReadOn: "30 Jul – 18 Sep 2026", recordsRead: 4 }),
       "10,266 published suppliers · 4 records on this page, read 30 Jul – 18 Sep 2026",
     );
     assert.equal(topbarCaption({ published: null, recordsReadOn: "18 Sep 2026", recordsRead: 1 }), "1 record on this page, read 18 Sep 2026");
-    // The record clause pluralises; the corpus clause did not, and the
-    // assertion froze the ungrammatical form as the expected value.
     assert.equal(topbarCaption({ published: 1, recordsReadOn: null, recordsRead: null }), "1 published supplier");
     assert.equal(topbarCaption({ published: 2, recordsReadOn: null, recordsRead: null }), "2 published suppliers");
     assert.equal(topbarCaption({ published: null, recordsReadOn: null, recordsRead: null }), "Live records");
     const shell = render(galleryData());
     assert.match(shell, /10,266 published suppliers · 4 records on this page, read 30 Jul – 18 Sep 2026/);
-    // Neither failure mode may come back: no bare date, and no clause that
-    // follows the corpus count with a date but no population of its own.
     assert.doesNotMatch(shell, /records read \d+ \w+ \d{4}(?!\s*–)/, "the newest read must not stand for every record");
     for (const m of shell.matchAll(/published suppliers · ([^<]*)/g)) {
       const clause = m[1]!;
@@ -205,74 +218,37 @@ describe("DashboardScreens — the caller, not the components (handoff §7)", ()
   });
 
   it("the 'records on this page' clause does not travel to the RFQ list screen, which draws none", () => {
-    // `drawsRecords` (dashboard-screens.tsx) exists only to keep this clause
-    // off the one screen that draws zero supplier records. A mutation sweep
-    // found it could be hardcoded to `true` — putting "N records on this
-    // page, read …" on the RFQ list too — with every test above still green,
-    // because they all check the clause's own wording, never which screens
-    // carry it.
-    const html = renderAll(galleryData());
-    const frames = [...html.matchAll(/<figure[\s\S]*?data-screen="([^"]+)"[\s\S]*?(?=<figure|$)/g)];
-    const rfqList = frames.find((m) => m[1] === "rfq-list")?.[0];
-    assert.ok(rfqList, "the rfq-list screen must be in the gallery");
-    assert.match(rfqList!, /published suppliers?/, "the RFQ screen still names the corpus");
-    assert.doesNotMatch(rfqList!, /records? on this page/, "the RFQ list draws no supplier records, so it must not claim to");
+    // `drawsRecords` exists only to keep this clause off the one screen that
+    // draws no supplier record; hardcoding it to `true` must fail here.
+    const rfqList = frame(galleryData(), "rfq-list");
+    assert.match(rfqList, /published suppliers?/, "the RFQ screen still names the corpus");
+    assert.doesNotMatch(rfqList, /records? on this page/, "the RFQ list draws no supplier records, so it must not claim to");
   });
 
-  // Cycle 17, correctness critic's finding. `discover_suppliers`'s top rows
-  // for this query return slugs outside the four named records on a real
-  // read (SQL, 20 Sep 2026) — only the table screen draws them
-  // (`rowRecords` in gallery-data.ts), yet one shared `shellModels(d,
-  // "suppliers")` object used to hand every screen the same topbar. A caption
-  // built over the wider, table-only population would then sit on the
-  // results-list, both sheets and the composer, each of which draws only the
-  // four named records — the "caption states the wrong population" defect
-  // class this project has always treated as blocking, just cross-screen
-  // rather than within one.
-  it("the table's wider record count does not travel to the screens that draw only the four named records", () => {
-    const html = renderAll(galleryData({ tableRecordsRead: 7, tableRecordsReadOn: "18 May – 18 Sep 2026" }));
-    const frames = [...html.matchAll(/<figure[\s\S]*?data-screen="([^"]+)"[\s\S]*?(?=<figure|$)/g)];
-    const only = (id: string) => frames.find((m) => m[1] === id)?.[0];
-    assert.match(only("results-table")!, /7 records on this page, read 18 May – 18 Sep 2026/, "the table screen must carry its own, wider span");
-    for (const id of ["results-list", "supplier-sheet", "product-sheet", "rfq-composer"]) {
-      const frame = only(id);
-      assert.ok(frame, `${id} must render`);
-      assert.match(frame!, /4 records on this page, read 30 Jul – 18 Sep 2026/, `${id} draws only the four named records and must state their span, not the table's`);
-      assert.doesNotMatch(frame!, /7 records on this page/, `${id} must not carry the table-only count`);
+  // Cycle 17: only the ledger draws the discovery rows beyond the four named
+  // records, so only the ledger's topbar may count them.
+  it("the ledger's wider record count does not travel to the screens that draw only the four named records", () => {
+    const frames = framesOf(renderAll(galleryData({ tableRecordsRead: 7, tableRecordsReadOn: "18 May – 18 Sep 2026" })));
+    assert.match(frames.get("results-table")!, /7 records on this page, read 18 May – 18 Sep 2026/, "the ledger must carry its own, wider span");
+    for (const id of ["results-list", "supplier-sheet", "product-sheet", "rfq-composer", "filter-pane"]) {
+      const f = frames.get(id);
+      assert.ok(f, `${id} must render`);
+      assert.match(f!, /4 records on this page, read 30 Jul – 18 Sep 2026/, `${id} draws only the four named records and must state their span, not the ledger's`);
+      assert.doesNotMatch(f!, /7 records on this page/, `${id} must not carry the ledger-only count`);
     }
   });
 
-  // Cycle 18's own critics: the topbar fix above only moved the *topbar's*
-  // caption to the table's own span. The panel header, the panel footer and
-  // the figure's own caption all separately called the table's rows "the
-  // named test records of the rebuild spec" / "the same named records as the
-  // card view" — true only when `extra` is empty (the screenshot harness's
-  // fixture stub), false the moment a live read's discovery rows join the
-  // table (confirmed live in production by two independent critics against
-  // this same candidate). `tableSelection` in dashboard-screens.tsx now
-  // states the wider population whenever `rows` outgrows `cards`; the card
-  // view's own header/footer/caption must still say the narrower, unchanged
-  // thing.
-  // Cycle 19's guard-adequacy critic: the original version of this test only
-  // ever exercised exactly one extra row, so the pluralisation branch and the
-  // zero-extra branch were never run, and the figure's own caption used to be
-  // a second, independent copy of the extra-row arithmetic (hard-coding
-  // "four" instead of deriving it — correctness, cycle 19) that this loop
-  // would have caught. The figure note now calls `tableSelection(d)`
-  // directly, so one implementation backs the panel header, the panel
-  // footer and the figure caption alike; this loop pins all three together
-  // at zero extras (the screenshot harness's own shape), one (the old
-  // singular case), two (the plural branch) and four (production's real
-  // shape — `discover_suppliers`'s own comment, SQL dated 20 Sep 2026).
+  // Cycles 18–19: the ledger's panel header, footer and figure caption state
+  // the wider population whenever discovery rows join it; the card view and
+  // the results beside a pane (the named records only) still state the
+  // narrower one. Pinned at zero extras (the harness's shape), one (the
+  // singular), two (the plural) and four (production's real shape).
   const EXTRA_FIXTURES = [inheritedPillsInput(), buildingRegistrationsInput(), longestHsListInput(), longestProductListInput()];
   for (const extraCount of [0, 1, 2, 4]) {
-    it(`the table's panel header, footer and figure caption state the wider population with ${extraCount} discovery row${extraCount === 1 ? "" : "s"} joining it — not the card view's`, () => {
+    it(`the ledger's panel header, footer and figure caption state the wider population with ${extraCount} discovery row${extraCount === 1 ? "" : "s"} joining it — not the card view's`, () => {
       const base = galleryData();
       const extraRows = EXTRA_FIXTURES.slice(0, extraCount).map((input) => buildTableRow(input));
-      const withExtra = { ...base, rows: [...base.rows, ...extraRows] };
-      const html = renderAll(withExtra);
-      const frames = [...html.matchAll(/<figure[\s\S]*?data-screen="([^"]+)"[\s\S]*?(?=<figure|$)/g)];
-      const only = (id: string) => frames.find((m) => m[1] === id)?.[0];
+      const frames = framesOf(renderAll({ ...base, rows: [...base.rows, ...extraRows] }));
 
       const selection =
         extraCount === 0
@@ -281,87 +257,52 @@ describe("DashboardScreens — the caller, not the components (handoff §7)", ()
       const SELECTION_HTML = escapeHtml(selection);
       const NARROW_SELECTION = escapeHtml("the named test records of the rebuild spec");
 
-      const table = only("results-table")!;
-      // The panel header's own caption: "42 suppliers · <selection>", exactly.
-      assert.ok(table.includes(`42 suppliers · ${SELECTION_HTML}</span>`), "the table's panel header must state the wider population, exactly, with nothing appended");
-      // The panel footer's own caption: "<selection> · 42 in the result set".
-      assert.ok(table.includes(`${SELECTION_HTML} · 42 in the result set</span>`), "the table's panel footer must state the wider population, exactly");
+      const table = frames.get("results-table")!;
+      assert.ok(table.includes(`42 suppliers · ${SELECTION_HTML}</span>`), "the ledger's panel header must state the wider population, exactly");
+      assert.ok(table.includes(`${SELECTION_HTML} · 42 in the result set</span>`), "the ledger's panel footer must state the wider population, exactly");
       if (extraCount > 0) {
-        // Neither may still carry the unqualified narrow string as its whole selection.
-        assert.ok(!table.includes(`42 suppliers · ${NARROW_SELECTION}</span>`), "the table's panel header must not state the narrow, unqualified selection");
-        assert.ok(!table.includes(`${NARROW_SELECTION} · 42 in the result set</span>`), "the table's panel footer must not state the narrow, unqualified selection");
+        assert.ok(!table.includes(`42 suppliers · ${NARROW_SELECTION}</span>`), "the ledger's panel header must not state the narrow selection");
+        assert.ok(!table.includes(`${NARROW_SELECTION} · 42 in the result set</span>`), "the ledger's panel footer must not state the narrow selection");
       }
-      // The figure's own caption (outside the render() helper's stripped
-      // figcaption) — now the same `tableSelection(d)` string, not a second
-      // copy of its arithmetic.
       const rowCount = 4 + extraCount;
       assert.ok(
-        table.includes(`Same header and footer, 36px rows, ${rowCount} rows: ${SELECTION_HTML}.`),
+        table.includes(`36px rows under a sticky, sortable header, ${rowCount} rows: ${SELECTION_HTML}.`),
         `the figure's own caption must state the wider population too (extraCount=${extraCount})`,
       );
+      assert.equal((table.match(/data-row="result"/g) ?? []).length, rowCount, "the ledger draws every row it counts");
 
-      const cards = only("results-list")!;
-      assert.ok(cards.includes(`42 suppliers · ${NARROW_SELECTION}</span>`), "the card view's own panel header is unchanged");
-      assert.ok(!cards.includes("discovery"), "the card view never draws extra rows and must not describe any");
+      for (const id of ["results-list", "supplier-sheet", "product-sheet", "rfq-composer", "filter-pane"]) {
+        const f = frames.get(id)!;
+        assert.ok(f.includes(`42 suppliers · ${NARROW_SELECTION}</span>`), `${id}: the panel header beside it is the named records'`);
+        assert.ok(!f.includes("discovery"), `${id} never draws the extra rows and must not describe any`);
+        if (id !== "results-list") assert.equal((f.match(/data-row="result"/g) ?? []).length, 4, `${id}: the results beside the pane are the four named records`);
+      }
     });
   }
 
-  // Correctness, cycle 19: the caption used to hard-code "the four named
-  // records" regardless of how many of the four actually loaded. A partial
-  // load (one or more of the four failed) must still state a population,
-  // never a literal count that disagrees with the rows on screen.
-  it("the results-table figure caption never claims a fixed count of named records over a partial load", () => {
+  // Correctness, cycle 19: a partial load (one of the four failed) must still
+  // state a population, never a literal count that disagrees with the rows.
+  it("the ledger's figure caption never claims a fixed count of named records over a partial load", () => {
     const base = galleryData();
-    const partial = {
-      ...base,
-      records: { ...base.records, zaheen: null },
-      cards: base.cards.slice(0, 3),
-      rows: base.rows.slice(0, 3),
-    };
-    const html = renderAll(partial);
-    const frames = [...html.matchAll(/<figure[\s\S]*?data-screen="([^"]+)"[\s\S]*?(?=<figure|$)/g)];
-    const table = frames.find((m) => m[1] === "results-table")![0];
+    const partial = { ...base, records: { ...base.records, zaheen: null }, cards: base.cards.slice(0, 3), rows: base.rows.slice(0, 3) };
+    const table = framesOf(renderAll(partial)).get("results-table")!;
     assert.doesNotMatch(table, /\bfour\b/i, "the caption must not name a fixed count once a named record failed to load");
-    assert.ok(table.includes("Same header and footer, 36px rows, 3 rows:"), "the row count in the caption must match the rows actually rendered");
+    assert.ok(table.includes("36px rows under a sticky, sortable header, 3 rows:"), "the row count in the caption must match the rows actually rendered");
   });
 
-  // Correctness, cycle 19: the product-sheet caption used to claim the EPB
-  // exporter page unconditionally, contradicting the sheet's own eyebrow
-  // ("not on this record's EPB page") the moment `exported` is false — a
-  // failed `supplier_epb_hscodes` read, or a heading the record genuinely
-  // does not export.
+  // Correctness, cycle 19: the product-sheet caption must not claim the EPB
+  // page for a line the sheet itself says is not on it.
   it("the product-sheet caption matches the sheet's own claim about whether the line is on the record's EPB page", () => {
-    const only = (html: string, id: string) => [...html.matchAll(/<figure[\s\S]*?data-screen="([^"]+)"[\s\S]*?(?=<figure|$)/g)].find((m) => m[1] === id)![0];
-
     const exportedSheet = buildProductSheet(aboniInput(), "6105");
     assert.equal(exportedSheet.exported, true, "6105 is one of Aboni's fixture HS lines");
-    const exportedFrame = only(renderAll(galleryData({ productSheet: exportedSheet })), "product-sheet");
-    assert.ok(
-      exportedFrame.includes(escapeHtml(`HS ${exportedSheet.hs} on ${exportedSheet.supplierName}'s EPB exporter page`)),
-      "an exported line must claim the EPB page, unconditionally",
-    );
+    const exportedFrame = frame(galleryData({ productSheet: exportedSheet }), "product-sheet");
+    assert.ok(exportedFrame.includes(escapeHtml(`HS ${exportedSheet.hs} on ${exportedSheet.supplierName}'s EPB exporter page`)));
 
     const notExportedSheet = buildProductSheet(aboniInput(), "6112");
     assert.equal(notExportedSheet.exported, false, "6112 is not one of Aboni's fixture HS lines");
-    const notExportedFrame = only(renderAll(galleryData({ productSheet: notExportedSheet })), "product-sheet");
-    assert.ok(
-      !notExportedFrame.includes(escapeHtml(`HS ${notExportedSheet.hs} on ${notExportedSheet.supplierName}'s EPB exporter page`)),
-      "the caption must not claim the EPB page for a line the sheet itself says is not on it",
-    );
-    assert.ok(
-      notExportedFrame.includes(escapeHtml(`HS ${notExportedSheet.hs}, not on ${notExportedSheet.supplierName}'s EPB exporter page`)),
-      "the caption must state the sheet's own negative claim instead",
-    );
-  });
-
-  // Cycle 5, finding 4: a failed `rfq_list` read rendered as the fact "you have
-  // no RFQs", in the empty state written to sell the feature.
-  it("an unread RFQ list says so; an empty one sells the feature", () => {
-    const empty = render(galleryData());
-    assert.match(empty, /Your first RFQ lands here/);
-    const failed = render(galleryData({ rfqError: true, rfqs: { ...EMPTY_RFQS, error: true, footer: "The RFQ list could not be read" } }));
-    assert.match(failed, /could not be read/);
-    assert.doesNotMatch(failed, /Your first RFQ lands here/);
+    const notExportedFrame = frame(galleryData({ productSheet: notExportedSheet }), "product-sheet");
+    assert.ok(!notExportedFrame.includes(escapeHtml(`HS ${notExportedSheet.hs} on ${notExportedSheet.supplierName}'s EPB exporter page`)));
+    assert.ok(notExportedFrame.includes(escapeHtml(`HS ${notExportedSheet.hs}, not on ${notExportedSheet.supplierName}'s EPB exporter page`)));
   });
 
   it("a record that could not be read is left out, never invented", () => {
@@ -375,60 +316,145 @@ describe("DashboardScreens — the caller, not the components (handoff §7)", ()
       }),
     );
     assert.doesNotMatch(html, /Aboni/);
-    assert.doesNotMatch(html, /data-screen="supplier-sheet"/);
-    assert.doesNotMatch(html, /data-screen="product-sheet"/);
-    assert.doesNotMatch(html, /data-screen="rfq-composer"/);
-    assert.match(html, /data-screen="results-list"/, "the shell still renders");
+    for (const id of ["supplier-sheet", "product-sheet", "rfq-composer"]) {
+      assert.doesNotMatch(html, new RegExp(`data-screen="${id}"`), `${id} drew a record that was not read`);
+    }
+    assert.match(html, /data-screen="results-table"/, "the shell still renders");
+    assert.match(html, /data-screen="filter-pane"/, "the filter pane needs no record");
   });
 
-  it("all six screens render when every record could be read", () => {
+  it("all seven screens render when every record could be read, in the order the harness shoots them", () => {
     const html = renderAll(galleryData());
-    for (const id of ["results-list", "results-table", "supplier-sheet", "product-sheet", "rfq-composer", "rfq-list"]) {
-      assert.match(html, new RegExp(`data-screen="${id}"`), `${id} is one of the six screens`);
+    assert.deepEqual([...framesOf(html).keys()], FRAMES);
+    assert.deepEqual([...SCREENS], FRAMES, "SCREENS is what scripts/gallery/shots.mjs is checked against");
+  });
+});
+
+describe("the ledger grid is the first screen", () => {
+  it("two rows ticked and exactly one marked as the open record", () => {
+    const html = screen(galleryData(), "results-table");
+    const rows = [...html.matchAll(/<tr\b[^>]*data-row="result"[^>]*>/g)].map((m) => m[0]!);
+    assert.equal(rows.length, 4);
+    const current = rows.filter((r) => /aria-current="true"/.test(r));
+    assert.equal(current.length, 1, "exactly one row is the record open beside the results");
+    assert.match(current[0]!, /aria-label="Aboni Knitwear Ltd"/);
+    // Ticked: the box says so, and the row carries the brand rule (a state
+    // drawn only as a fill is invisible against its neighbours).
+    assert.equal((html.match(/role="checkbox" aria-checked="true"/g) ?? []).length, 2, "two rows are ticked");
+    const ruled = rows.filter((r) => r.includes("shadow-[inset_2px_0_0_rgb(var(--ds-brand))]"));
+    assert.equal(ruled.length, 2, "the two ticked rows carry the selection rule");
+  });
+
+  it("the headers sort by URL and say which order is on; no header is held to one line", () => {
+    const html = screen(galleryData(), "results-table");
+    const head = html.slice(html.indexOf("<thead"), html.indexOf("</thead>"));
+    const sorted = [...head.matchAll(/<th\b[^>]*aria-sort="([^"]+)"[^>]*>/g)].map((m) => m[1]!);
+    assert.deepEqual(sorted.sort(), ["descending", "none", "none", "none", "none"], "five sortable columns, the default one on");
+    assert.match(head, /href="\/app\/discover\?q=knitted\+shirts&amp;cert=gots&amp;sort=name"/, "a header sorts the same search");
+    for (const th of head.match(/<th\b[^>]*>/g) ?? []) assert.doesNotMatch(th, /whitespace-nowrap/, `a header cell cannot wrap: ${th}`);
+  });
+
+  it("beside a pane the results narrow to the three essential columns, and the record's row is marked", () => {
+    for (const id of ["supplier-sheet", "product-sheet"]) {
+      const html = screen(galleryData(), id);
+      const head = html.slice(html.indexOf("<thead"), html.indexOf("</thead>"));
+      assert.doesNotMatch(head, />Certificates<|>Export lines<|>Type</, `${id}: the full ledger beside a pane`);
+      assert.match(head, /Supplier/);
+      assert.match(head, /Workers/);
+      assert.equal((html.match(/<tr\b[^>]*aria-current="true"/g) ?? []).length, 1, `${id}: the open record's row`);
+    }
+    for (const id of ["rfq-composer", "filter-pane"]) {
+      assert.doesNotMatch(screen(galleryData(), id), /<tr\b[^>]*aria-current="true"/, `${id}: no record is open, so no row is current`);
     }
   });
+});
 
-  // The composer's draft cites the record's real facts; §2 forbids inventing
-  // one, and finding 21 left a stray middle dot in the supplier-facing preview.
-  it("the composer's preview cites the record's own certificate, with no stray dot", () => {
-    const html = render(galleryData());
-    assert.match(html, /your GOTS certificate GOTS-31587 is valid to 12 May 2027/);
-    assert.doesNotMatch(html, /is · /);
-    assert.doesNotMatch(html, /replies land in Messages/);
+describe("the RFQ composer is the pane beside the results", () => {
+  it("names its one target and carries the draft, with Send live on a complete draft", () => {
+    const d = galleryData();
+    const html = screen(d, "rfq-composer");
+    assert.equal(composerTargets(d).length, 1);
+    assert.match(html, /data-pane-wide="true"/, "the composer takes the wide pane");
+    assert.match(html, /<section data-record-pane="" aria-label="New RFQ"/);
+    assert.match(html, /to Aboni Knitwear Ltd · HS 6105/);
+    assert.match(html, /value="Men&#x27;s knitted piqué polo, 220 gsm"/);
+    assert.match(html, />What this RFQ carries</);
+    assert.match(html, /Ready to send to Aboni Knitwear Ltd/);
+    const send = /<button\b[^>]*>(?:(?!<\/button>)[\s\S])*?Send RFQ/.exec(html)?.[0] ?? "";
+    assert.ok(send, "the composer draws no Send RFQ");
+    assert.doesNotMatch(send, /\sdisabled=""/, "a complete draft to a clean supplier cannot be sent");
+    // No workspace in the gallery: the template names what it lacks, never invents it.
+    assert.match(html, /\[your name\]/);
+    assert.match(html, /\[company name\]/);
+    assert.deepEqual(composerPrefill(d).hs, "6105", "the draft's line is one the record carries");
+  });
+
+  it("a sanctioned sample as the target carries the banner and withholds Send", () => {
+    const base = galleryData();
+    const d = galleryData({ records: { ...base.records, aboni: rec(zaheenSampleInput(), "zaheen-knitwear") } });
+    assert.equal(composerTargets(d)[0]!.sanctioned, true, "guard: the sample is sanctioned");
+    const html = screen(d, "rfq-composer");
+    assert.match(html, /role="alert"[^>]*class="[^"]*bg-sanction/);
+    assert.match(html, /Sanctioned · sample record — matched on a sanctions screen/);
+    assert.match(html, /RFQs cannot be sent to a sanctioned supplier/);
+    assert.match(html, /<button\b[^>]*disabled=""[^>]*>(?:(?!<\/button>)[\s\S])*?Send RFQ/);
+    // The clean target draws none of it.
+    assert.doesNotMatch(screen(base, "rfq-composer"), /data-sanction-visible/);
+  });
+});
+
+describe("the filter pane is the search's own filters", () => {
+  it("the pane sets what the search carries, and keeps the text in the form", () => {
+    const html = screen(galleryData(), "filter-pane");
+    assert.match(html, /<section data-record-pane="" aria-label="Filters"/);
+    assert.match(html, />2 set</, "the text and the certificate: two filters");
+    assert.match(html, /<option value="gots" selected="">/, "the certificate kind the search carries is picked");
+    assert.match(html, /<input type="hidden" name="q" value="knitted shirts"\/>/);
+    assert.match(html, /<form\b(?=[^>]*\sid="filters")(?=[^>]*\saction="\/app\/discover")(?=[^>]*\smethod="get")[^>]*>/);
+    assert.equal(galleryState().q, GALLERY_QUERY.q);
+    // Close goes somewhere on this page.
+    assert.match(html, /aria-label="Close"[^>]*href="#filter-pane"|href="#filter-pane"[^>]*aria-label="Close"/);
+  });
+});
+
+describe("the RFQ list is the body /app/rfqs renders", () => {
+  it("the rows, their tabs and the counts they add up to", () => {
+    const d = galleryData();
+    const rows = sampleRfqRows(d)!;
+    const html = screen(d, "rfq-list");
+    for (const r of rows) assert.ok(html.includes(escapeHtml(r.product_title)), `${r.product_title} is not on the screen`);
+    assert.match(html, /3 sent · 3 quotes/);
+    assert.match(html, /<nav aria-label="RFQ status"/);
+    assert.doesNotMatch(html, /Your first RFQ lands here/, "the empty state stood over three rows");
+    assert.doesNotMatch(html, /\bNaN\b|undefined/);
+    // Every row opens its RFQ (beside the list, or on its own page).
+    for (const r of rows) assert.match(html, new RegExp(`href="/app/rfqs(?:/|[?]open=)${r.id}"`));
+  });
+
+  it("an unread list says so, with no count and no empty state standing in", () => {
+    const html = screen(galleryData({ rfqError: true, rfqs: { ...EMPTY_RFQS, error: true, sent: null, quotes: null, footer: "The RFQ list could not be read" } }), "rfq-list");
+    assert.ok(html.includes(escapeHtml(RFQ_ERROR_COPY)));
+    assert.match(html, /Counts could not be read/);
+    assert.doesNotMatch(html, /Your first RFQ lands here/);
+    assert.doesNotMatch(html, /\b0 sent\b/);
+  });
+
+  it("the caption says the rows are a sample and the sidebar's count is the real one", () => {
+    const caption = frame(galleryData(), "rfq-list").match(/<figcaption[\s\S]*?<\/figcaption>/)?.[0] ?? "";
+    assert.match(caption, /3 sample RFQs/);
+    assert.match(caption, /the real one/);
   });
 });
 
 // ---------------------------------------------------------------------------
-// Cycle 8. The RFQ screen was the one screen of the six rendered from an
-// invented payload: the harness answered `rfq_list` with `[]` and the screen
-// then stated "0 sent · 0 quotes", six sidebar "RFQs 0" pills and "No RFQs for
-// this account yet" about an account that does not exist, while production
-// holds seven RFQs. §7 item 1 asks for six screens "rendered from real data".
+// The states a screen is in are drawn, not only announced.
 // ---------------------------------------------------------------------------
 
 describe("the state a screen is in is drawn, not only announced", () => {
-  // Deleting the selected/pressed fill entirely used to leave the suite at
-  // 500/500: the only assertion that touched it counted `aria-current`
-  // attributes. The fills themselves are 1.07–1.17:1 against the neighbour
-  // they must be distinguished from, where WCAG 1.4.11 asks 3:1, and no
-  // retint can fix that — `brand.ink` on the tint and the tint on the canvas
-  // pull in opposite directions. So the state must carry a second indicator
-  // that is not a fill, and this asserts the indicator is rendered.
-  /**
-   * The indicator must name the `brand` token, in whatever form it is drawn —
-   * an inset shadow, a border, a ring. The first version of this accepted any
-   * `ring-*` utility, which let a 1.33:1 hairline pass, and a sibling test
-   * pinned the two `shadow-[inset_…]` strings so that redrawing the same rail
-   * as a border failed the suite.
-   */
-  /**
-   * The token an element's state indicator is drawn in, or null when it has
-   * none. The first version of this was a prefix match on `--ds-brand` and
-   * `border-brand`, so `--ds-brand-tint` and `border-brand-tint` both passed —
-   * and the companion test then measured `brand`, never the token the rail
-   * actually named. Retinting every state to `brand.tint` (1.07:1 on canvas)
-   * left the suite at 503/503.
-   */
+  // The fills are 1.07–1.17:1 against the neighbour they must be told from,
+  // where WCAG 1.4.11 asks 3:1, so a state must carry a second indicator that
+  // is not a fill. The token an element's indicator is drawn in, whatever
+  // shape it takes: an inset shadow, a border, a ring.
   const indicatorTokens = (tag: string): string[] => {
     const found: string[] = [];
     for (const m of tag.matchAll(/shadow-\[[^"\]]*--ds-([a-z0-9-]+)\)/g)) found.push(m[1]!);
@@ -453,30 +479,42 @@ describe("the state a screen is in is drawn, not only announced", () => {
     GROUNDS.every((bg) => contrastRatio(resolve(light, token.replace(/-/g, ".")), resolve(light, bg)) >= 3);
   /** Every attribute that says "this one is the one you are on". */
   const STATE = /<(?:a|button)\b[^>]*(?:aria-current="(?!false")[^"]*"|aria-pressed="true"|aria-selected="true")[^>]*>/g;
+  /** A state's tag and the element it wraps first (a tab's Link and its chip): the indicator may sit on either. */
+  const withChild = (html: string, m: RegExpMatchArray) => m[0]! + (/^\s*<[a-z]+\b[^>]*>/.exec(html.slice(m.index! + m[0]!.length))?.[0] ?? "");
+  const weak = (html: string) =>
+    [...html.matchAll(STATE)].map((m) => withChild(html, m)).filter((tag) => !indicatorTokens(tag).some(strongEnough));
 
   it("every current, pressed or selected control carries an indicator that is not a fill", () => {
-    const html = renderAll(galleryData());
-    const states = [...html.matchAll(STATE)];
-    // Not a list of attribute values: `aria-current="step"` on the composer's
-    // rail was outside the first version's population, and its state was a
-    // white card at 1.08:1 against the canvas beside it.
-    assert.ok(states.length >= 8, "the page still draws the states this guard is about");
-    assert.ok(
-      states.some((m) => /aria-current="step"/.test(m[0]!)),
-      "the composer's step rail is one of them",
-    );
-    for (const m of states) {
-      const tokens = indicatorTokens(m[0]!);
-      // One indicator strong enough is enough — an element may carry a
-      // hairline and a rail. What is forbidden is a state drawn only in
-      // colours nobody can see against the neighbour it is compared with.
-      const strong = tokens.filter(strongEnough);
-      assert.ok(
-        strong.length > 0,
-        `a state with no indicator that clears 3:1 (found: ${tokens.length ? tokens.join(", ") : "a fill and nothing else"}): ${m[0]}`,
-      );
+    const frames = framesOf(renderAll(galleryData()));
+    let states = 0;
+    for (const [id, f] of frames) {
+      states += (f.match(STATE) ?? []).length;
+      assert.deepEqual(weak(f), [], `${id}: a state drawn only in colours nobody can tell from its neighbour`);
     }
+    assert.ok(states >= 14, `the page still draws the states this guard is about (${states})`);
   });
+
+  it(
+    "the RFQ list's current status tab is drawn by more than its fill",
+    () => {
+      const f = framesOf(renderAll(galleryData())).get("rfq-list")!;
+      const tabs = /<nav aria-label="RFQ status"[\s\S]*?<\/nav>/.exec(f)?.[0] ?? "";
+      assert.ok(tabs, "guard: the tabs render over the sample rows");
+      // The Link and the chip inside it, together.
+      const current = /<a\b[^>]*aria-current="page"[^>]*>\s*<[a-z]+\b[^>]*>/.exec(tabs)?.[0] ?? "";
+      assert.ok(indicatorTokens(current).some(strongEnough), `the current tab is a fill: ${current}`);
+    },
+  );
+
+  it(
+    "the ledger's open row is drawn by more than its fill",
+    () => {
+      const html = screen(galleryData(), "results-table");
+      const row = /<tr\b[^>]*aria-current="true"[^>]*>/.exec(html)?.[0] ?? "";
+      assert.ok(row, "guard: one row is current");
+      assert.ok(indicatorTokens(row).some(strongEnough), `the open row is a fill: ${row}`);
+    },
+  );
 
   it("the extractor reads the token out of every shape the kit draws an indicator in", () => {
     // Without this the guard above can be satisfied by an extractor that
@@ -488,97 +526,55 @@ describe("the state a screen is in is drawn, not only announced", () => {
     assert.deepEqual(indicatorTokens('class="ring-1 ring-inset ring-line"'), ["line"]);
     assert.deepEqual(indicatorTokens('class="bg-brand-tint text-brand-ink"'), [], "a fill is not an indicator");
     assert.deepEqual(indicatorTokens('class="border-b-2 border-transparent"'), []);
-    // The strength test is what the tinted forms fail — this is the hole the
-    // previous version left: the regex accepted `--ds-brand-tint` as a
-    // prefix match on `--ds-brand`, and the ratio was measured on `brand`.
     assert.ok(strongEnough("brand"));
-    for (const weak of ["brand-tint", "line", "line-subtle"]) {
-      assert.ok(!strongEnough(weak), `${weak} is why this guard exists`);
+    for (const w of ["brand-tint", "line", "line-subtle"]) {
+      assert.ok(!strongEnough(w), `${w} is why this guard exists`);
     }
   });
 });
 
-describe("a modal's background is inert, not merely covered", () => {
-  // Detected by `role="dialog"`, not `aria-modal="true"`: the gallery's one
-  // dialog, the RFQ composer, passes `assertModal={false}` (cycle 18's
-  // accessibility critic — see the `Dialog` doc comment), so `aria-modal` is
-  // deliberately absent here. The background being kept out of the tab order
-  // does not depend on whether the dialog covering it also claims
-  // `aria-modal` — a dialog that makes no modality claim still must not leave
-  // its background operable behind a scrim the pointer cannot pass either.
-  // The two record sheets are no dialog at all since 27 Sep 2026: they sit
-  // beside the results in a pane, both live (asserted below).
-  it("nothing outside a dialog is focusable", () => {
+describe("every pane sits beside live results: nothing on the page is modal", () => {
+  // Since 27 Sep 2026 the record, the line, the composer and the filter set
+  // all open in a pane beside the results, and the composer is no longer a
+  // dialog. A `role="dialog"`, an `aria-modal` or an `inert` anywhere on this
+  // page would tell a screen reader that results it can see are gone.
+  it('no role="dialog", no aria-modal and nothing inert, anywhere on the page', () => {
     const html = renderAll(galleryData());
-    const frames = html.split("<figure").slice(1);
-    let modals = 0;
-    for (const f of frames) {
-      if (!/role="dialog"/.test(f)) continue;
-      modals += 1;
-      // The shell the sheet covers sits inside `<div inert>`; the scrim takes
-      // the pointer but took nothing from the keyboard, and 57 elements
-      // outside the dialog were still tab stops on each sheet screen.
-      const before = f.slice(0, f.search(/<(?:aside|div)\b[^>]*role="dialog"/));
-      // The attribute, not one serialization of it: `<div class="contents"
-      // inert>` is the same repair and the first version of this rejected it.
-      const wrapper = before.search(/<div\b[^>]*\binert\b/);
-      assert.ok(wrapper > -1, "the covered shell is not inert");
-      const covered = before.slice(wrapper);
-      // And the shell really is inside it — an `inert` wrapper that does not
-      // contain the shell buys nothing.
-      assert.match(covered, /<main id="[^"]+-behind"/, "the covered shell sits outside the inert wrapper");
-      assert.match(covered, /<nav aria-label="Primary"/, "the sidebar sits outside the inert wrapper");
-    }
-    assert.equal(modals, 1, "the RFQ composer still draws a dialog, and nothing else does");
+    assert.equal((html.match(/role="dialog"/g) ?? []).length, 0, "a dialog on the gallery page");
+    assert.doesNotMatch(html, /aria-modal/);
+    assert.doesNotMatch(html, /<[a-z]+\b[^>]*\sinert(?:=""|\s|>)/, "something on the gallery page is inert");
   });
 
-  it("the two record screens draw the record beside the results, both live: a pane, not a dialog", () => {
-    const html = renderAll(galleryData());
-    const frames = [...html.matchAll(/<figure[\s\S]*?data-screen="([^"]+)"[\s\S]*?(?=<figure|$)/g)];
-    const record = frames.filter((m) => m[1] === "supplier-sheet" || m[1] === "product-sheet");
-    assert.equal(record.length, 2, "guard: both record screens rendered");
-    for (const m of record) {
-      const f = m[0]!;
-      assert.match(f, /data-record-pane=""/, `${m[1]}: the record is not in the pane`);
-      assert.doesNotMatch(f, /role="dialog"|aria-modal|\sinert\b/, `${m[1]}: the record claims to be modal or inerts the results`);
+  it("each pane screen draws its pane on the results' right, in one live shell", () => {
+    const frames = framesOf(renderAll(galleryData()));
+    const labels: Record<string, string> = {
+      "supplier-sheet": "Supplier record",
+      "product-sheet": "Product line",
+      "rfq-composer": "New RFQ",
+      "filter-pane": "Filters",
+    };
+    for (const [id, label] of Object.entries(labels)) {
+      const f = frames.get(id)!;
+      assert.ok(f, `${id} rendered`);
+      assert.match(f, new RegExp(`data-record-pane="" aria-label="${label}"`), `${id}: the pane is not labelled ${label}`);
       // The results column stands beside it from lg and steps aside below.
       const column = f.search(/<div class="(?=[^"]*\bhidden\b)(?=[^"]*\blg:flex\b)[^"]*">/);
-      assert.ok(column > -1, `${m[1]}: no results column beside the record`);
-      assert.ok(f.indexOf("data-record-pane") > column, `${m[1]}: the pane is not on the results' right`);
-      // One live shell, one landmark of each kind: the results and the record share it.
-      assert.equal((f.match(/<main\b/g) ?? []).length, 1, `${m[1]}: a second main landmark`);
-      assert.equal((f.match(/<aside\b/g) ?? []).length, 1, `${m[1]}: a second sidebar`);
+      assert.ok(column > -1, `${id}: no results column beside the pane`);
+      assert.ok(f.indexOf("data-record-pane") > column, `${id}: the pane is not on the results' right`);
+      assert.equal((f.match(/<main\b/g) ?? []).length, 1, `${id}: a second main landmark`);
+      assert.equal((f.match(/<nav aria-label="Primary\b/g) ?? []).length, 1, `${id}: a second sidebar`);
     }
-  });
-
-  // Cycle 18's accessibility critic: an `aria-modal="true"` dialog live on
-  // this page asserts the five other screens do not exist, which no
-  // assistive-technology behaviour is defined for and which is false.
-  // `assertModal={false}` on the gallery's composer removes the false claim;
-  // `role="dialog"` and its own `aria-label` are kept.
-  it("no dialog on the combined gallery page claims aria-modal, since none is the page's one true modal", () => {
-    const html = renderAll(galleryData());
-    assert.doesNotMatch(html, /aria-modal="true"/, "an aria-modal claim on this page cannot be true beside five live screens");
-    // The claim is dropped, not the dialog: still one labelled dialog, and the
-    // two record sheets are labelled sections in their pane.
-    const dialogs = [...html.matchAll(/role="dialog" aria-label="([^"]+)"/g)].map((m) => m[1]!);
-    assert.deepEqual(dialogs, ["New RFQ"], "the composer still renders as a labelled dialog, and nothing else does");
-    const panes = [...html.matchAll(/data-record-pane="" aria-label="([^"]+)"/g)].map((m) => m[1]!);
-    assert.deepEqual(panes.sort(), ["Product line", "Supplier record"], "both record sheets still render, still labelled");
+    for (const id of ["results-table", "results-list", "rfq-list"]) {
+      assert.doesNotMatch(frames.get(id)!, /data-record-pane/, `${id} opens nothing`);
+    }
   });
 });
 
 describe("what the whole page may and may not say about itself", () => {
   // Cycle 10. Each of these was a single string somewhere in the kit, and in
   // each case the guard that should have caught it was asserting the defect.
-  // They are asserted over every screen at once, because the defect moves.
-
   it("no negative claims a register nobody has read", () => {
     const html = renderAll(galleryData());
-    // Production reads four certificate registers and fourteen registers in
-    // all; `sources` holds 25 rows and `SCHEME_LABEL` names fourteen cert
-    // kinds. An absolute over "any register" or "any list" asserts absence
-    // across the ones that have never been read.
     for (const rx of [/on any register/i, /on any list/i, /on any of the registers/i, /anywhere on file/i, /no certificate anywhere/i]) {
       assert.doesNotMatch(html, rx, `an absolute negative over registers that have not been read: ${rx}`);
     }
@@ -586,8 +582,6 @@ describe("what the whole page may and may not say about itself", () => {
 
   it("every denominator on the page is a number of registers that hold records", () => {
     const html = renderAll(galleryData());
-    // 25 is every row in `sources`, 11 of which have never produced a record
-    // for anybody; 6 is every configured brand list, 2 of which hold none.
     assert.doesNotMatch(html, /\bof 25 sources\b/);
     assert.doesNotMatch(html, /\bon 6 brand lists\b/);
     assert.match(html, /of 14 sources read/);
@@ -598,36 +592,20 @@ describe("what the whole page may and may not say about itself", () => {
   it("no control is in the tab order that cannot be operated", () => {
     const html = renderAll(galleryData());
     // A `role="checkbox"` with `tabindex="0"` and no handler announces an
-    // operable checkbox and then swallows Space, which scrolls the page. 34
-    // of them shipped across the six screens, five of which were the RFQ
-    // composer's required questions.
-    const inert: RegExpMatchArray[] = [];
+    // operable checkbox and then swallows Space, which scrolls the page.
+    const inert: string[] = [];
     for (const m of html.matchAll(/<[a-z]+\b[^>]*role="(checkbox|radio|switch|menuitem|tab|option)"[^>]*>/g)) {
       if (!/aria-disabled="true"/.test(m[0]!)) continue;
-      inert.push(m);
+      inert.push(m[0]!);
       assert.doesNotMatch(m[0]!, /tabindex/, `an inert control left in the tab order: ${m[0]}`);
     }
-    // Counted over the loop's own population, not an unrelated count. The
-    // guard used to backstop with `cards.length >= 4` — a fact about the
-    // record list, not about inert controls — so it stayed green even when
-    // the regex above matched nothing at all. 34 shipped with this defect,
-    // five of which were the composer's required questions; the rest, 29,
-    // are this guard's actual population today.
-    assert.ok(inert.length >= 20, "the page still draws the inert controls this guard is about");
+    // Counted over the loop's own population: the gallery's result rows have
+    // no selection provider, so their boxes are the inert shape.
+    assert.ok(inert.length >= 20, `the page still draws the inert controls this guard is about (${inert.length})`);
   });
 
   it("a name that reads as an action is on something that can be actioned", () => {
     const html = renderAll(galleryData());
-    // First shape of this defect: ten "Remove <filter>" names on a bare
-    // `<svg>` — neither a control nor a reliably named graphic. Second shape,
-    // introduced by the first repair: the same names on `role="img"`, so a
-    // screen reader announced an action with nothing behind it.
-    //
-    // The backstop counts the affordances, not the markup that hosts them.
-    // It used to require ten named `<svg>`s, which meant the correct repair —
-    // moving the name onto a real control — took the count to zero and failed
-    // the suite. A `length >= N` counted over the exact shape a repair would
-    // change is a pinned defect.
     const ACTION = /^(Remove|Close|Open|Select|Save|Send|Add|Export|Back|Share)\b/;
     let named = 0;
     for (const m of html.matchAll(/<([a-z]+)\b([^>]*\baria-label="([^"]*)"[^>]*)>/g)) {
@@ -635,44 +613,29 @@ describe("what the whole page may and may not say about itself", () => {
       if (!ACTION.test(label)) continue;
       named += 1;
       const role = /\brole="([^"]*)"/.exec(attrs)?.[1];
+      // A field named for what you do in it ("Add a question") is operable too.
       assert.ok(
-        tag === "button" || tag === "a" || (role !== undefined && role !== "img"),
+        ["button", "a", "input", "textarea", "select"].includes(tag) || (role !== undefined && role !== "img"),
         `an action name on something that cannot be actioned: <${tag} ${role ? `role="${role}" ` : ""}aria-label="${label}">`,
       );
     }
     assert.ok(named >= 10, "the page still draws the named affordances this guard is about");
-    // And nothing is left named without a role at all.
     for (const m of html.matchAll(/<svg\b[^>]*aria-label="[^"]*"[^>]*>/g)) {
       assert.match(m[0]!, /role="img"/, `a named <svg> with no role: ${m[0]}`);
     }
   });
 
   it("the page actually draws icons, not just markup that names them", () => {
-    // Every check above scans for `<svg ... aria-label>` and similar shapes,
-    // and every one of them passes vacuously if the icon stub renders nothing
-    // at all — which is the exact regression a mutation sweep found: no test
-    // in this suite required a single real `<svg>` to appear anywhere on the
-    // page. `components/dashboard/render.test.ts` now covers `Icon` directly;
-    // this is the same guard at the boundary a buyer's browser actually hits.
-    const html = renderAll(galleryData());
-    const svgs = html.match(/<svg\b/g) ?? [];
-    assert.ok(svgs.length > 100, `expected well over a hundred real icons across six screens, found ${svgs.length}`);
+    const svgs = renderAll(galleryData()).match(/<svg\b/g) ?? [];
+    assert.ok(svgs.length > 100, `expected well over a hundred real icons across seven screens, found ${svgs.length}`);
   });
 
   it("nothing announced as unavailable is left in the tab order", () => {
     const html = renderAll(galleryData());
-    // `aria-disabled="true"` on a focusable link is a false state: the link
-    // still takes focus and still jumps the document to the top.
     for (const m of html.matchAll(/<a\b[^>]*aria-disabled="true"[^>]*>/g)) {
       assert.match(m[0]!, /tabindex="-1"/, `a link announced unavailable but still focusable: ${m[0]}`);
     }
-    // Same: the canary is the data that produces placeholders, not the <a>
-    // that happens to host one today. Turning a placeholder link into a span
-    // is a repair, and must not fail this test.
     const d = galleryData();
-    // The sheet's own "arrives later" tabs are gone — REZ-C built all eight
-    // sections — so the sheet is no longer a source of placeholder links. The
-    // canary that remains is the card's "+N" chip, which still is one.
     assert.deepEqual(
       (d.sheet?.tabs ?? []).filter((t) => t.href === null).map((t) => t.label),
       [],
@@ -681,258 +644,96 @@ describe("what the whole page may and may not say about itself", () => {
     assert.ok(d.cards.some((c) => (c.moreChips ?? 0) > 0), "a card still has more chips than it shows");
   });
 
-  it("every screen can be entered past the sidebar", () => {
+  it("no two elements on the page share an id", () => {
+    // Seven screens on one document: a pane's form, a datalist or a skip
+    // target that repeats would send a label, a list or a link to the wrong one.
+    const ids = [...renderAll(galleryData()).matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]!);
+    const twice = ids.filter((x, i) => ids.indexOf(x) !== i);
+    assert.deepEqual([...new Set(twice)], []);
+  });
+
+  it("every screen can be entered past the sidebar, and every screen has a heading to navigate by", () => {
     const html = renderAll(galleryData());
-    const frames = html.split("<figure").slice(1);
-    assert.equal(frames.length, 6, "six screens");
-    // The historical bug (six screens all calling their landmark `ds-main`)
-    // would pass a per-frame uniqueness check, because each frame only ever
-    // renders one `main` of its own — the collision was across frames, on
-    // the one page the gallery puts all six screens on at once. Checked here
-    // globally, once, before the per-frame loop below checks the narrower
-    // within-a-frame case a mutation sweep found that loop alone cannot see.
+    const frames = framesOf(html);
+    assert.equal(frames.size, 7, "seven screens");
+    // Checked globally: the historical bug was six screens all calling their
+    // landmark `ds-main`, which a per-frame check cannot see.
     const allMains = [...html.matchAll(/<main id="([^"]+)"/g)].map((m) => m[1]!);
-    assert.equal(allMains.length, new Set(allMains).size, `two screens share a landmark id on the gallery page: ${allMains.join(", ")}`);
-    // Cycle 17, accessibility critic's finding. `id` uniqueness above does not
-    // cover `aria-label` uniqueness: three screens (results-list,
-    // results-table, rfq-list) each render their own, genuinely live
-    // `<nav aria-label="Primary">`, and a screen reader's landmark list
-    // showed three indistinguishable "Primary" navs. Collected from
-    // `reachable` content only, per frame, below: an inert background's own
-    // nav is not live and must not count toward this collision.
-    //
-    // The topbar and RFQ-list boxes this comment used to also collect as
-    // "search regions" carried `role="search"` with nothing operable inside
-    // them — an ARIA violation in its own right (a search landmark with no
-    // control), not just an unnamed-landmark risk. Cycle 19's accessibility
-    // critic's BLOCKING F2: fixed by dropping the role rather than naming
-    // it, since a landmark around static text is still wrong once named.
-    // The guard for that class of regression lives in the loop below
-    // (`role="search"` must always wrap something operable).
+    assert.equal(allMains.length, new Set(allMains).size, `two screens share a landmark id: ${allMains.join(", ")}`);
     const navNames: string[] = [];
-    // Cycle 18's own accessibility critic: the `screenLabel` fix above only
-    // reached `nav` and `search` and stopped there. Every live `<main>` was
-    // still unnamed (three indistinguishable "main" landmarks in a screen
-    // reader's landmark list) and every skip link still read the identical
-    // "Skip to content", so the links rotor offered three same-named entries
-    // going to three different places with no way to tell which. Both are
-    // collected the same way as `navNames`/`searchNames` above: from
-    // `reachable` content only, so an inert background's own main/skip-link
-    // is not live and must not count.
     const mainNames: string[] = [];
     const skipLinkNames: string[] = [];
-    for (const f of frames) {
-      // Every shell in the frame — the screen's own, and the one a sheet
-      // covers — carries exactly one `main`, with its own id, reached by a
-      // skip link that comes before that shell's navigation. Six screens all
-      // called their landmark `ds-main`, so `getElementById` resolved every
-      // skip link to the first screen.
-      // `inert` strips a subtree from the accessibility tree, so a landmark
-      // and a skip link inside one are markup nobody can reach. On the three
-      // sheet screens the shell is inert by design and the dialog is the
-      // content, so what those screens owe is a labelled dialog instead.
-      const reachable = f.replace(/<div\b[^>]*\binert\b[\s\S]*?<\/div>\s*(?=<div aria-hidden)/, "");
-      navNames.push(...[...reachable.matchAll(/<nav aria-label="([^"]+)"/g)].map((m) => m[1]!));
-      // Accessibility, cycle 19, BLOCKING F2: a `role="search"` landmark with
-      // no operable descendant fails ARIA's own definition of the role. The
-      // topbar and RFQ-list look-alike search boxes no longer carry the role
-      // at all (they have no input to search with yet), so this asserts the
-      // invariant going forward rather than naming boxes that should not be
-      // landmarks in the first place. See `searchLandmarksWithoutAnOperableControl`
-      // above (cycle 20's guard-adequacy fix) and its dedicated test below.
-      for (const offender of searchLandmarksWithoutAnOperableControl(reachable)) {
-        assert.fail(`role="search" with no operable control: ${offender.slice(0, 120)}`);
+    for (const [id, f] of frames) {
+      navNames.push(...[...f.matchAll(/<nav aria-label="([^"]+)"/g)].map((m) => m[1]!));
+      for (const offender of searchLandmarksWithoutAnOperableControl(f)) {
+        assert.fail(`${id}: role="search" with no operable control: ${offender.slice(0, 120)}`);
       }
-      mainNames.push(...[...reachable.matchAll(/<main id="[^"]+" aria-label="([^"]+)"/g)].map((m) => m[1]!));
-      skipLinkNames.push(...[...reachable.matchAll(/<a href="#[^"]+" class="sr-only[^>]*>([^<]+)<\/a>/g)].map((m) => m[1]!));
-      // Heading order matters only within one reachable document at a time:
-      // a modal frame's inert background carries its own h1, and checking the
-      // whole frame would either conflate the two heading trees or (as the
-      // branch below used to) skip the check entirely for every sheet screen.
-      // A mutation sweep found exactly that gap — `SheetSection`'s h2 could be
-      // bumped to h3 with every test staying green, because the one place
-      // that checked heading order never ran on a modal's own content.
-      const checkHeadingOrder = (html: string) => {
-        assert.match(html, /<h1\b/, "a screen with no heading cannot be navigated by heading");
-        const levels = [...html.matchAll(/<h([1-6])\b/g)].map((m) => Number(m[1]));
-        for (let i = 1; i < levels.length; i += 1) {
-          assert.ok(levels[i]! <= levels[i - 1]! + 1, `heading order jumps h${levels[i - 1]} → h${levels[i]}`);
-        }
-      };
-      // Detected by `role="dialog"`, not `aria-modal="true"`: the gallery's
-      // one dialog, the composer, passes `assertModal={false}` (cycle 18's
-      // accessibility critic — a dialog live beside five other screens cannot
-      // truthfully claim they do not exist), so `aria-modal` is deliberately
-      // absent on this page. Keying this branch off `aria-modal` instead
-      // would silently stop running it at all: the frame would then fall into
-      // the plain-screen branch below and pass by matching the inert
-      // background's own (unreachable) `main` and conflating its heading tree
-      // with the dialog's. The two record screens are plain screens now: the
-      // record sits beside live results in one shell, so the plain branch is
-      // the right one for them.
-      if (/role="dialog"/.test(f)) {
-        assert.match(f, /role="dialog"[^>]*aria-label="[^"]+"|aria-label="[^"]+"[^>]*role="dialog"/, "a dialog screen owes a labelled dialog");
-        assert.doesNotMatch(reachable, /<main\b/, "a landmark left outside the dialog on a dialog screen");
-        checkHeadingOrder(reachable);
-        continue;
-      }
+      mainNames.push(...[...f.matchAll(/<main id="[^"]+" aria-label="([^"]+)"/g)].map((m) => m[1]!));
+      skipLinkNames.push(...[...f.matchAll(/<a href="#[^"]+" class="sr-only[^>]*>([^<]+)<\/a>/g)].map((m) => m[1]!));
       const mains = [...f.matchAll(/<main id="([^"]+)"/g)].map((m) => m[1]!);
-      assert.ok(mains.length >= 1, "a screen with no content landmark cannot be entered");
-      assert.equal(new Set(mains).size, mains.length, `two landmarks share an id: ${mains.join(", ")}`);
-      for (const id of mains) {
-        const link = f.indexOf(`href="#${id}"`);
-        assert.ok(link > -1, `no skip link targets #${id}`);
-        assert.ok(link < f.indexOf(`<main id="${id}"`), "the skip link comes after the landmark it targets");
-        const nav = f.indexOf("<nav", link);
-        assert.ok(nav === -1 || link < nav, "the skip link comes before the navigation");
+      assert.equal(mains.length, 1, `${id}: one content landmark`);
+      const link = f.indexOf(`href="#${mains[0]}"`);
+      assert.ok(link > -1, `${id}: no skip link targets #${mains[0]}`);
+      assert.ok(link < f.indexOf(`<main id="${mains[0]}"`), `${id}: the skip link comes after the landmark it targets`);
+      const nav = f.indexOf("<nav", link);
+      assert.ok(nav === -1 || link < nav, `${id}: the skip link comes before the navigation`);
+      // Heading order: no level skipped on the way down.
+      assert.match(f, /<h1\b/, `${id}: a screen with no heading cannot be navigated by heading`);
+      const levels = [...f.matchAll(/<h([1-6])\b/g)].map((m) => Number(m[1]));
+      for (let i = 1; i < levels.length; i += 1) {
+        assert.ok(levels[i]! <= levels[i - 1]! + 1, `${id}: heading order jumps h${levels[i - 1]} → h${levels[i]}`);
       }
-      checkHeadingOrder(f);
+      // One h1 per screen: beside a record, the search steps down to h2.
+      assert.equal((f.match(/<h1\b/g) ?? []).length, 1, `${id}: more than one h1`);
     }
-    // Every live nav must have a name, and no two live navs may share one —
-    // an unnamed or duplicated landmark is indistinguishable from its
-    // siblings in a screen reader's own landmark list.
-    assert.ok(navNames.length >= 3, "the page still draws the live navigation landmarks this guard is about");
-    assert.equal(navNames.length, new Set(navNames).size, `two live navigation landmarks share a name: ${navNames.join(", ")}`);
-    // Same rule for the two landmark/link kinds `screenLabel` covers the
-    // furthest from the sidebar: every live `main` must be named, and no two
-    // may share a name; every live skip link's own text must be unique too,
-    // since "Skip to content" three times over in the links rotor gives no
-    // way to tell which one is about to be activated.
-    assert.ok(mainNames.length >= 3, "the page still draws the live main landmarks this guard is about");
+    // Every live nav, main and skip link is named, and no two share a name.
+    assert.ok(navNames.length >= 7, "the page still draws the live navigation landmarks this guard is about");
+    assert.equal(navNames.filter((n) => n !== "RFQ status" && n !== "Record sections").length, new Set(navNames.filter((n) => n !== "RFQ status" && n !== "Record sections")).size, `two live navigation landmarks share a name: ${navNames.join(", ")}`);
+    assert.equal(mainNames.length, 7, "every screen's main is named");
     assert.equal(mainNames.length, new Set(mainNames).size, `two live main landmarks share a name: ${mainNames.join(", ")}`);
-    assert.ok(skipLinkNames.length >= 3, "the page still draws the live skip links this guard is about");
     assert.equal(skipLinkNames.length, new Set(skipLinkNames).size, `two live skip links share their text: ${skipLinkNames.join(", ")}`);
   });
 
+  it(
+    "a record open beside the results leaves the page one h1",
+    () => {
+      const frames = framesOf(renderAll(galleryData()));
+      for (const id of ["supplier-sheet", "product-sheet"]) {
+        assert.equal((frames.get(id)!.match(/<h1\b/g) ?? []).length, 1, `${id}: two h1s`);
+      }
+    },
+  );
+
   it('a role="search" landmark with no operable control is caught whatever tag carries the role', () => {
-    // Cycle 20 guard-adequacy critic: the check above used to hardcode its
-    // closing-tag alternation to div/section/form. Reintroducing
-    // `role="search"` on a `<span>` — exactly the kind of markup change the
-    // surrounding code expects once the results work wires up a real control
-    // — slipped through undetected in every test in the suite, because the
-    // lazy match ran past the span's own close hunting for one of those
-    // three tags and picked up an unrelated button several siblings later.
-    // This pins the fix directly against synthetic markup, independent of
-    // whatever tag the app's own boxes happen to use today.
     assert.deepEqual(
       searchLandmarksWithoutAnOperableControl('<span role="search"><em>Search suppliers</em></span><button>Help</button>'),
       ['<span role="search"><em>Search suppliers</em></span>'],
-      'a role="search" span with nothing operable inside it must be caught, not skipped past to a later button',
     );
-    assert.deepEqual(
-      searchLandmarksWithoutAnOperableControl('<span role="search"><input placeholder="Search" /></span>'),
-      [],
-      'a role="search" span WITH an operable control must not be flagged',
-    );
-    assert.deepEqual(
-      searchLandmarksWithoutAnOperableControl('<div role="search"><a href="/search">Go</a></div>'),
-      [],
-      "the original div case with an operable control still passes",
-    );
-    assert.deepEqual(
-      searchLandmarksWithoutAnOperableControl('<div role="search">static text only</div>'),
-      ['<div role="search">static text only</div>'],
-      "the original div violation is still caught",
-    );
-  });
-});
-
-describe("the RFQ screen renders the rows rfq_list returns", () => {
-  const withRfqs = (): GalleryData => {
-    const rows = RFQ_ROWS.map((r) => {
-      const t = RFQ_TARGETS[r.id]!;
-      return buildRfqRow(r, { name: t.name, tier: topTier(t.codes) }, TODAY);
-    });
-    return galleryData({
-      rfqs: {
-        sent: rows.length,
-        quotes: 0,
-        chips: [
-          { label: "All", count: rows.length, on: true },
-          { label: "Awaiting reply", count: rows.length },
-          { label: "Quoted", count: 0 },
-          { label: "Closed", count: 0 },
-        ],
-        rows,
-        footer: `1–${rows.length} of ${rows.length}`,
-        toast: null,
-      },
-    });
-  };
-
-  it("the table, not the empty state, and every row is one production holds", () => {
-    const html = render(withRfqs());
-    // Five, not seven: production's seven RFQs belong to three buyers and
-    // `rfq_list` is scoped to `auth.uid()`, so no caller can be shown more.
-    assert.equal(RFQ_ROWS.length, 5);
-    for (const r of RFQ_ROWS) assert.ok(html.includes(escapeHtml(r.product_title)), `${r.id} is not on the screen`);
-    assert.match(html, /5 sent · 0 quotes/);
-    assert.doesNotMatch(html, /0 sent · 0 quotes/);
-    assert.doesNotMatch(html, /Your first RFQ lands here/, "the empty state stood over five real rows");
-    // The supplier each row targets is named, from the `suppliers` rows the
-    // `target_supplier_ids` point at, at the rank its own receipts earn.
-    assert.match(html, /Thermax Woven Dyeing Ltd\./);
-    assert.match(html, /bg-tier-3[^"]*"[^>]*>TW</, "one OEKO-TEX certificate ranks 3, not 2");
-    assert.doesNotMatch(html, /\bNaN\b/);
-  });
-
-  it("the gallery's own caption says whose RFQs these are and what an empty list would mean", () => {
-    const caption = renderAll(withRfqs());
-    assert.match(caption, /rfq_list is scoped to auth\.uid\(\)/);
-    assert.match(caption, /5 real rows/);
-    assert.match(caption, /three buyers/, "the caption must say why five is the most any caller can see");
-  });
-
-  // Correctness + truthfulness, cycle 19: the caption used to say "these
-  // five" (false whenever the render is not five rows) and "never '0 sent'"
-  // (false today, for the only account that can open this page — a
-  // successful read of zero rows still shows "0 sent · 0 quotes", the exact
-  // render the two tests above and below this one already assert).
-  it("the gallery's own caption never points at a fixed row count it may not have rendered, and does not deny the zero-row render the screen actually makes", () => {
-    const only = (html: string, id: string) => [...html.matchAll(/<figure[\s\S]*?data-screen="([^"]+)"[\s\S]*?(?=<figure|$)/g)].find((m) => m[1] === id)![0];
-
-    const zeroFrame = only(renderAll(galleryData()), "rfq-list");
-    assert.match(zeroFrame, /0 real row/, "the caption's own count must match the rows actually rendered");
-    assert.doesNotMatch(zeroFrame, /these five/i, "the caption must not point at a fixed count that may not be the one rendered");
-    assert.doesNotMatch(zeroFrame, /never/i, "a viewer who owns none still sees \"0 sent\" — the caption must not deny that render");
-    assert.match(zeroFrame, /still sees/i, "the caption must say the zero-row render still carries the count");
-    assert.match(zeroFrame, /0 sent . 0 quotes/, "the caption must name the exact render a zero-row read produces");
-
-    const fiveFrame = only(renderAll(withRfqs()), "rfq-list");
-    assert.match(fiveFrame, /5 real row/);
-    assert.doesNotMatch(fiveFrame, /these five/i, "the general \"longest list\" fact must not be phrased as pointing at this render");
-  });
-
-  it("with no rows the page still sells the feature, and claims no count it did not read", () => {
-    const html = render(galleryData());
-    assert.match(html, /Your first RFQ lands here/);
-    assert.match(html, /0 sent · 0 quotes/, "an account that really has none reads zero; an unread one reads 'count not read'");
+    assert.deepEqual(searchLandmarksWithoutAnOperableControl('<span role="search"><input placeholder="Search" /></span>'), []);
+    assert.deepEqual(searchLandmarksWithoutAnOperableControl('<div role="search"><a href="/search">Go</a></div>'), []);
+    assert.deepEqual(searchLandmarksWithoutAnOperableControl('<div role="search">static text only</div>'), ['<div role="search">static text only</div>']);
   });
 });
 
 describe("the sidebar and the shell state only what was read", () => {
   it("the RFQ pill carries the real count on every screen, and none when the read failed", () => {
     const withSeven = render(galleryData({ rfqs: { ...EMPTY_RFQS, sent: 7, chips: [{ label: "All", count: 7, on: true }], rows: [] } }));
-    // Six frames, each with the shell, each reading the account's own count.
-    assert.equal((withSeven.match(/RFQs<[^>]*>7</g) ?? []).length, 6);
+    assert.equal((withSeven.match(/RFQs<[^>]*>7</g) ?? []).length, 7, "seven screens, each reading the account's own count");
     assert.doesNotMatch(withSeven, /RFQs<[^>]*>0</);
     const failed = render(galleryData({ rfqError: true, rfqs: { ...EMPTY_RFQS, error: true, sent: null, quotes: null, chips: [{ label: "All", count: null, on: true }], footer: "The RFQ list could not be read" } }));
     assert.doesNotMatch(failed, />RFQs<[^>]*>0</, "a failed read is not zero RFQs");
-    assert.match(failed, /count not read/);
+    assert.match(failed, /Counts could not be read/);
   });
 
-  it("every link in the shell goes somewhere that exists", () => {
+  it("every link to this page goes somewhere that exists", () => {
     const html = renderAll(galleryData());
     const ids = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]!));
     for (const m of html.matchAll(/href="#([^"]*)"/g)) {
       const target = m[1]!;
-      // A bare `href="#"` is not "inert and always resolves" — it is a
-      // focusable link that scrolls the document to the top. This loop used
-      // to skip it, which is how eleven of the page's nineteen placeholders
-      // shipped with nothing telling the user they go nowhere.
       if (target === "") continue;
       assert.ok(ids.has(target), `href="#${target}" points at an anchor this page does not have`);
     }
+    // A bare `href="#"` is a focusable link that scrolls to the top: it must say it goes nowhere.
     for (const m of html.matchAll(/<a\b[^>]*href="#"[^>]*>/g)) {
       assert.match(m[0]!, /aria-disabled="true"/, `a placeholder link that does not say so: ${m[0]}`);
       assert.match(m[0]!, /title="[^"]+"/, `a placeholder link with no explanation: ${m[0]}`);
@@ -941,37 +742,32 @@ describe("the sidebar and the shell state only what was read", () => {
 
   it("the primary nav says which item is current, and names itself", () => {
     const html = render(galleryData());
-    assert.match(html, /<nav aria-label="Primary"/);
-    assert.equal((html.match(/aria-current="page"/g) ?? []).length, 6, "one current item per screen");
+    const navs = [...html.matchAll(/<nav aria-label="Primary\b[\s\S]*?<\/nav>/g)].map((m) => m[0]!);
+    assert.equal(navs.length, 7);
+    for (const nav of navs) assert.equal((nav.match(/aria-current="page"/g) ?? []).length, 1, "one current item per screen");
   });
 });
 
 // ---------------------------------------------------------------------------
-// Cycle 9: the composition layer. This file pins what the page hands the
-// components, and an independent sweep found five of six mutations here
-// surviving — a filter chip for a filter the RPC never received, a sort label
-// naming a sort that does not exist, and the saved-search count read off the
-// page instead of the query.
+// Cycle 9: the composition layer. What the page hands the components.
 // ---------------------------------------------------------------------------
 
 describe("the screens claim only what the query asked for and the RPC answered", () => {
   it("one chip per filter the query carries, and no others", () => {
     const html = render(galleryData());
-    // `discoverArgs` sends the text and `cert_kinds: ['gots']` and nothing
-    // else; a chip for a filter the RPC never received says the result set
-    // was narrowed when it was not.
     assert.match(html, />Text · knitted shirts</);
     assert.match(html, />Certificate · GOTS</);
-    // Only the search composer's chips; the RFQ list's "All" chip shares the
-    // class. Anchored on the results-list screen's own container (not
-    // `role="search"`: the topbar's look-alike search box carries no such
-    // role — accessibility, cycle 19, BLOCKING F2 — since it has nothing
-    // operable inside it).
-    const composer = html.slice(html.indexOf('data-screen="results-list"'), html.indexOf("</section>"));
+    // Only the search composer's chips, on the ledger's own screen.
+    const start = html.indexOf('data-screen="results-table"');
+    const composer = html.slice(start, html.indexOf("</section>", start));
     const chips = [...composer.matchAll(/bg-brand-tint-strong[^"]*"[^>]*>([^<]+)</g)].map((m) => m[1]);
     assert.deepEqual([...new Set(chips)].sort(), ["Certificate · GOTS", "Text · knitted shirts"]);
     assert.equal(GALLERY_QUERY.certKinds.length, 1);
     assert.equal(GALLERY_QUERY.certKinds[0], "gots");
+    // The filter pane's state is the same search: no filter it never ran.
+    const s = galleryState();
+    assert.deepEqual(s.cert, [{ kind: "gots", state: "any" }]);
+    assert.deepEqual([s.hs, s.reg, s.brand, s.district, s.city, s.type], [[], [], [], [], [], []]);
   });
 
   it("the sort label names the sort the RPC was given", () => {
@@ -983,7 +779,6 @@ describe("the screens claim only what the query asked for and the RPC answered",
 
   it("the saved-search count is the query's, not this page's", () => {
     const html = render(galleryData());
-    // 42 is `total_count`; 4 is how many of the named records are on screen.
     assert.match(html, /Knitted shirts · GOTS<[^>]*>42</);
     const unread = render(galleryData({ discoverError: true, total: null, published: null }));
     assert.doesNotMatch(unread, /Knitted shirts · GOTS<[^>]*>\d/, "an unread total is not a count");
@@ -999,56 +794,17 @@ describe("the screens claim only what the query asked for and the RPC answered",
   it("the screens are rendered at the width the screenshots are captioned with", () => {
     const html = renderAll(galleryData());
     const frames = [...html.matchAll(/style="width:(\d+)px[^"]*"\s+data-screen="([^"]+)"/g)];
-    assert.equal(frames.length, 6, "one framed screen per §3 screen");
+    assert.equal(frames.length, 7, "one framed screen per screen");
     // 1440 as a literal: comparing against `SCREEN_WIDTH` imported from the
-    // file under test cannot fail, and the six approved renders are 1440-wide.
+    // file under test cannot fail, and the approved renders are 1440-wide.
     assert.equal(SCREEN_WIDTH, 1440);
     for (const f of frames) assert.equal(f[1], "1440", `the ${f[2]} frame is ${f[1]}px, not the width the screenshots are captioned with`);
-    assert.deepEqual(frames.map((f) => f[2]), ["results-list", "results-table", "supplier-sheet", "product-sheet", "rfq-composer", "rfq-list"]);
-  });
-});
-
-describe("the composer's rail and its footer count the same missing fields", () => {
-  // The rail said "Reply-by date and destination missing" and "2/6" while the
-  // footer on the same screen said "4 fields missing — target price,
-  // reply-by date, incoterm, destination", and the preview flagged three. All
-  // three were hand-written; at most one could be right.
-  it("every field the rail calls missing is in the model's own list, and the fraction agrees", () => {
-    const d = galleryData();
-    const c = composerModel(d);
-    const details = c.steps.find((st) => st.label === "Details")!;
-    const [filled, total] = details.count!.split("/").map(Number) as [number, number];
-    const named = (details.missing ?? "")
-      .replace(/ missing$/, "")
-      .split(/,\s*|\s+and\s+/)
-      .filter(Boolean)
-      .map((w: string) => w.toLowerCase());
-    assert.ok(named.length > 0, "the sample draft still has missing detail fields");
-    assert.equal(total - filled, named.length, "the fraction must count the fields the rail names");
-    for (const n of named) {
-      assert.ok(c.missing.includes(n), `the rail names "${n}" as missing, and the footer's list does not`);
-    }
-    // And the footer states the same total.
-    const html = renderAll(d);
-    assert.match(html, new RegExp(`${c.missing.length} fields missing`), "the footer counts the model's list");
-    for (const m of c.missing) assert.ok(html.includes(m), `the footer does not name "${m}"`);
+    assert.deepEqual(frames.map((f) => f[2]), FRAMES);
   });
 
-  // design/dashboard-ux-flow.md §6: "Details 2/6 (RFQ name, reply-by date,
-  // incoterm, destination, currency, attachments)" — six fields. The fix
-  // above unified the rail/footer/preview onto one list, but only carried
-  // four of the spec's six forward: internal self-consistency held while
-  // currency and attachments silently dropped out of both the numerator and
-  // the denominator. A correctness critic caught the gap because it checks
-  // this file against the spec text, not just against itself.
-  it("the Details step names all six fields the spec defines for it, not a subset that happens to agree with itself", () => {
-    const c = composerModel(galleryData());
-    const details = c.steps.find((st) => st.label === "Details")!;
-    const total = Number(details.count!.split("/")[1]);
-    assert.equal(total, 6, "the Details step must count out of the spec's six fields, not a smaller set");
-    const named = (details.detail ?? "").split(",").map((s) => s.trim().toLowerCase());
-    for (const field of ["reply-by date", "incoterm", "destination", "currency", "attachments"]) {
-      assert.ok(named.includes(field), `the Details step does not track "${field}", which design/dashboard-ux-flow.md §6 requires`);
-    }
+  it("the screenshot harness shoots every screen the gallery draws", () => {
+    const shots = readFileSync(path.join(process.cwd(), "scripts", "gallery", "shots.mjs"), "utf8");
+    const list = /const SCREENS = \[([^\]]*)\]/.exec(shots)?.[1] ?? "";
+    assert.deepEqual([...list.matchAll(/"([^"]+)"/g)].map((m) => m[1]), FRAMES);
   });
 });

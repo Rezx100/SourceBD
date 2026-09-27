@@ -9,6 +9,7 @@ export type NavKey =
   | "search"
   | "suppliers"
   | "products"
+  | "headings"
   | "saved"
   | "searches"
   | "messages"
@@ -23,7 +24,10 @@ export type NavKey =
 export const NAV: readonly { key: NavKey; label: string; icon: IconName; href: string }[] = [
   { key: "search", label: "Search", icon: "search", href: "/app/discover" },
   { key: "suppliers", label: "Suppliers", icon: "building", href: "/app/discover" },
+  // The buyer's own product base (enterprise pass, 27 Sep 2026); the HS
+  // catalogue that used to sit at /app/products lives at /app/headings.
   { key: "products", label: "Products", icon: "tag", href: "/app/products" },
+  { key: "headings", label: "HS headings", icon: "list", href: "/app/headings" },
   { key: "saved", label: "Saved", icon: "bookmark", href: "/app/saved" },
   { key: "searches", label: "Saved searches", icon: "funnel", href: "/app/searches" },
   { key: "messages", label: "Messages", icon: "chat", href: "/app/messages" },

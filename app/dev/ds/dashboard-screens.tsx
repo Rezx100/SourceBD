@@ -1,13 +1,15 @@
-// The six buyer dashboard v3.2 screens in the gallery (REZ-A, handoff §7.1),
-// each rendered inside the app shell at 1440 from the real records loaded by
-// `lib/dashboard/gallery-data.ts`. The two record sheets sit beside the
-// results in a `RecordPane`, as /app/discover draws them (27 Sep 2026); only
-// the RFQ composer is still a dialog over a fixed-height stage.
+// The buyer screens in the gallery, each rendered inside the app shell at
+// 1440 from the real records loaded by `lib/dashboard/gallery-data.ts`, laid
+// out the way /app/discover draws them since the enterprise pass (27 Sep
+// 2026): the ledger grid first, the thumbnail cards as the switch's other
+// stop, and every record, line, composer and filter set in a pane BESIDE the
+// results — never a dialog over them. The RFQ list is the body /app/rfqs
+// renders.
 
 import type { ReactNode } from "react";
 import {
   AppShell,
-  MissingFlag,
+  DiscoverFilters,
   Panel,
   PanelFooter,
   PanelHeader,
@@ -16,42 +18,49 @@ import {
   ResultsColumn,
   ResultsTable,
   RfqComposer,
-  RfqList,
-  Scrim,
+  RfqListBody,
   SearchComposer,
-  Stage,
   SupplierResultCard,
   SupplierSheet,
-  type RfqComposerModel,
+  type ComposerPrefill,
+  type ComposerTarget,
+  type ResultsSortKey,
   type SidebarModel,
   type TopbarModel,
 } from "@/components/dashboard";
-import { certStateLabel, formatDay } from "@/lib/dashboard/facts";
-import { GALLERY_QUERY, topbarCaption, type GalleryData } from "@/lib/dashboard/gallery-data";
-import { heading4, hsShortLabel } from "@/lib/dashboard/hs-photos";
+import { Page } from "@/components/dashboard/page";
+import type { RfqRow } from "@/components/dashboard/rfq-pages";
+import { buildTableRow } from "@/lib/dashboard/build-models";
+import { formatDay } from "@/lib/dashboard/facts";
+import { GALLERY_QUERY, topbarCaption, type GalleryData, type GalleryRecord } from "@/lib/dashboard/gallery-data";
+import { heading4 } from "@/lib/dashboard/hs-photos";
+import type { TableRowModel } from "@/lib/dashboard/models";
+import { discoverHref, parseDiscoverState, type DiscoverState } from "@/lib/discover-v32-state";
 
 export const SCREEN_WIDTH = 1440;
+
+/** The frames, in the order the gallery draws them (and the screenshot harness shoots them). */
+export const SCREENS = ["results-table", "results-list", "supplier-sheet", "product-sheet", "rfq-composer", "filter-pane", "rfq-list"] as const;
 
 function shellModels(d: GalleryData, active: SidebarModel["active"]): { sidebar: SidebarModel; topbar: TopbarModel } {
   const sidebar: SidebarModel = {
     active,
     // Every count here is the RPC's or absent. A read that failed renders no
     // pill at all: a "0" beside RFQs is a claim about the account, and this
-    // sidebar is on all six screens.
+    // sidebar is on every screen.
     // The sidebar counts the account's RFQs, not the rows on this page —
     // `sent` is the figure `rfq_list` supports, and it is null when the read
     // failed. `saved` needs `buyer_dashboard.saved_count` (REZ-C), so it is
     // unknown rather than zero.
     counts: { suppliers: d.published, rfqs: d.rfqError ? null : d.rfqs.sent, saved: null },
-    recent: d.total !== null ? [{ label: GALLERY_QUERY.title, count: d.total, href: "#results-list" }] : [],
+    recent: d.total !== null ? [{ label: GALLERY_QUERY.title, count: d.total, href: "#results-table" }] : [],
     // No billing exists yet: the plan line names the beta, never a plan or renewal date (handoff §3.10).
     plan: { name: d.plan ?? "Free · public beta" },
   };
   // "4 records on this page, read …" is true of the screens that draw those
-  // four supplier records. The RFQ list draws five RFQs and no supplier
-  // record at all, and `rfq_list` returns no read date of any kind, so the
-  // clause is dropped there rather than carried by a shared shell. Making the
-  // caption specific is what made it false on one screen.
+  // supplier records. The RFQ list draws RFQs and no supplier record at all,
+  // and `rfq_list` returns no read date of any kind, so the clause is dropped
+  // there rather than carried by a shared shell.
   const drawsRecords = active !== "rfqs";
   const topbar: TopbarModel = {
     caption: topbarCaption(drawsRecords ? d : { published: d.published, recordsReadOn: null, recordsRead: null }),
@@ -61,11 +70,11 @@ function shellModels(d: GalleryData, active: SidebarModel["active"]): { sidebar:
 }
 
 /**
- * The results-table screen's own topbar. It is the one screen that draws
- * `extra` rows beside the four named records (`rowRecords` in
- * `gallery-data.ts`), so it is the one screen whose caption may state a
- * record count above 4 — every other caller of `shellModels` above shares one
- * topbar built from the narrower, named-only span.
+ * The ledger screen's own topbar. It is the one screen that draws `extra`
+ * rows beside the four named records (`rowRecords` in `gallery-data.ts`), so
+ * it is the one screen whose caption may state a record count above 4 —
+ * every other screen draws only the named records, and shares the narrower
+ * span.
  */
 function tableTopbarModel(d: GalleryData): TopbarModel {
   return { caption: topbarCaption({ published: d.published, recordsReadOn: d.tableRecordsReadOn, recordsRead: d.tableRecordsRead }), initial: null };
@@ -75,14 +84,11 @@ function tableTopbarModel(d: GalleryData): TopbarModel {
 const SELECTION = "the named test records of the rebuild spec";
 
 /**
- * What the table panel actually holds. `rows` is `cards` plus up to four
- * `extra` discovery rows the table draws and the cards never do (see
+ * What the ledger actually holds. `rows` is the named records plus up to four
+ * `extra` discovery rows the ledger draws and nothing else does (see
  * `tableRecordsRead` in `gallery-data.ts`); on a live read those extra rows
- * are routinely present (discovery's own top matches, not the named four),
- * so a caption claiming the table's rows are all "hand-picked" or "the same
- * … as the card view" is false the moment `extra` is non-empty. Only when
- * `rows.length === cards.length` — as it always is against the screenshot
- * harness's fixture stub — do the two views' populations coincide.
+ * are routinely present, so a caption calling them all "hand-picked" is false
+ * the moment `extra` is non-empty.
  */
 function tableSelection(d: GalleryData): string {
   const extraCount = d.rows.length - d.cards.length;
@@ -94,9 +100,26 @@ function header(d: GalleryData, view: "cards" | "table", shown: number, selectio
   // The count is the RPC's; when the RPC failed it is unknown (null), never 0.
   // `selection` because these rows are hand-picked: Zaheen and A.R. Fashion
   // hold no GOTS certificate, so they are not among the 42 the query returns,
-  // and "1–4" would be a range claim over a set they are not in — except on
-  // the table view once `extra` rows join them; see `tableSelection` above.
+  // and "1–4" would be a range claim over a set they are not in.
   return { title: GALLERY_QUERY.title, total: d.discoverError ? null : d.total, shown, sortLabel: "Most sources", view, selection };
+}
+
+/** The search these screens show, as the URL state /app/discover would parse: the text and the GOTS certificate kind, nothing else. */
+export function galleryState(): DiscoverState {
+  return parseDiscoverState(new URLSearchParams({ q: GALLERY_QUERY.q, cert: GALLERY_QUERY.certKinds.join(",") }));
+}
+
+/** The ledger's column sorts, as the URLs /app/discover would take. */
+const sortHrefs = Object.fromEntries(
+  (["name", "sources", "cert_expiry", "hs_lines", "workers"] as const).map((key) => [
+    key,
+    discoverHref(galleryState(), { sort: key as DiscoverState["sort"], page: 1 }),
+  ]),
+) as Record<ResultsSortKey, string>;
+
+/** A record's row slug: the profile's own, which is what the ledger keys rows on. */
+function slugOf(r: GalleryRecord | null): string | null {
+  return r?.input.profile.supplier.slug ?? null;
 }
 
 function Frame({ id, title, note, height, children }: { id: string; title: string; note: string; height?: number; children: ReactNode }) {
@@ -121,81 +144,207 @@ function Frame({ id, title, note, height, children }: { id: string; title: strin
 }
 
 /**
- * The results beside a record, as /app/discover lays them out from `lg`: the
- * results column scrolls on its own and the record sits in a `RecordPane` on
- * its right. The gallery has no URL to close to, so the pane carries no
- * `closeHref`.
+ * The search's workbench, as /app/discover lays it out: the results column
+ * scrolls on its own and, when something is open, a pane sits on its right.
+ * The gallery has no URL to close to, so its panes carry no `closeHref`.
  */
-function Workbench({ results, children }: { results: ReactNode; children: ReactNode }) {
+function Workbench({ results, pane }: { results: ReactNode; pane?: ReactNode }) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-      <ResultsColumn besideRecord>{results}</ResultsColumn>
-      <RecordPane>{children}</RecordPane>
+    <div className="relative flex min-h-0 flex-1 flex-col lg:flex-row">
+      <ResultsColumn besideRecord={Boolean(pane)}>{results}</ResultsColumn>
+      {pane}
     </div>
   );
 }
 
-function ResultsHeaderNote(d: GalleryData): string {
-  const total = d.total === null ? "the live count could not be read" : `${d.total} suppliers match the text "${GALLERY_QUERY.q}" with a GOTS certificate in production`;
-  return `The named test records of the rebuild spec, shown in the query's frame: ${d.cards.map((c) => c.name).join(" · ")} — hand-picked, not the query's first page (Zaheen and A.R. Fashion hold no GOTS certificate, so the RPC does not return them). ${total}. Zaheen is rendered as a labelled sanctioned SAMPLE — no company is sanctioned in production. Read ${formatDay(d.today.toISOString())}.`;
+function resultsNote(d: GalleryData): string {
+  const total =
+    d.total === null ? "the live count could not be read" : `${d.total} suppliers match the text "${GALLERY_QUERY.q}" with a GOTS certificate in production`;
+  const names = d.cards.map((c) => c.name).join(" · ");
+  return [
+    `The named test records of the rebuild spec, shown in the query's frame: ${names} — hand-picked, not the query's first page`,
+    "(Zaheen and A.R. Fashion hold no GOTS certificate, so the RPC does not return them).",
+    `${total}. Zaheen is rendered as a labelled sanctioned SAMPLE — no company is sanctioned in production. Read ${formatDay(d.today.toISOString())}.`,
+  ].join(" ");
+}
+
+/** The Aboni record as the composer's target: facts only, the same fields the routes read from the suppliers table. */
+export function composerTargets(d: GalleryData): ComposerTarget[] {
+  const rec = d.records.aboni;
+  if (!rec) return [];
+  const row = buildTableRow(rec.input);
+  return [
+    {
+      id: rec.input.profile.supplier.id,
+      slug: row.slug,
+      name: row.name,
+      initials: row.initials,
+      tier: row.topTier,
+      marks: row.marks,
+      place: row.place,
+      type: row.type,
+      sanctioned: row.sanctioned,
+      sanctionSample: row.sanctionSample,
+    },
+  ];
+}
+
+/**
+ * The buyer's own draft fields, as a sample: the product, its quantity and
+ * its ship-by date are what a buyer types, so no record can supply them. The
+ * HS line is one the record really carries; with none read, the draft names
+ * no line.
+ */
+export function composerPrefill(d: GalleryData): ComposerPrefill {
+  const lines = (d.records.aboni?.input.hscodes ?? []).map((h) => heading4(h.code));
+  const hs = lines.includes("6105") ? "6105" : (lines[0] ?? null);
+  const shipBy = new Date(d.today.getTime() + 80 * 86_400_000).toISOString().slice(0, 10);
+  return { title: "Men's knitted piqué polo, 220 gsm", quantity: "12000", unit: "pcs", hs, shipBy };
+}
+
+/**
+ * Three RFQs in the shape `rfq_list` returns them, for the list /app/rfqs
+ * renders. A sample: the gallery's loader keeps `rfq_list`'s rows only as the
+ * sidebar's models (`GalleryData.rfqs`), not as the rows `RfqListBody` takes.
+ * An unread list is null, never an empty one.
+ */
+export function sampleRfqRows(d: GalleryData): RfqRow[] | null {
+  if (d.rfqError) return null;
+  const at = (days: number) => new Date(d.today.getTime() - days * 86_400_000).toISOString();
+  const base = { quantity_unit: "pcs", viewer_role: "buyer" as const };
+  return [
+    {
+      ...base,
+      id: "5a1e0000-0000-4000-8000-000000000001",
+      product_title: "Men's knitted piqué polo, 220 gsm",
+      quantity: 12000,
+      ship_by: at(-80).slice(0, 10),
+      status: "open",
+      target_supplier_count: 3,
+      quote_count: 0,
+      created_at: at(2),
+      updated_at: at(2),
+    },
+    {
+      ...base,
+      id: "5a1e0000-0000-4000-8000-000000000002",
+      product_title: "Organic cotton crew-neck T-shirt",
+      quantity: 8000,
+      ship_by: at(-60).slice(0, 10),
+      status: "open",
+      target_supplier_count: 2,
+      quote_count: 2,
+      created_at: at(9),
+      updated_at: at(1),
+    },
+    {
+      ...base,
+      id: "5a1e0000-0000-4000-8000-000000000003",
+      product_title: "Brushed fleece hoodie, 320 gsm",
+      quantity: 5000,
+      ship_by: at(-30).slice(0, 10),
+      status: "accepted",
+      target_supplier_count: 1,
+      quote_count: 1,
+      created_at: at(21),
+      updated_at: at(6),
+    },
+  ];
 }
 
 export function DashboardScreens({ data: d }: { data: GalleryData }) {
   // Only the filters this page really passed to `discover_suppliers`: the text
-  // and the GOTS certificate kind. The HS-heading and certificate-state filters
-  // the artifact shows arrive with REZ-B's RPC parameters; a chip for one the
-  // RPC never received says the result set was narrowed when it was not.
+  // and the GOTS certificate kind. A chip for one the RPC never received says
+  // the result set was narrowed when it was not.
   const composerChips = [{ label: `Text · ${GALLERY_QUERY.q}` }, { label: "Certificate · GOTS" }];
+  const search = <SearchComposer chips={composerChips} askEnabled={false} filtersHref="#filter-pane" />;
   const results = shellModels(d, "suppliers");
-  const cardsPanel = (
-    <Panel>
-      <PanelHeader model={header(d, "cards", d.cards.length, SELECTION)} />
-      {d.cards.map((c) => (
-        <SupplierResultCard key={c.slug} card={c} />
-      ))}
-      {/* The gallery renders the four named records, not a page of 25: a pager
-          here would offer a page 2 that does not exist. */}
-      <PanelFooter shown={d.cards.length} total={d.discoverError ? null : d.total} note={SELECTION} />
-    </Panel>
+  const sort = { key: "sources", dir: "desc" as const };
+  const aboni = slugOf(d.records.aboni);
+  // The ledger shows the selection and the open row: two ticked, one current.
+  const picked = new Set([slugOf(d.records.sm), slugOf(d.records.ar)].filter((s): s is string => s !== null));
+  const ledgerRows: TableRowModel[] = d.rows.map((r) => (picked.has(r.slug) ? { ...r, selected: true } : r));
+  // Beside a pane the results are the named records only: every screen but
+  // the ledger draws those four, and states their span in its topbar.
+  const namedRows = d.rows.filter((r) => d.cards.some((c) => c.slug === r.slug));
+  const beside = (currentSlug: string | null) => (
+    <>
+      {search}
+      <Panel>
+        {/* A record beside the results is the page's h1; the search steps down to h2. */}
+        <PanelHeader as={currentSlug ? "h2" : "h1"} model={header(d, "table", namedRows.length, SELECTION)} />
+        <ResultsTable rows={namedRows} compact currentSlug={currentSlug} sort={sort} sortHrefs={sortHrefs} />
+        <PanelFooter shown={namedRows.length} total={d.discoverError ? null : d.total} note={SELECTION} />
+      </Panel>
+    </>
   );
-
-  const composer = d.records.aboni ? composerModel(d) : null;
+  const targets = composerTargets(d);
+  const rfqRows = sampleRfqRows(d);
 
   return (
     <div className="space-y-10">
-      <Frame id="results-list" title="ResultsList — result cards" note={ResultsHeaderNote(d)}>
-        <AppShell className="md:h-full" sidebar={results.sidebar} topbar={results.topbar} mainId="results-list-main" screenLabel="results list">
-          <SearchComposer chips={composerChips} askEnabled={false} />
-          {cardsPanel}
+      <Frame
+        id="results-table"
+        title="ResultsTable — the ledger grid"
+        // `tableSelection(d)`, not a second copy of its arithmetic: a
+        // hard-coded "four" survived any read where fewer than four named
+        // records loaded, and disagreed with the panel header the moment
+        // discovery rows joined the table (cycle 19).
+        note={`The default view: 36px rows under a sticky, sortable header, ${d.rows.length} rows: ${tableSelection(d)}. Two rows are ticked (the brand rule on the left) and one is marked as the record open beside the results. Hover or focus a row for its actions.`}
+      >
+        <AppShell className="md:h-full" sidebar={results.sidebar} topbar={tableTopbarModel(d)} mainId="results-table-main" screenLabel="results table">
+          <Workbench
+            results={
+              <>
+                {search}
+                <Panel>
+                  <PanelHeader model={header(d, "table", d.rows.length, tableSelection(d))} />
+                  <ResultsTable rows={ledgerRows} currentSlug={aboni} sort={sort} sortHrefs={sortHrefs} />
+                  <PanelFooter shown={d.rows.length} total={d.discoverError ? null : d.total} note={tableSelection(d)} />
+                </Panel>
+              </>
+            }
+          />
         </AppShell>
       </Frame>
 
-      <Frame
-        id="results-table"
-        title="ResultsTable — the toggle's other state"
-        // `tableSelection(d)` (below), not a second copy of its arithmetic:
-        // a hard-coded "four" here used to survive any read where fewer than
-        // four named records loaded, and disagreed with the panel header the
-        // moment discovery rows joined the table (correctness + guard-adequacy,
-        // cycle 19).
-        note={`Same header and footer, 36px rows, ${d.rows.length} rows: ${tableSelection(d)}.`}
-      >
-        <AppShell className="md:h-full" sidebar={results.sidebar} topbar={tableTopbarModel(d)} mainId="results-table-main" screenLabel="results table">
-          <SearchComposer chips={composerChips} askEnabled={false} />
-          <Panel>
-            <PanelHeader model={header(d, "table", d.rows.length, tableSelection(d))} />
-            <ResultsTable rows={d.rows} />
-            <PanelFooter shown={d.rows.length} total={d.discoverError ? null : d.total} note={tableSelection(d)} />
-          </Panel>
+      <Frame id="results-list" title="ResultsList — the thumbnail cards" note={resultsNote(d)}>
+        <AppShell className="md:h-full" sidebar={results.sidebar} topbar={results.topbar} mainId="results-list-main" screenLabel="results list">
+          <Workbench
+            results={
+              <>
+                {search}
+                <Panel>
+                  <PanelHeader model={header(d, "cards", d.cards.length, SELECTION)} />
+                  {d.cards.map((c) => (
+                    <SupplierResultCard key={c.slug} card={c} />
+                  ))}
+                  {/* The gallery renders the four named records, not a page of 25: a pager
+                      here would offer a page 2 that does not exist. */}
+                  <PanelFooter shown={d.cards.length} total={d.discoverError ? null : d.total} note={SELECTION} />
+                </Panel>
+              </>
+            }
+          />
         </AppShell>
       </Frame>
 
       {d.sheet ? (
-        <Frame id="supplier-sheet" title="SupplierSheet — the record beside the results" note={`${d.sheet.name}: ${d.sheet.sourceCount} sources, ${d.sheet.certs.length} certificates, ${d.sheet.products.lines} HS lines, read ${d.sheet.readDate ?? "—"}. Contact details locked (striped, never blurred). The results keep their column; the record scrolls on its own.`} height={1240}>
+        <Frame
+          id="supplier-sheet"
+          title="SupplierSheet — the record beside the results"
+          note={`${d.sheet.name}: ${d.sheet.sourceCount} sources, ${d.sheet.certs.length} certificates, ${d.sheet.products.lines} HS lines, read ${d.sheet.readDate ?? "—"}. Contact details locked (striped, never blurred). The results narrow to the ledger's three essential columns and keep their own scroll; the open row is marked.`}
+          height={1240}
+        >
           <AppShell className="md:h-full" sidebar={results.sidebar} topbar={results.topbar} mainId="supplier-sheet-main" screenLabel="supplier record">
-            <Workbench results={<><SearchComposer chips={composerChips} askEnabled={false} />{cardsPanel}</>}>
-              <SupplierSheet model={d.sheet} />
-            </Workbench>
+            <Workbench
+              results={beside(aboni)}
+              pane={
+                <RecordPane openKey="supplier-sheet">
+                  <SupplierSheet model={d.sheet} />
+                </RecordPane>
+              }
+            />
           </AppShell>
         </Frame>
       ) : null}
@@ -205,169 +354,80 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
           id="product-sheet"
           title="ProductSheet — one HS export line"
           // `model.exported` (correctness, cycle 19): the sheet itself
-          // downgrades to "not on this record's EPB page" the moment the
-          // line isn't on the record's EPB page — a failed
-          // `supplier_epb_hscodes` read, or the record genuinely not
-          // exporting this heading — and the caption used to claim the EPB
-          // page unconditionally, contradicting the sheet directly beneath it.
+          // downgrades to "not on this record's EPB page" the moment the line
+          // isn't on it, and the caption must not claim the EPB page over it.
           note={`HS ${d.productSheet.hs}${d.productSheet.exported ? ` on ${d.productSheet.supplierName}'s EPB exporter page` : `, not on ${d.productSheet.supplierName}'s EPB exporter page`}. The photo is the catalogue's illustrative photo for the heading, never the supplier's own.`}
           height={760}
         >
           <AppShell className="md:h-full" sidebar={results.sidebar} topbar={results.topbar} mainId="product-sheet-main" screenLabel="product line">
-            <Workbench results={<><SearchComposer chips={composerChips} askEnabled={false} />{cardsPanel}</>}>
-              <ProductSheet model={d.productSheet} />
-            </Workbench>
+            <Workbench
+              results={beside(aboni)}
+              pane={
+                <RecordPane openKey="product-sheet">
+                  <ProductSheet model={d.productSheet} />
+                </RecordPane>
+              }
+            />
           </AppShell>
         </Frame>
       ) : null}
 
-      {composer ? (
-        <Frame id="rfq-composer" title="RFQComposer — rail, editor with variables, preview" note="A sample draft to the Aboni record: the certificate number, expiry and HS line in the message are the record's real facts; the product, quantity and dates are the buyer's own draft fields, shown here as a sample. AI is off in this build, so the V2 surfaces (Improve wording, Follow-up rules) are absent." height={860}>
-          <Stage
-            height={860}
-            behind={
-              <AppShell className="md:h-full" sidebar={results.sidebar} topbar={results.topbar} mainId="rfq-composer-behind">
-                <SearchComposer chips={composerChips} askEnabled={false} />
-                {cardsPanel}
-              </AppShell>
-            }
-          >
-            <Scrim />
-            {/* `assertModal={false}`: the composer is live beside five other
-                screens on this one gallery page, so it cannot truthfully
-                claim they do not exist — see the `Dialog` doc comment. */}
-            <RfqComposer model={composer} aiEnabled={false} assertModal={false} />
-          </Stage>
+      {targets.length > 0 ? (
+        <Frame
+          id="rfq-composer"
+          title="RfqComposer — the composer in the pane beside the results"
+          note={`A sample draft to ${targets[0]!.name}, opened from the results (/app/discover?rfq=…): the supplier's name, marks, type and place are the record's own; the product, quantity and ship-by date are the buyer's draft fields, shown here as a sample. The gallery has no workspace, so the template names its missing facts in brackets rather than inventing them.`}
+          height={860}
+        >
+          <AppShell className="md:h-full" sidebar={results.sidebar} topbar={results.topbar} mainId="rfq-composer-main" screenLabel="RFQ composer">
+            <Workbench
+              results={beside(null)}
+              pane={
+                <RecordPane openKey="rfq-composer" wide>
+                  {/* The frame's own id, not a bare "#": the gallery has no search
+                      to close to, and a "#" link scrolls the page to the top. */}
+                  <RfqComposer targets={targets} prefill={composerPrefill(d)} workspace={null} closeHref="#rfq-composer" />
+                </RecordPane>
+              }
+            />
+          </AppShell>
         </Frame>
       ) : null}
 
       <Frame
+        id="filter-pane"
+        title="Filters — the filter pane"
+        note={`/app/discover?filters=1 over this search: the two filters it carries (the text "${GALLERY_QUERY.q}" and the GOTS certificate) are set in the pane's typed fields. Apply submits the search; each chip in the bar removes one filter.`}
+        height={860}
+      >
+        <AppShell className="md:h-full" sidebar={results.sidebar} topbar={results.topbar} mainId="filter-pane-main" screenLabel="filters">
+          <Workbench
+            results={beside(null)}
+            pane={
+              <RecordPane openKey="filters">
+                <DiscoverFilters state={galleryState()} closeHref="#filter-pane" />
+              </RecordPane>
+            }
+          />
+        </AppShell>
+      </Frame>
+
+      <Frame
         id="rfq-list"
-        title="RFQList — status chips, table, empty state"
-        // Correctness + truthfulness, cycle 19: "these five" pointed at a
-        // count that is only true when the read happens to return five rows,
-        // and "never '0 sent'" is contradicted by the screen's own render —
-        // a successful read of zero rows shows "0 sent · 0 quotes" together
-        // with the empty state, not instead of it; only a *failed* read
-        // replaces both with "count not read" and an error message. Verified
-        // live: production's one admin account owns zero RFQs and claims no
-        // supplier, so this is today's real render for the only account that
-        // can open this page.
-        note={`The viewer's own RFQs from rfq_list: ${d.rfqs.rows.length} real row${d.rfqs.rows.length === 1 ? "" : "s"}, newest first. Production holds seven across three buyers and rfq_list is scoped to auth.uid(), so five — one buyer's own — is the longest list it can return to anybody. A viewer who owns none still sees "0 sent · 0 quotes" and reads the empty state below it, "Your first RFQ lands here."; only a failed read replaces both with "count not read" and an error message.`}
+        title="RFQ list"
+        note={
+          rfqRows === null
+            ? "rfq_list could not be read, so the list says so: no count, and no empty state standing in for an unread list."
+            : `RfqListBody, the list /app/rfqs renders, over ${rfqRows.length} sample RFQs in the shape rfq_list returns (the gallery's loader keeps the viewer's real rows only as the sidebar's count, which is the real one). The tabs are the RFQ's own status and its quote count; each row opens its RFQ.`
+        }
         height={700}
       >
-        <Stage height={700}>
-          <AppShell className="md:h-full" {...shellModels(d, "rfqs")} contentClassName="gap-5" mainId="rfq-list-main" screenLabel="RFQ list">
-            <RfqList model={d.rfqs} />
-          </AppShell>
-        </Stage>
+        <AppShell className="md:h-full" {...shellModels(d, "rfqs")} mainId="rfq-list-main" screenLabel="RFQ list">
+          <Page>
+            <RfqListBody rows={rfqRows} tab="all" today={d.today} />
+          </Page>
+        </AppShell>
       </Frame>
     </div>
   );
-}
-
-/** "Valid to 12 May 2027" → "valid to 12 May 2027": the month keeps its capital. */
-function lowerFirst(s: string): string {
-  return s.charAt(0).toLowerCase() + s.slice(1);
-}
-
-/** The composer's draft, built on the Aboni record's real facts. */
-export function composerModel(d: GalleryData): RfqComposerModel {
-  const rec = d.records.aboni!;
-  const name = d.sheet?.name ?? rec.input.profile.supplier.company_name;
-  const gots = d.sheet?.certs.find((c) => c.kind.toUpperCase() === "GOTS" && c.state !== "expired") ?? null;
-  // The HS line comes from a line the record really carries; with none read, the draft names no line.
-  const lines = rec.input.hscodes.map((h) => heading4(h.code));
-  const hs: string | null = lines.includes("6105") ? "6105" : (lines[0] ?? null);
-  // `certChipLabel` reads "GOTS · no expiry on file"; stripping the scheme off
-  // the front left the sentence reading "… is · no expiry on file".
-  const certLine = gots
-    ? `your ${gots.scheme} certificate ${gots.number ?? ""} is ${lowerFirst(certStateLabel(gots))}`.replace(/\s+/g, " ").trim()
-    : "no certificate on file";
-  const product = hs ? `Men's knitted piqué polo · HS ${hs}` : "Men's knitted piqué polo";
-  // One list, read by the rail, the footer and the preview. The rail used to
-  // carry its own literals — "Reply-by date and destination missing" and
-  // "2/6" — beside a footer that said "4 fields missing — target price,
-  // reply-by date, incoterm, destination". At most one of the three could be
-  // right, and nothing tied them together.
-  // The spec's Details step tracks six fields (design/dashboard-ux-flow.md
-  // §6: "RFQ name, reply-by date, incoterm, destination, currency,
-  // attachments"). None of the last four have a source on this draft —
-  // the preview footer already says "no attachments" — so all four are
-  // carried as missing rather than invented.
-  const missing = [...(hs ? [] : ["HS line"]), "target price", "reply-by date", "incoterm", "destination", "currency", "attachments"];
-  const DETAIL_FIELDS = ["Name", "Reply-by date", "Incoterm", "Destination", "Currency", "Attachments"];
-  const detailMissing = DETAIL_FIELDS.filter((f) => missing.includes(f.toLowerCase()));
-  const listWords = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
-  return {
-    title: "New RFQ",
-    context: `to ${name} · first contact${hs ? ` · HS ${hs}` : ""} · sample draft`,
-    // The draft's targets carry the record's own sanction state, so the
-    // composer shows the banner and refuses Send on the screens too.
-    targets: [{ name, sanctioned: d.sheet?.sanctioned ?? false, sanctionSample: d.sheet?.sanctionSample }],
-    draftSaved: null,
-    steps: [
-      { label: "Suppliers", detail: `${name} · first contact`, count: "1" },
-      {
-        label: "Product",
-        detail: product,
-        missing: `${listWords(missing.filter((m) => m === "target price" || m === "HS line").map((m, i) => (i === 0 ? m[0]!.toUpperCase() + m.slice(1) : m)))} missing`,
-        count: hs,
-      },
-      {
-        label: "Details",
-        detail: DETAIL_FIELDS.join(", "),
-        missing: detailMissing.length === 0 ? undefined : `${listWords(detailMissing.map((f, i) => (i === 0 ? f : f.toLowerCase())))} missing`,
-        count: `${DETAIL_FIELDS.length - detailMissing.length}/${DETAIL_FIELDS.length}`,
-        active: true,
-      },
-      { label: "Questions", detail: "5 required on first contact", count: "10" },
-      { label: "Follow-up rules", detail: "Draft a follow-up if no reply in 5 days", v2: true },
-    ],
-    template: "first",
-    subject: ["RFQ · ", { label: "Product" }, " · ", { label: "Quantity" }, " · reply by ", { label: "Reply-by date", missing: true }],
-    body: [
-      ["Dear ", { label: "Supplier contact" }, ","],
-      [
-        "We read your record on SourceBD — ",
-        { label: "Certificate line" },
-        ...(hs ? [", HS ", { label: "HS code" }, " on your EPB exporter page"] : []),
-        " — and would like a quotation for the line below, delivered ",
-        { label: "Incoterm", missing: true },
-        " to ",
-        { label: "Destination", missing: true },
-        ".",
-      ],
-      ["Please answer the five questions under the table. Reply inside SourceBD by ", { label: "Reply-by date", missing: true }, "."],
-    ],
-    products: [{ product: hs ? `Men's knitted piqué polo, 220 gsm, 100 % cotton (${hsShortLabel(hs)})` : "Men's knitted piqué polo, 220 gsm, 100 % cotton", hs, quantity: "12,000 pcs", targetPrice: null, shipBy: "15 Dec 2026" }],
-    questions: [
-      { text: "Unit price at 12,000 pcs, FOB Chattogram", on: true, required: true },
-      { text: "Minimum order quantity per colour", on: true, required: true },
-      { text: "Sample lead time and cost", on: true, required: true },
-      { text: gots?.number ? `Is ${gots.number} the scope this line ships under?` : "Which certificate scope does this line ship under?", on: true, required: true },
-    ],
-    moreQuestions: { count: 6, required: 1 },
-    preview: {
-      from: "From your workspace · reply inside SourceBD",
-      subject: (
-        <>
-          RFQ · Men&apos;s knitted piqué polo · 12,000 pcs · reply by <MissingFlag>date missing</MissingFlag>
-        </>
-      ),
-      paragraphs: [
-        <span key="1">Dear {name},</span>,
-        <span key="2">
-          We read your record on SourceBD — {certLine}
-          {hs ? `; HS ${hs} is on your EPB exporter page` : ""} — and would like a quotation for the line below, delivered{" "}
-          <MissingFlag>incoterm</MissingFlag> to <MissingFlag>destination</MissingFlag>.
-        </span>,
-        <span key="3">
-          Please answer the five questions under the table. Reply inside SourceBD by <MissingFlag>date missing</MissingFlag>.
-        </span>,
-      ],
-      footer: "1 product line · 10 questions · no attachments",
-    },
-    missing,
-  };
 }

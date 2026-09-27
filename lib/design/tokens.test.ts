@@ -320,7 +320,8 @@ test("the contrast table lists every pair it is meant to, at the threshold its u
   // Generated from `contrastPairs`, which is exported from the file under
   // test: deleting a pair deletes its test, and lowering a `min` lowers the
   // bar. A `length >=` backstop cannot catch either (49 >= 12 always holds).
-  const listed = contrastPairs.map((p) => `${p.fg} on ${p.bg} @${p.min}`).sort();
+  // A set: a pair listed twice is its own guard (below), not a second row here.
+  const listed = [...new Set(contrastPairs.map((p) => `${p.fg} on ${p.bg} @${p.min}`))].sort();
   // The whole table, as literals. Deleting a pair deletes its generated
   // test and lowering a `min` lowers the bar it is checked against; neither
   // shows up as a failure while the expectation is derived from the table.
@@ -346,6 +347,7 @@ test("the contrast table lists every pair it is meant to, at the threshold its u
     "focus on canvas @3",
     "focus on surface @3",
     "ink on canvas @4.5",
+    "ink on line @4.5",
     "ink on locked @4.5",
     "ink on quiet @4.5",
     "ink on surface @4.5",
@@ -360,6 +362,7 @@ test("the contrast table lists every pair it is meant to, at the threshold its u
     "ink.muted on surface @4.5",
     "ink.muted on surface.sunken @4.5",
     "ink.strong on canvas @4.5",
+    "ink.strong on line @4.5",
     "ink.strong on locked @4.5",
     "ink.strong on locked.stripe @4.5",
     "ink.strong on quiet @4.5",
@@ -394,6 +397,32 @@ test("the contrast table lists every pair it is meant to, at the threshold its u
     "tier.5-on on tier.5 @4.5",
   ];
   assert.deepEqual(listed, expected, "contrastPairs and this list must be the same set; a pair in one and not the other is unchecked or unlisted");
+});
+
+test(
+  "no pair is listed twice under two uses",
+  () => {
+    const keys = contrastPairs.map((p) => `${p.fg} on ${p.bg}`);
+    const twice = keys.filter((k, i) => keys.indexOf(k) !== i);
+    assert.deepEqual(twice, [], `listed more than once: ${twice.join(", ")}`);
+  },
+);
+
+test("the quiet button tiers' own grounds are in the contrast table", () => {
+  // The enterprise pass (27 Sep 2026) drew the secondary button's hover on
+  // `line` and the danger button's hover on the solid `danger`; the text on
+  // each must be checked at AA like every other control's.
+  for (const key of ["ink on line", "ink.strong on line", "danger.on on danger", "brand.on on brand", "danger.ink on danger.tint"]) {
+    const pair = contrastPairs.find((p) => `${p.fg} on ${p.bg}` === key);
+    assert.ok(pair, `"${key}" is not checked at all`);
+    assert.ok(pair!.min >= 4.5, `"${key}" is text on a button and needs 4.5:1`);
+    assert.ok(contrastRatio(resolve(light, pair!.fg), resolve(light, pair!.bg)) >= pair!.min, `"${key}" falls short of ${pair!.min}:1`);
+  }
+  // The soft edge is the `line` token at 70 %, drawn as a shadow token, so
+  // it reaches a component only through `shadow-edge`, never as a hand-typed rgba.
+  assert.match(boxShadow.edge, /^inset 0 0 0 1px rgb\(\d+ \d+ \d+ \/ 0\.\d+\)$/);
+  const rgb = /rgb\((\d+) (\d+) (\d+)/.exec(boxShadow.edge)!.slice(1, 4).map(Number);
+  assert.deepEqual(rgb, toRgb(resolve(light, "line")), "the edge is no longer the line token's colour");
 });
 
 test("the pairs held above AA are still held above AA", () => {

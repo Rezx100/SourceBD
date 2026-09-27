@@ -1,31 +1,33 @@
 "use client";
 
-// Append a milestone to an order (Spec B8). Buyer or claimed supplier.
+// Log a milestone on an order (Spec B8). Buyer or claimed supplier. Closed
+// until asked for: "Log milestone" opens the form in place, and its Save is
+// the screen's one primary only while the form is open.
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import { useContext, useEffect, useState } from "react";
 
 import { Button } from "@/components/dashboard/controls";
 import { Field, SelectInput, TextArea, TextInput } from "@/components/dashboard/fields";
+import { Icon } from "@/components/dashboard/icons";
 import { ErrorNote } from "@/components/dashboard/page";
 import { Toast } from "@/components/dashboard/toast";
 
-const KINDS = [
-  ["po_issued", "PO issued"],
-  ["materials_sourced", "Materials sourced"],
-  ["production_started", "Production started"],
-  ["qc_passed", "QC passed"],
-  ["shipped", "Shipped"],
-  ["customs_cleared", "Customs cleared"],
-  ["delivered", "Delivered"],
-  ["custom", "Custom"],
-] as const;
-
-export function OrderMilestoneForm({ orderId }: { orderId: string }) {
-  const router = useRouter();
-  const [kind, setKind] = useState<(typeof KINDS)[number][0]>("production_started");
+export function OrderMilestoneForm({
+  orderId,
+  kinds,
+}: {
+  orderId: string;
+  /** `[value, label]` pairs, from `MILESTONE_KINDS` in the orders module. */
+  kinds: readonly (readonly [string, string])[];
+}) {
+  // Not `useRouter()`, which throws outside a mounted app router (the render
+  // tests draw this with no router at all).
+  const router = useContext(AppRouterContext);
+  const [open, setOpen] = useState(false);
+  const [kind, setKind] = useState("production_started");
   const [label, setLabel] = useState("");
-  const [occurredOn, setOccurredOn] = useState(() => isoToday());
+  const [occurredOn, setOccurredOn] = useState(isoToday);
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,8 +39,16 @@ export function OrderMilestoneForm({ orderId }: { orderId: string }) {
     return () => clearTimeout(t);
   }, [added]);
 
+  function close() {
+    setOpen(false);
+    setLabel("");
+    setNotes("");
+    setError(null);
+  }
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (busy) return;
     setBusy(true);
     setError(null);
     try {
@@ -56,21 +66,31 @@ export function OrderMilestoneForm({ orderId }: { orderId: string }) {
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
-        const j = (await res.json().catch(() => null)) as
-          | { detail?: string; error?: string }
-          | null;
+        const j = (await res.json().catch(() => null)) as { detail?: string; error?: string } | null;
         setError(j?.detail ?? j?.error ?? `error ${res.status}`);
         return;
       }
-      setLabel("");
-      setNotes("");
+      close();
       setAdded(true);
-      router.refresh();
+      router?.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "network error");
     } finally {
       setBusy(false);
     }
+  }
+
+  const toast = added ? <Toast text="Milestone added" href={null} className="fixed z-[60]" /> : null;
+
+  if (!open) {
+    return (
+      <div className="flex flex-col items-start">
+        <Button onClick={() => setOpen(true)} aria-expanded={false}>
+          <Icon name="plus" /> Log milestone
+        </Button>
+        {toast}
+      </div>
+    );
   }
 
   return (
@@ -80,12 +100,8 @@ export function OrderMilestoneForm({ orderId }: { orderId: string }) {
       </h3>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Kind" htmlFor="milestone-kind">
-          <SelectInput
-            id="milestone-kind"
-            value={kind}
-            onChange={(e) => setKind(e.target.value as (typeof KINDS)[number][0])}
-          >
-            {KINDS.map(([v, l]) => (
+          <SelectInput id="milestone-kind" autoFocus value={kind} onChange={(e) => setKind(e.target.value)}>
+            {kinds.map(([v, l]) => (
               <option key={v} value={v}>
                 {l}
               </option>
@@ -93,13 +109,7 @@ export function OrderMilestoneForm({ orderId }: { orderId: string }) {
           </SelectInput>
         </Field>
         <Field label="Occurred on" htmlFor="milestone-date" required>
-          <TextInput
-            id="milestone-date"
-            type="date"
-            required
-            value={occurredOn}
-            onChange={(e) => setOccurredOn(e.target.value)}
-          />
+          <TextInput id="milestone-date" type="date" required value={occurredOn} onChange={(e) => setOccurredOn(e.target.value)} />
         </Field>
       </div>
       <Field label="Label" htmlFor="milestone-label" hint="Optional">
@@ -113,21 +123,18 @@ export function OrderMilestoneForm({ orderId }: { orderId: string }) {
         />
       </Field>
       <Field label="Notes" htmlFor="milestone-notes" hint="Optional">
-        <TextArea
-          id="milestone-notes"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          maxLength={4000}
-          rows={2}
-        />
+        <TextArea id="milestone-notes" value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={4000} rows={2} />
       </Field>
       {error ? <ErrorNote>{error}</ErrorNote> : null}
-      <div className="flex justify-end">
-        <Button type="submit" variant="primary" disabled={busy}>
-          {busy ? "Saving…" : "Add milestone"}
+      <div className="flex justify-end gap-2">
+        <Button variant="ghost" onClick={close} disabled={busy}>
+          Discard
+        </Button>
+        <Button type="submit" variant="primary" loading={busy}>
+          Add milestone
         </Button>
       </div>
-      {added ? <Toast text="Milestone added" href={null} className="fixed z-[60]" /> : null}
+      {toast}
     </form>
   );
 }

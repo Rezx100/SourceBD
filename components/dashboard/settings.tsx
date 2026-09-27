@@ -1,6 +1,7 @@
 // Settings pieces of the dashboard kit (Spec B10): the settings frame with its
-// sub-navigation, the plan labels, and the save feedback the settings forms
-// share (a toast on success, an alert line on failure).
+// sub-navigation, the plan labels, the workspace and inquiry documents
+// `settings_get` returns, and the save feedback the settings forms share (a
+// toast on success, an alert line on failure).
 //
 // No "use client": the frame renders on the server; the forms, which are
 // client islands, import `FormActions` and `FormError` from here (and
@@ -14,6 +15,20 @@ import { Icon } from "./icons";
 import { PageHeader } from "./page";
 import { Toast } from "./toast";
 
+/** The company behind the account (`settings_get().workspace`); every field is null until set. */
+export type WorkspaceDoc = {
+  company_name: string | null;
+  company_type: string | null;
+  business_description: string | null;
+  website: string | null;
+  customer_base: string | null;
+  employee_count: string | null;
+  company_logo_url: string | null;
+};
+
+/** The RFQ defaults (`settings_get().inquiry`). */
+export type InquiryDoc = { questions: string[]; email_template: string | null };
+
 export type SettingsDoc = {
   email: string | null;
   display_name: string | null;
@@ -26,18 +41,60 @@ export type SettingsDoc = {
     rfq_replies: boolean;
     saved_alerts: boolean;
   };
+  /** Absent from a reply that predates the workspace RPC: read as empty, never as an error. */
+  workspace?: Partial<WorkspaceDoc> | null;
+  inquiry?: Partial<InquiryDoc> | null;
 };
 
+export const COMPANY_TYPES = ["Brand", "Retailer", "Importer", "Agent", "Other"] as const;
+export const EMPLOYEE_BANDS = ["1-10", "11-50", "51-200", "201-1000", "1000+"] as const;
+
+const text = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);
+
+/** The workspace fields out of a settings reply, nulls where the reply has none. */
+export function workspaceOf(doc: SettingsDoc | null): WorkspaceDoc {
+  const w = (doc?.workspace ?? {}) as Record<string, unknown>;
+  return {
+    company_name: text(w.company_name),
+    company_type: text(w.company_type),
+    business_description: text(w.business_description),
+    website: text(w.website),
+    customer_base: text(w.customer_base),
+    employee_count: text(w.employee_count),
+    company_logo_url: text(w.company_logo_url),
+  };
+}
+
+/** The inquiry defaults out of a settings reply, or null when the reply carries none (the form then shows the composer's own). */
+export function inquiryOf(doc: SettingsDoc | null): InquiryDoc | null {
+  const i = doc?.inquiry;
+  if (!i || typeof i !== "object") return null;
+  return {
+    questions: Array.isArray(i.questions) ? i.questions.filter((q): q is string => typeof q === "string" && q.trim().length > 0) : [],
+    email_template: text(i.email_template),
+  };
+}
+
+/**
+ * The plan's name, one string for the rail and Settings. Every buyer is on the
+ * free tier during the public beta, and the rail calls it "Free": Settings
+ * said "Starter" about the same account.
+ */
 export function planLabel(tier: string | null | undefined): string {
   if (tier === "growth") return "Growth";
   if (tier === "enterprise") return "Enterprise";
-  return "Starter";
+  return "Free";
 }
 
+/** What the rail prints beside the plan's name. */
+export const PLAN_NOTE = "public beta";
+
 export const SETTINGS_NAV = [
-  { key: "overview", label: "Overview", href: "/app/settings" },
+  { key: "workspace", label: "Workspace", href: "/app/settings" },
+  { key: "subscription", label: "Subscription", href: "/app/settings/subscription" },
+  { key: "members", label: "Members", href: "/app/settings/members" },
+  { key: "inquiry", label: "Inquiry", href: "/app/settings/inquiry" },
   { key: "profile", label: "Profile", href: "/app/settings/profile" },
-  { key: "plan", label: "Plan", href: "/app/settings/plan" },
   { key: "notifications", label: "Notifications", href: "/app/settings/notifications" },
 ] as const;
 
@@ -52,10 +109,10 @@ export function SettingsHeader({ settings }: { settings: SettingsDoc | null }) {
         settings?.email ? (
           <>
             Signed in as <span className="font-medium text-ink [overflow-wrap:anywhere]">{settings.email}</span> ·{" "}
-            {planLabel(settings.plan_tier)} plan
+            {planLabel(settings.plan_tier)} plan · {PLAN_NOTE}
           </>
         ) : (
-          "Manage your profile, plan, and notification preferences."
+          "Your company, plan, team, RFQ defaults, profile and email preferences."
         )
       }
     />
@@ -81,8 +138,8 @@ export function SettingsFrame({ current, children }: { current: SettingsKey; chi
                   prefetch={false}
                   aria-current={on ? "page" : undefined}
                   className={cn(
-                    "flex h-8 items-center rounded-sm px-2.5 text-sm font-medium text-ink-muted hover:bg-surface-sunken",
-                    on && "bg-brand-tint font-semibold text-brand-ink ring-1 ring-inset ring-brand hover:bg-brand-tint",
+                    "flex h-8 items-center rounded-sm px-2.5 text-sm font-medium text-ink-muted transition-colors duration-fast hover:bg-surface-sunken hover:text-ink-strong",
+                    on && "bg-brand-tint font-semibold text-brand-ink hover:bg-brand-tint hover:text-brand-ink",
                   )}
                 >
                   {item.label}
@@ -97,13 +154,7 @@ export function SettingsFrame({ current, children }: { current: SettingsKey; chi
   );
 }
 
-/**
- * A settings page holds several forms, so no save button is the page's one
- * primary; a disabled one greys out, which the default variant does not do by itself.
- */
-export const SAVING = "disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-disabled";
-
-/** The footer row of a settings card: the submit button (which says "Saving…" while it works) and the toast. */
+/** The footer row of a settings section: its save button (which says "Saving…" while it works) and the toast. */
 export function FormActions({
   pending,
   label,
@@ -118,8 +169,8 @@ export function FormActions({
   children?: ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 border-t border-line-subtle px-4 py-3">
-      <Button type="submit" disabled={pending} aria-busy={pending || undefined} className={SAVING}>
+    <div className="flex flex-wrap items-center gap-2 px-4 pb-4">
+      <Button type="submit" disabled={pending} aria-busy={pending || undefined}>
         {pending ? pendingLabel : label}
       </Button>
       {children}

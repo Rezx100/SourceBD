@@ -2,7 +2,7 @@
 
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { startTransition, useContext, useEffect, useId, useState } from "react";
-import { Button } from "@/components/dashboard/controls";
+import { Button, type ButtonSize } from "@/components/dashboard/controls";
 import { Icon } from "@/components/dashboard/icons";
 import { Toast } from "@/components/dashboard/toast";
 import { onBulkSaved, rowSaveMessage } from "@/lib/dashboard/selection";
@@ -27,10 +27,12 @@ export function SaveRecordButton({
   supplierId,
   saved,
   icon = false,
+  size,
 }: {
   supplierId: string;
   saved: boolean;
   icon?: boolean;
+  size?: ButtonSize;
 }) {
   const [on, setOn] = useState(saved);
   const [pending, setPending] = useState(false);
@@ -67,6 +69,8 @@ export function SaveRecordButton({
       <Button
         type="button"
         icon={icon}
+        size={size}
+        data-save={supplierId}
         aria-busy={pending || undefined}
         aria-label={label}
         // A toggle: "Saved, pressed" tells a screen reader that pressing it

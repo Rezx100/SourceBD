@@ -274,6 +274,8 @@ export type SheetView = {
    * the full page leaves it unset and gets the line's own page.
    */
   lineHref?: (hs: string) => string;
+  /** Where Send RFQ goes from THIS sheet. The overlay passes the search URL with `rfq=`, so the composer opens beside the results. */
+  rfqHref?: (supplierId: string) => string;
   /** Show every heading rather than the six rarest. */
   allLines?: boolean;
   /** Where "All N lines ›" goes when only six are shown. */
@@ -324,7 +326,7 @@ export async function loadRecordSheet(
     // A sanctioned record's Send RFQ is disabled and `rfq_create` refuses it;
     // the href is still built so the disabled/enabled split is the model's
     // `sanctioned` flag alone, in one place.
-    rfqHref: `/app/rfqs/new?supplier=${supplierId}`,
+    rfqHref: view.rfqHref?.(supplierId) ?? `/app/rfqs/new?supplier=${supplierId}`,
     fullHref: view.fullHref ?? `/app/suppliers/${slug}`,
     closeHref: view.closeHref ?? null,
     lineHref: view.lineHref,
@@ -340,7 +342,7 @@ export async function loadRecordLine(
   slug: string,
   hs: string,
   today: Date,
-  view: { backHref?: string | null; closeHref?: string | null } = {},
+  view: { backHref?: string | null; closeHref?: string | null; rfqHref?: (supplierId: string, hs: string) => string } = {},
 ): Promise<ProductSheetModel | null> {
   const record = await loadRecordInput(supabase, slug, today);
   if (!record) return null;
@@ -361,6 +363,6 @@ export async function loadRecordLine(
   return buildProductSheet(record.input, hs, {
     backHref: view.backHref ?? `/app/suppliers/${slug}`,
     closeHref: view.closeHref ?? null,
-    rfqHref: `/app/rfqs/new?supplier=${supplierId}&hs=${heading4(hs)}`,
+    rfqHref: view.rfqHref?.(supplierId, heading4(hs)) ?? `/app/rfqs/new?supplier=${supplierId}&hs=${heading4(hs)}`,
   });
 }

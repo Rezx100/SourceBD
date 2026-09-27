@@ -1,5 +1,5 @@
 // The screenshot harness is what produces the evidence in the bundle, so what
-// it answers the RPCs with is part of the claim "the six screens are rendered
+// it answers the RPCs with is part of the claim "the screens are rendered
 // from real data" (handoff §7 item 1).
 //
 // It used to answer `rfq_list` with a hard-coded `[]`, and the RFQ screen then

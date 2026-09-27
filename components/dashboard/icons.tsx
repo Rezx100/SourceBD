@@ -16,6 +16,7 @@ import {
   ChatCircle,
   Check,
   CheckCircle,
+  CircleNotch,
   Clock,
   DotsThree,
   GearSix,
@@ -23,6 +24,7 @@ import {
   Funnel,
   Image as ImageIcon,
   ListDashes,
+  ListBullets,
   Lock,
   MagnifyingGlass,
   MapPin,
@@ -35,6 +37,10 @@ import {
   ShieldCheck,
   Sparkle,
   Tag,
+  Trash,
+  PencilSimple,
+  Columns,
+  RowsPlusBottom,
   Warning,
   X,
 } from "@phosphor-icons/react/dist/ssr";
@@ -53,6 +59,7 @@ export const ICONS = {
   plus: Plus,
   cards: Rows,
   table: ListDashes,
+  list: ListBullets,
   sort: ArrowsDownUp,
   download: DownloadSimple,
   external: ArrowSquareOut,
@@ -78,6 +85,12 @@ export const ICONS = {
   // The typeahead's row kinds: a place and a certificate. Same set and weight.
   pin: MapPin,
   seal: SealCheck,
+  // The loading state of a button; spun by the caller.
+  spinner: CircleNotch,
+  trash: Trash,
+  pencil: PencilSimple,
+  columns: Columns,
+  rows: RowsPlusBottom,
 } as const;
 
 export type IconName = keyof typeof ICONS;

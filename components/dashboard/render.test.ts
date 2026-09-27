@@ -7,7 +7,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 
-import { buildCard, buildProductSheet, buildRfqRow, buildSheet, buildTableRow, type RecordInput } from "@/lib/dashboard/build-models";
+import { buildCard, buildProductSheet, buildSheet, buildTableRow, type RecordInput } from "@/lib/dashboard/build-models";
 import {
   aboniInput,
   buildingBrandListsInput,
@@ -30,13 +30,12 @@ import {
   ZAHEEN_NAME,
   zaheenSampleInput,
 } from "@/lib/dashboard/fixtures";
-import type { RfqListModel } from "@/lib/dashboard/models";
 import { Button, Checkbox, INERT_CHECKBOX_TITLE, Meter, Seg } from "./controls";
 import { Icon } from "./icons";
 import { Panel, PanelFooter, PanelHeader } from "./results-panel";
 import { ProductSheet } from "./product-sheet";
-import { ResultsTable } from "./results-table";
-import { RfqComposer, type RfqComposerModel } from "./rfq-composer";
+import { ResultsTable, onRowKey, type ResultsSortKey } from "./results-table";
+import { DEFAULT_QUESTIONS, DEFAULT_TEMPLATE, RfqComposer, fillTemplate, missingFields, type ComposerPrefill, type ComposerTarget } from "./rfq-composer";
 import { AppShell } from "./app-shell";
 import { Topbar } from "./app-shell";
 import {
@@ -51,9 +50,11 @@ import {
 import { navMatch } from "./app-shell";
 import { Chip } from "./chips";
 import { PhotoStrip } from "./photo-tiles";
-import { RFQ_EMPTY_COPY, RFQ_ERROR_COPY, RfqList } from "./rfq-list";
+import { RFQ_EMPTY_BODY, RFQ_EMPTY_TITLE, RFQ_ERROR_COPY, RfqListBody, type RfqRow } from "./rfq-pages";
 import { SearchComposer } from "./search-composer";
-import { SelectionBar } from "./selection-bar";
+import { DiscoverFilters } from "./discover-filters";
+import { parseDiscoverState, type DiscoverState } from "@/lib/discover-v32-state";
+import { SelectionBar, TOO_MANY } from "./selection-bar";
 import { saveSearchError } from "./save-search-form";
 import { SELECT_ALL_ID, SelectionContext, SelectionProvider, type SelectionContextValue } from "./selection";
 import { readdirSync, readFileSync } from "node:fs";
@@ -162,7 +163,11 @@ describe("SupplierResultCard (rendered)", () => {
     assert.doesNotMatch(html, SCORE);
     assert.doesNotMatch(html, TRUNCATION);
     assert.doesNotMatch(html, HAND_TYPED_COLOUR);
-    assertSendRfqEnabled(html);
+    // Send RFQ is live wherever the page gives it somewhere to go: the
+    // composer on the search (discover passes `rfqHref` for every row).
+    assertSendRfqEnabled(
+      renderToStaticMarkup(createElement(SupplierResultCard, { card: { ...buildCard(aboniInput()), rfqHref: "/app/discover?q=knit&rfq=8ce50581-2d84-4cc2-93de-506394eade5d" } })),
+    );
   });
 
   // Cycle 5, finding 8: the figure is 2,662 (mother) + 504 (New Shed).
@@ -293,47 +298,142 @@ describe("SupplierResultCard (rendered)", () => {
   });
 });
 
-describe("ResultsTable (rendered)", () => {
-  it("36px rows, the sanctioned row inset + line + disabled Send RFQ, the empty row says why", () => {
-    const rows = [buildTableRow(aboniInput()), buildTableRow(zaheenSampleInput()), buildTableRow(arFashionInput())];
+/** The ledger with real row actions, the way /app/discover builds its rows. */
+const ledgerRow = (input: RecordInput) => {
+  const row = buildTableRow(input);
+  return { ...row, supplierId: input.profile.supplier.id, rfqHref: `/app/discover?q=knit&rfq=${input.profile.supplier.id}`, recordHref: `/app/discover?q=knit&record=${row.slug}` };
+};
+
+describe("ResultsTable (rendered) — the ledger grid", () => {
+  it("36px rows by default; the sanctioned row carries the rule, the word and an RFQ action that is withheld and says why", () => {
+    const rows = [ledgerRow(aboniInput()), ledgerRow(zaheenSampleInput()), ledgerRow(arFashionInput())];
     const html = renderToStaticMarkup(createElement(ResultsTable, { rows }));
-    assert.match(html, /h-row-dense/);
+    const cells = [...html.matchAll(/<(?:td\b|th scope="row")[^>]*class="([^"]*)"/g)].map((m) => m[1]!);
+    assert.ok(cells.length > 0 && cells.every((c) => c.split(/\s+/).includes("h-9")), "every body cell is a 36px row");
     assert.match(html, /GOTS valid/);
-    assert.match(html, /WRAP Gold 11 d/);
-    assert.equal((html.match(/\/products\/hs\/hs-\d{4}-128\.webp/g) ?? []).length, 3);
-    assert.match(html, /\+9</, "twelve lines, three thumbs, nine more");
     assert.match(html, /3,166/);
     assert.match(html, /data-sanctioned="true"/);
     assert.match(html, /Sanctioned · sample/);
-    assert.equal((html.match(/<button[^>]*disabled=""/g) ?? []).length, 1, "only the sanctioned row's Send RFQ is disabled");
-    assert.match(html, /— none on 4 registers/);
-    assert.match(html, /— not on EPB list/);
+    assert.ok(edgeInToken(html, "sanction"), "the sanctioned row draws no sanction-token rule");
+    // Only the sanctioned row's RFQ is withheld, and it says why.
+    const disabled = disabledControls(html);
+    assert.equal(disabled.length, 1, `only the sanctioned row's RFQ is disabled: ${disabled.join(" | ")}`);
+    assert.match(disabled[0]!, /title="RFQs cannot be sent to a sanctioned supplier"/);
+    // The live rows' RFQ opens the composer on the same search.
+    assert.match(html, /href="\/app\/discover\?q=knit&amp;rfq=8ce50581-2d84-4cc2-93de-506394eade5d"/);
+    assert.match(html, />none on 4 registers</);
+    assert.match(html, />not on EPB list</);
     assert.match(html, /Buying house/);
     assert.doesNotMatch(html, TRUNCATION);
+    assert.match(html, NAME_WRAPS, "the name does not carry the wrap rule");
     assert.doesNotMatch(html, HAND_TYPED_COLOUR);
+  });
+
+  it("the density stops are 32, 36 and 44px rows", () => {
+    const rows = [buildTableRow(aboniInput())];
+    const h = (density: "compact" | "default" | "comfortable") =>
+      /<th scope="row"[^>]*class="([^"]*)"/.exec(renderToStaticMarkup(createElement(ResultsTable, { rows, density })))![1]!.split(/\s+/);
+    assert.ok(h("compact").includes("h-8"));
+    assert.ok(h("default").includes("h-9"));
+    assert.ok(h("comfortable").includes("h-11"));
   });
 
   // Cycle 5, finding 3: the row printed "not on EPB list" for a record holding
   // an EPB registration, contradicting the card for the same record.
   it("on the EPB register with no lines, the row says so — it never calls the record absent", () => {
     const html = renderToStaticMarkup(createElement(ResultsTable, { rows: [buildTableRow({ ...aboniInput(), hscodes: [] })] }));
-    assert.match(html, /— no lines on the EPB page/);
+    assert.match(html, />no lines on the EPB page</);
     assert.doesNotMatch(html, /not on EPB list/);
   });
 
   // Cycle 5, finding 20.
-  it("every column has a name, and the Export-lines thumbs are announced", () => {
+  it("every column has a name, and the select box outside a selection is inert, not a dead tab stop", () => {
     const html = renderToStaticMarkup(createElement(ResultsTable, { rows: [buildTableRow(aboniInput())] }));
-    assert.doesNotMatch(html, /<th[^>]*><\/th>/, "a column with no visible heading still needs a name");
+    const heads = [...html.matchAll(/<th scope="col"[^>]*>([\s\S]*?)<\/th>/g)].map((m) => m[1]!);
+    assert.equal(heads.length, 7, "select, supplier, sources, certificates, export lines, type, workers");
+    for (const h of heads) assert.ok(h.replace(/<[^>]+>/g, "").trim(), `a column with no name: ${h}`);
     assert.match(html, /<span class="sr-only">Select<\/span>/);
-    assert.match(html, /<span class="sr-only">Actions<\/span>/);
-    assert.match(html, /role="img" aria-label="HS 6115 · Socks, hosiery"/);
-    // This used to assert `tabindex="0"` and call it keyboard support. The
-    // control does nothing in REZ-A, so a tab stop on it announces an
-    // operable checkbox that Space cannot toggle — Space scrolled the page.
-    // Inert controls in this kit say so instead (WCAG 2.1.1, 4.1.2).
     assert.match(html, /role="checkbox"[^>]*aria-disabled="true"/);
     assert.doesNotMatch(html, /role="checkbox"[^>]*tabindex/, "an inert control must not be a dead tab stop");
+  });
+
+  it("a sortable header says which order is on, and only the active one says a direction", () => {
+    const rows = [buildTableRow(aboniInput())];
+    const sortHrefs = Object.fromEntries(["name", "sources", "cert_expiry", "hs_lines", "workers"].map((k) => [k, `/app/discover?q=knit&sort=${k}`])) as Record<ResultsSortKey, string>;
+    const desc = renderToStaticMarkup(createElement(ResultsTable, { rows, sort: { key: "sources", dir: "desc" }, sortHrefs }));
+    const sorts = (html: string) =>
+      [...html.matchAll(/<th scope="col"[^>]*aria-sort="([^"]+)"[^>]*>(?:(?!<\/th>)[\s\S])*?href="([^"]+)"/g)].map((m) => [m[2]!.replace(/.*sort=/, ""), m[1]!]);
+    assert.deepEqual(sorts(desc), [
+      ["name", "none"],
+      ["sources", "descending"],
+      ["cert_expiry", "none"],
+      ["hs_lines", "none"],
+      ["workers", "none"],
+    ]);
+    const asc = renderToStaticMarkup(createElement(ResultsTable, { rows, sort: { key: "name", dir: "asc" }, sortHrefs }));
+    assert.deepEqual(sorts(asc)[0], ["name", "ascending"]);
+    // Without a sort URL the headers are plain: no link, no aria-sort claiming an order it cannot change.
+    const plain = renderToStaticMarkup(createElement(ResultsTable, { rows }));
+    assert.doesNotMatch(plain.slice(0, plain.indexOf("</thead>")), /aria-sort|<a\b/);
+  });
+
+  it("no header cell is held to one line, so a narrow column wraps its label instead of clipping it", () => {
+    const html = renderToStaticMarkup(
+      createElement(ResultsTable, { rows: [buildTableRow(aboniInput())], sort: { key: "sources", dir: "desc" }, sortHrefs: Object.fromEntries(["name", "sources", "cert_expiry", "hs_lines", "workers"].map((k) => [k, `?sort=${k}`])) as Record<ResultsSortKey, string> }),
+    );
+    const head = html.slice(html.indexOf("<thead"), html.indexOf("</thead>"));
+    assert.ok(head.length > 0);
+    for (const tag of head.match(/<(?:th|a)\b[^>]*>/g) ?? []) assert.doesNotMatch(tag, /whitespace-nowrap|truncate/, `a header held to one line: ${tag}`);
+  });
+
+  it("the open record's row carries aria-current, and no other row does", () => {
+    const rows = [buildTableRow(aboniInput()), buildTableRow(smKnitwearInput()), buildTableRow(arFashionInput())];
+    const html = renderToStaticMarkup(createElement(ResultsTable, { rows, currentSlug: "sm-knitwear" }));
+    const current = [...html.matchAll(/<tr\b[^>]*aria-current="true"[^>]*>/g)].map((m) => m[0]!);
+    assert.equal(current.length, 1);
+    assert.match(current[0]!, /aria-label="S M Knitwears Limited"/);
+    assert.doesNotMatch(renderToStaticMarkup(createElement(ResultsTable, { rows })), /aria-current/, "no record open, no current row");
+    assert.doesNotMatch(renderToStaticMarkup(createElement(ResultsTable, { rows, currentSlug: "no-such-slug" })), /aria-current/);
+  });
+
+  it("beside a pane the ledger narrows to Supplier, Registers & certifiers and Workers", () => {
+    const html = renderToStaticMarkup(createElement(ResultsTable, { rows: [buildTableRow(aboniInput())], compact: true }));
+    const heads = [...html.matchAll(/<th scope="col"[^>]*>([\s\S]*?)<\/th>/g)].map((m) => m[1]!.replace(/<[^>]+>/g, "").trim());
+    assert.deepEqual(heads, ["Select", "Supplier", "Registers &amp; certifiers", "Workers"]);
+    assert.match(html, /Aboni Knitwear Ltd/);
+  });
+
+  it("each row is a keyboard stop whose name is the supplier's, and the name opens the record beside the results", () => {
+    const html = renderToStaticMarkup(createElement(ResultsTable, { rows: [ledgerRow(aboniInput())] }));
+    assert.match(html, /<tr tabindex="0" aria-label="Aboni Knitwear Ltd"[^>]*data-row="result"/);
+    assert.match(html, /<a\b[^>]*data-open="record"[^>]*>Aboni Knitwear Ltd<\/a>|<a\b[^>]*href="\/app\/discover\?q=knit&amp;record=aboni-knitwear"[^>]*data-open="record"/);
+  });
+
+  it(
+    "the row's r key finds the row's own RFQ action, and ↵ its record",
+    () => {
+      const html = renderToStaticMarkup(createElement(ResultsTable, { rows: [ledgerRow(aboniInput())] }));
+      assert.match(html, /<a\b[^>]*data-action="rfq"/);
+      assert.match(html, /<a\b[^>]*data-action="open"/);
+    },
+  );
+
+  it("a modified key is the browser's: ⌘R reloads and ⌘K searches, never a row action", () => {
+    let clicked = 0;
+    const row = { tagName: "TR", querySelector: () => ({ click: () => (clicked += 1) }) };
+    const press = (key: string, mods: { metaKey?: boolean; ctrlKey?: boolean; altKey?: boolean } = {}) => {
+      let prevented = false;
+      onRowKey({ key, target: row as unknown as EventTarget, metaKey: false, ctrlKey: false, altKey: false, ...mods, preventDefault: () => (prevented = true) });
+      return prevented;
+    };
+    for (const key of ["r", "s", "k", "j"]) {
+      assert.equal(press(key, { metaKey: true }), false, `⌘${key} was taken by the row`);
+      assert.equal(press(key, { ctrlKey: true }), false, `Ctrl+${key} was taken by the row`);
+    }
+    assert.equal(clicked, 0, "a modified key clicked a row action");
+    // Unmodified, the row keys still work.
+    assert.equal(press("r"), true);
+    assert.equal(clicked, 1);
   });
 });
 
@@ -363,19 +463,17 @@ describe("Sheet: a pane by default, a page on request, never a dialog", () => {
     assert.match(page, /<section aria-label="Product line"/);
   });
 
-  // Guard-adequacy, cycle 19: the RFQ composer IS still a dialog, and the
-  // gallery passes `assertModal={false}` on it because five other screens
-  // are live on that one page. The prop defaults to `true`, the real
-  // single-dialog behaviour the shipped app has; only the gallery's own
-  // negative case was guarded, so `Dialog` could default to `false` and the
-  // whole suite stay green.
-  it("RfqComposer: no assertModal prop means aria-modal=\"true\"; assertModal={false} removes it and keeps role/label", () => {
-    const withDefault = renderToStaticMarkup(createElement(RfqComposer, { model: COMPOSER_MODEL }));
-    assert.match(withDefault, /role="dialog"[^>]*aria-modal="true"|aria-modal="true"[^>]*role="dialog"/);
-    const withFalse = renderToStaticMarkup(createElement(RfqComposer, { model: COMPOSER_MODEL, assertModal: false }));
-    assert.doesNotMatch(withFalse, /aria-modal/);
-    assert.match(withFalse, /role="dialog"/);
-    assert.match(withFalse, new RegExp(`aria-label="${COMPOSER_MODEL.title}"`));
+  // The composer was the last dialog in the kit. Since 27 Sep 2026 it opens
+  // in the pane beside the results (or fills /app/rfqs/new), so it claims no
+  // role and no modality either: a dialog over live results told a screen
+  // reader the search it could see was gone.
+  it("RfqComposer: the default is the focusable pane; mode=\"page\" is neither pane nor dialog", () => {
+    const pane = composer();
+    assert.match(pane, /<section data-record-pane="" aria-label="New RFQ" tabindex="-1"/);
+    assert.doesNotMatch(pane, /role="dialog"|aria-modal|\sinert\b/);
+    const page = composer({ mode: "page" });
+    assert.doesNotMatch(page, /data-record-pane|role="dialog"|aria-modal|tabindex="-1"/);
+    assert.match(page, /<section aria-label="New RFQ"/);
   });
 });
 
@@ -747,52 +845,54 @@ describe("the results panel does not clip its own menus", () => {
   });
 });
 
-/** A draft with one clean target, in the shape the composer really takes. */
-const COMPOSER_MODEL: RfqComposerModel = {
-  title: "New RFQ",
-  context: "sample",
-  targets: [{ name: "Aboni Knitwear Ltd", sanctioned: false }],
-  draftSaved: null,
-  steps: [
-    { label: "Suppliers", detail: "one" },
-    { label: "Follow-up rules", detail: "Draft a follow-up", v2: true },
-  ],
-  template: "first",
-  subject: ["RFQ"],
-  body: [["Dear"]],
-  products: [],
-  questions: [],
-  moreQuestions: null,
-  preview: { from: "x", subject: "y", paragraphs: [], footer: "z" },
-  missing: [],
+/**
+ * The composer's targets, in the shape the routes build them from the
+ * `suppliers` table (`composerTarget` in discover/page.tsx): facts only, never
+ * a contact field. The marks are the record's own.
+ */
+const ABONI_TARGET: ComposerTarget = {
+  id: "8ce50581-2d84-4cc2-93de-506394eade5d",
+  slug: "aboni-knitwear",
+  name: "Aboni Knitwear Ltd",
+  initials: "AK",
+  tier: 1,
+  marks: buildTableRow(aboniInput()).marks,
+  place: "Dhaka",
+  type: "Factory",
+  sanctioned: false,
 };
+const ZAHEEN_TARGET: ComposerTarget = {
+  ...ABONI_TARGET,
+  id: "e4669f72-a97a-40e4-9e6e-11df37d2e96e",
+  slug: "zaheen-knitwear",
+  name: "Zaheen Knitwears Limited",
+  initials: "ZK",
+  sanctioned: true,
+};
+/** A draft with everything Send needs: a product title and a quantity (the unit defaults to pcs). */
+const COMPLETE: ComposerPrefill = { title: "Men's knitted piqué polo, 220 gsm", quantity: "12000", hs: "6105" };
+
+/** The composer as a buyer's browser receives it. */
+function composer(over: Partial<Parameters<typeof RfqComposer>[0]> = {}): string {
+  return renderToStaticMarkup(
+    createElement(RfqComposer, { targets: [ABONI_TARGET], prefill: COMPLETE, workspace: null, closeHref: "/app/discover?q=knit", ...over }),
+  );
+}
+
+/** The composer footer's Send RFQ button, whole. */
+const sendButton = (html: string) => /<button\b[^>]*>(?:(?!<\/button>)[\s\S])*?Send RFQ/.exec(html)?.[0] ?? "";
+/** The footer's live status line: what is still needed, or who it goes to. */
+const footerStatus = (html: string) =>
+  (/<span role="status" aria-live="polite"[^>]*>([\s\S]*?)<\/span>/.exec(html.slice(html.lastIndexOf("glass flex")))?.[1] ?? "")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&#x27;/g, "'")
+    .trim();
 
 describe("AI surfaces are absent when AI is off (handoff §7)", () => {
-  const model: RfqComposerModel = {
-    title: "New RFQ",
-    context: "sample",
-    targets: [{ name: "Aboni Knitwear Ltd", sanctioned: false }],
-    draftSaved: null,
-    steps: [
-      { label: "Suppliers", detail: "one" },
-      { label: "Follow-up rules", detail: "Draft a follow-up", v2: true },
-    ],
-    template: "first",
-    subject: ["RFQ"],
-    body: [["Dear"]],
-    products: [],
-    questions: [],
-    moreQuestions: null,
-    preview: { from: "x", subject: "y", paragraphs: [], footer: "z" },
-    missing: [],
-  };
-  it("RfqComposer: no Improve wording, no V2 tag, no Follow-up rules step", () => {
-    const off = renderToStaticMarkup(createElement(RfqComposer, { model, aiEnabled: false }));
-    assert.doesNotMatch(off, /Improve wording|Follow-up rules|>V2</);
-    assert.doesNotMatch(off, /text-smart/);
-    const on = renderToStaticMarkup(createElement(RfqComposer, { model, aiEnabled: true }));
-    assert.match(on, /Improve wording/);
-    assert.match(on, /Follow-up rules/);
+  it("RfqComposer: no Improve wording, no V2 tag, no Follow-up rules — the composer has no AI surface at all", () => {
+    const html = composer();
+    assert.doesNotMatch(html, /Improve wording|Follow-up rules|>V2</);
+    assert.doesNotMatch(html, /text-smart/);
   });
   it("SearchComposer: the Ask stop is not rendered, not disabled", () => {
     const off = renderToStaticMarkup(createElement(SearchComposer, { chips: [], askEnabled: false }));
@@ -800,35 +900,160 @@ describe("AI surfaces are absent when AI is off (handoff §7)", () => {
     const on = renderToStaticMarkup(createElement(SearchComposer, { chips: [], askEnabled: true }));
     assert.match(on, /Ask/);
   });
+});
 
+describe("RfqComposer (rendered)", () => {
   // Cycle 5, finding 1: the composer had no sanction handling at all — no
-  // banner, no model field, and Send went green as soon as four fields were
-  // filled. §3.6: Send stays disabled until every supplier is not sanctioned.
-  it("RfqComposer: a sanctioned target carries the banner, names the supplier and kills Send", () => {
-    const sanctioned: RfqComposerModel = { ...model, targets: [{ name: "Zaheen Knitwears Limited", sanctioned: true }] };
-    const html = renderToStaticMarkup(createElement(RfqComposer, { model: sanctioned }));
+  // banner, and Send went green as soon as four fields were filled. §3.6: Send
+  // stays disabled while any target is sanctioned; the server refuses it too
+  // (`rfq_create`).
+  it("a sanctioned target carries the banner, names the supplier and disables Send", () => {
+    const html = composer({ targets: [ZAHEEN_TARGET] });
     assert.match(html, /role="alert"[^>]*class="[^"]*bg-sanction/);
     assert.match(html, /Sanctioned — matched on a sanctions screen\. RFQs cannot be sent to this supplier\./);
-    assert.match(html, /Zaheen Knitwears Limited/);
-    assert.match(html, /RFQs cannot be sent to a sanctioned supplier/);
-    assert.match(html, /<button[^>]*disabled=""[^>]*>(?:(?!<\/button>).)*Send RFQ/s);
+    assert.match(html, /This supplier is on a sanctions screen: Zaheen Knitwears Limited\. Remove it to send this RFQ\./);
+    assert.equal(footerStatus(html), "RFQs cannot be sent to a sanctioned supplier");
+    assert.match(sendButton(html), /\sdisabled=""/, "Send is live for a sanctioned target");
+    // One sanctioned target among clean ones still withholds Send, and names only it.
+    const mixed = composer({ targets: [ABONI_TARGET, ZAHEEN_TARGET] });
+    assert.match(mixed, /This supplier is on a sanctions screen: Zaheen Knitwears Limited\./);
+    assert.doesNotMatch(mixed, /sanctions screen: Aboni/, "the clean target is named as sanctioned");
+    const two = composer({ targets: [ZAHEEN_TARGET, { ...ZAHEEN_TARGET, id: "y", name: "Other Sanctioned Ltd" }] });
+    assert.match(two, /2 of these suppliers are on a sanctions screen: Zaheen Knitwears Limited, Other Sanctioned Ltd\. Remove them/);
+    assert.match(sendButton(mixed), /\sdisabled=""/);
   });
 
-  it("RfqComposer: Send is live only when nothing is missing and no target is sanctioned", () => {
-    const clean = renderToStaticMarkup(createElement(RfqComposer, { model }));
-    assert.doesNotMatch(clean, /role="alert"/);
-    assert.doesNotMatch(clean, /disabled=""/);
-    const missing = renderToStaticMarkup(createElement(RfqComposer, { model: { ...model, missing: ["target price"] } }));
-    assert.match(missing, /<button[^>]*disabled=""[^>]*>(?:(?!<\/button>).)*Send RFQ/s);
+  it("missing fields disable Send and the footer names them in the buyer's words", () => {
+    const empty = composer({ prefill: {} });
+    assert.equal(footerStatus(empty), "Still needed: product title, quantity");
+    assert.match(sendButton(empty), /\sdisabled=""/);
+    assert.doesNotMatch(empty, /role="alert"/, "a clean target draws no sanction banner");
+    const noTarget = composer({ targets: [] });
+    assert.equal(footerStatus(noTarget), "Still needed: a supplier");
+    assert.match(noTarget, /No supplier yet\./);
+    // Complete: the footer says who it goes to, and Send is live.
+    const ready = composer();
+    assert.equal(footerStatus(ready), "Ready to send to Aboni Knitwear Ltd");
+    assert.ok(sendButton(ready), "the composer draws no Send RFQ");
+    assert.doesNotMatch(sendButton(ready), /\sdisabled=""/, "a complete draft to a clean supplier cannot be sent");
+    assert.match(composer({ targets: [ABONI_TARGET, { ...ABONI_TARGET, id: "x", name: "S M Knitwears Limited" }] }), /Ready to send to 2 suppliers/);
   });
 
-  it("RfqComposer: the sample label survives, and the preview promises no reply", () => {
-    const sample: RfqComposerModel = { ...model, targets: [{ name: "Zaheen Knitwears Limited", sanctioned: true, sanctionSample: true }] };
-    const html = renderToStaticMarkup(createElement(RfqComposer, { model: sample }));
+  it("the sample label survives into the banner and the target row", () => {
+    const html = composer({ targets: [{ ...ZAHEEN_TARGET, sanctionSample: true }] });
     assert.match(html, /Sanctioned · sample record — matched on a sanctions screen/);
-    const clean = renderToStaticMarkup(createElement(RfqComposer, { model }));
-    assert.doesNotMatch(clean, /replies land in Messages/);
-    assert.match(clean, /Your email and phone are not shared\. The supplier&#x27;s contact details stay on their record\./);
+    assert.match(html, />Sanctioned · sample</);
+  });
+
+  it("the preview names what the RFQ carries, and promises nothing about delivery", () => {
+    const html = composer();
+    assert.match(html, />What this RFQ carries</);
+    assert.match(html, /<section[^>]*aria-label="Preview"/);
+    // An unclaimed supplier is not reached until REZ-D's email work, so no
+    // surface may promise a delivery, an inbox or a reply time.
+    assert.doesNotMatch(html, /the supplier receives|will receive|lands in their inbox|\bdelivered\b|within \d|\bguarantee|replies land in Messages/i);
+    assert.match(html, /Your email and phone are not shared\. The supplier answers inside SourceBD, with the record attached\./);
+  });
+
+  it("no score, and no contact value or contact column, anywhere on it", () => {
+    const html = composer({ targets: [ABONI_TARGET, ZAHEEN_TARGET] });
+    assert.match(html, /New RFQ/);
+    assert.doesNotMatch(html, SCORE);
+    assert.doesNotMatch(html, /email_primary|contact_name|contact_role|\bphones\b|@/);
+    assert.doesNotMatch(html, HAND_TYPED_COLOUR);
+    assert.doesNotMatch(html, TRUNCATION, "a supplier's name or the draft's context is cut off");
+    // Every target's name wraps rather than truncating.
+    assert.match(html, /<span[^>]*\[overflow-wrap:anywhere\][^>]*>Aboni Knitwear Ltd</);
+  });
+
+  it("each target can be removed by name, and Close and the record's Back go where they were given", () => {
+    const html = composer({ targets: [ABONI_TARGET, ZAHEEN_TARGET], backHref: "/app/discover?q=knit&record=aboni-knitwear" });
+    assert.match(html, /<button[^>]*aria-label="Remove Aboni Knitwear Ltd"/);
+    assert.match(html, /<button[^>]*aria-label="Remove Zaheen Knitwears Limited"/);
+    assert.match(html, /href="\/app\/discover\?q=knit"[^>]*aria-label="Close"|aria-label="Close"[^>]*href="\/app\/discover\?q=knit"/);
+    // The link whose words are "Record" (a client link carries its pending mark after them).
+    const record = (h: string) => [...h.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/g)].find((m) => m[2]!.replace(/<[^>]+>/g, "").trim() === "Record");
+    assert.match(record(html)?.[1] ?? "", /href="\/app\/discover\?q=knit&amp;record=aboni-knitwear"/);
+    assert.equal(record(composer()), undefined, "no Back without a record to go back to");
+  });
+
+  it("the workspace's own questions and template are used; with none, the five first-contact questions", () => {
+    const none = composer();
+    for (const q of DEFAULT_QUESTIONS) assert.ok(none.includes(escape(q)), `the default question "${q}" is missing`);
+    assert.match(none, /5 of 5 asked/);
+    const own = composer({
+      workspace: { companyName: "Northwind Ltd", userName: "Sam Rahman", website: "https://northwind.example", questions: ["Lead time for 5,000 pcs"], emailTemplate: "Hello {{supplier}}, {{product}}. {{user}}, {{company}}, {{website}}" },
+    });
+    assert.match(own, /1 of 1 asked/);
+    assert.match(own, /Hello Aboni Knitwear Ltd, Men&#x27;s knitted piqué polo, 220 gsm · 12,000 pcs\. Sam Rahman, Northwind Ltd, https:\/\/northwind\.example/);
+    assert.doesNotMatch(own, /Your workspace has no/, "a complete workspace names nothing missing");
+    // A saved draft's own message and questions win over the workspace's.
+    const draft = composer({ prefill: { ...COMPLETE, message: "Our own words", questions: ["One question"] } });
+    assert.match(draft, />Our own words</);
+    assert.match(draft, /1 of 1 asked/);
+  });
+
+  it(
+    "the sentence about a thin workspace reads as English",
+    () => {
+      assert.doesNotMatch(composer(), /has no your name/);
+    },
+  );
+
+  it(
+    "Send submits the form it sends",
+    () => {
+      const html = composer();
+      const button = sendButton(html);
+      const formId = /<form\b[^>]*\sid="([^"]+)"/.exec(html)?.[1];
+      const inside = html.lastIndexOf("<form", html.indexOf(button)) > html.lastIndexOf("</form>", html.indexOf(button));
+      assert.ok(inside || (formId && button.includes(`form="${formId}"`)), `Send is not tied to the form: ${button}`);
+    },
+  );
+
+  it(
+    "the draft-saved time comes from the one time formatter",
+    () => {
+      const src = readFileSync(path.join(process.cwd(), "components", "dashboard", "rfq-composer.tsx"), "utf8");
+      assert.doesNotMatch(src, /getHours\(\)|getMinutes\(\)|toLocale(?:Date|Time)?String\(\)/);
+    },
+  );
+});
+
+describe("the composer's pure parts", () => {
+  it("fillTemplate fills every variable it has and brackets every fact it lacks", () => {
+    const { text, missing } = fillTemplate(DEFAULT_TEMPLATE, {
+      supplier: "Aboni Knitwear Ltd",
+      product: "Men's polo · 12,000 pcs",
+      user: null,
+      company: "Northwind Ltd",
+      website: "   ",
+    });
+    assert.match(text, /^Dear Aboni Knitwear Ltd,/);
+    assert.ok(text.includes("Men's polo · 12,000 pcs"));
+    assert.ok(text.includes("[your name]"));
+    assert.ok(text.includes("Northwind Ltd"));
+    assert.ok(text.includes("[website]"), "a blank website is missing, not blank");
+    assert.deepEqual(missing, ["your name", "website"]);
+    assert.doesNotMatch(text, /\{\{/, "a variable was left unfilled");
+    // A variable used twice is filled twice; a template without one asks for nothing.
+    assert.equal(fillTemplate("{{supplier}} / {{supplier}}", { supplier: "A", product: "", user: "u", company: "c", website: "w" }).text, "A / A");
+    assert.deepEqual(fillTemplate("Hello", { supplier: "A", product: "", user: null, company: null, website: null }).text, "Hello");
+    // The facts are trimmed, never invented.
+    assert.equal(fillTemplate("{{company}}", { supplier: "", product: "", user: "", company: "  Acme  ", website: "" }).text, "Acme");
+  });
+
+  it("missingFields says what Send still needs, in the buyer's words", () => {
+    assert.deepEqual(missingFields({ title: "", quantity: "", unit: "", targets: 0 }), ["product title", "quantity", "unit", "a supplier"]);
+    assert.deepEqual(missingFields({ title: "  ", quantity: "0", unit: "pcs", targets: 1 }), ["product title", "quantity"]);
+    assert.deepEqual(missingFields({ title: "Polo", quantity: "abc", unit: "pcs", targets: 1 }), ["quantity"]);
+    assert.deepEqual(missingFields({ title: "Polo", quantity: "12000", unit: "pcs", targets: 3 }), []);
+  });
+
+  it("the defaults the composer starts from promise nothing and ask five questions", () => {
+    assert.equal(DEFAULT_QUESTIONS.length, 5);
+    assert.match(DEFAULT_TEMPLATE, /\{\{supplier\}\}[\s\S]*\{\{product\}\}[\s\S]*\{\{user\}\}[\s\S]*\{\{company\}\}[\s\S]*\{\{website\}\}/);
+    assert.doesNotMatch(DEFAULT_TEMPLATE, /\bemail\b|\bhours?\b|\bdays?\b|\bwithin\b|\bguarantee/i);
   });
 });
 
@@ -893,18 +1118,36 @@ describe("ProductSheet (rendered)", () => {
   });
 });
 
-describe("RfqList (rendered)", () => {
+/** One `rfq_list` row as /app/rfqs receives it. */
+const rfqRow = (over: Partial<RfqRow> = {}): RfqRow => ({
+  id: "r1",
+  product_title: "T-shirt",
+  quantity: 100,
+  quantity_unit: "pcs",
+  ship_by: "2026-09-24",
+  status: "open",
+  target_supplier_count: 1,
+  quote_count: 0,
+  created_at: "2026-09-09T10:00:00Z",
+  updated_at: "2026-09-10T10:00:00Z",
+  viewer_role: "buyer",
+  ...over,
+});
+const rfqList = (rows: RfqRow[] | null, tab: Parameters<typeof RfqListBody>[0]["tab"] = "all") =>
+  renderToStaticMarkup(createElement(RfqListBody, { rows, tab, today: TODAY }));
+
+// The dialog-era `RfqList` was retired on 27 Sep 2026; the list is
+// `RfqListBody`, the body /app/rfqs renders (its own behaviour is pinned in
+// rfq-pages.test.ts). What stays here is what these sweeps are about: the
+// rendered list, held to the kit's rules. The old row model's per-supplier
+// cells ("1 supplier", the resolved supplier's name, the sanctioned row's
+// warning) have no counterpart: `rfq_list` names no supplier, and the list
+// draws the count it returns.
+describe("RfqListBody (rendered)", () => {
   it("with no rows the page sells the feature instead of apologising", () => {
-    const model: RfqListModel = {
-      sent: 0,
-      quotes: 0,
-      chips: [{ label: "All", count: 0, on: true }],
-      rows: [],
-      footer: "No RFQs for this account yet",
-      toast: null,
-    };
-    const html = renderToStaticMarkup(createElement(RfqList, { model }));
-    assert.match(html, rx(RFQ_EMPTY_COPY));
+    const html = rfqList([]);
+    assert.match(html, rx(RFQ_EMPTY_TITLE));
+    assert.match(html, rx(RFQ_EMPTY_BODY));
     assert.match(html, /0 sent · 0 quotes/);
     assert.doesNotMatch(html, /sorry|no results/i);
   });
@@ -912,72 +1155,34 @@ describe("RfqList (rendered)", () => {
   // Cycle 5, finding 4: a failed `rfq_list` read rendered as the fact "you have
   // no RFQs", in the empty state written to sell the feature.
   it("a failed read says so — it never renders the empty state as a fact about the account", () => {
-    const model: RfqListModel = {
-      sent: 0,
-      quotes: 0,
-      chips: [{ label: "All", count: 0, on: true }],
-      rows: [],
-      footer: "The RFQ list could not be read",
-      toast: null,
-      error: true,
-    };
-    const html = renderToStaticMarkup(createElement(RfqList, { model }));
+    const html = rfqList(null);
     assert.match(html, rx(RFQ_ERROR_COPY));
-    assert.match(html, /role="status"/);
-    assert.ok(!html.includes(escape(RFQ_EMPTY_COPY)), "the empty state claims the account has no RFQs");
-    assert.doesNotMatch(html, /Find suppliers/);
+    assert.ok(!html.includes(escape(RFQ_EMPTY_TITLE)), "the empty state claims the account has no RFQs");
+    assert.match(html, /Counts could not be read/);
+    assert.doesNotMatch(html, /\b0 sent\b|\b0 quotes\b/, "an unread list counted as none");
   });
 
-  it("with rows: status words, dates, and an unresolved single supplier reads '1 supplier', never '1 suppliers'", () => {
-    const base = { id: "r1", product_title: "T-shirt", quantity: 100, quantity_unit: "pcs", ship_by: "2026-09-24", target_supplier_count: 1, quote_count: 0, created_at: "2026-09-09T10:00:00Z" } as const;
-    const rows = [
-      buildRfqRow({ ...base, status: "open" }, null, TODAY),
-      buildRfqRow({ ...base, id: "r2", status: "open", ship_by: "2026-09-01", quote_count: 1 }, { name: "Quattro Fashion Limited", tier: 2 }, TODAY),
-      buildRfqRow({ ...base, id: "r3", status: "open", target_supplier_count: 3 }, null, TODAY),
-    ];
-    const model: RfqListModel = { sent: 3, quotes: 0, chips: [{ label: "All", count: 3, on: true }], rows, footer: "1–3 of 3", toast: null };
-    const html = renderToStaticMarkup(createElement(RfqList, { model }));
-    assert.match(html, /1 supplier</);
-    assert.doesNotMatch(html, /1 suppliers/);
-    assert.match(html, /3 suppliers/);
-    assert.match(html, /Quattro Fashion Limited/);
-    assert.match(html, /Open · no quote yet/);
-    assert.match(html, /Quoted · 1/);
+  it("with rows: status words, the updated day, the quantity whole — nothing cut off, nothing hand-coloured", () => {
+    const html = rfqList([
+      rfqRow(),
+      rfqRow({ id: "r2", quote_count: 1, quantity: 12000, updated_at: "2026-09-01T10:00:00Z" }),
+      rfqRow({ id: "r3", target_supplier_count: 3, status: "accepted" }),
+    ]);
+    assert.match(html, /10 Sep 2026/);
+    assert.match(html, /1 Sep 2026/);
+    assert.match(html, /12,000 pcs/);
     assert.doesNotMatch(html, /Reply overdue/, "overdue needs reply-by dates and threads (REZ-D)");
-    assert.match(html, /9 Sep 2026/);
-    assert.match(html, /24 Sep 2026/);
-    assert.doesNotMatch(html, /data-sanctioned/);
     assert.doesNotMatch(html, TRUNCATION);
     assert.doesNotMatch(html, HAND_TYPED_COLOUR);
-  });
-
-  // Cycle 5, finding 1: the RFQ list is one of the six screens, and it had no
-  // sanction handling at all. A sanction may not be hidden by layout (spec §2).
-  it("a row whose supplier is sanctioned carries the warning", () => {
-    const base = { id: "r1", product_title: "T-shirt", quantity: 100, quantity_unit: "pcs", ship_by: "2026-09-24", target_supplier_count: 1, quote_count: 0, created_at: "2026-09-09T10:00:00Z" } as const;
-    const rows = [buildRfqRow({ ...base, status: "open" }, { name: "Zaheen Knitwears Limited", tier: 1, sanctioned: true, sanctionSample: true }, TODAY)];
-    const model: RfqListModel = { sent: 1, quotes: 0, chips: [{ label: "All", count: 1, on: true }], rows, footer: "1–1 of 1", toast: null };
-    const html = renderToStaticMarkup(createElement(RfqList, { model }));
-    assert.match(html, /data-sanctioned="true"/);
-    assert.ok(edgeInToken(html, "sanction"), "the RFQ row draws no sanction-token edge");
-    assert.match(html, /Sanctioned · sample — RFQs cannot be sent/);
-    assert.match(html, /text-sanction-ink/);
+    assert.doesNotMatch(html, /\bNaN\b|undefined/);
   });
 
   // Cycle 5, finding 20.
-  it("the RFQ table's unnamed columns have names", () => {
-    const model: RfqListModel = {
-      sent: 1,
-      quotes: 0,
-      chips: [],
-      rows: [buildRfqRow({ id: "r1", product_title: "T", quantity: 1, quantity_unit: "pcs", ship_by: null, status: "open", target_supplier_count: 1, quote_count: 0, created_at: "2026-09-09T10:00:00Z" }, null, TODAY)],
-      footer: "1–1 of 1",
-      toast: null,
-    };
-    const html = renderToStaticMarkup(createElement(RfqList, { model }));
-    assert.doesNotMatch(html, /<th[^>]*><\/th>/);
-    assert.match(html, /<span class="sr-only">Select<\/span>/);
-    assert.match(html, /<span class="sr-only">Actions<\/span>/);
+  it("every column of the RFQ table has a name", () => {
+    const html = rfqList([rfqRow({ ship_by: null })]);
+    const heads = [...html.matchAll(/<th\b[^>]*>([\s\S]*?)<\/th>/g)].map((m) => m[1]!.replace(/<[^>]+>/g, "").trim());
+    assert.ok(heads.length >= 3, "guard: the table rendered its header");
+    assert.deepEqual(heads.filter((h) => !h), [], "a column with no visible heading still needs a name");
   });
 });
 
@@ -1020,7 +1225,8 @@ describe("the largest lists the database holds (spec §3, §6)", () => {
     // The record itself lists every one: 3,975 published records have a
     // product list and no EPB lines, so no line sheet at all, and a count
     // over nothing to read was all they showed.
-    const listed = /data-product-list="true">([\s\S]*?)<\/ul>/.exec(html)?.[1] ?? "";
+    // The first eight as chips, the rest behind "+N more as filed" — all in the page.
+    const listed = /data-product-list="true">([\s\S]*?)<\/div>/.exec(html)?.[1] ?? "";
     const items = [...listed.matchAll(/<li[^>]*>([^<]*)<\/li>/g)].map((m) => m[1]);
     assert.equal(items.length, 29, "the record does not list the products it counts");
     assert.equal(new Set(items.map((i) => i!.toLowerCase().replace(/\s+/g, ""))).size, 29, "a case or spacing variant is listed twice");
@@ -1301,24 +1507,21 @@ describe("the 125-character name, on every card type an admin list can reach (sp
 
 describe("the RFQ screens carry no score either (spec §2)", () => {
   it("the list, its rows and the composer are inside the sweep", () => {
-    const base = { id: "r1", product_title: "T-shirt", quantity: 100, quantity_unit: "pcs", ship_by: "2026-09-24", target_supplier_count: 1, quote_count: 0, created_at: "2026-09-09T10:00:00Z", status: "open" } as const;
-    const rows = [
-      buildRfqRow(base, { name: "Aboni Knitwear Ltd", tier: 2 }, TODAY),
-      buildRfqRow({ ...base, id: "r2", quote_count: 2 }, { name: "S M Knitwears Limited", tier: 2 }, TODAY),
-      buildRfqRow({ ...base, id: "r3", status: "accepted" }, { name: ZAHEEN_NAME, tier: 1, sanctioned: true, sanctionSample: true }, TODAY),
-    ];
-    const model: RfqListModel = { sent: 3, quotes: 2, chips: [{ label: "All", count: 3, on: true }], rows, footer: "1–3 of 3", toast: null };
-    const html = renderToStaticMarkup(createElement(RfqList, { model }));
+    const html = rfqList([
+      rfqRow({ product_title: "Men's knitted polo" }),
+      rfqRow({ id: "r2", product_title: "Crew-neck T-shirt", quote_count: 2 }),
+      rfqRow({ id: "r3", product_title: "Fleece hoodie", status: "accepted", quote_count: 1 }),
+    ]);
     // The sweep is worthless over an empty list, so pin that there is something to sweep.
-    assert.match(html, /Aboni Knitwear Ltd/);
-    assert.match(html, /S M Knitwears Limited/);
+    assert.match(html, /Men&#x27;s knitted polo/);
+    assert.match(html, /Fleece hoodie/);
     assert.doesNotMatch(html, SCORE);
     assert.doesNotMatch(html, HAND_TYPED_COLOUR);
     assert.doesNotMatch(html, TRUNCATION);
     // The composer is the other RFQ surface and was outside every sweep.
-    const composer = renderToStaticMarkup(createElement(RfqComposer, { model: COMPOSER_MODEL }));
-    assert.match(composer, /New RFQ/);
-    assert.doesNotMatch(composer, SCORE);
+    const draft = composer({ targets: [ABONI_TARGET, { ...ZAHEEN_TARGET, name: ZAHEEN_NAME, sanctionSample: true }] });
+    assert.match(draft, /New RFQ/);
+    assert.doesNotMatch(draft, SCORE);
   });
 });
 
@@ -1406,6 +1609,37 @@ describe("the two-state controls say which state they are in", () => {
     assert.match(off, /title="[^"]+"/, "an inert control says why it is inert");
   });
 
+  it("a segmented control with text stops: the text names each stop, one is pressed or current, and the group is named", () => {
+    const STOPS = [
+      { value: "table", label: "Table" },
+      { value: "cards", label: "Cards" },
+    ] as const;
+    // Buttons: `aria-pressed` on every stop, exactly one true, and the name is
+    // the visible text — an `aria-label` that repeated it would drift from it.
+    const buttons = renderToStaticMarkup(createElement(Seg, { options: STOPS, value: "cards", label: "View" }));
+    assert.match(buttons, /<span role="group" aria-label="View"/);
+    const pressed = [...buttons.matchAll(/<button\b[^>]*aria-pressed="(true|false)"[^>]*>([^<]*)</g)].map((m) => [m[2], m[1]]);
+    assert.deepEqual(pressed, [
+      ["Table", "false"],
+      ["Cards", "true"],
+    ]);
+    assert.doesNotMatch(buttons, /<button[^>]*aria-label=/, "a text stop carries a label that shadows its own words");
+    // The active stop is drawn by the brand rule, not the tint alone.
+    assert.match(buttons, /aria-pressed="true"[^>]*class="[^"]*shadow-\[inset_0_-2px_0_rgb\(var\(--ds-brand\)\)\]|class="[^"]*shadow-\[inset_0_-2px_0_rgb\(var\(--ds-brand\)\)\][^"]*"[^>]*aria-pressed="true"/);
+    // Links (a view switch is a URL): `aria-current="true"`, never "page" —
+    // both stops are the same page.
+    const links = renderToStaticMarkup(createElement(Seg, { options: STOPS, value: "table", label: "View", hrefFor: (v: string) => `/app/discover?view=${v}` }));
+    const current = [...links.matchAll(/<a\b([^>]*)>([^<]*)</g)].map((m) => [m[2], /aria-current="([^"]+)"/.exec(m[1]!)?.[1] ?? null]);
+    assert.deepEqual(current, [
+      ["Table", "true"],
+      ["Cards", null],
+    ]);
+    assert.doesNotMatch(links, /aria-current="page"/);
+    // An icon stop has no text, so it keeps its name.
+    const icons = renderToStaticMarkup(createElement(Seg, { options: [{ value: "table", label: "Table", icon: "table" }], value: "table" }));
+    assert.match(icons, /<button[^>]*aria-label="Table"/);
+  });
+
   it("a checkbox given onToggle is real: no aria-disabled, no inert title, in the tab order", () => {
     // REZ-B, handoff §7.5: the results-page checkbox goes from the inert
     // placeholder above to an operable one wherever selection is wired up.
@@ -1487,7 +1721,7 @@ describe("the two-state controls say which state they are in", () => {
   describe("the bulk bar", () => {
     const A = "11111111-1111-4111-8111-111111111111";
     const B = "22222222-2222-4222-8222-222222222222";
-    const bar = (selected: string[]) => {
+    const bar = (selected: string[], searchHref?: string) => {
       const value: SelectionContextValue = {
         interactive: true,
         selected: new Set(selected),
@@ -1506,7 +1740,7 @@ describe("the two-state controls say which state they are in", () => {
           createElement(
             SelectionContext.Provider,
             { value },
-            createElement(SelectionBar, { exportHref: "/api/v1/discover/export?q=knit&page=3" }),
+            createElement(SelectionBar, { exportHref: "/api/v1/discover/export?q=knit&page=3", searchHref }),
           ),
         ),
       );
@@ -1544,18 +1778,28 @@ describe("the two-state controls say which state they are in", () => {
       assert.doesNotMatch(html, /role="toolbar"/);
     });
 
-    it("says in visible text why Send RFQ and Compare are disabled, and ties it to both", () => {
-      const html = bar([A]);
-      const note = html.match(/<p id="([^"]+)"[^>]*>([^<]+)<\/p>/);
+    it("Send RFQ opens the composer on this search with every ticked supplier; past fifty it is withheld and the note says why", () => {
+      // Live since 27 Sep 2026 (`bulkRfqHref`): the composer opens in the pane
+      // beside these results. Compare is gone until /app/compare exists.
+      const html = bar([A, B], "/app/discover?q=knit");
+      assert.match(html, new RegExp(`<a\\b[^>]*href="/app/discover\\?q=knit&amp;rfq=${A},${B}"[^>]*>(?:(?!</a>)[\\s\\S])*Send RFQ`));
+      assert.doesNotMatch(html, /Compare/);
+      assert.doesNotMatch(html, /<p id=/, "a note under a live Send");
+      // The server's cap (`rfq_create`): fifty-one ticked is refused, so Send
+      // is withheld and one visible sentence says why, tied to the control.
+      const many = Array.from({ length: 51 }, (_, i) => `${String(i).padStart(8, "0")}-1111-4111-8111-111111111111`);
+      const over = bar(many, "/app/discover?q=knit");
+      const note = over.match(/<p id="([^"]+)"[^>]*>([^<]+)<\/p>/);
       assert.ok(note, "no visible note");
-      assert.match(note[2] ?? "", /not built yet/);
-      const described = [...html.matchAll(new RegExp(`<button[^>]*aria-describedby="${note[1]}"[^>]*>`, "g"))];
-      assert.equal(described.length, 2, "Send RFQ and Compare both point at the note");
-      for (const b of described) assert.match(b[0], /disabled=""/);
+      assert.equal(note![2], TOO_MANY);
+      const described = [...over.matchAll(new RegExp(`<button[^>]*aria-describedby="${note![1]}"[^>]*>`, "g"))];
+      assert.equal(described.length, 1, "Send RFQ points at the note");
+      assert.match(described[0]![0], /disabled=""/);
       // One explanation for everyone: with aria-describedby present a screen
-      // reader never hears a `title`, so a title told mouse users something
-      // else (a 50-supplier cap on a bulk send that is not built yet).
-      for (const b of described) assert.doesNotMatch(b[0], /\btitle=/, `a second, different explanation: ${b[0]}`);
+      // reader never hears a `title`.
+      assert.doesNotMatch(described[0]![0], /\btitle=/);
+      // No search to open it on (a caller that passes none): no Send at all.
+      assert.doesNotMatch(bar([A]), /Send RFQ/);
     });
 
     it("Clear sends focus to the select-all box, which carries the id it looks for", () => {
@@ -1605,7 +1849,7 @@ describe("the two-state controls say which state they are in", () => {
       // The handler itself is invoked in interaction.test.ts; here only that
       // the link keeps its href for a middle-click or no script.
       const link = sourceCode("components/dashboard/export-link.tsx");
-      assert.match(link, /<Button href=\{href\} onClick=\{run\}/);
+      assert.match(link, /<Button href=\{href\}(?: size=\{size\})? onClick=\{run\}/);
       assert.match(sourceCode("components/dashboard/selection-bar.tsx"), /<ExportLink href=\{bulkExportHref\(exportHref, ids\)\} label="Export" requested=\{count\} resetOn=\{sel\.edits\} onStatus=\{setExportStatus\} \/>/);
       assert.match(sourceCode("components/dashboard/results-panel.tsx"), /<ExportLink href=\{model\.exportHref\}/);
       // And the link still carries its href, for a middle-click or no script.
@@ -1644,7 +1888,9 @@ describe("the two-state controls say which state they are in", () => {
       const pane = html.match(/<div class="([^"]*)" tabindex="0" role="region" aria-label="Results table"/);
       assert.ok(pane, "scroll pane not found");
       const cls = pane[1]!.split(/\s+/);
-      assert.ok(cls.includes("relative") && cls.includes("overflow-x-auto"), pane[1]);
+      // Below `xl` the ledger scrolls sideways in this pane; from `xl` it fits
+      // and its header sticks to the results column's own scroll.
+      assert.ok(cls.includes("relative") && (cls.includes("overflow-x-auto") || cls.includes("max-xl:overflow-x-auto")), pane[1]);
     });
 
     it("the saved-search form names the real cause, and only a name error blames the name field", () => {
@@ -1700,8 +1946,10 @@ describe("the two-state controls say which state they are in", () => {
       // this list on purpose.
       const BOX = "inline-grid size-4 shrink-0 place-items-center rounded-xs border";
       const LIVE = "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--ds-brand))]";
-      const OFF = `${BOX} border-line-strong bg-surface ${LIVE}`;
-      const ON = `${BOX} ${LIVE} border-brand bg-brand text-brand-on`;
+      // The tick fades in on the kit's fast clock (27 Sep 2026).
+      const MOTION = "transition-colors duration-fast";
+      const OFF = `${BOX} border-line-strong bg-surface ${MOTION} ${LIVE}`;
+      const ON = `${BOX} ${MOTION} ${LIVE} border-brand bg-brand text-brand-on`;
       const under = (allState: boolean | "mixed", selected: boolean, el: ReturnType<typeof createElement>) => {
         const value: SelectionContextValue = {
           interactive: true,
@@ -1723,8 +1971,9 @@ describe("the two-state controls say which state they are in", () => {
         ["select-all, none", under(false, false, header), OFF],
         ["select-all, some", under("mixed", false, header), ON],
         ["select-all, all", under(true, false, header), ON],
-        ["table row, off", under(false, false, createElement(ResultsTable, { rows: [row] })), OFF],
-        ["table row, on", under(false, true, createElement(ResultsTable, { rows: [row] })), ON],
+        // The ledger sets its box in from the row's edge (`ml-1`).
+        ["table row, off", under(false, false, createElement(ResultsTable, { rows: [row] })), `${OFF} ml-1`],
+        ["table row, on", under(false, true, createElement(ResultsTable, { rows: [row] })), `${ON} ml-1`],
         ["card, off", under(false, false, createElement(SupplierResultCard, { card })), `${OFF} mt-4`],
         ["card, on", under(false, true, createElement(SupplierResultCard, { card })), `${ON} mt-4`],
       ];
@@ -1742,20 +1991,17 @@ describe("the two-state controls say which state they are in", () => {
       }
     });
 
-    it("the bar is sticky only on a window tall enough to spare it, and hides the two dead actions on a phone (WCAG 1.4.10)", () => {
-      const html = bar([A]);
+    it("the bar is sticky only on a window tall enough to spare it, and every action it shows is live (WCAG 1.4.10)", () => {
+      const html = bar([A], "/app/discover?q=knit");
       const cls = html.match(/<div role="group" aria-label="Bulk actions" class="([^"]+)"/)?.[1] ?? "";
       assert.ok(cls, "bar not found");
       const classes = cls.split(/\s+/);
       assert.ok(classes.includes("[@media(min-height:32rem)]:sticky"), cls);
       assert.ok(!classes.includes("sticky"), "an unconditional sticky covered 91% of a 320x256 view");
-      const tag = (label: string) => html.match(new RegExp(`<button[^>]*>(?:(?!</button>).)*${label}</button>`))?.[0] ?? "";
-      for (const label of ["Send RFQ", "Compare"]) {
-        const b = tag(label);
-        assert.ok(b, label);
-        assert.match(b, /class="[^"]*\bhidden\b[^"]*\bsm:inline-flex\b/, `${label} still shows on a phone`);
-      }
-      assert.match(html, /<p id="[^"]+" class="[^"]*\bhidden\b[^"]*\bsm:block\b/);
+      // The two dead actions the phone used to hide are gone: Send RFQ is
+      // live, and Compare waits for its page.
+      assert.doesNotMatch(html, /Compare/);
+      assert.doesNotMatch(html, /<button[^>]*disabled=""/, "a dead action in the bar");
       // And the effect only reserves space while the bar is actually sticky.
       assert.match(sourceCode("components/dashboard/selection-bar.tsx"), /const sticky = \(\) => getComputedStyle\(bar\)\.position === "sticky";[\s\S]*?return reserveBarSpace\([^;]*, observe, sticky, onViewportResize\);/);
     });
@@ -1848,12 +2094,10 @@ describe("the two-state controls say which state they are in", () => {
     // No outline assertion: it is not a control any more, so a control outline
     // would be the wrong thing to require of it.
 
-    // The Template switch's own group wrapper — its buttons' own divider
-    // already used border-line-strong; the group's outer border did not.
-    const composer = renderToStaticMarkup(createElement(RfqComposer, { model: COMPOSER_MODEL }));
-    const labelAt = composer.indexOf('aria-label="Template"');
-    const group = composer.slice(labelAt, composer.indexOf(">", labelAt) + 1);
-    assert.match(group, /border-line-strong/, `Template group missing the control outline: ${group}`);
+    // The composer's Template switch is gone with the dialog composer (27 Sep
+    // 2026), and `Seg` is drawn by tone now (the soft `shadow-edge`, the B1
+    // "Quiet" direction): its stops are named by their own text or icon, and
+    // the active one by the 2px brand rule, which the next test pins.
 
     // The Filters/Ask switch's own group wrapper — same defect class, missed
     // this round because it is gated behind `askEnabled` and unreachable on
@@ -1881,12 +2125,21 @@ describe("the two-state controls say which state they are in", () => {
     assert.equal(segButtons.length, 2);
     for (const b of segButtons) assert.match(b, /focus-visible:outline-offset-\[-2px\]/, `no inset focus ring: ${b}`);
 
-    const template = renderToStaticMarkup(createElement(RfqComposer, { model: COMPOSER_MODEL }));
-    const group = template.slice(template.indexOf('aria-label="Template"'), template.indexOf("</span>", template.indexOf('aria-label="Template"')));
-    assert.match(group, /overflow-hidden/, "the clipping condition this guards against is still present");
-    const templateButtons = [...group.matchAll(/<button\b[^>]*>/g)].map((m) => m[0]);
-    assert.equal(templateButtons.length, 2, "First contact, Repeat supplier");
-    for (const b of templateButtons) assert.match(b, /focus-visible:outline-offset-\[-2px\]/, `no inset focus ring: ${b}`);
+    // Text stops (the density and template switches' shape since 27 Sep
+    // 2026), as buttons and as links: every stop insets its ring.
+    const TEXT_STOPS = [
+      { value: "compact", label: "Compact" },
+      { value: "default", label: "Default" },
+      { value: "comfortable", label: "Comfortable" },
+    ] as const;
+    const textButtons = renderToStaticMarkup(createElement(Seg, { options: TEXT_STOPS, value: "default", label: "Row density" }));
+    const textLinks = renderToStaticMarkup(createElement(Seg, { options: TEXT_STOPS, value: "default", label: "Row density", hrefFor: (v: string) => `?d=${v}` }));
+    for (const html of [textButtons, textLinks]) {
+      assert.match(html, /role="group"[^>]*overflow-hidden/, "the clipping condition this guards against is still present");
+      const stops = [...html.matchAll(/<(?:button|a)\b[^>]*>/g)].map((m) => m[0]);
+      assert.equal(stops.length, 3);
+      for (const b of stops) assert.match(b, /focus-visible:outline-offset-\[-2px\]/, `no inset focus ring: ${b}`);
+    }
 
     // The Filters/Ask switch — same clipping condition, same fix, missed
     // this round because it only renders when `askEnabled` (accessibility,
@@ -1919,21 +2172,13 @@ describe("an unread count renders as unknown, on every surface that shows one", 
     assert.match(html, /could not be read/);
   });
 
-  it("the RFQ chips and the summary line show nothing rather than 0 when the list was not read", () => {
-    const model: RfqListModel = {
-      sent: null,
-      quotes: null,
-      chips: [{ label: "All", count: null, on: true }, { label: "Open", count: null }],
-      rows: [],
-      footer: "The RFQ list could not be read",
-      toast: null,
-      error: true,
-    };
-    const html = renderToStaticMarkup(createElement(RfqList, { model }));
-    assert.match(html, /count not read/);
+  it("the RFQ tabs and the summary line show nothing rather than 0 when the list was not read", () => {
+    const html = rfqList(null);
+    assert.match(html, /Counts could not be read/);
     assert.doesNotMatch(html, /\b0 sent\b/);
     assert.doesNotMatch(html, /\b0 quotes\b/);
-    assert.doesNotMatch(html, />All<[^>]*>0</, "a chip counting an unread list states a fact");
+    assert.doesNotMatch(html, /aria-label="RFQ status"/, "tabs counting an unread list state a fact");
+    assert.doesNotMatch(html, />All<[^>]*>0</);
   });
 
   it("the sidebar shows no number rather than 0 when a count is unknown", () => {
@@ -1966,24 +2211,17 @@ describe("an unread count renders as unknown, on every surface that shows one", 
   });
 });
 
-describe("the RFQ summary line is read off the model, both numbers, the right way round", () => {
+describe("the RFQ summary line is read off the rows, both numbers, the right way round", () => {
   it("four sent and one quote read as four sent and one quote", () => {
-    const base = { product_title: "T", quantity: 1, quantity_unit: "pcs", ship_by: null, target_supplier_count: 1, created_at: "2026-09-09T10:00:00Z" } as const;
-    const rows = [
-      buildRfqRow({ ...base, id: "a", status: "open", quote_count: 1 }, null, TODAY),
-      buildRfqRow({ ...base, id: "b", status: "open", quote_count: 0 }, null, TODAY),
-    ];
-    const html = renderToStaticMarkup(
-      createElement(RfqList, { model: { sent: 4, quotes: 1, chips: [], rows, footer: "1–2 of 2", toast: null } as RfqListModel }),
-    );
+    const four = (quotes: number[]) => quotes.map((q, i) => rfqRow({ id: `r${i}`, quote_count: q }));
     // The only assertion on this line used to be `0 sent · 0 quotes` on an
-    // empty model, where the two numbers and their singulars all agree.
+    // empty list, where the two numbers and their singulars all agree.
+    const html = rfqList(four([1, 0, 0, 0]));
     assert.match(html, /4 sent · 1 quote</);
     assert.doesNotMatch(html, /1 sent · 4/);
-    const plural = renderToStaticMarkup(
-      createElement(RfqList, { model: { sent: 4, quotes: 2, chips: [], rows, footer: "1–2 of 2", toast: null } as RfqListModel }),
-    );
-    assert.match(plural, /4 sent · 2 quotes</);
+    assert.match(rfqList(four([1, 1, 0, 0])), /4 sent · 2 quotes</);
+    // An RFQ the viewer received as a supplier is not one they sent.
+    assert.match(rfqList([...four([0, 0, 0]), rfqRow({ id: "s", viewer_role: "supplier", quote_count: 5 })]), /3 sent · 0 quotes</);
   });
 });
 
@@ -1997,17 +2235,13 @@ describe("the failed-read copy is pinned as words, not as itself", () => {
     // A substring any rewrite can keep is not a guard: the empty state may
     // promise nothing about delivery, because 3 of 10,922 records are claimed
     // and an unclaimed supplier is not reached at all until REZ-D's email.
-    assert.equal(
-      RFQ_EMPTY_COPY,
-      "Your first RFQ lands here. Suppliers answer inside the platform, with the record attached.",
-    );
-    assert.doesNotMatch(RFQ_EMPTY_COPY, /\bemail\b|\bhours?\b|\bdays?\b|\bwithin\b|\breply by\b|\bguarantee/i, "the empty state may not promise delivery");
-    assert.notEqual(RFQ_ERROR_COPY, RFQ_EMPTY_COPY);
-    const html = renderToStaticMarkup(
-      createElement(RfqList, {
-        model: { sent: null, quotes: null, chips: [], rows: [], footer: "The RFQ list could not be read", toast: null, error: true } as RfqListModel,
-      }),
-    );
+    assert.equal(RFQ_EMPTY_TITLE, "Your first RFQ lands here.");
+    assert.match(RFQ_EMPTY_BODY, /Suppliers answer inside the platform, with the record attached\.$/);
+    for (const copy of [RFQ_EMPTY_TITLE, RFQ_EMPTY_BODY]) {
+      assert.doesNotMatch(copy, /\bemail\b|\bhours?\b|\bdays?\b|\bwithin\b|\breply by\b|\bguarantee/i, "the empty state may not promise delivery");
+      assert.notEqual(RFQ_ERROR_COPY, copy);
+    }
+    const html = rfqList(null);
     assert.match(html, /could not be read/i);
     assert.doesNotMatch(html, /no RFQs/i);
   });
@@ -2135,9 +2369,10 @@ describe("the certificate card's own mark links, and the sheet shows the registe
 });
 
 describe("the composer says what the draft is, and promises nothing about delivery", () => {
-  it("the preview heading names the message, not its arrival", () => {
-    const html = renderToStaticMarkup(createElement(RfqComposer, { model: COMPOSER_MODEL }));
-    assert.match(html, />The message this RFQ carries</);
+  it("the preview heading names what the RFQ carries, not its arrival", () => {
+    const html = composer();
+    assert.match(html, />What this RFQ carries</);
+    assert.match(html, />stored on the RFQ</);
     // "the message the supplier receives" is a delivery claim the kit may not
     // make: an unclaimed supplier is not reached until REZ-D's email work.
     assert.doesNotMatch(html, /the supplier receives|will receive|lands in their inbox|delivered/i);
@@ -2693,7 +2928,7 @@ describe("the sort menu opens inside the viewport", () => {
         },
       }),
     );
-    const menu = html.match(/<div class="([^"]*absolute[^"]*)"/)?.[1] ?? "";
+    const menu = html.match(/<div\b[^>]*role="menu"[^>]*class="([^"]*)"|<div class="([^"]*absolute[^"]*)"/)?.slice(1).find(Boolean) ?? "";
     assert.ok(menu, "the sort menu is no longer absolutely positioned; this guard needs rewriting");
     const cls = new Set(menu.split(/\s+/));
     assert.ok(cls.has("left-0"), `the menu is not anchored left on a phone: ${menu}`);
@@ -2713,5 +2948,117 @@ describe("the toast fits a phone", () => {
     const html = renderToStaticMarkup(createElement(Toast, { text: "This supplier is no longer listed, so it was not saved.", href: null }));
     assert.doesNotMatch(html, /whitespace-nowrap/);
     assert.match(html, /max-w-\[calc\(100vw-2rem\)\]/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The filter pane (27 Sep 2026): one GET form over the search's own URL. What
+// it submits untouched must be the search it was opened on — a filter the
+// pane cannot show is a filter Apply silently drops.
+// ---------------------------------------------------------------------------
+
+describe("the filter pane (rendered)", () => {
+  const unescapeHtml = (v: string) => v.replace(/&quot;/g, '"').replace(/&#x27;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+  /** What the pane's form submits as it stands: its hidden and text fields, its ticked boxes and each select's picked option. */
+  function submitted(html: string): URLSearchParams {
+    const form = /<form id="filters"[\s\S]*?<\/form>/.exec(html)?.[0] ?? "";
+    assert.ok(form, "the pane draws no filter form");
+    const sp = new URLSearchParams();
+    const attr = (tag: string, name: string) => {
+      const m = new RegExp(`\\s${name}="([^"]*)"`).exec(tag);
+      return m ? unescapeHtml(m[1]!) : null;
+    };
+    for (const m of form.matchAll(/<input\b[^>]*>|<select\b[^>]*>[\s\S]*?<\/select>/g)) {
+      const tag = m[0]!;
+      const name = attr(tag, "name");
+      if (!name) continue;
+      if (tag.startsWith("<select")) {
+        const options = [...tag.matchAll(/<option\b[^>]*>/g)].map((o) => o[0]!);
+        const picked = options.find((o) => /\sselected=""/.test(o)) ?? options[0];
+        sp.append(name, picked ? (attr(picked, "value") ?? "") : "");
+        continue;
+      }
+      const type = attr(tag, "type") ?? "text";
+      if (type === "checkbox" && !/\schecked=""/.test(tag)) continue;
+      if (type === "submit" || type === "button") continue;
+      sp.append(name, attr(tag, "value") ?? "");
+    }
+    return sp;
+  }
+  const pane = (state: DiscoverState) => renderToStaticMarkup(createElement(DiscoverFilters, { state, closeHref: "/app/discover?q=knit" }));
+  /** A ticked box, whatever order React writes its attributes in. */
+  const ticked = (name: string, value: string) => new RegExp(`<input\\b(?=[^>]*\\sname="${name}")(?=[^>]*\\svalue="${value}")(?=[^>]*\\schecked="")[^>]*>`);
+  const roundTrip = (query: string) => {
+    const state = parseDiscoverState(new URLSearchParams(query));
+    return { state: { ...state, page: 1 }, again: parseDiscoverState(submitted(pane(state))) };
+  };
+
+  it("applying the pane untouched keeps every filter of a fully loaded search", () => {
+    const { state, again } = roundTrip(
+      "q=knit&hs=6105,6110&cert=gots:valid&reg=BGMEA&reg=BKMEA&brand=hm&brand=asos&district=Dhaka&city=Savar&type=factory&min_sources=3&rsc=active&workers_min=100&workers_max=5000&est_from=2000&est_to=2020&sort=workers&per=50&view=cards&sanctioned=1&page=3",
+    );
+    assert.deepEqual(again, state);
+  });
+
+  it("an empty search submits an empty one, and the pane says none are set", () => {
+    const { state, again } = roundTrip("");
+    assert.deepEqual(again, state);
+    assert.match(pane(parseDiscoverState(new URLSearchParams(""))), />none set</);
+  });
+
+  it("the current filters are ticked and picked, and the count is the search's", () => {
+    const html = pane(parseDiscoverState(new URLSearchParams("q=knit&cert=wrap:expiring&reg=BKMEA&brand=hm&type=buying_house")));
+    assert.match(html, />5 set</);
+    assert.match(html, ticked("reg", "BKMEA"));
+    assert.doesNotMatch(html, ticked("reg", "BGMEA"));
+    assert.match(html, ticked("brand", "hm"));
+    assert.match(html, /<option value="wrap" selected="">/);
+    assert.match(html, /<option value="expiring" selected="">/);
+    assert.match(html, ticked("type", "buying_house"));
+    assert.doesNotMatch(html, ticked("type", "factory"));
+    // Clear all keeps the text and drops every filter; Close is the search.
+    assert.match(html, /href="\/app\/discover\?q=knit"[^>]*>Clear all|>Clear all/);
+    assert.match(html, /aria-label="Close"/);
+    assert.doesNotMatch(html, HAND_TYPED_COLOUR);
+    assert.doesNotMatch(html, SCORE);
+  });
+
+  it(
+    "a search with two certificates, or both company types, keeps them when the pane is applied",
+    () => {
+      for (const query of ["q=knit&cert=gots:valid,wrap:any", "q=knit&type=factory,buying_house"]) {
+        const { state, again } = roundTrip(query);
+        assert.deepEqual(again, state, query);
+      }
+    },
+  );
+});
+
+describe("the kit's buttons, menus and panels (27 Sep 2026)", () => {
+  it("the header's sort menu marks the order that is on", () => {
+    const html = renderToStaticMarkup(
+      createElement(PanelHeader, {
+        model: {
+          title: "Knit",
+          total: 3,
+          shown: 3,
+          sortLabel: "Name",
+          view: "table" as const,
+          sortOptions: [
+            { value: "sources", label: "Most registers & certifiers", href: "?sort=sources" },
+            { value: "name", label: "Name", href: "?sort=name", active: true },
+          ],
+        },
+      }),
+    );
+    const items = [...html.matchAll(/<a role="menuitem" href="([^"]+)"([^>]*)>/g)].map((m) => [m[1], /aria-current="true"/.test(m[2]!)]);
+    assert.deepEqual(items, [
+      ["?sort=sources", false],
+      ["?sort=name", true],
+    ]);
+    assert.match(html, /<summary aria-label="Sort"/);
+    // The table is the first stop of the view switch.
+    const seg = /<span role="group" aria-label="View"[\s\S]*?<\/span>/.exec(html)?.[0] ?? "";
+    assert.ok(seg.indexOf('aria-label="Table"') < seg.indexOf('aria-label="Cards"'), "the table is not the first stop");
   });
 });

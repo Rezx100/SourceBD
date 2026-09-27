@@ -1789,12 +1789,12 @@ const CASES = [
     auth: true,
     expect: {
       status: 200,
-      // `>1,200<span` / `>100<span`: each figure at the head of its own cell.
+      // The ledger grid (27 Sep) prints the figure bare at the default
+      // density and says what it counts in the cell's title; each figure is
+      // pinned to its own words.
       bodyIncludesAll: [
-        ">1,200<span class=\"block text-xs font-normal text-ink-subtle\">on the supplier record</span>",
-        "500 workers · across its buildings, not this record",
-        ">100<span",
-        "450 workers · RSC inspection",
+        "title=\"on the supplier record · 500 workers · across its buildings, not this record\">1,200</span>",
+        "title=\"on the supplier record · 450 workers · RSC inspection\">100</span>",
       ],
       bodyExcludes: ["450 workers · across this record and its buildings", "Search is under heavy load"],
     },
@@ -1818,8 +1818,11 @@ const CASES = [
     expect: { status: 307, locationPath: "/login" },
   },
   {
-    name: "rez-b: /app/products renders -> 200",
-    path: "/app/products",
+    // The HS catalogue moved from /app/products to /app/headings on 27 Sep
+    // 2026 (the enterprise pass): /app/products is now the buyer's own product
+    // base. Same page, same words, new address.
+    name: "rez-b: /app/headings renders -> 200",
+    path: "/app/headings",
     auth: true,
     // "Products" alone was the SIDEBAR nav label, rendered on every /app/*
     // page — it passed even if the catalogue failed to load, or if this route

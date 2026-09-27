@@ -147,6 +147,8 @@ export function buildDiscoverCard(
     saved?: boolean;
     /** Discover passes the search's own URL with `?record=<slug>`, so the record opens over the results. */
     recordHref?: (slug: string) => string;
+    /** Where Send RFQ goes for this supplier; Discover passes the search URL with `rfq=`, so the composer opens beside the results. */
+    rfqHref?: (supplierId: string) => string;
   },
 ): SupplierCardModel {
   const name = displayName(row.company_name);
@@ -297,7 +299,7 @@ export function buildDiscoverCard(
     selected: false,
     saved: Boolean(opts.saved),
     supplierId: row.id,
-    rfqHref: row.is_sanctioned ? null : `/app/rfqs/new?supplier=${row.id}`,
+    rfqHref: row.is_sanctioned ? null : (opts.rfqHref?.(row.id) ?? `/app/rfqs/new?supplier=${row.id}`),
   };
 }
 
@@ -309,6 +311,7 @@ export function buildDiscoverTableRow(
     hsError: boolean;
     saved?: boolean;
     recordHref?: (slug: string) => string;
+    rfqHref?: (supplierId: string) => string;
   },
 ): TableRowModel {
   const card = buildDiscoverCard(row, opts);
