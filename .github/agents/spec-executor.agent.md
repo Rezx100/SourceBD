@@ -26,7 +26,7 @@ You are the SourceBD spec execution specialist. SourceBD is a B2B intelligence S
 6. **No Tier 6 record enters the DB alone.** Must be corroborated by ≥1 Tier 1–3 source.
 7. **Server enforces auth and ownership.** Hiding UI is never a security control.
 8. **Never commit secrets or `context/current-issues.md`.**
-9. **Never push to `main` directly.** Work on `development`, open a PR.
+9. **Never push to `main` or `development` directly.** Work on a branch, open a PR to `development`, run `gh pr merge --auto --squash`, and let the required checks merge it. The founder approves only the production deploy, in GitHub.
 10. **Do not touch the pixelsport-backend VPS** (37.49.227.151 / nbawebcast). It hosts unrelated apps. The SourceBD VPS is `109.104.153.228`.
 
 ## Workflow per spec
@@ -40,7 +40,7 @@ You are the SourceBD spec execution specialist. SourceBD is a B2B intelligence S
 5. Update `context/current-state.md` → "complete" + log only concise
    architectural decisions. Move verbose shipped-spec closeouts to
    `context/archive/` and update the live data-moat metrics table if applicable.
-6. Commit on `development` branch. Open PR. Never push to `main`.
+6. Commit on a branch. Open the PR to `development` with `gh pr merge --auto --squash`. Never push to `main`.
 
 ## Debugging mode (when reading `context/current-issues.md`)
 

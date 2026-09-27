@@ -171,3 +171,38 @@ jobs:
             exit 1
           fi
           echo "second replay refused as it should, exit 9"
+
+  python-tests:
+    # pytest ran nowhere but the founder's laptop, so CLAUDE.md carried a
+    # hand-measured baseline that went stale every few weeks. Same dependency
+    # list as pyproject.toml, no database: every DB-backed test skips itself
+    # when SUPABASE_DB_URL is unset. ruff stays out on purpose: 49
+    # pre-existing findings would make it red on day one.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      FIRECRAWL_API_KEY: ci-placeholder
+      GIT_AUTHOR_NAME: ci
+      GIT_AUTHOR_EMAIL: ci@sourcebd.net
+      GIT_COMMITTER_NAME: ci
+      GIT_COMMITTER_EMAIL: ci@sourcebd.net
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install dependencies from pyproject.toml
+        # `pip install -e .` fails on the flat layout; install the lists instead.
+        run: |
+          python -c 'import tomllib, sys; p = tomllib.load(open("pyproject.toml", "rb"))["project"]; sys.stdout.writelines(d + chr(10) for d in p["dependencies"] + p["optional-dependencies"]["dev"])' > requirements-ci.txt
+          pip install -r requirements-ci.txt
+
+      - name: pytest
+        run: python -m pytest -q etl/tests
