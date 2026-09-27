@@ -2,10 +2,13 @@
 
 // Append a milestone to an order (Spec B8). Buyer or claimed supplier.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/dashboard/controls";
+import { Field, SelectInput, TextArea, TextInput } from "@/components/dashboard/fields";
+import { ErrorNote } from "@/components/dashboard/page";
+import { Toast } from "@/components/dashboard/toast";
 
 const KINDS = [
   ["po_issued", "PO issued"],
@@ -26,6 +29,13 @@ export function OrderMilestoneForm({ orderId }: { orderId: string }) {
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [added, setAdded] = useState(false);
+
+  useEffect(() => {
+    if (!added) return;
+    const t = setTimeout(() => setAdded(false), 2500);
+    return () => clearTimeout(t);
+  }, [added]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -54,6 +64,7 @@ export function OrderMilestoneForm({ orderId }: { orderId: string }) {
       }
       setLabel("");
       setNotes("");
+      setAdded(true);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "network error");
@@ -63,71 +74,60 @@ export function OrderMilestoneForm({ orderId }: { orderId: string }) {
   }
 
   return (
-    <form className="flex flex-col gap-3" onSubmit={onSubmit}>
-      <p className="text-[12px] text-ink-tertiary">
+    <form className="flex flex-col gap-3" onSubmit={onSubmit} aria-labelledby="milestone-form-title">
+      <h3 id="milestone-form-title" className="m-0 text-sm font-semibold text-ink-strong">
         Log a milestone
-      </p>
+      </h3>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1">
-          <span className="text-[12px] text-ink-tertiary">
-            Kind
-          </span>
-          <select
+        <Field label="Kind" htmlFor="milestone-kind">
+          <SelectInput
+            id="milestone-kind"
             value={kind}
             onChange={(e) => setKind(e.target.value as (typeof KINDS)[number][0])}
-            className={inputClass}
           >
             {KINDS.map(([v, l]) => (
               <option key={v} value={v}>
                 {l}
               </option>
             ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-[12px] text-ink-tertiary">
-            Occurred on
-          </span>
-          <input
+          </SelectInput>
+        </Field>
+        <Field label="Occurred on" htmlFor="milestone-date" required>
+          <TextInput
+            id="milestone-date"
             type="date"
             required
             value={occurredOn}
             onChange={(e) => setOccurredOn(e.target.value)}
-            className={inputClass}
           />
-        </label>
+        </Field>
       </div>
-      <label className="flex flex-col gap-1">
-        <span className="text-[12px] text-ink-tertiary">
-          Label (optional)
-        </span>
-        <input
+      <Field label="Label" htmlFor="milestone-label" hint="Optional">
+        <TextInput
+          id="milestone-label"
           type="text"
           value={label}
           onChange={(e) => setLabel(e.target.value)}
           maxLength={200}
-          className={inputClass}
           placeholder="e.g. Cutting started"
         />
-      </label>
-      <label className="flex flex-col gap-1">
-        <span className="text-[12px] text-ink-tertiary">
-          Notes (optional)
-        </span>
-        <textarea
+      </Field>
+      <Field label="Notes" htmlFor="milestone-notes" hint="Optional">
+        <TextArea
+          id="milestone-notes"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           maxLength={4000}
           rows={2}
-          className={inputClass}
         />
-      </label>
-      {error ? <p className="text-sm text-sem-red">{error}</p> : null}
+      </Field>
+      {error ? <ErrorNote>{error}</ErrorNote> : null}
       <div className="flex justify-end">
-        <Button type="submit" variant="primary" size="sm" disabled={busy}>
+        <Button type="submit" variant="primary" disabled={busy}>
           {busy ? "Saving…" : "Add milestone"}
         </Button>
       </div>
+      {added ? <Toast text="Milestone added" href={null} className="fixed z-[60]" /> : null}
     </form>
   );
 }
@@ -138,6 +138,3 @@ function isoToday() {
   const day = String(d.getDate()).padStart(2, "0");
   return `${d.getFullYear()}-${m}-${day}`;
 }
-
-const inputClass =
-  "w-full rounded-input border border-hairline-strong bg-white px-3 py-2 text-[14px] text-ink-primary placeholder:text-ink-tertiary focus:outline-none focus:ring-2 focus:ring-accent-indigo";

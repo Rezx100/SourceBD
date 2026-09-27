@@ -39,6 +39,10 @@ const RAW_ANCHORS: Allowed = {
     "{`#${mainId}`}": [1, "the skip link, a same-page fragment"],
   },
   "chips.tsx": { "{moreHref}": [1, "the '+N' chip, a same-page control"] },
+  "compliance.tsx": {
+    "{r.document_url}": [1, "an expiring certificate's document, off-site"],
+    "{h.source_url}": [1, "the DHS UFLPA Entity List entry, off-site"],
+  },
   "controls.tsx": {
     "{href}": [1, "Button's own plain-anchor branch; callers in record files are checked below"],
     "{hrefFor(o.value)}": [1, "a segmented control that re-runs the search"],

@@ -9,18 +9,13 @@
 // guidance asks for. Copy-to-clipboard + download-as-.md only — no upload
 // or server submission.
 
-import { useMemo, useState } from "react";
-import { Copy, DownloadSimple } from "@phosphor-icons/react/dist/ssr";
+import { useEffect, useId, useMemo, useState } from "react";
 
-import { Button } from "@/components/ui/button";
-import { StickyActionBar } from "@/components/ui/sticky-action-bar";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardMeta,
-  CardTitle,
-} from "@/components/ui/card";
+import { Button } from "@/components/dashboard/controls";
+import { Field, TextArea, TextInput } from "@/components/dashboard/fields";
+import { Icon } from "@/components/dashboard/icons";
+import { PageSection } from "@/components/dashboard/page";
+import { Toast } from "@/components/dashboard/toast";
 
 export type MsaInputs = {
   total_saved: number;
@@ -38,11 +33,19 @@ export type MsaInputs = {
 };
 
 export function MsaGeneratorForm({ inputs }: { inputs: MsaInputs }) {
+  const id = useId();
   const currentYear = new Date().getFullYear();
   const [org, setOrg] = useState("");
   const [year, setYear] = useState(String(currentYear - 1));
   const [signerName, setSignerName] = useState("");
   const [signerRole, setSignerRole] = useState("Director");
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   const draft = useMemo(
     () =>
@@ -57,8 +60,14 @@ export function MsaGeneratorForm({ inputs }: { inputs: MsaInputs }) {
   );
 
   function handleCopy() {
-    if (typeof navigator === "undefined") return;
-    void navigator.clipboard.writeText(draft);
+    if (typeof navigator === "undefined" || !navigator.clipboard) {
+      setToast("Copying is not available in this browser");
+      return;
+    }
+    navigator.clipboard.writeText(draft).then(
+      () => setToast("Statement copied to clipboard"),
+      () => setToast("Could not copy. Select the preview and copy it instead"),
+    );
   }
 
   function handleDownload() {
@@ -75,101 +84,59 @@ export function MsaGeneratorForm({ inputs }: { inputs: MsaInputs }) {
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+    setToast("Statement downloaded");
   }
 
+  const fields: { key: string; label: string; value: string; set: (v: string) => void; placeholder: string }[] = [
+    { key: "org", label: "Organisation name", value: org, set: setOrg, placeholder: "e.g. Example Apparel Ltd" },
+    { key: "year", label: "Reporting financial year", value: year, set: setYear, placeholder: String(currentYear - 1) },
+    { key: "signer", label: "Signatory name", value: signerName, set: setSignerName, placeholder: "e.g. Jane Smith" },
+    { key: "role", label: "Signatory role", value: signerRole, set: setSignerRole, placeholder: "Director" },
+  ];
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Draft your statement</CardTitle>
-        <CardMeta>
-          All composition runs in your browser. Nothing is uploaded.
-        </CardMeta>
-      </CardHeader>
-      <CardContent className="space-y-4 pt-0">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          <Field label="Organisation name">
-            <input
-              value={org}
-              onChange={(e) => setOrg(e.target.value)}
-              placeholder="e.g. Example Apparel Ltd"
-              className="w-full rounded-control border border-hairline-strong bg-surface-l1 px-3 py-2 text-sm text-ink-primary placeholder:text-ink-tertiary focus:border-accent-indigo focus:outline-none"
-            />
-          </Field>
-          <Field label="Reporting financial year">
-            <input
-              value={year}
-              onChange={(e) => setYear(e.target.value)}
-              placeholder={String(currentYear - 1)}
-              className="w-full rounded-control border border-hairline-strong bg-surface-l1 px-3 py-2 text-sm text-ink-primary placeholder:text-ink-tertiary focus:border-accent-indigo focus:outline-none"
-            />
-          </Field>
-          <Field label="Signatory name">
-            <input
-              value={signerName}
-              onChange={(e) => setSignerName(e.target.value)}
-              placeholder="e.g. Jane Smith"
-              className="w-full rounded-control border border-hairline-strong bg-surface-l1 px-3 py-2 text-sm text-ink-primary placeholder:text-ink-tertiary focus:border-accent-indigo focus:outline-none"
-            />
-          </Field>
-          <Field label="Signatory role">
-            <input
-              value={signerRole}
-              onChange={(e) => setSignerRole(e.target.value)}
-              placeholder="Director"
-              className="w-full rounded-control border border-hairline-strong bg-surface-l1 px-3 py-2 text-sm text-ink-primary placeholder:text-ink-tertiary focus:border-accent-indigo focus:outline-none"
-            />
-          </Field>
-        </div>
-
-        <StickyActionBar>
-          <Button variant="primary" size="sm" onClick={handleDownload}>
-            <DownloadSimple size={16} weight="bold" /> Download .md
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleCopy}>
-            <Copy size={16} weight="bold" /> Copy to clipboard
-          </Button>
-        </StickyActionBar>
-
-        <div>
-          <p className="mb-2 text-[12px] text-ink-tertiary">
-            Preview
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)] lg:items-start">
+      <PageSection title="Draft your statement" caption="Composed in your browser. Nothing is uploaded.">
+        <div className="flex flex-col gap-4 p-4">
+          {fields.map((f) => (
+            <Field key={f.key} label={f.label} htmlFor={`${id}-${f.key}`}>
+              <TextInput
+                id={`${id}-${f.key}`}
+                value={f.value}
+                onChange={(e) => f.set(e.target.value)}
+                placeholder={f.placeholder}
+              />
+            </Field>
+          ))}
+          <div className="flex flex-wrap gap-2">
+            <Button variant="primary" onClick={handleDownload}>
+              <Icon name="download" />
+              Download .md
+            </Button>
+            <Button onClick={handleCopy}>Copy to clipboard</Button>
+          </div>
+          <p className="m-0 text-xs text-ink-muted">
+            This is a starting draft only. The UK Home Office guidance for §54 statements (
+            <em>Transparency in supply chains: a practical guide</em>) requires board approval and a signed PDF on your
+            homepage. Have counsel review before publication.
           </p>
-          <textarea
-            readOnly
-            value={draft}
-            className="h-[440px] w-full resize-y rounded-control border border-hairline-strong bg-surface-l1 px-3 py-2 font-mono text-[13px] leading-relaxed text-ink-primary focus:border-accent-indigo focus:outline-none"
-          />
         </div>
+      </PageSection>
 
-        <p className="text-[13px] text-ink-tertiary">
-          This is a starting draft only. The UK Home Office guidance for §54
-          statements (
-          <em>Transparency in supply chains: a practical guide</em>) requires
-          board approval and a signed PDF on your homepage. Have counsel
-          review before publication.
-        </p>
-      </CardContent>
-    </Card>
+      <PageSection title="Preview" caption="Markdown, updates as you type">
+        <TextArea
+          readOnly
+          aria-label="Statement preview"
+          value={draft}
+          rows={24}
+          className="block min-h-[28rem] resize-y rounded-md border-0 font-mono text-sm"
+        />
+      </PageSection>
+
+      {toast ? <Toast text={toast} href={null} className="fixed z-[60]" /> : null}
+    </div>
   );
 }
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block space-y-1">
-      <span className="block text-[12px] text-ink-tertiary">
-        {label}
-      </span>
-      {children}
-    </label>
-  );
-}
-
 function buildStatement(args: {
   org: string;
   year: string;

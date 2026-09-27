@@ -7,32 +7,27 @@
 // calls Supabase Auth updateUser({password}). Server enforces 8..200 chars
 // (matches the F3 signup rule).
 
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardMeta,
-  CardTitle,
-} from "@/components/ui/card";
+import { Field, TextInput } from "@/components/dashboard/fields";
+import { PageSection } from "@/components/dashboard/page";
+import { FormActions, FormError } from "@/components/dashboard/settings";
+import { useFlash } from "@/components/dashboard/use-flash";
 
 const MIN = 8;
-const INPUT =
-  "w-full rounded-input border border-hairline-strong bg-white px-3 py-2 text-[14px] text-ink-primary placeholder:text-ink-tertiary focus:outline-none focus:ring-2 focus:ring-accent-indigo";
 
 export function SettingsChangePasswordForm() {
+  const id = useId();
   const [pwd, setPwd] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [ok, setOk] = useState(false);
+  const [flash, setFlash] = useFlash();
   const [pending, startTransition] = useTransition();
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setOk(false);
+    setFlash(null);
     if (pwd.length < MIN) {
       setError(`Password must be at least ${MIN} characters.`);
       return;
@@ -54,61 +49,46 @@ export function SettingsChangePasswordForm() {
         setError(body?.error ?? `Failed (${res.status})`);
         return;
       }
-      setOk(true);
+      setFlash("Password updated.");
       setPwd("");
       setConfirm("");
     });
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Change password</CardTitle>
-        <CardMeta>Minimum {MIN} characters</CardMeta>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <form onSubmit={onSubmit} className="space-y-3">
-          <label className="block">
-            <span className="mb-1 block text-[12px] text-ink-tertiary">
-              New password
-            </span>
-            <input
+    <PageSection title="Password" caption={`Minimum ${MIN} characters`}>
+      <form onSubmit={onSubmit}>
+        <div className="flex flex-col gap-3 p-4">
+          <Field label="New password" htmlFor={`${id}-new`}>
+            <TextInput
+              id={`${id}-new`}
               type="password"
               value={pwd}
               onChange={(e) => setPwd(e.target.value)}
               minLength={MIN}
               autoComplete="new-password"
               required
-              className={INPUT}
+              aria-invalid={error ? true : undefined}
+              className="max-w-sm"
             />
-          </label>
-          <label className="block">
-            <span className="mb-1 block text-[12px] text-ink-tertiary">
-              Confirm new password
-            </span>
-            <input
+          </Field>
+          <Field label="Confirm new password" htmlFor={`${id}-confirm`}>
+            <TextInput
+              id={`${id}-confirm`}
               type="password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               minLength={MIN}
               autoComplete="new-password"
               required
-              className={INPUT}
+              aria-invalid={error ? true : undefined}
+              className="max-w-sm"
             />
-          </label>
-          <div className="flex items-center gap-3">
-            <Button type="submit" variant="default" size="sm" disabled={pending}>
-              {pending ? "Saving…" : "Update password"}
-            </Button>
-            {ok ? (
-              <span className="text-sm text-sem-green">Password updated.</span>
-            ) : null}
-            {error ? (
-              <span className="text-sm text-sem-red">{error}</span>
-            ) : null}
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+          </Field>
+          <FormError>{error}</FormError>
+        </div>
+        <FormActions pending={pending} label="Update password" flash={flash} />
+      </form>
+    </PageSection>
   );
 }

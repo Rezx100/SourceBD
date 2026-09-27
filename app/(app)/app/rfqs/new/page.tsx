@@ -3,15 +3,17 @@
 // Requires `?supplier=<uuid>`. The form is single-target; multi-supplier
 // RFQs go through the API directly (the form only supports one supplier
 // today). Resolves the supplier name server-side from `public.suppliers`
-// so the form header shows the company.
+// so the rail beside the form shows the company.
 
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { RfqCreateForm } from "@/components/rfq-create-form";
+import { Button } from "@/components/dashboard/controls";
+import { Icon } from "@/components/dashboard/icons";
+import { PageHeader, PageSection } from "@/components/dashboard/page";
+import { Caption } from "@/components/dashboard/type";
 import { hsBuyerLabel } from "@/lib/epb-hscode-labels";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { PageHeader } from "@/components/ui/page-kit";
 import { AppShell } from "@/components/dashboard/app-shell";
 import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 
@@ -44,21 +46,34 @@ async function NewRfqPageBody({
     notFound();
   }
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-5">
       <PageHeader
-        kicker="Buyer"
-        title="Compose RFQ"
+        title="New RFQ"
+        caption="Quotes come back to this RFQ, where you can compare and accept them."
         actions={
-          <Link href={`/app/suppliers/${data.slug}`} className="btn-proto">
-            ← Back to profile
-          </Link>
+          <Button href={`/app/suppliers/${data.slug}`} clientNav variant="ghost">
+            <Icon name="chev-l" /> Back to profile
+          </Button>
         }
       />
-      <RfqCreateForm
-        supplierId={data.id as string}
-        supplierName={data.company_name as string}
-        initialTitle={hs ? `HS ${hs} · ${hsBuyerLabel(hs, null)}` : undefined}
-      />
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start">
+        <PageSection title="Supplier" caption="1" className="lg:sticky lg:top-4">
+          <div className="flex items-start gap-3 px-4 py-3">
+            <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-sm bg-surface-sunken text-ink-muted">
+              <Icon name="building" />
+            </span>
+            <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="text-sm font-medium text-ink-strong [overflow-wrap:anywhere]">{data.company_name as string}</span>
+              <Caption>This RFQ goes to this supplier only.</Caption>
+            </span>
+          </div>
+        </PageSection>
+        <RfqCreateForm
+          supplierId={data.id as string}
+          supplierName={data.company_name as string}
+          initialTitle={hs ? `HS ${hs} · ${hsBuyerLabel(hs, null)}` : undefined}
+        />
+      </div>
     </div>
   );
 }

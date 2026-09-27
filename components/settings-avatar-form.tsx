@@ -6,18 +6,14 @@
 // Optimistic preview; refreshes the server tree on success so the sidebar
 // + topbar pick up the new picture.
 
-import { useRef, useState, useTransition } from "react";
+import { useId, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Trash, UploadSimple } from "@phosphor-icons/react/dist/ssr";
 
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardMeta,
-  CardTitle,
-} from "@/components/ui/card";
+import { Button } from "@/components/dashboard/controls";
+import { PageSection } from "@/components/dashboard/page";
+import { FormError, SAVING } from "@/components/dashboard/settings";
+import { Toast } from "@/components/dashboard/toast";
+import { useFlash } from "@/components/dashboard/use-flash";
 
 const ACCEPT = "image/png,image/jpeg,image/webp,image/gif";
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -32,10 +28,11 @@ export function SettingsAvatarForm({
   email: string;
 }) {
   const router = useRouter();
+  const hintId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [url, setUrl] = useState<string | null>(initialAvatarUrl);
   const [error, setError] = useState<string | null>(null);
-  const [ok, setOk] = useState(false);
+  const [flash, setFlash] = useFlash();
   const [pending, startTransition] = useTransition();
 
   const initials = ((displayName.trim() || email || "??").replace(/@.*/, "") || "??")
@@ -47,7 +44,7 @@ export function SettingsAvatarForm({
     e.target.value = ""; // allow re-selecting the same file
     if (!file) return;
     setError(null);
-    setOk(false);
+    setFlash(null);
     if (file.size > MAX_BYTES) {
       setError("Image must be 5 MB or smaller.");
       return;
@@ -67,14 +64,14 @@ export function SettingsAvatarForm({
         return;
       }
       setUrl(data?.avatar_url ?? null);
-      setOk(true);
+      setFlash("Profile picture saved");
       router.refresh();
     });
   }
 
   function onRemove() {
     setError(null);
-    setOk(false);
+    setFlash(null);
     startTransition(async () => {
       const res = await fetch("/api/v1/settings/avatar", { method: "DELETE" });
       if (!res.ok) {
@@ -83,78 +80,63 @@ export function SettingsAvatarForm({
         return;
       }
       setUrl(null);
-      setOk(true);
+      setFlash("Profile picture removed");
       router.refresh();
     });
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Profile picture</CardTitle>
-        <CardMeta>Shown in the sidebar, top bar, and your activity</CardMeta>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <div className="flex items-center gap-4">
-          {url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={url}
-              alt="Your profile picture"
-              className="size-16 shrink-0 rounded-full border border-hairline object-cover"
-            />
-          ) : (
-            <span
-              className="flex size-16 shrink-0 items-center justify-center rounded-full bg-brand-forest text-[110px] font-bold text-white"
-              aria-hidden
-            >
-              {initials}
-            </span>
-          )}
+    <PageSection title="Profile picture" caption="Shown in the sidebar, top bar, and your activity">
+      <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
+        {url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={url}
+            alt="Your profile picture"
+            className="size-16 shrink-0 rounded-full border border-line-subtle object-cover"
+          />
+        ) : (
+          <span
+            className="grid size-16 shrink-0 place-items-center rounded-full bg-surface-sunken text-xl font-semibold text-ink-muted"
+            aria-hidden
+          >
+            {initials}
+          </span>
+        )}
 
-          <div className="flex min-w-0 flex-col gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <input
-                ref={inputRef}
-                type="file"
-                accept={ACCEPT}
-                onChange={onPick}
-                className="hidden"
-              />
-              <Button
-                type="button"
-                variant="default"
-                size="sm"
-                disabled={pending}
-                onClick={() => inputRef.current?.click()}
-              >
-                <UploadSimple size={17} weight="bold" aria-hidden className="mr-1.5" />
-                {pending ? "Working…" : url ? "Change picture" : "Upload picture"}
+        <div className="flex min-w-0 flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              ref={inputRef}
+              type="file"
+              accept={ACCEPT}
+              onChange={onPick}
+              className="hidden"
+              tabIndex={-1}
+              aria-hidden
+            />
+            <Button
+              disabled={pending}
+              aria-busy={pending || undefined}
+              aria-describedby={hintId}
+              onClick={() => inputRef.current?.click()}
+              className={SAVING}
+            >
+              {pending ? "Saving…" : url ? "Change picture" : "Upload picture"}
+            </Button>
+            {url ? (
+              <Button variant="ghost" disabled={pending} onClick={onRemove} className={SAVING}>
+                Remove
               </Button>
-              {url ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  disabled={pending}
-                  onClick={onRemove}
-                  className="text-sem-red hover:bg-sem-red-soft hover:text-sem-red"
-                >
-                  <Trash size={17} aria-hidden className="mr-1.5" />
-                  Remove
-                </Button>
-              ) : null}
-            </div>
-            <p className="text-[12px] text-ink-tertiary">
-              PNG, JPEG, WebP, or GIF · up to 5 MB.
-            </p>
-            <div className="min-h-[110px] text-sm">
-              {ok ? <span className="text-sem-green">Saved.</span> : null}
-              {error ? <span className="text-sem-red">{error}</span> : null}
-            </div>
+            ) : null}
           </div>
+          <p id={hintId} className="m-0 text-xs text-ink-subtle">
+            PNG, JPEG, WebP, or GIF · up to 5 MB.
+          </p>
+          <FormError>{error}</FormError>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+      {flash ? <Toast text={flash} href={null} className="fixed z-[60]" /> : null}
+    </PageSection>
   );
 }
