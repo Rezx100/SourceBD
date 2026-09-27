@@ -50,7 +50,7 @@ const RAW_ANCHORS: Allowed = {
     "{p.href}": [1, "a page number, which re-runs the search"],
   },
   "rfq-composer.tsx": { '"#"': [1, "an attachment placeholder with no destination"] },
-  "rfq-list.tsx": { "{href}": [1, "the toast's link, which predates REZ-C"] },
+  "toast.tsx": { "{href}": [1, "the toast's link, which predates REZ-C"] },
   "search-composer.tsx": {
     "{c.removeHref}": [1, "removing a filter chip re-runs the search"],
     '"#filters"': [1, "a same-page fragment"],

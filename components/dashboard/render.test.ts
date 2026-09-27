@@ -501,17 +501,26 @@ describe("SupplierSheet (rendered)", () => {
     assert.match(html, /No active RSC record on file/);
   });
 
+  it("the remediation figure never breaks from its label, and the overview carries no read-date paragraph", () => {
+    // Founder's review, 27 Sep: "Remediation 100 %" broke over two lines
+    // beside empty space, and the read dates ran as a paragraph under the
+    // contact card while the Sources rows already carried each one.
+    const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(smKnitwearInput()) }));
+    assert.match(html, /<span class="[^"]*whitespace-nowrap[^"]*"><span[^>]*>Remediation<\/span><span[^>]*>53%<\/span><\/span>/);
+    assert.doesNotMatch(html, /Read dates:/);
+  });
+
   it("a mother whose only active RSC row is a building's shows the building, never its figures as the mother's", () => {
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(smKnitwearInput()) }));
     assert.match(html, /RSC covers S M Knitwears Limited\. \(Extension\) — the buildings, not this record/);
     const mother = motherSafety(html);
     assert.match(mother, /No active RSC record for this company itself/);
-    assert.doesNotMatch(mother, /Remediation 53 %/, "the Extension's progress is not the mother's");
+    assert.doesNotMatch(mother, /Remediation<\/span><span[^>]*>53%/, "the Extension's progress is not the mother's");
     assert.doesNotMatch(mother, /role="meter"/, "the mother has no percentage of its own to meter");
     // Cycle 6: withholding them from the mother had also withheld them from the
     // building, so the one record RSC does cover showed no progress anywhere.
     assert.match(html, rx("S M Knitwears Limited. (Extension) — the building's own RSC record"));
-    assert.match(html, /Remediation 53 %/);
+    assert.match(html, /Remediation<\/span><span[^>]*>53%/);
     assert.match(html, /role="meter"[^>]*aria-valuenow="53"/);
     assert.match(html, /Active · behind schedule/);
   });
@@ -563,7 +572,7 @@ describe("SupplierSheet (rendered)", () => {
     const mother = motherSafety(html);
     assert.doesNotMatch(html, /NaN/);
     assert.doesNotMatch(mother, /role="meter"/);
-    assert.match(mother, /Remediation not on file/);
+    assert.match(mother, /Remediation<\/span><span[^>]*>not on file/);
     // The shed's row is untouched and keeps its own meter, so the guard above
     // is about the missing value and not about meters in general.
     assert.match(html, /role="meter"[^>]*aria-valuenow="100"/);
@@ -1324,8 +1333,11 @@ describe("a brand list named twice by production is one mark and one name", () =
     // that explains them. The defect this guards is one register stamped twice
     // in the same row, which is what a duplicate brand row produced.
     const sheet = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(input) }));
-    assert.match(sheet, /EPB · RSC · BGMEA · OEKO-TEX · M&amp;S · NEXT/);
     const head = sheet.slice(0, sheet.indexOf('aria-label="Record sections"'));
+    // The head names each register by its square only. The names spelled out
+    // beside the squares, and again in the Registers fact row, said every
+    // register three times (founder's review, 27 Sep).
+    assert.doesNotMatch(head, /EPB · RSC · BGMEA/, "the head spells the registers out again beside their marks");
     assert.equal((head.match(/aria-label="Source: M&amp;S[^"]*"/g) ?? []).length, 1, "the M&S mark is stamped twice in the mark row");
     // And exactly once in the Sources list, which is one row per register.
     assert.equal((section(sheet, "sources").match(/aria-label="Source: M&amp;S[^"]*"/g) ?? []).length, 1);
@@ -2660,5 +2672,16 @@ describe("the sort menu opens inside the viewport", () => {
       [...cls].some((c) => c.startsWith("max-w-[")),
       `the menu has no width ceiling, so a 224px min-width can still exceed a 320px screen: ${menu}`,
     );
+  });
+});
+
+describe("the toast fits a phone", () => {
+  it("wraps inside the viewport rather than running off it", async () => {
+    // A failed save reads "This supplier is no longer listed, so it was not
+    // saved." — held to one line it ran off both sides of a 320px screen.
+    const { Toast } = await import("./toast");
+    const html = renderToStaticMarkup(createElement(Toast, { text: "This supplier is no longer listed, so it was not saved.", href: null }));
+    assert.doesNotMatch(html, /whitespace-nowrap/);
+    assert.match(html, /max-w-\[calc\(100vw-2rem\)\]/);
   });
 });
