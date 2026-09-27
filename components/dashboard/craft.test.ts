@@ -253,9 +253,9 @@ describe("the menu", () => {
     const html = renderToStaticMarkup(
       createElement(
         Menu,
-        { label: "Rows per page", summary: "25 per page", up: true, align: "left" },
-        createElement(MenuItem, { key: "25", href: "?per=25", active: true }, "25 per page"),
-        createElement(MenuItem, { key: "50", href: "?per=50" }, "50 per page"),
+        { label: "Rows per page", summary: "25 per page", up: true, align: "left" } as Parameters<typeof Menu>[0],
+        createElement(MenuItem, { href: "?per=25", active: true } as Parameters<typeof MenuItem>[0], "25 per page"),
+        createElement(MenuItem, { href: "?per=50" } as Parameters<typeof MenuItem>[0], "50 per page"),
       ),
     );
     assert.match(html, /^<details\b/);
