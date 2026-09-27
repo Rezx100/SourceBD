@@ -1,10 +1,10 @@
 // REZ-B — HS catalogue. Live exporter counts from hs_catalogue(); the photo
 // files come from the generated catalogue.
 
+import { PageHeader } from "@/components/dashboard/page";
 import Link from "next/link";
 import { AppShell } from "@/components/dashboard/app-shell";
 import { PhotoThumbs } from "@/components/dashboard/photo-tiles";
-import { Caption, Title } from "@/components/dashboard/type";
 import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { hsPhotoSrc, heading4, hsShortLabel } from "@/lib/dashboard/hs-photos";
 import { fetchHsCatalogue } from "@/lib/discover-v32-rpc";
@@ -48,34 +48,28 @@ export default async function ProductsPage({
 
   return (
     <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Products">
-      <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
-        <div>
-          <Title as="h1">Products</Title>
-          <Caption>
-            {live.error
-              ? "Exporter counts could not be read"
-              : `${formatCount(rows.length)} HS ${rows.length === 1 ? "heading" : "headings"} · exporter counts leave out sanctioned suppliers, as the search does`}
-          </Caption>
-        </div>
-        {/* Was a hard `w-[20rem]` with no `min-w-0`: 320px of search box in a
-            288px content column, so the page scrolled sideways before the
-            table even had a say. */}
-        {/* Named, because the kit topbar renders a `search` landmark on this
-            same page and two unnamed ones are indistinguishable to a screen
-            reader (WCAG 1.3.1). */}
-        <form aria-label="Search product lines" action="/app/products" method="get" role="search" className="flex h-control w-full min-w-0 items-center rounded-sm border border-line-strong bg-surface px-2.5 sm:w-[20rem]">
-          <input
-            type="search"
-            name="q"
-            defaultValue={q}
-            placeholder="Search headings"
-            aria-label="Search headings"
-            // See components/dashboard/app-shell.tsx: `outline-none` beats the
-            // global focus ring and leaves no keyboard indicator.
-            className="w-full bg-transparent text-sm"
-          />
-        </form>
-      </div>
+      <PageHeader
+        title="Products"
+        caption={
+          live.error
+            ? "Exporter counts could not be read"
+            : `${formatCount(rows.length)} HS ${rows.length === 1 ? "heading" : "headings"} · exporter counts leave out sanctioned suppliers, as the search does`
+        }
+        actions={
+          <form aria-label="Search product lines" action="/app/products" method="get" role="search" className="flex h-control w-full min-w-0 items-center rounded-sm border border-line-strong bg-surface px-2.5 sm:w-[20rem]">
+            <input
+              type="search"
+              name="q"
+              defaultValue={q}
+              placeholder="Search headings"
+              aria-label="Search headings"
+              // See components/dashboard/app-shell.tsx: `outline-none` beats the
+              // global focus ring and leaves no keyboard indicator.
+              className="w-full bg-transparent text-sm"
+            />
+          </form>
+        }
+      />
       {live.error ? (
         <p className="text-sm text-ink-muted">The catalogue could not be read. Try again in a moment.</p>
       ) : rows.length === 0 ? (

@@ -1,6 +1,6 @@
+import { PageHeader, PageSection } from "@/components/dashboard/page";
 import { SaveSearchForm } from "@/components/dashboard/save-search-form";
 import { AppShell } from "@/components/dashboard/app-shell";
-import { Caption, Title } from "@/components/dashboard/type";
 import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { parseDiscoverState, queryTitle, serializeDiscoverState } from "@/lib/discover-v32-state";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -27,9 +27,12 @@ export default async function SaveSearchPage({
   const shell = await loadBuyerShell(supabase, "/app/searches/new");
   return (
     <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" screenLabel="Save search">
-      <Title as="h1">Save this search</Title>
-      <Caption className="mb-4">{queryTitle(state)}</Caption>
-      <SaveSearchForm search={search} defaultName={queryTitle(state)} />
+      <PageHeader title="Save this search" caption={queryTitle(state)} />
+      <PageSection className="max-w-2xl">
+        <div className="p-4">
+          <SaveSearchForm search={search} defaultName={queryTitle(state)} />
+        </div>
+      </PageSection>
     </AppShell>
   );
 }
