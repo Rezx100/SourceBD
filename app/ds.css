@@ -49,6 +49,41 @@
     color: rgb(var(--ds-ink-subtle));
     opacity: 1; /* Firefox dims placeholders by default, which undoes the ratio. */
   }
+
+  /* The surfaces the browser draws for us. Each one shipped in the browser's
+     own colours — a blue selection, a blue checkbox, a grey scrollbar — on
+     top of a page where every other colour is a token. They carry the design
+     the same as anything we drew. */
+  ::selection {
+    background-color: rgb(var(--ds-brand-tint-strong));
+    color: rgb(var(--ds-ink-strong));
+  }
+
+  :root {
+    /* Native checkboxes, radios, ranges and progress bars in brand green. */
+    accent-color: rgb(var(--ds-brand));
+    caret-color: rgb(var(--ds-brand));
+    /* A thin scrollbar in the line colour, with no track: it reads as part of
+       the hairline system rather than as chrome. */
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--ds-line-strong) / 0.55) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: rgb(var(--ds-line-strong) / 0.55);
+    border: 3px solid transparent;
+    background-clip: padding-box;
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
 }
 
 @layer utilities {

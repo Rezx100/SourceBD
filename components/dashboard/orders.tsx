@@ -156,7 +156,7 @@ export function OrdersTable({ rows, error, tab }: { rows: readonly OrderRow[]; e
     return (
       <div className="rounded-md border border-line-subtle bg-surface">
         <EmptyState
-          icon="box"
+          art="orders"
           title={ORDERS_EMPTY_TITLE}
           action={
             <Button href="/app/rfqs" clientNav>

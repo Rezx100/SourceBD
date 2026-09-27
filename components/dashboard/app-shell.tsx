@@ -10,8 +10,10 @@ import { cn } from "@/lib/utils";
 import { Count, Kbd, LiveDot, Meter } from "./controls";
 import { Icon, type IconName } from "./icons";
 import { Caption, Label } from "./type";
+import { NavCurrent } from "./nav-current";
 import { RecentSearchesSlot } from "./recent-searches";
 import { SearchShortcut } from "./search-shortcut";
+import { SearchTypeahead } from "./search-typeahead";
 
 export type NavKey =
   | "search"
@@ -196,7 +198,7 @@ export function Sidebar({ model, screenLabel }: { model: SidebarModel; screenLab
               prefetch={false}
               aria-current={on ? (model.activeExact === false ? "true" : "page") : undefined}
               className={cn(
-                "flex h-8 shrink-0 snap-start items-center gap-2.5 whitespace-nowrap rounded-sm px-2 text-sm font-medium text-ink-muted hover:bg-surface-sunken md:shrink",
+                "flex h-8 shrink-0 snap-start items-center gap-2.5 whitespace-nowrap rounded-sm px-2 text-sm font-medium text-ink-muted transition-colors duration-fast hover:bg-surface-sunken hover:text-ink-strong md:shrink",
                 // The current page: a hairline in `brand` all the way round,
                 // the tint, brand ink and a heavier weight. The tint alone is
                 // 1.07:1 against the canvas, so it never carries the state by
@@ -212,6 +214,8 @@ export function Sidebar({ model, screenLabel }: { model: SidebarModel; screenLab
             </Link>
           );
         })}
+        {/* Phones: bring the current item into view on the strip. */}
+        <NavCurrent />
       </nav>
       {/* Rail furniture, not navigation: hidden on phones where the strip
           above carries every destination. */}
@@ -266,32 +270,18 @@ export function Topbar({ model, screenLabel }: { model: TopbarModel; screenLabel
           // screen label IS "Search", and the landmark read "Search, Search".
           aria-label={screenLabel && screenLabel !== "Search" ? `Search, ${screenLabel}` : "Search"}
           action={model.searchAction}
-          className="flex h-control w-full min-w-0 max-w-[360px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle"
+          // `relative`: the typeahead's listbox hangs under this field.
+          // `focus-within`: the whole field, not only the caret, says it is
+          // live — the outline steps up to brand and the ring lifts it.
+          className="relative flex h-control w-full min-w-0 max-w-[360px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle transition-[border-color,box-shadow] duration-fast focus-within:border-brand focus-within:shadow-xs"
         >
           <Icon name="search" />
-          <input
-            type="search"
-            name="q"
-            // What `SEARCH_FIELD_SELECTOR` looks for. Naming the field beats
-            // inferring it from `form[role="search"]`, which /app/products also
-            // renders.
-            data-search="topbar"
-            defaultValue={model.searchQuery ?? ""}
-            placeholder="Search suppliers, HS codes, certificates"
-            aria-label="Search suppliers, HS codes, certificates"
-            // No `outline-none`: Tailwind emits it as a transparent 2px outline
-            // in @layer utilities, which lands after the global
-            // `:focus-visible` ring in @layer base at equal specificity and
-            // wins — leaving a keyboard user with no indicator at all on the
-            // primary search field.
-            // `min-w-0`: a flex item defaults to `min-width: auto`, and an
-            // input's intrinsic floor is its `size` attribute (~20 characters),
-            // so at 320px it refused to shrink and pushed itself and the ⌘K
-            // badge out over the buttons beside it. The form has `min-w-0` so the
-            // document never scrolled — the overlap was purely visual, which
-            // is why it survived the reflow pass.
-            className="min-w-0 grow bg-transparent text-ink-strong placeholder:text-ink-subtle"
-          />
+          {/* The input itself, plus the suggestions under it as the buyer
+              types: records by name, products, places and certificates from
+              `/api/discover/suggest`. Renders the same `<input>` on the server
+              — `name="q"`, `data-search="topbar"` — so the GET form and ⌘K
+              work before any script runs, and without it. */}
+          <SearchTypeahead defaultValue={model.searchQuery ?? ""} />
           <Kbd>⌘K</Kbd>
           <SearchShortcut />
         </Form>
@@ -415,8 +405,13 @@ export function AppShell({
           // focus to a non-focusable fragment target, which older Safari does
           // not. `app/(app)/layout.tsx` sets it on the shell this replaces.
           tabIndex={-1}
+          // A page's content fades in over 200 ms when it mounts: a route
+          // change swaps the page component under the shell, so the rail and
+          // topbar hold still while the new content settles. Filter, sort and
+          // record changes on the same page re-render this element in place
+          // and draw nothing. Opacity only, and `motion-reduce` leaves it out.
           className={cn(
-            "mx-auto flex w-full max-w-[calc(75rem+3rem)] flex-col gap-4 p-4 sm:p-6",
+            "mx-auto flex w-full max-w-[calc(75rem+3rem)] flex-col gap-4 p-4 animate-fade motion-reduce:animate-none sm:p-6",
             contentClassName,
           )}
         >

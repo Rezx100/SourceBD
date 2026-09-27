@@ -130,7 +130,7 @@ export function BuyerHome({
         }
       >
         {doc.alerts.length === 0 ? (
-          <EmptyState icon="check-c" title="No certificates expiring">
+          <EmptyState art="certificate" compact title="No certificates expiring">
             When a certificate held by a supplier you saved is within 30 days of expiry, it shows here.
           </EmptyState>
         ) : (
@@ -166,7 +166,8 @@ export function BuyerHome({
       >
         {doc.recent_saved.length === 0 ? (
           <EmptyState
-            icon="bookmark"
+            art="saved"
+            compact
             title="No saved suppliers yet"
             action={
               <Button href="/app/discover" clientNav>
@@ -227,7 +228,7 @@ export function BuyerHome({
 
       <PageSection title="Recent activity">
         {doc.recent_activity.length === 0 ? (
-          <EmptyState icon="clock" title="No activity yet">
+          <EmptyState art="activity" compact title="No activity yet">
             New certificates, expiries and RSC updates on your saved suppliers show up here.
           </EmptyState>
         ) : (
