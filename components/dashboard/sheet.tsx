@@ -38,7 +38,7 @@ export function Stage({ height, behind, children }: { height: number; behind?: R
 }
 
 export function Scrim() {
-  return <div aria-hidden className="absolute inset-0 bg-surface-inverse opacity-[0.32]" />;
+  return <div aria-hidden className="absolute inset-0 bg-surface-inverse opacity-[0.32] animate-scrim-in motion-reduce:animate-none" />;
 }
 
 /**
@@ -83,7 +83,18 @@ export function Sheet({
   }
   return (
     // `tabIndex={-1}`: focusable by script, not a tab stop — `DialogFocus` moves focus here on open.
-    <aside role="dialog" aria-modal={assertModal ? "true" : undefined} aria-label={label} tabIndex={-1} className={cn(className, "outline-none")}>
+    // The record slides in from the right edge it is anchored to (320 ms,
+    // a long decelerating curve, from 32px) while the scrim fades under it.
+    // Only the entrance is drawn: a close is a navigation and lands at once,
+    // so an exit is never slower than the arrival. `motion-reduce` keeps the
+    // sheet still on a device that asked for that.
+    <aside
+      role="dialog"
+      aria-modal={assertModal ? "true" : undefined}
+      aria-label={label}
+      tabIndex={-1}
+      className={cn(className, "outline-none animate-sheet-in motion-reduce:animate-none")}
+    >
       {children}
     </aside>
   );
@@ -128,7 +139,7 @@ export function SheetFrame({
           scroll={false}
           aria-hidden
           tabIndex={-1}
-          className="absolute inset-0 bg-surface-inverse opacity-[0.32]"
+          className="absolute inset-0 bg-surface-inverse opacity-[0.32] animate-scrim-in motion-reduce:animate-none"
         />
       ) : (
         <Scrim />
@@ -185,8 +196,8 @@ export function SheetTabs({ tabs }: { tabs: readonly { label: string; count: str
           title={t.href === null ? "Not available on this record" : undefined}
           aria-current={t.active ? "true" : undefined}
           className={cn(
-            "-mb-px inline-flex h-10 items-center gap-1.5 whitespace-nowrap border-b-2 border-transparent text-base font-medium text-ink-muted",
-            t.href === null && "text-ink-subtle",
+            "-mb-px inline-flex h-10 items-center gap-1.5 whitespace-nowrap border-b-2 border-transparent text-base font-medium text-ink-muted transition-colors duration-fast hover:text-ink-strong",
+            t.href === null && "text-ink-subtle hover:text-ink-subtle",
             t.active && "border-brand text-ink-strong",
           )}
         >

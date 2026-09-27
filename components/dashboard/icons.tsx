@@ -25,7 +25,9 @@ import {
   ListDashes,
   Lock,
   MagnifyingGlass,
+  MapPin,
   Paperclip,
+  SealCheck,
   PaperPlaneTilt,
   Plus,
   Rows,
@@ -73,6 +75,9 @@ export const ICONS = {
   share: ShareNetwork,
   paperclip: Paperclip,
   compare: ArrowsLeftRight,
+  // The typeahead's row kinds: a place and a certificate. Same set and weight.
+  pin: MapPin,
+  seal: SealCheck,
 } as const;
 
 export type IconName = keyof typeof ICONS;

@@ -92,16 +92,8 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
   `/app/products` (shipped by REZ-B) still does not have — every view pays a
   316 ms function scan. Scope: `feature-specs/handoff-rez-c-start.md`.
 
-- **Buyer dashboard redesign, founder's recorded review (27 Sep)** — front end
-  only, no migration. Landed on `development` as PRs #176 (clicks no longer
-  reload the site; shell reads in one wave; 30s client page cache), #177 (the
-  record: registers named once, safety figure on one line, visible save toast,
-  no green stripe in the sidebar), #178 (every /app page draws the kit shell),
-  #179 (register logos, one colour, locked in `logos.lock.md`; RJSC keeps its
-  letters — no mark of its own), #180 (Home, Saved, RFQs, Messages, Orders,
-  Compliance, Settings rebuilt in the kit), #181 (Products and Saved searches
-  headers). Deferred: an RFQ whose only quote was withdrawn still reads
-  "Quoted" (`rfq_list` has no quote status). Reference video frames: SourceReady.
+- **Buyer dashboard redesign (founder review, 27 Sep)** — LIVE: `main` `383a31c`, deployed 27 Sep (PRs #176–#180, front end only, no migration). Open: #181 (Products/Saved-searches headers, CI flake in next/font), "Quoted" shown for withdrawn-only quotes (needs quote status in `rfq_list`), RJSC logo (none published).
+- **Buyer app craft pass (27 Sep, against the sourceready walkthrough)** — PR #185 (the record tray slides in, the topbar search suggests as you type, illustrated empty states, press feedback, palette on browser surfaces; six Higgsfield vector illustrations with provenance in `public/illustrations/`; `DESIGN.md` written from the kit). Auto-merge to `development`. Not built, named in `.impeccable/surfaces/app-app-app.md`: the sticky record name in the tray bar on scroll; the sidebar's icon-only collapse at 1024–1279.
 
 ## Founder rules still in force (one line each; detail in archive)
 - EPB is a government register: show its evidence and HS codes whenever EPB has them, flagged or not. Never mint EPB-only suppliers. (15 Aug)

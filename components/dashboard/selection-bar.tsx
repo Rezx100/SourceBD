@@ -134,7 +134,9 @@ export function SelectionBar({ exportHref }: { exportHref: string }) {
         // CSS px) a sticky bar covered 91% of the view, leaving a strip of
         // about 20px for the results (WCAG 1.4.10). Shorter windows get it in flow, after the
         // results, where the announcer says it is.
-        className="bottom-0 z-20 flex flex-wrap items-center gap-3 border-t border-line-strong bg-surface px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] sm:px-5 [@media(min-height:32rem)]:sticky"
+        // Rises into place when the first box is ticked (320 ms, 8px), so the
+        // buyer's eye is led to the actions their tick just enabled.
+        className="bottom-0 z-20 flex flex-wrap items-center gap-3 border-t border-line-strong bg-surface px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.08)] animate-rise motion-reduce:animate-none sm:px-5 [@media(min-height:32rem)]:sticky"
       >
         <span className="text-sm font-medium text-ink-strong">{count > 0 ? `${count} selected` : "Nothing selected"}</span>
         {/* With nothing selected the actions go (hidden, so the Export still
