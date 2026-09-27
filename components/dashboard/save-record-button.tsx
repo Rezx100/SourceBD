@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import { startTransition, useContext, useEffect, useId, useState } from "react";
 import { Button } from "@/components/dashboard/controls";
 import { Icon } from "@/components/dashboard/icons";
 import { onBulkSaved, rowSaveMessage } from "@/lib/dashboard/selection";
@@ -34,6 +35,9 @@ export function SaveRecordButton({
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState<string>("");
   const statusId = useId();
+  // Not `useRouter()`, which throws outside a mounted app router (the render
+  // tests draw this with no router at all).
+  const router = useContext(AppRouterContext);
   const label = on ? "Saved" : "Save";
 
   // `useState(saved)` reads its initial value once. The bar's bulk Save
@@ -69,7 +73,14 @@ export function SaveRecordButton({
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ supplier_id: supplierId }),
                 });
-            if (res.ok) setOn(!on);
+            if (res.ok) {
+              setOn(!on);
+              // The client keeps visited pages for 30s (`staleTimes` in
+              // next.config.ts), so the results behind the record and the
+              // sidebar's Saved count would otherwise read the old state when
+              // the buyer closes the record. Refreshed in the background.
+              startTransition(() => router?.refresh());
+            }
             setStatus(rowSaveMessage(res.ok ? 200 : res.status, !on));
           } catch {
             setStatus(rowSaveMessage("network", !on));

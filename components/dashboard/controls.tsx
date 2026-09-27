@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { ButtonHTMLAttributes, MouseEventHandler, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Icon, type IconName } from "./icons";
+import { LinkPending } from "./link-pending";
 
 export type ButtonVariant = "default" | "primary" | "ghost";
 
@@ -80,6 +81,7 @@ export function Button({
     return clientNav ? (
       <Link href={href} prefetch={prefetch} scroll={scroll} {...linkProps}>
         {children}
+        {icon ? null : <LinkPending />}
       </Link>
     ) : (
       <a href={href} {...linkProps}>

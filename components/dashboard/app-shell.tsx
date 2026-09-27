@@ -2,6 +2,8 @@
 // canvas, a 56px frosted topbar, content at `content` width. Presentational —
 // REZ-B wires the counts to `buyer_dashboard` and the nav to the routes.
 
+import Form from "next/form";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { formatCount } from "@/lib/dashboard/facts";
 import { cn } from "@/lib/utils";
@@ -182,9 +184,15 @@ export function Sidebar({ model, screenLabel }: { model: SidebarModel; screenLab
           const on = item.key === model.active;
           const count = navCount(item.key, model.counts);
           return (
-            <a
+            // `Link`, not `<a>`: a plain anchor reloaded the whole document on
+            // every click — middleware, the app layout's reads, the page and a
+            // full hydrate — which is most of the five to ten seconds buyers
+            // saw between pages. Not prefetched: /app/discover is rate-limited
+            // in middleware and a prefetch would spend the buyer's allowance.
+            <Link
               key={item.key}
               href={item.href}
+              prefetch={false}
               aria-current={on ? (model.activeExact === false ? "true" : "page") : undefined}
               className={cn(
                 "flex h-8 shrink-0 snap-start items-center gap-2.5 whitespace-nowrap rounded-sm px-2 text-sm font-medium text-ink-muted hover:bg-surface-sunken md:shrink",
@@ -199,7 +207,7 @@ export function Sidebar({ model, screenLabel }: { model: SidebarModel; screenLab
               <Icon name={item.icon} />
               {item.label}
               {count !== null ? <Count className={cn("ml-auto", on && "text-brand-ink")}>{count}</Count> : null}
-            </a>
+            </Link>
           );
         })}
       </nav>
@@ -242,7 +250,11 @@ export function Topbar({ model, screenLabel }: { model: TopbarModel; screenLabel
   return (
     <div className="glass flex h-topbar shrink-0 items-center gap-3 border-b border-line-subtle px-4 sm:gap-4 sm:px-6">
       {model.searchAction ? (
-        <form
+        // `next/form`: submitting runs a client navigation to the results
+        // instead of reloading the document. Not prefetched, like the sidebar:
+        // /app/discover is rate-limited and a prefetch spends the allowance.
+        <Form
+          prefetch={false}
           role="search"
           // The `search` landmark had no name. `screenLabel` was documented as
           // having been threaded into "nav/search" and had only ever reached
@@ -252,7 +264,6 @@ export function Topbar({ model, screenLabel }: { model: TopbarModel; screenLabel
           // screen label IS "Search", and the landmark read "Search, Search".
           aria-label={screenLabel && screenLabel !== "Search" ? `Search, ${screenLabel}` : "Search"}
           action={model.searchAction}
-          method="get"
           className="flex h-control w-full min-w-0 max-w-[360px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle"
         >
           <Icon name="search" />
@@ -281,7 +292,7 @@ export function Topbar({ model, screenLabel }: { model: TopbarModel; screenLabel
           />
           <Kbd>⌘K</Kbd>
           <SearchShortcut />
-        </form>
+        </Form>
       ) : (
         <div className="flex h-control w-full min-w-0 max-w-[360px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle">
           <Icon name="search" />
@@ -297,8 +308,9 @@ export function Topbar({ model, screenLabel }: { model: TopbarModel; screenLabel
       {/* A real link, not decoration. The kit shell replaces the app topbar,
           which is where the account menu and sign-out live, so on these three
           routes this was the only account affordance and it was aria-hidden. */}
-      <a
+      <Link
         href="/app/settings"
+        prefetch={false}
         aria-label="Account and settings"
         className={cn(
           "grid size-7 place-items-center rounded-full text-xs font-medium",
@@ -306,7 +318,7 @@ export function Topbar({ model, screenLabel }: { model: TopbarModel; screenLabel
         )}
       >
         <span aria-hidden>{model.initial ?? ""}</span>
-      </a>
+      </Link>
     </div>
   );
 }
