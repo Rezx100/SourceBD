@@ -9,7 +9,7 @@
 //
 // In the `(list)` group so its loading state does not wrap `rfqs/[id]`.
 
-import { RecordPane, ResultsColumn, SheetNotice } from "@/components/dashboard/sheet";
+import { RecordPane, ResultsColumn, SheetNotice, Workbench } from "@/components/dashboard/sheet";
 import { RfqDetailBody, RfqListBody, parseRfqTab, rfqsHref, type RfqDoc, type RfqDraft, type RfqRow } from "@/components/dashboard/rfq-pages";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -44,7 +44,7 @@ export default async function RfqsPage({
     // The workbench: the list scrolls in its own column, and an open RFQ
     // sits beside it from `lg`; below that it takes the region and Close
     // brings the list back.
-    <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+    <Workbench>
       <ResultsColumn besideRecord={openId !== null}>
         <RfqListBody rows={rows} drafts={drafts} tab={tab} today={new Date()} openId={openId} />
       </ResultsColumn>
@@ -62,6 +62,6 @@ export default async function RfqsPage({
           )}
         </RecordPane>
       ) : null}
-    </div>
+    </Workbench>
   );
 }

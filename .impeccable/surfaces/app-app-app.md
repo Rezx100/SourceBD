@@ -99,3 +99,25 @@ provenance.
 
 - The competitor's sticky record name in the tray bar on scroll (not built).
 - Sidebar icon-only collapse at 1024–1279 (`dashboard-ux-flow.md` §8, not built).
+
+## The founder's video, 29 Sep 2026
+
+Hand-off: `context/feature-specs/handoff-dashboard-video-29sep.md`, six PRs.
+The founder answered its four questions on 29 Sep, before the decision page:
+
+- **Q1, long names:** wrap between words, never mid-word, and give the name
+  column the width. No ellipsis ("Unit 2" and a bracket tell sister
+  factories apart).
+- **Q2, product photos:** keep the stock photos, presented differently (not
+  removed). The decision page offers how.
+- **Q3, "Material":** Material 3's principles (tonal surfaces, state layers,
+  colour roles) built into our own tokens. No new package.
+- **Q4, a register's own typo** ("Clean Globe Globe"): show it as filed.
+
+PR 1 (stability and speed, no design decision) changed the record here:
+the shell root and the list-and-pane frame are `overflow-clip` and a record
+tab scrolls only its pane; the columns are sized from measured content and
+the supplier column keeps 184px (its longest word) at the table's minimum
+width; the record pane is half the region, not 55%; a line has its own
+silhouette and one read; every pane-opening link shows a spinner at once.
+PRs 2–6 wait for the decision page.

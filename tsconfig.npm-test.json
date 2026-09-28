@@ -203,6 +203,7 @@
     "components/shell/nav-sections.test.ts",
     "lib/search-suggest.ts",
     "lib/search-suggest.test.ts",
-    "components/dashboard/search-first.test.ts"
+    "components/dashboard/search-first.test.ts",
+    "components/dashboard/pane-stability.test.ts"
   ]
 }

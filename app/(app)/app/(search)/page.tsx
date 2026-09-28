@@ -12,7 +12,7 @@
 
 import { DiscoverFilters } from "@/components/dashboard/discover-filters";
 import { SearchLanding } from "@/components/dashboard/search-landing";
-import { RecordPane } from "@/components/dashboard/sheet";
+import { RecordPane, Workbench } from "@/components/dashboard/sheet";
 import { getServerRole } from "@/lib/auth";
 import { readPublishedCount } from "@/lib/dashboard/load-buyer-shell";
 import { readSearchCount } from "@/lib/dashboard/search-cache";
@@ -59,11 +59,11 @@ export default async function SearchLandingPage({
   return (
     // The filter pane sits beside the landing as it sits beside the results;
     // Apply submits the search, Close comes back here.
-    <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+    <Workbench>
       <div className="hidden min-h-0 min-w-0 flex-1 overflow-y-auto lg:block">{landing}</div>
       <RecordPane closeHref={LANDING_PATH} openKey="filters">
         <DiscoverFilters state={EMPTY_STATE} closeHref={LANDING_PATH} />
       </RecordPane>
-    </div>
+    </Workbench>
   );
 }

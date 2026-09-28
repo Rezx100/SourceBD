@@ -87,6 +87,11 @@ export function Sheet({ label, mode = "pane", children }: { label: string; mode?
  * The width is a share of the content region between two stops, so the
  * results keep a readable column on a 1280 display and the record keeps its
  * measure on a 1920 one.
+ *
+ * Half the region, not 55%: at 1280 the 55% pane left the results 424px, the
+ * supplier column 132px of it, and a name like "Benchmark Apparels" broke
+ * mid-word (founder's video, 29 Sep 2026). At half, with the 16px gutter
+ * beside a pane, the compact table is 492px and the name column 194px.
  */
 export function RecordPane({
   closeHref,
@@ -107,7 +112,7 @@ export function RecordPane({
       data-pane-wide={wide ? "true" : undefined}
       className={cn(
         "flex min-h-0 min-w-0 flex-1 flex-col border-line lg:flex-none lg:border-l",
-        wide ? "lg:w-[clamp(640px,68%,1100px)]" : "lg:w-[clamp(480px,55%,760px)]",
+        wide ? "lg:w-[clamp(640px,68%,1100px)]" : "lg:w-[clamp(480px,50%,760px)]",
       )}
     >
       {closeHref ? <DialogFocus closeHref={closeHref} openKey={openKey} /> : null}
@@ -133,11 +138,29 @@ export function ResultsColumn({ besideRecord = false, children }: { besideRecord
   // 24px gutter on the region the header stopped 24px below the topbar and
   // the rows scrolling up showed through the gap above it (founder's
   // walkthrough, 28 Sep 2026). Padded inside, the header meets the top edge.
+  // Beside a pane the gutter is 16px: every pixel of it is the supplier
+  // column's (see `RecordPane`).
   return (
     <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto", besideRecord && "hidden lg:flex")}>
-      <div className="flex flex-col gap-4 p-4 sm:p-6">{children}</div>
+      <div className={cn("flex flex-col gap-4 p-4 sm:p-6", besideRecord && "lg:p-4")}>{children}</div>
     </div>
   );
+}
+
+/**
+ * The frame of every page with a list and a pane beside it (the search, Saved,
+ * orders, RFQs): a column below `lg`, side by side from it.
+ *
+ * `overflow-clip` from `lg`: nothing in the frame may scroll it. `hidden` only
+ * stops a person scrolling — a followed fragment, a `scrollIntoView` or a
+ * focus call still scrolls a hidden box, and that is how a record tab slid
+ * the whole search off the top of the screen (founder's video, 29 Sep 2026).
+ * The list and the pane each scroll themselves. `relative` holds the
+ * `.sr-only` spans inside it, which are absolutely placed and otherwise
+ * stretched the shell's scroll area from a row far down a long record.
+ */
+export function Workbench({ children }: { children: ReactNode }) {
+  return <div className="relative flex min-h-0 flex-1 flex-col lg:flex-row lg:overflow-clip">{children}</div>;
 }
 
 export function SheetBar({ children }: { children: ReactNode }) {
@@ -165,55 +188,17 @@ export function SheetScroll({ measure = false, children }: { measure?: boolean; 
   );
 }
 
-/**
- * A tab links only to a section this sheet actually renders. The others keep
- * the approved fragment's inert `href="#"` and say so to a screen reader,
- * rather than pointing at an anchor that does not exist.
- */
-export function SheetTabs({ tabs }: { tabs: readonly { label: string; count: string | null; href: string | null; active?: boolean }[] }) {
-  // Eight tabs at 320px is ~640px of nav. It scrolls sideways rather than
-  // wrapping into three rows or pushing the sheet past the viewport, and
-  // `tabIndex` lets a keyboard reach that scroll region (WCAG 2.1.1).
-  return (
-    // Sticky: on a record that runs to 3,000px the tabs used to scroll away
-    // after the first screen, and compliance staff jumping to Sources or
-    // Locations had to scroll back up to find them. The space above the tabs
-    // is their own padding, not a margin: a margin left an 8px strip over the
-    // stuck tabs where the source marks scrolled through.
-    <nav
-      aria-label="Record sections"
-      tabIndex={0}
-      className="sticky top-0 z-10 flex gap-5 overflow-x-auto border-b border-line-subtle bg-surface px-6 pt-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-    >
-      {tabs.map((t) => (
-        <a
-          key={t.label}
-          href={t.href ?? "#"}
-          aria-disabled={t.href === null ? "true" : undefined}
-          tabIndex={t.href === null ? -1 : undefined}
-          title={t.href === null ? "Not available on this record" : undefined}
-          aria-current={t.active ? "true" : undefined}
-          className={cn(
-            "-mb-px inline-flex h-10 items-center gap-1.5 whitespace-nowrap border-b-2 border-transparent text-base font-medium text-ink-muted transition-colors duration-fast hover:text-ink-strong",
-            t.href === null && "text-ink-subtle hover:text-ink-subtle",
-            t.active && "border-brand text-ink-strong",
-          )}
-        >
-          {t.label}
-          {t.count !== null ? (
-            <span className={cn("font-mono text-[11px] text-ink-subtle", t.active && "text-brand-ink")}>{t.count}</span>
-          ) : null}
-        </a>
-      ))}
-    </nav>
-  );
-}
+export { SheetTabs } from "./sheet-tabs";
 
 /**
  * `.sec`: a section with its heading row. `collapsible` folds it behind its
  * heading (open by default, so a tab link still lands on its content); the
  * long sections of a record — Sources, Locations, Facilities, RFQs — fold so a
  * buyer can shorten a 3,000px record to the parts they are reading.
+ *
+ * A tab moves focus here (`tabIndex={-1}`), and `scroll-mt-12` keeps a plain
+ * fragment jump (the sanction banner's "See the matches", a shared `#…` link)
+ * from landing the heading under the 48px sticky tabs.
  */
 export function SheetSection({
   id,
@@ -232,7 +217,7 @@ export function SheetSection({
 }) {
   if (collapsible && title) {
     return (
-      <details id={id} open className="group/sec border-b border-line-subtle px-6 py-5">
+      <details id={id} open tabIndex={id ? -1 : undefined} className="group/sec scroll-mt-12 border-b border-line-subtle px-6 py-5 outline-none">
         <summary className="flex cursor-pointer list-none flex-wrap items-baseline gap-x-2 gap-y-1 [&::-webkit-details-marker]:hidden">
           <Icon name="caret" small className="mr-0.5 self-center text-ink-subtle transition-transform duration-fast group-open/sec:rotate-180" />
           <Heading level="sm" as="h2" className="flex-1">
@@ -246,7 +231,7 @@ export function SheetSection({
     );
   }
   return (
-    <section id={id} className="flex flex-col gap-4 border-b border-line-subtle px-6 py-5">
+    <section id={id} tabIndex={id ? -1 : undefined} className="flex scroll-mt-12 flex-col gap-4 border-b border-line-subtle px-6 py-5 outline-none">
       {title ? (
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <Heading level="sm" as="h2" className="flex-1">

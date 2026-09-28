@@ -232,8 +232,15 @@ describe("8. opening a record does not wait on the search", () => {
 
   it("the record is read inside its own Suspense boundary, keyed per record, with the record's silhouette", () => {
     assert.match(page, /<Suspense\s+key=\{`\$\{recordSlug\}:/);
-    assert.match(page, /fallback=\{\s*<RecordPane[^>]*>\s*<RecordSkeleton \/>/);
+    // A line's own silhouette while a line is read, the record's otherwise
+    // (founder's video, 29 Sep 2026: a line flashed the whole record's).
+    assert.match(page, /fallback=\{\s*<RecordPane[^>]*>\s*\{lineCode \? <LineSkeleton \/> : <RecordSkeleton \/>\}/);
     assert.doesNotMatch(page.slice(0, page.indexOf("async function DiscoverRecord")), /loadRecordSheet\(/, "the page body awaits the record again");
+    // The RFQ form too (founder's video, 29 Sep 2026: "Send RFQ … has to be
+    // lightning fast"): its suppliers and the workspace are read inside a
+    // boundary of its own, so the whole page no longer waits on them.
+    assert.match(page, /<Suspense\s+key=\{`rfq:\$\{rfqIds\.join\(","\)\}`\}\s+fallback=\{\s*<RecordPane[^>]*>\s*<ComposerSkeleton \/>/);
+    assert.doesNotMatch(page.slice(0, page.indexOf("async function DiscoverComposer")), /settings_get|TARGET_COLUMNS\)/, "the page body awaits the composer's reads");
     const saved = readFileSync(path.join(repoRoot, "app/(app)/app/saved/page.tsx"), "utf8");
     assert.match(saved, /<Suspense\s+key=\{openSlug\}\s+fallback=\{\s*<RecordPane[^>]*>\s*<RecordSkeleton \/>/);
   });

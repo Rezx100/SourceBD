@@ -22,6 +22,7 @@ import {
   SearchComposer,
   SupplierResultCard,
   SupplierSheet,
+  Workbench,
   type ComposerPrefill,
   type ComposerTarget,
   type ResultsSortKey,
@@ -148,12 +149,12 @@ function Frame({ id, title, note, height, children }: { id: string; title: strin
  * scrolls on its own and, when something is open, a pane sits on its right.
  * The gallery has no URL to close to, so its panes carry no `closeHref`.
  */
-function Workbench({ results, pane }: { results: ReactNode; pane?: ReactNode }) {
+function Bench({ results, pane }: { results: ReactNode; pane?: ReactNode }) {
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col lg:flex-row">
+    <Workbench>
       <ResultsColumn besideRecord={Boolean(pane)}>{results}</ResultsColumn>
       {pane}
-    </div>
+    </Workbench>
   );
 }
 
@@ -293,7 +294,7 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
         note={`The default view: 36px rows under a sticky, sortable header, ${d.rows.length} rows: ${tableSelection(d)}. Two rows are ticked (the brand rule on the left) and one is marked as the record open beside the results. Hover or focus a row for its actions.`}
       >
         <AppShell className="md:h-full" sidebar={results.sidebar} topbar={tableTopbarModel(d)} mainId="results-table-main" screenLabel="results table">
-          <Workbench
+          <Bench
             results={
               <>
                 {search}
@@ -310,7 +311,7 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
 
       <Frame id="results-list" title="ResultsList — the thumbnail cards" note={resultsNote(d)}>
         <AppShell className="md:h-full" sidebar={results.sidebar} topbar={results.topbar} mainId="results-list-main" screenLabel="results list">
-          <Workbench
+          <Bench
             results={
               <>
                 {search}
@@ -337,7 +338,7 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
           height={1240}
         >
           <AppShell className="md:h-full" sidebar={results.sidebar} topbar={results.topbar} mainId="supplier-sheet-main" screenLabel="supplier record">
-            <Workbench
+            <Bench
               results={beside(aboni)}
               pane={
                 <RecordPane openKey="supplier-sheet">
@@ -360,7 +361,7 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
           height={760}
         >
           <AppShell className="md:h-full" sidebar={results.sidebar} topbar={results.topbar} mainId="product-sheet-main" screenLabel="product line">
-            <Workbench
+            <Bench
               results={beside(aboni)}
               pane={
                 <RecordPane openKey="product-sheet">
@@ -380,7 +381,7 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
           height={860}
         >
           <AppShell className="md:h-full" sidebar={results.sidebar} topbar={results.topbar} mainId="rfq-composer-main" screenLabel="RFQ composer">
-            <Workbench
+            <Bench
               results={beside(null)}
               pane={
                 <RecordPane openKey="rfq-composer" wide>
@@ -401,7 +402,7 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
         height={860}
       >
         <AppShell className="md:h-full" sidebar={results.sidebar} topbar={results.topbar} mainId="filter-pane-main" screenLabel="filters">
-          <Workbench
+          <Bench
             results={beside(null)}
             pane={
               <RecordPane openKey="filters">

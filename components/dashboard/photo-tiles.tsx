@@ -9,6 +9,7 @@ import type { PhotoTileModel } from "@/lib/dashboard/hs-photos";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Icon } from "./icons";
+import { LinkPending } from "./link-pending";
 import { Caption, Code } from "./type";
 
 export const PHOTO_NOTE = "Illustrative photos, one per HS heading · rarest lines first";
@@ -50,7 +51,10 @@ export function PhotoTile({ tile, fluid = false }: { tile: PhotoTileModel; fluid
       </div>
       <div className="px-0.5 pt-[5px]">
         <Code className="block text-xs text-ink-muted">HS {tile.hs}</Code>
-        <span className="block whitespace-nowrap text-xs text-ink">{tile.short}</span>
+        {/* Wraps between words. Held to one line, "Coated knit garments" ran
+            into the next tile's "Others knitwear" in the record's six-up grid
+            (founder's video, 29 Sep 2026: "fix the overlaps"). */}
+        <span className="block text-xs text-ink [overflow-wrap:anywhere]">{tile.short}</span>
       </div>
     </div>
   );
@@ -187,8 +191,9 @@ export function PhotoGrid({ tiles, lineHref }: { tiles: readonly PhotoTileModel[
           // `next/link`: in the overlay this href is `?…&record=X&line=NNNN`
           // on the search's own URL, and a plain anchor would reload the whole
           // page — re-running the search and emptying the bulk selection.
-          <Link key={t.hs} prefetch={false} scroll={false} href={lineHref(t.hs)} aria-label={`HS ${t.hs} · ${t.short}`} className="rounded-sm">
+          <Link key={t.hs} prefetch={false} scroll={false} href={lineHref(t.hs)} aria-label={`HS ${t.hs} · ${t.short}`} className="relative rounded-sm">
             <PhotoTile tile={t} fluid />
+            <LinkPending className="absolute right-2 top-2 size-4 text-ink-strong" />
           </Link>
         ) : (
           <PhotoTile key={t.hs} tile={t} fluid />

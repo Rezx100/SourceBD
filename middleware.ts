@@ -79,6 +79,16 @@ export async function middleware(req: NextRequest) {
   const klass: RateLimitClass | null = classifyRoute(pathname, req.method);
   let cachedUserId: string | null | undefined;
 
+  // The gate's role and suspension read, started once. On a rate-limited
+  // gated route it runs BESIDE the rate-limit check instead of after it: the
+  // server is in Amsterdam and the database in California, and the two in a
+  // row cost ~150 ms on every click (founder's video, 29 Sep 2026; the
+  // founder chose "run the two side by side", same checks, same answers).
+  // A request the limiter refuses still gets its 429 and nothing else; the
+  // read it started is simply not used.
+  let gateRead: ReturnType<typeof readGate> | null = null;
+  const gateFor = (userId: string) => (gateRead ??= readGate(supabase, userId));
+
   if (klass) {
     const spec = RATE_LIMITS[klass];
     let ident: string;
@@ -92,6 +102,11 @@ export async function middleware(req: NextRequest) {
       ident = cachedUserId ?? leftmostIp(req.headers);
     } else {
       ident = leftmostIp(req.headers);
+    }
+    if (needsAuthGate && cachedUserId) {
+      // Marked handled so a refused request does not leave a rejection unheard;
+      // the gate below still awaits the read itself and sees any failure.
+      gateFor(cachedUserId).catch(() => {});
     }
     const result = await rlCheck(supabase, klass, ident, spec.perMin);
     if (!result.ok) {
@@ -192,11 +207,7 @@ export async function middleware(req: NextRequest) {
     return redirectToLogin(req);
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role, is_suspended")
-    .eq("id", user.id)
-    .maybeSingle();
+  const { data: profile } = await gateFor(user.id);
   const role = (profile?.role ?? null) as Role | null;
   const suspended = profile?.is_suspended === true;
 
@@ -253,6 +264,11 @@ export async function middleware(req: NextRequest) {
   }
 
   return res;
+}
+
+/** The gate's one read: the caller's role and whether the account is suspended. */
+function readGate(supabase: ReturnType<typeof createSupabaseMiddlewareClient>["supabase"], userId: string) {
+  return Promise.resolve(supabase.from("profiles").select("role, is_suspended").eq("id", userId).maybeSingle());
 }
 
 function redirectToLogin(req: NextRequest) {

@@ -251,8 +251,13 @@ export function AppShell({
 }) {
   // Every screen opens with the same ten sidebar links. Without a `main`
   // landmark and a skip link there is no way past them (WCAG 2.4.1).
+  //
+  // `overflow-clip`, not `overflow-hidden`: hidden stops a person scrolling
+  // the shell but not a script, a followed fragment or a focus call, and a
+  // record tab slid the whole app up under itself that way (founder's video,
+  // 29 Sep 2026). Clip refuses every kind of scroll.
   return (
-    <div className={cn("flex min-h-dvh flex-col bg-canvas text-base text-ink md:h-dvh md:flex-row md:overflow-hidden", className)}>
+    <div className={cn("flex min-h-dvh flex-col bg-canvas text-base text-ink md:h-dvh md:flex-row md:overflow-clip", className)}>
       <a
         href={`#${mainId}`}
         className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-sm focus:border focus:border-line-strong focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-ink-strong"

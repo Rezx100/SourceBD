@@ -13,7 +13,7 @@ import { Button } from "@/components/dashboard/controls";
 import { Icon } from "@/components/dashboard/icons";
 import { OrderDetail, OrderTabs, OrdersTable, inTab, ordersHref, parseOrderTab, readOrder, type OrderRow } from "@/components/dashboard/orders";
 import { PageHeader } from "@/components/dashboard/page";
-import { RecordPane, ResultsColumn, SheetNotice } from "@/components/dashboard/sheet";
+import { RecordPane, ResultsColumn, SheetNotice, Workbench } from "@/components/dashboard/sheet";
 import { formatCount } from "@/lib/dashboard/facts";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -42,7 +42,7 @@ export default async function OrdersPage({
     // The workbench: the list scrolls in its own column, and an open order
     // sits beside it from `lg`; below that it takes the region and Close
     // brings the list back.
-    <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+    <Workbench>
       <ResultsColumn besideRecord={openId !== null}>
         <div className="mx-auto flex w-full max-w-[75rem] flex-col gap-5">
           <PageHeader
@@ -82,6 +82,6 @@ export default async function OrdersPage({
           )}
         </RecordPane>
       ) : null}
-    </div>
+    </Workbench>
   );
 }

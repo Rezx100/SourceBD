@@ -83,17 +83,25 @@ export async function loadRecordInput(
   }
 }
 
-/** One `production_workers_display_batch` call for every record given. */
-export async function fillRecordWorkers(supabase: RecordRpc, records: LoadedRecord[]): Promise<void> {
-  if (records.length === 0) return;
-  const byId = await fetchDisplayWorkersBatch(
-    supabase,
-    records.map((r) => r.input.profile.supplier.id),
-  );
+type WorkersById = Awaited<ReturnType<typeof fetchDisplayWorkersBatch>>;
+
+function assignWorkers(records: LoadedRecord[], byId: WorkersById): void {
   for (const r of records) {
     const w = byId[r.input.profile.supplier.id];
     r.input.workers = w ? { value: w.value, source: w.source, fetched_at: w.fetched_at } : null;
   }
+}
+
+/** One `production_workers_display_batch` call for every record given. */
+export async function fillRecordWorkers(supabase: RecordRpc, records: LoadedRecord[]): Promise<void> {
+  if (records.length === 0) return;
+  assignWorkers(
+    records,
+    await fetchDisplayWorkersBatch(
+      supabase,
+      records.map((r) => r.input.profile.supplier.id),
+    ),
+  );
 }
 
 /** The same call, with the batch's failure absorbed: every record keeps the figure its own payload carries. */
@@ -280,6 +288,12 @@ export type SheetView = {
   allLines?: boolean;
   /** Where "All N lines ›" goes when only six are shown. */
   allLinesHref?: string | null;
+  /**
+   * The record's id when the list that opened it already holds it (a row of
+   * the search). Its id-keyed reads then start beside the profile instead of
+   * after it; the profile's own id still decides whose they are.
+   */
+  supplierId?: string | null;
 };
 
 /**
@@ -305,17 +319,32 @@ export async function loadRecordSheet(
   const buyerIdRead = callerId(supabase);
   const countsRead = fetchContactCounts(supabase, slug);
   const facilitiesRead = fetchFacilityPanel(supabase, slug);
+  // Opened from a row that carries the id: the reads keyed by it start now,
+  // beside the profile (founder's video, 29 Sep 2026: every open waited on a
+  // second round trip after the first).
+  const known = view.supplierId ?? null;
+  const early = known
+    ? {
+        workers: fetchDisplayWorkersBatch(supabase, [known]).catch(() => null),
+        saved: fetchRecordSaved(supabase, known),
+        rfqs: buyerIdRead.then((buyerId) => fetchRecordRfqs(supabase, known, buyerId)),
+      }
+    : null;
   const record = await loadRecordInput(supabase, slug, today);
   if (!record) return null;
   const supplierId = record.input.profile.supplier.id;
-  const buyerId = await buyerIdRead;
-  const [, contactCounts, saved, rfqs, facilities] = await Promise.all([
-    fillRecordWorkersSafely(supabase, [record]),
+  // Only the profile's own id is trusted: a row that pointed at another
+  // supplier gets its reads again, for this one.
+  const reuse = early && known === supplierId ? early : null;
+  const [workers, contactCounts, saved, rfqs, facilities] = await Promise.all([
+    // A failed batch leaves the figure the record's own payload carries.
+    reuse ? reuse.workers : fetchDisplayWorkersBatch(supabase, [supplierId]).catch(() => null),
     countsRead,
-    fetchRecordSaved(supabase, supplierId),
-    fetchRecordRfqs(supabase, supplierId, buyerId),
+    reuse ? reuse.saved : fetchRecordSaved(supabase, supplierId),
+    reuse ? reuse.rfqs : buyerIdRead.then((buyerId) => fetchRecordRfqs(supabase, supplierId, buyerId)),
     facilitiesRead,
   ]);
+  if (workers) assignWorkers([record], workers);
   return buildSheet(record.input, {
     plan: view.plan ?? null,
     contactCounts,
@@ -335,17 +364,23 @@ export async function loadRecordSheet(
   });
 }
 
-/** The same record, read once, for the line sheet at `/app/suppliers/[slug]/lines/[hs]`. */
-export async function loadRecordLine(
+export type LineView = {
+  backHref?: string | null;
+  closeHref?: string | null;
+  rfqHref?: (supplierId: string, hs: string) => string;
+  /** As `SheetView.supplierId`: the id from the row that opened the record, so the worker figure is read beside the profile. */
+  supplierId?: string | null;
+};
+
+/** The line sheet for a record already read; null when `hs` is not one of its lines. */
+async function lineFrom(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- as loadRecordSheet.
   supabase: any,
-  slug: string,
+  record: LoadedRecord,
   hs: string,
-  today: Date,
-  view: { backHref?: string | null; closeHref?: string | null; rfqHref?: (supplierId: string, hs: string) => string } = {},
+  view: LineView,
+  workersEarly: Promise<WorkersById | null> | null = null,
 ): Promise<ProductSheetModel | null> {
-  const record = await loadRecordInput(supabase, slug, today);
-  if (!record) return null;
   // A line is a heading the catalogue knows or one this record's EPB page
   // carries. Any other four digits — `/lines/0000` — drew "Chapter 00", a live
   // Send RFQ prefilled with it and an Exporters link, for no heading at all.
@@ -355,14 +390,62 @@ export async function loadRecordLine(
   // record may have or a sheet (with a live Send RFQ) for one it may not.
   const code = heading4(hs);
   if (!hsCatalogueRow(code) && !record.input.hscodes.some((h) => heading4(h.code) === code)) {
-    if (record.input.hscodesError) throw new LinesUnreadable(slug);
+    if (record.input.hscodesError) throw new LinesUnreadable(record.slug);
     return null;
   }
-  await fillRecordWorkersSafely(supabase, [record]);
   const supplierId = record.input.profile.supplier.id;
+  if (workersEarly && view.supplierId === supplierId) {
+    const byId = await workersEarly;
+    if (byId) assignWorkers([record], byId);
+  } else {
+    await fillRecordWorkersSafely(supabase, [record]);
+  }
   return buildProductSheet(record.input, hs, {
-    backHref: view.backHref ?? `/app/suppliers/${slug}`,
+    backHref: view.backHref ?? `/app/suppliers/${record.slug}`,
     closeHref: view.closeHref ?? null,
     rfqHref: view.rfqHref?.(supplierId, heading4(hs)) ?? `/app/rfqs/new?supplier=${supplierId}&hs=${heading4(hs)}`,
   });
+}
+
+/** The same record, read once, for the line sheet at `/app/suppliers/[slug]/lines/[hs]`. */
+export async function loadRecordLine(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- as loadRecordSheet.
+  supabase: any,
+  slug: string,
+  hs: string,
+  today: Date,
+  view: LineView = {},
+): Promise<ProductSheetModel | null> {
+  const record = await loadRecordInput(supabase, slug, today);
+  return record ? lineFrom(supabase, record, hs, view) : null;
+}
+
+/**
+ * A line beside the results (`?record=…&line=NNNN`), with the record read
+ * ONCE. The pane used to read the whole record sheet as well as the line —
+ * the profile twice, and the counts, buildings, saved state and RFQs for a
+ * sheet it never drew — so a line took as long as two records (founder's
+ * video, 29 Sep 2026). `found` says whether the slug is a published record, so
+ * the caller can send the buyer to the record when `hs` is not one of its
+ * lines, without a second read to find out. A slow profile throws
+ * `ProfileReadTimeout`, as `loadRecordInput` does; unreadable lines are "not a
+ * line" here, and the record says the lines could not be read.
+ */
+export async function loadLineBeside(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- as loadRecordSheet.
+  supabase: any,
+  slug: string,
+  hs: string,
+  today: Date,
+  view: LineView,
+): Promise<{ line: ProductSheetModel | null; found: boolean }> {
+  const workersEarly = view.supplierId ? fetchDisplayWorkersBatch(supabase, [view.supplierId]).catch(() => null) : null;
+  const record = await loadRecordInput(supabase, slug, today);
+  if (!record) return { line: null, found: false };
+  try {
+    return { line: await lineFrom(supabase, record, hs, view, workersEarly), found: true };
+  } catch (err) {
+    if (err instanceof LinesUnreadable) return { line: null, found: true };
+    throw err;
+  }
 }

@@ -580,7 +580,9 @@ describe("SupplierSheet — it is a page now, so a phone is a real width", () =>
     // A plain `w-` on any element: a `max-w` caps a measure, it forces nothing.
     assert.doesNotMatch(html(), /(?:^|[\s"])w-\[\d+px\]/);
     const pane = renderToStaticMarkup(createElement(RecordPane, null, "x"));
-    assert.match(pane, /lg:w-\[clamp\(480px,55%,760px\)\]/, "the pane's width is not a share of the region between two stops");
+    // Half the region since 29 Sep 2026: at 55% a 1280 display left the
+    // supplier column 132px and names broke mid-word.
+    assert.match(pane, /lg:w-\[clamp\(480px,50%,760px\)\]/, "the pane's width is not a share of the region between two stops");
     assert.doesNotMatch(pane, /(?:^|[\s"])w-\[/, "a fixed width below lg would crush a phone");
   });
 

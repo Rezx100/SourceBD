@@ -396,17 +396,20 @@ describe("ResultsTable (rendered) — the ledger grid", () => {
     assert.doesNotMatch(renderToStaticMarkup(createElement(ResultsTable, { rows, currentSlug: "no-such-slug" })), /aria-current/);
   });
 
-  it("beside a pane the ledger narrows to Supplier, Registers & certifiers and Workers", () => {
+  it("beside a pane the ledger narrows to Supplier, Sources and Workers", () => {
     const html = renderToStaticMarkup(createElement(ResultsTable, { rows: [buildTableRow(aboniInput())], compact: true }));
     const heads = [...html.matchAll(/<th scope="col"[^>]*>([\s\S]*?)<\/th>/g)].map((m) => m[1]!.replace(/<[^>]+>/g, "").trim());
-    assert.deepEqual(heads, ["Select", "Supplier", "Registers &amp; certifiers", "Workers", "Actions"]);
+    // "Registers & certifiers" is 119px with its caret; the column beside a
+    // pane is 76px (founder's video, 29 Sep 2026: the header wrapped).
+    assert.deepEqual(heads, ["Select", "Supplier", "Sources", "Workers", "Actions"]);
     assert.match(html, /Aboni Knitwear Ltd/);
   });
 
   it("each row is a keyboard stop whose name is the supplier's, and the name opens the record beside the results", () => {
     const html = renderToStaticMarkup(createElement(ResultsTable, { rows: [ledgerRow(aboniInput())] }));
     assert.match(html, /<tr tabindex="0" aria-label="Aboni Knitwear Ltd"[^>]*data-row="result"/);
-    assert.match(html, /<a\b[^>]*data-open="record"[^>]*>Aboni Knitwear Ltd<\/a>|<a\b[^>]*href="\/app\/discover\?q=knit&amp;record=aboni-knitwear"[^>]*data-open="record"/);
+    // The name, then the spinner that says the click was heard (hidden until then).
+    assert.match(html, /<a\b[^>]*data-open="record"[^>]*>Aboni Knitwear Ltd(?:<span aria-hidden="true" class="[^"]*\bhidden\b[^"]*"><\/span>)?<\/a>|<a\b[^>]*href="\/app\/discover\?q=knit&amp;record=aboni-knitwear"[^>]*data-open="record"/);
   });
 
   it(
@@ -450,8 +453,11 @@ describe("Sheet: a pane by default, a page on request, never a dialog", () => {
     assert.match(pane, /<section data-record-pane="" aria-label="Supplier record" tabindex="-1"/);
     assert.doesNotMatch(pane, /role="dialog"|aria-modal/);
     const page = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()), mode: "page" }));
-    assert.doesNotMatch(page, /data-record-pane|role="dialog"|aria-modal|tabindex="-1"/);
-    assert.match(page, /<section aria-label="Supplier record"/);
+    assert.doesNotMatch(page, /data-record-pane|role="dialog"|aria-modal/);
+    // The page itself takes no focus. Its sections do (`tabindex="-1"`): a
+    // record tab moves focus to the section it scrolls to (founder's video,
+    // 29 Sep 2026), on the page as in the pane.
+    assert.match(page, /<section aria-label="Supplier record" class="[^"]*">/);
   });
 
   it("ProductSheet: the default is the focusable pane; mode=\"page\" is neither pane nor dialog", () => {

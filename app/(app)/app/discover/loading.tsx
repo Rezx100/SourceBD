@@ -1,5 +1,5 @@
 import { Panel } from "@/components/dashboard/results-panel";
-import { ResultsColumn } from "@/components/dashboard/sheet";
+import { ResultsColumn, Workbench } from "@/components/dashboard/sheet";
 import { Skeleton, SkeletonRegion } from "@/components/ui/skeleton";
 
 // The results page while the search runs, drawn with the page's own frame
@@ -10,11 +10,11 @@ import { Skeleton, SkeletonRegion } from "@/components/ui/skeleton";
 // in the old design's stylesheet, no bars at all. The layout draws the shell.
 
 /** The ledger grid's columns, wide view: `RESULTS_COLUMNS.wide` in `components/dashboard/results-table.tsx`. */
-const GRID = "grid grid-cols-[40px_minmax(0,1fr)_150px_220px_130px_100px_104px] items-center";
+const GRID = "grid grid-cols-[40px_minmax(0,1fr)_160px_212px_112px_144px_104px] items-center";
 
 export default function BuyerDiscoverLoading() {
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col lg:flex-row">
+    <Workbench>
       <ResultsColumn>
         <SkeletonRegion label="Loading results" className="flex flex-col gap-4">
           {/* The filter bar: funnel, chips, Add filter, the go disc. */}
@@ -84,6 +84,6 @@ export default function BuyerDiscoverLoading() {
           </Panel>
         </SkeletonRegion>
       </ResultsColumn>
-    </div>
+    </Workbench>
   );
 }
