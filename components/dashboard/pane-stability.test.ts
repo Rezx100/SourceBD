@@ -17,7 +17,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
-import { createElement, isValidElement, type ReactElement, type ReactNode } from "react";
+import { createElement, isValidElement, type ComponentProps, type ReactElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { SOURCE_LOGO_FILES } from "@/lib/dashboard/source-logos";
@@ -33,11 +33,11 @@ const source = (p: string) => readFileSync(path.join(repoRoot, p), "utf8");
 describe("1. a record tab scrolls the pane, never the app", () => {
   it("the shell and every list-and-pane frame refuse to be scrolled, by a script as much as by a person", () => {
     const shell = renderToStaticMarkup(
-      createElement(AppShell, {
-        sidebar: { counts: { suppliers: null, rfqs: null, saved: null }, recent: [], plan: { name: "" } },
-        topbar: { caption: "", initial: null },
-        children: null,
-      }),
+      createElement(
+        AppShell,
+        { sidebar: { counts: { suppliers: null, rfqs: null, saved: null }, recent: [], plan: { name: "" } }, topbar: { caption: "", initial: null } } as ComponentProps<typeof AppShell>,
+        null,
+      ),
     );
     const root = /^<div class="([^"]*)"/.exec(shell)?.[1] ?? "";
     assert.match(root, /\bmd:overflow-clip\b/, `the shell root can be scrolled: ${root}`);
@@ -167,7 +167,7 @@ describe("1. a record tab scrolls the pane, never the app", () => {
 
   it("a plain fragment lands a section below the sticky tabs, and a section is not a focus stop until a tab sends focus there", () => {
     for (const collapsible of [false, true]) {
-      const html = renderToStaticMarkup(createElement(SheetSection, { id: "products", title: "Products", collapsible, children: "x" }));
+      const html = renderToStaticMarkup(createElement(SheetSection, { id: "products", title: "Products", collapsible } as ComponentProps<typeof SheetSection>, "x"));
       assert.match(html, /\bscroll-mt-12\b/);
       assert.doesNotMatch(html, /tabindex/, "a click on a section's text would move focus to the whole section");
     }
