@@ -47,7 +47,7 @@ same PR. Read once per session.
   the results): LIVE 27 Sep (`3f628b9`); hand-off `handoff-one-viewport-shell.md`.
 
 - **Search-first buyer app** (28 Sep, founder's walkthrough video): LIVE 28 Sep (`d7e6c42`, PRs #193/#194); detail in `current-state.md`.
-  Next: the founder's next dashboard walkthrough video; start from `development`.
+  Next: the founder's 29 Sep dashboard video — `handoff-dashboard-video-29sep.md`; start from `development`.
 
 ## Queued
 - **Entity resolution core** — `spec-resolution-core.md` (4 Aug). Batch
