@@ -453,11 +453,8 @@ describe("Sheet: a pane by default, a page on request, never a dialog", () => {
     assert.match(pane, /<section data-record-pane="" aria-label="Supplier record" tabindex="-1"/);
     assert.doesNotMatch(pane, /role="dialog"|aria-modal/);
     const page = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()), mode: "page" }));
-    assert.doesNotMatch(page, /data-record-pane|role="dialog"|aria-modal/);
-    // The page itself takes no focus. Its sections do (`tabindex="-1"`): a
-    // record tab moves focus to the section it scrolls to (founder's video,
-    // 29 Sep 2026), on the page as in the pane.
-    assert.match(page, /<section aria-label="Supplier record" class="[^"]*">/);
+    assert.doesNotMatch(page, /data-record-pane|role="dialog"|aria-modal|tabindex="-1"/);
+    assert.match(page, /<section aria-label="Supplier record"/);
   });
 
   it("ProductSheet: the default is the focusable pane; mode=\"page\" is neither pane nor dialog", () => {

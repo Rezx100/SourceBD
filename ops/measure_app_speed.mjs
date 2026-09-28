@@ -20,9 +20,7 @@ const SITE = process.env.SITE || "https://sourcebd.net";
 const QUERIES = process.argv.slice(2).length ? process.argv.slice(2) : ["sweater", "denim", "knit dress"];
 
 /** Runs `act` in the page and polls `ready` every 4 ms; ms to the first `feedback` and to `ready`, and the URLs it went through. */
-const STEP = `(async ({ act, ready, feedback }) => {
-  const f = (s) => (s ? new Function("return (" + s + ")") : null);
-  const A = f(act), R = f(ready), F = f(feedback);
+const STEP = `(async (A, R, F) => {
   const t0 = performance.now();
   let fb = null, last = location.href;
   const urls = [];
@@ -44,7 +42,9 @@ const SKELETON = `document.querySelector('[data-open-key^="loading:"]')`;
 const H1 = `(document.querySelector('section[data-record-pane] h1') || {}).textContent`;
 
 async function step(page, act, ready, feedback = null) {
-  return page.evaluate(`${STEP}(${JSON.stringify({ act, ready, feedback })})`);
+  // Plain arrow functions in the evaluated text, not `new Function`, which a
+  // Content-Security-Policy without unsafe-eval would refuse.
+  return page.evaluate(`${STEP}(() => (${act}), () => (${ready}), ${feedback ? `() => (${feedback})` : "null"})`);
 }
 
 async function run(page, q) {
@@ -63,7 +63,7 @@ async function run(page, q) {
     if (!name) break;
     out[key] = await step(
       page,
-      `(() => document.querySelectorAll('tr[data-row="result"] a[data-open="record"]')[${i}].click())`,
+      `(() => document.querySelectorAll('tr[data-row="result"] a[data-open="record"]')[${i}]?.click())`,
       `${H1} === ${JSON.stringify(name.trim())} && !document.querySelector('[aria-label="Back to the record"]')`,
       SKELETON,
     );
@@ -73,22 +73,22 @@ async function run(page, q) {
   if (await page.evaluate(`Boolean(document.querySelector('section[data-record-pane] a[aria-label^="HS "]'))`)) {
     out.line = await step(
       page,
-      `(() => document.querySelector('section[data-record-pane] a[aria-label^="HS "]').click())`,
+      `(() => document.querySelector('section[data-record-pane] a[aria-label^="HS "]')?.click())`,
       `document.querySelector('[aria-label="Back to the record"]')`,
       SKELETON,
     );
     await page.waitForTimeout(2500);
-    out.back = await step(page, `(() => document.querySelector('[aria-label="Back to the record"]').click())`, `!document.querySelector('[aria-label="Back to the record"]') && ${H1}`, SKELETON);
+    out.back = await step(page, `(() => document.querySelector('[aria-label="Back to the record"]')?.click())`, `!document.querySelector('[aria-label="Back to the record"]') && ${H1}`, SKELETON);
   }
   await page.waitForTimeout(2500);
   out.rfq = await step(
     page,
-    `(() => [...document.querySelectorAll('section[data-record-pane] a')].find((a) => /Send RFQ/.test(a.textContent)).click())`,
+    `(() => [...document.querySelectorAll('section[data-record-pane] a')].find((a) => /Send RFQ/.test(a.textContent))?.click())`,
     `document.querySelector('section[aria-label="New RFQ"]')`,
     `document.querySelector('[data-pane-wide]')`,
   );
   await page.waitForTimeout(2500);
-  out.close_rfq = await step(page, `(() => document.querySelector('[data-pane-wide] [aria-label="Close"]').click())`, `!document.querySelector('[data-pane-wide]') && ${H1}`);
+  out.close_rfq = await step(page, `(() => document.querySelector('[data-pane-wide] [aria-label="Close"]')?.click())`, `!document.querySelector('[data-pane-wide]') && ${H1}`);
   return out;
 }
 

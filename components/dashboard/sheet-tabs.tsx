@@ -32,8 +32,13 @@ export function goToSection(e: TabClick): void {
   const top = target.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop - (tabs ? tabs.getBoundingClientRect().height : 0);
   const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   scroller.scrollTo({ top, behavior: still ? "auto" : "smooth" });
-  window.history.replaceState(window.history.state, "", `#${id}`);
+  // `null`, so Next's router takes the new URL as its own; with its own state
+  // passed back it kept the old URL and dropped the `#` on its next update.
+  window.history.replaceState(null, "", `#${id}`);
   // Where the next Tab goes from, as a followed fragment would have left it.
+  // Focusable only once a tab has sent focus there: a permanent tabindex made
+  // every click on a section's text move focus to the whole section.
+  if (!target.hasAttribute("tabindex")) target.setAttribute("tabindex", "-1");
   target.focus({ preventScroll: true });
 }
 

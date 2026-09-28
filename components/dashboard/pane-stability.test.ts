@@ -84,7 +84,13 @@ describe("1. a record tab scrolls the pane, never the app", () => {
   /** A tab, its sticky nav, the pane's scroll region and a section, as goToSection reads them. */
   function fixture(opts: { href?: string; disabled?: boolean } = {}) {
     const calls: string[] = [];
-    const target = { getBoundingClientRect: () => ({ top: 900 }), focus: (o?: { preventScroll?: boolean }) => calls.push(`focus preventScroll=${o?.preventScroll}`) };
+    const attrs = new Map<string, string>();
+    const target = {
+      getBoundingClientRect: () => ({ top: 900 }),
+      hasAttribute: (k: string) => attrs.has(k),
+      setAttribute: (k: string, v: string) => attrs.set(k, v),
+      focus: (o?: { preventScroll?: boolean }) => calls.push(`focus preventScroll=${o?.preventScroll} tabindex=${attrs.get("tabindex")}`),
+    };
     const scroller = {
       scrollTop: 100,
       getBoundingClientRect: () => ({ top: 60 }),
@@ -134,7 +140,7 @@ describe("1. a record tab scrolls the pane, never the app", () => {
       goToSection(f.event());
       assert.ok(f.prevented(), "the browser was left to follow the fragment");
       // 900 − 60 + 100 − 49: the section's offset in the region, less the tabs.
-      assert.deepEqual(f.calls, ["scroll 891 smooth", "focus preventScroll=true"]);
+      assert.deepEqual(f.calls, ["scroll 891 smooth", "focus preventScroll=true tabindex=-1"]);
       assert.deepEqual(replaced, ["#products"], "a tab click pushes history, or leaves the URL behind");
     });
     withWindow(true, () => {
@@ -159,11 +165,11 @@ describe("1. a record tab scrolls the pane, never the app", () => {
     });
   });
 
-  it("a section takes focus from its tab, and a plain fragment lands it below the sticky tabs", () => {
+  it("a plain fragment lands a section below the sticky tabs, and a section is not a focus stop until a tab sends focus there", () => {
     for (const collapsible of [false, true]) {
       const html = renderToStaticMarkup(createElement(SheetSection, { id: "products", title: "Products", collapsible, children: "x" }));
-      assert.match(html, /tabindex="-1"/);
       assert.match(html, /\bscroll-mt-12\b/);
+      assert.doesNotMatch(html, /tabindex/, "a click on a section's text would move focus to the whole section");
     }
   });
 });

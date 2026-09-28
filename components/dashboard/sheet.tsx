@@ -196,9 +196,9 @@ export { SheetTabs } from "./sheet-tabs";
  * long sections of a record — Sources, Locations, Facilities, RFQs — fold so a
  * buyer can shorten a 3,000px record to the parts they are reading.
  *
- * A tab moves focus here (`tabIndex={-1}`), and `scroll-mt-12` keeps a plain
- * fragment jump (the sanction banner's "See the matches", a shared `#…` link)
- * from landing the heading under the 48px sticky tabs.
+ * `scroll-mt-12` keeps a plain fragment jump (the sanction banner's "See the
+ * matches", a shared `#…` link) from landing the heading under the 48px
+ * sticky tabs; a tab click moves focus here itself (`goToSection`).
  */
 export function SheetSection({
   id,
@@ -217,7 +217,7 @@ export function SheetSection({
 }) {
   if (collapsible && title) {
     return (
-      <details id={id} open tabIndex={id ? -1 : undefined} className="group/sec scroll-mt-12 border-b border-line-subtle px-6 py-5 outline-none">
+      <details id={id} open className="group/sec scroll-mt-12 border-b border-line-subtle px-6 py-5 outline-none">
         <summary className="flex cursor-pointer list-none flex-wrap items-baseline gap-x-2 gap-y-1 [&::-webkit-details-marker]:hidden">
           <Icon name="caret" small className="mr-0.5 self-center text-ink-subtle transition-transform duration-fast group-open/sec:rotate-180" />
           <Heading level="sm" as="h2" className="flex-1">
@@ -231,7 +231,7 @@ export function SheetSection({
     );
   }
   return (
-    <section id={id} tabIndex={id ? -1 : undefined} className="flex scroll-mt-12 flex-col gap-4 border-b border-line-subtle px-6 py-5 outline-none">
+    <section id={id} className="flex scroll-mt-12 flex-col gap-4 border-b border-line-subtle px-6 py-5 outline-none">
       {title ? (
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <Heading level="sm" as="h2" className="flex-1">
