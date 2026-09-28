@@ -1,11 +1,19 @@
 // ResultsTable: the ledger grid (enterprise pass, 27 Sep 2026, direction G1).
-// One table for the search: 36px rows on a sticky header, seven columns with
-// fixed roles, the name opening the record beside the results, the row's
-// actions on hover and on the keyboard, the row that is open marked, numbers
-// right-aligned and tabular, export lines as codes. Beside an open record the
-// table narrows to its three essential columns (`compact`) so the pane keeps
-// its measure. Sanctioned: the reserved rule and the word under the name,
-// Send RFQ withheld. Selected: the brand inset rule and the filled box.
+// One table for the search: 40px rows on a sticky header, columns with fixed
+// roles, the name opening the record beside the results, the row that is
+// open marked, numbers right-aligned and tabular, export lines as codes.
+// Beside an open record the table narrows to its essential columns
+// (`compact`) so the pane keeps its measure. Sanctioned: the reserved rule
+// and the word under the name, Send RFQ withheld. Selected: the brand inset
+// rule and the filled box.
+//
+// Founder's walkthrough, 28 Sep 2026: the row's Save, Open and RFQ appeared
+// only under the pointer ("these buttons should not just show up when I
+// mouse over"), and when they did they squeezed the name beside them onto
+// three lines. They now have a column of their own at the row's end, always
+// drawn, quiet (icon buttons in the ghost tier) so twenty-five rows of them
+// do not shout; the text and the source marks are a step larger, and a
+// certificate is one pill on one line with its state as an icon.
 //
 // Keyboard: a row is a focus stop. ↑/↓ (or j/k) move between rows, ↵ opens
 // the record, Space selects, r sends an RFQ, s saves. Each key drives the
@@ -16,25 +24,66 @@
 
 "use client";
 
-import { certTableLabel, formatCount } from "@/lib/dashboard/facts";
+import { certStateLabel, type CertModel } from "@/lib/dashboard/facts";
 import type { TableRowModel } from "@/lib/dashboard/models";
 import Link from "next/link";
 import type { KeyboardEvent } from "react";
 import { cn } from "@/lib/utils";
-import { Chip } from "./chips";
 import { Button, Checkbox } from "./controls";
 import { Icon } from "./icons";
 import { LogoTile, SourceMarks } from "./marks";
 import { HeadCell, rowClass, type SortDir } from "./page";
 import { SaveRecordButton } from "./save-record-button";
 import { useSelection } from "./selection";
+import { WorkersCell } from "./workers-cell";
 
 export type ResultsDensity = "compact" | "default" | "comfortable";
 
-const ROW_H: Record<ResultsDensity, string> = { compact: "h-8", default: "h-9", comfortable: "h-11" };
+const ROW_H: Record<ResultsDensity, string> = { compact: "h-9", default: "h-10", comfortable: "h-12" };
 
 /** The sortable columns, by the search's own sort keys (`lib/discover-v32-state.ts` SORTS). */
 export type ResultsSortKey = "name" | "sources" | "cert_expiry" | "hs_lines" | "workers";
+
+/**
+ * Column widths in px, null for the supplier column that takes the rest:
+ * select · supplier · registers & certifiers · certificates · export lines ·
+ * workers · actions (wide); select · supplier · registers · workers · actions
+ * beside a pane. Fits a 1280px display beside the rail at 60rem.
+ */
+export const RESULTS_COLUMNS = {
+  wide: [40, null, 150, 220, 130, 100, 104],
+  compact: [40, null, 120, 92, 64],
+} as const;
+
+const CERT_TONE: Record<CertModel["state"], string> = {
+  valid: "bg-positive-tint text-positive-ink",
+  expiring: "bg-caution-tint text-caution-ink",
+  expired: "bg-caution-tint text-caution-ink",
+  "no-expiry": "bg-surface-sunken text-ink-muted",
+};
+const CERT_ICON = { valid: "check-c", expiring: "clock", expired: "warn", "no-expiry": "seal" } as const;
+
+/**
+ * One certificate in a row: the scheme, its state as an icon, and only the
+ * words the icon cannot say ("17 d", "expired"). "WRAP Gold valid" set as a
+ * wrapping chip broke onto two lines in every row (founder's walkthrough).
+ * Never wraps; the full state is in its accessible name and title.
+ */
+export function CertPill({ cert }: { cert: CertModel }) {
+  const words = certStateLabel(cert);
+  const suffix = cert.state === "expiring" && cert.daysLeft !== null ? `${cert.daysLeft} d` : cert.state === "expired" ? "expired" : null;
+  return (
+    <span
+      className={cn("inline-flex h-6 shrink-0 items-center gap-1 whitespace-nowrap rounded-sm px-1.5 text-sm font-medium", CERT_TONE[cert.state])}
+      title={`${cert.scheme} · ${words}`}
+      aria-label={`${cert.scheme}, ${words}`}
+    >
+      <Icon name={CERT_ICON[cert.state]} small />
+      {cert.scheme}
+      {suffix ? <span className="font-normal">{suffix}</span> : null}
+    </span>
+  );
+}
 
 export function ResultsTable({
   rows,
@@ -68,6 +117,8 @@ export function ResultsTable({
     </HeadCell>
   );
   const h = ROW_H[density];
+  // Beside a pane the column is a third of the region: two marks, not three.
+  const marksShown = compact ? 2 : 3;
   return (
     <div
       // `relative`: `.sr-only` is position:absolute, and without a containing
@@ -82,19 +133,16 @@ export function ResultsTable({
     >
       <table
         className={cn(
-          "w-full table-fixed border-collapse text-sm",
-          compact ? "min-w-[26rem]" : "min-w-[60rem]",
+          "w-full table-fixed border-collapse text-base",
+          compact ? "min-w-[28rem]" : "min-w-[60rem]",
           !compact && "[&_thead_th]:xl:sticky [&_thead_th]:xl:top-0 [&_thead_th]:xl:z-10",
         )}
       >
+        {/* The widths are `RESULTS_COLUMNS`; the loading skeleton draws the same grid. */}
         <colgroup>
-          <col style={{ width: 40 }} />
-          <col />
-          <col style={{ width: compact ? 132 : 150 }} />
-          {compact ? null : <col style={{ width: 200 }} />}
-          {compact ? null : <col style={{ width: 150 }} />}
-          {compact ? null : <col style={{ width: 104 }} />}
-          <col style={{ width: 92 }} />
+          {(compact ? RESULTS_COLUMNS.compact : RESULTS_COLUMNS.wide).map((w, i) => (
+            <col key={i} style={w === null ? undefined : { width: w }} />
+          ))}
         </colgroup>
         <thead>
           <tr>
@@ -105,8 +153,10 @@ export function ResultsTable({
             {head("sources", "Registers & certifiers")}
             {compact ? null : head("cert_expiry", "Certificates")}
             {compact ? null : head("hs_lines", "Export lines")}
-            {compact ? null : <HeadCell>Type</HeadCell>}
             {head("workers", "Workers", "right")}
+            <HeadCell className="px-2">
+              <span className="sr-only">Actions</span>
+            </HeadCell>
           </tr>
         </thead>
         <tbody onKeyDown={onRowKey} className="[&>tr:last-child>*]:border-b-0">
@@ -133,7 +183,7 @@ export function ResultsTable({
                     className="ml-1"
                   />
                 </td>
-                <th scope="row" className={cn(h, "border-b border-line-subtle px-3 py-1 text-left align-middle font-normal")}>
+                <th scope="row" className={cn(h, "border-b border-line-subtle px-3 py-1.5 text-left align-middle font-normal")}>
                   <div className="flex min-w-0 items-center gap-2.5">
                     <LogoTile initials={r.initials} tier={r.topTier} size="sm" />
                     <div className="min-w-0 flex-1">
@@ -152,60 +202,36 @@ export function ResultsTable({
                         >
                           {r.name}
                         </Link>
-                        {r.place ? (
-                          <span className="text-ink-subtle before:mx-1.5 before:content-['·']">{r.place}</span>
-                        ) : null}
                       </div>
+                      {/* What kind of company and where, under the name, as on Saved:
+                          a column of its own for the type cost the name its width. */}
+                      <div className="text-sm text-ink-subtle [overflow-wrap:anywhere]">{[r.type, r.place].filter(Boolean).join(" · ")}</div>
                       {r.sanctioned ? (
                         <div className="inline-flex items-center gap-1 text-xs font-medium text-sanction-ink">
                           <Icon name="warn" small /> Sanctioned{r.sanctionSample ? " · sample" : ""}
                         </div>
                       ) : null}
                     </div>
-                    {/* The row's actions, revealed on hover and on focus within the row;
-                        the keyboard drives the same controls. */}
-                    <span className="hidden shrink-0 items-center gap-1 group-hover:inline-flex group-focus-within:inline-flex">
-                      {r.supplierId ? (
-                        <SaveRecordButton supplierId={r.supplierId} saved={Boolean(r.saved)} icon size="sm" />
-                      ) : null}
-                      <Button size="sm" href={recordHref} clientNav scroll={false} data-action="open" tabIndex={-1}>
-                        Open
-                      </Button>
-                      <Button
-                        size="sm"
-                        href={r.sanctioned ? undefined : (r.rfqHref ?? undefined)}
-                        clientNav
-                        scroll={false}
-                        disabled={r.sanctioned || !r.rfqHref}
-                        data-action="rfq"
-                        tabIndex={-1}
-                        title={r.sanctioned ? "RFQs cannot be sent to a sanctioned supplier" : undefined}
-                      >
-                        <Icon name="send" /> RFQ
-                      </Button>
-                    </span>
                   </div>
                 </th>
                 <td className={cn(h, "border-b border-line-subtle px-4 align-middle")}>
-                  <span className="inline-flex items-center gap-1.5">
-                    <span className="min-w-4 text-right font-mono text-xs font-medium text-ink-strong">{r.sourceCount}</span>
-                    <SourceMarks marks={r.marks.slice(0, 4)} caption="none" sm className="flex-nowrap gap-0.5" />
-                    {r.marks.length > 4 ? <span className="text-xs text-ink-subtle">+{r.marks.length - 4}</span> : null}
+                  <span className="inline-flex items-center gap-2">
+                    <span className="min-w-4 text-right font-mono text-sm font-medium text-ink-strong">{r.sourceCount}</span>
+                    <SourceMarks marks={r.marks.slice(0, marksShown)} caption="none" className="flex-nowrap gap-1" />
+                    {r.marks.length > marksShown ? <span className="text-sm text-ink-subtle">+{r.marks.length - marksShown}</span> : null}
                   </span>
                 </td>
                 {compact ? null : (
                   <td className={cn(h, "border-b border-line-subtle px-4 align-middle")}>
                     {r.certs.length > 0 ? (
-                      <span className="inline-flex flex-nowrap items-center gap-1">
+                      <span className="flex flex-wrap items-center gap-1 py-1">
                         {r.certs.slice(0, 2).map((c) => (
-                          <Chip key={`${c.kind}-${c.number ?? ""}`} compact tone={c.state === "valid" ? "positive" : c.state === "no-expiry" ? "neutral" : "caution"}>
-                            {certTableLabel(c)}
-                          </Chip>
+                          <CertPill key={`${c.kind}-${c.number ?? ""}`} cert={c} />
                         ))}
-                        {r.certs.length > 2 ? <span className="text-xs text-ink-subtle">+{r.certs.length - 2}</span> : null}
+                        {r.certs.length > 2 ? <span className="text-sm text-ink-subtle">+{r.certs.length - 2}</span> : null}
                       </span>
                     ) : (
-                      <span className="text-xs text-quiet-ink">{r.certsEmptyReason ?? "none on file"}</span>
+                      <span className="text-sm text-quiet-ink">{r.certsEmptyReason ?? "none on file"}</span>
                     )}
                   </td>
                 )}
@@ -213,36 +239,58 @@ export function ResultsTable({
                   <td className={cn(h, "border-b border-line-subtle px-4 py-1 align-middle")}>
                     {r.totalLines > 0 ? (
                       <>
-                        <span className="font-mono text-xs font-medium text-ink-strong">{r.totalLines}</span>
-                        <span className="ml-1.5 font-mono text-xs text-ink-subtle">{r.photos.slice(0, 3).map((p) => p.hs).join(" · ")}</span>
+                        <span className="block font-mono text-sm font-medium text-ink-strong">{r.totalLines}</span>
+                        <span className="block whitespace-nowrap font-mono text-xs text-ink-subtle">{r.photos.slice(0, 2).map((p) => p.hs).join(" · ")}</span>
                       </>
                     ) : (
-                      <span className="text-xs text-quiet-ink">{r.linesEmptyReason ?? "not on EPB list"}</span>
+                      <span className="text-sm text-quiet-ink">{r.linesEmptyReason ?? "not on EPB list"}</span>
                     )}
                   </td>
                 )}
-                {compact ? null : <td className={cn(h, "whitespace-nowrap border-b border-line-subtle px-4 align-middle text-ink-muted")}>{r.type}</td>}
-                <td className={cn(h, "border-b border-line-subtle px-4 text-right align-middle tabular-nums")}>
-                  {r.workers === null ? (
-                    // No figure of its own, but the profile's may exist: it travels
-                    // as the card and the CSV carry it.
-                    <span className="text-quiet-ink" title={r.workersSecond ?? undefined}>
-                      —
-                      {density === "comfortable" && r.workersSecond ? (
-                        <span className="block text-xs font-normal text-ink-subtle [overflow-wrap:anywhere]">{r.workersSecond}</span>
-                      ) : null}
-                    </span>
-                  ) : (
-                    // A figure printed bare hides what it counts: the coverage and
-                    // the profile's second figure travel in the title, and beside it
-                    // when the row is comfortable.
-                    <span title={[r.workersCoverage, r.workersSecond].filter(Boolean).join(" · ") || undefined}>
-                      {formatCount(r.workers)}
-                      {density === "comfortable" && r.workersCoverage ? (
-                        <span className="block text-xs font-normal text-ink-subtle [overflow-wrap:anywhere]">{r.workersCoverage}</span>
-                      ) : null}
-                    </span>
-                  )}
+                <td className={cn(h, "border-b border-line-subtle px-4 py-1 text-right align-middle tabular-nums")}>
+                  {/* The record's own figure, and the profile's under it wherever the
+                      two differ, so the list and the record beside it agree. */}
+                  <WorkersCell own={r.workers} ownWords={r.workersCoverage} second={r.workersSecondShort} secondWords={r.workersSecond} />
+                </td>
+                {/* The row's actions: always drawn, quiet, the same three the
+                    keyboard drives (s saves, Enter opens, r sends an RFQ). */}
+                <td className={cn(h, "border-b border-line-subtle px-2 align-middle")}>
+                  <span className="flex items-center justify-end gap-0.5">
+                    {r.supplierId ? (
+                      <SaveRecordButton supplierId={r.supplierId} saved={Boolean(r.saved)} icon size="sm" variant="ghost" />
+                    ) : null}
+                    {compact ? null : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        icon
+                        href={recordHref}
+                        clientNav
+                        scroll={false}
+                        data-action="open"
+                        tabIndex={-1}
+                        aria-label={`Open ${r.name} beside the results`}
+                        title="Open beside the results"
+                      >
+                        <Icon name="pane" />
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      icon
+                      href={r.sanctioned ? undefined : (r.rfqHref ?? undefined)}
+                      clientNav
+                      scroll={false}
+                      disabled={r.sanctioned || !r.rfqHref}
+                      data-action="rfq"
+                      tabIndex={-1}
+                      aria-label={r.sanctioned ? `RFQs cannot be sent to ${r.name}, a sanctioned supplier` : `Send an RFQ to ${r.name}`}
+                      title={r.sanctioned ? "RFQs cannot be sent to a sanctioned supplier" : "Send an RFQ"}
+                    >
+                      <Icon name="send" />
+                    </Button>
+                  </span>
                 </td>
               </tr>
             );

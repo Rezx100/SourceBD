@@ -322,26 +322,27 @@ describe("discover result HTML has no contact PII", () => {
     const opts = { today: TODAY, hsLines: [], hsError: false };
     const tableRows = rows.map((r) => buildDiscoverTableRow(r, opts));
     const html = renderToStaticMarkup(createElement(ResultsTable, { rows: tableRows }));
-    // The ledger's workers cell (27 Sep 2026): the headline figure, and what
-    // it counts in the cell's title — beside it only when the rows are
-    // comfortable (below).
+    // The ledger's workers cell: the headline figure, and — since 28 Sep 2026,
+    // on screen at every density — the profile's figure under it wherever the
+    // two differ, in a few words; the full words for both are in the title.
+    // Only in the title, the list read 770 beside a record reading 793.
     const cells = workerCells(html);
     assert.deepEqual(
       cells.map((c) => c.text),
-      ["5,000", "550", "400", "300", "—"],
+      ["5,000", "550 500 RSC", "400 907 in buildings", "300 9,000 with buildings", "— 907 in buildings"],
     );
     assert.deepEqual(
       cells.slice(0, 4).map((c) => c.title),
       [
-        "on the supplier record",
-        "on the supplier record · 500 workers · RSC inspection",
-        "on the supplier record · 907 workers · across its buildings, not this record",
-        "on the supplier record · 9,000 workers · across this record and its buildings",
+        "5,000 workers · on the supplier record",
+        "550 workers · on the supplier record · 500 workers · RSC inspection",
+        "400 workers · on the supplier record · 907 workers · across its buildings, not this record",
+        "300 workers · on the supplier record · 9,000 workers · across this record and its buildings",
       ],
     );
-    // Comfortable rows print the coverage beside the figure.
+    // The density changes the row, never what the cell says.
     const comfy = workerCells(renderToStaticMarkup(createElement(ResultsTable, { rows: tableRows, density: "comfortable" })));
-    assert.equal(comfy[0]!.text, "5,000 on the supplier record");
+    assert.deepEqual(comfy.map((c) => c.text), cells.map((c) => c.text));
     // The headlines read in the order the sort put the rows in.
     assert.deepEqual(tableRows.map((t) => t.workers), raw.map((r) => r.employees_total));
     // A one-site figure is never described as buildings, anywhere.

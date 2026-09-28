@@ -1245,6 +1245,14 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
       code: true,
       checked: registersEmptyWords(p),
       marks: registerCodes(registerRows).map((c) => mark(p, c)),
+      // One registration a line with its register's square beside it. As one
+      // run-on string of numbers it wrapped a word a line in the pane
+      // (founder's walkthrough, 28 Sep 2026).
+      items: registerRows.map((r) => ({
+        label: registerLabel(r.label).replace(/\s+member$/i, ""),
+        code: r.value ?? null,
+        mark: mark(p, r.source_code),
+      })),
     },
   ];
 

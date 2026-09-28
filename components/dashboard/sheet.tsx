@@ -128,9 +128,14 @@ export function RecordPane({
  * three cannot drift.
  */
 export function ResultsColumn({ besideRecord = false, children }: { besideRecord?: boolean; children: ReactNode }) {
+  // The gutter is on an inner box, not on the scroll region itself. A sticky
+  // table header sticks to the scroll region's padding edge, so with the
+  // 24px gutter on the region the header stopped 24px below the topbar and
+  // the rows scrolling up showed through the gap above it (founder's
+  // walkthrough, 28 Sep 2026). Padded inside, the header meets the top edge.
   return (
-    <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto p-4 sm:p-6", besideRecord && "hidden lg:flex")}>
-      {children}
+    <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto", besideRecord && "hidden lg:flex")}>
+      <div className="flex flex-col gap-4 p-4 sm:p-6">{children}</div>
     </div>
   );
 }
@@ -172,11 +177,13 @@ export function SheetTabs({ tabs }: { tabs: readonly { label: string; count: str
   return (
     // Sticky: on a record that runs to 3,000px the tabs used to scroll away
     // after the first screen, and compliance staff jumping to Sources or
-    // Locations had to scroll back up to find them.
+    // Locations had to scroll back up to find them. The space above the tabs
+    // is their own padding, not a margin: a margin left an 8px strip over the
+    // stuck tabs where the source marks scrolled through.
     <nav
       aria-label="Record sections"
       tabIndex={0}
-      className="sticky top-0 z-10 mt-2 flex gap-5 overflow-x-auto border-b border-line-subtle bg-surface px-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="sticky top-0 z-10 flex gap-5 overflow-x-auto border-b border-line-subtle bg-surface px-6 pt-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {tabs.map((t) => (
         <a
@@ -254,71 +261,124 @@ export function SheetSection({
   );
 }
 
-/** `.fp`: the facts panel. Every row has room for a mark; a missing value reads "Not on file". */
-export function FactsPanel({ rows }: { rows: readonly FactRow[] }) {
+/**
+ * A fact with no per-field mark yet: a dashed empty square in the mark's own
+ * column, named for a screen reader and on hover. It used to be the words
+ * "source pending" on nine rows of every record, the loudest text in the
+ * column meant for the quietest thing (founder's walkthrough, 28 Sep 2026:
+ * "really text heavy … icons scattered"). The legend under the facts says
+ * once what the square means.
+ */
+export function PendingMark() {
+  return (
+    <span
+      role="img"
+      aria-label="Source pending"
+      title="Source pending: the register that filed this is not linked per field yet"
+      className="inline-block size-4 shrink-0 rounded-xs border border-dashed border-quiet-line"
+    >
+      <span className="sr-only">source pending</span>
+    </span>
+  );
+}
+
+/** A filed block with the same line twice in a row ("…Kaliakoir\nGazipur\nGazipur") reads it once. */
+export function collapseRepeatedLines(text: string): string {
+  const out: string[] = [];
+  for (const line of text.split("\n")) {
+    const key = line.trim().toLowerCase();
+    if (key && out.length > 0 && out[out.length - 1]!.trim().toLowerCase() === key) continue;
+    out.push(line);
+  }
+  return out.join("\n");
+}
+
+/** What the dashed square means, said once under the facts it marks. */
+export const PENDING_LEGEND = "A dashed square: source pending. The register that filed the fact is not linked per field yet.";
+
+/**
+ * `.fp`: the facts panel. Every row has room for a mark, in one column at the
+ * row's end; a missing value reads "Not on file". A row that is a list (the
+ * registers) sets each item on its own line with its own mark beside it.
+ */
+export function FactsPanel({ rows, legend = true }: { rows: readonly FactRow[]; legend?: boolean }) {
   const pending = rows.some((r) => r.value !== null && r.pendingSource && !(r.marks && r.marks.length > 0));
   return (
     <div className="flex flex-col">
       {rows.map((r) => (
         // Stacks below `sm`. Side by side, a 150px label plus the trailing
-        // "source pending" / "registers checked" caption left the value about
-        // 75px on a 375px screen, and `[overflow-wrap:anywhere]` then broke
-        // "ABONI KNITWEAR LTD." one character per line.
+        // mark column left the value about 75px on a 375px screen.
         <div
           key={r.label}
-          className="flex min-h-fact-row flex-col gap-0.5 border-t border-line-subtle py-[3px] first:border-t-0 sm:flex-row sm:items-start sm:gap-3"
+          className="flex min-h-fact-row flex-col gap-0.5 border-t border-line-subtle py-1.5 first:border-t-0 sm:flex-row sm:items-start sm:gap-4"
         >
-          <span className="w-full shrink-0 text-sm font-medium leading-[22px] text-ink-muted sm:w-[150px]">{r.label}</span>
-          {/* 4,596 of 10,266 published records file `address_raw` as a
-              newline-delimited block ("…, Hemayetpur\nDhaka\nSavar"); in
-              normal flow the breaks collapse and the street runs into the
-              district. `pre-line` shows the lines the register filed and
-              still collapses runs of spaces. */}
-          <span
-            className={cn(
-              "min-w-0 flex-1 whitespace-pre-line text-base leading-[22px] text-ink [overflow-wrap:anywhere]",
-              r.value === null && "text-quiet-ink",
-            )}
-          >
-            {r.value === null ? (
-              <>
-                {r.empty ?? "Not on file"}
-                {r.note ? ` · ${r.note}` : ""}
-              </>
-            ) : r.href ? (
-              <a href={r.href} className="inline-flex items-center gap-0.5 text-brand-ink">
-                {r.code ? <Code>{r.value}</Code> : r.value} <Icon name="external" small />
-              </a>
-            ) : r.code ? (
-              <Code>{r.value}</Code>
-            ) : (
-              r.value
-            )}
-            {r.value !== null && r.note ? <Caption className="ml-1.5">{r.note}</Caption> : null}
-            {r.badge ? (
-              <Badge tone={r.badge.tone} className="ml-1.5 align-middle">
-                {r.badge.label}
-              </Badge>
-            ) : null}
-          </span>
-          <span className="inline-flex shrink-0 flex-wrap items-center gap-1.5 sm:pt-[3px]">
-            {r.marks && r.marks.length > 0 ? (
-              r.marks.map((m) => <SourceMark key={m.code} mark={m} sm />)
-            ) : r.value === null && r.checked ? (
-              <Caption className="sm:whitespace-nowrap">{r.checked}</Caption>
-            ) : r.pendingSource ? (
-              // In the mark's slot, quietly: an unmarked fact says so on its own
-              // row, so "every fact shows its source" is never whispered in a
-              // footnote alone.
-              <Caption className="text-quiet-ink sm:whitespace-nowrap">source pending</Caption>
-            ) : null}
-          </span>
+          <span className="w-full shrink-0 text-sm leading-[22px] text-ink-muted sm:w-[150px]">{r.label}</span>
+          {r.items && r.items.length > 0 ? (
+            <ul className="m-0 flex min-w-0 flex-1 list-none flex-col gap-1 p-0">
+              {r.items.map((it, i) => (
+                <li key={`${it.label}-${it.code ?? ""}-${i}`} className="flex min-w-0 items-center gap-2 leading-[22px]">
+                  {it.mark ? <SourceMark mark={it.mark} sm /> : <PendingMark />}
+                  <span className="text-base text-ink">{it.label}</span>
+                  {it.code ? <Code className="text-ink-strong [overflow-wrap:anywhere]">{it.code}</Code> : null}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <span
+              className={cn(
+                // 4,596 of 10,266 published records file `address_raw` as a
+                // newline-delimited block; `pre-line` shows the lines the
+                // register filed and still collapses runs of spaces.
+                "min-w-0 flex-1 whitespace-pre-line text-base leading-[22px] text-ink-strong [overflow-wrap:anywhere]",
+                r.value === null && "text-quiet-ink",
+              )}
+            >
+              {r.value === null ? (
+                <>
+                  {r.empty ?? "Not on file"}
+                  {r.note ? ` · ${r.note}` : ""}
+                </>
+              ) : r.href ? (
+                <a href={r.href} className="inline-flex items-center gap-0.5 text-brand-ink">
+                  {r.code ? <Code>{r.value}</Code> : r.value} <Icon name="external" small />
+                </a>
+              ) : r.code ? (
+                <Code>{r.value}</Code>
+              ) : (
+                collapseRepeatedLines(r.value)
+              )}
+              {r.value !== null && r.note ? <Caption className="ml-1.5">{r.note}</Caption> : null}
+              {r.badge ? (
+                <Badge tone={r.badge.tone} className="ml-1.5 align-middle">
+                  {r.badge.label}
+                </Badge>
+              ) : null}
+            </span>
+          )}
+          {r.items && r.items.length > 0 ? null : (
+            <span className="inline-flex shrink-0 flex-wrap items-center justify-end gap-1 sm:min-w-[20px] sm:pt-[3px]">
+              {r.marks && r.marks.length > 0 ? (
+                r.marks.map((m) => <SourceMark key={m.code} mark={m} sm />)
+              ) : r.value === null && r.checked ? (
+                <Caption className="sm:whitespace-nowrap">{r.checked}</Caption>
+              ) : r.pendingSource ? (
+                <PendingMark />
+              ) : null}
+            </span>
+          )}
         </div>
       ))}
-      {pending ? (
-        <Caption className="mt-2">Rows without a mark: source pending. The register that filed them is not linked per field yet.</Caption>
-      ) : null}
+      {pending && legend ? <FactsLegend /> : null}
     </div>
+  );
+}
+
+export function FactsLegend() {
+  return (
+    <Caption className="mt-3 inline-flex items-center gap-2">
+      <PendingMark />
+      {PENDING_LEGEND}
+    </Caption>
   );
 }
 
@@ -357,16 +417,20 @@ export function LockCard({
         { label: "Contact person", value: counts.representatives === 0 ? "none on file" : `${counts.representatives} on file` },
       ]
     : null;
+  // A strip across the record, not a 300px box beside the facts: beside the
+  // facts it squeezed every value into a thin column on a wide display
+  // (founder's walkthrough, 28 Sep 2026 — "this contact details is big, I
+  // won't accept it"). The stripes, the counts and the words are the same.
   return (
-    <div data-locked="true" className="overflow-hidden rounded-md border border-locked-line">
-      <div className="locked-pattern flex flex-col gap-2 p-4 text-locked-ink">
+    <div data-locked="true" className="locked-pattern flex flex-col gap-1.5 rounded-md border border-locked-line px-4 py-2.5 text-locked-ink">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
         <Label className="inline-flex items-center gap-1.5 text-ink-strong">
           <Icon name="lock" /> Contact details{plan ? ` · ${plan}` : ""}
         </Label>
         {rows ? (
-          <dl data-contact-counts="true" className="m-0 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+          <dl data-contact-counts="true" className="m-0 flex flex-wrap gap-x-4 gap-y-1 text-xs">
             {rows.map((r) => (
-              <div key={r.label} className="contents">
+              <div key={r.label} className="inline-flex items-baseline gap-1">
                 <dt className="font-medium text-ink-strong">{r.label}</dt>
                 <dd className="m-0 text-ink-muted">{r.value}</dd>
               </div>
@@ -377,16 +441,13 @@ export function LockCard({
             {held}
           </span>
         ) : null}
-        <span className="text-xs">{hidden}</span>
       </div>
-      <div className="flex flex-col gap-3 px-4 py-3 text-sm text-ink-muted">
-        {/* No promise about delivery: the RPC does not say whether this record
-            has been claimed, and an unclaimed supplier is not reached until
-            REZ-D ships behind RFQ_EMAIL_UNCLAIMED (handoff §4.6). */}
-        {/* No "See plans": no plan unlocks contact details on the record
-            (founder, 25 Sep), and a button that went nowhere said one did. */}
-        <span>{sanctioned ? "RFQs cannot be sent to this supplier." : "Send an RFQ from the record instead."}</span>
-      </div>
+      {/* No promise about delivery: the RPC does not say whether this record
+          has been claimed. No "See plans": no plan unlocks contact details on
+          the record (founder, 25 Sep). */}
+      <span className="text-xs">
+        {hidden} <span className="text-ink-muted">{sanctioned ? "RFQs cannot be sent to this supplier." : "Send an RFQ from the record instead."}</span>
+      </span>
     </div>
   );
 }
@@ -396,7 +457,7 @@ export function Stats({ items }: { items: readonly { key: string; value: string;
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
       {items.map((s) => (
-        <div key={s.key} className="flex min-w-0 flex-col gap-0.5 rounded-md border border-line-subtle bg-surface px-3.5 py-3">
+        <div key={s.key} className="flex min-w-0 flex-col gap-0.5 rounded-md bg-canvas px-3.5 py-3">
           <Eyebrow>{s.key}</Eyebrow>
           <span className="whitespace-nowrap text-2xl font-normal text-ink-strong">{s.value}</span>
           {/* The sub-line carries a certificate's scope and a chapter list; held

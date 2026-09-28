@@ -10,7 +10,10 @@
 // SBI and contact PII never reach this file: the RPC's RETURNS excludes both.
 
 import Link from "next/link";
+import type { ReactNode } from "react";
+import { discoverWorkers, workersSecondShort } from "@/lib/dashboard/build-discover-row";
 import { displayName, entityLabel, formatCount, formatDay, formatRelative, initials, placeLabel } from "@/lib/dashboard/facts";
+import type { WorkersBasis } from "@/lib/enrich-discover-workers";
 import { marksFromTags, topTier } from "@/lib/dashboard/source-tiers";
 import type { SavedSearchJson } from "@/lib/saved-searches";
 import { Button } from "./controls";
@@ -19,6 +22,7 @@ import { Cell, DataTable, EmptyState, ErrorNote, HeadCell, PageHeader, rowClass 
 import { DeleteSavedSearch, SavedSort } from "./saved-controls";
 import { SaveRecordButton } from "./save-record-button";
 import { Caption } from "./type";
+import { WorkersCell } from "./workers-cell";
 
 export const SAVED_SORTS = [
   { value: "recent", label: "Recently saved" },
@@ -38,6 +42,10 @@ export type SavedListRow = {
   source_tags: string[] | null;
   employees_total: number | null;
   saved_at: string;
+  /** From `enrichDiscoverWorkers`: the record's own figure, before the profile's replaced `employees_total`. */
+  workers_own?: number | null;
+  workers_basis?: WorkersBasis;
+  workers_source?: "RSC" | "registry";
 };
 
 /** How many source marks a row draws before "+N", as the results table does. */
@@ -73,6 +81,7 @@ export function SavedList({
   sort,
   failed,
   openSlug = null,
+  desk,
 }: {
   rows: readonly SavedListRow[];
   total: number;
@@ -82,6 +91,8 @@ export function SavedList({
   failed: boolean;
   /** The record open in the pane beside the list; its row is marked. */
   openSlug?: string | null;
+  /** The certificate alerts and recent activity on these suppliers (`SavedDesk`), above the list. */
+  desk?: ReactNode;
 }) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const first = (page - 1) * pageSize + 1;
@@ -98,6 +109,8 @@ export function SavedList({
         }
         actions={<SavedSort sort={sort} options={SAVED_SORTS} />}
       />
+
+      {desk}
 
       {failed ? (
         <ErrorNote>Could not load your saved suppliers. Nothing was removed; reload the page to try again.</ErrorNote>
@@ -149,6 +162,12 @@ export function SavedList({
                 const name = displayName(r.company_name);
                 const place = placeLabel(r.city, r.district);
                 const open = r.slug === openSlug;
+                const w = discoverWorkers({
+                  employees_total: r.employees_total,
+                  workers_own: r.workers_own,
+                  workers_basis: r.workers_basis,
+                  workers_source: r.workers_source,
+                });
                 return (
                   <tr key={r.id} className={rowClass({ current: open })}>
                     <th scope="row" className="h-11 border-b border-line-subtle px-4 py-2 text-left align-middle font-normal">
@@ -172,7 +191,12 @@ export function SavedList({
                     <Cell>
                       <SourcesCell tags={tags} />
                     </Cell>
-                    <Cell align="right">{formatCount(r.employees_total) ?? <span className="text-quiet-ink">—</span>}</Cell>
+                    <Cell align="right">
+                      {/* The same two figures, in the same words, as the search's
+                          ledger: Saved used to print the profile's figure alone
+                          and read 5,195 where the search read 2,030. */}
+                      <WorkersCell own={w.own} ownWords={w.ownLabel} second={workersSecondShort(w)} />
+                    </Cell>
                     <Cell className="whitespace-nowrap tabular-nums text-ink-muted">{formatDay(r.saved_at) ?? "—"}</Cell>
                     <Cell className="text-right">
                       <SaveRecordButton supplierId={r.id} saved icon />

@@ -1,18 +1,25 @@
-// Saved suppliers (/app/saved). Calls `public.buyer_saved_list(p_sort,
-// p_limit, p_offset)` (migration 0026) under the caller's session, enriches
-// the worker figures (REZ-114, the same headline figure the profile shows)
-// and draws the list with `components/dashboard/saved-list.tsx`.
+// Saved (/app/saved): the buyer's desk. Certificate alerts and recent
+// activity on the suppliers they saved (from `public.buyer_dashboard()`,
+// migration 0026 — what the Home page showed until the search became the
+// app's first viewport, 28 Sep 2026), then the saved list itself from
+// `public.buyer_saved_list(p_sort, p_limit, p_offset)`, with the same two
+// worker figures the search shows (REZ-114's headline figure and the record's
+// own), drawn by `components/dashboard/saved-list.tsx`.
 //
 //   ?open=<slug>   the record in the pane beside the list (the one-viewport
 //                  frame, as on the search); Close returns to the same sort
-//                  and page, and the open row is marked.
+//                  and page, and the open row is marked. The record streams
+//                  into its pane, so the list never waits on it.
 //
-// SBI hard contract: the RPC excludes SBI from its RETURNS whitelist;
-// nothing here references `sbi_*`. Contact PII fields are never fetched.
+// SBI hard contract: neither RPC returns SBI; nothing here references
+// `sbi_*`. Contact PII fields are never fetched.
 
+import { Suspense } from "react";
 import { SAVED_SORTS, SavedList, savedHref, type SavedSort } from "@/components/dashboard/saved-list";
+import { SavedDesk, deskFrom } from "@/components/dashboard/saved-desk";
 import { RecordBeside, readRecordBeside } from "@/components/dashboard/record-beside";
-import { ResultsColumn } from "@/components/dashboard/sheet";
+import { RecordSkeleton } from "@/components/dashboard/record-skeleton";
+import { RecordPane, ResultsColumn } from "@/components/dashboard/sheet";
 import { enrichDiscoverWorkers } from "@/lib/enrich-discover-workers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -65,13 +72,16 @@ export default async function SavedSuppliersPage({
   const listHref = savedHref(sort, pageNum);
 
   const supabase = await createSupabaseServerClient();
-  const [{ data, error }, record] = await Promise.all([
+  const [{ data, error }, dash] = await Promise.all([
     supabase.rpc("buyer_saved_list", {
       p_sort: sort,
       p_limit: PAGE_SIZE,
       p_offset: offset,
     }),
-    openSlug ? readRecordBeside(supabase, openSlug, listHref) : Promise.resolve(null),
+    supabase.rpc("buyer_dashboard").then(
+      (r) => (r.error ? null : deskFrom(r.data)),
+      () => null,
+    ),
   ]);
 
   const rows = await enrichDiscoverWorkers(
@@ -85,7 +95,7 @@ export default async function SavedSuppliersPage({
     // beside it from `lg`; below that the record takes the region and the
     // list waits in the URL for Close.
     <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-      <ResultsColumn besideRecord={record !== null}>
+      <ResultsColumn besideRecord={openSlug !== null}>
         <SavedList
           rows={rows}
           total={totalCount}
@@ -94,9 +104,37 @@ export default async function SavedSuppliersPage({
           sort={sort}
           failed={Boolean(error)}
           openSlug={openSlug}
+          desk={<SavedDesk doc={dash} failed={dash === null} openHref={(slug) => savedHref(sort, pageNum, slug)} />}
         />
       </ResultsColumn>
-      {record ? <RecordBeside read={record} closeHref={listHref} retryHref={savedHref(sort, pageNum, record.slug)} /> : null}
+      {openSlug ? (
+        <Suspense
+          key={openSlug}
+          fallback={
+            <RecordPane closeHref={listHref} openKey={`loading:${openSlug}`}>
+              <RecordSkeleton />
+            </RecordPane>
+          }
+        >
+          <SavedRecord supabase={supabase} slug={openSlug} closeHref={listHref} retryHref={savedHref(sort, pageNum, openSlug)} />
+        </Suspense>
+      ) : null}
     </div>
   );
+}
+
+async function SavedRecord({
+  supabase,
+  slug,
+  closeHref,
+  retryHref,
+}: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the Supabase server client, as loadRecordSheet takes it.
+  supabase: any;
+  slug: string;
+  closeHref: string;
+  retryHref: string;
+}) {
+  const read = await readRecordBeside(supabase, slug, closeHref);
+  return <RecordBeside read={read} closeHref={closeHref} retryHref={retryHref} />;
 }

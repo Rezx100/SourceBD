@@ -15,9 +15,18 @@
 // part of `DiscoverState`, so a pane's Close is the same search; and every
 // open and close is a `next/link` client navigation with `scroll={false}`,
 // so the bulk selection (React state keyed on the search) survives.
+//
+// Opening a record is fast because it does not wait on the search (founder's
+// walkthrough, 28 Sep 2026: "when I click Open it takes ages"). The results
+// are the same for every buyer and are read through a two-minute shared cache
+// (`lib/dashboard/search-cache.ts`), so an open re-draws them at once; the
+// record is read inside its own `Suspense` boundary, keyed by what the pane
+// shows, so the pane draws the record's silhouette straight away and the
+// record streams into it.
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import { DiscoverFilters } from "@/components/dashboard/discover-filters";
 import { Panel, PanelFooter, PanelHeader } from "@/components/dashboard/results-panel";
 import { ResultsTable, type ResultsDensity, type ResultsSortKey } from "@/components/dashboard/results-table";
@@ -36,6 +45,8 @@ import { Icon } from "@/components/dashboard/icons";
 import { Toast } from "@/components/dashboard/toast";
 import { Caption, Label, Title } from "@/components/dashboard/type";
 import { RecordRecentSearch } from "@/components/dashboard/record-recent-search";
+import { RecordSkeleton } from "@/components/dashboard/record-skeleton";
+import { readSearch } from "@/lib/dashboard/search-cache";
 import { ProfileReadTimeout, loadRecordLine, loadRecordSheet } from "@/lib/dashboard/load-record";
 import { fetchFacilityParentSlug } from "@/lib/facility-parent-redirect";
 import { ProductSheet } from "@/components/dashboard/product-sheet";
@@ -125,36 +136,6 @@ export default async function BuyerDiscoverPage({
   const rfqHref = (id: string) => withParams(`${recordParams ? `${recordParams}&` : ""}rfq=${encodeURIComponent(id)}`);
   const lineRfqHref = (id: string, hs: string) => withParams(`${recordParams ? `${recordParams}&` : ""}rfq=${encodeURIComponent(id)}&hs_line=${hs}`);
 
-  const overlaySafe = async <T,>(p: Promise<T | null>): Promise<{ value: T | null; slow: boolean }> => {
-    try {
-      return { value: await p, slow: false };
-    } catch (err) {
-      return { value: null, slow: err instanceof ProfileReadTimeout };
-    }
-  };
-  const recordPromise =
-    recordSlug && !composerOpen
-      ? overlaySafe(
-          loadRecordSheet(supabase, recordSlug, today, {
-            closeHref,
-            fullHref: `/app/suppliers/${recordSlug}`,
-            allLines,
-            allLinesHref: allLines ? null : withParams(`record=${encodeURIComponent(recordSlug)}&lines=all`),
-            lineHref: (hs) => withParams(`${recordParams}&line=${hs}`),
-            rfqHref,
-          }),
-        )
-      : Promise.resolve({ value: null, slow: false });
-  const linePromise =
-    recordSlug && lineCode && !composerOpen
-      ? overlaySafe(
-          loadRecordLine(supabase, recordSlug, lineCode, today, {
-            backHref: withParams(recordParams),
-            closeHref,
-            rfqHref: lineRfqHref,
-          }),
-        )
-      : Promise.resolve({ value: null, slow: false });
   // The composer's targets and the buyer's workspace, only when it is open.
   const targetsPromise: Promise<ComposerTarget[]> = composerOpen
     ? (async () => {
@@ -179,18 +160,11 @@ export default async function BuyerDiscoverPage({
       })()
     : Promise.resolve(null);
 
-  const [{ rows, total, error, failure }, recordRead, lineRead, targets, workspace] = await Promise.all([
-    fetchDiscoverV32(supabase, state),
-    recordPromise,
-    linePromise,
+  const [{ rows, total, error, failure }, targets, workspace] = await Promise.all([
+    readSearch(state, () => fetchDiscoverV32(supabase, state)),
     targetsPromise,
     workspacePromise,
   ]);
-  const record = recordRead.value;
-  const line = lineRead.value;
-  if (record && lineCode && !line) redirect(withParams(recordParams));
-  const motherSlug =
-    recordSlug && !composerOpen && !record && !recordRead.slow ? await fetchFacilityParentSlug(supabase, recordSlug).catch(() => null) : null;
   const slugs = rows.map((r) => r.slug);
   const [hs, savedRows] = await Promise.all([
     fetchHsBatch(supabase, slugs),
@@ -299,6 +273,7 @@ export default async function BuyerDiscoverPage({
           ) : (
             <Panel>
               <PanelHeader
+                compact={paneOpen}
                 as={!composerOpen && !filtersOpen && !saveOpen && recordSlug !== null ? "h2" : "h1"}
                 model={{
                   title,
@@ -388,46 +363,161 @@ export default async function BuyerDiscoverPage({
           </Sheet>
         </RecordPane>
       ) : recordSlug ? (
-        !record ? (
-          <RecordPane closeHref={closeHref} openKey={`notice:${recordSlug}`}>
-            {recordRead.slow ? (
-              <SheetNotice
-                title="This record could not be read in time"
-                body="The database is under load. The company is still on SourceBD — this read simply took too long."
-                action={{ label: "Try again", href: withParams(`${recordParams}${lineCode ? `&line=${lineCode}` : ""}`) }}
-                closeHref={closeHref}
-              />
-            ) : motherSlug ? (
-              <SheetNotice
-                title="That is a building, not a company record"
-                body="SourceBD files this address under the company that operates it. Its record has the certificates, the registers and the export lines."
-                action={{ label: "Open the company record", href: recordHref(motherSlug) }}
-                closeHref={closeHref}
-              />
-            ) : (
-              <SheetNotice
-                title="No record for that link"
-                body="It may have been unpublished, the link may be wrong, or it could not be read just now. Your search is still here behind this."
-                closeHref={closeHref}
-              />
-            )}
-          </RecordPane>
-        ) : (
-          <RecordPane closeHref={closeHref} openKey={`${recordSlug}:${line ? lineCode : allLines ? "all" : ""}`}>
-            {line ? (
-              <ProductSheet model={line} />
-            ) : (
-              <SupplierSheet
-                model={record}
-                save={record.supplierId ? <SaveRecordButton supplierId={record.supplierId} saved={record.saved} /> : undefined}
-              />
-            )}
-          </RecordPane>
-        )
+        // The pane's silhouette at once, the record streamed into it: a new
+        // key per record or line is a new boundary, so the silhouette shows
+        // the moment the buyer clicks rather than after the reads.
+        <Suspense
+          key={`${recordSlug}:${lineCode ?? ""}:${allLines ? "all" : ""}`}
+          fallback={
+            <RecordPane closeHref={closeHref} openKey={`loading:${recordSlug}`}>
+              <RecordSkeleton />
+            </RecordPane>
+          }
+        >
+          <DiscoverRecord
+              supabase={supabase}
+              slug={recordSlug}
+              lineCode={lineCode}
+              allLines={allLines}
+              today={today}
+              closeHref={closeHref}
+              withParams={withParams}
+              recordParams={recordParams}
+              recordHref={recordHref}
+              rfqHref={rfqHref}
+              lineRfqHref={lineRfqHref}
+            />
+        </Suspense>
       ) : null}
 
       {sentId ? <Toast text="RFQ sent" link={{ href: `/app/rfqs/${sentId}`, label: "Open the RFQ" }} href={null} /> : null}
       {one(sp.saved) === "1" ? <Toast text="Search saved" link={{ href: "/app/searches", label: "Saved searches" }} href={null} /> : null}
     </div>
+  );
+}
+
+/**
+ * The record (or one of its lines) in its pane beside the results, read on
+ * its own so the results never wait for it. What the pane says when there is
+ * no record is decided here, as it was on the page, and the pane is keyed by
+ * what it shows — a notice and the record it becomes are different keys, so
+ * focus moves between them.
+ */
+async function DiscoverRecord({
+  supabase,
+  slug,
+  lineCode,
+  allLines,
+  today,
+  closeHref,
+  withParams,
+  recordParams,
+  recordHref,
+  rfqHref,
+  lineRfqHref,
+}: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the Supabase server client, as loadRecordSheet takes it.
+  supabase: any;
+  slug: string;
+  lineCode: string | null;
+  allLines: boolean;
+  today: Date;
+  closeHref: string;
+  withParams: (extra: string) => string;
+  recordParams: string;
+  recordHref: (slug: string) => string;
+  rfqHref: (id: string) => string;
+  lineRfqHref: (id: string, hs: string) => string;
+}) {
+  const safe = async <T,>(p: Promise<T | null>): Promise<{ value: T | null; slow: boolean }> => {
+    try {
+      return { value: await p, slow: false };
+    } catch (err) {
+      return { value: null, slow: err instanceof ProfileReadTimeout };
+    }
+  };
+  const [recordRead, lineRead] = await Promise.all([
+    safe(
+      loadRecordSheet(supabase, slug, today, {
+        closeHref,
+        fullHref: `/app/suppliers/${slug}`,
+        allLines,
+        allLinesHref: allLines ? null : withParams(`record=${encodeURIComponent(slug)}&lines=all`),
+        lineHref: (hs) => withParams(`${recordParams}&line=${hs}`),
+        rfqHref,
+      }),
+    ),
+    lineCode
+      ? safe(
+          loadRecordLine(supabase, slug, lineCode, today, {
+            backHref: withParams(recordParams),
+            closeHref,
+            rfqHref: lineRfqHref,
+          }),
+        )
+      : Promise.resolve({ value: null, slow: false }),
+  ]);
+  const record = recordRead.value;
+  const line = lineRead.value;
+  if (record && lineCode && !line) redirect(withParams(recordParams));
+  if (record) {
+    return (
+      <RecordPane closeHref={closeHref} openKey={`${slug}:${line ? lineCode : allLines ? "all" : ""}`}>
+        {line ? (
+          <ProductSheet model={line} />
+        ) : (
+          <SupplierSheet model={record} save={record.supplierId ? <SaveRecordButton supplierId={record.supplierId} saved={record.saved} /> : undefined} />
+        )}
+      </RecordPane>
+    );
+  }
+  const motherSlug = recordRead.slow ? null : await fetchFacilityParentSlug(supabase, slug).catch(() => null);
+  return (
+    <RecordPane closeHref={closeHref} openKey={`notice:${slug}`}>
+      <RecordNotice slow={recordRead.slow} motherSlug={motherSlug} closeHref={closeHref} retryHref={withParams(`${recordParams}${lineCode ? `&line=${lineCode}` : ""}`)} recordHref={recordHref} />
+    </RecordPane>
+  );
+}
+
+/** Why the pane holds no record: too slow, a building rather than a company, or no record for the link. */
+function RecordNotice({
+  slow,
+  motherSlug,
+  closeHref,
+  retryHref,
+  recordHref,
+}: {
+  slow: boolean;
+  motherSlug: string | null;
+  closeHref: string;
+  retryHref: string;
+  recordHref: (slug: string) => string;
+}) {
+  if (slow) {
+    return (
+      <SheetNotice
+        title="This record could not be read in time"
+        body="The database is under load. The company is still on SourceBD — this read simply took too long."
+        action={{ label: "Try again", href: retryHref }}
+        closeHref={closeHref}
+      />
+    );
+  }
+  if (motherSlug) {
+    return (
+      <SheetNotice
+        title="That is a building, not a company record"
+        body="SourceBD files this address under the company that operates it. Its record has the certificates, the registers and the export lines."
+        action={{ label: "Open the company record", href: recordHref(motherSlug) }}
+        closeHref={closeHref}
+      />
+    );
+  }
+  return (
+    <SheetNotice
+      title="No record for that link"
+      body="It may have been unpublished, the link may be wrong, or it could not be read just now. Your search is still here behind this."
+      closeHref={closeHref}
+    />
   );
 }

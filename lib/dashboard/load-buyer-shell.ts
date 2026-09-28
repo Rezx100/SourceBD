@@ -59,6 +59,15 @@ const cachedPublished = unstable_cache(
   { revalidate: 600, tags: [TAG_DISCOVER_SUPPLIERS] },
 );
 
+/** The published count for a page that prints it (the search landing); null when it could not be read. */
+export async function readPublishedCount(): Promise<number | null> {
+  try {
+    return await cachedPublished();
+  } catch {
+    return null;
+  }
+}
+
 export async function loadBuyerShell(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: RpcClient & { from: (t: string) => any; auth: { getUser: () => Promise<{ data: { user: { email?: string; user_metadata?: Record<string, unknown> } | null } }> } },

@@ -12,13 +12,14 @@ import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 import { NAV, activeNavKey, navMatch, type NavKey } from "@/lib/dashboard/nav";
 import { cn } from "@/lib/utils";
-import { Kbd, LiveDot, Meter } from "./controls";
+import { LiveDot, Meter } from "./controls";
 import { Icon } from "./icons";
 import { RecentSearchesSlot } from "./recent-searches";
 import { SearchCarry } from "./search-carry";
 import { SearchShortcut } from "./search-shortcut";
 import { SearchTypeahead } from "./search-typeahead";
 import { SidebarNav, type NavCounts } from "./sidebar-nav";
+import { ShortcutHint, TopbarSearchSlot } from "./topbar-search-slot";
 import { Caption, Label } from "./type";
 
 export { NAV, activeNavKey, navMatch, type NavKey };
@@ -140,43 +141,56 @@ export type TopbarModel = {
 };
 
 export function Topbar({ model, screenLabel }: { model: TopbarModel; screenLabel?: string }) {
+  const field = model.searchAction ? (
+    // `next/form`: submitting runs a client navigation to the results
+    // instead of reloading the document. Not prefetched, like the rail's
+    // Search row: /app/discover is rate-limited and a prefetch spends the
+    // allowance. The one search field on a page: on the results page the
+    // filter bar carries chips, not a second box, and on the search landing
+    // the page's own large field replaces this one (`TopbarSearchSlot`).
+    <Form
+      prefetch={false}
+      role="search"
+      // Named, because /app/products renders a search landmark of its own
+      // and two unnamed ones are indistinguishable (WCAG 1.3.1). Not
+      // `Search, ${screenLabel}` unconditionally: on the results page the
+      // screen label IS "Search", and the landmark read "Search, Search".
+      aria-label={screenLabel && screenLabel !== "Search" ? `Search, ${screenLabel}` : "Search"}
+      action={model.searchAction}
+      // `relative`: the typeahead's listbox hangs under this field.
+      // `focus-within`: the whole field says it is live — the outline steps
+      // up to brand and a soft brand ring lifts it. The field is the focus
+      // indicator, so the input inside draws none of its own: the global
+      // ring on the input was a second green box inside the first (founder's
+      // walkthrough, 28 Sep 2026).
+      className="relative flex h-control w-full min-w-0 max-w-[420px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle transition-[border-color,box-shadow] duration-fast focus-within:border-brand focus-within:ring-2 focus-within:ring-brand-tint-strong"
+    >
+      <Icon name="search" />
+      {/* The input itself, plus the suggestions under it as the buyer
+          types. Renders the same `<input>` on the server — `name="q"`,
+          `data-search="topbar"` — so the GET form and the shortcut work
+          before any script runs, and without it. It reads the URL's `q` on
+          the results page, and the filters ride along as hidden fields, so a
+          new query keeps them. `Suspense`: both read the URL, which a
+          statically rendered page (the gallery) has to defer. */}
+      <Suspense fallback={null}>
+        <SearchTypeahead defaultValue={model.searchQuery ?? ""} />
+        <SearchCarry />
+      </Suspense>
+      <ShortcutHint />
+      <SearchShortcut />
+    </Form>
+  ) : null;
   return (
-    <div className="glass flex h-topbar shrink-0 items-center gap-3 border-b border-line-subtle px-4 sm:gap-4 sm:px-6">
-      {model.searchAction ? (
-        // `next/form`: submitting runs a client navigation to the results
-        // instead of reloading the document. Not prefetched, like the rail's
-        // Search row: /app/discover is rate-limited and a prefetch spends the
-        // allowance. The one search field in the app: on the results page the
-        // filter bar carries chips, not a second box.
-        <Form
-          prefetch={false}
-          role="search"
-          // Named, because /app/products renders a search landmark of its own
-          // and two unnamed ones are indistinguishable (WCAG 1.3.1). Not
-          // `Search, ${screenLabel}` unconditionally: on the results page the
-          // screen label IS "Search", and the landmark read "Search, Search".
-          aria-label={screenLabel && screenLabel !== "Search" ? `Search, ${screenLabel}` : "Search"}
-          action={model.searchAction}
-          // `relative`: the typeahead's listbox hangs under this field.
-          // `focus-within`: the whole field, not only the caret, says it is
-          // live — the outline steps up to brand and the ring lifts it.
-          className="relative flex h-control w-full min-w-0 max-w-[360px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle transition-[border-color,box-shadow] duration-fast focus-within:border-brand focus-within:shadow-xs"
-        >
-          <Icon name="search" />
-          {/* The input itself, plus the suggestions under it as the buyer
-              types. Renders the same `<input>` on the server — `name="q"`,
-              `data-search="topbar"` — so the GET form and ⌘K work before any
-              script runs, and without it. It reads the URL's `q` on the
-              results page, and the filters ride along as hidden fields, so a
-              new query keeps them. `Suspense`: both read the URL, which a
-              statically rendered page (the gallery) has to defer. */}
-          <Suspense fallback={null}>
-            <SearchTypeahead defaultValue={model.searchQuery ?? ""} />
-            <SearchCarry />
-          </Suspense>
-          <Kbd>⌘K</Kbd>
-          <SearchShortcut />
-        </Form>
+    // `relative z-sticky`: the topbar is frosted glass, and `backdrop-filter`
+    // makes it a stacking context of its own. Without a z-index it painted
+    // under the page's content — every page fades in through an animated
+    // wrapper that is a later stacking context — so the suggestion list that
+    // hangs below the field slid UNDER the filter bar and the results panel
+    // (founder's walkthrough, 28 Sep 2026).
+    <div className="glass relative z-sticky flex h-topbar shrink-0 items-center gap-3 border-b border-line-subtle px-4 sm:gap-4 sm:px-6">
+      {field ? (
+        <TopbarSearchSlot>{field}</TopbarSearchSlot>
       ) : (
         <div className="flex h-control w-full min-w-0 max-w-[360px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle">
           <Icon name="search" />
