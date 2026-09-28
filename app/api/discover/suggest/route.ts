@@ -108,7 +108,12 @@ async function fetchCompanies(q: string): Promise<CompanySuggestion[]> {
  * it is asked for more rows than are shown and only the name matches kept.
  */
 async function appScope(q: string) {
-  const [rows, facets] = await Promise.all([fetchCompanyRows(q, 24).catch(() => []), fetchDiscoverFacets().catch(() => null)]);
+  // A supplier is suggested only from two characters (`companySuggestions`),
+  // so a one-letter query does not pay for a full-text search it would drop.
+  const [rows, facets] = await Promise.all([
+    q.replace(/[^a-z0-9]/gi, "").length >= 2 ? fetchCompanyRows(q, 24).catch(() => []) : Promise.resolve([]),
+    fetchDiscoverFacets().catch(() => null),
+  ]);
   return appSuggestions({
     query: q,
     companies: rows.map((r) => ({ slug: r.slug, name: formatCompanyName(r.company_name), city: r.city, district: r.district })),

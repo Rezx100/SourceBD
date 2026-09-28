@@ -76,6 +76,8 @@ describe("1–2. the search landing is the first viewport", () => {
     assert.equal(html.match(/<h1\b/g)?.length, 1);
     assert.match(html, /<form[^>]*role="search"[^>]*action="\/app\/discover"|<form[^>]*action="\/app\/discover"[^>]*role="search"/);
     assert.match(html, /data-search="topbar"/, "the landing's field is the one the shortcut focuses");
+    const landing = readFileSync(path.join(repoRoot, "components/dashboard/search-landing.tsx"), "utf8");
+    assert.match(landing, /<SearchShortcut \/>/, "the landing advertises Ctrl K; the topbar's listener is not mounted there");
     assert.match(html, /10,266 published suppliers/);
     assert.match(html, /href="\/app\?filters=1"[^>]*>.*All filters/);
     assert.match(html, /href="\/app\/discover"[^>]*>Browse all 10,266 suppliers/);
@@ -142,7 +144,11 @@ describe("3, 12. the suggestions", () => {
     const html = render(createElement(Topbar, { model: { caption: "", initial: "R", searchAction: "/app/discover" } }));
     const bar = /<div class="glass([^"]*)"/.exec(html)?.[1] ?? "";
     assert.match(bar, /\brelative\b/);
-    assert.match(bar, /\bz-sticky\b/, "backdrop-filter makes the topbar a stacking context; without a z-index its list slid under the results");
+    assert.match(bar, /\bz-raised\b/, "backdrop-filter makes the topbar a stacking context; without a z-index its list slid under the results");
+    // …and no higher than the onboarding tour's z-50 scrim, which must cover it.
+    const tour = readFileSync(path.join(repoRoot, "components/onboarding/tour.tsx"), "utf8");
+    assert.match(tour, /fixed inset-0 z-50\b/, "guard: the tour's scrim moved; recheck the topbar's z-index against it");
+    assert.doesNotMatch(bar, /\bz-(sticky|overlay|modal|toast|\[)/);
   });
 });
 

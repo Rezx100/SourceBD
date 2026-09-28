@@ -182,13 +182,14 @@ export function Topbar({ model, screenLabel }: { model: TopbarModel; screenLabel
     </Form>
   ) : null;
   return (
-    // `relative z-sticky`: the topbar is frosted glass, and `backdrop-filter`
+    // `relative z-raised`: the topbar is frosted glass, and `backdrop-filter`
     // makes it a stacking context of its own. Without a z-index it painted
     // under the page's content — every page fades in through an animated
     // wrapper that is a later stacking context — so the suggestion list that
     // hangs below the field slid UNDER the filter bar and the results panel
-    // (founder's walkthrough, 28 Sep 2026).
-    <div className="glass relative z-sticky flex h-topbar shrink-0 items-center gap-3 border-b border-line-subtle px-4 sm:gap-4 sm:px-6">
+    // (founder's walkthrough, 28 Sep 2026). Raised, not sticky (100): the
+    // onboarding tour's scrim is z-50 and must still cover the topbar.
+    <div className="glass relative z-raised flex h-topbar shrink-0 items-center gap-3 border-b border-line-subtle px-4 sm:gap-4 sm:px-6">
       {field ? (
         <TopbarSearchSlot>{field}</TopbarSearchSlot>
       ) : (

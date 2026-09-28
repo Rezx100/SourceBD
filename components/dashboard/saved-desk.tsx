@@ -59,11 +59,6 @@ export function deskFrom(data: unknown): DeskModel | null {
   return { alerts: d.alerts as DeskAlert[], recent_activity: d.recent_activity as DeskActivity[] };
 }
 
-/** A body only when there is something to act on: the saved list below speaks for an empty desk. */
-export function deskHasRows(doc: DeskModel | null): boolean {
-  return Boolean(doc && (doc.alerts.length > 0 || doc.recent_activity.length > 0));
-}
-
 function NameLink({ href, name }: { href: string; name: string }) {
   return (
     <Link prefetch={false} scroll={false} href={href} className="font-medium text-ink-strong [overflow-wrap:anywhere] hover:text-brand-ink">

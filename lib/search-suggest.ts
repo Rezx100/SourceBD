@@ -137,7 +137,11 @@ export function headingSuggestions(query: string, max = 4): AppSuggestion[] {
     else if (prefixMatch(label, query)) score = 60;
     else if (prefixMatch(`${row.short} ${row.heading}`, query)) score = 40;
     else {
-      const hits = q.filter((w) => Object.entries(SYNONYMS).some(([k, codes]) => (k.startsWith(w) || w.startsWith(k)) && w.length >= 3 && codes.includes(row.hs)));
+      // The buyer's word is the start of a synonym ("hood" → hoodie) or the
+      // synonym with a plural ending ("jeans", "tees"); never a longer word
+      // that merely starts with one ("capacity" is not a cap).
+      const means = (w: string, k: string) => w.length >= 3 && (k.startsWith(w) || w === `${k}s` || w === `${k}es`);
+      const hits = q.filter((w) => Object.entries(SYNONYMS).some(([k, codes]) => means(w, k) && codes.includes(row.hs)));
       if (hits.length > 0 && hits.length === q.length) score = 30;
       else if (hits.length > 0) score = 15;
     }

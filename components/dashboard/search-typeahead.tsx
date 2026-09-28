@@ -183,6 +183,9 @@ export function SearchTypeahead({
   const input = useRef<HTMLInputElement>(null);
   const abort = useRef<AbortController | null>(null);
   const seq = useRef(0);
+  // The landing focuses its field on load; that focus is the page's, not the
+  // buyer's, and must not open the list over the page before they act.
+  const quietFocus = useRef(autoFocus);
 
   useEffect(() => {
     const q = value.trim();
@@ -263,6 +266,10 @@ export function SearchTypeahead({
 
   function onFocus() {
     setRecent(readRecentSearches().map((r) => ({ type: "recent", label: r.label, href: r.href, count: r.count })));
+    if (quietFocus.current) {
+      quietFocus.current = false;
+      return;
+    }
     setOpen(true);
   }
 
@@ -285,6 +292,7 @@ export function SearchTypeahead({
           setOpen(true);
         }}
         onFocus={onFocus}
+        onClick={() => setOpen(true)}
         onKeyDown={onKeyDown}
         placeholder={hero ? "Search a product, HS code, certificate, place or supplier" : "Search suppliers, HS codes, certificates"}
         aria-label="Search suppliers, HS codes, certificates"

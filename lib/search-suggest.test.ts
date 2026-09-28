@@ -46,6 +46,11 @@ describe("product categories", () => {
     assert.ok(headingSuggestions("bra").some((s) => s.type === "heading" && s.hs === "6212"));
   });
 
+  it("a longer word that merely starts with a synonym is not that garment", () => {
+    for (const word of ["capacity", "teens", "briefing"]) assert.deepEqual(headingSuggestions(word), [], `"${word}" named a category`);
+    assert.ok(headingSuggestions("tees").some((s) => s.type === "heading" && s.hs === "6109"), "a plural still finds its heading");
+  });
+
   it("a code typed as a code is that heading first", () => {
     const first = headingSuggestions("6205")[0];
     assert.ok(first && first.type === "heading" && first.hs === "6205");
