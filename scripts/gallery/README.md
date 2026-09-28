@@ -1,6 +1,7 @@
 # Gallery evidence harness (REZ-A)
 
-Renders the six buyer dashboard v3.2 screens to HTML and PNG from the fixtures
+Renders the seven buyer screens (the ledger grid, the cards, the record, the
+line, the RFQ composer and the filter pane beside the results, and the RFQ list) to HTML and PNG from the fixtures
 in `lib/dashboard/fixtures.ts`, through the same builders and components the
 `/dev/ds` page uses. It exists so the screenshots in an audit bundle can be
 regenerated from a fresh clone at a named commit, by anyone, without a database.

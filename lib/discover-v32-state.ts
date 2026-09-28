@@ -101,7 +101,7 @@ export const EMPTY_STATE: DiscoverState = {
   sort: "sources",
   page: 1,
   per: 25,
-  view: "cards",
+  view: "table",
   ask: false,
   sanctioned: false,
 };
@@ -120,7 +120,12 @@ export const LIST_VALUE_MAX = 80;
 export const Q_MAX = 120;
 
 function csv(sp: URLSearchParams, key: string): string[] {
-  const raw = one(sp, key);
+  // A repeated key (a checkbox group) and a comma list are the same thing.
+  const raw = sp
+    .getAll(key)
+    .map((v) => v.trim())
+    .filter(Boolean)
+    .join(",");
   if (!raw) return [];
   return [
     ...new Set(
@@ -191,9 +196,16 @@ export function parseDiscoverState(
         );
 
   const hs = [...new Set(csv(sp, "hs").map(parseHs).filter((x): x is string => x !== null))];
-  const cert = csv(sp, "cert")
+  // The filter pane's two selects (`cert_kind`, `cert_state`) are one `cert`
+  // token; a form cannot type `gots:valid` and a buyer should not have to.
+  const kindPick = one(sp, "cert_kind").toLowerCase();
+  const statePick = one(sp, "cert_state").toLowerCase();
+  const picked = kindPick ? [statePick && statePick !== "any" ? `${kindPick}:${statePick}` : kindPick] : [];
+  // Once each: the pane's pick can name a certificate the URL already carries.
+  const cert = [...csv(sp, "cert"), ...picked]
     .map(parseCert)
-    .filter((x): x is CertFilter => x !== null);
+    .filter((x): x is CertFilter => x !== null)
+    .filter((c, i, all) => all.findIndex((o) => o.kind === c.kind && o.state === c.state) === i);
   // Upper-cased first: the filter form is a free-text box, and typing
   // "bgmea" used to yield no chip, no error and an unfiltered result set the
   // buyer read as filtered. Same for `type` and `rsc` below.
@@ -239,7 +251,9 @@ export function parseDiscoverState(
     sort,
     page: Math.max(1, intOrNull(one(sp, "page"), 1, 10_000) ?? 1),
     per,
-    view: viewRaw === "table" ? "table" : "cards",
+    // Table first (founder, 27 Sep 2026): the list is the working view; the
+    // thumbnail cards are the other stop of the switch.
+    view: viewRaw === "cards" ? "cards" : "table",
     ask: one(sp, "ask") === "1",
     sanctioned: one(sp, "sanctioned") === "1",
   };
@@ -278,7 +292,7 @@ export function serializeDiscoverState(state: DiscoverState): URLSearchParams {
   if (state.sort !== "sources") sp.set("sort", state.sort);
   if (state.page > 1) sp.set("page", String(state.page));
   if (state.per !== 25) sp.set("per", String(state.per));
-  if (state.view === "table") sp.set("view", "table");
+  if (state.view === "cards") sp.set("view", "cards");
   if (state.ask) sp.set("ask", "1");
   if (state.sanctioned) sp.set("sanctioned", "1");
   return sp;

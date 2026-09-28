@@ -7,6 +7,7 @@
 import { BackToHub, plural, TableFooter, type UflpaPayload, UflpaTable } from "@/components/dashboard/compliance";
 import { Button } from "@/components/dashboard/controls";
 import { EmptyState, ErrorNote, PageHeader, PageSection, Page } from "@/components/dashboard/page";
+import { formatCount } from "@/lib/dashboard/facts";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +26,7 @@ async function UflpaPageBody() {
       >
         {payload && payload.total > 0 ? (
           <p className="m-0 text-sm text-ink-muted tabular-nums">
-            {plural(payload.hits, "hit")} · {plural(payload.flags, "region flag")} · {payload.clear.toLocaleString()} clear
+            {plural(payload.hits, "hit")} · {plural(payload.flags, "region flag")} · {formatCount(payload.clear)} clear
           </p>
         ) : null}
       </PageHeader>

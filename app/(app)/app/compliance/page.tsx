@@ -1,15 +1,18 @@
 // Compliance hub — Spec B9 (/app/compliance).
 //
 // Server component. Calls the three compliance RPCs in parallel under the
-// caller's session and draws one row per surface: the next certificates to
-// expire, the UFLPA summary, and what the Modern Slavery Act generator makes.
+// caller's session and draws one section per surface: the next certificates
+// to expire (with the 30/60/90-day buckets as stats under the title), the
+// UFLPA summary, and what the Modern Slavery Act generator makes. Sections are
+// tonal panels on the canvas — no box inside a box.
 
 import Link from "next/link";
 
-import { type ExpiryPayload, ExpiryTable, plural, TableFooter, type UflpaPayload } from "@/components/dashboard/compliance";
+import { type ExpiryPayload, ExpiryStats, ExpiryTable, plural, TableFooter, type UflpaPayload } from "@/components/dashboard/compliance";
 import { Badge } from "@/components/dashboard/chips";
 import { Button } from "@/components/dashboard/controls";
 import { EmptyState, ErrorNote, PageHeader, PageSection, Page } from "@/components/dashboard/page";
+import { formatCount } from "@/lib/dashboard/facts";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -63,40 +66,44 @@ async function ComplianceHubPageBody() {
       {anyError ? <ErrorNote>Could not load one or more compliance views. Reload the page to try again.</ErrorNote> : null}
 
       {msaIn && savedTotal === 0 ? (
-        <section className="rounded-md border border-line-subtle bg-surface">
+        <div className="rounded-md bg-surface">
           <EmptyState
-            icon="bookmark"
+            art="certificate"
+            compact
             title="No saved suppliers yet"
             action={
               <Button variant="primary" href="/app/discover" clientNav>
-                Browse Discover
+                Search suppliers
               </Button>
             }
           >
-            The compliance hub draws from your saved list. Save suppliers from Discover to begin.
+            The compliance hub draws from your saved list. Save suppliers from search to begin.
           </EmptyState>
-        </section>
+        </div>
       ) : null}
 
       <PageSection
         title="Certificate expiry"
         caption="Next 90 days, soonest first"
         action={<SectionLink href="/app/compliance/expiry">View all</SectionLink>}
+        bare
       >
         {expiry === null ? (
-          <p className="m-0 px-4 py-3 text-sm text-ink-muted">Expiring certificates did not load.</p>
-        ) : upcoming.length === 0 ? (
-          <p className="m-0 px-4 py-3 text-sm text-ink-muted">
-            No certificates on your saved suppliers expire in the next 90 days.
-          </p>
+          <p className="m-0 rounded-md bg-surface px-4 py-3 text-sm text-ink-muted">Expiring certificates did not load.</p>
         ) : (
           <>
-            <ExpiryTable rows={upcoming} compact />
-            <div className="flex flex-wrap items-center justify-between gap-2 pr-4">
-              <TableFooter shown={upcoming.length} total={expiry.total} />
-              <span className="text-xs text-ink-muted tabular-nums">
-                {expiry.bucket_30} within 30 days · {expiry.bucket_60} in 30–60 days · {expiry.bucket_90} in 60–90 days
-              </span>
+            <ExpiryStats payload={expiry} />
+            <div className="rounded-md bg-surface">
+              {upcoming.length === 0 ? (
+                <p className="m-0 px-4 py-3 text-sm text-ink-muted">
+                  No certificates on your saved suppliers expire in the next 90 days.
+                </p>
+              ) : (
+                <>
+                  <ExpiryTable rows={upcoming} compact />
+                  <TableFooter shown={upcoming.length} total={expiry.total} />
+                </>
+              )}
             </div>
           </>
         )}
@@ -115,7 +122,7 @@ async function ComplianceHubPageBody() {
                 ? "None of your saved suppliers is published yet, so there is nothing to check."
                 : // The tracker reads published suppliers only, so this can be
                   // fewer than the saved count in the caption.
-                  `Of your ${plural(uflpa.total, "saved supplier")} that ${uflpa.total === 1 ? "is" : "are"} published, ${uflpa.hits.toLocaleString()} ${uflpa.hits === 1 ? "matches" : "match"} the U.S. UFLPA Entity List, ${uflpa.flags.toLocaleString()} ${uflpa.flags === 1 ? "has" : "have"} Xinjiang-linked text in the record and ${uflpa.clear.toLocaleString()} ${uflpa.clear === 1 ? "is" : "are"} clear.`}
+                  `Of your ${plural(uflpa.total, "saved supplier")} that ${uflpa.total === 1 ? "is" : "are"} published, ${formatCount(uflpa.hits)} ${uflpa.hits === 1 ? "matches" : "match"} the U.S. UFLPA Entity List, ${formatCount(uflpa.flags)} ${uflpa.flags === 1 ? "has" : "have"} Xinjiang-linked text in the record and ${formatCount(uflpa.clear)} ${uflpa.clear === 1 ? "is" : "are"} clear.`}
           </p>
           {uflpa && uflpa.hits > 0 ? (
             <Badge tone="sanction" className="self-start sm:self-auto">
@@ -142,7 +149,7 @@ async function ComplianceHubPageBody() {
           </p>
           {msaIn ? (
             <p className="m-0 text-sm text-ink-muted">
-              Built from {plural(msaIn.total_published, "published saved supplier")}, {msaIn.rsc_covered.toLocaleString()}{" "}
+              Built from {plural(msaIn.total_published, "published saved supplier")}, {formatCount(msaIn.rsc_covered)}{" "}
               covered by the RSC and {plural(msaIn.expiring_certs_90d, "certificate")} expiring in 90 days.
             </p>
           ) : null}

@@ -17,7 +17,7 @@ export function saveSearchError(status: number, error: string | undefined): { me
   return { message: "Could not save this search.", onName: false };
 }
 
-export function SaveSearchForm({ search, defaultName }: { search: string; defaultName: string }) {
+export function SaveSearchForm({ search, defaultName, nextHref = "/app/searches" }: { search: string; defaultName: string; /** Where a successful save lands; the pane passes the search it sat beside. */ nextHref?: string }) {
   const router = useRouter();
   const [name, setName] = useState(defaultName.slice(0, 120));
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +56,7 @@ export function SaveSearchForm({ search, defaultName }: { search: string; defaul
           setError(refused.message);
           return;
         }
-        router.push("/app/searches");
+        router.push(nextHref, { scroll: false });
         router.refresh();
       }}
     >

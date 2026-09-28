@@ -54,9 +54,12 @@ export function ProductSheet({
       <SheetScroll measure={mode === "page"}>
         {/* The photo beside the facts where there is room. The pane is a share
             of the content region, so beside the results that waits for `xl`. */}
-        <div className={cn("grid items-start gap-6 p-6", mode === "page" ? "md:grid-cols-[320px_1fr]" : "xl:grid-cols-[320px_1fr]")}>
+        {/* The pane is a share of the content region, not the viewport, so a
+            grid keyed on `xl:` clipped the facts at 1440. In the pane the photo
+            sits above the facts at 200px; the page keeps the two columns. */}
+        <div className={cn("grid items-start gap-6 p-6", mode === "page" && "md:grid-cols-[320px_1fr]")}>
           <div>
-            <div className="aspect-square w-full max-w-[320px] overflow-hidden rounded-sm border border-line-subtle bg-surface-sunken">
+            <div className={cn("aspect-square w-full overflow-hidden rounded-sm bg-surface-sunken", mode === "page" ? "max-w-[320px]" : "max-w-[200px]")}>
               {model.photo.src ? (
                 <img src={model.photo.src} alt="" className="size-full origin-[50%_46%] scale-[1.32] object-cover" />
               ) : (
@@ -93,6 +96,8 @@ export function ProductSheet({
                 lg
                 disabled={model.sanctioned}
                 href={model.sanctioned ? undefined : (model.rfqHref ?? undefined)}
+                clientNav
+                scroll={false}
               >
                 <Icon name="send" /> Send RFQ for this line
               </Button>

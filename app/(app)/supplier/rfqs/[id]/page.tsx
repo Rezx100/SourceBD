@@ -64,6 +64,9 @@ type RfqDoc = {
   ship_by: string | null;
   status: "open" | "accepted" | "closed" | "cancelled";
   accepted_quote_id: string | null;
+  /** 0106: the buyer's message and the questions they ask; absent before it. */
+  message?: string | null;
+  questions?: string[] | null;
   created_at: string;
   updated_at: string;
   viewer_role: "buyer" | "supplier" | "both";
@@ -160,6 +163,24 @@ export default async function SupplierRfqDetailPage({
               <p className="whitespace-pre-wrap text-ink-primary">
                 {rfq.product_description}
               </p>
+            </div>
+          ) : null}
+          {/* What the buyer wrote in the composer: the message and the
+              questions they want answered in the quote. */}
+          {rfq.message ? (
+            <div className="space-y-1">
+              <p className="text-[12px] text-ink-tertiary">Message from the buyer</p>
+              <p className="whitespace-pre-wrap text-ink-primary">{rfq.message}</p>
+            </div>
+          ) : null}
+          {rfq.questions && rfq.questions.length > 0 ? (
+            <div className="space-y-1">
+              <p className="text-[12px] text-ink-tertiary">The buyer asks</p>
+              <ol className="list-decimal space-y-0.5 pl-5 text-ink-primary">
+                {rfq.questions.map((q) => (
+                  <li key={q}>{q}</li>
+                ))}
+              </ol>
             </div>
           ) : null}
         </CardContent>

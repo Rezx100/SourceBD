@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Regenerates the gallery stylesheet, page and the six screenshots from THIS
+# Regenerates the gallery stylesheet, page and the seven screenshots from THIS
 # tree, and stamps the commit they were rendered from.
 #
 #   ./scripts/gallery/regen.sh [--allow-dirty]

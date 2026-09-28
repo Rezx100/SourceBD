@@ -32,10 +32,19 @@ describe("DialogFocus — focus returns to the result that opened the record", (
     // `DialogFocus` renders nothing, so no HTML test can see it is mounted.
     const sheet = readFileSync(path.join(process.cwd(), "components", "dashboard", "sheet.tsx"), "utf8");
     assert.match(sheet, /\{closeHref \? <DialogFocus closeHref=\{closeHref\} openKey=\{openKey\} \/> : null\}/);
-    // And every pane names what it shows, or focus stays put when it changes.
+    // And every pane names what it shows, or focus stays put when it changes:
+    // an expression for a record or a line, a literal for the filter and
+    // save-search panes, which show one thing each.
     const discover = readFileSync(path.join(process.cwd(), "app", "(app)", "app", "discover", "page.tsx"), "utf8");
     const frames = discover.match(/<RecordPane\b[^>]*>/g) ?? [];
-    assert.ok(frames.length >= 2 && frames.every((f) => /openKey=\{/.test(f)), frames.join(" | "));
+    assert.ok(frames.length >= 5, `the composer, filter, save and record panes: ${frames.join(" | ")}`);
+    for (const f of frames) {
+      assert.match(f, /openKey=(?:\{|"[^"]+")/, `a pane that names nothing: ${f}`);
+      assert.match(f, /closeHref=\{/, `a pane with nowhere to close to: ${f}`);
+    }
+    // Every pane shows something different, so each key is its own.
+    const keys = frames.map((f) => /openKey=(\{[^}]*\}|"[^"]+")/.exec(f)?.[1]);
+    assert.equal(new Set(keys).size, keys.length, `two panes share an openKey, so focus stays put between them: ${keys.join(", ")}`);
     assert.match(sheet, /data-record-pane=""[^>]*tabIndex=\{-1\}/, "the pane cannot take focus by script");
   });
 });

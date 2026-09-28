@@ -42,8 +42,9 @@ same PR. Read once per session.
   Then D → H → G → E → F → I per §7.
 
 - **Buyer dashboard redesign** — LIVE 27 Sep (`383a31c`); follow-ups in `current-state.md`.
+  Enterprise pass (every secondary interface in the pane, ledger grid, quiet buttons, product base; migration 0106 not applied): branch `enterprise-buyer-app`, PR #191, hand-off `handoff-enterprise-buyer-app.md`, surface brief `.impeccable/surfaces/app-app-app.md`.
   One-viewport shell (the layout draws the shell once, the record beside
-  the results): branch `redesign-one-viewport`, `handoff-one-viewport-shell.md`.
+  the results): LIVE 27 Sep (`3f628b9`); hand-off `handoff-one-viewport-shell.md`.
 
 ## Queued
 - **Entity resolution core** — `spec-resolution-core.md` (4 Aug). Batch

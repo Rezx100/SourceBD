@@ -48,7 +48,7 @@ export function MetaLine({ facts, className }: { facts: readonly FactWithMark[];
 
 function Tile({ tile }: { tile: TileModel }) {
   return (
-    <div className="flex min-h-[82px] min-w-0 flex-col gap-px rounded-sm border border-line-subtle px-3 py-2.5">
+    <div className="flex min-h-[82px] min-w-0 flex-col gap-px rounded-sm bg-canvas px-3 py-2.5">
       <span className="whitespace-nowrap text-sm font-medium text-ink-muted">{tile.label}</span>
       <span className={cn("whitespace-nowrap text-title font-medium text-ink-strong", tile.value === null && "font-normal text-quiet-ink")}>
         {/* An em dash, never 0: the sub-line below often says the read failed
@@ -181,7 +181,7 @@ export function SupplierResultCard({ card }: { card: SupplierCardModel }) {
               </Button>
             )}
             <Button href={recordHref} clientNav scroll={false}>Open record</Button>
-            <Button variant="primary" href={card.sanctioned ? undefined : (card.rfqHref ?? undefined)} disabled={card.sanctioned}>
+            <Button href={card.sanctioned ? undefined : (card.rfqHref ?? undefined)} clientNav scroll={false} disabled={card.sanctioned || !card.rfqHref}>
               <Icon name="send" /> Send RFQ
             </Button>
           </div>

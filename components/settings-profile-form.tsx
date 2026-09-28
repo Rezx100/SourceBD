@@ -6,8 +6,8 @@
 // /api/v1/settings. Refreshes the server tree on success so the hub
 // header picks up the new name on next visit.
 
-import { useId, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useContext, useId, useState, useTransition } from "react";
+import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 
 import { Field, TextInput } from "@/components/dashboard/fields";
 import { PageSection } from "@/components/dashboard/page";
@@ -21,7 +21,8 @@ export function SettingsProfileForm({
 }: {
   initialDisplayName: string;
 }) {
-  const router = useRouter();
+  // Not `useRouter()`, which throws outside a mounted app router (the route tests draw this with none).
+  const router = useContext(AppRouterContext);
   const id = useId();
   const [value, setValue] = useState(initialDisplayName);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +50,7 @@ export function SettingsProfileForm({
         return;
       }
       setFlash("Display name saved");
-      router.refresh();
+      router?.refresh();
     });
   }
 

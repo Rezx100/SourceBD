@@ -8,6 +8,7 @@
 import { Button } from "@/components/dashboard/controls";
 import { Inbox, type InboxThread } from "@/components/dashboard/inbox";
 import { PageHeader, Page } from "@/components/dashboard/page";
+import { formatCount } from "@/lib/dashboard/facts";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +27,7 @@ async function MessagesPageBody() {
         caption={
           error
             ? "Your conversations with suppliers."
-            : `${threads.length.toLocaleString()} ${threads.length === 1 ? "conversation" : "conversations"} with suppliers`
+            : `${formatCount(threads.length)} ${threads.length === 1 ? "conversation" : "conversations"} with suppliers`
         }
         actions={
           <Button href="/app/discover" clientNav>

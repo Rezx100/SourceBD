@@ -81,6 +81,54 @@ export function formatMonth(iso: string | null | undefined): string | null {
   return `${MONTHS[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
 }
 
+/** `2026-09-12T14:30:00Z` → `12 Sep 2026, 14:30` (UTC, so the server and the browser agree). */
+export function formatTime(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return null;
+  const d = new Date(t);
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const mm = String(d.getUTCMinutes()).padStart(2, "0");
+  return `${formatDay(iso)}, ${hh}:${mm}`;
+}
+
+/**
+ * A moment relative to now, for a secondary caption only: `just now`,
+ * `4m ago`, `23h ago`, `3d ago`; older than 30 days, the day itself. The one
+ * relative formatter in the app, so a list never mixes `8/20/2026` with
+ * `3d ago`.
+ */
+export function formatRelative(iso: string | null | undefined, now: Date = new Date()): string | null {
+  if (!iso) return null;
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return null;
+  const delta = now.getTime() - t;
+  if (delta < 60_000) return "just now";
+  if (delta < 3_600_000) return `${Math.floor(delta / 60_000)}m ago`;
+  if (delta < DAY) return `${Math.floor(delta / 3_600_000)}h ago`;
+  if (delta < 30 * DAY) return `${Math.floor(delta / DAY)}d ago`;
+  return formatDay(iso);
+}
+
+/**
+ * Money, one way: `6.15 USD`, `26,550.00 USD`. Two decimals always, up to
+ * four for a unit price under a cent, the ISO code after the figure (the
+ * RFQ and order tables are read by buyers in four currencies, and a symbol
+ * is ambiguous across them).
+ */
+export function formatMoney(n: number | null | undefined, currency: string): string | null {
+  if (n === null || n === undefined || !Number.isFinite(Number(n))) return null;
+  const v = Number(n);
+  const digits = Math.abs(v) > 0 && Math.abs(v) < 0.01 ? 4 : 2;
+  return `${new Intl.NumberFormat("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: digits }).format(v)} ${currency}`;
+}
+
+/** A quantity with its unit, never rounded: `12,000 pcs`, `1,250.5 kg`. */
+export function formatQuantity(n: number | null | undefined, unit: string): string | null {
+  if (n === null || n === undefined || !Number.isFinite(Number(n))) return null;
+  return `${new Intl.NumberFormat("en-GB", { maximumFractionDigits: 4 }).format(Number(n))} ${unit}`;
+}
+
 /** Tabular figure with thousands separators: 3314 → `3,314`. */
 export function formatCount(n: number | null | undefined): string | null {
   if (n === null || n === undefined || !Number.isFinite(n)) return null;

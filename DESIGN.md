@@ -151,14 +151,15 @@ spacing:
   sidebar: "232px"
 components:
   button-default:
-    backgroundColor: "{colors.surface}"
+    backgroundColor: "{colors.surface-sunken}"
     textColor: "{colors.ink}"
     typography: "{typography.label}"
     rounded: "{rounded.sm}"
     padding: "0 12px"
     height: "{spacing.control}"
   button-default-hover:
-    backgroundColor: "{colors.surface-sunken}"
+    backgroundColor: "{colors.line}"
+    textColor: "{colors.ink-strong}"
   button-primary:
     backgroundColor: "{colors.brand}"
     textColor: "{colors.brand-on}"
@@ -173,8 +174,13 @@ components:
   button-primary-lg:
     backgroundColor: "{colors.brand}"
     textColor: "{colors.brand-on}"
-    padding: "0 16px"
-    height: "{spacing.control-lg}"
+    padding: "0 14px"
+    height: "36px"
+  button-sm:
+    typography: "{typography.caption}"
+    rounded: "{rounded.sm}"
+    padding: "0 8px"
+    height: "28px"
   button-ghost:
     backgroundColor: "transparent"
     textColor: "{colors.ink-muted}"
@@ -184,6 +190,17 @@ components:
     height: "{spacing.control}"
   button-ghost-hover:
     backgroundColor: "{colors.surface-sunken}"
+    textColor: "{colors.ink-strong}"
+  button-danger:
+    backgroundColor: "{colors.danger-tint}"
+    textColor: "{colors.danger-ink}"
+    typography: "{typography.label}"
+    rounded: "{rounded.sm}"
+    padding: "0 12px"
+    height: "{spacing.control}"
+  button-danger-hover:
+    backgroundColor: "{colors.danger}"
+    textColor: "{colors.danger-on}"
   input-search:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
@@ -261,6 +278,17 @@ components:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
     width: "clamp(480px, 55%, 760px)"
+  sheet-wide:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    width: "clamp(640px, 68%, 1100px)"
+  table-row:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    typography: "{typography.label}"
+    height: "{spacing.row-dense}"
+  table-row-current:
+    backgroundColor: "{colors.brand-tint}"
   toast:
     backgroundColor: "{colors.surface-inverse}"
     textColor: "{colors.ink-inverse}"
@@ -288,18 +316,20 @@ Scope: the buyer app under `/app/*` as drawn by `components/dashboard/*`, with e
 
 **Creative North Star: "The Ledger That Answers"**
 
-The buyer app is a ledger of receipts. Every screen is a page of neutral paper (`canvas`) with white panels laid on it, separated by hairlines rather than shadows, and every fact on the page has room beside it for the mark of the register that filed it. Density is desk-level: 13px labels, 14px body, 36px table rows, 32px controls, a 232px rail and a 56px frosted topbar. Colour is spent like money. The shell is near-monochrome on a neutral grey ramp, the brand green appears only where the buyer acts (the primary button, links, the active nav row, the logo), and status hues (teal-green, amber, red, and the reserved sanction maroon) appear only on facts that carry that status.
+The buyer app is a ledger of receipts. Every screen is a page of neutral paper (`canvas`) with white panels laid on it, grouped by tone and spacing rather than boxed, and every fact on the page has room beside it for the mark of the register that filed it. Density is desk-level: 13px labels, 14px body, 36px table rows, 32px controls, a 232px rail and a 56px frosted topbar. Colour is spent like money. The shell is near-monochrome on a neutral grey ramp, the brand green appears only where the buyer acts (the primary button, links, the active nav row, the logo), and status hues (teal-green, amber, red, and the reserved sanction maroon) appear only on facts that carry that status.
 
 The world refuses the competitor's chat-first home and its match-score theatre: there is no score, grade, rating or star anywhere on a buyer surface. It also refuses decoration: the one flourish is the `signal` dot, a bright green point beside a live number or in a toast, and the empty-state spot illustrations, single-weight ink line art with one brand-green fill. Motion is acknowledgement, not spectacle: entrances only, opacity-led, at 120 / 200 / 320 ms, and nothing is lost when the device asks for reduced motion.
 
 **Key Characteristics:**
-- Neutral paper canvas, white panels, hairline dividers; depth by tone and border, not shadow.
+- Neutral paper canvas, white panels, depth by tone and spacing; a hairline only where two regions meet (a row and the next, a header and its body, the list and the pane).
 - Geist for words, Geist Mono for the ledger's stamps (register numbers, column keys, source marks, counts).
 - Brand green on the primary action, links, active nav and the logo only; never a badge, never a state.
 - Source rank drawn as a neutral lightness ramp, so colour stays free for status.
 - Locked contact details are striped, never blurred; empty and unverified are quiet, never alarming.
 - Names wrap at every size; nothing truncates a company name.
 - Entrances only: fade 200, rise 320, sheet-in 320; exits land at once. The record opens beside the results, both live: no scrim, nothing modal.
+- Everything secondary opens in the pane beside the list it came from: the record, a product line, the RFQ composer, the filters, save search, an order, an RFQ. The shell and the buyer's search never move; Close returns to them. A page of its own exists only for a deep link.
+- The list is a ledger grid first: 36px rows, sortable sticky headers, actions on hover and on the keyboard. The thumbnail cards are the other stop of the switch.
 
 ## Colors
 
@@ -321,7 +351,7 @@ A neutral ramp carries the shell; one brand green is the action colour; four sta
 
 ### Neutral
 - **Paper** (`canvas`): the page and the sidebar rail; also the `quiet` ground for unverified and empty.
-- **Panel White** (`surface`): cards, the sheet, inputs, the tier-5 mark. `surface-sunken` is filter rails, table headers, the type badge, hover on default and ghost buttons, the locked ground. `surface-inverse` is the toast and dark bands.
+- **Panel White** (`surface`): panels, the sheet, inputs, table headers, the tier-5 mark. `surface-sunken` is the secondary button's fill, a row's hover, the type badge, the composer's target list and preview, the locked ground; `line` is the secondary button's hover. `surface-inverse` is the toast and dark bands.
 - **Ink ramp** (`ink-strong` headings and names, `ink` body, `ink-muted` labels and secondary text, `ink-subtle` captions, placeholders and mono stamps, `ink-disabled` disabled controls only). Every ramp step but `disabled` passes 4.5:1 on canvas, surface, sunken, locked and quiet; `tokens.test.ts` enforces the pairs.
 - **Hairlines** (`line-subtle` dividers and card borders, `line` the sheet's left rule and the neutral chip, `line-strong` input and control outlines at 3:1).
 - **Locked** (`locked` with `locked-stripe` at 135°, `locked-ink`, `locked-line`): the contact block by default.
@@ -366,43 +396,48 @@ The shell is a 232px sidebar on `canvas` (hairline right edge), a 56px frosted t
 
 Spacing sits on Tailwind's 4px grid, and the kit uses a small set of stops: 2 / 4 / 6 / 8 / 10 / 12 / 16 / 20 / 24. Card interiors are 12px by 10px (the result card) or 16px by 12px (a panel card, a cert card); a sheet section is 24px by 20px; the lock card is 16px. Fixed heights are the density stops: 32px controls and nav rows, 40px primary actions in the sheet's action bar, 36px dense result rows, 44px relaxed list rows, 28px minimum fact rows, a 52px minimum sheet bar.
 
-From 768px the shell is the viewport: the page never scrolls, the rail and the content region scroll on their own, and a workbench page (the search, the inbox) fills the region with panes that scroll themselves. The record is such a pane, beside the results from 1024px: `clamp(480px, 55%, 760px)` of the content region with a 1px `line` left rule, the results keeping the rest; below 1024px it takes the whole region and the results wait in the URL for Close. As a page of its own (`/app/suppliers/[slug]`) the same sheet centres an 1120px measure. A fact row is a label column of 150px (160px in `DetailList`) beside a value that wraps, with the source mark and the "checked" caption at the row's end; it stacks below 640px. Stats run four across, two across below 640px. Tables live in a horizontal scroll region with a minimum width (40rem default, 62rem for results) so a phone scrolls them sideways rather than crushing them.
+From 768px the shell is the viewport: the page never scrolls, the rail and the content region scroll on their own, and a workbench page (the search, the inbox) fills the region with panes that scroll themselves. The record is such a pane, beside the results from 1024px: `clamp(480px, 55%, 760px)` of the content region with a 1px `line` left rule, the results keeping the rest; below 1024px it takes the whole region and the results wait in the URL for Close. As a page of its own (`/app/suppliers/[slug]`) the same sheet centres an 1120px measure. A fact row is a label column of 150px (160px in `DetailList`) beside a value that wraps, with the source mark and the "checked" caption at the row's end; it stacks below 640px. Stats run four across, two across below 640px. Tables live in a horizontal scroll region with a minimum width (40rem default, 60rem for the results, 26rem beside a pane) so a phone scrolls them sideways rather than crushing them; from 1280px their headers stick to the top of the column's own scroll. A secondary form (the RFQ composer) takes the wide pane, `clamp(640px, 68%, 1100px)`, with its preview beside the fields from 1280px. Beside any pane the results table narrows to its three essential columns (supplier, sources, workers).
 
 Below 768px the sidebar becomes a horizontal snap-scrolling row of nav items under the logo; the plan block and recent searches hide. The document never goes narrower than 320px.
 
 ## Elevation & Depth
 
-Flat by default, tonal in layers. Depth is read from three things: the ground (`canvas` below `surface`, `surface-sunken` inside), a hairline (`line-subtle` for dividers and card edges, `line-strong` for anything a hand touches), and, for the few things that float, one shadow from a four-step ink-tinted vocabulary. Rows and cards in lists carry no shadow. The topbar and the sheet's action bar are frosted glass rather than lifted.
+Flat by default, tonal in layers. Depth is read from the ground first (`canvas` below `surface`, `surface-sunken` inside), then spacing and grouping; a hairline (`line-subtle`) draws only where two regions meet, and `line-strong` outlines only what a hand types into. A panel on the canvas carries no border: at most the `edge`, a 1px inset of `line` at 70 %, where a white panel sits on another white surface or a tone control must read as a control. For the few things that float, one shadow from the ink-tinted vocabulary. Rows and cards in lists carry no shadow. The topbar, the sheet's action bar and the composer's footer are frosted glass rather than lifted.
 
 ### Shadow Vocabulary
 - **xs** (`0 1px 2px 0 rgb(15 19 15 / 0.06)`): the topbar search field on focus.
 - **sm** (`0 1px 3px 0 rgb(15 19 15 / 0.08), 0 1px 2px -1px rgb(15 19 15 / 0.05)`): defined, unused in the kit so far.
-- **md** (`0 6px 14px -4px rgb(15 19 15 / 0.12), 0 2px 4px -2px rgb(15 19 15 / 0.06)`): overlays (the typeahead list).
+- **md** (`0 6px 14px -4px rgb(15 19 15 / 0.12), 0 2px 4px -2px rgb(15 19 15 / 0.06)`): overlays (the typeahead list, a `Menu`, the bulk bar).
 - **lg** (`0 16px 32px -8px rgb(15 19 15 / 0.16), 0 4px 8px -4px rgb(15 19 15 / 0.06)`): the record sheet and the toast.
+- **edge** (`inset 0 0 0 1px rgb(216 216 212 / 0.7)`): the soft edge of a secondary button, a segmented control, the results panel and an `outlined` section. Not a border: it takes no layout and draws inside the box.
 - **bloom** (`0 0 0 4px rgb(63 227 116 / 0.28)`): the signal dot's glow, and nothing else.
 - **glass** (`inset 0 1px 0 rgb(255 255 255 / 0.7), 0 1px 3px rgb(15 19 15 / 0.08)`): defined for frosted panels; the kit currently uses `.glass` without it.
 
 ### Named Rules
-**The Hairline Rule.** Surfaces separate by a 1px `line-subtle`, not a shadow. A shadow means something floats over the page: an overlay takes `md`, a dialog or toast takes `lg`.
+**The Tone First Rule.** Regions separate by tone and spacing; a 1px `line-subtle` draws only where two regions truly meet (row and row, header and body, list and pane). A box inside a box is a defect: a section's panel is `surface` on `canvas` with no border, and the things inside it (tiles, stats, chips, buttons) take tone, not outlines. A shadow means something floats over the page: an overlay takes `md`, the toast `lg`.
 **The Tinted Shadow Rule.** Every shadow is `ink-strong` at low alpha. A neutral black shadow is not in the vocabulary.
 
 ## Shapes
 
 Softly squared. Controls, chips, badges, marks, result cards and the nav row take a 6px radius (`sm`); panels, cards in a section, the lock card, error notes and the toast take 10px (`md`); the 16px checkbox, skeleton bars, the V2 tag, the small source mark and the `kbd` hint take 3px (`xs`); 14px (`lg`) is defined for dialogs and 20px (`xl`) for marketing frames, neither used in the app. Full radius is for the live dot, the meter, the account initial and the composer's 32px send disc. The sheet is square-cornered and pinned to the viewport edge.
 
-Borders are always 1px. A dashed `quiet-line` border marks nothing on file; a solid `line-strong` outline marks an input or a control; a 1px inset `brand` ring marks the active nav row; a tier-coloured 1px ring frames a register's logo. The locked contact block is filled with a 135° stripe (6px `locked`, 1px `locked-stripe`), never a blur.
+Borders are always 1px, and rare. A dashed `quiet-line` border marks nothing on file; a solid `line-strong` outline marks an input, a select or a checkbox; a 1px inset `brand` ring marks the active nav row; a tier-coloured 1px ring frames a register's logo. The locked contact block is filled with a 135° stripe (6px `locked`, 1px `locked-stripe`), never a blur.
 
 ## Components
 
-Restrained and tactile: flat, outlined, a 2% press, colour changes on a 120 ms clock.
+Restrained and tactile: flat, tonal, a 2% press, colour changes on a 120 ms clock.
 
-### Buttons
-- **Shape:** softly squared (6px), 32px tall, 12px side padding, 13px medium; `lg` is 40px tall with 16px padding for the sheet's action bar; `icon` makes it a 32px or 40px square.
-- **Default:** `surface` fill, `line-strong` 1px outline, `ink` text; hover fills `surface-sunken`.
-- **Primary:** `brand` fill and border, `brand-on` text; hover `brand-hover`, pressed `brand-active`; disabled becomes `surface-sunken` with `line` border and `ink-disabled` text. One primary per screen.
-- **Ghost:** no outline, `ink-muted` text; hover fills `surface-sunken`.
-- **Press / Focus:** every button scales to 0.98 while held (120 ms in and out, still under reduced motion); colour, border and shadow move on the same 120 ms clock; focus is the global 2px `focus` outline offset 2px.
-- **Segmented toggle (`Seg`):** the same outline and height, 36px cells divided by `line-strong`; the active cell fills `brand-tint` with `brand-ink` and a 2px inset `brand` rule along its bottom.
+### Buttons (the quiet system, 27 Sep 2026)
+Four tiers drawn by tone, never by outline; three sizes; six states on every tier.
+- **Primary:** `brand` fill, `brand-on` text; hover `brand-hover`, pressed `brand-active`. One per screen: on the results it lives in the pane (the record's Send RFQ, the composer's Send), never on every row.
+- **Secondary (`default`):** `surface-sunken` fill with the `edge`, `ink` text; hover fills `line` and lifts the text to `ink-strong`. The workhorse: Save, Open, Save search, Export, a row's RFQ.
+- **Tertiary (`ghost`):** text only, `ink-muted`; hover fills `surface-sunken`. Close, Back, a menu's summary, Clear.
+- **Danger:** `danger-tint` fill, `danger-ink` text; hover fills `danger` with `danger-on`. Delete, Cancel order, and only inside an inline confirm.
+- **Sizes:** `sm` 28px (12px text, 8px padding) in table rows and panel headers; `md` 32px (13px, 12px padding) everywhere else; `lg` 36px (13px, 14px padding) in a sheet's action bar and a form's footer. `icon` makes any size square and requires an accessible name.
+- **States:** pressed scales to 0.98 while held (120 ms, still under reduced motion); focus is the global 2px `focus` outline offset 2px; disabled drops to `ink-disabled` on the tier's own ground with no press and a `not-allowed` cursor, and a disabled control carries its reason in visible text beside it, never only in a `title`; loading swaps the leading icon for a spinning `CircleNotch`, sets `aria-busy` and disables the control without changing its width.
+- **Icons:** a leading 16px Phosphor icon only where the verb has one (send, save, create, delete, download); none on a plain text action; an icon-only control carries its name.
+- **Segmented control (`Seg`):** one component for every switch (table | cards, a template, a density): 32px on `surface` with the `edge`, stops divided by `line`, icon stops 36px square or text stops with 10px padding; the active stop fills `brand-tint` with `brand-ink` and a 2px inset `brand` rule along its bottom; every stop insets its focus ring.
+- **Menu:** a ghost summary with a caret that turns when open; the panel is `surface` with a `line` border and the `md` shadow, rows 32px with a check beside the active one. Sort, density, rows per page, a row's more actions.
 
 ### Chips
 - **Style:** 26px minimum, 13px medium, 6px radius, 10px side padding; `compact` is 22px and 12px text for a table row. Width is the data's: a chip wraps its text and never truncates.
@@ -410,12 +445,11 @@ Restrained and tactile: flat, outlined, a 2% press, colour changes on a 120 ms c
 - **Badge:** 20px, 12px medium, 6px radius, 7px padding; tones `positive`, `caution`, `type` (sunken grey), `sanction`, `smart`. A certificate state, an RFQ status, a company type.
 - **V2 tag:** 10px mono on `smart-tint` with a `smart-line` border, 3px radius. The stamp on every AI-assisted surface.
 
-### Cards / Containers
-- **Corner Style:** 10px on a section panel, a stat block, a cert card, the lock card, an error note; 6px on the result card.
-- **Background:** `surface` on `canvas`.
+### Panels and sections
+- **Section (`PageSection`):** a heading row (15px semibold title, a caption, an action) above a `surface` panel on the `canvas`: no border, 10px radius. `outlined` adds the `edge` where the panel sits on white; `bare` drops the panel for content that brings its own.
+- **Inside a panel:** tone, not boxes. A tile or a stat is `canvas` on the white panel; a chip in a list is `surface-sunken`; a cert card keeps its 1px `line-subtle` because it is a record of its own.
 - **Shadow Strategy:** none in a list; see Elevation.
-- **Border:** 1px `line-subtle`; `locked-line` on the lock card.
-- **Internal Padding:** 10px by 12px (result card), 12px by 14px (stat block, cert card), 16px (lock card), 20px by 24px (sheet section).
+- **Internal Padding:** 10px by 12px (result card), 12px by 14px (stat block, cert card), 16px (lock card, a panel's body), 20px by 24px (sheet section).
 
 ### Inputs / Fields
 - **Style:** 32px tall, `surface` fill, 1px `line-strong` outline, 6px radius, 10px side padding, 13px text; placeholder in `ink-subtle` at full opacity (set once in `ds.css`).
@@ -432,8 +466,26 @@ Restrained and tactile: flat, outlined, a 2% press, colour changes on a 120 ms c
 ### Source Mark (signature)
 A 20px square (16px beside a single fact, 32px heading a Sources row) with a 6px radius (3px at 16px), filled by rank on the tier ramp, carrying a two-letter mono stamp; tier 5 is white with a `tier-5-line` outline. A register with an approved logo shows it in one colour (`ink-strong` through a mask) in a white frame ringed 1px by rank. Marks row up best-rank-first with a 3px gap and a 12px caption ("11 sources"), and the row wraps. Every mark carries the register's name and tier in its accessible name, and links to the register page when the record has one.
 
+### Ledger Grid (signature)
+The working view of every list, and the default of the search. One `DataTable` grammar: a header row of 12px medium `ink-muted` labels on `surface`, sticky to the top of the column's scroll from 1280px; sortable headers are links with `aria-sort` and a caret on the active column; rows 36px (`compact` 32, `comfortable` 44) divided by `line-subtle`; numbers right-aligned and tabular; the whole row lit `surface-sunken` on hover and on keyboard focus; the row open in the pane marked `brand-tint` with `aria-current`; a selected row carries a 2px inset `brand` rule, a sanctioned one the 3px `sanction` rule and the word under its name. A row's actions (Save, Open, RFQ) appear on hover and on focus inside the row, 28px secondary. The keyboard: ↑ ↓ (or j k) move between rows, ↵ opens the record, Space selects, r opens the RFQ composer for the row, s saves. Export lines read as codes in mono; certificates as two compact chips and a count; a name wraps and never ellipsises.
+
 ### Record Sheet (signature)
-A `surface` pane beside the results, both live: from 1024px it is `clamp(480px, 55%, 760px)` of the content region with a 1px `line` left rule, below that the whole region. Nothing modal, no scrim, no shadow. It enters by sliding 32px in from the right (320 ms, `cubic-bezier(0.16, 1, 0.3, 1)`); closing is a navigation back to the search and lands at once. Inside: a 52px bar (title, read range, source count, Share), the record head (48px initials tile on the top source's rank colour, the name in Headline, facts inline, the marks row), tabs, then sections at 24px by 20px each under a hairline. The contact block is a `LockCard`: striped ground, `ink-strong` label, `locked-ink` copy, and a count sentence, never a blurred detail. The action bar at the foot holds one primary `lg` button beside default ones.
+A `surface` pane beside the results, both live: from 1024px it is `clamp(480px, 55%, 760px)` of the content region with a 1px `line` left rule, below that the whole region. Nothing modal, no scrim, no shadow. It enters by sliding 32px in from the right (320 ms, `cubic-bezier(0.16, 1, 0.3, 1)`); closing is a navigation back to the search and lands at once. Inside: a 52px bar (title, read range, source count, Share), the record head (48px initials tile on the top source's rank colour, the name in Headline, facts inline, the marks row), tabs that stick to the top of the pane's scroll, then sections at 24px by 20px each under a hairline; Sources, Locations, Facilities and RFQs fold behind their heading. A fact without a per-field mark says "source pending" in the mark's slot on its own row. A certificate's scope is laid out as the register's own labelled parts (Operations, Products), and the product list merges spellings, sorts and folds after eight. The contact block is a `LockCard`: striped ground, `ink-strong` label, `locked-ink` copy, and a row per kind of contact on file (email, phone, website, contact person) with its count, never a value and never a blurred detail. The action bar at the foot holds one primary `lg` Send RFQ, which opens the composer in the same pane, beside a secondary Save.
+
+### RFQ Composer (signature)
+The one place a buyer writes to suppliers, opened inside the shell: in the wide pane beside the results (`?rfq=` on the search, carrying one supplier or the ticked selection, up to 50), beside a record (with Back to it), or as the content region of `/app/rfqs/new` for a deep link or a saved draft. A 52px bar (Back, "New RFQ", who it goes to, Draft saved, Close); then the targets on `surface-sunken` with their marks and a remove each; the product (title, description, quantity, unit, target price, currency, ship to, ship by: selects where the answer is a list); the message, filled from the workspace's template with its facts, a missing fact shown in brackets and named under the field; the questions, ticked on by default, removable, with an add field. Beside the fields from 1280px, the preview of what the RFQ carries on `surface-sunken`. A frosted footer names what is still needed in caution ink, or the sanction in maroon, holds Save draft (secondary) and Send RFQ (primary, with its ⌘↵ hint), and Send stays disabled until nothing is missing and no target is sanctioned; the server refuses a sanctioned target too. On send the pane closes onto the search it sat beside, and a toast says "RFQ sent" with a link to it.
+
+### Filter pane
+Add filter opens the filters in the pane beside the results, one GET form grouped the way a sourcing manager thinks: what it exports (HS heading with the catalogue's suggestions), what it holds (certificate and its state, RSC), who filed it (registers as ticks, a minimum count), who lists it (brands as ticks), where it is, what kind of company. Selects and ticks, never a typed syntax. Apply is the pane's one primary; each chip in the search bar removes one filter.
+
+### Lists with a pane (orders, RFQs, saved, messages)
+Every list works like the search: the ledger on the left, the thing opened from it beside it (`?open=<id>` on orders, RFQs and saved suppliers; `?record=<slug>` on a conversation), Close back to the same list, focus returned to the row that opened it. A deep link to one order or RFQ still has a page of its own, drawn inside the shell, never under a loading screen that would hide a 404. A quote is accepted from the RFQ pane in place; an order's milestones read as a dated list, newest first.
+
+### Product base
+The buyer's own products, the thing an RFQ is about. The list is a ledger with a photo tile, number, category, price, MOQ and state, tabbed Draft, Active and Archived. New product asks once how to start: "Start manually" (the default: only the name is required) or "Start with AI", which exists only behind the AI flag and says it arrives with V2 until then. The form is sections on tonal panels: Basic, Classification, Media, Variants (options and every combination), Size chart (points of measure with tolerances), BOM, Production, Tech pack. A saved product carries "Send RFQ", which opens the composer prefilled from it; suppliers are added there from saved suppliers, a search, or recent RFQs.
+
+### Settings
+One content region with a section list: Workspace (company facts the RFQ template reads), Subscription (the plan and what it unlocks, no fake checkout), Members (arrives with Enterprise, said plainly), Inquiry (the default questions and the message template, with its variables named), Profile, Notifications. Each section saves in place with a toast; nothing is a modal.
 
 ### Empty State
 Centred in the panel: a 128px spot illustration (single-weight `ink` line art with one `brand` fill, from `public/illustrations/`, rising 8px over 320 ms), a 17px semibold title, one line of 14px `ink-muted` copy, and one action. `compact` drops to an 88px image and 32px vertical padding; `QuietEmpty` inside a sheet is a 36px `surface-sunken` icon disc and a left-aligned title. No warning colour anywhere in an empty state.
@@ -452,8 +504,12 @@ A `surface-inverse` pill (10px radius, 10px by 14px padding, `lg` shadow) with `
 - **Do** draw the locked contact state with `.locked-pattern` and a count sentence; the card claims only what the count says.
 - **Do** use Phosphor regular at 16px (12px inside a chip), taking the text colour beside it, and name it only when it is not decorative.
 - **Do** add any new text/background pair to `contrastPairs` before using it; an unlisted pair is unchecked.
+- **Do** format every date, time, amount and quantity through `lib/dashboard/facts.ts` (`formatDay` "12 May 2027", `formatTime` "12 Sep 2026, 14:30", `formatRelative` for a secondary caption only, `formatMoney` "6.15 USD", `formatQuantity` "12,000 pcs"); a locale-dependent `toLocaleDateString` is a defect.
 
 ### Don't:
+- **Don't** open a secondary interface as a page jump or a modal over the shell: it opens in the pane beside where the buyer is, and Close returns there.
+- **Don't** put a border round a panel on the canvas, or a box inside a box; group by tone and spacing.
+- **Don't** put a primary button on every row of a list; the one primary lives in the pane.
 - **Don't** show a score, grade, rating, star or percentage of fit on a buyer surface; the remediation percentage is a filed figure with its source, not a judgment.
 - **Don't** put brand green on a chip, badge, state, or fact; verified is `positive` teal, and the only green fills are the primary button, the logo, and the active nav row's tint.
 - **Don't** reuse `sanction` for an error, or `danger` for a sanction.

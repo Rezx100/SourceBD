@@ -2,9 +2,11 @@
 //
 // Reads the caller's settings via `settings_get` and mounts four client
 // islands: picture, display name, email and password. The picture posts to
-// /api/v1/settings/avatar; the other three POST to /api/v1/settings.
+// /api/v1/settings/avatar; the other three POST to /api/v1/settings. Sign out
+// sits at the foot (it was on the old overview page, which is now Workspace).
 
-import { ErrorNote, Page } from "@/components/dashboard/page";
+import { Button } from "@/components/dashboard/controls";
+import { ErrorNote, Page, PageSection } from "@/components/dashboard/page";
 import { type SettingsDoc, SettingsFrame, SettingsHeader } from "@/components/dashboard/settings";
 import { SettingsAvatarForm } from "@/components/settings-avatar-form";
 import { SettingsChangeEmailForm } from "@/components/settings-change-email-form";
@@ -44,6 +46,12 @@ async function SettingsProfilePageBody() {
             <SettingsChangePasswordForm />
           </>
         )}
+
+        <PageSection title="Session" caption="End your session on this device">
+          <form action="/auth/sign-out" method="post" className="p-4">
+            <Button type="submit">Sign out</Button>
+          </form>
+        </PageSection>
       </SettingsFrame>
     </>
   );

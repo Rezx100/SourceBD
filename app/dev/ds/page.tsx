@@ -32,7 +32,7 @@ import { DashboardScreens } from "./dashboard-screens";
 export const dynamic = "force-dynamic";
 
 // Design-system gallery — tokens, the locked direction (spec §9) and, from
-// REZ-A, the six buyer dashboard v3.2 screens rendered from real records.
+// REZ-A, the buyer screens rendered from real records, laid out as /app draws them.
 // Dev only and admin only, both checked on the server; otherwise 404.
 //
 // Spec §2 "nothing fake": the company names below are read live from the
@@ -176,8 +176,8 @@ export default async function DesignSystemGallery() {
 
   return (
     // Each screen renders its own `main` landmark, so the page must not wrap
-    // them in a seventh: `landmark-no-duplicate-main`, and six skip links that
-    // all resolved to the first screen.
+    // them in another: `landmark-no-duplicate-main`, and one skip link per
+    // screen that all resolved to the first.
     <div className="mx-auto max-w-content space-y-10 px-4 py-8 sm:px-6 lg:py-12">
       <header className="space-y-2">
         <p className="text-xs font-medium uppercase tracking-wide text-ink-subtle">
@@ -264,8 +264,8 @@ export default async function DesignSystemGallery() {
 
       <Section
         id="dashboard"
-        title="Buyer dashboard v3.2"
-        note="The six approved screens (handoff-dashboard-v3.2-implementation.md), built from the kit under components/dashboard and rendered at 1440 from production records through the same RPCs the buyer app calls. Nothing here is a route yet: REZ-B onwards wire them to /app."
+        title="Buyer screens"
+        note="The buyer screens as /app draws them since the enterprise pass (27 Sep 2026): the ledger grid first, the thumbnail cards, and the record, the line, the RFQ composer and the filter pane each in a pane beside the results; then the RFQ list. Built from the kit under components/dashboard and rendered at 1440 from production records through the same RPCs the buyer app calls."
       >
         <DashboardScreens data={dashboard} />
       </Section>

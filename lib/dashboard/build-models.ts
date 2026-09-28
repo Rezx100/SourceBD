@@ -1720,7 +1720,7 @@ export function buildRfqRow(
       : r.status === "closed" || r.status === "cancelled"
         ? { tone: "type", label: r.status === "closed" ? "Closed" : "Cancelled" }
         : r.quote_count > 0
-          ? { tone: "positive", label: `Quoted · ${r.quote_count}`, icon: "check-c" }
+          ? { tone: "type", label: `Quoted · ${r.quote_count}`, icon: "check-c" }
           : { tone: "type", label: "Open · no quote yet", icon: "send" };
   // `rfq_list` emits `coalesce(array_length(target_supplier_ids,1), 0)`, so a
   // draft with no target counts 0 — and `Math.max(1, undefined)` is NaN, which
