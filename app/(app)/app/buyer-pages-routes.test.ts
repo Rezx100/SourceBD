@@ -11,7 +11,6 @@
 
 import assert from "node:assert/strict";
 import { type ReactElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { prerenderToNodeStream } from "react-dom/static";
 import { after, describe, it } from "node:test";
 import path from "node:path";

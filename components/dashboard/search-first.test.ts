@@ -330,7 +330,7 @@ describe("10. the same worker figures in the search and on Saved", () => {
 
 describe("11. sticky headers meet the top of their scroll region", () => {
   it("the results column's gutter is inside it, not on the scroll region", () => {
-    const html = render(createElement(ResultsColumn, { children: createElement("p", null, "x") }));
+    const html = render(createElement(ResultsColumn, null, createElement("p", null, "x")));
     const outer = /^<div class="([^"]*)"/.exec(html)![1]!;
     assert.match(outer, /overflow-y-auto/);
     assert.doesNotMatch(outer, /(^|\s)(p|pt|py)-\d/, "padding on the scroll region stops a sticky header short of the top");
