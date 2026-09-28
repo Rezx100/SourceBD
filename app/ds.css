@@ -113,6 +113,66 @@
   }
 }
 
+/* The loading skeleton (`components/ui/skeleton.tsx`, every `loading.tsx`).
+   Its rules lived only in the old design's globals.css, which the buyer app
+   stopped loading at the rebuild: every bar rendered as an empty inline span,
+   so a page that was loading showed a blank content region (founder's
+   walkthrough, 28 Sep 2026). A bar is the `skeleton` token with a slow sweep
+   of `skeleton-shine`; the reduced-motion rule below stills the sweep and
+   leaves the shape. `craft.test.ts` holds these rules to this file. */
+@layer components {
+  .skel {
+    position: relative;
+    display: block;
+    flex-shrink: 0;
+    overflow: hidden;
+    max-width: 100%;
+    border-radius: 3px;
+    background-color: rgb(var(--ds-skeleton));
+  }
+
+  .skel::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(90deg, transparent 0%, rgb(var(--ds-skeleton-shine) / 0.75) 50%, transparent 100%);
+    transform: translateX(-100%);
+    animation: ds-skel-sweep 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+
+  .skel.tone-soft {
+    background-color: rgb(var(--ds-surface-sunken));
+  }
+
+  /* A panel-sized block: the white panel on the canvas, as the real one is. */
+  .skel.tone-card {
+    border-radius: 10px;
+    background-color: rgb(var(--ds-surface));
+  }
+
+  .skel.tone-card::after {
+    background-image: linear-gradient(90deg, transparent 0%, rgb(var(--ds-canvas) / 0.9) 50%, transparent 100%);
+  }
+
+  .skel.pill {
+    border-radius: 9999px;
+  }
+
+  .skel.circle {
+    border-radius: 50%;
+  }
+
+  .skel.card {
+    border-radius: 10px;
+  }
+}
+
+@keyframes ds-skel-sweep {
+  to {
+    transform: translateX(100%);
+  }
+}
+
 /* Spec §2: works without animation when the device asks for that. */
 @media (prefers-reduced-motion: reduce) {
   *,

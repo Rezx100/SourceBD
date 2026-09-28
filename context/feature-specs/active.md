@@ -46,6 +46,8 @@ same PR. Read once per session.
   One-viewport shell (the layout draws the shell once, the record beside
   the results): LIVE 27 Sep (`3f628b9`); hand-off `handoff-one-viewport-shell.md`.
 
+- **Search-first buyer app** (28 Sep, founder's walkthrough video): the 14 fixes in `current-state.md`; branch `search-first-buyer-app`, one PR to `development`.
+
 ## Queued
 - **Entity resolution core** — `spec-resolution-core.md` (4 Aug). Batch
   resolution stage over immutable `staging_records`; LLM adjudicator for the

@@ -3,7 +3,9 @@
 // colour beside them and are decorative unless a label is passed.
 
 import {
+  ArrowElbowDownLeft,
   ArrowRight,
+  ArrowUpLeft,
   ArrowSquareOut,
   ArrowsDownUp,
   ArrowsLeftRight,
@@ -18,6 +20,7 @@ import {
   CheckCircle,
   CircleNotch,
   Clock,
+  ClockCounterClockwise,
   DotsThree,
   GearSix,
   DownloadSimple,
@@ -35,6 +38,8 @@ import {
   Rows,
   ShareNetwork,
   ShieldCheck,
+  SidebarSimple,
+  SlidersHorizontal,
   Sparkle,
   Tag,
   Trash,
@@ -91,28 +96,38 @@ export const ICONS = {
   pencil: PencilSimple,
   columns: Columns,
   rows: RowsPlusBottom,
+  // The search (28 Sep 2026): a recent search, "put this in the field", the
+  // Enter hint, opening a record in the pane beside the list, and All filters.
+  history: ClockCounterClockwise,
+  "fill-in": ArrowUpLeft,
+  enter: ArrowElbowDownLeft,
+  pane: SidebarSimple,
+  sliders: SlidersHorizontal,
 } as const;
 
 export type IconName = keyof typeof ICONS;
 
 type IconProps = { size?: number; weight?: "regular" | "bold" | "fill"; className?: string; role?: string; "aria-hidden"?: boolean; "aria-label"?: string };
 
-/** A 16px icon (12px with `small`). Decorative unless `label` is given. */
+/** A 16px icon (12px with `small`, or any `size` the caller names). Decorative unless `label` is given. */
 export function Icon({
   name,
   small = false,
+  size,
   label,
   className,
 }: {
   name: IconName;
   small?: boolean;
+  /** A size other than 16 or 12: the search landing's 20px field icon. */
+  size?: number;
   label?: string;
   className?: string;
 }) {
   const C = ICONS[name] as ComponentType<IconProps>;
   return (
     <C
-      size={small ? 12 : 16}
+      size={size ?? (small ? 12 : 16)}
       weight="regular"
       className={className ? `shrink-0 ${className}` : "shrink-0"}
       // A named `<svg>` with no role is neither a control nor a reliably

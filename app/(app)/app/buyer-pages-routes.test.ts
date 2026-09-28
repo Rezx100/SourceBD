@@ -11,7 +11,7 @@
 
 import assert from "node:assert/strict";
 import { type ReactElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
+import { prerenderToNodeStream } from "react-dom/static";
 import { after, describe, it } from "node:test";
 import path from "node:path";
 
@@ -103,8 +103,26 @@ function given(a: Answers): void {
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- the stub must be installed before the route module loads.
 const route = (p: string) => require(resolved(p));
 
+/**
+ * The page as a browser receives it once every streamed part has arrived.
+ * The search and Saved stream the record into its pane (28 Sep 2026), and
+ * `renderToStaticMarkup` stops at a `Suspense` boundary's fallback; React's
+ * static prerender waits for the content. Its hydration comments are dropped
+ * so the markup reads as `renderToStaticMarkup`'s did. A `notFound()` or
+ * `redirect()` thrown inside a boundary is rethrown, as it would be at the top.
+ */
+async function renderStreamed(el: ReactElement): Promise<string> {
+  const errors: unknown[] = [];
+  const { prelude } = await prerenderToNodeStream(el, { onError: (err: unknown) => void errors.push(err) });
+  let out = "";
+  for await (const chunk of prelude) out += String(chunk);
+  const thrown = errors.find((e) => typeof (e as { digest?: unknown })?.digest === "string") ?? errors[0];
+  if (thrown) throw thrown;
+  return out.replace(/<!--[\s\S]*?-->/g, "");
+}
+
 async function render(run: () => Promise<ReactElement>): Promise<string> {
-  return renderToStaticMarkup(await run());
+  return renderStreamed(await run());
 }
 
 /** What a reader sees: the markup with its tags removed. */

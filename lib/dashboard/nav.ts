@@ -22,7 +22,10 @@ export type NavKey =
 // which the supplier portal and admin still render (WCAG 3.2.3: the same
 // items in the same order on every page).
 export const NAV: readonly { key: NavKey; label: string; icon: IconName; href: string }[] = [
-  { key: "search", label: "Search", icon: "search", href: "/app/discover" },
+  // Search opens the search landing, the app's first viewport (founder,
+  // 28 Sep 2026): one large field, filters and templates, no supplier listed
+  // until the buyer asks. Suppliers is the whole ledger.
+  { key: "search", label: "Search", icon: "search", href: "/app" },
   { key: "suppliers", label: "Suppliers", icon: "building", href: "/app/discover" },
   // The buyer's own product base (enterprise pass, 27 Sep 2026); the HS
   // catalogue that used to sit at /app/products lives at /app/headings.
@@ -44,16 +47,21 @@ export const NAV: readonly { key: NavKey; label: string; icon: IconName; href: s
  * being on a page they are not on (WCAG 4.1.2), so the key is resolved from
  * the path and never named by a caller.
  *
- * `/app/discover` matches `search` before `suppliers`; both link there and the
- * first is the one the rail has always highlighted. `/app/suppliers/<slug>`
- * belongs to Suppliers although that row points at the search.
+ * `/app/discover` — a search's results — sits under Search, whose page is
+ * the landing at `/app`; the rail has always highlighted Search there, and
+ * the Suppliers row that also links to it is the whole ledger rather than a
+ * page of its own. `/app/suppliers/<slug>` belongs to Suppliers although that
+ * row points at the search.
  */
 export function navMatch(pathname: string): { key: NavKey | null; exact: boolean } {
   const path = pathname.replace(/[?#].*$/, "").replace(/(.)\/+$/, "$1");
+  if (path === "/app/discover") return { key: "search", exact: false };
   const hit = NAV.find((item) => item.href === path);
   if (hit) return { key: hit.key, exact: true };
   // Longest href wins so /app/searches/new cannot be claimed by /app/search-anything.
-  const under = NAV.filter((item) => path.startsWith(item.href + "/")).sort((a, b) => b.href.length - a.href.length);
+  // The landing's `/app` is the app's root, not a section: every page is under
+  // it, and matching it as a prefix marked Search current on all of them.
+  const under = NAV.filter((item) => item.href !== "/app" && path.startsWith(item.href + "/")).sort((a, b) => b.href.length - a.href.length);
   if (under[0]) return { key: under[0].key, exact: false };
   if (path === "/app/suppliers" || path.startsWith("/app/suppliers/")) {
     return { key: "suppliers", exact: false };

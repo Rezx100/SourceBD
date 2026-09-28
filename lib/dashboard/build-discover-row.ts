@@ -81,7 +81,7 @@ export function workersBasisLabel(
  *   with words that say what it covers — taken from the batch's own account of
  *   which sites it summed, never inferred from the numbers.
  */
-export function discoverWorkers(row: DiscoverV32Row): {
+export function discoverWorkers(row: Pick<DiscoverV32Row, "employees_total" | "workers_basis" | "workers_own" | "workers_source">): {
   own: number | null;
   ownLabel: string | null;
   second: number | null;
@@ -114,6 +114,30 @@ export function discoverWorkers(row: DiscoverV32Row): {
 
 function secondLine(w: ReturnType<typeof discoverWorkers>): string | null {
   return w.second == null ? null : `${formatCount(w.second)} workers${w.secondLabel ? ` · ${w.secondLabel}` : ""}`;
+}
+
+/**
+ * The second figure in a few words, for a table cell where the full line
+ * does not fit: "793 RSC", "5,195 with buildings". It used to live only in
+ * the cell's hover title (and under the figure in the comfortable density),
+ * so the list read 770 where the record beside it read 793, and Saved — which
+ * printed the profile's figure alone — read 5,195 against the search's 2,030
+ * for one factory (founder's walkthrough, 28 Sep 2026). Now both figures are
+ * on screen wherever the two differ, in every list, with the same words.
+ */
+export function workersSecondShort(w: ReturnType<typeof discoverWorkers>): string | null {
+  if (w.second == null) return null;
+  const n = formatCount(w.second);
+  switch (w.secondLabel) {
+    case "RSC inspection":
+      return `${n} RSC`;
+    case "across this record and its buildings":
+      return `${n} with buildings`;
+    case "across its buildings, not this record":
+      return `${n} in buildings`;
+    default:
+      return `${n} on profile`;
+  }
 }
 
 /** "8 registers & certifiers" — the population `p_min_sources` filters on. */
@@ -349,6 +373,7 @@ export function buildDiscoverTableRow(
     workers: w.own,
     workersCoverage: w.ownLabel,
     workersSecond: secondLine(w),
+    workersSecondShort: workersSecondShort(w),
     sanctioned: card.sanctioned,
     selected: false,
     saved: Boolean(opts.saved),

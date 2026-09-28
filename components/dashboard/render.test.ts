@@ -305,12 +305,12 @@ const ledgerRow = (input: RecordInput) => {
 };
 
 describe("ResultsTable (rendered) — the ledger grid", () => {
-  it("36px rows by default; the sanctioned row carries the rule, the word and an RFQ action that is withheld and says why", () => {
+  it("40px rows by default; the sanctioned row carries the rule, the word and an RFQ action that is withheld and says why", () => {
     const rows = [ledgerRow(aboniInput()), ledgerRow(zaheenSampleInput()), ledgerRow(arFashionInput())];
     const html = renderToStaticMarkup(createElement(ResultsTable, { rows }));
     const cells = [...html.matchAll(/<(?:td\b|th scope="row")[^>]*class="([^"]*)"/g)].map((m) => m[1]!);
-    assert.ok(cells.length > 0 && cells.every((c) => c.split(/\s+/).includes("h-9")), "every body cell is a 36px row");
-    assert.match(html, /GOTS valid/);
+    assert.ok(cells.length > 0 && cells.every((c) => c.split(/\s+/).includes("h-10")), "every body cell is a 40px row");
+    assert.match(html, /aria-label="GOTS, Valid/);
     assert.match(html, /3,166/);
     assert.match(html, /data-sanctioned="true"/);
     assert.match(html, /Sanctioned · sample/);
@@ -329,13 +329,13 @@ describe("ResultsTable (rendered) — the ledger grid", () => {
     assert.doesNotMatch(html, HAND_TYPED_COLOUR);
   });
 
-  it("the density stops are 32, 36 and 44px rows", () => {
+  it("the density stops are 36, 40 and 48px rows", () => {
     const rows = [buildTableRow(aboniInput())];
     const h = (density: "compact" | "default" | "comfortable") =>
       /<th scope="row"[^>]*class="([^"]*)"/.exec(renderToStaticMarkup(createElement(ResultsTable, { rows, density })))![1]!.split(/\s+/);
-    assert.ok(h("compact").includes("h-8"));
-    assert.ok(h("default").includes("h-9"));
-    assert.ok(h("comfortable").includes("h-11"));
+    assert.ok(h("compact").includes("h-9"));
+    assert.ok(h("default").includes("h-10"));
+    assert.ok(h("comfortable").includes("h-12"));
   });
 
   // Cycle 5, finding 3: the row printed "not on EPB list" for a record holding
@@ -350,7 +350,7 @@ describe("ResultsTable (rendered) — the ledger grid", () => {
   it("every column has a name, and the select box outside a selection is inert, not a dead tab stop", () => {
     const html = renderToStaticMarkup(createElement(ResultsTable, { rows: [buildTableRow(aboniInput())] }));
     const heads = [...html.matchAll(/<th scope="col"[^>]*>([\s\S]*?)<\/th>/g)].map((m) => m[1]!);
-    assert.equal(heads.length, 7, "select, supplier, sources, certificates, export lines, type, workers");
+    assert.equal(heads.length, 7, "select, supplier, sources, certificates, export lines, workers, actions (the type sits under the name)");
     for (const h of heads) assert.ok(h.replace(/<[^>]+>/g, "").trim(), `a column with no name: ${h}`);
     assert.match(html, /<span class="sr-only">Select<\/span>/);
     assert.match(html, /role="checkbox"[^>]*aria-disabled="true"/);
@@ -399,7 +399,7 @@ describe("ResultsTable (rendered) — the ledger grid", () => {
   it("beside a pane the ledger narrows to Supplier, Registers & certifiers and Workers", () => {
     const html = renderToStaticMarkup(createElement(ResultsTable, { rows: [buildTableRow(aboniInput())], compact: true }));
     const heads = [...html.matchAll(/<th scope="col"[^>]*>([\s\S]*?)<\/th>/g)].map((m) => m[1]!.replace(/<[^>]+>/g, "").trim());
-    assert.deepEqual(heads, ["Select", "Supplier", "Registers &amp; certifiers", "Workers"]);
+    assert.deepEqual(heads, ["Select", "Supplier", "Registers &amp; certifiers", "Workers", "Actions"]);
     assert.match(html, /Aboni Knitwear Ltd/);
   });
 
@@ -2581,7 +2581,8 @@ describe("each result's actions are tied to its supplier (WCAG 2.4.4)", () => {
       const th = tr.match(/<th\b[^>]*scope="row"[^>]*>([\s\S]*?)<\/th>/);
       assert.ok(th, `row ${i} has no row header, so its actions have no supplier context`);
       assert.ok(text(th[1]!).includes(rows[i]!.name), `row ${i}'s header is not its supplier: ${text(th[1]!)}`);
-      assert.match(tr, />Open</, `row ${i}'s Open is not in the row its header names`);
+      // An icon button since 28 Sep 2026, named for its row's supplier.
+      assert.ok(tr.includes(`aria-label="Open ${rows[i]!.name} beside the results"`), `row ${i}'s Open is not in the row its header names`);
     });
   });
 
@@ -2722,7 +2723,8 @@ describe("the ⌘K the topbar advertises is a shortcut that exists", () => {
 
     // And the selector the handler uses has to match what this topbar renders.
     const live = shellHtml();
-    assert.match(live, /⌘K/, "the topbar with a real search form dropped its own shortcut hint");
+    // In the buyer's own keys since 28 Sep 2026: "Ctrl K" from the server, "⌘K" on a Mac after hydration.
+    assert.match(live, /aria-label="Control K"[^>]*>Ctrl<span>K<\/span>/, "the topbar with a real search form dropped its own shortcut hint");
     assert.match(live, /<form[^>]*role="search"/);
     assert.match(live, /<input[^>]*name="q"/);
 
@@ -2731,7 +2733,7 @@ describe("the ⌘K the topbar advertises is a shortcut that exists", () => {
     // at a 400-character window around the topbar placeholder and could not
     // see the sidebar's own Search row, which printed ⌘K unconditionally.
     const idle = shellHtml({ topbar: { caption: "", initial: null } });
-    assert.doesNotMatch(idle, /⌘K/, "a shell with no search form still advertises the shortcut somewhere");
+    assert.doesNotMatch(idle, /⌘K|Ctrl<span>K/, "a shell with no search form still advertises the shortcut somewhere");
     const idleTree = Topbar({ model: { caption: "", initial: null } });
     const idleMounted: unknown[] = [];
     const walk2 = (node: unknown): void => {

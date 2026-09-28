@@ -90,6 +90,8 @@ export type TableRowModel = {
   workersCoverage: string | null;
   /** Discover only: the profile's figure, when it differs from the headline. */
   workersSecond?: string | null;
+  /** The second figure in a few words for the cell ("793 RSC"); shown under the first wherever the two differ. */
+  workersSecondShort?: string | null;
   sanctioned: boolean;
   sanctionSample?: boolean;
   selected?: boolean;
@@ -115,6 +117,12 @@ export type FactRow = {
   badge?: { tone: "positive" | "caution" | "type"; label: string } | null;
   /** What a missing value reads as. Defaults to "Not on file", which claims the registers were read; "Not attested" and "Could not be read" do not. */
   empty?: string;
+  /**
+   * A value that is a list, one item a line with its own mark (the Registers
+   * row: "BGMEA General 6843" beside the BGMEA square). `value` still carries
+   * the whole list as one string for the CSV, the tests and a screen reader.
+   */
+  items?: { label: string; code: string | null; mark: SourceMarkModel | null }[];
 };
 
 /**

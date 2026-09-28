@@ -26,10 +26,10 @@ import { stepIndex, suggestionHint, suggestionHref, type Suggestion } from "./se
 const repoRoot = process.cwd();
 
 describe("typeahead: where a suggestion leads", () => {
-  it("a record opens its own page, slug encoded", () => {
+  it("a record opens beside a search for its name, slug encoded (28 Sep 2026: never a page of its own)", () => {
     const s: Suggestion = { type: "company", label: "Aboni Knitwear Ltd", sublabel: "Savar, Dhaka", slug: "aboni-knitwear" };
-    assert.equal(suggestionHref(s), "/app/suppliers/aboni-knitwear");
-    assert.equal(suggestionHref({ ...s, slug: "a b/c" }), "/app/suppliers/a%20b%2Fc");
+    assert.equal(suggestionHref(s), "/app/discover?q=Aboni+Knitwear+Ltd&record=aboni-knitwear");
+    assert.equal(suggestionHref({ ...s, slug: "a b/c" }), "/app/discover?q=Aboni+Knitwear+Ltd&record=a+b%2Fc");
   });
 
   it("a product runs as free text; a place and a certificate set their own filter", () => {
@@ -68,8 +68,11 @@ describe("typeahead: the topbar field as the browser receives it", () => {
     assert.match(html, /<input[^>]*data-search="topbar"/);
     assert.match(html, /<input[^>]*role="combobox"/);
     assert.match(html, /<input[^>]*value="polo"/);
-    assert.match(html, /<ul[^>]*role="listbox"[^>]*hidden/);
-    assert.doesNotMatch(html, /outline-none/, "the field must keep the global focus ring");
+    assert.match(html, /<div[^>]*role="listbox"[^>]*hidden/);
+    // The field keeps a focus indicator: the form's own outline and ring
+    // (28 Sep 2026) — the input's global ring was a second box inside it.
+    // `search-first.test.ts` pins the pair.
+    assert.match(html, /<form[^>]*focus-within:border-brand/);
   });
 
   it("shows the results page's own query, and elsewhere what the caller started it with", () => {

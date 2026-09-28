@@ -18,6 +18,7 @@
 import assert from "node:assert/strict";
 import { createElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { prerenderToNodeStream } from "react-dom/static";
 import { after, describe, it } from "node:test";
 import path from "node:path";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
@@ -172,10 +173,28 @@ after(() => {
   for (const mod of ["lib/supabase/server.js", "lib/dashboard/load-buyer-shell.js"]) delete require.cache[resolved(mod)];
 });
 
+/**
+ * The page as a browser receives it once every streamed part has arrived.
+ * The search and Saved stream the record into its pane (28 Sep 2026), and
+ * `renderToStaticMarkup` stops at a `Suspense` boundary's fallback; React's
+ * static prerender waits for the content. Its hydration comments are dropped
+ * so the markup reads as `renderToStaticMarkup`'s did. A `notFound()` or
+ * `redirect()` thrown inside a boundary is rethrown, as it would be at the top.
+ */
+async function renderStreamed(el: ReactElement): Promise<string> {
+  const errors: unknown[] = [];
+  const { prelude } = await prerenderToNodeStream(el, { onError: (err: unknown) => void errors.push(err) });
+  let out = "";
+  for await (const chunk of prelude) out += String(chunk);
+  const thrown = errors.find((e) => typeof (e as { digest?: unknown })?.digest === "string") ?? errors[0];
+  if (thrown) throw thrown;
+  return out.replace(/<!--[\s\S]*?-->/g, "");
+}
+
 /** `notFound()` and `redirect()` throw; this names which one a route reached. */
 async function outcome(run: () => Promise<ReactElement>): Promise<{ html: string } | { threw: string }> {
   try {
-    return { html: renderToStaticMarkup(await run()) };
+    return { html: await renderStreamed(await run()) };
   } catch (err) {
     const digest = (err as { digest?: string })?.digest;
     if (typeof digest === "string") return { threw: digest };
@@ -654,17 +673,17 @@ describe("/app/discover — the panes beside the results", () => {
   it("the ledger is the default view, the cards the other stop, and ?d= sets the row height", async () => {
     const table = html(await search({ q: "knit" }));
     assert.match(table, /data-row="result"/);
-    assert.match(table, /<th scope="row"[^>]*class="[^"]*\bh-9\b/);
+    assert.match(table, /<th scope="row"[^>]*class="[^"]*\bh-10\b/);
     const cards = html(await search({ q: "knit", view: "cards" }));
     assert.doesNotMatch(cards, /data-row="result"/);
     const compact = html(await search({ q: "knit", d: "compact" }));
-    assert.match(compact, /<th scope="row"[^>]*class="[^"]*\bh-8\b/);
+    assert.match(compact, /<th scope="row"[^>]*class="[^"]*\bh-9\b/);
     assert.match(compact, /<a (?=[^>]*role="menuitem")(?=[^>]*href="[^"]*d=compact")(?=[^>]*aria-current="true")/, "the density menu does not mark the stop that is on");
   });
 
   it("the row density survives opening and closing a record: every pane link and Close carry ?d=", async () => {
     const out = html(await search({ q: "knit", d: "compact", record: "aboni-knitwear" }));
-    assert.match(out, /<th scope="row"[^>]*class="[^"]*\bh-8\b/, "the open record reset the density");
+    assert.match(out, /<th scope="row"[^>]*class="[^"]*\bh-9\b/, "the open record reset the density");
     assert.match(hrefOf(out, /Close/), /[?&]d=compact(&|$)/, "Close drops the density");
     const opens = [...out.matchAll(/href="([^"]*record=[^"]*)"/g)].map((m) => m[1]!.replace(/&amp;/g, "&"));
     assert.ok(opens.length > 0, "guard: the rows link to their records");

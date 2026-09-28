@@ -32,9 +32,23 @@ export async function readRecordBeside(
 
 /** The pane: the record, or the notice that says why there is none. Close (and Escape) return to `closeHref`. */
 export function RecordBeside({ read, closeHref, retryHref }: { read: RecordBesideRead; closeHref: string; retryHref: string }) {
-  const { slug, model, slow } = read;
+  const { slug, model } = read;
   return (
     <RecordPane closeHref={closeHref} openKey={`${model ? "record" : "notice"}:${slug}`}>
+      <RecordBesideBody read={read} closeHref={closeHref} retryHref={retryHref} />
+    </RecordPane>
+  );
+}
+
+/**
+ * What goes inside the pane, without the pane: Saved draws its pane at once
+ * and streams this into it behind the record's silhouette, so the list never
+ * waits on the record's reads.
+ */
+export function RecordBesideBody({ read, closeHref, retryHref }: { read: RecordBesideRead; closeHref: string; retryHref: string }) {
+  const { model, slow } = read;
+  return (
+    <>
       {model ? (
         <SupplierSheet
           model={model}
@@ -54,6 +68,6 @@ export function RecordBeside({ read, closeHref, retryHref }: { read: RecordBesid
           closeHref={closeHref}
         />
       )}
-    </RecordPane>
+    </>
   );
 }

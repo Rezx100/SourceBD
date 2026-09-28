@@ -240,9 +240,11 @@ describe("ShellSwitch — one shell per page, on every navigation", () => {
     // Kit loading states draw the kit's frame: the layout draws none there.
     // The list pages keep theirs inside a `(list)` route group (27 Sep 2026),
     // so the detail pages beside them answer real status codes.
-    for (const route of ["discover", "products/(list)", "searches"]) {
+    // The search's and Saved's are their workbench frame itself
+    // (`ResultsColumn`, 28 Sep 2026), so the results replace them in place.
+    for (const route of ["discover", "saved", "products/(list)", "searches"]) {
       const loading = readFileSync(path.join(process.cwd(), "app", "(app)", "app", ...route.split("/"), "loading.tsx"), "utf8");
-      assert.match(loading, /<KitLoading\b/, `/app/${route}'s loading state has no frame`);
+      assert.match(loading, /<KitLoading\b|<ResultsColumn\b/, `/app/${route}'s loading state has no frame`);
     }
   });
 });

@@ -51,8 +51,49 @@ function rangeLabel(firstRow: number, shown: number): string {
   return `${formatCount(from)}–${formatCount(from + shown - 1)}`;
 }
 
-/** `as="h2"` when a record or line sits beside the results: its name is the page's h1 then. */
-export function PanelHeader({ model, as = "h1" }: { model: PanelHeaderModel; as?: "h1" | "h2" }) {
+/**
+ * `as="h2"` when a record or line sits beside the results: its name is the page's h1 then.
+ *
+ * `compact` beside an open pane: the results column is a third of the region
+ * there, and the full row of labelled controls wrapped onto three lines above
+ * the list (founder's walkthrough, 28 Sep 2026). Beside a pane the header
+ * keeps Sort and Save search as icon buttons on the title's line; density,
+ * export and the cards view wait for the pane to close.
+ */
+export function PanelHeader({ model, as = "h1", compact = false }: { model: PanelHeaderModel; as?: "h1" | "h2"; compact?: boolean }) {
+  if (compact) {
+    return (
+      <div className="flex items-center gap-2 border-b border-line-subtle px-3 py-2">
+        <SelectAllCheckbox />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <Title as={as} className="[overflow-wrap:anywhere]">
+            {model.title}
+          </Title>
+          <Caption>
+            {model.total === null
+              ? "count could not be read"
+              : `${formatCount(model.total)} ${model.total === 1 ? "supplier" : "suppliers"} · ${model.selection ?? rangeLabel(model.firstRow ?? 1, model.shown)}`}
+          </Caption>
+        </div>
+        <div className="flex shrink-0 items-center gap-0.5">
+          {model.sortOptions && model.sortOptions.length > 0 ? (
+            <Menu label={`Sort: ${model.sortLabel}`} size="sm" summary={<Icon name="sort" />}>
+              {model.sortOptions.map((o) => (
+                <MenuItem key={o.value} href={o.href} active={o.active}>
+                  {o.label}
+                </MenuItem>
+              ))}
+            </Menu>
+          ) : null}
+          {model.saveHref ? (
+            <Button size="sm" variant="ghost" icon href={model.saveHref} clientNav scroll={false} aria-label="Save search" title="Save search">
+              <Icon name="bookmark" />
+            </Button>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
   // `flex-wrap`, and gutters that shrink: in a 288px content column at 320px
   // a non-wrapping row of controls forced the whole DOCUMENT to scroll
   // sideways (WCAG 1.4.10 allows two-dimensional scrolling for a data table,
