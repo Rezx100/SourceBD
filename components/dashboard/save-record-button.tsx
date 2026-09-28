@@ -2,7 +2,7 @@
 
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { startTransition, useContext, useEffect, useId, useState } from "react";
-import { Button, type ButtonSize } from "@/components/dashboard/controls";
+import { Button, type ButtonSize, type ButtonVariant } from "@/components/dashboard/controls";
 import { Icon } from "@/components/dashboard/icons";
 import { Toast } from "@/components/dashboard/toast";
 import { onBulkSaved, rowSaveMessage } from "@/lib/dashboard/selection";
@@ -28,11 +28,14 @@ export function SaveRecordButton({
   saved,
   icon = false,
   size,
+  variant,
 }: {
   supplierId: string;
   saved: boolean;
   icon?: boolean;
   size?: ButtonSize;
+  /** `ghost` in a list row, where it sits in every row (the results' actions column). */
+  variant?: ButtonVariant;
 }) {
   const [on, setOn] = useState(saved);
   const [pending, setPending] = useState(false);
@@ -70,6 +73,8 @@ export function SaveRecordButton({
         type="button"
         icon={icon}
         size={size}
+        variant={variant}
+        title={icon ? (on ? "Saved · click to remove" : "Save") : undefined}
         data-save={supplierId}
         aria-busy={pending || undefined}
         aria-label={label}
@@ -77,7 +82,8 @@ export function SaveRecordButton({
         // again unsaves the supplier.
         aria-pressed={on}
         aria-describedby={status ? statusId : undefined}
-        className={icon ? "h-7 w-7" : undefined}
+        // A saved row's quiet icon reads as pressed: the sunken ground stays.
+        className={icon ? (variant === "ghost" && on ? "h-7 w-7 bg-surface-sunken text-ink-strong" : "h-7 w-7") : undefined}
         onClick={async () => {
           if (pending) return;
           setPending(true);

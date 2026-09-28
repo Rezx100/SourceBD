@@ -49,9 +49,11 @@ them in the pane beside the list, and lands back on the same search with a
 toast. Orders, RFQs, saved suppliers and conversations open the same way:
 beside their list, never instead of it.
 
-FIRST VIEWPORT: the ledger grid with the topbar search live, twenty rows
-above the fold at 1440; on a fresh account, the page's illustration, title and
-one action centred in the panel.
+FIRST VIEWPORT (founder, 28 Sep 2026): the search landing at `/app` — the
+rail, and in the middle one large search field with its suggestions, the
+one-click filters, the common searches as templates with live counts and the
+buyer's saved searches. No supplier is listed until the buyer searches; the
+ledger grid is the results. The old Home desk (alerts, activity) is on Saved.
 
 FORM: an extension of the established world, no seed (surface rounds run
 only on a new or replacement world; the founder pinned this one on 18 Sep and
@@ -70,7 +72,8 @@ provenance.
   Escape or Close, and returns focus to the row that opened it. No modal, no
   scrim, no page jump; a page of its own only for a deep link.
 - Ledger grid: sortable sticky headers, 36px rows, the open row marked, row
-  actions on hover and focus, ↑↓ j k ↵ Space r s on the keyboard.
+  actions always drawn in their own column (founder, 28 Sep 2026), ↑↓ j k ↵
+  Space r s on the keyboard.
 - Quiet buttons: four tiers by tone, 28/32/36, six states, one primary per
   screen.
 - Product to RFQ: a product from the product base opens the composer

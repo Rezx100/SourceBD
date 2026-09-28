@@ -45,7 +45,8 @@ describe("the buyer's two rails agree on where the buyer can go", () => {
 
   it("no rail entry points at a route with no page", () => {
     for (const href of [...slots.map((s) => s.href), ...NAV.map((n) => n.href)]) {
-      assert.match(href, /^\/app\/[a-z-]+$/, `${href} is not an /app route`);
+      // `/app` itself is the search landing (28 Sep 2026), a page of its own.
+      assert.match(href, /^\/app(?:\/[a-z-]+)?$/, `${href} is not an /app route`);
     }
   });
 });

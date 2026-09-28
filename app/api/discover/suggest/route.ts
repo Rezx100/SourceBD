@@ -19,6 +19,7 @@ import { createClient } from "@supabase/supabase-js";
 import { CERT_KINDS } from "@/components/discover/filter-rail";
 import { fetchDiscoverFacets } from "@/lib/discover-facets";
 import { formatCompanyName } from "@/lib/format-company-name";
+import { appSuggestions, placeWords } from "@/lib/search-suggest";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,7 +59,7 @@ type CompanyRow = {
   district: string | null;
 };
 
-async function fetchCompanies(q: string): Promise<CompanySuggestion[]> {
+async function fetchCompanyRows(q: string, limit: number): Promise<CompanyRow[]> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anonKey) return [];
@@ -77,7 +78,7 @@ async function fetchCompanies(q: string): Promise<CompanySuggestion[]> {
     p_district: null,
     p_category: null,
     p_sort: "default",
-    p_limit: MAX_COMPANIES,
+    p_limit: limit,
     p_offset: 0,
     p_registries: null,
     p_factory_types: null,
@@ -86,18 +87,39 @@ async function fetchCompanies(q: string): Promise<CompanySuggestion[]> {
     p_workers_min: null,
   });
 
-  if (error || !data) return [];
+  if (error || !Array.isArray(data)) return [];
+  return data as CompanyRow[];
+}
 
-  return (data as CompanyRow[]).map((row) => {
-    const location = [row.city, row.district]
-      .filter((v): v is string => Boolean(v && v.trim()))
-      .join(", ");
-    return {
-      type: "company" as const,
-      label: formatCompanyName(row.company_name),
-      sublabel: location || null,
-      slug: row.slug,
-    };
+async function fetchCompanies(q: string): Promise<CompanySuggestion[]> {
+  return (await fetchCompanyRows(q, MAX_COMPANIES)).map((row) => ({
+    type: "company" as const,
+    label: formatCompanyName(row.company_name),
+    // "Gazipur" once: a city and a district of the same name are one place.
+    sublabel: placeWords(row.city, row.district),
+    slug: row.slug,
+  }));
+}
+
+/**
+ * The buyer app's field (`?scope=app`): categories first, then certificates
+ * and places, then suppliers whose NAME matches (`lib/search-suggest.ts`).
+ * The search ranks by its full-text match over names AND product lists, so
+ * it is asked for more rows than are shown and only the name matches kept.
+ */
+async function appScope(q: string) {
+  // A supplier is suggested only from two characters (`companySuggestions`),
+  // so a one-letter query does not pay for a full-text search it would drop.
+  const [rows, facets] = await Promise.all([
+    q.replace(/[^a-z0-9]/gi, "").length >= 2 ? fetchCompanyRows(q, 24).catch(() => []) : Promise.resolve([]),
+    fetchDiscoverFacets().catch(() => null),
+  ]);
+  return appSuggestions({
+    query: q,
+    companies: rows.map((r) => ({ slug: r.slug, name: formatCompanyName(r.company_name), city: r.city, district: r.district })),
+    products: facets?.products ?? [],
+    districts: facets?.districts ?? [],
+    cities: facets?.cities ?? [],
   });
 }
 
@@ -116,6 +138,13 @@ export async function GET(request: Request) {
     return Response.json(
       { error: "query_too_long", max: MAX_Q_LEN },
       { status: 400 },
+    );
+  }
+
+  if (searchParams.get("scope") === "app") {
+    return Response.json(
+      { q, suggestions: await appScope(q) },
+      { headers: { "Cache-Control": "public, max-age=15, stale-while-revalidate=30" } },
     );
   }
 

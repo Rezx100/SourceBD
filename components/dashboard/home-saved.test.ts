@@ -1,4 +1,6 @@
-// Boundary tests for Home (/app), Saved (/app/saved) and Saved searches
+// Boundary tests for Saved (/app/saved) — the desk of certificate alerts and
+// recent activity that was Home until the search landing became the app's
+// first viewport (28 Sep 2026), then the saved list — and Saved searches
 // (/app/searches): the HTML a buyer's browser receives for the empty, error
 // and real-content states. The routes' own cases (`/app/saved?open=`) are in
 // `app/(app)/app/buyer-pages-routes.test.ts`.
@@ -8,16 +10,16 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 
-import { BuyerHome, HOME_EMPTY_COPY, HOME_EMPTY_TITLE, homeCaption, isFreshDesk, type HomeModel } from "./buyer-home";
+import { SavedDesk, activityLabel, deskFrom, type DeskModel } from "./saved-desk";
 import { DeleteSavedSearch } from "./saved-controls";
 import { SavedList, SavedSearchesTable, countedCaption, savedHref, type SavedListRow } from "./saved-list";
 import type { SavedSearchJson } from "@/lib/saved-searches";
 
-const EMPTY_HOME: HomeModel = { saved_count: 0, recent_saved: [], alerts: [], recent_activity: [] };
+const EMPTY_DESK: DeskModel = { alerts: [], recent_activity: [] };
 const TODAY = new Date("2026-10-01T09:00:00Z");
 
-const home = (doc: HomeModel, failed = false) =>
-  renderToStaticMarkup(createElement(BuyerHome, { doc, failed, openRfqs: 3, activeOrders: 1, today: TODAY }));
+const desk = (doc: DeskModel | null, failed = false) =>
+  renderToStaticMarkup(createElement(SavedDesk, { doc, failed, openHref: (slug: string) => savedHref("recent", 1, slug), today: TODAY }));
 
 /** What a reader sees: the markup with its tags removed. */
 const text = (markup: string) => markup.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
@@ -48,65 +50,36 @@ const ALERT = {
   expires_on: "2026-10-12",
 };
 
-describe("Home", () => {
-  it("states the counts as words, not tiles, and leaves RFQs to the rail", () => {
-    assert.equal(homeCaption(12, 3, 1), "12 saved · 3 open RFQs · 1 active order");
-    assert.equal(homeCaption(1, 1, 0), "1 saved · 1 open RFQ · 0 active orders");
-    const html = home({ ...EMPTY_HOME, alerts: [ALERT] });
-    assert.match(html, /<h1[^>]*>Home<\/h1>/);
-    assert.equal(html.match(/<h1/g)?.length, 1, "one h1");
-    assert.doesNotMatch(html, /%|score|grade/i, "no percentage or score on the home page");
-    assert.doesNotMatch(html, /href="\/app\/rfqs"/, "the header's RFQs button is back");
-    assert.match(html, /href="\/app\/discover"[^>]*>Search suppliers/);
-  });
-
-  it("a fresh account meets ONE empty state, and each section is a single caption line", () => {
-    assert.equal(isFreshDesk(EMPTY_HOME), true);
-    const html = home(EMPTY_HOME);
-    assert.equal(html.match(/<img\b/g)?.length, 1, "one illustration on the page");
-    assert.match(html, /src="\/illustrations\/saved\.svg"/);
-    assert.match(html, new RegExp(`>${HOME_EMPTY_TITLE}<`));
-    assert.ok(html.includes(HOME_EMPTY_COPY));
-    assert.match(text(html), /Your desk is empty Search suppliers\./);
-    assert.equal(html.match(/href="\/app\/discover"/g)?.length, 1, "one primary Search suppliers, not two");
-    assert.equal(html.match(/bg-brand text-brand-on/g)?.length, 1, "one primary on the screen");
-    assert.doesNotMatch(html, /<table|<ul class="m-0 list-none p-0"/, "an empty section draws a panel");
-    for (const h of ["Alerts", "Saved suppliers", "Recent activity"]) assert.match(html, new RegExp(`<h2[^>]*>${h}</h2>`));
+describe("the desk on Saved", () => {
+  it("an empty desk is two caption lines, no panel, no art, no score", () => {
+    const html = desk(EMPTY_DESK);
+    for (const h of ["Alerts", "Recent activity"]) assert.match(html, new RegExp(`<h2[^>]*>${h}</h2>`));
     assert.match(html, /No certificates on your saved suppliers expire in the next 30 days/);
-    assert.doesNotMatch(html, /role="alert"/);
+    assert.doesNotMatch(html, /<ul class="m-0 list-none p-0"|<img\b|role="alert"/);
+    assert.doesNotMatch(html, /%|score|grade/i);
   });
 
-  it("an alert names the supplier, the certificate and the date, then the days left in caution ink — no badge repeating it", () => {
-    const html = home({ ...EMPTY_HOME, saved_count: 1, alerts: [ALERT] });
-    assert.equal(isFreshDesk({ ...EMPTY_HOME, alerts: [ALERT] }), false);
-    assert.match(html, /href="\/app\/suppliers\/aboni"[^>]*>Aboni Knitwear Ltd<\/a>/);
+  it("an alert names the supplier, the certificate and the date, then the days left — and opens the record beside the list", () => {
+    const html = desk({ ...EMPTY_DESK, alerts: [ALERT] });
+    assert.match(html, /href="\/app\/saved\?open=aboni"[^>]*>Aboni Knitwear Ltd<\/a>/);
     assert.match(html, /OEKO-TEX expires 12 Oct 2026<\/span><span class="[^"]*text-caution-ink[^"]*">in 11 days<\/span>/);
     assert.doesNotMatch(html, /bg-caution-tint|Expiring</, "the badge that repeated the sentence");
-    assert.doesNotMatch(html, /src="\/illustrations\//, "a page with rows draws no empty-state art");
   });
 
-  it("a saved row links to its record, caps its marks at five with +N on one line, and a failed read says so", () => {
-    const tags = ["EPB", "RSC", "DIFE", "BGMEA", "BKMEA", "GOTS", "WRAP"];
-    const html = home({ ...EMPTY_HOME, saved_count: 1, recent_saved: [{ ...ROW, source_tags: tags }] });
-    assert.match(html, /href="\/app\/suppliers\/aboni-knitwear-ltd"/);
-    assert.match(html, /Factory · Savar, Dhaka/);
-    // The unsave control the old Home had on each saved row.
-    assert.match(html, /aria-pressed="true"/);
-    assert.equal(html.match(/role="img" aria-label="Source: /g)?.length, 5, "five marks, as the results table draws");
-    assert.match(html, />\+2</, "the rest are counted");
-    assert.match(html, /inline-flex flex-nowrap items-center gap-1\.5/, "the marks wrap");
-    // A failed read renders the alert and nothing that claims to know.
-    assert.match(home(EMPTY_HOME, true), /role="alert"[^>]*>.*Could not load your home page/);
+  it("activity reads as words, and a failed read claims no all-clear", () => {
+    assert.equal(activityLabel({ kind: "rsc_updated", detail: "52.6" }), "RSC remediation now at 53%");
+    const failed = desk(null, true);
+    assert.match(failed, /could not be read/);
+    assert.doesNotMatch(failed, /No certificates|None yet|0 saved/);
+    assert.equal(deskFrom(null), null);
+    assert.deepEqual(deskFrom({ alerts: [], recent_activity: [] }), EMPTY_DESK);
+    assert.match(text(desk({ ...EMPTY_DESK, alerts: [ALERT] })), /Aboni Knitwear Ltd OEKO-TEX expires/);
   });
-});
 
-describe("Home after a failed read", () => {
-  it("says it could not read, and claims no all-clear", () => {
-    // "No certificates expiring" and "0 saved" under the error were a false
-    // all-clear (review of the rebuild, 27 Sep).
-    const html = home(EMPTY_HOME, true);
-    assert.match(html, /Could not load your home page/);
-    assert.doesNotMatch(html, /No certificates|None yet|0 saved|Your desk is empty/);
+  it("Saved draws the desk above its list", () => {
+    const html = saved({ desk: createElement("p", { id: "the-desk" }, "desk") });
+    assert.ok(html.indexOf('id="the-desk"') > html.indexOf("<h1"), "the desk sits under the page title");
+    assert.ok(html.indexOf('id="the-desk"') < html.indexOf("<table"), "and above the list");
   });
 });
 

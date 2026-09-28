@@ -14,7 +14,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { onFileLabel } from "@/lib/dashboard/facts";
-import type { SupplierSheetModel } from "@/lib/dashboard/models";
+import type { FactRow, SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
 import { Button } from "./controls";
 import { CopyLinkButton } from "./copy-link-button";
@@ -26,6 +26,7 @@ import {
   ActionBar,
   AffiliationNote,
   CertGrid,
+  FactsLegend,
   FactsPanel,
   FacilitiesList,
   LocationsList,
@@ -44,7 +45,7 @@ import {
   Stats,
 } from "./sheet";
 import { MetaLine } from "./supplier-result-card";
-import { Caption, Heading, Label } from "./type";
+import { Caption, Eyebrow, Heading, Label } from "./type";
 
 /**
  * The product list as the register filed it, made readable: spellings that
@@ -91,6 +92,28 @@ function ProductList({ items }: { items: readonly string[] }) {
       ) : null}
     </div>
   );
+}
+
+/**
+ * The Overview's facts, in the groups a buyer reads them by: who the company
+ * is, where it is, how big it is, and what it is registered with. One flat
+ * list of eleven rows with a mark at each end read as a wall of text
+ * (founder's walkthrough, 28 Sep 2026). A row the model adds that no group
+ * names joins the first group rather than disappearing.
+ */
+export const FACT_GROUPS: readonly { title: string; labels: readonly string[] }[] = [
+  { title: "Company", labels: ["Registered name", "Type", "Parent group", "Established", "EPZ zone"] },
+  { title: "Location", labels: ["Factory address"] },
+  { title: "Workforce and capacity", labels: ["Workers", "Women · men", "Sewing machines", "Capacity, as filed"] },
+  { title: "Registrations", labels: ["Registers"] },
+];
+
+export function groupFacts(facts: readonly FactRow[]): { title: string; rows: FactRow[] }[] {
+  const named = new Set(FACT_GROUPS.flatMap((g) => g.labels));
+  const groups = FACT_GROUPS.map((g) => ({ title: g.title, rows: facts.filter((f) => g.labels.includes(f.label)) }));
+  const loose = facts.filter((f) => !named.has(f.label));
+  if (loose.length > 0) groups[0]!.rows.push(...loose);
+  return groups.filter((g) => g.rows.length > 0);
 }
 
 /** "61 and 62" · "52, 55, 59 and 60" — a list a buyer reads, not an array. */
@@ -153,19 +176,23 @@ export function SupplierSheet({
         </div>
         <SheetTabs tabs={model.tabs} />
         <SheetSection id="overview">
-          {/* The locked card sits beside the facts where there is room and under
-              them where there is not: a fixed 300px column left 20px for the
-              facts at 320px. The pane is a share of the content region, not
-              the viewport, so beside the results the two columns wait for a
-              wider display than they do on the full page. */}
-          <div className={cn("grid items-start gap-6", mode === "page" ? "lg:grid-cols-[1fr_300px]" : "2xl:grid-cols-[1fr_300px]")}>
-            <div className="flex flex-col gap-4">
-              {model.summary ? <p className="m-0 max-w-prose text-base text-ink">{model.summary}</p> : null}
-              <FactsPanel rows={model.facts} />
+          {/* The facts take the pane's whole width. The locked contact card
+              used to sit beside them in a 300px column from 1536px — a
+              breakpoint of the VIEWPORT, while the pane is a share of the
+              content region — so on a 1600px display it squeezed every value
+              into a thin column ("Not" / "on file", the registers a word a
+              line). It is a strip under the facts now. */}
+          <div className="flex flex-col gap-5">
+            {model.summary ? <p className="m-0 max-w-prose text-base text-ink">{model.summary}</p> : null}
+            <div className={cn("grid gap-x-10 gap-y-5", mode === "page" && "lg:grid-cols-2")}>
+              {groupFacts(model.facts).map((g) => (
+                <div key={g.title} className="flex min-w-0 flex-col gap-1.5">
+                  <Eyebrow>{g.title}</Eyebrow>
+                  <FactsPanel rows={g.rows} legend={false} />
+                </div>
+              ))}
             </div>
-            {/* The per-register read dates are the Sources section's rows and
-                the bar carries their range; a third copy here was a run-on
-                paragraph beside the contact card. */}
+            {model.facts.some((r) => r.value !== null && r.pendingSource && !(r.marks && r.marks.length > 0)) ? <FactsLegend /> : null}
             <LockCard hidden={model.contact.hidden} plan={model.contact.plan} held={model.contact.held} counts={model.contact.counts} sanctioned={model.sanctioned} />
           </div>
         </SheetSection>

@@ -96,7 +96,8 @@
     "app/(app)/app/products/new/page.tsx",
     "app/(app)/app/messages/page.tsx",
     "app/(app)/app/compliance/page.tsx",
-    "app/(app)/app/page.tsx",
+    "app/(app)/app/(search)/page.tsx",
+    "app/(app)/app/(search)/loading.tsx",
     "app/(app)/app/searches/page.tsx",
     "app/(app)/app/buyer-pages-routes.test.ts",
     "app/(app)/app/messages/[thread]/page.tsx",
@@ -199,6 +200,9 @@
     "lib/dashboard/load-buyer-shell.test.ts",
     "supabase/ci/apply-migrations.test.ts",
     "components/shell/sidebar.tsx",
-    "components/shell/nav-sections.test.ts"
+    "components/shell/nav-sections.test.ts",
+    "lib/search-suggest.ts",
+    "lib/search-suggest.test.ts",
+    "components/dashboard/search-first.test.ts"
   ]
 }

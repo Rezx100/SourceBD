@@ -1,7 +1,7 @@
 import { variantFromPath, type ShellVariant } from "@/components/shell/sidebar";
 
 const EXACT: Record<string, string> = {
-  "/app": "Dashboard",
+  "/app": "Search",
   "/app/discover": "Search suppliers",
   "/app/match": "Find matches",
   "/app/saved": "Saved suppliers",
