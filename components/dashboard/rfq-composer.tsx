@@ -453,7 +453,7 @@ export function RfqComposer({
             <section className="flex flex-col gap-2">
               <div className="flex items-baseline gap-2">
                 <Label className="text-ink-strong">Message</Label>
-                <Caption>from your workspace template · the supplier reads it inside SourceBD</Caption>
+                <Caption>from your template</Caption>
                 {messageEdited !== null ? (
                   <button type="button" onClick={() => setMessageEdited(null)} className="ml-auto text-xs font-medium text-brand-ink hover:underline">
                     Reset to template
@@ -463,9 +463,9 @@ export function RfqComposer({
               <TextArea id={`${id}-msg`} aria-label="Message" value={message} onChange={(e) => setMessageEdited(e.target.value)} rows={8} maxLength={8000} />
               {filled.missing.length > 0 && messageEdited === null ? (
                 <Caption className="text-caution-ink">
-                  Your workspace has no {listOr(filled.missing.map((m) => m.replace(/^your /, "")))} yet, so the template shows {filled.missing.length === 1 ? "it" : "them"} in brackets.{" "}
+                  Missing from your workspace, so shown in [brackets]: {listOr(filled.missing.map((m) => m.replace(/^your /, "")))}.{" "}
                   <Link href="/app/settings/workspace" prefetch={false} className="underline">
-                    Fill them in Settings
+                    Add in Settings
                   </Link>
                   .
                 </Caption>
@@ -523,7 +523,6 @@ export function RfqComposer({
           <section className="flex flex-col gap-3 xl:sticky xl:top-0 xl:self-start" aria-label="Preview">
             <div className="flex items-center gap-2">
               <Label className="text-ink-strong">What this RFQ carries</Label>
-              <Caption className="ml-auto">stored on the RFQ</Caption>
             </div>
             <div className="flex flex-col gap-2 rounded-md bg-surface-sunken p-4 text-sm text-ink">
               <Caption>To {targets.length === 0 ? "—" : targets.map((t) => t.name).join(", ")}</Caption>
@@ -544,7 +543,7 @@ export function RfqComposer({
                 1 product line · {asked.length} {asked.length === 1 ? "question" : "questions"}
               </Caption>
             </div>
-            <Caption>Your email and phone are not shared. The supplier answers inside SourceBD, with the record attached.</Caption>
+            <Caption>Your contact details are not shared; the supplier replies inside SourceBD.</Caption>
           </section>
         </form>
       </SheetScroll>

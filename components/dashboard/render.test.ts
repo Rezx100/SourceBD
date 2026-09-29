@@ -958,7 +958,7 @@ describe("RfqComposer (rendered)", () => {
     // An unclaimed supplier is not reached until REZ-D's email work, so no
     // surface may promise a delivery, an inbox or a reply time.
     assert.doesNotMatch(html, /the supplier receives|will receive|lands in their inbox|\bdelivered\b|within \d|\bguarantee|replies land in Messages/i);
-    assert.match(html, /Your email and phone are not shared\. The supplier answers inside SourceBD, with the record attached\./);
+    assert.match(html, /Your contact details are not shared; the supplier replies inside SourceBD\./);
   });
 
   it("no score, and no contact value or contact column, anywhere on it", () => {
@@ -2378,7 +2378,6 @@ describe("the composer says what the draft is, and promises nothing about delive
   it("the preview heading names what the RFQ carries, not its arrival", () => {
     const html = composer();
     assert.match(html, />What this RFQ carries</);
-    assert.match(html, />stored on the RFQ</);
     // "the message the supplier receives" is a delivery claim the kit may not
     // make: an unclaimed supplier is not reached until REZ-D's email work.
     assert.doesNotMatch(html, /the supplier receives|will receive|lands in their inbox|delivered/i);
