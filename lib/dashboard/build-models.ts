@@ -28,7 +28,6 @@ import {
   certChipLabel,
   certModel,
   certStateLabel,
-  certTileSubline,
   displayName,
   entityLabel,
   establishedYearOf,

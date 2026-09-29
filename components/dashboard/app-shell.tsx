@@ -52,8 +52,8 @@ export type SidebarModel = {
 
 /**
  * "Free plan · Beta": the plan's line under the name in the rail's account row.
- * The rail has about 124px for it, so the public beta is "Beta" there; the
- * whole note is the row's hover title and Settings' own line.
+ * The rail has about 124px for it, so the public beta is "Beta" there;
+ * Settings keeps the whole note ("Free plan · public beta").
  */
 export function planLine(plan: SidebarModel["plan"], short = true): string {
   const note = plan.note ? (short && /beta/i.test(plan.note) ? "Beta" : plan.note) : null;
