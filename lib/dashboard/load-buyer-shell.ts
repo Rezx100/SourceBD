@@ -105,17 +105,30 @@ export async function loadBuyerShell(
       return typeof listed?.count === "number" ? listed.count : null;
     }),
     soft(async () => {
-      const { data } = await supabase.auth.getUser();
+      // The profile's own name and photo (Settings → Profile writes both),
+      // read beside the session: the account menu shows the photo the buyer
+      // uploaded, not their initials (founder's video, 29 Sep 2026). A failed
+      // settings read keeps the session's name and draws initials.
+      const [{ data }, settings] = await Promise.all([
+        supabase.auth.getUser(),
+        (async () => supabase.rpc("settings_get"))().then(
+          (r: { data?: unknown }) => (r?.data && typeof r.data === "object" ? (r.data as { display_name?: unknown; avatar_url?: unknown }) : null),
+          () => null,
+        ),
+      ]);
       const email = data.user?.email ?? "";
       const meta = data.user?.user_metadata ?? {};
       // `initials` is built for company names: handed an email address it
       // reads the domain (zahir@example.invalid came out "ZI"). A name gets
       // two letters; an email gets its first.
-      const fullName = typeof meta.full_name === "string" ? meta.full_name.trim() : "";
+      const shown = typeof settings?.display_name === "string" ? settings.display_name.trim() : "";
+      const fullName = shown || (typeof meta.full_name === "string" ? meta.full_name.trim() : "");
+      const avatarUrl = typeof settings?.avatar_url === "string" && /^https:\/\//.test(settings.avatar_url) ? settings.avatar_url : null;
       return {
         initial: fullName ? initials(fullName) : (email.trim()[0]?.toUpperCase() ?? null),
         name: fullName || null,
         email: email.trim() || null,
+        avatarUrl,
       };
     }),
   ]);

@@ -39,7 +39,7 @@ describe("1. a record tab scrolls the pane, never the app", () => {
         null,
       ),
     );
-    const root = /^<div class="([^"]*)"/.exec(shell)?.[1] ?? "";
+    const root = /^<div [^>]*class="([^"]*)"/.exec(shell)?.[1] ?? "";
     assert.match(root, /\bmd:overflow-clip\b/, `the shell root can be scrolled: ${root}`);
     assert.doesNotMatch(root, /overflow-hidden/, "`hidden` still lets a fragment or a focus call scroll the shell");
     const frame = renderToStaticMarkup(createElement(Workbench, null, "x"));
