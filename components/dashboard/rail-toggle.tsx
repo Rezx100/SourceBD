@@ -6,12 +6,14 @@
 // click flips the shell's `data-rail` itself: the layout is not re-rendered on
 // a client navigation, and a refresh would re-run the shell's four reads.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { RAIL_COOKIE } from "@/lib/dashboard/nav";
 import { Icon } from "./icons";
 
 export function RailToggle({ collapsed: initial }: { collapsed: boolean }) {
   const [collapsed, setCollapsed] = useState(initial);
+  // A later server render (another tab changed the cookie) wins.
+  useEffect(() => setCollapsed(initial), [initial]);
   return (
     <button
       type="button"

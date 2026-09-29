@@ -19,7 +19,7 @@ import { buildSheet } from "@/lib/dashboard/build-models";
 import { aboniInput } from "@/lib/dashboard/fixtures";
 import { backToList, RAIL_COOKIE } from "@/lib/dashboard/nav";
 import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
-import { AccountMenu, accountName } from "./account-menu";
+import { AccountMenu, accountName, menuShouldClose } from "./account-menu";
 import { AppShell } from "./app-shell";
 import { SupplierSheet } from "./supplier-sheet";
 
@@ -93,6 +93,19 @@ describe("3. one account menu, with the photo", () => {
   it("with no name, the rail prints the email's name part, not the whole address", () => {
     assert.equal(accountName({ initial: "Z", name: null, email: "zahir@example.invalid" }), "zahir");
     assert.equal(accountName({ initial: null, name: null, email: null }), "Your account");
+  });
+
+  it("it closes on Escape and on a press outside it, and a chosen item closes it even when the page does not change", () => {
+    const inside = {};
+    const menu = (open: boolean) => ({ open, contains: (n: never) => n === (inside as never) });
+    assert.equal(menuShouldClose({ key: "Escape" }, menu(true)), true);
+    assert.equal(menuShouldClose({ key: "Tab" }, menu(true)), false);
+    assert.equal(menuShouldClose({ target: {} }, menu(true)), true, "a press outside");
+    assert.equal(menuShouldClose({ target: inside }, menu(true)), false, "a press inside");
+    assert.equal(menuShouldClose({ key: "Escape" }, menu(false)), false, "a closed menu");
+    const src = source("components/dashboard/account-menu.tsx");
+    assert.match(src, /useEffect\(\(\) => \{\s*if \(ref\.current\) ref\.current\.open = false;\s*\}, \[pathname\]\)/, "a navigation leaves the menu open");
+    assert.match(src, /closest\('\[role="menuitem"\]'\) && ref\.current\) ref\.current\.open = false/, "Settings, chosen on Settings, leaves the menu open");
   });
 
   it("no photo draws the initials", () => {
