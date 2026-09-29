@@ -72,16 +72,19 @@ export const light = {
   },
   focus: { DEFAULT: "#2E7D32" },
 
-  // The buyer app's quiet second colour (founder's pick "B Slate", 29 Sep
-  // 2026): selection, the active nav row, set filters, links, tabs, focus and
-  // the ticked box. Green is kept for the one primary action and the logo, so
-  // a selected row can never read as "verified".
+  // The buyer app's state role: selection, the active nav row, set filters,
+  // links, tabs, focus and the ticked box. No hue of its own: the founder
+  // dropped "B Slate" on 29 Sep 2026 ("use different shades of black and
+  // white"), so state is depth on the ink and paper scale: a light grey for
+  // selected, a darker grey for set, near-black for the mark. Green is kept for
+  // the one primary action and the logo, so a selected row never reads as
+  // "verified". Hover is `surface.sunken`, one step lighter than `tint`.
   accent: {
-    DEFAULT: "#3B5A70", // focus ring, active tab indicator, ticked box
+    DEFAULT: "#0F130F", // focus ring, active tab indicator, ticked box, the selected bar
     on: "#FFFFFF",
-    ink: "#2C4E66", // link text, selected label
-    tint: "#E6EDF2", // selected row, active nav row
-    "tint-strong": "#D3DFE8", // set filter, active chip
+    ink: "#0F130F", // link text (underlined: `.link`), selected label
+    tint: "#E9E9E6", // selected row, active nav row (an ink-subtle caption on it passes 4.5:1)
+    "tint-strong": "#DADAD6", // set filter, active chip
   },
 
   // The one decorative flourish: the live dot, the arrow disc. Always
@@ -433,9 +436,11 @@ export const contrastPairs: ContrastPair[] = [
   { fg: "accent.ink", bg: "surface", min: TEXT, use: "link" },
   { fg: "accent.ink", bg: "canvas", min: TEXT, use: "link on the canvas" },
   { fg: "ink.strong", bg: "accent.tint-strong", min: TEXT, use: "name on a set filter" },
-  { fg: "accent", bg: "surface", min: UI, use: "focus ring, tab indicator, a fact's icon" },
+  { fg: "ink.subtle", bg: "accent.tint", min: TEXT, use: "a caption in a selected row" },
+  { fg: "ink.muted", bg: "accent.tint-strong", min: TEXT, use: "a count on the current tab" },
+  { fg: "accent", bg: "surface", min: UI, use: "focus ring, tab indicator, the selected bar" },
   { fg: "accent", bg: "canvas", min: UI, use: "focus ring on the canvas" },
-  { fg: "accent", bg: "locked", min: UI, use: "a contact kind's icon on the locked card" },
+  { fg: "accent", bg: "locked", min: UI, use: "focus ring on the locked card" },
   { fg: "signal.on", bg: "signal", min: TEXT, use: "icon on the signal disc" },
   { fg: "positive.on", bg: "positive", min: TEXT, use: "verified, solid" },
   { fg: "positive.ink", bg: "positive.tint", min: TEXT, use: "verified / valid" },

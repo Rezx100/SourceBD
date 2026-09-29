@@ -182,7 +182,7 @@ export function BackToHub() {
 /** A supplier's name in a table row: one line, cut at the end, the whole name in its title (the One-Line Name Rule). */
 function SupplierLink({ slug, name }: { slug: string; name: string }) {
   return (
-    <Link href={`/app/suppliers/${slug}`} prefetch={false} className="block max-w-[20rem] font-medium text-ink-strong hover:text-brand-ink hover:underline">
+    <Link href={`/app/suppliers/${slug}`} prefetch={false} className="block max-w-[20rem] font-medium text-ink-strong hover:underline">
       <OneLine text={name} />
     </Link>
   );
@@ -310,7 +310,7 @@ export function UflpaTable({ rows }: { rows: readonly UflpaRow[] }) {
                         {h.source_url ? (
                           <>
                             {" · "}
-                            <a href={h.source_url} target="_blank" rel="noopener noreferrer" className="font-medium text-brand-ink hover:underline">
+                            <a href={h.source_url} target="_blank" rel="noopener noreferrer" className="link font-medium">
                               DHS entry
                             </a>
                           </>

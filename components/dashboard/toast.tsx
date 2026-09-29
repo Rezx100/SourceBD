@@ -29,15 +29,15 @@ export function Toast({
       role={announce ? "status" : undefined}
       className={cn("absolute bottom-6 left-1/2 w-max max-w-[calc(100vw-2rem)] -translate-x-1/2", className)}
     >
-      <div className="inline-flex max-w-full items-center gap-2.5 rounded-md bg-surface-inverse px-3.5 py-2.5 text-sm font-medium text-ink-inverse shadow-lg animate-rise motion-reduce:animate-none">
+      <div className="inline-flex max-w-full items-center gap-2.5 rounded-md bg-surface-inverse px-3.5 py-2.5 text-sm font-medium text-ink-inverse shadow-lg animate-rise motion-reduce:animate-none [--ds-focus:var(--ds-ink-inverse)]">
         <i aria-hidden className="inline-block size-2 rounded-full bg-signal shadow-bloom" />
         {text}
         {link ? (
-          <Link href={link.href} prefetch={false} className="text-brand-ink-inverse underline-offset-2 hover:underline">
+          <Link href={link.href} prefetch={false} className="link text-brand-ink-inverse">
             {link.label}
           </Link>
         ) : href ? (
-          <a href={href} className="text-brand-ink-inverse">
+          <a href={href} className="link text-brand-ink-inverse">
             Open
           </a>
         ) : null}

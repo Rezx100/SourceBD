@@ -139,7 +139,11 @@ export function SettingsFrame({ current, children }: { current: SettingsKey; chi
                   aria-current={on ? "page" : undefined}
                   className={cn(
                     "flex h-8 items-center rounded-sm px-2.5 text-sm font-medium text-ink-muted transition-colors duration-fast hover:bg-surface-sunken hover:text-ink-strong",
-                    on && "bg-brand-tint font-semibold text-brand-ink hover:bg-brand-tint hover:text-brand-ink",
+                    // The current page: its tint is 1.07:1 from a hovered row's, so a
+                    // near-black bar carries it (under it on a phone, at its start as
+                    // a side nav), as on the rail.
+                    on &&
+                      "bg-brand-tint font-semibold text-brand-ink shadow-[inset_0_-2px_0_rgb(var(--ds-accent))] hover:bg-brand-tint hover:text-brand-ink md:shadow-[inset_3px_0_0_rgb(var(--ds-accent))]",
                   )}
                 >
                   {item.label}

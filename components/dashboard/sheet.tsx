@@ -217,7 +217,7 @@ export function SheetSection({
 }: {
   id?: string;
   title?: string;
-  /** SourceBD's icon for what the section holds, slate, before its title. */
+  /** SourceBD's icon for what the section holds, in ink-muted, before its title. */
   icon?: SbIconName;
   caption?: ReactNode;
   action?: ReactNode;
@@ -243,7 +243,7 @@ export function SheetSection({
     <section id={id} className="flex scroll-mt-12 flex-col gap-4 border-b border-line-subtle px-6 py-5 outline-none">
       {title ? (
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-          {icon ? <SbIcon name={icon} size={18} className="self-center text-accent" /> : null}
+          {icon ? <SbIcon name={icon} size={18} className="self-center text-ink-muted" /> : null}
           <Heading level="sm" as="h2" className="flex-1">
             {title}
           </Heading>
@@ -334,10 +334,10 @@ export function FactsPanel({ rows, legend = true }: { rows: readonly FactRow[]; 
         >
           {/* Three levels (founder, 29 Sep 2026: "the text needs visual and
               color hierarchy and icons"): the group heading, this label in
-              ink-muted with its slate icon, the value in ink-strong. Slate is
-              the one colour; status hues stay on status. */}
+              ink-muted with its icon (which takes the label's ink), the value in
+              ink-strong. No hue (29 Sep 2026); status hues stay on status. */}
           <span className="inline-flex w-full shrink-0 items-center gap-2 text-sm leading-[22px] text-ink-muted sm:w-[150px]">
-            {r.icon ? <SbIcon name={r.icon} className="text-accent" /> : null}
+            {r.icon ? <SbIcon name={r.icon} /> : null}
             {r.label}
           </span>
           {r.items && r.items.length > 0 ? (
@@ -367,7 +367,7 @@ export function FactsPanel({ rows, legend = true }: { rows: readonly FactRow[]; 
                   {r.note ? ` · ${r.note}` : ""}
                 </>
               ) : r.href ? (
-                <a href={r.href} className="inline-flex items-center gap-0.5 text-brand-ink">
+                <a href={r.href} className="inline-flex items-center gap-0.5 text-brand-ink hover:underline">
                   {r.code ? <Code>{r.value}</Code> : r.value} <Icon name="external" small />
                 </a>
               ) : r.code ? (
@@ -466,7 +466,7 @@ export function LockCard({
             {rows.map((r) => (
               <div key={r.label} className="inline-flex items-center gap-1">
                 <dt className="inline-flex items-center gap-1.5 font-medium text-ink-strong">
-                  <SbIcon name={r.icon} size={14} className="text-accent" />
+                  <SbIcon name={r.icon} size={14} className="text-ink-muted" />
                   {r.label}
                 </dt>
                 <dd className="m-0 text-ink-muted">{r.value}</dd>
@@ -758,8 +758,8 @@ export function LocationsList({ rows }: { rows: readonly LocationRow[] }) {
     <ul className="flex flex-col">
       {rows.map((r, i) => (
         <li key={`${r.address}-${i}`} className="flex items-start gap-3 border-t border-line-subtle py-2.5 first:border-t-0">
-          {/* The address pin, slate, as on the Overview's "Factory address". */}
-          <SbIcon name="address" className="mt-[3px] text-accent" />
+          {/* The address pin, in ink-muted, as on the Overview's "Factory address". */}
+          <SbIcon name="address" className="mt-[3px] text-ink-muted" />
           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
             <span className="text-sm text-ink-muted">{r.kind}</span>
             <span className="whitespace-pre-line text-base leading-[22px] text-ink-strong [overflow-wrap:anywhere]">{r.address}</span>
@@ -800,7 +800,7 @@ export function RecordRfqList({ rows }: { rows: readonly RecordRfqRow[] }) {
     <ul className="flex flex-col">
       {rows.map((r) => (
         <li key={r.id} className="flex items-center gap-3 border-t border-line-subtle py-2 first:border-t-0">
-          <a href={r.href} className="min-w-0 flex-1 truncate text-base font-medium text-brand-ink">
+          <a href={r.href} className="min-w-0 flex-1 truncate text-base font-medium text-ink-strong hover:underline">
             {r.title}
           </a>
           {r.quantity ? <Caption className="shrink-0 tabular-nums">{r.quantity}</Caption> : null}
@@ -828,7 +828,7 @@ export function SanctionEvidence({ rows }: { rows: readonly SanctionRow[] }) {
             <Label className="text-ink-strong">{r.list}</Label>
             {r.ref ? <Code className="text-ink">{r.ref}</Code> : null}
             {r.href ? (
-              <a href={r.href} className="ml-auto inline-flex items-center gap-0.5 text-sm font-medium text-brand-ink">
+              <a href={r.href} className="ml-auto inline-flex items-center gap-0.5 text-sm font-medium text-brand-ink hover:underline">
                 {r.opens === "entry" ? "Entry" : "The list"} <Icon name="external" small />
               </a>
             ) : null}
@@ -976,7 +976,7 @@ export function SanctionBanner({ sample, evidenceHref }: { sample?: boolean; evi
           match and evidenced nothing, while the page it replaced named the
           list, the matched name and the entry. */}
       {evidenceHref ? (
-        <a href={evidenceHref} className="ml-auto underline">
+        <a href={evidenceHref} className="link ml-auto">
           See the matches
         </a>
       ) : null}

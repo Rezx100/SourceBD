@@ -15,7 +15,7 @@ import Link from "next/link";
 import { startTransition, useContext, useEffect, useState, type ReactNode } from "react";
 import { routeSentence, type ProductStatus } from "@/components/product-form-model";
 import { formatCount, formatDay, formatMoney, initials } from "@/lib/dashboard/facts";
-import { Badge, Chip, type BadgeTone } from "./chips";
+import { Badge, Chip, CURRENT_TAB, type BadgeTone } from "./chips";
 import { Button, Count, Menu, MenuItem, V2Tag } from "./controls";
 import { Icon, type IconName } from "./icons";
 import { Cell, DataTable, EmptyState, ErrorNote, HeadCell, PageHeader, rowClass } from "./page";
@@ -91,9 +91,9 @@ export function ProductList({ rows, tab, savedId = null }: { rows: ProductRow[] 
           <nav aria-label="Product status" className="flex flex-wrap gap-2">
             {PRODUCT_TABS.map((t) => (
               <Link prefetch={false} key={t.key} href={tabHref(t.key)} aria-current={t.key === tab ? "page" : undefined} className="rounded-sm">
-                <Chip tone={t.key === tab ? "on" : "neutral"}>
+                <Chip tone={t.key === tab ? "on" : "neutral"} className={t.key === tab ? CURRENT_TAB : undefined}>
                   {t.label}
-                  <Count className="text-xs">{countOf(t.key)}</Count>
+                  <Count className={t.key === tab ? "text-xs text-ink-muted" : "text-xs"}>{countOf(t.key)}</Count>
                 </Chip>
               </Link>
             ))}
@@ -141,7 +141,7 @@ export function ProductList({ rows, tab, savedId = null }: { rows: ProductRow[] 
                           <Link
                             prefetch={false}
                             href={`/app/products/${r.id}`}
-                            className="font-medium text-ink-strong [overflow-wrap:anywhere] after:absolute after:inset-0 after:content-[''] hover:text-brand-ink"
+                            className="font-medium text-ink-strong [overflow-wrap:anywhere] after:absolute after:inset-0 after:content-[''] hover:underline"
                           >
                             {r.name}
                           </Link>
@@ -328,7 +328,7 @@ function StartCard({
 }) {
   return (
     <label className="flex cursor-pointer items-start gap-3 rounded-md bg-surface p-4 shadow-edge transition-colors duration-fast hover:bg-surface-sunken has-[:checked]:bg-brand-tint has-[:checked]:shadow-[inset_0_0_0_1px_rgb(var(--ds-accent))]">
-      <input type="radio" name="start" value={value} defaultChecked={defaultChecked} className="mt-1 size-4 shrink-0 accent-brand" />
+      <input type="radio" name="start" value={value} defaultChecked={defaultChecked} className="mt-1 size-4 shrink-0" />
       <span className="flex min-w-0 flex-col gap-1">
         <span className="inline-flex items-center gap-2 text-title font-medium text-ink-strong">
           <Icon name={icon} className="text-ink-muted" />

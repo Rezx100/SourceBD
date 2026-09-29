@@ -3,7 +3,7 @@
 //
 //  1. The rail collapses to its icons, and the server draws it the way the
 //     buyer left it (a cookie), so it never flashes open.
-//  2. The current rail row is slate with a bar, not the green tint and ring.
+//  2. The current rail row is a grey tint with a near-black bar, not the green tint and ring.
 //  3. The account corner is one menu with the buyer's photo and name,
 //     Settings, Subscription and Sign out — on the rail and the topbar.
 //  4. The record pane expands to its full page and comes back to the list.
@@ -64,8 +64,8 @@ describe("1. the rail collapses, and the server remembers", () => {
   });
 });
 
-describe("2. the current rail row is slate, with a bar", () => {
-  it("no green tint or ring; the slate bar carries the state", () => {
+describe("2. the current rail row is a grey tint, with a bar", () => {
+  it("no green tint or ring; the bar carries the state", () => {
     const current = /<a [^>]*aria-current="page"[^>]*>/.exec(shell())?.[0] ?? "";
     assert.ok(current, "guard: one row is current");
     assert.match(current, /bg-accent-tint/);
@@ -97,7 +97,7 @@ describe("3. one account menu, with the photo", () => {
     const foot = html.slice(html.indexOf('data-plan="true"'));
     const summary = /<summary aria-label="Account, Rezaul Karim, Free plan · Beta" title="Rezaul Karim · Free plan · Beta"[^>]*>[\s\S]*?<\/summary>/.exec(foot)?.[0] ?? "";
     assert.ok(summary, "the account row does not name the buyer and the plan, or carry them on hover for the collapsed rail");
-    assert.match(summary, /class="[^"]*\bh-12\b[^"]*group-open\/acct:bg-accent-tint/, "the row is not 48px with the slate open state");
+    assert.match(summary, /class="[^"]*\bh-12\b[^"]*group-open\/acct:bg-accent-tint/, "the row is not 48px with the grey open state");
     assert.match(summary, /<img [^>]*class="size-8 /, "the photo is not 32px");
     assert.match(summary, /<span data-name="" class="truncate text-sm font-medium text-ink-strong">Rezaul Karim<\/span><span class="truncate text-xs text-ink-subtle">Free plan · Beta<\/span>/);
     assert.match(summary, /<path d="M8 9\.5l4-4 4 4M8 14\.5l4 4 4-4"/, "no up-and-down chevron");

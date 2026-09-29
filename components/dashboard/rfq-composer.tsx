@@ -462,7 +462,7 @@ export function RfqComposer({
                 <Label className="text-ink-strong">Message</Label>
                 <Caption>from your template</Caption>
                 {messageEdited !== null ? (
-                  <button type="button" onClick={() => setMessageEdited(null)} className="ml-auto text-xs font-medium text-brand-ink hover:underline">
+                  <button type="button" onClick={() => setMessageEdited(null)} className="link ml-auto text-xs font-medium">
                     Reset to template
                   </button>
                 ) : null}
@@ -471,7 +471,7 @@ export function RfqComposer({
               {filled.missing.length > 0 && messageEdited === null ? (
                 <Caption className="text-caution-ink">
                   Missing from your workspace, so shown in [brackets]: {listOr(filled.missing.map((m) => m.replace(/^your /, "")))}.{" "}
-                  <Link href="/app/settings/workspace" prefetch={false} className="underline">
+                  <Link href="/app/settings/workspace" prefetch={false} className="link">
                     Add in Settings
                   </Link>
                   .

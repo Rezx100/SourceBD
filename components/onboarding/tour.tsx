@@ -156,7 +156,7 @@ export default function Tour({ flavour, initialStep = 0 }: TourProps) {
     // `data-shell`: the tour mounts after the buyer shell, not inside it (the
     // page's <main> is isolated, and a scrim inside it could not cover the
     // topbar), so it takes the shell's scope here to get the app's type steps
-    // and slate. Its card was drawn in the old design's classes, which no
+    // and state greys. Its card was drawn in the old design's classes, which no
     // longer exist; it is the kit's surface now (founder's leftovers, 29 Sep).
     <div
       data-shell=""

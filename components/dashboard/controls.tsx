@@ -170,7 +170,7 @@ export function Button({
  * switch, the density stops. One component for every pair or trio of
  * mutually exclusive stops in the app, so they cannot drift apart. Cells
  * carry an icon, a label, or both; the active cell fills `accent-tint` with a
- * 2px inset `accent` rule along its bottom (slate since 29 Sep 2026).
+ * 2px inset `accent` rule along its bottom (near-black; no hue since 29 Sep 2026).
  */
 export function Seg({
   options,
@@ -231,7 +231,7 @@ export function Seg({
 }
 
 /**
- * `.cb`: a 16px checkbox drawn as a box; `on` fills it slate (`accent`) with a check,
+ * `.cb`: a 16px checkbox drawn as a box; `on` fills it near-black (`accent`) with a check,
  * `"mixed"` with a dash (the select-all box over a partly selected page).
  *
  * Presentational everywhere but the results work (REZ-B), which passes

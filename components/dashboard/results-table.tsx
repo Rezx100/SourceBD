@@ -4,7 +4,7 @@
 // open marked, numbers right-aligned and tabular, export lines as codes.
 // Beside an open record the table narrows to its essential columns
 // (`compact`) so the pane keeps its measure. Sanctioned: the reserved rule
-// and the word under the name, Send RFQ withheld. Selected: the slate inset
+// and the word under the name, Send RFQ withheld. Selected: the near-black inset
 // rule and the filled box.
 //
 // Founder's walkthrough, 28 Sep 2026: the row's Save, Open and RFQ appeared
@@ -241,7 +241,7 @@ export function ResultsTable({
                           data-open="record"
                           title={r.name}
                           aria-label={name.qualifier ? r.name : undefined}
-                          className="flex min-w-0 items-center font-medium text-ink-strong hover:text-brand-ink"
+                          className="flex min-w-0 items-center font-medium text-ink-strong hover:underline"
                         >
                           <span data-name="" className="truncate">
                             {name.base}

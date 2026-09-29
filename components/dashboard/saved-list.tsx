@@ -183,7 +183,7 @@ export function SavedList({
                             href={savedHref(sort, page, r.slug)}
                             aria-current={open ? "true" : undefined}
                             aria-label={split.qualifier ? name : undefined}
-                            className="block min-w-0 font-medium text-ink-strong hover:text-brand-ink"
+                            className="block min-w-0 font-medium text-ink-strong hover:underline"
                           >
                             <OneLine text={split.base} title={name} />
                           </Link>
@@ -276,7 +276,7 @@ export function SavedSearchesTable({ searches, now }: { searches: readonly Saved
           {searches.map((s) => (
             <tr key={s.id} className={rowClass()}>
               <th scope="row" className="h-11 border-b border-line-subtle px-4 py-2 text-left align-middle font-normal">
-                <Link prefetch={false} href={s.href} className="font-medium text-ink-strong [overflow-wrap:anywhere] hover:text-brand-ink">
+                <Link prefetch={false} href={s.href} className="font-medium text-ink-strong [overflow-wrap:anywhere] hover:underline">
                   {s.name || "Untitled search"}
                 </Link>
               </th>

@@ -66,10 +66,10 @@ export function SidebarNav({
             className={cn(
               "flex h-8 shrink-0 snap-start items-center gap-2.5 whitespace-nowrap rounded-sm px-2 text-sm font-medium text-ink transition-colors duration-fast hover:bg-surface-sunken hover:text-ink-strong md:shrink md:group-data-[rail=collapsed]/shell:justify-center md:group-data-[rail=collapsed]/shell:px-0",
               // The current page (founder's video, 29 Sep 2026: the green tint
-              // and ring went): the slate tint, slate ink, a heavier weight and
-              // a 3px slate bar at the row's start. The tint alone is too close
+              // and ring went; then slate): the grey tint, the ink, a heavier weight and
+              // a 3px near-black bar at the row's start. The tint alone is too close
               // to the canvas to carry the state (WCAG 1.4.11 asks 3:1); the
-              // bar is 6.8:1 against it.
+              // bar is 17.5:1 against it.
               on &&
                 "bg-accent-tint font-semibold text-accent-ink shadow-[inset_3px_0_0_rgb(var(--ds-accent))] hover:bg-accent-tint hover:text-accent-ink",
             )}

@@ -299,3 +299,51 @@ describe("the shell prefetches its rail, never the search", () => {
     assert.match(nav, /prefetch=\{item\.href === "\/app\/discover" \? false : undefined\}/, "the rail's Search row must not prefetch, and the other rows must");
   });
 });
+
+describe("with no hue for links, every link keeps a cue of its own", () => {
+  // Founder, 29 Sep 2026: "use different shades of black and white". Inside the
+  // app the link ink is the near-black of a name, so colour no longer marks a
+  // link: a resting link in that ink carries `.link` (or underlines on hover
+  // beside an arrow or a chevron), and a name no longer turns "the link colour"
+  // on hover, which is now its own colour. A current row keeps its fill and bar
+  // instead, so an element with a state or a fill is exempt. Per element, as
+  // the prefetch guard above, across the kit and the app's pages.
+  const APP = path.join(process.cwd(), "app", "(app)", "app");
+  const files = [
+    ...kitFiles().filter((f) => f.endsWith(".tsx")).map((f) => path.join(KIT, f)),
+    ...(readdirSync(APP, { recursive: true }) as string[]).filter((f) => f.endsWith(".tsx") && !f.includes(".test.")).map((f) => path.join(APP, f)),
+    path.join(process.cwd(), "components", "product-form.tsx"),
+  ];
+  /** Every string an element's attributes hold, as one class list. */
+  const classesOf = (el: string) => [...el.matchAll(/"([^"]*)"|`([^`]*)`/g)].map((m) => m[1] ?? m[2]).join(" ");
+  const has = (classes: string, token: RegExp) => new RegExp(`(?:^|\\s)${token.source}(?=\\s|$)`).test(classes);
+  const isState = (el: string, classes: string) => /aria-(?:current|pressed|selected)=/.test(el) || /(?:^|\s)bg-/.test(classes);
+  const offenders = (rule: (el: string, classes: string) => boolean) =>
+    files.flatMap((file) => {
+      const src = readFileSync(file, "utf8");
+      return ["a", "Link", "button", "summary"]
+        .flatMap((tag) => elements(src, tag))
+        .filter((el) => rule(el, classesOf(el)))
+        .map((el) => `${path.relative(process.cwd(), file)}: ${el.replace(/\s+/g, " ").slice(0, 110)}`);
+    });
+
+  it("a link in the link ink is underlined at rest, unless an arrow or a chevron marks it", () => {
+    // A touch screen has no hover, so an underline on hover alone left the
+    // order's supplier looking like the facts around it. An icon link is an
+    // `inline-flex` row; a name in a list is `ink-strong`, not the link ink.
+    assert.ok(files.length > 40, `the sweep read ${files.length} files`);
+    const bare = offenders(
+      (el, c) =>
+        has(c, /text-(?:brand|accent)-ink/) &&
+        !has(c, /(?:link|underline)/) &&
+        !(has(c, /(?:group-)?hover:underline/) && has(c, /inline-flex/)) &&
+        !isState(el, c),
+    );
+    assert.deepEqual(bare, [], "a link marked only by a colour the app no longer has");
+  });
+
+  it("no link's hover cue is the link colour alone", () => {
+    const colourOnly = offenders((el, c) => has(c, /(?:group-)?hover:text-(?:brand|accent)-ink/) && !isState(el, c));
+    assert.deepEqual(colourOnly, [], "a hover that changes to the ink the name already has");
+  });
+});

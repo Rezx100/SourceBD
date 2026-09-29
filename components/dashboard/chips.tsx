@@ -3,8 +3,8 @@
 // `positive` valid / active · `caution` expiring, expired, behind schedule,
 // no longer covered · `neutral` outline for plain facts (EPB exporter · N
 // lines, Listed by) · `quiet` dashed for nothing on file · `sanction` solid,
-// reserved · `on` the slate `accent-tint-strong` for the active filter
-// (green until the founder's video of 29 Sep 2026). Never brand on a fact,
+// reserved · `on` the grey `accent-tint-strong` for the active filter
+// (green, then slate, until the founder's calls of 29 Sep 2026). Never brand on a fact,
 // never a score.
 
 import type { ReactNode } from "react";
@@ -12,6 +12,9 @@ import { cn } from "@/lib/utils";
 import { Icon, type IconName } from "./icons";
 
 export type ChipTone = "positive" | "caution" | "neutral" | "quiet" | "sanction" | "on";
+
+/** The current tab's rule under its `on` fill: the fill alone is 1.1:1 against the other chips (WCAG 1.4.11); Seg's active stop draws the same. */
+export const CURRENT_TAB = "shadow-[inset_0_-2px_0_rgb(var(--ds-accent))]";
 
 const CHIP_TONE: Record<ChipTone, string> = {
   positive: "bg-positive-tint text-positive-ink",
@@ -87,7 +90,7 @@ export function Chips({
           aria-disabled={moreHref === "#" ? "true" : undefined}
           tabIndex={moreHref === "#" ? -1 : undefined}
           title={moreHref === "#" ? "The rest arrive with the record page" : undefined}
-          className={cn("px-1 font-medium text-brand-ink", nowrap ? "text-xs" : "text-sm")}
+          className={cn("link px-1 font-medium", nowrap ? "text-xs" : "text-sm")}
         >
           +{more}
           {nowrap ? "" : " more"}
