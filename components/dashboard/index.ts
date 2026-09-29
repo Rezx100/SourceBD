@@ -8,7 +8,7 @@ export { Button, Checkbox, Count, Kbd, LiveDot, Menu, MenuItem, Meter, Seg, V2Ta
 export { DiscoverFilters } from "./discover-filters";
 export { Icon, ICONS, type IconName } from "./icons";
 export { LogoTile, SourceMark, SourceMarks, TIER_FILL } from "./marks";
-export { NoLinesSlot, PHOTO_NOTE, PhotoGrid, PhotoStrip, PhotoThumbs, PhotoTile } from "./photo-tiles";
+export { NoLinesSlot, PHOTO_NOTE, PhotoList, PhotoStrip, PhotoThumbs, PhotoTile } from "./photo-tiles";
 export { ProductSheet } from "./product-sheet";
 export { Panel, PanelFooter, PanelHeader, type PanelHeaderModel } from "./results-panel";
 export { ResultsTable, type ResultsDensity, type ResultsSortKey } from "./results-table";
@@ -43,6 +43,7 @@ export {
   SheetTabs,
   Stage,
   Stats,
+  Workbench,
 } from "./sheet";
 export { MetaLine, SanctionLine, SupplierResultCard } from "./supplier-result-card";
 export { SupplierSheet } from "./supplier-sheet";

@@ -22,6 +22,7 @@ import {
   SearchComposer,
   SupplierResultCard,
   SupplierSheet,
+  Workbench,
   type ComposerPrefill,
   type ComposerTarget,
   type ResultsSortKey,
@@ -148,12 +149,12 @@ function Frame({ id, title, note, height, children }: { id: string; title: strin
  * scrolls on its own and, when something is open, a pane sits on its right.
  * The gallery has no URL to close to, so its panes carry no `closeHref`.
  */
-function Workbench({ results, pane }: { results: ReactNode; pane?: ReactNode }) {
+function Bench({ results, pane, rail = false }: { results: ReactNode; pane?: ReactNode; rail?: boolean }) {
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col lg:flex-row">
-      <ResultsColumn besideRecord={Boolean(pane)}>{results}</ResultsColumn>
+    <Workbench>
+      <ResultsColumn besideRecord={Boolean(pane)} rail={rail}>{results}</ResultsColumn>
       {pane}
-    </div>
+    </Workbench>
   );
 }
 
@@ -267,13 +268,14 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
   // Beside a pane the results are the named records only: every screen but
   // the ledger draws those four, and states their span in its topbar.
   const namedRows = d.rows.filter((r) => d.cards.some((c) => c.slug === r.slug));
-  const beside = (currentSlug: string | null) => (
+  // `rail`: beside the RFQ composer, as /app/discover draws it — the names and boxes only, no filter bar.
+  const beside = (currentSlug: string | null, rail = false) => (
     <>
-      {search}
+      {rail ? null : search}
       <Panel>
         {/* A record beside the results is the page's h1; the search steps down to h2. */}
         <PanelHeader as={currentSlug ? "h2" : "h1"} model={header(d, "table", namedRows.length, SELECTION)} />
-        <ResultsTable rows={namedRows} compact currentSlug={currentSlug} sort={sort} sortHrefs={sortHrefs} />
+        <ResultsTable rows={namedRows} compact rail={rail} currentSlug={currentSlug} sort={sort} sortHrefs={sortHrefs} />
         <PanelFooter shown={namedRows.length} total={d.discoverError ? null : d.total} note={SELECTION} />
       </Panel>
     </>
@@ -293,7 +295,7 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
         note={`The default view: 36px rows under a sticky, sortable header, ${d.rows.length} rows: ${tableSelection(d)}. Two rows are ticked (the brand rule on the left) and one is marked as the record open beside the results. Hover or focus a row for its actions.`}
       >
         <AppShell className="md:h-full" sidebar={results.sidebar} topbar={tableTopbarModel(d)} mainId="results-table-main" screenLabel="results table">
-          <Workbench
+          <Bench
             results={
               <>
                 {search}
@@ -310,7 +312,7 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
 
       <Frame id="results-list" title="ResultsList — the thumbnail cards" note={resultsNote(d)}>
         <AppShell className="md:h-full" sidebar={results.sidebar} topbar={results.topbar} mainId="results-list-main" screenLabel="results list">
-          <Workbench
+          <Bench
             results={
               <>
                 {search}
@@ -333,11 +335,11 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
         <Frame
           id="supplier-sheet"
           title="SupplierSheet — the record beside the results"
-          note={`${d.sheet.name}: ${d.sheet.sourceCount} sources, ${d.sheet.certs.length} certificates, ${d.sheet.products.lines} HS lines, read ${d.sheet.readDate ?? "—"}. Contact details locked (striped, never blurred). The results narrow to the ledger's three essential columns and keep their own scroll; the open row is marked.`}
+          note={`${d.sheet.name}: ${d.sheet.sourceCount} sources, ${d.sheet.certs.length} certificates, ${d.sheet.products.lines} HS lines, read ${d.sheet.readDate ?? "—"}. Contact details locked (never blurred). The results narrow to the ledger's three essential columns and keep their own scroll; the open row is marked.`}
           height={1240}
         >
           <AppShell className="md:h-full" sidebar={results.sidebar} topbar={results.topbar} mainId="supplier-sheet-main" screenLabel="supplier record">
-            <Workbench
+            <Bench
               results={beside(aboni)}
               pane={
                 <RecordPane openKey="supplier-sheet">
@@ -360,7 +362,7 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
           height={760}
         >
           <AppShell className="md:h-full" sidebar={results.sidebar} topbar={results.topbar} mainId="product-sheet-main" screenLabel="product line">
-            <Workbench
+            <Bench
               results={beside(aboni)}
               pane={
                 <RecordPane openKey="product-sheet">
@@ -380,8 +382,9 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
           height={860}
         >
           <AppShell className="md:h-full" sidebar={results.sidebar} topbar={results.topbar} mainId="rfq-composer-main" screenLabel="RFQ composer">
-            <Workbench
-              results={beside(null)}
+            <Bench
+              results={beside(null, true)}
+              rail
               pane={
                 <RecordPane openKey="rfq-composer" wide>
                   {/* The frame's own id, not a bare "#": the gallery has no search
@@ -401,7 +404,7 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
         height={860}
       >
         <AppShell className="md:h-full" sidebar={results.sidebar} topbar={results.topbar} mainId="filter-pane-main" screenLabel="filters">
-          <Workbench
+          <Bench
             results={beside(null)}
             pane={
               <RecordPane openKey="filters">

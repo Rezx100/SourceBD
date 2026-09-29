@@ -12,11 +12,11 @@
 
 import { DiscoverFilters } from "@/components/dashboard/discover-filters";
 import { SearchLanding } from "@/components/dashboard/search-landing";
-import { RecordPane } from "@/components/dashboard/sheet";
+import { RecordPane, Workbench } from "@/components/dashboard/sheet";
 import { getServerRole } from "@/lib/auth";
 import { readPublishedCount } from "@/lib/dashboard/load-buyer-shell";
 import { readSearchCount } from "@/lib/dashboard/search-cache";
-import { SEARCH_TEMPLATES } from "@/lib/dashboard/search-templates";
+import { SEARCH_TEMPLATES, filterMenus } from "@/lib/dashboard/search-templates";
 import { EMPTY_STATE } from "@/lib/discover-v32-state";
 import { runSavedSearchesGet, type SavedSearchJson } from "@/lib/saved-searches";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -42,6 +42,19 @@ export default async function SearchLandingPage({
   const counts: Promise<Record<string, number | null>> = Promise.all(
     SEARCH_TEMPLATES.map(async (t) => [t.key, await readSearchCount(t.state)] as const),
   ).then((pairs) => Object.fromEntries(pairs));
+  // What each filter-menu option finds across the published corpus, cached
+  // an hour per option like the templates. Read four at a time, after the
+  // templates' own: on a cold cache (a deploy, a moderator's publish purges
+  // the tag) eighteen full-corpus counts at once is load this database has
+  // timed out under.
+  const menuCounts: Promise<Record<string, number | null>> = counts.then(async () => {
+    const options = filterMenus(EMPTY_STATE).flatMap((m) => m.options);
+    const out: Record<string, number | null> = {};
+    for (let i = 0; i < options.length; i += 4) {
+      await Promise.all(options.slice(i, i + 4).map(async (o) => (out[o.key] = await readSearchCount(o.toggled))));
+    }
+    return out;
+  });
   const saved: Promise<SavedSearchJson[] | null> = (async () => {
     try {
       const listed = await runSavedSearchesGet({ role: await getServerRole(), supabase, now: new Date() });
@@ -53,17 +66,17 @@ export default async function SearchLandingPage({
   })();
 
   const landing = (
-    <SearchLanding published={await readPublishedCount()} counts={counts} saved={saved} filtersHref={`${LANDING_PATH}?filters=1`} />
+    <SearchLanding published={await readPublishedCount()} counts={counts} menuCounts={menuCounts} saved={saved} filtersHref={`${LANDING_PATH}?filters=1`} />
   );
   if (!filtersOpen) return landing;
   return (
     // The filter pane sits beside the landing as it sits beside the results;
     // Apply submits the search, Close comes back here.
-    <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+    <Workbench>
       <div className="hidden min-h-0 min-w-0 flex-1 overflow-y-auto lg:block">{landing}</div>
       <RecordPane closeHref={LANDING_PATH} openKey="filters">
         <DiscoverFilters state={EMPTY_STATE} closeHref={LANDING_PATH} />
       </RecordPane>
-    </div>
+    </Workbench>
   );
 }

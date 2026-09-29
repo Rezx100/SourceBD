@@ -61,7 +61,7 @@ export function parseRfqTab(v: unknown): RfqView {
 }
 
 /** The current tab's rule under its fill: the fill alone is 1.1:1 against the other chips (WCAG 1.4.11), Seg's active stop draws the same. */
-const CURRENT_TAB = "shadow-[inset_0_-2px_0_rgb(var(--ds-brand))]";
+const CURRENT_TAB = "shadow-[inset_0_-2px_0_rgb(var(--ds-accent))]";
 
 /** The list at a tab, with an RFQ open beside it or not. Close is this without `open`. */
 export function rfqsHref(tab: RfqView, open?: string | null): string {

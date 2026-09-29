@@ -1,7 +1,7 @@
 // Sheet primitives (REZ-A, artifact SupplierSheet README): the record's frame
 // (a pane beside the results, or the full page) with its 52px bar, tabs with
 // mono counts, sections, the FactsPanel (28px rows, label 150px, a mark at
-// the row's end), the striped locked contact card, stat blocks, the
+// the row's end), the locked contact card, the stats line, the
 // certificate card, the RSC block and the sticky frosted action bar. `Stage`
 // and `Scrim` remain for the gallery's RFQ composer, which is still a dialog.
 
@@ -15,6 +15,7 @@ import { DialogFocus } from "./dialog-focus";
 import { Button, Meter } from "./controls";
 import { Icon } from "./icons";
 import { SourceMark } from "./marks";
+import { SbIcon } from "./sb-icons";
 import { Caption, Code, Eyebrow, Heading, Label } from "./type";
 
 /**
@@ -87,6 +88,11 @@ export function Sheet({ label, mode = "pane", children }: { label: string; mode?
  * The width is a share of the content region between two stops, so the
  * results keep a readable column on a 1280 display and the record keeps its
  * measure on a 1920 one.
+ *
+ * Half the region, not 55%: at 1280 the 55% pane left the results 424px, the
+ * supplier column 132px of it, and a name like "Benchmark Apparels" broke
+ * mid-word (founder's video, 29 Sep 2026). At half, with the 16px gutter
+ * beside a pane, the compact table is 492px and the name column 194px.
  */
 export function RecordPane({
   closeHref,
@@ -97,7 +103,7 @@ export function RecordPane({
   closeHref?: string | null;
   /** What the pane is showing (record, line or notice); focus moves to it whenever that changes. */
   openKey?: string;
-  /** The composer's width: it carries the target rail, the fields and the preview side by side, so it takes more of the region than a record does. */
+  /** The composer: it carries the targets, the fields and the preview side by side, so it takes the region beside the results' slim rail (`ResultsColumn rail`). */
   wide?: boolean;
   children: ReactNode;
 }) {
@@ -107,7 +113,10 @@ export function RecordPane({
       data-pane-wide={wide ? "true" : undefined}
       className={cn(
         "flex min-h-0 min-w-0 flex-1 flex-col border-line lg:flex-none lg:border-l",
-        wide ? "lg:w-[clamp(640px,68%,1100px)]" : "lg:w-[clamp(480px,55%,760px)]",
+        // Wide: the results step aside to an 18rem rail and the composer takes
+        // the rest; at 68% it crushed the table to 28rem (founder's video,
+        // 29 Sep 2026).
+        wide ? "lg:flex-1" : "lg:w-[clamp(480px,50%,760px)]",
       )}
     >
       {closeHref ? <DialogFocus closeHref={closeHref} openKey={openKey} /> : null}
@@ -127,17 +136,37 @@ export function RecordPane({
  * definition for the page, the gallery and the preview harness, so the
  * three cannot drift.
  */
-export function ResultsColumn({ besideRecord = false, children }: { besideRecord?: boolean; children: ReactNode }) {
+export function ResultsColumn({ besideRecord = false, rail = false, children }: { besideRecord?: boolean; rail?: boolean; children: ReactNode }) {
   // The gutter is on an inner box, not on the scroll region itself. A sticky
   // table header sticks to the scroll region's padding edge, so with the
   // 24px gutter on the region the header stopped 24px below the topbar and
   // the rows scrolling up showed through the gap above it (founder's
   // walkthrough, 28 Sep 2026). Padded inside, the header meets the top edge.
+  // Beside a pane the gutter is 16px: every pixel of it is the supplier
+  // column's (see `RecordPane`).
+  // `rail`: beside the RFQ composer the results are a slim column of names,
+  // still tickable, rather than a crushed table.
   return (
-    <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto", besideRecord && "hidden lg:flex")}>
-      <div className="flex flex-col gap-4 p-4 sm:p-6">{children}</div>
+    <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto", besideRecord && "hidden lg:flex", rail && "lg:w-[18rem] lg:flex-none")}>
+      <div className={cn("flex flex-col gap-4 p-4 sm:p-6", besideRecord && "lg:p-4")}>{children}</div>
     </div>
   );
+}
+
+/**
+ * The frame of every page with a list and a pane beside it (the search, Saved,
+ * orders, RFQs): a column below `lg`, side by side from it.
+ *
+ * `overflow-clip` from `lg`: nothing in the frame may scroll it. `hidden` only
+ * stops a person scrolling — a followed fragment, a `scrollIntoView` or a
+ * focus call still scrolls a hidden box, and that is how a record tab slid
+ * the whole search off the top of the screen (founder's video, 29 Sep 2026).
+ * The list and the pane each scroll themselves. `relative` holds the
+ * `.sr-only` spans inside it, which are absolutely placed and otherwise
+ * stretched the shell's scroll area from a row far down a long record.
+ */
+export function Workbench({ children }: { children: ReactNode }) {
+  return <div className="relative flex min-h-0 flex-1 flex-col lg:flex-row lg:overflow-clip">{children}</div>;
 }
 
 export function SheetBar({ children }: { children: ReactNode }) {
@@ -165,55 +194,17 @@ export function SheetScroll({ measure = false, children }: { measure?: boolean; 
   );
 }
 
-/**
- * A tab links only to a section this sheet actually renders. The others keep
- * the approved fragment's inert `href="#"` and say so to a screen reader,
- * rather than pointing at an anchor that does not exist.
- */
-export function SheetTabs({ tabs }: { tabs: readonly { label: string; count: string | null; href: string | null; active?: boolean }[] }) {
-  // Eight tabs at 320px is ~640px of nav. It scrolls sideways rather than
-  // wrapping into three rows or pushing the sheet past the viewport, and
-  // `tabIndex` lets a keyboard reach that scroll region (WCAG 2.1.1).
-  return (
-    // Sticky: on a record that runs to 3,000px the tabs used to scroll away
-    // after the first screen, and compliance staff jumping to Sources or
-    // Locations had to scroll back up to find them. The space above the tabs
-    // is their own padding, not a margin: a margin left an 8px strip over the
-    // stuck tabs where the source marks scrolled through.
-    <nav
-      aria-label="Record sections"
-      tabIndex={0}
-      className="sticky top-0 z-10 flex gap-5 overflow-x-auto border-b border-line-subtle bg-surface px-6 pt-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-    >
-      {tabs.map((t) => (
-        <a
-          key={t.label}
-          href={t.href ?? "#"}
-          aria-disabled={t.href === null ? "true" : undefined}
-          tabIndex={t.href === null ? -1 : undefined}
-          title={t.href === null ? "Not available on this record" : undefined}
-          aria-current={t.active ? "true" : undefined}
-          className={cn(
-            "-mb-px inline-flex h-10 items-center gap-1.5 whitespace-nowrap border-b-2 border-transparent text-base font-medium text-ink-muted transition-colors duration-fast hover:text-ink-strong",
-            t.href === null && "text-ink-subtle hover:text-ink-subtle",
-            t.active && "border-brand text-ink-strong",
-          )}
-        >
-          {t.label}
-          {t.count !== null ? (
-            <span className={cn("font-mono text-[11px] text-ink-subtle", t.active && "text-brand-ink")}>{t.count}</span>
-          ) : null}
-        </a>
-      ))}
-    </nav>
-  );
-}
+export { SheetTabs } from "./sheet-tabs";
 
 /**
  * `.sec`: a section with its heading row. `collapsible` folds it behind its
  * heading (open by default, so a tab link still lands on its content); the
  * long sections of a record — Sources, Locations, Facilities, RFQs — fold so a
  * buyer can shorten a 3,000px record to the parts they are reading.
+ *
+ * `scroll-mt-12` keeps a plain fragment jump (the sanction banner's "See the
+ * matches", a shared `#…` link) from landing the heading under the 48px
+ * sticky tabs; a tab click moves focus here itself (`goToSection`).
  */
 export function SheetSection({
   id,
@@ -232,7 +223,7 @@ export function SheetSection({
 }) {
   if (collapsible && title) {
     return (
-      <details id={id} open className="group/sec border-b border-line-subtle px-6 py-5">
+      <details id={id} open className="group/sec scroll-mt-12 border-b border-line-subtle px-6 py-5 outline-none">
         <summary className="flex cursor-pointer list-none flex-wrap items-baseline gap-x-2 gap-y-1 [&::-webkit-details-marker]:hidden">
           <Icon name="caret" small className="mr-0.5 self-center text-ink-subtle transition-transform duration-fast group-open/sec:rotate-180" />
           <Heading level="sm" as="h2" className="flex-1">
@@ -246,7 +237,7 @@ export function SheetSection({
     );
   }
   return (
-    <section id={id} className="flex flex-col gap-4 border-b border-line-subtle px-6 py-5">
+    <section id={id} className="flex scroll-mt-12 flex-col gap-4 border-b border-line-subtle px-6 py-5 outline-none">
       {title ? (
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <Heading level="sm" as="h2" className="flex-1">
@@ -270,14 +261,11 @@ export function SheetSection({
  * once what the square means.
  */
 export function PendingMark() {
+  // SourceBD's own mark (a document with a clock): the dashed square read as
+  // a tick box (founder's video, 29 Sep 2026).
   return (
-    <span
-      role="img"
-      aria-label="Source pending"
-      title="Source pending: the register that filed this is not linked per field yet"
-      className="inline-block size-4 shrink-0 rounded-xs border border-dashed border-quiet-line"
-    >
-      <span className="sr-only">source pending</span>
+    <span title="Source pending: the register that filed this is not linked per fact yet" className="inline-flex shrink-0 text-quiet-ink">
+      <SbIcon name="pending" label="Source pending" />
     </span>
   );
 }
@@ -293,8 +281,8 @@ export function collapseRepeatedLines(text: string): string {
   return out.join("\n");
 }
 
-/** What the dashed square means, said once under the facts it marks. */
-export const PENDING_LEGEND = "A dashed square: source pending. The register that filed the fact is not linked per field yet.";
+/** What the pending mark means, said once under the facts it marks (and in full on its hover). */
+export const PENDING_LEGEND = "Source pending";
 
 /**
  * `.fp`: the facts panel. Every row has room for a mark, in one column at the
@@ -360,7 +348,14 @@ export function FactsPanel({ rows, legend = true }: { rows: readonly FactRow[]; 
               {r.marks && r.marks.length > 0 ? (
                 r.marks.map((m) => <SourceMark key={m.code} mark={m} sm />)
               ) : r.value === null && r.checked ? (
-                <Caption className="sm:whitespace-nowrap">{r.checked}</Caption>
+                // What was checked ("registers and RSC checked") on hover and
+                // to a screen reader: printed, it was the loudest text on an
+                // empty row (founder's video, 29 Sep 2026).
+                <span title={`Not on file · ${r.checked}`} className="inline-flex text-quiet-ink">
+                  {/* A magnifier (looked), never a tick: a tick is the sign for a verified fact. */}
+                  <Icon name="search" small />
+                  <span className="sr-only">{r.checked}</span>
+                </span>
               ) : r.pendingSource ? (
                 <PendingMark />
               ) : null}
@@ -383,7 +378,7 @@ export function FactsLegend() {
 }
 
 /**
- * `.lockcard`: the contact block, locked by default. Striped, never blurred.
+ * `.lockcard`: the contact block, locked by default, on the plain locked ground. Never blurred.
  * The plan name comes from settings; without one the label is just "Contact
  * details".
  *
@@ -420,9 +415,9 @@ export function LockCard({
   // A strip across the record, not a 300px box beside the facts: beside the
   // facts it squeezed every value into a thin column on a wide display
   // (founder's walkthrough, 28 Sep 2026 — "this contact details is big, I
-  // won't accept it"). The stripes, the counts and the words are the same.
+  // won't accept it"). Plain, not striped (29 Sep 2026: the stripes went).
   return (
-    <div data-locked="true" className="locked-pattern flex flex-col gap-1.5 rounded-md border border-locked-line px-4 py-2.5 text-locked-ink">
+    <div data-locked="true" className="flex flex-col gap-1.5 rounded-md border border-locked-line bg-locked px-4 py-2.5 text-locked-ink">
       <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
         <Label className="inline-flex items-center gap-1.5 text-ink-strong">
           <Icon name="lock" /> Contact details{plan ? ` · ${plan}` : ""}
@@ -452,20 +447,36 @@ export function LockCard({
   );
 }
 
-/** `.stats`: four stat blocks in a row. */
+/**
+ * `.stats`: the section's figures as label and value rows, two across. They
+ * were four boxes of a 24px number each; three held one line and one five,
+ * and the boxes took a screen's height for four numbers (founder's video,
+ * 29 Sep 2026).
+ */
 export function Stats({ items }: { items: readonly { key: string; value: string; sub: string | null }[] }) {
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+    <dl className="m-0 grid gap-x-8 sm:grid-cols-2">
       {items.map((s) => (
-        <div key={s.key} className="flex min-w-0 flex-col gap-0.5 rounded-md bg-canvas px-3.5 py-3">
-          <Eyebrow>{s.key}</Eyebrow>
-          <span className="whitespace-nowrap text-2xl font-normal text-ink-strong">{s.value}</span>
-          {/* The sub-line carries a certificate's scope and a chapter list; held
-              to one line it ran out of its cell and over the next stat. */}
-          {s.sub ? <Caption className="[overflow-wrap:anywhere]">{s.sub}</Caption> : null}
+        <div key={s.key} className="flex min-w-0 items-baseline gap-3 border-t border-line-subtle py-1.5">
+          <dt className="w-[7.5rem] shrink-0 text-sm text-ink-muted">{s.key}</dt>
+          <dd className="m-0 min-w-0 flex-1 [overflow-wrap:anywhere]">
+            {/* A figure with nothing on file is a dash; why ("not on the EPB
+                list") is on its hover and read to a screen reader, not
+                printed under every empty figure. */}
+            {s.value === "—" && s.sub ? (
+              <span title={s.sub} className="text-base text-quiet-ink">
+                —<span className="sr-only"> {s.sub}</span>
+              </span>
+            ) : (
+              <>
+                <span className="text-base font-medium text-ink-strong">{s.value}</span>
+                {s.sub ? <Caption className="ml-1.5">{s.sub}</Caption> : null}
+              </>
+            )}
+          </dd>
         </div>
       ))}
-    </div>
+    </dl>
   );
 }
 
@@ -840,12 +851,10 @@ export function QuietEmpty({ children }: { children: ReactNode }) {
  */
 export function ActionBar({
   sanctioned,
-  everyMarkLinks,
   rfqHref,
   save,
 }: {
   sanctioned: boolean;
-  everyMarkLinks: boolean;
   rfqHref?: string | null;
   /** The real Save control, when the caller has a session to save into. */
   save?: ReactNode;
@@ -864,14 +873,7 @@ export function ActionBar({
           <Icon name="bookmark" /> Save
         </Button>
       )}
-      {/* A brand disclosure list is one file listing every supplier on it, so
-          a tier-4 mark never opens a page about this record — its own
-          accessible name says "opens the disclosure list". The absolute
-          sentence contradicted that on ~43 published records, so it is made
-          only when every mark that links opens a record page. */}
-      <Caption className="ml-auto">
-        {everyMarkLinks ? "Every source mark links to its register page" : "Source marks link to their register page where one is on file"}
-      </Caption>
+
     </div>
   );
 }

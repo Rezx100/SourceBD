@@ -404,7 +404,11 @@ export function RfqComposer({
               <Field label="Description" htmlFor={`${id}-desc`} hint="Fabric, sizes, colours, packaging, certifications required.">
                 <TextArea id={`${id}-desc`} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={4000} rows={3} aria-describedby={`${id}-desc-hint`} />
               </Field>
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {/* As many 144px fields to a row as the form's own width holds.
+                  Four to a row from a 640px WINDOW put four fields in the
+                  pane's 341px column at 1280: labels over each other and
+                  "pcs" cut to "p" (founder's video, 29 Sep 2026). */}
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-4">
                 <Field label="Quantity" htmlFor={`${id}-qty`} required>
                   <TextInput id={`${id}-qty`} required type="number" min={1} step="any" inputMode="decimal" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
                 </Field>
@@ -449,7 +453,7 @@ export function RfqComposer({
             <section className="flex flex-col gap-2">
               <div className="flex items-baseline gap-2">
                 <Label className="text-ink-strong">Message</Label>
-                <Caption>from your workspace template · the supplier reads it inside SourceBD</Caption>
+                <Caption>from your template</Caption>
                 {messageEdited !== null ? (
                   <button type="button" onClick={() => setMessageEdited(null)} className="ml-auto text-xs font-medium text-brand-ink hover:underline">
                     Reset to template
@@ -459,9 +463,9 @@ export function RfqComposer({
               <TextArea id={`${id}-msg`} aria-label="Message" value={message} onChange={(e) => setMessageEdited(e.target.value)} rows={8} maxLength={8000} />
               {filled.missing.length > 0 && messageEdited === null ? (
                 <Caption className="text-caution-ink">
-                  Your workspace has no {listOr(filled.missing.map((m) => m.replace(/^your /, "")))} yet, so the template shows {filled.missing.length === 1 ? "it" : "them"} in brackets.{" "}
+                  Missing from your workspace, so shown in [brackets]: {listOr(filled.missing.map((m) => m.replace(/^your /, "")))}.{" "}
                   <Link href="/app/settings/workspace" prefetch={false} className="underline">
-                    Fill them in Settings
+                    Add in Settings
                   </Link>
                   .
                 </Caption>
@@ -519,7 +523,6 @@ export function RfqComposer({
           <section className="flex flex-col gap-3 xl:sticky xl:top-0 xl:self-start" aria-label="Preview">
             <div className="flex items-center gap-2">
               <Label className="text-ink-strong">What this RFQ carries</Label>
-              <Caption className="ml-auto">stored on the RFQ</Caption>
             </div>
             <div className="flex flex-col gap-2 rounded-md bg-surface-sunken p-4 text-sm text-ink">
               <Caption>To {targets.length === 0 ? "—" : targets.map((t) => t.name).join(", ")}</Caption>
@@ -540,7 +543,7 @@ export function RfqComposer({
                 1 product line · {asked.length} {asked.length === 1 ? "question" : "questions"}
               </Caption>
             </div>
-            <Caption>Your email and phone are not shared. The supplier answers inside SourceBD, with the record attached.</Caption>
+            <Caption>Your contact details are not shared; the supplier replies inside SourceBD.</Caption>
           </section>
         </form>
       </SheetScroll>

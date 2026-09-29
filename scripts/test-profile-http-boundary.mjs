@@ -1793,9 +1793,11 @@ const CASES = [
       // the profile's figure under it in a few words wherever the two differ
       // (the list read 770 beside a record reading 793); the full words for
       // both are in the cell's title. Each figure is pinned to its own words.
+      // Since 29 Sep the second line may break between its figure and its
+      // words, never inside either.
       bodyIncludesAll: [
-        "title=\"1,200 workers · on the supplier record · 500 workers · across its buildings, not this record\" data-workers-cell=\"\"><span class=\"text-ink-strong\">1,200</span><span class=\"whitespace-nowrap text-xs font-normal text-ink-subtle\">500 in buildings</span>",
-        "title=\"100 workers · on the supplier record · 450 workers · RSC inspection\" data-workers-cell=\"\"><span class=\"text-ink-strong\">100</span><span class=\"whitespace-nowrap text-xs font-normal text-ink-subtle\">450 RSC</span>",
+        "title=\"1,200 workers · on the supplier record · 500 workers · across its buildings, not this record\" data-workers-cell=\"\"><span class=\"text-ink-strong\">1,200</span><span class=\"text-right text-xs font-normal text-ink-subtle\"><span class=\"whitespace-nowrap\">500</span> <span class=\"whitespace-nowrap\">in buildings</span></span>",
+        "title=\"100 workers · on the supplier record · 450 workers · RSC inspection\" data-workers-cell=\"\"><span class=\"text-ink-strong\">100</span><span class=\"text-right text-xs font-normal text-ink-subtle\"><span class=\"whitespace-nowrap\">450</span> <span class=\"whitespace-nowrap\">RSC</span></span>",
       ],
       bodyExcludes: ["450 workers · across this record and its buildings", "Search is under heavy load"],
     },

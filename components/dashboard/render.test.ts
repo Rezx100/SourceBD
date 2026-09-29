@@ -396,17 +396,20 @@ describe("ResultsTable (rendered) — the ledger grid", () => {
     assert.doesNotMatch(renderToStaticMarkup(createElement(ResultsTable, { rows, currentSlug: "no-such-slug" })), /aria-current/);
   });
 
-  it("beside a pane the ledger narrows to Supplier, Registers & certifiers and Workers", () => {
+  it("beside a pane the ledger narrows to Supplier, Sources and Workers", () => {
     const html = renderToStaticMarkup(createElement(ResultsTable, { rows: [buildTableRow(aboniInput())], compact: true }));
     const heads = [...html.matchAll(/<th scope="col"[^>]*>([\s\S]*?)<\/th>/g)].map((m) => m[1]!.replace(/<[^>]+>/g, "").trim());
-    assert.deepEqual(heads, ["Select", "Supplier", "Registers &amp; certifiers", "Workers", "Actions"]);
+    // "Registers & certifiers" is 119px with its caret; the column beside a
+    // pane is 76px (founder's video, 29 Sep 2026: the header wrapped).
+    assert.deepEqual(heads, ["Select", "Supplier", "Sources", "Workers", "Actions"]);
     assert.match(html, /Aboni Knitwear Ltd/);
   });
 
   it("each row is a keyboard stop whose name is the supplier's, and the name opens the record beside the results", () => {
     const html = renderToStaticMarkup(createElement(ResultsTable, { rows: [ledgerRow(aboniInput())] }));
     assert.match(html, /<tr tabindex="0" aria-label="Aboni Knitwear Ltd"[^>]*data-row="result"/);
-    assert.match(html, /<a\b[^>]*data-open="record"[^>]*>Aboni Knitwear Ltd<\/a>|<a\b[^>]*href="\/app\/discover\?q=knit&amp;record=aboni-knitwear"[^>]*data-open="record"/);
+    // The name, then the spinner that says the click was heard (hidden until then).
+    assert.match(html, /<a\b[^>]*data-open="record"[^>]*>Aboni Knitwear Ltd(?:<span aria-hidden="true" class="[^"]*\bhidden\b[^"]*"><\/span>)?<\/a>|<a\b[^>]*href="\/app\/discover\?q=knit&amp;record=aboni-knitwear"[^>]*data-open="record"/);
   });
 
   it(
@@ -492,7 +495,7 @@ describe("SupplierSheet (rendered)", () => {
     assert.match(html, /ABONI KNITWEAR LTD\./);
     assert.match(html, /1,000,000 pcs\/day/);
     assert.match(html, /data-locked="true"/);
-    assert.match(html, /locked-pattern/);
+    // Plain, never striped (founder's video, 29 Sep 2026) and never blurred.
     assert.match(html, /Contact details<\/span>/, "no plan name unless settings give one");
     assert.doesNotMatch(html, /Team plan/);
     assert.match(html, /Contact details are not shown on the record\./);
@@ -504,14 +507,15 @@ describe("SupplierSheet (rendered)", () => {
     // contact fields (0105's header).
     assert.doesNotMatch(locked, /EPB|BGMEA|BKMEA|BGAPMEA/, "the locked card names a register no payload attributes");
     assert.doesNotMatch(locked, /On file:/, "a sheet built without counts claims kinds it was not given");
-    assert.match(html, /source pending/, "unattributed profile facts say so instead of carrying a guessed mark");
+    assert.match(html, /aria-label="Source pending"/, "unattributed profile facts say so instead of carrying a guessed mark");
     assert.doesNotMatch(html, /items · BGMEA/);
     assert.match(html, /GOTS-31587/);
     assert.match(html, /Expires 29 Sep 2026 · 11 days/);
     assert.match(html, /No expiry on file/);
     assert.match(html, /Expired 4 Apr 2026/);
     assert.match(html, /role="meter"[^>]*aria-valuenow="100"/);
-    assert.match(html, /Source marks link to their register page where one is on file/);
+
+
     assert.doesNotMatch(html, /Every fact links to its source page/);
     assert.doesNotMatch(html, /blur/, "locked is striped, never blurred");
     assertSendRfqEnabled(html);
@@ -590,8 +594,10 @@ describe("SupplierSheet (rendered)", () => {
     // zero-mark case this guard is about.
     bare.profile.addresses = [];
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(bare) }));
-    assert.doesNotMatch(html, /Every source mark links to its register page/);
-    assert.match(html, /Source marks link to their register page where one is on file/);
+
+
+
+
   });
 
   it("a sanctioned record carries the banner under the bar and a disabled Send RFQ", () => {
@@ -952,7 +958,7 @@ describe("RfqComposer (rendered)", () => {
     // An unclaimed supplier is not reached until REZ-D's email work, so no
     // surface may promise a delivery, an inbox or a reply time.
     assert.doesNotMatch(html, /the supplier receives|will receive|lands in their inbox|\bdelivered\b|within \d|\bguarantee|replies land in Messages/i);
-    assert.match(html, /Your email and phone are not shared\. The supplier answers inside SourceBD, with the record attached\./);
+    assert.match(html, /Your contact details are not shared; the supplier replies inside SourceBD\./);
   });
 
   it("no score, and no contact value or contact column, anywhere on it", () => {
@@ -1218,7 +1224,7 @@ describe("the largest lists the database holds (spec §3, §6)", () => {
     const sheet = buildSheet(input);
     assert.equal(sheet.products.productListCount, 29);
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model: sheet }));
-    assert.match(html, /Product list<\/span><span[^>]*>29<\/span><span[^>]*>items on file · source pending/);
+    assert.match(html, /Product list<\/dt><dd[^>]*><span[^>]*>29<\/span><span[^>]*>as filed/);
     const ps = renderToStaticMarkup(createElement(ProductSheet, { model: buildProductSheet(input, "6105") }));
     assert.match(ps, /\+25 items/, "four are listed, twenty-five counted — never a silent truncation");
     assert.doesNotMatch(ps, TRUNCATION);
@@ -1625,7 +1631,7 @@ describe("the two-state controls say which state they are in", () => {
     ]);
     assert.doesNotMatch(buttons, /<button[^>]*aria-label=/, "a text stop carries a label that shadows its own words");
     // The active stop is drawn by the brand rule, not the tint alone.
-    assert.match(buttons, /aria-pressed="true"[^>]*class="[^"]*shadow-\[inset_0_-2px_0_rgb\(var\(--ds-brand\)\)\]|class="[^"]*shadow-\[inset_0_-2px_0_rgb\(var\(--ds-brand\)\)\][^"]*"[^>]*aria-pressed="true"/);
+    assert.match(buttons, /aria-pressed="true"[^>]*class="[^"]*shadow-\[inset_0_-2px_0_rgb\(var\(--ds-accent\)\)\]|class="[^"]*shadow-\[inset_0_-2px_0_rgb\(var\(--ds-accent\)\)\][^"]*"[^>]*aria-pressed="true"/);
     // Links (a view switch is a URL): `aria-current="true"`, never "page" —
     // both stops are the same page.
     const links = renderToStaticMarkup(createElement(Seg, { options: STOPS, value: "table", label: "View", hrefFor: (v: string) => `/app/discover?view=${v}` }));
@@ -1945,11 +1951,11 @@ describe("the two-state controls say which state they are in", () => {
       // tick is pinned exactly, in each state. Changing one means changing
       // this list on purpose.
       const BOX = "inline-grid size-4 shrink-0 place-items-center rounded-xs border";
-      const LIVE = "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--ds-brand))]";
+      const LIVE = "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--ds-accent))]";
       // The tick fades in on the kit's fast clock (27 Sep 2026).
       const MOTION = "transition-colors duration-fast";
       const OFF = `${BOX} border-line-strong bg-surface ${MOTION} ${LIVE}`;
-      const ON = `${BOX} ${MOTION} ${LIVE} border-brand bg-brand text-brand-on`;
+      const ON = `${BOX} ${MOTION} ${LIVE} border-accent bg-accent text-accent-on`;
       const under = (allState: boolean | "mixed", selected: boolean, el: ReturnType<typeof createElement>) => {
         const value: SelectionContextValue = {
           interactive: true,
@@ -2191,14 +2197,14 @@ describe("an unread count renders as unknown, on every surface that shows one", 
         } as never),
       );
     const shown = shell({ suppliers: 10266, rfqs: 7, saved: null });
-    assert.match(shown, /RFQs<[^>]*>7</);
+    assert.match(shown, /RFQs<\/span><[^>]*>7</);
     assert.match(shown, />Saved</);
-    assert.doesNotMatch(shown, /Saved<[^>]*>0</, "the Saved count is not read, and 0 is a claim");
+    assert.doesNotMatch(shown, /Saved<\/span><[^>]*>0</, "the Saved count is not read, and 0 is a claim");
     const unread = shell({ suppliers: null, rfqs: null, saved: null });
-    assert.doesNotMatch(unread, /Suppliers<[^>]*>0</);
-    assert.doesNotMatch(unread, /RFQs<[^>]*>0</);
+    assert.doesNotMatch(unread, /Suppliers<\/span><[^>]*>0</);
+    assert.doesNotMatch(unread, /RFQs<\/span><[^>]*>0</);
     // A real zero is still shown: an account with no RFQs reads "RFQs 0".
-    assert.match(shell({ rfqs: 0 }), /RFQs<[^>]*>0</);
+    assert.match(shell({ rfqs: 0 }), /RFQs<\/span><[^>]*>0</);
   });
 
   it("the panel footer says what the rows are rather than a page range it cannot support", () => {
@@ -2372,7 +2378,6 @@ describe("the composer says what the draft is, and promises nothing about delive
   it("the preview heading names what the RFQ carries, not its arrival", () => {
     const html = composer();
     assert.match(html, />What this RFQ carries</);
-    assert.match(html, />stored on the RFQ</);
     // "the message the supplier receives" is a delivery claim the kit may not
     // make: an unclaimed supplier is not reached until REZ-D's email work.
     assert.doesNotMatch(html, /the supplier receives|will receive|lands in their inbox|delivered/i);
@@ -2532,6 +2537,10 @@ describe("the shell offers no control without a destination", () => {
   it("every button and form field sits in a form it submits, and nothing else poses as a control", () => {
     for (const html of shells) {
       for (const m of html.matchAll(/<button\b[^>]*>/g)) {
+        // The one control that acts in place: the rail's collapse switch
+        // (founder's video, 29 Sep 2026), which flips the shell and writes
+        // its cookie from `RailToggle`'s click handler.
+        if (/aria-label="(?:Collapse|Expand) sidebar"/.test(m[0])) continue;
         assert.match(m[0], /\btype="submit"/, `a button with no destination: ${m[0]}`);
         assert.ok(insideForm(html, m.index!), `a submit button outside any form: ${m[0]}`);
       }

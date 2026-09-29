@@ -1,12 +1,14 @@
 import type { Config } from "tailwindcss";
 import plugin from "tailwindcss/plugin";
 import {
+  appFontSize,
   borderRadius,
   boxShadow,
   cssVarName,
   densitySizes,
   fontFamily,
   fontSize,
+  fontVars,
   fontWeight,
   light,
   maxWidth,
@@ -39,6 +41,33 @@ function colorClasses(set: ColorSet) {
   );
 }
 
+/**
+ * The sizes the buyer app scales read a variable, falling back to the base
+ * value, so outside the app shell nothing changes (`appFontSize`).
+ */
+function scaledFontSize(): typeof fontSize {
+  return Object.fromEntries(
+    Object.entries(fontSize).map(([key, [size, rest]]): [string, (typeof fontSize)[string]] => {
+      if (!(key in appFontSize)) return [key, [size, rest]];
+      const v = fontVars(key);
+      return [key, [`var(${v.size}, ${size})`, { ...rest, lineHeight: `var(${v.lineHeight}, ${rest.lineHeight})` }]];
+    }),
+  );
+}
+
+/** The app shell's values for those variables. */
+function appFontVars(): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(appFontSize).flatMap(([key, [size, rest]]) => {
+      const v = fontVars(key);
+      return [
+        [v.size, size],
+        [v.lineHeight, rest.lineHeight],
+      ];
+    }),
+  );
+}
+
 /** Each token colour becomes a CSS variable holding its three channels, e.g. `--ds-ink-muted`. */
 function colorVars(set: ColorSet): Record<string, string> {
   return Object.fromEntries(
@@ -62,7 +91,7 @@ const config: Config = {
       ...colorClasses(light),
     },
     fontFamily,
-    fontSize,
+    fontSize: scaledFontSize(),
     fontWeight,
     borderRadius,
     boxShadow,
@@ -101,6 +130,8 @@ const config: Config = {
     plugin(({ addBase }) => {
       // A dark set, when it comes, is a second block here keyed on `.dark`.
       addBase({ ":root": colorVars(light) });
+      // The buyer app's text, one step up (founder, 29 Sep 2026).
+      addBase({ "[data-shell]": appFontVars() });
     }),
   ],
 };

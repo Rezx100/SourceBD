@@ -19,6 +19,7 @@ import {
   fetchRecordRfqs,
   fetchRecordSaved,
   loadRecordInput,
+  loadRecordSheet,
   callerId,
 } from "./load-record";
 import { aboniInput, TODAY } from "./fixtures";
@@ -144,6 +145,52 @@ describe("fetchContactCounts", () => {
 
   it("absorbs a thrown client", async () => {
     assert.equal(await fetchContactCounts({ rpc: async () => { throw new Error("network"); } }, "x"), null);
+  });
+});
+
+describe("loadRecordSheet: the reads a row's id starts early", () => {
+  // Founder's video, 29 Sep 2026: a record opened from a row starts its
+  // id-keyed reads beside the profile. The profile's own id still decides
+  // whose they are: a row pointing at another supplier must not lend this
+  // record that supplier's saved state or RFQs.
+  const OWN = String(ABONI.profile.supplier.id);
+  function sheetClient(savedFor: string) {
+    const asked = { saved: [] as unknown[], rfqs: [] as unknown[], workers: [] as unknown[] };
+    const chain = (table: string) => {
+      const c = {
+        select: () => c,
+        eq: (col: string, v: unknown) => (table === "saved_suppliers" && col === "supplier_id" && asked.saved.push(v), c),
+        contains: (_col: string, v: unknown[]) => (asked.rfqs.push(v[0]), c),
+        order: () => c,
+        limit: () => Promise.resolve({ data: [], error: null, count: 0 }),
+        maybeSingle: () => Promise.resolve({ data: asked.saved.at(-1) === savedFor ? { id: "s1" } : null }),
+      };
+      return c;
+    };
+    return {
+      asked,
+      auth: { getUser: async () => ({ data: { user: { id: "buyer-1" } } }) },
+      from: chain,
+      rpc: async (fn: string, args: Record<string, unknown>) => {
+        if (fn === "production_workers_display_batch") asked.workers.push(...(args.p_supplier_ids as unknown[]));
+        return fn === "buyer_supplier_profile" ? PROFILE : { data: null, error: null };
+      },
+    };
+  }
+
+  it("with the record's own id, each read runs once, for that id", async () => {
+    const c = sheetClient(OWN);
+    const sheet = await loadRecordSheet(c, "aboni-knitwear", TODAY, { supplierId: OWN });
+    assert.equal(sheet?.saved, true);
+    assert.deepEqual(c.asked, { saved: [OWN], rfqs: [OWN], workers: [OWN] });
+  });
+
+  it("a row pointing at another supplier lends this record nothing", async () => {
+    const c = sheetClient("someone-else");
+    const sheet = await loadRecordSheet(c, "aboni-knitwear", TODAY, { supplierId: "someone-else" });
+    assert.equal(sheet?.saved, false, "the other supplier's saved state reached this record");
+    assert.equal(c.asked.saved.at(-1), OWN, "saved was not read again for the record's own id");
+    assert.ok(c.asked.rfqs.includes(OWN) && c.asked.workers.includes(OWN), "the record's own RFQs or workers were not read");
   });
 });
 

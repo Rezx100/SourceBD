@@ -60,18 +60,23 @@ export function SidebarNav({
             href={item.href}
             prefetch={item.href === "/app/discover" ? false : undefined}
             aria-current={on ? (current.exact ? "page" : "true") : undefined}
+            // The collapsed rail shows the icon alone; the name stays for a
+            // screen reader and appears on hover.
+            title={item.label}
             className={cn(
-              "flex h-8 shrink-0 snap-start items-center gap-2.5 whitespace-nowrap rounded-sm px-2 text-sm font-medium text-ink-muted transition-colors duration-fast hover:bg-surface-sunken hover:text-ink-strong md:shrink",
-              // The current page: a hairline in `brand` all the way round, the
-              // tint, brand ink and a heavier weight. The tint alone is 1.07:1
-              // against the canvas and never carries the state by itself
-              // (WCAG 1.4.11 asks 3:1); the brand outline is 7.87:1.
-              on && "bg-brand-tint font-semibold text-brand-ink ring-1 ring-inset ring-brand hover:bg-brand-tint",
+              "flex h-8 shrink-0 snap-start items-center gap-2.5 whitespace-nowrap rounded-sm px-2 text-sm font-medium text-ink transition-colors duration-fast hover:bg-surface-sunken hover:text-ink-strong md:shrink md:group-data-[rail=collapsed]/shell:justify-center md:group-data-[rail=collapsed]/shell:px-0",
+              // The current page (founder's video, 29 Sep 2026: the green tint
+              // and ring went): the slate tint, slate ink, a heavier weight and
+              // a 3px slate bar at the row's start. The tint alone is too close
+              // to the canvas to carry the state (WCAG 1.4.11 asks 3:1); the
+              // bar is 6.8:1 against it.
+              on &&
+                "bg-accent-tint font-semibold text-accent-ink shadow-[inset_3px_0_0_rgb(var(--ds-accent))] hover:bg-accent-tint hover:text-accent-ink",
             )}
           >
-            <Icon name={item.icon} />
-            {item.label}
-            {count !== null ? <Count className={cn("ml-auto", on && "text-brand-ink")}>{count}</Count> : null}
+            <Icon name={item.icon} className={on ? undefined : "text-ink-muted"} />
+            <span className="md:group-data-[rail=collapsed]/shell:sr-only">{item.label}</span>
+            {count !== null ? <Count className={cn("ml-auto md:group-data-[rail=collapsed]/shell:hidden", on && "text-accent-ink")}>{count}</Count> : null}
           </Link>
         );
       })}

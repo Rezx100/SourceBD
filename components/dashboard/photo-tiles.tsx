@@ -1,5 +1,5 @@
 // HS-keyed photo tiles (REZ-A, handoff §6): the 132px strip tile, the 28px
-// table thumb, the six-up grid, and the dashed quiet slot a record with no
+// table thumb, the record's photo list, and the dashed quiet slot a record with no
 // export lines shows. A heading without a photo shows its code on the sunken
 // ground with "no photo yet" — nothing is substituted. Every photo is
 // captioned as illustrative.
@@ -9,6 +9,7 @@ import type { PhotoTileModel } from "@/lib/dashboard/hs-photos";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Icon } from "./icons";
+import { LinkPending } from "./link-pending";
 import { Caption, Code } from "./type";
 
 export const PHOTO_NOTE = "Illustrative photos, one per HS heading · rarest lines first";
@@ -50,7 +51,10 @@ export function PhotoTile({ tile, fluid = false }: { tile: PhotoTileModel; fluid
       </div>
       <div className="px-0.5 pt-[5px]">
         <Code className="block text-xs text-ink-muted">HS {tile.hs}</Code>
-        <span className="block whitespace-nowrap text-xs text-ink">{tile.short}</span>
+        {/* Wraps between words. Held to one line, "Coated knit garments" ran
+            into the next tile's "Others knitwear" in the record's six-up grid
+            (founder's video, 29 Sep 2026: "fix the overlaps"). */}
+        <span className="block text-xs text-ink [overflow-wrap:anywhere]">{tile.short}</span>
       </div>
     </div>
   );
@@ -175,26 +179,50 @@ export function NoLinesSlot({
 }
 
 /**
- * `.pgrid`: the sheet's six-up grid. `lineHref` turns each tile into the link
- * to that export line's sheet (REZ-C §3.3, "each tile opens ProductSheet");
- * without it the tiles stay plain, as they are on the gallery.
+ * The record's export lines as a list (founder's pick "A", 29 Sep 2026: keep
+ * the stock photos, shown differently — "not the proper way to view the
+ * product"): one row per HS heading, a 40px photo tagged as an illustration,
+ * the code and the heading's name. Each row opens the line's own sheet.
  */
-export function PhotoGrid({ tiles, lineHref }: { tiles: readonly PhotoTileModel[]; lineHref?: (hs: string) => string }) {
+export function PhotoList({ tiles, lineHref }: { tiles: readonly PhotoTileModel[]; lineHref?: (hs: string) => string }) {
   return (
-    <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-      {tiles.map((t) =>
-        lineHref ? (
-          // `next/link`: in the overlay this href is `?…&record=X&line=NNNN`
-          // on the search's own URL, and a plain anchor would reload the whole
-          // page — re-running the search and emptying the bulk selection.
-          <Link key={t.hs} prefetch={false} scroll={false} href={lineHref(t.hs)} aria-label={`HS ${t.hs} · ${t.short}`} className="rounded-sm">
-            <PhotoTile tile={t} fluid />
-          </Link>
-        ) : (
-          <PhotoTile key={t.hs} tile={t} fluid />
-        ),
-      )}
-    </div>
+    <ul className="m-0 grid list-none gap-x-6 p-0 sm:grid-cols-2" data-photo-list="true">
+      {tiles.map((t) => {
+        const body = (
+          <>
+            <span className="relative size-10 shrink-0 overflow-hidden rounded-sm border border-line-subtle bg-surface-sunken">
+              {t.thumb ?? t.src ? <Photo src={(t.thumb ?? t.src)!} /> : <span className="grid size-full place-items-center font-mono text-[9px] text-ink-subtle">{t.hs}</span>}
+            </span>
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="flex items-baseline gap-2">
+                <Code className="text-sm text-ink-strong">{t.hs}</Code>
+                {t.src ? <span className="text-xs text-ink-subtle">illustration</span> : null}
+              </span>
+              <span className="text-sm text-ink [overflow-wrap:anywhere]">{t.short}</span>
+            </span>
+          </>
+        );
+        return (
+          <li key={t.hs} className="border-t border-line-subtle">
+            {lineHref ? (
+              <Link
+                prefetch={false}
+                scroll={false}
+                href={lineHref(t.hs)}
+                aria-label={`HS ${t.hs} · ${t.short}`}
+                className="-mx-2 flex items-center gap-3 rounded-sm px-2 py-2 transition-colors duration-fast hover:bg-surface-sunken"
+              >
+                {body}
+                <LinkPending className="size-4 text-ink-subtle" />
+                <Icon name="chev-r" small className="text-ink-subtle" />
+              </Link>
+            ) : (
+              <div className="flex items-center gap-3 py-2">{body}</div>
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 

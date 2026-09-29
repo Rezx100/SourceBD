@@ -99,3 +99,62 @@ provenance.
 
 - The competitor's sticky record name in the tray bar on scroll (not built).
 - Sidebar icon-only collapse at 1024–1279 (`dashboard-ux-flow.md` §8, not built).
+
+## The founder's video, 29 Sep 2026
+
+Hand-off: `context/feature-specs/handoff-dashboard-video-29sep.md`, six PRs.
+The founder answered its four questions on 29 Sep, before the decision page:
+
+- **Q1, long names:** wrap between words, never mid-word, and give the name
+  column the width. No ellipsis ("Unit 2" and a bracket tell sister
+  factories apart).
+- **Q2, product photos:** keep the stock photos, presented differently (not
+  removed). The decision page offers how.
+- **Q3, "Material":** Material 3's principles (tonal surfaces, state layers,
+  colour roles) built into our own tokens. No new package.
+- **Q4, a register's own typo** ("Clean Globe Globe"): show it as filed.
+
+PR 1 (stability and speed, no design decision) changed the record here:
+the shell root and the list-and-pane frame are `overflow-clip` and a record
+tab scrolls only its pane; the columns are sized from measured content and
+the supplier column keeps 184px (its longest word) at the table's minimum
+width; the record pane is half the region, not 55%; a line has its own
+silhouette and one read; every pane-opening link shows a spinner at once.
+
+**The decision page (PR 2), picked 29 Sep 2026.** Page:
+https://claude.ai/artifact/8RnQGfi1bnVHnwG1qbaTsQ (option shots from
+`.impeccable/preview/decision29.cjs`). The founder took the recommended
+option in all seven:
+
+1. **Colour: B Slate.** Green stays on the one primary action and the logo.
+   Selection, the active nav row, set filters, links, tabs, focus and the
+   ticked box take the `accent` role (slate, `lib/design/tokens.ts`).
+   Status hues do not change.
+2. **Search field: A filled.** A tonal fill, no outline, no shadow; typing
+   turns it white with a thin ink line under it (M3 filled field).
+3. **Filters: A a row of menus.** Product, Certificate, Place, Company type,
+   More; each opens a short list with production counts; a set filter shows
+   its value on its button. Replaces the landing's four pill rows and the
+   results' chip bar.
+4. **Text size: B one step up**, buyer app only: caption 13, label and table
+   14, body 15, title 16, eyebrow 12; the list's initials tile 40px.
+5. **Icons: A line.** Fourteen in-repo SVGs on the 24px grid, 1.5px stroke,
+   round ends, no package. The source-pending mark is a document with a
+   clock, replacing the dashed square.
+6. **Record head: A one row of marks.** The facts line is plain text; every
+   source appears once, in one row of marks that name themselves on hover.
+7. **Product photos: A a list with small photos.** One line per HS heading:
+   a 40px photo tagged "illustration", the code, its name.
+
+**PR 3 (the shell), built.** The rail collapses to a 56px column of icons
+from a toggle beside the logo (`sb_rail` cookie, read by the layout); its
+current row is slate with a 3px bar; the account corner is one menu (photo
+from Settings → Profile, name or the email's name part, Settings,
+Subscription, Sign out) on the rail and the topbar; the record pane's bar has
+Expand, to the record's own page with "Back to results". The logo and
+wordmark are untouched. The type step (pick 4) moved to PR 4, where the list
+it mostly changes is rebuilt.
+
+Originally planned: PR 3 (shell) applies 1 and 4 to the shell; PR 4 (search) 2, 3 and the
+list's type; PR 5 (record) 5, 6 and 7; PR 6 (RFQ form) the green reduction
+there.

@@ -36,7 +36,7 @@ const resolved = (mod: string) => require.resolve(path.join(OUT, mod));
 
 type Rpc = { data: unknown; error: unknown };
 type Answers = {
-  /** A function answers each call in turn (the overlay reads the profile twice). */
+  /** A function answers each call in turn, so a test can count the reads. */
   profile?: Rpc | (() => Rpc);
   hscodes?: Rpc;
   workers?: Rpc;
@@ -1112,7 +1112,7 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
     assert.ok(list, "guard: the full page draws the product list");
     assert.equal((list[1]!.match(/<li/g) ?? []).length, 2, `the product list: ${list[1]}`);
     assert.match(list[1]!, /Knit T-shirt 61091000/, "an HS code in a product name was cut as a phone number");
-    assert.match(pages.full, /Product list<\/span><span[^>]*>2<\/span>/, "the Products stat counts a contact value or a case variant as a product");
+    assert.match(pages.full, /Product list<\/dt><dd[^>]*><span[^>]*>2<\/span>/, "the Products stat counts a contact value or a case variant as a product");
   });
 
   it("?lines=all rides INTO a line from the overlay, not only back out", async () => {
@@ -1204,17 +1204,31 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
       assert.match(to, /lines=all/, `&line=${hs} lost the expanded grid: ${to}`);
       assert.doesNotMatch(to, /[?&]line=/, `&line=${hs} kept the dead line: ${to}`);
     }
-    // …and a line whose read timed out, while the record's own read answered.
+    // A line reads the record ONCE (founder's video, 29 Sep 2026: the pane read
+    // the whole record sheet as well, the profile twice, so a line took as
+    // long as two records). A timed-out read is then the record's slowness,
+    // said with a retry of the same line, as the record says its own.
     let reads = 0;
     given({
-      profile: () => (reads++ === 0 ? PROFILE : { data: null, error: { code: "57014", message: "canceling statement due to statement timeout" } }),
+      profile: () => (reads++, { data: null, error: { code: "57014", message: "canceling statement due to statement timeout" } }),
       hscodes: HS,
       discover: { data: [ROW], error: null },
     });
-    const slow = await overlay({ q: "knit", record: "aboni-knitwear", line: "6105" });
-    assert.equal(reads, 2, "guard: the record and the line each read the profile once");
-    assert.ok("threw" in slow && /NEXT_REDIRECT/.test(slow.threw), "a timed-out line left the dead line= in the URL");
-    assert.doesNotMatch(slow.threw, /[?&]line=/);
+    const slow = html(await overlay({ q: "knit", record: "aboni-knitwear", line: "6105" }));
+    assert.equal(reads, 1, "a line read the profile more than once");
+    assert.match(slow, /could not be read in time/);
+    assert.match(/href="([^"]*)"[^>]*>Try again/.exec(slow)?.[1]?.replace(/&amp;/g, "&") ?? "", /line=6105/, "Try again dropped the line");
+  });
+
+  it("a line reads the profile once, and none of the record sheet's own reads", async () => {
+    given({ profile: PROFILE, hscodes: HS, discover: { data: [ROW], error: null } });
+    const out = html(await overlay({ q: "knit", record: "aboni-knitwear", line: "6105" }));
+    assert.match(out, /aria-label="Product line"/);
+    assert.equal(rpcCalls.filter((c) => c.fn === "buyer_supplier_profile").length, 1, "the line read the profile twice");
+    for (const fn of ["supplier_contact_counts", "buyer_supplier_facility_panel"]) {
+      assert.ok(!rpcCalls.some((c) => c.fn === fn), `a line read the record sheet's ${fn}, which it never draws`);
+    }
+    assert.ok(!fromCalls.some((c) => c.table === "rfqs"), "a line read the record's RFQs, which it never draws");
   });
 
   it("the overlay names what it shows, so focus follows a change of content", async () => {

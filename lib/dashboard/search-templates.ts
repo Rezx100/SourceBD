@@ -81,37 +81,82 @@ export function templateHref(t: SearchTemplate): string {
   return discoverHref(t.state);
 }
 
-/** One-click filters under the landing's field, each a search of its own. */
-export type QuickFilter = { label: string; href: string; code?: string };
+/**
+ * The filter menus: one row of them under the landing's field and over the
+ * results (founder's pick "A", 29 Sep 2026: "precise and noise-free"). Each
+ * option toggles one value on a search; a menu with a value set shows it on
+ * its own button. A value set some other way (the typeahead, the filter
+ * pane) joins its menu's list, so it can always be taken off there.
+ */
+export type FilterOption = { key: string; label: string; code?: string; on: boolean; toggled: DiscoverState };
+export type FilterMenu = { key: string; label: string; options: FilterOption[] };
 
-export const QUICK_FILTERS: readonly { group: string; items: readonly QuickFilter[] }[] = [
-  {
-    group: "Product",
-    items: ["6109", "6205", "6110", "6203", "6204", "6111", "6115"].map((hs) => ({
-      label: headingLabel(hs),
-      code: hs,
-      href: discoverHref(at({ hs: [hs] })),
-    })),
-  },
-  {
-    group: "Certificate",
-    items: [
-      { label: "GOTS", href: discoverHref(at({ cert: [{ kind: "gots", state: "valid" }] })) },
-      { label: "WRAP", href: discoverHref(at({ cert: [{ kind: "wrap", state: "valid" }] })) },
-      { label: "OEKO-TEX", href: discoverHref(at({ cert: [{ kind: "oeko_tex", state: "valid" }] })) },
-      { label: "SA8000", href: discoverHref(at({ cert: [{ kind: "sa8000", state: "valid" }] })) },
-      { label: "RSC active", href: discoverHref(at({ rsc: "active" })) },
-    ],
-  },
-  {
-    group: "Place",
-    items: ["Dhaka", "Gazipur", "Narayanganj", "Chattogram"].map((d) => ({ label: d, href: discoverHref(at({ district: [d] })) })),
-  },
-  {
-    group: "Company",
-    items: [
-      { label: "Factories", href: discoverHref(at({ type: ["factory"] })) },
-      { label: "Buying houses", href: discoverHref(at({ type: ["buying_house"] })) },
-    ],
-  },
-];
+const HS_OFFERED = ["6109", "6205", "6110", "6203", "6204", "6111", "6115"];
+const PLACES_OFFERED = ["Dhaka", "Gazipur", "Narayanganj", "Chattogram"];
+const CERTS_OFFERED = [
+  { kind: "gots", label: "GOTS" },
+  { kind: "wrap", label: "WRAP" },
+  { kind: "oeko_tex", label: "OEKO-TEX" },
+  { kind: "sa8000", label: "SA8000" },
+] as const;
+
+const toggle = <T,>(list: readonly T[], v: T): T[] => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
+const fresh = (s: DiscoverState, over: Partial<DiscoverState>): DiscoverState => ({ ...s, ...over, page: 1 });
+
+export function filterMenus(s: DiscoverState): FilterMenu[] {
+  const hs = [...HS_OFFERED, ...s.hs.filter((h) => !HS_OFFERED.includes(h))];
+  const places = [...PLACES_OFFERED, ...s.district.filter((d) => !PLACES_OFFERED.includes(d))];
+  return [
+    {
+      key: "product",
+      label: "Product",
+      options: hs.map((h) => ({ key: `hs-${h}`, label: headingLabel(h), code: h, on: s.hs.includes(h), toggled: fresh(s, { hs: toggle(s.hs, h) }) })),
+    },
+    {
+      key: "certificate",
+      label: "Certificate",
+      options: CERTS_OFFERED.map((c) => {
+        const on = s.cert.some((x) => x.kind === c.kind);
+        return {
+          key: `cert-${c.kind}`,
+          label: c.label,
+          on,
+          toggled: fresh(s, { cert: on ? s.cert.filter((x) => x.kind !== c.kind) : [...s.cert, { kind: c.kind, state: "valid" }] }),
+        };
+      }),
+    },
+    {
+      key: "place",
+      label: "Place",
+      options: places.map((d) => ({ key: `district-${d}`, label: d, on: s.district.includes(d), toggled: fresh(s, { district: toggle(s.district, d) }) })),
+    },
+    {
+      key: "type",
+      label: "Company type",
+      options: [
+        { key: "type-factory", label: "Factories", on: s.type.includes("factory"), toggled: fresh(s, { type: toggle(s.type, "factory") }) },
+        { key: "type-buying_house", label: "Buying houses", on: s.type.includes("buying_house"), toggled: fresh(s, { type: toggle(s.type, "buying_house") }) },
+      ],
+    },
+    {
+      key: "more",
+      label: "More",
+      options: [{ key: "rsc", label: "RSC safety record active", on: s.rsc === "active", toggled: fresh(s, { rsc: s.rsc === "active" ? null : "active" }) }],
+    },
+  ];
+}
+
+/** The chips a menu already shows: kept off the chip bar so a filter is drawn once. */
+export function inFilterMenu(chipKey: string, s: DiscoverState): boolean {
+  if (chipKey === "rsc") return s.rsc === "active";
+  // A certificate in another state (expiring, expired) keeps its chip: the
+  // menu's "GOTS" would not say which.
+  return /^(hs|district|type)-/.test(chipKey) || /^cert-[a-z_]+-valid$/.test(chipKey);
+}
+
+/** The words a menu's button carries when values are set: the one value, or how many. */
+export function menuSummary(menu: FilterMenu): string | null {
+  const on = menu.options.filter((o) => o.on);
+  if (on.length === 0) return null;
+  return on.length === 1 ? on[0]!.label : `${on.length} selected`;
+}

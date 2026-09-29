@@ -1,5 +1,5 @@
 import { Panel } from "@/components/dashboard/results-panel";
-import { ResultsColumn } from "@/components/dashboard/sheet";
+import { ResultsColumn, Workbench } from "@/components/dashboard/sheet";
 import { Skeleton, SkeletonRegion } from "@/components/ui/skeleton";
 
 // The results page while the search runs, drawn with the page's own frame
@@ -10,11 +10,11 @@ import { Skeleton, SkeletonRegion } from "@/components/ui/skeleton";
 // in the old design's stylesheet, no bars at all. The layout draws the shell.
 
 /** The ledger grid's columns, wide view: `RESULTS_COLUMNS.wide` in `components/dashboard/results-table.tsx`. */
-const GRID = "grid grid-cols-[40px_minmax(0,1fr)_150px_220px_130px_100px_104px] items-center";
+const GRID = "grid grid-cols-[40px_minmax(0,1fr)_160px_212px_112px_152px_104px] items-center";
 
 export default function BuyerDiscoverLoading() {
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col lg:flex-row">
+    <Workbench>
       <ResultsColumn>
         <SkeletonRegion label="Loading results" className="flex flex-col gap-4">
           {/* The filter bar: funnel, chips, Add filter, the go disc. */}
@@ -40,7 +40,7 @@ export default function BuyerDiscoverLoading() {
               </span>
             </div>
             <div className="overflow-hidden">
-              <div className="min-w-[60rem]">
+              <div className="min-w-[62rem]">
                 <div className={`${GRID} h-9 border-b border-line-subtle`}>
                   <span />
                   <Skeleton w={64} h={10} className="ml-3" />
@@ -53,8 +53,8 @@ export default function BuyerDiscoverLoading() {
                 {Array.from({ length: 12 }, (_, i) => (
                   <div key={i} className={`${GRID} min-h-[52px] border-b border-line-subtle last:border-b-0`}>
                     <Skeleton w={16} h={16} className="ml-3" />
-                    <span className="flex items-center gap-2.5 px-3 py-2">
-                      <Skeleton w={24} h={24} />
+                    <span className="flex items-center gap-3 px-3 py-2">
+                      <Skeleton w={40} h={40} />
                       <span className="flex flex-col gap-1.5">
                         <Skeleton w={i % 3 === 0 ? 220 : i % 3 === 1 ? 170 : 250} h={13} />
                         <Skeleton w={110} h={10} />
@@ -84,6 +84,6 @@ export default function BuyerDiscoverLoading() {
           </Panel>
         </SkeletonRegion>
       </ResultsColumn>
-    </div>
+    </Workbench>
   );
 }

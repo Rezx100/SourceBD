@@ -19,8 +19,9 @@ import { cn } from "@/lib/utils";
 import { Button } from "./controls";
 import { CopyLinkButton } from "./copy-link-button";
 import { Icon } from "./icons";
+import { SbIcon } from "./sb-icons";
 import { LogoTile, SourceMarks } from "./marks";
-import { PHOTO_CAPTION, PhotoGrid } from "./photo-tiles";
+import { PhotoList } from "./photo-tiles";
 import { ReportProblem } from "./report-problem";
 import {
   ActionBar,
@@ -31,6 +32,7 @@ import {
   FacilitiesList,
   LocationsList,
   LockCard,
+  PendingMark,
   QuietEmpty,
   RecordRfqList,
   RscBlock,
@@ -77,8 +79,8 @@ function ProductList({ items }: { items: readonly string[] }) {
   );
   return (
     <div className="flex flex-col gap-1.5" data-product-list="true">
-      <Caption>
-        Product list · {list.length} {list.length === 1 ? "item" : "items"} as filed · source pending
+      <Caption className="inline-flex items-center gap-1.5">
+        {list.length} {list.length === 1 ? "item" : "items"} as filed <PendingMark />
       </Caption>
       <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0">{shown.map(chip)}</ul>
       {rest.length > 0 ? (
@@ -126,25 +128,39 @@ export function SupplierSheet({
   model,
   mode = "pane",
   save,
+  backHref,
 }: {
   model: SupplierSheetModel;
   /** `pane` beside the results (the default); `page` on the full record page. */
   mode?: "pane" | "page";
   /** The real Save control. A caller with no session (the gallery) passes none and the bar shows it disabled. */
   save?: ReactNode;
+  /**
+   * The list with this record open beside it. In the pane, Expand carries it
+   * to the full page; on the full page it is where "Back to results" goes.
+   */
+  backHref?: string | null;
 }) {
   const p = model.products;
+  const expandHref = backHref ? `${model.fullHref}${model.fullHref.includes("?") ? "&" : "?"}back=${encodeURIComponent(backHref)}` : model.fullHref;
   return (
     <Sheet label="Supplier record" mode={mode}>
       <SheetBar>
         {/* Close returns to the results the overlay sits over. The full page
-            has nothing to close, so it offers no dead control. */}
+            has nothing to close; opened by Expand, it goes back to the list
+            with the record open, which is where the buyer came from. */}
         {model.closeHref ? (
           <Button variant="ghost" icon aria-label="Close" href={model.closeHref} clientNav scroll={false}>
             <Icon name="x" />
           </Button>
+        ) : mode === "page" && backHref ? (
+          <Button variant="ghost" size="sm" href={backHref} clientNav>
+            <Icon name="chev-l" />
+            Back to results
+          </Button>
         ) : null}
-        <Label className="text-ink-strong">Supplier record</Label>
+        {/* One line: at half the region (524px at 1280) it broke as "Supplier / record". */}
+        <Label className="shrink-0 whitespace-nowrap text-ink-strong">Supplier record</Label>
         <Caption>
           {model.readDate ? `Read ${model.readDate} · ` : ""}
           {model.sourceCount} {model.sourceCount === 1 ? "source" : "sources"}
@@ -154,6 +170,13 @@ export function SupplierSheet({
               `fullHref`, not the search URL underneath. */}
           <CopyLinkButton href={model.fullHref} />
           <ReportProblem page={model.fullHref} />
+          {/* The record over the whole content region (founder's video, 29 Sep
+              2026); with the rail collapsed it is the full-screen view. */}
+          {mode === "pane" ? (
+            <Button variant="ghost" icon aria-label="Expand to full page" title="Expand to full page" href={expandHref} clientNav>
+              <SbIcon name="expand" />
+            </Button>
+          ) : null}
         </span>
       </SheetBar>
       {model.sanctioned ? <SanctionBanner sample={model.sanctionSample} evidenceHref="#sanctions" /> : null}
@@ -165,11 +188,12 @@ export function SupplierSheet({
               <Heading level="lg" as="h1">
                 {model.name}
               </Heading>
-              <MetaLine facts={model.meta} />
-              {/* The squares only: the names were spelled out beside them and
-                  again in the Registers row, so the head said each register
-                  three times. Each square names itself on hover and to a
-                  screen reader. */}
+              <MetaLine facts={model.meta} inRow={new Set(model.marks.map((m) => m.code))} />
+              {/* Each source once (founder's pick, 29 Sep 2026): the facts line
+                  is plain and every source is a square in this one row, which
+                  names itself on hover and to a screen reader. The names were
+                  once spelled beside the squares and again in the Registers
+                  row, so the head said a register three times. */}
               <SourceMarks marks={model.marks} caption="count" className="mt-0.5" />
             </div>
           </div>
@@ -243,7 +267,7 @@ export function SupplierSheet({
                       ? "none on the EPB page"
                       : "not on the EPB list",
               },
-              { key: "Product list", value: p.productListCount > 0 ? String(p.productListCount) : "—", sub: p.productListCount > 0 ? "items on file · source pending" : "none on file" },
+              { key: "Product list", value: p.productListCount > 0 ? String(p.productListCount) : "—", sub: p.productListCount > 0 ? "as filed" : "none on file" },
               {
                 key: "Certified scope",
                 // An expired scope is still the record's scope; discarding it
@@ -258,12 +282,9 @@ export function SupplierSheet({
               are no tiles and no line sheets, so this is the only place a
               buyer can read what the company says it makes. */}
           {p.productList.length > 0 ? <ProductList items={p.productList} /> : null}
-          {p.tiles.length > 0 ? (
-            <>
-              <PhotoGrid tiles={p.tiles} lineHref={(hs) => model.lineHref(hs)} />
-              <Caption>{PHOTO_CAPTION}. A supplier-attested upload replaces it (V2).</Caption>
-            </>
-          ) : null}
+          {/* One row per heading, each photo tagged as an illustration; the
+              caption under a grid of photos said the same once for all. */}
+          {p.tiles.length > 0 ? <PhotoList tiles={p.tiles} lineHref={(hs) => model.lineHref(hs)} /> : null}
         </SheetSection>
         <SheetSection id="certificates" title="Certificates" caption={model.certsCaption ?? (model.certs.length ? onFileLabel(model.certs.length) : model.certsEmpty)}>
           {model.certs.length > 0 ? (
@@ -381,7 +402,7 @@ export function SupplierSheet({
         </SheetSection>
         <AffiliationNote />
       </SheetScroll>
-      <ActionBar sanctioned={model.sanctioned} everyMarkLinks={model.everyMarkLinks} rfqHref={model.rfqHref} save={save} />
+      <ActionBar sanctioned={model.sanctioned} rfqHref={model.rfqHref} save={save} />
     </Sheet>
   );
 }

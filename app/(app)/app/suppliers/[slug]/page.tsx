@@ -32,6 +32,7 @@ import { SaveRecordButton } from "@/components/dashboard/save-record-button";
 import { SupplierSheet } from "@/components/dashboard/supplier-sheet";
 import { Caption, Title } from "@/components/dashboard/type";
 import { ProfileReadTimeout, loadRecordSheet } from "@/lib/dashboard/load-record";
+import { backToList } from "@/lib/dashboard/nav";
 import {
   fetchFacilityParentSlug,
   resolveUnpublishedProfileMiss,
@@ -108,6 +109,7 @@ export default async function SupplierRecordPage({
     <SupplierSheet
       model={model}
       mode="page"
+      backHref={backToList(sp.back)}
       save={model.supplierId ? <SaveRecordButton supplierId={model.supplierId} saved={model.saved} /> : undefined}
     />
   );

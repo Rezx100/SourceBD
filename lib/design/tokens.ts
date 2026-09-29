@@ -72,6 +72,18 @@ export const light = {
   },
   focus: { DEFAULT: "#2E7D32" },
 
+  // The buyer app's quiet second colour (founder's pick "B Slate", 29 Sep
+  // 2026): selection, the active nav row, set filters, links, tabs, focus and
+  // the ticked box. Green is kept for the one primary action and the logo, so
+  // a selected row can never read as "verified".
+  accent: {
+    DEFAULT: "#3B5A70", // focus ring, active tab indicator, ticked box
+    on: "#FFFFFF",
+    ink: "#2C4E66", // link text, selected label
+    tint: "#E6EDF2", // selected row, active nav row
+    "tint-strong": "#D3DFE8", // set filter, active chip
+  },
+
   // The one decorative flourish: the live dot, the arrow disc. Always
   // icon-sized, always beside a word. Never body text, never a status.
   signal: {
@@ -120,11 +132,11 @@ export const light = {
     line: "#8F1711",
   },
 
-  // Locked (needs plan or login). A real state with its own surface and
-  // stripe pattern — never a blur over real data.
+  // Locked (needs plan or login). A real state with its own plain surface —
+  // never a blur over real data. The stripes went (founder's video, 29 Sep
+  // 2026: they read as decoration, not as a state).
   locked: {
     DEFAULT: "#EEEEEC",
-    stripe: "#DDE0D5",
     ink: "#545C54",
     line: "#C1C7B9",
   },
@@ -205,6 +217,9 @@ type FontSize = [string, { lineHeight: string; letterSpacing?: string }];
  * The artifact's type styles, on Tailwind's size names so `cn()` /
  * tailwind-merge keeps working, plus the named styles the dashboard uses
  * (`text-title`, `text-eyebrow`) that have no standard slot.
+ *
+ * These are the scale everywhere but the buyer app, which takes one step up
+ * (`appFontSize`, below).
  */
 export const fontSize: Record<string, FontSize> = {
   eyebrow: ["0.6875rem", { lineHeight: "1rem", letterSpacing: "0.08em" }], // 11 — mono, uppercase
@@ -221,6 +236,25 @@ export const fontSize: Record<string, FontSize> = {
   "6xl": ["3rem", { lineHeight: "3.375rem", letterSpacing: "-0.03em" }], // 48 — display-lg
   "7xl": ["4.25rem", { lineHeight: "4.5rem", letterSpacing: "-0.035em" }], // 68 — display-xl
 };
+
+/**
+ * The buyer app's text, one step up (founder's pick "B", 29 Sep 2026: "we
+ * have a lot of space sitting there"). Inside the app shell (`[data-shell]`)
+ * these replace the matching `fontSize` entries through CSS variables, so the
+ * same `text-sm` is 14px in the app and 13px on the marketing site.
+ */
+export const appFontSize: Record<string, FontSize> = {
+  eyebrow: ["0.75rem", { lineHeight: "1rem", letterSpacing: "0.08em" }], // 12
+  xs: ["0.8125rem", { lineHeight: "1.125rem" }], // 13 — caption
+  sm: ["0.875rem", { lineHeight: "1.25rem" }], // 14 — label, table, code
+  base: ["0.9375rem", { lineHeight: "1.5rem" }], // 15 — body
+  title: ["1rem", { lineHeight: "1.5rem", letterSpacing: "-0.005em" }], // 16 — card title, tab
+};
+
+/** `sm` → `--ds-fs-sm` (its size) and `--ds-lh-sm` (its line height). */
+export function fontVars(key: string): { size: string; lineHeight: string } {
+  return { size: `--ds-fs-${key}`, lineHeight: `--ds-lh-${key}` };
+}
 
 export const fontWeight = {
   light: "300", // marketing display only
@@ -393,6 +427,14 @@ export const contrastPairs: ContrastPair[] = [
   { fg: "brand.on", bg: "brand.active", min: TEXT, use: "primary button, pressed" },
   { fg: "brand.ink", bg: "brand.tint", min: TEXT, use: "info note, active nav" },
   { fg: "brand.ink", bg: "brand.tint-strong", min: TEXT, use: "selected row, active chip" },
+  { fg: "accent.on", bg: "accent", min: TEXT, use: "ticked box" },
+  { fg: "accent.ink", bg: "accent.tint", min: TEXT, use: "selected row, active nav" },
+  { fg: "accent.ink", bg: "accent.tint-strong", min: TEXT, use: "set filter, active chip" },
+  { fg: "accent.ink", bg: "surface", min: TEXT, use: "link" },
+  { fg: "accent.ink", bg: "canvas", min: TEXT, use: "link on the canvas" },
+  { fg: "ink.strong", bg: "accent.tint-strong", min: TEXT, use: "name on a set filter" },
+  { fg: "accent", bg: "surface", min: UI, use: "focus ring, tab indicator" },
+  { fg: "accent", bg: "canvas", min: UI, use: "focus ring on the canvas" },
   { fg: "signal.on", bg: "signal", min: TEXT, use: "icon on the signal disc" },
   { fg: "positive.on", bg: "positive", min: TEXT, use: "verified, solid" },
   { fg: "positive.ink", bg: "positive.tint", min: TEXT, use: "verified / valid" },
@@ -406,8 +448,6 @@ export const contrastPairs: ContrastPair[] = [
   { fg: "sanction.ink", bg: "sanction.tint", min: 7, use: "sanction note (held to AAA)" },
   { fg: "sanction.ink", bg: "surface", min: 7, use: "sanction line on a card (held to AAA)" },
   { fg: "locked.ink", bg: "locked", min: TEXT, use: "locked field" },
-  { fg: "locked.ink", bg: "locked.stripe", min: TEXT, use: "locked field, on the stripe" },
-  { fg: "ink.strong", bg: "locked.stripe", min: TEXT, use: "locked card label, on the stripe" },
   { fg: "quiet.ink", bg: "quiet", min: TEXT, use: "unverified / empty" },
   { fg: "quiet.ink", bg: "surface", min: TEXT, use: "empty value in a tile" },
   { fg: "smart", bg: "smart.tint", min: TEXT, use: "V2 tag" },

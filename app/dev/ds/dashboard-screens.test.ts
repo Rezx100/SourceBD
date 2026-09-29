@@ -341,7 +341,7 @@ describe("the ledger grid is the first screen", () => {
     // Ticked: the box says so, and the row carries the brand rule (a state
     // drawn only as a fill is invisible against its neighbours).
     assert.equal((html.match(/role="checkbox" aria-checked="true"/g) ?? []).length, 2, "two rows are ticked");
-    const ruled = rows.filter((r) => r.includes("shadow-[inset_2px_0_0_rgb(var(--ds-brand))]"));
+    const ruled = rows.filter((r) => r.includes("shadow-[inset_2px_0_0_rgb(var(--ds-accent))]"));
     assert.equal(ruled.length, 2, "the two ticked rows carry the selection rule");
   });
 
@@ -718,10 +718,10 @@ describe("what the whole page may and may not say about itself", () => {
 describe("the sidebar and the shell state only what was read", () => {
   it("the RFQ pill carries the real count on every screen, and none when the read failed", () => {
     const withSeven = render(galleryData({ rfqs: { ...EMPTY_RFQS, sent: 7, chips: [{ label: "All", count: 7, on: true }], rows: [] } }));
-    assert.equal((withSeven.match(/RFQs<[^>]*>7</g) ?? []).length, 7, "seven screens, each reading the account's own count");
-    assert.doesNotMatch(withSeven, /RFQs<[^>]*>0</);
+    assert.equal((withSeven.match(/RFQs<\/span><[^>]*>7</g) ?? []).length, 7, "seven screens, each reading the account's own count");
+    assert.doesNotMatch(withSeven, /RFQs<\/span><[^>]*>0</);
     const failed = render(galleryData({ rfqError: true, rfqs: { ...EMPTY_RFQS, error: true, sent: null, quotes: null, chips: [{ label: "All", count: null, on: true }], footer: "The RFQ list could not be read" } }));
-    assert.doesNotMatch(failed, />RFQs<[^>]*>0</, "a failed read is not zero RFQs");
+    assert.doesNotMatch(failed, />RFQs<\/span><[^>]*>0</, "a failed read is not zero RFQs");
     assert.match(failed, /Counts could not be read/);
   });
 
@@ -760,7 +760,7 @@ describe("the screens claim only what the query asked for and the RPC answered",
     // Only the search composer's chips, on the ledger's own screen.
     const start = html.indexOf('data-screen="results-table"');
     const composer = html.slice(start, html.indexOf("</section>", start));
-    const chips = [...composer.matchAll(/bg-brand-tint-strong[^"]*"[^>]*>([^<]+)</g)].map((m) => m[1]);
+    const chips = [...composer.matchAll(/bg-accent-tint-strong[^"]*"[^>]*>([^<]+)</g)].map((m) => m[1]);
     assert.deepEqual([...new Set(chips)].sort(), ["Certificate · GOTS", "Text · knitted shirts"]);
     assert.equal(GALLERY_QUERY.certKinds.length, 1);
     assert.equal(GALLERY_QUERY.certKinds[0], "gots");
@@ -786,7 +786,7 @@ describe("the screens claim only what the query asked for and the RPC answered",
 
   it("the shell states no figure the loader did not read", () => {
     const html = render(galleryData({ discoverError: true, total: null, published: null }));
-    assert.doesNotMatch(html, /Suppliers<[^>]*>0</);
+    assert.doesNotMatch(html, /Suppliers<\/span><[^>]*>0</);
     assert.doesNotMatch(html, /published suppliers/, "the topbar count is unread, so it is absent");
     assert.doesNotMatch(html, /count could not be read[^<]*0/);
   });

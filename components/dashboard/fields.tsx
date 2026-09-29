@@ -35,7 +35,16 @@ export function Field({
     <div className={cn("flex min-w-0 flex-col gap-1.5", className)}>
       <label htmlFor={htmlFor} className="text-sm font-medium text-ink-strong">
         {label}
-        {required ? <span className="ml-1 text-ink-subtle">(required)</span> : null}
+        {/* A real space, not a margin: "Quantity" and "(required)" with no
+            break between them could not wrap, and in the RFQ form's narrow
+            column the label ran over the next field's (founder's video,
+            29 Sep 2026). */}
+        {required ? (
+          <>
+            {" "}
+            <span className="text-ink-subtle">(required)</span>
+          </>
+        ) : null}
       </label>
       {children}
       {error ? (
@@ -88,7 +97,7 @@ export function Switch({
           type="checkbox"
           role="switch"
           {...rest}
-          className="peer h-5 w-9 cursor-[inherit] appearance-none rounded-full border border-line-strong bg-surface-sunken transition-colors duration-fast checked:border-brand checked:bg-brand disabled:opacity-60"
+          className="peer h-5 w-9 cursor-[inherit] appearance-none rounded-full border border-line-strong bg-surface-sunken transition-colors duration-fast checked:border-accent checked:bg-accent disabled:opacity-60"
         />
         <span
           aria-hidden

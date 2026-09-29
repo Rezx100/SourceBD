@@ -4,7 +4,7 @@
 // open marked, numbers right-aligned and tabular, export lines as codes.
 // Beside an open record the table narrows to its essential columns
 // (`compact`) so the pane keeps its measure. Sanctioned: the reserved rule
-// and the word under the name, Send RFQ withheld. Selected: the brand inset
+// and the word under the name, Send RFQ withheld. Selected: the slate inset
 // rule and the filled box.
 //
 // Founder's walkthrough, 28 Sep 2026: the row's Save, Open and RFQ appeared
@@ -31,9 +31,11 @@ import type { KeyboardEvent } from "react";
 import { cn } from "@/lib/utils";
 import { Button, Checkbox } from "./controls";
 import { Icon } from "./icons";
+import { LinkPending } from "./link-pending";
 import { LogoTile, SourceMarks } from "./marks";
 import { HeadCell, rowClass, type SortDir } from "./page";
 import { SaveRecordButton } from "./save-record-button";
+import { SbIcon } from "./sb-icons";
 import { useSelection } from "./selection";
 import { WorkersCell } from "./workers-cell";
 
@@ -47,13 +49,30 @@ export type ResultsSortKey = "name" | "sources" | "cert_expiry" | "hs_lines" | "
 /**
  * Column widths in px, null for the supplier column that takes the rest:
  * select · supplier · registers & certifiers · certificates · export lines ·
- * workers · actions (wide); select · supplier · registers · workers · actions
- * beside a pane. Fits a 1280px display beside the rail at 60rem.
+ * workers · actions (wide); select · supplier · sources · workers · actions
+ * beside a pane.
+ *
+ * Set from widths measured in Geist (29 Sep 2026), because the old ones
+ * overlapped (founder's video): Workers gave 68px to a second line of up to
+ * 118px ("11,119 with buildings"), which ran under the Save and RFQ icons; the
+ * compact actions column gave two 28px buttons 48px; the registers column
+ * could not hold its own header (119px with the caret) or three logo marks;
+ * and beside a pane the supplier column fell to 132px, so a name broke
+ * mid-word ("Benchmar k"). Now every column holds its content, and the
+ * supplier column keeps at least 184px — the longest register word at 14px
+ * ("MANUFACTURING", 120px) plus the tile, its gap and the padding — at the
+ * table's minimum width (`RESULTS_MIN_WIDTH`), below which the region
+ * scrolls sideways rather than crushing it.
  */
 export const RESULTS_COLUMNS = {
-  wide: [40, null, 150, 220, 130, 100, 104],
-  compact: [40, null, 120, 92, 64],
+  wide: [40, null, 160, 212, 112, 152, 104],
+  compact: [36, null, 76, 112, 66],
+  // Beside the RFQ composer: the box and the name.
+  rail: [36, null],
 } as const;
+
+/** The table's minimum width in px: `min-w-[62rem]` and `min-w-[30rem]` on the table below. */
+export const RESULTS_MIN_WIDTH = { wide: 992, compact: 480 } as const;
 
 const CERT_TONE: Record<CertModel["state"], string> = {
   valid: "bg-positive-tint text-positive-ink",
@@ -89,6 +108,7 @@ export function ResultsTable({
   rows,
   currentSlug = null,
   compact = false,
+  rail = false,
   density = "default",
   sort,
   sortHrefs,
@@ -98,6 +118,8 @@ export function ResultsTable({
   currentSlug?: string | null;
   /** Beside an open record: Supplier, Sources and Workers only. */
   compact?: boolean;
+  /** Beside the RFQ composer: the box and the name only, so a buyer can still tick suppliers into the RFQ. */
+  rail?: boolean;
   density?: ResultsDensity;
   /** The active sort, for the header arrow. */
   sort?: { key: string; dir: SortDir } | null;
@@ -117,8 +139,9 @@ export function ResultsTable({
     </HeadCell>
   );
   const h = ROW_H[density];
-  // Beside a pane the column is a third of the region: two marks, not three.
-  const marksShown = compact ? 2 : 3;
+  // Beside a pane the column is the count and the best mark; the count says
+  // how many more there are, so no "+N" beside it.
+  const marksShown = compact ? 1 : 3;
   return (
     <div
       // `relative`: `.sr-only` is position:absolute, and without a containing
@@ -126,7 +149,7 @@ export function ResultsTable({
       // widened the whole page to the table's width (WCAG 1.4.10). Below `xl`
       // the table scrolls sideways in this region; from `xl` it fits and the
       // header sticks to the results column's own scroll.
-      className={cn("relative", compact ? "overflow-x-auto" : "max-xl:overflow-x-auto")}
+      className={cn("relative", rail ? "" : compact ? "overflow-x-auto" : "max-xl:overflow-x-auto")}
       tabIndex={0}
       role="region"
       aria-label="Results table"
@@ -134,13 +157,13 @@ export function ResultsTable({
       <table
         className={cn(
           "w-full table-fixed border-collapse text-base",
-          compact ? "min-w-[28rem]" : "min-w-[60rem]",
+          rail ? "" : compact ? "min-w-[30rem]" : "min-w-[62rem]",
           !compact && "[&_thead_th]:xl:sticky [&_thead_th]:xl:top-0 [&_thead_th]:xl:z-10",
         )}
       >
         {/* The widths are `RESULTS_COLUMNS`; the loading skeleton draws the same grid. */}
         <colgroup>
-          {(compact ? RESULTS_COLUMNS.compact : RESULTS_COLUMNS.wide).map((w, i) => (
+          {(rail ? RESULTS_COLUMNS.rail : compact ? RESULTS_COLUMNS.compact : RESULTS_COLUMNS.wide).map((w, i) => (
             <col key={i} style={w === null ? undefined : { width: w }} />
           ))}
         </colgroup>
@@ -150,13 +173,17 @@ export function ResultsTable({
               <span className="sr-only">Select</span>
             </HeadCell>
             {head("name", "Supplier", "left", "px-3")}
-            {head("sources", "Registers & certifiers")}
-            {compact ? null : head("cert_expiry", "Certificates")}
-            {compact ? null : head("hs_lines", "Export lines")}
-            {head("workers", "Workers", "right")}
-            <HeadCell className="px-2">
-              <span className="sr-only">Actions</span>
-            </HeadCell>
+            {/* "Registers & certifiers" is 119px with its caret; beside a pane
+                the column is 76px, and the record calls them sources too. */}
+            {rail ? null : head("sources", compact ? "Sources" : "Registers & certifiers", "left", compact ? "px-2" : "px-3")}
+            {compact ? null : head("cert_expiry", "Certificates", "left", "px-3")}
+            {compact ? null : head("hs_lines", "Export lines", "left", "px-3")}
+            {rail ? null : head("workers", "Workers", "right", "px-3")}
+            {rail ? null : (
+              <HeadCell className={compact ? "px-1" : "px-2"}>
+                <span className="sr-only">Actions</span>
+              </HeadCell>
+            )}
           </tr>
         </thead>
         <tbody onKeyDown={onRowKey} className="[&>tr:last-child>*]:border-b-0">
@@ -184,15 +211,21 @@ export function ResultsTable({
                   />
                 </td>
                 <th scope="row" className={cn(h, "border-b border-line-subtle px-3 py-1.5 text-left align-middle font-normal")}>
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <LogoTile initials={r.initials} tier={r.topTier} size="sm" />
+                  <div className={cn("flex min-w-0 items-center", compact ? "gap-2.5" : "gap-3")}>
+                    <LogoTile initials={r.initials} tier={r.topTier} size={compact ? "sm" : "row"} />
                     <div className="min-w-0 flex-1">
                       {/* Wraps, never an ellipsis (the Wrapping Name Rule): a
                           company's name is the company's name, and a 125-character
                           one grows its row rather than losing its end. */}
                       <div className="[overflow-wrap:anywhere]">
                         {/* The name opens the record beside these results (§3.3), as a
-                            client navigation that keeps the results and the selection. */}
+                            client navigation that keeps the results and the selection.
+                            Not in the rail beside the composer: opening a record there
+                            replaced the composer and lost the draft; the box is the
+                            action (tick it into the RFQ). */}
+                        {rail ? (
+                          <span className="font-medium text-ink-strong [overflow-wrap:anywhere]">{r.name}</span>
+                        ) : (
                         <Link
                           prefetch={false}
                           scroll={false}
@@ -201,7 +234,9 @@ export function ResultsTable({
                           className="font-medium text-ink-strong [overflow-wrap:anywhere] hover:text-brand-ink"
                         >
                           {r.name}
+                          <LinkPending className="ml-1.5 inline-block align-[-1px] text-ink-subtle" />
                         </Link>
+                        )}
                       </div>
                       {/* What kind of company and where, under the name, as on Saved:
                           a column of its own for the type cost the name its width. */}
@@ -214,15 +249,17 @@ export function ResultsTable({
                     </div>
                   </div>
                 </th>
-                <td className={cn(h, "border-b border-line-subtle px-4 align-middle")}>
-                  <span className="inline-flex items-center gap-2">
-                    <span className="min-w-4 text-right font-mono text-sm font-medium text-ink-strong">{r.sourceCount}</span>
-                    <SourceMarks marks={r.marks.slice(0, marksShown)} caption="none" className="flex-nowrap gap-1" />
-                    {r.marks.length > marksShown ? <span className="text-sm text-ink-subtle">+{r.marks.length - marksShown}</span> : null}
-                  </span>
-                </td>
+                {rail ? null : (
+                  <td className={cn(h, "border-b border-line-subtle align-middle", compact ? "px-2" : "px-3")}>
+                    <span className="inline-flex items-center gap-2">
+                      <span className="min-w-4 text-right font-mono text-sm font-medium text-ink-strong">{r.sourceCount}</span>
+                      <SourceMarks marks={r.marks.slice(0, marksShown)} caption="none" className="flex-nowrap gap-1" />
+                      {!compact && r.marks.length > marksShown ? <span className="text-sm text-ink-subtle">+{r.marks.length - marksShown}</span> : null}
+                    </span>
+                  </td>
+                )}
                 {compact ? null : (
-                  <td className={cn(h, "border-b border-line-subtle px-4 align-middle")}>
+                  <td className={cn(h, "border-b border-line-subtle px-3 align-middle")}>
                     {r.certs.length > 0 ? (
                       <span className="flex flex-wrap items-center gap-1 py-1">
                         {r.certs.slice(0, 2).map((c) => (
@@ -236,7 +273,7 @@ export function ResultsTable({
                   </td>
                 )}
                 {compact ? null : (
-                  <td className={cn(h, "border-b border-line-subtle px-4 py-1 align-middle")}>
+                  <td className={cn(h, "border-b border-line-subtle px-3 py-1 align-middle")}>
                     {r.totalLines > 0 ? (
                       <>
                         <span className="block font-mono text-sm font-medium text-ink-strong">{r.totalLines}</span>
@@ -247,33 +284,47 @@ export function ResultsTable({
                     )}
                   </td>
                 )}
-                <td className={cn(h, "border-b border-line-subtle px-4 py-1 text-right align-middle tabular-nums")}>
-                  {/* The record's own figure, and the profile's under it wherever the
-                      two differ, so the list and the record beside it agree. */}
-                  <WorkersCell own={r.workers} ownWords={r.workersCoverage} second={r.workersSecondShort} secondWords={r.workersSecond} />
-                </td>
+                {rail ? null : (
+                  <td className={cn(h, "border-b border-line-subtle px-3 py-1 text-right align-middle tabular-nums")}>
+                    {/* The record's own figure, and the profile's under it wherever the
+                        two differ, so the list and the record beside it agree. */}
+                    <WorkersCell own={r.workers} ownWords={r.workersCoverage} second={r.workersSecondShort} secondWords={r.workersSecond} />
+                  </td>
+                )}
                 {/* The row's actions: always drawn, quiet, the same three the
                     keyboard drives (s saves, Enter opens, r sends an RFQ). */}
-                <td className={cn(h, "border-b border-line-subtle px-2 align-middle")}>
+                {rail ? null : (
+                <td className={cn(h, "border-b border-line-subtle align-middle", compact ? "px-1" : "px-2")}>
                   <span className="flex items-center justify-end gap-0.5">
                     {r.supplierId ? (
                       <SaveRecordButton supplierId={r.supplierId} saved={Boolean(r.saved)} icon size="sm" variant="ghost" />
                     ) : null}
                     {compact ? null : (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        icon
-                        href={recordHref}
-                        clientNav
-                        scroll={false}
-                        data-action="open"
-                        tabIndex={-1}
-                        aria-label={`Open ${r.name} beside the results`}
-                        title="Open beside the results"
-                      >
-                        <Icon name="pane" />
-                      </Button>
+                      // SourceBD's own "open beside" icon, and its word over it
+                      // under the pointer and while the row has keyboard focus
+                      // (↵ opens it): the founder did not know the old sidebar
+                      // glyph opened the record (video, 29 Sep 2026).
+                      <span className="group/open relative inline-flex">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          icon
+                          href={recordHref}
+                          clientNav
+                          scroll={false}
+                          data-action="open"
+                          tabIndex={-1}
+                          aria-label={`Open ${r.name} beside the results`}
+                        >
+                          <SbIcon name="open-beside" />
+                        </Button>
+                        <span
+                          aria-hidden
+                          className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 whitespace-nowrap rounded-sm bg-surface-inverse px-1.5 py-0.5 text-xs font-medium text-ink-inverse opacity-0 transition-opacity duration-fast group-hover/open:opacity-100 group-focus-within/open:opacity-100 group-focus-visible:opacity-100"
+                        >
+                          Open
+                        </span>
+                      </span>
                     )}
                     <Button
                       variant="ghost"
@@ -292,6 +343,7 @@ export function ResultsTable({
                     </Button>
                   </span>
                 </td>
+                )}
               </tr>
             );
           })}

@@ -326,6 +326,13 @@ test("the contrast table lists every pair it is meant to, at the threshold its u
   // test and lowering a `min` lowers the bar it is checked against; neither
   // shows up as a failure while the expectation is derived from the table.
   const expected = [
+    "accent on canvas @3",
+    "accent on surface @3",
+    "accent.ink on accent.tint @4.5",
+    "accent.ink on accent.tint-strong @4.5",
+    "accent.ink on canvas @4.5",
+    "accent.ink on surface @4.5",
+    "accent.on on accent @4.5",
     "brand.ink on brand.tint @4.5",
     "brand.ink on brand.tint-strong @4.5",
     "brand.ink on canvas @4.5",
@@ -361,10 +368,10 @@ test("the contrast table lists every pair it is meant to, at the threshold its u
     "ink.muted on quiet @4.5",
     "ink.muted on surface @4.5",
     "ink.muted on surface.sunken @4.5",
+    "ink.strong on accent.tint-strong @4.5",
     "ink.strong on canvas @4.5",
     "ink.strong on line @4.5",
     "ink.strong on locked @4.5",
-    "ink.strong on locked.stripe @4.5",
     "ink.strong on quiet @4.5",
     "ink.strong on surface @4.5",
     "ink.strong on surface.sunken @4.5",
@@ -375,7 +382,6 @@ test("the contrast table lists every pair it is meant to, at the threshold its u
     "ink.subtle on surface.sunken @4.5",
     "line.strong on surface @3",
     "locked.ink on locked @4.5",
-    "locked.ink on locked.stripe @4.5",
     "positive.ink on positive.tint @4.5",
     "positive.on on positive @4.5",
     "quiet.ink on quiet @4.5",

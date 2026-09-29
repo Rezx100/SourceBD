@@ -4,6 +4,7 @@
 // otherwise the switch is not shown at all, not disabled.
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Chip } from "./chips";
 import { V2Tag } from "./controls";
@@ -34,8 +35,11 @@ export function SearchComposer({
   askHref,
   filtersModeHref,
   filtersHref,
+  menus,
 }: {
   chips: readonly FilterChipModel[];
+  /** The filter menus, drawn before the chips of filters no menu holds (founder's video, 29 Sep 2026). */
+  menus?: ReactNode;
   mode?: "filters" | "ask";
   askEnabled?: boolean;
   className?: string;
@@ -53,7 +57,10 @@ export function SearchComposer({
   return (
     <div
       className={cn(
-        "flex items-center gap-3 rounded-md bg-surface py-2 pl-3.5 pr-2.5 shadow-edge",
+        // `relative z-[1]`: the filter menus drop down over the results panel
+        // after it (a stacking context of its own), and still under the
+        // topbar's suggestions (z-raised).
+        "relative z-[1] flex items-center gap-3 rounded-md bg-surface py-2 pl-3.5 pr-2.5 shadow-edge",
         className,
       )}
     >
@@ -72,6 +79,7 @@ export function SearchComposer({
             className="min-w-[12rem] flex-1 bg-transparent text-sm text-ink-strong placeholder:text-ink-subtle"
           />
         ) : null}
+        {menus}
         {chips.map((c) => (
           <Chip key={c.key ?? c.label} tone="on" className="h-7">
             {c.label}

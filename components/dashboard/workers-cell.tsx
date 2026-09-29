@@ -25,10 +25,25 @@ export function WorkersCell({
   secondWords?: string | null;
 }) {
   const title = [own === null ? null : `${formatCount(own)} workers${ownWords ? ` · ${ownWords}` : ""}`, secondWords].filter(Boolean).join(" · ") || undefined;
+  // The second line breaks between its figure and its words, never inside
+  // either: held to one line, "11,119 with buildings" (118px) ran out of a
+  // 68px cell and under the row's Save and RFQ icons (founder's video,
+  // 29 Sep 2026). Beside a pane it reads "11,119" over "with buildings".
+  const space = second ? second.indexOf(" ") : -1;
   return (
-    <span className="inline-flex flex-col items-end leading-tight" title={title} data-workers-cell="">
+    <span className="inline-flex max-w-full flex-col items-end leading-tight" title={title} data-workers-cell="">
       {own === null ? <span className="text-quiet-ink">—</span> : <span className="text-ink-strong">{formatCount(own)}</span>}
-      {second ? <span className="whitespace-nowrap text-xs font-normal text-ink-subtle">{second}</span> : null}
+      {second ? (
+        <span className="text-right text-xs font-normal text-ink-subtle">
+          {space > 0 ? (
+            <>
+              <span className="whitespace-nowrap">{second.slice(0, space)}</span> <span className="whitespace-nowrap">{second.slice(space + 1)}</span>
+            </>
+          ) : (
+            <span className="whitespace-nowrap">{second}</span>
+          )}
+        </span>
+      ) : null}
     </span>
   );
 }

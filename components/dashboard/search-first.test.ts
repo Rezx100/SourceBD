@@ -29,8 +29,8 @@ import { buildSheet, buildTableRow } from "@/lib/dashboard/build-models";
 import { discoverWorkers, workersSecondShort } from "@/lib/dashboard/build-discover-row";
 import { aboniInput, zaheenSampleInput } from "@/lib/dashboard/fixtures";
 import { NAV, navMatch } from "@/lib/dashboard/nav";
-import { QUICK_FILTERS, SEARCH_TEMPLATES, templateHref } from "@/lib/dashboard/search-templates";
-import { parseDiscoverState } from "@/lib/discover-v32-state";
+import { SEARCH_TEMPLATES, filterMenus, templateHref } from "@/lib/dashboard/search-templates";
+import { EMPTY_STATE, parseDiscoverState } from "@/lib/discover-v32-state";
 import { Topbar } from "./app-shell";
 import { PanelHeader } from "./results-panel";
 import { CertPill, RESULTS_COLUMNS, ResultsTable } from "./results-table";
@@ -38,7 +38,7 @@ import { SavedDesk, deskFrom } from "./saved-desk";
 import { SavedList } from "./saved-list";
 import { SearchLanding } from "./search-landing";
 import { highlightParts, suggestionHref, suggestionRows, type Suggestion } from "./search-typeahead";
-import { FactsPanel, ResultsColumn, SheetTabs, collapseRepeatedLines } from "./sheet";
+import { FactsPanel, PENDING_LEGEND, ResultsColumn, SheetTabs, collapseRepeatedLines } from "./sheet";
 import { SupplierSheet, groupFacts } from "./supplier-sheet";
 import { isApplePlatform, pageDrawsOwnField } from "./topbar-search-slot";
 import { WorkersCell } from "./workers-cell";
@@ -82,7 +82,8 @@ describe("1–2. the search landing is the first viewport", () => {
     assert.match(html, /href="\/app\?filters=1"[^>]*>.*All filters/);
     assert.match(html, /href="\/app\/discover"[^>]*>Browse all 10,266 suppliers/);
     for (const t of SEARCH_TEMPLATES) assert.ok(html.includes(templateHref(t).replace(/&/g, "&amp;")), `template ${t.key} links to its search`);
-    for (const g of QUICK_FILTERS) assert.match(html, new RegExp(`>${g.group}<`));
+    // The filter menus (founder's video, 29 Sep 2026), not rows of pills.
+    for (const m of filterMenus(EMPTY_STATE)) assert.match(html, new RegExp(`<summary aria-label="${m.label}"`), m.label);
     assert.doesNotMatch(html, /data-row="result"|<table/, "a supplier listed before the buyer searched");
   });
 
@@ -158,7 +159,9 @@ describe("4. the search field", () => {
   it("one focus indicator: the field's own, and none inside it", () => {
     const input = /<input[^>]*data-search="topbar"[^>]*>/.exec(html)?.[0] ?? "";
     assert.match(input, /focus-visible:outline-none/, "the input drew the global ring inside the field");
-    assert.match(html, /<form[^>]*focus-within:border-brand[^>]*focus-within:ring-2/);
+    // A filled field (founder's pick, 29 Sep 2026): no border and no ring; typing turns it white with a 2px ink line under it.
+    assert.match(html, /<form[^>]*bg-surface-sunken[^>]*focus-within:bg-surface focus-within:shadow-\[inset_0_0_0_1px_rgb\(var\(--ds-line\)\),inset_0_-2px_0_rgb\(var\(--ds-ink-strong\)\)\]/);
+    assert.doesNotMatch(/<form[^>]*>/.exec(html)?.[0] ?? "", /\bborder-brand\b|\bring-/);
   });
 
   it("the shortcut is said in the buyer's keys, Ctrl until the browser says it is a Mac", () => {
@@ -232,8 +235,15 @@ describe("8. opening a record does not wait on the search", () => {
 
   it("the record is read inside its own Suspense boundary, keyed per record, with the record's silhouette", () => {
     assert.match(page, /<Suspense\s+key=\{`\$\{recordSlug\}:/);
-    assert.match(page, /fallback=\{\s*<RecordPane[^>]*>\s*<RecordSkeleton \/>/);
+    // A line's own silhouette while a line is read, the record's otherwise
+    // (founder's video, 29 Sep 2026: a line flashed the whole record's).
+    assert.match(page, /fallback=\{\s*<RecordPane[^>]*>\s*\{lineCode \? <LineSkeleton \/> : <RecordSkeleton \/>\}/);
     assert.doesNotMatch(page.slice(0, page.indexOf("async function DiscoverRecord")), /loadRecordSheet\(/, "the page body awaits the record again");
+    // The RFQ form too (founder's video, 29 Sep 2026: "Send RFQ … has to be
+    // lightning fast"): its suppliers and the workspace are read inside a
+    // boundary of its own, so the whole page no longer waits on them.
+    assert.match(page, /<Suspense\s+key=\{`rfq:\$\{rfqIds\.join\(","\)\}`\}\s+fallback=\{\s*<RecordPane[^>]*>\s*<ComposerSkeleton \/>/);
+    assert.doesNotMatch(page.slice(0, page.indexOf("async function DiscoverComposer")), /settings_get|TARGET_COLUMNS\)/, "the page body awaits the composer's reads");
     const saved = readFileSync(path.join(repoRoot, "app/(app)/app/saved/page.tsx"), "utf8");
     assert.match(saved, /<Suspense\s+key=\{openSlug\}\s+fallback=\{\s*<RecordPane[^>]*>\s*<RecordSkeleton \/>/);
   });
@@ -261,11 +271,15 @@ describe("9. the record", () => {
     assert.match(regs, /BGMEA General/);
   });
 
-  it("source pending is a dashed square in the mark column, explained once", () => {
-    assert.match(html, /role="img" aria-label="Source pending"/);
-    assert.equal(html.match(/A dashed square: source pending/g)?.length, 1);
-    const factsOnly = html.slice(html.indexOf('id="overview"'), html.indexOf("A dashed square"));
-    assert.doesNotMatch(text(factsOnly.replace(/<span class="sr-only">source pending<\/span>/g, "")), /source pending/, "the words came back as a caption on every row");
+  it("source pending is SourceBD's own mark in the mark column, explained once", () => {
+    // A document with a clock, not a dashed square that read as a tick box
+    // (founder's video, 29 Sep 2026); named, with the full words on hover.
+    assert.match(html, /<span title="Source pending: [^"]+"[^>]*><svg[^>]*role="img"[^>]*aria-label="Source pending"/);
+    assert.doesNotMatch(html, /border-dashed border-quiet-line"[^>]*><span class="sr-only">source pending/);
+    const legend = html.lastIndexOf(`${PENDING_LEGEND}</span>`);
+    assert.ok(legend > 0, "the one legend under the facts");
+    const factsOnly = html.slice(html.indexOf('id="overview"'), legend);
+    assert.doesNotMatch(text(factsOnly), /source pending/i, "the words came back as a caption on every row");
   });
 
   it("an address line filed twice in a row reads once", () => {
