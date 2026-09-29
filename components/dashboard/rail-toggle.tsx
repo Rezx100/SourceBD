@@ -8,7 +8,7 @@
 
 import { useEffect, useState } from "react";
 import { RAIL_COOKIE } from "@/lib/dashboard/nav";
-import { Icon } from "./icons";
+import { SbIcon } from "./sb-icons";
 
 export function RailToggle({ collapsed: initial }: { collapsed: boolean }) {
   const [collapsed, setCollapsed] = useState(initial);
@@ -31,7 +31,7 @@ export function RailToggle({ collapsed: initial }: { collapsed: boolean }) {
       }}
       className="hidden size-7 shrink-0 place-items-center rounded-sm text-ink-muted transition-colors duration-fast hover:bg-surface-sunken hover:text-ink-strong md:grid"
     >
-      <Icon name="pane" />
+      <SbIcon name="collapse-sidebar" className={collapsed ? "-scale-x-100" : undefined} />
     </button>
   );
 }

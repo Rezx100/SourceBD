@@ -114,7 +114,7 @@ export function SupplierResultCard({ card }: { card: SupplierCardModel }) {
       data-sanctioned={card.sanctioned ? "true" : undefined}
       className={cn(
         "relative flex gap-3 border-b border-line-subtle p-5 last-of-type:border-b-0",
-        selected && "shadow-[inset_3px_0_0_rgb(var(--ds-brand))]",
+        selected && "shadow-[inset_3px_0_0_rgb(var(--ds-accent))]",
         card.sanctioned && "before:absolute before:bottom-0 before:left-0 before:top-0 before:w-1 before:bg-sanction before:content-['']",
       )}
     >

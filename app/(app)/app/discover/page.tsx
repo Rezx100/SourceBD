@@ -42,7 +42,9 @@ import { ResultsTable, type ResultsDensity, type ResultsSortKey } from "@/compon
 import { RfqComposer, type ComposerTarget, type ComposerWorkspace } from "@/components/dashboard/rfq-composer";
 import { TARGET_COLUMNS, targetFromRow, workspaceFrom, type SupplierRow } from "@/lib/dashboard/composer-target";
 import { SaveSearchForm } from "@/components/dashboard/save-search-form";
+import { FilterMenus } from "@/components/dashboard/filter-menus";
 import { SearchComposer } from "@/components/dashboard/search-composer";
+import { inFilterMenu } from "@/lib/dashboard/search-templates";
 import { SelectionBar } from "@/components/dashboard/selection-bar";
 import { SelectionProvider } from "@/components/dashboard/selection";
 import { SaveRecordButton } from "@/components/dashboard/save-record-button";
@@ -195,7 +197,8 @@ export default async function BuyerDiscoverPage({
           <HiddenState state={state} omit={COMPOSER_HIDDEN_OMIT} />
           {state.q ? <input type="hidden" name="q" value={state.q} /> : null}
           <SearchComposer
-            chips={chips.map((c) => ({ key: c.key, label: c.label, code: c.code, removeHref: discoverHref(c.without) }))}
+            menus={<FilterMenus state={state} />}
+            chips={chips.filter((c) => !inFilterMenu(c.key, state)).map((c) => ({ key: c.key, label: c.label, code: c.code, removeHref: discoverHref(c.without) }))}
             mode={state.ask && askOn ? "ask" : "filters"}
             askEnabled={askOn}
             submits

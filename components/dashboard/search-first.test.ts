@@ -29,8 +29,8 @@ import { buildSheet, buildTableRow } from "@/lib/dashboard/build-models";
 import { discoverWorkers, workersSecondShort } from "@/lib/dashboard/build-discover-row";
 import { aboniInput, zaheenSampleInput } from "@/lib/dashboard/fixtures";
 import { NAV, navMatch } from "@/lib/dashboard/nav";
-import { QUICK_FILTERS, SEARCH_TEMPLATES, templateHref } from "@/lib/dashboard/search-templates";
-import { parseDiscoverState } from "@/lib/discover-v32-state";
+import { SEARCH_TEMPLATES, filterMenus, templateHref } from "@/lib/dashboard/search-templates";
+import { EMPTY_STATE, parseDiscoverState } from "@/lib/discover-v32-state";
 import { Topbar } from "./app-shell";
 import { PanelHeader } from "./results-panel";
 import { CertPill, RESULTS_COLUMNS, ResultsTable } from "./results-table";
@@ -82,7 +82,8 @@ describe("1–2. the search landing is the first viewport", () => {
     assert.match(html, /href="\/app\?filters=1"[^>]*>.*All filters/);
     assert.match(html, /href="\/app\/discover"[^>]*>Browse all 10,266 suppliers/);
     for (const t of SEARCH_TEMPLATES) assert.ok(html.includes(templateHref(t).replace(/&/g, "&amp;")), `template ${t.key} links to its search`);
-    for (const g of QUICK_FILTERS) assert.match(html, new RegExp(`>${g.group}<`));
+    // The filter menus (founder's video, 29 Sep 2026), not rows of pills.
+    for (const m of filterMenus(EMPTY_STATE)) assert.match(html, new RegExp(`<summary aria-label="${m.label}"`), m.label);
     assert.doesNotMatch(html, /data-row="result"|<table/, "a supplier listed before the buyer searched");
   });
 
@@ -158,7 +159,9 @@ describe("4. the search field", () => {
   it("one focus indicator: the field's own, and none inside it", () => {
     const input = /<input[^>]*data-search="topbar"[^>]*>/.exec(html)?.[0] ?? "";
     assert.match(input, /focus-visible:outline-none/, "the input drew the global ring inside the field");
-    assert.match(html, /<form[^>]*focus-within:border-brand[^>]*focus-within:ring-2/);
+    // A filled field (founder's pick, 29 Sep 2026): no border and no ring; typing turns it white with a 2px ink line under it.
+    assert.match(html, /<form[^>]*bg-surface-sunken[^>]*focus-within:bg-surface focus-within:shadow-\[inset_0_0_0_1px_rgb\(var\(--ds-line\)\),inset_0_-2px_0_rgb\(var\(--ds-ink-strong\)\)\]/);
+    assert.doesNotMatch(/<form[^>]*>/.exec(html)?.[0] ?? "", /\bborder-brand\b|\bring-/);
   });
 
   it("the shortcut is said in the buyer's keys, Ctrl until the browser says it is a Mac", () => {

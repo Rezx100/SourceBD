@@ -108,8 +108,8 @@ describe("Saved", () => {
     const html = saved({ rows: [ROW, other], total: 2, openSlug: "zaheen" });
     const rows = [...html.matchAll(/<tr class="([^"]*)"><th scope="row"/g)].map((m) => m[1]);
     assert.equal(rows.length, 2);
-    assert.doesNotMatch(rows[0]!, /bg-brand-tint/);
-    assert.match(rows[1]!, /bg-brand-tint/);
+    assert.doesNotMatch(rows[0]!, /bg-accent-tint/);
+    assert.match(rows[1]!, /bg-accent-tint/);
     assert.equal(html.match(/aria-current="true"/g)?.length, 1);
   });
 

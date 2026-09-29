@@ -97,7 +97,7 @@ export function Switch({
           type="checkbox"
           role="switch"
           {...rest}
-          className="peer h-5 w-9 cursor-[inherit] appearance-none rounded-full border border-line-strong bg-surface-sunken transition-colors duration-fast checked:border-brand checked:bg-brand disabled:opacity-60"
+          className="peer h-5 w-9 cursor-[inherit] appearance-none rounded-full border border-line-strong bg-surface-sunken transition-colors duration-fast checked:border-accent checked:bg-accent disabled:opacity-60"
         />
         <span
           aria-hidden

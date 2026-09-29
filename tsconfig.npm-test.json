@@ -205,6 +205,7 @@
     "lib/search-suggest.test.ts",
     "components/dashboard/search-first.test.ts",
     "components/dashboard/pane-stability.test.ts",
-    "components/dashboard/shell-account.test.ts"
+    "components/dashboard/shell-account.test.ts",
+    "components/dashboard/search-filters.test.ts"
   ]
 }

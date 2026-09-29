@@ -169,8 +169,8 @@ export function Button({
  * `.seg`: the segmented toggle — the card / table switch, the template
  * switch, the density stops. One component for every pair or trio of
  * mutually exclusive stops in the app, so they cannot drift apart. Cells
- * carry an icon, a label, or both; the active cell fills `brand-tint` with a
- * 2px inset `brand` rule along its bottom.
+ * carry an icon, a label, or both; the active cell fills `accent-tint` with a
+ * 2px inset `accent` rule along its bottom (slate since 29 Sep 2026).
  */
 export function Seg({
   options,
@@ -195,7 +195,7 @@ export function Seg({
       o.icon ? "w-9" : "px-2.5",
       "focus-visible:outline-offset-[-2px]",
       i > 0 && "border-l border-line",
-      o.value === value && "bg-brand-tint text-brand-ink shadow-[inset_0_-2px_0_rgb(var(--ds-brand))]",
+      o.value === value && "bg-accent-tint text-accent-ink shadow-[inset_0_-2px_0_rgb(var(--ds-accent))]",
     );
   return (
     <span role="group" aria-label={label} className={cn("inline-flex h-control overflow-hidden rounded-sm bg-surface shadow-edge", className)}>
@@ -231,7 +231,7 @@ export function Seg({
 }
 
 /**
- * `.cb`: a 16px checkbox drawn as a box; `on` fills it brand with a check,
+ * `.cb`: a 16px checkbox drawn as a box; `on` fills it slate (`accent`) with a check,
  * `"mixed"` with a dash (the select-all box over a partly selected page).
  *
  * Presentational everywhere but the results work (REZ-B), which passes
@@ -293,8 +293,8 @@ export function Checkbox({
       }
       className={cn(
         "inline-grid size-4 shrink-0 place-items-center rounded-xs border border-line-strong bg-surface transition-colors duration-fast",
-        interactive && "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--ds-brand))]",
-        on && "border-brand bg-brand text-brand-on",
+        interactive && "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--ds-accent))]",
+        on && "border-accent bg-accent text-accent-on",
         className,
       )}
     >
@@ -380,6 +380,8 @@ export function Menu({
   align = "right",
   up = false,
   size = "md",
+  set = false,
+  panelClassName,
   className,
   children,
 }: {
@@ -390,6 +392,10 @@ export function Menu({
   /** Open upward (a footer menu). */
   up?: boolean;
   size?: ButtonSize;
+  /** A filter menu with a value set: its button is filled like a set filter. */
+  set?: boolean;
+  /** The list's own width, when its rows are longer than a sort's. */
+  panelClassName?: string;
   className?: string;
   children: ReactNode;
 }) {
@@ -397,7 +403,11 @@ export function Menu({
     <details className={cn("group/menu relative", className)}>
       <summary
         aria-label={label}
-        className={cn(buttonClass({ variant: "ghost", size }), "list-none [&::-webkit-details-marker]:hidden")}
+        className={cn(
+          buttonClass({ variant: "ghost", size }),
+          "list-none [&::-webkit-details-marker]:hidden",
+          set && "bg-accent-tint-strong text-accent-ink hover:bg-accent-tint-strong",
+        )}
       >
         {summary}
         <Icon name="caret" small className="text-ink-subtle transition-transform duration-fast group-open/menu:rotate-180" />
@@ -410,6 +420,7 @@ export function Menu({
           // row, and a right-anchored menu would open off the left edge (1.4.10).
           align === "right" ? "left-0 sm:left-auto sm:right-0" : "left-0",
           up ? "bottom-full mb-1" : "top-full mt-1",
+          panelClassName,
         )}
       >
         {children}
@@ -437,7 +448,7 @@ export function MenuItem({
     "flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-ink transition-colors duration-fast hover:bg-surface-sunken",
     active && "text-ink-strong",
   );
-  const mark = <Icon name="check" small className={active ? "text-brand-ink" : "invisible"} />;
+  const mark = <Icon name="check" small className={active ? "text-accent-ink" : "invisible"} />;
   return href && clientNav ? (
     <Link role="menuitem" href={href} prefetch={false} scroll={false} aria-current={active ? "true" : undefined} className={cls}>
       {mark}
