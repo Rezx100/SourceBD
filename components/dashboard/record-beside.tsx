@@ -54,6 +54,7 @@ export function RecordBesideBody({ read, closeHref, retryHref }: { read: RecordB
       {model ? (
         <SupplierSheet
           model={model}
+          backHref={retryHref}
           save={model.supplierId ? <SaveRecordButton supplierId={model.supplierId} saved={model.saved} /> : undefined}
         />
       ) : slow ? (

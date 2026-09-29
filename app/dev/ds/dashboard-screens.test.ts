@@ -718,10 +718,10 @@ describe("what the whole page may and may not say about itself", () => {
 describe("the sidebar and the shell state only what was read", () => {
   it("the RFQ pill carries the real count on every screen, and none when the read failed", () => {
     const withSeven = render(galleryData({ rfqs: { ...EMPTY_RFQS, sent: 7, chips: [{ label: "All", count: 7, on: true }], rows: [] } }));
-    assert.equal((withSeven.match(/RFQs<[^>]*>7</g) ?? []).length, 7, "seven screens, each reading the account's own count");
-    assert.doesNotMatch(withSeven, /RFQs<[^>]*>0</);
+    assert.equal((withSeven.match(/RFQs<\/span><[^>]*>7</g) ?? []).length, 7, "seven screens, each reading the account's own count");
+    assert.doesNotMatch(withSeven, /RFQs<\/span><[^>]*>0</);
     const failed = render(galleryData({ rfqError: true, rfqs: { ...EMPTY_RFQS, error: true, sent: null, quotes: null, chips: [{ label: "All", count: null, on: true }], footer: "The RFQ list could not be read" } }));
-    assert.doesNotMatch(failed, />RFQs<[^>]*>0</, "a failed read is not zero RFQs");
+    assert.doesNotMatch(failed, />RFQs<\/span><[^>]*>0</, "a failed read is not zero RFQs");
     assert.match(failed, /Counts could not be read/);
   });
 
@@ -786,7 +786,7 @@ describe("the screens claim only what the query asked for and the RPC answered",
 
   it("the shell states no figure the loader did not read", () => {
     const html = render(galleryData({ discoverError: true, total: null, published: null }));
-    assert.doesNotMatch(html, /Suppliers<[^>]*>0</);
+    assert.doesNotMatch(html, /Suppliers<\/span><[^>]*>0</);
     assert.doesNotMatch(html, /published suppliers/, "the topbar count is unread, so it is absent");
     assert.doesNotMatch(html, /count could not be read[^<]*0/);
   });

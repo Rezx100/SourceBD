@@ -9,7 +9,10 @@ import {
   ArrowSquareOut,
   ArrowsDownUp,
   ArrowsLeftRight,
+  ArrowsOutSimple,
   BookmarkSimple,
+  CreditCard,
+  SignOut,
   Package,
   Buildings,
   CaretDown,
@@ -103,6 +106,11 @@ export const ICONS = {
   enter: ArrowElbowDownLeft,
   pane: SidebarSimple,
   sliders: SlidersHorizontal,
+  // The shell (founder's video, 29 Sep 2026): expand the record to its own
+  // page, and the account menu's Subscription and Sign out.
+  expand: ArrowsOutSimple,
+  card: CreditCard,
+  "sign-out": SignOut,
 } as const;
 
 export type IconName = keyof typeof ICONS;

@@ -126,22 +126,35 @@ export function SupplierSheet({
   model,
   mode = "pane",
   save,
+  backHref,
 }: {
   model: SupplierSheetModel;
   /** `pane` beside the results (the default); `page` on the full record page. */
   mode?: "pane" | "page";
   /** The real Save control. A caller with no session (the gallery) passes none and the bar shows it disabled. */
   save?: ReactNode;
+  /**
+   * The list with this record open beside it. In the pane, Expand carries it
+   * to the full page; on the full page it is where "Back to results" goes.
+   */
+  backHref?: string | null;
 }) {
   const p = model.products;
+  const expandHref = backHref ? `${model.fullHref}${model.fullHref.includes("?") ? "&" : "?"}back=${encodeURIComponent(backHref)}` : model.fullHref;
   return (
     <Sheet label="Supplier record" mode={mode}>
       <SheetBar>
         {/* Close returns to the results the overlay sits over. The full page
-            has nothing to close, so it offers no dead control. */}
+            has nothing to close; opened by Expand, it goes back to the list
+            with the record open, which is where the buyer came from. */}
         {model.closeHref ? (
           <Button variant="ghost" icon aria-label="Close" href={model.closeHref} clientNav scroll={false}>
             <Icon name="x" />
+          </Button>
+        ) : mode === "page" && backHref ? (
+          <Button variant="ghost" size="sm" href={backHref} clientNav>
+            <Icon name="chev-l" />
+            Back to results
           </Button>
         ) : null}
         {/* One line: at half the region (524px at 1280) it broke as "Supplier / record". */}
@@ -155,6 +168,13 @@ export function SupplierSheet({
               `fullHref`, not the search URL underneath. */}
           <CopyLinkButton href={model.fullHref} />
           <ReportProblem page={model.fullHref} />
+          {/* The record over the whole content region (founder's video, 29 Sep
+              2026); with the rail collapsed it is the full-screen view. */}
+          {mode === "pane" ? (
+            <Button variant="ghost" icon aria-label="Expand to full page" title="Expand to full page" href={expandHref} clientNav>
+              <Icon name="expand" />
+            </Button>
+          ) : null}
         </span>
       </SheetBar>
       {model.sanctioned ? <SanctionBanner sample={model.sanctionSample} evidenceHref="#sanctions" /> : null}

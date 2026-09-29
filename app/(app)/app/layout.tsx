@@ -13,8 +13,10 @@
 // shell; it short-circuits server-side once the buyer has completed or
 // dismissed it.
 
+import { cookies } from "next/headers";
 import { preload } from "react-dom";
 import { AppShell } from "@/components/dashboard/app-shell";
+import { RAIL_COOKIE } from "@/lib/dashboard/nav";
 import { TourMount } from "@/components/onboarding/tour-mount";
 import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { SOURCE_LOGO_FILES } from "@/lib/dashboard/source-logos";
@@ -27,10 +29,13 @@ export default async function BuyerLayout({ children }: { children: React.ReactN
   // files, 0.8–11.5 KB each, fetched once when the app opens.
   for (const href of SOURCE_LOGO_FILES) preload(href, { as: "image" });
   const supabase = await createSupabaseServerClient();
-  const shell = await loadBuyerShell(supabase);
+  const [shell, jar] = await Promise.all([loadBuyerShell(supabase), cookies()]);
+  // The rail as the buyer left it (`RailToggle`), drawn by the server so it
+  // never flashes open first.
+  const railCollapsed = jar.get(RAIL_COOKIE)?.value === "collapsed";
   return (
     <>
-      <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content">
+      <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" railCollapsed={railCollapsed}>
         {children}
       </AppShell>
       <TourMount flavour="buyer" />
