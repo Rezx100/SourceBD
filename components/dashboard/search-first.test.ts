@@ -217,8 +217,13 @@ describe("7. loading skeletons draw", () => {
     const discover = readFileSync(path.join(repoRoot, "app/(app)/app/discover/loading.tsx"), "utf8");
     assert.match(discover, /<ResultsColumn>/);
     assert.match(discover, /<Panel\b/);
-    // The skeleton's grid is the ledger's own columns, in order.
-    const grid = /grid-cols-\[([^\]]+)\]/.exec(discover)?.[1] ?? "";
+    // The skeleton's grid is the ledger's own columns, in order (from xl; below it the mid grid, and a phone's two).
+    const grid = /xl:grid-cols-\[([^\]]+)\]/.exec(discover)?.[1] ?? "";
+    assert.equal(
+      /sm:grid-cols-\[([^\]]+)\]/.exec(discover)?.[1],
+      RESULTS_COLUMNS.mid.filter((w) => w !== 0).map((w) => (w === null ? "minmax(0,1fr)" : `${w}px`)).join("_"),
+      "the tablet skeleton drifted from the ledger's",
+    );
     assert.equal(
       grid,
       RESULTS_COLUMNS.wide.map((w) => (w === null ? "minmax(0,1fr)" : `${w}px`)).join("_"),

@@ -24,10 +24,10 @@
 
 "use client";
 
-import { certStateLabel, splitQualifier, type CertModel } from "@/lib/dashboard/facts";
+import { certStateLabel, formatCount, splitQualifier, type CertModel } from "@/lib/dashboard/facts";
 import type { TableRowModel } from "@/lib/dashboard/models";
 import Link from "next/link";
-import type { KeyboardEvent, ReactNode } from "react";
+import type { CSSProperties, KeyboardEvent, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Button, Checkbox } from "./controls";
 import { Icon } from "./icons";
@@ -68,13 +68,25 @@ export type ResultsSortKey = "name" | "sources" | "cert_expiry" | "hs_lines" | "
  */
 export const RESULTS_COLUMNS = {
   wide: [40, null, 152, 212, 120, 152, 104],
+  // The wide table below xl (a tablet, from sm): the compact grid, so the
+  // 960px table never scrolls sideways there (the phone hand-off's D4).
+  // Certificates and Export lines (0) step out; a record opens for them.
+  mid: [36, null, 84, 0, 0, 112, 66],
   compact: [36, null, 84, 112, 66],
   // Beside the RFQ composer: the box and the name.
   rail: [36, null],
 } as const;
 
-/** The table's minimum width in px: `min-w-[60rem]` and `min-w-[28rem]` on the table below. */
-export const RESULTS_MIN_WIDTH = { wide: 960, compact: 448 } as const;
+/** The table's minimum width in px: `min-w-[60rem]`, `min-w-[30rem]` (the wide table below xl) and `min-w-[28rem]` on the table below. */
+export const RESULTS_MIN_WIDTH = { wide: 960, mid: 480, compact: 448 } as const;
+
+/**
+ * Which of the wide table's columns a narrower screen drops: below xl
+ * Certificates and Export lines, below sm everything but the box and the
+ * supplier (the phone's list of rows, D4). One list for the `<col>`, the
+ * header and every cell, so they cannot fall out of step.
+ */
+const WIDE_HIDE = ["", "", "max-sm:hidden", "max-xl:hidden", "max-xl:hidden", "max-sm:hidden", "max-sm:hidden"] as const;
 
 const CERT_TONE: Record<CertModel["state"], string> = {
   valid: "bg-positive-tint text-positive-ink",
@@ -90,12 +102,12 @@ const CERT_ICON = { valid: "check-c", expiring: "clock", expired: "warn", "no-ex
  * wrapping chip broke onto two lines in every row (founder's walkthrough).
  * Never wraps; the full state is in its accessible name and title.
  */
-export function CertPill({ cert }: { cert: CertModel }) {
+export function CertPill({ cert, small = false }: { cert: CertModel; /** The phone row's metrics line. */ small?: boolean }) {
   const words = certStateLabel(cert);
   const suffix = cert.state === "expiring" && cert.daysLeft !== null ? `${cert.daysLeft} d` : cert.state === "expired" ? "expired" : null;
   return (
     <span
-      className={cn("inline-flex h-6 shrink-0 items-center gap-1 whitespace-nowrap rounded-sm px-1.5 text-sm font-medium", CERT_TONE[cert.state])}
+      className={cn("inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-sm px-1.5 font-medium", small ? "h-5 text-xs" : "h-6 text-sm", CERT_TONE[cert.state])}
       title={`${cert.scheme} · ${words}`}
       aria-label={`${cert.scheme}, ${words}`}
     >
@@ -141,6 +153,9 @@ export function ResultsTable({
     </HeadCell>
   );
   const h = ROW_H[density];
+  const wide = !rail && !compact;
+  /** A wide table's column `i` steps out below xl or sm; nothing drops beside a pane. */
+  const drop = (i: number) => (wide ? WIDE_HIDE[i] : "");
   // Beside a pane the column is the count and the best mark; the count says
   // how many more there are, so no "+N" beside it.
   const marksShown = compact ? 1 : 3;
@@ -151,7 +166,7 @@ export function ResultsTable({
       // widened the whole page to the table's width (WCAG 1.4.10). Below `xl`
       // the table scrolls sideways in this region; from `xl` it fits and the
       // header sticks to the results column's own scroll.
-      className={rail ? "relative" : compact ? "relative overflow-x-auto" : "relative max-xl:overflow-x-auto"}
+      className={rail ? "relative" : compact ? "relative overflow-x-auto" : "relative sm:max-xl:overflow-x-auto"}
       tabIndex={0}
       role="region"
       aria-label="Results table"
@@ -159,17 +174,26 @@ export function ResultsTable({
       <table
         className={cn(
           "w-full table-fixed border-collapse text-base",
-          rail ? "" : compact ? "min-w-[28rem]" : "min-w-[60rem]",
+          rail ? "" : compact ? "min-w-[28rem]" : "sm:min-w-[30rem] xl:min-w-[60rem]",
           !compact && "[&_thead_th]:xl:sticky [&_thead_th]:xl:top-0 [&_thead_th]:xl:z-raised",
         )}
       >
         {/* The widths are `RESULTS_COLUMNS`; the loading skeleton draws the same grid. */}
         <colgroup>
-          {(rail ? RESULTS_COLUMNS.rail : compact ? RESULTS_COLUMNS.compact : RESULTS_COLUMNS.wide).map((w, i) => (
-            <col key={i} style={w === null ? undefined : { width: w }} />
-          ))}
+          {wide
+            ? RESULTS_COLUMNS.wide.map((w, i) => (
+                // Below xl the mid width, from xl the wide one, as variables so
+                // the widths stay in `RESULTS_COLUMNS`.
+                <col
+                  key={i}
+                  className={cn(w !== null && "w-[--col] xl:w-[--col-xl]", WIDE_HIDE[i])}
+                  style={w === null ? undefined : ({ "--col": `${RESULTS_COLUMNS.mid[i]}px`, "--col-xl": `${w}px` } as CSSProperties)}
+                />
+              ))
+            : (rail ? RESULTS_COLUMNS.rail : RESULTS_COLUMNS.compact).map((w, i) => <col key={i} style={w === null ? undefined : { width: w }} />)}
         </colgroup>
-        <thead>
+        {/* A phone's list has no columns to head; Sort is in its sheet. */}
+        <thead className={wide ? "max-sm:hidden" : undefined}>
           <tr>
             <HeadCell className="px-2">
               <span className="sr-only">Select</span>
@@ -178,12 +202,12 @@ export function ResultsTable({
             {/* "Sources", which the record says too: "Registers & certifiers"
                 is 142px with its caret and wrapped under it. What it counts
                 (not the brand lists) is in its title and the sort's name. */}
-            {rail ? null : head("sources", <span title="Registers & certifiers">Sources</span>, "left", compact ? "px-2" : "px-3")}
-            {compact ? null : head("cert_expiry", "Certificates", "left", "px-3")}
-            {compact ? null : head("hs_lines", "Export lines", "left", "px-3")}
-            {rail ? null : head("workers", "Workers", "right", "px-3")}
+            {rail ? null : head("sources", <span title="Registers & certifiers">Sources</span>, "left", cn(compact ? "px-2" : "px-3", drop(2)))}
+            {compact ? null : head("cert_expiry", "Certificates", "left", cn("px-3", drop(3)))}
+            {compact ? null : head("hs_lines", "Export lines", "left", cn("px-3", drop(4)))}
+            {rail ? null : head("workers", "Workers", "right", cn("px-3", drop(5)))}
             {rail ? null : (
-              <HeadCell className={compact ? "px-1" : "px-2"}>
+              <HeadCell className={cn(compact ? "px-1" : "px-2", drop(6))}>
                 <span className="sr-only">Actions</span>
               </HeadCell>
             )}
@@ -205,17 +229,20 @@ export function ResultsTable({
                 aria-current={current ? "true" : undefined}
                 data-sanctioned={r.sanctioned ? "true" : undefined}
                 data-row="result"
-                className={rowClass({ current, selected, sanctioned: r.sanctioned, className: "outline-none focus-visible:bg-surface-sunken" })}
+                className={rowClass({ current, selected, sanctioned: r.sanctioned, className: "outline-none focus-visible:bg-surface-sunken max-sm:active:bg-surface-sunken" })}
               >
                 <td className={cn(h, "border-b border-line-subtle px-2 align-middle")}>
                   <Checkbox
                     on={selected}
                     label={`Select ${r.name}`}
                     onToggle={selectable ? () => sel.toggle(r.supplierId!) : undefined}
-                    className="ml-1"
+                    className="hit ml-1"
                   />
                 </td>
-                <th scope="row" className={cn(h, "border-b border-line-subtle px-3 py-1.5 text-left align-middle font-normal")}>
+                {/* On a phone the whole row opens the record (the name's link
+                    stretched over this cell), and a metrics line stands in for
+                    the columns that stepped out. */}
+                <th scope="row" className={cn(h, "border-b border-line-subtle px-3 py-1.5 text-left align-middle font-normal", wide && "max-sm:relative max-sm:py-3")}>
                   <div className={cn("flex min-w-0 items-center", compact ? "gap-2.5" : "gap-3")}>
                     <LogoTile initials={r.initials} tier={r.topTier} size={compact ? "sm" : "row"} />
                     <div className="min-w-0 flex-1">
@@ -241,7 +268,10 @@ export function ResultsTable({
                           data-open="record"
                           title={r.name}
                           aria-label={name.qualifier ? r.name : undefined}
-                          className="flex min-w-0 items-center font-medium text-ink-strong hover:underline"
+                          className={cn(
+                            "flex min-w-0 items-center font-medium text-ink-strong hover:underline",
+                            wide && "max-sm:after:absolute max-sm:after:inset-0 max-sm:after:content-['']",
+                          )}
                         >
                           <span data-name="" className="truncate">
                             {name.base}
@@ -254,6 +284,17 @@ export function ResultsTable({
                           {line2}
                         </div>
                       ) : null}
+                      {wide ? (
+                        <div data-line="" className="mt-1 flex min-w-0 items-center gap-3 overflow-hidden text-xs text-ink-subtle sm:hidden">
+                          <span className="inline-flex shrink-0 items-center gap-1.5">
+                            <span className="font-mono font-medium text-ink-strong">{r.sourceCount}</span>
+                            {/* Not links here: the whole row opens the record, which names each source. */}
+                            <SourceMarks marks={r.marks.slice(0, 2).map((m) => ({ ...m, href: undefined }))} caption="none" sm className="flex-nowrap gap-1.5" />
+                          </span>
+                          {r.workers !== null ? <span className="shrink-0 whitespace-nowrap">{formatCount(r.workers)} workers</span> : null}
+                          {r.certs[0] ? <CertPill cert={r.certs[0]} small /> : null}
+                        </div>
+                      ) : null}
                       {r.sanctioned ? (
                         <div className="inline-flex items-center gap-1 text-xs font-medium text-sanction-ink">
                           <Icon name="warn" small /> Sanctioned{r.sanctionSample ? " · sample" : ""}
@@ -263,16 +304,17 @@ export function ResultsTable({
                   </div>
                 </th>
                 {rail ? null : (
-                  <td className={cn(h, "border-b border-line-subtle align-middle", compact ? "px-2" : "px-3")}>
+                  <td className={cn(h, "border-b border-line-subtle align-middle", compact ? "px-2" : "px-3", drop(2))}>
                     <span className="inline-flex items-center gap-2">
                       <span className="min-w-4 text-right font-mono text-sm font-medium text-ink-strong">{r.sourceCount}</span>
-                      <SourceMarks marks={r.marks.slice(0, marksShown)} caption="none" className="flex-nowrap gap-1" />
-                      {!compact && r.marks.length > marksShown ? <span className="text-sm text-ink-subtle">+{r.marks.length - marksShown}</span> : null}
+                      {/* Below xl the compact column: the count and the best mark. */}
+                      <SourceMarks marks={r.marks.slice(0, marksShown)} caption="none" className="flex-nowrap gap-1 max-xl:[&>*:nth-child(n+2)]:hidden" />
+                      {!compact && r.marks.length > marksShown ? <span className="text-sm text-ink-subtle max-xl:hidden">+{r.marks.length - marksShown}</span> : null}
                     </span>
                   </td>
                 )}
                 {compact ? null : (
-                  <td className={cn(h, "border-b border-line-subtle px-3 align-middle")}>
+                  <td className={cn(h, "border-b border-line-subtle px-3 align-middle", drop(3))}>
                     {r.certs.length > 0 ? (
                       <span className="flex flex-wrap items-center gap-1 py-1">
                         {r.certs.slice(0, 2).map((c) => (
@@ -286,7 +328,7 @@ export function ResultsTable({
                   </td>
                 )}
                 {compact ? null : (
-                  <td className={cn(h, "border-b border-line-subtle px-3 py-1 align-middle")}>
+                  <td className={cn(h, "border-b border-line-subtle px-3 py-1 align-middle", drop(4))}>
                     {r.totalLines > 0 ? (
                       <>
                         <span className="block font-mono text-sm font-medium text-ink-strong">{r.totalLines}</span>
@@ -298,7 +340,7 @@ export function ResultsTable({
                   </td>
                 )}
                 {rail ? null : (
-                  <td className={cn(h, "border-b border-line-subtle px-3 py-1 text-right align-middle tabular-nums")}>
+                  <td className={cn(h, "border-b border-line-subtle px-3 py-1 text-right align-middle tabular-nums", drop(5))}>
                     {/* The record's own figure, and the profile's under it wherever the
                         two differ, so the list and the record beside it agree. */}
                     <WorkersCell own={r.workers} ownWords={r.workersCoverage} second={r.workersSecondShort} secondWords={r.workersSecond} />
@@ -307,7 +349,7 @@ export function ResultsTable({
                 {/* The row's actions: always drawn, quiet, the same three the
                     keyboard drives (s saves, Enter opens, r sends an RFQ). */}
                 {rail ? null : (
-                <td className={cn(h, "border-b border-line-subtle align-middle", compact ? "px-1" : "px-2")}>
+                <td className={cn(h, "border-b border-line-subtle align-middle", compact ? "px-1" : "px-2", drop(6))}>
                   <span className="flex items-center justify-end gap-0.5">
                     {r.supplierId ? (
                       <SaveRecordButton supplierId={r.supplierId} saved={Boolean(r.saved)} icon size="sm" variant="ghost" />
@@ -317,7 +359,7 @@ export function ResultsTable({
                       // under the pointer and while the row has keyboard focus
                       // (↵ opens it): the founder did not know the old sidebar
                       // glyph opened the record (video, 29 Sep 2026).
-                      <span className="group/open relative inline-flex">
+                      <span className="group/open relative inline-flex max-xl:hidden">
                         <Button
                           variant="ghost"
                           size="sm"
