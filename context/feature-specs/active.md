@@ -54,16 +54,9 @@ same PR. Read once per session.
   view), #212 (D, leftovers, sidebar foot). LIVE 29 Sep (`8e773eb`, #213);
   no slate LIVE 29 Sep (`7d46e2b`, #215/#216). Migration 0107 applied 29 Sep.
 
-- **Buyer app on a phone** — IN PROGRESS, `handoff-dashboard-mobile.md` (30 Sep,
-  founder's screenshots and video), six PRs in order. M0 (the phone scrolls
-  again, one tray at a time, fields stop zooming): PR #218, on `development`.
-  M1 (the tab bar at the foot, the More sheet, the phone size scale): PR #220.
-  M2 (the search: Filters · N and one scrolling row, trays as bottom sheets,
-  the results header): PR #221. M3 (a phone's list of rows, the card in one
-  column, the tablet's compact grid): PR #222. M4 (the record: sticky bar,
-  tabs and action bar, compact head and facts): branch `mobile-m4-record`.
-  Then M5 the composer, the other pages and touch.
-  Harness: `.impeccable/preview/build-mobile.cjs`, `touch-check.cjs`.
+- **Buyer app on a phone** — BUILT, `handoff-dashboard-mobile.md`: M0–M5 on
+  `development` (PRs #218, #220–#224); promotion to `main` next. Detail:
+  `archive/specs-shipped-2026.md`.
 
 ## Queued
 - **Entity resolution core** — `spec-resolution-core.md` (4 Aug). Batch

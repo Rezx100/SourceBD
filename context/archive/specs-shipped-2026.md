@@ -5,6 +5,17 @@
 This file keeps routine agent sessions from scanning every inactive feature spec.
 
 ## Active / Recent Spec
+- **Buyer app on a phone** — `handoff-dashboard-mobile.md` (30 Sep 2026, the founder's
+  screenshots and video). Six PRs to `development`: M0 #218 (one scroller below 768px,
+  named trays with `MenuDismiss`, 16px fields on touch, hover only where it hovers);
+  M1 #220 (the tab bar at the foot and its More sheet, the phone type step and named
+  sizes in `lib/design/tokens.ts`); M2 #221 (Filters · N and one scrolling row, trays as
+  bottom sheets, the results header); M3 #222 (a phone's list of rows, the card in one
+  column, the tablet's compact grid); M4 #223 (the record's sticky bar, tabs and action
+  bar, the compact head and two-line facts); M5 #224 (the composer's sticky footer and
+  folded preview, data tables as lists, `.hit` on every small control). Guards:
+  `components/dashboard/phone.test.ts`. Harness: `.impeccable/preview/build-mobile.cjs`,
+  `touch-check.cjs` (Appendix A).
 - IN PROGRESS (15 Aug 2026): **EPB evidence + HS codes on existing companies,
   independent of BGMEA/BKMEA flags** (Linear REZ-113 follow-on). Attach-only
   of 1,953 matches applied on production (never minted the 224). Migration
