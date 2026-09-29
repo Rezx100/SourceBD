@@ -229,13 +229,14 @@ describe("the dashboard kit's in-app links are client navigations", () => {
   });
 
   it("a link into a sheet section keeps Next's scroll, or it never reaches the section", () => {
-    // The tile sub-lines end in #certificates / #products / #sources, and in
-    // Next's router `scroll={false}` also drops the hash jump
+    // A card's chip links end in #certificates / #products / #safety (the
+    // tiles' links moved onto them, 29 Sep 2026), and in Next's router
+    // `scroll={false}` also drops the hash jump
     // (router-reducer/handle-mutable: `hashFragment: shouldScroll ? … : null`).
     const card = readFileSync(path.join(KIT, "supplier-result-card.tsx"), "utf8");
-    const tileLinks = elements(card, "Link").filter((el) => hrefOf(el) === "{tile.href}");
-    assert.equal(tileLinks.length, 1, "the tile sub-line link moved; this guard needs rewriting");
-    assert.doesNotMatch(tileLinks[0]!, /scroll=\{false\}/, "the tile sub-line link opens the sheet without reaching its #section");
+    const chipLinks = elements(card, "Link").filter((el) => hrefOf(el) === "{c.href}");
+    assert.equal(chipLinks.length, 1, "the chip link moved; this guard needs rewriting");
+    assert.doesNotMatch(chipLinks[0]!, /scroll=\{false\}/, "a chip link opens the sheet without reaching its #section");
   });
 
   it("every next/link in the kit's content opts out of prefetch; the shell's rail is the one exception", () => {

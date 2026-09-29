@@ -12,6 +12,7 @@ import { createElement, type ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { buildTableRow } from "@/lib/dashboard/build-models";
+import { resultsView } from "@/lib/discover-v32-state";
 import { aboniInput } from "@/lib/dashboard/fixtures";
 import { PanelFooter, PanelHeader } from "./results-panel";
 import { RESULTS_COLUMNS, ResultsTable } from "./results-table";
@@ -46,7 +47,12 @@ describe("the results step aside to a slim rail while an RFQ is composed", () =>
     assert.match(page, /<ResultsColumn besideRecord=\{paneOpen\} rail=\{composerOpen\}>/);
     assert.match(page, /\{composerOpen \? null : \(\s*<form action=\{DISCOVER_PATH\}/);
     assert.match(page, /rail=\{composerOpen\}\s*\n\s*density=/);
-    assert.match(page, /state\.view === "table" \|\| composerOpen/, "a card list in an 18rem rail");
+    // Beside any pane, the composer's among them, the list is the table: never
+    // a card list in an 18rem rail (founder's review, 29 Sep 2026).
+    assert.match(page, /resultsView\(state\.view, paneOpen\) === "table"/, "a card list in an 18rem rail");
+    assert.equal(resultsView("cards", true), "table");
+    assert.equal(resultsView("cards", false), "cards");
+    assert.equal(resultsView("table", false), "table");
   });
 });
 

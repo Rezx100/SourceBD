@@ -641,7 +641,7 @@ describe("what the whole page may and may not say about itself", () => {
       [],
       "a sheet tab points nowhere again; this test needs it back in its placeholder list",
     );
-    assert.ok(d.cards.some((c) => (c.moreChips ?? 0) > 0), "a card still has more chips than it shows");
+    assert.ok(d.cards.some((c) => c.chips.length > 4), "a card still has more chips than it draws, so its \"+N\" is in the sweep");
   });
 
   it("no two elements on the page share an id", () => {

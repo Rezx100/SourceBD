@@ -76,6 +76,7 @@ import {
   filterFamilyLabel,
   parseDiscoverState,
   queryTitle,
+  resultsView,
   serializeDiscoverState,
   sortLabel,
   withoutFilterFamily,
@@ -283,7 +284,7 @@ export default async function BuyerDiscoverPage({
                   })),
                 }}
               />
-              {state.view === "table" || composerOpen ? (
+              {resultsView(state.view, paneOpen) === "table" ? (
                 <ResultsTable
                   rows={tableRows}
                   currentSlug={recordSlug}
