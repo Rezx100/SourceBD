@@ -535,7 +535,7 @@ export function CertRow({ cert }: { cert: CertModel }) {
             {certStateLabel(cert)}
           </Badge>
           {doc ? (
-            <Button variant="ghost" icon size="sm" href={doc} aria-label={`Open the ${cert.scheme} certificate`} title="Open the certificate">
+            <Button variant="ghost" icon size="sm" href={doc} aria-label={`Open the ${cert.scheme} certificate${cert.number ? ` ${cert.number}` : ""}`} title="Open the certificate">
               <Icon name="external" />
             </Button>
           ) : null}
@@ -544,7 +544,13 @@ export function CertRow({ cert }: { cert: CertModel }) {
       {scope.length > 0 ? (
         <details className="group/scope -mt-1 pb-2 pl-[30px]">
           <summary className="inline-flex cursor-pointer list-none items-center gap-1 rounded-xs text-sm text-ink-muted hover:text-ink-strong [&::-webkit-details-marker]:hidden">
-            Scope <Icon name="caret" small className="transition-transform duration-fast group-open/scope:rotate-180" />
+            Scope
+            <span className="sr-only">
+              {" "}
+              of {cert.scheme}
+              {cert.number ? ` ${cert.number}` : ""}
+            </span>
+            <Icon name="caret" small className="transition-transform duration-fast group-open/scope:rotate-180" />
           </summary>
           <CertScope rows={scope} />
         </details>
@@ -580,7 +586,9 @@ export function parseCertScope(scope: string): { label: string; value: string }[
 export function certScopeRows(cert: Pick<CertModel, "scheme" | "scope">): { label: string; value: string }[] {
   const bare = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
   const scheme = bare(cert.scheme);
-  return cert.scope ? parseCertScope(cert.scope).filter((r) => !(bare(r.value) && scheme.includes(bare(r.value)))) : [];
+  // Only an unlabelled part can be a bare repeat of the name; a labelled one
+  // ("Products: …") is a field of its own, whatever its words.
+  return cert.scope ? parseCertScope(cert.scope).filter((r) => !(r.label === "Scope" && bare(r.value) && scheme.includes(bare(r.value)))) : [];
 }
 
 function CertScope({ rows }: { rows: readonly { label: string; value: string }[] }) {

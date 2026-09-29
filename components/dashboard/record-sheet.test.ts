@@ -660,7 +660,8 @@ describe("Certificates: one line each, the scope one click away (founder's revie
     assert.match(section, /4 on file</);
     assert.doesNotMatch(section, /4 on file · /, "the caption names the schemes the rows already name");
     assert.match(section, /Valid to 12 May 2027/);
-    assert.match(section, /aria-label="Open the GOTS certificate"/);
+    assert.match(section, /aria-label="Open the GOTS certificate GOTS-31587"/);
+    assert.match(section, /<summary[^>]*>Scope<span class="sr-only"> of GOTS GOTS-31587<\/span>/, "two Scope toggles a screen reader cannot tell apart");
     assert.doesNotMatch(section, /rounded-md border border-line-subtle bg-surface px-4 py-3\.5/, "a certificate is a card again");
   });
 
@@ -680,5 +681,7 @@ describe("Certificates: one line each, the scope one click away (founder's revie
       { label: "Products", value: "Men's apparel" },
     ]);
     assert.deepEqual(certScopeRows({ scheme: "OEKO-TEX Standard 100", scope: "OEKO-TEX STANDARD 100, Class I" }), [{ label: "Scope", value: "OEKO-TEX STANDARD 100, Class I" }]);
+    // A labelled part is a field of its own, whatever its words.
+    assert.deepEqual(certScopeRows({ scheme: "OEKO-TEX Standard 100", scope: "Products: 100" }), [{ label: "Products", value: "100" }]);
   });
 });
