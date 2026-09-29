@@ -14,7 +14,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { light, resolve } from "@/lib/design/tokens";
 import { Topbar } from "./app-shell";
-import { revealCurrentNavItem } from "./nav-current";
 import { fieldValue } from "./search-typeahead";
 import { EMPTY_ART, Cell, EmptyState, PageSection, rowClass } from "./page";
 import { Button, Menu, MenuItem, buttonClass } from "./controls";
@@ -149,35 +148,14 @@ describe("the record tray's entrance", () => {
   });
 });
 
-describe("the phone strip shows where the buyer is", () => {
-  const item = (calls: object[]) => ({ scrollIntoView: (o: object) => calls.push(o) });
-
-  it("scrolls the current item into view only when the strip overflows", () => {
-    const calls: object[] = [];
-    const nav = (overflow: boolean) => ({
-      scrollWidth: overflow ? 900 : 200,
-      clientWidth: 375,
-      querySelector: (s: string) => (s === "[aria-current]" ? item(calls) : null),
-    });
-    assert.equal(revealCurrentNavItem(nav(true)), true);
-    assert.deepEqual(calls, [{ inline: "center", block: "nearest" }]);
-    assert.equal(revealCurrentNavItem(nav(false)), false, "the desktop rail has nothing to scroll");
-    assert.equal(calls.length, 1);
-  });
-
-  it("does nothing on a page no nav item points at", () => {
-    assert.equal(revealCurrentNavItem({ scrollWidth: 900, clientWidth: 375, querySelector: () => null }), false);
-    assert.equal(revealCurrentNavItem(null), false);
-  });
-
-  it("the strip follows every navigation: the reveal is keyed on the current item, and the rail passes it", () => {
-    // The rail is the layout's and lives across client navigations, so an
-    // effect that ran on mount alone revealed the first page's item and never
-    // moved again. `renderToStaticMarkup` runs no effects; the source is the guard.
-    const navCurrent = readFileSync(path.join(repoRoot, "components", "dashboard", "nav-current.tsx"), "utf8");
-    assert.match(navCurrent, /\}, \[currentKey\]\);/, "the reveal effect is not keyed on the current item");
+describe("on a phone the navigation is at the foot of the screen", () => {
+  it("there is no strip across the top to scroll to the current item: the rail is from md, the tab bar below it", () => {
+    // The strip needed a script to bring the current item into view, because
+    // Messages, RFQs, Orders and Settings started off-screen to its right. The
+    // tab bar shows its five tabs whole (`phone.test.ts` holds it).
+    assert.equal(existsSync(path.join(repoRoot, "components", "dashboard", "nav-current.tsx")), false);
     const rail = readFileSync(path.join(repoRoot, "components", "dashboard", "sidebar-nav.tsx"), "utf8");
-    assert.match(rail, /<NavCurrent currentKey=\{current\.key\} \/>/, "the rail does not hand the strip the current item");
+    assert.doesNotMatch(rail, /overflow-x-auto|snap-x|NavCurrent/);
   });
 });
 

@@ -60,9 +60,10 @@ export function installMenuDismiss(doc: Document): () => void {
     for (const d of openMenus()) if (menuShouldClose({ target: e.target }, d)) d.open = false;
   };
   // Choosing an item closes its tray, even when the choice goes nowhere new
-  // (Archive, or Settings while on Settings).
+  // (Archive, or Settings while on Settings); so do a sheet's Done and its
+  // scrim (`data-menu-close`).
   const onClick = (e: Event) => {
-    const item = (e.target as Element | null)?.closest?.("[data-menu-item]");
+    const item = (e.target as Element | null)?.closest?.("[data-menu-item], [data-menu-close]");
     const d = item?.closest<HTMLDetailsElement>(`details[name="${MENU_NAME}"]`);
     if (d) d.open = false;
   };

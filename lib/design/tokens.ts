@@ -230,6 +230,8 @@ export const fontSize: Record<string, FontSize> = {
   sm: ["0.8125rem", { lineHeight: "1.25rem" }], // 13 — label, table, code
   base: ["0.875rem", { lineHeight: "1.375rem" }], // 14 — body
   title: ["0.9375rem", { lineHeight: "1.375rem", letterSpacing: "-0.005em" }], // 15 — card title, tab
+  "page-title": ["1.125rem", { lineHeight: "1.625rem", letterSpacing: "-0.01em" }], // 18 — a page's one h1
+  "nav-label": ["0.6875rem", { lineHeight: "0.875rem" }], // 11 — a phone tab's label, medium
   lg: ["1.0625rem", { lineHeight: "1.6875rem", letterSpacing: "-0.005em" }], // 17 — body-lg
   xl: ["1.125rem", { lineHeight: "1.625rem", letterSpacing: "-0.01em" }], // 18 — heading-sm
   "2xl": ["1.375rem", { lineHeight: "1.875rem", letterSpacing: "-0.015em" }], // 22 — heading
@@ -252,6 +254,21 @@ export const appFontSize: Record<string, FontSize> = {
   sm: ["0.875rem", { lineHeight: "1.25rem" }], // 14 — label, table, code
   base: ["0.9375rem", { lineHeight: "1.5rem" }], // 15 — body
   title: ["1rem", { lineHeight: "1.5rem", letterSpacing: "-0.005em" }], // 16 — card title, tab
+};
+
+/**
+ * The buyer app on a phone, below 640px (D10 of `handoff-dashboard-mobile.md`,
+ * measured from the big iOS apps on Mobbin, 30 Sep 2026: Glassdoor, Handshake,
+ * Nextdoor, Expedia). Body text is 16px, as iOS sets it and as a field needs
+ * so the page never zooms; a card's title 17; a section heading 17; the
+ * record's name 24; a page title 22. The desktop scale above is untouched.
+ */
+export const phoneFontSize: Record<string, FontSize> = {
+  base: ["1rem", { lineHeight: "1.5rem" }], // 16 — body, a fact's value, a field
+  title: ["1.0625rem", { lineHeight: "1.5rem", letterSpacing: "-0.005em" }], // 17 — a card's title
+  xl: ["1.0625rem", { lineHeight: "1.5rem", letterSpacing: "-0.005em" }], // 17 — a section heading
+  "3xl": ["1.5rem", { lineHeight: "1.875rem", letterSpacing: "-0.015em" }], // 24 — the record's name
+  "page-title": ["1.375rem", { lineHeight: "1.75rem", letterSpacing: "-0.015em" }], // 22 — a page's h1
 };
 
 /** `sm` → `--ds-fs-sm` (its size) and `--ds-lh-sm` (its line height). */
@@ -338,6 +355,15 @@ export const density = {
   sidebar: 232, // app shell nav width
   topbar: 56, // the sticky bar
   factRow: 28, // label/value row in the facts panel
+  // On a phone (D10): what a finger has to hit, and the bars and rows built for it.
+  tabbar: 56, // the bottom tab bar, above the safe area
+  topbarPhone: 52, // the app's top bar
+  target: 44, // the smallest thing a finger must hit (Apple 44pt, Material 48dp)
+  barButton: 48, // a button in a sticky bar
+  chipTouch: 32, // a chip
+  sheetHead: 56, // a bottom sheet's header
+  sheetRow: 52, // a bottom sheet's row
+  rowPhone: 72, // a two-line result row
 };
 
 /** The density stops as Tailwind size utilities (`h-control`, `w-sidebar`, …). */
@@ -349,6 +375,14 @@ export const densitySizes: Record<string, string> = {
   sidebar: `${density.sidebar}px`,
   topbar: `${density.topbar}px`,
   "fact-row": `${density.factRow}px`,
+  tabbar: `${density.tabbar}px`,
+  "topbar-phone": `${density.topbarPhone}px`,
+  target: `${density.target}px`,
+  "bar-button": `${density.barButton}px`,
+  "chip-touch": `${density.chipTouch}px`,
+  "sheet-head": `${density.sheetHead}px`,
+  "sheet-row": `${density.sheetRow}px`,
+  "row-phone": `${density.rowPhone}px`,
 };
 
 // ---------------------------------------------------------------------------

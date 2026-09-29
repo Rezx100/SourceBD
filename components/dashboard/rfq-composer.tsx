@@ -327,14 +327,14 @@ export function RfqComposer({
 
   if (picking) {
     return (
-      <Sheet label="Select suppliers" mode={mode}>
+      <Sheet label="Select suppliers" mode={mode} detail>
         <SupplierPicker selected={targets} onClose={() => setPicking(false)} onConfirm={(picked) => void confirmPicked(picked)} />
       </Sheet>
     );
   }
 
   return (
-    <Sheet label="New RFQ" mode={mode}>
+    <Sheet label="New RFQ" mode={mode} detail>
       <SheetBar>
         {backHref ? (
           <Button variant="ghost" size="sm" href={backHref} clientNav scroll={false}>

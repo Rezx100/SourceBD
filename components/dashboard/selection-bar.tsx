@@ -140,7 +140,7 @@ export function SelectionBar({ exportHref, searchHref }: { exportHref: string; /
         // results, where the announcer says it is.
         // Rises into place when the first box is ticked (320 ms, 8px), so the
         // buyer's eye is led to the actions their tick just enabled.
-        className="bottom-0 z-sticky flex flex-wrap items-center gap-3 border-t border-line bg-surface px-4 py-3 shadow-md animate-rise motion-reduce:animate-none sm:px-5 [@media(min-height:32rem)]:sticky"
+        className="bottom-0 z-sticky flex max-md:bottom-[calc(theme(height.tabbar)_+_env(safe-area-inset-bottom))] flex-wrap items-center gap-3 border-t border-line bg-surface px-4 py-3 shadow-md animate-rise motion-reduce:animate-none sm:px-5 [@media(min-height:32rem)]:sticky"
       >
         <span className="text-sm font-medium text-ink-strong">{count > 0 ? `${count} selected` : "Nothing selected"}</span>
         {/* With nothing selected the actions go (hidden, so the Export still
