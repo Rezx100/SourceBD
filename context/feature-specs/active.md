@@ -51,10 +51,15 @@ same PR. Read once per session.
   for greys and near-black (founder, 29 Sep). BUILT,
   `handoff-dashboard-names-and-facts.md`: PRs #206 (PR 0, live bugs), #209 (A,
   names on one line), #210 (B, fact icons, certificate rows), #211 (C, card
-  view), #212 (D, leftovers, sidebar foot). On `main` via #213; the deploy
-  waits for the founder's approval. Migration 0107 applied 29 Sep.
+  view), #212 (D, leftovers, sidebar foot). LIVE 29 Sep (`8e773eb`, #213);
+  no slate LIVE 29 Sep (`7d46e2b`, #215/#216). Migration 0107 applied 29 Sep.
 
 ## Queued
+- **Buyer app on a phone** — NEXT, `handoff-dashboard-mobile.md` (30 Sep,
+  founder's screenshots and video). M0 first: the record and the RFQ composer
+  do not scroll on a phone at all. Then M1 navigation at the bottom and the
+  phone size scale, M2 the search, M3 list and cards, M4 the record, M5 the
+  composer, the other pages and touch.
 - **Entity resolution core** — `spec-resolution-core.md` (4 Aug). Batch
   resolution stage over immutable `staging_records`; LLM adjudicator for the
   review band only; Firecrawl `/v2/extract` not approved. Prerequisite:
