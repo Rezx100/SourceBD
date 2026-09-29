@@ -5,7 +5,7 @@
 // Variant (`buyer` / `supplier` / `admin`) is chosen by the top-level path
 // segment; real role-gating is enforced server-side by middleware + Spec F3
 // auth. Badge counts are passed in from the (server) layout — see
-// `app/(app)/layout.tsx`.
+// `app/(app)/(old-shell)/layout.tsx`.
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";

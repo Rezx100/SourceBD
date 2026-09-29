@@ -166,7 +166,7 @@ const CERT_LONG: Record<string, string> = {
 
 // The 6 watchlists SourceBD screens against, keyed by the real
 // `sanctions_list_entries.list` value (see lib/source-logos.ts and
-// app/(app)/admin/sanctions/page.tsx SANCTIONS_LISTS) so the clear-state
+// app/(app)/(old-shell)/admin/sanctions/page.tsx SANCTIONS_LISTS) so the clear-state
 // list and any real hit resolve the same issuer-agency logo.
 const SANCTIONS_WATCHLISTS = [
   { list: "uflpa", acronym: "UFLPA", authority: "CBP Entity List" },
