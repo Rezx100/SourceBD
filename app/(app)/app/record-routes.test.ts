@@ -1566,7 +1566,7 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
     assert.ok(pages.some((f) => f.startsWith("app/(app)/(old-shell)/admin/")), "guard: the admin pages were not found");
   });
 
-  it("the older shell's layout draws its shell around the supplier portal and admin", async () => {
+  it("the older shell's layout draws its shell around the supplier portal", async () => {
     // Its own boundary: the skip link and main landmark, rendered — not its
     // source text read. The rail and tab bar mark the page `usePathname` names.
     currentPath = "/supplier/rfqs";
