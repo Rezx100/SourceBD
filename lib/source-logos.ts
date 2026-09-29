@@ -29,7 +29,7 @@ const SOURCE_LOGOS: Record<string, string> = {
   BSCI: `${CDN}/amfori.jpg`,
   AMFORI: `${CDN}/amfori.jpg`,
   // Sanctions watchlists — keyed by the real `sanctions_list_entries.list`
-  // values (see app/(app)/admin/sanctions/page.tsx SANCTIONS_LISTS).
+  // values (see app/(app)/(old-shell)/admin/sanctions/page.tsx SANCTIONS_LISTS).
   uflpa: "/inapp-logos/sanctions/cbp.png",
   us_wro: "/inapp-logos/sanctions/cbp-wro.png",
   ofac_sdn: "/inapp-logos/sanctions/ofac-treasury.png",
