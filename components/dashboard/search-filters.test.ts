@@ -72,7 +72,13 @@ describe("1. the filter menus", () => {
     const kept = discoverChips(s).filter((c) => !inFilterMenu(c.key, s)).map((c) => c.key);
     assert.deepEqual(kept.sort(), ["cert-wrap-expiring", "q", "reg-BGMEA", "sanctioned"].sort());
     assert.match(source("app/(app)/app/discover/page.tsx"), /chips=\{chips\.filter\(\(c\) => !inFilterMenu\(c\.key, state\)\)/);
-    assert.match(source("app/(app)/app/discover/page.tsx"), /menus=\{<FilterMenus state=\{state\} \/>\}/);
+    assert.match(source("app/(app)/app/discover/page.tsx"), /menus=\{<FilterMenus state=\{state\} hrefFor=\{\(s\) => \(density === "default" \? discoverHref\(s\)/, "a filter drops the buyer's density");
+  });
+
+  it("the caller decides each option's URL, so the results keep their density", () => {
+    const html = renderToStaticMarkup(createElement(FilterMenus, { state: EMPTY_STATE, hrefFor: (s: DiscoverState) => `${discoverHref(s)}&d=compact` }));
+    const hrefs = [...html.matchAll(/role="menuitem"[^>]*href="([^"]+)"|href="([^"]+)"[^>]*role="menuitem"/g)].map((m) => m[1] ?? m[2]);
+    assert.ok(hrefs.length > 10 && hrefs.every((h) => h!.endsWith("&amp;d=compact")), hrefs.join(" "));
   });
 });
 
@@ -108,6 +114,6 @@ describe("4. the row's open control says what it does", () => {
     const table = source("components/dashboard/results-table.tsx");
     assert.match(table, /<SbIcon name="open-beside" \/>/);
     assert.doesNotMatch(table, /<Icon name="pane" \/>/);
-    assert.match(table, /group-hover\/open:opacity-100 group-focus-within\/open:opacity-100"\s*>\s*Open\s*</);
+    assert.match(table, /group-hover\/open:opacity-100 group-focus-within\/open:opacity-100 group-focus-visible:opacity-100"\s*>\s*Open\s*</, "the row focused from the keyboard shows the word too");
   });
 });

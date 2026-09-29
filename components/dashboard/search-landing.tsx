@@ -129,10 +129,9 @@ export function SearchLanding({
 
         {/* The filter menus (founder's pick, 29 Sep 2026), each option a
             search of its own with how many suppliers it finds; the counts
-            stream in behind the menus, which work without them. */}
-        <Suspense fallback={<LandingMenus filtersHref={filtersHref} published={published} />}>
-          <ResolvedMenus counts={menuCounts} filtersHref={filtersHref} published={published} />
-        </Suspense>
+            stream into their rows, so the menus work (and stay open) before
+            any count arrives. */}
+        <LandingMenus counts={menuCounts} filtersHref={filtersHref} published={published} />
       </section>
 
       <section aria-labelledby="search-templates-title" className="flex flex-col gap-3">
@@ -164,7 +163,7 @@ export function SearchLanding({
   );
 }
 
-function LandingMenus({ counts, filtersHref, published }: { counts?: Record<string, number | null>; filtersHref: string; published: number | null }) {
+function LandingMenus({ counts, filtersHref, published }: { counts: Promise<Record<string, number | null>>; filtersHref: string; published: number | null }) {
   return (
     <FilterMenus state={EMPTY_STATE} counts={counts} className="w-full justify-center">
       <span className="mx-1 h-5 w-px bg-line" aria-hidden />
@@ -176,10 +175,6 @@ function LandingMenus({ counts, filtersHref, published }: { counts?: Record<stri
       </Link>
     </FilterMenus>
   );
-}
-
-async function ResolvedMenus({ counts, ...rest }: { counts: Promise<Record<string, number | null>>; filtersHref: string; published: number | null }) {
-  return <LandingMenus counts={await counts} {...rest} />;
 }
 
 async function ResolvedCount({ counts, k }: { counts: Promise<Record<string, number | null>>; k: string }) {
