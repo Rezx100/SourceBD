@@ -47,10 +47,13 @@ same PR. Read once per session.
   the results): LIVE 27 Sep (`3f628b9`); hand-off `handoff-one-viewport-shell.md`.
 
 - **Search-first buyer app** (28 Sep, founder's walkthrough video): LIVE 28 Sep (`d7e6c42`, PRs #193/#194); detail in `current-state.md`.
-- **The founder's 29 Sep dashboard video** — IN PROGRESS, `handoff-dashboard-video-29sep.md`.
-  PR 1 speed and stability (branch `video-29sep-pr1-speed`; migration 0107 not
-  applied, `ops/plans/0107-profile-one-supplier.md`); PR 2 the decision page
-  next, then PRs 3–6 on the founder's picks.
+- **The founder's 29 Sep dashboard video** — built, `handoff-dashboard-video-29sep.md`.
+  PRs #197, #198, #200, #201, #202 on `development`; promotion to `main` waits
+  for the founder's deploy approval; migration 0107 not applied
+  (`ops/plans/0107-profile-one-supplier.md`).
+- **One-line names, fact icons and the video's leftovers** — NEXT,
+  `handoff-dashboard-names-and-facts.md` (the founder's two instructions of
+  29 Sep: names on one line; hierarchy and icons on the record's facts).
 
 ## Queued
 - **Entity resolution core** — `spec-resolution-core.md` (4 Aug). Batch
