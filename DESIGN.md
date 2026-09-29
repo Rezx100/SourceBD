@@ -332,6 +332,19 @@ The world refuses the competitor's chat-first home and its match-score theatre: 
 - The app opens on the search landing (`/app`): one large field, one-click filters, the common searches as templates with live counts, the buyer's saved searches, and no supplier listed until the buyer asks (founder, 28 Sep 2026). The desk that was Home (certificate alerts, recent activity) sits at the top of Saved.
 - The list is a ledger grid first: 40px rows, sortable sticky headers that meet the top of their scroll region, row actions always drawn in a column of their own, and the keyboard. The thumbnail cards are the other stop of the switch.
 
+### Decided 29 Sep 2026, landing in PRs 3–6
+
+The founder's video (hand-off `context/feature-specs/handoff-dashboard-video-29sep.md`) overturns parts of this document; the decision page's picks are below, and each section here is rewritten as its PR lands. Until then the sections describe what is built.
+
+- **Colour.** Green is spent on the one primary action and the logo only. Selection, the active nav row, set filters, links, tabs, focus and the ticked box take **Slate** (`accent`: `#3B5A70`, ink `#2C4E66`, tint `#E6EDF2`, strong tint `#D3DFE8`). This replaces the Spent Green Rule below.
+- **Search field.** Filled: a tonal fill with no outline and no shadow; while typing it turns white with a thin ink line under it. No green ring.
+- **Filters.** One row of menus (Product, Certificate, Place, Company type, More), each a short list with counts; a set filter shows its value on its button.
+- **Type.** One step up in the buyer app: caption 13, label and table 14, body 15, title 16, eyebrow 12; the list's initials tile 40px.
+- **Icons.** A custom line set in the repo (24px grid, 1.5px stroke, round ends). The source-pending mark is a document with a clock, not a dashed square.
+- **Record head.** Facts as plain text; each source once, in one row of marks.
+- **Product photos.** A list: a 40px photo tagged "illustration", the HS code and its name, one line per heading.
+- **Locked stripes** go (`.locked-pattern`); a locked field is the plain locked ground.
+
 ## Colors
 
 A neutral ramp carries the shell; one brand green is the action colour; four status hues sit on facts; one violet is reserved for AI-assisted surfaces that do not yet exist in V1.
