@@ -13,9 +13,12 @@
 // (`app/(app)/(old-shell)`, 29 Sep 2026). So analytics learns who is signed
 // in here, from the shell's own sign-in read. Spec H5's onboarding tour
 // mounts after the shell; it short-circuits server-side once the buyer has
-// completed or dismissed it.
+// completed or dismissed it. Its two reads (who is signed in, then the tour's
+// state) stream in behind the page: outside a boundary they held the whole
+// page back two more round trips after the shell's own.
 
 import { cookies } from "next/headers";
+import { Suspense } from "react";
 import { preload } from "react-dom";
 import { AppShell } from "@/components/dashboard/app-shell";
 import { RAIL_COOKIE } from "@/lib/dashboard/nav";
@@ -41,7 +44,9 @@ export default async function BuyerLayout({ children }: { children: React.ReactN
       <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" railCollapsed={railCollapsed}>
         {children}
       </AppShell>
-      <TourMount flavour="buyer" />
+      <Suspense fallback={null}>
+        <TourMount flavour="buyer" />
+      </Suspense>
     </PostHogProvider>
   );
 }
