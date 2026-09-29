@@ -212,7 +212,7 @@ export function DataTable({
   children: ReactNode;
 }) {
   return (
-    <div className={cn("max-xl:overflow-x-auto", className)} tabIndex={0} role="region" aria-label={label}>
+    <div className={cn("relative max-xl:overflow-x-auto", className)} tabIndex={0} role="region" aria-label={label}>
       <table
         className={cn(
           "w-full border-collapse text-sm",

@@ -91,6 +91,16 @@
     color: rgb(var(--ds-accent-on));
   }
 
+  /* iOS zooms the page into any field set under 16px, and the app's fields
+     are 15px (`text-base` inside the shell): the RFQ composer zoomed on every
+     tap (founder's video, 30 Sep 2026). On a touch screen a field is at least
+     16px; the type scale itself is unchanged (`search-filters.test.ts`). */
+  @media (pointer: coarse) {
+    [data-shell] :is(input, select, textarea) {
+      font-size: max(1rem, 1em);
+    }
+  }
+
   /* A thin scrollbar in the line colour, with no track: it reads as part of
      the hairline system rather than as chrome. On every scroll region, not
      only the page: `scrollbar-width` does not inherit, so set on `:root` it
@@ -192,8 +202,11 @@
     text-underline-offset: 3px;
   }
 
-  .link:hover {
-    text-decoration-color: currentColor;
+  /* Only where a pointer can hover: after a tap, a hover style stays on. */
+  @media (hover: hover) {
+    .link:hover {
+      text-decoration-color: currentColor;
+    }
   }
 }
 

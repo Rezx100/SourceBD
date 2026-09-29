@@ -78,6 +78,9 @@ function colorVars(set: ColorSet): Record<string, string> {
 }
 
 const config: Config = {
+  // `hover:` only where a pointer can hover. Without it a tap leaves the hover
+  // style on: a Save just un-saved still looked saved on a phone.
+  future: { hoverOnlyWhenSupported: true },
   content: [
     "./app/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",

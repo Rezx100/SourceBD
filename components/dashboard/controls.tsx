@@ -13,6 +13,7 @@
 
 import Link from "next/link";
 import type { ButtonHTMLAttributes, MouseEventHandler, ReactNode } from "react";
+import { MENU_NAME } from "@/lib/dashboard/menu-dismiss";
 import { cn } from "@/lib/utils";
 import { Icon, type IconName } from "./icons";
 import { LinkPending, LinkPendingSwap } from "./link-pending";
@@ -373,6 +374,10 @@ export function Count({ children, className }: { children: ReactNode; className?
  * closes it; a menu of `clientNav` items must be keyed by its current value so
  * the navigation remounts it closed. The panel escapes its container, so it
  * must never sit inside `overflow-hidden`.
+ *
+ * `name="sb-menu"`: one tray open at a time, and the shell's `MenuDismiss`
+ * closes it on a press outside or Escape and keeps it on the screen. A list
+ * of links, not an ARIA menu: `role="menu"` promised arrow keys it never had.
  */
 export function Menu({
   summary,
@@ -400,7 +405,7 @@ export function Menu({
   children: ReactNode;
 }) {
   return (
-    <details className={cn("group/menu relative", className)}>
+    <details name={MENU_NAME} className={cn("group/menu relative", className)}>
       <summary
         aria-label={label}
         className={cn(
@@ -413,12 +418,13 @@ export function Menu({
         <Icon name="caret" small className="text-ink-subtle transition-transform duration-fast group-open/menu:rotate-180" />
       </summary>
       <div
-        role="menu"
+        data-menu-panel=""
         className={cn(
           // `z-overlay`: the numeric class here compiled to nothing, and the
           // rows below a sort or filter menu painted over its items (founder's
-          // review, 29 Sep 2026).
-          "absolute z-overlay min-w-[12rem] max-w-[calc(100vw-2rem)] rounded-md border border-line bg-surface py-1 shadow-md",
+          // review, 29 Sep 2026). Bounded, so a long list scrolls inside the
+          // screen rather than running off its foot.
+          "absolute z-overlay max-h-[min(24rem,70vh)] min-w-[12rem] max-w-[calc(100vw-2rem)] overflow-y-auto overscroll-contain rounded-md border border-line bg-surface py-1 shadow-md",
           // Right-anchored only from sm: on a phone the wrapped summary starts its
           // row, and a right-anchored menu would open off the left edge (1.4.10).
           align === "right" ? "left-0 sm:left-auto sm:right-0" : "left-0",
@@ -453,17 +459,17 @@ export function MenuItem({
   );
   const mark = <Icon name="check" small className={active ? "text-accent-ink" : "invisible"} />;
   return href && clientNav ? (
-    <Link role="menuitem" href={href} prefetch={false} scroll={false} aria-current={active ? "true" : undefined} className={cls}>
+    <Link data-menu-item="" href={href} prefetch={false} scroll={false} aria-current={active ? "true" : undefined} className={cls}>
       {mark}
       {children}
     </Link>
   ) : href ? (
-    <a role="menuitem" href={href} aria-current={active ? "true" : undefined} className={cls}>
+    <a data-menu-item="" href={href} aria-current={active ? "true" : undefined} className={cls}>
       {mark}
       {children}
     </a>
   ) : (
-    <button type="button" role="menuitem" onClick={onClick} className={cls}>
+    <button type="button" data-menu-item="" onClick={onClick} className={cls}>
       {mark}
       {children}
     </button>

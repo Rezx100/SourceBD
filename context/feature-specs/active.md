@@ -54,12 +54,14 @@ same PR. Read once per session.
   view), #212 (D, leftovers, sidebar foot). LIVE 29 Sep (`8e773eb`, #213);
   no slate LIVE 29 Sep (`7d46e2b`, #215/#216). Migration 0107 applied 29 Sep.
 
+- **Buyer app on a phone** — IN PROGRESS, `handoff-dashboard-mobile.md` (30 Sep,
+  founder's screenshots and video), six PRs in order. M0 (the phone scrolls
+  again, one tray at a time, fields stop zooming): branch `mobile-m0-scroll`.
+  Then M1 navigation at the bottom and the phone size scale, M2 the search, M3
+  list and cards, M4 the record, M5 the composer, the other pages and touch.
+  Harness: `.impeccable/preview/build-mobile.cjs`, `touch-check.cjs`.
+
 ## Queued
-- **Buyer app on a phone** — NEXT, `handoff-dashboard-mobile.md` (30 Sep,
-  founder's screenshots and video). M0 first: the record and the RFQ composer
-  do not scroll on a phone at all. Then M1 navigation at the bottom and the
-  phone size scale, M2 the search, M3 list and cards, M4 the record, M5 the
-  composer, the other pages and touch.
 - **Entity resolution core** — `spec-resolution-core.md` (4 Aug). Batch
   resolution stage over immutable `staging_records`; LLM adjudicator for the
   review band only; Firecrawl `/v2/extract` not approved. Prerequisite:

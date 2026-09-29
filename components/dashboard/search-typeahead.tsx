@@ -213,13 +213,15 @@ export function SearchTypeahead({
     return () => clearTimeout(timer);
   }, [value]);
 
-  // Outside click closes the list; the field keeps its text.
+  // A press outside closes the list; the field keeps its text. `pointerdown`,
+  // not `mousedown`: iOS sends no mouse events for a tap on plain content, so
+  // "Recent searches" stayed open over the page (founder's video, 30 Sep 2026).
   useEffect(() => {
-    function onDown(e: MouseEvent) {
+    function onDown(e: PointerEvent) {
       if (!wrap.current?.contains(e.target as Node)) setOpen(false);
     }
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
   }, []);
 
   const rows = suggestionRows(value, fetched, recent);

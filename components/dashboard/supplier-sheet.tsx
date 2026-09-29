@@ -157,7 +157,9 @@ export function SupplierSheet({
         ) : mode === "page" && backHref ? (
           <Button variant="ghost" size="sm" href={backHref} clientNav>
             <Icon name="chev-l" />
-            Back to results
+            {/* "‹ Results" on a phone: the whole bar ran 18px past a 360px screen. */}
+            <span className="sm:hidden">Results</span>
+            <span className="hidden sm:inline">Back to results</span>
           </Button>
         ) : null}
         {/* One line: at half the region (524px at 1280) it broke as "Supplier / record". */}

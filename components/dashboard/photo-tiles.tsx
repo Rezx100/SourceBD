@@ -108,7 +108,7 @@ export function PhotoStrip({
         role="region"
         aria-label={`Product lines, ${totalLines} on the EPB register`}
         tabIndex={0}
-        className="flex snap-x gap-2 overflow-x-auto pb-1"
+        className="relative flex snap-x gap-2 overflow-x-auto pb-1"
       >
         {tiles.map((t) => (
           <PhotoTile key={t.hs} tile={t} />
@@ -238,7 +238,7 @@ export function CardThumbs({ tiles, totalLines }: { tiles: readonly PhotoTileMod
   const more = Math.max(0, totalLines - tiles.length);
   return (
     <div className="flex min-w-0 shrink-0 items-start gap-2">
-      <ul aria-label={`Product lines, ${totalLines} on the EPB register`} tabIndex={0} className="m-0 flex min-w-0 list-none gap-2 overflow-x-auto p-0">
+      <ul aria-label={`Product lines, ${totalLines} on the EPB register`} tabIndex={0} className="relative m-0 flex min-w-0 list-none gap-2 overflow-x-auto p-0">
         {tiles.map((t) => (
           <li key={t.hs} className="w-12 shrink-0" title={`HS ${t.hs} · ${t.short}${t.src ? "" : " · no photo yet"}`}>
             <span role="img" aria-label={`HS ${t.hs} · ${t.short}${t.src ? "" : " · no photo yet"}`} className="block size-12 overflow-hidden rounded-sm border border-line-subtle bg-surface-sunken">

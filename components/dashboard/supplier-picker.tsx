@@ -188,7 +188,7 @@ export function SupplierPicker({
           <Icon name="x" />
         </Button>
       </SheetBar>
-      <div role="tablist" aria-label="Where to pick suppliers from" className="flex shrink-0 gap-5 overflow-x-auto border-b border-line-subtle px-5">
+      <div role="tablist" aria-label="Where to pick suppliers from" className="relative flex shrink-0 gap-5 overflow-x-auto border-b border-line-subtle px-5">
         {PICKER_TABS.map((t) => (
           <button
             key={t.key}
@@ -209,7 +209,7 @@ export function SupplierPicker({
           </button>
         ))}
       </div>
-      <div role="tabpanel" id={`${id}-panel`} aria-labelledby={`${id}-tab-${tab}`} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain px-5 py-4">
+      <div role="tabpanel" id={`${id}-panel`} aria-labelledby={`${id}-tab-${tab}`} className="flex min-h-0 flex-1 flex-col gap-3 px-5 py-4 md:overflow-y-auto md:overscroll-contain">
         {tab === "saved" ? (
           <Rows
             load={saved}

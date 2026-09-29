@@ -5,8 +5,9 @@
 // `overflow: hidden` ones included — so clicking Products slid the whole
 // workbench up under the topbar, the results' filter bar with it, and left an
 // empty strip at the foot of the screen (founder's video, 29 Sep 2026). A
-// click now scrolls only the pane's own scroll region, lands the section
-// under the sticky tabs, and replaces the URL's fragment rather than adding a
+// click now scrolls only the pane's own scroll region (the window below `md`,
+// where the pane cannot scroll), lands the section under the sticky tabs, and
+// replaces the URL's fragment rather than adding a
 // history entry. The href stays for a reader without script.
 
 import type { MouseEvent } from "react";
@@ -29,9 +30,17 @@ export function goToSection(e: TabClick): void {
   if (!scroller || !target) return;
   e.preventDefault();
   const tabs = link.closest("nav");
-  const top = target.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop - (tabs ? tabs.getBoundingClientRect().height : 0);
   const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  scroller.scrollTo({ top, behavior: still ? "auto" : "smooth" });
+  if (scroller.scrollHeight <= scroller.clientHeight) {
+    // Below `md` the pane cannot scroll: the window does (`SheetScroll`). Land
+    // the section under whatever sticks above it — the tabs, at their own
+    // sticky offset, which is the record's bar on a phone.
+    const stuck = tabs ? tabs.getBoundingClientRect().height + (parseFloat(window.getComputedStyle(tabs).top) || 0) : 0;
+    window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - stuck, behavior: still ? "auto" : "smooth" });
+  } else {
+    const top = target.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop - (tabs ? tabs.getBoundingClientRect().height : 0);
+    scroller.scrollTo({ top, behavior: still ? "auto" : "smooth" });
+  }
   // `null`, so Next's router takes the new URL as its own; with its own state
   // passed back it kept the old URL and dropped the `#` on its next update.
   window.history.replaceState(null, "", `#${id}`);

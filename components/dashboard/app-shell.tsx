@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { AccountMenu, Avatar, type AccountModel } from "./account-menu";
 import { LiveDot, Meter } from "./controls";
 import { Icon } from "./icons";
+import { MenuDismiss } from "./menu-dismiss";
 import { RailToggle } from "./rail-toggle";
 import { RecentSearchesSlot } from "./recent-searches";
 import { SearchCarry } from "./search-carry";
@@ -293,18 +294,27 @@ export function AppShell({
           // focus to a non-focusable fragment target, which older Safari does
           // not.
           tabIndex={-1}
-          // The one scroll region of a plain page. A workbench page (the
-          // search, the inbox) fills it with `min-h-0 flex-1` columns that
-          // scroll themselves, and this never overflows. `isolate`: every
+          // From `md` the one scroll region of a plain page. A workbench page
+          // (the search, the inbox) fills it with `min-h-0 flex-1` columns
+          // that scroll themselves, and this never overflows. Below `md` the
+          // window is the only vertical scroller: sticky elements stick to the
+          // screen, iOS folds its toolbars as the page scrolls and a tap on
+          // the status bar returns to the top; a box that cannot scroll
+          // would only defeat every sticky element inside it. Sideways it
+          // clips below `md` (`clip`, which is not a scroll container, unlike
+          // `hidden`): a pane sliding in 32px or a skeleton's fixed widths may
+          // not widen a phone's page, which zooms the whole page out to fit.
+          // `isolate`: every
           // z-index inside the page stays inside it, so the topbar's
           // suggestion list always paints over the page. Without it a sticky
           // header (`z-raised`, the topbar's own level and later in the page)
           // would paint over the list whenever the page's fade-in is not
           // there to contain it, as under reduced motion.
-          className={cn("isolate flex min-h-0 flex-1 flex-col overflow-y-auto", contentClassName)}
+          className={cn("isolate flex min-h-0 flex-1 flex-col max-md:overflow-x-clip md:overflow-y-auto", contentClassName)}
         >
           {children}
         </main>
+        <MenuDismiss />
       </div>
     </div>
   );

@@ -7,6 +7,7 @@
 
 import { Fragment, type ReactNode } from "react";
 import { certStateLabel, rscStatusNeedsLook, type CertModel } from "@/lib/dashboard/facts";
+import { MENU_NAME } from "@/lib/dashboard/menu-dismiss";
 import type { FacilityRowModel, FactRow, LocationRow, RecordRfqRow, SanctionRow, SourceRow } from "@/lib/dashboard/models";
 import { recordPage, sourceMark } from "@/lib/dashboard/source-tiers";
 import { cn } from "@/lib/utils";
@@ -131,9 +132,11 @@ export function RecordPane({
 
 /**
  * The results beside the record on /app/discover: the column that scrolls on
- * its own and, with a record open, steps aside below `lg` — the record takes
- * the content region and the search waits in the URL for Close. One
- * definition for the page, the gallery and the preview harness, so the
+ * its own from `md` and, with a record open, steps aside below `lg` — the
+ * record takes the content region and the search waits in the URL for Close.
+ * Below `md` the window is the one scroller (`AppShell`), so this column is
+ * as tall as its rows and a sticky element inside it sticks to the screen.
+ * One definition for the page, the gallery and the preview harness, so the
  * three cannot drift.
  */
 export function ResultsColumn({ besideRecord = false, rail = false, children }: { besideRecord?: boolean; rail?: boolean; children: ReactNode }) {
@@ -147,7 +150,7 @@ export function ResultsColumn({ besideRecord = false, rail = false, children }: 
   // `rail`: beside the RFQ composer the results are a slim column of names,
   // still tickable, rather than a crushed table.
   return (
-    <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto", besideRecord && "hidden lg:flex", rail && "lg:w-[18rem] lg:flex-none")}>
+    <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col md:overflow-y-auto", besideRecord && "hidden lg:flex", rail && "lg:w-[18rem] lg:flex-none")}>
       <div className={cn("flex flex-col gap-4 p-4 sm:p-6", besideRecord && "lg:p-4")}>{children}</div>
     </div>
   );
@@ -181,14 +184,18 @@ export function SheetBar({ children }: { children: ReactNode }) {
 export function SheetScroll({ measure = false, children }: { measure?: boolean; children: ReactNode }) {
   // `data-sheet-scroll` so a guard can find this element without pinning its
   // class attribute: the one that did meant the scroll region could never
-  // gain a utility, and `overscroll-contain` — which a pane's scroll region
-  // wants, so its scroll does not chain into the results beside it — was
-  // therefore a repair the suite refused.
+  // gain a utility.
+  // From `md`, where the app is a fixed frame, the pane scrolls itself, and
+  // `overscroll-contain` keeps its scroll from chaining into the results
+  // beside it. Below `md` the window scrolls: this box is as tall as the
+  // record, and a scroll container that cannot scroll and contains its
+  // overscroll swallowed every swipe, so a record and the RFQ composer could
+  // not be scrolled on a phone at all (founder's video, 30 Sep 2026).
   // `measure`: the full page is as wide as the content region, and a facts
   // panel across 1600px is unreadable; the body keeps the record's measure
   // and centres it, while the bar and the action bar run the full width.
   return (
-    <div data-sheet-scroll="true" className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+    <div data-sheet-scroll="true" className="min-h-0 flex-1 md:overflow-y-auto md:overscroll-contain">
       {measure ? <div className="mx-auto w-full max-w-[1120px]">{children}</div> : children}
     </div>
   );
@@ -292,7 +299,7 @@ export function collapseRepeatedLines(text: string): string {
  */
 function Reason({ reason, label, align = "left", children }: { reason: string; label: string; align?: "left" | "right"; children: ReactNode }) {
   return (
-    <details className="group/why relative inline-block">
+    <details name={MENU_NAME} className="group/why relative inline-block">
       <summary
         aria-label={label}
         title={reason}
@@ -302,6 +309,7 @@ function Reason({ reason, label, align = "left", children }: { reason: string; l
       </summary>
       <span
         role="note"
+        data-menu-panel=""
         className={cn(
           "absolute top-full z-overlay mt-1 w-56 rounded-md border border-line bg-surface px-3 py-2 text-left text-sm font-normal text-ink shadow-md",
           align === "right" ? "right-0" : "left-0",

@@ -2964,7 +2964,7 @@ describe("the sort menu opens inside the viewport", () => {
         },
       }),
     );
-    const menu = html.match(/<div\b[^>]*role="menu"[^>]*class="([^"]*)"|<div class="([^"]*absolute[^"]*)"/)?.slice(1).find(Boolean) ?? "";
+    const menu = html.match(/<div\b[^>]*data-menu-panel=""[^>]*class="([^"]*)"|<div class="([^"]*absolute[^"]*)"/)?.slice(1).find(Boolean) ?? "";
     assert.ok(menu, "the sort menu is no longer absolutely positioned; this guard needs rewriting");
     const cls = new Set(menu.split(/\s+/));
     assert.ok(cls.has("left-0"), `the menu is not anchored left on a phone: ${menu}`);
@@ -3087,7 +3087,7 @@ describe("the kit's buttons, menus and panels (27 Sep 2026)", () => {
         },
       }),
     );
-    const items = [...html.matchAll(/<a role="menuitem" href="([^"]+)"([^>]*)>/g)].map((m) => [m[1], /aria-current="true"/.test(m[2]!)]);
+    const items = [...html.matchAll(/<a data-menu-item="" href="([^"]+)"([^>]*)>/g)].map((m) => [m[1], /aria-current="true"/.test(m[2]!)]);
     assert.deepEqual(items, [
       ["?sort=sources", false],
       ["?sort=name", true],
