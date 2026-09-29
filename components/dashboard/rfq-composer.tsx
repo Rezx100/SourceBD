@@ -384,10 +384,11 @@ export function RfqComposer({
                       <LogoTile initials={t.initials} tier={t.tier} size="sm" />
                       <span className="flex min-w-0 flex-1 flex-col">
                         {/* Two lines, each cut to one (the One-Line Name Rule); the marks and a
-                            sanction beside the name keep their room. */}
+                            sanction beside the name keep their room, the marks only
+                            from sm, where they leave the name enough of it. */}
                         <span className="flex min-w-0 items-center gap-x-2">
                           <OneLine text={splitQualifier(t.name).base} title={t.name} className="text-sm font-medium text-ink-strong" />
-                          <SourceMarks marks={t.marks.slice(0, 6)} caption="none" sm className="shrink-0 flex-nowrap" />
+                          <SourceMarks marks={t.marks.slice(0, 6)} caption="none" sm className="hidden shrink-0 flex-nowrap sm:inline-flex" />
                           {t.sanctioned ? <span className="shrink-0 text-xs font-medium text-sanction-ink">Sanctioned{t.sanctionSample ? " · sample" : ""}</span> : null}
                         </span>
                         <OneLine text={nameSecondLine(t.name, t.type, t.place)} className="text-xs text-ink-subtle" />

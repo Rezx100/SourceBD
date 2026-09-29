@@ -12,7 +12,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { discoverWorkers, workersSecondShort } from "@/lib/dashboard/build-discover-row";
-import { displayName, entityLabel, formatCount, formatDay, formatRelative, initials, nameSecondLine, placeLabel, splitQualifier } from "@/lib/dashboard/facts";
+import { displayName, entityLabel, formatCount, formatDay, formatRelative, initials, placeLabel, splitQualifier } from "@/lib/dashboard/facts";
 import type { WorkersBasis } from "@/lib/enrich-discover-workers";
 import { marksFromTags, topTier } from "@/lib/dashboard/source-tiers";
 import type { SavedSearchJson } from "@/lib/saved-searches";
@@ -160,6 +160,7 @@ export function SavedList({
               {rows.map((r) => {
                 const tags = r.source_tags ?? [];
                 const name = displayName(r.company_name);
+                const split = splitQualifier(name);
                 const place = placeLabel(r.city, r.district);
                 const open = r.slug === openSlug;
                 const w = discoverWorkers({
@@ -181,12 +182,12 @@ export function SavedList({
                             scroll={false}
                             href={savedHref(sort, page, r.slug)}
                             aria-current={open ? "true" : undefined}
-                            aria-label={splitQualifier(name).qualifier ? name : undefined}
+                            aria-label={split.qualifier ? name : undefined}
                             className="block min-w-0 font-medium text-ink-strong hover:text-brand-ink"
                           >
-                            <OneLine text={splitQualifier(name).base} title={name} />
+                            <OneLine text={split.base} title={name} />
                           </Link>
-                          <OneLine text={nameSecondLine(name, entityLabel(r.entity_type), place)} className="text-xs text-ink-subtle" />
+                          <OneLine text={[split.qualifier, entityLabel(r.entity_type), place].filter(Boolean).join(" · ")} className="text-xs text-ink-subtle" />
                         </div>
                       </div>
                     </th>
