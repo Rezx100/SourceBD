@@ -282,8 +282,9 @@ export function ResultsTable({
                     ) : null}
                     {compact ? null : (
                       // SourceBD's own "open beside" icon, and its word over it
-                      // under the pointer: the founder did not know the old
-                      // sidebar glyph opened the record (video, 29 Sep 2026).
+                      // under the pointer and while the row has keyboard focus
+                      // (↵ opens it): the founder did not know the old sidebar
+                      // glyph opened the record (video, 29 Sep 2026).
                       <span className="group/open relative inline-flex">
                         <Button
                           variant="ghost"
@@ -300,7 +301,7 @@ export function ResultsTable({
                         </Button>
                         <span
                           aria-hidden
-                          className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 whitespace-nowrap rounded-sm bg-surface-inverse px-1.5 py-0.5 text-xs font-medium text-ink-inverse opacity-0 transition-opacity duration-fast group-hover/open:opacity-100 group-focus-within/open:opacity-100"
+                          className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 whitespace-nowrap rounded-sm bg-surface-inverse px-1.5 py-0.5 text-xs font-medium text-ink-inverse opacity-0 transition-opacity duration-fast group-hover/open:opacity-100 group-focus-within/open:opacity-100 group-focus-visible:opacity-100"
                         >
                           Open
                         </span>

@@ -9,6 +9,7 @@
 // toggled, so the menus work before any script and a click is the same
 // client navigation as any other filter.
 
+import { Suspense } from "react";
 import { formatCount } from "@/lib/dashboard/facts";
 import { filterMenus, menuSummary } from "@/lib/dashboard/search-templates";
 import { discoverHref, serializeDiscoverState, type DiscoverState } from "@/lib/discover-v32-state";
@@ -16,15 +17,32 @@ import { cn } from "@/lib/utils";
 import { Menu, MenuItem } from "./controls";
 import { Code } from "./type";
 
+type Counts = Record<string, number | null>;
+
+function OptionCount({ n }: { n: number | null | undefined }) {
+  return typeof n === "number" ? <span className="ml-3 font-mono text-xs text-ink-subtle">{formatCount(n)}</span> : null;
+}
+
+async function StreamedCount({ counts, k }: { counts: Promise<Counts>; k: string }) {
+  return <OptionCount n={(await counts)[k]} />;
+}
+
 export function FilterMenus({
   state,
   counts,
+  hrefFor = discoverHref,
   className,
   children,
 }: {
   state: DiscoverState;
-  /** Suppliers each option finds, by option key; absent on the results, where the whole-corpus count would mislead. */
-  counts?: Record<string, number | null>;
+  /**
+   * Suppliers each option finds, by option key; absent on the results, where
+   * the whole-corpus count would mislead. A promise streams each count into
+   * its own row, so a menu open while they arrive is not redrawn shut.
+   */
+  counts?: Counts | Promise<Counts>;
+  /** The URL of a search: the results page keeps the buyer's density on it. */
+  hrefFor?: (s: DiscoverState) => string;
   className?: string;
   /** Anything that rides at the row's end (All filters). */
   children?: React.ReactNode;
@@ -51,18 +69,21 @@ export function FilterMenus({
             set={summary !== null}
             panelClassName="min-w-[17rem]"
           >
-            {m.options.map((o) => {
-              const n = counts?.[o.key];
-              return (
-                <MenuItem key={o.key} href={discoverHref(o.toggled)} active={o.on} clientNav>
-                  <span className="min-w-0 flex-1">
-                    {o.label}
-                    {o.code ? <Code className="ml-1.5 text-xs text-ink-subtle">{o.code}</Code> : null}
-                  </span>
-                  {typeof n === "number" ? <span className="ml-3 font-mono text-xs text-ink-subtle">{formatCount(n)}</span> : null}
-                </MenuItem>
-              );
-            })}
+            {m.options.map((o) => (
+              <MenuItem key={o.key} href={hrefFor(o.toggled)} active={o.on} clientNav>
+                <span className="min-w-0 flex-1">
+                  {o.label}
+                  {o.code ? <Code className="ml-1.5 text-xs text-ink-subtle">{o.code}</Code> : null}
+                </span>
+                {counts instanceof Promise ? (
+                  <Suspense fallback={null}>
+                    <StreamedCount counts={counts} k={o.key} />
+                  </Suspense>
+                ) : (
+                  <OptionCount n={counts?.[o.key]} />
+                )}
+              </MenuItem>
+            ))}
           </Menu>
         );
       })}

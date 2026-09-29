@@ -43,10 +43,18 @@ export default async function SearchLandingPage({
     SEARCH_TEMPLATES.map(async (t) => [t.key, await readSearchCount(t.state)] as const),
   ).then((pairs) => Object.fromEntries(pairs));
   // What each filter-menu option finds across the published corpus, cached
-  // an hour per option like the templates.
-  const menuCounts: Promise<Record<string, number | null>> = Promise.all(
-    filterMenus(EMPTY_STATE).flatMap((m) => m.options.map(async (o) => [o.key, await readSearchCount(o.toggled)] as const)),
-  ).then((pairs) => Object.fromEntries(pairs));
+  // an hour per option like the templates. Read four at a time, after the
+  // templates' own: on a cold cache (a deploy, a moderator's publish purges
+  // the tag) eighteen full-corpus counts at once is load this database has
+  // timed out under.
+  const menuCounts: Promise<Record<string, number | null>> = counts.then(async () => {
+    const options = filterMenus(EMPTY_STATE).flatMap((m) => m.options);
+    const out: Record<string, number | null> = {};
+    for (let i = 0; i < options.length; i += 4) {
+      await Promise.all(options.slice(i, i + 4).map(async (o) => (out[o.key] = await readSearchCount(o.toggled))));
+    }
+    return out;
+  });
   const saved: Promise<SavedSearchJson[] | null> = (async () => {
     try {
       const listed = await runSavedSearchesGet({ role: await getServerRole(), supabase, now: new Date() });
