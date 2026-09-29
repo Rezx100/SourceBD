@@ -2,6 +2,12 @@
 // chips, "Add filter", the Filters | Ask stop switch, the go disc. The Ask
 // stop is V2 — it renders only when `askEnabled` (AI on and a key present),
 // otherwise the switch is not shown at all, not disabled.
+//
+// On a phone (the phone hand-off's D3; Booking.com, Viator, Grab): no card,
+// the rows on the canvas. "Filters · N" opens the full filter pane, and the
+// menus and the set filters run on in one row that scrolls sideways, faded
+// at its edge. The go disc goes (it reloaded the same search) and so does
+// "Add filter" (Filters is it).
 
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -36,6 +42,7 @@ export function SearchComposer({
   filtersModeHref,
   filtersHref,
   menus,
+  setCount = 0,
 }: {
   chips: readonly FilterChipModel[];
   /** The filter menus, drawn before the chips of filters no menu holds (founder's video, 29 Sep 2026). */
@@ -52,6 +59,8 @@ export function SearchComposer({
   filtersModeHref?: string;
   /** Where "Add filter" goes: the filter pane beside the results. */
   filtersHref?: string;
+  /** How many filters are set: the phone's "Filters · N". */
+  setCount?: number;
 }) {
   const live = queryInput !== undefined || submits;
   return (
@@ -60,14 +69,30 @@ export function SearchComposer({
         // No z-index of its own: the filter menus are `z-overlay` (`Menu`),
         // over the results panel after this (a stacking context of its own),
         // and the page's `<main>` keeps them under the topbar's suggestions.
-        "flex items-center gap-3 rounded-md bg-surface py-2 pl-3.5 pr-2.5 shadow-edge",
+        "relative flex items-center gap-3 rounded-md bg-surface py-2 pl-3.5 pr-2.5 shadow-edge",
+        "max-sm:gap-2 max-sm:rounded-none max-sm:bg-transparent max-sm:p-0 max-sm:shadow-none",
         className,
       )}
     >
-      <span className="inline-flex text-ink-muted">
+      <span className="inline-flex text-ink-muted max-sm:hidden">
         <Icon name="funnel" />
       </span>
-      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+      {filtersHref ? (
+        <Link
+          href={filtersHref}
+          prefetch={false}
+          scroll={false}
+          className="inline-flex h-chip-touch shrink-0 items-center gap-1.5 rounded-sm bg-surface px-3 text-sm font-medium text-ink-strong shadow-edge [touch-action:manipulation] active:bg-surface-sunken sm:hidden"
+        >
+          <Icon name="sliders" />
+          Filters
+          {setCount > 0 ? <span className="tabular-nums text-ink-muted">· {setCount}</span> : null}
+        </Link>
+      ) : null}
+      {/* On a phone one row that scrolls sideways (no scrollbar, a fade at the
+          right edge); from sm the row wraps as before. `relative`: the row's
+          absolutely placed children stay inside its scroll. */}
+      <div className="relative flex min-w-0 flex-1 flex-wrap items-center gap-2 max-sm:-my-1 max-sm:snap-x max-sm:flex-nowrap max-sm:overflow-x-auto max-sm:py-1 max-sm:pr-6 max-sm:[scrollbar-width:none] max-sm:[&::-webkit-scrollbar]:hidden">
         {queryInput !== undefined ? (
           <input
             type="search"
@@ -81,14 +106,14 @@ export function SearchComposer({
         ) : null}
         {menus}
         {chips.map((c) => (
-          <Chip key={c.key ?? c.label} tone="on" className="h-7">
+          <Chip key={c.key ?? c.label} tone="on" className="h-7 shrink-0 snap-start whitespace-nowrap max-sm:h-chip-touch">
             {c.label}
             {c.code ? <Code className="text-xs">{c.code}</Code> : null}
             {/* `opacity` applies to the focus outline too, so dimming the
                 focusable element itself pushed the ring to 2.45:1 against the
                 chip — under WCAG 1.4.11's 3:1. Dim the icon, not the control. */}
             {c.removeHref ? (
-              <a href={c.removeHref} aria-label={`Remove ${c.label}`}>
+              <a href={c.removeHref} aria-label={`Remove ${c.label}`} className="hit">
                 <Icon name="x" small className="opacity-70" />
               </a>
             ) : (
@@ -103,7 +128,7 @@ export function SearchComposer({
             href={filtersHref}
             prefetch={false}
             scroll={false}
-            className="inline-flex h-7 items-center gap-1 rounded-sm px-1.5 text-sm font-medium text-ink-muted transition-colors duration-fast hover:bg-surface-sunken hover:text-ink-strong"
+            className="hidden h-7 items-center gap-1 rounded-sm px-1.5 text-sm font-medium text-ink-muted transition-colors duration-fast hover:bg-surface-sunken hover:text-ink-strong sm:inline-flex"
           >
             <Icon name="plus" small /> Add filter
           </Link>
@@ -185,10 +210,14 @@ export function SearchComposer({
       <button
         type={live ? "submit" : "button"}
         aria-label="Search"
-        className="grid size-8 shrink-0 place-items-center rounded-full bg-brand text-brand-on hover:bg-brand-hover"
+        className="hidden size-8 shrink-0 place-items-center rounded-full bg-brand text-brand-on hover:bg-brand-hover sm:grid"
       >
         <Icon name="arrow-r" />
       </button>
+      {/* The phone row's fade: more menus and filters lie past the edge. A
+          gradient over the row, not a mask on it: a mask would hide the
+          trays, which open from inside the row as sheets. */}
+      <span aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-canvas to-transparent sm:hidden" />
     </div>
   );
 }

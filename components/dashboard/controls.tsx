@@ -387,6 +387,7 @@ export function Menu({
   size = "md",
   set = false,
   panelClassName,
+  summaryClassName,
   className,
   children,
 }: {
@@ -401,6 +402,8 @@ export function Menu({
   set?: boolean;
   /** The list's own width, when its rows are longer than a sort's. */
   panelClassName?: string;
+  /** The button's own size on a phone (a 44px Sort, a 32px filter chip). */
+  summaryClassName?: string;
   className?: string;
   children: ReactNode;
 }) {
@@ -410,13 +413,19 @@ export function Menu({
         aria-label={label}
         className={cn(
           buttonClass({ variant: "ghost", size }),
-          "list-none [&::-webkit-details-marker]:hidden",
+          "list-none [touch-action:manipulation] [&::-webkit-details-marker]:hidden",
           set && "bg-accent-tint-strong text-accent-ink hover:bg-accent-tint-strong",
+          summaryClassName,
         )}
       >
         {summary}
         <Icon name="caret" small className="text-ink-subtle transition-transform duration-fast group-open/menu:rotate-180" />
       </summary>
+      {/* Below sm the tray is a bottom sheet (the phone hand-off's D2; LinkedIn,
+          Zocdoc and Best Buy draw their filters so). The scrim takes the tap
+          outside it and stops the page moving behind; a tap on it closes the
+          tray (`data-menu-close`, the shell's MenuDismiss). */}
+      <div data-menu-close="" aria-hidden className="fixed inset-0 z-overlay touch-none bg-surface-inverse/40 animate-fade motion-reduce:animate-none sm:hidden" />
       <div
         data-menu-panel=""
         className={cn(
@@ -430,8 +439,23 @@ export function Menu({
           align === "right" ? "left-0 sm:left-auto sm:right-0" : "left-0",
           up ? "bottom-full mb-1" : "top-full mt-1",
           panelClassName,
+          // The sheet: fixed to the screen's foot, the full width, 70% of its
+          // height at most, above the home bar. Being fixed, it escapes every
+          // clip of the row it opens from.
+          "max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:top-auto max-sm:m-0 max-sm:max-h-[70dvh] max-sm:w-auto max-sm:min-w-0 max-sm:max-w-none max-sm:rounded-none max-sm:rounded-t-lg max-sm:border-0 max-sm:pt-0 max-sm:pb-[max(0.75rem,env(safe-area-inset-bottom))] max-sm:shadow-lg max-sm:animate-rise max-sm:motion-reduce:animate-none",
         )}
       >
+        <div className="sticky top-0 z-raised flex flex-col bg-surface sm:hidden">
+          <span aria-hidden className="mx-auto mt-2 h-1 w-9 rounded-full bg-line" />
+          <div className="flex h-sheet-head items-center justify-between gap-3 pl-4 pr-1">
+            <span className="min-w-0 truncate text-lg font-semibold text-ink-strong" data-line="">
+              {label}
+            </span>
+            <button type="button" data-menu-close="" className="h-target shrink-0 rounded-sm px-3 text-base font-medium text-ink-strong [touch-action:manipulation] active:bg-surface-sunken">
+              Done
+            </button>
+          </div>
+        </div>
         {children}
       </div>
     </details>
@@ -454,7 +478,7 @@ export function MenuItem({
   children: ReactNode;
 }) {
   const cls = cn(
-    "flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-ink transition-colors duration-fast hover:bg-surface-sunken",
+    "flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-ink transition-colors duration-fast [touch-action:manipulation] hover:bg-surface-sunken active:bg-surface-sunken max-sm:min-h-sheet-row max-sm:px-4 max-sm:text-base",
     active && "text-ink-strong",
   );
   const mark = <Icon name="check" small className={active ? "text-accent-ink" : "invisible"} />;

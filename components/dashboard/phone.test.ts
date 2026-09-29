@@ -20,6 +20,8 @@ import { AccountMenu } from "./account-menu";
 import { AppShell } from "./app-shell";
 import { Menu, MenuItem } from "./controls";
 import { ReportProblem } from "./report-problem";
+import { PanelHeader } from "./results-panel";
+import { SearchComposer } from "./search-composer";
 import { RecordPane, ResultsColumn, SheetScroll } from "./sheet";
 import { goToSection, type TabClick } from "./sheet-tabs";
 
@@ -330,5 +332,68 @@ describe("M1. the navigation at the foot of a phone, and the phone's size scale"
     // The rail is from md only: no strip across the top of a phone.
     assert.match(html, /<aside[^>]*class="hidden [^"]*\bmd:flex\b/);
     assert.match(renderToStaticMarkup(createElement(RecordPane, null, "x")), /^<div data-detail=""/);
+  });
+});
+
+describe("M2. the search on a phone", () => {
+  const composer = renderToStaticMarkup(
+    createElement(SearchComposer, {
+      chips: [{ key: "q", label: "knit", removeHref: "/app/discover" }],
+      submits: true,
+      filtersHref: "/app/discover?q=knit&filters=1",
+      setCount: 2,
+      menus: createElement("span", null, "menus"),
+    }),
+  );
+
+  it("the filter box drops its card: Filters · N, then one row of menus and filters that scrolls sideways", () => {
+    const box = classOf(composer, /^<div class="([^"]*)"/);
+    for (const c of ["max-sm:bg-transparent", "max-sm:shadow-none", "max-sm:p-0"]) assert.ok(bare(box, c), `${c}: ${box}`);
+    assert.match(composer, /<a class="[^"]*\bsm:hidden\b[^"]*" href="\/app\/discover\?q=knit&amp;filters=1">[\s\S]*?Filters<span[^>]*>· (?:<!-- -->)?2<\/span><\/a>/, "no Filters · N on a phone");
+    const row = classOf(composer, /<div class="(relative flex min-w-0 flex-1[^"]*)"/);
+    for (const c of ["max-sm:flex-nowrap", "max-sm:overflow-x-auto", "max-sm:snap-x", "max-sm:[scrollbar-width:none]"]) assert.ok(bare(row, c), `${c}: ${row}`);
+    assert.match(composer, /bg-gradient-to-l from-canvas to-transparent sm:hidden/, "no fade at the row's edge");
+    assert.match(composer, /<button type="submit" aria-label="Search" class="hidden [^"]*\bsm:grid\b/, "the go disc reloads the same search on a phone");
+    assert.match(composer, /class="hidden [^"]*\bsm:inline-flex\b"[^>]*>[\s\S]*?Add filter/, "Add filter shows on a phone, beside Filters");
+    assert.match(composer, /aria-label="Remove knit" class="hit"/, "the chip's × is a 12px target");
+    assert.match(source("app/(app)/app/discover/page.tsx"), /setCount=\{filterCount\(state\)\}/, "the phone's Filters count is not the set filters");
+  });
+
+  it("below sm every tray is a bottom sheet with a scrim, a Done and 52px rows; the tab bar steps aside for it", () => {
+    const menu = renderToStaticMarkup(createElement(Menu, { label: "Sort", summary: "Sort" } as ComponentProps<typeof Menu>, createElement(MenuItem, { href: "?s=1" } as ComponentProps<typeof MenuItem>, "One")));
+    const panel = classOf(menu, /data-menu-panel="" class="([^"]*)"/);
+    for (const c of ["max-sm:fixed", "max-sm:inset-x-0", "max-sm:bottom-0", "max-sm:max-h-[70dvh]", "max-sm:pb-[max(0.75rem,env(safe-area-inset-bottom))]", "max-sm:rounded-t-lg"]) assert.ok(bare(panel, c), `${c}: ${panel}`);
+    assert.match(menu, /<div data-menu-close="" aria-hidden="true" class="fixed inset-0 [^"]*\bsm:hidden\b/, "no scrim takes the tap outside the sheet");
+    assert.match(menu, /<button type="button" data-menu-close=""[^>]*>Done<\/button>/);
+    assert.match(menu, /<a data-menu-item=""[^>]*class="[^"]*\bmax-sm:min-h-sheet-row\b/);
+    const bar = source(`${KIT}/bottom-nav.tsx`);
+    assert.match(bar, /max-sm:group-has-\[main_details\[name=sb-menu\]\[open\]\]\/shell:hidden/, "the tab bar covers a sheet opened from the page");
+    // …and so does the selection bar: the Sort sheet opens inside the isolated results panel.
+    assert.match(source(`${KIT}/selection-bar.tsx`), /max-sm:group-has-\[main_details\[name=sb-menu\]\[open\]\]\/shell:hidden/, "the selection bar covers the Sort sheet");
+  });
+
+  it("the results header: the title on one line, the count on one line, then Sort, the switch and a ⋯ with the rest", () => {
+    const html = renderToStaticMarkup(
+      createElement(PanelHeader, {
+        model: {
+          title: "knit · Sanctioned hidden",
+          total: 4645,
+          shown: 25,
+          sortLabel: "Most registers & certifiers",
+          view: "table" as const,
+          saveHref: "?save=1",
+          exportHref: "/api/v1/discover/export?q=knit",
+          sortOptions: [{ value: "sources", label: "Most registers & certifiers", href: "?sort=sources", active: true }],
+          densityOptions: [{ value: "default", label: "Default", href: "?d=default", active: true }],
+        },
+      }),
+    );
+    assert.match(html, /<span data-line="" class="max-sm:block max-sm:truncate">knit · Sanctioned hidden<\/span>/);
+    assert.match(html, /<span class="[^"]*\bwhitespace-nowrap tabular-nums\b[^"]*">4,645 suppliers · 1–25<\/span>/, "the count breaks inside its range");
+    assert.equal((html.match(/<details name="sb-menu"[^>]*><summary aria-label="Sort"/g) ?? []).length, 1, "one set of sort items, moved by CSS");
+    const more = /<details name="sb-menu" class="[^"]*\bsm:hidden\b[^"]*"><summary aria-label="More for this search"[\s\S]*?<\/details>/.exec(html)?.[0] ?? "";
+    assert.ok(more, "no ⋯ on a phone");
+    for (const t of ["Save search", "Export CSV", "Default"]) assert.match(more, new RegExp(`>${t}<`), `${t} is not in the ⋯`);
+    assert.match(html, /<div class="contents max-sm:hidden">[\s\S]*?Save search[\s\S]*?Export CSV/, "the full row of controls shows on a phone too");
   });
 });

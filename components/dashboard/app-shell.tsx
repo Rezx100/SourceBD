@@ -154,6 +154,10 @@ export type TopbarModel = {
   searchQuery?: string;
 };
 
+/** The topbar's share of an open bottom sheet's scrim (phones). */
+const SHEET_DIM =
+  "max-sm:group-has-[main_details[name=sb-menu][open]]/shell:after:absolute max-sm:group-has-[main_details[name=sb-menu][open]]/shell:after:inset-0 max-sm:group-has-[main_details[name=sb-menu][open]]/shell:after:bg-surface-inverse/40";
+
 export function Topbar({ model, screenLabel, account }: { model: TopbarModel; screenLabel?: string; account?: AccountModel }) {
   const field = model.searchAction ? (
     // `next/form`: submitting runs a client navigation to the results
@@ -207,8 +211,10 @@ export function Topbar({ model, screenLabel, account }: { model: TopbarModel; sc
     // onboarding tour's scrim (`z-modal`) still covers the topbar.
     // On a phone it sticks to the top, 52px, so the search is one tap away
     // however far the buyer has scrolled; inside a record or the composer
-    // (`data-detail`) their own bar takes the top edge instead.
-    <div className="glass relative z-raised flex h-topbar shrink-0 items-center gap-3 border-b border-line-subtle px-4 max-md:sticky max-md:top-0 max-md:h-topbar-phone sm:gap-4 sm:px-6 max-md:group-has-[[data-detail]]/shell:hidden">
+    // (`data-detail`) their own bar takes the top edge instead. While a tray is
+    // open as a bottom sheet the bar dims with the page under the sheet's
+    // scrim (which, inside `<main>`, cannot reach it).
+    <div className={cn("glass relative z-raised flex h-topbar shrink-0 items-center gap-3 border-b border-line-subtle px-4 max-md:sticky max-md:top-0 max-md:h-topbar-phone sm:gap-4 sm:px-6 max-md:group-has-[[data-detail]]/shell:hidden", SHEET_DIM)}>
       {field ? (
         <TopbarSearchSlot>{field}</TopbarSearchSlot>
       ) : (
