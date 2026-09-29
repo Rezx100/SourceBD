@@ -1,0 +1,360 @@
+# Buyer app — one-line names, fact icons and what is left — hand-off
+
+Written 29 Sep 2026, after the six PRs of `handoff-dashboard-video-29sep.md`
+(the founder's 29 Sep dashboard video) were built and merged to
+`development`. The founder then sent two screenshots of the live build and two
+instructions, below. Everything else in this file is what the video hand-off
+left unfinished. Every file:line below was read at `development` after PR #202
+(PRs 5–6 of the video); re-check before you rely on one (AGENTS 13, 16).
+
+## The founder's two instructions (29 Sep 2026, verbatim)
+
+> 1. company name must not break into a lot of lines it must be single line,
+>    apply a fix that apple or Microsoft will do on their software, check
+>    mobbing for references.
+> 2. the text needs visual and color hierarchy and most importantly icons for
+>    address on the company, group, entity, company and things if that nature
+>    that deserves a icon.
+
+"mobbing" is Mobbin (the UI reference library; this machine has its MCP:
+`search_screens`). The founder also said "I like everything you recommended",
+so the defaults below are decisions, not open questions. Build them.
+
+The two screenshots were taken on the live build before the video PRs shipped
+(`main` `d7e6c42`):
+
+- **Screenshot 1** — the search list beside an open record (compact columns).
+  "Zaheen Knitwears Limited (Shed - 3, 4, 5, 10, 11, 12, 13) & (Building -
+  Security, ETP and Fire Pump)" takes six lines, and "S M Knitwears Limited",
+  "A.R. Fashion" and the place lines wrap too. Rows are uneven heights.
+- **Screenshot 2** — the record's Overview facts (Company: Registered name,
+  Type, Parent group, Established; Location: Factory address; Workforce and
+  capacity: Workers). Every label and value is the same weight and colour, the
+  mono uppercase group headings are the loudest text, and nothing carries an
+  icon.
+
+Neither is fixed by the video PRs: names still wrap by design (the founder's
+earlier Q1 answer), and fact rows still have no icons. The video PRs did add
+the SourceBD icon set this work needs (`components/dashboard/sb-icons.tsx`).
+
+## Before you start
+
+- Boot lean (AGENTS 3), then load the impeccable skill (global CLAUDE.md).
+  Surface `app-app-app`, mode Operate. Read `DESIGN.md`,
+  `.impeccable/surfaces/app-app-app.md` (the section "The founder's video, 29
+  Sep 2026" has the seven design picks) and `lib/design/tokens.ts`.
+- Branch off `development` after PR #202, with a clean tree (AGENTS 11).
+- Three PRs, in this order (AGENTS 2): **A** one-line names, **B** fact
+  hierarchy and icons, **C** the leftovers. A and B both touch the record's
+  head (A the name, B the facts line under it), so do not run them in
+  parallel.
+- Screenshots without a server (the dev server is unusable here; see memory
+  "Local dev server unusable"): `.impeccable/preview/video29.cjs` renders
+  PAGE = results | results-menu | record | record-collapsed | full | line |
+  rfq | landing | landing-menu | account, and
+  `node .impeccable/preview/build-shell30.cjs [pages…]` shoots them at 1280 into
+  `.impeccable/review/shell30/`. Both files are gitignored and exist only on
+  this machine (`E:\SourceBD`). They render from `.tests-build`, so run
+  `pnpm exec tsc -p tsconfig.npm-test.json` first. Add 375 and 768 viewports
+  to the builder for the phone and tablet shots this hand-off asks for.
+- Tooling that tripped the last session (Windows):
+  - Git and `gh` from PowerShell; Git Bash here has no `git`, `grep` or `awk`.
+  - Lint with `node node_modules/eslint/bin/eslint.js <files>` and
+    `ESLINT_USE_FLAT_CONFIG=false`. The pnpm PowerShell shim joins the file
+    arguments into one string and eslint then finds no files.
+  - A new `*.test.ts` must be added to the explicit `files` list in
+    `tsconfig.npm-test.json`, or it never compiles.
+  - The guard hook refuses force pushes. When a PR's base branch is squashed
+    into `development`, replay its commits onto a new branch from
+    `origin/development` with `git cherry-pick`, and check the tree matches
+    with `git diff --stat <old> <new>`.
+  - In PowerShell, do not build multi-line replacement strings with `+`
+    inside an `@(…)` array literal (the comma binds first and the edit
+    silently corrupts the file), and do not put `` `a `` in a double-quoted
+    string (it is the bell character). Use the Edit tool for multi-line edits.
+
+## Rules this overturns
+
+Change the record in the same PR as the code, or the next agent restores the
+old rule.
+
+| Rule today | Where it lives | The founder now says |
+| -- | -- | -- |
+| The Wrapping Name Rule: a name wraps between words, never truncates; every name column keeps room for its longest word | DESIGN.md Typography, Named Rules (~line 408); Key Characteristics "Names wrap at every size; nothing truncates a company name" (~333); Ledger Grid "a name wraps between words and never ellipsises" (~490); Don't "truncate a name with an ellipsis" (~542); surface brief, Q1 answer (29 Sep) | One line, the way Apple and Microsoft do it. (29 Sep, after the video PRs) |
+| Facts are plain label and value rows with a mark at the end; group headings are mono uppercase eyebrows | DESIGN.md Record Sheet; `FactsPanel` in `components/dashboard/sheet.tsx` (~289) | The text needs a visual and colour hierarchy, and icons for the facts that deserve one. |
+
+The test guards that enforce the old name rule, all to be rewritten in PR A,
+not deleted blindly:
+
+- `components/dashboard/render.test.ts:101-102` `TRUNCATION`, used at 164,
+  205, 327, 523, 970, 1181, 1206, 1215, 1230, 1503, 1526. Most of those pages
+  also contain chips, facts and captions that must still never be cut. Narrow
+  the guard so it exempts only the elements that carry a name (mark them, for
+  example `data-name=""`), and keep it for everything else.
+- `render.test.ts:1483-1505` "the 125-character name… print it whole and let
+  it wrap": keep "the whole name is in the DOM and in the accessible name";
+  replace "wraps" with "one line, cut with an ellipsis, full name on hover".
+- `components/dashboard/pane-stability.test.ts:175-195` (the supplier column
+  keeps its longest word whole at the table's minimum width) and its header
+  comment: replace with a guard that the name cell truncates and a row never
+  grows past two lines.
+- `components/dashboard/compliance-settings.test.ts:112` refuses `truncate`
+  on its page; check whether a supplier name appears there before changing it.
+
+## PR A — company names on one line
+
+**What Apple and Microsoft do** (paraphrased from their platforms, not
+quoted): in lists and tables, text stays on one line and is cut at the end
+with an ellipsis, so every row is the same height and the eye can scan down a
+column. The full text is never lost. macOS shows it in an expansion tooltip
+when the pointer rests on a truncated cell, and in the detail view. Finder
+cuts long file names in the middle so the distinguishing end stays visible.
+Outlook's message list and Windows Explorer's details view cut subjects and
+names at the end and show the whole text on hover. Nothing wraps inside a list
+row.
+
+**Mobbin references** (web):
+
+- One line in the list, the whole title in the detail pane:
+  [Asana split view](https://mobbin.com/screens/95628ff8-7999-4c30-9820-5924b8fd9c59),
+  [Evernote notes list](https://mobbin.com/screens/bbacc3f5-731d-4591-8dd2-2ba6d92e4f5d),
+  [Midday documents](https://mobbin.com/screens/016b019a-db13-4a2f-a14b-50b5a339ce93).
+- Company tables with one-line names and cut addresses:
+  [Twenty companies](https://mobbin.com/screens/f8bd66b5-e935-465b-93d6-cf2f74b3c078),
+  [Attio companies](https://mobbin.com/screens/2d5eaf6b-ce01-4a0c-a514-8df3c9f87c2c).
+- Cut in the middle so the end survives, as Finder does ("Shareholder
+  Cer…h - JMobbin.pdf"):
+  [Cake Equity documents](https://mobbin.com/screens/57e1bb7b-2e69-4a72-bb3d-f35f4a6cb513).
+
+**The data** (production, read-only, 29 Sep 2026; re-run the query below
+rather than writing a new one, AGENTS 14):
+
+- 10,266 published suppliers. Name length: median 21 characters, 90th
+  percentile 31, 99th 44, longest 100. 1,126 names are over 30 characters and
+  85 are over 45.
+- 212 names end in a bracket. 12 of those are "(Bangladesh)", "(BD)" or
+  "(Pvt.)" and are part of the name; the other 200 are a qualifier: a unit
+  ("(U-2)", "(Shafipur Unit)", "(New Unit)"), a building ("(new building)",
+  "(Extension)"), a division ("(Textile Division)"), a group or parent ("(
+  INDET GROUP)", "(Concern of Orba Bangladesh)", "( A sister concern of R.PH.
+  Label & Accessories)"), a former name ("(Previously THE ROSE GARMENTS
+  DESIGNERS LTD)"), or several joined ("Zaheen Knitwears Limited (Shed - 3, 4,
+  5, 10, 11, 12, 13) & (Building - Security, ETP and Fire Pump)"). 62 names
+  say "unit"; 25 end in a unit number. The older hand-off's "about 1,630"
+  counted differently; these numbers replace it.
+- Some registers file an address inside the name ("Liz Fashion Industry
+  Limited Holding-1, Block-C, Shaheed Mosharaf Hossain Road,"). Per Q4 the
+  name is shown as filed; that is a data issue for the ETL, not this PR. File
+  it in Linear.
+
+```sql
+select count(*) as published,
+  count(*) filter (where company_name ~ '\)\s*$') as ends_in_bracket,
+  count(*) filter (where company_name ~ '\)\s*$'
+    and company_name !~* '\(\s*(bangladesh|bd|pvt\.?)\s*\)\s*$') as trailing_qualifier,
+  count(*) filter (where length(company_name) > 30) as over_30,
+  percentile_disc(0.5) within group (order by length(company_name)) as p50,
+  percentile_disc(0.99) within group (order by length(company_name)) as p99,
+  max(length(company_name)) as max_len
+from public.suppliers where is_published;
+```
+
+**The decision** (build this):
+
+1. **Every list, table row, card title, menu, picker and chip shows a company
+   name on one line.** Cut at the end with an ellipsis (`truncate` with
+   `min-w-0` on its flex or grid parent). The full name stays in the DOM, so
+   a screen reader reads it whole, and goes in `title` so the pointer shows it
+   (the macOS expansion-tooltip pattern). The row's accessible name (the
+   `<tr aria-label>`) is already the full name.
+2. **The qualifier moves to the second line, so sister factories stay
+   apart.** This is Finder's "keep the end visible", done by structure rather
+   than a middle cut. Add a pure `splitQualifier(name)` next to `displayName`
+   in `lib/dashboard/facts.ts`: it returns the base name and the trailing
+   bracketed group or groups as one qualifier (brackets dropped, groups joined
+   with " · ", inner spaces trimmed; handle a missing space before the
+   bracket, as in "Ltd.(Textile Division)", and a bare trailing "Unit-2" or
+   "U-2"). It never splits "(Bangladesh)", "(BD)" or "(Pvt.)", a bracket in
+   the middle of a name ("Indochine Apparel (Bangladesh) Limited, …"), or
+   unbalanced brackets. Test it with the real names above.
+   - Line 1: the base name, one line, `font-medium text-ink-strong`.
+   - Line 2: qualifier · type · place, one line, the quieter style it has
+     today ("Unit-2 · Factory · Narayanganj"; "Shed - 3, 4, 5, 10, 11, 12, 13 ·
+     Building - Security, ETP and Fire Pump · Factory · Narayanganj", cut).
+     Its `title` carries the full line.
+   - Rows are then always two lines high: the list scans evenly (screenshot
+     1's six-line row becomes two).
+3. **The record's head (the detail view) shows the base name on one line at
+   heading size**, cut only when it is longer than the pane (the rare 45+
+   character base names), with the qualifier as its own line under it
+   (before the facts line) and the full registered name in the "Registered
+   name" row just below. That is where Apple and Microsoft put the whole
+   title: in the detail. If the founder, looking at the PR screenshots, wants
+   the head allowed to wrap, it is a one-class change.
+4. **Column widths are no longer sized for the longest word.**
+   `RESULTS_COLUMNS` and `RESULTS_MIN_WIDTH` in
+   `components/dashboard/results-table.tsx` (~66-75) were set so a name never
+   broke mid-word; with truncation, lower the minimum widths so the compact
+   table and the rail never scroll sideways, and keep every other column's
+   content whole (the workers and actions checks in `pane-stability` stay).
+
+Where names are drawn (grep `\.name}` and `[overflow-wrap:anywhere]` in
+`components/dashboard/` for the rest): `results-table.tsx` (wide, compact and
+the composer rail), `supplier-result-card.tsx` (cards view title),
+`saved-list.tsx`, `rfq-composer.tsx` (targets list ~383 and the preview's "To"
+line), `supplier-picker.tsx` (~304), `search-typeahead.tsx` (company
+suggestions), `supplier-sheet.tsx` (head ~189), `product-sheet.tsx` (the line
+page head), `orders.tsx` and `rfq-pages.tsx` (supplier names in rows),
+`sheet.tsx` `FacilitiesList` (~705, building names). Building names in
+Facilities and chips that carry a building's name follow the same rule.
+
+**Also rewrite:** DESIGN.md's Wrapping Name Rule becomes a "One-Line Name
+Rule" (the four places in the table above), and the surface brief records the
+new decision under the 29 Sep section, marking the Q1 answer superseded.
+
+**Done when:** at 1280 beside a record, at 1440 without one, and at 375,
+every name in every list is one line; Zaheen's row is two lines; "(Unit-2)"
+and its siblings are still told apart on line 2; hovering a cut name shows the
+whole name; the record head shows the base name and qualifier and the full
+registered name below; the rewritten guards pass.
+
+## PR B — the facts' hierarchy, colour and icons
+
+**Mobbin references** (web): record details as rows of icon, muted label and
+stronger value, grouped:
+[Attio record details](https://mobbin.com/screens/8b95ad8d-7e53-4ea1-ac7a-3f8be1b1ab3a),
+[Twenty company fields (General, Business, Contact)](https://mobbin.com/screens/68c2f8c3-60b2-4294-9e73-b674998b0713),
+[Lightfield account details](https://mobbin.com/screens/b47a2904-f608-414d-ac6c-241ff0642556),
+[Intercom company card](https://mobbin.com/screens/211bbb33-b824-4733-9d5f-e548a0683aea),
+[Pipedrive organisation summary (address with a pin)](https://mobbin.com/screens/6178b5a8-b478-4aed-99bc-d74b07a68383),
+[Jobber client property (pin and address)](https://mobbin.com/screens/4ee9338b-de48-4168-9069-38d3307446ff).
+
+**The decision** (build this; all colours are existing tokens):
+
+- **Three levels of text and one colour.**
+  - Group heading: sentence case, `text-sm font-semibold text-ink-strong`
+    ("Company", "Location", "Workforce and capacity", "Registrations"),
+    replacing the mono uppercase eyebrow that was the loudest thing on the
+    page.
+  - Label: `text-sm text-ink-muted`, with its icon before it.
+  - Value: `text-base text-ink-strong`; `font-medium` for the facts a buyer
+    reads first (registered name, type, workers, address). A value's note
+    ("across 2 sites", "as filed") stays `text-sm text-ink-subtle`.
+  - Icons: 16px, SourceBD's own line set (the founder's pick "A"), in the slate
+    `accent` (6.8:1 on the canvas, so it passes 3:1 as a graphic). That is the
+    colour in the hierarchy. Status hues stay reserved for status, and green
+    stays on the primary action and the logo only.
+- **Icons on every fact that deserves one**, from
+  `components/dashboard/sb-icons.tsx` (`SbIcon`). Drawn and unused today:
+  `workers`, `established`, `machines`, `address`, `register`, `certificate`,
+  `brand-list`, `receipt`. Draw the rest on the same 24px grid, 1.5px stroke,
+  round ends, one path each, in that file:
+
+  | Fact | Icon |
+  | -- | -- |
+  | Registered name | new `company` (a building with a door) |
+  | Type | new `factory` for a factory, new `buying-house` (a briefcase) for a buying house: the icon follows the value |
+  | Parent group | new `group` (three linked buildings) |
+  | Established | `established` |
+  | EPZ zone | new `zone` (a fenced plot) |
+  | Factory address, every Locations row | `address` |
+  | Workers | `workers` |
+  | Women · men | new `women-men` |
+  | Sewing machines | `machines` |
+  | Capacity, as filed | new `capacity` (a gauge) |
+  | Registers | `register` |
+  | Certificates section, a certificate card | `certificate` |
+  | Brand lists | `brand-list` |
+  | Export lines, Products | `receipt` |
+  | Locked contact card: email, phone, website, contact person | new `email`, `phone`, `website`, `person` |
+
+- **Where:** the Overview facts (`FactsPanel` in `sheet.tsx`, grouped by
+  `FACT_GROUPS` in `supplier-sheet.tsx` ~104), the line sheet's facts (the same
+  panel, `product-sheet.tsx`), the record head's facts line (`MetaLine` in
+  `supplier-result-card.tsx`: the type, place, established, workers and
+  register number each get their icon, the way a place card or a LinkedIn
+  company header shows them), the Locations rows, and the locked contact card.
+  The results list's second line stays text: density matters more there.
+- **The model carries the icon**, not the view: add `icon?: SbIconName` to
+  `FactRow` and `FactWithMark` (`lib/dashboard/models.ts`) and set it where
+  the facts are built (`lib/dashboard/build-models.ts`, facts from ~1220,
+  meta from ~574). A test fails when a label in `FACT_GROUPS` has no icon.
+- **Keep what PR 5 settled:** each source once in the head, the pending mark
+  (a document with a clock) in the mark column, one two-word legend, no
+  stripes, no fact dropped.
+
+**Done when:** screenshot 2's page, at 1280 and 375, reads in three clear
+levels with a slate icon on every fact row and every head fact; the new icons
+are shown to the founder in the PR (one image of the whole set); DESIGN.md's
+Record Sheet and Facts panel sections describe the new rows; `tokens.test.ts`
+still passes (no hand-typed colour).
+
+## PR C — what the video hand-off left
+
+1. **Hover-only reasons are not reachable on touch.** An empty figure's reason
+   (`Stats` in `sheet.tsx`, the dash with a `title`) and a checked-but-empty
+   fact (the magnifier in `FactsPanel`) show only on hover and to a screen
+   reader. Make each a small button that opens the reason on tap (a
+   `<details>` popover, like `Menu` in `controls.tsx`).
+2. **`everyMarkLinks` is computed and tested but never shown** since PR 5
+   removed the action bar's sentence: `lib/dashboard/models.ts:257`,
+   `build-models.ts` (~1279, ~1417) and the assertions in
+   `build-models.test.ts`. Delete all three.
+3. **The onboarding tour sits outside the app shell** (`<TourMount />` after
+   `<AppShell>` in `app/(app)/app/layout.tsx`), so it keeps the old green tints
+   and 13px text that `[data-shell]` remaps in `app/ds.css`. Mount it inside
+   the shell or give its root `data-shell`.
+4. **Tiles:** the search list's initials tile is 40px (PR 4), but Saved
+   (`saved-list.tsx` ~175), the composer's targets (`rfq-composer.tsx` ~380) and
+   the picker (`supplier-picker.tsx` ~302) still draw 24px. Match them when PR A
+   gives those rows two fixed lines.
+5. **The filter menus wrap onto two or three rows beside an open pane**
+   (`FilterMenus` in the compact results column). Beside a pane, show Product,
+   Certificate and Place and fold the rest into More, or one "Filters" menu.
+6. **No phone or tablet screenshots were taken of the video PRs.** Check the
+   rail collapse (from `md` only), the account menu on phones (the topbar's),
+   the filter menus, the record's Expand and "Back to results", and the
+   composer below `lg`. Fix what breaks.
+7. **PR #199** (a parallel session: an /app page no longer runs the older
+   shell's five reads) was open at hand-off time. Let it land before PR A if it
+   is still open, so the two do not both touch `app/(app)/layout.tsx`.
+8. **Close out the video hand-off** in context: `current-state.md` gets one
+   "complete" line and the detail moves to `context/archive/state-<period>.md`;
+   the `active.md` entry moves to `context/archive/specs-shipped-2026.md` (AGENTS
+   workflow step 4; the size tests fail over 16 KB and 6 KB).
+9. **The impeccable sidecar** `.impeccable/design.json` is stale. Refresh it
+   (impeccable `document`) after PRs A and B, so it describes what shipped.
+
+## Founder-only (do not do these)
+
+- **Deploy.** The video PRs 1–6 are on `development`; the promotion PR
+  (`development` → `main`, merge commit) starts Deploy Production, which waits
+  for the founder's approval in the GitHub `production` environment. Check
+  what actually shipped with the "Expected production commit" log line (CLAUDE
+  facts), not `gh run list`.
+- **Migration 0107** (the profile view reads one supplier; median record read
+  1,120 → 318 ms). Not applied. Dry run, command and rollback:
+  `ops/plans/0107-profile-one-supplier.md`. After it is applied and the deploy
+  is live, re-run `node ops/measure_app_speed.mjs` (it attaches to the
+  founder's Chrome on port 9222, which the founder must allow) and update the
+  "after" numbers in `ops/plans/buyer-app-speed-29sep.md` in place (AGENTS 14).
+
+## How to check your work
+
+- **Tests.** `pnpm exec tsc -p tsconfig.npm-test.json` (check the exit code),
+  then `node --require ./test-stubs/register-node-test-aliases.cjs
+  --experimental-websocket --test <files>` on the `.tests-build` files you
+  touched. These cover this work: `components/dashboard/{render,
+  pane-stability, record-head, search-filters, shell-account, rfq-rail,
+  search-first, record-sheet, craft}.test.ts`, `app/dev/ds/dashboard-screens.test.ts`,
+  `app/(app)/app/record-routes.test.ts`, `lib/dashboard/build-models.test.ts`,
+  `lib/design/tokens.test.ts`. Leave the full suite to CI.
+- **Screenshots** of every changed screen at 1280, 1440 and 375, with a record,
+  a line and the composer open, before and after, in the PR.
+- **Done** means merged by CI after one `/code-review` pass on the diff
+  against the merge base (`.cursor/rules/sourcebd-closed-loop.mdc`), each PR to
+  `development` with `gh pr merge --auto --squash`. Then the promotion PR with
+  `gh pr merge --auto --merge`. The founder approves only the deploy.
+- Reply to the founder in five lines or fewer, in plain words, and name every
+  PR and issue with a short description on first mention (AGENTS "How to
+  reply").
