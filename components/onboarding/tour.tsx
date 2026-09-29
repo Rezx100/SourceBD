@@ -11,10 +11,10 @@
 // Renders nothing until mounted in the browser to avoid a hydration mismatch
 // when the server-rendered shell carries the un-styled portal target.
 
-import Link from "next/link";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/dashboard/controls";
+import { Icon } from "@/components/dashboard/icons";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 import { BUYER_STEPS, SUPPLIER_STEPS, type TourStep } from "./tour-steps";
@@ -153,7 +153,13 @@ export default function Tour({ flavour, initialStep = 0 }: TourProps) {
   // topbar painted over the scrim; its old-palette fill did too, so the
   // scrim is the inverse surface at 40%.
   return (
+    // `data-shell`: the tour mounts after the buyer shell, not inside it (the
+    // page's <main> is isolated, and a scrim inside it could not cover the
+    // topbar), so it takes the shell's scope here to get the app's type steps
+    // and slate. Its card was drawn in the old design's classes, which no
+    // longer exist; it is the kit's surface now (founder's leftovers, 29 Sep).
     <div
+      data-shell=""
       aria-hidden={!open}
       className="fixed inset-0 z-modal flex items-end justify-center bg-surface-inverse/40 px-0 py-0 sm:items-center sm:px-4 sm:py-8"
       style={{ animation: "fadeIn var(--dur-tab) var(--ease)" }}
@@ -167,64 +173,39 @@ export default function Tour({ flavour, initialStep = 0 }: TourProps) {
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={bodyId}
-        className="w-full max-w-xl rounded-t-[var(--r-hero)] border border-hairline bg-bg-l1 p-5 shadow-l2 sm:rounded-[var(--r-card)] sm:p-6"
+        className="w-full max-w-xl rounded-t-lg bg-surface p-5 text-ink shadow-lg sm:rounded-lg sm:p-6"
       >
         <div className="mb-3 flex items-center justify-between gap-3">
-          <p className="font-mono text-[12px] uppercase tracking-[0.14em] text-ink-tertiary">
+          <p className="m-0 text-sm text-ink-subtle">
             Step {stepIdx + 1} of {steps.length}
           </p>
-          <button
-            type="button"
-            onClick={() => void close("dismissed")}
-            className="font-mono text-[12px] uppercase tracking-[0.14em] text-ink-tertiary hover:text-ink-primary"
-            aria-label="Skip tour"
-          >
+          <Button type="button" variant="ghost" size="sm" onClick={() => void close("dismissed")} aria-label="Skip tour">
             Skip
-          </button>
+          </Button>
         </div>
-        <h2
-          id={titleId}
-          className="font-display text-xl font-semibold tracking-tightish text-ink-primary"
-        >
+        <h2 id={titleId} className="m-0 text-xl font-semibold text-ink-strong">
           {step.title}
         </h2>
-        <p id={bodyId} className="mt-2 text-[15px] text-ink-secondary">
+        <p id={bodyId} className="m-0 mt-2 text-base text-ink-muted">
           {step.body}
         </p>
         <div className="mt-4">
-          <Button asChild variant="ghost" size="sm">
-            <Link href={step.cta_href}>{step.cta_label} →</Link>
+          <Button size="sm" href={step.cta_href} clientNav>
+            {step.cta_label}
+            <Icon name="chev-r" small />
           </Button>
         </div>
         <div className="mt-5 flex items-center justify-between gap-3">
           <div className="flex gap-1.5" aria-hidden>
             {steps.map((s, i) => (
-              <span
-                key={s.id}
-                className={
-                  i === stepIdx
-                    ? "h-1.5 w-6 rounded-full bg-accent-indigo"
-                    : "h-1.5 w-1.5 rounded-full bg-hairline"
-                }
-              />
+              <span key={s.id} className={i === stepIdx ? "h-1.5 w-6 rounded-full bg-accent" : "size-1.5 rounded-full bg-line"} />
             ))}
           </div>
           <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={back}
-              disabled={stepIdx === 0}
-            >
+            <Button type="button" size="sm" onClick={back} disabled={stepIdx === 0}>
               Back
             </Button>
-            <Button
-              type="button"
-              variant="primary"
-              size="sm"
-              onClick={() => void advance()}
-            >
+            <Button type="button" variant="primary" size="sm" onClick={() => void advance()}>
               {isLast ? "Done" : "Next"}
             </Button>
           </div>

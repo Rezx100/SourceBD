@@ -181,24 +181,24 @@ describe("discover result HTML has no contact PII", () => {
     assert.match(dataLine, /'=HYPERLINK/, "expected the value to survive, quoted");
   });
 
-  it("the photo tile agrees with the chip about the EPB register", () => {
-    // The chip was fixed to say "no lines recorded" for a supplier on the EPB
-    // register, while the photo tile two rows below went on printing
-    // "no EPB record" for the same supplier — the card contradicted itself.
+  it("the card says once, and rightly, whether the supplier is on the EPB register", () => {
+    // The photo tile once printed "no EPB record" beside a chip saying "no
+    // lines recorded" for the same supplier. Since 29 Sep 2026 the chip is the
+    // only place the card says it (the tile and the no-lines slot went).
     const member = buildDiscoverCard(
       { ...ROW, registries: ["BGMEA", "EPB"] },
       { today: TODAY, hsLines: [], hsError: false },
     );
     const html = renderToStaticMarkup(createElement(SupplierResultCard, { card: member }));
-    assert.doesNotMatch(html, /no EPB record/, "the tile still denies a register the chip confirms");
-    assert.match(html, /no lines recorded/);
+    assert.doesNotMatch(html, /no EPB record|Not on the EPB exporter list/, "the card denies a register it confirms");
+    assert.match(html, /EPB exporter · no lines recorded/);
 
     const nonMember = buildDiscoverCard(
       { ...ROW, registries: ["BGMEA"] },
       { today: TODAY, hsLines: [], hsError: false },
     );
     const nonMemberHtml = renderToStaticMarkup(createElement(SupplierResultCard, { card: nonMember }));
-    assert.match(nonMemberHtml, /no EPB record/, "a genuine non-member must still be described as one");
+    assert.match(nonMemberHtml, /Not on the EPB exporter list/, "a genuine non-member must still be described as one");
   });
 
   it("a saved record does not mark the select checkbox", () => {
@@ -247,7 +247,8 @@ describe("discover result HTML has no contact PII", () => {
       { ...ROW, employees_total: 550, workers_own: 550, workers_source: "RSC" as const, workers_basis: "own" as const },
       { ...ROW, employees_total: 800 },
     ]) {
-      const card = buildDiscoverCard(r, { today: TODAY, hsLines: [], hsError: false }).meta.map((m) => m.text);
+      // The words are the fact's title since 29 Sep 2026: the line shows "800 workers".
+      const card = buildDiscoverCard(r, { today: TODAY, hsLines: [], hsError: false }).meta.map((m) => m.title ?? m.text);
       assert.ok(card.includes(`${r.employees_total === 550 ? "550" : "800"} workers · on the supplier record`), `card and CSV disagree: ${card.join(" | ")}`);
     }
     // A batch that did not say which sites it summed: no claim about them.
@@ -286,7 +287,7 @@ describe("discover result HTML has no contact PII", () => {
     ];
     for (const r of cases) {
       const card = buildDiscoverCard(r, { today: TODAY, hsLines: [], hsError: false });
-      const lines = card.meta.map((m) => m.text).filter((t) => /workers/i.test(t));
+      const lines = card.meta.map((m) => m.title ?? m.text).filter((t) => /workers/i.test(t));
       for (const line of lines) {
         const suffix = line.includes(" · ") ? line.split(" · ").slice(1).join(" · ") : null;
         assert.ok(suffix === null || ALLOWED.has(suffix), `an unsanctioned workers phrase: ${JSON.stringify(line)}`);
@@ -350,14 +351,23 @@ describe("discover result HTML has no contact PII", () => {
     // A one-site figure is never described as buildings, anywhere.
     const s = rows[1]!;
     const said = [
-      ...buildDiscoverCard(s, opts).meta.map((m) => m.text),
+      ...buildDiscoverCard(s, opts).meta.map((m) => m.title ?? m.text),
       tableRows[1]!.workersCoverage ?? "",
       tableRows[1]!.workersSecond ?? "",
       ...Object.values(discoverCsvValue(s, TODAY)),
     ].join(" | ");
     assert.doesNotMatch(said, /buildings/, `a standalone factory described as a group: ${said}`);
     // The card says the same two things, in the same order.
-    const meta = buildDiscoverCard(rows[3]!, opts).meta.map((m) => m.text);
+    const card3 = buildDiscoverCard(rows[3]!, opts).meta;
+    // On the line, the short forms; each figure's full words are its title.
+    assert.deepEqual(
+      card3.filter((m) => m.icon === "workers" || m.aside).map((m) => [m.text, m.aside ?? false]),
+      [
+        ["300 workers", false],
+        ["9,000 with buildings", true],
+      ],
+    );
+    const meta = card3.map((m) => m.title ?? m.text);
     const i = meta.indexOf("300 workers · on the supplier record");
     assert.ok(i >= 0, `the card does not headline the sorted figure: ${meta.join(" | ")}`);
     assert.equal(meta[i + 1], "9,000 workers · across this record and its buildings");

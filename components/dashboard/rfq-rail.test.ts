@@ -12,7 +12,9 @@ import { createElement, type ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { buildTableRow } from "@/lib/dashboard/build-models";
+import { resultsView } from "@/lib/discover-v32-state";
 import { aboniInput } from "@/lib/dashboard/fixtures";
+import { PanelFooter, PanelHeader } from "./results-panel";
 import { RESULTS_COLUMNS, ResultsTable } from "./results-table";
 import { RfqComposer } from "./rfq-composer";
 import { RecordPane, ResultsColumn } from "./sheet";
@@ -45,7 +47,41 @@ describe("the results step aside to a slim rail while an RFQ is composed", () =>
     assert.match(page, /<ResultsColumn besideRecord=\{paneOpen\} rail=\{composerOpen\}>/);
     assert.match(page, /\{composerOpen \? null : \(\s*<form action=\{DISCOVER_PATH\}/);
     assert.match(page, /rail=\{composerOpen\}\s*\n\s*density=/);
-    assert.match(page, /state\.view === "table" \|\| composerOpen/, "a card list in an 18rem rail");
+    // Beside any pane, the composer's among them, the list is the table: never
+    // a card list in an 18rem rail (founder's review, 29 Sep 2026).
+    assert.match(page, /resultsView\(state\.view, paneOpen\) === "table"/, "a card list in an 18rem rail");
+    assert.equal(resultsView("cards", true), "table");
+    assert.equal(resultsView("cards", false), "cards");
+    assert.equal(resultsView("table", false), "table");
+  });
+});
+
+describe("the rail's header and footer are one line each (founder's review, 29 Sep 2026)", () => {
+  it("the header is the count and the search's words cut to fit, with no sort, save or density", () => {
+    const model = {
+      title: "pants · Sanctioned hidden",
+      total: 1120,
+      shown: 25,
+      firstRow: 51,
+      sortLabel: "Most registers & certifiers",
+      view: "table" as const,
+      saveHref: "/app/discover?q=pants&save=1",
+      sortOptions: [{ value: "sources", label: "Most registers & certifiers", href: "?sort=sources", active: true }],
+      densityOptions: [{ value: "default", label: "Default", href: "?d=default", active: true }],
+    };
+    const html = renderToStaticMarkup(createElement(PanelHeader, { model, compact: true, rail: true }));
+    assert.match(html, /<h1[^>]*><span class="shrink-0 text-sm font-medium text-ink-strong">1,120 suppliers<\/span><span title="pants · Sanctioned hidden" class="[^"]*\btruncate\b[^"]*">pants · Sanctioned hidden<\/span><\/h1>/);
+    assert.doesNotMatch(html, /<details|aria-label="Save search"|Density|51–75/, "the rail's header draws a control or the range");
+  });
+
+  it("the footer is the range and two page buttons, with no rows-per-page menu", () => {
+    const html = renderToStaticMarkup(
+      createElement(PanelFooter, { rail: true, shown: 25, total: 1120, perPage: 25, page: 3, prevHref: "?page=2", nextHref: "?page=4", perHrefs: [{ n: 25, href: "?per=25" }] }),
+    );
+    assert.match(html, /51–75 of 1,120/);
+    assert.match(html, /aria-label="Previous page"/);
+    assert.match(html, /aria-label="Next page"/);
+    assert.doesNotMatch(html, /<details|per page|Page 3 of/, "the rail's footer wraps with a menu or the page count");
   });
 });
 

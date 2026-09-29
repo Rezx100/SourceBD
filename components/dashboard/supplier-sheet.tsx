@@ -1,5 +1,5 @@
 // SupplierSheet (REZ-A, handoff §3.3): the record as an 880px sheet over the
-// results. Bar · head (initials, name in heading-lg that wraps, meta with a
+// results. Bar · head (initials, base name in heading-lg on one line and its qualifier under it, meta with a
 // mark per fact, the full mark row with names) · tabs with mono counts ·
 // Overview (summary + FactsPanel beside the locked contact card) · Products
 // (four stats + six-up grid) · Certificates · Safety · the sticky action bar.
@@ -13,7 +13,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { onFileLabel } from "@/lib/dashboard/facts";
+import { onFileLabel, splitQualifier } from "@/lib/dashboard/facts";
 import type { FactRow, SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
 import { Button } from "./controls";
@@ -26,7 +26,7 @@ import { ReportProblem } from "./report-problem";
 import {
   ActionBar,
   AffiliationNote,
-  CertGrid,
+  CertList,
   FactsLegend,
   FactsPanel,
   FacilitiesList,
@@ -47,7 +47,7 @@ import {
   Stats,
 } from "./sheet";
 import { MetaLine } from "./supplier-result-card";
-import { Caption, Eyebrow, Heading, Label } from "./type";
+import { Caption, Heading, Label } from "./type";
 
 /**
  * The product list as the register filed it, made readable: spellings that
@@ -142,6 +142,7 @@ export function SupplierSheet({
   backHref?: string | null;
 }) {
   const p = model.products;
+  const name = splitQualifier(model.name);
   const expandHref = backHref ? `${model.fullHref}${model.fullHref.includes("?") ? "&" : "?"}back=${encodeURIComponent(backHref)}` : model.fullHref;
   return (
     <Sheet label="Supplier record" mode={mode}>
@@ -161,10 +162,16 @@ export function SupplierSheet({
         ) : null}
         {/* One line: at half the region (524px at 1280) it broke as "Supplier / record". */}
         <Label className="shrink-0 whitespace-nowrap text-ink-strong">Supplier record</Label>
-        <Caption>
+        {/* One line, cut with the whole line on hover: on a phone it broke into
+            six lines beside the bar's controls (phone check, 29 Sep 2026). */}
+        <span
+          data-line=""
+          title={`${model.readDate ? `Read ${model.readDate} · ` : ""}${model.sourceCount} ${model.sourceCount === 1 ? "source" : "sources"}`}
+          className="min-w-0 truncate text-xs text-ink-subtle"
+        >
           {model.readDate ? `Read ${model.readDate} · ` : ""}
           {model.sourceCount} {model.sourceCount === 1 ? "source" : "sources"}
-        </Caption>
+        </span>
         <span className="ml-auto flex items-center gap-2">
           {/* Share copies the record's own page on both: in the overlay that is
               `fullHref`, not the search URL underneath. */}
@@ -185,9 +192,21 @@ export function SupplierSheet({
           <div className="flex items-start gap-4">
             <LogoTile initials={model.initials} tier={model.topTier} />
             <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-              <Heading level="lg" as="h1">
-                {model.name}
+              {/* The base name on one line at heading size, cut only past the
+                  pane's width (the rare 45+ character base); the qualifier as
+                  its own line; the whole registered name in "Registered name"
+                  just below. Where Apple and Microsoft put a long title: in the
+                  detail (the One-Line Name Rule, founder, 29 Sep 2026). */}
+              <Heading level="lg" as="h1" className="min-w-0">
+                <span data-name="" title={model.name} className="block truncate">
+                  {name.base}
+                </span>
               </Heading>
+              {name.qualifier ? (
+                <span data-name="" title={name.qualifier} className="-mt-1 block truncate text-base text-ink-muted">
+                  {name.qualifier}
+                </span>
+              ) : null}
               <MetaLine facts={model.meta} inRow={new Set(model.marks.map((m) => m.code))} />
               {/* Each source once (founder's pick, 29 Sep 2026): the facts line
                   is plain and every source is a square in this one row, which
@@ -211,7 +230,11 @@ export function SupplierSheet({
             <div className={cn("grid gap-x-10 gap-y-5", mode === "page" && "lg:grid-cols-2")}>
               {groupFacts(model.facts).map((g) => (
                 <div key={g.title} className="flex min-w-0 flex-col gap-1.5">
-                  <Eyebrow>{g.title}</Eyebrow>
+                  {/* Sentence case, the first of the three levels: the mono
+                      uppercase eyebrow here was the loudest text on the page
+                      (founder, 29 Sep 2026). An h2, like the sections after it:
+                      the Overview has no heading of its own. */}
+                  <h2 className="m-0 text-sm font-semibold text-ink-strong">{g.title}</h2>
                   <FactsPanel rows={g.rows} legend={false} />
                 </div>
               ))}
@@ -223,6 +246,7 @@ export function SupplierSheet({
         <SheetSection
           id="products"
           title="Products"
+          icon="receipt"
           caption={
             <>
               {p.linesUnknown
@@ -286,9 +310,9 @@ export function SupplierSheet({
               caption under a grid of photos said the same once for all. */}
           {p.tiles.length > 0 ? <PhotoList tiles={p.tiles} lineHref={(hs) => model.lineHref(hs)} /> : null}
         </SheetSection>
-        <SheetSection id="certificates" title="Certificates" caption={model.certsCaption ?? (model.certs.length ? onFileLabel(model.certs.length) : model.certsEmpty)}>
+        <SheetSection id="certificates" title="Certificates" icon="certificate" caption={model.certsCaption ?? (model.certs.length ? onFileLabel(model.certs.length) : model.certsEmpty)}>
           {model.certs.length > 0 ? (
-            <CertGrid certs={model.certs} />
+            <CertList certs={model.certs} />
           ) : (
             /* The bare "No certificate on any register" stood over a payload
                carrying a building's certificate; the card already said which
@@ -303,7 +327,7 @@ export function SupplierSheet({
           {model.buildingCerts.map((b) => (
             <div key={b.building} className="mt-4 flex flex-col gap-2" data-building-certs={b.building}>
               <Caption>Held by {b.building} · the building&apos;s own, not counted above</Caption>
-              <CertGrid certs={b.certs} />
+              <CertList certs={b.certs} />
             </div>
           ))}
         </SheetSection>

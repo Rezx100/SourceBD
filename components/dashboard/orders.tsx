@@ -22,7 +22,7 @@ import { Icon, type IconName } from "./icons";
 import { entityLabel } from "./inbox";
 import { Cell, DataTable, DetailList, EmptyState, ErrorNote, HeadCell, PageHeader, PageSection, rowClass } from "./page";
 import { Sheet, SheetBar, SheetScroll } from "./sheet";
-import { Caption, Title } from "./type";
+import { Caption, OneLine, Title } from "./type";
 
 export type OrderStatus = "draft" | "in_production" | "shipped" | "in_transit" | "delivered" | "cancelled";
 
@@ -305,7 +305,11 @@ export function OrdersTable({
                     </Link>
                     {caption ? <Caption className="block [overflow-wrap:anywhere]">{caption}</Caption> : null}
                   </Cell>
-                  {compact ? null : <Cell className="[overflow-wrap:anywhere]">{o.supplier_name}</Cell>}
+                  {compact ? null : (
+                    <Cell>
+                      <OneLine text={o.supplier_name} className="max-w-[16rem]" />
+                    </Cell>
+                  )}
                   {compact ? null : (
                     <Cell align="right" className="whitespace-nowrap">
                       {formatQuantity(o.quantity, o.quantity_unit) ?? dash}

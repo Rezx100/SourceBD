@@ -63,18 +63,22 @@ describe("buildCard — the 11-source record (Aboni)", () => {
     assert.equal(card.sanctioned, false);
   });
 
-  it("meta: type · place · est. · workers; a mark only where the payload attributes the fact", () => {
+  it("meta: type · place · est. · workers · register number; a mark only where the payload attributes the fact", () => {
+    // The register number was the Registers tile's; the tiles went (founder's
+    // review, 29 Sep 2026) and it joins the facts line, as on the record's head.
     assert.deepEqual(
       card.meta.map((f) => f.text),
-      ["Factory", "Dhaka", "Est. 1985", "3,166 workers across 2 sites"],
+      ["Factory", "Dhaka", "Est. 1985", "3,166 workers across 2 sites", "BGMEA 3498"],
     );
+    assert.equal(card.meta[4]!.code, true);
     assert.equal(card.meta[3]!.mark?.code, "RSC", "workers come from the RSC display batch");
     assert.equal(card.meta[1]!.mark, null, "city/district are derived fields — no register mark");
     assert.equal(card.meta[0]!.mark, null, "type is not attributed per field by the RPC — no best-guess mark");
     assert.equal(card.meta[2]!.mark, null);
   });
 
-  it("chips are facts in status hues, never a score; expiring soonest first among certificates", () => {
+  it("chips are status only, in status hues, never a score; every certificate, expiring soonest first", () => {
+    // The brand lists left the chips: the marks and the sources caption say them.
     assert.deepEqual(
       card.chips.map((c) => [c.tone, c.label]),
       [
@@ -82,43 +86,40 @@ describe("buildCard — the 11-source record (Aboni)", () => {
         ["positive", "GOTS valid to 12 May 2027"],
         ["positive", "RSC active · 100 % remediated"],
         ["neutral", "EPB exporter · 12 lines"],
-        ["neutral", "Listed by ASOS, H&M, NEXT"],
+        ["caution", "GOTS expired 4 Apr 2026"],
+        ["neutral", "OEKO-TEX Standard 100 · no expiry on file"],
       ],
     );
     assert.ok(card.chips.every((c) => !/%\s*match|score|rating|verified/i.test(c.label)));
   });
 
-  it("four tiles with the sub-line into the record", () => {
-    assert.deepEqual(
-      card.tiles.map((t) => [t.label, t.value, t.sub]),
-      [
-        ["Certificates", "4 on file", "1 expiring in 11 days · 1 expired · 1 no expiry"],
-        ["Export lines", "12 HS lines", "EPB exporter page"],
-        ["Listed by", "ASOS, H&M, NEXT", "3 brand lists"],
-        ["Registers", "4 registers", "EPB · BGAPMEA · BGMEA · BKMEA"],
-      ],
-    );
-    assert.equal(card.tiles[1]!.href, "https://edb.epb.gov.bd/exporter/3335/aboni-knitwear-ltd");
+  it("the sources are said once: the marks and one caption keeping registers and certifiers apart from brand lists", () => {
+    // The four tiles said each of these a second or third time (founder's
+    // review, 29 Sep 2026); their links ride on the matching chips.
+    assert.equal(card.sourcesCaption, "8 registers & certifiers · 3 brand lists");
+    assert.equal(card.sourcesNote, null, "the marks say every register and list; nothing is left to add");
+    assert.equal(card.chips.find((c) => c.label.startsWith("EPB exporter"))!.href, "https://edb.epb.gov.bd/exporter/3335/aboni-knitwear-ltd");
   });
 
   // Cycle 5, finding 12: `certTileSubline` returned on the expiring branch, so
   // an expired certificate disappeared from the card whenever another was
   // expiring. Aboni holds both.
-  it("the certificates sub-line names every state that needs a look, not only the soonest", () => {
-    const sub = card.tiles[0]!.sub ?? "";
-    assert.match(sub, /1 expiring in 11 days/);
-    assert.match(sub, /1 expired/, "an expired certificate may not vanish because another is expiring");
-    assert.match(sub, /1 no expiry/);
+  it("every certificate state that needs a look is on the card, not only the soonest", () => {
+    const labels = card.chips.map((c) => c.label).join(" | ");
+    assert.match(labels, /expires in 11 days/);
+    assert.match(labels, /expired/, "an expired certificate may not vanish because another is expiring");
+    assert.match(labels, /no expiry on file/);
   });
 
   // Cycle 5, finding 18: the results panel has no #certificates or #sources of
   // its own; a bare fragment was a link to nothing.
-  it("a tile's sub-line link opens the record at that section, never a fragment of the results page", () => {
-    for (const t of card.tiles) {
-      if (!t.href) continue;
+  it("a chip's link opens the record at that section, never a fragment of the results page", () => {
+    assert.ok(card.chips.some((c) => c.href), "guard: no chip carries a link");
+    for (const c of card.chips) {
+      if (!c.href) continue;
       assert.ok(
-        t.href.startsWith("https://") || t.href.startsWith("/app/suppliers/aboni-knitwear#"),
-        `${t.label} links to ${t.href}, which is neither a register page nor a section of the record`,
+        c.href.startsWith("https://") || c.href.startsWith("/app/suppliers/aboni-knitwear#"),
+        `${c.label} links to ${c.href}, which is neither a register page nor a section of the record`,
       );
     }
   });
@@ -157,7 +158,6 @@ describe("buildCard — the 11-source record (Aboni)", () => {
     const c = buildCard({ ...aboniInput(), hscodes: [], hscodesError: true });
     assert.equal(c.linesUnknown, true);
     assert.equal(c.photos.length, 0);
-    assert.deepEqual(c.tiles[1], { label: "Export lines", value: null, sub: "EPB could not be read" });
     assert.ok(c.chips.some((x) => x.label === "EPB lines could not be read"));
     assert.ok(!c.chips.some((x) => /Not on the EPB/.test(x.label)));
   });
@@ -300,19 +300,17 @@ describe("buildCard — the almost-empty record (A.R. Fashion) is quiet, never a
       [
         ["Buying house", false],
         ["Motijheel", false],
+        ["BGMEA 330", false],
         ["Year and workers not on file", true],
       ],
     );
     assert.equal(card.epbReadDate, null, "EPB holds no record for this supplier — no read date is claimed");
-    assert.deepEqual(
-      card.tiles.map((t) => [t.value, t.sub]),
-      [
-        [null, "none on 4 registers"],
-        [null, "not on the EPB list"],
-        [null, "not on 4 brand lists read"],
-        ["BGMEA 330", "associate member"],
-      ],
-    );
+    // What the tiles said, each once: the empty certificates and EPB as
+    // chips, the register's number and grade and the brand-list negative in
+    // the sources caption's title.
+    assert.ok(card.chips.some((c) => c.tone === "quiet" && c.label === "No certificate on 4 registers"));
+    assert.ok(card.chips.some((c) => c.tone === "quiet" && c.label === "Not on the EPB exporter list"));
+    assert.equal(card.sourcesNote, "BGMEA 330, associate member · Brand lists: not on 4 brand lists read");
     assert.equal(card.photos.length, 0);
     assert.equal(card.totalLines, 0);
     assert.ok(card.chips.some((c) => c.tone === "quiet" && c.label === "Nothing else on file · 1 of 14 sources read"));
@@ -323,7 +321,7 @@ describe("buildCard — the almost-empty record (A.R. Fashion) is quiet, never a
   // hold zero companies (SQL, 19 Sep 2026), so "not on 6 brand lists" claims
   // two reads that never happened.
   it("the brand-list negative counts only the lists that hold records", () => {
-    assert.equal(card.tiles[2]!.sub, "not on 4 brand lists read");
+    assert.match(card.sourcesNote ?? "", /Brand lists: not on 4 brand lists read/);
     const ps = buildProductSheet(arFashionInput(), "6105");
     assert.equal(ps.facts.find((f) => f.label === "Buyer lists")!.checked, "not on 4 brand lists read");
   });
@@ -345,8 +343,7 @@ describe("a parent factory's registrations are never printed as the satellite's 
   it("the card carries one source, no inherited register, and no link to the parent's pages", () => {
     const card = buildCard(input);
     assert.deepEqual(card.marks.map((m) => m.code), ["RSC"]);
-    assert.equal(card.tiles[3]!.value, null, "the parent's BGMEA and EPB numbers are not this record's registers");
-    assert.match(card.tiles[3]!.sub ?? "", /^not in BGMEA, BKMEA, BGAPMEA, BTMA or EPB/);
+    assert.match(card.sourcesNote ?? "", /^Registers: not in BGMEA, BKMEA, BGAPMEA, BTMA or EPB/, "the parent's BGMEA and EPB numbers are not this record's registers");
     const json = JSON.stringify(card);
     for (const leak of ["6077", "BD05954", "GOTS-28029", "37940-100", "bgmea.com.bd/member/54", "exporter/313"]) {
       assert.ok(!json.includes(leak), `the parent's ${leak} reached the card`);
@@ -388,7 +385,7 @@ describe("a building's registrations are named, never counted and never denied",
 
   it("the Registers negative names the building rather than denying the registration", () => {
     const expected = `not in BGMEA, BKMEA, BGAPMEA, BTMA or EPB; registered under ${HOSSAIN_BUILDING}`;
-    assert.equal(card.tiles[3]!.sub, expected);
+    assert.match(card.sourcesNote ?? "", new RegExp(`^Registers: ${expected.replace(/[.()&]/g, (c) => "\\" + c)}`));
     assert.equal(sheet.facts.find((f) => f.label === "Registers")!.checked, expected);
   });
 
@@ -404,9 +401,9 @@ describe("a building's registrations are named, never counted and never denied",
     const sheet2 = buildSheet(only);
     assert.equal(sheet2.certs.length, 0, "a building's certificate is not the record's");
     assert.deepEqual(sheet2.buildingCerts.map((b) => b.building), [MG_BUILDING]);
-    assert.equal(card.tiles[0]!.sub, `none on this record · ${MG_BUILDING} holds one`);
+    assert.ok(card.chips.some((c) => c.label === `No certificate on this record · ${MG_BUILDING} holds one`));
     assert.equal(buildTableRow(only).certsEmptyReason, `none on this record · ${MG_BUILDING} holds one`);
-    assert.notEqual(card.tiles[0]!.sub, "none on 4 registers", "the bare negative stands over a payload that carries a certificate");
+    assert.ok(!card.chips.some((c) => c.label === "No certificate on 4 registers"), "the bare negative stands over a payload that carries a certificate");
     assert.equal(card.meta[0]!.text, "Unknown type", "the third company type spec §5 names");
   });
 });
@@ -586,8 +583,7 @@ describe("buildSheet — a record with two EPB registrations (S M Knitwears)", (
     assert.equal(sheet.products.exporterHref, "https://edb.epb.gov.bd/exporter/1000/sm-knitwears-limited");
     assert.equal(sheet.products.exporterRef, "1000");
     const card = buildCard(smKnitwearInput());
-    assert.equal(card.tiles[3]!.value, "4 registers");
-    assert.equal(card.tiles[1]!.href, "https://edb.epb.gov.bd/exporter/1000/sm-knitwears-limited");
+    assert.equal(card.chips.find((c) => c.label.startsWith("EPB exporter"))!.href, "https://edb.epb.gov.bd/exporter/1000/sm-knitwears-limited");
   });
 
   // Cycle 5, finding 11: the stat named one chapter, taken from the rarest
@@ -893,7 +889,7 @@ describe("a building's brand list is named, never counted and never denied", () 
     assert.equal(words, `not on this record · ${SQ_UNIT_04}, ${SQ_UNIT_3} are listed`);
     assert.doesNotMatch(words, /not on 4 brand lists read/);
     const card = buildCard(input);
-    assert.equal(card.tiles.find((t) => t.label === "Listed by")?.sub, words);
+    assert.equal(card.sourcesNote, `Brand lists: ${words}`);
     assert.equal(buildSheet(input).products.buyerListsEmpty, words);
     assert.equal(buildProductSheet(input, "6105").facts.find((f) => f.label === "Buyer lists")?.checked, words);
     // And the buildings' rows are still not counted as the record's.
@@ -907,7 +903,11 @@ describe("a building's brand list is named, never counted and never denied", () 
   });
 });
 
-describe("the sheet's 'every source mark links' claim counts every mark the sheet draws", () => {
+// The action bar's "every source mark links to its register page" sentence
+// went with PR 5 of the founder's video (29 Sep 2026), and the flag computed
+// for it with the hand-off after it; what it guarded that still stands is
+// here: a certificate's square links exactly when its document is a record page.
+describe("a certificate's square links exactly when its document is a record page", () => {
   /**
    * Aboni narrowed to the sources whose URL is a record page. RSC, BGAPMEA and
    * BKMEA file only their agency homepage, so on the whole record the claim is
@@ -937,7 +937,6 @@ describe("the sheet's 'every source mark links' claim counts every mark the shee
     const certMarks = sheet.certs.map((c) => sourceMark(c.markCode, c.documentUrl));
     assert.ok(certMarks.length >= 4, "the record no longer holds the certificates this guard is about");
     assert.ok(certMarks.every((m) => m.href), "a certificate document that is a record page must link");
-    assert.equal(sheet.everyMarkLinks, true, "every mark this sheet draws links, so the claim stands");
   });
 
   it("one unlinked certificate mark is enough to withdraw the claim", () => {
@@ -949,7 +948,8 @@ describe("the sheet's 'every source mark links' claim counts every mark the shee
     input.profile.certifications = input.profile.certifications.map((c, i) => (i === 2 ? { ...c, document_url: null } : c));
     const sheet = buildSheet(input);
     assert.ok(sheet.certs.some((c) => c.documentUrl === null));
-    assert.equal(sheet.everyMarkLinks, false);
+    const bare = sheet.certs.find((c) => c.documentUrl === null)!;
+    assert.equal(sourceMark(bare.markCode, bare.documentUrl).href ?? null, null, "a certificate with no document links nowhere");
   });
 
   it("a building's own certificate with no document withdraws the claim — its card draws a square too", () => {
@@ -967,7 +967,7 @@ describe("the sheet's 'every source mark links' claim counts every mark the shee
     assert.ok(sheet.certs.every((c) => c.documentUrl !== null), "guard: the record's own certificates all link");
     assert.equal(sheet.buildingCerts.length, 2, "guard: both buildings' certificates are drawn");
     assert.ok(sheet.buildingCerts[0]!.certs.every((c) => c.documentUrl !== null), "guard: the first building's all link");
-    assert.equal(sheet.everyMarkLinks, false);
+    assert.ok(sheet.buildingCerts[1]!.certs.some((c) => c.documentUrl === null), "the second building's undocumented certificate is drawn");
   });
 
   it("a building's certificates are ordered as the record's own are", () => {
@@ -981,10 +981,6 @@ describe("the sheet's 'every source mark links' claim counts every mark the shee
     assert.deepEqual(sheet.buildingCerts[0]!.certs.map(key), sheet.certs.map(key));
   });
 
-  it("the whole Aboni record withholds the claim, because three registers file only a homepage", () => {
-    assert.equal(buildSheet(aboniInput()).everyMarkLinks, false);
-  });
-
   it("a brand mark that links to the whole disclosure list withholds it too", () => {
     const input = everyRegisterHasAPage();
     // Put one brand list back: every mark now has an href, and the claim must
@@ -996,17 +992,8 @@ describe("the sheet's 'every source mark links' claim counts every mark the shee
     const hm = sheet.marks.find((m) => m.code === "BRAND_HM")!;
     assert.ok(hm.href, "the file is real evidence and stays reachable");
     assert.equal(hm.opens, "list");
-    assert.equal(sheet.everyMarkLinks, false);
   });
 
-  it("a record with no marks at all does not make the claim either", () => {
-    const bare = arFashionInput();
-    bare.profile.addresses = [];
-    bare.profile.pills = [];
-    bare.profile.provenance = [];
-    bare.profile.supplier.source_tags = [];
-    assert.equal(buildSheet(bare).everyMarkLinks, false);
-  });
 });
 
 describe("a mark is only drawn for a source the record itself holds", () => {
@@ -1061,7 +1048,7 @@ describe("register labels are words, not the register's column heading", () => {
   it("the sheet drops the grade word so the number reads as a number; the card keeps it", () => {
     const sheet = buildSheet(aboniInput());
     assert.match(sheet.facts.find((f) => f.label === "Registers")!.value ?? "", /BGMEA General 3498/);
-    assert.equal(buildCard(arFashionInput()).tiles.find((t) => t.label === "Registers")?.sub, "associate member");
+    assert.match(buildCard(arFashionInput()).sourcesNote ?? "", /BGMEA 330, associate member/);
   });
 });
 
@@ -1176,7 +1163,6 @@ describe("cycle 9: claims the fixtures did not previously reach", () => {
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model: sheet }));
     assert.doesNotMatch(html, /sa8000-search/, "nothing on the sheet opens the register's search form");
     assert.doesNotMatch(html, />Certificate\s*</, "no link promises a certificate document there is none of");
-    assert.equal(sheet.everyMarkLinks, false);
   });
 
   it("the BGMEA grade chip says 'member' once", () => {

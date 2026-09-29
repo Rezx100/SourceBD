@@ -22,12 +22,12 @@
 // mother's: when only building rows are present the mother has no RSC block
 // and the tile says which building is covered.
 
+import type { SbIconName } from "@/components/dashboard/sb-icons";
 import type { TierRank } from "@/lib/design/tokens";
 import {
   certChipLabel,
   certModel,
   certStateLabel,
-  certTileSubline,
   displayName,
   entityLabel,
   establishedYearOf,
@@ -60,7 +60,6 @@ import type {
   SupplierCardModel,
   SupplierSheetModel,
   TableRowModel,
-  TileModel,
 } from "./models";
 import { withoutContactDetails } from "@/lib/contact-text";
 import type { FacilityPanel } from "@/lib/format-facility-group";
@@ -564,29 +563,72 @@ function placeOf(p: ProfilePayload): string | null {
   return formatCardLocation(primary, s.city, s.district);
 }
 
+/**
+ * The icon each fact row carries (founder, 29 Sep 2026: "icons for address on
+ * the company, group, entity, company and things of that nature"). The type's
+ * icon follows its value: a factory, a buying house, else a company.
+ */
+const FACT_ICON: Record<string, SbIconName> = {
+  "Registered name": "company",
+  "Parent group": "group",
+  Established: "established",
+  "EPZ zone": "zone",
+  "Factory address": "address",
+  Workers: "workers",
+  "Women · men": "women-men",
+  "Sewing machines": "machines",
+  "Capacity, as filed": "capacity",
+  Registers: "register",
+  // The line sheet's rows.
+  Chapter: "receipt",
+  "Exporter page": "register",
+  "Exporting since": "established",
+  "Other lines": "receipt",
+  "Certified scope": "certificate",
+  "Product list": "receipt",
+  "Buyer lists": "brand-list",
+  "Price · MOQ · lead time": "receipt",
+};
+
+export function factIcon(label: string, entityType?: string | null): SbIconName | undefined {
+  if (label === "Type") return typeIcon(entityType);
+  return FACT_ICON[label];
+}
+
+function typeIcon(entityType?: string | null): SbIconName {
+  return entityType === "buying_house" ? "buying-house" : entityType === "factory" ? "factory" : "company";
+}
+
+/** The facts a buyer reads first: their values are set in medium. */
+const LEAD_FACTS = new Set(["Registered name", "Type", "Workers", "Factory address"]);
+
+function withIcons(rows: FactRow[], entityType?: string | null): FactRow[] {
+  return rows.map((r) => ({ ...r, icon: factIcon(r.label, entityType), ...(LEAD_FACTS.has(r.label) ? { lead: true } : {}) }));
+}
+
 function metaFacts(input: RecordInput, options: { registerNumber?: boolean } = {}): FactWithMark[] {
   const s = input.profile.supplier;
   const p = input.profile;
-  const facts: FactWithMark[] = [{ text: entityLabel(s.entity_type), mark: null }];
+  const facts: FactWithMark[] = [{ text: entityLabel(s.entity_type), mark: null, icon: typeIcon(s.entity_type) }];
   const place = placeOf(p);
   const year = establishedYearOf(s.established_date);
   const w = workersFact(input);
   const workersMark = w.source === "RSC" && !w.groupUnknown ? ownMark(p, "RSC") : null;
   // City and district are derived fields (EPB → GOTS → the address text); no register is attributed to them.
-  if (place) facts.push({ text: place, mark: null });
+  if (place) facts.push({ text: place, mark: null, icon: "address" });
   const missing: string[] = [];
-  if (year) facts.push({ text: `Est. ${year}`, mark: null });
+  if (year) facts.push({ text: `Est. ${year}`, mark: null, icon: "established" });
   else missing.push("year");
   if (w.value !== null) {
     // A group sum is never printed bare: "3,166 workers" on a mother whose
     // figure is mother + buildings reads as this site's headcount.
     const cover = workersCoverageWords(w);
-    facts.push({ text: `${formatCount(w.value)} workers${cover ? ` ${cover}` : ""}`, mark: workersMark });
+    facts.push({ text: `${formatCount(w.value)} workers${cover ? ` ${cover}` : ""}`, mark: workersMark, icon: "workers" });
   } else missing.push("workers");
   if (!place) missing.unshift("district");
   if (options.registerNumber) {
     const pill = (p.pills ?? []).find((x) => x.source_code.toUpperCase() === "BGMEA" && x.value && ownPill(x));
-    if (pill?.value) facts.push({ text: `BGMEA ${pill.value}`, mark: mark(p, "BGMEA"), code: true });
+    if (pill?.value) facts.push({ text: `BGMEA ${pill.value}`, mark: mark(p, "BGMEA"), code: true, icon: "register" });
   }
   if (missing.length > 0) {
     const words = missing.length === 1 ? `${cap(missing[0]!)} not on file` : `${cap(missing.slice(0, -1).join(", "))} and ${missing.at(-1)} not on file`;
@@ -880,22 +922,28 @@ export function buildCard(filed: RecordInput): SupplierCardModel {
   const sanctioned = s.is_sanctioned || Boolean(input.sanctionSample);
   const epbRead = readDateOf(p, "EPB");
 
-  const chips: HighlightChip[] = [];
-  for (const c of certList.slice(0, 2)) {
-    chips.push({
-      tone: c.state === "valid" ? "positive" : c.state === "no-expiry" ? "neutral" : "caution",
-      icon: c.state === "valid" ? "check-c" : c.state === "expiring" ? "clock" : c.state === "expired" ? "warn" : undefined,
-      label: certChipLabel(c),
-    });
-  }
+  // A chip opens the record at its section: the results have no
+  // #certificates of their own, so a bare fragment went nowhere.
+  const recordHref = `/app/suppliers/${s.slug}`;
+  const epb = epbExporter(p);
+  // Status only: every certificate a chip (the card draws four and names the
+  // rest on "+N"), then RSC and EPB, the links the tiles carried on them.
+  const certChips: HighlightChip[] = certList.map((c) => ({
+    tone: c.state === "valid" ? "positive" : c.state === "no-expiry" ? "neutral" : "caution",
+    icon: c.state === "valid" ? "check-c" : c.state === "expiring" ? "clock" : c.state === "expired" ? "warn" : undefined,
+    label: certChipLabel(c),
+    href: `${recordHref}#certificates`,
+  }));
+  // Two certificates, then RSC and EPB, then the rest: "+N" never hides them.
+  const chips: HighlightChip[] = certChips.slice(0, 2);
   const rc = rscChip(rsc, buildings);
-  if (rc) chips.push(rc);
+  if (rc) chips.push({ ...rc, href: `${recordHref}#safety` });
   const onEpb = hasEpbRecord(p);
   if (input.hscodesError) chips.push({ tone: "quiet", label: "EPB lines could not be read" });
-  else if (lines.length > 0) chips.push({ tone: "neutral", label: `EPB exporter · ${lines.length} ${lines.length === 1 ? "line" : "lines"}` });
-  else if (onEpb) chips.push({ tone: "quiet", label: "EPB exporter · no lines on file" });
+  else if (lines.length > 0) chips.push({ tone: "neutral", label: `EPB exporter · ${lines.length} ${lines.length === 1 ? "line" : "lines"}`, href: epb?.href ?? `${recordHref}#products` });
+  else if (onEpb) chips.push({ tone: "quiet", label: "EPB exporter · no lines on file", href: epb?.href ?? null });
   else chips.push({ tone: "quiet", label: "Not on the EPB exporter list" });
-  if (brands.length > 0) chips.push({ tone: "neutral", label: `Listed by ${brands.join(", ")}` });
+  chips.push(...certChips.slice(2));
   if (certList.length === 0) chips.push({ tone: "quiet", label: certsEmptyChipLabel(p) });
   const bgmea = registers.find((r) => r.source_code.toUpperCase() === "BGMEA");
   // Every BGMEA label production holds already ends in "member #", so
@@ -906,49 +954,25 @@ export function buildCard(filed: RecordInput): SupplierCardModel {
     chips.unshift({ tone: "neutral", label: /\bmember$/i.test(label) ? label : `${label} member` });
   }
   if (marks.length <= 1) chips.push({ tone: "quiet", label: `Nothing else on file · ${marks.length} of ${SOURCES_WITH_RECORDS} sources read` });
-  const shown = chips.slice(0, 5);
-  const moreChips = Math.max(0, chips.length - shown.length + Math.max(0, certList.length - 2));
-
-  const epb = epbExporter(p);
-  // A tile's sub-line opens the record at that section. The results panel has
-  // no #certificates / #sources of its own, so a bare fragment went nowhere.
-  const recordHref = `/app/suppliers/${s.slug}`;
-  const tiles: [TileModel, TileModel, TileModel, TileModel] = [
-    certList.length > 0
-      ? { label: "Certificates", value: onFileLabel(certList.length), sub: certTileSubline(certList), href: `${recordHref}#certificates` }
-      : { label: "Certificates", value: null, sub: certsEmptyWords(p) },
-    input.hscodesError
-      ? { label: "Export lines", value: null, sub: "EPB could not be read" }
-      : lines.length > 0
-        ? { label: "Export lines", value: `${lines.length} HS ${lines.length === 1 ? "line" : "lines"}`, sub: "EPB exporter page", href: epb?.href ?? `${recordHref}#products` }
-        : onEpb
-          ? { label: "Export lines", value: null, sub: "none on the EPB page", href: epb?.href ?? null }
-          : { label: "Export lines", value: null, sub: "not on the EPB list" },
-    brands.length > 0
-      ? { label: "Listed by", value: brands.join(", "), sub: `${brands.length} brand ${brands.length === 1 ? "list" : "lists"}`, href: `${recordHref}#sources` }
-      : { label: "Listed by", value: null, sub: brandListsEmptyWords(p) },
-    // Three shapes, and the last one is the empty state. A record with several
-    // numbers at ONE body (279 published records — BGMEA 112, BGAPMEA 105,
-    // BTMA 62) used to satisfy neither of the first two and fell through to
-    // "not in BGMEA, BKMEA, …", denying registrations the sheet listed.
+  // The marks row's one caption: registers and certifiers (tiers 1–3, the
+  // sort's population) apart from brand lists.
+  const certifiers = marks.filter((m) => m.tier <= 3).length;
+  const sourcesCaption = [certifiers === 0 ? "No register or certifier" : `${certifiers} ${certifiers === 1 ? "register or certifier" : "registers & certifiers"}`, brands.length ? `${brands.length} brand ${brands.length === 1 ? "list" : "lists"}` : null]
+    .filter(Boolean)
+    .join(" · ");
+  // What the Registers and Listed by tiles said beyond the marks. Three
+  // register shapes, the last the empty state: several bodies (the marks say
+  // it), several numbers at one body (279 published records), one number.
+  const registerWords =
     registerCodes(registers).length > 1
-      ? { label: "Registers", value: `${registerCodes(registers).length} registers`, sub: registerCodes(registers).map((c) => sourceMark(c).label).join(" · "), href: `${recordHref}#sources` }
+      ? null
       : registers.length > 1 && registers[0]
-        ? {
-            label: "Registers",
-            value: `${registers.length} ${sourceMark(registers[0].source_code).label} numbers`,
-            sub: registers.map((r) => r.value).filter(Boolean).join(" · "),
-            href: `${recordHref}#sources`,
-          }
+        ? `${registers.length} ${sourceMark(registers[0].source_code).label} numbers: ${registers.map((r) => r.value).filter(Boolean).join(" · ")}`
         : registers.length === 1 && registers[0]
-          ? {
-              label: "Registers",
-              value: `${sourceMark(registers[0].source_code).label} ${registers[0].value ?? ""}`.trim(),
-              sub: registerLabel(registers[0].label).replace(/^BGMEA\s+/i, "").toLowerCase() || registerLabel(registers[0].label).toLowerCase(),
-              href: recordPage(registers[0].source_url) ? registers[0].source_url : `${recordHref}#sources`,
-            }
-          : { label: "Registers", value: null, sub: registersEmptyWords(p) },
-  ];
+          ? `${sourceMark(registers[0].source_code).label} ${registers[0].value ?? ""}`.trim() +
+            `, ${registerLabel(registers[0].label).replace(/^BGMEA\s+/i, "").toLowerCase() || registerLabel(registers[0].label).toLowerCase()}`
+          : `Registers: ${registersEmptyWords(p)}`;
+  const sourcesNote = [registerWords, brands.length ? null : `Brand lists: ${brandListsEmptyWords(p)}`].filter(Boolean).join(" · ") || null;
 
   return {
     slug: s.slug,
@@ -956,12 +980,13 @@ export function buildCard(filed: RecordInput): SupplierCardModel {
     initials: initials(name),
     topTier: topTier(codes),
     marks,
-    meta: metaFacts(input),
+    // The head's facts, the register number among them (it was the Registers tile's).
+    meta: metaFacts(input, { registerNumber: true }),
     sanctioned,
     sanctionSample: input.sanctionSample,
-    chips: shown,
-    moreChips,
-    tiles,
+    chips,
+    sourcesCaption,
+    sourcesNote,
     photos: input.hscodesError ? [] : photoTiles(lines, 6),
     totalLines: lines.length,
     linesUnknown: Boolean(input.hscodesError),
@@ -1270,13 +1295,10 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
     .map((r) => `${sourceMark(r.code).label} ${formatDay(new Date(r.at).toISOString())}`)
     .join(" · ");
 
-  const certRegisters = [...new Set(certList.map((c) => c.scheme.split(" ")[0]))];
-
   const rfqs = options.rfqs ?? { count: null, rows: [] as RecordRfqRow[], error: false };
 
   const model: SupplierSheetModel = {
     slug: s.slug,
-    everyMarkLinks: false,
     name,
     initials: initials(name),
     topTier: topTier(codes),
@@ -1300,7 +1322,7 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
       { label: "RFQs", count: rfqs.count === null ? null : String(rfqs.count), href: "#rfqs" },
     ],
     summary: null,
-    facts,
+    facts: withIcons(facts, s.entity_type),
     contact: {
       // No plan unlocks them (founder, 25 Sep: counts only, to every role), so
       // the card may not promise one.
@@ -1333,7 +1355,8 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
       allLinesHref: options.allLines || lines.length <= 6 ? null : (options.allLinesHref ?? null),
     },
     certs: certList,
-    certsCaption: certList.length ? `${onFileLabel(certList.length)} · ${certRegisters.join(", ")}` : null,
+    // The count alone: the rows name the schemes (founder's review, 29 Sep 2026).
+    certsCaption: certList.length ? onFileLabel(certList.length) : null,
     certsEmpty: certsEmptyWords(p),
     certsEmptyChip: certsEmptyChipLabel(p),
     buildingCerts: buildingCerts(input),
@@ -1391,32 +1414,7 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
         : "The screen recorded a match but filed no entry for it.",
   };
 
-  // Every square this sheet draws: the mark row, the attributed fact rows and
-  // the certificate cards. The certificate marks were outside this sum, so a
-  // sheet holding a certificate whose document is not a record page claimed
-  // that every mark links while rendering one that does not.
-  const rendered = [
-    ...model.marks,
-    ...model.facts.flatMap((f) => (f.value === null ? [] : (f.marks ?? []))),
-    ...model.certs.map((c) => sourceMark(c.markCode, c.documentUrl)),
-    // A building's own certificates draw the same cards, one square each.
-    ...model.buildingCerts.flatMap((b) => b.certs.map((c) => sourceMark(c.markCode, c.documentUrl))),
-    // REZ-C draws two more mark surfaces. Leaving them out meant the action
-    // bar's "every source mark links to its register page" was computed over a
-    // subset of the squares actually on screen — the same defect the
-    // certificate marks caused before they were added here.
-    ...model.sources.map((s) => s.mark),
-    ...model.locations.flatMap((l) => l.marks),
-  ];
-  // "…to its register page" is false of a brand mark however well it links: a
-  // disclosure list is one file listing every supplier on it, and the mark's
-  // own accessible name says so. 43 published records hold nothing but
-  // linkable registers plus a brand list, and every one of them made the
-  // absolute claim over a link the same page called a disclosure list.
-  // `[].every()` is true, so a record with no marks at all made the claim too.
-  const everyMarkLinks =
-    rendered.length > 0 && rendered.every((m) => Boolean(m.href)) && rendered.every((m) => m.opens !== "list");
-  return { ...model, everyMarkLinks };
+  return model;
 }
 
 /**
@@ -1626,7 +1624,7 @@ export function buildProductSheet(filed: RecordInput, hs: string, options: Produ
     heading: line?.description ?? row?.heading ?? hsShortLabel(code),
     photo: { hs: code, short: hsShortLabel(code), src: hsPhotoSrc(code, 512), thumb: hsPhotoSrc(code, 128) },
     generatedOn: null,
-    facts: [
+    facts: withIcons([
       // The chapter name is the HS nomenclature, not something EPB published
       // about this record: stamping it with an EPB mark is a wrong receipt,
       // and it was stamped even for a record on no EPB register at all.
@@ -1667,7 +1665,7 @@ export function buildProductSheet(filed: RecordInput, hs: string, options: Produ
       attested.length
         ? { label: "Price · MOQ · lead time", value: attested.join(" · "), note: "supplier-attested", marks: [], pendingSource: true }
         : { label: "Price · MOQ · lead time", value: null, empty: "Not attested", note: "supplier-attested fields, shown when attested" },
-    ],
+    ], s.entity_type),
     // The count the linked search returns, not that minus one, and the label
     // says "Exporters" rather than "Other exporters" to match. Verified live on
     // 25 Sep: `discover_suppliers(p_hs_codes := {6105})` → total_count 1,634,

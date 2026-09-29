@@ -258,7 +258,8 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     const out = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({}) })));
     const counts = out.slice(out.indexOf('data-contact-counts="true"'), out.indexOf("</dl>", out.indexOf('data-contact-counts="true"')));
     assert.deepEqual(
-      [...counts.matchAll(/<dt[^>]*>([^<]*)<\/dt><dd[^>]*>([^<]*)<\/dd>/g)].map((m) => `${m[1]}: ${m[2]}`),
+      // A kind's label leads with its icon (an <svg>), so the label is the dt's text.
+      [...counts.matchAll(/<dt[^>]*>([\s\S]*?)<\/dt><dd[^>]*>([^<]*)<\/dd>/g)].map((m) => `${m[1]!.replace(/<[^>]*>/g, "")}: ${m[2]}`),
       ["Email: 1 on file", "Phone: 6 on file", "Website: on file", "Contact person: 2 on file"],
     );
     for (const key of ["email_primary", "contact_name", "contact_role", "phones"]) {
@@ -995,17 +996,34 @@ describe("cycle 3: the boundaries the first route tests did not reach", () => {
     assert.match(out, /could not be read just now/, "a failed read is presented as certainly unpublished");
   });
 
-  it("a result's tile sub-lines open the record over the same search, at their section", async () => {
+  it("a result card's chips open the record over the same search, at their section", async () => {
     given({ profile: PROFILE, hscodes: HS, discover: { data: [ROW], error: null } });
-    // The tiles are the cards' (the table is the default view since 27 Sep 2026).
+    // The card's four tiles went (founder's review, 29 Sep 2026); their links
+    // ride on the matching chips. Cards are the non-default view.
     const out = html(await overlay({ q: "knit", view: "cards" }));
-    const tiles = [...out.matchAll(/href="([^"]*#(?:products|sources|certificates))"/g)].map((m) => m[1]!.replace(/&amp;/g, "&"));
-    assert.ok(tiles.length > 0, "guard: the card drew no tile sub-line links");
-    for (const href of tiles) {
-      assert.match(href, /record=aboni-knitwear/, `a tile sub-line leaves the overlay: ${href}`);
-      assert.match(href, /q=knit/, `a tile sub-line throws the search away: ${href}`);
-      assert.match(href, /view=cards/, `a tile sub-line drops the view the buyer chose: ${href}`);
+    const links = [...out.matchAll(/href="([^"]*#(?:products|safety|certificates))"/g)].map((m) => m[1]!.replace(/&amp;/g, "&"));
+    assert.ok(links.length > 0, "guard: the card drew no chip links");
+    for (const href of links) {
+      assert.match(href, /record=aboni-knitwear/, `a chip leaves the overlay: ${href}`);
+      assert.match(href, /q=knit/, `a chip throws the search away: ${href}`);
+      assert.match(href, /view=cards/, `a chip drops the view the buyer chose: ${href}`);
     }
+  });
+
+  it("beside an open record the cards give way to the compact table, and come back when it closes", async () => {
+    // Founder's review, 29 Sep 2026: "the open record view of the card view
+    // section gets really cramped". Master and detail: the list keeps only
+    // what finds the next item.
+    given({ profile: PROFILE, hscodes: HS, discover: { data: [ROW], error: null } });
+    const open = html(await overlay({ q: "knit", view: "cards", record: "aboni-knitwear" }));
+    const results = open.slice(0, open.indexOf("data-record-pane"));
+    assert.match(results, /<tr [^>]*aria-current="true"[^>]*data-row="result"/, "beside a record the list is not the compact table with the record's row marked");
+    assert.match(results, /min-w-\[28rem\]/, "not the compact table");
+    assert.doesNotMatch(results, /<article\b/, "a card squeezed beside the record");
+    given({ profile: PROFILE, hscodes: HS, discover: { data: [ROW], error: null } });
+    const closed = html(await overlay({ q: "knit", view: "cards" }));
+    assert.match(closed, /<article\b/, "closing the record did not bring the cards back");
+    assert.doesNotMatch(closed, /data-row="result"/);
   });
 
   it("a sanctioned record opened over the results carries the banner above every section", async () => {

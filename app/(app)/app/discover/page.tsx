@@ -76,6 +76,7 @@ import {
   filterFamilyLabel,
   parseDiscoverState,
   queryTitle,
+  resultsView,
   serializeDiscoverState,
   sortLabel,
   withoutFilterFamily,
@@ -200,7 +201,7 @@ export default async function BuyerDiscoverPage({
           <HiddenState state={state} omit={COMPOSER_HIDDEN_OMIT} />
           {state.q ? <input type="hidden" name="q" value={state.q} /> : null}
           <SearchComposer
-            menus={<FilterMenus state={state} hrefFor={(s) => (density === "default" ? discoverHref(s) : `${discoverHref(s)}${discoverHref(s).includes("?") ? "&" : "?"}d=${density}`)} />}
+            menus={<FilterMenus state={state} folded={paneOpen} hrefFor={(s) => (density === "default" ? discoverHref(s) : `${discoverHref(s)}${discoverHref(s).includes("?") ? "&" : "?"}d=${density}`)} />}
             chips={chips.filter((c) => !inFilterMenu(c.key, state)).map((c) => ({ key: c.key, label: c.label, code: c.code, removeHref: discoverHref(c.without) }))}
             mode={state.ask && askOn ? "ask" : "filters"}
             askEnabled={askOn}
@@ -262,6 +263,7 @@ export default async function BuyerDiscoverPage({
             <Panel>
               <PanelHeader
                 compact={paneOpen}
+                rail={composerOpen}
                 as={!composerOpen && !filtersOpen && !saveOpen && recordSlug !== null ? "h2" : "h1"}
                 model={{
                   title,
@@ -282,7 +284,7 @@ export default async function BuyerDiscoverPage({
                   })),
                 }}
               />
-              {state.view === "table" || composerOpen ? (
+              {resultsView(state.view, paneOpen) === "table" ? (
                 <ResultsTable
                   rows={tableRows}
                   currentSlug={recordSlug}
@@ -309,6 +311,7 @@ export default async function BuyerDiscoverPage({
                 prevHref={state.page > 1 ? discoverHref(state, { page: state.page - 1 }) : null}
                 nextHref={pages && state.page < pages ? discoverHref(state, { page: state.page + 1 }) : null}
                 perHrefs={PER_PAGE.map((n) => ({ n, href: discoverHref(state, { per: n, page: 1 }) }))}
+                rail={composerOpen}
               />
               <SelectionBar exportHref={exportHref} searchHref={closeHref} />
             </Panel>

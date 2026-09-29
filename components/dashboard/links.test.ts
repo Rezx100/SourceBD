@@ -68,7 +68,6 @@ const RAW_ANCHORS: Allowed = {
       3,
       "a fact's link and a source row go to register pages off-site; an RFQ row opens /app/rfqs/<id>, another page, which has no search to keep",
     ],
-    "{cert.documentUrl!}": [1, "the certificate document, off-site"],
     "{l.href}": [1, "an RSC report PDF, off-site"],
     "{evidenceHref}": [1, "the sanction banner's #sanctions fragment inside the open sheet"],
   },
@@ -82,6 +81,9 @@ const RECORD_FILES = ["supplier-result-card.tsx", "results-table.tsx", "photo-ti
 // pane beside the results (`?rfq=`), on the same search, so the card's, the
 // row's, the action bar's and the line sheet's all client-navigate.
 const DOCUMENT_BUTTONS: Allowed = {
+  // A certificate row's icon button opens the certificate itself, off-site
+  // (founder's review, 29 Sep 2026: the card's "Certificate" link became it).
+  "sheet.tsx": { "{doc}": [1, "the certificate document, off-site"] },
   "product-sheet.tsx": {
     "{`/app/discover?hs=${model.hs}`}": [1, "Exporters of HS is a new search, which replaces the one behind the sheet"],
   },
@@ -227,13 +229,14 @@ describe("the dashboard kit's in-app links are client navigations", () => {
   });
 
   it("a link into a sheet section keeps Next's scroll, or it never reaches the section", () => {
-    // The tile sub-lines end in #certificates / #products / #sources, and in
-    // Next's router `scroll={false}` also drops the hash jump
+    // A card's chip links end in #certificates / #products / #safety (the
+    // tiles' links moved onto them, 29 Sep 2026), and in Next's router
+    // `scroll={false}` also drops the hash jump
     // (router-reducer/handle-mutable: `hashFragment: shouldScroll ? … : null`).
     const card = readFileSync(path.join(KIT, "supplier-result-card.tsx"), "utf8");
-    const tileLinks = elements(card, "Link").filter((el) => hrefOf(el) === "{tile.href}");
-    assert.equal(tileLinks.length, 1, "the tile sub-line link moved; this guard needs rewriting");
-    assert.doesNotMatch(tileLinks[0]!, /scroll=\{false\}/, "the tile sub-line link opens the sheet without reaching its #section");
+    const chipLinks = elements(card, "Link").filter((el) => hrefOf(el) === "{c.href}");
+    assert.equal(chipLinks.length, 1, "the chip link moved; this guard needs rewriting");
+    assert.doesNotMatch(chipLinks[0]!, /scroll=\{false\}/, "a chip link opens the sheet without reaching its #section");
   });
 
   it("every next/link in the kit's content opts out of prefetch; the shell's rail is the one exception", () => {

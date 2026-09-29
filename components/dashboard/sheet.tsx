@@ -15,8 +15,8 @@ import { DialogFocus } from "./dialog-focus";
 import { Button, Meter } from "./controls";
 import { Icon } from "./icons";
 import { SourceMark } from "./marks";
-import { SbIcon } from "./sb-icons";
-import { Caption, Code, Eyebrow, Heading, Label } from "./type";
+import { SbIcon, type SbIconName } from "./sb-icons";
+import { Caption, Code, Heading, Label, OneLine } from "./type";
 
 /**
  * `.stage`: a fixed-height frame that clips the shell under a sheet or dialog.
@@ -209,6 +209,7 @@ export { SheetTabs } from "./sheet-tabs";
 export function SheetSection({
   id,
   title,
+  icon,
   caption,
   action,
   collapsible = false,
@@ -216,6 +217,8 @@ export function SheetSection({
 }: {
   id?: string;
   title?: string;
+  /** SourceBD's icon for what the section holds, slate, before its title. */
+  icon?: SbIconName;
   caption?: ReactNode;
   action?: ReactNode;
   collapsible?: boolean;
@@ -240,6 +243,7 @@ export function SheetSection({
     <section id={id} className="flex scroll-mt-12 flex-col gap-4 border-b border-line-subtle px-6 py-5 outline-none">
       {title ? (
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+          {icon ? <SbIcon name={icon} size={18} className="self-center text-accent" /> : null}
           <Heading level="sm" as="h2" className="flex-1">
             {title}
           </Heading>
@@ -281,6 +285,34 @@ export function collapseRepeatedLines(text: string): string {
   return out.join("\n");
 }
 
+/**
+ * A reason that was only a hover title (an empty figure's dash, a checked-but-
+ * empty fact's magnifier), made a small button a finger can reach: a tap opens
+ * it under the mark, like a `Menu`, and a pointer still gets it on hover.
+ */
+function Reason({ reason, label, align = "left", children }: { reason: string; label: string; align?: "left" | "right"; children: ReactNode }) {
+  return (
+    <details className="group/why relative inline-block">
+      <summary
+        aria-label={label}
+        title={reason}
+        className="inline-flex min-h-6 min-w-6 cursor-pointer list-none items-center justify-center rounded-xs hover:bg-surface-sunken [&::-webkit-details-marker]:hidden"
+      >
+        {children}
+      </summary>
+      <span
+        role="note"
+        className={cn(
+          "absolute top-full z-overlay mt-1 w-56 rounded-md border border-line bg-surface px-3 py-2 text-left text-sm font-normal text-ink shadow-md",
+          align === "right" ? "right-0" : "left-0",
+        )}
+      >
+        {reason}
+      </span>
+    </details>
+  );
+}
+
 /** What the pending mark means, said once under the facts it marks (and in full on its hover). */
 export const PENDING_LEGEND = "Source pending";
 
@@ -300,7 +332,14 @@ export function FactsPanel({ rows, legend = true }: { rows: readonly FactRow[]; 
           key={r.label}
           className="flex min-h-fact-row flex-col gap-0.5 border-t border-line-subtle py-1.5 first:border-t-0 sm:flex-row sm:items-start sm:gap-4"
         >
-          <span className="w-full shrink-0 text-sm leading-[22px] text-ink-muted sm:w-[150px]">{r.label}</span>
+          {/* Three levels (founder, 29 Sep 2026: "the text needs visual and
+              color hierarchy and icons"): the group heading, this label in
+              ink-muted with its slate icon, the value in ink-strong. Slate is
+              the one colour; status hues stay on status. */}
+          <span className="inline-flex w-full shrink-0 items-center gap-2 text-sm leading-[22px] text-ink-muted sm:w-[150px]">
+            {r.icon ? <SbIcon name={r.icon} className="text-accent" /> : null}
+            {r.label}
+          </span>
           {r.items && r.items.length > 0 ? (
             <ul className="m-0 flex min-w-0 flex-1 list-none flex-col gap-1 p-0">
               {r.items.map((it, i) => (
@@ -318,6 +357,7 @@ export function FactsPanel({ rows, legend = true }: { rows: readonly FactRow[]; 
                 // newline-delimited block; `pre-line` shows the lines the
                 // register filed and still collapses runs of spaces.
                 "min-w-0 flex-1 whitespace-pre-line text-base leading-[22px] text-ink-strong [overflow-wrap:anywhere]",
+                r.lead && r.value !== null && "font-medium",
                 r.value === null && "text-quiet-ink",
               )}
             >
@@ -335,7 +375,7 @@ export function FactsPanel({ rows, legend = true }: { rows: readonly FactRow[]; 
               ) : (
                 collapseRepeatedLines(r.value)
               )}
-              {r.value !== null && r.note ? <Caption className="ml-1.5">{r.note}</Caption> : null}
+              {r.value !== null && r.note ? <span className="ml-1.5 text-sm font-normal text-ink-subtle">{r.note}</span> : null}
               {r.badge ? (
                 <Badge tone={r.badge.tone} className="ml-1.5 align-middle">
                   {r.badge.label}
@@ -351,11 +391,10 @@ export function FactsPanel({ rows, legend = true }: { rows: readonly FactRow[]; 
                 // What was checked ("registers and RSC checked") on hover and
                 // to a screen reader: printed, it was the loudest text on an
                 // empty row (founder's video, 29 Sep 2026).
-                <span title={`Not on file · ${r.checked}`} className="inline-flex text-quiet-ink">
+                <Reason reason={`Not on file · ${r.checked}`} label={`What was checked for ${r.label}`} align="right">
                   {/* A magnifier (looked), never a tick: a tick is the sign for a verified fact. */}
-                  <Icon name="search" small />
-                  <span className="sr-only">{r.checked}</span>
-                </span>
+                  <Icon name="search" small className="text-quiet-ink" />
+                </Reason>
               ) : r.pendingSource ? (
                 <PendingMark />
               ) : null}
@@ -406,10 +445,10 @@ export function LockCard({
 }) {
   const rows = counts
     ? [
-        { label: "Email", value: counts.emails === 0 ? "none on file" : `${counts.emails} on file` },
-        { label: "Phone", value: counts.phones === 0 ? "none on file" : `${counts.phones} on file` },
-        { label: "Website", value: counts.website ? "on file" : "none on file" },
-        { label: "Contact person", value: counts.representatives === 0 ? "none on file" : `${counts.representatives} on file` },
+        { label: "Email", icon: "email" as const, value: counts.emails === 0 ? "none on file" : `${counts.emails} on file` },
+        { label: "Phone", icon: "phone" as const, value: counts.phones === 0 ? "none on file" : `${counts.phones} on file` },
+        { label: "Website", icon: "website" as const, value: counts.website ? "on file" : "none on file" },
+        { label: "Contact person", icon: "person" as const, value: counts.representatives === 0 ? "none on file" : `${counts.representatives} on file` },
       ]
     : null;
   // A strip across the record, not a 300px box beside the facts: beside the
@@ -425,8 +464,11 @@ export function LockCard({
         {rows ? (
           <dl data-contact-counts="true" className="m-0 flex flex-wrap gap-x-4 gap-y-1 text-xs">
             {rows.map((r) => (
-              <div key={r.label} className="inline-flex items-baseline gap-1">
-                <dt className="font-medium text-ink-strong">{r.label}</dt>
+              <div key={r.label} className="inline-flex items-center gap-1">
+                <dt className="inline-flex items-center gap-1.5 font-medium text-ink-strong">
+                  <SbIcon name={r.icon} size={14} className="text-accent" />
+                  {r.label}
+                </dt>
                 <dd className="m-0 text-ink-muted">{r.value}</dd>
               </div>
             ))}
@@ -464,9 +506,9 @@ export function Stats({ items }: { items: readonly { key: string; value: string;
                 list") is on its hover and read to a screen reader, not
                 printed under every empty figure. */}
             {s.value === "—" && s.sub ? (
-              <span title={s.sub} className="text-base text-quiet-ink">
-                —<span className="sr-only"> {s.sub}</span>
-              </span>
+              <Reason reason={s.sub} label={`Why ${s.key} is empty`}>
+                <span className="text-base text-quiet-ink">—</span>
+              </Reason>
             ) : (
               <>
                 <span className="text-base font-medium text-ink-strong">{s.value}</span>
@@ -483,39 +525,64 @@ export function Stats({ items }: { items: readonly { key: string; value: string;
 const CERT_BADGE_TONE = { valid: "positive", expiring: "caution", expired: "caution", "no-expiry": "type" } as const;
 const CERT_BADGE_ICON = { valid: "check-c", expiring: "clock", expired: "warn", "no-expiry": undefined } as const;
 
-/** `.cert`: one certificate card. */
-export function CertCard({ cert }: { cert: CertModel }) {
+/**
+ * One certificate, one line (founder's review, 29 Sep 2026: "certification
+ * section very text heavy"): its mark, the scheme, the number, the certifier
+ * (cut first when the line is short), then the state and the certificate
+ * itself at the line's end. The scope is one click away, behind "Scope"; only
+ * words that repeat the certificate's own name are left out of it.
+ */
+export function CertRow({ cert }: { cert: CertModel }) {
   // The certificate document IS this certificate's register page. Passing it
   // through `sourceMark` (which filters anything that is not a record page)
-  // makes the square link where every other square on the sheet links; it was
-  // the one mark set rendered unlinked, which made the action bar's "every
-  // source mark links to its register page" false on any sheet with a cert.
+  // makes the square link where every other square on the sheet links.
   const mark = sourceMark(cert.markCode, cert.documentUrl);
+  const scope = certScopeRows(cert);
+  // All seven SA8000 certificates in production carry the SA8000 search form
+  // as their document, which `recordPage` rejects: no link rather than a link
+  // that promises the certificate and delivers a search page.
+  const doc = recordPage(cert.documentUrl) ? cert.documentUrl : null;
   return (
-    <div className="flex flex-col gap-1 rounded-md border border-line-subtle bg-surface px-4 py-3.5">
-      <div className="flex items-center gap-2">
-        <SourceMark mark={mark} lg />
-        <Label className="flex-1 text-ink-strong">{cert.scheme}</Label>
-        <Badge tone={CERT_BADGE_TONE[cert.state]} icon={CERT_BADGE_ICON[cert.state]}>
-          {certStateLabel(cert)}
-        </Badge>
+    <li className="border-t border-line-subtle first:border-t-0" data-cert={cert.kind}>
+      {/* One line from `sm`, the certifier giving way first; on a phone the
+          state and the link drop under the name rather than off the screen. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 sm:flex-nowrap">
+        <span className="flex min-w-0 flex-1 basis-[15rem] items-center gap-2.5 sm:basis-auto">
+          <SourceMark mark={mark} />
+          <span className="shrink-0 text-base font-medium text-ink-strong">{cert.scheme}</span>
+          {cert.number ? <Code className="shrink-0 text-ink-muted">{cert.number}</Code> : <span className="shrink-0 text-sm text-ink-subtle">no number</span>}
+          {cert.issuer ? (
+            <span data-name="" title={cert.issuer} className="min-w-0 truncate text-sm text-ink-subtle">
+              {cert.issuer}
+            </span>
+          ) : null}
+        </span>
+        <span className="ml-auto inline-flex shrink-0 items-center gap-1">
+          <Badge tone={CERT_BADGE_TONE[cert.state]} icon={CERT_BADGE_ICON[cert.state]}>
+            {certStateLabel(cert)}
+          </Badge>
+          {doc ? (
+            <Button variant="ghost" icon size="sm" href={doc} aria-label={`Open the ${cert.scheme} certificate${cert.number ? ` ${cert.number}` : ""}`} title="Open the certificate">
+              <Icon name="external" />
+            </Button>
+          ) : null}
+        </span>
       </div>
-      {cert.number ? <Code className="text-ink">{cert.number}</Code> : <Caption>No certificate number on file</Caption>}
-      {cert.scope ? <CertScope scope={cert.scope} /> : null}
-      <Caption>
-        {cert.issuer}
-        {/* All seven SA8000 certificates in production carry
-            `https://sa-intl.org/sa8000-search/` as their document — the search
-            form `recordPage` rejects by name. The square beside this line was
-            correctly left unlinked while the link promised the certificate and
-            delivered a search page, so this goes through the same rule. */}
-        {recordPage(cert.documentUrl) ? (
-          <a href={cert.documentUrl!} className="ml-1.5 inline-flex items-center gap-0.5 text-brand-ink">
-            Certificate <Icon name="external" small />
-          </a>
-        ) : null}
-      </Caption>
-    </div>
+      {scope.length > 0 ? (
+        <details className="group/scope -mt-1 pb-2 pl-[30px]">
+          <summary className="inline-flex cursor-pointer list-none items-center gap-1 rounded-xs text-sm text-ink-muted hover:text-ink-strong [&::-webkit-details-marker]:hidden">
+            Scope
+            <span className="sr-only">
+              {" "}
+              of {cert.scheme}
+              {cert.number ? ` ${cert.number}` : ""}
+            </span>
+            <Icon name="caret" small className="transition-transform duration-fast group-open/scope:rotate-180" />
+          </summary>
+          <CertScope rows={scope} />
+        </details>
+      ) : null}
+    </li>
   );
 }
 
@@ -538,13 +605,25 @@ export function parseCertScope(scope: string): { label: string; value: string }[
     });
 }
 
-function CertScope({ scope }: { scope: string }) {
-  const rows = parseCertScope(scope);
+/**
+ * The scope rows worth a click: a part that only repeats the certificate's own
+ * name goes (OEKO-TEX's "OEKO-TEX STANDARD 100" under "OEKO-TEX Standard 100",
+ * WRAP Gold's "Gold"); anything that says more stays, word for word.
+ */
+export function certScopeRows(cert: Pick<CertModel, "scheme" | "scope">): { label: string; value: string }[] {
+  const bare = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const scheme = bare(cert.scheme);
+  // Only an unlabelled part can be a bare repeat of the name; a labelled one
+  // ("Products: …") is a field of its own, whatever its words.
+  return cert.scope ? parseCertScope(cert.scope).filter((r) => !(r.label === "Scope" && bare(r.value) && scheme.includes(bare(r.value)))) : [];
+}
+
+function CertScope({ rows }: { rows: readonly { label: string; value: string }[] }) {
   return (
-    <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
+    <dl className="m-0 mt-1.5 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-sm">
       {rows.map((r, i) => (
         <div key={`${r.label}-${i}`} className="contents">
-          <dt className="font-medium text-ink-muted">{r.label}</dt>
+          <dt className="text-ink-muted">{r.label}</dt>
           <dd className="m-0 text-ink [overflow-wrap:anywhere]">{r.value}</dd>
         </div>
       ))}
@@ -552,13 +631,14 @@ function CertScope({ scope }: { scope: string }) {
   );
 }
 
-export function CertGrid({ certs }: { certs: readonly CertModel[] }) {
+/** Certificates as a list, one line each; two of one scheme stay two rows (two numbers). */
+export function CertList({ certs }: { certs: readonly CertModel[] }) {
   return (
-    <div className="grid gap-2 sm:grid-cols-2">
+    <ul className="m-0 flex list-none flex-col p-0" data-cert-list="">
       {certs.map((c) => (
-        <CertCard key={`${c.kind}-${c.number ?? c.expiresOn ?? ""}`} cert={c} />
+        <CertRow key={`${c.kind}-${c.number ?? c.expiresOn ?? ""}`} cert={c} />
       ))}
-    </div>
+    </ul>
   );
 }
 
@@ -678,9 +758,11 @@ export function LocationsList({ rows }: { rows: readonly LocationRow[] }) {
     <ul className="flex flex-col">
       {rows.map((r, i) => (
         <li key={`${r.address}-${i}`} className="flex items-start gap-3 border-t border-line-subtle py-2.5 first:border-t-0">
+          {/* The address pin, slate, as on the Overview's "Factory address". */}
+          <SbIcon name="address" className="mt-[3px] text-accent" />
           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <Eyebrow>{r.kind}</Eyebrow>
-            <span className="whitespace-pre-line text-base leading-[22px] text-ink [overflow-wrap:anywhere]">{r.address}</span>
+            <span className="text-sm text-ink-muted">{r.kind}</span>
+            <span className="whitespace-pre-line text-base leading-[22px] text-ink-strong [overflow-wrap:anywhere]">{r.address}</span>
             {r.alsoRecordedAs.length > 0 ? (
               <Caption>Also recorded as: {r.alsoRecordedAs.join(" · ")}</Caption>
             ) : null}
@@ -702,7 +784,8 @@ export function FacilitiesList({ rows }: { rows: readonly FacilityRowModel[] }) 
     <ul className="flex flex-col" data-facilities="true">
       {rows.map((r, i) => (
         <li key={`${r.name}-${i}`} className="flex flex-col gap-0.5 border-t border-line-subtle py-2.5 first:border-t-0">
-          <span className="text-base font-medium leading-[22px] text-ink-strong [overflow-wrap:anywhere]">{r.name}</span>
+          {/* A building's name, one line like a company's (the One-Line Name Rule). */}
+          <OneLine text={r.name} className="text-base font-medium leading-[22px] text-ink-strong" />
           {r.address ? <span className="whitespace-pre-line text-sm text-ink [overflow-wrap:anywhere]">{r.address}</span> : null}
           {r.workers ? <Caption>{r.workers}</Caption> : null}
         </li>

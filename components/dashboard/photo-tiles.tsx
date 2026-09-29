@@ -226,6 +226,36 @@ export function PhotoList({ tiles, lineHref }: { tiles: readonly PhotoTileModel[
   );
 }
 
+/**
+ * A result card's products (founder's review, 29 Sep 2026): 48px thumbnails
+ * with the HS code under each, "+N lines", and one "illustration" tag for the
+ * row where the strip had a caption under every photo and a note under the
+ * strip. Scrolls sideways on a phone rather than hiding lines. A card with no
+ * lines draws nothing here: its EPB chip already says why.
+ */
+export function CardThumbs({ tiles, totalLines }: { tiles: readonly PhotoTileModel[]; totalLines: number }) {
+  if (tiles.length === 0) return null;
+  const more = Math.max(0, totalLines - tiles.length);
+  return (
+    <div className="flex min-w-0 shrink-0 items-start gap-2">
+      <ul aria-label={`Product lines, ${totalLines} on the EPB register`} tabIndex={0} className="m-0 flex min-w-0 list-none gap-2 overflow-x-auto p-0">
+        {tiles.map((t) => (
+          <li key={t.hs} className="w-12 shrink-0" title={`HS ${t.hs} · ${t.short}${t.src ? "" : " · no photo yet"}`}>
+            <span role="img" aria-label={`HS ${t.hs} · ${t.short}${t.src ? "" : " · no photo yet"}`} className="block size-12 overflow-hidden rounded-sm border border-line-subtle bg-surface-sunken">
+              {t.thumb ?? t.src ? <Photo src={(t.thumb ?? t.src)!} /> : <span className="grid size-full place-items-center font-mono text-[9px] text-ink-subtle">{t.hs}</span>}
+            </span>
+            <Code className="block pt-0.5 text-center text-xs text-ink-muted">{t.hs}</Code>
+          </li>
+        ))}
+      </ul>
+      <span className="flex shrink-0 flex-col gap-0.5 pt-1 text-xs text-ink-subtle">
+        {more > 0 ? <span className="text-sm">+{more} lines</span> : null}
+        {tiles.some((t) => t.src) ? <span>illustration</span> : null}
+      </span>
+    </div>
+  );
+}
+
 /** `.thumbs`: 28px thumbs in a table row with "+N". */
 export function PhotoThumbs({ tiles, totalLines }: { tiles: readonly PhotoTileModel[]; totalLines: number }) {
   const more = Math.max(0, totalLines - tiles.length);

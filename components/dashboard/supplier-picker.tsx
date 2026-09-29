@@ -17,7 +17,7 @@
 
 import { useEffect, useId, useState, type KeyboardEvent } from "react";
 import { targetFromRow, type SupplierRow } from "@/lib/dashboard/composer-target";
-import { displayName, entityLabel, formatCount, initials } from "@/lib/dashboard/facts";
+import { displayName, entityLabel, formatCount, initials, nameSecondLine, splitQualifier } from "@/lib/dashboard/facts";
 import { topTier } from "@/lib/dashboard/source-tiers";
 import { cn } from "@/lib/utils";
 import { Button, Checkbox } from "./controls";
@@ -27,6 +27,7 @@ import { LogoTile, SourceMarks } from "./marks";
 import { ErrorNote } from "./page";
 import type { ComposerTarget } from "./rfq-composer";
 import { SheetBar } from "./sheet";
+import { OneLine } from "./type";
 
 // The composer and the tests import these from here.
 export { targetFromRow, type SupplierRow };
@@ -299,15 +300,16 @@ function Rows({
             )}
           >
             {t.sanctioned ? <span aria-hidden className="size-4 shrink-0" /> : <Checkbox on={on} label={`Select ${t.name}`} onToggle={() => onToggle(t)} />}
-            <LogoTile initials={t.initials} tier={t.tier} size="sm" />
+            <LogoTile initials={t.initials} tier={t.tier} size="row" />
             <span className="flex min-w-0 flex-1 flex-col">
-              <span className="text-sm font-medium text-ink-strong [overflow-wrap:anywhere]">{t.name}</span>
+              {/* Two lines, each cut to one (the One-Line Name Rule). */}
+              <OneLine text={splitQualifier(t.name).base} title={t.name} className="text-sm font-medium text-ink-strong" />
               {t.sanctioned ? (
                 <span className="inline-flex items-center gap-1 text-xs font-medium text-sanction-ink">
                   <Icon name="warn" small /> Sanctioned · cannot receive an RFQ
                 </span>
-              ) : t.place ? (
-                <span className="text-xs text-ink-subtle">{t.place}</span>
+              ) : nameSecondLine(t.name, t.place) ? (
+                <OneLine text={nameSecondLine(t.name, t.place)} className="text-xs text-ink-subtle" />
               ) : null}
             </span>
             {t.marks.length > 0 ? <SourceMarks marks={t.marks.slice(0, 4)} caption="none" sm className="shrink-0 flex-nowrap" /> : null}

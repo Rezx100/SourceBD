@@ -4,6 +4,7 @@
 
 import type { IconName } from "@/components/dashboard/icons";
 import type { ChipTone } from "@/components/dashboard/chips";
+import type { SbIconName } from "@/components/dashboard/sb-icons";
 import type { TierRank } from "@/lib/design/tokens";
 import type { CertModel, CertState } from "./facts";
 import type { PhotoTileModel } from "./hs-photos";
@@ -13,6 +14,12 @@ import type { SourceMarkModel } from "./source-tiers";
 export type FactWithMark = {
   text: string;
   mark: SourceMarkModel | null;
+  /** SourceBD's icon for what the fact is (a place, a year, workers), drawn before it. */
+  icon?: SbIconName;
+  /** The fact's whole words when the line shows a short form ("1,300 workers · on the supplier record"): its hover title and what a screen reader reads. */
+  title?: string;
+  /** A second figure drawn in brackets right after the fact before it: "1,300 workers (3,546 with buildings)". */
+  aside?: boolean;
   /** Quiet: "District, year and workers not on file". */
   quiet?: boolean;
   /** Set in mono (a register number). */
@@ -23,13 +30,7 @@ export type HighlightChip = {
   tone: ChipTone;
   icon?: IconName;
   label: string;
-};
-
-/** One of the card's four tiles. `value` null → "—" in quiet ink with the reason in `sub`. */
-export type TileModel = {
-  label: string;
-  value: string | null;
-  sub: string | null;
+  /** Where the chip leads on the record (its certificates, its export lines), carried over from the tiles it replaced. */
   href?: string | null;
 };
 
@@ -43,9 +44,21 @@ export type SupplierCardModel = {
   sanctioned: boolean;
   /** Only the /dev/ds gallery sets this: a labelled sample, not a production flag. */
   sanctionSample?: boolean;
+  /** Every status chip, in order; the card draws four and says "+N" for the rest, naming them on hover. */
   chips: HighlightChip[];
-  moreChips: number;
-  tiles: [TileModel, TileModel, TileModel, TileModel];
+  /**
+   * The marks row's one caption, separating the two populations it draws:
+   * "8 registers & certifiers · 3 brand lists". The first figure is the one the
+   * default sort and the minimum-sources filter use.
+   */
+  sourcesCaption: string;
+  /**
+   * What the Registers and Listed by tiles said that the marks cannot: a
+   * register's number and grade, or the careful negative ("not on 4 brand
+   * lists read"). The caption's hover title and read to a screen reader, so no
+   * fact the tiles carried is dropped. Null when the marks say it all.
+   */
+  sourcesNote: string | null;
   photos: PhotoTileModel[];
   totalLines: number;
   /** The lines could not be read (RPC failure): the slot says so instead of "no lines". */
@@ -105,6 +118,10 @@ export type TableRowModel = {
 export type FactRow = {
   label: string;
   value: string | null;
+  /** SourceBD's icon for the fact, before its label (`factIcon`); the model carries it, not the view. */
+  icon?: SbIconName;
+  /** A fact a buyer reads first (registered name, type, workers, address): its value is set in medium. */
+  lead?: boolean;
   /** Quiet reason when the value is missing: "6 registers checked". */
   checked?: string | null;
   code?: boolean;
@@ -248,13 +265,6 @@ export type SupplierSheetModel = {
   certsEmpty: string;
   /** The same absence as a sentence: "No certificate on 4 registers", never "on any register". */
   certsEmptyChip: string;
-  /**
-   * Whether every source mark this sheet renders links to a record page —
-   * the mark row, the attributed fact rows AND the certificate cards. It is
-   * computed here rather than in the component because a surface that forgets
-   * one mark set makes the action bar's strongest sentence false.
-   */
-  everyMarkLinks: boolean;
   /** The mother's own RSC row; every row the RPC returns is active (the inactive state is REZ-C's). */
   rsc: {
     ref: string | null;

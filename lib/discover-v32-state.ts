@@ -683,3 +683,15 @@ export function discoverRpcArgs(
     p_exclude_sanctioned: !state.sanctioned,
   };
 }
+
+/**
+ * Cards or the ledger. Beside any open pane (a record, a line, the composer,
+ * the filters) the cards give way to the compact table, the master-detail
+ * pattern of Mail, Outlook and Finder: the list keeps only what finds the next
+ * item (founder's review, 29 Sep 2026: squeezed into the column beside a
+ * record, the cards were "a nightmare"). The switch stays on "cards", and
+ * closing the pane brings them back.
+ */
+export function resultsView(view: "cards" | "table", paneOpen: boolean): "cards" | "table" {
+  return view === "table" || paneOpen ? "table" : "cards";
+}

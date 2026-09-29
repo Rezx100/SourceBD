@@ -106,10 +106,13 @@ describe("certificate expiry", () => {
     assert.match(html, /text-caution-ink[^"]*">3</, "renewals inside 30 days are the caution figure");
   });
 
-  it("a long company name wraps and is never truncated", () => {
+  it("a long company name is one line, cut at the end, whole in the page and in its title", () => {
+    // The One-Line Name Rule (founder, 29 Sep 2026) replaced "wraps, never truncated".
     const html = renderToStaticMarkup(createElement(ExpiryTable, { rows: [cert(10)] }));
-    assert.match(html, new RegExp(`\\[overflow-wrap:anywhere\\][^>]*>${LONG_NAME.replace(/[()]/g, "\\$&")}<`));
-    assert.doesNotMatch(html, /truncate|text-ellipsis/);
+    const name = LONG_NAME.replace(/[()]/g, "\\$&");
+    assert.match(html, new RegExp(`<span data-name="" title="${name}" class="[^"]*\\btruncate\\b[^"]*">${name}<`));
+    // Only the name is cut: nothing else on the page carries a truncating class.
+    assert.equal((html.match(/truncate|text-ellipsis/g) ?? []).length, 1);
   });
 
   it("the footer counts the rows", () => {
