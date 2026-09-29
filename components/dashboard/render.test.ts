@@ -2194,14 +2194,14 @@ describe("an unread count renders as unknown, on every surface that shows one", 
         } as never),
       );
     const shown = shell({ suppliers: 10266, rfqs: 7, saved: null });
-    assert.match(shown, /RFQs<[^>]*>7</);
+    assert.match(shown, /RFQs<\/span><[^>]*>7</);
     assert.match(shown, />Saved</);
-    assert.doesNotMatch(shown, /Saved<[^>]*>0</, "the Saved count is not read, and 0 is a claim");
+    assert.doesNotMatch(shown, /Saved<\/span><[^>]*>0</, "the Saved count is not read, and 0 is a claim");
     const unread = shell({ suppliers: null, rfqs: null, saved: null });
-    assert.doesNotMatch(unread, /Suppliers<[^>]*>0</);
-    assert.doesNotMatch(unread, /RFQs<[^>]*>0</);
+    assert.doesNotMatch(unread, /Suppliers<\/span><[^>]*>0</);
+    assert.doesNotMatch(unread, /RFQs<\/span><[^>]*>0</);
     // A real zero is still shown: an account with no RFQs reads "RFQs 0".
-    assert.match(shell({ rfqs: 0 }), /RFQs<[^>]*>0</);
+    assert.match(shell({ rfqs: 0 }), /RFQs<\/span><[^>]*>0</);
   });
 
   it("the panel footer says what the rows are rather than a page range it cannot support", () => {
@@ -2535,6 +2535,10 @@ describe("the shell offers no control without a destination", () => {
   it("every button and form field sits in a form it submits, and nothing else poses as a control", () => {
     for (const html of shells) {
       for (const m of html.matchAll(/<button\b[^>]*>/g)) {
+        // The one control that acts in place: the rail's collapse switch
+        // (founder's video, 29 Sep 2026), which flips the shell and writes
+        // its cookie from `RailToggle`'s click handler.
+        if (/aria-label="(?:Collapse|Expand) sidebar"/.test(m[0])) continue;
         assert.match(m[0], /\btype="submit"/, `a button with no destination: ${m[0]}`);
         assert.ok(insideForm(html, m.index!), `a submit button outside any form: ${m[0]}`);
       }

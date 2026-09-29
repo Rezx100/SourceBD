@@ -146,6 +146,15 @@ option in all seven:
 7. **Product photos: A a list with small photos.** One line per HS heading:
    a 40px photo tagged "illustration", the code, its name.
 
-PR 3 (shell) applies 1 and 4 to the shell; PR 4 (search) 2, 3 and the
+**PR 3 (the shell), built.** The rail collapses to a 56px column of icons
+from a toggle beside the logo (`sb_rail` cookie, read by the layout); its
+current row is slate with a 3px bar; the account corner is one menu (photo
+from Settings → Profile, name or the email's name part, Settings,
+Subscription, Sign out) on the rail and the topbar; the record pane's bar has
+Expand, to the record's own page with "Back to results". The logo and
+wordmark are untouched. The type step (pick 4) moved to PR 4, where the list
+it mostly changes is rebuilt.
+
+Originally planned: PR 3 (shell) applies 1 and 4 to the shell; PR 4 (search) 2, 3 and the
 list's type; PR 5 (record) 5, 6 and 7; PR 6 (RFQ form) the green reduction
 there.

@@ -509,7 +509,11 @@ async function DiscoverRecord({
     if (record) {
       return (
         <RecordPane closeHref={closeHref} openKey={`record:${slug}:${allLines ? "all" : ""}`}>
-          <SupplierSheet model={record} save={record.supplierId ? <SaveRecordButton supplierId={record.supplierId} saved={record.saved} /> : undefined} />
+          <SupplierSheet
+            model={record}
+            backHref={withParams(recordParams)}
+            save={record.supplierId ? <SaveRecordButton supplierId={record.supplierId} saved={record.saved} /> : undefined}
+          />
         </RecordPane>
       );
     }
