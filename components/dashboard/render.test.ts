@@ -399,8 +399,8 @@ describe("ResultsTable (rendered) — the ledger grid", () => {
   it("beside a pane the ledger narrows to Supplier, Sources and Workers", () => {
     const html = renderToStaticMarkup(createElement(ResultsTable, { rows: [buildTableRow(aboniInput())], compact: true }));
     const heads = [...html.matchAll(/<th scope="col"[^>]*>([\s\S]*?)<\/th>/g)].map((m) => m[1]!.replace(/<[^>]+>/g, "").trim());
-    // "Registers & certifiers" is 119px with its caret; the column beside a
-    // pane is 76px (founder's video, 29 Sep 2026: the header wrapped).
+    // "Sources" here and in the wide table: "Registers & certifiers" wrapped
+    // under its caret (founder's review, 29 Sep 2026).
     assert.deepEqual(heads, ["Select", "Supplier", "Sources", "Workers", "Actions"]);
     assert.match(html, /Aboni Knitwear Ltd/);
   });

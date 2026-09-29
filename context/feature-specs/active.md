@@ -51,8 +51,8 @@ same PR. Read once per session.
   PRs #197, #198, #200, #201, #202 on `development`; promotion to `main` waits
   for the founder's deploy approval; migration 0107 not applied
   (`ops/plans/0107-profile-one-supplier.md`).
-- **One-line names, fact icons and the video's leftovers** — NEXT,
-  `handoff-dashboard-names-and-facts.md`: PR 0 the live bugs (z-index classes
+- **One-line names, fact icons and the video's leftovers** — IN PROGRESS (PR 0
+  first), `handoff-dashboard-names-and-facts.md`: PR 0 the live bugs (z-index classes
   that compile to nothing, header labels, the ⌘↵ hint), then names on one line,
   fact hierarchy and icons with lighter Certificates, the card view rebuilt,
   and the leftovers with the sidebar's foot (the founder's instructions and

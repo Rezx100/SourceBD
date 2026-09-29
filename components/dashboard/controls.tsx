@@ -415,7 +415,10 @@ export function Menu({
       <div
         role="menu"
         className={cn(
-          "absolute z-20 min-w-[12rem] max-w-[calc(100vw-2rem)] rounded-md border border-line bg-surface py-1 shadow-md",
+          // `z-overlay`: the numeric class here compiled to nothing, and the
+          // rows below a sort or filter menu painted over its items (founder's
+          // review, 29 Sep 2026).
+          "absolute z-overlay min-w-[12rem] max-w-[calc(100vw-2rem)] rounded-md border border-line bg-surface py-1 shadow-md",
           // Right-anchored only from sm: on a phone the wrapped summary starts its
           // row, and a right-anchored menu would open off the left edge (1.4.10).
           align === "right" ? "left-0 sm:left-auto sm:right-0" : "left-0",

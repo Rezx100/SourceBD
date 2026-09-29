@@ -292,7 +292,7 @@ export function ThreadRealtime({
           </span>
         </div>
       </form>
-      {sent ? <Toast text="Message sent" href={null} className="fixed z-[60]" /> : null}
+      {sent ? <Toast text="Message sent" href={null} className="fixed z-toast" /> : null}
     </div>
   );
 }

@@ -228,9 +228,14 @@ function RowActions({ row }: { row: ProductRow }) {
   const remove = () =>
     run(() => fetch(`/api/v1/products?id=${encodeURIComponent(row.id)}`, { method: "DELETE" }), "Could not delete it.");
 
+  // `relative` alone puts these above the name link stretched over the row: it
+  // comes earlier in the row, so these paint after it. A z-index here (the
+  // numeric one it had compiled to nothing) would make each row's controls a
+  // stacking context, and the next row's controls would paint over this row's
+  // More menu.
   if (confirming) {
     return (
-      <span className="relative z-10 inline-flex items-center gap-1.5">
+      <span className="relative inline-flex items-center gap-1.5">
         <span className="text-xs text-ink-muted">{error ?? "Delete for good?"}</span>
         <Button size="sm" variant="danger" loading={busy} onClick={() => void remove()}>
           <Icon name="trash" /> Delete
@@ -242,7 +247,7 @@ function RowActions({ row }: { row: ProductRow }) {
     );
   }
   return (
-    <span className="relative z-10 inline-flex items-center gap-1">
+    <span className="relative inline-flex items-center gap-1">
       {error ? (
         <span role="alert" className="text-xs text-danger-ink">
           {error}
@@ -271,7 +276,7 @@ function SavedToast({ id }: { id: string }) {
     return () => clearTimeout(t);
   }, []);
   return on ? (
-    <Toast text="Product saved" href={null} link={{ href: `/app/products/${encodeURIComponent(id)}`, label: "Open" }} className="fixed z-[60]" />
+    <Toast text="Product saved" href={null} link={{ href: `/app/products/${encodeURIComponent(id)}`, label: "Open" }} className="fixed z-toast" />
   ) : null;
 }
 

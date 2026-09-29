@@ -126,7 +126,7 @@ export function SaveRecordButton({
           text={toast}
           href={null}
           announce={false}
-          className="fixed z-[60]"
+          className="fixed z-toast"
           link={toast === "Saved to your list" ? { href: "/app/saved", label: "View saved" } : null}
         />
       ) : null}

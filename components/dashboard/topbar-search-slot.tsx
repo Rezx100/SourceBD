@@ -35,18 +35,26 @@ export function isApplePlatform(platform: string | null | undefined, userAgent: 
 const noop = () => () => {};
 
 /**
- * The shortcut hint beside a search field, in the buyer's own keyboard's
- * words. It said "⌘K" on every machine, and on Windows the founder read it as
- * a stray glyph. The server cannot know the platform, so it renders "Ctrl K"
- * and a Mac swaps in "⌘K" after hydration (`useSyncExternalStore`, so the
- * first client render still matches the server's).
+ * True on a Mac, iPhone or iPad, for a shortcut hint in the buyer's own keys.
+ * The server cannot know the platform, so it renders the Ctrl form and a Mac
+ * swaps in ⌘ after hydration (`useSyncExternalStore`, so the first client
+ * render still matches the server's).
  */
-export function ShortcutHint({ className }: { className?: string }) {
-  const apple = useSyncExternalStore(
+export function useApplePlatform(): boolean {
+  return useSyncExternalStore(
     noop,
     () => isApplePlatform(navigator.platform, navigator.userAgent),
     () => false,
   );
+}
+
+/**
+ * The shortcut hint beside a search field, in the buyer's own keyboard's
+ * words. It said "⌘K" on every machine, and on Windows the founder read it as
+ * a stray glyph.
+ */
+export function ShortcutHint({ className }: { className?: string }) {
+  const apple = useApplePlatform();
   return (
     <kbd
       aria-label={apple ? "Command K" : "Control K"}

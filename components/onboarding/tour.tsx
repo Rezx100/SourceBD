@@ -147,10 +147,14 @@ export default function Tour({ flavour, initialStep = 0 }: TourProps) {
   if (!step) return null;
   const isLast = stepIdx === steps.length - 1;
 
+  // `z-modal`, over the topbar (`z-raised`) and the page; the card is inside
+  // the scrim, so it sits above the scrim's ground. The numeric class this had
+  // compiled to nothing (the theme's z scale replaces Tailwind's), so the
+  // topbar painted over the scrim.
   return (
     <div
       aria-hidden={!open}
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-0 py-0 sm:items-center sm:px-4 sm:py-8"
+      className="fixed inset-0 z-modal flex items-end justify-center bg-black/40 px-0 py-0 sm:items-center sm:px-4 sm:py-8"
       style={{ animation: "fadeIn var(--dur-tab) var(--ease)" }}
       onClick={(e) => {
         if (e.target === e.currentTarget) void close("dismissed");

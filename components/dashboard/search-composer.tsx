@@ -57,10 +57,10 @@ export function SearchComposer({
   return (
     <div
       className={cn(
-        // `relative z-[1]`: the filter menus drop down over the results panel
-        // after it (a stacking context of its own), and still under the
-        // topbar's suggestions (z-raised).
-        "relative z-[1] flex items-center gap-3 rounded-md bg-surface py-2 pl-3.5 pr-2.5 shadow-edge",
+        // No z-index of its own: the filter menus are `z-overlay` (`Menu`),
+        // over the results panel after this (a stacking context of its own),
+        // and the page's `<main>` keeps them under the topbar's suggestions.
+        "flex items-center gap-3 rounded-md bg-surface py-2 pl-3.5 pr-2.5 shadow-edge",
         className,
       )}
     >
