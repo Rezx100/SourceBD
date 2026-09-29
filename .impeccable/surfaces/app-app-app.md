@@ -107,7 +107,8 @@ The founder answered its four questions on 29 Sep, before the decision page:
 
 - **Q1, long names:** wrap between words, never mid-word, and give the name
   column the width. No ellipsis ("Unit 2" and a bracket tell sister
-  factories apart).
+  factories apart). **Superseded the same day** (see "After the video PRs"
+  below): one line, the qualifier on the line under it.
 - **Q2, product photos:** keep the stock photos, presented differently (not
   removed). The decision page offers how.
 - **Q3, "Material":** Material 3's principles (tonal surfaces, state layers,
@@ -158,3 +159,15 @@ it mostly changes is rebuilt.
 Originally planned: PR 3 (shell) applies 1 and 4 to the shell; PR 4 (search) 2, 3 and the
 list's type; PR 5 (record) 5, 6 and 7; PR 6 (RFQ form) the green reduction
 there.
+
+**After the video PRs (29 Sep 2026), the founder's instructions and review.**
+Hand-off: `context/feature-specs/handoff-dashboard-names-and-facts.md`.
+"Company name must not break into a lot of lines, it must be single line,
+the way Apple or Microsoft do it": every list, row, card title, menu, picker
+and suggestion shows a name on one line cut at the end, the whole name in
+`title` and the DOM; the qualifier (`splitQualifier`: "Unit-2", "Extension",
+a former name) leads a second line with the type and place, so every row is
+two lines and sister factories stay apart; the record's head shows the base
+name on one line at heading size with the qualifier under it. DESIGN.md's
+Wrapping Name Rule is now the One-Line Name Rule. The rail beside the
+composer is one-line header, one-line rows, one-line footer, no controls.

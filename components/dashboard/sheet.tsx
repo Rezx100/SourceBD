@@ -16,7 +16,7 @@ import { Button, Meter } from "./controls";
 import { Icon } from "./icons";
 import { SourceMark } from "./marks";
 import { SbIcon } from "./sb-icons";
-import { Caption, Code, Eyebrow, Heading, Label } from "./type";
+import { Caption, Code, Eyebrow, Heading, Label, OneLine } from "./type";
 
 /**
  * `.stage`: a fixed-height frame that clips the shell under a sheet or dialog.
@@ -702,7 +702,8 @@ export function FacilitiesList({ rows }: { rows: readonly FacilityRowModel[] }) 
     <ul className="flex flex-col" data-facilities="true">
       {rows.map((r, i) => (
         <li key={`${r.name}-${i}`} className="flex flex-col gap-0.5 border-t border-line-subtle py-2.5 first:border-t-0">
-          <span className="text-base font-medium leading-[22px] text-ink-strong [overflow-wrap:anywhere]">{r.name}</span>
+          {/* A building's name, one line like a company's (the One-Line Name Rule). */}
+          <OneLine text={r.name} className="text-base font-medium leading-[22px] text-ink-strong" />
           {r.address ? <span className="whitespace-pre-line text-sm text-ink [overflow-wrap:anywhere]">{r.address}</span> : null}
           {r.workers ? <Caption>{r.workers}</Caption> : null}
         </li>

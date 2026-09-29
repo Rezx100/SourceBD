@@ -24,7 +24,7 @@
 
 "use client";
 
-import { certStateLabel, type CertModel } from "@/lib/dashboard/facts";
+import { certStateLabel, splitQualifier, type CertModel } from "@/lib/dashboard/facts";
 import type { TableRowModel } from "@/lib/dashboard/models";
 import Link from "next/link";
 import type { KeyboardEvent, ReactNode } from "react";
@@ -48,27 +48,23 @@ export type ResultsSortKey = "name" | "sources" | "cert_expiry" | "hs_lines" | "
 
 /**
  * Column widths in px, null for the supplier column that takes the rest:
- * select · supplier · registers & certifiers · certificates · export lines ·
- * workers · actions (wide); select · supplier · sources · workers · actions
- * beside a pane.
+ * select · supplier · sources · certificates · export lines · workers ·
+ * actions (wide); select · supplier · sources · workers · actions beside a
+ * pane.
  *
  * Set from widths measured in Geist (29 Sep 2026), because the old ones
  * overlapped (founder's video): Workers gave 68px to a second line of up to
  * 118px ("11,119 with buildings"), which ran under the Save and RFQ icons; the
- * compact actions column gave two 28px buttons 48px; the registers column
- * could not hold its own header (119px with the caret) or three logo marks;
- * and beside a pane the supplier column fell to 132px, so a name broke
- * mid-word ("Benchmar k"). Now every column holds its content, and the
- * supplier column keeps at least 184px — the longest register word at 14px
- * ("MANUFACTURING", 120px) plus the tile, its gap and the padding — at the
- * table's minimum width (`RESULTS_MIN_WIDTH`), below which the region
- * scrolls sideways rather than crushing it.
+ * compact actions column gave two 28px buttons 48px; and the sources column
+ * could not hold three logo marks. Every column holds its content, and every
+ * header's label and its sort caret fit on one line (founder's review, 29 Sep
+ * 2026: "Registers & certifiers" and "Export lines" wrapped under the caret).
  *
- * Every header's label and its sort caret fit on one line (founder's review,
- * 29 Sep 2026: "Registers & certifiers" and "Export lines" wrapped under the
- * caret at the app's 13px). The wide sources column is "Sources", as beside a
- * pane and on the record; Export lines has 8px more and Sources 8px less; beside
- * a pane Sources has 8px more and the table's minimum 8px more.
+ * The supplier column is no longer sized for a name's longest word: a name is
+ * one line cut at the end (the One-Line Name Rule), so the table's minimum
+ * (`RESULTS_MIN_WIDTH`) is only what keeps the other columns whole and about
+ * ten characters of name. Beside a pane at 1280 the results column is 492px,
+ * so the compact table never scrolls sideways there; the rail has no minimum.
  */
 export const RESULTS_COLUMNS = {
   wide: [40, null, 152, 212, 120, 152, 104],
@@ -77,8 +73,8 @@ export const RESULTS_COLUMNS = {
   rail: [36, null],
 } as const;
 
-/** The table's minimum width in px: `min-w-[62rem]` and `min-w-[30.5rem]` on the table below. */
-export const RESULTS_MIN_WIDTH = { wide: 992, compact: 488 } as const;
+/** The table's minimum width in px: `min-w-[60rem]` and `min-w-[28rem]` on the table below. */
+export const RESULTS_MIN_WIDTH = { wide: 960, compact: 448 } as const;
 
 const CERT_TONE: Record<CertModel["state"], string> = {
   valid: "bg-positive-tint text-positive-ink",
@@ -163,7 +159,7 @@ export function ResultsTable({
       <table
         className={cn(
           "w-full table-fixed border-collapse text-base",
-          rail ? "" : compact ? "min-w-[30.5rem]" : "min-w-[62rem]",
+          rail ? "" : compact ? "min-w-[28rem]" : "min-w-[60rem]",
           !compact && "[&_thead_th]:xl:sticky [&_thead_th]:xl:top-0 [&_thead_th]:xl:z-raised",
         )}
       >
@@ -199,6 +195,8 @@ export function ResultsTable({
             const selected = selectable ? sel.isSelected(r.supplierId!) : Boolean(r.selected);
             const current = currentSlug !== null && r.slug === currentSlug;
             const recordHref = r.recordHref ?? `/app/suppliers/${r.slug}`;
+            const name = splitQualifier(r.name);
+            const line2 = [name.qualifier, r.type, r.place].filter(Boolean).join(" · ");
             return (
               <tr
                 key={r.slug}
@@ -221,33 +219,41 @@ export function ResultsTable({
                   <div className={cn("flex min-w-0 items-center", compact ? "gap-2.5" : "gap-3")}>
                     <LogoTile initials={r.initials} tier={r.topTier} size={compact ? "sm" : "row"} />
                     <div className="min-w-0 flex-1">
-                      {/* Wraps, never an ellipsis (the Wrapping Name Rule): a
-                          company's name is the company's name, and a 125-character
-                          one grows its row rather than losing its end. */}
-                      <div className="[overflow-wrap:anywhere]">
-                        {/* The name opens the record beside these results (§3.3), as a
-                            client navigation that keeps the results and the selection.
-                            Not in the rail beside the composer: opening a record there
-                            replaced the composer and lost the draft; the box is the
-                            action (tick it into the RFQ). */}
-                        {rail ? (
-                          <span className="font-medium text-ink-strong [overflow-wrap:anywhere]">{r.name}</span>
-                        ) : (
+                      {/* One line each (the One-Line Name Rule, founder, 29 Sep
+                          2026): the base name, then its qualifier, type and
+                          place, each cut at the end with the whole text in its
+                          title, so every row is two lines and the column scans.
+                          The qualifier ("Unit-2") leads line two, so sister
+                          factories stay apart. The name opens the record beside
+                          these results (§3.3), as a client navigation that keeps
+                          the results and the selection. Not in the rail beside
+                          the composer: opening a record there replaced the
+                          composer and lost the draft; the box is the action. */}
+                      {rail ? (
+                        <span data-name="" title={r.name} className="block truncate font-medium text-ink-strong">
+                          {name.base}
+                        </span>
+                      ) : (
                         <Link
                           prefetch={false}
                           scroll={false}
                           href={recordHref}
                           data-open="record"
-                          className="font-medium text-ink-strong [overflow-wrap:anywhere] hover:text-brand-ink"
+                          title={r.name}
+                          aria-label={name.qualifier ? r.name : undefined}
+                          className="flex min-w-0 items-center font-medium text-ink-strong hover:text-brand-ink"
                         >
-                          {r.name}
-                          <LinkPending className="ml-1.5 inline-block align-[-1px] text-ink-subtle" />
+                          <span data-name="" className="truncate">
+                            {name.base}
+                          </span>
+                          <LinkPending className="ml-1.5 text-ink-subtle" />
                         </Link>
-                        )}
-                      </div>
-                      {/* What kind of company and where, under the name, as on Saved:
-                          a column of its own for the type cost the name its width. */}
-                      <div className="text-sm text-ink-subtle [overflow-wrap:anywhere]">{[r.type, r.place].filter(Boolean).join(" · ")}</div>
+                      )}
+                      {line2 ? (
+                        <div data-name="" title={line2} className="truncate text-sm text-ink-subtle">
+                          {line2}
+                        </div>
+                      ) : null}
                       {r.sanctioned ? (
                         <div className="inline-flex items-center gap-1 text-xs font-medium text-sanction-ink">
                           <Icon name="warn" small /> Sanctioned{r.sanctionSample ? " · sample" : ""}

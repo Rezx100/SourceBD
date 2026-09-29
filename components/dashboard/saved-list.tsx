@@ -12,7 +12,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { discoverWorkers, workersSecondShort } from "@/lib/dashboard/build-discover-row";
-import { displayName, entityLabel, formatCount, formatDay, formatRelative, initials, placeLabel } from "@/lib/dashboard/facts";
+import { displayName, entityLabel, formatCount, formatDay, formatRelative, initials, nameSecondLine, placeLabel, splitQualifier } from "@/lib/dashboard/facts";
 import type { WorkersBasis } from "@/lib/enrich-discover-workers";
 import { marksFromTags, topTier } from "@/lib/dashboard/source-tiers";
 import type { SavedSearchJson } from "@/lib/saved-searches";
@@ -21,7 +21,7 @@ import { LogoTile, SourceMarks } from "./marks";
 import { Cell, DataTable, EmptyState, ErrorNote, HeadCell, PageHeader, rowClass } from "./page";
 import { DeleteSavedSearch, SavedSort } from "./saved-controls";
 import { SaveRecordButton } from "./save-record-button";
-import { Caption } from "./type";
+import { Caption, OneLine } from "./type";
 import { WorkersCell } from "./workers-cell";
 
 export const SAVED_SORTS = [
@@ -173,18 +173,20 @@ export function SavedList({
                     <th scope="row" className="h-11 border-b border-line-subtle px-4 py-2 text-left align-middle font-normal">
                       <div className="flex items-center gap-2.5">
                         <LogoTile initials={initials(name)} tier={topTier(tags)} size="sm" />
-                        <div className="min-w-0">
-                          {/* The name opens the record beside the list; the list, its sort and its page stay put. */}
+                        <div className="min-w-0 flex-1">
+                          {/* The name opens the record beside the list; the list, its sort and its page stay put.
+                              Two lines, each cut to one (the One-Line Name Rule). */}
                           <Link
                             prefetch={false}
                             scroll={false}
                             href={savedHref(sort, page, r.slug)}
                             aria-current={open ? "true" : undefined}
-                            className="font-medium text-ink-strong [overflow-wrap:anywhere] hover:text-brand-ink"
+                            aria-label={splitQualifier(name).qualifier ? name : undefined}
+                            className="block min-w-0 font-medium text-ink-strong hover:text-brand-ink"
                           >
-                            {name}
+                            <OneLine text={splitQualifier(name).base} title={name} />
                           </Link>
-                          <Caption className="block">{[entityLabel(r.entity_type), place].filter(Boolean).join(" · ")}</Caption>
+                          <OneLine text={nameSecondLine(name, entityLabel(r.entity_type), place)} className="text-xs text-ink-subtle" />
                         </div>
                       </div>
                     </th>

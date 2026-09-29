@@ -13,6 +13,7 @@
 
 "use client";
 
+import { splitQualifier } from "@/lib/dashboard/facts";
 import type { SupplierCardModel, FactWithMark, TileModel } from "@/lib/dashboard/models";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -116,6 +117,7 @@ export function SupplierResultCard({ card }: { card: SupplierCardModel }) {
   const sel = useSelection();
   const selectable = sel.interactive && Boolean(card.supplierId);
   const selected = selectable ? sel.isSelected(card.supplierId!) : Boolean(card.selected);
+  const name = splitQualifier(card.name);
   return (
     <article
       aria-label={card.name}
@@ -148,28 +150,33 @@ export function SupplierResultCard({ card }: { card: SupplierCardModel }) {
                   card's Open / Send RFQ / Save sit under their supplier's name.
                   The name itself opens the record (§3.3, "from Open record /
                   the name"); the button beside it goes to the same place. */}
-              <Title as="h2">
+              <Title as="h2" className="min-w-0 max-w-full">
                 {/* `next/link` and `scroll={false}`: the record opens over these
                     results without a document load or moving the page (§3.3).
                     The server does re-run the search (`record` is a search
                     param); the selection survives even a failed re-run
-                    (discover/page.tsx). `[overflow-wrap:anywhere]` rides on the element that
-                    directly holds the text — a 125-character name must break
-                    inside the link, not overflow the card. */}
+                    (discover/page.tsx). One line, cut at the end, the whole
+                    name in its title and its accessible name (the One-Line
+                    Name Rule); the qualifier is the line under it. */}
                 <Link
                   prefetch={false}
                   scroll={false}
                   href={recordHref}
-                  // Last, so React emits it last: the kit's long-name guard
-                  // matches the element that directly holds the text, as
-                  // `class="…[overflow-wrap:anywhere]…">Name<`.
-                  className="text-ink-strong [overflow-wrap:anywhere] hover:text-brand-ink"
+                  title={card.name}
+                  aria-label={name.qualifier ? card.name : undefined}
+                  data-name=""
+                  className="block truncate text-ink-strong hover:text-brand-ink"
                 >
-                  {card.name}
+                  {name.base}
                 </Link>
               </Title>
               <SourceMarks marks={card.marks} />
             </div>
+            {name.qualifier ? (
+              <span data-name="" title={name.qualifier} className="block truncate text-sm text-ink-subtle">
+                {name.qualifier}
+              </span>
+            ) : null}
             <MetaLine facts={card.meta} />
             {card.sanctioned ? <SanctionLine sample={card.sanctionSample} href={recordHref} /> : null}
           </div>

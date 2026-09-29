@@ -1,5 +1,5 @@
 // SupplierSheet (REZ-A, handoff §3.3): the record as an 880px sheet over the
-// results. Bar · head (initials, name in heading-lg that wraps, meta with a
+// results. Bar · head (initials, base name in heading-lg on one line and its qualifier under it, meta with a
 // mark per fact, the full mark row with names) · tabs with mono counts ·
 // Overview (summary + FactsPanel beside the locked contact card) · Products
 // (four stats + six-up grid) · Certificates · Safety · the sticky action bar.
@@ -13,7 +13,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { onFileLabel } from "@/lib/dashboard/facts";
+import { onFileLabel, splitQualifier } from "@/lib/dashboard/facts";
 import type { FactRow, SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
 import { Button } from "./controls";
@@ -142,6 +142,7 @@ export function SupplierSheet({
   backHref?: string | null;
 }) {
   const p = model.products;
+  const name = splitQualifier(model.name);
   const expandHref = backHref ? `${model.fullHref}${model.fullHref.includes("?") ? "&" : "?"}back=${encodeURIComponent(backHref)}` : model.fullHref;
   return (
     <Sheet label="Supplier record" mode={mode}>
@@ -185,9 +186,21 @@ export function SupplierSheet({
           <div className="flex items-start gap-4">
             <LogoTile initials={model.initials} tier={model.topTier} />
             <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-              <Heading level="lg" as="h1">
-                {model.name}
+              {/* The base name on one line at heading size, cut only past the
+                  pane's width (the rare 45+ character base); the qualifier as
+                  its own line; the whole registered name in "Registered name"
+                  just below. Where Apple and Microsoft put a long title: in the
+                  detail (the One-Line Name Rule, founder, 29 Sep 2026). */}
+              <Heading level="lg" as="h1" className="min-w-0">
+                <span data-name="" title={model.name} className="block truncate">
+                  {name.base}
+                </span>
               </Heading>
+              {name.qualifier ? (
+                <span data-name="" title={name.qualifier} className="-mt-1 block truncate text-base text-ink-muted">
+                  {name.qualifier}
+                </span>
+              ) : null}
               <MetaLine facts={model.meta} inRow={new Set(model.marks.map((m) => m.code))} />
               {/* Each source once (founder's pick, 29 Sep 2026): the facts line
                   is plain and every source is a square in this one row, which

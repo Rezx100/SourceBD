@@ -13,14 +13,14 @@ import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 import { AcceptQuoteRows } from "@/components/accept-quote-button";
 import { buildRfqRow, type RfqListRow } from "@/lib/dashboard/build-models";
-import { formatCount, formatDay, formatMoney, formatQuantity } from "@/lib/dashboard/facts";
+import { formatCount, formatDay, formatMoney, formatQuantity, nameSecondLine, splitQualifier } from "@/lib/dashboard/facts";
 import { cn } from "@/lib/utils";
 import { Badge, Chip, type BadgeTone } from "./chips";
 import { Button, Count } from "./controls";
 import { Icon } from "./icons";
 import { Cell, DataTable, DetailList, EmptyState, ErrorNote, HeadCell, PageHeader, PageSection, rowClass } from "./page";
 import { Sheet, SheetBar, SheetScroll } from "./sheet";
-import { Caption, Title } from "./type";
+import { Caption, OneLine, Title } from "./type";
 
 type RfqStatus = "open" | "accepted" | "closed" | "cancelled";
 type ViewerRole = "buyer" | "supplier" | "both";
@@ -457,9 +457,9 @@ export function RfqDetailBody({
                     <Link
                       prefetch={false}
                       href={`/app/suppliers/${q.supplier_slug}`}
-                      className="font-medium text-brand-ink [overflow-wrap:anywhere] hover:underline"
+                      className="block max-w-[20rem] font-medium text-brand-ink hover:underline"
                     >
-                      {q.supplier_name}
+                      <OneLine text={q.supplier_name} />
                     </Link>
                   </Cell>
                   <Cell align="right" className={cn("whitespace-nowrap", joined)}>
@@ -543,15 +543,16 @@ export function RfqDetailBody({
         <ul className="m-0 flex list-none flex-col p-0">
           {rfq.targets.map((s) => (
             <li key={s.id} className="flex flex-col gap-0.5 border-t border-line-subtle px-4 py-2.5 first:border-t-0">
+              {/* Two lines, each cut to one (the One-Line Name Rule). */}
               <Link
                 prefetch={false}
                 href={`/app/suppliers/${s.slug}`}
-                className="text-sm font-medium text-brand-ink [overflow-wrap:anywhere] hover:underline"
+                className="block min-w-0 text-sm font-medium text-brand-ink hover:underline"
               >
-                {s.company_name}
+                <OneLine text={splitQualifier(s.company_name).base} title={s.company_name} />
               </Link>
-              <Caption>
-                {entityLabel(s.entity_type)}
+              <Caption className="block min-w-0 truncate">
+                {nameSecondLine(s.company_name, entityLabel(s.entity_type))}
                 {s.city ? ` · ${s.city}` : ""}
                 {s.district ? `, ${s.district}` : ""}
               </Caption>

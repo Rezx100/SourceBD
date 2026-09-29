@@ -400,6 +400,49 @@ export function displayName(stored: string): string {
   return cased.replace(/\b(Ltd|Limited|Inc|Plc|Co)\.$/, "$1");
 }
 
+/** Bracketed words that are part of a company's name, never a qualifier after it. */
+const PART_OF_NAME = /^(?:bangladesh|bd|pvt\.?|private)$/i;
+
+/**
+ * A name's base and the qualifier filed after it, so a list can show the base
+ * on one line and the qualifier on the next (the One-Line Name Rule, founder,
+ * 29 Sep 2026). The qualifier is what tells sister factories apart: a unit
+ * ("Unit-2", "Shafipur Unit"), a building ("Extension"), a division, a group
+ * or a former name. Trailing bracketed groups are taken whole (brackets
+ * dropped, inner spaces trimmed, several joined with " · ", also when "&" or a
+ * comma joins them); a bare trailing "Unit-2" or "U-2" is one too. Never
+ * split: "(Bangladesh)", "(BD)" and "(Pvt.)", a bracket in the middle of a
+ * name, or brackets that do not balance. Nothing is dropped: base and
+ * qualifier together are the whole name.
+ */
+export function splitQualifier(name: string): { base: string; qualifier: string | null } {
+  const whole = name.trim().replace(/\s+/g, " ");
+  let depth = 0;
+  for (const ch of whole) {
+    depth += ch === "(" ? 1 : ch === ")" ? -1 : 0;
+    if (depth < 0) break;
+  }
+  if (depth !== 0) return { base: whole, qualifier: null };
+  let base = whole;
+  const groups: string[] = [];
+  for (;;) {
+    const m = /(?:\s*[&,]\s*|\s*)\(([^()]*)\)$/.exec(base);
+    const inner = m?.[1]!.trim();
+    const rest = m ? base.slice(0, m.index).trim() : "";
+    if (!m || !inner || PART_OF_NAME.test(inner) || !rest) break;
+    groups.unshift(inner);
+    base = rest;
+  }
+  if (groups.length > 0) return { base: base.replace(/\s*[&,]$/, ""), qualifier: groups.join(" · ") };
+  const unit = /^(.*\S)\s+((?:unit|u)[\s-]*\d+[a-z]?)$/i.exec(whole);
+  return unit ? { base: unit[1]!, qualifier: unit[2]! } : { base: whole, qualifier: null };
+}
+
+/** The line under a name in a list: its qualifier, then what else the row says (type, place), joined with " · ". */
+export function nameSecondLine(name: string, ...rest: (string | null | undefined)[]): string {
+  return [splitQualifier(name).qualifier, ...rest].filter(Boolean).join(" · ");
+}
+
 /** Two-letter initials for the logo slot: `Aboni Knitwear Ltd` → `AK`. */
 export function initials(name: string): string {
   const words = name
