@@ -35,7 +35,7 @@ describe("1. a record tab scrolls the pane, never the app", () => {
     const shell = renderToStaticMarkup(
       createElement(
         AppShell,
-        { sidebar: { counts: { suppliers: null, rfqs: null, saved: null }, recent: [], plan: { name: "" } }, topbar: { caption: "", initial: null } } as ComponentProps<typeof AppShell>,
+        { sidebar: { counts: { suppliers: null, rfqs: null, saved: null }, recent: [], plan: { name: "" } }, topbar: { caption: "", initial: null } } as unknown as ComponentProps<typeof AppShell>,
         null,
       ),
     );

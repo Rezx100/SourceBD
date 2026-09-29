@@ -266,7 +266,9 @@ export async function middleware(req: NextRequest) {
   return res;
 }
 
-/** The gate's one read: the caller's role and whether the account is suspended. */
+// The gate's one read: the caller's role and whether the account is suspended.
+// A line comment on purpose: the header's `/app/*` opens what source-reading
+// tests take for a block comment, and a doc comment here would close it.
 function readGate(supabase: ReturnType<typeof createSupabaseMiddlewareClient>["supabase"], userId: string) {
   return Promise.resolve(supabase.from("profiles").select("role, is_suspended").eq("id", userId).maybeSingle());
 }
