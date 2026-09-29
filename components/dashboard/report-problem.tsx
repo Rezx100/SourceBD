@@ -81,7 +81,7 @@ export function ReportProblem({ page }: { page: string }) {
       </summary>
       <form
         onSubmit={submit}
-        className="absolute right-0 top-full z-10 mt-1 flex w-72 flex-col gap-2 rounded-md border border-line bg-surface p-3 shadow-sm"
+        className="absolute right-0 top-full z-overlay mt-1 flex w-72 flex-col gap-2 rounded-md border border-line bg-surface p-3 shadow-sm"
       >
         <label className="flex flex-col gap-1 text-sm font-medium text-ink-strong">
           Report a problem

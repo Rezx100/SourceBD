@@ -16,8 +16,9 @@ import { Caption, Title } from "./type";
 export function Panel({ className, children }: { className?: string; children: ReactNode }) {
   // NOT `overflow-hidden`: that clipped every menu the header and footer open.
   // The rounded corners are kept on the first and last child instead.
-  // `isolate`: the sticky header's z-index stays inside the panel, so the
-  // filter menus above it drop down over the rows, not under them.
+  // `isolate`: the sticky header's `z-raised` stays inside the panel, so the
+  // whole panel sits under the filter menus above it (`z-overlay`) and under
+  // anything else the page raises.
   return (
     <section className={cn("isolate rounded-md bg-surface shadow-edge", "[&>*:first-child]:rounded-t-md [&>*:last-child]:rounded-b-md", className)}>
       {children}

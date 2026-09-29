@@ -14,6 +14,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { buildTableRow } from "@/lib/dashboard/build-models";
 import { aboniInput } from "@/lib/dashboard/fixtures";
 import { RESULTS_COLUMNS, ResultsTable } from "./results-table";
+import { RfqComposer } from "./rfq-composer";
 import { RecordPane, ResultsColumn } from "./sheet";
 
 const source = (p: string) => readFileSync(path.join(process.cwd(), p), "utf8");
@@ -27,7 +28,7 @@ describe("the results step aside to a slim rail while an RFQ is composed", () =>
     assert.match(html, /role="checkbox"/, "a buyer can still tick a supplier into the RFQ");
     assert.match(html, />Aboni Knitwear Ltd</);
     assert.doesNotMatch(html, /data-action="rfq"|data-workers-cell|aria-label="Source: /);
-    assert.doesNotMatch(html, /min-w-\[30rem\]/, "the rail must not scroll sideways");
+    assert.doesNotMatch(html, /<table[^>]*min-w-\[/, "the rail must not scroll sideways");
     assert.doesNotMatch(html, /data-open="record"/, "a name in the rail opens the record over the composer and loses the draft");
   });
 
@@ -45,5 +46,20 @@ describe("the results step aside to a slim rail while an RFQ is composed", () =>
     assert.match(page, /\{composerOpen \? null : \(\s*<form action=\{DISCOVER_PATH\}/);
     assert.match(page, /rail=\{composerOpen\}\s*\n\s*density=/);
     assert.match(page, /state\.view === "table" \|\| composerOpen/, "a card list in an 18rem rail");
+  });
+});
+
+describe("the Send RFQ hint names the buyer's own keys", () => {
+  it("says Ctrl ↵ until a Mac says otherwise, and the screen-reader hint names the same key", () => {
+    // Founder's review, 29 Sep 2026: "⌘↵" on Windows. The server cannot know
+    // the platform, so it draws the Control form and a Mac swaps in ⌘ after
+    // hydration (`useApplePlatform`); the handler takes either key.
+    const row = buildTableRow(aboniInput());
+    const target = { id: "8ce50581-2d84-4cc2-93de-506394eade5d", slug: row.slug, name: row.name, initials: row.initials, tier: 1 as const, marks: row.marks, place: "Dhaka", type: "Factory", sanctioned: false };
+    const html = renderToStaticMarkup(createElement(RfqComposer, { targets: [target], workspace: null, closeHref: "/app/discover?q=knit" }));
+    assert.match(html, /<kbd[^>]*>Ctrl ↵<\/kbd>/);
+    assert.doesNotMatch(html, /⌘/);
+    assert.match(html, /Control plus Enter also sends\./);
+    assert.match(source("components/dashboard/rfq-composer.tsx"), /\(e\.metaKey \|\| e\.ctrlKey\) && e\.key === "Enter"/, "the hint promises a key the handler no longer takes");
   });
 });

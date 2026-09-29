@@ -216,7 +216,7 @@ export function DataTable({
       <table
         className={cn(
           "w-full border-collapse text-sm",
-          "[&_thead_th]:xl:sticky [&_thead_th]:xl:top-0 [&_thead_th]:xl:z-10",
+          "[&_thead_th]:xl:sticky [&_thead_th]:xl:top-0 [&_thead_th]:xl:z-raised",
           dense && "[&_td]:h-9 [&_th[scope=row]]:h-9",
         )}
         style={{ minWidth }}

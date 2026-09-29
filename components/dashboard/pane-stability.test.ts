@@ -22,7 +22,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { SOURCE_LOGO_FILES } from "@/lib/dashboard/source-logos";
 import { AppShell } from "./app-shell";
-import { RESULTS_COLUMNS, RESULTS_MIN_WIDTH } from "./results-table";
+import { RESULTS_COLUMNS, RESULTS_MIN_WIDTH, ResultsTable } from "./results-table";
 import { SheetSection, Workbench } from "./sheet";
 import { SheetTabs, goToSection, type TabClick } from "./sheet-tabs";
 import { WorkersCell } from "./workers-cell";
@@ -191,10 +191,35 @@ describe("2–3. every column holds what it carries", () => {
       assert.ok(name - NAME_CHROME[layout] >= LONGEST_WORD, `${layout}: the supplier column falls to ${name}px, so a name breaks mid-word`);
     }
     const table = source("components/dashboard/results-table.tsx");
-    assert.match(table, /compact \? "min-w-\[30rem\]" : "min-w-\[62rem\]"/, "RESULTS_MIN_WIDTH no longer says what the table draws");
+    assert.match(table, /compact \? "min-w-\[30\.5rem\]" : "min-w-\[62rem\]"/, "RESULTS_MIN_WIDTH no longer says what the table draws");
     assert.match(table, /size=\{compact \? "sm" : "row"\}/, "NAME_CHROME no longer says which tile the row draws");
-    assert.equal(RESULTS_MIN_WIDTH.compact, 30 * 16);
+    assert.equal(RESULTS_MIN_WIDTH.compact, 30.5 * 16);
     assert.equal(RESULTS_MIN_WIDTH.wide, 62 * 16);
+  });
+
+  it("every header label and its sort caret fit their column on one line", () => {
+    // Founder's review, 29 Sep 2026: at the app's 13px "Registers &
+    // certifiers" and "Export lines" wrapped, the caret on their words.
+    // Measured in Geist, 500 13px (a header's `text-xs` in the app), 29 Sep
+    // 2026. A label not measured here fails, so a new one gets measured.
+    const LABEL: Record<string, number> = { Supplier: 51, Sources: 49.9, Certificates: 70.6, "Export lines": 72, Workers: 50.4 };
+    const CARET = 4 + 12; // `gap-1` and the 12px caret, drawn (hidden until active) on every sortable header
+    const PAD: Record<string, number> = { "px-1": 8, "px-2": 16, "px-3": 24 };
+    const sortHrefs = { name: "?sort=name", sources: "?sort=sources", cert_expiry: "?sort=cert_expiry", hs_lines: "?sort=hs_lines", workers: "?sort=workers" };
+    for (const layout of ["wide", "compact"] as const) {
+      const html = renderToStaticMarkup(createElement(ResultsTable, { rows: [], compact: layout === "compact", sortHrefs }));
+      const cols = RESULTS_COLUMNS[layout];
+      const heads = [...html.matchAll(/<th scope="col"[^>]*class="([^"]*)"[^>]*>([\s\S]*?)<\/th>/g)];
+      assert.equal(heads.length, cols.length, `${layout}: one header per column`);
+      heads.forEach(([, cls, inner], i) => {
+        const label = inner!.replace(/<[^>]+>/g, "").trim();
+        if (label === "Select" || label === "Actions") return;
+        assert.ok(label in LABEL, `${layout}: "${label}" is not measured; measure it in Geist at 13px medium and add it`);
+        const width = cols[i] ?? RESULTS_MIN_WIDTH[layout] - fixed(cols);
+        const pad = PAD[/\bpx-[123]\b/.exec(cls!)?.[0] ?? ""] ?? 32;
+        assert.ok(LABEL[label]! + CARET <= width - pad, `${layout}: "${label}" needs ${LABEL[label]! + CARET}px and its column gives ${width - pad}px`);
+      });
+    }
   });
 
   it("the actions and workers columns hold their contents", () => {

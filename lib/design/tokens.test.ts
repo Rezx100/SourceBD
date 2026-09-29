@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
-import { borderRadius, boxShadow, contrastPairs, contrastRatio, cssVarName, density, densitySizes, fontSize, light, maxWidth, resolve, tiers, toRgb, transitionDuration } from "./tokens";
+import { borderRadius, boxShadow, contrastPairs, contrastRatio, cssVarName, density, densitySizes, fontSize, light, maxWidth, resolve, tiers, toRgb, transitionDuration, zIndex } from "./tokens";
 
 // npm test runs from the repo root; the compiled test lives elsewhere.
 const repoRoot = process.cwd();
@@ -110,6 +110,38 @@ for (const rel of GUARDED.flatMap(walk)) {
       assert.ok(!OLD_PALETTE.test(line), `${rel}:${i + 1} uses a removed palette class: ${line.trim()}`);
       assert.ok(!OFF_TOKEN_RADIUS.test(line), `${rel}:${i + 1} has an off-token radius: ${line.trim()}`);
     });
+  });
+}
+
+// The theme's z scale (`zIndex` above) REPLACES Tailwind's numeric one, so a
+// numeric class compiles to nothing: 77 did, in 40 files. In the buyer app the
+// record's sticky tabs, the sticky table headers and every menu had no z-index
+// at all, and product photos, source marks and rows painted over them
+// (founder's review, 29 Sep 2026). A test pinned one of those classes, which is
+// why nothing failed. An arbitrary number (`z-[60]`) does compile, but off the
+// scale, so a layer is named or it is not used.
+const Z_GUARDED = ["components/dashboard", "app/(app)/app", "components/onboarding"];
+const NUMERIC_Z = /(?:^|[\s"'`{(:!])-?z-(?:\d+|\[-?\d+\])(?![\w-])/;
+const Z_SCALE = Object.keys(zIndex).map((k) => `z-${k}`).join(", ");
+
+test("the z scale is the six named layers, and the numeric-class pattern tells them apart", () => {
+  assert.deepEqual(Object.keys(zIndex), ["base", "raised", "sticky", "overlay", "modal", "toast"]);
+  for (const rel of Z_GUARDED) assert.ok(walk(rel).length > 0, `${rel} holds no files, so it guards nothing`);
+  for (const bad of ["z-10", "xl:z-10", "[&_thead_th]:xl:z-10", 'className="focus:z-50"', "fixed z-[60]", "-z-10", "!z-20", "`z-0`"]) {
+    assert.ok(NUMERIC_Z.test(bad), `not caught: ${bad}`);
+  }
+  for (const ok of ["z-raised", "[&_thead_th]:xl:z-raised", "focus:z-toast", "size-10", "lg:size-10", "z-overlay mb-1"]) {
+    assert.ok(!NUMERIC_Z.test(ok), `caught a token: ${ok}`);
+  }
+});
+
+for (const rel of Z_GUARDED.flatMap(walk)) {
+  test(`no numeric z-index class in ${rel}`, () => {
+    readFileSync(path.join(repoRoot, rel), "utf8")
+      .split(/\r?\n/)
+      .forEach((line, i) => {
+        assert.ok(!NUMERIC_Z.test(line), `${rel}:${i + 1} has a numeric z-index class, which compiles to nothing or sits off the scale; use a layer (${Z_SCALE}): ${line.trim()}`);
+      });
   });
 }
 

@@ -10,7 +10,7 @@ import { Skeleton, SkeletonRegion } from "@/components/ui/skeleton";
 // in the old design's stylesheet, no bars at all. The layout draws the shell.
 
 /** The ledger grid's columns, wide view: `RESULTS_COLUMNS.wide` in `components/dashboard/results-table.tsx`. */
-const GRID = "grid grid-cols-[40px_minmax(0,1fr)_160px_212px_112px_152px_104px] items-center";
+const GRID = "grid grid-cols-[40px_minmax(0,1fr)_152px_212px_120px_152px_104px] items-center";
 
 export default function BuyerDiscoverLoading() {
   return (
