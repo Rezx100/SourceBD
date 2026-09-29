@@ -27,7 +27,7 @@ export function Toast({
     // `both` fill would leave the centring at `none`.
     <div
       role={announce ? "status" : undefined}
-      className={cn("absolute bottom-6 left-1/2 w-max max-w-[calc(100vw-2rem)] -translate-x-1/2", className)}
+      className={cn("absolute bottom-6 left-1/2 w-max max-md:bottom-[calc(theme(height.tabbar)_+_env(safe-area-inset-bottom)_+_1rem)] max-w-[calc(100vw-2rem)] -translate-x-1/2", className)}
     >
       <div className="inline-flex max-w-full items-center gap-2.5 rounded-md bg-surface-inverse px-3.5 py-2.5 text-sm font-medium text-ink-inverse shadow-lg animate-rise motion-reduce:animate-none [--ds-focus:var(--ds-ink-inverse)]">
         <i aria-hidden className="inline-block size-2 rounded-full bg-signal shadow-bloom" />

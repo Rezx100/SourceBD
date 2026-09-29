@@ -13,12 +13,14 @@ import { describe, it } from "node:test";
 import { createElement, type ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
+import { phoneFontSize } from "@/lib/design/tokens";
 import { installMenuDismiss, MENU_NAME, placePanel } from "@/lib/dashboard/menu-dismiss";
+import { MORE_NAV, NAV, PHONE_TABS } from "@/lib/dashboard/nav";
 import { AccountMenu } from "./account-menu";
 import { AppShell } from "./app-shell";
 import { Menu, MenuItem } from "./controls";
 import { ReportProblem } from "./report-problem";
-import { ResultsColumn, SheetScroll } from "./sheet";
+import { RecordPane, ResultsColumn, SheetScroll } from "./sheet";
 import { goToSection, type TabClick } from "./sheet-tabs";
 
 const source = (p: string) => readFileSync(path.join(process.cwd(), p), "utf8");
@@ -208,7 +210,7 @@ describe("M0. trays: one open at a time, closed by a press outside or Escape, ke
     assert.equal(prevented, false);
     // Choosing an item closes its tray, even when the choice goes nowhere new.
     a.open = true;
-    listeners.click!({ target: { closest: (sel: string) => (sel === "[data-menu-item]" ? { closest: () => a } : null) } });
+    listeners.click!({ target: { closest: (sel: string) => (sel.includes("[data-menu-item]") ? { closest: () => a } : null) } });
     assert.equal(a.open, false, "Archive, chosen, left the menu open over the row");
     off();
     assert.deepEqual(Object.keys(listeners), []);
@@ -255,5 +257,74 @@ describe("M0. touch: fields do not zoom, hover does not stick", () => {
     assert.match(css, /@media \(pointer: coarse\) \{\s*\[data-shell\] :is\(input, select, textarea\) \{\s*font-size: max\(1rem, 1em\);/);
     assert.match(css, /@media \(hover: hover\) \{\s*\.link:hover \{/);
     assert.match(source("tailwind.config.ts"), /future: \{ hoverOnlyWhenSupported: true \}/);
+  });
+});
+
+describe("M1. the navigation at the foot of a phone, and the phone's size scale", () => {
+  const shell = (active: string) =>
+    renderToStaticMarkup(
+      createElement(
+        AppShell,
+        {
+          sidebar: { active, counts: { suppliers: 10266, rfqs: 2, saved: 3 }, recent: [], plan: { name: "Free", note: "public beta" }, account: { initial: "R", name: "Rezaul Karim", email: "r@example.invalid" } },
+          topbar: { caption: "", initial: "R", searchAction: "/app/discover" },
+        } as unknown as ComponentProps<typeof AppShell>,
+        "x",
+      ),
+    );
+  const bar = (html: string) => /<nav aria-label="Tab bar" class="fixed [\s\S]*?<\/nav>/.exec(html)?.[0] ?? "";
+  const tabs = (html: string) =>
+    [...bar(html).matchAll(/<(a|summary)\b([^>]*class="[^"]*\btext-nav-label\b[^"]*"[^>]*)>([\s\S]*?)<\/\1>/g)].map((m) => ({
+      attrs: m[2]!,
+      body: m[3]!,
+      label: m[3]!.replace(/<[^>]+>/g, "").trim(),
+    }));
+
+  it("the phone's type step: body 16, a card's title 17, a section 17, a page title 22, the record's name 24, only below 640px", () => {
+    const px = (rem: string) => Math.round(parseFloat(rem) * 16);
+    assert.deepEqual(Object.fromEntries(Object.entries(phoneFontSize).map(([k, [size]]) => [k, px(size)])), { base: 16, title: 17, xl: 17, "3xl": 24, "page-title": 22 });
+    const tw = source("tailwind.config.ts");
+    assert.match(tw, /addBase\(\{ "@media not all and \(min-width: 640px\)": \{ "\[data-shell\]": appFontVars\(phoneFontSize\) \} \}\)/, "the phone step is not scoped to phones");
+    assert.match(tw, /!\(key in appFontSize\) && !\(key in phoneFontSize\)/, "a phone size would not read its variable");
+    assert.match(source(`${KIT}/page.tsx`), /<h1 className="text-page-title font-semibold/, "the page title is not on its token");
+  });
+
+  it("the bar holds five tabs in order, each a 24px icon over an 11px label, and marks only the current one", () => {
+    const saved = tabs(shell("saved"));
+    assert.deepEqual(saved.map((t) => t.label), ["Search", "Saved", "RFQs", "Messages", "More"]);
+    for (const t of saved) assert.match(t.body, /<svg[^>]*width="24" height="24"/, `${t.label}: not a 24px icon`);
+    assert.deepEqual(saved.map((t) => /aria-current="page"/.test(t.attrs)), [false, true, false, false, false]);
+    assert.match(saved[1]!.attrs, /\btext-ink-strong\b[^"]*shadow-\[inset_0_2px_0_rgb\(var\(--ds-accent\)\)\]/, "the current tab is marked by colour alone");
+    assert.doesNotMatch(saved[0]!.attrs, /\btext-ink-strong\b/);
+    // A page under More marks More, and the item in its sheet.
+    const orders = shell("orders");
+    assert.match(tabs(orders)[4]!.attrs, /\btext-ink-strong\b/, "on Orders, More does not read as current");
+    assert.match(orders, /<a data-menu-item=""(?=[^>]*aria-current="page")[^>]*href="\/app\/orders"/);
+  });
+
+  it("More holds every destination the bar does not, then the account and Sign out", () => {
+    const sheet = /aria-label="More" class="fixed [\s\S]*?<\/details>/.exec(bar(shell("search")))?.[0] ?? "";
+    assert.ok(sheet, "no More sheet");
+    const hrefs = [...sheet.matchAll(/<a data-menu-item=""[^>]*href="([^"]+)"/g)].map((m) => m[1]);
+    assert.deepEqual(hrefs, MORE_NAV.map((n) => n.href));
+    assert.deepEqual(MORE_NAV.map((n) => n.key).sort(), NAV.filter((n) => !PHONE_TABS.includes(n.key)).map((n) => n.key).sort());
+    assert.match(sheet, /Rezaul Karim/);
+    assert.match(sheet, /<form action="\/auth\/sign-out" method="post"><button type="submit" data-menu-item=""[^>]*>[\s\S]*?Sign out/);
+    assert.match(sheet, /data-menu-close=""[^>]*>Done</, "the sheet has no Done");
+  });
+
+  it("the bar is fixed to the foot above the safe area, the page is padded for it, and both bars step aside for a detail", () => {
+    const html = shell("search");
+    const cls = /<nav aria-label="Tab bar" class="([^"]*)"/g;
+    const barClass = [...html.matchAll(cls)].map((m) => m[1]!).find((c) => c.startsWith("fixed"))!;
+    for (const c of ["fixed", "bottom-0", "pb-[env(safe-area-inset-bottom)]", "md:hidden", "group-has-[[data-detail]]/shell:hidden"]) assert.ok(bare(barClass, c), `${c}: ${barClass}`);
+    const main = classOf(html, /<main [^>]*class="([^"]*)"/);
+    assert.ok(bare(main, "max-md:pb-[calc(theme(height.tabbar)_+_env(safe-area-inset-bottom))]"), main);
+    assert.ok(bare(main, "max-md:group-has-[[data-detail]]/shell:pb-0"), main);
+    const topbar = classOf(html, /<div class="(glass [^"]*)"/);
+    for (const c of ["max-md:sticky", "max-md:top-0", "max-md:h-topbar-phone", "max-md:group-has-[[data-detail]]/shell:hidden"]) assert.ok(bare(topbar, c), `${c}: ${topbar}`);
+    // The rail is from md only: no strip across the top of a phone.
+    assert.match(html, /<aside[^>]*class="hidden [^"]*\bmd:flex\b/);
+    assert.match(renderToStaticMarkup(createElement(RecordPane, null, "x")), /^<div data-detail=""/);
   });
 });

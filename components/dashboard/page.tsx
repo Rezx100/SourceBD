@@ -40,7 +40,7 @@ export function PageHeader({
     <header className="flex flex-col gap-3">
       <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex min-w-0 flex-col gap-0.5">
-          <h1 className="text-xl font-semibold tracking-[-0.01em] text-ink-strong [overflow-wrap:anywhere]">{title}</h1>
+          <h1 className="text-page-title font-semibold text-ink-strong [overflow-wrap:anywhere]">{title}</h1>
           {caption ? <Caption className="text-sm text-ink-muted">{caption}</Caption> : null}
         </div>
         {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}

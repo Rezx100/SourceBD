@@ -1,6 +1,7 @@
 "use client";
 
-// The rail's links. A client component so the current item follows the URL
+// The rail's links, from `md` (below it, the tab bar: `bottom-nav.tsx`). A
+// client component so the current item follows the URL
 // on every client navigation: the shell is drawn once by the buyer layout and
 // is not re-rendered when the page under it changes, so a server-chosen
 // `active` would stay on the page the buyer arrived at. `active` is still
@@ -13,7 +14,6 @@ import { NAV, navMatch, type NavKey } from "@/lib/dashboard/nav";
 import { cn } from "@/lib/utils";
 import { Count } from "./controls";
 import { Icon } from "./icons";
-import { NavCurrent } from "./nav-current";
 
 export type NavCounts = { suppliers?: number | null; rfqs?: number | null; saved?: number | null };
 
@@ -38,15 +38,7 @@ export function SidebarNav({
   const pathname = usePathname() ?? "";
   const current = active === undefined ? navMatch(pathname) : { key: active, exact: activeExact !== false };
   return (
-    <nav
-      aria-label={label}
-      // `overflow-x-auto` computes `overflow-y: auto` too, and an outline is
-      // not scrollable overflow — so on a 32px-tall strip the global
-      // `outline-offset-2` focus ring was cut off top and bottom (WCAG
-      // 2.4.11). `-mx-1 px-1` buys that room horizontally, `-my-1 py-1`
-      // vertically, at no layout cost: the negative margin gives it back.
-      className="relative -mx-1 -my-1 flex snap-x gap-1 overflow-x-auto px-1 py-1 md:mx-0 md:my-0 md:flex-col md:gap-0.5 md:overflow-visible md:px-0 md:py-0"
-    >
+    <nav aria-label={label} className="flex flex-col gap-0.5">
       {NAV.map((item) => {
         const on = item.key === current.key;
         const count = navCount(item.key, counts);
@@ -64,7 +56,7 @@ export function SidebarNav({
             // screen reader and appears on hover.
             title={item.label}
             className={cn(
-              "flex h-8 shrink-0 snap-start items-center gap-2.5 whitespace-nowrap rounded-sm px-2 text-sm font-medium text-ink transition-colors duration-fast hover:bg-surface-sunken hover:text-ink-strong md:shrink md:group-data-[rail=collapsed]/shell:justify-center md:group-data-[rail=collapsed]/shell:px-0",
+              "flex h-8 items-center gap-2.5 whitespace-nowrap rounded-sm px-2 text-sm font-medium text-ink transition-colors duration-fast hover:bg-surface-sunken hover:text-ink-strong md:group-data-[rail=collapsed]/shell:justify-center md:group-data-[rail=collapsed]/shell:px-0",
               // The current page (founder's video, 29 Sep 2026: the green tint
               // and ring went; then slate): the grey tint, the ink, a heavier weight and
               // a 3px near-black bar at the row's start. The tint alone is too close
@@ -80,8 +72,6 @@ export function SidebarNav({
           </Link>
         );
       })}
-      {/* Phones: bring the current item into view on the strip, on every page. */}
-      <NavCurrent currentKey={current.key} />
     </nav>
   );
 }

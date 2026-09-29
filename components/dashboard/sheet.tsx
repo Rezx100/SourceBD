@@ -61,11 +61,22 @@ export function Scrim() {
  * 2026) puts the record beside the results with both live, so nothing is
  * modal and nothing is inert.
  */
-export function Sheet({ label, mode = "pane", children }: { label: string; mode?: "pane" | "page"; children: ReactNode }) {
+export function Sheet({
+  label,
+  mode = "pane",
+  detail = false,
+  children,
+}: {
+  label: string;
+  mode?: "pane" | "page";
+  /** A page that is a detail screen with its own way out (the composer at /app/rfqs/new): the phone's app bars step aside for its own (`data-detail`, as in `RecordPane`). */
+  detail?: boolean;
+  children: ReactNode;
+}) {
   const base = "flex min-h-0 min-w-0 flex-1 flex-col bg-surface";
   if (mode === "page") {
     return (
-      <section aria-label={label} className={base}>
+      <section aria-label={label} data-detail={detail ? "" : undefined} className={base}>
         {children}
       </section>
     );
@@ -108,8 +119,12 @@ export function RecordPane({
   wide?: boolean;
   children: ReactNode;
 }) {
+  // `data-detail`: on a phone the pane is the whole screen, a detail screen
+  // with its own bar and its own way out, so the app's top bar and tab bar
+  // step aside (`AppShell`, `BottomNav`).
   return (
     <div
+      data-detail=""
       data-open-key={openKey}
       data-pane-wide={wide ? "true" : undefined}
       className={cn(

@@ -26,8 +26,8 @@ export function accountName(account: AccountModel): string {
   return account.name ?? account.email?.split("@")[0] ?? "Your account";
 }
 
-export function Avatar({ account, size = "sm" }: { account: AccountModel | null; size?: "sm" | "rail" | "md" }) {
-  const box = size === "md" ? "size-9" : size === "rail" ? "size-8" : "size-7";
+export function Avatar({ account, size = "sm", className }: { account: AccountModel | null; size?: "sm" | "rail" | "md"; className?: string }) {
+  const box = cn(size === "md" ? "size-9" : size === "rail" ? "size-8" : "size-7", className);
   if (account?.avatarUrl) {
     // A Supabase Storage URL the buyer uploaded; next/image would need the
     // bucket's host configured for one 28px picture.
@@ -69,10 +69,11 @@ export function AccountMenu({ account, place, plan }: { account: AccountModel; p
           rail
             ? // The nav rows' left edge and hover; open, the grey tint the current page wears.
               "h-12 gap-2.5 px-2 hover:bg-surface-sunken group-open/acct:bg-accent-tint md:group-data-[rail=collapsed]/shell:justify-center md:group-data-[rail=collapsed]/shell:px-0"
-            : "rounded-full",
+            : // On a phone a 32px photo in a 44px target (D10).
+              "rounded-full max-md:size-target max-md:justify-center",
         )}
       >
-        <Avatar account={account} size={rail ? "rail" : "sm"} />
+        <Avatar account={account} size={rail ? "rail" : "sm"} className={rail ? undefined : "max-md:size-8"} />
         {rail ? (
           <>
             <span className="flex min-w-0 flex-1 flex-col md:group-data-[rail=collapsed]/shell:sr-only">

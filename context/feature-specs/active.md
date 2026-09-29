@@ -56,9 +56,10 @@ same PR. Read once per session.
 
 - **Buyer app on a phone** — IN PROGRESS, `handoff-dashboard-mobile.md` (30 Sep,
   founder's screenshots and video), six PRs in order. M0 (the phone scrolls
-  again, one tray at a time, fields stop zooming): branch `mobile-m0-scroll`.
-  Then M1 navigation at the bottom and the phone size scale, M2 the search, M3
-  list and cards, M4 the record, M5 the composer, the other pages and touch.
+  again, one tray at a time, fields stop zooming): PR #218, on `development`.
+  M1 (the tab bar at the foot, the More sheet, the phone size scale): branch
+  `mobile-m1-nav`. Then M2 the search, M3 list and cards, M4 the record, M5
+  the composer, the other pages and touch.
   Harness: `.impeccable/preview/build-mobile.cjs`, `touch-check.cjs`.
 
 ## Queued
