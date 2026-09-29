@@ -217,6 +217,10 @@ type FontSize = [string, { lineHeight: string; letterSpacing?: string }];
  * The artifact's type styles, on Tailwind's size names so `cn()` /
  * tailwind-merge keeps working, plus the named styles the dashboard uses
  * (`text-title`, `text-eyebrow`) that have no standard slot.
+ *
+ * Founder's pick, 29 Sep 2026 ("B one step up", buyer app only): caption 13,
+ * label and table 14, body 15, title 16, eyebrow 12. It lands with the shell
+ * (PR 3 of the video hand-off), scoped to `/app`; until then this is the scale.
  */
 export const fontSize: Record<string, FontSize> = {
   eyebrow: ["0.6875rem", { lineHeight: "1rem", letterSpacing: "0.08em" }], // 11 — mono, uppercase
