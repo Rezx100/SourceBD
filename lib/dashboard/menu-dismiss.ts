@@ -54,25 +54,31 @@ export function placePanel(panel: Box, button: Box, view: { width: number; heigh
 
 /** Listen on `doc` for the presses, keys and toggles that close and place the trays; returns the cleanup. */
 export function installMenuDismiss(doc: Document): () => void {
+  const view = doc.defaultView;
   const openMenus = () => Array.from(doc.querySelectorAll<HTMLDetailsElement>(`details[name="${MENU_NAME}"][open]`));
   const onPointer = (e: Event) => {
     for (const d of openMenus()) if (menuShouldClose({ target: e.target }, d)) d.open = false;
+  };
+  // Choosing an item closes its tray, even when the choice goes nowhere new
+  // (Archive, or Settings while on Settings).
+  const onClick = (e: Event) => {
+    const item = (e.target as Element | null)?.closest?.("[data-menu-item]");
+    const d = item?.closest<HTMLDetailsElement>(`details[name="${MENU_NAME}"]`);
+    if (d) d.open = false;
   };
   const onKey = (e: KeyboardEvent) => {
     if (e.key !== "Escape") return;
     const open = openMenus();
     if (open.length === 0) return;
     e.preventDefault();
+    // Focus goes back to the tray's button only if it was inside the tray.
+    const holder = open.find((d) => d.contains(doc.activeElement));
     for (const d of open) d.open = false;
-    open[open.length - 1]!.querySelector<HTMLElement>("summary")?.focus();
+    holder?.querySelector<HTMLElement>("summary")?.focus();
   };
-  const onToggle = (e: Event) => {
-    const d = e.target as HTMLDetailsElement | null;
-    if (!d || d.tagName !== "DETAILS" || d.getAttribute("name") !== MENU_NAME || !d.open) return;
-    for (const other of openMenus()) if (other !== d && !other.contains(d) && !d.contains(other)) other.open = false;
+  const place = (d: HTMLDetailsElement) => {
     const panel = d.querySelector<HTMLElement>(":scope > [data-menu-panel]");
     const button = d.querySelector<HTMLElement>(":scope > summary");
-    const view = doc.defaultView;
     if (!panel || !button || !view) return;
     panel.style.translate = "";
     panel.style.maxHeight = "";
@@ -82,13 +88,26 @@ export function installMenuDismiss(doc: Document): () => void {
     if (dx !== 0 || dy !== 0) panel.style.translate = `${Math.round(dx)}px ${Math.round(dy)}px`;
     if (maxHeight !== null) panel.style.maxHeight = `${Math.round(maxHeight)}px`;
   };
+  const onToggle = (e: Event) => {
+    const d = e.target as HTMLDetailsElement | null;
+    if (!d || d.tagName !== "DETAILS" || d.getAttribute("name") !== MENU_NAME || !d.open) return;
+    for (const other of openMenus()) if (other !== d && !other.contains(d) && !d.contains(other)) other.open = false;
+    place(d);
+  };
+  // A turned phone or a resized window: place the open tray again. Never
+  // close it here: a keyboard opening on Android resizes the window too.
+  const onResize = () => openMenus().forEach(place);
   doc.addEventListener("pointerdown", onPointer, true);
+  doc.addEventListener("click", onClick, true);
   doc.addEventListener("keydown", onKey, true);
   // `toggle` does not bubble; the capture phase still sees it.
   doc.addEventListener("toggle", onToggle, true);
+  view?.addEventListener("resize", onResize);
   return () => {
     doc.removeEventListener("pointerdown", onPointer, true);
+    doc.removeEventListener("click", onClick, true);
     doc.removeEventListener("keydown", onKey, true);
     doc.removeEventListener("toggle", onToggle, true);
+    view?.removeEventListener("resize", onResize);
   };
 }

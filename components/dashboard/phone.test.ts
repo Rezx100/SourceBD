@@ -159,33 +159,34 @@ describe("M0. trays: one open at a time, closed by a press outside or Escape, ke
     const make = (id: string) => {
       const style: Record<string, string> = {};
       styles.push(style);
-      const summary = { focused: false, focus() { this.focused = true; } };
+      const summary = { focused: false, focus() { this.focused = true; }, getBoundingClientRect: () => ({ top: 660, bottom: 692, left: 300, right: 380, width: 80, height: 32 }) };
       const panel = { style, getBoundingClientRect: () => ({ top: 700, bottom: 1000, left: 300, right: 520, width: 220, height: 300 }) };
       const d = {
         id, tagName: "DETAILS", open: false, summary,
         getAttribute: (k: string) => (k === "name" ? MENU_NAME : null),
         contains: (n: unknown) => n === d || n === summary || n === panel,
-        querySelector: (sel: string) => (sel.includes("summary") ? { ...summary, getBoundingClientRect: () => ({ top: 660, bottom: 692, left: 300, right: 380, width: 80, height: 32 }) } : panel),
+        querySelector: (sel: string) => (sel.includes("summary") ? summary : panel),
       };
       return d;
     };
     const a = make("a");
     const b = make("b");
     const document = {
+      activeElement: null as unknown,
       addEventListener: (t: string, f: (e: unknown) => void, capture: boolean) => {
         assert.equal(capture, true, `${t} is not heard in the capture phase`);
         listeners[t] = f;
       },
       removeEventListener: (t: string) => delete listeners[t],
       querySelectorAll: () => [a, b].filter((d) => d.open),
-      defaultView: { innerWidth: 390, innerHeight: 844, getComputedStyle: () => ({ position: "absolute" }) },
+      defaultView: { innerWidth: 390, innerHeight: 844, getComputedStyle: () => ({ position: "absolute" }), addEventListener: (t: string, f: (e: unknown) => void) => void (listeners[`window:${t}`] = f), removeEventListener: (t: string) => delete listeners[`window:${t}`] },
     };
     const off = installMenuDismiss(document as unknown as Document);
-    return { a, b, listeners, styles, off };
+    return { a, b, document, listeners, styles, off };
   }
 
   it("a press outside closes the open tray, a press inside does not, Escape closes it and is marked handled", () => {
-    const { a, listeners, off } = doc();
+    const { a, document, listeners, off } = doc();
     a.open = true;
     listeners.pointerdown!({ target: a.summary });
     assert.equal(a.open, true, "a press on the tray's own button closed it before its click could");
@@ -196,10 +197,19 @@ describe("M0. trays: one open at a time, closed by a press outside or Escape, ke
     listeners.keydown!({ key: "Escape", preventDefault: () => (prevented = true) });
     assert.equal(a.open, false);
     assert.ok(prevented, "the record's own Escape would close the record too");
+    assert.equal(a.summary.focused, false, "focus was elsewhere, and Escape pulled it into the tray");
+    a.open = true;
+    document.activeElement = a.summary;
+    listeners.keydown!({ key: "Escape", preventDefault: () => {} });
+    assert.equal(a.summary.focused, true, "focus inside the tray is not returned to its button");
     // With nothing open, Escape is the record's.
     prevented = false;
     listeners.keydown!({ key: "Escape", preventDefault: () => (prevented = true) });
     assert.equal(prevented, false);
+    // Choosing an item closes its tray, even when the choice goes nowhere new.
+    a.open = true;
+    listeners.click!({ target: { closest: (sel: string) => (sel === "[data-menu-item]" ? { closest: () => a } : null) } });
+    assert.equal(a.open, false, "Archive, chosen, left the menu open over the row");
     off();
     assert.deepEqual(Object.keys(listeners), []);
   });
@@ -227,6 +237,19 @@ describe("M0. trays: one open at a time, closed by a press outside or Escape, ke
 });
 
 describe("M0. touch: fields do not zoom, hover does not stick", () => {
+  it("nothing in the kit is shown only under a hovering pointer", () => {
+    // `hover:` needs a pointer that hovers now, so an action revealed only on
+    // hover (Products' Send RFQ and Edit) was gone on a phone, not two taps away.
+    const hidden: string[] = [];
+    for (const { file, text } of kitSources()) {
+      for (const m of text.matchAll(/"([^"\n]*)"/g)) {
+        const cls = m[1]!.split(/\s+/);
+        if (cls.includes("invisible") && cls.some((c) => /group-hover(\/\w+)?:visible$/.test(c)) && !cls.includes("[@media(hover:none)]:visible")) hidden.push(`${file}: ${m[1]}`);
+      }
+    }
+    assert.deepEqual(hidden, []);
+  });
+
   it("a field is 16px on a touch screen, and hover styles need a pointer that hovers", () => {
     const css = source("app/ds.css");
     assert.match(css, /@media \(pointer: coarse\) \{\s*\[data-shell\] :is\(input, select, textarea\) \{\s*font-size: max\(1rem, 1em\);/);

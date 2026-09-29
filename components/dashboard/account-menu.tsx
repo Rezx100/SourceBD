@@ -7,8 +7,8 @@
 //
 // A native <details>, like `Menu`: it opens without script. The shell is drawn
 // once and outlives every navigation, so the menu closes itself when the path
-// changes; the shell's `MenuDismiss` closes it on Escape and on a press
-// outside it, as it does every other tray (`name="sb-menu"`).
+// changes; the shell's `MenuDismiss` closes it on Escape, on a press outside
+// it and on a chosen item, as it does every other tray (`name="sb-menu"`).
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -47,8 +47,6 @@ export function Avatar({ account, size = "sm" }: { account: AccountModel | null;
     </span>
   );
 }
-
-export { menuShouldClose } from "@/lib/dashboard/menu-dismiss";
 
 const ITEM ="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-ink transition-colors duration-fast hover:bg-surface-sunken";
 
@@ -91,11 +89,6 @@ export function AccountMenu({ account, place, plan }: { account: AccountModel; p
         data-menu-panel=""
         role="group"
         aria-label="Account"
-        // A chosen item closes the menu even when it goes nowhere new
-        // (Settings, while on Settings): the path effect above never runs.
-        onClick={(e) => {
-          if ((e.target as Element).closest("[data-menu-item]") && ref.current) ref.current.open = false;
-        }}
         className={cn(
           "absolute z-overlay w-64 max-w-[calc(100vw-2rem)] rounded-md border border-line bg-surface py-1 shadow-md",
           rail ? "bottom-full left-0 mb-1" : "right-0 top-full mt-2",
