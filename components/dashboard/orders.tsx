@@ -407,7 +407,7 @@ export function orderFactGroups(order: OrderDoc): { title: string; rows: Fact[] 
           label: "Supplier",
           value: (
             <>
-              <Link href={`/app/suppliers/${order.supplier.slug}`} prefetch={false} className="font-medium text-brand-ink hover:underline">
+              <Link href={`/app/suppliers/${order.supplier.slug}`} prefetch={false} className="link font-medium">
                 {order.supplier.company_name}
               </Link>
               <Caption className="block">

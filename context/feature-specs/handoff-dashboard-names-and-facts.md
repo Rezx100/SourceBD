@@ -1,5 +1,10 @@
 # Buyer app — one-line names, fact icons and what is left — hand-off
 
+> **Superseded on colour (founder, 29 Sep 2026, after this shipped):** no slate.
+> Where this says slate (the icons, the open account row, the state marks),
+> read greys and near-black: icons `ink-muted`, state the hueless `accent`
+> role. `DESIGN.md` (Colour) and `.impeccable/surfaces/app-app-app.md` hold it.
+
 Written 29 Sep 2026, after the six PRs of `handoff-dashboard-video-29sep.md`
 (the founder's 29 Sep dashboard video) were built and merged to
 `development`. The founder then sent two screenshots of the live build and two

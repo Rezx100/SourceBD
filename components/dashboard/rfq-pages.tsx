@@ -15,7 +15,7 @@ import { AcceptQuoteRows } from "@/components/accept-quote-button";
 import { buildRfqRow, type RfqListRow } from "@/lib/dashboard/build-models";
 import { formatCount, formatDay, formatMoney, formatQuantity, nameSecondLine, splitQualifier } from "@/lib/dashboard/facts";
 import { cn } from "@/lib/utils";
-import { Badge, Chip, type BadgeTone } from "./chips";
+import { Badge, Chip, CURRENT_TAB, type BadgeTone } from "./chips";
 import { Button, Count } from "./controls";
 import { Icon } from "./icons";
 import { Cell, DataTable, DetailList, EmptyState, ErrorNote, HeadCell, PageHeader, PageSection, rowClass } from "./page";
@@ -59,9 +59,6 @@ export function parseRfqTab(v: unknown): RfqView {
   if (v === "drafts") return "drafts";
   return RFQ_TABS.some((t) => t.key === v) ? (v as RfqTab) : "all";
 }
-
-/** The current tab's rule under its fill: the fill alone is 1.1:1 against the other chips (WCAG 1.4.11), Seg's active stop draws the same. */
-const CURRENT_TAB = "shadow-[inset_0_-2px_0_rgb(var(--ds-accent))]";
 
 /** The list at a tab, with an RFQ open beside it or not. Close is this without `open`. */
 export function rfqsHref(tab: RfqView, open?: string | null): string {
@@ -183,7 +180,7 @@ export function RfqListBody({
                   <Link prefetch={false} key={t.key} href={rfqsHref(t.key)} aria-current={t.key === tab ? "page" : undefined} className="rounded-sm">
                     <Chip tone={t.key === tab ? "on" : "neutral"} className={t.key === tab ? CURRENT_TAB : undefined}>
                       {t.label}
-                      <Count className="text-xs">{countOf(t.key)}</Count>
+                      <Count className={t.key === tab ? "text-xs text-ink-muted" : "text-xs"}>{countOf(t.key)}</Count>
                     </Chip>
                   </Link>
                 ))
@@ -192,7 +189,7 @@ export function RfqListBody({
               <Link prefetch={false} href={rfqsHref("drafts")} aria-current={tab === "drafts" ? "page" : undefined} className="rounded-sm">
                 <Chip tone={tab === "drafts" ? "on" : "neutral"} className={tab === "drafts" ? CURRENT_TAB : undefined}>
                   Drafts
-                  <Count className="text-xs">{drafts.length}</Count>
+                  <Count className={tab === "drafts" ? "text-xs text-ink-muted" : "text-xs"}>{drafts.length}</Count>
                 </Chip>
               </Link>
             ) : null}
@@ -457,7 +454,7 @@ export function RfqDetailBody({
                     <Link
                       prefetch={false}
                       href={`/app/suppliers/${q.supplier_slug}`}
-                      className="block max-w-[20rem] font-medium text-brand-ink hover:underline"
+                      className="block max-w-[20rem] font-medium text-ink-strong hover:underline"
                     >
                       <OneLine text={q.supplier_name} />
                     </Link>
@@ -547,7 +544,7 @@ export function RfqDetailBody({
               <Link
                 prefetch={false}
                 href={`/app/suppliers/${s.slug}`}
-                className="block min-w-0 text-sm font-medium text-brand-ink hover:underline"
+                className="block min-w-0 text-sm font-medium text-ink-strong hover:underline"
               >
                 <OneLine text={splitQualifier(s.company_name).base} title={s.company_name} />
               </Link>

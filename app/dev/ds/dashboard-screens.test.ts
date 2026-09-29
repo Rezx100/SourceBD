@@ -473,7 +473,7 @@ describe("the state a screen is in is drawn, not only announced", () => {
     }
     return found;
   };
-  const GROUNDS = ["canvas", "surface", "surface.sunken", "brand.tint"];
+  const GROUNDS = ["canvas", "surface", "surface.sunken", "accent.tint", "accent.tint-strong"];
   /** A token that clears 3:1 against every ground the kit draws a state on. */
   const strongEnough = (token: string) =>
     GROUNDS.every((bg) => contrastRatio(resolve(light, token.replace(/-/g, ".")), resolve(light, bg)) >= 3);

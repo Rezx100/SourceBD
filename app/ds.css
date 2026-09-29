@@ -67,20 +67,28 @@
 
   /* The buyer app spends green on its one primary action only (founder's
      video, 29 Sep 2026): selection, focus and the native controls there take
-     the slate `accent`. */
+     the `accent` role, which has no hue (greys and near-black; slate dropped
+     the same day). */
   [data-shell] {
     /* The tints and the link ink the app drew in green (the active tab, a set
-       chip, a selected cell, every link) are slate here; the solid `brand`
-       (the primary button, the logo) is not remapped and stays green. */
+       chip, a selected cell, every link) are greys and ink here; the solid
+       `brand` (the primary button, the logo) is not remapped and stays green.
+       A link on a dark band (the toast) is the inverse ink, not Spring Green. */
     --ds-brand-ink: var(--ds-accent-ink);
+    --ds-brand-ink-inverse: var(--ds-ink-inverse);
     --ds-brand-tint: var(--ds-accent-tint);
     --ds-brand-tint-strong: var(--ds-accent-tint-strong);
     --ds-focus: var(--ds-accent);
     accent-color: rgb(var(--ds-accent));
     caret-color: rgb(var(--ds-ink-strong));
+    /* Inherited: a name's hover underline sits where a `.link` one does. */
+    text-underline-offset: 3px;
   }
+  /* Selected text is inverted: a grey highlight all but vanished on the
+     grey grounds (the filter rail, the locked card, a set chip). */
   [data-shell] ::selection {
-    background-color: rgb(var(--ds-accent-tint-strong));
+    background-color: rgb(var(--ds-accent));
+    color: rgb(var(--ds-accent-on));
   }
 
   /* A thin scrollbar in the line colour, with no track: it reads as part of
@@ -169,6 +177,23 @@
 
   .skel.card {
     border-radius: 10px;
+  }
+
+  /* A text link: the link ink (near-black in the buyer app, which has no hue
+     for links since the founder's call of 29 Sep 2026) and a grey underline
+     at rest that darkens to the ink on hover. A colour utility on the same
+     element wins (the toast's inverse ink). Names in a list, and links with
+     an arrow or a chevron, stay plain and underline on hover only. */
+  .link {
+    color: rgb(var(--ds-brand-ink));
+    text-decoration-line: underline;
+    text-decoration-color: rgb(var(--ds-line-strong));
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+
+  .link:hover {
+    text-decoration-color: currentColor;
   }
 }
 

@@ -60,7 +60,7 @@ after the deploy, when streams are shorter.
 
 | Change | Where | Effect |
 | -- | -- | -- |
-| The profile reads its two views for one supplier (filter, not join) | migration `0107`, founder applies | 1,120 ms → 318 ms median in the database; same payload (59 records compared) |
+| The profile reads its two views for one supplier (filter, not join) | migration `0107`, applied 29 Sep 2026 | 1,120 ms → 318 ms median in the database; same payload (59 records compared). Re-run at the apply: 967 → 171 ms, 45 records identical |
 | A line reads the record once and nothing it does not draw | `loadLineBeside` | one profile call instead of two; no counts, buildings, saved or RFQ reads |
 | A record opened from a row starts its id-keyed reads beside the profile | `SheetView.supplierId` | one round of calls fewer (~150–200 ms) |
 | The composer reads inside a boundary of its own | `DiscoverComposer` | the pane's silhouette paints with the results |
@@ -102,5 +102,6 @@ side (done in PR 1, above). Not taken:
 
 ## After
 
-To be filled after the deploy (the founder's approval) and 0107's apply:
+0107 is applied (29 Sep 2026; `ops/plans/0107-profile-one-supplier.md`). The
+click timings are to be filled after the deploy (the founder's approval):
 `node ops/measure_app_speed.mjs`.

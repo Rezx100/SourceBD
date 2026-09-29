@@ -5,7 +5,8 @@
 //     shows its value on its button; a value the menus hold is not drawn a
 //     second time as a chip.
 //  2. Green is spent on the primary action only: inside the app the tints,
-//     links, focus and ticked boxes are slate.
+//     links, focus and ticked boxes take the `accent` role, which has had no
+//     hue since the same day (slate dropped: shades of black and white).
 //  3. The app's text is one step up, and only the app's.
 //  4. The row's open control is SourceBD's own icon with its word on hover.
 
@@ -17,7 +18,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { filterMenus, inFilterMenu, menuSummary } from "@/lib/dashboard/search-templates";
-import { appFontSize, fontSize } from "@/lib/design/tokens";
+import { appFontSize, contrastRatio, fontSize, light, toRgb } from "@/lib/design/tokens";
 import { EMPTY_STATE, discoverChips, discoverHref, type DiscoverState } from "@/lib/discover-v32-state";
 import { FilterMenus, foldMenus } from "./filter-menus";
 
@@ -98,7 +99,32 @@ describe("1. the filter menus", () => {
 });
 
 describe("2. green on the primary action only, inside the app", () => {
-  it("the app shell remaps the green tints and link ink to slate, and leaves the solid green alone", () => {
+  it("the state role is greys and near-black, with no hue of its own", () => {
+    // Founder, 29 Sep 2026: "do not use this color but use different shades
+    // of black and white". The ink scale itself leans a few points green, so
+    // "no hue" is a spread of at most 8 between the channels (slate was 53).
+    for (const [name, hex] of Object.entries(light.accent)) {
+      const rgb = toRgb(hex);
+      assert.ok(Math.max(...rgb) - Math.min(...rgb) <= 8, `accent.${name} ${hex} has a hue`);
+    }
+    // Depth by luminance, not by one channel: hover, then selected, then set.
+    const darkness = (hex: string) => contrastRatio(hex, light.surface.DEFAULT);
+    assert.ok(darkness(light.accent.tint) > darkness(light.surface.sunken), "a selected row is not a step darker than a hovered one");
+    assert.ok(darkness(light.accent["tint-strong"]) > darkness(light.accent.tint), "a set filter is not a step darker than a selected row");
+  });
+
+  it("with no colour, a text link is marked by an underline, and the toast keeps a focus ring it can show", () => {
+    // Each link, per element, across the app: `links.test.ts`.
+    const css = source("app/ds.css");
+    assert.match(css, /\.link \{\s*color: rgb\(var\(--ds-brand-ink\)\);\s*text-decoration-line: underline;\s*text-decoration-color: rgb\(var\(--ds-line-strong\)\);/);
+    assert.match(css, /\.link:hover \{\s*text-decoration-color: currentColor;/);
+    assert.match(source("components/dashboard/app-shell.tsx"), /className="link">\s*Upgrade/);
+    // The app's focus ring is near-black, which vanished on the dark pill (1.01:1).
+    assert.match(source("components/dashboard/toast.tsx"), /bg-surface-inverse[^"]*\[--ds-focus:var\(--ds-ink-inverse\)\]/);
+    assert.ok(contrastRatio(light.ink.inverse, light.surface.inverse) >= 3, "the toast's focus ring is under 3:1");
+  });
+
+  it("the app shell remaps the green tints and link ink to the state role, and leaves the solid green alone", () => {
     const css = source("app/ds.css");
     const block = /\[data-shell\] \{([\s\S]*?)\}/.exec(css)?.[1] ?? "";
     for (const v of ["--ds-brand-ink: var(--ds-accent-ink)", "--ds-brand-tint: var(--ds-accent-tint)", "--ds-brand-tint-strong: var(--ds-accent-tint-strong)", "--ds-focus: var(--ds-accent)"]) {

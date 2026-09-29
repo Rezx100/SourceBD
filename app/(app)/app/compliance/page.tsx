@@ -30,7 +30,7 @@ const HUB_ROWS = 5;
 
 function SectionLink({ href, children }: { href: string; children: string }) {
   return (
-    <Link href={href} prefetch={false} className="text-brand-ink hover:underline">
+    <Link href={href} prefetch={false} className="link">
       {children}
     </Link>
   );

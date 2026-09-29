@@ -86,7 +86,7 @@ export function AccountMenu({ account, place, plan }: { account: AccountModel; p
         className={cn(
           "flex cursor-pointer list-none items-center rounded-sm transition-colors duration-fast [&::-webkit-details-marker]:hidden",
           rail
-            ? // The nav rows' left edge and hover; open, the slate the current page wears.
+            ? // The nav rows' left edge and hover; open, the grey tint the current page wears.
               "h-12 gap-2.5 px-2 hover:bg-surface-sunken group-open/acct:bg-accent-tint md:group-data-[rail=collapsed]/shell:justify-center md:group-data-[rail=collapsed]/shell:px-0"
             : "rounded-full",
         )}

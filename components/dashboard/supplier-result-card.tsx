@@ -45,9 +45,9 @@ export function MetaLine({ facts, inRow, className }: { facts: readonly FactWith
             f.quiet && "text-quiet-ink",
           )}
         >
-          {/* The fact's icon, slate, the way a place card or a company header
+          {/* The fact's icon, in the line's ink-muted, the way a place card or a company header
               shows it (founder, 29 Sep 2026). */}
-          {f.icon ? <SbIcon name={f.icon} className="text-accent" /> : null}
+          {f.icon ? <SbIcon name={f.icon} /> : null}
           {f.code ? <Code>{f.text}</Code> : f.text}
           {f.mark && !inRow?.has(f.mark.code) ? <SourceMark mark={f.mark} sm /> : null}
         </span>
@@ -95,7 +95,7 @@ function CardFacts({ qualifier, facts }: { qualifier: string | null; facts: read
       {facts.map((f, i) => (
         <Fragment key={`${f.text}-${i}`}>
           {f.aside ? " " : i > 0 || qualifier ? <span aria-hidden className="mx-1.5 text-ink-subtle">·</span> : null}
-          {f.icon && !f.aside ? <SbIcon name={f.icon} size={14} className="mr-1 inline-block align-[-2px] text-accent" /> : null}
+          {f.icon && !f.aside ? <SbIcon name={f.icon} size={14} className="mr-1 inline-block align-[-2px] text-ink-muted" /> : null}
           <span className={f.quiet ? "text-quiet-ink" : f.aside ? "text-ink-muted" : undefined}>
             {f.title ? (
               <>
@@ -127,7 +127,7 @@ function CardFacts({ qualifier, facts }: { qualifier: string | null; facts: read
  *
  * The four tiles went: what they said is on the lines above (their links on
  * the matching chips, their negatives in the sources caption's title).
- * Selected: filled checkbox and the 3px slate rule. Sanctioned: the 4px bar,
+ * Selected: filled checkbox and the 3px near-black rule. Sanctioned: the 4px bar,
  * the notice under the facts, the badge first among the chips, Send RFQ
  * withheld. Beside an open pane the search draws the compact table instead
  * (`resultsView`), so a card is never squeezed.
@@ -172,7 +172,7 @@ export function SupplierResultCard({ card }: { card: SupplierCardModel }) {
               title={card.name}
               aria-label={name.qualifier ? card.name : undefined}
               data-name=""
-              className="block truncate text-ink-strong hover:text-brand-ink"
+              className="block truncate text-ink-strong hover:underline"
             >
               {name.base}
             </Link>

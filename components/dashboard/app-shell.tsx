@@ -126,7 +126,7 @@ export function Sidebar({ model, screenLabel, collapsed = false }: { model: Side
               <Meter pct={pct} label={`RFQs used this month, ${plan.name}`} />
               <Caption>
                 {plan.used} of {plan.allowance} RFQs this month ·{" "}
-                <Link href="/app/settings/subscription" prefetch={false} className="text-accent-ink hover:underline">
+                <Link href="/app/settings/subscription" prefetch={false} className="link">
                   Upgrade
                 </Link>
               </Caption>

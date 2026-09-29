@@ -127,7 +127,7 @@ https://claude.ai/artifact/8RnQGfi1bnVHnwG1qbaTsQ (option shots from
 `.impeccable/preview/decision29.cjs`). The founder took the recommended
 option in all seven:
 
-1. **Colour: B Slate.** Green stays on the one primary action and the logo.
+1. **Colour: B Slate** (superseded the same day, below). Green stays on the one primary action and the logo.
    Selection, the active nav row, set filters, links, tabs, focus and the
    ticked box take the `accent` role (slate, `lib/design/tokens.ts`).
    Status hues do not change.
@@ -147,9 +147,21 @@ option in all seven:
 7. **Product photos: A a list with small photos.** One line per HS heading:
    a 40px photo tagged "illustration", the code, its name.
 
+**Pick 1 superseded (29 Sep 2026, founder, after the names-and-facts deploy):**
+"do not use this color but use different shades of black and white to
+create visual depth". The `accent` role keeps its name and jobs but has no
+hue: hover `surface-sunken`, selected `accent-tint` #E9E9E6, set
+`accent-tint-strong` #DADAD6, the mark (focus ring, tab indicator, selected
+bar, ticked box) near-black #0F130F. Fact icons are `ink-muted`, a step
+behind their `ink-strong` value. Links lost their colour, so a text link
+carries a grey underline at rest (`.link`), and names in lists underline on
+hover. Green is still the primary action and the logo; status hues are
+unchanged. Guard: `components/dashboard/search-filters.test.ts` (no channel
+spread over 8 in `accent`).
+
 **PR 3 (the shell), built.** The rail collapses to a 56px column of icons
 from a toggle beside the logo (`sb_rail` cookie, read by the layout); its
-current row is slate with a 3px bar; the account corner is one menu (photo
+current row is tinted with a 3px bar (slate then; grey and near-black now); the account corner is one menu (photo
 from Settings → Profile, name or the email's name part, Settings,
 Subscription, Sign out) on the rail and the topbar; the record pane's bar has
 Expand, to the record's own page with "Back to results". The logo and
