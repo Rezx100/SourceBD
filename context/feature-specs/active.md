@@ -54,8 +54,9 @@ same PR. Read once per session.
 - **One-line names, fact icons and the video's leftovers** — NEXT,
   `handoff-dashboard-names-and-facts.md`: PR 0 the live bugs (z-index classes
   that compile to nothing, header labels, the ⌘↵ hint), then names on one line,
-  fact hierarchy and icons with lighter Certificates, and the leftovers with
-  the sidebar's foot (the founder's instructions and review of 29 Sep).
+  fact hierarchy and icons with lighter Certificates, the card view rebuilt,
+  and the leftovers with the sidebar's foot (the founder's instructions and
+  review of 29 Sep).
 
 ## Queued
 - **Entity resolution core** — `spec-resolution-core.md` (4 Aug). Batch

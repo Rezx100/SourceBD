@@ -5,7 +5,7 @@ Written 29 Sep 2026, after the six PRs of `handoff-dashboard-video-29sep.md`
 `development`. The founder then sent two screenshots of the live build and two
 instructions, below. After those PRs went live (`main` `79a59f8`, deployed 29
 Sep 03:04 UTC, smoke test passed) the founder reviewed the live app and sent
-seven more issues: see "The founder's review of the live build". Everything
+nine more issues: see "The founder's review of the live build". Everything
 else in this file is what the video hand-off left unfinished. Every file:line
 below was read at `development` `f7a18b4` (after PR #203); re-check before you
 rely on one (AGENTS 13, 16).
@@ -45,8 +45,8 @@ the SourceBD icon set this work needs (`components/dashboard/sb-icons.tsx`).
 The founder's words, verbatim: "below content bleed the section nav bar",
 "certification section very text heavy", "search sidebar view on the rfq page
 it text heavy and breaks into many line", "here is another ui bleedings issue",
-"this sidebar section is still really under done and low quality design". The
-eight screenshots show, on the live build:
+"this sidebar section is still really under done and low quality design"
+(items 8 and 9 quote their own). The ten screenshots show, on the live build:
 
 1. **The record's section tabs, scrolled (Products).** Product photos of rows
    that have scrolled up paint over the sticky tabs; a photo hides "Overview".
@@ -66,6 +66,20 @@ eight screenshots show, on the live build:
 6. **Send RFQ shows "⌘↵" on Windows.**
 7. **The sidebar's foot** ("admin ⌄" over "Free … public beta") looks plain
    and unfinished.
+8. **The results' card view.** "we also need a big refinement of the card
+   view because it really text heavy with no visual hierarchy." One card for
+   "Modele De Capital Ind Ltd" is about 400px tall: a 48px tile, the name, nine
+   source marks and "9 sources"; three bordered buttons (Save, Open record,
+   Send RFQ); a facts line that wraps ("Factory · Dhaka, Narayanganj · Est.
+   2009 · 1,300 workers · on the supplier record · 3,546 workers · across this
+   record and its buildings · 9 registers & certifiers"); four status chips;
+   four tiles (Certificates, Export lines, Listed by, Registers) that repeat the
+   chips and the marks; six 132px product photos with captions and a note.
+9. **The card view beside an open record.** "also the open record view of the
+   card view section gets really cramped and ux become nighmare." With a record
+   open, the same cards are squeezed into the results column (about 650px at
+   1375): the facts break into one fact per line, the three buttons wrap under
+   them, the four tiles stack two by two and the photos are cut off.
 
 **The root cause of 1, 2 and 3** (found 29 Sep): `tailwind.config.ts` sets
 `theme.zIndex` (line ~100) to the token scale in `lib/design/tokens.ts`
@@ -91,13 +105,13 @@ anything positioned later in the page paints over it.
   `.impeccable/surfaces/app-app-app.md` (the section "The founder's video, 29
   Sep 2026" has the seven design picks) and `lib/design/tokens.ts`.
 - Branch off `development` at `f7a18b4` or later, with a clean tree (AGENTS 11).
-- Four PRs, in this order (AGENTS 2): **0** the bugs on the live site (content
+- Five PRs, in this order (AGENTS 2): **0** the bugs on the live site (content
   bleeding over sticky bars and menus; header labels; the "⌘↵" hint), **A**
   one-line names (with the list beside the RFQ composer), **B** fact hierarchy
-  and icons (with Certificates), **C** the leftovers (with the sidebar's foot).
-  PR 0 is small and visible on the live site; ship it first. A and B both
-  touch the record's head (A the name, B the facts line under it), so do not
-  run them in parallel.
+  and icons (with Certificates), **C** the card view, rebuilt on A and B, **D**
+  the leftovers (with the sidebar's foot). PR 0 is small and visible on the
+  live site; ship it first. A, B and C all touch the same name and facts
+  components, so do not run them in parallel.
 - Screenshots without a server (the dev server is unusable here; see memory
   "Local dev server unusable"): `.impeccable/preview/video29.cjs` renders
   PAGE = results | results-menu | record | record-collapsed | full | line |
@@ -444,7 +458,104 @@ shown to the founder in the PR (one image of the whole set); DESIGN.md's
 Record Sheet and Facts panel sections describe the new rows; `tokens.test.ts`
 still passes (no hand-typed colour).
 
-## PR C — what the video hand-off left
+## PR C — the card view (review item 8)
+
+The results' cards view (`view=cards`): `SupplierResultCard` in
+`components/dashboard/supplier-result-card.tsx` (~111-220; `MetaLine` ~37,
+`Tile` ~57), built by `buildDiscoverCard` in
+`lib/dashboard/build-discover-row.ts` (~165; the tiles ~265) and, for the
+gallery and fixtures, `buildCard` in `lib/dashboard/build-models.ts` (~866).
+The gallery frame is "results-list" in `app/dev/ds/dashboard-screens.tsx`.
+
+**Mobbin references** (web):
+[Semrush agency directory](https://mobbin.com/screens/9d9d1461-4626-4863-9248-0ceedf542a13)
+(logo, one-line name, one badge, then two lines of icon-led facts with "+5"
+overflow, a save icon),
+[Dribbble design companies](https://mobbin.com/screens/d07ae4a3-b06b-4455-bdd2-112b723248cb)
+(one line of icon facts, a thumbnail row, one call to action and a save icon),
+[Glassdoor company results](https://mobbin.com/screens/08ac2180-a763-424c-84ec-c77b97e3404b)
+(logo, name, one facts line, counts as links),
+[Zillow agent cards](https://mobbin.com/screens/043c0f3e-09d9-4c5c-920a-53cc5e8bb77c)
+(the number first and bold, its label muted).
+
+**What is wrong, precisely:** each fact is said two or three times. The
+source marks, "9 sources", "9 registers & certifiers" and the Registers tile
+all describe the registers. The certificate chips and the Certificates tile
+describe certificates. The "EPB exporter · 13 lines" chip and the Export lines
+tile describe the export lines. The brand-list marks (AS, HM, NX) and the
+Listed by tile describe brand lists. Everything is the same weight, so
+nothing leads.
+
+**The decision** (build this; it reuses PR A's name and PR B's hierarchy and
+icons):
+
+```
+[box] [tile 48] Base name (16px medium, one line)          [save] [Open] [Send RFQ]
+                qualifier · [icon] Factory · [icon] Dhaka, Narayanganj ·
+                [icon] Est. 2009 · [icon] 1,300 workers (3,546 with buildings)
+                [9 marks]  8 registers & certifiers · 3 brand lists
+                [GOTS valid to 28 Feb 2027] [SA8000 expired 23 Jul 2021] [RSC] [EPB · 13 lines] +N
+                [48px thumbs, HS code under each ……]  +7 lines   illustration
+```
+
+- **Line 1**: the base name (PR A, one line) and the actions at the row's
+  end: Save as an icon button, "Open" as a ghost button with the open-beside
+  icon, and "Send RFQ" as the one labelled secondary button. The bordered
+  "Open record" button goes; the name and the tile also open the record.
+- **Line 2, the facts**: one line of icon + value pairs in PR B's style
+  (slate icons, `ink` values), cut to one line with the whole line in its
+  `title`. The two worker figures stay two (founder, 28 Sep: a list figure and
+  a record figure must never be confused), in `WorkersCell`'s short form
+  ("1,300 workers" and "3,546 with buildings"), with each figure's full words
+  ("on the supplier record", "across this record and its buildings") in its
+  `title` and accessible name. `build-discover-row.test.ts` (~233-361) pins
+  those words; keep them in the model, move them out of the visible line.
+- **Line 3, the sources, once**: the marks row, with one caption that
+  separates the two populations: "8 registers & certifiers · 3 brand lists".
+  The first figure is the one the default sort ("Most registers &
+  certifiers") and the minimum-sources filter use
+  (`build-discover-row.ts` ~143-145, ~299, ~352), so it stays visible. It
+  leaves the facts line, and "9 sources" goes.
+- **Line 4, status**: the certificate, RSC and EPB chips as today (the only
+  status colour on the card), at most four, then "+N".
+- **Line 5, products**: 48px thumbnails with the HS code under each (the
+  founder's photo pick, smaller: PR 5's list rows are 40px), "+N lines", and
+  one "illustration" tag for the row instead of the caption under each photo
+  and the note under the strip. At 1440 and wider the thumbnails may sit in a
+  right-hand column beside lines 2–4.
+- **The four tiles go.** Everything they said is on lines 2–4. Their links
+  (the EPB exporter page, the certificates) move onto the matching chip.
+- **Hierarchy**: the name is the strongest text; values `ink`; captions and
+  separators `ink-subtle`; slate for icons only; status hues only on chips.
+  Aim for a card about 170px tall where it is 400 today.
+- **No fact dropped.** Every figure and state the card shows today is still on
+  the card, or in a `title` and the accessible name where only its words
+  moved. Say which in the PR.
+- **Beside an open pane (review item 9)**, the cards collapse to the compact
+  list: the same rows, columns and widths as the table's compact mode (the
+  `ResultsTable compact` the table view already draws beside a pane), with the
+  current record's row marked. This is the master-detail pattern of Mail,
+  Outlook and Finder: when the detail opens, the list gives up its detail and
+  keeps only what finds the next item. The view switch stays on "cards", and
+  closing the pane brings the cards back. It is one decision in
+  `app/(app)/app/discover/page.tsx` (where `state.view === "table" ||
+  composerOpen` already chooses the table beside the composer): use the
+  compact table whenever any pane is open (`paneOpen`), and add a route test
+  that `view=cards&record=<slug>` draws the compact table, not cards.
+- Guards: rewrite the card tests in `render.test.ts` and
+  `dashboard-screens.test.ts` ("results-list") for the new structure: one
+  facts line, the sources said once, no tiles, thumbnails at 48px with one
+  illustration tag, both worker figures present with their words in
+  `title`s. Keep the sanctioned card's line and disabled Send RFQ exactly as
+  today (`SanctionLine`, ~92).
+
+**Done when:** the cards view at 1280, 1440 and 375 reads name first, facts
+second, status third, with each fact said once; with a record open beside it,
+the list is the compact table and nothing is squeezed; the before-and-after in
+the PR shows the same cards (Modele De Capital, Aboni Knitwear) at both sizes,
+with and without a record open.
+
+## PR D — what the video hand-off left
 
 1. **Hover-only reasons are not reachable on touch.** An empty figure's reason
    (`Stats` in `sheet.tsx`, the dash with a `title`) and a checked-but-empty
