@@ -108,7 +108,9 @@ const TRUNCATION = /\b(?:truncate|line-clamp-\d)\b|\btext-ellipsis\b|\boverflow-
  */
 function assertNothingCutButNames(html: string, message?: string) {
   for (const tag of html.match(/<[a-z][^>]*>/g) ?? []) {
-    if (TRUNCATION.test(tag) && !/\sdata-name=""/.test(tag)) assert.fail(`${message ?? "something other than a name is cut off"}: ${tag}`);
+    // `data-line`: the card's facts line, cut to one line on purpose with the
+    // whole line in its title and every figure's words read to a screen reader.
+    if (TRUNCATION.test(tag) && !/\sdata-(?:name|line)=""/.test(tag)) assert.fail(`${message ?? "something other than a name is cut off"}: ${tag}`);
   }
 }
 /**
@@ -151,33 +153,36 @@ function motherSafety(html: string): string {
 }
 
 describe("SupplierResultCard (rendered)", () => {
-  it("beside an open record the card wraps rather than crushing the name: no rule keys on the viewport", () => {
-    // The results column is ~500px on a 1440 display with a record open
-    // (27 Sep 2026) while every `sm:`/`lg:` rule still fires, so the card's
-    // wrap points are widths of its own: the identity block claims 18rem
-    // before the actions may share its row, the actions never refuse to
-    // shrink or wrap, and the photo strip claims 26rem before it sits beside
-    // the tiles. Pinned by class because no DOM here can measure.
+  it("line 1 wraps its actions under the name rather than crushing it, and the four tiles are gone", () => {
+    // The name claims 12rem (or the whole line on a phone) before the actions
+    // may share its row; the products sit beside lines 2-4 only from 1440.
+    // A card is never beside a pane any more: the search draws the compact
+    // table there (`resultsView`). Pinned by class because no DOM here measures.
     const html = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(aboniInput()) }));
-    assert.match(html, /<div class="flex min-w-\[min\(18rem,100%\)\] flex-1 flex-col gap-1">/, "the identity block does not claim a width of its own");
-    assert.match(html, /<div class="flex flex-wrap items-center gap-2 pt-2">/, "the action cluster refuses to wrap or shrink");
-    assert.match(html, /<div class="flex flex-wrap items-start gap-4"><div class="grid w-full grid-cols-2 gap-2 lg:w-\[352px\]">/, "the tiles row does not wrap");
-    assert.match(html, /<div class="relative min-w-\[min\(26rem,100%\)\] flex-1">/, "the photo strip does not claim a width of its own");
+    assert.match(html, /<h2 class="[^"]*min-w-\[min\(12rem,100%\)\] flex-1 basis-0"/, "the name does not claim a width of its own");
+    assert.match(html, /<div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1\.5">/, "line 1 cannot wrap its actions under the name");
+    assert.match(html, /min-\[1440px\]:flex-row/, "the products never move beside the facts");
+    assert.doesNotMatch(html, /grid w-full grid-cols-2|min-h-\[82px\]/, "a tile is back on the card");
     assert.doesNotMatch(html, /sm:flex-nowrap|lg:flex-row lg:items-start|lg:shrink-0/, "a viewport-keyed rule is back on the card");
   });
 
-  it("the 11-source record: name, eleven marks with names, four tiles, six photo tiles, no score anywhere", () => {
+  it("the 11-source record: name, eleven marks named once, the sources caption, every certificate, six 48px thumbs, no score anywhere", () => {
     const html = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(aboniInput()) }));
     assertNameOneLine(html, "Aboni Knitwear Ltd");
-    assert.equal((html.match(/aria-label="Source: /g) ?? []).length, 11 + 1, "11 in the mark row, 1 beside the one attributed meta fact (workers, from RSC)");
+    // Each source once: the marks row, and no mark repeated on the facts line.
+    assert.equal((html.match(/aria-label="Source: /g) ?? []).length, 11, "a source is named twice on the card");
     assert.match(html, /<a href="https:\/\/www\.bgmea\.com\.bd\/member\/71"[^>]*aria-label="Source: Bangladesh Garment Manufacturers &amp; Exporters Association, Industry bodies \(opens the register page\)"/);
-    assert.match(html, /11 sources/);
-    assert.match(html, /Bangladesh Garment Manufacturers &amp; Exporters Association/);
-    assert.match(html, /4 on file/);
-    assert.match(html, /12 HS lines/);
-    assert.equal((html.match(/\/products\/hs\/hs-\d{4}\.webp/g) ?? []).length, 6);
-    assert.match(html, /HS 6115/);
-    assert.match(html, /Illustrative photos, one per HS heading/);
+    assert.match(html, />8 registers &amp; certifiers · 3 brand lists</);
+    assert.doesNotMatch(html, /11 sources|4 on file|12 HS lines/, "a figure the marks, the chips or the thumbs already say, said again");
+    // Four chips and "+2" naming the rest; nothing about a certificate lost.
+    assert.match(html, /WRAP Gold expires in 11 days/);
+    // Two certificates, RSC and EPB drawn; "+2" names the other two.
+    assert.match(html, /RSC active · 100 % remediated/);
+    assert.match(html, /\+2<span class="sr-only">: GOTS expired 4 Apr 2026, OEKO-TEX Standard 100 · no expiry on file<\/span>/);
+    assert.equal((html.match(/\/products\/hs\/hs-\d{4}(?:-128)?\.webp/g) ?? []).length, 6);
+    assert.match(html, /aria-label="HS 6115 · /);
+    assert.match(html, />\+6 lines</);
+    assert.equal((html.match(/>illustration</g) ?? []).length, 1, "the illustration tag is said once for the row");
     assert.doesNotMatch(html, SCORE);
     assertNothingCutButNames(html);
     assert.doesNotMatch(html, HAND_TYPED_COLOUR);
@@ -261,20 +266,20 @@ describe("SupplierResultCard (rendered)", () => {
     for (const [name, html] of surfaces) assert.doesNotMatch(html, SCORE, `${name} renders something a buyer could read as a SourceBD opinion`);
   });
 
-  it("the almost-empty record is quiet: dashes with reasons, the dashed no-lines slot, nothing red or amber", () => {
+  it("the almost-empty record is quiet: every negative said, nothing red or amber", () => {
     const html = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(arFashionInput()) }));
-    assert.match(html, /1 source</);
+    assert.match(html, />1 register or certifier</);
     // Not "District, …": the record's own payload carries a BGMEA address
     // row that resolves to Motijheel, which is what the production supplier
     // profile prints for it.
     assert.match(html, /Year and workers not on file/);
     assert.doesNotMatch(html, /District, year and workers not on file/);
     assert.match(html, /Motijheel/);
-    assert.match(html, /none on 4 registers/);
-    assert.match(html, /not on the EPB list/);
+    // The four tiles' negatives, each once: chips, and the caption's title.
+    assert.match(html, /No certificate on 4 registers/);
+    assert.match(html, /Not on the EPB exporter list/, "EPB holds no record for this supplier: no read date is invented");
     assert.match(html, /not on 4 brand lists read/);
-    assert.match(html, /No export lines on file/);
-    assert.match(html, /no EPB record/, "EPB holds no record for this supplier: no read date is invented");
+    assert.match(html, /BGMEA 330, associate member/);
     assert.doesNotMatch(html, /checked \d/);
     // 25 is every row in `sources`; 11 of them have never produced a record
     // for anybody, so the chip claimed a read of eleven registers that have
@@ -291,7 +296,7 @@ describe("SupplierResultCard (rendered)", () => {
     for (const leak of ["6077", "BD05954", "GOTS-28029", "37940-100", "bgmea.com.bd/member/54", "exporter/313"]) {
       assert.ok(!html.includes(leak), `the parent factory's ${leak} reached the satellite's card`);
     }
-    assert.match(html, /1 source</);
+    assert.match(html, />1 register or certifier</);
     assert.match(html, /not in BGMEA, BKMEA, BGAPMEA, BTMA or EPB/);
   });
 
@@ -766,10 +771,10 @@ describe("SupplierSheet (rendered)", () => {
   it("a failed lines read says so in the HTML, on the card and on the sheet", () => {
     const failed = { ...aboniInput(), hscodes: [], hscodesError: true };
     const card = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(failed) }));
+    // The card's EPB chip says it; there is no strip to draw (the tiles and
+    // the no-lines slot went with the card's rebuild, 29 Sep 2026).
     assert.match(card, /EPB lines could not be read/);
-    assert.match(card, /Export lines could not be read/);
-    assert.match(card, /try again later/);
-    assert.doesNotMatch(card, /No export lines on file/);
+    assert.doesNotMatch(card, /No export lines on file|Not on the EPB exporter list/);
     const sheet = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(failed) }));
     assert.match(sheet, /EPB export lines could not be read/);
     assert.match(sheet, /could not be read/);
@@ -782,8 +787,8 @@ describe("SupplierSheet (rendered)", () => {
     const input = aboniInput();
     input.hscodes = [{ code: "9999", description: "A heading the catalogue has no photo for", source_url: null }];
     const html = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(input) }));
-    assert.match(html, /no photo yet/);
-    assert.match(html, /HS 9999/);
+    assert.match(html, /aria-label="HS 9999 · [^"]* · no photo yet"/);
+    assert.match(html, />9999</);
     assert.doesNotMatch(html, /\/products\/hs\/hs-\d{4}\.webp/, "no other heading's photo stands in for it");
   });
 });
@@ -1221,8 +1226,8 @@ describe("the largest lists the database holds (spec §3, §6)", () => {
     assert.equal(card.totalLines, 54);
     assert.equal(card.photos.length, 6);
     const html = renderToStaticMarkup(createElement(SupplierResultCard, { card }));
-    assert.match(html, /54 HS lines/);
-    assert.match(html, /\+48 lines</, "six tiles shown, forty-eight counted");
+    assert.match(html, /EPB exporter · 54 lines/);
+    assert.match(html, /\+48 lines</, "six thumbnails shown, forty-eight counted");
     assertNothingCutButNames(html);
 
     const sheet = buildSheet(input);
@@ -1381,8 +1386,8 @@ describe("a record whose only certificate belongs to a building", () => {
   it("names the building on the card, the row and the sheet", () => {
     const only = buildingOnlyCertificateInput();
     const card = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(only) }));
-    assert.match(card, rx(`none on this record · ${MG_BUILDING} holds one`));
-    assert.doesNotMatch(card, /none on 4 registers/);
+    assert.match(card, rx(`No certificate on this record · ${MG_BUILDING} holds one`));
+    assert.doesNotMatch(card, /No certificate on 4 registers/);
     assert.match(card, /Unknown type/);
 
     const row = renderToStaticMarkup(createElement(ResultsTable, { rows: [buildTableRow(only)] }));
@@ -1584,7 +1589,8 @@ describe("a brand list named twice by production is one mark and one name", () =
     const card = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(input) }));
     assert.equal((card.match(/aria-label="Source: M&amp;S[^"]*"/g) ?? []).length, 1, "the M&S mark is stamped twice");
     assert.equal((card.match(/>MS</g) ?? []).length, 1, "the two-letter stamp is drawn twice");
-    assert.match(card, /Listed by M&amp;S, NEXT/);
+    // The brand lists are the marks and the sources caption's count, once.
+    assert.match(card, /· 2 brand lists</);
     // The sheet's mark row names each register once, in tier order. The count
     // is taken over the HEAD, not the whole sheet: REZ-C's Sources section
     // draws a square per register too, and legitimately so — it is the list
@@ -2307,7 +2313,7 @@ describe("the whole EPB line list of every fixture reaches the screens", () => {
       assert.equal(input.hscodes.length, lines, name);
       const card = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(input) }));
       assert.doesNotMatch(card, /no lines on file|none on the EPB page|not on the EPB list/, `${name}'s card denies its EPB lines`);
-      assert.match(card, new RegExp(`${lines} HS lines`), name);
+      assert.match(card, new RegExp(`EPB exporter · ${lines} lines`), name);
       const sheet = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(input) }));
       assert.doesNotMatch(sheet, /Not on the EPB exporter list|no lines on file/, `${name}'s sheet denies its EPB lines`);
     }
@@ -2403,8 +2409,10 @@ describe("the composer says what the draft is, and promises nothing about delive
   });
 });
 
-describe("a card tile with nothing to show says so, and never zero", () => {
-  it("every empty tile is an em dash beside its reason", () => {
+describe("a card with nothing to show says so, and never zero", () => {
+  it("an empty certificate list or export list is a quiet chip saying why, never a count of 0", () => {
+    // The four tiles went (founder's review, 29 Sep 2026); the quiet chips and
+    // the sources caption's title carry their words.
     for (const [name, input] of [
       ["a failed EPB read", { ...aboniInput(), hscodes: [], hscodesError: true } as RecordInput],
       ["the almost-empty record", arFashionInput()],
@@ -2412,13 +2420,8 @@ describe("a card tile with nothing to show says so, and never zero", () => {
     ] as [string, RecordInput][]) {
       const card = buildCard(input);
       const html = renderToStaticMarkup(createElement(SupplierResultCard, { card }));
-      for (const tile of card.tiles) {
-        if (tile.value !== null) continue;
-        // The sub-line says what was checked; the value must not read as a count.
-        assert.ok(tile.sub, `${name}: an empty "${tile.label}" tile says nothing about why`);
-        assert.doesNotMatch(html, new RegExp(`>${tile.label}<[^]{0,200}?>0<`), `${name}: "${tile.label} 0" over "${tile.sub}"`);
-      }
-      assert.match(html, /—/, `${name}: no tile shows the em dash`);
+      assert.ok(card.chips.some((c) => c.tone === "quiet"), `${name}: nothing says what is missing`);
+      assert.doesNotMatch(html, />0 (?:lines|on file|certificates|registers)\b/, `${name}: an empty list reads as a count`);
     }
   });
 });

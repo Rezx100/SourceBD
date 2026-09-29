@@ -140,7 +140,8 @@ export function workersSecondShort(w: ReturnType<typeof discoverWorkers>): strin
 
 /** "8 registers & certifiers" — the population `p_min_sources` filters on. */
 function registerCountLabel(n: number): string {
-  return `${n} ${n === 1 ? "register or certifier" : "registers & certifiers"}`;
+  // None is said in words, never as a count of 0 beside a list of none.
+  return n === 0 ? "No register or certifier" : `${n} ${n === 1 ? "register or certifier" : "registers & certifiers"}`;
 }
 
 function brandNames(codes: readonly string[]): string[] {
@@ -198,15 +199,18 @@ export function buildDiscoverCard(
   // review, 29 Sep 2026: every fact was said two or three times). Every
   // certificate is a chip; the card draws four and names the rest on "+N".
   // The links the four tiles carried ride on the matching chip.
-  const chips: HighlightChip[] = [];
+  const certChips: HighlightChip[] = [];
   for (const c of certList) {
-    chips.push({
+    certChips.push({
       tone: c.state === "valid" ? "positive" : c.state === "no-expiry" ? "neutral" : "caution",
       icon: c.state === "valid" ? "check-c" : c.state === "expiring" ? "clock" : c.state === "expired" ? "warn" : undefined,
       label: certChipLabel(c),
       href: `${recordHref}#certificates`,
     });
   }
+  // The sketch's order: two certificates, then RSC and EPB, so the card's
+  // one line of status never hides the safety or export facts behind "+N".
+  const chips: HighlightChip[] = certChips.slice(0, 2);
   if (row.rsc_progress_pct != null) {
     chips.push({ tone: "neutral", icon: "shield", label: "RSC inspected", href: `${recordHref}#safety` });
   }
@@ -221,6 +225,7 @@ export function buildDiscoverCard(
   else if (lines.length > 0) chips.push({ tone: "neutral", label: `EPB exporter · ${lines.length} ${lines.length === 1 ? "line" : "lines"}`, href: `${recordHref}#products` });
   else if (onEpbRegister) chips.push({ tone: "quiet", label: "EPB exporter · no lines recorded" });
   else chips.push({ tone: "quiet", label: "Not on the EPB exporter list" });
+  chips.push(...certChips.slice(2));
   if (certList.length === 0) chips.push({ tone: "quiet", label: "No certificate on file" });
   if (marks.length <= 1) {
     chips.push({

@@ -1,10 +1,6 @@
-// SupplierResultCard (REZ-A, artifact ResultsList README), band for band:
-// identity (initials tile on the top source's rank, name that wraps at any
-// length, the source-mark row, the meta line with a mark per fact, actions),
-// highlight chips in status hues, four hairline tiles + the HS photo strip,
-// and the V2 why-matched line. Selected: filled checkbox + 3px brand inset
-// rule. Sanctioned: 4px sanction bar, a notice under the meta, the badge first
-// in the chip row, Send RFQ disabled — nothing in the layout can hide it.
+// SupplierResultCard: one search result as a card, rebuilt after the founder's
+// review of 29 Sep 2026 on five lines, each fact said once (name; facts;
+// sources; status; products). See the component's own comment.
 //
 // Client (REZ-B): the checkbox reads and writes the shared selection context
 // (`./selection`), which only exists inside a `SelectionProvider`. Outside
@@ -216,13 +212,16 @@ export function SupplierResultCard({ card }: { card: SupplierCardModel }) {
               <Chips>
                 {shown.map((c) =>
                   c.href ? (
-                    <Link key={c.label} prefetch={false} scroll={false} href={c.href} className="rounded-sm transition-opacity duration-fast hover:opacity-80">
-                      <Chip tone={c.tone} icon={c.icon}>
+                    // Next's own scroll, not `scroll={false}`: the href ends in
+                    // #certificates or #products, and `scroll={false}` also drops
+                    // the jump to that section.
+                    <Link key={c.label} prefetch={false} href={c.href} className="rounded-sm transition-opacity duration-fast hover:opacity-80">
+                      <Chip tone={c.tone} icon={c.icon} compact>
                         {c.label}
                       </Chip>
                     </Link>
                   ) : (
-                    <Chip key={c.label} tone={c.tone} icon={c.icon}>
+                    <Chip key={c.label} tone={c.tone} icon={c.icon} compact>
                       {c.label}
                     </Chip>
                   ),

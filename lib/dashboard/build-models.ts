@@ -929,15 +929,14 @@ export function buildCard(filed: RecordInput): SupplierCardModel {
   const epb = epbExporter(p);
   // Status only: every certificate a chip (the card draws four and names the
   // rest on "+N"), then RSC and EPB, the links the tiles carried on them.
-  const chips: HighlightChip[] = [];
-  for (const c of certList) {
-    chips.push({
-      tone: c.state === "valid" ? "positive" : c.state === "no-expiry" ? "neutral" : "caution",
-      icon: c.state === "valid" ? "check-c" : c.state === "expiring" ? "clock" : c.state === "expired" ? "warn" : undefined,
-      label: certChipLabel(c),
-      href: `${recordHref}#certificates`,
-    });
-  }
+  const certChips: HighlightChip[] = certList.map((c) => ({
+    tone: c.state === "valid" ? "positive" : c.state === "no-expiry" ? "neutral" : "caution",
+    icon: c.state === "valid" ? "check-c" : c.state === "expiring" ? "clock" : c.state === "expired" ? "warn" : undefined,
+    label: certChipLabel(c),
+    href: `${recordHref}#certificates`,
+  }));
+  // Two certificates, then RSC and EPB, then the rest: "+N" never hides them.
+  const chips: HighlightChip[] = certChips.slice(0, 2);
   const rc = rscChip(rsc, buildings);
   if (rc) chips.push({ ...rc, href: `${recordHref}#safety` });
   const onEpb = hasEpbRecord(p);
@@ -945,6 +944,7 @@ export function buildCard(filed: RecordInput): SupplierCardModel {
   else if (lines.length > 0) chips.push({ tone: "neutral", label: `EPB exporter · ${lines.length} ${lines.length === 1 ? "line" : "lines"}`, href: epb?.href ?? `${recordHref}#products` });
   else if (onEpb) chips.push({ tone: "quiet", label: "EPB exporter · no lines on file", href: epb?.href ?? null });
   else chips.push({ tone: "quiet", label: "Not on the EPB exporter list" });
+  chips.push(...certChips.slice(2));
   if (certList.length === 0) chips.push({ tone: "quiet", label: certsEmptyChipLabel(p) });
   const bgmea = registers.find((r) => r.source_code.toUpperCase() === "BGMEA");
   // Every BGMEA label production holds already ends in "member #", so
@@ -952,13 +952,13 @@ export function buildCard(filed: RecordInput): SupplierCardModel {
   // published records whose only source is BGMEA.
   if (marks.length <= 1 && bgmea) {
     const label = registerLabel(bgmea.label);
-    chips.unshift({ tone: "neutral", label: /member$/i.test(label) ? label : `${label} member` });
+    chips.unshift({ tone: "neutral", label: /\bmember$/i.test(label) ? label : `${label} member` });
   }
   if (marks.length <= 1) chips.push({ tone: "quiet", label: `Nothing else on file · ${marks.length} of ${SOURCES_WITH_RECORDS} sources read` });
   // The marks row's one caption: registers and certifiers (tiers 1–3, the
   // sort's population) apart from brand lists.
   const certifiers = marks.filter((m) => m.tier <= 3).length;
-  const sourcesCaption = [`${certifiers} ${certifiers === 1 ? "register or certifier" : "registers & certifiers"}`, brands.length ? `${brands.length} brand ${brands.length === 1 ? "list" : "lists"}` : null]
+  const sourcesCaption = [certifiers === 0 ? "No register or certifier" : `${certifiers} ${certifiers === 1 ? "register or certifier" : "registers & certifiers"}`, brands.length ? `${brands.length} brand ${brands.length === 1 ? "list" : "lists"}` : null]
     .filter(Boolean)
     .join(" · ");
   // What the Registers and Listed by tiles said beyond the marks. Three
