@@ -334,7 +334,7 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
         <Frame
           id="supplier-sheet"
           title="SupplierSheet — the record beside the results"
-          note={`${d.sheet.name}: ${d.sheet.sourceCount} sources, ${d.sheet.certs.length} certificates, ${d.sheet.products.lines} HS lines, read ${d.sheet.readDate ?? "—"}. Contact details locked (striped, never blurred). The results narrow to the ledger's three essential columns and keep their own scroll; the open row is marked.`}
+          note={`${d.sheet.name}: ${d.sheet.sourceCount} sources, ${d.sheet.certs.length} certificates, ${d.sheet.products.lines} HS lines, read ${d.sheet.readDate ?? "—"}. Contact details locked (never blurred). The results narrow to the ledger's three essential columns and keep their own scroll; the open row is marked.`}
           height={1240}
         >
           <AppShell className="md:h-full" sidebar={results.sidebar} topbar={results.topbar} mainId="supplier-sheet-main" screenLabel="supplier record">

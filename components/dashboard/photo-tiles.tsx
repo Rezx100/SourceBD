@@ -203,6 +203,54 @@ export function PhotoGrid({ tiles, lineHref }: { tiles: readonly PhotoTileModel[
   );
 }
 
+/**
+ * The record's export lines as a list (founder's pick "A", 29 Sep 2026: keep
+ * the stock photos, shown differently — "not the proper way to view the
+ * product"): one row per HS heading, a 40px photo tagged as an illustration,
+ * the code and the heading's name. Each row opens the line's own sheet.
+ */
+export function PhotoList({ tiles, lineHref }: { tiles: readonly PhotoTileModel[]; lineHref?: (hs: string) => string }) {
+  return (
+    <ul className="m-0 grid list-none gap-x-6 p-0 sm:grid-cols-2" data-photo-list="true">
+      {tiles.map((t) => {
+        const body = (
+          <>
+            <span className="relative size-10 shrink-0 overflow-hidden rounded-sm border border-line-subtle bg-surface-sunken">
+              {t.thumb ?? t.src ? <Photo src={(t.thumb ?? t.src)!} /> : <span className="grid size-full place-items-center font-mono text-[9px] text-ink-subtle">{t.hs}</span>}
+            </span>
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="flex items-baseline gap-2">
+                <Code className="text-sm text-ink-strong">{t.hs}</Code>
+                {t.src ? <span className="text-xs text-ink-subtle">illustration</span> : null}
+              </span>
+              <span className="text-sm text-ink [overflow-wrap:anywhere]">{t.short}</span>
+            </span>
+          </>
+        );
+        return (
+          <li key={t.hs} className="border-t border-line-subtle">
+            {lineHref ? (
+              <Link
+                prefetch={false}
+                scroll={false}
+                href={lineHref(t.hs)}
+                aria-label={`HS ${t.hs} · ${t.short}`}
+                className="-mx-2 flex items-center gap-3 rounded-sm px-2 py-2 transition-colors duration-fast hover:bg-surface-sunken"
+              >
+                {body}
+                <LinkPending className="size-4 text-ink-subtle" />
+                <Icon name="chev-r" small className="text-ink-subtle" />
+              </Link>
+            ) : (
+              <div className="flex items-center gap-3 py-2">{body}</div>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 /** `.thumbs`: 28px thumbs in a table row with "+N". */
 export function PhotoThumbs({ tiles, totalLines }: { tiles: readonly PhotoTileModel[]; totalLines: number }) {
   const more = Math.max(0, totalLines - tiles.length);

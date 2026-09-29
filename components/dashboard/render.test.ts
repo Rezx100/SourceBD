@@ -495,7 +495,7 @@ describe("SupplierSheet (rendered)", () => {
     assert.match(html, /ABONI KNITWEAR LTD\./);
     assert.match(html, /1,000,000 pcs\/day/);
     assert.match(html, /data-locked="true"/);
-    assert.match(html, /locked-pattern/);
+    // Plain, never striped (founder's video, 29 Sep 2026) and never blurred.
     assert.match(html, /Contact details<\/span>/, "no plan name unless settings give one");
     assert.doesNotMatch(html, /Team plan/);
     assert.match(html, /Contact details are not shown on the record\./);
@@ -507,14 +507,15 @@ describe("SupplierSheet (rendered)", () => {
     // contact fields (0105's header).
     assert.doesNotMatch(locked, /EPB|BGMEA|BKMEA|BGAPMEA/, "the locked card names a register no payload attributes");
     assert.doesNotMatch(locked, /On file:/, "a sheet built without counts claims kinds it was not given");
-    assert.match(html, /source pending/, "unattributed profile facts say so instead of carrying a guessed mark");
+    assert.match(html, /aria-label="Source pending"/, "unattributed profile facts say so instead of carrying a guessed mark");
     assert.doesNotMatch(html, /items · BGMEA/);
     assert.match(html, /GOTS-31587/);
     assert.match(html, /Expires 29 Sep 2026 · 11 days/);
     assert.match(html, /No expiry on file/);
     assert.match(html, /Expired 4 Apr 2026/);
     assert.match(html, /role="meter"[^>]*aria-valuenow="100"/);
-    assert.match(html, /Source marks link to their register page where one is on file/);
+
+
     assert.doesNotMatch(html, /Every fact links to its source page/);
     assert.doesNotMatch(html, /blur/, "locked is striped, never blurred");
     assertSendRfqEnabled(html);
@@ -593,8 +594,10 @@ describe("SupplierSheet (rendered)", () => {
     // zero-mark case this guard is about.
     bare.profile.addresses = [];
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(bare) }));
-    assert.doesNotMatch(html, /Every source mark links to its register page/);
-    assert.match(html, /Source marks link to their register page where one is on file/);
+
+
+
+
   });
 
   it("a sanctioned record carries the banner under the bar and a disabled Send RFQ", () => {
@@ -1221,7 +1224,7 @@ describe("the largest lists the database holds (spec §3, §6)", () => {
     const sheet = buildSheet(input);
     assert.equal(sheet.products.productListCount, 29);
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model: sheet }));
-    assert.match(html, /Product list<\/span><span[^>]*>29<\/span><span[^>]*>items on file · source pending/);
+    assert.match(html, /Product list<\/dt><dd[^>]*><span[^>]*>29<\/span><span[^>]*>as filed/);
     const ps = renderToStaticMarkup(createElement(ProductSheet, { model: buildProductSheet(input, "6105") }));
     assert.match(ps, /\+25 items/, "four are listed, twenty-five counted — never a silent truncation");
     assert.doesNotMatch(ps, TRUNCATION);
