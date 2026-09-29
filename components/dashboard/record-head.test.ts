@@ -51,10 +51,11 @@ describe("1. each source once in the head", () => {
 });
 
 describe("2–3. fewer words, figures as rows", () => {
-  it("an empty figure is a dash with its reason on hover and to a screen reader", () => {
+  it("an empty figure is a dash with its reason on hover, on a tap and to a screen reader", () => {
     const out = renderToStaticMarkup(createElement(Stats, { items: [{ key: "Buyer lists", value: "—", sub: "not on 4 brand lists read" }, { key: "HS lines", value: "12", sub: "EPB" }] }));
     assert.match(out, /<dl\b/);
-    assert.match(out, /<span title="not on 4 brand lists read"[^>]*>—<span class="sr-only"> not on 4 brand lists read<\/span><\/span>/);
+    // PR D of the names hand-off: the dash is a toggle, so a phone can read it.
+    assert.match(out, /<summary aria-label="Why Buyer lists is empty" title="not on 4 brand lists read"[^>]*><span[^>]*>—<\/span><\/summary><span role="note"[^>]*>not on 4 brand lists read<\/span>/);
     assert.match(out, />12<\/span><span[^>]*>EPB<\/span>/, "a figure keeps its short note");
     assert.doesNotMatch(out, /rounded-md bg-canvas/, "the four boxes are back");
   });
