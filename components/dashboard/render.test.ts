@@ -983,7 +983,7 @@ describe("RfqComposer (rendered)", () => {
   it("the preview names what the RFQ carries, and promises nothing about delivery", () => {
     const html = composer();
     assert.match(html, />What this RFQ carries</);
-    assert.match(html, /<section[^>]*aria-label="Preview"/);
+    assert.match(html, /<details[^>]*aria-label="Preview"/);
     // An unclaimed supplier is not reached until REZ-D's email work, so no
     // surface may promise a delivery, an inbox or a reply time.
     assert.doesNotMatch(html, /the supplier receives|will receive|lands in their inbox|\bdelivered\b|within \d|\bguarantee|replies land in Messages/i);
@@ -1979,7 +1979,8 @@ describe("the two-state controls say which state they are in", () => {
       // caller's className, so the rendered class of every box a buyer can
       // tick is pinned exactly, in each state. Changing one means changing
       // this list on purpose.
-      const BOX = "inline-grid size-4 shrink-0 place-items-center rounded-xs border";
+      // `hit`: 16px to the eye, 44px to a finger (the phone hand-off's M5).
+      const BOX = "hit inline-grid size-4 shrink-0 place-items-center rounded-xs border";
       const LIVE = "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--ds-accent))]";
       // The tick fades in on the kit's fast clock (27 Sep 2026).
       const MOTION = "transition-colors duration-fast";
@@ -2007,10 +2008,10 @@ describe("the two-state controls say which state they are in", () => {
         ["select-all, some", under("mixed", false, header), ON],
         ["select-all, all", under(true, false, header), ON],
         // The ledger sets its box in from the row's edge (`ml-1`); both reach 44px under a finger (`hit`).
-        ["table row, off", under(false, false, createElement(ResultsTable, { rows: [row] })), `${OFF} hit ml-1`],
-        ["table row, on", under(false, true, createElement(ResultsTable, { rows: [row] })), `${ON} hit ml-1`],
-        ["card, off", under(false, false, createElement(SupplierResultCard, { card })), `${OFF} hit mt-4 max-sm:row-span-2 max-sm:mt-0`],
-        ["card, on", under(false, true, createElement(SupplierResultCard, { card })), `${ON} hit mt-4 max-sm:row-span-2 max-sm:mt-0`],
+        ["table row, off", under(false, false, createElement(ResultsTable, { rows: [row] })), `${OFF} ml-1`],
+        ["table row, on", under(false, true, createElement(ResultsTable, { rows: [row] })), `${ON} ml-1`],
+        ["card, off", under(false, false, createElement(SupplierResultCard, { card })), `${OFF} mt-4 max-sm:row-span-2 max-sm:mt-0`],
+        ["card, on", under(false, true, createElement(SupplierResultCard, { card })), `${ON} mt-4 max-sm:row-span-2 max-sm:mt-0`],
       ];
       for (const [name, html, want] of cases) {
         const got = boxes(html);

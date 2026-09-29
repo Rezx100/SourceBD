@@ -198,16 +198,28 @@ export function ErrorNote({ children, className }: { children: ReactNode; classN
  * Sorting is a URL: `HeadCell` takes `sort` and draws the arrow, so the same
  * header serves Discover, Saved, RFQs, Orders and Compliance.
  */
+/**
+ * Below sm a table is a list: each row a block of its cells, wrapping, with
+ * no header row and no minimum width (the phone hand-off's M5: an order's
+ * name broke a letter a line in a column squeezed to 40px, and every other
+ * column lay off the screen's edge). From sm, the table.
+ */
+const STACK =
+  "max-sm:!min-w-0 max-sm:block max-sm:[&_thead]:hidden max-sm:[&_tbody]:block max-sm:[&_tr]:flex max-sm:[&_tr]:flex-wrap max-sm:[&_tr]:items-center max-sm:[&_tr]:gap-x-3 max-sm:[&_tr]:gap-y-1 max-sm:[&_tr]:border-b max-sm:[&_tr]:border-line-subtle max-sm:[&_tr]:px-4 max-sm:[&_tr]:py-3 max-sm:[&_tr:last-child]:border-b-0 max-sm:[&_td]:h-auto max-sm:[&_td]:w-auto max-sm:[&_td]:border-0 max-sm:[&_td]:p-0 max-sm:[&_th]:h-auto max-sm:[&_th]:w-auto max-sm:[&_th]:border-0 max-sm:[&_th]:p-0 max-sm:[&_td]:static";
+
 export function DataTable({
   label,
   minWidth = "40rem",
   dense = false,
+  stack = true,
   className,
   children,
 }: {
   label: string;
   minWidth?: string;
   dense?: boolean;
+  /** A list on a phone (`STACK`); false for a grid of fields, whose inputs need their column's heading. */
+  stack?: boolean;
   className?: string;
   children: ReactNode;
 }) {
@@ -218,6 +230,7 @@ export function DataTable({
           "w-full border-collapse text-sm",
           "[&_thead_th]:xl:sticky [&_thead_th]:xl:top-0 [&_thead_th]:xl:z-raised",
           dense && "[&_td]:h-9 [&_th[scope=row]]:h-9",
+          stack && STACK,
         )}
         style={{ minWidth }}
       >

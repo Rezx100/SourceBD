@@ -137,7 +137,7 @@ export function SheetTabs({ tabs }: { tabs: readonly { label: string; count: str
           title={t.href === null ? "Not available on this record" : undefined}
           aria-current={isOn(t) ? "true" : undefined}
           className={cn(
-            "-mb-px inline-flex h-10 items-center gap-1.5 whitespace-nowrap border-b-2 border-transparent text-base font-medium text-ink-muted transition-colors duration-fast hover:text-ink-strong max-md:h-11 max-md:snap-start max-sm:text-[0.9375rem]",
+            "-mb-px inline-flex h-10 items-center gap-1.5 whitespace-nowrap border-b-2 border-transparent text-base font-medium text-ink-muted transition-colors duration-fast [touch-action:manipulation] hover:text-ink-strong active:text-ink-strong max-md:h-11 max-md:snap-start max-sm:text-[0.9375rem]",
             t.href === null && "text-ink-subtle hover:text-ink-subtle",
             isOn(t) && "border-accent text-ink-strong",
           )}

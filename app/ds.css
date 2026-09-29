@@ -132,7 +132,8 @@
      a touch screen the hit area reaches 8px past every edge, so a 28px
      control is 44px to a finger and unchanged to the eye. */
   @media (pointer: coarse) {
-    .hit {
+    /* `:where`, so the element's own position (absolute, sticky) wins. */
+    :where(.hit) {
       position: relative;
     }
     .hit::after {

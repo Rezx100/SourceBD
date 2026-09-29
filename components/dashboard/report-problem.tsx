@@ -78,7 +78,7 @@ export function ReportProblem({ page }: { page: string }) {
     >
       <summary
         aria-label="More"
-        className="flex h-control w-control cursor-pointer list-none items-center justify-center rounded-sm text-ink-muted hover:bg-surface-sunken [&::-webkit-details-marker]:hidden"
+        className="hit flex h-control w-control cursor-pointer list-none items-center justify-center rounded-sm text-ink-muted [touch-action:manipulation] hover:bg-surface-sunken active:bg-surface-sunken [&::-webkit-details-marker]:hidden"
       >
         <Icon name="dots" />
       </summary>

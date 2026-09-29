@@ -236,7 +236,7 @@ export function ResultsTable({
                     on={selected}
                     label={`Select ${r.name}`}
                     onToggle={selectable ? () => sel.toggle(r.supplierId!) : undefined}
-                    className="hit ml-1"
+                    className="ml-1"
                   />
                 </td>
                 {/* On a phone the whole row opens the record (the name's link

@@ -100,6 +100,8 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
 - **Dashboard fixes from the founder's 29 Sep video** — COMPLETE, live `79a59f8` (PRs #197–#202, #207); migration `0107` applied 29 Sep; detail in `archive/state-2026-sep.md`.
 - **One-line names, fact icons, the video's leftovers (29 Sep)** — slate then dropped for greys and near-black (founder, same day: `accent` has no hue, `.link` underlines). BUILT, on `main` via #213 (deploy waiting), `feature-specs/handoff-dashboard-names-and-facts.md`: PR 0 #206 (z-index tokens, guard in `tokens.test.ts`; on `main`, deploy waiting), A #209 (`splitQualifier`, `OneLine`), B #210 (`factIcon`, certificate rows), C #211 (card rebuilt, `resultsView`), D #212 (tappable reasons, sidebar foot, tour, folded filters). Harness: `.impeccable/preview/build-names30.cjs`. Not done: Linear issues (not connected). The record tabs stick below 768px (phone hand-off M0, M4).
 
+- **Buyer app on a phone (30 Sep)** — BUILT on `development` (PRs #218, #220–#224), promotion to `main` next; detail in `archive/state-2026-sep.md`.
+
 ## Founder rules still in force (one line each; detail in archive)
 - EPB is a government register: show its evidence and HS codes whenever EPB has them, flagged or not. Never mint EPB-only suppliers. (15 Aug)
 - Registry columns are canonical-latest-wins: the provider's current page is the truth and shows without a review round-trip. (3 Aug)
