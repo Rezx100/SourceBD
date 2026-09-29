@@ -531,6 +531,12 @@ This file keeps routine agent sessions from scanning every inactive feature spec
   `context/feature-specs/spec-FE-SITEWIDE-design-conformance-pass.md`
   plus `context/frontend-design-spec.md`.
 
+- **The founder's 29 Sep dashboard video** — SHIPPED 29 Sep 2026 (`main`
+  `79a59f8`), `feature-specs/handoff-dashboard-video-29sep.md`: PRs #197, #198,
+  #200, #201, #202 and #207 (the older shell's reads out of /app); migration
+  0107 not applied (`ops/plans/0107-profile-one-supplier.md`). Closeout:
+  `archive/state-2026-sep.md`.
+
 ## Queued Specs
 - **SPECIFIED, NOT STARTED (4 Aug 2026): entity resolution core** —
   `context/feature-specs/spec-resolution-core.md`. Replaces the

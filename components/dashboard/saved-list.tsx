@@ -173,7 +173,7 @@ export function SavedList({
                   <tr key={r.id} className={rowClass({ current: open })}>
                     <th scope="row" className="h-11 border-b border-line-subtle px-4 py-2 text-left align-middle font-normal">
                       <div className="flex items-center gap-2.5">
-                        <LogoTile initials={initials(name)} tier={topTier(tags)} size="sm" />
+                        <LogoTile initials={initials(name)} tier={topTier(tags)} size="row" />
                         <div className="min-w-0 flex-1">
                           {/* The name opens the record beside the list; the list, its sort and its page stay put.
                               Two lines, each cut to one (the One-Line Name Rule). */}

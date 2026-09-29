@@ -11,7 +11,7 @@
 
 import { Suspense } from "react";
 import { formatCount } from "@/lib/dashboard/facts";
-import { filterMenus, menuSummary } from "@/lib/dashboard/search-templates";
+import { filterMenus, menuSummary, type FilterMenu } from "@/lib/dashboard/search-templates";
 import { discoverHref, serializeDiscoverState, type DiscoverState } from "@/lib/discover-v32-state";
 import { cn } from "@/lib/utils";
 import { Menu, MenuItem } from "./controls";
@@ -27,14 +27,28 @@ async function StreamedCount({ counts, k }: { counts: Promise<Counts>; k: string
   return <OptionCount n={(await counts)[k]} />;
 }
 
+/** Company type and More as one More menu, for the narrow column beside a pane. */
+export function foldMenus(menus: FilterMenu[], folded: boolean): FilterMenu[] {
+  if (!folded) return menus;
+  const rest = menus.filter((m) => m.key === "type" || m.key === "more");
+  return [...menus.filter((m) => !rest.includes(m)), { key: "more", label: "More", options: rest.flatMap((m) => m.options) }];
+}
+
 export function FilterMenus({
   state,
   counts,
   hrefFor = discoverHref,
+  folded = false,
   className,
   children,
 }: {
   state: DiscoverState;
+  /**
+   * Beside an open pane the results column is narrow and five menus wrapped
+   * onto two or three rows: Product, Certificate and Place stay, and Company
+   * type folds into More (founder's leftovers, 29 Sep 2026).
+   */
+  folded?: boolean;
   /**
    * Suppliers each option finds, by option key; absent on the results, where
    * the whole-corpus count would mislead. A promise streams each count into
@@ -52,7 +66,7 @@ export function FilterMenus({
   const key = serializeDiscoverState(state).toString();
   return (
     <div role="group" aria-label="Filter by" className={cn("flex flex-wrap items-center gap-1.5", className)}>
-      {filterMenus(state).map((m) => {
+      {foldMenus(filterMenus(state), folded).map((m) => {
         const summary = menuSummary(m);
         return (
           <Menu

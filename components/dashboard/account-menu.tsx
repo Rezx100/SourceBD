@@ -14,6 +14,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Icon } from "./icons";
+import { SbIcon } from "./sb-icons";
 import { Caption, Label } from "./type";
 
 export type AccountModel = { initial: string | null; name: string | null; email: string | null; avatarUrl?: string | null };
@@ -23,8 +24,8 @@ export function accountName(account: AccountModel): string {
   return account.name ?? account.email?.split("@")[0] ?? "Your account";
 }
 
-export function Avatar({ account, size = "sm" }: { account: AccountModel | null; size?: "sm" | "md" }) {
-  const box = size === "md" ? "size-9" : "size-7";
+export function Avatar({ account, size = "sm" }: { account: AccountModel | null; size?: "sm" | "rail" | "md" }) {
+  const box = size === "md" ? "size-9" : size === "rail" ? "size-8" : "size-7";
   if (account?.avatarUrl) {
     // A Supabase Storage URL the buyer uploaded; next/image would need the
     // bucket's host configured for one 28px picture.
@@ -53,7 +54,7 @@ export function menuShouldClose(e: { key?: string; target?: unknown }, menu: { o
 
 const ITEM ="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-ink transition-colors duration-fast hover:bg-surface-sunken";
 
-export function AccountMenu({ account, place }: { account: AccountModel; place: "rail" | "topbar" }) {
+export function AccountMenu({ account, place, plan }: { account: AccountModel; place: "rail" | "topbar"; /** The rail's second line: "Free plan · Public beta". */ plan?: string | null }) {
   const ref = useRef<HTMLDetailsElement>(null);
   const pathname = usePathname();
   useEffect(() => {
@@ -77,22 +78,29 @@ export function AccountMenu({ account, place }: { account: AccountModel; place: 
   const name = accountName(account);
   const rail = place === "rail";
   return (
-    <details ref={ref} className={cn("group/acct relative", rail && "-mx-2")}>
+    <details ref={ref} className="group/acct relative">
       <summary
-        aria-label={`Account, ${name}`}
-        title={rail ? name : undefined}
+        aria-label={`Account, ${name}${rail && plan ? `, ${plan}` : ""}`}
+        // The collapsed rail shows the photo alone; its tooltip gives the name and the plan.
+        title={rail ? [name, plan].filter(Boolean).join(" · ") : undefined}
         className={cn(
           "flex cursor-pointer list-none items-center rounded-sm transition-colors duration-fast [&::-webkit-details-marker]:hidden",
           rail
-            ? "gap-2.5 px-2 py-1.5 hover:bg-surface-sunken group-open/acct:bg-surface-sunken md:group-data-[rail=collapsed]/shell:justify-center md:group-data-[rail=collapsed]/shell:px-0"
+            ? // The nav rows' left edge and hover; open, the slate the current page wears.
+              "h-12 gap-2.5 px-2 hover:bg-surface-sunken group-open/acct:bg-accent-tint md:group-data-[rail=collapsed]/shell:justify-center md:group-data-[rail=collapsed]/shell:px-0"
             : "rounded-full",
         )}
       >
-        <Avatar account={account} />
+        <Avatar account={account} size={rail ? "rail" : "sm"} />
         {rail ? (
           <>
-            <Label className="min-w-0 grow text-ink-strong [overflow-wrap:anywhere] md:group-data-[rail=collapsed]/shell:sr-only">{name}</Label>
-            <Icon name="caret" small className="text-ink-subtle transition-transform duration-fast group-open/acct:rotate-180 md:group-data-[rail=collapsed]/shell:hidden" />
+            <span className="flex min-w-0 flex-1 flex-col md:group-data-[rail=collapsed]/shell:sr-only">
+              <span data-name="" className="truncate text-sm font-medium text-ink-strong">
+                {name}
+              </span>
+              {plan ? <span className="truncate text-xs text-ink-subtle">{plan}</span> : null}
+            </span>
+            <SbIcon name="up-down" className="text-ink-subtle md:group-data-[rail=collapsed]/shell:hidden" />
           </>
         ) : null}
       </summary>

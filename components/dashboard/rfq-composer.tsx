@@ -381,7 +381,7 @@ export function RfqComposer({
                 <ul className="m-0 flex list-none flex-col divide-y divide-line-subtle rounded-md bg-surface-sunken p-0">
                   {targets.map((t) => (
                     <li key={t.id} className="flex items-center gap-3 px-3 py-2">
-                      <LogoTile initials={t.initials} tier={t.tier} size="sm" />
+                      <LogoTile initials={t.initials} tier={t.tier} size="row" />
                       <span className="flex min-w-0 flex-1 flex-col">
                         {/* Two lines, each cut to one (the One-Line Name Rule); the marks and a
                             sanction beside the name keep their room, the marks only
@@ -554,8 +554,10 @@ export function RfqComposer({
           </section>
         </form>
       </SheetScroll>
-      <div className="glass flex shrink-0 flex-wrap items-center gap-2 border-t border-line-subtle px-6 py-3">
-        <span role="status" aria-live="polite" className={cn("inline-flex min-w-0 flex-1 items-center gap-1 text-xs", error ? "text-danger-ink" : sanctioned.length > 0 ? "text-sanction-ink" : missing.length > 0 ? "text-caution-ink" : "text-ink-subtle")}>
+      {/* The status takes its own line on a phone: beside the two buttons it
+          was squeezed to a word a line (phone check, 29 Sep 2026). */}
+      <div className="glass flex shrink-0 flex-wrap items-center gap-2 border-t border-line-subtle px-4 py-3 sm:px-6">
+        <span role="status" aria-live="polite" className={cn("inline-flex min-w-0 flex-1 basis-full items-center gap-1 text-xs sm:basis-0", error ? "text-danger-ink" : sanctioned.length > 0 ? "text-sanction-ink" : missing.length > 0 ? "text-caution-ink" : "text-ink-subtle")}>
           {error ? (
             <>
               <Icon name="warn" small /> {error}

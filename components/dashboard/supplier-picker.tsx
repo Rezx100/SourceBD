@@ -300,7 +300,7 @@ function Rows({
             )}
           >
             {t.sanctioned ? <span aria-hidden className="size-4 shrink-0" /> : <Checkbox on={on} label={`Select ${t.name}`} onToggle={() => onToggle(t)} />}
-            <LogoTile initials={t.initials} tier={t.tier} size="sm" />
+            <LogoTile initials={t.initials} tier={t.tier} size="row" />
             <span className="flex min-w-0 flex-1 flex-col">
               {/* Two lines, each cut to one (the One-Line Name Rule). */}
               <OneLine text={splitQualifier(t.name).base} title={t.name} className="text-sm font-medium text-ink-strong" />

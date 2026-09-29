@@ -20,7 +20,7 @@ import { aboniInput } from "@/lib/dashboard/fixtures";
 import { backToList, RAIL_COOKIE } from "@/lib/dashboard/nav";
 import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { AccountMenu, accountName, menuShouldClose } from "./account-menu";
-import { AppShell } from "./app-shell";
+import { AppShell, planLine } from "./app-shell";
 import { SupplierSheet } from "./supplier-sheet";
 
 const source = (p: string) => readFileSync(path.join(process.cwd(), p), "utf8");
@@ -88,6 +88,23 @@ describe("3. one account menu, with the photo", () => {
     assert.match(html, /href="\/app\/settings"[^>]*>[\s\S]*?Settings</);
     assert.match(html, /href="\/app\/settings\/subscription"[^>]*>[\s\S]*?Subscription</);
     assert.match(html, /<form [^>]*action="\/auth\/sign-out" method="post"><button type="submit" role="menuitem"[^>]*>[\s\S]*?Sign out</);
+  });
+
+  it("the rail's foot is one account row: the photo, the name over the plan, an up-and-down chevron, no separate plan line", () => {
+    // Founder's review, 29 Sep 2026: "this sidebar section is still really
+    // under done". The whole row is the menu's button, as a workspace switcher.
+    const html = shell();
+    const foot = html.slice(html.indexOf('data-plan="true"'));
+    const summary = /<summary aria-label="Account, Rezaul Karim, Free plan · Beta" title="Rezaul Karim · Free plan · Beta"[^>]*>[\s\S]*?<\/summary>/.exec(foot)?.[0] ?? "";
+    assert.ok(summary, "the account row does not name the buyer and the plan, or carry them on hover for the collapsed rail");
+    assert.match(summary, /class="[^"]*\bh-12\b[^"]*group-open\/acct:bg-accent-tint/, "the row is not 48px with the slate open state");
+    assert.match(summary, /<img [^>]*class="size-8 /, "the photo is not 32px");
+    assert.match(summary, /<span data-name="" class="truncate text-sm font-medium text-ink-strong">Rezaul Karim<\/span><span class="truncate text-xs text-ink-subtle">Free plan · Beta<\/span>/);
+    assert.match(summary, /<path d="M8 9\.5l4-4 4 4M8 14\.5l4 4 4-4"/, "no up-and-down chevron");
+    assert.doesNotMatch(foot.slice(0, foot.indexOf("</aside>")), />public beta</, "the separate plan line is back");
+    assert.equal(planLine({ name: "Free", note: "public beta" }), "Free plan · Beta");
+    assert.equal(planLine({ name: "Free", note: "public beta" }, false), "Free plan · public beta");
+    assert.equal(planLine({ name: "Pro" }), "Pro plan");
   });
 
   it("with no name, the rail prints the email's name part, not the whole address", () => {

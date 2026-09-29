@@ -285,6 +285,34 @@ export function collapseRepeatedLines(text: string): string {
   return out.join("\n");
 }
 
+/**
+ * A reason that was only a hover title (an empty figure's dash, a checked-but-
+ * empty fact's magnifier), made a small button a finger can reach: a tap opens
+ * it under the mark, like a `Menu`, and a pointer still gets it on hover.
+ */
+function Reason({ reason, label, align = "left", children }: { reason: string; label: string; align?: "left" | "right"; children: ReactNode }) {
+  return (
+    <details className="group/why relative inline-block">
+      <summary
+        aria-label={label}
+        title={reason}
+        className="inline-flex min-h-6 min-w-6 cursor-pointer list-none items-center justify-center rounded-xs hover:bg-surface-sunken [&::-webkit-details-marker]:hidden"
+      >
+        {children}
+      </summary>
+      <span
+        role="note"
+        className={cn(
+          "absolute top-full z-overlay mt-1 w-56 rounded-md border border-line bg-surface px-3 py-2 text-left text-sm font-normal text-ink shadow-md",
+          align === "right" ? "right-0" : "left-0",
+        )}
+      >
+        {reason}
+      </span>
+    </details>
+  );
+}
+
 /** What the pending mark means, said once under the facts it marks (and in full on its hover). */
 export const PENDING_LEGEND = "Source pending";
 
@@ -363,11 +391,10 @@ export function FactsPanel({ rows, legend = true }: { rows: readonly FactRow[]; 
                 // What was checked ("registers and RSC checked") on hover and
                 // to a screen reader: printed, it was the loudest text on an
                 // empty row (founder's video, 29 Sep 2026).
-                <span title={`Not on file · ${r.checked}`} className="inline-flex text-quiet-ink">
+                <Reason reason={`Not on file · ${r.checked}`} label={`What was checked for ${r.label}`} align="right">
                   {/* A magnifier (looked), never a tick: a tick is the sign for a verified fact. */}
-                  <Icon name="search" small />
-                  <span className="sr-only">{r.checked}</span>
-                </span>
+                  <Icon name="search" small className="text-quiet-ink" />
+                </Reason>
               ) : r.pendingSource ? (
                 <PendingMark />
               ) : null}
@@ -479,9 +506,9 @@ export function Stats({ items }: { items: readonly { key: string; value: string;
                 list") is on its hover and read to a screen reader, not
                 printed under every empty figure. */}
             {s.value === "—" && s.sub ? (
-              <span title={s.sub} className="text-base text-quiet-ink">
-                —<span className="sr-only"> {s.sub}</span>
-              </span>
+              <Reason reason={s.sub} label={`Why ${s.key} is empty`}>
+                <span className="text-base text-quiet-ink">—</span>
+              </Reason>
             ) : (
               <>
                 <span className="text-base font-medium text-ink-strong">{s.value}</span>

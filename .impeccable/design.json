@@ -1,24 +1,25 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-27T07:05:44.962Z",
+  "generatedAt": "2026-09-29T06:53:13.114Z",
   "title": "Design System: SourceBD buyer app",
   "extensions": {
     "colorMeta": {
       "canvas": {
         "role": "neutral",
-        "displayName": "Canvas",
-        "canonical": "#F6F7F2",
-        "oklch": "oklch(97.4% 0.007 115.7)",
+        "displayName": "Paper",
+        "canonical": "#F7F7F6",
+        "oklch": "oklch(97.6% 0.001 106.4)",
         "tonalRamp": [
-          "oklch(15.0% 0.007 115.7)",
-          "oklch(26.0% 0.007 115.7)",
-          "oklch(38.0% 0.007 115.7)",
-          "oklch(50.0% 0.007 115.7)",
-          "oklch(62.0% 0.007 115.7)",
-          "oklch(74.0% 0.007 115.7)",
-          "oklch(86.0% 0.007 115.7)",
-          "oklch(95.0% 0.007 115.7)"
-        ]
+          "oklch(15.0% 0.001 106.4)",
+          "oklch(26.0% 0.001 106.4)",
+          "oklch(38.0% 0.001 106.4)",
+          "oklch(50.0% 0.001 106.4)",
+          "oklch(62.0% 0.001 106.4)",
+          "oklch(74.0% 0.001 106.4)",
+          "oklch(86.0% 0.001 106.4)",
+          "oklch(95.0% 0.001 106.4)"
+        ],
+        "note": "True-neutral paper (the green cast went on 29 Sep 2026). The page, the rail, the quiet ground."
       },
       "surface": {
         "role": "neutral",
@@ -39,18 +40,19 @@
       "surface-sunken": {
         "role": "neutral",
         "displayName": "Surface Sunken",
-        "canonical": "#ECEEE7",
-        "oklch": "oklch(94.6% 0.010 119.6)",
+        "canonical": "#EEEEEC",
+        "oklch": "oklch(94.9% 0.003 106.5)",
         "tonalRamp": [
-          "oklch(15.0% 0.010 119.6)",
-          "oklch(26.0% 0.010 119.6)",
-          "oklch(38.0% 0.010 119.6)",
-          "oklch(50.0% 0.010 119.6)",
-          "oklch(62.0% 0.010 119.6)",
-          "oklch(74.0% 0.010 119.6)",
-          "oklch(86.0% 0.010 119.6)",
-          "oklch(95.0% 0.010 119.6)"
-        ]
+          "oklch(15.0% 0.003 106.5)",
+          "oklch(26.0% 0.003 106.5)",
+          "oklch(38.0% 0.003 106.5)",
+          "oklch(50.0% 0.003 106.5)",
+          "oklch(62.0% 0.003 106.5)",
+          "oklch(74.0% 0.003 106.5)",
+          "oklch(86.0% 0.003 106.5)",
+          "oklch(95.0% 0.003 106.5)"
+        ],
+        "note": "Secondary button fill, row hover, the filled search field, the locked ground."
       },
       "surface-inverse": {
         "role": "neutral",
@@ -215,34 +217,36 @@
       "line-subtle": {
         "role": "neutral",
         "displayName": "Line Subtle",
-        "canonical": "#E6E8DF",
-        "oklch": "oklch(92.7% 0.012 116.8)",
+        "canonical": "#E7E7E4",
+        "oklch": "oklch(92.7% 0.004 106.5)",
         "tonalRamp": [
-          "oklch(15.0% 0.012 116.8)",
-          "oklch(26.0% 0.012 116.8)",
-          "oklch(38.0% 0.012 116.8)",
-          "oklch(50.0% 0.012 116.8)",
-          "oklch(62.0% 0.012 116.8)",
-          "oklch(74.0% 0.012 116.8)",
-          "oklch(86.0% 0.012 116.8)",
-          "oklch(95.0% 0.012 116.8)"
-        ]
+          "oklch(15.0% 0.004 106.5)",
+          "oklch(26.0% 0.004 106.5)",
+          "oklch(38.0% 0.004 106.5)",
+          "oklch(50.0% 0.004 106.5)",
+          "oklch(62.0% 0.004 106.5)",
+          "oklch(74.0% 0.004 106.5)",
+          "oklch(86.0% 0.004 106.5)",
+          "oklch(95.0% 0.004 106.5)"
+        ],
+        "note": "Where two regions meet: row and row, header and body, list and pane."
       },
       "line": {
         "role": "neutral",
         "displayName": "Line",
-        "canonical": "#D5D9CC",
-        "oklch": "oklch(87.9% 0.018 120.7)",
+        "canonical": "#D8D8D4",
+        "oklch": "oklch(88.1% 0.005 106.5)",
         "tonalRamp": [
-          "oklch(15.0% 0.018 120.7)",
-          "oklch(26.0% 0.018 120.7)",
-          "oklch(38.0% 0.018 120.7)",
-          "oklch(50.0% 0.018 120.7)",
-          "oklch(62.0% 0.018 120.7)",
-          "oklch(74.0% 0.018 120.7)",
-          "oklch(86.0% 0.018 120.7)",
-          "oklch(95.0% 0.018 120.7)"
-        ]
+          "oklch(15.0% 0.005 106.5)",
+          "oklch(26.0% 0.005 106.5)",
+          "oklch(38.0% 0.005 106.5)",
+          "oklch(50.0% 0.005 106.5)",
+          "oklch(62.0% 0.005 106.5)",
+          "oklch(74.0% 0.005 106.5)",
+          "oklch(86.0% 0.005 106.5)",
+          "oklch(95.0% 0.005 106.5)"
+        ],
+        "note": "The pane's left rule, a menu's border, the neutral chip, the secondary button's hover; at 70 % inset it is the `edge` shadow."
       },
       "line-strong": {
         "role": "neutral",
@@ -354,7 +358,8 @@
           "oklch(74.0% 0.020 145.4)",
           "oklch(86.0% 0.020 145.4)",
           "oklch(95.0% 0.020 145.4)"
-        ]
+        ],
+        "note": "Inside the app shell ([data-shell]) app/ds.css remaps this to accent-tint."
       },
       "brand-tint-strong": {
         "role": "primary",
@@ -370,7 +375,8 @@
           "oklch(74.0% 0.038 146.4)",
           "oklch(86.0% 0.038 146.4)",
           "oklch(95.0% 0.038 146.4)"
-        ]
+        ],
+        "note": "Inside the app shell remapped to accent-tint-strong."
       },
       "brand-ink": {
         "role": "primary",
@@ -386,7 +392,8 @@
           "oklch(74.0% 0.116 144.3)",
           "oklch(86.0% 0.116 144.3)",
           "oklch(95.0% 0.116 144.3)"
-        ]
+        ],
+        "note": "Inside the app shell remapped to accent-ink: links in the buyer app are slate."
       },
       "brand-ink-inverse": {
         "role": "primary",
@@ -418,7 +425,92 @@
           "oklch(74.0% 0.120 144.2)",
           "oklch(86.0% 0.120 144.2)",
           "oklch(95.0% 0.120 144.2)"
+        ],
+        "note": "Inside the app shell remapped to accent: the buyer app's focus ring is slate."
+      },
+      "accent": {
+        "role": "secondary",
+        "displayName": "Slate",
+        "canonical": "#3B5A70",
+        "oklch": "oklch(45.3% 0.051 240.2)",
+        "tonalRamp": [
+          "oklch(15.0% 0.051 240.2)",
+          "oklch(26.0% 0.051 240.2)",
+          "oklch(38.0% 0.051 240.2)",
+          "oklch(50.0% 0.051 240.2)",
+          "oklch(62.0% 0.051 240.2)",
+          "oklch(74.0% 0.051 240.2)",
+          "oklch(86.0% 0.051 240.2)",
+          "oklch(95.0% 0.051 240.2)"
+        ],
+        "note": "The buyer app's quiet second colour (founder's pick, 29 Sep 2026): focus ring, active tab rule, the ticked box, the current nav row's 3px bar, a selected card's 3px rule, and every fact's icon."
+      },
+      "accent-on": {
+        "role": "secondary",
+        "displayName": "On Slate",
+        "canonical": "#FFFFFF",
+        "oklch": "oklch(100.0% 0.000 0.0)",
+        "tonalRamp": [
+          "oklch(15.0% 0.000 0.0)",
+          "oklch(26.0% 0.000 0.0)",
+          "oklch(38.0% 0.000 0.0)",
+          "oklch(50.0% 0.000 0.0)",
+          "oklch(62.0% 0.000 0.0)",
+          "oklch(74.0% 0.000 0.0)",
+          "oklch(86.0% 0.000 0.0)",
+          "oklch(95.0% 0.000 0.0)"
         ]
+      },
+      "accent-ink": {
+        "role": "secondary",
+        "displayName": "Slate Ink",
+        "canonical": "#2C4E66",
+        "oklch": "oklch(40.9% 0.057 240.8)",
+        "tonalRamp": [
+          "oklch(15.0% 0.057 240.8)",
+          "oklch(26.0% 0.057 240.8)",
+          "oklch(38.0% 0.057 240.8)",
+          "oklch(50.0% 0.057 240.8)",
+          "oklch(62.0% 0.057 240.8)",
+          "oklch(74.0% 0.057 240.8)",
+          "oklch(86.0% 0.057 240.8)",
+          "oklch(95.0% 0.057 240.8)"
+        ],
+        "note": "Link text, a selected label, the current nav row's text, a menu's active check."
+      },
+      "accent-tint": {
+        "role": "secondary",
+        "displayName": "Slate Tint",
+        "canonical": "#E6EDF2",
+        "oklch": "oklch(94.2% 0.010 238.5)",
+        "tonalRamp": [
+          "oklch(15.0% 0.010 238.5)",
+          "oklch(26.0% 0.010 238.5)",
+          "oklch(38.0% 0.010 238.5)",
+          "oklch(50.0% 0.010 238.5)",
+          "oklch(62.0% 0.010 238.5)",
+          "oklch(74.0% 0.010 238.5)",
+          "oklch(86.0% 0.010 238.5)",
+          "oklch(95.0% 0.010 238.5)"
+        ],
+        "note": "The current nav row, the open account row."
+      },
+      "accent-tint-strong": {
+        "role": "secondary",
+        "displayName": "Slate Tint, strong",
+        "canonical": "#D3DFE8",
+        "oklch": "oklch(89.7% 0.018 240.0)",
+        "tonalRamp": [
+          "oklch(15.0% 0.018 240.0)",
+          "oklch(26.0% 0.018 240.0)",
+          "oklch(38.0% 0.018 240.0)",
+          "oklch(50.0% 0.018 240.0)",
+          "oklch(62.0% 0.018 240.0)",
+          "oklch(74.0% 0.018 240.0)",
+          "oklch(86.0% 0.018 240.0)",
+          "oklch(95.0% 0.018 240.0)"
+        ],
+        "note": "A set filter menu, the `on` chip, text selection."
       },
       "signal": {
         "role": "secondary",
@@ -711,34 +803,19 @@
       "locked": {
         "role": "neutral",
         "displayName": "Locked",
-        "canonical": "#ECEEE7",
-        "oklch": "oklch(94.6% 0.010 119.6)",
+        "canonical": "#EEEEEC",
+        "oklch": "oklch(94.9% 0.003 106.5)",
         "tonalRamp": [
-          "oklch(15.0% 0.010 119.6)",
-          "oklch(26.0% 0.010 119.6)",
-          "oklch(38.0% 0.010 119.6)",
-          "oklch(50.0% 0.010 119.6)",
-          "oklch(62.0% 0.010 119.6)",
-          "oklch(74.0% 0.010 119.6)",
-          "oklch(86.0% 0.010 119.6)",
-          "oklch(95.0% 0.010 119.6)"
-        ]
-      },
-      "locked-stripe": {
-        "role": "neutral",
-        "displayName": "Locked Stripe",
-        "canonical": "#DDE0D5",
-        "oklch": "oklch(90.1% 0.015 119.1)",
-        "tonalRamp": [
-          "oklch(15.0% 0.015 119.1)",
-          "oklch(26.0% 0.015 119.1)",
-          "oklch(38.0% 0.015 119.1)",
-          "oklch(50.0% 0.015 119.1)",
-          "oklch(62.0% 0.015 119.1)",
-          "oklch(74.0% 0.015 119.1)",
-          "oklch(86.0% 0.015 119.1)",
-          "oklch(95.0% 0.015 119.1)"
-        ]
+          "oklch(15.0% 0.003 106.5)",
+          "oklch(26.0% 0.003 106.5)",
+          "oklch(38.0% 0.003 106.5)",
+          "oklch(50.0% 0.003 106.5)",
+          "oklch(62.0% 0.003 106.5)",
+          "oklch(74.0% 0.003 106.5)",
+          "oklch(86.0% 0.003 106.5)",
+          "oklch(95.0% 0.003 106.5)"
+        ],
+        "note": "A plain ground; the 135-degree stripe went on 29 Sep 2026."
       },
       "locked-ink": {
         "role": "neutral",
@@ -775,17 +852,17 @@
       "quiet": {
         "role": "neutral",
         "displayName": "Quiet",
-        "canonical": "#F6F7F2",
-        "oklch": "oklch(97.4% 0.007 115.7)",
+        "canonical": "#F7F7F6",
+        "oklch": "oklch(97.6% 0.001 106.4)",
         "tonalRamp": [
-          "oklch(15.0% 0.007 115.7)",
-          "oklch(26.0% 0.007 115.7)",
-          "oklch(38.0% 0.007 115.7)",
-          "oklch(50.0% 0.007 115.7)",
-          "oklch(62.0% 0.007 115.7)",
-          "oklch(74.0% 0.007 115.7)",
-          "oklch(86.0% 0.007 115.7)",
-          "oklch(95.0% 0.007 115.7)"
+          "oklch(15.0% 0.001 106.4)",
+          "oklch(26.0% 0.001 106.4)",
+          "oklch(38.0% 0.001 106.4)",
+          "oklch(50.0% 0.001 106.4)",
+          "oklch(62.0% 0.001 106.4)",
+          "oklch(74.0% 0.001 106.4)",
+          "oklch(86.0% 0.001 106.4)",
+          "oklch(95.0% 0.001 106.4)"
         ]
       },
       "quiet-ink": {
@@ -871,17 +948,17 @@
       "skeleton": {
         "role": "neutral",
         "displayName": "Skeleton",
-        "canonical": "#E6E8DF",
-        "oklch": "oklch(92.7% 0.012 116.8)",
+        "canonical": "#E7E7E4",
+        "oklch": "oklch(92.7% 0.004 106.5)",
         "tonalRamp": [
-          "oklch(15.0% 0.012 116.8)",
-          "oklch(26.0% 0.012 116.8)",
-          "oklch(38.0% 0.012 116.8)",
-          "oklch(50.0% 0.012 116.8)",
-          "oklch(62.0% 0.012 116.8)",
-          "oklch(74.0% 0.012 116.8)",
-          "oklch(86.0% 0.012 116.8)",
-          "oklch(95.0% 0.012 116.8)"
+          "oklch(15.0% 0.004 106.5)",
+          "oklch(26.0% 0.004 106.5)",
+          "oklch(38.0% 0.004 106.5)",
+          "oklch(50.0% 0.004 106.5)",
+          "oklch(62.0% 0.004 106.5)",
+          "oklch(74.0% 0.004 106.5)",
+          "oklch(86.0% 0.004 106.5)",
+          "oklch(95.0% 0.004 106.5)"
         ]
       },
       "tier-1": {
@@ -1000,27 +1077,27 @@
       },
       "title": {
         "displayName": "Title",
-        "purpose": "A card's name, a tab, the wordmark (15/22, 500). Wraps at any length."
+        "purpose": "A card's name, a tab, the wordmark (15/22, 500; 16/24 inside the app shell). A name in it is one line (the One-Line Name Rule)."
       },
       "body": {
         "displayName": "Body",
-        "purpose": "Default text and fact values (14/22, 400)."
+        "purpose": "Default text and fact values (14/22, 400; 15/24 inside the app shell)."
       },
       "label": {
         "displayName": "Label",
-        "purpose": "Buttons, nav, fact labels, table cells, chips (13/20, 500)."
+        "purpose": "Buttons, nav, fact labels, table cells, chips (13/20, 500; 14/20 inside the app shell)."
       },
       "caption": {
         "displayName": "Caption",
-        "purpose": "Notes, read dates, badge text (12/16) in ink-subtle."
+        "purpose": "Notes, read dates, badge text (12/16; 13/18 inside the app shell) in ink-subtle."
       },
       "code": {
         "displayName": "Code",
-        "purpose": "Register and certificate numbers, HS codes (13/20 mono)."
+        "purpose": "Register and certificate numbers, HS codes (13/20 mono; 14/20 inside the app shell)."
       },
       "eyebrow": {
         "displayName": "Eyebrow (column key)",
-        "purpose": "A column key or a stat's label, table headers (11/16 mono, uppercase, +0.08em). Not a kicker above a heading."
+        "purpose": "A column key or a stat's label, table headers; 11/16 mono uppercase +0.08em (12/16 inside the app shell). A data label, never a kicker above a heading."
       },
       "stat": {
         "displayName": "Stat figure",
@@ -1041,12 +1118,17 @@
       {
         "name": "md",
         "value": "0 6px 14px -4px rgb(15 19 15 / 0.12), 0 2px 4px -2px rgb(15 19 15 / 0.06)",
-        "purpose": "Overlays such as the typeahead list."
+        "purpose": "Everything that floats over the page: a Menu, the account menu, the typeahead list, the bulk bar, a Reason note."
       },
       {
         "name": "lg",
         "value": "0 16px 32px -8px rgb(15 19 15 / 0.16), 0 4px 8px -4px rgb(15 19 15 / 0.06)",
         "purpose": "The record sheet and the toast."
+      },
+      {
+        "name": "edge",
+        "value": "inset 0 0 0 1px rgb(216 216 212 / 0.7)",
+        "purpose": "The soft edge of a secondary button, a segmented control, the results panel and an outlined section. Draws inside the box, takes no layout."
       },
       {
         "name": "bloom",
@@ -1124,8 +1206,16 @@
         "value": "1024px"
       },
       {
+        "name": "xl",
+        "value": "1280px"
+      },
+      {
+        "name": "card-wide",
+        "value": "1440px"
+      },
+      {
         "name": "sheet",
-        "value": "clamp(480px, 55%, 760px)"
+        "value": "clamp(480px, 50%, 760px)"
       },
       {
         "name": "content",
@@ -1133,12 +1223,40 @@
       }
     ],
     "zIndex": {
-      "base": 0,
-      "raised": 10,
-      "sticky": 100,
-      "overlay": 200,
-      "modal": 300,
-      "toast": 400
+      "base": "0",
+      "raised": "10",
+      "sticky": "100",
+      "overlay": "200",
+      "modal": "300",
+      "toast": "400"
+    },
+    "appTypeScale": {
+      "scope": "[data-shell] (the buyer app), through --ds-fs-* / --ds-lh-* variables; the marketing site keeps the frontmatter sizes.",
+      "eyebrow": "12px / 16px",
+      "caption": "13px / 18px",
+      "label": "14px / 20px",
+      "body": "15px / 24px",
+      "title": "16px / 24px"
+    },
+    "zIndexMeta": {
+      "base": "The page.",
+      "raised": "The record's sticky tabs, a sticky table header, the topbar.",
+      "sticky": "The selection bar.",
+      "overlay": "Every Menu, the account menu, a popover, a tooltip, the typeahead list.",
+      "modal": "The onboarding tour's scrim and its card.",
+      "toast": "A toast, the skip link."
+    },
+    "density": {
+      "tableRow": 36,
+      "tableRowRelaxed": 44,
+      "control": 32,
+      "controlLarge": 40,
+      "cardPadding": 16,
+      "panelPadding": 20,
+      "gutter": 24,
+      "sidebar": 232,
+      "topbar": 56,
+      "factRow": 28
     }
   },
   "components": [
@@ -1146,99 +1264,152 @@
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "The one brand-filled control on a screen: Send RFQ, Save changes.",
+      "description": "The one brand-filled control on a screen, living in the pane (the record's Send RFQ, the composer's Send), never on every row. Inside the app shell focus is the slate ring.",
       "html": "<button class=\"ds-btn ds-btn-primary\">Send RFQ</button>",
-      "css": ".ds-btn{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;height:32px;padding:0 12px;border:1px solid;border-radius:6px;font-family:Geist, ui-sans-serif, system-ui, sans-serif;font-size:13px;line-height:20px;font-weight:500;cursor:pointer;transition:color 120ms,background-color 120ms,border-color 120ms,box-shadow 120ms,transform 120ms cubic-bezier(0.2,0,0,1)}.ds-btn:active{transform:scale(0.98)}.ds-btn:focus-visible{outline:2px solid #2E7D32;outline-offset:2px}.ds-btn-primary{background:#1B5E20;border-color:#1B5E20;color:#FFFFFF}.ds-btn-primary:hover{background:#17511B;border-color:#17511B}.ds-btn-primary:active{background:#113E15}.ds-btn-primary:disabled{background:#ECEEE7;border-color:#D5D9CC;color:#9AA39A;cursor:not-allowed;transform:none}@media(prefers-reduced-motion:reduce){.ds-btn:active{transform:none}}"
+      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;height:32px;padding:0 12px;border:1px solid transparent;border-radius:6px;font-family:Geist, ui-sans-serif, system-ui, sans-serif;font-size:14px;line-height:20px;font-weight:500;text-decoration:none;cursor:pointer;transition:color 120ms,background-color 120ms,border-color 120ms,box-shadow 120ms,transform 120ms cubic-bezier(0.2,0,0,1)}.ds-btn:active{transform:scale(0.98)}.ds-btn:focus-visible{outline:2px solid #3B5A70;outline-offset:2px}.ds-btn:disabled{background:#EEEEEC;color:#9AA39A;box-shadow:none;cursor:not-allowed;transform:none}.ds-btn-sm{height:28px;padding:0 8px;font-size:13px}.ds-btn-icon{width:28px;padding:0}@media(prefers-reduced-motion:reduce){.ds-btn:active{transform:none}}.ds-btn-primary{background:#1B5E20;color:#FFFFFF}.ds-btn-primary:hover{background:#17511B}.ds-btn-primary:active{background:#113E15}"
     },
     {
-      "name": "Default Button",
+      "name": "Secondary Button",
       "kind": "button",
       "refersTo": "button-default",
-      "description": "Outlined on surface; every secondary action.",
-      "html": "<button class=\"ds-btn ds-btn-default\">Save</button>",
-      "css": ".ds-btn{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;height:32px;padding:0 12px;border:1px solid;border-radius:6px;font-family:Geist, ui-sans-serif, system-ui, sans-serif;font-size:13px;line-height:20px;font-weight:500;cursor:pointer;transition:color 120ms,background-color 120ms,border-color 120ms,box-shadow 120ms,transform 120ms cubic-bezier(0.2,0,0,1)}.ds-btn:active{transform:scale(0.98)}.ds-btn:focus-visible{outline:2px solid #2E7D32;outline-offset:2px}.ds-btn-default{background:#FFFFFF;border-color:#79837A;color:#262B26}.ds-btn-default:hover{background:#ECEEE7}"
+      "description": "The workhorse, drawn by tone not outline: surface-sunken with the inset edge; hover fills line. Save, Open, Export, a row's RFQ.",
+      "html": "<button class=\"ds-btn ds-btn-default\">Save search</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;height:32px;padding:0 12px;border:1px solid transparent;border-radius:6px;font-family:Geist, ui-sans-serif, system-ui, sans-serif;font-size:14px;line-height:20px;font-weight:500;text-decoration:none;cursor:pointer;transition:color 120ms,background-color 120ms,border-color 120ms,box-shadow 120ms,transform 120ms cubic-bezier(0.2,0,0,1)}.ds-btn:active{transform:scale(0.98)}.ds-btn:focus-visible{outline:2px solid #3B5A70;outline-offset:2px}.ds-btn:disabled{background:#EEEEEC;color:#9AA39A;box-shadow:none;cursor:not-allowed;transform:none}.ds-btn-sm{height:28px;padding:0 8px;font-size:13px}.ds-btn-icon{width:28px;padding:0}@media(prefers-reduced-motion:reduce){.ds-btn:active{transform:none}}.ds-btn-default{background:#EEEEEC;color:#262B26;box-shadow:inset 0 0 0 1px rgb(216 216 212 / 0.7)}.ds-btn-default:hover,.ds-btn-default:active{background:#D8D8D4;color:#0F130F}"
     },
     {
       "name": "Ghost Button",
       "kind": "button",
       "refersTo": "button-ghost",
-      "description": "No outline; a tertiary action such as Close or Share.",
-      "html": "<button class=\"ds-btn ds-btn-ghost\">Share</button>",
-      "css": ".ds-btn{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;height:32px;padding:0 12px;border:1px solid;border-radius:6px;font-family:Geist, ui-sans-serif, system-ui, sans-serif;font-size:13px;line-height:20px;font-weight:500;cursor:pointer;transition:color 120ms,background-color 120ms,border-color 120ms,box-shadow 120ms,transform 120ms cubic-bezier(0.2,0,0,1)}.ds-btn:active{transform:scale(0.98)}.ds-btn:focus-visible{outline:2px solid #2E7D32;outline-offset:2px}.ds-btn-ghost{background:transparent;border-color:transparent;color:#545C54}.ds-btn-ghost:hover{background:#ECEEE7}"
+      "description": "Text only in ink-muted; hover fills surface-sunken. Close, Back, a menu's summary, a row's icon actions at 28px.",
+      "html": "<button class=\"ds-btn ds-btn-ghost\">Close</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;height:32px;padding:0 12px;border:1px solid transparent;border-radius:6px;font-family:Geist, ui-sans-serif, system-ui, sans-serif;font-size:14px;line-height:20px;font-weight:500;text-decoration:none;cursor:pointer;transition:color 120ms,background-color 120ms,border-color 120ms,box-shadow 120ms,transform 120ms cubic-bezier(0.2,0,0,1)}.ds-btn:active{transform:scale(0.98)}.ds-btn:focus-visible{outline:2px solid #3B5A70;outline-offset:2px}.ds-btn:disabled{background:#EEEEEC;color:#9AA39A;box-shadow:none;cursor:not-allowed;transform:none}.ds-btn-sm{height:28px;padding:0 8px;font-size:13px}.ds-btn-icon{width:28px;padding:0}@media(prefers-reduced-motion:reduce){.ds-btn:active{transform:none}}.ds-btn-ghost{background:transparent;color:#545C54}.ds-btn-ghost:hover{background:#EEEEEC;color:#0F130F}.ds-btn-ghost:active{background:#D8D8D4}"
     },
     {
       "name": "Search Field",
       "kind": "input",
       "refersTo": "input-search",
-      "description": "The topbar search: 32px, line-strong outline, outline steps to brand on focus.",
-      "html": "<label class=\"ds-search\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 256 256\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"16\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"116\" cy=\"116\" r=\"84\"/><line x1=\"175.4\" y1=\"175.4\" x2=\"224\" y2=\"224\"/></svg><input class=\"ds-search-input\" type=\"search\" placeholder=\"Search suppliers, HS codes, certificates\"><kbd class=\"ds-kbd\">Ctrl K</kbd></label>",
-      "css": ".ds-search{display:flex;align-items:center;gap:8px;height:32px;max-width:360px;padding:0 10px;background:#FFFFFF;border:1px solid #79837A;border-radius:6px;color:#626B62;font-family:Geist, ui-sans-serif, system-ui, sans-serif;font-size:13px;line-height:20px;transition:border-color 120ms,box-shadow 120ms}.ds-search:focus-within{border-color:#1B5E20;box-shadow:0 1px 2px 0 rgb(15 19 15 / 0.06)}.ds-search-input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:inherit;color:#262B26;caret-color:#1B5E20}.ds-search-input::placeholder{color:#626B62;opacity:1}.ds-kbd{padding:0 5px;border:1px solid #D5D9CC;border-radius:3px;font-family:'Geist Mono', ui-monospace, Menlo, Consolas, monospace;font-size:11px;line-height:16px;color:#626B62}"
+      "description": "Filled (founder's pick, 29 Sep 2026): surface-sunken with no outline and no shadow, line-subtle under the pointer; while typing it turns surface with a 1px line edge and a 2px ink-strong line under it. No green ring; the input draws no focus ring of its own.",
+      "html": "<label class=\"ds-search\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10.5 4a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13zM15.2 15.2 20 20\"/></svg><input class=\"ds-search-input\" type=\"search\" placeholder=\"Search suppliers, HS codes, certificates\"><kbd class=\"ds-kbd\">Ctrl K</kbd></label>",
+      "css": ".ds-search{display:flex;align-items:center;gap:8px;height:32px;max-width:420px;padding:0 10px;background:#EEEEEC;border-radius:6px;color:#626B62;font-family:Geist, ui-sans-serif, system-ui, sans-serif;font-size:14px;line-height:20px;transition:background-color 120ms,box-shadow 120ms}.ds-search:hover{background:#E7E7E4}.ds-search:focus-within,.ds-search:focus-within:hover{background:#FFFFFF;box-shadow:inset 0 0 0 1px #D8D8D4,inset 0 -2px 0 #0F130F}.ds-search svg{flex-shrink:0;color:#545C54}.ds-search-input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:inherit;color:#0F130F;caret-color:#0F130F}.ds-search-input::placeholder{color:#626B62;opacity:1}.ds-kbd{padding:0 6px;border-radius:3px;background:#EEEEEC;font-family:Geist, ui-sans-serif, system-ui, sans-serif;font-size:11px;line-height:20px;font-weight:500;color:#545C54}.ds-search:focus-within .ds-kbd{background:#F7F7F6}"
     },
     {
       "name": "Sidebar Nav",
       "kind": "nav",
       "refersTo": "nav-item",
-      "description": "232px rail on canvas; the current page takes brand tint, brand ink, 600 weight and a 1px inset brand ring.",
-      "html": "<nav class=\"ds-nav\" aria-label=\"Main\"><a class=\"ds-nav-item\" href=\"#\">Search</a><a class=\"ds-nav-item ds-nav-item-active\" href=\"#\" aria-current=\"page\">Suppliers<span class=\"ds-nav-count\">10,266</span></a><a class=\"ds-nav-item\" href=\"#\">Saved</a><a class=\"ds-nav-item\" href=\"#\">RFQs<span class=\"ds-nav-count\">3</span></a></nav>",
-      "css": ".ds-nav{display:flex;flex-direction:column;gap:2px;width:232px;padding:16px 12px;background:#F6F7F2;border-right:1px solid #E6E8DF;font-family:Geist, ui-sans-serif, system-ui, sans-serif}.ds-nav-item{display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;color:#545C54;font-size:13px;line-height:20px;font-weight:500;text-decoration:none;transition:color 120ms,background-color 120ms}.ds-nav-item:hover{background:#ECEEE7;color:#0F130F}.ds-nav-item:focus-visible{outline:2px solid #2E7D32;outline-offset:2px}.ds-nav-item-active,.ds-nav-item-active:hover{background:#E6F2E6;color:#1B5E20;font-weight:600;box-shadow:inset 0 0 0 1px #1B5E20}.ds-nav-count{margin-left:auto;font-family:'Geist Mono', ui-monospace, Menlo, Consolas, monospace;font-size:11px;color:#626B62}.ds-nav-item-active .ds-nav-count{color:#1B5E20}"
+      "description": "232px rail on canvas; 32px rows in ink with a muted 16px icon and a mono count. The current page takes accent-tint, accent-ink at 600 and a 3px slate bar at the row's start; the bar carries the state at 3:1, not the tint. The green tint and ring went on 29 Sep 2026.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Main\"><a class=\"ds-nav-item\" href=\"#\">Search</a><a class=\"ds-nav-item ds-nav-item-active\" href=\"#\" aria-current=\"page\">Saved<span class=\"ds-nav-count\">24</span></a><a class=\"ds-nav-item\" href=\"#\">RFQs<span class=\"ds-nav-count\">3</span></a><a class=\"ds-nav-item\" href=\"#\">Orders</a></nav>",
+      "css": ".ds-nav{display:flex;flex-direction:column;gap:2px;width:232px;padding:16px 12px;background:#F7F7F6;border-right:1px solid #E7E7E4;font-family:Geist, ui-sans-serif, system-ui, sans-serif}.ds-nav-item{display:flex;align-items:center;gap:10px;height:32px;padding:0 8px;border-radius:6px;color:#262B26;font-size:14px;line-height:20px;font-weight:500;text-decoration:none;white-space:nowrap;transition:color 120ms,background-color 120ms}.ds-nav-item:hover{background:#EEEEEC;color:#0F130F}.ds-nav-item:focus-visible{outline:2px solid #3B5A70;outline-offset:2px}.ds-nav-item-active,.ds-nav-item-active:hover{background:#E6EDF2;color:#2C4E66;font-weight:600;box-shadow:inset 3px 0 0 #3B5A70}.ds-nav-count{margin-left:auto;font-family:'Geist Mono', ui-monospace, Menlo, Consolas, monospace;font-size:12px;color:#626B62}.ds-nav-item-active .ds-nav-count{color:#2C4E66}"
+    },
+    {
+      "name": "Account Row",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "AccountMenu at the rail's foot: a 48px row on the nav rows' left edge, a 32px photo (or the tier-2 initials disc), the name on one line in 14px medium ink-strong over the plan in 13px ink-subtle, and the up-down chevron. Open, it wears accent-tint and its menu opens upward at z-overlay: an identity header, Settings, Subscription, Sign out. With the rail collapsed, the photo alone.",
+      "html": "<details class=\"ds-acct\" open><summary class=\"ds-acct-row\" aria-label=\"Account, Zahir Rahman, Free plan · Public beta\"><span class=\"ds-avatar\">Z</span><span class=\"ds-acct-text\"><span class=\"ds-acct-name\" data-name=\"\">Zahir Rahman</span><span class=\"ds-acct-plan\">Free plan · Public beta</span></span><svg class=\"ds-acct-chev\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M8 9.5l4-4 4 4M8 14.5l4 4 4-4\"/></svg></summary><div class=\"ds-acct-menu\" role=\"menu\" aria-label=\"Account\"><div class=\"ds-acct-head\"><span class=\"ds-avatar ds-avatar-md\">Z</span><span class=\"ds-acct-text\"><span class=\"ds-acct-name\">Zahir Rahman</span><span class=\"ds-acct-plan\">zahir@example.com</span></span></div><a class=\"ds-acct-item\" role=\"menuitem\" href=\"#\">Settings</a><a class=\"ds-acct-item\" role=\"menuitem\" href=\"#\">Subscription</a><button class=\"ds-acct-item ds-acct-out\" role=\"menuitem\" type=\"button\">Sign out</button></div></details>",
+      "css": ".ds-acct{position:relative;width:208px;margin-top:230px;font-family:Geist, ui-sans-serif, system-ui, sans-serif}.ds-acct-row{display:flex;align-items:center;gap:10px;height:48px;padding:0 8px;border-radius:6px;list-style:none;cursor:pointer;transition:background-color 120ms}.ds-acct-row::-webkit-details-marker{display:none}.ds-acct-row:hover{background:#EEEEEC}.ds-acct[open] .ds-acct-row{background:#E6EDF2}.ds-acct-row:focus-visible{outline:2px solid #3B5A70;outline-offset:2px}.ds-avatar{display:grid;place-items:center;flex-shrink:0;width:32px;height:32px;border-radius:9999px;background:#262B26;color:#FFFFFF;font-size:13px;font-weight:500}.ds-avatar-md{width:36px;height:36px}.ds-acct-text{display:flex;flex-direction:column;flex:1;min-width:0}.ds-acct-name{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:14px;line-height:20px;font-weight:500;color:#0F130F}.ds-acct-plan{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:13px;line-height:18px;color:#626B62}.ds-acct-chev{flex-shrink:0;color:#626B62}.ds-acct-menu{position:absolute;bottom:100%;left:0;z-index:200;width:256px;max-width:calc(100vw - 2rem);margin-bottom:4px;padding:4px 0;background:#FFFFFF;border:1px solid #D8D8D4;border-radius:10px;box-shadow:0 6px 14px -4px rgb(15 19 15 / 0.12),0 2px 4px -2px rgb(15 19 15 / 0.06)}.ds-acct-head{display:flex;align-items:center;gap:12px;padding:8px 12px 12px;border-bottom:1px solid #E7E7E4}.ds-acct-item{display:flex;width:100%;align-items:center;gap:10px;padding:8px 12px;border:0;background:transparent;font:inherit;font-size:14px;line-height:20px;color:#262B26;text-align:left;text-decoration:none;cursor:pointer;transition:background-color 120ms}.ds-acct-item:hover{background:#EEEEEC}.ds-acct-out{border-top:1px solid #E7E7E4}"
+    },
+    {
+      "name": "Menu",
+      "kind": "custom",
+      "refersTo": "button-ghost",
+      "description": "A native details element: a ghost summary with a caret that turns when open; the panel is surface with a line border, 10px radius and the md shadow at z-overlay (200), so rows below never paint over it. Rows are 14px ink with a slate check beside the active one. A filter menu with a value set fills its summary accent-tint-strong and names the value.",
+      "html": "<div class=\"ds-menus\"><details class=\"ds-menu\" open><summary class=\"ds-btn ds-btn-ghost ds-menu-sum\" aria-label=\"Sort\">Sort: Most sources<svg class=\"ds-caret\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7 10l5 5 5-5\"/></svg></summary><div class=\"ds-menu-panel\" role=\"menu\"><a class=\"ds-menu-item ds-menu-item-on\" role=\"menuitem\" href=\"#\" aria-current=\"true\"><svg class=\"ds-check\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12.5l4.5 4.5L19 7.5\"/></svg>Most sources</a><a class=\"ds-menu-item\" role=\"menuitem\" href=\"#\"><svg class=\"ds-check\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12.5l4.5 4.5L19 7.5\"/></svg>Most workers</a><a class=\"ds-menu-item\" role=\"menuitem\" href=\"#\"><svg class=\"ds-check\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12.5l4.5 4.5L19 7.5\"/></svg>Name A to Z</a></div></details><details class=\"ds-menu\"><summary class=\"ds-btn ds-btn-ghost ds-menu-sum ds-menu-set\" aria-label=\"Certificate\">GOTS<svg class=\"ds-caret\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7 10l5 5 5-5\"/></svg></summary></details></div>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;height:32px;padding:0 12px;border:1px solid transparent;border-radius:6px;font-family:Geist, ui-sans-serif, system-ui, sans-serif;font-size:14px;line-height:20px;font-weight:500;text-decoration:none;cursor:pointer;transition:color 120ms,background-color 120ms,border-color 120ms,box-shadow 120ms,transform 120ms cubic-bezier(0.2,0,0,1)}.ds-btn:active{transform:scale(0.98)}.ds-btn:focus-visible{outline:2px solid #3B5A70;outline-offset:2px}.ds-btn:disabled{background:#EEEEEC;color:#9AA39A;box-shadow:none;cursor:not-allowed;transform:none}.ds-btn-sm{height:28px;padding:0 8px;font-size:13px}.ds-btn-icon{width:28px;padding:0}@media(prefers-reduced-motion:reduce){.ds-btn:active{transform:none}}.ds-btn-ghost{background:transparent;color:#545C54}.ds-btn-ghost:hover{background:#EEEEEC;color:#0F130F}.ds-btn-ghost:active{background:#D8D8D4}.ds-menus{display:flex;gap:8px;min-height:180px}.ds-menu{position:relative}.ds-menu-sum{list-style:none}.ds-menu-sum::-webkit-details-marker{display:none}.ds-caret{color:#626B62;transition:transform 120ms}.ds-menu[open] .ds-caret{transform:rotate(180deg)}.ds-menu-set,.ds-menu-set:hover{background:#D3DFE8;color:#2C4E66}.ds-menu-panel{position:absolute;top:100%;left:0;z-index:200;min-width:12rem;max-width:calc(100vw - 2rem);margin-top:4px;padding:4px 0;background:#FFFFFF;border:1px solid #D8D8D4;border-radius:10px;box-shadow:0 6px 14px -4px rgb(15 19 15 / 0.12),0 2px 4px -2px rgb(15 19 15 / 0.06)}.ds-menu-item{display:flex;width:100%;align-items:center;gap:8px;padding:6px 12px;font-family:Geist, ui-sans-serif, system-ui, sans-serif;font-size:14px;line-height:20px;color:#262B26;text-decoration:none;transition:background-color 120ms}.ds-menu-item:hover{background:#EEEEEC}.ds-check{visibility:hidden;flex-shrink:0}.ds-menu-item-on{color:#0F130F}.ds-menu-item-on .ds-check{visibility:visible;color:#2C4E66}"
     },
     {
       "name": "Status Chips",
       "kind": "chip",
       "refersTo": "chip-neutral",
-      "description": "Facts in status hues; width is the data's, text wraps, never brand.",
-      "html": "<div class=\"ds-chips\"><span class=\"ds-chip ds-chip-positive\">GOTS valid to 24 May 2027</span><span class=\"ds-chip ds-chip-caution\">WRAP Gold expires in 11 days</span><span class=\"ds-chip ds-chip-neutral\">EPB exporter · 24 lines</span><span class=\"ds-chip ds-chip-quiet\">No certificate on file</span><span class=\"ds-chip ds-chip-sanction\">Sanctioned</span><span class=\"ds-chip ds-chip-on\">Knitted shirts</span></div>",
-      "css": ".ds-chips{display:flex;flex-wrap:wrap;gap:8px;font-family:Geist, ui-sans-serif, system-ui, sans-serif}.ds-chip{display:inline-flex;align-items:center;gap:6px;min-height:26px;padding:1px 10px;border:1px solid transparent;border-radius:6px;font-size:13px;line-height:20px;font-weight:500;overflow-wrap:anywhere}.ds-chip-positive{background:#E1F4EC;color:#075C45}.ds-chip-caution{background:#FDF3DE;color:#7A4300}.ds-chip-neutral{background:#FFFFFF;border-color:#D5D9CC;color:#262B26}.ds-chip-quiet{border-style:dashed;border-color:#C1C7B9;color:#545C54;font-weight:400}.ds-chip-sanction{background:#8F1711;color:#FFFFFF}.ds-chip-on{background:#CFE6D0;color:#1B5E20}"
+      "description": "Facts in status hues; width is the data's and the text wraps. `on` (a set filter) is slate, never green. `compact` (22px, 13px) sits in a card or a table row.",
+      "html": "<div class=\"ds-chips\"><span class=\"ds-chip ds-chip-positive\">GOTS valid to 24 May 2027</span><span class=\"ds-chip ds-chip-caution\">WRAP Gold expires in 11 days</span><span class=\"ds-chip ds-chip-neutral\">EPB exporter · 24 lines</span><span class=\"ds-chip ds-chip-quiet\">No certificate on file</span><span class=\"ds-chip ds-chip-sanction\">Sanctioned</span><span class=\"ds-chip ds-chip-on\">Knitted shirts</span><span class=\"ds-chip ds-chip-positive ds-chip-compact\">RSC</span></div>",
+      "css": ".ds-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.ds-chip{display:inline-flex;align-items:center;gap:6px;min-height:26px;padding:1px 10px;border:1px solid transparent;border-radius:6px;font-family:Geist, ui-sans-serif, system-ui, sans-serif;font-size:14px;line-height:20px;font-weight:500;overflow-wrap:anywhere}.ds-chip-compact{min-height:22px;gap:4px;padding:1px 7px;font-size:13px;line-height:18px}.ds-chip-positive{background:#E1F4EC;color:#075C45}.ds-chip-caution{background:#FDF3DE;color:#7A4300}.ds-chip-neutral{background:#FFFFFF;border-color:#D8D8D4;color:#262B26}.ds-chip-quiet{border-style:dashed;border-color:#C1C7B9;color:#545C54;font-weight:400}.ds-chip-sanction{background:#8F1711;color:#FFFFFF}.ds-chip-on{background:#D3DFE8;color:#2C4E66}"
     },
     {
       "name": "Source Marks",
       "kind": "custom",
       "refersTo": "source-mark",
-      "description": "20px squares filled by rank on the ink ramp, darkest most trusted; tier 5 white with an outline.",
+      "description": "20px squares (16px beside a single fact) filled by rank on the ink ramp, darkest most trusted; tier 5 white with an outline. The accessible name carries the register and tier in words.",
       "html": "<span class=\"ds-marks\"><span class=\"ds-mark ds-mark-1\" role=\"img\" aria-label=\"Source: RJSC, Government\">RJ</span><span class=\"ds-mark ds-mark-2\" role=\"img\" aria-label=\"Source: BGMEA, Industry bodies\">BG</span><span class=\"ds-mark ds-mark-3\" role=\"img\" aria-label=\"Source: GOTS, Certification bodies\">GO</span><span class=\"ds-mark ds-mark-4\" role=\"img\" aria-label=\"Source: H&amp;M, Brand lists\">HM</span><span class=\"ds-mark ds-mark-5\" role=\"img\" aria-label=\"Source: OFAC, Foreign regulators\">OF</span><span class=\"ds-marks-caption\">5 sources</span></span>",
-      "css": ".ds-marks{display:inline-flex;flex-wrap:wrap;align-items:center;gap:3px;font-family:Geist, ui-sans-serif, system-ui, sans-serif}.ds-mark{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:6px;font-family:'Geist Mono', ui-monospace, Menlo, Consolas, monospace;font-size:9.5px;font-weight:500;line-height:1;letter-spacing:0.02em}.ds-mark-1{background:#0F130F;color:#FFFFFF}.ds-mark-2{background:#262B26;color:#FFFFFF}.ds-mark-3{background:#545C54;color:#FFFFFF}.ds-mark-4{background:#DDE0D5;color:#0F130F}.ds-mark-5{background:#FFFFFF;color:#262B26;box-shadow:inset 0 0 0 1px #79837A}.ds-marks-caption{margin-left:5px;font-size:12px;line-height:16px;color:#626B62}"
+      "css": ".ds-mark{display:inline-grid;place-items:center;flex-shrink:0;width:20px;height:20px;border-radius:6px;font-family:'Geist Mono', ui-monospace, Menlo, Consolas, monospace;font-size:9.5px;font-weight:500;line-height:1;letter-spacing:0.02em}.ds-mark-sm{width:16px;height:16px;border-radius:3px;font-size:8px}.ds-mark-1{background:#0F130F;color:#FFFFFF}.ds-mark-2{background:#262B26;color:#FFFFFF}.ds-mark-3{background:#545C54;color:#FFFFFF}.ds-mark-4{background:#DDE0D5;color:#0F130F}.ds-mark-5{background:#FFFFFF;color:#262B26;box-shadow:inset 0 0 0 1px #79837A}.ds-marks{display:inline-flex;flex-wrap:wrap;align-items:center;gap:3px;font-family:Geist, ui-sans-serif, system-ui, sans-serif}.ds-marks-caption{margin-left:5px;font-size:13px;line-height:18px;color:#626B62}"
     },
     {
-      "name": "Facts Panel Card",
+      "name": "One-Line Name",
+      "kind": "custom",
+      "refersTo": "result-card",
+      "description": "OneLine: a company's or building's name, or the line under it, on one line cut at the end with an ellipsis. The whole name stays in the DOM and in title; data-name marks it so the guards that refuse a cut everywhere else exempt it. The qualifier (splitQualifier: a unit, a building, a former name) leads the second line.",
+      "html": "<div class=\"ds-name-demo\"><span class=\"ds-oneline ds-oneline-name\" data-name=\"\" title=\"Aboni Knitwear Ltd. (Unit-2, Kashimpur Road Building)\">Aboni Knitwear Ltd.</span><span class=\"ds-oneline ds-oneline-sub\" data-name=\"\" title=\"Unit-2, Kashimpur Road Building · Factory · Gazipur\">Unit-2, Kashimpur Road Building · Factory · Gazipur</span></div>",
+      "css": ".ds-name-demo{display:flex;flex-direction:column;width:240px;font-family:Geist, ui-sans-serif, system-ui, sans-serif}.ds-oneline{display:block;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.ds-oneline-name{font-size:16px;line-height:24px;font-weight:500;letter-spacing:-0.005em;color:#0F130F}.ds-oneline-sub{font-size:14px;line-height:20px;color:#545C54}"
+    },
+    {
+      "name": "SourceBD Icons",
+      "kind": "custom",
+      "refersTo": "source-mark",
+      "description": "SbIcon: SourceBD's own line set, in the repo not a package; 24px grid, 1.5px stroke, round ends and joins, 16px by default, currentColor, decorative unless given a label. Facts take them in slate accent; the pending mark (a document with a clock) replaces the dashed square that read as a tick box.",
+      "html": "<div class=\"ds-icons\"><span class=\"ds-icon-cell\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3.5 20.5v-9l5 3.5v-3.5l5 3.5v-3.5l4 2.8V4h3v16.5M3.5 20.5h17M7 17.5h2M11.5 17.5h2\"/></svg><span>factory</span></span><span class=\"ds-icon-cell\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4.5 7.5h15a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1v-10a1 1 0 0 1 1-1zM9 7.5v-2a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3.5 12.5h17\"/></svg><span>buying-house</span></span><span class=\"ds-icon-cell\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5.5 20.5V4.5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v16M14.5 9.5h3a1 1 0 0 1 1 1v10M3.5 20.5h17M8.5 7.5h3M8.5 11h3M9.5 20.5v-4.5h2v4.5\"/></svg><span>company</span></span><span class=\"ds-icon-cell\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11zM12 7.6a2.4 2.4 0 1 1 0 4.8 2.4 2.4 0 0 1 0-4.8z\"/></svg><span>address</span></span><span class=\"ds-icon-cell\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M9 5a3 3 0 1 1 0 6 3 3 0 0 1 0-6zM3.5 19a5.5 5.5 0 0 1 11 0M17 6.5a2.5 2.5 0 1 1 0 5M16.2 14.2A4.5 4.5 0 0 1 20.5 18.8\"/></svg><span>workers</span></span><span class=\"ds-icon-cell\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5.5 5h13a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM3.5 10h17M8 3v4M16 3v4\"/></svg><span>established</span></span><span class=\"ds-icon-cell\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 17.5a8 8 0 1 1 16 0M12 17.5l3.5-4.5M12 16.5a1 1 0 1 1 0 2 1 1 0 0 1 0-2zM6.3 11.8l1.1.7M17.7 11.8l-1.1.7M12 9.5v1.3\"/></svg><span>capacity</span></span><span class=\"ds-icon-cell\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3.5 9.5 12 4.5l8.5 5M5.5 10.5v7M9.8 10.5v7M14.2 10.5v7M18.5 10.5v7M3.5 20h17\"/></svg><span>register</span></span><span class=\"ds-icon-cell\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 3.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11zM9.2 13.8 8.2 20.5l3.8-2 3.8 2-1-6.7M9.7 9.1l1.6 1.6 3-3\"/></svg><span>certificate</span></span><span class=\"ds-icon-cell\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4.5 5.5h15a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1v-11a1 1 0 0 1 1-1zM3.5 7l8.5 6 8.5-6\"/></svg><span>email</span></span><span class=\"ds-icon-cell\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M6.5 3.5h3l1.5 4-2 1.5a11 11 0 0 0 6 6l1.5-2 4 1.5v3a2 2 0 0 1-2 2A16 16 0 0 1 4.5 5.5a2 2 0 0 1 2-2z\"/></svg><span>phone</span></span><span class=\"ds-icon-cell\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 3.5a8.5 8.5 0 1 1 0 17 8.5 8.5 0 0 1 0-17zM3.5 12h17M12 3.5c2.4 2.3 3.5 5.2 3.5 8.5s-1.1 6.2-3.5 8.5c-2.4-2.3-3.5-5.2-3.5-8.5s1.1-6.2 3.5-8.5z\"/></svg><span>website</span></span><span class=\"ds-icon-cell\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 4a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7zM5 20a7 7 0 0 1 14 0\"/></svg><span>person</span></span><span class=\"ds-icon-cell\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5.5 5h13a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM14 5v14M6.5 12H11M9 9.5 11.5 12 9 14.5\"/></svg><span>open-beside</span></span><span class=\"ds-icon-cell\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M8 9.5l4-4 4 4M8 14.5l4 4 4-4\"/></svg><span>up-down</span></span><span class=\"ds-icon-cell ds-icon-pending\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" role=\"img\" aria-label=\"Source pending\"><path d=\"M11 20.5H6.5a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1h7l4 4v2.5M13.5 3.5v4h4M16.5 12.5a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM16.5 14.5v2l1.4 1\"/></svg><span>pending</span></span></div>",
+      "css": ".ds-icons{display:grid;grid-template-columns:repeat(4,96px);gap:12px;font-family:Geist, ui-sans-serif, system-ui, sans-serif}.ds-icon-cell{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:13px;line-height:18px;color:#626B62}.ds-icon-cell svg{color:#3B5A70}.ds-icon-pending svg{color:#545C54}"
+    },
+    {
+      "name": "Facts Panel",
       "kind": "card",
       "refersTo": "card",
-      "description": "A surface panel on hairlines; a label/value row with room for a mark at its end.",
-      "html": "<div class=\"ds-card\"><div class=\"ds-fact\"><span class=\"ds-fact-label\">Registered name</span><span class=\"ds-fact-value\">ABONI KNITWEAR LTD.</span><span class=\"ds-mark ds-mark-2\" role=\"img\" aria-label=\"Source: BGMEA, Industry bodies\">BG</span></div><div class=\"ds-fact\"><span class=\"ds-fact-label\">Workers</span><span class=\"ds-fact-value\">3,166 <span class=\"ds-cap\">across 2 sites</span></span><span class=\"ds-mark ds-mark-3\" role=\"img\" aria-label=\"Source: RSC, Certification bodies\">RS</span></div><div class=\"ds-fact\"><span class=\"ds-fact-label\">Parent group</span><span class=\"ds-fact-value ds-quiet\">Not on file</span></div></div>",
-      "css": ".ds-card{background:#FFFFFF;border:1px solid #E6E8DF;border-radius:10px;padding:12px 16px;font-family:Geist, ui-sans-serif, system-ui, sans-serif;font-variant-numeric:tabular-nums}.ds-fact{display:flex;align-items:flex-start;gap:12px;min-height:28px;padding:3px 0;border-top:1px solid #E6E8DF}.ds-fact:first-child{border-top:0}.ds-fact-label{flex:0 0 150px;font-size:13px;line-height:22px;font-weight:500;color:#545C54}.ds-fact-value{flex:1;min-width:0;font-size:14px;line-height:22px;color:#262B26;overflow-wrap:anywhere}.ds-cap{font-size:12px;color:#626B62}.ds-quiet{color:#545C54}.ds-mark{display:inline-grid;place-items:center;width:20px;height:20px;margin-top:3px;border-radius:6px;font-family:'Geist Mono', ui-monospace, Menlo, Consolas, monospace;font-size:9.5px;font-weight:500;line-height:1}.ds-mark-2{background:#262B26;color:#FFFFFF}.ds-mark-3{background:#545C54;color:#FFFFFF}"
+      "description": "FactsPanel in three levels: each row is its 16px slate icon and label in ink-muted (a 150px column), the value in ink-strong (medium for the facts a buyer reads first), and the mark column at the row's end. Rows divide by line-subtle and stack below 640px. A fact with no per-field mark carries the pending icon, and one legend under the facts says so once. Slate is the only colour; status hues stay on status.",
+      "html": "<div class=\"ds-fp\"><div class=\"ds-fact\"><span class=\"ds-fact-label\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5.5 20.5V4.5a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v16M14.5 9.5h3a1 1 0 0 1 1 1v10M3.5 20.5h17M8.5 7.5h3M8.5 11h3M9.5 20.5v-4.5h2v4.5\"/></svg>Registered name</span><span class=\"ds-fact-value ds-lead\">ABONI KNITWEAR LTD.</span><span class=\"ds-fact-marks\"><span class=\"ds-mark ds-mark-sm ds-mark-2\" role=\"img\" aria-label=\"Source: BGMEA, Industry bodies\">BG</span></span></div><div class=\"ds-fact\"><span class=\"ds-fact-label\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3.5 20.5v-9l5 3.5v-3.5l5 3.5v-3.5l4 2.8V4h3v16.5M3.5 20.5h17M7 17.5h2M11.5 17.5h2\"/></svg>Type</span><span class=\"ds-fact-value ds-lead\">Factory</span><span class=\"ds-fact-marks\"><span class=\"ds-pending\" title=\"Source pending: the register that filed this is not linked per fact yet\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" role=\"img\" aria-label=\"Source pending\"><path d=\"M11 20.5H6.5a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1h7l4 4v2.5M13.5 3.5v4h4M16.5 12.5a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM16.5 14.5v2l1.4 1\"/></svg></span></span></div><div class=\"ds-fact\"><span class=\"ds-fact-label\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M9 5a3 3 0 1 1 0 6 3 3 0 0 1 0-6zM3.5 19a5.5 5.5 0 0 1 11 0M17 6.5a2.5 2.5 0 1 1 0 5M16.2 14.2A4.5 4.5 0 0 1 20.5 18.8\"/></svg>Workers</span><span class=\"ds-fact-value ds-lead\">3,166<span class=\"ds-note\">across 2 sites</span></span><span class=\"ds-fact-marks\"><span class=\"ds-mark ds-mark-sm ds-mark-3\" role=\"img\" aria-label=\"Source: RSC, Certification bodies\">RS</span></span></div><div class=\"ds-fact\"><span class=\"ds-fact-label\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5.5 5h13a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM3.5 10h17M8 3v4M16 3v4\"/></svg>Established</span><span class=\"ds-fact-value ds-empty\">Not on file</span><span class=\"ds-fact-marks\"></span></div><p class=\"ds-legend\"><span class=\"ds-pending\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M11 20.5H6.5a1 1 0 0 1-1-1v-15a1 1 0 0 1 1-1h7l4 4v2.5M13.5 3.5v4h4M16.5 12.5a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM16.5 14.5v2l1.4 1\"/></svg></span>Source pending</p></div>",
+      "css": ".ds-mark{display:inline-grid;place-items:center;flex-shrink:0;width:20px;height:20px;border-radius:6px;font-family:'Geist Mono', ui-monospace, Menlo, Consolas, monospace;font-size:9.5px;font-weight:500;line-height:1;letter-spacing:0.02em}.ds-mark-sm{width:16px;height:16px;border-radius:3px;font-size:8px}.ds-mark-1{background:#0F130F;color:#FFFFFF}.ds-mark-2{background:#262B26;color:#FFFFFF}.ds-mark-3{background:#545C54;color:#FFFFFF}.ds-mark-4{background:#DDE0D5;color:#0F130F}.ds-mark-5{background:#FFFFFF;color:#262B26;box-shadow:inset 0 0 0 1px #79837A}.ds-fp{display:flex;flex-direction:column;max-width:560px;padding:12px 16px;background:#FFFFFF;border-radius:10px;font-family:Geist, ui-sans-serif, system-ui, sans-serif;font-variant-numeric:tabular-nums}.ds-fact{display:flex;align-items:flex-start;gap:16px;min-height:28px;padding:6px 0;border-top:1px solid #E7E7E4}.ds-fact:first-child{border-top:0}.ds-fact-label{display:inline-flex;align-items:center;gap:8px;flex:0 0 150px;font-size:14px;line-height:22px;color:#545C54}.ds-fact-label svg{flex-shrink:0;color:#3B5A70}.ds-fact-value{flex:1;min-width:0;font-size:15px;line-height:22px;color:#0F130F;overflow-wrap:anywhere}.ds-lead{font-weight:500}.ds-note{margin-left:6px;font-size:14px;font-weight:400;color:#626B62}.ds-empty{color:#545C54}.ds-fact-marks{display:inline-flex;justify-content:flex-end;gap:4px;min-width:20px;padding-top:3px}.ds-pending{display:inline-flex;flex-shrink:0;color:#545C54}.ds-legend{display:inline-flex;align-items:center;gap:8px;margin:12px 0 0;font-size:13px;line-height:18px;color:#626B62}@media(max-width:639px){.ds-fact{flex-direction:column;gap:2px}.ds-fact-label{flex-basis:auto}}"
+    },
+    {
+      "name": "Certificate Row",
+      "kind": "custom",
+      "refersTo": "badge",
+      "description": "CertRow in CertList: one certificate, one line under a hairline. Its mark, the scheme in 15px medium ink-strong, the number in mono ink-muted, the certifier in ink-subtle (cut first when the line is short, whole in title), then the state badge and the certificate as a 28px ghost icon button. The scope folds behind a closed native Scope disclosure as the register's own labelled parts.",
+      "html": "<ul class=\"ds-certs\"><li class=\"ds-cert\"><div class=\"ds-cert-line\"><span class=\"ds-cert-main\"><span class=\"ds-mark ds-mark-3\" role=\"img\" aria-label=\"Source: GOTS, Certification bodies\">GO</span><span class=\"ds-cert-scheme\">GOTS</span><code class=\"ds-cert-no\">CU 1019542</code><span class=\"ds-cert-issuer\" data-name=\"\" title=\"Control Union Certifications B.V.\">Control Union Certifications B.V.</span></span><span class=\"ds-cert-end\"><span class=\"ds-badge ds-badge-positive\">Valid to 24 May 2027</span><a class=\"ds-btn ds-btn-ghost ds-btn-sm ds-btn-icon\" href=\"#\" aria-label=\"Open the GOTS certificate CU 1019542\" title=\"Open the certificate\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M14 4h6v6M20 4l-8.5 8.5M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5\"/></svg></a></span></div><details class=\"ds-scope\"><summary>Scope<svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7 10l5 5 5-5\"/></svg></summary><dl><dt>Operations</dt><dd>Dyeing, Knitting, Sewing</dd><dt>Products</dt><dd>Men's and women's apparel</dd></dl></details></li><li class=\"ds-cert\"><div class=\"ds-cert-line\"><span class=\"ds-cert-main\"><span class=\"ds-mark ds-mark-3\" role=\"img\" aria-label=\"Source: WRAP, Certification bodies\">WR</span><span class=\"ds-cert-scheme\">WRAP</span><code class=\"ds-cert-no\">WR-44512</code><span class=\"ds-cert-issuer\" data-name=\"\" title=\"Worldwide Responsible Accredited Production\">Worldwide Responsible Accredited Production</span></span><span class=\"ds-cert-end\"><span class=\"ds-badge ds-badge-caution\">Expires in 11 d</span></span></div></li></ul>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;height:32px;padding:0 12px;border:1px solid transparent;border-radius:6px;font-family:Geist, ui-sans-serif, system-ui, sans-serif;font-size:14px;line-height:20px;font-weight:500;text-decoration:none;cursor:pointer;transition:color 120ms,background-color 120ms,border-color 120ms,box-shadow 120ms,transform 120ms cubic-bezier(0.2,0,0,1)}.ds-btn:active{transform:scale(0.98)}.ds-btn:focus-visible{outline:2px solid #3B5A70;outline-offset:2px}.ds-btn:disabled{background:#EEEEEC;color:#9AA39A;box-shadow:none;cursor:not-allowed;transform:none}.ds-btn-sm{height:28px;padding:0 8px;font-size:13px}.ds-btn-icon{width:28px;padding:0}@media(prefers-reduced-motion:reduce){.ds-btn:active{transform:none}}.ds-btn-ghost{background:transparent;color:#545C54}.ds-btn-ghost:hover{background:#EEEEEC;color:#0F130F}.ds-btn-ghost:active{background:#D8D8D4}.ds-mark{display:inline-grid;place-items:center;flex-shrink:0;width:20px;height:20px;border-radius:6px;font-family:'Geist Mono', ui-monospace, Menlo, Consolas, monospace;font-size:9.5px;font-weight:500;line-height:1;letter-spacing:0.02em}.ds-mark-sm{width:16px;height:16px;border-radius:3px;font-size:8px}.ds-mark-1{background:#0F130F;color:#FFFFFF}.ds-mark-2{background:#262B26;color:#FFFFFF}.ds-mark-3{background:#545C54;color:#FFFFFF}.ds-mark-4{background:#DDE0D5;color:#0F130F}.ds-mark-5{background:#FFFFFF;color:#262B26;box-shadow:inset 0 0 0 1px #79837A}.ds-badge{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:6px;white-space:nowrap;font-family:Geist, ui-sans-serif, system-ui, sans-serif;font-size:13px;line-height:16px;font-weight:500}.ds-badge-positive{background:#E1F4EC;color:#075C45}.ds-badge-caution{background:#FDF3DE;color:#7A4300}.ds-certs{margin:0;padding:0;list-style:none;max-width:620px;font-family:Geist, ui-sans-serif, system-ui, sans-serif}.ds-cert{border-top:1px solid #E7E7E4}.ds-cert:first-child{border-top:0}.ds-cert-line{display:flex;align-items:center;gap:12px;padding:8px 0}.ds-cert-main{display:flex;flex:1;min-width:0;align-items:center;gap:10px}.ds-cert-scheme{flex-shrink:0;font-size:15px;line-height:24px;font-weight:500;color:#0F130F}.ds-cert-no{flex-shrink:0;font-family:'Geist Mono', ui-monospace, Menlo, Consolas, monospace;font-size:14px;line-height:20px;color:#545C54}.ds-cert-issuer{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:14px;line-height:20px;color:#626B62}.ds-cert-end{display:inline-flex;flex-shrink:0;align-items:center;gap:4px;margin-left:auto}.ds-scope{margin-top:-4px;padding:0 0 8px 30px}.ds-scope summary{display:inline-flex;align-items:center;gap:4px;list-style:none;cursor:pointer;font-size:14px;color:#545C54}.ds-scope summary::-webkit-details-marker{display:none}.ds-scope summary:hover{color:#0F130F}.ds-scope svg{transition:transform 120ms}.ds-scope[open] svg{transform:rotate(180deg)}.ds-scope dl{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;margin:6px 0 0;font-size:14px;line-height:20px}.ds-scope dt{color:#545C54}.ds-scope dd{margin:0;color:#262B26;overflow-wrap:anywhere}"
+    },
+    {
+      "name": "Result Card",
+      "kind": "card",
+      "refersTo": "result-card",
+      "description": "SupplierResultCard, five lines, each fact once: (1) checkbox, 48px initials tile on the top source's rank colour, the base name on one line in Title, the actions at the row's end (Save icon, Open beside, Send RFQ the one labelled secondary); (2) the qualifier then the facts with 14px slate icons on one cut line, whole in its title; (3) the marks and one sources caption; (4) up to four compact status chips then +N; (5) 48px product thumbnails. Cards divide by line-subtle: no shadow, no tiles. Selected: a 3px inset slate rule. Sanctioned: a 4px maroon bar.",
+      "html": "<article class=\"ds-rc ds-rc-selected\" aria-label=\"Aboni Knitwear Ltd. (Unit-2)\"><span class=\"ds-box ds-box-on\" role=\"checkbox\" aria-checked=\"true\" aria-label=\"Select Aboni Knitwear Ltd. (Unit-2)\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12.5l4.5 4.5L19 7.5\"/></svg></span><span class=\"ds-tile\" aria-hidden=\"true\">AK</span><div class=\"ds-rc-body\"><div class=\"ds-rc-head\"><h2 class=\"ds-rc-name\"><a href=\"#\" title=\"Aboni Knitwear Ltd. (Unit-2)\" data-name=\"\">Aboni Knitwear Ltd.</a></h2><div class=\"ds-rc-actions\"><button class=\"ds-btn ds-btn-ghost ds-btn-sm ds-btn-icon\" aria-label=\"Save\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7 3.5h10a1 1 0 0 1 1 1v16l-6-4-6 4v-16a1 1 0 0 1 1-1z\"/></svg></button><a class=\"ds-btn ds-btn-ghost ds-btn-sm\" href=\"#\" aria-label=\"Open Aboni Knitwear Ltd. beside the results\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5.5 5h13a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM14 5v14M6.5 12H11M9 9.5 11.5 12 9 14.5\"/></svg> Open</a><a class=\"ds-btn ds-btn-default ds-btn-sm\" href=\"#\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 12 20 4l-4 16-4-7z\"/></svg> Send RFQ</a></div></div><p class=\"ds-rc-facts\" title=\"Unit-2 · Factory · Gazipur · Est. 2009 · 3,166 workers (2,980)\"><span class=\"ds-q\">Unit-2</span><span class=\"ds-dot\" aria-hidden=\"true\">·</span><svg class=\"ds-fi\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3.5 20.5v-9l5 3.5v-3.5l5 3.5v-3.5l4 2.8V4h3v16.5M3.5 20.5h17M7 17.5h2M11.5 17.5h2\"/></svg>Factory<span class=\"ds-dot\" aria-hidden=\"true\">·</span><svg class=\"ds-fi\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11zM12 7.6a2.4 2.4 0 1 1 0 4.8 2.4 2.4 0 0 1 0-4.8z\"/></svg>Gazipur<span class=\"ds-dot\" aria-hidden=\"true\">·</span><svg class=\"ds-fi\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5.5 5h13a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM3.5 10h17M8 3v4M16 3v4\"/></svg>Est. 2009<span class=\"ds-dot\" aria-hidden=\"true\">·</span><svg class=\"ds-fi\" width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M9 5a3 3 0 1 1 0 6 3 3 0 0 1 0-6zM3.5 19a5.5 5.5 0 0 1 11 0M17 6.5a2.5 2.5 0 1 1 0 5M16.2 14.2A4.5 4.5 0 0 1 20.5 18.8\"/></svg>3,166 <span class=\"ds-q\">(2,980)</span></p><div class=\"ds-rc-src\"><span class=\"ds-marks-row\"><span class=\"ds-mark ds-mark-1\" role=\"img\" aria-label=\"Source: RJSC, Government\">RJ</span><span class=\"ds-mark ds-mark-2\" role=\"img\" aria-label=\"Source: BGMEA, Industry bodies\">BG</span><span class=\"ds-mark ds-mark-3\" role=\"img\" aria-label=\"Source: GOTS, Certification bodies\">GO</span><span class=\"ds-mark ds-mark-4\" role=\"img\" aria-label=\"Source: H&amp;M, Brand lists\">HM</span></span><span class=\"ds-rc-cap\">8 registers &amp; certifiers · 3 brand lists</span></div><div class=\"ds-chips\"><span class=\"ds-chip ds-chip-compact ds-chip-positive\">GOTS valid</span><span class=\"ds-chip ds-chip-compact ds-chip-caution\">SA8000 · 17 d</span><span class=\"ds-chip ds-chip-compact ds-chip-neutral\">RSC</span><span class=\"ds-chip ds-chip-compact ds-chip-neutral\">EPB · 13 lines</span><span class=\"ds-rc-cap\" title=\"OEKO-TEX · BSCI\">+2</span></div></div></article>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;height:32px;padding:0 12px;border:1px solid transparent;border-radius:6px;font-family:Geist, ui-sans-serif, system-ui, sans-serif;font-size:14px;line-height:20px;font-weight:500;text-decoration:none;cursor:pointer;transition:color 120ms,background-color 120ms,border-color 120ms,box-shadow 120ms,transform 120ms cubic-bezier(0.2,0,0,1)}.ds-btn:active{transform:scale(0.98)}.ds-btn:focus-visible{outline:2px solid #3B5A70;outline-offset:2px}.ds-btn:disabled{background:#EEEEEC;color:#9AA39A;box-shadow:none;cursor:not-allowed;transform:none}.ds-btn-sm{height:28px;padding:0 8px;font-size:13px}.ds-btn-icon{width:28px;padding:0}@media(prefers-reduced-motion:reduce){.ds-btn:active{transform:none}}.ds-btn-ghost{background:transparent;color:#545C54}.ds-btn-ghost:hover{background:#EEEEEC;color:#0F130F}.ds-btn-ghost:active{background:#D8D8D4}.ds-btn-default{background:#EEEEEC;color:#262B26;box-shadow:inset 0 0 0 1px rgb(216 216 212 / 0.7)}.ds-btn-default:hover,.ds-btn-default:active{background:#D8D8D4;color:#0F130F}.ds-mark{display:inline-grid;place-items:center;flex-shrink:0;width:20px;height:20px;border-radius:6px;font-family:'Geist Mono', ui-monospace, Menlo, Consolas, monospace;font-size:9.5px;font-weight:500;line-height:1;letter-spacing:0.02em}.ds-mark-sm{width:16px;height:16px;border-radius:3px;font-size:8px}.ds-mark-1{background:#0F130F;color:#FFFFFF}.ds-mark-2{background:#262B26;color:#FFFFFF}.ds-mark-3{background:#545C54;color:#FFFFFF}.ds-mark-4{background:#DDE0D5;color:#0F130F}.ds-mark-5{background:#FFFFFF;color:#262B26;box-shadow:inset 0 0 0 1px #79837A}.ds-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.ds-chip{display:inline-flex;align-items:center;gap:6px;min-height:26px;padding:1px 10px;border:1px solid transparent;border-radius:6px;font-family:Geist, ui-sans-serif, system-ui, sans-serif;font-size:14px;line-height:20px;font-weight:500;overflow-wrap:anywhere}.ds-chip-compact{min-height:22px;gap:4px;padding:1px 7px;font-size:13px;line-height:18px}.ds-chip-positive{background:#E1F4EC;color:#075C45}.ds-chip-caution{background:#FDF3DE;color:#7A4300}.ds-chip-neutral{background:#FFFFFF;border-color:#D8D8D4;color:#262B26}.ds-chip-quiet{border-style:dashed;border-color:#C1C7B9;color:#545C54;font-weight:400}.ds-chip-sanction{background:#8F1711;color:#FFFFFF}.ds-chip-on{background:#D3DFE8;color:#2C4E66}.ds-rc{position:relative;display:flex;gap:12px;max-width:760px;padding:16px 20px;background:#FFFFFF;border-bottom:1px solid #E7E7E4;font-family:Geist, ui-sans-serif, system-ui, sans-serif;font-variant-numeric:tabular-nums}.ds-rc-selected{box-shadow:inset 3px 0 0 #3B5A70}.ds-box{display:grid;place-items:center;flex-shrink:0;width:16px;height:16px;margin-top:16px;border:1px solid #79837A;border-radius:3px;background:#FFFFFF;color:#FFFFFF}.ds-box-on{background:#3B5A70;border-color:#3B5A70}.ds-tile{display:grid;place-items:center;flex-shrink:0;width:48px;height:48px;border-radius:6px;background:#0F130F;color:#FFFFFF;font-size:16px;font-weight:500;letter-spacing:0.01em}.ds-rc-body{display:flex;flex:1;min-width:0;flex-direction:column;gap:8px}.ds-rc-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;min-width:0}.ds-rc-name{flex:1 1 0;min-width:min(12rem,100%);margin:0;font-size:16px;line-height:24px;font-weight:500;letter-spacing:-0.005em}.ds-rc-name a{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:#0F130F;text-decoration:none}.ds-rc-name a:hover{color:#2C4E66}.ds-rc-actions{display:flex;flex-shrink:0;align-items:center;gap:4px}.ds-rc-facts{margin:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:14px;line-height:20px;color:#262B26}.ds-fi{display:inline-block;margin-right:4px;vertical-align:-2px;color:#3B5A70}.ds-q{color:#545C54}.ds-dot{margin:0 6px;color:#626B62}.ds-rc-src{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}.ds-marks-row{display:inline-flex;gap:3px}.ds-rc-cap{font-size:14px;line-height:20px;color:#626B62}"
     },
     {
       "name": "Lock Card",
       "kind": "custom",
       "refersTo": "lock-card",
-      "description": "The contact block, locked by default: striped ground and a count sentence, never a blur.",
-      "html": "<div class=\"ds-lock\"><div class=\"ds-lock-head\"><span class=\"ds-lock-title\">Contact details</span><span class=\"ds-lock-held\">On file: 1 email · 6 phone numbers · a website</span><span class=\"ds-lock-note\">Contact details are not shown on the record.</span></div><div class=\"ds-lock-body\">Send an RFQ from the record instead.</div></div>",
-      "css": ".ds-lock{overflow:hidden;border:1px solid #C1C7B9;border-radius:10px;font-family:Geist, ui-sans-serif, system-ui, sans-serif}.ds-lock-head{display:flex;flex-direction:column;gap:6px;padding:16px;color:#545C54;background-color:#ECEEE7;background-image:repeating-linear-gradient(135deg,#ECEEE7 0,#ECEEE7 6px,#DDE0D5 6px,#DDE0D5 7px)}.ds-lock-title{font-size:13px;line-height:20px;font-weight:500;color:#0F130F}.ds-lock-held,.ds-lock-note{font-size:12px;line-height:16px}.ds-lock-body{padding:12px 16px;font-size:13px;line-height:20px;color:#545C54}"
+      "description": "The contact block, locked by default: a strip under the facts on the plain locked ground (the stripes went on 29 Sep 2026), an ink-strong label, locked-ink copy, and the count per kind of contact on file, each with its slate icon. Never a value, never a blur.",
+      "html": "<div class=\"ds-lock\"><span class=\"ds-lock-title\">Contact details</span><span class=\"ds-lock-kinds\"><span><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4.5 5.5h15a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1v-11a1 1 0 0 1 1-1zM3.5 7l8.5 6 8.5-6\"/></svg>1 email</span><span><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M6.5 3.5h3l1.5 4-2 1.5a11 11 0 0 0 6 6l1.5-2 4 1.5v3a2 2 0 0 1-2 2A16 16 0 0 1 4.5 5.5a2 2 0 0 1 2-2z\"/></svg>6 phone numbers</span><span><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 3.5a8.5 8.5 0 1 1 0 17 8.5 8.5 0 0 1 0-17zM3.5 12h17M12 3.5c2.4 2.3 3.5 5.2 3.5 8.5s-1.1 6.2-3.5 8.5c-2.4-2.3-3.5-5.2-3.5-8.5s1.1-6.2 3.5-8.5z\"/></svg>a website</span><span><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 4a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7zM5 20a7 7 0 0 1 14 0\"/></svg>a contact person</span></span><span class=\"ds-lock-note\">Send an RFQ from the record instead.</span></div>",
+      "css": ".ds-lock{display:flex;flex-direction:column;gap:6px;max-width:560px;padding:16px;background:#EEEEEC;border-radius:10px;color:#545C54;font-family:Geist, ui-sans-serif, system-ui, sans-serif;font-size:14px;line-height:20px}.ds-lock-title{font-weight:500;color:#0F130F}.ds-lock-kinds{display:flex;flex-wrap:wrap;gap:4px 16px}.ds-lock-kinds span{display:inline-flex;align-items:center;gap:6px}.ds-lock-kinds svg{color:#3B5A70}.ds-lock-note{font-size:13px;line-height:18px}"
     },
     {
       "name": "Toast",
       "kind": "custom",
       "refersTo": "toast",
-      "description": "A dark pill with the signal dot, rising in over 320 ms from the bottom centre.",
-      "html": "<div class=\"ds-toast\"><i class=\"ds-live\" aria-hidden=\"true\"></i>Saved to your list<a class=\"ds-toast-link\" href=\"#\">View</a></div>",
-      "css": ".ds-toast{display:inline-flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:#111411;color:#F2F4EE;font-family:Geist, ui-sans-serif, system-ui, sans-serif;font-size:13px;line-height:20px;font-weight:500;box-shadow:0 16px 32px -8px rgb(15 19 15 / 0.16),0 4px 8px -4px rgb(15 19 15 / 0.06);animation:ds-rise 320ms cubic-bezier(0,0,0.2,1) both}.ds-live{display:inline-block;width:8px;height:8px;border-radius:9999px;background:#3FE374;box-shadow:0 0 0 4px rgb(63 227 116 / 0.28)}.ds-toast-link{color:#8BE39A;text-underline-offset:2px}.ds-toast-link:hover{text-decoration:underline}@keyframes ds-rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}@media(prefers-reduced-motion:reduce){.ds-toast{animation:none}}"
+      "description": "A dark pill with the signal dot and its bloom, rising in over 320 ms from the bottom centre; the link in spring green. Exits land at once.",
+      "html": "<div class=\"ds-toast\" role=\"status\"><i class=\"ds-live\" aria-hidden=\"true\"></i>RFQ sent<a class=\"ds-toast-link\" href=\"#\">View</a></div>",
+      "css": ".ds-toast{display:inline-flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:#111411;color:#F2F4EE;font-family:Geist, ui-sans-serif, system-ui, sans-serif;font-size:14px;line-height:20px;font-weight:500;box-shadow:0 16px 32px -8px rgb(15 19 15 / 0.16),0 4px 8px -4px rgb(15 19 15 / 0.06);animation:ds-rise 320ms cubic-bezier(0,0,0.2,1) both}.ds-live{display:inline-block;width:8px;height:8px;border-radius:9999px;background:#3FE374;box-shadow:0 0 0 4px rgb(63 227 116 / 0.28)}.ds-toast-link{color:#8BE39A;text-underline-offset:2px}.ds-toast-link:hover{text-decoration:underline}@keyframes ds-rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}@media(prefers-reduced-motion:reduce){.ds-toast{animation:none}}"
     }
   ],
   "narrative": {
     "northStar": "The Ledger That Answers",
-    "overview": "The buyer app is a ledger of receipts. Every screen is a page of warm paper (`canvas`) with white panels laid on it, separated by hairlines rather than shadows, and every fact on the page has room beside it for the mark of the register that filed it. Density is desk-level: 13px labels, 14px body, 36px table rows, 32px controls, a 232px rail and a 56px frosted topbar. Colour is spent like money. The shell is near-monochrome on a green-cast grey ramp, the brand green appears only where the buyer acts (the primary button, links, the active nav row, the logo), and status hues (teal-green, amber, red, and the reserved sanction maroon) appear only on facts that carry that status.\n\nThe world refuses the competitor's chat-first home and its match-score theatre: there is no score, grade, rating or star anywhere on a buyer surface. It also refuses decoration: the one flourish is the `signal` dot, a bright green point beside a live number or in a toast, and the empty-state spot illustrations, single-weight ink line art with one brand-green fill. Motion is acknowledgement, not spectacle: entrances only, opacity-led, at 120 / 200 / 320 ms, and nothing is lost when the device asks for reduced motion.",
+    "overview": "The buyer app is a ledger of receipts. Every screen is a page of neutral paper (`canvas`) with white panels laid on it, grouped by tone and spacing rather than boxed, and every fact on the page has room beside it for the mark of the register that filed it. Density is desk-level: 13px labels, 14px body, 36px table rows, 32px controls, a 232px rail and a 56px frosted topbar. Colour is spent like money. The shell is near-monochrome on a neutral grey ramp, the brand green appears on the one primary action and the logo, and a quiet slate (`accent`) carries selection, the current nav row, set filters, links, tabs, focus and every fact's icon, and status hues (teal-green, amber, red, and the reserved sanction maroon) appear only on facts that carry that status.\n\nThe world refuses the competitor's chat-first home and its match-score theatre: there is no score, grade, rating or star anywhere on a buyer surface. It also refuses decoration: the one flourish is the `signal` dot, a bright green point beside a live number or in a toast, and the empty-state spot illustrations, single-weight ink line art with one brand-green fill. Motion is acknowledgement, not spectacle: entrances only, opacity-led, at 120 / 200 / 320 ms, and nothing is lost when the device asks for reduced motion.",
     "keyCharacteristics": [
-      "Warm paper canvas, white panels, hairline dividers; depth by tone and border, not shadow.",
+      "Neutral paper canvas, white panels, depth by tone and spacing; a hairline only where two regions meet (a row and the next, a header and its body, the list and the pane).",
       "Geist for words, Geist Mono for the ledger's stamps (register numbers, column keys, source marks, counts).",
-      "Brand green on the primary action, links, active nav and the logo only; never a badge, never a state.",
+      "Brand green on the one primary action and the logo only; slate carries selection, the current row, set filters, links, tabs, focus and the facts' icons. Green is never a badge or a state.",
       "Source rank drawn as a neutral lightness ramp, so colour stays free for status.",
-      "Locked contact details are striped, never blurred; empty and unverified are quiet, never alarming.",
-      "Names wrap at every size; nothing truncates a company name.",
-      "Entrances only: fade 200, rise 320, sheet-in 320; exits land at once. The record opens beside the results, both live: no scrim, nothing modal."
+      "Locked contact details sit on the plain locked ground, never blurred; empty and unverified are quiet, never alarming.",
+      "A company's name is one line in every list, row, card, menu and picker, cut at the end with the whole name on hover and in the record; its qualifier (\"Unit-2\") leads the line under it.",
+      "Entrances only: fade 200, rise 320, sheet-in 320; exits land at once. The record opens beside the results, both live: no scrim, nothing modal.",
+      "Everything secondary opens in the pane beside the list it came from: the record, a product line, the RFQ composer, the filters, save search, an order, an RFQ. The shell and the buyer's search never move; Close returns to them. A page of its own exists only for a deep link.",
+      "The app opens on the search landing (`/app`): one large field, one-click filters, the common searches as templates with live counts, the buyer's saved searches, and no supplier listed until the buyer asks (founder, 28 Sep 2026). The desk that was Home (certificate alerts, recent activity) sits at the top of Saved.",
+      "The list is a ledger grid first: 40px rows, sortable sticky headers that meet the top of their scroll region, row actions always drawn in a column of their own, and the keyboard. The thumbnail cards are the other stop of the switch.",
+      "SourceBD's own line icons (24px grid, 1.5px stroke, round ends) beside facts, in slate; Phosphor for verbs.",
+      "Six named stacking layers; every Menu floats at z-overlay (200)."
     ],
     "rules": [
       {
         "name": "The Spent Green Rule",
-        "body": "Brand green appears on four things: the primary button, link text, the active nav row, and the logo. It is never a badge fill, never a chip tone, never a state colour, so it can never be read as \"verified\".",
+        "body": "In the buyer app, solid brand green appears on two things: the primary action and the logo. Selection, the current nav row, a set filter, links, tabs, focus and the ticked box are **Slate** (`accent`); inside `[data-shell]` the green tints and link ink (`brand-tint`, `brand-tint-strong`, `brand-ink`) and `focus` are remapped to it in `app/ds.css`, so older classes follow. Green is never a badge fill, a chip tone or a state colour, so it can never be read as \"verified\".",
         "section": "colors"
       },
       {
@@ -1262,9 +1433,14 @@
         "section": "colors"
       },
       {
-        "name": "The Wrapping Name Rule",
-        "body": "A company name, a chip that carries a building's name, and a fact value all set `overflow-wrap: anywhere` and never a fixed height or `text-overflow: ellipsis`. The only truncation in the kit is the topbar search placeholder.",
-        "section": "typography"
+        "name": "The Slate Fact Rule",
+        "section": "colors",
+        "body": "A fact's icon is SourceBD's own (`SbIcon`) in slate `accent` (3:1 on surface, canvas and locked), the one colour in the facts; the label is `ink-muted`, the value `ink-strong`. Status hues stay on status; a fact row whose model carries no icon fails a test."
+      },
+      {
+        "name": "The One-Line Name Rule",
+        "section": "typography",
+        "body": "In every list, table row, card title, menu, picker and suggestion, a company's or a building's name is one line, cut at the end with an ellipsis (`OneLine`, or `truncate` on a `min-w-0` box). The whole name stays in the DOM and in `title`; a row's accessible name is the whole name. The qualifier (a unit, a building, a division, a former name) moves to the second line. Everything that is not a name (a chip, a fact value, a caption, a register's words) still wraps and is never cut; `data-name` marks the name elements the guards exempt."
       },
       {
         "name": "The Stamp Rule",
@@ -1277,37 +1453,47 @@
         "section": "typography"
       },
       {
-        "name": "The Hairline Rule",
-        "body": "Surfaces separate by a 1px `line-subtle`, not a shadow. A shadow means something floats over the page: an overlay takes `md`, a dialog or toast takes `lg`.",
+        "name": "The Tone First Rule",
+        "body": "Regions separate by tone and spacing; a 1px `line-subtle` draws only where two regions truly meet (row and row, header and body, list and pane). A box inside a box is a defect: a section's panel is `surface` on `canvas` with no border, and the things inside it (tiles, stats, chips, buttons) take tone, not outlines. A shadow means something floats over the page: an overlay takes `md`, the toast `lg`.",
         "section": "elevation"
       },
       {
         "name": "The Tinted Shadow Rule",
         "body": "Every shadow is `ink-strong` at low alpha. A neutral black shadow is not in the vocabulary.",
         "section": "elevation"
+      },
+      {
+        "name": "The Named Layer Rule",
+        "section": "elevation",
+        "body": "Stacking is six named layers (`zIndex`: base 0, raised 10, sticky 100, overlay 200, modal 300, toast 400). The theme replaces Tailwind's numeric scale, so a numeric z class compiles to nothing; `tokens.test.ts` refuses a numeric or arbitrary z class in the buyer app. `<main>` and the results panel are `isolate`."
       }
     ],
     "dos": [
       "**Do** reach every colour through a Tailwind token class (`bg-brand`, `text-ink-muted`); the only place a hex may be typed is `lib/design/tokens.ts`, and `tokens.test.ts` fails the build otherwise.",
-      "**Do** leave room beside every fact for its source mark and a link to the register; a row with no mark reads \"source pending\" in a caption.",
-      "**Do** let names, chips and values wrap (`overflow-wrap: anywhere`); a fixed height on anything that holds a company's name is a defect.",
+      "**Do** leave room beside every fact for its source mark and a link to the register; a row with no mark carries the pending icon (`SbIcon` \"pending\", a document with a clock), and the legend under the facts says \"Source pending\" once.",
+      "**Do** put a company's name on one line in a list, cut at the end, with the whole name in `title` and its qualifier on the line under it; let chips and values wrap (`overflow-wrap: anywhere` as the last resort).",
       "**Do** keep entrances on the three lengths: 120 ms for a control's colour and press, 200 ms for a fade or the composer's scrim, 320 ms for a rise or the sheet; opacity leads every entrance and `both` fill keeps the element visible if the stylesheet fails.",
       "**Do** pair `animate-*` with `motion-reduce:animate-none`; `ds.css` also zeroes every duration under `prefers-reduced-motion`, and nothing depends on a frame arriving.",
-      "**Do** draw the locked contact state with `.locked-pattern` and a count sentence; the card claims only what the count says.",
-      "**Do** use Phosphor regular at 16px (12px inside a chip), taking the text colour beside it, and name it only when it is not decorative.",
-      "**Do** add any new text/background pair to `contrastPairs` before using it; an unlisted pair is unchecked."
+      "**Do** draw the locked contact state on the plain `locked` ground with the count per kind of contact on file; the card claims only what the count says.",
+      "**Do** use SourceBD's own `SbIcon` set beside facts (in slate) and Phosphor regular for verbs, at 16px (14px in a card's facts line, 12px inside a chip), and name an icon only when it is not decorative.",
+      "**Do** add any new text/background pair to `contrastPairs` before using it; an unlisted pair is unchecked.",
+      "**Do** format every date, time, amount and quantity through `lib/dashboard/facts.ts` (`formatDay` \"12 May 2027\", `formatTime` \"12 Sep 2026, 14:30\", `formatRelative` for a secondary caption only, `formatMoney` \"6.15 USD\", `formatQuantity` \"12,000 pcs\"); a locale-dependent `toLocaleDateString` is a defect.",
+      "**Do** put every floating layer on a named z layer (`z-overlay` for a Menu or a popover); never a numeric z class."
     ],
     "donts": [
+      "**Don't** open a secondary interface as a page jump or a modal over the shell: it opens in the pane beside where the buyer is, and Close returns there.",
+      "**Don't** put a border round a panel on the canvas, or a box inside a box; group by tone and spacing.",
+      "**Don't** put a primary button on every row of a list; the one primary lives in the pane.",
       "**Don't** show a score, grade, rating, star or percentage of fit on a buyer surface; the remediation percentage is a filed figure with its source, not a judgment.",
-      "**Don't** put brand green on a chip, badge, state, or fact; verified is `positive` teal, and the only green fills are the primary button, the logo, and the active nav row's tint.",
+      "**Don't** put brand green on a chip, badge, state, or fact; verified is `positive` teal, and the only green fills are the primary button and the logo; selection and the current nav row are slate.",
       "**Don't** reuse `sanction` for an error, or `danger` for a sanction.",
-      "**Don't** blur, pixelate or grey out locked data; stripe the block and say what is held.",
+      "**Don't** blur, pixelate or grey out locked data; set the block on the locked ground and say what is held.",
       "**Don't** colour an empty or unverified state with caution or danger; it sits on `quiet`.",
       "**Don't** put a shadow on a row or a card in a list, or type a shadow by hand; the four-step ink-tinted vocabulary is the whole set.",
       "**Don't** animate an exit or a loop for decoration; a close, a navigation and a dismiss land at once.",
-      "**Don't** truncate a name with an ellipsis, cap a chip's height, or set `white-space: nowrap` on anything that carries a register's text.",
+      "**Don't** let a company's name wrap inside a list row, or cut anything that is not a name: never cap a chip's height, or set `white-space: nowrap` on a register's words.",
       "**Don't** set mono on body text, or 600 on a heading that the `Heading` component draws at 500.",
-      "**Don't** add a package for anything the kit already draws (icons are Phosphor, fonts are self-hosted Geist, illustrations are cleaned SVGs in `public/illustrations/`)."
+      "**Don't** add a package for anything the kit already draws (icons are SourceBD's own `SbIcon` set and Phosphor, fonts are self-hosted Geist, illustrations are cleaned SVGs in `public/illustrations/`)."
     ]
   }
 }
