@@ -347,7 +347,8 @@ export function FactsPanel({ rows, legend = true }: { rows: readonly FactRow[]; 
                 // to a screen reader: printed, it was the loudest text on an
                 // empty row (founder's video, 29 Sep 2026).
                 <span title={`Not on file · ${r.checked}`} className="inline-flex text-quiet-ink">
-                  <Icon name="check-c" small />
+                  {/* A magnifier (looked), never a tick: a tick is the sign for a verified fact. */}
+                  <Icon name="search" small />
                   <span className="sr-only">{r.checked}</span>
                 </span>
               ) : r.pendingSource ? (

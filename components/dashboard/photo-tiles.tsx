@@ -1,5 +1,5 @@
 // HS-keyed photo tiles (REZ-A, handoff §6): the 132px strip tile, the 28px
-// table thumb, the six-up grid, and the dashed quiet slot a record with no
+// table thumb, the record's photo list, and the dashed quiet slot a record with no
 // export lines shows. A heading without a photo shows its code on the sunken
 // ground with "no photo yet" — nothing is substituted. Every photo is
 // captioned as illustrative.
@@ -174,31 +174,6 @@ export function NoLinesSlot({
                 : `no ${registerChecked} record`}
         </span>
       </div>
-    </div>
-  );
-}
-
-/**
- * `.pgrid`: the sheet's six-up grid. `lineHref` turns each tile into the link
- * to that export line's sheet (REZ-C §3.3, "each tile opens ProductSheet");
- * without it the tiles stay plain, as they are on the gallery.
- */
-export function PhotoGrid({ tiles, lineHref }: { tiles: readonly PhotoTileModel[]; lineHref?: (hs: string) => string }) {
-  return (
-    <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-      {tiles.map((t) =>
-        lineHref ? (
-          // `next/link`: in the overlay this href is `?…&record=X&line=NNNN`
-          // on the search's own URL, and a plain anchor would reload the whole
-          // page — re-running the search and emptying the bulk selection.
-          <Link key={t.hs} prefetch={false} scroll={false} href={lineHref(t.hs)} aria-label={`HS ${t.hs} · ${t.short}`} className="relative rounded-sm">
-            <PhotoTile tile={t} fluid />
-            <LinkPending className="absolute right-2 top-2 size-4 text-ink-strong" />
-          </Link>
-        ) : (
-          <PhotoTile key={t.hs} tile={t} fluid />
-        ),
-      )}
     </div>
   );
 }

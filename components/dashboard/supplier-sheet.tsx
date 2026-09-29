@@ -188,7 +188,7 @@ export function SupplierSheet({
               <Heading level="lg" as="h1">
                 {model.name}
               </Heading>
-              <MetaLine facts={model.meta} plain />
+              <MetaLine facts={model.meta} inRow={new Set(model.marks.map((m) => m.code))} />
               {/* Each source once (founder's pick, 29 Sep 2026): the facts line
                   is plain and every source is a square in this one row, which
                   names itself on hover and to a screen reader. The names were
