@@ -175,22 +175,26 @@ describe("1. a record tab scrolls the pane, never the app", () => {
 });
 
 describe("2–3. every column holds what it carries", () => {
-  // Measured in Geist, 29 Sep 2026: the longest word a register files in a
-  // name at 14px medium ("MANUFACTURING") is 120px; the workers second line
-  // at 12px ("11,119 with buildings") 118px; its words alone 78px.
-  const LONGEST_WORD = 120;
-  const NAME_CHROME = 24 + 24 + 10; // px-3 either side, the 24px tile, its gap
+  // Measured in Geist, 29 Sep 2026, at the buyer app's text (one step up,
+  // PR 4): the longest word a register files in a name at 15px medium
+  // ("MANUFACTURING") is 129px; the workers second line at 13px ("11,119
+  // with buildings") 115px; its words alone 83px. The workers checks below
+  // keep the margin the 12px measurements had.
+  const LONGEST_WORD = 129;
+  // px-3 either side, the tile, its gap: 40px and 12 in the list, 24px and 10 beside a pane.
+  const NAME_CHROME = { wide: 24 + 40 + 12, compact: 24 + 24 + 10 };
   const fixed = (cols: readonly (number | null)[]) => cols.reduce<number>((s, w) => s + (w ?? 0), 0);
 
   it("the supplier column keeps its longest word whole at the table's minimum width, beside a pane and not", () => {
     for (const layout of ["wide", "compact"] as const) {
       const name = RESULTS_MIN_WIDTH[layout] - fixed(RESULTS_COLUMNS[layout]);
-      assert.ok(name - NAME_CHROME >= LONGEST_WORD, `${layout}: the supplier column falls to ${name}px, so a name breaks mid-word`);
+      assert.ok(name - NAME_CHROME[layout] >= LONGEST_WORD, `${layout}: the supplier column falls to ${name}px, so a name breaks mid-word`);
     }
     const table = source("components/dashboard/results-table.tsx");
-    assert.match(table, /compact \? "min-w-\[30rem\]" : "min-w-\[60rem\]"/, "RESULTS_MIN_WIDTH no longer says what the table draws");
+    assert.match(table, /compact \? "min-w-\[30rem\]" : "min-w-\[62rem\]"/, "RESULTS_MIN_WIDTH no longer says what the table draws");
+    assert.match(table, /size=\{compact \? "sm" : "row"\}/, "NAME_CHROME no longer says which tile the row draws");
     assert.equal(RESULTS_MIN_WIDTH.compact, 30 * 16);
-    assert.equal(RESULTS_MIN_WIDTH.wide, 60 * 16);
+    assert.equal(RESULTS_MIN_WIDTH.wide, 62 * 16);
   });
 
   it("the actions and workers columns hold their contents", () => {
@@ -199,8 +203,8 @@ describe("2–3. every column holds what it carries", () => {
     // Compact: Save and RFQ inside px-1 — 64px with px-2 overflowed by 10px.
     assert.ok(RESULTS_COLUMNS.compact[4]! - 8 >= 2 * 28 + 2);
     // Workers, px-3: the whole second line wide, its words alone beside a pane.
-    assert.ok(RESULTS_COLUMNS.wide[5]! - 24 >= 118);
-    assert.ok(RESULTS_COLUMNS.compact[3]! - 24 >= 78);
+    assert.ok(RESULTS_COLUMNS.wide[5]! - 24 >= 128);
+    assert.ok(RESULTS_COLUMNS.compact[3]! - 24 >= 85);
   });
 
   it("the second worker figure breaks between its figure and its words, never inside either", () => {

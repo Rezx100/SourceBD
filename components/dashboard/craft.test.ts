@@ -69,10 +69,10 @@ describe("typeahead: the topbar field as the browser receives it", () => {
     assert.match(html, /<input[^>]*role="combobox"/);
     assert.match(html, /<input[^>]*value="polo"/);
     assert.match(html, /<div[^>]*role="listbox"[^>]*hidden/);
-    // The field keeps a focus indicator: the form's own outline and ring
+    // The field keeps a focus indicator: the form's own white fill and ink line
     // (28 Sep 2026) — the input's global ring was a second box inside it.
     // `search-first.test.ts` pins the pair.
-    assert.match(html, /<form[^>]*focus-within:border-brand/);
+    assert.match(html, /<form[^>]*focus-within:shadow-\[/);
   });
 
   it("shows the results page's own query, and elsewhere what the caller started it with", () => {
@@ -293,8 +293,8 @@ describe("the page's panels are drawn by tone", () => {
       createElement("table", null, createElement("tbody", null, createElement("tr", null, createElement(Cell, { align: "right" }, "3,166")))),
     );
     assert.match(cell, /class="[^"]*text-right[^"]*tabular-nums/);
-    assert.match(rowClass({ current: true }), /\bbg-brand-tint\b/);
-    assert.match(rowClass({ selected: true }), /shadow-\[inset_2px_0_0_rgb\(var\(--ds-brand\)\)\]/);
+    assert.match(rowClass({ current: true }), /\bbg-accent-tint\b/);
+    assert.match(rowClass({ selected: true }), /shadow-\[inset_2px_0_0_rgb\(var\(--ds-accent\)\)\]/);
     assert.match(rowClass({ sanctioned: true }), /shadow-\[inset_3px_0_0_rgb\(var\(--ds-sanction\)\)\]/);
     assert.doesNotMatch(rowClass(), /brand|sanction/);
   });

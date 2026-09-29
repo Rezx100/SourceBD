@@ -201,7 +201,7 @@ export function SupplierPicker({
             onKeyDown={onTabKey}
             className={cn(
               "-mb-px inline-flex h-10 items-center whitespace-nowrap border-b-2 border-transparent text-base font-medium text-ink-muted transition-colors duration-fast hover:text-ink-strong",
-              t.key === tab && "border-brand text-ink-strong",
+              t.key === tab && "border-accent text-ink-strong",
             )}
           >
             {t.label}

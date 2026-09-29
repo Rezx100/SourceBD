@@ -240,7 +240,7 @@ describe("/app/saved?open= — the record beside the saved list", () => {
     const out = await render(() => Saved()({ searchParams: Promise.resolve({ open: "aboni-knitwear", sort: "name" }) }));
     assert.match(out, /data-record-pane/);
     const row = out.match(/<tr class="([^"]*)"><th scope="row"/)?.[1] ?? "";
-    assert.match(row, /bg-brand-tint/, `the open row is not marked: ${row}`);
+    assert.match(row, /bg-accent-tint/, `the open row is not marked: ${row}`);
     assert.match(out, /href="\/app\/saved\?sort=name&amp;open=aboni-knitwear"[^>]*aria-current="true"|aria-current="true"[^>]*href="\/app\/saved\?sort=name&amp;open=aboni-knitwear"/);
     assert.match(out, /aria-label="Close" href="\/app\/saved\?sort=name"|href="\/app\/saved\?sort=name"[^>]*aria-label="Close"/);
     assert.match(out, /class="[^"]*hidden lg:flex[^"]*"/, "below lg the list waits behind the record");

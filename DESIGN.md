@@ -337,7 +337,7 @@ The world refuses the competitor's chat-first home and its match-score theatre: 
 - The app opens on the search landing (`/app`): one large field, one-click filters, the common searches as templates with live counts, the buyer's saved searches, and no supplier listed until the buyer asks (founder, 28 Sep 2026). The desk that was Home (certificate alerts, recent activity) sits at the top of Saved.
 - The list is a ledger grid first: 40px rows, sortable sticky headers that meet the top of their scroll region, row actions always drawn in a column of their own, and the keyboard. The thumbnail cards are the other stop of the switch.
 
-### Decided 29 Sep 2026, landing in PRs 3–6
+### Decided 29 Sep 2026 (colour, search field, filters and type built in PR 4; icons, record head and photos land in PR 5)
 
 The founder's video (hand-off `context/feature-specs/handoff-dashboard-video-29sep.md`) overturns parts of this document; the decision page's picks are below, and each section here is rewritten as its PR lands. Until then the sections describe what is built.
 
@@ -377,7 +377,7 @@ A neutral ramp carries the shell; one brand green is the action colour; four sta
 - **Tier ramp** (`tier-1` darkest to `tier-5` white with a `tier-5-line` outline): the source mark's fill and the logo tile, darkest is most trusted.
 
 ### Named Rules
-**The Spent Green Rule.** Brand green appears on four things: the primary button, link text, the active nav row, and the logo. It is never a badge fill, never a chip tone, never a state colour, so it can never be read as "verified".
+**The Spent Green Rule** (rewritten 29 Sep 2026, founder's video). In the buyer app, solid brand green appears on two things: the primary action and the logo. Selection, the current nav row, a set filter, links, tabs, focus and the ticked box are **Slate** (`accent`); inside `[data-shell]` the green tints and link ink (`brand-tint`, `brand-tint-strong`, `brand-ink`) and `focus` are remapped to it in `app/ds.css`, so older classes follow. Green is never a badge fill, a chip tone or a state colour, so it can never be read as "verified".
 **The Reserved Maroon Rule.** `sanction` is used for a sanctioned supplier and nothing else. Errors use `danger`; the two are never interchanged.
 **The Quiet Absence Rule.** No proof is not a warning. Unverified facts and empty lists sit on `quiet` with `quiet-ink` and a dashed `quiet-line`; they never take caution or danger.
 **The Monochrome Rank Rule.** Source trust is drawn in lightness on the ink ramp, never in hue. The mark's accessible name carries the tier in words.
@@ -392,6 +392,7 @@ A neutral ramp carries the shell; one brand green is the action colour; four sta
 **Character:** One quiet grotesk for everything a person reads, and its mono sibling for everything a register stamped: reference numbers, HS codes, column keys, counts, the two-letter source marks. Every number in either face sets tabular figures (set once on `body`). Weights stay light for the size: headings at 500 because Geist at 600 reads heavy; 600 is reserved for the page title, section titles and key figures.
 
 ### Hierarchy
+Inside the buyer app (`[data-shell]`) the five small steps are one size up (founder, 29 Sep 2026): eyebrow 12, caption 13, label and table 14, body 15, title 16 (`appFontSize`, through CSS variables, so the marketing site keeps the sizes below). The list's initials tile is 40px beside a 15px name.
 - **Headline** (500, 22px / 30px, -0.015em): `Heading` default; the sheet's record name sits above it at the same weight.
 - **Headline-lg** (500, 28px / 36px, -0.02em): `Heading level="lg"`; a page-level statement.
 - **Headline-sm** (500, 18px / 26px, -0.01em): `Heading level="sm"`; every section inside the record sheet.
@@ -460,7 +461,7 @@ Four tiers drawn by tone, never by outline; three sizes; six states on every tie
 
 ### Chips
 - **Style:** 26px minimum, 13px medium, 6px radius, 10px side padding; `compact` is 22px and 12px text for a table row. Width is the data's: a chip wraps its text and never truncates.
-- **Tones:** `positive` (valid, active), `caution` (expiring, expired, behind schedule), `neutral` (a plain fact, `line` outline on `surface`), `quiet` (dashed `quiet-line`, weight 400, nothing on file), `sanction` (solid maroon, reserved), `on` (`brand-tint-strong`, the active filter only).
+- **Tones:** `positive` (valid, active), `caution` (expiring, expired, behind schedule), `neutral` (a plain fact, `line` outline on `surface`), `quiet` (dashed `quiet-line`, weight 400, nothing on file), `sanction` (solid maroon, reserved), `on` (`accent-tint-strong`, slate, the active filter only).
 - **Badge:** 20px, 12px medium, 6px radius, 7px padding; tones `positive`, `caution`, `type` (sunken grey), `sanction`, `smart`. A certificate state, an RFQ status, a company type.
 - **V2 tag:** 10px mono on `smart-tint` with a `smart-line` border, 3px radius. The stamp on every AI-assisted surface.
 
@@ -479,7 +480,7 @@ Four tiers drawn by tone, never by outline; three sizes; six states on every tie
 ### Navigation
 - **Sidebar:** 232px on `canvas`, hairline right edge; the logo is a 28px `brand` square with a mono two-letter mark beside the wordmark in Title. Items are 32px rows, 13px medium `ink` with a 16px `ink-muted` Phosphor icon, 6px radius, and a mono 11px count at the right. Hover fills `surface-sunken` and lifts text to `ink-strong`. The current page fills `accent-tint`, sets `accent-ink` at 600 and a 3px `accent` bar at the row's start; the bar, not the tint, carries the state at 3:1 (founder's video, 29 Sep 2026: the green tint and ring went). The toggle beside the logo collapses the rail to a 56px column of icons (each named on hover and to a screen reader); the `sb_rail` cookie keeps it that way, read by the server so it never flashes open. The account menu sits at the foot: photo, name (or the email's name part), Settings, Subscription, Sign out; collapsed, it is the photo alone.
 - **Topbar:** 56px, `.glass` with `z-sticky` (the frosted glass is a stacking context; without the z-index its suggestion list painted under the page), hairline bottom edge; the search field (max 420px) and the shortcut hint in the buyer's own keys ("Ctrl K", "⌘K" on a Mac); the account menu, the same as the rail's, behind a 28px disc with the buyer's photo (the `tier-2` disc and initials when there is none). On the search landing the page's own large field replaces the topbar's.
-- **Search field:** one focus indicator, the field's: its outline steps to `brand` with a 2px `brand-tint-strong` ring; the input inside draws none. Suggestions list the words typed first ("Search “shirt”", Enter), then Product categories (HS headings, matched on buyers' words too), Products as filed, Certificates, Places, and last Suppliers whose name matches; mono eyebrow group headings, the typed part of each word in semibold. An empty focused field lists recent searches. A supplier opens beside the results.
+- **Search field:** filled (founder's pick, 29 Sep 2026): a `surface-sunken` fill with no outline and no shadow, a step darker (`line-subtle`) under the pointer, and while typing `surface` with a 1px `line` edge and a 2px `ink-strong` line under it; the input inside draws no focus ring of its own. Suggestions list the words typed first ("Search “shirt”", Enter), then Product categories (HS headings, matched on buyers' words too), Products as filed, Certificates, Places, and last Suppliers whose name matches; mono eyebrow group headings, the typed part of each word in semibold. An empty focused field lists recent searches. A supplier opens beside the results.
 - **Sheet tabs:** 40px tall, 15px medium `ink-muted`, a 2px transparent bottom border that turns `brand` when active with the label in `ink-strong`; a mono count beside the label.
 - **Mobile:** below 768px the rail becomes a horizontal snap row; the skip link surfaces on focus as an outlined `surface` pill at the top left.
 
@@ -496,6 +497,8 @@ A `surface` pane beside the results, both live: from 1024px it is `clamp(480px, 
 The one place a buyer writes to suppliers, opened inside the shell: in the wide pane beside the results (`?rfq=` on the search, carrying one supplier or the ticked selection, up to 50), beside a record (with Back to it), or as the content region of `/app/rfqs/new` for a deep link or a saved draft. A 52px bar (Back, "New RFQ", who it goes to, Draft saved, Close); then the targets on `surface-sunken` with their marks and a remove each; the product (title, description, quantity, unit, target price, currency, ship to, ship by: selects where the answer is a list); the message, filled from the workspace's template with its facts, a missing fact shown in brackets and named under the field; the questions, ticked on by default, removable, with an add field. Beside the fields from 1280px, the preview of what the RFQ carries on `surface-sunken`. A frosted footer names what is still needed in caution ink, or the sanction in maroon, holds Save draft (secondary) and Send RFQ (primary, with its ⌘↵ hint), and Send stays disabled until nothing is missing and no target is sanctioned; the server refuses a sanctioned target too. On send the pane closes onto the search it sat beside, and a toast says "RFQ sent" with a link to it.
 
 ### Filter pane
+**Filter menus** (29 Sep 2026): under the landing's field and over the results, one row of menus (Product, Certificate, Place, Company type, More), each a list of links that toggle one value, a check on the set ones; a menu with a value set is filled `accent-tint-strong` and names the value (or "2 selected") on its button; on the landing each option carries how many published suppliers it finds. A filter a menu holds is not drawn again as a chip; the rest (the query, a register, a brand list, a range, Sanctioned hidden) stay chips. The pane holds every filter.
+
 Add filter opens the filters in the pane beside the results, one GET form grouped the way a sourcing manager thinks: what it exports (HS heading with the catalogue's suggestions), what it holds (certificate and its state, RSC), who filed it (registers as ticks, a minimum count), who lists it (brands as ticks), where it is, what kind of company. Selects and ticks, never a typed syntax. Apply is the pane's one primary; each chip in the search bar removes one filter.
 
 ### Lists with a pane (orders, RFQs, saved, messages)

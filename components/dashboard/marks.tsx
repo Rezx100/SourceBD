@@ -129,7 +129,7 @@ export function SourceMarks({
   );
 }
 
-/** The 48px initials slot on the top source's rank colour; 24px in a table row. */
+/** The 48px initials slot on the top source's rank colour; 40px in a list row (as tall as the name and its place line, founder's video, 29 Sep 2026); 24px in a picker. */
 export function LogoTile({
   initials,
   tier,
@@ -138,7 +138,7 @@ export function LogoTile({
 }: {
   initials: string;
   tier: TierRank;
-  size?: "md" | "sm";
+  size?: "md" | "row" | "sm";
   className?: string;
 }) {
   return (
@@ -146,7 +146,7 @@ export function LogoTile({
       aria-hidden
       className={cn(
         "grid shrink-0 place-items-center font-medium tracking-[0.01em]",
-        size === "md" ? "size-12 rounded-sm text-title" : "size-6 rounded-xs text-[10px]",
+        size === "md" ? "size-12 rounded-sm text-title" : size === "row" ? "size-10 rounded-sm text-sm" : "size-6 rounded-xs text-[10px]",
         TIER_FILL[tier],
         className,
       )}

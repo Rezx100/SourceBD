@@ -158,7 +158,7 @@ describe("RFQ list", () => {
 
   it("the open RFQ's row is marked and the table narrows beside it", () => {
     const out = list(ROWS, "all", { openId: "b" });
-    assert.match(out, /<tr aria-current="true" class="[^"]*bg-brand-tint[^"]*"><td[^>]*><span[^>]*><a [^>]*href="\/app\/rfqs\?open=b"/);
+    assert.match(out, /<tr aria-current="true" class="[^"]*bg-accent-tint[^"]*"><td[^>]*><span[^>]*><a [^>]*href="\/app\/rfqs\?open=b"/);
     assert.equal((out.match(/aria-current="true"/g) ?? []).length, 1);
     assert.doesNotMatch(out, />Suppliers<|>Quantity</, "the narrow table kept its wide columns");
     assert.match(list(ROWS), />Suppliers</);

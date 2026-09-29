@@ -153,7 +153,7 @@ describe("/app/orders — the order opens beside the table", () => {
     // Close returns to the list at its tab.
     assert.match(/<a [^>]*aria-label="Close"[^>]*>/.exec(out)?.[0] ?? "", /href="\/app\/orders\?status=active"/);
     // The open row is marked and its link opens it here; the other row is not in this tab at all.
-    assert.match(out, new RegExp(`<tr aria-current="true" class="[^"]*bg-brand-tint[^"]*"><td[^>]*><a [^>]*href="/app/orders\\?status=active&amp;open=${ORDER_ID}"`));
+    assert.match(out, new RegExp(`<tr aria-current="true" class="[^"]*bg-accent-tint[^"]*"><td[^>]*><a [^>]*href="/app/orders\\?status=active&amp;open=${ORDER_ID}"`));
     assert.equal((out.match(/aria-current="true"/g) ?? []).length, 1);
     // The conversation the order's RFQ opened, and the RFQ beside its own list.
     assert.match(out, /href="\/app\/messages\/t1"/);

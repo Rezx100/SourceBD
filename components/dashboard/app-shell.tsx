@@ -158,12 +158,12 @@ export function Topbar({ model, screenLabel, account }: { model: TopbarModel; sc
       aria-label={screenLabel && screenLabel !== "Search" ? `Search, ${screenLabel}` : "Search"}
       action={model.searchAction}
       // `relative`: the typeahead's listbox hangs under this field.
-      // `focus-within`: the whole field says it is live — the outline steps
-      // up to brand and a soft brand ring lifts it. The field is the focus
-      // indicator, so the input inside draws none of its own: the global
-      // ring on the input was a second green box inside the first (founder's
-      // walkthrough, 28 Sep 2026).
-      className="relative flex h-control w-full min-w-0 max-w-[420px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle transition-[border-color,box-shadow] duration-fast focus-within:border-brand focus-within:ring-2 focus-within:ring-brand-tint-strong"
+      // A filled field (founder's pick, 29 Sep 2026: no green border, no
+      // shadow, depth from tone): a sunken fill at rest, a step darker under
+      // the pointer, white with a 2px ink line under it while typing. The
+      // field is the focus indicator, so the input inside draws none of its
+      // own (founder's walkthrough, 28 Sep 2026).
+      className="relative flex h-control w-full min-w-0 max-w-[420px] items-center gap-2 rounded-sm bg-surface-sunken px-2.5 text-sm text-ink-subtle transition-[background-color,box-shadow] duration-fast hover:bg-line-subtle focus-within:bg-surface focus-within:shadow-[inset_0_0_0_1px_rgb(var(--ds-line)),inset_0_-2px_0_rgb(var(--ds-ink-strong))] focus-within:hover:bg-surface"
     >
       <Icon name="search" />
       {/* The input itself, plus the suggestions under it as the buyer
@@ -193,7 +193,7 @@ export function Topbar({ model, screenLabel, account }: { model: TopbarModel; sc
       {field ? (
         <TopbarSearchSlot>{field}</TopbarSearchSlot>
       ) : (
-        <div className="flex h-control w-full min-w-0 max-w-[360px] items-center gap-2 rounded-sm border border-line-strong bg-surface px-2.5 text-sm text-ink-subtle">
+        <div className="flex h-control w-full min-w-0 max-w-[360px] items-center gap-2 rounded-sm bg-surface-sunken px-2.5 text-sm text-ink-subtle">
           <Icon name="search" />
           <span className="min-w-0 grow truncate">Search suppliers, HS codes, certificates</span>
         </div>
