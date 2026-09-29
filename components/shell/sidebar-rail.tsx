@@ -1,7 +1,7 @@
 "use client";
 
 // Spec R1 — SidebarRail (tablet icon-only collapsed sidebar).
-// Spec R2 — Wired into `app/(app)/layout.tsx` at `hidden md:flex lg:hidden`
+// Spec R2 — Wired into `app/(app)/(old-shell)/layout.tsx` at `hidden md:flex lg:hidden`
 // so tablet portrait shows ONE primary nav (the rail), not two.
 //
 // Slot source is the SECTIONS map exported from `components/shell/sidebar.tsx`

@@ -41,8 +41,8 @@
 ├─ app/                      App Router
 │  ├─ (marketing)/           sourcebd.com — landing, pricing, blog, compliance pages
 │  ├─ (app)/app/             Buyer app
-│  ├─ (app)/supplier/        Supplier portal
-│  ├─ (app)/admin/           Admin panel
+│  ├─ (app)/(old-shell)/supplier/  Supplier portal
+│  ├─ (app)/(old-shell)/admin/     Admin panel
 │  └─ api/                   Route handlers (RFQs, match engine, webhooks)
 ├─ components/               Shared UI (shadcn-style)
 ├─ lib/

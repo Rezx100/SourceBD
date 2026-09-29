@@ -1,5 +1,5 @@
 // I-027 — Supplier portal landing skeleton. Mirrors the real
-// `app/(app)/supplier/page.tsx`: a heading + claim CTA card + a stack of
+// `app/(app)/(old-shell)/supplier/page.tsx`: a heading + claim CTA card + a stack of
 // owned-supplier cards. Sits inside the same shell padding as the page.
 
 import { ProtoCardSkeleton } from "@/components/supplier/profile-skeleton";
