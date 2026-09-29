@@ -192,7 +192,8 @@ export function ResultsTable({
               ))
             : (rail ? RESULTS_COLUMNS.rail : RESULTS_COLUMNS.compact).map((w, i) => <col key={i} style={w === null ? undefined : { width: w }} />)}
         </colgroup>
-        <thead>
+        {/* A phone's list has no columns to head; Sort is in its sheet. */}
+        <thead className={wide ? "max-sm:hidden" : undefined}>
           <tr>
             <HeadCell className="px-2">
               <span className="sr-only">Select</span>
@@ -287,7 +288,8 @@ export function ResultsTable({
                         <div data-line="" className="mt-1 flex min-w-0 items-center gap-3 overflow-hidden text-xs text-ink-subtle sm:hidden">
                           <span className="inline-flex shrink-0 items-center gap-1.5">
                             <span className="font-mono font-medium text-ink-strong">{r.sourceCount}</span>
-                            <SourceMarks marks={r.marks.slice(0, 2)} caption="none" sm className="flex-nowrap gap-1.5" />
+                            {/* Not links here: the whole row opens the record, which names each source. */}
+                            <SourceMarks marks={r.marks.slice(0, 2).map((m) => ({ ...m, href: undefined }))} caption="none" sm className="flex-nowrap gap-1.5" />
                           </span>
                           {r.workers !== null ? <span className="shrink-0 whitespace-nowrap">{formatCount(r.workers)} workers</span> : null}
                           {r.certs[0] ? <CertPill cert={r.certs[0]} small /> : null}

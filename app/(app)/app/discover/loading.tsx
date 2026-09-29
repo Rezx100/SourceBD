@@ -17,7 +17,7 @@ import { Skeleton, SkeletonRegion } from "@/components/ui/skeleton";
 const GRID =
   "grid grid-cols-[36px_minmax(0,1fr)] items-center sm:grid-cols-[36px_minmax(0,1fr)_84px_112px_66px] xl:grid-cols-[40px_minmax(0,1fr)_152px_212px_120px_152px_104px]";
 /** The cells a narrower screen drops, in the table's own order (`WIDE_HIDE`). */
-const SOURCES = "max-sm:hidden";
+const PHONE_DROP = "max-sm:hidden";
 const WIDE_ONLY = "max-xl:hidden";
 
 export default function BuyerDiscoverLoading() {
@@ -52,11 +52,11 @@ export default function BuyerDiscoverLoading() {
                 <div className={`${GRID} h-9 border-b border-line-subtle`}>
                   <span />
                   <Skeleton w={64} h={10} className="ml-3" />
-                  <Skeleton w={56} h={10} className={`ml-3 ${SOURCES}`} />
+                  <Skeleton w={56} h={10} className={`ml-3 ${PHONE_DROP}`} />
                   <Skeleton w={80} h={10} className={`ml-4 ${WIDE_ONLY}`} />
                   <Skeleton w={80} h={10} className={`ml-4 ${WIDE_ONLY}`} />
-                  <Skeleton w={56} h={10} className={`ml-auto mr-4 ${SOURCES}`} />
-                  <span className={SOURCES} />
+                  <Skeleton w={56} h={10} className={`ml-auto mr-4 ${PHONE_DROP}`} />
+                  <span className={PHONE_DROP} />
                 </div>
                 {Array.from({ length: 12 }, (_, i) => (
                   <div key={i} className={`${GRID} min-h-[52px] border-b border-line-subtle last:border-b-0`}>
@@ -68,7 +68,7 @@ export default function BuyerDiscoverLoading() {
                         <Skeleton w={110} h={10} />
                       </span>
                     </span>
-                    <span className={`flex items-center gap-1 px-3 ${SOURCES}`}>
+                    <span className={`flex items-center gap-1 px-3 ${PHONE_DROP}`}>
                       <Skeleton w={12} h={12} />
                       {Array.from({ length: 3 }, (_, k) => (
                         <Skeleton key={k} w={20} h={20} />
@@ -79,8 +79,8 @@ export default function BuyerDiscoverLoading() {
                       <Skeleton w={72} h={24} />
                     </span>
                     <Skeleton w={84} h={12} className={`ml-4 ${WIDE_ONLY}`} />
-                    <Skeleton w={44} h={12} className={`ml-auto mr-4 ${SOURCES}`} />
-                    <span className={`flex justify-end gap-1 pr-3 ${SOURCES}`}>
+                    <Skeleton w={44} h={12} className={`ml-auto mr-4 ${PHONE_DROP}`} />
+                    <span className={`flex justify-end gap-1 pr-3 ${PHONE_DROP}`}>
                       <Skeleton w={20} h={20} />
                       <Skeleton w={20} h={20} />
                       <Skeleton w={20} h={20} />
