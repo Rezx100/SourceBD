@@ -26,7 +26,7 @@ import { ReportProblem } from "./report-problem";
 import {
   ActionBar,
   AffiliationNote,
-  CertGrid,
+  CertList,
   FactsLegend,
   FactsPanel,
   FacilitiesList,
@@ -47,7 +47,7 @@ import {
   Stats,
 } from "./sheet";
 import { MetaLine } from "./supplier-result-card";
-import { Caption, Eyebrow, Heading, Label } from "./type";
+import { Caption, Heading, Label } from "./type";
 
 /**
  * The product list as the register filed it, made readable: spellings that
@@ -224,7 +224,11 @@ export function SupplierSheet({
             <div className={cn("grid gap-x-10 gap-y-5", mode === "page" && "lg:grid-cols-2")}>
               {groupFacts(model.facts).map((g) => (
                 <div key={g.title} className="flex min-w-0 flex-col gap-1.5">
-                  <Eyebrow>{g.title}</Eyebrow>
+                  {/* Sentence case, the first of the three levels: the mono
+                      uppercase eyebrow here was the loudest text on the page
+                      (founder, 29 Sep 2026). An h2, like the sections after it:
+                      the Overview has no heading of its own. */}
+                  <h2 className="m-0 text-sm font-semibold text-ink-strong">{g.title}</h2>
                   <FactsPanel rows={g.rows} legend={false} />
                 </div>
               ))}
@@ -236,6 +240,7 @@ export function SupplierSheet({
         <SheetSection
           id="products"
           title="Products"
+          icon="receipt"
           caption={
             <>
               {p.linesUnknown
@@ -299,9 +304,9 @@ export function SupplierSheet({
               caption under a grid of photos said the same once for all. */}
           {p.tiles.length > 0 ? <PhotoList tiles={p.tiles} lineHref={(hs) => model.lineHref(hs)} /> : null}
         </SheetSection>
-        <SheetSection id="certificates" title="Certificates" caption={model.certsCaption ?? (model.certs.length ? onFileLabel(model.certs.length) : model.certsEmpty)}>
+        <SheetSection id="certificates" title="Certificates" icon="certificate" caption={model.certsCaption ?? (model.certs.length ? onFileLabel(model.certs.length) : model.certsEmpty)}>
           {model.certs.length > 0 ? (
-            <CertGrid certs={model.certs} />
+            <CertList certs={model.certs} />
           ) : (
             /* The bare "No certificate on any register" stood over a payload
                carrying a building's certificate; the card already said which
@@ -316,7 +321,7 @@ export function SupplierSheet({
           {model.buildingCerts.map((b) => (
             <div key={b.building} className="mt-4 flex flex-col gap-2" data-building-certs={b.building}>
               <Caption>Held by {b.building} · the building&apos;s own, not counted above</Caption>
-              <CertGrid certs={b.certs} />
+              <CertList certs={b.certs} />
             </div>
           ))}
         </SheetSection>

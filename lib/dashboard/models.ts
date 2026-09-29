@@ -4,6 +4,7 @@
 
 import type { IconName } from "@/components/dashboard/icons";
 import type { ChipTone } from "@/components/dashboard/chips";
+import type { SbIconName } from "@/components/dashboard/sb-icons";
 import type { TierRank } from "@/lib/design/tokens";
 import type { CertModel, CertState } from "./facts";
 import type { PhotoTileModel } from "./hs-photos";
@@ -13,6 +14,8 @@ import type { SourceMarkModel } from "./source-tiers";
 export type FactWithMark = {
   text: string;
   mark: SourceMarkModel | null;
+  /** SourceBD's icon for what the fact is (a place, a year, workers), drawn before it. */
+  icon?: SbIconName;
   /** Quiet: "District, year and workers not on file". */
   quiet?: boolean;
   /** Set in mono (a register number). */
@@ -105,6 +108,10 @@ export type TableRowModel = {
 export type FactRow = {
   label: string;
   value: string | null;
+  /** SourceBD's icon for the fact, before its label (`factIcon`); the model carries it, not the view. */
+  icon?: SbIconName;
+  /** A fact a buyer reads first (registered name, type, workers, address): its value is set in medium. */
+  lead?: boolean;
   /** Quiet reason when the value is missing: "6 registers checked". */
   checked?: string | null;
   code?: boolean;

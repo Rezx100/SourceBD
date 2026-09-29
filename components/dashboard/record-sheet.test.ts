@@ -17,19 +17,20 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 
-import { buildProductSheet, buildSheet } from "@/lib/dashboard/build-models";
+import { buildProductSheet, buildSheet, factIcon } from "@/lib/dashboard/build-models";
 import { aboniInput, sanctionedInput, sanctionedWithEvidenceInput, zaheenSampleInput } from "@/lib/dashboard/fixtures";
 import { ProductSheet } from "./product-sheet";
 import { FEEDBACK_ENDPOINT, feedbackBody } from "./report-problem";
-import { SupplierSheet } from "./supplier-sheet";
-import { RecordPane } from "./sheet";
+import { FACT_GROUPS, SupplierSheet } from "./supplier-sheet";
+import { RecordPane, certScopeRows } from "./sheet";
 
 /** The locked card's count rows, as [label, value] pairs, in the order drawn. */
 function contactRows(html: string): [string, string][] {
   const at = html.indexOf('data-contact-counts="true"');
   if (at < 0) return [];
   const dl = html.slice(at, html.indexOf("</dl>", at));
-  return [...dl.matchAll(/<dt[^>]*>([^<]*)<\/dt><dd[^>]*>([^<]*)<\/dd>/g)].map((m) => [m[1]!, m[2]!]);
+  // A kind's label now leads with its icon (an <svg>), so the label is the dt's text.
+  return [...dl.matchAll(/<dt[^>]*>([\s\S]*?)<\/dt><dd[^>]*>([^<]*)<\/dd>/g)].map((m) => [m[1]!.replace(/<[^>]*>/g, ""), m[2]!]);
 }
 
 /** Every section the sheet renders, in the order a buyer scrolls them. */
@@ -619,5 +620,68 @@ describe("ProductSheet — the line's own controls (REZ-C §3.4)", () => {
       createElement(ProductSheet, { model: buildProductSheet(aboniInput(), "6105") }),
     );
     assert.match(html, /Not the supplier&#x27;s own product/);
+  });
+});
+
+describe("the facts read in three levels, with an icon on every fact (founder, 29 Sep 2026)", () => {
+  it("every label the Overview groups has an icon, and the model carries it", () => {
+    for (const g of FACT_GROUPS) for (const label of g.labels) assert.ok(factIcon(label, "factory"), `"${label}" has no icon`);
+    assert.equal(factIcon("Type", "factory"), "factory");
+    assert.equal(factIcon("Type", "buying_house"), "buying-house");
+    assert.equal(factIcon("Type", "unknown"), "company");
+    const sheet = buildSheet(aboniInput());
+    const grouped = new Set(FACT_GROUPS.flatMap((g) => g.labels));
+    for (const f of sheet.facts.filter((x) => grouped.has(x.label))) assert.ok(f.icon, `${f.label} reached the view without its icon`);
+    // Every fact on the head's facts line that says what it is carries its icon too.
+    for (const m of sheet.meta.filter((x) => !x.quiet)) assert.ok(m.icon, `the head's "${m.text}" has no icon`);
+  });
+
+  it("group headings are sentence case, labels muted with a slate icon, the facts a buyer reads first in medium", () => {
+    const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()) }));
+    for (const title of ["Company", "Location", "Workforce and capacity", "Registrations"]) {
+      assert.match(html, new RegExp(`<h2 class="m-0 text-sm font-semibold text-ink-strong">${title}</h2>`), `${title} is not a sentence-case heading`);
+    }
+    assert.doesNotMatch(html, /uppercase[^"]*">(?:Company|Location|Workforce and capacity|Registrations)</, "a group heading is a mono eyebrow again");
+    // The label: its icon in the slate accent, then the words in ink-muted.
+    assert.match(html, /<span class="inline-flex[^"]*text-ink-muted[^"]*"><svg[^>]*class="shrink-0 text-accent"[^>]*>(?:(?!<\/svg>)[\s\S])*<\/svg>Registered name<\/span>/);
+    // Lead values in medium; a value's note in the quieter caption style.
+    assert.match(html, /text-ink-strong \[overflow-wrap:anywhere\] font-medium">ABONI KNITWEAR LTD\./);
+    assert.doesNotMatch(html, /<span class="inline-flex[^"]*"><svg[^>]*text-(?:positive|caution|danger|brand)/, "a fact's icon takes a status or brand colour");
+  });
+});
+
+describe("Certificates: one line each, the scope one click away (founder's review, 29 Sep 2026)", () => {
+  const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()) }));
+  const section = html.slice(html.indexOf('id="certificates"'), html.indexOf('id="safety"'));
+
+  it("a row per certificate with its state and its document, and the caption is the count alone", () => {
+    const rows = section.match(/<li [^>]*data-cert="/g) ?? [];
+    assert.equal(rows.length, buildSheet(aboniInput()).certs.length, "not one row per certificate");
+    assert.match(section, /4 on file</);
+    assert.doesNotMatch(section, /4 on file · /, "the caption names the schemes the rows already name");
+    assert.match(section, /Valid to 12 May 2027/);
+    assert.match(section, /aria-label="Open the GOTS certificate GOTS-31587"/);
+    assert.match(section, /<summary[^>]*>Scope<span class="sr-only"> of GOTS GOTS-31587<\/span>/, "two Scope toggles a screen reader cannot tell apart");
+    assert.doesNotMatch(section, /rounded-md border border-line-subtle bg-surface px-4 py-3\.5/, "a certificate is a card again");
+  });
+
+  it("the scope is inside a closed disclosure, and nothing in it is dropped but a repeat of the name", () => {
+    assert.match(section, /<details class="group\/scope[^"]*"><summary[^>]*>Scope/);
+    assert.doesNotMatch(section, /<details[^>]*\bopen\b[^>]*class="group\/scope/, "the scope opens by default");
+    assert.match(section, /Operations<\/dt>/, "GOTS' operations went missing");
+  });
+
+  it("a scope that only repeats the certificate's name is left out; one that says more stays", () => {
+    assert.deepEqual(certScopeRows({ scheme: "OEKO-TEX Standard 100", scope: "OEKO-TEX STANDARD 100" }), []);
+    assert.deepEqual(certScopeRows({ scheme: "WRAP Gold", scope: "Gold" }), []);
+    assert.deepEqual(certScopeRows({ scheme: "OEKO-TEX STeP", scope: "OEKO-TEX STeP" }), []);
+    assert.deepEqual(certScopeRows({ scheme: "WRAP Gold", scope: "Gold | Industries: Apparel" }), [{ label: "Industries", value: "Apparel" }]);
+    assert.deepEqual(certScopeRows({ scheme: "GOTS", scope: "Operations: Dyeing, Knitting | Products: Men's apparel" }), [
+      { label: "Operations", value: "Dyeing, Knitting" },
+      { label: "Products", value: "Men's apparel" },
+    ]);
+    assert.deepEqual(certScopeRows({ scheme: "OEKO-TEX Standard 100", scope: "OEKO-TEX STANDARD 100, Class I" }), [{ label: "Scope", value: "OEKO-TEX STANDARD 100, Class I" }]);
+    // A labelled part is a field of its own, whatever its words.
+    assert.deepEqual(certScopeRows({ scheme: "OEKO-TEX Standard 100", scope: "Products: 100" }), [{ label: "Products", value: "100" }]);
   });
 });
