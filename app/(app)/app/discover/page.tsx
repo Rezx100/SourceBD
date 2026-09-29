@@ -191,8 +191,11 @@ export default async function BuyerDiscoverPage({
     // Below `lg` the pane takes the content region and the results wait in
     // the URL; Close brings them back.
     <Workbench>
-      <ResultsColumn besideRecord={paneOpen}>
+      <ResultsColumn besideRecord={paneOpen} rail={composerOpen}>
         <RecordRecentSearch label={title} href={href} count={total} />
+        {/* Beside the composer the list is a slim rail of names to tick into
+            the RFQ; the filters wait until it closes. */}
+        {composerOpen ? null : (
         <form action={DISCOVER_PATH} method="get">
           <HiddenState state={state} omit={COMPOSER_HIDDEN_OMIT} />
           {state.q ? <input type="hidden" name="q" value={state.q} /> : null}
@@ -207,6 +210,7 @@ export default async function BuyerDiscoverPage({
             filtersModeHref={askOn ? discoverHref(state, { ask: false, page: 1 }) : undefined}
           />
         </form>
+        )}
         <SelectionProvider key={serializeDiscoverState(state).toString()} pageIds={error ? null : rows.map((r) => r.id)}>
           {error ? (
             <Panel>
@@ -278,11 +282,12 @@ export default async function BuyerDiscoverPage({
                   })),
                 }}
               />
-              {state.view === "table" ? (
+              {state.view === "table" || composerOpen ? (
                 <ResultsTable
                   rows={tableRows}
                   currentSlug={recordSlug}
                   compact={paneOpen}
+                  rail={composerOpen}
                   density={density}
                   sort={{ key: state.sort, dir: SORT_DIR[state.sort] ?? "desc" }}
                   sortHrefs={Object.fromEntries(

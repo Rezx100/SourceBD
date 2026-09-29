@@ -67,6 +67,8 @@ export type ResultsSortKey = "name" | "sources" | "cert_expiry" | "hs_lines" | "
 export const RESULTS_COLUMNS = {
   wide: [40, null, 160, 212, 112, 152, 104],
   compact: [36, null, 76, 112, 66],
+  // Beside the RFQ composer: the box and the name.
+  rail: [36, null],
 } as const;
 
 /** The table's minimum width in px: `min-w-[62rem]` and `min-w-[30rem]` on the table below. */
@@ -106,6 +108,7 @@ export function ResultsTable({
   rows,
   currentSlug = null,
   compact = false,
+  rail = false,
   density = "default",
   sort,
   sortHrefs,
@@ -115,6 +118,8 @@ export function ResultsTable({
   currentSlug?: string | null;
   /** Beside an open record: Supplier, Sources and Workers only. */
   compact?: boolean;
+  /** Beside the RFQ composer: the box and the name only, so a buyer can still tick suppliers into the RFQ. */
+  rail?: boolean;
   density?: ResultsDensity;
   /** The active sort, for the header arrow. */
   sort?: { key: string; dir: SortDir } | null;
@@ -144,7 +149,7 @@ export function ResultsTable({
       // widened the whole page to the table's width (WCAG 1.4.10). Below `xl`
       // the table scrolls sideways in this region; from `xl` it fits and the
       // header sticks to the results column's own scroll.
-      className={cn("relative", compact ? "overflow-x-auto" : "max-xl:overflow-x-auto")}
+      className={cn("relative", rail ? "" : compact ? "overflow-x-auto" : "max-xl:overflow-x-auto")}
       tabIndex={0}
       role="region"
       aria-label="Results table"
@@ -152,13 +157,13 @@ export function ResultsTable({
       <table
         className={cn(
           "w-full table-fixed border-collapse text-base",
-          compact ? "min-w-[30rem]" : "min-w-[62rem]",
+          rail ? "" : compact ? "min-w-[30rem]" : "min-w-[62rem]",
           !compact && "[&_thead_th]:xl:sticky [&_thead_th]:xl:top-0 [&_thead_th]:xl:z-10",
         )}
       >
         {/* The widths are `RESULTS_COLUMNS`; the loading skeleton draws the same grid. */}
         <colgroup>
-          {(compact ? RESULTS_COLUMNS.compact : RESULTS_COLUMNS.wide).map((w, i) => (
+          {(rail ? RESULTS_COLUMNS.rail : compact ? RESULTS_COLUMNS.compact : RESULTS_COLUMNS.wide).map((w, i) => (
             <col key={i} style={w === null ? undefined : { width: w }} />
           ))}
         </colgroup>
@@ -170,13 +175,15 @@ export function ResultsTable({
             {head("name", "Supplier", "left", "px-3")}
             {/* "Registers & certifiers" is 119px with its caret; beside a pane
                 the column is 76px, and the record calls them sources too. */}
-            {head("sources", compact ? "Sources" : "Registers & certifiers", "left", compact ? "px-2" : "px-3")}
+            {rail ? null : head("sources", compact ? "Sources" : "Registers & certifiers", "left", compact ? "px-2" : "px-3")}
             {compact ? null : head("cert_expiry", "Certificates", "left", "px-3")}
             {compact ? null : head("hs_lines", "Export lines", "left", "px-3")}
-            {head("workers", "Workers", "right", "px-3")}
-            <HeadCell className={compact ? "px-1" : "px-2"}>
-              <span className="sr-only">Actions</span>
-            </HeadCell>
+            {rail ? null : head("workers", "Workers", "right", "px-3")}
+            {rail ? null : (
+              <HeadCell className={compact ? "px-1" : "px-2"}>
+                <span className="sr-only">Actions</span>
+              </HeadCell>
+            )}
           </tr>
         </thead>
         <tbody onKeyDown={onRowKey} className="[&>tr:last-child>*]:border-b-0">
@@ -235,13 +242,15 @@ export function ResultsTable({
                     </div>
                   </div>
                 </th>
-                <td className={cn(h, "border-b border-line-subtle align-middle", compact ? "px-2" : "px-3")}>
-                  <span className="inline-flex items-center gap-2">
-                    <span className="min-w-4 text-right font-mono text-sm font-medium text-ink-strong">{r.sourceCount}</span>
-                    <SourceMarks marks={r.marks.slice(0, marksShown)} caption="none" className="flex-nowrap gap-1" />
-                    {!compact && r.marks.length > marksShown ? <span className="text-sm text-ink-subtle">+{r.marks.length - marksShown}</span> : null}
-                  </span>
-                </td>
+                {rail ? null : (
+                  <td className={cn(h, "border-b border-line-subtle align-middle", compact ? "px-2" : "px-3")}>
+                    <span className="inline-flex items-center gap-2">
+                      <span className="min-w-4 text-right font-mono text-sm font-medium text-ink-strong">{r.sourceCount}</span>
+                      <SourceMarks marks={r.marks.slice(0, marksShown)} caption="none" className="flex-nowrap gap-1" />
+                      {!compact && r.marks.length > marksShown ? <span className="text-sm text-ink-subtle">+{r.marks.length - marksShown}</span> : null}
+                    </span>
+                  </td>
+                )}
                 {compact ? null : (
                   <td className={cn(h, "border-b border-line-subtle px-3 align-middle")}>
                     {r.certs.length > 0 ? (
@@ -268,13 +277,16 @@ export function ResultsTable({
                     )}
                   </td>
                 )}
-                <td className={cn(h, "border-b border-line-subtle px-3 py-1 text-right align-middle tabular-nums")}>
-                  {/* The record's own figure, and the profile's under it wherever the
-                      two differ, so the list and the record beside it agree. */}
-                  <WorkersCell own={r.workers} ownWords={r.workersCoverage} second={r.workersSecondShort} secondWords={r.workersSecond} />
-                </td>
+                {rail ? null : (
+                  <td className={cn(h, "border-b border-line-subtle px-3 py-1 text-right align-middle tabular-nums")}>
+                    {/* The record's own figure, and the profile's under it wherever the
+                        two differ, so the list and the record beside it agree. */}
+                    <WorkersCell own={r.workers} ownWords={r.workersCoverage} second={r.workersSecondShort} secondWords={r.workersSecond} />
+                  </td>
+                )}
                 {/* The row's actions: always drawn, quiet, the same three the
                     keyboard drives (s saves, Enter opens, r sends an RFQ). */}
+                {rail ? null : (
                 <td className={cn(h, "border-b border-line-subtle align-middle", compact ? "px-1" : "px-2")}>
                   <span className="flex items-center justify-end gap-0.5">
                     {r.supplierId ? (
@@ -324,6 +336,7 @@ export function ResultsTable({
                     </Button>
                   </span>
                 </td>
+                )}
               </tr>
             );
           })}

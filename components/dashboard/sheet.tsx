@@ -103,7 +103,7 @@ export function RecordPane({
   closeHref?: string | null;
   /** What the pane is showing (record, line or notice); focus moves to it whenever that changes. */
   openKey?: string;
-  /** The composer's width: it carries the target rail, the fields and the preview side by side, so it takes more of the region than a record does. */
+  /** The composer: it carries the targets, the fields and the preview side by side, so it takes the region beside the results' slim rail (`ResultsColumn rail`). */
   wide?: boolean;
   children: ReactNode;
 }) {
@@ -113,7 +113,10 @@ export function RecordPane({
       data-pane-wide={wide ? "true" : undefined}
       className={cn(
         "flex min-h-0 min-w-0 flex-1 flex-col border-line lg:flex-none lg:border-l",
-        wide ? "lg:w-[clamp(640px,68%,1100px)]" : "lg:w-[clamp(480px,50%,760px)]",
+        // Wide: the results step aside to an 18rem rail and the composer takes
+        // the rest; at 68% it crushed the table to 28rem (founder's video,
+        // 29 Sep 2026).
+        wide ? "lg:flex-1" : "lg:w-[clamp(480px,50%,760px)]",
       )}
     >
       {closeHref ? <DialogFocus closeHref={closeHref} openKey={openKey} /> : null}
@@ -133,7 +136,7 @@ export function RecordPane({
  * definition for the page, the gallery and the preview harness, so the
  * three cannot drift.
  */
-export function ResultsColumn({ besideRecord = false, children }: { besideRecord?: boolean; children: ReactNode }) {
+export function ResultsColumn({ besideRecord = false, rail = false, children }: { besideRecord?: boolean; rail?: boolean; children: ReactNode }) {
   // The gutter is on an inner box, not on the scroll region itself. A sticky
   // table header sticks to the scroll region's padding edge, so with the
   // 24px gutter on the region the header stopped 24px below the topbar and
@@ -141,8 +144,10 @@ export function ResultsColumn({ besideRecord = false, children }: { besideRecord
   // walkthrough, 28 Sep 2026). Padded inside, the header meets the top edge.
   // Beside a pane the gutter is 16px: every pixel of it is the supplier
   // column's (see `RecordPane`).
+  // `rail`: beside the RFQ composer the results are a slim column of names,
+  // still tickable, rather than a crushed table.
   return (
-    <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto", besideRecord && "hidden lg:flex")}>
+    <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto", besideRecord && "hidden lg:flex", rail && "lg:w-[18rem] lg:flex-none")}>
       <div className={cn("flex flex-col gap-4 p-4 sm:p-6", besideRecord && "lg:p-4")}>{children}</div>
     </div>
   );
