@@ -502,6 +502,15 @@ test("the density stops are the ones the artifact fixed", () => {
     sidebar: 232,
     topbar: 56,
     factRow: 28,
+    // The phone's (handoff-dashboard-mobile.md, D10).
+    tabbar: 56,
+    topbarPhone: 52,
+    target: 44,
+    barButton: 48,
+    chipTouch: 32,
+    sheetHead: 56,
+    sheetRow: 52,
+    rowPhone: 72,
   });
   // The Tailwind utilities are derived from them, so the two cannot drift.
   for (const [util, px] of [
@@ -512,6 +521,14 @@ test("the density stops are the ones the artifact fixed", () => {
     ["sidebar", density.sidebar],
     ["topbar", density.topbar],
     ["fact-row", density.factRow],
+    ["tabbar", density.tabbar],
+    ["topbar-phone", density.topbarPhone],
+    ["target", density.target],
+    ["bar-button", density.barButton],
+    ["chip-touch", density.chipTouch],
+    ["sheet-head", density.sheetHead],
+    ["sheet-row", density.sheetRow],
+    ["row-phone", density.rowPhone],
   ] as const) {
     assert.equal(densitySizes[util], `${px}px`, util);
   }

@@ -4,8 +4,8 @@
 // navigations and only `<main>` changes. From `md` up the shell IS the
 // viewport — the page never scrolls; the content region does, or a pane
 // inside it (the results beside an open record, the inbox beside a thread).
-// Below `md` the rail reflows into a strip under the logo and the document
-// scrolls as one, which is what a phone expects.
+// Below `md` the document scrolls as one, which is what a phone expects: the
+// topbar sticks to the top, and a tab bar (`BottomNav`) is fixed to the foot.
 
 import Form from "next/form";
 import Link from "next/link";
@@ -13,8 +13,10 @@ import { Suspense, type ReactNode } from "react";
 import { NAV, activeNavKey, navMatch, type NavKey } from "@/lib/dashboard/nav";
 import { cn } from "@/lib/utils";
 import { AccountMenu, Avatar, type AccountModel } from "./account-menu";
+import { BottomNav } from "./bottom-nav";
 import { LiveDot, Meter } from "./controls";
 import { Icon } from "./icons";
+import { MenuDismiss } from "./menu-dismiss";
 import { RailToggle } from "./rail-toggle";
 import { RecentSearchesSlot } from "./recent-searches";
 import { SearchCarry } from "./search-carry";
@@ -64,13 +66,13 @@ export function Sidebar({ model, screenLabel, collapsed = false }: { model: Side
   const { plan, account } = model;
   const pct =
     plan.used !== null && plan.used !== undefined && plan.allowance ? Math.round((plan.used / plan.allowance) * 100) : null;
-  // Below `md` there is no room for a 232px rail beside the content — at
-  // 320px it left about 88px to read in. It does not follow that the nav can
-  // be hidden: an earlier pass did that and handed phones a bottom tab bar
-  // with five of the ten destinations, so Products and Compliance hub became
-  // unreachable below 768px (WCAG 1.4.10). So it reflows instead: a
-  // horizontal, scrollable strip of the same links on phones, the full rail
-  // from `md`, where it is the viewport's height and scrolls on its own.
+  // From `md` only: below it there is no room for a 232px rail beside the
+  // content, and the navigation is the tab bar at the foot of the screen
+  // (`BottomNav`, the founder's call of 30 Sep 2026). Its More sheet holds
+  // every destination the bar does not, so nothing the rail reaches is out
+  // of reach on a phone (an earlier bar with five of the ten left Products
+  // and Compliance hub unreachable, WCAG 1.4.10). A horizontal strip across
+  // the top of a phone, the rail before it, sat out of the thumb's reach.
   //
   // From `md` the rail collapses to its icons (`data-rail="collapsed"` on the
   // shell, set by `RailToggle` and the `sb_rail` cookie): labels become
@@ -81,9 +83,9 @@ export function Sidebar({ model, screenLabel, collapsed = false }: { model: Side
   return (
     <aside
       aria-label={screenLabel ? `Sidebar, ${screenLabel}` : "Sidebar"}
-      className="flex w-full shrink-0 flex-col gap-5 border-b border-line-subtle px-3 py-3 md:h-full md:w-sidebar md:border-b-0 md:border-r md:py-4 md:transition-[width] md:duration-fast md:group-data-[rail=collapsed]/shell:w-14 md:group-data-[rail=collapsed]/shell:px-2"
+      className="hidden shrink-0 flex-col gap-5 border-r border-line-subtle px-3 py-4 md:flex md:h-full md:w-sidebar md:transition-[width] md:duration-fast md:group-data-[rail=collapsed]/shell:w-14 md:group-data-[rail=collapsed]/shell:px-2"
     >
-      <div className="hidden items-center gap-1 md:flex md:group-data-[rail=collapsed]/shell:flex-col md:group-data-[rail=collapsed]/shell:gap-3">
+      <div className="flex items-center gap-1 md:group-data-[rail=collapsed]/shell:flex-col md:group-data-[rail=collapsed]/shell:gap-3">
         {/* The way home: /app has no nav item of its own. The mark and the
             wordmark are placeholders parked for the animation step: not
             restyled here (founder's video, 29 Sep 2026). */}
@@ -107,9 +109,8 @@ export function Sidebar({ model, screenLabel, collapsed = false }: { model: Side
           activeExact={model.activeExact}
           counts={model.counts}
         />
-        {/* Rail furniture, not navigation: hidden on phones where the strip
-            above carries every destination, and on the collapsed rail. */}
-        <div className="hidden md:contents md:group-data-[rail=collapsed]/shell:hidden">
+        {/* Rail furniture, not navigation: hidden on the collapsed rail. */}
+        <div className="contents md:group-data-[rail=collapsed]/shell:hidden">
           <RecentSearchesSlot items={model.recent} />
         </div>
       </div>
@@ -120,7 +121,7 @@ export function Sidebar({ model, screenLabel, collapsed = false }: { model: Side
           draws it. The separate plan line went into the row. When the plan
           has an RFQ allowance, a quiet meter sits above it. */}
       {plan.name ? (
-        <div data-plan="true" className="hidden flex-col gap-2 border-t border-line-subtle pt-3 md:flex">
+        <div data-plan="true" className="flex flex-col gap-2 border-t border-line-subtle pt-3">
           {pct !== null ? (
             <div className="flex flex-col gap-1.5 px-2 md:group-data-[rail=collapsed]/shell:hidden">
               <Meter pct={pct} label={`RFQs used this month, ${plan.name}`} />
@@ -153,6 +154,10 @@ export type TopbarModel = {
   searchQuery?: string;
 };
 
+/** The topbar's share of an open bottom sheet's scrim (phones). */
+const SHEET_DIM =
+  "max-sm:group-has-[main_details[name=sb-menu][open]]/shell:after:absolute max-sm:group-has-[main_details[name=sb-menu][open]]/shell:after:inset-0 max-sm:group-has-[main_details[name=sb-menu][open]]/shell:after:bg-surface-inverse/40";
+
 export function Topbar({ model, screenLabel, account }: { model: TopbarModel; screenLabel?: string; account?: AccountModel }) {
   const field = model.searchAction ? (
     // `next/form`: submitting runs a client navigation to the results
@@ -176,7 +181,7 @@ export function Topbar({ model, screenLabel, account }: { model: TopbarModel; sc
       // the pointer, white with a 2px ink line under it while typing. The
       // field is the focus indicator, so the input inside draws none of its
       // own (founder's walkthrough, 28 Sep 2026).
-      className="relative flex h-control w-full min-w-0 max-w-[420px] items-center gap-2 rounded-sm bg-surface-sunken px-2.5 text-sm text-ink-subtle transition-[background-color,box-shadow] duration-fast hover:bg-line-subtle focus-within:bg-surface focus-within:shadow-[inset_0_0_0_1px_rgb(var(--ds-line)),inset_0_-2px_0_rgb(var(--ds-ink-strong))] focus-within:hover:bg-surface"
+      className="relative flex h-control w-full min-w-0 max-w-[420px] items-center gap-2 rounded-sm bg-surface-sunken px-2.5 text-sm max-md:h-target max-md:text-base text-ink-subtle transition-[background-color,box-shadow] duration-fast hover:bg-line-subtle focus-within:bg-surface focus-within:shadow-[inset_0_0_0_1px_rgb(var(--ds-line)),inset_0_-2px_0_rgb(var(--ds-ink-strong))] focus-within:hover:bg-surface"
     >
       <Icon name="search" />
       {/* The input itself, plus the suggestions under it as the buyer
@@ -204,7 +209,12 @@ export function Topbar({ model, screenLabel, account }: { model: TopbarModel; sc
     // `isolate`, so nothing inside the page (a sticky table header, the
     // record's tabs, both `z-raised` too) can climb over the list; and the
     // onboarding tour's scrim (`z-modal`) still covers the topbar.
-    <div className="glass relative z-raised flex h-topbar shrink-0 items-center gap-3 border-b border-line-subtle px-4 sm:gap-4 sm:px-6">
+    // On a phone it sticks to the top, 52px, so the search is one tap away
+    // however far the buyer has scrolled; inside a record or the composer
+    // (`data-detail`) their own bar takes the top edge instead. While a tray is
+    // open as a bottom sheet the bar dims with the page under the sheet's
+    // scrim (which, inside `<main>`, cannot reach it).
+    <div className={cn("glass relative z-raised flex h-topbar shrink-0 items-center gap-3 border-b border-line-subtle px-4 max-md:sticky max-md:top-0 max-md:h-topbar-phone sm:gap-4 sm:px-6 max-md:group-has-[[data-detail]]/shell:hidden", SHEET_DIM)}>
       {field ? (
         <TopbarSearchSlot>{field}</TopbarSearchSlot>
       ) : (
@@ -293,19 +303,39 @@ export function AppShell({
           // focus to a non-focusable fragment target, which older Safari does
           // not.
           tabIndex={-1}
-          // The one scroll region of a plain page. A workbench page (the
-          // search, the inbox) fills it with `min-h-0 flex-1` columns that
-          // scroll themselves, and this never overflows. `isolate`: every
+          // From `md` the one scroll region of a plain page. A workbench page
+          // (the search, the inbox) fills it with `min-h-0 flex-1` columns
+          // that scroll themselves, and this never overflows. Below `md` the
+          // window is the only vertical scroller: sticky elements stick to the
+          // screen, iOS folds its toolbars as the page scrolls and a tap on
+          // the status bar returns to the top; a box that cannot scroll
+          // would only defeat every sticky element inside it. Sideways it
+          // clips below `md` (`clip`, which is not a scroll container, unlike
+          // `hidden`): a pane sliding in 32px or a skeleton's fixed widths may
+          // not widen a phone's page, which zooms the whole page out to fit.
+          // `isolate`: every
           // z-index inside the page stays inside it, so the topbar's
           // suggestion list always paints over the page. Without it a sticky
           // header (`z-raised`, the topbar's own level and later in the page)
           // would paint over the list whenever the page's fade-in is not
           // there to contain it, as under reduced motion.
-          className={cn("isolate flex min-h-0 flex-1 flex-col overflow-y-auto", contentClassName)}
+          // Padded for the phone's tab bar, so nothing ends behind it.
+          className={cn(
+            "isolate flex min-h-0 flex-1 flex-col max-md:overflow-x-clip max-md:pb-[calc(theme(height.tabbar)_+_env(safe-area-inset-bottom))] md:overflow-y-auto max-md:group-has-[[data-detail]]/shell:pb-0",
+            contentClassName,
+          )}
         >
           {children}
         </main>
+        <MenuDismiss />
       </div>
+      <BottomNav
+        label={screenLabel ? `Tab bar, ${screenLabel}` : "Tab bar"}
+        active={sidebar.active}
+        activeExact={sidebar.activeExact}
+        account={sidebar.account}
+        plan={sidebar.plan.name ? planLine(sidebar.plan, false) : null}
+      />
     </div>
   );
 }

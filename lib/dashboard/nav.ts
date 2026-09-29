@@ -60,6 +60,15 @@ export const NAV: readonly { key: NavKey; label: string; icon: IconName; href: s
 ];
 
 /**
+ * The phone's bottom tab bar (the phone hand-off's D9, founder, 30 Sep 2026:
+ * "on mobile the navigation must be on the bottom part of the screen"): these
+ * four, then More, which holds every other item. Derived from `NAV`, so the
+ * rail and the bar cannot drift.
+ */
+export const PHONE_TABS: readonly NavKey[] = ["search", "saved", "rfqs", "messages"];
+export const MORE_NAV = NAV.filter((item) => !PHONE_TABS.includes(item.key));
+
+/**
  * Which nav item this path belongs to, and whether it IS that item's page or
  * merely sits under it. A section ancestor is `aria-current="true"`, the page
  * itself `aria-current="page"`; naming the wrong one announces the buyer as

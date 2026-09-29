@@ -13,6 +13,7 @@
 
 import Link from "next/link";
 import type { ButtonHTMLAttributes, MouseEventHandler, ReactNode } from "react";
+import { MENU_NAME } from "@/lib/dashboard/menu-dismiss";
 import { cn } from "@/lib/utils";
 import { Icon, type IconName } from "./icons";
 import { LinkPending, LinkPendingSwap } from "./link-pending";
@@ -55,9 +56,11 @@ export function buttonClass({
     // long as it is held (120 ms in and out), the way a native control does;
     // colour and shadow move on the same clock. A disabled control takes no
     // press, and `motion-reduce` keeps it still.
-    "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-sm border border-transparent font-medium transition-[color,background-color,border-color,box-shadow,transform] duration-fast active:scale-[0.98] motion-reduce:active:scale-100 disabled:cursor-not-allowed disabled:active:scale-100 aria-disabled:cursor-not-allowed aria-disabled:active:scale-100",
+    "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-sm border border-transparent font-medium transition-[color,background-color,border-color,box-shadow,transform] duration-fast [touch-action:manipulation] active:scale-[0.98] motion-reduce:active:scale-100 disabled:cursor-not-allowed disabled:active:scale-100 aria-disabled:cursor-not-allowed aria-disabled:active:scale-100",
     SIZE[size],
+    // An icon button is 28–32px to the eye and 44px to a finger (`.hit`).
     icon && SQUARE[size],
+    icon && "hit",
     TONE[variant],
     className,
   );
@@ -191,7 +194,7 @@ export function Seg({
 }) {
   const itemClass = (o: { value: string; icon?: IconName }, i: number) =>
     cn(
-      "inline-flex h-full items-center justify-center gap-1.5 text-sm font-medium text-ink-muted transition-colors duration-fast hover:text-ink-strong",
+      "hit inline-flex h-full items-center justify-center gap-1.5 text-sm font-medium text-ink-muted transition-colors duration-fast [touch-action:manipulation] hover:text-ink-strong active:bg-surface-sunken",
       o.icon ? "w-9" : "px-2.5",
       "focus-visible:outline-offset-[-2px]",
       i > 0 && "border-l border-line",
@@ -292,7 +295,7 @@ export function Checkbox({
           : undefined
       }
       className={cn(
-        "inline-grid size-4 shrink-0 place-items-center rounded-xs border border-line-strong bg-surface transition-colors duration-fast",
+        "hit inline-grid size-4 shrink-0 place-items-center rounded-xs border border-line-strong bg-surface transition-colors duration-fast",
         interactive && "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--ds-accent))]",
         on && "border-accent bg-accent text-accent-on",
         className,
@@ -354,9 +357,9 @@ export function LiveDot({ className }: { className?: string }) {
 }
 
 /** `kbd`: the ⌘K hint. */
-export function Kbd({ children }: { children: ReactNode }) {
+export function Kbd({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <kbd className="rounded-xs border border-line px-[5px] font-mono text-[11px] leading-4 text-ink-subtle">
+    <kbd className={cn("rounded-xs border border-line px-[5px] font-mono text-[11px] leading-4 text-ink-subtle", className)}>
       {children}
     </kbd>
   );
@@ -373,6 +376,10 @@ export function Count({ children, className }: { children: ReactNode; className?
  * closes it; a menu of `clientNav` items must be keyed by its current value so
  * the navigation remounts it closed. The panel escapes its container, so it
  * must never sit inside `overflow-hidden`.
+ *
+ * `name="sb-menu"`: one tray open at a time, and the shell's `MenuDismiss`
+ * closes it on a press outside or Escape and keeps it on the screen. A list
+ * of links, not an ARIA menu: `role="menu"` promised arrow keys it never had.
  */
 export function Menu({
   summary,
@@ -382,6 +389,7 @@ export function Menu({
   size = "md",
   set = false,
   panelClassName,
+  summaryClassName,
   className,
   children,
 }: {
@@ -396,36 +404,60 @@ export function Menu({
   set?: boolean;
   /** The list's own width, when its rows are longer than a sort's. */
   panelClassName?: string;
+  /** The button's own size on a phone (a 44px Sort, a 32px filter chip). */
+  summaryClassName?: string;
   className?: string;
   children: ReactNode;
 }) {
   return (
-    <details className={cn("group/menu relative", className)}>
+    <details name={MENU_NAME} className={cn("group/menu relative", className)}>
       <summary
         aria-label={label}
         className={cn(
           buttonClass({ variant: "ghost", size }),
-          "list-none [&::-webkit-details-marker]:hidden",
+          "list-none [touch-action:manipulation] [&::-webkit-details-marker]:hidden",
           set && "bg-accent-tint-strong text-accent-ink hover:bg-accent-tint-strong",
+          summaryClassName,
         )}
       >
         {summary}
         <Icon name="caret" small className="text-ink-subtle transition-transform duration-fast group-open/menu:rotate-180" />
       </summary>
+      {/* Below sm the tray is a bottom sheet (the phone hand-off's D2; LinkedIn,
+          Zocdoc and Best Buy draw their filters so). The scrim takes the tap
+          outside it and stops the page moving behind; a tap on it closes the
+          tray (`data-menu-close`, the shell's MenuDismiss). */}
+      <div data-menu-close="" aria-hidden className="fixed inset-0 z-overlay touch-none bg-surface-inverse/40 animate-fade motion-reduce:animate-none sm:hidden" />
       <div
-        role="menu"
+        data-menu-panel=""
         className={cn(
           // `z-overlay`: the numeric class here compiled to nothing, and the
           // rows below a sort or filter menu painted over its items (founder's
-          // review, 29 Sep 2026).
-          "absolute z-overlay min-w-[12rem] max-w-[calc(100vw-2rem)] rounded-md border border-line bg-surface py-1 shadow-md",
+          // review, 29 Sep 2026). Bounded, so a long list scrolls inside the
+          // screen rather than running off its foot.
+          "absolute z-overlay max-h-[min(24rem,70vh)] min-w-[12rem] max-w-[calc(100vw-2rem)] overflow-y-auto overscroll-contain rounded-md border border-line bg-surface py-1 shadow-md",
           // Right-anchored only from sm: on a phone the wrapped summary starts its
           // row, and a right-anchored menu would open off the left edge (1.4.10).
           align === "right" ? "left-0 sm:left-auto sm:right-0" : "left-0",
           up ? "bottom-full mb-1" : "top-full mt-1",
           panelClassName,
+          // The sheet: fixed to the screen's foot, the full width, 70% of its
+          // height at most, above the home bar. Being fixed, it escapes every
+          // clip of the row it opens from.
+          "max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:top-auto max-sm:m-0 max-sm:max-h-[70dvh] max-sm:w-auto max-sm:min-w-0 max-sm:max-w-none max-sm:rounded-none max-sm:rounded-t-lg max-sm:border-0 max-sm:pt-0 max-sm:pb-[max(0.75rem,env(safe-area-inset-bottom))] max-sm:shadow-lg max-sm:animate-rise max-sm:motion-reduce:animate-none",
         )}
       >
+        <div className="sticky top-0 z-raised flex flex-col bg-surface sm:hidden">
+          <span aria-hidden className="mx-auto mt-2 h-1 w-9 rounded-full bg-line" />
+          <div className="flex h-sheet-head items-center justify-between gap-3 pl-4 pr-1">
+            <span className="min-w-0 truncate text-lg font-semibold text-ink-strong" data-line="">
+              {label}
+            </span>
+            <button type="button" data-menu-close="" className="h-target shrink-0 rounded-sm px-3 text-base font-medium text-ink-strong [touch-action:manipulation] active:bg-surface-sunken">
+              Done
+            </button>
+          </div>
+        </div>
         {children}
       </div>
     </details>
@@ -448,22 +480,22 @@ export function MenuItem({
   children: ReactNode;
 }) {
   const cls = cn(
-    "flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-ink transition-colors duration-fast hover:bg-surface-sunken",
+    "flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-ink transition-colors duration-fast [touch-action:manipulation] hover:bg-surface-sunken active:bg-surface-sunken max-sm:min-h-sheet-row max-sm:px-4 max-sm:text-base",
     active && "text-ink-strong",
   );
   const mark = <Icon name="check" small className={active ? "text-accent-ink" : "invisible"} />;
   return href && clientNav ? (
-    <Link role="menuitem" href={href} prefetch={false} scroll={false} aria-current={active ? "true" : undefined} className={cls}>
+    <Link data-menu-item="" href={href} prefetch={false} scroll={false} aria-current={active ? "true" : undefined} className={cls}>
       {mark}
       {children}
     </Link>
   ) : href ? (
-    <a role="menuitem" href={href} aria-current={active ? "true" : undefined} className={cls}>
+    <a data-menu-item="" href={href} aria-current={active ? "true" : undefined} className={cls}>
       {mark}
       {children}
     </a>
   ) : (
-    <button type="button" role="menuitem" onClick={onClick} className={cls}>
+    <button type="button" data-menu-item="" onClick={onClick} className={cls}>
       {mark}
       {children}
     </button>

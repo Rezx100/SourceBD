@@ -209,6 +209,7 @@
     "components/dashboard/shell-account.test.ts",
     "components/dashboard/search-filters.test.ts",
     "components/dashboard/record-head.test.ts",
-    "components/dashboard/rfq-rail.test.ts"
+    "components/dashboard/rfq-rail.test.ts",
+    "components/dashboard/phone.test.ts"
   ]
 }

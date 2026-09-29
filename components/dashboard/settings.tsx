@@ -138,7 +138,8 @@ export function SettingsFrame({ current, children }: { current: SettingsKey; chi
                   prefetch={false}
                   aria-current={on ? "page" : undefined}
                   className={cn(
-                    "flex h-8 items-center rounded-sm px-2.5 text-sm font-medium text-ink-muted transition-colors duration-fast hover:bg-surface-sunken hover:text-ink-strong",
+                    // 44px under a finger on a phone, pressed grey on a tap.
+                    "flex h-8 items-center rounded-sm px-2.5 text-sm font-medium text-ink-muted transition-colors duration-fast [touch-action:manipulation] hover:bg-surface-sunken hover:text-ink-strong active:bg-surface-sunken max-sm:h-target max-sm:px-3",
                     // The current page: its tint is 1.07:1 from a hovered row's, so a
                     // near-black bar carries it (under it on a phone, at its start as
                     // a side nav), as on the rail.

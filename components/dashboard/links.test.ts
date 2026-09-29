@@ -247,7 +247,8 @@ describe("the dashboard kit's in-app links are client navigations", () => {
     // change instant; its own rule — never the search — is the describe below.
     const missing: string[] = [];
     for (const file of kitFiles()) {
-      if (file === "app-shell.tsx" || file === "sidebar-nav.tsx") continue;
+      // The phone's tab bar is the same fixed set of links, drawn once.
+      if (file === "app-shell.tsx" || file === "sidebar-nav.tsx" || file === "bottom-nav.tsx") continue;
       const src = readFileSync(path.join(KIT, file), "utf8");
       // `[\s\S]` so a multi-line element is one match. `prefetch={prefetch}`
       // in `Button` is the prop whose own default is false.
@@ -289,7 +290,7 @@ describe("the shell prefetches its rail, never the search", () => {
     const forms = shell.match(/<Form\b[^>]*?>/gs) ?? [];
     assert.ok(forms.length >= 1, "expected the search Form");
     for (const tag of forms) assert.match(tag, /prefetch=\{false\}/, `the search form prefetches: ${tag.slice(0, 60)}`);
-    for (const file of ["app-shell.tsx", "sidebar-nav.tsx"]) {
+    for (const file of ["app-shell.tsx", "sidebar-nav.tsx", "bottom-nav.tsx"]) {
       const src = readFileSync(path.join(KIT, file), "utf8");
       for (const m of src.matchAll(/<Link\b[\s\S]*?>/g)) {
         if (/href="[^"]*\/app\/discover/.test(m[0])) assert.match(m[0], /prefetch=\{false\}/, `${file}: a search link prefetches: ${m[0].slice(0, 60)}`);
@@ -297,6 +298,10 @@ describe("the shell prefetches its rail, never the search", () => {
     }
     const nav = readFileSync(path.join(KIT, "sidebar-nav.tsx"), "utf8");
     assert.match(nav, /prefetch=\{item\.href === "\/app\/discover" \? false : undefined\}/, "the rail's Search row must not prefetch, and the other rows must");
+    // The phone's tab bar: its Search tab opts out, More's Suppliers row too.
+    const bar = readFileSync(path.join(KIT, "bottom-nav.tsx"), "utf8");
+    assert.match(bar, /prefetch=\{key === "search" \? false : undefined\}/, "the tab bar's Search tab prefetches");
+    assert.match(bar, /prefetch=\{item\.href === "\/app\/discover" \? false : undefined\}/, "More's Suppliers row prefetches the search");
   });
 });
 

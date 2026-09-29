@@ -159,11 +159,12 @@ describe("SupplierResultCard (rendered)", () => {
     // A card is never beside a pane any more: the search draws the compact
     // table there (`resultsView`). Pinned by class because no DOM here measures.
     const html = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(aboniInput()) }));
-    assert.match(html, /<h2 class="[^"]*min-w-\[min\(12rem,100%\)\] flex-1 basis-0"/, "the name does not claim a width of its own");
-    assert.match(html, /<div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1\.5">/, "line 1 cannot wrap its actions under the name");
+    assert.match(html, /<h2 class="[^"]*min-w-\[min\(12rem,100%\)\] flex-1 basis-0[ "]/, "the name does not claim a width of its own");
+    assert.match(html, /<div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1\.5[ "]/, "line 1 cannot wrap its actions under the name");
     assert.match(html, /min-\[1440px\]:flex-row/, "the products never move beside the facts");
     assert.doesNotMatch(html, /grid w-full grid-cols-2|min-h-\[82px\]/, "a tile is back on the card");
-    assert.doesNotMatch(html, /sm:flex-nowrap|lg:flex-row lg:items-start|lg:shrink-0/, "a viewport-keyed rule is back on the card");
+    // A phone's own layout (`max-sm:`, the phone hand-off's D5) is allowed: a card is never beside a pane.
+    assert.doesNotMatch(html, /(?<!max-)sm:flex-nowrap|lg:flex-row lg:items-start|lg:shrink-0/, "a viewport-keyed rule is back on the card");
   });
 
   it("the 11-source record: name, eleven marks named once, the sources caption, every certificate, six 48px thumbs, no score anywhere", () => {
@@ -982,7 +983,7 @@ describe("RfqComposer (rendered)", () => {
   it("the preview names what the RFQ carries, and promises nothing about delivery", () => {
     const html = composer();
     assert.match(html, />What this RFQ carries</);
-    assert.match(html, /<section[^>]*aria-label="Preview"/);
+    assert.match(html, /<details[^>]*aria-label="Preview"/);
     // An unclaimed supplier is not reached until REZ-D's email work, so no
     // surface may promise a delivery, an inbox or a reply time.
     assert.doesNotMatch(html, /the supplier receives|will receive|lands in their inbox|\bdelivered\b|within \d|\bguarantee|replies land in Messages/i);
@@ -1924,7 +1925,7 @@ describe("the two-state controls say which state they are in", () => {
       const cls = pane[1]!.split(/\s+/);
       // Below `xl` the ledger scrolls sideways in this pane; from `xl` it fits
       // and its header sticks to the results column's own scroll.
-      assert.ok(cls.includes("relative") && (cls.includes("overflow-x-auto") || cls.includes("max-xl:overflow-x-auto")), pane[1]);
+      assert.ok(cls.includes("relative") && (cls.includes("overflow-x-auto") || cls.includes("max-xl:overflow-x-auto") || cls.includes("sm:max-xl:overflow-x-auto")), pane[1]);
     });
 
     it("the saved-search form names the real cause, and only a name error blames the name field", () => {
@@ -1978,7 +1979,8 @@ describe("the two-state controls say which state they are in", () => {
       // caller's className, so the rendered class of every box a buyer can
       // tick is pinned exactly, in each state. Changing one means changing
       // this list on purpose.
-      const BOX = "inline-grid size-4 shrink-0 place-items-center rounded-xs border";
+      // `hit`: 16px to the eye, 44px to a finger (the phone hand-off's M5).
+      const BOX = "hit inline-grid size-4 shrink-0 place-items-center rounded-xs border";
       const LIVE = "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--ds-accent))]";
       // The tick fades in on the kit's fast clock (27 Sep 2026).
       const MOTION = "transition-colors duration-fast";
@@ -2005,11 +2007,11 @@ describe("the two-state controls say which state they are in", () => {
         ["select-all, none", under(false, false, header), OFF],
         ["select-all, some", under("mixed", false, header), ON],
         ["select-all, all", under(true, false, header), ON],
-        // The ledger sets its box in from the row's edge (`ml-1`).
+        // The ledger sets its box in from the row's edge (`ml-1`); both reach 44px under a finger (`hit`).
         ["table row, off", under(false, false, createElement(ResultsTable, { rows: [row] })), `${OFF} ml-1`],
         ["table row, on", under(false, true, createElement(ResultsTable, { rows: [row] })), `${ON} ml-1`],
-        ["card, off", under(false, false, createElement(SupplierResultCard, { card })), `${OFF} mt-4`],
-        ["card, on", under(false, true, createElement(SupplierResultCard, { card })), `${ON} mt-4`],
+        ["card, off", under(false, false, createElement(SupplierResultCard, { card })), `${OFF} mt-4 max-sm:row-span-2 max-sm:mt-0`],
+        ["card, on", under(false, true, createElement(SupplierResultCard, { card })), `${ON} mt-4 max-sm:row-span-2 max-sm:mt-0`],
       ];
       for (const [name, html, want] of cases) {
         const got = boxes(html);
@@ -2459,27 +2461,25 @@ const shellHtml = (over: Partial<Parameters<typeof AppShell>[0]> = {}) =>
   );
 
 /** The one `<nav aria-label="Primary…">` element's own open tag. */
+/** The rail's own links (the phone's tab bar marks the same page again: `phone.test.ts`). */
+function railOf(html: string): string {
+  return /<nav aria-label="Primary[^"]*"[\s\S]*?<\/nav>/.exec(html)?.[0] ?? "";
+}
+
 function primaryNavTag(html: string): string {
   const m = html.match(/<nav\b[^>]*aria-label="Primary[^"]*"[^>]*>/);
   assert.ok(m, "no primary nav in the shell markup");
   return m[0];
 }
 
-describe("the phone nav strip does not clip its own focus ring", () => {
-  it("the scroll container pads both axes and gives the padding back", () => {
+describe("the rail is a column from md, and nothing scrolls it sideways", () => {
+  it("the primary nav is not a scroll container, so no focus ring is clipped; a phone gets the tab bar", () => {
+    // The phone strip was a sideways scroll container, and its focus rings
+    // needed padding given back to survive it. The strip is gone (the phone
+    // hand-off's M1): the rail shows from md, the tab bar below it.
     const tag = primaryNavTag(shellHtml());
-    // `overflow-x-auto` computes `overflow-y: auto` as well, and an outline is
-    // not scrollable overflow — so the global `outline-offset-2` ring is cut
-    // top and bottom on a 32px strip unless the container carries the room.
-    assert.match(tag, /\boverflow-x-auto\b/, "the strip is no longer a scroll container; this guard needs rewriting");
-    const classes = new Set((tag.match(/class="([^"]*)"/)?.[1] ?? "").split(/\s+/));
-    for (const cls of ["-my-1", "py-1", "-mx-1", "px-1"]) {
-      assert.ok(classes.has(cls), `the nav strip has no \`${cls}\`, so the focus ring is clipped: ${tag}`);
-    }
-    // And the rail above `md` must not inherit the phone strip's padding.
-    for (const cls of ["md:my-0", "md:py-0"]) {
-      assert.ok(classes.has(cls), `the rail keeps the strip's own padding above md: ${tag}`);
-    }
+    assert.doesNotMatch(tag, /overflow-(x-)?auto|snap-x/, tag);
+    assert.match(shellHtml(), /<aside[^>]*class="hidden [^"]*\bmd:flex\b/, "the rail shows on a phone");
   });
 });
 
@@ -2566,6 +2566,10 @@ describe("the shell offers no control without a destination", () => {
         // (founder's video, 29 Sep 2026), which flips the shell and writes
         // its cookie from `RailToggle`'s click handler.
         if (/aria-label="(?:Collapse|Expand) sidebar"/.test(m[0])) continue;
+        // A tray's Done (the phone's More sheet): it closes the tray it sits
+        // in, through the shell's MenuDismiss; the tray itself is a native
+        // disclosure that opens and closes without script.
+        if (/data-menu-close=""/.test(m[0])) continue;
         assert.match(m[0], /\btype="submit"/, `a button with no destination: ${m[0]}`);
         assert.ok(insideForm(html, m.index!), `a submit button outside any form: ${m[0]}`);
       }
@@ -2585,7 +2589,12 @@ describe("the shell offers no control without a destination", () => {
       for (const t of html.match(/<(?!a\b|button\b|input\b|select\b|textarea\b|main\b)[a-z]+\b[^>]*(?:role="button"|tabindex="(?!-1")[^"]*")[^>]*>/g) ?? []) {
         assert.fail(`a focusable non-control with no destination: ${t}`);
       }
-      assert.doesNotMatch(html, /<summary\b/, "a <summary> toggle in the shell");
+      // A <summary> only as the button of a named tray (the phone's More, the
+      // account menu), which opens without script.
+      for (const m of html.matchAll(/<summary\b/g)) {
+        const details = html.slice(0, m.index).lastIndexOf("<details");
+        assert.match(html.slice(details, m.index), /^<details name="sb-menu"/, "a <summary> toggle in the shell that is not a tray");
+      }
     }
   });
 
@@ -2638,7 +2647,7 @@ describe("aria-current marks the page the buyer is actually on, or nothing", () 
     assert.doesNotMatch(none, /aria-current/, "a link claims to be the current page on a route no nav item points at");
     // The ordinary case still marks exactly one, and marks the right one.
     const on = shellHtml({ sidebar: { active: "products", counts: {}, recent: [], plan: { name: "Free" } } });
-    const marked = [...on.matchAll(/<a\b[^>]*aria-current="page"[^>]*>/g)].map((m) => m[0]);
+    const marked = [...railOf(on).matchAll(/<a\b[^>]*aria-current="page"[^>]*>/g)].map((m) => m[0]);
     assert.equal(marked.length, 1, `expected one current link, got ${marked.length}`);
     assert.match(marked[0]!, /href="\/app\/products"/);
   });
@@ -2813,7 +2822,7 @@ describe("the shell's landmarks and the routes they cover", () => {
     assert.match(html, /href="\/app\/searches"/, "nothing in the shell links to the saved-search list");
     // And landing on it marks that row, not a link to somewhere else.
     const on = shellHtml({ sidebar: { active: "searches", counts: {}, recent: [], plan: { name: "Free" } } });
-    const marked = [...on.matchAll(/<a[^>]*aria-current="page"[^>]*>/g)].map((m) => m[0]);
+    const marked = [...railOf(on).matchAll(/<a[^>]*aria-current="page"[^>]*>/g)].map((m) => m[0]);
     assert.equal(marked.length, 1);
     assert.match(marked[0]!, /href="\/app\/searches"/);
   });
@@ -2838,7 +2847,7 @@ describe("the rail says current-page only for the page the buyer is on", () => {
     const under = shellHtml({
       sidebar: { active: "searches", activeExact: false, counts: {}, recent: [], plan: { name: "Free" } },
     });
-    const marked = [...under.matchAll(/<a\b[^>]*aria-current="([^"]*)"[^>]*>/g)];
+    const marked = [...railOf(under).matchAll(/<a\b[^>]*aria-current="([^"]*)"[^>]*>/g)];
     assert.equal(marked.length, 1);
     assert.equal(marked[0]![1], "true", "a section ancestor is announced as the current page");
 
@@ -2964,7 +2973,7 @@ describe("the sort menu opens inside the viewport", () => {
         },
       }),
     );
-    const menu = html.match(/<div\b[^>]*role="menu"[^>]*class="([^"]*)"|<div class="([^"]*absolute[^"]*)"/)?.slice(1).find(Boolean) ?? "";
+    const menu = html.match(/<div\b[^>]*data-menu-panel=""[^>]*class="([^"]*)"|<div class="([^"]*absolute[^"]*)"/)?.slice(1).find(Boolean) ?? "";
     assert.ok(menu, "the sort menu is no longer absolutely positioned; this guard needs rewriting");
     const cls = new Set(menu.split(/\s+/));
     assert.ok(cls.has("left-0"), `the menu is not anchored left on a phone: ${menu}`);
@@ -3087,7 +3096,7 @@ describe("the kit's buttons, menus and panels (27 Sep 2026)", () => {
         },
       }),
     );
-    const items = [...html.matchAll(/<a role="menuitem" href="([^"]+)"([^>]*)>/g)].map((m) => [m[1], /aria-current="true"/.test(m[2]!)]);
+    const items = [...html.matchAll(/<a data-menu-item="" href="([^"]+)"([^>]*)>/g)].map((m) => [m[1], /aria-current="true"/.test(m[2]!)]);
     assert.deepEqual(items, [
       ["?sort=sources", false],
       ["?sort=name", true],

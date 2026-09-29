@@ -93,7 +93,7 @@ describe("1. the filter menus", () => {
 
   it("the caller decides each option's URL, so the results keep their density", () => {
     const html = renderToStaticMarkup(createElement(FilterMenus, { state: EMPTY_STATE, hrefFor: (s: DiscoverState) => `${discoverHref(s)}&d=compact` }));
-    const hrefs = [...html.matchAll(/role="menuitem"[^>]*href="([^"]+)"|href="([^"]+)"[^>]*role="menuitem"/g)].map((m) => m[1] ?? m[2]);
+    const hrefs = [...html.matchAll(/data-menu-item=""[^>]*href="([^"]+)"|href="([^"]+)"[^>]*data-menu-item=""/g)].map((m) => m[1] ?? m[2]);
     assert.ok(hrefs.length > 10 && hrefs.every((h) => h!.endsWith("&amp;d=compact")), hrefs.join(" "));
   });
 });

@@ -2,6 +2,18 @@
 
 # SourceBD - state archive, September 2026
 
+## Buyer app on a phone — BUILT (30 Sep 2026)
+
+`feature-specs/handoff-dashboard-mobile.md`, M0–M5 (PRs #218, #220–#224), front end only, no
+migration. Below 768px the window is the one scroller (the record and the composer could
+not be scrolled at all); `<main>` clips sideways on a phone. Trays are named disclosures
+(`name="sb-menu"`) closed by `lib/dashboard/menu-dismiss.ts` and bottom sheets below
+640px. Navigation is a bottom tab bar (`bottom-nav.tsx`) with a More sheet; both app
+bars step aside inside a detail (`data-detail`). The phone type step (`phoneFontSize`)
+and named sizes live in the tokens. Known limits, left: the bars' hiding needs `:has()`
+(iOS 15.4+); a sheet's Done relies on the shell's dismiss (the dev gallery draws menus
+outside it); `cn()` drops `text-title`/`text-eyebrow` before an ink (a separate task).
+
 ## Dashboard fixes from the founder's 29 Sep video — COMPLETE (29 Sep 2026)
 
 Hand-off `feature-specs/handoff-dashboard-video-29sep.md` (six PRs); the

@@ -19,7 +19,8 @@ import { buildSheet } from "@/lib/dashboard/build-models";
 import { aboniInput } from "@/lib/dashboard/fixtures";
 import { backToList, RAIL_COOKIE } from "@/lib/dashboard/nav";
 import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
-import { AccountMenu, accountName, menuShouldClose } from "./account-menu";
+import { menuShouldClose } from "@/lib/dashboard/menu-dismiss";
+import { AccountMenu, accountName } from "./account-menu";
 import { AppShell, planLine } from "./app-shell";
 import { SupplierSheet } from "./supplier-sheet";
 
@@ -77,7 +78,7 @@ describe("2. the current rail row is a grey tint, with a bar", () => {
 describe("3. one account menu, with the photo", () => {
   it("the rail and the topbar both open it, with the uploaded photo where the initials were", () => {
     const html = shell();
-    assert.equal((html.match(/<div role="menu" aria-label="Account"/g) ?? []).length, 2);
+    assert.equal((html.match(/<div data-menu-panel="" role="group" aria-label="Account"/g) ?? []).length, 2);
     assert.ok((html.match(/<img src="https:\/\/example\.supabase\.co\/[^"]*rk\.png" alt=""/g) ?? []).length >= 4, "the photo on both corners and both menu heads");
     assert.doesNotMatch(html, /aria-label="Account and settings"/, "the topbar is still a bare link to Settings");
   });
@@ -87,7 +88,7 @@ describe("3. one account menu, with the photo", () => {
     assert.match(html, /aria-label="Account, Rezaul Karim"/);
     assert.match(html, /href="\/app\/settings"[^>]*>[\s\S]*?Settings</);
     assert.match(html, /href="\/app\/settings\/subscription"[^>]*>[\s\S]*?Subscription</);
-    assert.match(html, /<form [^>]*action="\/auth\/sign-out" method="post"><button type="submit" role="menuitem"[^>]*>[\s\S]*?Sign out</);
+    assert.match(html, /<form [^>]*action="\/auth\/sign-out" method="post"><button type="submit" data-menu-item=""[^>]*>[\s\S]*?Sign out</);
   });
 
   it("the rail's foot is one account row: the photo, the name over the plan, an up-and-down chevron, no separate plan line", () => {
@@ -122,7 +123,10 @@ describe("3. one account menu, with the photo", () => {
     assert.equal(menuShouldClose({ key: "Escape" }, menu(false)), false, "a closed menu");
     const src = source("components/dashboard/account-menu.tsx");
     assert.match(src, /useEffect\(\(\) => \{\s*if \(ref\.current\) ref\.current\.open = false;\s*\}, \[pathname\]\)/, "a navigation leaves the menu open");
-    assert.match(src, /closest\('\[role="menuitem"\]'\) && ref\.current\) ref\.current\.open = false/, "Settings, chosen on Settings, leaves the menu open");
+    // A chosen item (Settings, while on Settings) closes it through the shell's
+    // dismiss, as every tray: `phone.test.ts`.
+    // Escape and a press outside are the shell's, for every tray at once.
+    assert.match(src, /<details ref=\{ref\} name=\{MENU_NAME\}/);
   });
 
   it("no photo draws the initials", () => {

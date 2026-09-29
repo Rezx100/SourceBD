@@ -108,7 +108,7 @@ export function PhotoStrip({
         role="region"
         aria-label={`Product lines, ${totalLines} on the EPB register`}
         tabIndex={0}
-        className="flex snap-x gap-2 overflow-x-auto pb-1"
+        className="relative flex snap-x gap-2 overflow-x-auto pb-1"
       >
         {tiles.map((t) => (
           <PhotoTile key={t.hs} tile={t} />
@@ -233,14 +233,18 @@ export function PhotoList({ tiles, lineHref }: { tiles: readonly PhotoTileModel[
  * strip. Scrolls sideways on a phone rather than hiding lines. A card with no
  * lines draws nothing here: its EPB chip already says why.
  */
-export function CardThumbs({ tiles, totalLines }: { tiles: readonly PhotoTileModel[]; totalLines: number }) {
+export function CardThumbs({ tiles, totalLines, className }: { tiles: readonly PhotoTileModel[]; totalLines: number; className?: string }) {
   if (tiles.length === 0) return null;
   const more = Math.max(0, totalLines - tiles.length);
   return (
-    <div className="flex min-w-0 shrink-0 items-start gap-2">
-      <ul aria-label={`Product lines, ${totalLines} on the EPB register`} tabIndex={0} className="m-0 flex min-w-0 list-none gap-2 overflow-x-auto p-0">
+    // On a phone the strip takes the card's width, snaps a tile at a time
+    // with no scrollbar and a fade at its edge, and "+N lines · illustration"
+    // sits under it (D5): six tiles and the caption beside them did not fit.
+    <div className={cn("flex min-w-0 shrink-0 items-start gap-2 max-sm:flex-col max-sm:gap-1", className)}>
+      <div className="relative min-w-0 max-sm:w-full">
+      <ul aria-label={`Product lines, ${totalLines} on the EPB register`} tabIndex={0} className="relative m-0 flex min-w-0 list-none gap-2 overflow-x-auto p-0 max-sm:snap-x max-sm:pr-6 max-sm:[scrollbar-width:none] max-sm:[&::-webkit-scrollbar]:hidden">
         {tiles.map((t) => (
-          <li key={t.hs} className="w-12 shrink-0" title={`HS ${t.hs} · ${t.short}${t.src ? "" : " · no photo yet"}`}>
+          <li key={t.hs} className="w-12 shrink-0 snap-start" title={`HS ${t.hs} · ${t.short}${t.src ? "" : " · no photo yet"}`}>
             <span role="img" aria-label={`HS ${t.hs} · ${t.short}${t.src ? "" : " · no photo yet"}`} className="block size-12 overflow-hidden rounded-sm border border-line-subtle bg-surface-sunken">
               {t.thumb ?? t.src ? <Photo src={(t.thumb ?? t.src)!} /> : <span className="grid size-full place-items-center font-mono text-[9px] text-ink-subtle">{t.hs}</span>}
             </span>
@@ -248,8 +252,11 @@ export function CardThumbs({ tiles, totalLines }: { tiles: readonly PhotoTileMod
           </li>
         ))}
       </ul>
-      <span className="flex shrink-0 flex-col gap-0.5 pt-1 text-xs text-ink-subtle">
-        {more > 0 ? <span className="text-sm">+{more} lines</span> : null}
+      <span aria-hidden className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-surface to-transparent sm:hidden" />
+      </div>
+      <span className="flex shrink-0 flex-col gap-0.5 pt-1 text-xs text-ink-subtle max-sm:flex-row max-sm:gap-1.5 max-sm:pt-0">
+        {more > 0 ? <span className="text-sm max-sm:text-xs">+{more} lines</span> : null}
+        {more > 0 && tiles.some((t) => t.src) ? <span aria-hidden className="sm:hidden">·</span> : null}
         {tiles.some((t) => t.src) ? <span>illustration</span> : null}
       </span>
     </div>

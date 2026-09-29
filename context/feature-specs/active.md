@@ -51,8 +51,12 @@ same PR. Read once per session.
   for greys and near-black (founder, 29 Sep). BUILT,
   `handoff-dashboard-names-and-facts.md`: PRs #206 (PR 0, live bugs), #209 (A,
   names on one line), #210 (B, fact icons, certificate rows), #211 (C, card
-  view), #212 (D, leftovers, sidebar foot). On `main` via #213; the deploy
-  waits for the founder's approval. Migration 0107 applied 29 Sep.
+  view), #212 (D, leftovers, sidebar foot). LIVE 29 Sep (`8e773eb`, #213);
+  no slate LIVE 29 Sep (`7d46e2b`, #215/#216). Migration 0107 applied 29 Sep.
+
+- **Buyer app on a phone** — BUILT, `handoff-dashboard-mobile.md`: M0–M5 on
+  `development` (PRs #218, #220–#224); promotion to `main` next. Detail:
+  `archive/specs-shipped-2026.md`.
 
 ## Queued
 - **Entity resolution core** — `spec-resolution-core.md` (4 Aug). Batch

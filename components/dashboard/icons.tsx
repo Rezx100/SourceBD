@@ -119,6 +119,7 @@ export function Icon({
   name,
   small = false,
   size,
+  fill = false,
   label,
   className,
 }: {
@@ -126,6 +127,8 @@ export function Icon({
   small?: boolean;
   /** A size other than 16 or 12: the search landing's 20px field icon. */
   size?: number;
+  /** The filled glyph: the current tab of the phone's tab bar. */
+  fill?: boolean;
   label?: string;
   className?: string;
 }) {
@@ -133,7 +136,7 @@ export function Icon({
   return (
     <C
       size={size ?? (small ? 12 : 16)}
-      weight="regular"
+      weight={fill ? "fill" : "regular"}
       className={className ? `shrink-0 ${className}` : "shrink-0"}
       // A named `<svg>` with no role is neither a control nor a reliably
       // named graphic. Ten "Remove <filter>" icons were emitted this way and

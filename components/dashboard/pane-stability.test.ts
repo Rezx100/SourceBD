@@ -27,6 +27,7 @@ import { SOURCE_LOGO_FILES } from "@/lib/dashboard/source-logos";
 import { AppShell } from "./app-shell";
 import { RESULTS_COLUMNS, RESULTS_MIN_WIDTH, ResultsTable } from "./results-table";
 import { SheetSection, Workbench } from "./sheet";
+import { callWithHooks } from "./hook-harness";
 import { SheetTabs, goToSection, type TabClick } from "./sheet-tabs";
 import { WorkersCell } from "./workers-cell";
 
@@ -64,13 +65,13 @@ describe("1. a record tab scrolls the pane, never the app", () => {
   });
 
   it("every tab link carries the handler", () => {
-    const nav = SheetTabs({
+    const nav = callWithHooks(SheetTabs, {
       tabs: [
         { label: "Overview", count: null, href: "#overview", active: true },
         { label: "Products", count: "6", href: "#products" },
         { label: "Facilities", count: null, href: null },
       ],
-    });
+    }).out;
     const links: ReactElement<{ onClick?: unknown }>[] = [];
     const walk = (n: ReactNode) => {
       if (Array.isArray(n)) n.forEach(walk);
@@ -196,10 +197,15 @@ describe("2–3. every column holds what it carries", () => {
       const text = RESULTS_MIN_WIDTH[layout] - fixed(RESULTS_COLUMNS[layout]) - NAME_CHROME[layout];
       assert.ok(text >= 90, `${layout}: at the table's minimum a name gets ${text}px`);
     }
+    // The wide table below xl (a tablet): the compact grid, its dropped columns 0.
+    const mid = RESULTS_MIN_WIDTH.mid - fixed(RESULTS_COLUMNS.mid) - NAME_CHROME.wide;
+    assert.ok(mid >= 90, `below xl a name gets ${mid}px`);
+    // At 768 the content region is 768 − the 232px rail − 2 × 24px, and the panel's own edges.
+    assert.ok(RESULTS_MIN_WIDTH.mid <= 768 - 232 - 48 - 2, "a tablet's list scrolls sideways");
     assert.ok(RESULTS_MIN_WIDTH.compact <= 1048 - Math.min(760, Math.max(480, 1048 / 2)) - 32, "beside a pane at 1280 the compact table scrolls sideways");
     assert.ok(RESULTS_MIN_WIDTH.wide <= 1048 - 48, "at 1280 the wide table scrolls sideways");
     const table = source("components/dashboard/results-table.tsx");
-    assert.match(table, /compact \? "min-w-\[28rem\]" : "min-w-\[60rem\]"/, "RESULTS_MIN_WIDTH no longer says what the table draws");
+    assert.match(table, /compact \? "min-w-\[28rem\]" : "sm:min-w-\[30rem\] xl:min-w-\[60rem\]"/, "RESULTS_MIN_WIDTH no longer says what the table draws");
     assert.match(table, /size=\{compact \? "sm" : "row"\}/, "NAME_CHROME no longer says which tile the row draws");
     assert.equal(RESULTS_MIN_WIDTH.compact, 28 * 16);
     assert.equal(RESULTS_MIN_WIDTH.wide, 60 * 16);

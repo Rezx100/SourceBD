@@ -12,6 +12,7 @@ import {
   fontWeight,
   light,
   maxWidth,
+  phoneFontSize,
   toChannels,
   transitionDuration,
   transitionTimingFunction,
@@ -48,17 +49,17 @@ function colorClasses(set: ColorSet) {
 function scaledFontSize(): typeof fontSize {
   return Object.fromEntries(
     Object.entries(fontSize).map(([key, [size, rest]]): [string, (typeof fontSize)[string]] => {
-      if (!(key in appFontSize)) return [key, [size, rest]];
+      if (!(key in appFontSize) && !(key in phoneFontSize)) return [key, [size, rest]];
       const v = fontVars(key);
       return [key, [`var(${v.size}, ${size})`, { ...rest, lineHeight: `var(${v.lineHeight}, ${rest.lineHeight})` }]];
     }),
   );
 }
 
-/** The app shell's values for those variables. */
-function appFontVars(): Record<string, string> {
+/** The app shell's values for those variables (the phone's with `phoneFontSize`). */
+function appFontVars(scale = appFontSize): Record<string, string> {
   return Object.fromEntries(
-    Object.entries(appFontSize).flatMap(([key, [size, rest]]) => {
+    Object.entries(scale).flatMap(([key, [size, rest]]) => {
       const v = fontVars(key);
       return [
         [v.size, size],
@@ -78,6 +79,9 @@ function colorVars(set: ColorSet): Record<string, string> {
 }
 
 const config: Config = {
+  // `hover:` only where a pointer can hover. Without it a tap leaves the hover
+  // style on: a Save just un-saved still looked saved on a phone.
+  future: { hoverOnlyWhenSupported: true },
   content: [
     "./app/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
@@ -132,6 +136,9 @@ const config: Config = {
       addBase({ ":root": colorVars(light) });
       // The buyer app's text, one step up (founder, 29 Sep 2026).
       addBase({ "[data-shell]": appFontVars() });
+      // …and on a phone, the phone's step (the phone hand-off's D10): below
+      // `sm`, as `max-sm:` is.
+      addBase({ "@media not all and (min-width: 640px)": { "[data-shell]": appFontVars(phoneFontSize) } });
     }),
   ],
 };

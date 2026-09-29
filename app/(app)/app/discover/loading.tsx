@@ -9,8 +9,16 @@ import { Skeleton, SkeletonRegion } from "@/components/ui/skeleton";
 // table than the real one — and, because the skeleton's styles had been left
 // in the old design's stylesheet, no bars at all. The layout draws the shell.
 
-/** The ledger grid's columns, wide view: `RESULTS_COLUMNS.wide` in `components/dashboard/results-table.tsx`. */
-const GRID = "grid grid-cols-[40px_minmax(0,1fr)_152px_212px_120px_152px_104px] items-center";
+/**
+ * The ledger grid's columns, wide view: `RESULTS_COLUMNS.wide` in
+ * `components/dashboard/results-table.tsx` from xl, `mid` from sm, and on a
+ * phone the box and the supplier alone (the phone hand-off's D4).
+ */
+const GRID =
+  "grid grid-cols-[36px_minmax(0,1fr)] items-center sm:grid-cols-[36px_minmax(0,1fr)_84px_112px_66px] xl:grid-cols-[40px_minmax(0,1fr)_152px_212px_120px_152px_104px]";
+/** The cells a narrower screen drops, in the table's own order (`WIDE_HIDE`). */
+const PHONE_DROP = "max-sm:hidden";
+const WIDE_ONLY = "max-xl:hidden";
 
 export default function BuyerDiscoverLoading() {
   return (
@@ -40,15 +48,15 @@ export default function BuyerDiscoverLoading() {
               </span>
             </div>
             <div className="overflow-hidden">
-              <div className="min-w-[62rem]">
+              <div className="sm:min-w-[30rem] xl:min-w-[62rem]">
                 <div className={`${GRID} h-9 border-b border-line-subtle`}>
                   <span />
                   <Skeleton w={64} h={10} className="ml-3" />
-                  <Skeleton w={120} h={10} className="ml-4" />
-                  <Skeleton w={80} h={10} className="ml-4" />
-                  <Skeleton w={80} h={10} className="ml-4" />
-                  <Skeleton w={56} h={10} className="ml-auto mr-4" />
-                  <span />
+                  <Skeleton w={56} h={10} className={`ml-3 ${PHONE_DROP}`} />
+                  <Skeleton w={80} h={10} className={`ml-4 ${WIDE_ONLY}`} />
+                  <Skeleton w={80} h={10} className={`ml-4 ${WIDE_ONLY}`} />
+                  <Skeleton w={56} h={10} className={`ml-auto mr-4 ${PHONE_DROP}`} />
+                  <span className={PHONE_DROP} />
                 </div>
                 {Array.from({ length: 12 }, (_, i) => (
                   <div key={i} className={`${GRID} min-h-[52px] border-b border-line-subtle last:border-b-0`}>
@@ -60,19 +68,19 @@ export default function BuyerDiscoverLoading() {
                         <Skeleton w={110} h={10} />
                       </span>
                     </span>
-                    <span className="flex items-center gap-1 px-4">
+                    <span className={`flex items-center gap-1 px-3 ${PHONE_DROP}`}>
                       <Skeleton w={12} h={12} />
                       {Array.from({ length: 3 }, (_, k) => (
                         <Skeleton key={k} w={20} h={20} />
                       ))}
                     </span>
-                    <span className="flex gap-1 px-4">
+                    <span className={`flex gap-1 px-4 ${WIDE_ONLY}`}>
                       <Skeleton w={84} h={24} />
                       <Skeleton w={72} h={24} />
                     </span>
-                    <Skeleton w={84} h={12} className="ml-4" />
-                    <Skeleton w={44} h={12} className="ml-auto mr-4" />
-                    <span className="flex justify-end gap-1 pr-3">
+                    <Skeleton w={84} h={12} className={`ml-4 ${WIDE_ONLY}`} />
+                    <Skeleton w={44} h={12} className={`ml-auto mr-4 ${PHONE_DROP}`} />
+                    <span className={`flex justify-end gap-1 pr-3 ${PHONE_DROP}`}>
                       <Skeleton w={20} h={20} />
                       <Skeleton w={20} h={20} />
                       <Skeleton w={20} h={20} />
