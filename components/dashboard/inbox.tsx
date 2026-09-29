@@ -163,7 +163,7 @@ export function ConversationHeader({ thread, recordOpen = false }: { thread: Inb
       <Link
         href="/app/messages"
         prefetch={false}
-        className="inline-flex items-center gap-1 self-start text-sm font-medium text-brand-ink lg:hidden"
+        className="inline-flex items-center gap-1 self-start text-sm font-medium text-brand-ink hover:underline lg:hidden"
       >
         <Icon name="chev-l" /> Back to messages
       </Link>

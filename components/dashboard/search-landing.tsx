@@ -63,7 +63,7 @@ function TemplateCard({ t, count }: { t: SearchTemplate; count: ReactNode }) {
         className="group flex min-h-[92px] w-full flex-col gap-1.5 rounded-md bg-surface px-4 py-3.5 shadow-edge transition-colors duration-fast hover:bg-surface-sunken"
       >
         <span className="flex items-baseline gap-3">
-          <span className="min-w-0 flex-1 text-title font-medium text-ink-strong [overflow-wrap:anywhere] group-hover:text-brand-ink">{t.title}</span>
+          <span className="min-w-0 flex-1 text-title font-medium text-ink-strong [overflow-wrap:anywhere] group-hover:underline">{t.title}</span>
           {count}
         </span>
         <span className="text-sm text-ink-muted">{t.blurb}</span>
@@ -191,7 +191,7 @@ async function SavedSearches({ saved }: { saved: Promise<SavedSearchJson[] | nul
         <h2 id="landing-saved-title" className="m-0 text-title font-semibold text-ink-strong">
           Your saved searches
         </h2>
-        <Link href="/app/searches" prefetch={false} className="ml-auto text-sm font-medium text-brand-ink hover:underline">
+        <Link href="/app/searches" prefetch={false} className="link ml-auto text-sm font-medium">
           All saved searches
         </Link>
       </div>

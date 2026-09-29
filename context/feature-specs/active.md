@@ -47,7 +47,8 @@ same PR. Read once per session.
   the results): LIVE 27 Sep (`3f628b9`); hand-off `handoff-one-viewport-shell.md`.
 
 - **Search-first buyer app** (28 Sep, founder's walkthrough video): LIVE 28 Sep (`d7e6c42`, PRs #193/#194); detail in `current-state.md`.
-- **One-line names, fact icons and the video's leftovers** — BUILT,
+- **One-line names, fact icons and the video's leftovers** — slate since dropped
+  for greys and near-black (founder, 29 Sep). BUILT,
   `handoff-dashboard-names-and-facts.md`: PRs #206 (PR 0, live bugs), #209 (A,
   names on one line), #210 (B, fact icons, certificate rows), #211 (C, card
   view), #212 (D, leftovers, sidebar foot). On `main` via #213; the deploy

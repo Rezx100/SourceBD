@@ -105,7 +105,7 @@ export default async function HeadingsPage({
                       />
                     </Cell>
                     <Cell className="py-2">
-                      <Link href={`/app/discover?hs=${r.hs}`} prefetch={false} className="font-medium text-ink-strong [overflow-wrap:anywhere] hover:text-brand-ink">
+                      <Link href={`/app/discover?hs=${r.hs}`} prefetch={false} className="font-medium text-ink-strong [overflow-wrap:anywhere] hover:underline">
                         <span className="font-mono">{r.hs}</span>
                         {r.label ? ` ${r.label}` : null}
                       </Link>

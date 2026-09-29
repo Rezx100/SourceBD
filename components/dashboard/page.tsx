@@ -312,9 +312,9 @@ export function rowClass({
 } = {}): string {
   return cn(
     "group transition-colors duration-fast hover:bg-surface-sunken focus-within:bg-surface-sunken",
-    // The open row: the slate tint and a slate line above and below, so it is
+    // The open row: the grey tint and a near-black line above and below, so it is
     // not marked by a fill alone and never reads as the selection's rule.
-    // Slate, not green (founder's video, 29 Sep 2026): a green row read as
+    // No hue, not green (founder, 29 Sep 2026): a green row read as
     // "verified", and green is kept for the one primary action.
     current && "bg-accent-tint hover:bg-accent-tint [&>*]:shadow-[inset_0_1px_0_rgb(var(--ds-accent)),inset_0_-1px_0_rgb(var(--ds-accent))]",
     selected &&

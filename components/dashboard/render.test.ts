@@ -169,6 +169,8 @@ describe("SupplierResultCard (rendered)", () => {
   it("the 11-source record: name, eleven marks named once, the sources caption, every certificate, six 48px thumbs, no score anywhere", () => {
     const html = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(aboniInput()) }));
     assertNameOneLine(html, "Aboni Knitwear Ltd");
+    // The facts line's icons take the line's ink-muted: no hue (founder, 29 Sep 2026).
+    assert.doesNotMatch(html, /<svg[^>]*class="[^"]*\btext-accent\b/, "a card's fact icon takes the state colour again");
     // Each source once: the marks row, and no mark repeated on the facts line.
     assert.equal((html.match(/aria-label="Source: /g) ?? []).length, 11, "a source is named twice on the card");
     assert.match(html, /<a href="https:\/\/www\.bgmea\.com\.bd\/member\/71"[^>]*aria-label="Source: Bangladesh Garment Manufacturers &amp; Exporters Association, Industry bodies \(opens the register page\)"/);

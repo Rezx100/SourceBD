@@ -226,7 +226,7 @@ export default async function BuyerDiscoverPage({
                 <Title as="h1">{title}</Title>
                 <Caption className="mt-2">Page {state.page} is past the end of this result set.</Caption>
                 <p className="mt-4 text-sm">
-                  <Link className="underline" href={discoverHref(state, { page: 1 })}>
+                  <Link className="link" href={discoverHref(state, { page: 1 })}>
                     Back to the first page
                   </Link>
                 </p>
@@ -249,7 +249,7 @@ export default async function BuyerDiscoverPage({
                         if (!without) return null;
                         return (
                           <li key={e.dropped}>
-                            <Link href={discoverHref(without)} className="text-brand-ink">
+                            <Link href={discoverHref(without)} className="link">
                               Drop {filterFamilyLabel(e.dropped)} · {e.remaining} remain
                             </Link>
                           </li>

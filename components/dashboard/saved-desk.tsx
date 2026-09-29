@@ -61,7 +61,7 @@ export function deskFrom(data: unknown): DeskModel | null {
 
 function NameLink({ href, name }: { href: string; name: string }) {
   return (
-    <Link prefetch={false} scroll={false} href={href} className="font-medium text-ink-strong [overflow-wrap:anywhere] hover:text-brand-ink">
+    <Link prefetch={false} scroll={false} href={href} className="font-medium text-ink-strong [overflow-wrap:anywhere] hover:underline">
       {displayName(name)}
     </Link>
   );
@@ -86,7 +86,7 @@ export function SavedDesk({
     return <p className="m-0 text-sm text-ink-muted">Certificate alerts and recent activity could not be read just now.</p>;
   }
   const compliance = (
-    <Link prefetch={false} href="/app/compliance" className="text-brand-ink hover:underline">
+    <Link prefetch={false} href="/app/compliance" className="link">
       Compliance hub
     </Link>
   );

@@ -149,7 +149,7 @@ describe("3, 12. the suggestions", () => {
     // …and no higher than the onboarding tour's scrim (`z-modal`), which must cover it.
     const tour = readFileSync(path.join(repoRoot, "components/onboarding/tour.tsx"), "utf8");
     assert.match(tour, /fixed inset-0 z-modal\b/, "guard: the tour's scrim moved; recheck the topbar's z-index against it");
-    // Mounted after the shell, it takes the shell's scope (type steps, slate) itself.
+    // Mounted after the shell, it takes the shell's scope (type steps, the state greys) itself.
     assert.match(tour, /data-shell=""/, "the tour draws outside the shell's scope");
     assert.doesNotMatch(tour, /bg-bg-l1|border-hairline|shadow-l2|text-ink-tertiary|@\/components\/ui\/button/, "the tour is drawn in the old design's classes again");
     assert.doesNotMatch(bar, /\bz-(sticky|overlay|modal|toast|\[)/);

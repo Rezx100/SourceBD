@@ -398,7 +398,7 @@ export function ProductForm({ initial }: { initial: ProductValues }) {
         {techPack ? (
           <div className="flex min-w-0 items-center gap-3 rounded-sm bg-surface-sunken px-3 py-2">
             <Icon name="paperclip" className="text-ink-muted" />
-            <a href={techPack} target="_blank" rel="noreferrer" className="min-w-0 flex-1 text-sm font-medium text-brand-ink [overflow-wrap:anywhere] hover:underline">
+            <a href={techPack} target="_blank" rel="noreferrer" className="link min-w-0 flex-1 text-sm font-medium [overflow-wrap:anywhere]">
               {fileNameOf(techPack)}
             </a>
             <Button size="sm" variant="ghost" onClick={() => set("tech_pack_url", "")}>

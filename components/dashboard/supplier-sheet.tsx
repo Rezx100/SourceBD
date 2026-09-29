@@ -85,7 +85,7 @@ function ProductList({ items }: { items: readonly string[] }) {
       <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0">{shown.map(chip)}</ul>
       {rest.length > 0 ? (
         <details className="group/pl">
-          <summary className="cursor-pointer list-none text-sm font-medium text-brand-ink [&::-webkit-details-marker]:hidden">
+          <summary className="link cursor-pointer list-none text-sm font-medium [&::-webkit-details-marker]:hidden">
             <span className="group-open/pl:hidden">+{rest.length} more as filed</span>
             <span className="hidden group-open/pl:inline">Show fewer</span>
           </summary>
@@ -259,7 +259,7 @@ export function SupplierSheet({
               {p.exporterHref ? (
                 <>
                   {" · "}
-                  <a href={p.exporterHref} className="text-brand-ink">
+                  <a href={p.exporterHref} className="link">
                     exporter page {p.exporterRef}
                   </a>
                 </>
@@ -272,7 +272,7 @@ export function SupplierSheet({
                headings had six lines reachable from nowhere. This lists every
                heading the record exports. */
             p.lines > 0 && p.allLinesHref ? (
-              <Link prefetch={false} scroll={false} href={p.allLinesHref} className="inline-flex items-center gap-0.5 text-brand-ink">
+              <Link prefetch={false} scroll={false} href={p.allLinesHref} className="inline-flex items-center gap-0.5 text-brand-ink hover:underline">
                 All {p.lines} lines <Icon name="chev-r" small />
               </Link>
             ) : null

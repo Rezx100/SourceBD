@@ -128,7 +128,7 @@ function RecordTooSlow({ href }: { href: string }) {
         The database is under load. The company is still on SourceBD — this read simply took too long.
       </Caption>
       <p className="text-sm">
-        <Link href={href} className="text-brand-ink underline">
+        <Link href={href} className="link">
           Try again
         </Link>
       </p>

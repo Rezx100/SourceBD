@@ -636,14 +636,16 @@ describe("the facts read in three levels, with an icon on every fact (founder, 2
     for (const m of sheet.meta.filter((x) => !x.quiet)) assert.ok(m.icon, `the head's "${m.text}" has no icon`);
   });
 
-  it("group headings are sentence case, labels muted with a slate icon, the facts a buyer reads first in medium", () => {
+  it("group headings are sentence case, labels muted with a grey icon, the facts a buyer reads first in medium", () => {
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(aboniInput()) }));
     for (const title of ["Company", "Location", "Workforce and capacity", "Registrations"]) {
       assert.match(html, new RegExp(`<h2 class="m-0 text-sm font-semibold text-ink-strong">${title}</h2>`), `${title} is not a sentence-case heading`);
     }
     assert.doesNotMatch(html, /uppercase[^"]*">(?:Company|Location|Workforce and capacity|Registrations)</, "a group heading is a mono eyebrow again");
-    // The label: its icon in the slate accent, then the words in ink-muted.
-    assert.match(html, /<span class="inline-flex[^"]*text-ink-muted[^"]*"><svg[^>]*class="shrink-0 text-accent"[^>]*>(?:(?!<\/svg>)[\s\S])*<\/svg>Registered name<\/span>/);
+    // The label: its icon takes the label's ink-muted, a class of its own none
+    // (no hue since 29 Sep 2026; the value beside it is the darker ink).
+    assert.match(html, /<span class="inline-flex[^"]*text-ink-muted[^"]*"><svg[^>]*class="shrink-0"[^>]*>(?:(?!<\/svg>)[\s\S])*<\/svg>Registered name<\/span>/);
+    assert.doesNotMatch(html, /<svg[^>]*class="[^"]*\btext-accent\b/, "a fact's icon takes the state colour again");
     // Lead values in medium; a value's note in the quieter caption style.
     assert.match(html, /text-ink-strong \[overflow-wrap:anywhere\] font-medium">ABONI KNITWEAR LTD\./);
     assert.doesNotMatch(html, /<span class="inline-flex[^"]*"><svg[^>]*text-(?:positive|caution|danger|brand)/, "a fact's icon takes a status or brand colour");
