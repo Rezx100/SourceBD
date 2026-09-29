@@ -12,9 +12,12 @@ export function BarTitle({ text, title }: { text: string; /** The whole name, on
   const [shown, setShown] = useState(false);
   useEffect(() => {
     const head = ref.current?.closest("section")?.querySelector("[data-record-head]");
-    if (!head || typeof IntersectionObserver === "undefined") return;
-    // Shown once the head is wholly above the bar's foot (the bar is 52px).
-    const io = new IntersectionObserver(([e]) => setShown(!e!.isIntersecting && e!.boundingClientRect.top < 0), { rootMargin: "-52px 0px 0px 0px" });
+    const bar = ref.current?.parentElement;
+    if (!head || !bar || typeof IntersectionObserver === "undefined") return;
+    // Shown once the head is wholly above the bar's foot: 52px down inside a
+    // detail, 104px on a full page, where the bar sits under the topbar.
+    const foot = Math.round(bar.getBoundingClientRect().bottom);
+    const io = new IntersectionObserver(([e]) => setShown(!e!.isIntersecting && e!.boundingClientRect.top < foot), { rootMargin: `-${foot}px 0px 0px 0px` });
     io.observe(head);
     return () => io.disconnect();
   }, []);

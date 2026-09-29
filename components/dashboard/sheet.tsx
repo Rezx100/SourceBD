@@ -993,7 +993,7 @@ export function ActionBar({
       <Button variant="primary" lg disabled={sanctioned} href={sanctioned ? undefined : (rfqHref ?? undefined)} clientNav scroll={false} className="max-sm:order-2 max-sm:h-bar-button max-sm:flex-1">
         <Icon name="send" /> Send RFQ
       </Button>
-      <span className="contents max-sm:[&>*]:order-1 max-sm:[&>*]:h-bar-button">
+      <span className="contents max-sm:[&>button]:order-1 max-sm:[&>button]:h-bar-button">
         {save ?? (
           <Button lg disabled title="Saving a record needs a signed-in account">
             <Icon name="bookmark" /> Save
