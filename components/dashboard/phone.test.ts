@@ -16,7 +16,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { phoneFontSize } from "@/lib/design/tokens";
 import { installMenuDismiss, MENU_NAME, placePanel } from "@/lib/dashboard/menu-dismiss";
 import { MORE_NAV, NAV, PHONE_TABS } from "@/lib/dashboard/nav";
-import { buildCard, buildTableRow } from "@/lib/dashboard/build-models";
+import { buildCard, buildSheet, buildTableRow } from "@/lib/dashboard/build-models";
 import { aboniInput } from "@/lib/dashboard/fixtures";
 import { AccountMenu } from "./account-menu";
 import { AppShell } from "./app-shell";
@@ -25,9 +25,10 @@ import { ReportProblem } from "./report-problem";
 import { PanelHeader } from "./results-panel";
 import { ResultsTable } from "./results-table";
 import { SupplierResultCard } from "./supplier-result-card";
+import { SupplierSheet } from "./supplier-sheet";
 import { SearchComposer } from "./search-composer";
 import { RecordPane, ResultsColumn, SheetScroll } from "./sheet";
-import { goToSection, type TabClick } from "./sheet-tabs";
+import { goToSection, sectionAt, type TabClick } from "./sheet-tabs";
 
 const source = (p: string) => readFileSync(path.join(process.cwd(), p), "utf8");
 const KIT = "components/dashboard";
@@ -441,5 +442,48 @@ describe("M3. the list and the card on a phone", () => {
     assert.match(html, /<p data-line="" [^>]*class="[^"]*max-sm:line-clamp-2 sm:truncate/, "the facts are cut to one line on a phone");
     assert.match(html, /<a(?=[^>]*aria-label="Open [^"]*beside the results")(?=[^>]*class="[^"]*\bmax-sm:hidden\b)[^>]*>/, "Open is on the phone's card, which opens the record itself");
     assert.match(html, /max-sm:order-last max-sm:col-span-full max-sm:justify-end/, "the actions are not the card's last row");
+  });
+});
+
+describe("M4. the record on a phone", () => {
+  const html = renderToStaticMarkup(createElement(SupplierSheet, { model: { ...buildSheet(aboniInput()), closeHref: "/app/discover?q=knit", fullHref: "/app/suppliers/aboni-knitwear" } }));
+
+  it("a sticky bar: ‹ Results below lg, no read range or Expand on a phone, the name once the head has gone", () => {
+    const bar = classOf(html, /<div class="(flex min-h-\[52px\][^"]*)"/);
+    for (const c of ["max-md:sticky", "max-md:top-[theme(height.topbar-phone)]", "max-md:group-has-[[data-detail]]/shell:top-0", "max-md:bg-surface"]) assert.ok(bare(bar, c), `${c}: ${bar}`);
+    assert.match(html, /<a(?=[^>]*\blg:hidden\b)[^>]*href="\/app\/discover\?q=knit"[^>]*>(?:(?!<\/a>)[\s\S])*Results/, "no way back to the results on a phone");
+    assert.match(html, /aria-label="Close"[^>]*class="[^"]*\bhidden lg:inline-flex\b|class="[^"]*\bhidden lg:inline-flex\b[^"]*"[^>]*aria-label="Close"/, "a × on a phone, where nothing sits beside the record");
+    assert.match(html, /<span data-line="" title="Read [^"]*" class="hidden [^"]*\bmd:inline\b/, "the read range crowds a phone's bar");
+    assert.match(html, /<span aria-hidden="true" data-name="" title="[^"]+" class="[^"]*\bmd:hidden\b[^"]*">Aboni Knitwear Ltd<\/span>/, "no name in the bar for when the head has scrolled away");
+    assert.match(html, /<div data-record-head=""/);
+  });
+
+  it("the head: the name on two lines at most, the facts without dots, one line of marks", () => {
+    assert.match(html, /<h1 [^>]*><span data-name="" title="[^"]+" class="block max-sm:line-clamp-2 sm:truncate">/);
+    const meta = /export function MetaLine[\s\S]*?\n}\n/.exec(source(`${KIT}/supplier-result-card.tsx`).replace(/\r\n/g, "\n"))?.[0] ?? "";
+    assert.ok(meta, "MetaLine moved; this guard needs rewriting");
+    assert.doesNotMatch(meta, /content-\['·'\]/, "a wrapped facts line starts with a dot again");
+    assert.match(html, /max-sm:flex-nowrap max-sm:gap-1\.5 max-sm:\[&amp;&gt;\*\]:size-5 max-sm:\[&amp;&gt;\*:last-child\]:hidden/, "the head's marks wrap on a phone, or keep their count");
+  });
+
+  it("the tabs stick under the bar, snap, fade at their edge, and follow the section on screen", () => {
+    const nav = classOf(html, /<nav aria-label="Record sections" tabindex="0" class="([^"]*)"/);
+    for (const c of ["max-md:top-[calc(theme(height.topbar-phone)_+_52px)]", "max-md:group-has-[[data-detail]]/shell:top-[52px]", "max-md:snap-x", "max-md:[mask-image:linear-gradient(to_right,black_calc(100%-24px),transparent)]"]) {
+      assert.ok(bare(nav, c), `${c}: ${nav}`);
+    }
+    assert.match(html, /<a href="#products"[^>]*class="[^"]*\bmax-md:h-11 max-md:snap-start\b/);
+    assert.equal(sectionAt([{ id: "overview", top: 300 }, { id: "products", top: 900 }], 100), "overview", "above every section, the first is current");
+    assert.equal(sectionAt([{ id: "overview", top: -800 }, { id: "products", top: 90 }, { id: "sources", top: 600 }], 100), "products");
+    assert.match(html, /<section id="products" class="[^"]*max-md:scroll-mt-\[148px\] max-md:group-has-\[\[data-detail\]\]\/shell:scroll-mt-\[96px\]/, "a section lands under the stuck bar and tabs");
+  });
+
+  it("a fact is two lines on a phone, and the action bar sticks to the foot above the home bar", () => {
+    assert.match(html, /class="flex min-h-fact-row [^"]*max-sm:grid max-sm:grid-cols-\[minmax\(0,1fr\)_auto\]/, "a fact takes three lines, the mark alone on the last");
+    const bar = classOf(html, /<div class="(glass flex shrink-0 flex-wrap[^"]*)"/);
+    for (const c of ["max-md:sticky", "max-md:bottom-0", "max-md:pb-[max(0.75rem,env(safe-area-inset-bottom))]"]) assert.ok(bare(bar, c), `${c}: ${bar}`);
+    assert.match(html, /class="[^"]*max-sm:flex-1[^"]*"[^>]*>[\s\S]{0,400}?Send RFQ|Send RFQ[\s\S]{0,10}/);
+    const focus = source(`${KIT}/dialog-focus.tsx`);
+    assert.match(focus, /if \(paneIsScreen\(\)\) window\.scrollTo\(0, 0\);/, "a record opens part-way down on a phone");
+    assert.match(focus, /row\.scrollIntoView\(\{ block: "center" \}\)/, "closing a record leaves the row it came from off the screen");
   });
 });

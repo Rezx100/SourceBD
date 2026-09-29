@@ -14,9 +14,18 @@
 //
 // The pane is not a dialog: the results stay live beside it. `data-record-pane`
 // is what marks it.
+//
+// Below `lg` the pane is the whole screen and the window scrolls (the phone
+// hand-off's R12): a record opens at its top, not part-way down where the
+// list was, and closing brings the row it was opened from back into view.
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
+
+/** Whether the pane is the whole screen (below `lg`), where the window scrolls to the record and back. */
+function paneIsScreen(): boolean {
+  return typeof window.matchMedia === "function" && !window.matchMedia("(min-width: 1024px)").matches;
+}
 
 /** The record link in the results for `slug`: the element focus returns to. */
 export function openerFor(slug: string, links: Iterable<HTMLAnchorElement>, key: "record" | "open" = "record"): HTMLAnchorElement | null {
@@ -45,7 +54,8 @@ export function DialogFocus({ closeHref, openKey }: { closeHref: string; openKey
       const open = q.get("open");
       opener.current = record ? { key: "record", id: record } : open ? { key: "open", id: open } : null;
     }
-    document.querySelector<HTMLElement>("[data-record-pane]")?.focus();
+    if (paneIsScreen()) window.scrollTo(0, 0);
+    document.querySelector<HTMLElement>("[data-record-pane]")?.focus({ preventScroll: true });
   }, [openKey]);
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -58,7 +68,13 @@ export function DialogFocus({ closeHref, openKey }: { closeHref: string; openKey
       document.removeEventListener("keydown", onKey);
       // After the commit that removes the pane, so the results are back on screen.
       const o = opener.current;
-      if (o) setTimeout(() => openerFor(o.id, document.querySelectorAll("a[href]"), o.key)?.focus({ preventScroll: true }), 0);
+      if (o) {
+        setTimeout(() => {
+          const row = openerFor(o.id, document.querySelectorAll("a[href]"), o.key);
+          row?.focus({ preventScroll: true });
+          if (row && paneIsScreen()) row.scrollIntoView({ block: "center" });
+        }, 0);
+      }
     };
   }, [closeHref, router]);
   return null;

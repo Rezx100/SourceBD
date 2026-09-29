@@ -647,7 +647,7 @@ describe("the facts read in three levels, with an icon on every fact (founder, 2
     assert.match(html, /<span class="inline-flex[^"]*text-ink-muted[^"]*"><svg[^>]*class="shrink-0"[^>]*>(?:(?!<\/svg>)[\s\S])*<\/svg>Registered name<\/span>/);
     assert.doesNotMatch(html, /<svg[^>]*class="[^"]*\btext-accent\b/, "a fact's icon takes the state colour again");
     // Lead values in medium; a value's note in the quieter caption style.
-    assert.match(html, /text-ink-strong \[overflow-wrap:anywhere\] font-medium">ABONI KNITWEAR LTD\./);
+    assert.match(html, /text-ink-strong \[overflow-wrap:anywhere\] font-medium[^"]*">ABONI KNITWEAR LTD\./);
     assert.doesNotMatch(html, /<span class="inline-flex[^"]*"><svg[^>]*text-(?:positive|caution|danger|brand)/, "a fact's icon takes a status or brand colour");
   });
 });

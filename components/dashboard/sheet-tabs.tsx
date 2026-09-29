@@ -10,8 +10,18 @@
 // replaces the URL's fragment rather than adding a
 // history entry. The href stays for a reader without script.
 
-import type { MouseEvent } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { cn } from "@/lib/utils";
+
+/**
+ * The section being read: the last one whose top has reached `line` (the foot
+ * of the stuck tabs), else the first. `tops` in the page's order.
+ */
+export function sectionAt(tops: readonly { id: string; top: number }[], line: number): string | null {
+  let at = tops[0]?.id ?? null;
+  for (const t of tops) if (t.top <= line) at = t.id;
+  return at;
+}
 
 /** What a tab needs from a click event; exported with `goToSection` for its test. */
 export type TabClick = Pick<MouseEvent<HTMLAnchorElement>, "currentTarget" | "defaultPrevented" | "button" | "metaKey" | "ctrlKey" | "shiftKey" | "altKey" | "preventDefault">;
@@ -60,6 +70,45 @@ export function SheetTabs({ tabs }: { tabs: readonly { label: string; count: str
   // Eight tabs at 320px is ~640px of nav. It scrolls sideways rather than
   // wrapping into three rows or pushing the sheet past the viewport, and
   // `tabIndex` lets a keyboard reach that scroll region (WCAG 2.1.1).
+  //
+  // The current tab follows the section on screen (the phone hand-off's D6),
+  // in the pane's own scroll or the window's, and scrolls itself into view in
+  // the strip, so a buyer three screens into a record sees where they are.
+  const ref = useRef<HTMLElement>(null);
+  const [reading, setReading] = useState<string | null>(null);
+  const ids = tabs.flatMap((t) => (t.href?.startsWith("#") ? [decodeURIComponent(t.href.slice(1))] : []));
+  const idKey = ids.join(" ");
+  useEffect(() => {
+    const nav = ref.current;
+    if (!nav) return;
+    const scroller = nav.closest<HTMLElement>("[data-sheet-scroll]");
+    const root: ParentNode = scroller ?? document;
+    const list = idKey ? idKey.split(" ") : [];
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const tops = list.map((id) => ({ id, top: root.querySelector<HTMLElement>(`#${CSS.escape(id)}`)?.getBoundingClientRect().top ?? Infinity }));
+      setReading(sectionAt(tops, nav.getBoundingClientRect().bottom + 8));
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    scroller?.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", onScroll);
+      scroller?.removeEventListener("scroll", onScroll);
+    };
+  }, [idKey]);
+  useEffect(() => {
+    const nav = ref.current;
+    const tab = reading ? nav?.querySelector<HTMLElement>(`a[href="#${CSS.escape(reading)}"]`) : null;
+    if (!nav || !tab) return;
+    const left = tab.offsetLeft - nav.offsetLeft;
+    if (left < nav.scrollLeft || left + tab.offsetWidth > nav.scrollLeft + nav.clientWidth) nav.scrollTo({ left: Math.max(0, left - 16) });
+  }, [reading]);
+  const isOn = (t: { href: string | null; active?: boolean }) => (reading === null ? Boolean(t.active) : t.href === `#${reading}`);
   return (
     // Sticky: on a record that runs to 3,000px the tabs used to scroll away
     // after the first screen, and compliance staff jumping to Sources or
@@ -69,10 +118,14 @@ export function SheetTabs({ tabs }: { tabs: readonly { label: string; count: str
     // the numeric class here compiled to nothing (the theme's z scale replaces
     // Tailwind's), and product photos scrolling up painted over the tabs
     // (founder's review, 29 Sep 2026).
+    // On a phone it sticks under the record's 52px bar (under the app's
+    // topbar too on a full page), snaps a tab at a time and fades at its
+    // right edge, so a cut tab reads as "more this way" (D6).
     <nav
+      ref={ref}
       aria-label="Record sections"
       tabIndex={0}
-      className="sticky top-0 z-raised flex gap-5 overflow-x-auto border-b border-line-subtle bg-surface px-6 pt-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="sticky top-0 z-raised flex gap-5 overflow-x-auto border-b border-line-subtle bg-surface px-6 pt-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden max-md:top-[calc(theme(height.topbar-phone)_+_52px)] max-md:snap-x max-md:scroll-px-4 max-md:gap-6 max-md:px-4 max-md:pr-8 max-md:pt-0 max-md:[mask-image:linear-gradient(to_right,black_calc(100%-24px),transparent)] max-md:group-has-[[data-detail]]/shell:top-[52px]"
     >
       {tabs.map((t) => (
         <a
@@ -82,16 +135,16 @@ export function SheetTabs({ tabs }: { tabs: readonly { label: string; count: str
           aria-disabled={t.href === null ? "true" : undefined}
           tabIndex={t.href === null ? -1 : undefined}
           title={t.href === null ? "Not available on this record" : undefined}
-          aria-current={t.active ? "true" : undefined}
+          aria-current={isOn(t) ? "true" : undefined}
           className={cn(
-            "-mb-px inline-flex h-10 items-center gap-1.5 whitespace-nowrap border-b-2 border-transparent text-base font-medium text-ink-muted transition-colors duration-fast hover:text-ink-strong",
+            "-mb-px inline-flex h-10 items-center gap-1.5 whitespace-nowrap border-b-2 border-transparent text-base font-medium text-ink-muted transition-colors duration-fast hover:text-ink-strong max-md:h-11 max-md:snap-start max-sm:text-[0.9375rem]",
             t.href === null && "text-ink-subtle hover:text-ink-subtle",
-            t.active && "border-accent text-ink-strong",
+            isOn(t) && "border-accent text-ink-strong",
           )}
         >
           {t.label}
           {t.count !== null ? (
-            <span className={cn("font-mono text-[11px] text-ink-subtle", t.active && "text-brand-ink")}>{t.count}</span>
+            <span className={cn("font-mono text-[11px] text-ink-subtle", isOn(t) && "text-brand-ink")}>{t.count}</span>
           ) : null}
         </a>
       ))}

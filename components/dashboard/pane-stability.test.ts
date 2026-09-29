@@ -27,6 +27,7 @@ import { SOURCE_LOGO_FILES } from "@/lib/dashboard/source-logos";
 import { AppShell } from "./app-shell";
 import { RESULTS_COLUMNS, RESULTS_MIN_WIDTH, ResultsTable } from "./results-table";
 import { SheetSection, Workbench } from "./sheet";
+import { callWithHooks } from "./hook-harness";
 import { SheetTabs, goToSection, type TabClick } from "./sheet-tabs";
 import { WorkersCell } from "./workers-cell";
 
@@ -64,13 +65,13 @@ describe("1. a record tab scrolls the pane, never the app", () => {
   });
 
   it("every tab link carries the handler", () => {
-    const nav = SheetTabs({
+    const nav = callWithHooks(SheetTabs, {
       tabs: [
         { label: "Overview", count: null, href: "#overview", active: true },
         { label: "Products", count: "6", href: "#products" },
         { label: "Facilities", count: null, href: null },
       ],
-    });
+    }).out;
     const links: ReactElement<{ onClick?: unknown }>[] = [];
     const walk = (n: ReactNode) => {
       if (Array.isArray(n)) n.forEach(walk);

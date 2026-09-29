@@ -35,16 +35,12 @@ import { Code, Title } from "./type";
  */
 export function MetaLine({ facts, inRow, className }: { facts: readonly FactWithMark[]; inRow?: ReadonlySet<string>; className?: string }) {
   return (
-    <div className={cn("flex flex-wrap items-center gap-y-1 text-base text-ink-muted", className)}>
+    // The facts as a wrapping row of icon and value, 16px apart and no dots
+    // (the phone hand-off's D6): a dot drawn before each fact went to the start
+    // of the line whenever the row wrapped. Each fact stays whole.
+    <div className={cn("flex flex-wrap items-center gap-x-4 gap-y-1 text-base text-ink-muted", className)}>
       {facts.map((f, i) => (
-        <span
-          key={`${f.text}-${i}`}
-          className={cn(
-            "inline-flex items-center gap-1.5",
-            i > 0 && "before:mx-2.5 before:text-ink-subtle before:content-['·']",
-            f.quiet && "text-quiet-ink",
-          )}
-        >
+        <span key={`${f.text}-${i}`} className={cn("inline-flex items-center gap-1.5 whitespace-nowrap", f.quiet && "text-quiet-ink")}>
           {/* The fact's icon, in the line's ink-muted, the way a place card or a company header
               shows it (founder, 29 Sep 2026). */}
           {f.icon ? <SbIcon name={f.icon} /> : null}
