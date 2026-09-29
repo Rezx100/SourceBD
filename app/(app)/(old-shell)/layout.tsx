@@ -1,11 +1,20 @@
-// Authenticated app shell. Wraps the buyer (`/app`), supplier (`/supplier`)
-// and admin (`/admin`) route groups with the shared topbar + sidebar per
-// `context/frontend-design-spec.md` §2. Per-role sidebar slot list is
-// resolved client-side by `Sidebar` from the path. Auth enforcement lives in
-// `middleware.ts` (placeholder in F2; real Supabase session in F3).
-// Sidebar badge counts are fetched here (server) from existing RPCs
-// (`buyer_dashboard` migration 0026, `admin_dashboard` migration 0037,
-// `settings_get`) so the client component stays pure render.
+// The older app shell: the supplier portal (`/supplier`) and admin (`/admin`)
+// with the shared topbar + sidebar per `context/frontend-design-spec.md` §2.
+// Per-role sidebar slot list is resolved client-side by `Sidebar` from the
+// path. Auth enforcement lives in `middleware.ts` (placeholder in F2; real
+// Supabase session in F3). Sidebar badge counts are fetched here (server)
+// from existing RPCs (`buyer_dashboard` migration 0026, `admin_dashboard`
+// migration 0037, `settings_get`) so the client component stays pure render.
+//
+// It has a route group of its own, `(old-shell)`, so it wraps nothing else
+// (29 Sep 2026). As the whole `(app)` group's layout it ran these reads on
+// every full load of an /app page too — six calls from Amsterdam to the
+// database in California, three of them one after another — and then drew
+// nothing there: the buyer layout draws the buyer's shell and reads what it
+// shows.
+// Choosing from a request header cannot replace the group: a layout is not
+// re-rendered on a client navigation, so an admin following a link from an
+// /app page into /admin would keep what the first load chose.
 
 import { Sidebar, type SidebarBadges } from "@/components/shell/sidebar";
 import { SidebarRail } from "@/components/shell/sidebar-rail";
@@ -16,7 +25,6 @@ import { PostHogProvider } from "@/lib/posthog/provider";
 import { ScrollToTop } from "@/components/shell/scroll-to-top";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getServerRole } from "@/lib/auth";
-import { ShellSwitch } from "@/components/shell/shell-switch";
 
 type SettingsDoc = {
   email: string | null;
@@ -142,45 +150,41 @@ export default async function AppShellLayout({
     // Fail-soft: render the shell with whatever we managed to collect.
   }
 
-  // Which shell a page gets is decided in `ShellSwitch`, on the client: the
-  // kit's pages draw their own, and a layout is not re-rendered on a client
-  // navigation, so a choice made here from the request stayed wrong after
-  // following a link from an old-shell page into a kit page.
   return (
     <PostHogProvider userId={userId}>
-      <ShellSwitch
-        top={
-          <>
-            <ScrollToTop />
-            <SkipLink />
-            <Topbar role={role} moatTotal={moatTotal} avatarUrl={avatarUrl} displayName={displayName} email={email} />
-          </>
-        }
-        side={
-          <>
-            {/* R2 — tablet portrait (md..<lg) renders the icon-only rail,
-                desktop (≥lg) renders the full sidebar. Both have their own
-                visibility class so they never both render at the same width. */}
-            <SidebarRail role={role} />
-            <Sidebar
-              role={role}
-              email={email}
-              displayName={displayName}
-              avatarUrl={avatarUrl}
-              planTier={planTier}
-              moatTotal={moatTotal}
-              moatRefreshedAt={moatRefreshedAt}
-              badges={badges}
-            />
-          </>
-        }
-        // R2 — phone only (md:hidden). Bottom-tab covers the top 5
-        // destinations per role; the full sidebar is available via the
-        // topbar hamburger.
-        bottom={<BottomTabBar role={role} />}
-      >
-        {children}
-      </ShellSwitch>
+      <div className="flex min-h-dvh flex-col bg-bg-l0">
+        <ScrollToTop />
+        <SkipLink />
+        <Topbar role={role} moatTotal={moatTotal} avatarUrl={avatarUrl} displayName={displayName} email={email} />
+        <div className="flex flex-1 flex-col md:flex-row md:items-start">
+          {/* R2 — tablet portrait (md..<lg) renders the icon-only rail,
+              desktop (≥lg) renders the full sidebar. Both have their own
+              visibility class so they never both render at the same width. */}
+          <SidebarRail role={role} />
+          <Sidebar
+            role={role}
+            email={email}
+            displayName={displayName}
+            avatarUrl={avatarUrl}
+            planTier={planTier}
+            moatTotal={moatTotal}
+            moatRefreshedAt={moatRefreshedAt}
+            badges={badges}
+          />
+          <div
+            role="main"
+            id="main-content"
+            tabIndex={-1}
+            className="flex-1 px-4 pb-[calc(56px+env(safe-area-inset-bottom,0px)+1rem)] pt-6 md:min-h-[calc(100dvh-3.5rem)] md:px-10 md:pb-12 md:pt-10 lg:px-12 focus:outline-none"
+          >
+            {children}
+          </div>
+        </div>
+        {/* R2 — phone only (md:hidden). Bottom-tab covers the top 5
+            destinations per role; the full sidebar is available via the
+            topbar hamburger. */}
+        <BottomTabBar role={role} />
+      </div>
     </PostHogProvider>
   );
 }

@@ -12,6 +12,8 @@ import { TAG_DISCOVER_SUPPLIERS } from "@/lib/cache/tags";
 export type BuyerShellModels = {
   sidebar: SidebarModel;
   topbar: TopbarModel;
+  /** Who is signed in, for analytics; null when the sign-in was not read. */
+  userId: string | null;
 };
 
 function asRow(raw: unknown): DiscoverV32Row | null {
@@ -70,7 +72,7 @@ export async function readPublishedCount(): Promise<number | null> {
 
 export async function loadBuyerShell(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: RpcClient & { from: (t: string) => any; auth: { getUser: () => Promise<{ data: { user: { email?: string; user_metadata?: Record<string, unknown> } | null } }> } },
+  supabase: RpcClient & { from: (t: string) => any; auth: { getUser: () => Promise<{ data: { user: { id?: string; email?: string; user_metadata?: Record<string, unknown> } | null } }> } },
   /**
    * The layout draws the shell once for every page and leaves this out: the
    * rail then marks the current item from the URL on the client, so the mark
@@ -92,7 +94,7 @@ export async function loadBuyerShell(
   };
 
   // Four independent reads, one wave. They used to run in three.
-  const [saved, published, rfqs, account] = await Promise.all([
+  const [saved, published, rfqs, signedIn] = await Promise.all([
     soft(async () => {
       const { data: dash } = await supabase.rpc("buyer_dashboard");
       // `saved_count` is a bigint on the SQL side, which PostgREST may send
@@ -113,12 +115,16 @@ export async function loadBuyerShell(
       // two letters; an email gets its first.
       const fullName = typeof meta.full_name === "string" ? meta.full_name.trim() : "";
       return {
-        initial: fullName ? initials(fullName) : (email.trim()[0]?.toUpperCase() ?? null),
-        name: fullName || null,
-        email: email.trim() || null,
+        userId: data.user?.id ?? null,
+        account: {
+          initial: fullName ? initials(fullName) : (email.trim()[0]?.toUpperCase() ?? null),
+          name: fullName || null,
+          email: email.trim() || null,
+        },
       };
     }),
   ]);
+  const account = signedIn?.account ?? null;
   const initial = account?.initial ?? null;
 
   const captionParts = [
@@ -140,6 +146,7 @@ export async function loadBuyerShell(
       initial,
       searchAction: "/app/discover",
     },
+    userId: signedIn?.userId ?? null,
   };
 }
 

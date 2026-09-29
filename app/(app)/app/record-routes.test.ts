@@ -24,7 +24,6 @@ import path from "node:path";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 
 import { aboniInput, sanctionedInput, TODAY, zaheenSampleInput } from "@/lib/dashboard/fixtures";
-import { drawsKitShell } from "@/lib/dashboard/kit-shell";
 
 // ---------------------------------------------------------------------------
 // A fake `@/lib/supabase/server`, installed into the module cache before the
@@ -58,7 +57,11 @@ type FromCall = { table: string; filters: { op: string; args: unknown[] }[]; sel
 let fromCalls: FromCall[] = [];
 /** Every `.rpc(fn, args)` call, so a test can assert what the routes SEND, not only what they do with the answer. */
 let rpcCalls: { fn: string; args: Record<string, unknown> | undefined }[] = [];
-/** What `usePathname()` answers — the path the client-side shell switch reads. */
+/** How many times `auth.getUser()` asked who is signed in: a round trip each. */
+let authCalls = 0;
+/** How many times the buyer layout read its shell (stubbed below). */
+let shellLoads = 0;
+/** What `usePathname()` answers — the path the client-side navigation reads. */
 let currentPath = "/app/discover";
 
 /**
@@ -85,7 +88,7 @@ function fakeClient() {
   };
   return {
     rpc: async (fn: string, args?: Record<string, unknown>) => (rpcCalls.push({ fn, args }), rpc(fn)),
-    auth: { getUser: async () => ({ data: { user: answers.userId === null ? null : { id: answers.userId ?? "buyer-1" } } }) },
+    auth: { getUser: async () => (authCalls++, { data: { user: answers.userId === null ? null : { id: answers.userId ?? "buyer-1" } } }) },
     from(table: string) {
       const call: FromCall = { table, filters: [] };
       fromCalls.push(call);
@@ -112,6 +115,8 @@ function fakeClient() {
 function given(a: Answers): void {
   fromCalls = [];
   rpcCalls = [];
+  authCalls = 0;
+  shellLoads = 0;
   answers = a;
 }
 
@@ -148,19 +153,23 @@ function given(a: Answers): void {
     [
       "lib/dashboard/load-buyer-shell.js",
       {
-        // The real shell reads `buyer_dashboard` and `settings_get`; these
+        // The real shell reads the dashboard, the RFQ count, the published
+        // count and who is signed in (`load-buyer-shell.test.ts`); these
         // routes are not what that is about, so it is stubbed with a valid
         // `SidebarModel`/`TopbarModel` and nothing more.
-        loadBuyerShell: async () => ({
-          sidebar: {
-            active: "suppliers" as const,
-            activeExact: false,
-            counts: { suppliers: null, rfqs: null, saved: null },
-            recent: [],
-            plan: { name: "Free · public beta", note: null, used: null, allowance: null },
-          },
-          topbar: { caption: "", searchQuery: "" },
-        }),
+        loadBuyerShell: async () => {
+          shellLoads++;
+          return {
+            sidebar: {
+              active: "suppliers" as const,
+              activeExact: false,
+              counts: { suppliers: null, rfqs: null, saved: null },
+              recent: [],
+              plan: { name: "Free · public beta", note: null, used: null, allowance: null },
+            },
+            topbar: { caption: "", searchQuery: "" },
+          };
+        },
       },
     ],
   ] as const) {
@@ -776,7 +785,7 @@ describe("/supplier/rfqs/[id] — what the buyer wrote reaches the supplier", ()
         rfq_list: { data: [], error: null },
       },
     });
-    const Page = route("app/(app)/supplier/rfqs/[id]/page.js").default;
+    const Page = route("app/(app)/(old-shell)/supplier/rfqs/[id]/page.js").default;
     const out = html(await outcome(() => Page({ params: Promise.resolve({ id: RFQ_ID }) })));
     assert.match(out, /Hello, we would like a quotation for the trousers below\./, "the supplier never sees the buyer's message");
     assert.match(out, /<li>Unit price at this quantity, FOB Chattogram<\/li>/);
@@ -1490,20 +1499,79 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
     assert.doesNotMatch(list, /Gulshan-2/, "a later address is shown in place of the first");
   });
 
-  it("the app layout draws the old shell around an old page, and nothing around a kit page", async () => {
-    // The layout's own boundary: its skip link and main landmark, rendered —
-    // not its source text read. The shell switch reads the path on the
-    // client, so the path here is what `usePathname` answers.
-    const Layout = route("app/(app)/layout.js").default;
-    const render = async (path: string) => {
-      currentPath = path;
-      given({ userId: "buyer-1" });
-      return html(await outcome(() => Layout({ children: createElement("p", null, "PAGE-BODY") })));
-    };
+  /**
+   * A page's placeholder inside every `layout.tsx` Next draws around it, as
+   * the layouts render it, with every read going through the stub. The root
+   * layout is left out: it loads the fonts, which need Next's compiler, and
+   * reads nothing.
+   */
+  const inLayouts = async (page: string) => {
+    given({ userId: "buyer-1" });
+    const layouts: string[] = [];
+    for (let dir = path.posix.dirname(page); dir !== "app"; dir = path.posix.dirname(dir)) {
+      if (existsSync(path.join(process.cwd(), dir, "layout.tsx"))) layouts.push(`${dir}/layout.js`);
+    }
+    // Innermost first, so each layout wraps what the one inside it drew.
+    let tree: ReactElement = createElement("p", null, "PAGE-BODY");
+    for (const layout of layouts) tree = await route(layout).default({ children: tree });
+    return { layouts, out: html(await outcome(async () => tree)) };
+  };
+  /** Every read the stub saw since `given`, one label each. */
+  const readsSeen = () =>
+    [
+      ...Array.from({ length: authCalls }, () => "auth.getUser"),
+      ...rpcCalls.map((c) => `rpc ${c.fn}`),
+      ...fromCalls.map((c) => `from ${c.table} ${c.select ?? ""}`.trim()),
+    ].sort();
+
+  it("an /app page's layouts make none of the older shell's reads", async () => {
+    // 29 Sep 2026: the `(app)` group's layout asked who is signed in, read
+    // the role, counted the published suppliers and read the settings and a
+    // dashboard on every full load of an /app page — six calls from Amsterdam
+    // to the database in California, three of them one after another — and
+    // then drew nothing around it. That layout is `(old-shell)`'s now.
+    const app = await inLayouts("app/(app)/app/suppliers/[slug]/page.tsx");
+    assert.ok(app.layouts.includes("app/(app)/app/layout.js"), `guard: the buyer layout was not found (${app.layouts.join(", ")})`);
+    assert.match(app.out, /PAGE-BODY/);
+    const appReads = readsSeen();
+    // The buyer shell once (its four reads are stubbed here and counted in
+    // `load-buyer-shell.test.ts`), then the tour's two: who is signed in, and
+    // whether they have dismissed it. Nothing else.
+    assert.equal(shellLoads, 1, "the buyer layout did not read its shell exactly once");
+    assert.deepEqual(appReads, ["auth.getUser", "from profiles role, onboarding_state"], `the layouts around an /app page read more: ${appReads.join("; ")}`);
+
+    // Not vacuous: through the same stub, the older shell's reads show up
+    // where it is still drawn.
+    currentPath = "/supplier/rfqs";
     try {
-      // Every /app page draws the kit's shell since 27 Sep; the supplier
-      // portal is the old shell's remaining user.
-      const old = await render("/supplier/rfqs");
+      await inLayouts("app/(app)/(old-shell)/supplier/rfqs/[id]/page.tsx");
+    } finally {
+      currentPath = "/app/discover";
+    }
+    const oldReads = readsSeen();
+    for (const read of ["rpc settings_get", "from suppliers id", "from profiles role"]) {
+      assert.ok(oldReads.includes(read), `the stub no longer sees the older shell's ${read}: ${oldReads.join("; ")}`);
+    }
+
+    // Which pages that shell wraps is the file tree's to say: every page of
+    // the supplier portal and admin, and no /app page.
+    const pages = walk(path.join(process.cwd(), "app", "(app)"))
+      .filter((f) => path.basename(f) === "page.tsx")
+      .map((f) => path.relative(process.cwd(), f).split(path.sep).join("/"));
+    for (const file of pages) {
+      const url = "/" + file.split("/").slice(1, -1).filter((seg) => !/^\(.*\)$/.test(seg)).join("/");
+      const inOldShell = file.startsWith("app/(app)/(old-shell)/");
+      assert.equal(inOldShell, /^\/(?:admin|supplier)(?:\/|$)/.test(url), `${url} is ${inOldShell ? "" : "not "}inside the older shell's layout (${file})`);
+    }
+    assert.ok(pages.some((f) => f.startsWith("app/(app)/(old-shell)/admin/")), "guard: the admin pages were not found");
+  });
+
+  it("the older shell's layout draws its shell around the supplier portal and admin", async () => {
+    // Its own boundary: the skip link and main landmark, rendered — not its
+    // source text read. The rail and tab bar mark the page `usePathname` names.
+    currentPath = "/supplier/rfqs";
+    try {
+      const { out: old } = await inLayouts("app/(app)/(old-shell)/supplier/rfqs/[id]/page.tsx");
       assert.match(old, /href="#main-content"/, "the old shell lost its skip link");
       assert.equal((old.match(/<div[^>]*role="main"[^>]*>/g) ?? []).filter((m) => m.includes('id="main-content"')).length, 1, "the old shell has no main landmark");
       assert.match(old, /PAGE-BODY/);
@@ -1513,13 +1581,6 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
       assert.match(old, /aria-label="Collapsed primary navigation"/, "the old shell lost its sidebar rail");
       assert.match(old, /aria-label="Primary navigation"/, "the old shell lost its bottom tab bar");
       assert.match(old, /<div[^>]*role="main"[^>]*tabindex="-1"|<div[^>]*tabindex="-1"[^>]*role="main"/i, "the skip link's target cannot take focus");
-      const kit = await render("/app/suppliers/aboni-knitwear");
-      assert.doesNotMatch(kit, /href="#main-content"|role="main"/, "the old shell is drawn around a kit page");
-      assert.doesNotMatch(kit, /<header\b|aria-label="(?:Collapsed primary|Primary) navigation"/, "a piece of the old shell is drawn around a kit page");
-      // The kit page's wrappers draw no box of their own: the same three divs
-      // (so nothing remounts), each `display: contents`.
-      assert.equal((kit.match(/<div class="contents">/g) ?? []).length, 3, "a kit page is wrapped in a box that lays it out");
-      assert.match(kit, /PAGE-BODY/);
     } finally {
       currentPath = "/app/discover";
     }
@@ -1592,19 +1653,21 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
     // state that drew a sidebar, a skip link or a main landmark of its own
     // would put a second of each inside the layout's for as long as the page
     // took — and a plan it does not know.
-    const kitLoading = walk(path.join(process.cwd(), "app", "(app)", "app"))
-      .filter((f) => path.basename(f) === "loading.tsx")
-      .map((f) => path.relative(process.cwd(), f).split(path.sep).join("/"))
-      .filter((f) => drawsKitShell("/" + f.replace(/^app\/\(app\)\//, "").replace(/\/loading\.tsx$/, "")));
     // Every /app route is the kit's, so every /app loading state is
     // governed by this.
-    const allLoading = walk(path.join(process.cwd(), "app", "(app)", "app"))
+    const kitLoading = walk(path.join(process.cwd(), "app", "(app)", "app"))
       .filter((f) => path.basename(f) === "loading.tsx")
       .map((f) => path.relative(process.cwd(), f).split(path.sep).join("/"));
-    assert.deepEqual(kitLoading.sort(), allLoading.sort(), "an /app loading state is outside the kit's routes");
     // Counted from the disk, not pinned: the list pages' skeletons moved into
     // `(list)` groups on 27 Sep 2026, and the detail pages lost theirs.
     assert.ok(kitLoading.length > 0, "the /app loading states were not found");
+    // And they are the kit's frame. The search's and Saved's are their
+    // workbench frame itself (`ResultsColumn`, 28 Sep 2026), so the results
+    // replace them in place.
+    for (const dir of ["discover", "saved", "products/(list)", "searches"]) {
+      const loading = readFileSync(path.join(process.cwd(), "app", "(app)", "app", ...dir.split("/"), "loading.tsx"), "utf8");
+      assert.match(loading, /<KitLoading\b|<ResultsColumn\b/, `/app/${dir}'s loading state has no frame`);
+    }
     for (const file of kitLoading) {
       const out = renderToStaticMarkup(createElement(route(file.replace(/\.tsx$/, ".js")).default));
       assert.doesNotMatch(out, /href="#main-content"|<main\b|<aside\b|aria-label="Account and settings"/, `${file}: a second shell inside the layout's`);

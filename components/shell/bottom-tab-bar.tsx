@@ -1,7 +1,7 @@
 "use client";
 
 // Spec R1 — BottomTabBar.
-// Spec R2 — Wired into `app/(app)/layout.tsx` at `md:hidden` so phones get
+// Spec R2 — Wired into `app/(app)/(old-shell)/layout.tsx` at `md:hidden` so phones get
 // the bottom-tab + MobileDrawer hamburger combo, with no overlap onto the
 // tablet rail or the desktop sidebar.
 //

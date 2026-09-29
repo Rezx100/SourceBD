@@ -72,6 +72,18 @@ Expected after the deploy and 0107: a record ~1.5–1.8 s from click (was
 3.9–4.9), a line ~1.3–1.6 s (was 3.3–4.3). Most of the ~1 s before the first
 byte stays: see below.
 
+## Full page loads (after PR 1, branch `speed-app-skip-old-shell-reads`)
+
+Opening the app, a refresh or a pasted link (not a click inside the app: a
+layout is not re-rendered on a client navigation) also ran the `(app)`
+group's layout, the older shell's: sign-in twice, role, published-supplier
+count, settings, dashboard — six calls, three of them one after another —
+and it then drew nothing around an /app page. It now wraps only `/supplier`
+and `/admin` (`app/(app)/(old-shell)/layout.tsx`); an /app full load makes
+none of its reads. Guard: `app/(app)/app/record-routes.test.ts`, "an /app
+page's layouts make none of the older shell's reads". Not measured yet: the
+steps timed above are all clicks.
+
 ## What is left, and needs the founder
 
 The rest of the first ~1 s of every click (item 2 above). The founder was

@@ -8,16 +8,19 @@
 // `md` up — the page never scrolls, the content region or a pane inside it
 // does.
 //
-// The app layout above still routes through `ShellSwitch`, which draws
-// nothing around a /app route. Spec H5's onboarding tour mounts after the
-// shell; it short-circuits server-side once the buyer has completed or
-// dismissed it.
+// No layout of the `(app)` group sits above this one: the older shell's
+// layout, and its reads, wrap only the supplier portal and admin
+// (`app/(app)/(old-shell)`, 29 Sep 2026). So analytics learns who is signed
+// in here, from the shell's own sign-in read. Spec H5's onboarding tour
+// mounts after the shell; it short-circuits server-side once the buyer has
+// completed or dismissed it.
 
 import { preload } from "react-dom";
 import { AppShell } from "@/components/dashboard/app-shell";
 import { TourMount } from "@/components/onboarding/tour-mount";
 import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { SOURCE_LOGO_FILES } from "@/lib/dashboard/source-logos";
+import { PostHogProvider } from "@/lib/posthog/provider";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export default async function BuyerLayout({ children }: { children: React.ReactNode }) {
@@ -29,11 +32,11 @@ export default async function BuyerLayout({ children }: { children: React.ReactN
   const supabase = await createSupabaseServerClient();
   const shell = await loadBuyerShell(supabase);
   return (
-    <>
+    <PostHogProvider userId={shell.userId}>
       <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content">
         {children}
       </AppShell>
       <TourMount flavour="buyer" />
-    </>
+    </PostHogProvider>
   );
 }
