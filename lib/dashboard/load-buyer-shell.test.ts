@@ -203,7 +203,7 @@ describe("the shell's reads go out in one wave", () => {
     await new Promise((r) => setImmediate(r));
     assert.deepEqual(
       [...started].sort(),
-      ["auth", "from:rfqs", "rpc:buyer_dashboard", "rpc:discover_suppliers"],
+      ["auth", "from:rfqs", "rpc:buyer_dashboard", "rpc:discover_suppliers", "rpc:settings_get"],
       "a read waited on another before starting",
     );
     release();

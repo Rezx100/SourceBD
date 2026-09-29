@@ -5,6 +5,25 @@
 
 import type { IconName } from "@/components/dashboard/icons";
 
+/** The cookie that keeps the rail collapsed to its icons: written by `RailToggle`, read by the buyer layout. */
+export const RAIL_COOKIE = "sb_rail";
+
+/**
+ * A full record page's `?back=`: the list it was expanded from (the pane's
+ * Expand). Only a path inside the buyer app is followed; anything else draws
+ * no Back link, so the parameter cannot send the buyer off the site.
+ */
+export function backToList(raw: string | string[] | undefined): string | null {
+  const back = Array.isArray(raw) ? raw[0] : raw;
+  if (!back || !back.startsWith("/app/") || /[\\\s]/.test(back)) return null;
+  try {
+    const url = new URL(back, "https://sourcebd.invalid");
+    return url.origin === "https://sourcebd.invalid" && url.pathname.startsWith("/app/") ? `${url.pathname}${url.search}` : null;
+  } catch {
+    return null;
+  }
+}
+
 export type NavKey =
   | "search"
   | "suppliers"
