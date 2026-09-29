@@ -187,13 +187,23 @@ export function Workbench({ children }: { children: ReactNode }) {
   return <div className="relative flex min-h-0 flex-1 flex-col lg:flex-row lg:overflow-clip">{children}</div>;
 }
 
+/**
+ * On a phone a detail's bar and its tabs stick to the screen (the phone
+ * hand-off's D6): at its top inside a detail, where the app's bars step aside
+ * (`data-detail`), and under the app's 52px topbar on a full page. The bar is
+ * 52px, so the tabs stick 52px lower.
+ */
+const STICK_BAR = "max-md:sticky max-md:top-[theme(height.topbar-phone)] max-md:z-sticky max-md:bg-surface max-md:group-has-[[data-detail]]/shell:top-0";
+/** A section lands under the stuck bar and tabs (52 + 44, plus the topbar's 52 on a full page). */
+const SECTION_MT = "max-md:scroll-mt-[148px] max-md:group-has-[[data-detail]]/shell:scroll-mt-[96px]";
+
 export function SheetBar({ children }: { children: ReactNode }) {
   // `min-w-0` on the row, so a long child (the breadcrumb on the line sheet)
   // shrinks instead of pushing Share and Close off a 320px screen. A minimum
   // height, not a fixed one: a 125-character name in that breadcrumb wraps to
   // several lines at 320px, and a fixed 52px bar cut its first lines off above
   // the screen.
-  return <div className="flex min-h-[52px] min-w-0 shrink-0 items-center gap-3 border-b border-line-subtle px-5 py-2">{children}</div>;
+  return <div className={cn("flex min-h-[52px] min-w-0 shrink-0 items-center gap-3 border-b border-line-subtle px-5 py-2 max-md:gap-2 max-md:px-2", STICK_BAR)}>{children}</div>;
 }
 
 export function SheetScroll({ measure = false, children }: { measure?: boolean; children: ReactNode }) {
@@ -248,7 +258,7 @@ export function SheetSection({
 }) {
   if (collapsible && title) {
     return (
-      <details id={id} open className="group/sec scroll-mt-12 border-b border-line-subtle px-6 py-5 outline-none">
+      <details id={id} open className={cn("group/sec scroll-mt-12 border-b border-line-subtle px-6 py-5 outline-none max-md:px-4", SECTION_MT)}>
         <summary className="flex cursor-pointer list-none flex-wrap items-baseline gap-x-2 gap-y-1 [&::-webkit-details-marker]:hidden">
           <Icon name="caret" small className="mr-0.5 self-center text-ink-subtle transition-transform duration-fast group-open/sec:rotate-180" />
           <Heading level="sm" as="h2" className="flex-1">
@@ -262,7 +272,7 @@ export function SheetSection({
     );
   }
   return (
-    <section id={id} className="flex scroll-mt-12 flex-col gap-4 border-b border-line-subtle px-6 py-5 outline-none">
+    <section id={id} className={cn("flex scroll-mt-12 flex-col gap-4 border-b border-line-subtle px-6 py-5 outline-none max-md:px-4", SECTION_MT)}>
       {title ? (
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
           {icon ? <SbIcon name={icon} size={18} className="self-center text-ink-muted" /> : null}
@@ -350,10 +360,13 @@ export function FactsPanel({ rows, legend = true }: { rows: readonly FactRow[]; 
     <div className="flex flex-col">
       {rows.map((r) => (
         // Stacks below `sm`. Side by side, a 150px label plus the trailing
-        // mark column left the value about 75px on a 375px screen.
+        // mark column left the value about 75px on a 375px screen. On a phone
+        // two lines (D6): the icon and the label with the source mark at the
+        // end of the same line, then the value; it took three, the mark alone
+        // on the last.
         <div
           key={r.label}
-          className="flex min-h-fact-row flex-col gap-0.5 border-t border-line-subtle py-1.5 first:border-t-0 sm:flex-row sm:items-start sm:gap-4"
+          className="flex min-h-fact-row flex-col gap-0.5 border-t border-line-subtle py-1.5 first:border-t-0 max-sm:grid max-sm:grid-cols-[minmax(0,1fr)_auto] max-sm:gap-x-3 max-sm:gap-y-1 max-sm:py-2.5 sm:flex-row sm:items-start sm:gap-4"
         >
           {/* Three levels (founder, 29 Sep 2026: "the text needs visual and
               color hierarchy and icons"): the group heading, this label in
@@ -364,7 +377,7 @@ export function FactsPanel({ rows, legend = true }: { rows: readonly FactRow[]; 
             {r.label}
           </span>
           {r.items && r.items.length > 0 ? (
-            <ul className="m-0 flex min-w-0 flex-1 list-none flex-col gap-1 p-0">
+            <ul className="m-0 flex min-w-0 flex-1 list-none flex-col gap-1 p-0 max-sm:col-span-2">
               {r.items.map((it, i) => (
                 <li key={`${it.label}-${it.code ?? ""}-${i}`} className="flex min-w-0 items-center gap-2 leading-[22px]">
                   {it.mark ? <SourceMark mark={it.mark} sm /> : <PendingMark />}
@@ -382,6 +395,7 @@ export function FactsPanel({ rows, legend = true }: { rows: readonly FactRow[]; 
                 "min-w-0 flex-1 whitespace-pre-line text-base leading-[22px] text-ink-strong [overflow-wrap:anywhere]",
                 r.lead && r.value !== null && "font-medium",
                 r.value === null && "text-quiet-ink",
+                "max-sm:col-span-2 max-sm:row-start-2",
               )}
             >
               {r.value === null ? (
@@ -407,7 +421,7 @@ export function FactsPanel({ rows, legend = true }: { rows: readonly FactRow[]; 
             </span>
           )}
           {r.items && r.items.length > 0 ? null : (
-            <span className="inline-flex shrink-0 flex-wrap items-center justify-end gap-1 sm:min-w-[20px] sm:pt-[3px]">
+            <span className="inline-flex shrink-0 flex-wrap items-center justify-end gap-1 max-sm:col-start-2 max-sm:row-start-1 sm:min-w-[20px] sm:pt-[3px]">
               {r.marks && r.marks.length > 0 ? (
                 r.marks.map((m) => <SourceMark key={m.code} mark={m} sm />)
               ) : r.value === null && r.checked ? (
@@ -970,15 +984,22 @@ export function ActionBar({
     // 320px pushed the caption off the sheet entirely.
     // No Compare until /app/compare exists: a disabled control that explains
     // itself only on hover is a live-looking button that does nothing.
-    <div className="glass flex shrink-0 flex-wrap items-center gap-2 border-t border-line-subtle px-6 py-3">
-      <Button variant="primary" lg disabled={sanctioned} href={sanctioned ? undefined : (rfqHref ?? undefined)} clientNav scroll={false}>
+    //
+    // On a phone it sticks to the foot of the screen, above the home bar (D6):
+    // it sat at the very end of a 5,000px record. Sticky, not fixed: the
+    // pane's slide-in is a transform, which would trap a fixed bar. Save first
+    // there, and Send RFQ filling the rest of the row, 48px tall.
+    <div className="glass flex shrink-0 flex-wrap items-center gap-2 border-t border-line-subtle px-6 py-3 max-md:sticky max-md:bottom-0 max-md:z-sticky max-md:px-4 max-md:pb-[max(0.75rem,env(safe-area-inset-bottom))] max-sm:flex-nowrap">
+      <Button variant="primary" lg disabled={sanctioned} href={sanctioned ? undefined : (rfqHref ?? undefined)} clientNav scroll={false} className="max-sm:order-2 max-sm:h-bar-button max-sm:flex-1">
         <Icon name="send" /> Send RFQ
       </Button>
-      {save ?? (
-        <Button lg disabled title="Saving a record needs a signed-in account">
-          <Icon name="bookmark" /> Save
-        </Button>
-      )}
+      <span className="contents max-sm:[&>*]:order-1 max-sm:[&>*]:h-bar-button">
+        {save ?? (
+          <Button lg disabled title="Saving a record needs a signed-in account">
+            <Icon name="bookmark" /> Save
+          </Button>
+        )}
+      </span>
 
     </div>
   );

@@ -60,8 +60,9 @@ same PR. Read once per session.
   M1 (the tab bar at the foot, the More sheet, the phone size scale): PR #220.
   M2 (the search: Filters · N and one scrolling row, trays as bottom sheets,
   the results header): PR #221. M3 (a phone's list of rows, the card in one
-  column, the tablet's compact grid): branch `mobile-m3-list`. Then M4 the
-  record, M5 the composer, the other pages and touch.
+  column, the tablet's compact grid): PR #222. M4 (the record: sticky bar,
+  tabs and action bar, compact head and facts): branch `mobile-m4-record`.
+  Then M5 the composer, the other pages and touch.
   Harness: `.impeccable/preview/build-mobile.cjs`, `touch-check.cjs`.
 
 ## Queued

@@ -16,6 +16,7 @@ import type { ReactNode } from "react";
 import { onFileLabel, splitQualifier } from "@/lib/dashboard/facts";
 import type { FactRow, SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
+import { BarTitle } from "./bar-title";
 import { Button } from "./controls";
 import { CopyLinkButton } from "./copy-link-button";
 import { Icon } from "./icons";
@@ -124,6 +125,9 @@ function listWords(items: readonly string[]): string {
   return `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`;
 }
 
+/** The marks a phone's head draws on its one line before "+N". */
+const PHONE_MARKS = 8;
+
 export function SupplierSheet({
   model,
   mode = "pane",
@@ -150,10 +154,17 @@ export function SupplierSheet({
         {/* Close returns to the results the overlay sits over. The full page
             has nothing to close; opened by Expand, it goes back to the list
             with the record open, which is where the buyer came from. */}
+        {/* Below lg the record is the whole screen, so the way out is
+            "‹ Results" (back), not a ×: nothing sits beside it to close. */}
         {model.closeHref ? (
-          <Button variant="ghost" icon aria-label="Close" href={model.closeHref} clientNav scroll={false}>
-            <Icon name="x" />
-          </Button>
+          <>
+            <Button variant="ghost" size="sm" href={model.closeHref} clientNav scroll={false} className="max-sm:h-target lg:hidden">
+              <Icon name="chev-l" /> Results
+            </Button>
+            <Button variant="ghost" icon aria-label="Close" href={model.closeHref} clientNav scroll={false} className="hidden lg:inline-flex">
+              <Icon name="x" />
+            </Button>
+          </>
         ) : mode === "page" && backHref ? (
           <Button variant="ghost" size="sm" href={backHref} clientNav>
             <Icon name="chev-l" />
@@ -163,18 +174,20 @@ export function SupplierSheet({
           </Button>
         ) : null}
         {/* One line: at half the region (524px at 1280) it broke as "Supplier / record". */}
-        <Label className="shrink-0 whitespace-nowrap text-ink-strong">Supplier record</Label>
+        <Label className="shrink-0 whitespace-nowrap text-ink-strong max-md:hidden">Supplier record</Label>
+        {/* On a phone: the name, once the head has scrolled away. */}
+        <BarTitle text={name.base} title={model.name} />
         {/* One line, cut with the whole line on hover: on a phone it broke into
             six lines beside the bar's controls (phone check, 29 Sep 2026). */}
         <span
           data-line=""
           title={`${model.readDate ? `Read ${model.readDate} · ` : ""}${model.sourceCount} ${model.sourceCount === 1 ? "source" : "sources"}`}
-          className="min-w-0 truncate text-xs text-ink-subtle"
+          className="hidden min-w-0 truncate text-xs text-ink-subtle md:inline"
         >
           {model.readDate ? `Read ${model.readDate} · ` : ""}
           {model.sourceCount} {model.sourceCount === 1 ? "source" : "sources"}
         </span>
-        <span className="ml-auto flex items-center gap-2">
+        <span className="ml-auto flex shrink-0 items-center gap-2 max-md:gap-0">
           {/* Share copies the record's own page on both: in the overlay that is
               `fullHref`, not the search URL underneath. */}
           <CopyLinkButton href={model.fullHref} />
@@ -182,7 +195,7 @@ export function SupplierSheet({
           {/* The record over the whole content region (founder's video, 29 Sep
               2026); with the rail collapsed it is the full-screen view. */}
           {mode === "pane" ? (
-            <Button variant="ghost" icon aria-label="Expand to full page" title="Expand to full page" href={expandHref} clientNav>
+            <Button variant="ghost" icon aria-label="Expand to full page" title="Expand to full page" href={expandHref} clientNav className="hidden lg:inline-flex">
               <SbIcon name="expand" />
             </Button>
           ) : null}
@@ -190,17 +203,20 @@ export function SupplierSheet({
       </SheetBar>
       {model.sanctioned ? <SanctionBanner sample={model.sanctionSample} evidenceHref="#sanctions" /> : null}
       <SheetScroll measure={mode === "page"}>
-        <div className="flex flex-col gap-3 px-6 pt-5">
-          <div className="flex items-start gap-4">
-            <LogoTile initials={model.initials} tier={model.topTier} />
+        <div data-record-head="" className="flex flex-col gap-3 px-6 pt-5 max-md:px-4 max-md:pt-4">
+          <div className="flex items-start gap-4 max-sm:gap-3">
+            <LogoTile initials={model.initials} tier={model.topTier} className="max-sm:size-10 max-sm:text-sm" />
             <div className="flex min-w-0 flex-1 flex-col gap-1.5">
               {/* The base name on one line at heading size, cut only past the
                   pane's width (the rare 45+ character base); the qualifier as
                   its own line; the whole registered name in "Registered name"
                   just below. Where Apple and Microsoft put a long title: in the
                   detail (the One-Line Name Rule, founder, 29 Sep 2026). */}
+              {/* On a phone the name takes two lines before it is cut (the
+                  phone hand-off's D6: at 24px one line held fifteen
+                  characters, "Modele De Capita…"); lists and cards stay one. */}
               <Heading level="lg" as="h1" className="min-w-0">
-                <span data-name="" title={model.name} className="block truncate">
+                <span data-name="" title={model.name} className="block max-sm:line-clamp-2 sm:truncate">
                   {name.base}
                 </span>
               </Heading>
@@ -215,7 +231,19 @@ export function SupplierSheet({
                   names itself on hover and to a screen reader. The names were
                   once spelled beside the squares and again in the Registers
                   row, so the head said a register three times. */}
-              <SourceMarks marks={model.marks} caption="count" className="mt-0.5" />
+              {/* On a phone one line of 20px marks and "+N", without the count
+                  (Sources says it); the marks it drops are named in Sources.
+                  One row of marks, so each source is drawn once. n+9: the
+                  ninth on (`PHONE_MARKS`), spelt out for Tailwind; the last
+                  child is the count. */}
+              <span className="mt-0.5 flex min-w-0 items-center gap-1.5">
+                <SourceMarks
+                  marks={model.marks}
+                  caption="count"
+                  className="max-sm:flex-nowrap max-sm:gap-1.5 max-sm:[&>*]:size-5 max-sm:[&>*:last-child]:hidden max-sm:[&>*:nth-child(n+9)]:hidden"
+                />
+                {model.marks.length > PHONE_MARKS ? <span className="text-sm text-ink-subtle sm:hidden">+{model.marks.length - PHONE_MARKS}</span> : null}
+              </span>
             </div>
           </div>
         </div>
