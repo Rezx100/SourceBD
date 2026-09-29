@@ -637,7 +637,8 @@ describe("SupplierSheet (rendered)", () => {
     assert.ok((html.match(/Not on file/g) ?? []).length >= 6);
     // "registers checked" also matches "no registers checked"; the point of
     // the row is that it names what WAS checked.
-    assert.match(html, /\b\d+ registers checked|>registers checked</);
+    // The reason is a tappable note now (it was a hover title): its words are in the page.
+    assert.match(html, /· (?:\d+ )?registers checked</);
     assert.doesNotMatch(html, /no registers checked/);
     // Production reads four certificate registers, not "any": `certifications`
     // holds four `cert_kind` values and `sources` four tier-3 rows, while

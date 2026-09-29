@@ -903,7 +903,11 @@ describe("a building's brand list is named, never counted and never denied", () 
   });
 });
 
-describe("the sheet's 'every source mark links' claim counts every mark the sheet draws", () => {
+// The action bar's "every source mark links to its register page" sentence
+// went with PR 5 of the founder's video (29 Sep 2026), and the flag computed
+// for it with the hand-off after it; what it guarded that still stands is
+// here: a certificate's square links exactly when its document is a record page.
+describe("a certificate's square links exactly when its document is a record page", () => {
   /**
    * Aboni narrowed to the sources whose URL is a record page. RSC, BGAPMEA and
    * BKMEA file only their agency homepage, so on the whole record the claim is
@@ -933,7 +937,6 @@ describe("the sheet's 'every source mark links' claim counts every mark the shee
     const certMarks = sheet.certs.map((c) => sourceMark(c.markCode, c.documentUrl));
     assert.ok(certMarks.length >= 4, "the record no longer holds the certificates this guard is about");
     assert.ok(certMarks.every((m) => m.href), "a certificate document that is a record page must link");
-    assert.equal(sheet.everyMarkLinks, true, "every mark this sheet draws links, so the claim stands");
   });
 
   it("one unlinked certificate mark is enough to withdraw the claim", () => {
@@ -945,7 +948,8 @@ describe("the sheet's 'every source mark links' claim counts every mark the shee
     input.profile.certifications = input.profile.certifications.map((c, i) => (i === 2 ? { ...c, document_url: null } : c));
     const sheet = buildSheet(input);
     assert.ok(sheet.certs.some((c) => c.documentUrl === null));
-    assert.equal(sheet.everyMarkLinks, false);
+    const bare = sheet.certs.find((c) => c.documentUrl === null)!;
+    assert.equal(sourceMark(bare.markCode, bare.documentUrl).href ?? null, null, "a certificate with no document links nowhere");
   });
 
   it("a building's own certificate with no document withdraws the claim — its card draws a square too", () => {
@@ -963,7 +967,7 @@ describe("the sheet's 'every source mark links' claim counts every mark the shee
     assert.ok(sheet.certs.every((c) => c.documentUrl !== null), "guard: the record's own certificates all link");
     assert.equal(sheet.buildingCerts.length, 2, "guard: both buildings' certificates are drawn");
     assert.ok(sheet.buildingCerts[0]!.certs.every((c) => c.documentUrl !== null), "guard: the first building's all link");
-    assert.equal(sheet.everyMarkLinks, false);
+    assert.ok(sheet.buildingCerts[1]!.certs.some((c) => c.documentUrl === null), "the second building's undocumented certificate is drawn");
   });
 
   it("a building's certificates are ordered as the record's own are", () => {
@@ -977,10 +981,6 @@ describe("the sheet's 'every source mark links' claim counts every mark the shee
     assert.deepEqual(sheet.buildingCerts[0]!.certs.map(key), sheet.certs.map(key));
   });
 
-  it("the whole Aboni record withholds the claim, because three registers file only a homepage", () => {
-    assert.equal(buildSheet(aboniInput()).everyMarkLinks, false);
-  });
-
   it("a brand mark that links to the whole disclosure list withholds it too", () => {
     const input = everyRegisterHasAPage();
     // Put one brand list back: every mark now has an href, and the claim must
@@ -992,17 +992,8 @@ describe("the sheet's 'every source mark links' claim counts every mark the shee
     const hm = sheet.marks.find((m) => m.code === "BRAND_HM")!;
     assert.ok(hm.href, "the file is real evidence and stays reachable");
     assert.equal(hm.opens, "list");
-    assert.equal(sheet.everyMarkLinks, false);
   });
 
-  it("a record with no marks at all does not make the claim either", () => {
-    const bare = arFashionInput();
-    bare.profile.addresses = [];
-    bare.profile.pills = [];
-    bare.profile.provenance = [];
-    bare.profile.supplier.source_tags = [];
-    assert.equal(buildSheet(bare).everyMarkLinks, false);
-  });
 });
 
 describe("a mark is only drawn for a source the record itself holds", () => {
@@ -1172,7 +1163,6 @@ describe("cycle 9: claims the fixtures did not previously reach", () => {
     const html = renderToStaticMarkup(createElement(SupplierSheet, { model: sheet }));
     assert.doesNotMatch(html, /sa8000-search/, "nothing on the sheet opens the register's search form");
     assert.doesNotMatch(html, />Certificate\s*</, "no link promises a certificate document there is none of");
-    assert.equal(sheet.everyMarkLinks, false);
   });
 
   it("the BGMEA grade chip says 'member' once", () => {

@@ -162,10 +162,16 @@ export function SupplierSheet({
         ) : null}
         {/* One line: at half the region (524px at 1280) it broke as "Supplier / record". */}
         <Label className="shrink-0 whitespace-nowrap text-ink-strong">Supplier record</Label>
-        <Caption>
+        {/* One line, cut with the whole line on hover: on a phone it broke into
+            six lines beside the bar's controls (phone check, 29 Sep 2026). */}
+        <span
+          data-line=""
+          title={`${model.readDate ? `Read ${model.readDate} · ` : ""}${model.sourceCount} ${model.sourceCount === 1 ? "source" : "sources"}`}
+          className="min-w-0 truncate text-xs text-ink-subtle"
+        >
           {model.readDate ? `Read ${model.readDate} · ` : ""}
           {model.sourceCount} {model.sourceCount === 1 ? "source" : "sources"}
-        </Caption>
+        </span>
         <span className="ml-auto flex items-center gap-2">
           {/* Share copies the record's own page on both: in the overlay that is
               `fullHref`, not the search URL underneath. */}

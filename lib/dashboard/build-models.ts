@@ -28,7 +28,6 @@ import {
   certChipLabel,
   certModel,
   certStateLabel,
-  certTileSubline,
   displayName,
   entityLabel,
   establishedYearOf,
@@ -1300,7 +1299,6 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
 
   const model: SupplierSheetModel = {
     slug: s.slug,
-    everyMarkLinks: false,
     name,
     initials: initials(name),
     topTier: topTier(codes),
@@ -1416,32 +1414,7 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
         : "The screen recorded a match but filed no entry for it.",
   };
 
-  // Every square this sheet draws: the mark row, the attributed fact rows and
-  // the certificate cards. The certificate marks were outside this sum, so a
-  // sheet holding a certificate whose document is not a record page claimed
-  // that every mark links while rendering one that does not.
-  const rendered = [
-    ...model.marks,
-    ...model.facts.flatMap((f) => (f.value === null ? [] : (f.marks ?? []))),
-    ...model.certs.map((c) => sourceMark(c.markCode, c.documentUrl)),
-    // A building's own certificates draw the same cards, one square each.
-    ...model.buildingCerts.flatMap((b) => b.certs.map((c) => sourceMark(c.markCode, c.documentUrl))),
-    // REZ-C draws two more mark surfaces. Leaving them out meant the action
-    // bar's "every source mark links to its register page" was computed over a
-    // subset of the squares actually on screen — the same defect the
-    // certificate marks caused before they were added here.
-    ...model.sources.map((s) => s.mark),
-    ...model.locations.flatMap((l) => l.marks),
-  ];
-  // "…to its register page" is false of a brand mark however well it links: a
-  // disclosure list is one file listing every supplier on it, and the mark's
-  // own accessible name says so. 43 published records hold nothing but
-  // linkable registers plus a brand list, and every one of them made the
-  // absolute claim over a link the same page called a disclosure list.
-  // `[].every()` is true, so a record with no marks at all made the claim too.
-  const everyMarkLinks =
-    rendered.length > 0 && rendered.every((m) => Boolean(m.href)) && rendered.every((m) => m.opens !== "list");
-  return { ...model, everyMarkLinks };
+  return model;
 }
 
 /**

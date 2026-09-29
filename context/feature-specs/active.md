@@ -47,16 +47,11 @@ same PR. Read once per session.
   the results): LIVE 27 Sep (`3f628b9`); hand-off `handoff-one-viewport-shell.md`.
 
 - **Search-first buyer app** (28 Sep, founder's walkthrough video): LIVE 28 Sep (`d7e6c42`, PRs #193/#194); detail in `current-state.md`.
-- **The founder's 29 Sep dashboard video** — built, `handoff-dashboard-video-29sep.md`.
-  PRs #197, #198, #200, #201, #202 on `development`; promotion to `main` waits
-  for the founder's deploy approval; migration 0107 not applied
-  (`ops/plans/0107-profile-one-supplier.md`).
-- **One-line names, fact icons and the video's leftovers** — IN PROGRESS (PR 0
-  first), `handoff-dashboard-names-and-facts.md`: PR 0 the live bugs (z-index classes
-  that compile to nothing, header labels, the ⌘↵ hint), then names on one line,
-  fact hierarchy and icons with lighter Certificates, the card view rebuilt,
-  and the leftovers with the sidebar's foot (the founder's instructions and
-  review of 29 Sep).
+- **One-line names, fact icons and the video's leftovers** — BUILT,
+  `handoff-dashboard-names-and-facts.md`: PRs #206 (PR 0, live bugs), #209 (A,
+  names on one line), #210 (B, fact icons, certificate rows), #211 (C, card
+  view), then D (leftovers, sidebar foot). Promotion to `main` waits for the
+  founder's deploy approval; migration 0107 still not applied.
 
 ## Queued
 - **Entity resolution core** — `spec-resolution-core.md` (4 Aug). Batch

@@ -19,7 +19,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { filterMenus, inFilterMenu, menuSummary } from "@/lib/dashboard/search-templates";
 import { appFontSize, fontSize } from "@/lib/design/tokens";
 import { EMPTY_STATE, discoverChips, discoverHref, type DiscoverState } from "@/lib/discover-v32-state";
-import { FilterMenus } from "./filter-menus";
+import { FilterMenus, foldMenus } from "./filter-menus";
 
 const source = (p: string) => readFileSync(path.join(process.cwd(), p), "utf8");
 const at = (over: Partial<DiscoverState>): DiscoverState => ({ ...EMPTY_STATE, ...over });
@@ -72,7 +72,22 @@ describe("1. the filter menus", () => {
     const kept = discoverChips(s).filter((c) => !inFilterMenu(c.key, s)).map((c) => c.key);
     assert.deepEqual(kept.sort(), ["cert-wrap-expiring", "q", "reg-BGMEA", "sanctioned"].sort());
     assert.match(source("app/(app)/app/discover/page.tsx"), /chips=\{chips\.filter\(\(c\) => !inFilterMenu\(c\.key, state\)\)/);
-    assert.match(source("app/(app)/app/discover/page.tsx"), /menus=\{<FilterMenus state=\{state\} hrefFor=\{\(s\) => \(density === "default" \? discoverHref\(s\)/, "a filter drops the buyer's density");
+    assert.match(source("app/(app)/app/discover/page.tsx"), /menus=\{<FilterMenus state=\{state\} folded=\{paneOpen\} hrefFor=\{\(s\) => \(density === "default" \? discoverHref\(s\)/, "a filter drops the buyer's density");
+  });
+
+  it("beside an open pane the menus are Product, Certificate, Place and More, with Company type folded into More", () => {
+    // Founder's leftovers, 29 Sep 2026: five menus wrapped onto two or three
+    // rows in the narrow column beside a record.
+    const s = at({ q: "knit", type: ["factory"] });
+    const folded = foldMenus(filterMenus(s), true);
+    assert.deepEqual(folded.map((m) => m.label), ["Product", "Certificate", "Place", "More"]);
+    const more = folded.find((m) => m.key === "more")!;
+    assert.ok(more.options.some((o) => o.key === "type-factory" && o.on), "a set company type went missing from the folded menu");
+    assert.ok(more.options.some((o) => o.key === "rsc"));
+    assert.deepEqual(foldMenus(filterMenus(s), false).map((m) => m.label), ["Product", "Certificate", "Place", "Company type", "More"]);
+    const html = renderToStaticMarkup(createElement(FilterMenus, { state: s, folded: true }));
+    assert.equal((html.match(/<summary/g) ?? []).length, 4);
+    assert.match(html, /aria-label="More: Factories"/, "the folded More does not say a company type is set");
   });
 
   it("the caller decides each option's URL, so the results keep their density", () => {

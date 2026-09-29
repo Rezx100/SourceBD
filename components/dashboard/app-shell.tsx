@@ -22,7 +22,7 @@ import { SearchShortcut } from "./search-shortcut";
 import { SearchTypeahead } from "./search-typeahead";
 import { SidebarNav, type NavCounts } from "./sidebar-nav";
 import { ShortcutHint, TopbarSearchSlot } from "./topbar-search-slot";
-import { Caption, Label } from "./type";
+import { Caption } from "./type";
 
 export { NAV, activeNavKey, navMatch, type NavKey };
 
@@ -49,6 +49,16 @@ export type SidebarModel = {
   /** Who is signed in: the account menu at the foot of the rail and on the topbar. */
   account?: AccountModel;
 };
+
+/**
+ * "Free plan · Beta": the plan's line under the name in the rail's account row.
+ * The rail has about 124px for it, so the public beta is "Beta" there;
+ * Settings keeps the whole note ("Free plan · public beta").
+ */
+export function planLine(plan: SidebarModel["plan"], short = true): string {
+  const note = plan.note ? (short && /beta/i.test(plan.note) ? "Beta" : plan.note) : null;
+  return [`${plan.name} plan`, note].filter(Boolean).join(" · ");
+}
 
 export function Sidebar({ model, screenLabel, collapsed = false }: { model: SidebarModel; screenLabel?: string; collapsed?: boolean }) {
   const { plan, account } = model;
@@ -103,27 +113,30 @@ export function Sidebar({ model, screenLabel, collapsed = false }: { model: Side
           <RecentSearchesSlot items={model.recent} />
         </div>
       </div>
-      {/* No plan named (a loading state does not know it): no footer at all. */}
+      {/* No plan named (a loading state does not know it): no footer at all.
+          The foot is one account row, the whole row the account menu's button
+          (founder's review, 29 Sep 2026: "really under done"): the photo, the
+          name over the plan, an up-and-down chevron, as a workspace switcher
+          draws it. The separate plan line went into the row. When the plan
+          has an RFQ allowance, a quiet meter sits above it. */}
       {plan.name ? (
-        <div data-plan="true" className="hidden flex-col gap-3 border-t border-line-subtle px-2 pt-4 md:flex md:group-data-[rail=collapsed]/shell:px-0">
-          {/* The account, where every SaaS rail keeps it: one menu with the
-              photo, the name, Settings, Subscription and Sign out. The
-              topbar's avatar opens the same menu. */}
-          {account ? <AccountMenu account={account} place="rail" /> : null}
-          <div className="flex flex-col gap-3 md:group-data-[rail=collapsed]/shell:hidden">
-            <div className="flex items-center gap-2">
-              <Label className="text-ink-strong">{plan.name}</Label>
-              {plan.note ? <Caption className="ml-auto">{plan.note}</Caption> : null}
+        <div data-plan="true" className="hidden flex-col gap-2 border-t border-line-subtle pt-3 md:flex">
+          {pct !== null ? (
+            <div className="flex flex-col gap-1.5 px-2 md:group-data-[rail=collapsed]/shell:hidden">
+              <Meter pct={pct} label={`RFQs used this month, ${plan.name}`} />
+              <Caption>
+                {plan.used} of {plan.allowance} RFQs this month ·{" "}
+                <Link href="/app/settings/subscription" prefetch={false} className="text-accent-ink hover:underline">
+                  Upgrade
+                </Link>
+              </Caption>
             </div>
-            {pct !== null ? (
-              <>
-                <Meter pct={pct} label={`RFQs used this month, ${plan.name}`} />
-                <Caption>
-                  {plan.used} of {plan.allowance} RFQs this month
-                </Caption>
-              </>
-            ) : null}
-          </div>
+          ) : null}
+          {account ? (
+            <AccountMenu account={account} place="rail" plan={planLine(plan)} />
+          ) : (
+            <Caption className="px-2 md:group-data-[rail=collapsed]/shell:hidden">{planLine(plan)}</Caption>
+          )}
         </div>
       ) : null}
     </aside>

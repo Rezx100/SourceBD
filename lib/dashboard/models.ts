@@ -265,13 +265,6 @@ export type SupplierSheetModel = {
   certsEmpty: string;
   /** The same absence as a sentence: "No certificate on 4 registers", never "on any register". */
   certsEmptyChip: string;
-  /**
-   * Whether every source mark this sheet renders links to a record page —
-   * the mark row, the attributed fact rows AND the certificate cards. It is
-   * computed here rather than in the component because a surface that forgets
-   * one mark set makes the action bar's strongest sentence false.
-   */
-  everyMarkLinks: boolean;
   /** The mother's own RSC row; every row the RPC returns is active (the inactive state is REZ-C's). */
   rsc: {
     ref: string | null;

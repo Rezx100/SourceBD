@@ -201,7 +201,7 @@ export default async function BuyerDiscoverPage({
           <HiddenState state={state} omit={COMPOSER_HIDDEN_OMIT} />
           {state.q ? <input type="hidden" name="q" value={state.q} /> : null}
           <SearchComposer
-            menus={<FilterMenus state={state} hrefFor={(s) => (density === "default" ? discoverHref(s) : `${discoverHref(s)}${discoverHref(s).includes("?") ? "&" : "?"}d=${density}`)} />}
+            menus={<FilterMenus state={state} folded={paneOpen} hrefFor={(s) => (density === "default" ? discoverHref(s) : `${discoverHref(s)}${discoverHref(s).includes("?") ? "&" : "?"}d=${density}`)} />}
             chips={chips.filter((c) => !inFilterMenu(c.key, state)).map((c) => ({ key: c.key, label: c.label, code: c.code, removeHref: discoverHref(c.without) }))}
             mode={state.ask && askOn ? "ask" : "filters"}
             askEnabled={askOn}

@@ -685,3 +685,17 @@ describe("Certificates: one line each, the scope one click away (founder's revie
     assert.deepEqual(certScopeRows({ scheme: "OEKO-TEX Standard 100", scope: "Products: 100" }), [{ label: "Products", value: "100" }]);
   });
 });
+
+describe("a reason that was only a hover title is a tap away (founder's leftovers, 29 Sep 2026)", () => {
+  it("an empty figure's dash and a checked-but-empty fact's magnifier open their reason on a tap", () => {
+    const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(zaheenSampleInput()) }));
+    const reasons = [...html.matchAll(/<details class="group\/why[^"]*"><summary aria-label="([^"]+)" title="([^"]+)"[^>]*>[\s\S]*?<\/summary><span role="note"[^>]*>([^<]+)<\/span><\/details>/g)];
+    assert.ok(reasons.length > 0, "no tappable reason on a record with empty facts");
+    for (const [, label, title, note] of reasons) {
+      assert.ok(label!.length > 0);
+      assert.equal(title, note, `the hover and the tap say different things: ${label}`);
+    }
+    assert.ok(reasons.some(([, label]) => /^What was checked for /.test(label!)), "the magnifier is still hover-only");
+    assert.doesNotMatch(html, /<span title="Not on file · /, "a reason is a bare hover title again");
+  });
+});
