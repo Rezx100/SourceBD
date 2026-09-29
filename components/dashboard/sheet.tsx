@@ -328,7 +328,7 @@ function Reason({ reason, label, align = "left", children }: { reason: string; l
       <summary
         aria-label={label}
         title={reason}
-        className="inline-flex min-h-6 min-w-6 cursor-pointer list-none items-center justify-center rounded-xs hover:bg-surface-sunken [&::-webkit-details-marker]:hidden"
+        className="hit inline-flex min-h-6 min-w-6 cursor-pointer list-none items-center justify-center rounded-xs [touch-action:manipulation] hover:bg-surface-sunken active:bg-surface-sunken [&::-webkit-details-marker]:hidden"
       >
         {children}
       </summary>

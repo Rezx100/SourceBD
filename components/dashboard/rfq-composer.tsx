@@ -172,6 +172,11 @@ export function RfqComposer({
   const [draftId, setDraftId] = useState<string | null>(initialDraftId);
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  // The preview is drawn open; on a phone it folds under "Preview message".
+  const previewRef = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    if (previewRef.current && typeof window.matchMedia === "function" && !window.matchMedia("(min-width: 640px)").matches) previewRef.current.open = false;
+  }, []);
   const [picking, setPicking] = useState(false);
   const [pickNote, setPickNote] = useState<string | null>(null);
 
@@ -360,7 +365,7 @@ export function RfqComposer({
         </>
       ) : null}
       <SheetScroll measure={mode === "page"}>
-        <form id={`${id}-form`} ref={formRef} onSubmit={(e) => { e.preventDefault(); void send(); }} onKeyDown={onKey} className="grid gap-6 p-6 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <form id={`${id}-form`} ref={formRef} onSubmit={(e) => { e.preventDefault(); void send(); }} onKeyDown={onKey} className="grid gap-6 p-6 max-md:gap-5 max-md:p-4 xl:grid-cols-[minmax(0,1fr)_300px]">
           <div className="flex min-w-0 flex-col gap-6">
             {/* Who it goes to */}
             <section className="flex flex-col gap-2">
@@ -526,9 +531,16 @@ export function RfqComposer({
             </section>
           </div>
 
-          {/* The preview: what the RFQ will carry, beside the form where there is room */}
-          <section className="flex flex-col gap-3 xl:sticky xl:top-0 xl:self-start" aria-label="Preview">
-            <div className="flex items-center gap-2">
+          {/* The preview: what the RFQ will carry, beside the form where there
+              is room. On a phone it is behind "Preview message" under the form
+              (the phone hand-off's D7): drawn open, and closed on a phone once
+              the page is live, so a page without script still shows it. */}
+          <details ref={previewRef} open className="group/pv flex flex-col gap-3 xl:sticky xl:top-0 xl:self-start" aria-label="Preview">
+            <summary className="flex h-target cursor-pointer list-none items-center gap-2 rounded-sm text-base font-medium text-ink-strong [touch-action:manipulation] active:bg-surface-sunken sm:hidden [&::-webkit-details-marker]:hidden">
+              <Icon name="caret" small className="text-ink-subtle transition-transform duration-fast group-open/pv:rotate-180" />
+              Preview message
+            </summary>
+            <div className="mb-3 flex items-center gap-2 max-sm:hidden">
               <Label className="text-ink-strong">What this RFQ carries</Label>
             </div>
             <div className="flex flex-col gap-2 rounded-md bg-surface-sunken p-4 text-sm text-ink">
@@ -550,13 +562,15 @@ export function RfqComposer({
                 1 product line · {asked.length} {asked.length === 1 ? "question" : "questions"}
               </Caption>
             </div>
-            <Caption>Your contact details are not shared; the supplier replies inside SourceBD.</Caption>
-          </section>
+            <Caption className="mt-3 block">Your contact details are not shared; the supplier replies inside SourceBD.</Caption>
+          </details>
         </form>
       </SheetScroll>
       {/* The status takes its own line on a phone: beside the two buttons it
           was squeezed to a word a line (phone check, 29 Sep 2026). */}
-      <div className="glass flex shrink-0 flex-wrap items-center gap-2 border-t border-line-subtle px-4 py-3 sm:px-6">
+      {/* On a phone it sticks to the foot of the screen above the home bar,
+          Send RFQ filling the row (D7): it sat at the very end of the form. */}
+      <div className="glass flex shrink-0 flex-wrap items-center gap-2 border-t border-line-subtle px-4 py-3 max-md:sticky max-md:bottom-0 max-md:z-sticky max-md:pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6">
         <span role="status" aria-live="polite" className={cn("inline-flex min-w-0 flex-1 basis-full items-center gap-1 text-xs sm:basis-0", error ? "text-danger-ink" : sanctioned.length > 0 ? "text-sanction-ink" : missing.length > 0 ? "text-caution-ink" : "text-ink-subtle")}>
           {error ? (
             <>
@@ -574,11 +588,11 @@ export function RfqComposer({
             <>Ready to send to {targets.length === 1 ? targets[0]!.name : `${targets.length} suppliers`}</>
           )}
         </span>
-        <Button type="button" onClick={() => void saveDraft()} loading={busy === "draft"} disabled={busy !== null}>
+        <Button type="button" onClick={() => void saveDraft()} loading={busy === "draft"} disabled={busy !== null} className="max-sm:h-bar-button">
           Save draft
         </Button>
-        <Button type="submit" form={`${id}-form`} variant="primary" disabled={blocked} loading={busy === "send"} aria-describedby={`${id}-send-hint`}>
-          <Icon name="send" /> Send RFQ <Kbd>{apple ? "⌘↵" : "Ctrl ↵"}</Kbd>
+        <Button type="submit" form={`${id}-form`} variant="primary" disabled={blocked} loading={busy === "send"} aria-describedby={`${id}-send-hint`} className="max-sm:h-bar-button max-sm:flex-1">
+          <Icon name="send" /> Send RFQ <Kbd className="max-sm:hidden">{apple ? "⌘↵" : "Ctrl ↵"}</Kbd>
         </Button>
         <span id={`${id}-send-hint`} className="sr-only">
           Sends to every supplier listed. {apple ? "Command" : "Control"} plus Enter also sends.

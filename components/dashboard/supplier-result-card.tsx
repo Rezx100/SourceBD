@@ -164,7 +164,7 @@ export function SupplierResultCard({ card }: { card: SupplierCardModel }) {
         card.sanctioned && "before:absolute before:bottom-0 before:left-0 before:top-0 before:w-1 before:bg-sanction before:content-['']",
       )}
     >
-      <Checkbox on={selected} label={`Select ${card.name}`} onToggle={selectable ? () => sel.toggle(card.supplierId!) : undefined} className="hit mt-4 max-sm:row-span-2 max-sm:mt-0" />
+      <Checkbox on={selected} label={`Select ${card.name}`} onToggle={selectable ? () => sel.toggle(card.supplierId!) : undefined} className="mt-4 max-sm:row-span-2 max-sm:mt-0" />
       {/* The tile opens the record too; the name is the link a keyboard and a screen reader use. */}
       <Link prefetch={false} scroll={false} href={recordHref} tabIndex={-1} aria-hidden className="shrink-0 max-sm:row-span-2">
         <LogoTile initials={card.initials} tier={card.topTier} className="max-sm:size-10 max-sm:text-sm" />

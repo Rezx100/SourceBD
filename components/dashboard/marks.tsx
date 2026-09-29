@@ -88,7 +88,8 @@ export function SourceMark({
         rel="noreferrer"
         aria-label={`Source: ${mark.name}, ${TIER_NAME[mark.tier]} (opens ${mark.opens === "list" ? "the disclosure list" : "the register page"})`}
         title={mark.name}
-        className={classes}
+        // 16–24px to the eye; 8px more on every side to a finger.
+        className={cn(classes, "hit")}
       >
         {body}
       </a>

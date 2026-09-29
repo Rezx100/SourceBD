@@ -56,9 +56,11 @@ export function buttonClass({
     // long as it is held (120 ms in and out), the way a native control does;
     // colour and shadow move on the same clock. A disabled control takes no
     // press, and `motion-reduce` keeps it still.
-    "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-sm border border-transparent font-medium transition-[color,background-color,border-color,box-shadow,transform] duration-fast active:scale-[0.98] motion-reduce:active:scale-100 disabled:cursor-not-allowed disabled:active:scale-100 aria-disabled:cursor-not-allowed aria-disabled:active:scale-100",
+    "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-sm border border-transparent font-medium transition-[color,background-color,border-color,box-shadow,transform] duration-fast [touch-action:manipulation] active:scale-[0.98] motion-reduce:active:scale-100 disabled:cursor-not-allowed disabled:active:scale-100 aria-disabled:cursor-not-allowed aria-disabled:active:scale-100",
     SIZE[size],
+    // An icon button is 28–32px to the eye and 44px to a finger (`.hit`).
     icon && SQUARE[size],
+    icon && "hit",
     TONE[variant],
     className,
   );
@@ -192,7 +194,7 @@ export function Seg({
 }) {
   const itemClass = (o: { value: string; icon?: IconName }, i: number) =>
     cn(
-      "inline-flex h-full items-center justify-center gap-1.5 text-sm font-medium text-ink-muted transition-colors duration-fast hover:text-ink-strong",
+      "hit inline-flex h-full items-center justify-center gap-1.5 text-sm font-medium text-ink-muted transition-colors duration-fast [touch-action:manipulation] hover:text-ink-strong active:bg-surface-sunken",
       o.icon ? "w-9" : "px-2.5",
       "focus-visible:outline-offset-[-2px]",
       i > 0 && "border-l border-line",
@@ -293,7 +295,7 @@ export function Checkbox({
           : undefined
       }
       className={cn(
-        "inline-grid size-4 shrink-0 place-items-center rounded-xs border border-line-strong bg-surface transition-colors duration-fast",
+        "hit inline-grid size-4 shrink-0 place-items-center rounded-xs border border-line-strong bg-surface transition-colors duration-fast",
         interactive && "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--ds-accent))]",
         on && "border-accent bg-accent text-accent-on",
         className,
@@ -355,9 +357,9 @@ export function LiveDot({ className }: { className?: string }) {
 }
 
 /** `kbd`: the ⌘K hint. */
-export function Kbd({ children }: { children: ReactNode }) {
+export function Kbd({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <kbd className="rounded-xs border border-line px-[5px] font-mono text-[11px] leading-4 text-ink-subtle">
+    <kbd className={cn("rounded-xs border border-line px-[5px] font-mono text-[11px] leading-4 text-ink-subtle", className)}>
       {children}
     </kbd>
   );

@@ -20,7 +20,8 @@ import { buildCard, buildSheet, buildTableRow } from "@/lib/dashboard/build-mode
 import { aboniInput } from "@/lib/dashboard/fixtures";
 import { AccountMenu } from "./account-menu";
 import { AppShell } from "./app-shell";
-import { Menu, MenuItem } from "./controls";
+import { Checkbox, Menu, MenuItem, Seg, buttonClass } from "./controls";
+import { DataTable } from "./page";
 import { ReportProblem } from "./report-problem";
 import { PanelHeader } from "./results-panel";
 import { ResultsTable } from "./results-table";
@@ -485,5 +486,35 @@ describe("M4. the record on a phone", () => {
     const focus = source(`${KIT}/dialog-focus.tsx`);
     assert.match(focus, /if \(paneIsScreen\(\)\) window\.scrollTo\(0, 0\);/, "a record opens part-way down on a phone");
     assert.match(focus, /row\.scrollIntoView\(\{ block: "center" \}\)/, "closing a record leaves the row it came from off the screen");
+  });
+});
+
+describe("M5. the composer, the other pages and the touch sweep", () => {
+  it("the composer on a phone: 16px gutters, the preview behind 'Preview message', Send in a sticky footer", () => {
+    const src = source(`${KIT}/rfq-composer.tsx`);
+    assert.match(src, /className="grid gap-6 p-6 max-md:gap-5 max-md:p-4 /, "24px gutters on a phone");
+    assert.match(src, /<details ref=\{previewRef\} open [^>]*aria-label="Preview">\s*<summary [^>]*\bsm:hidden\b[^>]*>[\s\S]*?Preview message/, "the preview is not behind a disclosure on a phone");
+    assert.match(src, /!window\.matchMedia\("\(min-width: 640px\)"\)\.matches\) previewRef\.current\.open = false/, "the preview stays open on a phone");
+    assert.match(src, /max-md:sticky max-md:bottom-0 max-md:z-sticky max-md:pb-\[max\(0\.75rem,env\(safe-area-inset-bottom\)\)\]/, "Send is at the end of the form on a phone");
+    assert.match(src, /className="max-sm:h-bar-button max-sm:flex-1">\s*<Icon name="send" \/> Send RFQ/);
+  });
+
+  it("every data table is a list on a phone: no header row, no minimum width, each row a block of its cells", () => {
+    const html = renderToStaticMarkup(createElement(DataTable, { label: "Orders", minWidth: "56rem" } as ComponentProps<typeof DataTable>, createElement("tbody", null)));
+    const table = classOf(html, /<table class="([^"]*)"/).replace(/&amp;/g, "&");
+    for (const c of ["max-sm:!min-w-0", "max-sm:block", "max-sm:[&_thead]:hidden", "max-sm:[&_tr]:flex", "max-sm:[&_tr]:flex-wrap", "max-sm:[&_td]:p-0"]) assert.ok(bare(table, c), `${c}: ${table}`);
+  });
+
+  it("every small control reaches 44px under a finger: icon buttons, boxes, the view switch, marks, reasons and the ⋯", () => {
+    assert.ok(bare(buttonClass({ icon: true, size: "sm" }), "hit"), "an icon button is a 28px target");
+    assert.ok(!bare(buttonClass({ size: "sm" }), "hit"), "a labelled button is wide enough already");
+    assert.match(renderToStaticMarkup(createElement(Checkbox, { on: false, label: "Select" })), /class="hit /);
+    assert.match(renderToStaticMarkup(createElement(Seg, { label: "View", value: "a", options: [{ value: "a", label: "A", icon: "table" }] })), /class="hit /);
+    assert.match(source(`${KIT}/marks.tsx`), /className=\{cn\(classes, "hit"\)\}/, "a source mark's link is a 16px target");
+    assert.match(source(`${KIT}/sheet.tsx`), /className="hit inline-flex min-h-6 min-w-6/, "a reason is a 24px target");
+    assert.match(source(`${KIT}/report-problem.tsx`), /className="hit flex h-control w-control/, "the record's ⋯ is a 32px target");
+    // The hit area never moves a positioned control: `:where` has no weight.
+    assert.match(source("app/ds.css"), /@media \(pointer: coarse\) \{[\s\S]*?:where\(\.hit\) \{\s*position: relative;[\s\S]*?\.hit::after \{\s*content: "";\s*position: absolute;\s*inset: -8px;/);
+    assert.match(buttonClass({}), /\[touch-action:manipulation\]/, "a tap waits for a double-tap zoom");
   });
 });
