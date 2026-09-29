@@ -45,7 +45,13 @@ export function Avatar({ account, size = "sm" }: { account: AccountModel | null;
   );
 }
 
-const ITEM = "flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-ink transition-colors duration-fast hover:bg-surface-sunken";
+/** Whether an event outside React closes an open menu: Escape, or a press that lands outside it. */
+export function menuShouldClose(e: { key?: string; target?: unknown }, menu: { open: boolean; contains: (n: never) => boolean }): boolean {
+  if (!menu.open) return false;
+  return e.key !== undefined ? e.key === "Escape" : !menu.contains(e.target as never);
+}
+
+const ITEM ="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-ink transition-colors duration-fast hover:bg-surface-sunken";
 
 export function AccountMenu({ account, place }: { account: AccountModel; place: "rail" | "topbar" }) {
   const ref = useRef<HTMLDetailsElement>(null);
@@ -56,8 +62,7 @@ export function AccountMenu({ account, place }: { account: AccountModel; place: 
   useEffect(() => {
     const close = (e: Event) => {
       const el = ref.current;
-      if (!el?.open) return;
-      if (e instanceof KeyboardEvent ? e.key === "Escape" : !el.contains(e.target as Node)) {
+      if (el && menuShouldClose({ key: e instanceof KeyboardEvent ? e.key : undefined, target: e.target }, el)) {
         el.open = false;
         if (e instanceof KeyboardEvent) el.querySelector("summary")?.focus();
       }
@@ -94,6 +99,11 @@ export function AccountMenu({ account, place }: { account: AccountModel; place: 
       <div
         role="menu"
         aria-label="Account"
+        // A chosen item closes the menu even when it goes nowhere new
+        // (Settings, while on Settings): the path effect above never runs.
+        onClick={(e) => {
+          if ((e.target as Element).closest('[role="menuitem"]') && ref.current) ref.current.open = false;
+        }}
         className={cn(
           "absolute z-overlay w-64 max-w-[calc(100vw-2rem)] rounded-md border border-line bg-surface py-1 shadow-md",
           rail ? "bottom-full left-0 mb-1" : "right-0 top-full mt-2",
