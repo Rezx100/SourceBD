@@ -688,7 +688,7 @@ describe("/app/discover — the panes beside the results", () => {
     assert.doesNotMatch(cards, /data-row="result"/);
     const compact = html(await search({ q: "knit", d: "compact" }));
     assert.match(compact, /<th scope="row"[^>]*class="[^"]*\bh-9\b/);
-    assert.match(compact, /<a (?=[^>]*role="menuitem")(?=[^>]*href="[^"]*d=compact")(?=[^>]*aria-current="true")/, "the density menu does not mark the stop that is on");
+    assert.match(compact, /<a (?=[^>]*data-menu-item="")(?=[^>]*href="[^"]*d=compact")(?=[^>]*aria-current="true")/, "the density menu does not mark the stop that is on");
   });
 
   it("the row density survives opening and closing a record: every pane link and Close carry ?d=", async () => {

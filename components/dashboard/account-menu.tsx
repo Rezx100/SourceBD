@@ -7,11 +7,13 @@
 //
 // A native <details>, like `Menu`: it opens without script. The shell is drawn
 // once and outlives every navigation, so the menu closes itself when the path
-// changes, on Escape, and on a click outside it.
+// changes; the shell's `MenuDismiss` closes it on Escape and on a press
+// outside it, as it does every other tray (`name="sb-menu"`).
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { MENU_NAME } from "@/lib/dashboard/menu-dismiss";
 import { cn } from "@/lib/utils";
 import { Icon } from "./icons";
 import { SbIcon } from "./sb-icons";
@@ -46,11 +48,7 @@ export function Avatar({ account, size = "sm" }: { account: AccountModel | null;
   );
 }
 
-/** Whether an event outside React closes an open menu: Escape, or a press that lands outside it. */
-export function menuShouldClose(e: { key?: string; target?: unknown }, menu: { open: boolean; contains: (n: never) => boolean }): boolean {
-  if (!menu.open) return false;
-  return e.key !== undefined ? e.key === "Escape" : !menu.contains(e.target as never);
-}
+export { menuShouldClose } from "@/lib/dashboard/menu-dismiss";
 
 const ITEM ="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-ink transition-colors duration-fast hover:bg-surface-sunken";
 
@@ -60,25 +58,10 @@ export function AccountMenu({ account, place, plan }: { account: AccountModel; p
   useEffect(() => {
     if (ref.current) ref.current.open = false;
   }, [pathname]);
-  useEffect(() => {
-    const close = (e: Event) => {
-      const el = ref.current;
-      if (el && menuShouldClose({ key: e instanceof KeyboardEvent ? e.key : undefined, target: e.target }, el)) {
-        el.open = false;
-        if (e instanceof KeyboardEvent) el.querySelector("summary")?.focus();
-      }
-    };
-    document.addEventListener("pointerdown", close);
-    document.addEventListener("keydown", close);
-    return () => {
-      document.removeEventListener("pointerdown", close);
-      document.removeEventListener("keydown", close);
-    };
-  }, []);
   const name = accountName(account);
   const rail = place === "rail";
   return (
-    <details ref={ref} className="group/acct relative">
+    <details ref={ref} name={MENU_NAME} className="group/acct relative">
       <summary
         aria-label={`Account, ${name}${rail && plan ? `, ${plan}` : ""}`}
         // The collapsed rail shows the photo alone; its tooltip gives the name and the plan.
@@ -105,12 +88,13 @@ export function AccountMenu({ account, place, plan }: { account: AccountModel; p
         ) : null}
       </summary>
       <div
-        role="menu"
+        data-menu-panel=""
+        role="group"
         aria-label="Account"
         // A chosen item closes the menu even when it goes nowhere new
         // (Settings, while on Settings): the path effect above never runs.
         onClick={(e) => {
-          if ((e.target as Element).closest('[role="menuitem"]') && ref.current) ref.current.open = false;
+          if ((e.target as Element).closest("[data-menu-item]") && ref.current) ref.current.open = false;
         }}
         className={cn(
           "absolute z-overlay w-64 max-w-[calc(100vw-2rem)] rounded-md border border-line bg-surface py-1 shadow-md",
@@ -125,17 +109,17 @@ export function AccountMenu({ account, place, plan }: { account: AccountModel; p
           </span>
         </div>
         <div className="flex flex-col py-1">
-          <Link role="menuitem" href="/app/settings" prefetch={false} className={ITEM}>
+          <Link data-menu-item="" href="/app/settings" prefetch={false} className={ITEM}>
             <Icon name="gear" className="text-ink-subtle" />
             Settings
           </Link>
-          <Link role="menuitem" href="/app/settings/subscription" prefetch={false} className={ITEM}>
+          <Link data-menu-item="" href="/app/settings/subscription" prefetch={false} className={ITEM}>
             <Icon name="card" className="text-ink-subtle" />
             Subscription
           </Link>
         </div>
         <form action="/auth/sign-out" method="post" className="border-t border-line-subtle pt-1">
-          <button type="submit" role="menuitem" className={ITEM}>
+          <button type="submit" data-menu-item="" className={ITEM}>
             <Icon name="sign-out" className="text-ink-subtle" />
             Sign out
           </button>

@@ -8,9 +8,11 @@
 // filter set pushed it past the endpoint's 500-character cut.
 //
 // A native <details>: it opens and closes without script, needs no focus trap
-// and cannot outlive the sheet it sits in.
+// and cannot outlive the sheet it sits in. `name="sb-menu"`: one tray open at
+// a time, closed by a press outside (the shell's `MenuDismiss`).
 
 import { useState, type FormEvent } from "react";
+import { MENU_NAME } from "@/lib/dashboard/menu-dismiss";
 import { Button } from "./controls";
 import { Icon } from "./icons";
 
@@ -58,6 +60,7 @@ export function ReportProblem({ page }: { page: string }) {
 
   return (
     <details
+      name={MENU_NAME}
       className="relative"
       data-report-problem="true"
       onKeyDown={(e) => {
@@ -80,8 +83,9 @@ export function ReportProblem({ page }: { page: string }) {
         <Icon name="dots" />
       </summary>
       <form
+        data-menu-panel=""
         onSubmit={submit}
-        className="absolute right-0 top-full z-overlay mt-1 flex w-72 flex-col gap-2 rounded-md border border-line bg-surface p-3 shadow-sm"
+        className="absolute right-0 top-full z-overlay mt-1 flex w-72 max-w-[calc(100vw-2rem)] flex-col gap-2 rounded-md border border-line bg-surface p-3 shadow-sm"
       >
         <label className="flex flex-col gap-1 text-sm font-medium text-ink-strong">
           Report a problem

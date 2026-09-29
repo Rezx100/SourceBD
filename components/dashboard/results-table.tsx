@@ -151,7 +151,7 @@ export function ResultsTable({
       // widened the whole page to the table's width (WCAG 1.4.10). Below `xl`
       // the table scrolls sideways in this region; from `xl` it fits and the
       // header sticks to the results column's own scroll.
-      className={cn("relative", rail ? "" : compact ? "overflow-x-auto" : "max-xl:overflow-x-auto")}
+      className={rail ? "relative" : compact ? "relative overflow-x-auto" : "relative max-xl:overflow-x-auto"}
       tabIndex={0}
       role="region"
       aria-label="Results table"

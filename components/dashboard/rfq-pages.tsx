@@ -420,7 +420,7 @@ export function RfqDetailBody({
         // Its own sideways scroll at every width: a comparison of seven fixed
         // columns does not fit a pane or the middle of three page columns. The
         // action column is pinned to the right so Accept never scrolls away.
-        <DataTable label="Quotes" minWidth="50rem" className="overflow-x-auto [&_table]:table-fixed">
+        <DataTable label="Quotes" minWidth="50rem" className="relative overflow-x-auto [&_table]:table-fixed">
           <thead>
             <tr>
               <HeadCell className="whitespace-nowrap">Supplier</HeadCell>

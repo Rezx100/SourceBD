@@ -45,7 +45,7 @@ export function SidebarNav({
       // `outline-offset-2` focus ring was cut off top and bottom (WCAG
       // 2.4.11). `-mx-1 px-1` buys that room horizontally, `-my-1 py-1`
       // vertically, at no layout cost: the negative margin gives it back.
-      className="-mx-1 -my-1 flex snap-x gap-1 overflow-x-auto px-1 py-1 md:mx-0 md:my-0 md:flex-col md:gap-0.5 md:overflow-visible md:px-0 md:py-0"
+      className="relative -mx-1 -my-1 flex snap-x gap-1 overflow-x-auto px-1 py-1 md:mx-0 md:my-0 md:flex-col md:gap-0.5 md:overflow-visible md:px-0 md:py-0"
     >
       {NAV.map((item) => {
         const on = item.key === current.key;

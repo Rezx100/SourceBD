@@ -261,10 +261,11 @@ describe("the menu", () => {
         createElement(MenuItem, { href: "?per=50" } as Parameters<typeof MenuItem>[0], "50 per page"),
       ),
     );
-    assert.match(html, /^<details\b/);
+    assert.match(html, /^<details name="sb-menu"/);
+    assert.doesNotMatch(html, /role="menu(item)?"/, "a list of links is a disclosure, not an ARIA menu with arrow keys it never had");
     assert.match(html, /<summary aria-label="Rows per page"/);
-    assert.match(html, /<div role="menu" class="[^"]*\bbottom-full\b/);
-    const items = [...html.matchAll(/<a role="menuitem" href="([^"]+)"([^>]*)>/g)].map((m) => [m[1], /aria-current="true"/.test(m[2]!)]);
+    assert.match(html, /<div data-menu-panel="" class="[^"]*\bbottom-full\b/);
+    const items = [...html.matchAll(/<a data-menu-item="" href="([^"]+)"([^>]*)>/g)].map((m) => [m[1], /aria-current="true"/.test(m[2]!)]);
     assert.deepEqual(items, [
       ["?per=25", true],
       ["?per=50", false],
