@@ -248,7 +248,7 @@ export async function middleware(req: NextRequest) {
 
   // `/app/match` is retired — Ask replaces Smart Match (spec §1), so the route
   // redirects into Discover with Ask on. The page component calls `redirect()`
-  // and looks correct, but the `(app)` layout above it is async and has already
+  // and looks correct, but the buyer layout above it is async and has already
   // begun streaming by the time the page runs, so Next commits HTTP 200 and the
   // redirect never reaches the wire. That is precisely the failure
   // `scripts/test-profile-http-boundary.mjs` exists to catch, and it caught it.

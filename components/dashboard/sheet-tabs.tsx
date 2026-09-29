@@ -56,11 +56,14 @@ export function SheetTabs({ tabs }: { tabs: readonly { label: string; count: str
     // after the first screen, and compliance staff jumping to Sources or
     // Locations had to scroll back up to find them. The space above the tabs
     // is their own padding, not a margin: a margin left an 8px strip over the
-    // stuck tabs where the source marks scrolled through.
+    // stuck tabs where the source marks scrolled through. `z-raised`, a token:
+    // the numeric class here compiled to nothing (the theme's z scale replaces
+    // Tailwind's), and product photos scrolling up painted over the tabs
+    // (founder's review, 29 Sep 2026).
     <nav
       aria-label="Record sections"
       tabIndex={0}
-      className="sticky top-0 z-10 flex gap-5 overflow-x-auto border-b border-line-subtle bg-surface px-6 pt-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="sticky top-0 z-raised flex gap-5 overflow-x-auto border-b border-line-subtle bg-surface px-6 pt-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {tabs.map((t) => (
         <a

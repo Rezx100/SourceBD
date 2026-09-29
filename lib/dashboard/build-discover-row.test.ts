@@ -72,9 +72,11 @@ describe("the table's register count is the figure the default sort orders on", 
   it(
     "the column's header says it counts registers and certifiers, not marks",
     () => {
+      // "Sources" on one line (founder's review, 29 Sep 2026: "Registers &
+      // certifiers" wrapped under its sort caret); what it counts is its title.
       const rows = [buildDiscoverTableRow({ ...ROW, source_tags: ["BGMEA", "HM", "ASOS", "NEXT", "ZARA"], t13_source_count: 1 }, { today: TODAY, hsLines: [], hsError: false })];
       const html = renderToStaticMarkup(createElement(ResultsTable, { rows }));
-      assert.match(html, /<th[^>]*>(?:<a[^>]*>)?Registers &amp; certifiers/);
+      assert.match(html, /<th[^>]*>(?:<a[^>]*>)?<span title="Registers &amp; certifiers">Sources<\/span>/);
     },
   );
 });

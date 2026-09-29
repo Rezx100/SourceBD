@@ -146,9 +146,9 @@ describe("3, 12. the suggestions", () => {
     const bar = /<div class="glass([^"]*)"/.exec(html)?.[1] ?? "";
     assert.match(bar, /\brelative\b/);
     assert.match(bar, /\bz-raised\b/, "backdrop-filter makes the topbar a stacking context; without a z-index its list slid under the results");
-    // …and no higher than the onboarding tour's z-50 scrim, which must cover it.
+    // …and no higher than the onboarding tour's scrim (`z-modal`), which must cover it.
     const tour = readFileSync(path.join(repoRoot, "components/onboarding/tour.tsx"), "utf8");
-    assert.match(tour, /fixed inset-0 z-50\b/, "guard: the tour's scrim moved; recheck the topbar's z-index against it");
+    assert.match(tour, /fixed inset-0 z-modal\b/, "guard: the tour's scrim moved; recheck the topbar's z-index against it");
     assert.doesNotMatch(bar, /\bz-(sticky|overlay|modal|toast|\[)/);
   });
 });

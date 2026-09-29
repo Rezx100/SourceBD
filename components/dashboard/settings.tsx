@@ -174,7 +174,7 @@ export function FormActions({
         {pending ? pendingLabel : label}
       </Button>
       {children}
-      {flash ? <Toast text={flash} href={null} className="fixed z-[60]" /> : null}
+      {flash ? <Toast text={flash} href={null} className="fixed z-toast" /> : null}
     </div>
   );
 }

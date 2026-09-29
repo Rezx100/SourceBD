@@ -27,7 +27,7 @@
 import { certStateLabel, type CertModel } from "@/lib/dashboard/facts";
 import type { TableRowModel } from "@/lib/dashboard/models";
 import Link from "next/link";
-import type { KeyboardEvent } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Button, Checkbox } from "./controls";
 import { Icon } from "./icons";
@@ -63,16 +63,22 @@ export type ResultsSortKey = "name" | "sources" | "cert_expiry" | "hs_lines" | "
  * ("MANUFACTURING", 120px) plus the tile, its gap and the padding — at the
  * table's minimum width (`RESULTS_MIN_WIDTH`), below which the region
  * scrolls sideways rather than crushing it.
+ *
+ * Every header's label and its sort caret fit on one line (founder's review,
+ * 29 Sep 2026: "Registers & certifiers" and "Export lines" wrapped under the
+ * caret at the app's 13px). The wide sources column is "Sources", as beside a
+ * pane and on the record; Export lines has 8px more and Sources 8px less; beside
+ * a pane Sources has 8px more and the table's minimum 8px more.
  */
 export const RESULTS_COLUMNS = {
-  wide: [40, null, 160, 212, 112, 152, 104],
-  compact: [36, null, 76, 112, 66],
+  wide: [40, null, 152, 212, 120, 152, 104],
+  compact: [36, null, 84, 112, 66],
   // Beside the RFQ composer: the box and the name.
   rail: [36, null],
 } as const;
 
-/** The table's minimum width in px: `min-w-[62rem]` and `min-w-[30rem]` on the table below. */
-export const RESULTS_MIN_WIDTH = { wide: 992, compact: 480 } as const;
+/** The table's minimum width in px: `min-w-[62rem]` and `min-w-[30.5rem]` on the table below. */
+export const RESULTS_MIN_WIDTH = { wide: 992, compact: 488 } as const;
 
 const CERT_TONE: Record<CertModel["state"], string> = {
   valid: "bg-positive-tint text-positive-ink",
@@ -129,7 +135,7 @@ export function ResultsTable({
   sortHrefs?: Record<ResultsSortKey, string>;
 }) {
   const sel = useSelection();
-  const head = (key: ResultsSortKey, label: string, align: "left" | "right" = "left", className?: string) => (
+  const head = (key: ResultsSortKey, label: ReactNode, align: "left" | "right" = "left", className?: string) => (
     <HeadCell
       align={align}
       className={className}
@@ -157,8 +163,8 @@ export function ResultsTable({
       <table
         className={cn(
           "w-full table-fixed border-collapse text-base",
-          rail ? "" : compact ? "min-w-[30rem]" : "min-w-[62rem]",
-          !compact && "[&_thead_th]:xl:sticky [&_thead_th]:xl:top-0 [&_thead_th]:xl:z-10",
+          rail ? "" : compact ? "min-w-[30.5rem]" : "min-w-[62rem]",
+          !compact && "[&_thead_th]:xl:sticky [&_thead_th]:xl:top-0 [&_thead_th]:xl:z-raised",
         )}
       >
         {/* The widths are `RESULTS_COLUMNS`; the loading skeleton draws the same grid. */}
@@ -173,9 +179,10 @@ export function ResultsTable({
               <span className="sr-only">Select</span>
             </HeadCell>
             {head("name", "Supplier", "left", "px-3")}
-            {/* "Registers & certifiers" is 119px with its caret; beside a pane
-                the column is 76px, and the record calls them sources too. */}
-            {rail ? null : head("sources", compact ? "Sources" : "Registers & certifiers", "left", compact ? "px-2" : "px-3")}
+            {/* "Sources", which the record says too: "Registers & certifiers"
+                is 142px with its caret and wrapped under it. What it counts
+                (not the brand lists) is in its title and the sort's name. */}
+            {rail ? null : head("sources", <span title="Registers & certifiers">Sources</span>, "left", compact ? "px-2" : "px-3")}
             {compact ? null : head("cert_expiry", "Certificates", "left", "px-3")}
             {compact ? null : head("hs_lines", "Export lines", "left", "px-3")}
             {rail ? null : head("workers", "Workers", "right", "px-3")}
@@ -320,7 +327,7 @@ export function ResultsTable({
                         </Button>
                         <span
                           aria-hidden
-                          className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 whitespace-nowrap rounded-sm bg-surface-inverse px-1.5 py-0.5 text-xs font-medium text-ink-inverse opacity-0 transition-opacity duration-fast group-hover/open:opacity-100 group-focus-within/open:opacity-100 group-focus-visible:opacity-100"
+                          className="pointer-events-none absolute bottom-full left-1/2 z-overlay mb-1 -translate-x-1/2 whitespace-nowrap rounded-sm bg-surface-inverse px-1.5 py-0.5 text-xs font-medium text-ink-inverse opacity-0 transition-opacity duration-fast group-hover/open:opacity-100 group-focus-within/open:opacity-100 group-focus-visible:opacity-100"
                         >
                           Open
                         </span>

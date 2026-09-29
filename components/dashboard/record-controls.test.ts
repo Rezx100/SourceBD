@@ -7,12 +7,7 @@
 
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
-import { PathnameContext } from "next/dist/shared/lib/hooks-client-context.shared-runtime";
-
-import { ShellSwitch } from "@/components/shell/shell-switch";
 
 import { buildSheet } from "@/lib/dashboard/build-models";
 import { aboniInput } from "@/lib/dashboard/fixtures";
@@ -181,73 +176,6 @@ function sheetEscape(event: unknown): boolean {
   (listener as unknown as (e: unknown) => void)(event);
   return pushed;
 }
-
-describe("ShellSwitch — one shell per page, on every navigation", () => {
-  // The layout used to pick the shell from a request header, which a client
-  // navigation never re-sends: from an old-shell page into a record by
-  // next/link, the old shell stayed and the kit's drew inside it (cycle 5).
-  // This is a client component that reads the CURRENT path, so a navigation
-  // is a re-render with a new path — which is what this drives.
-  const shell = (pathname: string) =>
-    callWithHooks(ShellSwitch, { top: "TOP", side: "SIDE", bottom: "BOTTOM", children: "PAGE" }, { contexts: new Map([[PathnameContext, pathname]]) }).out;
-
-  // The element types from the root down to the page, in order. React keeps a
-  // subtree mounted only while every one of these stays the same.
-  const pathTo = (out: unknown): string[] => {
-    const chain: string[] = [];
-    let node = out as { type?: unknown; props?: { children?: unknown } } | undefined;
-    while (node && typeof node === "object" && "type" in node) {
-      chain.push(String(node.type));
-      const kids = ([] as unknown[]).concat(node.props?.children ?? []);
-      node = kids.find((k) => k === "PAGE" || (k !== null && typeof k === "object" && textOf(k as never).includes("PAGE"))) as typeof node;
-    }
-    return chain;
-  };
-  const landmarks = (out: unknown) => findAll(out as never, (el) => el.type === "main" || el.props.role === "main");
-
-  it("draws nothing around a kit page, and the old shell around every other", () => {
-    // Every /app page is a kit page since 27 Sep; the supplier portal and
-    // admin still draw the old shell.
-    for (const path of ["/app", "/app/rfqs", "/app/suppliers/aboni-knitwear", "/app/suppliers/aboni-knitwear/lines/6105", "/app/discover"]) {
-      const out = shell(path);
-      assert.equal(textOf(out), "PAGE", `${path}: the old shell is drawn around a kit page`);
-      assert.equal(landmarks(out).length, 0, `${path}: a main landmark around the kit's own`);
-    }
-    for (const path of ["/supplier", "/supplier/rfqs", "/admin/queue"]) {
-      const out = shell(path);
-      const main = landmarks(out);
-      assert.equal(main.length, 1, `${path}: no main landmark`);
-      assert.equal(main[0]!.props.id, "main-content", `${path}: the skip link has no target`);
-      assert.equal(textOf(out), "TOPSIDEPAGEBOTTOM");
-    }
-  });
-
-  it("crossing between the two keeps the page mounted: the same elements lead to it", () => {
-    // A fragment on one side and a <main> on the other changed the parent's
-    // type, so React remounted the whole page on every crossing — and the
-    // onboarding tour re-opened at its first step after being dismissed.
-    const old = pathTo(shell("/supplier"));
-    const kit = pathTo(shell("/app/suppliers/aboni-knitwear"));
-    assert.ok(old.length >= 3, `guard: ${old.join(" > ")}`);
-    assert.deepEqual(kit, old, `old ${old.join(" > ")} vs kit ${kit.join(" > ")}`);
-  });
-
-  it("the layout routes its shell through it, and no longer reads the request", () => {
-    const layout = readFileSync(path.join(process.cwd(), "app", "(app)", "layout.tsx"), "utf8");
-    assert.match(layout, /<ShellSwitch\b/);
-    assert.doesNotMatch(layout, /x-sourcebd-pathname|headers\(\)/, "the layout picks the shell from the request again");
-    assert.doesNotMatch(layout, /<main\b/, "the layout draws a <main> of its own");
-    // Kit loading states draw the kit's frame: the layout draws none there.
-    // The list pages keep theirs inside a `(list)` route group (27 Sep 2026),
-    // so the detail pages beside them answer real status codes.
-    // The search's and Saved's are their workbench frame itself
-    // (`ResultsColumn`, 28 Sep 2026), so the results replace them in place.
-    for (const route of ["discover", "saved", "products/(list)", "searches"]) {
-      const loading = readFileSync(path.join(process.cwd(), "app", "(app)", "app", ...route.split("/"), "loading.tsx"), "utf8");
-      assert.match(loading, /<KitLoading\b|<ResultsColumn\b/, `/app/${route}'s loading state has no frame`);
-    }
-  });
-});
 
 describe("DialogFocus — focus follows the dialog's content", () => {
   function world(search: string) {

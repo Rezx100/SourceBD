@@ -8,18 +8,24 @@
 // `md` up — the page never scrolls, the content region or a pane inside it
 // does.
 //
-// The app layout above still routes through `ShellSwitch`, which draws
-// nothing around a /app route. Spec H5's onboarding tour mounts after the
-// shell; it short-circuits server-side once the buyer has completed or
-// dismissed it.
+// No layout of the `(app)` group sits above this one: the older shell's
+// layout, and its reads, wrap only the supplier portal and admin
+// (`app/(app)/(old-shell)`, 29 Sep 2026). So analytics learns who is signed
+// in here, from the shell's own sign-in read. Spec H5's onboarding tour
+// mounts after the shell; it short-circuits server-side once the buyer has
+// completed or dismissed it. Its two reads (who is signed in, then the tour's
+// state) stream in behind the page: outside a boundary they held the whole
+// page back two more round trips after the shell's own.
 
 import { cookies } from "next/headers";
+import { Suspense } from "react";
 import { preload } from "react-dom";
 import { AppShell } from "@/components/dashboard/app-shell";
 import { RAIL_COOKIE } from "@/lib/dashboard/nav";
 import { TourMount } from "@/components/onboarding/tour-mount";
 import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { SOURCE_LOGO_FILES } from "@/lib/dashboard/source-logos";
+import { PostHogProvider } from "@/lib/posthog/provider";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export default async function BuyerLayout({ children }: { children: React.ReactNode }) {
@@ -34,11 +40,13 @@ export default async function BuyerLayout({ children }: { children: React.ReactN
   // never flashes open first.
   const railCollapsed = jar.get(RAIL_COOKIE)?.value === "collapsed";
   return (
-    <>
+    <PostHogProvider userId={shell.userId}>
       <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" railCollapsed={railCollapsed}>
         {children}
       </AppShell>
-      <TourMount flavour="buyer" />
-    </>
+      <Suspense fallback={null}>
+        <TourMount flavour="buyer" />
+      </Suspense>
+    </PostHogProvider>
   );
 }

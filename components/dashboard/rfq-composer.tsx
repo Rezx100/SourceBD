@@ -11,7 +11,8 @@
 // marks at the top; the product block; the message, drawn from the
 // workspace's template with its facts filled in; the questions; a preview of
 // what the RFQ will carry, beside the form where there is room; a footer that
-// names what is still missing, saves a draft, and sends. ⌘↵ sends.
+// names what is still missing, saves a draft, and sends. Ctrl+Enter sends
+// (⌘+Enter on a Mac), and the button's hint says so in the buyer's own keys.
 //
 // Product truth: the server refuses a sanctioned target (`rfq_create`), so
 // the composer withholds Send for one too and says why. No contact value
@@ -30,6 +31,7 @@ import { Icon } from "./icons";
 import { LogoTile, SourceMarks } from "./marks";
 import { SanctionBanner, Sheet, SheetBar, SheetScroll } from "./sheet";
 import { SupplierPicker, targetFromRow, type SupplierRow } from "./supplier-picker";
+import { useApplePlatform } from "./topbar-search-slot";
 import { Caption, Label } from "./type";
 
 /** A supplier this RFQ goes to. Facts only; never a contact value. */
@@ -150,6 +152,8 @@ export function RfqComposer({
 }) {
   const router = useContext(AppRouterContext);
   const id = useId();
+  // The send hint in the buyer's own keys: "⌘↵" read as a stray glyph on Windows.
+  const apple = useApplePlatform();
   const [targets, setTargets] = useState(initialTargets);
   const [title, setTitle] = useState(prefill.title ?? "");
   const [description, setDescription] = useState(prefill.description ?? "");
@@ -569,10 +573,10 @@ export function RfqComposer({
           Save draft
         </Button>
         <Button type="submit" form={`${id}-form`} variant="primary" disabled={blocked} loading={busy === "send"} aria-describedby={`${id}-send-hint`}>
-          <Icon name="send" /> Send RFQ <Kbd>⌘↵</Kbd>
+          <Icon name="send" /> Send RFQ <Kbd>{apple ? "⌘↵" : "Ctrl ↵"}</Kbd>
         </Button>
         <span id={`${id}-send-hint`} className="sr-only">
-          Sends to every supplier listed. Command or Control plus Enter also sends.
+          Sends to every supplier listed. {apple ? "Command" : "Control"} plus Enter also sends.
         </span>
       </div>
     </Sheet>

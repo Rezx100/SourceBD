@@ -28,7 +28,7 @@ function stub(over: {
   dashboard?: unknown;
   discover?: { data?: unknown; error?: unknown };
   rfqCount?: number | null;
-  user?: { email?: string; user_metadata?: Record<string, unknown> } | null;
+  user?: { id?: string; email?: string; user_metadata?: Record<string, unknown> } | null;
   throwOn?: "rpc" | "from" | "auth" | "all";
 }): Stub {
   const bang = (which: "rpc" | "from" | "auth") => {
@@ -180,6 +180,13 @@ describe("the buyer shell reads its counts, or says it could not", () => {
     // A real name still gets both letters.
     const named = await loadBuyerShell(stub({ user: { email: "x@y.invalid", user_metadata: { full_name: "Rezaul Karim" } } }), "/app/discover");
     assert.equal(named.topbar.initial, "RK");
+  });
+
+  it("names the signed-in buyer for analytics from the same read, and no one when it failed", async () => {
+    // The buyer layout hands this to PostHog; nothing above it asks who is
+    // signed in any more (29 Sep 2026).
+    assert.equal((await loadBuyerShell(stub({ user: { id: "buyer-7", email: "b@example.invalid" } }), "/app/discover")).userId, "buyer-7");
+    assert.equal((await loadBuyerShell(stub({ throwOn: "auth" }), "/app/discover")).userId, null);
   });
 });
 

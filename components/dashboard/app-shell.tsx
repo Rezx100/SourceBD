@@ -187,8 +187,10 @@ export function Topbar({ model, screenLabel, account }: { model: TopbarModel; sc
     // under the page's content — every page fades in through an animated
     // wrapper that is a later stacking context — so the suggestion list that
     // hangs below the field slid UNDER the filter bar and the results panel
-    // (founder's walkthrough, 28 Sep 2026). Raised, not sticky (100): the
-    // onboarding tour's scrim is z-50 and must still cover the topbar.
+    // (founder's walkthrough, 28 Sep 2026). Raised is enough: `<main>` below is
+    // `isolate`, so nothing inside the page (a sticky table header, the
+    // record's tabs, both `z-raised` too) can climb over the list; and the
+    // onboarding tour's scrim (`z-modal`) still covers the topbar.
     <div className="glass relative z-raised flex h-topbar shrink-0 items-center gap-3 border-b border-line-subtle px-4 sm:gap-4 sm:px-6">
       {field ? (
         <TopbarSearchSlot>{field}</TopbarSearchSlot>
@@ -264,7 +266,7 @@ export function AppShell({
     >
       <a
         href={`#${mainId}`}
-        className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-sm focus:border focus:border-line-strong focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-ink-strong"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-toast focus:rounded-sm focus:border focus:border-line-strong focus:bg-surface focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-ink-strong"
       >
         {screenLabel ? `Skip to content, ${screenLabel}` : "Skip to content"}
       </a>
@@ -280,8 +282,13 @@ export function AppShell({
           tabIndex={-1}
           // The one scroll region of a plain page. A workbench page (the
           // search, the inbox) fills it with `min-h-0 flex-1` columns that
-          // scroll themselves, and this never overflows.
-          className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto", contentClassName)}
+          // scroll themselves, and this never overflows. `isolate`: every
+          // z-index inside the page stays inside it, so the topbar's
+          // suggestion list always paints over the page. Without it a sticky
+          // header (`z-raised`, the topbar's own level and later in the page)
+          // would paint over the list whenever the page's fade-in is not
+          // there to contain it, as under reduced motion.
+          className={cn("isolate flex min-h-0 flex-1 flex-col overflow-y-auto", contentClassName)}
         >
           {children}
         </main>
