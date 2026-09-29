@@ -132,11 +132,11 @@ export const light = {
     line: "#8F1711",
   },
 
-  // Locked (needs plan or login). A real state with its own surface and
-  // stripe pattern — never a blur over real data.
+  // Locked (needs plan or login). A real state with its own plain surface —
+  // never a blur over real data. The stripes went (founder's video, 29 Sep
+  // 2026: they read as decoration, not as a state).
   locked: {
     DEFAULT: "#EEEEEC",
-    stripe: "#DDE0D5",
     ink: "#545C54",
     line: "#C1C7B9",
   },
@@ -448,8 +448,6 @@ export const contrastPairs: ContrastPair[] = [
   { fg: "sanction.ink", bg: "sanction.tint", min: 7, use: "sanction note (held to AAA)" },
   { fg: "sanction.ink", bg: "surface", min: 7, use: "sanction line on a card (held to AAA)" },
   { fg: "locked.ink", bg: "locked", min: TEXT, use: "locked field" },
-  { fg: "locked.ink", bg: "locked.stripe", min: TEXT, use: "locked field, on the stripe" },
-  { fg: "ink.strong", bg: "locked.stripe", min: TEXT, use: "locked card label, on the stripe" },
   { fg: "quiet.ink", bg: "quiet", min: TEXT, use: "unverified / empty" },
   { fg: "quiet.ink", bg: "surface", min: TEXT, use: "empty value in a tile" },
   { fg: "smart", bg: "smart.tint", min: TEXT, use: "V2 tag" },

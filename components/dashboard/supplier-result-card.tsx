@@ -25,8 +25,16 @@ import { SaveRecordButton } from "./save-record-button";
 import { useSelection } from "./selection";
 import { Code, Title } from "./type";
 
-/** `.meta`: facts separated by middle dots, each followed by its 16px mark. */
-export function MetaLine({ facts, className }: { facts: readonly FactWithMark[]; className?: string }) {
+/**
+ * `.meta`: facts separated by middle dots, each followed by its 16px mark.
+ * `inRow` names the sources a row of marks beside the line already draws:
+ * their marks are left off the facts, so the record's head says each source
+ * once ("RSC, then RSC again", founder's video, 29 Sep 2026). A fact whose
+ * source is not in that row (a worker figure read from a building's RSC
+ * inspection) keeps its mark, or nothing in the head would say where it came
+ * from.
+ */
+export function MetaLine({ facts, inRow, className }: { facts: readonly FactWithMark[]; inRow?: ReadonlySet<string>; className?: string }) {
   return (
     <div className={cn("flex flex-wrap items-center gap-y-1 text-base text-ink-muted", className)}>
       {facts.map((f, i) => (
@@ -39,7 +47,7 @@ export function MetaLine({ facts, className }: { facts: readonly FactWithMark[];
           )}
         >
           {f.code ? <Code>{f.text}</Code> : f.text}
-          {f.mark ? <SourceMark mark={f.mark} sm /> : null}
+          {f.mark && !inRow?.has(f.mark.code) ? <SourceMark mark={f.mark} sm /> : null}
         </span>
       ))}
     </div>

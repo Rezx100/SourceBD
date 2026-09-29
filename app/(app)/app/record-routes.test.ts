@@ -1112,7 +1112,7 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
     assert.ok(list, "guard: the full page draws the product list");
     assert.equal((list[1]!.match(/<li/g) ?? []).length, 2, `the product list: ${list[1]}`);
     assert.match(list[1]!, /Knit T-shirt 61091000/, "an HS code in a product name was cut as a phone number");
-    assert.match(pages.full, /Product list<\/span><span[^>]*>2<\/span>/, "the Products stat counts a contact value or a case variant as a product");
+    assert.match(pages.full, /Product list<\/dt><dd[^>]*><span[^>]*>2<\/span>/, "the Products stat counts a contact value or a case variant as a product");
   });
 
   it("?lines=all rides INTO a line from the overlay, not only back out", async () => {

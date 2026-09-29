@@ -1,7 +1,7 @@
 // Sheet primitives (REZ-A, artifact SupplierSheet README): the record's frame
 // (a pane beside the results, or the full page) with its 52px bar, tabs with
 // mono counts, sections, the FactsPanel (28px rows, label 150px, a mark at
-// the row's end), the striped locked contact card, stat blocks, the
+// the row's end), the locked contact card, the stats line, the
 // certificate card, the RSC block and the sticky frosted action bar. `Stage`
 // and `Scrim` remain for the gallery's RFQ composer, which is still a dialog.
 
@@ -15,6 +15,7 @@ import { DialogFocus } from "./dialog-focus";
 import { Button, Meter } from "./controls";
 import { Icon } from "./icons";
 import { SourceMark } from "./marks";
+import { SbIcon } from "./sb-icons";
 import { Caption, Code, Eyebrow, Heading, Label } from "./type";
 
 /**
@@ -102,7 +103,7 @@ export function RecordPane({
   closeHref?: string | null;
   /** What the pane is showing (record, line or notice); focus moves to it whenever that changes. */
   openKey?: string;
-  /** The composer's width: it carries the target rail, the fields and the preview side by side, so it takes more of the region than a record does. */
+  /** The composer: it carries the targets, the fields and the preview side by side, so it takes the region beside the results' slim rail (`ResultsColumn rail`). */
   wide?: boolean;
   children: ReactNode;
 }) {
@@ -112,7 +113,10 @@ export function RecordPane({
       data-pane-wide={wide ? "true" : undefined}
       className={cn(
         "flex min-h-0 min-w-0 flex-1 flex-col border-line lg:flex-none lg:border-l",
-        wide ? "lg:w-[clamp(640px,68%,1100px)]" : "lg:w-[clamp(480px,50%,760px)]",
+        // Wide: the results step aside to an 18rem rail and the composer takes
+        // the rest; at 68% it crushed the table to 28rem (founder's video,
+        // 29 Sep 2026).
+        wide ? "lg:flex-1" : "lg:w-[clamp(480px,50%,760px)]",
       )}
     >
       {closeHref ? <DialogFocus closeHref={closeHref} openKey={openKey} /> : null}
@@ -132,7 +136,7 @@ export function RecordPane({
  * definition for the page, the gallery and the preview harness, so the
  * three cannot drift.
  */
-export function ResultsColumn({ besideRecord = false, children }: { besideRecord?: boolean; children: ReactNode }) {
+export function ResultsColumn({ besideRecord = false, rail = false, children }: { besideRecord?: boolean; rail?: boolean; children: ReactNode }) {
   // The gutter is on an inner box, not on the scroll region itself. A sticky
   // table header sticks to the scroll region's padding edge, so with the
   // 24px gutter on the region the header stopped 24px below the topbar and
@@ -140,8 +144,10 @@ export function ResultsColumn({ besideRecord = false, children }: { besideRecord
   // walkthrough, 28 Sep 2026). Padded inside, the header meets the top edge.
   // Beside a pane the gutter is 16px: every pixel of it is the supplier
   // column's (see `RecordPane`).
+  // `rail`: beside the RFQ composer the results are a slim column of names,
+  // still tickable, rather than a crushed table.
   return (
-    <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto", besideRecord && "hidden lg:flex")}>
+    <div className={cn("flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto", besideRecord && "hidden lg:flex", rail && "lg:w-[18rem] lg:flex-none")}>
       <div className={cn("flex flex-col gap-4 p-4 sm:p-6", besideRecord && "lg:p-4")}>{children}</div>
     </div>
   );
@@ -255,14 +261,11 @@ export function SheetSection({
  * once what the square means.
  */
 export function PendingMark() {
+  // SourceBD's own mark (a document with a clock): the dashed square read as
+  // a tick box (founder's video, 29 Sep 2026).
   return (
-    <span
-      role="img"
-      aria-label="Source pending"
-      title="Source pending: the register that filed this is not linked per field yet"
-      className="inline-block size-4 shrink-0 rounded-xs border border-dashed border-quiet-line"
-    >
-      <span className="sr-only">source pending</span>
+    <span title="Source pending: the register that filed this is not linked per fact yet" className="inline-flex shrink-0 text-quiet-ink">
+      <SbIcon name="pending" label="Source pending" />
     </span>
   );
 }
@@ -278,8 +281,8 @@ export function collapseRepeatedLines(text: string): string {
   return out.join("\n");
 }
 
-/** What the dashed square means, said once under the facts it marks. */
-export const PENDING_LEGEND = "A dashed square: source pending. The register that filed the fact is not linked per field yet.";
+/** What the pending mark means, said once under the facts it marks (and in full on its hover). */
+export const PENDING_LEGEND = "Source pending";
 
 /**
  * `.fp`: the facts panel. Every row has room for a mark, in one column at the
@@ -345,7 +348,14 @@ export function FactsPanel({ rows, legend = true }: { rows: readonly FactRow[]; 
               {r.marks && r.marks.length > 0 ? (
                 r.marks.map((m) => <SourceMark key={m.code} mark={m} sm />)
               ) : r.value === null && r.checked ? (
-                <Caption className="sm:whitespace-nowrap">{r.checked}</Caption>
+                // What was checked ("registers and RSC checked") on hover and
+                // to a screen reader: printed, it was the loudest text on an
+                // empty row (founder's video, 29 Sep 2026).
+                <span title={`Not on file · ${r.checked}`} className="inline-flex text-quiet-ink">
+                  {/* A magnifier (looked), never a tick: a tick is the sign for a verified fact. */}
+                  <Icon name="search" small />
+                  <span className="sr-only">{r.checked}</span>
+                </span>
               ) : r.pendingSource ? (
                 <PendingMark />
               ) : null}
@@ -368,7 +378,7 @@ export function FactsLegend() {
 }
 
 /**
- * `.lockcard`: the contact block, locked by default. Striped, never blurred.
+ * `.lockcard`: the contact block, locked by default, on the plain locked ground. Never blurred.
  * The plan name comes from settings; without one the label is just "Contact
  * details".
  *
@@ -405,9 +415,9 @@ export function LockCard({
   // A strip across the record, not a 300px box beside the facts: beside the
   // facts it squeezed every value into a thin column on a wide display
   // (founder's walkthrough, 28 Sep 2026 — "this contact details is big, I
-  // won't accept it"). The stripes, the counts and the words are the same.
+  // won't accept it"). Plain, not striped (29 Sep 2026: the stripes went).
   return (
-    <div data-locked="true" className="locked-pattern flex flex-col gap-1.5 rounded-md border border-locked-line px-4 py-2.5 text-locked-ink">
+    <div data-locked="true" className="flex flex-col gap-1.5 rounded-md border border-locked-line bg-locked px-4 py-2.5 text-locked-ink">
       <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
         <Label className="inline-flex items-center gap-1.5 text-ink-strong">
           <Icon name="lock" /> Contact details{plan ? ` · ${plan}` : ""}
@@ -437,20 +447,36 @@ export function LockCard({
   );
 }
 
-/** `.stats`: four stat blocks in a row. */
+/**
+ * `.stats`: the section's figures as label and value rows, two across. They
+ * were four boxes of a 24px number each; three held one line and one five,
+ * and the boxes took a screen's height for four numbers (founder's video,
+ * 29 Sep 2026).
+ */
 export function Stats({ items }: { items: readonly { key: string; value: string; sub: string | null }[] }) {
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+    <dl className="m-0 grid gap-x-8 sm:grid-cols-2">
       {items.map((s) => (
-        <div key={s.key} className="flex min-w-0 flex-col gap-0.5 rounded-md bg-canvas px-3.5 py-3">
-          <Eyebrow>{s.key}</Eyebrow>
-          <span className="whitespace-nowrap text-2xl font-normal text-ink-strong">{s.value}</span>
-          {/* The sub-line carries a certificate's scope and a chapter list; held
-              to one line it ran out of its cell and over the next stat. */}
-          {s.sub ? <Caption className="[overflow-wrap:anywhere]">{s.sub}</Caption> : null}
+        <div key={s.key} className="flex min-w-0 items-baseline gap-3 border-t border-line-subtle py-1.5">
+          <dt className="w-[7.5rem] shrink-0 text-sm text-ink-muted">{s.key}</dt>
+          <dd className="m-0 min-w-0 flex-1 [overflow-wrap:anywhere]">
+            {/* A figure with nothing on file is a dash; why ("not on the EPB
+                list") is on its hover and read to a screen reader, not
+                printed under every empty figure. */}
+            {s.value === "—" && s.sub ? (
+              <span title={s.sub} className="text-base text-quiet-ink">
+                —<span className="sr-only"> {s.sub}</span>
+              </span>
+            ) : (
+              <>
+                <span className="text-base font-medium text-ink-strong">{s.value}</span>
+                {s.sub ? <Caption className="ml-1.5">{s.sub}</Caption> : null}
+              </>
+            )}
+          </dd>
         </div>
       ))}
-    </div>
+    </dl>
   );
 }
 
@@ -825,12 +851,10 @@ export function QuietEmpty({ children }: { children: ReactNode }) {
  */
 export function ActionBar({
   sanctioned,
-  everyMarkLinks,
   rfqHref,
   save,
 }: {
   sanctioned: boolean;
-  everyMarkLinks: boolean;
   rfqHref?: string | null;
   /** The real Save control, when the caller has a session to save into. */
   save?: ReactNode;
@@ -849,14 +873,7 @@ export function ActionBar({
           <Icon name="bookmark" /> Save
         </Button>
       )}
-      {/* A brand disclosure list is one file listing every supplier on it, so
-          a tier-4 mark never opens a page about this record — its own
-          accessible name says "opens the disclosure list". The absolute
-          sentence contradicted that on ~43 published records, so it is made
-          only when every mark that links opens a record page. */}
-      <Caption className="ml-auto">
-        {everyMarkLinks ? "Every source mark links to its register page" : "Source marks link to their register page where one is on file"}
-      </Caption>
+
     </div>
   );
 }

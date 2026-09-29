@@ -149,10 +149,10 @@ function Frame({ id, title, note, height, children }: { id: string; title: strin
  * scrolls on its own and, when something is open, a pane sits on its right.
  * The gallery has no URL to close to, so its panes carry no `closeHref`.
  */
-function Bench({ results, pane }: { results: ReactNode; pane?: ReactNode }) {
+function Bench({ results, pane, rail = false }: { results: ReactNode; pane?: ReactNode; rail?: boolean }) {
   return (
     <Workbench>
-      <ResultsColumn besideRecord={Boolean(pane)}>{results}</ResultsColumn>
+      <ResultsColumn besideRecord={Boolean(pane)} rail={rail}>{results}</ResultsColumn>
       {pane}
     </Workbench>
   );
@@ -268,13 +268,14 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
   // Beside a pane the results are the named records only: every screen but
   // the ledger draws those four, and states their span in its topbar.
   const namedRows = d.rows.filter((r) => d.cards.some((c) => c.slug === r.slug));
-  const beside = (currentSlug: string | null) => (
+  // `rail`: beside the RFQ composer, as /app/discover draws it — the names and boxes only, no filter bar.
+  const beside = (currentSlug: string | null, rail = false) => (
     <>
-      {search}
+      {rail ? null : search}
       <Panel>
         {/* A record beside the results is the page's h1; the search steps down to h2. */}
         <PanelHeader as={currentSlug ? "h2" : "h1"} model={header(d, "table", namedRows.length, SELECTION)} />
-        <ResultsTable rows={namedRows} compact currentSlug={currentSlug} sort={sort} sortHrefs={sortHrefs} />
+        <ResultsTable rows={namedRows} compact rail={rail} currentSlug={currentSlug} sort={sort} sortHrefs={sortHrefs} />
         <PanelFooter shown={namedRows.length} total={d.discoverError ? null : d.total} note={SELECTION} />
       </Panel>
     </>
@@ -334,7 +335,7 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
         <Frame
           id="supplier-sheet"
           title="SupplierSheet — the record beside the results"
-          note={`${d.sheet.name}: ${d.sheet.sourceCount} sources, ${d.sheet.certs.length} certificates, ${d.sheet.products.lines} HS lines, read ${d.sheet.readDate ?? "—"}. Contact details locked (striped, never blurred). The results narrow to the ledger's three essential columns and keep their own scroll; the open row is marked.`}
+          note={`${d.sheet.name}: ${d.sheet.sourceCount} sources, ${d.sheet.certs.length} certificates, ${d.sheet.products.lines} HS lines, read ${d.sheet.readDate ?? "—"}. Contact details locked (never blurred). The results narrow to the ledger's three essential columns and keep their own scroll; the open row is marked.`}
           height={1240}
         >
           <AppShell className="md:h-full" sidebar={results.sidebar} topbar={results.topbar} mainId="supplier-sheet-main" screenLabel="supplier record">
@@ -382,7 +383,8 @@ export function DashboardScreens({ data: d }: { data: GalleryData }) {
         >
           <AppShell className="md:h-full" sidebar={results.sidebar} topbar={results.topbar} mainId="rfq-composer-main" screenLabel="RFQ composer">
             <Bench
-              results={beside(null)}
+              results={beside(null, true)}
+              rail
               pane={
                 <RecordPane openKey="rfq-composer" wide>
                   {/* The frame's own id, not a bare "#": the gallery has no search
