@@ -60,8 +60,10 @@ const RAW_ANCHORS: Allowed = {
     "{filtersModeHref}": [1, "the Ask/Filters switch re-runs the search"],
     "{askHref}": [1, "the Ask/Filters switch re-runs the search"],
   },
+  "sheet-tabs.tsx": {
+    '{t.href ?? "#"}': [1, "a tab is a #fragment inside the open sheet; its click scrolls the pane's own region (goToSection)"],
+  },
   "sheet.tsx": {
-    '{t.href ?? "#"}': [1, "a tab is a #fragment inside the open sheet"],
     "{r.href}": [
       3,
       "a fact's link and a source row go to register pages off-site; an RFQ row opens /app/rfqs/<id>, another page, which has no search to keep",

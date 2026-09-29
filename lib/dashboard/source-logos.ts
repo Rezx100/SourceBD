@@ -25,3 +25,6 @@ const LOGOS: Record<string, string> = {
 export function sourceLogo(code: string): string | null {
   return LOGOS[code.toUpperCase()] ?? LOGOS[code] ?? null;
 }
+
+/** Every mark file once: the buyer layout preloads them (`app/(app)/app/layout.tsx`). */
+export const SOURCE_LOGO_FILES: readonly string[] = [...new Set(Object.values(LOGOS))];

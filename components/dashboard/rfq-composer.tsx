@@ -404,7 +404,11 @@ export function RfqComposer({
               <Field label="Description" htmlFor={`${id}-desc`} hint="Fabric, sizes, colours, packaging, certifications required.">
                 <TextArea id={`${id}-desc`} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={4000} rows={3} aria-describedby={`${id}-desc-hint`} />
               </Field>
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {/* As many 144px fields to a row as the form's own width holds.
+                  Four to a row from a 640px WINDOW put four fields in the
+                  pane's 341px column at 1280: labels over each other and
+                  "pcs" cut to "p" (founder's video, 29 Sep 2026). */}
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-4">
                 <Field label="Quantity" htmlFor={`${id}-qty`} required>
                   <TextInput id={`${id}-qty`} required type="number" min={1} step="any" inputMode="decimal" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
                 </Field>

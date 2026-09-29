@@ -22,9 +22,11 @@ export async function readRecordBeside(
   slug: string,
   closeHref: string,
   today: Date = new Date(),
+  /** The record's id when the list row that opened it carries it (`SheetView.supplierId`). */
+  supplierId: string | null = null,
 ): Promise<RecordBesideRead> {
   try {
-    return { slug, model: await loadRecordSheet(supabase, slug, today, { closeHref }), slow: false };
+    return { slug, model: await loadRecordSheet(supabase, slug, today, { closeHref, supplierId }), slow: false };
   } catch (err) {
     return { slug, model: null, slow: err instanceof ProfileReadTimeout };
   }

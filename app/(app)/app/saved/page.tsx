@@ -19,7 +19,7 @@ import { SAVED_SORTS, SavedList, savedHref, type SavedSort } from "@/components/
 import { SavedDesk, deskFrom } from "@/components/dashboard/saved-desk";
 import { RecordBeside, readRecordBeside } from "@/components/dashboard/record-beside";
 import { RecordSkeleton } from "@/components/dashboard/record-skeleton";
-import { RecordPane, ResultsColumn } from "@/components/dashboard/sheet";
+import { RecordPane, ResultsColumn, Workbench } from "@/components/dashboard/sheet";
 import { enrichDiscoverWorkers } from "@/lib/enrich-discover-workers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -94,7 +94,7 @@ export default async function SavedSuppliersPage({
     // The workbench frame: the list scrolls on its own and the record sits
     // beside it from `lg`; below that the record takes the region and the
     // list waits in the URL for Close.
-    <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+    <Workbench>
       <ResultsColumn besideRecord={openSlug !== null}>
         <SavedList
           rows={rows}
@@ -116,25 +116,33 @@ export default async function SavedSuppliersPage({
             </RecordPane>
           }
         >
-          <SavedRecord supabase={supabase} slug={openSlug} closeHref={listHref} retryHref={savedHref(sort, pageNum, openSlug)} />
+          <SavedRecord
+            supabase={supabase}
+            slug={openSlug}
+            supplierId={rows.find((r) => r.slug === openSlug)?.id ?? null}
+            closeHref={listHref}
+            retryHref={savedHref(sort, pageNum, openSlug)}
+          />
         </Suspense>
       ) : null}
-    </div>
+    </Workbench>
   );
 }
 
 async function SavedRecord({
   supabase,
   slug,
+  supplierId,
   closeHref,
   retryHref,
 }: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the Supabase server client, as loadRecordSheet takes it.
   supabase: any;
   slug: string;
+  supplierId: string | null;
   closeHref: string;
   retryHref: string;
 }) {
-  const read = await readRecordBeside(supabase, slug, closeHref);
+  const read = await readRecordBeside(supabase, slug, closeHref, new Date(), supplierId);
   return <RecordBeside read={read} closeHref={closeHref} retryHref={retryHref} />;
 }

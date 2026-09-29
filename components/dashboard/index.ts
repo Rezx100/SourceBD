@@ -43,6 +43,7 @@ export {
   SheetTabs,
   Stage,
   Stats,
+  Workbench,
 } from "./sheet";
 export { MetaLine, SanctionLine, SupplierResultCard } from "./supplier-result-card";
 export { SupplierSheet } from "./supplier-sheet";

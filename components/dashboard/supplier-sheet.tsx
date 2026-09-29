@@ -144,7 +144,8 @@ export function SupplierSheet({
             <Icon name="x" />
           </Button>
         ) : null}
-        <Label className="text-ink-strong">Supplier record</Label>
+        {/* One line: at half the region (524px at 1280) it broke as "Supplier / record". */}
+        <Label className="shrink-0 whitespace-nowrap text-ink-strong">Supplier record</Label>
         <Caption>
           {model.readDate ? `Read ${model.readDate} · ` : ""}
           {model.sourceCount} {model.sourceCount === 1 ? "source" : "sources"}

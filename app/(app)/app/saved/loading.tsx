@@ -1,4 +1,4 @@
-import { ResultsColumn } from "@/components/dashboard/sheet";
+import { ResultsColumn, Workbench } from "@/components/dashboard/sheet";
 import { Skeleton, SkeletonRegion } from "@/components/ui/skeleton";
 
 // Saved while it loads, in the page's own frame: the header, the desk
@@ -9,7 +9,7 @@ import { Skeleton, SkeletonRegion } from "@/components/ui/skeleton";
 
 export default function SavedLoading() {
   return (
-    <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+    <Workbench>
       <ResultsColumn>
         <SkeletonRegion label="Loading saved suppliers" className="mx-auto flex w-full max-w-6xl flex-col gap-6">
           <div className="flex items-end justify-between gap-3">
@@ -50,6 +50,6 @@ export default function SavedLoading() {
           </div>
         </SkeletonRegion>
       </ResultsColumn>
-    </div>
+    </Workbench>
   );
 }

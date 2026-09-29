@@ -23,6 +23,15 @@
 // record is read inside its own `Suspense` boundary, keyed by what the pane
 // shows, so the pane draws the record's silhouette straight away and the
 // record streams into it.
+//
+// The founder's video of 29 Sep ("it has to be lightning fast") timed the
+// rest on the live site: a record 4.1–4.9 s from click to content, a line
+// 3.3–4.3 s, the RFQ form ~2 s. So a line reads the record once and only what
+// the line draws (`loadLineBeside`), its silhouette is the line's rather than
+// the whole record's, a record opened from a row starts its id-keyed reads
+// beside the profile, and the composer reads its suppliers and the workspace
+// inside a boundary of its own instead of holding up the whole page. The
+// measurements and what is left: `ops/plans/buyer-app-speed-29sep.md`.
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -37,7 +46,7 @@ import { SearchComposer } from "@/components/dashboard/search-composer";
 import { SelectionBar } from "@/components/dashboard/selection-bar";
 import { SelectionProvider } from "@/components/dashboard/selection";
 import { SaveRecordButton } from "@/components/dashboard/save-record-button";
-import { RecordPane, ResultsColumn, Sheet, SheetBar, SheetNotice, SheetScroll } from "@/components/dashboard/sheet";
+import { RecordPane, ResultsColumn, Sheet, SheetBar, SheetNotice, SheetScroll, Workbench } from "@/components/dashboard/sheet";
 import { SupplierResultCard } from "@/components/dashboard/supplier-result-card";
 import { SupplierSheet } from "@/components/dashboard/supplier-sheet";
 import { Button } from "@/components/dashboard/controls";
@@ -45,9 +54,9 @@ import { Icon } from "@/components/dashboard/icons";
 import { Toast } from "@/components/dashboard/toast";
 import { Caption, Label, Title } from "@/components/dashboard/type";
 import { RecordRecentSearch } from "@/components/dashboard/record-recent-search";
-import { RecordSkeleton } from "@/components/dashboard/record-skeleton";
+import { ComposerSkeleton, LineSkeleton, RecordSkeleton } from "@/components/dashboard/record-skeleton";
 import { readSearch } from "@/lib/dashboard/search-cache";
-import { ProfileReadTimeout, loadRecordLine, loadRecordSheet } from "@/lib/dashboard/load-record";
+import { ProfileReadTimeout, loadLineBeside, loadRecordSheet } from "@/lib/dashboard/load-record";
 import { fetchFacilityParentSlug } from "@/lib/facility-parent-redirect";
 import { ProductSheet } from "@/components/dashboard/product-sheet";
 import { buildDiscoverCard, buildDiscoverTableRow } from "@/lib/dashboard/build-discover-row";
@@ -136,35 +145,7 @@ export default async function BuyerDiscoverPage({
   const rfqHref = (id: string) => withParams(`${recordParams ? `${recordParams}&` : ""}rfq=${encodeURIComponent(id)}`);
   const lineRfqHref = (id: string, hs: string) => withParams(`${recordParams ? `${recordParams}&` : ""}rfq=${encodeURIComponent(id)}&hs_line=${hs}`);
 
-  // The composer's targets and the buyer's workspace, only when it is open.
-  const targetsPromise: Promise<ComposerTarget[]> = composerOpen
-    ? (async () => {
-        const r = await supabase
-          .from("suppliers")
-          .select(TARGET_COLUMNS)
-          .in("id", rfqIds);
-        const rows = (Array.isArray(r.data) ? r.data : []) as SupplierRow[];
-        // In the order they were ticked, published only: an unpublished id is
-        // dropped rather than drawn as a target the server would refuse.
-        return rfqIds.map((id) => rows.find((x) => x.id === id)).filter((x): x is SupplierRow => Boolean(x && x.is_published)).map(targetFromRow);
-      })()
-    : Promise.resolve([]);
-  const workspacePromise: Promise<ComposerWorkspace | null> = composerOpen
-    ? (async () => {
-        try {
-          const r = await supabase.rpc("settings_get");
-          return workspaceFrom(r.data);
-        } catch {
-          return null;
-        }
-      })()
-    : Promise.resolve(null);
-
-  const [{ rows, total, error, failure }, targets, workspace] = await Promise.all([
-    readSearch(state, () => fetchDiscoverV32(supabase, state)),
-    targetsPromise,
-    workspacePromise,
-  ]);
+  const { rows, total, error, failure } = await readSearch(state, () => fetchDiscoverV32(supabase, state));
   const slugs = rows.map((r) => r.slug);
   const [hs, savedRows] = await Promise.all([
     fetchHsBatch(supabase, slugs),
@@ -207,7 +188,7 @@ export default async function BuyerDiscoverPage({
     // beside it from `lg` — both live, nothing modal, the search never lost.
     // Below `lg` the pane takes the content region and the results wait in
     // the URL; Close brings them back.
-    <div className="relative flex min-h-0 flex-1 flex-col lg:flex-row">
+    <Workbench>
       <ResultsColumn besideRecord={paneOpen}>
         <RecordRecentSearch label={title} href={href} count={total} />
         <form action={DISCOVER_PATH} method="get">
@@ -328,16 +309,26 @@ export default async function BuyerDiscoverPage({
       </ResultsColumn>
 
       {composerOpen ? (
-        <RecordPane closeHref={recordParams ? withParams(recordParams) : closeHref} openKey={`rfq:${rfqIds.join(",")}`} wide>
-          <RfqComposer
-            targets={targets}
-            workspace={workspace}
-            prefill={prefillHs ? { hs: prefillHs, title: `HS ${prefillHs} · ${hsBuyerLabel(prefillHs, null)}` } : {}}
+        // A boundary of its own: the suppliers and the workspace's template
+        // are read inside it, so the pane's silhouette paints with the results
+        // instead of the whole page waiting on them.
+        <Suspense
+          key={`rfq:${rfqIds.join(",")}`}
+          fallback={
+            <RecordPane closeHref={recordParams ? withParams(recordParams) : closeHref} openKey="loading:rfq" wide>
+              <ComposerSkeleton />
+            </RecordPane>
+          }
+        >
+          <DiscoverComposer
+            supabase={supabase}
+            rfqIds={rfqIds}
+            prefillHs={prefillHs}
             closeHref={recordParams ? withParams(recordParams) : closeHref}
             backHref={recordParams ? withParams(recordParams) : null}
             addHref={closeHref}
           />
-        </RecordPane>
+        </Suspense>
       ) : filtersOpen ? (
         <RecordPane closeHref={closeHref} openKey="filters">
           <DiscoverFilters state={state} closeHref={closeHref} />
@@ -365,18 +356,20 @@ export default async function BuyerDiscoverPage({
       ) : recordSlug ? (
         // The pane's silhouette at once, the record streamed into it: a new
         // key per record or line is a new boundary, so the silhouette shows
-        // the moment the buyer clicks rather than after the reads.
+        // the moment the buyer clicks rather than after the reads — the
+        // line's own silhouette for a line, not the whole record's.
         <Suspense
           key={`${recordSlug}:${lineCode ?? ""}:${allLines ? "all" : ""}`}
           fallback={
             <RecordPane closeHref={closeHref} openKey={`loading:${recordSlug}`}>
-              <RecordSkeleton />
+              {lineCode ? <LineSkeleton /> : <RecordSkeleton />}
             </RecordPane>
           }
         >
           <DiscoverRecord
               supabase={supabase}
               slug={recordSlug}
+              supplierId={rows.find((r) => r.slug === recordSlug)?.id ?? null}
               lineCode={lineCode}
               allLines={allLines}
               today={today}
@@ -392,7 +385,54 @@ export default async function BuyerDiscoverPage({
 
       {sentId ? <Toast text="RFQ sent" link={{ href: `/app/rfqs/${sentId}`, label: "Open the RFQ" }} href={null} /> : null}
       {one(sp.saved) === "1" ? <Toast text="Search saved" link={{ href: "/app/searches", label: "Saved searches" }} href={null} /> : null}
-    </div>
+    </Workbench>
+  );
+}
+
+/** The RFQ composer in the wide pane, for one supplier or the ticked selection: published targets only, in the order they were ticked. */
+async function DiscoverComposer({
+  supabase,
+  rfqIds,
+  prefillHs,
+  closeHref,
+  backHref,
+  addHref,
+}: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the Supabase server client.
+  supabase: any;
+  rfqIds: string[];
+  prefillHs: string | null;
+  closeHref: string;
+  backHref: string | null;
+  addHref: string;
+}) {
+  const [targets, workspace] = await Promise.all([
+    (async (): Promise<ComposerTarget[]> => {
+      const r = await supabase.from("suppliers").select(TARGET_COLUMNS).in("id", rfqIds);
+      const rows = (Array.isArray(r.data) ? r.data : []) as SupplierRow[];
+      // An unpublished id is dropped rather than drawn as a target the server would refuse.
+      return rfqIds.map((id) => rows.find((x) => x.id === id)).filter((x): x is SupplierRow => Boolean(x && x.is_published)).map(targetFromRow);
+    })(),
+    (async (): Promise<ComposerWorkspace | null> => {
+      try {
+        const r = await supabase.rpc("settings_get");
+        return workspaceFrom(r.data);
+      } catch {
+        return null;
+      }
+    })(),
+  ]);
+  return (
+    <RecordPane closeHref={closeHref} openKey={`rfq:${rfqIds.join(",")}`} wide>
+      <RfqComposer
+        targets={targets}
+        workspace={workspace}
+        prefill={prefillHs ? { hs: prefillHs, title: `HS ${prefillHs} · ${hsBuyerLabel(prefillHs, null)}` } : {}}
+        closeHref={closeHref}
+        backHref={backHref}
+        addHref={addHref}
+      />
+    </RecordPane>
   );
 }
 
@@ -406,6 +446,7 @@ export default async function BuyerDiscoverPage({
 async function DiscoverRecord({
   supabase,
   slug,
+  supplierId,
   lineCode,
   allLines,
   today,
@@ -419,6 +460,8 @@ async function DiscoverRecord({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the Supabase server client, as loadRecordSheet takes it.
   supabase: any;
   slug: string;
+  /** The record's id when a row of these results carries it. */
+  supplierId: string | null;
   lineCode: string | null;
   allLines: boolean;
   today: Date;
@@ -436,8 +479,22 @@ async function DiscoverRecord({
       return { value: null, slow: err instanceof ProfileReadTimeout };
     }
   };
-  const [recordRead, lineRead] = await Promise.all([
-    safe(
+  let slow: boolean;
+  if (lineCode) {
+    // The line alone, on one read of the record; a heading the record does
+    // not export goes to the record, on this search.
+    const read = await safe(loadLineBeside(supabase, slug, lineCode, today, { backHref: withParams(recordParams), closeHref, rfqHref: lineRfqHref, supplierId }));
+    if (read.value?.line) {
+      return (
+        <RecordPane closeHref={closeHref} openKey={`line:${slug}:${lineCode}`}>
+          <ProductSheet model={read.value.line} />
+        </RecordPane>
+      );
+    }
+    if (read.value?.found) redirect(withParams(recordParams));
+    slow = read.slow;
+  } else {
+    const read = await safe(
       loadRecordSheet(supabase, slug, today, {
         closeHref,
         fullHref: `/app/suppliers/${slug}`,
@@ -445,36 +502,23 @@ async function DiscoverRecord({
         allLinesHref: allLines ? null : withParams(`record=${encodeURIComponent(slug)}&lines=all`),
         lineHref: (hs) => withParams(`${recordParams}&line=${hs}`),
         rfqHref,
+        supplierId,
       }),
-    ),
-    lineCode
-      ? safe(
-          loadRecordLine(supabase, slug, lineCode, today, {
-            backHref: withParams(recordParams),
-            closeHref,
-            rfqHref: lineRfqHref,
-          }),
-        )
-      : Promise.resolve({ value: null, slow: false }),
-  ]);
-  const record = recordRead.value;
-  const line = lineRead.value;
-  if (record && lineCode && !line) redirect(withParams(recordParams));
-  if (record) {
-    return (
-      <RecordPane closeHref={closeHref} openKey={`${slug}:${line ? lineCode : allLines ? "all" : ""}`}>
-        {line ? (
-          <ProductSheet model={line} />
-        ) : (
-          <SupplierSheet model={record} save={record.supplierId ? <SaveRecordButton supplierId={record.supplierId} saved={record.saved} /> : undefined} />
-        )}
-      </RecordPane>
     );
+    const record = read.value;
+    if (record) {
+      return (
+        <RecordPane closeHref={closeHref} openKey={`record:${slug}:${allLines ? "all" : ""}`}>
+          <SupplierSheet model={record} save={record.supplierId ? <SaveRecordButton supplierId={record.supplierId} saved={record.saved} /> : undefined} />
+        </RecordPane>
+      );
+    }
+    slow = read.slow;
   }
-  const motherSlug = recordRead.slow ? null : await fetchFacilityParentSlug(supabase, slug).catch(() => null);
+  const motherSlug = slow ? null : await fetchFacilityParentSlug(supabase, slug).catch(() => null);
   return (
     <RecordPane closeHref={closeHref} openKey={`notice:${slug}`}>
-      <RecordNotice slow={recordRead.slow} motherSlug={motherSlug} closeHref={closeHref} retryHref={withParams(`${recordParams}${lineCode ? `&line=${lineCode}` : ""}`)} recordHref={recordHref} />
+      <RecordNotice slow={slow} motherSlug={motherSlug} closeHref={closeHref} retryHref={withParams(`${recordParams}${lineCode ? `&line=${lineCode}` : ""}`)} recordHref={recordHref} />
     </RecordPane>
   );
 }

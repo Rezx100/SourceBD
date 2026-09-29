@@ -396,17 +396,20 @@ describe("ResultsTable (rendered) — the ledger grid", () => {
     assert.doesNotMatch(renderToStaticMarkup(createElement(ResultsTable, { rows, currentSlug: "no-such-slug" })), /aria-current/);
   });
 
-  it("beside a pane the ledger narrows to Supplier, Registers & certifiers and Workers", () => {
+  it("beside a pane the ledger narrows to Supplier, Sources and Workers", () => {
     const html = renderToStaticMarkup(createElement(ResultsTable, { rows: [buildTableRow(aboniInput())], compact: true }));
     const heads = [...html.matchAll(/<th scope="col"[^>]*>([\s\S]*?)<\/th>/g)].map((m) => m[1]!.replace(/<[^>]+>/g, "").trim());
-    assert.deepEqual(heads, ["Select", "Supplier", "Registers &amp; certifiers", "Workers", "Actions"]);
+    // "Registers & certifiers" is 119px with its caret; the column beside a
+    // pane is 76px (founder's video, 29 Sep 2026: the header wrapped).
+    assert.deepEqual(heads, ["Select", "Supplier", "Sources", "Workers", "Actions"]);
     assert.match(html, /Aboni Knitwear Ltd/);
   });
 
   it("each row is a keyboard stop whose name is the supplier's, and the name opens the record beside the results", () => {
     const html = renderToStaticMarkup(createElement(ResultsTable, { rows: [ledgerRow(aboniInput())] }));
     assert.match(html, /<tr tabindex="0" aria-label="Aboni Knitwear Ltd"[^>]*data-row="result"/);
-    assert.match(html, /<a\b[^>]*data-open="record"[^>]*>Aboni Knitwear Ltd<\/a>|<a\b[^>]*href="\/app\/discover\?q=knit&amp;record=aboni-knitwear"[^>]*data-open="record"/);
+    // The name, then the spinner that says the click was heard (hidden until then).
+    assert.match(html, /<a\b[^>]*data-open="record"[^>]*>Aboni Knitwear Ltd(?:<span aria-hidden="true" class="[^"]*\bhidden\b[^"]*"><\/span>)?<\/a>|<a\b[^>]*href="\/app\/discover\?q=knit&amp;record=aboni-knitwear"[^>]*data-open="record"/);
   });
 
   it(

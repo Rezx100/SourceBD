@@ -45,3 +45,54 @@ export function RecordSkeleton({ label = "Loading the supplier record" }: { labe
     </SkeletonRegion>
   );
 }
+
+/**
+ * One export line while it is read: the line sheet's bar (Back and the
+ * breadcrumb), its 200px photo, the heading and a few fact rows. Opening a
+ * line from a record used to show the WHOLE record's silhouette on the way
+ * (founder's video, 29 Sep 2026).
+ */
+export function LineSkeleton() {
+  return (
+    <SkeletonRegion label="Loading the product line" className="flex min-h-0 min-w-0 flex-1 flex-col bg-surface">
+      <div className="flex min-h-[52px] items-center gap-3 border-b border-line-subtle px-5 py-2">
+        <Skeleton w={64} h={28} />
+        <Skeleton w={200} h={12} />
+        <Skeleton w={28} h={28} className="ml-auto" />
+      </div>
+      <div className="flex flex-col gap-4 p-6">
+        <Skeleton w={200} h={200} />
+        <Skeleton w={160} h={10} />
+        <Skeleton w="60%" h={24} />
+        {Array.from({ length: 4 }, (_, i) => (
+          <div key={i} className="flex items-center gap-3">
+            <Skeleton w={130} h={12} />
+            <Skeleton w={i % 2 ? "30%" : "44%"} h={14} />
+          </div>
+        ))}
+      </div>
+    </SkeletonRegion>
+  );
+}
+
+/** The RFQ form while its suppliers and the workspace's template are read: the bar, the targets strip and the first fields. */
+export function ComposerSkeleton() {
+  return (
+    <SkeletonRegion label="Loading the RFQ form" className="flex min-h-0 min-w-0 flex-1 flex-col bg-surface">
+      <div className="flex min-h-[52px] items-center gap-3 border-b border-line-subtle px-5 py-2">
+        <Skeleton w={28} h={28} />
+        <Skeleton w={96} h={14} />
+        <Skeleton w={180} h={12} />
+      </div>
+      <div className="flex flex-col gap-5 p-6">
+        <Skeleton w="100%" h={56} tone="card" />
+        {Array.from({ length: 4 }, (_, i) => (
+          <div key={i} className="flex flex-col gap-2">
+            <Skeleton w={110} h={12} />
+            <Skeleton w="100%" h={32} tone="card" />
+          </div>
+        ))}
+      </div>
+    </SkeletonRegion>
+  );
+}

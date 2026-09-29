@@ -15,7 +15,7 @@ import Link from "next/link";
 import type { ButtonHTMLAttributes, MouseEventHandler, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Icon, type IconName } from "./icons";
-import { LinkPending } from "./link-pending";
+import { LinkPending, LinkPendingSwap } from "./link-pending";
 
 export type ButtonVariant = "default" | "primary" | "ghost" | "danger";
 export type ButtonSize = "sm" | "md" | "lg";
@@ -143,8 +143,14 @@ export function Button({
     // CSV download must not have.
     return clientNav ? (
       <Link href={href} prefetch={prefetch} scroll={scroll} {...linkProps}>
-        {body}
-        {icon ? null : <LinkPending />}
+        {icon ? (
+          <LinkPendingSwap>{body}</LinkPendingSwap>
+        ) : (
+          <>
+            {body}
+            <LinkPending />
+          </>
+        )}
       </Link>
     ) : (
       <a href={href} {...linkProps}>
