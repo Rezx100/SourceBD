@@ -38,7 +38,7 @@ import { SavedDesk, deskFrom } from "./saved-desk";
 import { SavedList } from "./saved-list";
 import { SearchLanding } from "./search-landing";
 import { highlightParts, suggestionHref, suggestionRows, type Suggestion } from "./search-typeahead";
-import { FactsPanel, ResultsColumn, SheetTabs, collapseRepeatedLines } from "./sheet";
+import { FactsPanel, PENDING_LEGEND, ResultsColumn, SheetTabs, collapseRepeatedLines } from "./sheet";
 import { SupplierSheet, groupFacts } from "./supplier-sheet";
 import { isApplePlatform, pageDrawsOwnField } from "./topbar-search-slot";
 import { WorkersCell } from "./workers-cell";
@@ -271,11 +271,15 @@ describe("9. the record", () => {
     assert.match(regs, /BGMEA General/);
   });
 
-  it("source pending is a dashed square in the mark column, explained once", () => {
-    assert.match(html, /role="img" aria-label="Source pending"/);
-    assert.equal(html.match(/A dashed square: source pending/g)?.length, 1);
-    const factsOnly = html.slice(html.indexOf('id="overview"'), html.indexOf("A dashed square"));
-    assert.doesNotMatch(text(factsOnly.replace(/<span class="sr-only">source pending<\/span>/g, "")), /source pending/, "the words came back as a caption on every row");
+  it("source pending is SourceBD's own mark in the mark column, explained once", () => {
+    // A document with a clock, not a dashed square that read as a tick box
+    // (founder's video, 29 Sep 2026); named, with the full words on hover.
+    assert.match(html, /<span title="Source pending: [^"]+"[^>]*><svg[^>]*role="img"[^>]*aria-label="Source pending"/);
+    assert.doesNotMatch(html, /border-dashed border-quiet-line"[^>]*><span class="sr-only">source pending/);
+    const legend = html.lastIndexOf(`${PENDING_LEGEND}</span>`);
+    assert.ok(legend > 0, "the one legend under the facts");
+    const factsOnly = html.slice(html.indexOf('id="overview"'), legend);
+    assert.doesNotMatch(text(factsOnly), /source pending/i, "the words came back as a caption on every row");
   });
 
   it("an address line filed twice in a row reads once", () => {

@@ -318,7 +318,7 @@ export default async function DesignSystemGallery() {
           <li className="flex items-center gap-2 rounded border border-caution-line bg-caution-tint px-3 py-2 text-sm font-medium text-caution-ink">
             <WarningCircle aria-hidden className="size-4 shrink-0" weight="fill" /> Expired
           </li>
-          <li className="locked-pattern flex items-center gap-2 rounded border border-locked-line px-3 py-2 text-sm font-medium text-locked-ink">
+          <li className="flex items-center gap-2 rounded border border-locked-line bg-locked px-3 py-2 text-sm font-medium text-locked-ink">
             <Lock aria-hidden className="size-4 shrink-0" weight="fill" /> Locked
           </li>
           <li className="flex items-center gap-2 rounded border border-dashed border-quiet-line bg-quiet px-3 py-2 text-sm text-quiet-ink">

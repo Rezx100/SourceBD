@@ -25,8 +25,13 @@ import { SaveRecordButton } from "./save-record-button";
 import { useSelection } from "./selection";
 import { Code, Title } from "./type";
 
-/** `.meta`: facts separated by middle dots, each followed by its 16px mark. */
-export function MetaLine({ facts, className }: { facts: readonly FactWithMark[]; className?: string }) {
+/**
+ * `.meta`: facts separated by middle dots, each followed by its 16px mark.
+ * `plain` drops the marks: the record's head draws every source once in its
+ * own row of marks, and a mark beside a fact said a register twice ("RSC,
+ * then RSC again", founder's video, 29 Sep 2026).
+ */
+export function MetaLine({ facts, plain = false, className }: { facts: readonly FactWithMark[]; plain?: boolean; className?: string }) {
   return (
     <div className={cn("flex flex-wrap items-center gap-y-1 text-base text-ink-muted", className)}>
       {facts.map((f, i) => (
@@ -39,7 +44,7 @@ export function MetaLine({ facts, className }: { facts: readonly FactWithMark[];
           )}
         >
           {f.code ? <Code>{f.text}</Code> : f.text}
-          {f.mark ? <SourceMark mark={f.mark} sm /> : null}
+          {f.mark && !plain ? <SourceMark mark={f.mark} sm /> : null}
         </span>
       ))}
     </div>
