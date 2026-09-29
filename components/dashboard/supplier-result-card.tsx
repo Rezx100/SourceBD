@@ -27,11 +27,14 @@ import { Code, Title } from "./type";
 
 /**
  * `.meta`: facts separated by middle dots, each followed by its 16px mark.
- * `plain` drops the marks: the record's head draws every source once in its
- * own row of marks, and a mark beside a fact said a register twice ("RSC,
- * then RSC again", founder's video, 29 Sep 2026).
+ * `inRow` names the sources a row of marks beside the line already draws:
+ * their marks are left off the facts, so the record's head says each source
+ * once ("RSC, then RSC again", founder's video, 29 Sep 2026). A fact whose
+ * source is not in that row (a worker figure read from a building's RSC
+ * inspection) keeps its mark, or nothing in the head would say where it came
+ * from.
  */
-export function MetaLine({ facts, plain = false, className }: { facts: readonly FactWithMark[]; plain?: boolean; className?: string }) {
+export function MetaLine({ facts, inRow, className }: { facts: readonly FactWithMark[]; inRow?: ReadonlySet<string>; className?: string }) {
   return (
     <div className={cn("flex flex-wrap items-center gap-y-1 text-base text-ink-muted", className)}>
       {facts.map((f, i) => (
@@ -44,7 +47,7 @@ export function MetaLine({ facts, plain = false, className }: { facts: readonly 
           )}
         >
           {f.code ? <Code>{f.text}</Code> : f.text}
-          {f.mark && !plain ? <SourceMark mark={f.mark} sm /> : null}
+          {f.mark && !inRow?.has(f.mark.code) ? <SourceMark mark={f.mark} sm /> : null}
         </span>
       ))}
     </div>

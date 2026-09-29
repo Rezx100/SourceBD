@@ -38,7 +38,15 @@ describe("1. each source once in the head", () => {
     const named = [...head.matchAll(/aria-label="Source: ([^,"]+),/g)].map((m) => m[1]);
     assert.ok(named.length >= model.marks.length, "guard: the row draws the record's marks");
     assert.equal(new Set(named).size, named.length, `a source is drawn twice in the head: ${named.join(", ")}`);
-    assert.match(source("components/dashboard/supplier-sheet.tsx"), /<MetaLine facts=\{model\.meta\} plain \/>/);
+    assert.match(source("components/dashboard/supplier-sheet.tsx"), /<MetaLine facts=\{model\.meta\} inRow=\{new Set\(model\.marks\.map\(\(m\) => m\.code\)\)\} \/>/);
+  });
+
+  it("a fact whose source is not in the row keeps its mark, so the head still says where it came from", () => {
+    const fact = model.meta.find((f) => f.mark)!;
+    const lone = { ...model, marks: model.marks.filter((m) => m.code !== fact.mark!.code) };
+    const out = renderToStaticMarkup(createElement(SupplierSheet, { model: lone }));
+    const h = out.slice(out.indexOf("<h1"), out.indexOf('aria-label="Record sections"'));
+    assert.ok(h.includes(`aria-label="Source: ${fact.mark!.name},`), `${fact.text} lost its only mark`);
   });
 });
 
