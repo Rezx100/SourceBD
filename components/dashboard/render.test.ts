@@ -159,11 +159,12 @@ describe("SupplierResultCard (rendered)", () => {
     // A card is never beside a pane any more: the search draws the compact
     // table there (`resultsView`). Pinned by class because no DOM here measures.
     const html = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(aboniInput()) }));
-    assert.match(html, /<h2 class="[^"]*min-w-\[min\(12rem,100%\)\] flex-1 basis-0"/, "the name does not claim a width of its own");
-    assert.match(html, /<div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1\.5">/, "line 1 cannot wrap its actions under the name");
+    assert.match(html, /<h2 class="[^"]*min-w-\[min\(12rem,100%\)\] flex-1 basis-0[ "]/, "the name does not claim a width of its own");
+    assert.match(html, /<div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1\.5[ "]/, "line 1 cannot wrap its actions under the name");
     assert.match(html, /min-\[1440px\]:flex-row/, "the products never move beside the facts");
     assert.doesNotMatch(html, /grid w-full grid-cols-2|min-h-\[82px\]/, "a tile is back on the card");
-    assert.doesNotMatch(html, /sm:flex-nowrap|lg:flex-row lg:items-start|lg:shrink-0/, "a viewport-keyed rule is back on the card");
+    // A phone's own layout (`max-sm:`, the phone hand-off's D5) is allowed: a card is never beside a pane.
+    assert.doesNotMatch(html, /(?<!max-)sm:flex-nowrap|lg:flex-row lg:items-start|lg:shrink-0/, "a viewport-keyed rule is back on the card");
   });
 
   it("the 11-source record: name, eleven marks named once, the sources caption, every certificate, six 48px thumbs, no score anywhere", () => {
@@ -1924,7 +1925,7 @@ describe("the two-state controls say which state they are in", () => {
       const cls = pane[1]!.split(/\s+/);
       // Below `xl` the ledger scrolls sideways in this pane; from `xl` it fits
       // and its header sticks to the results column's own scroll.
-      assert.ok(cls.includes("relative") && (cls.includes("overflow-x-auto") || cls.includes("max-xl:overflow-x-auto")), pane[1]);
+      assert.ok(cls.includes("relative") && (cls.includes("overflow-x-auto") || cls.includes("max-xl:overflow-x-auto") || cls.includes("sm:max-xl:overflow-x-auto")), pane[1]);
     });
 
     it("the saved-search form names the real cause, and only a name error blames the name field", () => {
@@ -2005,11 +2006,11 @@ describe("the two-state controls say which state they are in", () => {
         ["select-all, none", under(false, false, header), OFF],
         ["select-all, some", under("mixed", false, header), ON],
         ["select-all, all", under(true, false, header), ON],
-        // The ledger sets its box in from the row's edge (`ml-1`).
-        ["table row, off", under(false, false, createElement(ResultsTable, { rows: [row] })), `${OFF} ml-1`],
-        ["table row, on", under(false, true, createElement(ResultsTable, { rows: [row] })), `${ON} ml-1`],
-        ["card, off", under(false, false, createElement(SupplierResultCard, { card })), `${OFF} mt-4`],
-        ["card, on", under(false, true, createElement(SupplierResultCard, { card })), `${ON} mt-4`],
+        // The ledger sets its box in from the row's edge (`ml-1`); both reach 44px under a finger (`hit`).
+        ["table row, off", under(false, false, createElement(ResultsTable, { rows: [row] })), `${OFF} hit ml-1`],
+        ["table row, on", under(false, true, createElement(ResultsTable, { rows: [row] })), `${ON} hit ml-1`],
+        ["card, off", under(false, false, createElement(SupplierResultCard, { card })), `${OFF} hit mt-4 max-sm:row-span-2 max-sm:mt-0`],
+        ["card, on", under(false, true, createElement(SupplierResultCard, { card })), `${ON} hit mt-4 max-sm:row-span-2 max-sm:mt-0`],
       ];
       for (const [name, html, want] of cases) {
         const got = boxes(html);

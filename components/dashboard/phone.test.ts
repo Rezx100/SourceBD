@@ -16,11 +16,15 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { phoneFontSize } from "@/lib/design/tokens";
 import { installMenuDismiss, MENU_NAME, placePanel } from "@/lib/dashboard/menu-dismiss";
 import { MORE_NAV, NAV, PHONE_TABS } from "@/lib/dashboard/nav";
+import { buildCard, buildTableRow } from "@/lib/dashboard/build-models";
+import { aboniInput } from "@/lib/dashboard/fixtures";
 import { AccountMenu } from "./account-menu";
 import { AppShell } from "./app-shell";
 import { Menu, MenuItem } from "./controls";
 import { ReportProblem } from "./report-problem";
 import { PanelHeader } from "./results-panel";
+import { ResultsTable } from "./results-table";
+import { SupplierResultCard } from "./supplier-result-card";
 import { SearchComposer } from "./search-composer";
 import { RecordPane, ResultsColumn, SheetScroll } from "./sheet";
 import { goToSection, type TabClick } from "./sheet-tabs";
@@ -395,5 +399,47 @@ describe("M2. the search on a phone", () => {
     assert.ok(more, "no ⋯ on a phone");
     for (const t of ["Save search", "Export CSV", "Default"]) assert.match(more, new RegExp(`>${t}<`), `${t} is not in the ⋯`);
     assert.match(html, /<div class="contents max-sm:hidden">[\s\S]*?Save search[\s\S]*?Export CSV/, "the full row of controls shows on a phone too");
+  });
+});
+
+describe("M3. the list and the card on a phone", () => {
+  it("below sm the table is a list of rows: the box and the supplier, a metrics line, the whole row opening the record; below xl the compact grid", () => {
+    const row = { ...buildTableRow(aboniInput()), supplierId: "8ce50581-2d84-4cc2-93de-506394eade5d" };
+    const html = renderToStaticMarkup(createElement(ResultsTable, { rows: [row] }));
+    const table = classOf(html, /<table class="([^"]*)"/);
+    assert.ok(!table.split(/\s+/).some((c) => /^min-w-\[/.test(c)), `a phone's table has a minimum width, so it scrolls sideways: ${table}`);
+    assert.ok(bare(table, "sm:min-w-[30rem]") && bare(table, "xl:min-w-[60rem]"), table);
+    const cols = [...html.matchAll(/<col\b([^>]*)\/?>/g)].map((m) => /class="([^"]*)"/.exec(m[1]!)?.[1] ?? "");
+    assert.deepEqual(
+      cols.map((c) => (c.includes("max-sm:hidden") ? "phone" : c.includes("max-xl:hidden") ? "wide" : "all")),
+      ["all", "all", "phone", "wide", "wide", "phone", "phone"],
+      "the columns a phone and a tablet drop",
+    );
+    const cells = [...html.matchAll(/<(td|th)\b[^>]*class="([^"]*)"/g)].filter((m) => m[1] === "td" || /scope="row"/.test(m[0]));
+    assert.deepEqual(
+      cells.map((m) => (m[2]!.includes("max-sm:hidden") ? "phone" : m[2]!.includes("max-xl:hidden") ? "wide" : "all")),
+      ["all", "all", "phone", "wide", "wide", "phone", "phone"],
+      "a row's cells do not drop with their columns",
+    );
+    assert.match(html, /<div data-line="" class="[^"]*\bsm:hidden\b[^"]*">[\s\S]*?workers/, "no metrics line on a phone");
+    assert.match(html, /data-open="record"[^>]*class="[^"]*max-sm:after:absolute max-sm:after:inset-0/, "the row does not open the record");
+    assert.match(html, /<th scope="row" class="[^"]*\bmax-sm:relative\b/);
+    assert.match(html, /role="checkbox"[^>]*class="[^"]*\bhit\b/, "the row's box is a 16px target");
+    assert.match(html, /<span class="group\/open relative inline-flex max-xl:hidden">/, "Open crowds the tablet's actions column");
+  });
+
+  it("the card on a phone: one column, two chips then +N, the marks on one line, the thumbnails snapping under a fade, the actions last", () => {
+    const html = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(aboniInput()) }));
+    const card = classOf(html, /<article [^>]*class="([^"]*)"/);
+    for (const c of ["max-sm:grid", "max-sm:grid-cols-[auto_auto_minmax(0,1fr)]", "max-sm:px-4"]) assert.ok(bare(card, c), `${c}: ${card}`);
+    assert.match(html, /max-sm:\[&amp;&gt;\*:nth-child\(n\+3\):not\(\[data-more\]\)\]:hidden/, "more than two chips on a phone");
+    assert.match(html, /<span data-more="" class="text-sm text-ink-subtle sm:hidden">\+4/, "no +N for the chips a phone drops");
+    assert.match(html, /max-sm:flex-nowrap max-sm:gap-1\.5 max-sm:\[&amp;&gt;\*\]:size-5/, "the marks wrap, or are not 20px");
+    assert.match(html, /<ul [^>]*class="[^"]*\bmax-sm:snap-x\b/, "the thumbnails do not snap");
+    assert.match(html, /<li class="w-12 shrink-0 snap-start"/);
+    assert.match(html, /bg-gradient-to-l from-surface to-transparent sm:hidden/, "no fade at the strip's edge");
+    assert.match(html, /<p data-line="" [^>]*class="[^"]*max-sm:line-clamp-2 sm:truncate/, "the facts are cut to one line on a phone");
+    assert.match(html, /<a(?=[^>]*aria-label="Open [^"]*beside the results")(?=[^>]*class="[^"]*\bmax-sm:hidden\b)[^>]*>/, "Open is on the phone's card, which opens the record itself");
+    assert.match(html, /max-sm:order-last max-sm:col-span-full max-sm:justify-end/, "the actions are not the card's last row");
   });
 });
