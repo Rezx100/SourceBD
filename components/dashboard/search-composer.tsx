@@ -133,11 +133,11 @@ export function SearchComposer({
             <Icon name="plus" small /> Add filter
           </Link>
         ) : live ? (
-          <a href="#filters" className="hidden h-7 items-center gap-1 px-1.5 text-sm font-medium text-ink-muted sm:inline-flex">
+          <a href="#filters" className="inline-flex h-7 items-center gap-1 px-1.5 text-sm font-medium text-ink-muted">
             <Icon name="plus" small /> Add filter
           </a>
         ) : (
-          <button type="button" className="hidden h-7 items-center gap-1 px-1.5 text-sm font-medium text-ink-muted sm:inline-flex">
+          <button type="button" className="inline-flex h-7 items-center gap-1 px-1.5 text-sm font-medium text-ink-muted">
             <Icon name="plus" small /> Add filter
           </button>
         )}

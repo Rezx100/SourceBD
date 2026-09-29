@@ -356,6 +356,7 @@ describe("M2. the search on a phone", () => {
     assert.match(composer, /<button type="submit" aria-label="Search" class="hidden [^"]*\bsm:grid\b/, "the go disc reloads the same search on a phone");
     assert.match(composer, /class="hidden [^"]*\bsm:inline-flex\b"[^>]*>[\s\S]*?Add filter/, "Add filter shows on a phone, beside Filters");
     assert.match(composer, /aria-label="Remove knit" class="hit"/, "the chip's × is a 12px target");
+    assert.match(source("app/(app)/app/discover/page.tsx"), /setCount=\{filterCount\(state\)\}/, "the phone's Filters count is not the set filters");
   });
 
   it("below sm every tray is a bottom sheet with a scrim, a Done and 52px rows; the tab bar steps aside for it", () => {
@@ -367,6 +368,8 @@ describe("M2. the search on a phone", () => {
     assert.match(menu, /<a data-menu-item=""[^>]*class="[^"]*\bmax-sm:min-h-sheet-row\b/);
     const bar = source(`${KIT}/bottom-nav.tsx`);
     assert.match(bar, /max-sm:group-has-\[main_details\[name=sb-menu\]\[open\]\]\/shell:hidden/, "the tab bar covers a sheet opened from the page");
+    // …and so does the selection bar: the Sort sheet opens inside the isolated results panel.
+    assert.match(source(`${KIT}/selection-bar.tsx`), /max-sm:group-has-\[main_details\[name=sb-menu\]\[open\]\]\/shell:hidden/, "the selection bar covers the Sort sheet");
   });
 
   it("the results header: the title on one line, the count on one line, then Sort, the switch and a ⋯ with the rest", () => {
