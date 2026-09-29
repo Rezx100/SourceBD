@@ -128,6 +128,20 @@
 }
 
 @layer utilities {
+  /* A finger's target without a bigger control (the phone hand-off's D8): on
+     a touch screen the hit area reaches 8px past every edge, so a 28px
+     control is 44px to a finger and unchanged to the eye. */
+  @media (pointer: coarse) {
+    .hit {
+      position: relative;
+    }
+    .hit::after {
+      content: "";
+      position: absolute;
+      inset: -8px;
+    }
+  }
+
   /* A frosted panel: the topbar and the sheet's action bar (artifact `surface-glass`). */
   .glass {
     background-color: rgb(var(--ds-surface) / 0.8);

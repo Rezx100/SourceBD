@@ -66,7 +66,9 @@ export function BottomNav({
       // Hidden inside a record, a line or the composer (`data-detail`): their
       // own bars take the top and the foot, as a detail screen does in any
       // phone app; two bars stuck to one edge would cover each other.
-      className="fixed inset-x-0 bottom-0 z-sticky border-t border-line-subtle bg-surface pb-[env(safe-area-inset-bottom)] md:hidden group-has-[[data-detail]]/shell:hidden"
+      // …and while a tray is open as a bottom sheet over the page: the sheet
+      // takes the foot of the screen.
+      className="fixed inset-x-0 bottom-0 z-sticky border-t border-line-subtle bg-surface pb-[env(safe-area-inset-bottom)] md:hidden group-has-[[data-detail]]/shell:hidden max-sm:group-has-[main_details[name=sb-menu][open]]/shell:hidden"
     >
       <ul className="m-0 flex list-none p-0">
         {PHONE_TABS.map((key) => {

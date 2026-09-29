@@ -134,15 +134,25 @@ export function PanelHeader({
   // a non-wrapping row of controls forced the whole DOCUMENT to scroll
   // sideways (WCAG 1.4.10 allows two-dimensional scrolling for a data table,
   // not for the controls above it).
+  //
+  // On a phone (the phone hand-off's D3): the title on one line, cut; the
+  // count under it on one line; then one row of Sort, the view switch and a
+  // ⋯ holding Save search, Density and Export CSV. It took five lines before:
+  // the count broke inside its range and the toolbar wrapped into three
+  // right-aligned rows.
   return (
     <div className="flex flex-wrap items-center gap-2 border-b border-line-subtle px-3 py-2 sm:gap-3 sm:px-4">
       <SelectAllCheckbox />
-      <div className="flex min-w-0 flex-1 items-baseline gap-2">
+      <div className="flex min-w-0 flex-1 items-baseline gap-2 max-sm:flex-col max-sm:items-start max-sm:gap-0">
         {/* The screen's heading: without it the results rendered no heading of
             any level, so there was nothing to navigate by once the skip link
             had been taken. */}
-        <Title as={as}>{model.title}</Title>
-        <Caption>
+        <Title as={as} className="max-sm:w-full">
+          <span data-line="" className="max-sm:block max-sm:truncate">
+            {model.title}
+          </span>
+        </Title>
+        <Caption className="whitespace-nowrap tabular-nums">
           {model.total === null
             ? "count could not be read"
             : `${formatCount(model.total)} ${model.total === 1 ? "supplier" : "suppliers"} · ${
@@ -150,9 +160,19 @@ export function PanelHeader({
               }`}
         </Caption>
       </div>
-      <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5">
+      <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5 max-sm:basis-full max-sm:flex-nowrap max-sm:justify-start max-sm:gap-2">
         {model.sortOptions && model.sortOptions.length > 0 ? (
-          <Menu label="Sort" size="sm" summary={<><Icon name="sort" /> {model.sortLabel}</>}>
+          <Menu
+            label="Sort"
+            size="sm"
+            summaryClassName="max-sm:h-target max-sm:px-3 max-sm:text-base"
+            summary={
+              <>
+                <Icon name="sort" /> <span className="max-sm:hidden">{model.sortLabel}</span>
+                <span className="sm:hidden">Sort</span>
+              </>
+            }
+          >
             {model.sortOptions.map((o) => (
               <MenuItem key={o.value} href={o.href} active={o.active}>
                 {o.label}
@@ -164,28 +184,31 @@ export function PanelHeader({
             <Icon name="sort" /> {model.sortLabel} <Icon name="caret" small />
           </Button>
         )}
-        {model.densityOptions && model.densityOptions.length > 0 ? (
-          <Menu key={model.densityOptions.find((o) => o.active)?.value} label="Row density" size="sm" summary={<><Icon name="rows" /> Density</>}>
-            {model.densityOptions.map((o) => (
-              <MenuItem key={o.value} href={o.href} active={o.active} clientNav>
-                {o.label}
-              </MenuItem>
-            ))}
-          </Menu>
-        ) : null}
-        <Button size="sm" href={model.saveHref} clientNav scroll={false}>
-          <Icon name="bookmark" /> Save search
-        </Button>
-        {model.exportHref ? (
-          <ExportLink href={model.exportHref} label="Export CSV" size="sm" />
-        ) : (
-          <Button size="sm">
-            <Icon name="download" /> Export CSV
+        {/* From sm; on a phone these three are in the ⋯ at the row's end. */}
+        <div className="contents max-sm:hidden">
+          {model.densityOptions && model.densityOptions.length > 0 ? (
+            <Menu key={model.densityOptions.find((o) => o.active)?.value} label="Row density" size="sm" summary={<><Icon name="rows" /> Density</>}>
+              {model.densityOptions.map((o) => (
+                <MenuItem key={o.value} href={o.href} active={o.active} clientNav>
+                  {o.label}
+                </MenuItem>
+              ))}
+            </Menu>
+          ) : null}
+          <Button size="sm" href={model.saveHref} clientNav scroll={false}>
+            <Icon name="bookmark" /> Save search
           </Button>
-        )}
+          {model.exportHref ? (
+            <ExportLink href={model.exportHref} label="Export CSV" size="sm" />
+          ) : (
+            <Button size="sm">
+              <Icon name="download" /> Export CSV
+            </Button>
+          )}
+        </div>
         <Seg
           label="View"
-          className="h-7"
+          className="h-7 max-sm:h-target"
           value={model.view}
           hrefFor={model.viewHref ? (v) => model.viewHref!(v === "cards" ? "cards" : "table") : undefined}
           options={[
@@ -193,6 +216,31 @@ export function PanelHeader({
             { value: "cards", label: "Cards", icon: "cards" },
           ]}
         />
+        <Menu
+          key={`more:${model.densityOptions?.find((o) => o.active)?.value ?? ""}`}
+          label="More for this search"
+          size="sm"
+          className="ml-auto sm:hidden"
+          summaryClassName="max-sm:size-target max-sm:justify-center max-sm:px-0 [&>svg:last-child]:hidden"
+          summary={<Icon name="dots" size={22} />}
+        >
+          {model.saveHref ? (
+            <MenuItem href={model.saveHref} clientNav>
+              Save search
+            </MenuItem>
+          ) : null}
+          {model.exportHref ? <MenuItem href={model.exportHref}>Export CSV</MenuItem> : null}
+          {model.densityOptions && model.densityOptions.length > 0 ? (
+            <>
+              <span className="block px-4 pb-1 pt-3 font-mono text-eyebrow uppercase text-ink-subtle">Density</span>
+              {model.densityOptions.map((o) => (
+                <MenuItem key={o.value} href={o.href} active={o.active} clientNav>
+                  {o.label}
+                </MenuItem>
+              ))}
+            </>
+          ) : null}
+        </Menu>
       </div>
     </div>
   );

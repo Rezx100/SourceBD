@@ -82,6 +82,9 @@ export function FilterMenus({
             size="sm"
             set={summary !== null}
             panelClassName="min-w-[17rem]"
+            // On a phone a 32px chip in the row that scrolls (D10).
+            className="shrink-0 snap-start"
+            summaryClassName="max-sm:h-chip-touch max-sm:px-3"
           >
             {m.options.map((o) => (
               <MenuItem key={o.key} href={hrefFor(o.toggled)} active={o.on} clientNav>
