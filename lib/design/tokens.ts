@@ -72,6 +72,18 @@ export const light = {
   },
   focus: { DEFAULT: "#2E7D32" },
 
+  // The buyer app's quiet second colour (founder's pick "B Slate", 29 Sep
+  // 2026): selection, the active nav row, set filters, links, tabs, focus and
+  // the ticked box. Green is kept for the one primary action and the logo, so
+  // a selected row can never read as "verified".
+  accent: {
+    DEFAULT: "#3B5A70", // focus ring, active tab indicator, ticked box
+    on: "#FFFFFF",
+    ink: "#2C4E66", // link text, selected label
+    tint: "#E6EDF2", // selected row, active nav row
+    "tint-strong": "#D3DFE8", // set filter, active chip
+  },
+
   // The one decorative flourish: the live dot, the arrow disc. Always
   // icon-sized, always beside a word. Never body text, never a status.
   signal: {
@@ -205,6 +217,10 @@ type FontSize = [string, { lineHeight: string; letterSpacing?: string }];
  * The artifact's type styles, on Tailwind's size names so `cn()` /
  * tailwind-merge keeps working, plus the named styles the dashboard uses
  * (`text-title`, `text-eyebrow`) that have no standard slot.
+ *
+ * Founder's pick, 29 Sep 2026 ("B one step up", buyer app only): caption 13,
+ * label and table 14, body 15, title 16, eyebrow 12. It lands with the shell
+ * (PR 3 of the video hand-off), scoped to `/app`; until then this is the scale.
  */
 export const fontSize: Record<string, FontSize> = {
   eyebrow: ["0.6875rem", { lineHeight: "1rem", letterSpacing: "0.08em" }], // 11 — mono, uppercase
@@ -393,6 +409,14 @@ export const contrastPairs: ContrastPair[] = [
   { fg: "brand.on", bg: "brand.active", min: TEXT, use: "primary button, pressed" },
   { fg: "brand.ink", bg: "brand.tint", min: TEXT, use: "info note, active nav" },
   { fg: "brand.ink", bg: "brand.tint-strong", min: TEXT, use: "selected row, active chip" },
+  { fg: "accent.on", bg: "accent", min: TEXT, use: "ticked box" },
+  { fg: "accent.ink", bg: "accent.tint", min: TEXT, use: "selected row, active nav" },
+  { fg: "accent.ink", bg: "accent.tint-strong", min: TEXT, use: "set filter, active chip" },
+  { fg: "accent.ink", bg: "surface", min: TEXT, use: "link" },
+  { fg: "accent.ink", bg: "canvas", min: TEXT, use: "link on the canvas" },
+  { fg: "ink.strong", bg: "accent.tint-strong", min: TEXT, use: "name on a set filter" },
+  { fg: "accent", bg: "surface", min: UI, use: "focus ring, tab indicator" },
+  { fg: "accent", bg: "canvas", min: UI, use: "focus ring on the canvas" },
   { fg: "signal.on", bg: "signal", min: TEXT, use: "icon on the signal disc" },
   { fg: "positive.on", bg: "positive", min: TEXT, use: "verified, solid" },
   { fg: "positive.ink", bg: "positive.tint", min: TEXT, use: "verified / valid" },

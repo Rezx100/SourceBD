@@ -120,4 +120,32 @@ tab scrolls only its pane; the columns are sized from measured content and
 the supplier column keeps 184px (its longest word) at the table's minimum
 width; the record pane is half the region, not 55%; a line has its own
 silhouette and one read; every pane-opening link shows a spinner at once.
-PRs 2–6 wait for the decision page.
+
+**The decision page (PR 2), picked 29 Sep 2026.** Page:
+https://claude.ai/artifact/8RnQGfi1bnVHnwG1qbaTsQ (option shots from
+`.impeccable/preview/decision29.cjs`). The founder took the recommended
+option in all seven:
+
+1. **Colour: B Slate.** Green stays on the one primary action and the logo.
+   Selection, the active nav row, set filters, links, tabs, focus and the
+   ticked box take the `accent` role (slate, `lib/design/tokens.ts`).
+   Status hues do not change.
+2. **Search field: A filled.** A tonal fill, no outline, no shadow; typing
+   turns it white with a thin ink line under it (M3 filled field).
+3. **Filters: A a row of menus.** Product, Certificate, Place, Company type,
+   More; each opens a short list with production counts; a set filter shows
+   its value on its button. Replaces the landing's four pill rows and the
+   results' chip bar.
+4. **Text size: B one step up**, buyer app only: caption 13, label and table
+   14, body 15, title 16, eyebrow 12; the list's initials tile 40px.
+5. **Icons: A line.** Fourteen in-repo SVGs on the 24px grid, 1.5px stroke,
+   round ends, no package. The source-pending mark is a document with a
+   clock, replacing the dashed square.
+6. **Record head: A one row of marks.** The facts line is plain text; every
+   source appears once, in one row of marks that name themselves on hover.
+7. **Product photos: A a list with small photos.** One line per HS heading:
+   a 40px photo tagged "illustration", the code, its name.
+
+PR 3 (shell) applies 1 and 4 to the shell; PR 4 (search) 2, 3 and the
+list's type; PR 5 (record) 5, 6 and 7; PR 6 (RFQ form) the green reduction
+there.
