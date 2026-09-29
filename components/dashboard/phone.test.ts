@@ -503,6 +503,11 @@ describe("M5. the composer, the other pages and the touch sweep", () => {
     const html = renderToStaticMarkup(createElement(DataTable, { label: "Orders", minWidth: "56rem" } as ComponentProps<typeof DataTable>, createElement("tbody", null)));
     const table = classOf(html, /<table class="([^"]*)"/).replace(/&amp;/g, "&");
     for (const c of ["max-sm:!min-w-0", "max-sm:block", "max-sm:[&_thead]:hidden", "max-sm:[&_tr]:flex", "max-sm:[&_tr]:flex-wrap", "max-sm:[&_td]:p-0"]) assert.ok(bare(table, c), `${c}: ${table}`);
+    // A grid of fields keeps its table: its inputs need their column's heading.
+    const form = source("components/product-form.tsx");
+    const grids = form.match(/<DataTable\b[^>]*>/g) ?? [];
+    assert.ok(grids.length >= 2, "the product form's grids moved; this guard needs rewriting");
+    for (const g of grids) assert.match(g, /stack=\{false\}/, `a form grid stacks on a phone, its fields unlabelled: ${g}`);
   });
 
   it("every small control reaches 44px under a finger: icon buttons, boxes, the view switch, marks, reasons and the ⋯", () => {

@@ -211,12 +211,15 @@ export function DataTable({
   label,
   minWidth = "40rem",
   dense = false,
+  stack = true,
   className,
   children,
 }: {
   label: string;
   minWidth?: string;
   dense?: boolean;
+  /** A list on a phone (`STACK`); false for a grid of fields, whose inputs need their column's heading. */
+  stack?: boolean;
   className?: string;
   children: ReactNode;
 }) {
@@ -227,7 +230,7 @@ export function DataTable({
           "w-full border-collapse text-sm",
           "[&_thead_th]:xl:sticky [&_thead_th]:xl:top-0 [&_thead_th]:xl:z-raised",
           dense && "[&_td]:h-9 [&_th[scope=row]]:h-9",
-          STACK,
+          stack && STACK,
         )}
         style={{ minWidth }}
       >

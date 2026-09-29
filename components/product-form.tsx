@@ -344,7 +344,7 @@ export function ProductForm({ initial }: { initial: ProductValues }) {
         </div>
         {matrix.total > 0 ? (
           <div className="flex flex-col gap-2">
-            <DataTable label="Every combination" dense minWidth="16rem" className="max-h-80 overflow-y-auto rounded-sm shadow-edge">
+            <DataTable label="Every combination" dense stack={false} minWidth="16rem" className="max-h-80 overflow-y-auto rounded-sm shadow-edge">
               <thead>
                 <tr>
                   <HeadCell align="right" className="w-12">
@@ -538,7 +538,7 @@ function RowsTable<K extends string>({
   return (
     <div className="flex flex-col gap-3">
       {rows.length > 0 ? (
-        <DataTable label={label} minWidth="40rem" className="rounded-sm shadow-edge">
+        <DataTable label={label} stack={false} minWidth="40rem" className="rounded-sm shadow-edge">
           <thead>
             <tr>
               {columns.map((c) => (
