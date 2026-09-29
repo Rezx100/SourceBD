@@ -28,6 +28,7 @@ describe("the results step aside to a slim rail while an RFQ is composed", () =>
     assert.match(html, />Aboni Knitwear Ltd</);
     assert.doesNotMatch(html, /data-action="rfq"|data-workers-cell|aria-label="Source: /);
     assert.doesNotMatch(html, /min-w-\[30rem\]/, "the rail must not scroll sideways");
+    assert.doesNotMatch(html, /data-open="record"/, "a name in the rail opens the record over the composer and loses the draft");
   });
 
   it("the column is 18rem and the composer takes the rest of the region", () => {

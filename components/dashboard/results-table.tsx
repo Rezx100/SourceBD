@@ -219,7 +219,13 @@ export function ResultsTable({
                           one grows its row rather than losing its end. */}
                       <div className="[overflow-wrap:anywhere]">
                         {/* The name opens the record beside these results (§3.3), as a
-                            client navigation that keeps the results and the selection. */}
+                            client navigation that keeps the results and the selection.
+                            Not in the rail beside the composer: opening a record there
+                            replaced the composer and lost the draft; the box is the
+                            action (tick it into the RFQ). */}
+                        {rail ? (
+                          <span className="font-medium text-ink-strong [overflow-wrap:anywhere]">{r.name}</span>
+                        ) : (
                         <Link
                           prefetch={false}
                           scroll={false}
@@ -230,6 +236,7 @@ export function ResultsTable({
                           {r.name}
                           <LinkPending className="ml-1.5 inline-block align-[-1px] text-ink-subtle" />
                         </Link>
+                        )}
                       </div>
                       {/* What kind of company and where, under the name, as on Saved:
                           a column of its own for the type cost the name its width. */}
