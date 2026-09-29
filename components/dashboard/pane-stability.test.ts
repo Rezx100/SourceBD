@@ -6,8 +6,9 @@
 //     scrolls the pane's own region, and nothing above it can be scrolled.
 //  2. The worker figures ran under the row's Save and RFQ icons, and the
 //     compact actions column could not hold its own two buttons.
-//  3. Names broke mid-word ("Benchmar k") beside a pane: the supplier column
-//     keeps room for its longest word in every layout.
+//  3. Names broke mid-word ("Benchmar k") beside a pane. Since the founder's
+//     review of 29 Sep a name is one line cut at the end (the One-Line Name
+//     Rule), so a row is two lines and the column is not sized for a word.
 //  4. Every click waited on the rate limit and then the role read, each a
 //     round trip to California: the two now run side by side.
 //  5. Register logos filled in one by one while scrolling: the layout
@@ -20,6 +21,8 @@ import { describe, it } from "node:test";
 import { createElement, isValidElement, type ComponentProps, type ReactElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
+import { buildTableRow } from "@/lib/dashboard/build-models";
+import { aboniInput } from "@/lib/dashboard/fixtures";
 import { SOURCE_LOGO_FILES } from "@/lib/dashboard/source-logos";
 import { AppShell } from "./app-shell";
 import { RESULTS_COLUMNS, RESULTS_MIN_WIDTH, ResultsTable } from "./results-table";
@@ -176,25 +179,42 @@ describe("1. a record tab scrolls the pane, never the app", () => {
 
 describe("2–3. every column holds what it carries", () => {
   // Measured in Geist, 29 Sep 2026, at the buyer app's text (one step up,
-  // PR 4): the longest word a register files in a name at 15px medium
-  // ("MANUFACTURING") is 129px; the workers second line at 13px ("11,119
-  // with buildings") 115px; its words alone 83px. The workers checks below
-  // keep the margin the 12px measurements had.
-  const LONGEST_WORD = 129;
+  // PR 4): the workers second line at 13px ("11,119 with buildings") is
+  // 115px; its words alone 83px. The workers checks below keep the margin the
+  // 12px measurements had.
   // px-3 either side, the tile, its gap: 40px and 12 in the list, 24px and 10 beside a pane.
   const NAME_CHROME = { wide: 24 + 40 + 12, compact: 24 + 24 + 10 };
   const fixed = (cols: readonly (number | null)[]) => cols.reduce<number>((s, w) => s + (w ?? 0), 0);
 
-  it("the supplier column keeps its longest word whole at the table's minimum width, beside a pane and not", () => {
+  it("a name is one line cut at the end, so a row is two lines and the table fits the column beside a pane", () => {
+    // The One-Line Name Rule (founder, 29 Sep 2026) replaced "the supplier
+    // column keeps its longest word": at its minimum the column still shows
+    // about ten characters of name, and beside a pane at 1280 (a 1048px
+    // region, the pane at half, 16px gutters) the compact table fits without
+    // scrolling sideways.
     for (const layout of ["wide", "compact"] as const) {
-      const name = RESULTS_MIN_WIDTH[layout] - fixed(RESULTS_COLUMNS[layout]);
-      assert.ok(name - NAME_CHROME[layout] >= LONGEST_WORD, `${layout}: the supplier column falls to ${name}px, so a name breaks mid-word`);
+      const text = RESULTS_MIN_WIDTH[layout] - fixed(RESULTS_COLUMNS[layout]) - NAME_CHROME[layout];
+      assert.ok(text >= 90, `${layout}: at the table's minimum a name gets ${text}px`);
     }
+    assert.ok(RESULTS_MIN_WIDTH.compact <= 1048 - Math.min(760, Math.max(480, 1048 / 2)) - 32, "beside a pane at 1280 the compact table scrolls sideways");
+    assert.ok(RESULTS_MIN_WIDTH.wide <= 1048 - 48, "at 1280 the wide table scrolls sideways");
     const table = source("components/dashboard/results-table.tsx");
-    assert.match(table, /compact \? "min-w-\[30\.5rem\]" : "min-w-\[62rem\]"/, "RESULTS_MIN_WIDTH no longer says what the table draws");
+    assert.match(table, /compact \? "min-w-\[28rem\]" : "min-w-\[60rem\]"/, "RESULTS_MIN_WIDTH no longer says what the table draws");
     assert.match(table, /size=\{compact \? "sm" : "row"\}/, "NAME_CHROME no longer says which tile the row draws");
-    assert.equal(RESULTS_MIN_WIDTH.compact, 30.5 * 16);
-    assert.equal(RESULTS_MIN_WIDTH.wide, 62 * 16);
+    assert.equal(RESULTS_MIN_WIDTH.compact, 28 * 16);
+    assert.equal(RESULTS_MIN_WIDTH.wide, 60 * 16);
+    // Two lines per row, each cut to one, for the longest name there is.
+    const zaheen = "Zaheen Knitwears Limited (Shed - 3, 4, 5, 10, 11, 12, 13) & (Building - Security, ETP and Fire Pump)";
+    for (const layout of ["wide", "compact", "rail"] as const) {
+      const row = { ...buildTableRow(aboniInput()), name: zaheen, slug: "zaheen", type: "Factory", place: "Narayanganj" };
+      const html = renderToStaticMarkup(createElement(ResultsTable, { rows: [row], compact: layout !== "wide", rail: layout === "rail" }));
+      const cell = /<th scope="row"[\s\S]*?<\/th>/.exec(html)?.[0] ?? "";
+      const lines = [...cell.matchAll(/<(?:span|div)[^>]*data-name=""[^>]*>([^<]*)</g)];
+      assert.deepEqual(lines.map((m) => m[1]), ["Zaheen Knitwears Limited", "Shed - 3, 4, 5, 10, 11, 12, 13 · Building - Security, ETP and Fire Pump · Factory · Narayanganj"], `${layout}: not the base name over the qualifier line`);
+      for (const [tag] of cell.matchAll(/<(?:span|div)[^>]*data-name=""[^>]*>/g)) assert.match(tag, /\btruncate\b/, `${layout}: a name line can wrap: ${tag}`);
+      assert.match(html, new RegExp(`title="${zaheen.replace(/[()]/g, "\\$&").replace(/&/g, "&amp;")}"`), `${layout}: hovering the name does not show all of it`);
+      assert.doesNotMatch(cell, /overflow-wrap:anywhere/, `${layout}: a name line still wraps`);
+    }
   });
 
   it("every header label and its sort caret fit their column on one line", () => {

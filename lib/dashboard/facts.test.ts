@@ -23,6 +23,7 @@ import {
   rscStatusWords,
   rscTrainingWords,
   sortCerts,
+  splitQualifier,
 } from "./facts";
 
 const TODAY = new Date("2026-09-18T10:00:00Z");
@@ -102,6 +103,44 @@ describe("plain formatting", () => {
     assert.equal(displayName("UNITED KNITWEAR (PVT)LTD."), "United Knitwear (Pvt)Ltd");
     const zaheen = "Zaheen Knitwears Limited (Shed - 3, 4, 5, 10, 11, 12, 13) & (Building - Security, ETP and Fire Pump)";
     assert.equal(displayName(zaheen), zaheen);
+  });
+
+  it("the qualifier after a name moves to the second line; nothing that is part of the name moves", () => {
+    // Real published names (production, 29 Sep 2026; the hand-off's list).
+    const cases: [string, string, string | null][] = [
+      ["Zaheen Knitwears Limited (Shed - 3, 4, 5, 10, 11, 12, 13) & (Building - Security, ETP and Fire Pump)", "Zaheen Knitwears Limited", "Shed - 3, 4, 5, 10, 11, 12, 13 · Building - Security, ETP and Fire Pump"],
+      ["Knit Softwear Ltd. (Unit-2)", "Knit Softwear Ltd.", "Unit-2"],
+      ["Intramex Knit Wear Ltd. (Unit-2)", "Intramex Knit Wear Ltd.", "Unit-2"],
+      ["Maitri Knitting Unit-2", "Maitri Knitting", "Unit-2"],
+      ["MG Niche Flair Limited Unit-2", "MG Niche Flair Limited", "Unit-2"],
+      ["Aswad Composite Mills Ltd. ( U-2) (Extension)", "Aswad Composite Mills Ltd.", "U-2 · Extension"],
+      ["Aswad Composite Mills Ltd.(unit-1)", "Aswad Composite Mills Ltd.", "unit-1"],
+      ["Spectra Sweaters Ltd. (Previously Panache Knitted Creations Ltd.)", "Spectra Sweaters Ltd.", "Previously Panache Knitted Creations Ltd."],
+      ["MG Shirtex Ltd (Dhakkhin Khan) (Previously THE ROSE GARMENTS DESIGNERS LTD)", "MG Shirtex Ltd", "Dhakkhin Khan · Previously THE ROSE GARMENTS DESIGNERS LTD"],
+      ["Rehash Accessories & Sourcing Ltd. (A Sister Concern of Sharif Enterprise)", "Rehash Accessories & Sourcing Ltd.", "A Sister Concern of Sharif Enterprise"],
+      ["M/S. Orba Traders (Concern of Orba Bangladesh)", "M/S. Orba Traders", "Concern of Orba Bangladesh"],
+      ["Silver Composite Textile Mills Ltd. (Unit-3, Textile)", "Silver Composite Textile Mills Ltd.", "Unit-3, Textile"],
+      ["Aboni Knitwear (New Shed)", "Aboni Knitwear", "New Shed"],
+      // Part of the name, in the middle, or not balanced: left whole.
+      ["Robintex (Bangladesh) Ltd.", "Robintex (Bangladesh) Ltd.", null],
+      ["Indochine Apparel (Bangladesh) Limited, Unit 2 Building", "Indochine Apparel (Bangladesh) Limited, Unit 2 Building", null],
+      ["D.H. Euro Hi-Tech Co. (BD) Ltd", "D.H. Euro Hi-Tech Co. (BD) Ltd", null],
+      ["Sanowara Fashions (Pvt.) Ltd", "Sanowara Fashions (Pvt.) Ltd", null],
+      ["Apex Holdings (Bangladesh)", "Apex Holdings (Bangladesh)", null],
+      ["Alim Knit (BD)", "Alim Knit (BD)", null],
+      ["Sayem Fashions (Pvt.)", "Sayem Fashions (Pvt.)", null],
+      ["Aswad Composite Mills Ltd. ( U-2", "Aswad Composite Mills Ltd. ( U-2", null],
+      ["Odd Name Ltd) (Unit-2)", "Odd Name Ltd) (Unit-2)", null],
+      ["(Unit-2)", "(Unit-2)", null],
+      ["Aboni Knitwear Ltd", "Aboni Knitwear Ltd", null],
+      ["Unity Fabrics", "Unity Fabrics", null],
+    ];
+    for (const [name, base, qualifier] of cases) {
+      assert.deepEqual(splitQualifier(name), { base, qualifier }, name);
+      // Nothing is dropped: every word of the name is in the base or the qualifier.
+      const words = (s: string) => s.replace(/[()&,·]/g, " ").split(/\s+/).filter(Boolean);
+      assert.deepEqual(words(`${base} ${qualifier ?? ""}`), words(name), `${name} lost a word`);
+    }
   });
 
   it("initials, place, type", () => {

@@ -98,7 +98,8 @@ describe("Saved", () => {
 
   it("the name opens the record beside the list; the pointer button is gone", () => {
     const html = saved();
-    assert.match(html, /href="\/app\/saved\?open=aboni-knitwear-ltd"[^>]*>Aboni Knitwear Ltd</);
+    // One line, whole on hover (the One-Line Name Rule).
+    assert.match(html, /href="\/app\/saved\?open=aboni-knitwear-ltd"[^>]*><span data-name="" title="Aboni Knitwear Ltd" class="[^"]*\btruncate\b[^"]*">Aboni Knitwear Ltd</);
     assert.doesNotMatch(html, />Open</);
     assert.doesNotMatch(html, /href="\/app\/suppliers\//);
   });

@@ -34,11 +34,12 @@ export function ProductSheet({
             <Icon name="chev-l" /> Back
           </Button>
         )}
-        {/* The name wraps; it is never truncated. A 125-character company name
-            is the company's name, and an ellipsis is the kit saying it could
-            not be bothered (render.test.ts's no-truncation guard). */}
-        <span className="inline-flex min-w-0 flex-wrap items-center gap-x-1.5 text-sm text-ink-muted">
-          <span className="[overflow-wrap:anywhere]">{model.supplierName}</span>
+        {/* The company's name on one line, cut at the end with the whole
+            name in its title (the One-Line Name Rule); the HS code never cut. */}
+        <span className="inline-flex min-w-0 items-center gap-x-1.5 text-sm text-ink-muted">
+          <span data-name="" title={model.supplierName} className="min-w-0 truncate">
+            {model.supplierName}
+          </span>
           <span className="text-ink-subtle">/</span>
           <Code className="shrink-0 text-ink-strong">HS {model.hs}</Code>
         </span>

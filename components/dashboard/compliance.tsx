@@ -7,14 +7,13 @@
 // reserved `sanction` tone — the only place on these pages that uses it.
 
 import Link from "next/link";
-import type { ReactNode } from "react";
 import { formatCount, formatDay } from "@/lib/dashboard/facts";
 import { cn } from "@/lib/utils";
 import { Badge, type BadgeTone } from "./chips";
 import { Button } from "./controls";
 import { Icon } from "./icons";
 import { Cell, DataTable, HeadCell, rowClass } from "./page";
-import { Caption, Code } from "./type";
+import { Caption, Code, OneLine } from "./type";
 
 export type CertRow = {
   kind: string;
@@ -180,14 +179,11 @@ export function BackToHub() {
   );
 }
 
-function SupplierLink({ slug, children }: { slug: string; children: ReactNode }) {
+/** A supplier's name in a table row: one line, cut at the end, the whole name in its title (the One-Line Name Rule). */
+function SupplierLink({ slug, name }: { slug: string; name: string }) {
   return (
-    <Link
-      href={`/app/suppliers/${slug}`}
-      prefetch={false}
-      className="font-medium text-ink-strong [overflow-wrap:anywhere] hover:text-brand-ink hover:underline"
-    >
-      {children}
+    <Link href={`/app/suppliers/${slug}`} prefetch={false} className="block max-w-[20rem] font-medium text-ink-strong hover:text-brand-ink hover:underline">
+      <OneLine text={name} />
     </Link>
   );
 }
@@ -223,7 +219,7 @@ export function ExpiryTable({ rows, compact = false }: { rows: readonly CertRow[
             <tr key={`${r.supplier.id}-${r.kind}-${r.certificate_no ?? r.expires_on}`} className={rowClass()}>
               <Cell className="py-2">
                 <div className="flex min-w-0 flex-col">
-                  <SupplierLink slug={r.supplier.slug}>{r.supplier.company_name}</SupplierLink>
+                  <SupplierLink slug={r.supplier.slug} name={r.supplier.company_name} />
                   {compact ? null : <Caption>{place || "Location not listed"}</Caption>}
                 </div>
               </Cell>
@@ -287,7 +283,7 @@ export function UflpaTable({ rows }: { rows: readonly UflpaRow[] }) {
             <tr key={r.supplier_id} className={rowClass()}>
               <Cell className="py-2">
                 <div className="flex min-w-0 flex-col">
-                  <SupplierLink slug={r.supplier_slug}>{r.company_name}</SupplierLink>
+                  <SupplierLink slug={r.supplier_slug} name={r.company_name} />
                   <Caption>{titleCase(r.entity_type)}</Caption>
                 </div>
               </Cell>

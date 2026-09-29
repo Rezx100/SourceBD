@@ -98,19 +98,37 @@ function assertDisabledExplained(html: string): void {
 
 const rx = (s: string) => new RegExp(escape(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
 
-/** Any class that would cut a name off. Names wrap, never truncate (spec §2, §9); a tile's one-line caption may ellipsise. */
+/** Any class that would cut text off. */
 const TRUNCATION = /\b(?:truncate|line-clamp-\d)\b|\btext-ellipsis\b|\boverflow-hidden\b[^"]*\bwhitespace-nowrap\b|\bwhitespace-nowrap\b[^"]*\btext-ellipsis\b/;
 /**
- * The element that directly holds the name must carry the wrap rule.
- *
- * This was `class="…[overflow-wrap:anywhere]…">Aboni Knitwear Ltd<`, which
- * assumed `class` is the LAST attribute on that element. REZ-C made the name a
- * `next/link`, and Next builds its own props object, so it emits
- * `class` before `href` whatever order the JSX uses — the guard failed over
- * markup that wraps perfectly well. The rule it encodes is unchanged: whatever
- * tag holds the text, its opening tag carries the class.
+ * Nothing is cut but a name. A company's or building's name, and the line
+ * under it, are one line cut at the end (the One-Line Name Rule, founder, 29
+ * Sep 2026), and carry `data-name`; a chip, a fact, a caption or a register's
+ * words must still never be cut, so every other element is held to the old rule.
  */
-const NAME_WRAPS = /<[a-z]+[^>]*\[overflow-wrap:anywhere\][^>]*>Aboni Knitwear Ltd</;
+function assertNothingCutButNames(html: string, message?: string) {
+  for (const tag of html.match(/<[a-z][^>]*>/g) ?? []) {
+    if (TRUNCATION.test(tag) && !/\sdata-name=""/.test(tag)) assert.fail(`${message ?? "something other than a name is cut off"}: ${tag}`);
+  }
+}
+/**
+ * The element that directly holds a name keeps it on one line: it is marked as
+ * a name, it truncates, and its `title` carries the whole name for the pointer.
+ * Attribute order is free (`next/link` emits `class` before `href` whatever the
+ * JSX says), so the opening tag is found and read, not matched in one pattern.
+ */
+function assertNameOneLine(html: string, text: string, whole: string = text, where = "") {
+  const at = html.indexOf(`>${escape(text)}<`);
+  assert.ok(at >= 0, `${where} does not print "${text}" as the text of an element`);
+  const tag = html.slice(html.lastIndexOf("<", at), at + 1);
+  assert.match(tag, /\sdata-name=""/, `${where} the name is not marked as a name: ${tag}`);
+  assert.match(tag, /\btruncate\b/, `${where} the name is not one line: ${tag}`);
+  // The title is on the element, or on the link around it (the row's name).
+  let title = / title="([^"]*)"/.exec(tag)?.[1];
+  const a = html.lastIndexOf("<a ", at);
+  if (title === undefined && a >= 0 && html.lastIndexOf("</a>", at) < a) title = / title="([^"]*)"/.exec(html.slice(a, html.indexOf(">", a) + 1))?.[1];
+  assert.equal(title, escape(whole), `${where} hovering the name does not show the whole of it: ${tag}`);
+}
 
 /** Colour hand-typed into markup instead of a token class. */
 const HAND_TYPED_COLOUR = /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?)\(\s*\d/;
@@ -150,7 +168,7 @@ describe("SupplierResultCard (rendered)", () => {
 
   it("the 11-source record: name, eleven marks with names, four tiles, six photo tiles, no score anywhere", () => {
     const html = renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(aboniInput()) }));
-    assert.match(html, NAME_WRAPS);
+    assertNameOneLine(html, "Aboni Knitwear Ltd");
     assert.equal((html.match(/aria-label="Source: /g) ?? []).length, 11 + 1, "11 in the mark row, 1 beside the one attributed meta fact (workers, from RSC)");
     assert.match(html, /<a href="https:\/\/www\.bgmea\.com\.bd\/member\/71"[^>]*aria-label="Source: Bangladesh Garment Manufacturers &amp; Exporters Association, Industry bodies \(opens the register page\)"/);
     assert.match(html, /11 sources/);
@@ -161,7 +179,7 @@ describe("SupplierResultCard (rendered)", () => {
     assert.match(html, /HS 6115/);
     assert.match(html, /Illustrative photos, one per HS heading/);
     assert.doesNotMatch(html, SCORE);
-    assert.doesNotMatch(html, TRUNCATION);
+    assertNothingCutButNames(html);
     assert.doesNotMatch(html, HAND_TYPED_COLOUR);
     // Send RFQ is live wherever the page gives it somewhere to go: the
     // composer on the search (discover passes `rfqHref` for every row).
@@ -202,7 +220,7 @@ describe("SupplierResultCard (rendered)", () => {
     assert.match(html, /bg-sanction text-sanction-on">(?:<[^>]*>)*Sanctioned · sample/);
     assert.match(html, /<button[^>]*disabled=""[^>]*>(?:(?!<\/button>).)*Send RFQ/s);
     assert.match(html, rx(ZAHEEN_NAME));
-    assert.doesNotMatch(html, TRUNCATION);
+    assertNothingCutButNames(html);
   });
 
   // Cycle 5, test-adequacy critic: removing the sanction treatment from the
@@ -324,8 +342,8 @@ describe("ResultsTable (rendered) — the ledger grid", () => {
     assert.match(html, />none on 4 registers</);
     assert.match(html, />not on EPB list</);
     assert.match(html, /Buying house/);
-    assert.doesNotMatch(html, TRUNCATION);
-    assert.match(html, NAME_WRAPS, "the name does not carry the wrap rule");
+    assertNothingCutButNames(html);
+    assertNameOneLine(html, "Aboni Knitwear Ltd", "Aboni Knitwear Ltd", "row:");
     assert.doesNotMatch(html, HAND_TYPED_COLOUR);
   });
 
@@ -408,8 +426,10 @@ describe("ResultsTable (rendered) — the ledger grid", () => {
   it("each row is a keyboard stop whose name is the supplier's, and the name opens the record beside the results", () => {
     const html = renderToStaticMarkup(createElement(ResultsTable, { rows: [ledgerRow(aboniInput())] }));
     assert.match(html, /<tr tabindex="0" aria-label="Aboni Knitwear Ltd"[^>]*data-row="result"/);
-    // The name, then the spinner that says the click was heard (hidden until then).
-    assert.match(html, /<a\b[^>]*data-open="record"[^>]*>Aboni Knitwear Ltd(?:<span aria-hidden="true" class="[^"]*\bhidden\b[^"]*"><\/span>)?<\/a>|<a\b[^>]*href="\/app\/discover\?q=knit&amp;record=aboni-knitwear"[^>]*data-open="record"/);
+    // The name (one line, whole on hover), then the spinner that says the click
+    // was heard (hidden until then).
+    assert.match(html, /<a\b[^>]*data-open="record"[^>]*><span data-name="" class="truncate">Aboni Knitwear Ltd<\/span><span aria-hidden="true" class="[^"]*\bhidden\b[^"]*"><\/span><\/a>/);
+    assert.match(html, /<a data-open="record" title="Aboni Knitwear Ltd"[^>]*href="\/app\/discover\?q=knit&amp;record=aboni-knitwear"/);
   });
 
   it(
@@ -520,7 +540,7 @@ describe("SupplierSheet (rendered)", () => {
     assert.doesNotMatch(html, /blur/, "locked is striped, never blurred");
     assertSendRfqEnabled(html);
     assertDisabledExplained(html);
-    assert.doesNotMatch(html, TRUNCATION);
+    assertNothingCutButNames(html);
     assert.doesNotMatch(html, HAND_TYPED_COLOUR);
   });
 
@@ -967,9 +987,9 @@ describe("RfqComposer (rendered)", () => {
     assert.doesNotMatch(html, SCORE);
     assert.doesNotMatch(html, /email_primary|contact_name|contact_role|\bphones\b|@/);
     assert.doesNotMatch(html, HAND_TYPED_COLOUR);
-    assert.doesNotMatch(html, TRUNCATION, "a supplier's name or the draft's context is cut off");
-    // Every target's name wraps rather than truncating.
-    assert.match(html, /<span[^>]*\[overflow-wrap:anywhere\][^>]*>Aboni Knitwear Ltd</);
+    assertNothingCutButNames(html, "a supplier's name or the draft's context is cut off");
+    // Every target's name is one line, whole on hover (the One-Line Name Rule).
+    assertNameOneLine(html, "Aboni Knitwear Ltd", "Aboni Knitwear Ltd", "composer:");
   });
 
   it("each target can be removed by name, and Close and the record's Back go where they were given", () => {
@@ -1178,7 +1198,7 @@ describe("RfqListBody (rendered)", () => {
     assert.match(html, /1 Sep 2026/);
     assert.match(html, /12,000 pcs/);
     assert.doesNotMatch(html, /Reply overdue/, "overdue needs reply-by dates and threads (REZ-D)");
-    assert.doesNotMatch(html, TRUNCATION);
+    assertNothingCutButNames(html);
     assert.doesNotMatch(html, HAND_TYPED_COLOUR);
     assert.doesNotMatch(html, /\bNaN\b|undefined/);
   });
@@ -1203,7 +1223,7 @@ describe("the largest lists the database holds (spec §3, §6)", () => {
     const html = renderToStaticMarkup(createElement(SupplierResultCard, { card }));
     assert.match(html, /54 HS lines/);
     assert.match(html, /\+48 lines</, "six tiles shown, forty-eight counted");
-    assert.doesNotMatch(html, TRUNCATION);
+    assertNothingCutButNames(html);
 
     const sheet = buildSheet(input);
     assert.equal(sheet.products.lines, 54);
@@ -1212,7 +1232,7 @@ describe("the largest lists the database holds (spec §3, §6)", () => {
     const sheetHtml = renderToStaticMarkup(createElement(SupplierSheet, { model: sheet }));
     assert.match(sheetHtml, /Products<span[^>]*>54</);
     assert.match(sheetHtml, /EPB, chapters 52, 55, 59, 60, 61, 62, 63 and 65/);
-    assert.doesNotMatch(sheetHtml, TRUNCATION);
+    assertNothingCutButNames(sheetHtml);
   });
 
   it("39 principal products: 29 once case and spacing variants merge, every one listed, the count exact", () => {
@@ -1227,7 +1247,7 @@ describe("the largest lists the database holds (spec §3, §6)", () => {
     assert.match(html, /Product list<\/dt><dd[^>]*><span[^>]*>29<\/span><span[^>]*>as filed/);
     const ps = renderToStaticMarkup(createElement(ProductSheet, { model: buildProductSheet(input, "6105") }));
     assert.match(ps, /\+25 items/, "four are listed, twenty-five counted — never a silent truncation");
-    assert.doesNotMatch(ps, TRUNCATION);
+    assertNothingCutButNames(ps);
     // The record itself lists every one: 3,975 published records have a
     // product list and no EPB lines, so no line sheet at all, and a count
     // over nothing to read was all they showed.
@@ -1483,25 +1503,24 @@ describe("status is never colour alone (spec §6)", () => {
 describe("the 125-character name, on every card type an admin list can reach (spec §6)", () => {
   const long = longestNameInput();
 
-  it("the card, the row and the sheet all print it whole and let it wrap", () => {
+  it("the card, the row and the sheet keep it whole in the page and in its accessible name, on one line cut at the end with the whole name on hover", () => {
+    // The One-Line Name Rule (founder, 29 Sep 2026) replaced "print it whole
+    // and let it wrap": the cut is CSS (`truncate`), so the whole name is still
+    // the element's text, which a screen reader reads, and its title.
     const surfaces: [string, string][] = [
       ["card", renderToStaticMarkup(createElement(SupplierResultCard, { card: buildCard(long) }))],
       ["row", renderToStaticMarkup(createElement(ResultsTable, { rows: [buildTableRow(long)] }))],
       ["sheet", renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(long) }))],
     ];
     for (const [where, html] of surfaces) {
-      const name = escape(LONG_NAME_125);
-      assert.ok(html.includes(name), `${where} does not carry the whole 125-character name`);
-      assert.doesNotMatch(html, /…|\.\.\./, `${where} ellipsises the name`);
-      // The name also appears in the card's `aria-label` and the row's "Select
-      // …" checkbox label; the one this guard is about is the text a buyer
-      // sees, which is the occurrence that opens a text node.
-      const at = html.indexOf(`>${name}`);
-      assert.ok(at >= 0, `${where} carries the name only in an attribute, never as text`);
-      const element = html.slice(html.lastIndexOf("<", at), at);
-      assert.match(element, /\[overflow-wrap:anywhere\]/, `${where} does not let the name wrap: ${element}`);
-      assert.doesNotMatch(element, TRUNCATION, `${where} would cut the name off: ${element}`);
+      assert.doesNotMatch(html, /…|\.\.\./, `${where} cuts the name in the text itself`);
+      // Its brackets do not balance, so no qualifier is split off: the whole
+      // name is line one.
+      assertNameOneLine(html, LONG_NAME_125, LONG_NAME_125, `${where}:`);
+      assertNothingCutButNames(html, `${where}: something other than the name is cut`);
     }
+    // The row's accessible name is the whole name.
+    assert.match(renderToStaticMarkup(createElement(ResultsTable, { rows: [buildTableRow(long)] })), new RegExp(`<tr [^>]*aria-label="${rx(LONG_NAME_125).source}"`));
   });
 
   it("the empty record around that name says what was checked, and claims nothing", () => {
@@ -1523,7 +1542,7 @@ describe("the RFQ screens carry no score either (spec §2)", () => {
     assert.match(html, /Fleece hoodie/);
     assert.doesNotMatch(html, SCORE);
     assert.doesNotMatch(html, HAND_TYPED_COLOUR);
-    assert.doesNotMatch(html, TRUNCATION);
+    assertNothingCutButNames(html);
     // The composer is the other RFQ surface and was outside every sweep.
     const draft = composer({ targets: [ABONI_TARGET, { ...ZAHEEN_TARGET, name: ZAHEEN_NAME, sanctionSample: true }] });
     assert.match(draft, /New RFQ/);

@@ -15,7 +15,7 @@ import { Badge } from "./chips";
 import { Button } from "./controls";
 import { Icon } from "./icons";
 import { EmptyState, ErrorNote } from "./page";
-import { Caption } from "./type";
+import { Caption, OneLine } from "./type";
 
 export type InboxThread = {
   id: string;
@@ -138,7 +138,7 @@ function ThreadRow({ thread: t, current }: { thread: InboxThread; current: boole
         )}
       >
         <span className="flex items-baseline gap-2">
-          <span className="min-w-0 flex-1 text-sm font-medium text-ink-strong [overflow-wrap:anywhere]">{t.supplier_name}</span>
+          <OneLine text={t.supplier_name} className="flex-1 text-sm font-medium text-ink-strong" />
           {/* One formatter for the whole column: relative inside 30 days, the
               day itself after that — never `3d ago` above `8/20/2026`. */}
           <Caption className="shrink-0 tabular-nums">{formatRelative(t.last_message_at ?? t.created_at)}</Caption>
@@ -169,7 +169,9 @@ export function ConversationHeader({ thread, recordOpen = false }: { thread: Inb
       </Link>
       <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <h2 className="m-0 text-title font-semibold text-ink-strong [overflow-wrap:anywhere]">{thread.supplier_name}</h2>
+          <h2 className="m-0 min-w-0 text-title font-semibold text-ink-strong">
+            <OneLine text={thread.supplier_name} />
+          </h2>
           <span className="flex flex-wrap items-center gap-2">
             <Badge tone="type">{entityLabel(thread.supplier_entity_type)}</Badge>
             <Caption className="text-sm text-ink-muted">{thread.subject ?? "General inquiry"}</Caption>

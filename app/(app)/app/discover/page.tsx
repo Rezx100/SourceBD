@@ -262,6 +262,7 @@ export default async function BuyerDiscoverPage({
             <Panel>
               <PanelHeader
                 compact={paneOpen}
+                rail={composerOpen}
                 as={!composerOpen && !filtersOpen && !saveOpen && recordSlug !== null ? "h2" : "h1"}
                 model={{
                   title,
@@ -309,6 +310,7 @@ export default async function BuyerDiscoverPage({
                 prevHref={state.page > 1 ? discoverHref(state, { page: state.page - 1 }) : null}
                 nextHref={pages && state.page < pages ? discoverHref(state, { page: state.page + 1 }) : null}
                 perHrefs={PER_PAGE.map((n) => ({ n, href: discoverHref(state, { per: n, page: 1 }) }))}
+                rail={composerOpen}
               />
               <SelectionBar exportHref={exportHref} searchHref={closeHref} />
             </Panel>

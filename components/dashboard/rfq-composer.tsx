@@ -23,7 +23,7 @@ import Link from "next/link";
 import { useContext, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { SourceMarkModel } from "@/lib/dashboard/source-tiers";
 import type { TierRank } from "@/lib/design/tokens";
-import { formatQuantity, formatDay, formatTime } from "@/lib/dashboard/facts";
+import { formatQuantity, formatDay, formatTime, nameSecondLine, splitQualifier } from "@/lib/dashboard/facts";
 import { cn } from "@/lib/utils";
 import { Button, Checkbox, Kbd } from "./controls";
 import { Field, SelectInput, TextArea, TextInput } from "./fields";
@@ -32,7 +32,7 @@ import { LogoTile, SourceMarks } from "./marks";
 import { SanctionBanner, Sheet, SheetBar, SheetScroll } from "./sheet";
 import { SupplierPicker, targetFromRow, type SupplierRow } from "./supplier-picker";
 import { useApplePlatform } from "./topbar-search-slot";
-import { Caption, Label } from "./type";
+import { Caption, Label, OneLine } from "./type";
 
 /** A supplier this RFQ goes to. Facts only; never a contact value. */
 export type ComposerTarget = {
@@ -342,7 +342,7 @@ export function RfqComposer({
           </Button>
         ) : null}
         <Label className="text-ink-strong">New RFQ</Label>
-        <Caption className="min-w-0 [overflow-wrap:anywhere]">{context}</Caption>
+        <OneLine text={context} className="text-xs text-ink-subtle" />
         <span className="ml-auto flex items-center gap-2">
           {draftSavedAt ? <Caption>Draft saved {draftSavedAt}</Caption> : null}
           <Button variant="ghost" icon size="sm" aria-label="Close" href={closeHref} clientNav scroll={false}>
@@ -383,12 +383,15 @@ export function RfqComposer({
                     <li key={t.id} className="flex items-center gap-3 px-3 py-2">
                       <LogoTile initials={t.initials} tier={t.tier} size="sm" />
                       <span className="flex min-w-0 flex-1 flex-col">
-                        <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                          <span className="text-sm font-medium text-ink-strong [overflow-wrap:anywhere]">{t.name}</span>
-                          <SourceMarks marks={t.marks.slice(0, 6)} caption="none" sm />
-                          {t.sanctioned ? <span className="text-xs font-medium text-sanction-ink">Sanctioned{t.sanctionSample ? " · sample" : ""}</span> : null}
+                        {/* Two lines, each cut to one (the One-Line Name Rule); the marks and a
+                            sanction beside the name keep their room, the marks only
+                            from sm, where they leave the name enough of it. */}
+                        <span className="flex min-w-0 items-center gap-x-2">
+                          <OneLine text={splitQualifier(t.name).base} title={t.name} className="text-sm font-medium text-ink-strong" />
+                          <SourceMarks marks={t.marks.slice(0, 6)} caption="none" sm className="hidden shrink-0 flex-nowrap sm:inline-flex" />
+                          {t.sanctioned ? <span className="shrink-0 text-xs font-medium text-sanction-ink">Sanctioned{t.sanctionSample ? " · sample" : ""}</span> : null}
                         </span>
-                        <Caption>{[t.type, t.place].filter(Boolean).join(" · ")}</Caption>
+                        <OneLine text={nameSecondLine(t.name, t.type, t.place)} className="text-xs text-ink-subtle" />
                       </span>
                       <Button variant="ghost" icon size="sm" aria-label={`Remove ${t.name}`} onClick={() => setTargets((xs) => xs.filter((x) => x.id !== t.id))}>
                         <Icon name="x" small />
@@ -529,7 +532,7 @@ export function RfqComposer({
               <Label className="text-ink-strong">What this RFQ carries</Label>
             </div>
             <div className="flex flex-col gap-2 rounded-md bg-surface-sunken p-4 text-sm text-ink">
-              <Caption>To {targets.length === 0 ? "—" : targets.map((t) => t.name).join(", ")}</Caption>
+              <OneLine text={`To ${targets.length === 0 ? "—" : targets.map((t) => t.name).join(", ")}`} className="text-xs text-ink-subtle" />
               <Label className="text-ink-strong">
                 RFQ · {title.trim() || "[product]"}
                 {Number(quantity) >= 1 ? ` · ${formatQuantity(Number(quantity), unit)}` : ""}

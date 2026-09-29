@@ -63,7 +63,40 @@ function rangeLabel(firstRow: number, shown: number): string {
  * keeps Sort and Save search as icon buttons on the title's line; density,
  * export and the cards view wait for the pane to close.
  */
-export function PanelHeader({ model, as = "h1", compact = false }: { model: PanelHeaderModel; as?: "h1" | "h2"; compact?: boolean }) {
+export function PanelHeader({
+  model,
+  as = "h1",
+  compact = false,
+  rail = false,
+}: {
+  model: PanelHeaderModel;
+  as?: "h1" | "h2";
+  compact?: boolean;
+  /**
+   * Beside the RFQ composer (the 18rem rail): one line, the count and the
+   * search's words cut to fit, and no controls. The rail is for ticking
+   * suppliers into the RFQ; its header wrapped onto five lines beside sort and
+   * save, and its sort menu opened under the rows (founder's review, 29 Sep
+   * 2026).
+   */
+  rail?: boolean;
+}) {
+  if (rail) {
+    const As = as;
+    return (
+      <div className="flex items-center gap-2 border-b border-line-subtle px-3 py-2">
+        <SelectAllCheckbox />
+        <As className="m-0 flex min-w-0 flex-1 items-baseline gap-2">
+          <span className="shrink-0 text-sm font-medium text-ink-strong">
+            {model.total === null ? "Count not read" : `${formatCount(model.total)} ${model.total === 1 ? "supplier" : "suppliers"}`}
+          </span>
+          <span title={model.title} className="min-w-0 truncate text-xs font-normal text-ink-subtle">
+            {model.title}
+          </span>
+        </As>
+      </div>
+    );
+  }
   if (compact) {
     return (
       <div className="flex items-center gap-2 border-b border-line-subtle px-3 py-2">
@@ -180,7 +213,10 @@ export function PanelFooter({
   prevHref,
   nextHref,
   perHrefs,
+  rail = false,
 }: {
+  /** Beside the RFQ composer: one line, the range and two icon buttons, no rows-per-page menu. */
+  rail?: boolean;
   shown: number;
   /** Null when the count could not be read. */
   total: number | null;
@@ -195,6 +231,25 @@ export function PanelFooter({
   // A page that came back short of its own page size is the last one; but
   // "last page" must still render the pager, or page 3 of 3 has no way back.
   const paged = pages !== null && perPage !== undefined && (shown >= perPage || page > 1);
+  if (rail) {
+    return (
+      <div className="flex items-center gap-1 border-t border-line-subtle py-1.5 pl-3 pr-2">
+        <Caption className="min-w-0 flex-1 truncate tabular-nums">
+          {`${rangeLabel(perPage ? (page - 1) * perPage + 1 : 1, shown)} of ${total === null ? "—" : formatCount(total)}`}
+        </Caption>
+        {paged && pages ? (
+          <>
+            <Button icon size="sm" variant="ghost" aria-label="Previous page" href={page > 1 ? (prevHref ?? undefined) : undefined} clientNav disabled={page <= 1}>
+              <Icon name="chev-l" />
+            </Button>
+            <Button icon size="sm" variant="ghost" aria-label="Next page" href={page < pages ? (nextHref ?? undefined) : undefined} clientNav disabled={page >= pages}>
+              <Icon name="chev-r" />
+            </Button>
+          </>
+        ) : null}
+      </div>
+    );
+  }
   return (
     <div className="flex flex-wrap items-center gap-2 border-t border-line-subtle px-3 py-2 sm:gap-3 sm:px-4">
       <Caption>

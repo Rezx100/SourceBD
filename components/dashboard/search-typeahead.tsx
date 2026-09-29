@@ -340,7 +340,9 @@ export function SearchTypeahead({
               <span className={cn("inline-flex shrink-0 text-ink-subtle", on && "text-brand-ink")}>
                 <Icon name={KIND[s.type].icon} />
               </span>
-              <span className="min-w-0 flex-1 text-ink [overflow-wrap:anywhere]">
+              {/* One line, cut at the end with the whole label in its title: a
+                  company's name here follows the One-Line Name Rule. */}
+              <span data-name="" title={s.label} className="min-w-0 flex-1 truncate text-ink">
                 {s.type === "query" ? (
                   <>
                     <span className="text-ink-muted">Search </span>
