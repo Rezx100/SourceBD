@@ -4,23 +4,21 @@
 
 import { PII_KEYS, type DiscoverV32Row, type HsBatchLine } from "@/lib/discover-v32-rpc";
 import type { WorkersBasis } from "@/lib/enrich-discover-workers";
-import type { HighlightChip, SupplierCardModel, TableRowModel, TileModel } from "@/lib/dashboard/models";
+import type { FactWithMark, HighlightChip, SupplierCardModel, TableRowModel } from "@/lib/dashboard/models";
 import {
   certChipLabel,
   certModel,
-  certScheme,
   displayName,
   entityLabel,
   establishedYearOf,
   formatCount,
   initials,
-  onFileLabel,
   placeLabel,
   sortCerts,
   type CertModel,
 } from "@/lib/dashboard/facts";
 import { photoTiles } from "@/lib/dashboard/hs-photos";
-import { marksFromTags, sourceMark, topTier } from "@/lib/dashboard/source-tiers";
+import { marksFromTags, topTier } from "@/lib/dashboard/source-tiers";
 
 const BRAND_LABEL: Record<string, string> = {
   BRAND_HM: "H&M",
@@ -196,16 +194,21 @@ export function buildDiscoverCard(
   const w = discoverWorkers(row);
   const workersSecond = secondLine(w);
 
+  // Status only, the one place the card spends a status colour (founder's
+  // review, 29 Sep 2026: every fact was said two or three times). Every
+  // certificate is a chip; the card draws four and names the rest on "+N".
+  // The links the four tiles carried ride on the matching chip.
   const chips: HighlightChip[] = [];
-  for (const c of certList.slice(0, 2)) {
+  for (const c of certList) {
     chips.push({
       tone: c.state === "valid" ? "positive" : c.state === "no-expiry" ? "neutral" : "caution",
       icon: c.state === "valid" ? "check-c" : c.state === "expiring" ? "clock" : c.state === "expired" ? "warn" : undefined,
       label: certChipLabel(c),
+      href: `${recordHref}#certificates`,
     });
   }
   if (row.rsc_progress_pct != null) {
-    chips.push({ tone: "neutral", icon: "shield", label: "RSC inspected" });
+    chips.push({ tone: "neutral", icon: "shield", label: "RSC inspected", href: `${recordHref}#safety` });
   }
   // "Not on the list" is a claim about the register; an empty `lines` is not.
   // Lines come back empty whenever the EPB record carries no `epb_hscodes`
@@ -215,10 +218,9 @@ export function buildDiscoverCard(
   // reports, so only say "not on the list" when EPB is genuinely not there.
   const onEpbRegister = registers.includes("EPB");
   if (opts.hsError) chips.push({ tone: "quiet", label: "EPB lines could not be read" });
-  else if (lines.length > 0) chips.push({ tone: "neutral", label: `EPB exporter · ${lines.length} ${lines.length === 1 ? "line" : "lines"}` });
+  else if (lines.length > 0) chips.push({ tone: "neutral", label: `EPB exporter · ${lines.length} ${lines.length === 1 ? "line" : "lines"}`, href: `${recordHref}#products` });
   else if (onEpbRegister) chips.push({ tone: "quiet", label: "EPB exporter · no lines recorded" });
   else chips.push({ tone: "quiet", label: "Not on the EPB exporter list" });
-  if (brands.length > 0) chips.push({ tone: "neutral", label: `Listed by ${brands.join(", ")}` });
   if (certList.length === 0) chips.push({ tone: "quiet", label: "No certificate on file" });
   if (marks.length <= 1) {
     chips.push({
@@ -226,81 +228,37 @@ export function buildDiscoverCard(
       label: `Nothing else on file · ${marks.length} of the sources read`,
     });
   }
-  const shown = chips.slice(0, 5);
-  const moreChips = Math.max(0, chips.length - shown.length);
 
-  const tiles: [TileModel, TileModel, TileModel, TileModel] = [
-    certList.length > 0
-      ? {
-          label: "Certificates",
-          value: onFileLabel(certList.length),
-          sub: certList
-            .slice(0, 2)
-            .map((c) => certScheme(c.kind, c.scope))
-            .join(" · "),
-          href: `${recordHref}#certificates`,
-        }
-      : { label: "Certificates", value: null, sub: "none on file" },
-    opts.hsError
-      ? { label: "Export lines", value: null, sub: "EPB could not be read" }
-      : lines.length > 0
-        ? {
-            label: "Export lines",
-            value: `${lines.length} HS ${lines.length === 1 ? "line" : "lines"}`,
-            sub: "EPB exporter page",
-            href: `${recordHref}#products`,
-          }
-        : {
-            label: "Export lines",
-            value: null,
-            sub: onEpbRegister ? "no lines recorded" : "not on the EPB list",
-          },
-    brands.length > 0
-      ? {
-          label: "Listed by",
-          value: brands.join(", "),
-          sub: `${brands.length} brand ${brands.length === 1 ? "list" : "lists"}`,
-          href: `${recordHref}#sources`,
-        }
-      : { label: "Listed by", value: null, sub: "not on a brand list we read" },
-    registers.length > 1
-      ? {
-          label: "Registers",
-          value: `${registers.length} registers`,
-          sub: registers.map((c) => sourceMark(c).label).join(" · "),
-          href: `${recordHref}#sources`,
-        }
-      : registers.length === 1 && registers[0]
-        ? {
-            label: "Registers",
-            value: sourceMark(registers[0]).label,
-            sub: "on file",
-            href: `${recordHref}#sources`,
-          }
-        : { label: "Registers", value: null, sub: "no register number on file" },
-  ];
-
-  const meta = [
-    { text: entityLabel(row.entity_type), mark: null },
-    ...(place ? [{ text: place, mark: null }] : []),
-    ...(year ? [{ text: `Est. ${year}`, mark: null }] : []),
+  // One facts line, icon and value (PR B's style), cut to one line with the
+  // whole line in its title. The two worker figures stay two (founder, 28 Sep
+  // 2026: a list figure and a record figure must never be confused), each in
+  // its short form, its full words in its title and read to a screen reader.
+  const meta: FactWithMark[] = [
+    { text: entityLabel(row.entity_type), mark: null, icon: row.entity_type === "buying_house" ? "buying-house" : row.entity_type === "factory" ? "factory" : "company" },
+    ...(place ? [{ text: place, mark: null, icon: "address" as const }] : []),
+    ...(year ? [{ text: `Est. ${year}`, mark: null, icon: "established" as const }] : []),
     ...(w.own != null
-      ? [{ text: `${formatCount(w.own)} workers${w.ownLabel ? ` · ${w.ownLabel}` : ""}`, mark: null }]
+      ? [{ text: `${formatCount(w.own)} workers`, title: `${formatCount(w.own)} workers${w.ownLabel ? ` · ${w.ownLabel}` : ""}`, mark: null, icon: "workers" as const }]
       : [{
           // "Workers not on file" directly above "907 workers · …" read as a
           // contradiction; with a second figure the gap is only the record's own.
           text: workersSecond ? "No worker figure on the supplier record" : "Workers not on file",
           mark: null,
+          icon: "workers" as const,
           quiet: true as const,
         }]),
-    ...(workersSecond ? [{ text: workersSecond, mark: null }] : []),
-    // The mark row beside this already shows every source, brand lists
-    // included. This number must be the one the "≥ N registers or certifiers"
-    // filter and the "Most registers & certifiers" sort actually use
-    // (t13_source_count, tiers 1–3), or a card reads "0 sources" while
-    // matching "≥ 1". Named for what it counts.
-    { text: registerCountLabel(row.t13_source_count ?? 0), mark: null },
+    ...(workersSecond ? [{ text: workersSecondShort(w)!, title: workersSecond, mark: null, aside: w.own != null }] : []),
   ];
+  // The marks row's one caption, the two populations apart. The first figure is
+  // the one the "≥ N registers or certifiers" filter and the "Most registers &
+  // certifiers" sort use (t13_source_count, tiers 1–3), not the mark count, or
+  // a card reads "0 sources" while matching "≥ 1".
+  const sourcesCaption = [registerCountLabel(row.t13_source_count ?? 0), brands.length ? `${brands.length} brand ${brands.length === 1 ? "list" : "lists"}` : null]
+    .filter(Boolean)
+    .join(" · ");
+  // What the Registers and Listed by tiles said beyond the marks.
+  const sourcesNote =
+    [registers.length === 0 ? "Registers: no register number on file" : null, brands.length ? null : "Brand lists: not on a brand list we read"].filter(Boolean).join(" · ") || null;
 
   return {
     slug: row.slug,
@@ -311,9 +269,9 @@ export function buildDiscoverCard(
     marks,
     meta,
     sanctioned,
-    chips: shown,
-    moreChips,
-    tiles,
+    chips,
+    sourcesCaption,
+    sourcesNote,
     photos: opts.hsError ? [] : photoTiles(lines, 6),
     totalLines: lines.length,
     linesUnknown: opts.hsError,

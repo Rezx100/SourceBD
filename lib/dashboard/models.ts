@@ -16,6 +16,10 @@ export type FactWithMark = {
   mark: SourceMarkModel | null;
   /** SourceBD's icon for what the fact is (a place, a year, workers), drawn before it. */
   icon?: SbIconName;
+  /** The fact's whole words when the line shows a short form ("1,300 workers · on the supplier record"): its hover title and what a screen reader reads. */
+  title?: string;
+  /** A second figure drawn in brackets right after the fact before it: "1,300 workers (3,546 with buildings)". */
+  aside?: boolean;
   /** Quiet: "District, year and workers not on file". */
   quiet?: boolean;
   /** Set in mono (a register number). */
@@ -26,13 +30,7 @@ export type HighlightChip = {
   tone: ChipTone;
   icon?: IconName;
   label: string;
-};
-
-/** One of the card's four tiles. `value` null → "—" in quiet ink with the reason in `sub`. */
-export type TileModel = {
-  label: string;
-  value: string | null;
-  sub: string | null;
+  /** Where the chip leads on the record (its certificates, its export lines), carried over from the tiles it replaced. */
   href?: string | null;
 };
 
@@ -46,9 +44,21 @@ export type SupplierCardModel = {
   sanctioned: boolean;
   /** Only the /dev/ds gallery sets this: a labelled sample, not a production flag. */
   sanctionSample?: boolean;
+  /** Every status chip, in order; the card draws four and says "+N" for the rest, naming them on hover. */
   chips: HighlightChip[];
-  moreChips: number;
-  tiles: [TileModel, TileModel, TileModel, TileModel];
+  /**
+   * The marks row's one caption, separating the two populations it draws:
+   * "8 registers & certifiers · 3 brand lists". The first figure is the one the
+   * default sort and the minimum-sources filter use.
+   */
+  sourcesCaption: string;
+  /**
+   * What the Registers and Listed by tiles said that the marks cannot: a
+   * register's number and grade, or the careful negative ("not on 4 brand
+   * lists read"). The caption's hover title and read to a screen reader, so no
+   * fact the tiles carried is dropped. Null when the marks say it all.
+   */
+  sourcesNote: string | null;
   photos: PhotoTileModel[];
   totalLines: number;
   /** The lines could not be read (RPC failure): the slot says so instead of "no lines". */

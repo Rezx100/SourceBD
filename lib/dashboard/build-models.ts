@@ -61,7 +61,6 @@ import type {
   SupplierCardModel,
   SupplierSheetModel,
   TableRowModel,
-  TileModel,
 } from "./models";
 import { withoutContactDetails } from "@/lib/contact-text";
 import type { FacilityPanel } from "@/lib/format-facility-group";
@@ -924,22 +923,28 @@ export function buildCard(filed: RecordInput): SupplierCardModel {
   const sanctioned = s.is_sanctioned || Boolean(input.sanctionSample);
   const epbRead = readDateOf(p, "EPB");
 
+  // A chip opens the record at its section: the results have no
+  // #certificates of their own, so a bare fragment went nowhere.
+  const recordHref = `/app/suppliers/${s.slug}`;
+  const epb = epbExporter(p);
+  // Status only: every certificate a chip (the card draws four and names the
+  // rest on "+N"), then RSC and EPB, the links the tiles carried on them.
   const chips: HighlightChip[] = [];
-  for (const c of certList.slice(0, 2)) {
+  for (const c of certList) {
     chips.push({
       tone: c.state === "valid" ? "positive" : c.state === "no-expiry" ? "neutral" : "caution",
       icon: c.state === "valid" ? "check-c" : c.state === "expiring" ? "clock" : c.state === "expired" ? "warn" : undefined,
       label: certChipLabel(c),
+      href: `${recordHref}#certificates`,
     });
   }
   const rc = rscChip(rsc, buildings);
-  if (rc) chips.push(rc);
+  if (rc) chips.push({ ...rc, href: `${recordHref}#safety` });
   const onEpb = hasEpbRecord(p);
   if (input.hscodesError) chips.push({ tone: "quiet", label: "EPB lines could not be read" });
-  else if (lines.length > 0) chips.push({ tone: "neutral", label: `EPB exporter · ${lines.length} ${lines.length === 1 ? "line" : "lines"}` });
-  else if (onEpb) chips.push({ tone: "quiet", label: "EPB exporter · no lines on file" });
+  else if (lines.length > 0) chips.push({ tone: "neutral", label: `EPB exporter · ${lines.length} ${lines.length === 1 ? "line" : "lines"}`, href: epb?.href ?? `${recordHref}#products` });
+  else if (onEpb) chips.push({ tone: "quiet", label: "EPB exporter · no lines on file", href: epb?.href ?? null });
   else chips.push({ tone: "quiet", label: "Not on the EPB exporter list" });
-  if (brands.length > 0) chips.push({ tone: "neutral", label: `Listed by ${brands.join(", ")}` });
   if (certList.length === 0) chips.push({ tone: "quiet", label: certsEmptyChipLabel(p) });
   const bgmea = registers.find((r) => r.source_code.toUpperCase() === "BGMEA");
   // Every BGMEA label production holds already ends in "member #", so
@@ -947,52 +952,28 @@ export function buildCard(filed: RecordInput): SupplierCardModel {
   // published records whose only source is BGMEA.
   if (marks.length <= 1 && bgmea) {
     const label = registerLabel(bgmea.label);
-    chips.unshift({ tone: "neutral", label: /\bmember$/i.test(label) ? label : `${label} member` });
+    chips.unshift({ tone: "neutral", label: /member$/i.test(label) ? label : `${label} member` });
   }
   if (marks.length <= 1) chips.push({ tone: "quiet", label: `Nothing else on file · ${marks.length} of ${SOURCES_WITH_RECORDS} sources read` });
-  const shown = chips.slice(0, 5);
-  const moreChips = Math.max(0, chips.length - shown.length + Math.max(0, certList.length - 2));
-
-  const epb = epbExporter(p);
-  // A tile's sub-line opens the record at that section. The results panel has
-  // no #certificates / #sources of its own, so a bare fragment went nowhere.
-  const recordHref = `/app/suppliers/${s.slug}`;
-  const tiles: [TileModel, TileModel, TileModel, TileModel] = [
-    certList.length > 0
-      ? { label: "Certificates", value: onFileLabel(certList.length), sub: certTileSubline(certList), href: `${recordHref}#certificates` }
-      : { label: "Certificates", value: null, sub: certsEmptyWords(p) },
-    input.hscodesError
-      ? { label: "Export lines", value: null, sub: "EPB could not be read" }
-      : lines.length > 0
-        ? { label: "Export lines", value: `${lines.length} HS ${lines.length === 1 ? "line" : "lines"}`, sub: "EPB exporter page", href: epb?.href ?? `${recordHref}#products` }
-        : onEpb
-          ? { label: "Export lines", value: null, sub: "none on the EPB page", href: epb?.href ?? null }
-          : { label: "Export lines", value: null, sub: "not on the EPB list" },
-    brands.length > 0
-      ? { label: "Listed by", value: brands.join(", "), sub: `${brands.length} brand ${brands.length === 1 ? "list" : "lists"}`, href: `${recordHref}#sources` }
-      : { label: "Listed by", value: null, sub: brandListsEmptyWords(p) },
-    // Three shapes, and the last one is the empty state. A record with several
-    // numbers at ONE body (279 published records — BGMEA 112, BGAPMEA 105,
-    // BTMA 62) used to satisfy neither of the first two and fell through to
-    // "not in BGMEA, BKMEA, …", denying registrations the sheet listed.
+  // The marks row's one caption: registers and certifiers (tiers 1–3, the
+  // sort's population) apart from brand lists.
+  const certifiers = marks.filter((m) => m.tier <= 3).length;
+  const sourcesCaption = [`${certifiers} ${certifiers === 1 ? "register or certifier" : "registers & certifiers"}`, brands.length ? `${brands.length} brand ${brands.length === 1 ? "list" : "lists"}` : null]
+    .filter(Boolean)
+    .join(" · ");
+  // What the Registers and Listed by tiles said beyond the marks. Three
+  // register shapes, the last the empty state: several bodies (the marks say
+  // it), several numbers at one body (279 published records), one number.
+  const registerWords =
     registerCodes(registers).length > 1
-      ? { label: "Registers", value: `${registerCodes(registers).length} registers`, sub: registerCodes(registers).map((c) => sourceMark(c).label).join(" · "), href: `${recordHref}#sources` }
+      ? null
       : registers.length > 1 && registers[0]
-        ? {
-            label: "Registers",
-            value: `${registers.length} ${sourceMark(registers[0].source_code).label} numbers`,
-            sub: registers.map((r) => r.value).filter(Boolean).join(" · "),
-            href: `${recordHref}#sources`,
-          }
+        ? `${registers.length} ${sourceMark(registers[0].source_code).label} numbers: ${registers.map((r) => r.value).filter(Boolean).join(" · ")}`
         : registers.length === 1 && registers[0]
-          ? {
-              label: "Registers",
-              value: `${sourceMark(registers[0].source_code).label} ${registers[0].value ?? ""}`.trim(),
-              sub: registerLabel(registers[0].label).replace(/^BGMEA\s+/i, "").toLowerCase() || registerLabel(registers[0].label).toLowerCase(),
-              href: recordPage(registers[0].source_url) ? registers[0].source_url : `${recordHref}#sources`,
-            }
-          : { label: "Registers", value: null, sub: registersEmptyWords(p) },
-  ];
+          ? `${sourceMark(registers[0].source_code).label} ${registers[0].value ?? ""}`.trim() +
+            `, ${registerLabel(registers[0].label).replace(/^BGMEA\s+/i, "").toLowerCase() || registerLabel(registers[0].label).toLowerCase()}`
+          : `Registers: ${registersEmptyWords(p)}`;
+  const sourcesNote = [registerWords, brands.length ? null : `Brand lists: ${brandListsEmptyWords(p)}`].filter(Boolean).join(" · ") || null;
 
   return {
     slug: s.slug,
@@ -1000,12 +981,13 @@ export function buildCard(filed: RecordInput): SupplierCardModel {
     initials: initials(name),
     topTier: topTier(codes),
     marks,
-    meta: metaFacts(input),
+    // The head's facts, the register number among them (it was the Registers tile's).
+    meta: metaFacts(input, { registerNumber: true }),
     sanctioned,
     sanctionSample: input.sanctionSample,
-    chips: shown,
-    moreChips,
-    tiles,
+    chips,
+    sourcesCaption,
+    sourcesNote,
     photos: input.hscodesError ? [] : photoTiles(lines, 6),
     totalLines: lines.length,
     linesUnknown: Boolean(input.hscodesError),
