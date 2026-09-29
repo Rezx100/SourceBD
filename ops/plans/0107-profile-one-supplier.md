@@ -1,4 +1,4 @@
-# 0107 — `buyer_supplier_profile` reads one supplier's rows (dry run, 29 Sep 2026)
+# 0107 — `buyer_supplier_profile` reads one supplier's rows (applied 29 Sep 2026)
 
 Migration: `supabase/migrations/0107_buyer_supplier_profile_one_supplier.sql`.
 Script: `ops/dry_run_0107_profile_one_supplier.py` (one transaction, always
@@ -69,3 +69,35 @@ is identical before and after, so the code does not care which comes first.
 Rollback, if ever needed: `ops/rollback_0107_buyer_supplier_profile.sql` is
 the live definition as read on 29 Sep (its text hashes to the md5 above), run
 the same way.
+
+## Applied (29 Sep 2026, ~08:30 UTC)
+
+On the founder's go-ahead in chat. The script above still could not connect
+(the pooler timed out again), so its checks were run through the Supabase MCP
+instead, and the apply went the same way (`apply_migration`, recorded in
+`supabase_migrations.schema_migrations` as `20260929083008
+0107_buyer_supplier_profile_one_supplier`).
+
+The statement (from `create or replace` to the closing `$function$`, 16,894
+bytes, md5 `81dd9bd50d0e8b4c51f2dae96ad7f6bd`) was sent as a string literal
+and run with `execute` inside one `do` block, which refused unless the
+literal's md5 matched the file and the live definition was still the base
+above. That proves the bytes that ran are the file's.
+
+Dry run first (session-only `pg_temp` copy of that same literal; nothing
+persisted), on the script's own sample:
+
+| Records | Picked as | Different | Median before | Median after |
+| -- | -- | -- | -- | -- |
+| 20 | at random | 0 | 962 ms | 168 ms |
+| 12 | the most active source records | 0 | 1,041 ms | 248 ms |
+| 8 | mothers of facility buildings | 0 | 1,121 ms | 322 ms |
+| 4 | EPB-only | 0 | 961 ms | 170 ms |
+| 1 | an unknown slug | 0 (both null) | 2 ms | 1 ms |
+| **45** | all | **0** | **967 ms** | **171 ms** |
+
+The apply block then also refused unless volatility, `SECURITY DEFINER`,
+`search_path`, grants and owner were unchanged and the new filter was in the
+body. After: live md5 `8648d817b31901d05edd72dddcf90089`, 12 further records
+at random all whole, median 170 ms; `aboni-knitwear` returns its 10 registry
+pills.
