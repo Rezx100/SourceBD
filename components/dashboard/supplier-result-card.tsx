@@ -22,6 +22,7 @@ import { Button, Checkbox, V2Tag } from "./controls";
 import { Icon } from "./icons";
 import { LogoTile, SourceMark, SourceMarks } from "./marks";
 import { PhotoStrip } from "./photo-tiles";
+import { SbIcon } from "./sb-icons";
 import { SaveRecordButton } from "./save-record-button";
 import { useSelection } from "./selection";
 import { Code, Title } from "./type";
@@ -47,6 +48,9 @@ export function MetaLine({ facts, inRow, className }: { facts: readonly FactWith
             f.quiet && "text-quiet-ink",
           )}
         >
+          {/* The fact's icon, slate, the way a place card or a company header
+              shows it (founder, 29 Sep 2026). */}
+          {f.icon ? <SbIcon name={f.icon} className="text-accent" /> : null}
           {f.code ? <Code>{f.text}</Code> : f.text}
           {f.mark && !inRow?.has(f.mark.code) ? <SourceMark mark={f.mark} sm /> : null}
         </span>

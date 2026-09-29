@@ -359,6 +359,7 @@ test("the contrast table lists every pair it is meant to, at the threshold its u
   // shows up as a failure while the expectation is derived from the table.
   const expected = [
     "accent on canvas @3",
+    "accent on locked @3",
     "accent on surface @3",
     "accent.ink on accent.tint @4.5",
     "accent.ink on accent.tint-strong @4.5",

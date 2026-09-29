@@ -258,7 +258,8 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     const out = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({}) })));
     const counts = out.slice(out.indexOf('data-contact-counts="true"'), out.indexOf("</dl>", out.indexOf('data-contact-counts="true"')));
     assert.deepEqual(
-      [...counts.matchAll(/<dt[^>]*>([^<]*)<\/dt><dd[^>]*>([^<]*)<\/dd>/g)].map((m) => `${m[1]}: ${m[2]}`),
+      // A kind's label leads with its icon (an <svg>), so the label is the dt's text.
+      [...counts.matchAll(/<dt[^>]*>([\s\S]*?)<\/dt><dd[^>]*>([^<]*)<\/dd>/g)].map((m) => `${m[1]!.replace(/<[^>]*>/g, "")}: ${m[2]}`),
       ["Email: 1 on file", "Phone: 6 on file", "Website: on file", "Contact person: 2 on file"],
     );
     for (const key of ["email_primary", "contact_name", "contact_role", "phones"]) {

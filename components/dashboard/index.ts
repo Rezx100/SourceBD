@@ -27,8 +27,8 @@ export { Toast } from "./toast";
 export { SearchComposer, type FilterChipModel } from "./search-composer";
 export {
   ActionBar,
-  CertCard,
-  CertGrid,
+  CertRow,
+  CertList,
   FactsPanel,
   LockCard,
   RecordPane,

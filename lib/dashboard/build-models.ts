@@ -22,6 +22,7 @@
 // mother's: when only building rows are present the mother has no RSC block
 // and the tile says which building is covered.
 
+import type { SbIconName } from "@/components/dashboard/sb-icons";
 import type { TierRank } from "@/lib/design/tokens";
 import {
   certChipLabel,
@@ -564,29 +565,72 @@ function placeOf(p: ProfilePayload): string | null {
   return formatCardLocation(primary, s.city, s.district);
 }
 
+/**
+ * The icon each fact row carries (founder, 29 Sep 2026: "icons for address on
+ * the company, group, entity, company and things of that nature"). The type's
+ * icon follows its value: a factory, a buying house, else a company.
+ */
+const FACT_ICON: Record<string, SbIconName> = {
+  "Registered name": "company",
+  "Parent group": "group",
+  Established: "established",
+  "EPZ zone": "zone",
+  "Factory address": "address",
+  Workers: "workers",
+  "Women · men": "women-men",
+  "Sewing machines": "machines",
+  "Capacity, as filed": "capacity",
+  Registers: "register",
+  // The line sheet's rows.
+  Chapter: "receipt",
+  "Exporter page": "register",
+  "Exporting since": "established",
+  "Other lines": "receipt",
+  "Certified scope": "certificate",
+  "Product list": "receipt",
+  "Buyer lists": "brand-list",
+  "Price · MOQ · lead time": "receipt",
+};
+
+export function factIcon(label: string, entityType?: string | null): SbIconName | undefined {
+  if (label === "Type") return typeIcon(entityType);
+  return FACT_ICON[label];
+}
+
+function typeIcon(entityType?: string | null): SbIconName {
+  return entityType === "buying_house" ? "buying-house" : entityType === "factory" ? "factory" : "company";
+}
+
+/** The facts a buyer reads first: their values are set in medium. */
+const LEAD_FACTS = new Set(["Registered name", "Type", "Workers", "Factory address"]);
+
+function withIcons(rows: FactRow[], entityType?: string | null): FactRow[] {
+  return rows.map((r) => ({ ...r, icon: factIcon(r.label, entityType), ...(LEAD_FACTS.has(r.label) ? { lead: true } : {}) }));
+}
+
 function metaFacts(input: RecordInput, options: { registerNumber?: boolean } = {}): FactWithMark[] {
   const s = input.profile.supplier;
   const p = input.profile;
-  const facts: FactWithMark[] = [{ text: entityLabel(s.entity_type), mark: null }];
+  const facts: FactWithMark[] = [{ text: entityLabel(s.entity_type), mark: null, icon: typeIcon(s.entity_type) }];
   const place = placeOf(p);
   const year = establishedYearOf(s.established_date);
   const w = workersFact(input);
   const workersMark = w.source === "RSC" && !w.groupUnknown ? ownMark(p, "RSC") : null;
   // City and district are derived fields (EPB → GOTS → the address text); no register is attributed to them.
-  if (place) facts.push({ text: place, mark: null });
+  if (place) facts.push({ text: place, mark: null, icon: "address" });
   const missing: string[] = [];
-  if (year) facts.push({ text: `Est. ${year}`, mark: null });
+  if (year) facts.push({ text: `Est. ${year}`, mark: null, icon: "established" });
   else missing.push("year");
   if (w.value !== null) {
     // A group sum is never printed bare: "3,166 workers" on a mother whose
     // figure is mother + buildings reads as this site's headcount.
     const cover = workersCoverageWords(w);
-    facts.push({ text: `${formatCount(w.value)} workers${cover ? ` ${cover}` : ""}`, mark: workersMark });
+    facts.push({ text: `${formatCount(w.value)} workers${cover ? ` ${cover}` : ""}`, mark: workersMark, icon: "workers" });
   } else missing.push("workers");
   if (!place) missing.unshift("district");
   if (options.registerNumber) {
     const pill = (p.pills ?? []).find((x) => x.source_code.toUpperCase() === "BGMEA" && x.value && ownPill(x));
-    if (pill?.value) facts.push({ text: `BGMEA ${pill.value}`, mark: mark(p, "BGMEA"), code: true });
+    if (pill?.value) facts.push({ text: `BGMEA ${pill.value}`, mark: mark(p, "BGMEA"), code: true, icon: "register" });
   }
   if (missing.length > 0) {
     const words = missing.length === 1 ? `${cap(missing[0]!)} not on file` : `${cap(missing.slice(0, -1).join(", "))} and ${missing.at(-1)} not on file`;
@@ -1270,8 +1314,6 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
     .map((r) => `${sourceMark(r.code).label} ${formatDay(new Date(r.at).toISOString())}`)
     .join(" · ");
 
-  const certRegisters = [...new Set(certList.map((c) => c.scheme.split(" ")[0]))];
-
   const rfqs = options.rfqs ?? { count: null, rows: [] as RecordRfqRow[], error: false };
 
   const model: SupplierSheetModel = {
@@ -1300,7 +1342,7 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
       { label: "RFQs", count: rfqs.count === null ? null : String(rfqs.count), href: "#rfqs" },
     ],
     summary: null,
-    facts,
+    facts: withIcons(facts, s.entity_type),
     contact: {
       // No plan unlocks them (founder, 25 Sep: counts only, to every role), so
       // the card may not promise one.
@@ -1333,7 +1375,8 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
       allLinesHref: options.allLines || lines.length <= 6 ? null : (options.allLinesHref ?? null),
     },
     certs: certList,
-    certsCaption: certList.length ? `${onFileLabel(certList.length)} · ${certRegisters.join(", ")}` : null,
+    // The count alone: the rows name the schemes (founder's review, 29 Sep 2026).
+    certsCaption: certList.length ? onFileLabel(certList.length) : null,
     certsEmpty: certsEmptyWords(p),
     certsEmptyChip: certsEmptyChipLabel(p),
     buildingCerts: buildingCerts(input),
@@ -1626,7 +1669,7 @@ export function buildProductSheet(filed: RecordInput, hs: string, options: Produ
     heading: line?.description ?? row?.heading ?? hsShortLabel(code),
     photo: { hs: code, short: hsShortLabel(code), src: hsPhotoSrc(code, 512), thumb: hsPhotoSrc(code, 128) },
     generatedOn: null,
-    facts: [
+    facts: withIcons([
       // The chapter name is the HS nomenclature, not something EPB published
       // about this record: stamping it with an EPB mark is a wrong receipt,
       // and it was stamped even for a record on no EPB register at all.
@@ -1667,7 +1710,7 @@ export function buildProductSheet(filed: RecordInput, hs: string, options: Produ
       attested.length
         ? { label: "Price · MOQ · lead time", value: attested.join(" · "), note: "supplier-attested", marks: [], pendingSource: true }
         : { label: "Price · MOQ · lead time", value: null, empty: "Not attested", note: "supplier-attested fields, shown when attested" },
-    ],
+    ], s.entity_type),
     // The count the linked search returns, not that minus one, and the label
     // says "Exporters" rather than "Other exporters" to match. Verified live on
     // 25 Sep: `discover_suppliers(p_hs_codes := {6105})` → total_count 1,634,
