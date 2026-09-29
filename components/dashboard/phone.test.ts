@@ -323,6 +323,10 @@ describe("M1. the navigation at the foot of a phone, and the phone's size scale"
     assert.ok(bare(main, "max-md:group-has-[[data-detail]]/shell:pb-0"), main);
     const topbar = classOf(html, /<div class="(glass [^"]*)"/);
     for (const c of ["max-md:sticky", "max-md:top-0", "max-md:h-topbar-phone", "max-md:group-has-[[data-detail]]/shell:hidden"]) assert.ok(bare(topbar, c), `${c}: ${topbar}`);
+    // What floats at the foot of a phone page sits above the bar, not under it.
+    const lift = "max-md:bottom-[calc(theme(height.tabbar)_+_env(safe-area-inset-bottom)";
+    assert.ok(source(`${KIT}/selection-bar.tsx`).includes(lift), "the selection bar sits under the tab bar");
+    assert.ok(source(`${KIT}/toast.tsx`).includes(lift), "a toast sits under the tab bar");
     // The rail is from md only: no strip across the top of a phone.
     assert.match(html, /<aside[^>]*class="hidden [^"]*\bmd:flex\b/);
     assert.match(renderToStaticMarkup(createElement(RecordPane, null, "x")), /^<div data-detail=""/);
