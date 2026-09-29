@@ -8,7 +8,8 @@
 // use for their business."
 //
 // So: one large field in the middle of the page with the typeahead, one row
-// of one-click filters per kind under it, then the common searches as
+// of filter menus under it (founder's video, 29 Sep 2026: four rows of pills
+// were noise), then the common searches as
 // templates with how many suppliers each finds, then the buyer's own saved
 // searches. No supplier is listed until the buyer asks for one; "Browse all"
 // is the way to the whole ledger. The desk that used to be Home (certificate
@@ -21,9 +22,10 @@ import Form from "next/form";
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 import { formatCount } from "@/lib/dashboard/facts";
-import { QUICK_FILTERS, SEARCH_TEMPLATES, templateHref, type SearchTemplate } from "@/lib/dashboard/search-templates";
-import { DISCOVER_PATH } from "@/lib/discover-v32-state";
+import { SEARCH_TEMPLATES, templateHref, type SearchTemplate } from "@/lib/dashboard/search-templates";
+import { DISCOVER_PATH, EMPTY_STATE } from "@/lib/discover-v32-state";
 import type { SavedSearchJson } from "@/lib/saved-searches";
+import { FilterMenus } from "./filter-menus";
 import { Icon } from "./icons";
 import { SearchShortcut } from "./search-shortcut";
 import { SearchTypeahead } from "./search-typeahead";
@@ -75,11 +77,14 @@ export function SearchLanding({
   counts,
   saved,
   filtersHref,
+  menuCounts = Promise.resolve({}),
 }: {
   /** Published suppliers, for "Browse all"; null when it could not be read. */
   published: number | null;
   /** The templates' counts, resolved behind a `Suspense` boundary. */
   counts: Promise<Record<string, number | null>>;
+  /** What each filter-menu option finds, by option key (`filterMenus`). */
+  menuCounts?: Promise<Record<string, number | null>>;
   /** The buyer's own saved searches, newest first; null when they could not be read. */
   saved: Promise<SavedSearchJson[] | null>;
   /** Where "All filters" opens: the filter pane beside this page. */
@@ -105,7 +110,7 @@ export function SearchLanding({
           role="search"
           aria-label="Search"
           action={DISCOVER_PATH}
-          className="relative flex h-14 w-full items-center gap-3 rounded-md border border-line-strong bg-surface pl-4 pr-2 text-ink-subtle shadow-xs transition-[border-color,box-shadow] duration-fast focus-within:border-brand focus-within:ring-4 focus-within:ring-brand-tint"
+          className="relative flex h-14 w-full items-center gap-3 rounded-md bg-surface-sunken pl-4 pr-2 text-ink-subtle transition-[background-color,box-shadow] duration-fast hover:bg-line-subtle focus-within:bg-surface focus-within:shadow-[inset_0_0_0_1px_rgb(var(--ds-line)),inset_0_-2px_0_rgb(var(--ds-ink-strong))] focus-within:hover:bg-surface"
         >
           <Icon name="search" size={20} />
           <Suspense fallback={<input name="q" data-search="topbar" aria-label="Search suppliers, HS codes, certificates" className="min-w-0 grow bg-transparent text-lg" />}>
@@ -122,33 +127,11 @@ export function SearchLanding({
           </button>
         </Form>
 
-        {/* One-click filters: each is a search of its own. */}
-        <div className="flex w-full flex-col gap-2.5">
-          {QUICK_FILTERS.map((g) => (
-            <div key={g.group} className="flex flex-wrap items-center gap-x-2 gap-y-2">
-              <span className="w-[5.5rem] shrink-0 font-mono text-eyebrow uppercase text-ink-subtle">{g.group}</span>
-              {g.items.map((f) => (
-                <Link
-                  key={f.href}
-                  href={f.href}
-                  prefetch={false}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-sm bg-surface px-3 text-sm font-medium text-ink shadow-edge transition-colors duration-fast hover:bg-surface-sunken hover:text-ink-strong"
-                >
-                  {f.label}
-                  {f.code ? <span className="font-mono text-xs font-normal text-ink-subtle">{f.code}</span> : null}
-                </Link>
-              ))}
-            </div>
-          ))}
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-1 pl-[6.25rem] max-sm:pl-0">
-            <Link href={filtersHref} prefetch={false} scroll={false} className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-ink hover:underline">
-              <Icon name="sliders" /> All filters
-            </Link>
-            <Link href={DISCOVER_PATH} prefetch={false} className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-ink hover:underline">
-              Browse all {published === null ? "" : `${formatCount(published)} `}suppliers <Icon name="arrow-r" small />
-            </Link>
-          </div>
-        </div>
+        {/* The filter menus (founder's pick, 29 Sep 2026), each option a
+            search of its own with how many suppliers it finds; the counts
+            stream into their rows, so the menus work (and stay open) before
+            any count arrives. */}
+        <LandingMenus counts={menuCounts} filtersHref={filtersHref} published={published} />
       </section>
 
       <section aria-labelledby="search-templates-title" className="flex flex-col gap-3">
@@ -177,6 +160,20 @@ export function SearchLanding({
         <SavedSearches saved={saved} />
       </Suspense>
     </div>
+  );
+}
+
+function LandingMenus({ counts, filtersHref, published }: { counts: Promise<Record<string, number | null>>; filtersHref: string; published: number | null }) {
+  return (
+    <FilterMenus state={EMPTY_STATE} counts={counts} className="w-full justify-center">
+      <span className="mx-1 h-5 w-px bg-line" aria-hidden />
+      <Link href={filtersHref} prefetch={false} scroll={false} className="inline-flex h-7 items-center gap-1.5 rounded-sm px-2 text-sm font-medium text-brand-ink hover:underline">
+        <Icon name="sliders" /> All filters
+      </Link>
+      <Link href={DISCOVER_PATH} prefetch={false} className="inline-flex h-7 items-center gap-1.5 rounded-sm px-2 text-sm font-medium text-brand-ink hover:underline">
+        Browse all {published === null ? "" : `${formatCount(published)} `}suppliers <Icon name="arrow-r" small />
+      </Link>
+    </FilterMenus>
   );
 }
 

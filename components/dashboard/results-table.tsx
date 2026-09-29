@@ -4,7 +4,7 @@
 // open marked, numbers right-aligned and tabular, export lines as codes.
 // Beside an open record the table narrows to its essential columns
 // (`compact`) so the pane keeps its measure. Sanctioned: the reserved rule
-// and the word under the name, Send RFQ withheld. Selected: the brand inset
+// and the word under the name, Send RFQ withheld. Selected: the slate inset
 // rule and the filled box.
 //
 // Founder's walkthrough, 28 Sep 2026: the row's Save, Open and RFQ appeared
@@ -35,6 +35,7 @@ import { LinkPending } from "./link-pending";
 import { LogoTile, SourceMarks } from "./marks";
 import { HeadCell, rowClass, type SortDir } from "./page";
 import { SaveRecordButton } from "./save-record-button";
+import { SbIcon } from "./sb-icons";
 import { useSelection } from "./selection";
 import { WorkersCell } from "./workers-cell";
 
@@ -64,12 +65,12 @@ export type ResultsSortKey = "name" | "sources" | "cert_expiry" | "hs_lines" | "
  * scrolls sideways rather than crushing it.
  */
 export const RESULTS_COLUMNS = {
-  wide: [40, null, 160, 212, 112, 144, 104],
-  compact: [36, null, 76, 104, 66],
+  wide: [40, null, 160, 212, 112, 152, 104],
+  compact: [36, null, 76, 112, 66],
 } as const;
 
-/** The table's minimum width in px: `min-w-[60rem]` and `min-w-[30rem]` on the table below. */
-export const RESULTS_MIN_WIDTH = { wide: 960, compact: 480 } as const;
+/** The table's minimum width in px: `min-w-[62rem]` and `min-w-[30rem]` on the table below. */
+export const RESULTS_MIN_WIDTH = { wide: 992, compact: 480 } as const;
 
 const CERT_TONE: Record<CertModel["state"], string> = {
   valid: "bg-positive-tint text-positive-ink",
@@ -151,7 +152,7 @@ export function ResultsTable({
       <table
         className={cn(
           "w-full table-fixed border-collapse text-base",
-          compact ? "min-w-[30rem]" : "min-w-[60rem]",
+          compact ? "min-w-[30rem]" : "min-w-[62rem]",
           !compact && "[&_thead_th]:xl:sticky [&_thead_th]:xl:top-0 [&_thead_th]:xl:z-10",
         )}
       >
@@ -203,8 +204,8 @@ export function ResultsTable({
                   />
                 </td>
                 <th scope="row" className={cn(h, "border-b border-line-subtle px-3 py-1.5 text-left align-middle font-normal")}>
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <LogoTile initials={r.initials} tier={r.topTier} size="sm" />
+                  <div className={cn("flex min-w-0 items-center", compact ? "gap-2.5" : "gap-3")}>
+                    <LogoTile initials={r.initials} tier={r.topTier} size={compact ? "sm" : "row"} />
                     <div className="min-w-0 flex-1">
                       {/* Wraps, never an ellipsis (the Wrapping Name Rule): a
                           company's name is the company's name, and a 125-character
@@ -280,20 +281,31 @@ export function ResultsTable({
                       <SaveRecordButton supplierId={r.supplierId} saved={Boolean(r.saved)} icon size="sm" variant="ghost" />
                     ) : null}
                     {compact ? null : (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        icon
-                        href={recordHref}
-                        clientNav
-                        scroll={false}
-                        data-action="open"
-                        tabIndex={-1}
-                        aria-label={`Open ${r.name} beside the results`}
-                        title="Open beside the results"
-                      >
-                        <Icon name="pane" />
-                      </Button>
+                      // SourceBD's own "open beside" icon, and its word over it
+                      // under the pointer and while the row has keyboard focus
+                      // (↵ opens it): the founder did not know the old sidebar
+                      // glyph opened the record (video, 29 Sep 2026).
+                      <span className="group/open relative inline-flex">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          icon
+                          href={recordHref}
+                          clientNav
+                          scroll={false}
+                          data-action="open"
+                          tabIndex={-1}
+                          aria-label={`Open ${r.name} beside the results`}
+                        >
+                          <SbIcon name="open-beside" />
+                        </Button>
+                        <span
+                          aria-hidden
+                          className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 whitespace-nowrap rounded-sm bg-surface-inverse px-1.5 py-0.5 text-xs font-medium text-ink-inverse opacity-0 transition-opacity duration-fast group-hover/open:opacity-100 group-focus-within/open:opacity-100 group-focus-visible:opacity-100"
+                        >
+                          Open
+                        </span>
+                      </span>
                     )}
                     <Button
                       variant="ghost"

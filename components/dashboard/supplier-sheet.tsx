@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "./controls";
 import { CopyLinkButton } from "./copy-link-button";
 import { Icon } from "./icons";
+import { SbIcon } from "./sb-icons";
 import { LogoTile, SourceMarks } from "./marks";
 import { PHOTO_CAPTION, PhotoGrid } from "./photo-tiles";
 import { ReportProblem } from "./report-problem";
@@ -172,7 +173,7 @@ export function SupplierSheet({
               2026); with the rail collapsed it is the full-screen view. */}
           {mode === "pane" ? (
             <Button variant="ghost" icon aria-label="Expand to full page" title="Expand to full page" href={expandHref} clientNav>
-              <Icon name="expand" />
+              <SbIcon name="expand" />
             </Button>
           ) : null}
         </span>

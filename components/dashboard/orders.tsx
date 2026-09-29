@@ -210,7 +210,7 @@ export function OrderTabs({ orders, tab }: { orders: readonly { status: OrderSta
             className={cn(
               "inline-flex min-h-[26px] items-center gap-1.5 rounded-sm border px-2.5 text-sm font-medium transition-colors duration-fast",
               on
-                ? "border-transparent bg-brand-tint-strong text-brand-ink shadow-[inset_0_-2px_0_rgb(var(--ds-brand))]"
+                ? "border-transparent bg-brand-tint-strong text-brand-ink shadow-[inset_0_-2px_0_rgb(var(--ds-accent))]"
                 : "border-line bg-surface text-ink hover:bg-surface-sunken",
             )}
           >

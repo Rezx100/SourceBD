@@ -65,6 +65,24 @@
     caret-color: rgb(var(--ds-brand));
   }
 
+  /* The buyer app spends green on its one primary action only (founder's
+     video, 29 Sep 2026): selection, focus and the native controls there take
+     the slate `accent`. */
+  [data-shell] {
+    /* The tints and the link ink the app drew in green (the active tab, a set
+       chip, a selected cell, every link) are slate here; the solid `brand`
+       (the primary button, the logo) is not remapped and stays green. */
+    --ds-brand-ink: var(--ds-accent-ink);
+    --ds-brand-tint: var(--ds-accent-tint);
+    --ds-brand-tint-strong: var(--ds-accent-tint-strong);
+    --ds-focus: var(--ds-accent);
+    accent-color: rgb(var(--ds-accent));
+    caret-color: rgb(var(--ds-ink-strong));
+  }
+  [data-shell] ::selection {
+    background-color: rgb(var(--ds-accent-tint-strong));
+  }
+
   /* A thin scrollbar in the line colour, with no track: it reads as part of
      the hairline system rather than as chrome. On every scroll region, not
      only the page: `scrollbar-width` does not inherit, so set on `:root` it

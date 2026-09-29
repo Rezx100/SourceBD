@@ -1628,7 +1628,7 @@ describe("the two-state controls say which state they are in", () => {
     ]);
     assert.doesNotMatch(buttons, /<button[^>]*aria-label=/, "a text stop carries a label that shadows its own words");
     // The active stop is drawn by the brand rule, not the tint alone.
-    assert.match(buttons, /aria-pressed="true"[^>]*class="[^"]*shadow-\[inset_0_-2px_0_rgb\(var\(--ds-brand\)\)\]|class="[^"]*shadow-\[inset_0_-2px_0_rgb\(var\(--ds-brand\)\)\][^"]*"[^>]*aria-pressed="true"/);
+    assert.match(buttons, /aria-pressed="true"[^>]*class="[^"]*shadow-\[inset_0_-2px_0_rgb\(var\(--ds-accent\)\)\]|class="[^"]*shadow-\[inset_0_-2px_0_rgb\(var\(--ds-accent\)\)\][^"]*"[^>]*aria-pressed="true"/);
     // Links (a view switch is a URL): `aria-current="true"`, never "page" —
     // both stops are the same page.
     const links = renderToStaticMarkup(createElement(Seg, { options: STOPS, value: "table", label: "View", hrefFor: (v: string) => `/app/discover?view=${v}` }));
@@ -1948,11 +1948,11 @@ describe("the two-state controls say which state they are in", () => {
       // tick is pinned exactly, in each state. Changing one means changing
       // this list on purpose.
       const BOX = "inline-grid size-4 shrink-0 place-items-center rounded-xs border";
-      const LIVE = "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--ds-brand))]";
+      const LIVE = "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--ds-accent))]";
       // The tick fades in on the kit's fast clock (27 Sep 2026).
       const MOTION = "transition-colors duration-fast";
       const OFF = `${BOX} border-line-strong bg-surface ${MOTION} ${LIVE}`;
-      const ON = `${BOX} ${MOTION} ${LIVE} border-brand bg-brand text-brand-on`;
+      const ON = `${BOX} ${MOTION} ${LIVE} border-accent bg-accent text-accent-on`;
       const under = (allState: boolean | "mixed", selected: boolean, el: ReturnType<typeof createElement>) => {
         const value: SelectionContextValue = {
           interactive: true,

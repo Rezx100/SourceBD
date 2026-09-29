@@ -9,7 +9,6 @@ import {
   ArrowSquareOut,
   ArrowsDownUp,
   ArrowsLeftRight,
-  ArrowsOutSimple,
   BookmarkSimple,
   CreditCard,
   SignOut,
@@ -106,9 +105,7 @@ export const ICONS = {
   enter: ArrowElbowDownLeft,
   pane: SidebarSimple,
   sliders: SlidersHorizontal,
-  // The shell (founder's video, 29 Sep 2026): expand the record to its own
-  // page, and the account menu's Subscription and Sign out.
-  expand: ArrowsOutSimple,
+  // The account menu's Subscription and Sign out (founder's video, 29 Sep 2026).
   card: CreditCard,
   "sign-out": SignOut,
 } as const;

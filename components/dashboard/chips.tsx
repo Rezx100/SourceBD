@@ -3,8 +3,9 @@
 // `positive` valid / active · `caution` expiring, expired, behind schedule,
 // no longer covered · `neutral` outline for plain facts (EPB exporter · N
 // lines, Listed by) · `quiet` dashed for nothing on file · `sanction` solid,
-// reserved · `on` brand-tint-strong for the active filter. Never brand on a
-// fact, never a score.
+// reserved · `on` the slate `accent-tint-strong` for the active filter
+// (green until the founder's video of 29 Sep 2026). Never brand on a fact,
+// never a score.
 
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
@@ -18,7 +19,7 @@ const CHIP_TONE: Record<ChipTone, string> = {
   neutral: "border-line bg-surface text-ink",
   quiet: "border-dashed border-quiet-line font-normal text-quiet-ink",
   sanction: "bg-sanction text-sanction-on",
-  on: "bg-brand-tint-strong text-brand-ink",
+  on: "bg-accent-tint-strong text-accent-ink",
 };
 
 /** `.chip`: 26px, 13px medium, `rounded-sm`; 22px `compact` in a table row. */

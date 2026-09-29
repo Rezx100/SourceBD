@@ -10,7 +10,7 @@ import { Skeleton, SkeletonRegion } from "@/components/ui/skeleton";
 // in the old design's stylesheet, no bars at all. The layout draws the shell.
 
 /** The ledger grid's columns, wide view: `RESULTS_COLUMNS.wide` in `components/dashboard/results-table.tsx`. */
-const GRID = "grid grid-cols-[40px_minmax(0,1fr)_160px_212px_112px_144px_104px] items-center";
+const GRID = "grid grid-cols-[40px_minmax(0,1fr)_160px_212px_112px_152px_104px] items-center";
 
 export default function BuyerDiscoverLoading() {
   return (
@@ -40,7 +40,7 @@ export default function BuyerDiscoverLoading() {
               </span>
             </div>
             <div className="overflow-hidden">
-              <div className="min-w-[60rem]">
+              <div className="min-w-[62rem]">
                 <div className={`${GRID} h-9 border-b border-line-subtle`}>
                   <span />
                   <Skeleton w={64} h={10} className="ml-3" />
@@ -53,8 +53,8 @@ export default function BuyerDiscoverLoading() {
                 {Array.from({ length: 12 }, (_, i) => (
                   <div key={i} className={`${GRID} min-h-[52px] border-b border-line-subtle last:border-b-0`}>
                     <Skeleton w={16} h={16} className="ml-3" />
-                    <span className="flex items-center gap-2.5 px-3 py-2">
-                      <Skeleton w={24} h={24} />
+                    <span className="flex items-center gap-3 px-3 py-2">
+                      <Skeleton w={40} h={40} />
                       <span className="flex flex-col gap-1.5">
                         <Skeleton w={i % 3 === 0 ? 220 : i % 3 === 1 ? 170 : 250} h={13} />
                         <Skeleton w={110} h={10} />

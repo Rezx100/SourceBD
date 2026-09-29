@@ -218,10 +218,8 @@ type FontSize = [string, { lineHeight: string; letterSpacing?: string }];
  * tailwind-merge keeps working, plus the named styles the dashboard uses
  * (`text-title`, `text-eyebrow`) that have no standard slot.
  *
- * Founder's pick, 29 Sep 2026 ("B one step up", buyer app only): caption 13,
- * label and table 14, body 15, title 16, eyebrow 12. It lands with the
- * search list (PR 4 of the video hand-off), scoped to `/app`; until then this
- * is the scale.
+ * These are the scale everywhere but the buyer app, which takes one step up
+ * (`appFontSize`, below).
  */
 export const fontSize: Record<string, FontSize> = {
   eyebrow: ["0.6875rem", { lineHeight: "1rem", letterSpacing: "0.08em" }], // 11 — mono, uppercase
@@ -238,6 +236,25 @@ export const fontSize: Record<string, FontSize> = {
   "6xl": ["3rem", { lineHeight: "3.375rem", letterSpacing: "-0.03em" }], // 48 — display-lg
   "7xl": ["4.25rem", { lineHeight: "4.5rem", letterSpacing: "-0.035em" }], // 68 — display-xl
 };
+
+/**
+ * The buyer app's text, one step up (founder's pick "B", 29 Sep 2026: "we
+ * have a lot of space sitting there"). Inside the app shell (`[data-shell]`)
+ * these replace the matching `fontSize` entries through CSS variables, so the
+ * same `text-sm` is 14px in the app and 13px on the marketing site.
+ */
+export const appFontSize: Record<string, FontSize> = {
+  eyebrow: ["0.75rem", { lineHeight: "1rem", letterSpacing: "0.08em" }], // 12
+  xs: ["0.8125rem", { lineHeight: "1.125rem" }], // 13 — caption
+  sm: ["0.875rem", { lineHeight: "1.25rem" }], // 14 — label, table, code
+  base: ["0.9375rem", { lineHeight: "1.5rem" }], // 15 — body
+  title: ["1rem", { lineHeight: "1.5rem", letterSpacing: "-0.005em" }], // 16 — card title, tab
+};
+
+/** `sm` → `--ds-fs-sm` (its size) and `--ds-lh-sm` (its line height). */
+export function fontVars(key: string): { size: string; lineHeight: string } {
+  return { size: `--ds-fs-${key}`, lineHeight: `--ds-lh-${key}` };
+}
 
 export const fontWeight = {
   light: "300", // marketing display only

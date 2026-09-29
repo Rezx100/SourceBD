@@ -341,7 +341,7 @@ describe("the ledger grid is the first screen", () => {
     // Ticked: the box says so, and the row carries the brand rule (a state
     // drawn only as a fill is invisible against its neighbours).
     assert.equal((html.match(/role="checkbox" aria-checked="true"/g) ?? []).length, 2, "two rows are ticked");
-    const ruled = rows.filter((r) => r.includes("shadow-[inset_2px_0_0_rgb(var(--ds-brand))]"));
+    const ruled = rows.filter((r) => r.includes("shadow-[inset_2px_0_0_rgb(var(--ds-accent))]"));
     assert.equal(ruled.length, 2, "the two ticked rows carry the selection rule");
   });
 
@@ -760,7 +760,7 @@ describe("the screens claim only what the query asked for and the RPC answered",
     // Only the search composer's chips, on the ledger's own screen.
     const start = html.indexOf('data-screen="results-table"');
     const composer = html.slice(start, html.indexOf("</section>", start));
-    const chips = [...composer.matchAll(/bg-brand-tint-strong[^"]*"[^>]*>([^<]+)</g)].map((m) => m[1]);
+    const chips = [...composer.matchAll(/bg-accent-tint-strong[^"]*"[^>]*>([^<]+)</g)].map((m) => m[1]);
     assert.deepEqual([...new Set(chips)].sort(), ["Certificate · GOTS", "Text · knitted shirts"]);
     assert.equal(GALLERY_QUERY.certKinds.length, 1);
     assert.equal(GALLERY_QUERY.certKinds[0], "gots");
