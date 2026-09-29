@@ -68,7 +68,6 @@ const RAW_ANCHORS: Allowed = {
       3,
       "a fact's link and a source row go to register pages off-site; an RFQ row opens /app/rfqs/<id>, another page, which has no search to keep",
     ],
-    "{cert.documentUrl!}": [1, "the certificate document, off-site"],
     "{l.href}": [1, "an RSC report PDF, off-site"],
     "{evidenceHref}": [1, "the sanction banner's #sanctions fragment inside the open sheet"],
   },
@@ -82,6 +81,9 @@ const RECORD_FILES = ["supplier-result-card.tsx", "results-table.tsx", "photo-ti
 // pane beside the results (`?rfq=`), on the same search, so the card's, the
 // row's, the action bar's and the line sheet's all client-navigate.
 const DOCUMENT_BUTTONS: Allowed = {
+  // A certificate row's icon button opens the certificate itself, off-site
+  // (founder's review, 29 Sep 2026: the card's "Certificate" link became it).
+  "sheet.tsx": { "{doc}": [1, "the certificate document, off-site"] },
   "product-sheet.tsx": {
     "{`/app/discover?hs=${model.hs}`}": [1, "Exporters of HS is a new search, which replaces the one behind the sheet"],
   },
