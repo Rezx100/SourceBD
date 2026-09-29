@@ -12,7 +12,8 @@ import { describe, it } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { light, resolve } from "@/lib/design/tokens";
+import { fontSize, light, resolve } from "@/lib/design/tokens";
+import { cn } from "@/lib/utils";
 import { Topbar } from "./app-shell";
 import { revealCurrentNavItem } from "./nav-current";
 import { fieldValue } from "./search-typeahead";
@@ -21,6 +22,7 @@ import { Button, Menu, MenuItem, buttonClass } from "./controls";
 import { formatMoney, formatQuantity, formatRelative, formatTime } from "@/lib/dashboard/facts";
 import * as kit from "./index";
 import { Sheet } from "./sheet";
+import { Code, Eyebrow, Title } from "./type";
 import { stepIndex, suggestionHint, suggestionHref, type Suggestion } from "./search-typeahead";
 
 const repoRoot = process.cwd();
@@ -348,5 +350,28 @@ describe("the kit index", () => {
     for (const name of values) assert.ok(name in kit, `components/dashboard/index.ts does not export ${name}`);
     // And nothing the index names is missing from the module it re-exports.
     for (const [name, value] of Object.entries(kit)) assert.notEqual(value, undefined, `the index re-exports ${name} from a module that has none`);
+  });
+});
+
+describe("a named size survives the ink after it (30 Sep 2026)", () => {
+  // tailwind-merge read `text-title` as a colour and dropped it for the ink
+  // that followed, so every card name, results title, order and RFQ title and
+  // eyebrow rendered at the size it inherited instead of the designed one.
+  it("cn keeps every size in the token scale beside an ink, and a later size still wins", () => {
+    assert.equal(cn("text-title text-ink-strong"), "text-title text-ink-strong");
+    assert.equal(cn("text-eyebrow text-ink-subtle"), "text-eyebrow text-ink-subtle");
+    for (const key of Object.keys(fontSize)) {
+      assert.equal(cn(`text-${key}`, "text-ink-muted"), `text-${key} text-ink-muted`, `text-${key} is read as a colour`);
+    }
+    assert.equal(cn("text-title", "text-sm"), "text-sm");
+    assert.equal(cn("text-sm", "text-eyebrow"), "text-eyebrow");
+  });
+
+  it("Title, Eyebrow and an HS code at title size render their size class", () => {
+    const cls = (html: string) => html.match(/class="([^"]*)"/)?.[1].split(" ") ?? [];
+    assert.ok(cls(renderToStaticMarkup(createElement(Title, null, "Aboni Knitwear Ltd"))).includes("text-title"));
+    assert.ok(cls(renderToStaticMarkup(createElement(Eyebrow, null, "Recent searches"))).includes("text-eyebrow"));
+    const code = cls(renderToStaticMarkup(createElement(Code, { className: "text-title text-ink-muted", children: "6105" })));
+    assert.ok(code.includes("text-title") && !code.includes("text-sm"), code.join(" "));
   });
 });
