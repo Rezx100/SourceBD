@@ -448,7 +448,7 @@ register items it must close, not from the old picture.
 
 | Session | Flow | Screens (v3 names) | Register items to close |
 | --- | --- | --- | --- |
-| S3 | Search and the record | Landing (with the returning-user work queue), Results table, Results cards (decide: keep or drop, `SR-05`), Filters, Supplier record (pane + full page, one design; Locations with the Barikoi map and one address per premises, `RC-09`/`RC-10`), Product line, Sanctioned record (sample state), empty results, loading, error | `T-03`..`T-07`, `SR-*`, `RC-*`, `S-*` |
+| S3 | Search and the record | Landing (with the returning-user work queue), Results table, Results cards (decide: keep or drop, `SR-05`), Filters, Supplier record (pane + full page, one design; Locations with the Barikoi map and one address per premises, `RC-09`/`RC-10`; Exports (v2, Volza), drawn from the sample in section 5's "Export records"), Product line, Sanctioned record (sample state), empty results, loading, error | `T-03`..`T-07`, `SR-*`, `RC-*`, `S-*` |
 | S4 | RFQs, quotes, orders | RFQ composer (to 1 and to 50 suppliers), RFQ list, RFQ detail with **quote comparison** (one design for pane and page, `RQ-04`), Accept confirm sheet, Orders list, Order detail with timeline, New order (picker inline, no dead end, `OR-04`), order form | `RQ-*`, `OR-*` |
 | S5 | Messages, Saved, Compliance | Messages list, thread, thread with record beside it (desktop three-pane; phone sheet over the thread), Saved (with bulk RFQ), Saved searches (with alerts), Save-this-search popover, Compliance hub as a ranked "Needs attention" view, Certificate expiry (with an **Expired** group), UFLPA tracker populated with hit / region flag / clear, MSA statement editor (confirm-every-claim, PDF/DOCX export) | `MS-*`, `SV-*`, `CP-*`, `T-01`, `T-02` |
 | S6 | Products, HS headings, Settings, account | Products list, product editor (spreadsheet-like size chart across sizes, BOM with units, `PR-*`), HS headings by chapter, Settings as a grouped list (Profile, Security, Workspace, Members & roles, RFQ templates, Plan & usage, Notifications), Members with invite and roles, Security (2FA, sessions), Audit log (if the founder says yes to `E-03`) | `PR-*`, `ST-*`, `E-*` (only those approved) |
@@ -701,7 +701,13 @@ compliance manager asks about a new factory, in the order they ask them.
 - The object carried through the page is **one supplier record**. It starts
   as a dot on a map and gains a row in every chapter. At the end it is
   complete and an RFQ has gone out.
-- Use one real factory (`aboni-knitwear`) all the way through.
+- Use one real factory all the way through.
+  - Prefer `mondol-fabrics`, the only factory with real export records on
+    file (see "Export records" below), if its record has BGMEA, EPB and at
+    least one certificate. Check with read-only SQL.
+  - Otherwise use `aboni-knitwear`, and chapter 5 shows "Coming in v2" with
+    no rows.
+  - Log the choice.
 
 Nine chapters, then the FAQ and the footer:
 
@@ -737,16 +743,23 @@ Nine chapters, then the FAQ and the footer:
      and the address once, with the satellite/street switch.
    - This chapter adds the Location row.
 5. **"Who do they ship to?"** (v2, Volza.)
-   - **Picture.** A bill of lading prints line by line: shipper, buyer, HS
-     code and product, port of loading, port of discharge, FOB value, date.
-     Then twelve months of the factory's shipments appear: shipments per
-     month, destination ports, HS codes shipped.
+   - **Picture.** One real export record prints line by line, with the fields
+     listed under "Export records" below:
+     - date;
+     - product in plain words, with its HS code;
+     - pieces, FOB per piece and FOB value;
+     - buyer;
+     - destination country;
+     - sea or air.
+   - Then the factory's last twelve months appear: exports per month,
+     destination countries, products shipped, and FOB per piece by product.
    - **Words.** Benefits in buyer words:
      - see which brands it already ships to;
      - check it really makes what it claims;
-     - know the FOB going rate before you negotiate;
+     - know the FOB per piece it actually charged, by product, before you
+       negotiate;
      - spot a factory that has stopped shipping.
-   - This chapter adds the Shipments row.
+   - This chapter adds the Exports row.
 6. **"Will it still be true next month?"**
    - **Picture.** A calendar strip runs forward as you scroll. On day 0 the
      factory is shortlisted. On day 45 an alert says "OEKO-TEX expires in 30
@@ -795,20 +808,101 @@ Craft rules:
   as a row of 3–5 frames, one per beat, so the founder can read the story
   without code.
 
-Shipment records: rules before they appear anywhere:
+**Export records (Volza): what the data is (founder's screenshots, 3 Oct).**
 
-- **No fake data.** Until v2 is live, chapter 5 carries "Coming in v2" and no
-  number runs anywhere.
-- **Only per-supplier examples.** REZ-G (on-demand shipment records) fetches
-  Volza per supplier, on a buyer's click, cached 90 days. So there is no
-  "N shipments on record" total. The page shows one real record, captured
-  once with the founder's approval, unless bulk data is bought.
-- **Buyer names stay off the marketing site.** There they read "a UK
-  high-street retailer". Real names appear in the app only, and only if
-  Volza's licence allows showing them. Check the licence before S8.
-- **Decide the tier first.** Settle the trust tier of a bill of lading bought
-  through a reseller (AGENTS rule 5) before any page calls it proof. It must
-  never overwrite register data.
+- **What it is.** Bangladesh customs export declarations, resold by Volza:
+  one row per export by a Bangladesh factory.
+  - It is not a bill of lading. Call it "export records" and never "bills
+    of lading".
+  - There is no port of discharge, only the country of destination and the
+    customs house it left from (Chittagong, Dhaka).
+- **Fields.**
+  - date;
+  - HS code (8 digits) and HS description;
+  - product description;
+  - shipper;
+  - consignee (the buyer) and notify party;
+  - quantity and unit, unit rate (FOB per piece) and FOB value;
+  - countries of origin and destination;
+  - customs house;
+  - sea or air;
+  - net and gross weight;
+  - the shipper's and consignee's address, city, state, country and PIN.
+- **The sample.** Five real rows and the screenshots are in
+  `.impeccable/review/volza/`, which git ignores. Draw the designs from them.
+  - The shipper "Mondol Fabrics Ltd." is our `mondol-fabrics` (EPB exporter
+    2798).
+  - Five rows exist, against 39 for the 39-products test. Draw the table at
+    5 rows, and draw the 12-month view only as a labelled "Sample state".
+- **What a buyer sees on a row:**
+  - date;
+  - product in plain words, with the HS code in Plex Mono;
+  - pieces;
+  - FOB per piece;
+  - FOB value;
+  - buyer;
+  - destination;
+  - sea or air.
+  The customs house and the weights go in the row's detail.
+- **What a buyer never sees:**
+  - The notify party. It is always the placeholder "To order".
+  - The shipper's raw address (it repeats words, and its state is wrong).
+    The record's one address comes from the registers (`RC-09`).
+- **Buyer names.**
+  - Show them as filed, cleaned only of trailing address fragments and odd
+    case.
+  - Never guess the brand behind a company name. A holding company's name
+    stays as filed.
+  - When the buyer's country differs from the destination, show both.
+- **Totals.** Computed from the rows only, each with how many rows it comes
+  from:
+  - pieces in the last 12 months;
+  - FOB per piece, low to high, by HS code;
+  - destinations;
+  - buyers;
+  - the latest export.
+  Never turn them into a score.
+- **Freshness.** Every view says "Bangladesh customs export records, via
+  Volza · latest <date>". The newest sample row is seven months old.
+- **Group companies.** Rows for a sister company (`mondol-intimates`) stay on
+  that company's record. Group figures follow the REZ-73 (group figures on
+  mother profiles) rules.
+- **Recommended tier: 6, cross-check.** This matches REZ-G's ImportYeti row.
+  - Attach only to a supplier that already exists, matched on name plus
+    district, and conservatively.
+  - Never overwrite a register fact, and never publish a supplier.
+  - Rows that don't match are not shown.
+- **REZ-G needs updating before it is built.** It is a separate spec. It was
+  written for ImportYeti, which lists US buyers only, so it kept "export
+  markets" as a data gap. Volza fills that gap and adds FOB per piece, so
+  its tables gain HS code, pieces, FOB per piece, FOB value, destination and
+  mode.
+
+**Export records: rules before they appear anywhere:**
+
+- **The repository is public.**
+  - No Volza row, response or buyer name goes into git. That includes
+    REZ-G's planned recorded-response fixture: make it synthetic, or keep it
+    git-ignored.
+  - Screenshots attached to PRs show buyer names replaced with "Buyer A",
+    "Buyer B".
+- **The Paper file may use the real sample.** It is the founder's private
+  file.
+- **No fake data.** Until v2 is live:
+  - the built site's chapter 5 carries "Coming in v2";
+  - no number runs anywhere.
+- **Only per-supplier examples.**
+  - REZ-G (on-demand shipment records) fetches Volza per supplier, on a
+    buyer's click, and caches it for 90 days.
+  - So there is no "N exports on record" total.
+  - The page shows one real record, captured once with the founder's
+    approval, unless bulk data is bought.
+- **Buyer names stay off the marketing site.**
+  - There they read "a Spanish high-street retailer".
+  - Real names appear in the app only, and only if Volza's licence allows
+    showing them. Check the licence before building.
+- **The tier.** Tier 6 cross-check (above) until the founder says otherwise
+  (AGENTS rule 5). It never overwrites register data.
 
 **Site map v4 (desktop and phone for each):**
 
