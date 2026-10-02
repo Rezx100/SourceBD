@@ -1,13 +1,16 @@
 // Compliance pieces of the dashboard kit (Spec B9): the certificate-expiry and
 // UFLPA tables, their status marks and the expiry buckets, shared by the hub
 // and its three sub-pages. Server components; the RPC shapes are the ones
-// `supabase/migrations/0030_compliance_hub.sql` returns.
+// `supabase/migrations/0030_compliance_hub.sql` returns, and the expired list
+// is `0108_compliance_expired_certs.sql`'s, in the same row shape.
 //
 // Badge tones: a UFLPA Entity List hit is a sanction match and takes the
-// reserved `sanction` tone — the only place on these pages that uses it.
+// reserved `sanction` tone — the only place on these pages that uses it. An
+// expired certificate is not a sanction: it takes danger ink, a step past the
+// caution amber of one that is about to expire.
 
 import Link from "next/link";
-import { formatCount, formatDay } from "@/lib/dashboard/facts";
+import { certRowId, formatCount, formatDay } from "@/lib/dashboard/facts";
 import { cn } from "@/lib/utils";
 import { Badge, type BadgeTone } from "./chips";
 import { Button } from "./controls";
@@ -37,6 +40,12 @@ export type ExpiryPayload = {
   bucket_30: number;
   bucket_60: number;
   bucket_90: number;
+  total: number;
+  rows: CertRow[];
+};
+
+/** `compliance_expired_certs()`: lapsed with no later certificate of the scheme on file, most recent first. */
+export type ExpiredPayload = {
   total: number;
   rows: CertRow[];
 };
@@ -98,15 +107,19 @@ export function plural(n: number, one: string, many = `${one}s`): string {
 }
 
 /**
- * How long a certificate has left, in words: "in 11 days", or "today".
- * Caution inside 30 days, a plain fact after that. The RPC never returns an
- * expired one; a negative count (a date read on a later day) says "today"
- * rather than inventing a past it does not know about.
+ * How long a certificate has left, in words: "in 11 days", "today", or, once
+ * it has lapsed, "12 days ago" in danger ink. Caution inside 30 days, a plain
+ * fact after that. It used to say "today" for a past date, on the grounds that
+ * the expiry list never held one; the expired list (0108) does, and a lapsed
+ * certificate called "today" would be the all-clear this list exists to stop.
  */
-export function expiryBadge(days: number): { tone: "caution" | "quiet"; text: string } {
-  const text = days <= 0 ? "today" : `in ${plural(days, "day")}`;
+export function expiryBadge(days: number): { tone: "danger" | "caution" | "quiet"; text: string } {
+  if (days < 0) return { tone: "danger", text: `${plural(-days, "day")} ago` };
+  const text = days === 0 ? "today" : `in ${plural(days, "day")}`;
   return { tone: days < 30 ? "caution" : "quiet", text };
 }
+
+const BADGE_INK = { danger: "font-medium text-danger-ink", caution: "font-medium text-caution-ink", quiet: "text-ink-muted" } as const;
 
 /**
  * Days left on a certificate, drawn one way wherever it appears: the hub's
@@ -115,23 +128,32 @@ export function expiryBadge(days: number): { tone: "caution" | "quiet"; text: st
  */
 export function ExpiryBadge({ days }: { days: number }) {
   const { tone, text } = expiryBadge(days);
-  return (
-    <span className={cn("whitespace-nowrap tabular-nums", tone === "caution" ? "font-medium text-caution-ink" : "text-ink-muted")}>{text}</span>
-  );
+  return <span className={cn("whitespace-nowrap tabular-nums", BADGE_INK[tone])}>{text}</span>;
 }
 
-/** The three expiry buckets as inline stats, under the section title. */
-export function ExpiryStats({ payload }: { payload: Pick<ExpiryPayload, "bucket_30" | "bucket_60" | "bucket_90"> }) {
+/**
+ * The expiry buckets as inline stats, under the section title: the expired
+ * count first, in danger ink, when it was read (`expired` is left out when the
+ * expired list did not load, rather than shown as a reassuring 0).
+ */
+export function ExpiryStats({
+  payload,
+  expired,
+}: {
+  payload: Pick<ExpiryPayload, "bucket_30" | "bucket_60" | "bucket_90">;
+  expired?: number | null;
+}) {
   const stats = [
-    { n: payload.bucket_30, label: "within 30 days" },
-    { n: payload.bucket_60, label: "in 30–60 days" },
-    { n: payload.bucket_90, label: "in 60–90 days" },
+    ...(expired == null ? [] : [{ n: expired, label: "expired", ink: "text-danger-ink" }]),
+    { n: payload.bucket_30, label: "within 30 days", ink: "text-caution-ink" },
+    { n: payload.bucket_60, label: "in 30–60 days", ink: null },
+    { n: payload.bucket_90, label: "in 60–90 days", ink: null },
   ];
   return (
     <ul aria-label="Certificates expiring" className="m-0 flex list-none flex-wrap gap-x-8 gap-y-2 p-0">
       {stats.map((s) => (
         <li key={s.label} className="flex items-baseline gap-1.5">
-          <span className={cn("text-xl font-semibold tabular-nums", s.label === "within 30 days" && s.n > 0 ? "text-caution-ink" : "text-ink-strong")}>
+          <span className={cn("text-xl font-semibold tabular-nums", s.ink && s.n > 0 ? s.ink : "text-ink-strong")}>
             {formatCount(s.n)}
           </span>
           <span className="text-sm text-ink-muted">{s.label}</span>
@@ -199,16 +221,26 @@ export function TableFooter({ shown, total }: { shown: number; total: number }) 
   );
 }
 
-/** Certificates soonest first (the RPC's order). `compact` drops the number and document columns, for the hub. */
-export function ExpiryTable({ rows, compact = false }: { rows: readonly CertRow[]; compact?: boolean }) {
+/** Where an expired certificate's row is on its supplier's record: the record, scrolled to that one certificate. */
+export function certRowHref(r: Pick<CertRow, "kind" | "certificate_no" | "expires_on" | "supplier">): string {
+  return `/app/suppliers/${r.supplier.slug}#${certRowId(r.kind, r.certificate_no, r.expires_on)}`;
+}
+
+/**
+ * Certificates in the RPC's order: soonest first, or, for `lapsed` rows (the
+ * expired list), most recently lapsed first. `compact` drops the number and
+ * document columns, for the hub. A lapsed row names its issuer even when
+ * compact, and its certificate links to that certificate's row on the record.
+ */
+export function ExpiryTable({ rows, compact = false, lapsed = false }: { rows: readonly CertRow[]; compact?: boolean; lapsed?: boolean }) {
   return (
-    <DataTable label="Certificates expiring" minWidth={compact ? "34rem" : "50rem"}>
+    <DataTable label={lapsed ? "Certificates expired" : "Certificates expiring"} minWidth={compact ? "34rem" : "50rem"}>
       <thead>
         <tr>
           <HeadCell>Supplier</HeadCell>
           <HeadCell>Certificate</HeadCell>
           {compact ? null : <HeadCell>Number</HeadCell>}
-          <HeadCell>Expires</HeadCell>
+          <HeadCell>{lapsed ? "Expired" : "Expires"}</HeadCell>
           {compact ? null : <HeadCell align="right">Document</HeadCell>}
         </tr>
       </thead>
@@ -225,8 +257,14 @@ export function ExpiryTable({ rows, compact = false }: { rows: readonly CertRow[
               </Cell>
               <Cell className="py-2">
                 <div className="flex flex-col">
-                  <span className="font-medium">{prettyCert(r.kind)}</span>
-                  {compact ? null : <Caption>Issued by {r.issuer ?? prettyCert(r.kind)}</Caption>}
+                  {lapsed ? (
+                    <Link href={certRowHref(r)} prefetch={false} className="link font-medium">
+                      {prettyCert(r.kind)}
+                    </Link>
+                  ) : (
+                    <span className="font-medium">{prettyCert(r.kind)}</span>
+                  )}
+                  {compact && !lapsed ? null : <Caption>Issued by {r.issuer ?? prettyCert(r.kind)}</Caption>}
                 </div>
               </Cell>
               {compact ? null : <Cell>{r.certificate_no ? <Code>{r.certificate_no}</Code> : <Caption>Not listed</Caption>}</Cell>}

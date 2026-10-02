@@ -1,14 +1,15 @@
 // Compliance hub — Spec B9 (/app/compliance).
 //
-// Server component. Calls the three compliance RPCs in parallel under the
-// caller's session and draws one section per surface: the next certificates
-// to expire (with the 30/60/90-day buckets as stats under the title), the
-// UFLPA summary, and what the Modern Slavery Act generator makes. Sections are
-// tonal panels on the canvas — no box inside a box.
+// Server component. Calls the four compliance RPCs in parallel under the
+// caller's session and draws one section per surface: certificate expiry (the
+// expired ones with no renewal on file first, then the next to expire, with
+// the expired count and the 30/60/90-day buckets as stats under the title),
+// the UFLPA summary, and what the Modern Slavery Act generator makes. Sections
+// are tonal panels on the canvas — no box inside a box.
 
 import Link from "next/link";
 
-import { type ExpiryPayload, ExpiryStats, ExpiryTable, plural, TableFooter, type UflpaPayload } from "@/components/dashboard/compliance";
+import { type ExpiredPayload, type ExpiryPayload, ExpiryStats, ExpiryTable, plural, TableFooter, type UflpaPayload } from "@/components/dashboard/compliance";
 import { Badge } from "@/components/dashboard/chips";
 import { Button } from "@/components/dashboard/controls";
 import { EmptyState, ErrorNote, PageHeader, PageSection, Page } from "@/components/dashboard/page";
@@ -25,7 +26,7 @@ type MsaSummary = {
   sanctions_hits: number;
 };
 
-/** How many upcoming renewals the hub lists before "View all". */
+/** How many expired certificates, and how many upcoming renewals, the hub lists before "View all". */
 const HUB_ROWS = 5;
 
 function SectionLink({ href, children }: { href: string; children: string }) {
@@ -38,19 +39,23 @@ function SectionLink({ href, children }: { href: string; children: string }) {
 
 async function ComplianceHubPageBody() {
   const supabase = await createSupabaseServerClient();
-  const [exp, ufl, msa] = await Promise.all([
+  const [exp, gone, ufl, msa] = await Promise.all([
     supabase.rpc("compliance_expiring_certs", { p_window_days: 90 }),
+    supabase.rpc("compliance_expired_certs"),
     supabase.rpc("compliance_uflpa_tracker"),
     supabase.rpc("compliance_msa_inputs"),
   ]);
 
   const expiry = exp.error ? null : ((exp.data ?? null) as ExpiryPayload | null);
+  // Null when it did not load: the section then says so, never "0 expired".
+  const expired = gone.error ? null : ((gone.data ?? null) as ExpiredPayload | null);
   const uflpa = ufl.error ? null : ((ufl.data ?? null) as UflpaPayload | null);
   const msaIn = msa.error ? null : ((msa.data ?? null) as MsaSummary | null);
-  const anyError = Boolean(exp.error || ufl.error || msa.error);
+  const anyError = Boolean(exp.error || gone.error || ufl.error || msa.error);
 
   const savedTotal = msaIn?.total_saved ?? 0;
   const upcoming = (expiry?.rows ?? []).slice(0, HUB_ROWS);
+  const lapsed = (expired?.rows ?? []).slice(0, HUB_ROWS);
 
   return (
     <>
@@ -84,28 +89,36 @@ async function ComplianceHubPageBody() {
 
       <PageSection
         title="Certificate expiry"
-        caption="Next 90 days, soonest first"
+        caption="Expired with no renewal on file, then the next 90 days"
         action={<SectionLink href="/app/compliance/expiry">View all</SectionLink>}
         bare
       >
+        {/* The expired list stands on its own read: a failed upcoming list
+            must not hide a lapsed certificate, and the reverse. */}
+        {expiry ? <ExpiryStats payload={expiry} expired={expired?.total ?? null} /> : null}
+        {expired === null ? (
+          <p className="m-0 rounded-md bg-surface px-4 py-3 text-sm text-ink-muted">Expired certificates did not load.</p>
+        ) : lapsed.length > 0 ? (
+          <div className="rounded-md bg-surface">
+            <ExpiryTable rows={lapsed} compact lapsed />
+            <TableFooter shown={lapsed.length} total={expired.total} />
+          </div>
+        ) : null}
         {expiry === null ? (
           <p className="m-0 rounded-md bg-surface px-4 py-3 text-sm text-ink-muted">Expiring certificates did not load.</p>
         ) : (
-          <>
-            <ExpiryStats payload={expiry} />
-            <div className="rounded-md bg-surface">
-              {upcoming.length === 0 ? (
-                <p className="m-0 px-4 py-3 text-sm text-ink-muted">
-                  No certificates on your saved suppliers expire in the next 90 days.
-                </p>
-              ) : (
-                <>
-                  <ExpiryTable rows={upcoming} compact />
-                  <TableFooter shown={upcoming.length} total={expiry.total} />
-                </>
-              )}
-            </div>
-          </>
+          <div className="rounded-md bg-surface">
+            {upcoming.length === 0 ? (
+              <p className="m-0 px-4 py-3 text-sm text-ink-muted">
+                No certificates on your saved suppliers expire in the next 90 days.
+              </p>
+            ) : (
+              <>
+                <ExpiryTable rows={upcoming} compact />
+                <TableFooter shown={upcoming.length} total={expiry.total} />
+              </>
+            )}
+          </div>
         )}
       </PageSection>
 

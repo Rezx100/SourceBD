@@ -264,6 +264,16 @@ export function certModel(
   };
 }
 
+/**
+ * The id of a certificate's row on the record, so a link (the Compliance hub's
+ * expired list) can land on that one row: `cert-gots-gots-27605`. Built from
+ * what both ends hold — the scheme's code and the number, or the expiry date
+ * when there is no number — the same pair the record keys its rows by.
+ */
+export function certRowId(kind: string, number: string | null, expiresOn: string | null): string {
+  return `cert-${kind}-${number ?? expiresOn ?? ""}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-$/, "");
+}
+
 /** Certificates in the order a buyer needs them: expiring soonest, then valid, then expired, then undated. */
 export function sortCerts(certs: readonly CertModel[]): CertModel[] {
   const rank: Record<CertState, number> = { expiring: 0, valid: 1, expired: 2, "no-expiry": 3 };

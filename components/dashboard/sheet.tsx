@@ -6,7 +6,7 @@
 // and `Scrim` remain for the gallery's RFQ composer, which is still a dialog.
 
 import { Fragment, type ReactNode } from "react";
-import { certStateLabel, rscStatusNeedsLook, type CertModel } from "@/lib/dashboard/facts";
+import { certRowId, certStateLabel, rscStatusNeedsLook, type CertModel } from "@/lib/dashboard/facts";
 import { MENU_NAME } from "@/lib/dashboard/menu-dismiss";
 import type { FacilityRowModel, FactRow, LocationRow, RecordRfqRow, SanctionRow, SourceRow } from "@/lib/dashboard/models";
 import { recordPage, sourceMark } from "@/lib/dashboard/source-tiers";
@@ -580,7 +580,13 @@ export function CertRow({ cert }: { cert: CertModel }) {
   // that promises the certificate and delivers a search page.
   const doc = recordPage(cert.documentUrl) ? cert.documentUrl : null;
   return (
-    <li className="border-t border-line-subtle first:border-t-0" data-cert={cert.kind}>
+    // `id`: the Compliance hub's expired list links to this one row; it lands
+    // under the stuck bar like a section does, and is lit while it is the target.
+    <li
+      id={certRowId(cert.kind, cert.number, cert.expiresOn)}
+      className={cn("scroll-mt-12 border-t border-line-subtle first:border-t-0 target:bg-accent-tint", SECTION_MT)}
+      data-cert={cert.kind}
+    >
       {/* One line from `sm`, the certifier giving way first; on a phone the
           state and the link drop under the name rather than off the screen. */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 sm:flex-nowrap">
