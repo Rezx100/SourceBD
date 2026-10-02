@@ -39,6 +39,14 @@ Recorded founder answers:
     sentences".
   - Humanise it: research how these buyers talk and speak their language
     (register section W, session S0 below).
+- **3 Oct, on the home page:**
+  - A scroll story of the same quality as the United Carriers home page
+    (Awwwards Site of the Day, 6 Sep 2026). It is section 5's "Home page scroll
+    story".
+  - "We should not clone United Carriers": take its craft as inspiration and
+    tell SourceBD's own story.
+  - Shipment records (bills of lading, FOB values, buyer names) from Volza come
+    in v2 and must be part of that story.
 
 "Model on one product" means: adopt its structure: grid, spacing scale, type
 proportions, density, component anatomy, navigation and screen patterns.
@@ -440,7 +448,7 @@ register items it must close, not from the old picture.
 
 | Session | Flow | Screens (v3 names) | Register items to close |
 | --- | --- | --- | --- |
-| S3 | Search and the record | Landing (with the returning-user work queue), Results table, Results cards (decide: keep or drop, `SR-05`), Filters, Supplier record (pane + full page, one design; Locations with the Barikoi map and one address per premises, `RC-09`/`RC-10`), Product line, Sanctioned record (sample state), empty results, loading, error | `T-03`..`T-07`, `SR-*`, `RC-*`, `S-*` |
+| S3 | Search and the record | Landing (with the returning-user work queue), Results table, Results cards (decide: keep or drop, `SR-05`), Filters, Supplier record (pane + full page, one design; Locations with the Barikoi map and one address per premises, `RC-09`/`RC-10`; Exports (v2, Volza), drawn from the sample in section 5's "Export records"), Product line, Sanctioned record (sample state), empty results, loading, error | `T-03`..`T-07`, `SR-*`, `RC-*`, `S-*` |
 | S4 | RFQs, quotes, orders | RFQ composer (to 1 and to 50 suppliers), RFQ list, RFQ detail with **quote comparison** (one design for pane and page, `RQ-04`), Accept confirm sheet, Orders list, Order detail with timeline, New order (picker inline, no dead end, `OR-04`), order form | `RQ-*`, `OR-*` |
 | S5 | Messages, Saved, Compliance | Messages list, thread, thread with record beside it (desktop three-pane; phone sheet over the thread), Saved (with bulk RFQ), Saved searches (with alerts), Save-this-search popover, Compliance hub as a ranked "Needs attention" view, Certificate expiry (with an **Expired** group), UFLPA tracker populated with hit / region flag / clear, MSA statement editor (confirm-every-claim, PDF/DOCX export) | `MS-*`, `SV-*`, `CP-*`, `T-01`, `T-02` |
 | S6 | Products, HS headings, Settings, account | Products list, product editor (spreadsheet-like size chart across sizes, BOM with units, `PR-*`), HS headings by chapter, Settings as a grouped list (Profile, Security, Workspace, Members & roles, RFQ templates, Plan & usage, Notifications), Members with invite and roles, Security (2FA, sessions), Audit log (if the founder says yes to `E-03`) | `PR-*`, `ST-*`, `E-*` (only those approved) |
@@ -646,13 +654,18 @@ reference is replaced by a SourceBD fact, never by an imitation.
 - **Proof strip.** Live counts in big numerals with "updated <date>":
   published suppliers, certificates on file, RSC records, sources read in the
   last 30 days.
-- **Rhythm.** The hero (one line, a search box that runs on public Discover,
-  Start free and Book a demo), then alternating text and real screen
-  sections, then a mega footer. Generous white space; the evidence carries
+- **Rhythm.** The home page follows the scroll story below. Every other
+  marketing page has a hero (one line, a search box that runs on public
+  Discover, Start free and Book a demo), then alternating text and real
+  screen sections, then a mega footer. Generous white space; the evidence carries
   the page.
-- **Motion.** Minimal. The `motion` library is allowed only on marketing
-  pages; respect reduced motion. No count-up animations on the live numbers
-  (they must read as facts, not effects).
+- **Motion.**
+  - The home page is a scroll story (below). Every other marketing page keeps
+    motion minimal.
+  - The `motion` library is allowed only on marketing pages. Respect reduced
+    motion.
+  - No count-up animations on the live numbers; they must read as facts, not
+    effects. Stat rows reveal one after another instead.
 
 **Proof without fakes.** SourceBD has no customer logos, testimonials or
 security certifications (PRODUCT.md). Enterprise trust comes from the data
@@ -665,11 +678,237 @@ itself:
 - the methodology in the open;
 - a security page that states only what is true.
 
+**Home page scroll story: "Know who you're buying from" (founder, 3 Oct).**
+
+**Inspired, not cloned (founder, 3 Oct).** The founder showed the
+[United Carriers](https://unitedcarriers.com/) home page (Awwwards Site of
+the Day, 6 Sep 2026) as the quality bar. Take only its craft:
+
+- one idea per screen;
+- scenes that stay pinned while the scroll drives them;
+- one object carried through the whole page;
+- stats set as plain facts, split by thin rules;
+- big, calm type with plenty of white space.
+
+Take nothing else: not its globe, dark hero, two-tone headline, machinery
+scene, fonts, colours, structure or words.
+
+**The spine is SourceBD's own.** It follows the questions a sourcing or
+compliance manager asks about a new factory, in the order they ask them.
+
+- Each chapter opens with that question as a small Plex Mono label. Under it
+  sits the answer as the headline.
+- The object carried through the page is **one supplier record**. It starts
+  as a dot on a map and gains a row in every chapter. At the end it is
+  complete and an RFQ has gone out.
+- Use one real factory all the way through.
+  - Prefer `mondol-fabrics`, the only factory with real export records on
+    file (see "Export records" below), if its record has BGMEA, EPB and at
+    least one certificate. Check with read-only SQL.
+  - Otherwise use `aboni-knitwear`, and chapter 5 shows "Coming in v2" with
+    no rows.
+  - Log the choice.
+
+Nine chapters, then the FAQ and the footer:
+
+1. **Opening.**
+   - **Picture.** Bangladesh, drawn only from real factory dots: one dot per
+     geocoded published supplier, from the geocode cache. There is no
+     outline, no tiles and no photo.
+   - **Words.** The headline is "Know who you're buying from." One sentence
+     follows, with the live count ("10,266 Bangladesh garment suppliers, each
+     checked against the registers that list them"). Then the public search
+     box, Start free and Book a demo.
+   - **Scroll.** The dots gather into district clusters with real counts
+     (Dhaka, Gazipur, Narayanganj, Savar, Chattogram). Then one dot lifts out
+     and becomes the record card.
+2. **"Who are they?"** One factory, one name.
+   - **Picture.** The factory's name shows the way each register writes it,
+     using real strings from its own sources. As you scroll, the strings slide
+     together into one name.
+   - **Words.** "One factory, written N ways across N registers. We match
+     them, so you see one record."
+   - This is the only place variants ever appear: as the "before", and they
+     vanish. If the founder would rather show none (rule `RC-09`), use the
+     register marks converging instead.
+3. **"Is that true?"** Every claim, next to where it is written.
+   - **Picture.** Each beat sets a claim in the supplier's words (grey, in
+     quotes) against a receipt in Plex Mono: source mark, number, read date.
+     A green line joins the two.
+   - **Beats.** BGMEA membership, the OEKO-TEX certificate (number and
+     expiry), the RSC record.
+   - Each beat adds a row to the record.
+4. **"Where are they?"**
+   - **Picture.** The Barikoi map (`bkoi-gl`) flies to the factory: one pin
+     and the address once, with the satellite/street switch.
+   - This chapter adds the Location row.
+5. **"Who do they ship to?"** (v2, Volza.)
+   - **Picture.** One real export record prints line by line, with the fields
+     listed under "Export records" below:
+     - date;
+     - product in plain words, with its HS code;
+     - pieces, FOB per piece and FOB value;
+     - buyer;
+     - destination country;
+     - sea or air.
+   - Then the factory's last twelve months appear: exports per month,
+     destination countries, products shipped, and FOB per piece by product.
+   - **Words.** Benefits in buyer words:
+     - see which brands it already ships to;
+     - check it really makes what it claims;
+     - know the FOB per piece it actually charged, by product, before you
+       negotiate;
+     - spot a factory that has stopped shipping.
+   - This chapter adds the Exports row.
+6. **"Will it still be true next month?"**
+   - **Picture.** A calendar strip runs forward as you scroll. On day 0 the
+     factory is shortlisted. On day 45 an alert says "OEKO-TEX expires in 30
+     days". Later, the Entity List is re-checked.
+   - Show only checks the product really runs, worded as the voice guide says.
+   - The record gains the watch mark.
+7. **"Can they make my order?"**
+   - **Picture.** Real v4 screens. The record joins a shortlist, an RFQ goes
+     out to several factories, and the quotes come back side by side.
+   - **Words.** Two tabs show the same loop through each role's eyes:
+     Sourcing and Compliance.
+8. **"Why should I trust you?"**
+   - **What we never do:**
+     - no scores;
+     - no paid placement;
+     - no fact without a source and a date.
+   - The source ladder, tier by tier, with real marks per `logos.lock.md`,
+     linking to `/methodology`.
+   - The live stats as facts, with "updated <date>" and no count-up:
+     published suppliers, certificates on file, registers read, districts
+     mapped.
+9. **Close.**
+   - The record is now complete: every row we built, one RFQ sent.
+   - **Words.** "Now you know who you're buying from." Then the search box,
+     Start free and Book a demo.
+   - Then the FAQ and the mega footer. The compliance guides live in the
+     footer and under Resources, not as a home chapter.
+
+Craft rules:
+
+- **Type.** As above:
+  - very large Plex Sans headlines in sentence case, at most two lines;
+  - Plex Mono for the question labels and the receipts;
+  - Plex Sans for body text.
+- **Colour.** As above. A white page all the way down, ink near-black, forest
+  green only on actions and trace lines.
+- **Build.** Add no new packages:
+  - `motion` (`useScroll` / `useTransform`) with CSS `position: sticky` for
+    the pinned chapters;
+  - the dot map on a canvas or SVG from cached coordinates;
+  - `bkoi-gl` for chapter 4.
+- **Performance.** One canvas live at a time. The map loads only when near.
+- **Reduced motion and phone.** Every pinned chapter becomes a short stack of
+  still cards.
+- **Paper (S8).** Draw every chapter at 1440 and 390. Draw each pinned chapter
+  as a row of 3–5 frames, one per beat, so the founder can read the story
+  without code.
+
+**Export records (Volza): what the data is (founder's screenshots, 3 Oct).**
+
+- **What it is.** Bangladesh customs export declarations, resold by Volza:
+  one row per export by a Bangladesh factory.
+  - It is not a bill of lading. Call it "export records" and never "bills
+    of lading".
+  - There is no port of discharge, only the country of destination and the
+    customs house it left from (Chittagong, Dhaka).
+- **Fields.**
+  - date;
+  - HS code (8 digits) and HS description;
+  - product description;
+  - shipper;
+  - consignee (the buyer) and notify party;
+  - quantity and unit, unit rate (FOB per piece) and FOB value;
+  - countries of origin and destination;
+  - customs house;
+  - sea or air;
+  - net and gross weight;
+  - the shipper's and consignee's address, city, state, country and PIN.
+- **The sample.** Five real rows and the screenshots are in
+  `.impeccable/review/volza/`, which git ignores. Draw the designs from them.
+  - The shipper "Mondol Fabrics Ltd." is our `mondol-fabrics` (EPB exporter
+    2798).
+  - Five rows exist, against 39 for the 39-products test. Draw the table at
+    5 rows, and draw the 12-month view only as a labelled "Sample state".
+- **What a buyer sees on a row:**
+  - date;
+  - product in plain words, with the HS code in Plex Mono;
+  - pieces;
+  - FOB per piece;
+  - FOB value;
+  - buyer;
+  - destination;
+  - sea or air.
+  The customs house and the weights go in the row's detail.
+- **What a buyer never sees:**
+  - The notify party. It is always the placeholder "To order".
+  - The shipper's raw address (it repeats words, and its state is wrong).
+    The record's one address comes from the registers (`RC-09`).
+- **Buyer names.**
+  - Show them as filed, cleaned only of trailing address fragments and odd
+    case.
+  - Never guess the brand behind a company name. A holding company's name
+    stays as filed.
+  - When the buyer's country differs from the destination, show both.
+- **Totals.** Computed from the rows only, each with how many rows it comes
+  from:
+  - pieces in the last 12 months;
+  - FOB per piece, low to high, by HS code;
+  - destinations;
+  - buyers;
+  - the latest export.
+  Never turn them into a score.
+- **Freshness.** Every view says "Bangladesh customs export records, via
+  Volza · latest <date>". The newest sample row is seven months old.
+- **Group companies.** Rows for a sister company (`mondol-intimates`) stay on
+  that company's record. Group figures follow the REZ-73 (group figures on
+  mother profiles) rules.
+- **Recommended tier: 6, cross-check.** This matches REZ-G's ImportYeti row.
+  - Attach only to a supplier that already exists, matched on name plus
+    district, and conservatively.
+  - Never overwrite a register fact, and never publish a supplier.
+  - Rows that don't match are not shown.
+- **REZ-G needs updating before it is built.** It is a separate spec. It was
+  written for ImportYeti, which lists US buyers only, so it kept "export
+  markets" as a data gap. Volza fills that gap and adds FOB per piece, so
+  its tables gain HS code, pieces, FOB per piece, FOB value, destination and
+  mode.
+
+**Export records: rules before they appear anywhere:**
+
+- **The repository is public.**
+  - No Volza row, response or buyer name goes into git. That includes
+    REZ-G's planned recorded-response fixture: make it synthetic, or keep it
+    git-ignored.
+  - Screenshots attached to PRs show buyer names replaced with "Buyer A",
+    "Buyer B".
+- **The Paper file may use the real sample.** It is the founder's private
+  file.
+- **No fake data.** Until v2 is live:
+  - the built site's chapter 5 carries "Coming in v2";
+  - no number runs anywhere.
+- **Only per-supplier examples.**
+  - REZ-G (on-demand shipment records) fetches Volza per supplier, on a
+    buyer's click, and caches it for 90 days.
+  - So there is no "N exports on record" total.
+  - The page shows one real record, captured once with the founder's
+    approval, unless bulk data is bought.
+- **Buyer names stay off the marketing site.**
+  - There they read "a Spanish high-street retailer".
+  - Real names appear in the app only, and only if Volza's licence allows
+    showing them. Check the licence before building.
+- **The tier.** Tier 6 cross-check (above) until the founder says otherwise
+  (AGENTS rule 5). It never overwrites register data.
+
 **Site map v4 (desktop and phone for each):**
 
 | Page | Job | Key sections |
 | --- | --- | --- |
-| Home `/` | Convince a sourcing or compliance lead in one scroll | Hero (one line, search box that runs on public Discover, live count), register strip (tiered), "a fact becomes a receipt" (one real fact traced to its register), product tour (search, record, RFQ, compliance) with real screenshots, two role sections (sourcing / compliance), pricing teaser, FAQ, final call to action (Start free · Book a demo) |
+| Home `/` | Convince a sourcing or compliance lead in one scroll | The nine chapters of "Know who you're buying from" above: the dot map of Bangladesh with search and live count, then Who are they?, Is that true?, Where are they?, Who do they ship to? (v2), Will it still be true next month?, Can they make my order?, Why should I trust you?, and the close (Start free · Book a demo), then FAQ and mega footer |
 | Product: Supplier search `/product/search` | Show the list and record | Filters that matter (HS, certificate, place, size), record beside results, real counts |
 | Product: Supplier records `/product/records` | Show receipts | Fact rows with sources, certificate states, RSC, locked contacts explained |
 | Product: RFQs and messages `/product/rfqs` | Show the sourcing loop | RFQ to up to 50, quote comparison, messages |
@@ -822,23 +1061,37 @@ before its gate is passed.
 
 ---
 
-## 9b. Overnight run: Paper only (founder, 3 Oct)
+## 9b. Unattended run, end to end (founder, 3 Oct)
 
-The founder wants phases 0 to 4 (S0 to S8) done unattended overnight, **on
-Paper only**:
+Earlier on 3 Oct the founder asked for an overnight run on Paper only. The
+same day they widened it: **everything, end to end, unattended, without
+asking or waiting.**
 
-- No app code changes and nothing near production. Phase 5 waits until the
-  founder has seen the Paper work.
+- First, the "Fix now" list, as small PRs.
+- Then phases 0 to 4 (S0 to S8) on Paper, under the rules below.
+- Then Phase 5 (section 6) in code, through to the promotion PR.
 - The lead session orchestrates; each step runs as a sub-agent with fresh
-  context.
+  context. Code steps run in their own worktree.
 
-**Founder gates overnight.** The founder pre-approves taking the recommended
-default at GATE 0 to GATE 5 and at D-1 to D-7. Each decision is logged with
-its reason in `context/feature-specs/ds-v4-progress.md`, and its screenshots
-go to the founder with `SendUserFile` (status `proactive`). Anything
-irreversible is out of scope.
+**Founder gates.** The founder pre-approves taking the recommended default at
+GATE 0 to GATE 5 and at D-1 to D-7, and starting Phase 5 without seeing the
+Paper work first. Each decision is logged with its reason in
+`context/feature-specs/ds-v4-progress.md`, and its screenshots go to the
+founder with `SendUserFile` (status `proactive`).
 
-**Never overnight:**
+**Founder-only, even in this run.** These are never done; they are written
+into the report with the exact command, and the run carries on with
+everything else:
+
+- migrations against production and any `--apply`;
+- triggering or approving Deploy Production;
+- anything else the guard hook refuses (CLAUDE.md).
+
+Phase 5's last step opens the `development` into `main` PR with
+`--auto --merge`. Nothing reaches buyers until the founder clicks Deploy
+Production.
+
+**Never during the Paper phases (S0 to S8):**
 - edit `app/`, `components/`, `lib/`, `supabase/`, `etl/`, `ops/`,
   `.github/`, `DESIGN.md` or `.impeccable/design.json`;
 - run migrations, `--apply`, deploys or promotions;
@@ -851,6 +1104,9 @@ Read `PRODUCT.md` directly instead. The new system is written to
 Phase 5, so sessions still working on today's app keep their context.
 
 **Order and parallelism.**
+0. The "Fix now" items not already merged (check `git log` and
+   `gh pr list` first): one small PR each to `development`, run beside the
+   Paper phases.
 1. S0 and S1 run in parallel.
 2. Then S2.
 3. Then S3, S4, S5 and S6, at most three at a time, each on its own Paper
@@ -860,7 +1116,13 @@ Phase 5, so sessions still working on today's app keep their context.
    - `/impeccable critique` on the v4 desktop and phone pages;
    - fix what it finds once;
    - re-score once.
-6. Then the morning report.
+6. Then Phase 5 (section 6), in order:
+   - B0 to B10 into `ds-v4`, each with one `/code-review`;
+   - the must-stay section 6 checks and the critique of the built screens
+     against section 7;
+   - the switch PR from `ds-v4` into `development`;
+   - the promotion PR from `development` into `main`.
+7. Then the report.
 
 **Real data.** Use these, all real records captured from production:
 - `lib/dashboard/fixtures.production.json`;
@@ -870,7 +1132,7 @@ Phase 5, so sessions still working on today's app keep their context.
 Read-only SQL through the Supabase MCP is allowed for live counts (rule 15:
 reading production is safe). Never write.
 
-**Repository output.** Docs only, on branch `ds-v4-paper`:
+**Repository output of the Paper phases.** Docs only, on branch `ds-v4-paper`:
 - `voice-v4.md`, `ds-v4-spec.md`, `ds-v4/DESIGN-v4.md`;
 - the copy inventory;
 - the progress file.
@@ -887,14 +1149,17 @@ founder's approval.
 - If Paper or Mobbin is unreachable after three tries, log it, skip to the
   next step that does not need it, and report it in the morning.
 
-**Morning report** (plain words, five lines in chat):
-- what got done;
+**Report** (plain words, five lines in chat):
+- what got done, with the PR links;
 - the decisions taken;
 - the scores before and after;
-- what's left.
+- what's left;
+- every founder-only command, exactly as it must be run.
 
-Attach a combined PDF of the v4 Paper pages (`export_combined_pdf`) and the
-progress file.
+Attach:
+- a combined PDF of the v4 Paper pages (`export_combined_pdf`);
+- the built-versus-design shots from `90 Built`;
+- the progress file.
 
 ---
 
@@ -905,3 +1170,6 @@ progress file.
   - Phone critique scored 15/40; desktop critique 17/40.
   - `T-01` and `T-02` started as separate sessions.
   - Founder added the address rule (`RC-09`) and the words pass (S0).
+  - Founder asked for a scroll story on the home page as good as United
+    Carriers', inspired by it rather than cloned, with Volza shipment records
+    in v2. It is written up as "Know who you're buying from" in section 5.
