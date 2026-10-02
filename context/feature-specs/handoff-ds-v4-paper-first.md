@@ -967,23 +967,37 @@ before its gate is passed.
 
 ---
 
-## 9b. Overnight run: Paper only (founder, 3 Oct)
+## 9b. Unattended run, end to end (founder, 3 Oct)
 
-The founder wants phases 0 to 4 (S0 to S8) done unattended overnight, **on
-Paper only**:
+Earlier on 3 Oct the founder asked for an overnight run on Paper only. The
+same day they widened it: **everything, end to end, unattended, without
+asking or waiting.**
 
-- No app code changes and nothing near production. Phase 5 waits until the
-  founder has seen the Paper work.
+- First, the "Fix now" list, as small PRs.
+- Then phases 0 to 4 (S0 to S8) on Paper, under the rules below.
+- Then Phase 5 (section 6) in code, through to the promotion PR.
 - The lead session orchestrates; each step runs as a sub-agent with fresh
-  context.
+  context. Code steps run in their own worktree.
 
-**Founder gates overnight.** The founder pre-approves taking the recommended
-default at GATE 0 to GATE 5 and at D-1 to D-7. Each decision is logged with
-its reason in `context/feature-specs/ds-v4-progress.md`, and its screenshots
-go to the founder with `SendUserFile` (status `proactive`). Anything
-irreversible is out of scope.
+**Founder gates.** The founder pre-approves taking the recommended default at
+GATE 0 to GATE 5 and at D-1 to D-7, and starting Phase 5 without seeing the
+Paper work first. Each decision is logged with its reason in
+`context/feature-specs/ds-v4-progress.md`, and its screenshots go to the
+founder with `SendUserFile` (status `proactive`).
 
-**Never overnight:**
+**Founder-only, even in this run.** These are never done; they are written
+into the report with the exact command, and the run carries on with
+everything else:
+
+- migrations against production and any `--apply`;
+- triggering or approving Deploy Production;
+- anything else the guard hook refuses (CLAUDE.md).
+
+Phase 5's last step opens the `development` into `main` PR with
+`--auto --merge`. Nothing reaches buyers until the founder clicks Deploy
+Production.
+
+**Never during the Paper phases (S0 to S8):**
 - edit `app/`, `components/`, `lib/`, `supabase/`, `etl/`, `ops/`,
   `.github/`, `DESIGN.md` or `.impeccable/design.json`;
 - run migrations, `--apply`, deploys or promotions;
@@ -996,6 +1010,9 @@ Read `PRODUCT.md` directly instead. The new system is written to
 Phase 5, so sessions still working on today's app keep their context.
 
 **Order and parallelism.**
+0. The "Fix now" items not already merged (check `git log` and
+   `gh pr list` first): one small PR each to `development`, run beside the
+   Paper phases.
 1. S0 and S1 run in parallel.
 2. Then S2.
 3. Then S3, S4, S5 and S6, at most three at a time, each on its own Paper
@@ -1005,7 +1022,13 @@ Phase 5, so sessions still working on today's app keep their context.
    - `/impeccable critique` on the v4 desktop and phone pages;
    - fix what it finds once;
    - re-score once.
-6. Then the morning report.
+6. Then Phase 5 (section 6), in order:
+   - B0 to B10 into `ds-v4`, each with one `/code-review`;
+   - the must-stay section 6 checks and the critique of the built screens
+     against section 7;
+   - the switch PR from `ds-v4` into `development`;
+   - the promotion PR from `development` into `main`.
+7. Then the report.
 
 **Real data.** Use these, all real records captured from production:
 - `lib/dashboard/fixtures.production.json`;
@@ -1015,7 +1038,7 @@ Phase 5, so sessions still working on today's app keep their context.
 Read-only SQL through the Supabase MCP is allowed for live counts (rule 15:
 reading production is safe). Never write.
 
-**Repository output.** Docs only, on branch `ds-v4-paper`:
+**Repository output of the Paper phases.** Docs only, on branch `ds-v4-paper`:
 - `voice-v4.md`, `ds-v4-spec.md`, `ds-v4/DESIGN-v4.md`;
 - the copy inventory;
 - the progress file.
@@ -1032,14 +1055,17 @@ founder's approval.
 - If Paper or Mobbin is unreachable after three tries, log it, skip to the
   next step that does not need it, and report it in the morning.
 
-**Morning report** (plain words, five lines in chat):
-- what got done;
+**Report** (plain words, five lines in chat):
+- what got done, with the PR links;
 - the decisions taken;
 - the scores before and after;
-- what's left.
+- what's left;
+- every founder-only command, exactly as it must be run.
 
-Attach a combined PDF of the v4 Paper pages (`export_combined_pdf`) and the
-progress file.
+Attach:
+- a combined PDF of the v4 Paper pages (`export_combined_pdf`);
+- the built-versus-design shots from `90 Built`;
+- the progress file.
 
 ---
 
