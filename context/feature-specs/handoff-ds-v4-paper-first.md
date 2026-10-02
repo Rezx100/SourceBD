@@ -754,6 +754,82 @@ before its gate is passed.
 
 ---
 
+## 9b. Overnight run: Paper only (founder, 3 Oct)
+
+The founder wants phases 0 to 4 (S0 to S8) done unattended overnight, **on
+Paper only**:
+
+- No app code changes and nothing near production. Phase 5 waits until the
+  founder has seen the Paper work.
+- The lead session orchestrates; each step runs as a sub-agent with fresh
+  context.
+
+**Founder gates overnight.** The founder pre-approves taking the recommended
+default at GATE 0 to GATE 5 and at D-1 to D-7. Each decision is logged with
+its reason in `context/feature-specs/ds-v4-progress.md`, and its screenshots
+go to the founder with `SendUserFile` (status `proactive`). Anything
+irreversible is out of scope.
+
+**Never overnight:**
+- edit `app/`, `components/`, `lib/`, `supabase/`, `etl/`, `ops/`,
+  `.github/`, `DESIGN.md` or `.impeccable/design.json`;
+- run migrations, `--apply`, deploys or promotions;
+- write to the old Paper file "SourceBD";
+- call `get_screenshot` on the old pages;
+- run `impeccable context` (it prints the old `DESIGN.md`).
+
+Read `PRODUCT.md` directly instead. The new system is written to
+`context/feature-specs/ds-v4/DESIGN-v4.md`. `DESIGN.md` is swapped only in
+Phase 5, so sessions still working on today's app keep their context.
+
+**Order and parallelism.**
+1. S0 and S1 run in parallel.
+2. Then S2.
+3. Then S3, S4, S5 and S6, at most three at a time, each on its own Paper
+   pages.
+4. Then S7 and S8 in parallel.
+5. Then one bounded quality round:
+   - `/impeccable critique` on the v4 desktop and phone pages;
+   - fix what it finds once;
+   - re-score once.
+6. Then the morning report.
+
+**Real data.** Use these, all real records captured from production:
+- `lib/dashboard/fixtures.production.json`;
+- `lib/dashboard/gallery-data.ts`;
+- the must-stay section 3 records.
+
+Read-only SQL through the Supabase MCP is allowed for live counts (rule 15:
+reading production is safe). Never write.
+
+**Repository output.** Docs only, on branch `ds-v4-paper`:
+- `voice-v4.md`, `ds-v4-spec.md`, `ds-v4/DESIGN-v4.md`;
+- the copy inventory;
+- the progress file.
+
+Open one PR to `development` with `--auto --squash`. Docs on `development`
+change nothing a buyer sees; deploys happen only from `main` with the
+founder's approval.
+
+**Resumable.**
+- On start, read `ds-v4-progress.md` and continue from the first unfinished
+  step.
+- A step is finished only when its outputs exist and its gate entry is
+  logged.
+- If Paper or Mobbin is unreachable after three tries, log it, skip to the
+  next step that does not need it, and report it in the morning.
+
+**Morning report** (plain words, five lines in chat):
+- what got done;
+- the decisions taken;
+- the scores before and after;
+- what's left.
+
+Attach a combined PDF of the v4 Paper pages (`export_combined_pdf`) and the
+progress file.
+
+---
+
 ## 10. Progress (each session appends one line)
 
 - 3 Oct 2026:
