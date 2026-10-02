@@ -8,12 +8,15 @@
 // words, no tiles, no chart, no score; a failed read says so and claims no
 // all-clear; an empty section is one caption line, not a panel.
 //
-// Server component; the page reads `buyer_dashboard` and passes it in. SBI
-// and contact PII never reach this file: `buyer_dashboard` excludes both.
+// Server component; the page reads `buyer_dashboard` and passes it in, with
+// the expired certificates (`compliance_expired_certs`, 0108) beside it:
+// `buyer_dashboard`'s alerts stop at today, so a certificate that lapsed left
+// the desk the day it lapsed. SBI and contact PII never reach this file:
+// both RPCs exclude both.
 
 import Link from "next/link";
-import { certScheme, daysUntil, displayName, formatDay } from "@/lib/dashboard/facts";
-import { ExpiryBadge } from "./compliance";
+import { certScheme, daysUntil, displayName, formatCount, formatDay } from "@/lib/dashboard/facts";
+import { certRowHref, ExpiryBadge, type ExpiredPayload } from "./compliance";
 import { PageSection } from "./page";
 
 export type DeskAlert = {
@@ -67,15 +70,21 @@ function NameLink({ href, name }: { href: string; name: string }) {
   );
 }
 
+/** How many expired certificates the desk lists before pointing at the hub's full list. */
+const DESK_EXPIRED = 5;
+
 export function SavedDesk({
   doc,
   failed,
+  expired,
   openHref,
   today = new Date(),
 }: {
   /** Null when the desk could not be read. */
   doc: DeskModel | null;
   failed: boolean;
+  /** Expired with no renewal on file, most recent first; null when it could not be read. */
+  expired: ExpiredPayload | null;
   /** Where a supplier's name leads: its record, opened beside the saved list. */
   openHref: (slug: string) => string;
   /** The day the alerts count down from (tests pin it). */
@@ -90,15 +99,57 @@ export function SavedDesk({
       Compliance hub
     </Link>
   );
+  const lapsed = expired?.rows.slice(0, DESK_EXPIRED) ?? [];
+  const more = (expired?.total ?? 0) - lapsed.length;
   return (
     <div className="grid items-start gap-6 xl:grid-cols-2">
-      {doc.alerts.length === 0 ? (
-        <PageSection title="Alerts" caption="No certificates on your saved suppliers expire in the next 30 days" action={compliance} bare>
+      {doc.alerts.length === 0 && lapsed.length === 0 ? (
+        <PageSection
+          title="Alerts"
+          caption={
+            expired === null
+              ? "No certificates on your saved suppliers expire in the next 30 days. Expired certificates could not be read just now."
+              : "No certificate on your saved suppliers has lapsed or expires in the next 30 days"
+          }
+          action={compliance}
+          bare
+        >
           {null}
         </PageSection>
       ) : (
-        <PageSection title="Alerts" caption="Certificates expiring in the next 30 days" action={compliance}>
+        <PageSection
+          title="Alerts"
+          caption={lapsed.length > 0 ? "Expired with no renewal on file, then expiring in the next 30 days" : "Certificates expiring in the next 30 days"}
+          action={compliance}
+        >
           <ul className="m-0 list-none p-0">
+            {lapsed.map((r) => (
+              <li
+                key={`${r.supplier.id}-${r.kind}-${r.certificate_no ?? r.expires_on}`}
+                data-expired=""
+                className="flex min-h-11 flex-wrap items-baseline gap-x-2 gap-y-1 border-b border-line-subtle px-4 py-2.5 text-base last:border-b-0"
+              >
+                <NameLink href={openHref(r.supplier.slug)} name={r.supplier.company_name} />
+                <span className="text-ink-muted">
+                  {/* The hub's link: the record, at this certificate's row. */}
+                  <Link prefetch={false} href={certRowHref(r)} className="link">
+                    {certScheme(r.kind)}
+                  </Link>{" "}
+                  expired {formatDay(r.expires_on) ?? r.expires_on}
+                </span>
+                <ExpiryBadge days={r.days_remaining} />
+              </li>
+            ))}
+            {more > 0 ? (
+              <li className="border-b border-line-subtle px-4 py-2.5 text-sm last:border-b-0">
+                <Link prefetch={false} href="/app/compliance/expiry" className="link">
+                  {formatCount(more)} more expired on the Compliance hub
+                </Link>
+              </li>
+            ) : null}
+            {expired === null ? (
+              <li className="border-b border-line-subtle px-4 py-2.5 text-sm text-ink-muted last:border-b-0">Expired certificates could not be read just now.</li>
+            ) : null}
             {doc.alerts.map((a) => {
               const days = daysUntil(a.expires_on, today);
               return (

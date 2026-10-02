@@ -96,6 +96,7 @@
     "app/(app)/app/products/new/page.tsx",
     "app/(app)/app/messages/page.tsx",
     "app/(app)/app/compliance/page.tsx",
+    "app/(app)/app/compliance/expiry/page.tsx",
     "app/(app)/app/compliance/msa/page.tsx",
     "lib/msa-statement.ts",
     "lib/msa-statement.test.ts",

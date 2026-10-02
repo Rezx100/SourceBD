@@ -389,10 +389,10 @@ describe("the desk on Saved", () => {
       recent_activity: [],
     });
     assert.ok(doc);
-    const html = render(createElement(SavedDesk, { doc, failed: false, openHref: (slug: string) => `/app/saved?open=${slug}`, today: new Date("2026-09-28T09:00:00Z") }));
+    const html = render(createElement(SavedDesk, { doc, failed: false, expired: { total: 0, rows: [] }, openHref: (slug: string) => `/app/saved?open=${slug}`, today: new Date("2026-09-28T09:00:00Z") }));
     assert.match(html, /href="\/app\/saved\?open=tex-town"[^>]*>Tex Town Ltd</);
     assert.match(html, /GOTS expires 15 Oct 2026/);
-    const failed = render(createElement(SavedDesk, { doc: null, failed: true, openHref: () => "" }));
+    const failed = render(createElement(SavedDesk, { doc: null, failed: true, expired: null, openHref: () => "" }));
     assert.match(failed, /could not be read/);
     assert.doesNotMatch(failed, /No certificates/);
     assert.equal(deskFrom({ alerts: "x" }), null);

@@ -1,7 +1,9 @@
 // Saved (/app/saved): the buyer's desk. Certificate alerts and recent
 // activity on the suppliers they saved (from `public.buyer_dashboard()`,
 // migration 0026 — what the Home page showed until the search became the
-// app's first viewport, 28 Sep 2026), then the saved list itself from
+// app's first viewport, 28 Sep 2026 — and, first among the alerts, the
+// expired certificates from `public.compliance_expired_certs()`, 0108), then
+// the saved list itself from
 // `public.buyer_saved_list(p_sort, p_limit, p_offset)`, with the same two
 // worker figures the search shows (REZ-114's headline figure and the record's
 // own), drawn by `components/dashboard/saved-list.tsx`.
@@ -16,6 +18,7 @@
 
 import { Suspense } from "react";
 import { SAVED_SORTS, SavedList, savedHref, type SavedSort } from "@/components/dashboard/saved-list";
+import type { ExpiredPayload } from "@/components/dashboard/compliance";
 import { SavedDesk, deskFrom } from "@/components/dashboard/saved-desk";
 import { RecordBeside, readRecordBeside } from "@/components/dashboard/record-beside";
 import { RecordSkeleton } from "@/components/dashboard/record-skeleton";
@@ -72,7 +75,7 @@ export default async function SavedSuppliersPage({
   const listHref = savedHref(sort, pageNum);
 
   const supabase = await createSupabaseServerClient();
-  const [{ data, error }, dash] = await Promise.all([
+  const [{ data, error }, dash, expired] = await Promise.all([
     supabase.rpc("buyer_saved_list", {
       p_sort: sort,
       p_limit: PAGE_SIZE,
@@ -80,6 +83,10 @@ export default async function SavedSuppliersPage({
     }),
     supabase.rpc("buyer_dashboard").then(
       (r) => (r.error ? null : deskFrom(r.data)),
+      () => null,
+    ),
+    supabase.rpc("compliance_expired_certs").then(
+      (r) => (r.error || !Array.isArray((r.data as ExpiredPayload | null)?.rows) ? null : (r.data as ExpiredPayload)),
       () => null,
     ),
   ]);
@@ -104,7 +111,7 @@ export default async function SavedSuppliersPage({
           sort={sort}
           failed={Boolean(error)}
           openSlug={openSlug}
-          desk={<SavedDesk doc={dash} failed={dash === null} openHref={(slug) => savedHref(sort, pageNum, slug)} />}
+          desk={<SavedDesk doc={dash} failed={dash === null} expired={expired} openHref={(slug) => savedHref(sort, pageNum, slug)} />}
         />
       </ResultsColumn>
       {openSlug ? (

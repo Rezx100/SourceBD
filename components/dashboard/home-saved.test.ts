@@ -10,6 +10,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 
+import type { CertRow, ExpiredPayload } from "./compliance";
 import { SavedDesk, activityLabel, deskFrom, type DeskModel } from "./saved-desk";
 import { DeleteSavedSearch } from "./saved-controls";
 import { SavedList, SavedSearchesTable, countedCaption, savedHref, type SavedListRow } from "./saved-list";
@@ -18,8 +19,10 @@ import type { SavedSearchJson } from "@/lib/saved-searches";
 const EMPTY_DESK: DeskModel = { alerts: [], recent_activity: [] };
 const TODAY = new Date("2026-10-01T09:00:00Z");
 
-const desk = (doc: DeskModel | null, failed = false) =>
-  renderToStaticMarkup(createElement(SavedDesk, { doc, failed, openHref: (slug: string) => savedHref("recent", 1, slug), today: TODAY }));
+const NONE_EXPIRED: ExpiredPayload = { total: 0, rows: [] };
+
+const desk = (doc: DeskModel | null, failed = false, expired: ExpiredPayload | null = NONE_EXPIRED) =>
+  renderToStaticMarkup(createElement(SavedDesk, { doc, failed, expired, openHref: (slug: string) => savedHref("recent", 1, slug), today: TODAY }));
 
 /** What a reader sees: the markup with its tags removed. */
 const text = (markup: string) => markup.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
@@ -50,11 +53,21 @@ const ALERT = {
   expires_on: "2026-10-12",
 };
 
+const LAPSED: CertRow = {
+  kind: "wrap",
+  certificate_no: "7865",
+  issuer: "WRAP",
+  expires_on: "2026-09-21",
+  document_url: null,
+  days_remaining: -10,
+  supplier: { id: "s2", slug: "jk-fabrics", company_name: "JK FABRICS LTD", entity_type: "factory", city: "Gazipur", district: "Gazipur" },
+};
+
 describe("the desk on Saved", () => {
   it("an empty desk is two caption lines, no panel, no art, no score", () => {
     const html = desk(EMPTY_DESK);
     for (const h of ["Alerts", "Recent activity"]) assert.match(html, new RegExp(`<h2[^>]*>${h}</h2>`));
-    assert.match(html, /No certificates on your saved suppliers expire in the next 30 days/);
+    assert.match(html, /No certificate on your saved suppliers has lapsed or expires in the next 30 days/);
     assert.doesNotMatch(html, /<ul class="m-0 list-none p-0"|<img\b|role="alert"/);
     assert.doesNotMatch(html, /%|score|grade/i);
   });
@@ -64,6 +77,28 @@ describe("the desk on Saved", () => {
     assert.match(html, /href="\/app\/saved\?open=aboni"[^>]*>Aboni Knitwear Ltd<\/a>/);
     assert.match(html, /OEKO-TEX expires 12 Oct 2026<\/span><span class="[^"]*text-caution-ink[^"]*">in 11 days<\/span>/);
     assert.doesNotMatch(html, /bg-caution-tint|Expiring</, "the badge that repeated the sentence");
+  });
+
+  // The alerts stopped at today, so a certificate left the desk the day it
+  // lapsed (3 Oct 2026). Expired ones come first now, in danger ink, and link
+  // to the certificate's row on the record.
+  it("an expired certificate with no renewal leads the alerts, in danger ink, linked to its row on the record", () => {
+    const html = desk({ ...EMPTY_DESK, alerts: [ALERT] }, false, { total: 1, rows: [LAPSED] });
+    assert.match(html, /Expired with no renewal on file, then expiring in the next 30 days/);
+    assert.ok(html.indexOf("data-expired") < html.indexOf("OEKO-TEX expires"), "the expired certificate comes before the expiring one");
+    assert.match(html, /href="\/app\/saved\?open=jk-fabrics"[^>]*>Jk Fabrics Ltd<\/a>/, "the name still opens the record beside the list");
+    assert.match(html, /href="\/app\/suppliers\/jk-fabrics#cert-wrap-7865"[^>]*>WRAP<\/a> expired 21 Sep 2026<\/span><span class="[^"]*text-danger-ink[^"]*">10 days ago<\/span>/);
+    assert.doesNotMatch(html, /bg-sanction|text-sanction/, "an expired certificate is not a sanction");
+  });
+
+  it("past five expired the desk points at the hub's list; an unread expired list claims no all-clear", () => {
+    const rows = Array.from({ length: 7 }, (_, i) => ({ ...LAPSED, certificate_no: `78${i}` }));
+    const html = desk(EMPTY_DESK, false, { total: 7, rows });
+    assert.equal(html.match(/data-expired/g)?.length, 5);
+    assert.match(html, /href="\/app\/compliance\/expiry"[^>]*>2 more expired on the Compliance hub</);
+    const unread = desk(EMPTY_DESK, false, null);
+    assert.match(unread, /Expired certificates could not be read just now/);
+    assert.doesNotMatch(unread, /has lapsed/, "no all-clear over an unread list");
   });
 
   it("activity reads as words, and a failed read claims no all-clear", () => {
