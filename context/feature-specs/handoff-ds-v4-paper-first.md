@@ -29,6 +29,11 @@ Recorded founder answers:
   - The address must appear **once**, cleanly.
   - No "Also recorded as" spelling variants and no "registry spellings
     merged" on any buyer surface (register `RC-09`; it is in "Fix now").
+- **3 Oct, on the map:**
+  - The Barikoi map that is already built in the repo must be visible on the
+    supplier page (register `RC-10`).
+  - It is in "Fix now" for today's record, and part of the v4 Locations
+    design.
 - **3 Oct, on the whole product:**
   - It is "wordy and text heavy with confusing numbers and dev-jargon-like
     sentences".
@@ -328,9 +333,19 @@ to the founder in plain words.
        Extended.
      - Licence must allow web use; loaded with `next/font` (no new package,
        must-stay section 2).
-     - Propose two candidates that match the reference's proportions; the
-       founder picks at GATE 1. (The 18 Sep answer "one family, Inter"
-       is void under "everything else gets recreated"; ask again.)
+     - **Recommended default (D-2): IBM Plex Sans with IBM Plex Mono.**
+       - Both are open-licence and on Google Fonts.
+       - Plex reads as institutional and engineered, which suits a product
+         that sells evidence. It has true tabular figures for tables, and
+         Plex Mono is made for certificate numbers, HS codes and dates.
+       - It is less generic than Inter.
+     - **Runner-up: Inter with JetBrains Mono.** Inter matches the founder's
+       18 Sep answer.
+     - Test both in a real 40px results row and a 13px fact row. Choose Plex
+       unless it measurably loses on density or legibility; log the
+       measurements.
+     - Today's typeface (Geist) is out, under "everything else gets
+       recreated".
    - Icons: Phosphor is the allowed package. Choose weight and sizes anew.
    - Floors the critiques proved necessary (register section S):
      - Text: 12px minimum anywhere.
@@ -388,6 +403,18 @@ On `01 Foundations`, `02 Components`, `03 Patterns` of the v4 file:
   - **Timeline:** past and planned milestones with who logged each.
   - **Chat:** bubbles by sender, pinned composer with attach, read state.
   - **"Needs attention" row** with one action.
+  - **Locations map (`RC-10`):** the Barikoi map beside or above one clean
+    address per premises, synced both ways.
+    - Pins show the address kind and exact vs approximate (from the geocode
+      confidence).
+    - Controls: a satellite/street toggle, and "nearby suppliers" off by
+      default.
+    - Phone: a map card that opens full screen.
+    - In Paper, show a **real** map: a screenshot of the map on the live
+      public supplier page for `aboni-knitwear` (public, no login), captured
+      with the in-app browser and placed as an image.
+    - Never draw invented pin positions. If no real capture is possible, use
+      a plain placeholder labelled "Map (Barikoi), live in the build".
   - **Statement claim to confirm:** `[Confirm: ...]` that blocks export.
 - **The app shell:**
   - Desktop: sidebar plus topbar plus list and pane, with search living in
@@ -413,7 +440,7 @@ register items it must close, not from the old picture.
 
 | Session | Flow | Screens (v3 names) | Register items to close |
 | --- | --- | --- | --- |
-| S3 | Search and the record | Landing (with the returning-user work queue), Results table, Results cards (decide: keep or drop, `SR-05`), Filters, Supplier record (pane + full page, one design), Product line, Sanctioned record (sample state), empty results, loading, error | `T-03`..`T-07`, `SR-*`, `RC-*`, `S-*` |
+| S3 | Search and the record | Landing (with the returning-user work queue), Results table, Results cards (decide: keep or drop, `SR-05`), Filters, Supplier record (pane + full page, one design; Locations with the Barikoi map and one address per premises, `RC-09`/`RC-10`), Product line, Sanctioned record (sample state), empty results, loading, error | `T-03`..`T-07`, `SR-*`, `RC-*`, `S-*` |
 | S4 | RFQs, quotes, orders | RFQ composer (to 1 and to 50 suppliers), RFQ list, RFQ detail with **quote comparison** (one design for pane and page, `RQ-04`), Accept confirm sheet, Orders list, Order detail with timeline, New order (picker inline, no dead end, `OR-04`), order form | `RQ-*`, `OR-*` |
 | S5 | Messages, Saved, Compliance | Messages list, thread, thread with record beside it (desktop three-pane; phone sheet over the thread), Saved (with bulk RFQ), Saved searches (with alerts), Save-this-search popover, Compliance hub as a ranked "Needs attention" view, Certificate expiry (with an **Expired** group), UFLPA tracker populated with hit / region flag / clear, MSA statement editor (confirm-every-claim, PDF/DOCX export) | `MS-*`, `SV-*`, `CP-*`, `T-01`, `T-02` |
 | S6 | Products, HS headings, Settings, account | Products list, product editor (spreadsheet-like size chart across sizes, BOM with units, `PR-*`), HS headings by chapter, Settings as a grouped list (Profile, Security, Workspace, Members & roles, RFQ templates, Plan & usage, Notifications), Members with invite and roles, Security (2FA, sessions), Audit log (if the founder says yes to `E-03`) | `PR-*`, `ST-*`, `E-*` (only those approved) |
@@ -587,6 +614,46 @@ References (pull the full sites in S8):
 Clone the section *structure* only. Any badge, logo wall or testimonial in a
 reference is replaced by a SourceBD fact, never by an imitation.
 
+**Visual direction: "evidence, in the open."**
+
+- **Same system as the app.** The marketing site is the app's design system
+  at editorial scale, not a separate brand.
+- **Colour.**
+  - Ground: pure white.
+  - Ink: near-black.
+  - Forest green `#1B5E20`: the one strong colour, spent on calls to action
+    and on the thin "trace" lines that link a fact to its source.
+  - Greys only for structure.
+  - No gradients, no purple, no blobs, no glow.
+- **Type.**
+  - Very large IBM Plex Sans headlines (tight tracking, at most two lines).
+  - Short plain sentences under them.
+  - IBM Plex Mono for the "receipt" texture: register numbers, read dates,
+    counts.
+- **Imagery: the product and the data are the pictures.** No stock photos of
+  factories or people, no illustrations, no mascots.
+  1. **The receipt.** One real fact drawn as a receipt: "Aboni Knitwear Ltd ·
+     BGMEA member 3498 · checked 24 Jul 2026", traced by a green line to the
+     BGMEA mark.
+  2. **The Barikoi map of Bangladesh** with real supplier counts by district
+     (Dhaka, Gazipur, Narayanganj, Savar, Chattogram). It is the hero visual
+     or the methodology visual, captured from real data.
+  3. **The source-tier ladder** (government, then industry bodies, then
+     certification bodies, then brand lists, then foreign regulators) with
+     real logos per `logos.lock.md`.
+  4. **Real v4 app screens,** framed plainly (no device mock-ups with fake
+     reflections).
+- **Proof strip.** Live counts in big numerals with "updated <date>":
+  published suppliers, certificates on file, RSC records, sources read in the
+  last 30 days.
+- **Rhythm.** The hero (one line, a search box that runs on public Discover,
+  Start free and Book a demo), then alternating text and real screen
+  sections, then a mega footer. Generous white space; the evidence carries
+  the page.
+- **Motion.** Minimal. The `motion` library is allowed only on marketing
+  pages; respect reduced motion. No count-up animations on the live numbers
+  (they must read as facts, not effects).
+
 **Proof without fakes.** SourceBD has no customer logos, testimonials or
 security certifications (PRODUCT.md). Enterprise trust comes from the data
 itself:
@@ -739,7 +806,8 @@ before its gate is passed.
 
 - **D-1 Reference product:** Vanta (recommended), or another from the S1
   shortlist. GATE 1.
-- **D-2 Type family:** one of the two S1 candidates. GATE 1.
+- **D-2 Type family:** IBM Plex Sans with IBM Plex Mono (recommended), or
+  Inter with JetBrains Mono. GATE 1.
 - **D-3 Phone tabs:** Messages · Quotes · Alerts · Saved · Search
   (recommended), or keep today's five. GATE 2.
 - **D-4 Enterprise features in scope for design:** roles and invites, 2FA and
