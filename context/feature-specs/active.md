@@ -59,6 +59,12 @@ same PR. Read once per session.
   `archive/specs-shipped-2026.md`.
 
 ## Queued
+- **SourceBD v4: new design system, Paper first, then build** (3 Oct).
+  Hand-off: `handoff-ds-v4-paper-first.md`. Issues: `ui-issue-register-oct-2026.md`.
+  Order: S0 words → S1/S2 design system (Mobbin reference, forest green only)
+  → app, onboarding, marketing on Paper → build on `ds-v4`. Its "Fix now"
+  list ships first, in small PRs. Supersedes the visual direction (section 9)
+  of `ds-rebuild-must-stay.md`; that file's sections 2–6 still bind.
 - **Entity resolution core** — `spec-resolution-core.md` (4 Aug). Batch
   resolution stage over immutable `staging_records`; LLM adjudicator for the
   review band only; Firecrawl `/v2/extract` not approved. Prerequisite:
