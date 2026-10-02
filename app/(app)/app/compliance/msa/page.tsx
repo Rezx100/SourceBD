@@ -9,8 +9,9 @@ import { Chip } from "@/components/dashboard/chips";
 import { BackToHub, prettyCert } from "@/components/dashboard/compliance";
 import { DetailList, ErrorNote, PageHeader, PageSection, Page } from "@/components/dashboard/page";
 import { Caption } from "@/components/dashboard/type";
-import { MsaGeneratorForm, type MsaInputs, type MsaScreening } from "@/components/msa-generator-form";
+import { MsaGeneratorForm } from "@/components/msa-generator-form";
 import { formatCount } from "@/lib/dashboard/facts";
+import type { MsaInputs, MsaScreening } from "@/lib/msa-statement";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";

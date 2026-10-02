@@ -10,7 +10,8 @@
 // that holds a whole sentence is a claim for the buyer to check; the others
 // say what to write.
 
-import { formatCount, formatDay } from "@/lib/dashboard/facts";
+import { plural, prettyCert } from "@/components/dashboard/compliance";
+import { entityLabel, formatCount, formatDay, placeLabel } from "@/lib/dashboard/facts";
 
 /** `compliance_msa_inputs()` (migration 0030), over the buyer's published saved suppliers. */
 export type MsaInputs = {
@@ -61,8 +62,9 @@ export function countPlaceholders(text: string): number {
   return text.split(PLACEHOLDER_OPEN).length - 1;
 }
 
-function count(n: number, one: string, many = `${one}s`): string {
-  return `${formatCount(n)} ${n === 1 ? one : many}`;
+/** What the buyer typed, with square brackets made round so a typed one cannot close a placeholder. */
+function typed(s: string): string {
+  return s.trim().replace(/\[/g, "(").replace(/\]/g, ")");
 }
 
 function counted(items: { label: string; count: number }[]): string {
@@ -75,19 +77,27 @@ function bullets(items: string[]): string {
 
 export function buildStatement(args: StatementArgs): string {
   const { inputs, screening } = args;
-  const org = args.org.trim();
-  const year = args.year.trim();
+  const org = typed(args.org);
+  const year = typed(args.year);
   // Outside a placeholder an empty field is itself one; inside one it reads
   // as plain words, so placeholders never nest.
   const orgOut = org || confirm("organisation name");
   const orgIn = org || "your organisation";
   const yearOut = year || confirm("financial year");
   const yearIn = year || "the financial year";
-  const signer = args.signerName.trim() || confirm("signatory name");
-  const role = args.signerRole.trim() || confirm("signatory role");
+  const signer = typed(args.signerName) || confirm("signatory name");
+  const role = typed(args.signerRole) || confirm("signatory role");
   const asOf = formatDay(args.asOf) ?? args.asOf;
   const published = inputs.total_published;
   const rscAvg = inputs.rsc_avg_progress_pct != null ? `${inputs.rsc_avg_progress_pct.toFixed(1)}%` : null;
+
+  // The RPC files a missing city as "Unknown"; that is not a place to list.
+  const topLocations = inputs.top_regions
+    .flatMap((r) => {
+      const place = placeLabel(r.city === "Unknown" ? null : r.city, r.district);
+      return place ? [`${place}: ${plural(r.count, "supplier")}`] : [];
+    })
+    .slice(0, 5);
 
   const countries =
     inputs.by_country.length > 0
@@ -111,47 +121,53 @@ export function buildStatement(args: StatementArgs): string {
 
   const rsc =
     inputs.rsc_covered > 0
-      ? `${count(inputs.rsc_covered, "of these suppliers is", "of these suppliers are")} in the RMG Sustainability Council (RSC) safety remediation programme${
+      ? `${plural(inputs.rsc_covered, "of these suppliers is", "of these suppliers are")} in the RMG Sustainability Council (RSC) safety remediation programme${
           rscAvg ? `, with average remediation progress of ${rscAvg}` : ""
         }, according to RSC records on SourceBD.`
       : "None of these suppliers is in the RMG Sustainability Council (RSC) safety remediation programme, according to RSC records on SourceBD.";
 
   // Only the list the tracker reads is named. A match on another list SourceBD
-  // holds is still disclosed, without a name the buyer would have to stand by.
+  // holds (`sanctions_hits` counts every list; the tracker's matches are a
+  // subset of it) is still disclosed, without a name the buyer would have to
+  // stand by — and still disclosed when the tracker did not load.
   const otherLists = screening ? Math.max(0, inputs.sanctions_hits - screening.hits) : 0;
-  const screeningLines = screening
-    ? [
-        `SourceBD checks each of our ${count(screening.total, "saved supplier")} against the U.S. Department of Homeland Security UFLPA Entity List. As at ${asOf}: ${count(
+  const toAnswer = screening ? screening.hits + screening.flags + otherLists : inputs.sanctions_hits;
+  const screeningLines = [
+    screening
+      ? `SourceBD's UFLPA tracker compares our ${plural(screening.total, "saved supplier")} with the U.S. Department of Homeland Security UFLPA Entity List. As at ${asOf} it shows ${plural(
           screening.hits,
           "match",
           "matches",
-        )}, ${count(screening.flags, "region flag")}, ${formatCount(screening.clear)} clear.${
+        )}, ${plural(screening.flags, "region flag")} and ${formatCount(screening.clear)} with neither.${
           screening.flags > 0
             ? " A region flag means the supplier's record on SourceBD (its group name or address) mentions Xinjiang or the Uyghur region."
             : ""
-        }`,
-        ...(otherLists > 0
-          ? [
-              `${count(otherLists, "further saved supplier matches", "further saved suppliers match")} an entry on another sanctions or forced-labour list held by SourceBD.`,
-            ]
-          : []),
-        ...(screening.hits + screening.flags + otherLists > 0
-          ? [
-              confirm(
-                `what ${orgIn} did about each match and region flag, for example asked for documents, paused orders or ended the relationship.`,
-              ),
-            ]
-          : []),
-      ]
-    : [
-        confirm(
+        }`
+      : confirm(
           "the result of checking your suppliers against the UFLPA Entity List. SourceBD's UFLPA tracker did not load, so this draft cannot state it; reload the page to fill it in.",
         ),
-      ];
+    ...(otherLists > 0
+      ? [
+          `${plural(otherLists, "further saved supplier matches", "further saved suppliers match")} an entry on another sanctions or forced-labour list held by SourceBD.`,
+        ]
+      : []),
+    ...(!screening && inputs.sanctions_hits > 0
+      ? [
+          `${plural(inputs.sanctions_hits, "saved supplier matches", "saved suppliers match")} an entry on a sanctions or forced-labour list held by SourceBD.`,
+        ]
+      : []),
+    ...(toAnswer > 0
+      ? [
+          confirm(
+            `what ${orgIn} did about each match and region flag, for example asked for documents, paused orders or ended the relationship.`,
+          ),
+        ]
+      : []),
+  ];
 
   const expiring = `${
     inputs.expiring_certs_90d > 0
-      ? `${count(inputs.expiring_certs_90d, "certificate", "certificates")} held by our saved suppliers ${
+      ? `${plural(inputs.expiring_certs_90d, "certificate")} held by our saved suppliers ${
           inputs.expiring_certs_90d === 1 ? "expires" : "expire"
         } within the next 90 days, according to SourceBD's certificate records.`
       : "No certificate on SourceBD's records for our saved suppliers expires within the next 90 days."
@@ -161,8 +177,12 @@ export function buildStatement(args: StatementArgs): string {
     `Published suppliers saved: **${formatCount(published)}**`,
     `In the RSC remediation programme: **${formatCount(inputs.rsc_covered)}**${rscAvg ? ` (average progress ${rscAvg})` : ""}`,
     ...(screening
-      ? [`UFLPA Entity List matches: **${formatCount(screening.hits)}**`, `UFLPA region flags: **${formatCount(screening.flags)}**`]
-      : []),
+      ? [
+          `UFLPA Entity List matches: **${formatCount(screening.hits)}**`,
+          `UFLPA region flags: **${formatCount(screening.flags)}**`,
+          ...(otherLists > 0 ? [`Matches on another sanctions or forced-labour list: **${formatCount(otherLists)}**`] : []),
+        ]
+      : [`Matches on any sanctions or forced-labour list held by SourceBD: **${formatCount(inputs.sanctions_hits)}**`]),
     `Certificates expiring within 90 days (lapsed certificates not counted): **${formatCount(inputs.expiring_certs_90d)}**`,
   ];
 
@@ -175,21 +195,21 @@ This statement is made under section 54 of the UK Modern Slavery Act 2015. It se
 
 ${confirm(`what ${orgIn} does: what it sells, where it operates, its annual turnover and how many people it employs.`)}
 
-${confirm(`${orgIn} sources from the suppliers described below.`)} The figures describe the ${count(published, "published supplier")} saved in our SourceBD account, as at ${asOf}, from SourceBD's supplier records.
+${confirm(`${orgIn} sources from the suppliers described below.`)} The figures describe the ${plural(published, "published supplier")} saved in our SourceBD account, as at ${asOf}, from SourceBD's supplier records.
 
 Countries: ${countries}.
 
 By facility type:
 
-${bullets(inputs.by_entity_type.map((e) => `${prettyEntityType(e.entity_type)}: ${formatCount(e.count)}`))}
+${bullets(inputs.by_entity_type.map((e) => `${entityLabel(e.entity_type)}: ${formatCount(e.count)}`))}
 
 Top locations:
 
-${bullets(inputs.top_regions.slice(0, 5).map((r) => `${[r.city, r.district].filter(Boolean).join(", ")}: ${count(r.count, "supplier")}`))}
+${bullets(topLocations)}
 
 Top parent groups:
 
-${bullets(inputs.top_parent_groups.slice(0, 5).map((g) => `${g.parent_group_name}: ${count(g.count, "supplier")}`))}
+${bullets(inputs.top_parent_groups.slice(0, 5).map((g) => `${g.parent_group_name}: ${plural(g.count, "supplier")}`))}
 
 ## 2. Policies in relation to slavery and human trafficking
 
@@ -238,45 +258,10 @@ ${confirm(`This statement was approved by the board of directors (or equivalent)
   // The warning travels with the text, so a pasted copy still carries it.
   const note =
     pending > 0
-      ? `> DRAFT: ${count(pending, "item")} marked "Confirm" still ${pending === 1 ? "needs" : "need"} your answer. SourceBD cannot know ${
+      ? `> DRAFT: ${plural(pending, "item")} marked "Confirm" still ${pending === 1 ? "needs" : "need"} your answer. SourceBD cannot know ${
           pending === 1 ? "it" : "them"
         }. Fill in or delete each one, then delete this note.\n\n`
       : "";
 
   return `# Modern Slavery Act 2015 — Section 54 Transparency Statement\n\n${note}${body}`;
-}
-
-function prettyCert(k: string): string {
-  switch (k) {
-    case "wrap":
-      return "WRAP";
-    case "oeko_tex":
-      return "OEKO-TEX";
-    case "gots":
-      return "GOTS";
-    case "sa8000":
-      return "SA8000";
-    case "bsci":
-      return "BSCI";
-    case "ocs":
-      return "OCS";
-    case "grs":
-      return "GRS";
-    case "rcs":
-      return "RCS";
-    case "sedex":
-      return "Sedex";
-    case "higg":
-      return "Higg";
-    case "fairtrade":
-      return "Fairtrade";
-    default:
-      return k.toUpperCase();
-  }
-}
-
-function prettyEntityType(t: string): string {
-  if (t === "factory") return "Factory";
-  if (t === "buying_house") return "Buying house";
-  return t.replace(/_/g, " ");
 }

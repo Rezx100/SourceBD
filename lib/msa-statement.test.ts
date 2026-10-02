@@ -145,6 +145,14 @@ describe("MSA statement — nothing the buyer has not confirmed reads as fact", 
     }
   });
 
+  it("a square bracket the buyer types cannot close a placeholder early", () => {
+    const text = draft({ org: "Acme [UK] Ltd", signerName: "J. Smith [CEO]" });
+    assert.match(text, /\*\*Organisation:\*\* Acme \(UK\) Ltd/);
+    assert.match(text, /\[Confirm: Acme \(UK\) Ltd sources from the suppliers described below\.\]/);
+    assert.match(text, /\*\*Signed:\*\* J\. Smith \(CEO\)/);
+    assert.deepEqual(unconfirmedClaims(text), []);
+  });
+
   it("the draft note counts the placeholders still in the text, so a pasted copy carries the warning", () => {
     const text = draft();
     const n = Number(text.match(/^> DRAFT: (\d+) items marked "Confirm" still need your answer\./m)?.[1]);
@@ -157,7 +165,7 @@ describe("MSA statement — the UFLPA result as the tracker shows it", () => {
   it("discloses a region flag in the risk section and the KPIs, and asks what was done about it", () => {
     const text = draft();
     const risk = section(text, 4);
-    assert.match(risk, /UFLPA Entity List\. As at 3 Oct 2026: 0 matches, 1 region flag, 15 clear\./);
+    assert.match(risk, /UFLPA Entity List\. As at 3 Oct 2026 it shows 0 matches, 1 region flag and 15 with neither\./);
     assert.match(risk, /A region flag means the supplier's record on SourceBD \(its group name or address\) mentions Xinjiang or the Uyghur region\./);
     assert.match(risk, /\[Confirm: what Example Apparel Ltd did about each match and region flag/);
     assert.match(section(text, 6), /- UFLPA region flags: \*\*1\*\*/);
@@ -170,21 +178,28 @@ describe("MSA statement — the UFLPA result as the tracker shows it", () => {
       { total: 1, hits: 1, flags: 0, clear: 0 },
     ]) {
       const risk = section(draft({ screening: s }), 4);
-      assert.match(risk, new RegExp(`${s.hits} match(es)?, ${s.flags} region flags?, ${s.clear} clear\\.`));
+      assert.match(risk, new RegExp(`${s.hits} match(es)?, ${s.flags} region flags? and ${s.clear} with neither\\.`));
       assert.equal(/did about each match and region flag/.test(risk), s.hits + s.flags > 0);
     }
   });
 
   it("names only the UFLPA Entity List, and still discloses a match on another list SourceBD holds", () => {
-    const risk = section(draft({ inputs: { ...INPUTS, sanctions_hits: 3 }, screening: { total: 16, hits: 1, flags: 0, clear: 15 } }), 4);
+    const text = draft({ inputs: { ...INPUTS, sanctions_hits: 3 }, screening: { total: 16, hits: 1, flags: 0, clear: 15 } });
+    const risk = section(text, 4);
     assert.match(risk, /2 further saved suppliers match an entry on another sanctions or forced-labour list held by SourceBD\./);
     assert.match(risk, /\[Confirm: what Example Apparel Ltd did about each match/);
+    assert.match(section(text, 6), /- Matches on another sanctions or forced-labour list: \*\*2\*\*/);
   });
 
-  it("when the tracker did not load, states no screening result at all", () => {
+  it("when the tracker did not load, states no UFLPA result, yet still discloses the matches SourceBD knows of", () => {
     const text = draft({ screening: null });
     assert.match(section(text, 4), /\[Confirm: the result of checking your suppliers against the UFLPA Entity List\. SourceBD's UFLPA tracker did not load/);
     assert.doesNotMatch(text, /\bmatches?\b,|region flags?:|UFLPA Entity List matches/);
+    assert.match(section(text, 6), /- Matches on any sanctions or forced-labour list held by SourceBD: \*\*0\*\*/);
+    const three = draft({ screening: null, inputs: { ...INPUTS, sanctions_hits: 3 } });
+    assert.match(section(three, 4), /3 saved suppliers match an entry on a sanctions or forced-labour list held by SourceBD\./);
+    assert.match(section(three, 4), /\[Confirm: what Example Apparel Ltd did about each match/);
+    assert.match(section(three, 6), /- Matches on any sanctions or forced-labour list held by SourceBD: \*\*3\*\*/);
   });
 });
 
@@ -204,6 +219,24 @@ describe("MSA statement — the figures say what they count", () => {
     assert.match(dd, /SourceBD holds no certification record for these suppliers\./);
     assert.match(dd, /None of these suppliers is in the RMG Sustainability Council \(RSC\) safety remediation programme, according to RSC records on SourceBD\./);
     assert.doesNotMatch(text, /recognised social and environmental standards|industry registers \(/);
+  });
+
+  it("top locations name places only: an unknown city is left out and an equal district is not repeated", () => {
+    const loc = section(
+      draft({
+        inputs: {
+          ...INPUTS,
+          top_regions: [
+            { city: "Unknown", district: "", count: 9 },
+            { city: "Gazipur", district: "Gazipur", count: 6 },
+            { city: "Savar", district: "Dhaka", count: 1 },
+          ],
+        },
+      }),
+      1,
+    );
+    assert.match(loc, /Top locations:\n\n- Gazipur: 6 suppliers\n- Savar, Dhaka: 1 supplier\n/);
+    assert.doesNotMatch(loc, /Unknown/);
   });
 
   it("register, certification and RSC figures carry their source", () => {

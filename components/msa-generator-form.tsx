@@ -10,7 +10,7 @@
 // buttons and in every copy or download. Copy-to-clipboard + download-as-.md
 // only — no upload or server submission.
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState, useSyncExternalStore } from "react";
 
 import { Button } from "@/components/dashboard/controls";
 import { Field, TextArea, TextInput } from "@/components/dashboard/fields";
@@ -19,7 +19,24 @@ import { PageSection } from "@/components/dashboard/page";
 import { Toast } from "@/components/dashboard/toast";
 import { buildStatement, countPlaceholders, type MsaInputs, type MsaScreening } from "@/lib/msa-statement";
 
-export type { MsaInputs, MsaScreening } from "@/lib/msa-statement";
+const neverChanges = () => () => {};
+const isoDay = (d: Date, local: boolean) =>
+  local
+    ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+    : d.toISOString().slice(0, 10);
+
+/**
+ * Today in the buyer's own time zone. The server cannot know it, so it
+ * renders the UTC day and the browser swaps in its own after hydration
+ * (`useSyncExternalStore`, so the first client render still matches).
+ */
+function useToday(): string {
+  return useSyncExternalStore(
+    neverChanges,
+    () => isoDay(new Date(), true),
+    () => isoDay(new Date(), false),
+  );
+}
 
 export function MsaGeneratorForm({ inputs, screening }: { inputs: MsaInputs; screening: MsaScreening | null }) {
   const id = useId();
@@ -29,6 +46,7 @@ export function MsaGeneratorForm({ inputs, screening }: { inputs: MsaInputs; scr
   const [signerName, setSignerName] = useState("");
   const [signerRole, setSignerRole] = useState("Director");
   const [toast, setToast] = useState<string | null>(null);
+  const today = useToday();
 
   useEffect(() => {
     if (!toast) return;
@@ -43,12 +61,11 @@ export function MsaGeneratorForm({ inputs, screening }: { inputs: MsaInputs; scr
         year,
         signerName,
         signerRole,
-        // The UTC day, so the server's render and the browser's agree.
-        asOf: new Date().toISOString().slice(0, 10),
+        asOf: today,
         inputs,
         screening,
       }),
-    [org, year, signerName, signerRole, inputs, screening],
+    [org, year, signerName, signerRole, today, inputs, screening],
   );
   const pending = countPlaceholders(draft);
   const pendingWords = `${pending} ${pending === 1 ? "item" : "items"} still to confirm`;
@@ -68,12 +85,14 @@ export function MsaGeneratorForm({ inputs, screening }: { inputs: MsaInputs; scr
     const blob = new Blob([draft], { type: "text/markdown;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    const slug = (org.trim() || "msa-statement")
+    // Only what the buyer typed: an empty year is left out, not guessed.
+    const slug = [org.trim() || "msa-statement", year.trim()]
+      .join(" ")
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "");
     a.href = url;
-    a.download = `${slug || "msa-statement"}-${year || currentYear - 1}.md`;
+    a.download = `${slug || "msa-statement"}.md`;
     document.body.appendChild(a);
     a.click();
     a.remove();

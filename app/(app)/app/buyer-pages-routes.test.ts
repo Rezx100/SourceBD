@@ -440,7 +440,7 @@ describe("/app/compliance/msa — the statement draft carries the UFLPA tracker'
     given({ compliance_msa_inputs: MSA_INPUTS, compliance_uflpa_tracker: { data: { total: 16, hits: 0, flags: 1, clear: 15, rows: [] }, error: null } });
     const out = await render(() => Msa()());
     const draft = preview(out);
-    assert.match(draft, /## 4\. Risk assessment[\s\S]*0 matches, 1 region flag, 15 clear\.[\s\S]*## 5\./);
+    assert.match(draft, /## 4\. Risk assessment[\s\S]*0 matches, 1 region flag and 15 with neither\.[\s\S]*## 5\./);
     assert.match(draft, /\[Confirm: what your organisation did about each match and region flag/);
     for (const old of [/maintains a formal/, /provides training/, /approved by the Board/, /remain current/, /denied-party/, /zero active hits/]) {
       assert.doesNotMatch(draft, old);
