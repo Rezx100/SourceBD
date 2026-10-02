@@ -1,14 +1,15 @@
 // Modern Slavery Act §54 statement generator — Spec B9 (/app/compliance/msa).
 //
 // Server component. Calls compliance_msa_inputs() for the saved-supplier
-// footprint that feeds the statement template, then mounts the
+// footprint and compliance_uflpa_tracker() for the UFLPA counts the risk
+// section discloses (region flags included), then mounts the
 // <MsaGeneratorForm/> client island, which composes the draft in the browser.
 
 import { Chip } from "@/components/dashboard/chips";
 import { BackToHub, prettyCert } from "@/components/dashboard/compliance";
 import { DetailList, ErrorNote, PageHeader, PageSection, Page } from "@/components/dashboard/page";
 import { Caption } from "@/components/dashboard/type";
-import { MsaGeneratorForm, type MsaInputs } from "@/components/msa-generator-form";
+import { MsaGeneratorForm, type MsaInputs, type MsaScreening } from "@/components/msa-generator-form";
 import { formatCount } from "@/lib/dashboard/facts";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -29,8 +30,10 @@ function ChipRow({ items }: { items: string[] }) {
 
 async function MsaPageBody() {
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.rpc("compliance_msa_inputs");
-  const inputs = error ? null : ((data ?? null) as MsaInputs | null);
+  const [msa, ufl] = await Promise.all([supabase.rpc("compliance_msa_inputs"), supabase.rpc("compliance_uflpa_tracker")]);
+  const error = msa.error;
+  const inputs = error ? null : ((msa.data ?? null) as MsaInputs | null);
+  const screening = ufl.error ? null : ((ufl.data ?? null) as MsaScreening | null);
 
   return (
     <>
@@ -41,6 +44,9 @@ async function MsaPageBody() {
       />
 
       {error ? <ErrorNote>Could not load the statement inputs. Reload the page to try again.</ErrorNote> : null}
+      {inputs && !screening ? (
+        <ErrorNote>The UFLPA tracker did not load, so the draft leaves its result for you to confirm. Reload the page to try again.</ErrorNote>
+      ) : null}
 
       {inputs ? (
         <>
@@ -67,7 +73,7 @@ async function MsaPageBody() {
             />
           </PageSection>
 
-          <MsaGeneratorForm inputs={inputs} />
+          <MsaGeneratorForm inputs={inputs} screening={screening} />
         </>
       ) : null}
     </>
