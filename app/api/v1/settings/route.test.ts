@@ -133,3 +133,46 @@ describe("POST update_inquiry", () => {
     await refused(q({}), /nothing to save/i);
   });
 });
+
+describe("POST change_password (ST-03: the current password first)", () => {
+  const change = (extra: Record<string, unknown>) =>
+    post({ action: "change_password", new_password: "new-password-1", ...extra });
+
+  it("changes the password only after the current one is checked against the account's email", async () => {
+    const res = await change({ current_password: "old-password" });
+    assert.equal(res.status, 200);
+    assert.deepEqual(fake.passwordChecks, [{ email: "buyer@example.com", password: "old-password" }]);
+    assert.deepEqual(fake.passwordUpdates, ["new-password-1"]);
+  });
+
+  it("refuses a missing or empty current password before checking anything", async () => {
+    for (const extra of [{}, { current_password: "" }, { current_password: 42 }]) {
+      const res = await change(extra);
+      assert.equal(res.status, 400, JSON.stringify(extra));
+      assert.match(((await res.json()) as { error: string }).error, /current password/);
+    }
+    assert.equal(fake.passwordChecks.length, 0);
+    assert.equal(fake.passwordUpdates.length, 0);
+  });
+
+  it("a wrong current password is a 403 and the password stays as it was", async () => {
+    const res = await change({ current_password: "guess" });
+    assert.equal(res.status, 403);
+    assert.equal(((await res.json()) as { error: string }).error, "That is not your current password.");
+    assert.equal(fake.passwordUpdates.length, 0);
+  });
+
+  it("a check that fails is a 503, never read as a wrong password, and changes nothing", async () => {
+    fake.passwordCheckFails = true;
+    const res = await change({ current_password: "old-password" });
+    assert.equal(res.status, 503);
+    assert.doesNotMatch(((await res.json()) as { error: string }).error, /not your current password/);
+    assert.equal(fake.passwordUpdates.length, 0);
+  });
+
+  it("without a session it is a 401 and nothing is checked", async () => {
+    fake.userId = null;
+    assert.equal((await change({ current_password: "old-password" })).status, 401);
+    assert.equal(fake.passwordChecks.length, 0);
+  });
+});
