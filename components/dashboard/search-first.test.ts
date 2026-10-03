@@ -33,7 +33,7 @@ import { SEARCH_TEMPLATES, filterMenus, templateHref } from "@/lib/dashboard/sea
 import { EMPTY_STATE, parseDiscoverState } from "@/lib/discover-v32-state";
 import { Topbar } from "./app-shell";
 import { PanelHeader } from "./results-panel";
-import { CertPill, RESULTS_COLUMNS, ResultsTable } from "./results-table";
+import { CertPill, ResultsTable } from "./results-table";
 import { SavedDesk, deskFrom } from "./saved-desk";
 import { SavedList } from "./saved-list";
 import { SearchLanding } from "./search-landing";
@@ -214,23 +214,15 @@ describe("7. loading skeletons draw", () => {
   });
 
   it("the results and Saved skeletons draw the page's own frame", () => {
+    // v4 (B4): the results' skeleton is the new table's own head and rows, with the same
+    // column widths as the table (Supplier 360 with its box, Type 120, Location 140, Workers
+    // 110, Sources 90), and the landing's is the landing's two columns.
     const discover = readFileSync(path.join(repoRoot, "app/(app)/app/discover/loading.tsx"), "utf8");
-    assert.match(discover, /<ResultsColumn>/);
-    assert.match(discover, /<Panel\b/);
-    // The skeleton's grid is the ledger's own columns, in order (from xl; below it the mid grid, and a phone's two).
-    const grid = /xl:grid-cols-\[([^\]]+)\]/.exec(discover)?.[1] ?? "";
-    assert.equal(
-      /sm:grid-cols-\[([^\]]+)\]/.exec(discover)?.[1],
-      RESULTS_COLUMNS.mid.filter((w) => w !== 0).map((w) => (w === null ? "minmax(0,1fr)" : `${w}px`)).join("_"),
-      "the tablet skeleton drifted from the ledger's",
-    );
-    assert.equal(
-      grid,
-      RESULTS_COLUMNS.wide.map((w) => (w === null ? "minmax(0,1fr)" : `${w}px`)).join("_"),
-      "the loading skeleton's columns drifted from the ledger's",
-    );
+    assert.match(discover, /<ResultsSkeleton\b/);
+    const list = readFileSync(path.join(repoRoot, "components/search/list.tsx"), "utf8");
+    for (const w of ["w-[360px]", "w-[120px]", "w-[140px]", "w-[110px]", "w-[90px]"]) assert.ok(list.includes(w), `the skeleton's head lost ${w}`);
     assert.match(readFileSync(path.join(repoRoot, "app/(app)/app/saved/loading.tsx"), "utf8"), /<ResultsColumn>/);
-    assert.match(readFileSync(path.join(repoRoot, "app/(app)/app/(search)/loading.tsx"), "utf8"), /max-w-\[920px\]/);
+    assert.match(readFileSync(path.join(repoRoot, "app/(app)/app/(search)/loading.tsx"), "utf8"), /lg:w-\[420px\]/);
   });
 });
 
@@ -245,12 +237,12 @@ describe("8. opening a record does not wait on the search", () => {
     assert.match(page, /<Suspense\s+key=\{`\$\{recordSlug\}:/);
     // A line's own silhouette while a line is read, the record's otherwise
     // (founder's video, 29 Sep 2026: a line flashed the whole record's).
-    assert.match(page, /fallback=\{\s*<RecordPane[^>]*>\s*\{lineCode \? <LineSkeleton \/> : <RecordSkeleton \/>\}/);
+    assert.match(page, /fallback=\{\s*<PaneFrame[^>]*>\s*\{lineCode \? <LineSkeleton \/> : <RecordSkeleton \/>\}/);
     assert.doesNotMatch(page.slice(0, page.indexOf("async function DiscoverRecord")), /loadRecordSheet\(/, "the page body awaits the record again");
     // The RFQ form too (founder's video, 29 Sep 2026: "Send RFQ … has to be
     // lightning fast"): its suppliers and the workspace are read inside a
     // boundary of its own, so the whole page no longer waits on them.
-    assert.match(page, /<Suspense\s+key=\{`rfq:\$\{rfqIds\.join\(","\)\}`\}\s+fallback=\{\s*<RecordPane[^>]*>\s*<ComposerSkeleton \/>/);
+    assert.match(page, /<Suspense\s+key=\{`rfq:\$\{rfqIds\.join\(","\)\}`\}\s+fallback=\{\s*<PaneFrame[^>]*>\s*<ComposerSkeleton \/>/);
     assert.doesNotMatch(page.slice(0, page.indexOf("async function DiscoverComposer")), /settings_get|TARGET_COLUMNS\)/, "the page body awaits the composer's reads");
     const saved = readFileSync(path.join(repoRoot, "app/(app)/app/saved/page.tsx"), "utf8");
     assert.match(saved, /<Suspense\s+key=\{openSlug\}\s+fallback=\{\s*<RecordPane[^>]*>\s*<RecordSkeleton \/>/);

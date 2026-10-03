@@ -3,7 +3,7 @@
 // urgency is read first, and the whole row opens the document (44 tall at least).
 // Server-safe; the document link is the only link, stretched over the row on a phone.
 
-import { Clock, FileText, MinusCircle, XCircle } from "@phosphor-icons/react/dist/ssr";
+import { CheckCircle, Clock, FileText, MinusCircle, XCircle } from "@phosphor-icons/react/dist/ssr";
 import { CertChip } from "@/components/kit";
 import { cn } from "@/lib/utils";
 import { CERT_ORDER, certHeading, certWords } from "./words";
@@ -30,7 +30,7 @@ export function CertStateChip({ expiresOn, today, className }: { expiresOn: stri
 
 /**
  * The first certificate problem in a list or table row: glyph, words, "· 3 more certificates".
- * `none` is the no-expiry line; with no certificates at all the row says "None found".
+ * `valid` is a quiet check in ink-2, `none` the no-expiry line; with no certificates at all the row says "None found".
  */
 export function CertProblem({
   state,
@@ -38,7 +38,7 @@ export function CertProblem({
   more,
   small,
 }: {
-  state: "expired" | "expiring" | "none";
+  state: "expired" | "expiring" | "valid" | "none";
   children: string;
   more?: number;
   small?: boolean;
@@ -50,10 +50,12 @@ export function CertProblem({
         <XCircle size={px} weight="fill" className="shrink-0 text-danger" aria-hidden />
       ) : state === "expiring" ? (
         <Clock size={px} weight="fill" className="shrink-0 text-caution-icon" aria-hidden />
+      ) : state === "valid" ? (
+        <CheckCircle size={px} weight="fill" className="shrink-0 text-ink-2" aria-hidden />
       ) : (
         <MinusCircle size={px} className="shrink-0 text-ink-3" aria-hidden />
       )}
-      <span className={cn(small ? "text-xs" : "text-sm", state === "expired" && "font-medium text-danger", state === "expiring" && "font-medium text-caution", state === "none" && "text-ink-2")}>
+      <span className={cn(small ? "text-xs" : "text-sm", state === "expired" && "font-medium text-danger", state === "expiring" && "font-medium text-caution", (state === "none" || state === "valid") && "text-ink-2")}>
         {children}
       </span>
       {more ? (

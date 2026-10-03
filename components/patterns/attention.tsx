@@ -19,7 +19,25 @@ export type AttentionItem = {
   action: ReactNode;
 };
 
-export function NeedsAttention({ items, scope = "On your saved suppliers", className }: { items: AttentionItem[]; scope?: string; className?: string }) {
+export function NeedsAttention({
+  items,
+  total,
+  footer,
+  header = "always",
+  scope = "On your saved suppliers",
+  className,
+}: {
+  items: AttentionItem[];
+  /** How many certificates need attention in all, when the list shows only the first few: the heading says this number. */
+  total?: number;
+  /** Under the rows, inside the card: "See all 9 certificates". */
+  footer?: ReactNode;
+  /** `phone`: the heading is drawn by the page above the card from `sm` up (the search landing). */
+  header?: "always" | "phone";
+  scope?: string;
+  className?: string;
+}) {
+  const n = total ?? items.length;
   if (items.length === 0)
     return (
       <section className={cn("flex flex-col gap-1 rounded-lg border border-line p-4", className)}>
@@ -29,9 +47,9 @@ export function NeedsAttention({ items, scope = "On your saved suppliers", class
     );
   return (
     <section aria-label="Needs attention" className={cn("flex flex-col rounded-lg border border-line", className)}>
-      <header className="flex h-12 items-center justify-between border-b border-line px-4">
+      <header className={cn("flex h-12 items-center justify-between border-b border-line px-4", header === "phone" && "sm:hidden")}>
         <h3 className="text-md font-semibold text-ink sm:text-base">
-          Needs attention · {items.length} {items.length === 1 ? "certificate" : "certificates"}
+          Needs attention · {n} {n === 1 ? "certificate" : "certificates"}
         </h3>
         <p className="text-xs text-ink-3 max-sm:hidden">{scope}</p>
       </header>
@@ -56,6 +74,7 @@ export function NeedsAttention({ items, scope = "On your saved suppliers", class
           );
         })}
       </ul>
+      {footer ? <div className="border-t border-line">{footer}</div> : null}
     </section>
   );
 }
