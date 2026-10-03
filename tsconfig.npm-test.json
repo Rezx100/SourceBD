@@ -124,6 +124,8 @@
     "app/(app)/app/rfqs/(list)/page.tsx",
     "app/(app)/app/rfqs/[id]/page.tsx",
     "lib/context-size.test.ts",
+    "lib/recent-sign-in.ts",
+    "lib/recent-sign-in.test.ts",
     "lib/design/tokens.ts",
     "lib/design/tokens.test.ts",
     "lib/hs-catalogue.ts",
