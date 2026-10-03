@@ -38,6 +38,9 @@ danger, `cert-expired-bg` → danger-tint, `cert-no-expiry-fg` → ink-3,
 `-base` 14, `-md` 16, `-lg` 20, `-xl` 24, `-2xl` 32, `-3xl` 40, each with a line
 height 16/18/20/24/28/32/40/48. `--leading-tight` 125%, `-normal` 150%.
 `--tracking-tight` -0.01em, `-tighter` -0.02em.
+**Marketing display sizes (added 3 Oct 2026, quality round):** `--text-display-1` 72,
+`--text-display-2` 56, `--text-display-3` 40 (same size as `--text-3xl`). Used by the
+marketing desktop headlines, close titles and the big counts. App screens never use them.
 **Paper renamed** `--text-*--line-height` to `--text-*-line-height` (single dash).
 Phase 5 restores the double dash in `tokens.ts` so Tailwind v4 pairs size and line height.
 
