@@ -300,7 +300,7 @@ export function StartChoice({ ai }: { ai: boolean }) {
             </StartCard>
           ) : null}
         </div>
-        {ai ? null : <Caption>Drafting a product from a description arrives with V2.</Caption>}
+        {ai ? null : <Caption>Drafting a product from a description is not available yet.</Caption>}
       </fieldset>
       <div>
         <Button type="submit" variant="primary">

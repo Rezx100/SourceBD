@@ -1,7 +1,7 @@
 // ProductSheet (REZ-A, handoff §3.4): one HS export line as a nested sheet
 // with Back and a breadcrumb. Left the 320px illustrative photo with its
 // caption; right the eyebrow, the official heading, a FactsPanel, and the two
-// actions. Price · MOQ · lead time are supplier-attested (V2) and read
+// actions. Price · MOQ · lead time are supplier-attested and read
 // "Not attested" until attested.
 
 /* eslint-disable @next/next/no-img-element -- static catalogue file under /public */
@@ -73,7 +73,7 @@ export function ProductSheet({
             <Caption className="mt-2 block">
               {PHOTO_CAPTION} {model.hs}
               {model.generatedOn ? `, generated ${model.generatedOn}` : ""}. Not the supplier&apos;s own product; a
-              supplier-attested upload replaces it (V2).
+              a photo from the supplier replaces it once they upload one.
             </Caption>
           </div>
           <div className="flex flex-col gap-4">
