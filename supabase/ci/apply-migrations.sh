@@ -247,4 +247,8 @@ for f in $(ls "$mig" | grep '\.sql$' | sort | grep -vxF "$tail_set") $tail_set; 
 done
 echo "applied $applied migrations"
 
-psql -X -h "$host" -v ON_ERROR_STOP=1 -q -f "$root/supabase/ci/assert-0104.sql"
+# Every assert-NNNN.sql, in order: each runs its migration's functions and
+# rolls back.
+for a in $(ls "$root/supabase/ci" | grep -E '^assert-[0-9]{4}\.sql$' | sort); do
+  psql -X -h "$host" -v ON_ERROR_STOP=1 -q -f "$root/supabase/ci/$a"
+done

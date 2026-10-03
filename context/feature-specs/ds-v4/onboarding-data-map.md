@@ -48,6 +48,6 @@ Interim, no migration: `profiles.onboarding_state` (jsonb, 0047) through `profil
 
 ## Migration order (founder)
 
-1. Additive, nullable: `profiles` job_role, terms_accepted_at, terms_version; `buyer_settings` company_country, sourcing_hs_headings, required_cert_kinds, sell_markets.
+1. Additive, nullable: `profiles` job_role, terms_accepted_at, terms_version; `buyer_settings` company_country, sourcing_hs_headings, required_cert_kinds, sell_markets. **Written as `0109_buyer_onboarding_answers.sql` (3 Oct), with `onboarding_save_buyer` / `onboarding_get_buyer`; dry run `ops/plans/0109-dry-run.md`.**
 2. `claim_requests.document_path`, `document_kind`.
 3. Workspaces and invites: own spec, new RLS on every buyer table.
