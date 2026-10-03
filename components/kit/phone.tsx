@@ -3,7 +3,8 @@
 // full width, with an icon button beside it) and the bar that replaces the action when a
 // supplier cannot be sent an RFQ. Every target is 44 or more. Server-safe.
 
-import { WarningOctagon, type Icon } from "@phosphor-icons/react";
+import { WarningOctagon } from "@phosphor-icons/react/dist/ssr";
+import type { Icon } from "@phosphor-icons/react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";

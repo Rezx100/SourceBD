@@ -20,7 +20,7 @@ import {
   SlidersHorizontal,
   UploadSimple,
   X,
-} from "@phosphor-icons/react";
+} from "@phosphor-icons/react/dist/ssr";
 import type { ReactNode } from "react";
 import {
   ActionBar,

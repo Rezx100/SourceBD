@@ -4,7 +4,7 @@
 // The page builds the toolbar from `Button`, `Segmented` and the chips; the bulk bar
 // replaces the filter bar while rows are selected.
 
-import { ArrowDown, ArrowUp, CaretLeft, CaretRight, CaretUpDown } from "@phosphor-icons/react";
+import { ArrowDown, ArrowUp, CaretLeft, CaretRight, CaretUpDown } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 import { cn } from "@/lib/utils";

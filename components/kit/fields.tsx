@@ -3,7 +3,8 @@
 // form posts and the keyboard works with no script. Phone sizes are `size="touch"`:
 // 48 tall at 16px in a field, 44+ rows for a tick, 52x32 for a switch.
 
-import { Check, XCircle, type Icon } from "@phosphor-icons/react";
+import { Check, XCircle } from "@phosphor-icons/react/dist/ssr";
+import type { Icon } from "@phosphor-icons/react";
 import { useId, type ComponentProps, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { fieldBox, fieldEdge, ring } from "./classes";

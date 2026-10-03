@@ -3,7 +3,8 @@
 // replaces only what failed, with its cause and Try again, so the rest of the screen
 // stays usable. Skeletons are sunken blocks shaped like the layout that loads.
 
-import { XCircle, type Icon } from "@phosphor-icons/react";
+import { XCircle } from "@phosphor-icons/react/dist/ssr";
+import type { Icon } from "@phosphor-icons/react";
 import type { ComponentProps, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 

@@ -2,7 +2,8 @@
 // problem gets colour, glyph and words; a normal state stays neutral; "not on file" is
 // dashed. Server-safe.
 
-import { CheckCircle, Clock, Info, MinusCircle, Warning, X, XCircle, type Icon } from "@phosphor-icons/react";
+import { CheckCircle, Clock, Info, MinusCircle, Warning, X, XCircle } from "@phosphor-icons/react/dist/ssr";
+import type { Icon } from "@phosphor-icons/react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
