@@ -116,6 +116,12 @@ describe("the frame a buyer receives", () => {
     assert.match(tabs, /<a aria-current="page"[^>]*href="\/app\/rfqs"/);
   });
 
+  it("an unread sign-in still offers the account menu and sheet", () => {
+    currentPath = "/app/messages";
+    const html = renderToStaticMarkup(createElement(AppFrame, { account: null } as Parameters<typeof AppFrame>[0], "x"));
+    assert.equal((html.match(/aria-label="Account: Your account"/g) ?? []).length, 2);
+  });
+
   it("the buyer layout draws the frame once, with the signed-in account", () => {
     const layout = readFileSync(path.join(process.cwd(), "app", "(app)", "app", "layout.tsx"), "utf8");
     assert.equal((layout.match(/<AppFrame\b/g) ?? []).length, 1);

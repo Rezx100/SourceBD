@@ -53,7 +53,10 @@ export function ListPane({
         <section
           aria-label={paneTitle}
           onKeyDown={(e) => {
-            if (e.key === "Escape" && !e.defaultPrevented) close();
+            // Only Escape pressed in the pane itself: React bubbles a menu's or a select's
+            // keydown here through its portal, and that Escape belongs to the menu.
+            const t = e.target as HTMLElement;
+            if (e.key === "Escape" && !e.defaultPrevented && e.currentTarget.contains(t) && !t.closest("input, textarea, select, [contenteditable=true]")) close();
           }}
           className="hidden min-h-0 w-pane shrink-0 flex-col overflow-y-auto border-l border-line xl:flex"
         >
