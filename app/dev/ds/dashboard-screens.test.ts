@@ -370,7 +370,7 @@ describe("the ledger grid is the first screen", () => {
 });
 
 describe("the RFQ composer is the pane beside the results", () => {
-  it("names its one target and carries the draft, with Send live on a complete draft", () => {
+  it("names its one target and carries the draft, with Send held while the message has [brackets]", () => {
     const d = galleryData();
     const html = screen(d, "rfq-composer");
     assert.equal(composerTargets(d).length, 1);
@@ -379,10 +379,11 @@ describe("the RFQ composer is the pane beside the results", () => {
     assert.match(html, /to Aboni Knitwear Ltd · HS 6105/);
     assert.match(html, /value="Men&#x27;s knitted piqué polo, 220 gsm"/);
     assert.match(html, />What this RFQ carries</);
-    assert.match(html, /Ready to send to Aboni Knitwear Ltd/);
+    // No workspace in the gallery, so the message holds [brackets] and Send waits (RQ-07).
+    assert.match(html, /Still needed: your name in the message, company name in the message, website in the message/);
     const send = /<button\b[^>]*>(?:(?!<\/button>)[\s\S])*?Send RFQ/.exec(html)?.[0] ?? "";
     assert.ok(send, "the composer draws no Send RFQ");
-    assert.doesNotMatch(send, /\sdisabled=""/, "a complete draft to a clean supplier cannot be sent");
+    assert.match(send, /\sdisabled=""/, "a message with [brackets] cannot be sent");
     // No workspace in the gallery: the template names what it lacks, never invents it.
     assert.match(html, /\[your name\]/);
     assert.match(html, /\[company name\]/);
