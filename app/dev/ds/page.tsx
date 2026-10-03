@@ -29,6 +29,7 @@ import { RFQ_TARGETS } from "@/lib/dashboard/fixtures";
 import { loadGalleryData } from "@/lib/dashboard/gallery-data";
 import { DashboardScreens } from "./dashboard-screens";
 import { V4Kit } from "./v4-kit";
+import { V4Patterns } from "./v4-patterns";
 import { V4Tokens } from "./v4-tokens";
 
 export const dynamic = "force-dynamic";
@@ -212,6 +213,14 @@ export default async function DesignSystemGallery() {
         note="components/kit: buttons, inputs, chips, tabs, table, overlays, feedback, phone bars. Every drawn state; hover and focus are the browser's, so hover and press Tab."
       >
         <V4Kit />
+      </Section>
+
+      <Section
+        id="v4-patterns"
+        title="SourceBD v4 patterns (Paper, 03 Patterns)"
+        note="components/patterns: source marks, fact and certificate rows, RSC block, sanction banner, locked contact, supplier rows, quotes, timeline, chat, needs attention, locations, statement claim, exports. Shrink the window under 640px for the phone forms."
+      >
+        <V4Patterns />
       </Section>
 
       <Section
