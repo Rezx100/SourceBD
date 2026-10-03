@@ -31,9 +31,10 @@ export function Select({
   invalid?: boolean;
   id?: string;
   "aria-describedby"?: string;
+  "aria-label"?: string;
   className?: string;
 }) {
-  const { id, "aria-describedby": describedBy, onValueChange, ...rootProps } = root;
+  const { id, "aria-describedby": describedBy, "aria-label": ariaLabel, onValueChange, ...rootProps } = root;
   // Radix paints the chosen row's text into the field only once the page is live, so the
   // server's field was empty. The label is known here: the field shows it from the first paint.
   const [chosen, setChosen] = useState(rootProps.defaultValue);
@@ -49,6 +50,7 @@ export function Select({
       <S.Trigger
         id={id}
         aria-describedby={describedBy}
+        aria-label={ariaLabel}
         aria-invalid={invalid || undefined}
         className={cn(
           fieldBox,
