@@ -119,3 +119,26 @@ export function StandingFilter({ children, action, className }: { children: Reac
     </span>
   );
 }
+
+/** A chip that is neither a certificate nor a fact state: "Covered by RSC" (neutral), "No longer covered by RSC" (caution). */
+export function Chip({
+  tone = "neutral",
+  icon,
+  weight = "fill",
+  children,
+  className,
+}: {
+  tone?: "neutral" | "caution";
+  icon: Icon;
+  weight?: "fill" | "regular";
+  children: ReactNode;
+  className?: string;
+}) {
+  const caution = tone === "caution";
+  return (
+    <span className={cn(CHIP, caution ? "border-caution-icon bg-caution-tint text-caution" : "border-line text-ink-2", className)}>
+      <Glyph icon={icon} weight={weight} className={caution ? "text-caution-icon" : "text-ink-2"} />
+      {children}
+    </span>
+  );
+}

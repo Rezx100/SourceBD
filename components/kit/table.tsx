@@ -30,7 +30,7 @@ export function Table({ className, ...rest }: ComponentProps<"table">) {
 type Align = "left" | "right";
 
 const HEAD =
-  "sticky top-0 z-raised h-row-head border-b border-line bg-subtle p-0 text-xs [box-shadow:0_1px_3px_theme(colors.ink/0.08)]";
+  "sticky top-0 z-raised h-row-head border-b border-line bg-subtle p-0 text-xs [box-shadow:0_2px_2px_-2px_theme(colors.ink/0.2)]";
 
 export type SortState = "none" | "asc" | "desc";
 
