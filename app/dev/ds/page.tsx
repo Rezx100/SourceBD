@@ -28,6 +28,7 @@ import {
 import { RFQ_TARGETS } from "@/lib/dashboard/fixtures";
 import { loadGalleryData } from "@/lib/dashboard/gallery-data";
 import { DashboardScreens } from "./dashboard-screens";
+import { V4Kit } from "./v4-kit";
 import { V4Tokens } from "./v4-tokens";
 
 export const dynamic = "force-dynamic";
@@ -203,6 +204,14 @@ export default async function DesignSystemGallery() {
         note="33 colours, 11 type sizes, named spacing, containers, breakpoints and radius, as tailwind.config.ts serves them. Class names are the token names: text-ink-3, bg-subtle, w-pane, h-touch."
       >
         <V4Tokens />
+      </Section>
+
+      <Section
+        id="v4-kit"
+        title="SourceBD v4 kit (Paper, 02 Components)"
+        note="components/kit: buttons, inputs, chips, tabs, table, overlays, feedback, phone bars. Every drawn state; hover and focus are the browser's, so hover and press Tab."
+      >
+        <V4Kit />
       </Section>
 
       <Section
