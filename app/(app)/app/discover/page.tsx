@@ -184,7 +184,7 @@ export default async function BuyerDiscoverPage({
             </div>
             <div className="md:hidden">
               <PhoneRows rows={results} />
-              <PhoneMore shown={rows.length} total={total ?? rows.length} nextHref={nextHref} per={state.per} />
+              <PhoneMore shown={(state.page - 1) * state.per + rows.length} total={total ?? rows.length} nextHref={nextHref} per={state.per} />
             </div>
             <div className="hidden md:block">
               <ResultsFooter state={state} shown={rows.length} total={total ?? rows.length} hrefFor={hrefFor} />

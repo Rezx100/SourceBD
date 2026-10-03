@@ -49,7 +49,7 @@ export function PhoneRows({ rows }: { rows: readonly ResultRow[] }) {
   );
 }
 
-/** "Show 25 more suppliers" on a phone; the same link is "Next" on a desktop footer. */
+/** "Show 25 more suppliers" on a phone (the next page); `shown` counts every supplier up to and including this page. */
 export function PhoneMore({ shown, total, nextHref, per }: { shown: number; total: number; nextHref: string | null; per: number }) {
   return (
     <div className="flex flex-col gap-2 p-4 md:hidden">
