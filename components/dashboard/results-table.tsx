@@ -229,7 +229,7 @@ export function ResultsTable({
                 aria-current={current ? "true" : undefined}
                 data-sanctioned={r.sanctioned ? "true" : undefined}
                 data-row="result"
-                className={rowClass({ current, selected, sanctioned: r.sanctioned, className: "outline-none focus-visible:bg-surface-sunken max-sm:active:bg-surface-sunken" })}
+                className={rowClass({ current, selected, sanctioned: r.sanctioned, className: "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[rgb(var(--ds-accent))] focus-visible:bg-surface-sunken max-sm:active:bg-surface-sunken" })}
               >
                 <td className={cn(h, "border-b border-line-subtle px-2 align-middle")}>
                   <Checkbox
