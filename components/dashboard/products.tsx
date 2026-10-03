@@ -254,9 +254,11 @@ function RowActions({ row }: { row: ProductRow }) {
         </span>
       ) : null}
       <span className="invisible inline-flex items-center gap-1 group-hover:visible group-focus-within:visible [@media(hover:none)]:visible">
-        <Button size="sm" href={`/app/rfqs/new?product=${encodeURIComponent(row.id)}`} clientNav>
-          <Icon name="send" /> Send RFQ
-        </Button>
+        {row.status === "active" ? (
+          <Button size="sm" href={`/app/rfqs/new?product=${encodeURIComponent(row.id)}`} clientNav>
+            <Icon name="send" /> Send RFQ
+          </Button>
+        ) : null}
         <Button size="sm" variant="ghost" href={`/app/products/${encodeURIComponent(row.id)}`} clientNav>
           Edit
         </Button>

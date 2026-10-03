@@ -58,6 +58,7 @@ describe("the product list", () => {
     assert.match(out, />Draft</);
     assert.ok(out.includes(`href="/app/products/${ID}"`), "the row does not open the product");
     assert.ok(out.includes(`href="/app/rfqs/new?product=${ID}"`), "no Send RFQ for the product");
+    assert.ok(!out.includes("/app/rfqs/new?product=p-2"), "a draft product offers Send RFQ");
     assert.match(out, /2 products · only you can see them/);
     assert.match(out, /href="\/app\/products\/new"/);
     assert.ok(!/score|rating|grade/i.test(out), "a product row carries no score");
@@ -202,7 +203,7 @@ describe("/app/products and /app/products/[id], the routes", () => {
     assert.ok("html" in r && !r.html.includes(PRODUCTS_EMPTY_BODY));
   });
 
-  it("the edit page prefills the form from buyer_product_get and offers Send RFQ", async () => {
+  it("the edit page prefills the form from buyer_product_get and offers no Send RFQ on a draft (PR-02)", async () => {
     answer = { data: { id: ID, name: "Crew socks", price_usd: 1.2, status: "draft" }, error: null };
     calls = [];
     const r = await outcome(() => Edit()({ params: Promise.resolve({ id: ID }) }));
@@ -210,8 +211,17 @@ describe("/app/products and /app/products/[id], the routes", () => {
     assert.deepEqual(calls, [{ fn: "buyer_product_get", args: { p_id: ID } }]);
     assert.match(r.html, /id="product-name"[^>]*value="Crew socks"|value="Crew socks"[^>]*id="product-name"/);
     assert.match(r.html, /value="1\.2"/);
-    assert.ok(r.html.includes(`href="/app/rfqs/new?product=${ID}"`));
+    assert.ok(!r.html.includes("/app/rfqs/new"), "a draft product offers Send RFQ");
     assert.match(r.html, /Save draft/);
+  });
+
+  it("an active product offers Send RFQ, an archived one does not (PR-02)", async () => {
+    answer = { data: { id: ID, name: "Crew socks", price_usd: 1.2, status: "active" }, error: null };
+    const live = await outcome(() => Edit()({ params: Promise.resolve({ id: ID }) }));
+    assert.ok("html" in live && live.html.includes(`href="/app/rfqs/new?product=${ID}"`));
+    answer = { data: { id: ID, name: "Crew socks", price_usd: 1.2, status: "archived" }, error: null };
+    const shelved = await outcome(() => Edit()({ params: Promise.resolve({ id: ID }) }));
+    assert.ok("html" in shelved && !shelved.html.includes("/app/rfqs/new"));
   });
 
   it("an unknown id, or one that is not an id, is a 404", async () => {

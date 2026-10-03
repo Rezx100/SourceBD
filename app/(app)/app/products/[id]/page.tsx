@@ -42,9 +42,12 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
         title="Edit product"
         caption={initial.name || undefined}
         actions={
-          <Button href={`/app/rfqs/new?product=${encodeURIComponent(id)}`} clientNav>
-            <Icon name="send" /> Send RFQ
-          </Button>
+          // PR-02: only an active product can be sent in an RFQ.
+          initial.status === "active" ? (
+            <Button href={`/app/rfqs/new?product=${encodeURIComponent(id)}`} clientNav>
+              <Icon name="send" /> Send RFQ
+            </Button>
+          ) : undefined
         }
       />
       <ProductForm initial={{ ...initial, id }} />
