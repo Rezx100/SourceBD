@@ -35,7 +35,7 @@ import { Icon } from "./icons";
 import { Panel, PanelFooter, PanelHeader } from "./results-panel";
 import { ProductSheet } from "./product-sheet";
 import { ResultsTable, onRowKey, type ResultsSortKey } from "./results-table";
-import { DEFAULT_QUESTIONS, DEFAULT_TEMPLATE, RfqComposer, fillTemplate, missingFields, type ComposerPrefill, type ComposerTarget } from "./rfq-composer";
+import { DEFAULT_QUESTIONS, DEFAULT_TEMPLATE, RfqComposer, fillTemplate, leftoverPlaceholders, missingFields, type ComposerPrefill, type ComposerTarget } from "./rfq-composer";
 import { AppShell } from "./app-shell";
 import { Topbar } from "./app-shell";
 import {
@@ -907,6 +907,9 @@ const ZAHEEN_TARGET: ComposerTarget = {
 /** A draft with everything Send needs: a product title and a quantity (the unit defaults to pcs). */
 const COMPLETE: ComposerPrefill = { title: "Men's knitted piqué polo, 220 gsm", quantity: "12000", hs: "6105" };
 
+/** A workspace with every fact the template asks for, so the message carries no [bracket]. */
+const FULL_WORKSPACE = { companyName: "Northwind Ltd", userName: "Sam Rahman", website: "https://northwind.example", questions: [...DEFAULT_QUESTIONS], emailTemplate: null };
+
 /** The composer as a buyer's browser receives it. */
 function composer(over: Partial<Parameters<typeof RfqComposer>[0]> = {}): string {
   return renderToStaticMarkup(
@@ -959,19 +962,28 @@ describe("RfqComposer (rendered)", () => {
   });
 
   it("missing fields disable Send and the footer names them in the buyer's words", () => {
-    const empty = composer({ prefill: {} });
+    const empty = composer({ prefill: {}, workspace: FULL_WORKSPACE });
     assert.equal(footerStatus(empty), "Still needed: product title, quantity");
     assert.match(sendButton(empty), /\sdisabled=""/);
     assert.doesNotMatch(empty, /role="alert"/, "a clean target draws no sanction banner");
-    const noTarget = composer({ targets: [] });
+    const noTarget = composer({ targets: [], workspace: FULL_WORKSPACE });
     assert.equal(footerStatus(noTarget), "Still needed: a supplier");
     assert.match(noTarget, /No supplier yet\./);
     // Complete: the footer says who it goes to, and Send is live.
-    const ready = composer();
+    const ready = composer({ workspace: FULL_WORKSPACE });
     assert.equal(footerStatus(ready), "Ready to send to Aboni Knitwear Ltd");
     assert.ok(sendButton(ready), "the composer draws no Send RFQ");
     assert.doesNotMatch(sendButton(ready), /\sdisabled=""/, "a complete draft to a clean supplier cannot be sent");
-    assert.match(composer({ targets: [ABONI_TARGET, { ...ABONI_TARGET, id: "x", name: "S M Knitwears Limited" }] }), /Ready to send to 2 suppliers/);
+    assert.match(composer({ workspace: FULL_WORKSPACE, targets: [ABONI_TARGET, { ...ABONI_TARGET, id: "x", name: "S M Knitwears Limited" }] }), /Ready to send to 2 suppliers/);
+  });
+
+  // RQ-07: a complete draft whose message still reads "[website]" must not send.
+  it("a message that still holds a [bracket] holds Send and lists it under Still needed", () => {
+    const html = composer({ workspace: { ...FULL_WORKSPACE, website: null, companyName: null } });
+    assert.equal(footerStatus(html), "Still needed: company name in the message, website in the message");
+    assert.match(sendButton(html), /\sdisabled=""/);
+    assert.deepEqual(leftoverPlaceholders("Hi [your name], see [website]"), ["your name", "website"]);
+    assert.deepEqual(leftoverPlaceholders("Hi Sam"), []);
   });
 
   it("the sample label survives into the banner and the target row", () => {

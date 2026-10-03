@@ -128,6 +128,15 @@ export function missingFields(v: { title: string; quantity: string; unit: string
   return out;
 }
 
+/**
+ * The gaps `fillTemplate` leaves in brackets. A message that still holds one
+ * would reach the supplier reading "[website]", so Send waits (RQ-07). The
+ * product is not listed: an empty title is already a missing field.
+ */
+export function leftoverPlaceholders(message: string): string[] {
+  return ["your name", "company name", "website"].filter((label) => message.includes(`[${label}]`));
+}
+
 export function RfqComposer({
   targets: initialTargets,
   prefill = {},
@@ -230,7 +239,10 @@ export function RfqComposer({
     [workspace, targets, productLine],
   );
   const message = messageEdited ?? filled.text;
-  const missing = missingFields({ title, quantity, unit, targets: targets.length });
+  const missing = [
+    ...missingFields({ title, quantity, unit, targets: targets.length }),
+    ...leftoverPlaceholders(message).map((label) => `${label} in the message`),
+  ];
   const blocked = sanctioned.length > 0 || missing.length > 0 || busy !== null;
   const asked = questions.filter((q) => q.on).map((q) => q.text);
 
