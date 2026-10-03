@@ -12,7 +12,9 @@ metadata block and the full-canvas white background path removed, `transform`
 attributes dropped, every fill snapped to a token (`ink` `#262B26`, `brand`
 `#1B5E20`, `surface` `#FFFFFF`; one stray grey per file in `orders` and
 `saved` snapped to `quiet.line` `#C1C7B9`), and the root set to
-`viewBox="0 0 2048 2048"` with `aria-hidden`.
+`viewBox="0 0 2048 2048"` with `aria-hidden`. On 4 Oct 2026 (SourceBD v4,
+PR B0) the `ink` fills moved from `#262B26` to v4's `ink` `#15181C`; nothing
+else in the files changed.
 `activity.svg` was further thinned by hand after the finish review (27 Sep): every
 second ruled-line path dropped (31 paths to 19) so its stroke mass matches the
 other five; nothing was redrawn.

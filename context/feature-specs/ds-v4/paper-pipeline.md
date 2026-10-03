@@ -26,7 +26,14 @@ deleted; every inline Phosphor `<svg>` becomes `<Icon size={n} weight=".." class
 (matched by path against `@phosphor-icons/react` 2.1.1, any weight; the first line lists the imports).
 Result on 4 Oct: 431 of 431 boards, 0 unknown, 0 parse errors.
 
-**Things B0 and B1 must supply, or the translated boards will not render as drawn:**
+**Coverage check (B0, 4 Oct 2026).** `node .impeccable/preview/paper-import/check-config.cjs` compiles every
+class in `paper-export-34/` through `tailwind.config.ts` and lists any that make no CSS. After B0: 776 of 776.
+The translator now writes `font-[system-ui,sans-serif]` and `w-[round(50%,1px)]` (35 boards) as the arbitrary
+properties `[font-family:system-ui,sans-serif]` and `[width:round(50%,1px)]`, which 3.4 compiles. The system-ui
+headings are Paper's own (every other heading is Plex); the builder of those screens decides.
+
+**Things B0 and B1 must supply, or the translated boards will not render as drawn** (B0 supplied all of them;
+`#C9CDD2` is still unnamed):
 
 - Spacing tokens: `h-touch` (14x), `min-h-touch`, `h-input-touch`, `h-tabbar`, plus `topbar`, `row`,
   `control`, `action-bar` named in section 4c of the hand-off.

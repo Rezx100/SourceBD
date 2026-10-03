@@ -1,24 +1,23 @@
 import type { Metadata, Viewport } from "next";
-import localFont from "next/font/local";
+import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import "./ds.css";
 import { cn } from "@/lib/utils";
 
-// Design-system rebuild (spec ds-rebuild-must-stay.md), artifact v3 type:
-// Geist for everything, Geist Mono for the ledger's stamps (eyebrows, source
-// marks, register and certificate numbers, HS codes). Both are self-hosted
-// variable fonts (OFL) from the Design System artifact's `project/fonts/`, so
-// a build never reaches out to a font CDN. The Tailwind `font-sans` and
+// SourceBD v4 type (Paper, D-2): IBM Plex Sans for everything, Plex Mono only
+// for certificate, register and HS numbers. Paper draws weights 400, 500 and
+// 600. next/font fetches them at build time and serves them from this site, so
+// a visitor's browser never calls a font CDN. The Tailwind `font-sans` and
 // `font-mono` stacks read the two CSS variables set here.
-const sans = localFont({
-  src: "./fonts/Geist-Variable.woff2",
-  weight: "100 900",
+const sans = IBM_Plex_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
   variable: "--font-sans",
   display: "swap",
 });
 
-const mono = localFont({
-  src: "./fonts/GeistMono-Variable.woff2",
-  weight: "100 900",
+const mono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
   variable: "--font-mono",
   display: "swap",
 });
