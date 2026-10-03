@@ -946,8 +946,7 @@ export function AffiliationNote() {
   return (
     <p className="mx-auto max-w-prose px-6 py-5 text-center text-xs leading-5 text-ink-subtle">
       Authority logos identify the data sources we aggregate from. SourceBD is not affiliated with or endorsed by BGMEA,
-      BKMEA, BTMA, EPB, OEKO-TEX, WRAP, GOTS, RSC, or any of the brands named on this page. Every fact traces to the
-      issuing authority shown in Sources.
+      BKMEA, BTMA, EPB, OEKO-TEX, WRAP, GOTS, RSC, or any of the brands named on this page.
     </p>
   );
 }

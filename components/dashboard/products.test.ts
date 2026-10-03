@@ -21,6 +21,7 @@ import {
   parseProductTab,
   type ProductRow,
 } from "./products";
+import { AffiliationNote } from "./sheet";
 import { PICKER_TABS, SupplierPicker, targetFromSuggestion } from "./supplier-picker";
 
 const html = (el: ReactElement) => renderToStaticMarkup(el);
@@ -112,7 +113,7 @@ describe("the start choice", () => {
     assert.match(out, /Start manually/);
     assert.match(out.match(/<input[^>]*value="manual"[^>]*>/)?.[0] ?? "", /checked=""/, "manual is not the default");
     assert.doesNotMatch(out, /Start with AI/);
-    assert.match(out, /Drafting a product from a description arrives with V2\./);
+    assert.match(out, /Drafting a product from a description is not available yet\./);
     assert.match(out, /action="\/app\/products\/new"/);
   });
 
@@ -120,7 +121,7 @@ describe("the start choice", () => {
     const out = html(createElement(StartChoice, { ai: true }));
     assert.match(out, /Start with AI/);
     assert.match(out, /value="ai"/);
-    assert.doesNotMatch(out, /arrives with V2/);
+    assert.doesNotMatch(out, /is not available yet/);
   });
 });
 
@@ -234,5 +235,11 @@ describe("/app/products and /app/products/[id], the routes", () => {
       assert.ok(!existsSync(file), `products/${dir}/loading.tsx puts the edit page behind a Suspense boundary`);
     }
     assert.ok(existsSync(path.join(process.cwd(), "app", "(app)", "app", "products", "(list)", "loading.tsx")), "the list lost its loading state");
+  });
+});
+
+describe("buyer copy that must not over-claim (T-04, T-09)", () => {
+  it("the affiliation note does not promise every fact is traced while some say 'Source pending'", () => {
+    assert.doesNotMatch(html(createElement(AffiliationNote)), /traces to/);
   });
 });
