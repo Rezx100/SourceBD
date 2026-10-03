@@ -28,6 +28,9 @@ const STATUS_OPTIONS: { value: OrderStatus; label: string }[] = [
 
 const INCOTERMS = ["", "FOB", "CIF", "EXW", "DDP", "DAP"] as const;
 
+/** Once goods are on their way the order cannot be cancelled from here (OR-02). */
+const CANCELLABLE: ReadonlyArray<OrderStatus | "cancelled"> = ["draft", "in_production"];
+
 export const CANCEL_ORDER_QUESTION = "Cancel this order? Its details and milestones stay on file.";
 
 export interface OrderStatusEditorProps {
@@ -144,9 +147,11 @@ export function OrderStatusEditor({ orderId, initial }: OrderStatusEditorProps) 
           <Button onClick={() => setOpen(true)} aria-expanded={false}>
             <Icon name="pencil" /> Edit order
           </Button>
-          <Button variant="ghost" onClick={() => setConfirming(true)}>
-            Cancel order
-          </Button>
+          {CANCELLABLE.includes(initial.status) ? (
+            <Button variant="ghost" onClick={() => setConfirming(true)}>
+              Cancel order
+            </Button>
+          ) : null}
         </div>
       )}
       {error ? <ErrorNote>{error}</ErrorNote> : null}

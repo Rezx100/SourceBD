@@ -415,4 +415,13 @@ describe("the order's forms open on demand", () => {
     assert.equal(refreshes, 1);
     assert.equal(confirms, 0, "window.confirm is back");
   });
+
+  it("a shipped, in-transit or delivered order offers no Cancel order (OR-02)", () => {
+    for (const status of ["shipped", "in_transit", "delivered"] as const) {
+      const out = callWithHooks(OrderStatusEditor, { orderId: ORDER_ID, initial: { ...INITIAL, status } }, { contexts: contexts({ refresh() {} }) });
+      const html = renderToStaticMarkup(out.out as ReactElement);
+      assert.doesNotMatch(html, /Cancel order/, status);
+      assert.match(html, /Edit order/, status);
+    }
+  });
 });
