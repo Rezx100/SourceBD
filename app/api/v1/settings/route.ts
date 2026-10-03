@@ -7,7 +7,9 @@
 // POST {action:'update_inquiry', questions?, email_template?}
 //                                      → settings_update_inquiry (0106)
 // POST {action:'change_email'}         → Supabase Auth updateUser({email})
-// POST {action:'change_password'}      → Supabase Auth updateUser({password})
+// POST {action:'change_password', current_password, new_password}
+//                                      → current password checked, then
+//                                        Supabase Auth updateUser({password})
 //
 // Auth: any authenticated user. Email/password changes use Supabase Auth
 // directly (the user is identified by the session cookie); the email
@@ -16,7 +18,7 @@
 import { NextResponse } from "next/server";
 
 import { AppOriginError, getCanonicalAppOrigin } from "@/lib/app-origin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServerClient, passwordMatches } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -45,7 +47,7 @@ const MAX_QUESTION = 200;
 const MAX_TEMPLATE = 4000;
 
 async function requireAuth(): Promise<
-  { supabase: Sb; userId: string } | NextResponse
+  { supabase: Sb; userId: string; email: string | null } | NextResponse
 > {
   const supabase = await createSupabaseServerClient();
   const {
@@ -54,7 +56,7 @@ async function requireAuth(): Promise<
   if (!user) {
     return NextResponse.json({ error: "unauthorised" }, { status: 401 });
   }
-  return { supabase, userId: user.id };
+  return { supabase, userId: user.id, email: user.email ?? null };
 }
 
 export async function GET() {
@@ -75,7 +77,7 @@ export async function GET() {
 export async function POST(req: Request) {
   const gate = await requireAuth();
   if (gate instanceof NextResponse) return gate;
-  const { supabase } = gate;
+  const { supabase, email } = gate;
 
   let body: Record<string, unknown>;
   try {
@@ -278,6 +280,35 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: `new_password must be ${MIN_PASSWORD}–${MAX_PASSWORD} chars` },
         { status: 400 },
+      );
+    }
+    // A lifted session cookie must not be enough to take the account (ST-03).
+    const current = body.current_password;
+    if (typeof current !== "string" || current.length === 0) {
+      return NextResponse.json(
+        { error: "Enter your current password." },
+        { status: 400 },
+      );
+    }
+    if (!email) {
+      return NextResponse.json(
+        { error: "This account has no email address to check the password against." },
+        { status: 400 },
+      );
+    }
+    let matches: boolean;
+    try {
+      matches = await passwordMatches(email, current);
+    } catch {
+      return NextResponse.json(
+        { error: "The password could not be checked just now. Try again in a minute." },
+        { status: 503 },
+      );
+    }
+    if (!matches) {
+      return NextResponse.json(
+        { error: "That is not your current password." },
+        { status: 403 },
       );
     }
     const { error } = await supabase.auth.updateUser({ password: raw });

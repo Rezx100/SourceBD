@@ -2,11 +2,13 @@
 
 // SettingsChangePasswordForm — Spec B10 client island.
 //
-// Controlled inputs for new password + confirm. POSTs
-// {action:'change_password', new_password} to /api/v1/settings, which
-// calls Supabase Auth updateUser({password}). Server enforces 8..200 chars
+// Controlled inputs for current password, new password + confirm. POSTs
+// {action:'change_password', current_password, new_password} to
+// /api/v1/settings, which checks the current password (ST-03) and then calls
+// Supabase Auth updateUser({password}). Server enforces 8..200 chars
 // (matches the F3 signup rule).
 
+import Link from "next/link";
 import { useId, useState, useTransition } from "react";
 
 import { Field, TextInput } from "@/components/dashboard/fields";
@@ -18,6 +20,7 @@ const MIN = 8;
 
 export function SettingsChangePasswordForm() {
   const id = useId();
+  const [current, setCurrent] = useState("");
   const [pwd, setPwd] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +43,11 @@ export function SettingsChangePasswordForm() {
       const res = await fetch("/api/v1/settings", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "change_password", new_password: pwd }),
+        body: JSON.stringify({
+          action: "change_password",
+          current_password: current,
+          new_password: pwd,
+        }),
       });
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as
@@ -50,6 +57,7 @@ export function SettingsChangePasswordForm() {
         return;
       }
       setFlash("Password updated.");
+      setCurrent("");
       setPwd("");
       setConfirm("");
     });
@@ -59,6 +67,30 @@ export function SettingsChangePasswordForm() {
     <PageSection title="Password" caption={`Minimum ${MIN} characters`}>
       <form onSubmit={onSubmit}>
         <div className="flex flex-col gap-3 p-4">
+          <Field
+            label="Current password"
+            htmlFor={`${id}-current`}
+            hint={
+              <>
+                Forgotten it, or always signed in with an email link?{" "}
+                <Link href="/forgot-password" className="link">
+                  Reset it by email
+                </Link>
+                .
+              </>
+            }
+          >
+            <TextInput
+              id={`${id}-current`}
+              type="password"
+              value={current}
+              onChange={(e) => setCurrent(e.target.value)}
+              autoComplete="current-password"
+              required
+              aria-invalid={error ? true : undefined}
+              className="max-w-sm"
+            />
+          </Field>
           <Field label="New password" htmlFor={`${id}-new`}>
             <TextInput
               id={`${id}-new`}

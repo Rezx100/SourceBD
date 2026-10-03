@@ -9,6 +9,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 
 import { AppOriginError, getCanonicalAppOrigin } from "@/lib/app-origin";
+import { RESET_WINDOW_SEC, signedInWithin } from "@/lib/recent-sign-in";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { sendEmail, EmailError } from "@/lib/email/send";
 
@@ -166,6 +167,13 @@ export async function updatePassword(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Session expired. Request a new reset link." };
+  // This action asks for no current password, so it serves only a session
+  // that has just come through a reset link. Any older session changes its
+  // password in Settings, which asks for the current one (ST-03).
+  const { data: claims } = await supabase.auth.getClaims();
+  if (!signedInWithin(claims?.claims.amr, RESET_WINDOW_SEC)) {
+    return { error: "This reset link has expired. Request a new one." };
+  }
   const { error } = await supabase.auth.updateUser({ password });
   if (error) return { error: error.message };
   revalidatePath("/", "layout");
