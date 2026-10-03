@@ -28,7 +28,14 @@ declare
   r     record;
   hit   text;
   after public.order_status;
+  todo  jsonb;
 begin
+  -- Read as the owner of the database: the orders read policy also looks at
+  -- suppliers, which `authenticated` cannot read in CI. Only the calls to
+  -- order_cancel run as the signed-in buyer.
+  select jsonb_agg(jsonb_build_object('id', id, 'status', status) order by id) into todo
+    from public.orders where buyer_id = '00000000-0000-4000-8000-00000000a110';
+
   if has_function_privilege('anon', 'public.order_cancel(uuid)', 'execute') then
     raise exception 'anon can execute order_cancel';
   end if;
@@ -36,15 +43,16 @@ begin
   set local role authenticated;
   perform set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-00000000a110', true);
 
-  for r in select id, status::text as status from public.orders
-            where buyer_id = '00000000-0000-4000-8000-00000000a110' order by id loop
+  for r in select (e->>'id')::uuid as id, e->>'status' as status from jsonb_array_elements(todo) e loop
     hit := null;
     begin
       perform public.order_cancel(r.id);
     exception when raise_exception then
       hit := sqlerrm;
     end;
+    reset role;
     select status into after from public.orders where id = r.id;
+    set local role authenticated;
     if r.status in ('draft', 'in_production') then
       if hit is not null or after <> 'cancelled' then
         raise exception 'a % order did not cancel: % / %', r.status, hit, after;
