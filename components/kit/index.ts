@@ -4,7 +4,7 @@
 
 export { Button, ButtonLink, IconButton } from "./button";
 export { buttonClass, type ButtonKind, type ButtonSize } from "./button-class";
-export { fieldBox, fieldEdge, linkClass, ring, ringInset } from "./classes";
+export { fieldBox, fieldEdge, linkClass, menuClass, menuItemClass, popoverClass, ring, ringInset, selectItemClass, toastActionClass, tooltipClass } from "./classes";
 export { CertChip, Count, FactChip, FilterChip, StandingFilter, TypeChip, type CertState, type FactState } from "./chip";
 export { Checkbox, Field, Input, Radio, Switch } from "./fields";
 export { Select } from "./select";
@@ -26,6 +26,6 @@ export {
   rowLinkClass,
   type SortState,
 } from "./table";
-export { Dialog, DialogClose, DialogPanel, Drawer, Menu, MenuItem, MenuSeparator, Popover, Sheet, SheetPanel, Toast, Tooltip, toastActionClass } from "./overlay";
+export { Dialog, DialogClose, DialogPanel, Drawer, Menu, MenuItem, MenuSeparator, Popover, Sheet, SheetPanel, Toast, Tooltip } from "./overlay";
 export { Empty, ErrorPanel, InlineError, PaneSkeleton, RowSkeleton, Skeleton } from "./feedback";
 export { ActionBar, RefusedBar, TabBar, type TabBarItem } from "./phone";

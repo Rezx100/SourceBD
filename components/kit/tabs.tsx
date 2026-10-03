@@ -1,4 +1,6 @@
-// Tabs and the segmented control (`02 Components · 3`). Tabs are 40 tall with a 2px brand
+"use client";
+
+// Client: Radix's tab strip needs context. Tabs and the segmented control (`02 Components · 3`). Tabs are 40 tall with a 2px brand
 // underline; counts read "Certificates · 4". Selected, hover, default, focus-visible,
 // disabled. The selected tab never moves under "More": the page keeps it in `items`.
 

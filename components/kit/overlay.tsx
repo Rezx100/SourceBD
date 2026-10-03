@@ -14,7 +14,7 @@ import { Dialog as D, DropdownMenu as M, Popover as P, Tooltip as TT } from "rad
 import { useRef, type ComponentProps, type ElementType, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { IconButton } from "./button";
-import { ringInset } from "./classes";
+import { menuClass, menuItemClass, popoverClass, tooltipClass } from "./classes";
 
 /* ------------------------------------------------------------------ dialog */
 
@@ -298,13 +298,6 @@ export function Drawer({
 
 /* -------------------------------------------------------------------- menu */
 
-/** The menu box and its rows, shared with `Select`'s list and drawn static in the gallery. */
-export const menuClass = "z-toast flex min-w-[180px] flex-col rounded-lg border border-line bg-surface p-1 shadow-menu outline-none";
-export const menuItemClass =
-  "flex h-8 cursor-default select-none items-center justify-between gap-2 rounded-sm px-2 text-base text-ink outline-none data-[highlighted]:bg-sunken data-[disabled]:text-disabled " +
-  ringInset;
-const MENU = menuClass;
-const ITEM = menuItemClass;
 
 /** A menu of actions: items 32 tall, a disabled item says why in `hint`. */
 export function Menu({ trigger, children, align = "start" }: { trigger: ReactNode; children: ReactNode; align?: "start" | "end" }) {
@@ -312,7 +305,7 @@ export function Menu({ trigger, children, align = "start" }: { trigger: ReactNod
     <M.Root>
       <M.Trigger asChild>{trigger}</M.Trigger>
       <M.Portal>
-        <M.Content align={align} sideOffset={4} className={MENU}>
+        <M.Content align={align} sideOffset={4} className={menuClass}>
           {children}
         </M.Content>
       </M.Portal>
@@ -335,13 +328,13 @@ export function MenuItem({
   if (href)
     return (
       <M.Item asChild {...rest}>
-        <Link href={href} className={ITEM}>
+        <Link href={href} className={menuItemClass}>
           {body}
         </Link>
       </M.Item>
     );
   return (
-    <M.Item className={ITEM} {...rest}>
+    <M.Item className={menuItemClass} {...rest}>
       {body}
     </M.Item>
   );
@@ -353,8 +346,6 @@ export function MenuSeparator() {
 
 /* ------------------------------------------------- popover and tooltip */
 
-export const popoverClass = "z-toast w-80 max-w-[calc(100vw-2rem)] rounded-lg border border-line bg-surface p-4 shadow-menu outline-none";
-export const tooltipClass = "z-toast max-w-60 rounded-sm bg-ink px-2 py-1.5 text-xs text-surface";
 
 /** Opens on click, holds a link or a figure: a source's details. A tooltip cannot hold a link. */
 export function Popover({ trigger, children, className }: { trigger: ReactNode; children: ReactNode; className?: string }) {
@@ -427,6 +418,3 @@ export function Toast({
   );
 }
 
-/** Undo, in a toast: semibold, underlined, 32 tall. */
-export const toastActionClass =
-  "flex h-8 items-center rounded-sm px-3 font-semibold underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-surface";

@@ -28,7 +28,7 @@ test("every board of 02 Components has its section in /dev/ds, and the 100-chara
 });
 
 test("a button in every kind has all six states, and loading says what it is doing and is announced busy", () => {
-  for (const doing of ["Sending", "Saving", "Clearing", "Cancelling"]) assert.ok(html.includes(`>${doing}</span>`), doing);
+  for (const doing of ["Sending", "Saving", "Clearing", "Cancelling"]) assert.ok(html.includes(`${doing}</button>`), doing);
   assert.equal((html.match(/aria-busy="true"/g) ?? []).length, 4);
   assert.ok((html.match(/ disabled=""/g) ?? []).length >= 5, "each kind has a disabled cell");
   const loading = render(h(Button, { kind: "primary", loading: true, loadingLabel: "Sending" }, "Send RFQ"));

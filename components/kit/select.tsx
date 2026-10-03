@@ -8,14 +8,8 @@ import { CaretDown, Check } from "@phosphor-icons/react";
 import { Select as S } from "radix-ui";
 import { useState, type ComponentProps, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { fieldBox, ring } from "./classes";
+import { fieldBox, selectItemClass } from "./classes";
 
-/** A row of the open list: the chosen one brand-tint with a check, the one under the pointer or arrows sunken. */
-export const selectItemClass = cn(
-  "flex h-8 cursor-default select-none items-center justify-between rounded-sm px-2 text-base text-ink outline-none",
-  "data-[highlighted]:bg-sunken data-[state=checked]:bg-brand-tint data-[state=checked]:font-medium data-[disabled]:text-disabled",
-  ring,
-);
 
 export function Select({
   options,

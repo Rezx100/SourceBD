@@ -67,11 +67,14 @@ import {
   bulkActionClass,
   bulkCloseClass,
   linkClass,
+  menuClass,
+  menuItemClass,
+  popoverClass,
+  selectItemClass,
+  tooltipClass,
   rowLinkClass,
   toastActionClass,
 } from "@/components/kit";
-import { menuClass, menuItemClass, popoverClass, tooltipClass } from "@/components/kit/overlay";
-import { selectItemClass } from "@/components/kit/select";
 import { cn } from "@/lib/utils";
 import { LiveOverlays } from "./v4-kit-live";
 
