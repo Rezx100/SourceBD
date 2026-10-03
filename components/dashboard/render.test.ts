@@ -434,6 +434,8 @@ describe("ResultsTable (rendered) — the ledger grid", () => {
   it("each row is a keyboard stop whose name is the supplier's, and the name opens the record beside the results", () => {
     const html = renderToStaticMarkup(createElement(ResultsTable, { rows: [ledgerRow(aboniInput())] }));
     assert.match(html, /<tr tabindex="0" aria-label="Aboni Knitwear Ltd"[^>]*data-row="result"/);
+    assert.match(html.match(/<tr [^>]*data-row="result"[^>]*>/)?.[0] ?? "", /focus-visible:outline-2/, "a result row must keep a visible keyboard focus ring (A-01)");
+    assert.doesNotMatch(html, /<tr [^>]*data-row="result"[^>]*outline-none/, "a result row removes its focus outline");
     // The name (one line, whole on hover), then the spinner that says the click
     // was heard (hidden until then).
     assert.match(html, /<a\b[^>]*data-open="record"[^>]*><span data-name="" class="truncate">Aboni Knitwear Ltd<\/span><span aria-hidden="true" class="[^"]*\bhidden\b[^"]*"><\/span><\/a>/);
