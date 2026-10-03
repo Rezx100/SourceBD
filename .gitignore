@@ -105,3 +105,7 @@ API Access _ OneProvider_files/
 
 # Impeccable review captures (regenerated per pass)
 .impeccable/review/
+
+# v4 build: Paper pulled as JSX, and its Tailwind 3.4 translation (context/feature-specs/ds-v4/paper-pipeline.md)
+.impeccable/paper-export/
+.impeccable/paper-export-34/
