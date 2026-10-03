@@ -13,7 +13,6 @@ import { describe, it } from "node:test";
 import { createElement, type ComponentProps } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { phoneFontSize } from "@/lib/design/tokens";
 import { installMenuDismiss, MENU_NAME, placePanel } from "@/lib/dashboard/menu-dismiss";
 import { MORE_NAV, NAV, PHONE_TABS } from "@/lib/dashboard/nav";
 import { buildCard, buildSheet, buildTableRow } from "@/lib/dashboard/build-models";
@@ -287,15 +286,6 @@ describe("M1. the navigation at the foot of a phone, and the phone's size scale"
       body: m[3]!,
       label: m[3]!.replace(/<[^>]+>/g, "").trim(),
     }));
-
-  it("the phone's type step: body 16, a card's title 17, a section 17, a page title 22, the record's name 24, only below 640px", () => {
-    const px = (rem: string) => Math.round(parseFloat(rem) * 16);
-    assert.deepEqual(Object.fromEntries(Object.entries(phoneFontSize).map(([k, [size]]) => [k, px(size)])), { base: 16, title: 17, xl: 17, "3xl": 24, "page-title": 22 });
-    const tw = source("tailwind.config.ts");
-    assert.match(tw, /addBase\(\{ "@media not all and \(min-width: 640px\)": \{ "\[data-shell\]": appFontVars\(phoneFontSize\) \} \}\)/, "the phone step is not scoped to phones");
-    assert.match(tw, /!\(key in appFontSize\) && !\(key in phoneFontSize\)/, "a phone size would not read its variable");
-    assert.match(source(`${KIT}/page.tsx`), /<h1 className="text-page-title font-semibold/, "the page title is not on its token");
-  });
 
   it("the bar holds five tabs in order, each a 24px icon over an 11px label, and marks only the current one", () => {
     const saved = tabs(shell("saved"));

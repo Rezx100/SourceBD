@@ -18,7 +18,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { filterMenus, inFilterMenu, menuSummary } from "@/lib/dashboard/search-templates";
-import { appFontSize, contrastRatio, fontSize, light, toRgb } from "@/lib/design/tokens";
+import { contrastRatio, light, toRgb } from "@/lib/design/tokens";
 import { EMPTY_STATE, discoverChips, discoverHref, type DiscoverState } from "@/lib/discover-v32-state";
 import { FilterMenus, foldMenus } from "./filter-menus";
 
@@ -132,21 +132,6 @@ describe("2. green on the primary action only, inside the app", () => {
     }
     assert.doesNotMatch(block, /--ds-brand:/, "the primary button and the logo stay green");
     assert.match(block, /accent-color: rgb\(var\(--ds-accent\)\)/);
-  });
-});
-
-describe("3. the app's text, one step up", () => {
-  it("the app shell sets the larger sizes; everywhere else keeps the base scale", () => {
-    assert.deepEqual(
-      Object.fromEntries(Object.entries(appFontSize).map(([k, [size]]) => [k, size])),
-      { eyebrow: "0.75rem", xs: "0.8125rem", sm: "0.875rem", base: "0.9375rem", title: "1rem" },
-      "the founder's pick: caption 13, label 14, body 15, title 16, eyebrow 12",
-    );
-    assert.equal(fontSize.sm![0], "0.8125rem", "the marketing site's scale is unchanged");
-    const tw = source("tailwind.config.ts");
-    assert.match(tw, /fontSize: scaledFontSize\(\)/);
-    assert.match(tw, /addBase\(\{ "\[data-shell\]": appFontVars\(\) \}\)/);
-    assert.match(source("components/dashboard/app-shell.tsx"), /data-shell=""/);
   });
 });
 

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
-import { borderRadius, boxShadow, contrastPairs, contrastRatio, cssVarName, density, densitySizes, fontSize, light, maxWidth, resolve, tiers, toRgb, transitionDuration, zIndex } from "./tokens";
+import { borderRadius, boxShadow, containers, contrastPairs, contrastRatio, cssVarName, density, densitySizes, fontSize, letterSpacing, light, maxWidth, resolve, screens, spacing, tiers, toRgb, transitionDuration, v4CertAliases, v4Colors, v4Ref, zIndex } from "./tokens";
 
 // npm test runs from the repo root; the compiled test lives elsewhere.
 const repoRoot = process.cwd();
@@ -112,6 +112,103 @@ for (const rel of GUARDED.flatMap(walk)) {
     });
   });
 }
+
+// B0: the hand-typed-colour rule, repo-wide. Every source file under app/,
+// components/ and lib/ (tests aside, which hold fixtures) takes its colours
+// from this token file. The old pages that still type their own are listed by
+// name below; the list only shrinks: a page rebuilt on v4, or deleted, comes
+// off it, and the test after this one fails while a listed file is gone or
+// clean, so nothing is left exempt by accident. Never add to it.
+const COLOUR_ROOTS = ["app", "components", "lib"];
+const COLOUR_SOURCE = /\.(?:tsx?|css|mjs)$/;
+/** Files whose "colours" are not styles, with the reason. */
+const NOT_STYLES: Record<string, string> = {
+  "lib/email/templates/_layout.tsx": "email clients read inline colours only; no CSS variables reach an inbox",
+  "lib/dedup-addresses.ts": "\"Former #295\" is a holding number in an address, not a colour",
+  "lib/dashboard/fixtures.ts": "production addresses read \"HOLDING NO #121\" (and it is on NO_MARKUP above)",
+};
+/** The old pages (v3 and older) that still type colours. Delete an entry with its page (B4–B11). */
+const LEGACY_COLOURS = [
+  "app/(app)/(old-shell)/supplier/rfqs/[id]/page.tsx",
+  "app/(auth)/forgot-password/page.tsx",
+  "app/(auth)/loading.tsx",
+  "app/(auth)/login/login-form.tsx",
+  "app/(auth)/reset-password/page.tsx",
+  "app/(auth)/signup/page.tsx",
+  "app/(marketing)/legal/cookies/page.tsx",
+  "app/(marketing)/legal/data-sources/page.tsx",
+  "app/(marketing)/legal/privacy/page.tsx",
+  "app/(marketing)/legal/terms/page.tsx",
+  "app/(marketing)/legal/trademarks/page.tsx",
+  "app/(marketing)/page.tsx",
+  "app/(marketing)/pricing/page.tsx",
+  "app/error.tsx",
+  "app/not-found.tsx",
+  "components/auth/auth-fields.tsx",
+  "components/auth/auth-grid-backdrop.tsx",
+  "components/auth/auth-shell.tsx",
+  "components/discover/result-card.tsx",
+  "components/marketing/footer.tsx",
+  "components/marketing/home/buyer-workflow-bento.tsx",
+  "components/marketing/home/buyer-workflow-live-primitives.tsx",
+  "components/marketing/home/buyer-workflow-stage.tsx",
+  "components/marketing/home/capability-feature-grid.tsx",
+  "components/marketing/home/evidence-anatomy-stage.tsx",
+  "components/marketing/home/hero-backdrop.tsx",
+  "components/marketing/home/hero-dashboard-demo.tsx",
+  "components/marketing/home/hero-product-window.tsx",
+  "components/marketing/home/ingestion-monitor.tsx",
+  "components/marketing/home/intelligence-engine-stage.tsx",
+  "components/marketing/home/journey-bento.tsx",
+  "components/marketing/home/messaging-demo.tsx",
+  "components/marketing/home/moat-stats.tsx",
+  "components/marketing/home/product-demo.tsx",
+  "components/marketing/home/record-build-pipeline.tsx",
+  "components/marketing/home/record-network-hub-live.tsx",
+  "components/marketing/home/record-network-section.tsx",
+  "components/marketing/home/section-header.tsx",
+  "components/marketing/home/verified-record-steps.tsx",
+  "components/marketing/home/workflow-agents-marquee.tsx",
+  "components/marketing/logo.tsx",
+  "components/save-button.tsx",
+  "components/shell/sidebar-rail.tsx",
+  "components/shell/sidebar.tsx",
+  "components/shell/topbar-hamburger.tsx",
+  "components/supplier/company-avatar.tsx",
+  "components/supplier/locations-map.tsx",
+  "components/supplier/locations-section.tsx",
+  "components/supplier/profile-ui.tsx",
+  "components/ui/animated-beam.tsx",
+  "components/ui/badge.tsx",
+  "components/ui/border-beam.tsx",
+  "components/ui/chip.tsx",
+  "components/ui/magic-card.tsx",
+  "components/ui/orbiting-circles.tsx",
+  "components/ui/text-highlighter.tsx",
+];
+
+const colourFiles = COLOUR_ROOTS.flatMap(walk).filter(
+  (rel) => COLOUR_SOURCE.test(rel) && !/\.test\.tsx?$/.test(rel) && rel !== "lib/design/tokens.ts",
+);
+
+test("no hand-typed colour anywhere outside the token file, except the listed old pages", () => {
+  const offenders = colourFiles
+    .filter((rel) => !(rel in NOT_STYLES) && !LEGACY_COLOURS.includes(rel))
+    .flatMap((rel) =>
+      readFileSync(path.join(repoRoot, rel), "utf8")
+        .split(/\r?\n/)
+        .flatMap((line, i) => (HAND_TYPED.test(line) ? [`${rel}:${i + 1}: ${line.trim()}`] : [])),
+    );
+  assert.deepEqual(offenders, [], "use a token from lib/design/tokens.ts (a Tailwind class or rgb(var(--ds-…)))");
+});
+
+test("the old-page colour list only shrinks: every entry is still there and still types a colour", () => {
+  for (const rel of [...LEGACY_COLOURS, ...Object.keys(NOT_STYLES)]) {
+    assert.ok(existsSync(path.join(repoRoot, rel)), `${rel} is gone; take it off the list`);
+    assert.ok(HAND_TYPED.test(readFileSync(path.join(repoRoot, rel), "utf8")), `${rel} no longer types a colour; take it off the list`);
+  }
+  assert.ok(colourFiles.length > 100, "the walk found almost nothing, so it guards nothing");
+});
 
 // The theme's z scale (`zIndex` above) REPLACES Tailwind's numeric one, so a
 // numeric class compiles to nothing: 77 did, in 40 files. In the buyer app the
@@ -322,20 +419,20 @@ test("the contrast table covers every pair the kit needs, at the WCAG threshold 
 // value being written into markup — but nothing pinned the scale itself, so
 // changing `rounded-sm` from 6px to 4px was the cycle-1 defect again, applied
 // everywhere at once and invisibly.
-test("the radius scale is the one the founder approved on 19 Sep", () => {
+test("the radius scale is Paper's, with the old pages' extra names until B11", () => {
   assert.deepEqual(
     { ...borderRadius },
     {
       none: "0",
-      xs: "0.1875rem", // 3
-      sm: "0.375rem", // 6
-      DEFAULT: "0.375rem", // 6
-      md: "0.625rem", // 10
-      lg: "0.875rem", // 14
-      xl: "1.25rem", // 20
+      sm: "4px", // Paper: controls, chips
+      md: "6px", // Paper: tables, source-mark frames
+      lg: "8px", // Paper: panels, dialogs, cards
       full: "9999px",
+      xs: "0.1875rem", // v3
+      DEFAULT: "0.375rem", // v3
+      xl: "1.25rem", // v3
     },
-    "the v3 scale; §9's 5/6/8 was superseded by the founder's decision of 19 Sep",
+    "Paper's --radius-sm/md/lg/full (4 Oct 2026); xs, DEFAULT and xl go with the old pages",
   );
 });
 
@@ -357,7 +454,7 @@ test("the contrast table lists every pair it is meant to, at the threshold its u
   // The whole table, as literals. Deleting a pair deletes its generated
   // test and lowering a `min` lowers the bar it is checked against; neither
   // shows up as a failure while the expectation is derived from the table.
-  const expected = [
+  const expected = ([
     "accent on canvas @3",
     "accent on locked @3",
     "accent on surface @3",
@@ -436,7 +533,42 @@ test("the contrast table lists every pair it is meant to, at the threshold its u
     "tier.4-on on tier.4 @4.5",
     "tier.5-line on surface @3",
     "tier.5-on on tier.5 @4.5",
-  ];
+    // v4 (B0)
+    "brand on brand.tint @4.5",
+    "brand on brand.wash @4.5",
+    "brand on subtle @4.5",
+    "brand on surface @4.5",
+    "caution on caution.tint @4.5",
+    "caution on surface @4.5",
+    "caution.icon on caution.tint @3",
+    "caution.icon on surface @3",
+    "cert.expired-fg on cert.expired-bg @4.5",
+    "cert.expiring-fg on cert.expiring-bg @4.5",
+    "cert.no-expiry-edge on surface @3",
+    "cert.no-expiry-fg on surface @4.5",
+    "cert.valid-fg on surface @4.5",
+    "danger on danger.tint @4.5",
+    "danger on surface @4.5",
+    "info on info.tint @4.5",
+    "info on surface @4.5",
+    "ink on subtle @4.5",
+    "ink on sunken @4.5",
+    "ink.2 on subtle @4.5",
+    "ink.2 on sunken @4.5",
+    "ink.2 on surface @4.5",
+    "ink.3 on brand.wash @4.5",
+    "ink.3 on subtle @4.5",
+    "ink.3 on sunken @4.5",
+    "ink.3 on surface @4.5",
+    "sanction on sanction.tint @7",
+    "sanction on surface @7",
+    "surface on brand @4.5",
+    "surface on brand.active @4.5",
+    "surface on brand.hover @4.5",
+    "surface on danger.active @4.5",
+    "surface on danger.solid @4.5",
+    "surface on sanction @7",
+  ]).sort();
   assert.deepEqual(listed, expected, "contrastPairs and this list must be the same set; a pair in one and not the other is unchecked or unlisted");
 });
 
@@ -513,12 +645,13 @@ test("the density stops are the ones the artifact fixed", () => {
     rowPhone: 72,
   });
   // The Tailwind utilities are derived from them, so the two cannot drift.
+  // `w-sidebar` is not one of them any more: it is Paper's container (224).
+  assert.equal(densitySizes.sidebar, undefined);
   for (const [util, px] of [
     ["row-dense", density.tableRow],
     ["row-relaxed", density.tableRowRelaxed],
     ["control", density.control],
     ["control-lg", density.controlLarge],
-    ["sidebar", density.sidebar],
     ["topbar", density.topbar],
     ["fact-row", density.factRow],
     ["tabbar", density.tabbar],
@@ -535,14 +668,53 @@ test("the density stops are the ones the artifact fixed", () => {
 });
 
 test("the type scale, the widths and the durations are the approved ones", () => {
-  assert.equal(fontSize.base?.[0], "0.875rem", "body text is 14px");
-  assert.equal(fontSize.sm?.[0], "0.8125rem");
-  assert.equal(fontSize.xs?.[0], "0.75rem");
-  assert.equal(fontSize.title?.[0], "0.9375rem");
-  assert.equal(fontSize.eyebrow?.[0], "0.6875rem");
+  // Paper's --text-* with its line heights, as literals (4 Oct 2026).
+  const paper: Record<string, [string, string?]> = {
+    xs: ["12px", "16px"],
+    sm: ["13px", "18px"],
+    base: ["14px", "20px"],
+    md: ["16px", "24px"],
+    lg: ["20px", "28px"],
+    xl: ["24px", "32px"],
+    "2xl": ["32px", "40px"],
+    "3xl": ["40px", "48px"],
+    "display-1": ["72px"],
+    "display-2": ["56px"],
+    "display-3": ["40px"],
+  };
+  for (const [key, [size, lh]] of Object.entries(paper)) {
+    assert.equal(fontSize[key]?.[0], size, `text-${key}`);
+    assert.equal(fontSize[key]?.[1].lineHeight, lh, `text-${key} line height`);
+    assert.equal(fontSize[key]?.[1].letterSpacing, undefined, `text-${key}: Paper puts tracking on the element, not the size`);
+  }
+  assert.deepEqual({ ...letterSpacing }, { tight: "-0.01em", tighter: "-0.02em" });
+  assert.deepEqual({ ...containers }, { sidebar: "224px", details: "344px", dialog: "480px", prose: "544px", pane: "640px" });
+  assert.equal(maxWidth.prose, "544px", "Paper's prose, not Tailwind's 65ch");
   assert.equal(maxWidth.content, "75rem");
-  assert.equal(maxWidth.prose, "68ch");
+  assert.deepEqual({ ...screens }, { xs: "320px", sm: "640px", md: "768px", lg: "1024px", xl: "1280px", "2xl": "1440px" });
+  assert.deepEqual({ ...spacing }, {
+    "control-sm": "24px", control: "32px", "row-head": "36px", row: "40px", "control-lg": "40px", touch: "44px",
+    "input-touch": "48px", "row-tall": "56px", topbar: "56px", tabbar: "56px", "action-bar": "64px",
+  });
   assert.deepEqual({ ...transitionDuration }, { fast: "120ms", DEFAULT: "200ms", slow: "320ms", reveal: "640ms" });
+});
+
+// B0: Paper's colour tokens as literals, so a value changed here and in the
+// table above together is still a failure.
+test("every v4 colour is Paper's value, and light carries it under Paper's name", () => {
+  assert.deepEqual({ ...v4Colors }, {
+    surface: "#FFFFFF", subtle: "#F7F8F9", sunken: "#EEF0F2", line: "#DDE0E4", "line-strong": "#858C96",
+    disabled: "#9AA0A8", "ink-3": "#59606A", "ink-2": "#3B4149", ink: "#15181C",
+    brand: "#1B5E20", "brand-hover": "#154A19", "brand-active": "#0F3812", "brand-tint": "#E8F2E8", "brand-wash": "#F4F9F4",
+    caution: "#8A4A00", "caution-icon": "#B25E00", "caution-tint": "#FFF3DC",
+    danger: "#A8231B", "danger-solid": "#B42318", "danger-active": "#861C16", "danger-tint": "#FDECEA",
+    sanction: "#6E0B1C", "sanction-tint": "#F8E5E9", info: "#1C4F8F", "info-tint": "#E9F1FB",
+  });
+  for (const [name, hex] of Object.entries(v4Colors)) assert.equal(resolve(light, v4Ref(name)), hex, name);
+  for (const [alias, target] of Object.entries(v4CertAliases)) {
+    assert.equal(resolve(light, v4Ref(alias)), v4Colors[target], `${alias} is ${target}`);
+  }
+  assert.equal(resolve(light, "scrim"), v4Colors.ink, "the scrim is ink at 40%");
 });
 
 test("the source-rank labels are the five §2 names", () => {
@@ -608,4 +780,50 @@ test("the focus ring's offset plus width is within the 4px the nav strip reserve
       `the focus ring needs ${offset + width}px but the nav strip reserves 4px (app-shell.tsx, \`-my-1 py-1\`); ` +
         "either narrow the ring or widen the strip's padding and re-measure in a browser",
     );
+});
+
+// B0's boundary: what Tailwind actually emits for Paper's classes through
+// tailwind.config.ts. The translated Paper boards name colours as flat keys
+// (`text-ink-3`, `theme(colors.line-strong)`); a nested key makes Tailwind drop
+// the class without an error, so the unit pins above cannot see it. The full
+// 776-class sweep over the boards is `.impeccable/preview/paper-import/check-config.cjs`.
+test("Paper's classes compile to Paper's values through the real Tailwind config", async () => {
+  /* eslint-disable @typescript-eslint/no-require-imports -- tailwind's loader and postcss are CommonJS tools */
+  const postcss = require("postcss") as typeof import("postcss").default;
+  const tailwind = require("tailwindcss") as (config: object) => import("postcss").AcceptedPlugin;
+  const loadConfig = require("tailwindcss/loadConfig") as (file: string) => Record<string, unknown>;
+  /* eslint-enable @typescript-eslint/no-require-imports */
+  const config = loadConfig(path.join(repoRoot, "tailwind.config.ts"));
+  const classes = [
+    "text-ink-3", "bg-subtle", "bg-sunken", "border-line-strong", "text-cert-expired-fg", "bg-scrim",
+    "text-sm", "text-md", "text-display-1", "tracking-tight", "w-pane", "max-w-prose", "h-touch", "min-h-row",
+    "rounded-sm", "shadow-dialog", "2xl:w-sidebar", "grow-2",
+    "[box-shadow:theme(colors.line-strong)_0px_-1px_0px]",
+  ];
+  const { css } = await postcss([
+    tailwind({ ...config, content: [{ raw: classes.join(" "), extension: "html" }] }),
+  ]).process("@tailwind base; @tailwind utilities;", { from: undefined });
+  const rule = (selector: string) => {
+    const i = css.indexOf(`${selector} {`);
+    assert.ok(i >= 0, `no rule for ${selector}`);
+    return css.slice(i, css.indexOf("}", i)).replace(/\s+/g, " ");
+  };
+  assert.match(css, /--ds-ink-3: 89 96 106;/);
+  assert.match(css, /--ds-scrim: 21 24 28;/);
+  assert.match(rule(".text-ink-3"), /color: rgb\(var\(--ds-ink-3\) \/ var\(--tw-text-opacity/);
+  assert.match(rule(".bg-scrim"), /background-color: rgb\(var\(--ds-scrim\) \/ 0\.4\)/);
+  assert.match(rule(".text-cert-expired-fg"), /--ds-cert-expired-fg/);
+  assert.match(rule(".text-sm"), /font-size: 13px; line-height: 18px/);
+  assert.match(rule(".text-md"), /font-size: 16px; line-height: 24px/);
+  assert.match(rule(".text-display-1"), /font-size: 72px/);
+  assert.match(rule(".tracking-tight"), /letter-spacing: -0\.01em/);
+  assert.match(rule(".w-pane"), /width: 640px/);
+  assert.match(rule(".max-w-prose"), /max-width: 544px/);
+  assert.match(rule(".h-touch"), /height: 44px/);
+  assert.match(rule(".min-h-row"), /min-height: 40px/);
+  assert.match(rule(".rounded-sm"), /border-radius: 4px/);
+  assert.match(rule(".shadow-dialog"), /0 12px 32px rgb\(21 24 28 \/ 0\.18\)/);
+  assert.match(rule(".grow-2"), /flex-grow: 2/);
+  assert.match(css, /@media \(min-width: 1440px\) \{\s*\.\\32xl\\:w-sidebar \{\s*width: 224px/);
+  assert.match(rule(String.raw`.\[box-shadow\:theme\(colors\.line-strong\)_0px_-1px_0px\]`), /box-shadow: rgb\(var\(--ds-line-strong\) \/ 1\) 0px -1px 0px/);
 });
