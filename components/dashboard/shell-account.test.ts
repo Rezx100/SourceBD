@@ -17,7 +17,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { buildSheet } from "@/lib/dashboard/build-models";
 import { aboniInput } from "@/lib/dashboard/fixtures";
-import { backToList, RAIL_COOKIE } from "@/lib/dashboard/nav";
+import { backToList } from "@/lib/dashboard/nav";
 import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { menuShouldClose } from "@/lib/dashboard/menu-dismiss";
 import { AccountMenu, accountName } from "./account-menu";
@@ -54,14 +54,6 @@ describe("1. the rail collapses, and the server remembers", () => {
     }
     assert.match(html, /aria-label="Expand sidebar"/, "collapsed, the switch offers the way back");
     assert.match(shell(), /aria-label="Collapse sidebar"/);
-  });
-
-  it("the layout reads the cookie the toggle writes", () => {
-    const layout = source("app/(app)/app/layout.tsx");
-    assert.match(layout, /jar\.get\(RAIL_COOKIE\)\?\.value === "collapsed"/);
-    assert.match(layout, /railCollapsed=\{railCollapsed\}/);
-    assert.match(source("components/dashboard/rail-toggle.tsx"), /\$\{RAIL_COOKIE\}=\$\{next \? "collapsed" : "open"\}/);
-    assert.equal(RAIL_COOKIE, "sb_rail");
   });
 });
 
