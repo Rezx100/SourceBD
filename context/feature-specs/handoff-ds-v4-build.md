@@ -169,6 +169,46 @@ file".
 | B10 | Admin and supplier portal on the v4 kit (section 8, question 1) | none drawn: kit + patterns only | no old-kit import left there |
 | B11 | Delete the old kit (`components/dashboard/*` primitives, `components/ui/*`, old shell, old tokens) as the last importer goes | — | nothing imports them; build green |
 
+### 5a. Which model runs which PR (founder, 4 Oct)
+
+**Opus 5.5** runs the PRs where one mistake reaches every page or touches
+accounts: **B0** (tokens), **B3** (shell), **B8** (onboarding and auth),
+**B11** (deleting the old kit) and **section 9** (the switch and go-live).
+**Sonnet 5.5** runs everything else: **F, P0, P1, B1, B2, B4, B5, B6, B7, B9,
+B10**.
+
+The order is fixed by what each PR needs, so the models take turns:
+
+```
+Sonnet  F, P0, P1
+Opus    B0
+Sonnet  B1, B2
+Opus    B3
+Sonnet  B4, B5, B6, B7
+Opus    B8
+Sonnet  B9, B10
+Opus    B11, then section 9
+```
+
+Each session starts by reading section 10 to see the last PR that landed, does
+the next PR(s) in its own list, and stops when the next one belongs to the
+other model, leaving a line in section 10 saying so. A Sonnet session also
+stops and hands to Opus, with a line in section 10 naming the PR and the
+failure, when: the same PR's CI goes red three times; a change would touch
+auth, RLS, an RPC's SQL, a migration, the token file or the shell; or the
+translator's self-check meets a class it cannot map. It never works around
+the problem.
+
+Prompts to start a session (paste one into a new session, pick the model
+first):
+
+- Sonnet: `Follow context/feature-specs/handoff-ds-v4-build.md as the Sonnet
+  model (section 5a). Read section 10, do the next PRs on the Sonnet list, stop
+  at the next Opus PR.`
+- Opus: `Follow context/feature-specs/handoff-ds-v4-build.md as the Opus model
+  (section 5a). Read section 10, do the next PR on the Opus list, and fix any
+  hand-back a Sonnet session left there first.`
+
 Split any flow PR that grows past about 1,500 changed lines into one PR per
 screen group. Data and behaviour come from today's pages: same RPCs, same
 server actions, same gating. A Paper board with "Sample state" shows the
@@ -246,3 +286,4 @@ layout; the built page shows live rows.
 ## 10. Progress (each PR appends one line)
 
 - 3 Oct · Hand-off written. 0109 on `development` (#231), not applied.
+- 4 Oct · Model split added (section 5a). Next: Sonnet, PR F.
