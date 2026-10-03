@@ -287,3 +287,5 @@ layout; the built page shows live rows.
 
 - 3 Oct · Hand-off written. 0109 on `development` (#231), not applied.
 - 4 Oct · Model split added (section 5a). Next: Sonnet, PR F.
+- 4 Oct · Sonnet, PR F: verified each open item on `development`. Opened #233 (T-03, RSC words), #234 (A-01, row focus ring), #235 (T-04 and T-09, copy), #236 (RQ-07, no Send with a [bracket]), #237 (OR-02, no cancel after shipping), #238 (PR-02, Send RFQ only when active). **Skipped:** RC-09 and RC-10 (address once, map on the record), because B4 rebuilds the record and Locations; B4 must carry both. **Handed to Opus:** ST-03 (current password on change), because it touches auth. T-01 and T-02 were already on `development`.
+- 4 Oct · Sonnet, PR P0: `ds-v4` added to both branch lists in `ci.yml`; branch created off `development` once this lands.
