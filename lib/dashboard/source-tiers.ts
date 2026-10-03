@@ -221,10 +221,12 @@ export function isKnownSource(code: string): boolean {
  * says something we cannot support. Rule 5's own words for the bottom of the
  * hierarchy are cross-check only.
  */
-export function tierWords(rank: TrustRank | null): string {
+export function tierWords(rank: TrustRank | null, code?: string): string {
   switch (rank) {
     case 1:
-      return "Government register";
+      // The RMG Sustainability Council is an industry-led programme, not a
+      // government body; its rank (1) is the founder's call, its words are not.
+      return code?.toUpperCase() === "RSC" ? "Industry-led programme" : "Government register";
     case 2:
       return "Industry body";
     case 3:

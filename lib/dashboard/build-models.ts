@@ -1133,6 +1133,7 @@ function sourceRows(p: ProfilePayload): SourceRow[] {
       // the rank `fallback()` assigns an unknown code for colouring purposes.
       tier: tierWords(
         (held?.tier ? trustRankFromSlug(held.tier) : null) ?? (isKnownSource(m.code) ? m.tier : null),
+        m.code,
       ),
       ref: held?.ref ?? null,
       readDate: held && held.at >= 0 ? formatDay(new Date(held.at).toISOString()) : null,
