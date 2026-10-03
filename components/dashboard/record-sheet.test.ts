@@ -620,7 +620,7 @@ describe("ProductSheet — the line's own controls (REZ-C §3.4)", () => {
       createElement(ProductSheet, { model: buildProductSheet(aboniInput(), "6105") }),
     );
     assert.match(html, /Not the supplier&#x27;s own product/);
-    // The caption once read "own product; a a photo" (#238 review, 4 Oct).
+    // The caption once read "own product; a a photo" (PR 238 review, 4 Oct).
     assert.match(html, /own product;\s+a photo from the supplier replaces it/);
     assert.doesNotMatch(html, /\b(a|the) \1\b/);
   });
