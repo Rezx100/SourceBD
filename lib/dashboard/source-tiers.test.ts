@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { isKnownSource, marksFromTags, sourceMark, tierFromSlug, topTier } from "./source-tiers";
+import { isKnownSource, marksFromTags, sourceMark, tierFromSlug, tierWords, topTier } from "./source-tiers";
 
 describe("source rank (spec §2: government > industry bodies > cert bodies > brand lists > foreign regulators)", () => {
   it("ranks every register and brand list the database carries", () => {
@@ -47,5 +47,14 @@ describe("source rank (spec §2: government > industry bodies > cert bodies > br
     );
     assert.equal(topTier(["BGMEA"]), 2);
     assert.equal(topTier([]), 5);
+  });
+});
+
+describe("tier words", () => {
+  it("never calls the RMG Sustainability Council a government register", () => {
+    assert.equal(tierWords(1, "RSC"), "Industry-led programme");
+    assert.equal(tierWords(1, "rsc"), "Industry-led programme");
+    assert.equal(tierWords(1, "EPB"), "Government register");
+    assert.equal(tierWords(1), "Government register");
   });
 });
