@@ -1,27 +1,14 @@
-// The buyer section's layout: the dashboard kit's shell, drawn ONCE around
-// every /app page (27 Sep 2026). Before this each page drew its own
-// `AppShell`, so a click tore the rail and topbar down and built them again,
-// nothing could stay pinned, and the shell's four reads ran on every page.
-// Now a navigation swaps only the content region; the rail marks the current
-// page from the URL on the client (`SidebarNav`), the search field reads its
-// text from the URL (`SearchTypeahead`), and the shell is the viewport from
-// `md` up — the page never scrolls, the content region or a pane inside it
-// does.
+// The buyer section's layout: the v4 app frame (B3), drawn ONCE around every /app
+// page, so a navigation swaps only `<main>`. The frame marks the current item
+// from the URL on the client. The supplier portal and admin keep the older shell
+// (`app/(app)/(old-shell)`) until B10.
 //
-// No layout of the `(app)` group sits above this one: the older shell's
-// layout, and its reads, wrap only the supplier portal and admin
-// (`app/(app)/(old-shell)`, 29 Sep 2026). So analytics learns who is signed
-// in here, from the shell's own sign-in read. Spec H5's onboarding tour
-// mounts after the shell; it short-circuits server-side once the buyer has
-// completed or dismissed it. Its two reads (who is signed in, then the tour's
-// state) stream in behind the page: outside a boundary they held the whole
-// page back two more round trips after the shell's own.
+// Analytics learns who is signed in from the frame's own sign-in read. The
+// onboarding tour mounts after the frame and streams in behind the page.
 
-import { cookies } from "next/headers";
 import { Suspense } from "react";
 import { preload } from "react-dom";
-import { AppShell } from "@/components/dashboard/app-shell";
-import { RAIL_COOKIE } from "@/lib/dashboard/nav";
+import { AppFrame } from "@/components/frame";
 import { TourMount } from "@/components/onboarding/tour-mount";
 import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { SOURCE_LOGO_FILES } from "@/lib/dashboard/source-logos";
@@ -35,15 +22,12 @@ export default async function BuyerLayout({ children }: { children: React.ReactN
   // files, 0.8–11.5 KB each, fetched once when the app opens.
   for (const href of SOURCE_LOGO_FILES) preload(href, { as: "image" });
   const supabase = await createSupabaseServerClient();
-  const [shell, jar] = await Promise.all([loadBuyerShell(supabase), cookies()]);
-  // The rail as the buyer left it (`RailToggle`), drawn by the server so it
-  // never flashes open first.
-  const railCollapsed = jar.get(RAIL_COOKIE)?.value === "collapsed";
+  // ponytail: the old shell's loader still reads three counts the frame does not
+  // show; B6 replaces it with the frame's own reads (the Messages and Compliance badges).
+  const shell = await loadBuyerShell(supabase);
   return (
     <PostHogProvider userId={shell.userId}>
-      <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" railCollapsed={railCollapsed}>
-        {children}
-      </AppShell>
+      <AppFrame account={shell.sidebar.account ?? null}>{children}</AppFrame>
       <Suspense fallback={null}>
         <TourMount flavour="buyer" />
       </Suspense>

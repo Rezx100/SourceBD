@@ -131,6 +131,7 @@
     "app/dev/ds/v4-kit.test.ts",
     "app/dev/ds/v4-patterns.tsx",
     "app/dev/ds/v4-patterns.test.ts",
+    "components/frame/frame.test.ts",
     "lib/design/tokens.test.ts",
     "lib/hs-catalogue.ts",
     "lib/dashboard/source-tiers.ts",
