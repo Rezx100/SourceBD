@@ -31,7 +31,11 @@ const INCOTERMS = ["", "FOB", "CIF", "EXW", "DDP", "DAP"] as const;
 /** Once goods are on their way the order cannot be cancelled from here (OR-02). */
 const CANCELLABLE: ReadonlyArray<OrderStatus | "cancelled"> = ["draft", "in_production"];
 
-export const CANCEL_ORDER_QUESTION = "Cancel this order? Its details and milestones stay on file.";
+/** The confirmation names the order by its PO, so the buyer knows which one goes (OR-02). */
+export function cancelOrderQuestion(poNumber: string | null): string {
+  const po = poNumber?.trim();
+  return `Cancel ${po ? `order ${po}` : "this order"}? Its details and milestones stay on file.`;
+}
 
 export interface OrderStatusEditorProps {
   orderId: string;
@@ -123,7 +127,7 @@ export function OrderStatusEditor({ orderId, initial }: OrderStatusEditorProps) 
     <div className="flex flex-col gap-3">
       {confirming ? (
         <div role="group" aria-label="Cancel this order" className="flex flex-col gap-2 rounded-md bg-surface-sunken p-3">
-          <p className="m-0 text-sm text-ink-strong">{CANCEL_ORDER_QUESTION}</p>
+          <p className="m-0 text-sm text-ink-strong">{cancelOrderQuestion(initial.po_number)}</p>
           <div className="flex flex-wrap gap-2">
             <Button variant="danger" onClick={onCancel} loading={cancelBusy}>
               Cancel order
