@@ -1851,16 +1851,16 @@ const CASES = [
     // happily when `runSavedSearchesGet` returns 500 and the page falls back
     // to its error caption. This case passed over a route whose list read was
     // failing outright. Pin the list state instead: on success the caption is
-    // either "N saved" or the empty-state invitation, and the error string is
-    // absent either way.
+    // either "N saved searches · only you see them" or the empty-state
+    // invitation, and the error string is absent either way (v4, B6b).
     expect: {
       status: 200,
       bodyIncludesAll: ["Saved searches"],
-      bodyExcludes: ["Saved searches could not be read"],
-      // Not the bare word "saved": app-shell.tsx renders a sidebar item
-      // linking to /app/saved on every /app/* page, so that needle matches
+      bodyExcludes: ["load your saved searches"],
+      // Not the bare word "saved": the frame renders a sidebar item linking
+      // to /app/saved on every /app/* page, so that needle matches
       // unconditionally — the same sidebar trap the case above describes.
-      bodyIncludesAny: ["Save a search from the results panel", " saved</"],
+      bodyIncludesAny: ["No saved searches yet.", "saved searches · only you see them", "saved search · only you see it", "None saved yet · only you see them"],
     },
   },
   {
