@@ -18,6 +18,7 @@ import type { SavedSearchJson } from "@/lib/saved-searches";
 import { cn } from "@/lib/utils";
 import { FilterMenuButton } from "./toolbar";
 import { RecentSearches } from "./recent";
+import { SearchCombobox } from "./typeahead";
 import { Count, LinkRow, LinkRows, h2, supplierCount } from "./rows";
 
 
@@ -136,11 +137,13 @@ export function SearchLanding({
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-6 px-4 pb-6 pt-1 sm:px-8 sm:pt-7">
       {/* A phone has no topbar field: the page draws its own, 48 tall at 16px. */}
-      <Form action={DISCOVER_PATH} role="search" aria-label="Search" className="md:hidden">
-        <label className="flex h-input-touch items-center gap-3 rounded-md border border-line-strong bg-surface px-3.5 focus-within:border-brand focus-within:[box-shadow:inset_0_0_0_1px_theme(colors.brand)]">
+      <Form action={DISCOVER_PATH} role="search" aria-label="Search" className="relative md:hidden">
+        <div className="flex h-input-touch items-center gap-3 rounded-md border border-line-strong bg-surface px-3.5 focus-within:border-brand focus-within:[box-shadow:inset_0_0_0_1px_theme(colors.brand)]">
           <MagnifyingGlass size={20} className="shrink-0 text-ink-3" aria-hidden />
-          <input type="search" name="q" autoComplete="off" placeholder="Supplier, product or certificate" aria-label="Search" className="min-w-0 flex-1 bg-transparent text-md text-ink outline-none placeholder:text-ink-3 [&::-webkit-search-cancel-button]:hidden" />
-        </label>
+          <Suspense fallback={<input type="search" name="q" autoComplete="off" placeholder="Supplier, product or certificate" aria-label="Search" className="min-w-0 flex-1 bg-transparent text-md text-ink outline-none placeholder:text-ink-3" />}>
+            <SearchCombobox variant="phone" placeholder="Supplier, product or certificate" />
+          </Suspense>
+        </div>
       </Form>
       <div className="flex items-baseline gap-4 max-sm:hidden">
         <h1 className="text-xl font-semibold tracking-tight text-ink">Search</h1>

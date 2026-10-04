@@ -3,14 +3,15 @@
 // The desktop topbar (Paper `03 Patterns` · App shell desktop 1440): 56 tall, the
 // app's one search box (480, Ctrl K) and the account menu. Below 768 the phone
 // bar takes its place. The field is a plain GET form to the results, so it works
-// before any script runs; the suggestions under it are B4's.
+// before any script runs; the suggestions under it are `components/search/typeahead.tsx`.
 
 import { CaretDown, MagnifyingGlass, UserCircle } from "@phosphor-icons/react";
 import Form from "next/form";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Suspense, useRef } from "react";
 import { ring } from "@/components/kit/classes";
 import { Menu, MenuItem, MenuSeparator } from "@/components/kit/overlay";
+import { SearchCombobox } from "@/components/search/typeahead";
 import { SearchCarry } from "@/components/dashboard/search-carry";
 import { SearchShortcut } from "@/components/dashboard/search-shortcut";
 import { pageDrawsOwnField, useApplePlatform } from "@/components/dashboard/topbar-search-slot";
@@ -23,26 +24,6 @@ export function accountName(account: FrameAccount): string {
   return account.name ?? account.email?.split("@")[0] ?? "Your account";
 }
 
-/** Keyed on the URL's `q`, so a new search refills the field and typing is never overwritten. */
-function QueryInput() {
-  const pathname = usePathname();
-  const params = useSearchParams();
-  const q = pathname === "/app/discover" ? (params?.get("q") ?? "") : "";
-  return (
-    <input
-      key={q}
-      type="search"
-      name="q"
-      defaultValue={q}
-      data-search="topbar"
-      aria-label="Search"
-      placeholder="Supplier, product or certificate"
-      autoComplete="off"
-      className="min-w-0 flex-1 bg-transparent text-base text-ink outline-none placeholder:text-ink-3 [&::-webkit-search-cancel-button]:hidden"
-    />
-  );
-}
-
 function SearchField() {
   const apple = useApplePlatform();
   return (
@@ -51,11 +32,11 @@ function SearchField() {
       role="search"
       aria-label="Search"
       action="/app/discover"
-      className="flex h-9 w-dialog min-w-0 shrink items-center gap-2 rounded-sm border border-line-strong px-3 transition-colors duration-fast hover:border-ink-3 focus-within:border-brand focus-within:[box-shadow:inset_0_0_0_1px_theme(colors.brand)]"
+      className="relative flex h-9 w-dialog min-w-0 shrink items-center gap-2 rounded-sm border border-line-strong px-3 transition-colors duration-fast hover:border-ink-3 focus-within:border-brand focus-within:[box-shadow:inset_0_0_0_1px_theme(colors.brand)]"
     >
       <MagnifyingGlass size={16} className="shrink-0 text-ink-3" aria-hidden />
       <Suspense fallback={<input type="search" name="q" data-search="topbar" aria-label="Search" placeholder="Supplier, product or certificate" className="min-w-0 flex-1 bg-transparent text-base text-ink outline-none placeholder:text-ink-3" />}>
-        <QueryInput />
+        <SearchCombobox variant="topbar" placeholder="Supplier, product or certificate" shortcutTarget />
         <SearchCarry />
       </Suspense>
       <kbd aria-label={apple ? "Command K" : "Control K"} className="shrink-0 rounded-sm border border-line px-1.5 font-sans text-xs text-ink-3">
