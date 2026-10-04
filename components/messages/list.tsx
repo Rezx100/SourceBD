@@ -11,14 +11,14 @@ import { conversationsWords, listHref, threadHref, type ListState, type ShowTab,
 /** The list's own width beside a conversation: Paper's 360. */
 const LIST_W = "w-[360px] max-lg:w-[300px] max-md:w-full";
 
-export function InboxHead({ total, noReply, state }: { total: number; noReply: number | null; state: ListState }) {
+export function InboxHead({ total, noReply, state, Title = "h1" }: { total: number; noReply: number | null; state: ListState; /** The conversation beside the list has the page's h1. */ Title?: "h1" | "h2" }) {
   const tabs: { key: ShowTab; label: string }[] = [
     { key: "all", label: `All · ${total}` },
     ...(noReply === null ? [] : [{ key: "noreply" as const, label: `No reply yet · ${noReply}` }]),
   ];
   return (
     <header className="flex shrink-0 flex-col gap-3 border-b border-line px-4 pb-3 pt-5 max-md:hidden">
-      <h1 className="text-xl font-semibold tracking-tight text-ink">Messages</h1>
+      <Title className="text-xl font-semibold tracking-tight text-ink">Messages</Title>
       <form action="/app/messages" method="get" role="search" className="relative">
         {state.show !== "all" ? <input type="hidden" name="show" value={state.show} /> : null}
         <MagnifyingGlass size={16} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-3" aria-hidden />
@@ -73,7 +73,11 @@ export function InboxRows({ items, state, currentId }: { items: readonly ThreadI
             >
               <span className="flex justify-between gap-2">
                 <span className="min-w-0 text-base font-medium text-ink max-md:text-md">{i.name}</span>
-                {i.when ? <span className="shrink-0 text-xs leading-5 text-ink-3 max-md:text-sm">{i.when}</span> : null}
+                {i.when ? (
+                  <time dateTime={i.at ?? undefined} title={i.at ? "UTC" : undefined} className="shrink-0 text-xs leading-5 text-ink-3 max-md:text-sm">
+                    {i.when}
+                  </time>
+                ) : null}
               </span>
               {i.line ? <span className="line-clamp-2 text-base text-ink-2 max-md:text-md">{i.line}</span> : null}
               <span className="flex items-center gap-1.5 text-xs text-ink-3 max-md:text-sm">

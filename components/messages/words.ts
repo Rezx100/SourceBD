@@ -141,6 +141,8 @@ export type ThreadItem = {
   name: string;
   /** "11:20", "Yesterday", "26 Sep 2026"; null when the conversation has no date at all. */
   when: string | null;
+  /** The moment `when` is of, for its `<time>`: the times are UTC. */
+  at: string | null;
   /** The newest message, "You: ..." when it is yours; null when it was not read, "No messages yet" when there are none. */
   line: string | null;
   /** "RFQ · Men's heavyweight French terry hoodies". */
@@ -163,10 +165,12 @@ export function buildThreadItems(rows: readonly ThreadRow[], last: Readonly<Reco
   return rows.map((t) => {
     const m = last[t.id];
     const count = Number(t.message_count) || 0;
+    const at = m?.created_at ?? t.last_message_at ?? t.created_at;
     return {
       id: t.id,
       name: t.supplier_name,
-      when: listWhen(m?.created_at ?? t.last_message_at ?? t.created_at, now),
+      when: listWhen(at, now),
+      at: listWhen(at, now) ? at : null,
       line: m ? `${m.is_self ? "You: " : ""}${oneLine(m.body)}` : count === 0 ? "No messages yet" : null,
       sub: threadSub(t),
       noReply: m?.is_self === true,

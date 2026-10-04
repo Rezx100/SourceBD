@@ -12,6 +12,7 @@
 // sends on Ctrl or Command + Enter and shows its count only near the limit. Attachments are not
 // built: no file is stored anywhere, so there is no paperclip.
 
+import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Bubble, DateLine } from "@/components/patterns";
 import { Button } from "@/components/kit";
@@ -60,6 +61,7 @@ export function ThreadLive({
   supplierName,
   today,
   phoneLine,
+  phoneHref,
   readFailed,
 }: {
   threadId: string;
@@ -70,6 +72,8 @@ export function ThreadLive({
   today: string;
   /** The phone's line over the conversation ("RFQ sent 18 Jul 2026 · 10,000 pieces · waiting for quote"). */
   phoneLine?: string | null;
+  /** Where that line goes: the RFQ. A phone has no strip with a View RFQ link, so the line is the link. */
+  phoneHref?: string | null;
   /** The newest messages could not be read: the page says so instead of drawing an empty thread. */
   readFailed?: boolean;
 }) {
@@ -80,6 +84,8 @@ export function ThreadLive({
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
   const [arrival, setArrival] = useState("");
+  // The first read failed: say so until a later read (a refetch, a send) succeeds.
+  const [failed, setFailed] = useState(Boolean(readFailed));
   const seen = useRef(new Set(initialMessages.map((m) => m.id)));
   const listEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -94,6 +100,7 @@ export function ThreadLive({
         const said = arrivalText(fresh.filter((m) => !m.is_self).length, supplierName);
         if (said) setArrival(said);
         setMessages(json.messages);
+        setFailed(false);
       }
     } catch {
       // Network blip: Realtime will retry; nothing to surface.
@@ -178,14 +185,22 @@ export function ThreadLive({
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto bg-subtle max-md:min-h-[240px] max-md:overflow-visible">
         <div className="flex min-h-full flex-col gap-3 p-5 max-md:justify-end max-md:p-4">
-          {phoneLine ? <p className="text-center text-sm text-ink-3 sm:hidden">{phoneLine}</p> : null}
-          {readFailed ? (
+          {phoneLine ? (
+            phoneHref ? (
+              <Link href={phoneHref} prefetch={false} className="flex min-h-11 items-center justify-center text-center text-sm text-ink-2 underline decoration-1 [text-underline-position:from-font] sm:hidden">
+                {phoneLine}
+              </Link>
+            ) : (
+              <p className="text-center text-sm text-ink-3 sm:hidden">{phoneLine}</p>
+            )
+          ) : null}
+          {failed ? (
             <p role="alert" className="rounded-md border border-line bg-surface px-3 py-2 text-base text-ink-2">
               The latest messages could not be read just now. Nothing has been lost. Reload in a moment.
             </p>
           ) : null}
           {/* An unread conversation is not an empty one: "No messages yet" would be a claim about it. */}
-          {readFailed && messages.length === 0 ? null : <MessageList messages={messages} supplierName={supplierName} today={today} />}
+          {failed && messages.length === 0 ? null : <MessageList messages={messages} supplierName={supplierName} today={today} />}
           <div ref={listEndRef} />
         </div>
       </div>

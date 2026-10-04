@@ -26,7 +26,7 @@ export function InboxView({ inbox, state, currentId, now, className }: { inbox: 
   const effective: ListState = noReply === null && state.show === "noreply" ? { ...state, show: "all" } : state;
   const shown = filterItems(items, effective);
   return (
-    <InboxColumn className={className} head={<InboxHead total={items.length} noReply={noReply} state={effective} />}>
+    <InboxColumn className={className} head={<InboxHead total={items.length} noReply={noReply} state={effective} Title={currentId ? "h2" : "h1"} />}>
       {shown.length === 0 ? <InboxNone state={effective} /> : <InboxRows items={shown} state={effective} currentId={currentId} />}
       <InboxFoot shown={shown.length} total={items.length} />
     </InboxColumn>

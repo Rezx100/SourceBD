@@ -99,6 +99,7 @@ export default async function ThreadPage({ params, searchParams }: { params: Pro
           supplierName={thread.supplier_name}
           today={now.toISOString()}
           phoneLine={strip ? phoneStripLine(strip) : null}
+          phoneHref={strip ? `/app/rfqs?open=${encodeURIComponent(strip.rfqId)}` : null}
           readFailed={messages.kind === "error"}
         />
       </section>

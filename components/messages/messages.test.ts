@@ -19,7 +19,7 @@ import type { RfqDoc } from "../rfqs/doc";
 import { noReplyCount } from "./inbox";
 import { InboxEmpty, InboxError, InboxRows } from "./list";
 import { LAST_READ_CAP, loadInbox, readMessages, readRfq } from "./load";
-import { MessageList } from "./thread-live";
+import { MessageList, ThreadLive } from "./thread-live";
 import {
   COUNTER_FROM,
   arrivalText,
@@ -206,6 +206,7 @@ describe("the rows as drawn", () => {
     assert.match(text(out), /No reply yet · RFQ · French terry hoodies/);
     assert.match(text(out), /Quattro Fashion Limited Yesterday|Quattro Fashion Limited \d+ \w+ 2026/);
     assert.doesNotMatch(out, /Unread|unread|Sample messages/);
+    assert.match(out, /<time dateTime="2026-10-04T11:20:00Z" title="UTC"[^>]*>11:20<\/time>/, "the list's times are UTC and say so");
   });
 
   it("the list's tab and search ride along in every row's link", () => {
@@ -262,6 +263,38 @@ describe("the conversation's words", () => {
     assert.equal(COUNTER_FROM, 7000);
     assert.equal(counterText(7000), null);
     assert.equal(counterText(7001), "7,001 / 8,000");
+  });
+});
+
+describe("the live conversation", () => {
+  const live = (over: Record<string, unknown> = {}) =>
+    html(createElement(ThreadLive as never, { threadId: T1, initialMessages: [], supplierName: "Aboni", today: NOW.toISOString(), ...over }));
+
+  it("a reply that lands is heard: the polite live region is in the page before anything arrives", () => {
+    assert.match(live(), /<p role="status" aria-live="polite" class="sr-only"><\/p>/);
+  });
+
+  it("the composer is one row that grows to six, labelled, with its send hint, and sends on Ctrl or Command + Enter", () => {
+    const out = live();
+    assert.match(out, /<label[^>]*>Message<\/label>/);
+    assert.match(out, /<textarea[^>]*rows="1"[^>]*class="[^"]*max-h-\[9\.5rem\][^"]*resize-none/);
+    assert.match(out, /placeholder="Write to Aboni"/);
+    assert.match(text(out), /Ctrl or ⌘ \+ Enter to send/);
+    assert.doesNotMatch(out, /\/ 8,000/, "a counter on an empty draft");
+  });
+
+  it("a failed first read says so and is not 'No messages yet'; a read that worked says neither", () => {
+    const failed = live({ readFailed: true });
+    assert.match(failed, /role="alert"/);
+    assert.match(text(failed), /The latest messages could not be read just now\./);
+    assert.doesNotMatch(failed, /No messages yet/);
+    assert.doesNotMatch(live(), /could not be read/);
+  });
+
+  it("on a phone the RFQ line is the way to the RFQ", () => {
+    const out = live({ phoneLine: "RFQ sent 18 Jul 2026 · 10,000 pieces · waiting for quote", phoneHref: `/app/rfqs?open=${RFQ1}` });
+    assert.match(out, new RegExp(`href="/app/rfqs\\?open=${RFQ1}"[^>]*>RFQ sent 18 Jul 2026`));
+    assert.match(live({ phoneLine: "RFQ sent" }), /<p class="text-center text-sm text-ink-3 sm:hidden">RFQ sent<\/p>/);
   });
 });
 
@@ -488,6 +521,8 @@ describe("/app/messages/[thread]", () => {
     assert.match(out.html, /<textarea[^>]*placeholder="Write to Aboni Knitwear Ltd\."/);
     assert.match(out.html, new RegExp(`href="/app/messages/${T3}"[^>]*aria-current="page"|aria-current="page"[^>]*href="/app/messages/${T3}"`));
     assert.doesNotMatch(out.html, /data-record-column/);
+    assert.equal(out.html.match(/<h1\b/g)?.length, 1, "the conversation has the page's one h1; the list's title is an h2");
+    assert.match(out.html, /<h2[^>]*>Messages<\/h2>/);
     assert.ok(!rpcCalls.some((c) => c.fn === "buyer_supplier_profile"), "a record was read with nothing open");
     assert.match(out.html, /Ctrl or ⌘ \+ Enter to send/);
   });
