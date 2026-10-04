@@ -693,13 +693,15 @@ describe("/app/discover — the panes beside the results", () => {
     assert.equal(rpcCalls.filter((c) => c.fn === "discover_suppliers").length, 0, "an oversized query reached the search");
   });
 
-  it("?save=1 opens the save-search pane with the form, named after the search", async () => {
+  it("?save=1 opens the save-search popover under the bar with the form, named after the search, over the live results", async () => {
     const out = html(await search({ q: "knit", save: "1", page: "2" }));
-    assert.match(out, /<section data-record-pane="" aria-label="Save this search"/);
+    assert.match(out, /<section role="dialog" aria-label="Save this search" aria-modal="false"/);
     assert.match(out, /<input\b(?=[^>]*\sname="name")(?=[^>]*\svalue="[^"]+")[^>]*>/);
     assert.match(out, /Save search/);
-    assert.match(out, /The search keeps its filters and sort, not its page\./);
-    assert.doesNotMatch(hrefOf(out.slice(out.indexOf('aria-label="Save this search"')), /Close/), /save=/);
+    assert.match(out, /Cancel/);
+    assert.doesNotMatch(out, /Tell me about new matches/, "no alert is stored or sent, so none is promised");
+    assert.doesNotMatch(out, /data-record-pane=""[^>]*aria-label="Save this search"/, "it is not a pane any more");
+    assert.match(out, /<table\b/, "the results are still the full table beside it");
     // The composer wins over the other panes; one pane at a time.
     const both = html(await search({ q: "knit", save: "1", rfq: ABONI_ID }));
     assert.match(both, /aria-label="New RFQ"/);

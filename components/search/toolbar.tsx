@@ -135,6 +135,7 @@ export function ResultsToolbar({
   filtersHref,
   filtersOpen,
   saveHref,
+  savePanel,
   more,
   bare = false,
 }: {
@@ -144,12 +145,14 @@ export function ResultsToolbar({
   filtersHref: string;
   filtersOpen: boolean;
   saveHref: string;
+  /** The Save-this-search popover (a sheet on a phone), when `?save=1` opened it: it hangs under this bar. */
+  savePanel?: ReactNode;
   more: ReactNode;
   /** Nothing to save, sort or download (no match, a failed search): the filters alone, as Paper draws the empty state. */
   bare?: boolean;
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line px-6 py-3 max-md:hidden">
+    <div className="relative flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line px-6 py-3 max-md:hidden">
       <div className="flex min-w-0 flex-wrap items-center gap-2">
         <h1 className="pr-2 text-base font-semibold text-ink">{title}</h1>
         {barMenus(state).map((m) => (
@@ -183,15 +186,16 @@ export function ResultsToolbar({
         {more}
       </div>
       )}
+      {savePanel}
     </div>
   );
 }
 
 /** The narrow bar over the list when a pane is open (576): the title and the two buttons that fit. */
-export function PaneListToolbar({ state, title, hrefFor, filtersHref }: { state: DiscoverState; title: string; hrefFor: (s: DiscoverState) => string; filtersHref: string }) {
+export function PaneListToolbar({ state, title, hrefFor, filtersHref, savePanel }: { state: DiscoverState; title: string; hrefFor: (s: DiscoverState) => string; filtersHref: string; savePanel?: ReactNode }) {
   const on = filterCount(state);
   return (
-    <div className="flex min-h-14 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-line px-4 py-2 max-md:hidden">
+    <div className="relative flex min-h-14 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-line px-4 py-2 max-md:hidden">
       <h1 className="text-base font-semibold text-ink">{title}</h1>
       <div className="flex items-center gap-2">
         <Link href={filtersHref} prefetch={false} scroll={false} className={buttonClass({ kind: "secondary" })}>
@@ -199,6 +203,7 @@ export function PaneListToolbar({ state, title, hrefFor, filtersHref }: { state:
         </Link>
         <SortMenu state={state} hrefFor={hrefFor} />
       </div>
+      {savePanel}
     </div>
   );
 }

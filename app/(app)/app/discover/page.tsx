@@ -5,7 +5,7 @@
 //   ?record=<slug>            the record (REZ-C §3.3), and `&line=NNNN` one of its lines
 //   ?rfq=<id,id,…>            the RFQ composer, for one supplier or the ticked selection
 //   ?filters=1                the filter pane
-//   ?save=1                   the save-search pane
+//   ?save=1                   the save-search popover under the bar (a sheet on a phone), over live results
 //   ?sent=<rfq id>            the toast after a send, on the search the buyer was on
 //
 // Two things make "never lose the search" true, and both are load-bearing: the whole search
@@ -33,12 +33,9 @@ import { RecordRecentSearch } from "@/components/dashboard/record-recent-search"
 import { ComposerSkeleton, LineSkeleton, RecordSkeleton } from "@/components/dashboard/record-skeleton";
 import type { ComposerTarget, ComposerWorkspace } from "@/components/dashboard/rfq-composer";
 import { RfqComposer } from "@/components/rfqs/composer";
-import { SaveSearchForm } from "@/components/dashboard/save-search-form";
-import { Sheet, SheetBar, SheetNotice, SheetScroll } from "@/components/dashboard/sheet";
-import { Button } from "@/components/dashboard/controls";
-import { Icon } from "@/components/dashboard/icons";
-import { Caption, Label } from "@/components/dashboard/type";
+import { SheetNotice } from "@/components/dashboard/sheet";
 import { RecordView, parseTab, type TabId } from "@/components/record";
+import { SaveSearchPanel, saveSummary } from "@/components/saved/save-search";
 import { ResultsBar } from "@/components/search/bulk-bar";
 import { FilterPane } from "@/components/search/filters";
 import { Flash } from "@/components/search/flash";
@@ -137,7 +134,7 @@ export default async function BuyerDiscoverPage({
 
   // A pane docked beside the results narrows them; the filter panel lies over the full-width
   // table instead (B4 fix 4), so the results keep their own bar and columns under it.
-  const paneOpen = composerOpen || saveOpen || recordSlug !== null;
+  const paneOpen = composerOpen || recordSlug !== null;
   const exportHref = `/api/v1/discover/export?${serializeDiscoverState(state).toString()}`;
   const title = resultsTitle(state.q, error ? null : total);
   const filtersHref = withParams("filters=1");
@@ -145,8 +142,21 @@ export default async function BuyerDiscoverPage({
   const hrefFor = discoverHref;
   const nextHref = pages && state.page < pages ? discoverHref(state, { page: state.page + 1 }) : null;
 
+  // Save this search is a popover under the bar (a sheet on a phone), not a pane: the results stay
+  // live beside it. Close keeps the record that was open; a saved search lands on this search.
+  const keepOpen = recordParams ? withParams(recordParams) : closeHref;
+  const savePanel = saveOpen ? (
+    <SaveSearchPanel
+      search={serializeDiscoverState({ ...state, page: 1 }).toString()}
+      defaultName={queryTitle(state)}
+      summary={saveSummary(queryTitle(state), error ? null : total)}
+      closeHref={keepOpen}
+      nextHref={`${keepOpen}${keepOpen.includes("?") ? "&" : "?"}saved=1`}
+    />
+  ) : null;
+
   const toolbar = paneOpen ? (
-    <PaneListToolbar state={state} title={title} hrefFor={hrefFor} filtersHref={filtersOpen ? closeHref : filtersHref} />
+    <PaneListToolbar state={state} title={title} hrefFor={hrefFor} filtersHref={filtersOpen ? closeHref : filtersHref} savePanel={savePanel} />
   ) : (
     <ResultsToolbar
       state={state}
@@ -155,6 +165,7 @@ export default async function BuyerDiscoverPage({
       filtersHref={filtersHref}
       filtersOpen={filtersOpen}
       saveHref={saveHref}
+      savePanel={savePanel}
       more={<MoreMenu exportHref={exportHref} total={error ? null : total} />}
       bare={Boolean(error) || total === 0}
     />
@@ -224,26 +235,6 @@ export default async function BuyerDiscoverPage({
     <PaneFrame openKey="filters">
       <FilterPane state={state} count={error ? null : total} closeHref={closeHref} />
     </PaneFrame>
-  ) : saveOpen ? (
-    <PaneFrame openKey="save">
-      <Sheet label="Save this search">
-        <SheetBar>
-          <Button variant="ghost" icon size="sm" aria-label="Close" href={closeHref} clientNav scroll={false}>
-            <Icon name="x" />
-          </Button>
-          <Label className="text-ink-strong">Save this search</Label>
-          <Caption className="min-w-0 [overflow-wrap:anywhere]">{queryTitle(state)}</Caption>
-        </SheetBar>
-        <SheetScroll>
-          <div className="flex flex-col gap-4 p-6">
-            <p className="m-0 max-w-prose text-sm text-ink-muted">
-              The search keeps its filters and sort, not its page. Its count refreshes when you open it from Saved searches.
-            </p>
-            <SaveSearchForm search={serializeDiscoverState({ ...state, page: 1 }).toString()} defaultName={queryTitle(state)} nextHref={withParams("saved=1")} />
-          </div>
-        </SheetScroll>
-      </Sheet>
-    </PaneFrame>
   ) : recordSlug ? (
     // The pane's silhouette at once, the record streamed into it: a new key per record or
     // line is a new boundary, so the silhouette shows the moment the buyer clicks — the
@@ -281,7 +272,7 @@ export default async function BuyerDiscoverPage({
         list={list}
         listLabel="Results"
         pane={pane}
-        paneTitle={composerOpen ? "New request" : filtersOpen ? "Filters" : saveOpen ? "Save search" : "Supplier"}
+        paneTitle={composerOpen ? "New request" : filtersOpen ? "Filters" : "Supplier"}
         closeHref={closeHref}
         presentation={filtersOpen ? "overlay" : "docked"}
       />

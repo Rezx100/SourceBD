@@ -22,6 +22,7 @@ import { SavedPhoneList, phoneLine } from "./phone";
 import { SavedEmpty, SavedError, SearchesEmpty, SearchesError } from "./list";
 import { SearchList } from "./searches";
 import { removeMessage, runRemove, runUndo } from "./transport";
+import { SaveSearchForm, SaveSearchPanel, saveSummary } from "./save-search";
 import {
   PAGE_SIZE,
   TOO_MANY,
@@ -322,6 +323,35 @@ describe("removing and putting back", () => {
     const offline = await runUndo([S1], { fetch: async () => { throw new Error("offline"); } });
     assert.equal(offline.ok, false);
     assert.match(offline.message ?? "", /no connection/);
+  });
+});
+
+describe("Save this search", () => {
+  it("the summary is the filters and what they find today, or the filters alone when the count was not read", () => {
+    assert.equal(saveSummary("knit · Sanctioned hidden", 4645), "knit · Sanctioned hidden · 4,645 suppliers today");
+    assert.equal(saveSummary("knit", 1), "knit · 1 supplier today");
+    assert.equal(saveSummary("knit", null), "knit");
+  });
+
+  it("the popover: a named dialog that does not claim to be modal, the summary, the name field, Cancel and Save search, and no promise of an email", () => {
+    const out = html(createElement(SaveSearchPanel, { search: "q=knit", defaultName: "knit", summary: "knit · 4,645 suppliers today", closeHref: "/app/discover?q=knit", nextHref: "/app/discover?q=knit&saved=1" }));
+    assert.match(out, /<section role="dialog" aria-label="Save this search" aria-modal="false"/);
+    assert.match(text(out), /Save this search knit · 4,645 suppliers today Name Cancel Save search/);
+    assert.match(out, /<input\b(?=[^>]*\sname="name")(?=[^>]*\svalue="knit")(?=[^>]*\smaxLength="120"|[^>]*\smaxlength="120")[^>]*>/);
+    assert.match(out, /aria-label="Close"/);
+    assert.doesNotMatch(text(out), /new matches|email/i);
+  });
+
+  it("the form: the name is named after the search and cut to 120, and the live region is always in the page", () => {
+    const out = html(createElement(SaveSearchForm, { search: "q=knit", defaultName: "x".repeat(200), nextHref: "/app/searches", cancelHref: "/app/searches" }));
+    assert.equal(out.match(/value="(x+)"/)?.[1]?.length, 120);
+    assert.match(out, /<p role="status" aria-live="polite" class="sr-only"><\/p>/);
+    // Only the popover's footer runs full width (negative margins); the page's does not bleed out of its column.
+    assert.doesNotMatch(out, /-mx-4/);
+    assert.match(html(createElement(SaveSearchPanel, { search: "q=knit", defaultName: "knit", summary: "s", closeHref: "/a", nextHref: "/b" })), /-mx-4 border-t border-line px-4 py-3/);
+    const touch = html(createElement(SaveSearchForm, { search: "q=knit", defaultName: "knit", nextHref: "/app/searches", cancelHref: "/app/searches", touch: true }));
+    assert.match(touch, /h-input-touch/, "a phone's field is 48 tall");
+    assert.doesNotMatch(touch, />Cancel</, "a phone's sheet has its close, not a Cancel");
   });
 });
 
