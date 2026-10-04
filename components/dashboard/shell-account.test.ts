@@ -172,6 +172,6 @@ describe("4. the record expands to its page and comes back", () => {
       assert.equal(backToList(bad), null, String(bad));
     }
     // The page reads it through that guard.
-    assert.match(source("app/(app)/app/suppliers/[slug]/page.tsx"), /backHref=\{backToList\(sp\.back\)\}/);
+    assert.match(source("app/(app)/app/suppliers/[slug]/page.tsx"), /const back = backToList\(sp\.back\);[\s\S]*backHref=\{back\}/);
   });
 });

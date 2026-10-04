@@ -16,6 +16,8 @@ export type CertRowData = {
   documentUrl: string | null;
   /** "Open certificate", or "Open label check" for OEKO-TEX. */
   documentLabel?: string;
+  /** The row's id, so a link from another page (the Compliance hub) can land on this one row. */
+  anchor?: string;
 };
 
 /** A certificate's chip, its words worked out from the date. */
@@ -67,8 +69,11 @@ export function CertProblem({
   );
 }
 
-/** The certificates of a record: heading with the count and the problems, then the rows. */
-export function CertTable({ certs, today, from, className }: { certs: CertRowData[]; today: Date; from?: string; className?: string }) {
+/**
+ * The certificates of a record: heading with the count and the problems, then the rows.
+ * `compact` keeps the stacked layout at every width: a docked pane is 640 wide, too narrow for four columns.
+ */
+export function CertTable({ certs, today, from, className, compact = false }: { certs: CertRowData[]; today: Date; from?: string; className?: string; compact?: boolean }) {
   const rows = certs
     .map((c) => ({ c, w: certWords(c.expiresOn, today) }))
     .sort((a, b) => CERT_ORDER[a.w.state] - CERT_ORDER[b.w.state]);
@@ -78,7 +83,7 @@ export function CertTable({ certs, today, from, className }: { certs: CertRowDat
         <h3 className="text-base font-semibold text-ink">{certHeading(rows.map((r) => r.w.state))}</h3>
         {from ? <p className="text-xs text-ink-3">{from}</p> : null}
       </header>
-      <div className="hidden h-9 items-center gap-4 border-b border-line bg-subtle px-4 text-xs font-medium text-ink-3 sm:grid sm:grid-cols-[minmax(0,200px)_minmax(0,1fr)_minmax(0,260px)_minmax(0,140px)]">
+      <div className={cn("hidden h-9 items-center gap-4 border-b border-line bg-subtle px-4 text-xs font-medium text-ink-3", !compact && "sm:grid sm:grid-cols-[minmax(0,200px)_minmax(0,1fr)_minmax(0,260px)_minmax(0,140px)]")}>
         <span>Certificate</span>
         <span>Issued by</span>
         <span>State</span>
@@ -88,17 +93,25 @@ export function CertTable({ certs, today, from, className }: { certs: CertRowDat
         {rows.map(({ c, w }, i) => (
           <li
             key={`${c.scheme}-${c.number}-${i}`}
-            className="relative flex flex-col gap-1.5 border-b border-line px-4 py-3 last:border-b-0 max-sm:min-h-11 sm:grid sm:min-h-14 sm:grid-cols-[minmax(0,200px)_minmax(0,1fr)_minmax(0,260px)_minmax(0,140px)] sm:items-center sm:gap-4 sm:py-2"
+            id={c.anchor}
+            className={cn(
+              "relative scroll-mt-16 border-b border-line px-4 py-3 last:border-b-0 target:bg-brand-tint",
+              compact
+                ? "grid min-h-11 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1"
+                : "flex flex-col gap-1.5 max-sm:min-h-11 sm:grid sm:min-h-14 sm:grid-cols-[minmax(0,200px)_minmax(0,1fr)_minmax(0,260px)_minmax(0,140px)] sm:items-center sm:gap-4 sm:py-2",
+            )}
           >
-            <span className="flex flex-col max-sm:order-2 max-sm:flex-row max-sm:items-baseline max-sm:gap-2">
+            <span className={cn("flex flex-col", compact ? "col-start-1 row-start-1 flex-row items-baseline gap-2" : "max-sm:order-2 max-sm:flex-row max-sm:items-baseline max-sm:gap-2")}>
               <span className="text-md font-medium text-ink sm:text-base">{c.scheme}</span>
               {c.number ? <span className="font-mono text-sm text-ink-2">{c.number}</span> : null}
             </span>
-            <span className="text-sm text-ink-2 max-sm:order-3 sm:text-base">{c.issuer ?? <span className="text-ink-3">Issuer not published</span>}</span>
-            <span className="flex max-sm:order-1">
-              <CertChip state={w.state}>{w.label}</CertChip>
+            <span className={cn("text-sm text-ink-2 sm:text-base", compact ? "col-start-1 row-start-2" : "max-sm:order-3")}>{c.issuer ?? <span className="text-ink-3">Issuer not published</span>}</span>
+            <span className={cn("flex", compact ? "col-start-2 row-start-1 justify-self-end" : "max-sm:order-1")}>
+              <CertChip state={w.state} className="whitespace-nowrap">
+                {w.label}
+              </CertChip>
             </span>
-            <span className="flex h-8 items-center gap-1.5 max-sm:order-4">
+            <span className={cn("flex h-8 items-center gap-1.5", compact ? "col-start-2 row-start-2 justify-self-end" : "max-sm:order-4")}>
               {c.documentUrl ? (
                 <>
                   <FileText size={16} className="shrink-0 text-brand" aria-hidden />

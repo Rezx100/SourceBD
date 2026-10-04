@@ -23,10 +23,11 @@ export default async function ProductLinePage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { slug, hs } = await params;
-  // Opened from the record's expanded grid (`?lines=all`), Back returns to it.
+  // A line is opened from the record's Products tab; opened from its expanded list
+  // (`?lines=all`), Back returns to that list.
   const linesRaw = (await searchParams).lines;
   const allLines = (Array.isArray(linesRaw) ? linesRaw[0] : linesRaw) === "all";
-  const recordHref = allLines ? `/app/suppliers/${slug}?lines=all` : `/app/suppliers/${slug}`;
+  const recordHref = `/app/suppliers/${slug}?tab=products${allLines ? "&lines=all" : ""}`;
   // No `decodeURIComponent` here. Next already decodes dynamic segments, so a
   // second pass threw `URIError` on a segment containing a bare `%`
   // (`/lines/%`) — an unhandled throw inside a server component, which is a 500

@@ -32,13 +32,12 @@ import { ProductSheet } from "@/components/dashboard/product-sheet";
 import { RecordRecentSearch } from "@/components/dashboard/record-recent-search";
 import { ComposerSkeleton, LineSkeleton, RecordSkeleton } from "@/components/dashboard/record-skeleton";
 import { RfqComposer, type ComposerTarget, type ComposerWorkspace } from "@/components/dashboard/rfq-composer";
-import { SaveRecordButton } from "@/components/dashboard/save-record-button";
 import { SaveSearchForm } from "@/components/dashboard/save-search-form";
 import { Sheet, SheetBar, SheetNotice, SheetScroll } from "@/components/dashboard/sheet";
-import { SupplierSheet } from "@/components/dashboard/supplier-sheet";
 import { Button } from "@/components/dashboard/controls";
 import { Icon } from "@/components/dashboard/icons";
 import { Caption, Label } from "@/components/dashboard/type";
+import { RecordView, parseTab, type TabId } from "@/components/record";
 import { ResultsBar } from "@/components/search/bulk-bar";
 import { FilterPane } from "@/components/search/filters";
 import { Flash } from "@/components/search/flash";
@@ -92,7 +91,11 @@ export default async function BuyerDiscoverPage({
   const closeHref = discoverHref(state);
   const withParams = (extra: string) => (extra ? `${closeHref}${closeHref.includes("?") ? "&" : "?"}${extra}` : closeHref);
   const recordHref = (slug: string) => withParams(`record=${encodeURIComponent(slug)}`);
-  const recordParams = recordSlug ? `record=${encodeURIComponent(recordSlug)}${allLines ? "&lines=all" : ""}` : "";
+  // The tab is part of what is open: the composer's Close and a line's Back return to it.
+  const tab = parseTab(sp.tab);
+  const recordBase = recordSlug ? `record=${encodeURIComponent(recordSlug)}${allLines ? "&lines=all" : ""}` : "";
+  const recordParams = recordBase && tab !== "overview" ? `${recordBase}&tab=${tab}` : recordBase;
+  const tabHref = (t: TabId) => withParams(t === "overview" ? recordBase : `${recordBase}&tab=${t}`);
   // The composer opens on the search, keeping the record it came from behind it so Close
   // returns to the record and not only to the search.
   const rfqHref = (id: string) => withParams(`${recordParams ? `${recordParams}&` : ""}rfq=${encodeURIComponent(id)}`);
@@ -261,6 +264,8 @@ export default async function BuyerDiscoverPage({
         closeHref={closeHref}
         withParams={withParams}
         recordParams={recordParams}
+        tab={tab}
+        tabHref={tabHref}
         recordHref={recordHref}
         rfqHref={rfqHref}
         lineRfqHref={lineRfqHref}
@@ -346,6 +351,8 @@ async function DiscoverRecord({
   closeHref,
   withParams,
   recordParams,
+  tab,
+  tabHref,
   recordHref,
   rfqHref,
   lineRfqHref,
@@ -361,6 +368,8 @@ async function DiscoverRecord({
   closeHref: string;
   withParams: (extra: string) => string;
   recordParams: string;
+  tab: TabId;
+  tabHref: (tab: TabId) => string;
   recordHref: (slug: string) => string;
   rfqHref: (id: string) => string;
   lineRfqHref: (id: string, hs: string) => string;
@@ -392,7 +401,7 @@ async function DiscoverRecord({
         closeHref,
         fullHref: `/app/suppliers/${slug}`,
         allLines,
-        allLinesHref: allLines ? null : withParams(`record=${encodeURIComponent(slug)}&lines=all`),
+        allLinesHref: allLines ? null : withParams(`record=${encodeURIComponent(slug)}&tab=products&lines=all`),
         lineHref: (hs) => withParams(`${recordParams}&line=${hs}`),
         rfqHref,
         supplierId,
@@ -402,11 +411,7 @@ async function DiscoverRecord({
     if (record) {
       return (
         <PaneFrame openKey={`record:${slug}:${allLines ? "all" : ""}`}>
-          <SupplierSheet
-            model={record}
-            backHref={withParams(recordParams)}
-            save={record.supplierId ? <SaveRecordButton supplierId={record.supplierId} saved={record.saved} /> : undefined}
-          />
+          <RecordView model={record} mode="pane" tab={tab} tabHref={tabHref} today={today} backHref={withParams(recordParams)} />
         </PaneFrame>
       );
     }

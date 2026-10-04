@@ -83,7 +83,14 @@ export function SourceGroups({ sources, className }: { sources: string[]; classN
   );
 }
 
-export type SourceEntry = { source: string; checkedOn: string | null };
+export type SourceEntry = {
+  source: string;
+  checkedOn: string | null;
+  /** The mark's short name when it is not the code itself ("H&M" for BRAND_HM). */
+  label?: string;
+  /** The register spelled out, when the page holds it. */
+  fullName?: string;
+};
 
 /**
  * The record's details panel (344): every source with its full name and the date we last
@@ -97,19 +104,19 @@ export function SourceList({ sources, today, className }: { sources: SourceEntry
         <span className="text-xs text-ink-3">Last checked</span>
       </header>
       <ul>
-        {sources.map(({ source, checkedOn }) => {
+        {sources.map(({ source, checkedOn, label, fullName }) => {
           const age = daysUntil(checkedOn, today);
           const stale = age !== null && -age > 90;
           return (
             <li key={source} className="flex min-h-12 flex-wrap items-center gap-x-2 gap-y-0.5 border-b border-line px-4 py-2.5 last:border-b-0">
               <span className="flex flex-1">
-                <SourceChip source={source} />
+                <SourceChip source={source} name={label} />
               </span>
               <span className={cn("flex w-[92px] shrink-0 items-center justify-end gap-1 text-right text-xs", stale ? "font-medium text-caution" : "text-ink-2")}>
                 {stale ? <Clock size={12} weight="fill" className="text-caution-icon" aria-hidden /> : null}
                 {formatDay(checkedOn) ?? "Not dated"}
               </span>
-              <span className="w-full pl-[30px] text-xs text-ink-3">{sourceFullName(source) ?? source}</span>
+              <span className="w-full pl-[30px] text-xs text-ink-3">{fullName ?? sourceFullName(source) ?? source}</span>
             </li>
           );
         })}
