@@ -1,37 +1,28 @@
-// /app/searches/new — save a search from a deep link. The search pane on
-// /app/discover (`?save=1`) is the usual way in; this page keeps old links
-// and bookmarks working, in the same page grammar as every other page.
+// /app/searches/new: save a search from a deep link, on the v4 frame (B6b-2). The popover under the
+// results (`?save=1` on /app/discover) is the usual way in; this page keeps old links and bookmarks
+// working with the same form. A saved search is a query, not a scroll position: the page is
+// dropped, so a search saved on page 3 does not go blank when the result set shrinks.
 
-import { Page, PageHeader, PageSection } from "@/components/dashboard/page";
-import { SaveSearchForm } from "@/components/dashboard/save-search-form";
+import { SaveSearchForm } from "@/components/saved/save-search";
 import { parseDiscoverState, queryTitle, serializeDiscoverState } from "@/lib/discover-v32-state";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-  title: "Save search · SourceBD",
-};
+export const metadata = { title: "Save search · SourceBD" };
 
-export default async function SaveSearchPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
+export default async function SaveSearchPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;
-  // A saved search is a query, not a scroll position. Persisting `page` means
-  // a search saved on page 3 goes blank the moment the result set shrinks
-  // below three pages — the buyer reopens it and reads "no match" for a
-  // search that still has results.
   const state = { ...parseDiscoverState(sp), page: 1 };
   const search = serializeDiscoverState(state).toString();
   return (
-    <Page className="max-w-[40rem]">
-      <PageHeader title="Save this search" caption={queryTitle(state)} />
-      <PageSection>
-        <div className="p-4">
-          <SaveSearchForm search={search} defaultName={queryTitle(state)} />
-        </div>
-      </PageSection>
-    </Page>
+    <div className="flex max-w-prose flex-col gap-4 px-6 py-8 max-md:px-4 max-md:py-6">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-xl font-semibold tracking-tight text-ink">Save this search</h1>
+        <p className="text-base text-ink-2 [overflow-wrap:anywhere]">{queryTitle(state)}</p>
+      </header>
+      <div className="max-w-[400px]">
+        <SaveSearchForm search={search} defaultName={queryTitle(state)} nextHref="/app/searches" cancelHref="/app/searches" touch="auto" />
+      </div>
+    </div>
   );
 }
