@@ -9,11 +9,11 @@ import Link from "next/link";
 import { ErrorPanel, Table, Td, Th, Tr, Unpublished, buttonClass, rowLinkClass } from "@/components/kit";
 import { cn } from "@/lib/utils";
 import { BackToHub } from "./hub";
-import { DHS_LIST_URL, UFLPA_WORDS, uflpaCounts, uflpaEvidence, uflpaPlace, type UflpaPayload, type UflpaRow, type UflpaStatus } from "./words";
+import { DHS_LIST_URL, UFLPA_WORDS, uflpaCounts, uflpaEvidence, uflpaPlace, uflpaSubline, type UflpaPayload, type UflpaRow, type UflpaStatus } from "./words";
 
 const textLink = "rounded-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
 
-export function UflpaHead({ saved }: { saved: number | null }) {
+export function UflpaHead({ checked }: { /** How many suppliers the check read (the tracker's total), not how many are saved. */ checked: number | null }) {
   return (
     <header className="flex shrink-0 flex-col gap-3 border-b border-line px-6 py-4 max-md:border-b-0 max-md:px-4 max-md:pb-2 max-md:pt-1">
       <BackToHub />
@@ -21,9 +21,7 @@ export function UflpaHead({ saved }: { saved: number | null }) {
         <div className="flex flex-col gap-0.5">
           <h1 className="text-xl font-semibold tracking-tight text-ink max-md:hidden">UFLPA checks</h1>
           <p className="max-w-prose text-base text-ink-3 max-md:hidden">Your saved suppliers, checked against the UFLPA Entity List (US DHS). Entries added since our last read are not checked.</p>
-          <p className="text-base text-ink-3 md:hidden">
-            {saved === null ? "Your saved suppliers" : `${saved} saved ${saved === 1 ? "supplier" : "suppliers"}`} against the UFLPA Entity List (US DHS)
-          </p>
+          <p className="text-base text-ink-3 md:hidden">{uflpaSubline(checked)}</p>
         </div>
         <div className="flex flex-col items-end gap-0.5 max-md:items-start">
           <p className="flex items-center gap-1.5 text-sm font-medium text-caution">

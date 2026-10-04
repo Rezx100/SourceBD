@@ -203,8 +203,15 @@ export function uflpaEvidence(r: UflpaRow): string[] {
 /** The phone's one line over the page: what none found means, in words. */
 export function uflpaNote(p: UflpaPayload | null, saved: number | null): string | null {
   if (p === null) return null;
-  const n = saved ?? p.total;
-  if (p.hits > 0) return `${noun(p.hits, "supplier")} on the UFLPA Entity List among your ${formatCount(n)} saved. You can't send them an RFQ.`;
-  if (p.flags > 0) return `${noun(p.flags, "supplier")} with a possible Xinjiang link among your ${formatCount(n)} saved.`;
-  return `No link found on the UFLPA Entity List for your ${noun(n, "saved supplier")}. Not a clearance.`;
+  // The tracker checks published suppliers only, so what it says is about `p.total`, not about every saved supplier.
+  if (p.total === 0) return "None of your saved suppliers is published yet, so there is nothing to check.";
+  const of = saved !== null && saved > p.total ? `${formatCount(p.total)} published of your ${formatCount(saved)} saved suppliers` : `your ${noun(p.total, "saved supplier")}`;
+  if (p.hits > 0) return `${noun(p.hits, "supplier")} on the UFLPA Entity List among ${of}. You can't send them an RFQ.`;
+  if (p.flags > 0) return `${noun(p.flags, "supplier")} with a possible Xinjiang link among ${of}.`;
+  return `No link found on the UFLPA Entity List for ${of}. Not a clearance.`;
+}
+
+/** The phone's line under the UFLPA title: how many suppliers the check read. */
+export function uflpaSubline(checked: number | null): string {
+  return checked === null ? "Your saved suppliers against the UFLPA Entity List (US DHS)" : `${noun(checked, "saved supplier")} against the UFLPA Entity List (US DHS)`;
 }

@@ -8,6 +8,7 @@
 // (the pattern in `components/orders/orders.test.ts`).
 
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
@@ -35,6 +36,7 @@ import {
   uflpaEvidence,
   uflpaNote,
   uflpaPlace,
+  uflpaSubline,
   within30Heading,
   type CertList,
   type CertRead,
@@ -209,9 +211,15 @@ describe("UFLPA", () => {
     assert.deepEqual(uflpaEvidence(row({ status: "hit", uflpa_hits: [{ matched_name: "Acme Textile", list_entry_ref: "UFLPA-12", source_url: null, entity_name: null }] })), ["Acme Textile [UFLPA-12]"]);
     assert.deepEqual(uflpaEvidence(row({ status: "region_flag" })), ["Xinjiang-linked text in the record"]);
     assert.deepEqual(uflpaEvidence(row()), []);
-    assert.equal(uflpaNote(payload([row()]), 11), "No link found on the UFLPA Entity List for your 11 saved suppliers. Not a clearance.");
-    assert.match(uflpaNote(payload([row()], { hits: 1, clear: 0 }), 11) ?? "", /^1 supplier on the UFLPA Entity List among your 11 saved\. You can't send them an RFQ\.$/);
+    // The tracker reads published suppliers only: what it says is about the ones it checked.
+    const eleven = payload(Array.from({ length: 11 }, (_, i) => row({ supplier_id: String(i) })));
+    assert.equal(uflpaNote(eleven, 11), "No link found on the UFLPA Entity List for your 11 saved suppliers. Not a clearance.");
+    assert.equal(uflpaNote(payload([row()]), 11), "No link found on the UFLPA Entity List for 1 published of your 11 saved suppliers. Not a clearance.");
+    assert.match(uflpaNote(payload([row()], { hits: 1, clear: 0 }), 1) ?? "", /^1 supplier on the UFLPA Entity List among your 1 saved supplier\. You can't send them an RFQ\.$/);
+    assert.equal(uflpaNote(payload([], { total: 0, clear: 0 }), 3), "None of your saved suppliers is published yet, so there is nothing to check.");
     assert.equal(uflpaNote(null, 11), null);
+    assert.equal(uflpaSubline(10), "10 saved suppliers against the UFLPA Entity List (US DHS)");
+    assert.equal(uflpaSubline(null), "Your saved suppliers against the UFLPA Entity List (US DHS)");
   });
 
   it("the stats and the table: counts, a hit's row tinted and its entry named, a clear result never a clearance", () => {
@@ -267,6 +275,12 @@ describe("the hub's cards", () => {
 });
 
 describe("the reads and the layout's badge", () => {
+  it("the buyer layout reads the badge beside the shell and hands it to the frame", () => {
+    const layout = readFileSync(path.join(process.cwd(), "app/(app)/app/layout.tsx"), "utf8");
+    assert.match(layout, /Promise\.all\(\[loadBuyerShell\(supabase\), loadComplianceBadge\(supabase\)\]\)/);
+    assert.match(layout, /badges=\{\{ compliance \}\}/);
+  });
+
   it("each read stands on its own; a malformed answer is a failed read, not an empty list", async () => {
     given({
       compliance_expired_certs: { data: EXPIRED, error: null },

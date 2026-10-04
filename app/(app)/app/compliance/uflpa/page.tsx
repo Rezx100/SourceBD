@@ -14,11 +14,11 @@ export const metadata = { title: "UFLPA checks · SourceBD" };
 
 export default async function UflpaPage() {
   const supabase = await createSupabaseServerClient();
-  const d = await loadCompliance(supabase, { uflpa: true, msa: true });
+  const d = await loadCompliance(supabase, { uflpa: true });
   const u = d.uflpa;
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <UflpaHead saved={d.msa?.total_saved ?? null} />
+      <UflpaHead checked={u?.total ?? null} />
       <div className="flex flex-col gap-4 px-6 py-5 max-md:gap-3 max-md:px-0 max-md:py-2">
         {u === null ? (
           <div className="max-md:px-4">
