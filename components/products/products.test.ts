@@ -73,20 +73,20 @@ describe("the words", () => {
 });
 
 describe("archive, restore and delete", () => {
-  const ok = (calls: { url: string; init?: { method: string; body?: string } }[]): Fetch => async (url, init) => (calls.push({ url, init }), { ok: true, status: 200, json: async () => ({ ok: true }) });
+  const ok = (calls: { url: string; init?: { method: string; body?: string | FormData } }[]): Fetch => async (url, init) => (calls.push({ url, init }), { ok: true, status: 200, json: async () => ({ ok: true }) });
 
   it("archive posts set_status for that product and nothing else", async () => {
-    const calls: { url: string; init?: { method: string; body?: string } }[] = [];
+    const calls: { url: string; init?: { method: string; body?: string | FormData } }[] = [];
     const r = await runSetStatus(ID, "archived", { fetch: ok(calls) });
     assert.deepEqual(r, { ok: true, message: null });
     assert.equal(calls.length, 1);
     assert.equal(calls[0]!.url, "/api/v1/products");
     assert.equal(calls[0]!.init?.method, "POST");
-    assert.deepEqual(JSON.parse(calls[0]!.init!.body!), { action: "set_status", id: ID, status: "archived" });
+    assert.deepEqual(JSON.parse(calls[0]!.init!.body as string), { action: "set_status", id: ID, status: "archived" });
   });
 
   it("delete is a DELETE with the id in the address", async () => {
-    const calls: { url: string; init?: { method: string } }[] = [];
+    const calls: { url: string; init?: { method: string; body?: string | FormData } }[] = [];
     assert.deepEqual(await runDelete(ID, { fetch: ok(calls) }), { ok: true, message: null });
     assert.deepEqual(calls.map((c) => [c.url, c.init?.method]), [[`/api/v1/products?id=${ID}`, "DELETE"]]);
   });

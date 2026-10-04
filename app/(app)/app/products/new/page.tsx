@@ -1,30 +1,15 @@
-// /app/products/new — "Create a product". First a choice: start by hand (the
-// default) or, only when `AI_ENABLED`, from a description; Next is a URL
-// (`?start=manual`), and it opens the product form. Nothing is read here.
+// /app/products/new on the v4 frame (B7a-2, Paper `10 · Product editor · New product`): the editor, empty,
+// straight away. Only the name is required; the other sections are "Add" until the buyer opens them.
+// Nothing is read here. The old "How do you want to start?" step is gone: its only other choice, a draft
+// from a description, has no endpoint behind it, and Paper's board opens on the form.
 
-import { ProductForm } from "@/components/product-form";
+import { ProductForm } from "@/components/products/form";
 import { emptyProduct } from "@/components/product-form-model";
-import { StartChoice } from "@/components/dashboard/products";
-import { Page, PageHeader } from "@/components/dashboard/page";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-  title: "Create a product · SourceBD",
-};
+export const metadata = { title: "New product · SourceBD" };
 
-export default async function NewProductPage({ searchParams }: { searchParams: Promise<{ start?: string | string[] }> }) {
-  const sp = await searchParams;
-  const ai = process.env.AI_ENABLED === "true";
-  // ponytail: "Start with AI" has no drafting endpoint yet, so `?start=ai` opens the same form; wire the draft when V2 lands.
-  const started = sp.start === "manual" || (ai && sp.start === "ai");
-  return (
-    <Page>
-      <PageHeader
-        title="Create a product"
-        caption={started ? "Only the name is required. Add the rest now or later." : "Only you can see your products."}
-      />
-      {started ? <ProductForm initial={emptyProduct()} /> : <StartChoice ai={ai} />}
-    </Page>
-  );
+export default function NewProductPage() {
+  return <ProductForm initial={emptyProduct()} />;
 }
