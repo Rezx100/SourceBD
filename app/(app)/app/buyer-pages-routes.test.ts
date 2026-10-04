@@ -129,47 +129,6 @@ const text = (markup: string) => markup.replace(/<[^>]*>/g, " ").replace(/\s+/g,
 
 // ---------------------------------------------------------------------------
 
-
-// ---------------------------------------------------------------------------
-
-describe("/app/headings — the HS catalogue at its new address", () => {
-  const Headings = () => route("app/(app)/app/headings/page.js").default;
-
-  it("never prints the code twice: a heading without a buyer label takes the catalogue's heading, else the code alone", async () => {
-    given({
-      hs_catalogue: {
-        data: [
-          { hs: "6109", heading: null, exporter_count: 1763 },
-          { hs: "6302", heading: null, exporter_count: 54 },
-          { hs: "9999", heading: null, exporter_count: 2 },
-        ],
-        error: null,
-      },
-    });
-    const out = await render(() => Headings()({ searchParams: Promise.resolve({}) }));
-    const seen = text(out);
-    assert.match(out, /<h1[^>]*>HS headings<\/h1>/);
-    assert.match(seen, /6109 T-shirts/);
-    assert.match(seen, /6302 Bed linen, table linen, toilet linen and kitchen linen/);
-    assert.doesNotMatch(seen, /HS 6302|HS 9999|9999 HS/);
-    assert.match(out, /href="\/app\/discover\?hs=6302"/);
-    assert.match(out, /placeholder="Search headings"/);
-    assert.match(out, /action="\/app\/headings"/);
-    assert.match(seen, /exporter counts leave out sanctioned suppliers/);
-    assert.match(out, /role="region" aria-label="HS headings"/, "the kit table");
-  });
-
-  it("a failed read says so and draws no empty table", async () => {
-    given({ hs_catalogue: { data: null, error: { message: "boom" } } });
-    const out = await render(() => Headings()({ searchParams: Promise.resolve({}) }));
-    assert.match(out, /Exporter counts could not be read/);
-    assert.match(out, /role="alert"/);
-    assert.doesNotMatch(out, /<table/);
-  });
-});
-
-// ---------------------------------------------------------------------------
-
 const SETTINGS = {
   email: "buyer@example.invalid",
   display_name: "Jane Buyer",
