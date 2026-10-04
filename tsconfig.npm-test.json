@@ -142,6 +142,7 @@
     "components/orders/orders.test.ts",
     "components/saved/saved.test.ts",
     "components/headings/headings.test.ts",
+    "components/settings/settings.test.ts",
     "components/products/products.test.ts",
     "app/(app)/app/orders/new/page.tsx",
     "lib/design/tokens.test.ts",

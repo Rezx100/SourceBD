@@ -1,62 +1,63 @@
-// Settings — Profile (Spec B10).
-//
-// Reads the caller's settings via `settings_get` and mounts four client
-// islands: picture, display name, email and password. The picture posts to
-// /api/v1/settings/avatar; the other three POST to /api/v1/settings. Sign out
-// sits at the foot (it was on the old overview page, which is now Workspace).
+// /app/settings/profile on the v4 frame (B7b, Paper `10 · Settings · Profile`): the name and picture,
+// the email, the password, and Sign out. A failed `settings_get` is an error where the name and picture
+// were (blank fields would let a save clear them); the email and the password need nothing from that
+// read, so they stay.
 
-import { Button } from "@/components/dashboard/controls";
-import { ErrorNote, Page, PageSection } from "@/components/dashboard/page";
-import { type SettingsDoc, SettingsFrame, SettingsHeader } from "@/components/dashboard/settings";
-import { SettingsAvatarForm } from "@/components/settings-avatar-form";
-import { SettingsChangeEmailForm } from "@/components/settings-change-email-form";
-import { SettingsChangePasswordForm } from "@/components/settings-change-password-form";
-import { SettingsProfileForm } from "@/components/settings-profile-form";
+import { ErrorPanel, buttonClass } from "@/components/kit";
+import Link from "next/link";
+import { loadSettings } from "@/components/settings/load";
+import { EmailForm, NameForm, PasswordForm } from "@/components/settings/profile-forms";
+import { Section, SettingsShell } from "@/components/settings/shell";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-async function SettingsProfilePageBody() {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.rpc("settings_get");
-  const settings = error ? null : ((data ?? null) as SettingsDoc | null);
-
-  return (
-    <>
-      <SettingsHeader settings={settings} />
-      <SettingsFrame current="profile">
-        {settings ? (
-          <>
-            <SettingsAvatarForm
-              initialAvatarUrl={settings.avatar_url ?? null}
-              displayName={settings.display_name ?? ""}
-              email={settings.email ?? ""}
-            />
-            <SettingsProfileForm initialDisplayName={settings.display_name ?? ""} />
-            <SettingsChangeEmailForm currentEmail={settings.email ?? ""} />
-            <SettingsChangePasswordForm />
-          </>
-        ) : (
-          <>
-            {/* Blank name and avatar forms over a failed read would let a save
-                clear them. Email and password need nothing from that read, so
-                a buyer can still change them. */}
-            <ErrorNote>Could not load your profile. Reload the page to try again; nothing has changed.</ErrorNote>
-            <SettingsChangeEmailForm currentEmail="" />
-            <SettingsChangePasswordForm />
-          </>
-        )}
-
-        <PageSection title="Session" caption="End your session on this device">
-          <form action="/auth/sign-out" method="post" className="p-4">
-            <Button type="submit">Sign out</Button>
-          </form>
-        </PageSection>
-      </SettingsFrame>
-    </>
-  );
-}
+export const metadata = { title: "Profile · SourceBD" };
 
 export default async function SettingsProfilePage() {
-  return <Page>{await SettingsProfilePageBody()}</Page>;
+  const doc = await loadSettings(await createSupabaseServerClient());
+  return (
+    <SettingsShell current="profile" doc={doc} title="Profile">
+      <Section title="Your name" caption="Suppliers see it in messages and orders.">
+        {doc ? (
+          <NameForm initialName={doc.display_name ?? ""} initialAvatarUrl={doc.avatar_url ?? null} email={doc.email ?? ""} />
+        ) : (
+          <ErrorPanel
+            title="We couldn't load your profile."
+            retry={
+              <Link href="/app/settings/profile" prefetch={false} className={buttonClass({ kind: "primary", className: "max-md:h-input-touch" })}>
+                Try again
+              </Link>
+            }
+          >
+            Nothing has changed. Your name and picture are safe.
+          </ErrorPanel>
+        )}
+      </Section>
+      <Section
+        title="Email"
+        caption={
+          doc?.email ? (
+            <>
+              Current: <span className="text-ink [overflow-wrap:anywhere]">{doc.email}</span>
+            </>
+          ) : (
+            "Your current address could not be read."
+          )
+        }
+      >
+        <EmailForm />
+      </Section>
+      <Section title="Password" caption="At least 8 characters. Pick one you do not use elsewhere.">
+        <PasswordForm />
+      </Section>
+      <Section title="Sign out" caption="Sign out of this device">
+        <form action="/auth/sign-out" method="post">
+          <button type="submit" className={buttonClass({ kind: "secondary", className: "max-md:h-input-touch max-md:w-full" })}>
+            Sign out
+          </button>
+        </form>
+      </Section>
+    </SettingsShell>
+  );
 }
