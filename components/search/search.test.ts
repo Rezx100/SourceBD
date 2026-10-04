@@ -41,7 +41,9 @@ const { PaneListToolbar, PhoneToolbar, ResultsToolbar, barMenus, resultsTitle } 
 const { PaneRows, PhoneRows, ResultsEmpty, ResultsError, familyWords } = require("@/components/search/list") as typeof import("@/components/search/list");
 const { onRowKey } = require("@/components/search/keys") as typeof import("@/components/search/keys");
 const { resultRow } = require("@/components/search/model") as typeof import("@/components/search/model");
-const { EMPTY_STATE } = require("@/lib/discover-v32-state") as typeof import("@/lib/discover-v32-state");
+const { EMPTY_STATE, parseDiscoverState } = require("@/lib/discover-v32-state") as typeof import("@/lib/discover-v32-state");
+const { appliedChips, clearedForm, countKey, formOf, groupsSet, searchOf, showLabel, summaryOf } = require("@/components/search/filter-model") as typeof import("@/components/search/filter-model");
+const { FilterPane } = require("@/components/search/filters") as typeof import("@/components/search/filters");
 const { selectionValue } = require("@/lib/dashboard/selection") as typeof import("@/lib/dashboard/selection");
 /* eslint-enable @typescript-eslint/no-require-imports */
 import type { ResultRow } from "@/components/search/model";
@@ -431,6 +433,131 @@ describe("the landing", () => {
     assert.ok(failed.includes("We couldn't load the certificate checks.") && failed.includes("Try again"));
     assert.ok(!failed.includes("Nothing needs attention"));
     assert.ok(failed.includes("Every published supplier"));
+  });
+});
+
+describe("the filter pane's draft (B4b)", () => {
+  const at = (qs: string) => parseDiscoverState(new URLSearchParams(qs));
+  const SEARCH = "q=knit&cert=gots:valid,wrap:valid&district=Gazipur&city=Savar&type=factory&hs=6105,6109&reg=BGMEA,EPB&brand=hm&workers_min=500&workers_max=2000&est_from=1990&min_sources=3&rsc=active&sanctioned=1&sort=workers";
+
+  it("a draft that was not touched is the search it started as, so Show N suppliers opens what the count counted", () => {
+    const state = at(SEARCH);
+    assert.deepEqual(searchOf(state, formOf(state)), { ...state, page: 1 });
+    assert.equal(countKey(searchOf(state, formOf(state))), countKey(state));
+  });
+
+  it("the page and the sort do not change the count's key, a filter does", () => {
+    const state = at("q=knit&reg=BGMEA&page=3&sort=workers");
+    assert.equal(countKey(state), countKey(at("q=knit&reg=BGMEA")));
+    assert.notEqual(countKey(state), countKey(at("q=knit&reg=BKMEA")));
+    assert.notEqual(countKey(state), countKey(at("q=knit&reg=BGMEA&sanctioned=1")));
+  });
+
+  it("Clear all drops every filter and keeps the query, the sort and the standing filter", () => {
+    const state = at(SEARCH);
+    const cleared = searchOf(state, clearedForm());
+    assert.equal(cleared.q, "knit");
+    assert.equal(cleared.sort, "workers");
+    assert.equal(cleared.sanctioned, false, "sanctioned suppliers are held back again");
+    for (const k of ["hs", "cert", "reg", "brand", "district", "city", "type"] as const) assert.deepEqual(cleared[k], [], k);
+    for (const k of ["minSources", "rsc", "estFrom", "estTo", "workersMin", "workersMax"] as const) assert.equal(cleared[k], null, k);
+  });
+
+  it("a status with no certificate ticked applies to nothing; with one, to all that are", () => {
+    const base = at("q=knit");
+    assert.deepEqual(searchOf(base, { ...clearedForm(), certState: "expired" }).cert, []);
+    assert.deepEqual(searchOf(base, { ...clearedForm(), cert: ["wrap", "gots"], certState: "expired" }).cert, [
+      { kind: "gots", state: "expired" },
+      { kind: "wrap", state: "expired" },
+    ]);
+  });
+
+  it("a lapsed RSC filter in the address is kept until the switch is touched", () => {
+    const state = at("rsc=lapsed");
+    assert.equal(searchOf(state, formOf(state)).rsc, "lapsed");
+    assert.equal(searchOf(state, { ...formOf(state), rsc: true, rscLapsed: false }).rsc, "active");
+    assert.equal(searchOf(state, { ...formOf(state), rscLapsed: false }).rsc, null);
+  });
+
+  it("every typed value goes through the address's own parser: a number is clamped, a heading cut to four digits, a stranger dropped", () => {
+    const state = searchOf(at("q=knit"), { ...clearedForm(), hs: "61051, abc, 6109", workersMin: "0", estFrom: "1700", reg: ["BGMEA", "NOPE"], minSources: "9" });
+    assert.deepEqual(state.hs, ["6105", "6109"]);
+    assert.equal(state.workersMin, 1);
+    assert.equal(state.estFrom, 1900);
+    assert.deepEqual(state.reg, ["BGMEA"]);
+    assert.equal(state.minSources, 5);
+  });
+
+  it("the button says how many, in the singular for one, and nothing invented when the count could not be read", () => {
+    assert.equal(showLabel(71), "Show 71 suppliers");
+    assert.equal(showLabel(4645), "Show 4,645 suppliers");
+    assert.equal(showLabel(1), "Show 1 supplier");
+    assert.equal(showLabel(0), "Show 0 suppliers");
+    assert.equal(showLabel(null), "Show suppliers");
+  });
+
+  it("a group's words are what a phone row prints under its name, and the groups that are set are the ones that open", () => {
+    const f = formOf(at(SEARCH));
+    assert.equal(summaryOf(f, "cert"), "GOTS, WRAP · valid");
+    assert.equal(summaryOf(f, "place"), "Gazipur, Savar");
+    assert.equal(summaryOf(f, "type"), "Factory");
+    assert.equal(summaryOf(f, "hs"), "HS 6105, HS 6109");
+    assert.equal(summaryOf(f, "reg"), "BGMEA, EPB");
+    assert.equal(summaryOf(f, "brand"), "H&M");
+    assert.equal(summaryOf(f, "size"), "500–2000 workers · founded from 1990");
+    assert.equal(summaryOf(f, "sources"), "At least 3");
+    assert.deepEqual(groupsSet(at("q=knit&cert=gots&district=Gazipur")), ["cert", "place"]);
+    assert.deepEqual(groupsSet(at("q=knit")), []);
+  });
+
+  it("the chips are the filters that are on, one each, and the query and the standing filter are not among them", () => {
+    const chips = appliedChips(at("q=knit&cert=gots&district=Gazipur&reg=BGMEA"));
+    assert.deepEqual(chips.map((c) => c.label), ["Certificate: GOTS", "Location: Gazipur", "Member of: BGMEA"]);
+    const without = chips.find((c) => c.key === "place")!.without;
+    assert.deepEqual(without.district, []);
+    assert.equal(without.q, "knit");
+    assert.deepEqual(without.cert, [{ kind: "gots", state: "any" }]);
+    assert.deepEqual(appliedChips(at("q=knit")), []);
+  });
+});
+
+describe("the filter pane (B4b)", () => {
+  const state = parseDiscoverState(new URLSearchParams("q=knit&cert=gots&district=Gazipur"));
+  const pane = (s = state, count: number | null = 71) => plain(h(FilterPane, { state: s, count, closeHref: "/app/discover?q=knit&cert=gots&district=Gazipur" }));
+
+  it("opens each group the search sets, with the count on the button and the chips beside", () => {
+    const out = pane();
+    assert.match(out, /<form aria-label="Filters"/);
+    assert.match(out, /Show 71 suppliers/);
+    assert.match(out, /Certificate: GOTS/);
+    assert.match(out, /Location: Gazipur/);
+    // Certificates and Location are set, so their controls are on the page; Company type is not.
+    assert.match(out, /<input\b(?=[^>]*\sname="cert")(?=[^>]*\svalue="gots")(?=[^>]*\schecked="")[^>]*>/);
+    assert.match(out, /aria-expanded="true"[^>]*>[\s\S]*?Certificates/);
+    assert.ok(!out.includes('name="type"'), "a group nothing set opens closed");
+  });
+
+  it("every chip's × and Show them keep the pane open and the search's query", () => {
+    const out = pane();
+    for (const label of ["Certificate: GOTS", "Location: Gazipur"]) {
+      const m = new RegExp(`aria-label="Remove ${label}"[^>]*href="([^"]+)"|href="([^"]+)"[^>]*aria-label="Remove ${label}"`).exec(out);
+      const to = (m?.[1] ?? m?.[2] ?? "").replace(/&amp;/g, "&");
+      assert.match(to, /q=knit/, label);
+      assert.match(to, /filters=1/, label);
+    }
+    const show = hrefOf(out, "Show them") ?? "";
+    assert.match(show.replace(/&amp;/g, "&"), /sanctioned=1/);
+    assert.match(show.replace(/&amp;/g, "&"), /filters=1/);
+    assert.ok(!/Show them/.test(pane({ ...state, sanctioned: true })), "nothing is held back, so nothing to show");
+  });
+
+  it("says Show suppliers, with no number, when the count could not be read", () => {
+    assert.match(pane(state, null), /Show suppliers</);
+  });
+
+  it("holds no score and no contact field", () => {
+    const out = pane();
+    for (const key of ["email_primary", "contact_name", "contact_role", "phones"]) assert.ok(!out.includes(key), key);
   });
 });
 

@@ -28,7 +28,6 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { ListPane } from "@/components/frame";
-import { DiscoverFilters } from "@/components/dashboard/discover-filters";
 import { ProductSheet } from "@/components/dashboard/product-sheet";
 import { RecordRecentSearch } from "@/components/dashboard/record-recent-search";
 import { ComposerSkeleton, LineSkeleton, RecordSkeleton } from "@/components/dashboard/record-skeleton";
@@ -41,6 +40,7 @@ import { Button } from "@/components/dashboard/controls";
 import { Icon } from "@/components/dashboard/icons";
 import { Caption, Label } from "@/components/dashboard/type";
 import { ResultsBar } from "@/components/search/bulk-bar";
+import { FilterPane } from "@/components/search/filters";
 import { Flash } from "@/components/search/flash";
 import { PastEnd, PaneRows, PhoneMore, PhoneRows, ResultsEmpty, ResultsError, ResultsFooter } from "@/components/search/list";
 import { resultRow } from "@/components/search/model";
@@ -217,7 +217,7 @@ export default async function BuyerDiscoverPage({
     </Suspense>
   ) : filtersOpen ? (
     <PaneFrame openKey="filters">
-      <DiscoverFilters state={state} closeHref={closeHref} />
+      <FilterPane state={state} count={error ? null : total} closeHref={closeHref} />
     </PaneFrame>
   ) : saveOpen ? (
     <PaneFrame openKey="save">
@@ -274,7 +274,7 @@ export default async function BuyerDiscoverPage({
         list={list}
         listLabel="Results"
         pane={pane}
-        paneTitle={composerOpen ? "New request" : filtersOpen ? "Filter suppliers" : saveOpen ? "Save search" : "Supplier"}
+        paneTitle={composerOpen ? "New request" : filtersOpen ? "Filters" : saveOpen ? "Save search" : "Supplier"}
         closeHref={closeHref}
       />
       {sentId ? <Flash text="RFQ sent" link={{ href: `/app/rfqs/${sentId}`, label: "Open the RFQ" }} /> : null}
