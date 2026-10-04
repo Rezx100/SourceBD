@@ -11,34 +11,37 @@ export const RSC_REPORTS = ["Fire", "Electrical", "Structural", "Boiler", "Corre
 export type RscReportName = (typeof RSC_REPORTS)[number];
 
 export type RscBlockData = {
-  factoryId: string;
+  /** The RSC factory number; null when the record does not carry it, and the heading then says no number. */
+  factoryId: string | null;
   covered: boolean;
   /** "42% of initial items fixed" */
   remediation: string | null;
   /** "Completed", "Yet to start" */
   training: string | null;
-  /** "2,662 workers" */
-  workers: string | null;
+  /** "2,662 workers"; undefined when the record carries no RSC head count, and the row is then left out rather than said to be unpublished. */
+  workers?: string | null;
   /** href per report, null when RSC lists none. */
   reports: Record<RscReportName, string | null>;
-  /** "30 Jul 2026" */
-  checkedOn: string;
+  /** "30 Jul 2026"; null when no date was recorded. */
+  checkedOn: string | null;
 };
 
 const LINK =
   "rounded-sm text-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
 
 export function RscBlock({ data, className }: { data: RscBlockData; className?: string }) {
-  const facts: [string, string | null][] = [
-    ["Remediation", data.remediation],
-    ["Safety training", data.training],
-    ["Workers counted", data.workers],
-  ];
+  const facts = (
+    [
+      ["Remediation", data.remediation],
+      ["Safety training", data.training],
+      ["Workers counted", data.workers],
+    ] as [string, string | null | undefined][]
+  ).filter(([, v]) => v !== undefined);
   return (
     <section aria-label="Safety inspections" className={cn("flex flex-col rounded-lg border border-line bg-surface", className)}>
       <header className="flex flex-wrap items-center gap-2 border-b border-line p-4">
         <SourceChip source="RSC" />
-        <h3 className="min-w-0 flex-1 text-base font-semibold text-ink">Safety inspections · factory {data.factoryId}</h3>
+        <h3 className="min-w-0 flex-1 text-base font-semibold text-ink">Safety inspections{data.factoryId ? ` · factory ${data.factoryId}` : ""}</h3>
         {data.covered ? (
           <Chip icon={CheckCircle}>Covered by RSC</Chip>
         ) : (
@@ -73,9 +76,7 @@ export function RscBlock({ data, className }: { data: RscBlockData; className?: 
             );
           })}
         </ul>
-        <p className="text-xs text-ink-3">
-          RSC factory {data.factoryId} · checked {data.checkedOn}
-        </p>
+        <p className="text-xs text-ink-3">{[data.factoryId ? `RSC factory ${data.factoryId}` : "RSC", data.checkedOn ? `checked ${data.checkedOn}` : null].filter(Boolean).join(" · ")}</p>
       </footer>
     </section>
   );

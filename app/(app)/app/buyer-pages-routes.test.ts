@@ -471,7 +471,8 @@ describe("/app/compliance — a saved supplier's expired certificate stays on th
     const out = await render(() =>
       route("app/(app)/app/suppliers/[slug]/page.js").default({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({}) }),
     );
-    assert.match(out, /<li id="cert-wrap-7865" class="[^"]*target:bg-accent-tint/);
+    // On the Overview ("Needs a look" holds the expired and expiring ones the hub lists) and on the Certificates tab.
+    assert.match(out, /<li [^>]*id="cert-wrap-7865"[^>]*class="[^"]*target:bg-brand-tint|<li id="cert-wrap-7865" class="[^"]*target:bg-brand-tint/);
   });
 });
 

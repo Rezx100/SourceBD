@@ -28,9 +28,8 @@ import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 
 import { Page } from "@/components/dashboard/page";
-import { SaveRecordButton } from "@/components/dashboard/save-record-button";
-import { SupplierSheet } from "@/components/dashboard/supplier-sheet";
 import { Caption, Title } from "@/components/dashboard/type";
+import { RecordView, parseTab, type TabId } from "@/components/record";
 import { ProfileReadTimeout, loadRecordSheet } from "@/lib/dashboard/load-record";
 import { backToList } from "@/lib/dashboard/nav";
 import {
@@ -63,6 +62,8 @@ export default async function SupplierRecordPage({
   try {
     model = await loadRecordSheet(supabase, slug, new Date(), {
       allLines,
+      // "All N lines" is the Products tab, expanded.
+      allLinesHref: allLines ? null : `/app/suppliers/${slug}?tab=products&lines=all`,
       // A line opened from the expanded grid comes back to it: without this,
       // Back from line 9 of "All N lines" landed on six tiles without it.
       lineHref: allLines ? (hs) => `/app/suppliers/${slug}/lines/${hs}?lines=all` : undefined,
@@ -105,14 +106,18 @@ export default async function SupplierRecordPage({
 
   // The record fills the content region: its bar at the top, its action bar
   // at the bottom, the body scrolling between them at the record's measure.
-  return (
-    <SupplierSheet
-      model={model}
-      mode="page"
-      backHref={backToList(sp.back)}
-      save={model.supplierId ? <SaveRecordButton supplierId={model.supplierId} saved={model.saved} /> : undefined}
-    />
-  );
+  // A tab is a link to this page with `?tab=`; the way back to the list and the expanded
+  // lines ride along, so the record does not forget where it was opened from.
+  const back = backToList(sp.back);
+  const tabHref = (t: TabId) => {
+    const q = new URLSearchParams();
+    if (t !== "overview") q.set("tab", t);
+    if (back) q.set("back", back);
+    if (allLines) q.set("lines", "all");
+    const qs = q.toString();
+    return `/app/suppliers/${slug}${qs ? `?${qs}` : ""}`;
+  };
+  return <RecordView model={model} mode="page" tab={parseTab(sp.tab)} tabHref={tabHref} today={new Date()} backHref={back} />;
 }
 
 /**
