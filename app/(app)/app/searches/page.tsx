@@ -1,51 +1,36 @@
-// REZ-B — saved searches (/app/searches). Live counts from
-// discover_suppliers, cached 10 min on the row; the table says when each
-// count was taken, because most are remembered rather than live.
+// /app/searches: the buyer's saved searches on the v4 frame (B6b, Paper `10 · Saved · saved
+// searches`, `11 · Saved · searches`), the second tab of Saved. Each search with its filters in
+// words, how many suppliers it finds (cached 10 minutes on the row; the row says when the count was
+// taken, because most are remembered rather than live), Run search and Delete.
+//
+// A failed read is an error where the list was: "No saved searches yet" is a claim about the
+// account that a failed read cannot make. `/app/searches/[id]` is a route handler that redirects
+// to the search; `/app/searches/new` keeps old save links working.
 
-import { ErrorNote, Page, PageHeader } from "@/components/dashboard/page";
-import { SavedSearchesTable } from "@/components/dashboard/saved-list";
-import { formatCount } from "@/lib/dashboard/facts";
-import { runSavedSearchesGet, type SavedSearchJson } from "@/lib/saved-searches";
+import { PhoneTabs, SavedHead, SearchesEmpty, SearchesError } from "@/components/saved/list";
+import { loadSearches } from "@/components/saved/load";
+import { SearchList } from "@/components/saved/searches";
+import { buildSearchItems, SEARCHES_HREF } from "@/components/saved/words";
 import { getServerRole } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-  title: "Saved searches · SourceBD",
-};
+export const metadata = { title: "Saved searches · SourceBD" };
 
 export default async function SearchesPage() {
   const supabase = await createSupabaseServerClient();
   const role = await getServerRole();
   const now = new Date();
-  const listed = await runSavedSearchesGet({ role, supabase, now });
-  const payload =
-    listed.status === 200 && listed.body && typeof listed.body === "object"
-      ? (listed.body as { searches?: SavedSearchJson[]; capped?: boolean })
-      : {};
-  const searches = payload.searches ?? [];
-  const failed = listed.status !== 200;
-
+  const data = await loadSearches(supabase, role, now);
+  const items = data.searches ? buildSearchItems(data.searches, now) : [];
+  const count = data.searches === null ? null : items.length;
+  const view = { sort: "recent" as const, page: 1 };
   return (
-    <Page>
-      <PageHeader
-        title="Saved searches"
-        caption={
-          failed
-            ? "Only you can see this list."
-            : searches.length === 0
-              ? "None saved yet · only you can see this list"
-              : payload.capped
-                ? `The ${formatCount(searches.length)} most recent of your saved searches`
-                : `${formatCount(searches.length)} saved`
-        }
-      />
-      {failed ? (
-        <ErrorNote>Saved searches could not be read. Nothing was removed; reload the page to try again.</ErrorNote>
-      ) : (
-        <SavedSearchesTable searches={searches} now={now} />
-      )}
-    </Page>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <SavedHead tab="searches" suppliers={data.suppliers} searches={count} view={view} capped={data.capped} />
+      <PhoneTabs tab="searches" suppliers={data.suppliers} searches={count} />
+      {data.searches === null ? <SearchesError retryHref={SEARCHES_HREF} /> : items.length === 0 ? <SearchesEmpty /> : <SearchList items={items} />}
+    </div>
   );
 }
