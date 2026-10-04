@@ -1,12 +1,7 @@
-import { KitLoading } from "@/components/dashboard/kit-loading";
-import { PageSkeleton } from "@/components/dashboard/page-skeleton";
+import { ComplianceSkeleton } from "@/components/compliance/hub";
 
-// The layout draws the shell; this is the content region while the page loads.
+// The layout draws the frame; this is the content region while the page loads.
 
-export default function UflpaTrackerLoading() {
-  return (
-    <KitLoading>
-      <PageSkeleton kind="table" />
-    </KitLoading>
-  );
+export default function Loading() {
+  return <ComplianceSkeleton />;
 }

@@ -1,64 +1,40 @@
-// UFLPA tracker — Spec B9 (/app/compliance/uflpa).
-//
-// Server component. Calls compliance_uflpa_tracker() and lists one row per
-// saved supplier with its status (hit / region flag / clear) and any matched
-// DHS UFLPA Entity List references, hits first (the RPC's order).
+// /app/compliance/uflpa: UFLPA checks on the v4 frame (B6c, Paper `10 · Compliance · UFLPA checks,
+// populated`, `11 · Alerts · UFLPA checks`). The saved suppliers checked against the UFLPA Entity
+// List: three counts and one row per supplier with its result, hits first (the RPC's order). A failed
+// read is an error; "No link found" is never a clearance and says so.
 
-import { BackToHub, plural, TableFooter, type UflpaPayload, UflpaTable } from "@/components/dashboard/compliance";
-import { Button } from "@/components/dashboard/controls";
-import { EmptyState, ErrorNote, PageHeader, PageSection, Page } from "@/components/dashboard/page";
-import { formatCount } from "@/lib/dashboard/facts";
+import { loadCompliance } from "@/components/compliance/load";
+import { UflpaEmpty, UflpaError, UflpaHead, UflpaStats, UflpaTable } from "@/components/compliance/uflpa";
+import { UFLPA_HREF } from "@/components/compliance/words";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-async function UflpaPageBody() {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.rpc("compliance_uflpa_tracker");
-  const payload = error ? null : ((data ?? null) as UflpaPayload | null);
-
-  return (
-    <>
-      <PageHeader
-        title="UFLPA tracker"
-        caption="Checks your saved suppliers against the U.S. Department of Homeland Security's UFLPA Entity List. A supplier is a hit when it has an active match on the list, a region flag when its record mentions Xinjiang, XUAR or Uyghur, and clear otherwise."
-        actions={<BackToHub />}
-      >
-        {payload && payload.total > 0 ? (
-          <p className="m-0 text-sm text-ink-muted tabular-nums">
-            {plural(payload.hits, "hit")} · {plural(payload.flags, "region flag")} · {formatCount(payload.clear)} clear
-          </p>
-        ) : null}
-      </PageHeader>
-
-      {error ? <ErrorNote>Could not load the UFLPA tracker. Reload the page to try again.</ErrorNote> : null}
-
-      {payload ? (
-        <PageSection>
-          {payload.rows.length === 0 ? (
-            <EmptyState
-              icon="shield"
-              title="No saved suppliers yet"
-              action={
-                <Button variant="primary" href="/app/discover" clientNav>
-                  Browse Discover
-                </Button>
-              }
-            >
-              Every supplier you save is checked against the UFLPA Entity List and listed here.
-            </EmptyState>
-          ) : (
-            <>
-              <UflpaTable rows={payload.rows} />
-              <TableFooter shown={payload.rows.length} total={payload.total} />
-            </>
-          )}
-        </PageSection>
-      ) : null}
-    </>
-  );
-}
+export const metadata = { title: "UFLPA checks · SourceBD" };
 
 export default async function UflpaPage() {
-  return <Page>{await UflpaPageBody()}</Page>;
+  const supabase = await createSupabaseServerClient();
+  const d = await loadCompliance(supabase, { uflpa: true });
+  const u = d.uflpa;
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <UflpaHead checked={u?.total ?? null} />
+      <div className="flex flex-col gap-4 px-6 py-5 max-md:gap-3 max-md:px-0 max-md:py-2">
+        {u === null ? (
+          <div className="max-md:px-4">
+            <UflpaError retryHref={UFLPA_HREF} />
+          </div>
+        ) : u.rows.length === 0 ? (
+          <div className="max-md:px-4">
+            <UflpaEmpty />
+          </div>
+        ) : (
+          <>
+            <UflpaStats uflpa={u} />
+            <UflpaTable rows={u.rows} />
+          </>
+        )}
+      </div>
+    </div>
+  );
 }

@@ -98,6 +98,8 @@
     "app/(app)/app/compliance/page.tsx",
     "app/(app)/app/compliance/expiry/page.tsx",
     "app/(app)/app/compliance/msa/page.tsx",
+    "app/(app)/app/compliance/uflpa/page.tsx",
+    "components/compliance/compliance.test.ts",
     "lib/msa-statement.ts",
     "lib/msa-statement.test.ts",
     "app/(app)/app/(search)/page.tsx",

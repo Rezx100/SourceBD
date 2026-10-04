@@ -1599,10 +1599,15 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
     assert.match(app.out, /PAGE-BODY/);
     const appReads = readsSeen();
     // The buyer shell once (its four reads are stubbed here and counted in
-    // `load-buyer-shell.test.ts`), then the tour's two: who is signed in, and
-    // whether they have dismissed it. Nothing else.
+    // `load-buyer-shell.test.ts`), the Compliance badge's two lists (B6c: the hub's own
+    // count, read beside the shell; a slow or failed read draws no badge), then the tour's
+    // two: who is signed in, and whether they have dismissed it. Nothing else.
     assert.equal(shellLoads, 1, "the buyer layout did not read its shell exactly once");
-    assert.deepEqual(appReads, ["auth.getUser", "from profiles role, onboarding_state"], `the layouts around an /app page read more: ${appReads.join("; ")}`);
+    assert.deepEqual(
+      appReads,
+      ["auth.getUser", "from profiles role, onboarding_state", "rpc compliance_expired_certs", "rpc compliance_expiring_certs"],
+      `the layouts around an /app page read more: ${appReads.join("; ")}`,
+    );
 
     // Not vacuous: through the same stub, the older shell's reads show up
     // where it is still drawn.

@@ -293,62 +293,7 @@ describe("Settings — six pages under one navigation", () => {
 
 // ---------------------------------------------------------------------------
 
-// 3 Oct 2026: `compliance_expiring_certs` reads `expires_on >= current_date`,
-// so the day a saved supplier's certificate lapsed it left the hub built to
-// warn about it. The hub now reads `compliance_expired_certs` (0108) beside it
-// and draws what it returns first, in danger ink, linked to the row.
-const LAPSED_ROW = {
-  kind: "wrap",
-  certificate_no: "7865",
-  issuer: "WRAP",
-  expires_on: "2026-09-29",
-  document_url: "https://wrapcompliance.org/certified-facility/7865/",
-  days_remaining: -4,
-  supplier: { id: ABONI.profile.supplier.id, slug: "aboni-knitwear", company_name: "ABONI KNITWEAR LTD", entity_type: "factory", city: "Savar", district: "Dhaka" },
-};
-const NOTHING_UPCOMING: Rpc = { data: { window_days: 90, bucket_30: 0, bucket_60: 0, bucket_90: 0, total: 0, rows: [] }, error: null };
-const HUB_REST: Answers = {
-  compliance_uflpa_tracker: { data: { total: 1, hits: 0, flags: 0, clear: 1, rows: [] }, error: null },
-  compliance_msa_inputs: { data: { total_saved: 1, total_published: 1, rsc_covered: 1, expiring_certs_90d: 0, sanctions_hits: 0 }, error: null },
-};
-
-describe("/app/compliance — a saved supplier's expired certificate stays on the hub", () => {
-  const Hub = () => route("app/(app)/app/compliance/page.js").default;
-
-  it("lists it first, with the date, the issuer and danger ink, linked to the certificate's row on the record", async () => {
-    given({ compliance_expiring_certs: NOTHING_UPCOMING, compliance_expired_certs: { data: { total: 1, rows: [LAPSED_ROW] }, error: null }, ...HUB_REST });
-    const out = await render(() => Hub()());
-    assert.ok(rpcCalls.some((c) => c.fn === "compliance_expired_certs"), "the hub never read the expired list");
-    assert.match(out, /aria-label="Certificates expired"/);
-    assert.match(out, /title="ABONI KNITWEAR LTD"/, "the supplier is named");
-    assert.match(out, /href="\/app\/suppliers\/aboni-knitwear#cert-wrap-7865"[^>]*>WRAP<\/a>/, "the certificate links to its row on the record");
-    assert.match(text(out), /Issued by WRAP/);
-    assert.match(out, /29 Sep 2026<\/span> <span class="[^"]*text-danger-ink[^"]*">4 days ago<\/span>/);
-    assert.match(out, /text-danger-ink[^"]*">1<\/span><span[^>]*>expired<\/span>/, "the expired count leads the stats");
-    assert.ok(
-      out.indexOf("Certificates expired") < out.indexOf("No certificates on your saved suppliers expire in the next 90 days"),
-      "the expired bucket comes before the next 90 days",
-    );
-    assert.doesNotMatch(out, /Expired certificates did not load/);
-  });
-
-  it("an unread expired list says so and claims no '0 expired'", async () => {
-    given({ compliance_expiring_certs: NOTHING_UPCOMING, compliance_expired_certs: { data: null, error: { message: "function does not exist" } }, ...HUB_REST });
-    const out = await render(() => Hub()());
-    assert.match(out, /Expired certificates did not load/);
-    assert.doesNotMatch(out, />expired<\/span>/);
-    assert.match(out, /role="alert"/);
-  });
-
-  it("the full expiry page lists it under Expired, before the next 90 days", async () => {
-    given({ compliance_expiring_certs: NOTHING_UPCOMING, compliance_expired_certs: { data: { total: 1, rows: [LAPSED_ROW] }, error: null } });
-    const out = await render(() => route("app/(app)/app/compliance/expiry/page.js").default());
-    assert.match(out, /<h2[^>]*>Expired<\/h2>/);
-    assert.match(out, /href="\/app\/suppliers\/aboni-knitwear#cert-wrap-7865"/);
-    assert.match(out, /7865/, "the number column");
-    assert.ok(out.indexOf(">Expired</h2>") < out.indexOf("Nothing expires in the next 90 days"));
-  });
-
+describe("/app/compliance — the certificate row a compliance link names", () => {
   it("the row the link names exists on the record", async () => {
     given({ ...RECORD });
     const out = await render(() =>
