@@ -134,7 +134,9 @@ export default async function BuyerDiscoverPage({
   const rowOpts = { today, hsLines: hs.lines, hsError: hs.error, recordHref, rfqHref };
   const results = rows.map((row) => resultRow(buildDiscoverTableRow(row, { ...rowOpts, saved: savedSet.has(row.id) }), today, pageHref(row.slug)));
 
-  const paneOpen = composerOpen || filtersOpen || saveOpen || recordSlug !== null;
+  // A pane docked beside the results narrows them; the filter panel lies over the full-width
+  // table instead (B4 fix 4), so the results keep their own bar and columns under it.
+  const paneOpen = composerOpen || saveOpen || recordSlug !== null;
   const exportHref = `/api/v1/discover/export?${serializeDiscoverState(state).toString()}`;
   const title = resultsTitle(state.q, error ? null : total);
   const filtersHref = withParams("filters=1");
@@ -281,6 +283,7 @@ export default async function BuyerDiscoverPage({
         pane={pane}
         paneTitle={composerOpen ? "New request" : filtersOpen ? "Filters" : saveOpen ? "Save search" : "Supplier"}
         closeHref={closeHref}
+        presentation={filtersOpen ? "overlay" : "docked"}
       />
       {sentId ? <Flash text="RFQ sent" link={{ href: `/app/rfqs/${sentId}`, label: "Open the RFQ" }} /> : null}
       {one(sp.saved) === "1" ? <Flash text="Search saved" link={{ href: "/app/searches", label: "Saved searches" }} /> : null}

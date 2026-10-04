@@ -654,6 +654,14 @@ describe("/app/discover — the panes beside the results", () => {
     assert.doesNotMatch(out, /aria-label="Filters"/, "guard: no pane without the parameter");
     const pane = html(await search({ q: "knit", reg: "BGMEA", cert: "gots:valid", filters: "1" }));
     assert.match(pane, /<form aria-label="Filters"/);
+    // B4 fix 4: the panel lies over the full-width results (their own bar and table, not the
+    // narrow list a docked pane leaves), and with the results live it claims no modality.
+    assert.match(pane, /<section aria-label="Filters" class="[^"]*\babsolute\b[^"]*\bw-panel\b[^"]*">/);
+    assert.ok(pane.indexOf('aria-label="Results"') < pane.indexOf('aria-label="Filters"'), "the results are not drawn under the panel");
+    assert.match(pane, /<table\b/, "the results were narrowed to the pane's list under the filters");
+    assert.doesNotMatch(pane, /aria-modal|<[a-z]+\b[^>]*\sinert(?:=""|\s|>)/, "a panel over live results claims to be modal");
+    // The panel draws its own title and close at 1280 and over.
+    assert.match(pane, /<h2[^>]*>Filters<\/h2>/);
     // The draft starts as the address: a register and a certificate ticked, its status chosen.
     assert.match(pane, /<input\b(?=[^>]*\sname="reg")(?=[^>]*\svalue="BGMEA")(?=[^>]*\schecked="")[^>]*>/);
     assert.match(pane, /<input\b(?=[^>]*\sname="cert")(?=[^>]*\svalue="gots")(?=[^>]*\schecked="")[^>]*>/);

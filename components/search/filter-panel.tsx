@@ -16,6 +16,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Checkbox, Field, FilterChip, Input, Segmented, Select, StandingFilter, Switch, buttonClass, linkClass, ring, ringInset } from "@/components/kit";
+import { usePaneTitled } from "@/components/frame/list-pane";
 import { REGISTRIES, discoverHref, serializeDiscoverState, type CertState, type DiscoverState } from "@/lib/discover-v32-state";
 import { countSuppliers } from "./filter-actions";
 import {
@@ -77,6 +78,9 @@ export function FilterPanel({
 }) {
   const router = useRouter();
   const desktop = useDesktop();
+  // In the drawer and the phone sheet the frame draws the title and the close; laid over the
+  // results at 1280 and over, the panel draws its own.
+  const titled = usePaneTitled();
   const size = desktop ? "md" : "touch";
   const [form, setForm] = useState<FilterForm>(() => formOf(state));
   const set = (over: Partial<FilterForm>) => setForm((f) => ({ ...f, ...over }));
@@ -118,17 +122,16 @@ export function FilterPanel({
         e.preventDefault();
         router.push(discoverHref(draft), { scroll: false });
       }}
-      // Under 1280 the pane is the drawer's body, which does not stretch it: fill the drawer
-      // under its 64-tall title so Clear all and the count sit at the foot, as Paper draws them.
-      className="flex min-h-0 flex-1 flex-col max-xl:min-h-[calc(100dvh-4rem)]"
+      className="flex min-h-0 flex-1 flex-col"
     >
-      {/* Docked at 1280 and over the pane has no title of its own; under it the drawer draws one. */}
-      <div className="hidden items-center justify-between px-5 pb-3 pt-4 xl:flex">
-        <h2 className="text-lg font-semibold text-ink">Filters</h2>
-        <Link href={closeHref} scroll={false} aria-label="Close" className={`${buttonClass({ kind: "quiet", size: "icon-32" })}`}>
-          <X size={20} aria-hidden />
-        </Link>
-      </div>
+      {titled ? null : (
+        <div className="flex items-center justify-between px-5 pb-3 pt-4">
+          <h2 className="text-lg font-semibold text-ink">Filters</h2>
+          <Link href={closeHref} scroll={false} aria-label="Close" className={`${buttonClass({ kind: "quiet", size: "icon-32" })}`}>
+            <X size={20} aria-hidden />
+          </Link>
+        </div>
+      )}
       {chips.length > 0 || showThemHref ? (
         <div className="flex flex-wrap gap-2 border-b border-line px-5 pb-3 pt-1 max-md:hidden">
           {chips.map((c) => (

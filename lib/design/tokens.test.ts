@@ -688,7 +688,7 @@ test("the type scale, the widths and the durations are the approved ones", () =>
     assert.equal(fontSize[key]?.[1].letterSpacing, undefined, `text-${key}: Paper puts tracking on the element, not the size`);
   }
   assert.deepEqual({ ...letterSpacing }, { tight: "-0.01em", tighter: "-0.02em" });
-  assert.deepEqual({ ...containers }, { sidebar: "224px", details: "344px", dialog: "480px", prose: "544px", pane: "640px" });
+  assert.deepEqual({ ...containers }, { sidebar: "224px", details: "344px", panel: "360px", dialog: "480px", prose: "544px", pane: "640px" });
   assert.equal(maxWidth.prose, "544px", "Paper's prose, not Tailwind's 65ch");
   assert.equal(maxWidth.content, "75rem");
   assert.deepEqual({ ...screens }, { xs: "320px", sm: "640px", md: "768px", lg: "1024px", xl: "1280px", "2xl": "1440px" });
