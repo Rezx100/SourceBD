@@ -9,16 +9,9 @@
 
 import { Warning } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
-import { useState, useSyncExternalStore } from "react";
+import { useState } from "react";
 import { Button, Dialog, DialogClose, Sheet } from "@/components/kit";
-
-const PHONE = "(max-width: 767px)";
-const subscribe = (cb: () => void) => {
-  const mq = window.matchMedia(PHONE);
-  mq.addEventListener("change", cb);
-  return () => mq.removeEventListener("change", cb);
-};
-const useIsPhone = () => useSyncExternalStore(subscribe, () => window.matchMedia(PHONE).matches, () => false);
+import { useIsPhone } from "@/components/kit/use-phone";
 
 export type AcceptProps = {
   quoteId: string;
