@@ -1606,7 +1606,8 @@ const CASES = [
   },
   {
     name: "app: facility-panel-only timeout -> 200 with facilities error",
-    path: `/app/suppliers/${FACILITY_TIMEOUT}`,
+    // B4c: the buildings are on the record's Sites tab, not the Overview.
+    path: `/app/suppliers/${FACILITY_TIMEOUT}?tab=sites`,
     auth: true,
     expect: {
       status: 200,
@@ -1619,26 +1620,27 @@ const CASES = [
   },
   {
     name: "app: HS-only timeout -> 200 with HS error",
-    path: `/app/suppliers/${HS_TIMEOUT}`,
+    // B4c: the export lines are on the record's Products tab.
+    path: `/app/suppliers/${HS_TIMEOUT}?tab=products`,
     auth: true,
     expect: {
       status: 200,
       bodyIncludes: "HS Timeout Ltd",
       bodyIncludesAll: [
-        "EPB export lines could not be read",
+        "The export lines could not be read.",
       ],
       bodyExcludes: ['data-epb-hscode="6103"', "0 HS code", "0 HS codes"],
     },
   },
   {
     name: "app: HS-only timeout in data (HTTP 200 body) -> 200 with HS error",
-    path: `/app/suppliers/${HS_TIMEOUT_IN_DATA}`,
+    path: `/app/suppliers/${HS_TIMEOUT_IN_DATA}?tab=products`,
     auth: true,
     expect: {
       status: 200,
       bodyIncludes: "HS Timeout In Data Ltd",
       bodyIncludesAll: [
-        "EPB export lines could not be read",
+        "The export lines could not be read.",
       ],
       bodyExcludes: ['data-epb-hscode="6103"', "0 HS code", "0 HS codes"],
     },
@@ -1691,7 +1693,7 @@ const CASES = [
   // pills and RSC progress are not on it, so their four checks went with it.
   {
     name: "app: mother Facilities lists extension building name",
-    path: `/app/suppliers/${MOTHER}`,
+    path: `/app/suppliers/${MOTHER}?tab=sites`,
     auth: true,
     expect: {
       status: 200,
@@ -1700,7 +1702,7 @@ const CASES = [
   },
   {
     name: "app: mother Facilities shows facility address (REZ-109)",
-    path: `/app/suppliers/${MOTHER}`,
+    path: `/app/suppliers/${MOTHER}?tab=sites`,
     auth: true,
     expect: {
       status: 200,
