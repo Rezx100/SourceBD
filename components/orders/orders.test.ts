@@ -78,7 +78,12 @@ async function outcome(run: () => ReactElement | Promise<ReactElement>): Promise
 
 const TODAY = new Date("2026-10-04T00:00:00Z");
 const id = (n: number) => `0f1e2d3c-0000-4000-8000-00000000000${n}`;
-const [ID1, ID2, ID3, ID4, ID5, ID6] = [1, 2, 3, 4, 5, 6].map(id);
+const ID1 = id(1);
+const ID2 = id(2);
+const ID3 = id(3);
+const ID4 = id(4);
+const ID5 = id(5);
+const ID6 = id(6);
 const RFQ = id(9);
 const QUOTE = id(8);
 
