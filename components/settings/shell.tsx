@@ -58,13 +58,13 @@ export function PhoneBack() {
  * One Settings page: the navigation beside it, its title (the page's one `h1`) and what it is for.
  * `current` is null on the phone list, which has no page of its own.
  */
-export function SettingsShell({ current, doc, title, caption, children }: { current: SettingsKey | null; doc: SettingsDoc | null; title: string; caption?: ReactNode; children: ReactNode }) {
+export function SettingsShell({ current, doc, title, caption, wide, children }: { current: SettingsKey | null; doc: SettingsDoc | null; title: string; caption?: ReactNode; wide?: boolean; children: ReactNode }) {
   return (
     <div className="flex min-h-0 flex-1">
       <SideNav current={current} doc={doc} />
       <div className="min-w-0 flex-1 px-8 pb-8 pt-7 max-md:px-4 max-md:pb-6 max-md:pt-2">
         <PhoneBack />
-        <div className="flex max-w-[760px] flex-col">
+        <div className={cn("flex flex-col", wide ? "max-w-[920px]" : "max-w-[760px]")}>
           <h1 className="text-lg font-semibold text-ink max-md:text-xl max-md:tracking-tight">{title}</h1>
           {caption ? <p className="pb-5 pt-1 text-base text-ink-2">{caption}</p> : <div className="pb-4" />}
           {children}

@@ -170,76 +170,7 @@ describe("/app/headings — the HS catalogue at its new address", () => {
 
 // ---------------------------------------------------------------------------
 
-const SETTINGS = {
-  email: "buyer@example.invalid",
-  display_name: "Jane Buyer",
-  avatar_url: null,
-  role: "buyer",
-  plan_tier: "starter",
-  created_at: "2026-09-01T00:00:00Z",
-  notifications: { digest: true, rfq_replies: true, saved_alerts: false },
-};
-
-describe("Settings — the pages still on the old frame (Company details and Profile are in components/settings)", () => {
-  const NAV = ["Workspace", "Subscription", "Members", "Inquiry", "Profile", "Notifications"];
-  const navOf = (out: string) => [...(out.match(/<nav aria-label="Settings"[\s\S]*?<\/nav>/)?.[0] ?? "").matchAll(/<a\b[^>]*>([^<]*)<\/a>/g)].map((m) => m[1]);
-
-  for (const [file, current] of [
-    ["app/(app)/app/settings/subscription/page.js", "Subscription"],
-    ["app/(app)/app/settings/members/page.js", "Members"],
-    ["app/(app)/app/settings/inquiry/page.js", "Inquiry"],
-    ["app/(app)/app/settings/notifications/page.js", "Notifications"],
-  ] as const) {
-    it(`${file.replace(/^app\/\(app\)|\/page\.js$/g, "")} draws the six items and marks ${current}`, async () => {
-      given({ settings_get: { data: SETTINGS, error: null } });
-      const out = await render(() => route(file).default());
-      assert.deepEqual(navOf(out), NAV);
-      assert.match(out, new RegExp(`aria-current="page"[^>]*>${current}<`));
-      assert.equal(out.match(/aria-current="page"/g)?.length, 1);
-      assert.match(text(out), /Free plan · public beta/, "the plan reads as the rail reads it");
-      assert.doesNotMatch(out, /Starter plan/);
-    });
-  }
-
-  it("Subscription sells no contact reveal, and says why Manage plan is off in words, not a tooltip", async () => {
-    given({ settings_get: { data: SETTINGS, error: null } });
-    const out = await render(() => route("app/(app)/app/settings/subscription/page.js").default());
-    assert.doesNotMatch(out, /[Cc]ontact reveal|reveal/);
-    assert.match(out, /disabled=""[^>]*>Manage plan<|<button[^>]*disabled=""[^>]*aria-describedby="manage-plan-note"/);
-    assert.match(out, /id="manage-plan-note">Opens once billing is set up</);
-    assert.doesNotMatch(out, /title="Available once billing/);
-    assert.match(text(out), /Your plan Free Current public beta/);
-    assert.match(text(out), /Other plans/);
-    assert.match(text(out), /Growth/);
-  });
-
-  it("Members lists the signed-in buyer as the owner and offers no invite form", async () => {
-    given({ settings_get: { data: SETTINGS, error: null } });
-    const out = await render(() => route("app/(app)/app/settings/members/page.js").default());
-    assert.match(text(out), /Jane Buyer buyer@example\.invalid Owner/);
-    assert.match(out, /Team seats/);
-    assert.match(out, /Enterprise plan/);
-    assert.match(out, /href="mailto:support@sourcebd\.net/);
-    assert.doesNotMatch(out, /type="email"|[Ii]nvite/);
-  });
-
-  it("Inquiry shows the composer's own defaults until the buyer saves questions, then theirs", async () => {
-    // Required here, not imported at the top: the composer's module graph loads
-    // `next/navigation`, and a module that captured it before the stub above
-    // was installed would keep the real hooks.
-    const { DEFAULT_QUESTIONS } = route("components/dashboard/rfq-composer.js") as { DEFAULT_QUESTIONS: readonly string[] };
-    given({ settings_get: { data: SETTINGS, error: null } });
-    const defaults = await render(() => route("app/(app)/app/settings/inquiry/page.js").default());
-    for (const q of DEFAULT_QUESTIONS) assert.ok(defaults.includes(`value="${q}"`), `default question missing: ${q}`);
-    assert.match(defaults, /Dear \{\{supplier\}\}/);
-    for (const v of ["{{supplier}}", "{{product}}", "{{user}}", "{{company}}", "{{website}}"]) assert.ok(defaults.includes(v), v);
-    given({ settings_get: { data: { ...SETTINGS, inquiry: { questions: ["Lead time for 5,000 pcs?"], email_template: "Hello {{supplier}}" } }, error: null } });
-    const own = await render(() => route("app/(app)/app/settings/inquiry/page.js").default());
-    assert.match(own, /value="Lead time for 5,000 pcs\?"/);
-    assert.ok(!own.includes(`value="${DEFAULT_QUESTIONS[0]}"`));
-    assert.match(own, />Hello \{\{supplier\}\}<\/textarea>/);
-  });
-
+describe("Settings — the old plan address", () => {
   it("the old plan address answers a real 308 to Subscription", async () => {
     const res = route("app/(app)/app/settings/plan/route.js").GET() as Response;
     assert.equal(res.status, 308);

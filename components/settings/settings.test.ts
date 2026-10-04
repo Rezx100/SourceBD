@@ -12,7 +12,9 @@ import { createElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { COMPANY_LABELS, bandLabel, bandOptions, changedFields, typeOptions, valuesOf, workspacePayload } from "./company";
-import { workspaceOf, type SettingsDoc } from "./doc";
+import { inquiryOf, planLabel, workspaceOf, type SettingsDoc } from "./doc";
+import { EMAIL_ROWS, turnedWords } from "./emails";
+import { DEFAULT_QUESTIONS, DEFAULT_TEMPLATE, FILL_INS, MAX_QUESTIONS, gapWords, inquiryPayload, insertAt, moveItem, previewOf, startOf } from "./templates";
 import { EMAIL_SENT, emailRefusal, initialsOf, passwordRefusal, pictureRefusal } from "./profile";
 import { deleteAvatar, postAvatar, postSettings, routeSentence, type Fetch } from "./transport";
 import { SETTINGS_GROUPS, itemOf, planWords, rowLine, settingsSubline } from "./words";
@@ -164,10 +166,11 @@ describe("the saves", () => {
 const OUT = path.join(process.cwd(), process.env.TEST_BUILD_DIR || ".tests-build");
 type Rpc = { data: unknown; error: { message: string } | null };
 let answer: Rpc = { data: DOC, error: null };
+let saved: Rpc = { data: [], error: null };
 let calls: string[] = [];
 {
   const id = require.resolve(path.join(OUT, "lib/supabase/server.js"));
-  const client = { rpc: async (fn: string) => (calls.push(fn), answer) };
+  const client = { rpc: async (fn: string) => (calls.push(fn), fn === "buyer_saved_list" ? saved : answer) };
   require.cache[id] = { id, filename: id, loaded: true, exports: { createSupabaseServerClient: async () => client }, children: [], paths: [] } as unknown as NodeJS.Module;
 }
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- the stub must be installed before the route module loads.
@@ -277,8 +280,171 @@ describe("/app/settings/profile", () => {
   });
 });
 
+describe("RFQ templates, the pure parts", () => {
+  it("shows the composer's own defaults until the buyer has saved their own", () => {
+    assert.equal(inquiryOf({} as SettingsDoc), null);
+    assert.deepEqual(startOf(null), { questions: [...DEFAULT_QUESTIONS], template: DEFAULT_TEMPLATE });
+    assert.deepEqual(startOf({ questions: [], email_template: null }).questions, [...DEFAULT_QUESTIONS]);
+    assert.deepEqual(startOf({ questions: ["MOQ per colour?"], email_template: "Hi {{supplier}}" }), { questions: ["MOQ per colour?"], template: "Hi {{supplier}}" });
+    assert.deepEqual(FILL_INS.map((f) => f.token), ["{{supplier}}", "{{product}}", "{{user}}", "{{company}}", "{{website}}"]);
+  });
+
+  it("posts trimmed questions, at most 20 of at most 200 characters, and an empty template as null", () => {
+    const many = Array.from({ length: 25 }, (_, i) => ` Q${i} `);
+    const body = inquiryPayload([...many, "", "x".repeat(250)], "   ");
+    assert.equal(body.action, "update_inquiry");
+    assert.equal(body.questions.length, MAX_QUESTIONS);
+    assert.equal(body.questions[0], "Q0");
+    assert.equal(body.email_template, null);
+    assert.equal(inquiryPayload(["x".repeat(250)], "Hi").questions[0]!.length, 200);
+    assert.deepEqual(Object.keys(body).sort(), ["action", "email_template", "questions"]);
+  });
+
+  it("moves a question one place, and not past either end", () => {
+    assert.deepEqual(moveItem(["a", "b", "c"], 1, -1), ["b", "a", "c"]);
+    assert.deepEqual(moveItem(["a", "b", "c"], 1, 1), ["a", "c", "b"]);
+    assert.deepEqual(moveItem(["a", "b", "c"], 0, -1), ["a", "b", "c"]);
+    assert.deepEqual(moveItem(["a", "b", "c"], 2, 1), ["a", "b", "c"]);
+  });
+
+  it("puts a fill-in where the caret is, over a selection, and clamps a caret past the end", () => {
+    assert.deepEqual(insertAt("Dear ,", 5, 5, "{{supplier}}"), { text: "Dear {{supplier}},", caret: 17 });
+    assert.deepEqual(insertAt("Dear X,", 5, 6, "{{supplier}}"), { text: "Dear {{supplier}},", caret: 17 });
+    assert.equal(insertAt("Hi", 99, 99, "{{user}}").text, "Hi{{user}}");
+  });
+
+  it("the preview fills in what is known and leaves the rest in brackets, so the gap is seen first", () => {
+    const full = previewOf(DEFAULT_TEMPLATE, { supplier: "Aboni Knitwear Ltd.", user: "Alex Morgan", company: "Example Apparel Ltd", website: "https://example.com" });
+    assert.deepEqual(full.gaps, []);
+    assert.ok(full.pieces.some((p) => !p.gap && p.text.includes("Dear Aboni Knitwear Ltd.")));
+    assert.ok(full.pieces.some((p) => p.gap && p.text === "[Product line from the RFQ]"), "the product line is the RFQ's");
+    const gappy = previewOf(DEFAULT_TEMPLATE, { supplier: null, user: "Alex Morgan", company: "Example Apparel Ltd", website: null });
+    assert.deepEqual(gappy.gaps, ["website"]);
+    assert.ok(gappy.pieces.some((p) => p.gap && p.text === "[Supplier name]"));
+    assert.ok(gappy.pieces.some((p) => p.gap && p.text === "[website]"));
+    assert.match(gapWords(gappy.gaps), /1 gap to fill: your website in Company details\. The product line comes from each RFQ\./);
+    assert.match(gapWords([]), /Nothing of yours is missing\./);
+    assert.match(gapWords(["your name", "website"]), /2 gaps to fill: your name in Profile and your website in Company details\./);
+  });
+});
+
+describe("emails and the plan, the words", () => {
+  it("the three switches are Paper's, and a switch says what it turned", () => {
+    assert.deepEqual(EMAIL_ROWS.map((r) => [r.key, r.title]), [["rfq_replies", "Quotes"], ["saved_alerts", "Saved suppliers"], ["digest", "Weekly summary"]]);
+    assert.equal(turnedWords("rfq_replies", true), "Quotes turned on");
+    assert.equal(turnedWords("digest", false), "Weekly summary turned off");
+    assert.ok(!EMAIL_ROWS.some((r) => /always on/i.test(r.line)), "no row promises an email nothing sends");
+  });
+
+  it("the plan has one name, the rail's: Free, never Starter", () => {
+    assert.equal(planLabel("starter"), "Free");
+    assert.equal(planLabel(null), "Free");
+    assert.equal(planLabel("growth"), "Growth");
+  });
+});
+
+describe("the other four pages", () => {
+  const EMAILS = "app/(app)/app/settings/notifications/page.js";
+  const TEMPLATES = "app/(app)/app/settings/inquiry/page.js";
+  const PLAN = "app/(app)/app/settings/subscription/page.js";
+  const TEAM = "app/(app)/app/settings/members/page.js";
+
+  for (const [file, current] of [
+    [EMAILS, "Emails"],
+    [TEMPLATES, "RFQ templates"],
+    [PLAN, "Plan and usage"],
+    [TEAM, "Team and roles"],
+  ] as const) {
+    it(`${current}: Paper's six links with it current, and one h1`, async () => {
+      answer = { data: DOC, error: null };
+      const out = await page(file);
+      assert.deepEqual(navOf(out), ["Profile", "Emails", "Company details", "Team and roles", "RFQ templates", "Plan and usage"]);
+      assert.match(out, new RegExp(`aria-current="page"[^>]*>${current}<`));
+      assert.equal(out.match(/aria-current="page"/g)?.length, 1);
+      assert.equal(out.match(/<h1\b/g)?.length, 1);
+      assert.match(out, new RegExp(`<h1[^>]*>${current}</h1>`));
+    });
+
+    it(`${current}: a failed read is an error, and nothing claims what the account holds`, async () => {
+      answer = { data: null, error: { message: "boom" } };
+      const out = await page(file);
+      assert.match(out, /role="alert"/);
+      assert.match(text(out), /We couldn't load your settings\./);
+      assert.doesNotMatch(out, /<form|role="switch"|Owner|Free during the beta/);
+    });
+  }
+
+  it("Emails draws the three switches as saved, each named", async () => {
+    answer = { data: DOC, error: null };
+    const out = await page(EMAILS);
+    assert.equal(out.match(/role="switch"/g)?.length, 3);
+    const tag = (key: string) => out.match(new RegExp(`<input[^>]*aria-labelledby="email-${key}"[^>]*>`))?.[0] ?? "";
+    assert.match(tag("rfq_replies"), /checked=""/);
+    assert.doesNotMatch(tag("saved_alerts"), /checked=""/, "saved alerts is off in the document");
+    assert.match(text(out), /Sending starts later in the beta/);
+    assert.doesNotMatch(text(out), /Slack|Always on/);
+  });
+
+  it("RFQ templates shows the composer's defaults until the buyer has questions of their own, then theirs", async () => {
+    answer = { data: DOC, error: null };
+    const defaults = await page(TEMPLATES);
+    for (const q of DEFAULT_QUESTIONS) assert.ok(defaults.includes(`value="${q}"`), `default question missing: ${q}`);
+    assert.match(defaults, />Dear \{\{supplier\}\},/);
+    answer = { data: { ...DOC, inquiry: { questions: ["Lead time for 5,000 pcs?"], email_template: "Hello {{supplier}}" } }, error: null };
+    const own = await page(TEMPLATES);
+    assert.match(own, /value="Lead time for 5,000 pcs\?"/);
+    assert.ok(!own.includes(`value="${DEFAULT_QUESTIONS[0]}"`));
+    assert.match(own, />Hello \{\{supplier\}\}<\/textarea>/);
+  });
+
+  it("RFQ templates previews the message with the buyer's own facts and the gaps in brackets", async () => {
+    answer = { data: { ...DOC, workspace: { ...DOC.workspace, website: null } }, error: null };
+    const t = text(await page(TEMPLATES));
+    assert.match(t, /Preview/);
+    assert.match(t, /Alex Morgan/);
+    assert.match(t, /Example Apparel Ltd/);
+    assert.match(t, /\[website\]/);
+    assert.match(t, /1 gap to fill: your website in Company details\./);
+  });
+
+  it("RFQ templates is written to the supplier saved most recently, by name; a failed read of it is only 'Preview'", async () => {
+    answer = { data: DOC, error: null };
+    saved = { data: [{ company_name: "ABONI KNITWEAR LTD." }], error: null };
+    assert.match(text(await page(TEMPLATES)), /Preview with Aboni Knitwear Ltd/);
+    saved = { data: null, error: { message: "boom" } };
+    const out = await page(TEMPLATES);
+    assert.match(text(out), /Preview/);
+    assert.doesNotMatch(text(out), /Preview with/);
+    assert.doesNotMatch(out, /role="alert"/, "the preview's read is not the page's");
+    saved = { data: [], error: null };
+  });
+
+  it("Plan and usage says Free during the beta, that billing is not set up, and sells no contact reveal", async () => {
+    answer = { data: DOC, error: null };
+    const out = await page(PLAN);
+    const t = text(out);
+    assert.match(t, /Free during the beta/);
+    assert.match(t, /Billing isn't set up yet\./);
+    assert.match(t, /Enterprise · talk to us/);
+    assert.match(out, /href="mailto:support@sourcebd\.net/);
+    assert.doesNotMatch(t, /[Cc]ontact reveal|reveal/);
+    assert.doesNotMatch(t, /This month|Starter/, "Paper's usage counts are design only");
+  });
+
+  it("Team and roles is the one person signed in, as the owner, with no invite and no role chooser", async () => {
+    answer = { data: DOC, error: null };
+    const t = text(await page(TEAM));
+    assert.match(t, /One person today: you\./);
+    assert.match(t, /Alex Morgan/);
+    assert.match(t, /alex\.morgan@example\.com/);
+    assert.match(t, /Owner/);
+    assert.match(t, /Team seats come with the Enterprise plan/);
+    assert.doesNotMatch(t, /Invite|Approver|Editor|Viewer/);
+  });
+});
+
 describe("the loading states", () => {
   it("Settings and Profile have their own skeleton, in the content region", () => {
-    for (const f of ["settings/loading.tsx", "settings/profile/loading.tsx"]) assert.ok(existsSync(path.join(process.cwd(), "app", "(app)", "app", ...f.split("/"))), f);
+    for (const f of ["settings/loading.tsx", "settings/profile/loading.tsx", "settings/notifications/loading.tsx"]) assert.ok(existsSync(path.join(process.cwd(), "app", "(app)", "app", ...f.split("/"))), f);
   });
 });
