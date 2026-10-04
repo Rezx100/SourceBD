@@ -1,17 +1,13 @@
-// Orders at the boundary a buyer sees (closed-loop §14): the list as a
-// workbench — `/app/orders?open=<id>` draws the order beside the table and
-// marks its row, a bad id is a notice and never a 404 — the full page's 404,
-// one date and money format, the grouped facts, the glyph on every status,
-// and forms that stay shut until asked for (no primary at rest; cancelling
-// asks inline, not through `window.confirm`).
-//
-// The routes run over a fake Supabase client installed into the module cache
-// before they load (the pattern in `app/(app)/app/record-routes.test.ts`).
-// The client handlers run through `hook-harness.ts`, so a test invokes the
-// real `onClick` and sees what it posts.
+// The older order components at the boundary a buyer sees (closed-loop §14), until the supplier
+// portal and the old kit are rebuilt (B10, B11): one date and money format, the grouped facts,
+// the glyph on every status, and forms that stay shut until asked for (no primary at rest;
+// cancelling asks inline, not through `window.confirm`). The v4 routes (list, pane, page, new)
+// are tested in `components/orders/orders.test.ts`.
+// The client handlers run through `hook-harness.ts`, so a test invokes the real `onClick` and
+// sees what it posts.
 
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { afterEach, describe, it } from "node:test";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
@@ -42,33 +38,9 @@ import {
   type OrderStatus,
 } from "./orders";
 
-// ---- a fake `@/lib/supabase/server`, before any route loads ----
-
-const OUT = path.join(process.cwd(), process.env.TEST_BUILD_DIR || ".tests-build");
-type Rpc = { data: unknown; error: unknown };
-let answers: Record<string, Rpc> = {};
-const client = { rpc: async (fn: string) => answers[fn] ?? { data: null, error: { message: `no answer for ${fn}` } } };
-{
-  const id = require.resolve(path.join(OUT, "lib/supabase/server.js"));
-  require.cache[id] = { id, filename: id, loaded: true, exports: { createSupabaseServerClient: async () => client }, children: [], paths: [] } as unknown as NodeJS.Module;
-}
-// eslint-disable-next-line @typescript-eslint/no-require-imports -- the stub must be installed before the route module loads.
-const route = (p: string) => require(path.join(OUT, p)).default as (props: unknown) => Promise<ReactElement>;
-
 const router = { push() {}, replace() {}, refresh() {}, back() {}, forward() {}, prefetch() {} };
 /** The pane's focus handling reads the app router; a static render has none, so give it one. */
 const render = (el: ReactElement) => renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router as never }, el));
-
-/** `notFound()` throws with a digest; this names what a route reached. */
-async function outcome(run: () => Promise<ReactElement>): Promise<{ html: string } | { threw: string }> {
-  try {
-    return { html: render(await run()) };
-  } catch (err) {
-    const digest = (err as { digest?: string })?.digest;
-    if (typeof digest === "string") return { threw: digest };
-    throw err;
-  }
-}
 
 // ---- fixtures ----
 
@@ -135,74 +107,6 @@ const DOC: OrderDoc = {
 };
 
 const PRIMARY = /bg-brand text-brand-on/g;
-
-// ---- the workbench route ----
-
-describe("/app/orders — the order opens beside the table", () => {
-  const LIST = "app/(app)/app/orders/(list)/page.js";
-
-  it("?open= draws the order in a pane with its Close, and marks its row", async () => {
-    answers = {
-      order_list: { data: [row(ORDER_ID, "in_production"), row("other", "delivered")], error: null },
-      order_get: { data: DOC, error: null },
-      thread_list: { data: [{ id: "t1", supplier_id: "s1", rfq_id: DOC.rfq_id }], error: null },
-    };
-    const out = render(await route(LIST)({ searchParams: Promise.resolve({ status: "active", open: ORDER_ID }) }));
-    assert.match(out, /data-record-pane=""/, "no pane beside the table");
-    assert.match(out, /aria-label="Order: Cotton jersey t-shirts"/);
-    // Close returns to the list at its tab.
-    assert.match(/<a [^>]*aria-label="Close"[^>]*>/.exec(out)?.[0] ?? "", /href="\/app\/orders\?status=active"/);
-    // The open row is marked and its link opens it here; the other row is not in this tab at all.
-    assert.match(out, new RegExp(`<tr aria-current="true" class="[^"]*bg-accent-tint[^"]*"><td[^>]*><a [^>]*href="/app/orders\\?status=active&amp;open=${ORDER_ID}"`));
-    assert.equal((out.match(/aria-current="true"/g) ?? []).length, 1);
-    // The conversation the order's RFQ opened, and the RFQ beside its own list.
-    assert.match(out, /href="\/app\/messages\/t1"/);
-    assert.match(out, /href="\/app\/rfqs\?open=0f1e2d3c-0000-4000-8000-00000000b001"/);
-  });
-
-  it("an id that cannot be read is a notice in the pane, never a 404 on the list", async () => {
-    answers = { order_list: { data: [row("a", "draft")], error: null }, order_get: { data: null, error: { message: "not found" } } };
-    const r = await outcome(() => route(LIST)({ searchParams: Promise.resolve({ open: "not-an-order" }) }));
-    assert.ok("html" in r, `the list threw ${"threw" in r ? r.threw : ""}`);
-    assert.match(r.html, /This order could not be opened/);
-    assert.match(r.html, /Polo shirts a/, "the list itself is gone");
-    assert.doesNotMatch(r.html, /aria-current="true"/);
-  });
-
-  it("with nothing open there is no pane and each row opens beside the list as a client navigation", async () => {
-    answers = { order_list: { data: [row("a", "draft")], error: null } };
-    const out = render(await route(LIST)({ searchParams: Promise.resolve({}) }));
-    assert.doesNotMatch(out, /data-record-pane/);
-    assert.match(out, /href="\/app\/orders\?open=a"/);
-    assert.doesNotMatch(out, /href="\/app\/orders\/a"/, "a row still jumps to the page");
-  });
-});
-
-describe("/app/orders/[id] — the full page for deep links", () => {
-  const PAGE = "app/(app)/app/orders/[id]/page.js";
-
-  it("draws the same order as a page: no pane, no Close", async () => {
-    answers = { order_get: { data: DOC, error: null }, thread_list: { data: [], error: null } };
-    const out = render(await route(PAGE)({ params: Promise.resolve({ id: ORDER_ID }) }));
-    assert.match(out, /<h1[^>]*>Cotton jersey t-shirts<\/h1>/);
-    assert.doesNotMatch(out, /data-record-pane|aria-label="Close"/);
-  });
-
-  it("an order the caller cannot read is a 404", async () => {
-    answers = { order_get: { data: null, error: { message: "not found" } } };
-    const r = await outcome(() => route(PAGE)({ params: Promise.resolve({ id: "nope" }) }));
-    assert.ok("threw" in r, "the page rendered an order it could not read");
-    assert.match(r.threw, /NOT_FOUND|404/);
-  });
-
-  it("no loading state sits above it, so the 404 is a status code and not a streamed 200", () => {
-    const dir = path.join(process.cwd(), "app", "(app)", "app", "orders");
-    for (const f of ["loading.tsx", "[id]/loading.tsx", "new/loading.tsx"]) {
-      assert.ok(!existsSync(path.join(dir, f)), `orders/${f} wraps a route that answers 404`);
-    }
-    assert.ok(existsSync(path.join(dir, "(list)", "loading.tsx")), "the list lost its table skeleton");
-  });
-});
 
 // ---- the list: tabs, empty and failed reads (moved here from messages-orders.test.ts) ----
 

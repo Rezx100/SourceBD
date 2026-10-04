@@ -130,7 +130,7 @@ export function RfqPhoneRows({ items }: { items: readonly ListItem[] }) {
 }
 
 /** Quotes and orders on a phone are one tab: this is its switch (Paper `11 · Quotes tab`). Each side is a page of its own. */
-export function QuotesSwitch({ current, rfqs, orders, newHref = NEW_RFQ_HREF }: { current: "rfqs" | "orders"; rfqs: number | null; orders: number | null; newHref?: string }) {
+export function QuotesSwitch({ current, rfqs, orders, newHref = NEW_RFQ_HREF, newLabel = "New RFQ" }: { current: "rfqs" | "orders"; rfqs: number | null; orders: number | null; newHref?: string; newLabel?: string }) {
   const tile = (on: boolean) =>
     cn(
       "flex h-11 flex-1 items-center justify-center rounded-md text-md font-medium outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
@@ -140,7 +140,7 @@ export function QuotesSwitch({ current, rfqs, orders, newHref = NEW_RFQ_HREF }: 
     <div className="flex flex-col gap-3 px-4 pb-3 pt-3 md:hidden">
       <div className="flex justify-end">
         <Link href={newHref} prefetch={false} className="inline-flex min-h-11 items-center rounded-sm px-1 text-md font-semibold text-brand outline-none hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
-          New RFQ
+          {newLabel}
         </Link>
       </div>
       <nav aria-label="Quotes and orders" className="flex gap-1 rounded-lg bg-sunken p-1">
