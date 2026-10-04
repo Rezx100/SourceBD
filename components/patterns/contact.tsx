@@ -7,15 +7,23 @@ import { LockSimple } from "@phosphor-icons/react/dist/ssr";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-/** "Email 1 on file · Phone 4 on file"; only the kinds that exist are named. */
-export function onFileWords(emails: number, phones: number): string | null {
-  const parts = [emails > 0 ? `Email ${emails} on file` : null, phones > 0 ? `Phone ${phones} on file` : null].filter(Boolean);
+/** What the register holds, as counts: the four kinds the record reads, never a value. */
+export type OnFile = { emails: number; phones: number; website?: boolean; representatives?: number };
+
+/** "Email 1 on file · Phone 4 on file · Website on file · Contact person 2 on file"; only the kinds that exist are named. */
+export function onFileWords(emails: number, phones: number, website = false, representatives = 0): string | null {
+  const parts = [
+    emails > 0 ? `Email ${emails} on file` : null,
+    phones > 0 ? `Phone ${phones} on file` : null,
+    website ? "Website on file" : null,
+    representatives > 0 ? `Contact person ${representatives} on file` : null,
+  ].filter(Boolean);
   return parts.length ? parts.join(" · ") : null;
 }
 
 /** The details-panel block (344). `action` is the Send RFQ button; nothing on file has no action and no lock. */
-export function LockedContact({ emails, phones, action, className }: { emails: number; phones: number; action?: ReactNode; className?: string }) {
-  const words = onFileWords(emails, phones);
+export function LockedContact({ emails, phones, website, representatives, action, className }: OnFile & { action?: ReactNode; className?: string }) {
+  const words = onFileWords(emails, phones, website, representatives);
   return (
     <section aria-label="Contact" className={cn("flex w-full max-w-details flex-col gap-3 rounded-lg border border-line p-4", className)}>
       <header className="flex items-center justify-between">
@@ -36,8 +44,8 @@ export function LockedContact({ emails, phones, action, className }: { emails: n
 }
 
 /** The phone's single row above the sticky action bar. */
-export function LockedContactRow({ emails, phones }: { emails: number; phones: number }) {
-  const words = onFileWords(emails, phones);
+export function LockedContactRow({ emails, phones, website, representatives }: OnFile) {
+  const words = onFileWords(emails, phones, website, representatives);
   if (!words) return null;
   return (
     <div className="flex min-h-14 items-center gap-3 px-4 py-2">

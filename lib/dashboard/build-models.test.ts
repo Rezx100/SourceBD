@@ -18,6 +18,7 @@ import {
   registerLabel,
   certBuildings,
   hasEpbRecord,
+  locationTargets,
   motherRsc,
   ownPill,
   pillBuildings,
@@ -572,6 +573,25 @@ describe("buildSheet — facts panel and contact card", () => {
     assert.equal(empty.certs.length, 0);
     assert.equal(empty.products.lines, 0);
     assert.equal(empty.tabs.find((t) => t.label === "Locations")?.count, "1", "production returns one registered address");
+  });
+});
+
+describe("buildSheet — pins for the Sites tab", () => {
+  it("one cache lookup per site, in the order of the rows, each carrying every raw spelling it was merged from", () => {
+    const input = aboniInput();
+    const targets = locationTargets(input.profile);
+    const sheet = buildSheet(input, { pins: targets.map(() => null) });
+    assert.equal(targets.length, sheet.locations.length);
+    assert.ok(targets.every((t) => t.lookups.length > 0 && t.label.trim()), "a site with nothing to look up can never be pinned");
+    assert.deepEqual(targets.map((t) => t.label), sheet.locations.map((l) => l.address));
+  });
+
+  it("a pin lands on the site at the same position, and a record built without pins carries none", () => {
+    const input = aboniInput();
+    const pins = locationTargets(input.profile).map((_, i) => (i === 1 ? { latitude: 23.8, longitude: 90.3, confidencePct: 91, addressStatus: "full_address" } : null));
+    const withPins = buildSheet(input, { pins });
+    assert.deepEqual(withPins.locations.map((l) => l.pin?.confidencePct ?? null), pins.map((p) => p?.confidencePct ?? null));
+    assert.ok(buildSheet(input).locations.every((l) => !("pin" in l) && !("office" in l)), "pins appeared on a record that did not read them");
   });
 });
 

@@ -83,7 +83,7 @@ const MAP_STYLE_URLS: Record<MapStyle, string> = {
  *  its imagery is Stadia's Airbus/CNES/PlanetObserver stack — crediting only
  *  Barikoi and OSM while showing that imagery would be plainly wrong, so the
  *  strip follows whichever style is live. */
-const MAP_ATTRIBUTION: Record<MapStyle, string> = {
+export const MAP_ATTRIBUTION: Record<MapStyle, string> = {
   street: "Map data © Barikoi, OpenStreetMap contributors",
   satellite:
     "Imagery © Stadia Maps, CNES / Airbus DS, PlanetObserver · Map data © Barikoi, OpenStreetMap contributors",
@@ -1050,7 +1050,7 @@ function InsightsStrip({
 
 // ─── Map widget ───────────────────────────────────────────────────────────────
 
-function MapWidget({
+export function MapWidget({
   markers,
   focusedIndex,
   onFocusChange,
@@ -1060,6 +1060,7 @@ function MapWidget({
   nearbyEnabled,
   profileBasePath,
   ariaLabel,
+  heightClass = "h-[380px] sm:h-[470px] lg:h-[540px]",
 }: {
   markers: readonly LocationMapMarker[];
   focusedIndex: number | null;
@@ -1070,6 +1071,8 @@ function MapWidget({
   nearbyEnabled: boolean;
   profileBasePath: string;
   ariaLabel: string;
+  /** The map's height classes; the old profile's are the default. */
+  heightClass?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const scaleBarRef = useRef<HTMLDivElement>(null);
@@ -1181,11 +1184,81 @@ function MapWidget({
           The address list below is the accessible equivalent of the pins. */}
       <div
         ref={containerRef}
-        className="h-[380px] w-full bg-neutral-100 sm:h-[470px] lg:h-[540px]"
+        className={cn("w-full bg-neutral-100", heightClass)}
       />
       <ScaleBar barRef={scaleBarRef} labelRef={scaleLabelRef} />
     </div>
   );
+}
+
+// ─── Nearby layer ─────────────────────────────────────────────────────────────
+
+/**
+ * The nearby-sites layer is lazy: nothing is requested until a buyer turns it
+ * on, and each anchor is fetched at most once. The anchor is the focused pin,
+ * or the first pin in overview, so "nearby" always means "near what I am
+ * looking at". Shared by this component's toolbar and the record's Sites tab.
+ */
+export function useNearbyLayer(
+  markers: readonly LocationMapMarker[],
+  focusedIndex: number | null,
+  supplierSlug?: string,
+) {
+  const [enabled, setEnabled] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [failed, setFailed] = useState(false);
+  // Keyed by anchor coordinate rather than a "have we fetched" flag: the cache
+  // holding the answer is what makes the fetch effect idempotent, so a re-run
+  // can never leave the layer permanently empty. Only answers are cached —
+  // caching a failure too would turn one dropped request into a layer that
+  // stays empty for the rest of the session.
+  const [byAnchor, setByAnchor] = useState<ReadonlyMap<string, NearbySupplierSite[]>>(new Map());
+
+  const anchor = markers[focusedIndex ?? 0] ?? null;
+  const anchorKey = anchor ? `${anchor.latitude.toFixed(4)},${anchor.longitude.toFixed(4)}` : null;
+  const loaded = anchorKey ? byAnchor.has(anchorKey) : false;
+  const sites = anchorKey ? (byAnchor.get(anchorKey) ?? []) : [];
+
+  useEffect(() => {
+    if (!enabled || !anchor || !anchorKey) return;
+    if (byAnchor.has(anchorKey)) return;
+
+    let cancelled = false;
+    setPending(true);
+    setFailed(false);
+    const params = new URLSearchParams({
+      lat: String(anchor.latitude),
+      lng: String(anchor.longitude),
+      radius: String(NEARBY_RADIUS_KM),
+    });
+    if (supplierSlug) params.set("exclude", supplierSlug);
+
+    fetch(`/api/suppliers/nearby?${params.toString()}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`nearby lookup failed: ${res.status}`);
+        return (await res.json()) as { sites?: NearbySupplierSite[] };
+      })
+      .then((json) => {
+        if (cancelled) return;
+        // A genuine empty answer is cached, so a dead spot is not re-queried on
+        // every toggle.
+        setByAnchor((prev) => new Map(prev).set(anchorKey, json.sites ?? []));
+      })
+      .catch(() => {
+        // Deliberately not cached: the next toggle or site change retries.
+        if (!cancelled) setFailed(true);
+      })
+      .finally(() => {
+        if (!cancelled) setPending(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, anchor, anchorKey, byAnchor, supplierSlug]);
+
+  const toggle = useCallback(() => setEnabled((v) => !v), []);
+  return { enabled, toggle, pending, failed, loaded, sites };
 }
 
 // ─── Public export ────────────────────────────────────────────────────────────
@@ -1224,17 +1297,6 @@ function LocationsMapInner({
     null,
   );
   const [mapStyle, setMapStyle] = useState<MapStyle>("street");
-  const [nearbyEnabled, setNearbyEnabled] = useState(false);
-  const [nearbyPending, setNearbyPending] = useState(false);
-  const [nearbyFailed, setNearbyFailed] = useState(false);
-  // Keyed by anchor coordinate rather than a "have we fetched" flag: the cache
-  // holding the answer is what makes the fetch effect idempotent, so a re-run
-  // can never leave the layer permanently empty. Only answers are cached —
-  // caching a failure too would turn one dropped request into a layer that
-  // stays empty for the rest of the session.
-  const [nearbyByAnchor, setNearbyByAnchor] = useState<
-    ReadonlyMap<string, NearbySupplierSite[]>
-  >(new Map());
 
   const isControlled = externalFocusedIndex !== undefined;
   const focusedIndex = isControlled ? externalFocusedIndex! : internalFocusedIndex;
@@ -1261,65 +1323,14 @@ function LocationsMapInner({
     [focusedIndex, markers.length, handleFocusChange],
   );
 
-  // Nearby layer is lazy: nothing is requested until a buyer turns it on, and
-  // each anchor is fetched at most once. The anchor is the focused pin, or the
-  // first pin in overview, so "nearby" always means "near what I am looking at".
-  const nearbyAnchor = markers[focusedIndex ?? 0] ?? null;
-  const nearbyAnchorKey = nearbyAnchor
-    ? `${nearbyAnchor.latitude.toFixed(4)},${nearbyAnchor.longitude.toFixed(4)}`
-    : null;
-  const nearbyLoaded = nearbyAnchorKey
-    ? nearbyByAnchor.has(nearbyAnchorKey)
-    : false;
-  const nearbySites = nearbyAnchorKey
-    ? (nearbyByAnchor.get(nearbyAnchorKey) ?? [])
-    : [];
-
-  useEffect(() => {
-    if (!nearbyEnabled || !nearbyAnchor || !nearbyAnchorKey) return;
-    if (nearbyByAnchor.has(nearbyAnchorKey)) return;
-
-    let cancelled = false;
-    setNearbyPending(true);
-    setNearbyFailed(false);
-    const params = new URLSearchParams({
-      lat: String(nearbyAnchor.latitude),
-      lng: String(nearbyAnchor.longitude),
-      radius: String(NEARBY_RADIUS_KM),
-    });
-    if (supplierSlug) params.set("exclude", supplierSlug);
-
-    fetch(`/api/suppliers/nearby?${params.toString()}`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error(`nearby lookup failed: ${res.status}`);
-        return (await res.json()) as { sites?: NearbySupplierSite[] };
-      })
-      .then((json) => {
-        if (cancelled) return;
-        // A genuine empty answer is cached, so a dead spot is not re-queried on
-        // every toggle.
-        setNearbyByAnchor((prev) =>
-          new Map(prev).set(nearbyAnchorKey, json.sites ?? []),
-        );
-      })
-      .catch(() => {
-        // Deliberately not cached: the next toggle or site change retries.
-        if (!cancelled) setNearbyFailed(true);
-      })
-      .finally(() => {
-        if (!cancelled) setNearbyPending(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    nearbyEnabled,
-    nearbyAnchor,
-    nearbyAnchorKey,
-    nearbyByAnchor,
-    supplierSlug,
-  ]);
+  const {
+    enabled: nearbyEnabled,
+    toggle: toggleNearby,
+    pending: nearbyPending,
+    failed: nearbyFailed,
+    loaded: nearbyLoaded,
+    sites: nearbySites,
+  } = useNearbyLayer(markers, focusedIndex, supplierSlug);
 
   const handleExport = useCallback(() => {
     const featureCollection = {
@@ -1372,7 +1383,7 @@ function LocationsMapInner({
           onStyleChange={setMapStyle}
           nearbyEnabled={nearbyEnabled}
           nearbyPending={nearbyPending}
-          onNearbyToggle={() => setNearbyEnabled((v) => !v)}
+          onNearbyToggle={toggleNearby}
           onExport={handleExport}
         />
         <MapWidget

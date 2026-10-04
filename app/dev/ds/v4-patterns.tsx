@@ -160,12 +160,12 @@ export function V4Patterns() {
         </div>
       </Block>
 
-      <Block title="Locked contact" note="Counts with their nouns, never a value: contact is gated on the server. 03 Patterns · 6.">
+      <Block title="Locked contact" note="Counts with their nouns, never a value: contact is gated on the server. The record prints all four kinds (email, phone, website, contact person); Paper's board draws the first two. 03 Patterns · 6.">
         <div className="flex flex-wrap items-start gap-8">
-          <LockedContact emails={1} phones={4} action={<Button kind="primary">Send RFQ</Button>} />
+          <LockedContact emails={1} phones={4} website representatives={2} action={<Button kind="primary">Send RFQ</Button>} />
           <LockedContact emails={0} phones={0} />
           <div className="w-full max-w-[392px] overflow-clip rounded-lg border border-line">
-            <LockedContactRow emails={1} phones={4} />
+            <LockedContactRow emails={1} phones={4} website representatives={2} />
           </div>
         </div>
       </Block>

@@ -36,9 +36,15 @@ export type Site = {
   note: string;
   /** Selecting a site is a link (`?site=2`), so it works with no script. */
   href?: string;
+  /** The kind line when `SITE_WORDS` would claim too much (a factory with no pin is not "pinned to the address"). */
+  words?: string;
 };
 
-export function SiteList({ sites, selected, className }: { sites: Site[]; selected?: number; className?: string }) {
+/**
+ * `onSelect` lets a page that holds the selection (the map beside the list) take the click instead
+ * of navigating: a plain click selects, a modified one (new tab) still follows the link.
+ */
+export function SiteList({ sites, selected, onSelect, className }: { sites: Site[]; selected?: number; onSelect?: (n: number) => void; className?: string }) {
   return (
     <ul className={cn("flex flex-col overflow-clip rounded-lg border border-line", className)}>
       {sites.map((s) => {
@@ -47,7 +53,7 @@ export function SiteList({ sites, selected, className }: { sites: Site[]; select
           <>
             <Pin n={s.n} kind={s.kind} />
             <span className="flex flex-col gap-0.5">
-              <span className="text-xs font-semibold text-ink-2">{SITE_WORDS[s.kind]}</span>
+              <span className="text-xs font-semibold text-ink-2">{s.words ?? SITE_WORDS[s.kind]}</span>
               <span className="text-base font-medium text-ink">{s.address}</span>
               <span className="text-xs text-ink-3">{s.note}</span>
             </span>
@@ -57,7 +63,19 @@ export function SiteList({ sites, selected, className }: { sites: Site[]; select
         return (
           <li key={s.n} aria-current={on ? "true" : undefined}>
             {s.href ? (
-              <Link href={s.href} scroll={false} className={cn(cls, "hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand", on && "hover:bg-brand-tint")}>
+              <Link
+                href={s.href}
+                scroll={false}
+                onClick={
+                  onSelect
+                    ? (e) => {
+                        if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                        e.preventDefault();
+                        onSelect(s.n);
+                      }
+                    : undefined
+                }
+                className={cn(cls, "hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand", on && "hover:bg-brand-tint")}>
                 {body}
               </Link>
             ) : (

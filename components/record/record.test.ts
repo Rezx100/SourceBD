@@ -13,9 +13,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { buildSheet } from "@/lib/dashboard/build-models";
 import { TODAY, aboniInput, arFashionInput, longestNameInput, sanctionedInput, zaheenSampleInput } from "@/lib/dashboard/fixtures";
-import type { SupplierSheetModel } from "@/lib/dashboard/models";
+import type { LocationRow, SupplierSheetModel } from "@/lib/dashboard/models";
 import { RecordView } from "@/components/record/record-view";
-import { TABS, certRows, keyFacts, needsLook, parseTab, recordSubline, summaryCells, tabCount } from "@/components/record/words";
+import { TABS, certRows, keyFacts, needsLook, parseSite, parseTab, recordSubline, siteCards, siteSummary, summaryCells, tabCount } from "@/components/record/words";
 
 const h = createElement as (type: unknown, props: object | null, ...kids: unknown[]) => ReactNode & Parameters<typeof renderToStaticMarkup>[0];
 const plain = (s: string) => s.replace(/&#x27;/g, "'").replace(/&amp;/g, "&");
@@ -177,8 +177,17 @@ describe("the view's rules", () => {
 
   it("says the details are locked from the counts alone, and nothing when the count could not be read", () => {
     const out = text(view(model(), { mode: "page" }));
-    assert.match(out, /Email 1 on file · Phone 6 on file/);
+    assert.match(out, /Email 1 on file · Phone 6 on file · Website on file · Contact person 1 on file/);
     assert.match(out, /Contact details are locked\. Send an RFQ and the supplier replies here\./);
+    // Every kind the register holds is named in the column and again in the foot line; a kind that is absent is not.
+    const withTwo = text(view(model(aboniInput(), { contact: { hidden: "", plan: null, counts: { emails: 1, phones: 6, website: true, representatives: 2 }, held: null } }), { mode: "page" }));
+    assert.equal(withTwo.match(/Email 1 on file · Phone 6 on file · Website on file · Contact person 2 on file/g)?.length, 2, "the column and the foot line");
+    const phonesOnly = text(view(model(aboniInput(), { contact: { hidden: "", plan: null, counts: { emails: 0, phones: 2, website: false, representatives: 0 }, held: null } }), { mode: "page" }));
+    assert.match(phonesOnly, /Phone 2 on file/);
+    assert.doesNotMatch(phonesOnly, /Email \d|Website on file|Contact person/);
+    const none = text(view(model(aboniInput(), { contact: { hidden: "", plan: null, counts: { emails: 0, phones: 0, website: false, representatives: 0 }, held: null } }), { mode: "page" }));
+    assert.match(none, /No email or phone on file/);
+    assert.doesNotMatch(none, /on file · locked/);
     const unread = text(view(model(arFashionInput(), { contact: { hidden: "", plan: null, counts: null, held: null } }), { mode: "page" }));
     assert.doesNotMatch(unread, /No email or phone on file|on file · locked/, "an unread count claims none on file");
   });
@@ -201,11 +210,99 @@ describe("the view's rules", () => {
   });
 });
 
+const pin = (confidencePct: number | null) => ({ latitude: 23.8, longitude: 90.3, confidencePct, addressStatus: "full_address" });
+const site = (address: string, kind: string, over: Partial<LocationRow> = {}): LocationRow => ({ kind, address, marks: [], alsoRecordedAs: ["PLOT 1 OLD SPELLING"], ...over });
+
+describe("the Sites tab (B4d)", () => {
+  const rows = [
+    site("Office, Mirpur, Dhaka", "Registered office · Mailing address", { office: true, pin: pin(92) }),
+    site("Plot 4, Hemayetpur, Savar", "Factory", { office: false, pin: null }),
+    site("Nayapara, Kashimpur, Gazipur", "Factory", { office: false, pin: pin(55) }),
+    site("Plot 169, Hemayetpur, Savar", "Factory", { office: false, pin: pin(88) }),
+  ];
+
+  it("numbers pinned sites first, so a card's number is its pin's number, and says in words how each is pinned", () => {
+    const cards = siteCards(rows);
+    assert.deepEqual(cards.map((c) => c.address), ["Office, Mirpur, Dhaka", "Nayapara, Kashimpur, Gazipur", "Plot 169, Hemayetpur, Savar", "Plot 4, Hemayetpur, Savar"]);
+    assert.deepEqual(cards.map((c) => c.n), [1, 2, 3, 4]);
+    assert.deepEqual(cards.map((c) => c.words), ["Office · registered office and mailing address", "Factory · approximate location", "Factory · pinned to the address", "Factory · not pinned yet"]);
+    assert.equal(cards[1]!.note, "The pin marks the area, not the building.");
+    assert.equal(cards[2]!.note, "From the record's own address");
+    assert.equal(siteSummary(cards), "3 factory sites and 1 office");
+    assert.equal(siteSummary(cards.slice(0, 1)), "1 office");
+    assert.equal(siteSummary(cards.slice(2, 3)), "1 factory site");
+  });
+
+  it("a pin without a confidence is approximate, and a record whose pins were not read claims nothing about pins", () => {
+    assert.equal(siteCards([site("A", "Factory", { office: false, pin: pin(null) })])[0]!.words, "Factory · approximate location");
+    const unread = siteCards([site("A", "Factory"), site("B", "Mailing address")]);
+    assert.deepEqual(unread.map((c) => c.words), ["Factory", "Office · mailing address"], "an unread cache still said 'pinned'");
+    assert.equal(siteCards([site("C", "Registered")])[0]!.kind, "office", "a registered-only address was drawn as a factory");
+    assert.ok(unread.every((c) => c.pin === null));
+  });
+
+  it("prints one clean address per site, never the registry's other spellings (RC-09)", () => {
+    const out = view(model(aboniInput(), { locations: rows }), { mode: "page", tab: "sites" });
+    assert.doesNotMatch(out, /OLD SPELLING|Also filed as|registry spellings/);
+    for (const r of rows) assert.ok(plain(out).includes(r.address), r.address);
+    assert.match(text(out), /Sites · 4 3 factory sites and 1 office/);
+  });
+
+  it("links every card to its own site, so the list works with no script, and marks the selected one", () => {
+    const out = view(model(aboniInput(), { locations: rows }), { mode: "page", tab: "sites" });
+    const hrefs = [...plain(out).matchAll(/<a\b[^>]*href="([^"]*site=\d)"/g)].map((m) => m[1]);
+    assert.equal(hrefs.length, 4);
+    assert.ok(hrefs.every((h, i) => h!.endsWith(`site=${i + 1}`)));
+    assert.equal((out.match(/aria-current="true"/g) ?? []).length, 0);
+    const picked = renderToStaticMarkup(h(RecordView, { model: model(aboniInput(), { locations: rows }), mode: "page", tab: "sites", tabHref, today: TODAY, site: 2 }));
+    assert.equal((picked.match(/aria-current="true"/g) ?? []).length, 1);
+    assert.match(picked, /<li aria-current="true"[\s\S]*?Nayapara/);
+  });
+
+  it("draws the map controls only when there is a key and a pin, and never a map for a record with no pin", () => {
+    const key = process.env.NEXT_PUBLIC_BARIKOI_API_KEY;
+    try {
+      process.env.NEXT_PUBLIC_BARIKOI_API_KEY = "test-key";
+      const mapped = text(view(model(aboniInput(), { locations: rows }), { mode: "page", tab: "sites" }));
+      assert.match(mapped, /Street Satellite/);
+      assert.match(mapped, /Show nearby suppliers/);
+      const none = text(view(model(aboniInput(), { locations: rows.map((r) => ({ ...r, pin: null })) }), { mode: "page", tab: "sites" }));
+      assert.doesNotMatch(none, /Satellite|nearby suppliers/);
+      delete process.env.NEXT_PUBLIC_BARIKOI_API_KEY;
+      assert.doesNotMatch(text(view(model(aboniInput(), { locations: rows }), { mode: "page", tab: "sites" })), /Satellite/);
+    } finally {
+      if (key === undefined) delete process.env.NEXT_PUBLIC_BARIKOI_API_KEY;
+      else process.env.NEXT_PUBLIC_BARIKOI_API_KEY = key;
+    }
+  });
+
+  it("reads ?site= as a whole number from 1 and nothing else", () => {
+    assert.equal(parseSite("2"), 2);
+    assert.equal(parseSite(["3", "4"]), 3);
+    for (const bad of ["0", "-1", "2.5", "abc", "", "1000", undefined, null]) assert.equal(parseSite(bad as string | undefined), null, String(bad));
+  });
+
+  it("drops the Overview's address row when the record has sites to show, and keeps it when it has none", () => {
+    assert.ok(!keyFacts(model(aboniInput(), { locations: rows })).some((f) => f.label === "Address"));
+    const bare = model(aboniInput(), { locations: [] });
+    assert.equal(keyFacts(bare).some((f) => f.label === "Address"), bare.facts.some((f) => f.label === "Factory address"));
+  });
+});
+
 // The new pieces' own rules, read from their source.
 const dir = path.join(process.cwd(), "components", "record");
 const sources = readdirSync(dir).filter((f) => /\.tsx?$/.test(f) && !f.endsWith(".test.ts")).map((f) => [f, readFileSync(path.join(dir, f), "utf8")] as const);
 
 describe("the record components' rules", () => {
+  it("hand a client component only data: no function crosses from the server page into SitesView", () => {
+    // renderToStaticMarkup does not enforce the server/client boundary, Next does, and answers with an error page.
+    const panels = sources.find(([f]) => f === "panels.tsx")![1];
+    const use = /<SitesView\b[\s\S]*?\/>/.exec(panels)?.[0] ?? "";
+    assert.ok(use.length > 0, "guard: SitesView is used in panels.tsx");
+    assert.doesNotMatch(use, /=>|function\s*\(/, "a function prop on a client component");
+    assert.match(sources.find(([f]) => f === "sites-view.tsx")![1], /^"use client";/);
+  });
+
   it("have no typed colour, no cut-off text and no score, and take the old kit for nothing", () => {
     assert.ok(sources.length >= 5);
     for (const [file, src] of sources) {

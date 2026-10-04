@@ -2,4 +2,4 @@
 // is made of. The old `components/dashboard/supplier-sheet` stays for the gallery until B11.
 
 export { RecordView, type RecordViewProps } from "./record-view";
-export { TABS, parseTab, type TabId } from "./words";
+export { TABS, parseSite, parseTab, type TabId } from "./words";

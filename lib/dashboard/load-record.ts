@@ -13,7 +13,8 @@ import "server-only";
 import { fetchDisplayWorkersBatch } from "@/lib/enrich-discover-workers";
 import { isProfileRpcTimeout } from "@/lib/public-supplier-profile";
 import { hscodesFromRpc } from "@/lib/epb-hscodes";
-import { buildProductSheet, buildSheet, type ProfilePayload, type RecordInput } from "./build-models";
+import { geocodeTargets } from "@/lib/barikoi";
+import { buildProductSheet, buildSheet, locationTargets, type ProfilePayload, type RecordInput } from "./build-models";
 import { formatCount, formatDay } from "./facts";
 import { heading4, hsCatalogueRow } from "./hs-photos";
 import { sanitizeFacilityPanel, type FacilityPanel } from "@/lib/format-facility-group";
@@ -270,6 +271,11 @@ export async function fetchRecordSaved(
 }
 
 export type SheetView = {
+  /**
+   * Read the geocode cache for the Sites tab's map. Only the Sites tab asks: it is one more read, after
+   * the profile, and no other tab draws a pin.
+   */
+  pins?: boolean;
   /** Where an overlay's Close returns to; absent on the full page. */
   closeHref?: string | null;
   /** The record's own page — what Share copies. */
@@ -336,19 +342,29 @@ export async function loadRecordSheet(
   // Only the profile's own id is trusted: a row that pointed at another
   // supplier gets its reads again, for this one.
   const reuse = early && known === supplierId ? early : null;
-  const [workers, contactCounts, saved, rfqs, facilities] = await Promise.all([
+  // The map reads the ETL's geocode cache and never geocodes. A cache that could not be read is "no
+  // map", never "not pinned": the rows then carry no `pin` at all (undefined, not null).
+  const targets = view.pins ? locationTargets(record.input.profile) : [];
+  const pinsRead = view.pins
+    ? geocodeTargets(targets, targets.length)
+        .then((found) => found?.map((g) => (g ? { latitude: g.latitude, longitude: g.longitude, confidencePct: g.confidencePct, addressStatus: g.addressStatus } : null)))
+        .catch(() => undefined)
+    : Promise.resolve(undefined);
+  const [workers, contactCounts, saved, rfqs, facilities, pins] = await Promise.all([
     // A failed batch leaves the figure the record's own payload carries.
     reuse ? reuse.workers : fetchDisplayWorkersBatch(supabase, [supplierId]).catch(() => null),
     countsRead,
     reuse ? reuse.saved : fetchRecordSaved(supabase, supplierId),
     reuse ? reuse.rfqs : buyerIdRead.then((buyerId) => fetchRecordRfqs(supabase, supplierId, buyerId)),
     facilitiesRead,
+    pinsRead,
   ]);
   if (workers) assignWorkers([record], workers);
   return buildSheet(record.input, {
     plan: view.plan ?? null,
     contactCounts,
     facilities: { panel: facilities },
+    pins,
     saved,
     supplierId,
     rfqs,
