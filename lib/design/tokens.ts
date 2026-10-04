@@ -414,6 +414,9 @@ export const zIndex = {
 export const containers = {
   sidebar: "224px",
   details: "344px",
+  // The filter panel laid over the results at 1280 and over (`Filters panel open` board, 360
+  // wide). Paper draws it at that width without a container of its own; this names it.
+  panel: "360px",
   dialog: "480px",
   prose: "544px",
   pane: "640px",

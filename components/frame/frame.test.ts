@@ -136,4 +136,31 @@ describe("the list and the pane", () => {
     const shut = renderToStaticMarkup(createElement(ListPane, { list: "LIST", listLabel: "Results", closeHref: "/app/discover" }));
     assert.doesNotMatch(shut, /w-pane/);
   });
+
+  it("the filters lie over the list from 1280, 360 wide, and the list keeps its width and stays live", () => {
+    // B4 fix 4 (`Filters panel open, live count`): absolute, right 0, under the topbar, a left
+    // edge and the dialog shadow, over a list that is not narrowed. No scrim, so not modal.
+    const out = renderToStaticMarkup(createElement(ListPane, { list: "LIST", listLabel: "Results", pane: "PANE", paneTitle: "Filters", closeHref: "/app/discover?q=knit", presentation: "overlay" }));
+    assert.match(out, /^<div class="[^"]*\brelative\b[^"]*">/, "the panel has nothing to lie over");
+    assert.match(out, /<section aria-label="Results" class="flex min-h-0 min-w-0 flex-1 [^"]*">LIST<\/section>/);
+    const panel = /<section aria-label="Filters" class="([^"]*)">PANE<\/section>/.exec(out)?.[1] ?? "";
+    for (const c of ["absolute", "inset-y-0", "right-0", "w-panel", "border-l", "shadow-dialog", "bg-surface", "hidden", "xl:flex"]) assert.ok(panel.split(" ").includes(c), `the panel lacks ${c}: ${panel}`);
+    assert.doesNotMatch(panel, /\bw-pane\b/, "the filters are docked at 640");
+    assert.doesNotMatch(out, /aria-modal|\sinert[\s=>]/, "a panel over live results claims to be modal");
+    // Records stay docked beside the list, and the frame stays put for them.
+    const docked = renderToStaticMarkup(createElement(ListPane, { list: "LIST", listLabel: "Results", pane: "PANE", paneTitle: "Aboni", closeHref: "/app/discover" }));
+    assert.doesNotMatch(docked, /w-panel|absolute/);
+  });
+
+  it("under 1280 Escape typed in a field does not close the drawer or the sheet", () => {
+    // Code review, B4 fixes 3 and 4: Radix closes a dialog on any Escape, so a buyer dismissing
+    // a datalist in the phone filter sheet lost the draft. The docked pane already ignored it.
+    // The portals do not render statically, so the guard reads the kit's source.
+    const src = readFileSync(path.join(process.cwd(), "components", "kit", "overlay.tsx"), "utf8");
+    assert.match(src, /function keepEscapeInFields\(e: KeyboardEvent\) \{\s*if \(\(e\.target[^)]*\)\?\.closest\?\.\("input, textarea, select, \[contenteditable=true\]"\)\) e\.preventDefault\(\);/);
+    for (const name of ["Sheet", "Drawer"]) {
+      const body = src.slice(src.indexOf(`export function ${name}(`), src.indexOf("\nexport function", src.indexOf(`export function ${name}(`) + 1));
+      assert.match(body, /onEscapeKeyDown=\{keepEscapeInFields\}/, `${name} closes on Escape from a field`);
+    }
+  });
 });

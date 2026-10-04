@@ -137,8 +137,18 @@ export const DialogClose = D.Close;
 /* ------------------------------------------------------------------- sheet */
 
 /**
+ * A sheet or a drawer is a pane in the URL: Escape typed in a field belongs to the field (a
+ * datalist's suggestions, a half-typed value), not to the pane, so it does not close it.
+ */
+function keepEscapeInFields(e: KeyboardEvent) {
+  if ((e.target as HTMLElement | null)?.closest?.("input, textarea, select, [contenteditable=true]")) e.preventDefault();
+}
+
+/**
  * The box of a phone sheet. `sheet` has a handle, a title with a 44 close, rows, and an
- * action row; `confirm` is the same box with no handle and stacked 48 buttons.
+ * action row; `confirm` is the same box with no handle and stacked 48 buttons. `flush` hands
+ * the body its whole width and its own scrolling, for a body that draws its own padding and
+ * a footer of its own (the filter pane's form, whose submit button must sit inside it).
  */
 export function SheetPanel({
   kind = "sheet",
@@ -147,6 +157,7 @@ export function SheetPanel({
   children,
   footer,
   close,
+  flush = false,
   Title = "h2",
   Description = "p",
   className,
@@ -158,6 +169,7 @@ export function SheetPanel({
   children?: ReactNode;
   footer?: ReactNode;
   close?: ReactNode;
+  flush?: boolean;
   Title?: ElementType;
   Description?: ElementType;
 } & Omit<ComponentProps<"div">, "title">) {
@@ -180,8 +192,8 @@ export function SheetPanel({
           </div>
         </>
       )}
-      {children ? <div className="flex min-h-0 flex-col overflow-auto px-4">{children}</div> : null}
-      {footer ? (
+      {children ? <div className={flush ? "flex min-h-0 flex-1 flex-col" : "flex min-h-0 flex-col overflow-auto px-4"}>{children}</div> : null}
+      {flush && !footer ? null : footer ? (
         <div className={cn("flex gap-2 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]", confirm ? "flex-col pt-4" : "border-t border-line pt-3")}>{footer}</div>
       ) : (
         <div className="pb-[env(safe-area-inset-bottom)]" />
@@ -200,6 +212,7 @@ export function Sheet({
   children,
   footer,
   trigger,
+  flush,
 }: {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -209,6 +222,8 @@ export function Sheet({
   children?: ReactNode;
   footer?: ReactNode;
   trigger?: ReactNode;
+  /** The body pads, scrolls and closes itself off (see `SheetPanel`). */
+  flush?: boolean;
 }) {
   const content = useRef<HTMLDivElement>(null);
   return (
@@ -225,6 +240,7 @@ export function Sheet({
               safe.focus();
             }
           }}
+          onEscapeKeyDown={keepEscapeInFields}
           {...(description ? {} : { "aria-describedby": undefined })}
         >
           <SheetPanel
@@ -235,6 +251,7 @@ export function Sheet({
             title={title}
             description={description}
             footer={footer}
+            flush={flush}
             className="fixed inset-x-0 bottom-0 z-modal outline-none animate-rise motion-reduce:animate-none"
             close={
               kind === "sheet" ? (
@@ -278,6 +295,7 @@ export function Drawer({
         <D.Overlay className="fixed inset-0 z-modal bg-scrim animate-fade motion-reduce:animate-none" />
         <D.Content
           aria-describedby={undefined}
+          onEscapeKeyDown={keepEscapeInFields}
           className="fixed inset-y-0 right-0 z-modal flex w-pane max-w-full flex-col bg-surface shadow-dialog outline-none animate-sheet-in motion-reduce:animate-none"
         >
           <div className="flex items-start justify-between gap-2 px-5 pb-3 pt-5">
@@ -289,7 +307,8 @@ export function Drawer({
               </D.Close>
             </div>
           </div>
-          <div className="min-h-0 flex-1 overflow-auto">{children}</div>
+          {/* A column, like the docked pane, so a body that fills it (the filter form) keeps its footer at the foot. */}
+          <div className="flex min-h-0 flex-1 flex-col overflow-auto">{children}</div>
         </D.Content>
       </D.Portal>
     </D.Root>
