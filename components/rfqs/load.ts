@@ -9,6 +9,8 @@ import { bestQuote, type DraftRow, type OrderLite, type QuoteLite, type RfqRow }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the Supabase server client, as the other loaders take it.
 type Client = any;
 
+const QUOTE_ROW_CAP = 1000;
+
 const asNumber = (v: unknown): number | null => (v === null || v === undefined || v === "" ? null : Number.isFinite(Number(v)) ? Number(v) : null);
 
 /** A read that may be missing (a function not yet migrated) or fail: the page shows less, never an error, for these. */
@@ -67,13 +69,15 @@ export async function loadRfqList(supabase: Client): Promise<RfqListData> {
     const ids = rows.filter((r) => r.viewer_role !== "supplier" && r.quote_count > 0).map((r) => r.id);
     if (ids.length > 0) {
       quotes = await soft<QuoteLite[] | null>(
-        () => supabase.from("rfq_quotes").select("rfq_id, supplier_id, unit_price, moq, status").in("rfq_id", ids),
+        () => supabase.from("rfq_quotes").select("rfq_id, supplier_id, unit_price, currency, moq, status").in("rfq_id", ids),
         (d) =>
-          Array.isArray(d)
+          // PostgREST answers at most 1,000 rows; a full page may be a cut one, so the rows say "Open to compare" instead of guessing.
+          Array.isArray(d) && d.length < QUOTE_ROW_CAP
             ? (d as Record<string, unknown>[]).map((q) => ({
                 rfq_id: String(q.rfq_id),
                 supplier_id: String(q.supplier_id),
                 unit_price: Number(q.unit_price),
+                currency: typeof q.currency === "string" ? q.currency : "USD",
                 moq: asNumber(q.moq),
                 status: q.status as QuoteLite["status"],
               }))

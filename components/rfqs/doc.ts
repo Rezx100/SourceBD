@@ -115,12 +115,15 @@ export type DetailModel = {
   /** What the footer under the table explains. */
   footnote: string;
   canAccept: boolean;
+  /** The viewer is the RFQ's buyer (a supplier sees quotes but never the buyer's actions). */
+  isBuyer: boolean;
 };
 
 /** Everything the quotes panel and the header say, from the document and today's date. */
 export function detailModel(rfq: RfqDoc, today: Date): DetailModel {
   const isBuyer = rfq.viewer_role === "buyer" || rfq.viewer_role === "both";
-  const quotes: QuoteModel[] = sortQuotes(rfq.quotes).map((q) => {
+  const quotes: QuoteModel[] = sortQuotes(rfq.quotes, rfq.currency).map((q) => {
+    const same = q.currency === rfq.currency;
     const miss = missesShipBy(q.lead_time_days, rfq.ship_by, today);
     const above = q.moq !== null && q.moq > rfq.quantity;
     const total = quoteTotal(q.unit_price, rfq.quantity, q.moq);
@@ -135,7 +138,8 @@ export function detailModel(rfq: RfqDoc, today: Date): DetailModel {
       status: q.status,
       price: money(q.unit_price, q.currency),
       perUnit: perUnit(rfq.quantity_unit),
-      versus: versusShort(q.unit_price, rfq.target_unit_price, q.currency),
+      // A quote in another currency is not set against the target: the numbers are not comparable.
+      versus: same ? versusShort(q.unit_price, rfq.target_unit_price, q.currency) : null,
       moq: q.moq === null ? null : quantityWords(q.moq, rfq.quantity_unit),
       moqWarn: above && q.moq !== null ? `Above ${new Intl.NumberFormat("en-GB").format(rfq.quantity)}` : null,
       moqSentence: above && q.moq !== null ? `MOQ ${quantityWords(q.moq, rfq.quantity_unit)}, above your ${new Intl.NumberFormat("en-GB").format(rfq.quantity)}` : null,
@@ -183,6 +187,7 @@ export function detailModel(rfq: RfqDoc, today: Date): DetailModel {
     noReply,
     footnote: `Total is for your quantity, or the MOQ when it is higher.${rfq.ship_by && rfq.quotes.some((q) => missesShipBy(q.lead_time_days, rfq.ship_by, today)) ? ` Misses ship-by means the lead time ends after ${formatDay(rfq.ship_by)}.` : ""}`,
     canAccept: isBuyer && rfq.status === "open",
+    isBuyer,
   };
 }
 

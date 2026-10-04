@@ -40,7 +40,7 @@ function QuoteAction({ q, m, order, size = "md", full = false, best }: { q: Quot
     return <AcceptQuote quoteId={q.id} shortName={shortName(q.supplier)} summary={q.summary} cautions={q.cautions} primary={best} size={size} full={full} />;
   }
   if (q.status === "accepted") {
-    const link = order ? { href: `/app/orders/${order.id}`, label: "Open order", kind: "secondary" as const } : m.canAccept ? null : { href: `/app/orders/new?from_quote=${q.id}`, label: "Create order", kind: "primary" as const };
+    const link = !m.isBuyer ? null : order ? { href: `/app/orders/${order.id}`, label: "Open order", kind: "secondary" as const } : m.canAccept ? null : { href: `/app/orders/new?from_quote=${q.id}`, label: "Create order", kind: "primary" as const };
     return (
       <span className={cn("flex flex-col items-end gap-1.5", full && "items-stretch")}>
         <RfqChip tone="accepted" className={full ? "self-start" : undefined}>

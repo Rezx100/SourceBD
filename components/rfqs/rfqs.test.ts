@@ -15,6 +15,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { AcceptBody, acceptNext, postAccept } from "./accept";
 import { detailModel, otherRfqLine, type RfqDoc } from "./doc";
+import { RfqDetail } from "./detail";
 import { RfqPhoneRows } from "./list";
 import { RfqTable } from "./table";
 import {
@@ -103,9 +104,9 @@ const row = (id: string, over: Partial<RfqRow> = {}): RfqRow => ({
 });
 
 const QUOTES: QuoteLite[] = [
-  { rfq_id: ID1, supplier_id: "s-sm", unit_price: 9.3, moq: 12000, status: "submitted" },
-  { rfq_id: ID1, supplier_id: "s-aboni", unit_price: 8.55, moq: 3000, status: "submitted" },
-  { rfq_id: ID1, supplier_id: "s-gone", unit_price: 7.0, moq: null, status: "withdrawn" },
+  { rfq_id: ID1, supplier_id: "s-sm", unit_price: 9.3, currency: "USD", moq: 12000, status: "submitted" },
+  { rfq_id: ID1, supplier_id: "s-aboni", unit_price: 8.55, currency: "USD", moq: 3000, status: "submitted" },
+  { rfq_id: ID1, supplier_id: "s-gone", unit_price: 7.0, currency: "USD", moq: null, status: "withdrawn" },
 ];
 const NAMES = new Map([
   ["s-aboni", "Aboni Knitwear Ltd."],
@@ -122,7 +123,7 @@ const DRAFTS: DraftRow[] = [
   { id: "d1", payload: { product_title: "Knitted polo shirts, 220 gsm", quantity: 12000, quantity_unit: "pcs" }, target_supplier_ids: ["a", "b"], updated_at: "2026-10-02T08:00:00Z" },
 ];
 const ORDERS: OrderLite[] = [{ id: "o1", rfq_id: ID3, po_number: "PO-2026-0917" }];
-const MONDOL: QuoteLite = { rfq_id: ID3, supplier_id: "s-mondol", unit_price: 4.2, moq: null, status: "accepted" };
+const MONDOL: QuoteLite = { rfq_id: ID3, supplier_id: "s-mondol", unit_price: 4.2, currency: "USD", moq: null, status: "accepted" };
 
 const items = () => buildListItems({ rows: ROWS, drafts: DRAFTS, quotes: [...QUOTES, MONDOL], names: NAMES, orders: ORDERS, today: TODAY });
 const itemOf = (id: string) => items().find((i) => i.id === id)!;
@@ -261,7 +262,7 @@ describe("the list items", () => {
 
   it("the best price's MOQ above the quantity is a caution on the phone row", () => {
     const rows = [row(ID1, { product_title: "Kids' cotton pyjama sets", quantity: 24000, quantity_unit: "sets", target_unit_price: 2.95, quote_count: 1 })];
-    const quotes: QuoteLite[] = [{ rfq_id: ID1, supplier_id: "s-mondol", unit_price: 3.1, moq: 30000, status: "submitted" }];
+    const quotes: QuoteLite[] = [{ rfq_id: ID1, supplier_id: "s-mondol", unit_price: 3.1, currency: "USD", moq: 30000, status: "submitted" }];
     const i = buildListItems({ rows, drafts: [], quotes, names: NAMES, orders: [], today: TODAY })[0]!;
     assert.equal(i.moqNote, "Best price has MOQ 30,000 sets, above your 24,000");
     assert.equal(i.best?.price, "US$3.10 per set");
@@ -361,6 +362,25 @@ describe("the detail model", () => {
 
   it("other RFQs as a line", () => {
     assert.equal(otherRfqLine({ ...ROWS[1]!, product_title: "Hoodies" }), "Hoodies, 4,500 pieces · waiting for quotes · sent 1 Oct 2026");
+  });
+});
+
+describe("what a quote is not compared with", () => {
+  it("a quote in another currency is never set against the target, never ranked above one in the target's currency, and never the best", () => {
+    const eur = { ...doc().quotes[0]!, id: "q-eur", unit_price: 1, currency: "EUR", supplier_id: "s-eur", supplier_slug: "eur-co", supplier_name: "Eur Co" };
+    const m = detailModel(doc({ quotes: [eur, ...doc().quotes] }), TODAY);
+    assert.equal(m.quotes.at(-1)!.supplier, "Eur Co", "the EUR quote leads the USD ones");
+    assert.equal(m.quotes.at(-1)!.versus, null);
+    const q: QuoteLite[] = [{ rfq_id: ID1, supplier_id: "s-eur", unit_price: 1, currency: "EUR", moq: null, status: "submitted" }, ...QUOTES];
+    const best = buildListItems({ rows: [ROWS[0]!], drafts: [], quotes: q, names: NAMES, orders: [], today: TODAY })[0]!;
+    assert.equal(best.best?.price, "US$8.55 per piece");
+  });
+
+  it("a supplier is never offered the buyer's Create order, even on their own accepted quote", () => {
+    const accepted = doc({ viewer_role: "supplier", status: "accepted", quotes: [{ ...doc().quotes[0]!, status: "accepted" }] });
+    const out = plain(renderToStaticMarkup(createElement(RfqDetail, { rfq: accepted, mode: "page", today: TODAY, closeHref: "/app/rfqs" })));
+    assert.ok(out.includes("Accepted"));
+    assert.doesNotMatch(out, /Create order|Open order|from_quote/);
   });
 });
 
@@ -527,6 +547,14 @@ describe("/app/rfqs", () => {
   it("when the quotes cannot be read the rows say to open them, never 'No quotes yet'", async () => {
     rpcs = LIST_RPCS();
     tables = { rfq_quotes: { data: null, error: { message: "denied" } } };
+    const r = await outcome(() => route(LIST)({ searchParams: Promise.resolve({}) }));
+    assert.ok("html" in r);
+    assert.ok(r.html.includes("Open to compare"));
+  });
+
+  it("a full 1,000-row page of quotes may be a cut one, so the rows say to open them", async () => {
+    rpcs = LIST_RPCS();
+    tables = { rfq_quotes: { data: Array.from({ length: 1000 }, () => ({ ...QUOTES[1]! })), error: null } };
     const r = await outcome(() => route(LIST)({ searchParams: Promise.resolve({}) }));
     assert.ok("html" in r);
     assert.ok(r.html.includes("Open to compare"));

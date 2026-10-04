@@ -35,7 +35,7 @@ export type DraftRow = {
 };
 
 /** The columns of `rfq_quotes` the list reads to find the best quote (the buyer's RLS lets them). */
-export type QuoteLite = { rfq_id: string; supplier_id: string; unit_price: number; moq: number | null; status: QuoteStatus };
+export type QuoteLite = { rfq_id: string; supplier_id: string; unit_price: number; currency: string; moq: number | null; status: QuoteStatus };
 
 /** What the list needs of an order: which RFQ it came from and its PO number. */
 export type OrderLite = { id: string; rfq_id: string | null; po_number: string | null };
@@ -174,9 +174,11 @@ export function quoteTotal(price: number, quantity: number, moq: number | null):
 }
 
 /** Quotes that still count (not withdrawn, not turned down) sort first, cheapest first; the rest follow. */
-export function sortQuotes<T extends { status: QuoteStatus; unit_price: number }>(quotes: readonly T[]): T[] {
+export function sortQuotes<T extends { status: QuoteStatus; unit_price: number; currency?: string }>(quotes: readonly T[], currency?: string): T[] {
   const live = (q: T) => (q.status === "submitted" || q.status === "accepted" ? 0 : 1);
-  return [...quotes].sort((a, b) => live(a) - live(b) || (a.status === "accepted" ? -1 : 0) - (b.status === "accepted" ? -1 : 0) || a.unit_price - b.unit_price);
+  // Quotes in another currency cannot be ranked by price against these: they follow.
+  const other = (q: T) => (currency && q.currency && q.currency !== currency ? 1 : 0);
+  return [...quotes].sort((a, b) => live(a) - live(b) || other(a) - other(b) || (a.status === "accepted" ? -1 : 0) - (b.status === "accepted" ? -1 : 0) || a.unit_price - b.unit_price);
 }
 
 // ---- the list ----
@@ -256,7 +258,8 @@ export function chipFor(status: RfqStatus, quotes: number): { tone: ChipTone; la
 /** The cheapest quote that still counts; an accepted RFQ's best is the quote that was accepted. */
 export function bestQuote(row: RfqRow, quotes: readonly QuoteLite[] | null): QuoteLite | null {
   if (quotes === null) return null;
-  const mine = quotes.filter((q) => q.rfq_id === row.id && (q.status === "submitted" || q.status === "accepted"));
+  // Only quotes in the RFQ's own currency can be compared with its target and with each other.
+  const mine = quotes.filter((q) => q.rfq_id === row.id && q.currency === row.currency && (q.status === "submitted" || q.status === "accepted"));
   const accepted = row.status === "accepted" ? mine.find((q) => q.status === "accepted") : undefined;
   if (accepted) return accepted;
   return mine.reduce<QuoteLite | null>((best, q) => (best === null || q.unit_price < best.unit_price ? q : best), null);
