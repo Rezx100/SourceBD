@@ -648,18 +648,40 @@ describe("/app/discover — the panes beside the results", () => {
     assert.match(out, /<a\b[^>]*aria-current="true"/);
   });
 
-  it("?filters=1 opens the filter pane with the search's own filters ticked", async () => {
+  it("?filters=1 opens the filter pane with the search's own filters set, its count on the button and its chips removable", async () => {
     const out = html(await search({ q: "knit", reg: "BGMEA", cert: "gots:valid" }));
     assert.doesNotMatch(out, /aria-label="Filters"/, "guard: no pane without the parameter");
     const pane = html(await search({ q: "knit", reg: "BGMEA", cert: "gots:valid", filters: "1" }));
-    assert.match(pane, /<section data-record-pane="" aria-label="Filters"/);
-    assert.match(pane, />3 set</);
+    assert.match(pane, /<form aria-label="Filters"/);
+    // The draft starts as the address: a register and a certificate ticked, its status chosen.
     assert.match(pane, /<input\b(?=[^>]*\sname="reg")(?=[^>]*\svalue="BGMEA")(?=[^>]*\schecked="")[^>]*>/);
-    assert.match(pane, /<option value="gots" selected="">/);
-    assert.match(pane, /<option value="valid" selected="">/);
-    assert.match(pane, /<input type="hidden" name="q" value="knit"\/>/);
-    assert.doesNotMatch(pane, /name="filters"/, "Apply would reopen the pane");
+    assert.match(pane, /<input\b(?=[^>]*\sname="cert")(?=[^>]*\svalue="gots")(?=[^>]*\schecked="")[^>]*>/);
+    assert.match(pane, /<input\b(?=[^>]*\sname="cert_state")(?=[^>]*\svalue="valid")(?=[^>]*\schecked="")[^>]*>/);
+    // The button is the live count of the search the pane is open over (the fake finds one).
+    assert.match(pane, />Show 1 supplier</);
+    // A chip's × is the same search without that filter and with the pane still open; Close is the search alone.
+    const remove = hrefOf(pane, /Remove Certificate: GOTS · valid/);
+    assert.match(remove, /q=knit/);
+    assert.match(remove, /reg=BGMEA/);
+    assert.match(remove, /filters=1/);
+    assert.doesNotMatch(remove, /cert=/);
     assert.doesNotMatch(hrefOf(pane, /Close/), /filters=/);
+    // Sanctioned suppliers are held back by default, in words, with the way to lift it.
+    assert.match(pane, /Hiding sanctioned suppliers/);
+    const show = [...pane.matchAll(/<a\b([^>]*)>Show them<\/a>/g)].map((m) => /href="([^"]*)"/.exec(m[1]!)?.[1]?.replace(/&amp;/g, "&") ?? "");
+    assert.ok(show.some((h) => /sanctioned=1/.test(h) && /filters=1/.test(h)), `no Show them link keeps the pane: ${show.join(" ")}`);
+  });
+
+  it("the pane's count is read for a signed-in buyer only, and not for an address that is not a search's", async () => {
+    const { countSuppliers } = route("components/search/filter-actions.js") as typeof import("@/components/search/filter-actions");
+    // Signed out: no profile role, so nothing is read.
+    given({ saved: { data: null }, discover: { data: [{ total_count: 71 }], error: null } });
+    assert.equal(await countSuppliers("q=knit"), null);
+    assert.equal(rpcCalls.filter((c) => c.fn === "discover_suppliers").length, 0, "a signed-out caller reached the search");
+    // A buyer, but a string no search's address is.
+    given({ saved: { data: { role: "buyer" } }, discover: { data: [{ total_count: 71 }], error: null } });
+    assert.equal(await countSuppliers("q=" + "x".repeat(2000)), null);
+    assert.equal(rpcCalls.filter((c) => c.fn === "discover_suppliers").length, 0, "an oversized query reached the search");
   });
 
   it("?save=1 opens the save-search pane with the form, named after the search", async () => {
