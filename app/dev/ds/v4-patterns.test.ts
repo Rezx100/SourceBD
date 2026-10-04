@@ -16,6 +16,7 @@ import {
   ExportsTable,
   FactRow,
   LockedContact,
+  LockedContactRow,
   NeedsAttention,
   QuoteComparison,
   Refusal,
@@ -32,6 +33,7 @@ import {
   isApproximate,
   lateWords,
   moqWarning,
+  onFileWords,
   sortQuotes,
   usd,
   vsTarget,
@@ -136,6 +138,14 @@ test("locked contact gives counts with their nouns and never a value; nothing on
   const none = plain(h(LockedContact, { emails: 0, phones: 0, action: h("button", null, "Send RFQ") }));
   assert.ok(none.includes("No email or phone on file") && !none.includes("Send RFQ") && !none.includes("locked"));
   assert.ok(plain(h(LockedContact, { emails: 0, phones: 2 })).includes("Phone 2 on file") && !plain(h(LockedContact, { emails: 0, phones: 2 })).includes("Email"));
+  // All four kinds, in this order, each with its noun; website is a yes, never a number.
+  const all = plain(h(LockedContact, { emails: 1, phones: 6, website: true, representatives: 2 }));
+  assert.ok(all.includes("Email 1 on file · Phone 6 on file · Website on file · Contact person 2 on file"));
+  const rest = plain(h(LockedContact, { emails: 0, phones: 0, website: true, representatives: 0 }));
+  assert.ok(rest.includes("Website on file") && !rest.includes("Email") && !rest.includes("Phone") && !rest.includes("Contact person") && !rest.includes("No email or phone"));
+  assert.equal(onFileWords(0, 0, false, 3), "Contact person 3 on file");
+  assert.equal(onFileWords(0, 0), null);
+  assert.ok(plain(h(LockedContactRow, { emails: 1, phones: 4, website: true, representatives: 1 })).includes("Email 1 on file · Phone 4 on file · Website on file · Contact person 1 on file"));
 });
 
 test("the sanction banner has no way to close and refuses the RFQ in words", () => {

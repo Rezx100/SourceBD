@@ -29,6 +29,8 @@ export type RecordViewProps = {
   today: Date;
   /** The list with this record open beside it: Back to results on the page, and what Open full page carries on the pane. */
   backHref?: string | null;
+  /** `?site=` as the page read it: the site selected on the Sites tab on first paint. */
+  site?: number | null;
 };
 
 const TABULAR = "[font-variant-numeric:tabular-nums]";
@@ -73,7 +75,7 @@ function Summary({ cells }: { cells: SummaryCell[] }) {
 
 function Contact({ model }: { model: SupplierSheetModel }) {
   const counts = model.contact.counts;
-  if (counts) return <LockedContact emails={counts.emails} phones={counts.phones} />;
+  if (counts) return <LockedContact {...counts} />;
   // An unread count says only that the details are locked: "none on file" would be a claim.
   return (
     <section aria-label="Contact" className="flex w-full max-w-details flex-col gap-2 rounded-lg border border-line p-4">
@@ -85,7 +87,7 @@ function Contact({ model }: { model: SupplierSheetModel }) {
 
 const sendClass = buttonClass({ kind: "primary" });
 
-export function RecordView({ model, mode, tab, tabHref, today, backHref = null }: RecordViewProps) {
+export function RecordView({ model, mode, tab, tabHref, today, backHref = null, site = null }: RecordViewProps) {
   const page = mode === "page";
   // The search's own title is the page's h1 beside a pane.
   const Title = page ? "h1" : "h2";
@@ -94,7 +96,7 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null }
   const listName = list?.list ?? "sanctions list";
   const expandHref = backHref ? `${model.fullHref}${model.fullHref.includes("?") ? "&" : "?"}back=${encodeURIComponent(backHref)}` : model.fullHref;
   const counts = model.contact.counts;
-  const locked = counts ? onFileWords(counts.emails, counts.phones) : null;
+  const locked = counts ? onFileWords(counts.emails, counts.phones, counts.website, counts.representatives) : null;
   const sources: SourceEntry[] = model.sources.map((s) => ({ source: s.mark.code, label: s.mark.label, fullName: s.name, checkedOn: dayOfWords(s.readDate) }));
 
   const actions = (
@@ -180,7 +182,7 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null }
             ) : tab === "safety" ? (
               <SafetyPanel model={model} />
             ) : tab === "sites" ? (
-              <SitesPanel model={model} />
+              <SitesPanel model={model} tabHref={tabHref} site={site} wide={page} />
             ) : tab === "sources" ? (
               <SourcesPanel model={model} today={today} />
             ) : (

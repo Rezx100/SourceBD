@@ -5,9 +5,9 @@
 // carries no figure the cell says so, and says nothing about a date it does not hold. Pure.
 
 import type { CertRowData } from "@/components/patterns";
-import { certWords } from "@/components/patterns/words";
+import { SITE_WORDS, certWords, isApproximate, type SiteKind } from "@/components/patterns/words";
 import { certRowId } from "@/lib/dashboard/facts";
-import type { FactRow, SupplierSheetModel } from "@/lib/dashboard/models";
+import type { FactRow, LocationRow, SitePin, SupplierSheetModel } from "@/lib/dashboard/models";
 
 export const TABS = [
   { id: "overview", label: "Overview" },
@@ -23,6 +23,12 @@ export type TabId = (typeof TABS)[number]["id"];
 export function parseTab(raw: string | string[] | null | undefined): TabId {
   const v = Array.isArray(raw) ? raw[0] : raw;
   return TABS.find((t) => t.id === v)?.id ?? "overview";
+}
+
+/** `?site=` as the page reads it: a whole number from 1, or null. */
+export function parseSite(raw: string | string[] | null | undefined): number | null {
+  const v = Array.isArray(raw) ? raw[0] : raw;
+  return v && /^[1-9]\d{0,2}$/.test(v) ? Number(v) : null;
 }
 
 /** The count a tab carries, or null: a tab that holds nothing says no number rather than "0". */
@@ -131,7 +137,15 @@ export type KeyFact = { label: string; values: { text: string; mono: boolean; ma
 export function keyFacts(model: SupplierSheetModel): KeyFact[] {
   // Rows that only say "not on file" are left out when they are extras: Paper's almost-empty record lists what it has and the few a buyer asks for.
   const optional = new Set(["Registered name", "Parent group", "EPZ zone", "Women · men", "Sewing machines", "Capacity, as filed"]);
-  const rows = model.facts.filter((f) => !(f.label === "Registered name" && f.value?.trim().toLowerCase() === model.name.trim().toLowerCase()) && !(optional.has(f.label) && !f.value && !f.items?.length));
+  // The address is the Sites tab's: one clean address per premises. The Overview prints the register's
+  // own ALL-CAPS text only when there is no site to show there (RC-09).
+  const sited = model.locations.length > 0;
+  const rows = model.facts.filter(
+    (f) =>
+      !(f.label === "Registered name" && f.value?.trim().toLowerCase() === model.name.trim().toLowerCase()) &&
+      !(optional.has(f.label) && !f.value && !f.items?.length) &&
+      !(sited && f.label === "Factory address"),
+  );
   const out: KeyFact[] = rows.map((f) => {
     const from = f.marks?.length ? `From ${f.marks.map((m) => m.label).join(", ")}` : f.pendingSource ? "Source not linked yet" : null;
     const source = [from, f.note ?? null].filter(Boolean).join(" · ") || null;
@@ -159,6 +173,58 @@ export function keyFacts(model: SupplierSheetModel): KeyFact[] {
     empty: lists.length ? null : model.products.buyerListsEmpty,
   });
   return out;
+}
+
+const joined = (xs: string[]) => (xs.length <= 1 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`);
+
+/** One site as the Sites tab draws it: the card and, when the cache holds one, its pin. */
+export type SiteCard = {
+  n: number;
+  kind: SiteKind;
+  /** The kind line over the address: "Factory · pinned to the address", "Office · mailing address". */
+  words: string;
+  address: string;
+  note: string;
+  pin: SitePin | null;
+};
+
+/**
+ * The premises as cards, pinned ones first so that a card's number is its pin's number on the map.
+ * A site is "approximate" by the one rule in `isApproximate` (confidence below 70, or none). Where the
+ * pins were not read at all, no card says anything about a pin. One address per premises: the registry's
+ * other spellings are never printed (RC-09).
+ */
+export function siteCards(locations: readonly LocationRow[]): SiteCard[] {
+  const read = locations.some((l) => l.pin !== undefined);
+  const ordered = [...locations].sort((a, b) => Number(Boolean(b.pin)) - Number(Boolean(a.pin)));
+  return ordered.map((l, i) => {
+    const office = l.office ?? /registered|office|mailing/i.test(l.kind);
+    const from = l.marks.length ? `From ${joined(l.marks.map((m) => m.label))}` : "From the record's own address";
+    const approx = Boolean(l.pin) && !office && isApproximate(l.pin!.confidencePct);
+    const kind: SiteKind = office ? "office" : approx ? "factory-approx" : "factory-exact";
+    const detail = l.kind.toLowerCase().replace(/ · /g, " and ");
+    return {
+      n: i + 1,
+      kind,
+      words: office
+        ? l.kind === "Address" ? "Office" : `Office · ${detail}`
+        : !read
+          ? l.kind
+          : l.pin
+            ? SITE_WORDS[kind]
+            : "Factory · not pinned yet",
+      address: l.address,
+      note: approx ? "The pin marks the area, not the building." : from,
+      pin: l.pin ?? null,
+    };
+  });
+}
+
+/** "2 factory sites and 1 office": what the tab holds, in words. */
+export function siteSummary(cards: readonly SiteCard[]): string {
+  const offices = cards.filter((c) => c.kind === "office").length;
+  const factories = cards.length - offices;
+  return joined([factories ? `${factories} factory ${factories === 1 ? "site" : "sites"}` : "", offices ? `${offices} ${offices === 1 ? "office" : "offices"}` : ""].filter(Boolean));
 }
 
 /** "24 Jul 2026" to the UTC day it names, for the 90-day test; null when it is not a date. */

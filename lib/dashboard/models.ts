@@ -169,6 +169,15 @@ export type SourceRow = {
 /** One extension building: its name, its first filed address (contact details stripped) and its worker figure. */
 export type FacilityRowModel = { name: string; address: string | null; workers: string | null };
 
+/** Where the geocode cache puts a premises (`address_geocodes`, filled by the ETL; the page never geocodes). */
+export type SitePin = {
+  latitude: number;
+  longitude: number;
+  /** The geocoder's own confidence in the match; null when the cache row predates it. */
+  confidencePct: number | null;
+  addressStatus: string | null;
+};
+
 /** One premises on the Locations section, after the address matcher has merged spellings. */
 export type LocationRow = {
   kind: string;
@@ -176,6 +185,10 @@ export type LocationRow = {
   marks: SourceMarkModel[];
   /** The other spellings the registers filed for the same premises. */
   alsoRecordedAs: string[];
+  /** No register filed it as a factory: a registered or mailing address. Set only when the record is built with pins. */
+  office?: boolean;
+  /** Its place on the map, or null when the cache holds none. Absent when pins were not read. */
+  pin?: SitePin | null;
 };
 
 /**

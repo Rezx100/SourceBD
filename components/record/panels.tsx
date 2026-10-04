@@ -9,7 +9,8 @@ import { CertChip, FactChip } from "@/components/kit";
 import { CertTable, FactList, FactRow, RSC_REPORTS, RscBlock, SourceChip, certWords, type RscBlockData, type RscReportName } from "@/components/patterns";
 import type { RecordRfqRow, SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
-import { certRows, isStale, keyFacts, needsLook } from "./words";
+import { SitesView } from "./sites-view";
+import { certRows, isStale, keyFacts, needsLook, siteCards, type TabId } from "./words";
 
 const LINK =
   "rounded-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
@@ -227,29 +228,31 @@ export function SafetyPanel({ model }: { model: SupplierSheetModel }) {
 /* ------------------------------------------------------------------- sites */
 
 /**
- * The premises, one row each, in the words the registers filed. The map and its pins arrive
- * with the Sites screens (B4d); until then a site says its kind and who filed it, and never
- * says it is pinned to anything.
+ * The premises, one card each, beside the map (B4d). One clean address per premises, the registry's
+ * other spellings never printed (RC-09). With the geocode cache read, a card says whether its pin is
+ * on the address or only the area; where the cache was not read, nothing is said about a pin.
  */
-export function SitesPanel({ model }: { model: SupplierSheetModel }) {
+export function SitesPanel({ model, tabHref, site = null, wide = true }: { model: SupplierSheetModel; tabHref: (tab: TabId) => string; site?: number | null; wide?: boolean }) {
   const { locations, facilities } = model;
+  const cards = siteCards(locations);
+  const base = tabHref("sites");
   return (
     <div className="flex flex-col gap-5">
       <section id="locations" className="flex flex-col gap-2">
-        <h3 className="text-base font-semibold text-ink">Sites{locations.length ? ` · ${locations.length}` : ""}</h3>
         {locations.length === 0 ? (
-          <p className="text-base text-ink-2">{model.locationsEmpty}</p>
+          <>
+            <h3 className="text-base font-semibold text-ink">Sites</h3>
+            <p className="text-base text-ink-2">{model.locationsEmpty}</p>
+          </>
         ) : (
-          <ul className="flex flex-col overflow-clip rounded-lg border border-line">
-            {locations.map((l, i) => (
-              <li key={`${l.address}-${i}`} className="flex flex-col gap-0.5 border-b border-line px-4 py-3 last:border-b-0">
-                <span className="text-xs font-semibold text-ink-2">{l.kind}</span>
-                <span className="text-base font-medium text-ink [overflow-wrap:anywhere]">{l.address}</span>
-                <span className="text-xs text-ink-3">{l.marks.length ? `From ${names(l.marks.map((m) => m.label))}` : "From the record's own address"}</span>
-                {l.alsoRecordedAs.length > 0 ? <span className="text-xs text-ink-3 [overflow-wrap:anywhere]">Also filed as {l.alsoRecordedAs.join(" · ")}</span> : null}
-              </li>
-            ))}
-          </ul>
+          <SitesView
+            cards={cards}
+            slug={model.slug}
+            baseHref={base}
+            initial={site}
+            wide={wide}
+            mapKey={Boolean(process.env.NEXT_PUBLIC_BARIKOI_API_KEY)}
+          />
         )}
       </section>
       {/* The extension buildings: an unread list says so, and never says there are none. */}

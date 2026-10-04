@@ -398,6 +398,7 @@ async function DiscoverRecord({
   } else {
     const read = await safe(
       loadRecordSheet(supabase, slug, today, {
+        pins: tab === "sites",
         closeHref,
         fullHref: `/app/suppliers/${slug}`,
         allLines,

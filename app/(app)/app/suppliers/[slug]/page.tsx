@@ -29,7 +29,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 
 import { Page } from "@/components/dashboard/page";
 import { Caption, Title } from "@/components/dashboard/type";
-import { RecordView, parseTab, type TabId } from "@/components/record";
+import { RecordView, parseSite, parseTab, type TabId } from "@/components/record";
 import { ProfileReadTimeout, loadRecordSheet } from "@/lib/dashboard/load-record";
 import { backToList } from "@/lib/dashboard/nav";
 import {
@@ -61,6 +61,8 @@ export default async function SupplierRecordPage({
   let model: Awaited<ReturnType<typeof loadRecordSheet>>;
   try {
     model = await loadRecordSheet(supabase, slug, new Date(), {
+      // Only the Sites tab draws a pin, so only it reads the geocode cache.
+      pins: parseTab(sp.tab) === "sites",
       allLines,
       // "All N lines" is the Products tab, expanded.
       allLinesHref: allLines ? null : `/app/suppliers/${slug}?tab=products&lines=all`,
@@ -114,10 +116,11 @@ export default async function SupplierRecordPage({
     if (t !== "overview") q.set("tab", t);
     if (back) q.set("back", back);
     if (allLines) q.set("lines", "all");
+    // Sites are the Sites tab's: a tab link does not carry one into another tab.
     const qs = q.toString();
     return `/app/suppliers/${slug}${qs ? `?${qs}` : ""}`;
   };
-  return <RecordView model={model} mode="page" tab={parseTab(sp.tab)} tabHref={tabHref} today={new Date()} backHref={back} />;
+  return <RecordView model={model} mode="page" tab={parseTab(sp.tab)} tabHref={tabHref} today={new Date()} backHref={back} site={parseSite(sp.site)} />;
 }
 
 /**

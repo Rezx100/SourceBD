@@ -257,9 +257,10 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     });
     const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
     const out = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({}) })));
-    // Paper's contact block names the two kinds a buyer unlocks with an RFQ, as counts with their nouns.
+    // The contact block names every kind the register holds, as counts with their nouns. Paper's
+    // board draws the first two only; the founder asked for all four (4 Oct 2026).
     const card = out.slice(out.indexOf('aria-label="Contact"'));
-    assert.match(card.replace(/<[^>]*>/g, " ").replace(/\s+/g, " "), /Contact .*Email 1 on file · Phone 6 on file .*Contact details are locked\. Send an RFQ and the supplier replies here\./);
+    assert.match(card.replace(/<[^>]*>/g, " ").replace(/\s+/g, " "), /Contact .*Email 1 on file · Phone 6 on file · Website on file · Contact person 2 on file .*Contact details are locked\. Send an RFQ and the supplier replies here\./);
     // A count that could not be read claims nothing: no "none on file".
     given({ profile: PROFILE, hscodes: HS, contactCounts: { data: null, error: { message: "boom" } } });
     const unread = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({}) })));
@@ -982,8 +983,12 @@ describe("cycle 3: the boundaries the first route tests did not reach", () => {
         ],
       },
     });
-    const out = html(await fullPage("zaheen"));
-    assert.match(out, /Plot 5, Road 2, Dhaka/, "guard: the address itself should still render");
+    // The address is the Sites tab's now (RC-09), so the guard reads both tabs: a contact value
+    // filed inside an address must reach neither.
+    const overview = html(await fullPage("zaheen"));
+    const sites = html(await fullPage("zaheen", { tab: "sites" }));
+    const out = overview + sites;
+    assert.match(sites, /Plot 5, Road 2, Dhaka/, "guard: the address itself should still render");
     for (const value of [phone, "1700 000000", z.leaked.email_primary, z.leaked.website, z.leaked.contact_name, z.leaked.contact_role]) {
       assert.ok(!out.includes(value), `a contact value reached the full record page: ${value}`);
     }
@@ -1469,7 +1474,9 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
     for (const addresses of [[], [{ kind: "factory", address: "Mohd. Abid Hossain Belal, Proprietor", source_code: "BGMEA" }]]) {
       given({ profile: { data: { ...ABONI.profile, addresses, supplier: { ...ABONI.profile.supplier, address_raw: raw } }, error: null }, hscodes: HS });
       const overview = html(await fullPage("aboni-knitwear"));
-      assert.match(overview, /2-B\/1, Darus Salam Road, Mirpur, Dhaka/, "guard: the Overview shows the address");
+      // RC-09: the address is the Sites tab's. The Overview does not print it a second time, in the
+      // register's own capitals, while the Sites tab shows it once.
+      assert.doesNotMatch(overview, /Darus Salam Road/, "the Overview repeats the address the Sites tab shows");
       const out = html(await fullPage("aboni-knitwear", { tab: "sites" }));
       assert.doesNotMatch(out, /No address on any register/, `Locations denies the address shown (${addresses.length} rows)`);
       const section = /id="locations"[\s\S]*?<\/section>/.exec(out)?.[0] ?? "";
@@ -1484,6 +1491,8 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
     const failed = /id="locations"[\s\S]*?<\/section>/.exec(html(await fullPage("aboni-knitwear", { tab: "sites" })))?.[0] ?? "";
     assert.match(failed, /The addresses could not be read\./);
     assert.doesNotMatch(failed, /Darus Salam Road/, "an unread address list shown as a location");
+    // With no site to show, the Overview keeps the record's own address rather than say nothing.
+    assert.match(html(await fullPage("aboni-knitwear")), /Darus Salam Road/, "the Overview lost its only address");
     // …and with no address at all, it still says so.
     given({ profile: { data: { ...ABONI.profile, addresses: [], supplier: { ...ABONI.profile.supplier, address_raw: null } }, error: null }, hscodes: HS });
     assert.match(html(await fullPage("aboni-knitwear", { tab: "sites" })), /No address on any register/);
