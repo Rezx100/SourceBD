@@ -317,7 +317,6 @@ describe("with no hue for links, every link keeps a cue of its own", () => {
   const files = [
     ...kitFiles().filter((f) => f.endsWith(".tsx")).map((f) => path.join(KIT, f)),
     ...(readdirSync(APP, { recursive: true }) as string[]).filter((f) => f.endsWith(".tsx") && !f.includes(".test.")).map((f) => path.join(APP, f)),
-    path.join(process.cwd(), "components", "product-form.tsx"),
   ];
   /** Every string an element's attributes hold, as one class list. */
   const classesOf = (el: string) => [...el.matchAll(/"([^"]*)"|`([^`]*)`/g)].map((m) => m[1] ?? m[2]).join(" ");

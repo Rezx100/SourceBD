@@ -1,12 +1,7 @@
-import { KitLoading } from "@/components/dashboard/kit-loading";
-import { PageSkeleton } from "@/components/dashboard/page-skeleton";
+import { HeadingsSkeleton } from "@/components/headings/view";
 
-// The layout draws the shell; this is the content region while the page loads.
+// The layout draws the frame; this is the content region while the catalogue loads.
 
 export default function HeadingsLoading() {
-  return (
-    <KitLoading>
-      <PageSkeleton kind="table" />
-    </KitLoading>
-  );
+  return <HeadingsSkeleton />;
 }
