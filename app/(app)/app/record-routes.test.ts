@@ -590,7 +590,7 @@ describe("/app/discover — the panes beside the results", () => {
     const column = out.indexOf('aria-label="Results"');
     assert.ok(column > -1 && column < pane, "the results do not stand beside the composer");
     assert.ok(out.indexOf("Aboni Knitwear Ltd") > column, "the results are not drawn beside the composer");
-    assert.match(out.slice(pane), /to Aboni Knitwear Ltd/);
+    assert.match(out.slice(pane), /1 supplier · you can add up to 50[\s\S]*Aboni Knitwear Ltd/);
     // The suppliers row carries contact columns; none reaches the page.
     for (const v of [CONTACT.email_primary, CONTACT.contact_name, CONTACT.contact_role, ...CONTACT.phones]) {
       assert.ok(!out.includes(v), `a contact value reached the composer: ${v}`);
@@ -619,7 +619,7 @@ describe("/app/discover — the panes beside the results", () => {
   it("an unpublished id in rfq= is dropped, not drawn as a target the server would refuse", async () => {
     const both = html(await search({ q: "knit", rfq: `${UNPUBLISHED_ID},${ABONI_ID}` }));
     assert.doesNotMatch(both, /Hidden Knit/i);
-    assert.match(both, /to Aboni Knitwear Ltd/);
+    assert.match(both, /1 supplier · you can add up to 50[\s\S]*Aboni Knitwear Ltd/);
     const only = html(await search({ q: "knit", rfq: UNPUBLISHED_ID }));
     assert.doesNotMatch(only, /Hidden Knit/i);
     assert.match(only, /No supplier yet\./);
@@ -759,9 +759,10 @@ describe("/app/rfqs/new — the composer as a page", () => {
     const out = html(await newRfq({ supplier: ABONI_ID }));
     assert.match(out, /^<section aria-label="New RFQ"/, "the page is not the composer");
     assert.doesNotMatch(out, /data-record-pane|role="dialog"|aria-modal/, "a page is neither a pane nor a dialog");
-    assert.match(out, /to Aboni Knitwear Ltd/);
+    assert.match(out, /1 supplier · you can add up to 50[\s\S]*Aboni Knitwear Ltd/);
     assert.ok(!out.includes("sales@aboni.example"), "a contact value reached the page");
-    assert.match(out, /aria-label="Close"[^>]*href="\/app\/suppliers\/aboni-knitwear"|href="\/app\/suppliers\/aboni-knitwear"[^>]*aria-label="Close"/);
+    // The page's way out is its back link, named for where it goes.
+    assert.match(out, /href="\/app\/suppliers\/aboni-knitwear"[^>]*>(?:<svg[\s\S]*?<\/svg>)?Back to Aboni Knitwear Ltd/);
     assert.doesNotMatch(out, /<main\b|<nav aria-label="Primary"/, "the page draws a shell inside the layout's");
     // `&hs=` prefills the line the buyer came from.
     const line = html(await newRfq({ supplier: ABONI_ID, hs: "6105" }));
@@ -793,11 +794,16 @@ describe("/app/rfqs/new — the composer as a page", () => {
     assert.match(/<button\b[^>]*>(?:(?!<\/button>)[\s\S])*?Send RFQ/.exec(out)?.[0] ?? "", /\sdisabled=""/);
   });
 
-  it("no supplier goes to the search; only unpublished suppliers is not found", async () => {
-    const none = await newRfq({});
-    assert.ok("threw" in none && /NEXT_REDIRECT/.test(none.threw) && none.threw.includes("/app/discover"), `expected a redirect to the search: ${JSON.stringify(none)}`);
-    const junk = await newRfq({ supplier: "not-an-id" });
-    assert.ok("threw" in junk && /NEXT_REDIRECT/.test(junk.threw), "a malformed id is no supplier");
+  it("no supplier opens an empty composer that says how to add some; only unpublished suppliers is not found", async () => {
+    // "New RFQ" on the RFQ list lands here with nobody chosen: that is not a bad link.
+    for (const sp of [{}, { supplier: "not-an-id" }]) {
+      const out = await newRfq(sp);
+      assert.ok("html" in out, `an empty composer redirected or threw: ${JSON.stringify(out)}`);
+      const page = html(out);
+      assert.match(page, /No supplier yet\./);
+      assert.match(page, />Add suppliers</);
+      assert.match(/<button\b[^>]*>(?:(?!<\/button>)[\s\S])*?Send RFQ/.exec(page)?.[0] ?? "", /\sdisabled=""/);
+    }
     const hidden = await newRfq({ supplier: UNPUBLISHED_ID }, SUPPLIERS.filter((s) => s.id === UNPUBLISHED_ID));
     assert.ok("threw" in hidden && /404|NOT_FOUND/.test(hidden.threw), `an unpublished supplier is drawn: ${JSON.stringify(hidden)}`);
   });
