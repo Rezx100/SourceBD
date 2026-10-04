@@ -8,8 +8,9 @@
 import { BookmarkSimple, CaretDown, CaretUpDown, Check, MagnifyingGlass, Plus, SlidersHorizontal, X } from "@phosphor-icons/react/dist/ssr";
 import Form from "next/form";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { FilterChip, Menu, MenuItem, StandingFilter, buttonClass, linkClass } from "@/components/kit";
+import { SearchCombobox } from "./typeahead";
 import { formatCount } from "@/lib/dashboard/facts";
 import { filterMenus, inFilterMenu, menuSummary, type FilterMenu } from "@/lib/dashboard/search-templates";
 import { DISCOVER_PATH, SORTS, discoverChips, discoverHiddenParams, filterCount, type DiscoverState } from "@/lib/discover-v32-state";
@@ -212,19 +213,21 @@ export function PhoneToolbar({ state, count, hrefFor, filtersHref }: { state: Di
   const half = "flex h-touch grow items-center justify-center gap-2 whitespace-nowrap rounded-md border border-line-strong bg-surface px-3 text-md font-medium text-ink outline-none hover:bg-subtle active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
   return (
     <div className="flex flex-col gap-3 border-b border-line px-4 py-3 md:hidden">
-      <Form action={DISCOVER_PATH} role="search" aria-label="Search" prefetch={false}>
+      <Form action={DISCOVER_PATH} role="search" aria-label="Search" prefetch={false} className="relative">
         {discoverHiddenParams(state, ["q"]).map(([k, v]) => (
           <input key={`${k}-${v}`} type="hidden" name={k} value={v} />
         ))}
-        <label className="flex h-input-touch items-center gap-3 rounded-md border border-line-strong bg-surface pl-3.5 pr-0.5 focus-within:border-brand focus-within:[box-shadow:inset_0_0_0_1px_theme(colors.brand)]">
+        <div className="flex h-input-touch items-center gap-3 rounded-md border border-line-strong bg-surface pl-3.5 pr-0.5 focus-within:border-brand focus-within:[box-shadow:inset_0_0_0_1px_theme(colors.brand)]">
           <MagnifyingGlass size={20} className="shrink-0 text-ink-3" aria-hidden />
-          <input type="search" name="q" defaultValue={state.q} autoComplete="off" placeholder="Supplier, product or certificate" aria-label="Search" className="min-w-0 flex-1 bg-transparent text-md text-ink outline-none placeholder:text-ink-3 [&::-webkit-search-cancel-button]:hidden" />
+          <Suspense fallback={<input type="search" name="q" defaultValue={state.q} autoComplete="off" placeholder="Supplier, product or certificate" aria-label="Search" className="min-w-0 flex-1 bg-transparent text-md text-ink outline-none placeholder:text-ink-3" />}>
+            <SearchCombobox variant="phone" defaultValue={state.q} placeholder="Supplier, product or certificate" />
+          </Suspense>
           {state.q ? (
             <Link href={hrefFor({ ...state, q: "", page: 1 })} aria-label="Clear the search" className="flex size-11 shrink-0 items-center justify-center rounded-sm text-ink-2 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand">
               <X size={20} aria-hidden />
             </Link>
           ) : null}
-        </label>
+        </div>
       </Form>
       <h1 className="text-md font-semibold text-ink">{count}</h1>
       <div className="flex flex-wrap gap-2">

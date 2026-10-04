@@ -217,6 +217,8 @@
     "components/shell/nav-sections.test.ts",
     "lib/search-suggest.ts",
     "lib/search-suggest.test.ts",
+    "lib/search-suggest-ui.test.ts",
+    "components/search/typeahead.test.ts",
     "components/dashboard/search-first.test.ts",
     "components/dashboard/pane-stability.test.ts",
     "components/dashboard/shell-account.test.ts",

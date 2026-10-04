@@ -315,6 +315,7 @@ describe("the bar over the results", () => {
     const phone = plain(h(PhoneToolbar, { state: { ...state, per: 50 as const }, count: "4,645 suppliers", hrefFor, filtersHref: "#" }));
     assert.match(phone, /role="search"/);
     assert.ok(phone.includes('value="knit"') && phone.includes('aria-label="Clear the search"'));
+    assert.match(phone, /<input[^>]*role="combobox"[^>]*aria-expanded="false"/, "a combobox, closed until the buyer types or focuses it");
     assert.match(phone, /type="hidden" name="per" value="50"/, "the field carries the other filters");
     assert.ok(!/name="q" value=/.test(phone.replace('name="q" value="knit"', "")), "the query is the field, not also a hidden input");
     assert.ok(phone.includes("4,645 suppliers") && phone.includes("Sort: most sources") && phone.includes("Hiding sanctioned suppliers"));
@@ -424,8 +425,9 @@ describe("the landing", () => {
 
   it("lists no supplier before the buyer searches, and draws its own field only for a phone", () => {
     assert.doesNotMatch(out, /<table|data-row="result"/);
-    assert.match(out, /<form[^>]*role="search"[^>]*class="md:hidden"|<form[^>]*class="md:hidden"[^>]*role="search"/);
+    assert.match(out, /<form[^>]*role="search"[^>]*class="relative md:hidden"|<form[^>]*class="relative md:hidden"[^>]*role="search"/);
     assert.ok(!out.includes('data-search="topbar"'), "the topbar's field is the one the shortcut focuses");
+    assert.match(out, /<input[^>]*role="combobox"[^>]*aria-controls=/, "the phone's field suggests as it is typed");
   });
 
   it("an unread certificate check says so with a way to try again; it does not say nothing needs attention", () => {

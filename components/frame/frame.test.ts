@@ -97,6 +97,7 @@ describe("the frame a buyer receives", () => {
     assert.match(results, /<form[^>]*role="search"[^>]*action="\/app\/discover"/);
     assert.match(results, /<input[^>]*data-search="topbar"[^>]*name="q" value="knit"/);
     assert.match(results, /placeholder="Supplier, product or certificate"/);
+    assert.match(results, /<input[^>]*role="combobox"[^>]*aria-autocomplete="list"[^>]*aria-expanded="false"[^>]*aria-controls=/, "the one field is a combobox over a listbox");
   });
 
   it("a badge reads as words beside the name, and as a dot on the phone tab", () => {
