@@ -1,36 +1,32 @@
-// Settings · Workspace (/app/settings, and /app/settings/workspace).
-//
-// Server component. Reads `settings_get` and mounts the company-info form over
-// its `workspace` fields. A reply without `workspace` (the RPC before it
-// learnt the field) is an empty workspace, not an error; a failed read is an
-// error, and draws no form a save could blank the company from.
+// /app/settings on the v4 frame (B7b, Paper `10 · Settings`, `11 · Settings · grouped list`): from 768
+// the first page of the navigation, Company details; on a phone the grouped list of every page.
+// `settings_get` is read once. A reply without `workspace` is an empty company, not an error; a failed
+// read is an error and draws no form a save could blank the company from.
 
-import { ErrorNote, Page } from "@/components/dashboard/page";
-import { type SettingsDoc, SettingsFrame, SettingsHeader, workspaceOf } from "@/components/dashboard/settings";
-import { SettingsWorkspaceForm } from "@/components/settings-workspace-form";
+import { CompanyPage } from "@/components/settings/company-page";
+import { loadSettings } from "@/components/settings/load";
+import { SettingsError, SettingsIndex } from "@/components/settings/shell";
+import { SETTINGS_HOME } from "@/components/settings/words";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-async function WorkspacePageBody() {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.rpc("settings_get");
-  const settings = error ? null : ((data ?? null) as SettingsDoc | null);
+export const metadata = { title: "Settings · SourceBD" };
 
+export default async function SettingsPage() {
+  const doc = await loadSettings(await createSupabaseServerClient());
   return (
     <>
-      <SettingsHeader settings={settings} />
-      <SettingsFrame current="workspace">
-        {settings ? (
-          <SettingsWorkspaceForm initial={workspaceOf(settings)} />
-        ) : (
-          <ErrorNote>Could not load your company info. Reload the page to try again; nothing has changed.</ErrorNote>
-        )}
-      </SettingsFrame>
+      <div className="flex min-h-0 flex-1 max-md:hidden">
+        <CompanyPage doc={doc} retryHref={SETTINGS_HOME} />
+      </div>
+      {doc ? (
+        <SettingsIndex doc={doc} />
+      ) : (
+        <div className="p-4 md:hidden">
+          <SettingsError retryHref={SETTINGS_HOME} />
+        </div>
+      )}
     </>
   );
-}
-
-export default async function SettingsWorkspacePage() {
-  return <Page>{await WorkspacePageBody()}</Page>;
 }

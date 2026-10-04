@@ -1,12 +1,8 @@
-import { KitLoading } from "@/components/dashboard/kit-loading";
-import { PageSkeleton } from "@/components/dashboard/page-skeleton";
+import { SettingsSkeleton } from "@/components/settings/shell";
 
-// The layout draws the shell; this is the content region while the page loads.
+// The layout draws the frame; this is the content region while Settings loads: the navigation's
+// silhouette and a few fields from 768, the list's rows under it.
 
 export default function SettingsLoading() {
-  return (
-    <KitLoading>
-      <PageSkeleton kind="cards" />
-    </KitLoading>
-  );
+  return <SettingsSkeleton />;
 }

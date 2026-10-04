@@ -180,17 +180,14 @@ const SETTINGS = {
   notifications: { digest: true, rfq_replies: true, saved_alerts: false },
 };
 
-describe("Settings — six pages under one navigation", () => {
+describe("Settings — the pages still on the old frame (Company details and Profile are in components/settings)", () => {
   const NAV = ["Workspace", "Subscription", "Members", "Inquiry", "Profile", "Notifications"];
   const navOf = (out: string) => [...(out.match(/<nav aria-label="Settings"[\s\S]*?<\/nav>/)?.[0] ?? "").matchAll(/<a\b[^>]*>([^<]*)<\/a>/g)].map((m) => m[1]);
 
   for (const [file, current] of [
-    ["app/(app)/app/settings/page.js", "Workspace"],
-    ["app/(app)/app/settings/workspace/page.js", "Workspace"],
     ["app/(app)/app/settings/subscription/page.js", "Subscription"],
     ["app/(app)/app/settings/members/page.js", "Members"],
     ["app/(app)/app/settings/inquiry/page.js", "Inquiry"],
-    ["app/(app)/app/settings/profile/page.js", "Profile"],
     ["app/(app)/app/settings/notifications/page.js", "Notifications"],
   ] as const) {
     it(`${file.replace(/^app\/\(app\)|\/page\.js$/g, "")} draws the six items and marks ${current}`, async () => {
@@ -203,47 +200,6 @@ describe("Settings — six pages under one navigation", () => {
       assert.doesNotMatch(out, /Starter plan/);
     });
   }
-
-  it("Workspace reads the company info from settings_get().workspace", async () => {
-    given({
-      settings_get: {
-        data: {
-          ...SETTINGS,
-          workspace: {
-            company_name: "Northwind Apparel",
-            company_type: "Retailer",
-            business_description: "Knitwear for UK high streets",
-            website: "https://northwind.example",
-            customer_base: "UK retail",
-            employee_count: "51-200",
-            company_logo_url: null,
-          },
-        },
-        error: null,
-      },
-    });
-    const out = await render(() => route("app/(app)/app/settings/page.js").default());
-    assert.match(out, /value="Northwind Apparel"/);
-    assert.match(out, /value="https:\/\/northwind\.example"/);
-    assert.match(out, /value="UK retail"/);
-    assert.match(out, />Knitwear for UK high streets<\/textarea>/);
-    assert.match(out, /<option value="Retailer" selected="">Retailer<\/option>/);
-    assert.match(out, /<option value="51-200" selected="">51-200<\/option>/);
-    for (const t of ["Brand", "Retailer", "Importer", "Agent", "Other"]) assert.match(out, new RegExp(`<option value="${t}"`));
-    for (const b of ["1-10", "11-50", "51-200", "201-1000", "1000\\+"]) assert.match(out, new RegExp(`<option value="${b}"`));
-  });
-
-  it("Workspace draws the form, empty, when the reply has no workspace yet; a failed read draws no form", async () => {
-    given({ settings_get: { data: SETTINGS, error: null } });
-    const empty = await render(() => route("app/(app)/app/settings/page.js").default());
-    assert.match(empty, /<form[^>]*aria-label="Company info"/);
-    assert.match(empty, /Save company info/);
-    assert.doesNotMatch(empty, /role="alert"/);
-    given({ settings_get: { data: null, error: { message: "boom" } } });
-    const failed = await render(() => route("app/(app)/app/settings/page.js").default());
-    assert.match(failed, /Could not load your company info/);
-    assert.doesNotMatch(failed, /<form[^>]*aria-label="Company info"/);
-  });
 
   it("Subscription sells no contact reveal, and says why Manage plan is off in words, not a tooltip", async () => {
     given({ settings_get: { data: SETTINGS, error: null } });

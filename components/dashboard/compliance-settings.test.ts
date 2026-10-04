@@ -33,11 +33,9 @@ import {
   SETTINGS_NAV,
   SettingsFrame,
   SettingsHeader,
-  workspaceOf,
   type SettingsDoc,
 } from "./settings";
 import { SettingsInquiryForm, TEMPLATE_VARIABLES, inquiryPayload, moveItem } from "@/components/settings-inquiry-form";
-import { SettingsWorkspaceForm, workspacePayload } from "@/components/settings-workspace-form";
 
 const LONG_NAME = "Zaheen Knitwears Limited (Unit 2, Extension Building) and Associated Composite Knitting Mills";
 const text = (markup: string) => markup.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
@@ -183,56 +181,6 @@ describe("settings — navigation and plan", () => {
     assert.equal(PLAN_NOTE, "public beta");
     const doc = { email: "a@b.invalid", plan_tier: "starter" } as SettingsDoc;
     assert.match(text(renderToStaticMarkup(createElement(SettingsHeader, { settings: doc }))), /Free plan · public beta/);
-  });
-});
-
-describe("settings — the workspace form and its contract", () => {
-  const W = {
-    company_name: "Northwind Apparel",
-    company_type: "Importer",
-    business_description: "Knitwear for UK retail",
-    website: "https://northwind.example",
-    customer_base: "UK high street",
-    employee_count: "11-50",
-    company_logo_url: null,
-  };
-
-  it("reads the workspace fields, nulls when the reply has none", () => {
-    assert.deepEqual(workspaceOf({ workspace: W } as unknown as SettingsDoc), W);
-    assert.deepEqual(workspaceOf({} as SettingsDoc), {
-      company_name: null,
-      company_type: null,
-      business_description: null,
-      website: null,
-      customer_base: null,
-      employee_count: null,
-      company_logo_url: null,
-    });
-  });
-
-  it("draws every field with its saved value and posts exactly the API's keys", () => {
-    const html = renderToStaticMarkup(createElement(SettingsWorkspaceForm, { initial: W }));
-    assert.match(html, /<h2[^>]*>Company info<\/h2>/);
-    assert.match(html, /value="Northwind Apparel"/);
-    assert.match(html, /<option value="Importer" selected="">/);
-    assert.match(html, />Knitwear for UK retail<\/textarea>/);
-    assert.match(html, /type="url"[^>]*value="https:\/\/northwind\.example"|value="https:\/\/northwind\.example"[^>]*type="url"/);
-    assert.match(html, /value="UK high street"/);
-    assert.match(html, /<option value="11-50" selected="">/);
-    assert.match(html, /<button type="submit"[^>]*>Save company info<\/button>/);
-    assert.doesNotMatch(html, /bg-brand text-brand-on/, "a section's save is the default tier, not the page's primary");
-    assert.deepEqual(
-      workspacePayload({ company_name: "  Northwind  ", company_type: "Agent", business_description: "", website: " https://n.example ", customer_base: "", employee_count: "1000+" }),
-      {
-        action: "update_workspace",
-        company_name: "Northwind",
-        company_type: "Agent",
-        business_description: null,
-        website: "https://n.example",
-        customer_base: null,
-        employee_count: "1000+",
-      },
-    );
   });
 });
 
