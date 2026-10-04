@@ -83,12 +83,15 @@ export function Segmented({
   options,
   disabled,
   className,
+  onValueChange,
 }: {
   name: string;
   /** What the choice is about: "View", "Row height". Read aloud, not drawn. */
   label: string;
   value?: string;
   defaultValue?: string;
+  /** A page that owns the choice (a draft form): `value` is then the one that is on, and a click reports here. */
+  onValueChange?: (value: string) => void;
   options: { value: string; label: ReactNode; href?: string }[];
   disabled?: boolean;
   className?: string;
@@ -119,7 +122,9 @@ export function Segmented({
               name={name}
               value={o.value}
               disabled={disabled}
-              defaultChecked={o.value === (defaultValue ?? value)}
+              {...(onValueChange
+                ? { checked: o.value === value, onChange: () => onValueChange(o.value) }
+                : { defaultChecked: o.value === (defaultValue ?? value) })}
               className="peer absolute inset-0 m-0 cursor-pointer appearance-none rounded-[3px] outline-none disabled:cursor-not-allowed"
             />
             <span className={cn(BOX, IDLE, "peer-checked:border peer-checked:border-line-strong peer-checked:bg-surface peer-checked:text-ink peer-disabled:text-disabled peer-disabled:hover:bg-transparent")}>
