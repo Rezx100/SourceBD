@@ -141,6 +141,7 @@
     "components/rfqs/composer.test.ts",
     "components/orders/orders.test.ts",
     "components/saved/saved.test.ts",
+    "components/products/products.test.ts",
     "app/(app)/app/orders/new/page.tsx",
     "lib/design/tokens.test.ts",
     "lib/hs-catalogue.ts",

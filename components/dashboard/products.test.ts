@@ -1,8 +1,6 @@
-// The product base at the boundary: the HTML a buyer's browser receives for
-// the product list (rows, money, the empty state, a failed read that never
-// pretends to be empty), the start choice on /app/products/new, the supplier
-// picker, and the routes themselves run over a fake Supabase client — the
-// list's read, the edit page's 404 and its failed read.
+// The product base at the boundary: the start choice on /app/products/new, the supplier picker, and
+// the edit route run over a fake Supabase client — its 404 and its failed read. The list is tested
+// in `components/products/products.test.ts`.
 
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
@@ -11,16 +9,8 @@ import { createElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, it } from "node:test";
 
-import { formatCount, formatDay, formatMoney } from "@/lib/dashboard/facts";
 import type { TierRank } from "@/lib/design/tokens";
-import {
-  PRODUCTS_EMPTY_BODY,
-  PRODUCTS_ERROR_COPY,
-  ProductList,
-  StartChoice,
-  parseProductTab,
-  type ProductRow,
-} from "./products";
+import { StartChoice } from "./products";
 import { AffiliationNote } from "./sheet";
 import { PICKER_TABS, SupplierPicker, targetFromSuggestion } from "./supplier-picker";
 
@@ -34,79 +24,6 @@ const buttonTag = (out: string, label: string) => {
 };
 
 const ID = "11111111-1111-4111-8111-111111111111";
-const row = (over: Partial<ProductRow> = {}): ProductRow => ({
-  id: ID,
-  name: "Men's slim-fit stretch jeans",
-  product_number: "SS27-DN-014",
-  category: "Denim",
-  status: "active",
-  price_usd: 8.5,
-  moq: 1200,
-  first_image: null,
-  updated_at: "2026-09-20T10:00:00Z",
-  ...over,
-});
-
-describe("the product list", () => {
-  it("draws each product with its price in money, its MOQ as a count, its status and its links", () => {
-    const out = html(createElement(ProductList, { rows: [row(), row({ id: "p-2", name: "Crew socks", status: "draft", price_usd: "1.2", moq: null })], tab: "all" }));
-    assert.ok(out.includes(formatMoney(8.5, "USD")!), "the price is not formatMoney's");
-    assert.ok(out.includes(formatMoney(1.2, "USD")!), "a numeric column read as text is still money");
-    assert.ok(out.includes(formatCount(1200)!));
-    assert.ok(out.includes(formatDay("2026-09-20T10:00:00Z")!));
-    assert.match(out, /SS27-DN-014/);
-    assert.match(out, />Active</);
-    assert.match(out, />Draft</);
-    assert.ok(out.includes(`href="/app/products/${ID}"`), "the row does not open the product");
-    assert.ok(out.includes(`href="/app/rfqs/new?product=${ID}"`), "no Send RFQ for the product");
-    assert.ok(!out.includes("/app/rfqs/new?product=p-2"), "a draft product offers Send RFQ");
-    assert.match(out, /2 products · only you can see them/);
-    assert.match(out, /href="\/app\/products\/new"/);
-    assert.ok(!/score|rating|grade/i.test(out), "a product row carries no score");
-  });
-
-  it("the status chips filter the rows and count every status", () => {
-    const rows = [row(), row({ id: "p-2", name: "Crew socks", status: "archived" })];
-    const out = html(createElement(ProductList, { rows, tab: parseProductTab("archived") }));
-    assert.match(out, /Crew socks/);
-    assert.doesNotMatch(out, /stretch jeans/);
-    assert.match(out.match(/<a[^>]*status=archived[^>]*>/)?.[0] ?? "", /aria-current="page"/, "the Archived chip is not marked current");
-    assert.equal(parseProductTab("nonsense"), "all");
-    const none = html(createElement(ProductList, { rows: [row()], tab: "draft" }));
-    assert.match(none, /No draft products/);
-  });
-
-  it("shows the thumbnail when there is an image, the initials when there is not", () => {
-    const withImage = html(createElement(ProductList, { rows: [row({ first_image: "https://x.test/a.jpg" })], tab: "all" }));
-    assert.match(withImage, /<img src="https:\/\/x\.test\/a\.jpg"/);
-    const without = html(createElement(ProductList, { rows: [row()], tab: "all" }));
-    assert.match(without, />MS</);
-  });
-
-  it("an empty base is the page's own empty state, with the one Add product", () => {
-    const out = html(createElement(ProductList, { rows: [], tab: "all" }));
-    assert.ok(out.includes(PRODUCTS_EMPTY_BODY));
-    assert.match(out, /\/illustrations\/orders\.svg/);
-    assert.equal(out.match(/href="\/app\/products\/new"/g)?.length, 1, "two primaries on the empty page");
-    assert.doesNotMatch(out, /<table/);
-    assert.match(out, /0 products · only you can see them/);
-  });
-
-  it("a failed read says so and is never the empty state or a count of 0", () => {
-    const out = html(createElement(ProductList, { rows: null, tab: "all" }));
-    assert.ok(out.includes(PRODUCTS_ERROR_COPY));
-    assert.match(out, /role="alert"/);
-    assert.ok(!out.includes(PRODUCTS_EMPTY_BODY));
-    assert.doesNotMatch(out, /0 products/);
-    assert.match(out, /could not be read/);
-  });
-
-  it("says a product was saved, with a link to it", () => {
-    const out = html(createElement(ProductList, { rows: [row()], tab: "all", savedId: ID }));
-    assert.match(out, /Product saved/);
-    assert.ok(out.includes(`href="/app/products/${ID}"`));
-  });
-});
 
 describe("the start choice", () => {
   it("without AI_ENABLED: manual only, chosen, and the V2 line in place of a card", () => {
@@ -183,26 +100,8 @@ async function outcome(run: () => Promise<ReactElement>): Promise<{ html: string
   }
 }
 
-describe("/app/products and /app/products/[id], the routes", () => {
-  const List = () => route("app/(app)/app/products/(list)/page.js");
+describe("/app/products/[id], the route", () => {
   const Edit = () => route("app/(app)/app/products/[id]/page.js");
-
-  it("the list reads buyer_product_list and draws its rows", async () => {
-    answer = { data: [row()], error: null };
-    calls = [];
-    const r = await outcome(() => List()({ searchParams: Promise.resolve({ saved: ID }) }));
-    assert.ok("html" in r);
-    assert.deepEqual(calls.map((c) => c.fn), ["buyer_product_list"]);
-    assert.ok(r.html.includes(formatMoney(8.5, "USD")!));
-    assert.match(r.html, /Product saved/);
-  });
-
-  it("a failed list read is the error note, never the empty state", async () => {
-    answer = { data: null, error: { message: "permission denied" } };
-    const r = await outcome(() => List()({ searchParams: Promise.resolve({}) }));
-    assert.ok("html" in r && r.html.includes(PRODUCTS_ERROR_COPY));
-    assert.ok("html" in r && !r.html.includes(PRODUCTS_EMPTY_BODY));
-  });
 
   it("the edit page prefills the form from buyer_product_get and offers no Send RFQ on a draft (PR-02)", async () => {
     answer = { data: { id: ID, name: "Crew socks", price_usd: 1.2, status: "draft" }, error: null };
