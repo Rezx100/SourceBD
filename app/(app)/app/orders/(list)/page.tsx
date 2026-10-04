@@ -40,7 +40,8 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   const shownRows = all.filter((o) => inTab(o, tab));
   const items = buildOrderItems(shownRows, today);
   const closeHref = ordersHref(tab);
-  const paneOpen = openId !== null;
+  // With no orders the list is the teaching state; an old ?open= link has nothing to open beside it.
+  const paneOpen = openId !== null && !(rows && all.length === 0);
   const caption = rows ? listCaption(rows) : "Counts could not be read";
   const listLabel = tab === "all" ? "Orders" : (ORDER_TABS.find((t) => t.key === tab)?.label ?? "Orders");
   const emptyTab = tab === "all" ? "progress" : tab;

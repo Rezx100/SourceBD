@@ -33,6 +33,15 @@ export default async function NewOrderPage({ searchParams }: { searchParams: Pro
     const rfq = doc as RfqDoc;
     const supplier = rfq.targets.find((t) => t.id === quote.supplier_id);
     if (!supplier) notFound();
+    // An accepted quote starts one order. A second visit (Back, a saved link) opens that order instead of making a twin.
+    // Unreadable orders change nothing here: the form still opens, as before.
+    try {
+      const made = await supabase.rpc("order_list", { p_status: null });
+      const existing = !made.error && Array.isArray(made.data) ? (made.data as { id: string; rfq_id: string | null; supplier_id: string; status: string }[]).find((o) => o.rfq_id === quote.rfq_id && o.supplier_id === quote.supplier_id && o.status !== "cancelled") : undefined;
+      if (existing) redirect(`/app/orders/${existing.id}`);
+    } catch (err) {
+      if ((err as { digest?: string })?.digest?.startsWith("NEXT_REDIRECT")) throw err;
+    }
     const seed: OrderSeed = { supplierName: supplier.company_name, supplierLine: placeLine(supplier.entity_type, supplier.city, supplier.district), how: { quoteId: quote.id as string } };
     return (
       <OrderForm

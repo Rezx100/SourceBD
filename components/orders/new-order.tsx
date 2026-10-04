@@ -212,6 +212,7 @@ export function OrderForm({ seed, prefill, cancelHref, backLabel, changeHref }: 
           orderId = j.order_id;
           return null;
         }
+        if (res.ok) return "The order may have been created, but we could not open it. Check your orders before trying again.";
         return j?.detail ?? j?.error ?? `The order could not be created (error ${res.status}).`;
       } catch (e) {
         return e instanceof Error ? e.message : "The order could not be created. Check your connection and try again.";

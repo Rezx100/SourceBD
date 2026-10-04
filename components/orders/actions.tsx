@@ -12,6 +12,7 @@ import { useContext, useEffect, useState, type ReactNode } from "react";
 import { Button, Dialog, DialogClose, Field, IconButton, Input, Menu, MenuItem, Select, Sheet, fieldBox, fieldEdge } from "@/components/kit";
 import { useIsPhone } from "@/components/kit/use-phone";
 import { cn } from "@/lib/utils";
+import { INCOTERMS } from "./new-model";
 import { MILESTONE_KINDS, STATUS_WORDS, type OrderStatus } from "./words";
 
 const textarea = cn(fieldBox, fieldEdge, "block min-h-16 px-2.5 py-1.5 text-base");
@@ -132,12 +133,14 @@ export type EditInitial = {
   notes: string | null;
 };
 
-const INCOTERMS = ["FOB", "CIF", "EXW", "DDP", "DAP"];
 const STATUS_OPTIONS = (["draft", "in_production", "shipped", "in_transit", "delivered"] as const).map((s) => ({ value: s, label: STATUS_WORDS[s].label }));
 
-/** The body `order_update` takes: every field as typed (an empty one clears it). */
-export function editPatch(f: Record<keyof EditInitial, string>): Record<string, string> {
-  return { ...f };
+/**
+ * The body `order_update` takes: only the fields that differ from the order as the form opened it (an
+ * emptied one clears it). Sending the rest would write a stale status back over a step the other side just took.
+ */
+export function editPatch(f: Record<keyof EditInitial, string>, start: Record<keyof EditInitial, string>): Record<string, string> {
+  return Object.fromEntries((Object.keys(f) as (keyof EditInitial)[]).filter((k) => f[k] !== start[k]).map((k) => [k, f[k]]));
 }
 
 function EditForm({ orderId, initial, open, onOpenChange }: { orderId: string; initial: EditInitial; open: boolean; onOpenChange: (o: boolean) => void }) {
@@ -171,9 +174,11 @@ function EditForm({ orderId, initial, open, onOpenChange }: { orderId: string; i
   const text = (k: keyof EditInitial, label: string, max = 128, type = "text") => <Field label={label}>{(a) => <Input {...a} type={type} value={f[k]} onChange={(e) => set(k)(e.target.value)} maxLength={max} size={size} />}</Field>;
   async function save() {
     if (busy) return;
+    const patch = editPatch(f, start());
+    if (Object.keys(patch).length === 0) return onOpenChange(false);
     setBusy(true);
     setError(null);
-    const failed = await postOrder({ action: "update", order_id: orderId, patch: editPatch(f) });
+    const failed = await postOrder({ action: "update", order_id: orderId, patch });
     setBusy(false);
     if (failed) return setError(failed);
     onOpenChange(false);

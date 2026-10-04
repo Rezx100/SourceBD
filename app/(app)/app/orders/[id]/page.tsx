@@ -18,7 +18,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
   if (read.kind === "missing") notFound();
   if (read.kind === "error") {
     // The list names the order, so the page can: a failed read of one is not a missing order.
-    const { data } = await supabase.rpc("order_list", { p_status: null });
+    const { data, error } = await supabase.rpc("order_list", { p_status: null });
+    // If the list cannot be read either, nothing says the order is missing: the title is unknown, the page is not a 404.
+    if (error) return <OrderDetailError title="Order" mode="page" closeHref="/app/orders" retryHref={`/app/orders/${id}`} />;
     const known = Array.isArray(data) ? (data as { id: string; product_title: string }[]).find((o) => o.id === id) : undefined;
     if (!known) notFound();
     return <OrderDetailError title={known.product_title} mode="page" closeHref="/app/orders" retryHref={`/app/orders/${id}`} />;

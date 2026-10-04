@@ -15,7 +15,7 @@ import { createElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import type { RfqDoc } from "../rfqs/doc";
-import { postOrder } from "./actions";
+import { editPatch, postOrder } from "./actions";
 import { OrderDetail, OrderDetailError } from "./detail";
 import { OrderPaneRows, OrderPhoneRows, OrdersEmpty, OrdersError, TabEmpty } from "./list";
 import { acceptHint, chooserRows, orderMissing, orderPayload, orderValue, valueLine, type OrderFields } from "./new-model";
@@ -541,6 +541,14 @@ describe("/app/orders", () => {
     assert.doesNotMatch(r.html, /No orders yet|\d+ in progress/);
   });
 
+  it("with no orders an old ?open= link opens no pane beside the teaching state", async () => {
+    rpcs = { ...listRpcs(), order_list: { data: [], error: null }, order_get: { data: null, error: null } };
+    const r = await outcome(() => route(LIST)({ searchParams: Promise.resolve({ open: ID1 }) }) as Promise<ReactElement>);
+    assert.ok("html" in r);
+    assert.match(r.html, /No orders yet/);
+    assert.doesNotMatch(r.html, /This order could not be opened|data-record-pane/);
+  });
+
   it("with no orders it teaches where one starts", async () => {
     rpcs = { ...listRpcs(), order_list: { data: [], error: null } };
     const r = await outcome(() => route(LIST)({ searchParams: Promise.resolve({}) }) as Promise<ReactElement>);
@@ -604,6 +612,14 @@ describe("/app/orders/[id]", () => {
     rpcs.order_list = { data: [], error: null };
     const unknown = await outcome(() => route(PAGE)({ params: Promise.resolve({ id: ID1 }) }) as Promise<ReactElement>);
     assert.ok("threw" in unknown, "an order nobody can name and nobody could read is not found");
+  });
+
+  it("a read that failed with the list unreadable too is still not a 404", async () => {
+    rpcs = { order_get: { data: null, error: { message: "timeout" } }, order_list: { data: null, error: { message: "timeout" } } };
+    const r = await outcome(() => route(PAGE)({ params: Promise.resolve({ id: ID1 }) }) as Promise<ReactElement>);
+    assert.ok("html" in r, "an outage became a 404");
+    assert.match(r.html, /We couldn't load this order\./);
+    assert.ok(r.html.includes(`href="/app/orders/${ID1}"`) && r.html.includes("Try again"));
   });
 
   it("a supplier on the order may log a step and sees no menu", async () => {
@@ -717,6 +733,16 @@ describe("the order's value, and what is posted", () => {
   });
 });
 
+describe("editing an order", () => {
+  const start = { status: "in_production", incoterm: "FOB", origin_port: "", destination_port: "", ship_to_country: "United Kingdom", target_ship_date: "2026-10-20", target_delivery_date: "", actual_ship_date: "", actual_delivery_date: "", carrier_name: "", tracking_number: "", po_number: "PO-1", notes: "" };
+
+  it("posts only what changed, so a stale status is never written back; an emptied field is sent as empty to clear it", () => {
+    assert.deepEqual(editPatch(start, start), {});
+    assert.deepEqual(editPatch({ ...start, po_number: "PO-2" }, start), { po_number: "PO-2" });
+    assert.deepEqual(editPatch({ ...start, incoterm: "", carrier_name: "Maersk" }, start), { incoterm: "", carrier_name: "Maersk" });
+  });
+});
+
 describe("posting an order action", () => {
   it("posts the body to the orders route, and says why when it fails", async () => {
     const seen: { url: string; body: unknown }[] = [];
@@ -756,6 +782,18 @@ describe("/app/orders/new", () => {
     assert.ok(r.html.includes("Back to the RFQ") && r.html.includes(`href="/app/rfqs/${RFQ}"`));
     assert.doesNotMatch(r.html, />Change</);
     assert.ok(r.html.includes("Price per piece"));
+  });
+
+  it("a quote that already started an order opens that order, not a twin; a cancelled one does not count", async () => {
+    tables = { rfq_quotes: { data: accepted, error: null } };
+    const made = { id: ID1, rfq_id: RFQ, supplier_id: "s-aboni", status: "in_production" };
+    rpcs = { rfq_get: { data: rfqDoc(), error: null }, order_list: { data: [made], error: null } };
+    const dup = await go({ from_quote: QUOTE });
+    assert.ok("threw" in dup && /NEXT_REDIRECT/.test(dup.threw) && dup.threw.includes(`/app/orders/${ID1}`), JSON.stringify(dup).slice(0, 120));
+    rpcs.order_list = { data: [{ ...made, status: "cancelled" }], error: null };
+    assert.ok("html" in (await go({ from_quote: QUOTE })), "a cancelled order blocked a new one");
+    rpcs.order_list = { data: null, error: { message: "boom" } };
+    assert.ok("html" in (await go({ from_quote: QUOTE })), "an unreadable order list blocked the form");
   });
 
   it("the price label follows the unit the RFQ was in", async () => {
