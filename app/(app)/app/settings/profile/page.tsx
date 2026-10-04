@@ -37,9 +37,13 @@ export default async function SettingsProfilePage() {
       <Section
         title="Email"
         caption={
-          <>
-            Current: <span className="text-ink [overflow-wrap:anywhere]">{doc?.email || "not shown"}</span>
-          </>
+          doc?.email ? (
+            <>
+              Current: <span className="text-ink [overflow-wrap:anywhere]">{doc.email}</span>
+            </>
+          ) : (
+            "Your current address could not be read."
+          )
         }
       >
         <EmailForm />

@@ -216,6 +216,13 @@ describe("/app/settings and /app/settings/workspace", () => {
     const out = await page(WORKSPACE);
     assert.match(out, /<form[^>]*aria-label="Company details"/);
     assert.doesNotMatch(out, /role="alert"/);
+    assert.match(text(out), /Not set/, "an empty Employees says so, and a chosen one can be put back to it");
+    assert.doesNotMatch(text(out), /Clear/, "nothing to clear while no company type is chosen");
+  });
+
+  it("a chosen company type can be cleared", async () => {
+    answer = { data: DOC, error: null };
+    assert.match(text(await page(WORKSPACE)), /Clear/);
   });
 
   it("on a phone /app/settings is the list: every page, with what is in it, and Company details at its own address", async () => {
@@ -263,6 +270,8 @@ describe("/app/settings/profile", () => {
     const out = await page(PROFILE);
     assert.match(text(out), /We couldn't load your profile\./);
     assert.doesNotMatch(out, /value="Alex Morgan"/);
+    assert.match(text(out), /Your current address could not be read\./);
+    assert.doesNotMatch(text(out), /Current: /);
     assert.match(out, /aria-label="Change email"/);
     assert.match(out, /aria-label="Change password"/);
   });
