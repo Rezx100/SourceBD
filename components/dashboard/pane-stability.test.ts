@@ -48,15 +48,10 @@ describe("1. a record tab scrolls the pane, never the app", () => {
     assert.doesNotMatch(root, /overflow-hidden/, "`hidden` still lets a fragment or a focus call scroll the shell");
     const frame = renderToStaticMarkup(createElement(Workbench, null, "x"));
     assert.match(frame, /\blg:overflow-clip\b/);
-    // Every page that lays a list beside a pane draws that frame, not a copy of it.
-    for (const page of [
-      "app/(app)/app/saved/page.tsx",
-      "app/(app)/app/saved/loading.tsx",
-    ]) {
-      const s = source(page);
-      assert.match(s, /<Workbench>/, `${page} does not draw the Workbench frame`);
-      assert.doesNotMatch(s, /lg:flex-row/, `${page} draws a list-and-pane frame of its own`);
-    }
+    // Saved is on the v4 frame (B6b): its list and pane are `ListPane`, like the orders' below.
+    const saved = source("app/(app)/app/saved/page.tsx");
+    assert.match(saved, /<ListPane\b/, "Saved does not draw the frame's list and pane");
+    assert.doesNotMatch(saved, /<Workbench>|lg:flex-row/, "Saved draws a list-and-pane frame of its own");
     // The search is on the v4 frame (B4): its list and pane are `ListPane`, which scrolls
     // each in its own box; the page draws no list-and-pane frame of its own, and the
     // landing and the loading states sit inside the frame's scrolling `<main>`.

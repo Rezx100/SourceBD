@@ -40,7 +40,7 @@ describe("REZ-114 surface wiring (observable call sites)", () => {
     const discover = src("app/(app)/app/discover/page.tsx");
     assert.match(discover, /fetchDiscoverV32|enrichDiscoverWorkers/);
     assert.match(src("lib/discover-v32-rpc.ts"), /enrichDiscoverWorkers/);
-    assert.match(src("app/(app)/app/saved/page.tsx"), /enrichDiscoverWorkers/);
+    assert.match(src("components/saved/load.ts"), /enrichDiscoverWorkers/);
     assert.match(src("lib/discover-suppliers.ts"), /enrichDiscoverWorkers/);
   });
 

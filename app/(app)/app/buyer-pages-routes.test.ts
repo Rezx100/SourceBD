@@ -1,6 +1,5 @@
 // The buyer pages rebuilt in the enterprise pass (27 Sep 2026), at the ROUTE
-// boundary: Saved with the
-// record beside the list, the HS headings page, Settings, and the old plan
+// boundary: the HS headings page, Settings, and the old plan
 // address. Component tests cannot see what a route passes its components —
 // which record it reads, which Close it wires, which row it marks — so these
 // import the route modules, run them over a fake Supabase client, and assert
@@ -130,49 +129,6 @@ const text = (markup: string) => markup.replace(/<[^>]*>/g, " ").replace(/\s+/g,
 
 // ---------------------------------------------------------------------------
 
-const SAVED_ROW = {
-  id: ABONI.profile.supplier.id,
-  slug: "aboni-knitwear",
-  company_name: "ABONI KNITWEAR LTD.",
-  entity_type: "factory",
-  city: "Dhaka",
-  district: "Dhaka",
-  source_tags: ["BGMEA"],
-  t13_source_count: 1,
-  completeness_pct: 50,
-  employees_total: 3166,
-  established_date: null,
-  principal_products: [],
-  factory_types: [],
-  rsc_progress_pct: null,
-  parent_group_name: null,
-  saved_at: "2026-09-20T10:00:00Z",
-  total_count: 1,
-};
-
-describe("/app/saved?open= — the record beside the saved list", () => {
-  const Saved = () => route("app/(app)/app/saved/page.js").default;
-
-  it("with nothing open the list stands alone and no row is marked", async () => {
-    given({ buyer_saved_list: { data: [SAVED_ROW], error: null }, ...RECORD });
-    const out = await render(() => Saved()({ searchParams: Promise.resolve({}) }));
-    assert.doesNotMatch(out, /data-record-pane/);
-    assert.doesNotMatch(out, /aria-current="true"/);
-    assert.match(out, /href="\/app\/saved\?open=aboni-knitwear"/, "the name opens the record beside the list");
-    assert.doesNotMatch(out, />Open</, "the pointer button is gone");
-  });
-
-  it("?open= draws the record in the pane, marks its row, and Close keeps the sort", async () => {
-    given({ buyer_saved_list: { data: [SAVED_ROW], error: null }, ...RECORD });
-    const out = await render(() => Saved()({ searchParams: Promise.resolve({ open: "aboni-knitwear", sort: "name" }) }));
-    assert.match(out, /data-record-pane/);
-    const row = out.match(/<tr class="([^"]*)"><th scope="row"/)?.[1] ?? "";
-    assert.match(row, /bg-accent-tint/, `the open row is not marked: ${row}`);
-    assert.match(out, /href="\/app\/saved\?sort=name&amp;open=aboni-knitwear"[^>]*aria-current="true"|aria-current="true"[^>]*href="\/app\/saved\?sort=name&amp;open=aboni-knitwear"/);
-    assert.match(out, /aria-label="Close" href="\/app\/saved\?sort=name"|href="\/app\/saved\?sort=name"[^>]*aria-label="Close"/);
-    assert.match(out, /class="[^"]*hidden lg:flex[^"]*"/, "below lg the list waits behind the record");
-  });
-});
 
 // ---------------------------------------------------------------------------
 

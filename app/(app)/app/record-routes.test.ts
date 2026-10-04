@@ -1726,11 +1726,11 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
     // `(list)` groups on 27 Sep 2026, and the detail pages lost theirs.
     assert.ok(kitLoading.length > 0, "the /app loading states were not found");
     // And they are the kit's frame. The search's is the table's own silhouette
-    // (`ResultsSkeleton`, B4), so the results replace it in place; Saved's is its
-    // workbench frame (`ResultsColumn`, 28 Sep 2026) until B6.
+    // (`ResultsSkeleton`, B4), so the results replace it in place; Saved's and the saved
+    // searches' is Saved's own (`SavedSkeleton`, B6b).
     for (const dir of ["discover", "saved", "products/(list)", "searches"]) {
       const loading = readFileSync(path.join(process.cwd(), "app", "(app)", "app", ...dir.split("/"), "loading.tsx"), "utf8");
-      assert.match(loading, /<KitLoading\b|<ResultsColumn\b|<ResultsSkeleton\b/, `/app/${dir}'s loading state has no frame`);
+      assert.match(loading, /<KitLoading\b|<ResultsColumn\b|<ResultsSkeleton\b|<SavedSkeleton\b/, `/app/${dir}'s loading state has no frame`);
     }
     for (const file of kitLoading) {
       const out = renderToStaticMarkup(createElement(route(file.replace(/\.tsx$/, ".js")).default));
