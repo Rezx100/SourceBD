@@ -21,6 +21,7 @@ import { SavedBar, SavedTable } from "./table";
 import { SavedPhoneList, phoneLine } from "./phone";
 import { SavedEmpty, SavedError, SearchesEmpty, SearchesError } from "./list";
 import { SearchList } from "./searches";
+import { removeMessage, runRemove, runUndo } from "./transport";
 import {
   PAGE_SIZE,
   TOO_MANY,
@@ -277,7 +278,50 @@ describe("the phone list", () => {
     const out = html(withSelection(selected([S1, S2]), createElement(SavedPhoneList, { items: items() })));
     assert.match(text(out), /2 selected Clear/);
     assert.match(text(out), /Remove Send one RFQ to 2/);
+    assert.match(out, /^<div class="md:hidden pb-20">/, "the last rows keep their room above the action bar");
+    assert.match(html(createElement(SavedPhoneList, { items: items() })), /^<div class="md:hidden">/);
     assert.match(out, new RegExp(`href="/app/rfqs/new\\?supplier=${S1},${S2}"`));
+  });
+});
+
+describe("removing and putting back", () => {
+  const res = (ok: boolean, status = ok ? 200 : 500, body: unknown = {}) => ({ ok, status, json: async () => body });
+  const items = [
+    { id: S1, name: "Tex Town Ltd" },
+    { id: S2, name: "Aboni Knitwear Ltd." },
+  ];
+
+  it("one DELETE per supplier, and everything that went is reported", async () => {
+    const calls: string[] = [];
+    const out = await runRemove(items, { fetch: async (url, init) => (calls.push(`${init?.method} ${url}`), res(true)) });
+    assert.deepEqual(calls, [`DELETE /api/v1/saved?supplier_id=${S1}`, `DELETE /api/v1/saved?supplier_id=${S2}`]);
+    assert.deepEqual(out.gone.map((g) => g.id), [S1, S2]);
+    assert.equal(out.failed, 0);
+    assert.equal(out.message, null);
+  });
+
+  it("a partial failure keeps the ones that went and says how many did not; a total failure says nothing changed", async () => {
+    const some = await runRemove(items, { fetch: async (url) => res(url.endsWith(S1)) });
+    assert.deepEqual(some.gone.map((g) => g.id), [S1]);
+    assert.equal(some.failed, 1);
+    assert.equal(some.message, "Could not remove 1 of 2. The others were removed.");
+    const none = await runRemove(items, { fetch: async () => { throw new Error("offline"); } });
+    assert.equal(none.gone.length, 0);
+    assert.equal(none.message, "Could not remove them. Nothing was changed. Try again.");
+    assert.equal(removeMessage(0, 3), null);
+  });
+
+  it("Undo is the bar's bulk save of exactly the ids that were removed, and a refusal says why in the search's words", async () => {
+    let body = "";
+    const ok = await runUndo([S1, S2], { fetch: async (_url, init) => ((body = init?.body ?? ""), res(true, 200, { count: 2, ids: [S1, S2] })) });
+    assert.deepEqual(JSON.parse(body), { supplier_ids: [S1, S2] });
+    assert.deepEqual(ok, { ok: true, message: null });
+    const limited = await runUndo([S1], { fetch: async () => res(false, 429) });
+    assert.equal(limited.ok, false);
+    assert.match(limited.message ?? "", /Too many saves in the last minute/);
+    const offline = await runUndo([S1], { fetch: async () => { throw new Error("offline"); } });
+    assert.equal(offline.ok, false);
+    assert.match(offline.message ?? "", /no connection/);
   });
 });
 

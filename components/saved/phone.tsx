@@ -30,7 +30,8 @@ export function SavedPhoneList({ items }: { items: readonly SavedItem[] }) {
   const chosen = items.filter((i) => sel.isSelected(i.id));
   const count = chosen.length;
   return (
-    <div className="md:hidden">
+    // With the action bar up (64) the last rows keep their own room above it.
+    <div className={cn("md:hidden", count > 0 && "pb-20")}>
       {count > 0 ? (
         <div className="flex h-11 items-center justify-between border-y border-cert-valid-edge bg-subtle px-4">
           <p className="text-md font-semibold text-ink">{formatCount(count)} selected</p>

@@ -194,7 +194,8 @@ export function countWords(lastCount: number | null, countedAt: string | null, n
   if (lastCount === null) return { count: null, words: "not counted yet" };
   const count = formatCount(lastCount);
   const when = formatRelative(countedAt, now);
-  const fresh = countedAt !== null && Date.parse(countedAt) > now.getTime() - 86_400_000 && now.toISOString().slice(0, 10) === new Date(countedAt).toISOString().slice(0, 10);
+  // "Today" is the UTC day, as the times everywhere else in the app are.
+  const fresh = countedAt !== null && !Number.isNaN(Date.parse(countedAt)) && new Date(countedAt).toISOString().slice(0, 10) === now.toISOString().slice(0, 10);
   return { count, words: fresh ? "suppliers today" : when ? `suppliers · counted ${when}` : "suppliers" };
 }
 

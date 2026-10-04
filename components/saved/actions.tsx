@@ -1,17 +1,18 @@
 "use client";
 
 // Removing from Saved (B6b, Paper `10 · States · Saved removed, with undo (SV-03)`). A removal
-// is not asked about: it is done, and a toast says so with Undo. Same transport as the Save
-// button: `DELETE /api/v1/saved?supplier_id=` for each one, `POST /api/v1/saved` to put them back.
-// A failure is said where the buyer is, never as a toast: an error does not toast.
+// is not asked about: it is done, and a toast says so with Undo. The transport is
+// `transport.ts` (`DELETE` per supplier, the bar's bulk save to put them back). A failure is said
+// where the buyer is, never as a toast: an error does not toast.
 
 import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Toast } from "@/components/kit";
 import { toastActionClass } from "@/components/kit/classes";
+import { runRemove, runUndo, type Removable } from "./transport";
 import { removedWords } from "./words";
 
-export type Removable = { id: string; name: string };
+export type { Removable };
 
 type Ctx = {
   remove: (items: readonly Removable[]) => Promise<boolean>;
@@ -47,21 +48,10 @@ export function RemoveProvider({ children }: { children?: ReactNode }) {
       working.current = true;
       setBusy(true);
       setError(null);
-      const results = await Promise.all(
-        items.map(async (i) => {
-          try {
-            const res = await fetch(`/api/v1/saved?supplier_id=${encodeURIComponent(i.id)}`, { method: "DELETE" });
-            return res.ok;
-          } catch {
-            return false;
-          }
-        }),
-      );
+      const { gone, failed, message } = await runRemove(items, { fetch: (url, init) => fetch(url, init) });
       working.current = false;
       setBusy(false);
-      const gone = items.filter((_, n) => results[n]);
-      const failed = items.length - gone.length;
-      if (failed > 0) setError(failed === items.length ? "Could not remove them. Nothing was changed. Try again." : `Could not remove ${failed} of ${items.length}. The others were removed.`);
+      setError(message);
       if (gone.length > 0) {
         setToast({ words: removedWords(gone.map((g) => g.name)), ids: gone.map((g) => g.id) });
         router.refresh();
@@ -75,22 +65,12 @@ export function RemoveProvider({ children }: { children?: ReactNode }) {
     if (!toast || working.current) return;
     working.current = true;
     setBusy(true);
-    let ok = false;
-    try {
-      const res = await fetch("/api/v1/saved", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ supplier_ids: toast.ids }) });
-      ok = res.ok;
-    } catch {
-      ok = false;
-    }
+    const { ok, message } = await runUndo(toast.ids, { fetch: (url, init) => fetch(url, init) });
     working.current = false;
     setBusy(false);
-    if (ok) {
-      setToast(null);
-      router.refresh();
-    } else {
-      setToast(null);
-      setError("Could not put them back. Save them again from search or their record.");
-    }
+    setToast(null);
+    setError(message);
+    if (ok) router.refresh();
   };
 
   const value = useMemo(() => ({ remove, busy, error }), [remove, busy, error]);
@@ -101,8 +81,9 @@ export function RemoveProvider({ children }: { children?: ReactNode }) {
       <p role="status" aria-live="polite" className="sr-only">
         {toast?.words ?? ""}
       </p>
+      {/* On a phone the toast clears the action bar (64) and the tab bar (56). */}
       {toast ? (
-        <div className="pointer-events-none fixed inset-x-0 bottom-6 z-toast flex justify-center px-4 max-md:bottom-24">
+        <div className="pointer-events-none fixed inset-x-0 bottom-6 z-toast flex justify-center px-4 max-md:bottom-[calc(theme(spacing.tabbar)+4.5rem+env(safe-area-inset-bottom))]">
           <Toast
             action={
               <button type="button" onClick={undo} className={toastActionClass}>
