@@ -55,7 +55,7 @@ export const num = (v: number | string | null): number | null => (v === null || 
 /** "US$4.20 per piece"; a price under a cent keeps its four digits. */
 export function priceWords(v: number | string | null): string | null {
   const n = num(v);
-  if (n === null) return null;
+  if (n === null || n <= 0) return null;
   const digits = Math.abs(n) > 0 && Math.abs(n) < 0.01 ? 4 : 2;
   return `US$${new Intl.NumberFormat("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: digits }).format(n)} per piece`;
 }
@@ -63,7 +63,7 @@ export function priceWords(v: number | string | null): string | null {
 /** "3,000 pieces", "1 piece". */
 export function moqWords(v: number | string | null): string | null {
   const n = num(v);
-  if (n === null) return null;
+  if (n === null || n <= 0) return null;
   return `${formatCount(n)} ${n === 1 ? "piece" : "pieces"}`;
 }
 

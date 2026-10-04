@@ -7,7 +7,7 @@ import { Plus } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { ErrorPanel, Skeleton, TabLink, buttonClass } from "@/components/kit";
 import { cn } from "@/lib/utils";
-import { PRODUCTS_ERROR_BODY, PRODUCTS_ERROR_TITLE, PRODUCT_TABS, STATUS_LABEL, addHref, productsCaption, tabCount, tabHref, type ProductRow, type ProductStatus, type ProductTab } from "./words";
+import { PRODUCTS_ERROR_BODY, PRODUCTS_ERROR_TITLE, PRODUCT_TABS, STATUS_LABEL, addHref, productsCaption, tabCount, tabHref, type ProductRow, type ProductTab } from "./words";
 
 const num = (n: number | null) => (n === null ? undefined : n);
 
@@ -119,7 +119,7 @@ export function ProductsEmpty() {
 }
 
 /** A status tab with nothing in it, on a list that has products. */
-export function ProductsTabEmpty({ tab }: { tab: ProductStatus }) {
+export function ProductsTabEmpty({ tab }: { tab: Exclude<ProductTab, "all"> }) {
   return (
     <div className="px-6 py-10 max-md:px-4">
       <p className="text-md font-semibold text-ink">No {STATUS_LABEL[tab].toLowerCase()} products.</p>

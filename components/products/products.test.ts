@@ -37,6 +37,8 @@ describe("the words", () => {
     assert.equal(priceWords(0.004), "US$0.004 per piece");
     assert.equal(priceWords(null), null);
     assert.equal(priceWords(""), null);
+    assert.equal(priceWords(0), null, "a stored 0 is no price");
+    assert.equal(moqWords(0), null);
     assert.equal(moqWords(1200), "1,200 pieces");
     assert.equal(moqWords("1"), "1 piece");
     assert.equal(moqWords(null), null);

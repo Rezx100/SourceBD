@@ -17,7 +17,7 @@ import { ProductsEmpty, ProductsError, ProductsHead, ProductsTabEmpty, PhoneProd
 import { loadProducts } from "@/components/products/load";
 import { SavedNote } from "@/components/products/saved-note";
 import { ProductPhoneList, ProductTable } from "@/components/products/table";
-import { filterRows, parseTab, tabHref, type ProductStatus } from "@/components/products/words";
+import { filterRows, parseTab, tabHref } from "@/components/products/words";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -42,14 +42,19 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
         <ProductsError retryHref={tabHref(tab)} />
       ) : rows.length === 0 ? (
         <ProductsEmpty />
-      ) : shown.length === 0 ? (
-        <ProductsTabEmpty tab={tab as ProductStatus} />
       ) : (
+        // The provider stays up when a tab empties, so the Undo for the last product archived out of it is still there.
         <ProductActionsProvider>
-          <div className="max-md:hidden">
-            <ProductTable rows={shown} />
-          </div>
-          <ProductPhoneList rows={shown} />
+          {tab === "all" || shown.length > 0 ? (
+            <>
+              <div className="max-md:hidden">
+                <ProductTable rows={shown} />
+              </div>
+              <ProductPhoneList rows={shown} />
+            </>
+          ) : (
+            <ProductsTabEmpty tab={tab} />
+          )}
         </ProductActionsProvider>
       )}
       {saved ? <SavedNote id={saved} /> : null}
