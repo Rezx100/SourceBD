@@ -481,12 +481,12 @@ export function RfqComposer({
             <p className="text-xs text-ink-3">RFQ from {workspace?.userName ?? "you"}, on SourceBD</p>
             <p className="text-base font-semibold text-ink [overflow-wrap:anywhere]">{title.trim() || "[product]"}</p>
             <dl className="flex flex-col gap-1 text-sm">
-              {[
+              {([
                 ["Quantity", Number(quantity) >= 1 ? quantityWords(Number(quantity), unit) : "Not set yet"],
                 ["Target", targetPrice.trim() && Number(targetPrice) > 0 ? `${money(Number(targetPrice), currency)} per ${per}` : "Not set"],
                 ["Ship by", shipBy ? (formatDay(shipBy) ?? shipBy) : "Not set"],
                 ["Ship to", shipTo.trim() || "Not set"],
-              ].map(([k, v]) => (
+              ] as [string, string][]).map(([k, v]) => (
                 <div key={k} className="flex justify-between gap-4">
                   <dt className="text-ink-3">{k}</dt>
                   <dd className={cn("text-right", v.startsWith("Not set") ? "text-ink-3" : "text-ink-2")}>{v}</dd>

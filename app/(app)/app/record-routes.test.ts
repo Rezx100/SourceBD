@@ -796,7 +796,7 @@ describe("/app/rfqs/new — the composer as a page", () => {
 
   it("no supplier opens an empty composer that says how to add some; only unpublished suppliers is not found", async () => {
     // "New RFQ" on the RFQ list lands here with nobody chosen: that is not a bad link.
-    for (const sp of [{}, { supplier: "not-an-id" }]) {
+    for (const sp of [{}, { supplier: "not-an-id" }] as Record<string, string>[]) {
       const out = await newRfq(sp);
       assert.ok("html" in out, `an empty composer redirected or threw: ${JSON.stringify(out)}`);
       const page = html(out);
