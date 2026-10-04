@@ -1,18 +1,15 @@
 // The RFQ pages at the boundary a buyer sees (closed-loop §14): the HTML the
 // list and the RFQ render for an empty, failed and filled `rfq_list`, the
-// drafts, an accepted RFQ and an open one; the list as a workbench —
-// `/app/rfqs?open=<id>` draws the RFQ beside it and marks its row, a bad id is
-// a notice and never a 404 — and an Accept that posts only after its confirm.
+// drafts, an accepted RFQ and an open one, and an Accept that posts only after its confirm.
 //
-// The routes run over a fake Supabase client installed into the module cache
-// before they load (the pattern in `app/(app)/app/record-routes.test.ts`).
+// The routes that draw the buyer's list and RFQ (v4, B5a) are tested in
+// `components/rfqs/rfqs.test.ts`; this file keeps the older components the supplier portal
+// still draws, until B10 and B11.
 
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
-import path from "node:path";
 import { afterEach, describe, it } from "node:test";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
-import { createElement, type ReactElement } from "react";
+import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { ACCEPT_CLOSES_COPY, AcceptQuoteRows } from "@/components/accept-quote-button";
@@ -34,32 +31,7 @@ import {
   type RfqView,
 } from "./rfq-pages";
 
-// ---- a fake `@/lib/supabase/server`, before any route loads ----
-
-const OUT = path.join(process.cwd(), process.env.TEST_BUILD_DIR || ".tests-build");
-type Rpc = { data: unknown; error: unknown };
-let answers: Record<string, Rpc> = {};
-const client = { rpc: async (fn: string) => answers[fn] ?? { data: null, error: { code: "PGRST202", message: `no function ${fn}` } } };
-{
-  const id = require.resolve(path.join(OUT, "lib/supabase/server.js"));
-  require.cache[id] = { id, filename: id, loaded: true, exports: { createSupabaseServerClient: async () => client }, children: [], paths: [] } as unknown as NodeJS.Module;
-}
-// eslint-disable-next-line @typescript-eslint/no-require-imports -- the stub must be installed before the route module loads.
-const route = (p: string) => require(path.join(OUT, p)).default as (props: unknown) => Promise<ReactElement>;
-
 const router = { push() {}, replace() {}, refresh() {}, back() {}, forward() {}, prefetch() {} };
-/** The pane's focus handling reads the app router; a static render has none, so give it one. */
-const render = (el: ReactElement) => renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router as never }, el));
-
-async function outcome(run: () => Promise<ReactElement>): Promise<{ html: string } | { threw: string }> {
-  try {
-    return { html: render(await run()) };
-  } catch (err) {
-    const digest = (err as { digest?: string })?.digest;
-    if (typeof digest === "string") return { threw: digest };
-    throw err;
-  }
-}
 
 const PRIMARY = /bg-brand text-brand-on/g;
 const TODAY = new Date("2026-09-27T00:00:00Z");
@@ -384,58 +356,6 @@ describe("Accept asks first", () => {
       ["Accept 6.15 USD/pcs from Aboni Knitwear Ltd?", "Accept 5.90 USD/pcs from S M Knitwears Limited?"],
     );
     assert.deepEqual(detail({ ...OPEN_DOC, viewer_role: "supplier" }).match(/>Accept</g), null, "a supplier can accept");
-  });
-});
-
-// ---- the routes ----
-
-describe("/app/rfqs — the RFQ opens beside the list", () => {
-  const LIST = "app/(app)/app/rfqs/(list)/page.js";
-
-  it("?open= draws the RFQ in a pane with its Close, and marks its row", async () => {
-    answers = { rfq_list: { data: ROWS, error: null }, rfq_get: { data: OPEN_DOC, error: null }, rfq_draft_list: { data: DRAFTS, error: null } };
-    const out = render(await route(LIST)({ searchParams: Promise.resolve({ open: "b" }) }));
-    assert.match(out, /data-record-pane=""/);
-    assert.match(out, /aria-label="RFQ: Cotton jersey t-shirts"/);
-    assert.match(/<a [^>]*aria-label="Close"[^>]*>/.exec(out)?.[0] ?? "", /href="\/app\/rfqs"/);
-    assert.match(out, /<tr aria-current="true"[^>]*>(?:(?!<\/tr>).)*href="\/app\/rfqs\?open=b"/);
-    assert.match(out, /Drafts<span[^>]*>2<\/span>/);
-  });
-
-  it("an id that cannot be read is a notice in the pane, never a 404 on the list", async () => {
-    answers = { rfq_list: { data: ROWS, error: null }, rfq_get: { data: null, error: { message: "not found" } } };
-    const r = await outcome(() => route(LIST)({ searchParams: Promise.resolve({ open: "nope" }) }));
-    assert.ok("html" in r, `the list threw ${"threw" in r ? r.threw : ""}`);
-    assert.match(r.html, /This RFQ could not be opened/);
-    assert.match(r.html, /Product a/, "the list itself is gone");
-  });
-
-  it("without rfq_draft_list (not yet migrated) the list shows no drafts and does not fail", async () => {
-    answers = { rfq_list: { data: ROWS, error: null } };
-    const out = render(await route(LIST)({ searchParams: Promise.resolve({}) }));
-    assert.doesNotMatch(out, /Drafts|data-record-pane|role="alert"/);
-    assert.match(out, /Product a/);
-  });
-});
-
-describe("/app/rfqs/[id] — the full page for deep links", () => {
-  const PAGE = "app/(app)/app/rfqs/[id]/page.js";
-
-  it("an RFQ the caller cannot read is a 404, and no loading state sits above it", async () => {
-    answers = { rfq_get: { data: null, error: { message: "not found" } } };
-    const r = await outcome(() => route(PAGE)({ params: Promise.resolve({ id: "nope" }) }));
-    assert.ok("threw" in r, "the page rendered an RFQ it could not read");
-    assert.match(r.threw, /NOT_FOUND|404/);
-    const dir = path.join(process.cwd(), "app", "(app)", "app", "rfqs");
-    for (const f of ["loading.tsx", "[id]/loading.tsx"]) assert.ok(!existsSync(path.join(dir, f)), `rfqs/${f} wraps a route that answers 404`);
-    assert.ok(existsSync(path.join(dir, "(list)", "loading.tsx")), "the list lost its table skeleton");
-  });
-
-  it("draws the same RFQ as a page", async () => {
-    answers = { rfq_get: { data: DOC, error: null }, rfq_list: { data: [], error: null } };
-    const out = render(await route(PAGE)({ params: Promise.resolve({ id: DOC.id }) }));
-    assert.match(out, /<h1[^>]*>Cotton jersey t-shirts<\/h1>/);
-    assert.doesNotMatch(out, /data-record-pane/);
   });
 });
 

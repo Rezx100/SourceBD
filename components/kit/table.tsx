@@ -45,9 +45,17 @@ export function Th({
   href,
   children,
   className,
+  inner: innerClass,
   ...rest
-}: Omit<ComponentProps<"th">, "align" | "children"> & { align?: Align; sort?: SortState; href?: string; children?: ReactNode }) {
-  const inner = cn("flex h-row-head items-center gap-1 px-3", align === "right" && "justify-end");
+}: Omit<ComponentProps<"th">, "align" | "children"> & {
+  align?: Align;
+  sort?: SortState;
+  href?: string;
+  children?: ReactNode;
+  /** Changes the head's inner box: `px-2 py-1 h-auto min-h-row-head` lets a long word wrap to two lines (Paper's dense quotes table). */
+  inner?: string;
+}) {
+  const inner = cn("flex h-row-head items-center gap-1 px-3", align === "right" && "justify-end", innerClass);
   const ariaSort = sort === "asc" ? "ascending" : sort === "desc" ? "descending" : sort === "none" ? "none" : undefined;
   return (
     <th scope="col" aria-sort={ariaSort} className={cn(HEAD, className)} {...rest}>
