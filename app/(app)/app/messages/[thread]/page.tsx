@@ -1,95 +1,116 @@
-// /app/messages/[thread] — one conversation (Spec B6), in the dashboard kit.
+// /app/messages/[thread]: one conversation on the v4 frame (B6a, Paper `10 · Messages · thread`,
+// `· thread with record beside`, `11 · thread`). The list beside it (360; gone on a phone, where the
+// header's arrow goes back), the supplier's name and RFQ, the strip of the RFQ's facts, the
+// messages with their composer. The first 50 messages are read here so the first paint is complete
+// and RLS-checked; `ThreadLive` takes over for new ones.
 //
-// Server-renders the thread list and the initial 50 messages via
-// `thread_messages(...)` so the first paint is complete + RLS-validated, then
-// mounts the `<ThreadRealtime/>` client island for Realtime row-insert events
-// and the composer. Desktop: the list beside the conversation; phone: the
-// conversation alone, with a Back link to the list.
+//   ?record=<slug>   the supplier's record in a 344 column beside the conversation (a drawer under
+//                    1280, a sheet on a phone); Hide record and Close return to this thread.
+//   ?show= and ?q=   the list's tab and search, kept so the list does not forget them.
 //
-//   ?record=<slug>   the supplier's record in the pane beside the conversation;
-//                    the thread list steps aside so the two share the width,
-//                    and Close returns to this thread.
+// An id that is not a conversation of the caller's is a 404, so no `loading.tsx` sits above this
+// route (a Suspense boundary would commit a 200 before `notFound()` ran). A failed read is not a
+// 404: it says so and offers a retry.
 
 import { notFound } from "next/navigation";
-
-import { Button } from "@/components/dashboard/controls";
-import { ConversationHeader, Inbox, threadHref, type InboxThread } from "@/components/dashboard/inbox";
-import { ErrorNote, PageHeader, Page } from "@/components/dashboard/page";
-import { RecordBeside, readRecordBeside } from "@/components/dashboard/record-beside";
-import { formatCount } from "@/lib/dashboard/facts";
+import { ErrorPanel, buttonClass } from "@/components/kit";
+import Link from "next/link";
+import { BesideRecord } from "@/components/messages/beside";
+import { RfqBar, RfqLinkBar, ThreadHead } from "@/components/messages/conversation";
+import { InboxView } from "@/components/messages/inbox";
+import { InboxColumn, InboxError } from "@/components/messages/list";
+import { loadInbox, readMessages, readRfq } from "@/components/messages/load";
+import { ColumnNotice, RecordColumn } from "@/components/messages/record-column";
+import { ThreadLive } from "@/components/messages/thread-live";
+import { parseQuery, parseShow, phoneStripLine, quoteWords, rfqStrip, threadHref } from "@/components/messages/words";
+import { ProfileReadTimeout, loadRecordSheet } from "@/lib/dashboard/load-record";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-
-import { ThreadRealtime } from "./thread-realtime";
-import type { ThreadMessage } from "./thread-realtime";
 
 export const dynamic = "force-dynamic";
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+export const metadata = { title: "Messages · SourceBD" };
 
-type Params = { thread: string };
-type SearchParams = Record<string, string | string[] | undefined>;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)?.trim() || null;
 
-async function ThreadPageBody({
-  params,
-  searchParams,
-}: {
-  params: Promise<Params>;
-  searchParams?: Promise<SearchParams>;
-}) {
+export default async function ThreadPage({ params, searchParams }: { params: Promise<{ thread: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const { thread: threadId } = await params;
   if (!UUID_RE.test(threadId)) notFound();
-  const sp = (await searchParams) ?? {};
-  const recordSlug = (Array.isArray(sp.record) ? sp.record[0] : sp.record)?.trim() || null;
-  const closeHref = threadHref(threadId);
-
+  const sp = await searchParams;
+  const state = { show: parseShow(sp.show), q: parseQuery(sp.q) };
+  const recordSlug = one(sp.record);
   const supabase = await createSupabaseServerClient();
+  const now = new Date();
 
-  const [listRes, msgRes, record] = await Promise.all([
-    supabase.rpc("thread_list"),
-    supabase.rpc("thread_messages", { p_thread_id: threadId, p_limit: 50 }),
-    recordSlug ? readRecordBeside(supabase, recordSlug, closeHref) : Promise.resolve(null),
-  ]);
+  const [inbox, messages] = await Promise.all([loadInbox(supabase), readMessages(supabase, threadId)]);
+  // "Not a participant" is the one answer that says the conversation is not this buyer's.
+  if (messages.kind === "denied") notFound();
 
-  if (msgRes.error) {
-    if (/not a participant/i.test(msgRes.error.message)) notFound();
+  if (inbox.rows === null) {
+    // Without the list there is no name to draw and no way to say the thread is missing: not a 404.
+    return (
+      <div data-detail="" className="flex min-h-0 flex-1 max-md:min-h-dvh">
+        <InboxColumn className="max-md:hidden">
+          <InboxError retryHref={threadHref(threadId, state)} />
+        </InboxColumn>
+        <section aria-label="Conversation" className="flex min-w-0 flex-1 flex-col p-6 max-md:p-4">
+          <ErrorPanel
+            title="We couldn't load this conversation."
+            retry={
+              <Link href={threadHref(threadId, state)} prefetch={false} className={buttonClass({ kind: "primary" })}>
+                Try again
+              </Link>
+            }
+          >
+            Nothing has been lost. Your messages are safe.
+          </ErrorPanel>
+        </section>
+      </div>
+    );
   }
 
-  const allThreads = (listRes.data ?? []) as InboxThread[];
-  const thread = allThreads.find((t) => t.id === threadId);
+  const thread = inbox.rows.find((t) => t.id === threadId);
   if (!thread) notFound();
 
-  const messages = (msgRes.data ?? []) as ThreadMessage[];
+  const closeHref = threadHref(threadId, state);
+  const recordOpen = recordSlug !== null;
+  const sameCompany = recordSlug !== null && recordSlug === thread.supplier_slug;
+  const [rfq, record] = await Promise.all([
+    readRfq(supabase, thread.rfq_id),
+    sameCompany
+      ? loadRecordSheet(supabase, recordSlug, now, { closeHref, supplierId: thread.supplier_id }).then(
+          (model) => ({ model, slow: false }),
+          (err: unknown) => ({ model: null, slow: err instanceof ProfileReadTimeout }),
+        )
+      : Promise.resolve(null),
+  ]);
+  const strip = rfqStrip(rfq, thread.supplier_id);
 
   return (
-    // From `lg` the inbox fills the content region under the header and its
-    // panes scroll on their own; the frame chain below is what lets it.
-    <div className="flex flex-col gap-5 lg:min-h-0 lg:flex-1">
-      <PageHeader
-        title="Messages"
-        caption={`${formatCount(allThreads.length)} ${allThreads.length === 1 ? "conversation" : "conversations"} with suppliers`}
-        actions={
-          <Button href="/app/discover" clientNav>
-            Find a supplier
-          </Button>
-        }
-      />
-      <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:flex-row">
-        <Inbox threads={allThreads} error={false} currentId={threadId} recordOpen={record !== null}>
-          <ConversationHeader thread={thread} recordOpen={record !== null} />
-          {msgRes.error ? (
-            <ErrorNote className="mx-4 mt-3">
-              Earlier messages could not be read just now. Nothing has been lost — reload in a moment.
-            </ErrorNote>
-          ) : null}
-          <ThreadRealtime threadId={threadId} initialMessages={messages} supplierName={thread.supplier_name} />
-        </Inbox>
-        {record ? <RecordBeside read={record} closeHref={closeHref} retryHref={threadHref(threadId, record.slug)} /> : null}
-      </div>
+    <div data-detail="" className="flex min-h-0 flex-1 max-md:min-h-dvh">
+      <InboxView inbox={inbox} state={state} currentId={threadId} now={now} className="max-md:hidden" />
+      <section aria-label="Conversation" className="flex min-w-0 flex-1 flex-col">
+        <ThreadHead thread={thread} state={state} recordOpen={recordOpen} />
+        {strip ? <RfqBar strip={strip} /> : thread.rfq_id ? <RfqLinkBar rfqId={thread.rfq_id} /> : null}
+        <ThreadLive
+          key={threadId}
+          threadId={threadId}
+          initialMessages={messages.kind === "ok" ? messages.messages : []}
+          supplierName={thread.supplier_name}
+          today={now.toISOString()}
+          phoneLine={strip ? phoneStripLine(strip) : null}
+          readFailed={messages.kind === "error"}
+        />
+      </section>
+      {recordOpen ? (
+        <BesideRecord title={record?.model?.name ?? thread.supplier_name} closeHref={closeHref}>
+          {record?.model ? (
+            <RecordColumn model={record.model} today={now} rfq={rfq} quote={rfq ? quoteWords(rfq, thread.supplier_id) : null} closeHref={closeHref} />
+          ) : (
+            <ColumnNotice slow={record?.slow ?? false} retryHref={threadHref(threadId, state, recordSlug)} closeHref={closeHref} />
+          )}
+        </BesideRecord>
+      ) : null}
     </div>
   );
-}
-
-export default async function ThreadPage(props: Parameters<typeof ThreadPageBody>[0]) {
-  return <Page className="lg:min-h-0 lg:flex-1">{await ThreadPageBody(props)}</Page>;
 }

@@ -1684,10 +1684,10 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
         .filter((seg) => seg && !/^\(.*\)$/.test(seg))
         .join("/");
     const pages = walk(appDir).filter((f) => path.basename(f) === "page.tsx");
-    const NAMED = ["orders/[id]", "orders/new", "rfqs/[id]", "rfqs/new", "products/[id]", "suppliers/[slug]", "suppliers/[slug]/lines/[hs]"];
-    // The inbox's thread is a list page with its conversation beside it, and
-    // keeps its skeleton on purpose; its unknown thread is a quiet notice.
-    const LIST_AND_PANE = new Set(["messages/[thread]"]);
+    const NAMED = ["orders/[id]", "orders/new", "rfqs/[id]", "rfqs/new", "products/[id]", "suppliers/[slug]", "suppliers/[slug]/lines/[hs]", "messages/[thread]"];
+    // No page is exempt now: the inbox's list moved into `messages/(list)` in B6a (4 Oct 2026),
+    // so a conversation that is not the caller's answers a real 404.
+    const LIST_AND_PANE = new Set<string>();
     const checked = pages.filter((f) => {
       const r = routeOf(f);
       if (NAMED.includes(r)) return true;

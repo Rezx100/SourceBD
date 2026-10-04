@@ -1,7 +1,7 @@
 // Chat (`03 Patterns · 10`, a sample state): the supplier on the left in a white bubble with a
 // line, you on the right in brand-tint; the name and time under each bubble, the date once per
-// day, "Read" once under your last message. The composer is pinned (B6 builds it: attach, the
-// field, Send). Server-safe.
+// day, "Read" once under your last message. The composer is Messages' own (`components/messages`,
+// B6a). Server-safe.
 
 import { Checks, FileText } from "@phosphor-icons/react/dist/ssr";
 import type { ReactNode } from "react";
@@ -40,7 +40,7 @@ export function FileChip({ name, detail }: { name: string; detail: string }) {
  * `from="them"` is the supplier; `"you"` is the buyer. `meta` is "Aboni Knitwear Ltd. · 10:12"
  * (on a phone just the time); `read` adds "· Read" and its ticks to your last message.
  */
-export function Bubble({ from, meta, read, children }: { from: "them" | "you"; meta: string; read?: boolean; children: ReactNode }) {
+export function Bubble({ from, meta, read, children }: { from: "them" | "you"; meta: ReactNode; read?: boolean; children: ReactNode }) {
   const you = from === "you";
   return (
     <div className={cn("flex max-w-[440px] flex-col gap-1 max-sm:max-w-[300px]", you ? "items-end self-end" : "self-start")}>
