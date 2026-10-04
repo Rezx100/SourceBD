@@ -1,13 +1,8 @@
-import { KitLoading } from "@/components/dashboard/kit-loading";
-import { PageSkeleton } from "@/components/dashboard/page-skeleton";
+import { ProductsSkeleton } from "@/components/products/list";
 
-// The layout draws the shell; this is the content region while the list loads.
-// Only the list: it sits in the `(list)` group so the edit page's 404 stays a status code.
+// The layout draws the frame; this is the content region while the list loads. It sits in the `(list)`
+// group so the edit page's 404 is not wrapped by it.
 
 export default function ProductsLoading() {
-  return (
-    <KitLoading>
-      <PageSkeleton kind="table" />
-    </KitLoading>
-  );
+  return <ProductsSkeleton />;
 }
