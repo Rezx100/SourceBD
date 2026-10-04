@@ -9,6 +9,7 @@ import { CertProblem, SupplierRow } from "@/components/patterns";
 import { ErrorPanel, Menu, MenuItem, Pagination, Skeleton, buttonClass } from "@/components/kit";
 import { PER_PAGE, discoverChips, discoverHref, filterCount, withoutFilterFamily, type DiscoverState } from "@/lib/discover-v32-state";
 import { formatCount } from "@/lib/dashboard/facts";
+import { discoverFailureCopy } from "@/lib/discover-v32-rpc";
 import { cn } from "@/lib/utils";
 import type { ResultRow } from "./model";
 import { SlowHead } from "./slow";
@@ -209,7 +210,7 @@ export function ResultsError({ failure, retryHref }: { failure: "busy" | "unavai
           </Link>
         }
       >
-        {failure === "busy" ? "Search is under heavy load. Try again in a moment." : "The search service did not answer."} Your filters are kept.
+        {discoverFailureCopy(failure)} Your filters are kept.
       </ErrorPanel>
     </div>
   );
