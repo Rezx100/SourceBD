@@ -53,7 +53,6 @@ describe("1. a record tab scrolls the pane, never the app", () => {
       "app/(app)/app/saved/page.tsx",
       "app/(app)/app/saved/loading.tsx",
       "app/(app)/app/orders/(list)/page.tsx",
-      "app/(app)/app/rfqs/(list)/page.tsx",
     ]) {
       const s = source(page);
       assert.match(s, /<Workbench>/, `${page} does not draw the Workbench frame`);
@@ -62,6 +61,9 @@ describe("1. a record tab scrolls the pane, never the app", () => {
     // The search is on the v4 frame (B4): its list and pane are `ListPane`, which scrolls
     // each in its own box; the page draws no list-and-pane frame of its own, and the
     // landing and the loading states sit inside the frame's scrolling `<main>`.
+    const rfqs = source("app/(app)/app/rfqs/(list)/page.tsx");
+    assert.match(rfqs, /<ListPane\b/, "the RFQ list does not draw the frame's list and pane");
+    assert.doesNotMatch(rfqs, /<Workbench>|lg:flex-row/, "the RFQ list draws a list-and-pane frame of its own");
     const discover = source("app/(app)/app/discover/page.tsx");
     assert.match(discover, /<ListPane\b/, "the search does not draw the frame's list and pane");
     assert.doesNotMatch(discover, /<Workbench>|lg:flex-row/, "the search draws a list-and-pane frame of its own");

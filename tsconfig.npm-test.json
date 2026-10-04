@@ -134,6 +134,7 @@
     "components/frame/frame.test.ts",
     "components/search/search.test.ts",
     "components/record/record.test.ts",
+    "components/rfqs/rfqs.test.ts",
     "lib/design/tokens.test.ts",
     "lib/hs-catalogue.ts",
     "lib/dashboard/source-tiers.ts",
