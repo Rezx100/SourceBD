@@ -2,7 +2,7 @@
 // shell the composer opens in the pane beside the results or the record
 // (`/app/discover?rfq=…`); this route draws the same composer filling the
 // content region, so a link from an email or a product still lands somewhere
-// that works. Requires `?supplier=<uuid>[,<uuid>…]`; `&hs=NNNN` prefills the
+// that works. Takes `?supplier=<uuid>[,<uuid>…]` (none opens an empty composer); `&hs=NNNN` prefills the
 // line a buyer came from; `&product=<uuid>` one of their own products;
 // `?draft=<uuid>` reopens a saved draft with its suppliers, fields, message
 // and questions (read through `rfq_draft_get`, which answers only the owner).
@@ -11,9 +11,10 @@
 // is drawn under the sanction banner with Send disabled, so the buyer sees why;
 // the server refuses it either way (`rfq_create`).
 
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
-import { RfqComposer, type ComposerPrefill } from "@/components/dashboard/rfq-composer";
+import type { ComposerPrefill } from "@/components/dashboard/rfq-composer";
+import { RfqComposer } from "@/components/rfqs/composer";
 import { TARGET_COLUMNS, targetFromRow, workspaceFrom, type SupplierRow } from "@/lib/dashboard/composer-target";
 import { hsBuyerLabel } from "@/lib/epb-hscode-labels";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -83,9 +84,8 @@ export default async function NewRfqPage({
   ].slice(0, 50);
   const hs = typeof sp.hs === "string" && /^\d{4}$/.test(sp.hs) ? sp.hs : null;
   const productId = typeof sp.product === "string" && UUID_RE.test(sp.product) ? sp.product : null;
-  if (ids.length === 0 && !productId && !draft) {
-    redirect("/app/discover");
-  }
+  // No supplier is not a bad link: the composer opens empty and says how to add some ("New RFQ"
+  // on the RFQ list lands here). Only suppliers that are all unlisted are a bad link, below.
   const [{ data, error }, settings, product] = await Promise.all([
     ids.length > 0
       ? supabase
@@ -119,7 +119,7 @@ export default async function NewRfqPage({
       prefill={prefill}
       workspace={workspaceFrom(settings)}
       closeHref={draft ? "/app/rfqs" : closeHref}
-      addHref="/app/discover"
+      backLabel={!draft && targets.length === 1 ? `Back to ${targets[0]!.name}` : "Back to RFQs"}
       mode="page"
       draftId={draft ? draftId : null}
     />

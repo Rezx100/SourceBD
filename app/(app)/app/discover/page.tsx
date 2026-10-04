@@ -31,7 +31,8 @@ import { ListPane } from "@/components/frame";
 import { ProductSheet } from "@/components/dashboard/product-sheet";
 import { RecordRecentSearch } from "@/components/dashboard/record-recent-search";
 import { ComposerSkeleton, LineSkeleton, RecordSkeleton } from "@/components/dashboard/record-skeleton";
-import { RfqComposer, type ComposerTarget, type ComposerWorkspace } from "@/components/dashboard/rfq-composer";
+import type { ComposerTarget, ComposerWorkspace } from "@/components/dashboard/rfq-composer";
+import { RfqComposer } from "@/components/rfqs/composer";
 import { SaveSearchForm } from "@/components/dashboard/save-search-form";
 import { Sheet, SheetBar, SheetNotice, SheetScroll } from "@/components/dashboard/sheet";
 import { Button } from "@/components/dashboard/controls";
@@ -217,7 +218,6 @@ export default async function BuyerDiscoverPage({
         prefillHs={prefillHs}
         closeHref={recordParams ? withParams(recordParams) : closeHref}
         backHref={recordParams ? withParams(recordParams) : null}
-        addHref={closeHref}
       />
     </Suspense>
   ) : filtersOpen ? (
@@ -298,7 +298,6 @@ async function DiscoverComposer({
   prefillHs,
   closeHref,
   backHref,
-  addHref,
 }: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the Supabase server client.
   supabase: any;
@@ -306,7 +305,6 @@ async function DiscoverComposer({
   prefillHs: string | null;
   closeHref: string;
   backHref: string | null;
-  addHref: string;
 }) {
   const [targets, workspace] = await Promise.all([
     (async (): Promise<ComposerTarget[]> => {
@@ -332,7 +330,6 @@ async function DiscoverComposer({
         prefill={prefillHs ? { hs: prefillHs, title: `HS ${prefillHs} · ${hsBuyerLabel(prefillHs, null)}` } : {}}
         closeHref={closeHref}
         backHref={backHref}
-        addHref={addHref}
       />
     </PaneFrame>
   );
