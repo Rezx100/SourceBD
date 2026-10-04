@@ -72,8 +72,11 @@ describe("1. the filter menus", () => {
     const s = at({ q: "knit", hs: ["6109"], cert: [{ kind: "gots", state: "valid" }, { kind: "wrap", state: "expiring" }], district: ["Dhaka"], type: ["factory"], rsc: "active", reg: ["BGMEA"] });
     const kept = discoverChips(s).filter((c) => !inFilterMenu(c.key, s)).map((c) => c.key);
     assert.deepEqual(kept.sort(), ["cert-wrap-expiring", "q", "reg-BGMEA", "sanctioned"].sort());
-    assert.match(source("app/(app)/app/discover/page.tsx"), /chips=\{chips\.filter\(\(c\) => !inFilterMenu\(c\.key, state\)\)/);
-    assert.match(source("app/(app)/app/discover/page.tsx"), /menus=\{<FilterMenus state=\{state\} folded=\{paneOpen\} hrefFor=\{\(s\) => \(density === "default" \? discoverHref\(s\)/, "a filter drops the buyer's density");
+    // v4 (B4): the bar over the results draws its menus and its chips from the same state.
+    assert.match(source("components/search/toolbar.tsx"), /\.filter\(\(c\) => c\.key !== "sanctioned" && c\.key !== "q" && !inFilterMenu\(c\.key, state\)\)/);
+    assert.match(source("components/search/toolbar.tsx"), /filterMenus\(state\)\.filter\(\(m\) => m\.key === "certificate" \|\| m\.key === "place" \|\| menuSummary\(m\) !== null\)/, "a set filter has no menu to take it off");
+    // A certificate whose kind has a digit in it (SA8000) is a menu's too: drawn once.
+    assert.equal(inFilterMenu("cert-sa8000-valid", at({ cert: [{ kind: "sa8000", state: "valid" }] })), true);
   });
 
   it("beside an open pane the menus are Product, Certificate, Place and More, with Company type folded into More", () => {

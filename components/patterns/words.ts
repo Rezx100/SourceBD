@@ -67,3 +67,21 @@ export function lateWords(plannedOn: string, today: Date): string | null {
   if (d === null || d >= 0) return null;
   return `${-d} ${d === -1 ? "day" : "days"} late`;
 }
+
+/** The first certificate problem in a list row: "WRAP expired 29 Sep 2026" and how many more certificates follow. */
+export type CertLine = { state: "expired" | "expiring" | "valid" | "none"; text: string; more: number };
+
+/**
+ * The one line a list row or table cell says about certificates: the worst one first
+ * (expired, then expiring, then valid, then none dated), its scheme and the chip's own
+ * words in lower case after it, and "· 3 more certificates" for the rest. `null` when the
+ * supplier has no certificate at all, so the row says "None found" itself.
+ */
+export function certLine(certs: readonly { scheme: string; expiresOn: string | null }[], today: Date): CertLine | null {
+  if (certs.length === 0) return null;
+  const ranked = certs
+    .map((c) => ({ c, w: certWords(c.expiresOn, today), t: c.expiresOn ? Date.parse(c.expiresOn) : 0 }))
+    .sort((a, b) => CERT_ORDER[a.w.state] - CERT_ORDER[b.w.state] || (a.w.state === "expired" ? b.t - a.t : a.t - b.t) || a.c.scheme.localeCompare(b.c.scheme));
+  const first = ranked[0]!;
+  return { state: first.w.state, text: `${first.c.scheme} ${first.w.label.charAt(0).toLowerCase()}${first.w.label.slice(1)}`, more: ranked.length - 1 };
+}

@@ -16,4 +16,4 @@ export { SourceChip, SourceGroups, SourceLine, SourceList, SourceMark, SourcesCe
 export { ClaimRail, ConfirmedClaim, OpenClaim, downloadBlockedWords } from "./statement";
 export { SupplierRow } from "./supplier-row";
 export { Timeline, type Milestone } from "./timeline";
-export { CERT_ORDER, SITE_WORDS, certHeading, certWords, isApproximate, lateWords, moqWarning, usd, vsTarget, type SiteKind } from "./words";
+export { CERT_ORDER, SITE_WORDS, certHeading, certLine, certWords, isApproximate, lateWords, moqWarning, usd, vsTarget, type CertLine, type SiteKind } from "./words";

@@ -35,16 +35,18 @@ describe("DialogFocus — focus returns to the result that opened the record", (
     // And every pane names what it shows, or focus stays put when it changes:
     // an expression for a record or a line, a literal for the filter and
     // save-search panes, which show one thing each.
+    // The search's panes (B4) are `PaneFrame`s inside `ListPane`, which owns Close and Escape;
+    // `PaneFocus` does what `DialogFocus` did, and is mounted by the frame.
     const discover = readFileSync(path.join(process.cwd(), "app", "(app)", "app", "discover", "page.tsx"), "utf8");
-    const frames = discover.match(/<RecordPane\b[^>]*>/g) ?? [];
+    const frames = discover.match(/<PaneFrame\b[^>]*>/g) ?? [];
     assert.ok(frames.length >= 5, `the composer, filter, save and record panes: ${frames.join(" | ")}`);
-    for (const f of frames) {
-      assert.match(f, /openKey=(?:\{|"[^"]+")/, `a pane that names nothing: ${f}`);
-      assert.match(f, /closeHref=\{/, `a pane with nowhere to close to: ${f}`);
-    }
+    for (const f of frames) assert.match(f, /openKey=(?:\{|"[^"]+")/, `a pane that names nothing: ${f}`);
     // Every pane shows something different, so each key is its own.
     const keys = frames.map((f) => /openKey=(\{[^}]*\}|"[^"]+")/.exec(f)?.[1]);
     assert.equal(new Set(keys).size, keys.length, `two panes share an openKey, so focus stays put between them: ${keys.join(", ")}`);
+    const frame = readFileSync(path.join(process.cwd(), "components", "search", "pane.tsx"), "utf8");
+    assert.match(frame, /<PaneFocus openKey=\{openKey\} \/>/, "the frame does not move focus into the pane");
+    assert.match(frame, /data-pane-frame=""[^>]*tabIndex=\{-1\}/, "the pane cannot take focus by script");
     assert.match(sheet, /data-record-pane=""[^>]*tabIndex=\{-1\}/, "the pane cannot take focus by script");
   });
 });

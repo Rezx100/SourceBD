@@ -1,98 +1,63 @@
-// Spec REZ-B — buyer Discover, rebuilt as the workbench of the one-viewport
-// shell (enterprise pass, 27 Sep 2026). URL is the state; the results column
-// scrolls on its own; everything secondary opens in the pane beside it and
-// closes back to the same search:
+// Spec REZ-B — buyer Discover, on the v4 frame (B4). URL is the state; the list and the pane
+// each scroll on their own; everything secondary opens in the pane beside the list and closes
+// back to the same search:
 //
 //   ?record=<slug>            the record (REZ-C §3.3), and `&line=NNNN` one of its lines
 //   ?rfq=<id,id,…>            the RFQ composer, for one supplier or the ticked selection
 //   ?filters=1                the filter pane
 //   ?save=1                   the save-search pane
 //   ?sent=<rfq id>            the toast after a send, on the search the buyer was on
-//   ?d=compact|comfortable    the row density of the ledger grid
 //
-// Two things make "never lose the search" true, and both are load-bearing:
-// the whole search state stays in the URL and none of the pane parameters is
-// part of `DiscoverState`, so a pane's Close is the same search; and every
-// open and close is a `next/link` client navigation with `scroll={false}`,
-// so the bulk selection (React state keyed on the search) survives.
+// Two things make "never lose the search" true, and both are load-bearing: the whole search
+// state stays in the URL and none of the pane parameters is part of `DiscoverState`, so a
+// pane's Close is the same search; and every open and close is a `next/link` client
+// navigation with `scroll={false}`, so the bulk selection (React state keyed on the search)
+// survives.
 //
-// Opening a record is fast because it does not wait on the search (founder's
-// walkthrough, 28 Sep 2026: "when I click Open it takes ages"). The results
-// are the same for every buyer and are read through a two-minute shared cache
-// (`lib/dashboard/search-cache.ts`), so an open re-draws them at once; the
-// record is read inside its own `Suspense` boundary, keyed by what the pane
-// shows, so the pane draws the record's silhouette straight away and the
-// record streams into it.
+// Opening a record is fast because it does not wait on the search (founder's walkthrough,
+// 28 Sep 2026): the results are the same for every buyer and are read through a two-minute
+// shared cache (`lib/dashboard/search-cache.ts`), and the record is read inside its own
+// `Suspense` boundary, keyed by what the pane shows, so the pane draws its silhouette
+// straight away and the record streams into it. A line reads the record once and only what
+// the line draws; the composer reads its suppliers and the workspace inside a boundary of
+// its own. Measurements and what is left: `ops/plans/buyer-app-speed-29sep.md`.
 //
-// The founder's video of 29 Sep ("it has to be lightning fast") timed the
-// rest on the live site: a record 4.1–4.9 s from click to content, a line
-// 3.3–4.3 s, the RFQ form ~2 s. So a line reads the record once and only what
-// the line draws (`loadLineBeside`), its silhouette is the line's rather than
-// the whole record's, a record opened from a row starts its id-keyed reads
-// beside the profile, and the composer reads its suppliers and the workspace
-// inside a boundary of its own instead of holding up the whole page. The
-// measurements and what is left: `ops/plans/buyer-app-speed-29sep.md`.
+// No result cards (D-7): the table beside nothing, the narrow list beside a pane, the phone's
+// rows. `?view=` and `?d=` are still read so an old link opens; they change nothing.
 
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { ListPane } from "@/components/frame";
 import { DiscoverFilters } from "@/components/dashboard/discover-filters";
-import { Panel, PanelFooter, PanelHeader } from "@/components/dashboard/results-panel";
-import { ResultsTable, type ResultsDensity, type ResultsSortKey } from "@/components/dashboard/results-table";
+import { ProductSheet } from "@/components/dashboard/product-sheet";
+import { RecordRecentSearch } from "@/components/dashboard/record-recent-search";
+import { ComposerSkeleton, LineSkeleton, RecordSkeleton } from "@/components/dashboard/record-skeleton";
 import { RfqComposer, type ComposerTarget, type ComposerWorkspace } from "@/components/dashboard/rfq-composer";
-import { TARGET_COLUMNS, targetFromRow, workspaceFrom, type SupplierRow } from "@/lib/dashboard/composer-target";
-import { SaveSearchForm } from "@/components/dashboard/save-search-form";
-import { FilterMenus } from "@/components/dashboard/filter-menus";
-import { SearchComposer } from "@/components/dashboard/search-composer";
-import { inFilterMenu } from "@/lib/dashboard/search-templates";
-import { SelectionBar } from "@/components/dashboard/selection-bar";
-import { SelectionProvider } from "@/components/dashboard/selection";
 import { SaveRecordButton } from "@/components/dashboard/save-record-button";
-import { RecordPane, ResultsColumn, Sheet, SheetBar, SheetNotice, SheetScroll, Workbench } from "@/components/dashboard/sheet";
-import { SupplierResultCard } from "@/components/dashboard/supplier-result-card";
+import { SaveSearchForm } from "@/components/dashboard/save-search-form";
+import { Sheet, SheetBar, SheetNotice, SheetScroll } from "@/components/dashboard/sheet";
 import { SupplierSheet } from "@/components/dashboard/supplier-sheet";
 import { Button } from "@/components/dashboard/controls";
 import { Icon } from "@/components/dashboard/icons";
-import { Toast } from "@/components/dashboard/toast";
-import { Caption, Label, Title } from "@/components/dashboard/type";
-import { RecordRecentSearch } from "@/components/dashboard/record-recent-search";
-import { ComposerSkeleton, LineSkeleton, RecordSkeleton } from "@/components/dashboard/record-skeleton";
-import { readSearch } from "@/lib/dashboard/search-cache";
+import { Caption, Label } from "@/components/dashboard/type";
+import { ResultsBar } from "@/components/search/bulk-bar";
+import { Flash } from "@/components/search/flash";
+import { PastEnd, PaneRows, PhoneMore, PhoneRows, ResultsEmpty, ResultsError, ResultsFooter } from "@/components/search/list";
+import { resultRow } from "@/components/search/model";
+import { MoreMenu } from "@/components/search/more-menu";
+import { PaneFrame } from "@/components/search/pane";
+import { SelectionProvider } from "@/components/search/selection";
+import { ResultsTable } from "@/components/search/table";
+import { PaneListToolbar, PhoneToolbar, ResultsToolbar, resultsTitle } from "@/components/search/toolbar";
+import { TARGET_COLUMNS, targetFromRow, workspaceFrom, type SupplierRow } from "@/lib/dashboard/composer-target";
+import { buildDiscoverTableRow } from "@/lib/dashboard/build-discover-row";
 import { ProfileReadTimeout, loadLineBeside, loadRecordSheet } from "@/lib/dashboard/load-record";
-import { fetchFacilityParentSlug } from "@/lib/facility-parent-redirect";
-import { ProductSheet } from "@/components/dashboard/product-sheet";
-import { buildDiscoverCard, buildDiscoverTableRow } from "@/lib/dashboard/build-discover-row";
+import { readSearch } from "@/lib/dashboard/search-cache";
+import { fetchDiscoverExplain, fetchDiscoverV32, fetchHsBatch } from "@/lib/discover-v32-rpc";
 import { hsBuyerLabel } from "@/lib/epb-hscode-labels";
-import { fetchDiscoverExplain, discoverFailureCopy, fetchDiscoverV32, fetchHsBatch } from "@/lib/discover-v32-rpc";
-import {
-  COMPOSER_HIDDEN_OMIT,
-  DISCOVER_PATH,
-  PER_PAGE,
-  SORTS,
-  discoverChips,
-  discoverHiddenParams,
-  discoverHref,
-  filterCount,
-  filterFamilyLabel,
-  parseDiscoverState,
-  queryTitle,
-  resultsView,
-  serializeDiscoverState,
-  sortLabel,
-  withoutFilterFamily,
-  type DiscoverState,
-} from "@/lib/discover-v32-state";
+import { fetchFacilityParentSlug } from "@/lib/facility-parent-redirect";
+import { DISCOVER_PATH, discoverHref, filterCount, parseDiscoverState, queryTitle, serializeDiscoverState } from "@/lib/discover-v32-state";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-
-function HiddenState({ state, omit }: { state: DiscoverState; omit: readonly string[] }) {
-  return (
-    <>
-      {discoverHiddenParams(state, omit).map(([k, v]) => (
-        <input key={k} type="hidden" name={k} value={v} />
-      ))}
-    </>
-  );
-}
 
 export const dynamic = "force-dynamic";
 
@@ -100,15 +65,7 @@ export const metadata = {
   title: "Search suppliers · SourceBD",
 };
 
-function askEnabled(): boolean {
-  return process.env.AI_ENABLED === "true" && Boolean(process.env.OPENAI_API_KEY);
-}
-
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-/** The sort key a ledger column orders by, and which way the arrow points. */
-const COLUMN_SORT: Record<ResultsSortKey, string> = { name: "name", sources: "sources", cert_expiry: "cert_expiry", hs_lines: "hs_lines", workers: "workers" };
-const SORT_DIR: Record<string, "asc" | "desc"> = { name: "asc", cert_expiry: "asc", established: "asc" };
 
 export default async function BuyerDiscoverPage({
   searchParams,
@@ -121,8 +78,6 @@ export default async function BuyerDiscoverPage({
   const recordSlug = one(sp.record);
   const lineCode = /^\d{4}$/.test(one(sp.line) ?? "") ? one(sp.line)! : null;
   const allLines = one(sp.lines) === "all";
-  const densityRaw = one(sp.d);
-  const density: ResultsDensity = densityRaw === "compact" || densityRaw === "comfortable" ? densityRaw : "default";
   const rfqIds = [...new Set((one(sp.rfq) ?? "").split(",").map((x) => x.trim()).filter((x) => UUID_RE.test(x)))].slice(0, 50);
   const composerOpen = rfqIds.length > 0;
   const prefillHs = /^\d{4}$/.test(one(sp.hs_line) ?? "") ? one(sp.hs_line)! : null;
@@ -131,22 +86,19 @@ export default async function BuyerDiscoverPage({
   const sentId = UUID_RE.test(one(sp.sent) ?? "") ? one(sp.sent)! : null;
   const supabase = await createSupabaseServerClient();
   const today = new Date();
-  const askOn = askEnabled();
 
-  // Every pane's Close is this same search: `discoverHref` serializes the
-  // state and none of the pane parameters is part of it. The row density is
-  // the buyer's view, not the search, so it rides on every pane link and Close
-  // rather than resetting when a record opens.
-  const searchHref = discoverHref(state);
-  const withDensity = (d: ResultsDensity) => (d === "default" ? searchHref : `${searchHref}${searchHref.includes("?") ? "&" : "?"}d=${d}`);
-  const closeHref = withDensity(density);
+  // Every pane's Close is this same search: `discoverHref` serializes the state and none of
+  // the pane parameters is part of it.
+  const closeHref = discoverHref(state);
   const withParams = (extra: string) => (extra ? `${closeHref}${closeHref.includes("?") ? "&" : "?"}${extra}` : closeHref);
   const recordHref = (slug: string) => withParams(`record=${encodeURIComponent(slug)}`);
   const recordParams = recordSlug ? `record=${encodeURIComponent(recordSlug)}${allLines ? "&lines=all" : ""}` : "";
-  // The composer opens on the search, keeping the record it came from behind
-  // it so Close returns to the record and not only to the search.
+  // The composer opens on the search, keeping the record it came from behind it so Close
+  // returns to the record and not only to the search.
   const rfqHref = (id: string) => withParams(`${recordParams ? `${recordParams}&` : ""}rfq=${encodeURIComponent(id)}`);
   const lineRfqHref = (id: string, hs: string) => withParams(`${recordParams ? `${recordParams}&` : ""}rfq=${encodeURIComponent(id)}&hs_line=${hs}`);
+  // A phone opens the record as a page and comes back to this search.
+  const pageHref = (slug: string) => `/app/suppliers/${encodeURIComponent(slug)}?back=${encodeURIComponent(closeHref)}`;
 
   const { rows, total, error, failure } = await readSearch(state, () => fetchDiscoverV32(supabase, state));
   const slugs = rows.map((r) => r.slug);
@@ -175,233 +127,163 @@ export default async function BuyerDiscoverPage({
     explain = await fetchDiscoverExplain(supabase, state);
   }
 
-  const chips = discoverChips(state);
-  const title = queryTitle(state);
-  const href = discoverHref(state);
   const pages = total !== null ? Math.max(1, Math.ceil(total / state.per)) : null;
   const rowOpts = { today, hsLines: hs.lines, hsError: hs.error, recordHref, rfqHref };
-  const cards = rows.map((row) => buildDiscoverCard(row, { ...rowOpts, saved: savedSet.has(row.id) }));
-  const tableRows = rows.map((row) => buildDiscoverTableRow(row, { ...rowOpts, saved: savedSet.has(row.id) }));
+  const results = rows.map((row) => resultRow(buildDiscoverTableRow(row, { ...rowOpts, saved: savedSet.has(row.id) }), today, pageHref(row.slug)));
 
   const paneOpen = composerOpen || filtersOpen || saveOpen || recordSlug !== null;
   const exportHref = `/api/v1/discover/export?${serializeDiscoverState(state).toString()}`;
+  const title = resultsTitle(state.q, error ? null : total);
+  const filtersHref = withParams("filters=1");
+  const saveHref = withParams("save=1");
+  const hrefFor = discoverHref;
+  const nextHref = pages && state.page < pages ? discoverHref(state, { page: state.page + 1 }) : null;
 
-  return (
-    // The workbench: the results column scrolls on its own, and a pane sits
-    // beside it from `lg` — both live, nothing modal, the search never lost.
-    // Below `lg` the pane takes the content region and the results wait in
-    // the URL; Close brings them back.
-    <Workbench>
-      <ResultsColumn besideRecord={paneOpen} rail={composerOpen}>
-        <RecordRecentSearch label={title} href={href} count={total} />
-        {/* Beside the composer the list is a slim rail of names to tick into
-            the RFQ; the filters wait until it closes. */}
-        {composerOpen ? null : (
-        <form action={DISCOVER_PATH} method="get">
-          <HiddenState state={state} omit={COMPOSER_HIDDEN_OMIT} />
-          {state.q ? <input type="hidden" name="q" value={state.q} /> : null}
-          <SearchComposer
-            setCount={filterCount(state)}
-            menus={<FilterMenus state={state} folded={paneOpen} hrefFor={(s) => (density === "default" ? discoverHref(s) : `${discoverHref(s)}${discoverHref(s).includes("?") ? "&" : "?"}d=${density}`)} className="max-sm:shrink-0 max-sm:flex-nowrap" />}
-            chips={chips.filter((c) => !inFilterMenu(c.key, state)).map((c) => ({ key: c.key, label: c.label, code: c.code, removeHref: discoverHref(c.without) }))}
-            mode={state.ask && askOn ? "ask" : "filters"}
-            askEnabled={askOn}
-            submits
-            filtersHref={withParams("filters=1")}
-            askHref={askOn ? discoverHref(state, { ask: true, page: 1 }) : undefined}
-            filtersModeHref={askOn ? discoverHref(state, { ask: false, page: 1 }) : undefined}
-          />
-        </form>
-        )}
-        <SelectionProvider key={serializeDiscoverState(state).toString()} pageIds={error ? null : rows.map((r) => r.id)}>
-          {error ? (
-            <Panel>
-              <div className="px-5 py-10">
-                <Title as="h1">{title}</Title>
-                <Caption className="mt-2">{discoverFailureCopy(failure ?? "unavailable")}</Caption>
-              </div>
-            </Panel>
-          ) : rows.length === 0 && state.page > 1 ? (
-            <Panel>
-              <div className="px-5 py-10">
-                <Title as="h1">{title}</Title>
-                <Caption className="mt-2">Page {state.page} is past the end of this result set.</Caption>
-                <p className="mt-4 text-sm">
-                  <Link className="link" href={discoverHref(state, { page: 1 })}>
-                    Back to the first page
-                  </Link>
-                </p>
-              </div>
-            </Panel>
-          ) : total === 0 ? (
-            <Panel>
-              <div className="px-5 py-10">
-                <Title as="h1">{title}</Title>
-                <Caption className="mt-2">
-                  {filterCount(state) === 0 ? "No published suppliers to show." : `No supplier matches all ${filterCount(state)} filters.`}
-                </Caption>
-                {explain.length > 0 ? (
-                  <ul className="mt-4 flex flex-col gap-1 text-sm">
-                    {explain
-                      .slice()
-                      .sort((a, b) => a.remaining - b.remaining)
-                      .map((e) => {
-                        const without = withoutFilterFamily(state, e.dropped);
-                        if (!without) return null;
-                        return (
-                          <li key={e.dropped}>
-                            <Link href={discoverHref(without)} className="link">
-                              Drop {filterFamilyLabel(e.dropped)} · {e.remaining} remain
-                            </Link>
-                          </li>
-                        );
-                      })}
-                  </ul>
-                ) : null}
-              </div>
-            </Panel>
-          ) : (
-            <Panel>
-              <PanelHeader
-                compact={paneOpen}
-                rail={composerOpen}
-                as={!composerOpen && !filtersOpen && !saveOpen && recordSlug !== null ? "h2" : "h1"}
-                model={{
-                  title,
-                  total,
-                  shown: rows.length,
-                  firstRow: (state.page - 1) * state.per + 1,
-                  sortLabel: sortLabel(state.sort),
-                  view: state.view,
-                  exportHref,
-                  saveHref: withParams("save=1"),
-                  viewHref: (view) => discoverHref(state, { view, page: 1 }),
-                  sortOptions: SORTS.map((s) => ({ value: s.value, label: s.label, href: discoverHref(state, { sort: s.value, page: 1 }), active: s.value === state.sort })),
-                  densityOptions: (["compact", "default", "comfortable"] as const).map((d) => ({
-                    value: d,
-                    label: d === "default" ? "Default" : d === "compact" ? "Compact" : "Comfortable",
-                    href: withDensity(d),
-                    active: d === density,
-                  })),
-                }}
-              />
-              {resultsView(state.view, paneOpen) === "table" ? (
-                <ResultsTable
-                  rows={tableRows}
-                  currentSlug={recordSlug}
-                  compact={paneOpen}
-                  rail={composerOpen}
-                  density={density}
-                  sort={{ key: state.sort, dir: SORT_DIR[state.sort] ?? "desc" }}
-                  sortHrefs={Object.fromEntries(
-                    (Object.keys(COLUMN_SORT) as ResultsSortKey[]).map((key) => [key, discoverHref(state, { sort: COLUMN_SORT[key] as DiscoverState["sort"], page: 1 })]),
-                  ) as Record<ResultsSortKey, string>}
-                />
+  const toolbar = paneOpen ? (
+    <PaneListToolbar state={state} title={title} hrefFor={hrefFor} filtersHref={filtersOpen ? closeHref : filtersHref} />
+  ) : (
+    <ResultsToolbar
+      state={state}
+      title={title}
+      hrefFor={hrefFor}
+      filtersHref={filtersHref}
+      filtersOpen={filtersOpen}
+      saveHref={saveHref}
+      more={<MoreMenu exportHref={exportHref} total={error ? null : total} />}
+      bare={Boolean(error) || total === 0}
+    />
+  );
+
+  const list = (
+    <SelectionProvider key={serializeDiscoverState(state).toString()} pageIds={error ? null : rows.map((r) => r.id)}>
+      <RecordRecentSearch label={queryTitle(state)} href={discoverHref(state)} count={total} />
+      <div className="flex min-h-0 flex-1 flex-col">
+        <PhoneToolbar state={state} count={resultsTitle("", error ? null : total)} hrefFor={hrefFor} filtersHref={filtersHref} />
+        {paneOpen ? toolbar : <ResultsBar toolbar={toolbar} exportHref={exportHref} searchHref={closeHref} pageSize={rows.length} />}
+        {error ? (
+          <ResultsError failure={failure ?? "unavailable"} retryHref={closeHref} />
+        ) : rows.length === 0 && state.page > 1 ? (
+          <PastEnd page={state.page} firstHref={discoverHref(state, { page: 1 })} />
+        ) : total === 0 ? (
+          <ResultsEmpty state={state} explain={explain} clearHref={DISCOVER_PATH} saveHref={saveHref} />
+        ) : (
+          <>
+            {/* From md the table, or the narrow list beside a pane; on a phone the rows that open as pages. */}
+            <div className="hidden min-h-0 flex-1 overflow-y-auto md:block">
+              {paneOpen ? (
+                <PaneRows rows={results} currentSlug={recordSlug} />
               ) : (
-                <div>
-                  {cards.map((card) => (
-                    <SupplierResultCard key={card.slug} card={{ ...card, selected: card.slug === recordSlug ? true : card.selected }} />
-                  ))}
+                <div className="px-6">
+                <ResultsTable
+                  rows={results}
+                  sort={{ key: state.sort, dir: state.sort === "name" || state.sort === "cert_expiry" || state.sort === "established" ? "asc" : "desc" }}
+                  sortHrefs={{ workers: discoverHref(state, { sort: "workers", page: 1 }), sources: discoverHref(state, { sort: "sources", page: 1 }) }}
+                />
                 </div>
               )}
-              <PanelFooter
-                shown={rows.length}
-                total={total}
-                perPage={state.per}
-                page={state.page}
-                prevHref={state.page > 1 ? discoverHref(state, { page: state.page - 1 }) : null}
-                nextHref={pages && state.page < pages ? discoverHref(state, { page: state.page + 1 }) : null}
-                perHrefs={PER_PAGE.map((n) => ({ n, href: discoverHref(state, { per: n, page: 1 }) }))}
-                rail={composerOpen}
-              />
-              <SelectionBar exportHref={exportHref} searchHref={closeHref} />
-            </Panel>
-          )}
-        </SelectionProvider>
-      </ResultsColumn>
+            </div>
+            <div className="md:hidden">
+              <PhoneRows rows={results} />
+              <PhoneMore shown={(state.page - 1) * state.per + rows.length} total={total ?? rows.length} nextHref={nextHref} per={state.per} />
+            </div>
+            <div className="hidden md:block">
+              <ResultsFooter state={state} shown={rows.length} total={total ?? rows.length} hrefFor={hrefFor} />
+            </div>
+          </>
+        )}
+      </div>
+    </SelectionProvider>
+  );
 
-      {composerOpen ? (
-        // A boundary of its own: the suppliers and the workspace's template
-        // are read inside it, so the pane's silhouette paints with the results
-        // instead of the whole page waiting on them.
-        <Suspense
-          key={`rfq:${rfqIds.join(",")}`}
-          fallback={
-            <RecordPane closeHref={recordParams ? withParams(recordParams) : closeHref} openKey="loading:rfq" wide>
-              <ComposerSkeleton />
-            </RecordPane>
-          }
-        >
-          <DiscoverComposer
-            supabase={supabase}
-            rfqIds={rfqIds}
-            prefillHs={prefillHs}
-            closeHref={recordParams ? withParams(recordParams) : closeHref}
-            backHref={recordParams ? withParams(recordParams) : null}
-            addHref={closeHref}
-          />
-        </Suspense>
-      ) : filtersOpen ? (
-        <RecordPane closeHref={closeHref} openKey="filters">
-          <DiscoverFilters state={state} closeHref={closeHref} />
-        </RecordPane>
-      ) : saveOpen ? (
-        <RecordPane closeHref={closeHref} openKey="save">
-          <Sheet label="Save this search">
-            <SheetBar>
-              <Button variant="ghost" icon size="sm" aria-label="Close" href={closeHref} clientNav scroll={false}>
-                <Icon name="x" />
-              </Button>
-              <Label className="text-ink-strong">Save this search</Label>
-              <Caption className="min-w-0 [overflow-wrap:anywhere]">{title}</Caption>
-            </SheetBar>
-            <SheetScroll>
-              <div className="flex flex-col gap-4 p-6">
-                <p className="m-0 max-w-prose text-sm text-ink-muted">
-                  The search keeps its filters and sort, not its page. Its count refreshes when you open it from Saved searches.
-                </p>
-                <SaveSearchForm search={serializeDiscoverState({ ...state, page: 1 }).toString()} defaultName={title} nextHref={withParams("saved=1")} />
-              </div>
-            </SheetScroll>
-          </Sheet>
-        </RecordPane>
-      ) : recordSlug ? (
-        // The pane's silhouette at once, the record streamed into it: a new
-        // key per record or line is a new boundary, so the silhouette shows
-        // the moment the buyer clicks rather than after the reads — the
-        // line's own silhouette for a line, not the whole record's.
-        <Suspense
-          key={`${recordSlug}:${lineCode ?? ""}:${allLines ? "all" : ""}`}
-          fallback={
-            <RecordPane closeHref={closeHref} openKey={`loading:${recordSlug}`}>
-              {lineCode ? <LineSkeleton /> : <RecordSkeleton />}
-            </RecordPane>
-          }
-        >
-          <DiscoverRecord
-              supabase={supabase}
-              slug={recordSlug}
-              supplierId={rows.find((r) => r.slug === recordSlug)?.id ?? null}
-              lineCode={lineCode}
-              allLines={allLines}
-              today={today}
-              closeHref={closeHref}
-              withParams={withParams}
-              recordParams={recordParams}
-              recordHref={recordHref}
-              rfqHref={rfqHref}
-              lineRfqHref={lineRfqHref}
-            />
-        </Suspense>
-      ) : null}
+  const pane = composerOpen ? (
+    // A boundary of its own: the suppliers and the workspace's template are read inside it,
+    // so the pane's silhouette paints with the results instead of the whole page waiting.
+    <Suspense
+      key={`rfq:${rfqIds.join(",")}`}
+      fallback={
+        <PaneFrame openKey="loading:rfq">
+          <ComposerSkeleton />
+        </PaneFrame>
+      }
+    >
+      <DiscoverComposer
+        supabase={supabase}
+        rfqIds={rfqIds}
+        prefillHs={prefillHs}
+        closeHref={recordParams ? withParams(recordParams) : closeHref}
+        backHref={recordParams ? withParams(recordParams) : null}
+        addHref={closeHref}
+      />
+    </Suspense>
+  ) : filtersOpen ? (
+    <PaneFrame openKey="filters">
+      <DiscoverFilters state={state} closeHref={closeHref} />
+    </PaneFrame>
+  ) : saveOpen ? (
+    <PaneFrame openKey="save">
+      <Sheet label="Save this search">
+        <SheetBar>
+          <Button variant="ghost" icon size="sm" aria-label="Close" href={closeHref} clientNav scroll={false}>
+            <Icon name="x" />
+          </Button>
+          <Label className="text-ink-strong">Save this search</Label>
+          <Caption className="min-w-0 [overflow-wrap:anywhere]">{queryTitle(state)}</Caption>
+        </SheetBar>
+        <SheetScroll>
+          <div className="flex flex-col gap-4 p-6">
+            <p className="m-0 max-w-prose text-sm text-ink-muted">
+              The search keeps its filters and sort, not its page. Its count refreshes when you open it from Saved searches.
+            </p>
+            <SaveSearchForm search={serializeDiscoverState({ ...state, page: 1 }).toString()} defaultName={queryTitle(state)} nextHref={withParams("saved=1")} />
+          </div>
+        </SheetScroll>
+      </Sheet>
+    </PaneFrame>
+  ) : recordSlug ? (
+    // The pane's silhouette at once, the record streamed into it: a new key per record or
+    // line is a new boundary, so the silhouette shows the moment the buyer clicks — the
+    // line's own silhouette for a line, not the whole record's.
+    <Suspense
+      key={`${recordSlug}:${lineCode ?? ""}:${allLines ? "all" : ""}`}
+      fallback={
+        <PaneFrame openKey={`loading:${recordSlug}`}>
+          {lineCode ? <LineSkeleton /> : <RecordSkeleton />}
+        </PaneFrame>
+      }
+    >
+      <DiscoverRecord
+        supabase={supabase}
+        slug={recordSlug}
+        supplierId={rows.find((r) => r.slug === recordSlug)?.id ?? null}
+        lineCode={lineCode}
+        allLines={allLines}
+        today={today}
+        closeHref={closeHref}
+        withParams={withParams}
+        recordParams={recordParams}
+        recordHref={recordHref}
+        rfqHref={rfqHref}
+        lineRfqHref={lineRfqHref}
+      />
+    </Suspense>
+  ) : null;
 
-      {sentId ? <Toast text="RFQ sent" link={{ href: `/app/rfqs/${sentId}`, label: "Open the RFQ" }} href={null} /> : null}
-      {one(sp.saved) === "1" ? <Toast text="Search saved" link={{ href: "/app/searches", label: "Saved searches" }} href={null} /> : null}
-    </Workbench>
+  return (
+    <>
+      <ListPane
+        list={list}
+        listLabel="Results"
+        pane={pane}
+        paneTitle={composerOpen ? "New request" : filtersOpen ? "Filter suppliers" : saveOpen ? "Save search" : "Supplier"}
+        closeHref={closeHref}
+      />
+      {sentId ? <Flash text="RFQ sent" link={{ href: `/app/rfqs/${sentId}`, label: "Open the RFQ" }} /> : null}
+      {one(sp.saved) === "1" ? <Flash text="Search saved" link={{ href: "/app/searches", label: "Saved searches" }} /> : null}
+    </>
   );
 }
 
-/** The RFQ composer in the wide pane, for one supplier or the ticked selection: published targets only, in the order they were ticked. */
+/** The RFQ composer in the pane, for one supplier or the ticked selection: published targets only, in the order they were ticked. */
 async function DiscoverComposer({
   supabase,
   rfqIds,
@@ -435,7 +317,7 @@ async function DiscoverComposer({
     })(),
   ]);
   return (
-    <RecordPane closeHref={closeHref} openKey={`rfq:${rfqIds.join(",")}`} wide>
+    <PaneFrame openKey={`rfq:${rfqIds.join(",")}`}>
       <RfqComposer
         targets={targets}
         workspace={workspace}
@@ -444,16 +326,15 @@ async function DiscoverComposer({
         backHref={backHref}
         addHref={addHref}
       />
-    </RecordPane>
+    </PaneFrame>
   );
 }
 
 /**
- * The record (or one of its lines) in its pane beside the results, read on
- * its own so the results never wait for it. What the pane says when there is
- * no record is decided here, as it was on the page, and the pane is keyed by
- * what it shows — a notice and the record it becomes are different keys, so
- * focus moves between them.
+ * The record (or one of its lines) in its pane beside the results, read on its own so the
+ * results never wait for it. What the pane says when there is no record is decided here, and
+ * the pane is keyed by what it shows — a notice and the record it becomes are different keys,
+ * so focus moves between them.
  */
 async function DiscoverRecord({
   supabase,
@@ -493,14 +374,14 @@ async function DiscoverRecord({
   };
   let slow: boolean;
   if (lineCode) {
-    // The line alone, on one read of the record; a heading the record does
-    // not export goes to the record, on this search.
+    // The line alone, on one read of the record; a heading the record does not export goes
+    // to the record, on this search.
     const read = await safe(loadLineBeside(supabase, slug, lineCode, today, { backHref: withParams(recordParams), closeHref, rfqHref: lineRfqHref, supplierId }));
     if (read.value?.line) {
       return (
-        <RecordPane closeHref={closeHref} openKey={`line:${slug}:${lineCode}`}>
+        <PaneFrame openKey={`line:${slug}:${lineCode}`}>
           <ProductSheet model={read.value.line} />
-        </RecordPane>
+        </PaneFrame>
       );
     }
     if (read.value?.found) redirect(withParams(recordParams));
@@ -520,22 +401,22 @@ async function DiscoverRecord({
     const record = read.value;
     if (record) {
       return (
-        <RecordPane closeHref={closeHref} openKey={`record:${slug}:${allLines ? "all" : ""}`}>
+        <PaneFrame openKey={`record:${slug}:${allLines ? "all" : ""}`}>
           <SupplierSheet
             model={record}
             backHref={withParams(recordParams)}
             save={record.supplierId ? <SaveRecordButton supplierId={record.supplierId} saved={record.saved} /> : undefined}
           />
-        </RecordPane>
+        </PaneFrame>
       );
     }
     slow = read.slow;
   }
   const motherSlug = slow ? null : await fetchFacilityParentSlug(supabase, slug).catch(() => null);
   return (
-    <RecordPane closeHref={closeHref} openKey={`notice:${slug}`}>
+    <PaneFrame openKey={`notice:${slug}`}>
       <RecordNotice slow={slow} motherSlug={motherSlug} closeHref={closeHref} retryHref={withParams(`${recordParams}${lineCode ? `&line=${lineCode}` : ""}`)} recordHref={recordHref} />
-    </RecordPane>
+    </PaneFrame>
   );
 }
 
@@ -581,3 +462,4 @@ function RecordNotice({
     />
   );
 }
+

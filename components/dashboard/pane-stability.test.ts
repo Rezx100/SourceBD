@@ -50,18 +50,22 @@ describe("1. a record tab scrolls the pane, never the app", () => {
     assert.match(frame, /\blg:overflow-clip\b/);
     // Every page that lays a list beside a pane draws that frame, not a copy of it.
     for (const page of [
-      "app/(app)/app/discover/page.tsx",
-      "app/(app)/app/discover/loading.tsx",
       "app/(app)/app/saved/page.tsx",
       "app/(app)/app/saved/loading.tsx",
       "app/(app)/app/orders/(list)/page.tsx",
       "app/(app)/app/rfqs/(list)/page.tsx",
-      "app/(app)/app/(search)/page.tsx",
     ]) {
       const s = source(page);
       assert.match(s, /<Workbench>/, `${page} does not draw the Workbench frame`);
       assert.doesNotMatch(s, /lg:flex-row/, `${page} draws a list-and-pane frame of its own`);
     }
+    // The search is on the v4 frame (B4): its list and pane are `ListPane`, which scrolls
+    // each in its own box; the page draws no list-and-pane frame of its own, and the
+    // landing and the loading states sit inside the frame's scrolling `<main>`.
+    const discover = source("app/(app)/app/discover/page.tsx");
+    assert.match(discover, /<ListPane\b/, "the search does not draw the frame's list and pane");
+    assert.doesNotMatch(discover, /<Workbench>|lg:flex-row/, "the search draws a list-and-pane frame of its own");
+    assert.match(source("components/frame/list-pane.tsx"), /overflow-y-auto/, "the frame's list and pane do not scroll themselves");
   });
 
   it("every tab link carries the handler", () => {

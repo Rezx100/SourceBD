@@ -42,14 +42,17 @@ describe("the results step aside to a slim rail while an RFQ is composed", () =>
     assert.doesNotMatch(pane, /68%/);
   });
 
-  it("the search page draws the rail, and no filter bar, while the composer is open", () => {
+  it("the search page draws the narrow list, and no filter bar, while the composer is open (v4, B4)", () => {
     const page = source("app/(app)/app/discover/page.tsx");
-    assert.match(page, /<ResultsColumn besideRecord=\{paneOpen\} rail=\{composerOpen\}>/);
-    assert.match(page, /\{composerOpen \? null : \(\s*<form action=\{DISCOVER_PATH\}/);
-    assert.match(page, /rail=\{composerOpen\}\s*\n\s*density=/);
-    // Beside any pane, the composer's among them, the list is the table: never
-    // a card list in an 18rem rail (founder's review, 29 Sep 2026).
-    assert.match(page, /resultsView\(state\.view, paneOpen\) === "table"/, "a card list in an 18rem rail");
+    // The composer is a pane like any other: `paneOpen` covers it, the list beside it is the
+    // narrow one (name, place, first certificate problem, sources) and the bar over it the
+    // title with Filters and Sort, never the full filter bar.
+    assert.match(page, /const paneOpen = composerOpen \|\| /);
+    assert.match(page, /paneOpen \? \(\s*<PaneListToolbar\b/);
+    assert.match(page, /\{paneOpen \? \(\s*<PaneRows\b/);
+    // Beside any pane, the composer's among them, the list is never the wide table or a
+    // card list (founder's review, 29 Sep 2026; D-7 dropped the cards).
+    assert.doesNotMatch(page, /SupplierResultCard/, "a card list beside the composer");
     assert.equal(resultsView("cards", true), "table");
     assert.equal(resultsView("cards", false), "cards");
     assert.equal(resultsView("table", false), "table");

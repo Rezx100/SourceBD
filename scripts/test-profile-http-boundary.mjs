@@ -1753,7 +1753,7 @@ const CASES = [
       ],
       // And something only the results panel renders, so an empty page with
       // the right heading is not enough.
-      bodyIncludesAny: ["Export CSV", "No published suppliers to show"],
+      bodyIncludesAny: ['data-row="result"', "No published suppliers to show"],
     },
   },
   {
@@ -1796,8 +1796,8 @@ const CASES = [
       // Since 29 Sep the second line may break between its figure and its
       // words, never inside either.
       bodyIncludesAll: [
-        "title=\"1,200 workers · on the supplier record · 500 workers · across its buildings, not this record\" data-workers-cell=\"\"><span class=\"text-ink-strong\">1,200</span><span class=\"text-right text-xs font-normal text-ink-subtle\"><span class=\"whitespace-nowrap\">500</span> <span class=\"whitespace-nowrap\">in buildings</span></span>",
-        "title=\"100 workers · on the supplier record · 450 workers · RSC inspection\" data-workers-cell=\"\"><span class=\"text-ink-strong\">100</span><span class=\"text-right text-xs font-normal text-ink-subtle\"><span class=\"whitespace-nowrap\">450</span> <span class=\"whitespace-nowrap\">RSC</span></span>",
+        "1,200<span title=\"500 workers · across its buildings, not this record\" class=\"block text-xs text-ink-3\">500 in buildings</span>",
+        "100<span title=\"450 workers · RSC inspection\" class=\"block text-xs text-ink-3\">450 RSC</span>",
       ],
       bodyExcludes: ["450 workers · across this record and its buildings", "Search is under heavy load"],
     },
