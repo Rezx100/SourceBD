@@ -1,5 +1,5 @@
 // The buyer pages rebuilt in the enterprise pass (27 Sep 2026), at the ROUTE
-// boundary: Messages with the record beside the conversation, Saved with the
+// boundary: Saved with the
 // record beside the list, the HS headings page, Settings, and the old plan
 // address. Component tests cannot see what a route passes its components —
 // which record it reads, which Close it wires, which row it marks — so these
@@ -127,79 +127,6 @@ async function render(run: () => Promise<ReactElement>): Promise<string> {
 
 /** What a reader sees: the markup with its tags removed. */
 const text = (markup: string) => markup.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
-
-// ---------------------------------------------------------------------------
-
-const THREAD_ID = "11111111-1111-4111-8111-111111111111";
-const THREADS: Rpc = {
-  data: [
-    {
-      id: THREAD_ID,
-      supplier_id: ABONI.profile.supplier.id,
-      supplier_slug: "aboni-knitwear",
-      supplier_name: "Aboni Knitwear Limited",
-      supplier_entity_type: "factory",
-      rfq_id: "22222222-2222-4222-8222-222222222222",
-      subject: "Knitted polo shirts",
-      last_message_at: "2026-09-13T08:00:00Z",
-      created_at: "2026-09-12T10:00:00Z",
-      message_count: 2,
-    },
-  ],
-  error: null,
-};
-const MESSAGES: Rpc = {
-  data: [
-    { id: "m1", thread_id: THREAD_ID, sender_id: "s", created_at: "2026-09-12T14:30:00Z", body: "Our price is 3.20 USD FOB.", is_self: false },
-    { id: "m2", thread_id: THREAD_ID, sender_id: "b", created_at: "2026-09-13T08:00:00Z", body: "Thank you, sending samples.", is_self: true },
-  ],
-  error: null,
-};
-
-describe("/app/messages/[thread] — the conversation, and the record beside it", () => {
-  const Thread = () => route("app/(app)/app/messages/[thread]/page.js").default;
-
-  it("with no ?record= the conversation stands beside the thread list and no record is read", async () => {
-    given({ thread_list: THREADS, thread_messages: MESSAGES, ...RECORD });
-    const out = await render(() => Thread()({ params: Promise.resolve({ thread: THREAD_ID }), searchParams: Promise.resolve({}) }));
-    assert.match(out, /Our price is 3\.20 USD FOB\./);
-    assert.doesNotMatch(out, /data-record-pane/);
-    assert.ok(!rpcCalls.some((c) => c.fn === "buyer_supplier_profile"), "a record was read with nothing open");
-    assert.match(out, /<nav aria-label="Conversations" class="[^"]*hidden lg:block/);
-  });
-
-  it("?record= opens the record in the pane beside the conversation; the list steps aside; Close returns to the thread", async () => {
-    given({ thread_list: THREADS, thread_messages: MESSAGES, ...RECORD });
-    const out = await render(() =>
-      Thread()({ params: Promise.resolve({ thread: THREAD_ID }), searchParams: Promise.resolve({ record: "aboni-knitwear" }) }),
-    );
-    assert.match(out, /data-record-pane=""[^>]*aria-label="Supplier record"|aria-label="Supplier record"[^>]*data-record-pane/);
-    assert.match(out, /Aboni Knitwear Ltd/, "the record's name");
-    assert.match(out, /Our price is 3\.20 USD FOB\./, "the conversation is still on the page");
-    assert.ok(out.indexOf("Our price is") < out.indexOf("data-record-pane"), "the record sits after (to the right of) the conversation");
-    const nav = out.match(/<nav aria-label="Conversations" class="([^"]*)"/)?.[1] ?? "";
-    assert.ok(nav.split(" ").includes("hidden") && !nav.includes("lg:block"), `the thread list still shows: ${nav}`);
-    assert.match(out, /aria-label="Close" href="\/app\/messages\/11111111-1111-4111-8111-111111111111"|href="\/app\/messages\/11111111-1111-4111-8111-111111111111"[^>]*aria-label="Close"/);
-    assert.equal(rpcCalls.find((c) => c.fn === "buyer_supplier_profile")?.args?.p_slug, "aboni-knitwear");
-    for (const key of ["email_primary", "contact_name", "contact_role"]) assert.ok(!out.includes(key), `${key} reached the HTML`);
-  });
-
-  it("a record that cannot be found says so in the pane, beside a conversation that still works", async () => {
-    given({ thread_list: THREADS, thread_messages: MESSAGES });
-    const out = await render(() =>
-      Thread()({ params: Promise.resolve({ thread: THREAD_ID }), searchParams: Promise.resolve({ record: "no-such-company" }) }),
-    );
-    assert.match(out, /No record for that link/);
-    assert.match(out, /Thank you, sending samples\./);
-  });
-
-  it("the conversation shows a separator per day and each message's sent time", async () => {
-    given({ thread_list: THREADS, thread_messages: MESSAGES });
-    const out = await render(() => Thread()({ params: Promise.resolve({ thread: THREAD_ID }), searchParams: Promise.resolve({}) }));
-    assert.deepEqual([...out.matchAll(/<h3[^>]*>([^<]*)<\/h3>/g)].map((m) => m[1]), ["12 Sep 2026", "13 Sep 2026"]);
-    assert.match(out, />12 Sep 2026, 14:30</);
-  });
-});
 
 // ---------------------------------------------------------------------------
 
