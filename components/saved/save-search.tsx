@@ -29,6 +29,7 @@ export function SaveSearchForm({
   cancelHref,
   touch: touchProp = false,
   autoFocus = false,
+  inset = false,
 }: {
   /** The serialized search: filters and sort, not the page. */
   search: string;
@@ -39,6 +40,8 @@ export function SaveSearchForm({
   /** 48-tall field and a full-width button (a phone); "auto" follows the width (the page, which is both). */
   touch?: boolean | "auto";
   autoFocus?: boolean;
+  /** Inside a padded box (the popover): the footer's rule runs the box's full width. */
+  inset?: boolean;
 }) {
   const router = useRouter();
   const phone = useIsPhone();
@@ -83,10 +86,11 @@ export function SaveSearchForm({
         {(a) => <Input {...a} name="name" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} required autoFocus={autoFocus} size={touch ? "touch" : "md"} />}
       </Field>
       {/* The live region is always in the page, so a refusal that is not about the name is announced. */}
+      {/* A name error is drawn by the field; the same words are spoken here, so every refusal is heard. */}
       <p role="status" aria-live="polite" className={cn(!nameError && error ? "text-sm text-danger" : "sr-only")}>
-        {nameError ? "" : (error ?? "")}
+        {error ?? ""}
       </p>
-      <div className={cn("flex gap-2", touch ? "flex-col pb-[max(1rem,env(safe-area-inset-bottom))]" : "justify-end border-t border-line px-4 py-3 -mx-4")}>
+      <div className={cn("flex gap-2", touch ? "flex-col pb-[max(1rem,env(safe-area-inset-bottom))]" : cn("justify-end", inset && "-mx-4 border-t border-line px-4 py-3"))}>
         {touch ? null : (
           <Button kind="quiet" onClick={() => router.push(cancelHref, { scroll: false })}>
             Cancel
@@ -147,7 +151,7 @@ export function SaveSearchPanel({
       </div>
       <p className="px-4 pb-4 text-sm text-ink-2 [overflow-wrap:anywhere]">{summary}</p>
       <div className="px-4">
-        <SaveSearchForm search={search} defaultName={defaultName} nextHref={nextHref} cancelHref={closeHref} autoFocus />
+        <SaveSearchForm search={search} defaultName={defaultName} nextHref={nextHref} cancelHref={closeHref} autoFocus inset />
       </div>
     </section>
   );

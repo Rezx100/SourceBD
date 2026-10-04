@@ -346,6 +346,9 @@ describe("Save this search", () => {
     const out = html(createElement(SaveSearchForm, { search: "q=knit", defaultName: "x".repeat(200), nextHref: "/app/searches", cancelHref: "/app/searches" }));
     assert.equal(out.match(/value="(x+)"/)?.[1]?.length, 120);
     assert.match(out, /<p role="status" aria-live="polite" class="sr-only"><\/p>/);
+    // Only the popover's footer runs full width (negative margins); the page's does not bleed out of its column.
+    assert.doesNotMatch(out, /-mx-4/);
+    assert.match(html(createElement(SaveSearchPanel, { search: "q=knit", defaultName: "knit", summary: "s", closeHref: "/a", nextHref: "/b" })), /-mx-4 border-t border-line px-4 py-3/);
     const touch = html(createElement(SaveSearchForm, { search: "q=knit", defaultName: "knit", nextHref: "/app/searches", cancelHref: "/app/searches", touch: true }));
     assert.match(touch, /h-input-touch/, "a phone's field is 48 tall");
     assert.doesNotMatch(touch, />Cancel</, "a phone's sheet has its close, not a Cancel");
