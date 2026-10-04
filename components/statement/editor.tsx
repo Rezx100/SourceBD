@@ -17,7 +17,7 @@ import { fieldBox, fieldEdge } from "@/components/kit/classes";
 import { ConfirmedClaim, OpenClaim, downloadBlockedWords } from "@/components/patterns";
 import { buildStatement, type MsaInputs, type MsaScreening } from "@/lib/msa-statement";
 import { cn } from "@/lib/utils";
-import { DETAIL_LABELS, claimLabel, claimsOf, claimsToConfirm, fileName, finalText, openBySection, openClaims, parseStatement, type Block, type DetailKey, type Section, type Segment } from "./words";
+import { DETAIL_LABELS, claimLabel, claimsOf, claimsToConfirm, fileName, finalText, openBySection, openClaims, parseStatement, subsOf, type Block, type DetailKey, type Section, type Segment } from "./words";
 
 const neverChanges = () => () => {};
 const isoDay = (d: Date, local: boolean) => (local ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}` : d.toISOString().slice(0, 10));
@@ -36,11 +36,13 @@ export function StatementEditor({ inputs, screening }: { inputs: MsaInputs; scre
   const detailRefs = useRef<Partial<Record<DetailKey, HTMLInputElement | null>>>({});
 
   const draft = useMemo(() => buildStatement({ ...details, asOf: today, inputs, screening }), [details, today, inputs, screening]);
-  const sections = useMemo(() => parseStatement(draft, fills), [draft, fills]);
+  // A fill is kept under the claim with the typed organisation and year as tokens, so correcting either does not lose an answer.
+  const subs = useMemo(() => subsOf(details), [details]);
+  const sections = useMemo(() => parseStatement(draft, fills, subs), [draft, fills, subs]);
   const claims = useMemo(() => claimsOf(sections), [sections]);
   const open = useMemo(() => openClaims(sections), [sections]);
   const bySection = useMemo(() => openBySection(sections), [sections]);
-  const text = useMemo(() => finalText(draft, fills), [draft, fills]);
+  const text = useMemo(() => finalText(draft, fills, subs), [draft, fills, subs]);
 
   useEffect(() => {
     if (!note) return;
@@ -127,7 +129,7 @@ function Seg({ s, focus, onClaim }: { s: Segment; focus: string | null; onClaim:
   if (s.fill !== null) return <ConfirmedClaim>{s.fill}</ConfirmedClaim>;
   return (
     <button type="button" onClick={() => onClaim(s.claim)} className="rounded-sm align-baseline outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
-      <OpenClaim focused={focus === s.claim}>{claimLabel(s.claim)}</OpenClaim>
+      <OpenClaim focused={focus === s.claim}>{claimLabel(s.text)}</OpenClaim>
     </button>
   );
 }
@@ -232,7 +234,7 @@ function Rail({
                   placeholder="Write it as you want it to read in the statement"
                   className={cn(fieldBox, fieldEdge, "min-h-20 px-2.5 py-1.5 text-base max-lg:text-md")}
                 />
-                <p className="text-xs text-ink-3">This is the claim as it reads in the draft: {c.key}</p>
+                <p className="text-xs text-ink-3">This is the claim as it reads in the draft: {c.text}</p>
                 <Button kind="primary" size="md" className="self-start" onClick={onDone}>
                   Done
                 </Button>

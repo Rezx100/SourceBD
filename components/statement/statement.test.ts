@@ -13,7 +13,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { buildStatement, countPlaceholders, type MsaInputs } from "@/lib/msa-statement";
 import { StatementEditor } from "./editor";
 import { ScreeningNote, StatementError, StatementHead, StatementSkeleton } from "./head";
-import { claimLabel, claimsOf, claimsToConfirm, downloadBlocked, fileName, finalText, openBySection, openClaims, parseStatement } from "./words";
+import { claimKey, claimLabel, claimsOf, claimsToConfirm, downloadBlocked, fileName, finalText, openBySection, openClaims, parseStatement, subsOf } from "./words";
 
 const OUT = path.join(process.cwd(), process.env.TEST_BUILD_DIR || ".tests-build");
 type Answer = { data: unknown; error: unknown };
@@ -100,8 +100,26 @@ describe("the draft as sections and claims", () => {
     const after = parseStatement(draft(), { [key]: "We design and sell knitwear in the UK." });
     assert.equal(openClaims(after).length, before.length - 1);
     assert.equal(openBySection(after)[after[1]!.id] ?? 0, (openBySection(sections)[sections[1]!.id] ?? 0) - 1);
-    const claim = JSON.stringify(after).match(/"claim":"what your organisation does[^"]*","fill":"([^"]*)"/);
+    const claim = JSON.stringify(after).match(/"claim":"what your organisation does[^"]*","text":"[^"]*","fill":"([^"]*)"/);
     assert.equal(claim?.[1], "We design and sell knitwear in the UK.");
+  });
+
+  it("an answer survives a corrected organisation name or year: it is kept under the claim with the typed details as tokens", () => {
+    const first = { org: "Example Apparel", year: "2025" };
+    const d1 = draft({ org: first.org, year: first.year });
+    const s1 = parseStatement(d1, {}, subsOf(first));
+    const does = openClaims(s1).find((c) => c.label.startsWith("What Example Apparel does"))!;
+    assert.equal(does.key, "what {org} does: what it sells, where it operates, its annual turnover and how many people it employs.");
+    const fills = { [does.key]: "We design knitwear." };
+    // The buyer corrects the name: the claim's own text changes, its key does not, and the answer still applies.
+    const second = { org: "Example Apparel Ltd", year: "2026" };
+    const d2 = draft({ org: second.org, year: second.year });
+    const s2 = parseStatement(d2, fills, subsOf(second));
+    assert.equal(openClaims(s2).some((c) => c.key === does.key), false, "the answer was lost with the correction");
+    assert.match(finalText(d2, fills, subsOf(second)), /We design knitwear\./);
+    // Without the tokens the answer is lost, which is what this guards.
+    assert.equal(openClaims(parseStatement(d2, fills)).length > openClaims(s2).length, true);
+    assert.equal(claimKey("a b", [["", "{x}"]]), "a b", "an empty detail swaps nothing");
   });
 
   it("bold labels and bullets are read as such, not as stray asterisks and dashes", () => {
