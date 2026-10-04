@@ -1,12 +1,7 @@
-import { KitLoading } from "@/components/dashboard/kit-loading";
-import { PageSkeleton } from "@/components/dashboard/page-skeleton";
+import { StatementSkeleton } from "@/components/statement/head";
 
-// The layout draws the shell; this is the content region while the page loads.
+// The layout draws the frame; this is the content region while the statement loads.
 
-export default function ModernSlaveryActStatementLoading() {
-  return (
-    <KitLoading>
-      <PageSkeleton kind="form" />
-    </KitLoading>
-  );
+export default function Loading() {
+  return <StatementSkeleton />;
 }
