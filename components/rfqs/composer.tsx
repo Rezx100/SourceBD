@@ -31,6 +31,7 @@ import {
   MAX_TARGETS,
   SHIP_TO,
   UNITS,
+  afterPick,
   buildPayload,
   fillTemplate,
   leftoverPlaceholders,
@@ -233,8 +234,9 @@ export function RfqComposer({
   async function confirmPicked(picked: ComposerTarget[]) {
     setPicking(false);
     const r = await resolvePicked(picked, MAX_TARGETS);
-    if (r.targets) setTargets(r.targets);
-    setPickNote(r.note);
+    const next = afterPick(targets, r);
+    setTargets(next.targets);
+    setPickNote(next.note);
   }
 
   const sanctioned = targets.filter((t) => t.sanctioned);
@@ -308,6 +310,8 @@ export function RfqComposer({
   }
 
   function onKey(e: KeyboardEvent<HTMLElement>) {
+    // A dialog is portalled out of the form but its keys still bubble here: only a key typed in the composer itself sends.
+    if (!e.currentTarget.contains(e.target as Node)) return;
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
       e.preventDefault();
       void send();

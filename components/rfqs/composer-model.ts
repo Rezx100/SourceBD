@@ -157,3 +157,13 @@ export function buildPayload(f: ComposerFields): Record<string, unknown> {
   if (f.productId) p.product_id = f.productId;
   return p;
 }
+
+/**
+ * What the composer holds after the server resolved a pick: the resolved suppliers, or, when the
+ * check failed or left nobody (all of them unlisted since), what the buyer already had.
+ */
+export function afterPick<T>(current: T[], resolved: { targets: T[] | null; note: string | null }): { targets: T[]; note: string | null } {
+  if (resolved.targets && resolved.targets.length > 0) return { targets: resolved.targets, note: resolved.note };
+  if (resolved.targets) return { targets: current, note: `${resolved.note ?? "None of those suppliers is listed any more."} Your suppliers are unchanged.` };
+  return { targets: current, note: resolved.note };
+}

@@ -12,6 +12,7 @@ import type { ComposerTarget } from "@/components/dashboard/rfq-composer";
 import { RfqComposer } from "./composer";
 import {
   DEFAULT_QUESTIONS,
+  afterPick,
   buildPayload,
   fillTemplate,
   leftoverPlaceholders,
@@ -74,6 +75,15 @@ describe("what the composer says", () => {
     assert.equal(typeCounts(fifty), "48 factories, 2 buying houses");
     assert.equal(typeCounts([target(1)]), "1 factory");
     assert.equal(listAnd(["Gazipur", "Narayanganj", "Dhaka"]), "Gazipur, Narayanganj and Dhaka");
+  });
+
+  it("a pick that failed, or left nobody, keeps the suppliers the buyer had", () => {
+    const had = [target(1), target(2)];
+    assert.deepEqual(afterPick(had, { targets: [target(3)], note: null }), { targets: [target(3)], note: null });
+    assert.equal(afterPick(had, { targets: null, note: "no connection" }).targets, had);
+    const none = afterPick(had, { targets: [], note: "2 suppliers are no longer listed and were left out." });
+    assert.equal(none.targets, had);
+    assert.match(none.note ?? "", /Your suppliers are unchanged\./);
   });
 
   it("a refused send is put in plain words, the server's own reason where it gave one", () => {
