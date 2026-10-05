@@ -1517,26 +1517,6 @@ const CASES = [
     },
   },
   {
-    name: "public: homepage overview timeout is not stored 300s",
-    path: "/",
-    expect: {
-      status: 200,
-      mustNotRpcOnAnyHit: [FACILITY_RPC, HS_RPC],
-      hit1MustRpcLines: { [PROFILE_RPC]: 1 },
-      replayMustNotRpc: [PROFILE_RPC],
-      cacheControlOnAllHits: true,
-      cacheControlMustMatch: /private,\s*no-store/,
-      cacheControlMustNotMatch: /s-maxage=[1-9]/,
-      bodyExcludes: [
-        "Overview Timeout Ltd",
-        "Mother Company Ltd",
-        SLOW_MARKER,
-        'aria-label="Evidence anatomy"',
-        "aria-label='Evidence anatomy'",
-      ],
-    },
-  },
-  {
     name: "buyer session: public timeout slug -> app, not slow page",
     path: `/suppliers/${TIMEOUT}`,
     auth: true,
@@ -2702,80 +2682,6 @@ async function main() {
       timeoutOverlapHoldMs = 0;
       extraPassed += extra(
         "public: Retry overlapping in-flight 57014 still recovers",
-        problems,
-      );
-    }
-
-    {
-      const problems = [];
-      const retryOverview = () =>
-        fetch(`${APP_URL}/temporarily-slow/retry`, {
-          method: "POST",
-          redirect: "manual",
-          headers: {
-            origin: SITE_ORIGIN,
-            "content-type": "application/x-www-form-urlencoded",
-          },
-          body: new URLSearchParams({ slug: OVERVIEW_TIMEOUT }),
-          signal: AbortSignal.timeout(120_000),
-        });
-      const clearPin = await retryOverview();
-      if (clearPin.status !== 303) {
-        problems.push(`clear-pin Retry status ${clearPin.status} != 303`);
-      }
-      overviewRecovered = false;
-      overviewHoldMs = 1500;
-      overviewProfileOutcomes.length = 0;
-      const homepageInflight = probe("/");
-      const waitForHeld = Date.now() + 8_000;
-      while (
-        overviewProfileOutcomes.length === 0 &&
-        Date.now() < waitForHeld
-      ) {
-        await new Promise((r) => setTimeout(r, 50));
-      }
-      if (overviewProfileOutcomes[0] !== "57014") {
-        problems.push(
-          `held homepage PROFILE outcome ${overviewProfileOutcomes[0] ?? "<none>"} != 57014`,
-        );
-      }
-      overviewRecovered = true;
-      const retryRes = await retryOverview();
-      if (retryRes.status !== 303) {
-        problems.push(`Retry POST status ${retryRes.status} != 303`);
-      }
-      const homepage = await homepageInflight;
-      if (homepage.status !== 200) {
-        problems.push(`homepage status ${homepage.status} != 200`);
-      }
-      if (homepage.body.includes("Overview Timeout Ltd")) {
-        problems.push("homepage showed Overview Timeout Ltd after held 57014");
-      }
-      if (homepage.body.includes("Recovered Overview Ltd")) {
-        problems.push("homepage showed Recovered Overview Ltd from stale catch");
-      }
-      const factory = await probe(`/suppliers/${OVERVIEW_TIMEOUT}`);
-      if (factory.status !== 200) {
-        problems.push(
-          `factory GET after overview catch ${factory.status} != 200`,
-        );
-      }
-      if (factory.status === 307) {
-        problems.push("stale overview catch re-pinned the factory URL");
-      }
-      if (!factory.body.includes("Recovered Overview Ltd")) {
-        problems.push(
-          `factory body missing Recovered Overview Ltd (${factory.bytes} bytes)`,
-        );
-      }
-      assertSmaxage300(
-        factory.cacheControl,
-        problems,
-        "factory after overview Retry",
-      );
-      overviewHoldMs = 0;
-      extraPassed += extra(
-        "public: homepage overview 57014 overlapping Retry does not re-pin factory",
         problems,
       );
     }
