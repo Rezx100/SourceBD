@@ -291,7 +291,9 @@ describe("the Sites tab (B4d)", () => {
 
 // The new pieces' own rules, read from their source.
 const dir = path.join(process.cwd(), "components", "record");
-const sources = readdirSync(dir).filter((f) => /\.tsx?$/.test(f) && !f.endsWith(".test.ts")).map((f) => [f, readFileSync(path.join(dir, f), "utf8")] as const);
+// `locations-map.tsx` is the existing Barikoi capture (moved here from components/supplier in B11c): its map paints
+// with typed colours by design, and it is on the old-colour list for that reason. The rules below are the record's own.
+const sources = readdirSync(dir).filter((f) => /\.tsx?$/.test(f) && !f.endsWith(".test.ts") && f !== "locations-map.tsx").map((f) => [f, readFileSync(path.join(dir, f), "utf8")] as const);
 
 describe("the record components' rules", () => {
   it("hand a client component only data: no function crosses from the server page into SitesView", () => {
