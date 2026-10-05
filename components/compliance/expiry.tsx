@@ -2,18 +2,20 @@
 // certificate expiry`): every certificate on the saved suppliers that has lapsed with no renewal on
 // file, then those lapsing inside 90 days, in three groups under a filter, one ask each. A real
 // table from 768; on a phone each row is the date, the certificate, the supplier and a 48-tall Ask.
-// Server components. Paper's "Follow-up: Not asked yet" and "Download CSV" are not here: nothing
-// records whether a supplier was asked, and no export of the list exists.
+// Server components. Paper's "Follow-up: Not asked yet" is not here: nothing records whether a
+// supplier was asked. Download CSV writes the certificates the filter shows (`/api/v1/export`).
 
 import { Clock, XCircle } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { ButtonLink, Table, Td, Tr, Unpublished, rowLinkClass } from "@/components/kit";
+import { DownloadCsv } from "@/components/export/download-csv";
 import { cn } from "@/lib/utils";
 import { BackToHub } from "./hub";
-import { expiredHeading, expiryCounts, expiryHref, expirySubline, expiryTabs, within30Heading, within90Heading, type CertItem, type ExpiryGroups, type ExpiryShow } from "./words";
+import { certExportHref, expiredHeading, expiryCounts, expiryHref, expirySubline, expiryTabs, within30Heading, within90Heading, type CertItem, type ExpiryGroups, type ExpiryShow } from "./words";
 
-export function ExpiryHead({ groups, saved, show }: { groups: ExpiryGroups; saved: number | null; show: ExpiryShow }) {
+export function ExpiryHead({ groups, saved, show, download }: { groups: ExpiryGroups; saved: number | null; show: ExpiryShow; download: boolean }) {
   const counts = expiryCounts(groups);
+  const shown = show === "all" ? counts.all : show === "expired" ? counts.expired : show === "30" ? counts.within30 : counts.within90;
   return (
     <header className="flex shrink-0 flex-col gap-3 px-6 pb-3 pt-4 max-md:px-4 max-md:pt-1">
       <BackToHub />
@@ -23,23 +25,26 @@ export function ExpiryHead({ groups, saved, show }: { groups: ExpiryGroups; save
           <p className="text-base text-ink-3 max-md:hidden">Ask suppliers for renewals before certificates expire.</p>
           <p className="text-base text-ink-3 md:hidden">{expirySubline(counts.all, saved)}</p>
         </div>
-        <nav aria-label="Show" className="flex h-8 overflow-clip rounded-sm border border-line-strong max-md:hidden">
-          {expiryTabs(counts).map((t, i) => (
-            <Link
-              key={t.show}
-              href={expiryHref(t.show)}
-              prefetch={false}
-              aria-current={t.show === show ? "true" : undefined}
-              className={cn(
-                "flex items-center px-3 text-sm leading-4 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand",
-                i > 0 && "border-l border-line-strong",
-                t.show === show ? "bg-brand-tint font-semibold text-ink" : "font-medium text-ink-2",
-              )}
-            >
-              {t.label}
-            </Link>
-          ))}
-        </nav>
+        <div className="flex items-center gap-3 max-md:w-full">
+          <nav aria-label="Show" className="flex h-8 overflow-clip rounded-sm border border-line-strong max-md:hidden">
+            {expiryTabs(counts).map((t, i) => (
+              <Link
+                key={t.show}
+                href={expiryHref(t.show)}
+                prefetch={false}
+                aria-current={t.show === show ? "true" : undefined}
+                className={cn(
+                  "flex items-center px-3 text-sm leading-4 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand",
+                  i > 0 && "border-l border-line-strong",
+                  t.show === show ? "bg-brand-tint font-semibold text-ink" : "font-medium text-ink-2",
+                )}
+              >
+                {t.label}
+              </Link>
+            ))}
+          </nav>
+          {download && shown > 0 ? <DownloadCsv href={certExportHref(show)} className="max-md:h-input-touch" /> : null}
+        </div>
       </div>
     </header>
   );

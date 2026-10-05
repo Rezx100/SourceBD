@@ -5,7 +5,7 @@
 // the landing's block and the sidebar badge all read its `total`, so they cannot say 2, 8 and 9 for
 // the same thing. Everything is worked out from what the four compliance reads return. Pure.
 
-import { attentionOf, certName, type Attention, type AttentionCertRow } from "@/lib/dashboard/needs-attention";
+import { attentionOf, certName, type Attention, type AttentionCertRow, type AttentionRow } from "@/lib/dashboard/needs-attention";
 import { certRowId, daysUntil, displayName, formatCount, formatDay } from "@/lib/dashboard/facts";
 
 /** A certificate as the two compliance reads return it (`compliance_expiring_certs`, `compliance_expired_certs`). */
@@ -52,6 +52,23 @@ export function attention(expired: CertList | null, expiring: CertList | null, t
   return attentionOf(expired, expiring, today, Number.MAX_SAFE_INTEGER);
 }
 
+export type AttentionGroup = "expired" | "within30" | "within90";
+
+/** Which of the hub's three lines a row sits under. Only a heading: the count above is still the one `attentionOf` total. */
+export const attentionGroup = (r: Pick<AttentionRow, "state" | "days">): AttentionGroup => (r.state === "expired" ? "expired" : r.days <= 30 ? "within30" : "within90");
+
+/** "Expired · 3", "Expires within 30 days · 2", "Coming up in 31 to 90 days · 3": the line over each group's rows. */
+export function attentionGroupLines(rows: readonly Pick<AttentionRow, "state" | "days">[]): Record<AttentionGroup, string> & { counts: Record<AttentionGroup, number> } {
+  const counts: Record<AttentionGroup, number> = { expired: 0, within30: 0, within90: 0 };
+  for (const r of rows) counts[attentionGroup(r)] += 1;
+  return {
+    expired: `Expired · ${counts.expired}`,
+    within30: `Expires within 30 days · ${counts.within30}`,
+    within90: `Coming up in 31 to 90 days · ${counts.within90}`,
+    counts,
+  };
+}
+
 /** The sidebar's Compliance badge: "8 to check" in danger ink, nothing when none or unread, never a 0. */
 export function complianceBadge(a: Pick<Attention, "total"> | null): { text: string; tone: "danger" } | null {
   return a && a.total > 0 ? { text: `${formatCount(a.total)} to check`, tone: "danger" } : null;
@@ -72,6 +89,9 @@ export function parseShow(raw: string | string[] | undefined): ExpiryShow {
   const v = Array.isArray(raw) ? raw[0] : raw;
   return v === "expired" || v === "30" || v === "90" ? v : "all";
 }
+
+/** Download CSV on Compliance and Certificate expiry: the certificates a `?show=` filter draws (`/api/v1/export`). */
+export const certExportHref = (show: ExpiryShow = "all") => `/api/v1/export?kind=certificates${show === "all" ? "" : `&show=${show}`}`;
 
 export const expiryHref = (show: ExpiryShow) => (show === "all" ? EXPIRY_HREF : `${EXPIRY_HREF}?show=${show}`);
 
@@ -97,6 +117,8 @@ export type CertItem = {
   /** The certificate's own row on the supplier's record. */
   certHref: string;
   days: number;
+  /** "2026-10-08": the day it lapses, for the CSV. */
+  expiresOn: string;
 };
 
 export type ExpiryGroups = { expired: CertItem[]; within30: CertItem[]; within90: CertItem[] };
@@ -126,6 +148,7 @@ function itemOf(r: CertRead, today: Date): CertItem | null {
     // The certificate's own row on the record: the Overview's "Needs a look" and the Certificates tab both carry it.
     certHref: `/app/suppliers/${r.supplier.slug}#${certRowId(r.kind, r.certificate_no, r.expires_on)}`,
     days,
+    expiresOn: r.expires_on.slice(0, 10),
   };
 }
 
@@ -134,6 +157,11 @@ export function expiryGroups(expired: CertList | null, expiring: CertList | null
   const lapsed = (expired?.rows ?? []).map((r) => itemOf(r, today)).filter((x): x is CertItem => x !== null);
   const coming = (expiring?.rows ?? []).map((r) => itemOf(r, today)).filter((x): x is CertItem => x !== null);
   return { expired: lapsed, within30: coming.filter((c) => c.days <= 30), within90: coming.filter((c) => c.days > 30) };
+}
+
+/** The certificates a `?show=` filter draws, in the page's order: what Download CSV writes. */
+export function expiryItems(g: ExpiryGroups, show: ExpiryShow): CertItem[] {
+  return show === "expired" ? g.expired : show === "30" ? g.within30 : show === "90" ? g.within90 : [...g.expired, ...g.within30, ...g.within90];
 }
 
 export type ExpiryCounts = { all: number; expired: number; within30: number; within90: number };

@@ -16,6 +16,8 @@ export type AttentionCertRow = {
 
 export type AttentionRow = {
   state: "expired" | "expiring";
+  /** Days until it lapses; negative once it has. The hub splits its list on this. */
+  days: number;
   supplier: string;
   slug: string;
   supplierId: string;
@@ -47,9 +49,9 @@ function rowOf(r: AttentionCertRow, today: Date): AttentionRow | null {
   if (!day || days === null || !r.supplier) return null;
   const name = certName(r.kind, r.certificate_no);
   const base = { supplier: r.supplier.company_name, slug: r.supplier.slug, supplierId: r.supplier.id, askHref: `/app/rfqs/new?supplier=${encodeURIComponent(r.supplier.id)}` };
-  if (days < 0) return { ...base, state: "expired", what: `${name} expired ${day}.`, note: "No renewal on file.", askLabel: "Ask for the new certificate" };
+  if (days < 0) return { ...base, days, state: "expired", what: `${name} expired ${day}.`, note: "No renewal on file.", askLabel: "Ask for the new certificate" };
   const when = days === 0 ? "expires today" : `expires in ${days} ${days === 1 ? "day" : "days"}`;
-  return { ...base, state: "expiring", what: `${name} ${when}, ${day}.`, askLabel: "Ask for the renewal" };
+  return { ...base, days, state: "expiring", what: `${name} ${when}, ${day}.`, askLabel: "Ask for the renewal" };
 }
 
 /**

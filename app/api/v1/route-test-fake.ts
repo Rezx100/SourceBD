@@ -13,7 +13,7 @@
 
 import path from "node:path";
 
-export type Answer = { data: unknown; error: { message: string } | null };
+export type Answer = { data: unknown; error: { message: string; code?: string } | null };
 
 export const BUYER_ID = "0b0b0b0b-0b0b-4b0b-8b0b-0b0b0b0b0b0b";
 
@@ -28,7 +28,7 @@ export const fake = {
   /** Rows `.from(table)` answers for a table other than `profiles`, and the filters each read applied. */
   tables: {} as Record<string, Record<string, unknown>[]>,
   tableError: null as { message: string } | null,
-  fromCalls: [] as { table: string; columns: string; filters: { op: string; args: unknown[] }[] }[],
+  fromCalls: [] as { table: string; columns: string; filters: { op: string; args: unknown[] }[]; update?: Record<string, unknown> }[],
 };
 
 export function resetFake(): void {
@@ -64,7 +64,7 @@ const client = {
   // Any other table answers `fake.tables[table]`, filtered by the `.in()` and
   // `.eq()` calls the route made, so a test sees what the route asked for.
   from(table: string) {
-    const call = { table, columns: "", filters: [] as { op: string; args: unknown[] }[] };
+    const call = { table, columns: "", filters: [] as { op: string; args: unknown[] }[], update: undefined as Record<string, unknown> | undefined };
     if (table !== "profiles") fake.fromCalls.push(call);
     const rows = () => {
       let out = fake.tables[table] ?? [];
@@ -77,11 +77,17 @@ const client = {
     };
     const chain = {
       select: (columns: string) => ((call.columns = columns), chain),
+      // An update changes the rows its filters match, in `fake.tables`, and answers them.
+      update: (values: Record<string, unknown>) => ((call.update = values), chain),
       eq: (...args: unknown[]) => (call.filters.push({ op: "eq", args }), chain),
       in: (...args: unknown[]) => (call.filters.push({ op: "in", args }), chain),
       maybeSingle: async () => ({ data: fake.role ? { role: fake.role } : null, error: null }),
       then: (resolve: (v: unknown) => unknown) =>
-        Promise.resolve(fake.tableError ? { data: null, error: fake.tableError } : { data: rows(), error: null }).then(resolve),
+        Promise.resolve(
+          fake.tableError
+            ? { data: null, error: fake.tableError }
+            : { data: rows().map((r) => (call.update ? Object.assign(r, call.update) : r)), error: null },
+        ).then(resolve),
     };
     return chain;
   },
