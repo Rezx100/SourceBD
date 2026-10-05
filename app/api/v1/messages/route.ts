@@ -4,6 +4,8 @@
 //   POST   /api/v1/messages
 //     body { action: "open",  supplier_id, rfq_id?, subject? } → { thread_id }
 //     body { action: "send",  thread_id, body }                 → { message_id }
+//     body { action: "send",  thread_id, body?, paths: [...] }  → { message_id } (files, 0112)
+//     body { action: "read",  thread_id }                       → { ok: true }    (0112)
 //   GET    /api/v1/messages?thread_id=<uuid>&before=<iso>&limit=<int>
 //                                                               → { messages: [...] }
 //   GET    /api/v1/messages                                     → { threads:  [...] }
@@ -26,6 +28,16 @@ const UUID_RE =
 
 const MAX_BODY = 8000;
 const MAX_SUBJECT = 200;
+const MAX_FILES = 10;
+const MAX_PATH = 400;
+
+/** The status a database error means: 0112's codes (28000 signed out, 42501 not yours, 22023 / P0002 a bad request) or the older wording. */
+function statusOf(error: { message: string; code?: string }): number {
+  if (error.code === "28000" || /not authenticated/i.test(error.message)) return 401;
+  if (error.code === "42501" || /not a participant/i.test(error.message)) return 403;
+  if (error.code === "22023" || error.code === "P0002") return 400;
+  return 500;
+}
 
 async function requireAnyAuth() {
   const role = await getServerRole();
@@ -152,37 +164,76 @@ export async function POST(req: Request) {
     return NextResponse.json({ thread_id: data });
   }
 
+  if (action === "read") {
+    const threadId = obj.thread_id;
+    if (typeof threadId !== "string" || !UUID_RE.test(threadId)) {
+      return NextResponse.json({ error: "invalid thread_id" }, { status: 400 });
+    }
+    const { error } = await supabase.rpc("thread_mark_read", { p_thread_id: threadId });
+    if (error) {
+      return NextResponse.json(
+        { error: "thread_mark_read failed", detail: error.message },
+        { status: statusOf(error) },
+      );
+    }
+    return NextResponse.json({ ok: true });
+  }
+
   if (action === "send") {
     const threadId = obj.thread_id;
     if (typeof threadId !== "string" || !UUID_RE.test(threadId)) {
       return NextResponse.json({ error: "invalid thread_id" }, { status: 400 });
     }
-    if (typeof obj.body !== "string") {
+    if (typeof obj.body !== "string" && !(obj.body == null && obj.paths != null)) {
       return NextResponse.json({ error: "invalid body" }, { status: 400 });
     }
-    const trimmed = obj.body.trim();
-    if (trimmed.length === 0) {
-      return NextResponse.json({ error: "body is empty" }, { status: 400 });
-    }
+    const trimmed = (obj.body ?? "").toString().trim();
     if (trimmed.length > MAX_BODY) {
       return NextResponse.json(
         { error: `body exceeds ${MAX_BODY} characters` },
         { status: 400 },
       );
     }
+
+    // Files: each path is a file this person uploaded into this conversation. The database
+    // checks that again against the bucket; refusing a stranger's path here keeps it out of the call.
+    if (obj.paths != null) {
+      const paths = obj.paths;
+      if (
+        !Array.isArray(paths) ||
+        paths.length > MAX_FILES ||
+        !paths.every((p) => typeof p === "string" && p.length <= MAX_PATH && p.startsWith(`${threadId}/`))
+      ) {
+        return NextResponse.json({ error: "invalid paths" }, { status: 400 });
+      }
+      if (trimmed.length === 0 && paths.length === 0) {
+        return NextResponse.json({ error: "body is empty" }, { status: 400 });
+      }
+      const { data, error } = await supabase.rpc("thread_send_message_files", {
+        p_thread_id: threadId,
+        p_body: trimmed,
+        p_paths: paths,
+      });
+      if (error) {
+        return NextResponse.json(
+          { error: "thread_send_message_files failed", detail: error.message },
+          { status: statusOf(error) },
+        );
+      }
+      return NextResponse.json({ message_id: data });
+    }
+
+    if (trimmed.length === 0) {
+      return NextResponse.json({ error: "body is empty" }, { status: 400 });
+    }
     const { data, error } = await supabase.rpc("thread_send_message", {
       p_thread_id: threadId,
       p_body: trimmed,
     });
     if (error) {
-      const code = /not a participant/i.test(error.message)
-        ? 403
-        : /not authenticated/i.test(error.message)
-          ? 401
-          : 500;
       return NextResponse.json(
         { error: "thread_send_message failed", detail: error.message },
-        { status: code },
+        { status: statusOf(error) },
       );
     }
     return NextResponse.json({ message_id: data });

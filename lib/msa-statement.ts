@@ -10,8 +10,29 @@
 // that holds a whole sentence is a claim for the buyer to check; the others
 // say what to write.
 
-import { plural, prettyCert } from "@/components/dashboard/compliance";
 import { entityLabel, formatCount, formatDay, placeLabel } from "@/lib/dashboard/facts";
+
+const CERT_LABELS: Record<string, string> = {
+  wrap: "WRAP",
+  oeko_tex: "OEKO-TEX",
+  gots: "GOTS",
+  sa8000: "SA8000",
+  bsci: "BSCI",
+  ocs: "OCS",
+  grs: "GRS",
+  rcs: "RCS",
+  sedex: "Sedex",
+  higg: "Higg",
+  fairtrade: "Fairtrade",
+};
+
+export function prettyCert(kind: string): string {
+  return CERT_LABELS[kind] ?? kind.toUpperCase();
+}
+
+export function plural(n: number, one: string, many = `${one}s`): string {
+  return `${formatCount(n)} ${n === 1 ? one : many}`;
+}
 
 /** `compliance_msa_inputs()` (migration 0030), over the buyer's published saved suppliers. */
 export type MsaInputs = {
@@ -63,7 +84,7 @@ export function countPlaceholders(text: string): number {
 }
 
 /** What the buyer typed, with square brackets made round so a typed one cannot close a placeholder. */
-function typed(s: string): string {
+export function typed(s: string): string {
   return s.trim().replace(/\[/g, "(").replace(/\]/g, ")");
 }
 
@@ -254,14 +275,17 @@ ${confirm(`This statement was approved by the board of directors (or equivalent)
 **Date:** _____________________
 `;
 
-  const pending = countPlaceholders(body);
   // The warning travels with the text, so a pasted copy still carries it.
-  const note =
-    pending > 0
-      ? `> DRAFT: ${plural(pending, "item")} marked "Confirm" still ${pending === 1 ? "needs" : "need"} your answer. SourceBD cannot know ${
-          pending === 1 ? "it" : "them"
-        }. Fill in or delete each one, then delete this note.\n\n`
-      : "";
+  return `${STATEMENT_TITLE_LINE}\n\n${draftNote(countPlaceholders(body))}${body}`;
+}
 
-  return `# Modern Slavery Act 2015 — Section 54 Transparency Statement\n\n${note}${body}`;
+export const STATEMENT_TITLE_LINE = "# Modern Slavery Act 2015 — Section 54 Transparency Statement";
+
+/** The note over a draft that still holds placeholders; empty when none is left. */
+export function draftNote(pending: number): string {
+  return pending > 0
+    ? `> DRAFT: ${plural(pending, "item")} marked "Confirm" still ${pending === 1 ? "needs" : "need"} your answer. SourceBD cannot know ${
+        pending === 1 ? "it" : "them"
+      }. Fill in or delete each one, then delete this note.\n\n`
+    : "";
 }

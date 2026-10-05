@@ -1,21 +1,23 @@
 import type { Config } from "tailwindcss";
 import plugin from "tailwindcss/plugin";
 import {
-  appFontSize,
   borderRadius,
   boxShadow,
+  containers,
   cssVarName,
   densitySizes,
   fontFamily,
   fontSize,
-  fontVars,
   fontWeight,
+  letterSpacing,
   light,
   maxWidth,
-  phoneFontSize,
+  screens,
+  spacing,
   toChannels,
   transitionDuration,
   transitionTimingFunction,
+  v4Alpha,
   zIndex,
   type ColorSet,
 } from "./lib/design/tokens";
@@ -27,45 +29,28 @@ import {
 // stock white / neutral / red / blue classes no longer exist. The only colour
 // classes are the role names in the token file.
 
-/** `{ ink: { muted: "#…" } }` → `{ ink: { muted: "rgb(var(--ds-ink-muted) / <alpha-value>)" } }` */
+/**
+ * `{ ink: { muted: "#…", DEFAULT: "#…" } }` →
+ * `{ "ink-muted": "rgb(var(--ds-ink-muted) / <alpha-value>)", ink: "rgb(var(--ds-ink) / <alpha-value>)" }`.
+ * Flat, not nested: the classes are the same (`text-ink-muted`), and Paper's
+ * arbitrary values name colours as `theme(colors.line-strong)`, which only a
+ * flat key resolves (a nested `line.strong` makes Tailwind drop the class).
+ */
 function colorClasses(set: ColorSet) {
   return Object.fromEntries(
-    Object.entries(set).map(([group, keys]) => [
-      group,
-      Object.fromEntries(
-        Object.keys(keys).map((key) => [
-          key,
-          `rgb(var(${cssVarName(group, key)}) / <alpha-value>)`,
-        ]),
-      ),
-    ]),
+    Object.entries(set).flatMap(([group, keys]) =>
+      Object.keys(keys).map((key) => [
+        key === "DEFAULT" ? group : `${group}-${key}`,
+        `rgb(var(${cssVarName(group, key)}) / <alpha-value>)`,
+      ]),
+    ),
   );
 }
 
-/**
- * The sizes the buyer app scales read a variable, falling back to the base
- * value, so outside the app shell nothing changes (`appFontSize`).
- */
-function scaledFontSize(): typeof fontSize {
+/** Paper's colours with alpha (`scrim`): the channel variable at a fixed opacity. */
+function alphaClasses() {
   return Object.fromEntries(
-    Object.entries(fontSize).map(([key, [size, rest]]): [string, (typeof fontSize)[string]] => {
-      if (!(key in appFontSize) && !(key in phoneFontSize)) return [key, [size, rest]];
-      const v = fontVars(key);
-      return [key, [`var(${v.size}, ${size})`, { ...rest, lineHeight: `var(${v.lineHeight}, ${rest.lineHeight})` }]];
-    }),
-  );
-}
-
-/** The app shell's values for those variables (the phone's with `phoneFontSize`). */
-function appFontVars(scale = appFontSize): Record<string, string> {
-  return Object.fromEntries(
-    Object.entries(scale).flatMap(([key, [size, rest]]) => {
-      const v = fontVars(key);
-      return [
-        [v.size, size],
-        [v.lineHeight, rest.lineHeight],
-      ];
-    }),
+    Object.keys(v4Alpha).map((name) => [name, `rgb(var(${cssVarName(name, "DEFAULT")}) / ${v4Alpha[name as keyof typeof v4Alpha].alpha})`]),
   );
 }
 
@@ -93,9 +78,11 @@ const config: Config = {
       current: "currentColor",
       inherit: "inherit",
       ...colorClasses(light),
+      ...alphaClasses(),
     },
+    screens,
     fontFamily,
-    fontSize: scaledFontSize(),
+    fontSize,
     fontWeight,
     borderRadius,
     boxShadow,
@@ -103,12 +90,16 @@ const config: Config = {
     transitionTimingFunction,
     zIndex,
     extend: {
+      letterSpacing,
+      spacing,
       maxWidth,
-      // Density stops (`h-control`, `w-sidebar`, `min-h-fact-row`, `h-row-dense`, …).
+      // The old pages' density stops (`h-row-dense`, `min-h-fact-row`, …), then
+      // Paper's containers as widths (`w-pane`, `w-dialog`, `w-sidebar`).
       height: densitySizes,
       minHeight: densitySizes,
-      width: densitySizes,
-      minWidth: densitySizes,
+      width: { ...densitySizes, ...containers },
+      minWidth: { ...densitySizes, ...containers },
+      flexGrow: { 2: "2" }, // Paper's `grow-2`
       ringColor: { DEFAULT: "rgb(var(--ds-focus) / <alpha-value>)" },
       borderColor: { DEFAULT: "rgb(var(--ds-line) / <alpha-value>)" },
       // The kit's motion grammar, one place. Entrances only: an exit is a
@@ -134,11 +125,6 @@ const config: Config = {
     plugin(({ addBase }) => {
       // A dark set, when it comes, is a second block here keyed on `.dark`.
       addBase({ ":root": colorVars(light) });
-      // The buyer app's text, one step up (founder, 29 Sep 2026).
-      addBase({ "[data-shell]": appFontVars() });
-      // …and on a phone, the phone's step (the phone hand-off's D10): below
-      // `sm`, as `max-sm:` is.
-      addBase({ "@media not all and (min-width: 640px)": { "[data-shell]": appFontVars(phoneFontSize) } });
     }),
   ],
 };

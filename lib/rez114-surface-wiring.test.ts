@@ -14,11 +14,17 @@ function src(rel: string): string {
 }
 
 describe("REZ-114 surface wiring (observable call sites)", () => {
-  it("the public profile resolves selected workers into the header", () => {
+  it("the public profile builds the buyer record's own model, which selects the workers figure", () => {
+    // B9g: the public page no longer calls `resolveProfileWorkers`; it draws the same `buildSheet` model as the
+    // buyer's record, and `workersFact` (RSC-preferred, with its coverage words) is what turns the payload's
+    // figures into the Workers row. `components/record/public-record.test.ts` asserts the figure in the HTML.
     const t = src("app/(public)/suppliers/[slug]/page.tsx");
-    assert.match(t, /resolveProfileWorkers/);
-    assert.match(t, /workers=\{workersHeadline\}/);
-    assert.match(t, /hasCapacityData\(s,\s*workersHeadline\)/);
+    assert.match(t, /buildSheet\(/);
+    assert.match(t, /<PublicRecord model=\{model\}/);
+    assert.match(t, /facilities:\s*\{\s*panel:\s*facilitiesPanel\s*\}/);
+    const model = src("lib/dashboard/build-models.ts");
+    assert.match(model, /export function workersFact\(/);
+    assert.match(model, /workersFact\(/);
   });
 
   it("the buyer record page still reaches production_workers_display_batch", () => {
@@ -27,8 +33,8 @@ describe("REZ-114 surface wiring (observable call sites)", () => {
     // same and the wire is one step longer: the page calls `loadRecordSheet`,
     // which fills the figure from `production_workers_display_batch` before
     // `buildSheet` turns it into the Workers row and its coverage words.
-    // `components/dashboard/record-sheet.test.ts` asserts the FIGURE in the
-    // rendered HTML — this only catches the wire being cut.
+    // The record's rendering test asserts the FIGURE in the rendered HTML
+    // (`components/record/record.test.ts`) — this only catches the wire being cut.
     assert.match(src("app/(app)/app/suppliers/[slug]/page.tsx"), /loadRecordSheet/);
     const loader = src("lib/dashboard/load-record.ts");
     assert.match(loader, /fetchDisplayWorkersBatch/);
@@ -40,7 +46,7 @@ describe("REZ-114 surface wiring (observable call sites)", () => {
     const discover = src("app/(app)/app/discover/page.tsx");
     assert.match(discover, /fetchDiscoverV32|enrichDiscoverWorkers/);
     assert.match(src("lib/discover-v32-rpc.ts"), /enrichDiscoverWorkers/);
-    assert.match(src("app/(app)/app/saved/page.tsx"), /enrichDiscoverWorkers/);
+    assert.match(src("components/saved/load.ts"), /enrichDiscoverWorkers/);
     assert.match(src("lib/discover-suppliers.ts"), /enrichDiscoverWorkers/);
   });
 

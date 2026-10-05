@@ -16,6 +16,7 @@
 
 import type { MetadataRoute } from "next";
 
+import { PRODUCT, SOLUTIONS } from "@/components/site/map";
 import { COMPLIANCE_PAGES } from "@/lib/marketing/compliance-pages";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -31,6 +32,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticEntries: MetadataRoute.Sitemap = [
     { url: `${SITE_URL}/`, lastModified: now, changeFrequency: "daily", priority: 1.0 },
     { url: `${SITE_URL}/pricing`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
+    ...[...PRODUCT, ...SOLUTIONS].map((i) => ({ url: `${SITE_URL}${i.href}`, lastModified: now, changeFrequency: "monthly" as const, priority: 0.8 })),
+    ...["/methodology", "/security", "/suppliers", "/about", "/contact"].map((p) => ({ url: `${SITE_URL}${p}`, lastModified: now, changeFrequency: "monthly" as const, priority: 0.7 })),
     { url: `${SITE_URL}/status`, lastModified: now, changeFrequency: "hourly", priority: 0.5 },
     { url: `${SITE_URL}/legal/trademarks`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
     { url: `${SITE_URL}/legal/terms`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },

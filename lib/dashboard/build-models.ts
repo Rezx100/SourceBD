@@ -22,7 +22,6 @@
 // mother's: when only building rows are present the mother has no RSC block
 // and the tile says which building is covered.
 
-import type { SbIconName } from "@/components/dashboard/sb-icons";
 import type { TierRank } from "@/lib/design/tokens";
 import {
   certChipLabel,
@@ -53,9 +52,11 @@ import type {
   FactWithMark,
   HighlightChip,
   LocationRow,
+  SitePin,
   ProductSheetModel,
   RecordRfqRow,
   RfqRowModel,
+  SbIconName,
   SourceRow,
   SupplierCardModel,
   SupplierSheetModel,
@@ -64,6 +65,7 @@ import type {
 import { withoutContactDetails } from "@/lib/contact-text";
 import type { FacilityPanel } from "@/lib/format-facility-group";
 import { mergeUniqueLocations } from "@/lib/dedup-addresses";
+import type { GeocodeTarget } from "@/lib/barikoi";
 import { isKnownSource, marksFromTags, recordPage, sourceMark, tierWords, topTier, trustRankFromSlug, type SourceMarkModel } from "./source-tiers";
 
 export { recordPage } from "./source-tiers";
@@ -1056,6 +1058,11 @@ export type SheetOptions = {
   contactCounts?: ContactCounts | null;
   /** The record's buildings (`buyer_supplier_facility_panel`); `panel` null means not read. */
   facilities?: { panel: FacilityPanel | null };
+  /**
+   * The geocode cache's answer for each row of the Sites tab, in `locationTargets` order (null: no
+   * pin). Absent when it was not read; the rows then carry no `pin` at all and say nothing about a map.
+   */
+  pins?: readonly (SitePin | null)[];
   /** The calling buyer's own RFQs naming this supplier. `null` rows → the read failed. */
   rfqs?: { count: number | null; rows: RecordRfqRow[]; error?: boolean };
   /** Where Send RFQ goes for this record. */
@@ -1148,17 +1155,16 @@ function sourceRows(p: ProfilePayload): SourceRow[] {
  * Locations section uses — and the other spellings stay visible as
  * "Also recorded as", never silently dropped.
  */
-function locationRows(p: ProfilePayload): LocationRow[] {
+function locationRows(p: ProfilePayload, pins?: readonly (SitePin | null)[]): LocationRow[] {
   const hrefs = sourceHrefs(p);
-  const filed = mergeUniqueLocations(
-    (p.addresses ?? [])
-      .filter((a) => (a.address ?? "").trim())
-      .map((a) => ({ kind: a.kind, address: a.address, source_code: a.source_code ?? "", fetched_at: a.fetched_at ?? "" })),
-  ).map((loc) => ({
+  const merged = mergedLocations(p);
+  const filed: LocationRow[] = merged.map((loc, i) => ({
     kind: addressKindWords(loc.types),
     address: loc.displayAddress,
     marks: marksFromTags(loc.authorities.map((c) => c.toUpperCase()), hrefs),
     alsoRecordedAs: loc.variants.map((v) => v.address),
+    // A premises no register filed as a factory is an office: registered or mailing.
+    ...(pins ? { office: !loc.types.some((t) => /factory/i.test(t ?? "")), pin: pins[i] ?? null } : {}),
   }));
   // No register's address row survives, but the record holds the address the
   // Overview shows as "Factory address" (77 published records, 25 Sep; three
@@ -1166,8 +1172,34 @@ function locationRows(p: ProfilePayload): LocationRow[] {
   // under that row contradicted it (cycle 9). No register mark: none filed it
   // as a row.
   const raw = (p.supplier.address_raw ?? "").trim();
-  if (filed.length === 0 && p.addresses && raw) return [{ kind: "Factory", address: raw, marks: [], alsoRecordedAs: [] }];
+  if (filed.length === 0 && p.addresses && raw) {
+    return [{ kind: "Factory", address: raw, marks: [], alsoRecordedAs: [], ...(pins ? { office: false, pin: pins[0] ?? null } : {}) }];
+  }
   return filed;
+}
+
+/** The premises the registers filed, spellings merged: the one list the rows, the pins and the cache lookups all index. */
+function mergedLocations(p: ProfilePayload) {
+  return mergeUniqueLocations(
+    (p.addresses ?? [])
+      .filter((a) => (a.address ?? "").trim())
+      .map((a) => ({ kind: a.kind, address: a.address, source_code: a.source_code ?? "", fetched_at: a.fetched_at ?? "" })),
+  );
+}
+
+/**
+ * What to look up in the geocode cache, one target per row of `locationRows`
+ * in the same order. The cache is keyed on the RAW address each register filed
+ * (see `lib/barikoi.ts`), so a merged premises carries every spelling it was
+ * merged from; the cleaned display address would miss the cache.
+ */
+export function locationTargets(p: ProfilePayload): GeocodeTarget[] {
+  const merged = mergedLocations(p);
+  if (merged.length > 0) {
+    return merged.map((loc) => ({ label: loc.displayAddress, lookups: loc.source_rows.map((r) => r.address) }));
+  }
+  const raw = (p.supplier.address_raw ?? "").trim();
+  return p.addresses && raw ? [{ label: raw, lookups: [raw] }] : [];
 }
 
 /** "Factory", "Factory · Registered office" — the kinds the registers filed, deduplicated. */
@@ -1228,7 +1260,7 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
   // ONE pass of the matcher per sheet. The tab count and the section's rows
   // were two separate calls over the same input — the same work twice, and
   // this matcher is the CPU-bound suite the session notes warn about.
-  const locations = locationRows(p);
+  const locations = locationRows(p, options.pins);
   const addresses = locations.length;
   const addr = factoryAddress(p);
   // Every figure the register filed: 376 published records file both, and

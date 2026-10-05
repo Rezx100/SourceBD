@@ -1,155 +1,76 @@
-// /app/orders/new — Order compose form (Spec B8).
+// /app/orders/new: New order on the v4 frame (B5c, Paper `10 · New order`).
 //
-// Two entry modes:
-//   * `?from_quote=<uuid>` — resolve the accepted RFQ quote server-side
-//     and pre-bind supplier + product + price.
-//   * `?supplier=<uuid>`    — manual entry against a chosen supplier.
+// Three entries:
+//   * `?from_quote=<uuid>`: resolve the accepted RFQ quote server-side and pre-bind the supplier,
+//     product, quantity and price (the form says where it came from and has no Change).
+//   * `?supplier=<uuid>`: an order placed outside SourceBD, against a chosen supplier.
+//   * neither: choose the supplier, inline: the ones the buyer asked for a price first, then their
+//     saved ones, then a search. Only a published supplier that is not sanctioned reaches the form.
 
 import { notFound, redirect } from "next/navigation";
-
-import { Button } from "@/components/dashboard/controls";
-import { Icon } from "@/components/dashboard/icons";
-import { EmptyState, PageHeader, Page } from "@/components/dashboard/page";
-import { OrderCreateForm, type OrderSeed } from "@/components/order-create-form";
+import { ChooserPage } from "@/components/orders/chooser-page";
+import { acceptHint, chooserRows } from "@/components/orders/new-model";
+import { OrderForm, type OrderSeed } from "@/components/orders/new-order";
+import { placeLine, type RfqDoc } from "@/components/rfqs/doc";
+import { normaliseRow } from "@/components/rfqs/load";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const RECENT_RFQS = 5;
 
-async function NewOrderPageBody({
-  searchParams,
-}: {
-  searchParams: Promise<{ from_quote?: string; supplier?: string }>;
-}) {
+export default async function NewOrderPage({ searchParams }: { searchParams: Promise<{ from_quote?: string; supplier?: string }> }) {
   const sp = await searchParams;
   const supabase = await createSupabaseServerClient();
 
   if (sp.from_quote) {
-    if (!UUID_RE.test(sp.from_quote)) {
-      redirect("/app/orders");
+    if (!UUID_RE.test(sp.from_quote)) redirect("/app/orders");
+    const { data: quote, error } = await supabase.from("rfq_quotes").select("id, rfq_id, supplier_id, unit_price, currency, status").eq("id", sp.from_quote).maybeSingle();
+    if (error || !quote || quote.status !== "accepted") notFound();
+    const { data: doc, error: rErr } = await supabase.rpc("rfq_get", { p_id: quote.rfq_id });
+    if (rErr || doc == null) notFound();
+    const rfq = doc as RfqDoc;
+    const supplier = rfq.targets.find((t) => t.id === quote.supplier_id);
+    if (!supplier) notFound();
+    // An accepted quote starts one order. A second visit (Back, a saved link) opens that order instead of making a twin.
+    // Unreadable orders change nothing here: the form still opens, as before.
+    try {
+      const made = await supabase.rpc("order_list", { p_status: null });
+      const existing = !made.error && Array.isArray(made.data) ? (made.data as { id: string; rfq_id: string | null; supplier_id: string; status: string }[]).find((o) => o.rfq_id === quote.rfq_id && o.supplier_id === quote.supplier_id && o.status !== "cancelled") : undefined;
+      if (existing) redirect(`/app/orders/${existing.id}`);
+    } catch (err) {
+      if ((err as { digest?: string })?.digest?.startsWith("NEXT_REDIRECT")) throw err;
     }
-    // The RFQ document the buyer can already fetch via `rfq_get` contains
-    // every field we need (supplier metadata + quote + RFQ spec). Resolve
-    // the parent RFQ id from the quote, then call `rfq_get` for the rest.
-    const { data: quoteRow, error: qErr } = await supabase
-      .from("rfq_quotes")
-      .select("id, rfq_id, supplier_id, unit_price, currency, status")
-      .eq("id", sp.from_quote)
-      .maybeSingle();
-    if (qErr || !quoteRow || quoteRow.status !== "accepted") {
-      notFound();
-    }
-    const { data: rfqDoc, error: rErr } = await supabase.rpc("rfq_get", {
-      p_id: quoteRow.rfq_id,
-    });
-    if (rErr || rfqDoc == null) {
-      notFound();
-    }
-    const rfq = rfqDoc as {
-      product_title: string;
-      quantity: number;
-      quantity_unit: string;
-      ship_to_country: string | null;
-      ship_by: string | null;
-      targets: { id: string; slug: string; company_name: string }[];
-    };
-    const supplier = rfq.targets.find((t) => t.id === quoteRow.supplier_id);
-    if (!supplier) {
-      notFound();
-    }
-    const seed: OrderSeed = {
-      mode: "from_quote",
-      accepted_quote_id: quoteRow.id as string,
-      supplier_id: supplier.id,
-      supplier_name: supplier.company_name,
-      product_title: rfq.product_title,
-      quantity: rfq.quantity,
-      quantity_unit: rfq.quantity_unit,
-      unit_price: quoteRow.unit_price as number,
-      currency: (quoteRow.currency as string) ?? "USD",
-      ship_to_country: rfq.ship_to_country,
-      target_ship_date: rfq.ship_by,
-    };
+    const seed: OrderSeed = { supplierName: supplier.company_name, supplierLine: placeLine(supplier.entity_type, supplier.city, supplier.district), how: { quoteId: quote.id as string } };
     return (
-      <div className="flex max-w-3xl flex-col gap-5">
-        <PageHeader
-          title="New order"
-          caption={`From the accepted quote — ${supplier.company_name}`}
-          actions={
-            <Button href={`/app/rfqs/${quoteRow.rfq_id}`} clientNav>
-              <Icon name="chev-l" /> Back to RFQ
-            </Button>
-          }
-        />
-        <OrderCreateForm seed={seed} />
-      </div>
+      <OrderForm
+        seed={seed}
+        prefill={{ title: rfq.product_title, quantity: String(rfq.quantity), unit: rfq.quantity_unit, price: String(quote.unit_price), currency: (quote.currency as string) ?? "USD", shipTo: rfq.ship_to_country ?? "", shipBy: rfq.ship_by ?? "" }}
+        cancelHref={`/app/rfqs/${quote.rfq_id}`}
+        backLabel="Back to the RFQ"
+        changeHref={null}
+      />
     );
   }
 
   if (sp.supplier) {
-    if (!UUID_RE.test(sp.supplier)) {
-      redirect("/app/orders");
-    }
-    const { data, error } = await supabase
-      .from("suppliers")
-      .select("id, company_name, slug, is_published, is_sanctioned")
-      .eq("id", sp.supplier)
-      .maybeSingle();
-    if (error || !data || !data.is_published || data.is_sanctioned) {
-      notFound();
-    }
-    const seed: OrderSeed = {
-      mode: "manual",
-      supplier_id: data.id as string,
-      supplier_name: data.company_name as string,
-    };
-    return (
-      <div className="flex max-w-3xl flex-col gap-5">
-        <PageHeader
-          title="New order"
-          caption={`To ${data.company_name as string}`}
-          actions={
-            <Button href={`/app/suppliers/${data.slug}`} clientNav>
-              <Icon name="chev-l" /> Back to profile
-            </Button>
-          }
-        />
-        <OrderCreateForm seed={seed} />
-      </div>
-    );
+    if (!UUID_RE.test(sp.supplier)) redirect("/app/orders");
+    const { data, error } = await supabase.from("suppliers").select("id, company_name, slug, entity_type, city, district, is_published, is_sanctioned").eq("id", sp.supplier).maybeSingle();
+    if (error || !data || !data.is_published || data.is_sanctioned) notFound();
+    const seed: OrderSeed = { supplierName: data.company_name as string, supplierLine: placeLine((data.entity_type as string) ?? "", (data.city as string | null) ?? null, (data.district as string | null) ?? null), how: { supplierId: data.id as string } };
+    return <OrderForm seed={seed} prefill={{}} cancelHref="/app/orders" backLabel="Back to orders" changeHref="/app/orders/new" />;
   }
 
-  // No seed — point the buyer to Discover. Manual creation requires a
-  // supplier id, which the buyer picks from a supplier profile or by
-  // accepting an RFQ quote.
-  return (
-    <div className="flex flex-col gap-5">
-      <PageHeader title="New order" />
-      <div className="rounded-md border border-line-subtle bg-surface">
-        <EmptyState
-          icon="building"
-          title="Pick a supplier first"
-          action={
-            <>
-              <Button variant="primary" href="/app/discover" clientNav>
-                <Icon name="search" /> Browse Discover
-              </Button>
-              <Button href="/app/rfqs" clientNav>
-                View RFQs
-              </Button>
-            </>
-          }
-        >
-          Open a supplier profile from Discover and use &quot;Create order&quot; — or accept an RFQ quote to seed an
-          order automatically.
-        </EmptyState>
-      </div>
-    </div>
-  );
-}
-
-export default async function NewOrderPage(props: Parameters<typeof NewOrderPageBody>[0]) {
-  return <Page>{await NewOrderPageBody(props)}</Page>;
+  // Step one. The RFQs are soft: with none read, the chooser still has saved suppliers and a search.
+  let docs: RfqDoc[] = [];
+  try {
+    const list = await supabase.rpc("rfq_list", { p_status: null });
+    const rows = !list.error && Array.isArray(list.data) ? (list.data as Record<string, unknown>[]).map(normaliseRow).filter((r) => r.viewer_role !== "supplier" && r.status !== "cancelled").slice(0, RECENT_RFQS) : [];
+    const got = await Promise.all(rows.map((r) => Promise.resolve(supabase.rpc("rfq_get", { p_id: r.id })).then((x) => (!x.error && x.data ? (x.data as RfqDoc) : null), () => null)));
+    docs = got.filter((d): d is RfqDoc => d !== null);
+  } catch {
+    docs = [];
+  }
+  return <ChooserPage fromRfqs={chooserRows(docs)} hint={acceptHint(docs)} total={null} />;
 }

@@ -1,23 +1,19 @@
 // I-027 — Supplier portal landing skeleton. Mirrors the real
-// `app/(app)/(old-shell)/supplier/page.tsx`: a heading + claim CTA card + a stack of
-// owned-supplier cards. Sits inside the same shell padding as the page.
+// `app/(app)/(old-shell)/supplier/page.tsx`: a heading and lede, then a stack of
+// section blocks. Sits inside the portal frame's page padding.
 
-import { ProtoCardSkeleton } from "@/components/supplier/profile-skeleton";
-import { Skeleton, SkeletonRegion } from "@/components/ui/skeleton";
+import { RowSkeleton, Skeleton } from "@/components/kit";
 
 export default function SupplierHomeLoading() {
   return (
-    <SkeletonRegion className="mx-auto max-w-5xl space-y-6">
-      <header className="space-y-2">
-        <Skeleton w={70} h={10} />
-        <Skeleton w={220} h={32} />
+    <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6">
+      <header className="flex flex-col gap-2">
+        <Skeleton className="h-7 w-48" />
+        <Skeleton tone="subtle" className="h-4 w-96 max-w-full" />
       </header>
-      <ProtoCardSkeleton rows={2} title={180} />
-      <div className="space-y-3">
-        <Skeleton w={150} h={22} />
-        <ProtoCardSkeleton rows={3} title={200} />
-        <ProtoCardSkeleton rows={3} title={200} />
-      </div>
-    </SkeletonRegion>
+      <RowSkeleton rows={2} />
+      <RowSkeleton rows={3} />
+      <RowSkeleton rows={3} />
+    </div>
   );
 }

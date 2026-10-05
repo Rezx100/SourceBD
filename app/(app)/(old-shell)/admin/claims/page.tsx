@@ -5,19 +5,14 @@
 // admin-console page lands in spec A3 (Phase 4); this stub gives admins a
 // way to act on S1 traffic now.
 
-import Link from "next/link";
-
+import { Empty, InlineError, TabLink, Table, TableFrame, TableScroll, Td, Th, Tr, TypeChip } from "@/components/kit";
 import {
-  AdminActionLink,
-  AdminEmptyState,
-  AdminPage,
-  AdminPageHeader,
-  AdminPanel,
-  AdminTabs,
+  HeadLink,
+  QueueColumn,
+  QueueHead,
+  SupplierLink,
   humanizeAdminToken,
-} from "@/components/admin/admin-ui";
-import { Tag } from "@/components/ui/tag";
-import { ResponsiveTable, type Column } from "@/components/ui/responsive-table";
+} from "@/components/admin/queue-parts";
 import { ClaimAdminDecideButton } from "@/components/claim-admin-decide-button";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -60,122 +55,92 @@ export default async function AdminClaimsPage({
     []) as AdminRow[];
 
   return (
-    <AdminPage maxWidth="5xl">
-      <AdminPageHeader
-        kicker="Admin · Claims"
+    <QueueColumn>
+      <QueueHead
         title="Supplier claims"
-        description={`Manual-review claims that have cleared email verification. Current state: ${humanizeAdminToken(status)}.`}
-        actions={<AdminActionLink href="/admin/queue">Review hub</AdminActionLink>}
+        lede={`Manual-review claims that have cleared email verification. Current state: ${humanizeAdminToken(status)}.`}
+        actions={<HeadLink href="/admin/queue">Review hub</HeadLink>}
       />
 
-      <AdminTabs
-        label="Claim states"
-        items={(["email_verified", "approved", "rejected", "all"] as const).map((s) => ({
-          href: `/admin/claims?status=${s}`,
-          label: humanizeAdminToken(s),
-          active: s === status,
-        }))}
-      />
+      <nav aria-label="Claim states" className="flex gap-1 overflow-x-auto border-b border-line">
+        {(["email_verified", "approved", "rejected", "all"] as const).map((s) => (
+          <TabLink key={s} href={`/admin/claims?status=${s}`} current={s === status} prefetch={false}>
+            {humanizeAdminToken(s)}
+          </TabLink>
+        ))}
+      </nav>
 
-      {error ? (
-        <AdminPanel>
-            <p className="text-sm text-sem-red">
-              Failed to load: {error.message}
-            </p>
-        </AdminPanel>
-      ) : null}
+      {error ? <InlineError>Failed to load: {error.message}</InlineError> : null}
 
-      <AdminPanel
-        title="Claim queue"
-        meta={`${rows.length} shown in the current state`}
-        padded={false}
-      >
-          {rows.length === 0 ? (
-            <div className="p-4 sm:p-5">
-              <AdminEmptyState title="No claims in this state" />
-            </div>
-          ) : (
-            <ResponsiveTable
-              mode="stacked"
-              columns={CLAIM_COLUMNS}
-              rows={rows}
-              rowKey={(r) => r.id}
-              caption="Supplier claims"
-              className="border-0 shadow-none"
-            />
-          )}
-      </AdminPanel>
-    </AdminPage>
+      <section className="flex flex-col gap-3">
+        <div className="flex flex-col gap-0.5">
+          <h2 className="text-lg font-semibold text-ink">Claim queue</h2>
+          <p className="text-sm text-ink-3">{`${rows.length} shown in the current state`}</p>
+        </div>
+        {rows.length === 0 ? (
+          <Empty title="No claims in this state" />
+        ) : (
+          <TableFrame>
+            <TableScroll>
+              <Table>
+                <caption className="sr-only">Supplier claims</caption>
+                <thead>
+                  <tr>
+                    <Th>Supplier</Th>
+                    <Th>Entity</Th>
+                    <Th>Proof</Th>
+                    <Th>Verified</Th>
+                    <Th align="right">
+                      <span className="sr-only">Action</span>
+                    </Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r) => (
+                    <Tr key={r.id} className="align-top">
+                      <Td>
+                        <span className="flex flex-wrap items-center gap-1.5">
+                          <SupplierLink id={r.supplier.id}>{r.supplier.company_name}</SupplierLink>
+                          <TypeChip>{r.method === "domain_email" ? "Domain" : "Manual"}</TypeChip>
+                          <TypeChip>{humanizeAdminToken(r.status)}</TypeChip>
+                        </span>
+                      </Td>
+                      <Td>
+                        <span className="block text-sm text-ink-3">
+                          {humanizeAdminToken(r.supplier.entity_type)} ·{" "}
+                          {[r.supplier.city, r.supplier.district].filter(Boolean).join(", ") || "—"}
+                          {r.supplier.website ? ` · ${r.supplier.website}` : ""}
+                        </span>
+                      </Td>
+                      <Td>
+                        <span className="block text-sm text-ink-2">
+                          <span className="font-mono text-ink">{r.proof_email}</span> · claimant{" "}
+                          <span className="font-mono">{r.claimant_email}</span>
+                        </span>
+                      </Td>
+                      <Td>
+                        <span className="block text-sm text-ink-3">
+                          {r.email_verified_at ? new Date(r.email_verified_at).toLocaleDateString() : "—"}
+                          {r.decided_at ? ` · decided ${new Date(r.decided_at).toLocaleDateString()}` : ""}
+                          {r.note ? <span className="block text-ink-2">{r.note}</span> : null}
+                          {r.decision_note ? <span className="block">Decision: {r.decision_note}</span> : null}
+                        </span>
+                      </Td>
+                      <Td align="right">
+                        {r.status === "email_verified" ? (
+                          <ClaimAdminDecideButton id={r.id} label={r.supplier.company_name} />
+                        ) : (
+                          <span className="text-ink-3">—</span>
+                        )}
+                      </Td>
+                    </Tr>
+                  ))}
+                </tbody>
+              </Table>
+            </TableScroll>
+          </TableFrame>
+        )}
+      </section>
+    </QueueColumn>
   );
 }
-
-const CLAIM_COLUMNS: Column<AdminRow>[] = [
-  {
-    key: "supplier",
-    label: "Supplier",
-    render: (r) => (
-      <span className="flex flex-wrap items-center gap-1.5">
-        <Link
-          href={`/admin/suppliers/${r.supplier.id}`}
-          className="text-sm font-semibold text-ink-primary hover:underline"
-        >
-          {r.supplier.company_name}
-        </Link>
-        <Tag>{r.method === "domain_email" ? "Domain" : "Manual"}</Tag>
-        <Tag>{humanizeAdminToken(r.status)}</Tag>
-      </span>
-    ),
-  },
-  {
-    key: "where",
-    label: "Entity",
-    render: (r) => (
-      <span className="block text-xs text-ink-tertiary">
-        {humanizeAdminToken(r.supplier.entity_type)} ·{" "}
-        {[r.supplier.city, r.supplier.district].filter(Boolean).join(", ") ||
-          "—"}
-        {r.supplier.website ? ` · ${r.supplier.website}` : ""}
-      </span>
-    ),
-  },
-  {
-    key: "proof",
-    label: "Proof",
-    render: (r) => (
-      <span className="block text-xs text-ink-secondary">
-        <span className="font-mono text-ink-primary">{r.proof_email}</span> ·
-        claimant <span className="font-mono">{r.claimant_email}</span>
-      </span>
-    ),
-  },
-  {
-    key: "meta",
-    label: "Verified",
-    render: (r) => (
-      <span className="block text-[12px] text-ink-tertiary">
-        {r.email_verified_at
-          ? new Date(r.email_verified_at).toLocaleDateString()
-          : "—"}
-        {r.decided_at
-          ? ` · decided ${new Date(r.decided_at).toLocaleDateString()}`
-          : ""}
-        {r.note ? <span className="block text-ink-secondary">{r.note}</span> : null}
-        {r.decision_note ? (
-          <span className="block">Decision: {r.decision_note}</span>
-        ) : null}
-      </span>
-    ),
-  },
-  {
-    key: "action",
-    label: "",
-    numeric: true,
-    render: (r) =>
-      r.status === "email_verified" ? (
-        <ClaimAdminDecideButton id={r.id} label={r.supplier.company_name} />
-      ) : (
-        <span className="text-ink-tertiary">—</span>
-      ),
-  },
-];
-

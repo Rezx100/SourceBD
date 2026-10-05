@@ -5,22 +5,33 @@
 import Link from "next/link";
 
 import {
-  ADMIN_INPUT_CLASS,
-  ADMIN_SELECT_CLASS,
-  AdminEmptyState,
-  AdminField,
-  AdminFilterPanel,
-  AdminPage,
-  AdminPageHeader,
-  AdminPagination,
-  AdminPanel,
+  AdminColumn,
+  AdminHead,
+  AdminSection,
+  StatusChip,
+  adminFieldClass,
   formatAdminDate,
   humanizeAdminToken,
-} from "@/components/admin/admin-ui";
-import { Badge } from "@/components/ui/badge";
-import { ResponsiveTable, type Column } from "@/components/ui/responsive-table";
-import { Tag } from "@/components/ui/tag";
+} from "@/components/admin/data-ui";
+import {
+  Button,
+  ButtonLink,
+  Empty,
+  Field,
+  InlineError,
+  Pagination,
+  Table,
+  TableFrame,
+  TableScroll,
+  Td,
+  Th,
+  Tr,
+  TypeChip,
+  linkClass,
+  rowLinkClass,
+} from "@/components/kit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -64,12 +75,6 @@ function asStr(v: string | string[] | undefined): string {
   return s ?? "";
 }
 
-function roleTone(r: Row["role"]): "neutral" | "active" | "alert" {
-  if (r === "admin") return "alert";
-  if (r === "supplier") return "active";
-  return "neutral";
-}
-
 export default async function AdminUsersPage({
   searchParams,
 }: {
@@ -98,15 +103,13 @@ export default async function AdminUsersPage({
 
   if (error || data == null) {
     return (
-      <AdminPage maxWidth="5xl">
+      <AdminColumn>
         <UsersHeader />
-        <AdminPanel>
-          <p className="text-sm text-sem-red">
-            Could not load users
-            {error?.message ? <>: {error.message}</> : null}.
-          </p>
-        </AdminPanel>
-      </AdminPage>
+        <InlineError>
+          Could not load users
+          {error?.message ? <>: {error.message}</> : null}.
+        </InlineError>
+      </AdminColumn>
     );
   }
 
@@ -125,33 +128,17 @@ export default async function AdminUsersPage({
   };
 
   return (
-    <AdminPage maxWidth="5xl">
+    <AdminColumn>
       <UsersHeader total={doc.total} />
 
-      <AdminFilterPanel
-        title="Find users"
-        description="Search by email or display name, then narrow by role and access status."
-      >
-          <form
-            method="get"
-            action="/admin/users"
-            className="grid grid-cols-1 gap-3 sm:grid-cols-4"
-          >
-            <AdminField label="Search user">
-              <input
-                type="search"
-                name="q"
-                defaultValue={search}
-                placeholder="Email or name"
-                className={ADMIN_INPUT_CLASS}
-              />
-            </AdminField>
-            <AdminField label="Role">
-              <select
-                name="role"
-                defaultValue={roleFilter}
-                className={ADMIN_SELECT_CLASS}
-              >
+      <AdminSection title="Find users" description="Search by email or display name, then narrow by role and access status.">
+        <form method="get" action="/admin/users" className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+          <Field label="Search user">
+            {(a) => <input {...a} type="search" name="q" defaultValue={search} placeholder="Email or name" className={adminFieldClass} />}
+          </Field>
+          <Field label="Role">
+            {(a) => (
+              <select {...a} name="role" defaultValue={roleFilter} className={adminFieldClass}>
                 <option value="">Any</option>
                 {ROLES.map((r) => (
                   <option key={r} value={r}>
@@ -159,142 +146,105 @@ export default async function AdminUsersPage({
                   </option>
                 ))}
               </select>
-            </AdminField>
-            <AdminField label="Status">
-              <select
-                name="status"
-                defaultValue={status}
-                className={ADMIN_SELECT_CLASS}
-              >
+            )}
+          </Field>
+          <Field label="Status">
+            {(a) => (
+              <select {...a} name="status" defaultValue={status} className={adminFieldClass}>
                 {STATUSES.map((s) => (
                   <option key={s} value={s}>
                     {humanizeAdminToken(s)}
                   </option>
                 ))}
               </select>
-            </AdminField>
-            <div className="flex items-end">
-              <button
-                type="submit"
-                className="min-h-[44px] rounded-pill border border-brand-forest bg-brand-forest px-4 text-sm font-semibold text-white hover:bg-brand-forest-mid"
-              >
-                Apply
-              </button>
-            </div>
-          </form>
-      </AdminFilterPanel>
+            )}
+          </Field>
+          <div className="flex items-end">
+            <Button type="submit" kind="primary">Apply</Button>
+          </div>
+        </form>
+      </AdminSection>
 
-      <AdminPanel
-        title="Users"
-        meta={`${doc.total} total · page ${page} / ${totalPages}`}
-        padded={false}
-      >
-          {doc.rows.length === 0 ? (
-            <div className="p-4 sm:p-5">
-              <AdminEmptyState
-                title="No users match"
-                description="Try clearing the search or choosing a wider status."
-              />
-            </div>
-          ) : (
-            <ResponsiveTable
-              mode="stacked"
-              columns={USER_COLUMNS}
-              rows={doc.rows}
-              rowKey={(r) => r.user_id}
-              caption="Users"
-              className="border-0 shadow-none"
+      <section aria-label="Users" className="flex flex-col gap-2">
+        <p className="text-sm text-ink-3">{`${doc.total} total · page ${page} / ${totalPages}`}</p>
+        {doc.rows.length === 0 ? (
+          <Empty title="No users match">Try clearing the search or choosing a wider status.</Empty>
+        ) : (
+          <TableFrame>
+            <TableScroll>
+              <Table aria-label="Users">
+                <thead>
+                  <tr>
+                    <Th>User</Th>
+                    <Th>Role</Th>
+                    <Th>Plan</Th>
+                    <Th>Claims</Th>
+                    <Th>Activity</Th>
+                    <Th>
+                      <span className="sr-only">Manage</span>
+                    </Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {doc.rows.map((r) => (
+                    <Tr key={r.user_id}>
+                      <Td>
+                        <Link href={`/admin/users/${r.user_id}`} className={rowLinkClass}>
+                          {r.display_name || r.email}
+                        </Link>
+                        <span className="block font-mono text-sm text-ink-3 [overflow-wrap:anywhere]">{r.email}</span>
+                      </Td>
+                      <Td>
+                        <span className="flex flex-wrap items-center gap-1.5">
+                          <TypeChip>{humanizeAdminToken(r.role)}</TypeChip>
+                          {r.is_suspended ? <StatusChip tone="danger">suspended</StatusChip> : null}
+                        </span>
+                      </Td>
+                      <Td>{r.plan_tier ? <TypeChip>{r.plan_tier}</TypeChip> : <span className="text-ink-3">—</span>}</Td>
+                      <Td>
+                        {r.claimed_supplier ? (
+                          <Link href={`/admin/suppliers/${r.claimed_supplier.id}`} className={cn(linkClass, "font-mono text-sm")}>
+                            {r.claimed_supplier.company_name}
+                          </Link>
+                        ) : (
+                          <span className="text-ink-3">—</span>
+                        )}
+                      </Td>
+                      <Td className="text-sm text-ink-3">
+                        created {formatAdminDate(r.created_at)}
+                        {r.last_sign_in_at ? ` · last ${formatAdminDate(r.last_sign_in_at)}` : " · never"}
+                        {` · ${r.audit_count} audit`}
+                      </Td>
+                      <Td align="right">
+                        <ButtonLink href={`/admin/users/${r.user_id}`}>Manage</ButtonLink>
+                      </Td>
+                    </Tr>
+                  ))}
+                </tbody>
+              </Table>
+            </TableScroll>
+            <Pagination
+              noun="users"
+              from={offset + 1}
+              to={offset + doc.rows.length}
+              total={doc.total}
+              page={page}
+              pages={totalPages}
+              prevHref={page > 1 ? pageHref(page - 1) : undefined}
+              nextHref={page < totalPages ? pageHref(page + 1) : undefined}
             />
-          )}
-      </AdminPanel>
-
-      <AdminPagination page={page} totalPages={totalPages} pageHref={pageHref} />
-    </AdminPage>
+          </TableFrame>
+        )}
+      </section>
+    </AdminColumn>
   );
 }
 
-const USER_COLUMNS: Column<Row>[] = [
-  {
-    key: "user",
-    label: "User",
-    render: (r) => (
-      <span className="block min-w-0">
-        <Link
-          href={`/admin/users/${r.user_id}`}
-          className="text-sm font-semibold text-ink-primary hover:underline"
-        >
-          {r.display_name || r.email}
-        </Link>
-        <span className="block font-mono text-xs text-ink-tertiary">
-          {r.email}
-        </span>
-      </span>
-    ),
-  },
-  {
-    key: "role",
-    label: "Role",
-    render: (r) => (
-      <span className="flex flex-wrap items-center gap-1.5">
-        <Badge tone={roleTone(r.role)}>{humanizeAdminToken(r.role)}</Badge>
-        {r.is_suspended ? <Badge tone="alert">suspended</Badge> : null}
-      </span>
-    ),
-  },
-  {
-    key: "plan",
-    label: "Plan",
-    render: (r) => (r.plan_tier ? <Tag>{r.plan_tier}</Tag> : "—"),
-  },
-  {
-    key: "claims",
-    label: "Claims",
-    render: (r) =>
-      r.claimed_supplier ? (
-        <Link
-          href={`/admin/suppliers/${r.claimed_supplier.id}`}
-          className="font-mono text-[13px] text-accent-indigo hover:underline"
-        >
-          {r.claimed_supplier.company_name}
-        </Link>
-      ) : (
-        "—"
-      ),
-  },
-  {
-    key: "activity",
-    label: "Activity",
-    render: (r) => (
-      <span className="text-[12px] text-ink-tertiary">
-        created {formatAdminDate(r.created_at)}
-        {r.last_sign_in_at
-          ? ` · last ${formatAdminDate(r.last_sign_in_at)}`
-          : " · never"}
-        {` · ${r.audit_count} audit`}
-      </span>
-    ),
-  },
-  {
-    key: "manage",
-    label: "",
-    numeric: true,
-    render: (r) => (
-      <Link
-        href={`/admin/users/${r.user_id}`}
-        className="inline-flex h-[44px] items-center rounded-pill border border-hairline px-4 text-xs text-ink-secondary hover:border-accent-indigo hover:text-accent-indigo"
-      >
-        Manage
-      </Link>
-    ),
-  },
-];
-
 function UsersHeader({ total }: { total?: number }) {
   return (
-    <AdminPageHeader
-      kicker="Admin · Access"
+    <AdminHead
       title="Users & access"
-      description={`Roles, suspensions, and per-user audit drilldown.${total != null ? ` ${total} accounts.` : ""}`}
+      lede={`Roles, suspensions, and per-user audit drilldown.${total != null ? ` ${total} accounts.` : ""}`}
     />
   );
 }

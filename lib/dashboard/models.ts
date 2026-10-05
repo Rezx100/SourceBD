@@ -2,13 +2,34 @@
 // the RPC payloads (`lib/dashboard/build-models.ts`); components only read
 // them, so a boundary test can construct one and assert the rendered HTML.
 
-import type { IconName } from "@/components/dashboard/icons";
-import type { ChipTone } from "@/components/dashboard/chips";
-import type { SbIconName } from "@/components/dashboard/sb-icons";
 import type { TierRank } from "@/lib/design/tokens";
 import type { CertModel, CertState } from "./facts";
 import type { PhotoTileModel } from "./hs-photos";
 import type { SourceMarkModel } from "./source-tiers";
+
+/** The words a model uses for the icon beside a chip, a status or a rail item. The v4 views map them to their own glyphs. */
+export type IconName = "search" | "bookmark" | "send" | "building" | "tag" | "list" | "funnel" | "chat" | "box" | "shield" | "gear" | "check-c" | "clock" | "warn";
+
+/** The words a model uses for what a fact is (a place, a year, workers). The record's views read only `address`. */
+export type SbIconName =
+  | "address"
+  | "established"
+  | "workers"
+  | "register"
+  | "company"
+  | "factory"
+  | "buying-house"
+  | "group"
+  | "zone"
+  | "women-men"
+  | "machines"
+  | "capacity"
+  | "receipt"
+  | "certificate"
+  | "brand-list";
+
+/** A chip's tone: facts in status hues, never a score. */
+export type ChipTone = "positive" | "caution" | "neutral" | "quiet" | "sanction" | "on";
 
 /** A fact on a meta line: its words and the mark of the register it came from. */
 export type FactWithMark = {
@@ -169,6 +190,15 @@ export type SourceRow = {
 /** One extension building: its name, its first filed address (contact details stripped) and its worker figure. */
 export type FacilityRowModel = { name: string; address: string | null; workers: string | null };
 
+/** Where the geocode cache puts a premises (`address_geocodes`, filled by the ETL; the page never geocodes). */
+export type SitePin = {
+  latitude: number;
+  longitude: number;
+  /** The geocoder's own confidence in the match; null when the cache row predates it. */
+  confidencePct: number | null;
+  addressStatus: string | null;
+};
+
 /** One premises on the Locations section, after the address matcher has merged spellings. */
 export type LocationRow = {
   kind: string;
@@ -176,6 +206,10 @@ export type LocationRow = {
   marks: SourceMarkModel[];
   /** The other spellings the registers filed for the same premises. */
   alsoRecordedAs: string[];
+  /** No register filed it as a factory: a registered or mailing address. Set only when the record is built with pins. */
+  office?: boolean;
+  /** Its place on the map, or null when the cache holds none. Absent when pins were not read. */
+  pin?: SitePin | null;
 };
 
 /**

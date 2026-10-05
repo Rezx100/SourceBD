@@ -1,6 +1,6 @@
 // REZ-C (handoff §3.4) — one HS export line of one record, as its own page.
-// The same `ProductSheet` the /dev/ds gallery renders; the record's Products
-// grid links each tile here.
+// The same `LineView` the search draws beside its results; the record's Products
+// list links each line here.
 //
 // The photo is the shared illustrative catalogue photo for the 4-digit
 // heading, never the supplier's own product, and the caption says so. A
@@ -8,7 +8,7 @@
 
 import { notFound, redirect } from "next/navigation";
 
-import { ProductSheet } from "@/components/dashboard/product-sheet";
+import { LineView } from "@/components/record";
 import { heading4 } from "@/lib/dashboard/hs-photos";
 import { LinesUnreadable, ProfileReadTimeout, loadRecordLine } from "@/lib/dashboard/load-record";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -23,10 +23,11 @@ export default async function ProductLinePage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { slug, hs } = await params;
-  // Opened from the record's expanded grid (`?lines=all`), Back returns to it.
+  // A line is opened from the record's Products tab; opened from its expanded list
+  // (`?lines=all`), Back returns to that list.
   const linesRaw = (await searchParams).lines;
   const allLines = (Array.isArray(linesRaw) ? linesRaw[0] : linesRaw) === "all";
-  const recordHref = allLines ? `/app/suppliers/${slug}?lines=all` : `/app/suppliers/${slug}`;
+  const recordHref = `/app/suppliers/${slug}?tab=products${allLines ? "&lines=all" : ""}`;
   // No `decodeURIComponent` here. Next already decodes dynamic segments, so a
   // second pass threw `URIError` on a segment containing a bare `%`
   // (`/lines/%`) — an unhandled throw inside a server component, which is a 500
@@ -54,5 +55,5 @@ export default async function ProductLinePage({
   }
   if (!model) notFound();
 
-  return <ProductSheet model={model} mode="page" />;
+  return <LineView model={model} mode="page" />;
 }

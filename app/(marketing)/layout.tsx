@@ -3,7 +3,7 @@
 // page (`/`, `/pricing`, `/legal/trademarks`) renders the same chrome.
 // Per-page `<main>` content sits between them.
 //
-// The chrome + metadata defaults live in `components/marketing/chrome.tsx`,
+// The chrome + metadata defaults live in `components/site/chrome.tsx`,
 // shared with `app/(public)` (the supplier profile route group) so the two
 // marketing-surface groups can never drift.
 //
@@ -12,7 +12,7 @@
 // --mkt-font-* CSS variables to the root --font-* set by next/font, so all
 // marketing styles resolve correctly without a duplicate font bundle here.
 
-import { MarketingChrome, marketingMetadata } from "@/components/marketing/chrome";
+import { MarketingChrome, marketingMetadata } from "@/components/site/chrome";
 
 export const metadata = marketingMetadata;
 

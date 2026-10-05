@@ -22,6 +22,7 @@ import {
   SealCheck,
 } from "@phosphor-icons/react/dist/ssr";
 
+import { Button, fieldBox, fieldEdge } from "@/components/kit";
 import { cn } from "@/lib/utils";
 
 type Suggestion =
@@ -193,7 +194,7 @@ export function DiscoverSearchBox({ basePath, profileBase, q, sort }: Props) {
           goToSearch(value);
         }
       }}
-      className="flex w-full flex-col gap-2 sm:flex-row sm:items-stretch"
+      className="flex w-full max-w-[560px] gap-2 max-sm:flex-col"
     >
       {sort && sort !== "default" ? (
         <input type="hidden" name="sort" value={sort} />
@@ -204,12 +205,11 @@ export function DiscoverSearchBox({ basePath, profileBase, q, sort }: Props) {
       </label>
 
       <div ref={containerRef} className="relative flex-1">
-        <div className="relative rounded-input border border-neutral-200 bg-white shadow-[0_1px_3px_rgba(15,15,20,0.06)] transition-[border-color,box-shadow] focus-within:border-brand-forest/40 focus-within:shadow-[0_1px_4px_rgba(15,82,70,0.08)]">
+        <div className="relative">
           <MagnifyingGlass
             aria-hidden
-            size={18}
-            weight="bold"
-            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400"
+            size={20}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-3"
           />
           <input
             id="discover-hero-q"
@@ -221,7 +221,7 @@ export function DiscoverSearchBox({ basePath, profileBase, q, sort }: Props) {
               if (value.trim() && suggestions.length > 0) setOpen(true);
             }}
             onKeyDown={onKeyDown}
-            placeholder="e.g. OEKO-TEX, Gazipur knitwear"
+            placeholder="Supplier, product or certificate"
             inputMode="search"
             autoComplete="off"
             role="combobox"
@@ -229,24 +229,24 @@ export function DiscoverSearchBox({ basePath, profileBase, q, sort }: Props) {
             aria-controls={listId}
             aria-autocomplete="list"
             aria-activedescendant={activeDescendant}
-            className="r9r4-hero-input w-full rounded-input border-0 bg-transparent py-3.5 pl-10 pr-9 text-[16px] font-medium text-neutral-900 outline-none placeholder:font-normal placeholder:text-neutral-500 sm:text-base"
+            className={cn(fieldBox, fieldEdge, "h-12 pl-10 pr-9 text-md max-sm:h-input-touch")}
           />
           {loading ? (
             <span
               aria-hidden
-              className="absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin rounded-full border-2 border-neutral-200 border-t-brand-forest"
+              className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin rounded-full border-2 border-line border-t-brand motion-reduce:animate-none"
             />
           ) : null}
         </div>
 
         {hasDropdown ? (
-          <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-input border border-neutral-200 bg-white py-1 shadow-[0_8px_24px_rgba(15,15,20,0.1)]">
+          <div className="absolute inset-x-0 top-full z-toast mt-1.5 rounded-lg border border-line bg-surface p-1 shadow-menu">
             {showEmpty ? (
-              <p className="px-3.5 py-3 text-left text-sm text-ink-tertiary">
+              <p className="px-2 py-2 text-left text-base text-ink-2">
                 No matches. Press Enter to search &ldquo;{value.trim()}&rdquo; anyway.
               </p>
             ) : (
-              <ul id={listId} role="listbox" aria-label="Search suggestions">
+              <ul id={listId} role="listbox" aria-label="Search suggestions" className="max-h-[min(28rem,60dvh)] overflow-y-auto">
                 {suggestions.map((s, i) => {
                   const Icon = TYPE_ICON[s.type];
                   const hint = TYPE_HINT[s.type];
@@ -262,35 +262,16 @@ export function DiscoverSearchBox({ basePath, profileBase, q, sort }: Props) {
                         type="button"
                         onMouseEnter={() => setActiveIndex(i)}
                         onClick={() => selectSuggestion(s)}
-                        className={cn(
-                          "flex w-full items-center gap-3 px-3.5 py-2.5 text-left transition-colors",
-                          isActive ? "bg-brand-forest-tint" : "hover:bg-neutral-50",
-                        )}
+                        className={cn("flex min-h-11 w-full items-center gap-3 rounded-sm px-2 py-1.5 text-left", isActive && "bg-brand-wash")}
                       >
-                        <Icon
-                          aria-hidden
-                          size={18}
-                          weight="regular"
-                          className={cn(
-                            "shrink-0",
-                            s.type === "company" ? "text-brand-forest" : "text-neutral-400",
-                          )}
-                        />
+                        <Icon aria-hidden size={18} className="shrink-0 text-ink-3" />
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium text-ink-primary">
-                            {s.label}
-                          </span>
+                          <span className="block text-base font-medium text-ink [overflow-wrap:anywhere]">{s.label}</span>
                           {s.type === "company" && s.sublabel ? (
-                            <span className="block truncate text-xs text-ink-tertiary">
-                              {s.sublabel}
-                            </span>
+                            <span className="block text-xs text-ink-3">{s.sublabel}</span>
                           ) : null}
                         </span>
-                        {hint ? (
-                          <span className="shrink-0 rounded-pill bg-neutral-100 px-2 py-0.5 text-[11px] font-medium text-ink-tertiary">
-                            {hint}
-                          </span>
-                        ) : null}
+                        {hint ? <span className="shrink-0 text-xs text-ink-3">{hint}</span> : null}
                       </button>
                     </li>
                   );
@@ -301,12 +282,9 @@ export function DiscoverSearchBox({ basePath, profileBase, q, sort }: Props) {
         ) : null}
       </div>
 
-      <button
-        type="submit"
-        className="btn-proto primary min-h-[48px] shrink-0 justify-center px-6 sm:px-7"
-      >
+      <Button type="submit" kind="primary" size="lg" className="h-12 px-6 max-sm:h-input-touch">
         Search
-      </button>
+      </Button>
     </form>
   );
 }

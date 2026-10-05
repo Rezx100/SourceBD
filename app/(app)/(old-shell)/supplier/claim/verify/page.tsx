@@ -5,27 +5,12 @@
 // status page on success or render an error card on failure.
 
 import { headers } from "next/headers";
-import Link from "next/link";
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardMeta,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tag } from "@/components/ui/tag";
-import { Wizard } from "@/components/ui/wizard";
+import { ClaimStatusChip, ClaimSteps } from "@/components/claim/parts";
+import { ButtonLink, ErrorPanel } from "@/components/kit";
 import { AppOriginError, getCanonicalAppOrigin } from "@/lib/app-origin";
 
 export const dynamic = "force-dynamic";
-
-const CLAIM_STEPS = [
-  { id: "search", label: "Find company" },
-  { id: "initiate", label: "Verify ownership" },
-  { id: "verify", label: "Confirm" },
-];
 
 export default async function ClaimVerifyPage({
   searchParams,
@@ -97,51 +82,43 @@ export default async function ClaimVerifyPage({
 
   const approved = result.outcome === "approved";
   return (
-    <div className="mx-auto max-w-md">
-      <Wizard steps={CLAIM_STEPS} current={2}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Email verified</CardTitle>
-            <CardMeta>Spec S1</CardMeta>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <Tag>{approved ? "Claim approved" : "Awaiting admin review"}</Tag>
-            <p className="text-ink-secondary">
-              {approved
-                ? "Your domain matched the company record. You now own this profile."
-                : "Thanks. An admin will review your request and notify you of the decision."}
-            </p>
-            {result.claim_id ? (
-              <Button asChild variant="primary">
-                <Link href={`/supplier/claim/${result.claim_id}`}>View claim</Link>
-              </Button>
-            ) : (
-              <Button asChild variant="primary">
-                <Link href="/supplier/claim">Back to claims</Link>
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      </Wizard>
+    <div className="mx-auto flex w-full max-w-[560px] flex-col gap-6">
+      <ClaimSteps current={2} />
+      <header className="flex flex-col gap-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">Email verified</h1>
+      </header>
+      <div>
+        <ClaimStatusChip status={approved ? "approved" : "email_verified"}>
+          {approved ? "Claim approved" : "Awaiting admin review"}
+        </ClaimStatusChip>
+      </div>
+      <p className="text-md text-ink-2">
+        {approved
+          ? "Your domain matched the company record. You now own this profile."
+          : "Thanks. An admin will review your request and notify you of the decision."}
+      </p>
+      <div>
+        {result.claim_id ? (
+          <ButtonLink kind="primary" href={`/supplier/claim/${result.claim_id}`}>
+            View claim
+          </ButtonLink>
+        ) : (
+          <ButtonLink kind="primary" href="/supplier/claim">
+            Back to claims
+          </ButtonLink>
+        )}
+      </div>
     </div>
   );
 }
 
 function ErrorCard({ title, detail }: { title: string; detail: string }) {
   return (
-    <div className="mx-auto max-w-md">
-      <Card>
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-          <CardMeta>Spec S1</CardMeta>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          <p className="text-ink-secondary">{detail}</p>
-          <Button asChild variant="outline">
-            <Link href="/supplier/claim">Back to claims</Link>
-          </Button>
-        </CardContent>
-      </Card>
+    <div className="mx-auto flex w-full max-w-[560px] flex-col gap-6">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">{title}</h1>
+      </header>
+      <ErrorPanel title={detail} retry={<ButtonLink href="/supplier/claim">Back to claims</ButtonLink>} />
     </div>
   );
 }

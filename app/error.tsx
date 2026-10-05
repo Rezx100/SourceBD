@@ -1,50 +1,27 @@
 "use client";
 
-// Per-segment error boundary. Catches errors thrown during render in any
-// route under `app/` that isn't covered by a more specific boundary. Renders
-// inside the root layout (fonts + globals.css still apply).
+// Per-segment error boundary (Paper `20 Onboarding` S9). Catches errors thrown during render in any
+// route under `app/` that has no boundary of its own. It says what is safe, offers Try again and the
+// way out, and gives the reference (the error's digest) for support. Never the error's own message.
 
-import Link from "next/link";
+import { AuthLink } from "@/components/auth/link";
+import { StatePage } from "@/components/auth/state";
+import { Button } from "@/components/kit";
 
-import { BlurFade } from "@/components/ui/blur-fade";
-import { MagicCard } from "@/components/ui/magic-card";
-import { Button } from "@/components/ui/button";
-
-export default function RootError({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
+export default function RootError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
-    <main className="mx-auto flex min-h-[60vh] max-w-lg items-center px-6 py-16">
-      <BlurFade delay={0.05} className="w-full">
-        <MagicCard
-          className="w-full rounded-xl border border-hairline bg-surface-l1 px-8 py-10"
-          gradientColor="#ecf3ee"
-          gradientOpacity={0.08}
-        >
-          <p className="font-mono text-[12px] font-medium uppercase tracking-[0.14em] text-sem-amber">
-            {error.digest ?? "500"}
-          </p>
-          <h1 className="mt-2 font-display text-[24px] font-bold tracking-tight text-ink-primary">
-            Something went wrong
-          </h1>
-          <p className="mt-3 max-w-xs text-sm leading-relaxed text-ink-secondary">
-            An unexpected error interrupted this page. The incident has been
-            logged.
-          </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Button variant="primary" size="sm" onClick={() => reset()}>
-              Try again
-            </Button>
-            <Button asChild variant="outline" size="sm">
-              <Link href="/">Back to home</Link>
-            </Button>
-          </div>
-        </MagicCard>
-      </BlurFade>
-    </main>
+    <StatePage
+      barLink={<AuthLink href="/login">Sign in</AuthLink>}
+      kicker="Something went wrong"
+      title="We couldn't load this page"
+      body="Your searches and saved suppliers are safe. Try again in a moment."
+      primary={
+        <Button kind="primary" size="lg" className="max-sm:h-input-touch max-sm:text-md" onClick={() => reset()}>
+          Try again
+        </Button>
+      }
+      actions={[{ label: "Go to Search", href: "/app", secondary: true }]}
+      note={error.digest ? `Error 500 · reference ${error.digest}. Tell support this if it keeps happening.` : "Error 500. Tell support if it keeps happening."}
+    />
   );
 }

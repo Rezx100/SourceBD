@@ -8,7 +8,8 @@
 import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
+import { Button, Field, Input, Select, fieldBox, fieldEdge } from "@/components/kit";
+import { cn } from "@/lib/utils";
 
 type OwnedSupplier = {
   id: string;
@@ -129,106 +130,105 @@ export function SupplierPartnerRequestForm({
 
   if (ownedSuppliers.length === 0) {
     return (
-      <p className="text-sm text-ink-tertiary">
+      <p className="text-sm text-ink-3">
         Claim a company first to request partnerships.
       </p>
     );
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <label
-          htmlFor="rel-mine"
-          className="text-[12px] text-ink-tertiary"
-        >
-          From your company
-        </label>
-        <select
-          id="rel-mine"
-          value={mineId}
-          onChange={(e) => setMineId(e.target.value)}
-          className="rounded-input border border-hairline bg-surface-l1 px-3 py-2 text-sm text-ink-primary"
-        >
-          {ownedSuppliers.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.company_name} ({s.entity_type.replace(/_/g, " ")})
-            </option>
-          ))}
-        </select>
-      </div>
+    <form onSubmit={submit} className="flex max-w-xl flex-col gap-4">
+      <Field label="From your company">
+        {(a) => (
+          <Select
+            id={a.id}
+            aria-describedby={a["aria-describedby"]}
+            value={mineId}
+            onValueChange={setMineId}
+            options={ownedSuppliers.map((s) => ({
+              value: s.id,
+              label: `${s.company_name} (${s.entity_type.replace(/_/g, " ")})`,
+            }))}
+          />
+        )}
+      </Field>
 
-      <div className="flex flex-col gap-1">
-        <label
-          htmlFor="rel-q"
-          className="text-[12px] text-ink-tertiary"
-        >
-          {targetEntityType === "factory"
+      <Field
+        label={
+          targetEntityType === "factory"
             ? "Find a partner factory"
-            : "Find a partner buying house"}
-        </label>
-        <input
-          id="rel-q"
-          type="text"
-          autoComplete="off"
-          value={picked ? picked.company_name : query}
-          onChange={(e) => {
-            setPicked(null);
-            setQuery(e.target.value);
-          }}
-          placeholder="Company name or slug…"
-          className="rounded-input border border-hairline bg-surface-l1 px-3 py-2 text-sm text-ink-primary"
-        />
-        {!picked && hits.length > 0 ? (
-          <ul className="m-0 mt-1 flex max-h-56 list-none flex-col overflow-y-auto rounded-input border border-hairline bg-surface-l1 p-0 shadow-l1">
-            {hits.map((h) => (
-              <li key={h.id}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPicked(h);
-                    setHits([]);
-                    setQuery("");
-                  }}
-                  className="flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left text-sm hover:bg-brand-forest-tint"
-                >
-                  <span className="font-semibold text-ink-primary">
-                    {h.company_name}
-                  </span>
-                  <span className="text-[12px] text-ink-tertiary">
-                    {h.entity_type.replace(/_/g, " ")} ·{" "}
-                    {[h.city, h.district].filter(Boolean).join(", ") || "—"}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-      </div>
+            : "Find a partner buying house"
+        }
+      >
+        {(a) => (
+          <div className="flex flex-col gap-1">
+            <Input
+              {...a}
+              type="text"
+              autoComplete="off"
+              value={picked ? picked.company_name : query}
+              onChange={(e) => {
+                setPicked(null);
+                setQuery(e.target.value);
+              }}
+              placeholder="Company name or slug…"
+            />
+            {!picked && hits.length > 0 ? (
+              <ul className="m-0 flex max-h-56 list-none flex-col overflow-y-auto rounded-lg border border-line bg-surface p-1 shadow-menu">
+                {hits.map((h) => (
+                  <li key={h.id}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPicked(h);
+                        setHits([]);
+                        setQuery("");
+                      }}
+                      className="flex w-full flex-col items-start gap-0.5 rounded-sm px-2 py-1.5 text-left text-base outline-none hover:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand"
+                    >
+                      <span className="font-medium text-ink">
+                        {h.company_name}
+                      </span>
+                      <span className="text-xs text-ink-3">
+                        {h.entity_type.replace(/_/g, " ")} ·{" "}
+                        {[h.city, h.district].filter(Boolean).join(", ") || "—"}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        )}
+      </Field>
 
-      <div className="flex flex-col gap-1">
-        <label
-          htmlFor="rel-note"
-          className="text-[12px] text-ink-tertiary"
-        >
-          Note (optional)
-        </label>
-        <textarea
-          id="rel-note"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          maxLength={MAX_NOTE}
-          rows={3}
-          className="rounded-input border border-hairline bg-surface-l1 px-3 py-2 text-sm text-ink-primary"
-        />
-      </div>
+      <Field label="Note (optional)">
+        {(a) => (
+          <textarea
+            {...a}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            maxLength={MAX_NOTE}
+            rows={3}
+            className={cn(fieldBox, fieldEdge, "px-2.5 py-2 text-base")}
+          />
+        )}
+      </Field>
 
-      {error ? <p className="text-sm text-sem-red">{error}</p> : null}
-      {info ? <p className="text-sm text-sem-green">{info}</p> : null}
+      {error ? (
+        <p role="alert" className="text-sm text-danger">
+          {error}
+        </p>
+      ) : null}
+      {info ? (
+        <p role="status" className="text-sm font-medium text-brand">
+          {info}
+        </p>
+      ) : null}
 
       <div>
-        <Button type="submit" variant="primary" disabled={pending || !picked}>
-          {pending ? "Sending…" : "Send request"}
+        <Button type="submit" kind="primary" disabled={!picked} loading={pending} loadingLabel="Sending…">
+          Send request
         </Button>
       </div>
     </form>

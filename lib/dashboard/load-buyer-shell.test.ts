@@ -1,51 +1,40 @@
-// `load-buyer-shell.ts` was in `tsconfig.npm-test.json`'s file list nowhere, so
-// nothing RAN it, while every one of the kit routes calls it to build the
-// sidebar counts and the topbar caption a buyer reads.
+// `load-buyer-shell.ts` is what the buyer layout calls on every /app page: who is
+// signed in (the frame's account menu and PostHog) and the published-supplier
+// count the search landing and the sign-in frame print.
 //
-// An earlier version of this comment, and the commit message with it, said
-// nothing typechecked it either. That was wrong and a reviewer proved it: the
-// root `tsconfig.json` globs `**/*.ts` and excludes only node_modules/.next/
-// etl/ops/supabase/prototypes, so `pnpm exec tsc --noEmit` covered this file in
-// CI before and after. Only the running was missing — which was enough to hide
-// the avatar defect below, but it is not the same claim.
+// Its whole job is to fail soft without inventing a number or a name, which is
+// the class of defect this file guards: a count that could not be read printed
+// as `0`, and an unread sign-in drawn as someone.
 //
-// Its whole job is to fail soft without inventing a number, which is exactly
-// the class of defect this round has been finding: a count that could not be
-// read printed as `0`.
+// The three counts the old rail drew (saved, RFQs, published) are not read by
+// `loadBuyerShell` any more: the v4 frame shows none of them, so a test below
+// pins that the layout makes exactly the two reads it needs.
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { loadBuyerShell as loadShell, recordsCaption } from "./load-buyer-shell";
+import { loadBuyerShell, readPublished, recordsCaption } from "./load-buyer-shell";
 
-// The published count is cached with the anon key in the app; here it is read
-// from the stub, uncached, so every case below sees its own RPC answer.
-const loadBuyerShell = (s: Parameters<typeof loadShell>[0], path: string) => loadShell(s, path, { publishedFrom: s });
-
-type Stub = Parameters<typeof loadShell>[0];
+type Stub = Parameters<typeof loadBuyerShell>[0];
 
 function stub(over: {
-  dashboard?: unknown;
-  discover?: { data?: unknown; error?: unknown };
-  rfqCount?: number | null;
+  settings?: { display_name?: unknown; avatar_url?: unknown } | null;
   user?: { id?: string; email?: string; user_metadata?: Record<string, unknown> } | null;
-  throwOn?: "rpc" | "from" | "auth" | "all";
+  throwOn?: "rpc" | "auth" | "all";
+  calls?: string[];
 }): Stub {
-  const bang = (which: "rpc" | "from" | "auth") => {
+  const bang = (which: "rpc" | "auth") => {
     if (over.throwOn === "all" || over.throwOn === which) throw new Error("boom");
   };
   return {
     rpc: (fn: string) => {
+      over.calls?.push(`rpc:${fn}`);
       bang("rpc");
-      if (fn === "buyer_dashboard") return Promise.resolve({ data: over.dashboard ?? null });
-      return Promise.resolve(over.discover ?? { data: [], error: null });
-    },
-    from: () => {
-      bang("from");
-      return { select: () => Promise.resolve({ count: over.rfqCount ?? null }) };
+      return Promise.resolve({ data: over.settings ?? null, error: null });
     },
     auth: {
       getUser: async () => {
+        over.calls?.push("auth");
         bang("auth");
         return { data: { user: over.user ?? null } };
       },
@@ -53,168 +42,77 @@ function stub(over: {
   } as unknown as Stub;
 }
 
-const ROW = (total: number) => ({ slug: "aboni-knitwear-ltd", total_count: total });
-
-describe("the buyer shell reads its counts, or says it could not", () => {
-  it("a good read puts the real numbers on the sidebar and the caption", async () => {
-    const { sidebar, topbar } = await loadBuyerShell(
-      stub({
-        dashboard: { saved_count: 12 },
-        discover: { data: [ROW(10266)], error: null },
-        rfqCount: 7,
-        user: { email: "r@example.invalid", user_metadata: { full_name: "Rezaul Karim" } },
-      }),
-      "/app/discover",
+describe("the buyer shell names who is signed in, or says it could not", () => {
+  it("the initial is two letters of a name, and the profile's own name and photo win", async () => {
+    const { account } = await loadBuyerShell(stub({ user: { email: "r@example.invalid", user_metadata: { full_name: "Rezaul Karim" } } }));
+    assert.deepEqual(account, { initial: "RK", name: "Rezaul Karim", email: "r@example.invalid", avatarUrl: null });
+    const set = await loadBuyerShell(
+      stub({ user: { email: "r@example.invalid", user_metadata: { full_name: "Rezaul Karim" } }, settings: { display_name: "Zahir Uddin", avatar_url: "https://img.example.invalid/z.png" } }),
     );
-    assert.deepEqual(sidebar.counts, { suppliers: 10266, rfqs: 7, saved: 12 });
-    assert.equal(sidebar.active, "search");
-    assert.match(topbar.caption, /10,266 published suppliers/);
-    assert.equal(topbar.initial, "RK");
-    assert.equal(topbar.searchAction, "/app/discover");
+    assert.equal(set.account?.name, "Zahir Uddin");
+    assert.equal(set.account?.initial, "ZU");
+    assert.equal(set.account?.avatarUrl, "https://img.example.invalid/z.png");
+  });
+
+  it("a photo that is not an https address is not drawn", async () => {
+    const { account } = await loadBuyerShell(stub({ user: { email: "r@example.invalid" }, settings: { avatar_url: "javascript:alert(1)" } }));
+    assert.equal(account?.avatarUrl, null);
+  });
+
+  it("the initial falls back to the email when there is no name", async () => {
+    const { account } = await loadBuyerShell(stub({ user: { email: "zahir@example.invalid" } }));
+    // Not "ZI": `initials` is a company-name helper and read ".invalid" as a
+    // second word, so the avatar showed a letter of the buyer's TLD.
+    assert.equal(account?.initial, "Z");
+    const anon = await loadBuyerShell(stub({ user: {} }));
+    assert.equal(anon.account?.initial, null, "no email and no name is an empty avatar, not a stray letter");
+  });
+
+  it("names the signed-in buyer for analytics from the same read, and no one when it failed", async () => {
+    assert.equal((await loadBuyerShell(stub({ user: { id: "buyer-7", email: "b@example.invalid" } }))).userId, "buyer-7");
+    const failed = await loadBuyerShell(stub({ throwOn: "auth" }));
+    assert.equal(failed.userId, null);
+    assert.equal(failed.account, null, "an unread sign-in draws no account, not a made-up one");
+    assert.deepEqual(await loadBuyerShell(stub({ throwOn: "all" })), { account: null, userId: null });
+  });
+
+  it("a failed settings read keeps the session's name", async () => {
+    const { account } = await loadBuyerShell(stub({ user: { email: "r@example.invalid", user_metadata: { full_name: "Rezaul Karim" } }, throwOn: "rpc" }));
+    assert.equal(account?.name, "Rezaul Karim");
+  });
+
+  it("reads who is signed in and the settings, and nothing else", async () => {
+    // The old rail's saved count, RFQ count and published count were three more
+    // round trips on every click, ahead of the page's own reads, for numbers the
+    // v4 frame does not draw.
+    const calls: string[] = [];
+    await loadBuyerShell(stub({ user: { email: "a@b.invalid" }, calls }));
+    assert.deepEqual([...calls].sort(), ["auth", "rpc:settings_get"]);
+  });
+});
+
+describe("the published count is a count, or it is unread", () => {
+  const ROW = (total: number | string) => ({ slug: "aboni-knitwear-ltd", total_count: total });
+  const rpc = (r: { data?: unknown; error?: unknown }) => ({ rpc: () => Promise.resolve(r) });
+
+  it("a good read is the number, a bigint sent as a string included", async () => {
+    assert.equal(await readPublished(rpc({ data: [ROW(10266)], error: null })), 10266);
+    assert.equal(await readPublished(rpc({ data: [ROW("10266")], error: null })), 10266);
+  });
+
+  it("a real zero stays a zero", async () => {
+    assert.equal(await readPublished(rpc({ data: [], error: null })), 0, "an empty result set genuinely matched nothing");
   });
 
   it("rows that arrive and do not parse are an unread count, not a zero", async () => {
     // `parseTotalCount([])` is 0, which is right for a search that genuinely
     // matched nothing and wrong for rows that came back and failed the shape
-    // check — the caption then read "0 published suppliers" over a successful
-    // RPC, which is the exact class of claim this file exists to stop.
-    const { sidebar, topbar } = await loadBuyerShell(
-      stub({ discover: { data: [{ not: "a row" }, { also: "not" }], error: null } }),
-      "/app/discover",
-    );
-    assert.equal(sidebar.counts.suppliers, null);
-    assert.equal(topbar.caption, "published count could not be read");
-  });
-
-  it("a bigint count sent as a string is still a count", async () => {
-    // PostgREST may send a bigint as a string; `DiscoverV32Row.total_count` is
-    // `number | string` for that reason. `saved_count` was accepted only as a
-    // number, so a real count read as "not read".
-    const { sidebar } = await loadBuyerShell(
-      stub({ dashboard: { saved_count: "12" }, discover: { data: [{ slug: "a", total_count: "10266" }], error: null } }),
-      "/app/discover",
-    );
-    assert.equal(sidebar.counts.saved, 12);
-    assert.equal(sidebar.counts.suppliers, 10266);
-    // Junk is still unknown, not NaN and not 0.
-    const junk = await loadBuyerShell(stub({ dashboard: { saved_count: "many" } }), "/app/discover");
-    assert.equal(junk.sidebar.counts.saved, null);
-  });
-
-  it("a real zero stays a zero", async () => {
-    const { sidebar } = await loadBuyerShell(
-      stub({ dashboard: { saved_count: 0 }, discover: { data: [], error: null }, rfqCount: 0 }),
-      "/app/saved",
-    );
-    assert.equal(sidebar.counts.saved, 0, "an account with nothing saved has saved 0, not unknown");
-    assert.equal(sidebar.counts.rfqs, 0);
-    assert.equal(sidebar.counts.suppliers, 0, "an empty result set genuinely matched nothing");
+    // check: the page then read "0 published suppliers" over a successful RPC.
+    await assert.rejects(readPublished(rpc({ data: [{ not: "a row" }, { also: "not" }], error: null })), /published count not read|not parsed/);
   });
 
   it("an RPC error is a count that could not be read, never a zero", async () => {
-    const { sidebar, topbar } = await loadBuyerShell(
-      stub({ discover: { data: null, error: { message: "nope" } } }),
-      "/app/discover",
-    );
-    assert.equal(sidebar.counts.suppliers, null, "a failed read is not 10,266 and it is not 0");
-    assert.equal(sidebar.counts.saved, null, "buyer_dashboard returned nothing; saved is unknown");
-    assert.equal(topbar.caption, "published count could not be read");
-    assert.doesNotMatch(topbar.caption, /\b0 published\b/);
-  });
-
-  it("every read throwing still returns a renderable shell with no invented numbers", async () => {
-    const { sidebar, topbar } = await loadBuyerShell(stub({ throwOn: "all" }), "/app/rfqs");
-    assert.deepEqual(sidebar.counts, { suppliers: null, rfqs: null, saved: null });
-    assert.equal(topbar.initial, null);
-    assert.equal(topbar.caption, "published count could not be read");
-    assert.equal(sidebar.plan.name, "Free");
-  });
-
-  it("a route no nav item points at carries no active key", async () => {
-    // The two saved-search routes used to name the key themselves and both
-    // named "search", whose href is /app/discover — so the rail told a screen
-    // reader the buyer was on a page they were not on. The key is resolved
-    // from the path now, and no nav item points at either of these.
-    for (const path of ["/app/nothing-here", "/app/match"]) {
-      const { sidebar } = await loadBuyerShell(stub({}), path);
-      assert.equal(sidebar.active, null, `${path} marks a nav link as the current page`);
-    }
-    // `/app/searches` used to be one of these, because no nav item pointed at
-    // it. It has one now — it was reachable from nowhere in the product, so a
-    // buyer who saved a search could not get back to it.
-    assert.equal((await loadBuyerShell(stub({}), "/app/searches")).sidebar.active, "searches");
-    // And the routes that do have a nav item still resolve to it.
-    for (const [path, key] of [["/app/discover", "search"], ["/app/products", "products"], ["/app/saved", "saved"]] as const) {
-      const { sidebar } = await loadBuyerShell(stub({}), path);
-      assert.equal(sidebar.active, key, `${path} does not light its own nav item`);
-    }
-    // A query string, a fragment or a trailing slash is the same page. The
-    // fragment case was missed: `\?.*$` only eats a `#` when a query precedes
-    // it, so `/app/products#top` highlighted nothing.
-    for (const path of ["/app/products?q=knit", "/app/products/", "/app/products#top", "/app/products?q=a#b", "/app/products//"]) {
-      assert.equal((await loadBuyerShell(stub({}), path)).sidebar.active, "products", path);
-    }
-    // A nested route belongs to its section. Every §3 screen still to come —
-    // /app/rfqs/<id>, /app/settings/rfq, /app/compliance/expiry — highlighted
-    // nothing under an exact match alone.
-    for (const [path, key] of [
-      ["/app/rfqs/abc-123", "rfqs"],
-      ["/app/settings/rfq", "settings"],
-      ["/app/compliance/expiry", "compliance"],
-      ["/app/searches/new", "searches"],
-    ] as const) {
-      assert.equal((await loadBuyerShell(stub({}), path)).sidebar.active, key, path);
-    }
-    // But a sibling that merely shares a prefix is not "under" it.
-    assert.equal((await loadBuyerShell(stub({}), "/app/savedsomething")).sidebar.active, null);
-    assert.equal((await loadBuyerShell(stub({}), "/app/nothing-here/deep")).sidebar.active, null);
-  });
-
-  it("the initial falls back to the email when there is no name", async () => {
-    const { topbar } = await loadBuyerShell(stub({ user: { email: "zahir@example.invalid" } }), "/app/discover");
-    // Not "ZI": `initials` is a company-name helper and read ".invalid" as a
-    // second word, so the avatar showed a letter of the buyer's TLD.
-    assert.equal(topbar.initial, "Z");
-    const anon = await loadBuyerShell(stub({ user: {} }), "/app/discover");
-    assert.equal(anon.topbar.initial, null, "no email and no name is an empty avatar, not a stray letter");
-    // A real name still gets both letters.
-    const named = await loadBuyerShell(stub({ user: { email: "x@y.invalid", user_metadata: { full_name: "Rezaul Karim" } } }), "/app/discover");
-    assert.equal(named.topbar.initial, "RK");
-  });
-
-  it("names the signed-in buyer for analytics from the same read, and no one when it failed", async () => {
-    // The buyer layout hands this to PostHog; nothing above it asks who is
-    // signed in any more (29 Sep 2026).
-    assert.equal((await loadBuyerShell(stub({ user: { id: "buyer-7", email: "b@example.invalid" } }), "/app/discover")).userId, "buyer-7");
-    assert.equal((await loadBuyerShell(stub({ throwOn: "auth" }), "/app/discover")).userId, null);
-  });
-});
-
-describe("the shell's reads go out in one wave", () => {
-  it("every read has started before any of them answers", async () => {
-    // They used to run in three waves, ahead of the page's own reads, on every
-    // click: the sidebar alone cost three round trips before a record opened.
-    const started: string[] = [];
-    let release!: () => void;
-    const gate = new Promise<void>((r) => (release = r));
-    const held = <T,>(name: string, value: T) => {
-      started.push(name);
-      return gate.then(() => value);
-    };
-    const s = {
-      rpc: (fn: string) => held(`rpc:${fn}`, { data: fn === "buyer_dashboard" ? { saved_count: 1 } : [ROW(5)], error: null }),
-      from: () => ({ select: () => held("from:rfqs", { count: 2 }) }),
-      auth: { getUser: () => held("auth", { data: { user: { email: "a@b.invalid" } } }) },
-    } as unknown as Stub;
-    const done = loadBuyerShell(s, "/app/discover");
-    await new Promise((r) => setImmediate(r));
-    assert.deepEqual(
-      [...started].sort(),
-      ["auth", "from:rfqs", "rpc:buyer_dashboard", "rpc:discover_suppliers", "rpc:settings_get"],
-      "a read waited on another before starting",
-    );
-    release();
-    assert.deepEqual((await done).sidebar.counts, { suppliers: 5, rfqs: 2, saved: 1 });
+    await assert.rejects(readPublished(rpc({ data: null, error: { message: "nope" } })), /published count not read/);
   });
 });
 

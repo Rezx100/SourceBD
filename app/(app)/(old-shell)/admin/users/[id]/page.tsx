@@ -6,17 +6,19 @@ import { notFound } from "next/navigation";
 
 import { AdminUserEditForm } from "@/components/admin-user-edit-form";
 import {
-  AdminActionLink,
-  AdminKeyValueList,
-  AdminPage,
-  AdminPageHeader,
-  AdminPanel,
+  AdminColumn,
+  AdminFacts,
+  AdminHead,
+  AdminRows,
+  AdminSection,
+  JsonBlock,
+  StatusChip,
   formatAdminDateTime,
   humanizeAdminToken,
-} from "@/components/admin/admin-ui";
-import { Badge } from "@/components/ui/badge";
-import { Tag } from "@/components/ui/tag";
+} from "@/components/admin/data-ui";
+import { ButtonLink, InlineError, TypeChip, linkClass } from "@/components/kit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -57,12 +59,6 @@ type AuditRow = {
 
 type AuditDoc = { total: number; rows: AuditRow[] };
 
-function roleTone(r: UserDoc["role"]): "neutral" | "active" | "alert" {
-  if (r === "admin") return "alert";
-  if (r === "supplier") return "active";
-  return "neutral";
-}
-
 export default async function AdminUserDrilldownPage({
   params,
 }: {
@@ -87,15 +83,15 @@ export default async function AdminUserDrilldownPage({
       notFound();
     }
     return (
-      <AdminPage maxWidth="4xl">
-        <AdminActionLink href="/admin/users">Back to users</AdminActionLink>
-        <AdminPanel>
-          <p className="text-sm text-sem-red">
-            Could not load user
-            {userErr?.message ? <>: {userErr.message}</> : null}.
-          </p>
-        </AdminPanel>
-      </AdminPage>
+      <AdminColumn narrow>
+        <div>
+          <ButtonLink href="/admin/users">Back to users</ButtonLink>
+        </div>
+        <InlineError>
+          Could not load user
+          {userErr?.message ? <>: {userErr.message}</> : null}.
+        </InlineError>
+      </AdminColumn>
     );
   }
 
@@ -103,103 +99,83 @@ export default async function AdminUserDrilldownPage({
   const audit = (auditData as AuditDoc | null) ?? { total: 0, rows: [] };
 
   return (
-    <AdminPage maxWidth="4xl">
-      <AdminPageHeader
-        kicker="Admin · User"
+    <AdminColumn narrow>
+      <AdminHead
         title={u.display_name || u.email}
-        description={<span className="font-mono text-xs">{u.email}</span>}
-        actions={<AdminActionLink href="/admin/users">Back to users</AdminActionLink>}
+        lede={<span className="font-mono text-sm">{u.email}</span>}
+        actions={<ButtonLink href="/admin/users">Back to users</ButtonLink>}
       />
 
-      <AdminPanel title="Account" meta={`id ${u.user_id}`}>
-        <div className="space-y-4 text-sm">
+      <AdminSection title="Account" meta={`id ${u.user_id}`}>
+        <div className="flex flex-col gap-4 text-base">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge tone={roleTone(u.role)}>{humanizeAdminToken(u.role)}</Badge>
-            {u.is_suspended ? <Badge tone="alert">suspended</Badge> : null}
-            {u.plan_tier ? <Tag>{u.plan_tier}</Tag> : null}
+            <TypeChip>{humanizeAdminToken(u.role)}</TypeChip>
+            {u.is_suspended ? <StatusChip tone="danger">suspended</StatusChip> : null}
+            {u.plan_tier ? <TypeChip>{u.plan_tier}</TypeChip> : null}
           </div>
-          <AdminKeyValueList
+          <AdminFacts
             rows={[
               { label: "Created", value: formatAdminDateTime(u.created_at), mono: true },
               { label: "Last sign-in", value: u.last_sign_in_at ? formatAdminDateTime(u.last_sign_in_at) : "Never signed in", mono: true },
             ]}
           />
           {u.claimed_supplier ? (
-            <p>
+            <p className="flex flex-wrap items-center gap-2 text-ink">
               Claims{" "}
-              <Link
-                href={`/admin/suppliers/${u.claimed_supplier.id}`}
-                className="font-mono text-accent-indigo hover:underline"
-              >
+              <Link href={`/admin/suppliers/${u.claimed_supplier.id}`} className={cn(linkClass, "font-mono text-sm")}>
                 {u.claimed_supplier.company_name}
               </Link>{" "}
-              <Tag>{humanizeAdminToken(u.claimed_supplier.entity_type)}</Tag>
+              <TypeChip>{humanizeAdminToken(u.claimed_supplier.entity_type)}</TypeChip>
             </p>
           ) : (
-            <p className="text-ink-tertiary">No claimed supplier.</p>
+            <p className="text-ink-3">No claimed supplier.</p>
           )}
           {u.is_suspended ? (
-            <div className="rounded-input border border-hairline bg-bg-l0 p-3 text-xs text-ink-secondary">
+            <div className="rounded-sm border border-line bg-subtle p-3 text-sm text-ink-2">
               <p>
                 Suspended {u.suspended_at ? formatAdminDateTime(u.suspended_at) : "—"}{" "}
                 {u.suspended_by_email ? `by ${u.suspended_by_email}` : ""}
               </p>
-              {u.suspended_reason ? (
-                <p className="mt-1">Reason: {u.suspended_reason}</p>
-              ) : null}
+              {u.suspended_reason ? <p className="mt-1">Reason: {u.suspended_reason}</p> : null}
             </div>
           ) : null}
         </div>
-      </AdminPanel>
+      </AdminSection>
 
-      <AdminPanel
-        title="Manage"
-        description="Change role, suspension status, and plan tier for this account."
-      >
-          <AdminUserEditForm
-            userId={u.user_id}
-            initialRole={u.role}
-            initialSuspended={u.is_suspended}
-            initialReason={u.suspended_reason}
-            initialPlan={
-              (u.plan_tier === "growth" || u.plan_tier === "enterprise"
-                ? u.plan_tier
-                : "starter") as "starter" | "growth" | "enterprise"
-            }
-            isSelf={authData?.user?.id === u.user_id}
-          />
-      </AdminPanel>
+      <AdminSection title="Manage" description="Change role, suspension status, and plan tier for this account.">
+        <AdminUserEditForm
+          userId={u.user_id}
+          initialRole={u.role}
+          initialSuspended={u.is_suspended}
+          initialReason={u.suspended_reason}
+          initialPlan={
+            (u.plan_tier === "growth" || u.plan_tier === "enterprise"
+              ? u.plan_tier
+              : "starter") as "starter" | "growth" | "enterprise"
+          }
+          isSelf={authData?.user?.id === u.user_id}
+        />
+      </AdminSection>
 
-      <AdminPanel
-        title="Audit history"
-        meta={`${audit.total} rows · most recent first`}
-      >
-          {audit.rows.length === 0 ? (
-            <p className="text-sm text-ink-tertiary">No audit rows yet.</p>
-          ) : (
-            <ul className="divide-y divide-hairline">
-              {audit.rows.map((row) => (
-                <li key={row.id} className="space-y-1 py-3">
-                  <div className="flex flex-wrap items-center gap-2 text-xs">
-                    <span className="font-mono text-ink-tertiary">
-                      {formatAdminDateTime(row.created_at)}
-                    </span>
-                    <Tag>{row.action}</Tag>
-                    <Tag>{humanizeAdminToken(row.direction)}</Tag>
-                    <span className="text-ink-secondary">
-                      by {row.actor_email ?? row.actor_id}
-                    </span>
-                  </div>
-                  {row.patch ? (
-                    <pre className="overflow-x-auto rounded-input border border-hairline bg-bg-l0 p-2 font-mono text-[12px] text-ink-secondary">
-                      {JSON.stringify(row.patch, null, 2)}
-                    </pre>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          )}
-      </AdminPanel>
-    </AdminPage>
+      <AdminSection title="Audit history" meta={`${audit.total} rows · most recent first`} flush>
+        {audit.rows.length === 0 ? (
+          <p className="p-4 text-base text-ink-3">No audit rows yet.</p>
+        ) : (
+          <AdminRows>
+            {audit.rows.map((row) => (
+              <li key={row.id} className="flex flex-col gap-1 px-4 py-3">
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  <span className="font-mono text-ink-3">{formatAdminDateTime(row.created_at)}</span>
+                  <TypeChip>{row.action}</TypeChip>
+                  <TypeChip>{humanizeAdminToken(row.direction)}</TypeChip>
+                  <span className="text-ink-2">by {row.actor_email ?? row.actor_id}</span>
+                </div>
+                {row.patch ? <JsonBlock value={row.patch} className="p-2" /> : null}
+              </li>
+            ))}
+          </AdminRows>
+        )}
+      </AdminSection>
+    </AdminColumn>
   );
 }

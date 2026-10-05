@@ -8,7 +8,8 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 
-import { Button } from "@/components/ui/button";
+import { adminFieldClass } from "@/components/admin/data-ui";
+import { Button, Field, Input } from "@/components/kit";
 
 type RoleVal = "buyer" | "supplier" | "admin";
 type PlanVal = "starter" | "growth" | "enterprise";
@@ -126,95 +127,78 @@ export function AdminUserEditForm({
   }
 
   return (
-    <div className="space-y-4">
-      <label className="flex flex-col gap-1 text-[13px] text-ink-secondary">
-        Role
-        <select
-          value={role}
-          onChange={(e) => setRole(e.target.value as RoleVal)}
-          disabled={pending || isSelf}
-          className="rounded-input border border-hairline bg-bg-l0 px-2 py-1.5 text-sm outline-none focus:border-accent-indigo disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <option value="buyer">buyer</option>
-          <option value="supplier">supplier</option>
-          <option value="admin">admin</option>
-        </select>
-        {isSelf ? (
-          <span className="text-[12px] text-ink-tertiary">
-            You can&apos;t change your own role — ask another admin.
-          </span>
-        ) : null}
-      </label>
+    <div className="flex flex-col gap-4">
+      <Field label="Role" help={isSelf ? "You can't change your own role — ask another admin." : undefined} disabled={pending || isSelf}>
+        {(a) => (
+          <select
+            {...a}
+            value={role}
+            onChange={(e) => setRole(e.target.value as RoleVal)}
+            disabled={pending || isSelf}
+            className={adminFieldClass}
+          >
+            <option value="buyer">buyer</option>
+            <option value="supplier">supplier</option>
+            <option value="admin">admin</option>
+          </select>
+        )}
+      </Field>
 
-      <label className="flex flex-col gap-1 text-[13px] text-ink-secondary">
-        Plan
-        <select
-          value={plan}
-          onChange={(e) => setPlan(e.target.value as PlanVal)}
-          disabled={pending}
-          className="rounded-input border border-hairline bg-bg-l0 px-2 py-1.5 text-sm outline-none focus:border-accent-indigo"
-        >
-          {PLAN_OPTIONS.map((p) => (
-            <option key={p} value={p}>
-              {p}
-            </option>
-          ))}
-        </select>
-      </label>
+      <Field label="Plan">
+        {(a) => (
+          <select
+            {...a}
+            value={plan}
+            onChange={(e) => setPlan(e.target.value as PlanVal)}
+            disabled={pending}
+            className={adminFieldClass}
+          >
+            {PLAN_OPTIONS.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+        )}
+      </Field>
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          <span className="text-[13px] text-ink-secondary">Status:</span>
-          <span className="text-sm">
-            {suspended ? "Suspended" : "Active"}
-          </span>
+          <span className="text-sm text-ink-2">Status:</span>
+          <span className="text-base text-ink">{suspended ? "Suspended" : "Active"}</span>
           <Button
-            type="button"
-            variant={suspended ? "primary" : "destructive"}
-            size="sm"
+            kind={suspended ? "primary" : "danger"}
             onClick={onSuspendClick}
             disabled={pending || isSelf}
           >
-            {suspended
-              ? "Un-suspend"
-              : reasonOpen
-                ? "Confirm suspend"
-                : "Suspend"}
+            {suspended ? "Un-suspend" : reasonOpen ? "Confirm suspend" : "Suspend"}
           </Button>
         </div>
-        {isSelf ? (
-          <p className="text-[12px] text-ink-tertiary">
-            You can&apos;t suspend your own account.
-          </p>
-        ) : null}
+        {isSelf ? <p className="text-xs text-ink-3">You can&apos;t suspend your own account.</p> : null}
         {reasonOpen && !suspended ? (
-          <input
+          <Input
             type="text"
+            aria-label="Reason for suspending"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Reason for suspending (required)"
             maxLength={2000}
-            className="w-full rounded-input border border-hairline bg-bg-l0 px-2 py-1 text-xs outline-none focus:border-accent-indigo"
           />
         ) : null}
       </div>
 
       <div className="flex items-center gap-2">
-        <Button
-          type="button"
-          variant="primary"
-          size="sm"
-          onClick={onSave}
-          disabled={pending || !isDirty}
-        >
+        <Button kind="primary" onClick={onSave} disabled={pending || !isDirty}>
           {isDirty ? "Save changes" : "No changes"}
         </Button>
-        {pending ? (
-          <span className="text-[12px] text-ink-tertiary">Saving…</span>
-        ) : null}
+        {pending ? <span className="text-sm text-ink-3">Saving…</span> : null}
       </div>
 
-      {error ? <p className="text-xs text-sem-red">{error}</p> : null}
+      {error ? (
+        <p role="alert" className="text-sm text-danger">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

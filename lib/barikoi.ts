@@ -71,15 +71,17 @@ function serviceSupabase() {
   });
 }
 
-async function cacheLookup(keys: string[]): Promise<Map<string, CacheHit | null>> {
+/** The cache's rows for these keys, or null when it could not be read (no service key, or the query failed). */
+async function cacheLookup(keys: string[]): Promise<Map<string, CacheHit | null> | null> {
   const out = new Map<string, CacheHit | null>();
+  if (keys.length === 0) return out;
   const supabase = serviceSupabase();
-  if (!supabase || keys.length === 0) return out;
+  if (!supabase) return null;
   const { data, error } = await supabase
     .from("address_geocodes")
     .select("address_norm, latitude, longitude, confidence_pct, address_status")
     .in("address_norm", keys);
-  if (error || !data) return out;
+  if (error || !data) return null;
   for (const row of data) {
     out.set(
       row.address_norm as string,
@@ -107,8 +109,22 @@ export async function geocodeLocations(
   targets: readonly GeocodeTarget[],
   max = 8,
 ): Promise<GeocodedLocation[]> {
+  return ((await geocodeTargets(targets, max)) ?? []).filter((g): g is GeocodedLocation => g !== null);
+}
+
+/**
+ * As `geocodeLocations`, but position-preserving: entry `i` is the pin for
+ * `targets[i]`, or null when it has none (a cache miss, or past `max`). The
+ * record's Sites tab needs this to say which site is pinned and which is not. Null when the cache
+ * could not be read at all, which is not the same as every site having no pin.
+ */
+export async function geocodeTargets(
+  targets: readonly GeocodeTarget[],
+  max = 8,
+): Promise<(GeocodedLocation | null)[] | null> {
   const wanted = targets.slice(0, max);
-  if (wanted.length === 0) return [];
+  const none = targets.map(() => null);
+  if (wanted.length === 0) return none;
 
   const keys = new Set<string>();
   for (const target of wanted) {
@@ -117,19 +133,17 @@ export async function geocodeLocations(
       if (key) keys.add(key);
     }
   }
-  if (keys.size === 0) return [];
+  if (keys.size === 0) return none;
 
   const cached = await cacheLookup([...keys]);
+  if (!cached) return null;
 
-  const out: GeocodedLocation[] = [];
-  for (const target of wanted) {
+  return targets.map((target, i) => {
+    if (i >= max) return null;
     for (const lookup of target.lookups) {
       const hit = cached.get(normalizeAddressKey(lookup));
-      if (hit) {
-        out.push({ ...hit, label: target.label, kind: target.kind });
-        break;
-      }
+      if (hit) return { ...hit, label: target.label, kind: target.kind };
     }
-  }
-  return out;
+    return null;
+  });
 }

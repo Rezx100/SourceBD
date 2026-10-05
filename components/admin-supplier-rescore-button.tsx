@@ -7,7 +7,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/kit";
 
 export function AdminSupplierRescoreButton({ id }: { id: string }) {
   const router = useRouter();
@@ -39,15 +39,15 @@ export function AdminSupplierRescoreButton({ id }: { id: string }) {
 
   return (
     <div className="flex flex-col items-end gap-1">
-      <Button type="button" variant="primary" size="sm" onClick={enqueue} disabled={pending}>
-        {pending ? "Enqueuing…" : "Queue SBI rescore"}
+      <Button type="button" kind="primary" onClick={enqueue} loading={pending} loadingLabel="Enqueuing…">
+        Queue SBI rescore
       </Button>
       {jobId ? (
-        <p className="font-mono text-[12px] text-sem-green">
+        <p role="status" className="font-mono text-xs text-ink-2">
           queued · {jobId.slice(0, 8)}
         </p>
       ) : null}
-      {error ? <p className="text-[12px] text-sem-red">{error}</p> : null}
+      {error ? <p role="alert" className="text-xs text-danger">{error}</p> : null}
     </div>
   );
 }

@@ -1,28 +1,16 @@
-// The buyer section's layout: the dashboard kit's shell, drawn ONCE around
-// every /app page (27 Sep 2026). Before this each page drew its own
-// `AppShell`, so a click tore the rail and topbar down and built them again,
-// nothing could stay pinned, and the shell's four reads ran on every page.
-// Now a navigation swaps only the content region; the rail marks the current
-// page from the URL on the client (`SidebarNav`), the search field reads its
-// text from the URL (`SearchTypeahead`), and the shell is the viewport from
-// `md` up — the page never scrolls, the content region or a pane inside it
-// does.
+// The buyer section's layout: the v4 app frame (B3), drawn ONCE around every /app
+// page, so a navigation swaps only `<main>`. The frame marks the current item
+// from the URL on the client. The supplier portal and admin keep the older shell
+// (`app/(app)/(old-shell)`) until B10.
 //
-// No layout of the `(app)` group sits above this one: the older shell's
-// layout, and its reads, wrap only the supplier portal and admin
-// (`app/(app)/(old-shell)`, 29 Sep 2026). So analytics learns who is signed
-// in here, from the shell's own sign-in read. Spec H5's onboarding tour
-// mounts after the shell; it short-circuits server-side once the buyer has
-// completed or dismissed it. Its two reads (who is signed in, then the tour's
-// state) stream in behind the page: outside a boundary they held the whole
-// page back two more round trips after the shell's own.
+// Analytics learns who is signed in from the frame's own sign-in read. The
+// onboarding tour mounts after the frame and streams in behind the page.
 
-import { cookies } from "next/headers";
 import { Suspense } from "react";
 import { preload } from "react-dom";
-import { AppShell } from "@/components/dashboard/app-shell";
-import { RAIL_COOKIE } from "@/lib/dashboard/nav";
-import { TourMount } from "@/components/onboarding/tour-mount";
+import { AppFrame } from "@/components/frame";
+import { ChecklistSlot } from "@/components/onboarding/checklist";
+import { loadFrameBadges } from "@/lib/dashboard/frame-badges";
 import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { SOURCE_LOGO_FILES } from "@/lib/dashboard/source-logos";
 import { PostHogProvider } from "@/lib/posthog/provider";
@@ -35,18 +23,34 @@ export default async function BuyerLayout({ children }: { children: React.ReactN
   // files, 0.8–11.5 KB each, fetched once when the app opens.
   for (const href of SOURCE_LOGO_FILES) preload(href, { as: "image" });
   const supabase = await createSupabaseServerClient();
-  const [shell, jar] = await Promise.all([loadBuyerShell(supabase), cookies()]);
-  // The rail as the buyer left it (`RailToggle`), drawn by the server so it
-  // never flashes open first.
-  const railCollapsed = jar.get(RAIL_COOKIE)?.value === "collapsed";
+  // "Last active" on Team and roles (gap 4): the database stamps it at most every 10 minutes, so this
+  // is a no-op most of the time. Fire and forget; a failed call, or 0111 not applied yet, changes nothing.
+  void (async () => {
+    try {
+      await supabase.rpc("profile_touch");
+    } catch {
+      // best effort
+    }
+  })();
+  // The menu's two counts (Messages "N new", Compliance "N to check") start now and are NOT awaited:
+  // the frame is drawn at once and they fill in when they settle (row 24). Compliance is the hub's own
+  // count; a slow or failed read draws no badge, never a 0.
+  const badges = loadFrameBadges(supabase);
+  const shell = await loadBuyerShell(supabase);
   return (
     <PostHogProvider userId={shell.userId}>
-      <AppShell sidebar={shell.sidebar} topbar={shell.topbar} mainId="main-content" railCollapsed={railCollapsed}>
+      {/* The getting-started card reads beside the page, never ahead of it (and the old product tour is gone: Paper has no tours). */}
+      <AppFrame
+        account={shell.account}
+        badges={badges}
+        sidebarExtra={
+          <Suspense fallback={null}>
+            <ChecklistSlot supabase={supabase} userId={shell.userId} variant="sidebar" />
+          </Suspense>
+        }
+      >
         {children}
-      </AppShell>
-      <Suspense fallback={null}>
-        <TourMount flavour="buyer" />
-      </Suspense>
+      </AppFrame>
     </PostHogProvider>
   );
 }

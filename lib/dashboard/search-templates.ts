@@ -151,7 +151,7 @@ export function inFilterMenu(chipKey: string, s: DiscoverState): boolean {
   if (chipKey === "rsc") return s.rsc === "active";
   // A certificate in another state (expiring, expired) keeps its chip: the
   // menu's "GOTS" would not say which.
-  return /^(hs|district|type)-/.test(chipKey) || /^cert-[a-z_]+-valid$/.test(chipKey);
+  return /^(hs|district|type)-/.test(chipKey) || /^cert-[a-z0-9_]+-valid$/.test(chipKey);
 }
 
 /** The words a menu's button carries when values are set: the one value, or how many. */

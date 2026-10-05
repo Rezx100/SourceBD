@@ -7,21 +7,91 @@
 // `tokens.test.ts` fails `pnpm test` when a text pair drops below the
 // contrast standard or when a colour is typed by hand in a design-system file.
 //
-// Values are the Design System artifact's v3 token set (project/tokens.json,
-// light theme), which the approved v3.2 dashboard screens were rendered with
-// (founder decision 19 Sep 2026: the code port follows the artifact tokens).
-// Colours are named by ROLE, never by hue, so the artifact's dark set can be
-// added later by adding a second map with the same keys — no component changes.
+// SourceBD v4 (B0, 4 Oct 2026): the values are Paper's, exported by
+// `get_tokens` from the "SourceBD v4" file and listed in `v4` below under
+// Paper's own names (`ink-3`, `brand-wash`, `cert-valid-fg`). Paper is the
+// source and is used as it is (handoff-ds-v4-build.md §2).
 //
-// Alpha tokens in the artifact (`surface-glass`, `signal-glow`, `highlight`)
-// are not listed: every value here is 6-digit hex. The frosted panel is the
-// `.glass` utility in app/ds.css (surface at 80 % + blur), the signal glow is
-// the `bloom` shadow below, and a highlight box is `bg-signal/[0.16]`.
+// Until the switch, the old pages still compile against this file, so the
+// v3 names they use are kept in `legacy`, and `light` is `legacy` with every
+// v4 colour laid over it: where the two share a name (`ink`, `line.strong`,
+// `brand.hover`, `danger`…) the v4 value wins. B11 deletes `legacy` with the
+// last old page.
 
 export type ColorGroup = Record<string, string>;
 export type ColorSet = Record<string, ColorGroup>;
 
-export const light = {
+/**
+ * Paper's colour tokens, under Paper's names (`--color-<name>`), plus the one
+ * colour DESIGN-v4.md §2 adds in code (`danger-active`, the pressed danger
+ * button). A name splits at its first dash into group and key: `ink-3` is
+ * `light.ink["3"]`, class `text-ink-3`, variable `--ds-ink-3`; `subtle` is
+ * `light.subtle.DEFAULT`, class `bg-subtle`.
+ */
+export const v4Colors = {
+  // Neutrals.
+  surface: "#FFFFFF",
+  subtle: "#F7F8F9",
+  sunken: "#EEF0F2",
+  line: "#DDE0E4",
+  "line-strong": "#858C96",
+  disabled: "#9AA0A8", // disabled controls only; exempt from the contrast rule
+  "ink-3": "#59606A",
+  "ink-2": "#3B4149",
+  ink: "#15181C",
+  // Brand.
+  brand: "#1B5E20",
+  "brand-hover": "#154A19",
+  "brand-active": "#0F3812",
+  "brand-tint": "#E8F2E8",
+  "brand-wash": "#F4F9F4",
+  // Signals.
+  caution: "#8A4A00",
+  "caution-icon": "#B25E00",
+  "caution-tint": "#FFF3DC",
+  danger: "#A8231B",
+  "danger-solid": "#B42318",
+  "danger-active": "#861C16", // not a Paper token: the pressed danger button Paper draws as a bare hex
+  "danger-tint": "#FDECEA",
+  sanction: "#6E0B1C",
+  "sanction-tint": "#F8E5E9",
+  info: "#1C4F8F",
+  "info-tint": "#E9F1FB",
+} as const;
+
+/** Paper's certificate aliases: each is another v4 colour by name, never a value of its own. */
+export const v4CertAliases = {
+  "cert-valid-fg": "ink-2",
+  "cert-valid-edge": "line",
+  "cert-expiring-fg": "caution",
+  "cert-expiring-bg": "caution-tint",
+  "cert-expired-fg": "danger",
+  "cert-expired-bg": "danger-tint",
+  "cert-no-expiry-fg": "ink-3",
+  "cert-no-expiry-edge": "line-strong",
+} as const satisfies Record<string, keyof typeof v4Colors>;
+
+/**
+ * Paper's one colour with alpha: `--color-scrim: rgb(21 24 28 / 40%)`, which
+ * is `ink` at Paper's `--opacity-scrim` 40%. Kept as that pair so every value
+ * in `light` stays 6-digit hex; `bg-scrim` carries the 40% itself.
+ */
+export const v4Alpha = { scrim: { color: "ink", alpha: 0.4 } } as const;
+
+/** `ink-3` → `["ink", "3"]`; `subtle` → `["subtle", "DEFAULT"]`. */
+export function splitColorName(name: string): [group: string, key: string] {
+  const i = name.indexOf("-");
+  return i < 0 ? [name, "DEFAULT"] : [name.slice(0, i), name.slice(i + 1)];
+}
+
+/** `ink-3` → `ink.3`, the form `resolve()` and the contrast table take. */
+export function v4Ref(name: string): string {
+  const [group, key] = splitColorName(name);
+  return key === "DEFAULT" ? group : `${group}.${key}`;
+}
+
+/** The old pages' names (v3). Delete with the last old page (B11). */
+const legacy = {
   // Page and panel backgrounds. Canvas is true-neutral paper; brand green is
   // the only green in the UI.
   canvas: { DEFAULT: "#F7F7F6" },
@@ -180,6 +250,21 @@ export const light = {
   },
 } satisfies ColorSet;
 
+function overlay<T extends ColorSet>(base: T): T {
+  const out: ColorSet = Object.fromEntries(Object.entries(base).map(([g, keys]) => [g, { ...keys }]));
+  const all: Record<string, string> = { ...v4Colors };
+  for (const [alias, target] of Object.entries(v4CertAliases)) all[alias] = v4Colors[target];
+  all.scrim = v4Colors[v4Alpha.scrim.color];
+  for (const [name, hex] of Object.entries(all)) {
+    const [group, key] = splitColorName(name);
+    (out[group] ??= {})[key] = hex;
+  }
+  return out as T;
+}
+
+/** Every colour the product may use: `legacy` with the v4 set laid over it. */
+export const light = overlay(legacy);
+
 export type TierRank = 1 | 2 | 3 | 4 | 5;
 
 /** The five buyer-visible source tiers, in rank order (spec §2). */
@@ -214,69 +299,50 @@ export const fontFamily = {
   mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "Menlo", "Consolas", "monospace"],
 };
 
-type FontSize = [string, { lineHeight: string; letterSpacing?: string }];
+type FontSize = [string, { lineHeight?: string; letterSpacing?: string }];
 
 /**
- * The artifact's type styles, on Tailwind's size names so `cn()` /
- * tailwind-merge keeps working, plus the named styles the dashboard uses
- * (`text-title`, `text-eyebrow`) that have no standard slot.
+ * Paper's type scale (`--text-*` with `--text-*-line-height`; Paper dropped the
+ * second dash Tailwind 4 pairs them by, restored here as one entry each).
+ * These REPLACE Tailwind's defaults: Tailwind's `text-sm` is 14px, Paper's 13.
+ * The display sizes carry no line height in Paper; a board that sets one says
+ * so with `leading-[…]`. Nothing is scaled per shell: Paper draws the desktop
+ * and phone boards with their own sizes, so each width uses its board's class.
  *
- * These are the scale everywhere but the buyer app, which takes one step up
- * (`appFontSize`, below).
+ * The keys after the v4 ones are the old pages' (v3). Delete in B11.
  */
 export const fontSize: Record<string, FontSize> = {
-  eyebrow: ["0.6875rem", { lineHeight: "1rem", letterSpacing: "0.08em" }], // 11 — mono, uppercase
-  xs: ["0.75rem", { lineHeight: "1rem" }], // 12 — caption
-  sm: ["0.8125rem", { lineHeight: "1.25rem" }], // 13 — label, table, code
-  base: ["0.875rem", { lineHeight: "1.375rem" }], // 14 — body
-  title: ["0.9375rem", { lineHeight: "1.375rem", letterSpacing: "-0.005em" }], // 15 — card title, tab
-  "page-title": ["1.125rem", { lineHeight: "1.625rem", letterSpacing: "-0.01em" }], // 18 — a page's one h1
-  "nav-label": ["0.6875rem", { lineHeight: "0.875rem" }], // 11 — a phone tab's label, medium
-  lg: ["1.0625rem", { lineHeight: "1.6875rem", letterSpacing: "-0.005em" }], // 17 — body-lg
-  xl: ["1.125rem", { lineHeight: "1.625rem", letterSpacing: "-0.01em" }], // 18 — heading-sm
-  "2xl": ["1.375rem", { lineHeight: "1.875rem", letterSpacing: "-0.015em" }], // 22 — heading
-  "3xl": ["1.75rem", { lineHeight: "2.25rem", letterSpacing: "-0.02em" }], // 28 — heading-lg
-  "4xl": ["2.25rem", { lineHeight: "2.625rem", letterSpacing: "-0.025em" }], // 36 — display
-  "5xl": ["2.75rem", { lineHeight: "3rem", letterSpacing: "-0.03em" }], // 44 — stat
-  "6xl": ["3rem", { lineHeight: "3.375rem", letterSpacing: "-0.03em" }], // 48 — display-lg
-  "7xl": ["4.25rem", { lineHeight: "4.5rem", letterSpacing: "-0.035em" }], // 68 — display-xl
+  xs: ["12px", { lineHeight: "16px" }], // labels, column heads, source lines
+  sm: ["13px", { lineHeight: "18px" }], // fact values in chips, mono codes, captions
+  base: ["14px", { lineHeight: "20px" }], // cells, controls, body
+  md: ["16px", { lineHeight: "24px" }], // prose, phone body, phone rows
+  lg: ["20px", { lineHeight: "28px" }], // section titles
+  xl: ["24px", { lineHeight: "32px" }], // page title, the record's name in the pane
+  "2xl": ["32px", { lineHeight: "40px" }], // the record's name on the full page
+  "3xl": ["40px", { lineHeight: "48px" }], // site only
+  "display-1": ["72px", {}], // marketing only, from here down
+  "display-2": ["56px", {}],
+  "display-3": ["40px", {}],
+  // legacy (v3)
+  eyebrow: ["0.6875rem", { lineHeight: "1rem", letterSpacing: "0.08em" }],
+  title: ["0.9375rem", { lineHeight: "1.375rem", letterSpacing: "-0.005em" }],
+  "page-title": ["1.125rem", { lineHeight: "1.625rem", letterSpacing: "-0.01em" }],
+  "nav-label": ["0.6875rem", { lineHeight: "0.875rem" }],
+  "4xl": ["2.25rem", { lineHeight: "2.625rem", letterSpacing: "-0.025em" }],
+  "5xl": ["2.75rem", { lineHeight: "3rem", letterSpacing: "-0.03em" }],
+  "6xl": ["3rem", { lineHeight: "3.375rem", letterSpacing: "-0.03em" }],
+  "7xl": ["4.25rem", { lineHeight: "4.5rem", letterSpacing: "-0.035em" }],
 };
 
-/**
- * The buyer app's text, one step up (founder's pick "B", 29 Sep 2026: "we
- * have a lot of space sitting there"). Inside the app shell (`[data-shell]`)
- * these replace the matching `fontSize` entries through CSS variables, so the
- * same `text-sm` is 14px in the app and 13px on the marketing site.
- */
-export const appFontSize: Record<string, FontSize> = {
-  eyebrow: ["0.75rem", { lineHeight: "1rem", letterSpacing: "0.08em" }], // 12
-  xs: ["0.8125rem", { lineHeight: "1.125rem" }], // 13 — caption
-  sm: ["0.875rem", { lineHeight: "1.25rem" }], // 14 — label, table, code
-  base: ["0.9375rem", { lineHeight: "1.5rem" }], // 15 — body
-  title: ["1rem", { lineHeight: "1.5rem", letterSpacing: "-0.005em" }], // 16 — card title, tab
+/** Paper's `--tracking-*`. Tailwind's own `tight` is -0.025em; Paper's is -0.01em. */
+export const letterSpacing = {
+  tight: "-0.01em",
+  tighter: "-0.02em",
 };
 
-/**
- * The buyer app on a phone, below 640px (D10 of `handoff-dashboard-mobile.md`,
- * measured from the big iOS apps on Mobbin, 30 Sep 2026: Glassdoor, Handshake,
- * Nextdoor, Expedia). Body text is 16px, as iOS sets it and as a field needs
- * so the page never zooms; a card's title 17; a section heading 17; the
- * record's name 24; a page title 22. The desktop scale above is untouched.
- */
-export const phoneFontSize: Record<string, FontSize> = {
-  base: ["1rem", { lineHeight: "1.5rem" }], // 16 — body, a fact's value, a field
-  title: ["1.0625rem", { lineHeight: "1.5rem", letterSpacing: "-0.005em" }], // 17 — a card's title
-  xl: ["1.0625rem", { lineHeight: "1.5rem", letterSpacing: "-0.005em" }], // 17 — a section heading
-  "3xl": ["1.5rem", { lineHeight: "1.875rem", letterSpacing: "-0.015em" }], // 24 — the record's name
-  "page-title": ["1.375rem", { lineHeight: "1.75rem", letterSpacing: "-0.015em" }], // 22 — a page's h1
-};
-
-/** `sm` → `--ds-fs-sm` (its size) and `--ds-lh-sm` (its line height). */
-export function fontVars(key: string): { size: string; lineHeight: string } {
-  return { size: `--ds-fs-${key}`, lineHeight: `--ds-lh-${key}` };
-}
-
+/** Paper's `regular|medium|semibold`; `normal`, `light` and `bold` are the old pages' (v3). */
 export const fontWeight = {
+  regular: "400",
   light: "300", // marketing display only
   normal: "400",
   medium: "500", // labels, links, app headings and company names (Geist at 600 reads heavy)
@@ -284,29 +350,37 @@ export const fontWeight = {
   bold: "700",
 };
 
-/** Artifact v3 radii: xs skeleton bars and 16px marks · sm controls, badges, marks, chips · md cards, inputs, panels · lg dialogs · xl marketing frames. */
+/** Paper's radii: sm controls and chips, md tables and source-mark frames, lg panels, dialogs, cards. `none`, `xs`, `DEFAULT` and `xl` are the old pages' (v3). */
 export const borderRadius = {
   none: "0",
-  xs: "0.1875rem", // 3
-  sm: "0.375rem", // 6
-  DEFAULT: "0.375rem", // 6
-  md: "0.625rem", // 10
-  lg: "0.875rem", // 14
-  xl: "1.25rem", // 20
+  sm: "4px",
+  md: "6px",
+  lg: "8px",
   full: "9999px",
+  // legacy (v3)
+  xs: "0.1875rem",
+  DEFAULT: "0.375rem",
+  xl: "1.25rem",
 };
 
-/** Shadows carry a colour, so they live here too. Tinted with `ink.strong`. */
+/**
+ * Shadows carry a colour, so they live here too. Paper has no shadow tokens;
+ * `menu` and `dialog` are the two DESIGN-v4.md §2 names (menus; dialogs, the
+ * docked pane and phone sheets), tinted with v4 `ink` (21 24 28). The rest are
+ * the old pages' (v3), tinted with `ink.strong`.
+ */
 export const boxShadow = {
   none: "none",
+  menu: "0 4px 12px rgb(21 24 28 / 0.12)",
+  dialog: "0 12px 32px rgb(21 24 28 / 0.18)",
   xs: "0 1px 2px 0 rgb(15 19 15 / 0.06)",
   sm: "0 1px 3px 0 rgb(15 19 15 / 0.08), 0 1px 2px -1px rgb(15 19 15 / 0.05)",
   md: "0 6px 14px -4px rgb(15 19 15 / 0.12), 0 2px 4px -2px rgb(15 19 15 / 0.06)",
   lg: "0 16px 32px -8px rgb(15 19 15 / 0.16), 0 4px 8px -4px rgb(15 19 15 / 0.06)",
   // The soft edge of a secondary button and a segmented control: the `line`
-  // token at 70 %, inset, so a tone button reads as a control on canvas too
+  // token (v4's value) at 70 %, inset, so a tone button reads as a control on canvas too
   // without adding a hairline.
-  edge: "inset 0 0 0 1px rgb(216 216 212 / 0.7)",
+  edge: "inset 0 0 0 1px rgb(221 224 228 / 0.7)",
   bloom: "0 0 0 4px rgb(63 227 116 / 0.28)", // the signal dot's glow (artifact `shadow-signal`; named apart from the colour group so the utilities cannot collide)
   glass: "inset 0 1px 0 rgb(255 255 255 / 0.7), 0 1px 3px rgb(15 19 15 / 0.08)",
 };
@@ -333,9 +407,53 @@ export const zIndex = {
   toast: "400",
 };
 
+/**
+ * Paper's `--container-*`, as width, min-width and max-width utilities
+ * (`w-pane`, `max-w-prose`): the boards size panes and dialogs with `w-`.
+ */
+export const containers = {
+  sidebar: "224px",
+  details: "344px",
+  // The filter panel laid over the results at 1280 and over (`Filters panel open` board, 360
+  // wide). Paper draws it at that width without a container of its own; this names it.
+  panel: "360px",
+  dialog: "480px",
+  prose: "544px",
+  pane: "640px",
+};
+
 export const maxWidth = {
-  prose: "68ch",
-  content: "75rem", // 1200
+  ...containers, // Paper's `prose` (544px) replaces Tailwind's 65ch
+  content: "75rem", // 1200 (v3)
+};
+
+/**
+ * Paper's named spacing (`--spacing-*`), as spacing utilities: `h-touch`,
+ * `min-h-row`, `py-row-head`. The numbered steps are Tailwind's own 4px scale,
+ * which Paper's `--spacing: 4px` matches.
+ */
+export const spacing = {
+  "control-sm": "24px",
+  control: "32px",
+  "row-head": "36px",
+  row: "40px",
+  "control-lg": "40px",
+  touch: "44px",
+  "input-touch": "48px",
+  "row-tall": "56px",
+  topbar: "56px",
+  tabbar: "56px",
+  "action-bar": "64px",
+};
+
+/** Paper's breakpoints. They REPLACE Tailwind's (whose `2xl` is 1536). */
+export const screens = {
+  xs: "320px",
+  sm: "640px",
+  md: "768px",
+  lg: "1024px",
+  xl: "1280px",
+  "2xl": "1440px",
 };
 
 /**
@@ -366,13 +484,12 @@ export const density = {
   rowPhone: 72, // a two-line result row
 };
 
-/** The density stops as Tailwind size utilities (`h-control`, `w-sidebar`, …). */
+/** The old pages' density stops as size utilities (`h-row-dense`, `min-h-fact-row`, …). `w-sidebar` is Paper's container now (224). */
 export const densitySizes: Record<string, string> = {
   "row-dense": `${density.tableRow}px`,
   "row-relaxed": `${density.tableRowRelaxed}px`,
   control: `${density.control}px`,
   "control-lg": `${density.controlLarge}px`,
-  sidebar: `${density.sidebar}px`,
   topbar: `${density.topbar}px`,
   "fact-row": `${density.factRow}px`,
   tabbar: `${density.tabbar}px`,
@@ -504,4 +621,38 @@ export const contrastPairs: ContrastPair[] = [
   { fg: "sanction.line", bg: "surface", min: UI, use: "sanction outline" },
   { fg: "tier.5-line", bg: "surface", min: UI, use: "tier 5 outline" },
   { fg: "signal.deep", bg: "surface", min: UI, use: "signal as a stroke" },
+  ...v4Pairs(),
 ];
+
+/**
+ * The v4 pairs Paper draws (B0), written with Paper's names. Text is held to
+ * 4.5:1, the caution icon and the no-expiry certificate edge (UI marks) to
+ * 3:1, the sanction red to AAA as before. `disabled` is exempt, as `ink.disabled`.
+ */
+function v4Pairs(): ContrastPair[] {
+  const p = (fg: string, bg: string, min: number, use: string): ContrastPair => ({ fg: v4Ref(fg), bg: v4Ref(bg), min, use: `v4: ${use}` });
+  return [
+    ...["subtle", "sunken"].map((bg) => p("ink", bg, TEXT, "text")),
+    ...["surface", "subtle", "sunken"].flatMap((bg) => [p("ink-2", bg, TEXT, "secondary text"), p("ink-3", bg, TEXT, "labels, captions")]),
+    p("ink-3", "brand-wash", TEXT, "a caption on the selected row"),
+    ...["surface", "subtle", "brand-tint", "brand-wash"].map((bg) => p("brand", bg, TEXT, "link, active nav")),
+    ...["brand", "brand-hover", "brand-active"].map((bg) => p("surface", bg, TEXT, "primary button")),
+    ...["danger-solid", "danger-active"].map((bg) => p("surface", bg, TEXT, "danger button")),
+    p("caution", "caution-tint", TEXT, "expiring, caution note"),
+    p("caution", "surface", TEXT, "caution line"),
+    p("caution-icon", "caution-tint", UI, "caution icon"),
+    p("caution-icon", "surface", UI, "caution icon"),
+    p("danger", "danger-tint", TEXT, "error, expired"),
+    p("danger", "surface", TEXT, "field error"),
+    p("sanction", "sanction-tint", 7, "sanction note (held to AAA)"),
+    p("sanction", "surface", 7, "sanction line (held to AAA)"),
+    p("surface", "sanction", 7, "sanction banner (held to AAA)"),
+    p("info", "info-tint", TEXT, "info note"),
+    p("info", "surface", TEXT, "info line"),
+    p("cert-valid-fg", "surface", TEXT, "valid certificate"),
+    p("cert-expiring-fg", "cert-expiring-bg", TEXT, "expiring certificate"),
+    p("cert-expired-fg", "cert-expired-bg", TEXT, "expired certificate"),
+    p("cert-no-expiry-fg", "surface", TEXT, "certificate with no expiry"),
+    p("cert-no-expiry-edge", "surface", UI, "no-expiry certificate edge"),
+  ];
+}

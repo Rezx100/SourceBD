@@ -7,7 +7,7 @@
 import { formatCount } from "@/lib/dashboard/facts";
 import { SAVED_SEARCH_ERROR } from "@/lib/saved-search-errors";
 import { COUNT_ONLY_SORT, fetchDiscoverV32 } from "@/lib/discover-v32-rpc";
-import { parseDiscoverState, serializeDiscoverState, type DiscoverState } from "@/lib/discover-v32-state";
+import { filterCount, parseDiscoverState, serializeDiscoverState, type DiscoverState } from "@/lib/discover-v32-state";
 
 export type SavedSearchClient = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -69,7 +69,11 @@ export const MAX_SAVED_SEARCH_CHARS = 6000;
  */
 const MAX_REFRESH_PER_CALL = 10;
 
-function asState(raw: unknown): DiscoverState {
+/** A column the database lacks: Postgres says 42703 (a select), PostgREST says PGRST204 (an insert or update, from its schema cache). */
+const isMissingColumn = (code: string | undefined) => code === "42703" || code === "PGRST204";
+
+/** The search a saved row holds (`{ search }` or a bare query string), parsed as the results page parses it. */
+export function asState(raw: unknown): DiscoverState {
   if (raw && typeof raw === "object" && !Array.isArray(raw)) {
     const rec = raw as Record<string, unknown>;
     if (typeof rec.search === "string") {
@@ -203,13 +207,18 @@ export async function runSavedSearchesPost(input: {
   if (search.length > MAX_SAVED_SEARCH_CHARS) {
     return { status: 400, body: { error: SAVED_SEARCH_ERROR.tooLong } };
   }
+  // 0113's switch. Sent only when it is on, so a save that does not ask for an email never names a
+  // column a database without 0113 lacks.
+  const alertWeekly = rec.alert_weekly === true;
   const inserted = await input.supabase.from("saved_searches").insert({
     owner_id: ownerId,
     name,
     query_state: { search },
+    ...(alertWeekly ? { alert_weekly: true } : {}),
   });
   if (inserted.error) {
     const code = (inserted.error as { code?: string }).code;
+    if (isMissingColumn(code) && alertWeekly) return { status: 400, body: { error: SAVED_SEARCH_ERROR.alertsUnavailable } };
     if (code === "54000") return { status: 409, body: { error: SAVED_SEARCH_ERROR.limitReached } };
     if (code === "23514") return { status: 400, body: { error: SAVED_SEARCH_ERROR.tooLong } };
     return { status: 500, body: { error: "save failed" } };
@@ -235,6 +244,103 @@ export async function runSavedSearchesDelete(input: {
   const deleted = await input.supabase.from("saved_searches").delete().eq("id", input.id).eq("owner_id", ownerId);
   if (deleted.error) {
     return { status: 500, body: { error: "delete failed", detail: deleted.error.message } };
+  }
+  return { status: 200, body: { ok: true } };
+}
+
+/** Rename one saved search. Only the name changes; its filters and its remembered count stay. */
+export async function runSavedSearchesRename(input: {
+  role: string | null;
+  supabase: SavedSearchClient;
+  raw: unknown;
+}): Promise<SavedResult> {
+  if (input.role !== "buyer" && input.role !== "admin") {
+    return { status: 401, body: { error: "unauthorised" } };
+  }
+  if (!input.raw || typeof input.raw !== "object" || Array.isArray(input.raw)) {
+    return { status: 400, body: { error: "body must be an object" } };
+  }
+  const rec = input.raw as Record<string, unknown>;
+  if (typeof rec.id !== "string" || !UUID_RE.test(rec.id)) {
+    return { status: 400, body: { error: "invalid id" } };
+  }
+  const name = typeof rec.name === "string" ? rec.name.trim() : "";
+  if (!name || name.length > 120) {
+    return { status: 400, body: { error: SAVED_SEARCH_ERROR.invalidName } };
+  }
+  const { data: user } = await input.supabase.auth.getUser();
+  const ownerId = user.user?.id;
+  if (!ownerId) return { status: 401, body: { error: "unauthorised" } };
+
+  // `select` after the update says whether a row matched: someone else's id, or one already
+  // deleted, matches none, and that is a 404, never a quiet "renamed".
+  const updated = await input.supabase.from("saved_searches").update({ name }).eq("id", rec.id).eq("owner_id", ownerId).select("id");
+  if (updated.error) return { status: 500, body: { error: "rename failed" } };
+  if (!Array.isArray(updated.data) || updated.data.length === 0) return { status: 404, body: { error: "not found" } };
+  return { status: 200, body: { ok: true, name } };
+}
+
+/**
+ * Turn "Email me new matches" on or off for one saved search (0113's `alert_weekly`). The owner's own
+ * row policy allows the update; the filter on `owner_id` and the `select` say whether a row matched, so
+ * someone else's id, or one already deleted, is a 404 and never a quiet "on".
+ */
+export async function runSavedSearchesAlert(input: {
+  role: string | null;
+  supabase: SavedSearchClient;
+  raw: unknown;
+}): Promise<SavedResult> {
+  if (input.role !== "buyer" && input.role !== "admin") {
+    return { status: 401, body: { error: "unauthorised" } };
+  }
+  if (!input.raw || typeof input.raw !== "object" || Array.isArray(input.raw)) {
+    return { status: 400, body: { error: "body must be an object" } };
+  }
+  const rec = input.raw as Record<string, unknown>;
+  if (typeof rec.id !== "string" || !UUID_RE.test(rec.id)) {
+    return { status: 400, body: { error: "invalid id" } };
+  }
+  if (typeof rec.alert_weekly !== "boolean") return { status: 400, body: { error: "invalid alert_weekly" } };
+  const { data: user } = await input.supabase.auth.getUser();
+  const ownerId = user.user?.id;
+  if (!ownerId) return { status: 401, body: { error: "unauthorised" } };
+
+  const updated = await input.supabase.from("saved_searches").update({ alert_weekly: rec.alert_weekly }).eq("id", rec.id).eq("owner_id", ownerId).select("id");
+  if (updated.error) {
+    // The column is not there (0113 not applied). Said as such, so the page can say why.
+    const missing = isMissingColumn((updated.error as { code?: string }).code);
+    return { status: missing ? 400 : 500, body: { error: missing ? SAVED_SEARCH_ERROR.alertsUnavailable : "alert not saved" } };
+  }
+  if (!Array.isArray(updated.data) || updated.data.length === 0) return { status: 404, body: { error: "not found" } };
+  return { status: 200, body: { ok: true, alert_weekly: rec.alert_weekly } };
+}
+
+/**
+ * Keep the search the buyer just ran (0113's `buyer_last_search_set`), for the "Save your last
+ * search?" card. It is stored as a saved search stores it, `{ search }` after the same parse and
+ * serialize, so the database can tell that a saved search already holds it (`saved`).
+ */
+export async function runLastSearchSet(input: {
+  role: string | null;
+  supabase: SavedSearchClient;
+  raw: unknown;
+}): Promise<SavedResult> {
+  if (input.role !== "buyer" && input.role !== "admin") {
+    return { status: 401, body: { error: "unauthorised" } };
+  }
+  if (!input.raw || typeof input.raw !== "object" || Array.isArray(input.raw)) {
+    return { status: 400, body: { error: "body must be an object" } };
+  }
+  const rec = input.raw as Record<string, unknown>;
+  if (typeof rec.search !== "string") return { status: 400, body: { error: "invalid search" } };
+  const state = { ...parseDiscoverState(new URLSearchParams(rec.search.replace(/^\?/, ""))), page: 1 };
+  const search = serializeDiscoverState(state).toString();
+  // A search with no words or filter is not one worth offering to save.
+  if (filterCount(state) === 0 || search.length > MAX_SAVED_SEARCH_CHARS) return { status: 400, body: { error: "invalid search" } };
+  const set = await input.supabase.rpc("buyer_last_search_set", { p_state: { search } });
+  if (set.error) {
+    const code = (set.error as { code?: string }).code;
+    return { status: code === "42501" ? 401 : code === "22023" ? 400 : 500, body: { error: "last search not kept" } };
   }
   return { status: 200, body: { ok: true } };
 }

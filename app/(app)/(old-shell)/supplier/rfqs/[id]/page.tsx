@@ -14,24 +14,13 @@
 
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import {
-  ChatCircleText,
-  FileText,
-  Storefront,
-} from "@phosphor-icons/react/dist/ssr";
+import { FileText, Storefront } from "@phosphor-icons/react/dist/ssr";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardMeta,
-  CardTitle,
-} from "@/components/ui/card";
-import { MasterDetail } from "@/components/ui/master-detail";
+import { ButtonLink, linkClass } from "@/components/kit";
+import { RfqChip } from "@/components/rfqs/chip";
 import { SupplierQuoteForm } from "@/components/supplier-quote-form";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -107,172 +96,133 @@ export default async function SupplierRfqDetailPage({
   const canQuote = rfq.status === "open";
 
   return (
-    <MasterDetail
-      mode="detail"
-      className="mx-auto max-w-6xl"
-      list={<RfqListPane items={listItems} activeId={rfq.id} />}
-      detail={
-        <div className="space-y-6">
-          <Link
-            href="/supplier/rfqs"
-            className="inline-flex items-center gap-1.5 text-xs text-ink-tertiary hover:text-ink-primary lg:hidden"
-          >
-            ← All RFQs
-          </Link>
-          <header className="space-y-1">
-        <p className="text-[12px] text-ink-tertiary">
-          Supplier · RFQ {rfq.id.slice(0, 8)}
-        </p>
-        <div className="flex items-center gap-2">
-          <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
-            {rfq.product_title}
-          </h1>
-          <Badge tone={statusTone(rfq.status)}>{statusLabel(rfq.status)}</Badge>
-        </div>
-        <p className="text-[13px] text-ink-tertiary">
-          Created {fmtDate(rfq.created_at)} · Updated{" "}
-          {fmtRelative(rfq.updated_at)}
-        </p>
-      </header>
+    <div className="mx-auto grid w-full max-w-[1200px] items-start gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+      <RfqListPane items={listItems} activeId={rfq.id} />
+      <div className="flex min-w-0 flex-col gap-6">
+        <Link href="/supplier/rfqs" className={cn(linkClass, "text-sm lg:hidden")}>
+          ← All RFQs
+        </Link>
+        <header className="flex flex-col gap-1">
+          <p className="text-sm text-ink-3">Supplier · RFQ {rfq.id.slice(0, 8)}</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-semibold tracking-tight text-ink">
+              {rfq.product_title}
+            </h1>
+            <RfqChip tone={statusTone(rfq.status)}>{statusLabel(rfq.status)}</RfqChip>
+          </div>
+          <p className="text-md text-ink-2">
+            Created {fmtDate(rfq.created_at)} · Updated {fmtRelative(rfq.updated_at)}
+          </p>
+        </header>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Specification</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-[14px]">
-          <Row label="Quantity">
-            {fmtNum(rfq.quantity)} {rfq.quantity_unit}
-          </Row>
-          {rfq.target_unit_price != null ? (
-            <Row label="Buyer target price">
-              {fmtMoney(rfq.target_unit_price, rfq.currency)} /{" "}
-              {rfq.quantity_unit}
+        <Panel title="Specification">
+          <div className="flex flex-col gap-3 text-base">
+            <Row label="Quantity">
+              {fmtNum(rfq.quantity)} {rfq.quantity_unit}
             </Row>
-          ) : null}
-          {rfq.ship_to_country ? (
-            <Row label="Ship to">{rfq.ship_to_country}</Row>
-          ) : null}
-          {rfq.ship_by ? (
-            <Row label="Ship by">{fmtDate(rfq.ship_by)}</Row>
-          ) : null}
-          {rfq.product_description ? (
-            <div className="space-y-1">
-              <p className="text-[12px] text-ink-tertiary">
-                Description
-              </p>
-              <p className="whitespace-pre-wrap text-ink-primary">
-                {rfq.product_description}
-              </p>
-            </div>
-          ) : null}
-          {/* What the buyer wrote in the composer: the message and the
-              questions they want answered in the quote. */}
-          {rfq.message ? (
-            <div className="space-y-1">
-              <p className="text-[12px] text-ink-tertiary">Message from the buyer</p>
-              <p className="whitespace-pre-wrap text-ink-primary">{rfq.message}</p>
-            </div>
-          ) : null}
-          {rfq.questions && rfq.questions.length > 0 ? (
-            <div className="space-y-1">
-              <p className="text-[12px] text-ink-tertiary">The buyer asks</p>
-              <ol className="list-decimal space-y-0.5 pl-5 text-ink-primary">
-                {rfq.questions.map((q) => (
-                  <li key={q}>{q}</li>
-                ))}
-              </ol>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
+            {rfq.target_unit_price != null ? (
+              <Row label="Buyer target price">
+                {fmtMoney(rfq.target_unit_price, rfq.currency)} / {rfq.quantity_unit}
+              </Row>
+            ) : null}
+            {rfq.ship_to_country ? <Row label="Ship to">{rfq.ship_to_country}</Row> : null}
+            {rfq.ship_by ? <Row label="Ship by">{fmtDate(rfq.ship_by)}</Row> : null}
+            {rfq.product_description ? (
+              <div className="flex flex-col gap-1">
+                <p className="text-xs text-ink-3">Description</p>
+                <p className="whitespace-pre-wrap text-ink">{rfq.product_description}</p>
+              </div>
+            ) : null}
+            {/* What the buyer wrote in the composer: the message and the
+                questions they want answered in the quote. */}
+            {rfq.message ? (
+              <div className="flex flex-col gap-1">
+                <p className="text-xs text-ink-3">Message from the buyer</p>
+                <p className="whitespace-pre-wrap text-ink">{rfq.message}</p>
+              </div>
+            ) : null}
+            {rfq.questions && rfq.questions.length > 0 ? (
+              <div className="flex flex-col gap-1">
+                <p className="text-xs text-ink-3">The buyer asks</p>
+                <ol className="m-0 list-decimal space-y-0.5 pl-5 text-ink">
+                  {rfq.questions.map((q) => (
+                    <li key={q}>{q}</li>
+                  ))}
+                </ol>
+              </div>
+            ) : null}
+          </div>
+        </Panel>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Addressed to</CardTitle>
-          <CardMeta>
-            {rfq.targets.length === 1
+        <Panel
+          title="Addressed to"
+          meta={
+            rfq.targets.length === 1
               ? "1 of your claimed companies"
-              : `${rfq.targets.length} suppliers`}
-          </CardMeta>
-        </CardHeader>
-        <CardContent className="px-0 py-0">
+              : `${rfq.targets.length} suppliers`
+          }
+          flush
+        >
           <ul className="m-0 flex list-none flex-col p-0">
             {rfq.targets.map((s) => (
               <li
                 key={s.id}
-                className="flex items-center gap-3 border-b border-hairline px-4 py-3 last:border-b-0"
+                className="flex items-center gap-3 border-b border-line px-5 py-3 last:border-b-0"
               >
-                <Storefront
-                  size={18}
-                  weight="duotone"
-                  className="text-accent-indigo"
-                  aria-hidden
-                />
+                <Storefront size={20} className="shrink-0 text-ink-3" aria-hidden />
                 <div className="min-w-0 flex-1">
                   <Link
                     href={`/app/suppliers/${s.slug}`}
-                    className="truncate font-display text-sm font-semibold text-ink-primary hover:underline"
+                    className="block truncate text-base font-medium text-ink hover:underline"
                   >
                     {s.company_name}
                   </Link>
-                  <p className="truncate text-[13px] text-ink-tertiary">
+                  <p className="truncate text-sm text-ink-3">
                     {entityLabel(s.entity_type)}
                     {s.city ? ` · ${s.city}` : ""}
                     {s.district ? `, ${s.district}` : ""}
                   </p>
                 </div>
                 {rfq.thread_id ? (
-                  <Button asChild variant="ghost" size="sm">
-                    <Link href={`/supplier/messages/${rfq.thread_id}`}>
-                      <ChatCircleText size={16} aria-hidden /> Thread
-                    </Link>
-                  </Button>
+                  <ButtonLink href={`/supplier/messages/${rfq.thread_id}`} kind="quiet">
+                    Thread
+                  </ButtonLink>
                 ) : null}
               </li>
             ))}
           </ul>
-        </CardContent>
-      </Card>
+        </Panel>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Your quote</CardTitle>
-          <CardMeta>
-            {myQuote
+        <Panel
+          title="Your quote"
+          meta={
+            myQuote
               ? quoteLabel(myQuote.status)
               : canQuote
                 ? "Not submitted"
-                : "Quoting closed"}
-          </CardMeta>
-        </CardHeader>
-        <CardContent>
+                : "Quoting closed"
+          }
+        >
           {myQuote && !canQuote ? (
-            <div className="space-y-2 text-[14px]">
+            <div className="flex flex-col gap-2 text-base">
               <Row label="Unit price">
-                {fmtMoney(myQuote.unit_price, myQuote.currency)} /{" "}
-                {rfq.quantity_unit}
+                {fmtMoney(myQuote.unit_price, myQuote.currency)} / {rfq.quantity_unit}
               </Row>
               {myQuote.lead_time_days != null ? (
                 <Row label="Lead time">{myQuote.lead_time_days} days</Row>
               ) : null}
-              {myQuote.moq != null ? (
-                <Row label="MOQ">{fmtNum(myQuote.moq)}</Row>
-              ) : null}
+              {myQuote.moq != null ? <Row label="MOQ">{fmtNum(myQuote.moq)}</Row> : null}
               {myQuote.valid_until ? (
                 <Row label="Valid until">{fmtDate(myQuote.valid_until)}</Row>
               ) : null}
               {myQuote.notes ? (
-                <div className="space-y-1">
-                  <p className="text-[12px] text-ink-tertiary">
-                    Notes
-                  </p>
-                  <p className="whitespace-pre-wrap text-ink-primary">
-                    {myQuote.notes}
-                  </p>
+                <div className="flex flex-col gap-1">
+                  <p className="text-xs text-ink-3">Notes</p>
+                  <p className="whitespace-pre-wrap text-ink">{myQuote.notes}</p>
                 </div>
               ) : null}
-              <p className="pt-2 text-[13px] text-ink-tertiary">
-                <FileText size={16} aria-hidden className="mr-1 inline" />
+              <p className="flex items-center gap-1.5 pt-2 text-sm text-ink-3">
+                <FileText size={16} aria-hidden />
                 RFQ is no longer open; your submitted quote is locked.
               </p>
             </div>
@@ -297,11 +247,9 @@ export default async function SupplierRfqDetailPage({
               }
             />
           )}
-        </CardContent>
-      </Card>
-        </div>
-      }
-    />
+        </Panel>
+      </div>
+    </div>
   );
 }
 
@@ -313,6 +261,28 @@ type RfqListPaneItem = {
   updated_at: string;
 };
 
+function Panel({
+  title,
+  meta,
+  flush,
+  children,
+}: {
+  title: string;
+  meta?: string;
+  flush?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <section aria-label={title} className="overflow-clip rounded-md border border-line">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 px-5 pt-5">
+        <h2 className="text-md font-semibold text-ink">{title}</h2>
+        {meta ? <p className="text-sm text-ink-3">{meta}</p> : null}
+      </div>
+      <div className={flush ? "mt-3" : "p-5 pt-4"}>{children}</div>
+    </section>
+  );
+}
+
 function RfqListPane({
   items,
   activeId,
@@ -321,27 +291,27 @@ function RfqListPane({
   activeId: string;
 }) {
   return (
-    <nav className="rounded-card border border-hairline bg-surface-l1">
-      <p className="border-b border-hairline px-3 py-2 font-mono text-[12px] uppercase tracking-[0.05em] text-ink-tertiary">
+    <nav aria-label="RFQs received" className="max-lg:hidden rounded-md border border-line">
+      <p className="border-b border-line px-3 py-2 text-xs font-medium text-ink-3">
         RFQs received
       </p>
       <ul className="m-0 flex max-h-[70vh] list-none flex-col overflow-y-auto p-0">
         {items.map((r) => (
-          <li key={r.id} className="border-b border-hairline last:border-b-0">
+          <li key={r.id} className="border-b border-line last:border-b-0">
             <Link
               href={`/supplier/rfqs/${r.id}`}
-              className={`block px-3 py-2.5 transition hover:bg-brand-forest-tint ${
-                r.id === activeId ? "bg-[#FBFAF6]" : ""
-              }`}
+              aria-current={r.id === activeId ? "page" : undefined}
+              className={cn(
+                "flex flex-col gap-1 px-3 py-2.5 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand",
+                r.id === activeId && "bg-brand-tint",
+              )}
             >
-              <span className="block truncate text-[14px] font-semibold text-ink-primary">
+              <span className="block truncate text-base font-medium text-ink">
                 {r.product_title}
               </span>
-              <span className="mt-0.5 flex items-center gap-2">
-                <Badge tone={statusTone(r.status)}>{statusLabel(r.status)}</Badge>
-                <span className="font-mono text-[12px] text-ink-tertiary">
-                  {fmtRelative(r.updated_at)}
-                </span>
+              <span className="flex items-center gap-2">
+                <RfqChip tone={statusTone(r.status)}>{statusLabel(r.status)}</RfqChip>
+                <span className="text-xs text-ink-3">{fmtRelative(r.updated_at)}</span>
               </span>
             </Link>
           </li>
@@ -359,22 +329,17 @@ function Row({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex items-baseline gap-3">
-      <span className="w-40 shrink-0 text-[12px] text-ink-tertiary">
-        {label}
-      </span>
-      <span className="text-ink-primary">{children}</span>
+    <div className="flex flex-wrap items-baseline gap-x-3">
+      <span className="w-40 shrink-0 text-xs text-ink-3">{label}</span>
+      <span className="text-ink">{children}</span>
     </div>
   );
 }
 
-function statusTone(
-  s: RfqDoc["status"],
-): "active" | "neutral" | "alert" | "success" {
-  if (s === "open") return "active";
-  if (s === "accepted") return "success";
-  if (s === "cancelled") return "alert";
-  return "neutral";
+function statusTone(s: RfqDoc["status"]): "waiting" | "accepted" | "closed" {
+  if (s === "open") return "waiting";
+  if (s === "accepted") return "accepted";
+  return "closed";
 }
 function statusLabel(s: RfqDoc["status"]): string {
   if (s === "open") return "Open";

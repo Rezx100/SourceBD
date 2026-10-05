@@ -124,4 +124,9 @@ describe("rate-limit classes", () => {
     assert.equal(classifyRoute("/app/discover", "GET"), "api_read");
     assert.equal(classifyRoute("/api/v1/saved", "POST"), "api_write");
   });
+
+  it("Contact sales, which emails the founder, is bounded per address like a sign-in", () => {
+    assert.equal(classifyRoute("/contact", "POST"), "auth");
+    assert.equal(RATE_LIMITS.auth.identifier, "ip");
+  });
 });

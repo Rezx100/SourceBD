@@ -26,7 +26,14 @@ import {
   type PasswordResetData,
 } from "./password-reset";
 
+import { ContactLead, contactLeadSubject, type ContactLeadData } from "./contact-lead";
+import { TeamInvite, teamInviteSubject, type TeamInviteData } from "./team-invite";
+import { SavedSearchAlert, savedSearchAlertSubject, type SavedSearchAlertData } from "./saved-search-alert";
+
 export type TemplateMap = {
+  contact_lead: ContactLeadData;
+  saved_search_alert: SavedSearchAlertData;
+  team_invite: TeamInviteData;
   welcome: WelcomeData;
   rfq_received: RfqReceivedData;
   cert_expiry: CertExpiryData;
@@ -42,6 +49,18 @@ type Entry<K extends TemplateName> = {
 };
 
 export const TEMPLATES: { [K in TemplateName]: Entry<K> } = {
+  contact_lead: {
+    subject: contactLeadSubject,
+    render: (data) => <ContactLead data={data} />,
+  },
+  saved_search_alert: {
+    subject: savedSearchAlertSubject,
+    render: (data) => <SavedSearchAlert data={data} />,
+  },
+  team_invite: {
+    subject: teamInviteSubject,
+    render: (data) => <TeamInvite data={data} />,
+  },
   welcome: {
     subject: welcomeSubject,
     render: (data) => <Welcome data={data} />,

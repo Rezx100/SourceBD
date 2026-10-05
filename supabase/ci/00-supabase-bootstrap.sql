@@ -18,6 +18,7 @@ create extension if not exists "citext";
 create extension if not exists "pg_trgm";
 create extension if not exists "unaccent";
 
+
 do $$
 begin
   if not exists (select 1 from pg_roles where rolname = 'anon') then
@@ -33,6 +34,15 @@ end
 $$;
 
 grant usage on schema public to anon, authenticated, service_role;
+
+-- Supabase installs pgcrypto in `extensions`, and the token functions (0032,
+-- 0111) call it there by name. Here it lives in public, so forward to it.
+create schema if not exists extensions;
+grant usage on schema extensions to anon, authenticated, service_role;
+create or replace function extensions.gen_random_bytes(int) returns bytea
+language sql volatile as $$ select public.gen_random_bytes($1) $$;
+create or replace function extensions.digest(text, text) returns bytea
+language sql immutable as $$ select public.digest($1, $2) $$;
 
 -- Supabase's own default privileges (live pg_default_acl, read 23 Sep 2026:
 -- functions in public are created `{anon=X, authenticated=X, service_role=X}`).
@@ -59,6 +69,19 @@ create table if not exists auth.users (
   raw_user_meta_data  jsonb not null default '{}'::jsonb,
   raw_app_meta_data   jsonb not null default '{}'::jsonb,
   created_at          timestamptz not null default now()
+);
+
+-- 0115 lists and ends a user's sessions. Only the columns it reads; no foreign key, so a test can
+-- insert a session for a user it has not made.
+create table if not exists auth.sessions (
+  id            uuid        primary key default gen_random_uuid(),
+  user_id       uuid        not null,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz,
+  not_after     timestamptz,
+  refreshed_at  timestamp,
+  user_agent    text,
+  ip            inet
 );
 
 -- The real ones read the request JWT out of a GUC. Same contract: null when
@@ -102,6 +125,7 @@ create table if not exists storage.objects (
   bucket_id  text references storage.buckets(id),
   name       text,
   owner      uuid,
+  metadata   jsonb,
   created_at timestamptz default now()
 );
 

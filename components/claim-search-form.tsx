@@ -13,8 +13,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
-import { Button } from "@/components/ui/button";
-import { StickyActionBar } from "@/components/ui/sticky-action-bar";
+import { Button, Field, InlineError, Input, fieldBox, fieldEdge, ringInset } from "@/components/kit";
+import { cn } from "@/lib/utils";
 
 type SearchHit = {
   id: string;
@@ -142,53 +142,50 @@ export function ClaimSearchForm({ prebound }: ClaimSearchFormProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       {selected ? (
-        <div className="flex items-center justify-between rounded-input border border-hairline bg-bg-l0 px-3 py-2">
+        <div className="flex items-center justify-between gap-3 rounded-md border border-line bg-subtle px-3 py-2">
           <div>
-            <p className="text-sm font-semibold text-ink-primary">
+            <p className="text-base font-medium text-ink">
               {selected.company_name}
             </p>
-            <p className="text-[12px] text-ink-tertiary">Selected</p>
+            <p className="text-sm text-ink-3">Selected</p>
           </div>
-          <Button type="button" variant="ghost" size="sm" onClick={clearSelection}>
+          <Button type="button" kind="quiet" onClick={clearSelection}>
             Change
           </Button>
         </div>
       ) : (
-        <div className="space-y-2">
-          <label
-            htmlFor="claim-search"
-            className="text-xs font-medium text-ink-secondary"
-          >
-            Search company name
-          </label>
-          <input
-            id="claim-search"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="e.g. Square Apparels"
-            className="w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm outline-none focus:border-accent-indigo"
-            autoComplete="off"
-          />
+        <div className="flex flex-col gap-2">
+          <Field label="Search company name">
+            {(a) => (
+              <Input
+                {...a}
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="e.g. Square Apparels"
+                autoComplete="off"
+              />
+            )}
+          </Field>
           {searching ? (
-            <p className="text-[12px] text-ink-tertiary">Searching…</p>
+            <p role="status" className="text-sm text-ink-3">Searching…</p>
           ) : null}
           {results.length > 0 ? (
-            <ul className="max-h-64 divide-y divide-hairline overflow-auto rounded-input border border-hairline">
+            <ul className="max-h-64 divide-y divide-line overflow-auto rounded-md border border-line">
               {results.map((r) => (
                 <li key={r.id}>
                   <button
                     type="button"
-                    className="block w-full px-3 py-2 text-left hover:bg-surface-l1"
+                    className={cn("block w-full px-3 py-2 text-left hover:bg-subtle", ringInset)}
                     onClick={() =>
                       setSelected({ id: r.id, company_name: r.company_name })
                     }
                   >
-                    <p className="text-sm font-medium text-ink-primary">
+                    <p className="text-base font-medium text-ink">
                       {r.company_name}
                     </p>
-                    <p className="text-[12px] text-ink-tertiary">
+                    <p className="text-sm text-ink-3">
                       {[r.city, r.district].filter(Boolean).join(", ") || "—"}
                       {r.website_host ? ` · ${r.website_host}` : ""}
                     </p>
@@ -198,7 +195,7 @@ export function ClaimSearchForm({ prebound }: ClaimSearchFormProps) {
             </ul>
           ) : null}
           {q.trim().length >= 2 && !searching && results.length === 0 ? (
-            <p className="text-[12px] text-ink-tertiary">
+            <p className="text-sm text-ink-3">
               No unclaimed matches. Companies that are already claimed or
               unpublished are hidden.
             </p>
@@ -207,52 +204,42 @@ export function ClaimSearchForm({ prebound }: ClaimSearchFormProps) {
       )}
 
       {selected ? (
-        <form onSubmit={submit} className="space-y-3">
-          <div className="space-y-1">
-            <label
-              htmlFor="claim-email"
-              className="text-xs font-medium text-ink-secondary"
-            >
-              Proof email (must be at your company)
-            </label>
-            <input
-              id="claim-email"
-              type="email"
-              required
-              value={proofEmail}
-              onChange={(e) => setProofEmail(e.target.value)}
-              placeholder="you@yourcompany.com"
-              className="w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm outline-none focus:border-accent-indigo"
-              autoComplete="email"
-            />
-            <p className="text-[12px] text-ink-tertiary">
-              If this domain matches the company&apos;s published website, your
-              claim is approved automatically.
-            </p>
-          </div>
-          <div className="space-y-1">
-            <label
-              htmlFor="claim-note"
-              className="text-xs font-medium text-ink-secondary"
-            >
-              Note to admin (optional)
-            </label>
-            <textarea
-              id="claim-note"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              rows={3}
-              maxLength={2000}
-              className="w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm outline-none focus:border-accent-indigo"
-            />
-          </div>
-          {error ? <p className="text-xs text-sem-red">{error}</p> : null}
-          {info ? <p className="text-xs text-sem-green">{info}</p> : null}
-          <StickyActionBar>
-            <Button type="submit" variant="primary" disabled={submitting}>
-              {submitting ? "Sending…" : "Send verification email"}
+        <form onSubmit={submit} className="flex flex-col gap-4">
+          <Field
+            label="Proof email (must be at your company)"
+            help="If this domain matches the company's published website, your claim is approved automatically."
+          >
+            {(a) => (
+              <Input
+                {...a}
+                type="email"
+                required
+                value={proofEmail}
+                onChange={(e) => setProofEmail(e.target.value)}
+                placeholder="you@yourcompany.com"
+                autoComplete="email"
+              />
+            )}
+          </Field>
+          <Field label="Note to admin (optional)">
+            {(a) => (
+              <textarea
+                {...a}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                rows={3}
+                maxLength={2000}
+                className={cn(fieldBox, fieldEdge, "px-2.5 py-1.5 text-base")}
+              />
+            )}
+          </Field>
+          {error ? <InlineError>{error}</InlineError> : null}
+          {info ? <p role="status" className="text-sm text-ink-2">{info}</p> : null}
+          <div>
+            <Button type="submit" kind="primary" loading={submitting} loadingLabel="Sending…">
+              Send verification email
             </Button>
-          </StickyActionBar>
+          </div>
         </form>
       ) : null}
     </div>

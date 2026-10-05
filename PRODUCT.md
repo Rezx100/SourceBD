@@ -47,8 +47,8 @@ orders, watch certificate expiry and sanction flags in the Compliance hub.
   refused.
 - No SourceBD score, grade, rating or star outside admin.
 - Every fact has room for its source mark and a link to the source page.
-- No new packages. Tailwind utilities, the dashboard kit under
-  `components/dashboard/*`, tokens in `lib/design/tokens.ts`.
+- No new packages. Tailwind utilities, the v4 kit under
+  `components/kit` and `components/patterns`, tokens in `lib/design/tokens.ts`.
 - Third-party logos follow `context/logos.lock.md`.
 
 ## Brand Commitments
