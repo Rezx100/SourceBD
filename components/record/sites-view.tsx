@@ -1,7 +1,7 @@
 "use client";
 
 // The Sites tab's body (B4d, Paper `Record full page · Sites`): the Barikoi map beside one card per
-// premises. The map is the existing capture (`components/supplier/locations-map.tsx`: pins from the ETL's
+// premises. The map is the existing capture (`components/record/locations-map.tsx`: pins from the ETL's
 // geocode cache, no geocoding at runtime); this holds the selection both ways. A card is a link
 // (`?site=2`), so the list works with no script; with one, a click selects, the map flies to the pin,
 // and a click on a pin selects its card. The selected card is tint plus a bar. The URL follows the
@@ -9,7 +9,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { SiteList, type Site } from "@/components/patterns/locations";
-import { MAP_ATTRIBUTION, MapWidget, useNearbyLayer, type LocationMapMarker, type MapStyle } from "@/components/supplier/locations-map";
+import { MAP_ATTRIBUTION, MapWidget, useNearbyLayer, type LocationMapMarker, type MapStyle } from "@/components/record/locations-map";
 import { cn } from "@/lib/utils";
 import { siteSummary, type SiteCard } from "./words";
 

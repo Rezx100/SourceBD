@@ -129,8 +129,8 @@ const NOT_STYLES: Record<string, string> = {
 /** The old pages (v3 and older) that still type colours. Delete an entry with its page (B4–B11). */
 const LEGACY_COLOURS = [
   "components/discover/result-card.tsx",
-  "components/supplier/company-avatar.tsx",
-  "components/supplier/locations-map.tsx",
+  "components/discover/company-avatar.tsx",
+  "components/record/locations-map.tsx",
 ];
 
 const colourFiles = COLOUR_ROOTS.flatMap(walk).filter(
