@@ -4,7 +4,7 @@
 // server component, `force-static`, per-page metadata + canonical,
 // inline copy with a `LAST_UPDATED` constant rendered in the footer.
 
-import { BlurFade } from "@/components/ui/blur-fade";
+import { LegalShell, legalDay } from "@/components/site/legal";
 
 export const dynamic = "force-static";
 
@@ -23,22 +23,8 @@ export const metadata = {
 
 export default function TermsPage() {
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16">
-      <BlurFade delay={0.1}>
-        <header className="mb-8 text-center">
-          <h1 className="font-display text-3xl font-bold tracking-tight text-ink-primary md:text-4xl">
-            <span className="text-[#1f4d3a]">Terms of Service</span>
-          </h1>
-          <p className="mt-3 text-[12px] text-ink-tertiary">
-            Last updated: {LAST_UPDATED}
-          </p>
-        </header>
-      </BlurFade>
-      <BlurFade delay={0.15}>
-      <div className="proto-card">
-
-      <section className="space-y-4 text-ink-secondary leading-relaxed">
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+    <LegalShell title="Terms of Service" updated={legalDay(LAST_UPDATED)} active="/legal/terms">
+        <h2>
           1. Who we are
         </h2>
         <p>
@@ -51,7 +37,7 @@ export default function TermsPage() {
           bodies, and brand disclosures.
         </p>
 
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+        <h2>
           2. Eligibility and accounts
         </h2>
         <p>
@@ -61,7 +47,7 @@ export default function TermsPage() {
           activity that occurs under your account.
         </p>
 
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+        <h2>
           3. Subscription and payment
         </h2>
         <p>
@@ -72,7 +58,7 @@ export default function TermsPage() {
           subscriptions.
         </p>
 
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+        <h2>
           4. Acceptable use
         </h2>
         <p>
@@ -85,7 +71,7 @@ export default function TermsPage() {
           suppliers outside the structured RFQ flow.
         </p>
 
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+        <h2>
           5. Supplier data and accuracy
         </h2>
         <p>
@@ -93,7 +79,6 @@ export default function TermsPage() {
           source trust hierarchy described in our{" "}
           <a
             href="/legal/data-sources"
-            className="text-accent-indigo hover:underline"
           >
             Data Source Policy
           </a>
@@ -103,7 +88,7 @@ export default function TermsPage() {
           before placing an order.
         </p>
 
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+        <h2>
           6. Messages, RFQs, and orders
         </h2>
         <p>
@@ -115,7 +100,7 @@ export default function TermsPage() {
           parties.
         </p>
 
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+        <h2>
           7. Intellectual property
         </h2>
         <p>
@@ -124,14 +109,13 @@ export default function TermsPage() {
           marks shown on supplier profiles belong to their owners; see{" "}
           <a
             href="/legal/trademarks"
-            className="text-accent-indigo hover:underline"
           >
             Trademarks
           </a>
           .
         </p>
 
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+        <h2>
           8. Liability
         </h2>
         <p>
@@ -143,7 +127,7 @@ export default function TermsPage() {
           opportunity.
         </p>
 
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+        <h2>
           9. Termination
         </h2>
         <p>
@@ -154,7 +138,7 @@ export default function TermsPage() {
           intended to survive (IP, liability, governing law) survive.
         </p>
 
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+        <h2>
           10. Governing law
         </h2>
         <p>
@@ -163,15 +147,12 @@ export default function TermsPage() {
           over any dispute, subject to your statutory rights.
         </p>
 
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+        <h2>
           11. Contact
         </h2>
         <p>
           Questions about these terms: <strong>legal@sourcebd.net</strong>.
         </p>
-      </section>
-      </div>
-      </BlurFade>
-    </main>
+      </LegalShell>
   );
 }

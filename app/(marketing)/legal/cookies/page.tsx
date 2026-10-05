@@ -1,6 +1,6 @@
 // Spec H7 — Cookie Notice. Public, indexable.
 
-import { BlurFade } from "@/components/ui/blur-fade";
+import { LegalShell, legalDay } from "@/components/site/legal";
 
 export const dynamic = "force-static";
 
@@ -19,22 +19,8 @@ export const metadata = {
 
 export default function CookiesPage() {
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16">
-      <BlurFade delay={0.1}>
-        <header className="mb-8 text-center">
-          <h1 className="font-display text-3xl font-bold tracking-tight text-ink-primary md:text-4xl">
-            <span className="text-[#1f4d3a]">Cookie Notice</span>
-          </h1>
-          <p className="mt-3 text-[12px] text-ink-tertiary">
-            Last updated: {LAST_UPDATED}
-          </p>
-        </header>
-      </BlurFade>
-      <BlurFade delay={0.15}>
-      <div className="proto-card">
-
-      <section className="space-y-4 text-ink-secondary leading-relaxed">
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+    <LegalShell title="Cookie Notice" updated={legalDay(LAST_UPDATED)} active="/legal/cookies">
+        <h2>
           1. Our posture
         </h2>
         <p>
@@ -46,37 +32,37 @@ export default function CookiesPage() {
           disabled.
         </p>
 
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+        <h2>
           2. What we set
         </h2>
-        <table className="mt-2 w-full border-collapse text-sm">
+        <table>
           <thead>
-            <tr className="border-b border-ink-200 text-left text-ink-primary">
-              <th className="py-2 pr-3 font-semibold">Cookie</th>
-              <th className="py-2 pr-3 font-semibold">Purpose</th>
-              <th className="py-2 font-semibold">Lifetime</th>
+            <tr>
+              <th>Cookie</th>
+              <th>Purpose</th>
+              <th>Lifetime</th>
             </tr>
           </thead>
           <tbody>
-            <tr className="border-b border-ink-200">
-              <td className="py-2 pr-3"><code>sb-*-auth-token</code></td>
-              <td className="py-2 pr-3">Supabase Auth session (strictly necessary).</td>
-              <td className="py-2">Session / refresh window</td>
-            </tr>
-            <tr className="border-b border-ink-200">
-              <td className="py-2 pr-3"><code>ph_*</code></td>
-              <td className="py-2 pr-3">PostHog product analytics (first-party). Session recording is disabled.</td>
-              <td className="py-2">Up to 1 year</td>
+            <tr>
+              <td><code>sb-*-auth-token</code></td>
+              <td>Supabase Auth session (strictly necessary).</td>
+              <td>Session / refresh window</td>
             </tr>
             <tr>
-              <td className="py-2 pr-3"><code>__next_*</code></td>
-              <td className="py-2 pr-3">Next.js routing &amp; preview preferences (strictly necessary).</td>
-              <td className="py-2">Session</td>
+              <td><code>ph_*</code></td>
+              <td>PostHog product analytics (first-party). Session recording is disabled.</td>
+              <td>Up to 1 year</td>
+            </tr>
+            <tr>
+              <td><code>__next_*</code></td>
+              <td>Next.js routing &amp; preview preferences (strictly necessary).</td>
+              <td>Session</td>
             </tr>
           </tbody>
         </table>
 
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+        <h2>
           3. Controlling cookies
         </h2>
         <p>
@@ -88,7 +74,7 @@ export default function CookiesPage() {
           service will continue to function without it.
         </p>
 
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+        <h2>
           4. Changes
         </h2>
         <p>
@@ -98,15 +84,12 @@ export default function CookiesPage() {
           set, as required by PECR.
         </p>
 
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+        <h2>
           5. Contact
         </h2>
         <p>
           Questions: <strong>privacy@sourcebd.net</strong>.
         </p>
-      </section>
-      </div>
-      </BlurFade>
-    </main>
+      </LegalShell>
   );
 }
