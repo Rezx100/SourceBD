@@ -25,6 +25,9 @@ export const fake = {
   uploads: [] as { bucket: string; path: string; type: string }[],
   removed: [] as { bucket: string; paths: string[] }[],
   uploadError: null as { message: string } | null,
+  /** Signed links asked for, and the error a signing answers with (a path the caller may not read). */
+  signed: [] as { bucket: string; path: string; seconds: number }[],
+  signError: null as { message: string } | null,
   /** Rows `.from(table)` answers for a table other than `profiles`, and the filters each read applied. */
   tables: {} as Record<string, Record<string, unknown>[]>,
   tableError: null as { message: string } | null,
@@ -39,6 +42,8 @@ export function resetFake(): void {
   fake.uploads = [];
   fake.removed = [];
   fake.uploadError = null;
+  fake.signed = [];
+  fake.signError = null;
   fake.tables = {};
   fake.tableError = null;
   fake.fromCalls = [];
@@ -99,6 +104,10 @@ const client = {
       },
       // The real client's shape: encodeURI(`${url}/object/public/${bucket}/${path}`).
       getPublicUrl: (p: string) => ({ data: { publicUrl: encodeURI(`${STORAGE}/object/public/${bucket}/${p}`) } }),
+      createSignedUrl: async (p: string, seconds: number) => {
+        fake.signed.push({ bucket, path: p, seconds });
+        return fake.signError ? { data: null, error: fake.signError } : { data: { signedUrl: `${STORAGE}/object/sign/${bucket}/${p}?token=t` }, error: null };
+      },
       remove: async (paths: string[]) => {
         fake.removed.push({ bucket, paths });
         return { data: [], error: null };

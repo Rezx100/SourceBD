@@ -11,10 +11,15 @@ import { conversationsWords, listHref, threadHref, type ListState, type ShowTab,
 /** The list's own width beside a conversation: Paper's 360. */
 const LIST_W = "w-[360px] max-lg:w-[300px] max-md:w-full";
 
-export function InboxHead({ total, noReply, state, Title = "h1" }: { total: number; noReply: number | null; state: ListState; /** The conversation beside the list has the page's h1. */ Title?: "h1" | "h2" }) {
+export function InboxHead({ total, counts, state, Title = "h1" }: { total: number; /** Null when the data holds no read state: then only the whole list is offered. */ counts: { unread: number; noReply: number } | null; state: ListState; /** The conversation beside the list has the page's h1. */ Title?: "h1" | "h2" }) {
   const tabs: { key: ShowTab; label: string }[] = [
     { key: "all", label: `All · ${total}` },
-    ...(noReply === null ? [] : [{ key: "noreply" as const, label: `No reply yet · ${noReply}` }]),
+    ...(counts === null
+      ? []
+      : [
+          { key: "unread" as const, label: `Unread · ${counts.unread}` },
+          { key: "noreply" as const, label: `No reply yet · ${counts.noReply}` },
+        ]),
   ];
   return (
     <header className="flex shrink-0 flex-col gap-3 border-b border-line px-4 pb-3 pt-5 max-md:hidden">
@@ -72,14 +77,18 @@ export function InboxRows({ items, state, currentId }: { items: readonly ThreadI
               )}
             >
               <span className="flex justify-between gap-2">
-                <span className="min-w-0 text-base font-medium text-ink max-md:text-md">{i.name}</span>
+                <span className={cn("flex min-w-0 items-center gap-2 text-base max-md:text-md", i.unread ? "font-semibold text-ink" : "font-medium text-ink")}>
+                  {i.unread ? <span aria-hidden className="size-2 shrink-0 rounded-full bg-brand" /> : null}
+                  <span className="min-w-0">{i.name}</span>
+                  {i.unread ? <span className="sr-only">, unread</span> : null}
+                </span>
                 {i.when ? (
                   <time dateTime={i.at ?? undefined} title={i.at ? "UTC" : undefined} className="shrink-0 text-xs leading-5 text-ink-3 max-md:text-sm">
                     {i.when}
                   </time>
                 ) : null}
               </span>
-              {i.line ? <span className="line-clamp-2 text-base text-ink-2 max-md:text-md">{i.line}</span> : null}
+              {i.line ? <span className={cn("line-clamp-2 text-base max-md:text-md", i.unread ? "font-medium text-ink" : "text-ink-2")}>{i.line}</span> : null}
               <span className="flex items-center gap-1.5 text-xs text-ink-3 max-md:text-sm">
                 {i.noReply ? <Clock size={14} className="shrink-0" aria-hidden /> : null}
                 {i.noReply ? `No reply yet · ${i.sub}` : i.sub}
@@ -96,8 +105,10 @@ export function InboxRows({ items, state, currentId }: { items: readonly ThreadI
 export function InboxNone({ state }: { state: ListState }) {
   return (
     <div className="flex flex-col gap-1 px-4 py-8">
-      <p className="text-md font-semibold text-ink">{state.q ? "No conversation matches that" : "No conversation is waiting on a reply"}</p>
-      <p className="text-base text-ink-2">{state.q ? "Search by a supplier's name or the title of an RFQ." : "Every conversation here has a reply from the supplier."}</p>
+      <p className="text-md font-semibold text-ink">{state.q ? "No conversation matches that" : state.show === "unread" ? "Nothing unread" : "No conversation is waiting on a reply"}</p>
+      <p className="text-base text-ink-2">
+        {state.q ? "Search by a supplier's name or the title of an RFQ." : state.show === "unread" ? "You have read everything the suppliers sent." : "Every conversation here has a reply from the supplier."}
+      </p>
       <Link href={listHref({ show: "all", q: "" })} prefetch={false} className="pt-2 text-base font-medium text-brand underline decoration-1 [text-underline-position:from-font]">
         Show all conversations
       </Link>
