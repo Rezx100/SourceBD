@@ -15,6 +15,7 @@ const draw = (el: ReactElement) => plain(renderToStaticMarkup(createElement(AppR
 const text = (m: string) => m.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
 
 const PAGES = ["privacy", "terms", "cookies", "data-sources", "trademarks"] as const;
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded after the test build exists.
 const load = (slug: string) => (require(`@/app/(marketing)/legal/${slug}/page`) as { default: () => ReactElement }).default;
 const html = (slug: string) => draw(createElement(load(slug)));
 
