@@ -7,20 +7,18 @@
 // bundle, so utility classes still work.
 
 import Link from "next/link";
-import { Bricolage_Grotesque, Plus_Jakarta_Sans } from "next/font/google";
+import localFont from "next/font/local";
 
-const display = Bricolage_Grotesque({
-  subsets: ["latin"],
+const display = localFont({
+  src: [{ path: "./fonts/bricolage-grotesque.woff2", weight: "400 600", style: "normal" }],
   variable: "--font-display",
   display: "swap",
-  weight: ["400", "600"],
 });
 
-const body = Plus_Jakarta_Sans({
-  subsets: ["latin"],
+const body = localFont({
+  src: [{ path: "./fonts/plus-jakarta-sans.woff2", weight: "400 600", style: "normal" }],
   variable: "--font-body",
   display: "swap",
-  weight: ["400", "600"],
 });
 
 export default function GlobalError({ error }: { error: Error & { digest?: string } }) {
