@@ -57,6 +57,7 @@ Each spec names its migration; the migration is written and dry-run, and `--appl
 - Row 4: `gap-04-team-and-roles.md`, migration `0111`. Sharing by role is 4b (Opus).
 - Row 9: `gap-09-messages-unread-files.md`, migration `0112`.
 - Row 14: `gap-14-saved-search-alerts.md`, migration `0113`.
+- Row 8: `gap-08-evidence-packs.md`, migration `0114` (its download record also feeds rows 5 and 7).
 
 ## Screens built
 
