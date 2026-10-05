@@ -464,7 +464,7 @@ describe("buildSheet — facts panel and contact card", () => {
   // Cycle 5, finding 18, restated for REZ-C: the four sections that were
   // missing now exist, so every tab links. The rule the original encoded — a
   // tab never points at an anchor that is not rendered — is asserted against
-  // the HTML in `components/dashboard/render.test.ts`; this pins the model.
+  // the HTML in `components/record/record.test.ts`; this pins the model.
   it("every tab links, and the eight are the ones §3.3 names", () => {
     assert.deepEqual(
       sheet.tabs.map((t) => t.label),

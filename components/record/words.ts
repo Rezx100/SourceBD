@@ -7,7 +7,9 @@
 import type { CertRowData } from "@/components/patterns";
 import { SITE_WORDS, certWords, isApproximate, type SiteKind } from "@/components/patterns/words";
 import { certRowId } from "@/lib/dashboard/facts";
-import type { FactRow, LocationRow, SitePin, SupplierSheetModel } from "@/lib/dashboard/models";
+import type { CertState } from "@/components/kit";
+import type { FactRow, LocationRow, ProductSheetModel, SitePin, SupplierSheetModel } from "@/lib/dashboard/models";
+import type { SourceMarkModel } from "@/lib/dashboard/source-tiers";
 
 export const TABS = [
   { id: "overview", label: "Overview" },
@@ -238,4 +240,53 @@ export function dayOfWords(words: string | null): string | null {
 export function isStale(readDate: string | null, today: Date): boolean {
   const iso = dayOfWords(readDate);
   return iso !== null && (today.getTime() - Date.parse(iso)) / 86_400_000 > 90;
+}
+
+/* ------------------------------------------------------------------- a line */
+
+/** The caption every single photo carries: it is the catalogue's, never the supplier's own product. */
+export const PHOTO_CAPTION = "Illustrative photo, keyed to the HS code";
+
+/**
+ * What the line says it is, over its heading. "EPB export line" is a claim about this record's EPB
+ * page, so a heading the record does not export gets the plain wording, and a read that failed says so.
+ */
+export function lineEyebrow(model: Pick<ProductSheetModel, "hs" | "exported" | "linesUnknown">): string {
+  return `HS ${model.hs}${model.exported ? " · EPB export line" : model.linesUnknown ? " · EPB lines could not be read" : " · not on this record's EPB page"}`;
+}
+
+/** One fact of a line as the fact list draws it. */
+export type LineFact = {
+  label: string;
+  values: { text: string; mono: boolean; href: string | null }[];
+  /** The registers it is from, linked where the record carries the page. */
+  marks: SourceMarkModel[];
+  /** The payload does not attribute the fact to a register yet. */
+  pending: boolean;
+  note: string | null;
+  /** What the certified scope's certificate is doing: a state and its words. */
+  badge: { state: CertState; label: string } | null;
+  /** In place of a value: what is missing, then why, then what was checked. */
+  empty: string | null;
+};
+
+/** The line's facts, in the model's order. A missing value says so in words; nothing is left out. */
+export function lineFacts(facts: readonly FactRow[]): LineFact[] {
+  return facts.map((f) => {
+    const values = f.items?.length
+      ? f.items.map((i) => ({ text: [i.label, i.code].filter(Boolean).join(" reg. no. "), mono: Boolean(i.code), href: null }))
+      : f.value
+        ? [{ text: f.value, mono: Boolean(f.code), href: f.href ?? null }]
+        : [];
+    const badge = f.badge ? { state: f.badge.tone === "positive" ? ("valid" as const) : f.badge.tone === "type" ? ("none" as const) : /^expired/i.test(f.badge.label) ? ("expired" as const) : ("expiring" as const), label: f.badge.label } : null;
+    return {
+      label: f.label,
+      values,
+      marks: f.marks ?? [],
+      pending: Boolean(f.pendingSource) && !(f.marks && f.marks.length > 0),
+      note: f.note ?? null,
+      badge,
+      empty: values.length ? null : [f.empty ?? "Not on file", f.note ?? null, f.checked ?? null].filter(Boolean).join(" · "),
+    };
+  });
 }

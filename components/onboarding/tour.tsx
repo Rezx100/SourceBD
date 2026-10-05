@@ -11,10 +11,10 @@
 // Renders nothing until mounted in the browser to avoid a hydration mismatch
 // when the server-rendered shell carries the un-styled portal target.
 
+import { CaretRight } from "@phosphor-icons/react";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 
-import { Button } from "@/components/dashboard/controls";
-import { Icon } from "@/components/dashboard/icons";
+import { Button, ButtonLink } from "@/components/kit";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 import { BUYER_STEPS, SUPPLIER_STEPS, type TourStep } from "./tour-steps";
@@ -153,13 +153,10 @@ export default function Tour({ flavour, initialStep = 0 }: TourProps) {
   // topbar painted over the scrim; its old-palette fill did too, so the
   // scrim is the inverse surface at 40%.
   return (
-    // `data-shell`: the tour mounts after the buyer shell, not inside it (the
-    // page's <main> is isolated, and a scrim inside it could not cover the
-    // topbar), so it takes the shell's scope here to get the app's type steps
-    // and state greys. Its card was drawn in the old design's classes, which no
-    // longer exist; it is the kit's surface now (founder's leftovers, 29 Sep).
+    // The tour mounts after the frame, not inside it (the page's <main> is
+    // isolated, and a scrim inside it could not cover the topbar). It is drawn
+    // on the v4 kit, with no `data-shell` (B0: it turns v4's brand tint grey).
     <div
-      data-shell=""
       aria-hidden={!open}
       className="fixed inset-0 z-modal flex items-end justify-center bg-surface-inverse/40 px-0 py-0 sm:items-center sm:px-4 sm:py-8"
       style={{ animation: "fadeIn var(--dur-tab) var(--ease)" }}
@@ -179,7 +176,7 @@ export default function Tour({ flavour, initialStep = 0 }: TourProps) {
           <p className="m-0 text-sm text-ink-subtle">
             Step {stepIdx + 1} of {steps.length}
           </p>
-          <Button type="button" variant="ghost" size="sm" onClick={() => void close("dismissed")} aria-label="Skip tour">
+          <Button kind="quiet" onClick={() => void close("dismissed")} aria-label="Skip tour">
             Skip
           </Button>
         </div>
@@ -190,10 +187,10 @@ export default function Tour({ flavour, initialStep = 0 }: TourProps) {
           {step.body}
         </p>
         <div className="mt-4">
-          <Button size="sm" href={step.cta_href} clientNav>
+          <ButtonLink href={step.cta_href}>
             {step.cta_label}
-            <Icon name="chev-r" small />
-          </Button>
+            <CaretRight size={16} className="shrink-0" aria-hidden />
+          </ButtonLink>
         </div>
         <div className="mt-5 flex items-center justify-between gap-3">
           <div className="flex gap-1.5" aria-hidden>
@@ -202,10 +199,10 @@ export default function Tour({ flavour, initialStep = 0 }: TourProps) {
             ))}
           </div>
           <div className="flex gap-2">
-            <Button type="button" size="sm" onClick={back} disabled={stepIdx === 0}>
+            <Button onClick={back} disabled={stepIdx === 0}>
               Back
             </Button>
-            <Button type="button" variant="primary" size="sm" onClick={() => void advance()}>
+            <Button kind="primary" onClick={() => void advance()}>
               {isLast ? "Done" : "Next"}
             </Button>
           </div>

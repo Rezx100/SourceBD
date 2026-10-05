@@ -31,12 +31,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Dialog as D } from "radix-ui";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { MenuDismiss } from "@/components/dashboard/menu-dismiss";
 import { ring, ringInset } from "@/components/kit/classes";
 import { Menu, MenuItem, MenuSeparator } from "@/components/kit/overlay";
 import { PORTAL_HOME, PORTAL_NAME, PORTAL_NAV, portalMatch, portalOf, portalTitle, type PortalBadgeKey, type PortalIconKey, type PortalItem } from "@/lib/portal-nav";
 import { cn } from "@/lib/utils";
 import { MAIN_ID } from "./frame";
+import { MenuDismiss } from "./menu-dismiss";
 import { accountName, type FrameAccount } from "./topbar";
 
 export const PORTAL_ICONS: Record<PortalIconKey, Icon> = {

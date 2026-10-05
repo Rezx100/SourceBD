@@ -33,8 +33,8 @@ describe("REZ-114 surface wiring (observable call sites)", () => {
     // same and the wire is one step longer: the page calls `loadRecordSheet`,
     // which fills the figure from `production_workers_display_batch` before
     // `buildSheet` turns it into the Workers row and its coverage words.
-    // `components/dashboard/record-sheet.test.ts` asserts the FIGURE in the
-    // rendered HTML — this only catches the wire being cut.
+    // The record's rendering test asserts the FIGURE in the rendered HTML
+    // (`components/record/record.test.ts`) — this only catches the wire being cut.
     assert.match(src("app/(app)/app/suppliers/[slug]/page.tsx"), /loadRecordSheet/);
     const loader = src("lib/dashboard/load-record.ts");
     assert.match(loader, /fetchDisplayWorkersBatch/);

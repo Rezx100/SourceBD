@@ -18,7 +18,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Fragment, useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
-import { readRecentSearches } from "@/components/dashboard/record-recent-search";
+import { readRecentSearches } from "./record-recent-search";
 import {
   DEBOUNCE_MS,
   SUGGEST_PATH,

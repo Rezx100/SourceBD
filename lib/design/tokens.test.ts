@@ -56,7 +56,6 @@ const GUARDED = [
   "app/layout.tsx",
   "app/dev/ds",
   "components/ds",
-  "components/dashboard",
   "lib/dashboard",
   // Generated and tooling files the rebuild owns. `lib/hs-catalogue.ts` is
   // written by `scripts/build-hs-photos.mjs`, and both were outside the guard.
@@ -164,7 +163,7 @@ test("the old-page colour list only shrinks: every entry is still there and stil
 // (founder's review, 29 Sep 2026). A test pinned one of those classes, which is
 // why nothing failed. An arbitrary number (`z-[60]`) does compile, but off the
 // scale, so a layer is named or it is not used.
-const Z_GUARDED = ["components/dashboard", "app/(app)/app", "components/onboarding"];
+const Z_GUARDED = ["app/(app)/app", "components/onboarding"];
 const NUMERIC_Z = /(?:^|[\s"'`{(:!])-?z-(?:\d+|\[-?\d+\])(?![\w-])/;
 const Z_SCALE = Object.keys(zIndex).map((k) => `z-${k}`).join(", ");
 
@@ -714,7 +713,7 @@ test("the global :focus-visible rule still asks for a visible outline", () => {
   });
 
 test("the focus ring's offset plus width is within the 4px the nav strip reserves", () => {
-    // `components/dashboard/app-shell.tsx` gives the scrolling nav strip
+    // The old app shell (deleted in B11) gave the scrolling nav strip
     // `-my-1 py-1` and `-mx-1 px-1` — 4px on each side, measured in a browser
     // as exactly enough for a 2px ring at 2px offset. If the stylesheet asks
     // for more, that measurement is stale and the ring is clipped again.

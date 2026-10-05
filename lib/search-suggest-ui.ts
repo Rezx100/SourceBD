@@ -3,9 +3,9 @@
 // are tested without a DOM (`lib/search-suggest-ui.test.ts`); the field itself is
 // `components/search/typeahead.tsx`.
 //
-// Moved here from the old `components/dashboard/search-typeahead.tsx` (which re-exports it until
-// that kit is deleted), so the v4 field does not import from a file that is going away. The
-// matching and its order stay in `search-suggest.ts`; nothing here ranks anything.
+// Moved here from the old kit's `search-typeahead.tsx` (deleted in B11), so the v4 field imports
+// from a file that stays. The matching and its order stay in `search-suggest.ts`; nothing here
+// ranks anything.
 
 import { formatCount } from "@/lib/dashboard/facts";
 

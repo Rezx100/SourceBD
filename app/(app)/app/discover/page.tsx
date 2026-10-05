@@ -28,13 +28,9 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { ListPane } from "@/components/frame";
-import { ProductSheet } from "@/components/dashboard/product-sheet";
-import { RecordRecentSearch } from "@/components/dashboard/record-recent-search";
-import { ComposerSkeleton, LineSkeleton, RecordSkeleton } from "@/components/dashboard/record-skeleton";
-import type { ComposerTarget, ComposerWorkspace } from "@/components/dashboard/rfq-composer";
 import { RfqComposer } from "@/components/rfqs/composer";
-import { SheetNotice } from "@/components/dashboard/sheet";
-import { RecordView, parseTab, type TabId } from "@/components/record";
+import type { ComposerTarget, ComposerWorkspace } from "@/components/rfqs/composer-model";
+import { LineView, RecordView, parseTab, type TabId } from "@/components/record";
 import { FirstResultsCoach } from "@/components/onboarding/coach";
 import { RecordLastSearch } from "@/components/saved/last-search";
 import { alertsAvailable } from "@/components/saved/load";
@@ -45,7 +41,8 @@ import { Flash } from "@/components/search/flash";
 import { PastEnd, PaneRows, PhoneMore, PhoneRows, ResultsEmpty, ResultsError, ResultsFooter } from "@/components/search/list";
 import { resultRow } from "@/components/search/model";
 import { MoreMenu } from "@/components/search/more-menu";
-import { PaneFrame } from "@/components/search/pane";
+import { ComposerSkeleton, LineSkeleton, PaneFrame, PaneNotice, RecordSkeleton } from "@/components/search/pane";
+import { RecordRecentSearch } from "@/components/search/record-recent-search";
 import { SelectionProvider } from "@/components/search/selection";
 import { ResultsTable } from "@/components/search/table";
 import { PaneListToolbar, PhoneToolbar, ResultsToolbar, resultsTitle } from "@/components/search/toolbar";
@@ -389,7 +386,7 @@ async function DiscoverRecord({
     if (read.value?.line) {
       return (
         <PaneFrame openKey={`line:${slug}:${lineCode}`}>
-          <ProductSheet model={read.value.line} />
+          <LineView model={read.value.line} mode="pane" />
         </PaneFrame>
       );
     }
@@ -442,7 +439,7 @@ function RecordNotice({
 }) {
   if (slow) {
     return (
-      <SheetNotice
+      <PaneNotice
         title="This record could not be read in time"
         body="The database is under load. The company is still on SourceBD — this read simply took too long."
         action={{ label: "Try again", href: retryHref }}
@@ -452,7 +449,7 @@ function RecordNotice({
   }
   if (motherSlug) {
     return (
-      <SheetNotice
+      <PaneNotice
         title="That is a building, not a company record"
         body="SourceBD files this address under the company that operates it. Its record has the certificates, the registers and the export lines."
         action={{ label: "Open the company record", href: recordHref(motherSlug) }}
@@ -461,7 +458,7 @@ function RecordNotice({
     );
   }
   return (
-    <SheetNotice
+    <PaneNotice
       title="No record for that link"
       body="It may have been unpublished, the link may be wrong, or it could not be read just now. Your search is still here behind this."
       closeHref={closeHref}

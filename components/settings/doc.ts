@@ -1,6 +1,4 @@
-// What `settings_get()` returns and the pure reads of it, shared by every Settings page. The old
-// kit's `components/dashboard/settings.tsx` re-exports these until the last page that uses it is
-// rebuilt, so there is one definition.
+// What `settings_get()` returns and the pure reads of it, shared by every Settings page.
 
 /** The company behind the account (`settings_get().workspace`); every field is null until set. */
 export type WorkspaceDoc = {

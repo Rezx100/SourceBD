@@ -6,7 +6,7 @@
 // Not a client module: the server pages call these, and a function exported
 // from a "use client" file cannot be called on the server.
 
-import type { ComposerTarget, ComposerWorkspace } from "@/components/dashboard/rfq-composer";
+import type { ComposerTarget, ComposerWorkspace } from "@/components/rfqs/composer-model";
 import { displayName, entityLabel, initials, placeLabel } from "@/lib/dashboard/facts";
 import { marksFromTags, topTier } from "@/lib/dashboard/source-tiers";
 

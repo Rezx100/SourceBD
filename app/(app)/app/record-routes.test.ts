@@ -1,6 +1,6 @@
 // The three record routes, at the boundary (closed-loop §14, AGENTS 16).
 //
-// `components/dashboard/record-sheet.test.ts` proves the sheet component does
+// `components/record/record.test.ts` proves the record view does
 // not print a contact value, renders every section and disables Send RFQ on a
 // sanctioned record. Nothing proved the ROUTES pass it the right thing — and
 // that is the gap REZ-72 shipped through: 361 green tests, every one asserting
@@ -153,23 +153,12 @@ function given(a: Answers): void {
     [
       "lib/dashboard/load-buyer-shell.js",
       {
-        // The real shell reads the dashboard, the RFQ count, the published
-        // count and who is signed in (`load-buyer-shell.test.ts`); these
-        // routes are not what that is about, so it is stubbed with a valid
-        // `SidebarModel`/`TopbarModel` and nothing more.
+        // The real shell reads who is signed in and the profile's name and
+        // photo (`load-buyer-shell.test.ts`); these routes are not what that is
+        // about, so it is stubbed with an unread account and nothing more.
         loadBuyerShell: async () => {
           shellLoads++;
-          return {
-            userId: "buyer-1",
-            sidebar: {
-              active: "suppliers" as const,
-              activeExact: false,
-              counts: { suppliers: null, rfqs: null, saved: null },
-              recent: [],
-              plan: { name: "Free · public beta", note: null, used: null, allowance: null },
-            },
-            topbar: { caption: "", searchQuery: "" },
-          };
+          return { userId: "buyer-1", account: null };
         },
       },
     ],
@@ -322,6 +311,15 @@ describe("/app/suppliers/[slug]/lines/[hs] — the line page", () => {
     assert.match(out, /HS 6105/);
     assert.doesNotMatch(out, /role="dialog"/, "the full line page is not a dialog");
     assert.doesNotMatch(out, /data-record-pane/, "the full line page is drawn as the pane");
+  });
+
+  it("draws the line on the v4 kit: its heading is the page's h1, Back is the record's Products tab, and the exporters are counted", async () => {
+    const out = html(await run("6105"));
+    assert.match(out, /<h1 [^>]*>Men&#x27;s or boys&#x27; shirts, knitted or crocheted<\/h1>/);
+    assert.match(out, /<a [^>]*aria-label="Back to the record"[^>]*href="\/app\/suppliers\/aboni-knitwear\?tab=products"/);
+    assert.match(out, /href="\/app\/discover\?hs=6105"[^>]*>Exporters of 6105<span [^>]*>· 1,634<\/span>/);
+    assert.match(out, /<a [^>]*href="\/app\/rfqs\/new\?supplier=[^"&]+&amp;hs=6105"[^>]*>Send RFQ for this line<\/a>/);
+    assert.doesNotMatch(out, /data-sheet-scroll|animate-sheet-in|bg-surface-sunken|text-ink-(?:muted|subtle)/, "a class of the old kit");
   });
 
   for (const bad of ["abcd", "61", "61059", "%", "6105a", ""]) {
@@ -928,7 +926,8 @@ describe("the sanctioned record, through the route", () => {
     const Page = route("app/(app)/app/suppliers/[slug]/lines/[hs]/page.js").default;
     const out = html(await outcome(() => Page({ params: Promise.resolve({ slug: "zaheen", hs: "6105" }), searchParams: Promise.resolve({}) })));
     assert.match(out, /aria-label="Product line"/, "guard: the line page rendered");
-    assert.match(out, /data-sanction-visible="true"/, "the line page of a sanctioned record has no banner");
+    assert.match(out, /role="alert"[^>]*class="[^"]*bg-sanction/, "the line page of a sanctioned record has no banner");
+    assert.match(out.replace(/&#x27;/g, "'"), /You can't send this supplier an RFQ\./, "the line page of a sanctioned record does not refuse in words");
     assert.ok(!out.includes('href="/app/rfqs/new'), "a sanctioned record's line has a live Send RFQ");
   });
 });
@@ -1604,7 +1603,7 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
     assert.ok(app.layouts.includes("app/(app)/app/layout.js"), `guard: the buyer layout was not found (${app.layouts.join(", ")})`);
     assert.match(app.out, /PAGE-BODY/);
     const appReads = readsSeen();
-    // The buyer shell once (its four reads are stubbed here and counted in
+    // The buyer shell once (its sign-in and settings reads are stubbed here and counted in
     // `load-buyer-shell.test.ts`), the Compliance badge's two lists (B6c: the hub's own
     // count; a slow or failed read draws no badge) and Messages' unread total (row 24: both
     // started by the layout and not awaited, so the frame never waits on them), the "last active" stamp

@@ -22,7 +22,6 @@
 // mother's: when only building rows are present the mother has no RSC block
 // and the tile says which building is covered.
 
-import type { SbIconName } from "@/components/dashboard/sb-icons";
 import type { TierRank } from "@/lib/design/tokens";
 import {
   certChipLabel,
@@ -57,6 +56,7 @@ import type {
   ProductSheetModel,
   RecordRfqRow,
   RfqRowModel,
+  SbIconName,
   SourceRow,
   SupplierCardModel,
   SupplierSheetModel,

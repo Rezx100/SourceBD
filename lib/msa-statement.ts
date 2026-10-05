@@ -10,8 +10,29 @@
 // that holds a whole sentence is a claim for the buyer to check; the others
 // say what to write.
 
-import { plural, prettyCert } from "@/components/dashboard/compliance";
 import { entityLabel, formatCount, formatDay, placeLabel } from "@/lib/dashboard/facts";
+
+const CERT_LABELS: Record<string, string> = {
+  wrap: "WRAP",
+  oeko_tex: "OEKO-TEX",
+  gots: "GOTS",
+  sa8000: "SA8000",
+  bsci: "BSCI",
+  ocs: "OCS",
+  grs: "GRS",
+  rcs: "RCS",
+  sedex: "Sedex",
+  higg: "Higg",
+  fairtrade: "Fairtrade",
+};
+
+export function prettyCert(kind: string): string {
+  return CERT_LABELS[kind] ?? kind.toUpperCase();
+}
+
+export function plural(n: number, one: string, many = `${one}s`): string {
+  return `${formatCount(n)} ${n === 1 ? one : many}`;
+}
 
 /** `compliance_msa_inputs()` (migration 0030), over the buyer's published saved suppliers. */
 export type MsaInputs = {
