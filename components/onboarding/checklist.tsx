@@ -31,14 +31,14 @@ function Hide({ size, label }: { size: "sm" | "touch"; label: string }) {
 /** The mark: a ticked circle when done, a ring (brand for the next one) when not. */
 function Mark({ done, next, px }: { done: boolean; next: boolean; px: number }) {
   if (done) return <CheckCircle size={px} weight="fill" className="shrink-0 text-brand" aria-hidden />;
-  return <span aria-hidden style={{ width: px, height: px }} className={cn("shrink-0 rounded-full", next ? "border-[1.5px] border-brand" : "border border-line-strong")} />;
+  return <span aria-hidden style={{ width: px, height: px }} className={cn("block shrink-0 rounded-full", next ? "border-[1.5px] border-brand" : "border border-line-strong")} />;
 }
 
 export function ChecklistCard({ checklist, variant }: { checklist: Checklist; variant: "sidebar" | "phone" }) {
   const next = checklist.steps.findIndex((s) => !s.done);
   const phone = variant === "phone";
   return (
-    <section aria-label="Getting started" className={cn("rounded-lg border border-line bg-surface", phone ? "flex flex-col md:hidden" : "mx-3 mb-2 hidden flex-col gap-2 p-3 2xl:flex")}>
+    <section aria-label="Getting started" className={cn("rounded-lg border border-line bg-surface", phone ? "mx-4 mt-2 flex flex-col md:hidden" : "mx-3 mb-2 hidden flex-col gap-2 p-3 2xl:flex")}>
       <div className={cn("flex items-center justify-between", phone && "pl-4 pr-1 pt-1")}>
         <div className="flex flex-col">
           <h2 className={cn("font-semibold text-ink", phone ? "text-md" : "text-base")}>Getting started</h2>
@@ -58,7 +58,7 @@ export function ChecklistCard({ checklist, variant }: { checklist: Checklist; va
                 s.done ? "text-ink-3 line-through decoration-1" : i === next ? "font-medium text-ink" : "text-ink",
               )}
             >
-              <span className={cn(!phone && "mt-0.5")}>
+              <span className={cn("flex", !phone && "mt-0.5")}>
                 <Mark done={s.done} next={i === next} px={phone ? 18 : 14} />
               </span>
               <span className={cn("min-w-0", phone && "grow")}>
