@@ -1185,6 +1185,10 @@ const CASES = [
     path: "/product/records",
     expect: { status: 200, bodyIncludes: "Every fact, with its receipt." },
   },
+  { name: "site: /security is 200", path: "/security", expect: { status: 200, bodyIncludes: "Security, stated plainly." } },
+  { name: "site: /methodology is 200", path: "/methodology", expect: { status: 200, bodyIncludes: "How we check every supplier." } },
+  { name: "site: /suppliers (the claim page) is 200 and /suppliers/<slug> is untouched", path: "/suppliers", expect: { status: 200, bodyIncludes: "Claim your factory" } },
+  { name: "site: /about is 200", path: "/about", expect: { status: 200, bodyIncludes: "Built for buyers who check." } },
   {
     name: "public: facility RPC unavailable -> 404, not 500",
     path: `/suppliers/${RPC_DOWN}`,
