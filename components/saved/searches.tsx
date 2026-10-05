@@ -47,6 +47,7 @@ function useRename(item: SearchItem) {
   const [error, setError] = useState<string | null>(null);
   // Every opening starts from the name the search has now, with no old refusal on it.
   const setOpen = (next: boolean) => {
+    if (!next && busy) return; // a save in flight finishes (or fails) where the buyer can see it
     if (next) {
       setName(item.name);
       setError(null);
