@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { callWithHooks, findAll } from "@/components/dashboard/hook-harness";
+import { callWithHooks, findAll } from "./hook-harness";
 import type { Suggestion } from "@/lib/search-suggest-ui";
 
 {

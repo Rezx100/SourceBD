@@ -13,7 +13,7 @@
 
 import { notFound } from "next/navigation";
 
-import type { ComposerPrefill } from "@/components/dashboard/rfq-composer";
+import type { ComposerPrefill } from "@/components/rfqs/composer-model";
 import { RfqComposer } from "@/components/rfqs/composer";
 import { TARGET_COLUMNS, targetFromRow, workspaceFrom, type SupplierRow } from "@/lib/dashboard/composer-target";
 import { hsBuyerLabel } from "@/lib/epb-hscode-labels";

@@ -1,6 +1,6 @@
 // REZ-C (handoff §3.4) — one HS export line of one record, as its own page.
-// The same `ProductSheet` the /dev/ds gallery renders; the record's Products
-// grid links each tile here.
+// The same `LineView` the search draws beside its results; the record's Products
+// list links each line here.
 //
 // The photo is the shared illustrative catalogue photo for the 4-digit
 // heading, never the supplier's own product, and the caption says so. A
@@ -8,7 +8,7 @@
 
 import { notFound, redirect } from "next/navigation";
 
-import { ProductSheet } from "@/components/dashboard/product-sheet";
+import { LineView } from "@/components/record";
 import { heading4 } from "@/lib/dashboard/hs-photos";
 import { LinesUnreadable, ProfileReadTimeout, loadRecordLine } from "@/lib/dashboard/load-record";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -55,5 +55,5 @@ export default async function ProductLinePage({
   }
   if (!model) notFound();
 
-  return <ProductSheet model={model} mode="page" />;
+  return <LineView model={model} mode="page" />;
 }

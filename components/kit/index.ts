@@ -1,6 +1,5 @@
 // SourceBD v4 kit (B1): the primitives of Paper's `02 Components`. Every state is on a
-// board and in `/dev/ds`. Import from here; the old `components/ui/*` and
-// `components/dashboard/*` primitives go away in B11.
+// board and in `/dev/ds`. Import from here; the old `components/ui/*` primitives go away in B11.
 
 export { Button, ButtonLink, IconButton } from "./button";
 export { buttonClass, type ButtonKind, type ButtonSize } from "./button-class";

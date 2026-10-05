@@ -8,7 +8,6 @@ import { describe, it } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import type { ComposerTarget } from "@/components/dashboard/rfq-composer";
 import { RfqComposer } from "./composer";
 import {
   DEFAULT_QUESTIONS,
@@ -23,6 +22,7 @@ import {
   sendWords,
   targetSummary,
   typeCounts,
+  type ComposerTarget,
 } from "./composer-model";
 
 const plain = (s: string) => s.replace(/&#x27;/g, "'").replace(/&amp;/g, "&");

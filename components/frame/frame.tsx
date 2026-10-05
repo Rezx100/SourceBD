@@ -10,9 +10,9 @@
 // `data-detail` bars hide the phone bars through it.
 
 import type { ReactNode } from "react";
-import { MenuDismiss } from "@/components/dashboard/menu-dismiss";
 import { ring } from "@/components/kit/classes";
 import { cn } from "@/lib/utils";
+import { MenuDismiss } from "./menu-dismiss";
 import { PhoneBar, PhoneTabs } from "./phone";
 import type { BadgesInput } from "./badges";
 import { FrameSidebar } from "./sidebar";

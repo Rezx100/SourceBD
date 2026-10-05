@@ -1,10 +1,50 @@
 // What the RFQ composer asks and says (Paper `10`/`11` · RFQ composer): the fields' choices, the
 // template, what is still missing before Send, the sentence under the buttons, how a refused
 // send is put, and which of the suppliers to list by name. Pure, so a test pins each sentence;
-// the composer (`composer.tsx`) only draws and posts. The older composer keeps its own copies
-// of these until the old kit is deleted (B11).
+// the composer (`composer.tsx`) only draws and posts.
 
-import type { ComposerTarget } from "@/components/dashboard/rfq-composer";
+import type { SourceMarkModel } from "@/lib/dashboard/source-tiers";
+import type { TierRank } from "@/lib/design/tokens";
+
+/** A supplier this RFQ goes to. Facts only; never a contact value. */
+export type ComposerTarget = {
+  id: string;
+  slug: string;
+  name: string;
+  initials: string;
+  tier: TierRank;
+  marks: SourceMarkModel[];
+  place: string | null;
+  type: string;
+  sanctioned: boolean;
+  sanctionSample?: boolean;
+};
+
+/** What the composer starts with: the line a buyer arrived from, or one of their own products. */
+export type ComposerPrefill = {
+  title?: string | null;
+  description?: string | null;
+  quantity?: string | null;
+  unit?: string | null;
+  targetPrice?: string | null;
+  currency?: string | null;
+  shipTo?: string | null;
+  shipBy?: string | null;
+  hs?: string | null;
+  productId?: string | null;
+  /** A saved draft's own message and questions; without them the workspace template and questions fill in. */
+  message?: string | null;
+  questions?: string[] | null;
+};
+
+/** The buyer's workspace, for the template's variables and the default questions. Null facts are named as missing, never invented. */
+export type ComposerWorkspace = {
+  companyName: string | null;
+  userName: string | null;
+  website: string | null;
+  questions: string[];
+  emailTemplate: string | null;
+};
 
 export const UNITS = ["pcs", "sets", "pairs", "dozens", "kg", "m"] as const;
 export const CURRENCIES = ["USD", "EUR", "GBP", "CAD", "BDT"] as const;

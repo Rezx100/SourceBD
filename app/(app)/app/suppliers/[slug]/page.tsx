@@ -1,5 +1,5 @@
-// REZ-C (handoff §3.3) — the buyer's company profile, rebuilt on the
-// dashboard kit. One component, `SupplierSheet`, serves both this full page
+// REZ-C (handoff §3.3) — the buyer's company profile, on the v4 kit. One
+// component, `RecordView`, serves both this full page
 // (deep link, refresh, share) and the overlay over the results
 // (`/app/discover?record=<slug>`); `closeHref` is the only thing that differs.
 //
@@ -8,7 +8,7 @@
 //
 // Contact PII hard contract (agent-brief, code-standards): the sheet receives
 // COUNTS from `supplier_contact_counts` (0105) and no value. There is nothing
-// in the payload to un-blur, and `components/dashboard/render.test.ts` asserts
+// in the payload to un-blur, and `components/record/record.test.ts` asserts
 // that none of `email_primary` / `phones` / `contact_name` / `contact_role`
 // reaches the HTML. Registers also write phone numbers and e-mails into
 // address text; every record builder strips them first (`lib/contact-text.ts`),
@@ -24,11 +24,9 @@
 // conditional. It belongs on `/admin/suppliers/[id]`, which does not have it
 // today — see the PR description.
 
-import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 
-import { Page } from "@/components/dashboard/page";
-import { Caption, Title } from "@/components/dashboard/type";
+import { ButtonLink } from "@/components/kit";
 import { RecordView, parseSite, parseTab, type TabId } from "@/components/record";
 import { ProfileReadTimeout, loadRecordSheet } from "@/lib/dashboard/load-record";
 import { backToList } from "@/lib/dashboard/nav";
@@ -75,11 +73,7 @@ export default async function SupplierRecordPage({
     // offered a retry; falling through to `notFound()` would answer 404 for a
     // published company because the database was busy.
     if (err instanceof ProfileReadTimeout) {
-      return (
-        <Page>
-          <RecordTooSlow href={allLines ? `/app/suppliers/${slug}?lines=all` : `/app/suppliers/${slug}`} />
-        </Page>
-      );
+      return <RecordTooSlow href={allLines ? `/app/suppliers/${slug}?lines=all` : `/app/suppliers/${slug}`} />;
     }
     throw err;
   }
@@ -94,11 +88,7 @@ export default async function SupplierRecordPage({
       parentSlug = await fetchFacilityParentSlug(supabase, slug);
     } catch (err) {
       if (err instanceof Error && err.name === "ProfileStatementTimeout") {
-        return (
-          <Page>
-            <RecordTooSlow href={`/app/suppliers/${slug}`} />
-          </Page>
-        );
+        return <RecordTooSlow href={`/app/suppliers/${slug}`} />;
       }
     }
     const miss = resolveUnpublishedProfileMiss({ profileFound: false, parentSlug, routeGroup: "app" });
@@ -130,16 +120,10 @@ export default async function SupplierRecordPage({
  */
 function RecordTooSlow({ href }: { href: string }) {
   return (
-    <div className="mx-auto flex max-w-prose flex-col gap-3 px-4 py-12">
-      <Title as="h1">This record could not be read in time</Title>
-      <Caption>
-        The database is under load. The company is still on SourceBD — this read simply took too long.
-      </Caption>
-      <p className="text-sm">
-        <Link href={href} className="link">
-          Try again
-        </Link>
-      </p>
+    <div className="mx-auto flex w-full max-w-prose flex-col items-start gap-3 px-4 py-12 sm:px-6">
+      <h1 className="text-xl font-semibold tracking-tight text-ink [overflow-wrap:anywhere]">This record could not be read in time</h1>
+      <p className="text-base text-ink-2">The database is under load. The company is still on SourceBD — this read simply took too long.</p>
+      <ButtonLink href={href}>Try again</ButtonLink>
     </div>
   );
 }
