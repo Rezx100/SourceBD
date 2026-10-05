@@ -1,10 +1,9 @@
-// Plan and usage and Team and roles (Paper `10 · Settings · Plan and usage`, `· Team and roles`). Server
-// components over the same `settings_get` document. Both say what is true today and leave out what is
-// design only: Paper's "This month" counts (no read gives them), the invite dialog, the role chooser,
-// the sessions and the audit log. Team and roles is the one person who is signed in.
+// Plan and usage (Paper `10 · Settings · Plan and usage`): a server component over the `settings_get`
+// document. It says what is true today and leaves out what is design only: Paper's "This month" counts
+// (no read gives them), the sessions and the audit log. Team and roles is `components/team/`.
 
 import { Check } from "@phosphor-icons/react/dist/ssr";
-import { Table, TableFrame, Td, Th, Tr, buttonClass } from "@/components/kit";
+import { buttonClass } from "@/components/kit";
 import type { SettingsDoc } from "./doc";
 import { Section } from "./shell";
 import { planWords } from "./words";
@@ -48,56 +47,6 @@ export function PlanPanel({ doc }: { doc: SettingsDoc }) {
           </div>
         </div>
       </Section>
-    </>
-  );
-}
-
-export const TEAM_CAPTION = "One person today: you.";
-export const TEAM_NOTE_TITLE = "Today, in the product";
-export const TEAM_NOTE = "Team seats come with the Enterprise plan. Contact support to add colleagues now.";
-
-export function TeamPanel({ doc }: { doc: SettingsDoc }) {
-  const name = doc.display_name?.trim() || null;
-  return (
-    <>
-      <TableFrame className="max-md:hidden">
-        <Table aria-label="People">
-          <thead>
-            <tr>
-              <Th>Name</Th>
-              <Th>Email</Th>
-              <Th className="w-[140px]">Role</Th>
-            </tr>
-          </thead>
-          <tbody>
-            <Tr>
-              <Td>
-                <span className="font-medium text-ink">{name ?? "No display name"}</span> <span className="text-ink-3">you</span>
-              </Td>
-              <Td className="[overflow-wrap:anywhere]">{doc.email || "—"}</Td>
-              <Td>Owner</Td>
-            </Tr>
-          </tbody>
-        </Table>
-      </TableFrame>
-      <ul className="border-t border-line md:hidden">
-        <li className="flex flex-col gap-0.5 border-b border-line py-3">
-          <span className="text-md font-medium text-ink">
-            {name ?? "No display name"} <span className="text-sm font-normal text-ink-3">you</span>
-          </span>
-          <span className="text-sm text-ink-3 [overflow-wrap:anywhere]">{doc.email || "—"}</span>
-          <span className="text-sm text-ink-2">Owner</span>
-        </li>
-      </ul>
-      <div className="mt-6 flex max-w-[560px] flex-col gap-2 rounded-lg border border-line p-5">
-        <p className="text-md font-semibold text-ink">{TEAM_NOTE_TITLE}</p>
-        <p className="text-base text-ink-2">{TEAM_NOTE}</p>
-        <div className="pt-1">
-          <a href={`${SUPPORT}?subject=SourceBD%20team%20seats`} className={buttonClass({ kind: "secondary", className: "max-md:h-input-touch max-md:w-full" })}>
-            Contact support
-          </a>
-        </div>
-      </div>
     </>
   );
 }

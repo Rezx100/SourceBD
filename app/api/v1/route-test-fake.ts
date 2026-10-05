@@ -13,7 +13,7 @@
 
 import path from "node:path";
 
-export type Answer = { data: unknown; error: { message: string } | null };
+export type Answer = { data: unknown; error: { message: string; code?: string } | null };
 
 export const BUYER_ID = "0b0b0b0b-0b0b-4b0b-8b0b-0b0b0b0b0b0b";
 
