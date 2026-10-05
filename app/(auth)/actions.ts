@@ -27,6 +27,7 @@ import {
 } from "@/components/auth/words";
 import { AppOriginError, getCanonicalAppOrigin } from "@/lib/app-origin";
 import { RESET_WINDOW_SEC, signedInWithin } from "@/lib/recent-sign-in";
+import { needsSecondStep, readAal } from "@/lib/second-step";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { sendEmail, EmailError } from "@/lib/email/send";
 
@@ -39,6 +40,15 @@ async function rememberEmail(email: string, next?: string) {
   // Where the confirmation email should lead, so a resend keeps an invite or a record the person was heading to.
   if (next) jar.set(AUTH_NEXT_COOKIE, next, opts);
   else jar.delete(AUTH_NEXT_COOKIE);
+}
+
+/** The visitor's own browser, for the client that signs them in: Auth records it as the session's device (row 6). */
+async function visitorAgent(): Promise<string | null> {
+  try {
+    return (await headers()).get("user-agent");
+  } catch {
+    return null;
+  }
 }
 
 async function originOrError(): Promise<{ origin: string } | { error: string }> {
@@ -56,7 +66,7 @@ export async function signInWithPassword(_prev: AuthActionState, formData: FormD
   if (emailRefusal(email)) return { error: emailRefusal(email)!, field: "email" };
   if (!password) return { error: "Enter your password.", field: "password" };
 
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient({ userAgent: await visitorAgent() });
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
     const why = signInRefusal(error.message);
@@ -69,6 +79,9 @@ export async function signInWithPassword(_prev: AuthActionState, formData: FormD
   }
 
   revalidatePath("/", "layout");
+  // An account with two-step on has only given its password so far: the code comes next, and the pages
+  // behind it refuse this session until it has (the middleware asks too).
+  if (needsSecondStep(await readAal(supabase))) redirect(`/login/code?next=${encodeURIComponent(next)}`);
   redirect(next);
 }
 
@@ -164,6 +177,28 @@ export async function changeSignupEmail(): Promise<void> {
   jar.delete(AUTH_EMAIL_COOKIE);
   jar.delete(AUTH_NEXT_COOKIE);
   redirect("/signup");
+}
+
+/** The second step: the 6 digits from the authenticator app. A wrong code is a sentence under the field and the person stays here. */
+export async function verifyLoginCode(_prev: AuthActionState, formData: FormData): Promise<AuthActionState> {
+  const code = String(formData.get("code") ?? "").replace(/\s+/g, "");
+  const next = safeNext(String(formData.get("next") ?? ""));
+  if (!/^\d{6}$/.test(code)) return { error: "Enter the 6-digit code from your app.", field: "code" };
+  const supabase = await createSupabaseServerClient({ userAgent: await visitorAgent() });
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect(`/login?next=${encodeURIComponent(next)}`);
+  const listed = await supabase.auth.mfa.listFactors();
+  const factor = listed.data?.totp?.[0];
+  if (!factor) redirect(next);
+  const verified = await supabase.auth.mfa.challengeAndVerify({ factorId: factor.id, code });
+  if (verified.error) {
+    if (/rate limit|too many|security purposes/i.test(verified.error.message)) return { error: "Too many tries just now. Wait a minute and try again." };
+    return { error: "That code doesn't match. Use the code showing in your app now.", field: "code" };
+  }
+  revalidatePath("/", "layout");
+  redirect(next);
 }
 
 export async function requestPasswordReset(_prev: AuthActionState, formData: FormData): Promise<AuthActionState> {

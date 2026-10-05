@@ -169,6 +169,8 @@
     "app/(auth)/actions.ts",
     "app/(auth)/login/page.tsx",
     "app/(auth)/login/sent/page.tsx",
+    "app/(auth)/login/code/page.tsx",
+    "lib/second-step.ts",
     "app/(auth)/signup/page.tsx",
     "app/(auth)/signup/verify/page.tsx",
     "app/(auth)/forgot-password/page.tsx",

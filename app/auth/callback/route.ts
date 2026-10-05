@@ -10,6 +10,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { safeNext } from "@/components/auth/words";
+import { needsSecondStep, readAal } from "@/lib/second-step";
 import { urlOnSiteFromHref } from "@/lib/site-origin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -26,9 +27,12 @@ export async function GET(req: NextRequest) {
   if (url.searchParams.get("error") || url.searchParams.get("error_code")) return expired();
 
   if (code) {
-    const supabase = await createSupabaseServerClient();
+    // The visitor's own browser is the session's device on the Security page (row 6).
+    const supabase = await createSupabaseServerClient({ userAgent: req.headers.get("user-agent") });
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) return expired();
+    // A link gives the first step only: an account with two-step on is asked for its code next.
+    if (needsSecondStep(await readAal(supabase))) return NextResponse.redirect(urlOnSiteFromHref(`/login/code?next=${encodeURIComponent(next)}`));
   }
   return NextResponse.redirect(urlOnSiteFromHref(next));
 }
