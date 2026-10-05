@@ -7,6 +7,7 @@ import path from "node:path";
 import { describe, it } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { prerenderToNodeStream } from "react-dom/static";
 
 let currentPath = "/app";
 {
@@ -37,7 +38,7 @@ const nav = require("@/lib/frame-nav") as typeof import("@/lib/frame-nav");
 
 const account = { initial: "RK", name: "Rezaul Karim", email: "rk@example.invalid" };
 
-function frame(at: string, badges = {}) {
+function frame(at: string, badges: object = {}) {
   currentPath = at;
   return renderToStaticMarkup(createElement(AppFrame, { account, badges } as Parameters<typeof AppFrame>[0], createElement("p", null, "PAGE-BODY")));
 }
@@ -103,9 +104,40 @@ describe("the frame a buyer receives", () => {
   it("a badge reads as words beside the name, and as a dot on the phone tab", () => {
     const html = frame("/app", { compliance: { text: "2 to check", tone: "danger" } });
     assert.match(html, /Compliance<span class="sr-only">, 2 to check<\/span>/);
-    assert.match(html, /class="hidden text-xs font-semibold 2xl:inline text-danger">2 to check</);
+    assert.match(html, /class="hidden shrink-0 whitespace-nowrap text-xs font-semibold 2xl:inline text-danger">2 to check</, "a two-digit count must not wrap in the 224 column");
     assert.match(html, /aria-label="Alerts, new"/);
     assert.doesNotMatch(frame("/app", { compliance: null }), /to check|Alerts, new/, "an unread count draws nothing");
+  });
+
+  describe("badges that arrive after the frame (row 24)", () => {
+    const withPromise = async (badges: Promise<unknown>, at = "/app") => {
+      currentPath = at;
+      const el = createElement(AppFrame, { account, badges } as Parameters<typeof AppFrame>[0], createElement("p", null, "PAGE-BODY"));
+      const { prelude } = await prerenderToNodeStream(el);
+      let out = "";
+      for await (const chunk of prelude) out += String(chunk);
+      return out.replace(/<!--[\s\S]*?-->/g, "");
+    };
+
+    it("the menu, the page and the tab bar are drawn without waiting; the counts fill in when the promise settles", async () => {
+      // Before it settles: the shell a static render receives is the fallback, with every item and no count.
+      const early = frame("/app", new Promise(() => {}));
+      assert.match(early, /PAGE-BODY/);
+      assert.deepEqual([...early.matchAll(/<a [^>]*title="([^"]+)"/g)].map((m) => m[1]).length, 8);
+      assert.doesNotMatch(early, /to check|new<|Alerts, new/);
+      // Settled: both counts are there, the same words as a plain object gives.
+      const late = await withPromise(Promise.resolve({ messages: { text: "2 new" }, compliance: { text: "5 to check", tone: "danger" } }));
+      assert.match(late, /Messages<span class="sr-only">, 2 new<\/span>/);
+      assert.match(late, /Compliance<span class="sr-only">, 5 to check<\/span>/);
+      assert.match(late, /aria-label="Alerts, new"/);
+      assert.match(late, /aria-label="Messages, new"/);
+    });
+
+    it("a promise of nothing draws no badge, and no 0", async () => {
+      const out = await withPromise(Promise.resolve({ messages: null, compliance: null }));
+      assert.doesNotMatch(out, /to check|, new"|>0 /);
+      assert.equal((out.match(/title="[^"]+"/g) ?? []).length >= 8, true);
+    });
   });
 
   it("the phone: Paper's title, the account button, and the five tabs with the current one", () => {
