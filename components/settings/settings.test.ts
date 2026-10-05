@@ -14,6 +14,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { COMPANY_LABELS, bandLabel, bandOptions, changedFields, typeOptions, valuesOf, workspacePayload } from "./company";
 import { inquiryOf, planLabel, workspaceOf, type SettingsDoc } from "./doc";
 import { EMAIL_ROWS, turnedWords } from "./emails";
+import { loadPreviewSuppliers } from "./templates-load";
 import { DEFAULT_QUESTIONS, DEFAULT_TEMPLATE, FILL_INS, MAX_QUESTIONS, gapWords, inquiryPayload, insertAt, moveItem, previewOf, startOf } from "./templates";
 import { EMAIL_SENT, emailRefusal, initialsOf, passwordRefusal, pictureRefusal } from "./profile";
 import { deleteAvatar, postAvatar, postSettings, routeSentence, type Fetch } from "./transport";
@@ -415,6 +416,29 @@ describe("the other three pages (Team and roles is `components/team/team.test.ts
     assert.doesNotMatch(text(out), /Preview with/);
     assert.doesNotMatch(out, /role="alert"/, "the preview's read is not the page's");
     saved = { data: [], error: null };
+  });
+
+  it("with several saved suppliers the preview has a 'Preview with' picker that starts on the most recent; with one it is only a heading", async () => {
+    answer = { data: DOC, error: null };
+    saved = { data: [{ company_name: "ABONI KNITWEAR LTD." }, { company_name: "TEX TOWN LTD" }], error: null };
+    const many = await page(TEMPLATES);
+    assert.match(many, /aria-label="Preview with"/);
+    assert.match(text(many), /Preview with Aboni Knitwear Ltd/, "the field shows the most recent supplier");
+    assert.match(text(many), /Hello Aboni Knitwear Ltd|Aboni Knitwear Ltd/, "and the message is written to it");
+    saved = { data: [{ company_name: "ABONI KNITWEAR LTD." }], error: null };
+    const one = await page(TEMPLATES);
+    assert.doesNotMatch(one, /aria-label="Preview with"/);
+    assert.match(text(one), /Preview with Aboni Knitwear Ltd/);
+    saved = { data: [], error: null };
+  });
+
+  it("the preview's suppliers: the twelve most recent by name, newest first; a failed read is none", async () => {
+    const asked: unknown[] = [];
+    const ok = { rpc: async (_fn: string, args: unknown) => (asked.push(args), { data: [{ company_name: "ABONI KNITWEAR LTD." }, { company_name: "  " }, { company_name: "TEX TOWN LTD" }], error: null }) };
+    assert.deepEqual(await loadPreviewSuppliers(ok), ["Aboni Knitwear Ltd", "Tex Town Ltd"]);
+    assert.deepEqual(asked, [{ p_sort: "recent", p_limit: 12, p_offset: 0 }]);
+    assert.deepEqual(await loadPreviewSuppliers({ rpc: async () => ({ data: null, error: { message: "x" } }) }), []);
+    assert.deepEqual(await loadPreviewSuppliers({ rpc: async () => { throw new Error("down"); } }), []);
   });
 
   it("Plan and usage says Free during the beta, that billing is not set up, and sells no contact reveal", async () => {
