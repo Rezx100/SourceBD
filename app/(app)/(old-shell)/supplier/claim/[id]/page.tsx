@@ -3,25 +3,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardMeta,
-  CardTitle,
-} from "@/components/ui/card";
-import { Tag } from "@/components/ui/tag";
-import { Wizard } from "@/components/ui/wizard";
 import { ClaimCancelButton } from "@/components/claim-cancel-button";
+import { ClaimStatusChip, ClaimSteps } from "@/components/claim/parts";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
-
-const CLAIM_STEPS = [
-  { id: "search", label: "Find company" },
-  { id: "initiate", label: "Verify ownership" },
-  { id: "verify", label: "Confirm" },
-];
 
 type ClaimRow = {
   id: string;
@@ -80,81 +66,77 @@ export default async function ClaimStatusPage({
     claim.status === "pending_email" || claim.status === "email_verified";
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <header>
-        <Link
-          href="/supplier/claim"
-          className="text-xs text-ink-tertiary hover:text-ink-primary"
-        >
+    <div className="mx-auto flex w-full max-w-[720px] flex-col gap-8">
+      <header className="flex flex-col gap-1">
+        <Link href="/supplier/claim" className="w-fit text-sm text-ink-2 underline-offset-2 hover:text-ink hover:underline">
           ← All claims
         </Link>
-        <h1 className="mt-3 font-display text-2xl font-semibold tracking-tightish text-ink-primary">
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-ink">
           {claim.supplier.company_name}
         </h1>
-        <p className="mt-1 text-sm text-ink-secondary">
+        <p className="text-md text-ink-2">
           {[claim.supplier.city, claim.supplier.district]
             .filter(Boolean)
             .join(", ")}
         </p>
       </header>
 
-      <Wizard
-        steps={CLAIM_STEPS}
-        current={claim.status === "pending_email" ? 1 : 2}
-      >
-        <Card>
-          <CardHeader>
-            <CardTitle>Status</CardTitle>
-            <CardMeta>{claim.method === "domain_email" ? "Domain proof" : "Manual review"}</CardMeta>
-          </CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          <div>
-            <Tag>{statusLabel(claim.status)}</Tag>
-          </div>
-          <dl className="grid grid-cols-[140px_1fr] gap-y-1 text-xs text-ink-secondary">
-            <dt>Proof email</dt>
-            <dd className="font-mono text-ink-primary">{claim.proof_email}</dd>
-            <dt>Initiated</dt>
-            <dd>{new Date(claim.created_at).toLocaleString()}</dd>
-            {claim.token_expires_at ? (
-              <>
-                <dt>Link expires</dt>
-                <dd>{new Date(claim.token_expires_at).toLocaleString()}</dd>
-              </>
-            ) : null}
-            {claim.email_verified_at ? (
-              <>
-                <dt>Email verified</dt>
-                <dd>{new Date(claim.email_verified_at).toLocaleString()}</dd>
-              </>
-            ) : null}
-            {claim.decided_at ? (
-              <>
-                <dt>Decided</dt>
-                <dd>{new Date(claim.decided_at).toLocaleString()}</dd>
-              </>
-            ) : null}
-          </dl>
-          {claim.decision_note ? (
-            <p className="rounded-input border border-hairline bg-bg-l0 p-3 text-xs text-ink-secondary">
-              {claim.decision_note}
-            </p>
+      <ClaimSteps current={claim.status === "pending_email" ? 1 : 2} />
+
+      <section aria-labelledby="claim-status" className="flex flex-col gap-4 rounded-md border border-line p-5">
+        <div className="flex items-baseline justify-between gap-4">
+          <h2 id="claim-status" className="text-lg font-semibold text-ink">
+            Status
+          </h2>
+          <p className="text-sm text-ink-3">
+            {claim.method === "domain_email" ? "Domain proof" : "Manual review"}
+          </p>
+        </div>
+        <div>
+          <ClaimStatusChip status={claim.status}>{statusLabel(claim.status)}</ClaimStatusChip>
+        </div>
+        <dl className="grid grid-cols-[140px_1fr] gap-y-1.5 text-sm text-ink-2">
+          <dt>Proof email</dt>
+          <dd className="font-mono text-ink">{claim.proof_email}</dd>
+          <dt>Initiated</dt>
+          <dd>{new Date(claim.created_at).toLocaleString()}</dd>
+          {claim.token_expires_at ? (
+            <>
+              <dt>Link expires</dt>
+              <dd>{new Date(claim.token_expires_at).toLocaleString()}</dd>
+            </>
           ) : null}
-          {claim.status === "pending_email" ? (
-            <p className="text-xs text-ink-tertiary">
-              Check {claim.proof_email} for a confirmation link from SourceBD.
-              Links expire after 24 hours.
-            </p>
+          {claim.email_verified_at ? (
+            <>
+              <dt>Email verified</dt>
+              <dd>{new Date(claim.email_verified_at).toLocaleString()}</dd>
+            </>
           ) : null}
-          {claim.status === "approved" ? (
-            <p className="text-xs text-ink-secondary">
-              You now own this profile. Profile editing ships in spec S2.
-            </p>
+          {claim.decided_at ? (
+            <>
+              <dt>Decided</dt>
+              <dd>{new Date(claim.decided_at).toLocaleString()}</dd>
+            </>
           ) : null}
-          {cancellable ? <ClaimCancelButton id={claim.id} /> : null}
-        </CardContent>
-        </Card>
-      </Wizard>
+        </dl>
+        {claim.decision_note ? (
+          <p className="rounded-md bg-subtle p-3 text-sm text-ink-2">
+            {claim.decision_note}
+          </p>
+        ) : null}
+        {claim.status === "pending_email" ? (
+          <p className="text-sm text-ink-3">
+            Check {claim.proof_email} for a confirmation link from SourceBD.
+            Links expire after 24 hours.
+          </p>
+        ) : null}
+        {claim.status === "approved" ? (
+          <p className="text-sm text-ink-2">
+            You now own this profile. Profile editing ships in spec S2.
+          </p>
+        ) : null}
+        {cancellable ? <ClaimCancelButton id={claim.id} /> : null}
+      </section>
     </div>
   );
 }

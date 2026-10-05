@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button, InlineError } from "@/components/kit";
 
 export function ClaimCancelButton({ id }: { id: string }) {
   const router = useRouter();
@@ -34,11 +34,13 @@ export function ClaimCancelButton({ id }: { id: string }) {
   }
 
   return (
-    <div className="space-y-1">
-      <Button type="button" variant="destructive" size="sm" onClick={cancel} disabled={pending}>
-        {pending ? "Cancelling…" : "Cancel claim"}
-      </Button>
-      {error ? <p className="text-xs text-sem-red">{error}</p> : null}
+    <div className="flex flex-col gap-2">
+      <div>
+        <Button type="button" kind="danger" onClick={cancel} loading={pending} loadingLabel="Cancelling…">
+          Cancel claim
+        </Button>
+      </div>
+      {error ? <InlineError>{error}</InlineError> : null}
     </div>
   );
 }
