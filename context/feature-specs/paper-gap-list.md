@@ -55,6 +55,7 @@ Each spec names its migration; the migration is written and dry-run, and `--appl
 ## Data side written (dry-run, not applied)
 
 - Row 4: `gap-04-team-and-roles.md`, migration `0111`. Sharing by role is 4b (Opus).
+- Row 9: `gap-09-messages-unread-files.md`, migration `0112`.
 
 ## Screens built
 
