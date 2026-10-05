@@ -1185,6 +1185,7 @@ const CASES = [
     path: "/product/records",
     expect: { status: 200, bodyIncludes: "Every fact, with its receipt." },
   },
+  { name: "site: /contact is 200", path: "/contact", expect: { status: 200, bodyIncludes: "Talk to us." } },
   {
     name: "site: /pricing is 200 and says it is free during beta",
     path: "/pricing",
