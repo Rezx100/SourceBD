@@ -6,29 +6,30 @@
 // split-pane `AuthShell` itself so it can set its own brand-panel
 // copy.
 //
-// Fonts loaded per-layout via next/font/google (Next splits font
+// Fonts loaded per-layout via next/font/local, files in `app/fonts` (Next splits font
 // delivery by layout so this does not affect /app, /supplier, /admin).
 // H2 `auth` rate limit (10/min IP-bucketed) is enforced upstream by
 // `middleware.ts` — nothing to change here.
 
 import type { ReactNode } from "react";
-import { Archivo, Hanken_Grotesk, IBM_Plex_Mono } from "next/font/google";
+import localFont from "next/font/local";
 
-const mktDisplay = Archivo({
-  subsets: ["latin"],
-  weight: ["500", "600", "700", "800", "900"],
+const mktDisplay = localFont({
+  src: [{ path: "../fonts/archivo.woff2", weight: "500 900", style: "normal" }],
   variable: "--mkt-font-display",
   display: "swap",
 });
-const mktBody = Hanken_Grotesk({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+const mktBody = localFont({
+  src: [{ path: "../fonts/hanken-grotesk.woff2", weight: "400 700", style: "normal" }],
   variable: "--mkt-font-body",
   display: "swap",
 });
-const mktMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
+const mktMono = localFont({
+  src: [
+    { path: "../fonts/ibm-plex-mono-400.woff2", weight: "400", style: "normal" },
+    { path: "../fonts/ibm-plex-mono-500.woff2", weight: "500", style: "normal" },
+    { path: "../fonts/ibm-plex-mono-600.woff2", weight: "600", style: "normal" },
+  ],
   variable: "--mkt-font-mono",
   display: "swap",
 });
