@@ -1,61 +1,30 @@
-// Spec FE-SITEWIDE Phase A — public Factory profile (anon, /suppliers/[slug]).
-//
-// Mirrors the prototype anatomy shipped by FE-PROTO on the authenticated
-// `/app/suppliers/[slug]` route, with three public-mode adaptations:
-//
-//   1. No SaveButton, no ClaimCtaButton. Side-panel CTAs convert anon
-//      visitors via /signup?next=… and /login?next=… instead.
-//   2. Contact tab is always the gated card; its CTA links to
-//      /signup?next=/suppliers/<slug> (not /pricing — anon users have no
-//      plan yet; the conversion event is sign-up).
-//   3. Address rows are stripped of `phone` and `email` at render time
-//      (Spec M5 JC #12 (a) — registry-published PII is not exposed to
-//      anonymous traffic). Inline mapper, not promoted to lib/.
+// Public supplier record (anon, /suppliers/[slug]). B9g restyled it onto the v4 record: the page now builds the
+// buyer record's own model (`buildSheet`) from the same public profile read and draws it with
+// `components/record/public-record.tsx`. Only the markup changed. The data read, the miss handling (404, the 308
+// to the mother company, the timeout 307s), the cache lifetime and the JSON-LD are exactly as REZ-72 and its
+// successors left them, and the HTTP-boundary guard (`scripts/test-profile-http-boundary.mjs`) holds them.
 //
 // Hard contracts preserved:
 //   - RPC `public.buyer_supplier_profile` is unchanged (no DB migration).
-//   - R1 glyph payload = `t13_source_count`. No SBI / pillar / grade.
-//   - Sanctions banner overrides chrome when an active hit exists; the
-//     Contact CTA is disabled in that branch.
-//   - Tier hierarchy is law: Provenance tab footer reiterates it.
+//   - No contact value reaches this page: the record model carries counts at most, and here not even those
+//     (`contactCounts: null`, Contact is locked); filed addresses are stripped of phones and emails by the
+//     record builder (`lib/contact-text.ts`), as on the buyer's record.
+//   - No SBI / pillar / grade / score. The sanctions band overrides the page when an active hit exists, and
+//     "Sign up to contact" is replaced by the refusal in words.
+//   - Source trust hierarchy is law: the Sources section lists each register with its tier and the day it was read.
 //   - M4 JSON-LD Organization / LocalBusiness preserved.
+//   - No `loading.tsx` anywhere above this page (see `app/(public)/layout.tsx`): its `notFound()` and
+//     `permanentRedirect()` must reach the wire as a real 404 and 308.
 
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 
-import { Bell, ChatCircleDots, Prohibit } from "@phosphor-icons/react/dist/ssr";
-
-import { BlurFade } from "@/components/ui/blur-fade";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CompanyProfileHeader } from "@/components/supplier/company-profile-header";
-import { resolveProfileWorkers } from "@/lib/build-profile-workers";
-import {
-  formatWorkersHeadline,
-  isGroupWorkers,
-  workersCaption,
-  workersDisplayValue,
-} from "@/lib/profile-metrics";
-import { ProfileOverviewTab } from "@/components/supplier/profile-overview-tab";
-import {
-  sanitizeFacilityPanel,
-  type FacilityPanel,
-} from "@/components/supplier/profile-facilities-section";
-import {
-  ProfileCapacityTab,
-  hasCapacityData,
-} from "@/components/supplier/profile-capacity-tab";
-import { ProfileContactTabMarketing } from "@/components/supplier/profile-contact-tab";
-import { ProfileProvenanceTab } from "@/components/supplier/profile-provenance-tab";
-import { ProfileComplianceTab, asRscSites } from "@/components/supplier/profile-compliance-tab";
+import { PublicRecord } from "@/components/record/public-record";
+import { buildSheet, type ProfilePayload } from "@/lib/dashboard/build-models";
 import { resolveUnpublishedProfileMiss } from "@/lib/facility-parent-redirect";
-import {
-  getPublicSupplierProfile,
-  ProfileStatementTimeout,
-} from "@/lib/public-supplier-profile";
+import { sanitizeFacilityPanel, type FacilityPanel } from "@/lib/format-facility-group";
+import { getPublicSupplierProfile, ProfileStatementTimeout } from "@/lib/public-supplier-profile";
 import { siteOriginFromEnv, urlOnSite } from "@/lib/site-origin";
-import { profileTabClass, profileTabCountClass, profileHeaderContactClass, profileHeaderFollowClass } from "@/lib/profile-tab-styles";
 
 export const dynamic = "force-static";
 export const revalidate = 300;
@@ -63,151 +32,12 @@ export const dynamicParams = true;
 
 const SITE_URL = siteOriginFromEnv();
 
-// ---------- payload shape (mirrors RPC RETURNS jsonb document) -------------
+/** The payload's supplier carries a country the record model does not read; the metadata and JSON-LD do. */
+type Supplier = ProfilePayload["supplier"] & { country?: string | null };
 
-type Supplier = {
-  id: string;
-  slug: string;
-  company_name: string;
-  entity_type: "factory" | "buying_house" | "unknown";
-  city: string | null;
-  district: string | null;
-  country: string | null;
-  address_raw: string | null;
-  completeness_pct: number;
-  is_sanctioned: boolean;
-  parent_group_name: string | null;
-  established_date: string | null;
-  bepza_zone: string | null;
-  factory_types: string[];
-  principal_products: string[];
-  employees_total: number | null;
-  employees_male: number | null;
-  employees_female: number | null;
-  machines_sewing: number | null;
-  production_capacity_pcs_day: number | null;
-  production_capacity_dozen_yearly: number | null;
-  source_tags: string[];
-};
-
-type Pill = {
-  source_code: string;
-  label: string;
-  value: string | null;
-  verified: boolean | null;
-  source_url: string | null;
-  inherited_from: string | null;
-  inherited_from_name: string | null;
-  building_name?: string | null;
-};
-
-type Cert = {
-  kind: string;
-  certificate_no: string | null;
-  issuer: string | null;
-  issued_on: string | null;
-  expires_on: string | null;
-  scope: string | null;
-  document_url: string | null;
-  /** REZ-93: facility company_name when inherited; display-only. */
-  building_name?: string | null;
-};
-
-type RscRemediation = {
-  progress_pct: number | null;
-  workers_count: number | null;
-  remediation_status: string | null;
-  training_status: string | null;
-  parent_group_name: string | null;
-  parent_group_factory_count: number | null;
-  fire_inspection_url: string | null;
-  structural_inspection_url: string | null;
-  electrical_inspection_url: string | null;
-  boiler_inspection_url: string | null;
-  cap_url: string | null;
-  building_name?: string | null;
-};
-
-type BrandAttribution = {
-  source_code: string;
-  display_name: string;
-  source_url: string | null;
-  last_seen_at: string;
-  building_name?: string | null;
-};
-
-type SanctionsHit = {
-  list: string;
-  matched_name: string;
-  list_entry_ref: string | null;
-  screened_at: string;
-  source_url: string | null;
-  listed_date: string | null;
-};
-
-type Provenance = {
-  source_code: string;
-  display_name: string;
-  tier: string;
-  source_ref: string | null;
-  source_url: string | null;
-  last_seen_at: string;
-};
-
-type AddressRowRaw = {
-  kind: string;
-  address: string;
-  phone: string | null;
-  email: string | null;
-  source_code: string;
-  fetched_at: string;
-};
-
-type PublicAddress = {
-  kind: string;
-  address: string;
-  source_code: string;
-  fetched_at: string;
-};
-
-type ComplianceDocument = {
-  doc_type: "fire" | "structural" | "electrical" | "boiler" | "cap";
-  mirror_url: string | null;
-  original_url: string;
-  fetched_at: string;
-  file_size: number | null;
-  /** REZ-93: facility company_name when inherited; omitted for own docs. */
-  building_name?: string | null;
-};
-
-type ProfilePayload = {
-  supplier: Supplier;
-  t13_source_count: number;
-  pills: Pill[];
-  certifications: Cert[];
-  rsc_remediation: RscRemediation | RscRemediation[] | null;
-  brand_attributions: BrandAttribution[];
-  sanctions: SanctionsHit[];
-  provenance: Provenance[];
-  addresses: AddressRowRaw[];
-  documents: ComplianceDocument[];
-};
-
-function publicAddresses(rows: AddressRowRaw[]): PublicAddress[] {
-  return rows.map((r) => ({
-    kind: r.kind,
-    address: r.address,
-    source_code: r.source_code,
-    fetched_at: r.fetched_at,
-  }));
-}
 // ---------- metadata ------------------------------------------------------
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   try {
     const pack = await getPublicSupplierProfile(slug);
@@ -218,8 +48,7 @@ export async function generateMetadata({
       };
     }
     if (!pack.data) return { title: "Supplier — SourceBD" };
-    const payload = pack.data as ProfilePayload;
-    const s = payload.supplier;
+    const s = (pack.data as ProfilePayload).supplier as Supplier;
     const loc = [s.city, s.district, s.country].filter(Boolean).join(", ");
     const title = `${s.company_name} — Bangladesh RMG supplier on SourceBD`;
     const description = loc
@@ -238,9 +67,7 @@ export async function generateMetadata({
       },
     };
   } catch (err) {
-    const isTimeout =
-      err instanceof ProfileStatementTimeout ||
-      (err instanceof Error && err.name === "ProfileStatementTimeout");
+    const isTimeout = err instanceof ProfileStatementTimeout || (err instanceof Error && err.name === "ProfileStatementTimeout");
     if (isTimeout) {
       return {
         title: "Service temporarily slow — SourceBD",
@@ -253,11 +80,7 @@ export async function generateMetadata({
 
 // ---------- entry --------------------------------------------------------
 
-export default async function PublicSupplierProfilePage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+export default async function PublicSupplierProfilePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const pack = await getPublicSupplierProfile(slug);
   if (pack.timedOut) {
@@ -266,7 +89,7 @@ export default async function PublicSupplierProfilePage({
     // stored as a factory page.
     throw new ProfileStatementTimeout(slug);
   }
-  const { data, parentSlug, facilityRaw, facilityLoadError, epbHs } = pack;
+  const { data, parentSlug, facilityRaw, epbHs } = pack;
   if (data == null) {
     const miss = resolveUnpublishedProfileMiss({
       profileFound: false,
@@ -279,39 +102,39 @@ export default async function PublicSupplierProfilePage({
     notFound();
   }
 
-  const payload = data as ProfilePayload;
-  const s = payload.supplier;
-  const nextPath = `/suppliers/${s.slug}`;
+  const profile = data as ProfilePayload;
+  const s = profile.supplier as Supplier;
+  // As the buyer's record reads it (`fetchFacilityPanel`): a panel with no buildings is a panel ("No extension
+  // buildings on this record."); only a failed or malformed read is `null`, which says the buildings could not be read.
   const facilitiesPanel =
-    facilityRaw &&
-    typeof facilityRaw === "object" &&
-    Array.isArray((facilityRaw as FacilityPanel).facilities) &&
-    (facilityRaw as FacilityPanel).facilities.length > 0 &&
-    (facilityRaw as FacilityPanel).group
+    facilityRaw && typeof facilityRaw === "object" && Array.isArray((facilityRaw as FacilityPanel).facilities) && (facilityRaw as FacilityPanel).group
       ? sanitizeFacilityPanel(facilityRaw as FacilityPanel)
       : null;
 
-  const rscSites = asRscSites(payload.rsc_remediation);
-  const workersResolved = resolveProfileWorkers({
-    companyName: s.company_name,
-    employeesTotal: s.employees_total,
-    rscSites,
-    panel: facilitiesPanel,
-  });
-  const workersHeadline = {
-    value: workersDisplayValue(workersResolved),
-    caption: workersCaption(workersResolved),
-    source: workersResolved.source,
-  };
-  const workersGroupLabel = isGroupWorkers(workersResolved)
-    ? formatWorkersHeadline(workersResolved)
-    : undefined;
+  // The model is the buyer record's own. Fixed at the page's own revalidation, which is at most five minutes old.
+  const today = new Date();
+  const model = buildSheet(
+    { profile, hscodes: epbHs.hscodes, hscodesError: epbHs.loadError, workers: null, today },
+    {
+      // Contact is locked here: no counts, no values, no plan.
+      contactCounts: null,
+      // `panel: null` says "the buildings could not be read", which is what a timed-out read is.
+      facilities: { panel: facilitiesPanel },
+      supplierId: null,
+      saved: false,
+      rfqHref: null,
+      fullHref: `/suppliers/${s.slug}`,
+      closeHref: null,
+      // A line's own page is the buyer's: a visitor is taken to sign up and then to it.
+      lineHref: (hs) => `/signup?next=${encodeURIComponent(`/app/suppliers/${s.slug}/lines/${hs}`)}`,
+      allLinesHref: null,
+    },
+  );
 
   const hasLocality = !!(s.city || s.district);
-  const ldType = hasLocality ? "LocalBusiness" : "Organization";
   const ld: Record<string, unknown> = {
     "@context": "https://schema.org",
-    "@type": ldType,
+    "@type": hasLocality ? "LocalBusiness" : "Organization",
     name: s.company_name,
     url: `${SITE_URL}/suppliers/${s.slug}`,
   };
@@ -325,196 +148,9 @@ export default async function PublicSupplierProfilePage({
   }
 
   return (
-    <>
-      {/* Marketing layout main has no horizontal padding; app shell main uses px-4. */}
-      <div
-        className="r7-profile-shell mx-auto flex max-w-[1280px] flex-col gap-4 overflow-x-clip px-4 pb-5 sm:pb-6 md:px-6"
-        {...(facilityLoadError ? { "data-facilities-error": "" } : {})}
-      >
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }}
-        />
-
-        {s.is_sanctioned ? <SanctionsBanner /> : null}
-
-        <BlurFade delay={0.07}>
-          <CompanyProfileHeader
-            supplier={s}
-            workers={workersHeadline}
-            t13SourceCount={payload.t13_source_count}
-            pills={payload.pills}
-            provenance={payload.provenance}
-            addresses={publicAddresses(payload.addresses)}
-            discoverHref="/discover"
-            followSlot={
-              <Link
-                href={`/signup?next=${encodeURIComponent(nextPath)}`}
-                title="Create a free account to follow this supplier"
-                aria-label="Sign up to follow this supplier"
-                className={profileHeaderFollowClass}
-              >
-                <Bell size={15} weight="regular" aria-hidden className="sm:hidden" />
-                <Bell size={17} weight="regular" aria-hidden className="hidden sm:block" />
-                <span>Follow</span>
-              </Link>
-            }
-            contactSlot={
-              s.is_sanctioned ? (
-                <Button
-                  type="button"
-                  variant="primary"
-                  size="lg"
-                  disabled
-                  className={profileHeaderContactClass}
-                  title="Contact disabled - sanctions flag active"
-                  aria-label="Contact disabled (sanctions flag active)"
-                >
-                  <Prohibit size={15} weight="regular" aria-hidden className="sm:hidden" />
-                  <Prohibit size={18} weight="regular" aria-hidden className="hidden sm:block" />
-                  <span className="xs:hidden">Disabled</span>
-                  <span className="hidden xs:inline">Contact disabled</span>
-                </Button>
-              ) : (
-                <Button
-                  asChild
-                  variant="primary"
-                  size="lg"
-                  className={profileHeaderContactClass}
-                  title="Create an account to send a Request for Quote"
-                  aria-label="Sign up to contact this supplier"
-                >
-                  <Link href={`/signup?next=${encodeURIComponent(nextPath)}`}>
-                    <ChatCircleDots size={15} weight="regular" aria-hidden className="sm:hidden" />
-                    <ChatCircleDots size={18} weight="regular" aria-hidden className="hidden sm:block" />
-                    <span className="xs:hidden">Contact</span>
-                    <span className="hidden xs:inline">Contact supplier</span>
-                  </Link>
-                </Button>
-              )
-            }
-          />
-        </BlurFade>
-
-        <Tabs defaultValue="overview" className="profile-tabs-shell flex flex-col gap-0">
-          <TabsList
-            aria-label="Profile sections"
-            className="flex-nowrap gap-1 overflow-x-auto rounded-[14px] border border-neutral-200 bg-white p-1.5 shadow-[0_1px_2px_rgba(15,15,20,0.03)] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          >
-            <TabsTrigger value="overview" id="tab-trigger-overview" className={profileTabClass}>
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="compliance" id="tab-trigger-compliance" className={profileTabClass}>
-              Compliance
-            </TabsTrigger>
-            {hasCapacityData(s, workersHeadline) ? (
-              <TabsTrigger value="capacity" className={profileTabClass}>
-                Capacity
-              </TabsTrigger>
-            ) : null}
-            <TabsTrigger value="contact" className={profileTabClass}>
-              Contact
-            </TabsTrigger>
-            <TabsTrigger value="provenance" className={`${profileTabClass} group`}>
-              Provenance
-              <span
-                className={profileTabCountClass}
-                title="Active source records on this profile"
-              >
-                {payload.provenance.length}
-              </span>
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview">
-            <ProfileOverviewTab
-              supplier={s}
-              t13SourceCount={payload.t13_source_count}
-              provenanceCount={payload.provenance.length}
-              addresses={publicAddresses(payload.addresses)}
-              discoverHref="/discover"
-              slug={slug}
-              facilitiesPanel={facilitiesPanel}
-              facilitiesLoadError={facilityLoadError}
-              workers={workersHeadline}
-              workersGroupLabel={workersGroupLabel}
-              hscodes={epbHs.hscodes}
-              hscodesLoadError={epbHs.loadError}
-            />
-          </TabsContent>
-          {/* forceMount: registry Verify links must be in the initial HTML so
-              buyers (and the HTTP boundary guard) can see BGMEA deep-links
-              without clicking Compliance first (REZ-115 / REZ-72 lesson). */}
-          <TabsContent value="compliance" id="compliance" forceMount className="data-[state=inactive]:hidden">
-            <ProfileComplianceTab
-              data={{
-                pills: payload.pills,
-                certifications: payload.certifications,
-                rsc_remediation: asRscSites(payload.rsc_remediation),
-                brand_attributions: payload.brand_attributions,
-                sanctions: payload.sanctions,
-                documents: payload.documents,
-              }}
-            />
-          </TabsContent>
-          {hasCapacityData(s, workersHeadline) ? (
-            <TabsContent value="capacity">
-              <ProfileCapacityTab supplier={s} workers={workersHeadline} />
-            </TabsContent>
-          ) : null}
-          <TabsContent value="contact">
-            <ProfileContactTabMarketing
-              nextPath={nextPath}
-              disabled={s.is_sanctioned}
-            />
-          </TabsContent>
-          <TabsContent value="provenance" id="provenance">
-            <ProfileProvenanceTab
-              provenance={payload.provenance}
-              t13SourceCount={payload.t13_source_count}
-            />
-          </TabsContent>
-        </Tabs>
-
-        <p className="mx-auto mt-6 max-w-[640px] px-3 text-center text-[13px] leading-5 text-neutral-500 sm:px-0">
-          Authority logos identify the data sources we aggregate from. SourceBD
-          is not affiliated with or endorsed by BGMEA, BKMEA, BTMA, EPB,
-          OEKO-TEX, WRAP, GOTS, RSC, or any of the brands named on this page.
-          Every datum traces to the issuing authority shown on the Provenance
-          tab.
-        </p>
-      </div>
-    </>
-  );
-}
-function SanctionsBanner() {
-  return (
-    <div role="alert" className="sanctions-banner">
-      <svg
-        viewBox="0 0 24 24"
-        width={28}
-        height={28}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={1.6}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        style={{ color: "var(--sem-red)" }}
-        aria-hidden
-      >
-        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-        <path d="M12 9v4M12 17h.01" />
-      </svg>
-      <div>
-        <p className="sanctions-banner-title">Sanctions / forced-labour flag</p>
-        <p className="sanctions-banner-body">
-          This supplier matches an active watchlist entry. See the Compliance
-          tab for the matched record and source link.
-        </p>
-      </div>
-      <a href="#compliance" className="btn-proto">
-        View matches
-      </a>
-    </div>
+    <main>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
+      <PublicRecord model={model} today={today} />
+    </main>
   );
 }

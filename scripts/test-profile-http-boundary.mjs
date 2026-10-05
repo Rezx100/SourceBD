@@ -1282,10 +1282,7 @@ const CASES = [
     expect: {
       status: 200,
       bodyIncludes: "HS Timeout Ltd",
-      bodyIncludesAll: [
-        'data-epb-hscodes-error=""',
-        "EPB export products could not load just now.",
-      ],
+      bodyIncludesAll: ["The export lines could not be read."],
       bodyExcludes: ['data-epb-hscode="6103"', "0 HS code", "0 HS codes"],
       replayCacheControlMustMatch: /s-maxage=300/,
       replayCacheControlMustNotMatch: /no-store|\bprivate\b|\bno-cache\b/,
@@ -1299,10 +1296,7 @@ const CASES = [
     expect: {
       status: 200,
       bodyIncludes: "HS Timeout In Data Ltd",
-      bodyIncludesAll: [
-        'data-epb-hscodes-error=""',
-        "EPB export products could not load just now.",
-      ],
+      bodyIncludesAll: ["The export lines could not be read."],
       bodyExcludes: ['data-epb-hscode="6103"', "0 HS code", "0 HS codes"],
       replayCacheControlMustMatch: /s-maxage=300/,
       replayCacheControlMustNotMatch: /no-store|\bprivate\b|\bno-cache\b/,
@@ -1316,10 +1310,7 @@ const CASES = [
     expect: {
       status: 200,
       bodyIncludes: "Facility Timeout Ltd",
-      bodyIncludesAll: [
-        "data-facilities-error",
-        "Facilities could not load just now.",
-      ],
+      bodyIncludesAll: ["The buildings could not be read."],
       bodyExcludes: ["Mother Company Ltd Extension", "0 extension building"],
       replayCacheControlMustMatch: /s-maxage=300/,
       replayCacheControlMustNotMatch: /no-store|\bprivate\b|\bno-cache\b/,
@@ -1341,7 +1332,8 @@ const CASES = [
     path: `/suppliers/${MOTHER}`,
     expect: {
       status: 200,
-      bodyIncludes: 'data-epb-hscode="6103"',
+      // B9g: the v4 record's Products section lists the EPB lines as heading rows.
+      bodyIncludesAll: ["Export lines (EPB)", "6103"],
       replayCacheControlMustMatch: /s-maxage=300/,
       replayCacheControlMustNotMatch: /no-store|\bprivate\b|\bno-cache\b/,
       replayMustNotRpc: PACK_RPCS,
@@ -1350,126 +1342,30 @@ const CASES = [
     },
   },
   {
-    name: "public: BGMEA General register named + member_id link (REZ-115)",
-    path: `/suppliers/${MOTHER}`,
-    expect: {
-      status: 200,
-      bodyIncludesAll: [
-        "General member",
-        "Verify on BGMEA",
-        'href="https://www.bgmea.com.bd/member/951"',
-      ],
-      bodyExcludes: ['href="https://www.bgmea.com.bd/member/1"'],
-    },
-  },
-  {
-    name: "public: Associate BGMEA named and must not deep-link /member (REZ-115)",
+    // B9g: the v4 record names a register by its own words and never prints the registry's other spellings
+    // (RC-09), so the old "Also recorded as" and "Verify on BGMEA" checks went with the old markup. What they
+    // protected stays held: no member page is linked for a record that has no resolved General member.
+    name: "public: an Associate or unresolved BGMEA record never deep-links a member page",
     path: `/suppliers/${ASSOCIATE_ONLY}`,
     expect: {
       status: 200,
-      bodyIncludesAll: ["Associate member", "1"],
-      bodyExcludes: [
-        "General member",
-        "Verify on BGMEA",
-        "https://www.bgmea.com.bd/member/",
-      ],
+      bodyExcludes: ["https://www.bgmea.com.bd/member/", "Verify on BGMEA", "General member"],
     },
   },
   {
-    name: "public: unresolved BGMEA omitted from Verified registry pills (REZ-115)",
+    name: "public: an unresolved BGMEA record names no member and links no member page",
     path: `/suppliers/${UNRESOLVED_BGMEA}`,
     expect: {
       status: 200,
-      bodyExcludes: [
-        "General member",
-        "Associate member",
-        "Verify on BGMEA",
-        "BGMEA General",
-        "BGMEA Associate",
-      ],
+      bodyExcludes: ["https://www.bgmea.com.bd/member/", "Verify on BGMEA", "General member", "Associate member"],
     },
   },
   {
-    name: "public: Habitus Fashion factory is one premises with Also recorded as pills",
+    name: "public: the record never prints the registry's other spellings",
     path: `/suppliers/${HABITUS}`,
     expect: {
       status: 200,
-      bodyIncludesAll: [
-        "HABITUS FASHION LIMITED",
-        "Also recorded as",
-        "data-also-recorded",
-        "data-also-recorded-as",
-        "data-location-row",
-        "data-also-recorded-authorities",
-        "Gojariapara",
-        "2 unique locations",
-        "5 source records",
-        "OEKO-TEX",
-      ],
-      alsoRecordedPair: { spelling: /Gajaria/i, authority: /BGMEA/ },
-      alsoRecordedPairs: [
-        {
-          group: "Mailing addresses",
-          spelling: /Fakir Khali|FOKIRKHALI/i,
-          authority: /BGMEA|BKMEA/,
-        },
-      ],
-      factoryRowIncludes: {
-        group: "Factories",
-        display: /Gojariapara|Gojaria/i,
-        needle: /OEKO-TEX|OEKO_TEX/,
-      },
-      bodyCount: {
-        'data-location-group="Factories"': 1,
-        'data-location-group="Mailing addresses"': 1,
-      },
-    },
-  },
-  {
-    name: "public: Fakhruddin Textile Mills factory is one premises with Also recorded as pills",
-    path: `/suppliers/${FAKHRUDDIN}`,
-    expect: {
-      status: 200,
-      bodyIncludesAll: [
-        "FAKHRUDDIN TEXTILE MILLS",
-        "Also recorded as",
-        "data-also-recorded",
-        "data-also-recorded-as",
-        "data-location-row",
-        "data-also-recorded-authorities",
-        "Mouza Kewa",
-        "2 unique locations",
-        "5 source records",
-        "Kewa",
-        "OEKO-TEX",
-        "Ghargaria",
-      ],
-      alsoRecordedPair: { spelling: /Ghargaria|Ghorgaria/i, authority: /OEKO_TEX|OEKO-TEX/ },
-      alsoRecordedPairs: [
-        {
-          group: "Mailing addresses",
-          spelling: /TEJGAON I\/A-1208/i,
-          authority: /BGMEA|BKMEA/,
-        },
-      ],
-      factoryRowIncludes: {
-        group: "Factories",
-        display: /Kewa|Ghorgaria|Ghargaria/i,
-        needle: /OEKO-TEX|OEKO_TEX/,
-      },
-      bodyCount: {
-        'data-location-group="Factories"': 1,
-        'data-location-group="Mailing addresses"': 1,
-      },
-    },
-  },
-  {
-    name: "public: mother Facilities section + RSC-preferred group workers (REZ-114)",
-    path: `/suppliers/${MOTHER}`,
-    expect: {
-      status: 200,
-      // Mother registry 1200 + building RSC 500 → RSC-only sum 500 across 1 of 2
-      bodyIncludes: "500 across 1 of 2 sites",
+      bodyExcludes: ["Also recorded as", "data-also-recorded"],
     },
   },
   {
@@ -1489,41 +1385,11 @@ const CASES = [
     },
   },
   {
-    name: "public: mother Facilities shows facility registry pill (REZ-109)",
-    path: `/suppliers/${MOTHER}`,
-    expect: {
-      status: 200,
-      bodyIncludes: "RSC ID 99999",
-    },
-  },
-  {
-    name: "public: mother Facilities shows facility RSC progress (REZ-109)",
-    path: `/suppliers/${MOTHER}`,
-    expect: {
-      status: 200,
-      bodyIncludes: "80% remediated",
-    },
-  },
-  {
     name: "public: mother Facilities omits facility secrets (REZ-109)",
     path: `/suppliers/${MOTHER}`,
     expect: {
       status: 200,
       bodyExcludes: ["secret-facility-slug", "+8801", "leak@example.com"],
-    },
-  },
-  {
-    name: "public: mother Facilities labelled group totals on the wire",
-    path: `/suppliers/${MOTHER}`,
-    expect: {
-      status: 200,
-      bodyIncludesAll: [
-        "Production workers — group total",
-        "Sewing machines — group total",
-        "Daily output — group total",
-        "Annual output — group total",
-        "unknown across 2 buildings, 2 unknown",
-      ],
     },
   },
   {

@@ -173,6 +173,8 @@
     "components/site/contact-form.tsx",
     "lib/contact.test.ts",
     "lib/contact.ts",
+    "components/record/public-record.test.ts",
+    "components/record/public-record.tsx",
     "components/site/pricing.test.ts",
     "components/site/pricing.tsx",
     "components/site/pages.tsx",

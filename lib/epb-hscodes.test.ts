@@ -117,10 +117,11 @@ describe("EPB HS wiring (observable call sites)", () => {
       "utf8",
     );
     assert.match(pub, /getPublicSupplierProfile/);
-    assert.match(pub, /hscodesLoadError/);
-    assert.match(pub, /forceMount/);
-    assert.match(pub, /hscodes=\{epbHs\.hscodes\}/);
-    assert.match(pub, /facilitiesLoadError=\{facilityLoadError\}/);
+    // B9g: the public page hands the pack's lines and its load error to the record builder, which says
+    // "The export lines could not be read." for an unread list and never "no lines".
+    assert.match(pub, /hscodes: epbHs\.hscodes/);
+    assert.match(pub, /hscodesError: epbHs\.loadError/);
+    assert.match(pub, /facilities:\s*\{\s*panel:\s*facilitiesPanel\s*\}/);
 
     // REZ-C moved the buyer route onto the dashboard kit, so the RPC call and
     // the error handling now live one step away, in the loader the route uses.
