@@ -1,5 +1,9 @@
-import { AdminDetailSkeleton } from "../../../skeletons";
+import { PaneSkeleton } from "@/components/kit";
 
 export default function AdminSupplierDetailLoading() {
-  return <AdminDetailSkeleton />;
+  return (
+    <div className="mx-auto w-full max-w-[1200px]">
+      <PaneSkeleton />
+    </div>
+  );
 }

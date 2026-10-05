@@ -3,24 +3,34 @@
 // substring / since / until filters from URL search params. Admin-only;
 // middleware gates `/admin/*` and the RPC re-checks role inside its body.
 
+import Link from "next/link";
+
 import {
-  ADMIN_INPUT_CLASS,
-  ADMIN_SELECT_CLASS,
-  AdminActionLink,
-  AdminEmptyState,
-  AdminField,
-  AdminFilterPanel,
-  AdminPage,
-  AdminPageHeader,
-  AdminPagination,
-  AdminPanel,
+  AdminColumn,
+  AdminHead,
+  AdminSection,
+  adminFieldClass,
   formatAdminDateTime,
   humanizeAdminToken,
-} from "@/components/admin/admin-ui";
-import { Badge } from "@/components/ui/badge";
-import { ResponsiveTable, type Column } from "@/components/ui/responsive-table";
-import { Tag } from "@/components/ui/tag";
+} from "@/components/admin/data-ui";
+import {
+  Button,
+  ButtonLink,
+  Empty,
+  Field,
+  InlineError,
+  Pagination,
+  Table,
+  TableFrame,
+  TableScroll,
+  Td,
+  Th,
+  Tr,
+  TypeChip,
+  rowLinkClass,
+} from "@/components/kit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -61,53 +71,11 @@ function shortId(id: string | null): string {
   return id.slice(0, 8);
 }
 
-const AUDIT_COLUMNS: Column<Row>[] = [
-  {
-    key: "when",
-    label: "When",
-    render: (r) => (
-      <span className="font-mono text-xs text-ink-secondary">
-        {formatAdminDateTime(r.created_at)}
-      </span>
-    ),
-  },
-  {
-    key: "action",
-    label: "Action",
-    render: (r) => (
-      <span className="flex flex-wrap items-center gap-1.5">
-        <Badge tone="active">{humanizeAdminToken(r.action)}</Badge>
-        <Tag>{humanizeAdminToken(r.target_table)}</Tag>
-      </span>
-    ),
-  },
-  {
-    key: "target",
-    label: "Target",
-    render: (r) => (
-      <span className="text-sm font-semibold text-ink-primary">
-        {r.target_label || shortId(r.target_id)}
-      </span>
-    ),
-  },
-  {
-    key: "actor",
-    label: "Actor",
-    render: (r) => (
-      <span className="font-mono text-[12px] text-ink-tertiary">
-        {r.actor.email || shortId(r.actor.id)}
-        {r.actor.role ? ` · ${humanizeAdminToken(r.actor.role)}` : ""}
-      </span>
-    ),
-  },
-];
-
 function AuditHeader({ total }: { total?: number }) {
   return (
-    <AdminPageHeader
-      kicker="Admin · Audit"
+    <AdminHead
       title="Audit log"
-      description={`Every administrative action across suppliers, certifications, users, and sanctions decisions.${typeof total === "number" ? ` ${total} rows.` : ""}`}
+      lede={`Every administrative action across suppliers, certifications, users, and sanctions decisions.${typeof total === "number" ? ` ${total} rows.` : ""}`}
     />
   );
 }
@@ -139,15 +107,13 @@ export default async function AdminAuditLogPage({
 
   if (error || data == null) {
     return (
-      <AdminPage maxWidth="5xl">
+      <AdminColumn>
         <AuditHeader />
-        <AdminPanel>
-          <p className="text-sm text-sem-red">
-            Could not load audit log
-            {error?.message ? <>: {error.message}</> : null}.
-          </p>
-        </AdminPanel>
-      </AdminPage>
+        <InlineError>
+          Could not load audit log
+          {error?.message ? <>: {error.message}</> : null}.
+        </InlineError>
+      </AdminColumn>
     );
   }
 
@@ -168,38 +134,26 @@ export default async function AdminAuditLogPage({
   };
 
   return (
-    <AdminPage maxWidth="5xl">
+    <AdminColumn>
       <AuditHeader total={doc.total} />
 
-      <AdminFilterPanel
-        title="Find audit entries"
-        description="Filter by action, target, actor, or timestamp range."
-      >
-          <form
-            method="get"
-            action="/admin/audit-log"
-            className="grid grid-cols-1 gap-3 sm:grid-cols-3"
-          >
-            <AdminField label="Action">
-              <select
-                name="action"
-                defaultValue={action}
-                className={ADMIN_SELECT_CLASS}
-              >
+      <AdminSection title="Find audit entries" description="Filter by action, target, actor, or timestamp range.">
+        <form method="get" action="/admin/audit-log" className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <Field label="Action">
+            {(a) => (
+              <select {...a} name="action" defaultValue={action} className={adminFieldClass}>
                 <option value="">Any</option>
-                {doc.facets.actions.map((a) => (
-                  <option key={a} value={a}>
-                    {humanizeAdminToken(a)}
+                {doc.facets.actions.map((x) => (
+                  <option key={x} value={x}>
+                    {humanizeAdminToken(x)}
                   </option>
                 ))}
               </select>
-            </AdminField>
-            <AdminField label="Target table">
-              <select
-                name="target"
-                defaultValue={targetTable}
-                className={ADMIN_SELECT_CLASS}
-              >
+            )}
+          </Field>
+          <Field label="Target table">
+            {(a) => (
+              <select {...a} name="target" defaultValue={targetTable} className={adminFieldClass}>
                 <option value="">Any</option>
                 {doc.facets.target_tables.map((t) => (
                   <option key={t} value={t}>
@@ -207,69 +161,77 @@ export default async function AdminAuditLogPage({
                   </option>
                 ))}
               </select>
-            </AdminField>
-            <AdminField label="Actor email contains">
-              <input
-                type="search"
-                name="actor"
-                defaultValue={actorEmail}
-                placeholder="min 2 chars"
-                className={ADMIN_INPUT_CLASS}
-              />
-            </AdminField>
-            <AdminField label="Since (ISO timestamp)">
-              <input
-                type="text"
-                name="since"
-                defaultValue={since}
-                placeholder="2026-05-01T00:00:00Z"
-                className={`${ADMIN_INPUT_CLASS} font-mono text-xs`}
-              />
-            </AdminField>
-            <AdminField label="Until (ISO timestamp)">
-              <input
-                type="text"
-                name="until"
-                defaultValue={until}
-                placeholder="2026-06-30T23:59:59Z"
-                className={`${ADMIN_INPUT_CLASS} font-mono text-xs`}
-              />
-            </AdminField>
-            <div className="flex items-end gap-2">
-              <button
-                type="submit"
-                className="min-h-[44px] rounded-pill border border-brand-forest bg-brand-forest px-4 text-sm font-semibold text-white hover:bg-brand-forest-mid"
-              >
-                Apply
-              </button>
-              <AdminActionLink href="/admin/audit-log">Reset</AdminActionLink>
-            </div>
-          </form>
-      </AdminFilterPanel>
+            )}
+          </Field>
+          <Field label="Actor email contains">
+            {(a) => <input {...a} type="search" name="actor" defaultValue={actorEmail} placeholder="min 2 chars" className={adminFieldClass} />}
+          </Field>
+          <Field label="Since (ISO timestamp)">
+            {(a) => <input {...a} type="text" name="since" defaultValue={since} placeholder="2026-05-01T00:00:00Z" className={cn(adminFieldClass, "font-mono text-sm")} />}
+          </Field>
+          <Field label="Until (ISO timestamp)">
+            {(a) => <input {...a} type="text" name="until" defaultValue={until} placeholder="2026-06-30T23:59:59Z" className={cn(adminFieldClass, "font-mono text-sm")} />}
+          </Field>
+          <div className="flex items-end gap-2">
+            <Button type="submit" kind="primary">Apply</Button>
+            <ButtonLink href="/admin/audit-log">Reset</ButtonLink>
+          </div>
+        </form>
+      </AdminSection>
 
-      <AdminPanel
-        title="Entries"
-        meta={`${doc.total} total · page ${page} / ${totalPages}`}
-        padded={false}
-      >
-          {doc.rows.length === 0 ? (
-            <div className="p-4 sm:p-5">
-              <AdminEmptyState title="No entries match" />
-            </div>
-          ) : (
-            <ResponsiveTable
-              mode="stacked"
-              columns={AUDIT_COLUMNS}
-              rows={doc.rows}
-              rowKey={(r) => r.id}
-              rowHref={(r) => `/admin/audit-log/${r.id}`}
-              caption="Audit log entries"
-              className="border-0 shadow-none"
+      <section aria-label="Entries" className="flex flex-col gap-2">
+        <p className="text-sm text-ink-3">{`${doc.total} total · page ${page} / ${totalPages}`}</p>
+        {doc.rows.length === 0 ? (
+          <Empty title="No entries match" />
+        ) : (
+          <TableFrame>
+            <TableScroll>
+              <Table aria-label="Audit log entries">
+                <thead>
+                  <tr>
+                    <Th>When</Th>
+                    <Th>Action</Th>
+                    <Th>Target</Th>
+                    <Th>Actor</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {doc.rows.map((r) => (
+                    <Tr key={r.id}>
+                      <Td className="whitespace-nowrap font-mono text-sm">{formatAdminDateTime(r.created_at)}</Td>
+                      <Td>
+                        <span className="flex flex-wrap items-center gap-1.5">
+                          <TypeChip>{humanizeAdminToken(r.action)}</TypeChip>
+                          <TypeChip>{humanizeAdminToken(r.target_table)}</TypeChip>
+                        </span>
+                      </Td>
+                      <Td>
+                        <Link href={`/admin/audit-log/${r.id}`} className={rowLinkClass}>
+                          {r.target_label || shortId(r.target_id)}
+                        </Link>
+                      </Td>
+                      <Td className="font-mono text-sm text-ink-3">
+                        {r.actor.email || shortId(r.actor.id)}
+                        {r.actor.role ? ` · ${humanizeAdminToken(r.actor.role)}` : ""}
+                      </Td>
+                    </Tr>
+                  ))}
+                </tbody>
+              </Table>
+            </TableScroll>
+            <Pagination
+              noun="entries"
+              from={offset + 1}
+              to={offset + doc.rows.length}
+              total={doc.total}
+              page={page}
+              pages={totalPages}
+              prevHref={page > 1 ? pageHref(page - 1) : undefined}
+              nextHref={page < totalPages ? pageHref(page + 1) : undefined}
             />
-          )}
-      </AdminPanel>
-
-      <AdminPagination page={page} totalPages={totalPages} pageHref={pageHref} />
-    </AdminPage>
+          </TableFrame>
+        )}
+      </section>
+    </AdminColumn>
   );
 }
