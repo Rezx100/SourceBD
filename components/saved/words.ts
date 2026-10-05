@@ -48,6 +48,9 @@ export function savedHref({ sort, page, open, tab }: SavedView): string {
 
 export const SEARCHES_HREF = "/app/searches";
 
+/** Download CSV on Saved: the whole list in the page's sort (`/api/v1/export`). */
+export const savedExportHref = (sort: SavedSort) => `/api/v1/export?kind=saved&sort=${sort}`;
+
 /** One RFQ to everyone ticked: the composer takes the suppliers as `?supplier=a,b,c`. */
 export const rfqHref = (ids: readonly string[]) => `/app/rfqs/new?supplier=${ids.map(encodeURIComponent).join(",")}`;
 

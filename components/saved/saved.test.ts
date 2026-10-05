@@ -36,6 +36,7 @@ import {
   removedWords,
   rfqHref,
   savedCaption,
+  savedExportHref,
   savedHref,
   searchFilters,
   searchesCaption,
@@ -142,6 +143,11 @@ describe("the address", () => {
     assert.equal(savedHref({ sort: "recent", page: 1, open: "a", tab: "certificates" }), "/app/saved?open=a&tab=certificates");
     assert.equal(savedHref({ sort: "recent", page: 1, open: "a", tab: "overview" }), "/app/saved?open=a");
     assert.equal(savedHref({ sort: "recent", page: 1, open: null, tab: "certificates" }), "/app/saved", "a tab belongs to an open record");
+  });
+
+  it("Download CSV keeps the page's sort", () => {
+    assert.equal(savedExportHref("recent"), "/api/v1/export?kind=saved&sort=recent");
+    assert.equal(savedExportHref("name"), "/api/v1/export?kind=saved&sort=name");
   });
 
   it("one RFQ to everyone ticked is the composer with their ids", () => {
@@ -430,7 +436,7 @@ describe("/app/saved", () => {
     base();
     const out = await saved();
     assert.match(text(out.html), /Saved 3 saved suppliers · only you see this list/);
-    assert.match(text(out.html), /Sort: recently saved/);
+    assert.match(text(out.html), /Download CSV Sort: recently saved/);
     assert.match(out.html, /<h1[^>]*>Saved<\/h1>/);
     assert.match(text(out.html), /Suppliers · 3/);
     assert.match(text(out.html), /Saved searches · 2/);
@@ -441,6 +447,15 @@ describe("/app/saved", () => {
     assert.doesNotMatch(out.html, /data-record-pane/);
     assert.ok(rpcCalls.some((c) => c.fn === "buyer_saved_list" && c.args?.p_limit === PAGE_SIZE && c.args?.p_offset === 0));
     assert.match(out.html, /Showing 1–3 of 3 suppliers/);
+  });
+
+  it("a supplier whose certificates are all valid prints the first one to lapse, and a worse one still comes first", async () => {
+    base({ compliance_expiring_certs: { data: { total: 3, rows: [cert("wrap", "W-9", day(200), S3), cert("gots", "G-1", day(10), S2), cert("oeko_tex", "O-1", day(300), S2)] }, error: null } });
+    const out = text((await saved()).html);
+    assert.match(out, /A\.R\. Fashion .* WRAP valid until/);
+    assert.doesNotMatch(out, /A\.R\. Fashion .* Nothing to check/);
+    assert.match(out, /GOTS expires in 10 days .* 1 more certificate/, "a valid one never outranks an expiring one");
+    assert.equal(rpcCalls.find((c) => c.fn === "compliance_expiring_certs")?.args?.p_window_days, 365, "the widest window the read allows, so valid certificates come back");
   });
 
   it("?sort= and ?page= go to the read, and a certificate read that failed is 'not read', never 'nothing to check'", async () => {
@@ -454,7 +469,9 @@ describe("/app/saved", () => {
 
   it("no saved suppliers is the teaching state; a page past the end says so; a failed read is an error, never 'none'", async () => {
     base({ buyer_saved_list: { data: [], error: null } });
-    assert.match(text((await saved()).html), /No saved suppliers yet\./);
+    const none = (await saved()).html;
+    assert.match(text(none), /No saved suppliers yet\./);
+    assert.doesNotMatch(none, /Download CSV/, "nothing to download");
     assert.match(text((await saved({ page: "4" })).html), /That page is past the end of your saved list\./);
     base({ buyer_saved_list: { data: null, error: { message: "down" } } });
     const failed = await saved();

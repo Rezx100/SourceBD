@@ -26,7 +26,10 @@ import {
   type PasswordResetData,
 } from "./password-reset";
 
+import { TeamInvite, teamInviteSubject, type TeamInviteData } from "./team-invite";
+
 export type TemplateMap = {
+  team_invite: TeamInviteData;
   welcome: WelcomeData;
   rfq_received: RfqReceivedData;
   cert_expiry: CertExpiryData;
@@ -42,6 +45,10 @@ type Entry<K extends TemplateName> = {
 };
 
 export const TEMPLATES: { [K in TemplateName]: Entry<K> } = {
+  team_invite: {
+    subject: teamInviteSubject,
+    render: (data) => <TeamInvite data={data} />,
+  },
   welcome: {
     subject: welcomeSubject,
     render: (data) => <Welcome data={data} />,

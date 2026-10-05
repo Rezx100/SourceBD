@@ -1,7 +1,7 @@
 // The words of Settings (Paper `10 · Settings`, `11 · Settings`): the groups the navigation draws,
 // the line under the signed-in email, and the one-line summary each phone row carries. Kept out of
 // React so a test reads them. Paper's Security and Audit log are design only (no read, no route)
-// and are not here; Team and roles shows the one real member.
+// and are not here; Team and roles is `components/team/`.
 
 import { planLabel, workspaceOf, type SettingsDoc } from "./doc";
 
@@ -59,7 +59,7 @@ export function rowLine(key: SettingsKey, doc: SettingsDoc | null): string {
       return line || "Not filled in yet";
     }
     case "team":
-      return "One person";
+      return "People, roles and invites";
     case "templates":
       return "Opening message and questions";
     case "plan":

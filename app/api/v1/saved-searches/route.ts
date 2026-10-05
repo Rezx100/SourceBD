@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getServerRole } from "@/lib/auth";
-import { runSavedSearchesDelete, runSavedSearchesGet, runSavedSearchesPost } from "@/lib/saved-searches";
+import { runSavedSearchesDelete, runSavedSearchesGet, runSavedSearchesPost, runSavedSearchesRename } from "@/lib/saved-searches";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -24,6 +24,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
   }
   const result = await runSavedSearchesPost({ role, supabase, raw });
+  return NextResponse.json(result.body, { status: result.status });
+}
+
+export async function PATCH(req: Request) {
+  const role = await getServerRole();
+  const supabase = await createSupabaseServerClient();
+  let raw: unknown;
+  try {
+    raw = await req.json();
+  } catch {
+    return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
+  }
+  const result = await runSavedSearchesRename({ role, supabase, raw });
   return NextResponse.json(result.body, { status: result.status });
 }
 

@@ -58,3 +58,14 @@ Each spec names its migration; the migration is written and dry-run, and `--appl
 - Row 9: `gap-09-messages-unread-files.md`, migration `0112`.
 - Row 14: `gap-14-saved-search-alerts.md`, migration `0113`.
 - Row 8: `gap-08-evidence-packs.md`, migration `0114` (its download record also feeds rows 5 and 7).
+
+## Screens built
+
+- Row 4: Team and roles page, Invite people, the invite email and `/invite/[token]` built (Sonnet, 5 Oct, PR into `ds-v4`); works once 0111 is applied.
+- Row 16: Download CSV on Saved, Compliance and Certificate expiry built (Sonnet, 5 Oct, PR into `ds-v4`); one route, no migration.
+- Row 17: Saved search rename built (Sonnet, 5 Oct, PR into `ds-v4`); `PATCH /api/v1/saved-searches`, no migration.
+- Row 23: Names for every HS chapter built (Sonnet, 5 Oct, PR into `ds-v4`); 01 to 97 except the reserved 77; no migration.
+- Row 21: Preview-with picker in RFQ templates built (Sonnet, 5 Oct, PR into `ds-v4`); twelve most recent saved suppliers; no migration.
+- Row 20: phone Product view built (Sonnet, 5 Oct, PR into `ds-v4`); read-only view and an Edit sheet of six fields; the full editor is `?edit=full`; no migration.
+- Row 18: A valid certificate in Saved's first-certificate column built (Sonnet, 5 Oct, PR into `ds-v4`); reads the existing 365-day window, no migration; certificates valid past a year are still "Nothing to check" until the read's cap is raised.
+- Row 19: Compliance hub split built (Sonnet, 5 Oct, PR into `ds-v4`); three lines inside the one card, the one count and the badge unchanged; Paper's separate card is not drawn (see section 10).
