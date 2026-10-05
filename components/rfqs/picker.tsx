@@ -10,7 +10,7 @@
 
 import { WarningOctagon } from "@phosphor-icons/react";
 import { useEffect, useId, useState } from "react";
-import type { ComposerTarget } from "@/components/dashboard/rfq-composer";
+import type { ComposerTarget } from "./composer-model";
 import { Button, Checkbox, DialogClose, Dialog, Input, InlineError, Tab, Tabs, TabsContent, TabsList } from "@/components/kit";
 import { nameSecondLine, splitQualifier } from "@/lib/dashboard/facts";
 import { targetFromRow, type SupplierRow } from "@/lib/dashboard/composer-target";

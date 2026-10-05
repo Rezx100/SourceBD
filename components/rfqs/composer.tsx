@@ -17,7 +17,6 @@ import { ArrowLeft, LockSimple, Plus, X } from "@phosphor-icons/react";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import Link from "next/link";
 import { useContext, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent } from "react";
-import type { ComposerPrefill, ComposerTarget, ComposerWorkspace } from "@/components/dashboard/rfq-composer";
 import { Button, Dialog, DialogClose, Field, IconButton, Input, Select, buttonClass, fieldBox, fieldEdge } from "@/components/kit";
 import { SanctionBanner } from "@/components/patterns";
 import { formatDay, formatTime, nameSecondLine, splitQualifier } from "@/lib/dashboard/facts";
@@ -42,6 +41,9 @@ import {
   sendWords,
   targetSummary,
   typeCounts,
+  type ComposerPrefill,
+  type ComposerTarget,
+  type ComposerWorkspace,
 } from "./composer-model";
 import { SupplierPicker, resolvePicked } from "./picker";
 import { money, perUnit, quantityWords, unitWords } from "./words";

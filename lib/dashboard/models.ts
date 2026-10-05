@@ -2,13 +2,34 @@
 // the RPC payloads (`lib/dashboard/build-models.ts`); components only read
 // them, so a boundary test can construct one and assert the rendered HTML.
 
-import type { IconName } from "@/components/dashboard/icons";
-import type { ChipTone } from "@/components/dashboard/chips";
-import type { SbIconName } from "@/components/dashboard/sb-icons";
 import type { TierRank } from "@/lib/design/tokens";
 import type { CertModel, CertState } from "./facts";
 import type { PhotoTileModel } from "./hs-photos";
 import type { SourceMarkModel } from "./source-tiers";
+
+/** The words a model uses for the icon beside a chip, a status or a rail item. The v4 views map them to their own glyphs. */
+export type IconName = "search" | "bookmark" | "send" | "building" | "tag" | "list" | "funnel" | "chat" | "box" | "shield" | "gear" | "check-c" | "clock" | "warn";
+
+/** The words a model uses for what a fact is (a place, a year, workers). The record's views read only `address`. */
+export type SbIconName =
+  | "address"
+  | "established"
+  | "workers"
+  | "register"
+  | "company"
+  | "factory"
+  | "buying-house"
+  | "group"
+  | "zone"
+  | "women-men"
+  | "machines"
+  | "capacity"
+  | "receipt"
+  | "certificate"
+  | "brand-list";
+
+/** A chip's tone: facts in status hues, never a score. */
+export type ChipTone = "positive" | "caution" | "neutral" | "quiet" | "sanction" | "on";
 
 /** A fact on a meta line: its words and the mark of the register it came from. */
 export type FactWithMark = {

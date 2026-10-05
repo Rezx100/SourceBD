@@ -568,7 +568,7 @@ const dir = path.join(process.cwd(), "components", "search");
 const sources = readdirSync(dir).filter((f) => /\.tsx?$/.test(f) && !f.endsWith(".test.ts")).map((f) => [f, readFileSync(path.join(dir, f), "utf8")] as const);
 
 describe("the search components' rules", () => {
-  it("have no typed colour, no cut-off text and no score, and take the old kit for behaviour only", () => {
+  it("have no typed colour, no cut-off text and no score, and import nothing from the old kit", () => {
     assert.ok(sources.length >= 12);
     for (const [file, src] of sources) {
       const code = src.replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
@@ -576,8 +576,8 @@ describe("the search components' rules", () => {
       assert.ok(!/\btruncate\b|text-ellipsis|line-clamp/.test(code), `${file}: text cut off`);
       assert.ok(!/\b(score|grade|rating|stars?)\b/i.test(code.replace(/"[^"]*"/g, "")), `${file}: a score-like value`);
       const old = [...src.matchAll(/from "@\/components\/(ui|dashboard)\/([^"]+)"/g)].map((m) => `${m[1]}/${m[2]}`);
-      // The two behaviour modules B11 moves: where the recent searches are kept, and where focus returns to.
-      for (const o of old) assert.ok(["dashboard/record-recent-search", "dashboard/dialog-focus"].includes(o), `${file} imports the old kit: ${o}`);
+      // The behaviour modules the old kit held (where the recent searches are kept, where focus returns to) now live here.
+      assert.deepEqual(old, [], `${file} imports the old kit: ${old.join(", ")}`);
     }
   });
 

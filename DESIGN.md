@@ -314,7 +314,7 @@ components:
 
 # Design System: SourceBD buyer app
 
-Scope: the buyer app under `/app/*` as drawn by `components/dashboard/*`, with every value read from `lib/design/tokens.ts`. The marketing site, supplier portal and admin still run on the older `components/ui/*` system and are not described here.
+Scope: the buyer app under `/app/*` as drawn by the v3 dashboard kit (deleted in B11; the v4 kit is `components/kit`), with every value read from `lib/design/tokens.ts`. The marketing site, supplier portal and admin still run on the older `components/ui/*` system and are not described here.
 
 ## Overview
 

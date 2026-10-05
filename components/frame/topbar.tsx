@@ -12,10 +12,10 @@ import { Suspense, useRef } from "react";
 import { ring } from "@/components/kit/classes";
 import { Menu, MenuItem, MenuSeparator } from "@/components/kit/overlay";
 import { SearchCombobox } from "@/components/search/typeahead";
-import { SearchCarry } from "@/components/dashboard/search-carry";
-import { SearchShortcut } from "@/components/dashboard/search-shortcut";
-import { pageDrawsOwnField, useApplePlatform } from "@/components/dashboard/topbar-search-slot";
 import { cn } from "@/lib/utils";
+import { SearchCarry } from "./search-carry";
+import { SearchShortcut } from "./search-shortcut";
+import { pageDrawsOwnField, useApplePlatform } from "./topbar-search-slot";
 
 export type FrameAccount = { initial: string | null; name: string | null; email: string | null; avatarUrl?: string | null };
 

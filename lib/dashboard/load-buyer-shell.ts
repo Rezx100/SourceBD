@@ -3,15 +3,14 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 
-import { activeNavKey, type SidebarModel, type TopbarModel } from "@/components/dashboard/app-shell";
-import { formatCount, formatDayRange, initials } from "@/lib/dashboard/facts";
+import { formatDayRange, initials } from "@/lib/dashboard/facts";
 import { EMPTY_STATE, discoverRpcArgs } from "@/lib/discover-v32-state";
-import { parseCount, parseTotalCount, type DiscoverV32Row } from "@/lib/discover-v32-rpc";
+import { parseTotalCount, type DiscoverV32Row } from "@/lib/discover-v32-rpc";
 import { TAG_DISCOVER_SUPPLIERS } from "@/lib/cache/tags";
 
 export type BuyerShellModels = {
-  sidebar: SidebarModel;
-  topbar: TopbarModel;
+  /** Who is signed in, for the account menu; null when the sign-in was not read (the frame then draws "Your account"). */
+  account: { initial: string | null; name: string | null; email: string | null; avatarUrl: string | null } | null;
   /** Who is signed in, for analytics; null when the sign-in was not read. */
   userId: string | null;
 };
@@ -30,7 +29,7 @@ type RpcClient = { rpc: (fn: string, args?: Record<string, unknown>) => any };
  * "Published suppliers": the empty search's total. Throws when the count could
  * not be read, so the cache below never keeps a failure.
  */
-async function readPublished(client: RpcClient): Promise<number> {
+export async function readPublished(client: RpcClient): Promise<number> {
   const pub = await client.rpc("discover_suppliers", discoverRpcArgs(EMPTY_STATE, { limit: 1, offset: 0 }));
   const pubRaw = Array.isArray(pub?.data) && !pub?.error ? (pub.data as unknown[]) : null;
   if (pubRaw === null) throw new Error("published count not read");
@@ -70,43 +69,16 @@ export async function readPublishedCount(): Promise<number | null> {
   }
 }
 
+/**
+ * Who is signed in, for the frame's account menu and for analytics. The three
+ * counts the old rail drew (saved, RFQs, published) are not read any more: the
+ * v4 frame shows none of them.
+ */
 export async function loadBuyerShell(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: RpcClient & { from: (t: string) => any; auth: { getUser: () => Promise<{ data: { user: { id?: string; email?: string; user_metadata?: Record<string, unknown> } | null } }> } },
-  /**
-   * The layout draws the shell once for every page and leaves this out: the
-   * rail then marks the current item from the URL on the client, so the mark
-   * follows each navigation. A caller that knows its page may still name it.
-   */
-  pathname?: string,
-  /** Read the published count from this client, uncached (tests). */
-  opts: { publishedFrom?: RpcClient } = {},
+  supabase: RpcClient & { auth: { getUser: () => Promise<{ data: { user: { id?: string; email?: string; user_metadata?: Record<string, unknown> } | null } }> } },
 ): Promise<BuyerShellModels> {
-  // Not a NavKey from the caller: see `activeNavKey`.
-  const active = pathname === undefined ? undefined : activeNavKey(pathname);
-  const planName = "Free";
-  const soft = async <T,>(read: () => Promise<T>): Promise<T | null> => {
+  const signedIn = await (async () => {
     try {
-      return await read();
-    } catch {
-      return null; // fail-soft: an unread count renders no number, never 0
-    }
-  };
-
-  // Four independent reads, one wave. They used to run in three.
-  const [saved, published, rfqs, signedIn] = await Promise.all([
-    soft(async () => {
-      const { data: dash } = await supabase.rpc("buyer_dashboard");
-      // `saved_count` is a bigint on the SQL side, which PostgREST may send
-      // as a string; the shared parser accepts that and refuses `""`.
-      return dash && typeof dash === "object" ? parseCount((dash as { saved_count?: unknown }).saved_count) : null;
-    }),
-    soft(() => (opts.publishedFrom ? readPublished(opts.publishedFrom) : cachedPublished())),
-    soft(async () => {
-      const listed = await supabase.from("rfqs").select("id", { count: "exact", head: true });
-      return typeof listed?.count === "number" ? listed.count : null;
-    }),
-    soft(async () => {
       // The profile's own name and photo (Settings → Profile writes both),
       // read beside the session: the account menu shows the photo the buyer
       // uploaded, not their initials (founder's video, 29 Sep 2026). A failed
@@ -135,32 +107,13 @@ export async function loadBuyerShell(
           avatarUrl,
         },
       };
-    }),
-  ]);
-  const account = signedIn?.account ?? null;
-  const initial = account?.initial ?? null;
-
-  const captionParts = [
-    published === null ? "published count could not be read" : `${formatCount(published)} published suppliers`,
-  ];
-
-  return {
-    sidebar: {
-      ...(active === undefined ? {} : { active }),
-      counts: { suppliers: published, rfqs, saved },
-      recent: [],
-      plan: { name: planName, note: "public beta" },
-      // An unread account draws no block: a rail saying "Your account" over a
-      // read that failed is a claim about a session it could not see.
-      ...(account ? { account } : {}),
-    },
-    topbar: {
-      caption: captionParts.join(" · "),
-      initial,
-      searchAction: "/app/discover",
-    },
-    userId: signedIn?.userId ?? null,
-  };
+    } catch {
+      return null; // fail-soft: an unread sign-in draws "Your account", never a stranger's name
+    }
+  })();
+  // An unread account is null: a menu saying "Your account" over a read that
+  // failed is the frame's own wording, not a claim about a session it could not see.
+  return { account: signedIn?.account ?? null, userId: signedIn?.userId ?? null };
 }
 
 export function recordsCaption(shown: number, oldest: string | null, newest: string | null): string {

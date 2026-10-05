@@ -158,7 +158,7 @@ describe("the frame a buyer receives", () => {
   it("the buyer layout draws the frame once, with the signed-in account", () => {
     const layout = readFileSync(path.join(process.cwd(), "app", "(app)", "app", "layout.tsx"), "utf8");
     assert.equal((layout.match(/<AppFrame\b/g) ?? []).length, 1);
-    assert.match(layout, /account=\{shell\.sidebar\.account \?\? null\}/);
+    assert.match(layout, /account=\{shell\.account\}/);
   });
 });
 

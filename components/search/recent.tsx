@@ -6,7 +6,7 @@
 // heading would flash. No searches yet draws nothing at all.
 
 import { useEffect, useState } from "react";
-import { readRecentSearches, type RecentSearch } from "@/components/dashboard/record-recent-search";
+import { readRecentSearches, type RecentSearch } from "./record-recent-search";
 import { Count, LinkRow, LinkRows, h2, supplierCount } from "./rows";
 
 export function RecentSearches() {

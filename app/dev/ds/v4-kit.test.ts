@@ -131,6 +131,6 @@ test("the kit has no typed colour, no opacity for disabled, no cut-off text, no 
   }
 });
 
-test("the kit does not import the old kit it replaces (components/ui, components/dashboard)", () => {
+test("the kit does not import the old kits it replaces (the ui and dashboard directories)", () => {
   for (const [file, src] of sources) assert.ok(!/from "@\/components\/(ui|dashboard)/.test(src), `${file} imports the old kit`);
 });

@@ -6,7 +6,16 @@
 // returns to the row that opened it.
 
 import { useEffect, useRef } from "react";
-import { openerFor } from "@/components/dashboard/dialog-focus";
+
+/** The record link in the results for `slug`: the element focus returns to. */
+export function openerFor(slug: string, links: Iterable<HTMLAnchorElement>, key: "record" | "open" = "record"): HTMLAnchorElement | null {
+  for (const a of links) {
+    if (a.closest("[data-record-pane]")) continue;
+    const params = new URL(a.getAttribute("href") ?? "", "http://x").searchParams;
+    if (params.get(key) === slug && !params.has("line")) return a;
+  }
+  return null;
+}
 
 export function PaneFocus({ openKey }: { openKey: string }) {
   // The record that OPENED the pane, read once: the row focus returns to.
