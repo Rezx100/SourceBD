@@ -69,6 +69,9 @@ export const MAX_SAVED_SEARCH_CHARS = 6000;
  */
 const MAX_REFRESH_PER_CALL = 10;
 
+/** A column the database lacks: Postgres says 42703 (a select), PostgREST says PGRST204 (an insert or update, from its schema cache). */
+const isMissingColumn = (code: string | undefined) => code === "42703" || code === "PGRST204";
+
 /** The search a saved row holds (`{ search }` or a bare query string), parsed as the results page parses it. */
 export function asState(raw: unknown): DiscoverState {
   if (raw && typeof raw === "object" && !Array.isArray(raw)) {
@@ -215,7 +218,7 @@ export async function runSavedSearchesPost(input: {
   });
   if (inserted.error) {
     const code = (inserted.error as { code?: string }).code;
-    if (code === "42703" && alertWeekly) return { status: 400, body: { error: SAVED_SEARCH_ERROR.alertsUnavailable } };
+    if (isMissingColumn(code) && alertWeekly) return { status: 400, body: { error: SAVED_SEARCH_ERROR.alertsUnavailable } };
     if (code === "54000") return { status: 409, body: { error: SAVED_SEARCH_ERROR.limitReached } };
     if (code === "23514") return { status: 400, body: { error: SAVED_SEARCH_ERROR.tooLong } };
     return { status: 500, body: { error: "save failed" } };
@@ -304,8 +307,8 @@ export async function runSavedSearchesAlert(input: {
 
   const updated = await input.supabase.from("saved_searches").update({ alert_weekly: rec.alert_weekly }).eq("id", rec.id).eq("owner_id", ownerId).select("id");
   if (updated.error) {
-    // 42703: the column is not there (0113 not applied). Said as such, so the page can say why.
-    const missing = (updated.error as { code?: string }).code === "42703";
+    // The column is not there (0113 not applied). Said as such, so the page can say why.
+    const missing = isMissingColumn((updated.error as { code?: string }).code);
     return { status: missing ? 400 : 500, body: { error: missing ? SAVED_SEARCH_ERROR.alertsUnavailable : "alert not saved" } };
   }
   if (!Array.isArray(updated.data) || updated.data.length === 0) return { status: 404, body: { error: "not found" } };

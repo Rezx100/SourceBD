@@ -93,6 +93,7 @@ describe("PATCH /api/v1/saved-searches {alert_weekly}: Email me new matches", ()
     assert.equal((await patch({ id: "nope", alert_weekly: true })).status, 400);
     assert.equal((await patch({ alert_weekly: true })).status, 400);
     for (const bad of ["true", 1, null, "yes"]) assert.equal((await patch({ id: MINE, alert_weekly: bad })).status, 400, String(bad));
+    assert.equal((await patch({ id: MINE, name: "Renamed", alert_weekly: true })).status, 400, "one change per call");
     assert.equal(written().length, 0);
   });
 
@@ -122,6 +123,8 @@ describe("PATCH /api/v1/saved-searches {alert_weekly}: Email me new matches", ()
     const missing = await patch({ id: MINE, alert_weekly: true });
     assert.equal(missing.status, 400);
     assert.deepEqual(await missing.json(), { error: "email alerts not available" });
+    fake.tableError = { message: "Could not find the 'alert_weekly' column of 'saved_searches' in the schema cache", code: "PGRST204" };
+    assert.equal((await patch({ id: MINE, alert_weekly: true })).status, 400, "PostgREST's own code for a column it does not know");
     fake.tableError = { message: "down" };
     const down = await patch({ id: MINE, alert_weekly: true });
     assert.equal(down.status, 500);
@@ -153,6 +156,9 @@ describe("POST /api/v1/saved-searches with alert_weekly", () => {
     const refused = await post({ name: "Knit weekly", search: "q=knit", alert_weekly: true });
     assert.equal(refused.status, 400);
     assert.deepEqual(await refused.json(), { error: "email alerts not available" });
+    fake.insertError = { message: "boom" };
+    fake.insertError = { message: "Could not find the 'alert_weekly' column", code: "PGRST204" };
+    assert.equal((await post({ name: "Knit weekly", search: "q=knit", alert_weekly: true })).status, 400);
     fake.insertError = { message: "boom" };
     assert.equal((await post({ name: "Knit", search: "q=knit" })).status, 500);
   });

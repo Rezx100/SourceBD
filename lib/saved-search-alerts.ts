@@ -89,12 +89,14 @@ export async function runSavedSearchAlerts(deps: AlertDeps): Promise<AlertRun> {
     try {
       const matches = await matchesOf(deps.supabase, row.query_state);
       if (!matches) {
+        console.warn(`[saved-search-alerts] ${row.search_id}: the search could not be run`);
         out.failed += 1;
         continue;
       }
       const ids = matches.map((m) => m.id);
       const fresh = await deps.supabase.rpc("saved_search_alert_new", { p_search_id: row.search_id, p_ids: ids });
       if (fresh.error) {
+        console.warn(`[saved-search-alerts] ${row.search_id}: saved_search_alert_new failed: ${fresh.error.message ?? "unknown"}`);
         out.failed += 1;
         continue;
       }
@@ -130,6 +132,7 @@ export async function runSavedSearchAlerts(deps: AlertDeps): Promise<AlertRun> {
         row.search_id,
       );
       if (!sent) {
+        console.warn(`[saved-search-alerts] ${row.search_id}: the email was not sent, so the search stays due`);
         out.failed += 1;
         continue;
       }
