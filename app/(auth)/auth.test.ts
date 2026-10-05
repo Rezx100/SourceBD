@@ -531,26 +531,31 @@ describe("/auth/callback", () => {
 
   it("a good code makes the session and goes to where they were going", async () => {
     const r = await get("?code=abc&next=/app/saved");
-    assert.deepEqual([r.status, r.to], [307, "http://sourcebd.test/app/saved"]);
+    assert.deepEqual([r.status, r.to], [307, "https://sourcebd.net/app/saved"]);
     assert.deepEqual(calls[0], { fn: "exchangeCodeForSession", args: ["abc"] });
   });
 
+  it("a way back keeps its query (a search, an invite) and the redirect is on the site's own origin, never the request's host", async () => {
+    const r = await get("?code=abc&next=%2Fapp%2Fdiscover%3Fhs%3D6109%26welcome%3D1");
+    assert.equal(r.to, "https://sourcebd.net/app/discover?hs=6109&welcome=1");
+  });
+
   it("a way back that is not a same-origin path goes to /app", async () => {
-    assert.equal((await get("?code=abc&next=//evil.com")).to, "http://sourcebd.test/app");
-    assert.equal((await get("?code=abc&next=https://evil.com")).to, "http://sourcebd.test/app");
+    assert.equal((await get("?code=abc&next=//evil.com")).to, "https://sourcebd.net/app");
+    assert.equal((await get("?code=abc&next=https://evil.com")).to, "https://sourcebd.net/app");
   });
 
   it("a used-up or expired code is the expired page, keeping the way back, with no raw message in the address", async () => {
     exchange = { error: { message: "invalid flow state, no valid flow state found" } };
     const r = await get("?code=abc&next=/invite/abc");
-    assert.equal(r.to, "http://sourcebd.test/link-expired?next=%2Finvite%2Fabc");
+    assert.equal(r.to, "https://sourcebd.net/link-expired?next=%2Finvite%2Fabc");
     assert.doesNotMatch(r.to ?? "", /flow/);
-    assert.equal((await get("?code=abc")).to, "http://sourcebd.test/link-expired");
+    assert.equal((await get("?code=abc")).to, "https://sourcebd.net/link-expired");
   });
 
   it("a refusal Supabase put in the query (otp_expired) is the expired page and nothing is exchanged", async () => {
     const r = await get("?error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired");
-    assert.equal(r.to, "http://sourcebd.test/link-expired");
+    assert.equal(r.to, "https://sourcebd.net/link-expired");
     assert.equal(calls.length, 0);
   });
 });
