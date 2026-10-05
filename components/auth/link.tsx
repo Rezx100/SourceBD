@@ -14,3 +14,14 @@ export function AuthLink({ href, children, className, ...rest }: ComponentProps<
     </Link>
   );
 }
+
+/** "Sign out" as the POST the route takes (a link would sign a person out from a prefetch). */
+export function SignOutButton({ className }: { className?: string }) {
+  return (
+    <form action="/auth/sign-out" method="post" className="inline">
+      <button type="submit" className={cn(authLinkClass, "max-sm:min-h-11", className)}>
+        Sign out
+      </button>
+    </form>
+  );
+}

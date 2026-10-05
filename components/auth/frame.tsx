@@ -31,21 +31,22 @@ export function PanelBody({ published }: { published: number | null }) {
   );
 }
 
-/** The form column and the panel. Under 1280 the panel is gone and the count sits under the form, as on Paper's phone. */
-export async function AuthSplit({ bar, children }: { bar: ReactNode; children: ReactNode }) {
-  const published = await readPublishedCount();
+/** The form column and the panel (`panel` replaces the product panel on a step that has its own). Under 1280 the panel is gone and the count sits under the form, as on Paper's phone. */
+export async function AuthSplit({ bar, children, panel, wide }: { bar: ReactNode; children: ReactNode; panel?: ReactNode; wide?: boolean }) {
+  // A step with its own panel (the first-run steps) reads nothing here.
+  const published = panel ? null : await readPublishedCount();
   const count = formatCount(published);
   return (
-    <div className="flex min-h-dvh bg-surface font-sans text-ink antialiased">
+    <div className="group/auth flex min-h-dvh bg-surface font-sans text-ink antialiased">
       <div className="flex min-w-0 flex-1 flex-col">
         {bar}
         <main id="main-content" className="flex flex-1 flex-col justify-center gap-8 px-4 pb-14 pt-4 sm:px-10 xl:pl-40">
-          <div className="flex w-full max-w-[420px] flex-col gap-8">{children}</div>
+          <div className={`flex w-full flex-col gap-8 ${wide ? "max-w-[520px]" : "max-w-[420px]"}`}>{children}</div>
           {count ? <p className="max-w-[420px] border-t border-line pt-4 text-sm text-ink-3 xl:hidden">{count} suppliers, each with the sources it came from.</p> : null}
         </main>
       </div>
       <aside aria-label="About SourceBD" className="hidden w-pane shrink-0 flex-col justify-center gap-8 border-l border-line bg-subtle px-20 xl:flex">
-        <PanelBody published={published} />
+        {panel ?? <PanelBody published={published} />}
       </aside>
     </div>
   );

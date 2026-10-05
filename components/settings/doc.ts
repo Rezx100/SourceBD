@@ -33,7 +33,10 @@ export type SettingsDoc = {
   inquiry?: Partial<InquiryDoc> | null;
 };
 
-export const COMPANY_TYPES = ["Brand", "Retailer", "Importer", "Agent", "Other"] as const;
+/** What the database holds and the settings API accepts (0106's check): lower case. */
+export const COMPANY_TYPES = ["brand", "retailer", "importer", "agent", "other"] as const;
+/** The word for a type: "Retailer". A value outside the list is shown as stored. */
+export const companyTypeWord = (v: string): string => (v ? v.charAt(0).toUpperCase() + v.slice(1) : v);
 export const EMPLOYEE_BANDS = ["1-10", "11-50", "51-200", "201-1000", "1000+"] as const;
 
 const text = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);
@@ -43,7 +46,7 @@ export function workspaceOf(doc: SettingsDoc | null): WorkspaceDoc {
   const w = (doc?.workspace ?? {}) as Record<string, unknown>;
   return {
     company_name: text(w.company_name),
-    company_type: text(w.company_type),
+    company_type: text(w.company_type)?.toLowerCase() ?? null,
     business_description: text(w.business_description),
     website: text(w.website),
     customer_base: text(w.customer_base),

@@ -12,7 +12,7 @@ import { createElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { COMPANY_LABELS, bandLabel, bandOptions, changedFields, typeOptions, valuesOf, workspacePayload } from "./company";
-import { inquiryOf, planLabel, workspaceOf, type SettingsDoc } from "./doc";
+import { COMPANY_TYPES, companyTypeWord, inquiryOf, planLabel, workspaceOf, type SettingsDoc } from "./doc";
 import { EMAIL_ROWS, turnedWords } from "./emails";
 import { loadPreviewSuppliers } from "./templates-load";
 import { DEFAULT_QUESTIONS, DEFAULT_TEMPLATE, FILL_INS, MAX_QUESTIONS, gapWords, inquiryPayload, insertAt, moveItem, previewOf, startOf } from "./templates";
@@ -28,7 +28,7 @@ const DOC: SettingsDoc = {
   plan_tier: "starter",
   created_at: "2026-09-01T00:00:00Z",
   notifications: { digest: true, rfq_replies: true, saved_alerts: false },
-  workspace: { company_name: "Example Apparel Ltd", company_type: "Retailer", business_description: "Menswear basics", website: "https://example.com", customer_base: "UK retail", employee_count: "201-1000", company_logo_url: null },
+  workspace: { company_name: "Example Apparel Ltd", company_type: "retailer", business_description: "Menswear basics", website: "https://example.com", customer_base: "UK retail", employee_count: "201-1000", company_logo_url: null },
 };
 
 describe("the words", () => {
@@ -57,6 +57,14 @@ describe("the words", () => {
 });
 
 describe("company details, the pure parts", () => {
+  it("the type is kept as the database and the API hold it (lower case) and shown as a word", () => {
+    // 0106's check and the settings route accept exactly these; a capitalised value is a 400 and a failed save.
+    assert.deepEqual([...COMPANY_TYPES], ["brand", "retailer", "importer", "agent", "other"]);
+    assert.equal(companyTypeWord("retailer"), "Retailer");
+    assert.equal(workspaceOf({ workspace: { company_type: "Retailer" } } as SettingsDoc).company_type, "retailer", "a value stored with a capital is read as the list's own");
+    assert.equal(valuesOf(workspaceOf(DOC)).company_type, "retailer");
+  });
+
   it("reads the workspace, nulls where the reply has none", () => {
     assert.equal(workspaceOf(DOC).company_name, "Example Apparel Ltd");
     assert.deepEqual(workspaceOf({} as SettingsDoc), { company_name: null, company_type: null, business_description: null, website: null, customer_base: null, employee_count: null, company_logo_url: null });
@@ -71,10 +79,10 @@ describe("company details, the pure parts", () => {
   });
 
   it("posts exactly the API's keys, trimmed, an empty one as null", () => {
-    assert.deepEqual(workspacePayload({ company_name: "  Northwind  ", company_type: "Agent", business_description: "", website: " https://n.example ", customer_base: "", employee_count: "1000+" }), {
+    assert.deepEqual(workspacePayload({ company_name: "  Northwind  ", company_type: "agent", business_description: "", website: " https://n.example ", customer_base: "", employee_count: "1000+" }), {
       action: "update_workspace",
       company_name: "Northwind",
-      company_type: "Agent",
+      company_type: "agent",
       business_description: null,
       website: "https://n.example",
       customer_base: null,
@@ -87,7 +95,7 @@ describe("company details, the pure parts", () => {
     assert.equal(bandLabel("1000+"), "1,000+");
     assert.equal(bandLabel("1-10"), "1–10");
     assert.ok(typeOptions("Distributor").includes("Distributor"));
-    assert.ok(!typeOptions("Brand").includes("Distributor"));
+    assert.ok(!typeOptions("brand").includes("Distributor"));
     assert.ok(bandOptions("5000+").includes("5000+"));
     assert.equal(typeOptions("").length, 5);
   });
@@ -238,7 +246,7 @@ describe("/app/settings and /app/settings/workspace", () => {
     assert.match(out, /value="https:\/\/example\.com"/);
     assert.match(out, /value="UK retail"/);
     assert.match(out, />Menswear basics<\/textarea>/);
-    assert.match(out, /value="Retailer"[^>]*checked|checked[^>]*value="Retailer"/);
+    assert.match(out, /value="retailer"[^>]*checked|checked[^>]*value="retailer"/);
     assert.match(text(out), /201–1,000/);
     assert.doesNotMatch(text(out), /Unsaved changes/);
   });

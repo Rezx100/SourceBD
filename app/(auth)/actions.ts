@@ -97,8 +97,8 @@ export async function signUp(_prev: AuthActionState, formData: FormData): Promis
   const password = String(formData.get("password") ?? "");
   const role = String(formData.get("role") ?? "buyer") === "supplier" ? "supplier" : "buyer";
   // Where the person was going when they chose to sign up (an invite link, a record): kept through the
-  // confirmation email. Only a same-origin path counts; otherwise their own home.
-  const home = role === "supplier" ? "/supplier" : "/app";
+  // confirmation email. Only a same-origin path counts; otherwise their first step (a new buyer sets up, a supplier goes home).
+  const home = role === "supplier" ? "/supplier" : "/onboarding";
   const next = safeNext(String(formData.get("next") ?? ""), home);
   if (emailRefusal(email)) return { error: emailRefusal(email)!, field: "email" };
   if (passwordRefusal(password)) return { error: passwordRefusal(password)!, field: "password" };

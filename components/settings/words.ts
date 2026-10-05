@@ -3,7 +3,7 @@
 // React so a test reads them. Paper's Security and Audit log are design only (no read, no route)
 // and are not here; Team and roles is `components/team/`.
 
-import { planLabel, workspaceOf, type SettingsDoc } from "./doc";
+import { companyTypeWord, planLabel, workspaceOf, type SettingsDoc } from "./doc";
 
 export type SettingsKey = "profile" | "emails" | "company" | "team" | "templates" | "plan";
 
@@ -55,7 +55,7 @@ export function rowLine(key: SettingsKey, doc: SettingsDoc | null): string {
       return "Quotes, saved suppliers, weekly summary";
     case "company": {
       const w = workspaceOf(doc);
-      const line = [w.company_name, w.company_type].filter(Boolean).join(" · ");
+      const line = [w.company_name, w.company_type ? companyTypeWord(w.company_type) : null].filter(Boolean).join(" · ");
       return line || "Not filled in yet";
     }
     case "team":

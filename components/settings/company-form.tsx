@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Field, Input, Segmented, Select } from "@/components/kit";
 import { COMPANY_LABELS, COMPANY_LIMITS, COMPANY_SAVED, bandLabel, bandOptions, changedFields, typeOptions, valuesOf, workspacePayload, type CompanyKey, type CompanyValues } from "./company";
-import type { WorkspaceDoc } from "./doc";
+import { companyTypeWord, type WorkspaceDoc } from "./doc";
 import { Flash, FormNote, SaveBar, textareaClass, useFlash } from "./form";
 import { SAVE_FAILED, browserFetch, postSettings } from "./transport";
 
@@ -53,7 +53,7 @@ export function CompanyForm({ initial }: { initial: WorkspaceDoc }) {
       <div className="flex flex-col gap-1.5">
         <span className="text-sm font-medium text-ink">{COMPANY_LABELS.company_type}</span>
         <div className="flex flex-wrap items-center gap-3">
-          <Segmented name="company_type" label={COMPANY_LABELS.company_type} value={v.company_type} onValueChange={set("company_type")} options={typeValues.map((t) => ({ value: t, label: t }))} className="max-w-full flex-wrap" />
+          <Segmented name="company_type" label={COMPANY_LABELS.company_type} value={v.company_type} onValueChange={set("company_type")} options={typeValues.map((t) => ({ value: t, label: companyTypeWord(t) }))} className="max-w-full flex-wrap" />
           {v.company_type ? (
             <button type="button" onClick={() => set("company_type")("")} className="flex h-8 items-center rounded-sm px-1 text-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand max-md:h-11">
               Clear

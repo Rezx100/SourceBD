@@ -1740,6 +1740,11 @@ const CASES = [
   { name: "auth: /login/sent with no address kept -> 307 to /login", path: "/login/sent", expect: { status: 307, location: "/login" } },
   { name: "auth: /forgot-password/sent with no address kept -> 307 to /forgot-password", path: "/forgot-password/sent", expect: { status: 307, location: "/forgot-password" } },
   { name: "auth: /reset-password with no session is the expired page -> 200", path: "/reset-password", expect: { status: 200, bodyIncludes: "This link has expired" } },
+  // B8b: the first-run steps are the buyer's own; a stranger is sent to sign in (a real 307) and an
+  // address that is not a step is a real 404, not a page that renders an empty form.
+  { name: "onboarding: /onboarding anonymous -> 307 to /login", path: "/onboarding", expect: { status: 307, location: "/login?next=%2Fonboarding" } },
+  { name: "onboarding: /onboarding/about anonymous -> 307 to /login", path: "/onboarding/about", expect: { status: 307, location: "/login?next=%2Fonboarding%2Fabout" } },
+  { name: "onboarding: an unknown step -> 404", path: "/onboarding/nope", expect: { status: 404, bodyIncludes: NOT_FOUND_MARKER } },
   { name: "auth: a link Supabase refused -> 307 to /link-expired", path: "/auth/callback?error=access_denied&error_code=otp_expired", expect: { status: 307, locationPath: "/link-expired" } },
   { name: "auth: an unsafe way back is not followed -> 307 to /app", path: "/auth/callback?next=//evil.example", expect: { status: 307, locationPath: "/app" } },
 
