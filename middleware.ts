@@ -30,6 +30,7 @@ import {
   getCachedPublicSupplierProfile,
   isPublicSupplierSlug,
 } from "@/lib/public-supplier-profile";
+import { loginRedirectSearch } from "@/lib/login-redirect";
 import { urlOnSite } from "@/lib/site-origin";
 import { MATCH_PATH, MATCH_TARGET, matchRedirectSearch } from "@/lib/match-redirect";
 
@@ -273,13 +274,18 @@ function readGate(supabase: ReturnType<typeof createSupabaseMiddlewareClient>["s
   return Promise.resolve(supabase.from("profiles").select("role, is_suspended").eq("id", userId).maybeSingle());
 }
 
+// A browser that still holds a Supabase session cookie but is no longer signed in had its session end:
+// the sign-in page says so (Paper S6, "You were signed out") instead of the plain form a first-time
+// visitor gets. No cookie, no `reason`.
 function redirectToLogin(req: NextRequest) {
   return NextResponse.redirect(
     urlOnSite(
       "/login",
-      `?next=${encodeURIComponent(
-        req.nextUrl.pathname + req.nextUrl.search,
-      )}`,
+      loginRedirectSearch(
+        req.nextUrl.pathname,
+        req.nextUrl.search,
+        req.cookies.getAll().map((c) => c.name),
+      ),
     ),
   );
 }

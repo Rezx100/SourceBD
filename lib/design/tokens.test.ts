@@ -130,11 +130,6 @@ const NOT_STYLES: Record<string, string> = {
 /** The old pages (v3 and older) that still type colours. Delete an entry with its page (B4–B11). */
 const LEGACY_COLOURS = [
   "app/(app)/(old-shell)/supplier/rfqs/[id]/page.tsx",
-  "app/(auth)/forgot-password/page.tsx",
-  "app/(auth)/loading.tsx",
-  "app/(auth)/login/login-form.tsx",
-  "app/(auth)/reset-password/page.tsx",
-  "app/(auth)/signup/page.tsx",
   "app/(marketing)/legal/cookies/page.tsx",
   "app/(marketing)/legal/data-sources/page.tsx",
   "app/(marketing)/legal/privacy/page.tsx",
@@ -142,11 +137,6 @@ const LEGACY_COLOURS = [
   "app/(marketing)/legal/trademarks/page.tsx",
   "app/(marketing)/page.tsx",
   "app/(marketing)/pricing/page.tsx",
-  "app/error.tsx",
-  "app/not-found.tsx",
-  "components/auth/auth-fields.tsx",
-  "components/auth/auth-grid-backdrop.tsx",
-  "components/auth/auth-shell.tsx",
   "components/discover/result-card.tsx",
   "components/marketing/footer.tsx",
   "components/marketing/home/buyer-workflow-bento.tsx",

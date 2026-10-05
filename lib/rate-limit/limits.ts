@@ -39,6 +39,11 @@ const AUTH_PATHS = new Set([
   "/signup",
   "/forgot-password",
   "/reset-password",
+  // The pages that resend or ask again post to themselves: same bucket as the forms they follow.
+  "/signup/verify",
+  "/login/sent",
+  "/forgot-password/sent",
+  "/link-expired",
 ]);
 
 const MARKETING_PREFIXES = [

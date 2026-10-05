@@ -1,114 +1,27 @@
-"use client";
+// Create an account (Paper `20 Onboarding` 1): work email and password, or a link by email, the terms in
+// words. `?role=supplier` (from "For suppliers") makes a supplier account; everything else is a buyer.
 
-// Signup form — light Magic UI rebuild.
-//
-// Uses the existing `signUp` server action in `app/(auth)/actions.ts`.
+import type { Metadata } from "next";
+import { AuthSplit } from "@/components/auth/frame";
+import { SignUpForm } from "@/components/auth/forms";
+import { AuthLink } from "@/components/auth/link";
+import { AuthBar, Heading } from "@/components/auth/state";
+import { safeNext } from "@/components/auth/words";
 
-import Link from "next/link";
-import { useActionState } from "react";
+export const metadata: Metadata = { title: "Create your account · SourceBD" };
 
-import { ArrowRight, Envelope, Lock, User, UsersThree } from "@phosphor-icons/react/dist/ssr";
-
-import { AuthShell, AuthHeading } from "@/components/auth/auth-shell";
-import {
-  AuthAlert,
-  PasswordField,
-  SelectField,
-  SubmitButton,
-  TextField,
-} from "@/components/auth/auth-fields";
-
-import { signUp, type AuthActionState } from "../actions";
-
-const INITIAL: AuthActionState = {};
-
-export default function SignupPage() {
-  const [state, action, pending] = useActionState(signUp, INITIAL);
-
+export default async function SignupPage({ searchParams }: { searchParams: Promise<{ role?: string; next?: string }> }) {
+  const q = await searchParams;
+  const role = q.role === "supplier" ? "supplier" : "buyer";
+  // Where they were going (an invite link): carried to the confirmation email and the sign-in link.
+  const next = safeNext(q.next, role === "supplier" ? "/supplier" : "/app");
   return (
-    <AuthShell
-      brandHeadline="The verified record,"
-      brandHeadlineAccent="in minutes."
-      brandSub="Create a free workspace and start searching the indexed Bangladesh garment register — every supplier checked against the official record."
-      brandFooter="Free to search the public register · no card required."
-      topRight={
-        <>
-          Already have an account?{" "}
-          <Link href="/login" className="font-medium text-[#1f4d3a] hover:underline">
-            Sign in
-          </Link>
-        </>
-      }
-    >
-      <AuthHeading
+    <AuthSplit bar={<AuthBar lead="Already have an account?" link={<AuthLink href={q.next ? `/login?next=${encodeURIComponent(next)}` : "/login"}>Sign in</AuthLink>} />}>
+      <Heading
         title="Create your account"
-        subtitle="Free to search the register. No card required."
+        sub={role === "supplier" ? "Create an account to claim your company's profile." : "Find and check Bangladesh suppliers. Every fact shows its source."}
       />
-
-      <form action={action} className="mt-7 space-y-4">
-        <TextField
-          label="Full name"
-          name="full_name"
-          type="text"
-          autoComplete="name"
-          placeholder="Ada Rahman"
-          icon={<User size={17} weight="bold" />}
-        />
-        <TextField
-          label="Work email"
-          name="email"
-          type="email"
-          required
-          autoComplete="email"
-          placeholder="you@company.com"
-          icon={<Envelope size={17} weight="bold" />}
-        />
-        <PasswordField
-          label="Password"
-          name="password"
-          required
-          minLength={8}
-          autoComplete="new-password"
-          placeholder="Create a password"
-          icon={<Lock size={17} weight="bold" />}
-          hint="At least 8 characters, with a number and a symbol."
-        />
-        <SelectField
-          label="I am a"
-          name="role"
-          defaultValue="buyer"
-          icon={<UsersThree size={17} weight="bold" />}
-        >
-          <option value="buyer">Buyer · brand / importer / sourcing team</option>
-          <option value="supplier">Supplier · factory / buying house</option>
-        </SelectField>
-
-        {state.error ? <AuthAlert tone="error">{state.error}</AuthAlert> : null}
-        {state.info ? <AuthAlert tone="info">{state.info}</AuthAlert> : null}
-
-        <SubmitButton pending={pending} pendingLabel="Creating…">
-          Create account <ArrowRight size={17} weight="bold" />
-        </SubmitButton>
-      </form>
-
-      <p className="mt-6 text-center text-sm text-neutral-500">
-        Already have an account?{" "}
-        <Link href="/login" className="font-medium text-[#1f4d3a] hover:underline">
-          Sign in
-        </Link>
-      </p>
-      <p className="mt-6 text-xs leading-relaxed text-neutral-400">
-        By creating an account you agree to SourceBD&apos;s{" "}
-        <Link href="/legal/terms" className="text-neutral-500 underline-offset-2 hover:underline">
-          Terms
-        </Link>{" "}
-        and{" "}
-        <Link href="/legal/privacy" className="text-neutral-500 underline-offset-2 hover:underline">
-          Privacy Policy
-        </Link>
-        . SourceBD is a neutral public-record index — not a marketplace, broker
-        or rating agency.
-      </p>
-    </AuthShell>
+      <SignUpForm role={role} next={next} />
+    </AuthSplit>
   );
 }

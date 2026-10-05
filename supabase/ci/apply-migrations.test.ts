@@ -122,7 +122,8 @@ function run(env: Record<string, string>, opts: { withStub?: boolean } = {}): { 
   let stderr = "";
   try {
     execFileSync("bash", [SCRIPT], {
-      env: { ...base, ...env },
+      // `next`'s types (a page's `Metadata` import) make NODE_ENV a required key of ProcessEnv; the script is given its own.
+      env: { ...base, ...env } as NodeJS.ProcessEnv,
       stdio: ["ignore", "pipe", "pipe"],
       encoding: "utf8",
     });

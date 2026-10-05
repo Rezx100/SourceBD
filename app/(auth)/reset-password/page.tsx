@@ -1,58 +1,37 @@
-"use client";
+// Choose a new password (Paper `20 Onboarding` S3). Only a session that has just come through a reset
+// link gets here: with no session the link was used up or has expired, which is S4's page, not a form
+// that would fail on save.
 
-// Reset-password form — light Magic UI rebuild. Same `updatePassword`
-// server action as before (writes to the recovery session set by the
-// magic link).
+import type { Metadata } from "next";
+import { AuthSplit } from "@/components/auth/frame";
+import { ResetForm } from "@/components/auth/forms";
+import { AuthLink } from "@/components/auth/link";
+import { AuthBar, Heading, StatePage } from "@/components/auth/state";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-import Link from "next/link";
-import { useActionState } from "react";
+export const metadata: Metadata = { title: "Choose a new password · SourceBD" };
+export const dynamic = "force-dynamic";
 
-import { ArrowRight, Lock } from "@phosphor-icons/react/dist/ssr";
-
-import { AuthShell, AuthHeading } from "@/components/auth/auth-shell";
-import { AuthAlert, PasswordField, SubmitButton } from "@/components/auth/auth-fields";
-
-import { updatePassword, type AuthActionState } from "../actions";
-
-const INITIAL: AuthActionState = {};
-
-export default function ResetPasswordPage() {
-  const [state, action, pending] = useActionState(updatePassword, INITIAL);
-  return (
-    <AuthShell
-      brandHeadline="One new password,"
-      brandHeadlineAccent="same verified workspace."
-      brandSub="After you set the new password we'll log you straight back into your buyer dashboard. Saved searches, exports and team members stay intact."
-      brandFooter="Encrypted in transit · session refreshed."
-      topRight={
-        <>
-          Need help?{" "}
-          <Link href="/login" className="font-medium text-[#1f4d3a] hover:underline">
-            Back to sign in
-          </Link>
-        </>
-      }
-    >
-      <AuthHeading
-        title="Set a new password"
-        subtitle="Choose a password you don't use elsewhere — at least 8 characters."
+export default async function ResetPasswordPage() {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return (
+      <StatePage
+        barLink={<AuthLink href="/login">Sign in</AuthLink>}
+        kicker="Password reset"
+        title="This link has expired"
+        body="Links work once and for one hour. We can send you a new one."
+        actions={[{ label: "Send a new link", href: "/forgot-password" }, { label: "Sign in with a password", href: "/login", secondary: true }]}
       />
-
-      <form action={action} className="mt-7 space-y-4">
-        <PasswordField
-          label="New password"
-          name="password"
-          required
-          minLength={8}
-          autoComplete="new-password"
-          placeholder="At least 8 characters"
-          icon={<Lock size={17} weight="bold" />}
-        />
-        {state.error ? <AuthAlert tone="error">{state.error}</AuthAlert> : null}
-        <SubmitButton pending={pending} pendingLabel="Saving…">
-          Update password <ArrowRight size={17} weight="bold" />
-        </SubmitButton>
-      </form>
-    </AuthShell>
+    );
+  }
+  return (
+    <AuthSplit bar={<AuthBar lead="Not you?" link={<AuthLink href="/login">Sign in</AuthLink>} />}>
+      <Heading title="Choose a new password" sub={user.email ? `For ${user.email}.` : undefined} />
+      <ResetForm />
+    </AuthSplit>
   );
 }
