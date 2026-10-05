@@ -87,6 +87,8 @@
     "app/api/v1/rfqs/route.test.ts",
     "app/api/v1/products/route.test.ts",
     "app/api/v1/products/media/route.test.ts",
+    "app/api/v1/saved-searches/route.ts",
+    "app/api/v1/saved-searches/route.test.ts",
     "app/api/v1/export/route.ts",
     "app/api/v1/export/route.test.ts",
     "lib/list-export.ts",
