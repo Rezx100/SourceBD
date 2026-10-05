@@ -299,10 +299,13 @@ describe("the hub's cards", () => {
 });
 
 describe("the reads and the layout's badge", () => {
-  it("the buyer layout reads the badge beside the shell and hands it to the frame", () => {
+  it("the buyer layout starts the badges, does not await them, and hands the frame the promise (row 24)", () => {
     const layout = readFileSync(path.join(process.cwd(), "app/(app)/app/layout.tsx"), "utf8");
-    assert.match(layout, /Promise\.all\(\[loadBuyerShell\(supabase\), loadComplianceBadge\(supabase\)\]\)/);
-    assert.match(layout, /badges=\{\{ compliance \}\}/);
+    assert.match(layout, /const badges = loadFrameBadges\(supabase\);/);
+    assert.doesNotMatch(layout, /await loadFrameBadges|await badges/, "the frame must not wait on the badges");
+    assert.match(layout, /badges=\{badges\}/);
+    const loader = readFileSync(path.join(process.cwd(), "lib/dashboard/frame-badges.ts"), "utf8");
+    assert.match(loader, /loadComplianceBadge\(supabase\)/, "the badge is the hub's own count (attentionOf), through the one loader");
   });
 
   it("each read stands on its own; a malformed answer is a failed read, not an empty list", async () => {

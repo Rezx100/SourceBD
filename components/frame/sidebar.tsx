@@ -19,9 +19,11 @@ import {
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Suspense } from "react";
 import { ringInset } from "@/components/kit/classes";
 import { FRAME_FOOT, FRAME_NAV, frameMatch, type FrameItem, type FrameKey } from "@/lib/frame-nav";
 import { cn } from "@/lib/utils";
+import { NO_BADGES, useBadges, type BadgesInput, type FrameBadges } from "./badges";
 
 export const FRAME_ICONS: Record<FrameKey, Icon> = {
   search: MagnifyingGlass,
@@ -34,8 +36,7 @@ export const FRAME_ICONS: Record<FrameKey, Icon> = {
   settings: GearSix,
 };
 
-/** "2 new", "2 to check": live words from the layout; null draws nothing, never a 0. */
-export type FrameBadges = Partial<Record<FrameKey, { text: string; tone?: "ink" | "danger" } | null>>;
+export type { FrameBadges } from "./badges";
 
 function Row({ item, current, badge }: { item: FrameItem; current: "page" | "true" | undefined; badge?: FrameBadges[FrameKey] }) {
   const G = FRAME_ICONS[item.key];
@@ -53,13 +54,13 @@ function Row({ item, current, badge }: { item: FrameItem; current: "page" | "tru
       )}
     >
       <G size={20} className="shrink-0 text-ink-2" aria-hidden />
-      <span className="sr-only 2xl:not-sr-only 2xl:flex-1">
+      <span className="sr-only 2xl:not-sr-only 2xl:min-w-0 2xl:flex-1 2xl:truncate">
         {item.label}
         {badge ? <span className="sr-only">, {badge.text}</span> : null}
       </span>
       {badge ? (
         <>
-          <span aria-hidden className={cn("hidden text-xs font-semibold 2xl:inline", badge.tone === "danger" ? "text-danger" : "text-ink-2")}>
+          <span aria-hidden className={cn("hidden shrink-0 whitespace-nowrap text-xs font-semibold 2xl:inline", badge.tone === "danger" ? "text-danger" : "text-ink-2")}>
             {badge.text}
           </span>
           <span aria-hidden className="absolute left-1/2 top-2 ml-[5px] size-2 rounded-full border-2 border-subtle bg-danger-solid 2xl:hidden" />
@@ -69,7 +70,20 @@ function Row({ item, current, badge }: { item: FrameItem; current: "page" | "tru
   );
 }
 
-export function FrameSidebar({ badges = {} }: { badges?: FrameBadges }) {
+/** Drawn at once without badges; the counts fill in when the layout's read settles, and the menu never waits on them. */
+export function FrameSidebar({ badges }: { badges?: BadgesInput }) {
+  return (
+    <Suspense fallback={<SidebarBody badges={NO_BADGES} />}>
+      <SidebarWithBadges badges={badges} />
+    </Suspense>
+  );
+}
+
+function SidebarWithBadges({ badges }: { badges?: BadgesInput }) {
+  return <SidebarBody badges={useBadges(badges)} />;
+}
+
+function SidebarBody({ badges }: { badges: FrameBadges }) {
   const now = frameMatch(usePathname() ?? "");
   const current = (key: FrameKey) => (key === now.key ? (now.exact ? "page" : "true") : undefined);
   return (

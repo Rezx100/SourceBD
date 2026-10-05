@@ -3,5 +3,5 @@
 
 export { AppFrame, MAIN_ID } from "./frame";
 export { ListPane } from "./list-pane";
-export type { FrameBadges } from "./sidebar";
+export type { BadgesInput, FrameBadges } from "./badges";
 export type { FrameAccount } from "./topbar";

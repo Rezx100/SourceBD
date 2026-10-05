@@ -14,7 +14,8 @@ import { MenuDismiss } from "@/components/dashboard/menu-dismiss";
 import { ring } from "@/components/kit/classes";
 import { cn } from "@/lib/utils";
 import { PhoneBar, PhoneTabs } from "./phone";
-import { FrameSidebar, type FrameBadges } from "./sidebar";
+import type { BadgesInput } from "./badges";
+import { FrameSidebar } from "./sidebar";
 import { FrameTopbar, type FrameAccount } from "./topbar";
 
 export const MAIN_ID = "main-content";
@@ -22,7 +23,8 @@ export const MAIN_ID = "main-content";
 /** An unread sign-in still gets the account menu and sheet ("Your account"): on a phone they hold Settings and Sign out. */
 const UNREAD: FrameAccount = { initial: null, name: null, email: null };
 
-export function AppFrame({ account: read, badges, children }: { account: FrameAccount | null; badges?: FrameBadges; children: ReactNode }) {
+/** `badges` may be a promise: the frame is drawn at once and the counts fill in when it settles (row 24). */
+export function AppFrame({ account: read, badges, children }: { account: FrameAccount | null; badges?: BadgesInput; children: ReactNode }) {
   const account = read ?? UNREAD;
   return (
     <div className="group/shell flex min-h-dvh flex-col bg-surface font-sans text-ink antialiased md:h-dvh md:flex-row md:overflow-clip">
