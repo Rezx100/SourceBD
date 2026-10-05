@@ -32,7 +32,7 @@ function Contact({ slug, sanctioned }: { slug: string; sanctioned: boolean }) {
       {sanctioned ? (
         <p className="text-sm font-medium text-sanction">{REFUSAL}</p>
       ) : (
-        <Link href={signUp(slug)} prefetch={false} className={buttonClass({ kind: "primary" })}>
+        <Link href={signUp(slug)} prefetch={false} className={buttonClass({ kind: "primary", className: "max-sm:h-input-touch" })}>
           Sign up to contact
         </Link>
       )}
@@ -69,11 +69,11 @@ export function PublicRecord({ model, today }: { model: SupplierSheetModel; toda
         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
           <h1 className="min-w-0 flex-1 basis-60 text-3xl font-semibold tracking-tight text-ink [overflow-wrap:anywhere] max-sm:text-2xl">{model.name}</h1>
           <div className="flex shrink-0 items-center gap-2">
-            <Link href={signUp(slug)} prefetch={false} className={buttonClass({ kind: "secondary" })}>
+            <Link href={signUp(slug)} prefetch={false} className={buttonClass({ kind: "secondary", className: "max-sm:h-input-touch" })}>
               Save
             </Link>
             {model.sanctioned ? <span className="text-base font-medium text-sanction">{REFUSAL}</span> : (
-              <Link href={signUp(slug)} prefetch={false} className={buttonClass({ kind: "primary" })}>
+              <Link href={signUp(slug)} prefetch={false} className={buttonClass({ kind: "primary", className: "max-sm:h-input-touch" })}>
                 Sign up to contact
               </Link>
             )}
