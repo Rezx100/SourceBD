@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 
+import { Empty, InlineError } from "@/components/kit";
 import {
-  AdminPage,
-  AdminPageHeader,
-  AdminPanel,
+  QueueColumn,
+  QueueHead,
+  QueueSection,
+  StatRow,
   formatAdminDateTime,
-} from "@/components/admin/admin-ui";
-import { StatStrip } from "@/components/ui/page-kit";
+} from "@/components/admin/queue-parts";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -42,18 +43,15 @@ export default async function AdminBetaPage() {
 
   if (error || !data) {
     return (
-      <AdminPage maxWidth="5xl">
-        <AdminPageHeader
-          kicker="Admin · Beta"
+      <QueueColumn>
+        <QueueHead
           title="Founder analytics"
-          description="Signup → saved supplier → RFQ funnel and top saved suppliers."
+          lede="Signup → saved supplier → RFQ funnel and top saved suppliers."
         />
-        <AdminPanel>
-          <p className="text-sm text-sem-red">
-            Could not load beta dashboard{error?.message ? `: ${error.message}` : ""}.
-          </p>
-        </AdminPanel>
-      </AdminPage>
+        <InlineError>
+          Could not load beta dashboard{error?.message ? `: ${error.message}` : ""}.
+        </InlineError>
+      </QueueColumn>
     );
   }
 
@@ -61,20 +59,18 @@ export default async function AdminBetaPage() {
   const f = doc.funnel;
 
   return (
-    <AdminPage maxWidth="5xl" className="space-y-8">
-      <AdminPageHeader
-        kicker="Admin · Beta"
+    <QueueColumn>
+      <QueueHead
         title="Founder analytics"
-        description="Read-only funnel over existing tables — no new ETL. Saved suppliers proxy buyer intent until a dedicated view log ships."
+        lede="Read-only funnel over existing tables — no new ETL. Saved suppliers proxy buyer intent until a dedicated view log ships."
         actions={
-          <p className="font-mono text-[12px] text-ink-tertiary">
+          <p className="font-mono text-sm text-ink-3">
             {formatAdminDateTime(doc.generated_at)} UTC
           </p>
         }
       />
 
-      <StatStrip
-        columns={4}
+      <StatRow
         items={[
           { label: "Buyer signups (total)", value: f.signups_total },
           { label: "Signups (7d)", value: f.signups_7d },
@@ -91,34 +87,34 @@ export default async function AdminBetaPage() {
         ]}
       />
 
-      <AdminPanel
+      <QueueSection
         title="Top saved suppliers"
-        description="Ranked by unique buyer saves (proxy for profile interest during beta)."
-        padded={false}
+        meta="Ranked by unique buyer saves (proxy for profile interest during beta)."
+        bare
       >
         {doc.top_saved_suppliers.length === 0 ? (
-          <p className="px-5 py-8 text-sm text-ink-tertiary">No saves yet.</p>
+          <Empty title="No saves yet." />
         ) : (
-          <ol className="m-0 divide-y divide-neutral-200 p-0">
+          <ol className="m-0 list-none divide-y divide-line rounded-md border border-line p-0">
             {doc.top_saved_suppliers.map((s, i) => (
-              <li key={s.supplier_id} className="flex items-center justify-between gap-3 px-5 py-3">
+              <li key={s.supplier_id} className="flex items-center justify-between gap-3 px-4 py-3">
                 <div className="min-w-0">
-                  <span className="mr-2 font-mono text-[12px] text-ink-tertiary">#{i + 1}</span>
+                  <span className="mr-2 font-mono text-sm text-ink-3">#{i + 1}</span>
                   <Link
                     href={`/admin/suppliers/${s.supplier_id}`}
-                    className="font-medium text-brand-forest hover:underline"
+                    className="rounded-sm font-medium text-brand underline decoration-1 hover:decoration-2"
                   >
                     {s.company_name}
                   </Link>
                 </div>
-                <span className="shrink-0 font-mono text-sm tabular-nums text-ink-primary">
+                <span className="shrink-0 font-mono text-base tabular-nums text-ink">
                   {s.save_count.toLocaleString()} saves
                 </span>
               </li>
             ))}
           </ol>
         )}
-      </AdminPanel>
-    </AdminPage>
+      </QueueSection>
+    </QueueColumn>
   );
 }
