@@ -3,7 +3,9 @@
 // working with the same form. A saved search is a query, not a scroll position: the page is
 // dropped, so a search saved on page 3 does not go blank when the result set shrinks.
 
+import { alertsAvailable } from "@/components/saved/load";
 import { SaveSearchForm } from "@/components/saved/save-search";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { parseDiscoverState, queryTitle, serializeDiscoverState } from "@/lib/discover-v32-state";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +14,7 @@ export const metadata = { title: "Save search · SourceBD" };
 
 export default async function SaveSearchPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;
+  const alerts = await alertsAvailable(await createSupabaseServerClient());
   const state = { ...parseDiscoverState(sp), page: 1 };
   const search = serializeDiscoverState(state).toString();
   return (
@@ -21,7 +24,7 @@ export default async function SaveSearchPage({ searchParams }: { searchParams: P
         <p className="text-base text-ink-2 [overflow-wrap:anywhere]">{queryTitle(state)}</p>
       </header>
       <div className="max-w-[400px]">
-        <SaveSearchForm search={search} defaultName={queryTitle(state)} nextHref="/app/searches" cancelHref="/app/searches" touch="auto" />
+        <SaveSearchForm search={search} defaultName={queryTitle(state)} nextHref="/app/searches" cancelHref="/app/searches" touch="auto" alerts={alerts} />
       </div>
     </div>
   );

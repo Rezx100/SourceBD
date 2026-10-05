@@ -7,7 +7,7 @@
 // other saved-search paths do.
 
 import { enrichDiscoverWorkers } from "@/lib/enrich-discover-workers";
-import { runSavedSearchesGet, type SavedSearchJson } from "@/lib/saved-searches";
+import { LIST_LIMIT, runSavedSearchesGet, type SavedSearchJson } from "@/lib/saved-searches";
 import { PAGE_SIZE, groupCerts, type CertRead, type CertsBySupplier, type SavedRow, type SavedSort } from "./words";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the Supabase server client, as the other loaders take it.
@@ -44,6 +44,36 @@ export async function countSavedSearches(supabase: Client): Promise<number | nul
   }
 }
 
+/**
+ * Which of the buyer's saved searches email new matches (0113's `alert_weekly`), by id. Its own soft read, not
+ * a column of the list's select: a missing column would empty every saved-search list on a database without
+ * 0113. Null when it could not be read, and then no switch is drawn (it would claim a state nobody read).
+ */
+export async function readAlerts(supabase: Client): Promise<Record<string, boolean> | null> {
+  try {
+    const { data: auth } = await supabase.auth.getUser();
+    const uid = auth?.user?.id;
+    if (!uid) return null;
+    const res = await supabase.from("saved_searches").select("id, alert_weekly").eq("owner_id", uid).limit(LIST_LIMIT);
+    if (res.error || !Array.isArray(res.data)) return null;
+    // Only a switch the database actually answered (a true or a false) is kept; anything else draws none.
+    const read = (res.data as { id: unknown; alert_weekly: unknown }[]).filter((r) => typeof r.alert_weekly === "boolean");
+    return Object.fromEntries(read.map((r) => [String(r.id), r.alert_weekly as boolean]));
+  } catch {
+    return null;
+  }
+}
+
+/** True when the database has the switch (0113); the Save form draws "Tell me about new matches" only then. */
+export async function alertsAvailable(supabase: Client): Promise<boolean> {
+  try {
+    const res = await supabase.from("saved_searches").select("alert_weekly").limit(1);
+    return !res.error;
+  } catch {
+    return false;
+  }
+}
+
 export type SavedData = {
   /** Null when `buyer_saved_list` failed: no count and no empty state may stand in for it. */
   rows: SavedRow[] | null;
@@ -74,14 +104,17 @@ export type SearchesData = {
   suppliers: number | null;
   /** `buyer_last_search()` as it answered (0113); null when it did not, which is no card (`lastSearchCard`). */
   last: unknown;
+  /** `readAlerts`: null when unread (no switches then). */
+  alerts: Record<string, boolean> | null;
 };
 
 export async function loadSearches(supabase: Client, role: string | null | undefined, now: Date): Promise<SearchesData> {
-  const [listed, suppliers, last] = await Promise.all([
+  const [listed, suppliers, last, alerts] = await Promise.all([
     runSavedSearchesGet({ role, supabase, now } as Parameters<typeof runSavedSearchesGet>[0]),
     soft<number | null>(() => supabase.rpc("buyer_saved_list", { p_sort: "recent", p_limit: 1, p_offset: 0 }), (d) => (Array.isArray(d) ? (d.length > 0 ? Number((d[0] as { total_count?: number }).total_count ?? d.length) : 0) : null), null),
     soft<unknown>(() => supabase.rpc("buyer_last_search"), (d) => d, null),
+    readAlerts(supabase),
   ]);
   const body = listed.status === 200 && listed.body && typeof listed.body === "object" ? (listed.body as { searches?: SavedSearchJson[]; capped?: boolean }) : null;
-  return { searches: body && Array.isArray(body.searches) ? body.searches : null, capped: Boolean(body?.capped), suppliers, last };
+  return { searches: body && Array.isArray(body.searches) ? body.searches : null, capped: Boolean(body?.capped), suppliers, last, alerts };
 }

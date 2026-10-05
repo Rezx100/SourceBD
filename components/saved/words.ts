@@ -178,6 +178,8 @@ export type SearchItem = {
   countWords: string;
   /** Run search: the redirect route that opens it. */
   runHref: string;
+  /** "Email me new matches" is on; null when it was not read (0113 not applied), and then no switch is drawn. */
+  alert: boolean | null;
 };
 
 /** The words of a saved search's filters, from the query it kept; "All published suppliers" when it kept none. */
@@ -202,12 +204,15 @@ export function countWords(lastCount: number | null, countedAt: string | null, n
   return { count, words: fresh ? "suppliers today" : when ? `suppliers · counted ${when}` : "suppliers" };
 }
 
-export function buildSearchItems(searches: readonly SavedSearchJson[], now: Date): SearchItem[] {
+export function buildSearchItems(searches: readonly SavedSearchJson[], now: Date, alerts: Readonly<Record<string, boolean>> | null = null): SearchItem[] {
   return searches.map((s) => {
     const c = countWords(s.last_count, s.last_count === null ? null : s.last_counted_at, now);
-    return { id: s.id, name: s.name || "Untitled search", filters: searchFilters(s.query_state), count: c.count, countWords: c.words, runHref: s.href };
+    return { id: s.id, name: s.name || "Untitled search", filters: searchFilters(s.query_state), count: c.count, countWords: c.words, runHref: s.href, alert: alerts && typeof alerts[s.id] === "boolean" ? alerts[s.id]! : null };
   });
 }
+
+/** The switch's label on a saved search, in Paper's words. */
+export const alertWords = (on: boolean) => (on ? "Email me new matches every Monday" : "No email for new matches");
 
 /** How long a last search is still offered for saving. */
 export const LAST_SEARCH_DAYS = 7;

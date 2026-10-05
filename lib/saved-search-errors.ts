@@ -4,6 +4,7 @@ export const SAVED_SEARCH_ERROR = {
   invalidName: "invalid name",
   tooLong: "search too long to save",
   limitReached: "saved search limit reached",
+  alertsUnavailable: "email alerts not available",
 } as const;
 
 /**
@@ -16,6 +17,9 @@ export function saveSearchError(status: number, error: string | undefined): { me
   if (status === 400 && error === SAVED_SEARCH_ERROR.invalidName) return { message: "Give the search a name (up to 120 characters).", onName: true };
   if (status === 400 && error === SAVED_SEARCH_ERROR.tooLong) {
     return { message: "This search is too long to save. Remove some filters or shorten the words.", onName: false };
+  }
+  if (status === 400 && error === SAVED_SEARCH_ERROR.alertsUnavailable) {
+    return { message: "Emails for new matches are not switched on yet. Turn that off to save the search.", onName: false };
   }
   return { message: "Could not save this search.", onName: false };
 }

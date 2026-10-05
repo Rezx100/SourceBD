@@ -4,15 +4,16 @@
 // name, its filters in words, how many suppliers it finds (a remembered count, and the row says
 // when it was taken), Run search, and a menu with Rename and Delete. Rename is a name field in a
 // dialog (a sheet on a phone); only the name changes, never the filters. Delete asks first (a dialog;
-// a sheet on a phone) because a deleted search cannot be brought back. Paper's "Email me new matches" switch is
-// not here: no alert is stored or sent, so a switch would promise an email nobody sends.
+// a sheet on a phone) because a deleted search cannot be brought back. "Email me new matches every
+// Monday" is a switch saved at once (0113's `alert_weekly`, sent by the Monday job,
+// lib/email/jobs/saved-search-alerts.ts); it is drawn only when the database answered it.
 
 import { DotsThree } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
-import { Button, ButtonLink, Dialog, Field, IconButton, Input, Menu, MenuItem, Sheet } from "@/components/kit";
+import { Button, ButtonLink, Dialog, Field, IconButton, Input, Menu, MenuItem, Sheet, Switch } from "@/components/kit";
 import { useIsPhone } from "@/components/kit/use-phone";
-import type { SearchItem } from "./words";
+import { alertWords, type SearchItem } from "./words";
 
 function useDelete(item: SearchItem) {
   const router = useRouter();
@@ -78,6 +79,47 @@ function useRename(item: SearchItem) {
     }
   };
   return { open, setOpen, name, setName, busy, error, run };
+}
+
+/** "Email me new matches every Monday": saved at once (`PATCH {id, alert_weekly}`); a refusal puts the switch back and says why. */
+function useAlert(item: SearchItem) {
+  const router = useRouter();
+  const [on, setOn] = useState(item.alert === true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const set = async (next: boolean) => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/v1/saved-searches", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: item.id, alert_weekly: next }) });
+      if (!res.ok) {
+        setError(res.status === 404 ? "This search is gone. Reload the page." : "Could not change that. The switch was not saved. Try again.");
+        return;
+      }
+      setOn(next);
+      router.refresh();
+    } catch {
+      setError("Could not change that. There is no connection. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return { shown: item.alert !== null, on, busy, error, set };
+}
+
+function AlertSwitch({ a, phone }: { a: ReturnType<typeof useAlert>; phone: boolean }) {
+  if (!a.shown) return null;
+  return (
+    <div className="flex flex-col gap-1">
+      <Switch size={phone ? "touch" : "md"} checked={a.on} disabled={a.busy} onChange={(e) => void a.set(e.currentTarget.checked)}>
+        {alertWords(a.on)}
+      </Switch>
+      <p role="status" aria-live="polite" className={a.error ? "text-sm text-danger" : "sr-only"}>
+        {a.error ?? ""}
+      </p>
+    </div>
+  );
 }
 
 function RenameDialog({ item, r }: { item: SearchItem; r: ReturnType<typeof useRename> }) {
@@ -200,12 +242,14 @@ function Count({ item }: { item: SearchItem }) {
 function SearchRow({ item }: { item: SearchItem }) {
   const d = useDelete(item);
   const r = useRename(item);
+  const a = useAlert(item);
   return (
     <li className="border-b border-line">
       <div className="flex items-center gap-6 py-4 max-md:hidden">
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <p className="text-md font-semibold text-ink [overflow-wrap:anywhere]">{item.name}</p>
           <p className="text-sm text-ink-2">{item.filters}</p>
+          <AlertSwitch a={a} phone={false} />
         </div>
         <Count item={item} />
         <div className="flex shrink-0 items-center gap-2">
@@ -221,6 +265,7 @@ function SearchRow({ item }: { item: SearchItem }) {
           <RowMenu item={item} d={d} r={r} />
         </div>
         <p className="text-base text-ink-2">{[item.filters, item.count ? `${item.count} ${item.countWords}` : item.countWords].join(" · ")}</p>
+        <AlertSwitch a={a} phone />
         <ButtonLink href={item.runHref} prefetch={false} size="touch" full>
           Run search
         </ButtonLink>
