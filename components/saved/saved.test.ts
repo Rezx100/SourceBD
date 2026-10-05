@@ -449,6 +449,15 @@ describe("/app/saved", () => {
     assert.match(out.html, /Showing 1–3 of 3 suppliers/);
   });
 
+  it("a supplier whose certificates are all valid prints the first one to lapse, and a worse one still comes first", async () => {
+    base({ compliance_expiring_certs: { data: { total: 3, rows: [cert("wrap", "W-9", day(200), S3), cert("gots", "G-1", day(10), S2), cert("oeko_tex", "O-1", day(300), S2)] }, error: null } });
+    const out = text((await saved()).html);
+    assert.match(out, /A\.R\. Fashion .* WRAP valid until/);
+    assert.doesNotMatch(out, /A\.R\. Fashion .* Nothing to check/);
+    assert.match(out, /GOTS expires in 10 days .* 1 more certificate/, "a valid one never outranks an expiring one");
+    assert.equal(rpcCalls.find((c) => c.fn === "compliance_expiring_certs")?.args?.p_window_days, 365, "the widest window the read allows, so valid certificates come back");
+  });
+
   it("?sort= and ?page= go to the read, and a certificate read that failed is 'not read', never 'nothing to check'", async () => {
     base({ compliance_expired_certs: { data: null, error: { message: "no function" } } });
     const out = await saved({ sort: "name", page: "2" });
