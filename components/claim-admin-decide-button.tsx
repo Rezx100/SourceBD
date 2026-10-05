@@ -1,13 +1,12 @@
 "use client";
 
 // Admin decision island (Spec S1). Renders Approve + Reject buttons in a
-// Sheet row-action menu (R6) at /admin/claims.
+// dialog opened from the row at /admin/claims.
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import { Button } from "@/components/ui/button";
-import { Sheet } from "@/components/ui/sheet";
+import { Button, Dialog, Input } from "@/components/kit";
 
 export function ClaimAdminDecideButton({
   id,
@@ -58,67 +57,45 @@ export function ClaimAdminDecideButton({
   }
 
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => setSheetOpen(true)}
-        className="inline-flex h-[44px] min-w-[44px] items-center justify-center rounded-pill border border-hairline px-4 text-xs font-semibold text-ink-secondary hover:border-accent-indigo hover:text-accent-indigo"
-      >
-        Decide
-      </button>
-      <Sheet
-        open={sheetOpen}
-        onClose={close}
-        side="bottom"
-        label={label ?? "Decide claim"}
-      >
-        <div className="flex flex-col gap-3 p-4">
-          <Button
-            type="button"
-            variant="primary"
-            onClick={() => decide(true)}
-            disabled={pending}
-            className="min-h-[44px] w-full"
-          >
-            Approve
+    <Dialog
+      open={sheetOpen}
+      onOpenChange={(o) => (o ? setSheetOpen(true) : close())}
+      kind="form"
+      title={label ?? "Decide claim"}
+      trigger={<Button type="button">Decide</Button>}
+    >
+      <Button type="button" kind="primary" onClick={() => decide(true)} disabled={pending} full>
+        Approve
+      </Button>
+      {rejecting ? (
+        <div className="flex flex-col gap-2">
+          <Input
+            type="text"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Reason (optional)"
+            aria-label="Reason for rejecting"
+            maxLength={1000}
+          />
+          <Button type="button" kind="danger" onClick={() => decide(false)} disabled={pending} full>
+            Confirm reject
           </Button>
-          {rejecting ? (
-            <div className="flex flex-col gap-2">
-              <input
-                type="text"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Reason (optional)"
-                maxLength={1000}
-                className="min-h-[44px] w-full rounded-input border border-hairline bg-bg-l0 px-3 text-sm outline-none focus:border-accent-indigo"
-              />
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={() => decide(false)}
-                disabled={pending}
-                className="min-h-[44px] w-full"
-              >
-                Confirm reject
-              </Button>
-            </div>
-          ) : (
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={() => {
-                setRejecting(true);
-                setError(null);
-              }}
-              disabled={pending}
-              className="min-h-[44px] w-full"
-            >
-              Reject
-            </Button>
-          )}
-          {error ? <p className="text-xs text-sem-red">{error}</p> : null}
         </div>
-      </Sheet>
-    </>
+      ) : (
+        <Button
+          type="button"
+          kind="danger"
+          onClick={() => {
+            setRejecting(true);
+            setError(null);
+          }}
+          disabled={pending}
+          full
+        >
+          Reject
+        </Button>
+      )}
+      {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
+    </Dialog>
   );
 }

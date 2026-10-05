@@ -1,25 +1,32 @@
 // Admin unified review queue. Lists all verification_queue rows and routes
 // specialized queue types to their dedicated moderation flows.
 
-import Link from "next/link";
+import { CheckCircle, Warning } from "@phosphor-icons/react/dist/ssr";
 
 import { AdminQueueDecideButton } from "@/components/admin-queue-decide-button";
 import {
-  ADMIN_SELECT_CLASS,
-  AdminActionLink,
-  AdminEmptyState,
-  AdminField,
-  AdminFilterPanel,
-  AdminPage,
-  AdminPageHeader,
-  AdminPagination,
-  AdminPanel,
-  AdminTabs,
+  ButtonLink,
+  Button,
+  Chip,
+  Empty,
+  Field,
+  InlineError,
+  Select,
+  TabLink,
+  Table,
+  Td,
+  Th,
+  Tr,
+  TypeChip,
+} from "@/components/kit";
+import {
+  QueueColumn,
+  QueueFilter,
+  QueueHead,
+  QueueTable,
+  SupplierLink,
   formatAdminDate,
-} from "@/components/admin/admin-ui";
-import { Badge } from "@/components/ui/badge";
-import { ResponsiveTable, type Column } from "@/components/ui/responsive-table";
-import { Tag } from "@/components/ui/tag";
+} from "@/components/admin/queue-parts";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -106,15 +113,13 @@ export default async function AdminQueuePage({
 
   if (error || data == null) {
     return (
-      <AdminPage>
-        <QueueHeader />
-        <AdminPanel>
-          <p className="text-sm text-sem-red">
-            Could not load review queue
-            {error?.message ? <>: {error.message}</> : null}.
-          </p>
-        </AdminPanel>
-      </AdminPage>
+      <QueueColumn>
+        <QueueHead title="Review queue" lede={LEDE_EMPTY} />
+        <InlineError>
+          Could not load review queue
+          {error?.message ? <>: {error.message}</> : null}.
+        </InlineError>
+      </QueueColumn>
     );
   }
 
@@ -131,217 +136,196 @@ export default async function AdminQueuePage({
   };
 
   return (
-    <AdminPage>
-      <QueueHeader total={doc.total} />
+    <QueueColumn>
+      <QueueHead
+        title="Review queue"
+        lede={`${doc.total.toLocaleString()} review items in the current filter. Release sends each row to the buyer-facing company profile it belongs on, then closes the ticket.`}
+      />
 
-      <AdminTabs
-        label="Review queue types"
-        items={[
-          {
-            href: `/admin/queue${status === "open" ? "" : `?status=${status}`}`,
-            label: status === "open" ? "All open" : "All types",
-            active: !type,
-            count: sumOpen(doc.by_type),
-          },
-          ...QUEUE_TYPES.map((qt) => {
+      <nav aria-label="Review queue types" className="flex gap-1 overflow-x-auto border-b border-line">
+        <TabLink
+          href={`/admin/queue${status === "open" ? "" : `?status=${status}`}`}
+          current={!type}
+          count={sumOpen(doc.by_type)}
+          prefetch={false}
+        >
+          {status === "open" ? "All open" : "All types"}
+        </TabLink>
+        {QUEUE_TYPES.map((qt) => {
           const q = new URLSearchParams();
           q.set("type", qt);
           if (status !== "open") q.set("status", status);
-          return {
-            href: `/admin/queue?${q.toString()}`,
-            label: queueLabel(qt),
-            active: type === qt,
-            count: doc.by_type[qt] ?? 0,
-          };
-        }),
-        ]}
-      />
-
-      <AdminFilterPanel
-        title="Review state"
-        description="Keep the queue focused on open work, or audit reviewed decisions when needed."
-      >
-          <form method="get" action="/admin/queue" className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            {type ? <input type="hidden" name="type" value={type} /> : null}
-            <AdminField label="Status" className="sm:min-w-[222px]">
-              <select
-                name="status"
-                defaultValue={status}
-                className={ADMIN_SELECT_CLASS}
-              >
-                {STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {statusLabel(s)}
-                  </option>
-                ))}
-              </select>
-            </AdminField>
-            <button
-              type="submit"
-              className="min-h-[44px] rounded-pill border border-brand-forest bg-brand-forest px-4 text-sm font-semibold text-white hover:bg-brand-forest-mid"
+          return (
+            <TabLink
+              key={qt}
+              href={`/admin/queue?${q.toString()}`}
+              current={type === qt}
+              count={doc.by_type[qt] ?? 0}
+              prefetch={false}
             >
-              Apply
-            </button>
-            <AdminActionLink href="/admin/queue">Reset</AdminActionLink>
-          </form>
-      </AdminFilterPanel>
+              {queueLabel(qt)}
+            </TabLink>
+          );
+        })}
+      </nav>
 
-      <AdminPanel
-        title={type ? queueLabel(type) : "Review queue"}
-        meta={`${doc.total.toLocaleString()} total · page ${page} / ${totalPages}`}
-        padded={false}
+      <QueueFilter
+        action="/admin/queue"
+        hidden={type ? { name: "type", value: type } : undefined}
+        reset={<ButtonLink href="/admin/queue">Reset</ButtonLink>}
       >
-          {doc.rows.length === 0 ? (
-            <div className="p-4 sm:p-5">
-              <AdminEmptyState
-                title="No review items match this filter"
-                description="Switch queue type or review state to find more work."
-                action={<AdminActionLink href="/admin/queue">Back to open queue</AdminActionLink>}
-              />
-            </div>
-          ) : (
-            <ResponsiveTable
-              mode="stacked"
-              columns={QUEUE_COLUMNS}
-              rows={doc.rows}
-              rowKey={(r) => r.queue_id}
-              caption="Admin review queue"
-              className="border-0 shadow-none"
+        <Field label="Status" help="Keep the queue focused on open work, or audit reviewed decisions when needed." className="sm:min-w-[222px]">
+          {(a) => (
+            <Select
+              {...a}
+              name="status"
+              defaultValue={status}
+              options={STATUSES.map((s) => ({ value: s, label: statusLabel(s) }))}
             />
           )}
-      </AdminPanel>
+        </Field>
+        <Button type="submit" kind="primary">
+          Apply
+        </Button>
+      </QueueFilter>
 
-      <AdminPagination page={page} totalPages={totalPages} pageHref={pageHref} />
-    </AdminPage>
+      <section className="flex flex-col gap-3">
+        <div className="flex flex-col gap-0.5">
+          <h2 className="text-lg font-semibold text-ink">{type ? queueLabel(type) : "Review queue"}</h2>
+          <p className="text-sm text-ink-3">{`${doc.total.toLocaleString()} total · page ${page} / ${totalPages}`}</p>
+        </div>
+        {doc.rows.length === 0 ? (
+          <Empty
+            title="No review items match this filter"
+            action={<ButtonLink href="/admin/queue">Back to open queue</ButtonLink>}
+          >
+            Switch queue type or review state to find more work.
+          </Empty>
+        ) : (
+          <QueueTable
+            noun="review items"
+            total={doc.total}
+            page={page}
+            pages={totalPages}
+            perPage={PAGE_SIZE}
+            shown={doc.rows.length}
+            pageHref={pageHref}
+          >
+            <Table>
+              <caption className="sr-only">Admin review queue</caption>
+              <thead>
+                <tr>
+                  <Th>Review item</Th>
+                  <Th>Supplier</Th>
+                  <Th>Readiness</Th>
+                  <Th>Evidence</Th>
+                  <Th align="right">
+                    <span className="sr-only">Action</span>
+                  </Th>
+                </tr>
+              </thead>
+              <tbody>
+                {doc.rows.map((r) => (
+                  <QueueRowView key={r.queue_id} r={r} />
+                ))}
+              </tbody>
+            </Table>
+          </QueueTable>
+        )}
+      </section>
+    </QueueColumn>
   );
 }
 
-const QUEUE_COLUMNS: Column<Row>[] = [
-  {
-    key: "item",
-    label: "Review item",
-    render: (r) => (
-      <span className="block min-w-0">
+const LEDE_EMPTY = "Work pending verification, matching, certification, and sanctions review items.";
+
+function QueueRowView({ r }: { r: Row }) {
+  const confidence = confidenceValue(r.confidence);
+  return (
+    <Tr className="align-top">
+      <Td>
         <span className="flex flex-wrap items-center gap-1.5">
-          <Badge tone="neutral">{queueLabel(r.queue_type)}</Badge>
+          <TypeChip>{queueLabel(r.queue_type)}</TypeChip>
           {r.reviewed_at ? (
-            <Tag tone="muted">{r.admin_action ?? "reviewed"}</Tag>
+            <Chip icon={CheckCircle}>{r.admin_action ?? "reviewed"}</Chip>
           ) : (
-            <Tag tone="amber">open</Tag>
+            <Chip tone="caution" icon={Warning}>
+              open
+            </Chip>
           )}
         </span>
-        <span className="mt-1 block text-[13px] text-ink-tertiary">
+        <span className="mt-1 block text-sm text-ink-3">
           Queued {formatAdminDate(r.created_at)}
-          {confidenceValue(r.confidence) != null
-            ? ` · confidence ${confidenceValue(r.confidence)?.toFixed(2)}`
-            : ""}
+          {confidence != null ? ` · confidence ${confidence.toFixed(2)}` : ""}
         </span>
         {r.buyer_destination ? (
-          <span className="mt-1 block text-[13px] text-ink-secondary">
+          <span className="mt-1 block text-sm text-ink-2">
             Buyer destination: {r.buyer_destination}
           </span>
         ) : null}
-      </span>
-    ),
-  },
-  {
-    key: "supplier",
-    label: "Supplier",
-    render: (r) =>
-      r.supplier ? (
-        <span className="block">
-          <Link
-            href={`/admin/suppliers/${r.supplier.id}`}
-            className="font-semibold text-ink-primary hover:underline"
-          >
-            {r.supplier.name_display ?? r.supplier.company_name}
-          </Link>
-          <span className="block text-[13px] text-ink-tertiary">
-            {r.supplier.entity_type.replace(/_/g, " ")}
-            {[r.supplier.city, r.supplier.district].filter(Boolean).length
-              ? ` · ${[r.supplier.city, r.supplier.district].filter(Boolean).join(", ")}`
-              : ""}
+      </Td>
+      <Td>
+        {r.supplier ? (
+          <>
+            <SupplierLink id={r.supplier.id}>
+              {r.supplier.name_display ?? r.supplier.company_name}
+            </SupplierLink>
+            <span className="block text-sm text-ink-3">
+              {r.supplier.entity_type.replace(/_/g, " ")}
+              {[r.supplier.city, r.supplier.district].filter(Boolean).length
+                ? ` · ${[r.supplier.city, r.supplier.district].filter(Boolean).join(", ")}`
+                : ""}
+            </span>
+          </>
+        ) : (
+          <span className="text-ink-3">{r.supplier_b_name ?? "No linked supplier"}</span>
+        )}
+      </Td>
+      <Td>
+        {r.supplier ? (
+          <span className="flex flex-wrap gap-1.5">
+            {r.supplier.published ? (
+              <Chip icon={CheckCircle}>Visible to buyers</Chip>
+            ) : (
+              <Chip tone="caution" icon={Warning}>
+                Not visible
+              </Chip>
+            )}
+            {r.supplier.tier_coverage > 0 ? (
+              <Chip icon={CheckCircle}>{r.supplier.tier_coverage} evidence sources</Chip>
+            ) : (
+              <Chip tone="caution" icon={Warning}>
+                {r.supplier.tier_coverage} evidence sources
+              </Chip>
+            )}
           </span>
-        </span>
-      ) : (
-        <span className="text-ink-tertiary">
-          {r.supplier_b_name ?? "No linked supplier"}
-        </span>
-      ),
-  },
-  {
-    key: "readiness",
-    label: "Readiness",
-    render: (r) =>
-      r.supplier ? (
-        <span className="flex flex-wrap gap-1.5">
-          <Tag tone={r.supplier.published ? "muted" : "amber"}>
-            {r.supplier.published ? "Visible to buyers" : "Not visible"}
-          </Tag>
-          <Tag tone={r.supplier.tier_coverage > 0 ? "muted" : "amber"}>
-            {r.supplier.tier_coverage} evidence sources
-          </Tag>
-        </span>
-      ) : (
-        <span className="text-ink-tertiary">Needs matching</span>
-      ),
-  },
-  {
-    key: "details",
-    label: "Evidence",
-    render: (r) => (
-      <span className="block max-w-md text-[13px] text-ink-secondary">
-        {sourceSummary(r.source_data)}
-      </span>
-    ),
-  },
-  {
-    key: "action",
-    label: "",
-    numeric: true,
-    render: (r) => {
-      if (r.reviewed_at) return <span className="text-ink-tertiary">Done</span>;
-      if (r.queue_type === "cert_doc_review") {
-        return (
-          <Link
-            href="/admin/certifications"
-            className="inline-flex h-[44px] items-center rounded-pill border border-hairline px-4 text-xs font-semibold text-ink-secondary hover:border-accent-indigo hover:text-accent-indigo"
-          >
-            Open certs
-          </Link>
-        );
-      }
-      if (r.queue_type === "sanctions_hit") {
-        return (
-          <Link
-            href="/admin/sanctions"
-            className="inline-flex h-[44px] items-center rounded-pill border border-hairline px-4 text-xs font-semibold text-ink-secondary hover:border-accent-indigo hover:text-accent-indigo"
-          >
-            Open sanctions
-          </Link>
-        );
-      }
-      return (
-        <AdminQueueDecideButton
-          queueId={r.queue_id}
-          label={`${queueLabel(r.queue_type)} review`}
-          destination={r.buyer_destination}
-        />
-      );
-    },
-  },
-];
+        ) : (
+          <span className="text-ink-3">Needs matching</span>
+        )}
+      </Td>
+      <Td>
+        <span className="block max-w-md text-sm text-ink-2">{sourceSummary(r.source_data)}</span>
+      </Td>
+      <Td align="right">
+        <RowAction r={r} />
+      </Td>
+    </Tr>
+  );
+}
 
-function QueueHeader({ total }: { total?: number }) {
+function RowAction({ r }: { r: Row }) {
+  if (r.reviewed_at) return <span className="text-ink-3">Done</span>;
+  if (r.queue_type === "cert_doc_review") {
+    return <ButtonLink href="/admin/certifications">Open certs</ButtonLink>;
+  }
+  if (r.queue_type === "sanctions_hit") {
+    return <ButtonLink href="/admin/sanctions">Open sanctions</ButtonLink>;
+  }
   return (
-    <AdminPageHeader
-      kicker="Admin · Review"
-      title="Review queue"
-      description={
-        typeof total === "number"
-          ? `${total.toLocaleString()} review items in the current filter. Release sends each row to the buyer-facing company profile it belongs on, then closes the ticket.`
-          : "Work pending verification, matching, certification, and sanctions review items."
-      }
+    <AdminQueueDecideButton
+      queueId={r.queue_id}
+      label={`${queueLabel(r.queue_type)} review`}
+      destination={r.buyer_destination}
     />
   );
 }

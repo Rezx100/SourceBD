@@ -10,20 +10,19 @@
 // non-admin / anon (which surfaces as a Postgres error here → handled
 // by the error tile below).
 
+import { Warning } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 
+import { Chip, FactChip, InlineError, TypeChip, ringInset } from "@/components/kit";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardMeta,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tag } from "@/components/ui/tag";
-import { AdminPage } from "@/components/admin/admin-ui";
-import { PageHeader, StatStrip } from "@/components/ui/page-kit";
+  FigureList,
+  QueueColumn,
+  QueueHead,
+  QueueSection,
+  StatRow,
+} from "@/components/admin/queue-parts";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -78,105 +77,95 @@ type Doc = {
   generated_at: string;
 };
 
+const LEDE = "Platform-wide stats, moderation queues and verified index coverage.";
+
 export default async function AdminHome() {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.rpc("admin_dashboard");
 
   if (error || data == null) {
     return (
-      <AdminPage maxWidth="5xl">
-        <AdminHeader />
-        <Card>
-          <CardContent className="text-sm text-sem-red">
-            Could not load admin dashboard
-            {error?.message ? <>: {error.message}</> : null}.
-          </CardContent>
-        </Card>
-      </AdminPage>
+      <QueueColumn>
+        <QueueHead title="Overview" lede={LEDE} />
+        <InlineError>
+          Could not load admin dashboard
+          {error?.message ? <>: {error.message}</> : null}.
+        </InlineError>
+      </QueueColumn>
     );
   }
 
   const doc = data as Doc;
 
   return (
-    <AdminPage>
-      <AdminHeader generatedAt={doc.generated_at} />
+    <QueueColumn>
+      <QueueHead
+        title="Overview"
+        lede={LEDE}
+        actions={
+          <p className="font-mono text-sm text-ink-3">
+            generated{" "}
+            {new Date(doc.generated_at).toISOString().replace("T", " ").slice(0, 19)} UTC
+          </p>
+        }
+      />
 
-      <StatStrip
-        columns={4}
+      <StatRow
         items={[
           {
             label: "Users",
             value: doc.users.total,
-            animateValue: true,
             hint: `+${doc.users.signups_7d} last 7 days`,
           },
           {
             label: "Suppliers published",
             value: doc.suppliers.published,
-            animateValue: true,
             hint: `${doc.suppliers.total.toLocaleString()} total · ${doc.suppliers.claimed.toLocaleString()} claimed`,
           },
           {
             label: "Open RFQs",
             value: doc.rfqs.open,
-            animateValue: true,
             hint: `${doc.rfqs.accepted_30d} accepted · ${doc.rfqs.closed_30d} closed (30d)`,
           },
           {
             label: "Message threads",
             value: doc.messages.threads,
-            animateValue: true,
             hint: `${doc.messages.messages_7d.toLocaleString()} messages last 7d`,
           },
         ]}
       />
 
-      <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Users by role</CardTitle>
-            <CardMeta>Buyer, supplier, and admin accounts</CardMeta>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <KvList
-              rows={[
-                ["Admins",    doc.users.by_role.admin    ?? 0],
-                ["Buyers",    doc.users.by_role.buyer    ?? 0],
-                ["Suppliers", doc.users.by_role.supplier ?? 0],
-              ]}
-            />
-            <div className="mt-3 flex flex-wrap gap-2 text-[12px]">
-              <Tag tone="muted">Saved-supplier rows: {doc.saved_suppliers.total.toLocaleString()}</Tag>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <QueueSection title="Users by role" meta="Buyer, supplier, and admin accounts">
+          <FigureList
+            rows={[
+              ["Admins", doc.users.by_role.admin ?? 0],
+              ["Buyers", doc.users.by_role.buyer ?? 0],
+              ["Suppliers", doc.users.by_role.supplier ?? 0],
+            ]}
+          />
+          <div className="mt-3 flex flex-wrap gap-2">
+            <TypeChip>Saved-supplier rows: {doc.saved_suppliers.total.toLocaleString()}</TypeChip>
+          </div>
+        </QueueSection>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Suppliers</CardTitle>
-            <CardMeta>entity type · tier-source coverage</CardMeta>
-          </CardHeader>
-          <CardContent className="pt-0 space-y-3">
-            <div>
-              <p className="text-[12px] text-ink-tertiary">
-                By entity type
-              </p>
-              <div className="mt-1 flex flex-wrap gap-2 text-[13px]">
+        <QueueSection title="Suppliers" meta="entity type · tier-source coverage">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <p className="text-sm text-ink-3">By entity type</p>
+              <div className="flex flex-wrap gap-2">
                 {Object.entries(doc.suppliers.by_entity_type)
                   .sort(([, a], [, b]) => b - a)
                   .map(([et, n]) => (
-                    <Badge key={et} tone={et === "factory" ? "active" : "neutral"}>
+                    <TypeChip key={et}>
                       {et}: {n.toLocaleString()}
-                    </Badge>
+                    </TypeChip>
                   ))}
               </div>
             </div>
-            <div>
-              <p className="text-[12px] text-ink-tertiary">
-                Tier-source coverage
-              </p>
-              <KvList
+            <div className="flex flex-col gap-1.5">
+              <p className="text-sm text-ink-3">Tier-source coverage</p>
+              <FigureList
                 rows={[
                   ["≥1 Tier 1–3 source", doc.suppliers.tier_coverage.tier13_ge_1],
                   ["≥2 Tier 1–3 sources", doc.suppliers.tier_coverage.tier13_ge_2],
@@ -188,171 +177,93 @@ export default async function AdminHome() {
               />
             </div>
             {doc.suppliers.sanctioned > 0 ? (
-              <Tag tone="red">
+              <FactChip state="disagree">
                 Sanctioned: {doc.suppliers.sanctioned.toLocaleString()}
-              </Tag>
+              </FactChip>
             ) : null}
-          </CardContent>
-        </Card>
-      </section>
+          </div>
+        </QueueSection>
 
-      <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Queues</CardTitle>
-            <CardMeta>pending admin action</CardMeta>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <ul className="m-0 flex list-none flex-col p-0">
-              <QueueRow
-                label="Claim requests"
-                value={doc.queues.claims_pending}
-                href="/admin/claims"
-              />
-              <QueueRow
-                label="Sanctions hits (active)"
-                value={doc.queues.sanctions_active}
-                href="/admin/sanctions"
-                tone={doc.queues.sanctions_active > 0 ? "amber" : "neutral"}
-              />
-              <QueueRow
-                label="Verification queue (total)"
-                value={doc.queues.verification_queue_total}
-                href="/admin/queue"
-                tone={doc.queues.verification_queue_total > 0 ? "amber" : "neutral"}
-              />
-              {Object.entries(doc.queues.verification_queue_by_type)
-                .sort(([, a], [, b]) => b - a)
-                .map(([qt, n]) => (
-                  <QueueRow
-                    key={qt}
-                    label={`  · ${qt.replace(/_/g, " ")}`}
-                    value={n}
-                    href={`/admin/queue?type=${encodeURIComponent(qt)}`}
-                    indent
-                  />
-                ))}
-            </ul>
-          </CardContent>
-        </Card>
+        <QueueSection title="Queues" meta="pending admin action">
+          <ul className="m-0 flex list-none flex-col p-0">
+            <QueueRow
+              label="Claim requests"
+              value={doc.queues.claims_pending}
+              href="/admin/claims"
+            />
+            <QueueRow
+              label="Sanctions hits (active)"
+              value={doc.queues.sanctions_active}
+              href="/admin/sanctions"
+              review={doc.queues.sanctions_active > 0}
+            />
+            <QueueRow
+              label="Verification queue (total)"
+              value={doc.queues.verification_queue_total}
+              href="/admin/queue"
+              review={doc.queues.verification_queue_total > 0}
+            />
+            {Object.entries(doc.queues.verification_queue_by_type)
+              .sort(([, a], [, b]) => b - a)
+              .map(([qt, n]) => (
+                <QueueRow
+                  key={qt}
+                  label={`  · ${qt.replace(/_/g, " ")}`}
+                  value={n}
+                  href={`/admin/queue?type=${encodeURIComponent(qt)}`}
+                  indent
+                />
+              ))}
+          </ul>
+        </QueueSection>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Compliance documents</CardTitle>
-            <CardMeta>mirrored to Bunny CDN</CardMeta>
-          </CardHeader>
-          <CardContent className="pt-0 space-y-2">
+        <QueueSection title="Compliance documents" meta="mirrored to Bunny CDN">
+          <div className="flex flex-col gap-2">
             <div className="flex items-baseline justify-between">
-              <span className="text-[12px] text-ink-tertiary">
-                Documents
-              </span>
-              <span className="font-display text-2xl font-semibold tabular-nums text-ink-primary">
+              <span className="text-sm text-ink-3">Documents</span>
+              <span className="text-2xl font-semibold tabular-nums text-ink">
                 {doc.data_moat.compliance_documents.count.toLocaleString()}
               </span>
             </div>
             <div className="flex items-baseline justify-between">
-              <span className="text-[12px] text-ink-tertiary">
-                Total mirrored
-              </span>
-              <span className="font-display text-base font-semibold tabular-nums text-ink-primary">
+              <span className="text-sm text-ink-3">Total mirrored</span>
+              <span className="text-md font-semibold tabular-nums text-ink">
                 {formatBytes(doc.data_moat.compliance_documents.total_bytes)}
               </span>
             </div>
-          </CardContent>
-        </Card>
-      </section>
+          </div>
+        </QueueSection>
 
-      <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Source records by source</CardTitle>
-            <CardMeta>active rows only</CardMeta>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <CountList rows={doc.data_moat.source_records_by_source.map(r => [r.code, r.count])} />
-          </CardContent>
-        </Card>
+        <QueueSection title="Source records by source" meta="active rows only">
+          <CountList rows={doc.data_moat.source_records_by_source.map((r) => [r.code, r.count])} />
+        </QueueSection>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Certifications by kind</CardTitle>
-            <CardMeta>Verified supplier certifications</CardMeta>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <CountList rows={doc.data_moat.certifications_by_kind.map(r => [r.kind, r.count])} />
-          </CardContent>
-        </Card>
-      </section>
-    </AdminPage>
-  );
-}
-
-function AdminHeader({ generatedAt }: { generatedAt?: string }) {
-  return (
-    <PageHeader
-      kicker="Admin"
-      title="Overview"
-      description="Platform-wide stats, moderation queues and verified index coverage."
-      actions={
-        generatedAt ? (
-          <p className="font-mono text-[12px] text-ink-tertiary">
-            generated{" "}
-            {new Date(generatedAt).toISOString().replace("T", " ").slice(0, 19)} UTC
-          </p>
-        ) : null
-      }
-    />
-  );
-}
-
-
-function KvList({ rows }: { rows: ReadonlyArray<readonly [string, number]> }) {
-  return (
-    <ul className="m-0 flex list-none flex-col gap-1 p-0 text-[14px]">
-      {rows.map(([k, v]) => (
-        <li key={k} className="flex items-baseline justify-between gap-3">
-          <span className="text-ink-secondary">{k}</span>
-          <span className="font-mono tabular-nums text-ink-primary">
-            {v.toLocaleString()}
-          </span>
-        </li>
-      ))}
-    </ul>
+        <QueueSection title="Certifications by kind" meta="Verified supplier certifications">
+          <CountList rows={doc.data_moat.certifications_by_kind.map((r) => [r.kind, r.count])} />
+        </QueueSection>
+      </div>
+    </QueueColumn>
   );
 }
 
 function CountList({ rows }: { rows: ReadonlyArray<readonly [string, number]> }) {
   if (rows.length === 0) {
-    return <p className="text-[14px] text-ink-tertiary">No rows.</p>;
+    return <p className="text-base text-ink-3">No rows.</p>;
   }
-  return (
-    <ul className="m-0 flex list-none flex-col p-0 text-[14px]">
-      {rows.map(([k, v]) => (
-        <li
-          key={k}
-          className="flex items-baseline justify-between gap-3 border-b border-hairline py-1.5 last:border-b-0"
-        >
-          <span className="font-mono text-[13px] text-ink-secondary">{k}</span>
-          <span className="font-mono tabular-nums text-ink-primary">
-            {v.toLocaleString()}
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
+  return <FigureList rows={rows} mono />;
 }
 
 function QueueRow({
   label,
   value,
   href,
-  tone,
+  review,
   indent,
 }: {
   label: string;
   value: number;
-  href?: string;
-  tone?: "amber" | "neutral";
+  href: string;
+  review?: boolean;
   indent?: boolean;
 }) {
   const displayLabel = label
@@ -362,41 +273,26 @@ function QueueRow({
     .replace("cert doc review", "Certification document review")
     .replace("claim review", "Supplier claim review")
     .replace("sanctions hit", "Sanctions hit review");
-  const valueNode = (
-    <span className="font-mono tabular-nums text-ink-primary">
-      {value.toLocaleString()}
-    </span>
-  );
-  const inner = (
-    <div
-      className={
-        "flex items-center justify-between gap-3 border-b border-hairline px-1 py-2 text-[14px] last:border-b-0" +
-        (indent ? " pl-4 text-ink-secondary" : "")
-      }
-    >
-      <span>
-        {displayLabel}
-        {tone === "amber" && value > 0 ? (
-          <span className="ml-2 inline-block">
-            <Tag tone="amber">review</Tag>
-          </span>
-        ) : null}
-      </span>
-      {valueNode}
-    </div>
-  );
   return (
     <li>
-      {href ? (
-        <Link
-          href={href}
-          className="block rounded-input transition hover:bg-bg-l1 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-indigo"
-        >
-          {inner}
-        </Link>
-      ) : (
-        inner
-      )}
+      <Link
+        href={href}
+        className={cn(
+          "flex items-center justify-between gap-3 border-b border-line px-1 py-2 text-base text-ink outline-none hover:bg-brand-wash",
+          ringInset,
+          indent && "pl-4 text-ink-2",
+        )}
+      >
+        <span className="flex items-center gap-2">
+          {displayLabel}
+          {review && value > 0 ? (
+            <Chip tone="caution" icon={Warning}>
+              review
+            </Chip>
+          ) : null}
+        </span>
+        <span className="font-mono tabular-nums text-ink">{value.toLocaleString()}</span>
+      </Link>
     </li>
   );
 }
