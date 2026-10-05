@@ -4,7 +4,7 @@
 // #5 in buyer-facing language, and names the takedown / correction
 // contact.
 
-import { BlurFade } from "@/components/ui/blur-fade";
+import { LegalShell, legalDay } from "@/components/site/legal";
 
 export const dynamic = "force-static";
 
@@ -23,22 +23,8 @@ export const metadata = {
 
 export default function DataSourcesPage() {
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16">
-      <BlurFade delay={0.1}>
-        <header className="mb-8 text-center">
-          <h1 className="font-display text-3xl font-bold tracking-tight text-ink-primary md:text-4xl">
-            <span className="text-[#1f4d3a]">Data Source Policy</span>
-          </h1>
-          <p className="mt-3 text-[12px] text-ink-tertiary">
-            Last updated: {LAST_UPDATED}
-          </p>
-        </header>
-      </BlurFade>
-      <BlurFade delay={0.15}>
-      <div className="proto-card">
-
-      <section className="space-y-4 text-ink-secondary leading-relaxed">
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+    <LegalShell title="Data Source Policy" updated={legalDay(LAST_UPDATED)} active="/legal/data-sources">
+        <h2>
           1. Where the data comes from
         </h2>
         <p>
@@ -49,14 +35,14 @@ export default function DataSourcesPage() {
           disclosures, and regulatory filings.
         </p>
 
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+        <h2>
           2. Source trust hierarchy
         </h2>
         <p>
           We rank sources into six tiers and never let a lower-tier
           source overwrite a higher-tier fact:
         </p>
-        <ol className="list-decimal space-y-1 pl-6">
+        <ol>
           <li>
             <strong>Tier 1 — Government &amp; regulatory</strong>:
             RJSC company filings, fire-licence registries, tax-ID
@@ -86,7 +72,7 @@ export default function DataSourcesPage() {
           </li>
         </ol>
 
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+        <h2>
           3. Authenticity rule
         </h2>
         <p>
@@ -95,7 +81,7 @@ export default function DataSourcesPage() {
           by at least one Tier 1–3 source.
         </p>
 
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+        <h2>
           4. Freshness
         </h2>
         <p>
@@ -104,7 +90,7 @@ export default function DataSourcesPage() {
           cadence are flagged as stale on the supplier profile.
         </p>
 
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+        <h2>
           5. Trademarks
         </h2>
         <p>
@@ -112,14 +98,13 @@ export default function DataSourcesPage() {
           identify the source of publicly available data. See{" "}
           <a
             href="/legal/trademarks"
-            className="text-accent-indigo hover:underline"
           >
             Trademarks
           </a>{" "}
           for the full notice.
         </p>
 
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+        <h2>
           6. Corrections and takedowns
         </h2>
         <p>
@@ -132,7 +117,7 @@ export default function DataSourcesPage() {
           within 10 working days.
         </p>
 
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+        <h2>
           7. Scraping etiquette
         </h2>
         <p>
@@ -141,9 +126,6 @@ export default function DataSourcesPage() {
           limits. We do not bypass authentication, paywalls, or
           terms-of-use restrictions.
         </p>
-      </section>
-      </div>
-      </BlurFade>
-    </main>
+      </LegalShell>
   );
 }
