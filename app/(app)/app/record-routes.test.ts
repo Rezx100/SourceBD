@@ -160,6 +160,7 @@ function given(a: Answers): void {
         loadBuyerShell: async () => {
           shellLoads++;
           return {
+            userId: "buyer-1",
             sidebar: {
               active: "suppliers" as const,
               activeExact: false,
@@ -1606,13 +1607,25 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
     // The buyer shell once (its four reads are stubbed here and counted in
     // `load-buyer-shell.test.ts`), the Compliance badge's two lists (B6c: the hub's own
     // count; a slow or failed read draws no badge) and Messages' unread total (row 24: both
-    // started by the layout and not awaited, so the frame never waits on them), then the tour's
-    // two: who is signed in, and whether they have dismissed it, and the "last active" stamp
-    // (gap 4: `profile_touch`, fire and forget). Nothing else.
+    // started by the layout and not awaited, so the frame never waits on them), the "last active" stamp
+    // (gap 4: `profile_touch`, fire and forget) and the getting-started card's six reads (B8c: whether
+    // it was hidden and whether a source was opened, the saved and RFQ counts, the settings for the
+    // alerts and the template, and the team). The card reads inside a Suspense, beside the page, and
+    // none of it is the older shell's: the product tour that used to read the profile is gone. Nothing else.
     assert.equal(shellLoads, 1, "the buyer layout did not read its shell exactly once");
     assert.deepEqual(
       appReads,
-      ["auth.getUser", "from profiles role, onboarding_state", "rpc compliance_expired_certs", "rpc compliance_expiring_certs", "rpc profile_touch", "rpc thread_unread_total"],
+      [
+        "from profiles onboarding_state",
+        "from rfqs id",
+        "from saved_suppliers supplier_id",
+        "rpc compliance_expired_certs",
+        "rpc compliance_expiring_certs",
+        "rpc profile_touch",
+        "rpc settings_get",
+        "rpc thread_unread_total",
+        "rpc workspace_team",
+      ],
       `the layouts around an /app page read more: ${appReads.join("; ")}`,
     );
 
