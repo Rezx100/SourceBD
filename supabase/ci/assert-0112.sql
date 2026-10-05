@@ -24,7 +24,7 @@ declare
   supplier constant uuid := '00000000-0000-4000-8000-00000000b112';
   stranger constant uuid := '00000000-0000-4000-8000-00000000c112';
   th   uuid;
-  row  jsonb;
+  lrow jsonb;
   msgs jsonb;
   mine jsonb;
   fn   text;
@@ -55,10 +55,10 @@ begin
   set local role authenticated;
 
   perform set_config('request.jwt.claim.sub', buyer::text, true);
-  row := public.thread_list()->0;
-  if (row->>'unread_count')::int <> 1 or (row->>'has_reply')::boolean is not true
-     or row->>'last_body' <> 'We received your RFQ.' or (row->>'last_is_self')::boolean then
-    raise exception 'buyer list row %', row;
+  lrow := public.thread_list()->0;
+  if (lrow->>'unread_count')::int <> 1 or (lrow->>'has_reply')::boolean is not true
+     or lrow->>'last_body' <> 'We received your RFQ.' or (lrow->>'last_is_self')::boolean then
+    raise exception 'buyer list row %', lrow;
   end if;
   if public.thread_unread_total() <> 1 then
     raise exception 'unread total before reading';
