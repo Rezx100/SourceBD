@@ -9,7 +9,7 @@
 import { Suspense } from "react";
 import { preload } from "react-dom";
 import { AppFrame } from "@/components/frame";
-import { TourMount } from "@/components/onboarding/tour-mount";
+import { ChecklistSlot } from "@/components/onboarding/checklist";
 import { loadFrameBadges } from "@/lib/dashboard/frame-badges";
 import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { SOURCE_LOGO_FILES } from "@/lib/dashboard/source-logos";
@@ -41,12 +41,18 @@ export default async function BuyerLayout({ children }: { children: React.ReactN
   const shell = await loadBuyerShell(supabase);
   return (
     <PostHogProvider userId={shell.userId}>
-      <AppFrame account={shell.sidebar.account ?? null} badges={badges}>
+      {/* The getting-started card reads beside the page, never ahead of it (and the old product tour is gone: Paper has no tours). */}
+      <AppFrame
+        account={shell.sidebar.account ?? null}
+        badges={badges}
+        sidebarExtra={
+          <Suspense fallback={null}>
+            <ChecklistSlot supabase={supabase} userId={shell.userId} variant="sidebar" />
+          </Suspense>
+        }
+      >
         {children}
       </AppFrame>
-      <Suspense fallback={null}>
-        <TourMount flavour="buyer" />
-      </Suspense>
     </PostHogProvider>
   );
 }

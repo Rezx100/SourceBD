@@ -24,7 +24,7 @@ export const MAIN_ID = "main-content";
 const UNREAD: FrameAccount = { initial: null, name: null, email: null };
 
 /** `badges` may be a promise: the frame is drawn at once and the counts fill in when it settles (row 24). */
-export function AppFrame({ account: read, badges, children }: { account: FrameAccount | null; badges?: BadgesInput; children: ReactNode }) {
+export function AppFrame({ account: read, badges, sidebarExtra, children }: { account: FrameAccount | null; badges?: BadgesInput; sidebarExtra?: ReactNode; children: ReactNode }) {
   const account = read ?? UNREAD;
   return (
     <div className="group/shell flex min-h-dvh flex-col bg-surface font-sans text-ink antialiased md:h-dvh md:flex-row md:overflow-clip">
@@ -34,7 +34,7 @@ export function AppFrame({ account: read, badges, children }: { account: FrameAc
       >
         Skip to content
       </a>
-      <FrameSidebar badges={badges} />
+      <FrameSidebar badges={badges} extra={sidebarExtra} />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <FrameTopbar account={account} />
         <PhoneBar account={account} />

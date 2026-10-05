@@ -35,6 +35,7 @@ import type { ComposerTarget, ComposerWorkspace } from "@/components/dashboard/r
 import { RfqComposer } from "@/components/rfqs/composer";
 import { SheetNotice } from "@/components/dashboard/sheet";
 import { RecordView, parseTab, type TabId } from "@/components/record";
+import { FirstResultsCoach } from "@/components/onboarding/coach";
 import { RecordLastSearch } from "@/components/saved/last-search";
 import { alertsAvailable } from "@/components/saved/load";
 import { SaveSearchPanel, saveSummary } from "@/components/saved/save-search";
@@ -83,6 +84,8 @@ export default async function BuyerDiscoverPage({
   const filtersOpen = !composerOpen && one(sp.filters) === "1";
   const saveOpen = !composerOpen && !filtersOpen && one(sp.save) === "1";
   const sentId = UUID_RE.test(one(sp.sent) ?? "") ? one(sp.sent)! : null;
+  // The end of onboarding opens the buyer's first search with `?welcome=1`: one note on where facts come from.
+  const welcome = one(sp.welcome) === "1";
   const supabase = await createSupabaseServerClient();
   const today = new Date();
 
@@ -179,6 +182,7 @@ export default async function BuyerDiscoverPage({
     <SelectionProvider key={serializeDiscoverState(state).toString()} pageIds={error ? null : rows.map((r) => r.id)}>
       <RecordRecentSearch label={queryTitle(state)} href={discoverHref(state)} count={total} />
       {error || filterCount(state) === 0 ? null : <RecordLastSearch search={serializeDiscoverState({ ...state, page: 1 }).toString()} />}
+      {welcome && !error && total !== 0 ? <FirstResultsCoach supabase={supabase} closeHref={keepOpen} /> : null}
       <div className="flex min-h-0 flex-1 flex-col">
         <PhoneToolbar state={state} count={resultsTitle("", error ? null : total)} hrefFor={hrefFor} filtersHref={filtersHref} />
         {paneOpen ? toolbar : <ResultsBar toolbar={toolbar} exportHref={exportHref} searchHref={closeHref} pageSize={rows.length} />}

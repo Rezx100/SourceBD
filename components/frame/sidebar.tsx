@@ -19,7 +19,7 @@ import {
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 import { ringInset } from "@/components/kit/classes";
 import { FRAME_FOOT, FRAME_NAV, frameMatch, type FrameItem, type FrameKey } from "@/lib/frame-nav";
 import { cn } from "@/lib/utils";
@@ -71,19 +71,21 @@ function Row({ item, current, badge }: { item: FrameItem; current: "page" | "tru
 }
 
 /** Drawn at once without badges; the counts fill in when the layout's read settles, and the menu never waits on them. */
-export function FrameSidebar({ badges }: { badges?: BadgesInput }) {
+export function FrameSidebar({ badges, extra }: { badges?: BadgesInput; extra?: ReactNode }) {
   return (
+    // The fallback has no `extra`: it is an async server element, and drawing it in both places would run its reads twice.
     <Suspense fallback={<SidebarBody badges={NO_BADGES} />}>
-      <SidebarWithBadges badges={badges} />
+      <SidebarWithBadges badges={badges} extra={extra} />
     </Suspense>
   );
 }
 
-function SidebarWithBadges({ badges }: { badges?: BadgesInput }) {
-  return <SidebarBody badges={useBadges(badges)} />;
+function SidebarWithBadges({ badges, extra }: { badges?: BadgesInput; extra?: ReactNode }) {
+  return <SidebarBody badges={useBadges(badges)} extra={extra} />;
 }
 
-function SidebarBody({ badges }: { badges: FrameBadges }) {
+/** `extra` sits above Products and Settings: the getting-started card, drawn by the layout (a server element). */
+function SidebarBody({ badges, extra }: { badges: FrameBadges; extra?: ReactNode }) {
   const now = frameMatch(usePathname() ?? "");
   const current = (key: FrameKey) => (key === now.key ? (now.exact ? "page" : "true") : undefined);
   return (
@@ -100,11 +102,14 @@ function SidebarBody({ badges }: { badges: FrameBadges }) {
           ))}
         </nav>
       </div>
-      <nav aria-label="Products and settings" className="flex flex-col gap-0.5 border-t border-line px-3 pb-4 pt-2">
-        {FRAME_FOOT.map((item) => (
-          <Row key={item.key} item={item} current={current(item.key)} />
-        ))}
-      </nav>
+      <div className="flex min-h-0 flex-col">
+        {extra}
+        <nav aria-label="Products and settings" className="flex flex-col gap-0.5 border-t border-line px-3 pb-4 pt-2">
+          {FRAME_FOOT.map((item) => (
+            <Row key={item.key} item={item} current={current(item.key)} />
+          ))}
+        </nav>
+      </div>
     </aside>
   );
 }

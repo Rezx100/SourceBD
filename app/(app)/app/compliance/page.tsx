@@ -10,24 +10,44 @@
 // reads worked (`/api/v1/export`). "Download an evidence pack" is a dialog (`components/compliance/
 // evidence-pack.tsx`, gap 8, CSV only) shown whenever the saved count was read.
 
+import { Suspense } from "react";
 import { AttentionCard, AttentionError, ExpiryCard, HubEmpty, HubHead, MsaCard, PartialNote, PhonePack, PhoneUflpaNote, UflpaCard } from "@/components/compliance/hub";
 import { loadCompliance } from "@/components/compliance/load";
 import { COMPLIANCE_HREF, attention } from "@/components/compliance/words";
+import { ChecklistSlot } from "@/components/onboarding/checklist";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = { title: "Compliance · SourceBD" };
 
+/** Who is signed in, for the getting-started card only: a failed read is no card, never a failed page. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- the Supabase server client, as the other loaders take it.
+async function whoIs(supabase: any): Promise<string | null> {
+  try {
+    const { data } = await supabase.auth.getUser();
+    return typeof data?.user?.id === "string" ? data.user.id : null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function CompliancePage() {
   const supabase = await createSupabaseServerClient();
   const today = new Date();
-  const d = await loadCompliance(supabase, { certs: true, uflpa: true, msa: true });
+  const [d, who] = await Promise.all([loadCompliance(supabase, { certs: true, uflpa: true, msa: true }), whoIs(supabase)]);
+  // The getting-started card, at the top of Alerts on a phone (a sidebar card from 1440, drawn by the layout).
+  const started = (
+    <Suspense fallback={null}>
+      <ChecklistSlot supabase={supabase} userId={who} variant="phone" />
+    </Suspense>
+  );
   const att = attention(d.expired, d.expiring, today);
   const saved = d.msa?.total_saved ?? null;
   if (d.msa && d.msa.total_saved === 0) {
     return (
       <div className="flex min-h-0 flex-1 flex-col">
+        {started}
         <HubHead saved={0} />
         <HubEmpty />
       </div>
@@ -35,6 +55,7 @@ export default async function CompliancePage() {
   }
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      {started}
       <HubHead saved={saved} download={att !== null && att.total > 0 && d.expired !== null && d.expiring !== null} pack={saved !== null} />
       {saved !== null ? <PhonePack saved={saved} /> : null}
       <div className="flex gap-6 px-6 py-5 max-lg:flex-col max-md:gap-0 max-md:px-0 max-md:py-0">

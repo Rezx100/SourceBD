@@ -16,6 +16,7 @@ import { LockedContact, REFUSAL, SanctionBanner, SourceList, onFileWords, type S
 import type { SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
 import { CertificatesPanel, OverviewPanel, ProductsPanel, RecordRfqs, SafetyPanel, SitesPanel, SourcesPanel } from "./panels";
+import { SourceCheckListener } from "@/components/onboarding/source-check";
 import { RecordSave } from "./save-button";
 import { TABS, dayOfWords, recordSubline, summaryCells, tabCount, type SummaryCell, type TabId } from "./words";
 
@@ -114,6 +115,7 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
 
   return (
     <section aria-label="Supplier record" data-record={mode} data-detail={page ? "" : undefined} className="flex min-h-0 flex-1 flex-col bg-surface">
+      <SourceCheckListener />
       {model.sanctioned ? (
         <SanctionBanner
           title={`On the ${listName}${list?.listedOn ? ` since ${list.listedOn}` : ""}.`}
