@@ -107,12 +107,21 @@ export function ThreadLive({
   const [failed, setFailed] = useState(Boolean(readFailed));
   const [files, setFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const uploaded = useRef(new Map<File, string>());
   const seen = useRef(new Set(initialMessages.map((m) => m.id)));
   const listEndRef = useRef<HTMLDivElement | null>(null);
 
   // Reading is told to the server when the conversation opens and when a message arrives while it
   // is open. A failure changes nothing on screen: the conversation just stays unread in the list.
+  // Not while the tab is hidden (it waits until the tab is shown) and not when the messages could
+  // not be read: neither is "read" by this person.
+  const unreadWaiting = useRef(false);
   const markRead = useCallback(() => {
+    if (document.visibilityState !== "visible") {
+      unreadWaiting.current = true;
+      return;
+    }
+    unreadWaiting.current = false;
     void fetch("/api/v1/messages", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -120,7 +129,13 @@ export function ThreadLive({
     }).catch(() => {});
   }, [threadId]);
   useEffect(() => {
-    markRead();
+    if (!readFailed) markRead();
+    const onShow = () => {
+      if (document.visibilityState === "visible" && unreadWaiting.current) markRead();
+    };
+    document.addEventListener("visibilitychange", onShow);
+    return () => document.removeEventListener("visibilitychange", onShow);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- readFailed is the first read's state; only a new conversation reruns this.
   }, [markRead]);
 
   const refetch = useCallback(async () => {
@@ -205,11 +220,16 @@ export function ThreadLive({
             return;
           }
           for (const f of files) {
-            const path = uploadPath(threadId, uid, crypto.randomUUID(), f.name);
-            const up = await supabase.storage.from("message-files").upload(path, f, { contentType: f.type });
-            if (up.error) {
-              setError(`${f.name} could not be uploaded. Nothing was sent.`);
-              return;
+            // A file already uploaded by an earlier try of this send is named again, not uploaded twice.
+            let path = uploaded.current.get(f);
+            if (!path) {
+              path = uploadPath(threadId, uid, crypto.randomUUID(), f.name);
+              const up = await supabase.storage.from("message-files").upload(path, f, { contentType: f.type });
+              if (up.error) {
+                setError(`${f.name} could not be uploaded. Nothing was sent.`);
+                return;
+              }
+              uploaded.current.set(f, path);
             }
             paths.push(path);
           }
@@ -226,6 +246,7 @@ export function ThreadLive({
         }
         setDraft("");
         setFiles([]);
+        uploaded.current.clear();
         setSent(true);
         await refetch();
       } catch {
