@@ -1,11 +1,11 @@
 // The words of Settings (Paper `10 · Settings`, `11 · Settings`): the groups the navigation draws,
 // the line under the signed-in email, and the one-line summary each phone row carries. Kept out of
-// React so a test reads them. Paper's Security and Audit log are design only (no read, no route)
-// and are not here; Team and roles is `components/team/`.
+// React so a test reads them. Paper's Audit log is design only (nothing records it) and is not here;
+// Security is `components/security/`, Team and roles is `components/team/`.
 
 import { companyTypeWord, planLabel, workspaceOf, type SettingsDoc } from "./doc";
 
-export type SettingsKey = "profile" | "emails" | "company" | "team" | "templates" | "plan";
+export type SettingsKey = "profile" | "security" | "emails" | "company" | "team" | "templates" | "plan";
 
 export type SettingsItem = { key: SettingsKey; label: string; href: string };
 
@@ -15,6 +15,7 @@ export const SETTINGS_GROUPS: readonly { title: string; items: readonly Settings
     title: "Your account",
     items: [
       { key: "profile", label: "Profile", href: "/app/settings/profile" },
+      { key: "security", label: "Security", href: "/app/settings/security" },
       { key: "emails", label: "Emails", href: "/app/settings/notifications" },
     ],
   },
@@ -51,6 +52,8 @@ export function rowLine(key: SettingsKey, doc: SettingsDoc | null): string {
   switch (key) {
     case "profile":
       return "Name, picture, email, password";
+    case "security":
+      return "Two-step sign-in, devices";
     case "emails":
       return "Quotes, saved suppliers, weekly summary";
     case "company": {

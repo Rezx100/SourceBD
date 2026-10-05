@@ -16,6 +16,7 @@ import { prerenderToNodeStream } from "react-dom/static";
 import { AUTH_EMAIL_COOKIE, AUTH_NEXT_COOKIE, MAIL_LINKS, clock, emailRefusal, isPersonalEmail, passwordRefusal, personalProvider, safeNext, signInRefusal, signUpRefusal } from "@/components/auth/words";
 import { loginRedirectSearch } from "@/lib/login-redirect";
 import { classifyRoute } from "@/lib/rate-limit/limits";
+import { needsSecondStep } from "@/lib/second-step";
 
 const OUT = path.join(process.cwd(), process.env.TEST_BUILD_DIR || ".tests-build");
 
@@ -32,6 +33,10 @@ let answers: Record<string, Answer> = {};
 let user: { id: string; email: string } | null = null;
 let claims: { claims: { amr: unknown } } | null = null;
 let exchange: Answer = { error: null };
+let aal: { currentLevel: string; nextLevel: string } | null = { currentLevel: "aal1", nextLevel: "aal1" };
+let factors: { id: string }[] = [];
+/** The `userAgent` each sign-in client was made with (row 6: Auth records it as the session's device). */
+let agents: (string | null)[] = [];
 
 const answer = (fn: string, fallback: Answer = { data: {}, error: null }) => answers[fn] ?? fallback;
 const record = (fn: string) => async (...args: unknown[]) => (calls.push({ fn, args }), answer(fn));
@@ -56,7 +61,7 @@ const record = (fn: string) => async (...args: unknown[]) => (calls.push({ fn, a
           deleted.push(name);
         },
       }),
-      headers: async () => new Headers({ host: "sourcebd.test" }),
+      headers: async () => new Headers({ host: "sourcebd.test", "user-agent": "Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 Chrome/129.0 Safari/537.36" }),
     },
   } as unknown as NodeJS.Module;
 
@@ -72,9 +77,21 @@ const record = (fn: string) => async (...args: unknown[]) => (calls.push({ fn, a
       exchangeCodeForSession: async (code: string) => (calls.push({ fn: "exchangeCodeForSession", args: [code] }), exchange),
       getUser: async () => ({ data: { user } }),
       getClaims: async () => ({ data: claims }),
+      mfa: {
+        getAuthenticatorAssuranceLevel: async () => (calls.push({ fn: "aal", args: [] }), { data: aal, error: null }),
+        listFactors: async () => ({ data: { totp: factors }, error: null }),
+        challengeAndVerify: record("challengeAndVerify"),
+      },
     },
   };
-  require.cache[server] = { id: server, filename: server, loaded: true, exports: { createSupabaseServerClient: async () => client }, children: [], paths: [] } as unknown as NodeJS.Module;
+  require.cache[server] = {
+    id: server,
+    filename: server,
+    loaded: true,
+    exports: { createSupabaseServerClient: async (o?: { userAgent?: string | null }) => (agents.push(o?.userAgent ?? null), client) },
+    children: [],
+    paths: [],
+  } as unknown as NodeJS.Module;
 
   const mail = require.resolve(path.join(OUT, "lib/email/send.js"));
   require.cache[mail] = {
@@ -135,6 +152,9 @@ beforeEach(() => {
   user = null;
   claims = null;
   exchange = { error: null };
+  aal = { currentLevel: "aal1", nextLevel: "aal1" };
+  factors = [];
+  agents = [];
 });
 
 // ---------------------------------------------------------------------------
@@ -557,5 +577,86 @@ describe("/auth/callback", () => {
     const r = await get("?error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired");
     assert.equal(r.to, "https://sourcebd.net/link-expired");
     assert.equal(calls.length, 0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Two-step sign-in (row 6): the code after the password or the link
+// ---------------------------------------------------------------------------
+
+const BROWSER = "Mozilla/5.0 (Windows NT 10.0) AppleWebKit/537.36 Chrome/129.0 Safari/537.36";
+
+describe("the second step", () => {
+  it("who is owed a code: an account that asks for aal2 whose session has only aal1; an unreadable level is not owed", () => {
+    assert.equal(needsSecondStep({ currentLevel: "aal1", nextLevel: "aal2" }), true);
+    assert.equal(needsSecondStep({ currentLevel: "aal2", nextLevel: "aal2" }), false);
+    assert.equal(needsSecondStep({ currentLevel: "aal1", nextLevel: "aal1" }), false);
+    assert.equal(needsSecondStep(null), false);
+    assert.equal(needsSecondStep(undefined), false);
+    assert.equal(needsSecondStep({}), false);
+  });
+
+  it("a password sign-in on an account with two-step on goes to the code, keeping where they were going", async () => {
+    aal = { currentLevel: "aal1", nextLevel: "aal2" };
+    const to = await redirectOf(() => actions().signInWithPassword({}, form({ email: "a@example.com", password: "long-enough-1", next: "/app/saved" })));
+    assert.equal(to, "/login/code?next=/app/saved");
+  });
+
+  it("without two-step it goes straight on, as before", async () => {
+    assert.equal(await redirectOf(() => actions().signInWithPassword({}, form({ email: "a@example.com", password: "long-enough-1", next: "/app/saved" }))), "/app/saved");
+  });
+
+  it("the sign-in client carries the visitor's own browser, so the Security page can name the device", async () => {
+    await redirectOf(() => actions().signInWithPassword({}, form({ email: "a@example.com", password: "long-enough-1" })));
+    assert.deepEqual(agents, [BROWSER]);
+  });
+
+  it("the code page: a stranger signs in first, an account not owed a code goes on, one that is owed sees the form", async () => {
+    user = null;
+    assert.equal(await redirectOf(async () => page("app/(auth)/login/code/page.js")(q({ next: "/app/saved" }))), "/login?next=/app/saved");
+    user = { id: "u1", email: "alex.morgan@example.com" } as never;
+    assert.equal(await redirectOf(async () => page("app/(auth)/login/code/page.js")(q({ next: "/app/saved" }))), "/app/saved");
+    aal = { currentLevel: "aal1", nextLevel: "aal2" };
+    const out = await render("app/(auth)/login/code/page.js", q({ next: "/app/saved" }));
+    assert.match(out, /<h1[^>]*>Enter your code<\/h1>/);
+    assert.match(out, /name="code"/);
+    assert.match(out, /name="next" value="\/app\/saved"/);
+    assert.match(out, /autoComplete="one-time-code"|autocomplete="one-time-code"/i);
+    assert.match(out, /action="\/auth\/sign-out" method="post"/);
+  });
+
+  it("the code: a malformed one is refused under the field, a wrong one says so and stays, the right one goes on to where they were going", async () => {
+    user = { id: "u1" } as never;
+    factors = [{ id: "f1" }];
+    const a = actions();
+    assert.deepEqual(await a.verifyLoginCode({}, form({ code: "12345" })), { error: "Enter the 6-digit code from your app.", field: "code" });
+    assert.equal(calls.some((c) => c.fn === "challengeAndVerify"), false, "a malformed code is refused before Auth is asked");
+    answers.challengeAndVerify = { data: null, error: { message: "Invalid TOTP code entered" } };
+    assert.deepEqual(await a.verifyLoginCode({}, form({ code: "123456" })), { error: "That code doesn't match. Use the code showing in your app now.", field: "code" });
+    answers.challengeAndVerify = { data: {}, error: null };
+    assert.equal(await redirectOf(() => a.verifyLoginCode({}, form({ code: "123 456", next: "/app/rfqs" }))), "/app/rfqs");
+    assert.deepEqual(call("challengeAndVerify"), { factorId: "f1", code: "123456" });
+  });
+
+  it("a rate limit says to wait, and nobody signed in is sent to sign in without the code being checked", async () => {
+    user = { id: "u1" } as never;
+    factors = [{ id: "f1" }];
+    answers.challengeAndVerify = { data: null, error: { message: "For security purposes, you can only request this after 20 seconds" } };
+    assert.match((await actions().verifyLoginCode({}, form({ code: "123456" }))).error ?? "", /Wait a minute/);
+    calls = [];
+    user = null;
+    assert.equal(await redirectOf(() => actions().verifyLoginCode({}, form({ code: "123456", next: "/app" }))), "/login?next=/app");
+    assert.equal(calls.some((c) => c.fn === "challengeAndVerify"), false);
+  });
+
+  it("an emailed link on an account with two-step on lands on the code, not on the page; and records the visitor's browser", async () => {
+    aal = { currentLevel: "aal1", nextLevel: "aal2" };
+    const res = await (mod("app/auth/callback/route.js") as typeof import("../auth/callback/route")).GET(new NextRequest("http://sourcebd.test/auth/callback?code=abc&next=%2Fapp%2Fsaved", { headers: { "user-agent": BROWSER } }));
+    assert.equal(res.headers.get("location"), "https://sourcebd.net/login/code?next=%2Fapp%2Fsaved");
+    assert.deepEqual(agents, [BROWSER]);
+  });
+
+  it("the code page's address is in the auth rate-limit bucket", () => {
+    assert.equal(classifyRoute("/login/code", "POST"), "auth");
   });
 });

@@ -1740,6 +1740,9 @@ const CASES = [
   { name: "onboarding: /onboarding anonymous -> 307 to /login", path: "/onboarding", expect: { status: 307, location: "/login?next=%2Fonboarding" } },
   { name: "onboarding: /onboarding/about anonymous -> 307 to /login", path: "/onboarding/about", expect: { status: 307, location: "/login?next=%2Fonboarding%2Fabout" } },
   { name: "onboarding: an unknown step -> 404", path: "/onboarding/nope", expect: { status: 404, bodyIncludes: NOT_FOUND_MARKER } },
+  // Row 6: the second step of signing in. A stranger is sent to sign in (a real 307) and the page that
+  // asks for a code never renders for someone who is not signed in.
+  { name: "auth: /login/code signed out -> 307 to /login", path: "/login/code", expect: { status: 307, location: "/login?next=%2Fapp" } },
   { name: "auth: a link Supabase refused -> 307 to /link-expired", path: "/auth/callback?error=access_denied&error_code=otp_expired", expect: { status: 307, locationPath: "/link-expired" } },
   { name: "auth: an unsafe way back is not followed -> 307 to /app", path: "/auth/callback?next=//evil.example", expect: { status: 307, locationPath: "/app" } },
 
