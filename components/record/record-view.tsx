@@ -64,7 +64,7 @@ function Cell({ c }: { c: SummaryCell }) {
 }
 
 /** The five cells: a bordered strip from 640, five rows with their words on the right on a phone. */
-function Summary({ cells }: { cells: SummaryCell[] }) {
+export function Summary({ cells }: { cells: SummaryCell[] }) {
   return (
     <dl aria-label="Summary" className={cn("flex flex-col sm:flex-row sm:rounded-lg sm:border sm:border-line", TABULAR)}>
       {cells.map((c) => (

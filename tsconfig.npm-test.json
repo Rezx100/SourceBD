@@ -205,6 +205,8 @@
     "components/site/contact-form.tsx",
     "lib/contact.test.ts",
     "lib/contact.ts",
+    "components/record/public-record.test.ts",
+    "components/record/public-record.tsx",
     "components/site/guides.test.ts",
     "components/site/guides.tsx",
     "components/site/status.test.ts",
