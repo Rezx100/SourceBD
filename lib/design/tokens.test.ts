@@ -135,7 +135,6 @@ const LEGACY_COLOURS = [
   "app/(marketing)/legal/privacy/page.tsx",
   "app/(marketing)/legal/terms/page.tsx",
   "app/(marketing)/legal/trademarks/page.tsx",
-  "app/(marketing)/page.tsx",
   "app/(marketing)/pricing/page.tsx",
   "components/discover/result-card.tsx",
   "components/marketing/footer.tsx",
