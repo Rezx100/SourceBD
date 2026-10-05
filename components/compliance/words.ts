@@ -5,7 +5,7 @@
 // the landing's block and the sidebar badge all read its `total`, so they cannot say 2, 8 and 9 for
 // the same thing. Everything is worked out from what the four compliance reads return. Pure.
 
-import { attentionOf, certName, type Attention, type AttentionCertRow } from "@/lib/dashboard/needs-attention";
+import { attentionOf, certName, type Attention, type AttentionCertRow, type AttentionRow } from "@/lib/dashboard/needs-attention";
 import { certRowId, daysUntil, displayName, formatCount, formatDay } from "@/lib/dashboard/facts";
 
 /** A certificate as the two compliance reads return it (`compliance_expiring_certs`, `compliance_expired_certs`). */
@@ -50,6 +50,23 @@ const noun = (n: number, one: string, many = `${one}s`) => `${formatCount(n)} ${
 /** The certificates that need a look: every expired one with no renewal on file, then every one lapsing inside 90 days. Null when neither read worked. */
 export function attention(expired: CertList | null, expiring: CertList | null, today: Date): Attention | null {
   return attentionOf(expired, expiring, today, Number.MAX_SAFE_INTEGER);
+}
+
+export type AttentionGroup = "expired" | "within30" | "within90";
+
+/** Which of the hub's three lines a row sits under. Only a heading: the count above is still the one `attentionOf` total. */
+export const attentionGroup = (r: Pick<AttentionRow, "state" | "days">): AttentionGroup => (r.state === "expired" ? "expired" : r.days <= 30 ? "within30" : "within90");
+
+/** "Expired · 3", "Expires within 30 days · 2", "Coming up in 31 to 90 days · 3": the line over each group's rows. */
+export function attentionGroupLines(rows: readonly Pick<AttentionRow, "state" | "days">[]): Record<AttentionGroup, string> & { counts: Record<AttentionGroup, number> } {
+  const counts: Record<AttentionGroup, number> = { expired: 0, within30: 0, within90: 0 };
+  for (const r of rows) counts[attentionGroup(r)] += 1;
+  return {
+    expired: `Expired · ${counts.expired}`,
+    within30: `Expires within 30 days · ${counts.within30}`,
+    within90: `Coming up in 31 to 90 days · ${counts.within90}`,
+    counts,
+  };
 }
 
 /** The sidebar's Compliance badge: "8 to check" in danger ink, nothing when none or unread, never a 0. */

@@ -23,6 +23,8 @@ import { UflpaError, UflpaStats, UflpaTable } from "./uflpa";
 import {
   attention,
   certExportHref,
+  attentionGroup,
+  attentionGroupLines,
   comingUp,
   complianceBadge,
   expiredHeading,
@@ -99,6 +101,13 @@ describe("the one count", () => {
     assert.equal(a.rows[2]!.askLabel, "Ask for the renewal");
     assert.equal(a.rows[0]!.askHref, `/app/rfqs/new?supplier=${S(1)}`);
     assert.equal(attention(list([], 9), list([], 0), NOW)!.total, 9, "the rows may be fewer than the total");
+  });
+
+  it("day 30 is 'within 30 days' and day 31 is 'coming up in 31 to 90 days'; the total does not move", () => {
+    const a = attention(EXPIRED, list([cert(S(3), "A", "gots", "G-3", "2026-11-03"), cert(S(4), "B", "gots", "G-4", "2026-11-04")]), NOW)!;
+    assert.deepEqual(a.rows.map(attentionGroup), ["expired", "expired", "within30", "within90"]);
+    assert.equal(a.total, 4);
+    assert.deepEqual(attentionGroupLines(a.rows).counts, { expired: 2, within30: 1, within90: 1 });
   });
 
   it("one read failing leaves the other and its total; both failing is null, never zero", () => {
@@ -335,6 +344,28 @@ const page = async (file: string, props?: unknown) => plain(render(await route(f
 
 describe("/app/compliance", () => {
   const hub = () => page("app/(app)/app/compliance/page.js");
+
+  it("the list is split into expired, within 30 days and coming up in 31 to 90 days, under the one number the badge also says", async () => {
+    const d = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
+    const expiring = list([cert(S(3), "Mondol Intimates Ltd.", "gots", "G-3", d(10)), cert(S(4), "Tex Town Ltd.", "gots", "G-4", d(45)), cert(S(5), "Aboni Spinning Ltd.", "gots", "G-5", d(80))]);
+    given({ ...ROWS, compliance_expiring_certs: { data: expiring, error: null }, compliance_uflpa_tracker: UFL, compliance_msa_inputs: MSA });
+    const t = text(await hub());
+    assert.match(t, /Needs attention · 5 certificates/, "the split is a heading, not a second count");
+    assert.match(t, /Expired · 2/);
+    assert.match(t, /Expires within 30 days · 1/);
+    assert.match(t, /Coming up in 31 to 90 days · 2/);
+    assert.ok(t.indexOf("Expired · 2") < t.indexOf("Expires within 30 days · 1") && t.indexOf("Expires within 30 days · 1") < t.indexOf("Coming up in 31 to 90 days · 2"));
+    assert.deepEqual(await loadComplianceBadge(client), { text: "5 to check", tone: "danger" });
+  });
+
+  it("nothing lapses within 30 days: no empty '0' group is drawn", async () => {
+    const d = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
+    given({ compliance_expired_certs: { data: list([]), error: null }, compliance_expiring_certs: { data: list([cert(S(4), "Tex Town Ltd.", "gots", "G-4", d(45))]), error: null }, compliance_uflpa_tracker: UFL, compliance_msa_inputs: MSA });
+    const t = text(await hub());
+    assert.match(t, /Needs attention · 1 certificate/);
+    assert.match(t, /Coming up in 31 to 90 days · 1/);
+    assert.doesNotMatch(t, /Expired · 0|Expires within 30 days · 0/);
+  });
 
   it("lists every certificate that needs a look with one ask each, and the three cards; the heading and the badge say the same number", async () => {
     given({ ...ROWS, compliance_uflpa_tracker: UFL, compliance_msa_inputs: MSA });
