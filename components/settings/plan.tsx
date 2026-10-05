@@ -13,7 +13,9 @@ export const SUPPORT = "mailto:support@sourcebd.net";
 export const PLAN_CAPTION = "Free while SourceBD is in beta.";
 export const FREE_INCLUDES = "Search, saved suppliers, RFQs, messages and the compliance hub.";
 export const BILLING_NOTE = "Billing isn't set up yet.";
-export const ENTERPRISE = ["Team seats with roles", "Single sign-on", "Audit log", "Evidence packs for auditors"] as const;
+// Only what exists: team seats with roles (gap 4, 4b). Single sign-on, an audit log and evidence packs for a
+// team are not built, and a list on a plan page is a promise (founder, 5 Oct 2026: keep seats, drop the other three).
+export const ENTERPRISE = ["Team seats with roles"] as const;
 
 /** `packs` is "Evidence packs downloaded" this month; null (not counted) draws nothing, so no "0" stands in for a failed read. */
 export function PlanPanel({ doc, packs = null }: { doc: SettingsDoc; packs?: number | null }) {

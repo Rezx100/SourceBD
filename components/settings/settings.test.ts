@@ -486,6 +486,8 @@ describe("the other three pages (Team and roles is `components/team/team.test.ts
     assert.match(t, /Free during the beta/);
     assert.match(t, /Billing isn't set up yet\./);
     assert.match(t, /Enterprise · talk to us/);
+    assert.match(t, /Team seats with roles/);
+    assert.doesNotMatch(t, /Single sign-on|Audit log|Evidence packs for auditors/, "the Enterprise list names only what exists");
     assert.match(out, /href="mailto:support@sourcebd\.net/);
     assert.doesNotMatch(t, /[Cc]ontact reveal|reveal/);
     assert.doesNotMatch(t, /This month|Starter/, "Paper's usage counts are design only, and a count that could not be read is not drawn");
