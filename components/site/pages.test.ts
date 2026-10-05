@@ -63,6 +63,12 @@ describe("the product and solutions pages", () => {
     }
   });
 
+  it("no loading.tsx sits above the pages whose unknown slug must answer a real 404", () => {
+    for (const dir of ["app/(marketing)", "app/(marketing)/product", "app/(marketing)/solutions", "app/(marketing)/product/[slug]", "app/(marketing)/solutions/[slug]"]) {
+      assert.ok(!existsSync(join(process.cwd(), dir, "loading.tsx")), `${dir}/loading.tsx would stream the 404 behind a 200`);
+    }
+  });
+
   it("quote screens say their figures are examples", () => {
     for (const key of ["product/rfqs", "solutions/sourcing"]) assert.match(text(page(key)), /Sample state · figures are examples|Sample state · review all 50/);
   });

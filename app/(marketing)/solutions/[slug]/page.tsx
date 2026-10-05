@@ -6,7 +6,7 @@ import { PAGES, SitePage, siteMetadata } from "@/components/site/pages";
 import { loadSiteFacts } from "@/lib/site-facts";
 
 export const dynamic = "force-dynamic";
-// An unknown slug is a 404 decided by the router, not by the page: a page-level notFound() under the marketing loading boundary would answer 200.
+// An unknown slug is a 404 decided by the router, not by the page: a page-level notFound() under a loading boundary would answer 200, so no loading.tsx may sit above this folder.
 export const dynamicParams = false;
 export const generateStaticParams = () => Object.keys(PAGES).filter((k) => k.startsWith("solutions/")).map((k) => ({ slug: k.slice(10) }));
 
