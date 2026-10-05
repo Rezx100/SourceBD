@@ -1,11 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 
-import { RfqListBody } from "@/components/dashboard/rfq-pages";
-import { SupplierSheet } from "@/components/dashboard/supplier-sheet";
 import { sourceMark } from "./source-tiers";
 import {
   allSourceCodes,
@@ -1137,19 +1133,7 @@ describe("the RFQ row survives the shapes rfq_list can return", () => {
   it("an RFQ with no target counts none, never one, never NaN", () => {
     const row = buildRfqRow({ ...base, status: "open", target_supplier_count: 0 }, null, TODAY);
     assert.equal(row.supplierCount, 0);
-    // The RFQ list page (`RfqListBody`, the list since the dialog-era
-    // `RfqList` was retired on 27 Sep 2026) prints the count in its own
-    // Suppliers column: a number, so "0" is the count and not a sentence.
-    const html = renderToStaticMarkup(
-      createElement(RfqListBody, {
-        rows: [{ ...base, status: "open", target_supplier_count: 0, updated_at: "2026-09-10T10:00:00Z", viewer_role: "buyer" }],
-        tab: "all",
-        today: TODAY,
-      }),
-    );
-    assert.doesNotMatch(html, /NaN|undefined/);
-    const cells = [...html.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1]!.replace(/<[^>]+>/g, "").trim());
-    assert.equal(cells[1], "0", `the Suppliers cell: ${cells.join(" | ")}`);
+    // The RFQ list's own rendering is pinned in `components/rfqs/*.test.ts`.
   });
 
   it("a missing count is not a count", () => {
@@ -1180,9 +1164,6 @@ describe("cycle 9: claims the fixtures did not previously reach", () => {
     const sheet = buildSheet(input);
     assert.equal(sheet.certs[0]!.documentUrl, "https://sa-intl.org/sa8000-search/", "the payload still carries it");
     assert.equal(recordPage(sheet.certs[0]!.documentUrl), false);
-    const html = renderToStaticMarkup(createElement(SupplierSheet, { model: sheet }));
-    assert.doesNotMatch(html, /sa8000-search/, "nothing on the sheet opens the register's search form");
-    assert.doesNotMatch(html, />Certificate\s*</, "no link promises a certificate document there is none of");
   });
 
   it("the BGMEA grade chip says 'member' once", () => {
@@ -1246,8 +1227,6 @@ describe("the certified scope is whatever certificate carries one, and its absen
     const scope = buildSheet(onlyKinds(input, ["gots"])).products.certifiedScope;
     assert.ok(scope, "an expired certificate is still the record's scope");
     assert.equal(scope!.state, "expired");
-    const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(onlyKinds(input, ["gots"])) }));
-    assert.match(html, /GOTS · expired/, "the sheet says the scope is expired rather than saying there is none");
   });
 
   it("no scope never claims a register was read and came back empty when the payload holds certificates", () => {

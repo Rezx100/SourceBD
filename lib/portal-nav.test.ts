@@ -6,21 +6,22 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 
-import { ADMIN_SECTIONS, SUPPLIER_SECTIONS } from "@/components/shell/sidebar";
 import { PORTAL_HOME, PORTAL_NAV, portalMatch, portalOf, portalTitle } from "@/lib/portal-nav";
+
+/** The addresses the old shell's sidebar listed (deleted in B11a), kept here so the menu can never lose one by accident. */
+const OLD_ADMIN = ["/admin", "/admin/beta", "/admin/queue", "/admin/suppliers", "/admin/feedback", "/admin/claims", "/admin/certifications", "/admin/sanctions", "/admin/sources", "/admin/evidence", "/admin/audit-log", "/admin/users"];
+const OLD_SUPPLIER = ["/supplier", "/supplier/profile", "/supplier/messages", "/supplier/rfqs", "/supplier/partners", "/supplier/documents"];
 
 const hrefs = (role: "admin" | "supplier") => PORTAL_NAV[role].flatMap((g) => g.items.map((i) => i.href));
 const pageFor = (href: string) => join(process.cwd(), "app", "(app)", "(old-shell)", ...href.split("/").filter(Boolean), "page.tsx");
 
 describe("the portal menu", () => {
   it("keeps every item the old admin sidebar listed", () => {
-    const old = ADMIN_SECTIONS.flatMap((s) => s.slots.map((x) => x.href)).sort();
-    assert.deepEqual(hrefs("admin").sort(), old);
+    assert.deepEqual(hrefs("admin").sort(), [...OLD_ADMIN].sort());
   });
 
   it("keeps every item the old supplier sidebar listed, except Settings, which a supplier is redirected away from", () => {
-    const old = SUPPLIER_SECTIONS.flatMap((s) => s.slots.map((x) => x.href)).filter((h) => h !== "/app/settings").sort();
-    assert.deepEqual(hrefs("supplier").sort(), old);
+    assert.deepEqual(hrefs("supplier").sort(), [...OLD_SUPPLIER].sort());
   });
 
   it("every item points at a page that exists", () => {
