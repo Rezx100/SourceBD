@@ -14,7 +14,7 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
   const q = await searchParams;
   const role = q.role === "supplier" ? "supplier" : "buyer";
   // Where they were going (an invite link): carried to the confirmation email and the sign-in link.
-  const next = safeNext(q.next, role === "supplier" ? "/supplier" : "/app");
+  const next = safeNext(q.next, role === "supplier" ? "/supplier" : "/onboarding");
   return (
     <AuthSplit bar={<AuthBar lead="Already have an account?" link={<AuthLink href={q.next ? `/login?next=${encodeURIComponent(next)}` : "/login"}>Sign in</AuthLink>} />}>
       <Heading

@@ -249,7 +249,7 @@ describe("sign up", () => {
     const out = await render("app/(auth)/signup/page.js", q({}));
     assert.match(out, /<h1[^>]*>Create your account<\/h1>/);
     assert.match(out, /name="role" value="buyer"/);
-    assert.match(out, /name="next" value="\/app"/);
+    assert.match(out, /name="next" value="\/onboarding"/, "a new buyer is sent to set up their account");
     assert.match(text(out), /Show/);
     assert.match(text(out), /Email me a sign-in link instead/);
     assert.match(text(out), /By creating an account you agree to the Terms and the Privacy notice/);
@@ -386,7 +386,7 @@ describe("signUp", () => {
   it("a way back that is not a same-origin path is replaced by the person's own home", async () => {
     answers.signUp = { data: { user: { identities: [{}] }, session: null }, error: null };
     await redirectOf(() => actions().signUp({}, form({ ...ok, next: "//evil.com" })));
-    assert.equal((call("signUp") as { options: { emailRedirectTo: string } }).options.emailRedirectTo, "http://sourcebd.test/auth/callback?next=%2Fapp");
+    assert.equal((call("signUp") as { options: { emailRedirectTo: string } }).options.emailRedirectTo, "http://sourcebd.test/auth/callback?next=%2Fonboarding");
     calls = [];
     await redirectOf(() => actions().signUp({}, form({ ...ok, role: "supplier", next: "https://evil.com" })));
     assert.equal((call("signUp") as { options: { emailRedirectTo: string } }).options.emailRedirectTo, "http://sourcebd.test/auth/callback?next=%2Fsupplier");
