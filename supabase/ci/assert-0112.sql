@@ -15,8 +15,14 @@ insert into auth.users (id, email, raw_user_meta_data) values
 on conflict do nothing;
 
 insert into public.suppliers (slug, company_name, company_name_norm, city, district, is_published, is_sanctioned, claimed_by)
-values ('ci-0112', 'CI 0112 Ltd', 'ci 0112 ltd', 'Dhaka', 'Dhaka', true, false, '00000000-0000-4000-8000-00000000b112')
+values ('ci-0112', 'CI 0112 Ltd', 'ci 0112 ltd', 'Dhaka', 'Dhaka', false, false, '00000000-0000-4000-8000-00000000b112')
 on conflict (slug) do nothing;
+
+-- Published only once it holds a Tier 1 source (enforce_publish_tier).
+insert into public.source_records (supplier_id, source_id, source_tier, source_ref)
+select sp.id, s.id, s.tier, 'CI-0112' from public.suppliers sp, public.sources s
+ where sp.slug = 'ci-0112' and s.code = 'RSC';
+update public.suppliers set is_published = true where slug = 'ci-0112';
 
 do $$
 declare
