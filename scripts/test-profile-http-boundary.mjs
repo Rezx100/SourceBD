@@ -1171,6 +1171,21 @@ const CASES = [
     },
   },
   {
+    name: "site: an unknown product page -> 404",
+    path: "/product/not-a-page",
+    expect: { status: 404 },
+  },
+  {
+    name: "site: an unknown solutions page -> 404",
+    path: "/solutions/not-a-page",
+    expect: { status: 404 },
+  },
+  {
+    name: "site: a product page is 200",
+    path: "/product/records",
+    expect: { status: 200, bodyIncludes: "Every fact, with its receipt." },
+  },
+  {
     name: "public: facility RPC unavailable -> 404, not 500",
     path: `/suppliers/${RPC_DOWN}`,
     expect: { status: 404, bodyIncludes: NOT_FOUND_MARKER },
