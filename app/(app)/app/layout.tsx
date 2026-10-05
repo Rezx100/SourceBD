@@ -23,6 +23,15 @@ export default async function BuyerLayout({ children }: { children: React.ReactN
   // files, 0.8–11.5 KB each, fetched once when the app opens.
   for (const href of SOURCE_LOGO_FILES) preload(href, { as: "image" });
   const supabase = await createSupabaseServerClient();
+  // "Last active" on Team and roles (gap 4): the database stamps it at most every 10 minutes, so this
+  // is a no-op most of the time. Fire and forget; a failed call, or 0111 not applied yet, changes nothing.
+  void (async () => {
+    try {
+      await supabase.rpc("profile_touch");
+    } catch {
+      // best effort
+    }
+  })();
   // ponytail: the old shell's loader still reads three counts the frame does not
   // show; it goes with the old kit (B11). The Compliance badge is the hub's own count, read beside it;
   // Messages has no badge because no read state exists to count (B6a).

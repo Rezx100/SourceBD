@@ -56,3 +56,7 @@ Each spec names its migration; the migration is written and dry-run, and `--appl
 
 - Row 4: `gap-04-team-and-roles.md`, migration `0111`. Sharing by role is 4b (Opus).
 - Row 16: Download CSV on Saved, Compliance and Certificate expiry built (Sonnet, 5 Oct, PR into `ds-v4`); one route, no migration.
+
+## Screens built
+
+- Row 4: Team and roles page, Invite people, the invite email and `/invite/[token]` built (Sonnet, 5 Oct, PR into `ds-v4`); works once 0111 is applied.
