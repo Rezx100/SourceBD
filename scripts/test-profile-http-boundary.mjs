@@ -1185,6 +1185,10 @@ const CASES = [
     path: "/product/records",
     expect: { status: 200, bodyIncludes: "Every fact, with its receipt." },
   },
+  { name: "site: /security is 200", path: "/security", expect: { status: 200, bodyIncludes: "Security, stated plainly." } },
+  { name: "site: /methodology is 200", path: "/methodology", expect: { status: 200, bodyIncludes: "How we check every supplier." } },
+  { name: "site: /suppliers (the claim page) is 200 and /suppliers/<slug> is untouched", path: "/suppliers", expect: { status: 200, bodyIncludes: "Claim your factory" } },
+  { name: "site: /about is 200", path: "/about", expect: { status: 200, bodyIncludes: "Built for buyers who check." } },
   { name: "site: /contact is 200", path: "/contact", expect: { status: 200, bodyIncludes: "Talk to us." } },
   {
     name: "site: /pricing is 200 and says it is free during beta",
