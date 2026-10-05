@@ -46,6 +46,8 @@ const AUTH_PATHS = new Set([
   "/login/sent",
   "/forgot-password/sent",
   "/link-expired",
+  // Contact sales posts to itself and sends an email to the founder: bound it per address like a sign-in.
+  "/contact",
 ]);
 
 const MARKETING_PREFIXES = [
