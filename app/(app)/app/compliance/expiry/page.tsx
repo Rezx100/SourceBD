@@ -26,7 +26,7 @@ export default async function ExpiryPage({ searchParams }: { searchParams: Promi
   const shown = show === "all" ? counts.all : show === "expired" ? counts.expired : show === "30" ? counts.within30 : counts.within90;
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <ExpiryHead groups={groups} saved={d.msa?.total_saved ?? null} show={show} />
+      <ExpiryHead groups={groups} saved={d.msa?.total_saved ?? null} show={show} download={d.expired !== null && d.expiring !== null} />
       {anyRead && (d.expired === null || d.expiring === null) ? (
         <div className="px-6 pb-3 max-md:px-4">
           <PartialNote missing={d.expired === null ? "expired" : "expiring"} />

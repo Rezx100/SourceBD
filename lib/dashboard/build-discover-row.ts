@@ -392,7 +392,7 @@ export const CSV_COLUMNS = [
   "sanctioned",
 ] as const;
 
-function csvEscape(value: string): string {
+export function csvEscape(value: string): string {
   // Spreadsheet formula injection: Excel and Sheets evaluate a cell whose text
   // begins with = + - @ (or a leading tab/CR before one). Supplier-supplied
   // names, addresses and certificate scopes reach this export, so a supplier

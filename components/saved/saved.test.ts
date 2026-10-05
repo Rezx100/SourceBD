@@ -36,6 +36,7 @@ import {
   removedWords,
   rfqHref,
   savedCaption,
+  savedExportHref,
   savedHref,
   searchFilters,
   searchesCaption,
@@ -142,6 +143,11 @@ describe("the address", () => {
     assert.equal(savedHref({ sort: "recent", page: 1, open: "a", tab: "certificates" }), "/app/saved?open=a&tab=certificates");
     assert.equal(savedHref({ sort: "recent", page: 1, open: "a", tab: "overview" }), "/app/saved?open=a");
     assert.equal(savedHref({ sort: "recent", page: 1, open: null, tab: "certificates" }), "/app/saved", "a tab belongs to an open record");
+  });
+
+  it("Download CSV keeps the page's sort", () => {
+    assert.equal(savedExportHref("recent"), "/api/v1/export?kind=saved&sort=recent");
+    assert.equal(savedExportHref("name"), "/api/v1/export?kind=saved&sort=name");
   });
 
   it("one RFQ to everyone ticked is the composer with their ids", () => {
@@ -430,7 +436,7 @@ describe("/app/saved", () => {
     base();
     const out = await saved();
     assert.match(text(out.html), /Saved 3 saved suppliers · only you see this list/);
-    assert.match(text(out.html), /Sort: recently saved/);
+    assert.match(text(out.html), /Download CSV Sort: recently saved/);
     assert.match(out.html, /<h1[^>]*>Saved<\/h1>/);
     assert.match(text(out.html), /Suppliers · 3/);
     assert.match(text(out.html), /Saved searches · 2/);
@@ -454,7 +460,9 @@ describe("/app/saved", () => {
 
   it("no saved suppliers is the teaching state; a page past the end says so; a failed read is an error, never 'none'", async () => {
     base({ buyer_saved_list: { data: [], error: null } });
-    assert.match(text((await saved()).html), /No saved suppliers yet\./);
+    const none = (await saved()).html;
+    assert.match(text(none), /No saved suppliers yet\./);
+    assert.doesNotMatch(none, /Download CSV/, "nothing to download");
     assert.match(text((await saved({ page: "4" })).html), /That page is past the end of your saved list\./);
     base({ buyer_saved_list: { data: null, error: { message: "down" } } });
     const failed = await saved();

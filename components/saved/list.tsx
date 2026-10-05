@@ -6,10 +6,11 @@
 import { BookmarkSimple, CaretDown, Check, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { CertCellView } from "./table";
+import { DownloadCsv } from "@/components/export/download-csv";
 import { ErrorPanel, Menu, MenuItem, Pagination, Skeleton, TabLink, buttonClass } from "@/components/kit";
 import { SupplierRow } from "@/components/patterns";
 import { cn } from "@/lib/utils";
-import { PAGE_SIZE, SAVED_SORTS, SEARCHES_HREF, savedCaption, savedHref, searchesCaption, tabLabels, type SavedItem, type SavedSort, type SavedView } from "./words";
+import { PAGE_SIZE, SAVED_SORTS, SEARCHES_HREF, savedCaption, savedExportHref, savedHref, searchesCaption, tabLabels, type SavedItem, type SavedSort, type SavedView } from "./words";
 
 export type Tab = "suppliers" | "searches";
 
@@ -51,7 +52,12 @@ export function SavedHead({ tab, suppliers, searches, caption, view, capped }: {
           <h1 className="text-xl font-semibold tracking-tight text-ink">Saved</h1>
           <p className="text-base text-ink-3">{text}</p>
         </div>
-        {tab === "suppliers" && suppliers !== 0 ? <SortMenu view={view} /> : null}
+        {tab === "suppliers" && suppliers !== 0 ? (
+          <div className="flex items-center gap-2">
+            <DownloadCsv href={savedExportHref(view.sort)} />
+            <SortMenu view={view} />
+          </div>
+        ) : null}
       </div>
       <nav aria-label="Saved" className="-mx-3 flex flex-wrap gap-3">
         <TabLink href="/app/saved" current={tab === "suppliers"} count={num(suppliers)} prefetch={false}>
