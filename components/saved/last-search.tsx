@@ -12,24 +12,14 @@ import { Button, ButtonLink } from "@/components/kit";
 import { saveSearchError } from "@/lib/saved-search-errors";
 import type { LastSearchCard } from "./words";
 
-/** Keeps the search that was run, once for each distinct search in this tab. Nothing is drawn. */
+/**
+ * Keeps the search that was run each time the results show a different one (the page is not part of
+ * it, so paging does not send it again). No per-tab memory: with two tabs the newest search must
+ * win, not the one this tab sent last. Nothing is drawn.
+ */
 export function RecordLastSearch({ search }: { search: string }) {
   useEffect(() => {
-    try {
-      if (window.sessionStorage.getItem("sourcebd.last-search") === search) return;
-    } catch {
-      // No storage: the search is kept again, which is harmless.
-    }
-    void fetch("/api/v1/saved-searches/last", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ search }), keepalive: true })
-      .then((res) => {
-        if (!res.ok) return;
-        try {
-          window.sessionStorage.setItem("sourcebd.last-search", search);
-        } catch {
-          // Nothing to remember it in.
-        }
-      })
-      .catch(() => {});
+    void fetch("/api/v1/saved-searches/last", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ search }), keepalive: true }).catch(() => {});
   }, [search]);
   return null;
 }
