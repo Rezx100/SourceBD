@@ -1,16 +1,5 @@
-import Link from "next/link";
-
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardMeta,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tag } from "@/components/ui/tag";
+import { ButtonLink, TypeChip } from "@/components/kit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { PageHeader } from "@/components/ui/page-kit";
 
 // Supplier Profile Editor — listing page (Spec S2).
 // Lists the caller's claimed companies; each row deep-links to the
@@ -44,57 +33,56 @@ export default async function SupplierProfileList() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <PageHeader
-        kicker="Supplier"
-        title="Company profile"
-        description="Choose a company to edit its supplier-attested fields. Register data from BGMEA, BKMEA, BTMA, BGAPMEA, RSC and certification bodies is never overwritten by your edits."
-      />
+    <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">Company profile</h1>
+        <p className="max-w-3xl text-md text-ink-2">
+          Choose a company to edit its supplier-attested fields. Register data from BGMEA, BKMEA, BTMA, BGAPMEA, RSC and certification bodies is never overwritten by your edits.
+        </p>
+      </header>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Your companies</CardTitle>
-          <CardMeta>{owned.length} owned</CardMeta>
-        </CardHeader>
-        <CardContent>
+      <section aria-label="Your companies" className="rounded-md border border-line p-5">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-md font-semibold text-ink">Your companies</h2>
+          <p className="text-sm text-ink-3">{owned.length} owned</p>
+        </div>
+        <div className="mt-4">
           {owned.length === 0 ? (
-            <div className="space-y-3 text-sm text-ink-secondary">
+            <div className="flex flex-col items-start gap-3 text-base text-ink-2">
               <p>You haven&apos;t claimed any companies yet.</p>
-              <Button asChild variant="primary">
-                <Link href="/supplier/claim">Claim your company</Link>
-              </Button>
+              <ButtonLink href="/supplier/claim" kind="primary">
+                Claim your company
+              </ButtonLink>
             </div>
           ) : (
-            <ul className="divide-y divide-hairline">
+            <ul className="m-0 list-none divide-y divide-line p-0">
               {owned.map((s) => (
                 <li
                   key={s.id}
-                  className="flex items-center justify-between py-3"
+                  className="flex flex-wrap items-center justify-between gap-3 py-3"
                 >
-                  <div>
-                    <p className="text-sm font-semibold text-ink-primary">
+                  <div className="min-w-0">
+                    <p className="text-base font-semibold text-ink">
                       {s.company_name}
                     </p>
-                    <p className="text-xs text-ink-tertiary">
+                    <p className="text-sm text-ink-3">
                       {s.supplier_attested_at
                         ? `Last edited ${new Date(s.supplier_attested_at).toISOString().slice(0, 10)}`
                         : "Not yet edited"}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Tag>Owned</Tag>
-                    <Button asChild variant="primary" size="sm">
-                      <Link href={`/supplier/profile/${s.id}`}>
-                        Edit profile
-                      </Link>
-                    </Button>
+                    <TypeChip>Owned</TypeChip>
+                    <ButtonLink href={`/supplier/profile/${s.id}`} kind="primary">
+                      Edit profile
+                    </ButtonLink>
                   </div>
                 </li>
               ))}
             </ul>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
     </div>
   );
 }

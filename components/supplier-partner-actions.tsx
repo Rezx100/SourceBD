@@ -7,7 +7,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/kit";
 
 export function PartnerActionButtons({
   id,
@@ -50,18 +50,14 @@ export function PartnerActionButtons({
         {canDecide ? (
           <>
             <Button
-              type="button"
-              variant="primary"
-              size="sm"
+              kind="primary"
               disabled={pending}
               onClick={() => call({ action: "decide", id, accept: true })}
             >
               Accept
             </Button>
             <Button
-              type="button"
-              variant="ghost"
-              size="sm"
+              kind="quiet"
               disabled={pending}
               onClick={() => call({ action: "decide", id, accept: false })}
             >
@@ -71,9 +67,7 @@ export function PartnerActionButtons({
         ) : null}
         {canRevoke ? (
           <Button
-            type="button"
-            variant="ghost"
-            size="sm"
+            kind="quiet"
             disabled={pending}
             onClick={() => {
               if (
@@ -89,7 +83,11 @@ export function PartnerActionButtons({
           </Button>
         ) : null}
       </div>
-      {error ? <p className="text-[12px] text-sem-red">{error}</p> : null}
+      {error ? (
+        <p role="alert" className="text-xs text-danger">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

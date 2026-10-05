@@ -3,11 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent, type KeyboardEvent } from "react";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tag } from "@/components/ui/tag";
-import { FormGrid } from "@/components/ui/form-grid";
-import { StickyActionBar } from "@/components/ui/sticky-action-bar";
+import { Button, Field, Input, TypeChip, fieldBox, fieldEdge } from "@/components/kit";
+import { cn } from "@/lib/utils";
 
 // Spec S2 — supplier-attested editor client island. Controlled inputs for
 // all 9 editable keys; chip-style capabilities; partial patch on submit.
@@ -165,212 +162,125 @@ export function SupplierProfileForm({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Supplier-attested details</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={submit} className="space-y-5">
-          <div>
-            <label
-              htmlFor="s2-tagline"
-              className="block text-xs font-medium text-ink-secondary"
-            >
-              Tagline
-            </label>
-            <input
-              id="s2-tagline"
+    <section aria-labelledby="attested-title" className="rounded-md border border-line p-5">
+      <h2 id="attested-title" className="text-md font-semibold text-ink">
+        Supplier-attested details
+      </h2>
+      <form onSubmit={submit} className="mt-4 flex flex-col gap-5">
+        <Field label="Tagline" help={`${tagline.length}/${MAX_TAGLINE}`}>
+          {(a) => (
+            <Input
+              {...a}
               type="text"
               maxLength={MAX_TAGLINE}
               value={tagline}
               onChange={(e) => setTagline(e.target.value)}
-              className="mt-1 w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm text-ink-primary focus:outline-none focus:ring-1 focus:ring-accent-indigo"
               placeholder="One-line positioning, e.g. 'Knitwear, premium quality, MOQ 500'"
             />
-            <p className="mt-1 text-xs text-ink-tertiary">
-              {tagline.length}/{MAX_TAGLINE}
-            </p>
-          </div>
+          )}
+        </Field>
 
-          <div>
-            <label
-              htmlFor="s2-about"
-              className="block text-xs font-medium text-ink-secondary"
-            >
-              About
-            </label>
+        <Field label="About" help={`${about.length}/${MAX_ABOUT}`}>
+          {(a) => (
             <textarea
-              id="s2-about"
+              {...a}
               rows={6}
               maxLength={MAX_ABOUT}
               value={about}
               onChange={(e) => setAbout(e.target.value)}
-              className="mt-1 w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm text-ink-primary focus:outline-none focus:ring-1 focus:ring-accent-indigo"
+              className={cn(fieldBox, fieldEdge, "px-2.5 py-2 text-base")}
               placeholder="Company narrative, sustainability story, machinery overview, buyer references…"
             />
-            <p className="mt-1 text-xs text-ink-tertiary">
-              {about.length}/{MAX_ABOUT}
-            </p>
-          </div>
+          )}
+        </Field>
 
-          <FormGrid cols="profile">
-            <div>
-              <label
-                htmlFor="s2-moq"
-                className="block text-xs font-medium text-ink-secondary"
-              >
-                MOQ (pieces)
-              </label>
-              <input
-                id="s2-moq"
-                type="number"
-                min={0}
-                value={moq}
-                onChange={(e) => setMoq(e.target.value)}
-                className="mt-1 w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm text-ink-primary focus:outline-none focus:ring-1 focus:ring-accent-indigo"
-                placeholder="e.g. 500"
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="s2-lead"
-                className="block text-xs font-medium text-ink-secondary"
-              >
-                Lead time (days, 0–{MAX_LEAD})
-              </label>
-              <input
-                id="s2-lead"
-                type="number"
-                min={0}
-                max={MAX_LEAD}
-                value={lead}
-                onChange={(e) => setLead(e.target.value)}
-                className="mt-1 w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm text-ink-primary focus:outline-none focus:ring-1 focus:ring-accent-indigo"
-                placeholder="e.g. 60"
-              />
-            </div>
-          </FormGrid>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="MOQ (pieces)">
+            {(a) => <Input {...a} type="number" min={0} value={moq} onChange={(e) => setMoq(e.target.value)} placeholder="e.g. 500" />}
+          </Field>
+          <Field label={`Lead time (days, 0–${MAX_LEAD})`}>
+            {(a) => <Input {...a} type="number" min={0} max={MAX_LEAD} value={lead} onChange={(e) => setLead(e.target.value)} placeholder="e.g. 60" />}
+          </Field>
+        </div>
 
-          <div>
-            <span className="block text-xs font-medium text-ink-secondary">
-              Capabilities (≤ {MAX_CAPS})
-            </span>
-            <div className="mt-2 flex flex-wrap gap-2">
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-ink">Capabilities (≤ {MAX_CAPS})</span>
+          {capabilities.length > 0 ? (
+            <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
               {capabilities.map((c) => (
-                <Tag key={c}>
-                  <span>{c}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeCap(c)}
-                    aria-label={`Remove ${c}`}
-                    className="ml-1 text-ink-tertiary hover:text-sem-red"
-                  >
-                    ×
-                  </button>
-                </Tag>
+                <li key={c}>
+                  <TypeChip className="gap-1 pr-1">
+                    <span>{c}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeCap(c)}
+                      aria-label={`Remove ${c}`}
+                      className="flex size-5 items-center justify-center rounded-sm text-ink-3 outline-none hover:text-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
+                    >
+                      ×
+                    </button>
+                  </TypeChip>
+                </li>
               ))}
-            </div>
-            <div className="mt-2 flex gap-2">
-              <input
-                type="text"
-                value={capDraft}
-                onChange={(e) => setCapDraft(e.target.value)}
-                onKeyDown={onCapKey}
-                maxLength={MAX_CAP_LEN}
-                className="flex-1 rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm text-ink-primary focus:outline-none focus:ring-1 focus:ring-accent-indigo"
-                placeholder="Add a capability (Enter to add)"
-              />
-              <Button type="button" variant="outline" size="sm" onClick={addCapability}>
-                Add
-              </Button>
-            </div>
-            <p className="mt-1 text-xs text-ink-tertiary">
-              {capabilities.length}/{MAX_CAPS} · each ≤ {MAX_CAP_LEN} chars
-            </p>
-          </div>
-
-          <FormGrid cols="profile">
-            <div>
-              <label
-                htmlFor="s2-cname"
-                className="block text-xs font-medium text-ink-secondary"
-              >
-                Contact name
-              </label>
-              <input
-                id="s2-cname"
-                type="text"
-                maxLength={MAX_CONTACT_NAME}
-                value={contactName}
-                onChange={(e) => setContactName(e.target.value)}
-                className="mt-1 w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm text-ink-primary focus:outline-none focus:ring-1 focus:ring-accent-indigo"
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="s2-crole"
-                className="block text-xs font-medium text-ink-secondary"
-              >
-                Contact role
-              </label>
-              <input
-                id="s2-crole"
-                type="text"
-                maxLength={MAX_CONTACT_ROLE}
-                value={contactRole}
-                onChange={(e) => setContactRole(e.target.value)}
-                className="mt-1 w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm text-ink-primary focus:outline-none focus:ring-1 focus:ring-accent-indigo"
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="s2-cemail"
-                className="block text-xs font-medium text-ink-secondary"
-              >
-                Contact email
-              </label>
-              <input
-                id="s2-cemail"
-                type="email"
-                value={contactEmail}
-                onChange={(e) => setContactEmail(e.target.value)}
-                className="mt-1 w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm text-ink-primary focus:outline-none focus:ring-1 focus:ring-accent-indigo"
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="s2-cphone"
-                className="block text-xs font-medium text-ink-secondary"
-              >
-                Contact phone
-              </label>
-              <input
-                id="s2-cphone"
-                type="text"
-                maxLength={MAX_CONTACT_PHONE}
-                value={contactPhone}
-                onChange={(e) => setContactPhone(e.target.value)}
-                className="mt-1 w-full rounded-input border border-hairline bg-bg-l0 px-3 py-2 text-sm text-ink-primary focus:outline-none focus:ring-1 focus:ring-accent-indigo"
-              />
-            </div>
-          </FormGrid>
-
-          {error ? <p className="text-xs text-sem-red">{error}</p> : null}
-          {info ? <p className="text-xs text-sem-green">{info}</p> : null}
-
-          <p className="text-xs text-ink-tertiary">
-            Your edits never overwrite the register record above. Buyers see
-            your supplier-attested values when the register does not publish
-            the field; otherwise the register wins.
-          </p>
-
-          <StickyActionBar>
-            <Button type="submit" variant="primary" disabled={pending}>
-              {pending ? "Saving…" : "Save profile"}
+            </ul>
+          ) : null}
+          <div className="flex gap-2">
+            <Input
+              type="text"
+              aria-label="Add a capability"
+              value={capDraft}
+              onChange={(e) => setCapDraft(e.target.value)}
+              onKeyDown={onCapKey}
+              maxLength={MAX_CAP_LEN}
+              placeholder="Add a capability (Enter to add)"
+            />
+            <Button kind="secondary" onClick={addCapability}>
+              Add
             </Button>
-          </StickyActionBar>
-        </form>
-      </CardContent>
-    </Card>
+          </div>
+          <p className="text-xs text-ink-3">
+            {capabilities.length}/{MAX_CAPS} · each ≤ {MAX_CAP_LEN} chars
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Contact name">
+            {(a) => <Input {...a} type="text" maxLength={MAX_CONTACT_NAME} value={contactName} onChange={(e) => setContactName(e.target.value)} />}
+          </Field>
+          <Field label="Contact role">
+            {(a) => <Input {...a} type="text" maxLength={MAX_CONTACT_ROLE} value={contactRole} onChange={(e) => setContactRole(e.target.value)} />}
+          </Field>
+          <Field label="Contact email">
+            {(a) => <Input {...a} type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} />}
+          </Field>
+          <Field label="Contact phone">
+            {(a) => <Input {...a} type="text" maxLength={MAX_CONTACT_PHONE} value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} />}
+          </Field>
+        </div>
+
+        {error ? (
+          <p role="alert" className="text-sm text-danger">
+            {error}
+          </p>
+        ) : null}
+        {info ? (
+          <p role="status" className="text-sm font-medium text-brand">
+            {info}
+          </p>
+        ) : null}
+
+        <p className="text-xs text-ink-3">
+          Your edits never overwrite the register record above. Buyers see
+          your supplier-attested values when the register does not publish
+          the field; otherwise the register wins.
+        </p>
+
+        <div>
+          <Button type="submit" kind="primary" loading={pending} loadingLabel="Saving…">
+            Save profile
+          </Button>
+        </div>
+      </form>
+    </section>
   );
 }

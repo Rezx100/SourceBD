@@ -10,7 +10,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { Button } from "@/components/kit";
+import { Bubble, DateLine } from "@/components/patterns";
+import { bubbleMeta, dayGroups } from "@/components/messages/words";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { cn } from "@/lib/utils";
 
 export type ThreadMessage = {
   id: string;
@@ -26,9 +30,12 @@ const MAX_BODY = 8000;
 export function ThreadRealtime({
   threadId,
   initialMessages,
+  today,
 }: {
   threadId: string;
   initialMessages: ThreadMessage[];
+  /** The server's "now", so a day line says "Today" the same way on the server and in the browser. */
+  today: string;
 }) {
   const [messages, setMessages] = useState<ThreadMessage[]>(initialMessages);
   const [draft, setDraft] = useState("");
@@ -115,48 +122,49 @@ export function ThreadRealtime({
     [draft, sending, threadId, refetch],
   );
 
+
+  const now = new Date(today);
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-[322px] flex-1 overflow-y-auto bg-bg-l0 px-4 py-4">
-        {messages.length === 0 ? (
-          <p className="py-8 text-center text-[13px] text-ink-tertiary">
-            No messages yet. Send the first one below.
-          </p>
-        ) : (
-          <ul className="m-0 flex list-none flex-col gap-2 p-0">
-            {messages.map((m) => (
-              <li
-                key={m.id}
-                className={
-                  m.is_self
-                    ? "flex flex-col items-end"
-                    : "flex flex-col items-start"
-                }
-              >
-                <div
-                  className={
-                    m.is_self
-                      ? "max-w-[80%] rounded-2xl rounded-br-sm bg-brand-forest px-3.5 py-2 text-[14px] text-white shadow-sm"
-                      : "max-w-[80%] rounded-2xl rounded-bl-sm border border-hairline bg-surface-l1 px-3.5 py-2 text-[14px] text-ink-primary shadow-sm"
-                  }
-                >
-                  <p className="m-0 whitespace-pre-wrap break-words">
-                    {m.body}
-                  </p>
-                </div>
-                <span className="mt-1 font-mono text-[12px] text-ink-tertiary">
-                  {fmtTime(m.created_at)}
-                </span>
-              </li>
-            ))}
-            <div ref={listEndRef} />
-          </ul>
-        )}
+      <div className="min-h-[322px] flex-1 overflow-y-auto bg-subtle">
+        <div className="flex min-h-full flex-col gap-3 p-5 max-md:p-4">
+          {messages.length === 0 ? (
+            <p className="m-0 py-6 text-center text-base text-ink-3">
+              No messages yet. Send the first one below.
+            </p>
+          ) : (
+            dayGroups(messages, now).map((g, i) => (
+              <div key={`${g.day}-${i}`} className="flex flex-col gap-3">
+                <DateLine>{g.day}</DateLine>
+                {g.messages.map((m) => {
+                  const meta = bubbleMeta(m, "Buyer");
+                  return (
+                    <Bubble
+                      key={m.id}
+                      from={m.is_self ? "you" : "them"}
+                      meta={
+                        <time dateTime={m.created_at} title={`${meta.time} UTC`}>
+                          {meta.full}
+                        </time>
+                      }
+                    >
+                      <span className="whitespace-pre-wrap [overflow-wrap:anywhere]">
+                        {m.body}
+                      </span>
+                    </Bubble>
+                  );
+                })}
+              </div>
+            ))
+          )}
+          <div ref={listEndRef} />
+        </div>
       </div>
 
       <form
         onSubmit={onSend}
-        className="border-t border-hairline bg-surface-l1 p-3"
+        className="flex shrink-0 flex-col gap-1.5 border-t border-line bg-surface px-5 py-3 max-md:px-3"
       >
         <label htmlFor="thread-composer" className="sr-only">
           Message
@@ -169,35 +177,34 @@ export function ThreadRealtime({
           rows={3}
           maxLength={MAX_BODY}
           disabled={sending}
-          className="block w-full resize-y rounded-md border border-hairline-strong bg-bg-l0 px-3 py-2 font-sans text-[14px] text-ink-primary placeholder:text-ink-tertiary focus:border-brand-forest focus:bg-surface-l1 focus:outline-none focus:ring-2 focus:ring-brand-forest/15 disabled:opacity-50"
+          aria-invalid={error ? true : undefined}
+          className={cn(
+            "block max-h-[9.5rem] min-h-8 w-full resize-y rounded-sm border border-line-strong bg-surface px-2.5 py-1.5 text-base text-ink outline-none placeholder:text-ink-3 hover:border-ink-3 disabled:bg-sunken",
+            "focus:border-brand focus:[box-shadow:inset_0_0_0_1px_theme(colors.brand)] aria-[invalid=true]:border-danger",
+          )}
         />
-        <div className="mt-2 flex items-center justify-between gap-3">
-          <span className="font-mono text-[12px] text-ink-tertiary">
-            {draft.trim().length}/{MAX_BODY}
+        <div className="flex items-center justify-between gap-3">
+          <p className="m-0 flex flex-wrap items-center gap-x-3 text-xs text-ink-3 tabular-nums">
+            <span>
+              {draft.trim().length}/{MAX_BODY}
+            </span>
             {error ? (
-              <span className="ml-2 text-sem-red">· {error}</span>
+              <span role="alert" className="text-danger">
+                {error}
+              </span>
             ) : null}
-          </span>
-          <button
+          </p>
+          <Button
             type="submit"
-            disabled={sending || draft.trim().length === 0}
-            className="inline-flex items-center rounded-pill bg-brand-forest px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-forest-mid disabled:cursor-not-allowed disabled:opacity-50"
+            kind="primary"
+            loading={sending}
+            loadingLabel="Sending…"
+            disabled={draft.trim().length === 0 && !sending}
           >
-            {sending ? "Sending…" : "Send"}
-          </button>
+            Send
+          </Button>
         </div>
       </form>
     </div>
   );
-}
-
-function fmtTime(iso: string) {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
 }
