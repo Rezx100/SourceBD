@@ -72,7 +72,7 @@ export function ProductSheet({
             </div>
             <Caption className="mt-2 block">
               {PHOTO_CAPTION} {model.hs}
-              {model.generatedOn ? `, generated ${model.generatedOn}` : ""}. Not the supplier&apos;s own product; a
+              {model.generatedOn ? `, generated ${model.generatedOn}` : ""}. Not the supplier&apos;s own product;
               a photo from the supplier replaces it once they upload one.
             </Caption>
           </div>
