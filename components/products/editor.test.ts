@@ -14,6 +14,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { emptyProduct, fromProduct, type ProductValues } from "@/components/product-form-model";
 import { OPTIONAL_LINES, SECTIONS, changedLabels, editLine, footButtons, hasContent, openSections, refusal } from "./edit";
 import { releaseFile, saveProduct, uploadMedia, type Fetch } from "./transport";
+import { FULL_EDITOR_LABEL, detailsPayload, viewCounts, viewFacts } from "./view";
 
 const ID = "11111111-1111-4111-8111-111111111111";
 const saved = (over: Record<string, unknown> = {}): ProductValues =>
@@ -242,5 +243,57 @@ describe("/app/products/[id]", () => {
   it("no loading boundary sits above the edit page, so its 404 is a status code", () => {
     for (const dir of ["", "[id]"]) assert.ok(!existsSync(path.join(process.cwd(), "app", "(app)", "app", "products", dir, "loading.tsx")), `products/${dir}/loading.tsx puts the edit page behind a Suspense boundary`);
     assert.ok(existsSync(path.join(process.cwd(), "app", "(app)", "app", "products", "(list)", "loading.tsx")), "the list lost its loading state");
+  });
+});
+
+describe("the phone's Product view", () => {
+  it("says what is set and 'Not set' for what is not; the sections it does not edit are counted", () => {
+    const facts = Object.fromEntries(viewFacts(saved({ tags: ["SS27", "organic"] })).map((x) => [x.label, x.value]));
+    assert.equal(facts["Style number"], "NW-702");
+    assert.equal(facts["Target price"], "US$8.90 per piece");
+    assert.equal(facts["MOQ"], "1,200 pieces");
+    assert.equal(facts["Tags"], "SS27, organic");
+    assert.equal(facts["Main material"], null);
+    const counts = Object.fromEntries(viewCounts(saved({ variants: { options: [{ name: "Waist", values: ["28", "30"] }], rows: [] } })).map((x) => [x.label, x.value]));
+    assert.equal(counts["Size chart"], "None yet");
+    assert.equal(counts["Materials"], "None yet");
+  });
+
+  it("the sheet's save keeps the status and everything it does not show, and refuses what the editor refuses", () => {
+    const p = saved({ status: "archived" });
+    const d = detailsPayload({ ...p, tags: ["SS27"], media: [{ url: "https://x.test/a.jpg", kind: "image" }] }, { name: "  New name ", product_number: "", price_usd: "9.5", moq: "1500", main_material: "Cotton", description: "" });
+    assert.ok("payload" in d);
+    assert.equal(d.payload.name, "New name");
+    assert.equal(d.payload.status, "archived", "an archived product stays archived");
+    assert.deepEqual(d.payload.tags, ["SS27"]);
+    assert.equal(d.payload.media.length, 1);
+    assert.equal(d.payload.product_number, null);
+    assert.equal(d.payload.moq, 1500);
+    const bad = detailsPayload(p, { name: "", product_number: "", price_usd: "x", moq: "1.5", main_material: "", description: "" });
+    assert.ok("errors" in bad && bad.errors.name && bad.errors.price_usd && bad.errors.moq);
+  });
+
+  it("/app/products/[id] on a phone is the read-only view with Edit details, Send RFQ for an active product only, and the way to the full editor", async () => {
+    answer = { data: { id: ID, name: "Crew socks", status: "active", price_usd: 1.2, updated_at: "2026-09-26T10:00:00Z" }, error: null };
+    const r = await edit();
+    assert.ok("html" in r);
+    assert.match(r.html, /aria-label="Product view"[^>]*class="[^"]*md:hidden/);
+    assert.match(text(r.html), /Edit details/);
+    assert.match(text(r.html), /Target price US\$1\.20 per piece/);
+    assert.match(text(r.html), /Style number Not set/);
+    assert.ok(r.html.includes(`href="/app/products/${ID}?edit=full"`));
+    assert.match(text(r.html), new RegExp(FULL_EDITOR_LABEL));
+    assert.match(r.html, /<form[^>]*aria-label="Product"/, "from 768 the editor is still the page");
+    answer = { data: { id: ID, name: "Crew socks", status: "draft" }, error: null };
+    const draft = await edit();
+    assert.ok("html" in draft && !draft.html.includes("/app/rfqs/new"), "a draft offers no Send RFQ in the view either");
+  });
+
+  it("?edit=full is the editor alone, on every width", async () => {
+    answer = { data: { id: ID, name: "Crew socks", status: "draft" }, error: null };
+    const r = await outcome(() => Edit()({ params: Promise.resolve({ id: ID }), searchParams: Promise.resolve({ edit: "full" }) }));
+    assert.ok("html" in r);
+    assert.doesNotMatch(r.html, /aria-label="Product view"/);
+    assert.match(r.html, /<form[^>]*aria-label="Product"/);
   });
 });
