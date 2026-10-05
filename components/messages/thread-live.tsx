@@ -17,6 +17,7 @@
 
 import { Paperclip, X } from "@phosphor-icons/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Bubble, DateLine, FileChip } from "@/components/patterns";
 import { Button, IconButton } from "@/components/kit";
@@ -97,6 +98,7 @@ export function ThreadLive({
   readFailed?: boolean;
 }) {
   const composerId = useId();
+  const router = useRouter();
   const [messages, setMessages] = useState<ThreadMessage[]>(initialMessages);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
@@ -122,12 +124,18 @@ export function ThreadLive({
       return;
     }
     unreadWaiting.current = false;
+    // The layout is not redrawn by a client navigation, so the sidebar's "N new" (row 24) and the
+    // inbox's dots are asked again once the server has the new read marker.
     void fetch("/api/v1/messages", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ action: "read", thread_id: threadId }),
-    }).catch(() => {});
-  }, [threadId]);
+    })
+      .then((res) => {
+        if (res.ok) router.refresh();
+      })
+      .catch(() => {});
+  }, [threadId, router]);
   useEffect(() => {
     if (!readFailed) markRead();
     const onShow = () => {
