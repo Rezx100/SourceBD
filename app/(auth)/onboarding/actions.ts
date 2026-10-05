@@ -80,6 +80,10 @@ export async function saveSource(_prev: StepState, fd: FormData): Promise<StepSt
   if (saved.error) return { error: NOT_SAVED };
   // The flow is done once the answers are in: from here the person is a buyer with a search, not a
   // newcomer. A failure to say so only means the first-run page may be offered again, never a lost answer.
-  await s.sb.rpc("profile_onboarding_set", { p_key: "buyer_flow_done_at", p_value: new Date().toISOString() }).catch(() => null);
+  try {
+    await s.sb.rpc("profile_onboarding_set", { p_key: "buyer_flow_done_at", p_value: new Date().toISOString() });
+  } catch {
+    // The query builder is a thenable, not a promise: a try, not a .catch, keeps a failure here from losing the redirect.
+  }
   redirect(firstResultsHref(hs, certs.filter(isCertKind) as CertKind[]));
 }

@@ -53,6 +53,7 @@ const CATALOGUE = [
     from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: profile }) }) }) }),
     rpc: async (fn: string, args?: unknown) => {
       calls.push({ fn, args });
+      if ((answers[fn] as { throws?: boolean } | undefined)?.throws) throw new Error("network");
       return answers[fn] ?? { data: null, error: null };
     },
   };
@@ -313,8 +314,10 @@ describe("saveSource", () => {
     assert.equal(calls.some((c) => c.fn === "profile_onboarding_set"), false);
   });
 
-  it("a flow that cannot be marked done still lands on the results: the answers are in", async () => {
+  it("a flow that cannot be marked done, by an error or a throw, still lands on the results: the answers are in", async () => {
     answers.profile_onboarding_set = { data: null, error: { message: "boom" } };
+    assert.match((await redirectOf(() => act()({}, form({ hs: "6109" })))) ?? "", /^\/app\/discover/);
+    answers.profile_onboarding_set = { data: null, error: null, throws: true } as never;
     assert.match((await redirectOf(() => act()({}, form({ hs: "6109" })))) ?? "", /^\/app\/discover/);
   });
 });
