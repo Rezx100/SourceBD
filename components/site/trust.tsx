@@ -358,7 +358,7 @@ export function ForSuppliers({ facts }: { facts: SiteFacts }) {
         <div className="grid max-w-[900px] gap-8 md:grid-cols-2">
           <div className="flex flex-col gap-2">
             <h3 className="text-base font-semibold text-ink">You can</h3>
-            <p className="text-md text-ink-2">Reply to buyers' RFQs and messages, and report a fact that is out of date.</p>
+            <p className="text-md text-ink-2">Reply to buyers&apos; RFQs and messages, and report a fact that is out of date.</p>
           </div>
           <div className="flex flex-col gap-2">
             <h3 className="text-base font-semibold text-ink">Only the source can change</h3>
