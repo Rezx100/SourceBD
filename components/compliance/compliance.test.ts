@@ -381,6 +381,17 @@ describe("/app/compliance", () => {
     assert.doesNotMatch(out, /Download evidence|sanctions lists|Continue the draft/);
   });
 
+  it("offers the evidence pack whenever the saved count was read (header on a desktop, over the cards on a phone), and not otherwise", async () => {
+    given({ ...ROWS, compliance_uflpa_tracker: UFL, compliance_msa_inputs: MSA });
+    const out = await hub();
+    assert.equal(out.match(/>Download an evidence pack</g)?.length, 2, "the header's and the phone's");
+    assert.ok(out.indexOf(">Download an evidence pack<") < out.indexOf("Needs attention"), "above the list");
+    given({ ...ROWS, compliance_uflpa_tracker: UFL, compliance_msa_inputs: { data: null, error: { message: "down" } } });
+    assert.doesNotMatch(await hub(), /evidence pack/i, "the pack covers the saved suppliers; without their count it is not offered");
+    given({ ...ROWS, compliance_uflpa_tracker: UFL, compliance_msa_inputs: { data: { total_saved: 0, total_published: 0, rsc_covered: 0, expiring_certs_90d: 0 }, error: null } });
+    assert.doesNotMatch(await hub(), /evidence pack/i, "nothing saved, nothing to put in a pack");
+  });
+
   it("one certificate read failing says so and still lists the other; both failing is an error, never 'Nothing needs attention'", async () => {
     given({ compliance_expired_certs: { data: null, error: { message: "no function" } }, compliance_expiring_certs: ROWS.compliance_expiring_certs, compliance_uflpa_tracker: UFL, compliance_msa_inputs: MSA });
     const partial = await hub();
