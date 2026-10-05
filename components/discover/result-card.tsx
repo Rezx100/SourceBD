@@ -25,8 +25,8 @@ import {
   MapPin,
 } from "@phosphor-icons/react/dist/ssr";
 
-import { CompanyAvatar } from "@/components/supplier/company-avatar";
-import { ProductIcon } from "@/components/supplier/product-icon";
+import { CompanyAvatar } from "@/components/discover/company-avatar";
+import { ProductIcon } from "@/components/discover/product-icon";
 import { ENTITY_TYPES } from "@/components/discover/filter-rail";
 import { establishedYear } from "@/lib/established";
 import { formatCompanyName } from "@/lib/format-company-name";

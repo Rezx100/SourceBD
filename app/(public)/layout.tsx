@@ -6,7 +6,7 @@
 // redirects. With no boundary above it, the page's miss handling emits the
 // real 404/308 on the wire.
 
-import { MarketingChrome, marketingMetadata } from "@/components/marketing/chrome";
+import { MarketingChrome, marketingMetadata } from "@/components/site/chrome";
 
 export const metadata = marketingMetadata;
 
