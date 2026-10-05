@@ -699,7 +699,10 @@ describe("/app/discover — the panes beside the results", () => {
     assert.match(out, /<input\b(?=[^>]*\sname="name")(?=[^>]*\svalue="[^"]+")[^>]*>/);
     assert.match(out, /Save search/);
     assert.match(out, /Cancel/);
-    assert.doesNotMatch(out, /Tell me about new matches/, "no alert is stored or sent, so none is promised");
+    // The fake database answers the `alert_weekly` probe (0113 is applied), so the switch is offered, off until chosen.
+    assert.match(out, /<input\b(?=[^>]*\srole="switch")(?![^>]*\schecked="")[^>]*>/);
+    assert.match(out, /Tell me about new matches/);
+    assert.match(out, /One email on Monday, only when something new matches/);
     assert.doesNotMatch(out, /data-record-pane=""[^>]*aria-label="Save this search"/, "it is not a pane any more");
     assert.match(out, /<table\b/, "the results are still the full table beside it");
     // The composer wins over the other panes; one pane at a time.
