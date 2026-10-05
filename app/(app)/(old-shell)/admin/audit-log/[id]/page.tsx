@@ -5,16 +5,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import {
-  AdminActionLink,
-  AdminPage,
-  AdminPageHeader,
-  AdminPanel,
+  AdminColumn,
+  AdminHead,
+  AdminSection,
+  JsonBlock,
   formatAdminDateTime,
   humanizeAdminToken,
-} from "@/components/admin/admin-ui";
-import { Badge } from "@/components/ui/badge";
-import { Tag } from "@/components/ui/tag";
+} from "@/components/admin/data-ui";
+import { ButtonLink, InlineError, TypeChip, linkClass } from "@/components/kit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -54,15 +54,15 @@ export default async function AdminAuditLogDrilldownPage({
       notFound();
     }
     return (
-      <AdminPage maxWidth="4xl">
-        <AdminActionLink href="/admin/audit-log">Back to audit log</AdminActionLink>
-        <AdminPanel>
-          <p className="text-sm text-sem-red">
-            Could not load audit row
-            {error?.message ? <>: {error.message}</> : null}.
-          </p>
-        </AdminPanel>
-      </AdminPage>
+      <AdminColumn narrow>
+        <div>
+          <ButtonLink href="/admin/audit-log">Back to audit log</ButtonLink>
+        </div>
+        <InlineError>
+          Could not load audit row
+          {error?.message ? <>: {error.message}</> : null}.
+        </InlineError>
+      </AdminColumn>
     );
   }
 
@@ -70,67 +70,53 @@ export default async function AdminAuditLogDrilldownPage({
   const href = targetHref(row.target_table, row.target_id);
 
   return (
-    <AdminPage maxWidth="4xl">
-      <AdminPageHeader
-        kicker="Admin · Audit"
+    <AdminColumn narrow>
+      <AdminHead
         title={humanizeAdminToken(row.action)}
-        description={<span className="font-mono text-xs">{formatAdminDateTime(row.created_at)} · id {row.id}</span>}
-        actions={<AdminActionLink href="/admin/audit-log">Back to audit log</AdminActionLink>}
+        lede={
+          <span className="font-mono text-sm">
+            {formatAdminDateTime(row.created_at)} · id {row.id}
+          </span>
+        }
+        actions={<ButtonLink href="/admin/audit-log">Back to audit log</ButtonLink>}
       />
 
-      <AdminPanel title="Actor" description="Admin who performed the action.">
+      <AdminSection title="Actor" description="Admin who performed the action.">
+        <div className="flex flex-col gap-2">
           <p>
-            <span className="font-mono text-xs">{row.actor.email || row.actor.id}</span>
+            <span className="font-mono text-sm text-ink">{row.actor.email || row.actor.id}</span>
           </p>
           {row.actor.role ? (
             <p>
-              <Badge tone="alert">{humanizeAdminToken(row.actor.role)}</Badge>
+              <TypeChip>{humanizeAdminToken(row.actor.role)}</TypeChip>
             </p>
           ) : null}
-      </AdminPanel>
+        </div>
+      </AdminSection>
 
-      <AdminPanel title="Target" meta={humanizeAdminToken(row.target_table)}>
+      <AdminSection title="Target" meta={humanizeAdminToken(row.target_table)}>
+        <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <Tag>{humanizeAdminToken(row.target_table)}</Tag>
+            <TypeChip>{humanizeAdminToken(row.target_table)}</TypeChip>
             {href && row.target_id ? (
-              <Link
-                href={href}
-                className="font-mono text-xs text-accent-indigo hover:underline"
-              >
+              <Link href={href} className={cn(linkClass, "font-mono text-sm")}>
                 {row.target_label || row.target_id}
               </Link>
             ) : (
-              <span className="font-mono text-xs">
-                {row.target_label || row.target_id || "—"}
-              </span>
+              <span className="font-mono text-sm text-ink">{row.target_label || row.target_id || "—"}</span>
             )}
           </div>
-          {row.target_id ? (
-            <p className="font-mono text-[12px] text-ink-tertiary">
-              id {row.target_id}
-            </p>
-          ) : null}
-      </AdminPanel>
+          {row.target_id ? <p className="font-mono text-xs text-ink-3">id {row.target_id}</p> : null}
+        </div>
+      </AdminSection>
 
-      <AdminPanel title="Patch" description="Field-by-field diff.">
-          {row.patch == null ? (
-            <p className="text-sm text-ink-tertiary">No patch payload.</p>
-          ) : (
-            <pre className="overflow-x-auto rounded-input border border-hairline bg-bg-l0 p-3 font-mono text-[12px] text-ink-primary">
-              {JSON.stringify(row.patch, null, 2)}
-            </pre>
-          )}
-      </AdminPanel>
+      <AdminSection title="Patch" description="Field-by-field diff.">
+        {row.patch == null ? <p className="text-base text-ink-3">No patch payload.</p> : <JsonBlock value={row.patch} />}
+      </AdminSection>
 
-      <AdminPanel title="Metadata" description="Context captured at write time.">
-          {row.metadata == null ? (
-            <p className="text-sm text-ink-tertiary">No metadata.</p>
-          ) : (
-            <pre className="overflow-x-auto rounded-input border border-hairline bg-bg-l0 p-3 font-mono text-[12px] text-ink-primary">
-              {JSON.stringify(row.metadata, null, 2)}
-            </pre>
-          )}
-      </AdminPanel>
-    </AdminPage>
+      <AdminSection title="Metadata" description="Context captured at write time.">
+        {row.metadata == null ? <p className="text-base text-ink-3">No metadata.</p> : <JsonBlock value={row.metadata} />}
+      </AdminSection>
+    </AdminColumn>
   );
 }
