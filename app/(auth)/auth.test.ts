@@ -191,6 +191,9 @@ describe("the words", () => {
     assert.equal(loginRedirectSearch("/app/saved", "?sort=name", ["theme"]), "?next=%2Fapp%2Fsaved%3Fsort%3Dname");
     assert.equal(loginRedirectSearch("/app/saved", "", ["sb-abc-auth-token.0"]), "?next=%2Fapp%2Fsaved&reason=session");
     assert.equal(loginRedirectSearch("/app", "", []), "?next=%2Fapp");
+    assert.equal(loginRedirectSearch("/app/saved", "", ["sb-abc-auth-token.0", "sb-abc-auth-token.1"]), "?next=%2Fapp%2Fsaved&reason=session", "a chunked session cookie counts");
+    // Asking for an email link leaves this on someone who was never signed in.
+    assert.equal(loginRedirectSearch("/app", "", ["sb-abc-auth-token-code-verifier"]), "?next=%2Fapp");
   });
 });
 
