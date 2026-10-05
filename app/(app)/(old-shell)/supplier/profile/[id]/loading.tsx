@@ -1,5 +1,5 @@
-import { SupplierSkeleton } from "../../../skeletons";
+import { PaneSkeleton } from "@/components/kit";
 
 export default function SupplierProfileDetailLoading() {
-  return <SupplierSkeleton />;
+  return <PaneSkeleton className="mx-auto w-full max-w-3xl" />;
 }

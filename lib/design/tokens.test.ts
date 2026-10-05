@@ -129,7 +129,6 @@ const NOT_STYLES: Record<string, string> = {
 };
 /** The old pages (v3 and older) that still type colours. Delete an entry with its page (B4–B11). */
 const LEGACY_COLOURS = [
-  "app/(app)/(old-shell)/supplier/rfqs/[id]/page.tsx",
   "app/(marketing)/legal/cookies/page.tsx",
   "app/(marketing)/legal/data-sources/page.tsx",
   "app/(marketing)/legal/privacy/page.tsx",
