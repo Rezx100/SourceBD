@@ -1185,6 +1185,10 @@ const CASES = [
     path: "/product/records",
     expect: { status: 200, bodyIncludes: "Every fact, with its receipt." },
   },
+  { name: "site: /compliance (the guides) is 200", path: "/compliance", expect: { status: 200, bodyIncludes: "Compliance guides, in plain words." } },
+  { name: "site: /compliance/uflpa is 200", path: "/compliance/uflpa", expect: { status: 200, bodyIncludes: "On this page" } },
+  { name: "site: an unknown compliance guide -> 404", path: "/compliance/not-a-law", expect: { status: 404 } },
+  { name: "site: /status is 200 even when the read fails", path: "/status", expect: { status: 200, bodyIncludes: "System status" } },
   {
     name: "site: /pricing is 200 and says it is free during beta",
     path: "/pricing",
