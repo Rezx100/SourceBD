@@ -1608,23 +1608,20 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
     // `load-buyer-shell.test.ts`), the Compliance badge's two lists (B6c: the hub's own
     // count; a slow or failed read draws no badge) and Messages' unread total (row 24: both
     // started by the layout and not awaited, so the frame never waits on them), the "last active" stamp
-    // (gap 4: `profile_touch`, fire and forget) and the getting-started card's six reads (B8c: whether
-    // it was hidden and whether a source was opened, the saved and RFQ counts, the settings for the
-    // alerts and the template, and the team). The card reads inside a Suspense, beside the page, and
-    // none of it is the older shell's: the product tour that used to read the profile is gone. Nothing else.
+    // (gap 4: `profile_touch`, fire and forget) and the getting-started card's first read (B8c: the
+    // profile's state; this account has not been through the first-run steps, so the card reads no
+    // more: the saved and RFQ counts, the settings and the team are pinned in `first-session.test.ts`).
+    // The card reads inside a Suspense, beside the page, and none of it is the older shell's: the
+    // product tour that used to read the profile is gone. Nothing else.
     assert.equal(shellLoads, 1, "the buyer layout did not read its shell exactly once");
     assert.deepEqual(
       appReads,
       [
         "from profiles onboarding_state",
-        "from rfqs id",
-        "from saved_suppliers supplier_id",
         "rpc compliance_expired_certs",
         "rpc compliance_expiring_certs",
         "rpc profile_touch",
-        "rpc settings_get",
         "rpc thread_unread_total",
-        "rpc workspace_team",
       ],
       `the layouts around an /app page read more: ${appReads.join("; ")}`,
     );

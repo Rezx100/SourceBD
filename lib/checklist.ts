@@ -21,6 +21,8 @@ export type Facts = {
   invited: number | null;
   /** They hid the card. */
   dismissed: boolean;
+  /** They went through the first-run steps (`buyer_flow_done_at`): the card is for new accounts, not for buyers who were here before it existed. */
+  started: boolean;
 };
 
 export type Step = { key: StepKey; label: string; href: string; done: boolean; detail: string | null };
@@ -39,7 +41,7 @@ const STEPS: readonly { key: StepKey; label: string; href: string }[] = [
 
 /** Null when the card should not be drawn: hidden by the buyer, or every step done. */
 export function checklistOf(f: Facts): Checklist | null {
-  if (f.dismissed) return null;
+  if (f.dismissed || !f.started) return null;
   const done: Record<StepKey, boolean> = {
     save: f.saved !== null && f.saved >= SAVE_TARGET,
     source: f.sourceChecked === true,

@@ -23,7 +23,9 @@ export async function loadChecklistFacts(supabase: Client, userId: string): Prom
   const state = profile && !profile.error && profile.data && typeof profile.data.onboarding_state === "object" ? (profile.data.onboarding_state as Record<string, unknown> | null) : null;
   // Without the profile we know neither whether it was hidden nor whether a source was opened.
   if (!state && (!profile || profile.error)) return null;
-  if (state?.checklist_dismissed_at) return { saved: null, sourceChecked: null, rfqs: null, alertsOn: null, template: null, invited: null, dismissed: true };
+  // A buyer who never went through the first-run steps was here before the card existed: no card, and nothing more to read.
+  if (!state?.buyer_flow_done_at) return { saved: null, sourceChecked: null, rfqs: null, alertsOn: null, template: null, invited: null, dismissed: false, started: false };
+  if (state.checklist_dismissed_at) return { saved: null, sourceChecked: null, rfqs: null, alertsOn: null, template: null, invited: null, dismissed: true, started: true };
 
   const [saved, rfqs, settings, team] = await Promise.all([
     soft(() => supabase.from("saved_suppliers").select("supplier_id", { count: "exact", head: true })),
@@ -44,6 +46,7 @@ export async function loadChecklistFacts(supabase: Client, userId: string): Prom
     template: doc ? typeof doc.inquiry?.email_template === "string" && doc.inquiry.email_template.trim().length > 0 : null,
     invited: people,
     dismissed: false,
+    started: true,
   };
 }
 

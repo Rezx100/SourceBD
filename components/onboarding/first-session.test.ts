@@ -78,7 +78,7 @@ beforeEach(() => {
   rpcCalls = [];
   user = { id: "u1" };
   replies = {
-    "profiles.maybeSingle": { data: { onboarding_state: {} }, error: null },
+    "profiles.maybeSingle": { data: { onboarding_state: { buyer_flow_done_at: "2026-10-05T09:00:00Z" } }, error: null },
     "saved_suppliers.count": { count: 1, error: null },
     "rfqs.count": { count: 0, error: null },
     settings_get: { data: { notifications: { saved_alerts: true }, inquiry: { email_template: null } }, error: null },
@@ -90,7 +90,7 @@ beforeEach(() => {
 // What makes a step done
 // ---------------------------------------------------------------------------
 
-const FACTS: Facts = { saved: 1, sourceChecked: true, rfqs: 0, alertsOn: false, template: false, invited: 0, dismissed: false };
+const FACTS: Facts = { saved: 1, sourceChecked: true, rfqs: 0, alertsOn: false, template: false, invited: 0, dismissed: false, started: true };
 
 describe("the checklist's rules", () => {
   it("six steps in Paper's order, each done only on a fact that was read", () => {
@@ -108,13 +108,13 @@ describe("the checklist's rules", () => {
   });
 
   it("a fact that could not be read is not a tick and not a count", () => {
-    const c = checklistOf({ saved: null, sourceChecked: null, rfqs: null, alertsOn: null, template: null, invited: null, dismissed: false })!;
+    const c = checklistOf({ saved: null, sourceChecked: null, rfqs: null, alertsOn: null, template: null, invited: null, dismissed: false, started: true })!;
     assert.equal(c.done, 0);
     assert.equal(c.steps[0]!.detail, null);
   });
 
   it("each step is done by its own fact", () => {
-    const all = checklistOf({ saved: 3, sourceChecked: true, rfqs: 1, alertsOn: true, template: true, invited: 1, dismissed: false });
+    const all = checklistOf({ saved: 3, sourceChecked: true, rfqs: 1, alertsOn: true, template: true, invited: 1, dismissed: false, started: true });
     assert.equal(all, null, "every step done: the card is not drawn");
     for (const [over, i] of [[{ rfqs: 2 }, 2], [{ alertsOn: true }, 3], [{ template: true }, 4], [{ invited: 2 }, 5]] as const) {
       assert.equal(checklistOf({ ...FACTS, ...over })!.steps[i]!.done, true, JSON.stringify(over));
@@ -138,14 +138,20 @@ describe("the loader", () => {
     replies["rfqs.count"] = { count: 1, error: null };
     replies["workspace_team"] = { data: { members: [{}, {}], invites: [{}] }, error: null };
     replies.settings_get = { data: { notifications: { saved_alerts: true }, inquiry: { email_template: "Hello [supplier]" } }, error: null };
-    replies["profiles.maybeSingle"] = { data: { onboarding_state: { source_checked_at: "2026-10-05T10:00:00Z" } }, error: null };
+    replies["profiles.maybeSingle"] = { data: { onboarding_state: { buyer_flow_done_at: "2026-10-05T09:00:00Z", source_checked_at: "2026-10-05T10:00:00Z" } }, error: null };
     const c = (await load())!;
     assert.deepEqual(c.steps.map((s) => s.done), [false, true, true, true, true, true]);
     assert.equal(c.steps[0]!.detail, "2 saved");
   });
 
   it("a hidden card costs one read: nothing else is asked", async () => {
-    replies["profiles.maybeSingle"] = { data: { onboarding_state: { checklist_dismissed_at: "2026-10-05T10:00:00Z" } }, error: null };
+    replies["profiles.maybeSingle"] = { data: { onboarding_state: { buyer_flow_done_at: "2026-10-05T09:00:00Z", checklist_dismissed_at: "2026-10-05T10:00:00Z" } }, error: null };
+    assert.equal(await load(), null);
+    assert.deepEqual(calls, ["from profiles"]);
+  });
+
+  it("a buyer who never went through the first-run steps was here before the card: no card, one read", async () => {
+    replies["profiles.maybeSingle"] = { data: { onboarding_state: { tour_completed_at: "2026-08-01T00:00:00Z" } }, error: null };
     assert.equal(await load(), null);
     assert.deepEqual(calls, ["from profiles"]);
   });
@@ -201,7 +207,7 @@ describe("the card", () => {
     const Slot = mod("components/onboarding/checklist.js").ChecklistSlot as (p: { supabase: unknown; userId: string | null; variant: "sidebar" }) => Promise<ReactElement | null>;
     const sb = await mod("lib/supabase/server.js").createSupabaseServerClient();
     assert.match(await drawAsync((await Slot({ supabase: sb, userId: "u1", variant: "sidebar" }))!), /Getting started/);
-    replies["profiles.maybeSingle"] = { data: { onboarding_state: { checklist_dismissed_at: "x" } }, error: null };
+    replies["profiles.maybeSingle"] = { data: { onboarding_state: { buyer_flow_done_at: "x", checklist_dismissed_at: "x" } }, error: null };
     assert.equal(await Slot({ supabase: sb, userId: "u1", variant: "sidebar" }), null);
   });
 });
