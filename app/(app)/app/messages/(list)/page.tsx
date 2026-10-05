@@ -1,8 +1,8 @@
 // /app/messages: the buyer's inbox on the v4 frame (B6a, Paper `10 · Messages empty`, `11 ·
 // Messages`). The conversations in a 360 list (the whole width on a phone) with a search, an All
-// tab and, where it can be counted, a "No reply yet" tab; a conversation opens at
-// /app/messages/[id]. `thread_list` carries no text and no read state, so a row's last line comes
-// from `thread_messages` and no row is ever marked unread.
+// tab and, where `thread_list` carries 0112's keys, an Unread and a "No reply yet" tab; a
+// conversation opens at /app/messages/[id]. A row's last line and its unread mark come from
+// `thread_list` itself; on a database without 0112 there is no line and no mark.
 //
 // A failed `thread_list` is an error where the list was: "no conversations" is a claim about the
 // account that a failed read cannot make. In the `(list)` group so its loading state does not wrap
