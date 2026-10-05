@@ -51,3 +51,7 @@ not hold". Any gap named there and not listed above should be added here when it
 One spec per row (or per group that shares one table), in this order: the ones that change what a buyer can
 do (4, 9, 14, 8), then the ones that make existing screens complete (1, 2, 3, 12, 13), then the rest.
 Each spec names its migration; the migration is written and dry-run, and `--apply` waits for the founder.
+
+## Data side written (dry-run, not applied)
+
+- Row 4: `gap-04-team-and-roles.md`, migration `0111`. Sharing by role is 4b (Opus).

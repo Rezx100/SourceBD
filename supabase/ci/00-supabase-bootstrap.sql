@@ -18,6 +18,15 @@ create extension if not exists "citext";
 create extension if not exists "pg_trgm";
 create extension if not exists "unaccent";
 
+-- Supabase installs pgcrypto in `extensions`, and the token functions (0032,
+-- 0111) call it there by name. Here it lives in public, so forward to it.
+create schema if not exists extensions;
+grant usage on schema extensions to anon, authenticated, service_role;
+create or replace function extensions.gen_random_bytes(int) returns bytea
+language sql volatile as $$ select public.gen_random_bytes($1) $$;
+create or replace function extensions.digest(text, text) returns bytea
+language sql immutable as $$ select public.digest($1, $2) $$;
+
 do $$
 begin
   if not exists (select 1 from pg_roles where rolname = 'anon') then
