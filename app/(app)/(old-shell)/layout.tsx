@@ -1,190 +1,79 @@
-// The older app shell: the supplier portal (`/supplier`) and admin (`/admin`)
-// with the shared topbar + sidebar per `context/frontend-design-spec.md` §2.
-// Per-role sidebar slot list is resolved client-side by `Sidebar` from the
-// path. Auth enforcement lives in `middleware.ts` (placeholder in F2; real
-// Supabase session in F3). Sidebar badge counts are fetched here (server)
-// from existing RPCs (`buyer_dashboard` migration 0026, `admin_dashboard`
-// migration 0037, `settings_get`) so the client component stays pure render.
+// The layout of the two portals that are not the buyer app: admin (`/admin`) and the supplier portal (`/supplier`),
+// on the v4 portal frame (B10a). The frame is drawn ONCE around every page, so a navigation swaps only `<main>`;
+// the current item follows the URL on the client.
 //
-// It has a route group of its own, `(old-shell)`, so it wraps nothing else
-// (29 Sep 2026). As the whole `(app)` group's layout it ran these reads on
-// every full load of an /app page too — six calls from Amsterdam to the
-// database in California, three of them one after another — and then drew
-// nothing there: the buyer layout draws the buyer's shell and reads what it
-// shows.
-// Choosing from a request header cannot replace the group: a layout is not
-// re-rendered on a client navigation, so an admin following a link from an
-// /app page into /admin would keep what the first load chose.
+// Auth is enforced by `middleware.ts` and, for admin, again by `admin/layout.tsx`: nothing here is a gate. This
+// reads what the frame shows and nothing more: who is signed in (the account menu) and, for an admin, the four
+// queue counts beside the menu. Each read races a timeout, so a slow database draws the frame without the
+// figure (an unread count is absent, never 0) instead of holding the whole portal.
+//
+// The route group is still named `(old-shell)`; it goes with the last old-kit page (B11).
 
-import { Sidebar, type SidebarBadges } from "@/components/shell/sidebar";
-import { SidebarRail } from "@/components/shell/sidebar-rail";
-import { BottomTabBar } from "@/components/shell/bottom-tab-bar";
-import { Topbar } from "@/components/shell/topbar";
-import { SkipLink } from "@/components/ui/skip-link";
-import { PostHogProvider } from "@/lib/posthog/provider";
-import { ScrollToTop } from "@/components/shell/scroll-to-top";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { PortalFrame, type PortalBadges } from "@/components/frame/portal";
 import { getServerRole } from "@/lib/auth";
+import { PostHogProvider } from "@/lib/posthog/provider";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-type SettingsDoc = {
-  email: string | null;
-  display_name: string | null;
-  avatar_url: string | null;
-  plan_tier: string | null;
-};
-
-type BuyerDashboardDoc = {
-  saved_count?: number;
-  alerts?: unknown[];
-};
+type SettingsDoc = { email: string | null; display_name: string | null; avatar_url: string | null };
 
 type AdminDashboardDoc = {
-  suppliers?: { published?: number };
   queues?: {
     claims_pending?: number;
     sanctions_active?: number;
     verification_queue_total?: number;
     verification_queue_by_type?: Record<string, number>;
   };
-  generated_at?: string;
 };
 
-export default async function AppShellLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+const withTimeout = <T,>(p: PromiseLike<T>, ms: number, fallback: T): Promise<T> => Promise.race([Promise.resolve(p), new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms))]);
+
+const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : null);
+
+export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   let userId: string | null = null;
   let email: string | null = null;
-  let displayName: string | null = null;
+  let name: string | null = null;
   let avatarUrl: string | null = null;
-  let planTier: string | null = null;
-  let moatTotal: number | null = null;
-  let moatRefreshedAt: string | null = null;
-  let badges: SidebarBadges = {};
-
-  let role: Awaited<ReturnType<typeof getServerRole>> = null;
-  // Per-call race timeout. When Supabase compute is under pressure, individual
-  // dashboard RPCs can stall for >30s and block the entire shell from
-  // rendering. Each fetch races against a 6s timeout; on miss we render the
-  // shell with whatever we did collect.
-  const withTimeout = <T,>(p: PromiseLike<T>, ms: number, fallback: T): Promise<T> =>
-    Promise.race([
-      Promise.resolve(p),
-      new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
-    ]);
+  let badges: PortalBadges = {};
   try {
     const supabase = await createSupabaseServerClient();
-    const [{ data: userData }, roleResolved] = await Promise.all([
+    const [{ data: userData }, role] = await Promise.all([
       withTimeout(supabase.auth.getUser(), 5000, { data: { user: null } } as Awaited<ReturnType<typeof supabase.auth.getUser>>),
       withTimeout(getServerRole(), 5000, null as Awaited<ReturnType<typeof getServerRole>>),
     ]);
     userId = userData.user?.id ?? null;
     email = userData.user?.email ?? null;
-    role = roleResolved;
-
-    const moatPromise = supabase
-      .from("suppliers")
-      .select("id", { head: true, count: "exact" })
-      .eq("is_published", true);
-    const settingsPromise = userId
-      ? supabase.rpc("settings_get")
-      : Promise.resolve({ data: null });
-    const buyerPromise =
-      userId && role === "buyer"
-        ? supabase.rpc("buyer_dashboard")
-        : Promise.resolve({ data: null });
-    const adminPromise =
-      userId && role === "admin"
-        ? supabase.rpc("admin_dashboard")
-        : Promise.resolve({ data: null });
-
-    const [moatRes, settingsRes, buyerRes, adminRes] = await Promise.all([
-      withTimeout(moatPromise, 6000, { count: null } as Awaited<typeof moatPromise>),
-      withTimeout(settingsPromise, 6000, { data: null } as Awaited<typeof settingsPromise>),
-      withTimeout(buyerPromise, 6000, { data: null } as Awaited<typeof buyerPromise>),
-      withTimeout(adminPromise, 6000, { data: null } as Awaited<typeof adminPromise>),
+    const settingsRead = userId ? supabase.rpc("settings_get") : Promise.resolve({ data: null });
+    const adminRead = userId && role === "admin" ? supabase.rpc("admin_dashboard") : Promise.resolve({ data: null });
+    const [settingsRes, adminRes] = await Promise.all([
+      withTimeout(settingsRead, 6000, { data: null } as Awaited<typeof settingsRead>),
+      withTimeout(adminRead, 6000, { data: null } as Awaited<typeof adminRead>),
     ]);
-
-    moatTotal = typeof moatRes.count === "number" ? moatRes.count : null;
     const settings = (settingsRes.data ?? null) as SettingsDoc | null;
     if (settings) {
-      displayName = settings.display_name ?? displayName;
+      name = settings.display_name ?? name;
       email = settings.email ?? email;
       avatarUrl = settings.avatar_url ?? avatarUrl;
-      planTier = settings.plan_tier ?? planTier;
     }
-    const buyerDoc = (buyerRes.data ?? null) as BuyerDashboardDoc | null;
-    if (buyerDoc) {
+    const admin = (adminRes.data ?? null) as AdminDashboardDoc | null;
+    if (admin?.queues) {
+      const q = admin.queues;
       badges = {
-        ...badges,
-        discover: moatTotal ?? undefined,
-        saved: typeof buyerDoc.saved_count === "number" ? buyerDoc.saved_count : 0,
-        compliance: Array.isArray(buyerDoc.alerts) ? buyerDoc.alerts.length : 0,
+        adminQueue: num(q.verification_queue_total),
+        adminClaims: num(q.verification_queue_by_type?.claim_review ?? q.claims_pending),
+        adminCerts: num(q.verification_queue_by_type?.cert_doc_review),
+        adminSanctions: num(q.sanctions_active),
       };
-    }
-    const adminDoc = (adminRes.data ?? null) as AdminDashboardDoc | null;
-    if (adminDoc) {
-      const certBacklog =
-        adminDoc.queues?.verification_queue_by_type?.cert_doc_review ?? 0;
-      const claimBacklog =
-        adminDoc.queues?.verification_queue_by_type?.claim_review ??
-        adminDoc.queues?.claims_pending ??
-        0;
-      badges = {
-        ...badges,
-        discover: adminDoc.suppliers?.published ?? moatTotal ?? undefined,
-        adminQueue: adminDoc.queues?.verification_queue_total ?? 0,
-        adminClaims: claimBacklog,
-        adminCerts: certBacklog,
-        adminSanctions: adminDoc.queues?.sanctions_active ?? 0,
-      };
-      if (adminDoc.generated_at) moatRefreshedAt = adminDoc.generated_at;
-    }
-    // Buyer/admin variants always show the moat headline even when no role
-    // dashboard payload arrives (e.g. supplier users browsing /app/* drafts).
-    if (badges.discover == null && moatTotal != null) {
-      badges = { ...badges, discover: moatTotal };
     }
   } catch {
-    // Fail-soft: render the shell with whatever we managed to collect.
+    // Fail-soft: draw the frame with whatever was read.
   }
-
+  const initial = (name ?? email ?? "").trim().charAt(0).toUpperCase() || null;
   return (
     <PostHogProvider userId={userId}>
-      <div className="flex min-h-dvh flex-col bg-bg-l0">
-        <ScrollToTop />
-        <SkipLink />
-        <Topbar role={role} moatTotal={moatTotal} avatarUrl={avatarUrl} displayName={displayName} email={email} />
-        <div className="flex flex-1 flex-col md:flex-row md:items-start">
-          {/* R2 — tablet portrait (md..<lg) renders the icon-only rail,
-              desktop (≥lg) renders the full sidebar. Both have their own
-              visibility class so they never both render at the same width. */}
-          <SidebarRail role={role} />
-          <Sidebar
-            role={role}
-            email={email}
-            displayName={displayName}
-            avatarUrl={avatarUrl}
-            planTier={planTier}
-            moatTotal={moatTotal}
-            moatRefreshedAt={moatRefreshedAt}
-            badges={badges}
-          />
-          <div
-            role="main"
-            id="main-content"
-            tabIndex={-1}
-            className="flex-1 px-4 pb-[calc(56px+env(safe-area-inset-bottom,0px)+1rem)] pt-6 md:min-h-[calc(100dvh-3.5rem)] md:px-10 md:pb-12 md:pt-10 lg:px-12 focus:outline-none"
-          >
-            {children}
-          </div>
-        </div>
-        {/* R2 — phone only (md:hidden). Bottom-tab covers the top 5
-            destinations per role; the full sidebar is available via the
-            topbar hamburger. */}
-        <BottomTabBar role={role} />
-      </div>
+      <PortalFrame account={userId ? { initial, name, email, avatarUrl } : null} badges={badges}>
+        {children}
+      </PortalFrame>
     </PostHogProvider>
   );
 }
