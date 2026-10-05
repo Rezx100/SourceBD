@@ -121,7 +121,8 @@ export function SiteNav({ listed = null, withRecords = null }: { listed?: number
                     aria-expanded={open === m.key}
                     aria-controls={`site-menu-${m.key}`}
                     onClick={() => setOpen(open === m.key ? null : m.key)}
-                    onMouseEnter={() => setOpen(m.key)}
+                    // Hover opens for a mouse only: on touch the tap would open it and the same tap's click would close it.
+                    onPointerEnter={(e) => e.pointerType === "mouse" && setOpen(m.key)}
                     className={cn("flex h-10 items-center gap-1.5 rounded-sm px-3 text-md font-medium text-ink hover:bg-sunken", ring, open === m.key && "bg-sunken")}
                   >
                     {m.label}
@@ -130,7 +131,7 @@ export function SiteNav({ listed = null, withRecords = null }: { listed?: number
                 </li>
               ))}
               <li>
-                <Link href="/pricing" prefetch={false} className={cn("flex h-10 items-center rounded-sm px-3 text-md font-medium text-ink hover:bg-sunken", ring)} onMouseEnter={() => setOpen(null)}>
+                <Link href="/pricing" prefetch={false} className={cn("flex h-10 items-center rounded-sm px-3 text-md font-medium text-ink hover:bg-sunken", ring)} onPointerEnter={(e) => e.pointerType === "mouse" && setOpen(null)}>
                   Pricing
                 </Link>
               </li>
