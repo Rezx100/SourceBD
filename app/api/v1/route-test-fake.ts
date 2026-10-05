@@ -19,6 +19,12 @@ export const BUYER_ID = "0b0b0b0b-0b0b-4b0b-8b0b-0b0b0b0b0b0b";
 
 export const fake = {
   userId: BUYER_ID as string | null,
+  email: "buyer@example.com" as string | null,
+  /** The account's password for `passwordMatches`; `passwordCheckFails` makes the check itself throw. */
+  password: "old-password",
+  passwordCheckFails: false,
+  passwordChecks: [] as { email: string; password: string }[],
+  passwordUpdates: [] as string[],
   role: "buyer" as string | null,
   answers: {} as Record<string, Answer>,
   rpcCalls: [] as { fn: string; args: Record<string, unknown> | undefined }[],
@@ -39,6 +45,11 @@ export const fake = {
 
 export function resetFake(): void {
   fake.userId = BUYER_ID;
+  fake.email = "buyer@example.com";
+  fake.password = "old-password";
+  fake.passwordCheckFails = false;
+  fake.passwordChecks = [];
+  fake.passwordUpdates = [];
   fake.role = "buyer";
   fake.answers = {};
   fake.rpcCalls = [];
@@ -64,7 +75,11 @@ const STORAGE = "https://supabase.invalid/storage/v1";
 
 const client = {
   auth: {
-    getUser: async () => ({ data: { user: fake.userId ? { id: fake.userId } : null } }),
+    getUser: async () => ({ data: { user: fake.userId ? { id: fake.userId, email: fake.email ?? undefined } : null } }),
+    updateUser: async (attrs: { password?: string }) => {
+      if (attrs.password !== undefined) fake.passwordUpdates.push(attrs.password);
+      return { data: {}, error: null };
+    },
   },
   rpc: async (fn: string, args?: Record<string, unknown>): Promise<Answer> => {
     fake.rpcCalls.push({ fn, args });
@@ -135,4 +150,10 @@ export function installModule(mod: string, exports: object): void {
   require.cache[id] = { id, filename: id, loaded: true, exports, children: [], paths: [] } as unknown as NodeJS.Module;
 }
 
-installModule("lib/supabase/server.js", { createSupabaseServerClient: async () => client });
+async function passwordMatches(email: string, password: string): Promise<boolean> {
+  fake.passwordChecks.push({ email, password });
+  if (fake.passwordCheckFails) throw new Error("password check failed: rate limited");
+  return password === fake.password;
+}
+
+installModule("lib/supabase/server.js", { createSupabaseServerClient: async () => client, passwordMatches });

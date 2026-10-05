@@ -14,7 +14,7 @@ import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared
 import { createElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { CANCEL_ORDER_QUESTION, OrderEditForm, OrderStatusEditor } from "@/components/order-status-editor";
+import { cancelOrderQuestion, OrderEditForm, OrderStatusEditor } from "@/components/order-status-editor";
 import { OrderMilestoneForm } from "@/components/order-milestone-form";
 import { Button } from "./controls";
 import { callWithHooks, findAll, textOf } from "./hook-harness";
@@ -309,8 +309,11 @@ describe("the order's forms open on demand", () => {
 
     const asking = callWithHooks(OrderStatusEditor, { orderId: ORDER_ID, initial: INITIAL }, { contexts: contexts(r), state: [false, true] });
     const html = renderToStaticMarkup(asking.out as ReactElement);
-    assert.ok(html.includes(CANCEL_ORDER_QUESTION));
-    assert.equal(CANCEL_ORDER_QUESTION, "Cancel this order? Its details and milestones stay on file.");
+    assert.ok(html.includes("Cancel this order? Its details and milestones stay on file."));
+    // With a PO, the confirmation names it (OR-02).
+    const withPo = callWithHooks(OrderStatusEditor, { orderId: ORDER_ID, initial: { ...INITIAL, po_number: "PO-4471" } }, { contexts: contexts(r), state: [false, true] });
+    assert.ok(renderToStaticMarkup(withPo.out as ReactElement).includes("Cancel order PO-4471? Its details and milestones stay on file."));
+    assert.equal(cancelOrderQuestion("  "), cancelOrderQuestion(null));
     assert.equal(buttonNamed(asking.out, "Keep").props.variant, "ghost");
     const yes = buttonNamed(asking.out, "Cancel order");
     assert.equal(yes.props.variant, "danger");
