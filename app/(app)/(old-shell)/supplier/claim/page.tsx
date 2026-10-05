@@ -6,26 +6,12 @@
 
 import Link from "next/link";
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardMeta,
-  CardTitle,
-} from "@/components/ui/card";
-import { Tag } from "@/components/ui/tag";
-import { Wizard } from "@/components/ui/wizard";
 import { ClaimSearchForm } from "@/components/claim-search-form";
+import { ClaimStatusChip, ClaimSteps } from "@/components/claim/parts";
+import { Empty, ErrorPanel } from "@/components/kit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { PageHeader } from "@/components/ui/page-kit";
 
 export const dynamic = "force-dynamic";
-
-const CLAIM_STEPS = [
-  { id: "search", label: "Find company", hint: "Search the directory" },
-  { id: "initiate", label: "Verify ownership", hint: "Company email proof" },
-  { id: "verify", label: "Confirm", hint: "Click the email link" },
-];
 
 type ClaimRow = {
   id: string;
@@ -75,7 +61,7 @@ export default async function SupplierClaimPage({
   const sp = await searchParams;
   const supabase = await createSupabaseServerClient();
 
-  const { data: mineData } = await supabase.rpc("claim_list_mine");
+  const { data: mineData, error: mineError } = await supabase.rpc("claim_list_mine");
   const claims = ((mineData as { results?: ClaimRow[] } | null)?.results ??
     []) as ClaimRow[];
 
@@ -97,64 +83,62 @@ export default async function SupplierClaimPage({
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <PageHeader
-        kicker="Supplier"
-        title="Claim your company"
-        description="Search the SourceBD directory, then verify ownership via your company email. If your email domain matches the published company domain, your claim is approved automatically."
-      />
+    <div className="mx-auto flex w-full max-w-[720px] flex-col gap-8">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">Claim your company</h1>
+        <p className="text-md text-ink-2">
+          Search the SourceBD directory, then verify ownership via your company email. If your email domain matches the published company domain, your claim is approved automatically.
+        </p>
+      </header>
 
-      <Wizard steps={CLAIM_STEPS} current={0}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Find your company</CardTitle>
-            <CardMeta>Spec S1</CardMeta>
-          </CardHeader>
-          <CardContent>
-            <ClaimSearchForm prebound={prebound} />
-          </CardContent>
-        </Card>
-      </Wizard>
+      <ClaimSteps current={0} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Your claims</CardTitle>
-          <CardMeta>{claims.length} total</CardMeta>
-        </CardHeader>
-        <CardContent>
-          {claims.length === 0 ? (
-            <p className="text-sm text-ink-tertiary">
-              No claim requests yet.
-            </p>
-          ) : (
-            <ul className="divide-y divide-hairline">
-              {claims.map((c) => (
-                <li key={c.id} className="flex items-start justify-between gap-4 py-3">
-                  <div>
-                    <Link
-                      href={`/supplier/claim/${c.id}`}
-                      className="text-sm font-semibold text-ink-primary hover:underline"
-                    >
-                      {c.supplier.company_name}
-                    </Link>
-                    <p className="text-xs text-ink-tertiary">
-                      {[c.supplier.city, c.supplier.district]
-                        .filter(Boolean)
-                        .join(", ")}{" "}
-                      · {c.proof_email}
-                    </p>
-                    <p className="mt-1 text-[12px] text-ink-tertiary">
-                      Started {new Date(c.created_at).toLocaleDateString()} ·{" "}
-                      {c.method === "domain_email" ? "Domain proof" : "Manual review"}
-                    </p>
-                  </div>
-                  <Tag>{statusLabel(c.status)}</Tag>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+      <section aria-labelledby="claim-find" className="flex flex-col gap-4 rounded-md border border-line p-5">
+        <h2 id="claim-find" className="text-lg font-semibold text-ink">
+          Find your company
+        </h2>
+        <ClaimSearchForm prebound={prebound} />
+      </section>
+
+      <section aria-labelledby="claim-mine" className="flex flex-col gap-3">
+        <div className="flex items-baseline justify-between gap-4">
+          <h2 id="claim-mine" className="text-lg font-semibold text-ink">
+            Your claims
+          </h2>
+          {mineError ? null : <p className="text-sm text-ink-3">{claims.length} total</p>}
+        </div>
+        {mineError ? (
+          <ErrorPanel title="Could not load your claims">Reload the page to try again.</ErrorPanel>
+        ) : claims.length === 0 ? (
+          <Empty title="No claim requests yet." />
+        ) : (
+          <ul className="divide-y divide-line rounded-md border border-line">
+            {claims.map((c) => (
+              <li key={c.id} className="flex items-start justify-between gap-4 px-4 py-3">
+                <div className="min-w-0">
+                  <Link
+                    href={`/supplier/claim/${c.id}`}
+                    className="text-base font-medium text-ink underline-offset-2 hover:underline"
+                  >
+                    {c.supplier.company_name}
+                  </Link>
+                  <p className="text-sm text-ink-3">
+                    {[c.supplier.city, c.supplier.district]
+                      .filter(Boolean)
+                      .join(", ")}{" "}
+                    · {c.proof_email}
+                  </p>
+                  <p className="mt-1 text-sm text-ink-3">
+                    Started {new Date(c.created_at).toLocaleDateString()} ·{" "}
+                    {c.method === "domain_email" ? "Domain proof" : "Manual review"}
+                  </p>
+                </div>
+                <ClaimStatusChip status={c.status}>{statusLabel(c.status)}</ClaimStatusChip>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }
