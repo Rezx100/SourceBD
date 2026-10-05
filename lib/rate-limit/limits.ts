@@ -39,6 +39,8 @@ const AUTH_PATHS = new Set([
   "/signup",
   "/forgot-password",
   "/reset-password",
+  // The second step posts its code to itself: guesses at six digits are the thing to bound.
+  "/login/code",
   // The pages that resend or ask again post to themselves: same bucket as the forms they follow.
   "/signup/verify",
   "/login/sent",

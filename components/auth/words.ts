@@ -102,7 +102,7 @@ export type AuthActionState = {
   error?: string;
   info?: string;
   /** Which field the error sits under; none means a banner above the form. */
-  field?: "email" | "password";
+  field?: "email" | "password" | "code";
   /** A refusal that needs more than a sentence: the account exists (Sign in, Reset password) or the pair did not match. */
   kind?: "exists" | "wrong";
 };

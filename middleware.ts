@@ -31,6 +31,7 @@ import {
   isPublicSupplierSlug,
 } from "@/lib/public-supplier-profile";
 import { loginRedirectSearch } from "@/lib/login-redirect";
+import { needsSecondStep, readAal } from "@/lib/second-step";
 import { urlOnSite } from "@/lib/site-origin";
 import { MATCH_PATH, MATCH_TARGET, matchRedirectSearch } from "@/lib/match-redirect";
 
@@ -230,6 +231,17 @@ export async function middleware(req: NextRequest) {
       );
     }
     return NextResponse.redirect(urlOnSite("/suspended"));
+  }
+
+  // Two-step sign-in (row 6): an account that has it on is let in only on a session that has given its
+  // code (aal2). A session that has only its password or email link is sent to the code page, and an API
+  // call gets a 401 that says why. `readAal` is a local decode of the session, not a network call; an
+  // answer that cannot be read is not "owed", so a hiccup never locks anybody out.
+  if (needsSecondStep(await readAal(supabase))) {
+    if (isApi) {
+      return NextResponse.json({ error: "two-step required" }, { status: 401 });
+    }
+    return NextResponse.redirect(urlOnSite("/login/code", `?next=${encodeURIComponent(pathname + req.nextUrl.search)}`));
   }
 
   if (isApi) {

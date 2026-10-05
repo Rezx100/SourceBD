@@ -8,7 +8,7 @@
 import { CheckCircle, Info, XCircle } from "@phosphor-icons/react";
 import { useActionState, useEffect, useState, type ReactNode } from "react";
 import { Button, Field, Input } from "@/components/kit";
-import { requestPasswordReset, resendSignupEmail, signInWithMagicLink, signInWithPassword, signUp, updatePassword } from "@/app/(auth)/actions";
+import { requestPasswordReset, resendSignupEmail, signInWithMagicLink, signInWithPassword, signUp, updatePassword, verifyLoginCode } from "@/app/(auth)/actions";
 import { AuthLink } from "./link";
 import { RESEND_SECONDS, personalProvider, resendLabel, type AuthActionState } from "./words";
 
@@ -171,6 +171,23 @@ export function SignUpForm({ role, next }: { role: "buyer" | "supplier"; next: s
           By creating an account you agree to the <AuthLink href="/legal/terms">Terms</AuthLink> and the <AuthLink href="/legal/privacy">Privacy notice</AuthLink>.
         </p>
       </div>
+    </form>
+  );
+}
+
+/** The second step of signing in: six digits from the authenticator app. */
+export function CodeForm({ next }: { next: string }) {
+  const [state, action, pending] = useActionState(verifyLoginCode, INITIAL);
+  return (
+    <form action={action} noValidate className="flex flex-col gap-8">
+      <input type="hidden" name="next" value={next} />
+      <Banner state={state} />
+      <Field label="Code" error={state.field === "code" ? state.error : undefined} help="The 6 digits your authenticator app shows now.">
+        {(a) => <Input {...a} name="code" inputMode="numeric" autoComplete="one-time-code" required maxLength={7} autoFocus className={`font-mono tracking-widest ${box}`} />}
+      </Field>
+      <Button type="submit" kind="primary" size="lg" full className={tall} loading={pending} loadingLabel="Checking">
+        Continue
+      </Button>
     </form>
   );
 }
