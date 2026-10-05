@@ -1,6 +1,7 @@
 // Plan and usage (Paper `10 · Settings · Plan and usage`): a server component over the `settings_get`
 // document. It says what is true today and leaves out what is design only: Paper's "This month" counts
-// (no read gives them), the sessions and the audit log. Team and roles is `components/team/`.
+// but one (evidence packs downloaded, 0114; no read gives the others), the sessions and the audit
+// log. Team and roles is `components/team/`.
 
 import { Check } from "@phosphor-icons/react/dist/ssr";
 import { buttonClass } from "@/components/kit";
@@ -14,7 +15,8 @@ export const FREE_INCLUDES = "Search, saved suppliers, RFQs, messages and the co
 export const BILLING_NOTE = "Billing isn't set up yet.";
 export const ENTERPRISE = ["Team seats with roles", "Single sign-on", "Audit log", "Evidence packs for auditors"] as const;
 
-export function PlanPanel({ doc }: { doc: SettingsDoc }) {
+/** `packs` is "Evidence packs downloaded" this month; null (not counted) draws nothing, so no "0" stands in for a failed read. */
+export function PlanPanel({ doc, packs = null }: { doc: SettingsDoc; packs?: number | null }) {
   const free = planWords(doc) === "Free during the beta";
   return (
     <>
@@ -30,6 +32,16 @@ export function PlanPanel({ doc }: { doc: SettingsDoc }) {
           </div>
         </div>
       </Section>
+      {packs !== null ? (
+        <Section title="This month">
+          <dl className="flex max-w-[560px] flex-col">
+            <div className="flex justify-between gap-3 border-b border-line py-2">
+              <dt className="text-base text-ink-2">Evidence packs downloaded</dt>
+              <dd className="text-base font-semibold tabular-nums text-ink">{packs}</dd>
+            </div>
+          </dl>
+        </Section>
+      ) : null}
       <Section title="Enterprise · talk to us">
         <div className="flex max-w-[560px] flex-col gap-3">
           <ul className="flex flex-col gap-2">

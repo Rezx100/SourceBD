@@ -7,6 +7,7 @@ import { ArrowLeft, CheckCircle } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { ButtonLink, ErrorPanel, InlineError, Skeleton, buttonClass } from "@/components/kit";
 import { DownloadCsv } from "@/components/export/download-csv";
+import { EvidencePackButton } from "./evidence-pack";
 import { NeedsAttention, type AttentionItem } from "@/components/patterns";
 import type { Attention } from "@/lib/dashboard/needs-attention";
 import { cn } from "@/lib/utils";
@@ -24,15 +25,27 @@ export function BackToHub() {
   );
 }
 
-export function HubHead({ saved, download = false }: { saved: number | null; download?: boolean }) {
+export function HubHead({ saved, download = false, pack = false }: { saved: number | null; download?: boolean; /** Offer the evidence pack: there are saved suppliers for it to cover. */ pack?: boolean }) {
   return (
     <header className="flex shrink-0 items-end justify-between gap-4 border-b border-line px-6 pb-4 pt-5 max-md:hidden">
       <div className="flex flex-col gap-0.5">
         <h1 className="text-xl font-semibold tracking-tight text-ink">Compliance</h1>
         <p className="text-base text-ink-3">{hubCaption(saved)}</p>
       </div>
-      {download ? <DownloadCsv href={certExportHref()} /> : null}
+      <div className="flex items-center gap-2">
+        {pack ? <EvidencePackButton saved={saved} /> : null}
+        {download ? <DownloadCsv href={certExportHref()} /> : null}
+      </div>
     </header>
+  );
+}
+
+/** The phone has no header bar: the same button, over the cards. */
+export function PhonePack({ saved }: { saved: number | null }) {
+  return (
+    <div className="px-4 pb-1 pt-3 md:hidden">
+      <EvidencePackButton saved={saved} className="max-md:h-input-touch max-md:w-full" />
+    </div>
   );
 }
 

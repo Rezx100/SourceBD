@@ -169,9 +169,23 @@ type Rpc = { data: unknown; error: { message: string } | null };
 let answer: Rpc = { data: DOC, error: null };
 let saved: Rpc = { data: [], error: null };
 let calls: string[] = [];
+let packs: { count: number | null; error: unknown } = { count: null, error: { message: "no table evidence_pack_downloads" } };
+let packAsked: unknown[][] = [];
 {
   const id = require.resolve(path.join(OUT, "lib/supabase/server.js"));
-  const client = { rpc: async (fn: string) => (calls.push(fn), fn === "buyer_saved_list" ? saved : answer) };
+  const client = {
+    rpc: async (fn: string) => (calls.push(fn), fn === "buyer_saved_list" ? saved : answer),
+    auth: { getUser: async () => ({ data: { user: { id: "buyer-1" } } }) },
+    // The evidence packs downloaded this month: a count under the buyer's own rows since the 1st.
+    from: (table: string) => {
+      const chain = {
+        select: () => chain,
+        eq: (...a: unknown[]) => (packAsked.push([table, ...a]), chain),
+        gte: (...a: unknown[]) => (packAsked.push([table, ...a]), Promise.resolve({ data: null, ...packs })),
+      };
+      return chain;
+    },
+  };
   require.cache[id] = { id, filename: id, loaded: true, exports: { createSupabaseServerClient: async () => client }, children: [], paths: [] } as unknown as NodeJS.Module;
 }
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- the stub must be installed before the route module loads.
@@ -450,7 +464,22 @@ describe("the other three pages (Team and roles is `components/team/team.test.ts
     assert.match(t, /Enterprise · talk to us/);
     assert.match(out, /href="mailto:support@sourcebd\.net/);
     assert.doesNotMatch(t, /[Cc]ontact reveal|reveal/);
-    assert.doesNotMatch(t, /This month|Starter/, "Paper's usage counts are design only");
+    assert.doesNotMatch(t, /This month|Starter/, "Paper's usage counts are design only, and a count that could not be read is not drawn");
+  });
+
+  it("Plan and usage counts the evidence packs downloaded since the 1st of the month, the buyer's own, and never prints 0 for a failed count", async () => {
+    answer = { data: DOC, error: null };
+    packs = { count: 3, error: null };
+    packAsked = [];
+    const t = text(await page("app/(app)/app/settings/subscription/page.js"));
+    assert.match(t, /This month Evidence packs downloaded 3/);
+    const month = new Date();
+    const first = new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth(), 1)).toISOString();
+    assert.deepEqual(packAsked, [["evidence_pack_downloads", "owner_id", "buyer-1"], ["evidence_pack_downloads", "created_at", first]]);
+    packs = { count: 0, error: null };
+    assert.match(text(await page("app/(app)/app/settings/subscription/page.js")), /Evidence packs downloaded 0/, "a read that worked and found none is 0");
+    packs = { count: null, error: { message: "no table" } };
+    assert.doesNotMatch(text(await page("app/(app)/app/settings/subscription/page.js")), /This month|Evidence packs downloaded/);
   });
 });
 
