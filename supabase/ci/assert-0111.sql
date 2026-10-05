@@ -68,6 +68,11 @@ begin
   select e->>'token', (e->>'id')::uuid into tok_c, id_c from jsonb_array_elements(sent) e where e->>'email' = 'c-0111@example.invalid';
   select e->>'token' into tok_d from jsonb_array_elements(sent) e where e->>'email' = 'd-0111@example.invalid';
 
+  -- Inviting again inside 10 minutes sends nothing.
+  if public.workspace_invite(array['c-0111@example.invalid'], 'viewer')->0->>'status' <> 'recently_sent' then
+    raise exception 'a second invite went out inside 10 minutes';
+  end if;
+
   begin
     perform public.workspace_invite(array['x@example.invalid'], 'owner');
     raise exception 'an owner invite was accepted';

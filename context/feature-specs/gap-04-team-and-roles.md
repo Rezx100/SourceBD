@@ -20,7 +20,7 @@ applied** (`0111_workspace_team.sql`, `ops/plans/0111-dry-run.md`). Screens are 
 | Call | Who | Returns |
 | --- | --- | --- |
 | `workspace_team()` | anyone signed in | `{owner_id, my_role, members[{user_id,name,email,role,joined_at,last_active_at,is_you}], invites[{id,email,role,sent_at,expires_at,expired,can_resend}]}`; owner first; invites only for the owner |
-| `workspace_invite(emails[], role)` | owner | per email `{email, status: sent\|already_member\|you, id, token}`; the raw token is for the email link, never stored |
+| `workspace_invite(emails[], role)` | owner | per email `{email, status: sent\|already_member\|recently_sent\|you, id, token}`; the raw token is for the email link, never stored |
 | `workspace_invite_resend(id)` | owner | `{id, email, role, token}` (new token; the old link stops working) |
 | `workspace_invite_cancel(id)` | owner | nothing |
 | `workspace_invite_accept(token)` | the invited buyer, signed in with that email | `{owner_id, role}`; refusals say `not_found`, `expired`, `wrong_email`, `has_team` |

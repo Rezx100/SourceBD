@@ -1,12 +1,12 @@
 # 0111 — Team and roles (members, invites, last active): dry run
 
-Run 5 Oct 2026 through the Supabase MCP (`execute_sql`), the SQL printed by
+Run 5 Oct 2026 (again after the review fixes) through the Supabase MCP (`execute_sql`), the SQL printed by
 `python ops/dry_run_0111_workspace_team.py --print` (the direct connection
 timed out from this machine, as for 0110). One `do` block that applies the
 migration and then raises, so everything rolled back. Nothing committed.
 
 Migration text md5 (LF, whole-line comments and blank lines removed, as run):
-`bdfd66bc57a8990d2b63f9bf83cc003a`.
+`9e1c4ed491117aba1b0f09110a5e58fe`.
 
 ```
 existed_before             tables false, last_active_at false, any function false

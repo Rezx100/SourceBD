@@ -236,7 +236,7 @@ revoke all on function public._workspace_require_owner() from public, anon, auth
 -- ----------------------------------------------------------------------
 -- 5. workspace_invite(emails, role): one invite per email. Returns, per
 --    email, what happened and (for a sent one) the raw token for the link:
---    [{email, status: sent | already_member | you, id, token}].
+--    [{email, status: sent | already_member | recently_sent | you, id, token}].
 --    An open invite to the same email is replaced (new role, new token, new
 --    7 days) and counts as a send of that invite.
 -- ----------------------------------------------------------------------
@@ -279,6 +279,9 @@ begin
 
   -- Serialise this owner's invites so the caps below cannot be raced.
   perform pg_advisory_xact_lock(hashtextextended('workspace_invite:' || v_owner::text, 0));
+  -- Again under the lock: workspace_invite_accept takes the same lock, so the
+  -- caller cannot join another team between the guard and the inserts.
+  perform public._workspace_require_owner();
 
   select count(*) into v_new
     from unnest(v_emails) e
@@ -308,6 +311,14 @@ begin
     if exists (select 1 from public.workspace_members m join auth.users u on u.id = m.member_id
                 where m.owner_id = v_owner and lower(u.email) = v_email) then
       v_out := v_out || jsonb_build_object('email', v_email, 'status', 'already_member');
+      continue;
+    end if;
+    -- Inviting again is a resend, and waits as one does.
+    if exists (select 1 from public.workspace_invites i
+                where i.owner_id = v_owner and i.email = v_email
+                  and i.accepted_at is null and i.cancelled_at is null
+                  and i.sent_at > now() - interval '10 minutes') then
+      v_out := v_out || jsonb_build_object('email', v_email, 'status', 'recently_sent');
       continue;
     end if;
 
@@ -452,6 +463,9 @@ begin
   if v_inv.expires_at <= now() then
     raise exception 'expired' using errcode = '22023';
   end if;
+  -- The lock workspace_invite holds for this user as an owner, so they
+  -- cannot send invites of their own while joining.
+  perform pg_advisory_xact_lock(hashtextextended('workspace_invite:' || v_uid::text, 0));
 
   select lower(u.email) into v_me from auth.users u where u.id = v_uid;
   if v_me is distinct from v_inv.email then
