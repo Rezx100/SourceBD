@@ -11,7 +11,7 @@
 import { ArrowDown, ArrowUp, CaretDown, X } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Button, IconButton, Input, Menu, MenuItem } from "@/components/kit";
+import { Button, IconButton, Input, Menu, MenuItem, Select } from "@/components/kit";
 import { cn } from "@/lib/utils";
 import type { InquiryDoc } from "./doc";
 import { Flash, FormNote, textareaClass, useFlash } from "./form";
@@ -20,7 +20,10 @@ import { browserFetch, postSettings } from "./transport";
 
 export type PreviewFacts = { supplier: string | null; user: string | null; company: string | null; website: string | null };
 
-export function TemplatesForm({ initial, facts }: { initial: InquiryDoc | null; facts: PreviewFacts }) {
+/** The buyer's own facts; the supplier is the one picked in "Preview with". */
+type OwnFacts = Omit<PreviewFacts, "supplier">;
+
+export function TemplatesForm({ initial, facts, suppliers = [] }: { initial: InquiryDoc | null; facts: OwnFacts; suppliers?: readonly string[] }) {
   const router = useRouter();
   const [saved, setSaved] = useState(() => startOf(initial));
   const [questions, setQuestions] = useState<string[]>(saved.questions);
@@ -28,6 +31,8 @@ export function TemplatesForm({ initial, facts }: { initial: InquiryDoc | null; 
   const [errors, setErrors] = useState<{ questions: string | null; template: string | null }>({ questions: null, template: null });
   const [saving, setSaving] = useState<"questions" | "template" | null>(null);
   const [flash, setFlash] = useFlash();
+  // Which saved supplier the preview is written to: the most recent until the buyer picks another.
+  const [pick, setPick] = useState(0);
   const box = useRef<HTMLTextAreaElement>(null);
   const [focusRow, setFocusRow] = useState<number | null>(null);
   const rows = useRef<(HTMLInputElement | null)[]>([]);
@@ -81,7 +86,8 @@ export function TemplatesForm({ initial, facts }: { initial: InquiryDoc | null; 
     setFocusRow(i + by);
   };
 
-  const view = previewOf(template, facts);
+  const supplier = suppliers[pick] ?? suppliers[0] ?? null;
+  const view = previewOf(template, { ...facts, supplier });
 
   return (
     <div className="flex gap-8 max-xl:flex-col">
@@ -175,7 +181,20 @@ export function TemplatesForm({ initial, facts }: { initial: InquiryDoc | null; 
       </div>
 
       <aside aria-label="Preview" className="flex w-[400px] shrink-0 flex-col gap-2 max-xl:w-auto">
-        <h2 className="text-sm font-medium text-ink-2">{facts.supplier ? `Preview with ${facts.supplier}` : "Preview"}</h2>
+        {suppliers.length > 1 ? (
+          <div className="flex flex-col gap-1.5">
+            <h2 className="text-sm font-medium text-ink-2">Preview with</h2>
+            <Select
+              aria-label="Preview with"
+              value={String(pick)}
+              onValueChange={(v) => setPick(Number(v))}
+              options={suppliers.map((name, i) => ({ value: String(i), label: name }))}
+              className="max-md:h-input-touch"
+            />
+          </div>
+        ) : (
+          <h2 className="text-sm font-medium text-ink-2">{supplier ? `Preview with ${supplier}` : "Preview"}</h2>
+        )}
         <div className="flex flex-col gap-3 rounded-lg border border-line bg-subtle p-4">
           <p className="whitespace-pre-wrap text-base leading-[22px] text-ink [overflow-wrap:anywhere]">
             {view.pieces.map((p, i) =>
