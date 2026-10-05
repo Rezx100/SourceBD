@@ -57,6 +57,14 @@ export async function finishTwoStep(factorId: string, code: string): Promise<Don
   try {
     const { error } = await s.sb.auth.mfa.challengeAndVerify({ factorId, code: clean });
     if (error) return { ok: false, error: rate(error.message) ? RATE : BAD_CODE };
+    // Every other device signs in again, and with the code: a session opened before two-step was on does not
+    // learn of it until its token is refreshed (up to an hour), so the others are ended now. Best effort: the
+    // two-step setting itself is already on, and the middleware refuses a session once it knows.
+    try {
+      await s.sb.auth.signOut({ scope: "others" });
+    } catch {
+      // Left to expire.
+    }
     revalidatePath("/app/settings/security");
     return { ok: true, error: null };
   } catch {

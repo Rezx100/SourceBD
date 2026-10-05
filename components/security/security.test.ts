@@ -173,6 +173,7 @@ describe("turning two-step on", () => {
     replies.challengeAndVerify = { data: {}, error: null };
     assert.deepEqual(await act().finishTwoStep("f9", "123 456"), { ok: true, error: null });
     assert.deepEqual(calls.filter((c) => c.fn === "challengeAndVerify").pop()?.args, { factorId: "f9", code: "123456" });
+    assert.deepEqual(calls.find((c) => c.fn === "signOut")?.args, { scope: "others" }, "the other devices must sign in again, with the code");
     assert.ok(names().includes("revalidate"));
   });
 
