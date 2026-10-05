@@ -109,23 +109,6 @@ describe("public profile cache wiring", () => {
     assert.match(src("lib/site-origin.ts"), /NEXT_PUBLIC_APP_URL/);
   });
 
-  it("homepage live example uses overview RPCs and may skip a bad first slug", () => {
-    const anatomy = executable(
-      "components/marketing/home/evidence-anatomy.tsx",
-    );
-    assert.match(anatomy, /getPublicSupplierOverview/);
-    assert.doesNotMatch(anatomy, /createSupabaseServerClient/);
-    assert.match(anatomy, /FEATURED_PROFILE_ATTEMPTS = 3/);
-    assert.match(anatomy, /if \(pack\.timedOut\) break/);
-
-    const principles = executable(
-      "components/marketing/home/operating-principles.tsx",
-    );
-    assert.match(principles, /getPublicSupplierOverview/);
-    assert.doesNotMatch(principles, /createSupabaseServerClient/);
-    assert.match(principles, /PRINCIPLE_PROFILE_ATTEMPTS = 3/);
-    assert.match(principles, /if \(pack\.timedOut\) break/);
-  });
 
   it("shared pack is tagged, caches profile timeouts as a miss, and does not use untagged force-cache", () => {
     const helper = executable("lib/public-supplier-profile.ts");

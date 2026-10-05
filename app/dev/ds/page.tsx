@@ -25,9 +25,6 @@ import {
   transitionDuration,
   type TierRank,
 } from "@/lib/design/tokens";
-import { RFQ_TARGETS } from "@/lib/dashboard/fixtures";
-import { loadGalleryData } from "@/lib/dashboard/gallery-data";
-import { DashboardScreens } from "./dashboard-screens";
 import { V4Kit } from "./v4-kit";
 import { V4Patterns } from "./v4-patterns";
 import { V4Tokens } from "./v4-tokens";
@@ -168,12 +165,6 @@ export default async function DesignSystemGallery() {
 
   const { longest, typical } = await loadRealNames();
   const sampleName = longest ?? typical;
-  const supabase = await createSupabaseServerClient();
-  // The same third argument the screenshot harness passes. `rfq_list` returns
-  // no supplier identity, so without it every RFQ row reads "1 supplier" —
-  // and the page and the screenshots would show different screens, which is
-  // the one thing the evidence may not do.
-  const dashboard = await loadGalleryData(supabase, new Date(), RFQ_TARGETS);
 
   const results = contrastPairs.map((p) => {
     const ratio = contrastRatio(resolve(light, p.fg), resolve(light, p.bg));
@@ -291,14 +282,6 @@ export default async function DesignSystemGallery() {
             </a>
           </div>
         </div>
-      </Section>
-
-      <Section
-        id="dashboard"
-        title="Buyer screens"
-        note="The buyer screens as /app draws them since the enterprise pass (27 Sep 2026): the ledger grid first, the thumbnail cards, and the record, the line, the RFQ composer and the filter pane each in a pane beside the results; then the RFQ list. Built from the kit under components/dashboard and rendered at 1440 from production records through the same RPCs the buyer app calls."
-      >
-        <DashboardScreens data={dashboard} />
       </Section>
 
       <Section
