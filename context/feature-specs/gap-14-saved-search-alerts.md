@@ -35,4 +35,8 @@ applied** (`0113_saved_search_alerts.sql`, `ops/plans/0113-dry-run.md`).
    `saved_search_alert_record(id, ids, sent)`. Record after a failed send with `sent = false` only if the send
    is not retried, or the new ids are lost.
 
+Built (5 Oct): items 1 and 2 (the switches), 3 (the card, earlier PR) and 4 (the job: `lib/saved-search-alerts.ts`,
+`POST /api/v1/webhooks/saved-search-alerts` with `JOB_SECRET`, `ops/saved_search_alerts_cron.sh`). A failed send is
+never recorded, so the search stays due; see the section 10 line of `handoff-ds-v4-build.md`.
+
 Not built: an unsubscribe link that works signed out (the email links to Saved searches, where the switch is).

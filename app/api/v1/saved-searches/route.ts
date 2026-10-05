@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getServerRole } from "@/lib/auth";
-import { runSavedSearchesDelete, runSavedSearchesGet, runSavedSearchesPost, runSavedSearchesRename } from "@/lib/saved-searches";
+import { runSavedSearchesAlert, runSavedSearchesDelete, runSavedSearchesGet, runSavedSearchesPost, runSavedSearchesRename } from "@/lib/saved-searches";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -36,7 +36,9 @@ export async function PATCH(req: Request) {
   } catch {
     return NextResponse.json({ error: "invalid JSON" }, { status: 400 });
   }
-  const result = await runSavedSearchesRename({ role, supabase, raw });
+  // {id, alert_weekly} is the Email-me-new-matches switch; {id, name} is a rename.
+  const isAlert = Boolean(raw && typeof raw === "object" && !Array.isArray(raw) && "alert_weekly" in raw);
+  const result = await (isAlert ? runSavedSearchesAlert : runSavedSearchesRename)({ role, supabase, raw });
   return NextResponse.json(result.body, { status: result.status });
 }
 

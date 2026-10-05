@@ -5,16 +5,18 @@
 // search. A 400 popover under the toolbar on a desktop (no scrim, nothing inert: the results stay
 // live), a bottom sheet on a phone. It is in the address (`?save=1`), so the empty state's link and
 // the toolbar's button open it the same way, and Close, Cancel and Escape go back to the search.
-// Paper's "Tell me about new matches" tick is not here: no alert is stored or sent, and the form
-// will not promise an email nobody sends. The search keeps its filters and sort, not its page.
+// "Tell me about new matches" (0113's `alert_weekly`, sent by the Monday job) is drawn only when the
+// database has the switch (`alerts`), off until chosen. The search keeps its filters and sort, not its page.
 
 import { X } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useState, type KeyboardEvent } from "react";
-import { Button, Field, IconButton, Input, Sheet } from "@/components/kit";
+import { Button, Field, IconButton, Input, Sheet, Switch } from "@/components/kit";
 import { useIsPhone } from "@/components/kit/use-phone";
 import { saveSearchError } from "@/lib/saved-search-errors";
 import { cn } from "@/lib/utils";
+
+const ALERT_HINT = "One email on Monday, only when something new matches";
 
 /** "knit · hiding sanctioned suppliers · 4,645 suppliers today": the filters, then what they find. */
 export function saveSummary(filters: string, count: number | null): string {
@@ -30,6 +32,7 @@ export function SaveSearchForm({
   touch: touchProp = false,
   autoFocus = false,
   inset = false,
+  alerts = false,
 }: {
   /** The serialized search: filters and sort, not the page. */
   search: string;
@@ -42,11 +45,14 @@ export function SaveSearchForm({
   autoFocus?: boolean;
   /** Inside a padded box (the popover): the footer's rule runs the box's full width. */
   inset?: boolean;
+  /** The database has the switch (0113, `alertsAvailable`): draw "Tell me about new matches". Off by default, so it is never offered unread. */
+  alerts?: boolean;
 }) {
   const router = useRouter();
   const phone = useIsPhone();
   const touch = touchProp === "auto" ? phone : touchProp;
   const [name, setName] = useState(defaultName.slice(0, 120));
+  const [alert, setAlert] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Only an error ABOUT the name marks the field invalid: "limit reached" or "too long" cannot be
   // fixed by editing the name.
@@ -61,7 +67,7 @@ export function SaveSearchForm({
     setNameError(false);
     let res: Response;
     try {
-      res = await fetch("/api/v1/saved-searches", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, search }) });
+      res = await fetch("/api/v1/saved-searches", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, search, ...(alerts && alert ? { alert_weekly: true } : {}) }) });
     } catch {
       // A rejected fetch must not leave the button busy for good.
       setPending(false);
@@ -85,6 +91,14 @@ export function SaveSearchForm({
       <Field label="Name" error={nameError ? error : undefined}>
         {(a) => <Input {...a} name="name" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} required autoFocus={autoFocus} size={touch ? "touch" : "md"} />}
       </Field>
+      {alerts ? (
+        <div className="flex flex-col gap-1">
+          <Switch size={touch ? "touch" : "md"} checked={alert} onChange={(e) => setAlert(e.currentTarget.checked)} hint={ALERT_HINT}>
+            Tell me about new matches
+          </Switch>
+          {touch ? null : <p className="pl-10 text-sm text-ink-3">{ALERT_HINT}</p>}
+        </div>
+      ) : null}
       {/* The live region is always in the page, so a refusal that is not about the name is announced. */}
       {/* A name error is drawn by the field; the same words are spoken here, so every refusal is heard. */}
       <p role="status" aria-live="polite" className={cn(!nameError && error ? "text-sm text-danger" : "sr-only")}>
@@ -111,6 +125,7 @@ export function SaveSearchPanel({
   summary,
   closeHref,
   nextHref,
+  alerts = false,
 }: {
   search: string;
   defaultName: string;
@@ -118,6 +133,8 @@ export function SaveSearchPanel({
   summary: string;
   closeHref: string;
   nextHref: string;
+  /** See `SaveSearchForm`. */
+  alerts?: boolean;
 }) {
   const phone = useIsPhone();
   const router = useRouter();
@@ -128,7 +145,7 @@ export function SaveSearchPanel({
         <div className="flex flex-col gap-4 pt-1">
           <p className="px-4 text-base text-ink-2 [overflow-wrap:anywhere]">{summary}</p>
           <div className="px-4">
-            <SaveSearchForm search={search} defaultName={defaultName} nextHref={nextHref} cancelHref={closeHref} touch />
+            <SaveSearchForm search={search} defaultName={defaultName} nextHref={nextHref} cancelHref={closeHref} touch alerts={alerts} />
           </div>
         </div>
       </Sheet>
@@ -151,7 +168,7 @@ export function SaveSearchPanel({
       </div>
       <p className="px-4 pb-4 text-sm text-ink-2 [overflow-wrap:anywhere]">{summary}</p>
       <div className="px-4">
-        <SaveSearchForm search={search} defaultName={defaultName} nextHref={nextHref} cancelHref={closeHref} autoFocus inset />
+        <SaveSearchForm search={search} defaultName={defaultName} nextHref={nextHref} cancelHref={closeHref} autoFocus inset alerts={alerts} />
       </div>
     </section>
   );

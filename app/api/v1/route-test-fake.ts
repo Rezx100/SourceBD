@@ -30,8 +30,11 @@ export const fake = {
   signError: null as { message: string } | null,
   /** Rows `.from(table)` answers for a table other than `profiles`, and the filters each read applied. */
   tables: {} as Record<string, Record<string, unknown>[]>,
-  tableError: null as { message: string } | null,
+  tableError: null as { message: string; code?: string } | null,
   fromCalls: [] as { table: string; columns: string; filters: { op: string; args: unknown[] }[]; update?: Record<string, unknown> }[],
+  /** Rows an `.insert()` was given, and the error it answers with (e.g. `{ code: "42703" }` for a missing column). */
+  inserted: [] as { table: string; values: Record<string, unknown> }[],
+  insertError: null as { message: string; code?: string } | null,
 };
 
 export function resetFake(): void {
@@ -47,6 +50,8 @@ export function resetFake(): void {
   fake.tables = {};
   fake.tableError = null;
   fake.fromCalls = [];
+  fake.inserted = [];
+  fake.insertError = null;
 }
 
 /** The RPCs a test saw called, by name. */
@@ -81,6 +86,13 @@ const client = {
       return out;
     };
     const chain = {
+      // An insert answers `fake.insertError`, or stores the row in `fake.tables` and says it worked.
+      insert: async (values: Record<string, unknown>) => {
+        fake.inserted.push({ table, values });
+        if (fake.insertError) return { data: null, error: fake.insertError };
+        (fake.tables[table] ??= []).push(values);
+        return { data: null, error: null };
+      },
       select: (columns: string) => ((call.columns = columns), chain),
       // An update changes the rows its filters match, in `fake.tables`, and answers them.
       update: (values: Record<string, unknown>) => ((call.update = values), chain),

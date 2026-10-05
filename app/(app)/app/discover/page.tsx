@@ -36,6 +36,7 @@ import { RfqComposer } from "@/components/rfqs/composer";
 import { SheetNotice } from "@/components/dashboard/sheet";
 import { RecordView, parseTab, type TabId } from "@/components/record";
 import { RecordLastSearch } from "@/components/saved/last-search";
+import { alertsAvailable } from "@/components/saved/load";
 import { SaveSearchPanel, saveSummary } from "@/components/saved/save-search";
 import { ResultsBar } from "@/components/search/bulk-bar";
 import { FilterPane } from "@/components/search/filters";
@@ -146,8 +147,10 @@ export default async function BuyerDiscoverPage({
   // Save this search is a popover under the bar (a sheet on a phone), not a pane: the results stay
   // live beside it. Close keeps the record that was open; a saved search lands on this search.
   const keepOpen = recordParams ? withParams(recordParams) : closeHref;
+  const saveAlerts = saveOpen ? await alertsAvailable(supabase) : false;
   const savePanel = saveOpen ? (
     <SaveSearchPanel
+      alerts={saveAlerts}
       search={serializeDiscoverState({ ...state, page: 1 }).toString()}
       defaultName={queryTitle(state)}
       summary={saveSummary(queryTitle(state), error ? null : total)}

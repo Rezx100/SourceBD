@@ -25,7 +25,7 @@ export default async function SearchesPage() {
   const role = await getServerRole();
   const now = new Date();
   const data = await loadSearches(supabase, role, now);
-  const items = data.searches ? buildSearchItems(data.searches, now) : [];
+  const items = data.searches ? buildSearchItems(data.searches, now, data.alerts) : [];
   const count = data.searches === null ? null : items.length;
   const view = { sort: "recent" as const, page: 1 };
   // Not when the saved searches could not be read: the card's "saved" flag cannot then be trusted

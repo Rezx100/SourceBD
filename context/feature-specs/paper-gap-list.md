@@ -70,5 +70,6 @@ Each spec names its migration; the migration is written and dry-run, and `--appl
 - Row 18: A valid certificate in Saved's first-certificate column built (Sonnet, 5 Oct, PR into `ds-v4`); reads the existing 365-day window, no migration; certificates valid past a year are still "Nothing to check" until the read's cap is raised.
 - Row 19: Compliance hub split built (Sonnet, 5 Oct, PR into `ds-v4`); three lines inside the one card, the one count and the badge unchanged; Paper's separate card is not drawn (see section 10).
 - Row 8: Evidence pack download dialog and "Evidence packs downloaded" built (Sonnet, 5 Oct, PR into `ds-v4`); works once 0114 is applied; CSV only, no PDF (needs a library, founder) and no row preview (it would burn a download).
-- Row 14, part: "Save your last search?" built (Sonnet, 5 Oct, PR into `ds-v4`); works once 0113 is applied. Not built, handed to Opus: the two "Email me new matches" switches and the weekly email job (service role and a cron trigger).
+- Row 14, part: "Save your last search?" built (Sonnet, 5 Oct, PR into `ds-v4`); works once 0113 is applied.
+- Row 14, the rest: the two "Email me new matches" switches and the Monday email job built (Opus, 5 Oct, PR into `ds-v4`); works once 0113 is applied and `JOB_SECRET` plus the cron line are set by the founder (`ops/saved_search_alerts_cron.sh`).
 - Row 9: Messages unread, Read ticks and files built (Sonnet, 5 Oct, PR into `ds-v4`); works once 0112 is applied; the sidebar badge waits on row 24.

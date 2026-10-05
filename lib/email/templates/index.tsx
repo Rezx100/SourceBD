@@ -27,8 +27,10 @@ import {
 } from "./password-reset";
 
 import { TeamInvite, teamInviteSubject, type TeamInviteData } from "./team-invite";
+import { SavedSearchAlert, savedSearchAlertSubject, type SavedSearchAlertData } from "./saved-search-alert";
 
 export type TemplateMap = {
+  saved_search_alert: SavedSearchAlertData;
   team_invite: TeamInviteData;
   welcome: WelcomeData;
   rfq_received: RfqReceivedData;
@@ -45,6 +47,10 @@ type Entry<K extends TemplateName> = {
 };
 
 export const TEMPLATES: { [K in TemplateName]: Entry<K> } = {
+  saved_search_alert: {
+    subject: savedSearchAlertSubject,
+    render: (data) => <SavedSearchAlert data={data} />,
+  },
   team_invite: {
     subject: teamInviteSubject,
     render: (data) => <TeamInvite data={data} />,

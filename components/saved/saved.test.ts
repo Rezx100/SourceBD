@@ -347,7 +347,16 @@ describe("Save this search", () => {
     assert.match(text(out), /Save this search knit · 4,645 suppliers today Name Cancel Save search/);
     assert.match(out, /<input\b(?=[^>]*\sname="name")(?=[^>]*\svalue="knit")(?=[^>]*\smaxLength="120"|[^>]*\smaxlength="120")[^>]*>/);
     assert.match(out, /aria-label="Close"/);
-    assert.doesNotMatch(text(out), /new matches|email/i);
+    assert.doesNotMatch(text(out), /new matches|email/i, "no switch is offered unless the database has it (0113)");
+  });
+
+  it("with 0113 the form offers 'Tell me about new matches', off until chosen, and says what it sends", () => {
+    const withIt = html(createElement(SaveSearchPanel, { search: "q=knit", defaultName: "knit", summary: "s", closeHref: "/a", nextHref: "/b", alerts: true }));
+    assert.match(withIt, /<input\b(?=[^>]*\srole="switch")(?![^>]*\schecked="")[^>]*>/);
+    assert.match(text(withIt), /Tell me about new matches One email on Monday, only when something new matches/);
+    const touch = html(createElement(SaveSearchForm, { search: "q=knit", defaultName: "knit", nextHref: "/n", cancelHref: "/c", touch: true, alerts: true }));
+    assert.match(text(touch), /Tell me about new matches One email on Monday, only when something new matches/);
+    assert.match(touch, /h-8 w-\[52px\]/, "a phone's switch is the 52 x 32 one");
   });
 
   it("the form: the name is named after the search and cut to 120, and the live region is always in the page", () => {
@@ -405,7 +414,19 @@ describe("a saved search", () => {
     assert.match(text(out), /Untitled search/);
     assert.match(text(out), /not counted yet/);
     assert.match(out, /aria-label="More actions for GOTS knit factories in Gazipur"/);
-    assert.doesNotMatch(out, /Email me|new matches/, "no alert is stored or sent, so no switch promises one");
+    assert.doesNotMatch(out, /Email me|new matches/, "a switch nobody read (0113 not applied) is not drawn");
+  });
+
+  it("the switch says what is on: every Monday, or no email; saved at once, drawn only where it was read", () => {
+    const out = html(createElement(SearchList, { items: buildSearchItems([SEARCH, { ...SEARCH, id: "s2", name: "Other" }, { ...SEARCH, id: "s3", name: "Unread" }], NOW, { s1: true, s2: false }) }));
+    assert.equal(out.match(/role="switch"/g)?.length, 4, "two searches, a desktop row and a phone row each; s3 was not read");
+    assert.match(text(out), /Email me new matches every Monday/);
+    assert.match(text(out), /No email for new matches/);
+    assert.match(out, /<input\b(?=[^>]*\srole="switch")(?=[^>]*\schecked="")[^>]*>/);
+    assert.equal(out.match(/\schecked=""/g)?.length, 2, "only s1 is on (a desktop row and a phone row)");
+    assert.deepEqual(buildSearchItems([SEARCH], NOW, { s1: true }).map((i) => i.alert), [true]);
+    assert.deepEqual(buildSearchItems([SEARCH], NOW, null).map((i) => i.alert), [null]);
+    assert.deepEqual(buildSearchItems([SEARCH], NOW, {}).map((i) => i.alert), [null]);
   });
 });
 
@@ -559,6 +580,16 @@ describe("/app/searches", () => {
     assert.match(text(out.html), /101 suppliers today/);
     assert.match(out.html, /href="\/app\/discover\?[^"]*"[^>]*>Run search/);
     assert.doesNotMatch(out.html, /Sort:/, "a sort belongs to the suppliers");
+  });
+
+  it("draws each search's switch from its own alert_weekly; a row that did not answer it, or a failed read, draws none", async () => {
+    const withAlerts = SEARCH_ROWS.map((r, i) => ({ ...r, alert_weekly: i === 0 }));
+    base({}, { saved_searches: { data: withAlerts, error: null, count: 2 } });
+    const out = await searches();
+    assert.match(text(out.html), /Email me new matches every Monday/);
+    assert.match(text(out.html), /No email for new matches/);
+    base({}, { saved_searches: { data: SEARCH_ROWS, error: null, count: 2 } });
+    assert.doesNotMatch((await searches()).html, /role="switch"/, "no alert_weekly on the rows: nothing was read, nothing is claimed");
   });
 
   it("offers the last search above the list when it is recent and not saved; no card when it is saved, old, unread or 0113 is missing", async () => {
