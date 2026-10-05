@@ -10,7 +10,7 @@ import { Suspense } from "react";
 import { preload } from "react-dom";
 import { AppFrame } from "@/components/frame";
 import { TourMount } from "@/components/onboarding/tour-mount";
-import { loadComplianceBadge } from "@/lib/dashboard/compliance-badge";
+import { loadFrameBadges } from "@/lib/dashboard/frame-badges";
 import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { SOURCE_LOGO_FILES } from "@/lib/dashboard/source-logos";
 import { PostHogProvider } from "@/lib/posthog/provider";
@@ -32,13 +32,16 @@ export default async function BuyerLayout({ children }: { children: React.ReactN
       // best effort
     }
   })();
+  // The menu's two counts (Messages "N new", Compliance "N to check") start now and are NOT awaited:
+  // the frame is drawn at once and they fill in when they settle (row 24). Compliance is the hub's own
+  // count; a slow or failed read draws no badge, never a 0.
+  const badges = loadFrameBadges(supabase);
   // ponytail: the old shell's loader still reads three counts the frame does not
-  // show; it goes with the old kit (B11). The Compliance badge is the hub's own count, read beside it;
-  // Messages has no badge because no read state exists to count (B6a).
-  const [shell, compliance] = await Promise.all([loadBuyerShell(supabase), loadComplianceBadge(supabase)]);
+  // show; it goes with the old kit (B11).
+  const shell = await loadBuyerShell(supabase);
   return (
     <PostHogProvider userId={shell.userId}>
-      <AppFrame account={shell.sidebar.account ?? null} badges={{ compliance }}>
+      <AppFrame account={shell.sidebar.account ?? null} badges={badges}>
         {children}
       </AppFrame>
       <Suspense fallback={null}>

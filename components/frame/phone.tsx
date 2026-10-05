@@ -10,12 +10,13 @@ import { CaretRight, GearSix, Hash, Package, SignOut, UserCircle } from "@phosph
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Dialog as D } from "radix-ui";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { ring, ringInset } from "@/components/kit/classes";
 import { TabBar } from "@/components/kit/phone";
 import { PHONE_TABS, phoneTab, phoneTitle } from "@/lib/frame-nav";
 import { cn } from "@/lib/utils";
-import { FRAME_ICONS, type FrameBadges } from "./sidebar";
+import { NO_BADGES, useBadges, type BadgesInput, type FrameBadges } from "./badges";
+import { FRAME_ICONS } from "./sidebar";
 import { accountName, type FrameAccount } from "./topbar";
 
 const HIDE_ON_DETAIL = "max-md:group-has-[[data-detail]]/shell:hidden";
@@ -99,7 +100,19 @@ export function PhoneBar({ account }: { account: FrameAccount | null }) {
 }
 
 /** The tab bar, fixed to the foot below 768. A badge on a tab is a dot, and "Alerts, new" to a screen reader. */
-export function PhoneTabs({ badges = {} }: { badges?: FrameBadges }) {
+export function PhoneTabs({ badges }: { badges?: BadgesInput }) {
+  return (
+    <Suspense fallback={<PhoneTabsBody badges={NO_BADGES} />}>
+      <PhoneTabsWithBadges badges={badges} />
+    </Suspense>
+  );
+}
+
+function PhoneTabsWithBadges({ badges }: { badges?: BadgesInput }) {
+  return <PhoneTabsBody badges={useBadges(badges)} />;
+}
+
+function PhoneTabsBody({ badges }: { badges: FrameBadges }) {
   const now = phoneTab(usePathname() ?? "");
   return (
     <div className={cn("fixed inset-x-0 bottom-0 z-raised md:hidden", HIDE_ON_DETAIL)}>
