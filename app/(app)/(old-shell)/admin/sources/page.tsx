@@ -1,8 +1,8 @@
 // Admin scraper operations console.
 
-import { AdminPage, AdminPageHeader } from "@/components/admin/admin-ui";
+import { AdminColumn, AdminHead } from "@/components/admin/data-ui";
 import { AdminScraperMonitor } from "@/components/admin-scraper-monitor";
-import { Card, CardContent } from "@/components/ui/card";
+import { InlineError } from "@/components/kit";
 import type { DashboardDoc } from "@/lib/admin/etl-monitoring";
 import type { EvidenceByScraper, EvidenceSummary } from "@/lib/admin/evidence";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -22,19 +22,16 @@ export default async function AdminSourcesPage() {
 
   if (dashboard.error || dashboard.data == null) {
     return (
-      <AdminPage maxWidth="5xl">
-        <AdminPageHeader
-          kicker="Admin"
+      <AdminColumn>
+        <AdminHead
           title="Sources & ingestion"
-          description="Run and schedule SourceBD scraper jobs from one operator console."
+          lede="Run and schedule SourceBD scraper jobs from one operator console."
         />
-        <Card>
-          <CardContent className="text-sm text-sem-red">
-            Could not load scraper operations
-            {dashboard.error?.message ? <>: {dashboard.error.message}</> : null}.
-          </CardContent>
-        </Card>
-      </AdminPage>
+        <InlineError>
+          Could not load scraper operations
+          {dashboard.error?.message ? <>: {dashboard.error.message}</> : null}.
+        </InlineError>
+      </AdminColumn>
     );
   }
 

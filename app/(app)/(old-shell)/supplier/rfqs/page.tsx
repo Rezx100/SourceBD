@@ -9,12 +9,11 @@
 // `thread_list()` rows.
 
 import { Tray } from "@phosphor-icons/react/dist/ssr";
+import Link from "next/link";
 
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { ResponsiveTable, type Column } from "@/components/ui/responsive-table";
+import { Empty, ErrorPanel, Table, TableFrame, Td, Th, Tr, rowLinkClass } from "@/components/kit";
+import { RfqChip } from "@/components/rfqs/chip";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { PageHeader } from "@/components/ui/page-kit";
 
 export const dynamic = "force-dynamic";
 
@@ -44,100 +43,77 @@ export default async function SupplierRfqsPage() {
   const rfqs = all.filter((r) => r.viewer_role !== "buyer");
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <PageHeader
-        kicker="Supplier"
-        title="RFQs received"
-        description="Quotes buyers have requested from the companies you've claimed."
-      />
+    <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">RFQs received</h1>
+        <p className="text-md text-ink-2">
+          Quotes buyers have requested from the companies you&apos;ve claimed.
+        </p>
+      </header>
 
       {error ? (
-        <Card>
-          <CardContent className="text-sm text-sem-red">
-            Could not load RFQs.
-          </CardContent>
-        </Card>
+        <ErrorPanel title="Could not load RFQs." />
+      ) : rfqs.length === 0 ? (
+        <Empty icon={Tray} title="No RFQs yet.">
+          When a buyer addresses an RFQ to one of your claimed companies
+          it will appear here.
+        </Empty>
       ) : (
-        <ResponsiveTable
-          mode="stacked"
-          columns={RFQ_COLUMNS}
-          rows={rfqs}
-          rowKey={(r) => r.id}
-          rowHref={(r) => `/supplier/rfqs/${r.id}`}
-          caption="RFQs received"
-          emptyState={
-            <div className="space-y-3 py-4">
-              <Tray
-                size={32}
-                weight="duotone"
-                className="mx-auto text-ink-tertiary"
-                aria-hidden
-              />
-              <p className="text-sm text-ink-secondary">No RFQs yet.</p>
-              <p className="text-[13px] text-ink-tertiary">
-                When a buyer addresses an RFQ to one of your claimed companies
-                it will appear here.
-              </p>
-            </div>
-          }
-        />
+        <TableFrame>
+          <div className="overflow-x-auto">
+            <Table className="min-w-[760px]">
+              <caption className="sr-only">RFQs received</caption>
+              <thead>
+                <tr>
+                  <Th>RFQ</Th>
+                  <Th>Status</Th>
+                  <Th>Quantity</Th>
+                  <Th align="right">Target</Th>
+                  <Th align="right">Quotes</Th>
+                  <Th align="right">Updated</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {rfqs.map((r) => (
+                  <Tr key={r.id} className="relative">
+                    <Td>
+                      <Link
+                        href={`/supplier/rfqs/${r.id}`}
+                        className={`${rowLinkClass} after:absolute after:inset-0 after:content-['']`}
+                      >
+                        {r.product_title}
+                      </Link>
+                    </Td>
+                    <Td>
+                      <RfqChip tone={statusTone(r.status)}>{statusLabel(r.status)}</RfqChip>
+                    </Td>
+                    <Td>{fmtQty(r.quantity, r.quantity_unit)}</Td>
+                    <Td align="right" className="tabular-nums">
+                      {r.target_unit_price != null
+                        ? fmtMoney(r.target_unit_price, r.currency)
+                        : "—"}
+                    </Td>
+                    <Td align="right" className="tabular-nums">
+                      {r.quote_count.toLocaleString()}
+                    </Td>
+                    <Td align="right" className="whitespace-nowrap text-ink-3">
+                      {fmtRelative(r.updated_at)}
+                    </Td>
+                  </Tr>
+                ))}
+              </tbody>
+            </Table>
+          </div>
+        </TableFrame>
       )}
     </div>
   );
 }
 
-const RFQ_COLUMNS: Column<Rfq>[] = [
-  {
-    key: "rfq",
-    label: "RFQ",
-    render: (r) => (
-      <span className="font-display text-sm font-semibold text-ink-primary">
-        {r.product_title}
-      </span>
-    ),
-  },
-  {
-    key: "status",
-    label: "Status",
-    render: (r) => <Badge tone={statusTone(r.status)}>{statusLabel(r.status)}</Badge>,
-  },
-  {
-    key: "quantity",
-    label: "Quantity",
-    render: (r) => fmtQty(r.quantity, r.quantity_unit),
-  },
-  {
-    key: "target",
-    label: "Target",
-    numeric: true,
-    render: (r) =>
-      r.target_unit_price != null
-        ? fmtMoney(r.target_unit_price, r.currency)
-        : "—",
-  },
-  {
-    key: "quotes",
-    label: "Quotes",
-    numeric: true,
-    render: (r) => r.quote_count.toLocaleString(),
-  },
-  {
-    key: "updated",
-    label: "Updated",
-    numeric: true,
-    render: (r) => (
-      <span className="font-mono text-[12px] text-ink-tertiary">
-        {fmtRelative(r.updated_at)}
-      </span>
-    ),
-  },
-];
-
-function statusTone(s: Rfq["status"]): "active" | "neutral" | "alert" | "success" {
-  if (s === "open") return "active";
-  if (s === "accepted") return "success";
-  if (s === "cancelled") return "alert";
-  return "neutral";
+function statusTone(s: Rfq["status"]): "waiting" | "accepted" | "closed" {
+  if (s === "open") return "waiting";
+  if (s === "accepted") return "accepted";
+  return "closed";
 }
 
 function statusLabel(s: Rfq["status"]): string {

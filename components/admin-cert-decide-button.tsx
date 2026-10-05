@@ -2,13 +2,12 @@
 
 // Admin cert decide island (Spec A3). Approve fires immediately;
 // reject reveals a required reason input and confirms on second click.
-// R6: surfaced through a Sheet row-action menu with 44×44 controls.
+// Surfaced through a dialog from the row's Review button.
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import { Button } from "@/components/ui/button";
-import { Sheet } from "@/components/ui/sheet";
+import { Button, Dialog, Input } from "@/components/kit";
 
 export function AdminCertDecideButton({
   queueId,
@@ -60,73 +59,57 @@ export function AdminCertDecideButton({
   }
 
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => setSheetOpen(true)}
-        className="inline-flex h-[44px] min-w-[44px] items-center justify-center rounded-pill border border-hairline px-4 text-xs font-semibold text-ink-secondary hover:border-accent-indigo hover:text-accent-indigo"
-      >
-        Review
-      </button>
-      <Sheet
-        open={sheetOpen}
-        onClose={close}
-        side="bottom"
-        label={label ?? "Review certification"}
-      >
-        <div className="flex flex-col gap-3 p-4">
+    <Dialog
+      open={sheetOpen}
+      onOpenChange={(o) => (o ? setSheetOpen(true) : close())}
+      kind="form"
+      title={label ?? "Review certification"}
+      trigger={<Button type="button">Review</Button>}
+    >
+      <Button type="button" kind="primary" onClick={() => decide("approve")} disabled={pending} full>
+        Approve
+      </Button>
+      {rejecting ? (
+        <div className="flex flex-col gap-2">
+          <Input
+            type="text"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="Reason (required)"
+            aria-label="Reason for rejecting"
+            maxLength={2000}
+          />
           <Button
             type="button"
-            variant="primary"
-            onClick={() => decide("approve")}
+            kind="danger"
+            onClick={() => {
+              if (reason.trim().length === 0) {
+                setError("Reason is required when rejecting.");
+                return;
+              }
+              decide("reject");
+            }}
             disabled={pending}
-            className="min-h-[44px] w-full"
+            full
           >
-            Approve
+            Confirm reject
           </Button>
-          {rejecting ? (
-            <div className="flex flex-col gap-2">
-              <input
-                type="text"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="Reason (required)"
-                maxLength={2000}
-                className="min-h-[44px] w-full rounded-input border border-hairline bg-bg-l0 px-3 text-sm outline-none focus:border-accent-indigo"
-              />
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={() => {
-                  if (reason.trim().length === 0) {
-                    setError("Reason is required when rejecting.");
-                    return;
-                  }
-                  decide("reject");
-                }}
-                disabled={pending}
-                className="min-h-[44px] w-full"
-              >
-                Confirm reject
-              </Button>
-            </div>
-          ) : (
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={() => {
-                setRejecting(true);
-                setError(null);
-              }}
-              disabled={pending}
-              className="min-h-[44px] w-full"
-            >
-              Reject
-            </Button>
-          )}
-          {error ? <p className="text-xs text-sem-red">{error}</p> : null}
         </div>
-      </Sheet>
-    </>
+      ) : (
+        <Button
+          type="button"
+          kind="danger"
+          onClick={() => {
+            setRejecting(true);
+            setError(null);
+          }}
+          disabled={pending}
+          full
+        >
+          Reject
+        </Button>
+      )}
+      {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
+    </Dialog>
   );
 }

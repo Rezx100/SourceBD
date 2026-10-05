@@ -1,14 +1,7 @@
 // Phase 7 P3 — Admin feedback queue.
 
-import Link from "next/link";
-
-import {
-  AdminEmptyState,
-  AdminPage,
-  AdminPageHeader,
-  AdminPanel,
-} from "@/components/admin/admin-ui";
-import { Button } from "@/components/ui/button";
+import { AdminColumn, AdminHead, AdminSection } from "@/components/admin/data-ui";
+import { Button, Empty, InlineError, TabLink, TypeChip } from "@/components/kit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -43,75 +36,53 @@ export default async function AdminFeedbackPage({
   const doc = (data ?? null) as Doc | null;
 
   return (
-    <AdminPage maxWidth="4xl">
-      <AdminPageHeader
-        kicker="Admin · Feedback"
-        title="User feedback"
-        description="In-app notes submitted via the ? hotkey or the floating feedback button."
-        actions={
-          <div className="flex flex-wrap gap-2">
-            {(["open", "triaged", "closed"] as const).map((s) => (
-              <Link
-                key={s}
-                href={`/admin/feedback?status=${s}`}
-                className={
-                  "rounded-pill border px-3 py-1.5 text-[13px] font-medium capitalize " +
-                  (status === s
-                    ? "border-brand-forest/30 bg-brand-forest-soft text-brand-forest"
-                    : "border-neutral-200 text-ink-secondary hover:bg-neutral-50")
-                }
-              >
-                {s}
-              </Link>
-            ))}
-          </div>
-        }
-      />
+    <AdminColumn narrow>
+      <AdminHead title="User feedback" lede="In-app notes submitted via the ? hotkey or the floating feedback button." />
+
+      <nav aria-label="Feedback status" className="flex gap-1 border-b border-line">
+        {(["open", "triaged", "closed"] as const).map((s) => (
+          <TabLink key={s} href={`/admin/feedback?status=${s}`} current={status === s} className="capitalize">
+            {s}
+          </TabLink>
+        ))}
+      </nav>
 
       {error ? (
-        <AdminPanel>
-          <p className="text-sm text-sem-red">Could not load feedback: {error.message}</p>
-        </AdminPanel>
+        <InlineError>Could not load feedback: {error.message}</InlineError>
       ) : !doc || doc.rows.length === 0 ? (
-        <AdminEmptyState
-          title="No feedback in this queue"
-          description={`There are no ${status} reports right now.`}
-        />
+        <Empty title="No feedback in this queue">{`There are no ${status} reports right now.`}</Empty>
       ) : (
         <ul className="m-0 flex list-none flex-col gap-3 p-0">
           {doc.rows.map((row) => (
             <li key={row.id}>
-              <AdminPanel className="space-y-3">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <p className="font-mono text-[12px] text-ink-tertiary">
-                      {new Date(row.created_at).toISOString().replace("T", " ").slice(0, 19)} UTC
-                    </p>
-                    <p className="mt-1 text-sm text-ink-secondary">
-                      {row.user_email ?? "Unknown user"} ·{" "}
-                      <span className="font-mono text-[13px]">{row.page_path}</span>
-                    </p>
+              <AdminSection>
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="font-mono text-xs text-ink-3">
+                        {new Date(row.created_at).toISOString().replace("T", " ").slice(0, 19)} UTC
+                      </p>
+                      <p className="mt-1 text-base text-ink-2">
+                        {row.user_email ?? "Unknown user"} · <span className="font-mono text-sm">{row.page_path}</span>
+                      </p>
+                    </div>
+                    <TypeChip className="capitalize">{row.status}</TypeChip>
                   </div>
-                  <span className="rounded-pill border border-neutral-200 px-2 py-0.5 text-[12px] capitalize text-ink-tertiary">
-                    {row.status}
-                  </span>
+                  <p className="whitespace-pre-wrap text-base text-ink">{row.message}</p>
+                  {row.status === "open" ? (
+                    <form action={`/api/v1/admin/feedback/${row.id}`} method="post">
+                      <input type="hidden" name="status" value="triaged" />
+                      <Button type="submit" kind="secondary">
+                        Mark triaged
+                      </Button>
+                    </form>
+                  ) : null}
                 </div>
-                <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink-primary">
-                  {row.message}
-                </p>
-                {row.status === "open" ? (
-                  <form action={`/api/v1/admin/feedback/${row.id}`} method="post">
-                    <input type="hidden" name="status" value="triaged" />
-                    <Button type="submit" variant="secondary" className="min-h-[44px]">
-                      Mark triaged
-                    </Button>
-                  </form>
-                ) : null}
-              </AdminPanel>
+              </AdminSection>
             </li>
           ))}
         </ul>
       )}
-    </AdminPage>
+    </AdminColumn>
   );
 }

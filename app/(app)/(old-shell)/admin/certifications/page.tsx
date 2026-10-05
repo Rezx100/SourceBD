@@ -3,25 +3,34 @@
 // URL search params. Admin-only; middleware gates `/admin/*` and the
 // RPC re-checks role inside its body.
 
-import Link from "next/link";
+import { CheckCircle } from "@phosphor-icons/react/dist/ssr";
 
 import { AdminCertDecideButton } from "@/components/admin-cert-decide-button";
 import {
-  ADMIN_SELECT_CLASS,
-  AdminActionLink,
-  AdminEmptyState,
-  AdminField,
-  AdminFilterPanel,
-  AdminPage,
-  AdminPageHeader,
-  AdminPagination,
-  AdminPanel,
+  Button,
+  Chip,
+  Empty,
+  FactChip,
+  Field,
+  InlineError,
+  Select,
+  Table,
+  Td,
+  Th,
+  Tr,
+  TypeChip,
+} from "@/components/kit";
+import {
+  HeadLink,
+  OutLink,
+  QueueColumn,
+  QueueFilter,
+  QueueHead,
+  QueueTable,
+  SupplierLink,
   formatAdminDate,
   humanizeAdminToken,
-} from "@/components/admin/admin-ui";
-import { Badge } from "@/components/ui/badge";
-import { ResponsiveTable, type Column } from "@/components/ui/responsive-table";
-import { Tag } from "@/components/ui/tag";
+} from "@/components/admin/queue-parts";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -89,6 +98,9 @@ function asStr(v: string | string[] | undefined): string {
   return s ?? "";
 }
 
+// The kit Select cannot hold an empty value, so its "Any" row posts this word; the page reads it as no filter.
+const ANY = "__any";
+
 export default async function AdminCertificationsPage({
   searchParams,
 }: {
@@ -99,7 +111,7 @@ export default async function AdminCertificationsPage({
   const status: Status = (STATUSES as readonly string[]).includes(statusRaw)
     ? (statusRaw as Status)
     : "open";
-  const kind = asStr(sp.kind);
+  const kind = asStr(sp.kind) === ANY ? "" : asStr(sp.kind);
   const page = Math.max(1, asInt(sp.page) ?? 1);
   const offset = (page - 1) * PAGE_SIZE;
 
@@ -113,15 +125,13 @@ export default async function AdminCertificationsPage({
 
   if (error || data == null) {
     return (
-      <AdminPage maxWidth="5xl">
-        <CertHeader />
-        <AdminPanel>
-          <p className="text-sm text-sem-red">
-            Could not load queue
-            {error?.message ? <>: {error.message}</> : null}.
-          </p>
-        </AdminPanel>
-      </AdminPage>
+      <QueueColumn>
+        <QueueHead title="Certification queue" lede={LEDE} />
+        <InlineError>
+          Could not load queue
+          {error?.message ? <>: {error.message}</> : null}.
+        </InlineError>
+      </QueueColumn>
     );
   }
 
@@ -139,188 +149,131 @@ export default async function AdminCertificationsPage({
   };
 
   return (
-    <AdminPage maxWidth="5xl">
-      <CertHeader total={doc.total} />
-
-      <AdminFilterPanel
-        title="Find certification reviews"
-        description="Filter uploaded certificates by review state and certificate kind."
-      >
-          <form
-            method="get"
-            action="/admin/certifications"
-            className="grid grid-cols-1 gap-3 sm:grid-cols-3"
-          >
-            <AdminField label="Status">
-              <select
-                name="status"
-                defaultValue={status}
-                className={ADMIN_SELECT_CLASS}
-              >
-                {STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {humanizeAdminToken(s)}
-                  </option>
-                ))}
-              </select>
-            </AdminField>
-            <AdminField label="Cert kind">
-              <select
-                name="kind"
-                defaultValue={kind}
-                className={ADMIN_SELECT_CLASS}
-              >
-                <option value="">Any</option>
-                {CERT_KINDS.map((k) => (
-                  <option key={k} value={k}>
-                    {humanizeAdminToken(k)}
-                  </option>
-                ))}
-              </select>
-            </AdminField>
-            <div className="flex items-end">
-              <button
-                type="submit"
-                className="min-h-[44px] rounded-pill border border-brand-forest bg-brand-forest px-4 text-sm font-semibold text-white hover:bg-brand-forest-mid"
-              >
-                Apply
-              </button>
-            </div>
-          </form>
-      </AdminFilterPanel>
-
-      <AdminPanel
+    <QueueColumn>
+      <QueueHead
         title="Certification queue"
-        meta={`${doc.total} total · page ${page} / ${totalPages}`}
-        padded={false}
-      >
-          {doc.rows.length === 0 ? (
-            <div className="p-4 sm:p-5">
-              <AdminEmptyState
-                title="No certifications in this state"
-                description="Try a different status or certificate kind."
-              />
-            </div>
-          ) : (
-            <ResponsiveTable
-              mode="stacked"
-              columns={CERT_COLUMNS}
-              rows={doc.rows}
-              rowKey={(r) => r.queue_id}
-              caption="Certification queue"
-              className="border-0 shadow-none"
+        lede={`${LEDE} ${doc.total} total in current filter.`}
+        actions={<HeadLink href="/admin/queue?type=cert_doc_review">Review hub</HeadLink>}
+      />
+
+      <QueueFilter action="/admin/certifications">
+        <Field label="Status" className="min-w-[200px]">
+          {(a) => (
+            <Select
+              {...a}
+              name="status"
+              defaultValue={status}
+              options={STATUSES.map((s) => ({ value: s, label: humanizeAdminToken(s) }))}
             />
           )}
-      </AdminPanel>
-      <AdminPagination page={page} totalPages={totalPages} pageHref={pageHref} />
-    </AdminPage>
+        </Field>
+        <Field label="Cert kind" className="min-w-[200px]">
+          {(a) => (
+            <Select
+              {...a}
+              name="kind"
+              defaultValue={kind || ANY}
+              options={[
+                { value: ANY, label: "Any" },
+                ...CERT_KINDS.map((k) => ({ value: k, label: humanizeAdminToken(k) })),
+              ]}
+            />
+          )}
+        </Field>
+        <Button type="submit" kind="primary">
+          Apply
+        </Button>
+      </QueueFilter>
+
+      <section className="flex flex-col gap-3">
+        <div className="flex flex-col gap-0.5">
+          <h2 className="text-lg font-semibold text-ink">Certification queue</h2>
+          <p className="text-sm text-ink-3">{`${doc.total} total · page ${page} / ${totalPages}`}</p>
+        </div>
+        {doc.rows.length === 0 ? (
+          <Empty title="No certifications in this state">Try a different status or certificate kind.</Empty>
+        ) : (
+          <QueueTable
+            noun="certifications"
+            total={doc.total}
+            page={page}
+            pages={totalPages}
+            perPage={PAGE_SIZE}
+            shown={doc.rows.length}
+            pageHref={pageHref}
+          >
+            <Table>
+              <caption className="sr-only">Certification queue</caption>
+              <thead>
+                <tr>
+                  <Th>Supplier</Th>
+                  <Th>Certificate</Th>
+                  <Th>Details</Th>
+                  <Th>Document</Th>
+                  <Th>Submitted</Th>
+                  <Th align="right">
+                    <span className="sr-only">Action</span>
+                  </Th>
+                </tr>
+              </thead>
+              <tbody>
+                {doc.rows.map((r) => (
+                  <Tr key={r.queue_id} className="align-top">
+                    <Td>
+                      <span className="flex flex-wrap items-center gap-1.5">
+                        <SupplierLink id={r.supplier.id}>{r.supplier.company_name}</SupplierLink>
+                        <TypeChip>{humanizeAdminToken(r.supplier.entity_type)}</TypeChip>
+                      </span>
+                    </Td>
+                    <Td>
+                      <span className="flex flex-wrap items-center gap-1.5">
+                        <TypeChip>{humanizeAdminToken(r.cert.kind)}</TypeChip>
+                        {r.cert.verified ? (
+                          <Chip icon={CheckCircle}>verified</Chip>
+                        ) : r.cert.rejected_at ? (
+                          <FactChip state="disagree">rejected</FactChip>
+                        ) : null}
+                        {r.admin_action ? <TypeChip>{r.admin_action}</TypeChip> : null}
+                      </span>
+                    </Td>
+                    <Td>
+                      <span className="block text-sm text-ink-3">
+                        {r.cert.certificate_no ?? "—"} · issuer {r.cert.issuer ?? "—"} · expires{" "}
+                        {r.cert.expires_on ?? "—"}
+                        {r.cert.scope ? <span className="block text-ink-2">{r.cert.scope}</span> : null}
+                        {r.cert.rejected_reason ? (
+                          <span className="block text-ink-2">Reason: {r.cert.rejected_reason}</span>
+                        ) : null}
+                      </span>
+                    </Td>
+                    <Td>{r.cert.document_url ? <OutLink href={r.cert.document_url} /> : "—"}</Td>
+                    <Td>
+                      <span className="block text-sm text-ink-3">
+                        by <span className="font-mono">{r.uploaded_by_email ?? "—"}</span> ·{" "}
+                        {formatAdminDate(r.queue_created_at)}
+                        {r.reviewed_at ? ` · reviewed ${formatAdminDate(r.reviewed_at)}` : ""}
+                      </span>
+                    </Td>
+                    <Td align="right">
+                      {r.reviewed_at == null ? (
+                        <AdminCertDecideButton
+                          queueId={r.queue_id}
+                          label={`${r.supplier.company_name} · ${r.cert.kind}`}
+                        />
+                      ) : (
+                        <span className="text-ink-3">—</span>
+                      )}
+                    </Td>
+                  </Tr>
+                ))}
+              </tbody>
+            </Table>
+          </QueueTable>
+        )}
+      </section>
+    </QueueColumn>
   );
 }
 
-const CERT_COLUMNS: Column<Row>[] = [
-  {
-    key: "supplier",
-    label: "Supplier",
-    render: (r) => (
-      <span className="flex flex-wrap items-center gap-1.5">
-        <Link
-          href={`/admin/suppliers/${r.supplier.id}`}
-          className="text-sm font-semibold text-ink-primary hover:underline"
-        >
-          {r.supplier.company_name}
-        </Link>
-        <Tag>{humanizeAdminToken(r.supplier.entity_type)}</Tag>
-      </span>
-    ),
-  },
-  {
-    key: "cert",
-    label: "Certificate",
-    render: (r) => (
-      <span className="flex flex-wrap items-center gap-1.5">
-        <Badge tone={r.cert.verified ? "success" : "neutral"}>
-          {humanizeAdminToken(r.cert.kind)}
-        </Badge>
-        {r.cert.verified ? (
-          <Badge tone="success">verified</Badge>
-        ) : r.cert.rejected_at ? (
-          <Badge tone="alert">rejected</Badge>
-        ) : null}
-        {r.admin_action ? <Tag>{r.admin_action}</Tag> : null}
-      </span>
-    ),
-  },
-  {
-    key: "details",
-    label: "Details",
-    render: (r) => (
-      <span className="block text-xs text-ink-tertiary">
-        {r.cert.certificate_no ?? "—"} · issuer {r.cert.issuer ?? "—"} · expires{" "}
-        {r.cert.expires_on ?? "—"}
-        {r.cert.scope ? (
-          <span className="block text-ink-secondary">{r.cert.scope}</span>
-        ) : null}
-        {r.cert.rejected_reason ? (
-          <span className="block text-ink-secondary">
-            Reason: {r.cert.rejected_reason}
-          </span>
-        ) : null}
-      </span>
-    ),
-  },
-  {
-    key: "document",
-    label: "Document",
-    render: (r) =>
-      r.cert.document_url ? (
-        <a
-          href={r.cert.document_url}
-          target="_blank"
-          rel="noreferrer"
-          className="font-mono text-xs text-accent-indigo hover:underline"
-        >
-          view
-        </a>
-      ) : (
-        "—"
-      ),
-  },
-  {
-    key: "meta",
-    label: "Submitted",
-    render: (r) => (
-      <span className="block text-[12px] text-ink-tertiary">
-        by <span className="font-mono">{r.uploaded_by_email ?? "—"}</span> ·{" "}
-        {formatAdminDate(r.queue_created_at)}
-        {r.reviewed_at
-          ? ` · reviewed ${formatAdminDate(r.reviewed_at)}`
-          : ""}
-      </span>
-    ),
-  },
-  {
-    key: "action",
-    label: "",
-    numeric: true,
-    render: (r) =>
-      r.reviewed_at == null ? (
-        <AdminCertDecideButton
-          queueId={r.queue_id}
-          label={`${r.supplier.company_name} · ${r.cert.kind}`}
-        />
-      ) : (
-        <span className="text-ink-tertiary">—</span>
-      ),
-  },
-];
-
-function CertHeader({ total }: { total?: number }) {
-  return (
-    <AdminPageHeader
-      kicker="Admin · Certifications"
-      title="Certification queue"
-      description={`Review supplier-uploaded certifications. Approve to mark the cert verified; reject to soft-delete with a reason.${typeof total === "number" ? ` ${total} total in current filter.` : ""}`}
-      actions={<AdminActionLink href="/admin/queue?type=cert_doc_review">Review hub</AdminActionLink>}
-    />
-  );
-}
+const LEDE =
+  "Review supplier-uploaded certifications. Approve to mark the cert verified; reject to soft-delete with a reason.";

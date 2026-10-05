@@ -5,8 +5,7 @@
 
 import { useRef, useState, useTransition } from "react";
 
-import { Button } from "@/components/ui/button";
-import { ResponsiveTable, type Column } from "@/components/ui/responsive-table";
+import { Button, Table, TableFrame, TableScroll, Td, Th, Tr } from "@/components/kit";
 
 type FailedRow = { row: number; slug: string; ok: false; reason: string };
 type Result = {
@@ -15,24 +14,6 @@ type Result = {
   failed_count: number;
   failed: FailedRow[];
 };
-
-const FAILED_COLUMNS: Column<FailedRow>[] = [
-  {
-    key: "row",
-    label: "Row",
-    render: (f) => <span className="font-mono">L{f.row}</span>,
-  },
-  {
-    key: "slug",
-    label: "Slug",
-    render: (f) => <span className="font-mono">{f.slug || "—"}</span>,
-  },
-  {
-    key: "reason",
-    label: "Reason",
-    render: (f) => <span className="text-ink-tertiary">{f.reason}</span>,
-  },
-];
 
 export function AdminSupplierImportForm() {
   const [file, setFile] = useState<File | null>(null);
@@ -77,48 +58,63 @@ export function AdminSupplierImportForm() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       <form className="flex flex-col gap-3" onSubmit={onSubmit}>
         <input
           ref={inputRef}
           type="file"
           accept=".csv,text/csv"
+          aria-label="CSV file"
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          className="text-sm"
+          className="text-base text-ink"
         />
         <div className="flex items-center gap-3">
-          <Button type="submit" variant="primary" size="sm" disabled={pending || !file}>
+          <Button type="submit" kind="primary" disabled={pending || !file}>
             {pending ? "Uploading…" : "Upload CSV"}
           </Button>
           {file ? (
-            <span className="font-mono text-[12px] text-ink-tertiary">
+            <span className="font-mono text-xs text-ink-3">
               {file.name} · {file.size.toLocaleString()} bytes
             </span>
           ) : null}
         </div>
-        {error ? <p className="text-[13px] text-sem-red">{error}</p> : null}
+        {error ? (
+          <p role="alert" className="text-sm text-danger">
+            {error}
+          </p>
+        ) : null}
       </form>
 
       {result ? (
-        <div className="rounded-input border border-hairline bg-bg-l0 p-3 text-[13px]">
-          <p className="font-mono">
-            processed{" "}
-            <span className="tabular-nums text-ink-primary">{result.processed}</span>
-            {" · "}updated{" "}
-            <span className="tabular-nums text-sem-green">{result.updated}</span>
-            {" · "}failed{" "}
-            <span className="tabular-nums text-sem-red">{result.failed_count}</span>
+        <div role="status" className="flex flex-col gap-3 rounded-md border border-line bg-subtle p-3 text-base">
+          <p className="font-mono text-sm text-ink-2">
+            processed <span className="tabular-nums text-ink">{result.processed}</span>
+            {" · "}updated <span className="tabular-nums text-ink">{result.updated}</span>
+            {" · "}failed <span className="tabular-nums text-ink">{result.failed_count}</span>
           </p>
           {result.failed.length > 0 ? (
-            <div className="mt-2">
-              <ResponsiveTable
-                mode="swipe"
-                columns={FAILED_COLUMNS}
-                rows={result.failed}
-                rowKey={(f) => `${f.row}-${f.slug}`}
-                caption="Failed rows"
-              />
-            </div>
+            <TableFrame className="bg-surface">
+              <TableScroll>
+                <Table aria-label="Failed rows">
+                  <thead>
+                    <tr>
+                      <Th>Row</Th>
+                      <Th>Slug</Th>
+                      <Th>Reason</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {result.failed.map((f) => (
+                      <Tr key={`${f.row}-${f.slug}`}>
+                        <Td className="font-mono">L{f.row}</Td>
+                        <Td className="font-mono">{f.slug || "—"}</Td>
+                        <Td>{f.reason}</Td>
+                      </Tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </TableScroll>
+            </TableFrame>
           ) : null}
         </div>
       ) : null}

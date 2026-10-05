@@ -8,12 +8,11 @@
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ChatCircleText } from "@phosphor-icons/react/dist/ssr";
+import { ArrowLeft } from "@phosphor-icons/react/dist/ssr";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { MasterDetail } from "@/components/ui/master-detail";
+import { TypeChip, linkClass } from "@/components/kit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { cn } from "@/lib/utils";
 
 import { ThreadRealtime } from "./thread-realtime";
 import type { ThreadMessage } from "./thread-realtime";
@@ -65,43 +64,37 @@ export default async function SupplierThreadPage({
   const messages = (msgRes.data ?? []) as ThreadMessage[];
 
   return (
-    <MasterDetail
-      mode="detail"
-      className="mx-auto h-full max-w-6xl"
-      list={<ThreadListPane items={allThreads} activeId={threadId} />}
-      detail={
-        <div className="flex h-full flex-col">
-          <header className="mb-4 flex items-center justify-between gap-3 lg:hidden">
-            <Button asChild variant="ghost" size="sm">
-              <Link
-                href="/supplier/messages"
-                className="inline-flex items-center gap-1.5"
-              >
-                <ArrowLeft size={16} weight="bold" aria-hidden /> Inbox
-              </Link>
-            </Button>
-          </header>
+    <div className="mx-auto grid w-full max-w-[1200px] items-start gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+      <ThreadListPane items={allThreads} activeId={threadId} />
+      <div className="flex min-w-0 flex-col gap-4">
+        <Link
+          href="/supplier/messages"
+          className={cn(linkClass, "inline-flex items-center gap-1.5 text-sm lg:hidden")}
+        >
+          <ArrowLeft size={16} aria-hidden /> Inbox
+        </Link>
 
-          <div className="mb-3 flex items-baseline justify-between gap-3">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h1 className="truncate font-display text-xl font-semibold tracking-tightish text-ink-primary">
-                  {buyerLabel(thread)}
-                </h1>
-                <Badge tone="neutral">Buyer</Badge>
-              </div>
-              <p className="text-[12px] text-ink-tertiary">
-                {thread.subject ?? "General inquiry"} · {thread.supplier_name}
-              </p>
-            </div>
+        <header className="flex flex-col gap-1">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="truncate text-2xl font-semibold tracking-tight text-ink">
+              {buyerLabel(thread)}
+            </h1>
+            <TypeChip>Buyer</TypeChip>
           </div>
+          <p className="text-md text-ink-2">
+            {thread.subject ?? "General inquiry"} · {thread.supplier_name}
+          </p>
+        </header>
 
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-card border border-hairline bg-surface-l1 shadow-[0_1px_2px_rgba(15,15,20,0.03)]">
-            <ThreadRealtime threadId={threadId} initialMessages={messages} />
-          </div>
+        <div className="flex min-h-0 flex-col overflow-clip rounded-md border border-line">
+          <ThreadRealtime
+            threadId={threadId}
+            initialMessages={messages}
+            today={new Date().toISOString()}
+          />
         </div>
-      }
-    />
+      </div>
+    </div>
   );
 }
 
@@ -114,32 +107,26 @@ function ThreadListPane({
 }) {
   const threads = items.filter((t) => t.viewer_role === "supplier");
   return (
-    <nav className="rounded-card border border-hairline bg-surface-l1">
-      <p className="border-b border-hairline px-3 py-2 font-mono text-[12px] uppercase tracking-[0.05em] text-ink-tertiary">
+    <nav aria-label="Messages" className="rounded-md border border-line max-lg:hidden">
+      <p className="border-b border-line px-3 py-2 text-xs font-medium text-ink-3">
         Messages
       </p>
       <ul className="m-0 flex max-h-[70vh] list-none flex-col overflow-y-auto p-0">
         {threads.map((t) => (
-          <li key={t.id} className="border-b border-hairline last:border-b-0">
+          <li key={t.id} className="border-b border-line last:border-b-0">
             <Link
               href={`/supplier/messages/${t.id}`}
-              className={`flex items-center gap-2 px-3 py-2.5 transition hover:bg-brand-forest-tint ${
-                t.id === activeId ? "bg-brand-forest-tint" : ""
-              }`}
+              aria-current={t.id === activeId ? "page" : undefined}
+              className={cn(
+                "flex flex-col px-3 py-2.5 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand",
+                t.id === activeId && "bg-brand-tint",
+              )}
             >
-              <ChatCircleText
-                size={16}
-                weight="duotone"
-                className="shrink-0 text-accent-indigo"
-                aria-hidden
-              />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[14px] font-semibold text-ink-primary">
-                  {buyerLabel(t)}
-                </span>
-                <span className="block truncate text-[12px] text-ink-tertiary">
-                  {t.subject ?? "General inquiry"}
-                </span>
+              <span className="block truncate text-base font-medium text-ink">
+                {buyerLabel(t)}
+              </span>
+              <span className="block truncate text-xs text-ink-3">
+                {t.subject ?? "General inquiry"}
               </span>
             </Link>
           </li>

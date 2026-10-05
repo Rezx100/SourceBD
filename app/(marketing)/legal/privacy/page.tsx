@@ -8,7 +8,7 @@
 // state — flipping the env vars on the VPS picks up real values
 // without a code change.
 
-import { BlurFade } from "@/components/ui/blur-fade";
+import { LegalShell, legalDay } from "@/components/site/legal";
 
 export const dynamic = "force-static";
 
@@ -36,22 +36,8 @@ export const metadata = {
 
 export default function PrivacyPage() {
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16">
-      <BlurFade delay={0.1}>
-        <header className="mb-8 text-center">
-          <h1 className="font-display text-3xl font-bold tracking-tight text-ink-primary md:text-4xl">
-            <span className="text-[#1f4d3a]">Privacy Notice</span>
-          </h1>
-          <p className="mt-3 text-[12px] text-ink-tertiary">
-            Last updated: {LAST_UPDATED}
-          </p>
-        </header>
-      </BlurFade>
-      <BlurFade delay={0.15}>
-      <div className="proto-card">
-
-      <section className="space-y-4 text-ink-secondary leading-relaxed">
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+    <LegalShell title="Privacy Notice" updated={legalDay(LAST_UPDATED)} active="/legal/privacy">
+        <h2>
           1. Who we are
         </h2>
         <p>
@@ -62,7 +48,7 @@ export default function PrivacyPage() {
           <strong>{ICO_REGISTRATION_NUMBER}</strong>.
         </p>
 
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+        <h2>
           2. UK GDPR Representative
         </h2>
         <p>
@@ -70,7 +56,7 @@ export default function PrivacyPage() {
           the following UK-based representative for data-protection
           enquiries from UK data subjects and the ICO:
         </p>
-        <div className="rounded-lg border border-ink-200 bg-bg-l1 p-4 text-sm">
+        <div className="note">
           <p>
             <strong>Name:</strong> {UK_GDPR_REP_NAME}
           </p>
@@ -82,10 +68,10 @@ export default function PrivacyPage() {
           </p>
         </div>
 
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+        <h2>
           3. What we collect
         </h2>
-        <ul className="list-disc space-y-1 pl-6">
+        <ul>
           <li>
             <strong>Account data:</strong> name, business email, company
             name, role.
@@ -106,7 +92,7 @@ export default function PrivacyPage() {
           </li>
         </ul>
 
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+        <h2>
           4. Lawful bases
         </h2>
         <p>
@@ -115,10 +101,10 @@ export default function PrivacyPage() {
           <em>legitimate interests</em> (Art. 6(1)(f)) in operating
           and improving a B2B intelligence platform. We do not rely on
           consent for advertising cookies because we do not run them
-          (see <a className="text-accent-indigo hover:underline" href="/legal/cookies">Cookies</a>).
+          (see <a href="/legal/cookies">Cookies</a>).
         </p>
 
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+        <h2>
           5. Sharing
         </h2>
         <p>
@@ -130,7 +116,7 @@ export default function PrivacyPage() {
           advertisers.
         </p>
 
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+        <h2>
           6. International transfers
         </h2>
         <p>
@@ -140,7 +126,7 @@ export default function PrivacyPage() {
           with the UK Addendum, as applicable.
         </p>
 
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+        <h2>
           7. Retention
         </h2>
         <p>
@@ -150,7 +136,7 @@ export default function PrivacyPage() {
           longer in non-identifying form.
         </p>
 
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+        <h2>
           8. Your rights
         </h2>
         <p>
@@ -158,10 +144,10 @@ export default function PrivacyPage() {
           port your personal data, and to object to processing. Send
           requests to <strong>privacy@sourcebd.net</strong>. You also
           have the right to complain to the ICO
-          (<a className="text-accent-indigo hover:underline" href="https://ico.org.uk/" rel="noopener noreferrer" target="_blank">ico.org.uk</a>).
+          (<a href="https://ico.org.uk/" rel="noopener noreferrer" target="_blank">ico.org.uk</a>).
         </p>
 
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+        <h2>
           9. Supplier records
         </h2>
         <p>
@@ -170,13 +156,13 @@ export default function PrivacyPage() {
           identify natural persons. Where a supplier record contains
           publicly disclosed contact-person information, we apply the
           minimisation rules described in our{" "}
-          <a className="text-accent-indigo hover:underline" href="/legal/data-sources">
+          <a href="/legal/data-sources">
             Data Source Policy
           </a>
           .
         </p>
 
-        <h2 className="font-display text-xl font-semibold text-ink-primary">
+        <h2>
           10. Changes
         </h2>
         <p>
@@ -184,9 +170,6 @@ export default function PrivacyPage() {
           active account holders at least 30 days before they take
           effect.
         </p>
-      </section>
-      </div>
-      </BlurFade>
-    </main>
+      </LegalShell>
   );
 }
