@@ -5,8 +5,9 @@
 // ONE function (`attentionOf`), so they agree by construction.
 //
 // Every read stands on its own: a failed one is said in the card that needed it and never turned into
-// "nothing needs attention". Paper's sanctions-lists block and "Download evidence (CSV)" are not here:
-// no read carries a lists-last-read date for the whole saved list and no evidence export exists.
+// "nothing needs attention". Paper's sanctions-lists block is not here: no read carries a
+// lists-last-read date for the whole saved list. Download CSV writes the certificate list when both
+// reads worked (`/api/v1/export`); Paper's evidence pack for auditors is gap 8.
 
 import { AttentionCard, AttentionError, ExpiryCard, HubEmpty, HubHead, MsaCard, PartialNote, PhoneUflpaNote, UflpaCard } from "@/components/compliance/hub";
 import { loadCompliance } from "@/components/compliance/load";
@@ -33,7 +34,7 @@ export default async function CompliancePage() {
   }
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <HubHead saved={saved} />
+      <HubHead saved={saved} download={att !== null && att.total > 0 && d.expired !== null && d.expiring !== null} />
       <div className="flex gap-6 px-6 py-5 max-lg:flex-col max-md:gap-0 max-md:px-0 max-md:py-0">
         <div className="flex min-w-0 flex-1 flex-col gap-4 max-md:gap-0">
           <PhoneUflpaNote uflpa={d.uflpa} saved={saved} />

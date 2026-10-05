@@ -73,6 +73,9 @@ export function parseShow(raw: string | string[] | undefined): ExpiryShow {
   return v === "expired" || v === "30" || v === "90" ? v : "all";
 }
 
+/** Download CSV on Compliance and Certificate expiry: the certificates a `?show=` filter draws (`/api/v1/export`). */
+export const certExportHref = (show: ExpiryShow = "all") => `/api/v1/export?kind=certificates${show === "all" ? "" : `&show=${show}`}`;
+
 export const expiryHref = (show: ExpiryShow) => (show === "all" ? EXPIRY_HREF : `${EXPIRY_HREF}?show=${show}`);
 
 export type CertItem = {
@@ -97,6 +100,8 @@ export type CertItem = {
   /** The certificate's own row on the supplier's record. */
   certHref: string;
   days: number;
+  /** "2026-10-08": the day it lapses, for the CSV. */
+  expiresOn: string;
 };
 
 export type ExpiryGroups = { expired: CertItem[]; within30: CertItem[]; within90: CertItem[] };
@@ -126,6 +131,7 @@ function itemOf(r: CertRead, today: Date): CertItem | null {
     // The certificate's own row on the record: the Overview's "Needs a look" and the Certificates tab both carry it.
     certHref: `/app/suppliers/${r.supplier.slug}#${certRowId(r.kind, r.certificate_no, r.expires_on)}`,
     days,
+    expiresOn: r.expires_on.slice(0, 10),
   };
 }
 
@@ -134,6 +140,11 @@ export function expiryGroups(expired: CertList | null, expiring: CertList | null
   const lapsed = (expired?.rows ?? []).map((r) => itemOf(r, today)).filter((x): x is CertItem => x !== null);
   const coming = (expiring?.rows ?? []).map((r) => itemOf(r, today)).filter((x): x is CertItem => x !== null);
   return { expired: lapsed, within30: coming.filter((c) => c.days <= 30), within90: coming.filter((c) => c.days > 30) };
+}
+
+/** The certificates a `?show=` filter draws, in the page's order: what Download CSV writes. */
+export function expiryItems(g: ExpiryGroups, show: ExpiryShow): CertItem[] {
+  return show === "expired" ? g.expired : show === "30" ? g.within30 : show === "90" ? g.within90 : [...g.expired, ...g.within30, ...g.within90];
 }
 
 export type ExpiryCounts = { all: number; expired: number; within30: number; within90: number };

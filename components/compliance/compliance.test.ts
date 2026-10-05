@@ -22,12 +22,14 @@ import { loadCompliance } from "./load";
 import { UflpaError, UflpaStats, UflpaTable } from "./uflpa";
 import {
   attention,
+  certExportHref,
   comingUp,
   complianceBadge,
   expiredHeading,
   expiryCounts,
   expiryGroups,
   expiryHref,
+  expiryItems,
   expirySubline,
   expiryTabs,
   hubCaption,
@@ -178,11 +180,24 @@ describe("the expiry list", () => {
   });
 
   it("the head has the tabs and the way back; a phone says how many dated certificates on how many suppliers", () => {
-    const out = html(createElement(ExpiryHead, { groups: g(), saved: 11, show: "expired" }));
+    const out = html(createElement(ExpiryHead, { groups: g(), saved: 11, show: "expired", download: true }));
     assert.match(out, /href="\/app\/compliance"[^>]*>[\s\S]*Compliance/);
     assert.match(out, /href="\/app\/compliance\/expiry\?show=expired"[^>]*aria-current="true"|aria-current="true"[^>]*href="\/app\/compliance\/expiry\?show=expired"/);
     assert.match(text(out), /All · 4 Expired · 2 Within 30 days · 1 31–90 days · 1/);
     assert.match(text(out), /4 dated certificates on 11 saved suppliers/);
+    assert.match(out, />Download CSV</);
+    const unread = html(createElement(ExpiryHead, { groups: g(), saved: 11, show: "expired", download: false }));
+    assert.doesNotMatch(unread, /Download CSV/, "a list that was not fully read has nothing to download");
+    assert.doesNotMatch(html(createElement(ExpiryHead, { groups: expiryGroups(null, null, NOW), saved: null, show: "all", download: true })), /Download CSV/, "an empty list has nothing to download");
+  });
+
+  it("the CSV link follows the filter on the page", () => {
+    assert.equal(certExportHref(), "/api/v1/export?kind=certificates");
+    assert.equal(certExportHref("all"), "/api/v1/export?kind=certificates");
+    assert.equal(certExportHref("expired"), "/api/v1/export?kind=certificates&show=expired");
+    assert.equal(certExportHref("90"), "/api/v1/export?kind=certificates&show=90");
+    assert.deepEqual(expiryItems(g(), "30").map((i) => i.expiresOn), ["2026-10-08"]);
+    assert.equal(expiryItems(g(), "all").length, 4);
   });
 
   it("nothing at all is a sentence, nothing in a group points back to every certificate, an unread list is not 'nothing'", () => {
@@ -331,6 +346,7 @@ describe("/app/compliance", () => {
     assert.match(text(out), /Modern slavery statement/);
     assert.match(text(out), /See every expiry date/);
     assert.deepEqual(await loadComplianceBadge(client), { text: `${attention(EXPIRED, EXPIRING, new Date())!.total} to check`, tone: "danger" });
+    assert.match(out, />Download CSV</);
     assert.doesNotMatch(out, /Download evidence|sanctions lists|Continue the draft/);
   });
 
@@ -339,6 +355,7 @@ describe("/app/compliance", () => {
     const partial = await hub();
     assert.match(text(partial), /The expired certificates did not load/);
     assert.match(text(partial), /Needs attention · 2 certificates/);
+    assert.doesNotMatch(partial, /Download CSV/, "a file of half the list would look whole");
     given({ compliance_expired_certs: { data: null, error: { message: "x" } }, compliance_expiring_certs: { data: null, error: { message: "x" } }, compliance_uflpa_tracker: UFL, compliance_msa_inputs: MSA });
     const none = await hub();
     assert.match(none, /role="alert"/);
