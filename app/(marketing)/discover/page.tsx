@@ -1,41 +1,34 @@
-// Public Discover — anonymous, demo-mode (Spec M5).
+// Public Discover — anonymous, demo-mode (Spec M5), drawn from the v4 kit (B9h).
 //
 // Calls the anon-granted `public.discover_suppliers` RPC (migration
-// 0023) — same RPC the buyer surface uses. Result cards link to
-// `/suppliers/{slug}` (public profile, not the auth-gated one). The
-// shared filter rail / sort / pagination markup lives in
-// `components/discover/filter-rail`.
+// 0023) — same RPC the buyer surface uses. Result rows link to
+// `/suppliers/{slug}` (public profile, not the auth-gated one). The filter
+// form, the rows and the pages are `components/discover/public`; the search
+// box is the `components/discover/search-box` island.
 //
 // No SaveButton, no saved-set lookup (anon visitors have no auth).
 // Contacts are not part of the RPC payload at all (see the doctrine
 // notes on `app/(public)/suppliers/[slug]/page.tsx`).
 
-import Link from "next/link";
-
-import { EmptyState } from "@/components/ui/page-kit";
 import {
   BRAND_SOURCES,
   CERT_KINDS,
   ENTITY_TYPES,
-  FilterRail,
   PAGE_SIZE,
-  Pagination,
   REGISTRY_SOURCES,
-  SortControl,
   asInt,
   asString,
   asStringArray,
   clampSort,
 } from "@/components/discover/filter-rail";
-import {
-  DiscoverResultCard,
-} from "@/components/discover/result-card";
-import { DiscoverSearchHero } from "@/components/discover/search-hero";
-import { MobileFilterSheet } from "@/components/discover/mobile-filter-sheet";
+import { FacetLists, PublicResults, ResponsiveFilters, filterCount } from "@/components/discover/public";
+import { DiscoverSearchBox } from "@/components/discover/search-box";
+import { Display, Label, Lede, wrap } from "@/components/site/parts";
 import { fetchDiscoverFacets } from "@/lib/discover-facets";
 import { fetchPublicDiscoverSuppliers } from "@/lib/discover-suppliers";
 import { resolveDiscoverSmartQuery } from "@/lib/discover-smart-query";
 import { LIST_MAX, LIST_VALUE_MAX, Q_MAX } from "@/lib/discover-v32-state";
+import { cn } from "@/lib/utils";
 
 export const revalidate = 300;
 
@@ -127,147 +120,57 @@ export default async function PublicDiscoverPage({
     sort: sort === "default" ? "" : sort,
   };
 
-  const anyFilterActive =
-    Boolean(q) ||
-    entityTypes.length > 0 ||
-    certKinds.length > 0 ||
-    registries.length > 0 ||
-    brandCodes.length > 0 ||
-    factoryTypes.length > 0 ||
-    minSources !== null ||
-    Boolean(city) ||
-    Boolean(district) ||
-    Boolean(category);
+  const filters = {
+    q,
+    sort,
+    entityTypes,
+    certKinds,
+    registries,
+    brandCodes,
+    factoryTypes,
+    minSources: minSourcesRaw,
+    city,
+    district,
+    category,
+    facets,
+  };
 
-  const activeFilterCount =
-    (q ? 1 : 0) +
-    entityTypes.length +
-    certKinds.length +
-    registries.length +
-    brandCodes.length +
-    factoryTypes.length +
-    (minSources !== null ? 1 : 0) +
-    (city ? 1 : 0) +
-    (district ? 1 : 0) +
-    (category ? 1 : 0);
   return (
-    <>
-      <main className="mx-auto flex min-h-[calc(100dvh-4rem)] max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6">
-        <DiscoverSearchHero
-          basePath={BASE_PATH}
-          profileBase="/suppliers"
-          q={q}
-          sort={sort}
-          centered={!hasSearchQuery}
-          subcopy="Search by certification, product, or district - every result is on the record."
-        />
+    <main className="font-sans text-ink">
+      <section className="pb-10 pt-20 max-md:pb-6 max-md:pt-10">
+        <div className={cn(wrap, "flex flex-col gap-6")}>
+          <Label>Discover</Label>
+          <Display level={1} as="h1" className="max-w-[880px]">
+            Find a verified factory
+          </Display>
+          <Lede>Search by certification, product, or district. Every result is on the record.</Lede>
+          <div className="flex flex-col gap-2">
+            <DiscoverSearchBox basePath={BASE_PATH} profileBase="/suppliers" q={q} sort={sort} />
+            <p className="text-md text-ink-3">Try “knit dresses Gazipur” or “GOTS”</p>
+          </div>
+        </div>
+      </section>
 
-        {hasSearchQuery ? (
-          <>
-            <div className="space-y-4">
-              <div className="md:hidden">
-                <MobileFilterSheet
-                  activeFilterCount={activeFilterCount}
-                  resultCount={Number(totalCount)}
-                >
-                  <FilterRail
-                    basePath={BASE_PATH}
-                    q={q}
-                    entityTypes={entityTypes}
-                    certKinds={certKinds}
-                    registries={registries}
-                    brandCodes={brandCodes}
-                    factoryTypes={factoryTypes}
-                    minSources={minSourcesRaw}
-                    city={city}
-                    district={district}
-                    category={category}
-                    sort={sort}
-                    facets={facets}
-                    hideSearchRow
-                    instanceId="mobile"
-                  />
-                </MobileFilterSheet>
-              </div>
-
-              <div className="hidden md:block">
-                <FilterRail
-                  basePath={BASE_PATH}
-                  q={q}
-                  entityTypes={entityTypes}
-                  certKinds={certKinds}
-                  registries={registries}
-                  brandCodes={brandCodes}
-                  factoryTypes={factoryTypes}
-                  minSources={minSourcesRaw}
-                  city={city}
-                  district={district}
-                  category={category}
-                  sort={sort}
-                  facets={facets}
-                  hideSearchRow
-                  instanceId="desktop"
-                />
-              </div>
-            </div>
-
-            <section id="discover-results" className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-sm text-ink-secondary">
-                  {error ? (
-                    <span className="text-sem-red">
-                      Could not load suppliers.
-                    </span>
-                  ) : (
-                    <>
-                      <span className="font-semibold text-ink-primary">
-                        {Number(totalCount).toLocaleString()}
-                      </span>{" "}
-                      result{Number(totalCount) === 1 ? "" : "s"}
-                    </>
-                  )}
-                </p>
-                <SortControl
-                  basePath={BASE_PATH}
-                  current={sort}
-                  baseQuery={baseQuery}
-                />
-              </div>
-
-              {!error && rows.length === 0 ? (
-                <EmptyState
-                  title={anyFilterActive ? "No results for these filters" : "No published suppliers yet"}
-                  description={anyFilterActive ? "Try removing the most restrictive filter to broaden your search." : undefined}
-                  action={
-                    anyFilterActive ? (
-                      <Link href={BASE_PATH} className="btn-proto primary">
-                        Clear filters
-                      </Link>
-                    ) : null
-                  }
-                />
-              ) : (
-                <ul className="grid grid-cols-1 gap-4">
-                  {rows.map((row) => (
-                    <li key={row.id}>
-                      <DiscoverResultCard row={row} hrefBase="/suppliers" />
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              {totalPages > 1 ? (
-                <Pagination
-                  basePath={BASE_PATH}
-                  page={pageNum}
-                  totalPages={totalPages}
-                  baseQuery={baseQuery}
-                />
-              ) : null}
-            </section>
-          </>
-        ) : null}
-      </main>
-    </>
+      {hasSearchQuery ? (
+        <section className="pb-24 max-md:pb-14">
+          <div className={cn(wrap, "flex flex-col gap-6")}>
+            <ResponsiveFilters basePath={BASE_PATH} {...filters} />
+            <FacetLists facets={facets} />
+            <PublicResults
+              basePath={BASE_PATH}
+              q={q}
+              rows={rows}
+              total={Number(totalCount)}
+              page={pageNum}
+              pages={totalPages}
+              failed={Boolean(error)}
+              filtersOn={filterCount(filters) > 0}
+              sort={sort}
+              baseQuery={baseQuery}
+            />
+          </div>
+        </section>
+      ) : null}
+    </main>
   );
 }
