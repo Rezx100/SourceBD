@@ -1187,6 +1187,7 @@ const CASES = [
   },
   { name: "site: /legal/privacy is 200", path: "/legal/privacy", expect: { status: 200, bodyIncludes: "Who we are" } },
   { name: "site: /legal/trademarks is 200", path: "/legal/trademarks", expect: { status: 200, bodyIncludes: "All third-party trademarks" } },
+  { name: "site: /contact is 200", path: "/contact", expect: { status: 200, bodyIncludes: "Talk to us." } },
   {
     name: "site: /pricing is 200 and says it is free during beta",
     path: "/pricing",

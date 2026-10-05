@@ -32,6 +32,8 @@ export type SendEmailInput<K extends TemplateName> = {
   template: K;
   data: TemplateMap[K];
   refId?: string | null;
+  /** Where a reply goes, when it is not the sender (the contact form's visitor). */
+  replyTo?: string;
 };
 
 export type SendEmailResult =
@@ -157,6 +159,7 @@ export async function sendEmail<K extends TemplateName>(
       subject,
       html,
       text,
+      ...(input.replyTo ? { replyTo: input.replyTo } : {}),
     });
     if (error || !data) {
       const msg = error?.message ?? "unknown resend error";
