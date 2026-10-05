@@ -18,6 +18,7 @@ import { NextResponse } from "next/server";
 import { getServerRole } from "@/lib/auth";
 import { runSavedSupplierPost } from "@/lib/saved-suppliers";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { VIEWER_CANT_SAVE, workspaceCan, workspaceOwnerId } from "@/lib/workspace";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -91,10 +92,14 @@ export async function DELETE(req: Request) {
 
   const supabase = await createSupabaseServerClient();
   const { data: user } = await supabase.auth.getUser();
-  const ownerId = user.user?.id;
-  if (!ownerId) {
+  const ownId = user.user?.id;
+  if (!ownId) {
     return NextResponse.json({ error: "unauthorised" }, { status: 401 });
   }
+  // The list is the workspace owner's (0116) and only an editor or above changes it. Before 0116, or on a
+  // failed read, this is the person's own id and the database's policy still decides.
+  const ownerId = await workspaceOwnerId(supabase, ownId);
+  if (!(await workspaceCan(supabase, "save"))) return NextResponse.json({ error: VIEWER_CANT_SAVE }, { status: 403 });
 
   const { error } = await supabase
     .from("saved_suppliers")
