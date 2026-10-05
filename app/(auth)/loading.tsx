@@ -1,38 +1,30 @@
-// Auth-shell Suspense fallback — mirrors the split-pane layout.
+// Auth Suspense fallback: the split page's silhouette (the form column, and the panel from 1280).
 
-import { Skeleton, SkeletonRegion } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/kit";
 
 export default function AuthLoading() {
   return (
-    <SkeletonRegion className="flex min-h-svh bg-white">
-      {/* Left brand panel silhouette */}
-      <div className="hidden w-[45%] shrink-0 flex-col justify-between border-r border-neutral-200 bg-[#f5f8f6] p-12 lg:flex xl:w-[42%]">
-        <Skeleton w={140} h={32} shape="pill" tone="card" />
-        <div className="space-y-4">
-          <Skeleton w={120} h={24} shape="pill" tone="card" />
-          <Skeleton w="80%" h={40} tone="card" />
-          <Skeleton w="100%" h={56} tone="card" />
-          <Skeleton w="100%" h={150} shape="card" tone="card" />
+    <div role="status" aria-label="Loading" className="flex min-h-dvh bg-surface">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex h-14 items-center justify-between px-4 sm:px-10">
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-4 w-40" />
         </div>
-        <Skeleton w={200} h={12} tone="card" />
-      </div>
-
-      {/* Right form panel silhouette */}
-      <div className="flex flex-1 items-center justify-center px-6">
-        <div className="w-full max-w-[26rem] space-y-5">
-          <Skeleton w={180} h={28} tone="card" />
-          <Skeleton w={220} h={14} tone="card" />
-          <div className="space-y-2 pt-3">
-            <Skeleton w={70} h={12} tone="card" />
-            <Skeleton w="100%" h={48} shape="card" tone="card" />
+        <div className="flex flex-1 flex-col justify-center gap-8 px-4 pb-14 sm:px-10 xl:pl-40">
+          <div className="flex w-full max-w-[420px] flex-col gap-8">
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-7 w-56" />
+              <Skeleton className="h-4 w-72" />
+            </div>
+            <div className="flex flex-col gap-5">
+              <Skeleton className="h-control-lg w-full" />
+              <Skeleton className="h-control-lg w-full" />
+              <Skeleton className="h-control-lg w-full" />
+            </div>
           </div>
-          <div className="space-y-2">
-            <Skeleton w={70} h={12} tone="card" />
-            <Skeleton w="100%" h={48} shape="card" tone="card" />
-          </div>
-          <Skeleton w="100%" h={48} shape="card" tone="card" />
         </div>
       </div>
-    </SkeletonRegion>
+      <div className="hidden w-pane shrink-0 border-l border-line bg-subtle xl:block" />
+    </div>
   );
 }

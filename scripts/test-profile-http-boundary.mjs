@@ -1726,6 +1726,23 @@ const CASES = [
     expect: { status: 307, locationPath: "/login" },
   },
 
+  // ---- B8a: the v4 sign-in, sign-up and account-state pages --------------
+  // Each is a page a person reaches by an address or by an email link, so each is held to its status
+  // here: the form pages render, the pages that need the address cookie send a stranger back to the
+  // form (a real 307, not a 200 that carries a redirect), and an email link Supabase refused lands on
+  // the expired page with a redirect, never a sign-in page with a raw message in the address.
+  { name: "auth: /login renders -> 200", path: "/login", expect: { status: 200, bodyIncludes: "Email me a sign-in link instead" } },
+  { name: "auth: /signup renders -> 200", path: "/signup", expect: { status: 200, bodyIncludes: "Create your account" } },
+  { name: "auth: /forgot-password renders -> 200", path: "/forgot-password", expect: { status: 200, bodyIncludes: "Reset your password" } },
+  { name: "auth: /link-expired renders -> 200", path: "/link-expired", expect: { status: 200, bodyIncludes: "This link has expired" } },
+  { name: "auth: /suspended renders -> 200", path: "/suspended", expect: { status: 200, bodyIncludes: "This account is suspended" } },
+  { name: "auth: /signup/verify with no address kept -> 307 to /signup", path: "/signup/verify", expect: { status: 307, locationPath: "/signup" } },
+  { name: "auth: /login/sent with no address kept -> 307 to /login", path: "/login/sent", expect: { status: 307, locationPath: "/login" } },
+  { name: "auth: /forgot-password/sent with no address kept -> 307 to /forgot-password", path: "/forgot-password/sent", expect: { status: 307, locationPath: "/forgot-password" } },
+  { name: "auth: /reset-password with no session is the expired page -> 200", path: "/reset-password", expect: { status: 200, bodyIncludes: "This link has expired" } },
+  { name: "auth: a link Supabase refused -> 307 to /link-expired", path: "/auth/callback?error=access_denied&error_code=otp_expired", expect: { status: 307, locationPath: "/link-expired" } },
+  { name: "auth: an unsafe way back is not followed -> 307 to /app", path: "/auth/callback?next=//evil.example", expect: { status: 307, locationPath: "/app" } },
+
   // ---- REZ-B: the rewritten Discover surface and its new routes ----------
   // Every REZ-B test shipped in the change itself asserted a pure helper's
   // return value. Not one observed a status code, which is the exact failure
