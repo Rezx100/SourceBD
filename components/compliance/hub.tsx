@@ -10,7 +10,7 @@ import { DownloadCsv } from "@/components/export/download-csv";
 import { NeedsAttention, type AttentionItem } from "@/components/patterns";
 import type { Attention } from "@/lib/dashboard/needs-attention";
 import { cn } from "@/lib/utils";
-import { COMPLIANCE_HREF, EXPIRY_HREF, certExportHref, MSA_HREF, UFLPA_HREF, UFLPA_WORDS, comingUp, hubCaption, uflpaCounts, uflpaNote, type CertList, type MsaSummary, type UflpaPayload } from "./words";
+import { COMPLIANCE_HREF, EXPIRY_HREF, attentionGroup, attentionGroupLines, certExportHref, MSA_HREF, UFLPA_HREF, UFLPA_WORDS, comingUp, hubCaption, uflpaCounts, uflpaNote, type CertList, type MsaSummary, type UflpaPayload } from "./words";
 
 const textLink = "rounded-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
 
@@ -38,7 +38,9 @@ export function HubHead({ saved, download = false }: { saved: number | null; dow
 
 /** Certificates that need a look: the pattern, one ask each. */
 export function AttentionCard({ attention }: { attention: Attention }) {
+  const lines = attentionGroupLines(attention.rows);
   const items: AttentionItem[] = attention.rows.map((r) => ({
+    group: lines[attentionGroup(r)],
     state: r.state,
     supplier: r.supplier,
     what: r.what,

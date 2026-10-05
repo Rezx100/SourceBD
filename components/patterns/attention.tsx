@@ -4,7 +4,7 @@
 // Server-safe; the action comes in as a node.
 
 import { Clock, XCircle } from "@phosphor-icons/react/dist/ssr";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 export type AttentionItem = {
@@ -17,6 +17,8 @@ export type AttentionItem = {
   note?: string;
   /** A secondary Button or ButtonLink. */
   action: ReactNode;
+  /** A line over this row when it differs from the row before: the hub's "Coming up in 31 to 90 days". */
+  group?: string;
 };
 
 export function NeedsAttention({
@@ -56,8 +58,15 @@ export function NeedsAttention({
       <ul>
         {items.map((it, i) => {
           const Glyph = it.state === "expired" ? XCircle : Clock;
+          const heading = it.group && it.group !== items[i - 1]?.group ? it.group : null;
           return (
-            <li key={`${it.supplier}-${i}`} className="flex flex-col gap-2 border-b border-line px-4 py-3 last:border-b-0 sm:min-h-16 sm:flex-row sm:items-center sm:gap-3">
+            <Fragment key={`${it.supplier}-${i}`}>
+            {heading ? (
+              <li className="border-b border-line bg-subtle px-4 py-2">
+                <h4 className="text-xs font-semibold text-ink-2">{heading}</h4>
+              </li>
+            ) : null}
+            <li className="flex flex-col gap-2 border-b border-line px-4 py-3 last:border-b-0 sm:min-h-16 sm:flex-row sm:items-center sm:gap-3">
               <Glyph size={20} weight="fill" className={cn("shrink-0 max-sm:hidden", it.state === "expired" ? "text-danger" : "text-caution-icon")} aria-hidden />
               <div className="flex flex-1 flex-col gap-0.5">
                 <p className="flex items-center gap-2 text-md font-medium text-ink sm:text-base">
@@ -71,6 +80,7 @@ export function NeedsAttention({
               </div>
               <div className="max-sm:[&>*]:h-11 max-sm:[&>*]:w-full max-sm:[&>*]:text-md">{it.action}</div>
             </li>
+            </Fragment>
           );
         })}
       </ul>
