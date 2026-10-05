@@ -48,7 +48,6 @@
     "lib/public-supplier-profile.ts",
     "lib/public-supplier-profile.test.ts",
     "lib/public-profile-cache-wiring.test.ts",
-    "components/ui/number-ticker.tsx",
     "lib/utils.ts",
     "lib/source-full-names.ts",
     "lib/source-logos.ts",
