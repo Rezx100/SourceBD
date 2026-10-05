@@ -16,7 +16,7 @@ import { inquiryOf, planLabel, workspaceOf, type SettingsDoc } from "./doc";
 import { EMAIL_ROWS, turnedWords } from "./emails";
 import { loadPreviewSuppliers } from "./templates-load";
 import { DEFAULT_QUESTIONS, DEFAULT_TEMPLATE, FILL_INS, MAX_QUESTIONS, gapWords, inquiryPayload, insertAt, moveItem, previewOf, startOf } from "./templates";
-import { EMAIL_SENT, emailRefusal, initialsOf, passwordRefusal, pictureRefusal } from "./profile";
+import { EMAIL_SENT, emailRefusal, initialsOf, passwordBody, passwordFailureField, passwordRefusal, pictureRefusal } from "./profile";
 import { deleteAvatar, postAvatar, postSettings, routeSentence, type Fetch } from "./transport";
 import { SETTINGS_GROUPS, itemOf, planWords, rowLine, settingsSubline } from "./words";
 
@@ -107,10 +107,24 @@ describe("profile, the pure parts", () => {
     assert.equal(pictureRefusal({ size: 100, type: "image/webp" }), null);
     assert.equal(emailRefusal("you@company.com"), null);
     assert.match(emailRefusal("not an email") ?? "", /valid email/);
-    assert.match(passwordRefusal("short", "short") ?? "", /at least 8/);
-    assert.match(passwordRefusal("longenough", "different") ?? "", /do not match/);
-    assert.equal(passwordRefusal("longenough", "longenough"), null);
+    assert.deepEqual(passwordRefusal("", "longenough", "longenough"), { field: "current", message: "Enter your current password." });
+    assert.deepEqual(passwordRefusal("old-pass", "short", "short")?.field, "new");
+    assert.match(passwordRefusal("old-pass", "short", "short")?.message ?? "", /at least 8/);
+    assert.equal(passwordRefusal("longenough", "longenough", "longenough")?.field, "new");
+    assert.deepEqual(passwordRefusal("old-pass", "longenough", "different"), { field: "confirm", message: "The two passwords do not match." });
+    assert.equal(passwordRefusal("old-pass", "longenough", "longenough"), null);
     assert.ok(EMAIL_SENT.length > 0);
+  });
+
+  it("sends the current password with the new one, and puts a wrong current one under its own field", async () => {
+    assert.deepEqual(passwordBody("old-pass", "new-pass-1"), { action: "change_password", current_password: "old-pass", new_password: "new-pass-1" });
+    assert.equal(passwordFailureField(403), "current");
+    assert.equal(passwordFailureField(400), "confirm");
+    assert.equal(passwordFailureField(503), "confirm");
+    const refusal: Fetch = async () => ({ ok: false, status: 403, json: async () => ({ error: "That is not your current password." }) });
+    const r = await postSettings(passwordBody("guess", "new-pass-1"), "x", { fetch: refusal });
+    assert.deepEqual([r.ok, r.status, r.message], [false, 403, "That is not your current password."]);
+    assert.equal(passwordFailureField(r.status), "current");
   });
 });
 
@@ -280,7 +294,9 @@ describe("/app/settings/profile", () => {
     assert.match(out, /type="password"/);
     assert.match(out, /action="\/auth\/sign-out" method="post"/);
     assert.match(text(out), /Upload picture/);
-    assert.doesNotMatch(text(out), /Current password/, "the API takes no current password, so no field claims to check one");
+    assert.match(text(out), /Current password/, "the route checks the current password (ST-03), so the form asks for it");
+    assert.match(out, /autoComplete="current-password"|autocomplete="current-password"/i);
+    assert.match(out, /href="\/forgot-password"/);
   });
 
   it("a failed read says so where the name was, and leaves the email and the password usable", async () => {
