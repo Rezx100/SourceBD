@@ -1,5 +1,4 @@
-// Shared marketing chrome + metadata defaults. Used by both marketing-surface
-// route groups:
+// Shared marketing chrome + metadata defaults. Used by both marketing-surface route groups:
 //
 //   - `app/(marketing)` — home, pricing, legal, discover, …
 //   - `app/(public)`    — the public supplier profile, kept in its own group
@@ -7,15 +6,18 @@
 //     in the chain flushes the shell early and turns the profile's 404/308
 //     into a soft-200).
 //
-// Keep the two groups rendering identical chrome by changing it here only.
+// Keep the two groups rendering identical chrome by changing it here only. B9a: the v4 navigation, mega
+// footer and cookie banner (`components/site/`); analytics start only after the visitor's yes.
 
 import type { Metadata } from "next";
 
-import { MarketingFooter } from "@/components/marketing/footer";
-import { MarketingTopNav } from "@/components/marketing/top-nav";
+import { CookieBanner } from "@/components/site/cookie-banner";
+import { SiteFooter } from "@/components/site/footer";
+import { SiteNav } from "@/components/site/nav";
 import { ScrollToTop } from "@/components/shell/scroll-to-top";
 import { SkipLink } from "@/components/ui/skip-link";
 import { siteOriginFromEnv } from "@/lib/site-origin";
+import { loadSiteFacts } from "@/lib/site-facts";
 import { PostHogProvider } from "@/lib/posthog/provider";
 
 const SITE_URL = siteOriginFromEnv();
@@ -43,20 +45,18 @@ export const marketingMetadata: Metadata = {
   },
 };
 
-export function MarketingChrome({
+export async function MarketingChrome({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const facts = await loadSiteFacts();
   return (
     <PostHogProvider userId={null}>
-      <div
-        data-surface="marketing"
-        className="flex min-h-dvh flex-col"
-      >
+      <div className="flex min-h-dvh flex-col bg-surface font-sans text-ink antialiased">
         <ScrollToTop />
         <SkipLink />
-        <MarketingTopNav />
+        <SiteNav listed={facts.sourcesListed} withRecords={facts.sourcesWithRecords} />
         <div
           id="main-content"
           tabIndex={-1}
@@ -64,7 +64,8 @@ export function MarketingChrome({
         >
           {children}
         </div>
-        <MarketingFooter />
+        <SiteFooter facts={facts} year={new Date().getUTCFullYear()} />
+        <CookieBanner />
       </div>
     </PostHogProvider>
   );
