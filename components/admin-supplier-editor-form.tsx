@@ -7,13 +7,8 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 
-import { Button } from "@/components/ui/button";
-import { FormGrid } from "@/components/ui/form-grid";
-import { StickyActionBar } from "@/components/ui/sticky-action-bar";
-import {
-  ADMIN_INPUT_CLASS,
-  AdminField,
-} from "@/components/admin/admin-ui";
+import { adminAreaClass, adminFieldClass } from "@/components/admin/data-ui";
+import { Button, Field, InlineError, Switch } from "@/components/kit";
 
 type Initial = {
   name_display: string;
@@ -86,113 +81,117 @@ export function AdminSupplierEditorForm({
   }
 
   return (
-    <form className="space-y-4" onSubmit={onSubmit}>
+    <form className="flex flex-col gap-4" onSubmit={onSubmit}>
       {error ? (
-        <div
-          role="alert"
-          className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
-        >
-          <p className="font-semibold text-red-900">Changes were not saved.</p>
-          <p className="mt-1">{error}</p>
-        </div>
+        <InlineError>
+          <span className="flex flex-col">
+            <span className="font-semibold">Changes were not saved.</span>
+            <span className="font-normal text-ink-2">{error}</span>
+          </span>
+        </InlineError>
       ) : ok ? (
-        <div
-          role="status"
-          className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"
-        >
+        <p role="status" className="rounded-md bg-subtle px-4 py-3 text-base text-ink">
           {ok}
-        </div>
+        </p>
       ) : null}
 
-      <FormGrid cols="profile">
-        <AdminField label="Buyer-facing company name" hint="Optional override of the register company name shown to buyers (240 characters max).">
-          <input
-            type="text"
-            value={form.name_display}
-            maxLength={240}
-            onChange={(e) => setForm((f) => ({ ...f, name_display: e.target.value }))}
-            className={ADMIN_INPUT_CLASS}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Field label="Buyer-facing company name" help="Optional override of the register company name shown to buyers (240 characters max).">
+          {(a) => (
+            <input
+              {...a}
+              type="text"
+              value={form.name_display}
+              maxLength={240}
+              onChange={(e) => setForm((f) => ({ ...f, name_display: e.target.value }))}
+              className={adminFieldClass}
+            />
+          )}
+        </Field>
+        <Field label="Supplier type">
+          {(a) => (
+            <select
+              {...a}
+              value={form.entity_type}
+              onChange={(e) => setForm((f) => ({ ...f, entity_type: e.target.value }))}
+              className={adminFieldClass}
+            >
+              <option value="factory">Factory</option>
+              <option value="buying_house">Buying house</option>
+              <option value="unknown">Unknown</option>
+            </select>
+          )}
+        </Field>
+      </div>
+
+      <Field label="Buyer-facing description" help="Short profile blurb shown on profile surfaces (8,000 characters max).">
+        {(a) => (
+          <textarea
+            {...a}
+            rows={4}
+            value={form.description}
+            maxLength={8000}
+            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+            className={adminAreaClass}
           />
-        </AdminField>
-        <AdminField label="Supplier type">
-          <select
-            value={form.entity_type}
-            onChange={(e) => setForm((f) => ({ ...f, entity_type: e.target.value }))}
-            className={ADMIN_INPUT_CLASS}
-          >
-            <option value="factory">Factory</option>
-            <option value="buying_house">Buying house</option>
-            <option value="unknown">Unknown</option>
-          </select>
-        </AdminField>
-      </FormGrid>
+        )}
+      </Field>
 
-      <AdminField label="Buyer-facing description" hint="Short profile blurb shown on profile surfaces (8,000 characters max).">
-        <textarea
-          rows={4}
-          value={form.description}
-          maxLength={8000}
-          onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-          className={ADMIN_INPUT_CLASS}
-        />
-      </AdminField>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-ink">Publication status</span>
+          <Switch checked={form.published} onChange={(e) => setForm((f) => ({ ...f, published: e.target.checked }))}>
+            {form.published ? "Published" : "Unpublished"}
+          </Switch>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-ink">Sanctions status</span>
+          <Switch checked={form.sanctioned_flag} onChange={(e) => setForm((f) => ({ ...f, sanctioned_flag: e.target.checked }))}>
+            {form.sanctioned_flag ? "Sanctioned" : "Clear"}
+          </Switch>
+        </div>
+      </div>
 
-      <FormGrid cols="profile">
-        <AdminField label="Publication status">
-          <Toggle
-            checked={form.published}
-            onChange={(v) => setForm((f) => ({ ...f, published: v }))}
-            label={form.published ? "Published" : "Unpublished"}
+      <Field label="Sanctions reason" help="Cited Tier 1–5 source or admin decision note. Required when a supplier is flagged (2,000 characters max).">
+        {(a) => (
+          <textarea
+            {...a}
+            rows={2}
+            value={form.sanctioned_reason}
+            maxLength={2000}
+            onChange={(e) => setForm((f) => ({ ...f, sanctioned_reason: e.target.value }))}
+            className={adminAreaClass}
           />
-        </AdminField>
-        <AdminField label="Sanctions status">
-          <Toggle
-            checked={form.sanctioned_flag}
-            onChange={(v) => setForm((f) => ({ ...f, sanctioned_flag: v }))}
-            label={form.sanctioned_flag ? "Sanctioned" : "Clear"}
+        )}
+      </Field>
+
+      <Field label="Internal admin notes" help="Internal only. Never shown to buyers or suppliers (8,000 characters max).">
+        {(a) => (
+          <textarea
+            {...a}
+            rows={3}
+            value={form.notes_admin}
+            maxLength={8000}
+            onChange={(e) => setForm((f) => ({ ...f, notes_admin: e.target.value }))}
+            className={adminAreaClass}
           />
-        </AdminField>
-      </FormGrid>
+        )}
+      </Field>
 
-      <AdminField label="Sanctions reason" hint="Cited Tier 1–5 source or admin decision note. Required when a supplier is flagged (2,000 characters max).">
-        <textarea
-          rows={2}
-          value={form.sanctioned_reason}
-          maxLength={2000}
-          onChange={(e) =>
-            setForm((f) => ({ ...f, sanctioned_reason: e.target.value }))
-          }
-          className={ADMIN_INPUT_CLASS}
-        />
-      </AdminField>
-
-      <AdminField label="Internal admin notes" hint="Internal only. Never shown to buyers or suppliers (8,000 characters max).">
-        <textarea
-          rows={3}
-          value={form.notes_admin}
-          maxLength={8000}
-          onChange={(e) => setForm((f) => ({ ...f, notes_admin: e.target.value }))}
-          className={ADMIN_INPUT_CLASS}
-        />
-      </AdminField>
-
-      <StickyActionBar
-        helper={
-          error ? (
-            <span className="text-[13px] text-sem-red">{error}</span>
+      <div className="sticky bottom-0 z-raised flex flex-wrap items-center justify-between gap-3 border-t border-line bg-surface py-3">
+        <div className="min-w-0 text-sm">
+          {error ? (
+            <span className="text-danger">{error}</span>
           ) : ok ? (
-            <span className="text-[13px] text-sem-green">{ok}</span>
+            <span className="text-ink-2">{ok}</span>
           ) : hasChanges ? (
-            <span className="font-mono text-[12px] text-ink-tertiary">
-              Unsaved changes: {Object.keys(dirty).join(", ")}
-            </span>
-          ) : undefined
-        }
-      >
-        <Button type="submit" variant="primary" disabled={pending || !hasChanges} className="min-h-[44px]">
+            <span className="font-mono text-xs text-ink-3">Unsaved changes: {Object.keys(dirty).join(", ")}</span>
+          ) : null}
+        </div>
+        <Button type="submit" kind="primary" disabled={pending || !hasChanges}>
           {pending ? "Saving…" : hasChanges ? "Save changes" : "No changes"}
         </Button>
-      </StickyActionBar>
+      </div>
     </form>
   );
 }
@@ -205,37 +204,4 @@ function normalizeAdminError(message: string): string {
     return "Your admin session could not be verified. Sign in again with an admin account and retry.";
   }
   return message;
-}
-
-function Toggle({
-  checked,
-  onChange,
-  label,
-}: {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      className={
-        "inline-flex min-h-[44px] items-center gap-2 rounded-pill border px-3 text-sm font-semibold transition-colors " +
-        (checked
-          ? "border-brand-forest/30 bg-brand-forest-soft text-brand-forest"
-          : "border-neutral-200 bg-white text-ink-secondary hover:bg-brand-forest-tint hover:text-ink-primary")
-      }
-    >
-      <span
-        className={
-          "inline-block h-2 w-2 rounded-full " +
-          (checked ? "bg-brand-forest" : "bg-ink-tertiary")
-        }
-      />
-      {label}
-    </button>
-  );
 }

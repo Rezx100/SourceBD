@@ -13,23 +13,20 @@
 // retraction is how a data moat quietly loses facts it still has evidence for.
 
 import {
-  ADMIN_SELECT_CLASS,
-  AdminActionLink,
-  AdminField,
-  AdminFilterPanel,
-  AdminPage,
-  AdminPageHeader,
-  AdminPagination,
-  AdminPanel,
+  AdminColumn,
+  AdminHead,
+  AdminSection,
+  adminFieldClass,
   formatAdminDate,
-} from "@/components/admin/admin-ui";
+} from "@/components/admin/data-ui";
 import { EvidenceClaimsList } from "@/components/admin/evidence-claims-list";
-import { Card, CardContent } from "@/components/ui/card";
+import { Button, ButtonLink, Field, InlineError, Pagination } from "@/components/kit";
 import {
   type EvidenceSummary,
   type ProblemClaimsPage,
 } from "@/lib/admin/evidence";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -80,15 +77,13 @@ export default async function AdminEvidencePage({
 
   if (claims.error || claims.data == null) {
     return (
-      <AdminPage maxWidth="5xl">
+      <AdminColumn>
         <EvidenceHeader />
-        <AdminPanel>
-          <p className="text-sm text-sem-red">
-            Could not load the evidence worklist
-            {claims.error?.message ? <>: {claims.error.message}</> : null}.
-          </p>
-        </AdminPanel>
-      </AdminPage>
+        <InlineError>
+          Could not load the evidence worklist
+          {claims.error?.message ? <>: {claims.error.message}</> : null}.
+        </InlineError>
+      </AdminColumn>
     );
   }
 
@@ -116,84 +111,86 @@ export default async function AdminEvidencePage({
   };
 
   return (
-    <AdminPage maxWidth="5xl">
+    <AdminColumn>
       <EvidenceHeader total={needsReviewTotal} />
 
       {health ? <HealthStrip summary={health} /> : null}
 
-      <AdminFilterPanel
+      <AdminSection
         title="Filter the worklist"
         description="Unreviewed problems only — acknowledged or re-checked claims drop out immediately."
       >
-        <form
-          method="get"
-          action="/admin/evidence"
-          className="grid grid-cols-1 gap-3 sm:grid-cols-3"
-        >
-          <AdminField label="Problem type">
-            <select name="status" defaultValue={status} className={ADMIN_SELECT_CLASS}>
-              {STATUS_FILTERS.map((value) => (
-                <option key={value} value={value}>
-                  {STATUS_FILTER_LABELS[value]}
-                </option>
-              ))}
-            </select>
-          </AdminField>
+        <form method="get" action="/admin/evidence" className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <Field label="Problem type">
+            {(a) => (
+              <select {...a} name="status" defaultValue={status} className={adminFieldClass}>
+                {STATUS_FILTERS.map((value) => (
+                  <option key={value} value={value}>
+                    {STATUS_FILTER_LABELS[value]}
+                  </option>
+                ))}
+              </select>
+            )}
+          </Field>
           <div className="flex items-end">
-            <button
-              type="submit"
-              className="min-h-[44px] rounded-pill border border-brand-forest bg-brand-forest px-4 text-sm font-semibold text-white hover:bg-brand-forest-mid"
-            >
-              Apply
-            </button>
+            <Button type="submit" kind="primary">Apply</Button>
           </div>
         </form>
-      </AdminFilterPanel>
+      </AdminSection>
 
       <EvidenceClaimsList
         rows={unreviewedRows}
         emptyDescription="No unreviewed problems in the current filter. Run the verify-evidence job to re-check the long tail."
       />
 
-      <AdminPagination page={page} totalPages={totalPages} pageHref={pageHref} />
-    </AdminPage>
+      {totalPages > 1 ? (
+        <Pagination
+          noun="problem claims"
+          from={offset + 1}
+          to={offset + doc.rows.length}
+          total={doc.total}
+          page={page}
+          pages={totalPages}
+          prevHref={page > 1 ? pageHref(page - 1) : undefined}
+          nextHref={page < totalPages ? pageHref(page + 1) : undefined}
+        />
+      ) : null}
+    </AdminColumn>
   );
 }
 
 function HealthStrip({ summary }: { summary: EvidenceSummary }) {
   const { claims, documents, monitors } = summary;
   return (
-    <Card>
-      <CardContent className="grid grid-cols-2 gap-4 text-[13px] sm:grid-cols-4">
-        <Stat
-          label="Confirmed claims"
-          value={claims.active.toLocaleString()}
-          hint={`of ${claims.total.toLocaleString()} total`}
-        />
-        <Stat
-          label="Needs review"
-          value={claims.needs_review.toLocaleString()}
-          hint={`${claims.stale.toLocaleString()} changed · ${claims.orphaned.toLocaleString()} gone`}
-          tone={claims.needs_review > 0 ? "red" : "green"}
-        />
-        <Stat
-          label="Dead pages"
-          value={documents.dead.toLocaleString()}
-          hint={`${documents.total.toLocaleString()} tracked`}
-          tone={documents.dead > 0 ? "red" : "green"}
-        />
-        <Stat
-          label="Monitors"
-          value={monitors.total === 0 ? "None" : `${monitors.enabled}/${monitors.total}`}
-          hint={
-            monitors.last_check_at
-              ? `last check ${formatAdminDate(monitors.last_check_at)}`
-              : "no check recorded"
-          }
-          tone={monitors.total === 0 ? "amber" : "neutral"}
-        />
-      </CardContent>
-    </Card>
+    <section aria-label="Citation health" className="grid grid-cols-2 gap-4 rounded-lg border border-line p-4 sm:grid-cols-4">
+      <Stat
+        label="Confirmed claims"
+        value={claims.active.toLocaleString()}
+        hint={`of ${claims.total.toLocaleString()} total`}
+      />
+      <Stat
+        label="Needs review"
+        value={claims.needs_review.toLocaleString()}
+        hint={`${claims.stale.toLocaleString()} changed · ${claims.orphaned.toLocaleString()} gone`}
+        tone={claims.needs_review > 0 ? "danger" : "neutral"}
+      />
+      <Stat
+        label="Dead pages"
+        value={documents.dead.toLocaleString()}
+        hint={`${documents.total.toLocaleString()} tracked`}
+        tone={documents.dead > 0 ? "danger" : "neutral"}
+      />
+      <Stat
+        label="Monitors"
+        value={monitors.total === 0 ? "None" : `${monitors.enabled}/${monitors.total}`}
+        hint={
+          monitors.last_check_at
+            ? `last check ${formatAdminDate(monitors.last_check_at)}`
+            : "no check recorded"
+        }
+        tone={monitors.total === 0 ? "caution" : "neutral"}
+      />
+    </section>
   );
 }
 
@@ -206,36 +203,25 @@ function Stat({
   label: string;
   value: string;
   hint: string;
-  tone?: "neutral" | "green" | "red" | "amber";
+  tone?: "neutral" | "danger" | "caution";
 }) {
-  const colour =
-    tone === "red"
-      ? "text-sem-red"
-      : tone === "green"
-        ? "text-sem-green"
-        : tone === "amber"
-          ? "text-sem-amber"
-          : "text-ink-primary";
   return (
     <div>
-      <p className="text-[12px] font-semibold uppercase tracking-[0.06em] text-ink-tertiary">
-        {label}
-      </p>
-      <p className={`font-display text-xl font-semibold tracking-[-0.02em] ${colour}`}>
+      <p className="text-sm text-ink-3">{label}</p>
+      <p className={cn("text-xl font-semibold tracking-tight", tone === "danger" ? "text-danger" : tone === "caution" ? "text-caution" : "text-ink")}>
         {value}
       </p>
-      <p className="font-mono text-[12px] text-ink-tertiary">{hint}</p>
+      <p className="text-sm text-ink-3">{hint}</p>
     </div>
   );
 }
 
 function EvidenceHeader({ total }: { total?: number }) {
   return (
-    <AdminPageHeader
-      kicker="Admin · Evidence"
+    <AdminHead
       title="Citation health"
-      description={`Stored facts whose citation no longer checks out against the live page.${typeof total === "number" ? ` ${total.toLocaleString()} unreviewed.` : ""} Grouped by company — click a field row to see the excerpt and source URL.`}
-      actions={<AdminActionLink href="/admin/sources">Sources &amp; ingestion</AdminActionLink>}
+      lede={`Stored facts whose citation no longer checks out against the live page.${typeof total === "number" ? ` ${total.toLocaleString()} unreviewed.` : ""} Grouped by company — click a field row to see the excerpt and source URL.`}
+      actions={<ButtonLink href="/admin/sources">Sources &amp; ingestion</ButtonLink>}
     />
   );
 }

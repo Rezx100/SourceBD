@@ -1626,8 +1626,10 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
       `the layouts around an /app page read more: ${appReads.join("; ")}`,
     );
 
-    // Not vacuous: through the same stub, the older shell's reads show up
-    // where it is still drawn.
+    // Not vacuous: through the same stub, the portals' reads show up where
+    // their layout is drawn (B10a: who is signed in, the role, the settings;
+    // the published-supplier count and the buyer dashboard it used to read
+    // are gone with the old shell).
     currentPath = "/supplier/rfqs";
     try {
       await inLayouts("app/(app)/(old-shell)/supplier/rfqs/[id]/page.tsx");
@@ -1635,9 +1637,10 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
       currentPath = "/app/discover";
     }
     const oldReads = readsSeen();
-    for (const read of ["rpc settings_get", "from suppliers id", "from profiles role"]) {
-      assert.ok(oldReads.includes(read), `the stub no longer sees the older shell's ${read}: ${oldReads.join("; ")}`);
+    for (const read of ["rpc settings_get", "from profiles role"]) {
+      assert.ok(oldReads.includes(read), `the stub no longer sees the portal layout's ${read}: ${oldReads.join("; ")}`);
     }
+    assert.ok(!oldReads.includes("from suppliers id"), "the portal layout counts the published suppliers again");
 
     // Which pages that shell wraps is the file tree's to say: every page of
     // the supplier portal and admin, and no /app page.
@@ -1652,21 +1655,20 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
     assert.ok(pages.some((f) => f.startsWith("app/(app)/(old-shell)/admin/")), "guard: the admin pages were not found");
   });
 
-  it("the older shell's layout draws its shell around the supplier portal", async () => {
-    // Its own boundary: the skip link and main landmark, rendered — not its
-    // source text read. The rail and tab bar mark the page `usePathname` names.
+  it("the portal layout draws the portal frame around the supplier portal", async () => {
+    // Its own boundary: the skip link and the one main landmark, rendered — not its
+    // source text read. The menu marks the page `usePathname` names.
     currentPath = "/supplier/rfqs";
     try {
-      const { out: old } = await inLayouts("app/(app)/(old-shell)/supplier/rfqs/[id]/page.tsx");
-      assert.match(old, /href="#main-content"/, "the old shell lost its skip link");
-      assert.equal((old.match(/<div[^>]*role="main"[^>]*>/g) ?? []).filter((m) => m.includes('id="main-content"')).length, 1, "the old shell has no main landmark");
-      assert.match(old, /PAGE-BODY/);
-      // Every piece the old shell draws: the top bar, the collapsed rail, the
-      // phone's tab bar, and a main landmark the skip link can focus.
-      assert.match(old, /<header\b/, "the old shell lost its top bar");
-      assert.match(old, /aria-label="Collapsed primary navigation"/, "the old shell lost its sidebar rail");
-      assert.match(old, /aria-label="Primary navigation"/, "the old shell lost its bottom tab bar");
-      assert.match(old, /<div[^>]*role="main"[^>]*tabindex="-1"|<div[^>]*tabindex="-1"[^>]*role="main"/i, "the skip link's target cannot take focus");
+      const { out: portal } = await inLayouts("app/(app)/(old-shell)/supplier/rfqs/[id]/page.tsx");
+      assert.match(portal, /href="#main-content"/, "the portal frame lost its skip link");
+      assert.equal((portal.match(/<main[^>]*>/g) ?? []).filter((m) => m.includes('id="main-content"')).length, 1, "the portal frame has no main landmark");
+      assert.match(portal, /PAGE-BODY/);
+      // The supplier's own menu, the account menu, and a main the skip link can focus.
+      assert.match(portal, /aria-label="Supplier portal menu"/, "the portal frame lost its menu");
+      assert.match(portal, /RFQs received/, "the supplier menu lost RFQs received");
+      assert.match(portal, /aria-label="Account:/, "the portal frame lost its account menu");
+      assert.match(portal, /<main[^>]*tabindex="-1"/i, "the skip link's target cannot take focus");
     } finally {
       currentPath = "/app/discover";
     }

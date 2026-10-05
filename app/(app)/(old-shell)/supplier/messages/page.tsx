@@ -12,9 +12,7 @@
 import Link from "next/link";
 import { ChatCircleText } from "@phosphor-icons/react/dist/ssr";
 
-import { Card, CardContent } from "@/components/ui/card";
-import { MasterDetail } from "@/components/ui/master-detail";
-import { PageHeader } from "@/components/ui/page-kit";
+import { Empty, ErrorPanel, rowLinkClass } from "@/components/kit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -44,89 +42,50 @@ export default async function SupplierMessagesPage() {
   const threads = all.filter((t) => t.viewer_role === "supplier");
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
-      <PageHeader
-        kicker="Supplier"
-        title="Messages"
-        description="Buyer inquiries against your claimed companies."
-      />
+    <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">Messages</h1>
+        <p className="text-md text-ink-2">Buyer inquiries against your claimed companies.</p>
+      </header>
 
-      <MasterDetail
-        mode="list"
-        list={
-          error ? (
-            <Card>
-              <CardContent className="text-sm text-sem-red">
-                Could not load your inbox.
-              </CardContent>
-            </Card>
-          ) : threads.length === 0 ? (
-            <Card>
-              <CardContent className="space-y-3 py-8 text-center">
-                <ChatCircleText
-                  size={32}
-                  weight="duotone"
-                  className="mx-auto text-ink-tertiary"
-                  aria-hidden
-                />
-                <p className="text-sm text-ink-secondary">
-                  No buyer inquiries yet.
+      {error ? (
+        <ErrorPanel title="Could not load your inbox." />
+      ) : threads.length === 0 ? (
+        <Empty icon={ChatCircleText} title="No buyer inquiries yet.">
+          When a buyer opens a thread against one of your claimed
+          companies it will appear here.
+        </Empty>
+      ) : (
+        <ul
+          aria-label="Conversations"
+          className="m-0 flex list-none flex-col overflow-clip rounded-md border border-line p-0"
+        >
+          {threads.map((t) => (
+            <li
+              key={t.id}
+              className="relative flex items-center gap-3 border-b border-line px-4 py-3 last:border-b-0 hover:bg-brand-wash"
+            >
+              <ChatCircleText size={20} className="shrink-0 text-ink-3" aria-hidden />
+              <div className="min-w-0 flex-1">
+                <Link
+                  href={`/supplier/messages/${t.id}`}
+                  className={`${rowLinkClass} block truncate after:absolute after:inset-0 after:content-['']`}
+                >
+                  {buyerLabel(t)}
+                </Link>
+                <p className="truncate text-sm text-ink-3">
+                  {t.subject ?? "General inquiry"} · {t.supplier_name} ·{" "}
+                  {t.message_count.toLocaleString()}{" "}
+                  {t.message_count === 1 ? "message" : "messages"}
                 </p>
-                <p className="text-[13px] text-ink-tertiary">
-                  When a buyer opens a thread against one of your claimed
-                  companies it will appear here.
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardContent className="px-0 py-0">
-                <ul className="m-0 flex list-none flex-col p-0">
-                  {threads.map((t) => (
-                    <li
-                      key={t.id}
-                      className="border-b border-hairline last:border-b-0"
-                    >
-                      <Link
-                        href={`/supplier/messages/${t.id}`}
-                        className="flex items-center gap-3 px-4 py-3 transition hover:bg-brand-forest-tint focus:outline-none focus-visible:bg-brand-forest-tint"
-                      >
-                        <ChatCircleText
-                          size={20}
-                          weight="duotone"
-                          className="text-accent-indigo"
-                          aria-hidden
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="truncate font-display text-sm font-semibold text-ink-primary">
-                              {buyerLabel(t)}
-                            </span>
-                          </div>
-                          <p className="truncate text-[13px] text-ink-tertiary">
-                            {t.subject ?? "General inquiry"} ·{" "}
-                            {t.supplier_name} ·{" "}
-                            {t.message_count.toLocaleString()}{" "}
-                            {t.message_count === 1 ? "message" : "messages"}
-                          </p>
-                        </div>
-                        <span className="font-mono text-[12px] text-ink-tertiary">
-                          {fmtRelative(t.last_message_at ?? t.created_at)}
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )
-        }
-        detail={
-          <div className="hidden h-full items-center justify-center rounded-card border border-hairline bg-surface-l1 p-10 text-sm text-ink-tertiary shadow-[0_1px_2px_rgba(15,15,20,0.03)] lg:flex">
-            <span>Select a conversation to read it here.</span>
-          </div>
-        }
-      />
+              </div>
+              <span className="shrink-0 text-xs text-ink-3">
+                {fmtRelative(t.last_message_at ?? t.created_at)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

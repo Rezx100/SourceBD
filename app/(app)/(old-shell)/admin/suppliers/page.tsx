@@ -2,23 +2,33 @@
 // filters driven from URL search params. Admin-only; middleware gates
 // `/admin/*` and the RPC re-checks role inside its body.
 
+import Link from "next/link";
+
 import {
-  ADMIN_INPUT_CLASS,
-  ADMIN_SELECT_CLASS,
-  AdminActionLink,
-  AdminEmptyState,
-  AdminField,
-  AdminFilterPanel,
-  AdminPage,
-  AdminPageHeader,
-  AdminPagination,
-  AdminPanel,
+  AdminColumn,
+  AdminHead,
+  AdminSection,
+  StatusChip,
+  adminFieldClass,
   formatAdminDate,
   humanizeAdminToken,
-} from "@/components/admin/admin-ui";
-import { Badge } from "@/components/ui/badge";
-import { ResponsiveTable, type Column } from "@/components/ui/responsive-table";
-import { Tag } from "@/components/ui/tag";
+} from "@/components/admin/data-ui";
+import {
+  Button,
+  ButtonLink,
+  Empty,
+  Field,
+  InlineError,
+  Pagination,
+  Table,
+  TableFrame,
+  TableScroll,
+  Td,
+  Th,
+  Tr,
+  TypeChip,
+  rowLinkClass,
+} from "@/components/kit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -90,15 +100,13 @@ export default async function AdminSuppliersPage({
 
   if (error || data == null) {
     return (
-      <AdminPage>
+      <AdminColumn>
         <SupplierHeader />
-        <AdminPanel>
-          <p className="text-sm text-sem-red">
-            Could not load suppliers
-            {error?.message ? <>: {error.message}</> : null}.
-          </p>
-        </AdminPanel>
-      </AdminPage>
+        <InlineError>
+          Could not load suppliers
+          {error?.message ? <>: {error.message}</> : null}.
+        </InlineError>
+      </AdminColumn>
     );
   }
 
@@ -121,237 +129,160 @@ export default async function AdminSuppliersPage({
   };
 
   return (
-    <AdminPage>
+    <AdminColumn>
       <SupplierHeader total={doc.total} />
 
-      <AdminFilterPanel
+      <AdminSection
         title="Find suppliers"
         description="Search the verified index, jump to common work queues, or narrow by publication and evidence status."
-        actions={<AdminActionLink href="/admin/suppliers/import">Bulk import</AdminActionLink>}
+        actions={<ButtonLink href="/admin/suppliers/import">Bulk import</ButtonLink>}
       >
-        <div className="flex gap-2 overflow-x-auto pb-1 text-[13px]">
-          <AdminActionLink href="/admin/queue" className="shrink-0">Needs review</AdminActionLink>
-          <AdminActionLink href="/admin/suppliers?published=false&tier_min=1" className="shrink-0">Ready to publish</AdminActionLink>
-          <AdminActionLink href="/admin/suppliers?published=true" className="shrink-0">Visible to buyers</AdminActionLink>
-          <AdminActionLink href="/admin/suppliers?published=false" className="shrink-0">Not visible</AdminActionLink>
-          <AdminActionLink href="/admin/suppliers?sanctioned=true" className="shrink-0">Sanction flagged</AdminActionLink>
-          <AdminActionLink href="/admin/suppliers?claimed=true" className="shrink-0">Claimed</AdminActionLink>
-        </div>
-        <form
-          method="get"
-          action="/admin/suppliers"
-          className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
-        >
-            <AdminField label="Search supplier">
-              <input
-                type="text"
-                name="q"
-                defaultValue={search}
-                placeholder="Company name or slug"
-                className={ADMIN_INPUT_CLASS}
-              />
-            </AdminField>
-            <AdminField label="Entity type">
-              <select
-                name="entity"
-                defaultValue={entity}
-                className={ADMIN_SELECT_CLASS}
-              >
-                <option value="">Any</option>
-                <option value="factory">Factory</option>
-                <option value="buying_house">Buying house</option>
-                <option value="unknown">Unknown</option>
-              </select>
-            </AdminField>
-            <AdminField label="Buyer visibility">
-              <select
-                name="published"
-                defaultValue={published === null ? "" : String(published)}
-                className={ADMIN_SELECT_CLASS}
-              >
-                <option value="">Any</option>
-                <option value="true">Visible to buyers</option>
-                <option value="false">Not visible</option>
-              </select>
-            </AdminField>
-            <AdminField label="Supplier account">
-              <select
-                name="claimed"
-                defaultValue={claimed === null ? "" : String(claimed)}
-                className={ADMIN_SELECT_CLASS}
-              >
-                <option value="">Any</option>
-                <option value="true">Claimed</option>
-                <option value="false">Unclaimed</option>
-              </select>
-            </AdminField>
-            <AdminField label="Sanctions status">
-              <select
-                name="sanctioned"
-                defaultValue={sanctioned === null ? "" : String(sanctioned)}
-                className={ADMIN_SELECT_CLASS}
-              >
-                <option value="">Any</option>
-                <option value="true">Flagged</option>
-                <option value="false">Clear</option>
-              </select>
-            </AdminField>
-            <AdminField label="Minimum verified evidence sources">
-              <input
-                type="number"
-                name="tier_min"
-                min={0}
-                max={20}
-                defaultValue={tierMin ?? ""}
-                className={ADMIN_INPUT_CLASS}
-              />
-            </AdminField>
+        <div className="flex flex-col gap-4">
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            <ButtonLink href="/admin/queue" className="shrink-0">Needs review</ButtonLink>
+            <ButtonLink href="/admin/suppliers?published=false&tier_min=1" className="shrink-0">Ready to publish</ButtonLink>
+            <ButtonLink href="/admin/suppliers?published=true" className="shrink-0">Visible to buyers</ButtonLink>
+            <ButtonLink href="/admin/suppliers?published=false" className="shrink-0">Not visible</ButtonLink>
+            <ButtonLink href="/admin/suppliers?sanctioned=true" className="shrink-0">Sanction flagged</ButtonLink>
+            <ButtonLink href="/admin/suppliers?claimed=true" className="shrink-0">Claimed</ButtonLink>
+          </div>
+          <form method="get" action="/admin/suppliers" className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <Field label="Search supplier">
+              {(a) => <input {...a} type="text" name="q" defaultValue={search} placeholder="Company name or slug" className={adminFieldClass} />}
+            </Field>
+            <Field label="Entity type">
+              {(a) => (
+                <select {...a} name="entity" defaultValue={entity} className={adminFieldClass}>
+                  <option value="">Any</option>
+                  <option value="factory">Factory</option>
+                  <option value="buying_house">Buying house</option>
+                  <option value="unknown">Unknown</option>
+                </select>
+              )}
+            </Field>
+            <Field label="Buyer visibility">
+              {(a) => (
+                <select {...a} name="published" defaultValue={published === null ? "" : String(published)} className={adminFieldClass}>
+                  <option value="">Any</option>
+                  <option value="true">Visible to buyers</option>
+                  <option value="false">Not visible</option>
+                </select>
+              )}
+            </Field>
+            <Field label="Supplier account">
+              {(a) => (
+                <select {...a} name="claimed" defaultValue={claimed === null ? "" : String(claimed)} className={adminFieldClass}>
+                  <option value="">Any</option>
+                  <option value="true">Claimed</option>
+                  <option value="false">Unclaimed</option>
+                </select>
+              )}
+            </Field>
+            <Field label="Sanctions status">
+              {(a) => (
+                <select {...a} name="sanctioned" defaultValue={sanctioned === null ? "" : String(sanctioned)} className={adminFieldClass}>
+                  <option value="">Any</option>
+                  <option value="true">Flagged</option>
+                  <option value="false">Clear</option>
+                </select>
+              )}
+            </Field>
+            <Field label="Minimum verified evidence sources">
+              {(a) => <input {...a} type="number" name="tier_min" min={0} max={20} defaultValue={tierMin ?? ""} className={adminFieldClass} />}
+            </Field>
             <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-2">
-              <button
-                type="submit"
-                className="min-h-[44px] rounded-pill border border-brand-forest bg-brand-forest px-4 text-sm font-semibold text-white hover:bg-brand-forest-mid"
-              >
-                Apply
-              </button>
-              <AdminActionLink href="/admin/suppliers">Reset</AdminActionLink>
+              <Button type="submit" kind="primary">Apply</Button>
+              <ButtonLink href="/admin/suppliers">Reset</ButtonLink>
             </div>
           </form>
-      </AdminFilterPanel>
+        </div>
+      </AdminSection>
 
-      <AdminPanel
-        title="Suppliers"
-        meta={`Page ${page} of ${totalPages} · ${doc.rows.length} shown · ${doc.total.toLocaleString()} total`}
-        padded={false}
-      >
-          {doc.rows.length === 0 ? (
-            <div className="p-4 sm:p-5">
-              <AdminEmptyState
-                title="No suppliers match these filters"
-                description="Try removing one filter or resetting the search."
-                action={<AdminActionLink href="/admin/suppliers">Reset filters</AdminActionLink>}
-              />
-            </div>
-          ) : (
-            <ResponsiveTable
-              mode="priority"
-              priorityKeys={["company", "entity", "published", "sanctioned"]}
-              columns={SUPPLIER_COLUMNS}
-              rows={doc.rows}
-              rowKey={(r) => r.id}
-              rowHref={(r) => `/admin/suppliers/${r.id}`}
-              caption="Suppliers"
-              className="border-0 shadow-none"
+      <section aria-label="Suppliers" className="flex flex-col gap-2">
+        <p className="text-sm text-ink-3">
+          {`Page ${page} of ${totalPages} · ${doc.rows.length} shown · ${doc.total.toLocaleString()} total`}
+        </p>
+        {doc.rows.length === 0 ? (
+          <Empty title="No suppliers match these filters" action={<ButtonLink href="/admin/suppliers">Reset filters</ButtonLink>}>
+            Try removing one filter or resetting the search.
+          </Empty>
+        ) : (
+          <TableFrame>
+            <TableScroll>
+              <Table aria-label="Suppliers">
+                <thead>
+                  <tr>
+                    <Th>Company</Th>
+                    <Th>Entity</Th>
+                    <Th>Visibility</Th>
+                    <Th>Sanctions</Th>
+                    <Th>Account</Th>
+                    <Th align="right">Evidence</Th>
+                    <Th align="right">Internal score</Th>
+                    <Th>Score job</Th>
+                    <Th align="right">Updated</Th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {doc.rows.map((r) => (
+                    <Tr key={r.id}>
+                      <Td>
+                        <Link href={`/admin/suppliers/${r.id}`} className={rowLinkClass}>
+                          {r.name_display ?? r.company_name}
+                        </Link>
+                        <span className="block text-sm text-ink-3">
+                          <span className="font-mono">{r.slug}</span>
+                          {r.city || r.district ? ` · ${[r.city, r.district].filter(Boolean).join(", ")}` : ""}
+                        </span>
+                      </Td>
+                      <Td>
+                        <TypeChip>{humanizeAdminToken(r.entity_type)}</TypeChip>
+                      </Td>
+                      <Td>{r.published ? <TypeChip>Visible</TypeChip> : <StatusChip tone="caution">Not visible</StatusChip>}</Td>
+                      <Td>{r.sanctioned_flag ? <StatusChip tone="danger">Flagged</StatusChip> : <span className="text-ink-3">Clear</span>}</Td>
+                      <Td>{r.claimed_by ? <TypeChip>Claimed</TypeChip> : <span className="text-ink-3">Unclaimed</span>}</Td>
+                      <Td align="right" className="tabular-nums text-ink">
+                        {r.tier_coverage}
+                      </Td>
+                      <Td align="right" className="tabular-nums text-ink">
+                        {r.sbi_total ?? "—"}
+                      </Td>
+                      <Td>{r.has_pending_rescore ? <StatusChip tone="caution">Queued</StatusChip> : <span className="text-ink-3">—</span>}</Td>
+                      <Td align="right" className="whitespace-nowrap tabular-nums">
+                        {formatAdminDate(r.updated_at)}
+                      </Td>
+                    </Tr>
+                  ))}
+                </tbody>
+              </Table>
+            </TableScroll>
+            <Pagination
+              noun="suppliers"
+              from={offset + 1}
+              to={offset + doc.rows.length}
+              total={doc.total}
+              page={page}
+              pages={totalPages}
+              prevHref={page > 1 ? pageHref(page - 1) : undefined}
+              nextHref={page < totalPages ? pageHref(page + 1) : undefined}
             />
-          )}
-
-      </AdminPanel>
-      <AdminPagination page={page} totalPages={totalPages} pageHref={pageHref} />
-    </AdminPage>
+          </TableFrame>
+        )}
+      </section>
+    </AdminColumn>
   );
 }
 
-const SUPPLIER_COLUMNS: Column<Row>[] = [
-  {
-    key: "company",
-    label: "Company",
-    render: (r) => (
-      <span className="block min-w-0">
-        <span className="block truncate text-sm font-semibold text-ink-primary">
-          {r.name_display ?? r.company_name}
-        </span>
-        <span className="block truncate text-[13px] text-ink-tertiary">
-          <span className="font-mono">{r.slug}</span>
-          {r.city || r.district
-            ? ` · ${[r.city, r.district].filter(Boolean).join(", ")}`
-            : ""}
-        </span>
-      </span>
-    ),
-  },
-  {
-    key: "entity",
-    label: "Entity",
-    render: (r) => (
-      <Badge tone={r.entity_type === "factory" ? "active" : "neutral"}>
-        {humanizeAdminToken(r.entity_type)}
-      </Badge>
-    ),
-  },
-  {
-    key: "published",
-    label: "Visibility",
-    render: (r) =>
-      r.published ? (
-        <Tag tone="muted">Visible</Tag>
-      ) : (
-        <Tag tone="amber">Not visible</Tag>
-      ),
-  },
-  {
-    key: "sanctioned",
-    label: "Sanctions",
-    render: (r) =>
-      r.sanctioned_flag ? <Tag tone="red">Flagged</Tag> : <span className="text-ink-tertiary">Clear</span>,
-  },
-  {
-    key: "claim",
-    label: "Account",
-    render: (r) =>
-      r.claimed_by ? <Tag tone="muted">Claimed</Tag> : <span className="text-ink-tertiary">Unclaimed</span>,
-  },
-  {
-    key: "tier",
-    label: "Evidence",
-    numeric: true,
-    render: (r) => (
-      <span className="font-mono tabular-nums text-ink-primary">
-        {r.tier_coverage}
-      </span>
-    ),
-  },
-  {
-    key: "sbi",
-    label: "Internal score",
-    numeric: true,
-    render: (r) => (
-      <span className="font-mono tabular-nums text-ink-primary">
-        {r.sbi_total ?? "—"}
-      </span>
-    ),
-  },
-  {
-    key: "rescore",
-    label: "Score job",
-    render: (r) =>
-      r.has_pending_rescore ? (
-        <Tag tone="amber">Queued</Tag>
-      ) : (
-        <span className="text-ink-tertiary">—</span>
-      ),
-  },
-  {
-    key: "updated",
-    label: "Updated",
-    numeric: true,
-    render: (r) => (
-      <span className="font-mono">
-        {formatAdminDate(r.updated_at)}
-      </span>
-    ),
-  },
-];
-
 function SupplierHeader({ total }: { total?: number }) {
   return (
-    <AdminPageHeader
-      kicker="Admin · Suppliers"
+    <AdminHead
       title="Suppliers"
-      description={
+      lede={
         total != null
           ? `${total.toLocaleString()} suppliers in scope. Search, triage publication readiness, and open the full operator workspace from any row.`
           : "Search, triage publication readiness, and open the full supplier operator workspace."
       }
-      actions={<AdminActionLink href="/admin">Admin home</AdminActionLink>}
+      actions={<ButtonLink href="/admin">Admin home</ButtonLink>}
     />
   );
 }

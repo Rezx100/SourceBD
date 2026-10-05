@@ -13,12 +13,13 @@
 // a resolved claim is removed from the local list immediately — the
 // router.refresh() that follows is a background sync, not the primary feedback.
 
+import { CaretDown } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useCallback, useState } from "react";
 
 import { AdminEvidenceDecideButton } from "@/components/admin-evidence-decide-button";
-import { AdminPanel, formatAdminDate } from "@/components/admin/admin-ui";
-import { Tag } from "@/components/ui/tag";
+import { AdminSection, StatusChip, formatAdminDate } from "@/components/admin/data-ui";
+import { Empty, TypeChip, linkClass, ring } from "@/components/kit";
 import {
   citationHref,
   claimAdvice,
@@ -137,12 +138,10 @@ export function EvidenceClaimsList({
 
   if (visibleRows.length === 0) {
     return (
-      <AdminPanel title="Nothing to review">
-        <p className="text-[14px] text-ink-secondary">
-          {emptyDescription ??
-            "Every citation currently checks out. Run the verify-evidence job to re-check the long tail."}
-        </p>
-      </AdminPanel>
+      <Empty title="Nothing to review">
+        {emptyDescription ??
+          "Every citation currently checks out. Run the verify-evidence job to re-check the long tail."}
+      </Empty>
     );
   }
 
@@ -154,21 +153,21 @@ export function EvidenceClaimsList({
   const unreachableGroups = groupByCompany(unreachableRows);
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-6">
       {driftedGroups.length > 0 && (
-        <section>
-          <div className="mb-2 px-1">
-            <h3 className="text-[13px] font-semibold text-ink-primary">
+        <section className="flex flex-col gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-ink">
               Checked and no longer supported ({driftedGroups.length}{" "}
               {driftedGroups.length === 1 ? "company" : "companies"},{" "}
               {driftedRows.length} {driftedRows.length === 1 ? "field" : "fields"})
-            </h3>
-            <p className="text-[13px] text-ink-secondary">
+            </h2>
+            <p className="text-base text-ink-2">
               We reached the page and the value we cited is not on it. Re-run the scraper
               to pick up current data, or retire if the field no longer exists.
             </p>
           </div>
-          <div className="space-y-3">
+          <div className="flex flex-col gap-3">
             {driftedGroups.map((group) => (
               <CompanyClaimGroup
                 key={group.key}
@@ -181,20 +180,20 @@ export function EvidenceClaimsList({
       )}
 
       {unreachableGroups.length > 0 && (
-        <section>
-          <div className="mb-2 px-1">
-            <h3 className="text-[13px] font-semibold text-ink-primary">
+        <section className="flex flex-col gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-ink">
               Could not be checked ({unreachableGroups.length}{" "}
               {unreachableGroups.length === 1 ? "company" : "companies"},{" "}
               {unreachableRows.length} {unreachableRows.length === 1 ? "field" : "fields"})
-            </h3>
-            <p className="text-[13px] text-ink-secondary">
+            </h2>
+            <p className="text-base text-ink-2">
               The source did not answer — a timeout, block, or 5xx. The stored value is
               unchanged and its citation still stands. Re-check before treating as a data
               problem.
             </p>
           </div>
-          <div className="space-y-3">
+          <div className="flex flex-col gap-3">
             {unreachableGroups.map((group) => (
               <CompanyClaimGroup
                 key={group.key}
@@ -229,40 +228,29 @@ function CompanyClaimGroup({
   const tier = claims[0]?.source_tier;
 
   return (
-    <AdminPanel padded={false}>
+    <AdminSection flush>
       {/* Company header row */}
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-b border-neutral-100 px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-b border-line px-4 py-3">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           {supplier?.id ? (
-            <Link
-              href={`/admin/suppliers/${supplier.id}`}
-              className="font-display text-[14px] font-semibold text-ink-primary hover:underline"
-            >
+            <Link href={`/admin/suppliers/${supplier.id}`} className={cn(linkClass, "text-md font-semibold")}>
               {supplier.company_name ?? "Unnamed supplier"}
             </Link>
           ) : (
-            <span className="font-display text-[14px] font-semibold text-ink-primary">
-              {subject_table}
-            </span>
+            <span className="text-md font-semibold text-ink">{subject_table}</span>
           )}
           {scrapers.map((s) => (
-            <Tag key={s} tone="neutral" className="py-0.5 text-[12px]">
-              {s}
-            </Tag>
+            <TypeChip key={s}>{s}</TypeChip>
           ))}
-          {tier != null && (
-            <Tag tone="neutral" className="py-0.5 text-[12px]">
-              Tier {tier}
-            </Tag>
-          )}
+          {tier != null && <TypeChip>Tier {tier}</TypeChip>}
         </div>
-        <span className="font-mono text-[12px] tabular-nums text-ink-tertiary">
+        <span className="text-sm tabular-nums text-ink-3">
           {claims.length} {claims.length === 1 ? "field" : "fields"}
         </span>
       </div>
 
       {/* Per-field claim rows */}
-      <div className="divide-y divide-neutral-100">
+      <div className="divide-y divide-line">
         {claims.map((claim) => (
           <ClaimSubRow
             key={claim.claim_id}
@@ -273,7 +261,7 @@ function CompanyClaimGroup({
           />
         ))}
       </div>
-    </AdminPanel>
+    </AdminSection>
   );
 }
 
@@ -283,7 +271,6 @@ function CompanyClaimGroup({
 function ClaimSubRow({
   claim,
   onResolved,
-  unreachable,
   companyName,
 }: {
   claim: ProblemClaim;
@@ -299,15 +286,15 @@ function ClaimSubRow({
   const href = citationHref(claim);
   const failures = consecutiveFailures(claim);
 
-  // Compact status pill styling.
+  // Compact status chip: unchecked is neutral, a gone link is a block, a changed value is a look.
   const statusText = isTransient
     ? "Unchecked"
     : COMPACT_STATUS[claim.status as ClaimStatus] ?? claim.status;
-  const statusClass = isTransient
-    ? "bg-neutral-100 text-ink-tertiary border-neutral-200"
-    : claim.status === "orphaned"
-      ? "bg-sem-red-soft text-sem-red border-sem-red/25"
-      : "bg-amber-50 text-amber-700 border-amber-200";
+  const statusChip = isTransient ? (
+    <TypeChip>{statusText}</TypeChip>
+  ) : (
+    <StatusChip tone={claim.status === "orphaned" ? "danger" : "caution"}>{statusText}</StatusChip>
+  );
 
   // Short advice for the secondary line.
   const advice = isTransient
@@ -318,7 +305,7 @@ function ClaimSubRow({
     <div>
       {/* Primary line: status + field + value + resolve */}
       <div
-        className="group flex cursor-pointer items-center gap-3 px-4 py-2.5 hover:bg-neutral-50"
+        className={cn("group flex cursor-pointer items-center gap-3 px-4 py-2.5 hover:bg-brand-wash", ring)}
         onClick={() => setDetailOpen((v) => !v)}
         role="button"
         tabIndex={0}
@@ -331,47 +318,20 @@ function ClaimSubRow({
         aria-expanded={detailOpen}
       >
         {/* Status badge */}
-        <span
-          className={cn(
-            "shrink-0 rounded border px-1.5 py-0.5 font-mono text-[11px] font-semibold",
-            statusClass,
-          )}
-        >
-          {statusText}
-        </span>
+        <span className="shrink-0">{statusChip}</span>
 
         {/* Field label */}
-        <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-ink-primary">
-          {label}
-        </span>
+        <span className="min-w-0 flex-1 truncate text-base font-medium text-ink">{label}</span>
 
         {/* Stored value (truncated) */}
         {value != null && value.length > 0 && (
-          <span className="hidden max-w-[200px] truncate font-mono text-[12px] text-ink-tertiary sm:block">
+          <span className="hidden max-w-[200px] truncate font-mono text-sm text-ink-3 sm:block">
             {value.length > 40 ? `${value.slice(0, 40)}…` : value}
           </span>
         )}
 
         {/* Expand chevron */}
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 14 14"
-          fill="none"
-          className={cn(
-            "shrink-0 text-ink-tertiary transition-transform",
-            detailOpen && "rotate-180",
-          )}
-          aria-hidden
-        >
-          <path
-            d="M3 5l4 4 4-4"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <CaretDown size={14} className={cn("shrink-0 text-ink-3 transition-transform", detailOpen && "rotate-180")} aria-hidden />
 
         {/* Resolve button — stop propagation so clicking it doesn't toggle expand */}
         <span
@@ -389,23 +349,21 @@ function ClaimSubRow({
 
       {/* Detail panel — expands inline, no context lost */}
       {detailOpen && (
-        <div className="mx-4 mb-3 space-y-2 rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-3">
+        <div className="mx-4 mb-3 flex flex-col gap-2 rounded-md border border-line bg-subtle px-3 py-3">
           {/* Advice sentence */}
-          <p className="text-[13px] text-ink-secondary">{advice}</p>
+          <p className="text-base text-ink-2">{advice}</p>
 
           {/* Excerpt if available */}
           {claim.excerpt ? (
-            <p className="rounded border border-neutral-200 bg-white px-2 py-1.5 font-mono text-[12px] italic text-ink-tertiary">
+            <p className="rounded-sm border border-line bg-surface px-2 py-1.5 font-mono text-sm italic text-ink-2">
               &ldquo;{claim.excerpt.length > 200 ? `${claim.excerpt.slice(0, 200)}…` : claim.excerpt}&rdquo;
             </p>
           ) : (
-            <p className="text-[12px] text-ink-tertiary">
-              No excerpt captured — confirmed by file digest.
-            </p>
+            <p className="text-sm text-ink-3">No excerpt captured — confirmed by file digest.</p>
           )}
 
           {/* Meta row: dates + http status */}
-          <p className="font-mono text-[11px] text-ink-tertiary">
+          <p className="font-mono text-xs text-ink-3">
             {claim.locator && <span className="mr-2">{claim.locator}</span>}
             last confirmed{" "}
             {claim.last_confirmed_at ? formatAdminDate(claim.last_confirmed_at) : "never"}
@@ -424,20 +382,20 @@ function ClaimSubRow({
               target="_blank"
               rel="noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="block truncate font-mono text-[12px] text-accent-indigo hover:underline"
+              className={cn(linkClass, "block truncate font-mono text-sm")}
             >
               {claim.evidence.verify_status === "dead"
                 ? `Archived snapshot (captured ${formatAdminDate(claim.evidence.fetched_at)})`
                 : (claim.evidence.final_url ?? claim.evidence.url)}
             </a>
           ) : (
-            <p className="truncate font-mono text-[12px] text-ink-tertiary">
+            <p className="truncate font-mono text-sm text-ink-3">
               {claim.evidence.url} · no archived copy
             </p>
           )}
 
           {claim.review_note && (
-            <p className="text-[12px] text-ink-tertiary">Note: {claim.review_note}</p>
+            <p className="text-sm text-ink-3">Note: {claim.review_note}</p>
           )}
         </div>
       )}

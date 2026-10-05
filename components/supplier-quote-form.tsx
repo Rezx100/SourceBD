@@ -10,9 +10,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
-import { FormGrid } from "@/components/ui/form-grid";
-import { StickyActionBar } from "@/components/ui/sticky-action-bar";
+import { Button, Field, Input, fieldBox, fieldEdge } from "@/components/kit";
+import { cn } from "@/lib/utils";
 
 export type SupplierQuoteFormInitial = {
   unit_price: number;
@@ -99,127 +98,89 @@ export function SupplierQuoteForm({
   }
 
   const isEdit = !!initial;
+  const off = disabled || busy;
 
   return (
     <form className="flex flex-col gap-4" onSubmit={onSubmit}>
       {disabled ? (
-        <p className="rounded-input border border-hairline-strong bg-surface-l1 px-3 py-2 text-[13px] text-ink-secondary">
+        <p className="rounded-sm border border-line bg-subtle px-3 py-2 text-sm text-ink-2">
           This RFQ is no longer open for quotes.
         </p>
       ) : null}
 
-      <FormGrid cols={2}>
-        <Field label="Unit price" required>
-          <input
-            required
-            type="number"
-            min={0}
-            step="any"
-            value={unitPrice}
-            onChange={(e) => setUnitPrice(e.target.value)}
-            disabled={disabled || busy}
-            className={inputClass}
-            placeholder="e.g. 2.85"
-          />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Unit price *">
+          {(a) => (
+            <Input
+              {...a}
+              required
+              type="number"
+              min={0}
+              step="any"
+              value={unitPrice}
+              onChange={(e) => setUnitPrice(e.target.value)}
+              disabled={off}
+              placeholder="e.g. 2.85"
+            />
+          )}
         </Field>
-        <Field label="Currency">
-          <input
-            type="text"
-            value={currency}
-            onChange={(e) => setCurrency(e.target.value.toUpperCase())}
-            maxLength={3}
-            disabled={disabled || busy}
-            className={inputClass}
-          />
+        <Field label="Currency" help={`Quoted per ${quantityUnit}.`}>
+          {(a) => (
+            <Input
+              {...a}
+              type="text"
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value.toUpperCase())}
+              maxLength={3}
+              disabled={off}
+            />
+          )}
         </Field>
-      </FormGrid>
+      </div>
 
-      <p className="text-[12px] text-ink-tertiary">
-        Quoted per {quantityUnit}.
-      </p>
-
-      <FormGrid cols={3}>
+      <div className="grid gap-4 sm:grid-cols-3">
         <Field label="Lead time (days)">
-          <input
-            type="number"
-            min={0}
-            step={1}
-            value={leadTime}
-            onChange={(e) => setLeadTime(e.target.value)}
-            disabled={disabled || busy}
-            className={inputClass}
-          />
+          {(a) => <Input {...a} type="number" min={0} step={1} value={leadTime} onChange={(e) => setLeadTime(e.target.value)} disabled={off} />}
         </Field>
         <Field label="MOQ">
-          <input
-            type="number"
-            min={0}
-            step="any"
-            value={moq}
-            onChange={(e) => setMoq(e.target.value)}
-            disabled={disabled || busy}
-            className={inputClass}
-          />
+          {(a) => <Input {...a} type="number" min={0} step="any" value={moq} onChange={(e) => setMoq(e.target.value)} disabled={off} />}
         </Field>
         <Field label="Valid until">
-          <input
-            type="date"
-            value={validUntil}
-            onChange={(e) => setValidUntil(e.target.value)}
-            disabled={disabled || busy}
-            className={inputClass}
-          />
+          {(a) => <Input {...a} type="date" value={validUntil} onChange={(e) => setValidUntil(e.target.value)} disabled={off} />}
         </Field>
-      </FormGrid>
+      </div>
 
       <Field label="Notes">
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          maxLength={4000}
-          rows={4}
-          disabled={disabled || busy}
-          className={inputClass}
-          placeholder="Inclusions, exclusions, payment terms, packaging…"
-        />
+        {(a) => (
+          <textarea
+            {...a}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            maxLength={4000}
+            rows={4}
+            disabled={off}
+            className={cn(fieldBox, fieldEdge, "px-2.5 py-2 text-base")}
+            placeholder="Inclusions, exclusions, payment terms, packaging…"
+          />
+        )}
       </Field>
 
-      {error ? <p className="text-sm text-sem-red">{error}</p> : null}
-      {ok ? <p className="text-sm text-sem-green">{ok}</p> : null}
+      {error ? (
+        <p role="alert" className="text-sm text-danger">
+          {error}
+        </p>
+      ) : null}
+      {ok ? (
+        <p role="status" className="text-sm font-medium text-brand">
+          {ok}
+        </p>
+      ) : null}
 
-      <StickyActionBar>
-        <Button
-          type="submit"
-          variant="primary"
-          size="sm"
-          disabled={disabled || busy}
-        >
-          {busy ? "Submitting…" : isEdit ? "Update quote" : "Submit quote"}
+      <div>
+        <Button type="submit" kind="primary" disabled={disabled} loading={busy} loadingLabel="Submitting…">
+          {isEdit ? "Update quote" : "Submit quote"}
         </Button>
-      </StickyActionBar>
+      </div>
     </form>
-  );
-}
-
-const inputClass =
-  "w-full rounded-input border border-hairline-strong bg-white px-3 py-2 text-[14px] text-ink-primary placeholder:text-ink-tertiary focus:outline-none focus:ring-2 focus:ring-accent-indigo disabled:cursor-not-allowed disabled:bg-surface-l1 disabled:text-ink-tertiary";
-
-function Field({
-  label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-[12px] text-ink-tertiary">
-        {label}
-        {required ? " *" : ""}
-      </span>
-      {children}
-    </label>
   );
 }
