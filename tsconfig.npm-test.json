@@ -168,6 +168,8 @@
     "components/site/trust.test.ts",
     "components/site/trust.tsx",
     "components/site/sources.ts",
+    "components/site/pricing.test.ts",
+    "components/site/pricing.tsx",
     "components/site/pages.tsx",
     "components/site/parts.tsx",
     "components/site/role-tabs.tsx",

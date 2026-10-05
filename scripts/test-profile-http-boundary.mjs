@@ -1190,6 +1190,11 @@ const CASES = [
   { name: "site: /suppliers (the claim page) is 200 and /suppliers/<slug> is untouched", path: "/suppliers", expect: { status: 200, bodyIncludes: "Claim your factory" } },
   { name: "site: /about is 200", path: "/about", expect: { status: 200, bodyIncludes: "Built for buyers who check." } },
   {
+    name: "site: /pricing is 200 and says it is free during beta",
+    path: "/pricing",
+    expect: { status: 200, bodyIncludes: "Free during beta." },
+  },
+  {
     name: "public: facility RPC unavailable -> 404, not 500",
     path: `/suppliers/${RPC_DOWN}`,
     expect: { status: 404, bodyIncludes: NOT_FOUND_MARKER },
