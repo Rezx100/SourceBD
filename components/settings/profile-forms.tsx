@@ -3,14 +3,15 @@
 // Profile (Paper `10 · Settings · Profile`): the name and picture, the email, the password. The
 // picture goes to its own route the moment it is chosen; the name raises the bar at the foot; the
 // email and the password each have their own button, because each is a separate act (a link to
-// confirm, a new password). Paper's "Current password" field is not here: the settings API takes the
-// new password only, and a field that is never checked would claim a check that does not happen.
+// confirm, a new password). The password form asks for the current one first: the route checks it
+// (ST-03) and refuses with a 403 when it is wrong, which is said under that field.
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, type FormEvent } from "react";
 import { Button, Field, Input } from "@/components/kit";
 import { Flash, FormNote, SaveBar, SaveRow, useFlash } from "./form";
-import { EMAIL_SENT, NAME_MAX, NAME_SAVED, PASSWORD_SAVED, PICTURE_ACCEPT, PICTURE_REMOVED, PICTURE_SAVED, emailRefusal, initialsOf, passwordRefusal, pictureRefusal } from "./profile";
+import { EMAIL_SENT, NAME_MAX, NAME_SAVED, PASSWORD_SAVED, PICTURE_ACCEPT, PICTURE_REMOVED, PICTURE_SAVED, emailRefusal, initialsOf, passwordBody, passwordFailureField, passwordRefusal, pictureRefusal, type PasswordField } from "./profile";
 import { SAVE_FAILED, browserFetch, deleteAvatar, postAvatar, postSettings } from "./transport";
 
 const touchInput = "max-md:h-input-touch max-md:text-md";
@@ -139,22 +140,25 @@ export function EmailForm() {
 }
 
 export function PasswordForm() {
+  const [current, setCurrent] = useState("");
   const [pwd, setPwd] = useState("");
   const [confirm, setConfirm] = useState("");
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ field: PasswordField; message: string } | null>(null);
   const [flash, setFlash] = useFlash();
+  const under = (f: PasswordField) => (error?.field === f ? error.message : null);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (saving) return;
-    const refusal = passwordRefusal(pwd, confirm);
+    const refusal = passwordRefusal(current, pwd, confirm);
     if (refusal) return setError(refusal);
     setSaving(true);
     setError(null);
-    const r = await postSettings({ action: "change_password", new_password: pwd }, SAVE_FAILED.password, doFetch);
+    const r = await postSettings(passwordBody(current, pwd), SAVE_FAILED.password, doFetch);
     setSaving(false);
-    if (!r.ok) return setError(r.message);
+    if (!r.ok) return setError({ field: passwordFailureField(r.status), message: r.message ?? SAVE_FAILED.password });
+    setCurrent("");
     setPwd("");
     setConfirm("");
     setFlash(PASSWORD_SAVED);
@@ -163,10 +167,25 @@ export function PasswordForm() {
   return (
     <form onSubmit={onSubmit} aria-label="Change password" noValidate className="flex flex-col gap-3">
       <div className="flex max-w-72 flex-col gap-3 max-sm:max-w-none">
-        <Field label="New password">
+        <Field
+          label="Current password"
+          error={under("current")}
+          help={
+            <>
+              Forgotten it, or always signed in with an email link?{" "}
+              <Link href="/forgot-password" prefetch={false} className="text-brand underline decoration-1 [text-underline-position:from-font]">
+                Reset it by email
+              </Link>
+              .
+            </>
+          }
+        >
+          {(a) => <Input {...a} type="password" value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" className={touchInput} />}
+        </Field>
+        <Field label="New password" error={under("new")}>
           {(a) => <Input {...a} type="password" value={pwd} onChange={(e) => setPwd(e.target.value)} autoComplete="new-password" className={touchInput} />}
         </Field>
-        <Field label="Confirm new password" error={error}>
+        <Field label="Confirm new password" error={under("confirm")}>
           {(a) => <Input {...a} type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" className={touchInput} />}
         </Field>
       </div>

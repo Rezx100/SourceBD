@@ -8,7 +8,8 @@ type Res = { ok: boolean; status: number; json(): Promise<unknown> };
 export type Init = { method: string; headers?: Record<string, string>; body?: string | FormData };
 export type Fetch = (url: string, init?: Init) => Promise<Res>;
 
-export type Posted = { ok: boolean; message: string | null; info: string | null; json: Record<string, unknown> | null };
+/** `status` is the route's HTTP status, 0 when it could not be reached. */
+export type Posted = { ok: boolean; status: number; message: string | null; info: string | null; json: Record<string, unknown> | null };
 
 /** The sentence a route wrote itself: it ends with a full stop and carries no `detail` key. */
 export function routeSentence(json: unknown): string | null {
@@ -21,10 +22,10 @@ export async function send(url: string, init: Init, failed: string, deps: { fetc
   try {
     const res = await deps.fetch(url, init);
     const json = (await res.json().catch(() => null)) as Record<string, unknown> | null;
-    if (!res.ok) return { ok: false, message: routeSentence(json) ?? failed, info: null, json };
-    return { ok: true, message: null, info: typeof json?.info === "string" ? json.info : null, json };
+    if (!res.ok) return { ok: false, status: res.status, message: routeSentence(json) ?? failed, info: null, json };
+    return { ok: true, status: res.status, message: null, info: typeof json?.info === "string" ? json.info : null, json };
   } catch {
-    return { ok: false, message: "Could not reach SourceBD. Nothing was changed; try again.", info: null, json: null };
+    return { ok: false, status: 0, message: "Could not reach SourceBD. Nothing was changed; try again.", info: null, json: null };
   }
 }
 
