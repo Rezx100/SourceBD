@@ -34,10 +34,11 @@ const DOC: SettingsDoc = {
 describe("the words", () => {
   it("the navigation is Paper's two groups, and only pages that exist", () => {
     assert.deepEqual(SETTINGS_GROUPS.map((g) => g.title), ["Your account", "Your company"]);
-    assert.deepEqual(SETTINGS_GROUPS.flatMap((g) => g.items.map((i) => i.label)), ["Profile", "Emails", "Company details", "Team and roles", "RFQ templates", "Plan and usage"]);
+    assert.deepEqual(SETTINGS_GROUPS.flatMap((g) => g.items.map((i) => i.label)), ["Profile", "Security", "Emails", "Company details", "Team and roles", "RFQ templates", "Plan and usage"]);
     assert.equal(itemOf("company").href, "/app/settings");
     const all = SETTINGS_GROUPS.flatMap((g) => g.items.map((i) => i.label)).join(" ");
-    assert.doesNotMatch(all, /Security|Audit/, "a page that is design only is not in the navigation");
+    assert.match(all, /Security/, "Security is built (row 6)");
+    assert.doesNotMatch(all, /Audit/, "a page that is design only is not in the navigation");
   });
 
   it("the line under the email names the plan as the rail does", () => {
@@ -216,12 +217,12 @@ const PROFILE = "app/(app)/app/settings/profile/page.js";
 
 describe("/app/settings and /app/settings/workspace", () => {
   for (const file of [COMPANY, WORKSPACE]) {
-    it(`${file.replace(/^app\/\(app\)|\/page\.js$/g, "")}: Paper's six links, Company details current, the plan as the rail reads it`, async () => {
+    it(`${file.replace(/^app\/\(app\)|\/page\.js$/g, "")}: Paper's seven links, Company details current, the plan as the rail reads it`, async () => {
       answer = { data: DOC, error: null };
       calls = [];
       const out = await page(file);
       assert.deepEqual(calls, ["settings_get"], "read once");
-      assert.deepEqual(navOf(out), ["Profile", "Emails", "Company details", "Team and roles", "RFQ templates", "Plan and usage"]);
+      assert.deepEqual(navOf(out), ["Profile", "Security", "Emails", "Company details", "Team and roles", "RFQ templates", "Plan and usage"]);
       assert.match(out, /aria-current="page"[^>]*>Company details</);
       assert.equal(out.match(/aria-current="page"/g)?.length, 1);
       assert.match(text(out), /alex\.morgan@example\.com · Free plan \(beta\)/);
@@ -261,11 +262,11 @@ describe("/app/settings and /app/settings/workspace", () => {
     answer = { data: DOC, error: null };
     const out = await page(COMPANY);
     const t = text(out);
-    for (const row of ["Profile", "Emails", "Company details", "Team and roles", "RFQ templates", "Plan and usage"]) assert.ok(t.includes(row), row);
+    for (const row of ["Profile", "Security", "Emails", "Company details", "Team and roles", "RFQ templates", "Plan and usage"]) assert.ok(t.includes(row), row);
     assert.match(t, /Example Apparel Ltd · Retailer/);
     assert.match(t, /Free during the beta/);
     assert.ok(out.includes('href="/app/settings/workspace"'), "the list's Company details goes to its own page");
-    assert.doesNotMatch(t, /Security|Audit log/);
+    assert.doesNotMatch(t, /Audit log/);
   });
 
   it("a failed read is an error and draws no form and no list", async () => {
@@ -384,10 +385,10 @@ describe("the other three pages (Team and roles is `components/team/team.test.ts
     [TEMPLATES, "RFQ templates"],
     [PLAN, "Plan and usage"],
   ] as const) {
-    it(`${current}: Paper's six links with it current, and one h1`, async () => {
+    it(`${current}: Paper's seven links with it current, and one h1`, async () => {
       answer = { data: DOC, error: null };
       const out = await page(file);
-      assert.deepEqual(navOf(out), ["Profile", "Emails", "Company details", "Team and roles", "RFQ templates", "Plan and usage"]);
+      assert.deepEqual(navOf(out), ["Profile", "Security", "Emails", "Company details", "Team and roles", "RFQ templates", "Plan and usage"]);
       assert.match(out, new RegExp(`aria-current="page"[^>]*>${current}<`));
       assert.equal(out.match(/aria-current="page"/g)?.length, 1);
       assert.equal(out.match(/<h1\b/g)?.length, 1);
