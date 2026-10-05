@@ -6,10 +6,11 @@
 import { ArrowLeft, CheckCircle } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { ButtonLink, ErrorPanel, InlineError, Skeleton, buttonClass } from "@/components/kit";
+import { DownloadCsv } from "@/components/export/download-csv";
 import { NeedsAttention, type AttentionItem } from "@/components/patterns";
 import type { Attention } from "@/lib/dashboard/needs-attention";
 import { cn } from "@/lib/utils";
-import { COMPLIANCE_HREF, EXPIRY_HREF, MSA_HREF, UFLPA_HREF, UFLPA_WORDS, comingUp, hubCaption, uflpaCounts, uflpaNote, type CertList, type MsaSummary, type UflpaPayload } from "./words";
+import { COMPLIANCE_HREF, EXPIRY_HREF, attentionGroup, attentionGroupLines, certExportHref, MSA_HREF, UFLPA_HREF, UFLPA_WORDS, comingUp, hubCaption, uflpaCounts, uflpaNote, type CertList, type MsaSummary, type UflpaPayload } from "./words";
 
 const textLink = "rounded-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
 
@@ -23,18 +24,23 @@ export function BackToHub() {
   );
 }
 
-export function HubHead({ saved }: { saved: number | null }) {
+export function HubHead({ saved, download = false }: { saved: number | null; download?: boolean }) {
   return (
-    <header className="flex shrink-0 flex-col gap-0.5 border-b border-line px-6 pb-4 pt-5 max-md:hidden">
-      <h1 className="text-xl font-semibold tracking-tight text-ink">Compliance</h1>
-      <p className="text-base text-ink-3">{hubCaption(saved)}</p>
+    <header className="flex shrink-0 items-end justify-between gap-4 border-b border-line px-6 pb-4 pt-5 max-md:hidden">
+      <div className="flex flex-col gap-0.5">
+        <h1 className="text-xl font-semibold tracking-tight text-ink">Compliance</h1>
+        <p className="text-base text-ink-3">{hubCaption(saved)}</p>
+      </div>
+      {download ? <DownloadCsv href={certExportHref()} /> : null}
     </header>
   );
 }
 
 /** Certificates that need a look: the pattern, one ask each. */
 export function AttentionCard({ attention }: { attention: Attention }) {
+  const lines = attentionGroupLines(attention.rows);
   const items: AttentionItem[] = attention.rows.map((r) => ({
+    group: lines[attentionGroup(r)],
     state: r.state,
     supplier: r.supplier,
     what: r.what,

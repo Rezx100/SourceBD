@@ -22,11 +22,28 @@ describe("the words", () => {
     assert.deepEqual(ch.find((c) => c.code === "61")!.headings.map((h) => h.hs), ["6101", "6105", "6109"]);
   });
 
-  it("names Paper's eleven chapters, and any other by its number", () => {
+  it("names Paper's eleven chapters, and every other real chapter in plain words", () => {
     assert.equal(PRIMARY.length, 11);
     assert.ok(PRIMARY.every((c) => CHAPTER_NAMES[c]));
     assert.equal(chapterName("61"), "Knitted clothing");
-    assert.equal(chapterName("49"), "Chapter 49");
+    assert.equal(chapterName("49"), "Books and printed matter");
+  });
+
+  it("every chapter from 01 to 97 has its own name, but 77 (reserved) and the national 98 and 99 keep their number", () => {
+    const names = new Map<string, string>();
+    for (let n = 1; n <= 97; n++) {
+      const code = String(n).padStart(2, "0");
+      const name = chapterName(code);
+      if (n === 77) {
+        assert.equal(name, "Chapter 77");
+        continue;
+      }
+      assert.ok(name && !/^Chapter \d/.test(name), `chapter ${code} has no name`);
+      assert.ok(!names.has(name), `chapter ${code} repeats the name of ${names.get(name)}`);
+      names.set(name, code);
+    }
+    assert.equal(chapterName("99"), "Chapter 99");
+    assert.equal(names.size, 96);
   });
 
   it("lists Paper's chapters first, in Paper's order, and folds the rest into 'more'", () => {

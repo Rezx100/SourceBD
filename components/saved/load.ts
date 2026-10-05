@@ -1,6 +1,6 @@
 // What the Saved pages read, so a failed read is told apart from an empty list. The same reads as
 // before: `buyer_saved_list` with the two worker figures `enrichDiscoverWorkers` adds, the two
-// compliance reads (every expired certificate, every one lapsing inside 90 days) for the "first
+// compliance reads (every expired certificate, every one still valid for up to a year) for the "first
 // certificate to check" column, and the buyer's own saved searches. No new RPC, policy or
 // migration; the saved-search count is a plain count under the buyer's session, filtered to the
 // owner as the other saved-search paths do.
@@ -20,6 +20,13 @@ async function soft<T>(run: () => PromiseLike<{ data: unknown; error: unknown }>
     return fallback;
   }
 }
+
+/**
+ * The widest window `compliance_expiring_certs` allows (it clamps to 365). Past 90 days a certificate is
+ * "valid" (`certState`), so this is how the column can print one; a certificate valid for longer than a year
+ * is not returned, and that supplier reads "Nothing to check", which stays true.
+ */
+export const CERT_WINDOW_DAYS = 365;
 
 const certRows = (d: unknown): CertRead[] | null => (d && typeof d === "object" && Array.isArray((d as { rows?: unknown }).rows) ? ((d as { rows: CertRead[] }).rows) : null);
 
@@ -48,7 +55,7 @@ export async function loadSaved(supabase: Client, sort: SavedSort, page: number)
   const [list, expired, expiring, searches] = await Promise.all([
     supabase.rpc("buyer_saved_list", { p_sort: sort, p_limit: PAGE_SIZE, p_offset: (page - 1) * PAGE_SIZE }),
     soft(() => supabase.rpc("compliance_expired_certs"), certRows, null),
-    soft(() => supabase.rpc("compliance_expiring_certs", { p_window_days: 90 }), certRows, null),
+    soft(() => supabase.rpc("compliance_expiring_certs", { p_window_days: CERT_WINDOW_DAYS }), certRows, null),
     countSavedSearches(supabase),
   ]);
   if (list.error || !Array.isArray(list.data)) return { rows: null, total: null, certs: null, searches };

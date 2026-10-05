@@ -239,6 +239,38 @@ export async function runSavedSearchesDelete(input: {
   return { status: 200, body: { ok: true } };
 }
 
+/** Rename one saved search. Only the name changes; its filters and its remembered count stay. */
+export async function runSavedSearchesRename(input: {
+  role: string | null;
+  supabase: SavedSearchClient;
+  raw: unknown;
+}): Promise<SavedResult> {
+  if (input.role !== "buyer" && input.role !== "admin") {
+    return { status: 401, body: { error: "unauthorised" } };
+  }
+  if (!input.raw || typeof input.raw !== "object" || Array.isArray(input.raw)) {
+    return { status: 400, body: { error: "body must be an object" } };
+  }
+  const rec = input.raw as Record<string, unknown>;
+  if (typeof rec.id !== "string" || !UUID_RE.test(rec.id)) {
+    return { status: 400, body: { error: "invalid id" } };
+  }
+  const name = typeof rec.name === "string" ? rec.name.trim() : "";
+  if (!name || name.length > 120) {
+    return { status: 400, body: { error: SAVED_SEARCH_ERROR.invalidName } };
+  }
+  const { data: user } = await input.supabase.auth.getUser();
+  const ownerId = user.user?.id;
+  if (!ownerId) return { status: 401, body: { error: "unauthorised" } };
+
+  // `select` after the update says whether a row matched: someone else's id, or one already
+  // deleted, matches none, and that is a 404, never a quiet "renamed".
+  const updated = await input.supabase.from("saved_searches").update({ name }).eq("id", rec.id).eq("owner_id", ownerId).select("id");
+  if (updated.error) return { status: 500, body: { error: "rename failed" } };
+  if (!Array.isArray(updated.data) || updated.data.length === 0) return { status: 404, body: { error: "not found" } };
+  return { status: 200, body: { ok: true, name } };
+}
+
 export function savedSearchRedirectHref(queryState: unknown): string {
   return hrefOf(asState(queryState));
 }
