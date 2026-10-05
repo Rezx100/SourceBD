@@ -61,3 +61,4 @@ Each spec names its migration; the migration is written and dry-run, and `--appl
 - Row 4: Team and roles page, Invite people, the invite email and `/invite/[token]` built (Sonnet, 5 Oct, PR into `ds-v4`); works once 0111 is applied.
 - Row 16: Download CSV on Saved, Compliance and Certificate expiry built (Sonnet, 5 Oct, PR into `ds-v4`); one route, no migration.
 - Row 17: Saved search rename built (Sonnet, 5 Oct, PR into `ds-v4`); `PATCH /api/v1/saved-searches`, no migration.
+- Row 20: phone Product view built (Sonnet, 5 Oct, PR into `ds-v4`); read-only view and an Edit sheet of six fields; the full editor is `?edit=full`; no migration.
