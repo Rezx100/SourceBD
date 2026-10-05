@@ -86,6 +86,7 @@ const TITLES: readonly [string, string][] = [
   ["/app/headings", "HS codes"],
   ["/app/settings", "Settings"],
   ["/app/settings/subscription", "Plan and usage"],
+  ["/app/settings/security", "Security"],
   ["/app/settings/members", "Team and roles"],
 ];
 

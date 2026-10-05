@@ -71,6 +71,19 @@ create table if not exists auth.users (
   created_at          timestamptz not null default now()
 );
 
+-- 0115 lists and ends a user's sessions. Only the columns it reads; no foreign key, so a test can
+-- insert a session for a user it has not made.
+create table if not exists auth.sessions (
+  id            uuid        primary key default gen_random_uuid(),
+  user_id       uuid        not null,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz,
+  not_after     timestamptz,
+  refreshed_at  timestamp,
+  user_agent    text,
+  ip            inet
+);
+
 -- The real ones read the request JWT out of a GUC. Same contract: null when
 -- nobody is signed in, which is what every RLS policy in these migrations is
 -- written against.
