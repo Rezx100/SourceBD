@@ -1,17 +1,14 @@
 // What the Messages pages read, so the list and the conversation agree on how a failed read is told
 // apart from a conversation that is not yours and from an empty inbox. The same RPCs as before
-// (`thread_list`, `thread_messages`, `rfq_get`); the newest message of each conversation is one
-// `thread_messages` call with a limit of 1, because `thread_list` carries no text. No new RPC,
-// policy or migration.
+// (`thread_list`, `thread_messages`, `rfq_get`). Since migration 0112 `thread_list` carries the
+// newest line, the unread count and whether the other side has written, so the list is one call and
+// not one more per conversation.
 
 import type { RfqDoc } from "@/components/rfqs/doc";
-import type { LastMessage, ThreadMessage, ThreadRow } from "./words";
+import type { ThreadMessage, ThreadRow } from "./words";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the Supabase server client, as the other loaders take it.
 type Client = any;
-
-/** The conversations whose newest message is read for the list: the most recent ones. */
-export const LAST_READ_CAP = 30;
 
 async function soft<T>(run: () => PromiseLike<{ data: unknown; error: unknown }>, pick: (d: unknown) => T, fallback: T): Promise<T> {
   try {
@@ -25,13 +22,6 @@ async function soft<T>(run: () => PromiseLike<{ data: unknown; error: unknown }>
 export type InboxData = {
   /** Null when `thread_list` failed: no count and no empty state may stand in for it. */
   rows: ThreadRow[] | null;
-  /** The newest message of each conversation that could be read. */
-  last: Record<string, LastMessage>;
-  /**
-   * Every conversation with messages has its newest one in `last`. Only then can "No reply yet"
-   * be counted: a count over some of the conversations would be a claim about all of them.
-   */
-  lastComplete: boolean;
 };
 
 export function normaliseThread(r: Record<string, unknown>): ThreadRow {
@@ -40,22 +30,7 @@ export function normaliseThread(r: Record<string, unknown>): ThreadRow {
 
 export async function loadInbox(supabase: Client): Promise<InboxData> {
   const list = await supabase.rpc("thread_list");
-  const rows = list.error || !Array.isArray(list.data) ? null : (list.data as Record<string, unknown>[]).map(normaliseThread);
-  if (!rows) return { rows: null, last: {}, lastComplete: false };
-  const withMessages = rows.filter((t) => t.message_count > 0);
-  const reads = await Promise.all(
-    withMessages.slice(0, LAST_READ_CAP).map(async (t) => {
-      const m = await soft<ThreadMessage | null>(
-        () => supabase.rpc("thread_messages", { p_thread_id: t.id, p_limit: 1 }),
-        (d) => (Array.isArray(d) && d.length > 0 ? (d[d.length - 1] as ThreadMessage) : null),
-        null,
-      );
-      return [t.id, m] as const;
-    }),
-  );
-  const last: Record<string, LastMessage> = {};
-  for (const [id, m] of reads) if (m && typeof m.body === "string") last[id] = { body: m.body, is_self: Boolean(m.is_self), created_at: m.created_at };
-  return { rows, last, lastComplete: withMessages.every((t) => last[t.id] !== undefined) };
+  return { rows: list.error || !Array.isArray(list.data) ? null : (list.data as Record<string, unknown>[]).map(normaliseThread) };
 }
 
 export type ThreadRead = { kind: "ok"; messages: ThreadMessage[] } | { kind: "denied" } | { kind: "error" };

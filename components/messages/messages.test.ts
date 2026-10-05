@@ -16,9 +16,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { aboniInput } from "@/lib/dashboard/fixtures";
 import type { RfqDoc } from "../rfqs/doc";
-import { noReplyCount } from "./inbox";
-import { InboxEmpty, InboxError, InboxRows } from "./list";
-import { LAST_READ_CAP, loadInbox, readMessages, readRfq } from "./load";
+import { InboxEmpty, InboxError, InboxHead, InboxNone, InboxRows } from "./list";
+import { loadInbox, readMessages, readRfq } from "./load";
 import { MessageList, ThreadLive } from "./thread-live";
 import {
   COUNTER_FROM,
@@ -29,6 +28,8 @@ import {
   counterText,
   dayGroups,
   dayLabel,
+  fileDetail,
+  fileProblem,
   filterItems,
   listHref,
   listWhen,
@@ -37,9 +38,10 @@ import {
   phoneStripLine,
   quoteWords,
   rfqStrip,
+  tabsKnown,
   threadHref,
   threadSub,
-  type LastMessage,
+  uploadPath,
   type ThreadMessage,
   type ThreadRow,
 } from "./words";
@@ -118,20 +120,21 @@ const thread = (id: string, over: Partial<ThreadRow> = {}): ThreadRow => ({
   last_message_at: "2026-10-04T11:20:00Z",
   created_at: "2026-07-18T09:00:00Z",
   message_count: 4,
+  unread_count: 0,
+  has_reply: true,
+  last_body: "Thank you. We will send the quote by Monday.",
+  last_is_self: false,
   ...over,
 });
 
+// T1 has two messages of the supplier's the buyer has not read; T3 is a message of the buyer's that
+// the supplier has never answered.
 const ROWS: ThreadRow[] = [
-  thread(T1),
-  thread(T2, { supplier_name: "Quattro Fashion Limited", supplier_id: "s-quattro", supplier_slug: "quattro-fashion", rfq_id: null, subject: "T-shirt", last_message_at: "2026-10-03T16:00:00Z", message_count: 2 }),
-  thread(T3, { supplier_name: "Aboni Knitwear Ltd.", supplier_id: "s-aboni", supplier_slug: "aboni-knitwear", subject: "French terry hoodies", last_message_at: "2026-09-26T08:00:00Z", message_count: 1 }),
+  thread(T1, { unread_count: 2 }),
+  thread(T2, { supplier_name: "Quattro Fashion Limited", supplier_id: "s-quattro", supplier_slug: "quattro-fashion", rfq_id: null, subject: "T-shirt", last_message_at: "2026-10-03T16:00:00Z", message_count: 2, last_body: "We can make the T-shirts. Our MOQ is 500 pieces per colour." }),
+  thread(T3, { supplier_name: "Aboni Knitwear Ltd.", supplier_id: "s-aboni", supplier_slug: "aboni-knitwear", subject: "French terry hoodies", last_message_at: "2026-09-26T08:00:00Z", message_count: 1, has_reply: false, last_body: "Can you confirm the fabric mill?", last_is_self: true }),
 ];
-const LAST: Record<string, LastMessage> = {
-  [T1]: { body: "Thank you. We will send the quote by Monday.", is_self: false, created_at: "2026-10-04T11:20:00Z" },
-  [T2]: { body: "We can make the T-shirts. Our MOQ is 500 pieces per colour.", is_self: false, created_at: "2026-10-03T16:00:00Z" },
-  [T3]: { body: "Can you confirm the fabric mill?", is_self: true, created_at: "2026-09-26T08:00:00Z" },
-};
-const items = () => buildThreadItems(ROWS, LAST, NOW);
+const items = () => buildThreadItems(ROWS, NOW);
 
 describe("the list's words", () => {
   it("a row's time is the time today, Yesterday, else the day", () => {
@@ -149,20 +152,34 @@ describe("the list's words", () => {
     assert.equal(c!.line, "You: Can you confirm the fabric mill?");
     assert.equal(b!.sub, "T-shirt", "a conversation with no RFQ says its subject");
     assert.equal(a!.sub, "RFQ · Men's heavyweight French terry hoodies");
-    const none = buildThreadItems([thread(T1, { message_count: 0, last_message_at: null })], {}, NOW)[0]!;
+    const none = buildThreadItems([thread(T1, { message_count: 0, last_message_at: null, has_reply: false, last_body: null })], NOW)[0]!;
     assert.equal(none.line, "No messages yet");
-    assert.equal(none.noReply, false);
+    assert.equal(none.noReply, false, "nothing has been sent, so nothing is waiting on a reply");
   });
 
-  it("'No reply yet' is a conversation whose newest message is yours, and nothing is ever unread", () => {
+  it("a message of files alone reads 'Sent a file', yours as 'You: Sent a file'", () => {
+    assert.equal(buildThreadItems([thread(T1, { last_body: "" })], NOW)[0]!.line, "Sent a file");
+    assert.equal(buildThreadItems([thread(T1, { last_body: "", last_is_self: true })], NOW)[0]!.line, "You: Sent a file");
+    assert.equal(buildThreadItems([thread(T1, { last_body: "Two\nlines   here" })], NOW)[0]!.line, "Two lines here");
+  });
+
+  it("'No reply yet' is a conversation the supplier has never written in; unread is what the database counts, except in the open conversation", () => {
     assert.deepEqual(items().map((i) => i.noReply), [false, false, true]);
-    assert.equal(noReplyCount(items(), true), 1);
-    assert.equal(noReplyCount(items(), false), null, "a count over some of the conversations would be a claim about all of them");
-    // A conversation whose newest message was not read has no line and is not 'No reply yet'.
-    const unread = buildThreadItems([thread(T1, { message_count: 3 })], {}, NOW)[0]!;
-    assert.equal(unread.line, null);
-    assert.equal(unread.noReply, false);
-    assert.ok(!("unread" in unread));
+    assert.deepEqual(items().map((i) => i.unread), [true, false, false]);
+    assert.equal(buildThreadItems(ROWS, NOW, T1)[0]!.unread, false, "the conversation that is open is being read");
+    assert.equal(buildThreadItems(ROWS, NOW, T1)[1]!.unread, false);
+  });
+
+  it("a database without 0112 says nothing is unread, nothing is waiting, and prints no line; the tabs are left out", () => {
+    const bare = { ...ROWS[0]! } as Record<string, unknown>;
+    for (const k of ["unread_count", "has_reply", "last_body", "last_is_self"]) delete bare[k];
+    const [i] = buildThreadItems([bare as unknown as ThreadRow], NOW);
+    assert.equal(i!.line, null);
+    assert.equal(i!.unread, false);
+    assert.equal(i!.noReply, false);
+    assert.equal(tabsKnown([bare as unknown as ThreadRow]), false);
+    assert.equal(tabsKnown(ROWS), true);
+    assert.equal(tabsKnown([]), true);
   });
 
   it("the subject of an RFQ thread is 'RFQ · title'; with no title it is 'RFQ'; with neither, 'Conversation'", () => {
@@ -174,6 +191,8 @@ describe("the list's words", () => {
   it("the tab and the search narrow the list; a search matches a name or an RFQ title, ignoring case", () => {
     assert.equal(filterItems(items(), { show: "all", q: "" }).length, 3);
     assert.deepEqual(filterItems(items(), { show: "noreply", q: "" }).map((i) => i.id), [T3]);
+    assert.deepEqual(filterItems(items(), { show: "unread", q: "" }).map((i) => i.id), [T1]);
+    assert.deepEqual(filterItems(items(), { show: "unread", q: "aboni" }), []);
     assert.deepEqual(filterItems(items(), { show: "all", q: "QUATTRO" }).map((i) => i.id), [T2]);
     assert.deepEqual(filterItems(items(), { show: "all", q: "hoodies" }).map((i) => i.id), [T1, T3]);
     assert.deepEqual(filterItems(items(), { show: "noreply", q: "hoodies" }).map((i) => i.id), [T3]);
@@ -182,6 +201,7 @@ describe("the list's words", () => {
 
   it("the tab and the search are read from the address, and kept in every link", () => {
     assert.equal(parseShow("noreply"), "noreply");
+    assert.equal(parseShow("unread"), "unread");
     assert.equal(parseShow("bogus"), "all");
     assert.equal(parseShow(["noreply"]), "noreply");
     assert.equal(parseShow(undefined), "all");
@@ -199,14 +219,40 @@ describe("the rows as drawn", () => {
   const state = { show: "all" as const, q: "" };
 
   it("each row links to its conversation, marks the open one, and says 'No reply yet' with a clock", () => {
-    const out = html(createElement(InboxRows, { items: items(), state, currentId: T1 }));
+    const out = html(createElement(InboxRows, { items: buildThreadItems(ROWS, NOW, T1), state, currentId: T1 }));
     assert.match(out, new RegExp(`href="/app/messages/${T1}"[^>]*aria-current="page"|aria-current="page"[^>]*href="/app/messages/${T1}"`));
     assert.equal(out.match(/aria-current="page"/g)?.length, 1);
     assert.match(text(out), /Thermax Woven Dyeing Ltd\. 11:20 Thank you\. We will send the quote by Monday\. RFQ · Men's heavyweight French terry hoodies/);
     assert.match(text(out), /No reply yet · RFQ · French terry hoodies/);
     assert.match(text(out), /Quattro Fashion Limited Yesterday|Quattro Fashion Limited \d+ \w+ 2026/);
-    assert.doesNotMatch(out, /Unread|unread|Sample messages/);
+    assert.doesNotMatch(out, /Sample messages/);
     assert.match(out, /<time dateTime="2026-10-04T11:20:00Z" title="UTC"[^>]*>11:20<\/time>/, "the list's times are UTC and say so");
+  });
+
+  it("an unread conversation has a dot, a bold name and 'unread' for a screen reader; a read one has none", () => {
+    const out = html(createElement(InboxRows, { items: items(), state, currentId: null }));
+    assert.equal(out.match(/rounded-full bg-brand/g)?.length, 1, "one dot, on the one unread row");
+    assert.match(text(out), /Thermax Woven Dyeing Ltd\. , unread/);
+    assert.doesNotMatch(text(out), /Quattro Fashion Limited , unread|Aboni Knitwear Ltd\. , unread/);
+    const open = html(createElement(InboxRows, { items: buildThreadItems(ROWS, NOW, T1), state, currentId: T1 }));
+    assert.doesNotMatch(open, /rounded-full bg-brand|unread/, "the open conversation is not drawn unread");
+  });
+
+  it("'Sent a file' and 'You: ' show as the line under a name", () => {
+    const rows = [thread(T1, { last_body: "", last_is_self: true }), thread(T2, { last_body: "Hello", last_is_self: true })];
+    assert.match(text(html(createElement(InboxRows, { items: buildThreadItems(rows, NOW), state, currentId: null }))), /You: Sent a file.*You: Hello/);
+  });
+
+  it("the head offers All, Unread and No reply yet with their counts, and only All when the data has no read state", () => {
+    const full = html(createElement(InboxHead, { total: 3, counts: { unread: 1, noReply: 1 }, state }));
+    assert.match(text(full), /All · 3 Unread · 1 No reply yet · 1/);
+    assert.match(full, /href="\/app\/messages\?show=unread"/);
+    const bare = html(createElement(InboxHead, { total: 3, counts: null, state }));
+    assert.doesNotMatch(bare, /Unread|No reply yet/);
+  });
+
+  it("an empty Unread tab says so", () => {
+    assert.match(text(html(createElement(InboxNone, { state: { show: "unread", q: "" } }))), /Nothing unread/);
   });
 
   it("the list's tab and search ride along in every row's link", () => {
@@ -250,6 +296,45 @@ describe("the conversation's words", () => {
     assert.match(text(out), /Body a Thermax · 10:12 10:12/, "a desktop name and time, then the phone's time");
     assert.doesNotMatch(out, /Read/);
     assert.match(out, /items-end self-end/, "your bubble is on the right");
+  });
+
+  it("'Read' stands once, under your newest message, and only when the data says the other side has read it", () => {
+    const mine = (id: string, at: string, read?: boolean): ThreadMessage => ({ ...m(id, at, true), read });
+    const draw = (msgs: ThreadMessage[]) => text(html(createElement(MessageList, { messages: msgs, supplierName: "Thermax", today: NOW.toISOString() })));
+    const both = draw([mine("a", "2026-10-04T08:00:00Z", true), mine("b", "2026-10-04T09:00:00Z", true)]);
+    assert.equal(both.match(/Read/g)?.length, 1, "once, not under every message");
+    assert.match(both, /Body b You · 09:00 09:00 · Read/);
+    assert.doesNotMatch(draw([mine("a", "2026-10-04T08:00:00Z", true), mine("b", "2026-10-04T09:00:00Z", false)]), /Read/, "the newest is not read yet, so no older tick stands in for it");
+    assert.doesNotMatch(draw([mine("a", "2026-10-04T08:00:00Z")]), /Read/, "a database without 0112 sends no `read`");
+    assert.doesNotMatch(draw([{ ...m("c", "2026-10-04T08:00:00Z"), read: true }]), /Read/, "the supplier's own messages never carry it");
+  });
+
+  it("a file is a card with its name, kind and size, and opens through the signed-link route; a message of files alone has no empty text", () => {
+    const att = { id: "f1", path: `${T1}/u/r/Tech pack.pdf`, file_name: "Tech pack.pdf", mime_type: "application/pdf", size_bytes: 2_100_000 };
+    const out = html(createElement(MessageList, { messages: [{ ...m("a", "2026-10-04T10:12:00Z"), body: "", attachments: [att] }], supplierName: "Thermax", today: NOW.toISOString() }));
+    assert.ok(out.includes(`href="/api/v1/messages/file?thread_id=${T1}&path=${encodeURIComponent(att.path)}"`), "the link names the conversation and the path");
+    assert.match(out, /target="_blank"[^>]*rel="noopener"|rel="noopener"[^>]*target="_blank"/);
+    assert.match(text(out), /Tech pack\.pdf PDF · 2\.1 MB/);
+    assert.doesNotMatch(out, /whitespace-pre-wrap/, "an empty body is not drawn as an empty line");
+    assert.match(out, /aria-label="Open Tech pack\.pdf"/);
+  });
+
+  it("the file's words: kind from the type, else the extension; the size in 1,000s", () => {
+    assert.equal(fileDetail({ file_name: "a.pdf", mime_type: "application/pdf", size_bytes: 2_100_000 }), "PDF · 2.1 MB");
+    assert.equal(fileDetail({ file_name: "a.jpg", mime_type: "image/jpeg", size_bytes: 480_000 }), "JPG · 480 KB");
+    assert.equal(fileDetail({ file_name: "a.xlsx", mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", size_bytes: 900 }), "Excel · 900 B");
+    assert.equal(fileDetail({ file_name: "sheet.CSV", mime_type: null, size_bytes: null }), "CSV");
+    assert.equal(fileDetail({ file_name: "noext", mime_type: null, size_bytes: 10_000_000 }), "File · 10.0 MB");
+  });
+
+  it("a file is refused before it is uploaded when its type or size is not the bucket's; the path is the bucket's shape", () => {
+    assert.equal(fileProblem({ name: "a.pdf", type: "application/pdf", size: 1000 }), null);
+    assert.match(fileProblem({ name: "a.exe", type: "application/x-msdownload", size: 1000 })!, /a\.exe is not a PDF, picture, Excel, Word or CSV file\./);
+    assert.match(fileProblem({ name: "big.pdf", type: "application/pdf", size: 26 * 1024 * 1024 })!, /over 25 MB/);
+    assert.match(fileProblem({ name: "z.pdf", type: "application/pdf", size: 0 })!, /empty/);
+    assert.equal(uploadPath(T1, "user-1", "rnd", "Tech pack (v2).pdf"), `${T1}/user-1/rnd/Tech pack (v2).pdf`);
+    assert.equal(uploadPath(T1, "user-1", "rnd", "../../a/b?.pdf"), `${T1}/user-1/rnd/_.._a_b_.pdf`, "slashes cannot add a folder or climb out of one");
+    assert.equal(uploadPath(T1, "user-1", "rnd", "...").split("/").length, 4);
   });
 
   it("an empty conversation invites the first message", () => {
@@ -364,35 +449,14 @@ describe("the strip over a conversation", () => {
 });
 
 describe("the loaders", () => {
-  it("each conversation with messages has its newest message read, and 'No reply yet' can be counted", async () => {
-    given({
-      thread_list: { data: ROWS, error: null },
-      thread_messages: (a) => ({ data: [{ id: "m", thread_id: String(a?.p_thread_id), sender_id: "u", created_at: LAST[String(a?.p_thread_id)]!.created_at, body: LAST[String(a?.p_thread_id)]!.body, is_self: LAST[String(a?.p_thread_id)]!.is_self }], error: null }),
-    });
+  it("the whole list is one call: the lines, the unread counts and the replies come from thread_list, with no read per conversation", async () => {
+    const many = Array.from({ length: 45 }, (_, i) => thread(`aaaaaaaa-0000-4000-8000-${String(i).padStart(12, "0")}`));
+    given({ thread_list: { data: many, error: null } });
     const inbox = await loadInbox(client);
-    assert.equal(inbox.rows?.length, 3);
-    assert.equal(inbox.lastComplete, true);
-    assert.deepEqual(inbox.last[T3], { body: "Can you confirm the fabric mill?", is_self: true, created_at: "2026-09-26T08:00:00Z" });
-    assert.ok(rpcCalls.filter((c) => c.fn === "thread_messages").every((c) => c.args?.p_limit === 1));
-  });
-
-  it("a conversation with no messages is not read; a failed read leaves the count unknown, not zero", async () => {
-    given({
-      thread_list: { data: [thread(T1, { message_count: 0 }), ...ROWS.slice(1)], error: null },
-      thread_messages: (a) => (a?.p_thread_id === T3 ? { data: null, error: { message: "boom" } } : { data: [{ id: "m", thread_id: T2, sender_id: "u", created_at: "2026-10-03T16:00:00Z", body: "Hello", is_self: false }], error: null }),
-    });
-    const inbox = await loadInbox(client);
-    assert.equal(rpcCalls.filter((c) => c.fn === "thread_messages").length, 2, "only conversations with messages are read");
-    assert.equal(inbox.last[T3], undefined);
-    assert.equal(inbox.lastComplete, false);
-  });
-
-  it("only the newest conversations are read, and the count is then unknown", async () => {
-    const many = Array.from({ length: LAST_READ_CAP + 5 }, (_, i) => thread(`aaaaaaaa-0000-4000-8000-${String(i).padStart(12, "0")}`, { message_count: 1 }));
-    given({ thread_list: { data: many, error: null }, thread_messages: { data: [{ id: "m", thread_id: "x", sender_id: "u", created_at: "2026-10-03T16:00:00Z", body: "Hi", is_self: true }], error: null } });
-    const inbox = await loadInbox(client);
-    assert.equal(rpcCalls.filter((c) => c.fn === "thread_messages").length, LAST_READ_CAP);
-    assert.equal(inbox.lastComplete, false);
+    assert.equal(inbox.rows?.length, 45);
+    assert.deepEqual(rpcCalls.map((c) => c.fn), ["thread_list"]);
+    assert.equal(inbox.rows![0]!.unread_count, 0);
+    assert.equal(inbox.rows![0]!.last_body, "Thank you. We will send the quote by Monday.");
   });
 
   it("a failed thread_list is null rows, never an empty list", async () => {
@@ -444,29 +508,38 @@ const RFQ_DOC: RfqDoc = {
   thread_id: T3,
 };
 const ABONI_THREAD = { ...ROWS[2]!, supplier_id: ABONI.profile.supplier.id };
-const lastOf = (a: Record<string, unknown> | undefined): Answer => {
-  const id = String(a?.p_thread_id);
-  return a?.p_limit === 1 ? { data: id === T3 ? [MSGS[1]] : [{ id: "z", thread_id: id, sender_id: "s", created_at: LAST[id]?.created_at ?? "2026-10-03T16:00:00Z", body: LAST[id]?.body ?? "Hello", is_self: LAST[id]?.is_self ?? false }], error: null } : { data: MSGS, error: null };
-};
+const lastOf = (): Answer => ({ data: MSGS, error: null });
 const params = (thread: string) => ({ params: Promise.resolve({ thread }) });
 
 describe("/app/messages", () => {
   const List = () => route("app/(app)/app/messages/(list)/page.js");
   const page = (sp: Record<string, string> = {}) => outcome(() => List()({ searchParams: Promise.resolve(sp) }) as Promise<ReactElement>);
 
-  it("lists the conversations with their newest line, 'No reply yet' and the two tabs, and no row is unread", async () => {
-    given({ thread_list: { data: ROWS, error: null }, thread_messages: lastOf });
+  it("lists the conversations with their newest line, the unread one marked, and the three tabs, in one read of the database", async () => {
+    given({ thread_list: { data: ROWS, error: null } });
     const out = (await page()) as { html: string };
-    assert.match(text(out.html), /Messages All · 3 No reply yet · \d/);
-    assert.match(text(out.html), /Thermax Woven Dyeing Ltd\./);
+    assert.match(text(out.html), /Messages All · 3 Unread · 1 No reply yet · 1/);
+    assert.match(text(out.html), /Thermax Woven Dyeing Ltd\. , unread/);
+    assert.match(text(out.html), /You: Can you confirm the fabric mill\?/);
     assert.match(text(out.html), /Pick a conversation/);
     assert.match(out.html, new RegExp(`href="/app/messages/${T1}"`));
-    assert.doesNotMatch(out.html, /Unread|Sample messages|<aside/);
+    assert.doesNotMatch(out.html, /Sample messages|<aside/);
     assert.match(out.html, /role="search"/);
+    assert.deepEqual(rpcCalls.map((c) => c.fn), ["thread_list"], "no read per conversation for the last line");
   });
 
-  it("?show=noreply keeps only the conversations waiting on a reply; ?q= matches names; nothing matching says so", async () => {
-    given({ thread_list: { data: ROWS, error: null }, thread_messages: lastOf });
+  it("?show=unread keeps only the conversations with something unread; an empty one says so", async () => {
+    given({ thread_list: { data: ROWS, error: null } });
+    const unread = (await page({ show: "unread" })) as { html: string };
+    assert.match(unread.html, /Thermax Woven Dyeing Ltd\./);
+    assert.doesNotMatch(unread.html, /Quattro Fashion Limited|Aboni Knitwear Ltd\./);
+    assert.match(text(unread.html), /1 conversation shown of 3/);
+    given({ thread_list: { data: ROWS.map((r) => ({ ...r, unread_count: 0 })), error: null } });
+    assert.match(text(((await page({ show: "unread" })) as { html: string }).html), /Nothing unread You have read everything the suppliers sent\./);
+  });
+
+  it("?show=noreply keeps only the conversations the supplier has never written in; ?q= matches names; nothing matching says so", async () => {
+    given({ thread_list: { data: ROWS, error: null } });
     const noreply = (await page({ show: "noreply" })) as { html: string };
     assert.match(noreply.html, /Aboni Knitwear Ltd\./);
     assert.doesNotMatch(noreply.html, /Quattro Fashion Limited/);
@@ -479,12 +552,20 @@ describe("/app/messages", () => {
     assert.match(none.html, /href="\/app\/messages"[^>]*>Show all conversations/);
   });
 
-  it("with the newest messages unread the 'No reply yet' tab is left out, and ?show=noreply shows the whole list", async () => {
-    given({ thread_list: { data: ROWS, error: null }, thread_messages: { data: null, error: { message: "boom" } } });
-    const out = (await page({ show: "noreply" })) as { html: string };
-    assert.doesNotMatch(out.html, /No reply yet/);
-    assert.match(out.html, /Quattro Fashion Limited/);
-    assert.match(out.html, /Thermax Woven Dyeing Ltd\./);
+  it("on a database without 0112 there are no tabs, no unread mark and no last line, and ?show= shows the whole list", async () => {
+    const bare = ROWS.map((r) => {
+      const o = { ...r } as Record<string, unknown>;
+      for (const k of ["unread_count", "has_reply", "last_body", "last_is_self"]) delete o[k];
+      return o;
+    });
+    given({ thread_list: { data: bare, error: null } });
+    for (const show of ["noreply", "unread"]) {
+      const out = (await page({ show })) as { html: string };
+      assert.doesNotMatch(out.html, /No reply yet|Unread|unread|Nothing unread/);
+      assert.match(out.html, /Quattro Fashion Limited/);
+      assert.match(out.html, /Thermax Woven Dyeing Ltd\./);
+      assert.doesNotMatch(text(out.html), /You: |Thank you\. We will send/, "no last line is invented");
+    }
   });
 
   it("no conversations at all is the teaching state", async () => {
@@ -525,6 +606,29 @@ describe("/app/messages/[thread]", () => {
     assert.match(out.html, /<h2[^>]*>Messages<\/h2>/);
     assert.ok(!rpcCalls.some((c) => c.fn === "buyer_supplier_profile"), "a record was read with nothing open");
     assert.match(out.html, /Ctrl or ⌘ \+ Enter to send/);
+  });
+
+  it("opening an unread conversation draws it read in the list; the others keep their mark; the composer offers files", async () => {
+    base();
+    const own = (await page(T1)) as { html: string };
+    assert.doesNotMatch(text(own.html), /Thermax Woven Dyeing Ltd\. , unread/, "the open conversation is not unread");
+    assert.match(text(own.html), /Unread · 0/, "and it is not counted as unread either");
+    base({ thread_list: { data: [ROWS[0]!, { ...ROWS[1]!, unread_count: 3 }, ABONI_THREAD], error: null } });
+    const other = (await page(T1)) as { html: string };
+    assert.match(text(other.html), /Quattro Fashion Limited , unread/);
+    assert.match(other.html, /aria-label="Attach files"/);
+    assert.match(other.html, /<input[^>]*type="file"[^>]*multiple[^>]*accept="application\/pdf,/);
+  });
+
+  it("a message's files and the read tick come from thread_messages, once the other side has read", async () => {
+    const att = { id: "f1", path: `${T3}/u/r/Specs.xlsx`, file_name: "Specs.xlsx", mime_type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", size_bytes: 52_000 };
+    base({ thread_messages: { data: [MSGS[0]!, { ...MSGS[1]!, read: true, attachments: [att] }], error: null } });
+    const out = (await page(T3)) as { html: string };
+    assert.match(text(out.html), /Specs\.xlsx Excel · 52 KB/);
+    assert.match(out.html, new RegExp(`href="/api/v1/messages/file\\?thread_id=${T3}&path=`));
+    assert.match(text(out.html), /You · 08:00 08:00 · Read/);
+    base();
+    assert.doesNotMatch(text(((await page(T3)) as { html: string }).html), /· Read/, "a message with no `read` is not read");
   });
 
   it("the list's tab and search are kept in the Back link and the record link", async () => {
@@ -596,7 +700,7 @@ describe("/app/messages/[thread]", () => {
     assert.ok("html" in noList, "a failed list answered a status");
     assert.match((noList as { html: string }).html, /We couldn't load this conversation\./);
     assert.match((noList as { html: string }).html, /We couldn't load your conversations\./);
-    base({ thread_messages: (a) => (a?.p_limit === 1 ? lastOf(a) : { data: null, error: { message: "statement timeout" } }) });
+    base({ thread_messages: { data: null, error: { message: "statement timeout" } } });
     const failed = (await page(T3)) as { html: string };
     assert.match(text(failed.html), /The latest messages could not be read just now\./);
     assert.doesNotMatch(failed.html, /No messages yet/);

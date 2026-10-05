@@ -5,12 +5,7 @@
 
 import { InboxColumn, InboxError, InboxFoot, InboxHead, InboxNone, InboxRows } from "./list";
 import type { InboxData } from "./load";
-import { buildThreadItems, filterItems, listHref, type ListState } from "./words";
-
-/** "No reply yet" is counted only when every conversation's newest message was read; otherwise the tab is not drawn. */
-export function noReplyCount(items: readonly { noReply: boolean }[], complete: boolean): number | null {
-  return complete ? items.filter((i) => i.noReply).length : null;
-}
+import { buildThreadItems, filterItems, listHref, tabsKnown, type ListState } from "./words";
 
 export function InboxView({ inbox, state, currentId, now, className }: { inbox: InboxData; state: ListState; currentId: string | null; now: Date; className?: string }) {
   if (inbox.rows === null) {
@@ -20,13 +15,13 @@ export function InboxView({ inbox, state, currentId, now, className }: { inbox: 
       </InboxColumn>
     );
   }
-  const items = buildThreadItems(inbox.rows, inbox.last, now);
-  const noReply = noReplyCount(items, inbox.lastComplete);
-  // Without the count there is no tab: a link to it must not filter on data that was not read.
-  const effective: ListState = noReply === null && state.show === "noreply" ? { ...state, show: "all" } : state;
+  const items = buildThreadItems(inbox.rows, now, currentId);
+  // Without 0112's keys there are no tabs: a link to one must not filter on data that was not read.
+  const counts = tabsKnown(inbox.rows) ? { unread: items.filter((i) => i.unread).length, noReply: items.filter((i) => i.noReply).length } : null;
+  const effective: ListState = counts === null && state.show !== "all" ? { ...state, show: "all" } : state;
   const shown = filterItems(items, effective);
   return (
-    <InboxColumn className={className} head={<InboxHead total={items.length} noReply={noReply} state={effective} Title={currentId ? "h2" : "h1"} />}>
+    <InboxColumn className={className} head={<InboxHead total={items.length} counts={counts} state={effective} Title={currentId ? "h2" : "h1"} />}>
       {shown.length === 0 ? <InboxNone state={effective} /> : <InboxRows items={shown} state={effective} currentId={currentId} />}
       <InboxFoot shown={shown.length} total={items.length} />
     </InboxColumn>

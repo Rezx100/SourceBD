@@ -7,19 +7,23 @@
 //     event only triggers a refetch of the plaintext through `GET /api/v1/messages`.
 //   * The composer posts `{ action: "send", thread_id, body }` to `/api/v1/messages`.
 // The supplier is on the left in a white bubble with a line, you on the right in brand tint; the
-// name and the (UTC) time under each bubble and one line per day. The data has no read state, so
-// nothing says "Read". A reply that arrives is announced politely. The composer grows to six rows,
-// sends on Ctrl or Command + Enter and shows its count only near the limit. Attachments are not
-// built: no file is stored anywhere, so there is no paperclip.
+// name and the (UTC) time under each bubble and one line per day. "Read" stands under your newest
+// message once the other side has read up to it (`read`, migration 0112); the conversation tells the
+// server it was read when it opens and when a reply lands (`action: "read"`). A file on a message is
+// a card that opens through `/api/v1/messages/file`. The paperclip stages up to ten files; they are
+// uploaded with the browser's session into this person's folder of the conversation, then named in
+// the message. A reply that arrives is announced politely. The composer grows to six rows, sends on
+// Ctrl or Command + Enter and shows its count only near the limit.
 
+import { Paperclip, X } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { Bubble, DateLine } from "@/components/patterns";
-import { Button } from "@/components/kit";
+import { Bubble, DateLine, FileChip } from "@/components/patterns";
+import { Button, IconButton } from "@/components/kit";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { formatCount } from "@/lib/dashboard/facts";
 import { cn } from "@/lib/utils";
-import { MAX_BODY, arrivalText, bubbleMeta, counterText, dayGroups, type ThreadMessage } from "./words";
+import { FILE_TYPES, MAX_BODY, MAX_FILES, arrivalText, bubbleMeta, counterText, dayGroups, fileDetail, fileProblem, uploadPath, type ThreadMessage } from "./words";
 
 /** The conversation itself: one line per day, then each message under its author and time. */
 export function MessageList({ messages, supplierName, today }: { messages: readonly ThreadMessage[]; supplierName?: string; today: string }) {
@@ -27,6 +31,7 @@ export function MessageList({ messages, supplierName, today }: { messages: reado
     return <p className="m-0 py-6 text-center text-base text-ink-3">No messages yet. Send the first one below.</p>;
   }
   const now = new Date(today);
+  const lastSelfId = [...messages].reverse().find((m) => m.is_self)?.id;
   return (
     <>
       {dayGroups(messages, now).map((g, i) => (
@@ -38,6 +43,8 @@ export function MessageList({ messages, supplierName, today }: { messages: reado
               <Bubble
                 key={m.id}
                 from={m.is_self ? "you" : "them"}
+                // "Read" once, under your newest message, and only when the other side has read up to it.
+                read={m.id === lastSelfId && m.read === true}
                 meta={
                   <time dateTime={m.created_at} title={`${meta.time} UTC`}>
                     <span className="max-sm:hidden">{meta.full}</span>
@@ -45,7 +52,19 @@ export function MessageList({ messages, supplierName, today }: { messages: reado
                   </time>
                 }
               >
-                <span className="whitespace-pre-wrap [overflow-wrap:anywhere]">{m.body}</span>
+                {m.body ? <span className="whitespace-pre-wrap [overflow-wrap:anywhere]">{m.body}</span> : null}
+                {(m.attachments ?? []).map((a) => (
+                  <a
+                    key={a.id}
+                    href={`/api/v1/messages/file?thread_id=${encodeURIComponent(m.thread_id)}&path=${encodeURIComponent(a.path)}`}
+                    target="_blank"
+                    rel="noopener"
+                    aria-label={`Open ${a.file_name}`}
+                    className="block rounded-md outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                  >
+                    <FileChip name={a.file_name} detail={fileDetail(a)} />
+                  </a>
+                ))}
               </Bubble>
             );
           })}
@@ -86,8 +105,38 @@ export function ThreadLive({
   const [arrival, setArrival] = useState("");
   // The first read failed: say so until a later read (a refetch, a send) succeeds.
   const [failed, setFailed] = useState(Boolean(readFailed));
+  const [files, setFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const uploaded = useRef(new Map<File, string>());
   const seen = useRef(new Set(initialMessages.map((m) => m.id)));
   const listEndRef = useRef<HTMLDivElement | null>(null);
+
+  // Reading is told to the server when the conversation opens and when a message arrives while it
+  // is open. A failure changes nothing on screen: the conversation just stays unread in the list.
+  // Not while the tab is hidden (it waits until the tab is shown) and not when the messages could
+  // not be read: neither is "read" by this person.
+  const unreadWaiting = useRef(false);
+  const markRead = useCallback(() => {
+    if (document.visibilityState !== "visible") {
+      unreadWaiting.current = true;
+      return;
+    }
+    unreadWaiting.current = false;
+    void fetch("/api/v1/messages", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "read", thread_id: threadId }),
+    }).catch(() => {});
+  }, [threadId]);
+  useEffect(() => {
+    if (!readFailed) markRead();
+    const onShow = () => {
+      if (document.visibilityState === "visible" && unreadWaiting.current) markRead();
+    };
+    document.addEventListener("visibilitychange", onShow);
+    return () => document.removeEventListener("visibilitychange", onShow);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- readFailed is the first read's state; only a new conversation reruns this.
+  }, [markRead]);
 
   const refetch = useCallback(async () => {
     try {
@@ -98,14 +147,17 @@ export function ThreadLive({
         const fresh = json.messages.filter((m) => !seen.current.has(m.id));
         for (const m of fresh) seen.current.add(m.id);
         const said = arrivalText(fresh.filter((m) => !m.is_self).length, supplierName);
-        if (said) setArrival(said);
+        if (said) {
+          setArrival(said);
+          markRead();
+        }
         setMessages(json.messages);
         setFailed(false);
       }
     } catch {
       // Network blip: Realtime will retry; nothing to surface.
     }
-  }, [threadId, supplierName]);
+  }, [threadId, supplierName, markRead]);
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
@@ -149,7 +201,7 @@ export function ThreadLive({
     async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       const trimmed = draft.trim();
-      if (trimmed.length === 0 || sending) return;
+      if ((trimmed.length === 0 && files.length === 0) || sending) return;
       if (trimmed.length > MAX_BODY) {
         setError(`Message exceeds ${formatCount(MAX_BODY)} characters.`);
         return;
@@ -157,10 +209,35 @@ export function ThreadLive({
       setSending(true);
       setError(null);
       try {
+        // Files go to the bucket first, under this person's own folder of this conversation, with
+        // the browser's session; the message then names them.
+        const paths: string[] = [];
+        if (files.length > 0) {
+          const supabase = getSupabaseBrowserClient();
+          const uid = (await supabase.auth.getUser()).data.user?.id;
+          if (!uid) {
+            setError("Sign in again to send files.");
+            return;
+          }
+          for (const f of files) {
+            // A file already uploaded by an earlier try of this send is named again, not uploaded twice.
+            let path = uploaded.current.get(f);
+            if (!path) {
+              path = uploadPath(threadId, uid, crypto.randomUUID(), f.name);
+              const up = await supabase.storage.from("message-files").upload(path, f, { contentType: f.type });
+              if (up.error) {
+                setError(`${f.name} could not be uploaded. Nothing was sent.`);
+                return;
+              }
+              uploaded.current.set(f, path);
+            }
+            paths.push(path);
+          }
+        }
         const res = await fetch("/api/v1/messages", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ action: "send", thread_id: threadId, body: trimmed }),
+          body: JSON.stringify(paths.length > 0 ? { action: "send", thread_id: threadId, body: trimmed, paths } : { action: "send", thread_id: threadId, body: trimmed }),
         });
         if (!res.ok) {
           const j = (await res.json().catch(() => ({}))) as { error?: string };
@@ -168,6 +245,8 @@ export function ThreadLive({
           return;
         }
         setDraft("");
+        setFiles([]);
+        uploaded.current.clear();
         setSent(true);
         await refetch();
       } catch {
@@ -176,8 +255,29 @@ export function ThreadLive({
         setSending(false);
       }
     },
-    [draft, sending, threadId, refetch],
+    [draft, files, sending, threadId, refetch],
   );
+
+  const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    const next = [...files];
+    let note: string | null = null;
+    for (const f of picked) {
+      const why = fileProblem(f);
+      if (why) {
+        note = why;
+        continue;
+      }
+      if (next.length >= MAX_FILES) {
+        note = `At most ${MAX_FILES} files in one message.`;
+        break;
+      }
+      next.push(f);
+    }
+    setFiles(next);
+    setError(note);
+  };
 
   const counter = counterText(draft.length);
 
@@ -213,7 +313,20 @@ export function ThreadLive({
         <label htmlFor={composerId} className="sr-only">
           Message
         </label>
+        {files.length > 0 ? (
+          <ul aria-label="Files to send" className="flex flex-wrap gap-2">
+            {files.map((f, i) => (
+              <li key={`${f.name}-${i}`} className="flex max-w-full items-center gap-1 rounded-md border border-line bg-surface py-1 pl-2.5 pr-1 text-sm text-ink">
+                <span className="min-w-0 truncate">{f.name}</span>
+                <span className="shrink-0 text-xs text-ink-3">{fileDetail({ file_name: f.name, mime_type: f.type, size_bytes: f.size })}</span>
+                <IconButton icon={X} label={`Remove ${f.name}`} kind="quiet" size={24} disabled={sending} onClick={() => setFiles(files.filter((_, j) => j !== i))} />
+              </li>
+            ))}
+          </ul>
+        ) : null}
         <div className="flex items-end gap-2">
+          <input ref={fileInputRef} type="file" multiple accept={FILE_TYPES.join(",")} onChange={onPick} tabIndex={-1} aria-hidden className="hidden" />
+          <IconButton icon={Paperclip} label="Attach files" kind="quiet" size={32} disabled={sending} onClick={() => fileInputRef.current?.click()} className="max-md:size-12" />
           <textarea
             id={composerId}
             value={draft}
@@ -236,7 +349,7 @@ export function ThreadLive({
               "max-md:min-h-12 max-md:rounded-md max-md:px-3 max-md:text-md",
             )}
           />
-          <Button type="submit" kind="primary" loading={sending} loadingLabel="Sending" disabled={draft.trim().length === 0 && !sending} className="max-md:h-12 max-md:rounded-md max-md:px-4 max-md:text-md max-md:font-semibold">
+          <Button type="submit" kind="primary" loading={sending} loadingLabel="Sending" disabled={draft.trim().length === 0 && files.length === 0 && !sending} className="max-md:h-12 max-md:rounded-md max-md:px-4 max-md:text-md max-md:font-semibold">
             Send
           </Button>
         </div>
