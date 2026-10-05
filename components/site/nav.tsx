@@ -107,7 +107,7 @@ export function SiteNav({ listed = null, withRecords = null }: { listed?: number
       <nav ref={bar} aria-label="Main" className="relative" onMouseLeave={() => setOpen(null)}>
         <div className="mx-auto flex h-[72px] max-w-[1440px] items-center justify-between px-6 lg:px-10">
           <div className="flex items-center gap-12">
-            <Link href="/" className={cn("text-lg font-semibold tracking-tight text-brand", ring)}>
+            <Link href="/" className={cn("flex items-center text-lg font-semibold tracking-tight text-brand max-sm:min-h-11", ring)}>
               SourceBD
             </Link>
             <ul className="flex items-center gap-1 max-lg:hidden">
@@ -144,10 +144,10 @@ export function SiteNav({ listed = null, withRecords = null }: { listed?: number
             <ButtonLink href="/contact" prefetch={false} kind="secondary" size="lg" className="max-lg:hidden">
               Book a demo
             </ButtonLink>
-            <ButtonLink href="/signup" prefetch={false} kind="primary" size="lg">
+            <ButtonLink href="/signup" prefetch={false} kind="primary" size="lg" className="max-sm:h-11">
               Start free
             </ButtonLink>
-            <Button kind="quiet" size="lg" icon={List} className="lg:hidden" aria-label="Menu" onClick={() => setSheet(true)}>
+            <Button kind="quiet" size="lg" icon={List} className="max-sm:h-11 max-sm:min-w-11 lg:hidden" aria-label="Menu" onClick={() => setSheet(true)}>
               <span className="max-sm:sr-only">Menu</span>
             </Button>
           </div>
