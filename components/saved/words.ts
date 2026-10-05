@@ -8,7 +8,7 @@ import { certLine, type CertLine } from "@/components/patterns/words";
 import { discoverWorkers, workersSecondShort } from "@/lib/dashboard/build-discover-row";
 import { certScheme, displayName, entityLabel, formatCount, formatDay, formatRelative, placeLabel } from "@/lib/dashboard/facts";
 import { SEND_RFQ_MAX } from "@/lib/dashboard/selection";
-import { parseDiscoverState, queryTitle } from "@/lib/discover-v32-state";
+import { discoverHref, parseDiscoverState, queryTitle } from "@/lib/discover-v32-state";
 import type { WorkersBasis } from "@/lib/enrich-discover-workers";
 import type { SavedSearchJson } from "@/lib/saved-searches";
 
@@ -207,6 +207,43 @@ export function buildSearchItems(searches: readonly SavedSearchJson[], now: Date
     const c = countWords(s.last_count, s.last_count === null ? null : s.last_counted_at, now);
     return { id: s.id, name: s.name || "Untitled search", filters: searchFilters(s.query_state), count: c.count, countWords: c.words, runHref: s.href };
   });
+}
+
+/** How long a last search is still offered for saving. */
+export const LAST_SEARCH_DAYS = 7;
+
+export type LastSearchCard = {
+  /** The name it would be saved under: the filters' title, cut to the 120 a name may be. */
+  name: string;
+  filters: string;
+  /** "3d ago". */
+  when: string;
+  /** What to save: the serialized search, as a saved search keeps it. */
+  search: string;
+  runHref: string;
+};
+
+/**
+ * "Save your last search?" from `buyer_last_search()`: only when there is one, no saved search holds
+ * it already (`saved`), and it was run in the last 7 days. Anything else, a read that failed or a
+ * database without 0113 included, is no card: it never invents a search.
+ */
+export function lastSearchCard(read: unknown, now: Date): LastSearchCard | null {
+  if (!read || typeof read !== "object" || Array.isArray(read)) return null;
+  const { state, searched_at, saved } = read as { state?: unknown; searched_at?: unknown; saved?: unknown };
+  if (saved !== false || typeof searched_at !== "string") return null;
+  const at = Date.parse(searched_at);
+  if (Number.isNaN(at) || now.getTime() - at > LAST_SEARCH_DAYS * 86_400_000) return null;
+  const search = state && typeof state === "object" ? (state as { search?: unknown }).search : null;
+  if (typeof search !== "string" || search === "") return null;
+  const parsed = parseDiscoverState(new URLSearchParams(search));
+  return {
+    name: queryTitle(parsed).slice(0, 120),
+    filters: searchFilters({ search }),
+    when: formatRelative(searched_at, now) ?? "",
+    search,
+    runHref: discoverHref(parsed),
+  };
 }
 
 /** "2 saved searches · only you see them", "None saved yet · only you see them". */

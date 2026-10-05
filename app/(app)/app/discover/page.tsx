@@ -35,6 +35,7 @@ import type { ComposerTarget, ComposerWorkspace } from "@/components/dashboard/r
 import { RfqComposer } from "@/components/rfqs/composer";
 import { SheetNotice } from "@/components/dashboard/sheet";
 import { RecordView, parseTab, type TabId } from "@/components/record";
+import { RecordLastSearch } from "@/components/saved/last-search";
 import { SaveSearchPanel, saveSummary } from "@/components/saved/save-search";
 import { ResultsBar } from "@/components/search/bulk-bar";
 import { FilterPane } from "@/components/search/filters";
@@ -174,6 +175,7 @@ export default async function BuyerDiscoverPage({
   const list = (
     <SelectionProvider key={serializeDiscoverState(state).toString()} pageIds={error ? null : rows.map((r) => r.id)}>
       <RecordRecentSearch label={queryTitle(state)} href={discoverHref(state)} count={total} />
+      {error || filterCount(state) === 0 ? null : <RecordLastSearch search={serializeDiscoverState({ ...state, page: 1 }).toString()} />}
       <div className="flex min-h-0 flex-1 flex-col">
         <PhoneToolbar state={state} count={resultsTitle("", error ? null : total)} hrefFor={hrefFor} filtersHref={filtersHref} />
         {paneOpen ? toolbar : <ResultsBar toolbar={toolbar} exportHref={exportHref} searchHref={closeHref} pageSize={rows.length} />}

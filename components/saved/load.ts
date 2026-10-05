@@ -1,9 +1,10 @@
 // What the Saved pages read, so a failed read is told apart from an empty list. The same reads as
 // before: `buyer_saved_list` with the two worker figures `enrichDiscoverWorkers` adds, the two
 // compliance reads (every expired certificate, every one still valid for up to a year) for the "first
-// certificate to check" column, and the buyer's own saved searches. No new RPC, policy or
-// migration; the saved-search count is a plain count under the buyer's session, filtered to the
-// owner as the other saved-search paths do.
+// certificate to check" column, and the buyer's own saved searches, with the last search they ran
+// (`buyer_last_search`, migration 0113, read softly: a database without it is no card). The
+// saved-search count is a plain count under the buyer's session, filtered to the owner as the
+// other saved-search paths do.
 
 import { enrichDiscoverWorkers } from "@/lib/enrich-discover-workers";
 import { runSavedSearchesGet, type SavedSearchJson } from "@/lib/saved-searches";
@@ -71,13 +72,16 @@ export type SearchesData = {
   capped: boolean;
   /** How many suppliers are saved, for the tab; null when unread. */
   suppliers: number | null;
+  /** `buyer_last_search()` as it answered (0113); null when it did not, which is no card (`lastSearchCard`). */
+  last: unknown;
 };
 
 export async function loadSearches(supabase: Client, role: string | null | undefined, now: Date): Promise<SearchesData> {
-  const [listed, suppliers] = await Promise.all([
+  const [listed, suppliers, last] = await Promise.all([
     runSavedSearchesGet({ role, supabase, now } as Parameters<typeof runSavedSearchesGet>[0]),
     soft<number | null>(() => supabase.rpc("buyer_saved_list", { p_sort: "recent", p_limit: 1, p_offset: 0 }), (d) => (Array.isArray(d) ? (d.length > 0 ? Number((d[0] as { total_count?: number }).total_count ?? d.length) : 0) : null), null),
+    soft<unknown>(() => supabase.rpc("buyer_last_search"), (d) => d, null),
   ]);
   const body = listed.status === 200 && listed.body && typeof listed.body === "object" ? (listed.body as { searches?: SavedSearchJson[]; capped?: boolean }) : null;
-  return { searches: body && Array.isArray(body.searches) ? body.searches : null, capped: Boolean(body?.capped), suppliers };
+  return { searches: body && Array.isArray(body.searches) ? body.searches : null, capped: Boolean(body?.capped), suppliers, last };
 }
