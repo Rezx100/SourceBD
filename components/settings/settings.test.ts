@@ -51,7 +51,7 @@ describe("the words", () => {
     assert.equal(rowLine("company", DOC), "Example Apparel Ltd · Retailer");
     assert.equal(rowLine("company", { ...DOC, workspace: null }), "Not filled in yet");
     assert.equal(rowLine("plan", DOC), "Free during the beta");
-    assert.equal(rowLine("team", DOC), "One person");
+    assert.equal(rowLine("team", DOC), "People, roles and invites");
   });
 });
 
@@ -343,17 +343,15 @@ describe("emails and the plan, the words", () => {
   });
 });
 
-describe("the other four pages", () => {
+describe("the other three pages (Team and roles is `components/team/team.test.ts`)", () => {
   const EMAILS = "app/(app)/app/settings/notifications/page.js";
   const TEMPLATES = "app/(app)/app/settings/inquiry/page.js";
   const PLAN = "app/(app)/app/settings/subscription/page.js";
-  const TEAM = "app/(app)/app/settings/members/page.js";
 
   for (const [file, current] of [
     [EMAILS, "Emails"],
     [TEMPLATES, "RFQ templates"],
     [PLAN, "Plan and usage"],
-    [TEAM, "Team and roles"],
   ] as const) {
     it(`${current}: Paper's six links with it current, and one h1`, async () => {
       answer = { data: DOC, error: null };
@@ -429,17 +427,6 @@ describe("the other four pages", () => {
     assert.match(out, /href="mailto:support@sourcebd\.net/);
     assert.doesNotMatch(t, /[Cc]ontact reveal|reveal/);
     assert.doesNotMatch(t, /This month|Starter/, "Paper's usage counts are design only");
-  });
-
-  it("Team and roles is the one person signed in, as the owner, with no invite and no role chooser", async () => {
-    answer = { data: DOC, error: null };
-    const t = text(await page(TEAM));
-    assert.match(t, /One person today: you\./);
-    assert.match(t, /Alex Morgan/);
-    assert.match(t, /alex\.morgan@example\.com/);
-    assert.match(t, /Owner/);
-    assert.match(t, /Team seats come with the Enterprise plan/);
-    assert.doesNotMatch(t, /Invite|Approver|Editor|Viewer/);
   });
 });
 

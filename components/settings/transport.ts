@@ -17,7 +17,7 @@ export function routeSentence(json: unknown): string | null {
   return e && j.detail === undefined && e.endsWith(".") ? e : null;
 }
 
-async function send(url: string, init: Init, failed: string, deps: { fetch: Fetch }): Promise<Posted> {
+export async function send(url: string, init: Init, failed: string, deps: { fetch: Fetch }): Promise<Posted> {
   try {
     const res = await deps.fetch(url, init);
     const json = (await res.json().catch(() => null)) as Record<string, unknown> | null;
