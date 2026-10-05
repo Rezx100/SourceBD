@@ -1186,6 +1186,11 @@ const CASES = [
     expect: { status: 200, bodyIncludes: "Every fact, with its receipt." },
   },
   {
+    name: "site: /pricing is 200 and says it is free during beta",
+    path: "/pricing",
+    expect: { status: 200, bodyIncludes: "Free during beta." },
+  },
+  {
     name: "public: facility RPC unavailable -> 404, not 500",
     path: `/suppliers/${RPC_DOWN}`,
     expect: { status: 404, bodyIncludes: NOT_FOUND_MARKER },
