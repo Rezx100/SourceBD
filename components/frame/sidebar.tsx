@@ -100,6 +100,8 @@ function SidebarBody({ badges }: { badges: FrameBadges }) {
           ))}
         </nav>
       </div>
+      <div className="flex min-h-0 flex-col">
+        {extra}
       <nav aria-label="Products and settings" className="flex flex-col gap-0.5 border-t border-line px-3 pb-4 pt-2">
         {FRAME_FOOT.map((item) => (
           <Row key={item.key} item={item} current={current(item.key)} />
