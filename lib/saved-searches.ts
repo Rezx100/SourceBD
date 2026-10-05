@@ -7,7 +7,7 @@
 import { formatCount } from "@/lib/dashboard/facts";
 import { SAVED_SEARCH_ERROR } from "@/lib/saved-search-errors";
 import { COUNT_ONLY_SORT, fetchDiscoverV32 } from "@/lib/discover-v32-rpc";
-import { parseDiscoverState, serializeDiscoverState, type DiscoverState } from "@/lib/discover-v32-state";
+import { filterCount, parseDiscoverState, serializeDiscoverState, type DiscoverState } from "@/lib/discover-v32-state";
 
 export type SavedSearchClient = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -269,6 +269,36 @@ export async function runSavedSearchesRename(input: {
   if (updated.error) return { status: 500, body: { error: "rename failed" } };
   if (!Array.isArray(updated.data) || updated.data.length === 0) return { status: 404, body: { error: "not found" } };
   return { status: 200, body: { ok: true, name } };
+}
+
+/**
+ * Keep the search the buyer just ran (0113's `buyer_last_search_set`), for the "Save your last
+ * search?" card. It is stored as a saved search stores it, `{ search }` after the same parse and
+ * serialize, so the database can tell that a saved search already holds it (`saved`).
+ */
+export async function runLastSearchSet(input: {
+  role: string | null;
+  supabase: SavedSearchClient;
+  raw: unknown;
+}): Promise<SavedResult> {
+  if (input.role !== "buyer" && input.role !== "admin") {
+    return { status: 401, body: { error: "unauthorised" } };
+  }
+  if (!input.raw || typeof input.raw !== "object" || Array.isArray(input.raw)) {
+    return { status: 400, body: { error: "body must be an object" } };
+  }
+  const rec = input.raw as Record<string, unknown>;
+  if (typeof rec.search !== "string") return { status: 400, body: { error: "invalid search" } };
+  const state = { ...parseDiscoverState(new URLSearchParams(rec.search.replace(/^\?/, ""))), page: 1 };
+  const search = serializeDiscoverState(state).toString();
+  // A search with no words or filter is not one worth offering to save.
+  if (filterCount(state) === 0 || search.length > MAX_SAVED_SEARCH_CHARS) return { status: 400, body: { error: "invalid search" } };
+  const set = await input.supabase.rpc("buyer_last_search_set", { p_state: { search } });
+  if (set.error) {
+    const code = (set.error as { code?: string }).code;
+    return { status: code === "42501" ? 401 : code === "22023" ? 400 : 500, body: { error: "last search not kept" } };
+  }
+  return { status: 200, body: { ok: true } };
 }
 
 export function savedSearchRedirectHref(queryState: unknown): string {

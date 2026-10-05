@@ -21,6 +21,7 @@ import { SavedBar, SavedTable } from "./table";
 import { SavedPhoneList, phoneLine } from "./phone";
 import { SavedEmpty, SavedError, SearchesEmpty, SearchesError } from "./list";
 import { SearchList } from "./searches";
+import { LastSearchCardView } from "./last-search";
 import { removeMessage, runRemove, runUndo } from "./transport";
 import { SaveSearchForm, SaveSearchPanel, saveSummary } from "./save-search";
 import {
@@ -31,6 +32,7 @@ import {
   certCell,
   countWords,
   groupCerts,
+  lastSearchCard,
   parsePage,
   parseSort,
   removedWords,
@@ -407,6 +409,42 @@ describe("a saved search", () => {
   });
 });
 
+describe("Save your last search?", () => {
+  const read = (over: Record<string, unknown> = {}) => ({ state: { search: "q=knit&cert=gots" }, searched_at: "2026-10-01T09:00:00Z", saved: false, ...over });
+
+  it("is offered for a search from the last 7 days that no saved search holds, under the name its filters give it", () => {
+    const card = lastSearchCard(read(), NOW)!;
+    assert.equal(card.search, "q=knit&cert=gots");
+    assert.match(card.filters, /knit/i);
+    assert.equal(card.name, card.name.slice(0, 120));
+    assert.ok(card.name.length > 0);
+    assert.equal(card.when, "3d ago");
+    assert.match(card.runHref, /^\/app\/discover\?.*q=knit/);
+  });
+
+  it("is not offered when it is already saved, older than 7 days, missing, empty or unreadable; a database without 0113 is no card", () => {
+    assert.equal(lastSearchCard(read({ saved: true }), NOW), null);
+    assert.equal(lastSearchCard(read({ saved: undefined }), NOW), null, "'saved' not said is not 'not saved'");
+    assert.equal(lastSearchCard(read({ searched_at: "2026-09-26T09:00:00Z" }), NOW), null);
+    assert.ok(lastSearchCard(read({ searched_at: "2026-09-27T12:00:00Z" }), NOW), "exactly 7 days is still offered");
+    assert.equal(lastSearchCard(read({ searched_at: "nonsense" }), NOW), null);
+    assert.equal(lastSearchCard(read({ state: { search: "" } }), NOW), null);
+    assert.equal(lastSearchCard(read({ state: null }), NOW), null);
+    assert.equal(lastSearchCard(null, NOW), null);
+    assert.equal(lastSearchCard([], NOW), null);
+    assert.equal(lastSearchCard("x", NOW), null);
+  });
+
+  it("the card names the search, says when it was run, and offers Run search and Save search", () => {
+    const out = html(createElement(LastSearchCardView, { card: lastSearchCard(read(), NOW)! }));
+    assert.match(out, /<section[^>]*aria-label="Save your last search\?"/);
+    assert.match(text(out), /Save your last search\? .*knit.* You ran it 3d ago\. Only you see your saved searches\./i);
+    assert.match(out, /href="\/app\/discover\?[^"]*q=knit[^"]*"[^>]*>Run search/);
+    assert.match(out, /<button[^>]*>Save search<\/button>/);
+    assert.match(out, /role="status" aria-live="polite"/, "a refusal is announced");
+  });
+});
+
 const RECORD = {
   buyer_supplier_profile: { data: ABONI.profile, error: null },
   supplier_epb_hscodes: { data: ABONI.hscodes.map((h) => ({ code: h.code, description: h.description, source_url: h.source_url })), error: null },
@@ -523,9 +561,30 @@ describe("/app/searches", () => {
     assert.doesNotMatch(out.html, /Sort:/, "a sort belongs to the suppliers");
   });
 
-  it("none saved teaches how to save; a failed read is an error, never 'none'", async () => {
+  it("offers the last search above the list when it is recent and not saved; no card when it is saved, old, unread or 0113 is missing", async () => {
+    const recent = { state: { search: "q=knit" }, searched_at: new Date(Date.now() - 2 * 86_400_000).toISOString(), saved: false };
+    base({ buyer_last_search: { data: recent, error: null } }, { saved_searches: { data: SEARCH_ROWS, error: null, count: 2 } });
+    const out = await searches();
+    assert.match(text(out.html), /Save your last search\?/);
+    assert.match(text(out.html), /You ran it 2d ago/);
+    assert.ok(out.html.indexOf("Save your last search?") < out.html.indexOf("GOTS knit factories in Gazipur"), "the card sits above the list");
+    for (const answer of [{ data: { ...recent, saved: true }, error: null }, { data: { ...recent, searched_at: "2026-01-01T00:00:00Z" }, error: null }, { data: null, error: null }, { data: null, error: { message: "no function buyer_last_search" } }]) {
+      base({ buyer_last_search: answer }, { saved_searches: { data: SEARCH_ROWS, error: null, count: 2 } });
+      assert.doesNotMatch((await searches()).html, /Save your last search\?/);
+    }
+    base({ buyer_last_search: { data: recent, error: null } }, { saved_searches: { data: null, error: { message: "down" } } });
+    const failed = await searches();
+    assert.doesNotMatch(failed.html, /Save your last search\?/, "a failed list is the page's one message");
+    assert.match(text(failed.html), /We couldn't load your saved searches\./);
+  });
+
+  it("none saved teaches how to save, and the last search can be the first one; a failed read is an error, never 'none'", async () => {
     base({}, { saved_searches: { data: [], error: null, count: 0 } });
     assert.match(text((await searches()).html), /No saved searches yet\./);
+    base({ buyer_last_search: { data: { state: { search: "q=knit" }, searched_at: new Date().toISOString(), saved: false }, error: null } }, { saved_searches: { data: [], error: null, count: 0 } });
+    const first = text((await searches()).html);
+    assert.match(first, /Save your last search\?/);
+    assert.match(first, /No saved searches yet\./);
     base({}, { saved_searches: { data: null, error: { message: "down" } } });
     const failed = await searches();
     assert.match(failed.html, /role="alert"/);

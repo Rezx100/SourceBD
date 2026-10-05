@@ -69,4 +69,5 @@ Each spec names its migration; the migration is written and dry-run, and `--appl
 - Row 20: phone Product view built (Sonnet, 5 Oct, PR into `ds-v4`); read-only view and an Edit sheet of six fields; the full editor is `?edit=full`; no migration.
 - Row 18: A valid certificate in Saved's first-certificate column built (Sonnet, 5 Oct, PR into `ds-v4`); reads the existing 365-day window, no migration; certificates valid past a year are still "Nothing to check" until the read's cap is raised.
 - Row 19: Compliance hub split built (Sonnet, 5 Oct, PR into `ds-v4`); three lines inside the one card, the one count and the badge unchanged; Paper's separate card is not drawn (see section 10).
+- Row 14, part: "Save your last search?" built (Sonnet, 5 Oct, PR into `ds-v4`); works once 0113 is applied. Not built, handed to Opus: the two "Email me new matches" switches and the weekly email job (service role and a cron trigger).
 - Row 9: Messages unread, Read ticks and files built (Sonnet, 5 Oct, PR into `ds-v4`); works once 0112 is applied; the sidebar badge waits on row 24.
