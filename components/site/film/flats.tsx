@@ -1,7 +1,7 @@
 // The tech-pack flats (handoff-home-film §3.7): line drawings in the film's own ink, fills from the surface roles,
 // green only for thread. The overlock is the plan's drawing with its two hand-typed colours turned into tokens and
 // the five source tags hung on its threads. Six parts move with the scroll on the full tier (engine/chapters.ts
-// writes `--wheel` and `--needle` on the scene and `--p` on the seam); with nothing written every part rests, which
+// writes `--wheel` and `--needle` on the drawing and `--p` on the seam); with nothing written every part rests, which
 // is what the lite and still tiers and a still page show. Each drawing is decoration: its caption says what it is.
 
 import { SEAM_END } from "@/components/site/film/engine/chapters";

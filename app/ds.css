@@ -473,6 +473,11 @@
     opacity: 0.5;
   }
 
+  /* A record whose rows are all still to come keeps no gap where they will be. */
+  [data-film-tier="full"] .pane > dl:not(:has(> :not([data-beat]), > [data-on])) {
+    margin-top: -1rem;
+  }
+
   /* A beat takes no place until its moment, on the one tier whose scroll brings it: the record grows as its rows
      stitch on, instead of holding a blank where they will be. It stays in the page for a screen reader, which
      does not scroll in step (the same cut as Tailwind's sr-only). */

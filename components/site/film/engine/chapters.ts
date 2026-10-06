@@ -111,10 +111,13 @@ export function startChapters(root: HTMLElement, tier: Tier): Chapters {
   // left of the row's padding edge and 18px down, so 11 and 22 from the row's border box), drawn by `--p` on its
   // group. A path that has not moved is not written again: an attribute written again still costs a layout.
   const tie = (g: SVGGElement | undefined, box: DOMRect, from: Point | null, row: DOMRect | null, p: number) => {
-    if (!g || !from || !row) return;
+    if (!g) return;
+    // How far it is drawn is written first: a scroll that jumps back past the row's moment finds the row gone and
+    // the thread's draw at 0 in the same frame, rather than a thread left whole to where the row was.
+    g.style.setProperty("--p", p.toFixed(3));
+    if (!from || !row) return;
     const d = curve({ x: from.x - box.left, y: from.y - box.top }, { x: row.left - box.left - 11, y: row.top - box.top + 22 });
     for (const path of g.querySelectorAll("path")) if (path.getAttribute("d") !== d) path.setAttribute("d", d);
-    g.style.setProperty("--p", p.toFixed(3));
   };
   /** A row's box once it is on; while it waits it has no place of its own. */
   const placeOf = (row: HTMLElement | undefined) => (row?.hasAttribute("data-on") ? row.getBoundingClientRect() : null);

@@ -167,7 +167,7 @@ describe("what Tailwind emits for the scenes", () => {
   const tailwind = require("tailwindcss") as (config: object) => import("postcss").AcceptedPlugin;
   const loadConfig = require("tailwindcss/loadConfig") as (file: string) => Record<string, unknown>;
   /* eslint-enable @typescript-eslint/no-require-imports */
-  const classes = ["ov-wheel", "ov-needle", "ov-lever", "roll-slot", "roll-sheet", "roll-print", "roll-tear", "receipt", "animate-rise", "rec-arrive", "fill-brand", "stroke-brand-ink", "fill-ink-3", "film-full:h-[400svh]"];
+  const classes = ["pane", "ov-wheel", "ov-needle", "ov-lever", "roll-slot", "roll-sheet", "roll-print", "roll-tear", "receipt", "animate-rise", "rec-arrive", "fill-brand", "stroke-brand-ink", "fill-ink-3", "film-full:h-[400svh]"];
   const compiled = postcss([tailwind({ ...loadConfig(path.join(repoRoot, "tailwind.config.ts")), content: [{ raw: classes.join(" "), extension: "html" }] })])
     .process(readFileSync(path.join(repoRoot, "app/ds.css"), "utf8"), { from: undefined })
     .then((r) => r.css.replace(/\s+/g, " "));
@@ -189,6 +189,7 @@ describe("what Tailwind emits for the scenes", () => {
     assert.match(css, /\.receipt\[data-dim\] \{ opacity: 0\.5/);
     assert.match(block(css, '[data-film-tier="full"] [data-beat]:not([data-on]) {'), /position: absolute; width: 1px; height: 1px;[^}]*clip: rect\(0, 0, 0, 0\)/, "a beat takes no place until its moment but stays in the page for a screen reader");
     assert.doesNotMatch(block(css, '[data-film-tier="full"] [data-beat]:not([data-on]) {'), /display: none|visibility: hidden/);
+    assert.match(block(css, '[data-film-tier="full"] .pane > dl:not(:has(> :not([data-beat]), > [data-on])) {'), /margin-top: -1rem/, "a record whose rows are all still to come keeps no gap where they will be");
     assert.match(block(css, ".animate-rise {"), /ds-rise/);
     assert.match(block(css, ".fill-brand {"), /--ds-brand/);
     assert.match(block(css, ".stroke-brand-ink {"), /--ds-brand-ink/);
