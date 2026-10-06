@@ -24,7 +24,7 @@ insert into public.thread_participants (thread_id, user_id, role) values
   ('00000000-0000-4000-8000-0000000b1127', '00000000-0000-4000-8000-00000000a127', 'buyer'),
   ('00000000-0000-4000-8000-0000000b1127', '00000000-0000-4000-8000-00000000b127', 'supplier');
 insert into public.messages (id, thread_id, sender_id, body_ciphertext, body_len)
-  values ('00000000-0000-4000-8000-0000000c1127', '00000000-0000-4000-8000-0000000b1127', '00000000-0000-4000-8000-00000000a127', pgp_sym_encrypt('hello', 'ci-key-0127'), 5);
+  values ('00000000-0000-4000-8000-0000000c1127', '00000000-0000-4000-8000-0000000b1127', '00000000-0000-4000-8000-00000000a127', pgp_sym_encrypt('hello', public._messages_key()), 5);
 insert into public.message_attachments (message_id, thread_id, object_path, file_name)
   values ('00000000-0000-4000-8000-0000000c1127', '00000000-0000-4000-8000-0000000b1127', '00000000-0000-4000-8000-0000000b1127/x/y/spec.pdf', 'spec.pdf');
 insert into public.rfqs (id, buyer_id, product_title, quantity, quantity_unit, target_supplier_ids)

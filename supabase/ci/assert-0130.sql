@@ -108,7 +108,7 @@ begin
   hit := null;
   begin
     insert into public.messages (thread_id, sender_id, body_ciphertext, body_len)
-    values (thread, buyer, pgp_sym_encrypt('x', 'k'), 1);
+    values (thread, buyer, pgp_sym_encrypt('x', public._messages_key()), 1);
   exception when sqlstate '42501' then hit := sqlerrm;
   end;
   if hit is null then raise exception 'a direct insert for a suspended person went through'; end if;
