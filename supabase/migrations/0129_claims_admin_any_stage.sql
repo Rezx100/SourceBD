@@ -43,20 +43,27 @@ set search_path = public;
 -- 4. rl_check knows the claim email's bucket
 -- ----------------------------------------------------------------------
 
+-- 0119's shape exactly (lib/rate-limit/limits.test.ts reads the names out of this array, so every
+-- template keeps a bucket the limiter accepts).
 do $$
 declare
-  v_def text := pg_get_functiondef('public.rl_check(text, text, integer)'::regprocedure);
-  v_new text := v_def;
+  v_def  text := pg_get_functiondef('public.rl_check(text, text, integer)'::regprocedure);
+  v_new  text := v_def;
+  v_name text;
 begin
-  if position('''email:claim_verify''' in v_new) = 0 then
-    if position('''email:password_reset''' in v_new) = 0 then
-      raise exception 'rl_check has no email:password_reset anchor; patch by hand';
+  foreach v_name in array array['email:claim_verify']
+  loop
+    if position(quote_literal(v_name) in v_new) = 0 then
+      if position('''email:password_reset''' in v_new) = 0 then
+        raise exception 'rl_check has no email:password_reset anchor; patch by hand';
+      end if;
+      v_new := replace(v_new, '''email:password_reset''', '''email:password_reset'', ' || quote_literal(v_name));
     end if;
-    v_new := replace(v_new, '''email:password_reset''', '''email:password_reset'', ''email:claim_verify''');
-  end if;
-  if position('''email:claim_verify''' in v_new) = 0 then
-    raise exception 'rl_check patch did not add email:claim_verify';
-  end if;
+    if position(quote_literal(v_name) in v_new) = 0 then
+      raise exception 'rl_check patch did not add %', v_name;
+    end if;
+  end loop;
+
   if v_new <> v_def then
     execute v_new;
   end if;
