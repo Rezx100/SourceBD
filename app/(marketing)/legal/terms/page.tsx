@@ -70,6 +70,17 @@ export default function TermsPage() {
           platform to send unsolicited commercial messages to
           suppliers outside the structured RFQ flow.
         </p>
+        <p>
+          In your dealings with other users you also agree not to
+          (e) misrepresent who you are, which company you act for, or
+          what you can supply or buy; (f) ask for or offer payment
+          outside the dealings the platform records, or move a
+          conversation off the platform to avoid its record;
+          (g) harass, threaten or deceive another user; (h) send the
+          same RFQ to many suppliers with no intention to buy; or
+          (i) open or operate more than one account for the same
+          person or company without telling us.
+        </p>
 
         <h2>
           5. Supplier data and accuracy
@@ -99,9 +110,40 @@ export default function TermsPage() {
           for performance, quality, delivery, or payment between the
           parties.
         </p>
+        <p>
+          From 5 November 2026, the platform&apos;s activity record (see
+          the <a href="/legal/privacy">Privacy Notice</a>, section 3)
+          is the agreed record of what was sent, offered, accepted,
+          changed and done on the platform, and the time it happened.
+          You agree that in any dispute between users, or between a
+          user and us, that record may be relied on as evidence of
+          those facts, and that we may provide a copy of the relevant
+          part of it, with its seals, to the users involved or to a
+          court or authority.
+        </p>
 
         <h2>
-          7. Intellectual property
+          7. Moderation and enforcement
+        </h2>
+        <p>
+          From 5 November 2026, we may act on a breach of these terms
+          or a risk to other users in steps: a <strong>warning</strong>;
+          a <strong>restriction</strong> (no new RFQs or messages for a
+          stated period); a <strong>suspension</strong>; and, for a
+          serious or repeated breach, a <strong>ban</strong>. We may
+          also hide a single message, pause or remove a single RFQ, or
+          hide a supplier profile. Every step is taken for a stated
+          reason from a fixed list, and we tell you what was done and
+          why by email. You may appeal any step once, by replying to
+          that email, and we tell you the outcome. A report you make
+          about another user is handled the same way, and you are
+          told the outcome. Any user may report a message, an RFQ, a
+          supplier profile or an order from within the platform, or
+          block a company from contacting them.
+        </p>
+
+        <h2>
+          8. Intellectual property
         </h2>
         <p>
           The SourceBD platform, its software, design system, and
@@ -116,7 +158,7 @@ export default function TermsPage() {
         </p>
 
         <h2>
-          8. Liability
+          9. Liability
         </h2>
         <p>
           To the maximum extent permitted by law, our aggregate
@@ -128,7 +170,7 @@ export default function TermsPage() {
         </p>
 
         <h2>
-          9. Termination
+          10. Termination
         </h2>
         <p>
           You may cancel at any time from your account settings. We
@@ -136,10 +178,13 @@ export default function TermsPage() {
           terms, for non-payment, or where required by law. On
           termination, your right to access the service ends; clauses
           intended to survive (IP, liability, governing law) survive.
+          The record of your dealings is kept as the Privacy Notice
+          describes (section 7); an account with dealings on record is
+          closed, not deleted.
         </p>
 
         <h2>
-          10. Governing law
+          11. Governing law
         </h2>
         <p>
           These terms are governed by the laws of England and Wales.
@@ -148,7 +193,7 @@ export default function TermsPage() {
         </p>
 
         <h2>
-          11. Contact
+          12. Contact
         </h2>
         <p>
           Questions about these terms: <strong>legal@sourcebd.net</strong>.

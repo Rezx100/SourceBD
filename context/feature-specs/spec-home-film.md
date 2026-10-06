@@ -8,7 +8,8 @@ from a dot on the planet to an RFQ. Front end only: no migration, no new package
 | Slice | What | State |
 | -- | -- | -- |
 | 1 | The dark set, the film tokens and type sizes, the Pane family, the thread, the rail, `/dev/ds`, the planet and map engines, the open map data | built, 6 Oct 2026 |
-| 2 | The dated supplier cells, the planet and scenes 01 to 03 | next; needs the Supabase connector to read the cells |
+| 2a | The flag (`?film=1`), the tier, the director, and scenes 01 to 03 on all three tiers | built, 6 Oct 2026 |
+| 2b | The dated supplier cells and the factory's own geocode (`cells.json`), `ops/plans/home-film-data.md`, the credit on `/legal/data-sources`, stills for the lite and still tiers, the planet handing over to the map, `cobe` out of `package.json` | next; the cells need the Supabase connector |
 | 3 | The director and scenes 04 and 05 | |
 | 4 | Scenes 06 to 08 | |
 | 5 | Scenes 09 to 12 and the rail | |
@@ -27,6 +28,11 @@ Found while building slice 1, and where it differs from the text below:
   mask, the rivers and the neighbours are Natural Earth (public domain). `scripts/film/build-geo.mjs` builds both
   files. The credit on `/legal/data-sources` and `ops/plans/home-film-data.md` land with slice 2, before any
   visitor can reach the map.
+- Until the cells are read, the planet's and the map's lights are the four district counts of 3 Oct 2026
+  (`public/site/film/cells.json`), and the first screen says so in words. No light is drawn for the one factory
+  until its own dated geocode is in that file.
+- With the film on, the whole home page follows the system's theme. Chapters 2 to 9 were read in dark and hold;
+  the nav, the footer and the cookie banner have not been looked at in dark yet.
 - The look-dev page is a local harness (`.impeccable/preview/film/`, not in the repo); its supplier lights are
   stand-ins until slice 2 reads the dated file.
 
