@@ -71,7 +71,11 @@ begin
     select coalesce(array_agg(k order by k), '{}') into v_changed
       from jsonb_object_keys(v_new) k
      where v_new -> k is distinct from v_old -> k;
-    v_changed := array_remove(array_remove(array_remove(v_changed, 'updated_at'), 'last_active_at'), 'sent_at');
+    -- Timestamps and columns other triggers derive from the row are not edits a person made.
+    v_changed := array(select k from unnest(v_changed) k
+                        where k <> all (array['updated_at', 'last_active_at', 'sent_at',
+                                              'discover_search_tsv', 'company_name_norm'])
+                        order by k);
     if cardinality(v_changed) = 0 then
       return null;
     end if;
