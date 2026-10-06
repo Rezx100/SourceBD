@@ -10,7 +10,7 @@
 
 import type { Cell } from "./planet";
 
-export type BdData = { unit: number; box: number[]; districts: { name: string; rings: number[][] }[]; around: number[][]; rivers: { w: number; line: number[] }[] };
+export type BdData = { credit: string; unit: number; box: number[]; districts: { name: string; rings: number[][] }[]; around: number[][]; rivers: { w: number; line: number[] }[] };
 type Position = [number, number];
 type Feature = { type: "Feature"; properties: Record<string, string | number>; geometry: { type: string; coordinates: unknown } };
 type Collection = { type: "FeatureCollection"; features: Feature[] };
@@ -50,6 +50,8 @@ export const DISTRICTS = [
   { key: "Chittagong", label: "Chattogram", count: 1080, at: [91.83, 22.4] },
 ] as const satisfies readonly { key: string; label: string; count: number; at: readonly [number, number] }[];
 
+const METRES_PER_SUPPLIER = 16;
+
 /** A six-sided column standing on a place: its footprint in degrees, its height in metres from the count. */
 export function column(at: Position, count: number, km = 4.5): Feature {
   const ring: Position[] = [];
@@ -57,7 +59,7 @@ export function column(at: Position, count: number, km = 4.5): Feature {
     const a = (i / 6) * Math.PI * 2;
     ring.push([at[0] + (Math.cos(a) * km) / (111.32 * Math.cos((at[1] * Math.PI) / 180)), at[1] + (Math.sin(a) * km) / 110.57]);
   }
-  return { type: "Feature", properties: { height: count * 16 }, geometry: { type: "Polygon", coordinates: [ring] } };
+  return { type: "Feature", properties: { height: count * METRES_PER_SUPPLIER }, geometry: { type: "Polygon", coordinates: [ring] } };
 }
 
 export function toGeo(bd: BdData, cells: readonly Cell[]) {
@@ -67,7 +69,10 @@ export function toGeo(bd: BdData, cells: readonly Cell[]) {
     around: collect([{ type: "Feature", properties: {}, geometry: poly(bd.around) }]),
     rivers: collect(bd.rivers.map((r) => ({ type: "Feature", properties: { w: r.w }, geometry: { type: "LineString", coordinates: unpack(r.line, bd.unit) } }))),
     cells: collect(cells.map(([lng, lat, count]) => ({ type: "Feature", properties: { count }, geometry: { type: "Point", coordinates: [lng, lat] } }))),
-    columns: collect(DISTRICTS.map((d) => ({ ...column([...d.at], d.count), properties: { name: d.key, height: d.count * 16 } }))),
+    columns: collect(DISTRICTS.map((d) => {
+      const c = column([...d.at], d.count);
+      return { ...c, properties: { ...c.properties, name: d.key } };
+    })),
   };
 }
 
@@ -119,21 +124,24 @@ function paint(el: Element, on: string | null) {
   } as Record<string, Record<string, unknown>>;
 }
 
-/** The place the story follows: Mondol Fabrics Ltd., Nayapara, Kashimpur. The pin marks the area, not the building. */
-export const CHOSEN: Position = [90.317, 23.989];
-
 export type FilmMap = {
   /** The map's own scroll, 0 to 1 (see `STOPS`). */
   setProgress(p: number): void;
   /** The district whose column and outline stand out, by `DISTRICTS[].key`. */
   setDistrict(key: string | null): void;
-  /** Dim the supplier lights and show the one green light (0 to 1). */
+  /** Dim the supplier lights and show the one green light at `chosen` (0 to 1). */
   setChosen(level: number): void;
   recolor(): void;
   destroy(): void;
 };
 
-export function createMap(lib: MapLib, container: HTMLElement, opts: { bd: BdData; cells: readonly Cell[]; padding?: () => Record<string, number>; onMove?: (project: (at: Position) => { x: number; y: number }) => void }): FilmMap {
+export function createMap(lib: MapLib, container: HTMLElement, opts: {
+  bd: BdData;
+  cells: readonly Cell[];
+  /** The place the story follows. It comes from the record's own dated geocode, passed in by the scene: never typed here. */
+  chosen?: Position;
+  padding?: () => Record<string, number>; onMove?: (project: (at: Position) => { x: number; y: number }) => void;
+}): FilmMap {
   const geo = toGeo(opts.bd, opts.cells);
   const four = ["in", ["get", "name"], ["literal", DISTRICTS.map((d) => d.key)]];
   // A zoom ramp: `at` zoom, value pairs. `by` scales every value (a number, or an expression such as a feature's width).
@@ -149,7 +157,7 @@ export function createMap(lib: MapLib, container: HTMLElement, opts: { bd: BdDat
     ...cameraAt(0),
     style: {
       version: 8,
-      sources: Object.fromEntries(Object.entries({ ...geo, chosen: { type: "Feature", properties: {}, geometry: { type: "Point", coordinates: CHOSEN } } }).map(([id, data]) => [id, { type: "geojson", data }])),
+      sources: Object.fromEntries(Object.entries({ ...geo, chosen: collect(opts.chosen ? [{ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: opts.chosen } }] : []) }).map(([id, data]) => [id, { type: "geojson", data }])),
       layers: [
         { id: "sea", type: "background", paint: colours.sea },
         { id: "around", type: "fill", source: "around", paint: colours.around },
@@ -185,6 +193,8 @@ export function createMap(lib: MapLib, container: HTMLElement, opts: { bd: BdDat
   map.on("load", () => {
     ready = true;
     place();
+    // What was asked for while the style was loading: the district, the colours of the theme, the one light.
+    apply(paint(container, district));
     dim();
   });
   const sized = new ResizeObserver(() => {

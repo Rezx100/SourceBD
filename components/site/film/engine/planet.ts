@@ -113,7 +113,7 @@ void main() {
     float g = exp(-d * d * 3.2) * vAlpha * uLights * (uBloom > 1.5 ? 0.04 : 0.8);
     o = vec4(uLight * g, g * 0.6);
   } else {
-    float a = smoothstep(1.0, 0.55, d) * vAlpha * (vKind > 1.5 ? 0.35 : 0.9);
+    float a = (1.0 - smoothstep(0.55, 1.0, d)) * vAlpha * (vKind > 1.5 ? 0.35 : 0.9);
     o = vec4(uLand * a, a);
   }
 }`;
@@ -135,7 +135,7 @@ void main() {
     float lit = clamp(dot(n, light), 0.0, 1.0);
     float rim = pow(1.0 - n.z, 3.0);
     vec3 c = uBody * (0.55 + 0.6 * lit) + uRim * rim * (0.2 + 0.5 * side);
-    float edge = smoothstep(1.0, 1.0 - 1.5 * uDpr / uRadius, d);
+    float edge = 1.0 - smoothstep(1.0 - 1.5 * uDpr / uRadius, 1.0, d);
     o = vec4(c * edge, edge);
   } else {
     float g = exp(-(d - 1.0) * 9.0) * (0.1 + 0.3 * side);
@@ -172,6 +172,8 @@ export type PlanetOptions = {
   /** The pixel-ratio cap: 2, or 1.5 on a phone. */
   maxDpr?: number;
   frame?: (p: number, w: number, h: number) => Frame;
+  /** The browser took the drawing context away (a GPU reset, too many contexts): the caller puts its still back. */
+  onLost?: () => void;
   /** Called after each drawn frame with the rotation and frame in use, so DOM callouts and the thread can follow. */
   onFrame?: (rot: number[], frame: Frame) => void;
 };
@@ -223,7 +225,13 @@ export function createPlanet(canvas: HTMLCanvasElement, opts: PlanetOptions): Pl
   const xy = gl.getAttribLocation(body, "aXY");
   gl.enableVertexAttribArray(xy);
   gl.vertexAttribPointer(xy, 2, gl.FLOAT, false, 0, 0);
-  const U = (p: WebGLProgram, n: string) => gl.getUniformLocation(p, n);
+  // A uniform's place is looked up once: asking the driver by name on every frame is the slow way.
+  const places = new Map<string, WebGLUniformLocation | null>();
+  const U = (p: WebGLProgram, n: string) => {
+    const key = (p === points ? "p:" : "b:") + n;
+    if (!places.has(key)) places.set(key, gl.getUniformLocation(p, n));
+    return places.get(key) ?? null;
+  };
 
   const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const frameOf = opts.frame ?? defaultFrame;
@@ -334,10 +342,12 @@ export function createPlanet(canvas: HTMLCanvasElement, opts: PlanetOptions): Pl
   const lost = (e: Event) => {
     e.preventDefault();
     dead = true;
+    opts.onLost?.();
   };
   canvas.addEventListener("pointerdown", down);
   addEventListener("pointermove", move, { passive: true });
   addEventListener("pointerup", up);
+  addEventListener("pointercancel", up);
   canvas.addEventListener("webglcontextlost", lost);
   const sized = new ResizeObserver(() => {
     resize();
@@ -381,6 +391,7 @@ export function createPlanet(canvas: HTMLCanvasElement, opts: PlanetOptions): Pl
       canvas.removeEventListener("pointerdown", down);
       removeEventListener("pointermove", move);
       removeEventListener("pointerup", up);
+      removeEventListener("pointercancel", up);
       canvas.removeEventListener("webglcontextlost", lost);
       document.removeEventListener("visibilitychange", wake);
       gl.getExtension("WEBGL_lose_context")?.loseContext();

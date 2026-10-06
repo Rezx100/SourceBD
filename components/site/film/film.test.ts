@@ -10,8 +10,10 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { contrastRatio, dark, darkPairs, filmColors, filmPairs, light, paneBehind, paneGlass, paneGround, resolve, toRgb } from "@/lib/design/tokens";
-import { DISTRICTS, STOPS, cameraAt, column, toGeo, unpack, type BdData } from "./engine/map";
+import { DISTRICTS, STOPS, cameraAt, column, createMap, toGeo, unpack, type BdData } from "./engine/map";
 import { HOME, defaultFrame, facing, isLand, landPoints, lightSize, project, toVec } from "./engine/planet";
+import { V4Film } from "@/app/dev/ds/v4-film";
+import { cn } from "@/lib/utils";
 import { FieldPane, Pane, RecordPane, type RecordRow } from "./pane";
 import { Rail, Thread, ThreadLayer } from "./thread";
 
@@ -72,7 +74,7 @@ describe("what Tailwind emits", () => {
   const tailwind = require("tailwindcss") as (config: object) => import("postcss").AcceptedPlugin;
   const loadConfig = require("tailwindcss/loadConfig") as (file: string) => Record<string, unknown>;
   /* eslint-enable @typescript-eslint/no-require-imports */
-  const classes = ["text-brand-ink", "bg-map-water", "text-film-hero", "text-film-figure-phone", "rounded-pane", "max-sm:rounded-pane-phone", "pane", "pane-glass", "pane-sheen", "rec-arrive", "thread", "thread-join", "thread-draw", "thread-end"];
+  const classes = ["has-[input:focus-visible]:outline-focus", "text-brand-ink", "bg-map-water", "text-film-hero", "text-film-figure-phone", "rounded-pane", "max-sm:rounded-pane-phone", "pane", "pane-glass", "pane-sheen", "rec-arrive", "thread", "thread-join", "thread-draw", "thread-end"];
   const compiled = postcss([tailwind({ ...loadConfig(path.join(repoRoot, "tailwind.config.ts")), content: [{ raw: classes.join(" "), extension: "html" }] })])
     .process(readFileSync(path.join(repoRoot, "app/ds.css"), "utf8"), { from: undefined })
     .then((r) => r.css.replace(/\s+/g, " "));
@@ -129,6 +131,18 @@ describe("what Tailwind emits", () => {
     assert.match(css, /:is\(\[data-film-tier="lite"\], \[data-film-tier="still"\]\) \.pane-glass \{[^}]*backdrop-filter: none/);
   });
 
+  it("under reduced motion nothing waits either: a delayed entrance would sit hidden, then pop", async () => {
+    const css = await compiled;
+    const reduced = css.slice(css.indexOf("@media (prefers-reduced-motion: reduce)"));
+    assert.match(reduced, /animation-delay: 0s !important/);
+    assert.match(block(css, ".rec-arrive .rec-words {"), /animation: ds-rec-rise 200ms [^;]* 460ms both/);
+  });
+
+  it("the search pane's focus ring is a real rule", async () => {
+    const css = await compiled;
+    assert.ok(css.includes(":has(input:focus-visible) { outline-color: rgb(var(--ds-focus)"), "no has-[input:focus-visible]:outline-focus rule");
+  });
+
   it("the sheen passes once, never in a loop", async () => {
     const sheen = block(await compiled, ".pane-sheen::after {");
     assert.match(sheen, /animation: ds-pane-sheen 600ms [^;]* 1 both/);
@@ -175,6 +189,17 @@ describe("the Pane family", () => {
     assert.match(field, /<input[^>]*name="q"/);
     assert.match(field, /<button type="submit"/);
   });
+
+  it("the search pane wears the field's keyboard focus, since the field itself has no outline", () => {
+    const field = draw(createElement(FieldPane, { id: "q" }));
+    assert.match(field, /<input[^>]*class="[^"]*outline-none/);
+    assert.match(field, /<form[^>]*class="[^"]*has-\[input:focus-visible\]:outline-2[^"]*has-\[input:focus-visible\]:outline-focus/);
+  });
+
+  it("a caller's radius replaces the pane's, rather than sitting beside it", () => {
+    assert.equal(cn("rounded-pane max-sm:rounded-pane-phone", "rounded-lg"), "max-sm:rounded-pane-phone rounded-lg");
+    assert.doesNotMatch(/^<form class="([^"]*)"/.exec(draw(createElement(FieldPane, { id: "q" })))?.[1] ?? "rounded-lg", /rounded-lg/);
+  });
 });
 
 describe("the thread and the rail", () => {
@@ -204,6 +229,18 @@ describe("the thread and the rail", () => {
     assert.match(rail, /<a href="#ch-4" aria-current="step"/);
     assert.match(rail, /<span class="sr-only"> Question 4<\/span>/);
     assert.doesNotMatch(rail, /aria-valuenow|role="progressbar"/);
+  });
+});
+
+describe("/dev/ds", () => {
+  const html = draw(createElement(V4Film));
+
+  it("shows the film's section: every dark value beside its light one, and each board in both grounds", () => {
+    for (const [name, hex] of Object.entries(filmColors)) assert.ok(html.includes(`>${name}</span>`) && html.includes(hex), name);
+    assert.ok(html.includes(resolve(dark, "surface")) && html.includes(resolve(dark, "brand.ink")));
+    assert.equal((html.match(/data-ground="night" class="flex flex-col gap-3 rounded-lg/g) ?? []).length, 5, "five boards, each drawn once more in a night scope");
+    assert.match(html, /aria-label="Supplier record: Mondol Fabrics Ltd\."/);
+    assert.match(html, /text-film-figure /);
   });
 });
 
@@ -277,6 +314,39 @@ describe("the map's arithmetic", () => {
     assert.ok((tall.properties.height as number) > (short.properties.height as number));
   });
 
+  it("the story's own place is never typed into the engine: with none given, the one light has nothing to stand on", () => {
+    const style: { sources?: Record<string, { data: { features?: unknown[] } }> } = {};
+    class FakeMap {
+      constructor(options: Record<string, unknown>) {
+        Object.assign(style, options.style);
+      }
+      on() {}
+      jumpTo() {}
+      project() {
+        return { x: 0, y: 0 };
+      }
+      setPaintProperty() {}
+      resize() {}
+      remove() {}
+    }
+    const g = globalThis as Record<string, unknown>;
+    const had = { ResizeObserver: g.ResizeObserver, getComputedStyle: g.getComputedStyle };
+    g.ResizeObserver = class {
+      observe() {}
+      disconnect() {}
+    };
+    g.getComputedStyle = () => ({ getPropertyValue: () => "1 2 3" });
+    try {
+      const bd: BdData = { credit: "", unit: 1000, box: [], districts: [], around: [], rivers: [] };
+      createMap({ Map: FakeMap }, {} as HTMLElement, { bd, cells: [] }).destroy();
+      assert.deepEqual(style.sources?.chosen?.data.features, []);
+      createMap({ Map: FakeMap }, {} as HTMLElement, { bd, cells: [], chosen: [90.3, 24] }).destroy();
+      assert.equal(style.sources?.chosen?.data.features?.length, 1);
+    } finally {
+      Object.assign(g, had);
+    }
+  });
+
   it("the four districts are the counts of 3 Oct 2026, with no total", () => {
     assert.deepEqual(DISTRICTS.map((d) => [d.label, d.count]), [["Dhaka district", 4421], ["Gazipur", 1819], ["Narayanganj", 1628], ["Chattogram", 1080]]);
   });
@@ -289,7 +359,9 @@ describe("the map data file", () => {
     assert.equal(bd.districts.length, 64);
     for (const d of DISTRICTS) assert.ok(bd.districts.some((x) => x.name === d.key), d.key);
     assert.ok(bd.rivers.length >= 10 && bd.around.length >= 3);
-    assert.deepEqual(Object.keys(bd).sort(), ["around", "box", "districts", "rivers", "unit"]);
+    assert.deepEqual(Object.keys(bd).sort(), ["around", "box", "credit", "districts", "rivers", "unit"]);
+    assert.match(bd.credit, /Bangladesh Bureau of Statistics and OCHA ROAP, CC BY 3\.0 IGO/, "the district set's licence asks for its credit wherever the data goes");
+    assert.match(bd.credit, /Natural Earth/);
     for (const d of bd.districts) assert.deepEqual(Object.keys(d).sort(), ["name", "rings"]);
   });
 

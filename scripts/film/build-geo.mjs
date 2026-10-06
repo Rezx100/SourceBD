@@ -150,13 +150,19 @@ const GREAT = { Brahmaputra: 3, Ganges: 3, Balak: 2, Tista: 1 };
 const riversIn = await read("ne_10m_rivers_lake_centerlines.geojson");
 const NEAR = [86.5, 20.0, 94.0, 27.2]; // the rivers only where they run through or beside the country
 const inBox = ([x, y]) => x >= NEAR[0] && x <= NEAR[2] && y >= NEAR[1] && y <= NEAR[3];
+/** A line cut to the box, as the stretches that run inside it: a river that leaves and returns is two lines, never one with a chord. */
+function runs(line) {
+  const out = [[]];
+  for (const p of line) inBox(p) ? out.at(-1).push(p) : out.at(-1).length && out.push([]);
+  return out.filter((r) => r.length > 1);
+}
 const rivers = riversIn.features
   .filter((f) => f.geometry && f.properties.name in GREAT)
-  .flatMap((f) => lines(f.geometry).map((l) => ({ w: GREAT[f.properties.name], pts: l.filter(inBox) })))
-  .filter((r) => r.pts.length > 1)
-  .map((r) => ({ w: r.w, line: pack(simplify(r.pts, 0.004)) }));
+  .flatMap((f) => lines(f.geometry).flatMap((l) => runs(l).map((pts) => ({ w: GREAT[f.properties.name], line: pack(simplify(pts, 0.004)) }))));
 
-const bd = { unit: UNIT, box: BOX, districts, around, rivers };
+// The credit travels in the file: the district set's licence asks for it wherever the data is passed on.
+const credit = "Districts: Bangladesh Bureau of Statistics and OCHA ROAP, CC BY 3.0 IGO, through geoBoundaries. Rivers and neighbouring land: Natural Earth, public domain.";
+const bd = { credit, unit: UNIT, box: BOX, districts, around, rivers };
 writeFileSync(path.join(out, "bd.json"), JSON.stringify(bd));
 const count = (list) => list.reduce((s, r) => s + r.length / 2, 0);
 console.log(`land.png ${W}x${H}; bd.json: ${districts.length} districts (${count(districts.flatMap((d) => d.rings))} points), ${around.length} neighbour rings (${count(around)}), ${rivers.length} river lines (${count(rivers.map((r) => r.line))})`);

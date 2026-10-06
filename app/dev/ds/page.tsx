@@ -82,6 +82,8 @@ const RADIUS_CLASS: Record<string, string> = {
   lg: "rounded-lg",
   xl: "rounded-xl",
   full: "rounded-full",
+  pane: "rounded-pane",
+  "pane-phone": "rounded-pane-phone",
 };
 
 const SHADOW_CLASS: Record<string, string> = {

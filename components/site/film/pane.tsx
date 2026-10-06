@@ -116,10 +116,10 @@ export function AlertPane({ when, title, due, subject, from, action, material = 
   );
 }
 
-/** The search, as a pane: it runs on public Discover, as the hero's form does today. */
+/** The search, as a pane: it runs on public Discover, as the hero's form does today. The pane wears the field's focus ring. */
 export function FieldPane({ id, placeholder = "Supplier, product or certificate", material = "solid", className }: { id: string; placeholder?: string; material?: PaneMaterial; className?: string }) {
   return (
-    <Pane as="form" action="/discover" method="get" role="search" material={material} size="sm" className={cn("flex h-[60px] w-full max-w-[560px] items-center gap-3 rounded-pane-phone py-0 pl-4 pr-2", className)}>
+    <Pane as="form" action="/discover" method="get" role="search" material={material} size="sm" className={cn("flex h-[60px] w-full max-w-[560px] items-center gap-3 rounded-pane-phone py-0 pl-4 pr-2 has-[input:focus-visible]:outline has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-focus", className)}>
       <MagnifyingGlass size={20} className="shrink-0 text-ink-3" aria-hidden />
       <label htmlFor={id} className="sr-only">
         Search suppliers, products or certificates
