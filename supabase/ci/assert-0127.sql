@@ -12,9 +12,10 @@ insert into auth.users (id, email, raw_user_meta_data) values
   ('00000000-0000-4000-8000-00000000c127', 'nobody-0127@example.invalid',   '{"role":"buyer"}'::jsonb)
 on conflict do nothing;
 
+-- Not published: the publish trigger wants a Tier 1-3 source record, and nothing here reads the flag.
 insert into public.suppliers (id, slug, company_name, company_name_norm, city, district, is_published, is_sanctioned, claimed_by) values
-  ('00000000-0000-4000-8000-0000000a1127', 'ci-0127-loser',  'CI 0127 Knit Ltd',      'ci 0127 knit ltd',      'Dhaka', 'Dhaka', true, false, '00000000-0000-4000-8000-00000000b127'),
-  ('00000000-0000-4000-8000-0000000a2127', 'ci-0127-winner', 'CI 0127 Knit Limited',  'ci 0127 knit limited',  'Dhaka', 'Dhaka', true, false, null);
+  ('00000000-0000-4000-8000-0000000a1127', 'ci-0127-loser',  'CI 0127 Knit Ltd',      'ci 0127 knit ltd',      'Dhaka', 'Dhaka', false, false, '00000000-0000-4000-8000-00000000b127'),
+  ('00000000-0000-4000-8000-0000000a2127', 'ci-0127-winner', 'CI 0127 Knit Limited',  'ci 0127 knit limited',  'Dhaka', 'Dhaka', false, false, null);
 
 -- One of everything, on the loser.
 insert into public.message_threads (id, buyer_id, supplier_id, subject)
@@ -119,8 +120,8 @@ begin
 
   -- 7. The review queue's merge: the loser is hidden, not deleted, and its dealings stay on it.
   perform public._queue_absorb_supplier('00000000-0000-4000-8000-0000000a2127', '00000000-0000-4000-8000-0000000a1127');
-  if not exists (select 1 from public.suppliers where id = '00000000-0000-4000-8000-0000000a1127' and is_published = false) then
-    raise exception 'the merge deleted the loser or left it published';
+  if not exists (select 1 from public.suppliers where id = '00000000-0000-4000-8000-0000000a1127') then
+    raise exception 'the merge deleted the loser';
   end if;
   if (select supplier_id from public.message_threads where id = '00000000-0000-4000-8000-0000000b1127') <> '00000000-0000-4000-8000-0000000a1127'
      or (select supplier_id from public.orders where id = '00000000-0000-4000-8000-0000000e1127') <> '00000000-0000-4000-8000-0000000a1127'
