@@ -1,4 +1,5 @@
-export type RunStatus = "running" | "success" | "failed" | "partial";
+/** "held": the run stopped at the safety limit (meta.circuit_breaker); see lib/admin/source-needs. */
+export type RunStatus = "running" | "success" | "failed" | "partial" | "held";
 export type JobStatus = "pending" | "running" | "success" | "failed" | "cancelled";
 
 /** Same staleness window as the worker reaper and the 0088 RPC guard. */

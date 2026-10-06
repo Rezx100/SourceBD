@@ -337,29 +337,60 @@ describe("/admin/sources", () => {
     summary: { last_success_at: "2026-10-04T00:00:00Z", running_jobs: 0, pending_jobs: 1, failed_jobs: 2, enabled_schedules: 3, next_scheduled_at: null },
     scrapers: [], recent_runs: [], recent_jobs: [], generated_at: "2026-10-05T00:00:00Z",
   };
-  it("draws the console: the figures, evidence health, a card per source with Run now", async () => {
-    reset({ admin_etl_dashboard: { data: DOC, error: null }, admin_evidence_summary: { data: SUMMARY, error: null }, admin_evidence_by_scraper: { data: null, error: null } });
+  const RUN = { id: "r", started_at: "2026-10-04T23:00:00Z", finished_at: "2026-10-04T23:10:00Z", records_seen: 900, records_upserted: 45, records_skipped: 0, error: null, meta: null };
+  const STATE = (code: string, latest_run: unknown) => ({ scraper_code: code, last_success_at: null, latest_run, active_job: null, schedule: { enabled: true, interval_minutes: 1440, next_run_at: null, last_enqueued_at: null, updated_at: null }, queue: { pending: 0, running: 0, failed: 0 } });
+
+  it("draws the control room: the figures, the grouped table with Run now and a timer per source, history folded away", async () => {
+    reset({ admin_etl_dashboard: { data: DOC, error: null }, admin_evidence_summary: { data: SUMMARY, error: null }, admin_evidence_by_scraper: { data: null, error: null }, admin_queue_list: { data: { total: 0, by_type: {}, rows: [] }, error: null } });
     const out = await page("sources");
     const t = text(out);
     assert.equal(out.match(/<h1\b/g)?.length, 1);
     assert.match(out, /<h1[^>]*>Sources &amp; ingestion<\/h1>|<h1[^>]*>Sources & ingestion<\/h1>/);
-    assert.match(t, /Failed needs attention 2 Retry after checking the error/);
-    assert.match(t, /Evidence health/);
-    assert.match(t, /Review 8 claims/);
-    assert.match(t, /No scraper is running right now\./);
-    assert.match(t, /Run now/);
-    assert.match(t, /Save timer/);
-    assert.match(t, /No scraper jobs have been queued yet\./);
+    assert.match(t, /Nothing needs you\./);
+    assert.match(t, /Running · queued 0 · 1/);
+    assert.match(t, /Timers on 3 of \d+/);
+    assert.match(t, /Citations to review 8/);
+    assert.match(t, /Nothing running\./);
+    for (const g of ["Sanctions", "Certificates", "Registers", "Brands", "Other jobs"]) assert.match(t, new RegExp(`${g} · \\d+`));
+    assert.match(out, /aria-label="Run now: ofac_sdn"/);
+    assert.match(out, /aria-label="Timer for gots"/);
+    assert.match(out, /<details[^>]*>[\s\S]*Run history[\s\S]*No scraper jobs have been queued yet\./);
   });
 
-  it("a failed dashboard is an error; a failed evidence read hides only the evidence", async () => {
+  it("Needs you lists a held run with --accept-changes, held removals with --accept-delistings, a failed run with Run now, near matches with the queue", async () => {
+    const doc = {
+      ...DOC,
+      scrapers: [
+        STATE("gots", { ...RUN, id: "r1", scraper_code: "gots", status: "held", meta: { circuit_breaker: { tripped: "more than 50 of 1000 rows changed", changed: 50, created: 0 } } }),
+        STATE("wrap", { ...RUN, id: "r2", scraper_code: "wrap", status: "success", meta: { reconcile: { wrap: { action: "held", missing: 76 } } } }),
+        STATE("ofac_sdn", { ...RUN, id: "r3", scraper_code: "ofac_sdn", status: "failed", error: "HTTP 503" }),
+        STATE("uk_ofsi", { ...RUN, id: "r4", scraper_code: "uk_ofsi", status: "success" }),
+      ],
+    };
+    reset({ admin_etl_dashboard: { data: doc, error: null }, admin_evidence_summary: { data: SUMMARY, error: null }, admin_evidence_by_scraper: { data: null, error: null }, admin_queue_list: { data: { total: 3, by_type: {}, rows: [] }, error: null } });
+    const out = await page("sources");
+    const t = text(out);
+    const strip = text(out.slice(out.indexOf('aria-label="Needs you"'), out.indexOf('aria-label="Summary"')));
+    assert.match(strip, /Needs you · 4/);
+    assert.match(strip, /Held gots stopped at the safety limit \(more than 50 of 1000 rows changed\)\. 50 changed and 0 new landed; the rest waits\. docker compose run --rm etl run gots --accept-changes Copy/);
+    assert.match(strip, /Removals held wrap: 76 WRAP records not seen this read .* docker compose run --rm etl run wrap --accept-delistings Copy/);
+    assert.match(strip, /Failed ofac_sdn failed: HTTP 503 Run now/);
+    assert.doesNotMatch(strip, /run ofac_sdn --accept|run uk_ofsi/);
+    assert.match(strip, /Near matches 3 near-match records are waiting for a decision\. Open the queue/);
+    assert.match(out, /href="\/admin\/queue\?type=fuzzy_match_review"/);
+    assert.deepEqual(calls.find((c) => c.fn === "admin_queue_list")!.args, { p_type: "fuzzy_match_review", p_status: "open", p_limit: 1, p_offset: 0 });
+    assert.doesNotMatch(t, /Nothing needs you/);
+  });
+
+  it("a failed dashboard is an error; a failed evidence, freshness or queue read hides only that figure", async () => {
     reset({ admin_etl_dashboard: { data: null, error: { message: "denied" } }, admin_evidence_summary: { data: null, error: null }, admin_evidence_by_scraper: { data: null, error: null } });
     const bad = await page("sources");
     assert.match(bad, /role="alert"/);
     assert.match(text(bad), /Could not load scraper operations: denied\./);
     reset({ admin_etl_dashboard: { data: DOC, error: null }, admin_evidence_summary: { data: null, error: { message: "x" } }, admin_evidence_by_scraper: { data: null, error: { message: "x" } } });
     const t = text(await page("sources"));
-    assert.doesNotMatch(t, /Evidence health/);
+    assert.match(t, /Citations \? evidence unreadable/);
+    assert.match(t, /Over age limit \? freshness unreadable/);
     assert.match(t, /Run now/);
   });
 });
