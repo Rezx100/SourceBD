@@ -11,6 +11,7 @@ import type { ReactNode } from "react";
 import { ButtonLink } from "@/components/kit";
 import { Close, Display, HeroActions, Label, Lede, Section, wrap } from "@/components/site/parts";
 import { SOURCE_COUNT, TIERS, type Tier } from "@/components/site/sources";
+import { SUBPROCESSORS, subprocessorCount } from "@/components/site/subprocessors";
 import { readDay, withCommas, type SiteFacts, type SourceFact } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
 
@@ -60,20 +61,10 @@ const ANSWERS: [string, string][] = [
   ["Access control", "Checked on the server, every request"],
   ["Row-level security", "On for every table the product uses"],
   ["Backups", "Once a day, with a written restore plan"],
-  ["Sub-processors", "Seven, each named below"],
+  ["Sub-processors", `${subprocessorCount()}, each named below`],
   ["GDPR", "UK GDPR for buyer accounts"],
   ["Data processing agreement", "On request"],
   ["Contact", "support@sourcebd.net"],
-];
-
-const SUBPROCESSORS: [string, string][] = [
-  ["Supabase", "database and sign-in"],
-  ["Cloudflare", "HTTPS and network"],
-  ["Resend", "email"],
-  ["Sentry", "error reports"],
-  ["PostHog", "product analytics"],
-  ["Bunny CDN", "copies of public source documents"],
-  ["Barikoi", "maps"],
 ];
 
 export function Security({ facts }: { facts: SiteFacts }) {

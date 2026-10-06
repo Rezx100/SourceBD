@@ -8,11 +8,12 @@
 import { CaretDown, MagnifyingGlass, UserCircle } from "@phosphor-icons/react";
 import Form from "next/form";
 import { usePathname } from "next/navigation";
-import { Suspense, useRef } from "react";
+import { Suspense, useRef, useState } from "react";
 import { ring } from "@/components/kit/classes";
 import { Menu, MenuItem, MenuSeparator } from "@/components/kit/overlay";
 import { SearchCombobox } from "@/components/search/typeahead";
 import { cn } from "@/lib/utils";
+import { FeedbackDialog } from "./feedback";
 import { SearchCarry } from "./search-carry";
 import { SearchShortcut } from "./search-shortcut";
 import { pageDrawsOwnField, useApplePlatform } from "./topbar-search-slot";
@@ -49,10 +50,12 @@ function SearchField() {
 
 function AccountMenu({ account }: { account: FrameAccount }) {
   const signOut = useRef<HTMLFormElement>(null);
+  const [feedback, setFeedback] = useState(false);
   const name = accountName(account);
   return (
     <>
       <form ref={signOut} action="/auth/sign-out" method="post" hidden />
+      {feedback ? <FeedbackDialog onClose={() => setFeedback(false)} /> : null}
       <Menu
         align="end"
         trigger={
@@ -74,6 +77,7 @@ function AccountMenu({ account }: { account: FrameAccount }) {
         <MenuSeparator />
         <MenuItem href="/app/settings">Settings</MenuItem>
         <MenuItem href="/app/settings/subscription">Plan</MenuItem>
+        <MenuItem onSelect={() => setFeedback(true)}>Send feedback</MenuItem>
         <MenuSeparator />
         <MenuItem onSelect={() => signOut.current?.requestSubmit()}>
           Sign out

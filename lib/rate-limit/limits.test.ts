@@ -110,6 +110,20 @@ describe("rate-limit classes", () => {
     assert.equal(ours.body.replace("'api_write', 'api_export',", "'api_write',"), live.body);
   });
 
+  it("every email template has a bucket rl_check accepts — sendEmail limits per recipient and fails open on an unlisted one", () => {
+    const tpl = readFileSync(path.join(process.cwd(), "lib/email/templates/index.tsx"), "utf8");
+    const map = tpl.match(/export type TemplateMap = \{([\s\S]*?)\n\};/);
+    assert.ok(map, "TemplateMap not found");
+    const templates = [...(map[1] ?? "").matchAll(/^\s*([a-z_]+):/gm)].map((m) => m[1]);
+    assert.ok(templates.length >= 8, "TemplateMap lost entries");
+    // The email list live since 20260725, plus what 0119 patches in.
+    const live = rlCheckDef("20260725_rez_security_hardening_2.sql").body;
+    const base = [...live.matchAll(/'email:([a-z_]+)'/g)].map((m) => m[1]);
+    const patch = stripSql(readFileSync(path.join(MIG, "0119_rl_check_email_buckets.sql"), "utf8"));
+    const added = [...(patch.match(/foreach v_name in array array\[([\s\S]*?)\]/)?.[1] ?? "").matchAll(/'email:([a-z_]+)'/g)].map((m) => m[1]);
+    assert.deepEqual([...new Set([...base, ...added])].sort(), [...templates].sort());
+  });
+
   it("the export limit CI exercises is the one the app enforces", () => {
     const sql = readFileSync(path.join(process.cwd(), "supabase/ci/assert-0104.sql"), "utf8");
     const m = sql.match(/public\.rl_check\('api_export', 'ci-export', (\d+)\)/);

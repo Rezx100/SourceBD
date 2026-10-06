@@ -33,7 +33,13 @@ describe("the legal pages", () => {
   });
 
   it("the four notices say when they were last updated, in words", () => {
-    for (const slug of ["privacy", "terms", "cookies", "data-sources"]) assert.match(text(html(slug)), /Last updated 3 Jun 2026/, slug);
+    for (const slug of ["cookies", "data-sources"]) assert.match(text(html(slug)), /Last updated 3 Jun 2026/, slug);
+    // Privacy (section 5, and the Stripe billing line gone) and Terms (no Stripe) were reworded on 6 Oct 2026.
+    for (const slug of ["privacy", "terms"]) assert.match(text(html(slug)), /Last updated 6 Oct 2026/, slug);
+  });
+
+  it("no legal page names a payment company: none is chosen yet and the beta is free", () => {
+    for (const slug of PAGES) assert.doesNotMatch(text(html(slug)), /Stripe|PayPal|Paddle|Braintree/i, slug);
   });
 
   it("the privacy notice keeps its sentinels and its numbered sections", () => {
