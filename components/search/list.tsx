@@ -3,15 +3,15 @@
 // (nothing matches, it could not load, the page is past the end). Server component; the
 // words are Paper's (`10 · Results, empty`, `Errors`, `11 · Results`).
 
-import { CaretDown, Check } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { CertProblem, SupplierRow } from "@/components/patterns";
-import { ErrorPanel, Menu, MenuItem, Pagination, Skeleton, buttonClass } from "@/components/kit";
+import { ErrorPanel, Pagination, Skeleton, buttonClass } from "@/components/kit";
 import { PER_PAGE, discoverChips, discoverHref, filterCount, withoutFilterFamily, type DiscoverState } from "@/lib/discover-v32-state";
 import { formatCount } from "@/lib/dashboard/facts";
 import { discoverFailureCopy } from "@/lib/discover-v32-rpc";
 import { cn } from "@/lib/utils";
 import type { ResultRow } from "./model";
+import { PerPageMenu } from "./per-page";
 import { SlowHead } from "./slow";
 
 function Problem({ r, small }: { r: ResultRow; small?: boolean }) {
@@ -66,28 +66,9 @@ export function PhoneMore({ shown, total, nextHref, per }: { shown: number; tota
   );
 }
 
-/** "25 per page" with the page sizes the search takes. */
-export function PerPageMenu({ state }: { state: DiscoverState }) {
-  return (
-    <Menu
-      align="end"
-      trigger={
-        <button type="button" className={buttonClass({ kind: "secondary", className: "gap-1 pl-3 pr-2" })}>
-          {state.per} per page
-          <CaretDown size={16} className="shrink-0 text-ink-2" aria-hidden />
-        </button>
-      }
-    >
-      {PER_PAGE.map((n) => (
-        <MenuItem key={n} href={discoverHref(state, { per: n, page: 1 })}>
-          <span className="flex items-center gap-2">
-            <span className="flex size-4 shrink-0 items-center justify-center">{n === state.per ? <Check size={16} className="text-brand" aria-label="Page size" /> : null}</span>
-            {n} per page
-          </span>
-        </MenuItem>
-      ))}
-    </Menu>
-  );
+/** The page sizes the search takes, each with its link through `hrefFor` (which keeps the open record). */
+export function perPageHrefs(state: DiscoverState, hrefFor: (s: DiscoverState) => string): [number, string][] {
+  return PER_PAGE.map((n) => [n, hrefFor({ ...state, per: n, page: 1 })]);
 }
 
 export function ResultsFooter({ state, shown, total, hrefFor }: { state: DiscoverState; shown: number; total: number; hrefFor: (s: DiscoverState) => string }) {
@@ -104,7 +85,7 @@ export function ResultsFooter({ state, shown, total, hrefFor }: { state: Discove
         pages={pages}
         prevHref={state.page > 1 ? hrefFor({ ...state, page: state.page - 1 }) : undefined}
         nextHref={state.page < pages ? hrefFor({ ...state, page: state.page + 1 }) : undefined}
-        perPage={<PerPageMenu state={state} />}
+        perPage={<PerPageMenu per={state.per} sizes={perPageHrefs(state, hrefFor)} />}
       />
     </div>
   );

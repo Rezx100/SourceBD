@@ -6,6 +6,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { LinkPending } from "./link-pending";
 
 const noun = (n: number) => `${n} ${n === 1 ? "source" : "sources"}`;
 
@@ -34,7 +35,10 @@ export function SupplierRow({
   if (layout === "phone")
     return (
       <Link href={href} aria-current={selected ? "true" : undefined} className={cn(base, "min-h-11 gap-1 px-4 py-3 hover:bg-brand-wash", selected && "bg-brand-tint")}>
-        <span className="text-md font-medium text-ink">{name}</span>
+        <span className="text-md font-medium text-ink">
+          {name}
+          <LinkPending className="ml-1.5 inline-block align-[-2px]" />
+        </span>
         <span className="text-sm text-ink-3">
           {kind} · {noun(sources)}
         </span>
@@ -48,7 +52,10 @@ export function SupplierRow({
       className={cn(base, "min-h-14 gap-0.5 border-l-2 px-3 py-2.5 hover:bg-brand-wash", selected ? "border-l-brand bg-brand-tint" : "border-l-transparent")}
     >
       <span className="flex justify-between gap-3">
-        <span className="text-base font-medium text-ink">{name}</span>
+        <span className="text-base font-medium text-ink">
+          {name}
+          <LinkPending className="ml-1.5 inline-block align-[-2px]" />
+        </span>
         <span className="shrink-0 text-xs text-ink-3">{noun(sources)}</span>
       </span>
       <span className="flex flex-wrap items-center gap-x-1.5 text-xs text-ink-3">

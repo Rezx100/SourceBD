@@ -7,7 +7,7 @@
 // brand-tint with the 2px bar. Client: it reads the selection and handles the keys.
 
 import Link from "next/link";
-import { CertProblem, SanctionTag, sanctionRowClass } from "@/components/patterns";
+import { CertProblem, LinkPending, SanctionTag, sanctionRowClass } from "@/components/patterns";
 import { SelectCell, Table, Td, Th, Tr, Unpublished, rowLinkClass, type SortState } from "@/components/kit";
 import { cn } from "@/lib/utils";
 import { onRowKey } from "./keys";
@@ -81,6 +81,7 @@ export function ResultsTable({
                 <Td>
                   <Link href={r.paneHref} prefetch={false} scroll={false} data-open="record" className={rowLinkClass}>
                     {r.name}
+                    <LinkPending className="ml-1.5 inline-block align-[-2px]" />
                   </Link>
                   {r.sanctioned ? (
                     <div className="pt-0.5">
