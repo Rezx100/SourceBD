@@ -328,9 +328,16 @@ describe("scene 09, the real product staged", () => {
     assert.equal((steps.match(/<li /g) ?? []).length, 3);
     assert.match(steps, /^<ol data-order-steps="true"[^>]*><li data-on=""/);
     assert.deepEqual(SCREENS.map((x) => x.step), ["Shortlist from your saved suppliers", "Send one RFQ", "Compare the quotes"]);
-    for (const x of SCREENS) assert.ok(scene.includes(`src="${x.src}" alt="${x.alt.replace(/'/g, "&#x27;")}"`), x.src);
+    // Through next/image the src is rewritten and a srcset added, so each screen is held by its file's name and its alt text.
+    const file = (src: string) => src.slice(src.lastIndexOf("/") + 1).replace(/\./g, "\\.");
+    const alt = (text: string) => text.replace(/'/g, "&#x27;").replace(/[.:]/g, "\\$&");
+    for (const x of SCREENS) {
+      assert.match(scene, new RegExp(`<img [^>]*alt="${alt(x.alt)}"`), x.alt);
+      assert.match(scene, new RegExp(`<img [^>]*${file(x.src)}`), x.src);
+    }
     assert.match(scene, /alt="The Saved page with three suppliers picked/);
-    assert.ok(scene.includes(`src="${COMPLIANCE_SCREEN.src}" alt="The Compliance page: certificates that need a look`));
+    assert.match(scene, /<img [^>]*alt="The Compliance page: certificates that need a look/);
+    assert.match(scene, /<img [^>]*compliance-hub\.png/);
     assert.match(t, /Same loop, for compliance\./);
     assert.doesNotMatch(scene, /rounded-lg border border-line|pane-glass/, "no bordered card, and the windows are solid: the ground behind them is drawn, not live");
   });
@@ -340,7 +347,7 @@ describe("scene 09, the real product staged", () => {
     const sourcing = scene.slice(first, scene.indexOf('role="tabpanel"', first + 1));
     assert.equal((sourcing.match(/data-screen="true"/g) ?? []).length, 3);
     assert.equal((sourcing.match(/<div data-screen="true" data-on=""/g) ?? []).length, 1);
-    assert.match(sourcing, /<div data-screen="true" data-on="" class="stage-screen"><div class="pane [^"]*stage-window[^"]*" data-window="true"><img src="\/site\/saved-selected\.png"/);
+    assert.match(sourcing, /<div data-screen="true" data-on="" class="stage-screen"><div class="pane [^"]*stage-window[^"]*" data-window="true"><img [^>]*saved-selected/);
     assert.equal((sourcing.match(/data-cursor="true"/g) ?? []).length, 3, "the spotlight, the press and the cursor, once");
     assert.ok(sourcing.indexOf("data-cursor") > sourcing.indexOf("rfq-one.png") && sourcing.indexOf("data-cursor") < sourcing.indexOf("rfq-quotes.png"));
     assert.match(sourcing, /class="stage-cursor [^"]*" style="left:92\.6%;top:95\.5%"/);
