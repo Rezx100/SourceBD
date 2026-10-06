@@ -116,11 +116,21 @@ describe("rate-limit classes", () => {
     assert.ok(map, "TemplateMap not found");
     const templates = [...(map[1] ?? "").matchAll(/^\s*([a-z_]+):/gm)].map((m) => m[1]);
     assert.ok(templates.length >= 8, "TemplateMap lost entries");
-    // The email list live since 20260725, plus what 0119 patches in.
+    // The email list live since 20260725, plus what every later migration patches in with 0119's
+    // `foreach v_name in array array[...]` shape (0119: team_invite, saved_search_alert, contact_lead;
+    // 0129: claim_verify). A patch written any other way is not seen here, so write them that way.
     const live = rlCheckDef("20260725_rez_security_hardening_2.sql").body;
     const base = [...live.matchAll(/'email:([a-z_]+)'/g)].map((m) => m[1]);
-    const patch = stripSql(readFileSync(path.join(MIG, "0119_rl_check_email_buckets.sql"), "utf8"));
-    const added = [...(patch.match(/foreach v_name in array array\[([\s\S]*?)\]/)?.[1] ?? "").matchAll(/'email:([a-z_]+)'/g)].map((m) => m[1]);
+    const added = readdirSync(MIG)
+      .filter((f) => f.endsWith(".sql"))
+      .flatMap((f) => {
+        const patch = stripSql(readFileSync(path.join(MIG, f), "utf8"));
+        if (!/pg_get_functiondef\('public\.rl_check\(text, text, integer\)'::regprocedure\)/.test(patch)) return [];
+        return [...patch.matchAll(/foreach v_name in array array\[([\s\S]*?)\]/g)].flatMap((block) =>
+          [...(block[1] ?? "").matchAll(/'email:([a-z_]+)'/g)].map((m) => m[1]!),
+        );
+      });
+    assert.ok(added.includes("claim_verify"), "0129's patch is not seen");
     assert.deepEqual([...new Set([...base, ...added])].sort(), [...templates].sort());
   });
 

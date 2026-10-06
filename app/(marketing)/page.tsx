@@ -3,6 +3,7 @@
 // (`lib/site-facts.ts`, cached ten minutes). Nav, footer and the cookie banner are the marketing chrome.
 
 import type { Metadata } from "next";
+import { filmOn } from "@/components/site/film/engine/tier";
 import { Home } from "@/components/site/home";
 import { loadSiteFacts } from "@/lib/site-facts";
 
@@ -26,8 +27,8 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image", title: "SourceBD — Know who you’re buying from", description: "Every fact on a Bangladesh garment supplier, with its source and date." },
 };
 
-export default async function HomePage() {
-  const facts = await loadSiteFacts();
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ film?: string | string[] }> }) {
+  const [facts, { film }] = await Promise.all([loadSiteFacts(), searchParams]);
   return (
     <>
       <script
@@ -43,7 +44,7 @@ export default async function HomePage() {
           }),
         }}
       />
-      <Home facts={facts} />
+      <Home facts={facts} film={filmOn(film, process.env.NEXT_PUBLIC_HOME_FILM)} />
     </>
   );
 }
