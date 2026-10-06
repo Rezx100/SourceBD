@@ -3,7 +3,7 @@
 // data and these decide the look and the words. Shells are B3.
 
 export { ChatThread, Bubble, DateLine, FileChip } from "./chat";
-export { CertProblem, CertStateChip, CertTable, type CertRowData } from "./certificate";
+export { CertProblem, CertStateChip, CertSummaryCell, CertTable, type CertRowData } from "./certificate";
 export { LinkPending } from "./link-pending";
 export { LockedContact, LockedContactRow, onFileWords } from "./contact";
 export { NeedsAttention, type AttentionItem } from "./attention";
@@ -17,4 +17,4 @@ export { SourceChip, SourceGroups, SourceLine, SourceList, SourceMark, SourcesCe
 export { ClaimRail, ConfirmedClaim, OpenClaim, downloadBlockedWords } from "./statement";
 export { SupplierRow } from "./supplier-row";
 export { Timeline, type Milestone } from "./timeline";
-export { CERT_ORDER, SITE_WORDS, certHeading, certLine, certWords, isApproximate, lateWords, moqWarning, usd, vsTarget, type CertLine, type SiteKind } from "./words";
+export { CERT_ORDER, SITE_WORDS, certHeading, certLine, certShort, certSummary, certWords, isApproximate, lateWords, moqWarning, usd, vsTarget, type CertLine, type CertSummary, type SiteKind } from "./words";

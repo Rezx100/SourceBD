@@ -6,7 +6,8 @@
 import { CheckCircle, Clock, FileText, MinusCircle, XCircle } from "@phosphor-icons/react/dist/ssr";
 import { CertChip } from "@/components/kit";
 import { cn } from "@/lib/utils";
-import { CERT_ORDER, certHeading, certWords } from "./words";
+import { SourceMark, hasSourceMark } from "./source-mark";
+import { CERT_ORDER, certHeading, certWords, type CertSummary } from "./words";
 
 export type CertRowData = {
   scheme: string;
@@ -69,6 +70,50 @@ export function CertProblem({
       {more ? (
         <span className={cn("text-ink-3", small ? "text-xs" : "text-sm")}>
           · {more} more {more === 1 ? "certificate" : "certificates"}
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+const PILL: Record<CertSummary["state"], string> = {
+  expired: "bg-cert-expired-bg text-cert-expired-fg",
+  expiring: "bg-cert-expiring-bg text-cert-expiring-fg",
+  valid: "bg-sunken text-ink-2",
+  none: "border border-dashed border-line-strong text-ink-3",
+};
+
+/**
+ * The certificates of a results-table row on one short line (Paper's compact certificate rows,
+ * `11 · Record · v2 tiles + marks, compact certs`: a 24px mark, then the state as a pill): the
+ * worst certificate's body and its state, then the other bodies' marks and "+N" for the rest.
+ * A body with no approved mark is its name (the first) or part of the count (the others). Each
+ * mark names its body and state on hover; a screen reader hears them all as one sentence.
+ */
+export function CertSummaryCell({ cert }: { cert: CertSummary }) {
+  const others = cert.others.filter((b) => hasSourceMark(b.code)).slice(0, 2);
+  const rest = cert.total - 1 - others.length;
+  // A screen reader hears every body the marks show, each with its state, not the marks.
+  const said = cert.total === 1 ? cert.first.words : `${cert.total} certificates: ${[cert.first, ...cert.others].map((b) => b.words).join("; ")}`;
+  return (
+    <span className="flex flex-wrap items-center gap-x-2 gap-y-1" title={cert.words}>
+      <span className="sr-only">{said}</span>
+      <span aria-hidden className="inline-flex items-center gap-1.5">
+        {hasSourceMark(cert.first.code) ? (
+          <SourceMark source={cert.first.code} />
+        ) : (
+          <span className="inline-flex h-6 items-center rounded-md border border-line px-1.5 text-xs font-medium text-ink-2">{cert.first.scheme}</span>
+        )}
+        <span className={cn("inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium", PILL[cert.state])}>{cert.short}</span>
+      </span>
+      {others.length || rest ? (
+        <span aria-hidden className="inline-flex items-center gap-1">
+          {others.map((b) => (
+            <span key={b.code} title={b.words}>
+              <SourceMark source={b.code} />
+            </span>
+          ))}
+          {rest ? <span className="pl-0.5 text-xs font-medium text-ink-3">+{rest}</span> : null}
         </span>
       ) : null}
     </span>
