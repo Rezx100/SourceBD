@@ -325,6 +325,15 @@ describe("the bar over the results", () => {
     assert.match(phone, /h-input-touch/);
     assert.match(phone, /h-touch/);
   });
+
+  it("every bar is one line: nothing in it may wrap, however many filters are on", () => {
+    const busy = { ...state, hs: ["6105", "6109"], cert: [{ kind: "gots" as const, state: "valid" as const }], district: ["Gazipur"] };
+    const props = { state: busy, title: "t", hrefFor, filtersHref: "#" };
+    const full = plain(h(ResultsToolbar, { ...props, filtersOpen: false, saveHref: "#", more: null }));
+    for (const out of [full, plain(h(PaneListToolbar, props)), plain(h(PhoneToolbar, { ...props, count: "t" }))]) assert.ok(!out.includes("flex-wrap"), "a bar that wraps breaks into two lines");
+    assert.match(full, /overflow-x-auto/, "the filters scroll sideways when they outgrow the bar");
+    assert.match(full, /sr-only">Save search</, "Save search keeps its name when it is drawn as its icon");
+  });
 });
 
 describe("the narrow list and the phone's rows", () => {
