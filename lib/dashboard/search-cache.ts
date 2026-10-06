@@ -84,6 +84,9 @@ export async function readFilterCount(state: DiscoverState): Promise<number | nu
   }
 }
 
+/** How many of the landing's counts are read at once (see the landing page). */
+export const COUNT_READS_AT_ONCE = 3;
+
 /** How many published suppliers a search finds, cached an hour; null when it could not be read. */
 export async function readSearchCount(state: DiscoverState): Promise<number | null> {
   try {
