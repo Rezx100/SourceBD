@@ -43,7 +43,6 @@ begin
     end if;
   end loop;
 
-  -- Run twice, nothing breaks (idempotent).
   if (select count(*) from public._tmp_20260814_needs_human_hold) <> 1 then
     raise exception 'the lock changed a row';
   end if;
