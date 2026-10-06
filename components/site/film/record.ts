@@ -20,3 +20,11 @@ export const SOURCE_DATES: readonly [source: string, filed: string][] = [
   ["GOTS", "GOTS-19020 · 26 Jun 2026"],
   ["RSC", "factory 10861 · 24 Jul 2026"],
 ];
+
+/** The rows chapters 04 to 09 add, in order. The site comes from the registers' address: an area, not a building. */
+export const SITE: RecordRow = { label: "Site", value: "Nayapara, Kashimpur, Gazipur", from: "Factory · approximate location", marks: ["BGMEA", "BKMEA"] };
+export const EXPORTS: RecordRow = { label: "Export records", value: "Coming in v2" };
+/** Chapter 06: the same certificate, now the one to watch (`watch` turns its value amber; on the full tier only once its day comes). */
+export const GOTS_DUE: RecordRow = { ...GOTS, value: "GOTS-19020 · expires 15 Dec 2026", watch: true };
+export const UFLPA: RecordRow = { label: "UFLPA Entity List", value: "No link found", from: "US DHS · our copy from 14 May 2026" };
+export const RFQ: RecordRow = { label: "RFQ", value: "Waiting for a quote", from: "Sent 3 Oct 2026" };

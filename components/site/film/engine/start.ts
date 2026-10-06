@@ -1,11 +1,12 @@
 // Starts the film over the server-rendered scenes (handoff-home-film §5): the director, the planet, and on the
-// full tier the map, which lies under the planet and takes over from it in one move. Plain TypeScript:
-// `runtime.tsx` calls it after hydration, and the local harness calls it on a static page. It draws nothing of
-// its own and returns the function that stops it.
+// full tier the map, which lies under the planet and takes over from it in one move, and later becomes the ground
+// of scene 06 (the one map, moved into that scene's stage). Plain TypeScript: `runtime.tsx` calls it after
+// hydration, and the local harness calls it on a static page. It draws nothing of its own and returns the function
+// that stops it.
 
-import { startChapters } from "./chapters";
+import { siteAt, startChapters, type Point } from "./chapters";
 import { all, clamp, createDirector, fit, span } from "./director";
-import { DISTRICTS, STOPS, createMap, tileScale, type BdData, type FilmMap, type MapLib } from "./map";
+import { DISTRICTS, STOPS, cameraAt, createMap, siteStops, tileScale, type BdData, type FilmMap, type MapLib } from "./map";
 import { HOME, blendFrame, createPlanet, defaultFrame, frameFor, project, type Cell, type Mask, type Planet } from "./planet";
 import type { Tier } from "./tier";
 
@@ -22,6 +23,8 @@ const DATA = "/site/film/";
 const FAN: readonly [number, number][] = [[150, -70], [128, -128], [168, -12], [150, 46]];
 /** The share of the stage's width the words keep at the left of the map; the camera centres in the rest. */
 const WORDS_PAD = 0.38;
+/** Scene 06: the ring sits between the words and the record (the record takes the right 0.3 of the stage), a little above the middle. */
+const SITE_PAD = { left: 0.4, right: 0.37, top: 0.2 } as const;
 
 /**
  * The opening's one scroll, 0 to 1 (§3.5, §4), as four stretches: the planet dives, the words leave, the planet
@@ -61,6 +64,7 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
   let map: FilmMap | null = null;
   let mapAsked = false;
   let mapP = 0;
+  let chosen: [number, number] | undefined;
   // Without a planet, or without the map it gives way to, there is no film: the page goes back to the still tier,
   // which is the stacked page. Once the film has stopped nothing that arrives late may stop it again or change the tier.
   const giveUp = () => {
@@ -139,10 +143,13 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
     mapAsked = true;
     void Promise.all([loadMapLib(), fetch(`${DATA}bd.json`).then((r) => r.json() as Promise<BdData>), cells]).then(([lib, bd, file]) => {
       if (dead) return;
+      chosen = file.chosen;
       map = createMap(lib, stage, {
         bd,
         cells: file.cells,
         chosen: file.chosen,
+        // Whatever scene has the map once it is up says its camera again, and the threads that wait on it are laid.
+        onReady: () => director.replay(),
         // The country sits right of the words; for the close on one factory the light moves to the gap between
         // the words and the record.
         padding: () => {
@@ -161,11 +168,49 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
           for (const p of mapThread) p.setAttribute("d", d);
         },
       });
-      showMap(mapP);
+      if (owner === "site") placeSite();
+      else showMap(mapP);
       // Without the map (the library, its data, or a second drawing context refused) the planet would give way to
       // an empty stage: the page goes back to the stacked one, with its pictures. A throw while making the map
       // lands here too, which `.then(ok, fail)` would have let through.
     }).catch(giveUp);
+  };
+
+  // 06 · the same map, as the ground of the scene on the factory's own area. Its stage is moved into that scene the
+  // moment scene 05 has run its hold (the scene after it is then just below the screen), and back when it has not;
+  // one drawing context serves both. The chapters' engine asks for the camera at each step (`site`) and ties its
+  // thread to where the light is.
+  const sitePlace = $<HTMLElement>("[data-map-site]");
+  const home = stage ? { parent: stage.parentElement, next: stage.nextSibling } : null;
+  let owner: "opening" | "site" = "opening";
+  let siteP = 0;
+  const placeSite = () => {
+    if (!map || !chosen || !stage) return;
+    const at = siteAt(siteP);
+    map.setCamera(cameraAt(at.camera, siteStops(chosen)), () => {
+      const w = stage.clientWidth, h = stage.clientHeight;
+      return { left: Math.round(w * SITE_PAD.left), right: Math.round(w * SITE_PAD.right), top: Math.round(h * SITE_PAD.top), bottom: 0 };
+    });
+    map.setChosen(1);
+    map.setRing(at.ring);
+  };
+  const own = (want: typeof owner) => {
+    if (want === owner || !stage || !home?.parent || !sitePlace) return;
+    owner = want;
+    if (want === "site") sitePlace.appendChild(stage);
+    else home.parent.insertBefore(stage, home.next);
+    if (!map) return;
+    if (want === "site") placeSite();
+    else {
+      map.setRing(0);
+      showMap(mapP);
+    }
+  };
+  const site = (p: number): Point | null => {
+    siteP = p;
+    if (owner !== "site" || !map || !chosen) return null;
+    placeSite();
+    return map.project(chosen);
   };
 
   /** The opening at `p` on the full tier: the dive, the words, the handover, then the map. */
@@ -190,9 +235,10 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
   };
 
   // 04 onwards · the chapters that hold on the full tier (engine/chapters.ts).
-  const chapters = startChapters(root, tier);
+  const chapters = startChapters(root, tier, { site });
   const director = createDirector(root, (name, p) => {
     if (name === "opening") show(p);
+    if (name === "receipts" && tier === "full") own(p >= 1 ? "site" : "opening");
     // On a phone the planet holds while it turns and the rest is stacked: its own section is its clock, and its
     // thread draws with it.
     if (name === "planet" && tier === "lite") {
@@ -210,6 +256,7 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
     planet?.destroy();
     map?.destroy();
     // Everything written on the page is put back, so a page the film has left is the stacked page again.
+    if (owner === "site" && stage && home?.parent) home.parent.insertBefore(stage, home.next);
     for (const act of Object.values(acts)) if (act) Object.assign(act.style, { opacity: "", transform: "" });
     acts.hero?.removeAttribute("data-gone");
     acts.planet?.removeAttribute("data-past");

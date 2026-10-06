@@ -23,9 +23,9 @@ export function Pane<T extends ElementType = "div">({ as, material = "solid", si
   );
 }
 
-/** A source's approved one-colour mark (`context/logos.lock.md`), else a two-letter mono stamp. */
+/** A source's approved one-colour mark (`context/logos.lock.md`), else a two-letter mono stamp. The record sits screens down the page, so its marks are fetched when they near, not with the first screen. */
 function Mark({ source }: { source: string }) {
-  if (hasSourceMark(source)) return <SourceMark source={source} className="rec-mark" />;
+  if (hasSourceMark(source)) return <SourceMark source={source} className="rec-mark" lazy />;
   return (
     <span aria-hidden className="rec-mark flex size-6 shrink-0 items-center justify-center rounded-md border border-line font-mono text-xs text-ink-2">
       {source.slice(0, 2).toUpperCase()}
@@ -44,7 +44,12 @@ export type RecordRow = {
   marks?: string[];
   /** A row that arrives at its moment in a scene (engine/chapters.ts turns it on); on the full tier it is unseen until then. */
   beat?: boolean;
+  /** A row to watch: its value is amber. On the full tier it turns amber only once its day comes (`data-due`, written by the engine). */
+  watch?: boolean;
 };
+
+/** A value's colour: ink, or amber for a row to watch; on the full tier amber waits for the row's day (`data-due`). */
+const value = (watch?: boolean) => (watch ? "text-caution transition-colors duration-slow film-full:text-ink film-full:group-data-[due]/row:text-caution" : "text-ink");
 
 /**
  * The supplier record, the film's protagonist: it gains a row per chapter and never leaves. `arriving` names the
@@ -67,7 +72,7 @@ export function RecordPane({ name, line, rows, state, arriving, material = "soli
           {rows.map((r) => {
             const many = (r.marks?.length ?? 0) > 1;
             return (
-              <div key={r.label} data-row={r.label} data-beat={r.beat ? "" : undefined} className={cn("flex gap-3 border-t border-line py-3", arriving === r.label && "rec-arrive")}>
+              <div key={r.label} data-row={r.label} data-beat={r.beat ? "" : undefined} data-watch={r.watch ? "" : undefined} className={cn("group/row flex gap-3 border-t border-line py-3", arriving === r.label && "rec-arrive")}>
                 {r.marks?.length === 1 ? <Mark source={r.marks[0]!} /> : null}
                 <div className="rec-words flex min-w-0 flex-1 flex-col gap-0.5">
                   <dt className="text-xs text-ink-3">{r.label}</dt>
@@ -76,10 +81,10 @@ export function RecordPane({ name, line, rows, state, arriving, material = "soli
                       {r.marks!.map((s) => (
                         <Mark key={s} source={s} />
                       ))}
-                      <span className="pl-1 text-base font-semibold text-ink">{r.value}</span>
+                      <span className={cn("pl-1 text-base font-semibold", value(r.watch))}>{r.value}</span>
                     </dd>
                   ) : (
-                    <dd className="text-base font-semibold text-ink">{r.value}</dd>
+                    <dd className={cn("text-base font-semibold", value(r.watch))}>{r.value}</dd>
                   )}
                   {r.from ? <dd className="text-xs text-ink-3">{r.from}</dd> : null}
                   {r.mono ? <dd className="font-mono text-xs text-ink-3 [overflow-wrap:anywhere]">{r.mono}</dd> : null}

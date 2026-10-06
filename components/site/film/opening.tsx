@@ -34,7 +34,7 @@ const hero = "font-semibold tracking-[-0.03em] text-ink [text-wrap:balance] text
 const act = "relative flex flex-col gap-10 film-full:absolute film-full:inset-0 film-full:justify-center film-full:transition-opacity film-full:duration-slow";
 
 /** A picture of our own map for the tiers that do not draw it live, in the theme the system asks for. Decoration: the words carry the counts. */
-function MapStill({ name }: { name: string }) {
+export function MapStill({ name }: { name: string }) {
   return (
     <picture className="block w-full max-w-[720px] overflow-hidden rounded-pane max-sm:rounded-pane-phone film-full:hidden">
       <source media="(prefers-color-scheme: dark)" srcSet={`/site/film/${name}-dark.avif`} />

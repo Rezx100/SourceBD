@@ -473,6 +473,24 @@
     opacity: 0.5;
   }
 
+  /* Scenes 06 to 08 (§3.6, §3.7, §4): the carton slides in by --slide (written on the drawing), the calendar's line
+     is drawn by --t (written on it) and each mark on it shows once the line has reached it (--at, the mark's own
+     share of the span, set by the scene), both on the full tier by engine/chapters.ts; with nothing written the
+     carton stands and the line is whole with every mark. */
+  [data-film-tier="full"] svg[data-carton] {
+    opacity: var(--slide, 1);
+    transform: translateX(calc((var(--slide, 1) - 1) * 160px));
+  }
+
+  .time-run {
+    stroke-dasharray: 1;
+    stroke-dashoffset: calc(1 - var(--t, 1));
+  }
+
+  .time-mark {
+    opacity: clamp(0, calc((var(--t, 1) - var(--at, 0)) * 60), 1);
+  }
+
   /* A record whose rows are all still to come keeps no gap where they will be. */
   [data-film-tier="full"] .pane > dl:not(:has(> :not([data-beat]), > [data-on])) {
     margin-top: -1rem;
