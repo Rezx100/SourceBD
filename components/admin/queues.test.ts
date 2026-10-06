@@ -123,6 +123,15 @@ describe("/admin/queue", () => {
     assert.match(text(await page("queue/page.js", sp())), /No review items match this filter/);
   });
 
+  it("a row whose Release plan is not worked out yet says so, and only that row (0128)", async () => {
+    given({ admin_queue_list: ok({ total: 2, by_type: {}, rows: [{ ...QUEUE_ROW, queue_id: "p", buyer_destination: null, plan_pending: true }, { ...QUEUE_ROW, queue_id: "d", buyer_destination: null, plan_pending: false }] }) });
+    const t = text(await page("queue/page.js", sp()));
+    assert.equal(t.match(/Not yet classified/g)?.length, 1);
+    assert.doesNotMatch(t, /Buyer destination:/);
+    given({ admin_queue_list: ok({ total: 1, by_type: {}, rows: [{ ...QUEUE_ROW, reviewed_at: "2026-10-02T00:00:00Z", admin_action: "approve", buyer_destination: null, plan_pending: true }] }) });
+    assert.doesNotMatch(text(await page("queue/page.js", sp({ status: "reviewed" }))), /Not yet classified/, "a decided row is never pending");
+  });
+
   it("an unreadable read is an error and not an empty queue", async () => {
     given({ admin_queue_list: failed("permission denied") });
     const out = await page("queue/page.js", sp());
