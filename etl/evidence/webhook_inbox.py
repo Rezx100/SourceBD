@@ -136,6 +136,29 @@ def _monitor_scraper_code(cur: Any, monitor_id: str | None, page_url: str | None
     return str(row["scraper_code"]) if row else None
 
 
+def _enqueue_reread(cur: Any, scraper_code: str) -> bool:
+    """Queue the source's own re-read, at most one a day (spec-etl-freshness §4.1).
+
+    "The list page changed" now means "read the register again", which is
+    what refreshes a buyer's fact; re-verifying old citations did not. True
+    when a job was queued.
+    """
+    cur.execute(
+        """
+        insert into public.etl_job_queue (scraper_code, priority, metadata)
+        select %s, 100, jsonb_build_object('source', 'monitor')
+         where not exists (
+           select 1 from public.etl_job_queue q
+            where q.scraper_code = %s
+              and (q.status in ('pending', 'running')
+                   or q.requested_at > now() - interval '24 hours'))
+        returning id
+        """,
+        (scraper_code, scraper_code),
+    )
+    return cur.fetchone() is not None
+
+
 def _touch_monitor(cur: Any, monitor_id: str | None, status: str) -> None:
     """Record the monitor's heartbeat and what its last check concluded.
 
@@ -207,6 +230,8 @@ def process_pending(limit: int = 100) -> dict[str, int]:
                     scraper_code = _monitor_scraper_code(cur, monitor_id, page_url)
                     touched = _requeue_documents(cur, page_url, scraper_code)
                     result["requeued_documents"] += touched
+                    if scraper_code and _enqueue_reread(cur, scraper_code):
+                        result["rereads_queued"] = result.get("rereads_queued", 0) + 1
                     result["processed"] += 1
                     _finish(cur, event_id, "processed")
                     log.info(

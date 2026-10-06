@@ -29,6 +29,7 @@ from bs4 import BeautifulSoup
 from etl.acquire import AcquiredDoc, AcquireRequest
 from etl.core.acquiring import AcquiringScraper
 from etl.core.normalize import external_website
+from etl.core.listgate import list_row_hash, unchanged_record
 from etl.core.scraper import EvidenceAttachment, ScrapedRecord
 
 BASE = "https://www.bgmea.com.bd"
@@ -80,7 +81,7 @@ _FIELD_LOCATORS = {
 # records stored no scraped name, so a record merged into the wrong supplier
 # (the 24 Jul contact-overlap conflations — 808 of them) was undetectable from
 # the database alone. `ops/check_supplier_conflations.py` reads this field.
-_UNCITABLE_FIELDS = ("bgmea_member_type", "scraped_company_name")
+_UNCITABLE_FIELDS = ("bgmea_member_type", "scraped_company_name", "bgmea_list_hash")
 
 _CITY_KEYWORDS = {
     "Dhaka": ["Dhaka", "DOHS", "Uttara", "Gulshan", "Banani", "Dhanmondi", "Mirpur",
@@ -104,6 +105,12 @@ _CITY_KEYWORDS = {
     "Rangpur": ["Rangpur"],
     "Mymensingh": ["Mymensingh"],
 }
+
+
+def _source_ref(row: dict[str, str]) -> str:
+    """The record's key from its list row (the detail page usually agrees)."""
+    reg = (row.get("bgmea_reg_number") or "").strip()
+    return f"general:{reg}" if reg else f"member:{row['member_id']}"
 
 
 def _detect_city(text: str | None) -> str | None:
@@ -204,10 +211,15 @@ class BgmeaWebScraper(AcquiringScraper):
 
     code = "bgmea_web"
     source_code = "BGMEA"
-    transport = "firecrawl"
+    # S5 (spec-etl-freshness §2): the register serves its pages directly to a
+    # browser user agent; tested 6 Oct 2026 by fetching list and detail pages
+    # and parsing them with this class. Direct costs no Firecrawl credits.
+    # No fallback (house rule for direct sources): if the site starts blocking,
+    # the read fails loudly and the transport goes back to firecrawl.
+    transport = "direct"
     # These pages are server-rendered HTML, so httpx can stand in when Firecrawl
     # is unavailable. Parity between the two is enforced by `compare-parity`.
-    fallback_transport = "direct"
+    fallback_transport = None
     monitor_urls = (LIST_URL,)
     request_headers = _BROWSER_HEADERS
     # Politeness: the site is on shared hosting. Applies to the direct path;
@@ -270,6 +282,19 @@ class BgmeaWebScraper(AcquiringScraper):
             )
             for row in fresh:
                 seen_ids.add(row["member_id"])
+                # S5: an unchanged list row re-emits the stored record; the
+                # detail page is read only for a new or changed row (the
+                # bkmea_detail pattern). ponytail: a detail-only change (workers,
+                # capacity) on an unchanged row waits for its row to change;
+                # `run bgmea_web --full-refresh`-style passes are the remedy.
+                stored = unchanged_record(
+                    source_code=self.source_code, source_ref=_source_ref(row),
+                    company_name=row["company_name"], key="bgmea_list_hash",
+                    list_hash=list_row_hash(row),
+                )
+                if stored is not None:
+                    yield stored
+                    continue
                 detail_doc = await self.acquire(
                     AcquireRequest(
                         url=DETAIL_URL.format(mid=row["member_id"]),
@@ -452,6 +477,10 @@ class BgmeaWebScraper(AcquiringScraper):
         company = row["company_name"]
         # Stable cross-source key — prefix to avoid colliding with PDF/associate ref space
         source_ref = f"general:{reg}" if reg else f"member:{member_id}"
+        if source_ref != _source_ref(row):
+            # The detail page gave a number the list row did not: the gate
+            # keys on the list row, so it would never find this record again.
+            self.log.info("bgmea_web.ref_from_detail", member_id=member_id, ref=source_ref)
 
         # Address: prefer factory > mailing
         address = detail.get("factory_address") or detail.get("mailing_address")
@@ -487,6 +516,7 @@ class BgmeaWebScraper(AcquiringScraper):
             "bgmea_reg_number": reg or None,
             "bgmea_member_id": member_id,
             "bgmea_member_type": "general_manufacturer",
+            "bgmea_list_hash": list_row_hash(row),
             # The record must carry the name BGMEA published it under, so a
             # record sitting on the wrong supplier is detectable forever after
             # (see _UNCITABLE_FIELDS note). BKMEA records always had this via
