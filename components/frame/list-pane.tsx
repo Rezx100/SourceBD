@@ -33,7 +33,7 @@ export function clampPaneWidth(width: number, row: number): number {
 /**
  * The edge between the list and the docked pane, which the buyer drags (or moves with the arrow
  * keys) to give the record more or less room. A 1px line (the background, clipped to the content)
- * with 8px of padding either side to grab, taking 1px of the row.
+ * with 8px to grab over the pane's own padding, never over the list's scrollbar.
  */
 function PaneDivider({ width, row, paneId, onWidth }: { width: number; row: number; paneId: string; onWidth: (w: number, done: boolean) => void }) {
   const drag = useRef<{ x: number; w: number } | null>(null);
@@ -70,7 +70,7 @@ function PaneDivider({ width, row, paneId, onWidth }: { width: number; row: numb
         drag.current = null;
       }}
       onPointerCancel={() => (drag.current = null)}
-      className="relative z-10 -mx-2 hidden w-[17px] shrink-0 cursor-col-resize touch-none select-none bg-line bg-clip-content px-2 outline-none hover:bg-brand focus-visible:bg-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand xl:block"
+      className="relative z-10 -mr-2 hidden w-[9px] shrink-0 cursor-col-resize touch-none select-none bg-line bg-clip-content pr-2 outline-none hover:bg-brand focus-visible:bg-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand xl:block"
     />
   );
 }
@@ -143,16 +143,18 @@ export function ListPane({
   const [width, setWidth] = useState<number | null>(null);
   const [row, setRow] = useState(0);
   useEffect(() => {
-    const measure = () => setRow(rowRef.current?.clientWidth ?? 0);
-    measure();
     try {
       const saved = Number(window.localStorage.getItem(PANE_KEY));
       if (saved > 0) setWidth(saved);
     } catch {
       // Storage blocked (a private window): the default width.
     }
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
+    // The row, not the window: the sidebar folding changes it too.
+    const el = rowRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setRow(el.clientWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
   }, []);
   const paneWidth = clampPaneWidth(width ?? PANE_DEFAULT, row || PANE_DEFAULT / 0.6);
   const onWidth = (w: number, done: boolean) => {

@@ -487,6 +487,10 @@ describe("/app/discover?record= — the overlay over the results", () => {
     given({ profile: PROFILE, hscodes: HS, discover: { data: [{ ...ROW, total_count: 300 }], error: null } });
     const bare = hrefFors((await Page({ searchParams: Promise.resolve({ q: "knit" }) })) as ReactElement);
     assert.ok(bare.length > 0 && bare.every(([, f]) => !f({ ...state, page: 2 }).includes("record=")), "a closed pane is reopened by a results control");
+    // A product line open in the pane stays open too.
+    given({ profile: PROFILE, hscodes: HS, discover: { data: [{ ...ROW, total_count: 300 }], error: null } });
+    const line = hrefFors((await Page({ searchParams: Promise.resolve({ q: "knit", record: "aboni-knitwear", line: "6105" }) })) as ReactElement);
+    assert.ok(line.length > 0 && line.every(([, f]) => /record=aboni-knitwear&line=6105/.test(f({ ...state, per: 100, page: 1 }))), "a results control closes the open line");
   });
 
   it("an open record sits BESIDE the results, both live: nothing is inert, nothing claims to be modal", async () => {

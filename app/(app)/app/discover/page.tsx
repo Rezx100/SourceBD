@@ -149,7 +149,8 @@ export default async function BuyerDiscoverPage({
   const saveHref = withParams("save=1");
   // Every results control (page, page size, sort, a filter) keeps the open record and its tab:
   // the pane works on its own and the list's controls never close it (founder, 6 Oct 2026).
-  const hrefFor = (s: DiscoverState) => withPaneParams(discoverHref(s), recordParams);
+  const openParams = recordParams && lineCode ? `${recordParams}&line=${lineCode}` : recordParams;
+  const hrefFor = (s: DiscoverState) => withPaneParams(discoverHref(s), openParams);
   const nextHref = pages && state.page < pages ? hrefFor({ ...state, page: state.page + 1 }) : null;
 
   // Save this search is a popover under the bar (a sheet on a phone), not a pane: the results stay
