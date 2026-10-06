@@ -11,9 +11,9 @@ export function pickTier(d: Device): Tier {
   return d.width >= 1024 && d.finePointer ? "full" : "lite";
 }
 
-/** The film mounts when the address carries `?film=1`, or the build set NEXT_PUBLIC_HOME_FILM=1. Nothing else turns it on. */
-export function filmOn(search: string, env: string | undefined): boolean {
-  return env === "1" || new URLSearchParams(search).get("film") === "1";
+/** The film mounts when the address carries `?film=1` (`param` is that value), or the build set NEXT_PUBLIC_HOME_FILM=1. Nothing else turns it on. */
+export function filmOn(param: unknown, env: string | undefined): boolean {
+  return env === "1" || param === "1";
 }
 
 export function readDevice(): Device {
@@ -26,3 +26,10 @@ export function readDevice(): Device {
     saveData: saver,
   };
 }
+
+/**
+ * The tier, set on the root before the first paint: the page never draws stacked and then jumps into the film.
+ * It is the two functions above, as source, so there is one rule and not a second copy written as a string;
+ * `film.test.ts` runs this text against a stand-in browser.
+ */
+export const TIER_SCRIPT = `document.documentElement.dataset.filmTier=(${pickTier})((${readDevice})())`;

@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
+import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
@@ -14,8 +15,10 @@ import { currentChapter, sceneProgress, stepAt } from "./engine/director";
 import { DISTRICTS, STOPS, cameraAt, column, createMap, toGeo, unpack, type BdData } from "./engine/map";
 import { HOME, defaultFrame, facing, isLand, landPoints, lightSize, project, toVec } from "./engine/planet";
 import { V4Film } from "@/app/dev/ds/v4-film";
+import { Home } from "@/components/site/home";
+import { parseFacts } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
-import { filmOn, pickTier, type Device } from "./engine/tier";
+import { TIER_SCRIPT, filmOn, pickTier, type Device } from "./engine/tier";
 import { FieldPane, Pane, RecordPane, type RecordRow } from "./pane";
 import { Rail, Thread, ThreadLayer } from "./thread";
 
@@ -246,6 +249,71 @@ describe("/dev/ds", () => {
   });
 });
 
+describe("the home page, film off and film on", () => {
+  const router = { push() {}, replace() {}, refresh() {}, back() {}, forward() {}, prefetch() {} };
+  const facts = parseFacts(
+    { suppliers_indexed: 10268, last_refreshed_at: "2026-10-02T05:48:07Z" },
+    { sources_listed: 25, sources_with_records: 14, certificates_on_file: 4275, certificates_expired: 518, rsc_records: 2331, latest_read: "2026-10-02T05:48:07Z", sources: [] },
+  );
+  const page = (film?: boolean) => draw(createElement(AppRouterContext.Provider, { value: router as never }, createElement(Home, { facts, film })));
+  const off = page();
+  const on = page(true);
+  const text = (m: string) => m.replace(/<[^>]*>/g, " ").replace(/&#x27;|&rsquo;/g, "'").replace(/\s+/g, " ");
+
+  it("with the film off the page carries nothing of the film", () => {
+    assert.equal(off, page(false));
+    assert.doesNotMatch(off, /data-film|data-scene|data-theme-auto|data-ground|<script|<canvas|pane-glass/);
+    assert.match(off, /<main class="font-sans text-ink">/);
+  });
+
+  it("with the film on, the page opts in to the system's theme and sets its tier before anything is drawn", () => {
+    assert.match(on, /<main class="font-sans text-ink" data-film="" data-theme-auto=""><script>document\.documentElement\.dataset\.filmTier=/);
+  });
+
+  it("the opening keeps the page's one headline, its search on public Discover and its two ways in", () => {
+    assert.equal((on.match(/<h1/g) ?? []).length, 1);
+    assert.match(on, /<h1[^>]*>Know who you.re buying from\.<\/h1>/);
+    assert.equal((on.slice(0, on.indexOf('id="ch-02"')).match(/id="hero-q"/g) ?? []).length, 1);
+    assert.match(on, /<form[^>]*role="search"[^>]*action="\/discover"/);
+    assert.match(text(on), /10,268 Bangladesh garment suppliers, each checked against the registers that list them\./);
+    assert.match(text(on), /Try .knit dresses Gazipur. or .GOTS./);
+    assert.match(on, /href="\/signup"[^>]*>Start free/);
+    assert.match(on, /href="\/contact"[^>]*>Book a demo/);
+  });
+
+  it("the planet is night in either theme, and what it draws is decoration: the words carry the facts", () => {
+    assert.match(on, /<section data-scene="planet" data-chapter="ch-1" data-ground="night"/);
+    assert.match(on, /<canvas data-planet="true" aria-hidden="true"/);
+    assert.match(on, /<div data-planet-callouts="true" aria-hidden="true"/);
+  });
+
+  it("the four district counts are all in the page, dated, with no total, and none counts up", () => {
+    const t = text(on);
+    for (const n of ["4,421", "1,819", "1,628", "1,080"]) assert.ok(t.includes(n), n);
+    assert.match(t, /Most sit in four districts\./);
+    assert.match(t, /as counted on 3 Oct 2026/);
+    assert.equal((on.match(/id="ch-1"/g) ?? []).length, 1);
+    assert.equal((on.match(/<li data-on=""/g) ?? []).length, 1, "one district is on at a time, the first to begin with");
+    assert.doesNotMatch(t, /\b4[0-9] districts\b|districts in all|districts mapped/);
+    assert.doesNotMatch(on, /count-?up|data-count|aria-valuenow/);
+  });
+
+  it("the record still starts as a name with no rows and only ever gains them", () => {
+    const cards = [...on.matchAll(/<figure[^>]*aria-label="Supplier record: Mondol Fabrics Ltd\."[^>]*>([\s\S]*?)<\/figure>/g)].map((m) => m[1] ?? "");
+    const counts = cards.map((c) => (c.match(/<dt /g) ?? []).length);
+    assert.equal(counts[0], 0);
+    assert.ok(counts.every((n, i) => i === 0 || n >= (counts[i - 1] ?? 0)), counts.join(","));
+    assert.ok((counts.at(-1) ?? 0) >= 8);
+    assert.match(text(on), /A real record, as it stands on 3 Oct 2026\./);
+    assert.match(text(on), /1 of 10,268 suppliers/);
+  });
+
+  it("every later chapter is untouched", () => {
+    const rest = (m: string) => m.slice(m.indexOf('id="ch-02"'));
+    assert.equal(rest(on), rest(off));
+  });
+});
+
 describe("the tier and the flag", () => {
   const desk: Device = { width: 1440, finePointer: true, webgl2: true, reducedMotion: false, saveData: false };
 
@@ -265,12 +333,27 @@ describe("the tier and the flag", () => {
   });
 
   it("the film is off unless the address says film=1 or the build set the variable to 1", () => {
-    assert.equal(filmOn("", undefined), false);
-    assert.equal(filmOn("?q=knit", ""), false);
-    assert.equal(filmOn("?film=0", "0"), false);
-    assert.equal(filmOn("?film=true", "true"), false);
-    assert.equal(filmOn("?utm=x&film=1", undefined), true);
-    assert.equal(filmOn("", "1"), true);
+    assert.equal(filmOn(undefined, undefined), false);
+    assert.equal(filmOn("", ""), false);
+    assert.equal(filmOn("0", "0"), false);
+    assert.equal(filmOn("true", "true"), false);
+    assert.equal(filmOn(["1", "1"], undefined), false, "a repeated parameter is not the flag");
+    assert.equal(filmOn("1", undefined), true);
+    assert.equal(filmOn(undefined, "1"), true);
+  });
+
+  it("the tier is set on the root before the first paint, by the same rule, run here as the page runs it", () => {
+    const run = (width: number, media: Record<string, boolean>, webgl2: boolean) => {
+      const dataset: Record<string, string> = {};
+      const document = { documentElement: { dataset }, createElement: () => ({ getContext: () => (webgl2 ? {} : null) }) };
+      const matchMedia = (q: string) => ({ matches: media[q] ?? false });
+      new Function("document", "innerWidth", "matchMedia", "navigator", TIER_SCRIPT)(document, width, matchMedia, {});
+      return dataset.filmTier;
+    };
+    assert.equal(run(1440, { "(pointer: fine)": true }, true), "full");
+    assert.equal(run(390, {}, true), "lite");
+    assert.equal(run(1440, { "(pointer: fine)": true, "(prefers-reduced-motion: reduce)": true }, true), "still");
+    assert.equal(run(1440, { "(pointer: fine)": true }, false), "still");
   });
 });
 
@@ -348,6 +431,14 @@ describe("the planet's arithmetic", () => {
     const at = [0, 0.25, 0.5, 0.75, 1].map((p) => defaultFrame(p, 1440, 900));
     assert.ok(at.every((f, i) => i === 0 || f.r > at[i - 1]!.r));
     assert.ok(at[0]!.cx > 720 && at[0]!.cx < 1440 && at[0]!.cy > 0 && at[0]!.cy < 900);
+  });
+
+  it("on an upright screen Bangladesh, which the planet faces, is still on screen at rest and after the dive", () => {
+    for (const p of [0, 1]) {
+      const f = defaultFrame(p, 390, 844);
+      assert.ok(f.cx > 0 && f.cx < 390 && f.cy > 0 && f.cy < 844, `p=${p}`);
+    }
+    assert.ok(defaultFrame(0, 390, 844).r < 390, "the whole width is not land");
   });
 });
 
