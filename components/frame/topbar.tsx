@@ -18,7 +18,8 @@ import { SearchCarry } from "./search-carry";
 import { SearchShortcut } from "./search-shortcut";
 import { pageDrawsOwnField, useApplePlatform } from "./topbar-search-slot";
 
-export type FrameAccount = { initial: string | null; name: string | null; email: string | null; avatarUrl?: string | null };
+/** `admin` only adds a link: /admin checks the role on the server itself (AGENTS rule 7). */
+export type FrameAccount = { initial: string | null; name: string | null; email: string | null; avatarUrl?: string | null; admin?: boolean };
 
 /** The name the account menu prints: the profile's name, else the email's name part. */
 export function accountName(account: FrameAccount): string {
@@ -75,6 +76,7 @@ function AccountMenu({ account }: { account: FrameAccount }) {
           {account.email && account.email !== name ? <span className="text-sm text-ink-3 [overflow-wrap:anywhere]">{account.email}</span> : null}
         </div>
         <MenuSeparator />
+        {account.admin ? <MenuItem href="/admin">Admin console</MenuItem> : null}
         <MenuItem href="/app/settings">Settings</MenuItem>
         <MenuItem href="/app/settings/subscription">Plan</MenuItem>
         <MenuItem onSelect={() => setFeedback(true)}>Send feedback</MenuItem>

@@ -160,6 +160,12 @@ describe("the frame a buyer receives", () => {
     assert.equal((layout.match(/<AppFrame\b/g) ?? []).length, 1);
     assert.match(layout, /account=\{shell\.account\}/);
   });
+
+  it("an admin's account menu and phone sheet link to the console; nobody else's do (founder, 6 Oct 2026)", () => {
+    const read = (f: string) => readFileSync(path.join(process.cwd(), "components", "frame", f), "utf8");
+    assert.match(read("topbar.tsx"), /\{account\.admin \? <MenuItem href="\/admin">Admin console<\/MenuItem> : null\}/);
+    assert.match(read("phone.tsx"), /\{account\.admin \? <SheetRow href="\/admin"/);
+  });
 });
 
 describe("the list and the pane", () => {

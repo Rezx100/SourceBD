@@ -6,7 +6,7 @@
 // HS codes, Settings and Sign out. A page that draws its own bar (a record, a
 // thread: `data-detail`) hides both, as S-09 asks.
 
-import { CaretRight, ChatCircleText, GearSix, Hash, Package, SignOut, UserCircle } from "@phosphor-icons/react";
+import { CaretRight, ChatCircleText, GearSix, Hash, Package, ShieldCheck, SignOut, UserCircle } from "@phosphor-icons/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Dialog as D } from "radix-ui";
@@ -73,6 +73,7 @@ function AccountSheet({ account, onFeedback }: { account: FrameAccount; onFeedba
             </span>
           </div>
           <nav aria-label="Account" className="flex flex-col border-t border-line">
+            {account.admin ? <SheetRow href="/admin" icon={ShieldCheck} title="Admin console" line="Queues, suppliers, sources" /> : null}
             <SheetRow href="/app/products" icon={Package} title="Products" line="Only you see these" />
             <SheetRow href="/app/headings" icon={Hash} title="HS codes" line="HS headings from EPB export records" />
             <SheetRow href="/app/settings" icon={GearSix} title="Settings" line="Profile, company, team, emails" />
