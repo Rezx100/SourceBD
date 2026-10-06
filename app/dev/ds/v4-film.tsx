@@ -4,28 +4,16 @@
 // page's own (Mondol Fabrics Ltd., captured 3 Oct 2026), not an invented one. Server component.
 
 import type { ReactNode } from "react";
-import { AlertPane, Callout, FieldPane, NotePane, Pane, RecordPane, ScreenStage, type RecordRow } from "@/components/site/film/pane";
-import { Rail, Thread, ThreadLayer } from "@/components/site/film/thread";
+import { DIFFER, OVERLOCK_CAPTION, RECEIPTS } from "@/components/site/film/chapters";
+import { Atmosphere } from "@/components/site/film/closing";
+import { Overlock } from "@/components/site/film/flats";
+import { AlertPane, Callout, FieldPane, NotePane, Pane, RecordPane, Screen, ScreenStage, type RecordRow } from "@/components/site/film/pane";
+import { ReceiptRoll } from "@/components/site/film/receipts";
+import { BGMEA, GOTS, LINE, NAME, SAFETY, SOURCES } from "@/components/site/film/record";
+import { HOME_CHAPTERS, Rail, Thread, ThreadLayer } from "@/components/site/film/thread";
 import { cssVarName, darkColors, filmColors, fontSize, splitColorName, v4Colors } from "@/lib/design/tokens";
 
-export const FILM_ROWS: RecordRow[] = [
-  { label: "Sources", value: "5 sources", marks: ["EPB", "RSC", "BGMEA", "BKMEA", "GOTS"], mono: "EPB 2798 · RSC 10861 · BGMEA 4002 · BKMEA 1004-B/2006 · GOTS-19020" },
-  { label: "BGMEA membership", value: "General member · reg. no. 4002", from: "From BGMEA · checked 24 Jul 2026", marks: ["BGMEA"] },
-  { label: "GOTS certificate", value: "GOTS-19020 · valid until 15 Dec 2026", from: "GSCS International Ltd. · checked 26 Jun 2026", marks: ["GOTS"] },
-  { label: "Safety inspections", value: "Covered by RSC · factory 10861", from: "100% of initial items fixed · checked 24 Jul 2026", marks: ["RSC"] },
-];
-
-export const FILM_CHAPTERS = [
-  { id: "ch-1", n: "01", label: "Where are they?" },
-  { id: "ch-02", n: "02", label: "Who are they?" },
-  { id: "ch-03", n: "03", label: "Is that true?" },
-  { id: "ch-04", n: "04", label: "Where are they?" },
-  { id: "ch-05", n: "05", label: "Who do they ship to?" },
-  { id: "ch-06", n: "06", label: "Will it still be true next month?" },
-  { id: "ch-7", n: "07", label: "Can they make my order?" },
-  { id: "ch-8", n: "08", label: "Why should I trust you?" },
-  { id: "ch-9", n: "09", label: "The whole record" },
-];
+export const FILM_ROWS: RecordRow[] = [SOURCES, BGMEA, GOTS, SAFETY];
 
 const FILM_SIZES: [string, string][] = [
   ["film-hero", "text-film-hero"],
@@ -124,7 +112,7 @@ export function V4Film() {
 
       <Board title="RecordPane" note="The protagonist. A row arrives stitched: a green line sweeps its top edge, the mark stamps in, the words rise, and a green dot stays at its left. Sources shows the five marks, not a filled block.">
         <LiveGround className="flex justify-center rounded-lg p-6">
-          <RecordPane material="glass" name="Mondol Fabrics Ltd." line="Factory · Gazipur" state="Saved · watching" rows={FILM_ROWS} arriving="Safety inspections" />
+          <RecordPane material="glass" name={NAME} line={LINE} state="Saved · watching" rows={FILM_ROWS} arriving="Safety inspections" />
         </LiveGround>
       </Board>
 
@@ -134,7 +122,7 @@ export function V4Film() {
             The pin marks the area, not the building. From BGMEA and BKMEA.
           </NotePane>
           <NotePane tone="caution" eyebrow="2 sources differ">
-            RSC counted 2,060 workers in 2 buildings. BGMEA has 4,200 employees, as declared by the factory.
+            {DIFFER}
           </NotePane>
           <AlertPane when="Day 43 · 15 Nov 2026" title="A certificate is running out" due="Expires in 30 days · 15 Dec 2026" subject="Mondol Fabrics Ltd. · GOTS-19020" from="Issued by GSCS International Ltd." action="Ask for the renewal" />
           <LiveGround className="flex flex-col items-start gap-4 rounded-lg p-5">
@@ -149,7 +137,7 @@ export function V4Film() {
 
       <Board title="Thread and rail" note="One green path: solid when it leads, stitched when it joins, a bartack where it ends. The rail is nine ticks, each a link, with the dot on the current chapter.">
         <div className="flex gap-10">
-          <Rail chapters={FILM_CHAPTERS} current="ch-04" className="h-64" />
+          <Rail chapters={HOME_CHAPTERS} current="ch-04" className="h-64" />
           <div className="relative h-64 flex-1">
             <ThreadLayer viewBox="0 0 400 260">
               <Thread d="M20 50C120 0 210 100 380 34" />
@@ -163,14 +151,29 @@ export function V4Film() {
         </div>
       </Board>
 
-      <Board title="ScreenStage" note="A real screen on a stage: a window with no chrome, a spotlight on the part being talked about, a drawn cursor. The app has no dark theme, so the screen stays light in both.">
-        <ScreenStage
-          caption="Real v4 screen · Saved suppliers, 3 picked for one RFQ · the app is shown in its light theme"
-          spot={{ x: 78, y: 86 }}
-          cursor={{ x: 80, y: 88 }}
-          // eslint-disable-next-line @next/next/no-img-element -- a gallery sample of the staged screen
-          screen={<img src="/site/saved-selected.png" alt="" className="block h-auto w-full" />}
-        />
+      <Board title="Overlock" note="The flat of scene 04: a 1.5px ink line, fills from the surface roles, green only for thread, the five source tags hung on their threads. The scroll turns the handwheel, drops the needle and draws the seam; at rest every part is still.">
+        <figure className="flex flex-col gap-3">
+          <Overlock className="h-auto w-full max-w-[460px]" />
+          <figcaption className="font-mono text-xs text-ink-3">{OVERLOCK_CAPTION}</figcaption>
+        </figure>
+      </Board>
+
+      <Board title="Receipt roll" note="The roll of scene 05: paper, not glass. Mono type, a perforation per receipt, a torn edge, printing out of its slot as the scroll moves; whole at rest. Beside it, the note where two sources differ.">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-end">
+          <ReceiptRoll receipts={RECEIPTS} />
+          <NotePane tone="caution" eyebrow="2 sources differ" className="max-w-[280px]">
+            {DIFFER}
+          </NotePane>
+        </div>
+      </Board>
+
+      <Board title="ScreenStage" note="A real screen on a stage: an atmosphere behind, a window with no chrome, a spotlight on the part being talked about, a drawn cursor that presses. The app has no dark theme, so the screen stays light in both.">
+        <ScreenStage atmosphere={<Atmosphere />} caption="Real v4 screen · Saved suppliers, 3 picked for one RFQ · the app is light in both themes">
+          <Screen on cursor={{ x: 89.7, y: 24.8 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element -- a gallery sample of the staged screen */}
+            <img src="/site/saved-selected.png" alt="" className="block h-auto w-full" />
+          </Screen>
+        </ScreenStage>
       </Board>
     </div>
   );

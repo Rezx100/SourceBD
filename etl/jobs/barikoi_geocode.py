@@ -29,7 +29,7 @@ log = get_logger("etl.jobs.barikoi_geocode")
 
 RUPANTOR_URL = "https://barikoi.xyz/v2/api/search/rupantor/geocode"
 
-# Keep in sync with `normalizeAddressKey` in lib/barikoi.ts (REZ-28:
+# Keep in sync with `normalizeAddressKey` in lib/bd-place-lexicon.ts (REZ-28:
 # place lexicon applied so variant spellings share the same cache key).
 _WS = re.compile(r"\s+")
 

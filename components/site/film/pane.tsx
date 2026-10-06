@@ -23,9 +23,9 @@ export function Pane<T extends ElementType = "div">({ as, material = "solid", si
   );
 }
 
-/** A source's approved one-colour mark (`context/logos.lock.md`), else a two-letter mono stamp. */
+/** A source's approved one-colour mark (`context/logos.lock.md`), else a two-letter mono stamp. The record sits screens down the page, so its marks are fetched when they near, not with the first screen. */
 function Mark({ source }: { source: string }) {
-  if (hasSourceMark(source)) return <SourceMark source={source} className="rec-mark" />;
+  if (hasSourceMark(source)) return <SourceMark source={source} className="rec-mark" lazy />;
   return (
     <span aria-hidden className="rec-mark flex size-6 shrink-0 items-center justify-center rounded-md border border-line font-mono text-xs text-ink-2">
       {source.slice(0, 2).toUpperCase()}
@@ -42,7 +42,14 @@ export type RecordRow = {
   mono?: string;
   /** The source the row comes from, or every source for the "Sources" row: their marks are drawn, in this order. */
   marks?: string[];
+  /** A row that arrives at its moment in a scene (engine/chapters.ts turns it on); on the full tier it is unseen until then. */
+  beat?: boolean;
+  /** A row to watch: its value is amber. On the full tier it turns amber only once its day comes (`data-due`, written by the engine). */
+  watch?: boolean;
 };
+
+/** A value's colour: ink, or amber for a row to watch; on the full tier amber waits for the row's day (`data-due`). */
+const value = (watch?: boolean) => (watch ? "text-caution transition-colors duration-slow film-full:text-ink film-full:group-data-[due]/row:text-caution" : "text-ink");
 
 /**
  * The supplier record, the film's protagonist: it gains a row per chapter and never leaves. `arriving` names the
@@ -65,7 +72,7 @@ export function RecordPane({ name, line, rows, state, arriving, material = "soli
           {rows.map((r) => {
             const many = (r.marks?.length ?? 0) > 1;
             return (
-              <div key={r.label} className={cn("flex gap-3 border-t border-line py-3", arriving === r.label && "rec-arrive")}>
+              <div key={r.label} data-row={r.label} data-beat={r.beat ? "" : undefined} data-watch={r.watch ? "" : undefined} className={cn("group/row flex gap-3 border-t border-line py-3", arriving === r.label && "rec-arrive")}>
                 {r.marks?.length === 1 ? <Mark source={r.marks[0]!} /> : null}
                 <div className="rec-words flex min-w-0 flex-1 flex-col gap-0.5">
                   <dt className="text-xs text-ink-3">{r.label}</dt>
@@ -74,13 +81,23 @@ export function RecordPane({ name, line, rows, state, arriving, material = "soli
                       {r.marks!.map((s) => (
                         <Mark key={s} source={s} />
                       ))}
-                      <span className="pl-1 text-base font-semibold text-ink">{r.value}</span>
+                      <span className={cn("pl-1 text-base font-semibold", value(r.watch))}>{r.value}</span>
                     </dd>
                   ) : (
-                    <dd className="text-base font-semibold text-ink">{r.value}</dd>
+                    <dd className={cn("text-base font-semibold", value(r.watch))}>{r.value}</dd>
                   )}
                   {r.from ? <dd className="text-xs text-ink-3">{r.from}</dd> : null}
-                  {r.mono ? <dd className="font-mono text-xs text-ink-3 [overflow-wrap:anywhere]">{r.mono}</dd> : null}
+                  {r.mono ? (
+                    <dd className="font-mono text-xs text-ink-3">
+                      {/* A number never breaks inside itself: each item holds together, the line breaks at the separators. */}
+                      {r.mono.split(" · ").map((item, i) => (
+                        <span key={item}>
+                          {i ? " · " : ""}
+                          <span className="whitespace-nowrap">{item}</span>
+                        </span>
+                      ))}
+                    </dd>
+                  ) : null}
                 </div>
               </div>
             );
@@ -111,7 +128,13 @@ export function AlertPane({ when, title, due, subject, from, action, material = 
       <p className="rounded-sm bg-caution-tint px-2 py-0.5 text-sm font-medium text-caution">{due}</p>
       <p className="text-base text-ink">{subject}</p>
       {from ? <p className="text-sm text-ink-3">{from}</p> : null}
-      {action ? <p className="mt-1 flex h-9 items-center rounded-sm border border-line-strong px-3.5 text-base font-medium text-ink">{action}</p> : null}
+      {/* The next step, in words: nothing here is pressed, so nothing looks pressable. */}
+      {action ? (
+        <p className="mt-1 text-sm text-ink-2">
+          <span className="font-mono text-xs text-ink-3">Next </span>
+          <span className="font-medium text-ink">{action}</span>
+        </p>
+      ) : null}
     </Pane>
   );
 }
@@ -143,26 +166,54 @@ export function Callout({ place, figure, on, material = "glass", className }: { 
 }
 
 /**
- * A real screen, staged: a chrome-less window (a solid pane, tilted 3 degrees with the scroll's `--p`), a soft
- * spotlight on the part being talked about, a drawn cursor, and behind it an atmosphere (a still, or a loop on
- * the full tier). The app has no dark theme, so the screen is light in both themes and the caption says so.
+ * Real screens, staged (§3.8): behind them an atmosphere (our own drawn backdrop, or a still), on it one `Screen`
+ * per step, under it the caption. On the full tier the screens sit on one another and the step's own shows
+ * (`.stage-screen` in app/ds.css); on the other tiers they stand in a column. The app has no dark theme, so the
+ * screens are light in both themes and the caption says so.
  */
-export function ScreenStage({ atmosphere, screen, caption, spot, cursor, className }: { atmosphere?: ReactNode; screen: ReactNode; caption: string; spot?: { x: number; y: number }; cursor?: { x: number; y: number }; className?: string }) {
+export function ScreenStage({ atmosphere, caption, children, className, ...rest }: { atmosphere?: ReactNode; caption: string; children: ReactNode; className?: string } & Record<`data-${string}`, string>) {
   return (
-    <figure className={cn("flex flex-col gap-3", className)}>
+    <figure className={cn("flex flex-col gap-3", className)} {...rest}>
       <div className="relative isolate overflow-hidden rounded-pane bg-sunken px-10 py-12 [perspective:1800px] max-sm:rounded-pane-phone max-sm:px-4 max-sm:py-6">
-        {atmosphere ? <div className="absolute inset-0 -z-10 [&>*]:size-full [&>*]:object-cover">{atmosphere}</div> : null}
-        <Pane className="overflow-hidden p-0 [transform:rotateX(2deg)_rotateY(calc((var(--p,0.5)_-_0.5)_*_-6deg))] max-sm:p-0">
-          {screen}
-          {spot ? <span aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_var(--sx)_var(--sy),transparent_0,transparent_22%,rgb(var(--ds-scrim)/0.12)_60%)]" style={{ "--sx": `${spot.x}%`, "--sy": `${spot.y}%` } as CSSProperties} /> : null}
-          {cursor ? (
-            <svg aria-hidden viewBox="0 0 24 24" className="pointer-events-none absolute size-6 fill-ink stroke-surface" style={{ left: `${cursor.x}%`, top: `${cursor.y}%` }}>
-              <path d="M5 3l14 8-6.2 1.6L9.6 19z" strokeWidth="1.5" strokeLinejoin="round" />
-            </svg>
-          ) : null}
-        </Pane>
+        {/* Painted first, under the windows (each a positioned pane): the scale has no negative layer and needs none. */}
+        {atmosphere ? (
+          <div aria-hidden className="absolute inset-0 [&>*]:size-full [&>*]:object-cover">
+            {atmosphere}
+          </div>
+        ) : null}
+        <div className="flex flex-col gap-6 film-full:relative film-full:aspect-[1440/900]">{children}</div>
       </div>
       <figcaption className="font-mono text-xs text-ink-3">{caption}</figcaption>
     </figure>
+  );
+}
+
+/**
+ * One window on the stage: a real screen in a pane with no chrome, tilted a little by the scroll (`--p`, written
+ * on it). `on`: the step shown first on the full tier (the engine moves it). `cursor`: where the drawn cursor
+ * arrives and presses, as a share of the screen's width and height; a spotlight opens on that part as it comes
+ * (`--cursor`, written on the three parts). With nothing written the cursor rests on the button, pressed.
+ */
+export function Screen({ on, cursor, focus, children, className }: { on?: boolean; cursor?: { x: number; y: number }; focus?: { x: number; y: number }; children: ReactNode; className?: string }) {
+  const at = cursor ? ({ left: `${cursor.x}%`, top: `${cursor.y}%` } as CSSProperties) : undefined;
+  return (
+    <div data-screen data-on={on ? "" : undefined} className={cn("stage-screen", className)}>
+      <Pane data-window className="stage-window overflow-hidden p-0 max-sm:p-0">
+        {/* Under 1024px a whole screen is too small to read: the window shows the part the step is about, upright, at readable size. */}
+        <div className={cn(focus && "max-lg:aspect-[3/4] max-lg:overflow-hidden max-lg:[&>img]:size-full max-lg:[&>img]:object-cover")} style={focus ? ({ "--focus": `${focus.x}% ${focus.y}%` } as CSSProperties) : undefined}>
+          {children}
+        </div>
+        {cursor ? (
+          <>
+            <span data-cursor aria-hidden className="stage-spot pointer-events-none absolute inset-0 max-lg:hidden" style={{ "--sx": `${cursor.x}%`, "--sy": `${cursor.y}%` } as CSSProperties} />
+            <span data-cursor aria-hidden className="stage-press pointer-events-none absolute size-10 rounded-full border-2 border-brand-ink max-lg:hidden" style={at} />
+            {/* The arrow's tip (5, 3 in its box) sits on the point. */}
+            <svg data-cursor aria-hidden viewBox="0 0 24 24" className="stage-cursor pointer-events-none absolute -ml-[5px] -mt-[3px] size-6 fill-ink stroke-surface max-lg:hidden" style={at}>
+              <path d="M5 3l14 8-6.2 1.6L9.6 19z" strokeWidth="1.5" strokeLinejoin="round" />
+            </svg>
+          </>
+        ) : null}
+      </Pane>
+    </div>
   );
 }

@@ -10,10 +10,10 @@ from a dot on the planet to an RFQ. Front end only: no migration, no new package
 | 1 | The dark set, the film tokens and type sizes, the Pane family, the thread, the rail, `/dev/ds`, the planet and map engines, the open map data | built, 6 Oct 2026 |
 | 2a | The flag (`?film=1`), the tier, the director, and scenes 01 to 03 on all three tiers | built, 6 Oct 2026 |
 | 2b | The dated supplier cells and the factory's own geocode (`cells.json`), `ops/plans/home-film-data.md`, the credit on `/legal/data-sources`, stills for the lite and still tiers, the planet handing over to the map in one move, `cobe` out of `package.json` | built, 6 Oct 2026 |
-| 3 | The director and scenes 04 and 05 | |
-| 4 | Scenes 06 to 08 | |
-| 5 | Scenes 09 to 12 and the rail | |
-| 6 | The phone, the lite and still tiers, the budgets, accessibility; then the flag on (the founder's call) | |
+| 3 | Scenes 04 (the overlock, five sources as hang tags, the seam that ties on the Sources row) and 05 (the receipt roll printing three claims beside their sources, three rows arriving, the note where two sources differ), on all three tiers; the fixes from the review of PR 370 (the real supplier lights) | built, 6 Oct 2026 |
+| 4 | Scenes 06 (the one live map tilts down on to the factory's area with a ring a kilometre wide, the record gains Site), 07 (one blank carton, "Coming in v2") and 08 (the calendar: the day, the time line, the alert at day 43 and the GOTS row turning amber, the list checked again at day 59), on all three tiers; the slice-3 session's efficiency follow-up | built, 7 Oct 2026 |
+| 5 | Scenes 09 (the real product staged: three steps, three screens re-shot on the story's factory, the drawn cursor pressing Send RFQ, our own drawn atmosphere), 10 (the three promises, grey to ink), the source ladder arriving in rank order, 11 (the live figures rising whole) and 12 (night again, the same planet back, the whole record stitching on, the thread ending in a bartack at the RFQ, the search); the rail | built, 7 Oct 2026 |
+| 6 | The phone and the lite and still tiers checked, the budgets measured under a 4x throttle, the audit and the critique with their fixes (pinned stages, the roll's window, the place label, the rail stepping aside), the chrome in dark, the stills producer under `scripts/film`; Paper pages 32 and 33 and the flag PR wait on the founder | built, 7 Oct 2026 |
 
 Found while building slice 1, and where it differs from the text below:
 - `bkoi-gl` 3.3.0 runs a style of our own with only GeoJSON sources, no key and no tile request (checked 6 Oct).
@@ -39,19 +39,140 @@ Found while building slice 1, and where it differs from the text below:
 Found while building slice 2b (6 Oct 2026):
 - The Supabase connector was not authorised in that session either, so the cells were read through the project's
   own service key and the PostgREST API (the three reads `lib/nearby-suppliers.ts` makes), read-only, by
-  `scripts/film/build-cells.mjs`. Result: 9,541 of 10,277 published suppliers have a mapped address; 1,242 cells;
-  the SQL it stands for and the run are in `ops/plans/home-film-data.md`.
+  `scripts/film/build-cells.mjs`. The figures, the SQL it stands for and each run are in
+  `ops/plans/home-film-data.md` (rule 14: one place for every number).
 - The factory's own geocode is an area, not a building (Barikoi: `incomplete`, confidence 40). Scene 06's ring
   must be about a kilometre wide.
 - The opening is one scene (`data-scene="opening"`, 640svh on the full tier): the planet's act lies over the map
-  and gives way to it as the dive ends (`--hand`, `--words`, written by `engine/start.ts`, moved by CSS). The
+  and gives way to it as the dive ends (their opacity written by `engine/start.ts` on the two elements). The
   dive ends where the map's first camera begins (`handoverFrame`: the story's home at the map's centre, one
   degree the same width on both), so the map's first mark is now zoom 5.5, north up, barely tilted, and the
-  geography's box widened to [66, 6, 106, 38] so its edge is never seen.
+  geography's box widened (to [58, 4, 108, 40], `scripts/film/build-geo.mjs`) so its edge is not seen on a
+  stage up to about 3,000 px wide.
 - The still tier gets a picture of the planet; the lite and still tiers get pictures of the map in both themes
   (`public/site/film/*.avif`, six files, 11 to 32 KB each, shot from the engines by the local harness). The
   full tier draws both live and loads no picture on the first screen, as the budget asks.
 - `cobe` is out of `package.json` and the lockfile (`pnpm install --lockfile-only`; nothing imported it).
+
+Found while building slice 3 (6 Oct 2026):
+- A scene's progress is no longer written as `--p` on the scene itself: an inherited property set on a tall subtree
+  restyles all of it on every frame (measured at 2 to 6 ms). The engine writes each number on the small thing
+  that reads it (a thread's group, the roll, the overlock drawing, the two acts' own opacity).
+- A row that arrives at a beat takes no place until then (cut the way `sr-only` is, on the full tier, so a screen
+  reader still has it): the record starts compact and grows downward as its rows stitch on, standing at the top
+  beside the words so nothing that has arrived moves again. The tie's thread and the row appear together, and a
+  beat holds a little past its moment on the way back (`BAND`), so a scroll resting on the line does not flap it.
+- What has gone in the handover (the planet's act, the hero) stops catching the pointer but stays in the page:
+  the headline, the search and the two ways in are the page's for a screen reader; a control there that takes
+  keyboard focus brings its act back over the map.
+- The receipts are compact (12 px padding, 16 px lines) so the words and the whole roll fit a 900 px stage;
+  on a stage under about 850 px the last receipt runs past the bottom (slice 6 may give the roll a window that
+  scrolls as it prints). The note on the two sources that differ sits under the record, where no thread crosses.
+  The roll's slot is solid, not the glass of §3.9: the ground is plain (§2.2 wins), and the roll prints by one
+  continuous clip, not line by line.
+- The hang tags are drawn into the flat with 13-unit type, which is the system's 12 px floor at the height a 900
+  px stage gives the drawing (52svh); on a shorter stage or a phone the tags render smaller, and the record's
+  Sources row and the dated list under it carry the same numbers in real type.
+- Chapter 02's dated list of the five sources (each number and the day we read it) stays in the film, under the
+  record, as bare type on hairlines; both the film and the page without it draw it from `film/record.ts`.
+- The lite tier's planet could not stick: the stage wrapper's `overflow-hidden` made it the planet's scroll
+  container. The clip is now `film-full:` only. The stills are still those of 2b: the wider geography box adds
+  land the pictures' cameras never see. Their producer (`stills.cjs`) is the local harness, which is gitignored;
+  moving it under `scripts/film/` so a clean clone can re-shoot them is slice 6's.
+- The engine puts back everything it wrote when the film stops (`chapters.stop()`, `start.ts`'s `stop()`), so a
+  page that gives up mid-scene is the stacked page again; the roll follows `--print` on the full tier only.
+
+Found while building slice 4 (7 Oct 2026):
+- One map serves scenes 02, 03 and 06 (§3.5: one drawing context at a time). Its stage is moved into scene 06 the
+  moment scene 05 has run its hold (the scene after it is then just below the screen) and back when it has not;
+  `engine/start.ts` keeps the map and lends the chapters' engine a hook that moves the camera and says where the one
+  light is. A map that comes up late takes whichever scene has it.
+- The close on the factory's area draws no tiles and no roads: question 4 of §9 (the cost of Barikoi's tiles) has
+  no answer, so the default stands. The ground is our own data at zoom 13.6: the kilometre grid the lights are
+  counted on (`grid` in `engine/map.ts`, the same lattice as `scripts/film/build-cells.mjs`), each cell a soft
+  light, the one green light and the ring (`RING_KM`, 1 km: Barikoi gave the geocode as an area, confidence 40).
+  The district outlines and the rivers fade out past zoom 13, where their simplified lines would cross the ground.
+  The note says "the ring marks the area, not the building"; the page without the film still says "the pin".
+- The lite and still tiers get a picture of the same close (`map-site-{light,dark}.avif`, 3 KB each), shot by the
+  local `stills.cjs`.
+- Scene 08's day counter is three whole figures (0, 43, 59: the days the story stops on), one on at a time on the
+  full tier the way scene 02's district figures are, never a number counting up; the time line is drawn by `--t`
+  and each mark on it shows once the line has reached its own `--at`. The UFLPA check is a bare mono line under
+  the time line, not a pane; the row carries "No link found" and the date of our copy.
+- A row to watch (`watch` on `RecordRow`) renders its value amber; on the full tier it is ink until the engine
+  writes `data-due` on its day (Tailwind's `group-data-[due]/row` variant, no CSS of its own).
+- The dates of today's chapter 06 did not add up (1 Nov was called day 43): day 43 from 3 Oct is 15 Nov, which is
+  30 days before the certificate's 15 Dec. Both the film and the page without it now say 15 Nov (the one word
+  changed on the page without the film).
+- From the slice-3 session's follow-up, carried in this PR: the threads' geometry is measured only when the layout
+  moves (a resize, the fonts arriving, a row arriving), never per frame; the overlock's and the roll's variables
+  are written on the parts that read them; the record's marks are fetched lazily.
+
+Found while building slice 5 (7 Oct 2026):
+- The app screens were re-shot at 2x from the real route pages on the story's factory (the local harness's
+  `shots-film.cjs`, gitignored): Mondol Fabrics Ltd. is the first row picked on the Saved page, the one target of
+  the RFQ composer and a quote on the RFQ; the Compliance hub is the same page re-shot, its day counts from the real
+  page's clock. Each PNG is 2880 by 1800; `next/image` serves the sizes a screen needs.
+- The staged screens (§3.8): the three steps are three windows on one stage. On the full tier they sit on one
+  another and the step's own slides in (`.stage-screen`); each tilts by `--p` on itself; the cursor is on the
+  composer only, aimed at Send RFQ (92.6% across, 96.5% down), with a spotlight that opens as it comes and a press
+  at the end (`--cursor` on the three parts). The windows are solid, not glass: what is behind them is drawn, not
+  live (§2.2). The atmosphere is our own drawing until Higgsfield is reachable (question 1 of §9 has no answer): a
+  weave of fine lines, two soft pools of light and shade and one green thread in soft focus, in the ground's roles.
+- Scene 11's figures: four to a stage at `min(200px, 20svh)` (`.film-figure-fit`), the label beside each; four at
+  the spec's 200px would not fit a 900px stage. With no figure read the scene is left out, so the planet's cue for
+  the close is whichever scene precedes it, found once at start.
+- Scene 12: the planet's canvas is moved into the close's stage the way the map's is into scene 06, with a
+  composition of its own (`closeFrame`: behind the words, the light clear of the record); the thread runs from the
+  light to the RFQ row on every frame the planet draws (`chapters.closeFrom`) and ends in a bartack set at the row.
+  The close's search field is `close-q`; the opening's stays `hero-q`.
+- The rail is mounted last in the page, so the headline is still the first thing read; fixed at the left, its ticks
+  from 1280px (at 1024 they would cross the words). Over a night scene the director gives it the night's own ink
+  (`data-ground="night"` on the nav; the planet's act counts as night only until it has given way to the map), so
+  it reads in light mode too. The page's box is measured for the phone's line only where that line is drawn.
+- The lite and still tiers get scenes 09 to 12 stacked whole: the three screens in a column on the stage, the
+  promises, the ladder and the figures as today's, the close a night block with no planet yet (slice 6).
+- The close section and the FAQ after scene 12 are untouched, and the page without the film is byte for byte what
+  it was (film.test holds both); the promises, the five tiers and the screens' words are one data set in
+  `closing.tsx` that both branches draw from.
+
+Found while building slice 6 (7 Oct 2026):
+- The budgets (§7), measured on the local harness with Playwright and a 4x CPU throttle (`budget.md` beside the shots;
+  the harness is the real server-rendered page plus the engine, not the Next bundle, which this machine cannot build):
+  first screen 27 KB of script and 10 KB of data gzip, no picture; the whole page about 0.75 MB on a desktop and
+  0.59 MB on a phone once `next/image` has resized the four screens (the map library, 300 KB gzip, loads on the
+  full tier only); the `h1` is the largest paint on both; the engine's scroll work 0.45 ms a frame median, 5.4 ms at
+  the 95th (the map library's own frames are the heavy ones under the software GPU); the planet 32 to 62 frames a
+  second under SwiftShader, which cannot say what a real GPU gives. The one miss was layout shift on the desktop
+  (0.42): every held scene centred its content, so the words moved up as the record's rows arrived. Stages now hang
+  from `max(40px, 50svh - 380px)` and only grow downward; the second run measured 0.02.
+- The receipt roll on a stage too short for it (under about 850 px): on the full tier the roll is a window
+  (`100svh - 500px`) and the paper scrolls up as it prints (`--roll-over`, measured once per layout, read by the
+  paper's wrapper); each thread's start moves with its line and a thread whose line has left the window goes with
+  it. The rivers and the outlines fade out between zoom 12.2 and 13 instead of cutting off in one frame.
+- The rail steps aside past the last scene (no chapter is current over the close, the FAQ and the footer; the
+  phone's line stays), its links take the kit's focus ring, and the ticks show from 1280 px with the line below.
+- The critique (`/impeccable critique`, two assessments; `.impeccable/critique/`) scored the page 30 of 40 and
+  every scene at the bar except 06 (23: "no place" on the close without tiles) and 07 and 11 on the line. Fixed in
+  this slice: a place label beside the ring ("Kashimpur · Gazipur · ring 1 km", moved with the light), the figures'
+  labels given the room beside the figure, the ladder carrying its chapter's words like every scene, the record's
+  mono line breaking only between items (never inside "1004-B/2006"), and on a window under 1024 px each staged
+  screen cropped to the part its step names so its words can be read. Kept on purpose: "Coming in v2" (the brief
+  and `home.test.ts` hold it, though `voice-v4.md` lists V2 under never-say: the founder's call), the note under
+  scene 06 (§3.6 names it), "Updated … · latest register read …" (today's copy), the tabs of chapter 07 (today's
+  page). Scene 06 cannot read as a place without roads: question 4 of §9 (Barikoi tiles) decides it.
+- The audit (`/impeccable audit`): 19 of 20. The detector finds nothing in shipped markup; the one dead class
+  (`-z-10`, the scale has no numbers) is gone and a test refuses numeric z classes in the scene.
+- The lite tier keeps no holds but the planet's: a hold for the receipt roll would not fit a phone's stage (the
+  words alone are most of it), so the roll is whole there, as it was.
+- The nav, the footer and the cookie card read in dark (shot through the harness with `CHROME=1`); the nav's open
+  panel could not be shot without React and is to be looked at on the live site with `?film=1`.
+- The stills' producer is `scripts/film/build-stills.mjs` (a clean clone re-shoots the eight AVIFs with one
+  command; the harness's copy is retired). Sizes move a little from run to run because the lights breathe.
+- Paper pages 32 and 33 were not made: Paper Desktop was not running in this session, and the import goes through
+  its local connection. The flag PR (the last) waits for the founder's word.
+- Known ceilings kept: a stage wider than about 3,000 px may show the geography's box edge; the map library's
+  frames are what they are; on a stage under about 800 px the close's record runs past the bottom.
 
 ---
 
@@ -161,7 +282,7 @@ The source ladder sits between 10 and 11 as it is today, rows arriving in rank o
 - **Engine in plain TypeScript, no React inside:** `components/site/film/engine/{director,planet,map,tier}.ts`, mounted by thin client components. That keeps it testable under `node --test` and lets a plain HTML harness load it, because the dev server is unusable on this machine.
 - **Scroll:** CSS `position: sticky` inside tall sections; one passive scroll listener plus `requestAnimationFrame` writes a `--p` from 0 to 1 per scene, and CSS does the rest. No smooth-scroll takeover and no scroll library. `motion` is installed and unused: use it only if it earns its weight, else remove it.
 - **Tiers, decided once on load:** `full` (1024px and up, a fine pointer, WebGL2, no reduced motion, no data saver), `lite` (phones and tablets: short holds, the planet at low density, stills for the maps and the atmosphere, solid panes), `still` (reduced motion, data saver or no WebGL: today's stacked page).
-- **A flag:** the film mounts when the address carries `?film=1` or `NEXT_PUBLIC_HOME_FILM=1` is set; without it `/` is today's page. Every slice can then merge and ship without showing a half-built film, and the founder can look at the live site with `?film=1`. The last PR turns it on.
+- **A flag:** the film mounts when the address carries `?film=1` or `NEXT_PUBLIC_HOME_FILM=1` is set; without it `/` is today's page. Every slice can then merge and ship without showing a half-built film, and the founder can look at the live site with `?film=1`. The last PR turns it on. *(Turned on 7 Oct 2026, slice 6's last PR: `filmOn` is on unless the build sets `NEXT_PUBLIC_HOME_FILM=0` or the address says `?film=0`; `?film=1` wins over the build. The stacked page stays behind `?film=0` until the founder calls the film permanent, then the off branch of `home.tsx` goes.)*
 - **Words:** any new string goes through `voice-v4.md` and `ds-v4/copy-inventory.md`.
 
 ## 6. Data and assets

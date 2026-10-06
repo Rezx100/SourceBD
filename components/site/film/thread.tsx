@@ -32,14 +32,30 @@ export function Thread({ d, join, end }: { d: string; join?: boolean; end?: { x:
 
 export type RailChapter = { id: string; n: string; label: string };
 
-/** `current` is the chapter's id. The film's director moves `aria-current` as the page scrolls; nothing here counts. */
+/** The home page's nine chapters, as the rail links them: the opening, then the eight questions. */
+export const HOME_CHAPTERS: RailChapter[] = [
+  { id: "ch-1", n: "01", label: "Where the suppliers are" },
+  { id: "ch-02", n: "02", label: "Who are they?" },
+  { id: "ch-03", n: "03", label: "Is that true?" },
+  { id: "ch-04", n: "04", label: "Where are they?" },
+  { id: "ch-05", n: "05", label: "Who do they ship to?" },
+  { id: "ch-06", n: "06", label: "Will it still be true next month?" },
+  { id: "ch-7", n: "07", label: "Can they make my order?" },
+  { id: "ch-8", n: "08", label: "Why should I trust you?" },
+  { id: "ch-9", n: "09", label: "The whole record" },
+];
+
+/**
+ * `current` is the chapter's id. The film's director moves `aria-current` as the page scrolls; nothing here counts.
+ * The ticks show from 1280px, where they clear the words at the page's left edge; below that the thin line at the top.
+ */
 export function Rail({ chapters, current, className }: { chapters: RailChapter[]; current?: string; className?: string }) {
   return (
-    <nav aria-label="Chapters" className={className}>
-      <ol className="flex h-full flex-col justify-between border-l border-line max-lg:hidden">
+    <nav aria-label="Chapters" className={cn("group/rail", className)}>
+      <ol className="flex h-full flex-col justify-between border-l border-line transition-opacity duration-slow group-data-[off]/rail:pointer-events-none group-data-[off]/rail:opacity-0 max-xl:hidden">
         {chapters.map((c) => (
           <li key={c.id}>
-            <a href={`#${c.id}`} aria-current={c.id === current ? "step" : undefined} className="group -ml-px flex h-6 items-center gap-2 font-mono text-xs text-ink-3 hover:text-ink aria-[current]:font-semibold aria-[current]:text-ink">
+            <a href={`#${c.id}`} aria-current={c.id === current ? "step" : undefined} className="group -ml-px flex h-6 items-center gap-2 rounded-sm font-mono text-xs text-ink-3 outline-none hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus aria-[current]:font-semibold aria-[current]:text-ink">
               <span aria-hidden className="h-px w-2.5 bg-line-strong group-aria-[current]:-ml-1 group-aria-[current]:size-2.5 group-aria-[current]:rounded-full group-aria-[current]:bg-brand-ink" />
               {c.n}
               <span className="sr-only"> {c.label}</span>
@@ -47,7 +63,7 @@ export function Rail({ chapters, current, className }: { chapters: RailChapter[]
           </li>
         ))}
       </ol>
-      <span aria-hidden className="fixed inset-x-0 top-0 z-sticky h-0.5 origin-left bg-brand-ink [transform:scaleX(var(--film-p,0))] lg:hidden" />
+      <span aria-hidden className="fixed inset-x-0 top-0 z-sticky h-0.5 origin-left bg-brand-ink [transform:scaleX(var(--film-p,0))] xl:hidden" />
     </nav>
   );
 }

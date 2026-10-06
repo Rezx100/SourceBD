@@ -15,8 +15,9 @@ One row per square kilometre with published suppliers: longitude, latitude, coun
   same three reads `lib/nearby-suppliers.ts` makes, and the same two-step join (the raw address string first,
   then the normalised key `lib/barikoi.ts` uses). Nothing was written. No address, name or id left the
   machine: the script prints counts only, and the file holds cells and one place.
-- Run: `node scripts/film/build-cells.mjs --env E:/SourceBD/.env` (Node 25; the env file is read for the two
-  variables only).
+- Run: `node scripts/film/build-cells.mjs --env E:/SourceBD/.env` (Node 22.18 or newer, since the script imports a
+  `.ts` file; run on Node 25; the env file is read for the two variables only). The script refuses to write the
+  file unless every read is whole (as many rows as the server counts, none twice): the guard the first run lacked.
 
 The SQL it stands for:
 
@@ -26,8 +27,8 @@ with placed as (
   from public.suppliers s
   join public.v_supplier_addresses a on a.supplier_id = s.id
   join public.address_geocodes g
-    on g.address_raw = a.address            -- 9,510 suppliers
-    or g.address_norm = normalize(a.address) -- 32 more (lib/barikoi.ts normalizeAddressKey)
+    on g.address_raw = a.address            -- most suppliers match on the raw string
+    or g.address_norm = normalize(a.address) -- the rest on the key (normalizeAddressKey, lib/bd-place-lexicon.ts); the split is in the table below
   where s.is_published
     and g.latitude is not null and g.longitude is not null
     and g.longitude between 87.9 and 92.8 and g.latitude between 20.4 and 26.8
@@ -52,7 +53,7 @@ supplier counts once. The grid is 1 km square at the country's middle latitude (
 | Published suppliers | 10,277 |
 | Address rows read (`v_supplier_addresses`) | 27,873, for 9,971 suppliers |
 | Geocode rows with a position (`address_geocodes`) | 17,973 |
-| **Suppliers with a mapped address** | **9,541** (9,513 by the raw string, 29 by the normalised key) |
+| **Suppliers with a mapped address** | **9,541** (9,512 by the raw string, 29 by the normalised key) |
 | Positions outside Bangladesh skipped | 0 |
 | **Cells** | **1,245**; the fullest holds 231 suppliers; 488 hold one |
 | File | 22,494 bytes |
@@ -60,9 +61,12 @@ supplier counts once. The grid is 1 km square at the country's middle latitude (
 Re-run the same evening with the pages ordered (the first run read each table in unordered pages of a thousand,
 which Postgres may skip or repeat a row across; `build-cells.mjs` now orders every page and reads until an empty
 one). The mapped total was the same, 9,541; 399 cells changed their count and 55 appeared where 52 went, so the
-file and the six stills were remade from this run. The figures above are this run's.
+file and the six stills were remade from this run. The figures above are this run's, as printed by the script
+after the review of the same evening: the first print counted the story's own supplier twice in the split
+(9,513 + 29 did not make 9,541); the script now takes its place from the same pass as every other supplier, and a
+third run with the whole-read guard gave the same file, byte for byte.
 
-The page prints "One light per km² with suppliers · 9,541 of 10,277 have a mapped address · 6 Oct 2026"
+The page prints "One light per km² with suppliers · 9,541 of 10,277 have a mapped register address · 6 Oct 2026"
 (`LIGHTS_FILE` in `components/site/film/opening.tsx`; `film.test.ts` holds it to the file). The plan's "9,753 of
 10,268" was Paper's figure of 3 Oct and is superseded.
 
@@ -100,7 +104,10 @@ stacked page's picture (`MAP_CREDIT`), and is section 8 of `/legal/data-sources`
 
 6 Oct 2026, slice 2b: the box widened from [76, 12, 104, 33] to [66, 6, 106, 38], because the planet now hands
 over to the map at zoom 5.5, whose camera sees about 75° to 106° across a 1440 screen; the neighbours' rings are
-simplified at 0.015° to hold the size. `bd.json` went from 131,782 to 140,820 bytes.
+simplified at 0.015° to hold the size. `bd.json` went from 131,782 to 140,820 bytes. Later the same evening, after
+the review: widened again to [58, 4, 108, 40], so a stage up to about 3,000 px wide sees no edge at the handover
+either (the camera's left edge is at 69% of the stage's width from the centre); 147,712 bytes. The rivers keep
+their own nearer clip ([86.5, 20, 94, 27.2]): their ends sit inside the handover's view, far from the country.
 
 ## 3. The stills: `public/site/film/*.avif`
 

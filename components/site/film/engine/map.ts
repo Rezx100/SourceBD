@@ -5,8 +5,8 @@
 // the districts, the great rivers, the neighbours' land, and our supplier cells as light. Labels are DOM, never
 // map glyphs. Paint comes from the CSS variables of the container's scope, so a theme change is `recolor()`.
 //
-// Plain TypeScript with the library passed in: the pure parts (`unpack`, `toGeo`, `cameraAt`, `column`) run under
-// `node --test`, and the scene loads the library only when the dive nears.
+// Plain TypeScript with the library passed in: the pure parts (`unpack`, `toGeo`, `cameraAt`, `column`, `ring`,
+// `siteStops`) run under `node --test`, and the scene loads the library only when the dive nears.
 
 import { HOME, type Cell } from "./planet";
 
@@ -51,6 +51,35 @@ export const DISTRICTS = [
 ] as const satisfies readonly { key: string; label: string; count: number; at: readonly [number, number] }[];
 
 const METRES_PER_SUPPLIER = 16;
+/** How wide the ring round the story's place is, in kilometres: its geocode is an area, not a building (Barikoi: incomplete, confidence 40). */
+export const RING_KM = 1;
+
+/**
+ * The kilometre grid the lights are counted on (scripts/film/build-cells.mjs: square at the country's middle
+ * latitude), as lines round a place, `n` cells each way: the close on one area shows the ground the cells sit on.
+ */
+export function grid(at: Position, n = 16): Feature[] {
+  const kmLng = 111.32 * Math.cos((23.7 * Math.PI) / 180), kmLat = 110.57;
+  const [ix, iy] = [Math.floor(at[0] * kmLng), Math.floor(at[1] * kmLat)];
+  const line = (coordinates: Position[]): Feature => ({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates } });
+  const out: Feature[] = [];
+  for (let k = -n; k <= n + 1; k++) {
+    out.push(line([[(ix + k) / kmLng, (iy - n) / kmLat], [(ix + k) / kmLng, (iy + n + 1) / kmLat]]));
+    out.push(line([[(ix - n) / kmLng, (iy + k) / kmLat], [(ix + n + 1) / kmLng, (iy + k) / kmLat]]));
+  }
+  return out;
+}
+
+/** A ring of `n` points round a place, `km` wide: the area a geocode stands for, never a building. */
+export function ring(at: Position, km = RING_KM, n = 64): Feature {
+  const r = km / 2;
+  const pts: Position[] = [];
+  for (let i = 0; i <= n; i++) {
+    const a = (i / n) * Math.PI * 2;
+    pts.push([at[0] + (Math.cos(a) * r) / (111.32 * Math.cos((at[1] * Math.PI) / 180)), at[1] + (Math.sin(a) * r) / 110.57]);
+  }
+  return { type: "Feature", properties: { km }, geometry: { type: "Polygon", coordinates: [pts] } };
+}
 
 /** A six-sided column standing on a place: its footprint in degrees, its height in metres from the count. */
 export function column(at: Position, count: number, km = 4.5): Feature {
@@ -93,6 +122,12 @@ export const STOPS: readonly (Camera & { p: number })[] = [
   { p: 1, center: [90.33, 24.0], zoom: 9.4, pitch: 28, bearing: 0 },
 ];
 
+/**
+ * Scene 06's camera (§3.6): from where the opening left off, down on to the story's own place, pitched like a table
+ * so the ring reads as an area on the ground. The place comes from the record's dated geocode, passed in by the scene.
+ */
+export const siteStops = (at: Position): readonly (Camera & { p: number })[] => [{ ...STOPS.at(-1)!, p: 0 }, { p: 1, center: at, zoom: 13.6, pitch: 56, bearing: -14 }];
+
 /** The camera at `p`: eased between the two marks around it, so a step lands whole and a pause holds still. */
 export function cameraAt(p: number, stops: readonly (Camera & { p: number })[] = STOPS): Camera {
   const v = Math.max(stops[0]!.p, Math.min(stops.at(-1)!.p, p));
@@ -117,17 +152,23 @@ function paint(el: Element, on: string | null) {
   const sum = (name: string) => getComputedStyle(el).getPropertyValue(`--ds-${name}`).trim().split(/\s+/).reduce((s, v) => s + Number(v), 0);
   const glow = sum("map-light") < sum("map-land") ? 0.22 : 1;
   return {
-    sea: { "background-color": c("map-water") },
+    // At the close on one area the ground is the district's fill: the sea takes its colour there, so a tile the
+    // worker has not cut yet (a fast scroll outruns it) shows no hole.
+    sea: { "background-color": ["interpolate", ["linear"], ["zoom"], 12.5, c("map-water"), 13, c("sunken")] },
     around: { "fill-color": c("subtle") },
     halo: { "line-color": c("line-strong") },
     land: { "fill-color": c("map-land") },
     seams: { "line-color": c("map-land") },
-    four: { "fill-color": c("sunken"), "fill-outline-color": c("line-strong", 0.6) },
+    // The outline is the country's, not the close's: past zoom 13 its simplified line would cross the ground.
+    four: { "fill-color": c("sunken"), "fill-outline-color": ["interpolate", ["linear"], ["zoom"], 12.8, c("line-strong", 0.6), 13, c("line-strong", 0)] },
     rivers: { "line-color": c("map-water") },
     glow: { "heatmap-color": ["interpolate", ["linear"], ["heatmap-density"], 0, c("map-light", 0), 0.25, c("map-light", 0.28 * glow), 0.6, c("map-light", 0.6 * glow), 1, c("map-light", 0.92 * glow)] },
     cells: { "circle-color": c("map-light") },
     columns: { "fill-extrusion-color": ["case", ["==", ["get", "name"], on ?? ""], c("ink"), c("ink-3")] },
     chosen: { "circle-color": c("brand-ink"), "circle-stroke-color": c("surface") },
+    grid: { "line-color": c("line") },
+    "ring-fill": { "fill-color": c("brand-ink") },
+    ring: { "line-color": c("brand-ink") },
   } as Record<string, Record<string, unknown>>;
 }
 
@@ -138,6 +179,12 @@ export type FilmMap = {
   setDistrict(key: string | null): void;
   /** Dim the supplier lights and show the one green light at `chosen` (0 to 1). */
   setChosen(level: number): void;
+  /** Open the ring round `chosen` (0 to 1): scene 06. */
+  setRing(level: number): void;
+  /** A camera of the scene's own, in place of the opening's marks; `padding` is asked again on each resize. */
+  setCamera(camera: Camera, padding?: () => Record<string, number>): void;
+  /** Where a place is, in the map's own pixels, once the map is up. */
+  project(at: Position): { x: number; y: number } | null;
   recolor(): void;
   destroy(): void;
 };
@@ -148,13 +195,18 @@ export function createMap(lib: MapLib, container: HTMLElement, opts: {
   /** The place the story follows. It comes from the record's own dated geocode, passed in by the scene: never typed here. */
   chosen?: Position;
   padding?: () => Record<string, number>; onMove?: (project: (at: Position) => { x: number; y: number }) => void;
+  /** The style has loaded and the camera is placed: what was asked for while it loaded can be read back now. */
+  onReady?: () => void;
 }): FilmMap {
   const geo = toGeo(opts.bd, opts.cells);
   const four = ["in", ["get", "name"], ["literal", DISTRICTS.map((d) => d.key)]];
   // A zoom ramp: `at` zoom, value pairs. `by` scales every value (a number, or an expression such as a feature's width).
   const byZoom = (stops: number[], by: unknown = 1) => ["interpolate", ["linear"], ["zoom"], ...stops.map((v, i) => (i % 2 ? (typeof by === "number" ? v * by : ["*", v, by]) : v))];
+  /** The country's lines leave as the camera nears the close on one area: whole to zoom 12.2, gone by 13. */
+  const FADE = byZoom([12.2, 1, 13, 0]);
   let district: string | null = null;
   let chosen = 0;
+  let ringLevel = 0;
   const colours = paint(container, district);
   const map = new lib.Map({
     container,
@@ -164,27 +216,36 @@ export function createMap(lib: MapLib, container: HTMLElement, opts: {
     ...cameraAt(0),
     style: {
       version: 8,
-      sources: Object.fromEntries(Object.entries({ ...geo, chosen: collect(opts.chosen ? [{ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: opts.chosen } }] : []) }).map(([id, data]) => [id, { type: "geojson", data }])),
+      sources: Object.fromEntries(
+        Object.entries({ ...geo, chosen: collect(opts.chosen ? [{ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: opts.chosen } }] : []), ring: collect(opts.chosen ? [ring(opts.chosen)] : []), grid: collect(opts.chosen ? grid(opts.chosen) : []) }).map(([id, data]) => [id, { type: "geojson", data }]),
+      ),
       layers: [
         { id: "sea", type: "background", paint: colours.sea },
         { id: "around", type: "fill", source: "around", paint: colours.around },
-        { id: "halo", type: "line", source: "districts", paint: { ...colours.halo, "line-width": byZoom([5, 2.2, 10, 3.5]) } },
+        // The outlines and the rivers are drawn for the country, not for a close on one area: past zoom 13 their simplified
+        // lines would show, so they fade out over the last stretch of the tilt rather than cutting off in one frame.
+        { id: "halo", type: "line", source: "districts", maxzoom: 13.2, paint: { ...colours.halo, "line-width": byZoom([5, 2.2, 10, 3.5]), "line-opacity": FADE } },
         { id: "land", type: "fill", source: "districts", paint: { ...colours.land, "fill-antialias": false } },
-        { id: "seams", type: "line", source: "districts", paint: { ...colours.seams, "line-width": 1 } },
+        { id: "seams", type: "line", source: "districts", maxzoom: 13.2, paint: { ...colours.seams, "line-width": 1, "line-opacity": FADE } },
         { id: "four", type: "fill", source: "districts", filter: four, paint: colours.four },
-        { id: "rivers", type: "line", source: "rivers", layout: { "line-cap": "round", "line-join": "round" }, paint: { ...colours.rivers, "line-width": byZoom([5, 0.9, 7, 2.2, 10, 6], ["get", "w"]) } },
+        { id: "rivers", type: "line", source: "rivers", maxzoom: 13.2, layout: { "line-cap": "round", "line-join": "round" }, paint: { ...colours.rivers, "line-width": byZoom([5, 0.9, 7, 2.2, 10, 6], ["get", "w"]), "line-opacity": FADE } },
+        { id: "grid", type: "line", source: "grid", minzoom: 11.5, paint: { ...colours.grid, "line-width": 1, "line-opacity": byZoom([11.5, 0, 13.6, 0.8]) } },
         { id: "glow", type: "heatmap", source: "cells", maxzoom: 11, paint: { ...colours.glow, "heatmap-weight": ["interpolate", ["linear"], ["get", "count"], 1, 0.15, 40, 1], "heatmap-radius": byZoom([5, 5, 7, 12, 10, 34]), "heatmap-intensity": byZoom([5, 0.3, 7, 0.5, 10, 1.3]) } },
-        { id: "cells", type: "circle", source: "cells", paint: { ...colours.cells, "circle-radius": byZoom([5, 0.7, 8, 1.2, 12, 4]), "circle-opacity": byZoom([5, 0.45, 9.5, 0.9]) } },
+        // Past the heatmap's last zoom a cell is a soft light of its own, so the close on one area still reads as lit ground.
+        { id: "cells", type: "circle", source: "cells", paint: { ...colours.cells, "circle-radius": byZoom([5, 0.7, 8, 1.2, 12, 4, 14, 14]), "circle-blur": byZoom([11, 0, 14, 0.9]), "circle-opacity": byZoom([5, 0.45, 9.5, 0.9]) } },
         { id: "columns", type: "fill-extrusion", source: "columns", maxzoom: 8.6, paint: { ...colours.columns, "fill-extrusion-height": ["get", "height"], "fill-extrusion-opacity": 0.92 } },
-        { id: "chosen", type: "circle", source: "chosen", paint: { ...colours.chosen, "circle-radius": 7, "circle-stroke-width": 2, "circle-opacity": 0, "circle-stroke-opacity": 0 } },
+        { id: "ring-fill", type: "fill", source: "ring", paint: { ...colours["ring-fill"], "fill-opacity": 0 } },
+        { id: "ring", type: "line", source: "ring", paint: { ...colours.ring, "line-width": 2, "line-dasharray": [3, 2], "line-opacity": 0 } },
+        { id: "chosen", type: "circle", source: "chosen", paint: { ...colours.chosen, "circle-radius": byZoom([9, 7, 14, 9]), "circle-stroke-width": 2, "circle-opacity": 0, "circle-stroke-opacity": 0 } },
       ],
     },
   });
 
   let ready = false;
-  let p = 0;
+  /** The camera asked for, and the padding to ask again on each resize. */
+  let current: { camera: Camera; padding?: () => Record<string, number> } = { camera: cameraAt(0), padding: opts.padding };
   const place = () => {
-    map.jumpTo({ ...cameraAt(p), padding: opts.padding?.() });
+    map.jumpTo({ ...current.camera, padding: current.padding?.() });
     opts.onMove?.((at) => map.project(at));
   };
   const apply = (set: Record<string, Record<string, unknown>>) => {
@@ -197,12 +258,19 @@ export function createMap(lib: MapLib, container: HTMLElement, opts: {
     map.setPaintProperty("chosen", "circle-opacity", chosen);
     map.setPaintProperty("chosen", "circle-stroke-opacity", chosen);
   };
+  const open = () => {
+    if (!ready) return;
+    map.setPaintProperty("ring", "line-opacity", ringLevel);
+    map.setPaintProperty("ring-fill", "fill-opacity", ringLevel * 0.1);
+  };
   map.on("load", () => {
     ready = true;
     place();
     // What was asked for while the style was loading: the district, the colours of the theme, the one light.
     apply(paint(container, district));
     dim();
+    open();
+    opts.onReady?.();
   });
   const sized = new ResizeObserver(() => {
     map.resize();
@@ -212,16 +280,32 @@ export function createMap(lib: MapLib, container: HTMLElement, opts: {
 
   return {
     setProgress(v) {
-      p = v;
+      current = { camera: cameraAt(v), padding: opts.padding };
       if (ready) place();
     },
+    setCamera(camera, padding) {
+      current = { camera, padding };
+      if (ready) place();
+    },
+    project(at) {
+      return ready ? map.project(at) : null;
+    },
+    // Each is a round of paint, so a value that has not changed is not set again; what was asked before the style
+    // loaded is applied on `load`, so a map that comes up late still takes the scroll's current state.
     setDistrict(key) {
+      if (key === district) return;
       district = key;
       if (ready) apply({ columns: paint(container, district).columns! });
     },
     setChosen(level) {
+      if (level === chosen) return;
       chosen = level;
       dim();
+    },
+    setRing(level) {
+      if (level === ringLevel) return;
+      ringLevel = level;
+      open();
     },
     recolor() {
       if (ready) apply(paint(container, district));

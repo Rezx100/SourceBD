@@ -200,6 +200,8 @@ export type Planet = {
   setLights(level: number): void;
   /** Read the colours again after a theme change. */
   recolor(): void;
+  /** Another composition for the same planet (the close's): `null` puts the first one back. */
+  setFrame(frame: PlanetOptions["frame"] | null): void;
   /** Stop drawing and keep the context (the map runs meanwhile); `resume` brings the same planet back. */
   park(): void;
   resume(): void;
@@ -249,7 +251,7 @@ export function createPlanet(canvas: HTMLCanvasElement, opts: PlanetOptions): Pl
   };
 
   const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const frameOf = opts.frame ?? defaultFrame;
+  let frameOf = opts.frame ?? defaultFrame;
   let colors = { land: [0, 0, 0], light: [0, 0, 0], body: [0, 0, 0], rim: [0, 0, 0] } as Record<string, [number, number, number]>;
   const recolor = () => {
     colors = { land: cssColor(canvas, "--ds-ink-3"), light: cssColor(canvas, "--ds-map-light"), body: cssColor(canvas, "--ds-subtle"), rim: cssColor(canvas, "--ds-line-strong") };
@@ -278,8 +280,10 @@ export function createPlanet(canvas: HTMLCanvasElement, opts: PlanetOptions): Pl
       dragX += velX / 60;
       dragY += velY / 60;
     }
+    // The drift and a drag both settle as the camera comes in, so where the dive ends the planet is exactly where
+    // the map expects it (start.ts registers the two there).
     const calm = still ? 0 : 1 - p;
-    const rot = facing(HOME.lng + (Math.sin(t / 7.3) * 5.5 + Math.sin(t / 3.1) * 0.8) * calm - dragX, HOME.lat + Math.sin(t / 9.7) * 2.2 * calm + dragY);
+    const rot = facing(HOME.lng + (Math.sin(t / 7.3) * 5.5 + Math.sin(t / 3.1) * 0.8) * calm - dragX * (1 - p), HOME.lat + Math.sin(t / 9.7) * 2.2 * calm + dragY * (1 - p));
     const f = frameOf(p, w, h);
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clearColor(0, 0, 0, 0);
@@ -389,6 +393,10 @@ export function createPlanet(canvas: HTMLCanvasElement, opts: PlanetOptions): Pl
     },
     recolor() {
       recolor();
+      wake();
+    },
+    setFrame(frame) {
+      frameOf = frame ?? opts.frame ?? defaultFrame;
       wake();
     },
     park() {
