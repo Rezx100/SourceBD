@@ -3,8 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import { Button } from "@/components/ui/button";
+import { adminFieldClass } from "@/components/admin/data-ui";
+import { Button } from "@/components/kit";
 import { formatInterval } from "@/lib/admin/etl-scrapers";
+import { cn } from "@/lib/utils";
 
 const TIMER_OPTIONS = [
   { label: "Timer off", value: 0 },
@@ -93,46 +95,33 @@ export function AdminScraperActions({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          size="lg"
-          disabled={busy}
-          onClick={runNow}
-          className="min-h-[40px]"
-        >
+      <div className="flex flex-wrap items-center gap-2">
+        <Button kind="primary" disabled={busy} onClick={runNow}>
           {busy && active === "run" ? "Queueing..." : "Run now"}
         </Button>
-        <div className="flex min-h-[40px] overflow-hidden rounded-lg border border-neutral-200 bg-white">
-          <select
-            value={selectedInterval}
-            disabled={busy}
-            onChange={(event) => setSelectedInterval(event.target.value)}
-            className="min-h-[40px] bg-white px-3 text-sm text-ink-secondary outline-none"
-            aria-label={`Timer for ${scraperCode}`}
-          >
-            {TIMER_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-            {!TIMER_OPTIONS.some((option) => option.value === suggestedIntervalMinutes) ? (
-              <option value={suggestedIntervalMinutes}>
-                Suggested ({formatInterval(suggestedIntervalMinutes)})
-              </option>
-            ) : null}
-          </select>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={saveTimer}
-            className="border-l border-neutral-200 px-3 text-sm font-semibold text-brand-forest transition hover:bg-brand-forest-tint disabled:opacity-60"
-          >
-            {busy && active === "schedule" ? "Saving..." : "Save timer"}
-          </button>
-        </div>
+        <select
+          value={selectedInterval}
+          disabled={busy}
+          onChange={(event) => setSelectedInterval(event.target.value)}
+          className={cn(adminFieldClass, "w-auto")}
+          aria-label={`Timer for ${scraperCode}`}
+        >
+          {TIMER_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+          {!TIMER_OPTIONS.some((option) => option.value === suggestedIntervalMinutes) ? (
+            <option value={suggestedIntervalMinutes}>
+              Suggested ({formatInterval(suggestedIntervalMinutes)})
+            </option>
+          ) : null}
+        </select>
+        <Button kind="secondary" disabled={busy} onClick={saveTimer}>
+          {busy && active === "schedule" ? "Saving..." : "Save timer"}
+        </Button>
       </div>
-      {error ? <p className="text-xs text-sem-red">{error}</p> : null}
+      {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
     </div>
   );
 }
@@ -175,18 +164,10 @@ export function AdminScraperJobAction({
 
   return (
     <span className="inline-flex flex-col items-start gap-1">
-      <button
-        type="button"
-        disabled={pending}
-        onClick={submit}
-        className={
-          "rounded-pill border border-neutral-200 px-3 py-1.5 text-xs font-semibold text-ink-secondary transition hover:border-brand-forest/30 hover:bg-brand-forest-tint hover:text-brand-forest disabled:opacity-60" +
-          (label ? "" : " capitalize")
-        }
-      >
+      <Button kind="secondary" disabled={pending} onClick={submit} className={label ? undefined : "capitalize"}>
         {pending ? "Saving..." : (label ?? action)}
-      </button>
-      {error ? <span className="text-xs text-sem-red">{error}</span> : null}
+      </Button>
+      {error ? <span role="alert" className="text-sm text-danger">{error}</span> : null}
     </span>
   );
 }

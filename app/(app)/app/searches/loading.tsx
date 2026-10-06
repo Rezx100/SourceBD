@@ -1,12 +1,8 @@
-import { KitLoading } from "@/components/dashboard/kit-loading";
-import { PageSkeleton } from "@/components/dashboard/page-skeleton";
+import { SavedSkeleton } from "@/components/saved/list";
 
-// The layout draws the shell; this is the content region while the page loads.
+// The layout draws the frame; this is the content region while the saved searches load. The
+// `[id]` route is a route handler that redirects, not a page, so this does not sit above a status.
 
 export default function SearchesLoading() {
-  return (
-    <KitLoading>
-      <PageSkeleton kind="table" />
-    </KitLoading>
-  );
+  return <SavedSkeleton />;
 }

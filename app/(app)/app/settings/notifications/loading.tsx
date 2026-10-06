@@ -1,12 +1,7 @@
-import { KitLoading } from "@/components/dashboard/kit-loading";
-import { PageSkeleton } from "@/components/dashboard/page-skeleton";
+import { SettingsSkeleton } from "@/components/settings/shell";
 
-// The layout draws the shell; this is the content region while the page loads.
+// The layout draws the frame; this is the content region while Emails loads.
 
 export default function NotificationsLoading() {
-  return (
-    <KitLoading>
-      <PageSkeleton kind="form" />
-    </KitLoading>
-  );
+  return <SettingsSkeleton />;
 }

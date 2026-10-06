@@ -8,12 +8,15 @@
 // read from the body, and RLS (`pol_saved_suppliers_*_self`) enforces it again.
 
 import { PER_PAGE } from "@/lib/discover-v32-state";
+import { VIEWER_CANT_SAVE, workspaceCan, workspaceOwnerId } from "@/lib/workspace";
 
 export type SavedSupplierClient = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   from: (table: string) => any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   auth: { getUser: () => Promise<any> };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- optional: `workspace_owner` and `workspace_can` (0116).
+  rpc?: (fn: string, args?: Record<string, unknown>) => any;
 };
 
 export type SavedPostResult = { status: number; body: Record<string, unknown> };
@@ -44,8 +47,12 @@ export async function runSavedSupplierPost(input: {
   if (!ids) return { status: 400, body: { error: "invalid supplier_id" } };
 
   const { data: user } = await input.supabase.auth.getUser();
-  const ownerId = user?.user?.id;
-  if (!ownerId) return { status: 401, body: { error: "unauthorised" } };
+  const ownId = user?.user?.id;
+  if (!ownId) return { status: 401, body: { error: "unauthorised" } };
+  // On a team the list is the owner's (0116): the row is written under the workspace's owner, and the
+  // database refuses a Viewer. Before 0116, or on a failed read, this is the person's own id.
+  const ownerId = await workspaceOwnerId(input.supabase, ownId);
+  if (!(await workspaceCan(input.supabase, "save"))) return { status: 403, body: { error: VIEWER_CANT_SAVE } };
 
   // One upsert is all-or-nothing: `on conflict` absorbs duplicates but not a
   // foreign-key violation, so a single supplier DELETED since the page
@@ -73,6 +80,8 @@ export async function runSavedSupplierPost(input: {
   if (error) {
     // Removed between the listed-check and the write: the check excludes it
     // next time, so this one IS worth retrying, and the buyer is told so.
+    // A Viewer reaches here only when the role could not be asked first: the policy still says no.
+    if ((error as { code?: string }).code === "42501") return { status: 403, body: { error: VIEWER_CANT_SAVE } };
     if ((error as { code?: string }).code === "23503") {
       return { status: 409, body: { error: "A supplier was removed while saving. Save again." } };
     }

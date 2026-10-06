@@ -1,14 +1,6 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardMeta,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/kit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { SupplierProfileForm } from "@/components/supplier-profile-form";
 
@@ -69,86 +61,56 @@ export default async function SupplierProfileEdit({
   const reg = p.register;
   const sup = p.supplier;
 
+  const facts: [string, string, string?][] = [
+    ["Address", sup.address_raw ?? "—"],
+    ["Register email", reg.email_primary ?? "—", "[overflow-wrap:anywhere]"],
+    ["Register phones", (reg.phones ?? []).filter(Boolean).join(", ") || "—"],
+    ["Register website", reg.website ?? "—", "break-all"],
+    ["Register contact name", reg.contact_name ?? "—"],
+    ["Register contact role", reg.contact_role ?? "—"],
+  ];
+
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <header>
-        <p className="text-[12px] text-ink-tertiary">
-          Supplier · Profile · Edit
-        </p>
-        <h1 className="font-display text-2xl font-semibold tracking-tightish text-ink-primary">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">
           {sup.company_name}
         </h1>
-        <p className="mt-1 text-xs text-ink-tertiary">
+        <p className="text-md text-ink-2">
           {sup.entity_type.replace(/_/g, " ")} ·{" "}
           {[sup.city, sup.district].filter(Boolean).join(", ") || "—"}
         </p>
-        <div className="mt-3">
-          <Button asChild variant="outline" size="sm">
-            <Link href="/supplier/profile">← All companies</Link>
-          </Button>
+        <div className="mt-2">
+          <ButtonLink href="/supplier/profile" kind="secondary">
+            ← All companies
+          </ButtonLink>
         </div>
       </header>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Register record (read-only)</CardTitle>
-          <CardMeta>Tier 1–3 sources</CardMeta>
-        </CardHeader>
-        <CardContent>
-          <dl className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
-            <div>
-              <dt className="text-xs text-ink-tertiary">
-                Address
-              </dt>
-              <dd className="text-ink-primary">{sup.address_raw ?? "—"}</dd>
+      <section aria-label="Register record" className="rounded-md border border-line p-5">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-md font-semibold text-ink">Register record (read-only)</h2>
+          <p className="text-sm text-ink-3">Tier 1–3 sources</p>
+        </div>
+        <dl className="mt-4 grid grid-cols-1 gap-4 text-base md:grid-cols-2">
+          {facts.map(([label, value, extra]) => (
+            <div key={label} className="flex flex-col gap-0.5">
+              <dt className="text-xs text-ink-3">{label}</dt>
+              <dd className={extra ? `text-ink ${extra}` : "text-ink"}>{value}</dd>
             </div>
-            <div>
-              <dt className="text-xs text-ink-tertiary">
-                Register email
-              </dt>
-              <dd className="text-ink-primary">{reg.email_primary ?? "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-ink-tertiary">
-                Register phones
-              </dt>
-              <dd className="text-ink-primary">
-                {(reg.phones ?? []).filter(Boolean).join(", ") || "—"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs text-ink-tertiary">
-                Register website
-              </dt>
-              <dd className="text-ink-primary break-all">
-                {reg.website ?? "—"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs text-ink-tertiary">
-                Register contact name
-              </dt>
-              <dd className="text-ink-primary">{reg.contact_name ?? "—"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-ink-tertiary">
-                Register contact role
-              </dt>
-              <dd className="text-ink-primary">{reg.contact_role ?? "—"}</dd>
-            </div>
-          </dl>
-          <p className="mt-3 text-xs text-ink-tertiary">
-            These fields come from BGMEA / BKMEA / BTMA / BGAPMEA / RSC and
-            certification bodies. They are evidence-backed and the editor
-            cannot overwrite them. Use the form below to add supplier-attested
-            details that complement the register.
-          </p>
-        </CardContent>
-      </Card>
+          ))}
+        </dl>
+        <p className="mt-4 text-xs text-ink-3">
+          These fields come from BGMEA / BKMEA / BTMA / BGAPMEA / RSC and
+          certification bodies. They are evidence-backed and the editor
+          cannot overwrite them. Use the form below to add supplier-attested
+          details that complement the register.
+        </p>
+      </section>
 
       <SupplierProfileForm supplierId={sup.id} initial={p.editable} />
 
-      <p className="text-xs text-ink-tertiary">
+      <p className="text-xs text-ink-3">
         Last edited:{" "}
         {p.attested_at
           ? new Date(p.attested_at).toISOString().replace("T", " ").slice(0, 16) +

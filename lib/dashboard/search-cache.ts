@@ -22,7 +22,7 @@ import { createClient } from "@supabase/supabase-js";
 import { unstable_cache } from "next/cache";
 
 import { TAG_DISCOVER_SUPPLIERS } from "@/lib/cache/tags";
-import { fetchDiscoverV32, parseTotalCount, type DiscoverV32Row } from "@/lib/discover-v32-rpc";
+import { COUNT_ONLY_SORT, fetchDiscoverV32, parseTotalCount, type DiscoverV32Row } from "@/lib/discover-v32-rpc";
 import { discoverRpcArgs, serializeDiscoverState, type DiscoverState } from "@/lib/discover-v32-state";
 
 function anonClient() {
@@ -59,6 +59,28 @@ export async function readSearch(state: DiscoverState, own: () => Promise<Search
     )();
   } catch {
     return own();
+  }
+}
+
+/**
+ * The count behind the filter pane's "Show N suppliers": the same read the results make (the
+ * keyword's smart query included, so the pane and the page never disagree), one row, the cheap
+ * order, cached two minutes per search. Null when it could not be read.
+ */
+export async function readFilterCount(state: DiscoverState): Promise<number | null> {
+  const counted = { ...state, sort: COUNT_ONLY_SORT, page: 1 };
+  try {
+    return await unstable_cache(
+      async () => {
+        const read = await fetchDiscoverV32(anonClient(), counted, { limit: 1, offset: 0 });
+        if (read.error || read.total === null) throw new Error("count not read");
+        return read.total;
+      },
+      ["app-filter-count-v1", searchKey(counted)],
+      { revalidate: 120, tags: [TAG_DISCOVER_SUPPLIERS] },
+    )();
+  } catch {
+    return null;
   }
 }
 

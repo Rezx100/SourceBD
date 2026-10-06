@@ -3,25 +3,34 @@
 // from URL search params. Admin-only; middleware gates `/admin/*` and
 // the RPC re-checks role inside its body.
 
-import Link from "next/link";
+import { CheckCircle } from "@phosphor-icons/react/dist/ssr";
 
 import { AdminSanctionsDecideButton } from "@/components/admin-sanctions-decide-button";
 import {
-  ADMIN_SELECT_CLASS,
-  AdminActionLink,
-  AdminEmptyState,
-  AdminField,
-  AdminFilterPanel,
-  AdminPage,
-  AdminPageHeader,
-  AdminPagination,
-  AdminPanel,
+  Button,
+  Chip,
+  Empty,
+  FactChip,
+  Field,
+  InlineError,
+  Select,
+  Table,
+  Td,
+  Th,
+  Tr,
+  TypeChip,
+} from "@/components/kit";
+import {
+  HeadLink,
+  OutLink,
+  QueueColumn,
+  QueueFilter,
+  QueueHead,
+  QueueTable,
+  SupplierLink,
   formatAdminDate,
   humanizeAdminToken,
-} from "@/components/admin/admin-ui";
-import { Badge } from "@/components/ui/badge";
-import { ResponsiveTable, type Column } from "@/components/ui/responsive-table";
-import { Tag } from "@/components/ui/tag";
+} from "@/components/admin/queue-parts";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -79,6 +88,12 @@ function asStr(v: string | string[] | undefined): string {
   return s ?? "";
 }
 
+// The kit Select cannot hold an empty value, so its "Any" row posts this word; the page reads it as no filter.
+const ANY = "__any";
+
+const LEDE =
+  "Review auto-flagged sanctions matches. Confirm records a sanctioned supplier; clear records a false positive.";
+
 export default async function AdminSanctionsPage({
   searchParams,
 }: {
@@ -89,7 +104,7 @@ export default async function AdminSanctionsPage({
   const status: Status = (STATUSES as readonly string[]).includes(statusRaw)
     ? (statusRaw as Status)
     : "open";
-  const list = asStr(sp.list);
+  const list = asStr(sp.list) === ANY ? "" : asStr(sp.list);
   const page = Math.max(1, asInt(sp.page) ?? 1);
   const offset = (page - 1) * PAGE_SIZE;
 
@@ -103,15 +118,13 @@ export default async function AdminSanctionsPage({
 
   if (error || data == null) {
     return (
-      <AdminPage maxWidth="5xl">
-        <SanctionsHeader />
-        <AdminPanel>
-          <p className="text-sm text-sem-red">
-            Could not load queue
-            {error?.message ? <>: {error.message}</> : null}.
-          </p>
-        </AdminPanel>
-      </AdminPage>
+      <QueueColumn>
+        <QueueHead title="Sanctions queue" lede={LEDE} />
+        <InlineError>
+          Could not load queue
+          {error?.message ? <>: {error.message}</> : null}.
+        </InlineError>
+      </QueueColumn>
     );
   }
 
@@ -129,81 +142,130 @@ export default async function AdminSanctionsPage({
   };
 
   return (
-    <AdminPage maxWidth="5xl">
-      <SanctionsHeader total={doc.total} />
-
-      <AdminFilterPanel
-        title="Find sanctions reviews"
-        description="Filter screening hits by review state and sanctions list."
-      >
-          <form
-            method="get"
-            action="/admin/sanctions"
-            className="grid grid-cols-1 gap-3 sm:grid-cols-3"
-          >
-            <AdminField label="Status">
-              <select
-                name="status"
-                defaultValue={status}
-                className={ADMIN_SELECT_CLASS}
-              >
-                {STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {humanizeAdminToken(s)}
-                  </option>
-                ))}
-              </select>
-            </AdminField>
-            <AdminField label="Sanctions list">
-              <select
-                name="list"
-                defaultValue={list}
-                className={ADMIN_SELECT_CLASS}
-              >
-                <option value="">Any</option>
-                {SANCTIONS_LISTS.map((k) => (
-                  <option key={k} value={k}>
-                    {humanizeAdminToken(k)}
-                  </option>
-                ))}
-              </select>
-            </AdminField>
-            <div className="flex items-end">
-              <button
-                type="submit"
-                className="min-h-[44px] rounded-pill border border-brand-forest bg-brand-forest px-4 text-sm font-semibold text-white hover:bg-brand-forest-mid"
-              >
-                Apply
-              </button>
-            </div>
-          </form>
-      </AdminFilterPanel>
-
-      <AdminPanel
+    <QueueColumn>
+      <QueueHead
         title="Sanctions queue"
-        meta={`${doc.total} total · page ${page} / ${totalPages}`}
-        padded={false}
-      >
-          {doc.rows.length === 0 ? (
-            <div className="p-4 sm:p-5">
-              <AdminEmptyState
-                title="No sanctions hits in this state"
-                description="Try a different status or sanctions list."
-              />
-            </div>
-          ) : (
-            <ResponsiveTable
-              mode="stacked"
-              columns={SANCTIONS_COLUMNS}
-              rows={doc.rows}
-              rowKey={(r) => r.queue_id}
-              caption="Sanctions queue"
-              className="border-0 shadow-none"
+        lede={`${LEDE} ${doc.total} total in current filter.`}
+        actions={<HeadLink href="/admin/queue?type=sanctions_hit">Review hub</HeadLink>}
+      />
+
+      <QueueFilter action="/admin/sanctions">
+        <Field label="Status" className="min-w-[200px]">
+          {(a) => (
+            <Select
+              {...a}
+              name="status"
+              defaultValue={status}
+              options={STATUSES.map((s) => ({ value: s, label: humanizeAdminToken(s) }))}
             />
           )}
-      </AdminPanel>
-      <AdminPagination page={page} totalPages={totalPages} pageHref={pageHref} />
-    </AdminPage>
+        </Field>
+        <Field label="Sanctions list" className="min-w-[200px]">
+          {(a) => (
+            <Select
+              {...a}
+              name="list"
+              defaultValue={list || ANY}
+              options={[
+                { value: ANY, label: "Any" },
+                ...SANCTIONS_LISTS.map((k) => ({ value: k, label: humanizeAdminToken(k) })),
+              ]}
+            />
+          )}
+        </Field>
+        <Button type="submit" kind="primary">
+          Apply
+        </Button>
+      </QueueFilter>
+
+      <section className="flex flex-col gap-3">
+        <div className="flex flex-col gap-0.5">
+          <h2 className="text-lg font-semibold text-ink">Sanctions queue</h2>
+          <p className="text-sm text-ink-3">{`${doc.total} total · page ${page} / ${totalPages}`}</p>
+        </div>
+        {doc.rows.length === 0 ? (
+          <Empty title="No sanctions hits in this state">Try a different status or sanctions list.</Empty>
+        ) : (
+          <QueueTable
+            noun="sanctions hits"
+            total={doc.total}
+            page={page}
+            pages={totalPages}
+            perPage={PAGE_SIZE}
+            shown={doc.rows.length}
+            pageHref={pageHref}
+          >
+            <Table>
+              <caption className="sr-only">Sanctions queue</caption>
+              <thead>
+                <tr>
+                  <Th>Supplier</Th>
+                  <Th>Match</Th>
+                  <Th>Source</Th>
+                  <Th>Queued</Th>
+                  <Th align="right">
+                    <span className="sr-only">Action</span>
+                  </Th>
+                </tr>
+              </thead>
+              <tbody>
+                {doc.rows.map((r) => {
+                  const score = scoreOf(r.hit.match_score);
+                  return (
+                    <Tr key={r.queue_id} className="align-top">
+                      <Td>
+                        <span className="flex flex-wrap items-center gap-1.5">
+                          <SupplierLink id={r.supplier.id}>{r.supplier.company_name}</SupplierLink>
+                          <TypeChip>{humanizeAdminToken(r.supplier.entity_type)}</TypeChip>
+                          {r.hit.list ? (
+                            <FactChip state="disagree">{humanizeAdminToken(r.hit.list)}</FactChip>
+                          ) : null}
+                          {r.supplier.sanctioned_flag ? (
+                            <FactChip state="disagree">sanctioned</FactChip>
+                          ) : r.supplier.sanctions_cleared ? (
+                            <Chip icon={CheckCircle}>cleared</Chip>
+                          ) : null}
+                          {r.admin_action ? <TypeChip>{r.admin_action}</TypeChip> : null}
+                        </span>
+                      </Td>
+                      <Td>
+                        <span className="block text-sm text-ink-3">
+                          <span className="font-mono">
+                            {r.hit.matched_name ?? r.hit.entity_name ?? "—"}
+                          </span>
+                          {score != null ? ` · score ${score.toFixed(3)}` : ""}
+                          {r.hit.listed_date ? ` · listed ${r.hit.listed_date}` : ""}
+                          {r.supplier.sanctioned_reason ? (
+                            <span className="block text-ink-2">Reason: {r.supplier.sanctioned_reason}</span>
+                          ) : null}
+                        </span>
+                      </Td>
+                      <Td>{r.hit.source_url ? <OutLink href={r.hit.source_url} /> : "—"}</Td>
+                      <Td>
+                        <span className="block text-sm text-ink-3">
+                          {formatAdminDate(r.queue_created_at)}
+                          {r.reviewed_at ? ` · reviewed ${formatAdminDate(r.reviewed_at)}` : ""}
+                        </span>
+                      </Td>
+                      <Td align="right">
+                        {r.reviewed_at == null ? (
+                          <AdminSanctionsDecideButton
+                            queueId={r.queue_id}
+                            label={`${r.supplier.company_name}${r.hit.list ? ` · ${r.hit.list}` : ""}`}
+                          />
+                        ) : (
+                          <span className="text-ink-3">—</span>
+                        )}
+                      </Td>
+                    </Tr>
+                  );
+                })}
+              </tbody>
+            </Table>
+          </QueueTable>
+        )}
+      </section>
+    </QueueColumn>
   );
 }
 
@@ -211,104 +273,4 @@ function scoreOf(raw: number | string | null): number | null {
   if (raw == null) return null;
   const n = typeof raw === "number" ? raw : Number.parseFloat(String(raw));
   return Number.isFinite(n) ? n : null;
-}
-
-const SANCTIONS_COLUMNS: Column<Row>[] = [
-  {
-    key: "supplier",
-    label: "Supplier",
-    render: (r) => (
-      <span className="flex flex-wrap items-center gap-1.5">
-        <Link
-          href={`/admin/suppliers/${r.supplier.id}`}
-          className="text-sm font-semibold text-ink-primary hover:underline"
-        >
-          {r.supplier.company_name}
-        </Link>
-        <Tag>{humanizeAdminToken(r.supplier.entity_type)}</Tag>
-        {r.hit.list ? <Badge tone="alert">{humanizeAdminToken(r.hit.list)}</Badge> : null}
-        {r.supplier.sanctioned_flag ? (
-          <Badge tone="alert">sanctioned</Badge>
-        ) : r.supplier.sanctions_cleared ? (
-          <Badge tone="success">cleared</Badge>
-        ) : null}
-        {r.admin_action ? <Tag>{r.admin_action}</Tag> : null}
-      </span>
-    ),
-  },
-  {
-    key: "match",
-    label: "Match",
-    render: (r) => {
-      const score = scoreOf(r.hit.match_score);
-      return (
-        <span className="block text-xs text-ink-tertiary">
-          <span className="font-mono">
-            {r.hit.matched_name ?? r.hit.entity_name ?? "—"}
-          </span>
-          {score != null ? ` · score ${score.toFixed(3)}` : ""}
-          {r.hit.listed_date ? ` · listed ${r.hit.listed_date}` : ""}
-          {r.supplier.sanctioned_reason ? (
-            <span className="block text-ink-secondary">
-              Reason: {r.supplier.sanctioned_reason}
-            </span>
-          ) : null}
-        </span>
-      );
-    },
-  },
-  {
-    key: "source",
-    label: "Source",
-    render: (r) =>
-      r.hit.source_url ? (
-        <a
-          href={r.hit.source_url}
-          target="_blank"
-          rel="noreferrer"
-          className="font-mono text-xs text-accent-indigo hover:underline"
-        >
-          view
-        </a>
-      ) : (
-        "—"
-      ),
-  },
-  {
-    key: "meta",
-    label: "Queued",
-    render: (r) => (
-      <span className="block text-[12px] text-ink-tertiary">
-        {formatAdminDate(r.queue_created_at)}
-        {r.reviewed_at
-          ? ` · reviewed ${formatAdminDate(r.reviewed_at)}`
-          : ""}
-      </span>
-    ),
-  },
-  {
-    key: "action",
-    label: "",
-    numeric: true,
-    render: (r) =>
-      r.reviewed_at == null ? (
-        <AdminSanctionsDecideButton
-          queueId={r.queue_id}
-          label={`${r.supplier.company_name}${r.hit.list ? ` · ${r.hit.list}` : ""}`}
-        />
-      ) : (
-        <span className="text-ink-tertiary">—</span>
-      ),
-  },
-];
-
-function SanctionsHeader({ total }: { total?: number }) {
-  return (
-    <AdminPageHeader
-      kicker="Admin · Sanctions"
-      title="Sanctions queue"
-      description={`Review auto-flagged sanctions matches. Confirm records a sanctioned supplier; clear records a false positive.${typeof total === "number" ? ` ${total} total in current filter.` : ""}`}
-      actions={<AdminActionLink href="/admin/queue?type=sanctions_hit">Review hub</AdminActionLink>}
-    />
-  );
 }

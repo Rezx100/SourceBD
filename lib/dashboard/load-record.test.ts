@@ -192,6 +192,22 @@ describe("loadRecordSheet: the reads a row's id starts early", () => {
     assert.equal(c.asked.saved.at(-1), OWN, "saved was not read again for the record's own id");
     assert.ok(c.asked.rfqs.includes(OWN) && c.asked.workers.includes(OWN), "the record's own RFQs or workers were not read");
   });
+
+  it("reads the geocode cache only for the Sites tab, and a cache that cannot be read is no map, never 'not pinned'", async () => {
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    try {
+      const other = await loadRecordSheet(sheetClient(OWN), "aboni-knitwear", TODAY, {});
+      assert.ok(other && other.locations.length > 0, "guard: the fixture has sites");
+      assert.ok(other.locations.every((l) => l.pin === undefined), "a tab that draws no pin read the cache");
+      // No service key: the cache cannot be read, so no site claims to have no pin.
+      const sites = await loadRecordSheet(sheetClient(OWN), "aboni-knitwear", TODAY, { pins: true });
+      assert.ok(sites?.locations.every((l) => l.pin === undefined), "an unreadable cache was reported as sites with no pin");
+      assert.equal(sites?.locations.length, other.locations.length, "pins changed the number of sites");
+    } finally {
+      if (key !== undefined) process.env.SUPABASE_SERVICE_ROLE_KEY = key;
+    }
+  });
 });
 
 describe("fetchRecordRfqs", () => {

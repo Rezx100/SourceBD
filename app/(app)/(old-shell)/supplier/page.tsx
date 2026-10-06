@@ -1,16 +1,6 @@
 import Link from "next/link";
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardMeta,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tag } from "@/components/ui/tag";
-import { FormGrid } from "@/components/ui/form-grid";
-import { PageHeader } from "@/components/ui/page-kit";
+import { ButtonLink, TypeChip, linkClass } from "@/components/kit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 // Supplier portal landing (extended by Spec S1).
@@ -40,6 +30,26 @@ type ClaimMini = {
     district: string | null;
   };
 };
+
+function Panel({
+  title,
+  meta,
+  children,
+}: {
+  title: string;
+  meta: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section aria-label={title} className="rounded-md border border-line p-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-md font-semibold text-ink">{title}</h2>
+        <p className="text-sm text-ink-3">{meta}</p>
+      </div>
+      <div className="mt-4">{children}</div>
+    </section>
+  );
+}
 
 export default async function SupplierHome() {
   const supabase = await createSupabaseServerClient();
@@ -93,115 +103,100 @@ export default async function SupplierHome() {
   const acceptedRelCount = allRels.filter((r) => r.status === "accepted").length;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <PageHeader
-        kicker="Supplier"
-        title="Portal"
-        description="Manage your claimed companies, incoming RFQs and partner relationships."
-      />
+    <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">Portal</h1>
+        <p className="text-md text-ink-2">
+          Manage your claimed companies, incoming RFQs and partner relationships.
+        </p>
+      </header>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Claimed companies</CardTitle>
-          <CardMeta>{owned.length} owned</CardMeta>
-        </CardHeader>
-        <CardContent>
-          {owned.length === 0 ? (
-            <div className="space-y-3 text-sm text-ink-secondary">
-              <p>You haven&apos;t claimed any companies yet.</p>
-              <Button asChild variant="primary">
-                <Link href="/supplier/claim">Claim your company</Link>
-              </Button>
-            </div>
-          ) : (
-            <FormGrid cols={3}>
-              {owned.map((s) => (
-                <div
-                  key={s.id}
-                  className="flex flex-col gap-3 rounded-card border border-hairline bg-bg-l0 p-4"
-                >
-                  <div className="min-w-0">
-                    <Link
-                      href={`/app/suppliers/${s.slug}`}
-                      className="text-sm font-semibold text-ink-primary hover:underline"
-                    >
-                      {s.company_name}
-                    </Link>
-                    <p className="text-xs text-ink-tertiary">
-                      {s.entity_type.replace(/_/g, " ")} ·{" "}
-                      {[s.city, s.district].filter(Boolean).join(", ") || "—"}
-                    </p>
-                  </div>
-                  <div className="mt-auto flex items-center gap-2">
-                    <Tag>Owned</Tag>
-                    <Button asChild variant="primary" size="sm" className="ml-auto">
-                      <Link href={`/supplier/profile/${s.id}`}>
-                        Edit profile
-                      </Link>
-                    </Button>
-                  </div>
+      <Panel title="Claimed companies" meta={`${owned.length} owned`}>
+        {owned.length === 0 ? (
+          <div className="flex flex-col items-start gap-3 text-base text-ink-2">
+            <p>You haven&apos;t claimed any companies yet.</p>
+            <ButtonLink href="/supplier/claim" kind="primary">
+              Claim your company
+            </ButtonLink>
+          </div>
+        ) : (
+          <ul className="m-0 grid list-none grid-cols-1 gap-4 p-0 md:grid-cols-2 xl:grid-cols-3">
+            {owned.map((s) => (
+              <li
+                key={s.id}
+                className="flex flex-col gap-3 rounded-md border border-line bg-surface p-4"
+              >
+                <div className="min-w-0">
+                  <Link
+                    href={`/app/suppliers/${s.slug}`}
+                    className="text-base font-semibold text-ink hover:underline"
+                  >
+                    {s.company_name}
+                  </Link>
+                  <p className="text-sm text-ink-3">
+                    {s.entity_type.replace(/_/g, " ")} ·{" "}
+                    {[s.city, s.district].filter(Boolean).join(", ") || "—"}
+                  </p>
                 </div>
-              ))}
-            </FormGrid>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Pending claims</CardTitle>
-          <CardMeta>{openClaims.length} open</CardMeta>
-        </CardHeader>
-        <CardContent>
-          {openClaims.length === 0 ? (
-            <p className="text-sm text-ink-tertiary">
-              No claims awaiting verification or admin review.
-            </p>
-          ) : (
-            <FormGrid cols={2}>
-              {openClaims.map((c) => (
-                <div
-                  key={c.id}
-                  className="flex items-center justify-between gap-3 rounded-card border border-hairline bg-bg-l0 p-4"
-                >
-                  <div className="min-w-0">
-                    <Link
-                      href={`/supplier/claim/${c.id}`}
-                      className="text-sm font-semibold text-ink-primary hover:underline"
-                    >
-                      {c.supplier.company_name}
-                    </Link>
-                    <p className="text-xs text-ink-tertiary">
-                      {c.proof_email} ·{" "}
-                      {c.method === "domain_email" ? "Domain proof" : "Manual review"}
-                    </p>
-                  </div>
-                  <Tag>
-                    {c.status === "pending_email" ? "Awaiting email" : "Awaiting admin"}
-                  </Tag>
+                <div className="mt-auto flex items-center gap-2">
+                  <TypeChip>Owned</TypeChip>
+                  <ButtonLink
+                    href={`/supplier/profile/${s.id}`}
+                    kind="primary"
+                    className="ml-auto"
+                  >
+                    Edit profile
+                  </ButtonLink>
                 </div>
-              ))}
-            </FormGrid>
-          )}
-        </CardContent>
-      </Card>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>RFQ inbox</CardTitle>
-          <CardMeta>
-            {supplierRfqs.length} total · {openRfqCount} open
-          </CardMeta>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm text-ink-secondary">
+      <Panel title="Pending claims" meta={`${openClaims.length} open`}>
+        {openClaims.length === 0 ? (
+          <p className="text-base text-ink-3">
+            No claims awaiting verification or admin review.
+          </p>
+        ) : (
+          <ul className="m-0 grid list-none grid-cols-1 gap-4 p-0 md:grid-cols-2">
+            {openClaims.map((c) => (
+              <li
+                key={c.id}
+                className="flex items-center justify-between gap-3 rounded-md border border-line bg-surface p-4"
+              >
+                <div className="min-w-0">
+                  <Link
+                    href={`/supplier/claim/${c.id}`}
+                    className="text-base font-semibold text-ink hover:underline"
+                  >
+                    {c.supplier.company_name}
+                  </Link>
+                  <p className="text-sm text-ink-3 [overflow-wrap:anywhere]">
+                    {c.proof_email} ·{" "}
+                    {c.method === "domain_email" ? "Domain proof" : "Manual review"}
+                  </p>
+                </div>
+                <TypeChip className="shrink-0">
+                  {c.status === "pending_email" ? "Awaiting email" : "Awaiting admin"}
+                </TypeChip>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
+
+      <Panel
+        title="RFQ inbox"
+        meta={`${supplierRfqs.length} total · ${openRfqCount} open`}
+      >
+        <div className="flex flex-col items-start gap-3 text-base text-ink-2">
           {supplierRfqs.length === 0 ? (
             <p>
               No buyer RFQs yet. When a buyer addresses an RFQ to one of
               your claimed companies it will land in your{" "}
-              <Link
-                href="/supplier/rfqs"
-                className="font-semibold text-ink-primary hover:underline"
-              >
+              <Link href="/supplier/rfqs" className={linkClass}>
                 RFQs received
               </Link>{" "}
               inbox.
@@ -213,20 +208,17 @@ export default async function SupplierHome() {
                 : "All RFQs you have received are closed."}
             </p>
           )}
-          <Button asChild variant="primary" size="sm">
-            <Link href="/supplier/rfqs">Open RFQ inbox</Link>
-          </Button>
-        </CardContent>
-      </Card>
+          <ButtonLink href="/supplier/rfqs" kind="primary">
+            Open RFQ inbox
+          </ButtonLink>
+        </div>
+      </Panel>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Partners</CardTitle>
-          <CardMeta>
-            {acceptedRelCount} accepted · {pendingIncomingCount} awaiting you
-          </CardMeta>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm text-ink-secondary">
+      <Panel
+        title="Partners"
+        meta={`${acceptedRelCount} accepted · ${pendingIncomingCount} awaiting you`}
+      >
+        <div className="flex flex-col items-start gap-3 text-base text-ink-2">
           {allRels.length === 0 ? (
             <p>
               Declare partner factories or buying houses. Both sides must
@@ -244,11 +236,11 @@ export default async function SupplierHome() {
               {acceptedRelCount === 1 ? "" : "s"}.
             </p>
           )}
-          <Button asChild variant="primary" size="sm">
-            <Link href="/supplier/partners">Open partners</Link>
-          </Button>
-        </CardContent>
-      </Card>
+          <ButtonLink href="/supplier/partners" kind="primary">
+            Open partners
+          </ButtonLink>
+        </div>
+      </Panel>
     </div>
   );
 }

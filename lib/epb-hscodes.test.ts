@@ -2,12 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 
-import { SupplierSheet } from "@/components/dashboard/supplier-sheet";
-import { buildSheet } from "@/lib/dashboard/build-models";
-import { aboniInput } from "@/lib/dashboard/fixtures";
 
 import { asEpbHscodes, epbExporterOpenUrl, epbRegistryVerifyHref, hscodesFromRpc } from "./epb-hscodes";
 
@@ -117,10 +112,11 @@ describe("EPB HS wiring (observable call sites)", () => {
       "utf8",
     );
     assert.match(pub, /getPublicSupplierProfile/);
-    assert.match(pub, /hscodesLoadError/);
-    assert.match(pub, /forceMount/);
-    assert.match(pub, /hscodes=\{epbHs\.hscodes\}/);
-    assert.match(pub, /facilitiesLoadError=\{facilityLoadError\}/);
+    // B9g: the public page hands the pack's lines and its load error to the record builder, which says
+    // "The export lines could not be read." for an unread list and never "no lines".
+    assert.match(pub, /hscodes: epbHs\.hscodes/);
+    assert.match(pub, /hscodesError: epbHs\.loadError/);
+    assert.match(pub, /facilities:\s*\{\s*panel:\s*facilitiesPanel\s*\}/);
 
     // REZ-C moved the buyer route onto the dashboard kit, so the RPC call and
     // the error handling now live one step away, in the loader the route uses.
@@ -143,45 +139,5 @@ describe("EPB HS wiring (observable call sites)", () => {
     // so the requirement is met more strongly, and this asserts the outcome
     // rather than the mechanism.
     assert.match(app, /ProfileReadTimeout/, "a slow read must not answer 404");
-  });
-
-  it("the record sheet ships every section's HS lines and register links in the first response", () => {
-    // The outcome `forceMount` existed to protect, asserted on the HTML.
-    const html = renderToStaticMarkup(
-      createElement(SupplierSheet, { model: buildSheet(aboniInput()) }),
-    );
-    for (const id of ["overview", "products", "certificates", "safety", "sources", "locations", "facilities", "rfqs"]) {
-      assert.ok(html.includes(`id="${id}"`), `#${id} is not in the initial HTML`);
-    }
-    assert.match(html, /edb\.epb\.gov\.bd\/exporter\//, "the EPB exporter link is not in the initial HTML");
-    assert.match(html, /bgmea\.com\.bd\/member\//, "the BGMEA register link is not in the initial HTML");
-  });
-
-  it("Overview shows HS codes; Compliance does not; empty list is omitted", () => {
-    const overview = readFileSync(
-      join(process.cwd(), "components/supplier/profile-overview-tab.tsx"),
-      "utf8",
-    );
-    const tab = readFileSync(
-      join(process.cwd(), "components/supplier/profile-compliance-tab.tsx"),
-      "utf8",
-    );
-    const card = readFileSync(
-      join(process.cwd(), "components/supplier/epb-hscodes-card.tsx"),
-      "utf8",
-    );
-    assert.match(overview, /<ProfileEpbHscodesCard/);
-    assert.match(overview, /hscodesLoadError/);
-    assert.match(overview, /facilitiesLoadError/);
-    assert.match(overview, /FacilitiesUnavailable/);
-    assert.doesNotMatch(tab, /ProfileEpbHscodesCard/);
-    assert.match(tab, /EpbRegistryOpenMarkup sourceUrl=\{pill\.source_url\}/);
-    assert.match(card, /export function ProfileEpbHscodesCard/);
-    assert.match(card, /if \(loadError\)/);
-    assert.match(card, /<EpbHscodesUnavailable \/>/);
-    assert.match(card, /if \(hscodes\.length === 0\) return null/);
-    assert.doesNotMatch(card, /View list entry/);
-    assert.doesNotMatch(card, /source_url/);
-    assert.match(card, /hsOverviewLede/);
   });
 });

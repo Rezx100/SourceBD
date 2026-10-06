@@ -122,7 +122,8 @@ function run(env: Record<string, string>, opts: { withStub?: boolean } = {}): { 
   let stderr = "";
   try {
     execFileSync("bash", [SCRIPT], {
-      env: { ...base, ...env },
+      // `next`'s types (a page's `Metadata` import) make NODE_ENV a required key of ProcessEnv; the script is given its own.
+      env: { ...base, ...env } as NodeJS.ProcessEnv,
       stdio: ["ignore", "pipe", "pipe"],
       encoding: "utf8",
     });
@@ -187,7 +188,10 @@ describe("the migration replay actually replays, and says so when it does not", 
     // 3. Order: guard, bootstrap, migrations, assertions.
     assert.match(args[0] ?? "", /-f -$/, "the guard was not the first thing psql was asked to run");
     assert.match(args[1] ?? "", /00-supabase-bootstrap\.sql/, "the bootstrap did not run second");
-    assert.match(args[args.length - 1] ?? "", /assert-0104\.sql/, "the behaviour assertions did not run last");
+    assert.match(args[args.length - 1] ?? "", /assert-\d{4}\.sql/, "the behaviour assertions did not run last");
+    for (const n of ["0104", "0109"]) {
+      assert.ok(args.some((a) => a.includes(`assert-${n}.sql`)), `assert-${n}.sql did not run`);
+    }
 
     // 4. Every migration on disk was applied, and the newest numbered one last.
     const applied = args.filter((a) => a.includes("supabase/migrations/") || a.includes("supabase\\migrations\\"));

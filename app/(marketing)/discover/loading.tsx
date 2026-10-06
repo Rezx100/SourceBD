@@ -1,20 +1,26 @@
-// I-027 — Public-discover skeleton (marketing chrome). Centered search
-// hero silhouette matching the no-query initial state.
+// I-027 — Public-discover skeleton (marketing chrome): the page's own start (label, headline, line, search box)
+// and the rows that load under it, drawn from the kit's skeletons.
 
-import { Skeleton, SkeletonRegion } from "@/components/ui/skeleton";
+import { RowSkeleton, Skeleton } from "@/components/kit";
+import { wrap } from "@/components/site/parts";
+import { cn } from "@/lib/utils";
 
 export default function PublicDiscoverLoading() {
   return (
-    <SkeletonRegion className="mx-auto flex min-h-[calc(100dvh-4rem)] max-w-6xl flex-col px-4 py-8 sm:px-6">
-      <div className="flex flex-1 flex-col items-center justify-center text-center">
-        <div className="mx-auto flex w-full max-w-2xl flex-col items-center gap-5">
-          <div className="space-y-1.5">
-            <Skeleton w={220} h={26} />
-            <Skeleton w={340} h={14} />
-          </div>
-          <Skeleton w="100%" h={48} shape="pill" tone="card" />
+    <main className="font-sans text-ink">
+      <section className="pb-10 pt-20 max-md:pb-6 max-md:pt-10">
+        <div className={cn(wrap, "flex flex-col gap-6")}>
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-12 w-full max-w-[560px]" />
+          <Skeleton tone="subtle" className="h-5 w-full max-w-[420px]" />
+          <Skeleton className="h-12 w-full max-w-[560px]" />
         </div>
-      </div>
-    </SkeletonRegion>
+      </section>
+      <section className="pb-24 max-md:pb-14">
+        <div className={wrap}>
+          <RowSkeleton rows={4} />
+        </div>
+      </section>
+    </main>
   );
 }

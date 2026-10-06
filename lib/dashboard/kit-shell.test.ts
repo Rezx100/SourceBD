@@ -41,7 +41,8 @@ describe("one shell per /app page, drawn by the buyer layout", () => {
 
   it("the buyer layout draws the shell, once", () => {
     const layout = readFileSync(path.join(ROOT, "layout.tsx"), "utf8");
-    assert.equal((layout.match(/<AppShell\b/g) ?? []).length, 1, "the layout draws the shell exactly once");
+    // The v4 frame since B3 (4 Oct 2026); `components/frame/frame.test.ts` renders it.
+    assert.equal((layout.match(/<AppFrame\b/g) ?? []).length, 1, "the layout draws the frame exactly once");
   });
 
   it("finds the buyer pages, including the search, the record and the line page", () => {
@@ -55,7 +56,7 @@ describe("one shell per /app page, drawn by the buyer layout", () => {
   for (const file of all) {
     const route = routeOf(file);
     it(`${route} — draws no shell of its own`, () => {
-      assert.doesNotMatch(readFileSync(file, "utf8"), /<AppShell\b/, "a second shell inside the layout's");
+      assert.doesNotMatch(readFileSync(file, "utf8"), /<(?:AppShell|AppFrame)\b/, "a second shell inside the layout's");
     });
   }
 });

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { MAX_BULK_SAVE, parseSaveTargets, runSavedSupplierPost } from "./saved-suppliers";
+import { VIEWER_CANT_SAVE, workspaceCan, workspaceOwnerId } from "./workspace";
 
 const OWNER = "00000000-0000-4000-8000-0000000000aa";
 const A = "11111111-1111-4111-8111-111111111111";
@@ -187,5 +188,85 @@ describe("POST /api/v1/saved", () => {
   it("dedupes and lower-cases ids", () => {
     const lettered = "abcdef11-1111-4111-8111-11111111abcd";
     assert.deepEqual(parseSaveTargets({ supplier_ids: [lettered, lettered.toUpperCase()] }), [lettered]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Gap 4b, group 1 (0116): the list is the workspace owner's, and only an editor or above changes it
+// ---------------------------------------------------------------------------
+
+const BOSS = "00000000-0000-4000-8000-0000000000bb";
+
+/** A client that answers `workspace_owner` and `workspace_can` the way the database does, or not at all. */
+function teamClient(upserts: unknown[][], opts: { owner?: unknown; can?: unknown; ownerError?: boolean; throws?: boolean; writeError?: unknown } = {}) {
+  const base = client(upserts, opts.writeError ?? null);
+  const calls: { fn: string; args?: unknown }[] = [];
+  return {
+    calls,
+    supabase: {
+      ...base,
+      rpc: async (fn: string, args?: unknown) => {
+        calls.push({ fn, args });
+        if (opts.throws) throw new Error("down");
+        if (fn === "workspace_owner") return opts.ownerError ? { data: null, error: { message: "no such function" } } : { data: opts.owner ?? null, error: null };
+        if (fn === "workspace_can") return { data: opts.can ?? true, error: null };
+        return { data: null, error: { message: "unexpected" } };
+      },
+    },
+  };
+}
+
+describe("a team member saves on the owner's list (0116)", () => {
+  it("the row is written under the workspace's owner, never the member's own id", async () => {
+    const upserts: unknown[][] = [];
+    const t = teamClient(upserts, { owner: BOSS });
+    const res = await runSavedSupplierPost({ role: "buyer", supabase: t.supabase, raw: { supplier_ids: [A] } });
+    assert.equal(res.status, 200);
+    assert.deepEqual((upserts[0] as { owner_id: string }[]).map((r) => r.owner_id), [BOSS]);
+    assert.deepEqual(t.calls.map((c) => c.fn), ["workspace_owner", "workspace_can"]);
+    assert.deepEqual(t.calls[1]!.args, { p_action: "save" });
+  });
+
+  it("a Viewer is told so with a 403 and nothing is written", async () => {
+    const upserts: unknown[][] = [];
+    const res = await runSavedSupplierPost({ role: "buyer", supabase: teamClient(upserts, { owner: BOSS, can: false }).supabase, raw: { supplier_ids: [A] } });
+    assert.equal(res.status, 403);
+    assert.equal(res.body.error, VIEWER_CANT_SAVE);
+    assert.equal(upserts.length, 0);
+  });
+
+  it("when the role could not be asked, the database's own policy still refuses: its 42501 is the same 403", async () => {
+    const res = await runSavedSupplierPost({ role: "buyer", supabase: teamClient([], { throws: true, writeError: { code: "42501", message: "new row violates row-level security policy" } }).supabase, raw: { supplier_ids: [A] } });
+    assert.equal(res.status, 403);
+    assert.equal(res.body.error, VIEWER_CANT_SAVE);
+  });
+
+  it("before 0116 (no such function) or on a failed read, it is the person's own list, as it always was", async () => {
+    for (const supabase of [(u: unknown[][]) => teamClient(u, { ownerError: true }).supabase, (u: unknown[][]) => teamClient(u, { throws: true }).supabase, (u: unknown[][]) => client(u)]) {
+      const upserts: unknown[][] = [];
+      const res = await runSavedSupplierPost({ role: "buyer", supabase: supabase(upserts), raw: { supplier_ids: [A] } });
+      assert.equal(res.status, 200);
+      assert.equal((upserts[0] as { owner_id: string }[])[0]!.owner_id, OWNER);
+    }
+  });
+});
+
+describe("the workspace helpers", () => {
+  it("workspaceOwnerId: the database's answer when it is an id, else the person's own", async () => {
+    const ask = (data: unknown, error: unknown = null) => ({ rpc: async () => ({ data, error }) });
+    assert.equal(await workspaceOwnerId(ask(BOSS), OWNER), BOSS);
+    assert.equal(await workspaceOwnerId(ask("not-an-id"), OWNER), OWNER);
+    assert.equal(await workspaceOwnerId(ask(null, { message: "x" }), OWNER), OWNER);
+    assert.equal(await workspaceOwnerId({}, OWNER), OWNER);
+    assert.equal(await workspaceOwnerId({ rpc: async () => { throw new Error("down"); } }, OWNER), OWNER);
+  });
+
+  it("workspaceCan: false only when the database says false; an unreadable answer leaves the decision to its policy", async () => {
+    const ask = (data: unknown, error: unknown = null) => ({ rpc: async () => ({ data, error }) });
+    assert.equal(await workspaceCan(ask(false), "save"), false);
+    assert.equal(await workspaceCan(ask(true), "save"), true);
+    assert.equal(await workspaceCan(ask(null, { message: "x" }), "save"), true);
+    assert.equal(await workspaceCan(ask("no"), "save"), true);
+    assert.equal(await workspaceCan({}, "save"), true);
   });
 });

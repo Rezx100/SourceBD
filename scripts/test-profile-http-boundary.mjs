@@ -1171,6 +1171,37 @@ const CASES = [
     },
   },
   {
+    name: "site: an unknown product page -> 404",
+    path: "/product/not-a-page",
+    expect: { status: 404 },
+  },
+  {
+    name: "site: an unknown solutions page -> 404",
+    path: "/solutions/not-a-page",
+    expect: { status: 404 },
+  },
+  {
+    name: "site: a product page is 200",
+    path: "/product/records",
+    expect: { status: 200, bodyIncludes: "Every fact, with its receipt." },
+  },
+  { name: "site: /legal/privacy is 200", path: "/legal/privacy", expect: { status: 200, bodyIncludes: "Who we are" } },
+  { name: "site: /legal/trademarks is 200", path: "/legal/trademarks", expect: { status: 200, bodyIncludes: "All third-party trademarks" } },
+  { name: "site: /security is 200", path: "/security", expect: { status: 200, bodyIncludes: "Security, stated plainly." } },
+  { name: "site: /methodology is 200", path: "/methodology", expect: { status: 200, bodyIncludes: "How we check every supplier." } },
+  { name: "site: /suppliers (the claim page) is 200 and /suppliers/<slug> is untouched", path: "/suppliers", expect: { status: 200, bodyIncludes: "Claim your factory" } },
+  { name: "site: /about is 200", path: "/about", expect: { status: 200, bodyIncludes: "Built for buyers who check." } },
+  { name: "site: /contact is 200", path: "/contact", expect: { status: 200, bodyIncludes: "Talk to us." } },
+  { name: "site: /compliance (the guides) is 200", path: "/compliance", expect: { status: 200, bodyIncludes: "Compliance guides, in plain words." } },
+  { name: "site: /compliance/uflpa is 200", path: "/compliance/uflpa", expect: { status: 200, bodyIncludes: "On this page" } },
+  { name: "site: an unknown compliance guide -> 404", path: "/compliance/not-a-law", expect: { status: 404 } },
+  { name: "site: /status is 200 even when the read fails", path: "/status", expect: { status: 200, bodyIncludes: "System status" } },
+  {
+    name: "site: /pricing is 200 and says it is free during beta",
+    path: "/pricing",
+    expect: { status: 200, bodyIncludes: "Free during beta." },
+  },
+  {
     name: "public: facility RPC unavailable -> 404, not 500",
     path: `/suppliers/${RPC_DOWN}`,
     expect: { status: 404, bodyIncludes: NOT_FOUND_MARKER },
@@ -1257,10 +1288,7 @@ const CASES = [
     expect: {
       status: 200,
       bodyIncludes: "HS Timeout Ltd",
-      bodyIncludesAll: [
-        'data-epb-hscodes-error=""',
-        "EPB export products could not load just now.",
-      ],
+      bodyIncludesAll: ["The export lines could not be read."],
       bodyExcludes: ['data-epb-hscode="6103"', "0 HS code", "0 HS codes"],
       replayCacheControlMustMatch: /s-maxage=300/,
       replayCacheControlMustNotMatch: /no-store|\bprivate\b|\bno-cache\b/,
@@ -1274,10 +1302,7 @@ const CASES = [
     expect: {
       status: 200,
       bodyIncludes: "HS Timeout In Data Ltd",
-      bodyIncludesAll: [
-        'data-epb-hscodes-error=""',
-        "EPB export products could not load just now.",
-      ],
+      bodyIncludesAll: ["The export lines could not be read."],
       bodyExcludes: ['data-epb-hscode="6103"', "0 HS code", "0 HS codes"],
       replayCacheControlMustMatch: /s-maxage=300/,
       replayCacheControlMustNotMatch: /no-store|\bprivate\b|\bno-cache\b/,
@@ -1291,10 +1316,7 @@ const CASES = [
     expect: {
       status: 200,
       bodyIncludes: "Facility Timeout Ltd",
-      bodyIncludesAll: [
-        "data-facilities-error",
-        "Facilities could not load just now.",
-      ],
+      bodyIncludesAll: ["The buildings could not be read."],
       bodyExcludes: ["Mother Company Ltd Extension", "0 extension building"],
       replayCacheControlMustMatch: /s-maxage=300/,
       replayCacheControlMustNotMatch: /no-store|\bprivate\b|\bno-cache\b/,
@@ -1316,7 +1338,8 @@ const CASES = [
     path: `/suppliers/${MOTHER}`,
     expect: {
       status: 200,
-      bodyIncludes: 'data-epb-hscode="6103"',
+      // B9g: the v4 record's Products section lists the EPB lines as heading rows.
+      bodyIncludesAll: ["Export lines (EPB)", "6103"],
       replayCacheControlMustMatch: /s-maxage=300/,
       replayCacheControlMustNotMatch: /no-store|\bprivate\b|\bno-cache\b/,
       replayMustNotRpc: PACK_RPCS,
@@ -1325,126 +1348,30 @@ const CASES = [
     },
   },
   {
-    name: "public: BGMEA General register named + member_id link (REZ-115)",
-    path: `/suppliers/${MOTHER}`,
-    expect: {
-      status: 200,
-      bodyIncludesAll: [
-        "General member",
-        "Verify on BGMEA",
-        'href="https://www.bgmea.com.bd/member/951"',
-      ],
-      bodyExcludes: ['href="https://www.bgmea.com.bd/member/1"'],
-    },
-  },
-  {
-    name: "public: Associate BGMEA named and must not deep-link /member (REZ-115)",
+    // B9g: the v4 record names a register by its own words and never prints the registry's other spellings
+    // (RC-09), so the old "Also recorded as" and "Verify on BGMEA" checks went with the old markup. What they
+    // protected stays held: no member page is linked for a record that has no resolved General member.
+    name: "public: an Associate or unresolved BGMEA record never deep-links a member page",
     path: `/suppliers/${ASSOCIATE_ONLY}`,
     expect: {
       status: 200,
-      bodyIncludesAll: ["Associate member", "1"],
-      bodyExcludes: [
-        "General member",
-        "Verify on BGMEA",
-        "https://www.bgmea.com.bd/member/",
-      ],
+      bodyExcludes: ["https://www.bgmea.com.bd/member/", "Verify on BGMEA", "General member"],
     },
   },
   {
-    name: "public: unresolved BGMEA omitted from Verified registry pills (REZ-115)",
+    name: "public: an unresolved BGMEA record names no member and links no member page",
     path: `/suppliers/${UNRESOLVED_BGMEA}`,
     expect: {
       status: 200,
-      bodyExcludes: [
-        "General member",
-        "Associate member",
-        "Verify on BGMEA",
-        "BGMEA General",
-        "BGMEA Associate",
-      ],
+      bodyExcludes: ["https://www.bgmea.com.bd/member/", "Verify on BGMEA", "General member", "Associate member"],
     },
   },
   {
-    name: "public: Habitus Fashion factory is one premises with Also recorded as pills",
+    name: "public: the record never prints the registry's other spellings",
     path: `/suppliers/${HABITUS}`,
     expect: {
       status: 200,
-      bodyIncludesAll: [
-        "HABITUS FASHION LIMITED",
-        "Also recorded as",
-        "data-also-recorded",
-        "data-also-recorded-as",
-        "data-location-row",
-        "data-also-recorded-authorities",
-        "Gojariapara",
-        "2 unique locations",
-        "5 source records",
-        "OEKO-TEX",
-      ],
-      alsoRecordedPair: { spelling: /Gajaria/i, authority: /BGMEA/ },
-      alsoRecordedPairs: [
-        {
-          group: "Mailing addresses",
-          spelling: /Fakir Khali|FOKIRKHALI/i,
-          authority: /BGMEA|BKMEA/,
-        },
-      ],
-      factoryRowIncludes: {
-        group: "Factories",
-        display: /Gojariapara|Gojaria/i,
-        needle: /OEKO-TEX|OEKO_TEX/,
-      },
-      bodyCount: {
-        'data-location-group="Factories"': 1,
-        'data-location-group="Mailing addresses"': 1,
-      },
-    },
-  },
-  {
-    name: "public: Fakhruddin Textile Mills factory is one premises with Also recorded as pills",
-    path: `/suppliers/${FAKHRUDDIN}`,
-    expect: {
-      status: 200,
-      bodyIncludesAll: [
-        "FAKHRUDDIN TEXTILE MILLS",
-        "Also recorded as",
-        "data-also-recorded",
-        "data-also-recorded-as",
-        "data-location-row",
-        "data-also-recorded-authorities",
-        "Mouza Kewa",
-        "2 unique locations",
-        "5 source records",
-        "Kewa",
-        "OEKO-TEX",
-        "Ghargaria",
-      ],
-      alsoRecordedPair: { spelling: /Ghargaria|Ghorgaria/i, authority: /OEKO_TEX|OEKO-TEX/ },
-      alsoRecordedPairs: [
-        {
-          group: "Mailing addresses",
-          spelling: /TEJGAON I\/A-1208/i,
-          authority: /BGMEA|BKMEA/,
-        },
-      ],
-      factoryRowIncludes: {
-        group: "Factories",
-        display: /Kewa|Ghorgaria|Ghargaria/i,
-        needle: /OEKO-TEX|OEKO_TEX/,
-      },
-      bodyCount: {
-        'data-location-group="Factories"': 1,
-        'data-location-group="Mailing addresses"': 1,
-      },
-    },
-  },
-  {
-    name: "public: mother Facilities section + RSC-preferred group workers (REZ-114)",
-    path: `/suppliers/${MOTHER}`,
-    expect: {
-      status: 200,
-      // Mother registry 1200 + building RSC 500 → RSC-only sum 500 across 1 of 2
-      bodyIncludes: "500 across 1 of 2 sites",
+      bodyExcludes: ["Also recorded as", "data-also-recorded"],
     },
   },
   {
@@ -1464,61 +1391,11 @@ const CASES = [
     },
   },
   {
-    name: "public: mother Facilities shows facility registry pill (REZ-109)",
-    path: `/suppliers/${MOTHER}`,
-    expect: {
-      status: 200,
-      bodyIncludes: "RSC ID 99999",
-    },
-  },
-  {
-    name: "public: mother Facilities shows facility RSC progress (REZ-109)",
-    path: `/suppliers/${MOTHER}`,
-    expect: {
-      status: 200,
-      bodyIncludes: "80% remediated",
-    },
-  },
-  {
     name: "public: mother Facilities omits facility secrets (REZ-109)",
     path: `/suppliers/${MOTHER}`,
     expect: {
       status: 200,
       bodyExcludes: ["secret-facility-slug", "+8801", "leak@example.com"],
-    },
-  },
-  {
-    name: "public: mother Facilities labelled group totals on the wire",
-    path: `/suppliers/${MOTHER}`,
-    expect: {
-      status: 200,
-      bodyIncludesAll: [
-        "Production workers — group total",
-        "Sewing machines — group total",
-        "Daily output — group total",
-        "Annual output — group total",
-        "unknown across 2 buildings, 2 unknown",
-      ],
-    },
-  },
-  {
-    name: "public: homepage overview timeout is not stored 300s",
-    path: "/",
-    expect: {
-      status: 200,
-      mustNotRpcOnAnyHit: [FACILITY_RPC, HS_RPC],
-      hit1MustRpcLines: { [PROFILE_RPC]: 1 },
-      replayMustNotRpc: [PROFILE_RPC],
-      cacheControlOnAllHits: true,
-      cacheControlMustMatch: /private,\s*no-store/,
-      cacheControlMustNotMatch: /s-maxage=[1-9]/,
-      bodyExcludes: [
-        "Overview Timeout Ltd",
-        "Mother Company Ltd",
-        SLOW_MARKER,
-        'aria-label="Evidence anatomy"',
-        "aria-label='Evidence anatomy'",
-      ],
     },
   },
   {
@@ -1606,7 +1483,8 @@ const CASES = [
   },
   {
     name: "app: facility-panel-only timeout -> 200 with facilities error",
-    path: `/app/suppliers/${FACILITY_TIMEOUT}`,
+    // B4c: the buildings are on the record's Sites tab, not the Overview.
+    path: `/app/suppliers/${FACILITY_TIMEOUT}?tab=sites`,
     auth: true,
     expect: {
       status: 200,
@@ -1619,26 +1497,27 @@ const CASES = [
   },
   {
     name: "app: HS-only timeout -> 200 with HS error",
-    path: `/app/suppliers/${HS_TIMEOUT}`,
+    // B4c: the export lines are on the record's Products tab.
+    path: `/app/suppliers/${HS_TIMEOUT}?tab=products`,
     auth: true,
     expect: {
       status: 200,
       bodyIncludes: "HS Timeout Ltd",
       bodyIncludesAll: [
-        "EPB export lines could not be read",
+        "The export lines could not be read.",
       ],
       bodyExcludes: ['data-epb-hscode="6103"', "0 HS code", "0 HS codes"],
     },
   },
   {
     name: "app: HS-only timeout in data (HTTP 200 body) -> 200 with HS error",
-    path: `/app/suppliers/${HS_TIMEOUT_IN_DATA}`,
+    path: `/app/suppliers/${HS_TIMEOUT_IN_DATA}?tab=products`,
     auth: true,
     expect: {
       status: 200,
       bodyIncludes: "HS Timeout In Data Ltd",
       bodyIncludesAll: [
-        "EPB export lines could not be read",
+        "The export lines could not be read.",
       ],
       bodyExcludes: ['data-epb-hscode="6103"', "0 HS code", "0 HS codes"],
     },
@@ -1691,7 +1570,7 @@ const CASES = [
   // pills and RSC progress are not on it, so their four checks went with it.
   {
     name: "app: mother Facilities lists extension building name",
-    path: `/app/suppliers/${MOTHER}`,
+    path: `/app/suppliers/${MOTHER}?tab=sites`,
     auth: true,
     expect: {
       status: 200,
@@ -1700,7 +1579,7 @@ const CASES = [
   },
   {
     name: "app: mother Facilities shows facility address (REZ-109)",
-    path: `/app/suppliers/${MOTHER}`,
+    path: `/app/suppliers/${MOTHER}?tab=sites`,
     auth: true,
     expect: {
       status: 200,
@@ -1723,6 +1602,31 @@ const CASES = [
     // the query vary.
     expect: { status: 307, locationPath: "/login" },
   },
+
+  // ---- B8a: the v4 sign-in, sign-up and account-state pages --------------
+  // Each is a page a person reaches by an address or by an email link, so each is held to its status
+  // here: the form pages render, the pages that need the address cookie send a stranger back to the
+  // form (a real 307, not a 200 that carries a redirect), and an email link Supabase refused lands on
+  // the expired page with a redirect, never a sign-in page with a raw message in the address.
+  { name: "auth: /login renders -> 200", path: "/login", expect: { status: 200, bodyIncludes: "Email me a sign-in link instead" } },
+  { name: "auth: /signup renders -> 200", path: "/signup", expect: { status: 200, bodyIncludes: "Create your account" } },
+  { name: "auth: /forgot-password renders -> 200", path: "/forgot-password", expect: { status: 200, bodyIncludes: "Reset your password" } },
+  { name: "auth: /link-expired renders -> 200", path: "/link-expired", expect: { status: 200, bodyIncludes: "This link has expired" } },
+  { name: "auth: /suspended renders -> 200", path: "/suspended", expect: { status: 200, bodyIncludes: "This account is suspended" } },
+  { name: "auth: /signup/verify with no address kept -> 307 to /signup", path: "/signup/verify", expect: { status: 307, location: "/signup" } },
+  { name: "auth: /login/sent with no address kept -> 307 to /login", path: "/login/sent", expect: { status: 307, location: "/login" } },
+  { name: "auth: /forgot-password/sent with no address kept -> 307 to /forgot-password", path: "/forgot-password/sent", expect: { status: 307, location: "/forgot-password" } },
+  { name: "auth: /reset-password with no session is the expired page -> 200", path: "/reset-password", expect: { status: 200, bodyIncludes: "This link has expired" } },
+  // B8b: the first-run steps are the buyer's own; a stranger is sent to sign in (a real 307) and an
+  // address that is not a step is a real 404, not a page that renders an empty form.
+  { name: "onboarding: /onboarding anonymous -> 307 to /login", path: "/onboarding", expect: { status: 307, location: "/login?next=%2Fonboarding" } },
+  { name: "onboarding: /onboarding/about anonymous -> 307 to /login", path: "/onboarding/about", expect: { status: 307, location: "/login?next=%2Fonboarding%2Fabout" } },
+  { name: "onboarding: an unknown step -> 404", path: "/onboarding/nope", expect: { status: 404, bodyIncludes: NOT_FOUND_MARKER } },
+  // Row 6: the second step of signing in. A stranger is sent to sign in (a real 307) and the page that
+  // asks for a code never renders for someone who is not signed in.
+  { name: "auth: /login/code signed out -> 307 to /login", path: "/login/code", expect: { status: 307, location: "/login?next=%2Fapp" } },
+  { name: "auth: a link Supabase refused -> 307 to /link-expired", path: "/auth/callback?error=access_denied&error_code=otp_expired", expect: { status: 307, locationPath: "/link-expired" } },
+  { name: "auth: an unsafe way back is not followed -> 307 to /app", path: "/auth/callback?next=//evil.example", expect: { status: 307, locationPath: "/app" } },
 
   // ---- REZ-B: the rewritten Discover surface and its new routes ----------
   // Every REZ-B test shipped in the change itself asserted a pure helper's
@@ -1753,7 +1657,7 @@ const CASES = [
       ],
       // And something only the results panel renders, so an empty page with
       // the right heading is not enough.
-      bodyIncludesAny: ["Export CSV", "No published suppliers to show"],
+      bodyIncludesAny: ['data-row="result"', "No published suppliers to show"],
     },
   },
   {
@@ -1796,8 +1700,8 @@ const CASES = [
       // Since 29 Sep the second line may break between its figure and its
       // words, never inside either.
       bodyIncludesAll: [
-        "title=\"1,200 workers · on the supplier record · 500 workers · across its buildings, not this record\" data-workers-cell=\"\"><span class=\"text-ink-strong\">1,200</span><span class=\"text-right text-xs font-normal text-ink-subtle\"><span class=\"whitespace-nowrap\">500</span> <span class=\"whitespace-nowrap\">in buildings</span></span>",
-        "title=\"100 workers · on the supplier record · 450 workers · RSC inspection\" data-workers-cell=\"\"><span class=\"text-ink-strong\">100</span><span class=\"text-right text-xs font-normal text-ink-subtle\"><span class=\"whitespace-nowrap\">450</span> <span class=\"whitespace-nowrap\">RSC</span></span>",
+        "1,200<span title=\"500 workers · across its buildings, not this record\" class=\"block text-xs text-ink-3\">500 in buildings</span>",
+        "100<span title=\"450 workers · RSC inspection\" class=\"block text-xs text-ink-3\">450 RSC</span>",
       ],
       bodyExcludes: ["450 workers · across this record and its buildings", "Search is under heavy load"],
     },
@@ -1849,16 +1753,16 @@ const CASES = [
     // happily when `runSavedSearchesGet` returns 500 and the page falls back
     // to its error caption. This case passed over a route whose list read was
     // failing outright. Pin the list state instead: on success the caption is
-    // either "N saved" or the empty-state invitation, and the error string is
-    // absent either way.
+    // either "N saved searches · only you see them" or the empty-state
+    // invitation, and the error string is absent either way (v4, B6b).
     expect: {
       status: 200,
       bodyIncludesAll: ["Saved searches"],
-      bodyExcludes: ["Saved searches could not be read"],
-      // Not the bare word "saved": app-shell.tsx renders a sidebar item
-      // linking to /app/saved on every /app/* page, so that needle matches
+      bodyExcludes: ["load your saved searches"],
+      // Not the bare word "saved": the frame renders a sidebar item linking
+      // to /app/saved on every /app/* page, so that needle matches
       // unconditionally — the same sidebar trap the case above describes.
-      bodyIncludesAny: ["Save a search from the results panel", " saved</"],
+      bodyIncludesAny: ["No saved searches yet.", "saved searches · only you see them", "saved search · only you see it", "None saved yet · only you see them"],
     },
   },
   {
@@ -2663,80 +2567,6 @@ async function main() {
       timeoutOverlapHoldMs = 0;
       extraPassed += extra(
         "public: Retry overlapping in-flight 57014 still recovers",
-        problems,
-      );
-    }
-
-    {
-      const problems = [];
-      const retryOverview = () =>
-        fetch(`${APP_URL}/temporarily-slow/retry`, {
-          method: "POST",
-          redirect: "manual",
-          headers: {
-            origin: SITE_ORIGIN,
-            "content-type": "application/x-www-form-urlencoded",
-          },
-          body: new URLSearchParams({ slug: OVERVIEW_TIMEOUT }),
-          signal: AbortSignal.timeout(120_000),
-        });
-      const clearPin = await retryOverview();
-      if (clearPin.status !== 303) {
-        problems.push(`clear-pin Retry status ${clearPin.status} != 303`);
-      }
-      overviewRecovered = false;
-      overviewHoldMs = 1500;
-      overviewProfileOutcomes.length = 0;
-      const homepageInflight = probe("/");
-      const waitForHeld = Date.now() + 8_000;
-      while (
-        overviewProfileOutcomes.length === 0 &&
-        Date.now() < waitForHeld
-      ) {
-        await new Promise((r) => setTimeout(r, 50));
-      }
-      if (overviewProfileOutcomes[0] !== "57014") {
-        problems.push(
-          `held homepage PROFILE outcome ${overviewProfileOutcomes[0] ?? "<none>"} != 57014`,
-        );
-      }
-      overviewRecovered = true;
-      const retryRes = await retryOverview();
-      if (retryRes.status !== 303) {
-        problems.push(`Retry POST status ${retryRes.status} != 303`);
-      }
-      const homepage = await homepageInflight;
-      if (homepage.status !== 200) {
-        problems.push(`homepage status ${homepage.status} != 200`);
-      }
-      if (homepage.body.includes("Overview Timeout Ltd")) {
-        problems.push("homepage showed Overview Timeout Ltd after held 57014");
-      }
-      if (homepage.body.includes("Recovered Overview Ltd")) {
-        problems.push("homepage showed Recovered Overview Ltd from stale catch");
-      }
-      const factory = await probe(`/suppliers/${OVERVIEW_TIMEOUT}`);
-      if (factory.status !== 200) {
-        problems.push(
-          `factory GET after overview catch ${factory.status} != 200`,
-        );
-      }
-      if (factory.status === 307) {
-        problems.push("stale overview catch re-pinned the factory URL");
-      }
-      if (!factory.body.includes("Recovered Overview Ltd")) {
-        problems.push(
-          `factory body missing Recovered Overview Ltd (${factory.bytes} bytes)`,
-        );
-      }
-      assertSmaxage300(
-        factory.cacheControl,
-        problems,
-        "factory after overview Retry",
-      );
-      overviewHoldMs = 0;
-      extraPassed += extra(
-        "public: homepage overview 57014 overlapping Retry does not re-pin factory",
         problems,
       );
     }

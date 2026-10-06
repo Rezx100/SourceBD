@@ -25,9 +25,9 @@ import {
   transitionDuration,
   type TierRank,
 } from "@/lib/design/tokens";
-import { RFQ_TARGETS } from "@/lib/dashboard/fixtures";
-import { loadGalleryData } from "@/lib/dashboard/gallery-data";
-import { DashboardScreens } from "./dashboard-screens";
+import { V4Kit } from "./v4-kit";
+import { V4Patterns } from "./v4-patterns";
+import { V4Tokens } from "./v4-tokens";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +51,10 @@ const SIZE_CLASS: Record<string, string> = {
   xs: "text-xs",
   sm: "text-sm",
   base: "text-base",
+  md: "text-md",
+  "display-1": "text-display-1",
+  "display-2": "text-display-2",
+  "display-3": "text-display-3",
   title: "text-title",
   lg: "text-lg",
   xl: "text-xl",
@@ -161,12 +165,6 @@ export default async function DesignSystemGallery() {
 
   const { longest, typical } = await loadRealNames();
   const sampleName = longest ?? typical;
-  const supabase = await createSupabaseServerClient();
-  // The same third argument the screenshot harness passes. `rfq_list` returns
-  // no supplier identity, so without it every RFQ row reads "1 supplier" —
-  // and the page and the screenshots would show different screens, which is
-  // the one thing the evidence may not do.
-  const dashboard = await loadGalleryData(supabase, new Date(), RFQ_TARGETS);
 
   const results = contrastPairs.map((p) => {
     const ratio = contrastRatio(resolve(light, p.fg), resolve(light, p.bg));
@@ -181,16 +179,40 @@ export default async function DesignSystemGallery() {
     <div className="mx-auto max-w-content space-y-10 px-4 py-8 sm:px-6 lg:py-12">
       <header className="space-y-2">
         <p className="text-xs font-medium uppercase tracking-wide text-ink-subtle">
-          Dev only · Design rebuild · Direction locked 18 Sep 2026
+          Dev only · SourceBD v4 tokens from Paper, 4 Oct 2026
         </p>
         <h1 className="text-4xl font-bold text-ink-strong">Tokens</h1>
         <p className="max-w-prose text-lg text-ink-muted">
-          Every colour, size and shadow the new design is allowed to use. Geist and Geist Mono
-          (the artifact&apos;s v3 tokens), light only for now, colours named by job so a dark set
-          can be added later. Brand green is fixed; the rest of the shell is near-monochrome so
-          colour is left for status.
+          Every colour, size and shadow the new design is allowed to use, exported from the Paper
+          file &ldquo;SourceBD v4&rdquo; and set in IBM Plex Sans. The first section is v4 under
+          Paper&apos;s own names. The sections after it are the old pages&apos; names (v3), which stay
+          until those pages are rebuilt; where a name is in both, the value is v4&apos;s.
         </p>
       </header>
+
+      <Section
+        id="v4"
+        title="SourceBD v4 (Paper)"
+        note="33 colours, 11 type sizes, named spacing, containers, breakpoints and radius, as tailwind.config.ts serves them. Class names are the token names: text-ink-3, bg-subtle, w-pane, h-touch."
+      >
+        <V4Tokens />
+      </Section>
+
+      <Section
+        id="v4-kit"
+        title="SourceBD v4 kit (Paper, 02 Components)"
+        note="components/kit: buttons, inputs, chips, tabs, table, overlays, feedback, phone bars. Every drawn state; hover and focus are the browser's, so hover and press Tab."
+      >
+        <V4Kit />
+      </Section>
+
+      <Section
+        id="v4-patterns"
+        title="SourceBD v4 patterns (Paper, 03 Patterns)"
+        note="components/patterns: source marks, fact and certificate rows, RSC block, sanction banner, locked contact, supplier rows, quotes, timeline, chat, needs attention, locations, statement claim, exports. Shrink the window under 640px for the phone forms."
+      >
+        <V4Patterns />
+      </Section>
 
       <Section
         id="direction"
@@ -260,14 +282,6 @@ export default async function DesignSystemGallery() {
             </a>
           </div>
         </div>
-      </Section>
-
-      <Section
-        id="dashboard"
-        title="Buyer screens"
-        note="The buyer screens as /app draws them since the enterprise pass (27 Sep 2026): the ledger grid first, the thumbnail cards, and the record, the line, the RFQ composer and the filter pane each in a pane beside the results; then the RFQ list. Built from the kit under components/dashboard and rendered at 1440 from production records through the same RPCs the buyer app calls."
-      >
-        <DashboardScreens data={dashboard} />
       </Section>
 
       <Section
@@ -346,7 +360,7 @@ export default async function DesignSystemGallery() {
           {Object.entries(fontSize).map(([name, [size, meta]]) => (
             <div key={name} className="space-y-1">
               <p className="text-xs tabular-nums text-ink-subtle">
-                text-{name} · {size} / {meta.lineHeight}
+                text-{name} · {size}{meta.lineHeight ? ` / ${meta.lineHeight}` : ""}
               </p>
               <p className={`${SIZE_CLASS[name]} break-words font-semibold text-ink-strong`}>
                 {sampleName ?? `text-${name}`}

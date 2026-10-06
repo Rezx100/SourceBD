@@ -1,6 +1,6 @@
 // The three record routes, at the boundary (closed-loop §14, AGENTS 16).
 //
-// `components/dashboard/record-sheet.test.ts` proves the sheet component does
+// `components/record/record.test.ts` proves the record view does
 // not print a contact value, renders every section and disables Send RFQ on a
 // sanctioned record. Nothing proved the ROUTES pass it the right thing — and
 // that is the gap REZ-72 shipped through: 361 green tests, every one asserting
@@ -153,22 +153,12 @@ function given(a: Answers): void {
     [
       "lib/dashboard/load-buyer-shell.js",
       {
-        // The real shell reads the dashboard, the RFQ count, the published
-        // count and who is signed in (`load-buyer-shell.test.ts`); these
-        // routes are not what that is about, so it is stubbed with a valid
-        // `SidebarModel`/`TopbarModel` and nothing more.
+        // The real shell reads who is signed in and the profile's name and
+        // photo (`load-buyer-shell.test.ts`); these routes are not what that is
+        // about, so it is stubbed with an unread account and nothing more.
         loadBuyerShell: async () => {
           shellLoads++;
-          return {
-            sidebar: {
-              active: "suppliers" as const,
-              activeExact: false,
-              counts: { suppliers: null, rfqs: null, saved: null },
-              recent: [],
-              plan: { name: "Free · public beta", note: null, used: null, allowance: null },
-            },
-            topbar: { caption: "", searchQuery: "" },
-          };
+          return { userId: "buyer-1", account: null };
         },
       },
     ],
@@ -235,11 +225,12 @@ describe("/app/suppliers/[slug] — the full record page", () => {
 
     assert.match(out, /aria-label="Supplier record"/);
     // The shell is the layout's now, so the page draws none of it.
-    assert.doesNotMatch(out, /<aside\b|data-plan=/, "the record page draws a shell inside the layout's");
+    assert.doesNotMatch(out, /<aside\b(?![^>]*aria-label="Contact and sources")|data-plan=/, "the record page draws a shell inside the layout's");
     // `mode="page"`: a whole page is not the pane beside the results, and
     // there is nothing behind it to close. Only the route passes this, so only
     // a route test can catch it being dropped.
-    assert.doesNotMatch(out, /data-record-pane/, "the full record page is drawn as the pane");
+    assert.match(out, /data-record="page"/, "the full record page is not drawn as a page");
+    assert.doesNotMatch(out, /data-record="pane"|data-record-pane/, "the full record page is drawn as the pane");
     assert.doesNotMatch(out, /role="dialog"/, "the full record page announces itself as a dialog");
     assert.doesNotMatch(out, /aria-label="Close"/, "the full page draws a Close with nothing to close");
     assert.match(out, /Aboni Knitwear Ltd/);
@@ -256,12 +247,15 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     });
     const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
     const out = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({}) })));
-    const counts = out.slice(out.indexOf('data-contact-counts="true"'), out.indexOf("</dl>", out.indexOf('data-contact-counts="true"')));
-    assert.deepEqual(
-      // A kind's label leads with its icon (an <svg>), so the label is the dt's text.
-      [...counts.matchAll(/<dt[^>]*>([\s\S]*?)<\/dt><dd[^>]*>([^<]*)<\/dd>/g)].map((m) => `${m[1]!.replace(/<[^>]*>/g, "")}: ${m[2]}`),
-      ["Email: 1 on file", "Phone: 6 on file", "Website: on file", "Contact person: 2 on file"],
-    );
+    // The contact block names every kind the register holds, as counts with their nouns. Paper's
+    // board draws the first two only; the founder asked for all four (4 Oct 2026).
+    const card = out.slice(out.indexOf('aria-label="Contact"'));
+    assert.match(card.replace(/<[^>]*>/g, " ").replace(/\s+/g, " "), /Contact .*Email 1 on file · Phone 6 on file · Website on file · Contact person 2 on file .*Contact details are locked\. Send an RFQ and the supplier replies here\./);
+    // A count that could not be read claims nothing: no "none on file".
+    given({ profile: PROFILE, hscodes: HS, contactCounts: { data: null, error: { message: "boom" } } });
+    const unread = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({}) })));
+    assert.doesNotMatch(unread, /No email or phone on file|on file · locked/);
+    assert.match(unread, /Contact details are locked\./);
     for (const key of ["email_primary", "contact_name", "contact_role", "phones"]) {
       assert.ok(!out.includes(key), `the route put the ${key} column in the HTML`);
     }
@@ -291,14 +285,16 @@ describe("/app/suppliers/[slug] — the full record page", () => {
   it("?lines=all expands the grid past six tiles", async () => {
     given({ profile: PROFILE, hscodes: HS });
     const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
-    const six = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({}) })));
-    const all = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({ lines: "all" }) })));
+    const six = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({ tab: "products" }) })));
+    const all = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({ tab: "products", lines: "all" }) })));
     const tiles = (s: string) => (s.match(/\/app\/suppliers\/aboni-knitwear\/lines\/\d{4}/g) ?? []).length;
     assert.equal(tiles(six), 6, "the grid shows six tiles by default");
     assert.ok(tiles(all) > 6, `?lines=all still shows only ${tiles(all)} of the record's lines`);
     // And the six-tile view offers the way to the rest.
     assert.match(six, /All \d+ lines/);
-    assert.ok(six.includes("?lines=all"), "the six-tile view has no route to the other lines");
+    assert.ok(six.includes("lines=all"), "the six-tile view has no route to the other lines");
+    // It is the Products tab, expanded, so the tab is not lost on the way.
+    assert.match(six.replace(/&amp;/g, "&"), /href="\/app\/suppliers\/aboni-knitwear\?tab=products&lines=all"/);
   });
 });
 
@@ -315,6 +311,15 @@ describe("/app/suppliers/[slug]/lines/[hs] — the line page", () => {
     assert.match(out, /HS 6105/);
     assert.doesNotMatch(out, /role="dialog"/, "the full line page is not a dialog");
     assert.doesNotMatch(out, /data-record-pane/, "the full line page is drawn as the pane");
+  });
+
+  it("draws the line on the v4 kit: its heading is the page's h1, Back is the record's Products tab, and the exporters are counted", async () => {
+    const out = html(await run("6105"));
+    assert.match(out, /<h1 [^>]*>Men&#x27;s or boys&#x27; shirts, knitted or crocheted<\/h1>/);
+    assert.match(out, /<a [^>]*aria-label="Back to the record"[^>]*href="\/app\/suppliers\/aboni-knitwear\?tab=products"/);
+    assert.match(out, /href="\/app\/discover\?hs=6105"[^>]*>Exporters of 6105<span [^>]*>· 1,634<\/span>/);
+    assert.match(out, /<a [^>]*href="\/app\/rfqs\/new\?supplier=[^"&]+&amp;hs=6105"[^>]*>Send RFQ for this line<\/a>/);
+    assert.doesNotMatch(out, /data-sheet-scroll|animate-sheet-in|bg-surface-sunken|text-ink-(?:muted|subtle)/, "a class of the old kit");
   });
 
   for (const bad of ["abcd", "61", "61059", "%", "6105a", ""]) {
@@ -421,7 +426,7 @@ describe("/app/discover?record= — the overlay over the results", () => {
 
     const withRecord = html(await discover({ q: "knit", page: "2", sort: "workers", record: "aboni-knitwear" }));
     assert.match(withRecord, /aria-label="Supplier record"/);
-    assert.match(withRecord, /data-record-pane/);
+    assert.match(withRecord, /data-record="pane"/);
     assert.doesNotMatch(withRecord, /role="dialog"/, "the record beside the results is not a dialog");
     // The whole of the founder's sentence: the search is still there to go back
     // to. A Close that dropped `q` or `page` would lose it just as surely as a
@@ -436,30 +441,30 @@ describe("/app/discover?record= — the overlay over the results", () => {
   });
 
   it("an open record sits BESIDE the results, both live: nothing is inert, nothing claims to be modal", async () => {
-    // The founder's one-viewport frame (27 Sep 2026): the record is a pane on
-    // the right of the results from `lg`, and the results column hides itself
-    // under it below `lg` (`hidden lg:flex`), where the search waits in the
-    // URL for Close. The record used to be a dialog over a scrim with the
-    // whole shell `inert` behind it; a pane beside live results can claim
-    // neither, and a stray `aria-modal` or `inert` here would tell a screen
-    // reader the results it can see are gone.
+    // The founder's one-viewport frame (27 Sep 2026), v4's `ListPane` (B3): the record is a
+    // pane on the right of the list from 1280, and under it a drawer over a scrim. Either
+    // way the list is drawn first and stays live: the record used to be a dialog over a
+    // scrim with the whole shell `inert` behind it; a pane beside live results can claim
+    // neither, and a stray `aria-modal` or `inert` here would tell a screen reader the
+    // results it can see are gone.
     const out = html(await discover({ q: "knit", record: "aboni-knitwear" }));
-    const column = out.search(/<div class="(?=[^"]*\bhidden\b)(?=[^"]*\blg:flex\b)[^"]*">/);
-    assert.ok(column > -1, "the results column does not step aside for the record below lg");
+    const list = out.indexOf('aria-label="Results"');
+    assert.ok(list > -1, "the results are not drawn beside the open record");
     // The results are still drawn in it: the buyer's search is not torn down.
-    assert.ok(out.indexOf(ROW.company_name) > column, "the results are not rendered beside the open record");
-    // The pane comes after the results column, on its right.
-    const pane = out.indexOf("data-record-pane");
-    assert.ok(pane > column, "the record pane is not beside the results");
+    assert.ok(out.indexOf("Aboni Knitwear Ltd") > list, "the results are not rendered beside the open record");
+    // The pane comes after the results, on their right.
+    const pane = out.indexOf('data-record="pane"');
+    assert.ok(pane > list, "the record pane is not beside the results");
+    assert.match(out, /<section aria-label="Supplier"/, "the pane is a region of its own");
     assert.doesNotMatch(out, /aria-modal/, "a pane beside live results claims to be modal");
     assert.doesNotMatch(out, /<[a-z]+\b[^>]*\sinert(?:=""|\s|>)/, "something is inert beside an open record");
   });
 
-  it("no record open means the results column stands alone, at every width", async () => {
-    // Without this the assertion above passes on a column that is always hidden below lg.
+  it("no record open means the results stand alone, at every width", async () => {
+    // Without this the assertion above passes on a page that always draws a pane.
     const out = html(await discover({ q: "knit" }));
-    assert.doesNotMatch(out, /<div class="(?=[^"]*\bhidden\b)(?=[^"]*\blg:flex\b)[^"]*">/);
-    assert.doesNotMatch(out, /data-record-pane/);
+    assert.doesNotMatch(out, /data-record-pane|data-pane-frame/);
+    assert.match(out, /aria-label="Results"/);
   });
 
   it("an unknown record says so rather than showing nothing", async () => {
@@ -509,7 +514,7 @@ describe("/app/discover?record= — the overlay over the results", () => {
   });
 
   it("the record's tiles open the line on this search, not on its own page", async () => {
-    const out = html(await discover({ q: "knit", record: "aboni-knitwear" }));
+    const out = html(await discover({ q: "knit", record: "aboni-knitwear", tab: "products" }));
     assert.ok(!out.includes("/app/suppliers/aboni-knitwear/lines/"), "a tile leaves the search");
     assert.match(out, /line=\d{4}/);
   });
@@ -577,15 +582,14 @@ describe("/app/discover — the panes beside the results", () => {
   };
   const sendButton = (html: string) => /<button\b[^>]*>(?:(?!<\/button>)[\s\S])*?Send RFQ/.exec(html)?.[0] ?? "";
 
-  it("?rfq=<id> opens the composer in the wide pane beside the results, naming the target and none of its contact details", async () => {
+  it("?rfq=<id> opens the composer in the pane beside the results, naming the target and none of its contact details", async () => {
     const out = html(await search({ q: "knit", rfq: ABONI_ID }));
     assert.match(out, /<section data-record-pane="" aria-label="New RFQ"/);
-    const pane = out.search(/data-pane-wide="true"/);
-    assert.ok(pane > -1, "the composer is not in the wide pane");
-    const column = out.search(/<div class="(?=[^"]*\bhidden\b)(?=[^"]*\blg:flex\b)[^"]*">/);
-    assert.ok(column > -1 && column < pane, "the results column does not stand beside the composer");
+    const pane = out.search(/<section data-record-pane="" aria-label="New RFQ"/);
+    const column = out.indexOf('aria-label="Results"');
+    assert.ok(column > -1 && column < pane, "the results do not stand beside the composer");
     assert.ok(out.indexOf("Aboni Knitwear Ltd") > column, "the results are not drawn beside the composer");
-    assert.match(out.slice(pane), /to Aboni Knitwear Ltd/);
+    assert.match(out.slice(pane), /1 supplier · you can add up to 50[\s\S]*Aboni Knitwear Ltd/);
     // The suppliers row carries contact columns; none reaches the page.
     for (const v of [CONTACT.email_primary, CONTACT.contact_name, CONTACT.contact_role, ...CONTACT.phones]) {
       assert.ok(!out.includes(v), `a contact value reached the composer: ${v}`);
@@ -614,7 +618,7 @@ describe("/app/discover — the panes beside the results", () => {
   it("an unpublished id in rfq= is dropped, not drawn as a target the server would refuse", async () => {
     const both = html(await search({ q: "knit", rfq: `${UNPUBLISHED_ID},${ABONI_ID}` }));
     assert.doesNotMatch(both, /Hidden Knit/i);
-    assert.match(both, /to Aboni Knitwear Ltd/);
+    assert.match(both, /1 supplier · you can add up to 50[\s\S]*Aboni Knitwear Ltd/);
     const only = html(await search({ q: "knit", rfq: UNPUBLISHED_ID }));
     assert.doesNotMatch(only, /Hidden Knit/i);
     assert.match(only, /No supplier yet\./);
@@ -637,35 +641,69 @@ describe("/app/discover — the panes beside the results", () => {
     assert.match(back, /record=aboni-knitwear/);
     assert.match(back, /q=knit/);
     assert.doesNotMatch(back, /rfq=/);
-    assert.match(hrefOf(out.slice(out.search(/data-pane-wide/)), /Close/), /record=aboni-knitwear/);
+    assert.match(hrefOf(out.slice(out.search(/aria-label="New RFQ"/)), /Close/), /record=aboni-knitwear/);
     // The record behind the composer is not read while the composer is open.
     assert.ok(!rpcCalls.some((c) => c.fn === "buyer_supplier_profile"), "the route read the record under the composer");
     // Its row stays marked in the results.
-    assert.match(out, /<tr\b[^>]*aria-current="true"/);
+    assert.match(out, /<a\b[^>]*aria-current="true"/);
   });
 
-  it("?filters=1 opens the filter pane with the search's own filters ticked", async () => {
+  it("?filters=1 opens the filter pane with the search's own filters set, its count on the button and its chips removable", async () => {
     const out = html(await search({ q: "knit", reg: "BGMEA", cert: "gots:valid" }));
     assert.doesNotMatch(out, /aria-label="Filters"/, "guard: no pane without the parameter");
     const pane = html(await search({ q: "knit", reg: "BGMEA", cert: "gots:valid", filters: "1" }));
-    assert.match(pane, /<section data-record-pane="" aria-label="Filters"/);
-    assert.doesNotMatch(pane, /data-pane-wide/, "the filter pane is a record's width");
-    assert.match(pane, />3 set</);
+    assert.match(pane, /<form aria-label="Filters"/);
+    // B4 fix 4: the panel lies over the full-width results (their own bar and table, not the
+    // narrow list a docked pane leaves), and with the results live it claims no modality.
+    assert.match(pane, /<section aria-label="Filters" class="[^"]*\babsolute\b[^"]*\bw-panel\b[^"]*">/);
+    assert.ok(pane.indexOf('aria-label="Results"') < pane.indexOf('aria-label="Filters"'), "the results are not drawn under the panel");
+    assert.match(pane, /<table\b/, "the results were narrowed to the pane's list under the filters");
+    assert.doesNotMatch(pane, /aria-modal|<[a-z]+\b[^>]*\sinert(?:=""|\s|>)/, "a panel over live results claims to be modal");
+    // The panel draws its own title and close at 1280 and over.
+    assert.match(pane, /<h2[^>]*>Filters<\/h2>/);
+    // The draft starts as the address: a register and a certificate ticked, its status chosen.
     assert.match(pane, /<input\b(?=[^>]*\sname="reg")(?=[^>]*\svalue="BGMEA")(?=[^>]*\schecked="")[^>]*>/);
-    assert.match(pane, /<option value="gots" selected="">/);
-    assert.match(pane, /<option value="valid" selected="">/);
-    assert.match(pane, /<input type="hidden" name="q" value="knit"\/>/);
-    assert.doesNotMatch(pane, /name="filters"/, "Apply would reopen the pane");
+    assert.match(pane, /<input\b(?=[^>]*\sname="cert")(?=[^>]*\svalue="gots")(?=[^>]*\schecked="")[^>]*>/);
+    assert.match(pane, /<input\b(?=[^>]*\sname="cert_state")(?=[^>]*\svalue="valid")(?=[^>]*\schecked="")[^>]*>/);
+    // The button is the live count of the search the pane is open over (the fake finds one).
+    assert.match(pane, />Show 1 supplier</);
+    // A chip's × is the same search without that filter and with the pane still open; Close is the search alone.
+    const remove = hrefOf(pane, /Remove Certificate: GOTS · valid/);
+    assert.match(remove, /q=knit/);
+    assert.match(remove, /reg=BGMEA/);
+    assert.match(remove, /filters=1/);
+    assert.doesNotMatch(remove, /cert=/);
     assert.doesNotMatch(hrefOf(pane, /Close/), /filters=/);
+    // Sanctioned suppliers are held back by default, in words, with the way to lift it.
+    assert.match(pane, /Hiding sanctioned suppliers/);
+    const show = [...pane.matchAll(/<a\b([^>]*)>Show them<\/a>/g)].map((m) => /href="([^"]*)"/.exec(m[1]!)?.[1]?.replace(/&amp;/g, "&") ?? "");
+    assert.ok(show.some((h) => /sanctioned=1/.test(h) && /filters=1/.test(h)), `no Show them link keeps the pane: ${show.join(" ")}`);
   });
 
-  it("?save=1 opens the save-search pane with the form, named after the search", async () => {
+  it("the pane's count is read for a signed-in buyer only, and not for an address that is not a search's", async () => {
+    const { countSuppliers } = route("components/search/filter-actions.js") as typeof import("@/components/search/filter-actions");
+    // Signed out: no profile role, so nothing is read.
+    given({ saved: { data: null }, discover: { data: [{ total_count: 71 }], error: null } });
+    assert.equal(await countSuppliers("q=knit"), null);
+    assert.equal(rpcCalls.filter((c) => c.fn === "discover_suppliers").length, 0, "a signed-out caller reached the search");
+    // A buyer, but a string no search's address is.
+    given({ saved: { data: { role: "buyer" } }, discover: { data: [{ total_count: 71 }], error: null } });
+    assert.equal(await countSuppliers("q=" + "x".repeat(2000)), null);
+    assert.equal(rpcCalls.filter((c) => c.fn === "discover_suppliers").length, 0, "an oversized query reached the search");
+  });
+
+  it("?save=1 opens the save-search popover under the bar with the form, named after the search, over the live results", async () => {
     const out = html(await search({ q: "knit", save: "1", page: "2" }));
-    assert.match(out, /<section data-record-pane="" aria-label="Save this search"/);
+    assert.match(out, /<section role="dialog" aria-label="Save this search" aria-modal="false"/);
     assert.match(out, /<input\b(?=[^>]*\sname="name")(?=[^>]*\svalue="[^"]+")[^>]*>/);
     assert.match(out, /Save search/);
-    assert.match(out, /The search keeps its filters and sort, not its page\./);
-    assert.doesNotMatch(hrefOf(out.slice(out.indexOf('aria-label="Save this search"')), /Close/), /save=/);
+    assert.match(out, /Cancel/);
+    // The fake database answers the `alert_weekly` probe (0113 is applied), so the switch is offered, off until chosen.
+    assert.match(out, /<input\b(?=[^>]*\srole="switch")(?![^>]*\schecked="")[^>]*>/);
+    assert.match(out, /Tell me about new matches/);
+    assert.match(out, /One email on Monday, only when something new matches/);
+    assert.doesNotMatch(out, /data-record-pane=""[^>]*aria-label="Save this search"/, "it is not a pane any more");
+    assert.match(out, /<table\b/, "the results are still the full table beside it");
     // The composer wins over the other panes; one pane at a time.
     const both = html(await search({ q: "knit", save: "1", rfq: ABONI_ID }));
     assert.match(both, /aria-label="New RFQ"/);
@@ -680,26 +718,28 @@ describe("/app/discover — the panes beside the results", () => {
     assert.doesNotMatch(html(await search({ q: "knit" })), /RFQ sent/);
   });
 
-  it("the ledger is the default view, the cards the other stop, and ?d= sets the row height", async () => {
-    const table = html(await search({ q: "knit" }));
-    assert.match(table, /data-row="result"/);
-    assert.match(table, /<th scope="row"[^>]*class="[^"]*\bh-10\b/);
-    const cards = html(await search({ q: "knit", view: "cards" }));
-    assert.doesNotMatch(cards, /data-row="result"/);
-    const compact = html(await search({ q: "knit", d: "compact" }));
-    assert.match(compact, /<th scope="row"[^>]*class="[^"]*\bh-9\b/);
-    assert.match(compact, /<a (?=[^>]*data-menu-item="")(?=[^>]*href="[^"]*d=compact")(?=[^>]*aria-current="true")/, "the density menu does not mark the stop that is on");
+  it("the table is the only list: no cards (D-7), and an old ?view=cards or ?d= link still opens the same table", async () => {
+    for (const sp of <Record<string, string>[]>[{ q: "knit" }, { q: "knit", view: "cards" }, { q: "knit", d: "compact" }]) {
+      const out = html(await search(sp));
+      assert.match(out, /data-row="result"/, JSON.stringify(sp));
+      assert.doesNotMatch(out, /<article\b/, `a result card came back for ${JSON.stringify(sp)}`);
+    }
+    // Each row is a link to its record, over this search; a phone's row is the record's page.
+    const out = html(await search({ q: "knit" }));
+    assert.match(out, /href="\/app\/discover\?q=knit&amp;record=aboni-knitwear"/);
+    assert.match(out, /href="\/app\/suppliers\/aboni-knitwear\?back=%2Fapp%2Fdiscover%3Fq%3Dknit"/);
   });
 
-  it("the row density survives opening and closing a record: every pane link and Close carry ?d=", async () => {
-    const out = html(await search({ q: "knit", d: "compact", record: "aboni-knitwear" }));
-    assert.match(out, /<th scope="row"[^>]*class="[^"]*\bh-9\b/, "the open record reset the density");
-    assert.match(hrefOf(out, /Close/), /[?&]d=compact(&|$)/, "Close drops the density");
+  it("opening and closing a record keeps the search: every pane link and Close are the same search, with nothing else on it", async () => {
+    const out = html(await search({ q: "knit", sort: "workers", record: "aboni-knitwear" }));
+    assert.match(hrefOf(out, /Close/), /q=knit/);
+    assert.match(hrefOf(out, /Close/), /sort=workers/);
     const opens = [...out.matchAll(/href="([^"]*record=[^"]*)"/g)].map((m) => m[1]!.replace(/&amp;/g, "&"));
     assert.ok(opens.length > 0, "guard: the rows link to their records");
-    for (const href of opens) assert.match(href, /[?&]d=compact(&|$)/, `a record link drops the density: ${href}`);
-    // Default density adds nothing to the URL.
-    assert.doesNotMatch(hrefOf(html(await search({ q: "knit", record: "aboni-knitwear" })), /Close/), /[?&]d=/);
+    for (const href of opens) {
+      assert.match(href, /q=knit/, `a record link throws the search away: ${href}`);
+      assert.match(href, /sort=workers/, `a record link drops the sort: ${href}`);
+    }
   });
 });
 
@@ -723,9 +763,10 @@ describe("/app/rfqs/new — the composer as a page", () => {
     const out = html(await newRfq({ supplier: ABONI_ID }));
     assert.match(out, /^<section aria-label="New RFQ"/, "the page is not the composer");
     assert.doesNotMatch(out, /data-record-pane|role="dialog"|aria-modal/, "a page is neither a pane nor a dialog");
-    assert.match(out, /to Aboni Knitwear Ltd/);
+    assert.match(out, /1 supplier · you can add up to 50[\s\S]*Aboni Knitwear Ltd/);
     assert.ok(!out.includes("sales@aboni.example"), "a contact value reached the page");
-    assert.match(out, /aria-label="Close"[^>]*href="\/app\/suppliers\/aboni-knitwear"|href="\/app\/suppliers\/aboni-knitwear"[^>]*aria-label="Close"/);
+    // The page's way out is its back link, named for where it goes.
+    assert.match(out, /href="\/app\/suppliers\/aboni-knitwear"[^>]*>(?:<svg[\s\S]*?<\/svg>)?Back to Aboni Knitwear Ltd/);
     assert.doesNotMatch(out, /<main\b|<nav aria-label="Primary"/, "the page draws a shell inside the layout's");
     // `&hs=` prefills the line the buyer came from.
     const line = html(await newRfq({ supplier: ABONI_ID, hs: "6105" }));
@@ -757,11 +798,16 @@ describe("/app/rfqs/new — the composer as a page", () => {
     assert.match(/<button\b[^>]*>(?:(?!<\/button>)[\s\S])*?Send RFQ/.exec(out)?.[0] ?? "", /\sdisabled=""/);
   });
 
-  it("no supplier goes to the search; only unpublished suppliers is not found", async () => {
-    const none = await newRfq({});
-    assert.ok("threw" in none && /NEXT_REDIRECT/.test(none.threw) && none.threw.includes("/app/discover"), `expected a redirect to the search: ${JSON.stringify(none)}`);
-    const junk = await newRfq({ supplier: "not-an-id" });
-    assert.ok("threw" in junk && /NEXT_REDIRECT/.test(junk.threw), "a malformed id is no supplier");
+  it("no supplier opens an empty composer that says how to add some; only unpublished suppliers is not found", async () => {
+    // "New RFQ" on the RFQ list lands here with nobody chosen: that is not a bad link.
+    for (const sp of [{}, { supplier: "not-an-id" }] as Record<string, string>[]) {
+      const out = await newRfq(sp);
+      assert.ok("html" in out, `an empty composer redirected or threw: ${JSON.stringify(out)}`);
+      const page = html(out);
+      assert.match(page, /No supplier yet\./);
+      assert.match(page, />Add suppliers</);
+      assert.match(/<button\b[^>]*>(?:(?!<\/button>)[\s\S])*?Send RFQ/.exec(page)?.[0] ?? "", /\sdisabled=""/);
+    }
     const hidden = await newRfq({ supplier: UNPUBLISHED_ID }, SUPPLIERS.filter((s) => s.id === UNPUBLISHED_ID));
     assert.ok("threw" in hidden && /404|NOT_FOUND/.test(hidden.threw), `an unpublished supplier is drawn: ${JSON.stringify(hidden)}`);
   });
@@ -843,8 +889,8 @@ describe("the RFQs section is the caller's own", () => {
     });
     const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
     const out = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({}) })));
-    assert.match(out, /37 from your account/, "a page size is being printed as a total");
-    assert.doesNotMatch(out, /20 from your account/);
+    assert.match(out, /Your RFQs · 37/, "a page size is being printed as a total");
+    assert.doesNotMatch(out, /Your RFQs · 20/);
   });
 
   it("a failed read claims no count at all", async () => {
@@ -852,7 +898,7 @@ describe("the RFQs section is the caller's own", () => {
     const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
     const out = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({}) })));
     assert.match(out, /Your RFQs could not be read\./);
-    assert.doesNotMatch(out, /from your account/);
+    assert.doesNotMatch(out, /Your RFQs · \d/);
     assert.doesNotMatch(out, /have not sent this supplier an RFQ/);
   });
 });
@@ -863,10 +909,14 @@ describe("the sanctioned record, through the route", () => {
     given({ profile: { data: s.profile, error: null }, hscodes: { data: [], error: null } });
     const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
     const out = html(await outcome(() => Page({ params: Promise.resolve({ slug: "zaheen" }), searchParams: Promise.resolve({}) })));
-    assert.match(out, /data-sanction-visible="true"/);
-    assert.match(out, /See the matches/);
+    // The band is the first thing on the record, in words; Send RFQ is replaced by the refusal, not greyed.
+    assert.match(out, /role="alert"[^>]*class="[^"]*bg-sanction/);
+    assert.match(out.replace(/&#x27;/g, "'"), /You can't send this supplier an RFQ\./);
+    // Its evidence is on the Overview, where the banner's claim is read.
     assert.match(out, /id="sanctions"/);
+    assert.match(out, /Sanctions matches/);
     assert.ok(!out.includes('href="/app/rfqs/new'), "a sanctioned record's Send RFQ is a live link");
+    assert.doesNotMatch(out, />Send RFQ</, "the button is greyed, not replaced");
   });
 
   it("its line page serves the banner too, and Send RFQ for the line is not a link", async () => {
@@ -876,7 +926,8 @@ describe("the sanctioned record, through the route", () => {
     const Page = route("app/(app)/app/suppliers/[slug]/lines/[hs]/page.js").default;
     const out = html(await outcome(() => Page({ params: Promise.resolve({ slug: "zaheen", hs: "6105" }), searchParams: Promise.resolve({}) })));
     assert.match(out, /aria-label="Product line"/, "guard: the line page rendered");
-    assert.match(out, /data-sanction-visible="true"/, "the line page of a sanctioned record has no banner");
+    assert.match(out, /role="alert"[^>]*class="[^"]*bg-sanction/, "the line page of a sanctioned record has no banner");
+    assert.match(out.replace(/&#x27;/g, "'"), /You can't send this supplier an RFQ\./, "the line page of a sanctioned record does not refuse in words");
     assert.ok(!out.includes('href="/app/rfqs/new'), "a sanctioned record's line has a live Send RFQ");
   });
 });
@@ -951,8 +1002,12 @@ describe("cycle 3: the boundaries the first route tests did not reach", () => {
         ],
       },
     });
-    const out = html(await fullPage("zaheen"));
-    assert.match(out, /Plot 5, Road 2, Dhaka/, "guard: the address itself should still render");
+    // The address is the Sites tab's now (RC-09), so the guard reads both tabs: a contact value
+    // filed inside an address must reach neither.
+    const overview = html(await fullPage("zaheen"));
+    const sites = html(await fullPage("zaheen", { tab: "sites" }));
+    const out = overview + sites;
+    assert.match(sites, /Plot 5, Road 2, Dhaka/, "guard: the address itself should still render");
     for (const value of [phone, "1700 000000", z.leaked.email_primary, z.leaked.website, z.leaked.contact_name, z.leaked.contact_role]) {
       assert.ok(!out.includes(value), `a contact value reached the full record page: ${value}`);
     }
@@ -996,46 +1051,34 @@ describe("cycle 3: the boundaries the first route tests did not reach", () => {
     assert.match(out, /could not be read just now/, "a failed read is presented as certainly unpublished");
   });
 
-  it("a result card's chips open the record over the same search, at their section", async () => {
+  it("beside an open record the table gives way to the narrow list with the record's row marked, and comes back when it closes", async () => {
+    // Master and detail (Paper `03 Patterns` · supplier list row): the list keeps only what
+    // finds the next item: name, type and place, the first certificate problem, the sources.
     given({ profile: PROFILE, hscodes: HS, discover: { data: [ROW], error: null } });
-    // The card's four tiles went (founder's review, 29 Sep 2026); their links
-    // ride on the matching chips. Cards are the non-default view.
-    const out = html(await overlay({ q: "knit", view: "cards" }));
-    const links = [...out.matchAll(/href="([^"]*#(?:products|safety|certificates))"/g)].map((m) => m[1]!.replace(/&amp;/g, "&"));
-    assert.ok(links.length > 0, "guard: the card drew no chip links");
-    for (const href of links) {
-      assert.match(href, /record=aboni-knitwear/, `a chip leaves the overlay: ${href}`);
-      assert.match(href, /q=knit/, `a chip throws the search away: ${href}`);
-      assert.match(href, /view=cards/, `a chip drops the view the buyer chose: ${href}`);
-    }
-  });
-
-  it("beside an open record the cards give way to the compact table, and come back when it closes", async () => {
-    // Founder's review, 29 Sep 2026: "the open record view of the card view
-    // section gets really cramped". Master and detail: the list keeps only
-    // what finds the next item.
-    given({ profile: PROFILE, hscodes: HS, discover: { data: [ROW], error: null } });
-    const open = html(await overlay({ q: "knit", view: "cards", record: "aboni-knitwear" }));
-    const results = open.slice(0, open.indexOf("data-record-pane"));
-    assert.match(results, /<tr [^>]*aria-current="true"[^>]*data-row="result"/, "beside a record the list is not the compact table with the record's row marked");
-    assert.match(results, /min-w-\[28rem\]/, "not the compact table");
+    const open = html(await overlay({ q: "knit", record: "aboni-knitwear" }));
+    const results = open.slice(0, open.indexOf('data-record="pane"'));
+    assert.match(results, /<a\b[^>]*aria-current="true"[^>]*href="[^"]*record=aboni-knitwear|<a\b[^>]*href="[^"]*record=aboni-knitwear[^>]*aria-current="true"/, "the record's row is not marked in the list beside it");
+    assert.match(results, /2 sources/, "not the narrow list");
+    assert.doesNotMatch(results, /<table\b/, "the wide table squeezed beside the record");
     assert.doesNotMatch(results, /<article\b/, "a card squeezed beside the record");
     given({ profile: PROFILE, hscodes: HS, discover: { data: [ROW], error: null } });
-    const closed = html(await overlay({ q: "knit", view: "cards" }));
-    assert.match(closed, /<article\b/, "closing the record did not bring the cards back");
-    assert.doesNotMatch(closed, /data-row="result"/);
+    const closed = html(await overlay({ q: "knit" }));
+    assert.match(closed, /<table\b/, "closing the record did not bring the table back");
+    assert.match(closed, /data-row="result"/);
   });
 
   it("a sanctioned record opened over the results carries the banner above every section", async () => {
     const s = sanctionedInput();
     given({ profile: { data: s.profile, error: null }, hscodes: { data: [], error: null }, discover: { data: [ROW], error: null } });
     const out = html(await overlay({ q: "knit", record: "zaheen" }));
-    const banner = out.indexOf('data-sanction-visible="true"');
+    const record = out.indexOf('aria-label="Supplier record"');
+    const banner = out.indexOf('role="alert"', record);
     assert.ok(banner > -1, "the overlay serves a sanctioned record with no banner");
-    for (const id of ["overview", "products", "certificates", "safety", "sources", "locations", "facilities", "rfqs"]) {
-      const at = out.indexOf(`id="${id}"`);
-      assert.ok(at > banner, `the ${id} section is missing or above the banner`);
+    // The band is above the header, the summary, the tabs and the panel.
+    for (const [what, at] of [["header", out.indexOf("<h2", banner)], ["summary", out.indexOf('aria-label="Summary"', banner)], ["tabs", out.indexOf('aria-label="Record sections"', banner)], ["evidence", out.indexOf('id="sanctions"', banner)]] as const) {
+      assert.ok(at > banner, `the ${what} is missing or above the banner`);
     }
+    assert.match(out.slice(out.indexOf('aria-label="Summary"', banner)), /On the [^<]*(?:list|List)/, "the summary cell does not say which list");
     // The results behind it carry their own (unsanctioned) Send RFQ; only the sheet is this record's.
     const sheet = out.slice(out.indexOf('aria-label="Supplier record"'));
     assert.ok(!sheet.includes('href="/app/rfqs/new'), "a sanctioned record's Send RFQ is a live link in the overlay");
@@ -1123,8 +1166,9 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
     };
     given({ profile: { data: profile, error: null }, hscodes: HS, discover: { data: [ROW], error: null } });
     const pages = {
-      full: html(await fullPage("aboni-knitwear")),
-      overlay: html(await overlay({ q: "knit", record: "aboni-knitwear" })),
+      full: html(await fullPage("aboni-knitwear", { tab: "products" })),
+      overlay: html(await overlay({ q: "knit", record: "aboni-knitwear", tab: "products" })),
+      overview: html(await fullPage("aboni-knitwear")),
       line: html(await linePage("6105")),
     };
     for (const [where, out] of Object.entries(pages)) {
@@ -1139,27 +1183,28 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
     assert.ok(list, "guard: the full page draws the product list");
     assert.equal((list[1]!.match(/<li/g) ?? []).length, 2, `the product list: ${list[1]}`);
     assert.match(list[1]!, /Knit T-shirt 61091000/, "an HS code in a product name was cut as a phone number");
-    assert.match(pages.full, /Product list<\/dt><dd[^>]*><span[^>]*>2<\/span>/, "the Products stat counts a contact value or a case variant as a product");
+    assert.match(pages.full, /Products as filed · 2/, "the Products tab counts a contact value or a case variant as a product");
   });
 
   it("?lines=all rides INTO a line from the overlay, not only back out", async () => {
     given({ profile: PROFILE, hscodes: HS, discover: { data: [ROW], error: null } });
-    const out = html(await overlay({ q: "knit", record: "aboni-knitwear", lines: "all" }));
-    const lineLinks = hrefsIn(out.slice(out.indexOf("data-record-pane"))).filter((h) => /[?&]line=\d{4}/.test(h));
+    const out = html(await overlay({ q: "knit", record: "aboni-knitwear", lines: "all", tab: "products" }));
+    const lineLinks = hrefsIn(out.slice(out.indexOf('data-record="pane"'))).filter((h) => /[?&]line=\d{4}/.test(h));
     assert.ok(lineLinks.length > 6, `guard: the expanded grid drew ${lineLinks.length} line links`);
     for (const h of lineLinks) assert.match(h, /lines=all/, `a line opened from "All lines" forgets it: ${h}`);
   });
 
   it("?lines=all rides into a line and back on the full page too", async () => {
     given({ profile: PROFILE, hscodes: HS });
-    const out = html(await fullPage("aboni-knitwear", { lines: "all" }));
+    const out = html(await fullPage("aboni-knitwear", { lines: "all", tab: "products" }));
     const tiles = hrefsIn(out).filter((h) => /\/lines\/\d{4}/.test(h));
     assert.ok(tiles.length > 6, `guard: ${tiles.length} tiles`);
     for (const h of tiles) assert.match(h, /\?lines=all$/, `a tile of the expanded grid forgets it: ${h}`);
+    // Back from a line is the record's Products tab, expanded or not.
     given({ profile: PROFILE, hscodes: HS });
-    assert.ok(hrefsIn(html(await linePage("6105", { lines: "all" }))).includes("/app/suppliers/aboni-knitwear?lines=all"), "Back from a line returns to six tiles");
+    assert.ok(hrefsIn(html(await linePage("6105", { lines: "all" }))).includes("/app/suppliers/aboni-knitwear?tab=products&lines=all"), "Back from a line returns to six tiles");
     given({ profile: PROFILE, hscodes: HS });
-    assert.ok(hrefsIn(html(await linePage("6105"))).includes("/app/suppliers/aboni-knitwear"), "Back from a line opened from six tiles");
+    assert.ok(hrefsIn(html(await linePage("6105"))).includes("/app/suppliers/aboni-knitwear?tab=products"), "Back from a line opened from six tiles");
   });
 
   it("a line outside the catalogue, after a failed EPB read, goes to the record — no 404, no invented line", async () => {
@@ -1171,11 +1216,11 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
       const r = await linePage(hs);
       assert.ok("threw" in r, `/lines/${hs} rendered a sheet while the EPB read had failed`);
       assert.match(r.threw, /NEXT_REDIRECT/, `/lines/${hs}: ${r.threw}`);
-      assert.match(r.threw, /\/app\/suppliers\/aboni-knitwear(?:;|$)/, `/lines/${hs} goes somewhere else: ${r.threw}`);
+      assert.match(r.threw, /\/app\/suppliers\/aboni-knitwear\?tab=products(?:;|$)/, `/lines/${hs} goes somewhere else: ${r.threw}`);
     }
     given({ profile: PROFILE, hscodes: { data: null, error: { message: "boom" } } });
     const all = await linePage("3923", { lines: "all" });
-    assert.ok("threw" in all && /\/app\/suppliers\/aboni-knitwear\?lines=all/.test(all.threw), "the expanded grid is lost on the way back");
+    assert.ok("threw" in all && /\/app\/suppliers\/aboni-knitwear\?tab=products&lines=all/.test(all.threw), "the expanded grid is lost on the way back");
     // A catalogue heading still renders, and says the lines could not be read.
     given({ profile: PROFILE, hscodes: { data: null, error: { message: "boom" } } });
     assert.match(html(await linePage("6105")), /EPB lines could not be read/);
@@ -1189,13 +1234,14 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
     const s = sanctionedInput();
     given({ profile: { data: s.profile, error: null }, hscodes: { data: [], error: null } });
     const out = html(await fullPage("zaheen"));
-    const at = out.indexOf('data-locked="true"');
+    const at = out.indexOf('aria-label="Contact"');
     assert.ok(at > -1, "guard: the contact card is drawn");
-    const card = out.slice(at, at + 2000);
-    assert.doesNotMatch(card, /Send an RFQ/, "the contact card offers an RFQ the record cannot take");
-    assert.match(card, /RFQs cannot be sent to this supplier/);
+    // The contact column says what is locked and nothing that sends: the refusal is in the header and the band.
+    const everything = out.replace(/&#x27;/g, "'");
+    assert.match(everything, /You can't send this supplier an RFQ\./);
+    assert.ok(!out.includes('href="/app/rfqs/new'), "the record offers an RFQ it cannot take");
     given({ profile: PROFILE, hscodes: HS });
-    assert.match(html(await fullPage("aboni-knitwear")), /Send an RFQ from the record instead/);
+    assert.match(html(await fullPage("aboni-knitwear")), /href="\/app\/rfqs\/new\?supplier=[^"]*"[^>]*>Send RFQ</);
   });
 
   it("the line sheet's price row says Not attested", async () => {
@@ -1289,14 +1335,14 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
       group: { employees_total: metric, machines_sewing: metric, production_capacity_pcs_day: metric, production_capacity_dozen_yearly: metric },
     };
     given({ profile: PROFILE, hscodes: HS, facilityPanel: { data: panel, error: null } });
-    const out = html(await fullPage("aboni-knitwear"));
-    assert.match(out, /2 extension buildings/);
+    const out = html(await fullPage("aboni-knitwear", { tab: "sites" }));
+    assert.match(out, /Extension buildings · 2/);
     assert.match(out, /Konabari, Gazipur/);
     assert.match(out, /3,120 workers/);
     assert.match(out, /Liberty Fashion Wears/);
     assert.doesNotMatch(out, /not on this record|No extension buildings/);
     given({ profile: PROFILE, hscodes: HS, facilityPanel: { data: null, error: { message: "boom" } } });
-    assert.match(html(await fullPage("aboni-knitwear")), /The buildings could not be read\./);
+    assert.match(html(await fullPage("aboni-knitwear", { tab: "sites" })), /The buildings could not be read\./);
   });
 
   it("the Overview shows every capacity figure a register filed, the EPZ zone and the split", async () => {
@@ -1433,10 +1479,10 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
     given({ profile: slow, hscodes: HS });
     const plain = await linePage("6105");
     assert.ok("threw" in plain && /NEXT_REDIRECT/.test(plain.threw), `a slow read on a line answered ${"threw" in plain ? plain.threw : "a page"}`);
-    assert.match(plain.threw, /\/app\/suppliers\/aboni-knitwear(?:;|$)/);
+    assert.match(plain.threw, /\/app\/suppliers\/aboni-knitwear\?tab=products(?:;|$)/);
     given({ profile: slow, hscodes: HS });
     const all = await linePage("6105", { lines: "all" });
-    assert.ok("threw" in all && /\/app\/suppliers\/aboni-knitwear\?lines=all/.test(all.threw), "the expanded grid is lost on a slow read");
+    assert.ok("threw" in all && /\/app\/suppliers\/aboni-knitwear\?tab=products&lines=all/.test(all.threw), "the expanded grid is lost on a slow read");
   });
 
   it("Locations never says 'no address' under a Factory address the Overview shows", async () => {
@@ -1446,8 +1492,11 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
     const raw = "2-B/1, Darus Salam Road, Mirpur, Dhaka";
     for (const addresses of [[], [{ kind: "factory", address: "Mohd. Abid Hossain Belal, Proprietor", source_code: "BGMEA" }]]) {
       given({ profile: { data: { ...ABONI.profile, addresses, supplier: { ...ABONI.profile.supplier, address_raw: raw } }, error: null }, hscodes: HS });
-      const out = html(await fullPage("aboni-knitwear"));
-      assert.match(out, /2-B\/1, Darus Salam Road, Mirpur, Dhaka/, "guard: the Overview shows the address");
+      const overview = html(await fullPage("aboni-knitwear"));
+      // RC-09: the address is the Sites tab's. The Overview does not print it a second time, in the
+      // register's own capitals, while the Sites tab shows it once.
+      assert.doesNotMatch(overview, /Darus Salam Road/, "the Overview repeats the address the Sites tab shows");
+      const out = html(await fullPage("aboni-knitwear", { tab: "sites" }));
       assert.doesNotMatch(out, /No address on any register/, `Locations denies the address shown (${addresses.length} rows)`);
       const section = /id="locations"[\s\S]*?<\/section>/.exec(out)?.[0] ?? "";
       assert.match(section, /2-B\/1, Darus Salam Road/, "the Locations section does not list the address");
@@ -1458,12 +1507,14 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
     const unread: Partial<typeof ABONI.profile> = { ...ABONI.profile };
     delete unread.addresses;
     given({ profile: { data: { ...unread, supplier: { ...ABONI.profile.supplier, address_raw: raw } }, error: null }, hscodes: HS });
-    const failed = /id="locations"[\s\S]*?<\/section>/.exec(html(await fullPage("aboni-knitwear")))?.[0] ?? "";
+    const failed = /id="locations"[\s\S]*?<\/section>/.exec(html(await fullPage("aboni-knitwear", { tab: "sites" })))?.[0] ?? "";
     assert.match(failed, /The addresses could not be read\./);
     assert.doesNotMatch(failed, /Darus Salam Road/, "an unread address list shown as a location");
+    // With no site to show, the Overview keeps the record's own address rather than say nothing.
+    assert.match(html(await fullPage("aboni-knitwear")), /Darus Salam Road/, "the Overview lost its only address");
     // …and with no address at all, it still says so.
     given({ profile: { data: { ...ABONI.profile, addresses: [], supplier: { ...ABONI.profile.supplier, address_raw: null } }, error: null }, hscodes: HS });
-    assert.match(html(await fullPage("aboni-knitwear")), /No address on any register/);
+    assert.match(html(await fullPage("aboni-knitwear", { tab: "sites" })), /No address on any register/);
   });
 
   it("the women/men split is withheld when it cannot be true", async () => {
@@ -1511,7 +1562,7 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
       group: { employees_total: metric, machines_sewing: metric, production_capacity_pcs_day: metric, production_capacity_dozen_yearly: metric },
     };
     given({ profile: PROFILE, hscodes: HS, facilityPanel: { data: panel, error: null } });
-    const out = html(await fullPage("aboni-knitwear"));
+    const out = html(await fullPage("aboni-knitwear", { tab: "sites" }));
     const list = /data-facilities="true"[^>]*>([\s\S]*?)<\/ul>/.exec(out)?.[1] ?? "";
     assert.match(list, /Hemayetpur, Savar/);
     assert.doesNotMatch(list, /Gulshan-2/, "a later address is shown in place of the first");
@@ -1552,14 +1603,32 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
     assert.ok(app.layouts.includes("app/(app)/app/layout.js"), `guard: the buyer layout was not found (${app.layouts.join(", ")})`);
     assert.match(app.out, /PAGE-BODY/);
     const appReads = readsSeen();
-    // The buyer shell once (its four reads are stubbed here and counted in
-    // `load-buyer-shell.test.ts`), then the tour's two: who is signed in, and
-    // whether they have dismissed it. Nothing else.
+    // The buyer shell once (its sign-in and settings reads are stubbed here and counted in
+    // `load-buyer-shell.test.ts`), the Compliance badge's two lists (B6c: the hub's own
+    // count; a slow or failed read draws no badge) and Messages' unread total (row 24: both
+    // started by the layout and not awaited, so the frame never waits on them), the "last active" stamp
+    // (gap 4: `profile_touch`, fire and forget) and the getting-started card's first read (B8c: the
+    // profile's state; this account has not been through the first-run steps, so the card reads no
+    // more: the saved and RFQ counts, the settings and the team are pinned in `first-session.test.ts`).
+    // The card reads inside a Suspense, beside the page, and none of it is the older shell's: the
+    // product tour that used to read the profile is gone. Nothing else.
     assert.equal(shellLoads, 1, "the buyer layout did not read its shell exactly once");
-    assert.deepEqual(appReads, ["auth.getUser", "from profiles role, onboarding_state"], `the layouts around an /app page read more: ${appReads.join("; ")}`);
+    assert.deepEqual(
+      appReads,
+      [
+        "from profiles onboarding_state",
+        "rpc compliance_expired_certs",
+        "rpc compliance_expiring_certs",
+        "rpc profile_touch",
+        "rpc thread_unread_total",
+      ],
+      `the layouts around an /app page read more: ${appReads.join("; ")}`,
+    );
 
-    // Not vacuous: through the same stub, the older shell's reads show up
-    // where it is still drawn.
+    // Not vacuous: through the same stub, the portals' reads show up where
+    // their layout is drawn (B10a: who is signed in, the role, the settings;
+    // the published-supplier count and the buyer dashboard it used to read
+    // are gone with the old shell).
     currentPath = "/supplier/rfqs";
     try {
       await inLayouts("app/(app)/(old-shell)/supplier/rfqs/[id]/page.tsx");
@@ -1567,9 +1636,10 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
       currentPath = "/app/discover";
     }
     const oldReads = readsSeen();
-    for (const read of ["rpc settings_get", "from suppliers id", "from profiles role"]) {
-      assert.ok(oldReads.includes(read), `the stub no longer sees the older shell's ${read}: ${oldReads.join("; ")}`);
+    for (const read of ["rpc settings_get", "from profiles role"]) {
+      assert.ok(oldReads.includes(read), `the stub no longer sees the portal layout's ${read}: ${oldReads.join("; ")}`);
     }
+    assert.ok(!oldReads.includes("from suppliers id"), "the portal layout counts the published suppliers again");
 
     // Which pages that shell wraps is the file tree's to say: every page of
     // the supplier portal and admin, and no /app page.
@@ -1584,21 +1654,20 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
     assert.ok(pages.some((f) => f.startsWith("app/(app)/(old-shell)/admin/")), "guard: the admin pages were not found");
   });
 
-  it("the older shell's layout draws its shell around the supplier portal", async () => {
-    // Its own boundary: the skip link and main landmark, rendered — not its
-    // source text read. The rail and tab bar mark the page `usePathname` names.
+  it("the portal layout draws the portal frame around the supplier portal", async () => {
+    // Its own boundary: the skip link and the one main landmark, rendered — not its
+    // source text read. The menu marks the page `usePathname` names.
     currentPath = "/supplier/rfqs";
     try {
-      const { out: old } = await inLayouts("app/(app)/(old-shell)/supplier/rfqs/[id]/page.tsx");
-      assert.match(old, /href="#main-content"/, "the old shell lost its skip link");
-      assert.equal((old.match(/<div[^>]*role="main"[^>]*>/g) ?? []).filter((m) => m.includes('id="main-content"')).length, 1, "the old shell has no main landmark");
-      assert.match(old, /PAGE-BODY/);
-      // Every piece the old shell draws: the top bar, the collapsed rail, the
-      // phone's tab bar, and a main landmark the skip link can focus.
-      assert.match(old, /<header\b/, "the old shell lost its top bar");
-      assert.match(old, /aria-label="Collapsed primary navigation"/, "the old shell lost its sidebar rail");
-      assert.match(old, /aria-label="Primary navigation"/, "the old shell lost its bottom tab bar");
-      assert.match(old, /<div[^>]*role="main"[^>]*tabindex="-1"|<div[^>]*tabindex="-1"[^>]*role="main"/i, "the skip link's target cannot take focus");
+      const { out: portal } = await inLayouts("app/(app)/(old-shell)/supplier/rfqs/[id]/page.tsx");
+      assert.match(portal, /href="#main-content"/, "the portal frame lost its skip link");
+      assert.equal((portal.match(/<main[^>]*>/g) ?? []).filter((m) => m.includes('id="main-content"')).length, 1, "the portal frame has no main landmark");
+      assert.match(portal, /PAGE-BODY/);
+      // The supplier's own menu, the account menu, and a main the skip link can focus.
+      assert.match(portal, /aria-label="Supplier portal menu"/, "the portal frame lost its menu");
+      assert.match(portal, /RFQs received/, "the supplier menu lost RFQs received");
+      assert.match(portal, /aria-label="Account:/, "the portal frame lost its account menu");
+      assert.match(portal, /<main[^>]*tabindex="-1"/i, "the skip link's target cannot take focus");
     } finally {
       currentPath = "/app/discover";
     }
@@ -1638,10 +1707,10 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
         .filter((seg) => seg && !/^\(.*\)$/.test(seg))
         .join("/");
     const pages = walk(appDir).filter((f) => path.basename(f) === "page.tsx");
-    const NAMED = ["orders/[id]", "orders/new", "rfqs/[id]", "rfqs/new", "products/[id]", "suppliers/[slug]", "suppliers/[slug]/lines/[hs]"];
-    // The inbox's thread is a list page with its conversation beside it, and
-    // keeps its skeleton on purpose; its unknown thread is a quiet notice.
-    const LIST_AND_PANE = new Set(["messages/[thread]"]);
+    const NAMED = ["orders/[id]", "orders/new", "rfqs/[id]", "rfqs/new", "products/[id]", "suppliers/[slug]", "suppliers/[slug]/lines/[hs]", "messages/[thread]"];
+    // No page is exempt now: the inbox's list moved into `messages/(list)` in B6a (4 Oct 2026),
+    // so a conversation that is not the caller's answers a real 404.
+    const LIST_AND_PANE = new Set<string>();
     const checked = pages.filter((f) => {
       const r = routeOf(f);
       if (NAMED.includes(r)) return true;
@@ -1679,12 +1748,12 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
     // Counted from the disk, not pinned: the list pages' skeletons moved into
     // `(list)` groups on 27 Sep 2026, and the detail pages lost theirs.
     assert.ok(kitLoading.length > 0, "the /app loading states were not found");
-    // And they are the kit's frame. The search's and Saved's are their
-    // workbench frame itself (`ResultsColumn`, 28 Sep 2026), so the results
-    // replace them in place.
+    // And they are the kit's frame. The search's is the table's own silhouette
+    // (`ResultsSkeleton`, B4), so the results replace it in place; Saved's and the saved
+    // searches' is Saved's own (`SavedSkeleton`, B6b), Products' is `ProductsSkeleton` (B7a).
     for (const dir of ["discover", "saved", "products/(list)", "searches"]) {
       const loading = readFileSync(path.join(process.cwd(), "app", "(app)", "app", ...dir.split("/"), "loading.tsx"), "utf8");
-      assert.match(loading, /<KitLoading\b|<ResultsColumn\b/, `/app/${dir}'s loading state has no frame`);
+      assert.match(loading, /<KitLoading\b|<ResultsColumn\b|<ResultsSkeleton\b|<SavedSkeleton\b|<ProductsSkeleton\b/, `/app/${dir}'s loading state has no frame`);
     }
     for (const file of kitLoading) {
       const out = renderToStaticMarkup(createElement(route(file.replace(/\.tsx$/, ".js")).default));

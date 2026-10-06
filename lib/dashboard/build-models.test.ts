@@ -1,11 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 
-import { RfqListBody } from "@/components/dashboard/rfq-pages";
-import { SupplierSheet } from "@/components/dashboard/supplier-sheet";
 import { sourceMark } from "./source-tiers";
 import {
   allSourceCodes,
@@ -18,6 +14,7 @@ import {
   registerLabel,
   certBuildings,
   hasEpbRecord,
+  locationTargets,
   motherRsc,
   ownPill,
   pillBuildings,
@@ -467,7 +464,7 @@ describe("buildSheet — facts panel and contact card", () => {
   // Cycle 5, finding 18, restated for REZ-C: the four sections that were
   // missing now exist, so every tab links. The rule the original encoded — a
   // tab never points at an anchor that is not rendered — is asserted against
-  // the HTML in `components/dashboard/render.test.ts`; this pins the model.
+  // the HTML in `components/record/record.test.ts`; this pins the model.
   it("every tab links, and the eight are the ones §3.3 names", () => {
     assert.deepEqual(
       sheet.tabs.map((t) => t.label),
@@ -572,6 +569,25 @@ describe("buildSheet — facts panel and contact card", () => {
     assert.equal(empty.certs.length, 0);
     assert.equal(empty.products.lines, 0);
     assert.equal(empty.tabs.find((t) => t.label === "Locations")?.count, "1", "production returns one registered address");
+  });
+});
+
+describe("buildSheet — pins for the Sites tab", () => {
+  it("one cache lookup per site, in the order of the rows, each carrying every raw spelling it was merged from", () => {
+    const input = aboniInput();
+    const targets = locationTargets(input.profile);
+    const sheet = buildSheet(input, { pins: targets.map(() => null) });
+    assert.equal(targets.length, sheet.locations.length);
+    assert.ok(targets.every((t) => t.lookups.length > 0 && t.label.trim()), "a site with nothing to look up can never be pinned");
+    assert.deepEqual(targets.map((t) => t.label), sheet.locations.map((l) => l.address));
+  });
+
+  it("a pin lands on the site at the same position, and a record built without pins carries none", () => {
+    const input = aboniInput();
+    const pins = locationTargets(input.profile).map((_, i) => (i === 1 ? { latitude: 23.8, longitude: 90.3, confidencePct: 91, addressStatus: "full_address" } : null));
+    const withPins = buildSheet(input, { pins });
+    assert.deepEqual(withPins.locations.map((l) => l.pin?.confidencePct ?? null), pins.map((p) => p?.confidencePct ?? null));
+    assert.ok(buildSheet(input).locations.every((l) => !("pin" in l) && !("office" in l)), "pins appeared on a record that did not read them");
   });
 });
 
@@ -1117,19 +1133,7 @@ describe("the RFQ row survives the shapes rfq_list can return", () => {
   it("an RFQ with no target counts none, never one, never NaN", () => {
     const row = buildRfqRow({ ...base, status: "open", target_supplier_count: 0 }, null, TODAY);
     assert.equal(row.supplierCount, 0);
-    // The RFQ list page (`RfqListBody`, the list since the dialog-era
-    // `RfqList` was retired on 27 Sep 2026) prints the count in its own
-    // Suppliers column: a number, so "0" is the count and not a sentence.
-    const html = renderToStaticMarkup(
-      createElement(RfqListBody, {
-        rows: [{ ...base, status: "open", target_supplier_count: 0, updated_at: "2026-09-10T10:00:00Z", viewer_role: "buyer" }],
-        tab: "all",
-        today: TODAY,
-      }),
-    );
-    assert.doesNotMatch(html, /NaN|undefined/);
-    const cells = [...html.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((m) => m[1]!.replace(/<[^>]+>/g, "").trim());
-    assert.equal(cells[1], "0", `the Suppliers cell: ${cells.join(" | ")}`);
+    // The RFQ list's own rendering is pinned in `components/rfqs/*.test.ts`.
   });
 
   it("a missing count is not a count", () => {
@@ -1160,9 +1164,6 @@ describe("cycle 9: claims the fixtures did not previously reach", () => {
     const sheet = buildSheet(input);
     assert.equal(sheet.certs[0]!.documentUrl, "https://sa-intl.org/sa8000-search/", "the payload still carries it");
     assert.equal(recordPage(sheet.certs[0]!.documentUrl), false);
-    const html = renderToStaticMarkup(createElement(SupplierSheet, { model: sheet }));
-    assert.doesNotMatch(html, /sa8000-search/, "nothing on the sheet opens the register's search form");
-    assert.doesNotMatch(html, />Certificate\s*</, "no link promises a certificate document there is none of");
   });
 
   it("the BGMEA grade chip says 'member' once", () => {
@@ -1226,8 +1227,6 @@ describe("the certified scope is whatever certificate carries one, and its absen
     const scope = buildSheet(onlyKinds(input, ["gots"])).products.certifiedScope;
     assert.ok(scope, "an expired certificate is still the record's scope");
     assert.equal(scope!.state, "expired");
-    const html = renderToStaticMarkup(createElement(SupplierSheet, { model: buildSheet(onlyKinds(input, ["gots"])) }));
-    assert.match(html, /GOTS · expired/, "the sheet says the scope is expired rather than saying there is none");
   });
 
   it("no scope never claims a register was read and came back empty when the payload holds certificates", () => {

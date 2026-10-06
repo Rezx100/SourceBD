@@ -1,164 +1,87 @@
-// Compliance hub — Spec B9 (/app/compliance).
+// /app/compliance: the Compliance hub on the v4 frame (B6c, Paper `10 · Compliance · needs attention,
+// ranked`, `11 · Alerts`). The certificates that need a look (expired with no renewal on file, then
+// those lapsing inside 90 days), one ask each, and a 344 column: the UFLPA counts, the modern slavery
+// statement, the expiry dates. The count in the heading, the landing's block and the sidebar badge are
+// ONE function (`attentionOf`), so they agree by construction.
 //
-// Server component. Calls the three compliance RPCs in parallel under the
-// caller's session and draws one section per surface: the next certificates
-// to expire (with the 30/60/90-day buckets as stats under the title), the
-// UFLPA summary, and what the Modern Slavery Act generator makes. Sections are
-// tonal panels on the canvas — no box inside a box.
+// Every read stands on its own: a failed one is said in the card that needed it and never turned into
+// "nothing needs attention". Paper's sanctions-lists block is not here: no read carries a
+// lists-last-read date for the whole saved list. Download CSV writes the certificate list when both
+// reads worked (`/api/v1/export`). "Download an evidence pack" is a dialog (`components/compliance/
+// evidence-pack.tsx`, gap 8, CSV only) shown whenever the saved count was read.
 
-import Link from "next/link";
-
-import { type ExpiryPayload, ExpiryStats, ExpiryTable, plural, TableFooter, type UflpaPayload } from "@/components/dashboard/compliance";
-import { Badge } from "@/components/dashboard/chips";
-import { Button } from "@/components/dashboard/controls";
-import { EmptyState, ErrorNote, PageHeader, PageSection, Page } from "@/components/dashboard/page";
-import { formatCount } from "@/lib/dashboard/facts";
+import { Suspense } from "react";
+import { AttentionCard, AttentionError, ExpiryCard, HubEmpty, HubHead, MsaCard, PartialNote, PhonePack, PhoneUflpaNote, UflpaCard } from "@/components/compliance/hub";
+import { loadCompliance } from "@/components/compliance/load";
+import { COMPLIANCE_HREF, attention } from "@/components/compliance/words";
+import { ChecklistSlot } from "@/components/onboarding/checklist";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-type MsaSummary = {
-  total_saved: number;
-  total_published: number;
-  rsc_covered: number;
-  expiring_certs_90d: number;
-  sanctions_hits: number;
-};
+export const metadata = { title: "Compliance · SourceBD" };
 
-/** How many upcoming renewals the hub lists before "View all". */
-const HUB_ROWS = 5;
-
-function SectionLink({ href, children }: { href: string; children: string }) {
-  return (
-    <Link href={href} prefetch={false} className="link">
-      {children}
-    </Link>
-  );
+/** Who is signed in, for the getting-started card only: a failed read is no card, never a failed page. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- the Supabase server client, as the other loaders take it.
+async function whoIs(supabase: any): Promise<string | null> {
+  try {
+    const { data } = await supabase.auth.getUser();
+    return typeof data?.user?.id === "string" ? data.user.id : null;
+  } catch {
+    return null;
+  }
 }
 
-async function ComplianceHubPageBody() {
+export default async function CompliancePage() {
   const supabase = await createSupabaseServerClient();
-  const [exp, ufl, msa] = await Promise.all([
-    supabase.rpc("compliance_expiring_certs", { p_window_days: 90 }),
-    supabase.rpc("compliance_uflpa_tracker"),
-    supabase.rpc("compliance_msa_inputs"),
-  ]);
-
-  const expiry = exp.error ? null : ((exp.data ?? null) as ExpiryPayload | null);
-  const uflpa = ufl.error ? null : ((ufl.data ?? null) as UflpaPayload | null);
-  const msaIn = msa.error ? null : ((msa.data ?? null) as MsaSummary | null);
-  const anyError = Boolean(exp.error || ufl.error || msa.error);
-
-  const savedTotal = msaIn?.total_saved ?? 0;
-  const upcoming = (expiry?.rows ?? []).slice(0, HUB_ROWS);
-
-  return (
-    <>
-      <PageHeader
-        title="Compliance hub"
-        caption={
-          msaIn
-            ? `Certificate renewals, UFLPA exposure and your Modern Slavery Act statement, drawn from your ${plural(savedTotal, "saved supplier")}.`
-            : "Certificate renewals, UFLPA exposure and your Modern Slavery Act statement, drawn from your saved suppliers."
-        }
-      />
-
-      {anyError ? <ErrorNote>Could not load one or more compliance views. Reload the page to try again.</ErrorNote> : null}
-
-      {msaIn && savedTotal === 0 ? (
-        <div className="rounded-md bg-surface">
-          <EmptyState
-            art="certificate"
-            compact
-            title="No saved suppliers yet"
-            action={
-              <Button variant="primary" href="/app/discover" clientNav>
-                Search suppliers
-              </Button>
-            }
-          >
-            The compliance hub draws from your saved list. Save suppliers from search to begin.
-          </EmptyState>
-        </div>
-      ) : null}
-
-      <PageSection
-        title="Certificate expiry"
-        caption="Next 90 days, soonest first"
-        action={<SectionLink href="/app/compliance/expiry">View all</SectionLink>}
-        bare
-      >
-        {expiry === null ? (
-          <p className="m-0 rounded-md bg-surface px-4 py-3 text-sm text-ink-muted">Expiring certificates did not load.</p>
-        ) : (
-          <>
-            <ExpiryStats payload={expiry} />
-            <div className="rounded-md bg-surface">
-              {upcoming.length === 0 ? (
-                <p className="m-0 px-4 py-3 text-sm text-ink-muted">
-                  No certificates on your saved suppliers expire in the next 90 days.
-                </p>
-              ) : (
-                <>
-                  <ExpiryTable rows={upcoming} compact />
-                  <TableFooter shown={upcoming.length} total={expiry.total} />
-                </>
-              )}
-            </div>
-          </>
-        )}
-      </PageSection>
-
-      <PageSection
-        title="UFLPA tracker"
-        caption="Forced-labour exposure"
-        action={<SectionLink href="/app/compliance/uflpa">Open tracker</SectionLink>}
-      >
-        <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="m-0 text-base text-ink">
-            {uflpa === null
-              ? "The UFLPA tracker did not load."
-              : uflpa.total === 0
-                ? "None of your saved suppliers is published yet, so there is nothing to check."
-                : // The tracker reads published suppliers only, so this can be
-                  // fewer than the saved count in the caption.
-                  `Of your ${plural(uflpa.total, "saved supplier")} that ${uflpa.total === 1 ? "is" : "are"} published, ${formatCount(uflpa.hits)} ${uflpa.hits === 1 ? "matches" : "match"} the U.S. UFLPA Entity List, ${formatCount(uflpa.flags)} ${uflpa.flags === 1 ? "has" : "have"} Xinjiang-linked text in the record and ${formatCount(uflpa.clear)} ${uflpa.clear === 1 ? "is" : "are"} clear.`}
-          </p>
-          {uflpa && uflpa.hits > 0 ? (
-            <Badge tone="sanction" className="self-start sm:self-auto">
-              {plural(uflpa.hits, "Entity List hit")}
-            </Badge>
-          ) : uflpa && uflpa.flags > 0 ? (
-            <Badge tone="caution" className="self-start sm:self-auto">
-              {plural(uflpa.flags, "region flag")}
-            </Badge>
-          ) : null}
-        </div>
-      </PageSection>
-
-      <PageSection
-        title="Modern Slavery Act statement"
-        caption="UK Modern Slavery Act 2015, §54"
-        action={<SectionLink href="/app/compliance/msa">Open generator</SectionLink>}
-      >
-        <div className="flex flex-col gap-1 px-4 py-3">
-          <p className="m-0 text-base text-ink">
-            Drafts your §54 transparency statement from your saved suppliers: organisation and supply chain, policies,
-            due diligence, risk assessment, training and effectiveness. It is composed in your browser and nothing is
-            uploaded.
-          </p>
-          {msaIn ? (
-            <p className="m-0 text-sm text-ink-muted">
-              Built from {plural(msaIn.total_published, "published saved supplier")}, {formatCount(msaIn.rsc_covered)}{" "}
-              covered by the RSC and {plural(msaIn.expiring_certs_90d, "certificate")} expiring in 90 days.
-            </p>
-          ) : null}
-        </div>
-      </PageSection>
-    </>
+  const today = new Date();
+  const [d, who] = await Promise.all([loadCompliance(supabase, { certs: true, uflpa: true, msa: true }), whoIs(supabase)]);
+  // The getting-started card, at the top of Alerts on a phone (a sidebar card from 1440, drawn by the layout).
+  const started = (
+    <Suspense fallback={null}>
+      <ChecklistSlot supabase={supabase} userId={who} variant="phone" />
+    </Suspense>
   );
-}
-
-export default async function ComplianceHubPage() {
-  return <Page>{await ComplianceHubPageBody()}</Page>;
+  const att = attention(d.expired, d.expiring, today);
+  const saved = d.msa?.total_saved ?? null;
+  if (d.msa && d.msa.total_saved === 0) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col">
+        {started}
+        <HubHead saved={0} />
+        <HubEmpty />
+      </div>
+    );
+  }
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      {started}
+      <HubHead saved={saved} download={att !== null && att.total > 0 && d.expired !== null && d.expiring !== null} pack={saved !== null} />
+      {saved !== null ? <PhonePack saved={saved} /> : null}
+      <div className="flex gap-6 px-6 py-5 max-lg:flex-col max-md:gap-0 max-md:px-0 max-md:py-0">
+        <div className="flex min-w-0 flex-1 flex-col gap-4 max-md:gap-0">
+          <PhoneUflpaNote uflpa={d.uflpa} saved={saved} />
+          {att === null ? (
+            <div className="max-md:px-4">
+              <AttentionError retryHref={COMPLIANCE_HREF} />
+            </div>
+          ) : (
+            <>
+              {d.expired === null || d.expiring === null ? (
+                <div className="max-md:px-4 max-md:pb-3">
+                  <PartialNote missing={d.expired === null ? "expired" : "expiring"} />
+                </div>
+              ) : null}
+              <AttentionCard attention={att} />
+            </>
+          )}
+        </div>
+        <aside aria-label="Checks" className="flex w-details shrink-0 flex-col gap-4 max-lg:w-auto max-md:px-4 max-md:py-4">
+          <UflpaCard uflpa={d.uflpa} />
+          <MsaCard msa={d.msa} />
+          <ExpiryCard expiring={d.expiring} today={today} />
+        </aside>
+      </div>
+    </div>
+  );
 }

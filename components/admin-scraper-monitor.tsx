@@ -3,20 +3,19 @@
 import { useEffect, useMemo, useState } from "react";
 
 import {
-  AdminPage,
-  AdminPageHeader,
-  AdminPanel,
+  AdminColumn,
+  AdminHead,
   AdminRow,
-  AdminRowList,
+  AdminRows,
+  AdminSection,
+  StatusChip,
   formatAdminDateTime,
-} from "@/components/admin/admin-ui";
+} from "@/components/admin/data-ui";
 import {
   AdminScraperActions,
   AdminScraperJobAction,
 } from "@/components/admin-scraper-actions";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardMeta, CardTitle } from "@/components/ui/card";
-import { Tag } from "@/components/ui/tag";
+import { ButtonLink, TypeChip } from "@/components/kit";
 import {
   SCRAPER_CATALOG,
   SCRAPER_GROUP_LABELS,
@@ -44,6 +43,7 @@ import {
   type RunStatus,
   type ScraperState,
 } from "@/lib/admin/etl-monitoring";
+import { cn } from "@/lib/utils";
 
 const GROUP_ORDER: ScraperGroup[] = [
   "registries",
@@ -113,21 +113,20 @@ export function AdminScraperMonitor({
   const activeJobs = doc.recent_jobs.filter((job) => job.status === "running" || job.status === "pending");
 
   return (
-    <AdminPage maxWidth="7xl">
-      <AdminPageHeader
-        kicker="Admin"
+    <AdminColumn>
+      <AdminHead
         title="Sources & ingestion"
-        description="Run scraper jobs, set refresh timers, and watch live progress without reading terminal logs."
+        lede="Run scraper jobs, set refresh timers, and watch live progress without reading terminal logs."
         actions={
-          <div className="text-right font-mono text-[12px] text-ink-tertiary">
+          <div className="text-right font-mono text-xs text-ink-3">
             <p>auto-refresh {hasLiveWork ? "3s" : "15s"}</p>
             <p>generated {formatAdminDateTime(doc.generated_at)} UTC</p>
-            {error ? <p className="text-sem-red">status: {error}</p> : null}
+            {error ? <p className="text-danger">status: {error}</p> : null}
           </div>
         }
       />
 
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section aria-label="Summary" className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <SummaryCard
           label="Last successful update"
           value={formatRelative(doc.summary.last_success_at, now)}
@@ -136,13 +135,12 @@ export function AdminScraperMonitor({
         <SummaryCard
           label="Running now"
           value={doc.summary.running_jobs.toLocaleString()}
-          tone={doc.summary.running_jobs > 0 ? "green" : "neutral"}
           hint={`${doc.summary.pending_jobs.toLocaleString()} waiting in queue`}
         />
         <SummaryCard
           label="Failed needs attention"
           value={doc.summary.failed_jobs.toLocaleString()}
-          tone={doc.summary.failed_jobs > 0 ? "red" : "green"}
+          tone={doc.summary.failed_jobs > 0 ? "danger" : "neutral"}
           hint={doc.summary.failed_jobs > 0 ? "Retry after checking the error" : "No failed queue jobs"}
         />
         <SummaryCard
@@ -154,15 +152,14 @@ export function AdminScraperMonitor({
 
       {evidence ? <EvidenceHealth summary={evidence} /> : null}
 
-      <AdminPanel
+      <AdminSection
         title="Live monitor"
         description="Current and queued scraper runs. This updates automatically while the VPS worker is running."
-        contentClassName="space-y-4"
       >
         {activeJobs.length === 0 ? (
-          <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-4">
-            <p className="text-sm font-semibold text-ink-primary">No scraper is running right now.</p>
-            <p className="mt-1 text-sm text-ink-secondary">
+          <div className="rounded-md border border-line bg-subtle p-4">
+            <p className="text-base font-semibold text-ink">No scraper is running right now.</p>
+            <p className="mt-1 text-base text-ink-2">
               Click Run now on a source card. Within about one minute, this panel will show the VPS
               worker pickup, elapsed time, counters, and latest events.
             </p>
@@ -174,35 +171,32 @@ export function AdminScraperMonitor({
             ))}
           </div>
         )}
-      </AdminPanel>
+      </AdminSection>
 
       {GROUP_ORDER.map((group) => {
         const items = SCRAPER_CATALOG.filter((scraper) => scraper.group === group);
         return (
-          <AdminPanel
-            key={group}
-            title={SCRAPER_GROUP_LABELS[group]}
-            description={groupDescription(group)}
-            contentClassName="grid grid-cols-1 gap-4 lg:grid-cols-2"
-          >
-            {items.map((scraper) => (
-              <ScraperCard
-                key={scraper.code}
-                scraper={scraper}
-                state={stateByCode.get(scraper.code) ?? null}
-                evidence={evidenceByScraper?.[scraper.code] ?? null}
-                now={now}
-              />
-            ))}
-          </AdminPanel>
+          <AdminSection key={group} title={SCRAPER_GROUP_LABELS[group]} description={groupDescription(group)}>
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              {items.map((scraper) => (
+                <ScraperCard
+                  key={scraper.code}
+                  scraper={scraper}
+                  state={stateByCode.get(scraper.code) ?? null}
+                  evidence={evidenceByScraper?.[scraper.code] ?? null}
+                  now={now}
+                />
+              ))}
+            </div>
+          </AdminSection>
         );
       })}
 
-      <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <RecentJobs jobs={doc.recent_jobs} now={now} />
         <RecentRuns runs={doc.recent_runs} now={now} />
-      </section>
-    </AdminPage>
+      </div>
+    </AdminColumn>
   );
 }
 
@@ -215,29 +209,14 @@ function SummaryCard({
   label: string;
   value: string;
   hint: string;
-  tone?: "neutral" | "green" | "red";
+  tone?: "neutral" | "danger";
 }) {
   return (
-    <Card>
-      <CardContent className="space-y-2">
-        <p className="text-[12px] font-semibold uppercase tracking-[0.06em] text-ink-tertiary">
-          {label}
-        </p>
-        <p
-          className={
-            "font-display text-2xl font-semibold tracking-[-0.02em] " +
-            (tone === "red"
-              ? "text-sem-red"
-              : tone === "green"
-                ? "text-sem-green"
-                : "text-ink-primary")
-          }
-        >
-          {value}
-        </p>
-        <p className="font-mono text-[12px] text-ink-tertiary">{hint}</p>
-      </CardContent>
-    </Card>
+    <div className="flex flex-col gap-1 rounded-lg border border-line p-4">
+      <p className="text-sm text-ink-3">{label}</p>
+      <p className={cn("text-xl font-semibold tracking-tight", tone === "danger" ? "text-danger" : "text-ink")}>{value}</p>
+      <p className="text-sm text-ink-3">{hint}</p>
+    </div>
   );
 }
 
@@ -255,88 +234,83 @@ function EvidenceHealth({ summary }: { summary: EvidenceSummary }) {
   const share = verifiedShare(summary);
 
   return (
-    <AdminPanel
+    <AdminSection
       title="Evidence health"
       description="Every stored fact carries a link, a locator and a verbatim excerpt. These counts are how many of those citations still hold up against the live page."
-      contentClassName="space-y-4"
       actions={
         needsReview > 0 ? (
-          <a
-            href="/admin/evidence"
-            className="rounded-md border border-neutral-300 px-3 py-1.5 text-[13px] font-semibold text-ink-primary hover:bg-neutral-50"
-          >
-            Review {needsReview.toLocaleString()} claims
-          </a>
+          <ButtonLink href="/admin/evidence">Review {needsReview.toLocaleString()} claims</ButtonLink>
         ) : null
       }
     >
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard
-          label="Citations confirmed"
-          value={claims.active.toLocaleString()}
-          tone="green"
-          hint={`of ${claims.total.toLocaleString()} total · ${claims.confirmed_last_7d.toLocaleString()} rechecked in 7d`}
-        />
-        <SummaryCard
-          label="Needs review"
-          value={needsReview.toLocaleString()}
-          tone={needsReview > 0 ? "red" : "green"}
-          hint={
-            needsReview > 0
-              ? `${claims.stale.toLocaleString()} value changed · ${claims.orphaned.toLocaleString()} link gone`
-              : "No drifted or dead citations"
-          }
-        />
-        <SummaryCard
-          label="Pages checked in 7d"
-          value={`${share}%`}
-          tone={share >= 80 ? "green" : share >= 40 ? "neutral" : "red"}
-          hint={
-            documents.unverified > 0
-              ? `${documents.unverified.toLocaleString()} never verified`
-              : `${documents.total.toLocaleString()} documents tracked`
-          }
-        />
-        <SummaryCard
-          label="Firecrawl credits (month)"
-          value={formatCredits(credits.month_to_date)}
-          hint={`${formatCredits(credits.last_24h)} in the last 24h · ${formatCredits(credits.last_30d)} rolling 30d`}
-        />
+      <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <SummaryCard
+            label="Citations confirmed"
+            value={claims.active.toLocaleString()}
+            hint={`of ${claims.total.toLocaleString()} total · ${claims.confirmed_last_7d.toLocaleString()} rechecked in 7d`}
+          />
+          <SummaryCard
+            label="Needs review"
+            value={needsReview.toLocaleString()}
+            tone={needsReview > 0 ? "danger" : "neutral"}
+            hint={
+              needsReview > 0
+                ? `${claims.stale.toLocaleString()} value changed · ${claims.orphaned.toLocaleString()} link gone`
+                : "No drifted or dead citations"
+            }
+          />
+          <SummaryCard
+            label="Pages checked in 7d"
+            value={`${share}%`}
+            tone={share < 40 ? "danger" : "neutral"}
+            hint={
+              documents.unverified > 0
+                ? `${documents.unverified.toLocaleString()} never verified`
+                : `${documents.total.toLocaleString()} documents tracked`
+            }
+          />
+          <SummaryCard
+            label="Firecrawl credits (month)"
+            value={formatCredits(credits.month_to_date)}
+            hint={`${formatCredits(credits.last_24h)} in the last 24h · ${formatCredits(credits.last_30d)} rolling 30d`}
+          />
+        </div>
+
+        <dl className="grid grid-cols-2 gap-3 rounded-md border border-line bg-subtle p-3 text-base sm:grid-cols-4">
+          <Metric label="Live pages" value={documents.live.toLocaleString()} />
+          <Metric label="Changed" value={documents.changed.toLocaleString()} />
+          <Metric label="Dead" value={documents.dead.toLocaleString()} />
+          <Metric
+            label="Monitors"
+            value={
+              monitors.total === 0
+                ? "None registered"
+                : `${monitors.enabled}/${monitors.total} on`
+            }
+          />
+        </dl>
+
+        {monitors.total === 0 ? (
+          <p className="text-base text-caution">
+            No index-page monitors are registered, so a source restructuring will not be
+            noticed until the next verification sweep. Run <span className="font-mono">refresh_monitors</span>.
+          </p>
+        ) : null}
+        {monitors.pending_webhook_events > 0 ? (
+          <p className="text-base text-ink-3">
+            {monitors.pending_webhook_events.toLocaleString()} monitor notifications waiting to be
+            processed by the VPS worker.
+          </p>
+        ) : null}
+        {documents.oldest_unverified_at ? (
+          <p className="text-base text-ink-3">
+            Oldest never-verified page was captured{" "}
+            {formatAdminDateTime(documents.oldest_unverified_at)} UTC.
+          </p>
+        ) : null}
       </div>
-
-      <dl className="grid grid-cols-2 gap-3 rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-[13px] sm:grid-cols-4">
-        <Metric label="Live pages" value={documents.live.toLocaleString()} />
-        <Metric label="Changed" value={documents.changed.toLocaleString()} />
-        <Metric label="Dead" value={documents.dead.toLocaleString()} />
-        <Metric
-          label="Monitors"
-          value={
-            monitors.total === 0
-              ? "None registered"
-              : `${monitors.enabled}/${monitors.total} on`
-          }
-        />
-      </dl>
-
-      {monitors.total === 0 ? (
-        <p className="text-[13px] text-sem-amber">
-          No index-page monitors are registered, so a source restructuring will not be
-          noticed until the next verification sweep. Run <span className="font-mono">refresh_monitors</span>.
-        </p>
-      ) : null}
-      {monitors.pending_webhook_events > 0 ? (
-        <p className="text-[13px] text-ink-tertiary">
-          {monitors.pending_webhook_events.toLocaleString()} monitor notifications waiting to be
-          processed by the VPS worker.
-        </p>
-      ) : null}
-      {documents.oldest_unverified_at ? (
-        <p className="text-[13px] text-ink-tertiary">
-          Oldest never-verified page was captured{" "}
-          {formatAdminDateTime(documents.oldest_unverified_at)} UTC.
-        </p>
-      ) : null}
-    </AdminPanel>
+    </AdminSection>
   );
 }
 
@@ -345,9 +319,7 @@ function TransportTag({ transport }: { transport: ScraperTransport }) {
   // acting on a failure. Firecrawl failing may be a vendor outage or an
   // exhausted credit balance; direct failing is the publisher blocking us; file
   // failing means nobody has staged a fresh extract.
-  const tone =
-    transport === "firecrawl" ? "green" : transport === "direct" ? "neutral" : "muted";
-  return <Tag tone={tone}>{SCRAPER_TRANSPORT_LABELS[transport]}</Tag>;
+  return <TypeChip>{SCRAPER_TRANSPORT_LABELS[transport]}</TypeChip>;
 }
 
 function ScraperCard({
@@ -369,63 +341,56 @@ function ScraperCard({
   const transport = scraperTransport(scraper.code);
 
   return (
-    <Card className="flex flex-col">
-      <CardHeader className="items-start">
+    <div className="flex flex-col gap-4 rounded-lg border border-line p-4">
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <CardTitle>{scraper.label}</CardTitle>
-          <CardMeta>{scraper.code}</CardMeta>
+          <h3 className="text-md font-semibold text-ink">{scraper.label}</h3>
+          <p className="font-mono text-sm text-ink-3">{scraper.code}</p>
         </div>
-        <Badge tone={statusTone.badge}>{statusTone.label}</Badge>
-      </CardHeader>
-      <CardContent className="flex flex-1 flex-col gap-4">
-        <div className="flex flex-wrap gap-2">
-          {transport ? <TransportTag transport={transport} /> : null}
-          {scraper.sourceTier === "—" ? null : <Tag tone="neutral">{scraper.sourceTier}</Tag>}
-          <Tag tone={scraper.risk === "high" ? "red" : scraper.risk === "medium" ? "amber" : "green"}>
-            {scraper.risk} risk
-          </Tag>
-          <Tag tone={schedule?.enabled ? "green" : "muted"}>
-            {schedule?.enabled ? `timer ${formatInterval(schedule.interval_minutes)}` : "timer off"}
-          </Tag>
-        </div>
+        <StatusChip tone={statusTone.alert ? "danger" : "plain"}>{statusTone.label}</StatusChip>
+      </div>
 
-        <div className="space-y-2 text-sm leading-relaxed text-ink-secondary">
-          <p>{scraper.updates}</p>
-          <p className="text-[13px] text-ink-tertiary">{scraper.operatorNote}</p>
-        </div>
+      <div className="flex flex-wrap gap-2">
+        {transport ? <TransportTag transport={transport} /> : null}
+        {scraper.sourceTier === "—" ? null : <TypeChip>{scraper.sourceTier}</TypeChip>}
+        {scraper.risk === "low" ? (
+          <TypeChip>{scraper.risk} risk</TypeChip>
+        ) : (
+          <StatusChip tone={scraper.risk === "high" ? "danger" : "caution"}>{scraper.risk} risk</StatusChip>
+        )}
+        <TypeChip>{schedule?.enabled ? `timer ${formatInterval(schedule.interval_minutes)}` : "timer off"}</TypeChip>
+      </div>
 
-        {evidence && evidence.documents > 0 ? (
-          <EvidenceStrip row={evidence} />
-        ) : null}
+      <div className="flex flex-col gap-2 text-base text-ink-2">
+        <p>{scraper.updates}</p>
+        <p className="text-sm text-ink-3">{scraper.operatorNote}</p>
+      </div>
 
-        <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
-          <p className="text-[13px] font-semibold text-ink-primary">
-            {activeJob ? activeJobReport(activeJob, now) : plainRunReport(latest)}
-          </p>
-          {activeJob ? (
-            <ProgressBars job={activeJob} />
-          ) : null}
-          <dl className="mt-3 grid grid-cols-2 gap-2 text-[13px]">
-            <Metric label="Last success" value={formatRelative(state?.last_success_at ?? null, now)} />
-            <Metric label="Next timer" value={formatRelative(schedule?.next_run_at ?? null, now)} />
-            <Metric label="Pending" value={String(state?.queue.pending ?? 0)} />
-            <Metric label="Running" value={String(state?.queue.running ?? 0)} />
-          </dl>
-          {latest?.error ? (
-            <p className="mt-2 line-clamp-2 text-[13px] text-sem-red">{latest.error}</p>
-          ) : null}
-        </div>
+      {evidence && evidence.documents > 0 ? <EvidenceStrip row={evidence} /> : null}
 
-        <div className="mt-auto">
-          <AdminScraperActions
-            scraperCode={scraper.code}
-            suggestedIntervalMinutes={scraper.suggestedIntervalMinutes}
-            enabled={schedule?.enabled ?? false}
-            intervalMinutes={schedule?.interval_minutes ?? null}
-          />
-        </div>
-      </CardContent>
-    </Card>
+      <div className="rounded-md border border-line bg-subtle p-3">
+        <p className="text-base font-semibold text-ink">
+          {activeJob ? activeJobReport(activeJob, now) : plainRunReport(latest)}
+        </p>
+        {activeJob ? <ProgressBars job={activeJob} /> : null}
+        <dl className="mt-3 grid grid-cols-2 gap-2 text-base">
+          <Metric label="Last success" value={formatRelative(state?.last_success_at ?? null, now)} />
+          <Metric label="Next timer" value={formatRelative(schedule?.next_run_at ?? null, now)} />
+          <Metric label="Pending" value={String(state?.queue.pending ?? 0)} />
+          <Metric label="Running" value={String(state?.queue.running ?? 0)} />
+        </dl>
+        {latest?.error ? <p className="mt-2 line-clamp-2 text-sm text-danger">{latest.error}</p> : null}
+      </div>
+
+      <div className="mt-auto">
+        <AdminScraperActions
+          scraperCode={scraper.code}
+          suggestedIntervalMinutes={scraper.suggestedIntervalMinutes}
+          enabled={schedule?.enabled ?? false}
+          intervalMinutes={schedule?.interval_minutes ?? null}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -433,24 +398,19 @@ function ScraperCard({
 function EvidenceStrip({ row }: { row: EvidenceByScraperRow }) {
   const problems = row.claims_needing_review;
   return (
-    <div className="rounded-lg border border-neutral-200 p-3">
+    <div className="rounded-md border border-line p-3">
       <div className="flex items-center justify-between">
-        <p className="text-[12px] font-semibold uppercase tracking-[0.06em] text-ink-tertiary">
-          Citations
-        </p>
+        <p className="text-sm font-medium text-ink-3">Citations</p>
         {problems > 0 ? (
-          <Tag tone="red">{problems.toLocaleString()} need review</Tag>
+          <StatusChip tone="danger">{problems.toLocaleString()} need review</StatusChip>
         ) : (
-          <Tag tone="green">all confirmed</Tag>
+          <TypeChip>all confirmed</TypeChip>
         )}
       </div>
-      <dl className="mt-2 grid grid-cols-2 gap-2 text-[13px] sm:grid-cols-4">
+      <dl className="mt-2 grid grid-cols-2 gap-2 text-base sm:grid-cols-4">
         <Metric label="Claims" value={row.claims.toLocaleString()} />
         <Metric label="Pages" value={row.documents.toLocaleString()} />
-        <Metric
-          label="Unchecked"
-          value={row.unverified_documents.toLocaleString()}
-        />
+        <Metric label="Unchecked" value={row.unverified_documents.toLocaleString()} />
         <Metric
           label="Credits (mo)"
           // A direct or file source spends nothing, and a zero there means
@@ -464,45 +424,45 @@ function EvidenceStrip({ row }: { row: EvidenceByScraperRow }) {
 
 function LiveJobCard({ job, now }: { job: QueueJob; now: number }) {
   return (
-    <Card>
-      <CardHeader className="items-start">
+    <div className="flex flex-col gap-4 rounded-lg border border-line p-4">
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <CardTitle>{humanizeCode(job.scraper_code)}</CardTitle>
-          <CardMeta>{job.scraper_code} · attempt {job.attempts}</CardMeta>
+          <h3 className="text-md font-semibold text-ink">{humanizeCode(job.scraper_code)}</h3>
+          <p className="font-mono text-sm text-ink-3">
+            {job.scraper_code} · attempt {job.attempts}
+          </p>
         </div>
         <JobStatusTag status={job.status} />
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
-          <p className="text-sm font-semibold text-ink-primary">{activeJobReport(job, now)}</p>
-          <dl className="mt-3 grid grid-cols-2 gap-3 text-[13px] sm:grid-cols-4">
-            <Metric label="Queued" value={formatRelative(job.requested_at, now)} />
-            <Metric label="Elapsed" value={formatElapsed(job.started_at ?? job.requested_at, now)} />
-            <Metric label="Heartbeat" value={formatRelative(job.heartbeat_at, now)} />
-            <Metric label="Run id" value={job.etl_run_id ? job.etl_run_id.slice(0, 8) : "Not started"} />
-          </dl>
-          <ProgressBars job={job} />
-        </div>
-        <EventTimeline events={job.events} now={now} />
-      </CardContent>
-    </Card>
+      </div>
+      <div className="rounded-md border border-line bg-subtle p-3">
+        <p className="text-base font-semibold text-ink">{activeJobReport(job, now)}</p>
+        <dl className="mt-3 grid grid-cols-2 gap-3 text-base sm:grid-cols-4">
+          <Metric label="Queued" value={formatRelative(job.requested_at, now)} />
+          <Metric label="Elapsed" value={formatElapsed(job.started_at ?? job.requested_at, now)} />
+          <Metric label="Heartbeat" value={formatRelative(job.heartbeat_at, now)} />
+          <Metric label="Run id" value={job.etl_run_id ? job.etl_run_id.slice(0, 8) : "Not started"} />
+        </dl>
+        <ProgressBars job={job} />
+      </div>
+      <EventTimeline events={job.events} now={now} />
+    </div>
   );
 }
 
 function ProgressBars({ job }: { job: QueueJob }) {
   const max = Math.max(job.progress_seen, job.progress_upserted, job.progress_skipped, job.progress_matched, 1);
   return (
-    <div className="mt-3 space-y-2">
+    <div className="mt-3 flex flex-col gap-2">
       {job.status === "running" && job.progress_seen === 0 ? (
-        <div className="h-2 overflow-hidden rounded-full bg-neutral-200">
-          <div className="h-full w-1/3 animate-pulse rounded-full bg-brand-forest" />
+        <div className="h-2 overflow-hidden rounded-full bg-sunken">
+          <div className="h-full w-1/3 animate-pulse rounded-full bg-brand motion-reduce:animate-none" />
         </div>
       ) : null}
-      <Bar label="Seen" value={job.progress_seen} max={max} tone="bg-brand-forest" />
-      <Bar label="Updated" value={job.progress_upserted} max={max} tone="bg-sem-green" />
-      <Bar label="Skipped" value={job.progress_skipped} max={max} tone="bg-sem-amber" />
+      <Bar label="Seen" value={job.progress_seen} max={max} tone="bg-brand" />
+      <Bar label="Updated" value={job.progress_upserted} max={max} tone="bg-ink-2" />
+      <Bar label="Skipped" value={job.progress_skipped} max={max} tone="bg-caution-icon" />
       {job.progress_matched > 0 ? (
-        <Bar label="Matches" value={job.progress_matched} max={max} tone="bg-sem-red" />
+        <Bar label="Matches" value={job.progress_matched} max={max} tone="bg-danger" />
       ) : null}
     </div>
   );
@@ -512,11 +472,11 @@ function Bar({ label, value, max, tone }: { label: string; value: number; max: n
   const width = `${Math.max(3, Math.round((value / max) * 100))}%`;
   return (
     <div>
-      <div className="mb-1 flex justify-between text-[12px] text-ink-tertiary">
+      <div className="mb-1 flex justify-between text-xs text-ink-3">
         <span>{label}</span>
         <span className="font-mono">{value.toLocaleString()}</span>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-neutral-200">
+      <div className="h-2 overflow-hidden rounded-full bg-sunken">
         <div className={`h-full rounded-full ${tone}`} style={{ width }} />
       </div>
     </div>
@@ -525,20 +485,18 @@ function Bar({ label, value, max, tone }: { label: string; value: number; max: n
 
 function EventTimeline({ events, now }: { events: EtlJobEvent[]; now: number }) {
   if (events.length === 0) {
-    return <p className="text-sm text-ink-tertiary">No events yet. Waiting for the VPS worker.</p>;
+    return <p className="text-base text-ink-3">No events yet. Waiting for the VPS worker.</p>;
   }
   return (
     <div>
-      <p className="mb-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-ink-tertiary">
-        Run timeline
-      </p>
-      <ol className="m-0 space-y-2 p-0">
+      <p className="mb-2 text-sm font-medium text-ink-3">Run timeline</p>
+      <ol className="m-0 flex list-none flex-col gap-2 p-0">
         {events.slice(0, 6).map((event) => (
           <li key={event.id} className="flex gap-3">
-            <span className="mt-1 size-2 rounded-full bg-brand-forest" aria-hidden />
+            <span className="mt-1.5 size-2 shrink-0 rounded-full bg-brand" aria-hidden />
             <div className="min-w-0">
-              <p className="text-sm font-medium text-ink-primary">{event.message}</p>
-              <p className="font-mono text-[12px] text-ink-tertiary">
+              <p className="text-base font-medium text-ink">{event.message}</p>
+              <p className="font-mono text-xs text-ink-3">
                 {event.event_type} · {formatRelative(event.created_at, now)}
                 {event.records_seen > 0 ? ` · seen ${event.records_seen.toLocaleString()}` : ""}
               </p>
@@ -552,30 +510,28 @@ function EventTimeline({ events, now }: { events: EtlJobEvent[]; now: number }) 
 
 function RecentJobs({ jobs, now }: { jobs: QueueJob[]; now: number }) {
   return (
-    <AdminPanel
+    <AdminSection
       title="Recent queue jobs"
       description="Button clicks and timer-created jobs. Failed jobs can be retried here."
-      padded={false}
+      flush
     >
       {jobs.length === 0 ? (
-        <p className="p-5 text-sm text-ink-tertiary">No scraper jobs have been queued yet.</p>
+        <p className="p-4 text-base text-ink-3">No scraper jobs have been queued yet.</p>
       ) : (
-        <AdminRowList>
+        <AdminRows>
           {jobs.slice(0, 12).map((job) => (
             <AdminRow key={job.id}>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-mono text-[13px] font-semibold text-ink-primary">
-                    {job.scraper_code}
-                  </span>
+                  <span className="font-mono text-base font-semibold text-ink">{job.scraper_code}</span>
                   <JobStatusTag status={job.status} />
-                  <span className="font-mono text-[12px] text-ink-tertiary">
+                  <span className="font-mono text-xs text-ink-3">
                     {job.status === "running"
                       ? `elapsed ${formatElapsed(job.started_at ?? job.requested_at, now)}`
                       : `attempt ${job.attempts}`}
                   </span>
                 </div>
-                <p className="mt-1 text-[13px] text-ink-tertiary">
+                <p className="mt-1 text-sm text-ink-3">
                   {job.progress_message ?? `requested ${formatAdminDateTime(job.requested_at)}`}
                   {job.error ? <> - {job.error}</> : null}
                 </p>
@@ -596,88 +552,78 @@ function RecentJobs({ jobs, now }: { jobs: QueueJob[]; now: number }) {
               </div>
             </AdminRow>
           ))}
-        </AdminRowList>
+        </AdminRows>
       )}
-    </AdminPanel>
+    </AdminSection>
   );
 }
 
 function RecentRuns({ runs, now }: { runs: EtlRun[]; now: number }) {
   return (
-    <AdminPanel
-      title="Recent scraper reports"
-      description="Completed run results from public.etl_runs."
-      padded={false}
-    >
+    <AdminSection title="Recent scraper reports" description="Completed run results from public.etl_runs." flush>
       {runs.length === 0 ? (
-        <p className="p-5 text-sm text-ink-tertiary">No ETL run reports yet.</p>
+        <p className="p-4 text-base text-ink-3">No ETL run reports yet.</p>
       ) : (
-        <AdminRowList>
+        <AdminRows>
           {runs.slice(0, 12).map((run) => (
             <AdminRow key={run.id}>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-mono text-[13px] font-semibold text-ink-primary">
-                    {run.scraper_code}
-                  </span>
+                  <span className="font-mono text-base font-semibold text-ink">{run.scraper_code}</span>
                   <RunStatusTag status={run.status} />
                   {matchedSuppliers(run.meta) > 0 ? (
-                    <Tag tone="amber">{matchedSuppliers(run.meta)} sanctions matches</Tag>
+                    <StatusChip tone="caution">{matchedSuppliers(run.meta)} sanctions matches</StatusChip>
                   ) : null}
                 </div>
-                <p className="mt-1 text-[13px] text-ink-secondary">
-                  {plainRunReport(run)}
-                </p>
-                {run.error ? <p className="mt-1 text-[13px] text-sem-red">{run.error}</p> : null}
+                <p className="mt-1 text-base text-ink-2">{plainRunReport(run)}</p>
+                {run.error ? <p className="mt-1 text-sm text-danger">{run.error}</p> : null}
               </div>
-              <p className="shrink-0 font-mono text-[12px] text-ink-tertiary">
+              <p className="shrink-0 font-mono text-xs text-ink-3">
                 {run.finished_at ? formatElapsed(run.started_at, new Date(run.finished_at).getTime()) : formatRelative(run.started_at, now)}
               </p>
             </AdminRow>
           ))}
-        </AdminRowList>
+        </AdminRows>
       )}
-    </AdminPanel>
+    </AdminSection>
   );
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="font-mono text-[12px] uppercase tracking-[0.05em] text-ink-tertiary">
-        {label}
-      </dt>
-      <dd className="mt-0.5 break-words font-medium text-ink-primary">{value}</dd>
+      <dt className="text-sm text-ink-3">{label}</dt>
+      <dd className="mt-0.5 break-words font-medium text-ink">{value}</dd>
     </div>
   );
 }
 
 function RunStatusTag({ status }: { status: RunStatus }) {
-  if (status === "success") return <Tag tone="green">success</Tag>;
-  if (status === "running") return <Tag tone="amber">running</Tag>;
-  if (status === "partial") return <Tag tone="amber">partial</Tag>;
-  return <Tag tone="red">failed</Tag>;
+  if (status === "success") return <TypeChip>success</TypeChip>;
+  if (status === "running") return <TypeChip>running</TypeChip>;
+  if (status === "partial") return <StatusChip tone="caution">partial</StatusChip>;
+  return <StatusChip tone="danger">failed</StatusChip>;
 }
 
 function JobStatusTag({ status }: { status: JobStatus }) {
-  if (status === "success") return <Tag tone="green">success</Tag>;
-  if (status === "running" || status === "pending") return <Tag tone="amber">{status}</Tag>;
-  if (status === "cancelled") return <Tag tone="muted">cancelled</Tag>;
-  return <Tag tone="red">failed</Tag>;
+  if (status === "success") return <TypeChip>success</TypeChip>;
+  if (status === "running" || status === "pending") return <TypeChip>{status}</TypeChip>;
+  if (status === "cancelled") return <TypeChip>cancelled</TypeChip>;
+  return <StatusChip tone="danger">failed</StatusChip>;
 }
 
 function latestStatusTone(
   latest: EtlRun | null,
   activeJob: QueueJob | null,
   stale: boolean,
-): { label: string; badge: "neutral" | "active" | "alert" | "success" } {
-  if (activeJob?.status === "running") return { label: "live", badge: "active" };
-  if (activeJob?.status === "pending") return { label: "queued", badge: "active" };
-  if (!latest) return { label: "not run", badge: "neutral" };
-  if (latest.status === "failed") return { label: "needs action", badge: "alert" };
-  if (latest.status === "running") return { label: "running", badge: "active" };
-  if (stale) return { label: "stale", badge: "alert" };
-  return { label: "healthy", badge: "success" };
+): { label: string; alert: boolean } {
+  if (activeJob?.status === "running") return { label: "live", alert: false };
+  if (activeJob?.status === "pending") return { label: "queued", alert: false };
+  if (!latest) return { label: "not run", alert: false };
+  if (latest.status === "failed") return { label: "needs action", alert: true };
+  if (latest.status === "running") return { label: "running", alert: false };
+  if (stale) return { label: "stale", alert: true };
+  return { label: "healthy", alert: false };
 }
 
 function activeJobReport(job: QueueJob, now: number): string {

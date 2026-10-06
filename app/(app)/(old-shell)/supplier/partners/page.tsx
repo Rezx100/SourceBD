@@ -7,14 +7,11 @@
 import Link from "next/link";
 import { UsersThree } from "@phosphor-icons/react/dist/ssr";
 
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardMeta, CardTitle } from "@/components/ui/card";
-import { ResponsiveTable, type Column } from "@/components/ui/responsive-table";
-import { Tag } from "@/components/ui/tag";
+import { Empty, Table, Td, Th, Tr, TypeChip, linkClass } from "@/components/kit";
+import { RfqChip } from "@/components/rfqs/chip";
 import { PartnerActionButtons } from "@/components/supplier-partner-actions";
 import { SupplierPartnerRequestForm } from "@/components/supplier-partner-request-form";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { PageHeader } from "@/components/ui/page-kit";
 
 export const dynamic = "force-dynamic";
 
@@ -86,45 +83,38 @@ export default async function SupplierPartnersPage() {
   );
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <PageHeader
-        kicker="Supplier"
-        title="Partners"
-        description="Buying houses and factories can declare partnerships. Both sides must agree before a relationship becomes public on the buyer-side profile pages."
-      />
+    <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-2xl font-semibold tracking-tight text-ink">Partners</h1>
+        <p className="max-w-3xl text-md text-ink-2">
+          Buying houses and factories can declare partnerships. Both sides must agree before a relationship becomes public on the buyer-side profile pages.
+        </p>
+      </header>
 
       {owned.length === 0 ? (
-        <Card>
-          <CardContent className="space-y-3 py-8 text-center text-sm text-ink-secondary">
-            <UsersThree
-              size={32}
-              weight="duotone"
-              className="mx-auto text-ink-tertiary"
-              aria-hidden
-            />
-            <p>Claim a buying house or factory to manage partnerships.</p>
-            <Link
-              href="/supplier/claim"
-              className="font-semibold text-accent-indigo hover:underline"
-            >
+        <Empty
+          icon={UsersThree}
+          title="Claim a buying house or factory to manage partnerships."
+          action={
+            <Link href="/supplier/claim" className={linkClass}>
               Claim your company
             </Link>
-          </CardContent>
-        </Card>
+          }
+        />
       ) : (
         <>
-          <Card>
-            <CardHeader>
-              <CardTitle>Request a partnership</CardTitle>
-              <CardMeta>
+          <section aria-label="Request a partnership" className="rounded-md border border-line p-5">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 className="text-md font-semibold text-ink">Request a partnership</h2>
+              <p className="text-sm text-ink-3">
                 Buying houses request factories, factories request buying
                 houses.
-              </CardMeta>
-            </CardHeader>
-            <CardContent>
+              </p>
+            </div>
+            <div className="mt-4">
               <SupplierPartnerRequestForm ownedSuppliers={owned} />
-            </CardContent>
-          </Card>
+            </div>
+          </section>
 
           <RelationshipGroup
             title="Incoming requests"
@@ -170,25 +160,86 @@ function RelationshipGroup({
   emptyText: string;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardMeta>{meta}</CardMeta>
-      </CardHeader>
-      <CardContent>
-        <ResponsiveTable
-          mode="priority"
-          priorityKeys={["partner", "role"]}
-          columns={PARTNER_COLUMNS}
-          rows={rows}
-          rowKey={(r) => r.id}
-          caption={title}
-          emptyState={
-            <p className="text-sm text-ink-tertiary">{emptyText}</p>
-          }
-        />
-      </CardContent>
-    </Card>
+    <section aria-label={title} className="overflow-clip rounded-md border border-line">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 px-5 py-4">
+        <h2 className="text-md font-semibold text-ink">{title}</h2>
+        <p className="text-sm text-ink-3">{meta}</p>
+      </div>
+      {rows.length === 0 ? (
+        <p className="border-t border-line px-5 py-4 text-base text-ink-3">{emptyText}</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <Table className="min-w-[900px]">
+            <caption className="sr-only">{title}</caption>
+            <thead>
+              <tr>
+                <Th>Partner</Th>
+                <Th>Role</Th>
+                <Th>Status</Th>
+                <Th>For</Th>
+                <Th>Direction</Th>
+                <Th>Note</Th>
+                <Th align="right">Actions</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => {
+                const c = counterpartyOf(r);
+                const mine = myCompanyOf(r);
+                return (
+                  <Tr key={r.id}>
+                    <Td>
+                      <Link
+                        href={`/app/suppliers/${c.slug}`}
+                        className="font-medium text-ink hover:underline"
+                      >
+                        {c.company_name}
+                      </Link>
+                    </Td>
+                    <Td>
+                      <TypeChip>
+                        {r.viewer_role === "buying_house" ? "factory" : "buying house"}
+                      </TypeChip>
+                    </Td>
+                    <Td>
+                      <StatusChip status={r.status} />
+                    </Td>
+                    <Td>
+                      <Link
+                        href={`/app/suppliers/${mine.slug}`}
+                        className="text-ink-2 hover:underline"
+                      >
+                        {mine.company_name}
+                      </Link>
+                    </Td>
+                    <Td className="text-ink-3">
+                      {r.initiated_by_me ? "you requested" : "they requested"}
+                      {r.decided_at
+                        ? ` · decided ${new Date(r.decided_at).toLocaleDateString()}`
+                        : ""}
+                    </Td>
+                    <Td>
+                      {r.note ? (
+                        <span className="whitespace-pre-wrap">“{r.note}”</span>
+                      ) : (
+                        "—"
+                      )}
+                    </Td>
+                    <Td align="right">
+                      <PartnerActionButtons
+                        id={r.id}
+                        canDecide={r.can_decide}
+                        canRevoke={r.can_revoke}
+                      />
+                    </Td>
+                  </Tr>
+                );
+              })}
+            </tbody>
+          </Table>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -199,90 +250,9 @@ function myCompanyOf(row: Relationship): Counterparty {
   return row.viewer_role === "buying_house" ? row.buying_house : row.factory;
 }
 
-const PARTNER_COLUMNS: Column<Relationship>[] = [
-  {
-    key: "partner",
-    label: "Partner",
-    render: (r) => {
-      const c = counterpartyOf(r);
-      return (
-        <Link
-          href={`/app/suppliers/${c.slug}`}
-          className="font-display text-sm font-semibold text-ink-primary hover:underline"
-        >
-          {c.company_name}
-        </Link>
-      );
-    },
-  },
-  {
-    key: "role",
-    label: "Role",
-    render: (r) => (
-      <Tag>{r.viewer_role === "buying_house" ? "factory" : "buying house"}</Tag>
-    ),
-  },
-  {
-    key: "status",
-    label: "Status",
-    render: (r) => <StatusBadge status={r.status} />,
-  },
-  {
-    key: "for",
-    label: "For",
-    render: (r) => {
-      const mine = myCompanyOf(r);
-      return (
-        <Link
-          href={`/app/suppliers/${mine.slug}`}
-          className="text-[14px] text-ink-secondary hover:underline"
-        >
-          {mine.company_name}
-        </Link>
-      );
-    },
-  },
-  {
-    key: "who",
-    label: "Direction",
-    render: (r) => (
-      <span className="text-[14px] text-ink-tertiary">
-        {r.initiated_by_me ? "you requested" : "they requested"}
-        {r.decided_at
-          ? ` · decided ${new Date(r.decided_at).toLocaleDateString()}`
-          : ""}
-      </span>
-    ),
-  },
-  {
-    key: "note",
-    label: "Note",
-    render: (r) =>
-      r.note ? (
-        <span className="whitespace-pre-wrap text-[14px] text-ink-secondary">
-          “{r.note}”
-        </span>
-      ) : (
-        "—"
-      ),
-  },
-  {
-    key: "actions",
-    label: "Actions",
-    numeric: true,
-    render: (r) => (
-      <PartnerActionButtons
-        id={r.id}
-        canDecide={r.can_decide}
-        canRevoke={r.can_revoke}
-      />
-    ),
-  },
-];
-
-function StatusBadge({ status }: { status: Relationship["status"] }) {
-  if (status === "accepted") return <Badge tone="success">Accepted</Badge>;
-  if (status === "pending") return <Badge tone="active">Pending</Badge>;
-  if (status === "rejected") return <Badge tone="alert">Rejected</Badge>;
-  return <Badge tone="neutral">Revoked</Badge>;
+function StatusChip({ status }: { status: Relationship["status"] }) {
+  if (status === "accepted") return <RfqChip tone="accepted">Accepted</RfqChip>;
+  if (status === "pending") return <RfqChip tone="waiting">Pending</RfqChip>;
+  if (status === "rejected") return <RfqChip tone="closed">Rejected</RfqChip>;
+  return <RfqChip tone="closed">Revoked</RfqChip>;
 }

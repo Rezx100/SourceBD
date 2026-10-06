@@ -9,9 +9,16 @@
 import "server-only";
 
 import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
-export async function createSupabaseServerClient() {
+/**
+ * `userAgent` is the visitor's own browser, for a client that SIGNS SOMEONE IN: Auth records the agent of
+ * the request that opens a session, and from a server action that would be this server's ("node"), so the
+ * Security page could not tell one device from another. Pass it from the sign-in actions and the link
+ * callback only; every other call is the session's own and needs no header.
+ */
+export async function createSupabaseServerClient(opts: { userAgent?: string | null } = {}) {
   const cookieStore = await cookies();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -20,7 +27,10 @@ export async function createSupabaseServerClient() {
       "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY",
     );
   }
+  // A header value may not carry control characters (a newline would be a second header).
+  const ua = typeof opts.userAgent === "string" ? opts.userAgent.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, 300) : "";
   return createServerClient(url, anonKey, {
+    ...(ua ? { global: { headers: { "User-Agent": ua } } } : {}),
     cookies: {
       getAll() {
         return cookieStore.getAll();
@@ -38,4 +48,27 @@ export async function createSupabaseServerClient() {
       },
     },
   });
+}
+
+// Is `password` this account's current password? Checked by signing in on a
+// throwaway client that keeps no cookie, so the caller's own session is left
+// alone; the session it opens is closed again at once (ST-03). Supabase's own
+// sign-in limits apply to every guess. Throws when the check itself fails.
+export async function passwordMatches(email: string, password: string): Promise<boolean> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anonKey) {
+    throw new Error(
+      "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    );
+  }
+  const probe = createClient(url, anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
+  const { error } = await probe.auth.signInWithPassword({ email, password });
+  if (error?.code === "invalid_credentials") return false;
+  // A rate limit or an outage is not a wrong password: say neither.
+  if (error) throw new Error(`password check failed: ${error.message}`);
+  await probe.auth.signOut({ scope: "local" });
+  return true;
 }

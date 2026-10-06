@@ -3,7 +3,7 @@
 Hand-off §3 makes this one of three non-optional boundary tests, and AGENTS 16
 is explicit that a helper-level test does not count where the deliverable is
 something an outside caller observes. The record sheet disables Send RFQ on a
-sanctioned record, and `components/dashboard/record-sheet.test.ts` asserts that
+sanctioned record, and `components/record/record.test.ts` asserts that
 in the HTML — but hiding UI is never a security control, so the claim that
 matters is about the function a caller can reach directly through PostgREST.
 

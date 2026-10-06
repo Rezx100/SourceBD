@@ -45,7 +45,7 @@ This is read-only. There is no --apply: a mismatch is fixed by hand in
 `manifest.json` (update `exporters` and `queried_at`), then
 `node scripts/build-hs-photos.mjs` to regenerate `lib/hs-catalogue.ts`, then
 the two call sites pinned to the derived `otherExporters` value
-(`lib/dashboard/build-models.test.ts`, `components/dashboard/render.test.ts`)
+(`lib/dashboard/build-models.test.ts`, `components/record/line.test.ts`)
 — see the commit that added this script for the exact sequence.
 
 Why this can never become a CI test: CI has no production database access
