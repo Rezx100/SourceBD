@@ -132,6 +132,7 @@ Migration file headers are NOT live status. Check here or query the database.
 | `0107_buyer_supplier_profile_one_supplier` | 29 Sep 2026 | 29 Sep video. Two FROM clauses: the profile's two views filtered on the one id instead of joined. Applied through the Supabase MCP on the founder's go-ahead (the pooler times out here), gated on the text's md5 and the live base (`63ee7ea0…`); dry run 45 records identical, 967 → 171 ms median; live md5 now `8648d817…`, recorded `20260929083008`. Evidence, rollback: `ops/plans/0107-profile-one-supplier.md`. |
 | `0108_compliance_expired_certs` | **not applied** | Expired certificates on the hub and Saved. One new function, nothing live rewritten; dry run clean 3 Oct (3 buyers, counts agree). Apply before its deploy: `ops/plans/0108-dry-run.md`. |
 | `0110_order_cancel_before_shipping` | **not applied** | OR-02: shipped/in-transit orders refuse a cancel. Dry run clean 4 Oct (0 live orders): `ops/plans/0110-dry-run.md`. |
+| `0120_sanctions_daily_reconcile` | **not applied** | ETL freshness S1. Dry run clean 6 Oct: `ops/plans/0120-dry-run.md`. |
 
 Deploy-order hazard, twice hit: code that queries a new table with no
 missing-table guard crashes every ETL run if shipped before its migration.

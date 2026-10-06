@@ -71,6 +71,18 @@ describe("the summary", () => {
     assert.doesNotMatch(out, /\b(score|grade|rating|stars?)\b/i);
   });
 
+  it("dates 'Not listed' by the lists' last read, and says when that read is overdue", () => {
+    const at = (iso: string | null) => summaryCells({ ...model(), sanctionsReadAt: iso }, TODAY)[0]!;
+    assert.equal(at(null).sub, null, "no read date claims none");
+    const fresh = at(new Date(TODAY.getTime() - 3600_000).toISOString());
+    assert.equal(fresh.value, "Not listed");
+    assert.match(fresh.sub ?? "", /^on the lists read \d{1,2} \w{3} \d{4}$/);
+    assert.equal(fresh.tone, undefined);
+    const stale = at(new Date(TODAY.getTime() - 5 * 86400_000).toISOString());
+    assert.match(stale.sub ?? "", /^lists last read \d{1,2} \w{3} \d{4} · not re-read since$/);
+    assert.equal(stale.tone, "caution");
+  });
+
   it("says what is missing in words: no certificate, no RSC record, no workers figure", () => {
     const cells = Object.fromEntries(summaryCells(model(arFashionInput()), TODAY).map((c) => [c.key, c]));
     assert.equal(cells.certificates!.value, "None found");

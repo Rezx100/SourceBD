@@ -94,6 +94,15 @@ Monitors are assumed to cost about 1 credit per check: **confirm against the Fir
 | BEPZA, DIFE, RJSC | 1 | no scraper | **Not read; say so.** Remove them from public source counts until a scraper exists | none | 0 |
 | Monitors kept (7) | — | Firecrawl | bgmea_web, bkmea_web, bgapmea_web, brand_hm, brand_next, uflpa, ilab_tvpra | Firecrawl monitor | about 210 |
 
+**Found while building S1 (6 Oct).**
+
+- **UFLPA went stale because dhs.gov answered our research user agent with 403** on 26 Jun. Nothing retried. The live list has 205 entries (47 dated 2026); we hold 160. S1 sends a browser user agent.
+- **US WRO cannot be read fresh at all.** CBP replaced the table with a Tableau dashboard (`publicstats.cbp.gov`) and its CSV export answers 404. Every read is the Dec 2024 Wayback snapshot.
+  - S1 marks such a read partial, so it never delists and never advances the date.
+  - It gives cbp_wro no schedule.
+  - It leaves US WRO out of the buyer's "lists read" date.
+  - A dashboard reader is future work.
+
 **Total: about 600–900 credits a month, with a hard ceiling at 1,500 (§4.8).**
 For comparison, one full BGMEA run is about 4,500 credits, and the 15 monitors alone cost about 450 a month.
 
