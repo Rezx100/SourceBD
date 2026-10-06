@@ -342,3 +342,26 @@ describe("the record components' rules", () => {
     }
   });
 });
+
+describe("a GOTS certificate's link (6 Oct 2026: the GTB certificate document went behind a login)", () => {
+  it("opens the GOTS directory's public page, and an expired one says it is gone instead of linking", () => {
+    for (const mode of ["pane", "page"] as const) {
+      for (const tab of ["overview", "certificates"] as const) {
+        const out = plain(view(model(), { mode, tab }));
+        assert.ok(!out.includes("global-trace-base.org"), `${mode}/${tab} still links to the login-walled document`);
+      }
+      const certs = plain(view(model(), { mode, tab: "certificates" }));
+      assert.match(certs, /<a\b[^>]*href="https:\/\/global-standards\.org\/suppliers\/certified-suppliers\/details\?gtbid=SCO039488"[^>]*>Open on GOTS<\/a>/, mode);
+      assert.ok(text(certs).includes("No longer on the GOTS list"), `${mode}: the expired GOTS-27605 says why it has no link`);
+    }
+  });
+
+  it("drops the link when GOTS stops listing a certificate that has not expired", () => {
+    const m = model();
+    const live = m.certs.find((c) => c.number === "GOTS-31587")!;
+    const rows = certRows({ ...m, certChecks: { reads: {}, certs: [{ kind: live.kind, certificate_no: "GOTS-31587", listing_status: "no_longer_listed", delisted_at: "2026-10-01T00:00:00Z" }] } } as unknown as SupplierSheetModel, TODAY);
+    const row = rows.find((r) => r.number === "GOTS-31587")!;
+    assert.equal(row.documentUrl, null);
+    assert.equal(row.documentNote, "No longer on the GOTS list");
+  });
+});
