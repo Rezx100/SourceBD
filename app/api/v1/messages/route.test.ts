@@ -3,6 +3,7 @@
 // asked, what each database error becomes, and that the file link signs only for the caller.
 
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { beforeEach, describe, it } from "node:test";
 
 import { called, fake, resetFake } from "../route-test-fake";
@@ -45,13 +46,34 @@ describe("POST /api/v1/messages, action read", () => {
 });
 
 describe("POST /api/v1/messages, action send with files", () => {
-  it("sends text and files through thread_send_message_files, body trimmed", async () => {
+  it("sends text and files through thread_send_message_files, body trimmed, then fingerprints each file as the server read it back (0133)", async () => {
     fake.answers.thread_send_message_files = { data: "msg-1", error: null };
+    const bytes = new TextEncoder().encode("%PDF-1.7 tech pack");
+    fake.files[PATH] = bytes;
     const res = await post({ action: "send", thread_id: THREAD, body: "  Tech pack attached  ", paths: [PATH] });
     assert.equal(res.status, 200);
-    assert.deepEqual(await res.json(), { message_id: "msg-1" });
+    assert.deepEqual(await res.json(), { message_id: "msg-1", fingerprinted: 1 });
     assert.deepEqual(called("thread_send_message_files").map((c) => c.args), [{ p_thread_id: THREAD, p_body: "Tech pack attached", p_paths: [PATH] }]);
     assert.equal(called("thread_send_message").length, 0, "the old call is not also made");
+    assert.deepEqual(fake.downloads, [{ bucket: "message-files", path: PATH }], "the file is read back from the bucket under the caller's session");
+    assert.deepEqual(called("message_attachment_fingerprint").map((c) => c.args), [
+      { p_message_id: "msg-1", p_object_path: PATH, p_sha256: createHash("sha256").update(bytes).digest("hex") },
+    ]);
+  });
+
+  it("a file that cannot be read back, or a database that refuses the fingerprint, leaves the message sent", async () => {
+    fake.answers.thread_send_message_files = { data: "msg-1b", error: null };
+    const res = await post({ action: "send", thread_id: THREAD, body: "x", paths: [PATH] });
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), { message_id: "msg-1b", fingerprinted: 0 });
+    assert.equal(called("message_attachment_fingerprint").length, 0, "no bytes, no fingerprint claimed");
+    resetFake();
+    fake.answers.thread_send_message_files = { data: "msg-1c", error: null };
+    fake.answers.message_attachment_fingerprint = { data: null, error: { message: "function message_attachment_fingerprint does not exist" } };
+    fake.files[PATH] = new Uint8Array([1, 2, 3]);
+    const again = await post({ action: "send", thread_id: THREAD, body: "x", paths: [PATH] });
+    assert.equal(again.status, 200);
+    assert.deepEqual(await again.json(), { message_id: "msg-1c", fingerprinted: 0 });
   });
 
   it("sends files alone, with no body at all", async () => {
