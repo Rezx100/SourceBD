@@ -361,6 +361,8 @@ export type SupplierSheetModel = {
   sanctions: SanctionRow[];
   /** What the Safety/compliance area says when the record is flagged but the payload carries no row. */
   sanctionsEmpty: string;
+  /** When the daily sanctions lists were last all read in full (ISO), or null when unknown. */
+  sanctionsReadAt: string | null;
 };
 
 export type ProductSheetModel = {

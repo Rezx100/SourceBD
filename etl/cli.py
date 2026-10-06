@@ -120,6 +120,13 @@ def run(
         help="epb_web only: association pass may create suppliers. "
         "Default is attach-only onto companies we already list.",
     ),
+    accept_delistings: bool = typer.Option(
+        False,
+        "--accept-delistings",
+        help="Sanctions lists only: mark entries missing from a complete read as no "
+        "longer listed even when there are more than the hold limit (founder knob, "
+        "after reading the held run's numbers in /admin/sources).",
+    ),
 ) -> None:
     """Run a scraper or maintenance job end-to-end."""
     cls = RUNNABLE.get(scraper)
@@ -145,7 +152,13 @@ def run(
             typer.echo("--existing-only only applies to epb_web.")
             raise typer.Exit(1)
         kwargs["existing_only"] = True
-    result = asyncio.run(cls(**kwargs).run())
+    instance = cls(**kwargs)
+    if accept_delistings:
+        if not hasattr(instance, "accept_delistings"):
+            typer.echo("--accept-delistings only applies to sanctions lists.")
+            raise typer.Exit(1)
+        instance.accept_delistings = True
+    result = asyncio.run(instance.run())
     typer.echo(str(result))
 
 
