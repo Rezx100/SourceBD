@@ -41,7 +41,7 @@ const { ResultsBar, bulkRfqHref, TOO_MANY } = require("@/components/search/bulk-
 const { SelectionContext, SelectionProvider } = require("@/components/search/selection") as typeof import("@/components/search/selection");
 const { ResultsTable } = require("@/components/search/table") as typeof import("@/components/search/table");
 const { PaneListToolbar, PhoneToolbar, ResultsToolbar, barMenus, resultsTitle } = require("@/components/search/toolbar") as typeof import("@/components/search/toolbar");
-const { PaneRows, PhoneRows, ResultsEmpty, ResultsError, familyWords } = require("@/components/search/list") as typeof import("@/components/search/list");
+const { PaneRows, PhoneRows, ResultsEmpty, ResultsError, ResultsSkeleton, familyWords } = require("@/components/search/list") as typeof import("@/components/search/list");
 const { onRowKey } = require("@/components/search/keys") as typeof import("@/components/search/keys");
 const { resultRow } = require("@/components/search/model") as typeof import("@/components/search/model");
 const { EMPTY_STATE, parseDiscoverState } = require("@/lib/discover-v32-state") as typeof import("@/lib/discover-v32-state");
@@ -337,6 +337,13 @@ describe("the bar over the results", () => {
 });
 
 describe("the narrow list and the phone's rows", () => {
+  it("while loading, the table's column head is the desktop's alone; a phone waits on its own rows", () => {
+    const out = plain(h(ResultsSkeleton, { title: "knit" }));
+    const head = /<div[^>]*>(?=<span[^>]*>Supplier<)/.exec(out)![0];
+    assert.match(head, /max-md:hidden/, "a phone shows the desktop's column head over its skeleton");
+    assert.match(out, /<div class="md:hidden" aria-hidden="true">/, "a phone has no skeleton rows of its own");
+  });
+
   it("beside a pane: name, type and place, the first certificate problem, the count; the open row is marked", () => {
     const out = plain(h(PaneRows, { rows, currentSlug: "aboni-knitwear" }));
     assert.ok(out.includes("Aboni Knitwear Ltd.") && out.includes("11 sources") && out.includes("Factory · Dhaka"));
