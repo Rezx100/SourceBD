@@ -252,6 +252,7 @@
     "lib/dashboard/hs-photos.test.ts",
     "lib/dashboard/facts.ts",
     "lib/dashboard/facts.test.ts",
+    "lib/admin/source-freshness.test.ts",
     "lib/dashboard/models.ts",
     "lib/dashboard/build-models.ts",
     "lib/dashboard/build-models.test.ts",

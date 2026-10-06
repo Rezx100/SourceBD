@@ -37,13 +37,15 @@ def test_every_html_source_declares_a_monitor_target():
         # Mirrors binaries from URLs already stored in the database, so there is
         # no index page of its own to watch.
         "rsc_documents",
+        # spec-etl-freshness §5: noisy pages, re-read on schedule instead.
+        *mmod.NOISY_MONITOR_CODES,
     }
     uncovered = [
         code
         for code, cls in SCRAPERS.items()
         if cls.transport == "firecrawl"
         and code not in exempt
-        and not cls.monitor_targets()
+        and not (cls.monitor_targets() and any(t["scraper_code"] == code for t in mmod.planned_targets()))
     ]
     assert uncovered == []
 
@@ -61,6 +63,9 @@ def test_brand_ms_is_monitored_even_though_it_is_not_a_firecrawl_source():
 
     assert SCRAPERS["brand_ms"].transport == "direct"
     assert SCRAPERS["brand_ms"].monitor_targets()
+    # ... but its page reported "changed" almost daily, so since S4 it is not
+    # planned (spec-etl-freshness §5); the quarterly re-read covers it.
+    assert "brand_ms" not in {t["scraper_code"] for t in mmod.planned_targets()}
 
 
 def test_the_planned_set_covers_every_source_family():
@@ -68,12 +73,13 @@ def test_the_planned_set_covers_every_source_family():
     codes = {t["scraper_code"] for t in mmod.planned_targets()}
     for expected in (
         "bgmea_web",       # registry list pages
-        "rsc_reports",     # RSC index
-        "oeko_tex",        # certification directory
         "uflpa",           # sanctions list page
         "brand_hm",        # brand landing page
     ):
         assert expected in codes, expected
+    # The eight noisy monitors of spec-etl-freshness §5 are not planned.
+    assert not codes & mmod.NOISY_MONITOR_CODES
+    assert len(mmod.NOISY_MONITOR_CODES) == 8
 
 
 def test_planned_targets_are_absolute_urls_and_unique():

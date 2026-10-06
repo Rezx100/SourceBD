@@ -27,13 +27,14 @@ from __future__ import annotations
 import asyncio
 import json
 import re
-from datetime import date
+from datetime import date, timedelta
 from typing import Any, AsyncIterator
 
 from etl.acquire import AcquiredDoc, AcquireRequest
 from etl.core.acquiring import AcquiringScraper
 from etl.core.config import settings
 from etl.core.db import db, get_source_id
+from etl.core.listgate import list_row_hash, unchanged_record
 from etl.core.scraper import EvidenceAttachment, ScrapedRecord
 from etl.evidence.locate import NO_EXCERPT, json_locator, json_record_window
 
@@ -103,6 +104,14 @@ def _certificate_no(detail: dict[str, Any]) -> str:
     return f"gots-{detail['system_id']}"
 
 
+def _far_from_expiry(fields: dict[str, Any]) -> bool:
+    """Stored licence expires more than 30 days from today."""
+    try:
+        return date.fromisoformat(str(fields.get("expires_on"))) > date.today() + timedelta(days=30)
+    except ValueError:
+        return False
+
+
 def _nz(v: Any) -> str | None:
     if v is None:
         return None
@@ -127,11 +136,14 @@ _JSON_FIELDS = {
 # `gots_system_id` is the API's own row handle, `expires_on` is our reformatting
 # of `certificate_valid_until` (cited above), and `scope_certificate_url` is a
 # link we absolutised rather than a fact GOTS states.
-_UNCITABLE_FIELDS = ("gots_system_id", "expires_on", "gots_scope_certificate_url")
+_UNCITABLE_FIELDS = ("gots_system_id", "gots_list_hash", "expires_on", "gots_scope_certificate_url")
 
 
 class GotsScraper(AcquiringScraper):
     code = "gots"
+    # Founder knob (`run <code> --accept-delistings`): release a held
+    # certificate reconcile (etl.core.cert_reconcile).
+    accept_delistings = False
     source_code = "GOTS"
     transport = "direct"
     fallback_transport = None
@@ -172,6 +184,22 @@ class GotsScraper(AcquiringScraper):
             for row in items:
                 sysid = (row.get("system_id") or "").strip()
                 if not sysid:
+                    continue
+                # S2: an unchanged list row means an unchanged licence; re-emit the
+                # stored record instead of calling the detail endpoint. The list
+                # row has no expiry, so a licence within 30 days of expiry (or
+                # past it) is always re-read: that is when renewals land.
+                # ponytail: a scope change on a far-from-expiry licence waits
+                # for its list row to change; add an age cap if that bites.
+                list_hash = list_row_hash(row)
+                stored = unchanged_record(
+                    source_code="GOTS", source_ref=f"gots-{sysid}",
+                    company_name=_nz(row.get("company_name")) or "",
+                    key="gots_list_hash", list_hash=list_hash,
+                    still_good=_far_from_expiry,
+                )
+                if stored is not None and stored.company_name:
+                    yield stored
                     continue
                 detail_doc = await self.acquire(
                     AcquireRequest(
@@ -235,6 +263,7 @@ class GotsScraper(AcquiringScraper):
                     contact_name=_nz(detail.get("contact_name")),
                     payload={
                         "gots_system_id": sysid,
+                        "gots_list_hash": list_hash,
                         "gots_license_number": _nz(detail.get("gtb_license_number")),
                         "gots_cb_license_number": _nz(detail.get("cb_license_number")),
                         "gots_certification_body": _nz(detail.get("certification_body")),
@@ -272,9 +301,11 @@ class GotsScraper(AcquiringScraper):
         run_id = self._open_run()
         reset_document_cache()
         seen = upserted = skipped = 0
+        seen_certs: set[str] = set()
         try:
-            async for rec in self.fetch():
+            async for rec in self.gated():
                 seen += 1
+                seen_certs.add(_certificate_no({"gtb_license_number": rec.payload.get("gots_license_number"), "system_id": rec.payload["gots_system_id"]}))
                 try:
                     supplier_id = upsert_supplier_with_source(rec)
                     if supplier_id is not None:
@@ -291,6 +322,14 @@ class GotsScraper(AcquiringScraper):
                         await self._record_evidence(rec, supplier_id, run_id)
                 if seen % 50 == 0:
                     self.log.info("progress", seen=seen, upserted=upserted, skipped=skipped)
+            from etl.core.cert_reconcile import reconcile_certificates
+
+            reconcile_certificates(
+                kind="gots", scraper_code=self.code, run_id=run_id,
+                seen_cert_nos=seen_certs,
+                read_complete=not (self.breaker and self.breaker.tripped),
+                accept=self.accept_delistings,
+            )
             self._close_run(run_id, "success", seen, upserted, skipped, None)
         except Exception as exc:  # noqa: BLE001
             self._close_run(run_id, "failed", seen, upserted, skipped, str(exc))

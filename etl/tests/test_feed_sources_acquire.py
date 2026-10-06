@@ -227,6 +227,13 @@ def test_ofac_excerpt_confirms_the_row_and_catches_a_rename():
 
 
 # ------------------------------------------------------------------- GOTS ----
+@pytest.fixture(autouse=True)
+def _no_stored_rows(monkeypatch):
+    """The S2 list-row gate reads stored records; these tests start from none."""
+    monkeypatch.setattr("etl.scrapers.gots.unchanged_record", lambda **k: None)
+    monkeypatch.setattr("etl.scrapers.oeko_tex.unchanged_record", lambda **k: None)
+
+
 def _doc(url: str, body: str, content_type: str) -> AcquiredDoc:
     return AcquiredDoc(
         url=url,

@@ -3,7 +3,7 @@
 // them, so a boundary test can construct one and assert the rendered HTML.
 
 import type { TierRank } from "@/lib/design/tokens";
-import type { CertModel, CertState } from "./facts";
+import type { CertChecks, CertModel, CertState } from "./facts";
 import type { PhotoTileModel } from "./hs-photos";
 import type { SourceMarkModel } from "./source-tiers";
 
@@ -361,6 +361,10 @@ export type SupplierSheetModel = {
   sanctions: SanctionRow[];
   /** What the Safety/compliance area says when the record is flagged but the payload carries no row. */
   sanctionsEmpty: string;
+  /** When the daily sanctions lists were last all read in full (ISO), or null when unknown. */
+  sanctionsReadAt: string | null;
+  /** `supplier_cert_checks` (0122): when each certificate's body last showed it; null when unread. */
+  certChecks: CertChecks | null;
 };
 
 export type ProductSheetModel = {

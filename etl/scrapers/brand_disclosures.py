@@ -291,6 +291,9 @@ def parse_bytes(ext: str, content: bytes) -> list[dict[str, Any]]:
 # Which payload keys the disclosure file actually asserts. `brand`,
 # `source_url`, `mirror_url` and `disclosure_date` are our own bookkeeping.
 _DISCLOSURE_UNCITABLE = ("brand", "disclosure_date", "city")
+# Moves on every read (the mirror path carries the read date; a list with no
+# date of its own falls back to today), so it never counts as a change (S6).
+_DISCLOSURE_VOLATILE = ("mirror_url", "disclosure_date", "fetched_at")
 
 
 class BrandDisclosureBase(AcquiringScraper, abc.ABC):
@@ -298,6 +301,9 @@ class BrandDisclosureBase(AcquiringScraper, abc.ABC):
     landing_url: str = ""
     transport = "firecrawl"
     fallback_transport = "direct"
+    # spec-etl-freshness §4.8: about 2 credits a brand a quarter (§2) × 1.5. A run that
+    # needs more stops with CreditBudgetExceeded instead of spending it.
+    max_credits_per_run = 5
 
     @classmethod
     def monitor_targets(cls) -> tuple[str, ...]:
@@ -498,6 +504,7 @@ class BrandDisclosureBase(AcquiringScraper, abc.ABC):
                 "address": row.get("address"),
             }
             yield ScrapedRecord(
+                hash_exclude=_DISCLOSURE_VOLATILE,
                 source_code=self.brand_code,
                 source_ref=_source_ref(self.brand_code, name, str(row.get("country") or ""), city),
                 company_name=name,
@@ -516,7 +523,7 @@ class BrandDisclosureBase(AcquiringScraper, abc.ABC):
         reset_document_cache()
         seen = upserted = skipped = enqueued = 0
         try:
-            async for rec in self.fetch():
+            async for rec in self.gated():
                 seen += 1
                 try:
                     supplier_id = upsert_supplier_with_source(rec)
@@ -735,6 +742,7 @@ class BrandAsosScraper(BrandDisclosureBase):
                 "female_workers": row.get("female_workers"),
             }
             yield ScrapedRecord(
+                hash_exclude=_DISCLOSURE_VOLATILE,
                 source_code=self.brand_code,
                 source_ref=_source_ref(self.brand_code, name, row.get("country") or "", None),
                 company_name=name,
@@ -929,6 +937,7 @@ class BrandMsScraper(BrandDisclosureBase):
                 "lists": props.get("contributor_lists") or props.get("lists"),
             }
             yield ScrapedRecord(
+                hash_exclude=_DISCLOSURE_VOLATILE,
                 source_code=self.brand_code,
                 source_ref=(
                     f"ms-osh-{oar_id}" if oar_id
@@ -1201,6 +1210,7 @@ class BrandNextScraper(BrandDisclosureBase):
                 "next_supplier_vendor": row.get("supplier_vendor"),
             }
             yield ScrapedRecord(
+                hash_exclude=_DISCLOSURE_VOLATILE,
                 source_code=self.brand_code,
                 source_ref=_source_ref(self.brand_code, name, row.get("country") or "", None),
                 company_name=name,

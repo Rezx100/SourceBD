@@ -6,7 +6,7 @@
 
 import type { CertRowData } from "@/components/patterns";
 import { SITE_WORDS, certWords, isApproximate, type SiteKind } from "@/components/patterns/words";
-import { certRowId } from "@/lib/dashboard/facts";
+import { certCheckLine, certRowId, formatDay } from "@/lib/dashboard/facts";
 import type { CertState } from "@/components/kit";
 import type { FactRow, LocationRow, ProductSheetModel, SitePin, SupplierSheetModel } from "@/lib/dashboard/models";
 import type { SourceMarkModel } from "@/lib/dashboard/source-tiers";
@@ -70,13 +70,27 @@ export type SummaryCell = {
 
 const namesOf = (names: string[]): string => (names.length <= 1 ? (names[0] ?? "") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`);
 
+/** Spec-etl-freshness §3: the lists are read daily; past 48 hours the cell says when, not that it is current. */
+export const SANCTIONS_MAX_AGE_MS = 48 * 3600 * 1000;
+
+/** "Not listed" is what we found on the lists we read, so it always carries when we read them (never "clear"). */
+function notListed(readAt: string | null, today: Date): SummaryCell {
+  const cell: SummaryCell = { key: "sanctions", label: "Sanctions", value: "Not listed", sub: null };
+  if (!readAt) return cell;
+  const day = formatDay(readAt);
+  if (!day) return cell;
+  return today.getTime() - new Date(readAt).getTime() > SANCTIONS_MAX_AGE_MS
+    ? { ...cell, tone: "caution", sub: `lists last read ${day} · not re-read since` }
+    : { ...cell, sub: `on the lists read ${day}` };
+}
+
 /** The summary strip. Nothing is scored: each cell is a count or a state the registers hold. */
 export function summaryCells(model: SupplierSheetModel, today: Date): SummaryCell[] {
   const hit = model.sanctions[0] ?? null;
   const list = hit?.list ?? "sanctions list";
   const sanctions: SummaryCell = model.sanctioned
     ? { key: "sanctions", label: "Sanctions", value: `On the ${list}`, tone: "sanction", sub: `From the ${list}${hit?.screenedOn ? ` · checked ${hit.screenedOn}` : ""}` }
-    : { key: "sanctions", label: "Sanctions", value: "Not listed", sub: null };
+    : notListed(model.sanctionsReadAt, today);
 
   const states = model.certs.map((c) => ({ c, w: certWords(c.expiresOn, today) }));
   const expired = states.filter((s) => s.w.state === "expired");
@@ -113,21 +127,28 @@ export function summaryCells(model: SupplierSheetModel, today: Date): SummaryCel
 }
 
 /** The certificates as the certificate table takes them; OEKO-TEX has a label check, not a certificate. */
-export function certRows(model: SupplierSheetModel): CertRowData[] {
-  return model.certs.map((c) => ({
-    scheme: c.scheme,
-    number: c.number,
-    issuer: c.issuer,
-    expiresOn: c.expiresOn,
-    documentUrl: c.documentUrl,
-    documentLabel: /oeko/i.test(c.scheme) ? "Open label check" : undefined,
-    anchor: certRowId(c.kind, c.number, c.expiresOn),
-  }));
+export function certRows(model: SupplierSheetModel, now: Date = new Date()): CertRowData[] {
+  const checks = model.certChecks;
+  return model.certs.map((c) => {
+    const check = checks?.certs.find((k) => k.kind === c.kind && k.certificate_no === c.number);
+    const newer = model.certs.some((o) => o !== c && o.kind === c.kind && (o.expiresOn ?? "") > (c.expiresOn ?? ""));
+    return {
+      delistedOn: check?.listing_status === "no_longer_listed" ? (check.delisted_at ?? now.toISOString()) : null,
+      check: checks ? certCheckLine(c.kind, c.expiresOn, check, checks.reads, now, newer) : null,
+      scheme: c.scheme,
+      number: c.number,
+      issuer: c.issuer,
+      expiresOn: c.expiresOn,
+      documentUrl: c.documentUrl,
+      documentLabel: /oeko/i.test(c.scheme) ? "Open label check" : undefined,
+      anchor: certRowId(c.kind, c.number, c.expiresOn),
+    };
+  });
 }
 
 /** Certificates a buyer should look at first: expired, then expiring. A valid or undated one is on the Certificates tab. */
 export function needsLook(rows: CertRowData[], today: Date): CertRowData[] {
-  const state = (r: CertRowData) => certWords(r.expiresOn, today).state;
+  const state = (r: CertRowData) => certWords(r.expiresOn, today, r.delistedOn).state;
   return [...rows.filter((r) => state(r) === "expired"), ...rows.filter((r) => state(r) === "expiring")];
 }
 

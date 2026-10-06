@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 import {
   AdminColumn,
@@ -58,10 +58,13 @@ export function AdminScraperMonitor({
   initialDoc,
   evidence = null,
   evidenceByScraper = null,
+  freshness = null,
 }: {
   initialDoc: DashboardDoc;
   evidence?: EvidenceSummary | null;
   evidenceByScraper?: EvidenceByScraper | null;
+  /** The freshness table (S3), drawn on the server and placed under the summary. */
+  freshness?: ReactNode;
 }) {
   const [doc, setDoc] = useState(initialDoc);
   const [error, setError] = useState<string | null>(null);
@@ -149,6 +152,8 @@ export function AdminScraperMonitor({
           hint={`${doc.summary.enabled_schedules.toLocaleString()} timers enabled`}
         />
       </section>
+
+      {freshness}
 
       {evidence ? <EvidenceHealth summary={evidence} /> : null}
 

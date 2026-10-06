@@ -405,6 +405,9 @@ def upsert_metrics(report_month: date, source_url: str, metrics: Iterable[dict])
 
 class RscReportsScraper(AcquiringScraper):
     code = "rsc_reports"
+    # spec-etl-freshness §4.8: this source's §2 monthly credits × 1.5. A run that
+    # needs more stops with CreditBudgetExceeded instead of spending it.
+    max_credits_per_run = 3
     source_code = "RSC"
     transport = "firecrawl"
     # No fallback: the direct path to rsc-bd.org needs the custom TLS context

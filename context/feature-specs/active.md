@@ -59,6 +59,10 @@ same PR. Read once per session.
   `archive/specs-shipped-2026.md`.
 
 ## Queued
+- **ETL freshness: check each fact as often as it changes** (6 Oct) —
+  `spec-etl-freshness.md`. BUILT 6 Oct: S1 #325, C1 #328, C2+C4 #329, S2 #330,
+  S3 #331, S4 #332, S5+C3 #333, S6 #334. Waiting on the founder: apply 0121–0125,
+  C1's `--apply`, deploy, then enable schedules (`ops/plans/0121`…`0125-dry-run.md`).
 - **SourceBD v4: new design system, Paper first, then build** (3 Oct).
   Hand-off: `handoff-ds-v4-paper-first.md`. Issues: `ui-issue-register-oct-2026.md`.
   Paper phases DONE (3 Oct). Build and go-live: `handoff-ds-v4-build.md`

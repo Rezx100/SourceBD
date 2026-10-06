@@ -2,9 +2,11 @@
 
 import { AdminColumn, AdminHead } from "@/components/admin/data-ui";
 import { AdminScraperMonitor } from "@/components/admin-scraper-monitor";
+import { SourceFreshness } from "@/components/admin/source-freshness";
 import { InlineError } from "@/components/kit";
 import type { DashboardDoc } from "@/lib/admin/etl-monitoring";
 import type { EvidenceByScraper, EvidenceSummary } from "@/lib/admin/evidence";
+import type { FreshnessDoc } from "@/lib/admin/source-freshness";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -14,10 +16,12 @@ export default async function AdminSourcesPage() {
   // Evidence health is fetched alongside the dashboard but its failure is not
   // fatal: an operator who cannot see citation counts can still run and
   // schedule scrapers, and blanking the whole console over it would be worse.
-  const [dashboard, evidence, byScraper] = await Promise.all([
+  const [dashboard, evidence, byScraper, freshness] = await Promise.all([
     supabase.rpc("admin_etl_dashboard"),
     supabase.rpc("admin_evidence_summary"),
     supabase.rpc("admin_evidence_by_scraper"),
+    // S3 (0123); like evidence, a failed read is not fatal.
+    supabase.rpc("admin_source_freshness"),
   ]);
 
   if (dashboard.error || dashboard.data == null) {
@@ -40,6 +44,7 @@ export default async function AdminSourcesPage() {
       initialDoc={dashboard.data as DashboardDoc}
       evidence={(evidence.data as EvidenceSummary | null) ?? null}
       evidenceByScraper={(byScraper.data as EvidenceByScraper | null) ?? null}
+      freshness={<SourceFreshness doc={freshness.error ? null : ((freshness.data as FreshnessDoc | null) ?? null)} />}
     />
   );
 }

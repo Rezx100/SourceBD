@@ -1,5 +1,5 @@
 // The trust pages (B9e): the security answers are the true ones, the source table is drawn with figures only when
-// they were read and agrees with the 25 sources the database holds, and the claim and About pages say what is so.
+// they were read and agrees with the 21 sources the database lists, and the claim and About pages say what is so.
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -22,12 +22,12 @@ const NOW = Date.parse("2026-10-05T00:00:00Z");
 const READ = parseFacts(
   { suppliers_indexed: 10268, last_refreshed_at: "2026-10-02T05:48:07Z" },
   {
-    sources_listed: 25,
+    sources_listed: 21,
     sources_with_records: 14,
     sources: [
       { code: "RSC", tier: "tier1_gov", records: 1714, suppliers: 1714, latest: "2026-10-02" },
       { code: "BGMEA", tier: "tier2_industry", records: 5722, suppliers: 5722, latest: "2026-06-27" },
-      { code: "BEPZA", tier: "tier1_gov", records: 0, suppliers: 0, latest: null },
+      { code: "BRAND_PRIMARK", tier: "tier4_brand", records: 0, suppliers: 0, latest: null },
     ],
   },
 );
@@ -54,22 +54,23 @@ describe("the security page", () => {
 });
 
 describe("the methodology page", () => {
-  it("lists exactly the 25 sources the database holds, by tier", () => {
+  it("lists exactly the 21 sources the database lists, by tier (BEPZA, DIFE, RJSC and Inditex are not read)", () => {
     const codes = S.TIERS.flatMap((t) => t.sources.map((s) => s.code)).sort();
-    assert.equal(codes.length, 25);
-    assert.equal(new Set(codes).size, 25);
-    assert.deepEqual(S.TIERS.map((t) => t.sources.length), [5, 4, 4, 6, 6]);
+    assert.equal(codes.length, 21);
+    assert.equal(new Set(codes).size, 21);
+    assert.deepEqual(S.TIERS.map((t) => t.sources.length), [2, 4, 4, 5, 6]);
+    for (const unread of ["BEPZA", "DIFE", "RJSC", "BRAND_INDITEX"]) assert.ok(!codes.includes(unread), unread);
   });
 
   it("draws no figure or date when the sources were not read", () => {
     const t = text(method());
     assert.doesNotMatch(t, /Suppliers with a record|Last read|Listed, no records yet/);
-    assert.match(t, /25 sources listed\. Read in order of trust\. No scores\./);
+    assert.match(t, /21 sources listed\. Read in order of trust\. No scores\./);
   });
 
   it("draws the figures that were read, and says so for a source with no records and a stale date", () => {
     const t = text(method(READ));
-    assert.match(t, /25 sources listed · 14 hold supplier records/);
+    assert.match(t, /21 sources listed · 14 hold supplier records/);
     assert.match(t, /1,714/);
     assert.match(t, /5,722/);
     assert.match(t, /27 Jun 2026 · over 90 days ago/);

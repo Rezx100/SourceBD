@@ -125,6 +125,9 @@ _CANDIDATES_SQL = """
 
 class BkmeaDetailScraper(AcquiringScraper):
     code = "bkmea_detail"
+    # spec-etl-freshness §4.8: this source's §2 monthly credits × 1.5. A run that
+    # needs more stops with CreditBudgetExceeded instead of spending it.
+    max_credits_per_run = 75
     source_code = "BKMEA"
     transport = "firecrawl"
     fallback_transport = "direct"

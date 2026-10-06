@@ -360,6 +360,9 @@ function confidenceValue(raw: Row["confidence"]): number | null {
 function sourceSummary(sourceData: Record<string, unknown> | null): string {
   if (!sourceData || Object.keys(sourceData).length === 0) return "No source payload.";
   const preferred = [
+    // ETL holds (etl_hold_v1): both spellings first, side by side.
+    "incoming_name",
+    "candidate_name",
     "source",
     "source_code",
     "source_url",

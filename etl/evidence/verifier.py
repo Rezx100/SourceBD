@@ -83,6 +83,17 @@ class VerifyOutcome:
     notes: dict[str, Any] = field(default_factory=dict)
 
 
+_OVERDUE_SOURCES_SQL = """
+       and scraper_code in (
+             select s.scraper_code
+               from public.etl_schedules s
+              where s.metadata ? 'max_age_hours'
+                and coalesce((select max(r.finished_at) from public.etl_runs r
+                               where r.scraper_code = s.scraper_code and r.status = 'success'),
+                             '-infinity') < now() - make_interval(hours => (s.metadata ->> 'max_age_hours')::int))
+"""
+
+
 def _select_due(
     limit: int,
     *,
@@ -117,6 +128,12 @@ def _select_due(
     if scraper_code:
         sql += " and scraper_code = %(scraper_code)s"
         params["scraper_code"] = scraper_code
+    else:
+        # spec-etl-freshness §5: a re-read IS the verification. Unattended, only
+        # documents of sources that have missed their age limit are re-checked
+        # (a source with no limit set is not). An operator who names a scraper
+        # still gets all of its due documents.
+        sql += _OVERDUE_SOURCES_SQL
     sql += " order by last_verified_at asc nulls first limit %(limit)s"
 
     with db.conn() as c, c.cursor() as cur:
@@ -564,7 +581,7 @@ class VerifyEvidenceJob:
 
     def __init__(
         self,
-        limit: int = 500,
+        limit: int = 50,  # spec-etl-freshness §5: 50 a day, overdue sources only
         scraper_code: str | None = None,
         interval_hours: int = DEFAULT_INTERVAL_HOURS,
         max_credits: int | None = None,

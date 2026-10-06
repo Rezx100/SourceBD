@@ -18,6 +18,7 @@ trg_sanc_propagate then flips suppliers.is_sanctioned + zeros SBI.
 from __future__ import annotations
 
 import abc
+import hashlib
 import json
 from dataclasses import dataclass, field
 from datetime import date
@@ -76,8 +77,30 @@ class SanctionEntry:
             if v not in (None, "")
         }
 
+    def content_hash(self) -> str:
+        """Everything the publisher said about this entry. Equal hash = nothing
+        to upsert, re-screen or re-cite. `source_url` is excluded: Firecrawl
+        and direct reads of one page cite different URLs for the same text."""
+        body = {
+            "entity_name": self.entity_name,
+            "aliases": self.aliases,
+            "country": self.country,
+            "merchandise": self.merchandise,
+            "listed_date": self.listed_date.isoformat() if self.listed_date else None,
+            "status": self.status,
+            "status_notes": self.status_notes,
+            "raw": self.raw,
+        }
+        blob = json.dumps(body, sort_keys=True, ensure_ascii=False, default=str)
+        return hashlib.sha256(blob.encode("utf-8")).hexdigest()
 
-def ingest_sanction_entry(entry: SanctionEntry) -> dict[str, Any]:
+
+# The completeness guard and removal limit are shared with the certificate
+# reconcile (S2): one rule for "is this read whole, and is this too many".
+from etl.core.breaker import plan_reconcile  # noqa: E402,F401  (re-exported)
+
+
+def ingest_sanction_entry(entry: SanctionEntry, run_id: str | None = None) -> dict[str, Any]:
     """Upsert into sanctions_list_entries + match to suppliers.
 
     Returns: {'entry_id': uuid, 'matched_supplier_ids': [..], 'screened': int}.
@@ -90,9 +113,15 @@ def ingest_sanction_entry(entry: SanctionEntry) -> dict[str, Any]:
             """insert into public.sanctions_list_entries
                  (list, entry_ref, entity_name, entity_name_norm, aliases,
                   country, merchandise, listed_date, status, status_notes,
-                  source_url, raw, fetched_at)
-               values (%s,%s,%s,%s,%s, %s,%s,%s,%s,%s, %s, %s::jsonb, now())
+                  source_url, raw, fetched_at,
+                  content_hash, last_seen_at, last_seen_run_id, listing_status)
+               values (%s,%s,%s,%s,%s, %s,%s,%s,%s,%s, %s, %s::jsonb, now(),
+                       %s, now(), %s, 'listed')
                on conflict (list, entry_ref) do update set
+                 content_hash     = excluded.content_hash,
+                 last_seen_at     = now(),
+                 last_seen_run_id = excluded.last_seen_run_id,
+                 listing_status   = 'listed',
                  entity_name      = excluded.entity_name,
                  entity_name_norm = excluded.entity_name_norm,
                  aliases          = excluded.aliases,
@@ -110,6 +139,7 @@ def ingest_sanction_entry(entry: SanctionEntry) -> dict[str, Any]:
                 entry.country, entry.merchandise, entry.listed_date,
                 entry.status, entry.status_notes,
                 entry.source_url, raw_json,
+                entry.content_hash(), run_id,
             ),
         )
         entry_id = str(cur.fetchone()["id"])
@@ -329,6 +359,12 @@ class BaseSanctionScraper(abc.ABC):
     code: str = ""
     source_code: str = ""
     progress_callback: Callable[[dict[str, Any]], None] | None = None
+    # A scraper sets this False during fetch() when what it read is not the
+    # publisher's current list (cbp_wro's Wayback fallback): nothing is
+    # delisted and the read date does not advance.
+    read_complete: bool = True
+    # Founder knob (`run <code> --accept-delistings`): release a held reconcile.
+    accept_delistings: bool = False
 
     def __init__(self) -> None:
         self.log = get_logger(f"etl.sanctions.{self.code}")
@@ -351,15 +387,29 @@ class BaseSanctionScraper(abc.ABC):
 
         run_id = self._open_run()
         reset_document_cache()
+        self.read_complete = True
         seen = upserted = skipped = matched_total = 0
+        known: dict[str, dict[str, str | None]] = {}   # list -> entry_ref -> content_hash
+        unchanged: dict[str, list[str]] = {}            # list -> refs seen and unchanged
+        seen_by_list: dict[str, set[str]] = {}
         self._emit_progress(
             run_id, "started", "Sanctions scraper started.", seen, upserted, skipped, matched_total
         )
         try:
             async for entry in self.fetch():
                 seen += 1
+                lst = entry.list_code
+                if lst not in known:
+                    known[lst] = self._known_hashes(lst)
+                seen_by_list.setdefault(lst, set()).add(entry.entry_ref)
+                if known[lst].get(entry.entry_ref) == entry.content_hash():
+                    # Unchanged since the last read: no upsert, no re-screen
+                    # (new suppliers are screened supplier-side at upsert), no
+                    # evidence rewrite. Touched in one statement after the loop.
+                    unchanged.setdefault(lst, []).append(entry.entry_ref)
+                    continue
                 try:
-                    res = ingest_sanction_entry(entry)
+                    res = ingest_sanction_entry(entry, run_id)
                     upserted += 1
                     matched_total += res["screened"]
                 except Exception as e:  # noqa: BLE001
@@ -384,8 +434,20 @@ class BaseSanctionScraper(abc.ABC):
                         skipped,
                         matched_total,
                     )
+            reconcile: dict[str, Any] = {}
+            for lst, refs in seen_by_list.items():
+                self._touch_unchanged(lst, unchanged.get(lst, []), run_id)
+                # A failed ingest means the entry is in the list but not stored
+                # as seen this run; treat that read as partial for safety.
+                complete = self.read_complete and skipped == 0
+                reconcile[lst] = self._reconcile(lst, run_id, len(refs), complete)
             self._close_run(
-                run_id, "success", seen, upserted, skipped, matched_total, None
+                run_id, "success", seen, upserted, skipped, matched_total, None,
+                extra={
+                    "unchanged": sum(len(v) for v in unchanged.values()),
+                    "complete": self.read_complete and skipped == 0,
+                    "reconcile": reconcile,
+                },
             )
         except Exception as e:  # noqa: BLE001
             self._close_run(
@@ -399,6 +461,97 @@ class BaseSanctionScraper(abc.ABC):
             "evidence_claims": self.evidence_claims,
             "credits_used": self.credits_used,
         }
+
+    # --- daily read: unchanged skip and delisting ---
+    def _known_hashes(self, list_code: str) -> dict[str, str | None]:
+        with db.conn() as c, c.cursor() as cur:
+            cur.execute(
+                # Delisted rows are left out on purpose: one that comes back must be
+                # re-ingested so it is screened again (its matches were deactivated).
+                "select entry_ref, content_hash from public.sanctions_list_entries"
+                " where list = %s and listing_status = 'listed'",
+                (list_code,),
+            )
+            return {r["entry_ref"]: r["content_hash"] for r in cur.fetchall()}
+
+    def _touch_unchanged(self, list_code: str, refs: list[str], run_id: str) -> None:
+        if not refs:
+            return
+        with db.conn() as c, c.cursor() as cur:
+            cur.execute(
+                """update public.sanctions_list_entries
+                      set last_seen_at = now(), fetched_at = now(),
+                          last_seen_run_id = %s, listing_status = 'listed'
+                    where list = %s and entry_ref = any(%s)""",
+                (run_id, list_code, refs),
+            )
+            c.commit()
+
+    def _reconcile(
+        self,
+        list_code: str,
+        run_id: str,
+        seen: int,
+        complete: bool,
+    ) -> dict[str, Any]:
+        """Mark entries this run did not see as no longer listed (spec §4.4).
+
+        Never deletes, never clears a supplier: an active match on a delisted
+        entry is deactivated (the trigger only ever sets `is_sanctioned`) and a
+        review row asks a human to clear the supplier with
+        `admin_sanctions_decide`.
+        """
+        with db.conn() as c, c.cursor() as cur:
+            cur.execute(
+                """select id, entry_ref, entity_name from public.sanctions_list_entries
+                    where list = %s and listing_status = 'listed'
+                      and last_seen_run_id is distinct from %s""",
+                (list_code, run_id),
+            )
+            missing = cur.fetchall()
+            # Listed before this run ~= the ones it missed + the ones it saw.
+            action = plan_reconcile(
+                read_complete=complete, listed_before=len(missing) + seen,
+                seen=seen, missing=len(missing), accept=self.accept_delistings,
+            )
+            out: dict[str, Any] = {"action": action, "seen": seen, "missing": len(missing)}
+            if action != "reconcile" or not missing:
+                if action == "held":
+                    self.log.warning("reconcile.held", list=list_code, missing=len(missing))
+                return out
+
+            refs = [r["entry_ref"] for r in missing]
+            cur.execute(
+                """update public.sanctions_list_entries set listing_status = 'no_longer_listed'
+                    where list = %s and entry_ref = any(%s)""",
+                (list_code, refs),
+            )
+            cur.execute(
+                """update public.sanctions_screening set active = false
+                    where list::text = %s and list_entry_ref = any(%s) and active
+                returning supplier_id, matched_name, list_entry_ref""",
+                (list_code, refs),
+            )
+            cleared = cur.fetchall()
+            for row in cleared:
+                cur.execute(
+                    """insert into public.verification_queue
+                         (queue_type, supplier_a_id, supplier_b_name, source_data)
+                       values ('sanctions_hit', %s, %s, %s::jsonb)""",
+                    (
+                        row["supplier_id"], row["matched_name"],
+                        json.dumps({
+                            "kind": "delisted", "list": list_code,
+                            "matched_name": row["matched_name"],
+                            "entry_ref": row["list_entry_ref"],
+                        }),
+                    ),
+                )
+            c.commit()
+        out["delisted"] = len(refs)
+        out["suppliers_to_review"] = len(cleared)
+        self.log.warning("reconcile.delisted", list=list_code, delisted=len(refs), review=len(cleared))
+        return out
 
     async def _record_evidence(
         self, entry: SanctionEntry, entry_id: str, run_id: str
@@ -468,8 +621,9 @@ class BaseSanctionScraper(abc.ABC):
         skipped: int,
         matched: int,
         error: str | None,
+        extra: dict[str, Any] | None = None,
     ) -> None:
-        meta = json.dumps({"matched_suppliers": matched})
+        meta = json.dumps({"matched_suppliers": matched, **(extra or {})})
         with db.conn() as c, c.cursor() as cur:
             cur.execute(
                 """update public.etl_runs
@@ -483,7 +637,29 @@ class BaseSanctionScraper(abc.ABC):
                    where id = %s""",
                 (status, seen, upserted, skipped, meta, error, run_id),
             )
+            # S3 (§4.7): sanctions changes are told at once, not in the digest.
+            cur.execute(
+                """select count(*) filter (where q.source_data ->> 'kind' is distinct from 'delisted') as hits,
+                          count(*) filter (where q.source_data ->> 'kind' = 'delisted') as cleared
+                     from public.verification_queue q, public.etl_runs r
+                    where r.id = %s and q.queue_type = 'sanctions_hit'
+                      and q.created_at >= r.started_at""",
+                (run_id,),
+            )
+            news = cur.fetchone() or {}
             c.commit()
+        held = [lst for lst, r in ((extra or {}).get("reconcile") or {}).items()
+                if (r or {}).get("action") == "held"]
+        if status == "success" and (news.get("hits") or news.get("cleared") or held):
+            from etl.core.notify import slack
+
+            slack(
+                f":rotating_light: SourceBD sanctions read ({self.code}): "
+                f"{news.get('hits') or 0} possible new matches (hidden from search, in "
+                f"/admin/sanctions for review), {news.get('cleared') or 0} suppliers whose "
+                f"entry was delisted (review before clearing)"
+                + (f"; delistings held for a human on {', '.join(held)}" if held else "") + "."
+            )
         self.log.info(
             "run.end", run_id=run_id, status=status,
             seen=seen, upserted=upserted, skipped=skipped, matched=matched,

@@ -35,7 +35,8 @@ from etl.core.normalize import (
     normalize_phones,
 )
 from etl.core.bgmea_identity import identity_from_member_type, parse_identity
-from etl.core.resolution_edges import apply_same_edge_canonical
+from etl.core.hold import plan_new_supplier, write_hold
+from etl.core.resolution_edges import apply_same_edge_canonical, ruled_different, write_edge
 from etl.core.scraper import ScrapedRecord
 
 log = get_logger("etl.upsert")
@@ -95,6 +96,30 @@ def upsert_supplier_with_source(rec: ScrapedRecord) -> str | None:
             alias_refs=rec.alias_refs,
         )
 
+        plan = None
+        if supplier_id is None and not rec.enrich_only:
+            # REZ-67 / A7: extension-pattern names with a known parent attach
+            # as facilities (facility_of set → A2 keeps them unpublished).
+            # Exact recomputed identity only — never fuzzy (Anika/ANITA).
+            # No parent → create and publish as today; B5 collects orphans.
+            facility_of: str | None = None
+            base = extension_base_name(rec.company_name)
+            if base is not None:
+                facility_of = _find_facility_parent(cur, base)
+            # C2: never mint a company on a near-match (etl.core.hold).
+            plan = plan_new_supplier(cur, rec, norm=norm, email=email,
+                                     phones=phones, facility_of=facility_of)
+            if plan.action in ("wait", "hold"):
+                if plan.action == "hold":
+                    write_hold(cur, rec, plan.near)
+                c.commit()
+                log.info("supplier.held", name=rec.company_name, source=rec.source_code,
+                         ref=rec.source_ref, action=plan.action,
+                         near=plan.near.name if plan.near else None)
+                return None
+            if plan.action == "attach":
+                supplier_id = plan.supplier_id
+
         if supplier_id is None:
             if rec.enrich_only:
                 # Attach-only (founder decision D, 4 Aug 2026): the widened
@@ -106,18 +131,18 @@ def upsert_supplier_with_source(rec: ScrapedRecord) -> str | None:
                          ref=rec.source_ref)
                 c.commit()
                 return None
-            # REZ-67 / A7: extension-pattern names with a known parent attach
-            # as facilities (facility_of set → A2 keeps them unpublished).
-            # Exact recomputed identity only — never fuzzy (Anika/ANITA).
-            # No parent → create and publish as today; B5 collects orphans.
-            facility_of: str | None = None
-            base = extension_base_name(rec.company_name)
-            if base is not None:
-                facility_of = _find_facility_parent(cur, base)
             supplier_id = _insert_supplier(
                 cur, slug=slug, norm=norm, email=email, phones=phones, rec=rec,
                 facility_of=facility_of,
             )
+            if plan is not None and plan.different_from:
+                # The reviewer said "different": record it so the pair is
+                # never asked again (§8.3 C2).
+                write_edge(cur, supplier_id, plan.different_from, verdict="different",
+                           decided_by="admin:review-queue",
+                           rationale=f"Review queue: {rec.company_name} is not the "
+                                     "company it was held against.",
+                           evidence_note=f"{rec.source_code}:{rec.source_ref}")
             log.info("supplier.created", supplier_id=supplier_id, name=rec.company_name,
                      source=rec.source_code, ref=rec.source_ref,
                      facility_of=facility_of)
@@ -152,6 +177,37 @@ def upsert_supplier_with_source(rec: ScrapedRecord) -> str | None:
         log.error("upsert.post_enrich_failed", supplier_id=supplier_id, error=str(exc))
 
     return supplier_id
+
+
+def classify_record(cur, rec: ScrapedRecord) -> str:
+    """Read-only: what upsert_supplier_with_source would do with `rec`.
+
+    Feeds the C4 circuit breaker (etl.core.breaker) before anything is
+    written. Same decisions as the write path, minus the writes.
+    """
+    cur.execute(
+        "select supplier_id, raw_hash from public.source_records "
+        "where source_id = %s and source_ref = %s",
+        (get_source_id(rec.source_code), rec.source_ref),
+    )
+    rows = cur.fetchall()
+    if rows:
+        same = len({str(r["supplier_id"]) for r in rows}) == 1 and rows[0]["raw_hash"] == rec.hash()
+        return "unchanged" if same else "changed"
+    norm = normalize_company_name(rec.company_name)
+    phones = normalize_phones(rec.phone_raw)
+    email = (rec.email or "").strip().lower() or None
+    if _find_existing(
+        cur, slug=make_slug(rec.company_name), norm=norm, email=email, phones=phones,
+        source_code=rec.source_code, source_ref=rec.source_ref, alias_refs=rec.alias_refs,
+    ) is not None:
+        return "attach"
+    if rec.enrich_only:
+        return "skip"
+    base = extension_base_name(rec.company_name)
+    facility_of = _find_facility_parent(cur, base) if base is not None else None
+    return plan_new_supplier(cur, rec, norm=norm, email=email, phones=phones,
+                             facility_of=facility_of).action
 
 
 # -----------------------------------------------------------------------------
@@ -288,13 +344,25 @@ def _find_existing(
         rows = cur.fetchall()
         if rows:
             choices = {str(r["id"]): r["company_name_norm"] for r in rows}
-            match = process.extractOne(norm, choices, scorer=fuzz.token_sort_ratio)
+            matches = process.extract(
+                norm, choices, scorer=fuzz.token_sort_ratio,
+                score_cutoff=_FUZZY_THRESHOLD, limit=None,
+            )
             if (
-                match
-                and match[1] >= _FUZZY_THRESHOLD
-                and _names_compatible(norm, match[0])
+                matches
+                and _names_compatible(norm, matches[0][0])
+                and _same_head_word(norm, matches[0][0])
             ):
-                candidate = match[2]
+                best = matches[0][2]
+                # C2: two confident candidates a human ruled never-same make
+                # the record ambiguous. Return no match; the create path
+                # holds it for review instead of guessing (maxim/maximo).
+                if not any(
+                    ruled_different(cur, best, m[2])
+                    for m in matches[1:]
+                    if _names_compatible(norm, m[0]) and _same_head_word(norm, m[0])
+                ):
+                    candidate = best
 
     if candidate is None:
         return None
@@ -334,6 +402,20 @@ def _names_compatible(a: str, b: str) -> bool:
     if ia is not None and ib is not None and ia != ib:
         return False
     return fuzz.ratio(a, b) >= _FUZZY_THRESHOLD
+
+
+def _same_head_word(a: str, b: str) -> bool:
+    """The leading word is the company's own name; the rest is trade words.
+
+    "ANIKA FASHIONS" and "ANITA FASHIONS" score 93 because "fashions" pads
+    both, yet they are two companies (spec §8.3 C5). A fuzzy match must agree
+    on the head word exactly; a one-letter difference there (Kainzanul /
+    Kainjanul) is held for a human by etl.core.hold rather than joined.
+    """
+    def head(n: str) -> str:
+        return next((t for t in n.split() if t != "the"), "")
+
+    return head(a) == head(b)
 
 
 def _contact_match_allowed(norm: str, candidate_norm: str | None) -> bool:

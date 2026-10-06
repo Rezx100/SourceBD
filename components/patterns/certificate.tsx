@@ -18,6 +18,10 @@ export type CertRowData = {
   documentLabel?: string;
   /** The row's id, so a link from another page (the Compliance hub) can land on this one row. */
   anchor?: string;
+  /** The day its body stopped listing it (spec-etl-freshness S2); the chip then says so. */
+  delistedOn?: string | null;
+  /** "checked with GOTS 6 Oct 2026": when its body last showed it; caution once stale or delisted. */
+  check?: { text: string; caution: boolean } | null;
 };
 
 /** A certificate's chip, its words worked out from the date. */
@@ -75,7 +79,7 @@ export function CertProblem({
  */
 export function CertTable({ certs, today, from, className, compact = false }: { certs: CertRowData[]; today: Date; from?: string; className?: string; compact?: boolean }) {
   const rows = certs
-    .map((c) => ({ c, w: certWords(c.expiresOn, today) }))
+    .map((c) => ({ c, w: certWords(c.expiresOn, today, c.delistedOn) }))
     .sort((a, b) => CERT_ORDER[a.w.state] - CERT_ORDER[b.w.state]);
   return (
     <section aria-label="Certificates" className={cn("flex flex-col rounded-md border border-line", className)}>
@@ -106,10 +110,11 @@ export function CertTable({ certs, today, from, className, compact = false }: { 
               {c.number ? <span className="font-mono text-sm text-ink-2">{c.number}</span> : null}
             </span>
             <span className={cn("text-sm text-ink-2 sm:text-base", compact ? "col-start-1 row-start-2" : "max-sm:order-3")}>{c.issuer ?? <span className="text-ink-3">Issuer not published</span>}</span>
-            <span className={cn("flex", compact ? "col-start-2 row-start-1 justify-self-end" : "max-sm:order-1")}>
+            <span className={cn("flex flex-col gap-0.5", compact ? "col-start-2 row-start-1 items-end justify-self-end" : "max-sm:order-1 sm:items-start")}>
               <CertChip state={w.state} className="whitespace-nowrap">
                 {w.label}
               </CertChip>
+              {c.check ? <span className={cn("text-xs", c.check.caution ? "text-caution" : "text-ink-3")}>{c.check.text}</span> : null}
             </span>
             <span className={cn("flex h-8 items-center gap-1.5", compact ? "col-start-2 row-start-2 justify-self-end" : "max-sm:order-4")}>
               {c.documentUrl ? (

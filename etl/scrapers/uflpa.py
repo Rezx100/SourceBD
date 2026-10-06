@@ -120,10 +120,22 @@ def _section_for(table) -> str:
 
 class UflpaScraper(AcquiringSanctionScraper):
     code = "uflpa"
+    # spec-etl-freshness §4.8: this source's §2 monthly credits × 1.5. A run that
+    # needs more stops with CreditBudgetExceeded instead of spending it.
+    max_credits_per_run = 45
     source_code = "UFLPA"
     transport = "firecrawl"
     fallback_transport = "direct"
     rps = 1.0
+    # dhs.gov answers our plain research agent with 403 (the 26 Jun 2026 run
+    # failed on it and the list went stale); a browser agent reads it.
+    request_headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                      "AppleWebKit/537.36 (KHTML, like Gecko) "
+                      "Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+    }
     monitor_urls = (URL,)
 
     async def fetch(self) -> AsyncIterator[SanctionEntry]:

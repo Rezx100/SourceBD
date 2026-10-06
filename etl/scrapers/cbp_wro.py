@@ -180,6 +180,9 @@ def _is_data_table(table: Any) -> bool:
 
 class CbpWroScraper(AcquiringSanctionScraper):
     code = "cbp_wro"
+    # spec-etl-freshness §4.8: this source's §2 monthly credits × 1.5. A run that
+    # needs more stops with CreditBudgetExceeded instead of spending it.
+    max_credits_per_run = 45
     source_code = "US_WRO"
     transport = "firecrawl"
     fallback_transport = "direct"
@@ -239,6 +242,11 @@ class CbpWroScraper(AcquiringSanctionScraper):
         soup = BeautifulSoup(doc.text(), "lxml")
         doc_text = doc.text()
         fetched_via = "wayback" if "web.archive.org" in doc.citable_url else "live"
+        # A 2024 snapshot is not CBP's current list (the live page has been a
+        # Tableau dashboard since 2025): store what it says, but never delist
+        # from it or count it as a fresh read.
+        if fetched_via == "wayback":
+            self.read_complete = False
 
         # Walk h2 + table nodes in document order. Mode (WRO vs Finding) is
         # determined by the most recently seen H2 of those exact names.

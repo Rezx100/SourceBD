@@ -1,6 +1,8 @@
-// The 25 sources the methodology page lists, by tier (`public.sources`, the codes the database holds). What each one
+// The 21 sources the methodology page lists, by tier (`public.sources`, the codes the database holds). What each one
 // gives us is in words; the counts and the day each was last read come from the database (`SiteFacts.sources`) and are
-// left out when they were not read. A source with no records yet says so.
+// left out when they were not read. A source with no records yet says so. BEPZA, DIFE and RJSC (no scraper
+// yet) and Inditex (publishes no list) are not listed until they are read: founder, 6 Oct 2026; `sources.listed`
+// (0125) keeps the database count in step.
 
 export type TierKey = "tier1_gov" | "tier2_industry" | "tier3_cert" | "tier4_brand" | "tier5_regulatory";
 
@@ -16,14 +18,11 @@ export const TIERS: Tier[] = [
     key: "tier1_gov",
     n: 1,
     label: "Government and RSC",
-    ladder: "EPB, RSC, BEPZA, DIFE, RJSC",
+    ladder: "EPB, RSC",
     note: "RSC is an industry council, not a government register. It sits here because its inspectors visit the factory.",
     sources: [
       { code: "EPB", name: "EPB", full: "Export Promotion Bureau", gives: "Exporter number and products exported, by HS code" },
       { code: "RSC", name: "RSC", full: "RMG Sustainability Council", gives: "Safety inspections, remediation progress, workers counted" },
-      { code: "BEPZA", name: "BEPZA", full: "Bangladesh Export Processing Zones Authority", gives: "Factories inside export processing zones" },
-      { code: "DIFE", name: "DIFE", full: "Department of Inspection for Factories and Establishments", gives: "Factory licences" },
-      { code: "RJSC", name: "RJSC", full: "Registrar of Joint Stock Companies", gives: "Company registration" },
     ],
   },
   {
@@ -56,14 +55,13 @@ export const TIERS: Tier[] = [
     key: "tier4_brand",
     n: 4,
     label: "Brand supplier lists",
-    ladder: "H&M Group, Next, Marks & Spencer, ASOS, Inditex, Primark",
+    ladder: "H&M Group, Next, Marks & Spencer, ASOS, Primark",
     note: "The brand names this factory as a supplier. Names in type, never logos.",
     sources: [
       { code: "BRAND_HM", name: "H&M Group", full: "Published supplier list", gives: brand },
       { code: "BRAND_NEXT", name: "Next", full: "Tier 1 manufacturing sites", gives: brand },
       { code: "BRAND_MS", name: "Marks & Spencer", full: "Interactive supplier map", gives: "Factory named on the brand's own map" },
       { code: "BRAND_ASOS", name: "ASOS", full: "Factory list", gives: brand },
-      { code: "BRAND_INDITEX", name: "Inditex", full: "No per-factory list published on their own site", gives: none },
       { code: "BRAND_PRIMARK", name: "Primark", full: "No per-factory list published on their own site", gives: none },
     ],
   },

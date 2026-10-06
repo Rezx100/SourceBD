@@ -38,6 +38,7 @@ import {
   rscStatusWords,
   rscTrainingWords,
   sortCerts,
+  type CertChecks,
   type CertModel,
   formatDayRange,
   placeLabel,
@@ -1080,6 +1081,10 @@ export type SheetOptions = {
   allLines?: boolean;
   /** Where "All N lines ›" goes when the grid is showing only six. */
   allLinesHref?: string | null;
+  /** `sanctions_lists_read()` (0120): the oldest last full read of the daily lists; null when it could not be read. */
+  sanctionsReadAt?: string | null;
+  /** `supplier_cert_checks(slug)` (0122); null when it could not be read. */
+  certChecks?: CertChecks | null;
 };
 
 /**
@@ -1439,6 +1444,8 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
     closeHref: options.closeHref ?? null,
     lineHref: options.lineHref ?? ((hs: string) => `/app/suppliers/${s.slug}/lines/${hs}`),
     sanctions: sanctionRows(p),
+    sanctionsReadAt: options.sanctionsReadAt ?? null,
+    certChecks: options.certChecks ?? null,
     // A flagged record whose payload carries no row is not "no match" — it is a
     // match whose receipt did not come back.
     sanctionsEmpty:

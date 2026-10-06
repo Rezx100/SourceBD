@@ -18,6 +18,7 @@ import {
   fetchContactCounts,
   fetchRecordRfqs,
   fetchRecordSaved,
+  fetchSanctionsRead,
   loadRecordInput,
   loadRecordSheet,
   callerId,
@@ -328,5 +329,33 @@ describe("fetchRecordSaved and callerId", () => {
     assert.equal(await callerId({ auth: { getUser: async () => ({ data: { user: { id: "" } } }) } }), null);
     assert.equal(await callerId({ auth: { getUser: async () => ({ data: { user: { id: "u1" } } }) } }), "u1");
     assert.equal(await callerId({ auth: { getUser: async () => { throw new Error("no session"); } } }), null);
+  });
+});
+
+describe("fetchSanctionsRead", () => {
+  const read = (data: unknown, error: unknown = null) => fetchSanctionsRead({ rpc: async () => ({ data, error }) });
+  const row = (list: string, last_read: string | null) => ({ list, entries_listed: 1, last_read });
+  const ALL = [
+    row("ofac_sdn", "2026-10-06T02:10:00Z"),
+    row("uk_ofsi", "2026-10-06T02:20:00Z"),
+    row("eu_sanctions", "2026-10-05T02:30:00Z"),
+    row("uflpa", "2026-10-06T02:40:00Z"),
+    // Neither dates the line: a 2024 snapshot and a weekly list.
+    row("us_wro", "2024-12-30T00:00:00Z"),
+    row("ilab_tvpra", "2026-06-26T00:00:00Z"),
+  ];
+
+  it("names the day the stalest daily list was read", async () => {
+    assert.equal(await read(ALL), "2026-10-05T02:30:00Z");
+  });
+
+  it("claims no date while any daily list has never been read", async () => {
+    assert.equal(await read(ALL.filter((r) => r.list !== "uflpa")), null);
+    assert.equal(await read([...ALL.filter((r) => r.list !== "uflpa"), row("uflpa", null)]), null);
+  });
+
+  it("a failed read, a missing function or a thrown client claims no date", async () => {
+    assert.equal(await read(null, { code: "PGRST202" }), null);
+    assert.equal(await fetchSanctionsRead({ rpc: async () => { throw new Error("down"); } }), null);
   });
 });
