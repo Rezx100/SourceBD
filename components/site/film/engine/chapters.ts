@@ -325,12 +325,14 @@ export function startChapters(root: HTMLElement, tier: Tier, hooks: ChapterHooks
       const box = layerOf(ties[0]);
       rollGeo.dots = box ? rows.map((row) => dotOf(box, row)) : [];
     }
-    // A receipt whose line has scrolled out of the window's top takes its thread with it; the row keeps its dot.
+    // A receipt whose line scrolls out of the window's top takes its thread with it, drawn back over the last 24 px
+    // rather than cut in one frame; the row keeps its dot.
     const shift = at.print * rollGeo.over;
     ties.forEach((g, i) => {
       const from = rollGeo!.froms[i];
       const y = from ? from.y - shift : 0;
-      tie(g, from ? { x: from.x, y } : null, rollGeo!.dots[i] ?? null, from && y < rollGeo!.top + 8 ? 0 : (at.ties[i] ?? 0));
+      const kept = from ? clamp((y - rollGeo!.top - 8) / 24) : 1;
+      tie(g, from ? { x: from.x, y } : null, rollGeo!.dots[i] ?? null, Math.min(at.ties[i] ?? 0, kept));
     });
   };
 
@@ -344,10 +346,11 @@ export function startChapters(root: HTMLElement, tier: Tier, hooks: ChapterHooks
     const from = hooks.site?.(p) ?? null;
     beat(siteRow, p, SITE.tie[0]);
     beat(siteNote, p, SITE.note);
-    // The place's label sits up and left of the light and shows as the ring opens.
+    // The place's label sits up and left of the light and shows as the ring opens (the scroll eases it; no transition).
     if (siteLabel && from) {
       siteLabel.style.transform = `translate(${px(from.x - 150)}px, ${px(from.y - 120)}px)`;
-      siteLabel.style.opacity = at.ring.toFixed(2);
+      const o = at.ring.toFixed(2);
+      if (siteLabel.style.opacity !== o) siteLabel.style.opacity = o;
     }
     if (stalePlaces || staleSite) {
       staleSite = false;

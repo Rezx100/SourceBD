@@ -60,7 +60,8 @@ export function createDirector(root: HTMLElement, onScene?: (name: string, p: nu
   const rail = root.querySelector<HTMLElement>('nav[aria-label="Chapters"]');
   const line = rail?.querySelector<HTMLElement>(":scope > span") ?? null;
   const last = new Map<HTMLElement, number>();
-  let chapter: string | null = null;
+  // Undefined until the first measure, so a page restored past the last scene still settles the rail on its first frame.
+  let chapter: string | null | undefined;
   let night = false;
   let pageP = -1;
   let raf = 0;

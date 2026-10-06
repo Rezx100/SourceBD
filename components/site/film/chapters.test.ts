@@ -351,6 +351,12 @@ describe("scene 09, the real product staged", () => {
     assert.equal((sourcing.match(/data-cursor="true"/g) ?? []).length, 3, "the spotlight, the press and the cursor, once");
     assert.ok(sourcing.indexOf("data-cursor") > sourcing.indexOf("rfq-one.png") && sourcing.indexOf("data-cursor") < sourcing.indexOf("rfq-quotes.png"));
     assert.match(sourcing, /class="stage-cursor [^"]*" style="left:92\.6%;top:95\.5%"/);
+    // Under 1024px each window looks at the part its step names: every focus is a point inside the screen, and each is written on its window.
+    for (const x of SCREENS) {
+      assert.ok(x.focus.x > 0 && x.focus.x < 100 && x.focus.y > 0 && x.focus.y < 100, x.step);
+      assert.ok(sourcing.includes(`style="--focus:${x.focus.x}% ${x.focus.y}%"`), x.step);
+    }
+    assert.equal((scene.match(/style="--focus:/g) ?? []).length, 4, "three sourcing screens and the compliance one");
     assert.ok(t.includes(STAGE_CAPTION) && /light in both themes/.test(STAGE_CAPTION));
     assert.equal((scene.match(/<figure class="flex flex-col gap-3"[^>]*><div class="relative isolate overflow-hidden rounded-pane bg-sunken/g) ?? []).length, 2, "one stage per role");
     assert.equal((scene.match(/data-order-screens=""/g) ?? []).length, 1, "the engine swaps the sourcing stage's screens only; the compliance stage's one screen is never touched");

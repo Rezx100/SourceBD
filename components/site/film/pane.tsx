@@ -129,7 +129,12 @@ export function AlertPane({ when, title, due, subject, from, action, material = 
       <p className="text-base text-ink">{subject}</p>
       {from ? <p className="text-sm text-ink-3">{from}</p> : null}
       {/* The next step, in words: nothing here is pressed, so nothing looks pressable. */}
-      {action ? <p className="mt-1 text-base font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]">{action}</p> : null}
+      {action ? (
+        <p className="mt-1 text-sm text-ink-2">
+          <span className="font-mono text-xs text-ink-3">Next </span>
+          <span className="font-medium text-ink">{action}</span>
+        </p>
+      ) : null}
     </Pane>
   );
 }

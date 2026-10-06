@@ -149,7 +149,7 @@ export function SiteScene() {
           </g>
         </ThreadLayer>
         {/* The place, named beside the ring as the engine moves it with the light (the words above say the same, so it is decoration). */}
-        <div data-site-label aria-hidden className="pointer-events-none absolute left-0 top-0 hidden opacity-0 transition-opacity duration-slow film-full:block">
+        <div data-site-label aria-hidden className="pointer-events-none absolute left-0 top-0 hidden opacity-0 film-full:block">
           <Callout material="solid" place="Kashimpur · Gazipur" figure="ring 1 km" on />
         </div>
         <p data-map-credit className="absolute bottom-6 right-6 hidden font-mono text-xs text-ink-3 film-full:block">{MAP_CREDIT}</p>
