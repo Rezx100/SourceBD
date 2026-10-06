@@ -1,7 +1,7 @@
 # 0125 sources we do not read, and brand schedules: dry run (6 Oct 2026)
 
 Migration: `supabase/migrations/0125_sources_listed_brand_schedules.sql`
-sha256 (LF, as committed): `42cf413acf3cfc4db520b431686981994d67822b429f6d930a841115a2575d3b`
+sha256 (LF, as committed): `e9b58eb15f0804bc296bd49ab9a26e85bf9fd73e152422296baed44f89b60b2f`
 Spec: `context/feature-specs/spec-etl-freshness.md`, slice S6 (founder decision 4).
 
 ## How it was run
