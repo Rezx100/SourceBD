@@ -9,14 +9,28 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
 
-/** True for a plain left click on a same-tab link: the clicks that start a navigation here. */
-export function startsNavigation(e: { button: number; metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; altKey: boolean; target: unknown }): boolean {
+/**
+ * True for a plain left click on a same-tab link to another page: the clicks that start a
+ * navigation here. A link to this same page ("Try again" is `/app`) changes no pathname, so
+ * nothing would ever take the bar down again.
+ */
+export function startsNavigation(
+  e: { button: number; metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; altKey: boolean; target: unknown },
+  here: string,
+): boolean {
   if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return false;
   const el = e.target as { closest?: (s: string) => { getAttribute: (n: string) => string | null } | null } | null;
   const a = el?.closest?.("a[href]");
   if (!a) return false;
   const target = a.getAttribute("target");
-  return !target || target === "_self";
+  if (target && target !== "_self") return false;
+  try {
+    const base = new URL(here);
+    const to = new URL(a.getAttribute("href") ?? "", base);
+    return to.origin === base.origin && to.pathname !== base.pathname;
+  } catch {
+    return false;
+  }
 }
 
 export function PendingNav({ children, className }: { children: ReactNode; className?: string }) {
@@ -34,7 +48,7 @@ export function PendingNav({ children, className }: { children: ReactNode; class
       className={className}
       aria-busy={busy || undefined}
       onClickCapture={(e: MouseEvent) => {
-        if (startsNavigation(e)) setBusy(true);
+        if (startsNavigation(e, window.location.href)) setBusy(true);
       }}
       onSubmitCapture={() => setBusy(true)}
     >

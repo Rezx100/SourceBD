@@ -463,12 +463,16 @@ describe("the landing", () => {
   });
 
   it("a plain click on a link starts the loading bar; a new-tab click does not", () => {
-    const link = (target: string | null) => ({ closest: () => ({ getAttribute: () => target }) });
+    const link = (href: string, target: string | null = null) => ({ closest: () => ({ getAttribute: (n: string) => (n === "href" ? href : target) }) });
     const click = { button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false };
-    assert.equal(startsNavigation({ ...click, target: link(null) }), true);
-    assert.equal(startsNavigation({ ...click, ctrlKey: true, target: link(null) }), false);
-    assert.equal(startsNavigation({ ...click, target: link("_blank") }), false);
-    assert.equal(startsNavigation({ ...click, target: { closest: () => null } }), false);
+    const here = "https://app.example/app";
+    assert.equal(startsNavigation({ ...click, target: link("/app/discover?hs=6110") }, here), true);
+    assert.equal(startsNavigation({ ...click, ctrlKey: true, target: link("/app/discover") }, here), false);
+    assert.equal(startsNavigation({ ...click, target: link("/app/discover", "_blank") }, here), false);
+    assert.equal(startsNavigation({ ...click, target: { closest: () => null } }, here), false);
+    // "Try again" is this page: the pathname never changes, so the bar would never come down.
+    assert.equal(startsNavigation({ ...click, target: link("/app") }, here), false);
+    assert.equal(startsNavigation({ ...click, target: link("https://global-standards.org/x") }, here), false);
   });
 
   it("an unread certificate check says so with a way to try again; it does not say nothing needs attention", () => {
