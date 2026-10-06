@@ -99,7 +99,7 @@ export function CertTable({ certs, today, from, className, compact = false }: { 
             key={`${c.scheme}-${c.number}-${i}`}
             id={c.anchor}
             className={cn(
-              "relative scroll-mt-16 border-b border-line px-4 py-3 last:border-b-0 target:bg-brand-tint",
+              "relative scroll-mt-[var(--record-offset,4rem)] border-b border-line px-4 py-3 last:border-b-0 target:bg-brand-tint",
               compact
                 ? "grid min-h-11 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1"
                 : "flex flex-col gap-1.5 max-sm:min-h-11 sm:grid sm:min-h-14 sm:grid-cols-[minmax(0,200px)_minmax(0,1fr)_minmax(0,260px)_minmax(0,140px)] sm:items-center sm:gap-4 sm:py-2",

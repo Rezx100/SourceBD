@@ -28,12 +28,8 @@ export function SectionTabs({ tabs, initial }: { tabs: SectionTab[]; initial: Ta
   const [active, setActive] = useState<TabId>(initial);
   const nav = useRef<HTMLElement>(null);
   const clicking = useRef(false);
-
-  // The address's tab on arrival: open the record at that section.
-  useEffect(() => {
-    if (initial !== "overview" && !location.hash) sectionOf(initial)?.scrollIntoView({ block: "start" });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- on arrival only; a later click owns the scroll
-  }, []);
+  const release = useRef<(() => void) | null>(null);
+  const arrived = useRef(false);
 
   // Scroll spy: one observer for a band under the sticky chrome, one for the record's foot.
   useEffect(() => {
@@ -75,6 +71,13 @@ export function SectionTabs({ tabs, initial }: { tabs: SectionTab[]; initial: Ta
       }
     };
     watch();
+    // On arrival, once the sticky height is known: the address's anchor (a section or a certificate's
+    // row), else its tab. The browser's own jump ran before that height, so the target sat under the bars.
+    if (!arrived.current) {
+      arrived.current = true;
+      const hash = location.hash ? document.getElementById(decodeURIComponent(location.hash.slice(1))) : null;
+      (hash ?? (initial !== "overview" ? sectionOf(initial) : null))?.scrollIntoView({ block: "start" });
+    }
     const sized = new ResizeObserver(watch);
     sized.observe(record);
     const foot = new IntersectionObserver(
@@ -91,7 +94,7 @@ export function SectionTabs({ tabs, initial }: { tabs: SectionTab[]; initial: Ta
       sized.disconnect();
       foot.disconnect();
     };
-  }, [tabs]);
+  }, [tabs, initial]);
 
   // Keep the marked tab in sight inside a strip that overflows sideways (a phone).
   useEffect(() => {
@@ -106,18 +109,21 @@ export function SectionTabs({ tabs, initial }: { tabs: SectionTab[]; initial: Ta
     const target = sectionOf(t.id);
     if (!target) return;
     e.preventDefault();
+    release.current?.(); // a second click before the first scroll ended: only the latest one counts
     clicking.current = true;
     setActive(t.id);
     history.replaceState(null, "", t.href);
     const root = scroller(target) ?? window;
     const done = () => {
       clicking.current = false;
+      release.current = null;
       clearTimeout(timer);
       root.removeEventListener("scrollend", done);
     };
     // `scrollend` where the browser has it; the timer where it does not, or when nothing moved.
     const timer = setTimeout(done, 1000);
     root.addEventListener("scrollend", done);
+    release.current = done;
     target.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "start" });
   };
 
