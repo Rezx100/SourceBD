@@ -12,29 +12,31 @@ import Link from "next/link";
 import { ButtonLink } from "@/components/kit";
 import { DISTRICTS } from "@/components/site/film/engine/map";
 import { Callout, FieldPane, RecordPane } from "@/components/site/film/pane";
+import { NAME } from "@/components/site/film/record";
 import { Thread, ThreadLayer } from "@/components/site/film/thread";
+import { SCENE_TYPE } from "@/components/site/film/words";
 import { Label, Lede, wrap } from "@/components/site/parts";
 import { readDay, withCommas } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
 
-const NAME = "Mondol Fabrics Ltd.";
 /**
  * What the planet's lights are, from `public/site/film/cells.json`: the day it was read and its two counts,
  * repeated here so the page can say them. `film.test.ts` holds these three to the file; `scripts/film/build-cells.mjs`
  * prints them with each run.
  */
 export const LIGHTS_FILE = { date: "2026-10-06", mapped: 9541, suppliers: 10277 } as const;
-export const LIGHTS = `One light per km² with suppliers · ${withCommas(LIGHTS_FILE.mapped)} of ${withCommas(LIGHTS_FILE.suppliers)} have a mapped address · ${readDay(LIGHTS_FILE.date)}`;
+export const LIGHTS = `One light per km² with suppliers · ${withCommas(LIGHTS_FILE.mapped)} of ${withCommas(LIGHTS_FILE.suppliers)} have a mapped register address · ${readDay(LIGHTS_FILE.date)}`;
 /** The map's open data and its licences (scripts/film/build-geo.mjs); /legal/data-sources carries the full credit. */
 export const MAP_CREDIT = "Districts: BBS and OCHA, CC BY 3.0 IGO · rivers and coast: Natural Earth";
 const stage = "relative overflow-hidden";
 const hero = "font-semibold tracking-[-0.03em] text-ink [text-wrap:balance] text-film-hero-phone md:text-display-1 xl:text-film-hero";
-const scene = "font-semibold tracking-[-0.025em] text-ink [text-wrap:balance] text-film-scene-phone md:text-film-scene";
+/** An act of the opening: in flow when stacked; laid over the stage, centred, and faded in and out on the full tier. */
+const act = "relative flex flex-col gap-10 film-full:absolute film-full:inset-0 film-full:justify-center film-full:transition-opacity film-full:duration-slow";
 
 /** A picture of our own map for the tiers that do not draw it live, in the theme the system asks for. Decoration: the words carry the counts. */
-function MapStill({ name, className }: { name: string; className?: string }) {
+function MapStill({ name }: { name: string }) {
   return (
-    <picture className={cn("block w-full overflow-hidden rounded-pane max-sm:rounded-pane-phone film-full:hidden", className)}>
+    <picture className="block w-full max-w-[720px] overflow-hidden rounded-pane max-sm:rounded-pane-phone film-full:hidden">
       <source media="(prefers-color-scheme: dark)" srcSet={`/site/film/${name}-dark.avif`} />
       {/* eslint-disable-next-line @next/next/no-img-element -- a finished picture of our own map, encoded once */}
       <img src={`/site/film/${name}-light.avif`} alt="" width={1200} height={750} loading="lazy" decoding="async" className="h-auto w-full" />
@@ -45,15 +47,16 @@ function MapStill({ name, className }: { name: string; className?: string }) {
 export function Opening({ count, updated }: { count: string | null; updated: string | null }) {
   return (
     <section id="ch-1" data-scene="opening" data-chapter="ch-1" className="relative bg-surface text-ink film-full:h-[640svh]">
-      <div className={cn(stage, "film-full:sticky film-full:top-0 film-full:h-svh film-full:isolate")}>
+      {/* Clipped only on the full tier: an overflow on this box would be the lite tier's planet's scroll container, and it would never stick. */}
+      <div className="relative film-full:sticky film-full:top-0 film-full:h-svh film-full:isolate film-full:overflow-hidden">
         {/* 01 · the planet: night in both themes. On the full tier it lies over the map and gives way to it. */}
         <div data-scene="planet" data-chapter="ch-1" data-act="planet" data-ground="night" className="relative bg-surface text-ink film:h-[190svh] film-full:absolute film-full:inset-0 film-full:z-raised film-full:h-auto">
-          <div className={cn(stage, "flex min-h-[600px] flex-col justify-center py-20 max-md:py-12 film:sticky film:top-0 film:h-svh film:py-0 film-full:static film-full:h-full")}>
-            {/* The still tier's planet: the same planet, drawn once. The full and lite tiers draw it live. */}
+          <div className={cn(stage, "flex min-h-[600px] flex-col justify-center py-20 max-md:py-12 film:sticky film:top-0 film:h-svh film:py-0")}>
+            {/* The still tier's planet: the same planet, drawn once. The full and lite tiers draw it live, and never fetch this (a lazy picture that is not displayed is not loaded). */}
             <picture className="absolute inset-0 block film:hidden">
               <source media="(max-width: 767px)" srcSet="/site/film/planet-upright.avif" />
               {/* eslint-disable-next-line @next/next/no-img-element -- a finished picture of our own planet, encoded once */}
-              <img src="/site/film/planet.avif" alt="" className="size-full object-cover object-right" />
+              <img src="/site/film/planet.avif" alt="" loading="lazy" decoding="async" className="size-full object-cover object-right" />
             </picture>
             <canvas data-planet aria-hidden className="absolute inset-0 hidden size-full film:block" />
             {/* The runtime fits both layers to the stage and moves their paths with the planet. */}
@@ -105,11 +108,11 @@ export function Opening({ count, updated }: { count: string | null; updated: str
           </g>
         </ThreadLayer>
 
-        <div data-act="districts" className={cn(wrap, "relative flex flex-col gap-10 py-24 max-md:py-14 film-full:absolute film-full:inset-0 film-full:justify-center film-full:py-0 film-full:transition-opacity film-full:duration-slow")}>
-          <MapStill name="map-country" className="max-w-[720px]" />
+        <div data-act="districts" className={cn(wrap, act, "py-24 max-md:py-14 film-full:py-0")}>
+          <MapStill name="map-country" />
           <div className="flex flex-col gap-4">
             <Label>Where are they?</Label>
-            <h2 className={cn(scene, "max-w-[640px] leading-[1.06]")}>Most sit in four districts.</h2>
+            <h2 className={cn(SCENE_TYPE, "max-w-[640px] leading-[1.06]")}>Most sit in four districts.</h2>
             <Lede>Suppliers by district, from their register addresses, as counted on 3 Oct 2026.</Lede>
           </div>
           {/* Every count is in the page, and stays readable to a screen reader. On the full tier one shows at a time, whole: a figure never counts up. */}
@@ -127,12 +130,12 @@ export function Opening({ count, updated }: { count: string | null; updated: str
           <p className="font-mono text-xs text-ink-3 film-full:hidden">{MAP_CREDIT}</p>
         </div>
 
-        <div data-act="record" className={cn(wrap, "relative flex flex-col gap-10 pb-24 max-md:pb-14 film-full:absolute film-full:inset-0 film-full:justify-center film-full:pb-0 film-full:opacity-0 film-full:transition-opacity film-full:duration-slow")}>
-          <MapStill name="map-gazipur" className="max-w-[720px]" />
+        <div data-act="record" className={cn(wrap, act, "pb-24 max-md:pb-14 film-full:pb-0 film-full:opacity-0")}>
+          <MapStill name="map-gazipur" />
           <div className="flex flex-col gap-10 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex max-w-[520px] flex-col gap-4">
               <Label>Pick one</Label>
-              <p className={cn(scene, "leading-[1.06]")}>Follow one factory down the page.</p>
+              <p className={cn(SCENE_TYPE, "leading-[1.06]")}>Follow one factory down the page.</p>
               <Lede>{NAME} makes knitwear in Kashimpur, Gazipur. Each row its record gains below comes from a named source.</Lede>
               <p className="font-mono text-xs text-ink-3">A real record, as it stands on 3 Oct 2026.</p>
             </div>

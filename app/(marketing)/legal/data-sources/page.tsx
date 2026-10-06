@@ -145,7 +145,8 @@ export default function DataSourcesPage() {
           (public domain). The lights are our own count of published
           suppliers per square kilometre, from their register addresses
           as located by Barikoi; the page prints the day of that count.
-          No address, name or identifier leaves our database for it.
+          No address, name or identifier is published for it: the file
+          holds counts per square kilometre and one place.
         </p>
       </LegalShell>
   );

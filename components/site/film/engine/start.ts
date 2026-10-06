@@ -3,7 +3,8 @@
 // `runtime.tsx` calls it after hydration, and the local harness calls it on a static page. It draws nothing of
 // its own and returns the function that stops it.
 
-import { createDirector } from "./director";
+import { startChapters } from "./chapters";
+import { clamp, createDirector, span } from "./director";
 import { DISTRICTS, STOPS, createMap, tileScale, type BdData, type FilmMap, type MapLib } from "./map";
 import { HOME, blendFrame, createPlanet, defaultFrame, frameFor, project, type Cell, type Mask, type Planet } from "./planet";
 import type { Tier } from "./tier";
@@ -17,7 +18,6 @@ import type { Tier } from "./tier";
 export type CellFile = { date: string; what: string; mapped: number; suppliers: number; cells: Cell[]; chosen?: [number, number] };
 
 const DATA = "/site/film/";
-const clamp = (v: number) => Math.max(0, Math.min(1, v));
 /** Where each label sits from the cluster, in pixels: a fan, so four places a few pixels apart can each be read. */
 const FAN: readonly [number, number][] = [[150, -70], [128, -128], [168, -12], [150, 46]];
 /** The share of the stage's width the words keep at the left of the map; the camera centres in the rest. */
@@ -26,16 +26,16 @@ const WORDS_PAD = 0.38;
 /**
  * The opening's one scroll, 0 to 1 (§3.5, §4), as four stretches: the planet dives, the words leave, the planet
  * gives way to the map in place, then the map's own scroll (`STOPS`) runs. Each is 0 before its start and 1
- * after its end, so the dive is done before the planet is gone and the map waits at its first mark until then.
+ * after its end. The dive is done, and the planet still, before it starts to give way: the two countries are one
+ * through the whole crossfade. The map waits at its first mark until the planet has gone.
  */
-export const OPENING = { dive: [0, 0.18], words: [0.08, 0.18], hand: [0.16, 0.26], map: [0.26, 1] } as const;
-const span = ([a, b]: readonly [number, number], p: number) => clamp((p - a) / (b - a));
+export const OPENING = { dive: [0, 0.18], words: [0.08, 0.18], hand: [0.18, 0.28], map: [0.28, 1] } as const;
 export const openingAt = (p: number) => ({ dive: span(OPENING.dive, p), words: span(OPENING.words, p), hand: span(OPENING.hand, p), map: span(OPENING.map, p) });
 
 /** Where the dive ends: Bangladesh at the map's first camera, at its centre and its scale, so the map takes over in place. */
 export function handoverFrame(w: number, h: number) {
   const first = STOPS[0]!;
-  return frameFor(tileScale(first.zoom), first.center[1], w * (WORDS_PAD + (1 - WORDS_PAD) / 2), h / 2);
+  return frameFor(tileScale(first.zoom), first.center[1], (w * (1 + WORDS_PAD)) / 2, h / 2);
 }
 
 async function loadMask(): Promise<Mask> {
@@ -62,10 +62,10 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
   let map: FilmMap | null = null;
   let mapAsked = false;
   let mapP = 0;
-  let sceneP = 0;
-  let planetP = 0;
-  // Without a planet there is no film: the page goes back to the still tier, which is the stacked page.
+  // Without a planet, or without the map it gives way to, there is no film: the page goes back to the still tier,
+  // which is the stacked page. Once the film has stopped nothing that arrives late may stop it again or change the tier.
   const giveUp = () => {
+    if (dead) return;
     html.dataset.filmTier = "still";
     stop();
   };
@@ -75,6 +75,8 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
   const callouts = [...root.querySelectorAll<HTMLElement>("[data-planet-callouts] > *")];
   const leads = [...root.querySelectorAll<SVGPathElement>("[data-planet-leads] path")];
   const planetThread = paths("[data-planet-thread]");
+  let fitted: [number, number] = [0, 0];
+  const shown: string[] = [];
   void Promise.all([loadMask(), cells]).then(([mask, file]) => {
     if (dead || !canvas) return;
     planet = createPlanet(canvas, {
@@ -89,50 +91,62 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
         const w = canvas.clientWidth, h = canvas.clientHeight;
         const at = project(rot, f, HOME.lng, HOME.lat);
         const far = clamp(1 - (f.r / (h * 0.66) - 1) * 3);
-        fit(planetThread[0]?.ownerSVGElement, w, h);
-        fit(leads[0]?.ownerSVGElement, w, h);
+        // Each write only when its value moved: a write of the same string still costs a style pass.
+        if (w !== fitted[0] || h !== fitted[1]) {
+          fitted = [w, h];
+          fit(planetThread[0]?.ownerSVGElement, w, h);
+          fit(leads[0]?.ownerSVGElement, w, h);
+        }
         const d = `M${at.x} ${at.y + 6}C${at.x - 8} ${at.y + 150} ${at.x - 96} ${at.y + 250} ${at.x - 110} ${h}`;
         for (const p of planetThread) p.setAttribute("d", d);
         DISTRICTS.forEach((place, i) => {
           const from = project(rot, f, place.at[0], place.at[1]);
           const x = at.x + FAN[i]![0], y = at.y + FAN[i]![1];
           const show = from.front ? String(far) : "0";
+          // A label that has gone and stays gone is left alone.
+          if (show === "0" && shown[i] === "0") return;
+          shown[i] = show;
           if (callouts[i]) Object.assign(callouts[i].style, { transform: `translate(${x}px, ${y - 16}px)`, opacity: show });
           leads[i]?.setAttribute("d", `M${from.x} ${from.y}L${x - 8} ${y}`);
           if (leads[i]) leads[i].style.opacity = show;
         });
       },
     });
-    // What the scroll said while the planet was still loading: on a phone, the planet's own section.
     if (!planet) return giveUp();
-    if (tier === "lite") planet.setProgress(planetP);
-    else show(sceneP);
-  }, giveUp);
+    // What the scroll said while the planet was still loading, on whichever scene is its clock.
+    director.replay();
+  }).catch(giveUp);
 
   // 02 and 03 · the map, under the planet, loaded as the dive begins and only on the full tier
-  const scene = $<HTMLElement>('[data-scene="opening"]');
   const stage = $<HTMLElement>("[data-map]");
   const acts = { planet: $<HTMLElement>('[data-act="planet"]'), hero: $<HTMLElement>("[data-hero]"), districts: $<HTMLElement>('[data-act="districts"]'), record: $<HTMLElement>('[data-act="record"]') };
   const steps = [...root.querySelectorAll<HTMLElement>("[data-steps] > li")];
   const mapThread = paths("[data-map-thread]");
   const marks = STOPS.slice(1, 1 + DISTRICTS.length).map((s) => s.p);
+  let lastStep = -1;
+  let lastChosen = -1;
   const showMap = (p: number) => {
     mapP = p;
     // A district's figure shows while the camera travels to its mark; past the last mark the last one holds.
     const next = marks.findIndex((m) => p < m);
     const step = next < 0 ? DISTRICTS.length - 1 : next;
-    steps.forEach((li, i) => li.toggleAttribute("data-on", i === step));
     const second = p > 0.76;
     // Opacity only: both acts stay in the page for a screen reader, which does not scroll in step.
     if (acts.districts) acts.districts.style.opacity = second ? "0" : "1";
     if (acts.record) acts.record.style.opacity = second ? "1" : "0";
     mapThread[0]?.parentElement?.style.setProperty("--p", String(clamp((p - 0.82) / 0.14)));
     map?.setProgress(p);
-    map?.setDistrict(DISTRICTS[step]!.key);
-    map?.setChosen(clamp((p - 0.74) / 0.14));
+    // The district and the one light are set when they change, not on every step: each is a round of paint.
+    if (step !== lastStep) {
+      lastStep = step;
+      steps.forEach((li, i) => li.toggleAttribute("data-on", i === step));
+      map?.setDistrict(DISTRICTS[step]!.key);
+    }
+    const chosen = clamp((p - 0.74) / 0.14);
+    if (chosen !== lastChosen) map?.setChosen((lastChosen = chosen));
   };
   const wantMap = () => {
-    if (mapAsked || tier !== "full" || !stage) return;
+    if (mapAsked || !stage) return;
     mapAsked = true;
     void Promise.all([loadMapLib(), fetch(`${DATA}bd.json`).then((r) => r.json() as Promise<BdData>), cells]).then(([lib, bd, file]) => {
       if (dead) return;
@@ -147,6 +161,8 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
           return { left: Math.round(w * (WORDS_PAD - 0.2 * k)), right: Math.round(w * 0.16 * k), top: 0, bottom: 0 };
         },
         onMove(proj) {
+          // The thread draws from 0.82: until the camera nears, nothing to lay out.
+          if (mapP < 0.8) return;
           const pane = acts.record?.querySelector("figure")?.getBoundingClientRect();
           const box = stage.getBoundingClientRect();
           if (!file.chosen || !pane) return;
@@ -157,19 +173,23 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
         },
       });
       showMap(mapP);
-      // Without the map the planet would give way to an empty stage: the page goes back to the stacked one, with its pictures.
-    }, giveUp);
+      // Without the map (the library, its data, or a second drawing context refused) the planet would give way to
+      // an empty stage: the page goes back to the stacked one, with its pictures. A throw while making the map
+      // lands here too, which `.then(ok, fail)` would have let through.
+    }).catch(giveUp);
   };
 
   /** The opening at `p` on the full tier: the dive, the words, the handover, then the map. */
   const show = (p: number) => {
-    sceneP = p;
     if (tier !== "full") return;
     const at = openingAt(p);
     planet?.setProgress(at.dive);
-    // CSS moves the words and the planet's act from these two (app/ds.css); what has gone also lets the pointer through.
-    scene?.style.setProperty("--words", String(at.words));
-    scene?.style.setProperty("--hand", String(at.hand));
+    // The planet's thread draws with the dive: its act is laid over the stage here and has no scroll of its own.
+    planetThread[0]?.parentElement?.style.setProperty("--p", String(at.dive));
+    // The words leave and the planet's act gives way: written on the two of them, not as a property the whole
+    // scene would inherit (and restyle for) on every frame. What has gone also lets the pointer through (app/ds.css).
+    if (acts.hero) Object.assign(acts.hero.style, { opacity: String(1 - at.words), transform: `translateY(${-40 * at.words}px)` });
+    if (acts.planet) acts.planet.style.opacity = String(1 - at.hand);
     acts.hero?.toggleAttribute("data-gone", at.words >= 1);
     acts.planet?.toggleAttribute("data-past", at.hand >= 1);
     // One drawing context at work at a time: the planet rests once the map has the screen.
@@ -180,21 +200,26 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
     if (at.map !== mapP) showMap(at.map);
   };
 
+  // 04 onwards · the chapters that hold on the full tier (engine/chapters.ts).
+  const chapters = startChapters(root, tier);
   const director = createDirector(root, (name, p) => {
     if (name === "opening") show(p);
     // On a phone the planet holds while it turns and the rest is stacked: its own section is its clock.
-    if (name === "planet" && tier === "lite") {
-      planetP = p;
-      planet?.setProgress(p);
-    }
+    if (name === "planet" && tier === "lite") planet?.setProgress(p);
+    chapters.onScene(name, p);
   });
 
   function stop() {
+    if (dead) return;
     dead = true;
     director.destroy();
+    chapters.stop();
     planet?.destroy();
     map?.destroy();
-    for (const act of [acts.districts, acts.record]) if (act) act.style.opacity = "";
+    // Everything written on the page is put back, so a page the film has left is the stacked page again.
+    for (const act of Object.values(acts)) if (act) Object.assign(act.style, { opacity: "", transform: "" });
+    acts.hero?.removeAttribute("data-gone");
+    acts.planet?.removeAttribute("data-past");
   }
   return stop;
 }

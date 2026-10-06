@@ -278,8 +278,10 @@ export function createPlanet(canvas: HTMLCanvasElement, opts: PlanetOptions): Pl
       dragX += velX / 60;
       dragY += velY / 60;
     }
+    // The drift and a drag both settle as the camera comes in, so where the dive ends the planet is exactly where
+    // the map expects it (start.ts registers the two there).
     const calm = still ? 0 : 1 - p;
-    const rot = facing(HOME.lng + (Math.sin(t / 7.3) * 5.5 + Math.sin(t / 3.1) * 0.8) * calm - dragX, HOME.lat + Math.sin(t / 9.7) * 2.2 * calm + dragY);
+    const rot = facing(HOME.lng + (Math.sin(t / 7.3) * 5.5 + Math.sin(t / 3.1) * 0.8) * calm - dragX * (1 - p), HOME.lat + Math.sin(t / 9.7) * 2.2 * calm + dragY * (1 - p));
     const f = frameOf(p, w, h);
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clearColor(0, 0, 0, 0);

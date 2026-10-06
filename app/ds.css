@@ -347,18 +347,9 @@
     display: none;
   }
 
-  /* The opening's handover (§3.5): on the full tier the words leave first (`--words`) and the planet's act gives
-     way to the map under it (`--hand`); both are written by the scroll (engine/start.ts). What has gone also
-     stops catching the pointer, so the map and the record can be reached. */
-  [data-film-tier="full"] [data-act="planet"] {
-    opacity: calc(1 - var(--hand, 0));
-  }
-
-  [data-film-tier="full"] [data-hero] {
-    opacity: calc(1 - var(--words, 0));
-    transform: translateY(calc(var(--words, 0) * -40px));
-  }
-
+  /* The opening's handover (§3.5): on the full tier the words leave first and the planet's act gives way to the
+     map under it; the scroll writes both opacities on the two elements themselves (engine/start.ts). What has
+     gone also stops catching the pointer, so the map and the record can be reached. */
   [data-film-tier="full"] :is([data-act="planet"][data-past], [data-hero][data-gone]) {
     visibility: hidden;
   }
@@ -384,6 +375,80 @@
 
   .thread-end {
     opacity: clamp(0, calc((var(--p, 1) - 0.96) * 25), 1);
+  }
+
+  /* Scenes 04 and 05 (§3.7, §3.9): what the scroll moves. On the full tier engine/chapters.ts writes --wheel
+     and --needle on the overlock's scene, --p on the seam and on each tie, --print on the roll, and turns each
+     beat on at its moment. With none of them written every part rests, the roll is whole and every beat shows:
+     the lite and still tiers, and a page with no script. */
+  .ov-wheel {
+    stroke-dashoffset: calc(var(--wheel, 0) * -0.25px);
+  }
+
+  .ov-needle {
+    transform: translateY(calc(var(--needle, 0) * 10px));
+  }
+
+  .ov-lever {
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+    transform: rotate(calc(var(--needle, 0) * -16deg));
+  }
+
+  .roll-slot {
+    position: relative;
+    z-index: 1;
+    height: 14px;
+    border-radius: 9999px;
+    background-color: rgb(var(--ds-sunken));
+    box-shadow: inset 0 1px 2px rgb(var(--ds-ink) / 0.25);
+  }
+
+  /* The sheet, the ink on it and its torn edge end at the same place: how much has printed. */
+  .roll-sheet {
+    position: absolute;
+    inset: 0 0 calc((1 - var(--print, 1)) * 100%) 0;
+    background-color: rgb(var(--ds-surface));
+    border-left: 1px solid rgb(var(--ds-line));
+    border-right: 1px solid rgb(var(--ds-line));
+    box-shadow: var(--pane-shadow);
+  }
+
+  .roll-print {
+    position: relative;
+    clip-path: inset(0 0 calc((1 - var(--print, 1)) * 100%) 0);
+  }
+
+  .roll-tear {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(var(--print, 1) * 100%);
+    width: 100%;
+    height: 10px;
+  }
+
+  .receipt {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px 16px;
+    border-top: 1px dashed rgb(var(--ds-line-strong));
+    transition: opacity 300ms cubic-bezier(0, 0, 0.2, 1);
+  }
+
+  .receipt:first-child {
+    border-top: 0;
+  }
+
+  .receipt[data-dim] {
+    opacity: 0.5;
+  }
+
+  /* A beat takes no place until its moment, on the one tier whose scroll brings it: the record grows as its rows
+     stitch on, instead of holding a blank where they will be. */
+  [data-film-tier="full"] [data-beat]:not([data-on]) {
+    display: none;
   }
 }
 

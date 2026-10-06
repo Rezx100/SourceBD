@@ -12,20 +12,23 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { ReceiptsScene, SourcesScene } from "@/components/site/film/chapters";
 import { TIER_SCRIPT } from "@/components/site/film/engine/tier";
 import { Opening } from "@/components/site/film/opening";
+import * as record from "@/components/site/film/record";
 import { FilmRuntime } from "@/components/site/film/runtime";
 import { ClaimReceipt, Display, Faq, HeroActions, Label, Lede, RecordCard, Section, Stat, wrap, type Row } from "@/components/site/parts";
 import { RoleTabs } from "@/components/site/role-tabs";
 import { readDay, withCommas, type SiteFacts } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
 
-const NAME = "Mondol Fabrics Ltd.";
+const NAME = record.NAME;
 
-const SOURCES: Row = { label: "Sources", value: "5 sources", from: "EPB, RSC, BGMEA, BKMEA, GOTS", mono: "EPB 2798 · RSC 10861 · BGMEA 4002 · BKMEA 1004-B/2006 · GOTS-19020" };
-const BGMEA: Row = { label: "BGMEA membership", value: "General member · reg. no. 4002", from: "From BGMEA · checked 24 Jul 2026" };
-const GOTS: Row = { label: "GOTS certificate", value: "GOTS-19020 · valid until 15 Dec 2026", from: "GSCS International Ltd. · checked 26 Jun 2026" };
-const SAFETY: Row = { label: "Safety inspections", value: "Covered by RSC · factory 10861", from: "100% of initial items fixed · checked 24 Jul 2026" };
+// The record's facts are the film's (components/site/film/record.ts); the old card names the sources in words.
+const SOURCES: Row = { ...record.SOURCES, from: "EPB, RSC, BGMEA, BKMEA, GOTS" };
+const BGMEA: Row = record.BGMEA;
+const GOTS: Row = record.GOTS;
+const SAFETY: Row = record.SAFETY;
 const SITE: Row = { label: "Site", value: "Nayapara, Kashimpur, Gazipur", from: "Factory · approximate location" };
 const EXPORTS: Row = { label: "Export records", value: "Coming in v2" };
 const UFLPA: Row = { label: "UFLPA Entity List", value: "No link found", from: "US DHS · our copy from 14 May 2026" };
@@ -113,6 +116,13 @@ export function Home({ facts, film = false }: { facts: SiteFacts; film?: boolean
         </>
       )}
 
+      {film ? (
+        <>
+          <SourcesScene />
+          <ReceiptsScene />
+        </>
+      ) : (
+        <>
       <Chapter n="02" question="Who are they?" headline="One factory. One record." lede="Five registers file it under their own number, on their own date. We match them to one factory, and every fact keeps the source it came from and the day we read it." record={R(mark(SOURCES))}>
         <ul className="flex flex-col divide-y divide-line border-y border-line">
           {[["BGMEA", "reg. no. 4002 · 24 Jul 2026"], ["EPB", "exporter 2798 · 14 Aug 2026"], ["BKMEA", "1004-B/2006 · 2 Aug 2026"], ["GOTS", "GOTS-19020 · 26 Jun 2026"], ["RSC", "factory 10861 · 24 Jul 2026"]].map(([s, n]) => (
@@ -133,6 +143,8 @@ export function Home({ facts, film = false }: { facts: SiteFacts; film?: boolean
           <p className="text-base text-ink-2">RSC counted 2,060 workers in 2 buildings. BGMEA has 4,200 employees, as declared by the factory.</p>
         </div>
       </Chapter>
+        </>
+      )}
 
       <Chapter n="04" question="Where are they?" headline="One address, on the map." lede="The address comes from the registers. Where the pin is only close, we say so." record={R(SOURCES, BGMEA, GOTS, SAFETY, mark(SITE))}>
         <div className="flex flex-col gap-2 rounded-lg border border-line p-5">

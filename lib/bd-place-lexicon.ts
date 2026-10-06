@@ -109,6 +109,16 @@ export const BD_PLACE_LEXICON: ReadonlyArray<readonly [RegExp, string]> = [
  * lowercase the input because callers have already done so and may have
  * applied further normalization steps in between.
  */
+/**
+ * The geocode cache key (REZ-28): the address lowercased, its spaces squeezed, the lexicon applied. The same key
+ * the ETL job writes (`etl/jobs/barikoi_geocode.py`, kept in lockstep). lib/barikoi.ts reads with it, and
+ * scripts/film/build-cells.mjs, which cannot import a server-only module, takes it from here.
+ */
+export function normalizeAddressKey(address: string): string {
+  const lower = address.trim().toLowerCase().replace(/\s+/g, " ");
+  return applyPlaceLexicon(lower).replace(/\s+/g, " ").trim();
+}
+
 export function applyPlaceLexicon(lowercasedInput: string): string {
   let s = lowercasedInput;
   for (const [pat, rep] of BD_PLACE_LEXICON) {

@@ -10,7 +10,7 @@ from a dot on the planet to an RFQ. Front end only: no migration, no new package
 | 1 | The dark set, the film tokens and type sizes, the Pane family, the thread, the rail, `/dev/ds`, the planet and map engines, the open map data | built, 6 Oct 2026 |
 | 2a | The flag (`?film=1`), the tier, the director, and scenes 01 to 03 on all three tiers | built, 6 Oct 2026 |
 | 2b | The dated supplier cells and the factory's own geocode (`cells.json`), `ops/plans/home-film-data.md`, the credit on `/legal/data-sources`, stills for the lite and still tiers, the planet handing over to the map in one move, `cobe` out of `package.json` | built, 6 Oct 2026 |
-| 3 | The director and scenes 04 and 05 | |
+| 3 | Scenes 04 (the overlock, five sources as hang tags, the seam that ties on the Sources row) and 05 (the receipt roll printing three claims beside their sources, three rows arriving, the note where two sources differ), on all three tiers; the fixes from PR 370's review | built, 6 Oct 2026 |
 | 4 | Scenes 06 to 08 | |
 | 5 | Scenes 09 to 12 and the rail | |
 | 6 | The phone, the lite and still tiers, the budgets, accessibility; then the flag on (the founder's call) | |
@@ -39,19 +39,34 @@ Found while building slice 1, and where it differs from the text below:
 Found while building slice 2b (6 Oct 2026):
 - The Supabase connector was not authorised in that session either, so the cells were read through the project's
   own service key and the PostgREST API (the three reads `lib/nearby-suppliers.ts` makes), read-only, by
-  `scripts/film/build-cells.mjs`. Result: 9,541 of 10,277 published suppliers have a mapped address; 1,242 cells;
-  the SQL it stands for and the run are in `ops/plans/home-film-data.md`.
+  `scripts/film/build-cells.mjs`. The figures, the SQL it stands for and each run are in
+  `ops/plans/home-film-data.md` (rule 14: one place for every number).
 - The factory's own geocode is an area, not a building (Barikoi: `incomplete`, confidence 40). Scene 06's ring
   must be about a kilometre wide.
 - The opening is one scene (`data-scene="opening"`, 640svh on the full tier): the planet's act lies over the map
   and gives way to it as the dive ends (`--hand`, `--words`, written by `engine/start.ts`, moved by CSS). The
   dive ends where the map's first camera begins (`handoverFrame`: the story's home at the map's centre, one
   degree the same width on both), so the map's first mark is now zoom 5.5, north up, barely tilted, and the
-  geography's box widened to [66, 6, 106, 38] so its edge is never seen.
+  geography's box widened (to [58, 4, 108, 40], `scripts/film/build-geo.mjs`) so its edge is not seen on a
+  stage up to about 3,000 px wide.
 - The still tier gets a picture of the planet; the lite and still tiers get pictures of the map in both themes
   (`public/site/film/*.avif`, six files, 11 to 32 KB each, shot from the engines by the local harness). The
   full tier draws both live and loads no picture on the first screen, as the budget asks.
 - `cobe` is out of `package.json` and the lockfile (`pnpm install --lockfile-only`; nothing imported it).
+Found while building slice 3 (6 Oct 2026):
+- A scene's progress is no longer written as `--p` on the scene itself: an inherited property set on a tall subtree
+  restyles all of it on every frame (measured at 2 to 6 ms). The engine writes each number on the small thing
+  that reads it (a thread's group, the roll, a flat's parts, the two acts' own opacity); a scene that wants the
+  number as CSS asks with `data-p`.
+- A row that arrives at a beat takes no place until then (`display: none` on the full tier): the record starts
+  compact and grows downward as its rows stitch on, standing at the top beside the words so nothing that has
+  arrived moves again. The tie's thread and the row appear together.
+- The receipts are compact (12 px padding, 16 px lines) so the words and the whole roll fit a 900 px stage;
+  on a stage under about 850 px the last receipt runs past the bottom (slice 6 may give the roll a window that
+  scrolls as it prints). The note on the two sources that differ sits under the record, where no thread crosses.
+- The lite tier's planet could not stick: the stage wrapper's `overflow-hidden` made it the planet's scroll
+  container. The clip is now `film-full:` only. The stills are still those of 2b: the wider geography box adds
+  land the pictures' cameras never see.
 
 ---
 

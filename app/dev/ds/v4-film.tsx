@@ -4,16 +4,15 @@
 // page's own (Mondol Fabrics Ltd., captured 3 Oct 2026), not an invented one. Server component.
 
 import type { ReactNode } from "react";
+import { DIFFER, OVERLOCK_CAPTION, RECEIPTS } from "@/components/site/film/chapters";
+import { Overlock } from "@/components/site/film/flats";
 import { AlertPane, Callout, FieldPane, NotePane, Pane, RecordPane, ScreenStage, type RecordRow } from "@/components/site/film/pane";
+import { ReceiptRoll } from "@/components/site/film/receipts";
+import { BGMEA, GOTS, SAFETY, SOURCES } from "@/components/site/film/record";
 import { Rail, Thread, ThreadLayer } from "@/components/site/film/thread";
 import { cssVarName, darkColors, filmColors, fontSize, splitColorName, v4Colors } from "@/lib/design/tokens";
 
-export const FILM_ROWS: RecordRow[] = [
-  { label: "Sources", value: "5 sources", marks: ["EPB", "RSC", "BGMEA", "BKMEA", "GOTS"], mono: "EPB 2798 · RSC 10861 · BGMEA 4002 · BKMEA 1004-B/2006 · GOTS-19020" },
-  { label: "BGMEA membership", value: "General member · reg. no. 4002", from: "From BGMEA · checked 24 Jul 2026", marks: ["BGMEA"] },
-  { label: "GOTS certificate", value: "GOTS-19020 · valid until 15 Dec 2026", from: "GSCS International Ltd. · checked 26 Jun 2026", marks: ["GOTS"] },
-  { label: "Safety inspections", value: "Covered by RSC · factory 10861", from: "100% of initial items fixed · checked 24 Jul 2026", marks: ["RSC"] },
-];
+export const FILM_ROWS: RecordRow[] = [SOURCES, BGMEA, GOTS, SAFETY];
 
 export const FILM_CHAPTERS = [
   { id: "ch-1", n: "01", label: "Where are they?" },
@@ -160,6 +159,22 @@ export function V4Film() {
             <p className="absolute left-5 top-[142px] font-mono text-xs text-ink-3">joins</p>
             <p className="absolute left-5 top-[222px] font-mono text-xs text-ink-3">ends in a bartack</p>
           </div>
+        </div>
+      </Board>
+
+      <Board title="Overlock" note="The flat of scene 04: a 1.5px ink line, fills from the surface roles, green only for thread, the five source tags hung on their threads. The scroll turns the handwheel, drops the needle and draws the seam; at rest every part is still.">
+        <figure className="flex flex-col gap-3">
+          <Overlock className="h-auto w-full max-w-[460px]" />
+          <figcaption className="font-mono text-xs text-ink-3">{OVERLOCK_CAPTION}</figcaption>
+        </figure>
+      </Board>
+
+      <Board title="Receipt roll" note="The roll of scene 05: paper, not glass. Mono type, a perforation per receipt, a torn edge, printing out of its slot as the scroll moves; whole at rest. Beside it, the note where two sources differ.">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-end">
+          <ReceiptRoll receipts={RECEIPTS} />
+          <NotePane tone="caution" eyebrow="2 sources differ" className="max-w-[280px]">
+            {DIFFER}
+          </NotePane>
         </div>
       </Board>
 
