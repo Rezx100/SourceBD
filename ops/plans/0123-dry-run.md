@@ -1,7 +1,7 @@
 # 0123 source freshness: dry run (6 Oct 2026)
 
 Migration: `supabase/migrations/0123_source_freshness.sql`
-sha256 (LF, as committed): `a1d3c22a245e4c5a4d214b3beeb0f64fa8a10fca57bd7cb97595606e5a905ae4`
+sha256 (LF, as committed): `2fe614a989d67bd300d25434721a347dd443c20a8745da7190ab6c56867845ee`
 Spec: `context/feature-specs/spec-etl-freshness.md`, slice S3. **Apply 0122 first**: 0123 counts
 certificates "no longer listed".
 
