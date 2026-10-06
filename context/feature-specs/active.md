@@ -58,8 +58,8 @@ same PR. Read once per session.
   `development` (PRs #218, #220–#224); promotion to `main` next. Detail:
   `archive/specs-shipped-2026.md`.
 
-- **Home page film** — `spec-home-film.md` (6 Oct). Behind `?film=1`. Slices 1 to 5 built: dark set, Pane
-  family, thread, rail, planet, map, the real cells, scenes 01 to 12 on all tiers. Next: slice 6 (phone, tiers, budgets, the flag).
+- **Home page film** — `spec-home-film.md` (6 Oct). Behind `?film=1`. Slices 1 to 6 built (7 Oct): every scene
+  on every tier, budgets, audit, critique. Waiting on the founder: Paper pages 32/33 (Paper open), then the flag PR.
 
 ## Queued
 - **ETL freshness: check each fact as often as it changes** (6 Oct) —

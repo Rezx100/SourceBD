@@ -87,7 +87,17 @@ export function RecordPane({ name, line, rows, state, arriving, material = "soli
                     <dd className={cn("text-base font-semibold", value(r.watch))}>{r.value}</dd>
                   )}
                   {r.from ? <dd className="text-xs text-ink-3">{r.from}</dd> : null}
-                  {r.mono ? <dd className="font-mono text-xs text-ink-3 [overflow-wrap:anywhere]">{r.mono}</dd> : null}
+                  {r.mono ? (
+                    <dd className="font-mono text-xs text-ink-3">
+                      {/* A number never breaks inside itself: each item holds together, the line breaks at the separators. */}
+                      {r.mono.split(" · ").map((item, i) => (
+                        <span key={item}>
+                          {i ? " · " : ""}
+                          <span className="whitespace-nowrap">{item}</span>
+                        </span>
+                      ))}
+                    </dd>
+                  ) : null}
                 </div>
               </div>
             );
@@ -118,7 +128,8 @@ export function AlertPane({ when, title, due, subject, from, action, material = 
       <p className="rounded-sm bg-caution-tint px-2 py-0.5 text-sm font-medium text-caution">{due}</p>
       <p className="text-base text-ink">{subject}</p>
       {from ? <p className="text-sm text-ink-3">{from}</p> : null}
-      {action ? <p className="mt-1 flex h-9 items-center rounded-sm border border-line-strong px-3.5 text-base font-medium text-ink">{action}</p> : null}
+      {/* The next step, in words: nothing here is pressed, so nothing looks pressable. */}
+      {action ? <p className="mt-1 text-base font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]">{action}</p> : null}
     </Pane>
   );
 }
@@ -159,8 +170,9 @@ export function ScreenStage({ atmosphere, caption, children, className, ...rest 
   return (
     <figure className={cn("flex flex-col gap-3", className)} {...rest}>
       <div className="relative isolate overflow-hidden rounded-pane bg-sunken px-10 py-12 [perspective:1800px] max-sm:rounded-pane-phone max-sm:px-4 max-sm:py-6">
+        {/* Painted first, under the windows (each a positioned pane): the scale has no negative layer and needs none. */}
         {atmosphere ? (
-          <div aria-hidden className="absolute inset-0 -z-10 [&>*]:size-full [&>*]:object-cover">
+          <div aria-hidden className="absolute inset-0 [&>*]:size-full [&>*]:object-cover">
             {atmosphere}
           </div>
         ) : null}
@@ -177,18 +189,21 @@ export function ScreenStage({ atmosphere, caption, children, className, ...rest 
  * arrives and presses, as a share of the screen's width and height; a spotlight opens on that part as it comes
  * (`--cursor`, written on the three parts). With nothing written the cursor rests on the button, pressed.
  */
-export function Screen({ on, cursor, children, className }: { on?: boolean; cursor?: { x: number; y: number }; children: ReactNode; className?: string }) {
+export function Screen({ on, cursor, focus, children, className }: { on?: boolean; cursor?: { x: number; y: number }; focus?: { x: number; y: number }; children: ReactNode; className?: string }) {
   const at = cursor ? ({ left: `${cursor.x}%`, top: `${cursor.y}%` } as CSSProperties) : undefined;
   return (
     <div data-screen data-on={on ? "" : undefined} className={cn("stage-screen", className)}>
       <Pane data-window className="stage-window overflow-hidden p-0 max-sm:p-0">
-        {children}
+        {/* Under 1024px a whole screen is too small to read: the window shows the part the step is about, upright, at readable size. */}
+        <div className={cn(focus && "max-lg:aspect-[3/4] max-lg:overflow-hidden max-lg:[&>img]:size-full max-lg:[&>img]:object-cover")} style={focus ? ({ "--focus": `${focus.x}% ${focus.y}%` } as CSSProperties) : undefined}>
+          {children}
+        </div>
         {cursor ? (
           <>
-            <span data-cursor aria-hidden className="stage-spot pointer-events-none absolute inset-0" style={{ "--sx": `${cursor.x}%`, "--sy": `${cursor.y}%` } as CSSProperties} />
-            <span data-cursor aria-hidden className="stage-press pointer-events-none absolute size-10 rounded-full border-2 border-brand-ink" style={at} />
+            <span data-cursor aria-hidden className="stage-spot pointer-events-none absolute inset-0 max-lg:hidden" style={{ "--sx": `${cursor.x}%`, "--sy": `${cursor.y}%` } as CSSProperties} />
+            <span data-cursor aria-hidden className="stage-press pointer-events-none absolute size-10 rounded-full border-2 border-brand-ink max-lg:hidden" style={at} />
             {/* The arrow's tip (5, 3 in its box) sits on the point. */}
-            <svg data-cursor aria-hidden viewBox="0 0 24 24" className="stage-cursor pointer-events-none absolute -ml-[5px] -mt-[3px] size-6 fill-ink stroke-surface" style={at}>
+            <svg data-cursor aria-hidden viewBox="0 0 24 24" className="stage-cursor pointer-events-none absolute -ml-[5px] -mt-[3px] size-6 fill-ink stroke-surface max-lg:hidden" style={at}>
               <path d="M5 3l14 8-6.2 1.6L9.6 19z" strokeWidth="1.5" strokeLinejoin="round" />
             </svg>
           </>

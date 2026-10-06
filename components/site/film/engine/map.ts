@@ -202,6 +202,8 @@ export function createMap(lib: MapLib, container: HTMLElement, opts: {
   const four = ["in", ["get", "name"], ["literal", DISTRICTS.map((d) => d.key)]];
   // A zoom ramp: `at` zoom, value pairs. `by` scales every value (a number, or an expression such as a feature's width).
   const byZoom = (stops: number[], by: unknown = 1) => ["interpolate", ["linear"], ["zoom"], ...stops.map((v, i) => (i % 2 ? (typeof by === "number" ? v * by : ["*", v, by]) : v))];
+  /** The country's lines leave as the camera nears the close on one area: whole to zoom 12.2, gone by 13. */
+  const FADE = byZoom([12.2, 1, 13, 0]);
   let district: string | null = null;
   let chosen = 0;
   let ringLevel = 0;
@@ -220,12 +222,13 @@ export function createMap(lib: MapLib, container: HTMLElement, opts: {
       layers: [
         { id: "sea", type: "background", paint: colours.sea },
         { id: "around", type: "fill", source: "around", paint: colours.around },
-        // The outlines and the rivers are drawn for the country, not for a close on one area: past zoom 13 their simplified lines would show.
-        { id: "halo", type: "line", source: "districts", maxzoom: 13, paint: { ...colours.halo, "line-width": byZoom([5, 2.2, 10, 3.5]) } },
+        // The outlines and the rivers are drawn for the country, not for a close on one area: past zoom 13 their simplified
+        // lines would show, so they fade out over the last stretch of the tilt rather than cutting off in one frame.
+        { id: "halo", type: "line", source: "districts", maxzoom: 13.2, paint: { ...colours.halo, "line-width": byZoom([5, 2.2, 10, 3.5]), "line-opacity": FADE } },
         { id: "land", type: "fill", source: "districts", paint: { ...colours.land, "fill-antialias": false } },
-        { id: "seams", type: "line", source: "districts", maxzoom: 13, paint: { ...colours.seams, "line-width": 1 } },
+        { id: "seams", type: "line", source: "districts", maxzoom: 13.2, paint: { ...colours.seams, "line-width": 1, "line-opacity": FADE } },
         { id: "four", type: "fill", source: "districts", filter: four, paint: colours.four },
-        { id: "rivers", type: "line", source: "rivers", maxzoom: 13, layout: { "line-cap": "round", "line-join": "round" }, paint: { ...colours.rivers, "line-width": byZoom([5, 0.9, 7, 2.2, 10, 6], ["get", "w"]) } },
+        { id: "rivers", type: "line", source: "rivers", maxzoom: 13.2, layout: { "line-cap": "round", "line-join": "round" }, paint: { ...colours.rivers, "line-width": byZoom([5, 0.9, 7, 2.2, 10, 6], ["get", "w"]), "line-opacity": FADE } },
         { id: "grid", type: "line", source: "grid", minzoom: 11.5, paint: { ...colours.grid, "line-width": 1, "line-opacity": byZoom([11.5, 0, 13.6, 0.8]) } },
         { id: "glow", type: "heatmap", source: "cells", maxzoom: 11, paint: { ...colours.glow, "heatmap-weight": ["interpolate", ["linear"], ["get", "count"], 1, 0.15, 40, 1], "heatmap-radius": byZoom([5, 5, 7, 12, 10, 34]), "heatmap-intensity": byZoom([5, 0.3, 7, 0.5, 10, 1.3]) } },
         // Past the heatmap's last zoom a cell is a soft light of its own, so the close on one area still reads as lit ground.

@@ -12,7 +12,7 @@ export function ReceiptRoll({ receipts }: { receipts: Receipt[] }) {
   return (
     <div data-roll className="relative w-[360px] max-w-full">
       <div aria-hidden className="roll-slot" />
-      <div className="relative mx-2.5">
+      <div data-roll-paper className="relative mx-2.5">
         <div aria-hidden className="roll-sheet" />
         <div data-paper className="roll-print">
           {receipts.map((r) => (

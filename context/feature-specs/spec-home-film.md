@@ -13,7 +13,7 @@ from a dot on the planet to an RFQ. Front end only: no migration, no new package
 | 3 | Scenes 04 (the overlock, five sources as hang tags, the seam that ties on the Sources row) and 05 (the receipt roll printing three claims beside their sources, three rows arriving, the note where two sources differ), on all three tiers; the fixes from the review of PR 370 (the real supplier lights) | built, 6 Oct 2026 |
 | 4 | Scenes 06 (the one live map tilts down on to the factory's area with a ring a kilometre wide, the record gains Site), 07 (one blank carton, "Coming in v2") and 08 (the calendar: the day, the time line, the alert at day 43 and the GOTS row turning amber, the list checked again at day 59), on all three tiers; the slice-3 session's efficiency follow-up | built, 7 Oct 2026 |
 | 5 | Scenes 09 (the real product staged: three steps, three screens re-shot on the story's factory, the drawn cursor pressing Send RFQ, our own drawn atmosphere), 10 (the three promises, grey to ink), the source ladder arriving in rank order, 11 (the live figures rising whole) and 12 (night again, the same planet back, the whole record stitching on, the thread ending in a bartack at the RFQ, the search); the rail | built, 7 Oct 2026 |
-| 6 | The phone, the lite and still tiers, the budgets, accessibility; then the flag on (the founder's call) | |
+| 6 | The phone and the lite and still tiers checked, the budgets measured under a 4x throttle, the audit and the critique with their fixes (pinned stages, the roll's window, the place label, the rail stepping aside), the chrome in dark, the stills producer under `scripts/film`; Paper pages 32 and 33 and the flag PR wait on the founder | built, 7 Oct 2026 |
 
 Found while building slice 1, and where it differs from the text below:
 - `bkoi-gl` 3.3.0 runs a style of our own with only GeoJSON sources, no key and no tile request (checked 6 Oct).
@@ -135,6 +135,44 @@ Found while building slice 5 (7 Oct 2026):
 - The close section and the FAQ after scene 12 are untouched, and the page without the film is byte for byte what
   it was (film.test holds both); the promises, the five tiers and the screens' words are one data set in
   `closing.tsx` that both branches draw from.
+
+Found while building slice 6 (7 Oct 2026):
+- The budgets (§7), measured on the local harness with Playwright and a 4x CPU throttle (`budget.md` beside the shots;
+  the harness is the real server-rendered page plus the engine, not the Next bundle, which this machine cannot build):
+  first screen 27 KB of script and 10 KB of data gzip, no picture; the whole page about 0.75 MB on a desktop and
+  0.59 MB on a phone once `next/image` has resized the four screens (the map library, 300 KB gzip, loads on the
+  full tier only); the `h1` is the largest paint on both; the engine's scroll work 0.45 ms a frame median, 5.4 ms at
+  the 95th (the map library's own frames are the heavy ones under the software GPU); the planet 32 to 62 frames a
+  second under SwiftShader, which cannot say what a real GPU gives. The one miss was layout shift on the desktop
+  (0.42): every held scene centred its content, so the words moved up as the record's rows arrived. Stages now hang
+  from `max(40px, 50svh - 380px)` and only grow downward; the second run measured 0.02.
+- The receipt roll on a stage too short for it (under about 850 px): on the full tier the roll is a window
+  (`100svh - 500px`) and the paper scrolls up as it prints (`--roll-over`, measured once per layout, read by the
+  paper's wrapper); each thread's start moves with its line and a thread whose line has left the window goes with
+  it. The rivers and the outlines fade out between zoom 12.2 and 13 instead of cutting off in one frame.
+- The rail steps aside past the last scene (no chapter is current over the close, the FAQ and the footer; the
+  phone's line stays), its links take the kit's focus ring, and the ticks show from 1280 px with the line below.
+- The critique (`/impeccable critique`, two assessments; `.impeccable/critique/`) scored the page 30 of 40 and
+  every scene at the bar except 06 (23: "no place" on the close without tiles) and 07 and 11 on the line. Fixed in
+  this slice: a place label beside the ring ("Kashimpur · Gazipur · ring 1 km", moved with the light), the figures'
+  labels given the room beside the figure, the ladder carrying its chapter's words like every scene, the record's
+  mono line breaking only between items (never inside "1004-B/2006"), and on a window under 1024 px each staged
+  screen cropped to the part its step names so its words can be read. Kept on purpose: "Coming in v2" (the brief
+  and `home.test.ts` hold it, though `voice-v4.md` lists V2 under never-say: the founder's call), the note under
+  scene 06 (§3.6 names it), "Updated … · latest register read …" (today's copy), the tabs of chapter 07 (today's
+  page). Scene 06 cannot read as a place without roads: question 4 of §9 (Barikoi tiles) decides it.
+- The audit (`/impeccable audit`): 19 of 20. The detector finds nothing in shipped markup; the one dead class
+  (`-z-10`, the scale has no numbers) is gone and a test refuses numeric z classes in the scene.
+- The lite tier keeps no holds but the planet's: a hold for the receipt roll would not fit a phone's stage (the
+  words alone are most of it), so the roll is whole there, as it was.
+- The nav, the footer and the cookie card read in dark (shot through the harness with `CHROME=1`); the nav's open
+  panel could not be shot without React and is to be looked at on the live site with `?film=1`.
+- The stills' producer is `scripts/film/build-stills.mjs` (a clean clone re-shoots the eight AVIFs with one
+  command; the harness's copy is retired). Sizes move a little from run to run because the lights breathe.
+- Paper pages 32 and 33 were not made: Paper Desktop was not running in this session, and the import goes through
+  its local connection. The flag PR (the last) waits for the founder's word.
+- Known ceilings kept: a stage wider than about 3,000 px may show the geography's box edge; the map library's
+  frames are what they are; on a stage under about 800 px the close's record runs past the bottom.
 
 ---
 

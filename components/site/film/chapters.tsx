@@ -11,7 +11,7 @@ import type { CSSProperties } from "react";
 import { TIME } from "@/components/site/film/engine/chapters";
 import { Carton, Overlock } from "@/components/site/film/flats";
 import { MAP_CREDIT, MapStill } from "@/components/site/film/opening";
-import { AlertPane, NotePane, RecordPane } from "@/components/site/film/pane";
+import { AlertPane, Callout, NotePane, RecordPane } from "@/components/site/film/pane";
 import { BGMEA, EXPORTS, GOTS, GOTS_DUE, LINE, NAME, SAFETY, SITE, SOURCES, SOURCE_DATES, UFLPA } from "@/components/site/film/record";
 import { ReceiptRoll, type Receipt } from "@/components/site/film/receipts";
 import { Thread, ThreadLayer } from "@/components/site/film/thread";
@@ -20,7 +20,9 @@ import { wrap } from "@/components/site/parts";
 import { cn } from "@/lib/utils";
 
 const hold = "relative bg-surface text-ink";
-const stage = "py-24 max-md:py-14 film-full:sticky film-full:top-0 film-full:flex film-full:h-svh film-full:items-center film-full:py-0";
+// On the full tier a scene's content hangs from a fixed line a little above the middle, never centred: a record that
+// grows as its rows arrive would otherwise move everything above it up, and a thing that has arrived never moves again.
+const stage = "py-24 max-md:py-14 film-full:sticky film-full:top-0 film-full:flex film-full:h-svh film-full:items-start film-full:py-0 film-full:pt-[max(40px,calc(50svh-380px))]";
 // The record stands at the top beside the words and only ever grows downward as its rows arrive, so nothing that has arrived moves again.
 const row = cn(wrap, "flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between");
 const left = "flex min-w-0 flex-col gap-10 lg:max-w-[680px]";
@@ -146,6 +148,10 @@ export function SiteScene() {
             <Thread d="M0 0" join />
           </g>
         </ThreadLayer>
+        {/* The place, named beside the ring as the engine moves it with the light (the words above say the same, so it is decoration). */}
+        <div data-site-label aria-hidden className="pointer-events-none absolute left-0 top-0 hidden opacity-0 transition-opacity duration-slow film-full:block">
+          <Callout material="solid" place="Kashimpur · Gazipur" figure="ring 1 km" on />
+        </div>
         <p data-map-credit className="absolute bottom-6 right-6 hidden font-mono text-xs text-ink-3 film-full:block">{MAP_CREDIT}</p>
       </div>
     </section>
