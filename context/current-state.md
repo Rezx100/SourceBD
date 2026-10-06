@@ -112,11 +112,11 @@ Migration file headers are NOT live status. Check here or query the database.
 | `0108_compliance_expired_certs` | 5 Oct 2026 | Applied as `20261005091012` (found 6 Oct; this row said not applied). 0116 re-scoped it to `workspace_owner()`; 0122 replaces its body. |
 | `0110_order_cancel_before_shipping` | **not applied** | OR-02: shipped/in-transit orders refuse a cancel. Dry run clean 4 Oct (0 live orders): `ops/plans/0110-dry-run.md`. |
 | `0120_sanctions_daily_reconcile` | 6 Oct 2026 | ETL freshness S1, via MCP; dry run `ops/plans/0120-dry-run.md`. |
-| `0121_etl_hold_review` | **not applied** | ETL freshness C2: Release/Reject on held near-match records; dry run clean 6 Oct `ops/plans/0121-dry-run.md`. |
-| `0122_certificate_listing` | **not applied** | ETL freshness S2: certificate last-seen / no longer listed, OEKO-TEX re-key, `supplier_cert_checks`; dry run clean 6 Oct `ops/plans/0122-dry-run.md`. |
-| `0123_source_freshness` | **not applied** | ETL freshness S3: `admin_source_freshness` / `etl_source_freshness`, 4 disabled certificate schedules, sanctions run windows. Needs 0122. Dry run clean 6 Oct `ops/plans/0123-dry-run.md`. |
-| `0124_register_schedules` | **not applied** | ETL freshness S5: disabled monthly register schedules (EPB, BKMEA, BGMEA, BGAPMEA), RSC age limit. Dry run clean 6 Oct `ops/plans/0124-dry-run.md`. |
-| `0125_sources_listed_brand_schedules` | **not applied** | ETL freshness S6: BEPZA, DIFE, RJSC, Inditex out of public counts (25 → 21), disabled brand schedules. Dry run clean 6 Oct `ops/plans/0125-dry-run.md`. |
+| `0121_etl_hold_review` | 6 Oct 2026 | ETL freshness C2, via MCP `20261006052146`; old plans unchanged. `ops/plans/0121-dry-run.md`. |
+| `0122_certificate_listing` | 6 Oct 2026 | ETL freshness S2, via MCP `20261006052254`; 4 cols, 2,627 OEKO-TEX re-keyed. `ops/plans/0122-dry-run.md`. |
+| `0123_source_freshness` | 6 Oct 2026 | ETL freshness S3, via MCP `20261006052420`; 30 sources (9 over limit), 14 schedules, certs off. `ops/plans/0123-dry-run.md`. |
+| `0124_register_schedules` | 6 Oct 2026 | ETL freshness S5, via MCP `20261006052539`; 5 register schedules off, RSC limit 336 h. `ops/plans/0124-dry-run.md`. |
+| `0125_sources_listed_brand_schedules` | 6 Oct 2026 | ETL freshness S6, via MCP `20261006052721`; public count 21, 4 brand schedules off. |
 
 Deploy-order hazard, twice hit: code that queries a new table with no
 missing-table guard crashes every ETL run if shipped before its migration.
