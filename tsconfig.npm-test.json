@@ -312,6 +312,8 @@
     "lib/dashboard/selection.ts",
     "lib/dashboard/selection.test.ts",
     "lib/rate-limit/limits.test.ts",
+    "lib/ledger/request-headers.test.ts",
+    "lib/ledger/file-fingerprint.ts",
     "lib/saved-suppliers.test.ts",
     "components/search/hook-harness.ts",
     "components/search/record-recent-search.tsx",

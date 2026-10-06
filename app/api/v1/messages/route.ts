@@ -18,6 +18,7 @@
 import { NextResponse } from "next/server";
 
 import { getServerRole } from "@/lib/auth";
+import { fingerprintMessageFiles } from "@/lib/ledger/file-fingerprint";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -220,7 +221,10 @@ export async function POST(req: Request) {
           { status: statusOf(error) },
         );
       }
-      return NextResponse.json({ message_id: data });
+      // The message is sent. Each file is now read back from the bucket under this person's session and
+      // its sha256 written once (0133), so the record can later prove a file is the one that was sent.
+      const fingerprinted = typeof data === "string" ? await fingerprintMessageFiles(supabase, data, paths as string[]) : 0;
+      return NextResponse.json({ message_id: data, fingerprinted });
     }
 
     if (trimmed.length === 0) {

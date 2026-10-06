@@ -34,6 +34,9 @@ export const fake = {
   /** Signed links asked for, and the error a signing answers with (a path the caller may not read). */
   signed: [] as { bucket: string; path: string; seconds: number }[],
   signError: null as { message: string } | null,
+  /** The bytes a `.download(path)` answers with, by path; a path not here answers "Object not found". */
+  files: {} as Record<string, Uint8Array>,
+  downloads: [] as { bucket: string; path: string }[],
   /** Rows `.from(table)` answers for a table other than `profiles`, and the filters each read applied. */
   tables: {} as Record<string, Record<string, unknown>[]>,
   tableError: null as { message: string; code?: string } | null,
@@ -58,6 +61,8 @@ export function resetFake(): void {
   fake.uploadError = null;
   fake.signed = [];
   fake.signError = null;
+  fake.files = {};
+  fake.downloads = [];
   fake.tables = {};
   fake.tableError = null;
   fake.fromCalls = [];
@@ -138,6 +143,11 @@ const client = {
       remove: async (paths: string[]) => {
         fake.removed.push({ bucket, paths });
         return { data: [], error: null };
+      },
+      download: async (p: string) => {
+        fake.downloads.push({ bucket, path: p });
+        const bytes = fake.files[p];
+        return bytes ? { data: new Blob([Uint8Array.from(bytes)]), error: null } : { data: null, error: { message: "Object not found" } };
       },
     }),
   },
