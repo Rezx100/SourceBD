@@ -213,6 +213,11 @@ begin
     raise exception 'ledger_seal is for the service role' using errcode = '42501';
   end if;
   perform pg_advisory_xact_lock(hashtextextended('ledger_seal', 0));
+  -- An entry's time is when it was written, not when it committed: an hour a still-open transaction
+  -- began in could yet gain entries, and a seal cannot be rewritten, so that hour waits for the next run.
+  select least(v_cutoff, coalesce(date_trunc('hour', min(a.xact_start)), v_cutoff)) into v_cutoff
+    from pg_stat_activity a
+   where a.xact_start is not null and a.pid <> pg_backend_pid() and a.backend_type = 'client backend';
 
   select s.period_end, s.seal_hash into v_start, v_prev
     from public.activity_seals s order by s.id desc limit 1;
