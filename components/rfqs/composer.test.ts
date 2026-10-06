@@ -170,6 +170,21 @@ describe("what the composer draws", () => {
     assert.ok(page.includes('data-detail=""'));
   });
 
+  it("on the page the preview's edge is the shared divider, so the message can be given more room; in the pane there is none", () => {
+    // Founder, 6 Oct 2026: "so that the message section can be resized. Reuse the same for the
+    // divider." The preview is 344 until dragged, never under 320, and the form keeps 480.
+    const page = draw([target(1)]);
+    const m = /<div role="separator"([^>]*)>[\s\S]*?<\/div><aside id="([^"]+)" aria-label="Preview" style="--pane-w:344px" class="([^"]*)"/.exec(page);
+    assert.ok(m, "no divider right before the preview");
+    const [sep, id, cls] = [m[1] ?? "", m[2] ?? "", m[3] ?? ""];
+    for (const a of [`aria-controls="${id}"`, 'aria-label="Resize the preview"', 'aria-orientation="vertical"', 'aria-valuenow="344"', 'aria-valuemin="320"', 'tabindex="0"']) assert.ok(sep.includes(a), `the divider lacks ${a}: ${sep}`);
+    // The width is a variable read only from 1280: under that the preview is a row under the form.
+    for (const c of ["xl:w-[var(--pane-w)]", "xl:min-w-[320px]", "xl:max-w-[calc(100%-480px)]"]) assert.ok(cls.split(" ").includes(c), `the preview lacks ${c}`);
+    assert.ok(!cls.split(" ").some((c) => /^w-|^xl:border-l$/.test(c)), "a width under 1280, or a second line beside the divider's");
+    const pane = draw([target(1)], { mode: "pane", closeHref: "/app/discover?q=knit" });
+    assert.ok(!pane.includes('role="separator"') && !pane.includes("--pane-w"), "a divider in the pane, which the list's own divider already resizes");
+  });
+
   it("a saved draft's own message and questions win over the template and the defaults", () => {
     const out = draw([target(1)], { prefill: { title: "x", quantity: "5", message: "My own words", questions: ["Only this?"] } });
     assert.ok(out.includes("My own words") && out.includes("edited here"));

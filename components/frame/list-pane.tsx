@@ -15,65 +15,9 @@
 // The drawer and the sheet tell their body that they draw its title and close (`usePaneTitled`).
 
 import { useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
+import { createContext, useContext, useSyncExternalStore, type KeyboardEvent, type ReactNode } from "react";
 import { Drawer, Sheet } from "@/components/kit/overlay";
-
-/** The docked pane's width: 640 until the buyer drags its edge, then theirs, kept in this browser. */
-export const PANE_DEFAULT = 640;
-export const PANE_MIN = 400;
-const PANE_KEY = "sourcebd.pane-width";
-const STEP = 16;
-
-/** A width the docked pane may take in a row `row` wide: at least 400, at most 60% of the row (never under 400). */
-export function clampPaneWidth(width: number, row: number): number {
-  const max = Math.max(PANE_MIN, Math.floor(row * 0.6));
-  return Math.min(max, Math.max(PANE_MIN, Math.round(Number.isFinite(width) ? width : PANE_DEFAULT)));
-}
-
-/**
- * The edge between the list and the docked pane, which the buyer drags (or moves with the arrow
- * keys) to give the record more or less room. A 1px line (the background, clipped to the content)
- * with 8px to grab over the pane's own padding, never over the list's scrollbar.
- */
-function PaneDivider({ width, row, paneId, onWidth }: { width: number; row: number; paneId: string; onWidth: (w: number, done: boolean) => void }) {
-  const drag = useRef<{ x: number; w: number } | null>(null);
-  const max = Math.max(PANE_MIN, Math.floor(row * 0.6));
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    const next = { ArrowLeft: width + STEP, ArrowRight: width - STEP, Home: PANE_MIN, End: max }[e.key];
-    if (next === undefined) return;
-    e.preventDefault();
-    onWidth(next, true);
-  };
-  return (
-    <div
-      role="separator"
-      aria-orientation="vertical"
-      aria-label="Resize the record pane"
-      aria-controls={paneId}
-      aria-valuenow={width}
-      aria-valuemin={PANE_MIN}
-      aria-valuemax={max}
-      tabIndex={0}
-      onKeyDown={onKeyDown}
-      onPointerDown={(e: PointerEvent<HTMLDivElement>) => {
-        if (e.button !== 0) return;
-        e.currentTarget.setPointerCapture(e.pointerId);
-        drag.current = { x: e.clientX, w: width };
-      }}
-      onPointerMove={(e) => {
-        // The pane is on the right: dragging the edge left widens it.
-        if (drag.current) onWidth(drag.current.w + drag.current.x - e.clientX, false);
-      }}
-      onPointerUp={(e) => {
-        if (!drag.current) return;
-        onWidth(drag.current.w + drag.current.x - e.clientX, true);
-        drag.current = null;
-      }}
-      onPointerCancel={() => (drag.current = null)}
-      className="relative z-10 -mr-2 hidden w-[9px] shrink-0 cursor-col-resize touch-none select-none bg-line bg-clip-content pr-2 outline-none hover:bg-brand focus-visible:bg-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand xl:block"
-    />
-  );
-}
+import { PaneDivider, RECORD_PANE, usePaneWidth } from "./pane-divider";
 
 const WIDE = "(min-width: 1280px)";
 const PHONE = "(max-width: 767px)";
@@ -138,53 +82,25 @@ export function ListPane({
     if (e.key === "Escape" && !e.defaultPrevented && e.currentTarget.contains(t) && !t.closest("input, textarea, select, [contenteditable=true]")) close();
   };
   const overlay = presentation === "overlay";
-  const rowRef = useRef<HTMLDivElement>(null);
-  // Null until the browser answers: the server draws the 640 default, so nothing differs at hydration.
-  const [width, setWidth] = useState<number | null>(null);
-  const [row, setRow] = useState(0);
-  useEffect(() => {
-    try {
-      const saved = Number(window.localStorage.getItem(PANE_KEY));
-      if (saved > 0) setWidth(saved);
-    } catch {
-      // Storage blocked (a private window): the default width.
-    }
-    // The row, not the window: the sidebar folding changes it too.
-    const el = rowRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() => setRow(el.clientWidth));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-  const paneWidth = clampPaneWidth(width ?? PANE_DEFAULT, row || PANE_DEFAULT / 0.6);
-  const onWidth = (w: number, done: boolean) => {
-    const next = clampPaneWidth(w, rowRef.current?.clientWidth ?? row);
-    setWidth(next);
-    if (!done) return;
-    try {
-      window.localStorage.setItem(PANE_KEY, String(next));
-    } catch {
-      // Not kept; this visit still has it.
-    }
-  };
+  const size = usePaneWidth(RECORD_PANE);
   const docked = open && tier === "wide" && !overlay;
   return (
-    <div ref={rowRef} className={`flex min-h-0 flex-1${overlay ? " relative" : ""}`}>
+    <div ref={size.rowRef} className={`flex min-h-0 flex-1${overlay ? " relative" : ""}`}>
       <section aria-label={listLabel} className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
         {list}
       </section>
-      {docked ? <PaneDivider width={paneWidth} row={row || PANE_DEFAULT / 0.6} paneId="list-pane" onWidth={onWidth} /> : null}
+      {docked ? <PaneDivider width={size.width} min={RECORD_PANE.min} max={size.max} paneId="list-pane" label="Resize the record pane" onWidth={size.set} onReset={size.reset} /> : null}
       {open && tier === "wide" ? (
         <section
           aria-label={paneTitle}
           id={docked ? "list-pane" : undefined}
           onKeyDown={onKeyDown}
-          // The width is the buyer's; CSS keeps it between 400 and 60% when the window narrows.
-          style={docked && width !== null ? { width: paneWidth } : undefined}
+          // The width is the buyer's; CSS keeps the pane at least 480 and the list 400 when the window narrows.
+          style={docked && size.stored ? { width: size.width } : undefined}
           className={
             overlay
               ? "absolute inset-y-0 right-0 z-overlay hidden min-h-0 w-panel flex-col overflow-y-auto border-l border-line bg-surface shadow-dialog xl:flex"
-              : "hidden min-h-0 w-pane min-w-[400px] max-w-[60%] shrink-0 flex-col overflow-y-auto xl:flex"
+              : "hidden min-h-0 w-pane min-w-[480px] max-w-[calc(100%-400px)] shrink-0 flex-col overflow-y-auto xl:flex"
           }
         >
           {pane}
