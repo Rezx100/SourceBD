@@ -25,6 +25,7 @@ import {
   transitionDuration,
   type TierRank,
 } from "@/lib/design/tokens";
+import { V4Film } from "./v4-film";
 import { V4Kit } from "./v4-kit";
 import { V4Patterns } from "./v4-patterns";
 import { V4Tokens } from "./v4-tokens";
@@ -55,6 +56,12 @@ const SIZE_CLASS: Record<string, string> = {
   "display-1": "text-display-1",
   "display-2": "text-display-2",
   "display-3": "text-display-3",
+  "film-hero": "text-film-hero",
+  "film-hero-phone": "text-film-hero-phone",
+  "film-figure": "text-film-figure",
+  "film-figure-phone": "text-film-figure-phone",
+  "film-scene": "text-film-scene",
+  "film-scene-phone": "text-film-scene-phone",
   title: "text-title",
   lg: "text-lg",
   xl: "text-xl",
@@ -212,6 +219,14 @@ export default async function DesignSystemGallery() {
         note="components/patterns: source marks, fact and certificate rows, RSC block, sanction banner, locked contact, supplier rows, quotes, timeline, chat, needs attention, locations, statement claim, exports. Shrink the window under 640px for the phone forms."
       >
         <V4Patterns />
+      </Section>
+
+      <Section
+        id="v4-film"
+        title="Home film (the dark set, the Pane, the thread, the rail)"
+        note="components/site/film: what the home film adds to v4. Dark follows the system setting on a page that carries data-theme-auto; a night scene is dark in either theme, and each board below is drawn in both."
+      >
+        <V4Film />
       </Section>
 
       <Section

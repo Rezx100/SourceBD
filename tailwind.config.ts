@@ -5,6 +5,7 @@ import {
   boxShadow,
   containers,
   cssVarName,
+  dark,
   densitySizes,
   fontFamily,
   fontSize,
@@ -12,6 +13,7 @@ import {
   letterSpacing,
   light,
   maxWidth,
+  paneMaterial,
   screens,
   spacing,
   toChannels,
@@ -125,8 +127,16 @@ const config: Config = {
   },
   plugins: [
     plugin(({ addBase }) => {
-      // A dark set, when it comes, is a second block here keyed on `.dark`.
-      addBase({ ":root": colorVars(light) });
+      // The dark set is the same variables again, in two places: where the
+      // system asks for dark and the page has opted in with `data-theme-auto`
+      // (CSS only, so no flash and no script), and inside a night scene, which
+      // is dark in either theme. Every page without the attribute stays light.
+      const night = { ...colorVars(dark), ...paneMaterial.dark, "color-scheme": "dark" };
+      addBase({
+        ":root": { ...colorVars(light), ...paneMaterial.light },
+        "@media (prefers-color-scheme: dark)": { ":root:has([data-theme-auto])": night },
+        '[data-ground="night"]': night,
+      });
     }),
   ],
 };

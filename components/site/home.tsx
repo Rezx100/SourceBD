@@ -220,7 +220,7 @@ export function Home({ facts }: { facts: SiteFacts }) {
           <p className="text-sm text-ink-3">Brand lists are named in words, only when the brand names that factory. Foreign regulators are checked against, never used to fill in a record.</p>
           <p className="flex flex-wrap items-baseline gap-x-3 text-md">
             {facts.sourcesListed !== null ? <span className="font-mono text-xs text-ink-3">{facts.sourcesListed} sources listed{facts.sourcesWithRecords !== null ? ` · ${facts.sourcesWithRecords} hold supplier records` : ""}</span> : null}
-            <Link href="/methodology" prefetch={false} className="font-medium text-brand underline decoration-1 [text-underline-position:from-font]">
+            <Link href="/methodology" prefetch={false} className="font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]">
               See all {facts.sourcesListed ?? "the"} sources and how we check them
             </Link>
           </p>

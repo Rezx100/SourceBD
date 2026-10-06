@@ -250,11 +250,62 @@ const legacy = {
   },
 } satisfies ColorSet;
 
-function overlay<T extends ColorSet>(base: T): T {
+/**
+ * The home film's additions (handoff-home-film §3.1, 6 Oct 2026), in Paper's
+ * tokens too. `brand-ink` is green as TEXT: v4's `brand` is a fill and a text
+ * colour at once, and the fill fails as text on a dark ground. The `map-*`
+ * colours paint our own cartography: land, water (the one quiet blue-grey the
+ * film allows) and the light a supplier cell gives off.
+ */
+export const filmColors = {
+  "brand-ink": "#1B5E20",
+  "map-land": "#ECEEF1",
+  "map-water": "#DCE4EC",
+  "map-light": "#15181C",
+} as const;
+
+/**
+ * The dark values, under the same names. A fill that carries `text-surface`
+ * (the primary and the danger button) turns light here, so its label, which
+ * turns dark with `surface`, still reads.
+ */
+export const darkColors: Record<keyof typeof v4Colors | keyof typeof filmColors, string> = {
+  surface: "#101214",
+  subtle: "#16191C",
+  sunken: "#1D2125",
+  line: "#2A2F35",
+  "line-strong": "#6F7780",
+  disabled: "#5C636C",
+  "ink-3": "#9AA1AA",
+  "ink-2": "#C5CAD0",
+  ink: "#F2F4F6",
+  brand: "#6FCF7F",
+  "brand-hover": "#86DA94",
+  "brand-active": "#5ABD6B",
+  "brand-tint": "#14251A",
+  "brand-wash": "#111B14",
+  caution: "#F2B866",
+  "caution-icon": "#E9A23B",
+  "caution-tint": "#2C210E",
+  danger: "#FF9A90",
+  "danger-solid": "#F2776B",
+  "danger-active": "#E0665B",
+  "danger-tint": "#2E1614",
+  sanction: "#FFB3C0",
+  "sanction-tint": "#2F0F17",
+  info: "#8FBDF5",
+  "info-tint": "#111E30",
+  "brand-ink": "#7BD389",
+  "map-land": "#1B1F24",
+  "map-water": "#0C1116",
+  "map-light": "#FFF1D6",
+};
+
+function overlay<T extends ColorSet>(base: T, colors: Record<string, string>, scrim: string): T {
   const out: ColorSet = Object.fromEntries(Object.entries(base).map(([g, keys]) => [g, { ...keys }]));
-  const all: Record<string, string> = { ...v4Colors };
-  for (const [alias, target] of Object.entries(v4CertAliases)) all[alias] = v4Colors[target];
-  all.scrim = v4Colors[v4Alpha.scrim.color];
+  const all: Record<string, string> = { ...colors };
+  for (const [alias, target] of Object.entries(v4CertAliases)) all[alias] = colors[target]!;
+  all.scrim = scrim;
   for (const [name, hex] of Object.entries(all)) {
     const [group, key] = splitColorName(name);
     (out[group] ??= {})[key] = hex;
@@ -262,8 +313,41 @@ function overlay<T extends ColorSet>(base: T): T {
   return out as T;
 }
 
-/** Every colour the product may use: `legacy` with the v4 set laid over it. */
-export const light = overlay(legacy);
+/** Every colour the product may use: `legacy` with the v4 set and the film's additions laid over it. */
+export const light = overlay(legacy, { ...v4Colors, ...filmColors }, v4Colors[v4Alpha.scrim.color]);
+
+/**
+ * The old pages' neutral, brand and state-role names, pointed at the dark
+ * values, so the chrome a dark page shares (the focus ring, the selection, a
+ * placeholder, a kit button) follows. The old status groups (`positive`,
+ * `tier`, `meadow`, `smart`…) keep their light values: no dark page draws
+ * them, and they go with the last old page (B11).
+ */
+function darkLegacy(): typeof legacy {
+  const d = darkColors;
+  const out: ColorSet = Object.fromEntries(Object.entries(legacy).map(([g, keys]) => [g, { ...keys }]));
+  const set = (group: string, keys: Record<string, string>) => Object.assign((out[group] ??= {}), keys);
+  set("canvas", { DEFAULT: d.surface });
+  set("surface", { sunken: d.sunken, inverse: d.ink, "inverse-raised": v4Colors.surface });
+  set("ink", { strong: d.ink, muted: d["ink-2"], subtle: d["ink-3"], disabled: d.disabled, inverse: v4Colors.ink, "inverse-muted": v4Colors["ink-2"], "inverse-subtle": v4Colors["ink-3"] });
+  set("line", { subtle: d.line, "inverse-subtle": v4Colors.line, inverse: v4Colors["line-strong"] });
+  set("grid", { dot: d.line, "dot-inverse": v4Colors.line });
+  set("brand", { on: d.surface, "tint-strong": d["brand-tint"], "ink-inverse": v4Colors.brand, line: d["brand-active"] });
+  set("focus", { DEFAULT: d["brand-ink"] });
+  set("accent", { DEFAULT: d.ink, on: d.surface, ink: d.ink, tint: d.sunken, "tint-strong": d.line });
+  set("locked", { DEFAULT: d.sunken, ink: d["ink-2"], line: d["line-strong"] });
+  set("quiet", { DEFAULT: d.subtle, ink: d["ink-2"], line: d["line-strong"] });
+  set("skeleton", { DEFAULT: d.sunken, shine: d.line });
+  return out as typeof legacy;
+}
+
+/**
+ * The dark set: a value for every name in `light`. `tailwind.config.ts` emits
+ * it where the system asks for dark AND the page carries `data-theme-auto`
+ * (the home page first; every other page stays light until its own spec opts
+ * in), and inside any `data-ground="night"` scene in either theme.
+ */
+export const dark: typeof light = overlay(darkLegacy(), darkColors, "#000000");
 
 export type TierRank = 1 | 2 | 3 | 4 | 5;
 
@@ -323,6 +407,13 @@ export const fontSize: Record<string, FontSize> = {
   "display-1": ["72px", {}], // marketing only, from here down
   "display-2": ["56px", {}],
   "display-3": ["40px", {}],
+  // The home film only (handoff-home-film §3.2), desktop then phone.
+  "film-hero": ["104px", { lineHeight: "1.02" }],
+  "film-hero-phone": ["44px", { lineHeight: "1.04" }],
+  "film-figure": ["200px", { lineHeight: "0.9" }],
+  "film-figure-phone": ["96px", { lineHeight: "0.9" }],
+  "film-scene": ["64px", { lineHeight: "1.06" }],
+  "film-scene-phone": ["32px", { lineHeight: "1.06" }],
   // legacy (v3)
   eyebrow: ["0.6875rem", { lineHeight: "1rem", letterSpacing: "0.08em" }],
   title: ["0.9375rem", { lineHeight: "1.375rem", letterSpacing: "-0.005em" }],
@@ -357,6 +448,8 @@ export const borderRadius = {
   md: "6px",
   lg: "8px",
   full: "9999px",
+  pane: "20px", // the film's Pane; `pane-phone` below 640
+  "pane-phone": "16px",
   // legacy (v3)
   xs: "0.1875rem",
   DEFAULT: "0.375rem",
@@ -384,6 +477,57 @@ export const boxShadow = {
   bloom: "0 0 0 4px rgb(63 227 116 / 0.28)", // the signal dot's glow (artifact `shadow-signal`; named apart from the colour group so the utilities cannot collide)
   glass: "inset 0 1px 0 rgb(255 255 255 / 0.7), 0 1px 3px rgb(15 19 15 / 0.08)",
 };
+
+/**
+ * The Pane's two materials (handoff-home-film §3.3), per theme, as the CSS
+ * variables `.pane` reads in `app/ds.css`. Glass is a tint of the ground over
+ * a backdrop blur, a lit edge, a top highlight and a long soft shadow; solid
+ * is the surface with a hairline and the same shadow. The tint is as thin as
+ * body text allows: `paneBehind` names the brightest and the darkest thing
+ * that may pass behind a pane, and `tokens.test.ts` holds every text colour to
+ * 4.5:1 on the tint laid over both.
+ */
+const WHITE = "255 255 255";
+
+/** How much of the ground the glass keeps (`tint`) and the white laid over it (`sheen`), per theme. */
+export const paneGlass = { light: { tint: 0.68, sheen: 0 }, dark: { tint: 0.7, sheen: 0.06 } } as const;
+
+export const paneMaterial = {
+  light: {
+    "--pane-tint": String(paneGlass.light.tint),
+    "--pane-sheen": `rgb(${WHITE} / ${paneGlass.light.sheen})`,
+    "--pane-filter": "blur(24px) saturate(150%)",
+    "--pane-edge": `rgb(${WHITE} / 0.6)`,
+    "--pane-hairline": "rgb(21 24 28 / 0.06)",
+    "--pane-highlight": `rgb(${WHITE} / 0.8)`,
+    "--pane-shadow": "0 24px 60px -20px rgb(21 24 28 / 0.22)",
+    "--pane-mark": "none", // the one-colour source marks are drawn dark
+  },
+  dark: {
+    "--pane-tint": String(paneGlass.dark.tint),
+    "--pane-sheen": `rgb(${WHITE} / ${paneGlass.dark.sheen})`,
+    "--pane-filter": "blur(28px) saturate(130%)",
+    "--pane-edge": `rgb(${WHITE} / 0.14)`,
+    "--pane-hairline": "rgb(0 0 0 / 0.4)",
+    "--pane-highlight": `rgb(${WHITE} / 0.1)`,
+    "--pane-shadow": "0 30px 80px -24px rgb(0 0 0 / 0.6)",
+    "--pane-mark": "invert(1)",
+  },
+} as const;
+
+/** What may pass behind a glass pane, per theme: the film keeps every backdrop inside these two. */
+export const paneBehind = {
+  light: { brightest: "#FFFFFF", darkest: "#858C96" },
+  dark: { brightest: "#5B626B", darkest: "#000000" },
+} as const;
+
+/** The pane's ground as text sees it: the tint, then the white sheen, over what is behind. */
+export function paneGround(theme: "light" | "dark", behind: string): string {
+  const { tint, sheen } = paneGlass[theme];
+  const s = toRgb(resolve(theme === "light" ? light : dark, "surface"));
+  const mixed = toRgb(behind).map((b, i) => Math.round(255 * sheen + (s[i]! * tint + b * (1 - tint)) * (1 - sheen)));
+  return `#${mixed.map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+}
 
 export const transitionDuration = {
   fast: "120ms",
@@ -623,6 +767,18 @@ export const contrastPairs: ContrastPair[] = [
   { fg: "signal.deep", bg: "surface", min: UI, use: "signal as a stroke" },
   ...v4Pairs(),
 ];
+
+/** The film's own pairs, held in both themes. The light on the land is a mark, not text. */
+export const filmPairs: ContrastPair[] = [
+  ...["surface", "subtle", "sunken", "brand.tint", "brand.wash"].map((bg) => ({ fg: "brand.ink", bg, min: TEXT, use: "film: green text, the thread's label" })),
+  { fg: "brand.ink", bg: "surface", min: UI, use: "film: the thread, the rail's dot" },
+  { fg: "map.light", bg: "map.land", min: UI, use: "film: a supplier light on the land" },
+  { fg: "map.light", bg: "map.water", min: UI, use: "film: a supplier light by the coast" },
+  { fg: "ink.3", bg: "map.land", min: TEXT, use: "film: a caption on the map" },
+];
+
+/** Every pair the dark set is held to: Paper's v4 pairs again, and the film's. */
+export const darkPairs: ContrastPair[] = [...v4Pairs(), ...filmPairs];
 
 /**
  * The v4 pairs Paper draws (B0), written with Paper's names. Text is held to
