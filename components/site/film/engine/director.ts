@@ -15,11 +15,6 @@ export function sceneProgress(top: number, height: number, viewport: number): nu
   return clamp(-top / travel);
 }
 
-/** Which of `n` equal steps a progress falls in. A step lands whole: the last one holds through p = 1. */
-export function stepAt(p: number, n: number): number {
-  return Math.min(n - 1, Math.max(0, Math.floor(p * n)));
-}
-
 /** The chapter of the last scene (in page order) whose top has passed the middle of the screen; before the first, none. */
 export function currentChapter(scenes: readonly { chapter: string; top: number; bottom: number }[], viewport: number): string | null {
   const mid = viewport / 2;

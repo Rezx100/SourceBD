@@ -21,7 +21,9 @@ export function readDevice(): Device {
   return {
     width: innerWidth,
     finePointer: matchMedia("(pointer: fine)").matches,
-    webgl2: !!document.createElement("canvas").getContext("webgl2"),
+    // Whether the browser has WebGL2 at all. Making a context here, before the first paint, would cost a GPU
+    // start-up; a device that has the API but cannot give a context falls back when the planet asks (start.ts).
+    webgl2: typeof WebGL2RenderingContext !== "undefined",
     reducedMotion: matchMedia("(prefers-reduced-motion: reduce)").matches,
     saveData: saver,
   };

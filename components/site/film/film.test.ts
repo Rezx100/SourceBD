@@ -11,14 +11,16 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { contrastRatio, dark, darkPairs, filmColors, filmPairs, light, paneBehind, paneGlass, paneGround, resolve, toRgb } from "@/lib/design/tokens";
-import { currentChapter, sceneProgress, stepAt } from "./engine/director";
+import { currentChapter, sceneProgress } from "./engine/director";
 import { DISTRICTS, STOPS, cameraAt, column, createMap, toGeo, unpack, type BdData } from "./engine/map";
 import { HOME, defaultFrame, facing, isLand, landPoints, lightSize, project, toVec } from "./engine/planet";
 import { V4Film } from "@/app/dev/ds/v4-film";
 import { Home } from "@/components/site/home";
 import { parseFacts } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
+import type { CellFile } from "./engine/start";
 import { TIER_SCRIPT, filmOn, pickTier, type Device } from "./engine/tier";
+import { LIGHTS } from "./opening";
 import { FieldPane, Pane, RecordPane, type RecordRow } from "./pane";
 import { Rail, Thread, ThreadLayer } from "./thread";
 
@@ -287,6 +289,19 @@ describe("the home page, film off and film on", () => {
     assert.match(on, /<div data-planet-callouts="true" aria-hidden="true"/);
   });
 
+  it("the first screen keeps to three panes of glass, and the planet can be reached through the words", () => {
+    const first = on.slice(on.indexOf('data-scene="planet"'), on.indexOf('data-scene="map"'));
+    assert.ok((first.match(/pane-glass/g) ?? []).length <= 3);
+    assert.match(first, /class="[^"]*pointer-events-none relative flex flex-col items-start[^"]*\[&amp;&gt;\*\]:pointer-events-auto/);
+  });
+
+  it("the lights are said in words, with the date of the file they come from", () => {
+    const file = JSON.parse(readFileSync(path.join(repoRoot, "public/site/film/cells.json"), "utf8")) as CellFile;
+    assert.ok(text(on).includes(LIGHTS));
+    assert.equal(file.date, "2026-10-03");
+    assert.ok(LIGHTS.endsWith("3 Oct 2026") && LIGHTS.includes(file.what));
+  });
+
   it("the four district counts are all in the page, dated, with no total, and none counts up", () => {
     const t = text(on);
     for (const n of ["4,421", "1,819", "1,628", "1,080"]) assert.ok(t.includes(n), n);
@@ -294,6 +309,10 @@ describe("the home page, film off and film on", () => {
     assert.match(t, /as counted on 3 Oct 2026/);
     assert.equal((on.match(/id="ch-1"/g) ?? []).length, 1);
     assert.equal((on.match(/<li data-on=""/g) ?? []).length, 1, "one district is on at a time, the first to begin with");
+    const steps = on.slice(on.indexOf("<ol data-steps"), on.indexOf("</ol>", on.indexOf("<ol data-steps")));
+    assert.match(steps, /film-full:sr-only/, "a district that is not on stays in the page for a screen reader");
+    assert.doesNotMatch(steps, /film-full:hidden(?!\s*film-full:inline)|film-full:invisible/);
+    assert.doesNotMatch(/<div data-act="record" class="([^"]*)"/.exec(on)?.[1] ?? "invisible", /invisible|hidden/);
     assert.doesNotMatch(t, /\b4[0-9] districts\b|districts in all|districts mapped/);
     assert.doesNotMatch(on, /count-?up|data-count|aria-valuenow/);
   });
@@ -345,15 +364,16 @@ describe("the tier and the flag", () => {
   it("the tier is set on the root before the first paint, by the same rule, run here as the page runs it", () => {
     const run = (width: number, media: Record<string, boolean>, webgl2: boolean) => {
       const dataset: Record<string, string> = {};
-      const document = { documentElement: { dataset }, createElement: () => ({ getContext: () => (webgl2 ? {} : null) }) };
+      const document = { documentElement: { dataset } };
       const matchMedia = (q: string) => ({ matches: media[q] ?? false });
-      new Function("document", "innerWidth", "matchMedia", "navigator", TIER_SCRIPT)(document, width, matchMedia, {});
+      new Function("document", "innerWidth", "matchMedia", "navigator", "WebGL2RenderingContext", TIER_SCRIPT)(document, width, matchMedia, {}, webgl2 ? class {} : undefined);
       return dataset.filmTier;
     };
     assert.equal(run(1440, { "(pointer: fine)": true }, true), "full");
     assert.equal(run(390, {}, true), "lite");
     assert.equal(run(1440, { "(pointer: fine)": true, "(prefers-reduced-motion: reduce)": true }, true), "still");
     assert.equal(run(1440, { "(pointer: fine)": true }, false), "still");
+    assert.doesNotMatch(TIER_SCRIPT, /getContext/, "no drawing context is made before the first paint");
   });
 });
 
@@ -372,12 +392,6 @@ describe("the scroll's arithmetic", () => {
     assert.equal(sceneProgress(10, 800, 1000), 0);
     assert.equal(sceneProgress(-10, 800, 1000), 1);
     assert.equal(sceneProgress(0, 1000, 1000), 1);
-  });
-
-  it("steps land whole, and the last one holds to the end", () => {
-    assert.deepEqual([0, 0.24, 0.25, 0.5, 0.99, 1].map((p) => stepAt(p, 4)), [0, 0, 1, 2, 3, 3]);
-    assert.equal(stepAt(-0.1, 4), 0);
-    assert.equal(stepAt(0.7, 1), 0);
   });
 
   it("the rail follows the last scene to pass the middle of the screen, and holds it across a gap", () => {
@@ -501,6 +515,26 @@ describe("the map's arithmetic", () => {
 
   it("the four districts are the counts of 3 Oct 2026, with no total", () => {
     assert.deepEqual(DISTRICTS.map((d) => [d.label, d.count]), [["Dhaka district", 4421], ["Gazipur", 1819], ["Narayanganj", 1628], ["Chattogram", 1080]]);
+  });
+});
+
+describe("the lights file", () => {
+  const file = JSON.parse(readFileSync(path.join(repoRoot, "public/site/film/cells.json"), "utf8")) as CellFile & Record<string, unknown>;
+
+  it("is a date, what it counts, and rows of a place and a count: no address, no name, no id", () => {
+    assert.deepEqual(Object.keys(file).filter((k) => k !== "chosen").sort(), ["cells", "date", "what"]);
+    assert.match(file.date, /^\d{4}-\d{2}-\d{2}$/);
+    assert.ok(file.cells.length > 0);
+    for (const row of file.cells) {
+      assert.equal(row.length, 3);
+      const [lng, lat, count] = row;
+      assert.ok(lng > 87.9 && lng < 92.8 && lat > 20.4 && lat < 26.8, `a light outside Bangladesh: ${row.join()}`);
+      assert.ok(Number.isInteger(count) && count > 0);
+    }
+  });
+
+  it("until the cells are read from production, its rows are exactly the four dated district counts", () => {
+    assert.deepEqual(file.cells, DISTRICTS.map((d) => [d.at[0], d.at[1], d.count]));
   });
 });
 

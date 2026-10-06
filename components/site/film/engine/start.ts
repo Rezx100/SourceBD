@@ -7,8 +7,11 @@ import { DISTRICTS, STOPS, createMap, type BdData, type FilmMap, type MapLib } f
 import { HOME, createPlanet, project, type Cell, type Mask, type Planet } from "./planet";
 import type { Tier } from "./tier";
 
-/** The dated file of supplier cells (handoff §6.1). Until it exists the four district counts are the lights. */
-export type CellFile = { date: string; cells: Cell[]; chosen?: [number, number] };
+/**
+ * The dated file of supplier lights, `public/site/film/cells.json`. Today it holds the four district counts of
+ * 3 Oct 2026; the cells read from production (handoff §6.1) replace its rows, and `chosen` arrives with them.
+ */
+export type CellFile = { date: string; what: string; cells: Cell[]; chosen?: [number, number] };
 
 const DATA = "/site/film/";
 const clamp = (v: number) => Math.max(0, Math.min(1, v));
@@ -25,14 +28,11 @@ async function loadMask(): Promise<Mask> {
   return ctx.getImageData(0, 0, img.width, img.height);
 }
 
-async function loadCells(): Promise<CellFile> {
-  const res = await fetch(`${DATA}cells.json`).catch(() => null);
-  if (res?.ok) return (await res.json()) as CellFile;
-  return { date: "2026-10-03", cells: DISTRICTS.map((d) => [d.at[0], d.at[1], d.count]) };
-}
+const loadCells = async (): Promise<CellFile> => (await (await fetch(`${DATA}cells.json`)).json()) as CellFile;
 
 export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promise<MapLib>): () => void {
   if (tier === "still") return () => {};
+  const html = root.ownerDocument.documentElement;
   const $ = <T extends Element>(selector: string) => root.querySelector<T>(selector);
   const paths = (selector: string) => [...root.querySelectorAll<SVGPathElement>(`${selector} path`)].slice(0, 2);
   const fit = (svg: SVGSVGElement | null | undefined, w: number, h: number) => svg?.setAttribute("viewBox", `0 0 ${w} ${h}`);
@@ -42,6 +42,12 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
   let map: FilmMap | null = null;
   let mapAsked = false;
   let mapP = 0;
+  let planetP = 0;
+  // Without a planet there is no film: the page goes back to the still tier, which is the stacked page.
+  const giveUp = () => {
+    html.dataset.filmTier = "still";
+    stop();
+  };
 
   // 01 · the planet
   const canvas = $<HTMLCanvasElement>("canvas[data-planet]");
@@ -55,7 +61,7 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
       cells: file.cells,
       samples: tier === "full" ? 60000 : 16000,
       maxDpr: tier === "full" ? 2 : 1.5,
-      onLost: () => canvas.classList.add("invisible"),
+      onLost: giveUp,
       onFrame(rot, f) {
         const w = canvas.clientWidth, h = canvas.clientHeight;
         const at = project(rot, f, HOME.lng, HOME.lat);
@@ -74,8 +80,10 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
         });
       },
     });
-    if (!planet) canvas.classList.add("invisible");
-  });
+    // What the scroll said while the planet was still loading.
+    if (planet) planet.setProgress(planetP);
+    else giveUp();
+  }, giveUp);
 
   // 02 and 03 · the map, loaded only when the dive nears and only on the full tier
   const stage = $<HTMLElement>("[data-map]");
@@ -90,8 +98,9 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
     const step = next < 0 ? DISTRICTS.length - 1 : next;
     steps.forEach((li, i) => li.toggleAttribute("data-on", i === step));
     const second = p > 0.76;
-    if (acts.districts) Object.assign(acts.districts.style, { opacity: second ? "0" : "1", visibility: second ? "hidden" : "visible" });
-    if (acts.record) Object.assign(acts.record.style, { opacity: second ? "1" : "0", visibility: second ? "visible" : "hidden" });
+    // Opacity only: both acts stay in the page for a screen reader, which does not scroll in step.
+    if (acts.districts) acts.districts.style.opacity = second ? "0" : "1";
+    if (acts.record) acts.record.style.opacity = second ? "1" : "0";
     mapThread[0]?.parentElement?.style.setProperty("--p", String(clamp((p - 0.82) / 0.14)));
     map?.setProgress(p);
     map?.setDistrict(DISTRICTS[step]!.key);
@@ -123,15 +132,17 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
         },
       });
       showMap(mapP);
-    });
+    }, () => {});
   };
 
   const director = createDirector(root, (name, p) => {
     if (name === "planet") {
+      planetP = p;
       planet?.setProgress(p);
       if (p > 0.35) wantMap();
     }
-    if (name === "map") {
+    // Only the full tier holds the map scene; on a phone it is a stacked section and nothing in it may move.
+    if (name === "map" && tier === "full") {
       // One drawing context at work at a time: the planet rests while the map runs.
       if (p > 0) planet?.park();
       else planet?.resume();
@@ -140,10 +151,12 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
     }
   });
 
-  return () => {
+  function stop() {
     dead = true;
     director.destroy();
     planet?.destroy();
     map?.destroy();
-  };
+    for (const act of Object.values(acts)) if (act) act.style.opacity = "";
+  }
+  return stop;
 }

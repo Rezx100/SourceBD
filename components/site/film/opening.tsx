@@ -17,6 +17,8 @@ import { withCommas } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
 
 const NAME = "Mondol Fabrics Ltd.";
+/** What the planet's lights are, and when they were counted: the words for `public/site/film/cells.json`, whose date a test holds this to. */
+export const LIGHTS = "Lights: suppliers by district, as counted on 3 Oct 2026";
 const stage = "relative overflow-hidden";
 const hero = "font-semibold tracking-[-0.03em] text-ink [text-wrap:balance] text-film-hero-phone md:text-display-1 xl:text-film-hero";
 const scene = "font-semibold tracking-[-0.025em] text-ink [text-wrap:balance] text-film-scene-phone md:text-film-scene";
@@ -39,11 +41,12 @@ export function Opening({ count, updated }: { count: string | null; updated: str
               <Thread d="M0 0" />
             </g>
           </ThreadLayer>
-          <div className={cn(wrap, "relative flex flex-col gap-6")}>
+          {/* The column lets the pointer through to the planet between its lines, so the planet can be dragged. */}
+          <div className={cn(wrap, "pointer-events-none relative flex flex-col items-start gap-6 [&>*]:pointer-events-auto")}>
             {count ? <Label>{count} suppliers{updated ? ` · updated ${updated}` : ""}</Label> : null}
             <h1 className={cn(hero, "max-w-[900px] leading-[1.02]")}>Know who you&rsquo;re buying from.</h1>
             <Lede className="max-w-[560px]">{count ? `${count} Bangladesh garment suppliers, each checked against the registers that list them.` : "Bangladesh garment suppliers, each checked against the registers that list them."}</Lede>
-            <div className="flex flex-col gap-2">
+            <div className="flex w-full max-w-[560px] flex-col gap-2">
               <FieldPane id="hero-q" material="glass" />
               <p className="text-md text-ink-3">Try &ldquo;knit dresses Gazipur&rdquo; or &ldquo;GOTS&rdquo;</p>
             </div>
@@ -59,9 +62,11 @@ export function Opening({ count, updated }: { count: string | null; updated: str
           {/* The planet's labels repeat the district counts the next scene states in words, so they are decoration here. */}
           <div data-planet-callouts aria-hidden className="pointer-events-none absolute inset-0 hidden film-full:block">
             {DISTRICTS.map((d, i) => (
-              <Callout key={d.key} place={d.label} figure={withCommas(d.count)} on={i === 0} className="absolute left-0 top-0 opacity-0" />
+              // Solid: with the search that would be five panes of glass, and the rule is three.
+              <Callout key={d.key} material="solid" place={d.label} figure={withCommas(d.count)} on={i === 0} className="absolute left-0 top-0 opacity-0" />
             ))}
           </div>
+          <p className={cn(wrap, "absolute inset-x-0 bottom-6 hidden font-mono text-xs text-ink-3 film:block")}>{LIGHTS}</p>
         </div>
       </section>
 
@@ -81,10 +86,10 @@ export function Opening({ count, updated }: { count: string | null; updated: str
               <h2 className={cn(scene, "max-w-[640px] leading-[1.06]")}>Most sit in four districts.</h2>
               <Lede>Suppliers by district, from their register addresses, as counted on 3 Oct 2026.</Lede>
             </div>
-            {/* Every count is in the page. On the full tier one shows at a time, whole: a figure never counts up. */}
+            {/* Every count is in the page, and stays readable to a screen reader. On the full tier one shows at a time, whole: a figure never counts up. */}
             <ol data-steps className="grid max-w-[720px] grid-cols-2 gap-x-10 gap-y-6 md:grid-cols-4 film-full:block">
               {DISTRICTS.map((d, i) => (
-                <li key={d.key} data-on={i === 0 ? "" : undefined} className="flex flex-col gap-1 border-t border-ink pt-3 film-full:hidden film-full:flex-col-reverse film-full:border-0 film-full:pt-0 film-full:data-[on]:flex">
+                <li key={d.key} data-on={i === 0 ? "" : undefined} className="flex flex-col gap-1 border-t border-ink pt-3 film-full:sr-only film-full:data-[on]:not-sr-only film-full:data-[on]:flex film-full:data-[on]:flex-col-reverse film-full:data-[on]:border-0 film-full:data-[on]:pt-0">
                   <span className="text-lg text-ink-2">
                     <span className="hidden film-full:inline">suppliers in </span>
                     {d.label}
@@ -95,7 +100,7 @@ export function Opening({ count, updated }: { count: string | null; updated: str
             </ol>
           </div>
 
-          <div data-act="record" className={cn(wrap, "relative flex flex-col gap-10 pb-24 max-md:pb-14 lg:flex-row lg:items-center lg:justify-between film-full:invisible film-full:absolute film-full:inset-0 film-full:pb-0 film-full:opacity-0 film-full:transition-opacity film-full:duration-slow")}>
+          <div data-act="record" className={cn(wrap, "relative flex flex-col gap-10 pb-24 max-md:pb-14 lg:flex-row lg:items-center lg:justify-between film-full:absolute film-full:inset-0 film-full:pb-0 film-full:opacity-0 film-full:transition-opacity film-full:duration-slow")}>
             <div className="flex max-w-[520px] flex-col gap-4">
               <Label>Pick one</Label>
               <p className={cn(scene, "leading-[1.06]")}>Follow one factory down the page.</p>

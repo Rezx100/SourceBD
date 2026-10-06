@@ -133,9 +133,9 @@ export function FieldPane({ id, placeholder = "Supplier, product or certificate"
 }
 
 /** A label on the planet or the map: the place and its count, as DOM, never as map glyphs. */
-export function Callout({ place, figure, on, className }: { place: string; figure?: string; on?: boolean; className?: string }) {
+export function Callout({ place, figure, on, material = "glass", className }: { place: string; figure?: string; on?: boolean; material?: PaneMaterial; className?: string }) {
   return (
-    <Pane material="glass" size="sm" className={cn("inline-flex items-baseline gap-2 font-mono text-sm", on ? "text-ink" : "text-ink-3", className)}>
+    <Pane material={material} size="sm" className={cn("inline-flex items-baseline gap-2 font-mono text-sm", on ? "text-ink" : "text-ink-3", className)}>
       <span className={cn(on && "font-semibold")}>{place}</span>
       {figure ? <span className="text-ink">{figure}</span> : null}
     </Pane>
