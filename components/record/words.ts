@@ -6,7 +6,7 @@
 
 import type { CertRowData } from "@/components/patterns";
 import { SITE_WORDS, certWords, isApproximate, type SiteKind } from "@/components/patterns/words";
-import { certRowId, formatDay } from "@/lib/dashboard/facts";
+import { certCheckLine, certRowId, formatDay } from "@/lib/dashboard/facts";
 import type { CertState } from "@/components/kit";
 import type { FactRow, LocationRow, ProductSheetModel, SitePin, SupplierSheetModel } from "@/lib/dashboard/models";
 import type { SourceMarkModel } from "@/lib/dashboard/source-tiers";
@@ -127,21 +127,28 @@ export function summaryCells(model: SupplierSheetModel, today: Date): SummaryCel
 }
 
 /** The certificates as the certificate table takes them; OEKO-TEX has a label check, not a certificate. */
-export function certRows(model: SupplierSheetModel): CertRowData[] {
-  return model.certs.map((c) => ({
-    scheme: c.scheme,
-    number: c.number,
-    issuer: c.issuer,
-    expiresOn: c.expiresOn,
-    documentUrl: c.documentUrl,
-    documentLabel: /oeko/i.test(c.scheme) ? "Open label check" : undefined,
-    anchor: certRowId(c.kind, c.number, c.expiresOn),
-  }));
+export function certRows(model: SupplierSheetModel, now: Date = new Date()): CertRowData[] {
+  const checks = model.certChecks;
+  return model.certs.map((c) => {
+    const check = checks?.certs.find((k) => k.kind === c.kind && k.certificate_no === c.number);
+    const newer = model.certs.some((o) => o !== c && o.kind === c.kind && (o.expiresOn ?? "") > (c.expiresOn ?? ""));
+    return {
+      delistedOn: check?.listing_status === "no_longer_listed" ? (check.delisted_at ?? now.toISOString()) : null,
+      check: checks ? certCheckLine(c.kind, c.expiresOn, check, checks.reads, now, newer) : null,
+      scheme: c.scheme,
+      number: c.number,
+      issuer: c.issuer,
+      expiresOn: c.expiresOn,
+      documentUrl: c.documentUrl,
+      documentLabel: /oeko/i.test(c.scheme) ? "Open label check" : undefined,
+      anchor: certRowId(c.kind, c.number, c.expiresOn),
+    };
+  });
 }
 
 /** Certificates a buyer should look at first: expired, then expiring. A valid or undated one is on the Certificates tab. */
 export function needsLook(rows: CertRowData[], today: Date): CertRowData[] {
-  const state = (r: CertRowData) => certWords(r.expiresOn, today).state;
+  const state = (r: CertRowData) => certWords(r.expiresOn, today, r.delistedOn).state;
   return [...rows.filter((r) => state(r) === "expired"), ...rows.filter((r) => state(r) === "expiring")];
 }
 

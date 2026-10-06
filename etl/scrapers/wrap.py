@@ -215,6 +215,9 @@ _UNCITABLE_FIELDS = (
 
 class WrapScraper(AcquiringScraper):
     code = "wrap"
+    # Founder knob (`run <code> --accept-delistings`): release a held
+    # certificate reconcile (etl.core.cert_reconcile).
+    accept_delistings = False
     source_code = "WRAP"
     transport = "direct"
     fallback_transport = None
@@ -316,10 +319,12 @@ class WrapScraper(AcquiringScraper):
         run_id = self._open_run()
         reset_document_cache()
         seen = upserted = skipped = 0
+        seen_certs: set[str] = set()
         self._emit_progress(run_id, "started", "WRAP scraper started.", seen, upserted, skipped)
         try:
             async for rec in self.gated():
                 seen += 1
+                seen_certs.add(str(rec.payload["wrap_id"]))
                 try:
                     supplier_id = upsert_supplier_with_source(rec)
                     if supplier_id is not None:
@@ -345,6 +350,14 @@ class WrapScraper(AcquiringScraper):
                         upserted,
                         skipped,
                     )
+            from etl.core.cert_reconcile import reconcile_certificates
+
+            reconcile_certificates(
+                kind="wrap", scraper_code=self.code, run_id=run_id,
+                seen_cert_nos=seen_certs,
+                read_complete=not (self.breaker and self.breaker.tripped),
+                accept=self.accept_delistings,
+            )
             self._close_run(run_id, "success", seen, upserted, skipped, None)
         except Exception as exc:  # noqa: BLE001
             self._close_run(run_id, "failed", seen, upserted, skipped, str(exc))

@@ -11,6 +11,9 @@ export type AttentionCertRow = {
   kind: string;
   certificate_no: string | null;
   expires_on: string;
+  /** 0122: "no_longer_listed" when its body stopped listing it, and the day it did. */
+  listing_status?: string;
+  delisted_on?: string | null;
   supplier: { id: string; slug: string; company_name: string };
 };
 
@@ -46,9 +49,16 @@ export function certName(kind: string, number: string | null): string {
 function rowOf(r: AttentionCertRow, today: Date): AttentionRow | null {
   const day = formatDay(r.expires_on);
   const days = daysUntil(r.expires_on, today);
-  if (!day || days === null || !r.supplier) return null;
+  if (!r.supplier) return null;
   const name = certName(r.kind, r.certificate_no);
   const base = { supplier: r.supplier.company_name, slug: r.supplier.slug, supplierId: r.supplier.id, askHref: `/app/rfqs/new?supplier=${encodeURIComponent(r.supplier.id)}` };
+  // Its body stopped listing it (spec-etl-freshness S2): a problem whatever its date, and an
+  // OEKO-TEX label has no date at all.
+  if (r.listing_status === "no_longer_listed") {
+    const since = formatDay(r.delisted_on) ?? "the last read";
+    return { ...base, days: Math.min(days ?? -1, -1), state: "expired", what: `${name} is no longer listed by ${certScheme(r.kind)} since ${since}.`, askLabel: "Ask for the new certificate" };
+  }
+  if (!day || days === null) return null;
   if (days < 0) return { ...base, days, state: "expired", what: `${name} expired ${day}.`, note: "No renewal on file.", askLabel: "Ask for the new certificate" };
   const when = days === 0 ? "expires today" : `expires in ${days} ${days === 1 ? "day" : "days"}`;
   return { ...base, days, state: "expiring", what: `${name} ${when}, ${day}.`, askLabel: "Ask for the renewal" };
@@ -66,11 +76,16 @@ export function attentionOf(
   limit = 3,
 ): Attention | null {
   if (expired === null && expiring === null) return null;
-  const rows = [...(expired?.rows ?? []), ...(expiring?.rows ?? [])]
+  // A delisted certificate (0122) can come back in both reads: it is one thing to check.
+  const key = (r: AttentionCertRow) => `${r.supplier?.id}|${r.kind}|${r.certificate_no ?? r.expires_on}`;
+  const lapsed = new Set((expired?.rows ?? []).map(key));
+  const coming = (expiring?.rows ?? []).filter((r) => !lapsed.has(key(r)));
+  const twice = (expiring?.rows.length ?? 0) - coming.length;
+  const rows = [...(expired?.rows ?? []), ...coming]
     .map((r) => rowOf(r, today))
     .filter((r): r is AttentionRow => r !== null)
     .slice(0, limit);
-  return { total: (expired?.total ?? 0) + (expiring?.total ?? 0), rows };
+  return { total: (expired?.total ?? 0) + (expiring?.total ?? 0) - twice, rows };
 }
 
 /** "Needs attention · 8 certificates" and the link under it, from the one total. */

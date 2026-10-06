@@ -15,7 +15,7 @@ import { isProfileRpcTimeout } from "@/lib/public-supplier-profile";
 import { hscodesFromRpc } from "@/lib/epb-hscodes";
 import { geocodeTargets } from "@/lib/barikoi";
 import { buildProductSheet, buildSheet, locationTargets, type ProfilePayload, type RecordInput } from "./build-models";
-import { formatCount, formatDay } from "./facts";
+import { formatCount, formatDay, type CertChecks } from "./facts";
 import { heading4, hsCatalogueRow } from "./hs-photos";
 import { sanitizeFacilityPanel, type FacilityPanel } from "@/lib/format-facility-group";
 import type { ContactCounts, ProductSheetModel, RecordRfqRow, SupplierSheetModel } from "./models";
@@ -157,6 +157,20 @@ export async function fetchSanctionsRead(supabase: RecordRpc): Promise<string | 
       if (oldest === null || new Date(at) < new Date(oldest)) oldest = at;
     }
     return oldest;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * When each certificate's body last showed it (spec-etl-freshness S2, `supplier_cert_checks`, 0122).
+ * Null when 0122 is not applied or the read fails: the rows then carry no check line.
+ */
+export async function fetchCertChecks(supabase: RecordRpc, slug: string): Promise<CertChecks | null> {
+  try {
+    const { data, error } = await supabase.rpc("supplier_cert_checks", { p_slug: slug });
+    if (error || !data || typeof data !== "object" || !Array.isArray((data as CertChecks).certs)) return null;
+    return data as CertChecks;
   } catch {
     return null;
   }
@@ -351,6 +365,7 @@ export async function loadRecordSheet(
   const countsRead = fetchContactCounts(supabase, slug);
   const facilitiesRead = fetchFacilityPanel(supabase, slug);
   const sanctionsRead = fetchSanctionsRead(supabase);
+  const certChecksRead = fetchCertChecks(supabase, slug);
   // Opened from a row that carries the id: the reads keyed by it start now,
   // beside the profile (founder's video, 29 Sep 2026: every open waited on a
   // second round trip after the first).
@@ -376,7 +391,7 @@ export async function loadRecordSheet(
         .then((found) => found?.map((g) => (g ? { latitude: g.latitude, longitude: g.longitude, confidencePct: g.confidencePct, addressStatus: g.addressStatus } : null)))
         .catch(() => undefined)
     : Promise.resolve(undefined);
-  const [workers, contactCounts, saved, rfqs, facilities, pins, sanctionsReadAt] = await Promise.all([
+  const [workers, contactCounts, saved, rfqs, facilities, pins, sanctionsReadAt, certChecks] = await Promise.all([
     // A failed batch leaves the figure the record's own payload carries.
     reuse ? reuse.workers : fetchDisplayWorkersBatch(supabase, [supplierId]).catch(() => null),
     countsRead,
@@ -385,6 +400,7 @@ export async function loadRecordSheet(
     facilitiesRead,
     pinsRead,
     sanctionsRead,
+    certChecksRead,
   ]);
   if (workers) assignWorkers([record], workers);
   return buildSheet(record.input, {
@@ -393,6 +409,7 @@ export async function loadRecordSheet(
     facilities: { panel: facilities },
     pins,
     sanctionsReadAt,
+    certChecks,
     saved,
     supplierId,
     rfqs,

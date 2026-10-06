@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  certCheckLine,
   certChipLabel,
   certModel,
   certScheme,
@@ -305,5 +306,38 @@ describe("the certificate tile and the chip agree on a certificate expiring toda
     // The soonest is the one named, whichever order they arrive in.
     assert.equal(certTileSubline([cert("2026-09-25"), cert("2026-09-18")]), "2 expiring today");
     assert.equal(certTileSubline([cert("2026-09-18"), cert("2026-09-25")]), "2 expiring today");
+  });
+});
+
+describe("certCheckLine (spec-etl-freshness §3)", () => {
+  const now = new Date("2026-10-06T12:00:00Z");
+  const check = (over: Partial<import("./facts").CertCheck> = {}) => ({
+    kind: "gots", certificate_no: "GOTS-1", listing_status: "listed",
+    checked_at: "2026-10-06T03:00:00Z", delisted_at: null, ...over,
+  });
+  const reads = { gots: "2026-10-06T03:10:00Z" };
+
+  it("says when the body last showed it", () => {
+    assert.deepEqual(certCheckLine("gots", "2026-12-15", check(), reads, now), { text: "checked with GOTS 6 Oct 2026", caution: false });
+  });
+  it("an expired certificate the body still lists with nothing newer", () => {
+    assert.equal(certCheckLine("gots", "2026-09-03", check(), reads, now)?.text, "GOTS lists no newer certificate (checked 6 Oct 2026)");
+    assert.equal(certCheckLine("gots", "2026-09-03", check(), reads, now, true)?.text, "checked with GOTS 6 Oct 2026");
+  });
+  it("no longer listed, in caution, with what it was", () => {
+    assert.deepEqual(certCheckLine("gots", "2026-12-15", check({ listing_status: "no_longer_listed" }), reads, now), {
+      text: "GOTS no longer lists it (was valid until 15 Dec 2026)", caution: true,
+    });
+  });
+  it("past the 72-hour SLA it is not re-checked, and says so", () => {
+    const stale = certCheckLine("wrap", "2026-12-15", check({ kind: "wrap", checked_at: "2026-06-26T00:00:00Z" }), reads, now);
+    assert.deepEqual(stale, { text: "last shown by WRAP 26 Jun 2026 · not re-checked since", caution: true });
+  });
+  it("OEKO-TEX has no dates: listed on", () => {
+    assert.equal(certCheckLine("oeko_tex", null, check({ kind: "oeko_tex" }), {}, now)?.text, "listed by OEKO-TEX on 6 Oct 2026");
+  });
+  it("nothing for an unread scheme or a certificate with no check", () => {
+    assert.equal(certCheckLine("bsci", null, check(), reads, now), null);
+    assert.equal(certCheckLine("gots", null, undefined, reads, now), null);
   });
 });

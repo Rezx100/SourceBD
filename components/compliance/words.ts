@@ -13,6 +13,9 @@ export type CertRead = AttentionCertRow & {
   issuer?: string | null;
   document_url?: string | null;
   days_remaining?: number;
+  /** 0122: "no_longer_listed" when the body stopped listing it, and the day it did. */
+  listing_status?: string;
+  delisted_on?: string | null;
   supplier: AttentionCertRow["supplier"] & { entity_type?: string; city?: string | null; district?: string | null };
 };
 
@@ -128,13 +131,18 @@ const schemeOf = (kind: string) => certName(kind, null);
 function itemOf(r: CertRead, today: Date): CertItem | null {
   const days = daysUntil(r.expires_on, today);
   const day = formatDay(r.expires_on);
-  if (days === null || !day || !r.supplier) return null;
-  const expired = days < 0;
+  // A certificate its body no longer lists (spec-etl-freshness S2) needs the same look as an expired
+  // one, whatever its date says, and OEKO-TEX labels carry no date at all.
+  const delisted = r.listing_status === "no_longer_listed";
+  if (!r.supplier || (!delisted && (days === null || !day))) return null;
+  const expired = delisted || (days ?? 0) < 0;
   const place = [r.supplier.city, r.supplier.district].filter((x, i, a) => x && a.indexOf(x) === i).join(", ") || null;
   return {
     key: `${r.supplier.id}-${r.kind}-${r.certificate_no ?? r.expires_on}`,
     state: expired ? "expired" : "expiring",
-    when: `${expired ? "Expired" : "Expires"} ${day}`,
+    when: delisted
+      ? `No longer listed by ${schemeOf(r.kind)} since ${formatDay(r.delisted_on) ?? "the last read"}`
+      : `${expired ? "Expired" : "Expires"} ${day}`,
     relative: expired ? null : days === 0 ? "today" : `in ${days} ${days === 1 ? "day" : "days"}`,
     scheme: schemeOf(r.kind),
     number: r.certificate_no,
@@ -147,15 +155,17 @@ function itemOf(r: CertRead, today: Date): CertItem | null {
     askLabel: expired ? "Ask for the new certificate" : "Ask for the renewal",
     // The certificate's own row on the record: the Overview's "Needs a look" and the Certificates tab both carry it.
     certHref: `/app/suppliers/${r.supplier.slug}#${certRowId(r.kind, r.certificate_no, r.expires_on)}`,
-    days,
-    expiresOn: r.expires_on.slice(0, 10),
+    days: days ?? 0,
+    expiresOn: (r.expires_on ?? "").slice(0, 10),
   };
 }
 
 /** The three groups in the RPCs' own orders: expired most recent first, then soonest first. */
 export function expiryGroups(expired: CertList | null, expiring: CertList | null, today: Date): ExpiryGroups {
   const lapsed = (expired?.rows ?? []).map((r) => itemOf(r, today)).filter((x): x is CertItem => x !== null);
-  const coming = (expiring?.rows ?? []).map((r) => itemOf(r, today)).filter((x): x is CertItem => x !== null);
+  // A delisted certificate can also be inside the expiring window: it is listed once, as a problem.
+  const lapsedKeys = new Set(lapsed.map((c) => c.key));
+  const coming = (expiring?.rows ?? []).map((r) => itemOf(r, today)).filter((x): x is CertItem => x !== null && !lapsedKeys.has(x.key));
   return { expired: lapsed, within30: coming.filter((c) => c.days <= 30), within90: coming.filter((c) => c.days > 30) };
 }
 

@@ -10,7 +10,9 @@ import type { CertState } from "@/components/kit";
  * only ("Expires 19 Nov 2026"); further out "Valid until"; no date is not a pass and not a
  * problem ("No expiry date published").
  */
-export function certWords(expiresOn: string | null | undefined, today: Date): { state: CertState; label: string } {
+export function certWords(expiresOn: string | null | undefined, today: Date, delistedOn?: string | null): { state: CertState; label: string } {
+  // A certificate its body stopped listing (spec-etl-freshness S2) is a problem whatever its date says.
+  if (delistedOn) return { state: "expired", label: `No longer listed since ${formatDay(delistedOn) ?? "the last read"}` };
   const day = formatDay(expiresOn);
   const days = daysUntil(expiresOn, today);
   const s = certState(expiresOn, today);
@@ -77,10 +79,10 @@ export type CertLine = { state: "expired" | "expiring" | "valid" | "none"; text:
  * words in lower case after it, and "· 3 more certificates" for the rest. `null` when the
  * supplier has no certificate at all, so the row says "None found" itself.
  */
-export function certLine(certs: readonly { scheme: string; expiresOn: string | null }[], today: Date): CertLine | null {
+export function certLine(certs: readonly { scheme: string; expiresOn: string | null; delistedOn?: string | null }[], today: Date): CertLine | null {
   if (certs.length === 0) return null;
   const ranked = certs
-    .map((c) => ({ c, w: certWords(c.expiresOn, today), t: c.expiresOn ? Date.parse(c.expiresOn) : 0 }))
+    .map((c) => ({ c, w: certWords(c.expiresOn, today, c.delistedOn), t: c.expiresOn ? Date.parse(c.expiresOn) : 0 }))
     .sort((a, b) => CERT_ORDER[a.w.state] - CERT_ORDER[b.w.state] || (a.w.state === "expired" ? b.t - a.t : a.t - b.t) || a.c.scheme.localeCompare(b.c.scheme));
   const first = ranked[0]!;
   return { state: first.w.state, text: `${first.c.scheme} ${first.w.label.charAt(0).toLowerCase()}${first.w.label.slice(1)}`, more: ranked.length - 1 };

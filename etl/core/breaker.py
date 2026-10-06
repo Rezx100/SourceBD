@@ -18,12 +18,40 @@ from dataclasses import dataclass, field
 CHANGED_SHARE = 0.05
 CHANGED_FLOOR = 5      # a 40-row source may change 5 rows without a stop
 REMOVED_SHARE = 0.02
-REMOVED_FLOOR = 3      # same floor as sanctions' _DELIST_HOLD_FLOOR
+REMOVED_FLOOR = 3
 MAX_CREATED = 20
 
 
+# A complete read must see at least this share of the rows listed before it, or
+# it is treated as partial (a layout change or a truncated download, never a
+# mass removal).
+COMPLETE_SHARE = 0.9
+
+
 def over_removal_limit(*, removed: int, listed_before: int) -> bool:
+    # ponytail: the floor of 3 keeps a 75-row list (US WRO) from holding on a
+    # single genuine removal; revisit if a list grows past ~10k.
     return removed > max(REMOVED_FLOOR, REMOVED_SHARE * listed_before)
+
+
+def plan_reconcile(
+    *, read_complete: bool, listed_before: int, seen: int, missing: int, accept: bool = False
+) -> str:
+    """What to do with rows a run did not see (sanctions S1, certificates S2).
+
+    'partial'   — do nothing; the read date does not advance.
+    'held'      — the read counts, but the removals wait for a human.
+    'reconcile' — mark the missing rows no longer listed.
+    """
+    if not read_complete:
+        return "partial"
+    if accept:
+        return "reconcile"
+    if seen < COMPLETE_SHARE * listed_before:
+        return "partial"
+    if over_removal_limit(removed=missing, listed_before=listed_before):
+        return "held"
+    return "reconcile"
 
 
 @dataclass

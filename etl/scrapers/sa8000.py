@@ -257,6 +257,9 @@ def _detail_from_envelope(raw: str | None) -> dict[str, Any]:
 
 class Sa8000Scraper(AcquiringScraper):
     code = "sa8000"
+    # Founder knob (`run <code> --accept-delistings`): release a held
+    # certificate reconcile (etl.core.cert_reconcile).
+    accept_delistings = False
     source_code = "SA8000"
     transport = "firecrawl"
     # No fallback. Cloudflare rejects our TLS fingerprint, so the direct adapter
@@ -376,9 +379,11 @@ class Sa8000Scraper(AcquiringScraper):
         run_id = self._open_run()
         reset_document_cache()
         seen = upserted = skipped = 0
+        seen_certs: set[str] = set()
         try:
             async for rec in self.gated():
                 seen += 1
+                seen_certs.add(str(rec.payload["sa8000_certificate_id"]))
                 try:
                     supplier_id = upsert_supplier_with_source(rec)
                     if supplier_id is not None:
@@ -395,6 +400,14 @@ class Sa8000Scraper(AcquiringScraper):
                         await self._record_evidence(rec, supplier_id, run_id)
                 if seen % 50 == 0:
                     self.log.info("progress", seen=seen, upserted=upserted, skipped=skipped)
+            from etl.core.cert_reconcile import reconcile_certificates
+
+            reconcile_certificates(
+                kind="sa8000", scraper_code=self.code, run_id=run_id,
+                seen_cert_nos=seen_certs,
+                read_complete=not (self.breaker and self.breaker.tripped),
+                accept=self.accept_delistings,
+            )
             self._close_run(run_id, "success", seen, upserted, skipped, None)
         except Exception as exc:  # noqa: BLE001
             self._close_run(run_id, "failed", seen, upserted, skipped, str(exc))
