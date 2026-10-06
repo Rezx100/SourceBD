@@ -1,3 +1,8 @@
+> **7 Oct 2026: the page is now SourceBD.** `public/landing-2` keeps this kit's layout, section order, page set and
+> motion skeleton, with SourceBD's words, tokens (both themes), IBM Plex, the Pane's glass, real SourceBD screens at 2x
+> and Higgsfield visuals (`imagery.md`). Careers is a holding page until there are real roles; the forms hand off to
+> the real `/login`, `/signup`, `/forgot-password` and `/contact`. The notes below describe the circle0 kit as it came.
+
 # circle0 marketing site
 
 Static, light-mode marketing site for circle0: Home, Pricing, Careers, Integrations, Contact, Log in, Sign up and Forgot password. Plain HTML, CSS and JavaScript, no build step.
