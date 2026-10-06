@@ -200,6 +200,8 @@ export type Planet = {
   setLights(level: number): void;
   /** Read the colours again after a theme change. */
   recolor(): void;
+  /** Another composition for the same planet (the close's): `null` puts the first one back. */
+  setFrame(frame: PlanetOptions["frame"] | null): void;
   /** Stop drawing and keep the context (the map runs meanwhile); `resume` brings the same planet back. */
   park(): void;
   resume(): void;
@@ -249,7 +251,7 @@ export function createPlanet(canvas: HTMLCanvasElement, opts: PlanetOptions): Pl
   };
 
   const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const frameOf = opts.frame ?? defaultFrame;
+  let frameOf = opts.frame ?? defaultFrame;
   let colors = { land: [0, 0, 0], light: [0, 0, 0], body: [0, 0, 0], rim: [0, 0, 0] } as Record<string, [number, number, number]>;
   const recolor = () => {
     colors = { land: cssColor(canvas, "--ds-ink-3"), light: cssColor(canvas, "--ds-map-light"), body: cssColor(canvas, "--ds-subtle"), rim: cssColor(canvas, "--ds-line-strong") };
@@ -391,6 +393,10 @@ export function createPlanet(canvas: HTMLCanvasElement, opts: PlanetOptions): Pl
     },
     recolor() {
       recolor();
+      wake();
+    },
+    setFrame(frame) {
+      frameOf = frame ?? opts.frame ?? defaultFrame;
       wake();
     },
     park() {

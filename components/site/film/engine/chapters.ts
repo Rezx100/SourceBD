@@ -1,10 +1,12 @@
-// Scenes 04 to 08 (handoff-home-film §3.6, §3.7, §3.9, §4): what the scroll moves in the overlock, the receipt roll,
-// the map's close on the factory's area, the carton and the calendar, and the threads that tie each to its row of
-// the record. The maths is pure (`sourcesAt`, `receiptsAt`, `siteAt`, `exportsAt`, `timeAt`, `curve`) and runs under
-// `node --test`; `startChapters` applies it to the DOM on the full tier only, and puts everything it wrote back when
-// the film stops. The map itself belongs to engine/start.ts, which lends scene 06 a hook that moves its camera and
-// says where the one light is. On the lite and still tiers nothing here runs: every part rests, the roll is whole
-// and every row is there, which is the stacked page.
+// Scenes 04 to 12 (handoff-home-film §3.6 to §3.9, §4): what the scroll moves in the overlock, the receipt roll,
+// the map's close on the factory's area, the carton, the calendar, the staged screens, the three promises, the
+// source ladder, the live figures and the whole record, and the threads that tie each to its row of the record.
+// The maths is pure (`sourcesAt`, `receiptsAt`, `siteAt`, `exportsAt`, `timeAt`, `orderAt`, `closeAt`, `curve`) and
+// runs under `node --test`; `startChapters` applies it to the DOM on the full tier only, and puts everything it
+// wrote back when the film stops. The map and the planet belong to engine/start.ts, which lends scene 06 a hook
+// that moves the camera and says where the one light is, and tells scene 12 where the planet's light is on every
+// frame. On the lite and still tiers nothing here runs: every part rests, the roll is whole and every row is
+// there, which is the stacked page.
 
 import { all, clamp, fit, span } from "./director";
 import type { Tier } from "./tier";
@@ -98,6 +100,37 @@ export function timeAt(p: number) {
   return { t, day, marks, alert: holds(false, p, marks[1]!), list: holds(false, p, marks[2]!) };
 }
 
+/**
+ * Scene 09, "07 · Can they make my order?": three steps, each a real screen, one on at a time; on the second (the
+ * RFQ composer) the drawn cursor arrives and presses Send RFQ before the third slides in.
+ */
+export const ORDER = { steps: [0, 0.34, 0.68], cursor: [0.4, 0.58] } as const;
+
+/** `was`: the step shown before, so a step holds a band past its mark on the way back like every beat. */
+export function orderAt(p: number, was = 0) {
+  let step = 0;
+  ORDER.steps.forEach((at, i) => {
+    if (i && holds(was >= i, p, at)) step = i;
+  });
+  return { step, cursor: span(ORDER.cursor, p) };
+}
+
+/** Scene 10, "08 · Why should I trust you?": the three promises turn from grey to ink one per step, each with its line beside it. */
+export const PROMISES = { steps: [0.14, 0.44, 0.74] } as const;
+/** The source ladder, between 10 and 11: its five rungs arrive in rank order over this stretch. */
+export const LADDER = { rows: [0.1, 0.7] } as const;
+/** Scene 11: the live figures rise whole, one after another, over this stretch. */
+export const FIGURES = { rows: [0.12, 0.72] } as const;
+/** Scene 12, "09 · The whole record": every row of the record stitches on in order, then the thread comes down from the planet and ends at the RFQ row. */
+export const CLOSE = { rows: [0.06, 0.58], tie: [0.62, 0.84] } as const;
+
+/** The `i`th of `n` moments spread evenly over a stretch: the first at its start, the last at its end. */
+export const evenly = ([a, b]: readonly [number, number], n: number, i: number): number => a + (b - a) * (n > 1 ? i / (n - 1) : 0);
+
+export function closeAt(p: number, rows: number) {
+  return { rows: Array.from({ length: rows }, (_, i) => evenly(CLOSE.rows, rows, i)), tie: span(CLOSE.tie, p) };
+}
+
 export type Point = { x: number; y: number };
 const px = (v: number) => Math.round(v * 10) / 10;
 
@@ -112,12 +145,17 @@ export const BAND = 0.01;
 /** Whether a beat is on at `p`, given whether it was: it comes at its moment `at` and holds until BAND before it. */
 export const holds = (was: boolean, p: number, at: number): boolean => (was ? p > at - BAND : p > at);
 
-export type Chapters = { onScene(name: string, p: number): void; stop(): void };
+export type Chapters = {
+  onScene(name: string, p: number): void;
+  /** Scene 12: where the planet's light is now, in the close's own pixels (the planet drifts, so its keeper says so on every frame it draws). */
+  closeFrom(at: Point): void;
+  stop(): void;
+};
 /** What the map's keeper lends scene 06: at `p` it moves the camera and opens the ring, and says where the one light is in the map's own pixels (none until the map is up). */
 export type ChapterHooks = { site?: (p: number) => Point | null };
 
 export function startChapters(root: HTMLElement, tier: Tier, hooks: ChapterHooks = {}): Chapters {
-  if (tier !== "full") return { onScene() {}, stop() {} };
+  if (tier !== "full") return { onScene() {}, closeFrom() {}, stop() {} };
   const scene = (name: string) => root.querySelector<HTMLElement>(`[data-scene="${name}"]`);
   // Everything is found once: the handlers run on every frame the scroll moves a scene. A number is written on
   // the part that reads it, never on a scene or a drawing, because an inherited property restyles the subtree.
@@ -151,6 +189,19 @@ export function startChapters(root: HTMLElement, tier: Tier, hooks: ChapterHooks
   const listRow = all<HTMLElement>(time, "[data-row][data-beat]")[0];
   /** The alert, then the line on the list check. */
   const timeBeats = all<HTMLElement>(time, "[data-beat]:not([data-row])");
+  const order = scene("order");
+  const orderSteps = all<HTMLElement>(order, "[data-order-steps] > li");
+  /** The three screens the steps swap: the sourcing stage's. The compliance stage's one screen is never touched. */
+  const screens = all<HTMLElement>(order, "[data-order-screens] [data-screen]");
+  const windows = all<HTMLElement>(order, "[data-window]");
+  const cursorParts = all<HTMLElement>(order, "[data-cursor]");
+  const promises = all<HTMLElement>(scene("promises"), "[data-promise]");
+  const rungs = all<HTMLElement>(scene("ladder"), "[data-beat]");
+  const figures = all<HTMLElement>(scene("figures"), "[data-beat]");
+  const close = scene("close");
+  const closeRows = all<HTMLElement>(close, "[data-row][data-beat]");
+  const closeTie = all<SVGGElement>(close, "[data-tie]")[0];
+  const bartack = closeTie?.querySelector<SVGPathElement>(".thread-end") ?? null;
 
   // The threads' geometry moves only with the layout: a new size, the fonts arriving, a row arriving. It is
   // measured then, not on every frame, so a steady scroll forces no layout at all.
@@ -158,9 +209,10 @@ export function startChapters(root: HTMLElement, tier: Tier, hooks: ChapterHooks
   let staleReceipts = true;
   let staleExports = true;
   let staleSite = true;
+  let staleClose = true;
   let stalePlaces = true;
   const invalidate = () => {
-    staleSources = staleReceipts = staleExports = staleSite = stalePlaces = true;
+    staleSources = staleReceipts = staleExports = staleSite = staleClose = stalePlaces = true;
   };
   addEventListener("resize", invalidate);
   void document.fonts?.ready.then(invalidate);
@@ -318,12 +370,65 @@ export function startChapters(root: HTMLElement, tier: Tier, hooks: ChapterHooks
     days.forEach((li, i) => li.toggleAttribute("data-on", i === step));
   };
 
+  // The step holds on the way back like every beat, so the screens do not flap at a step's line; the tilt and the
+  // cursor are written on the parts that read them (each window; the cursor, its press and the spotlight).
+  let orderStep = 0;
+  const showOrder = (p: number) => {
+    if (!order) return;
+    const at = orderAt(p, orderStep);
+    orderStep = at.step;
+    orderSteps.forEach((li, i) => li.toggleAttribute("data-on", i === at.step));
+    screens.forEach((el, i) => el.toggleAttribute("data-on", i === at.step));
+    for (const w of windows) w.style.setProperty("--p", p.toFixed(3));
+    for (const c of cursorParts) c.style.setProperty("--cursor", at.cursor.toFixed(3));
+  };
+
+  // A promise is ink once reached and stays so; its line beside it is a beat that rises at the same moment.
+  const showPromises = (p: number) => {
+    promises.forEach((li, i) => {
+      const at = PROMISES.steps[i] ?? 1;
+      li.toggleAttribute("data-on", holds(li.hasAttribute("data-on"), p, at));
+      beat(li.querySelector("[data-beat]") ?? undefined, p, at);
+    });
+  };
+  const showLadder = (p: number) => rungs.forEach((li, i) => beat(li, p, evenly(LADDER.rows, rungs.length, i)));
+  const showFigures = (p: number) => figures.forEach((el, i) => beat(el, p, evenly(FIGURES.rows, figures.length, i)));
+
+  // The thread of the close sets out from the planet's light, which drifts: its keeper says where it is on every
+  // frame it draws (`closeFrom`); only the RFQ row's dot is measured, when it arrives or the layout moves.
+  let closeFrom: Point | null = null;
+  let closeDot: Point | null = null;
+  let closeTieP = 0;
+  const drawClose = () => {
+    tie(closeTie, closeFrom, closeDot, closeTieP);
+    if (!bartack || !closeDot) return;
+    const t = `translate(${px(closeDot.x - 6)} ${px(closeDot.y)})`;
+    if (bartack.getAttribute("transform") !== t) bartack.setAttribute("transform", t);
+  };
+  const showClose = (p: number) => {
+    if (!close) return;
+    const at = closeAt(p, closeRows.length);
+    closeTieP = at.tie;
+    closeRows.forEach((row, i) => beat(row, p, at.rows[i] ?? 1));
+    if (stalePlaces || staleClose) {
+      staleClose = false;
+      const box = layerOf(closeTie);
+      closeDot = box ? dotOf(box, closeRows.at(-1)) : null;
+    }
+    drawClose();
+  };
+
   const onScene = (name: string, p: number) => {
     if (name === "sources") showSources(p);
     if (name === "receipts") showReceipts(p);
     if (name === "site") showSite(p);
     if (name === "exports") showExports(p);
     if (name === "time") showTime(p);
+    if (name === "order") showOrder(p);
+    if (name === "promises") showPromises(p);
+    if (name === "ladder") showLadder(p);
+    if (name === "figures") showFigures(p);
+    if (name === "close") showClose(p);
     // A scene's places are measured in the same frame a beat moved them; the flag outlives the frame otherwise.
     if (name !== "opening" && name !== "planet") stalePlaces = false;
   };
@@ -331,15 +436,25 @@ export function startChapters(root: HTMLElement, tier: Tier, hooks: ChapterHooks
   /** Everything written is put back, so a page the film has left is the stacked page: every part at rest, the roll whole, every row there. */
   const reset = () => {
     removeEventListener("resize", invalidate);
-    for (const el of [...needleParts, wheel, seam, seamTie, ...rollParts, ...ties, siteTie, carton, cartonTie, line]) for (const name of ["--wheel", "--needle", "--p", "--print", "--slide", "--t"]) el?.style.removeProperty(name);
+    for (const el of [...needleParts, wheel, seam, seamTie, ...rollParts, ...ties, siteTie, carton, cartonTie, line, ...windows, ...cursorParts, closeTie]) for (const name of ["--wheel", "--needle", "--p", "--print", "--slide", "--t", "--cursor"]) el?.style.removeProperty(name);
     for (const item of items) item.removeAttribute("data-dim");
-    for (const el of [sourcesRow, ...rows, note, siteRow, siteNote, exportsRow, listRow, ...timeBeats]) {
+    for (const el of [sourcesRow, ...rows, note, siteRow, siteNote, exportsRow, listRow, ...timeBeats, ...promises, ...promises.map((li) => li.querySelector("[data-beat]")), ...rungs, ...figures, ...closeRows]) {
       el?.removeAttribute("data-on");
       el?.classList.remove("rec-arrive", "animate-rise");
     }
     watch?.removeAttribute("data-due");
     days.forEach((li, i) => li.toggleAttribute("data-on", i === 0));
+    orderSteps.forEach((li, i) => li.toggleAttribute("data-on", i === 0));
+    screens.forEach((el, i) => el.toggleAttribute("data-on", i === 0));
+    bartack?.removeAttribute("transform");
   };
 
-  return { onScene, stop: reset };
+  return {
+    onScene,
+    closeFrom(at) {
+      closeFrom = at;
+      drawClose();
+    },
+    stop: reset,
+  };
 }

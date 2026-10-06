@@ -12,7 +12,7 @@ from a dot on the planet to an RFQ. Front end only: no migration, no new package
 | 2b | The dated supplier cells and the factory's own geocode (`cells.json`), `ops/plans/home-film-data.md`, the credit on `/legal/data-sources`, stills for the lite and still tiers, the planet handing over to the map in one move, `cobe` out of `package.json` | built, 6 Oct 2026 |
 | 3 | Scenes 04 (the overlock, five sources as hang tags, the seam that ties on the Sources row) and 05 (the receipt roll printing three claims beside their sources, three rows arriving, the note where two sources differ), on all three tiers; the fixes from the review of PR 370 (the real supplier lights) | built, 6 Oct 2026 |
 | 4 | Scenes 06 (the one live map tilts down on to the factory's area with a ring a kilometre wide, the record gains Site), 07 (one blank carton, "Coming in v2") and 08 (the calendar: the day, the time line, the alert at day 43 and the GOTS row turning amber, the list checked again at day 59), on all three tiers; the slice-3 session's efficiency follow-up | built, 7 Oct 2026 |
-| 5 | Scenes 09 to 12 and the rail | |
+| 5 | Scenes 09 (the real product staged: three steps, three screens re-shot on the story's factory, the drawn cursor pressing Send RFQ, our own drawn atmosphere), 10 (the three promises, grey to ink), the source ladder arriving in rank order, 11 (the live figures rising whole) and 12 (night again, the same planet back, the whole record stitching on, the thread ending in a bartack at the RFQ, the search); the rail | built, 7 Oct 2026 |
 | 6 | The phone, the lite and still tiers, the budgets, accessibility; then the flag on (the founder's call) | |
 
 Found while building slice 1, and where it differs from the text below:
@@ -107,6 +107,34 @@ Found while building slice 4 (7 Oct 2026):
 - From the slice-3 session's follow-up, carried in this PR: the threads' geometry is measured only when the layout
   moves (a resize, the fonts arriving, a row arriving), never per frame; the overlock's and the roll's variables
   are written on the parts that read them; the record's marks are fetched lazily.
+
+Found while building slice 5 (7 Oct 2026):
+- The app screens were re-shot at 2x from the real route pages on the story's factory (the local harness's
+  `shots-film.cjs`, gitignored): Mondol Fabrics Ltd. is the first row picked on the Saved page, the one target of
+  the RFQ composer and a quote on the RFQ; the Compliance hub is the same page re-shot, its day counts from the real
+  page's clock. Each PNG is 2880 by 1800; `next/image` serves the sizes a screen needs.
+- The staged screens (§3.8): the three steps are three windows on one stage. On the full tier they sit on one
+  another and the step's own slides in (`.stage-screen`); each tilts by `--p` on itself; the cursor is on the
+  composer only, aimed at Send RFQ (92.6% across, 96.5% down), with a spotlight that opens as it comes and a press
+  at the end (`--cursor` on the three parts). The windows are solid, not glass: what is behind them is drawn, not
+  live (§2.2). The atmosphere is our own drawing until Higgsfield is reachable (question 1 of §9 has no answer): a
+  weave of fine lines, two soft pools of light and shade and one green thread in soft focus, in the ground's roles.
+- Scene 11's figures: four to a stage at `min(200px, 20svh)` (`.film-figure-fit`), the label beside each; four at
+  the spec's 200px would not fit a 900px stage. With no figure read the scene is left out, so the planet's cue for
+  the close is whichever scene precedes it, found once at start.
+- Scene 12: the planet's canvas is moved into the close's stage the way the map's is into scene 06, with a
+  composition of its own (`closeFrame`: behind the words, the light clear of the record); the thread runs from the
+  light to the RFQ row on every frame the planet draws (`chapters.closeFrom`) and ends in a bartack set at the row.
+  The close's search field is `close-q`; the opening's stays `hero-q`.
+- The rail is mounted last in the page, so the headline is still the first thing read; fixed at the left, its ticks
+  from 1280px (at 1024 they would cross the words). Over a night scene the director gives it the night's own ink
+  (`data-ground="night"` on the nav; the planet's act counts as night only until it has given way to the map), so
+  it reads in light mode too. The page's box is measured for the phone's line only where that line is drawn.
+- The lite and still tiers get scenes 09 to 12 stacked whole: the three screens in a column on the stage, the
+  promises, the ladder and the figures as today's, the close a night block with no planet yet (slice 6).
+- The close section and the FAQ after scene 12 are untouched, and the page without the film is byte for byte what
+  it was (film.test holds both); the promises, the five tiers and the screens' words are one data set in
+  `closing.tsx` that both branches draw from.
 
 ---
 

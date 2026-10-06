@@ -34,6 +34,13 @@ export function currentChapter(scenes: readonly { chapter: string; top: number; 
   return found;
 }
 
+/** Whether the last scene (in page order) whose top has passed the middle of the screen is a night one. */
+export function nightAt(scenes: readonly { night: boolean; top: number }[], viewport: number): boolean {
+  let found = false;
+  for (const s of scenes) if (s.top <= viewport / 2) found = s.night;
+  return found;
+}
+
 export type Director = {
   /** Says every scene's last progress again: for a layer that was still loading when the scroll spoke. */
   replay(): void;
@@ -46,11 +53,20 @@ export type Director = {
  */
 export function createDirector(root: HTMLElement, onScene?: (name: string, p: number) => void): Director {
   const scenes = [...root.querySelectorAll<HTMLElement>("[data-scene]")];
-  const line = root.querySelector<HTMLElement>('nav[aria-label="Chapters"] > span');
+  const rail = root.querySelector<HTMLElement>('nav[aria-label="Chapters"]');
+  const line = rail?.querySelector<HTMLElement>(":scope > span") ?? null;
   const last = new Map<HTMLElement, number>();
   let chapter: string | null = null;
+  let night = false;
   let pageP = -1;
   let raf = 0;
+  // The phone's line is the one thing that reads the page's own progress; where it is not drawn (a wide screen)
+  // the page's box is not measured for it. Asked once, and again on a resize, never per frame.
+  let lineShown = false;
+  const lookAtLine = () => {
+    lineShown = !!line && getComputedStyle(line).display !== "none";
+  };
+  lookAtLine();
   const measure = () => {
     raf = 0;
     const vh = innerHeight;
@@ -64,12 +80,20 @@ export function createDirector(root: HTMLElement, onScene?: (name: string, p: nu
     const now = currentChapter(boxes.map(({ el, box }) => ({ chapter: el.dataset.chapter ?? "", top: box.top, bottom: box.bottom })), vh);
     if (now !== chapter) {
       chapter = now;
-      for (const a of root.querySelectorAll<HTMLAnchorElement>('nav[aria-label="Chapters"] a')) {
+      for (const a of rail?.querySelectorAll<HTMLAnchorElement>("a") ?? []) {
         if (a.hash === `#${now}`) a.setAttribute("aria-current", "step");
         else a.removeAttribute("aria-current");
       }
     }
-    if (line) {
+    // The rail lies over whichever scene holds the screen: over a night scene it takes the night's own ink, so it
+    // reads in either theme (the planet's act is night only until it has given way to the map).
+    const dark = nightAt(boxes.map(({ el, box }) => ({ night: el.dataset.ground === "night" && !el.hasAttribute("data-past"), top: box.top })), vh);
+    if (rail && dark !== night) {
+      night = dark;
+      if (dark) rail.setAttribute("data-ground", "night");
+      else rail.removeAttribute("data-ground");
+    }
+    if (line && lineShown) {
       const page = root.getBoundingClientRect();
       const p = Math.round(sceneProgress(page.top, page.height, vh) * 1000) / 1000;
       if (p !== pageP) line.style.setProperty("--film-p", String((pageP = p)));
@@ -81,6 +105,7 @@ export function createDirector(root: HTMLElement, onScene?: (name: string, p: nu
   // A new size moves every layout the engine measured: every scene is said again, even where its number held.
   const resized = () => {
     last.clear();
+    lookAtLine();
     queue();
   };
   addEventListener("scroll", queue, { passive: true });
@@ -94,6 +119,7 @@ export function createDirector(root: HTMLElement, onScene?: (name: string, p: nu
       cancelAnimationFrame(raf);
       removeEventListener("scroll", queue);
       removeEventListener("resize", resized);
+      rail?.removeAttribute("data-ground");
     },
   };
 }

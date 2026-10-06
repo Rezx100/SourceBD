@@ -1,13 +1,13 @@
 // Starts the film over the server-rendered scenes (handoff-home-film §5): the director, the planet, and on the
 // full tier the map, which lies under the planet and takes over from it in one move, and later becomes the ground
-// of scene 06 (the one map, moved into that scene's stage). Plain TypeScript: `runtime.tsx` calls it after
-// hydration, and the local harness calls it on a static page. It draws nothing of its own and returns the function
-// that stops it.
+// of scene 06 (the one map, moved into that scene's stage); the planet comes back the same way as the ground of
+// scene 12. Plain TypeScript: `runtime.tsx` calls it after hydration, and the local harness calls it on a static
+// page. It draws nothing of its own and returns the function that stops it.
 
 import { siteAt, startChapters, type Point } from "./chapters";
 import { all, clamp, createDirector, fit, span } from "./director";
 import { DISTRICTS, STOPS, cameraAt, createMap, siteStops, tileScale, type BdData, type FilmMap, type MapLib } from "./map";
-import { HOME, blendFrame, createPlanet, defaultFrame, frameFor, project, type Cell, type Mask, type Planet } from "./planet";
+import { HOME, blendFrame, createPlanet, defaultFrame, frameFor, project, type Cell, type Frame, type Mask, type Planet } from "./planet";
 import type { Tier } from "./tier";
 
 /**
@@ -25,6 +25,8 @@ const FAN: readonly [number, number][] = [[150, -70], [128, -128], [168, -12], [
 const WORDS_PAD = 0.38;
 /** Scene 06: the ring sits between the words and the record (the record takes the right 0.3 of the stage), a little above the middle. */
 const SITE_PAD = { left: 0.4, right: 0.37, top: 0.2 } as const;
+/** Scene 12: the planet behind the words, its light clear of the record at the right, so the thread can come down from it to the RFQ row. */
+export const closeFrame = (_p: number, w: number, h: number): Frame => ({ cx: w * 0.5, cy: h * 0.62, r: Math.max(h * 0.5, w * 0.27) });
 
 /**
  * The opening's one scroll, 0 to 1 (§3.5, §4), as four stretches: the planet dives, the words leave, the planet
@@ -92,6 +94,9 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
       onFrame(rot, f) {
         const w = canvas.clientWidth, h = canvas.clientHeight;
         const at = project(rot, f, HOME.lng, HOME.lat);
+        // In the close the planet's canvas fills that scene's stage, as the thread's layer does: the light's place
+        // is the thread's start as it is, and the opening's thread and labels are left as they were.
+        if (planetOwner === "close") return chapters.closeFrom(at);
         const far = clamp(1 - (f.r / (h * 0.66) - 1) * 3);
         // Each write only when its value moved: a write of the same string still costs a style pass.
         fit(planetThread[0]?.ownerSVGElement, w, h);
@@ -112,6 +117,8 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
       },
     });
     if (!planet) return giveUp();
+    // A planet that comes up once the close has its canvas takes the close's composition at once.
+    placePlanet();
     // What the scroll said while the planet was still loading, on whichever scene is its clock.
     director.replay();
   }).catch(giveUp);
@@ -214,11 +221,46 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
     return map.project(chosen);
   };
 
+  // 12 · the same planet, resumed as the ground of the close (§3.5: one instance, brought back). Its canvas is
+  // moved into that scene's stage the moment scene 11 has run its hold, and back when it has not; at rest there it
+  // takes the opening's first composition and drifts again, and its light is where the close's thread sets out.
+  const closeStage = $<HTMLElement>("[data-planet-close]");
+  /** The scene before the close in the film's own order is its cue: once that one has run its hold, the close is just below the screen. */
+  const sceneNames = all<HTMLElement>(root, "[data-scene]").map((el) => el.dataset.scene ?? "");
+  const closeCue = sceneNames[sceneNames.indexOf(closeStage?.closest<HTMLElement>("[data-scene]")?.dataset.scene ?? "") - 1] ?? null;
+  const canvasHome = canvas ? { parent: canvas.parentElement, next: canvas.nextSibling } : null;
+  let planetOwner: "opening" | "close" = "opening";
+  let openingP = 0;
+  /** The planet as whichever scene has it asks: the close's rest, or the opening's dive, parked once it has given way. */
+  const placePlanet = () => {
+    if (!planet) return;
+    if (planetOwner === "close") {
+      planet.setFrame(closeFrame);
+      planet.setProgress(0);
+      planet.resume();
+      return;
+    }
+    planet.setFrame(null);
+    const at = openingAt(openingP);
+    planet.setProgress(at.dive);
+    // One drawing context at work at a time: the planet rests once the map has the screen.
+    if (at.hand >= 1) planet.park();
+    else planet.resume();
+  };
+  const ownPlanet = (want: typeof planetOwner) => {
+    if (want === planetOwner || !canvas || !canvasHome?.parent || !closeStage) return;
+    planetOwner = want;
+    if (want === "close") closeStage.appendChild(canvas);
+    else canvasHome.parent.insertBefore(canvas, canvasHome.next);
+    placePlanet();
+  };
+
   /** The opening at `p` on the full tier: the dive, the words, the handover, then the map. */
   const show = (p: number) => {
     if (tier !== "full") return;
+    openingP = p;
     const at = openingAt(p);
-    planet?.setProgress(at.dive);
+    if (planetOwner === "opening") placePlanet();
     // The planet's thread draws with the dive: its act is laid over the stage here and has no scroll of its own.
     planetThread[0]?.parentElement?.style.setProperty("--p", String(at.dive));
     // The words leave and the planet's act gives way: written on the two of them, not as a property the whole
@@ -227,9 +269,6 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
     if (acts.planet) acts.planet.style.opacity = String(1 - at.hand);
     acts.hero?.toggleAttribute("data-gone", at.words >= 1);
     acts.planet?.toggleAttribute("data-past", at.hand >= 1);
-    // One drawing context at work at a time: the planet rests once the map has the screen.
-    if (at.hand >= 1) planet?.park();
-    else planet?.resume();
     if (p > 0.04) wantMap();
     // Only when the map's own scroll moved: while the planet dives the map waits, unplaced again, under it.
     if (at.map !== mapP) showMap(at.map);
@@ -240,6 +279,7 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
   const director = createDirector(root, (name, p) => {
     if (name === "opening") show(p);
     if (name === "receipts" && tier === "full") own(p >= 1 ? "site" : "opening");
+    if (name === closeCue && tier === "full") ownPlanet(p >= 1 ? "close" : "opening");
     // On a phone the planet holds while it turns and the rest is stacked: its own section is its clock, and its
     // thread draws with it.
     if (name === "planet" && tier === "lite") {
@@ -258,6 +298,7 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
     map?.destroy();
     // Everything written on the page is put back, so a page the film has left is the stacked page again.
     if (owner === "site" && stage && home?.parent) home.parent.insertBefore(stage, home.next);
+    if (planetOwner === "close" && canvas && canvasHome?.parent) canvasHome.parent.insertBefore(canvas, canvasHome.next);
     for (const act of Object.values(acts)) if (act) Object.assign(act.style, { opacity: "", transform: "" });
     acts.hero?.removeAttribute("data-gone");
     acts.planet?.removeAttribute("data-past");
