@@ -1,20 +1,19 @@
 <!DOCTYPE html>
-<html lang="en" class="no-js">
+<html lang="en-GB" class="no-js">
 <head>
   <meta charset="utf-8">
   <meta name="robots" content="noindex, nofollow">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>circle0 — Finance operations for growing teams</title>
-  <meta name="description" content="circle0 brings balances, cash flow, payments and planning into one dashboard your whole team can act on. Start free.">
-  <meta property="og:title" content="circle0 — Finance operations for growing teams">
-  <meta property="og:description" content="See every dollar move, then move it. One dashboard for balances, cash flow and payments.">
-  <meta property="og:image" content="assets/img/dashboard.jpg">
+  <meta name="color-scheme" content="light dark">
+  <title>SourceBD · Know who you're buying from</title>
+  <meta name="description" content="Every fact on a Bangladesh garment supplier, with its source and date. Search 10,277 suppliers, check their registers and certificates, and send one RFQ.">
+  <meta property="og:title" content="SourceBD · Know who you're buying from">
+  <meta property="og:description" content="Every fact on a Bangladesh garment supplier, with its source and date.">
+  <meta property="og:image" content="assets/img/screen-search-light-1x.jpg">
   <link rel="icon" href="assets/brand/favicon-32.png" sizes="32x32">
-  <link rel="icon" href="assets/brand/mark.svg" type="image/svg+xml">
+  <link rel="icon" href="assets/brand/favicon-192.png" sizes="192x192">
   <link rel="apple-touch-icon" href="assets/brand/apple-touch-icon.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@500;600&family=Instrument+Sans:wght@400;500&display=swap">
+  <link rel="preload" href="assets/fonts/ibm-plex-sans.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -22,21 +21,20 @@
 
   <header class="site-header">
     <div class="container site-header__inner">
-      <a class="brand" href="index.html" aria-label="circle0 home">circle<svg class="brand__mark" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="22" fill="none" stroke="currentColor" stroke-width="13" stroke-linecap="round" stroke-dasharray="118 20.25" transform="rotate(-60 32 32)"/><circle cx="51" cy="13" r="6.5" fill="#ADF74C"/></svg></a>
+      <a class="brand" href="index.html" aria-label="SourceBD home"><img src="assets/brand/favicon-192.png" alt="" width="28" height="28">SourceBD</a>
       <nav class="nav" id="primary-nav" aria-label="Primary">
         <a class="nav__link" href="index.html">Home</a>
         <a class="nav__link" href="pricing.html">Pricing</a>
-        <a class="nav__link" href="integrations.html">Integrations</a>
-        <a class="nav__link" href="careers.html">Careers</a>
+        <a class="nav__link" href="integrations.html">Sources</a>
         <a class="nav__link" href="contact.html">Contact</a>
         <div class="nav__mobile-actions">
           <a class="btn btn--secondary" href="login.html">Log in</a>
-          <a class="btn btn--primary" href="signup.html">Get started</a>
+          <a class="btn btn--primary" href="/signup">Start free</a>
         </div>
       </nav>
       <div class="header-actions">
         <a class="btn btn--ghost" href="login.html">Log in</a>
-        <a class="btn btn--primary" href="signup.html">Get started</a>
+        <a class="btn btn--primary" href="/signup">Start free</a>
         <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-nav" aria-label="Open menu"><span></span></button>
       </div>
     </div>
@@ -44,399 +42,479 @@
 
   <main id="main">
 
-    <!-- 1. Hero -->
+    <!-- 1. Hero: a real screen on the night loop -->
     <section class="hero" aria-labelledby="hero-title">
       <div class="container">
         <div class="hero__grid">
           <div>
-            <h1 class="h-display split-words" id="hero-title">See every dollar move, then move it</h1>
+            <h1 class="h-display split-words" id="hero-title">Know who you’re buying from.</h1>
             <div class="hero__actions">
-              <a class="btn btn--primary" href="signup.html">Get started</a>
+              <a class="btn btn--primary" href="/signup">Start free</a>
               <a class="btn btn--secondary" href="contact.html">Book a demo</a>
             </div>
           </div>
-          <p class="hero__copy">Finance operations for growing teams. circle0 brings balances, cash flow, payments and planning into one dashboard your whole team can act on.</p>
+          <div>
+            <p class="hero__copy">10,277 Bangladesh garment suppliers, each checked against the registers that list them. Every fact shows its source and the day we read it.</p>
+            <p class="mono hero__fact">Counted 6 Oct 2026 · 21 sources listed · 14 hold supplier records</p>
+          </div>
         </div>
       </div>
       <div class="container">
-        <div class="panel hero-panel" data-parallax>
-          <img class="panel__bg" src="assets/img/gradient-hero.jpg" alt="" width="1376" height="768" fetchpriority="high">
-          <div class="float-card" style="left:6%;top:18%" aria-hidden="true">
-            <span class="chip chip--lime"><svg class="icon" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span>
-            <div><strong>+$8,689.20</strong><span>August income</span></div>
+        <div class="stage hero-stage" data-ground="night">
+          <div class="stage__bg stage__bg--parallax" data-parallax>
+            <picture>
+              <source type="image/avif" srcset="assets/video/night-poster.avif">
+              <img src="assets/video/night-poster.jpg" alt="" width="1440" height="810" fetchpriority="high">
+            </picture>
+            <video data-loop muted loop playsinline preload="none" aria-hidden="true" tabindex="-1" width="1440" height="810">
+              <source data-src="assets/video/night.webm" type="video/webm">
+              <source data-src="assets/video/night.mp4" type="video/mp4">
+            </video>
           </div>
-          <div class="float-card" style="right:6%;top:30%" aria-hidden="true">
-            <span class="chip chip--ink"><svg class="icon" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span>
-            <div><strong>Transfer sent</strong><span>Quantum Ltd · $4,200.00</span></div>
+          <div class="note pane pane-glass" style="left:3%;top:4%">
+            <span class="mark" data-tier="2"><img src="assets/marks/bgmea.png" alt="" width="22" height="15"></span>
+            <div><strong>BGMEA reg. no. 4002</strong><span>From BGMEA · read 24 Jul 2026</span></div>
           </div>
-          <figure class="hero-panel__card">
-            <div class="hero-panel__chrome" aria-hidden="true"><i></i><i></i><i></i><span class="hero-panel__url">app.circle0.com/dashboard</span></div>
-            <img src="assets/img/dashboard.jpg" alt="The circle0 dashboard: Smart Wallet total of 19,820 USD, current balance, savings, income and expenses cards, and a yearly cash-flow chart with August highlighted." width="920" height="643">
+          <div class="note pane pane-glass" style="right:3%;top:34%">
+            <span class="mark" data-tier="3"><img src="assets/marks/gots.png" alt="" width="20" height="20"></span>
+            <div><strong>GOTS-19020 · valid until 15 Dec 2026</strong><span>Issued by GSCS International Ltd.</span></div>
+          </div>
+          <figure class="shot">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" type="image/avif" srcset="assets/img/screen-search-dark-1x.avif 1440w, assets/img/screen-search-dark-2x.avif 2880w" sizes="(max-width: 1179px) 92vw, 1080px">
+              <source media="(prefers-color-scheme: dark)" type="image/webp" srcset="assets/img/screen-search-dark-1x.webp 1440w, assets/img/screen-search-dark-2x.webp 2880w" sizes="(max-width: 1179px) 92vw, 1080px">
+              <source media="(prefers-color-scheme: dark)" srcset="assets/img/screen-search-dark-1x.jpg 1440w, assets/img/screen-search-dark-2x.jpg 2880w" sizes="(max-width: 1179px) 92vw, 1080px">
+              <source type="image/avif" srcset="assets/img/screen-search-light-1x.avif 1440w, assets/img/screen-search-light-2x.avif 2880w" sizes="(max-width: 1179px) 92vw, 1080px">
+              <source type="image/webp" srcset="assets/img/screen-search-light-1x.webp 1440w, assets/img/screen-search-light-2x.webp 2880w" sizes="(max-width: 1179px) 92vw, 1080px">
+              <img src="assets/img/screen-search-light-1x.jpg" srcset="assets/img/screen-search-light-1x.jpg 1440w, assets/img/screen-search-light-2x.jpg 2880w" sizes="(max-width: 1179px) 92vw, 1080px" alt="SourceBD search for “mondol”: 18 suppliers, with the Mondol Fabrics Ltd record open beside the results. Not on a sanctions list, one certificate expiring, covered by RSC, 2,060 workers, 5 sources." width="1440" height="900" fetchpriority="high">
+            </picture>
           </figure>
         </div>
       </div>
     </section>
 
-    <!-- 2. Trusted by: animated logo row -->
+    <!-- 2. The registers we read (was the logo row) -->
     <section class="brand-row" aria-labelledby="brand-title">
       <div class="container brand-row__inner">
-        <h2 class="label" id="brand-title">Trusted by industry leaders</h2>
-        <div class="marquee marquee--logos">
-          <div class="marquee__track">
-            <span class="logo-item"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 4 20h16z"/></svg>Sailwind</span>
-            <span class="logo-item"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h10a5 5 0 0 1 0 10h-2l6 6h-4l-6-6V4z"/></svg>Retro</span>
-            <span class="logo-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="m9 9 6 6m0-6-6 6"/></svg>Minibox</span>
-            <span class="logo-item"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 18 9 6l3 7 3-7 5 12h-3l-2-5-3 6-3-6-2 5z"/></svg>Stremax</span>
-            <span class="logo-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>Quantum</span>
-            <span class="logo-item"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.5 6.5L21 11l-6.5 2.5L12 20l-2.5-6.5L3 11l6.5-2.5z"/></svg>Be-tech</span>
-            <span class="logo-item"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v4H3zM3 11h12v4H3zM3 17h18v2H3z"/></svg>Citrine</span>
-            <span class="logo-item" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 4 20h16z"/></svg>Sailwind</span>
-            <span class="logo-item" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h10a5 5 0 0 1 0 10h-2l6 6h-4l-6-6V4z"/></svg>Retro</span>
-            <span class="logo-item" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="m9 9 6 6m0-6-6 6"/></svg>Minibox</span>
-            <span class="logo-item" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 18 9 6l3 7 3-7 5 12h-3l-2-5-3 6-3-6-2 5z"/></svg>Stremax</span>
-            <span class="logo-item" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>Quantum</span>
-            <span class="logo-item" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.5 6.5L21 11l-6.5 2.5L12 20l-2.5-6.5L3 11l6.5-2.5z"/></svg>Be-tech</span>
-            <span class="logo-item" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v4H3zM3 11h12v4H3zM3 17h18v2H3z"/></svg>Citrine</span>
-          </div>
-        </div>
+        <h2 class="brand-row__title" id="brand-title">Read from the registers and certification bodies that list each supplier</h2>
+        <ul class="register-list">
+          <li class="register"><span class="mark" data-tier="1"><img src="assets/marks/epb.png" alt="" width="16" height="22"></span><span>EPB<small>Tier 1 · 2,472 suppliers</small></span></li>
+          <li class="register"><span class="mark" data-tier="1"><img src="assets/marks/rsc.png" alt="" width="22" height="10"></span><span>RSC<small>Tier 1 · 2,256 suppliers</small></span></li>
+          <li class="register"><span class="mark" data-tier="2"><img src="assets/marks/bgmea.png" alt="" width="22" height="15"></span><span>BGMEA<small>Tier 2 · 5,762 suppliers</small></span></li>
+          <li class="register"><span class="mark" data-tier="2"><img src="assets/marks/bkmea.png" alt="" width="22" height="18"></span><span>BKMEA<small>Tier 2 · 2,578 suppliers</small></span></li>
+          <li class="register"><span class="mark" data-tier="2"><img src="assets/marks/bgapmea.png" alt="" width="20" height="22"></span><span>BGAPMEA<small>Tier 2 · 1,080 suppliers</small></span></li>
+          <li class="register"><span class="mark" data-tier="2"><img src="assets/marks/btma.png" alt="" width="22" height="22"></span><span>BTMA<small>Tier 2 · 422 suppliers</small></span></li>
+          <li class="register"><span class="mark" data-tier="3"><img src="assets/marks/gots.png" alt="" width="20" height="20"></span><span>GOTS<small>Tier 3 · 878 suppliers</small></span></li>
+          <li class="register"><span class="mark" data-tier="3"><img src="assets/marks/oeko-tex.png" alt="" width="22" height="20"></span><span>OEKO-TEX<small>Tier 3 · 2,481 suppliers</small></span></li>
+          <li class="register"><span class="mark" data-tier="3"><img src="assets/marks/wrap.png" alt="" width="20" height="20"></span><span>WRAP<small>Tier 3 · 422 suppliers</small></span></li>
+        </ul>
       </div>
     </section>
 
-    <!-- 3. Bento: all-in-one platform -->
+    <!-- 3. Bento: one record per supplier -->
     <section class="section section--flush-top" id="product" aria-labelledby="platform-title">
       <div class="container">
         <div class="section-head section-head--center" data-reveal>
-          <h2 class="h-2" id="platform-title">All-in-one platform for finance teams</h2>
+          <h2 class="h-2" id="platform-title">One record per supplier, from every source</h2>
         </div>
         <div class="bento mt-8">
-          <article class="bento__card bento__card--wide panel" data-parallax data-reveal>
-            <img class="panel__bg" src="assets/img/gradient-feature.jpg" alt="" width="1200" height="896" loading="lazy">
+          <article class="bento__card bento__card--wide stage" data-ground="night" data-reveal>
+            <picture class="stage__bg">
+              <source type="image/avif" srcset="assets/img/bg-weave-1x.avif 1280w, assets/img/bg-weave-2x.avif 2560w" sizes="(max-width: 959px) 100vw, 600px">
+              <source type="image/webp" srcset="assets/img/bg-weave-1x.webp 1280w, assets/img/bg-weave-2x.webp 2560w" sizes="(max-width: 959px) 100vw, 600px">
+              <img src="assets/img/bg-weave-1x.jpg" srcset="assets/img/bg-weave-1x.jpg 1280w, assets/img/bg-weave-2x.jpg 2560w" sizes="(max-width: 959px) 100vw, 600px" alt="" width="1280" height="724" loading="lazy" decoding="async">
+            </picture>
             <div class="hub" aria-hidden="true">
-              <svg class="hub__lines" viewBox="0 0 320 220" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1">
-                <path d="M56 38h28v144H56M84 110h26M264 38h-28v144h28M236 110h-26"/>
-              </svg>
-              <ul class="hub__col hub__col--left">
-                <li class="hub__node"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 15a2 2 0 1 1-2-2h2zm1 0a2 2 0 0 1 4 0v5a2 2 0 0 1-4 0zm2-6a2 2 0 1 1 2-2v2zm0 1a2 2 0 0 1 0 4H4a2 2 0 0 1 0-4zm6-1a2 2 0 1 1 2 2h-2zm-1 0a2 2 0 0 1-4 0V4a2 2 0 0 1 4 0zm-2 6a2 2 0 1 1-2 2v-2zm0-1a2 2 0 0 1 0-4h5a2 2 0 0 1 0 4z"/></svg></li>
-                <li class="hub__node"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 9.2c0-.8.7-1.1 1.7-1.1 1.5 0 3.4.5 4.9 1.3V4.6C18.5 4 16.8 3.7 15.2 3.7 11.2 3.7 8.5 5.8 8.5 9.3c0 5.5 7.5 4.6 7.5 7 0 .9-.8 1.2-1.9 1.2-1.6 0-3.8-.7-5.4-1.6v4.9c1.8.8 3.7 1.1 5.4 1.1 4.1 0 7-2 7-5.6 0-5.9-7.6-4.8-7.6-7.1z"/></svg></li>
-                <li class="hub__node"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM8.5 7.5h2a3.5 3.5 0 0 1 0 7H9v3H7.5V11a3.5 3.5 0 0 1 1-3.5zM9 9v4h1.5a2 2 0 0 0 0-4zm5.5-2.5H16v8.5a3.5 3.5 0 0 1-1 2.5h-2a3.5 3.5 0 0 1 0-7h.5V9zm0 5.5H14a2 2 0 0 0 0 4h.5z"/></svg></li>
+              <svg class="hub__lines" viewBox="0 0 340 232" fill="none" stroke-width="1"><path d="M56 40h30v152H56M86 116h28M284 76h-30v80h30M254 116h-28"/></svg>
+              <ul class="hub__col">
+                <li class="mark" data-tier="1"><img src="assets/marks/epb.png" alt="" width="23" height="32"></li>
+                <li class="mark" data-tier="1"><img src="assets/marks/rsc.png" alt="" width="34" height="15"></li>
+                <li class="mark" data-tier="2"><img src="assets/marks/bgmea.png" alt="" width="34" height="23"></li>
               </ul>
-              <div class="hub__center"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="22" fill="none" stroke="currentColor" stroke-width="13" stroke-linecap="round" stroke-dasharray="118 20.25" transform="rotate(-60 32 32)"/><circle cx="51" cy="13" r="6.5" fill="#ADF74C"/></svg>circle0</div>
-              <ul class="hub__col hub__col--right">
-                <li class="hub__node"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 8.3V5.9a2 2 0 1 0-1.6 0v2.4a4.9 4.9 0 0 0-2.3 1L7.6 5.1a2 2 0 1 0-1.1 1.4l5.3 4a4.9 4.9 0 1 0 5.2-2.2zm-.8 7.6a2.8 2.8 0 1 1 0-5.6 2.8 2.8 0 0 1 0 5.6zM9.4 18.4l-1.8 1.8a1.6 1.6 0 1 0 1.1 1.1l1.8-1.8z"/></svg></li>
-                <li class="hub__node hub__node--lime"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5 13.4 9l5.4-3.6L15.2 11l6.3 1-6.3 1 3.6 5.6-5.4-3.6L12 21.5 10.6 15l-5.4 3.6L8.8 13l-6.3-1 6.3-1-3.6-5.6L10.6 9z"/></svg></li>
-                <li class="hub__node"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="m8.5 8.5 7 7m0-7-7 7"/></svg></li>
+              <div class="hub__center pane pane-glass"><img src="assets/brand/favicon-192.png" alt="" width="30" height="30">One record</div>
+              <ul class="hub__col">
+                <li class="mark" data-tier="2"><img src="assets/marks/bkmea.png" alt="" width="34" height="28"></li>
+                <li class="mark" data-tier="3"><img src="assets/marks/gots.png" alt="" width="30" height="30"></li>
               </ul>
             </div>
             <div class="bento__caption">
-              <h3>Custom workflows</h3>
-              <p>Route every transaction through the apps you already run, with circle0 as the ledger in the middle.</p>
+              <h3>Five sources, one factory</h3>
+              <p>EPB, RSC, BGMEA, BKMEA and GOTS each file Mondol Fabrics Ltd. under their own number. We match them to one record, and every fact keeps its source.</p>
             </div>
           </article>
 
-          <article class="bento__card bento__card--wide bento__card--quiet" data-reveal>
-            <div class="assistant" aria-hidden="true">
-              <div class="assistant__head"><strong>Close assistant</strong><span class="pill pill--lime pill--dot">Analysis completed</span></div>
-              <p class="assistant__title">Month-end close · August</p>
-              <p class="caption">Generating close summary</p>
-              <ul class="assistant__rows">
-                <li><span class="chip chip--blue"><svg class="icon" viewBox="0 0 24 24"><path d="M3 7h18v12H3zM3 11h18"/></svg></span>Pulling bank and card feeds</li>
-                <li><span class="chip chip--violet"><svg class="icon" viewBox="0 0 24 24"><path d="M8 7h8M8 12h8M8 17h5M5 4h14v16H5z"/></svg></span>Matching 1,284 transactions to invoices</li>
-                <li><span class="chip chip--ink"><svg class="icon" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></span>Flagging 6 exceptions for review</li>
-                <li><img src="assets/img/headshot-2.jpg" alt="" width="28" height="28" loading="lazy"><strong>Robart Esperanza</strong>Notifying the finance committee</li>
-              </ul>
+          <article class="bento__card bento__card--wide" data-reveal>
+            <div class="record" aria-label="The Mondol Fabrics Ltd. record, four of its rows">
+              <div class="record__head"><span class="record__name">Mondol Fabrics Ltd.</span><span class="caption">Factory · Gazipur</span></div>
+              <div class="record__row"><span class="mark" data-tier="2"><img src="assets/marks/bgmea.png" alt="" width="17" height="12"></span><div><span class="record__label">BGMEA membership</span><span class="record__value">General member · reg. no. 4002</span><span class="record__from">From BGMEA · read 24 Jul 2026</span></div></div>
+              <div class="record__row"><span class="mark" data-tier="3"><img src="assets/marks/gots.png" alt="" width="17" height="17"></span><div><span class="record__label">GOTS certificate</span><span class="record__value">GOTS-19020 · valid until 15 Dec 2026</span><span class="record__from">Issued by GSCS International Ltd. · read 26 Jun 2026</span></div></div>
+              <div class="record__row"><span class="mark" data-tier="1"><img src="assets/marks/rsc.png" alt="" width="17" height="8"></span><div><span class="record__label">Safety inspections</span><span class="record__value">Covered by RSC · factory 10861</span><span class="record__from">100% of initial items fixed · read 2 Oct 2026</span></div></div>
+              <div class="record__row"><span class="mark mark--stamp" aria-hidden="true">DHS</span><div><span class="record__label">UFLPA Entity List</span><span class="record__value">No link found</span><span class="record__from">US DHS · our copy from 14 May 2026</span></div></div>
             </div>
             <div class="bento__caption">
-              <h3>Effortless setup</h3>
-              <p>Connect accounts in minutes. The close assistant does the first pass, your team reviews the exceptions.</p>
+              <h3>Every claim, beside its source</h3>
+              <p>Each fact shows where it came from and the day we read it. When two sources disagree, you see both.</p>
             </div>
           </article>
 
-          <article class="bento__card bento__card--quiet" data-reveal>
-            <svg class="icon icon--lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H4zM8 20h8M12 16v4"/></svg>
-            <div class="bento__caption"><h3>Modern interface</h3><p>One screen for balance, burn and what is due. Built for people who are not accountants.</p></div>
+          <article class="bento__card" data-reveal>
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v3M16 3v3M4 9h16M5 5h14v15H5z"/><path d="M12 13v3l2 1"/></svg>
+            <div class="bento__caption"><h3>Certificate expiry watch</h3><p>We tell you before a certificate on your list runs out, with the exact date.</p></div>
           </article>
-          <article class="bento__card bento__card--quiet" data-reveal>
-            <svg class="icon icon--lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>
-            <div class="bento__caption"><h3>Team visibility</h3><p>Everyone sees the same numbers, with permissions that follow your org chart.</p></div>
+          <article class="bento__card" data-reveal>
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v6c0 4.4 3 7.6 7 9 4-1.4 7-4.6 7-9V6z"/><path d="m9 12 2 2 4-4"/></svg>
+            <div class="bento__caption"><h3>UFLPA and sanctions checks</h3><p>Your saved suppliers are checked against the UFLPA Entity List and sanctions lists. We say what we found, never “clear”.</p></div>
           </article>
-          <article class="bento__card bento__card--quiet" data-reveal>
-            <svg class="icon icon--lg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M4 15l5-5 4 4 7-7M16 7h4v4"/></svg>
-            <div class="bento__caption"><h3>Flexible scaling</h3><p>From one entity to forty. Add a company, a currency or a country without a migration.</p></div>
+          <article class="bento__card" data-reveal>
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 11V8a6 6 0 0 1 12 0v3"/><path d="M5 11h14v10H5z"/><path d="M12 15v2"/></svg>
+            <div class="bento__caption"><h3>Contact details stay locked</h3><p>Send an RFQ and the supplier replies here, in Messages.</p></div>
           </article>
         </div>
       </div>
     </section>
 
-    <!-- 4. Feature split with accordion -->
-    <section class="section section--flush-top" aria-labelledby="automate-title">
+    <!-- 4. Feature split: shortlist, ask, compare -->
+    <section class="section section--flush-top" aria-labelledby="order-title">
       <div class="container split split--narrow-left split--top">
         <div data-reveal>
-          <h2 class="h-2" id="automate-title">Automate the money work that eats your week</h2>
+          <h2 class="h-2" id="order-title">Shortlist. Ask. Compare.</h2>
           <div class="accordion accordion--plain mt-6" data-single>
             <div class="accordion__item">
-              <h3><button class="accordion__trigger" type="button" aria-expanded="true" aria-controls="sc-1" id="sc-1-btn">Intelligent reconciliation<span class="accordion__icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></button></h3>
-              <div class="accordion__panel" id="sc-1" role="region" aria-labelledby="sc-1-btn" data-open="true"><div class="accordion__content">Bank and card feeds reconcile themselves against invoices and bills the moment they land. Your team reviews exceptions, not spreadsheets.</div></div>
+              <h3><button class="accordion__trigger" type="button" aria-expanded="true" aria-controls="sc-1" id="sc-1-btn">Shortlist from your saved suppliers<span class="accordion__icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></button></h3>
+              <div class="accordion__panel" id="sc-1" role="region" aria-labelledby="sc-1-btn" data-open="true"><div class="accordion__content">Search by product, HS code, certificate or place. Save the suppliers you like, and check them side by side.</div></div>
             </div>
             <div class="accordion__item">
-              <h3><button class="accordion__trigger" type="button" aria-expanded="false" aria-controls="sc-2" id="sc-2-btn">Proactive automation<span class="accordion__icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></button></h3>
-              <div class="accordion__panel" id="sc-2" role="region" aria-labelledby="sc-2-btn"><div class="accordion__content">Rules you write in plain language tag spend by team, project and vendor, then schedule the payments that follow.</div></div>
+              <h3><button class="accordion__trigger" type="button" aria-expanded="false" aria-controls="sc-2" id="sc-2-btn">Send one RFQ<span class="accordion__icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></button></h3>
+              <div class="accordion__panel" id="sc-2" role="region" aria-labelledby="sc-2-btn"><div class="accordion__content">One RFQ goes to up to 50 suppliers. Each gets its own copy, and none sees the others.</div></div>
             </div>
             <div class="accordion__item">
-              <h3><button class="accordion__trigger" type="button" aria-expanded="false" aria-controls="sc-3" id="sc-3-btn">Context-aware forecasts<span class="accordion__icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></button></h3>
-              <div class="accordion__panel" id="sc-3" role="region" aria-labelledby="sc-3-btn"><div class="accordion__content">Runway and cash forecasts update as money moves, so the number in the board deck is never stale.</div></div>
+              <h3><button class="accordion__trigger" type="button" aria-expanded="false" aria-controls="sc-3" id="sc-3-btn">Compare the quotes<span class="accordion__icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></button></h3>
+              <div class="accordion__panel" id="sc-3" role="region" aria-labelledby="sc-3-btn"><div class="accordion__content">Quotes come back side by side: price per piece, MOQ, lead time and how long each quote is valid.</div></div>
             </div>
           </div>
         </div>
-        <div class="panel flow-art" data-parallax data-reveal>
-          <img class="panel__bg" src="assets/img/gradient-feature.jpg" alt="" width="1200" height="896" loading="lazy">
-          <ol class="flow-steps" aria-label="An automated workflow">
-            <li class="flow-step"><span class="chip"><svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16v12H4zM4 7l8 6 8-6"/></svg></span><div><strong>Invoice paid</strong><span>Bank feed trigger</span></div></li>
-            <li class="flow-step"><span class="chip"><svg class="icon" viewBox="0 0 24 24"><path d="M8 7h8M8 12h8M8 17h5M5 4h14v16H5z"/></svg></span><div><strong>Match the transaction</strong><span>Reconciled in circle0</span></div></li>
-            <li class="flow-step"><span class="chip"><svg class="icon" viewBox="0 0 24 24"><path d="M20 12 12 20 4 12l8-8zM12 8v8M8 12h8"/></svg></span><div><strong>Categorize and tag</strong><span>Rule: Vendor = “Citrine”</span></div></li>
-            <li class="flow-step"><span class="chip"><svg class="icon" viewBox="0 0 24 24"><path d="M4 19h16M4 15l5-5 4 4 7-7"/></svg></span><div><strong>Update the forecast</strong><span>Runway +3 days</span></div></li>
+        <div class="stage flow-art" data-ground="night" data-reveal>
+          <picture class="stage__bg">
+            <source type="image/avif" srcset="assets/img/bg-cones-1x.avif 1280w, assets/img/bg-cones-2x.avif 2560w" sizes="(max-width: 767px) 100vw, 680px">
+            <source type="image/webp" srcset="assets/img/bg-cones-1x.webp 1280w, assets/img/bg-cones-2x.webp 2560w" sizes="(max-width: 767px) 100vw, 680px">
+            <img src="assets/img/bg-cones-1x.jpg" srcset="assets/img/bg-cones-1x.jpg 1280w, assets/img/bg-cones-2x.jpg 2560w" sizes="(max-width: 767px) 100vw, 680px" alt="" width="1280" height="956" loading="lazy" decoding="async">
+          </picture>
+          <ol class="flow-steps pane pane-glass" aria-label="One RFQ, from the shortlist to a quote">
+            <li class="flow-step"><span class="flow-step__n">1</span><div><strong>3 suppliers saved</strong><span>Mondol Fabrics Ltd. and 2 more</span></div></li>
+            <li class="flow-step"><span class="flow-step__n">2</span><div><strong>One RFQ sent · 1 Sep 2026</strong><span>Men’s cotton trousers · 4,500 pieces</span></div></li>
+            <li class="flow-step"><span class="flow-step__n">3</span><div><strong>2 quotes back</strong><span>US$5.90 and US$6.15 per piece</span></div></li>
+            <li class="flow-step"><span class="flow-step__n">4</span><div><strong>Accept a quote</strong><span>Then follow it up in Messages</span></div></li>
           </ol>
         </div>
       </div>
     </section>
 
-    <!-- 5. Big number (shader) + testimonials carousel -->
+    <!-- 5. The big figure + the record's facts, one per card -->
     <section class="section section--flush-top" aria-labelledby="scale-title">
       <div class="container text-center">
-        <div class="bignum" data-bignum="1000000" role="img" aria-label="1,000,000 transactions reconciled every month">
+        <div class="bignum" data-bignum="10277" role="img" aria-label="10,277 Bangladesh garment suppliers">
           <canvas class="bignum__canvas" aria-hidden="true"></canvas>
-          <span class="bignum__text" aria-hidden="true">1,000,000</span>
+          <span class="bignum__text" aria-hidden="true">10,277</span>
         </div>
-        <h2 class="lead maxw-560 mx-auto mt-3" id="scale-title">Transactions reconciled on circle0<br>every month</h2>
-        <div class="carousel mt-8 text-left" data-carousel data-autoplay="7000" tabindex="0" aria-roledescription="carousel" aria-label="Customer stories">
+        <h2 class="lead maxw-560 mx-auto mt-3" id="scale-title">Bangladesh garment suppliers, each with its sources and dates</h2>
+        <p class="mono mt-1">Counted 6 Oct 2026</p>
+        <div class="carousel mt-8 text-left" data-carousel tabindex="0" aria-roledescription="carousel" aria-label="Mondol Fabrics Ltd., source by source">
           <div class="carousel__viewport">
             <ul class="carousel__track">
-              <li class="testimonial" data-reveal>
-                <blockquote>“We replaced four spreadsheets and a weekly meeting. Cash flow is just there now, and it’s right.”</blockquote>
-                <div class="testimonial__who"><span class="avatar--initials" aria-hidden="true">LA</span><div><strong>Leslie Alexander</strong><span>Business owner, Vanguard Investments</span></div></div>
+              <li class="fact-card" data-reveal>
+                <div class="fact-card__head"><span class="mark" data-tier="2"><img src="assets/marks/bgmea.png" alt="" width="22" height="15"></span><div><strong>BGMEA member register</strong><span>Tier 2 · trade body</span></div></div>
+                <p class="fact-card__claim">“A BGMEA member factory.”</p>
+                <dl><dt>reg. no.</dt><dd>4002</dd><dt>type</dt><dd>general member</dd><dt>read</dt><dd>24 Jul 2026</dd></dl>
               </li>
-              <li class="testimonial" data-reveal>
-                <blockquote>“Approvals used to live in Slack threads. Now the policy is in circle0 and nobody chases anybody.”</blockquote>
-                <div class="testimonial__who"><img src="assets/img/headshot-2.jpg" alt="" width="40" height="40" loading="lazy"><div><strong>Robart Esperanza</strong><span>Head of Finance, Quantum</span></div></div>
+              <li class="fact-card" data-reveal>
+                <div class="fact-card__head"><span class="mark" data-tier="3"><img src="assets/marks/gots.png" alt="" width="20" height="20"></span><div><strong>GOTS certificate</strong><span>Tier 3 · certification body</span></div></div>
+                <p class="fact-card__claim">“Organic cotton, GOTS certified.”</p>
+                <dl><dt>number</dt><dd>GOTS-19020</dd><dt>issued by</dt><dd>GSCS International Ltd.</dd><dt>valid until</dt><dd>15 Dec 2026</dd></dl>
               </li>
-              <li class="testimonial" data-reveal>
-                <blockquote>“Month-end went from nine days to two. The audit log alone paid for the Pro plan.”</blockquote>
-                <div class="testimonial__who"><img src="assets/img/headshot-1.jpg" alt="" width="40" height="40" loading="lazy"><div><strong>Marcus Oyelaran</strong><span>Controller, Citrine Services</span></div></div>
+              <li class="fact-card" data-reveal>
+                <div class="fact-card__head"><span class="mark" data-tier="1"><img src="assets/marks/rsc.png" alt="" width="22" height="10"></span><div><strong>RSC factory record</strong><span>Tier 1 · government and RSC</span></div></div>
+                <p class="fact-card__claim">“Safety inspected by RSC.”</p>
+                <dl><dt>factory</dt><dd>10861</dd><dt>initial items fixed</dt><dd>100%</dd><dt>read</dt><dd>2 Oct 2026</dd></dl>
               </li>
-              <li class="testimonial" data-reveal>
-                <blockquote>“I run three entities from one login. The quick-send flow is faster than my bank’s app.”</blockquote>
-                <div class="testimonial__who"><span class="avatar--initials" aria-hidden="true">PN</span><div><strong>Priya Natarajan</strong><span>Founder, Oripio Studio</span></div></div>
+              <li class="fact-card" data-reveal>
+                <div class="fact-card__head"><span class="mark" data-tier="1"><img src="assets/marks/epb.png" alt="" width="16" height="22"></span><div><strong>EPB exporter register</strong><span>Tier 1 · government and RSC</span></div></div>
+                <p class="fact-card__claim">“A registered exporter.”</p>
+                <dl><dt>number</dt><dd>BD04644</dd><dt>body</dt><dd>Export Promotion Bureau</dd><dt>read</dt><dd>14 Aug 2026</dd></dl>
               </li>
-              <li class="testimonial" data-reveal>
-                <blockquote>“Our accountant logs in, sees everything tagged, and sends us a bill for half the hours.”</blockquote>
-                <div class="testimonial__who"><span class="avatar--initials" aria-hidden="true">TK</span><div><strong>Tomas Keller</strong><span>COO, Minibox Logistics</span></div></div>
+              <li class="fact-card" data-reveal>
+                <div class="fact-card__head"><span class="mark" data-tier="2"><img src="assets/marks/bkmea.png" alt="" width="22" height="18"></span><div><strong>2 sources differ</strong><span>RSC and BGMEA</span></div></div>
+                <p class="fact-card__claim">RSC counted 2,060 workers in 2 buildings. BGMEA has 4,200 employees, as declared by the factory.</p>
+                <dl><dt>shown</dt><dd>both, with their dates</dd></dl>
               </li>
             </ul>
           </div>
           <div class="cluster mt-4" style="justify-content:space-between">
-            <div class="carousel__dots" aria-label="Choose a story"></div>
+            <div class="carousel__dots" aria-label="Choose a source"></div>
             <div class="carousel__arrows">
-              <button class="carousel__arrow" type="button" data-carousel-prev aria-label="Previous"><svg class="icon" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
-              <button class="carousel__arrow" type="button" data-carousel-next aria-label="Next"><svg class="icon" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
+              <button class="carousel__arrow" type="button" data-carousel-prev aria-label="Previous source"><svg class="icon" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button>
+              <button class="carousel__arrow" type="button" data-carousel-next aria-label="Next source"><svg class="icon" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- 6. Industries (slides with dots) -->
-    <section class="section section--flush-top" aria-labelledby="industries-title">
+    <!-- 6. Who it is for (slides with dots) -->
+    <section class="section section--flush-top" aria-labelledby="people-title">
       <div class="container" data-slides>
-        <div class="carousel__dots" aria-label="Choose a team"></div>
-        <div class="section-head section-head--row mt-8" data-reveal>
-          <h2 class="h-2" id="industries-title">Built for the people who run the numbers</h2>
-          <a class="btn btn--primary" href="signup.html">Get started now</a>
+        <div class="section-head section-head--row" data-reveal>
+          <h2 class="h-2" id="people-title">Built for the people who check suppliers</h2>
+          <a class="btn btn--secondary" href="contact.html">Book a demo</a>
         </div>
-        <div class="slides mt-6">
-          <article class="slide industry" id="slide-finance" data-label="Finance teams">
-            <img class="industry__photo" src="assets/img/portrait-laptop.jpg" alt="A finance lead working on a laptop at a bright desk." width="1200" height="800" loading="lazy">
+        <div class="slides-nav mt-4"><div class="carousel__dots" aria-label="Choose a team"></div></div>
+        <div class="slides mt-4">
+          <article class="slide industry" id="slide-sourcing" data-label="Sourcing teams">
+            <picture>
+              <source type="image/avif" srcset="assets/img/photo-cutting-1x.avif 640w, assets/img/photo-cutting-2x.avif 1280w" sizes="(max-width: 767px) 100vw, 560px">
+              <source type="image/webp" srcset="assets/img/photo-cutting-1x.webp 640w, assets/img/photo-cutting-2x.webp 1280w" sizes="(max-width: 767px) 100vw, 560px">
+              <img class="industry__photo" src="assets/img/photo-cutting-1x.jpg" srcset="assets/img/photo-cutting-1x.jpg 640w, assets/img/photo-cutting-2x.jpg 1280w" sizes="(max-width: 767px) 100vw, 560px" alt="A garment factory cutting room: layers of cotton stacked on a long table under paper markers, a straight-knife cutter resting on top. Illustration." width="640" height="478" loading="lazy" decoding="async">
+            </picture>
             <div>
               <ul class="industry__list">
-                <li class="is-on">Finance &amp; accounting</li>
-                <li>Product teams</li>
-                <li>Client success</li>
-                <li>Industrial businesses</li>
-                <li>Legal practices</li>
+                <li class="is-on">Sourcing</li>
+                <li>Compliance</li>
+                <li>Suppliers</li>
               </ul>
-              <p class="industry__text">Close the month in days, not weeks. Live reconciliation, audit-ready logs and approvals that follow your policy, not your inbox.</p>
-              <a class="btn btn--outline mt-4" href="pricing.html">Learn more</a>
+              <p class="industry__text">Search by product, HS code, certificate or place. Shortlist, send one RFQ, and compare the quotes side by side.</p>
+              <a class="arrow-link mt-4" href="pricing.html">See what is free during beta<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
             </div>
           </article>
-          <article class="slide industry" id="slide-founders" data-label="Founders and operators">
-            <img class="industry__photo" src="assets/img/team-table.jpg" alt="Four colleagues around a table with laptops, laughing." width="900" height="675" loading="lazy">
+          <article class="slide industry" id="slide-compliance" data-label="Compliance teams">
+            <picture>
+              <source type="image/avif" srcset="assets/img/photo-knitting-1x.avif 640w, assets/img/photo-knitting-2x.avif 1280w" sizes="(max-width: 767px) 100vw, 560px">
+              <source type="image/webp" srcset="assets/img/photo-knitting-1x.webp 640w, assets/img/photo-knitting-2x.webp 1280w" sizes="(max-width: 767px) 100vw, 560px">
+              <img class="industry__photo" src="assets/img/photo-knitting-1x.jpg" srcset="assets/img/photo-knitting-1x.jpg 640w, assets/img/photo-knitting-2x.jpg 1280w" sizes="(max-width: 767px) 100vw, 560px" alt="A knitting mill: yarn cones feed a circular knitting machine, the knitted tube falling into a basket below. Illustration." width="640" height="478" loading="lazy" decoding="async">
+            </picture>
             <div>
               <ul class="industry__list">
-                <li>Finance &amp; accounting</li>
-                <li class="is-on">Product teams</li>
-                <li class="is-on">Client success</li>
-                <li>Industrial businesses</li>
-                <li>Legal practices</li>
+                <li>Sourcing</li>
+                <li class="is-on">Compliance</li>
+                <li>Suppliers</li>
               </ul>
-              <p class="industry__text">One glance tells you balance, burn and what is due. Send, request and approve from the same screen, from any device.</p>
-              <a class="btn btn--outline mt-4" href="pricing.html">Learn more</a>
+              <p class="industry__text">Every supplier you shortlisted, with its certificate dates and UFLPA Entity List checks. Problems first, each with its source and date.</p>
+              <a class="arrow-link mt-4" href="integrations.html">See the sources we read<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
             </div>
           </article>
-          <article class="slide industry" id="slide-services" data-label="Service businesses">
-            <img class="industry__photo" src="assets/img/team-tablet.jpg" alt="Three colleagues reviewing documents on a tablet by a window." width="900" height="672" loading="lazy">
+          <article class="slide industry" id="slide-suppliers" data-label="Suppliers">
+            <picture>
+              <source type="image/avif" srcset="assets/img/photo-cartons-1x.avif 640w, assets/img/photo-cartons-2x.avif 1280w" sizes="(max-width: 767px) 100vw, 560px">
+              <source type="image/webp" srcset="assets/img/photo-cartons-1x.webp 640w, assets/img/photo-cartons-2x.webp 1280w" sizes="(max-width: 767px) 100vw, 560px">
+              <img class="industry__photo" src="assets/img/photo-cartons-1x.jpg" srcset="assets/img/photo-cartons-1x.jpg 640w, assets/img/photo-cartons-2x.jpg 1280w" sizes="(max-width: 767px) 100vw, 560px" alt="The end of a garment line: plain export cartons stacked on pallets beside a packing table and a roller conveyor. Illustration." width="640" height="478" loading="lazy" decoding="async">
+            </picture>
             <div>
               <ul class="industry__list">
-                <li>Finance &amp; accounting</li>
-                <li>Product teams</li>
-                <li>Client success</li>
-                <li class="is-on">Industrial businesses</li>
-                <li class="is-on">Legal practices</li>
+                <li>Sourcing</li>
+                <li>Compliance</li>
+                <li class="is-on">Suppliers</li>
               </ul>
-              <p class="industry__text">Track retainers, trust accounts and project budgets separately, then roll them up for the partners in one report.</p>
-              <a class="btn btn--outline mt-4" href="pricing.html">Learn more</a>
+              <p class="industry__text">Factories and buying houses in Bangladesh: your record is built from the registers that list you, each fact with its source. Buyers reach you with an RFQ.</p>
+              <a class="arrow-link mt-4" href="contact.html">Ask about your record<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
             </div>
           </article>
         </div>
       </div>
     </section>
 
-    <!-- 7. Growth: orbit cards -->
-    <section class="section section--flush-top" aria-labelledby="growth-title">
+    <!-- 7. Three promises (was the orbit cards) -->
+    <section class="section section--flush-top" aria-labelledby="promise-title">
       <div class="container">
         <div class="section-head section-head--center" data-reveal>
-          <h2 class="h-2" id="growth-title">Secure, adaptable solutions crafted for growth</h2>
+          <h2 class="h-2" id="promise-title">Three things we never do</h2>
+          <p class="lead">We show what the registers say. You decide what it means.</p>
         </div>
         <div class="grid-3 mt-8">
           <article class="orbit-card" data-reveal>
-            <svg class="orbit" viewBox="0 0 200 200" aria-hidden="true"><g class="orbit__spin"><ellipse cx="100" cy="100" rx="72" ry="26"/><ellipse cx="100" cy="100" rx="72" ry="26" transform="rotate(60 100 100)"/><ellipse cx="100" cy="100" rx="72" ry="26" transform="rotate(-60 100 100)"/></g></svg>
-            <div class="bento__caption"><h3>Scalable</h3><p>Grow from one entity to forty without losing control of who can move what.</p></div>
+            <svg class="orbit" viewBox="0 0 200 200" aria-hidden="true"><path d="M30 60h140M30 100h140M30 140h140"/><path class="thread" d="M30 100h140"/></svg>
+            <div><h3>No scores.</h3><p>No grade, rating or star on any supplier.</p></div>
           </article>
           <article class="orbit-card" data-reveal>
-            <svg class="orbit" viewBox="0 0 200 200" aria-hidden="true"><g class="orbit__float"><ellipse cx="100" cy="70" rx="64" ry="22"/><ellipse cx="100" cy="100" rx="64" ry="22"/><ellipse cx="100" cy="130" rx="64" ry="22"/></g></svg>
-            <div class="bento__caption"><h3>Dynamic</h3><p>Forecasts and limits adjust as money moves, in real time, not at month end.</p></div>
+            <svg class="orbit" viewBox="0 0 200 200" aria-hidden="true"><path d="M40 40v120M80 40v120M120 40v120M160 40v120"/><path class="thread" d="M30 100c30-30 40 30 70 0s40 30 70 0"/></svg>
+            <div><h3>No paid placement.</h3><p>No supplier pays to rank higher or look better.</p></div>
           </article>
           <article class="orbit-card" data-reveal>
-            <svg class="orbit" viewBox="0 0 200 200" aria-hidden="true"><g class="orbit__spin orbit__spin--slow"><ellipse cx="100" cy="100" rx="68" ry="24"/><ellipse cx="100" cy="100" rx="68" ry="24" transform="rotate(90 100 100)"/></g></svg>
-            <div class="bento__caption"><h3>Robust</h3><p>Bank-grade controls, an immutable audit log and 99.98% uptime over the last year.</p></div>
+            <svg class="orbit" viewBox="0 0 200 200" aria-hidden="true"><path d="M50 44h100v112H50z"/><path d="M66 74h68M66 98h68M66 122h40"/><path class="thread" d="M120 122l8 8 16-16"/></svg>
+            <div><h3>No fact without a source and a date.</h3><p>If we can’t say where it came from, we don’t show it.</p></div>
           </article>
         </div>
       </div>
     </section>
 
-    <!-- 8. Integrations -->
-    <section class="section section--flush-top" aria-labelledby="integrations-title">
+    <!-- 8. The sources (was the integrations marquee) -->
+    <section class="section section--flush-top" aria-labelledby="sources-title">
       <div class="container">
         <div class="section-head section-head--center" data-reveal>
-          <h2 class="h-2" id="integrations-title">Seamless connections for modern teams</h2>
-          <a class="btn btn--primary" href="integrations.html">View all integrations</a>
+          <h2 class="h-2" id="sources-title">Every source has its rank</h2>
+          <p class="lead">Government registers come first. A source lower on the ladder never overwrites one above it.</p>
+          <a class="btn btn--secondary" href="integrations.html">See all 21 sources</a>
         </div>
-        <div class="panel panel--light integrations-panel mt-8" data-parallax data-reveal>
-          <img class="panel__bg" src="assets/img/gradient-hero.jpg" alt="" width="1376" height="768" loading="lazy">
-          <a class="tile tile--hero" href="integrations.html" aria-label="circle0 integrations"><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="22" fill="none" stroke="currentColor" stroke-width="13" stroke-linecap="round" stroke-dasharray="118 20.25" transform="rotate(-60 32 32)"/><circle cx="51" cy="13" r="6.5" fill="#fff"/></svg></a>
-          <div class="marquee" aria-label="Apps that connect to circle0">
+        <div class="stage sources-panel mt-8" data-ground="night" data-reveal>
+          <picture class="stage__bg">
+            <source type="image/avif" srcset="assets/img/bg-warp-1x.avif 1280w, assets/img/bg-warp-2x.avif 2560w" sizes="100vw">
+            <source type="image/webp" srcset="assets/img/bg-warp-1x.webp 1280w, assets/img/bg-warp-2x.webp 2560w" sizes="100vw">
+            <img src="assets/img/bg-warp-1x.jpg" srcset="assets/img/bg-warp-1x.jpg 1280w, assets/img/bg-warp-2x.jpg 2560w" sizes="100vw" alt="" width="1280" height="724" loading="lazy" decoding="async">
+          </picture>
+          <a class="tile tile--hero pane pane-glass" href="integrations.html" aria-label="See every source SourceBD reads"><img src="assets/brand/favicon-192.png" alt="" width="96" height="96"></a>
+          <div class="marquee" aria-label="Sources in rank order">
             <div class="marquee__track">
-              <a class="tile" href="integrations.html#slack" aria-label="Slack"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 15a2 2 0 1 1-2-2h2zm1 0a2 2 0 0 1 4 0v5a2 2 0 0 1-4 0zm2-6a2 2 0 1 1 2-2v2zm0 1a2 2 0 0 1 0 4H4a2 2 0 0 1 0-4zm6-1a2 2 0 1 1 2 2h-2zm-1 0a2 2 0 0 1-4 0V4a2 2 0 0 1 4 0zm-2 6a2 2 0 1 1-2 2v-2zm0-1a2 2 0 0 1 0-4h5a2 2 0 0 1 0 4z"/></svg></a>
-              <a class="tile" href="integrations.html#stripe" aria-label="Stripe"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 9.2c0-.8.7-1.1 1.7-1.1 1.5 0 3.4.5 4.9 1.3V4.6C18.5 4 16.8 3.7 15.2 3.7 11.2 3.7 8.5 5.8 8.5 9.3c0 5.5 7.5 4.6 7.5 7 0 .9-.8 1.2-1.9 1.2-1.6 0-3.8-.7-5.4-1.6v4.9c1.8.8 3.7 1.1 5.4 1.1 4.1 0 7-2 7-5.6 0-5.9-7.6-4.8-7.6-7.1z"/></svg></a>
-              <a class="tile" href="integrations.html#quickbooks" aria-label="QuickBooks"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM8.5 7.5h2a3.5 3.5 0 0 1 0 7H9v3H7.5V11a3.5 3.5 0 0 1 1-3.5zM9 9v4h1.5a2 2 0 0 0 0-4zm5.5-2.5H16v8.5a3.5 3.5 0 0 1-1 2.5h-2a3.5 3.5 0 0 1 0-7h.5V9zm0 5.5H14a2 2 0 0 0 0 4h.5z"/></svg></a>
-              <a class="tile" href="integrations.html#xero" aria-label="Xero"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="m8.5 8.5 7 7m0-7-7 7"/></svg></a>
-              <a class="tile" href="integrations.html#hubspot" aria-label="HubSpot"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 8.3V5.9a2 2 0 1 0-1.6 0v2.4a4.9 4.9 0 0 0-2.3 1L7.6 5.1a2 2 0 1 0-1.1 1.4l5.3 4a4.9 4.9 0 1 0 5.2-2.2zm-.8 7.6a2.8 2.8 0 1 1 0-5.6 2.8 2.8 0 0 1 0 5.6zM9.4 18.4l-1.8 1.8a1.6 1.6 0 1 0 1.1 1.1l1.8-1.8z"/></svg></a>
-              <a class="tile" href="integrations.html#notion" aria-label="Notion"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 4h14v16H5zM9 17V8l6 9V8"/></svg></a>
-              <a class="tile" href="integrations.html#gmail" aria-label="Gmail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 7v11h18V7M3 7l9 6 9-6M3 7h18"/></svg></a>
-              <a class="tile" href="integrations.html#zapier" aria-label="Zapier"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5 13.4 9l5.4-3.6L15.2 11l6.3 1-6.3 1 3.6 5.6-5.4-3.6L12 21.5 10.6 15l-5.4 3.6L8.8 13l-6.3-1 6.3-1-3.6-5.6L10.6 9z"/></svg></a>
-              <a class="tile" href="integrations.html#plaid" aria-label="Plaid"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg></a>
-              <a class="tile" href="integrations.html#brex" aria-label="Brex"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7h18v12H3zM3 11h18M7 15h3"/></svg></a>
-              <a class="tile" href="integrations.html#slack" aria-hidden="true" tabindex="-1"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 15a2 2 0 1 1-2-2h2zm1 0a2 2 0 0 1 4 0v5a2 2 0 0 1-4 0zm2-6a2 2 0 1 1 2-2v2zm0 1a2 2 0 0 1 0 4H4a2 2 0 0 1 0-4zm6-1a2 2 0 1 1 2 2h-2zm-1 0a2 2 0 0 1-4 0V4a2 2 0 0 1 4 0zm-2 6a2 2 0 1 1-2 2v-2zm0-1a2 2 0 0 1 0-4h5a2 2 0 0 1 0 4z"/></svg></a>
-              <a class="tile" href="integrations.html#stripe" aria-hidden="true" tabindex="-1"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 9.2c0-.8.7-1.1 1.7-1.1 1.5 0 3.4.5 4.9 1.3V4.6C18.5 4 16.8 3.7 15.2 3.7 11.2 3.7 8.5 5.8 8.5 9.3c0 5.5 7.5 4.6 7.5 7 0 .9-.8 1.2-1.9 1.2-1.6 0-3.8-.7-5.4-1.6v4.9c1.8.8 3.7 1.1 5.4 1.1 4.1 0 7-2 7-5.6 0-5.9-7.6-4.8-7.6-7.1z"/></svg></a>
-              <a class="tile" href="integrations.html#quickbooks" aria-hidden="true" tabindex="-1"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM8.5 7.5h2a3.5 3.5 0 0 1 0 7H9v3H7.5V11a3.5 3.5 0 0 1 1-3.5zM9 9v4h1.5a2 2 0 0 0 0-4zm5.5-2.5H16v8.5a3.5 3.5 0 0 1-1 2.5h-2a3.5 3.5 0 0 1 0-7h.5V9zm0 5.5H14a2 2 0 0 0 0 4h.5z"/></svg></a>
-              <a class="tile" href="integrations.html#xero" aria-hidden="true" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="m8.5 8.5 7 7m0-7-7 7"/></svg></a>
-              <a class="tile" href="integrations.html#hubspot" aria-hidden="true" tabindex="-1"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 8.3V5.9a2 2 0 1 0-1.6 0v2.4a4.9 4.9 0 0 0-2.3 1L7.6 5.1a2 2 0 1 0-1.1 1.4l5.3 4a4.9 4.9 0 1 0 5.2-2.2zm-.8 7.6a2.8 2.8 0 1 1 0-5.6 2.8 2.8 0 0 1 0 5.6zM9.4 18.4l-1.8 1.8a1.6 1.6 0 1 0 1.1 1.1l1.8-1.8z"/></svg></a>
-              <a class="tile" href="integrations.html#notion" aria-hidden="true" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M5 4h14v16H5zM9 17V8l6 9V8"/></svg></a>
-              <a class="tile" href="integrations.html#gmail" aria-hidden="true" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 7v11h18V7M3 7l9 6 9-6M3 7h18"/></svg></a>
-              <a class="tile" href="integrations.html#zapier" aria-hidden="true" tabindex="-1"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5 13.4 9l5.4-3.6L15.2 11l6.3 1-6.3 1 3.6 5.6-5.4-3.6L12 21.5 10.6 15l-5.4 3.6L8.8 13l-6.3-1 6.3-1-3.6-5.6L10.6 9z"/></svg></a>
-              <a class="tile" href="integrations.html#plaid" aria-hidden="true" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg></a>
-              <a class="tile" href="integrations.html#brex" aria-hidden="true" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7h18v12H3zM3 11h18M7 15h3"/></svg></a>
+              <span class="tile"><img src="assets/marks/epb.png" alt="" width="30" height="40"><span>EPB · T1</span></span>
+              <span class="tile"><img src="assets/marks/rsc.png" alt="" width="44" height="20"><span>RSC · T1</span></span>
+              <span class="tile"><img src="assets/marks/bgmea.png" alt="" width="44" height="30"><span>BGMEA · T2</span></span>
+              <span class="tile"><img src="assets/marks/bkmea.png" alt="" width="44" height="37"><span>BKMEA · T2</span></span>
+              <span class="tile"><img src="assets/marks/bgapmea.png" alt="" width="37" height="40"><span>BGAPMEA · T2</span></span>
+              <span class="tile"><img src="assets/marks/btma.png" alt="" width="40" height="40"><span>BTMA · T2</span></span>
+              <span class="tile"><img src="assets/marks/gots.png" alt="" width="40" height="40"><span>GOTS · T3</span></span>
+              <span class="tile"><img src="assets/marks/oeko-tex.png" alt="" width="44" height="40"><span>OEKO-TEX · T3</span></span>
+              <span class="tile"><img src="assets/marks/wrap.png" alt="" width="40" height="40"><span>WRAP · T3</span></span>
+              <span class="tile" aria-hidden="true"><img src="assets/marks/epb.png" alt="" width="30" height="40"><span>EPB · T1</span></span>
+              <span class="tile" aria-hidden="true"><img src="assets/marks/rsc.png" alt="" width="44" height="20"><span>RSC · T1</span></span>
+              <span class="tile" aria-hidden="true"><img src="assets/marks/bgmea.png" alt="" width="44" height="30"><span>BGMEA · T2</span></span>
+              <span class="tile" aria-hidden="true"><img src="assets/marks/bkmea.png" alt="" width="44" height="37"><span>BKMEA · T2</span></span>
+              <span class="tile" aria-hidden="true"><img src="assets/marks/bgapmea.png" alt="" width="37" height="40"><span>BGAPMEA · T2</span></span>
+              <span class="tile" aria-hidden="true"><img src="assets/marks/btma.png" alt="" width="40" height="40"><span>BTMA · T2</span></span>
+              <span class="tile" aria-hidden="true"><img src="assets/marks/gots.png" alt="" width="40" height="40"><span>GOTS · T3</span></span>
+              <span class="tile" aria-hidden="true"><img src="assets/marks/oeko-tex.png" alt="" width="44" height="40"><span>OEKO-TEX · T3</span></span>
+              <span class="tile" aria-hidden="true"><img src="assets/marks/wrap.png" alt="" width="40" height="40"><span>WRAP · T3</span></span>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- 9. Product cards -->
+    <!-- 9. The product, as it is today: three real screens -->
     <section class="section section--flush-top" aria-labelledby="features-title">
       <div class="container">
         <div class="section-head section-head--center" data-reveal>
-          <h2 class="h-2" id="features-title">Powerful features built for finance teams</h2>
-          <p class="lead">Wallet, Cash Flow and Payments share the same ledger, so every number agrees with every other number.</p>
+          <h2 class="h-2" id="features-title">The product, as it is today</h2>
+          <p class="lead">Real SourceBD screens, on the Mondol Fabrics record. Nothing on this page is designed but unbuilt.</p>
         </div>
         <div class="grid-3 mt-8">
           <article class="product-card" data-reveal>
-            <div class="product-card__media"><img src="assets/img/dashboard-wallet.jpg" alt="Smart Wallet card showing a total saving of 19,820 USD with Travel, Property and Education goals." width="720" height="579" loading="lazy"></div>
+            <div class="product-card__media stage" data-ground="night">
+              <picture class="stage__bg">
+                <source type="image/avif" srcset="assets/img/bg-jersey-1x.avif 1280w" sizes="400px">
+                <source type="image/webp" srcset="assets/img/bg-jersey-1x.webp 1280w" sizes="400px">
+                <img src="assets/img/bg-jersey-1x.jpg" alt="" width="1280" height="724" loading="lazy" decoding="async">
+              </picture>
+              <figure class="shot">
+                <picture>
+                  <source media="(prefers-color-scheme: dark)" type="image/avif" srcset="assets/img/screen-record-dark-1x.avif 640w, assets/img/screen-record-dark-2x.avif 1280w" sizes="(max-width: 639px) 110vw, 480px">
+                  <source media="(prefers-color-scheme: dark)" type="image/webp" srcset="assets/img/screen-record-dark-1x.webp 640w, assets/img/screen-record-dark-2x.webp 1280w" sizes="(max-width: 639px) 110vw, 480px">
+                  <source media="(prefers-color-scheme: dark)" srcset="assets/img/screen-record-dark-1x.jpg 640w, assets/img/screen-record-dark-2x.jpg 1280w" sizes="(max-width: 639px) 110vw, 480px">
+                  <source type="image/avif" srcset="assets/img/screen-record-light-1x.avif 640w, assets/img/screen-record-light-2x.avif 1280w" sizes="(max-width: 639px) 110vw, 480px">
+                  <source type="image/webp" srcset="assets/img/screen-record-light-1x.webp 640w, assets/img/screen-record-light-2x.webp 1280w" sizes="(max-width: 639px) 110vw, 480px">
+                  <img src="assets/img/screen-record-light-1x.jpg" srcset="assets/img/screen-record-light-1x.jpg 640w, assets/img/screen-record-light-2x.jpg 1280w" sizes="(max-width: 639px) 110vw, 480px" alt="The Sources tab of the Mondol Fabrics Ltd record: EPB BD04644, RSC 10861, BGMEA 4002, BKMEA 1004-B/2006 and GOTS-19020, each with the day it was read." width="640" height="500" loading="lazy" decoding="async">
+                </picture>
+              </figure>
+            </div>
             <div class="product-card__body">
-              <h3 class="h-3 mt-3">Smart Wallet</h3>
-              <ul class="spec-list mt-2">
-                <li><svg class="icon" viewBox="0 0 24 24"><path d="M3 7h18v12H3zM3 11h18M7 15h3"/></svg>Multi-currency balances in one total</li>
-                <li><svg class="icon" viewBox="0 0 24 24"><path d="M12 3v18M7 8h7a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h8"/></svg>Savings goals with automatic sweeps</li>
-                <li><svg class="icon" viewBox="0 0 24 24"><path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z"/></svg>Spend limits per card and per person</li>
-                <li><svg class="icon" viewBox="0 0 24 24"><path d="M4 19h16M4 15l5-5 4 4 7-7"/></svg>Interest tracked to the cent</li>
+              <h3 class="h-4">Supplier record</h3>
+              <ul class="spec-list mt-1">
+                <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h4"/></svg>Every source, with its number and read date</li>
+                <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v3M16 3v3M4 9h16M5 5h14v15H5z"/></svg>Certificates with an exact date</li>
+                <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v6c0 4.4 3 7.6 7 9 4-1.4 7-4.6 7-9V6z"/></svg>Safety from the RSC record</li>
+                <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Sites, workers and products as filed</li>
               </ul>
-              <a class="btn btn--secondary btn--sm" href="pricing.html">Learn more</a>
             </div>
           </article>
           <article class="product-card" data-reveal>
-            <div class="product-card__media"><img src="assets/img/dashboard-cashflow.jpg" alt="Cash Flow chart for the year with 342,323.44 total and August highlighted at 8,689.20." width="720" height="376" loading="lazy"></div>
+            <div class="product-card__media stage" data-ground="night">
+              <picture class="stage__bg">
+                <source type="image/avif" srcset="assets/img/bg-knit-1x.avif 1280w" sizes="400px">
+                <source type="image/webp" srcset="assets/img/bg-knit-1x.webp 1280w" sizes="400px">
+                <img src="assets/img/bg-knit-1x.jpg" alt="" width="1280" height="724" loading="lazy" decoding="async">
+              </picture>
+              <figure class="shot">
+                <picture>
+                  <source media="(prefers-color-scheme: dark)" type="image/avif" srcset="assets/img/screen-rfq-dark-1x.avif 800w, assets/img/screen-rfq-dark-2x.avif 1600w" sizes="(max-width: 639px) 110vw, 480px">
+                  <source media="(prefers-color-scheme: dark)" type="image/webp" srcset="assets/img/screen-rfq-dark-1x.webp 800w, assets/img/screen-rfq-dark-2x.webp 1600w" sizes="(max-width: 639px) 110vw, 480px">
+                  <source media="(prefers-color-scheme: dark)" srcset="assets/img/screen-rfq-dark-1x.jpg 800w, assets/img/screen-rfq-dark-2x.jpg 1600w" sizes="(max-width: 639px) 110vw, 480px">
+                  <source type="image/avif" srcset="assets/img/screen-rfq-light-1x.avif 800w, assets/img/screen-rfq-light-2x.avif 1600w" sizes="(max-width: 639px) 110vw, 480px">
+                  <source type="image/webp" srcset="assets/img/screen-rfq-light-1x.webp 800w, assets/img/screen-rfq-light-2x.webp 1600w" sizes="(max-width: 639px) 110vw, 480px">
+                  <img src="assets/img/screen-rfq-light-1x.jpg" srcset="assets/img/screen-rfq-light-1x.jpg 800w, assets/img/screen-rfq-light-2x.jpg 1600w" sizes="(max-width: 639px) 110vw, 480px" alt="An RFQ for men’s cotton trousers with 2 quotes side by side: price per piece, MOQ, lead time, valid until and total, each with Accept quote." width="800" height="600" loading="lazy" decoding="async">
+                </picture>
+              </figure>
+            </div>
             <div class="product-card__body">
-              <h3 class="h-3 mt-3">Cash Flow</h3>
-              <ul class="spec-list mt-2">
-                <li><svg class="icon" viewBox="0 0 24 24"><path d="M4 19h16M4 15l5-5 4 4 7-7"/></svg>Income, expenses and savings by month</li>
-                <li><svg class="icon" viewBox="0 0 24 24"><path d="M12 8v4l3 3M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>13-week forecast, updated live</li>
-                <li><svg class="icon" viewBox="0 0 24 24"><path d="M9 11h6M9 15h4M5 4h14v16H5z"/></svg>Scenario plans with one click</li>
-                <li><svg class="icon" viewBox="0 0 24 24"><path d="M4 4h16v16H4zM4 12h16M12 4v16"/></svg>Board-ready exports to CSV and PDF</li>
+              <h3 class="h-4">RFQs and quotes</h3>
+              <ul class="spec-list mt-1">
+                <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 3 10 14M21 3l-7 18-4-7-7-4z"/></svg>One RFQ to up to 50 suppliers</li>
+                <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/></svg>Each supplier gets its own copy</li>
+                <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 12h16M4 19h16M9 5v14"/></svg>Price, MOQ and lead time side by side</li>
+                <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v10H9l-4 4z"/></svg>Replies in Messages</li>
               </ul>
-              <a class="btn btn--secondary btn--sm" href="pricing.html">Learn more</a>
             </div>
           </article>
           <article class="product-card" data-reveal>
-            <div class="product-card__media"><img src="assets/img/dashboard-card.jpg" alt="A circle0 virtual card with Deposit and Transfer buttons." width="720" height="726" loading="lazy"></div>
+            <div class="product-card__media stage" data-ground="night">
+              <picture class="stage__bg">
+                <source type="image/avif" srcset="assets/img/bg-thread-1x.avif 1280w" sizes="400px">
+                <source type="image/webp" srcset="assets/img/bg-thread-1x.webp 1280w" sizes="400px">
+                <img src="assets/img/bg-thread-1x.jpg" alt="" width="1280" height="724" loading="lazy" decoding="async">
+              </picture>
+              <figure class="shot">
+                <picture>
+                  <source media="(prefers-color-scheme: dark)" type="image/avif" srcset="assets/img/screen-compliance-dark-1x.avif 800w, assets/img/screen-compliance-dark-2x.avif 1600w" sizes="(max-width: 639px) 110vw, 480px">
+                  <source media="(prefers-color-scheme: dark)" type="image/webp" srcset="assets/img/screen-compliance-dark-1x.webp 800w, assets/img/screen-compliance-dark-2x.webp 1600w" sizes="(max-width: 639px) 110vw, 480px">
+                  <source media="(prefers-color-scheme: dark)" srcset="assets/img/screen-compliance-dark-1x.jpg 800w, assets/img/screen-compliance-dark-2x.jpg 1600w" sizes="(max-width: 639px) 110vw, 480px">
+                  <source type="image/avif" srcset="assets/img/screen-compliance-light-1x.avif 800w, assets/img/screen-compliance-light-2x.avif 1600w" sizes="(max-width: 639px) 110vw, 480px">
+                  <source type="image/webp" srcset="assets/img/screen-compliance-light-1x.webp 800w, assets/img/screen-compliance-light-2x.webp 1600w" sizes="(max-width: 639px) 110vw, 480px">
+                  <img src="assets/img/screen-compliance-light-1x.jpg" srcset="assets/img/screen-compliance-light-1x.jpg 800w, assets/img/screen-compliance-light-2x.jpg 1600w" sizes="(max-width: 639px) 110vw, 480px" alt="The Compliance page: 14 certificates that need attention, expired first, each with an ask for the new certificate, beside the UFLPA Entity List checks." width="800" height="600" loading="lazy" decoding="async">
+                </picture>
+              </figure>
+            </div>
             <div class="product-card__body">
-              <h3 class="h-3 mt-3">Payments</h3>
-              <ul class="spec-list mt-2">
-                <li><svg class="icon" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>Quick send to saved contacts</li>
-                <li><svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16v12H4zM4 7l8 6 8-6"/></svg>Payment requests with hosted links</li>
-                <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Approval chains by amount</li>
-                <li><svg class="icon" viewBox="0 0 24 24"><path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z"/></svg>Virtual cards that expire on time</li>
+              <h3 class="h-4">Compliance</h3>
+              <ul class="spec-list mt-1">
+                <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v5M12 16.5v.5"/><path d="M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>Certificates that need a look, expired first</li>
+                <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v6c0 4.4 3 7.6 7 9 4-1.4 7-4.6 7-9V6z"/><path d="m9 12 2 2 4-4"/></svg>UFLPA Entity List and sanctions checks</li>
+                <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v10H9l-4 4z"/></svg>Ask a supplier for the new certificate</li>
+                <li><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Every date as a CSV</li>
               </ul>
-              <a class="btn btn--secondary btn--sm" href="pricing.html">Learn more</a>
             </div>
           </article>
         </div>
       </div>
     </section>
 
-    <!-- 10. Customer stories -->
-    <section class="section section--flush-top" id="stories" aria-labelledby="stories-title">
+    <!-- 10. One factory, followed (was the customer stories) -->
+    <section class="section section--flush-top" id="record" aria-labelledby="record-title">
       <div class="container">
-        <h2 class="h-2 maxw-560" id="stories-title" data-reveal>Trusted by teams that lead change</h2>
+        <h2 class="h-2 maxw-720" id="record-title" data-reveal>One factory, followed from a search to an RFQ</h2>
         <article class="story story--lg mt-8" data-reveal>
           <div class="story__body">
-            <span class="logo-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>Quantum</span>
-            <blockquote>“We’ve seen a real change in how the team works with money since moving to circle0. Approvals, forecasts and the close all live in one place, and it is simple enough that the whole company uses it.”</blockquote>
-            <a class="link" href="contact.html?topic=sales">Read the story</a>
+            <p class="muted">Mondol Fabrics Ltd. makes knitwear in Kashimpur, Gazipur. This is its record, row by row, as read on 7 Oct 2026.</p>
+            <div class="record" aria-label="The whole Mondol Fabrics Ltd. record">
+              <div class="record__head"><span class="record__name">Mondol Fabrics Ltd.</span><span class="caption">Saved · watching</span></div>
+              <div class="record__row"><span class="mark mark--stamp" aria-hidden="true">5</span><div><span class="record__label">Sources</span><span class="record__value">EPB, RSC, BGMEA, BKMEA, GOTS</span><span class="record__from">EPB BD04644 · RSC 10861 · BGMEA 4002 · BKMEA 1004-B/2006 · GOTS-19020</span></div></div>
+              <div class="record__row"><span class="mark" data-tier="3"><img src="assets/marks/gots.png" alt="" width="17" height="17"></span><div><span class="record__label">GOTS certificate</span><span class="record__value record__value--watch">GOTS-19020 · expires 15 Dec 2026</span><span class="record__from">Issued by GSCS International Ltd. · read 26 Jun 2026</span></div></div>
+              <div class="record__row"><span class="mark" data-tier="1"><img src="assets/marks/rsc.png" alt="" width="17" height="8"></span><div><span class="record__label">Workers</span><span class="record__value">2,060 across 2 sites</span><span class="record__from">From RSC · read 2 Oct 2026</span></div></div>
+              <div class="record__row"><span class="mark" data-tier="2"><img src="assets/marks/bkmea.png" alt="" width="17" height="14"></span><div><span class="record__label">Site</span><span class="record__value">Nayapara, Kashimpur, Gazipur</span><span class="record__from">Approximate location · from BGMEA and BKMEA</span></div></div>
+              <div class="record__row"><span class="mark mark--stamp" aria-hidden="true">RFQ</span><div><span class="record__label">RFQ</span><span class="record__value"><span class="dot" aria-hidden="true"></span>&nbsp; Waiting for a quote</span><span class="record__from">Contact details stay locked. The supplier replies in Messages.</span></div></div>
+            </div>
           </div>
-          <img class="story__photo" src="assets/img/portrait-laptop.jpg" alt="Robart Esperanza, Head of Finance at Quantum, working at a laptop." width="1200" height="800" loading="lazy">
+          <picture>
+            <source type="image/avif" srcset="assets/img/photo-rolls-1x.avif 640w, assets/img/photo-rolls-2x.avif 1280w" sizes="(max-width: 767px) 100vw, 420px">
+            <source type="image/webp" srcset="assets/img/photo-rolls-1x.webp 640w, assets/img/photo-rolls-2x.webp 1280w" sizes="(max-width: 767px) 100vw, 420px">
+            <img class="story__photo" src="assets/img/photo-rolls-1x.jpg" srcset="assets/img/photo-rolls-1x.jpg 640w, assets/img/photo-rolls-2x.jpg 1280w" sizes="(max-width: 767px) 100vw, 420px" alt="Rolls of finished knitted fabric on steel racks in a knitwear factory store. Illustration, not Mondol Fabrics." width="640" height="800" loading="lazy" decoding="async">
+          </picture>
         </article>
         <div class="grid-3 mt-3">
           <article class="story" data-reveal>
-            <span class="logo-item"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 4 20h16z"/></svg>Sailwind</span>
-            <blockquote>“We rely on circle0 to keep three entities organized and the board deck honest.”</blockquote>
-            <a class="link" href="contact.html?topic=sales">Read the story</a>
+            <p class="story__src"><span class="mark" data-tier="1"><img src="assets/marks/rsc.png" alt="" width="22" height="10"></span><span>2 sources differ<span>RSC and BGMEA</span></span></p>
+            <blockquote>RSC counted 2,060 workers in 2 buildings. BGMEA has 4,200 employees, as declared by the factory. You see both.</blockquote>
           </article>
           <article class="story" data-reveal>
-            <span class="logo-item"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h10a5 5 0 0 1 0 10h-2l6 6h-4l-6-6V4z"/></svg>Retro</span>
-            <blockquote>“circle0 made our close simpler and faster. Nine days became two.”</blockquote>
-            <a class="link" href="contact.html?topic=sales">Read the story</a>
+            <p class="story__src"><span class="mark" data-tier="2"><img src="assets/marks/bgmea.png" alt="" width="22" height="15"></span><span>One address, on the map<span>BGMEA and BKMEA</span></span></p>
+            <blockquote>Nayapara, Kashimpur, Gazipur. The pin marks the area, not the building, and we say so.</blockquote>
           </article>
           <article class="story" data-reveal>
-            <span class="logo-item"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 18 9 6l3 7 3-7 5 12h-3l-2-5-3 6-3-6-2 5z"/></svg>Stremax</span>
-            <blockquote>“Our team stays aligned on cash without a single spreadsheet.”</blockquote>
-            <a class="link" href="contact.html?topic=sales">Read the story</a>
+            <p class="story__src"><span class="mark mark--stamp" aria-hidden="true">DHS</span><span>Checked against the UFLPA Entity List<span>US DHS · our copy from 14 May 2026</span></span></p>
+            <blockquote>No link found. Mondol Fabrics Ltd. is not on the list. We check your saved suppliers again with each new copy.</blockquote>
           </article>
         </div>
       </div>
@@ -446,46 +524,63 @@
     <section class="section section--flush-top" id="faq" aria-labelledby="faq-title">
       <div class="container split split--narrow-left split--top">
         <div data-reveal>
-          <h2 class="h-2" id="faq-title">Questions, answered</h2>
-          <p class="lead mt-3">Anything else? <a class="link" href="contact.html">Talk to us</a>. A real person replies within one business day.</p>
+          <h2 class="h-2" id="faq-title">Asked before you sign up</h2>
+          <p class="lead mt-3">Anything else? <a class="link" href="contact.html">Talk to us</a>. Your message goes to the founder by email.</p>
         </div>
         <div class="accordion" data-single data-reveal>
           <div class="accordion__item">
-            <h3><button class="accordion__trigger" type="button" aria-expanded="true" aria-controls="faq-1" id="faq-1-btn">Which banks and cards can I connect?<span class="accordion__icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></button></h3>
-            <div class="accordion__panel" id="faq-1" role="region" aria-labelledby="faq-1-btn" data-open="true"><div class="accordion__content">Over 11,000 institutions across the US, UK and EU through our banking partners, plus Stripe, PayPal and major card issuers. Connections refresh every few minutes.</div></div>
+            <h3><button class="accordion__trigger" type="button" aria-expanded="true" aria-controls="faq-1" id="faq-1-btn">Where do the facts come from?<span class="accordion__icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></button></h3>
+            <div class="accordion__panel" id="faq-1" role="region" aria-labelledby="faq-1-btn" data-open="true"><div class="accordion__content">From 21 public sources, 14 of them holding supplier records: government bodies and RSC, trade bodies such as BGMEA and BKMEA, certification bodies, brand supplier lists and the UFLPA Entity List. Each fact shows its source and the date we read it.</div></div>
           </div>
           <div class="accordion__item">
-            <h3><button class="accordion__trigger" type="button" aria-expanded="false" aria-controls="faq-2" id="faq-2-btn">Is circle0 a bank?<span class="accordion__icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></button></h3>
-            <div class="accordion__panel" id="faq-2" role="region" aria-labelledby="faq-2-btn"><div class="accordion__content">No. circle0 is a financial operations platform. Funds stay with your existing bank or with our partner banks, where deposits are insured up to the usual limits.</div></div>
+            <h3><button class="accordion__trigger" type="button" aria-expanded="false" aria-controls="faq-2" id="faq-2-btn">Do you score or rank suppliers?<span class="accordion__icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></button></h3>
+            <div class="accordion__panel" id="faq-2" role="region" aria-labelledby="faq-2-btn"><div class="accordion__content">No. We show what each source says and when we read it. There is no grade, rating or star on any supplier.</div></div>
           </div>
           <div class="accordion__item">
-            <h3><button class="accordion__trigger" type="button" aria-expanded="false" aria-controls="faq-3" id="faq-3-btn">Can my accountant have their own login?<span class="accordion__icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></button></h3>
-            <div class="accordion__panel" id="faq-3" role="region" aria-labelledby="faq-3-btn"><div class="accordion__content">Yes. Invite guests on any plan. Guests can be read-only, can categorize, or can approve, and every action they take lands in the audit log.</div></div>
+            <h3><button class="accordion__trigger" type="button" aria-expanded="false" aria-controls="faq-3" id="faq-3-btn">Can a supplier pay to appear higher?<span class="accordion__icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></button></h3>
+            <div class="accordion__panel" id="faq-3" role="region" aria-labelledby="faq-3-btn"><div class="accordion__content">No. No supplier pays to rank higher or look better.</div></div>
           </div>
           <div class="accordion__item">
-            <h3><button class="accordion__trigger" type="button" aria-expanded="false" aria-controls="faq-4" id="faq-4-btn">How long does setup take?<span class="accordion__icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></button></h3>
-            <div class="accordion__panel" id="faq-4" role="region" aria-labelledby="faq-4-btn"><div class="accordion__content">Most teams connect their accounts and see a live dashboard in under twenty minutes. Historical import of up to 24 months runs in the background.</div></div>
+            <h3><button class="accordion__trigger" type="button" aria-expanded="false" aria-controls="faq-4" id="faq-4-btn">How fresh is each fact?<span class="accordion__icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></button></h3>
+            <div class="accordion__panel" id="faq-4" role="region" aria-labelledby="faq-4-btn"><div class="accordion__content">Each fact shows the date we read its source. The latest register read was 6 Oct 2026.</div></div>
+          </div>
+          <div class="accordion__item">
+            <h3><button class="accordion__trigger" type="button" aria-expanded="false" aria-controls="faq-5" id="faq-5-btn">How do I contact a supplier?<span class="accordion__icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></button></h3>
+            <div class="accordion__panel" id="faq-5" role="region" aria-labelledby="faq-5-btn"><div class="accordion__content">Contact details stay locked. Send an RFQ and the supplier replies in Messages.</div></div>
+          </div>
+          <div class="accordion__item">
+            <h3><button class="accordion__trigger" type="button" aria-expanded="false" aria-controls="faq-6" id="faq-6-btn">Do you list buying houses too?<span class="accordion__icon" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></button></h3>
+            <div class="accordion__panel" id="faq-6" role="region" aria-labelledby="faq-6-btn"><div class="accordion__content">Yes. Search can be narrowed to factories or to buying houses.</div></div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- 12. CTA -->
+    <!-- 12. CTA on the loom loop -->
     <section class="section section--flush-top" aria-labelledby="cta-title">
       <div class="container">
-        <div class="panel cta-panel" data-parallax data-reveal>
-          <img class="panel__bg" src="assets/img/gradient-cta.jpg" alt="" width="1584" height="672" loading="lazy">
+        <div class="stage cta-panel" data-ground="night" data-reveal>
+          <div class="stage__bg">
+            <picture>
+              <source type="image/avif" srcset="assets/video/loom-poster.avif">
+              <img src="assets/video/loom-poster.jpg" alt="" width="1440" height="618" loading="lazy" decoding="async">
+            </picture>
+            <video data-loop muted loop playsinline preload="none" aria-hidden="true" tabindex="-1" width="1440" height="618">
+              <source data-src="assets/video/loom.webm" type="video/webm">
+              <source data-src="assets/video/loom.mp4" type="video/mp4">
+            </video>
+          </div>
           <div>
-            <h2 class="h-1" id="cta-title">Start running your money<br>on circle0 today</h2>
-            <p>Free for 14 days. No card needed.</p>
-            <a class="btn btn--white" href="signup.html">Get started now</a>
+            <h2 class="h-1" id="cta-title">Now you know who<br>you’re buying from.</h2>
+            <p>Do the same for any of 10,277 suppliers. Free during beta, no card needed.</p>
+            <a class="btn btn--primary" href="/signup">Start free</a>
           </div>
           <div class="cta-panel__cards" aria-hidden="true">
-            <div class="float-card"><span class="chip chip--violet"><svg class="icon" viewBox="0 0 24 24"><path d="M4 7h16v12H4zM4 7l8 6 8-6"/></svg></span><div><strong>Invoice #1042 paid</strong><span>In process</span></div></div>
+            <div class="note pane pane-glass"><span class="mark" data-tier="2"><img src="assets/marks/bgmea.png" alt="" width="22" height="15"></span><div><strong>Saved</strong><span>Mondol Fabrics Ltd. · 5 sources</span></div></div>
             <span class="connector"></span>
-            <div class="float-card"><span class="chip chip--lime"><svg class="icon" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></span><div><strong>Matched to Quantum</strong><span>Reconciled</span></div></div>
+            <div class="note pane pane-glass"><span class="mark mark--stamp">RFQ</span><div><strong>RFQ sent</strong><span>Each supplier gets its own copy</span></div></div>
             <span class="connector"></span>
-            <div class="float-card"><span class="chip chip--blue"><svg class="icon" viewBox="0 0 24 24"><path d="M4 19h16M4 15l5-5 4 4 7-7"/></svg></span><div><strong>Forecast updated</strong><span>Runway 14.2 months</span></div></div>
+            <div class="note pane pane-glass"><span class="mark mark--stamp"><span class="dot"></span></span><div><strong>Waiting for a quote</strong><span>Replies arrive in Messages</span></div></div>
           </div>
         </div>
       </div>
@@ -496,26 +591,16 @@
     <div class="container">
       <div class="footer-grid">
         <div class="footer-brand">
-          <a class="brand" href="index.html" aria-label="circle0 home">circle<svg class="brand__mark" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="22" fill="none" stroke="currentColor" stroke-width="13" stroke-linecap="round" stroke-dasharray="118 20.25" transform="rotate(-60 32 32)"/><circle cx="51" cy="13" r="6.5" fill="#ADF74C"/></svg></a>
-          <p>Finance operations for growing teams. Balances, cash flow and payments in one place.</p>
-          <ul class="footer-contact">
-            <li><svg class="icon" viewBox="0 0 24 24"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg><a href="mailto:hello@circle0.com">hello@circle0.com</a></li>
-            <li><svg class="icon" viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg><a href="tel:+12125550142">+1 (212) 555-0142</a></li>
-            <li><svg class="icon" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg><span>New York, USA</span></li>
-          </ul>
+          <a class="brand" href="index.html" aria-label="SourceBD home"><img src="assets/brand/favicon-192.png" alt="" width="28" height="28">SourceBD</a>
+          <p>Every fact on a Bangladesh garment supplier, with its source and date.</p>
+          <span class="mono">10,277 suppliers · 21 sources listed · 14 hold supplier records · updated 6 Oct 2026</span>
         </div>
-        <div class="footer-col"><h3>Product</h3><ul><li><a href="index.html#product">Overview</a></li><li><a href="pricing.html">Pricing</a></li><li><a href="integrations.html">Integrations</a></li><li><a href="login.html">Dashboard</a></li></ul></div>
-        <div class="footer-col"><h3>Company</h3><ul><li><a href="careers.html">Careers</a></li><li><a href="careers.html#culture">Culture</a></li><li><a href="contact.html">Contact</a></li><li><a href="contact.html#offices">Offices</a></li></ul></div>
-        <div class="footer-col"><h3>Resources</h3><ul><li><a href="contact.html">Help center</a></li><li><a href="index.html#faq">FAQ</a></li><li><a href="index.html#stories">Customer stories</a></li><li><a href="pricing.html#compare">Compare plans</a></li></ul></div>
-        <div class="footer-col"><h3>Account</h3><ul><li><a href="login.html">Log in</a></li><li><a href="signup.html">Sign up</a></li><li><a href="forgot-password.html">Forgot password</a></li></ul></div>
+        <div class="footer-col"><h2>Product</h2><ul><li><a href="index.html#product">Overview</a></li><li><a href="pricing.html">Pricing</a></li><li><a href="integrations.html">Sources</a></li><li><a href="index.html#faq">Questions</a></li></ul></div>
+        <div class="footer-col"><h2>Company</h2><ul><li><a href="contact.html">Contact sales</a></li><li><a href="/security">Security</a></li><li><a href="/legal/privacy">Privacy</a></li><li><a href="/legal/terms">Terms</a></li></ul></div>
+        <div class="footer-col"><h2>Account</h2><ul><li><a href="login.html">Log in</a></li><li><a href="signup.html">Sign up</a></li><li><a href="forgot-password.html">Forgot password</a></li></ul></div>
       </div>
       <div class="footer-bottom">
-        <p>© <span data-year>2026</span> circle0, Inc. All rights reserved.</p>
-        <div class="social">
-          <a href="https://www.linkedin.com/" aria-label="circle0 on LinkedIn" rel="noopener" target="_blank"><svg viewBox="0 0 24 24"><path d="M6.5 8.5H3V21h3.5zM4.8 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM21 13.4c0-3.6-2-5.3-4.6-5.3a4 4 0 0 0-3.6 2V8.5H9.4V21h3.5v-6.6c0-1.7.8-2.8 2.3-2.8s2.2 1 2.2 2.8V21H21z"/></svg></a>
-          <a href="https://x.com/" aria-label="circle0 on X" rel="noopener" target="_blank"><svg viewBox="0 0 24 24"><path d="M17.5 3h3.1l-6.8 7.8L21.8 21h-6.2l-4.9-6.4L5.1 21H2l7.3-8.3L1.6 3H8l4.4 5.8zm-1.1 16.2h1.7L7 4.7H5.2z"/></svg></a>
-          <a href="https://www.instagram.com/" aria-label="circle0 on Instagram" rel="noopener" target="_blank"><svg viewBox="0 0 24 24"><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 8.2a3.2 3.2 0 1 1 0-6.4 3.2 3.2 0 0 1 0 6.4zM17.3 5.5a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4zM21 12c0-1.2 0-2.5-.1-3.7a5.3 5.3 0 0 0-1.4-3.8A5.3 5.3 0 0 0 15.7 3C14.5 3 13.2 3 12 3s-2.5 0-3.7.1a5.3 5.3 0 0 0-3.8 1.4A5.3 5.3 0 0 0 3 8.3C3 9.5 3 10.8 3 12s0 2.5.1 3.7a5.3 5.3 0 0 0 1.4 3.8 5.3 5.3 0 0 0 3.8 1.4c1.2.1 2.5.1 3.7.1s2.5 0 3.7-.1a5.3 5.3 0 0 0 3.8-1.4 5.3 5.3 0 0 0 1.4-3.8c.1-1.2.1-2.5.1-3.7zm-2.2 5a3 3 0 0 1-1.7 1.7c-1.2.5-4 .4-5.1.4s-4 .1-5.1-.4A3 3 0 0 1 5.2 17c-.5-1.2-.4-4-.4-5.1s-.1-4 .4-5.1A3 3 0 0 1 6.9 5c1.2-.5 4-.4 5.1-.4s4-.1 5.1.4A3 3 0 0 1 18.8 7c.5 1.2.4 4 .4 5.1s.1 4-.4 5z"/></svg></a>
-        </div>
+        <p>© <span data-year>2026</span> SourceBD. No scores. No paid placement. No fact without a source and a date.</p>
       </div>
     </div>
   </footer>
