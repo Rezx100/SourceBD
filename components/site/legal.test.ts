@@ -33,7 +33,9 @@ describe("the legal pages", () => {
   });
 
   it("the four notices say when they were last updated, in words", () => {
-    for (const slug of ["privacy", "terms", "cookies", "data-sources"]) assert.match(text(html(slug)), /Last updated 3 Jun 2026/, slug);
+    for (const slug of ["terms", "cookies", "data-sources"]) assert.match(text(html(slug)), /Last updated 3 Jun 2026/, slug);
+    // Privacy section 5 was reworded on 6 Oct 2026 (sub-processors, one list with the Security page).
+    assert.match(text(html("privacy")), /Last updated 6 Oct 2026/);
   });
 
   it("the privacy notice keeps its sentinels and its numbered sections", () => {

@@ -9,10 +9,11 @@
 // without a code change.
 
 import { LegalShell, legalDay } from "@/components/site/legal";
+import { subprocessorSentence } from "@/components/site/subprocessors";
 
 export const dynamic = "force-static";
 
-const LAST_UPDATED = "2026-06-03";
+const LAST_UPDATED = "2026-10-06";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://sourcebd.net";
@@ -109,9 +110,7 @@ export default function PrivacyPage() {
         </h2>
         <p>
           We share data only with sub-processors necessary to run the
-          service: Supabase (hosting + database), Stripe (payments),
-          Resend (transactional email), Sentry (error monitoring),
-          PostHog (product analytics), and our hosting providers. We
+          service: {subprocessorSentence()}. We
           do not sell personal data and do not share it with
           advertisers.
         </p>
