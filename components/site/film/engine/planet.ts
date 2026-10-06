@@ -76,6 +76,17 @@ export function defaultFrame(p: number, w: number, h: number): Frame {
   return { cx: w * (0.74 - 0.24 * e), cy: h * (0.58 - 0.08 * e), r: r0 * (1 + 2.4 * e) };
 }
 
+/** The frame that draws one degree of longitude at `lat` as `px` pixels, centred at (cx, cy): the map's camera, as the planet sees it. */
+export function frameFor(px: number, lat: number, cx: number, cy: number): Frame {
+  return { cx, cy, r: px / (Math.cos(lat * RAD) * RAD) };
+}
+
+/** Between two frames at `t`, eased; the radius moves by ratio, as a camera zooms, not by difference. */
+export function blendFrame(a: Frame, b: Frame, t: number): Frame {
+  const e = t * t * (3 - 2 * t);
+  return { cx: a.cx + (b.cx - a.cx) * e, cy: a.cy + (b.cy - a.cy) * e, r: a.r * (b.r / a.r) ** e };
+}
+
 const POINT_VS = `#version 300 es
 in vec3 aPos; in float aSize; in float aPhase; in float aKind;
 uniform mat3 uRot; uniform vec2 uCenter; uniform vec2 uRes; uniform float uRadius; uniform float uScale;

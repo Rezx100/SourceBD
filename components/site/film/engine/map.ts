@@ -76,9 +76,16 @@ export function toGeo(bd: BdData, cells: readonly Cell[]) {
   };
 }
 
-/** The camera's marks along the map's own scroll, 0 to 1: the country, each district in turn, then Gazipur. */
+/** Pixels per degree of longitude at a zoom (512-pixel tiles): the scale the planet's dive ends at (§3.5). */
+export const tileScale = (zoom: number): number => (512 * 2 ** zoom) / 360;
+
+/**
+ * The camera's marks along the map's own scroll, 0 to 1: the handover, each district in turn, then Gazipur. The
+ * first mark is where the planet leaves off (`handoverFrame` in start.ts): north up, barely tilted, the country
+ * small in its region, so the map takes over in place and the camera keeps coming in.
+ */
 export const STOPS: readonly (Camera & { p: number })[] = [
-  { p: 0, center: [90.35, 23.5], zoom: 6.0, pitch: 34, bearing: -6 },
+  { p: 0, center: [90.4, 23.7], zoom: 5.5, pitch: 18, bearing: 0 },
   { p: 0.2, center: [90.36, 23.6], zoom: 6.35, pitch: 42, bearing: -8 },
   { p: 0.4, center: [90.42, 23.75], zoom: 6.5, pitch: 44, bearing: -4 },
   { p: 0.55, center: [90.53, 23.5], zoom: 6.5, pitch: 44, bearing: 2 },

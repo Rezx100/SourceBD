@@ -9,7 +9,7 @@ from a dot on the planet to an RFQ. Front end only: no migration, no new package
 | -- | -- | -- |
 | 1 | The dark set, the film tokens and type sizes, the Pane family, the thread, the rail, `/dev/ds`, the planet and map engines, the open map data | built, 6 Oct 2026 |
 | 2a | The flag (`?film=1`), the tier, the director, and scenes 01 to 03 on all three tiers | built, 6 Oct 2026 |
-| 2b | The dated supplier cells and the factory's own geocode (`cells.json`), `ops/plans/home-film-data.md`, the credit on `/legal/data-sources`, stills for the lite and still tiers, the planet handing over to the map, `cobe` out of `package.json` | next; the cells need the Supabase connector |
+| 2b | The dated supplier cells and the factory's own geocode (`cells.json`), `ops/plans/home-film-data.md`, the credit on `/legal/data-sources`, stills for the lite and still tiers, the planet handing over to the map in one move, `cobe` out of `package.json` | built, 6 Oct 2026 |
 | 3 | The director and scenes 04 and 05 | |
 | 4 | Scenes 06 to 08 | |
 | 5 | Scenes 09 to 12 and the rail | |
@@ -35,6 +35,23 @@ Found while building slice 1, and where it differs from the text below:
   the nav, the footer and the cookie banner have not been looked at in dark yet.
 - The look-dev page is a local harness (`.impeccable/preview/film/`, not in the repo); its supplier lights are
   stand-ins until slice 2 reads the dated file.
+
+Found while building slice 2b (6 Oct 2026):
+- The Supabase connector was not authorised in that session either, so the cells were read through the project's
+  own service key and the PostgREST API (the three reads `lib/nearby-suppliers.ts` makes), read-only, by
+  `scripts/film/build-cells.mjs`. Result: 9,541 of 10,277 published suppliers have a mapped address; 1,242 cells;
+  the SQL it stands for and the run are in `ops/plans/home-film-data.md`.
+- The factory's own geocode is an area, not a building (Barikoi: `incomplete`, confidence 40). Scene 06's ring
+  must be about a kilometre wide.
+- The opening is one scene (`data-scene="opening"`, 640svh on the full tier): the planet's act lies over the map
+  and gives way to it as the dive ends (`--hand`, `--words`, written by `engine/start.ts`, moved by CSS). The
+  dive ends where the map's first camera begins (`handoverFrame`: the story's home at the map's centre, one
+  degree the same width on both), so the map's first mark is now zoom 5.5, north up, barely tilted, and the
+  geography's box widened to [66, 6, 106, 38] so its edge is never seen.
+- The still tier gets a picture of the planet; the lite and still tiers get pictures of the map in both themes
+  (`public/site/film/*.avif`, six files, 11 to 32 KB each, shot from the engines by the local harness). The
+  full tier draws both live and loads no picture on the first screen, as the budget asks.
+- `cobe` is out of `package.json` and the lockfile (`pnpm install --lockfile-only`; nothing imported it).
 
 ---
 

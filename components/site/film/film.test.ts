@@ -1,9 +1,10 @@
-// The home film, slice 1 (handoff-home-film §3): the dark set and its contrast, the Pane's legibility over what
-// may pass behind it, what Tailwind really emits for the theme and the film's classes, the markup of the Pane
-// family, the thread and the rail, the engine's arithmetic, and the shape of the map data.
+// The home film, slices 1 and 2 (handoff-home-film §3 to §6): the dark set and its contrast, the Pane's legibility
+// over what may pass behind it, what Tailwind really emits for the theme and the film's classes, the markup of the
+// Pane family, the thread and the rail, the home page with the film off and on, the tier and the flag, the
+// engine's arithmetic (the scroll, the opening's handover, the planet, the map), and the shape of the data files.
 
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
@@ -12,15 +13,16 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { contrastRatio, dark, darkPairs, filmColors, filmPairs, light, paneBehind, paneGlass, paneGround, resolve, toRgb } from "@/lib/design/tokens";
 import { currentChapter, sceneProgress } from "./engine/director";
-import { DISTRICTS, STOPS, cameraAt, column, createMap, toGeo, unpack, type BdData } from "./engine/map";
-import { HOME, defaultFrame, facing, isLand, landPoints, lightSize, project, toVec } from "./engine/planet";
+import { DISTRICTS, STOPS, cameraAt, column, createMap, tileScale, toGeo, unpack, type BdData } from "./engine/map";
+import { HOME, blendFrame, defaultFrame, facing, frameFor, isLand, landPoints, lightSize, project, toVec } from "./engine/planet";
+import { OPENING, handoverFrame, openingAt, type CellFile } from "./engine/start";
 import { V4Film } from "@/app/dev/ds/v4-film";
 import { Home } from "@/components/site/home";
-import { parseFacts } from "@/lib/site-facts";
+import DataSourcesPage from "@/app/(marketing)/legal/data-sources/page";
+import { parseFacts, readDay, withCommas } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
-import type { CellFile } from "./engine/start";
 import { TIER_SCRIPT, filmOn, pickTier, type Device } from "./engine/tier";
-import { LIGHTS } from "./opening";
+import { LIGHTS, LIGHTS_FILE, MAP_CREDIT } from "./opening";
 import { FieldPane, Pane, RecordPane, type RecordRow } from "./pane";
 import { Rail, Thread, ThreadLayer } from "./thread";
 
@@ -81,7 +83,7 @@ describe("what Tailwind emits", () => {
   const tailwind = require("tailwindcss") as (config: object) => import("postcss").AcceptedPlugin;
   const loadConfig = require("tailwindcss/loadConfig") as (file: string) => Record<string, unknown>;
   /* eslint-enable @typescript-eslint/no-require-imports */
-  const classes = ["has-[input:focus-visible]:outline-focus", "text-brand-ink", "bg-map-water", "text-film-hero", "text-film-figure-phone", "rounded-pane", "max-sm:rounded-pane-phone", "pane", "pane-glass", "pane-sheen", "rec-arrive", "thread", "thread-join", "thread-draw", "thread-end"];
+  const classes = ["has-[input:focus-visible]:outline-focus", "text-brand-ink", "bg-map-water", "text-film-hero", "text-film-figure-phone", "rounded-pane", "max-sm:rounded-pane-phone", "pane", "pane-glass", "pane-sheen", "rec-arrive", "thread", "thread-join", "thread-draw", "thread-end", "film-full:z-raised", "film:hidden", "film-full:hidden"];
   const compiled = postcss([tailwind({ ...loadConfig(path.join(repoRoot, "tailwind.config.ts")), content: [{ raw: classes.join(" "), extension: "html" }] })])
     .process(readFileSync(path.join(repoRoot, "app/ds.css"), "utf8"), { from: undefined })
     .then((r) => r.css.replace(/\s+/g, " "));
@@ -148,6 +150,15 @@ describe("what Tailwind emits", () => {
   it("the search pane's focus ring is a real rule", async () => {
     const css = await compiled;
     assert.ok(css.includes(":has(input:focus-visible) { outline-color: rgb(var(--ds-focus)"), "no has-[input:focus-visible]:outline-focus rule");
+  });
+
+  it("the handover is CSS from two numbers the scroll writes, on the full tier only, and what has gone lets the pointer through", async () => {
+    const css = await compiled;
+    assert.match(block(css, '[data-film-tier="full"] [data-act="planet"] {'), /opacity: calc\(1 - var\(--hand, 0\)\)/);
+    assert.match(block(css, '[data-film-tier="full"] [data-hero] {'), /opacity: calc\(1 - var\(--words, 0\)\); transform: translateY/);
+    assert.match(css, /\[data-film-tier="full"\] :is\(\[data-act="planet"\]\[data-past\], \[data-hero\]\[data-gone\]\) \{ visibility: hidden/);
+    assert.match(block(css, ".film-full\\:z-raised {"), /z-index: 10/);
+    assert.match(css, /:is\(\[data-film-tier="full"\], \[data-film-tier="lite"\]\) \.film\\:hidden \{ display: none/);
   });
 
   it("the sheen passes once, never in a loop", async () => {
@@ -283,23 +294,49 @@ describe("the home page, film off and film on", () => {
     assert.match(on, /href="\/contact"[^>]*>Book a demo/);
   });
 
-  it("the planet is night in either theme, and what it draws is decoration: the words carry the facts", () => {
-    assert.match(on, /<section data-scene="planet" data-chapter="ch-1" data-ground="night"/);
+  it("the opening is one scene with the planet's act over the map, night in either theme; what they draw is decoration", () => {
+    assert.match(on, /<section id="ch-1" data-scene="opening" data-chapter="ch-1"/);
+    assert.match(on, /<div data-scene="planet" data-chapter="ch-1" data-act="planet" data-ground="night" class="[^"]*film-full:absolute[^"]*film-full:z-raised/);
+    assert.ok(on.indexOf('data-act="planet"') < on.indexOf("<div data-map"), "the planet's act comes first: the page's headline is still the first thing read");
     assert.match(on, /<canvas data-planet="true" aria-hidden="true"/);
     assert.match(on, /<div data-planet-callouts="true" aria-hidden="true"/);
+    assert.match(on, /<div data-map="true" aria-hidden="true"/);
+    assert.equal((on.match(/data-scene="/g) ?? []).length, 2);
+  });
+
+  it("the tiers that do not draw live get pictures, lazily and in the system's theme, and the full tier hides them", () => {
+    const planet = on.slice(on.indexOf("<picture"), on.indexOf("</picture>"));
+    assert.match(planet, /^<picture class="absolute inset-0 block film:hidden"><source media="\(max-width: 767px\)" srcSet="\/site\/film\/planet-upright\.avif"\/><img src="\/site\/film\/planet\.avif" alt=""/);
+    const stills = [...on.matchAll(/<picture class="[^"]*film-full:hidden[^"]*"><source media="\(prefers-color-scheme: dark\)" srcSet="(\/site\/film\/[a-z-]+-dark\.avif)"\/><img src="(\/site\/film\/[a-z-]+-light\.avif)" alt="" width="1200" height="750" loading="lazy" decoding="async"/g)];
+    assert.deepEqual(stills.map((m) => m[2]), ["/site/film/map-country-light.avif", "/site/film/map-gazipur-light.avif"]);
+    const files = readdirSync(path.join(repoRoot, "public/site/film"));
+    for (const src of ["/site/film/planet.avif", "/site/film/planet-upright.avif", ...stills.flatMap((m) => [m[1]!, m[2]!])]) assert.ok(files.includes(path.basename(src)), `${src} is not in public/site/film`);
+    for (const name of files.filter((x) => x.endsWith(".avif"))) assert.ok(statSync(path.join(repoRoot, "public/site/film", name)).size < 160_000, `${name} is heavier than the budget allows`);
+  });
+
+  it("the map's data is credited on the stage, on the stacked page and on /legal/data-sources", () => {
+    assert.equal((on.match(new RegExp(MAP_CREDIT.replace(/\./g, "\\."), "g")) ?? []).length, 2, "once on the stage, once under the stacked page's picture");
+    const legal = text(draw(createElement(AppRouterContext.Provider, { value: router as never }, createElement(DataSourcesPage))));
+    assert.match(legal, /8\. The map on the home page/);
+    assert.match(legal, /Bangladesh Bureau of Statistics and OCHA ROAP/);
+    assert.match(legal, /geoBoundaries/);
+    assert.match(legal, /CC BY 3\.0 IGO/);
+    assert.match(legal, /Natural Earth/);
+    assert.match(legal, /No address, name or identifier leaves our database/);
+    assert.match(legal, /Last updated 6 Oct 2026/);
   });
 
   it("the first screen keeps to three panes of glass, and the planet can be reached through the words", () => {
-    const first = on.slice(on.indexOf('data-scene="planet"'), on.indexOf('data-scene="map"'));
+    const first = on.slice(on.indexOf('data-act="planet"'), on.indexOf("<div data-map"));
     assert.ok((first.match(/pane-glass/g) ?? []).length <= 3);
     assert.match(first, /class="[^"]*pointer-events-none relative flex flex-col items-start[^"]*\[&amp;&gt;\*\]:pointer-events-auto/);
   });
 
-  it("the lights are said in words, with the date of the file they come from", () => {
+  it("the lights are said in words: the file's two counts and the day it was read, and nothing the file does not say", () => {
     const file = JSON.parse(readFileSync(path.join(repoRoot, "public/site/film/cells.json"), "utf8")) as CellFile;
     assert.ok(text(on).includes(LIGHTS));
-    assert.equal(file.date, "2026-10-03");
-    assert.ok(LIGHTS.endsWith("3 Oct 2026") && LIGHTS.includes(file.what));
+    assert.deepEqual({ ...LIGHTS_FILE }, { date: file.date, mapped: file.mapped, suppliers: file.suppliers }, "LIGHTS_FILE in opening.tsx repeats the file: paste what build-cells.mjs printed");
+    assert.equal(LIGHTS, `One light per km² with suppliers · ${withCommas(file.mapped)} of ${withCommas(file.suppliers)} have a mapped address · ${readDay(file.date)}`);
   });
 
   it("the four district counts are all in the page, dated, with no total, and none counts up", () => {
@@ -399,6 +436,47 @@ describe("the scroll's arithmetic", () => {
     assert.equal(currentChapter(scenes, 1000), "ch-1", "between two scenes the one just left stays current");
     assert.equal(currentChapter([{ chapter: "ch-1", top: -1400, bottom: -400 }, { chapter: "ch-02", top: 200, bottom: 2200 }], 1000), "ch-02");
     assert.equal(currentChapter([{ chapter: "ch-1", top: 600, bottom: 1600 }], 1000), null, "before the first scene nothing is current");
+  });
+});
+
+describe("the opening's one scroll", () => {
+  it("is four stretches in order: the dive, the words, the handover, the map; each 0 before and 1 after", () => {
+    assert.deepEqual(openingAt(0), { dive: 0, words: 0, hand: 0, map: 0 });
+    assert.deepEqual(openingAt(1), { dive: 1, words: 1, hand: 1, map: 1 });
+    assert.ok(OPENING.dive[1] <= OPENING.hand[1], "the dive is done before the planet is gone");
+    assert.ok(OPENING.words[1] <= OPENING.hand[1], "the words are gone before the planet is");
+    assert.equal(OPENING.map[0], OPENING.hand[1], "the map's own scroll starts the moment the planet has given way");
+    let last = openingAt(0);
+    for (let p = 0.01; p <= 1; p += 0.01) {
+      const at = openingAt(p);
+      for (const k of ["dive", "words", "hand", "map"] as const) assert.ok(at[k] >= last[k] && at[k] <= 1, `${k} at ${p.toFixed(2)}`);
+      last = at;
+    }
+    assert.equal(openingAt(OPENING.hand[1]).map, 0);
+    assert.equal(openingAt(OPENING.dive[1]).dive, 1);
+  });
+
+  it("the dive ends where the map begins: the story's home at the map's centre, one degree the same width on both", () => {
+    const [w, h] = [1440, 900];
+    const end = handoverFrame(w, h);
+    const rot = facing(STOPS[0]!.center[0], STOPS[0]!.center[1]);
+    const home = project(rot, end, STOPS[0]!.center[0], STOPS[0]!.center[1]);
+    assert.ok(Math.abs(home.x - w * 0.69) < 1e-6 && Math.abs(home.y - h / 2) < 1e-6, "centred in the width the map keeps right of the words");
+    const east = project(rot, end, STOPS[0]!.center[0] + 1, STOPS[0]!.center[1]);
+    assert.ok(Math.abs(east.x - home.x - tileScale(STOPS[0]!.zoom)) / tileScale(STOPS[0]!.zoom) < 0.001, `${east.x - home.x} vs ${tileScale(STOPS[0]!.zoom)} px per degree`);
+    assert.ok(end.r > defaultFrame(0, w, h).r * 4, "the dive is a real dive");
+    assert.deepEqual(STOPS[0]!.center, [HOME.lng, HOME.lat]);
+    assert.equal(STOPS[0]!.bearing, 0, "north up, as the planet is");
+    assert.ok(STOPS[0]!.pitch < 20, "barely tilted, as the planet is");
+  });
+
+  it("a frame blends by ratio of radius, as a camera zooms", () => {
+    const a = { cx: 0, cy: 0, r: 100 }, b = { cx: 100, cy: 50, r: 1600 };
+    assert.deepEqual(blendFrame(a, b, 0), a);
+    assert.deepEqual(blendFrame(a, b, 1), b);
+    const mid = blendFrame(a, b, 0.5);
+    assert.ok(Math.abs(mid.r - 400) < 1e-9 && Math.abs(mid.cx - 50) < 1e-9, "halfway is the geometric middle of the radii");
+    assert.ok(Math.abs(frameFor(tileScale(5.5), 23.7, 0, 0).r * Math.cos((23.7 * Math.PI) / 180) * (Math.PI / 180) - tileScale(5.5)) < 1e-9);
   });
 });
 
@@ -521,20 +599,34 @@ describe("the map's arithmetic", () => {
 describe("the lights file", () => {
   const file = JSON.parse(readFileSync(path.join(repoRoot, "public/site/film/cells.json"), "utf8")) as CellFile & Record<string, unknown>;
 
-  it("is a date, what it counts, and rows of a place and a count: no address, no name, no id", () => {
-    assert.deepEqual(Object.keys(file).filter((k) => k !== "chosen").sort(), ["cells", "date", "what"]);
+  it("is a date, what it counts, two counts, the one place, and rows of a place and a count: no address, no name, no id", () => {
+    assert.deepEqual(Object.keys(file).sort(), ["cells", "chosen", "date", "mapped", "suppliers", "what"]);
     assert.match(file.date, /^\d{4}-\d{2}-\d{2}$/);
-    assert.ok(file.cells.length > 0);
+    assert.ok(Date.parse(file.date) >= Date.parse("2026-10-06") && Date.parse(file.date) <= Date.now(), "read on or after 6 Oct 2026, not in the future");
+    assert.equal(file.what, "suppliers per km²");
+    assert.ok(file.cells.length >= 500, "real cells, not the four district counts");
+    assert.ok(file.mapped <= file.suppliers && file.mapped > file.suppliers * 0.8, "most suppliers have a mapped address");
+    assert.equal(file.cells.reduce((sum, [, , n]) => sum + n, 0), file.mapped, "every mapped supplier is in exactly one cell");
     for (const row of file.cells) {
       assert.equal(row.length, 3);
       const [lng, lat, count] = row;
       assert.ok(lng > 87.9 && lng < 92.8 && lat > 20.4 && lat < 26.8, `a light outside Bangladesh: ${row.join()}`);
       assert.ok(Number.isInteger(count) && count > 0);
+      assert.ok(/^\d+(\.\d{1,3})?$/.test(String(lng)) && /^\d+(\.\d{1,3})?$/.test(String(lat)), `a cell is a kilometre, not an address: ${row.join()}`);
     }
+    assert.ok(file.cells.some(([, , n]) => n >= 40), "a dense cell exists: the heat and the light size are tuned to one");
   });
 
-  it("until the cells are read from production, its rows are exactly the four dated district counts", () => {
-    assert.deepEqual(file.cells, DISTRICTS.map((d) => [d.at[0], d.at[1], d.count]));
+  it("is small enough for the first screen's budget", () => {
+    assert.ok(statSync(path.join(repoRoot, "public/site/film/cells.json")).size < 40_000);
+  });
+});
+
+describe("no library planet", () => {
+  it("cobe is gone from the dependencies and the lockfile, now that the planet is our own", () => {
+    const pkg = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8")) as { dependencies: Record<string, string>; devDependencies: Record<string, string> };
+    assert.ok(!("cobe" in pkg.dependencies) && !("cobe" in pkg.devDependencies));
+    assert.doesNotMatch(readFileSync(path.join(repoRoot, "pnpm-lock.yaml"), "utf8"), /\bcobe@/);
   });
 });
 
@@ -566,6 +658,17 @@ describe("the map data file", () => {
       const [w, s, e, n] = bounds(d.key);
       assert.ok(d.at[0] > w && d.at[0] < e && d.at[1] > s && d.at[1] < n, `${d.label}'s column stands outside ${d.key}`);
     }
+    const file = JSON.parse(readFileSync(path.join(repoRoot, "public/site/film/cells.json"), "utf8")) as CellFile;
+    const [w, s, e, n] = bounds("Gazipur");
+    assert.ok(file.chosen && file.chosen[0] > w && file.chosen[0] < e && file.chosen[1] > s && file.chosen[1] < n, "the story's one place is in Gazipur, where its record says it is");
+  });
+
+  it("the box reaches further than the handover's camera sees, so its edge never shows", () => {
+    // At the first mark the camera centres at 69% of a 1440 screen: 993 px to the left edge, 447 to the right, 450 up and down.
+    const px = tileScale(STOPS[0]!.zoom);
+    const [lng, lat] = STOPS[0]!.center;
+    assert.ok(bd.box[0]! < lng - 993 / px && bd.box[2]! > lng + 447 / px, `east to west: ${bd.box.join()}`);
+    assert.ok(bd.box[1]! < lat - 450 / px && bd.box[3]! > lat + 450 / px + 3, `north to south (the tilt sees a little further north): ${bd.box.join()}`);
   });
 
   it("the land mask is a small PNG", () => {

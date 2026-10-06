@@ -81,7 +81,7 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
 
 - **Buyer app on a phone (30 Sep)** — BUILT on `development` (PRs #218, #220–#224), promotion to `main` next; detail in `archive/state-2026-sep.md`.
 
-- **Home page film (6 Oct)** — IN PROGRESS, `feature-specs/spec-home-film.md`. Slice 1 of 6 built (dark set, Pane family, thread, rail, planet and map engines, `/dev/ds`); nothing on `/` changes until the flag, which is the founder's call.
+- **Home page film (6 Oct)** — IN PROGRESS, `feature-specs/spec-home-film.md`. Slices 1 and 2 of 6 built (dark set, Panes, thread, rail, planet, map, real cells, scenes 01 to 03); nothing on `/` changes until the flag, which is the founder's call.
 
 ## Founder rules still in force (one line each; detail in archive)
 - EPB is a government register: show its evidence and HS codes whenever EPB has them, flagged or not. Never mint EPB-only suppliers. (15 Aug)
