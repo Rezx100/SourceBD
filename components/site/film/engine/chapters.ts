@@ -284,21 +284,23 @@ export function startChapters(root: HTMLElement, tier: Tier, hooks: ChapterHooks
     tie(seamTie, seamGeo.end, seamGeo.dot, at.tie);
   };
 
-  // On a stage too short for the whole roll (under about 850 px), the roll is a window and the paper scrolls up by
-  // `over` as it prints (app/ds.css reads --roll-over on the paper's wrapper); the receipts' lines move with it, so
-  // each thread's start is shifted by the print of the frame, never measured again.
-  let rollGeo: { ends: number[]; froms: (Point | null)[]; dots: (Point | null)[]; over: number; top: number } | null = null;
+  // On a stage too short for the whole roll (under about 850 px), the roll is a window and the paper scrolls up once
+  // what has printed runs past it (app/ds.css reads --roll-h and --roll-win on the paper's wrapper); the receipts'
+  // lines move with it, so each thread's start is shifted by the same rule each frame, never measured again.
+  let rollGeo: { ends: number[]; froms: (Point | null)[]; dots: (Point | null)[]; h: number; win: number; top: number } | null = null;
   const showReceipts = (p: number) => {
     if (!receipts || !paper || !items.length) return;
     if (staleReceipts) {
       staleReceipts = false;
       // Measured with the paper at rest at the top of its window.
-      rollPaper?.style.setProperty("--roll-over", "0px");
+      rollPaper?.style.setProperty("--roll-h", "0px");
       const box = layerOf(ties[0]);
       const height = paper.offsetHeight;
       const edge = paper.getBoundingClientRect().right + 2;
-      const over = roll && rollPaper ? Math.max(0, rollPaper.offsetTop + rollPaper.offsetHeight - roll.clientHeight) : 0;
-      rollPaper?.style.setProperty("--roll-over", `${Math.round(over)}px`);
+      const h = rollPaper?.offsetHeight ?? 0;
+      const win = roll && rollPaper ? Math.max(0, roll.clientHeight - rollPaper.offsetTop) : h;
+      rollPaper?.style.setProperty("--roll-h", `${Math.round(h)}px`);
+      rollPaper?.style.setProperty("--roll-win", `${Math.round(win)}px`);
       const top = box && roll ? roll.getBoundingClientRect().top - box.top : 0;
       rollGeo = box
         ? {
@@ -308,7 +310,8 @@ export function startChapters(root: HTMLElement, tier: Tier, hooks: ChapterHooks
               return r ? within(box, edge, r.top + r.height / 2) : null;
             }),
             dots: [],
-            over,
+            h,
+            win,
             top,
           }
         : null;
@@ -327,7 +330,7 @@ export function startChapters(root: HTMLElement, tier: Tier, hooks: ChapterHooks
     }
     // A receipt whose line scrolls out of the window's top takes its thread with it, drawn back over the last 24 px
     // rather than cut in one frame; the row keeps its dot.
-    const shift = at.print * rollGeo.over;
+    const shift = Math.max(0, at.print * rollGeo.h - rollGeo.win);
     ties.forEach((g, i) => {
       const from = rollGeo!.froms[i];
       const y = from ? from.y - shift : 0;
@@ -463,7 +466,7 @@ export function startChapters(root: HTMLElement, tier: Tier, hooks: ChapterHooks
   /** Everything written is put back, so a page the film has left is the stacked page: every part at rest, the roll whole, every row there. */
   const reset = () => {
     removeEventListener("resize", invalidate);
-    for (const el of [...needleParts, wheel, seam, seamTie, ...rollParts, rollPaper, ...ties, siteTie, carton, cartonTie, line, ...windows, ...cursorParts, closeTie]) for (const name of ["--wheel", "--needle", "--p", "--print", "--slide", "--t", "--cursor", "--roll-over"]) el?.style.removeProperty(name);
+    for (const el of [...needleParts, wheel, seam, seamTie, ...rollParts, rollPaper, ...ties, siteTie, carton, cartonTie, line, ...windows, ...cursorParts, closeTie]) for (const name of ["--wheel", "--needle", "--p", "--print", "--slide", "--t", "--cursor", "--roll-h", "--roll-win"]) el?.style.removeProperty(name);
     for (const item of items) item.removeAttribute("data-dim");
     if (siteLabel) Object.assign(siteLabel.style, { transform: "", opacity: "" });
     for (const el of [sourcesRow, ...rows, note, siteRow, siteNote, exportsRow, listRow, ...timeBeats, ...promises, ...promises.map((li) => li.querySelector("[data-beat]")), ...rungs, ...figures, ...closeRows]) {

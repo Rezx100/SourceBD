@@ -444,15 +444,16 @@
     height: 10px;
   }
 
-  /* On a stage too short for the whole roll, the roll is a window and the paper scrolls up as it prints: the
-     engine measures how much runs past the window (--roll-over, on the paper's wrapper) and the print moves it. */
+  /* On a stage too short for the whole roll, the roll is a window and the paper scrolls up only once what has
+     printed runs past the window: the engine measures the paper's height and the window's (--roll-h, --roll-win,
+     on the paper's wrapper, once per layout) and the print moves it. */
   [data-film-tier="full"] [data-roll] {
     max-height: calc(100svh - 500px);
     overflow: hidden;
   }
 
   [data-film-tier="full"] [data-roll-paper] {
-    transform: translateY(calc(var(--print, 1) * var(--roll-over, 0px) * -1));
+    transform: translateY(calc(-1 * max(0px, var(--print, 1) * var(--roll-h, 0px) - var(--roll-win, 0px))));
   }
 
   [data-film-tier="full"] .roll-sheet {

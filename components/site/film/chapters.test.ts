@@ -494,7 +494,7 @@ describe("what Tailwind emits for the scenes", () => {
     assert.match(block(css, '[data-film-tier="full"] .roll-sheet {'), /inset: 0 0 calc\(\(1 - var\(--print, 1\)\) \* 100%\) 0/);
     // On a stage too short for the whole roll it is a window and the paper scrolls up as it prints, on the full tier only.
     assert.match(block(css, '[data-film-tier="full"] [data-roll] {'), /max-height: calc\(100svh - 500px\); overflow: hidden/);
-    assert.match(block(css, '[data-film-tier="full"] [data-roll-paper] {'), /translateY\(calc\(var\(--print, 1\) \* var\(--roll-over, 0px\) \* -1\)\)/);
+    assert.match(block(css, '[data-film-tier="full"] [data-roll-paper] {'), /translateY\(calc\(-1 \* max\(0px, var\(--print, 1\) \* var\(--roll-h, 0px\) - var\(--roll-win, 0px\)\)\)\)/, "the paper moves only once what has printed runs past the window");
     assert.doesNotMatch(css, /(^|[^\]]) \[data-roll\] \{/, "off the full tier the roll is whole whatever the stage's height");
     assert.match(block(css, '[data-film-tier="full"] .roll-print {'), /clip-path: inset\(0 0 calc\(\(1 - var\(--print, 1\)\) \* 100%\) 0\)/);
     assert.match(block(css, '[data-film-tier="full"] .roll-tear {'), /top: calc\(var\(--print, 1\) \* 100%\)/);
