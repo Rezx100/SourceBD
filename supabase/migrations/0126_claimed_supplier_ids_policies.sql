@@ -64,14 +64,14 @@ create policy pol_rfq_quotes_select_supplier
   on public.rfq_quotes
   for select
   to authenticated
-  using (rfq_quotes.supplier_id = any ((select public.claimed_supplier_ids())));
+  using (rfq_quotes.supplier_id = any ((select public.claimed_supplier_ids())::uuid[]));
 
 drop policy if exists pol_orders_select_supplier on public.orders;
 create policy pol_orders_select_supplier
   on public.orders
   for select
   to authenticated
-  using (orders.supplier_id = any ((select public.claimed_supplier_ids())));
+  using (orders.supplier_id = any ((select public.claimed_supplier_ids())::uuid[]));
 
 drop policy if exists pol_order_milestones_select_supplier on public.order_milestones;
 create policy pol_order_milestones_select_supplier
@@ -82,7 +82,7 @@ create policy pol_order_milestones_select_supplier
     exists (
       select 1 from public.orders o
        where o.id = order_milestones.order_id
-         and o.supplier_id = any ((select public.claimed_supplier_ids()))
+         and o.supplier_id = any ((select public.claimed_supplier_ids())::uuid[])
     )
   );
 
@@ -91,13 +91,13 @@ create policy pol_supplier_relationships_select_bh
   on public.supplier_relationships
   for select
   to authenticated
-  using (supplier_relationships.buying_house_id = any ((select public.claimed_supplier_ids())));
+  using (supplier_relationships.buying_house_id = any ((select public.claimed_supplier_ids())::uuid[]));
 
 drop policy if exists pol_supplier_relationships_select_factory on public.supplier_relationships;
 create policy pol_supplier_relationships_select_factory
   on public.supplier_relationships
   for select
   to authenticated
-  using (supplier_relationships.factory_id = any ((select public.claimed_supplier_ids())));
+  using (supplier_relationships.factory_id = any ((select public.claimed_supplier_ids())::uuid[]));
 
 notify pgrst, 'reload schema';
