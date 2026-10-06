@@ -347,6 +347,22 @@
     display: none;
   }
 
+  /* The opening's handover (§3.5): on the full tier the words leave first (`--words`) and the planet's act gives
+     way to the map under it (`--hand`); both are written by the scroll (engine/start.ts). What has gone also
+     stops catching the pointer, so the map and the record can be reached. */
+  [data-film-tier="full"] [data-act="planet"] {
+    opacity: calc(1 - var(--hand, 0));
+  }
+
+  [data-film-tier="full"] [data-hero] {
+    opacity: calc(1 - var(--words, 0));
+    transform: translateY(calc(var(--words, 0) * -40px));
+  }
+
+  [data-film-tier="full"] :is([data-act="planet"][data-past], [data-hero][data-gone]) {
+    visibility: hidden;
+  }
+
   /* The thread (§3.4): one green path. `--p` (0 to 1, written by the scroll)
      draws it; with no `--p` it is whole, which is what a still page shows. */
   .thread {

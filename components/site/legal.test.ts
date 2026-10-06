@@ -33,9 +33,10 @@ describe("the legal pages", () => {
   });
 
   it("the four notices say when they were last updated, in words", () => {
-    for (const slug of ["cookies", "data-sources"]) assert.match(text(html(slug)), /Last updated 3 Jun 2026/, slug);
-    // Privacy (section 5, and the Stripe billing line gone) and Terms (no Stripe) were reworded on 6 Oct 2026.
-    for (const slug of ["privacy", "terms"]) assert.match(text(html(slug)), /Last updated 6 Oct 2026/, slug);
+    assert.match(text(html("cookies")), /Last updated 3 Jun 2026/);
+    // Privacy (section 5, and the Stripe billing line gone) and Terms (no Stripe) were reworded on 6 Oct 2026;
+    // Data sources gained section 8, the open data behind the home page's map, the same day.
+    for (const slug of ["privacy", "terms", "data-sources"]) assert.match(text(html(slug)), /Last updated 6 Oct 2026/, slug);
   });
 
   it("no legal page names a payment company: none is chosen yet and the beta is free", () => {

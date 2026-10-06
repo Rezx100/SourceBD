@@ -8,7 +8,8 @@ import { LegalShell, legalDay } from "@/components/site/legal";
 
 export const dynamic = "force-static";
 
-const LAST_UPDATED = "2026-06-03";
+// 6 Oct 2026: section 8, the open data behind the home page's map (spec-home-film §6.2).
+const LAST_UPDATED = "2026-10-06";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://sourcebd.net";
@@ -124,6 +125,27 @@ export default function DataSourcesPage() {
           user-agent and honour <code>robots.txt</code> and rate
           limits. We do not bypass authentication, paywalls, or
           terms-of-use restrictions.
+        </p>
+
+        <h2>
+          8. The map on the home page
+        </h2>
+        <p>
+          The home page draws Bangladesh from open data. The district
+          boundaries are the Bangladesh Bureau of Statistics and OCHA
+          ROAP set, published through{" "}
+          <a href="https://www.geoboundaries.org">geoBoundaries</a>{" "}
+          under{" "}
+          <a href="https://creativecommons.org/licenses/by/3.0/igo/">
+            CC BY 3.0 IGO
+          </a>
+          . The land, the coast, the rivers and the neighbouring
+          countries are{" "}
+          <a href="https://www.naturalearthdata.com">Natural Earth</a>{" "}
+          (public domain). The lights are our own count of published
+          suppliers per square kilometre, from their register addresses
+          as located by Barikoi; the page prints the day of that count.
+          No address, name or identifier leaves our database for it.
         </p>
       </LegalShell>
   );

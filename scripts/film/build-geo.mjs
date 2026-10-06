@@ -11,6 +11,7 @@ import { deflateSync, crc32 } from "node:zlib";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const NE = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/";
 const SOURCES = {
@@ -21,7 +22,7 @@ const SOURCES = {
   "bgd-adm2-s.geojson": "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/BGD/ADM2/geoBoundaries-BGD-ADM2_simplified.geojson",
 };
 const cache = process.argv[2] ?? path.join(tmpdir(), "sourcebd-film-geo");
-const out = path.join(process.cwd(), "public/site/film");
+const out = path.join(path.dirname(fileURLToPath(import.meta.url)), "../../public/site/film");
 mkdirSync(cache, { recursive: true });
 mkdirSync(out, { recursive: true });
 
@@ -68,7 +69,7 @@ head.set([8, 0, 0, 0, 0], 8); // 8-bit greyscale
 writeFileSync(path.join(out, "land.png"), Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", head), chunk("IDAT", deflateSync(gray, { level: 9 })), chunk("IEND", Buffer.alloc(0))]));
 
 // --- the map of Bangladesh ---------------------------------------------------------------------------------
-const BOX = [76.0, 12.0, 104.0, 33.0]; // further than the camera ever looks, so the box's own edge is never seen
+const BOX = [66.0, 6.0, 106.0, 38.0]; // further than the camera ever looks (the handover at zoom 5.5 sees 75° to 106°), so the box's own edge is never seen
 const UNIT = 1000;
 
 /** Douglas-Peucker: drop the points that move the line less than `tol` degrees. */
@@ -142,7 +143,7 @@ const around = countries.features
   .filter((f) => f.properties.ADM0_A3 !== "BGD")
   .flatMap((f) => polygons(f.geometry).map((poly) => clip(poly[0])))
   .filter((r) => r.length > 3 && area(r) > 0.01)
-  .map((r) => pack(simplify(r, 0.01)));
+  .map((r) => pack(simplify(r, 0.015)));
 
 // The three great rivers by their Natural Earth names: the Brahmaputra is the Jamuna here, the Ganges the
 // Padma, and the Barak ("Balak" in the file) the Surma and the upper Meghna. The Tista joins the Jamuna.
