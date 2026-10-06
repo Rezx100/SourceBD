@@ -231,7 +231,7 @@ const NEED_LABEL: Record<Need["kind"], string> = {
 };
 
 function CopyCommand({ command }: { command: string }) {
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"yes" | "no" | null>(null);
   return (
     <span className="flex min-w-0 max-w-full items-stretch overflow-hidden rounded-sm border border-line">
       <code className="min-w-0 bg-subtle sm:overflow-x-auto sm:whitespace-nowrap px-2 py-1.5 font-mono text-xs text-ink">{command}</code>
@@ -239,13 +239,16 @@ function CopyCommand({ command }: { command: string }) {
         type="button"
         className="shrink-0 border-l border-line px-2.5 text-sm font-medium text-ink hover:bg-sunken"
         onClick={() => {
-          void navigator.clipboard?.writeText(command).then(() => {
-            setCopied(true);
-            window.setTimeout(() => setCopied(false), 1500);
-          });
+          // A refused write says so: the founder must not paste a stale command on the server.
+          const done = (ok: "yes" | "no") => {
+            setCopied(ok);
+            window.setTimeout(() => setCopied(null), 2000);
+          };
+          if (!navigator.clipboard) return done("no");
+          navigator.clipboard.writeText(command).then(() => done("yes"), () => done("no"));
         }}
       >
-        {copied ? "Copied" : "Copy"}
+        {copied === "yes" ? "Copied" : copied === "no" ? "Select and copy" : "Copy"}
       </button>
     </span>
   );
