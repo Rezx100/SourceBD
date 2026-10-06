@@ -10,10 +10,12 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { contrastRatio, dark, darkPairs, filmColors, filmPairs, light, paneBehind, paneGlass, paneGround, resolve, toRgb } from "@/lib/design/tokens";
+import { currentChapter, sceneProgress, stepAt } from "./engine/director";
 import { DISTRICTS, STOPS, cameraAt, column, createMap, toGeo, unpack, type BdData } from "./engine/map";
 import { HOME, defaultFrame, facing, isLand, landPoints, lightSize, project, toVec } from "./engine/planet";
 import { V4Film } from "@/app/dev/ds/v4-film";
 import { cn } from "@/lib/utils";
+import { filmOn, pickTier, type Device } from "./engine/tier";
 import { FieldPane, Pane, RecordPane, type RecordRow } from "./pane";
 import { Rail, Thread, ThreadLayer } from "./thread";
 
@@ -241,6 +243,65 @@ describe("/dev/ds", () => {
     assert.equal((html.match(/data-ground="night" class="flex flex-col gap-3 rounded-lg/g) ?? []).length, 5, "five boards, each drawn once more in a night scope");
     assert.match(html, /aria-label="Supplier record: Mondol Fabrics Ltd\."/);
     assert.match(html, /text-film-figure /);
+  });
+});
+
+describe("the tier and the flag", () => {
+  const desk: Device = { width: 1440, finePointer: true, webgl2: true, reducedMotion: false, saveData: false };
+
+  it("a desktop with a fine pointer and WebGL2 gets the full film; a phone or a tablet the lite one", () => {
+    assert.equal(pickTier(desk), "full");
+    assert.equal(pickTier({ ...desk, width: 1024 }), "full");
+    assert.equal(pickTier({ ...desk, width: 1023 }), "lite");
+    assert.equal(pickTier({ ...desk, finePointer: false }), "lite", "a touch laptop or a large tablet");
+    assert.equal(pickTier({ ...desk, width: 390, finePointer: false }), "lite");
+  });
+
+  it("reduced motion, data saver or no WebGL2 gets today's still page, whatever the screen", () => {
+    for (const off of [{ reducedMotion: true }, { saveData: true }, { webgl2: false }]) {
+      assert.equal(pickTier({ ...desk, ...off }), "still", JSON.stringify(off));
+      assert.equal(pickTier({ ...desk, width: 390, finePointer: false, ...off }), "still");
+    }
+  });
+
+  it("the film is off unless the address says film=1 or the build set the variable to 1", () => {
+    assert.equal(filmOn("", undefined), false);
+    assert.equal(filmOn("?q=knit", ""), false);
+    assert.equal(filmOn("?film=0", "0"), false);
+    assert.equal(filmOn("?film=true", "true"), false);
+    assert.equal(filmOn("?utm=x&film=1", undefined), true);
+    assert.equal(filmOn("", "1"), true);
+  });
+});
+
+describe("the scroll's arithmetic", () => {
+  it("a scene is 0 until its top reaches the top of the screen, 1 once its bottom reaches the bottom, and even between", () => {
+    // 3,000 tall on a 1,000 screen: 2,000 of travel.
+    assert.equal(sceneProgress(500, 3000, 1000), 0);
+    assert.equal(sceneProgress(0, 3000, 1000), 0);
+    assert.equal(sceneProgress(-500, 3000, 1000), 0.25);
+    assert.equal(sceneProgress(-1000, 3000, 1000), 0.5);
+    assert.equal(sceneProgress(-2000, 3000, 1000), 1);
+    assert.equal(sceneProgress(-2600, 3000, 1000), 1);
+  });
+
+  it("a scene no taller than the screen has no hold: nothing divides by zero", () => {
+    assert.equal(sceneProgress(10, 800, 1000), 0);
+    assert.equal(sceneProgress(-10, 800, 1000), 1);
+    assert.equal(sceneProgress(0, 1000, 1000), 1);
+  });
+
+  it("steps land whole, and the last one holds to the end", () => {
+    assert.deepEqual([0, 0.24, 0.25, 0.5, 0.99, 1].map((p) => stepAt(p, 4)), [0, 0, 1, 2, 3, 3]);
+    assert.equal(stepAt(-0.1, 4), 0);
+    assert.equal(stepAt(0.7, 1), 0);
+  });
+
+  it("the rail follows the last scene to pass the middle of the screen, and holds it across a gap", () => {
+    const scenes = [{ chapter: "ch-1", top: -900, bottom: 100 }, { chapter: "ch-02", top: 700, bottom: 2700 }];
+    assert.equal(currentChapter(scenes, 1000), "ch-1", "between two scenes the one just left stays current");
+    assert.equal(currentChapter([{ chapter: "ch-1", top: -1400, bottom: -400 }, { chapter: "ch-02", top: 200, bottom: 2200 }], 1000), "ch-02");
+    assert.equal(currentChapter([{ chapter: "ch-1", top: 600, bottom: 1600 }], 1000), null, "before the first scene nothing is current");
   });
 });
 
