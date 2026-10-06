@@ -59,6 +59,8 @@ same PR. Read once per session.
   `archive/specs-shipped-2026.md`.
 
 ## Queued
+- **ETL freshness: check each fact as often as it changes** (6 Oct) —
+  `spec-etl-freshness.md`. Order S0→S1→C1→C2+C4→S2→S3→S4→S5+C3→S6.
 - **SourceBD v4: new design system, Paper first, then build** (3 Oct).
   Hand-off: `handoff-ds-v4-paper-first.md`. Issues: `ui-issue-register-oct-2026.md`.
   Paper phases DONE (3 Oct). Build and go-live: `handoff-ds-v4-build.md`
