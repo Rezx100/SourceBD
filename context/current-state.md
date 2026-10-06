@@ -124,6 +124,7 @@ Migration file headers are NOT live status. Check here or query the database.
 | `0120_sanctions_daily_reconcile` | 6 Oct 2026 | ETL freshness S1, via MCP; dry run `ops/plans/0120-dry-run.md`. |
 | `0121_etl_hold_review` | **not applied** | ETL freshness C2: Release/Reject on held near-match records; dry run clean 6 Oct `ops/plans/0121-dry-run.md`. |
 | `0122_certificate_listing` | **not applied** | ETL freshness S2: certificate last-seen / no longer listed, OEKO-TEX re-key, `supplier_cert_checks`; dry run clean 6 Oct `ops/plans/0122-dry-run.md`. |
+| `0123_source_freshness` | **not applied** | ETL freshness S3: `admin_source_freshness` / `etl_source_freshness`, 4 disabled certificate schedules, sanctions run windows. Needs 0122. Dry run clean 6 Oct `ops/plans/0123-dry-run.md`. |
 
 Deploy-order hazard, twice hit: code that queries a new table with no
 missing-table guard crashes every ETL run if shipped before its migration.

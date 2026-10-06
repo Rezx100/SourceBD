@@ -275,6 +275,9 @@ class BaseScraper(abc.ABC):
         breaker = self.breaker.summary() if self.breaker is not None else None
         if status == "success" and breaker and breaker["tripped"]:
             status = "held"
+        # S3 (§4.9): what the Sources page and the digest read. A held or failed
+        # run is not a complete read, so it never refreshes the source's age.
+        run_meta = json.dumps({"credits_used": self.credits_used, "complete": status == "success"})
         with db.conn() as c, c.cursor() as cur:
             cur.execute(
                 """update public.etl_runs
@@ -284,11 +287,11 @@ class BaseScraper(abc.ABC):
                          records_upserted = %s,
                          records_skipped = %s,
                          error = %s,
-                         meta = case when %s::jsonb is null then meta
-                                     else coalesce(meta, '{}'::jsonb)
-                                          || jsonb_build_object('circuit_breaker', %s::jsonb) end
+                         meta = coalesce(meta, '{}'::jsonb) || %s::jsonb
+                                || case when %s::jsonb is null then '{}'::jsonb
+                                        else jsonb_build_object('circuit_breaker', %s::jsonb) end
                    where id = %s""",
-                (status, seen, upserted, skipped, error,
+                (status, seen, upserted, skipped, error, run_meta,
                  json.dumps(breaker) if breaker else None,
                  json.dumps(breaker) if breaker else None, run_id),
             )

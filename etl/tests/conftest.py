@@ -124,6 +124,16 @@ def _clear_resolution_edges_cache() -> None:
     clear_live_same_edge_cache()
 
 
+@pytest.fixture(autouse=True)
+def _no_side_channels(monkeypatch: pytest.MonkeyPatch) -> None:
+    """No test posts to Slack, and the queue tick's extras (hold replay, daily
+    digest) never reach a real database; tests that exercise them call the
+    functions directly."""
+    monkeypatch.setattr("etl.core.notify.slack", lambda text: None)
+    monkeypatch.setattr("etl.core.hold.replay_decided", lambda limit=50: {"replayed": 0, "failed": 0})
+    monkeypatch.setattr("etl.jobs.freshness_digest.post_daily_digest_once", lambda now=None: False)
+
+
 @pytest.fixture
 def patched_db(monkeypatch: pytest.MonkeyPatch):
     """Point the upsert path at a FakeDb and neuter the side effects that are
