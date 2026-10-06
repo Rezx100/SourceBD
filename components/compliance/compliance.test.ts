@@ -16,6 +16,7 @@ import { createElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { loadComplianceBadge } from "@/lib/dashboard/compliance-badge";
+import { attentionOf } from "@/lib/dashboard/needs-attention";
 import { ExpiryHead, ExpiryList, ExpiryNone } from "./expiry";
 import { AttentionCard, AttentionError, ComplianceSkeleton, ExpiryCard, HubEmpty, MsaCard, PartialNote, UflpaCard } from "./hub";
 import { loadCompliance } from "./load";
@@ -487,5 +488,25 @@ describe("/app/compliance/uflpa", () => {
     assert.doesNotMatch(failed, /No link found/);
     given({ compliance_uflpa_tracker: { data: { total: 0, hits: 0, flags: 0, clear: 0, rows: [] }, error: null }, compliance_msa_inputs: MSA });
     assert.match(text(await uflpa()), /No saved suppliers yet\./);
+  });
+});
+
+describe("a certificate its body no longer lists (spec-etl-freshness S2)", () => {
+  const delisted: CertRead = { ...cert(S(4), "Tex Town Ltd.", "gots", "GOTS-27401", "2026-11-19"), listing_status: "no_longer_listed", delisted_on: "2026-10-03" };
+  const oeko: CertRead = { ...cert(S(6), "Label Co", "oeko_tex", "37940-100", ""), expires_on: null as unknown as string, listing_status: "no_longer_listed", delisted_on: "2026-10-03" };
+
+  it("sits with the expired, says since when, and is not listed again as expiring", () => {
+    const g = expiryGroups(list([delisted, oeko]), EXPIRING, NOW);
+    assert.deepEqual(g.expired.map((c) => c.when), ["No longer listed by GOTS since 3 Oct 2026", "No longer listed by OEKO-TEX since 3 Oct 2026"]);
+    assert.equal(g.expired[0]!.askLabel, "Ask for the new certificate");
+    assert.ok(!g.within90.some((c) => c.number === "GOTS-27401"), "the same certificate is one problem, not two");
+  });
+
+  it("the one count counts it once and says it is no longer listed", () => {
+    const a = attentionOf(list([delisted, oeko]), EXPIRING, NOW, 10)!;
+    assert.equal(a.total, 3, "2 delisted + 2 expiring, one of them the same certificate");
+    assert.equal(a.rows[0]!.what, "GOTS-27401 is no longer listed by GOTS since 3 Oct 2026.");
+    assert.equal(a.rows[0]!.state, "expired");
+    assert.equal(a.rows[1]!.what, "OEKO-TEX 37940-100 is no longer listed by OEKO-TEX since 3 Oct 2026.");
   });
 });

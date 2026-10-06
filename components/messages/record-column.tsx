@@ -121,7 +121,7 @@ export function RecordColumn({
 
       {model.certs.length > 0 ? (
         <div className="border-b border-line px-5 py-4">
-          <CertTable certs={certRows(model)} today={today} compact />
+          <CertTable certs={certRows(model, today)} today={today} compact />
         </div>
       ) : null}
 

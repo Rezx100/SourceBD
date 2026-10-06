@@ -53,7 +53,7 @@ function Panel({ menu, listed, withRecords }: { menu: Menu; listed: number | nul
           <p className="font-mono text-xs text-ink-3">{METHODOLOGY_CARD.kicker}</p>
           <p className="text-md font-medium text-ink">{METHODOLOGY_CARD.title}</p>
           <p className="text-base text-ink-3">{methodologyLine(listed, withRecords)}</p>
-          <Link href={METHODOLOGY_CARD.href} prefetch={false} className={cn("w-fit text-base font-medium text-brand underline decoration-1 [text-underline-position:from-font]", ring)}>
+          <Link href={METHODOLOGY_CARD.href} prefetch={false} className={cn("w-fit text-base font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]", ring)}>
             {METHODOLOGY_CARD.cta}
           </Link>
         </div>
@@ -107,7 +107,7 @@ export function SiteNav({ listed = null, withRecords = null }: { listed?: number
       <nav ref={bar} aria-label="Main" className="relative" onMouseLeave={() => setOpen(null)}>
         <div className="mx-auto flex h-[72px] max-w-[1440px] items-center justify-between px-6 lg:px-10">
           <div className="flex items-center gap-12">
-            <Link href="/" className={cn("flex items-center text-lg font-semibold tracking-tight text-brand max-sm:min-h-11", ring)}>
+            <Link href="/" className={cn("flex items-center text-lg font-semibold tracking-tight text-brand-ink max-sm:min-h-11", ring)}>
               SourceBD
             </Link>
             <ul className="flex items-center gap-1 max-lg:hidden">

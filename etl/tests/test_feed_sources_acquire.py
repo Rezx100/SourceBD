@@ -227,6 +227,13 @@ def test_ofac_excerpt_confirms_the_row_and_catches_a_rename():
 
 
 # ------------------------------------------------------------------- GOTS ----
+@pytest.fixture(autouse=True)
+def _no_stored_rows(monkeypatch):
+    """The S2 list-row gate reads stored records; these tests start from none."""
+    monkeypatch.setattr("etl.scrapers.gots.unchanged_record", lambda **k: None)
+    monkeypatch.setattr("etl.scrapers.oeko_tex.unchanged_record", lambda **k: None)
+
+
 def _doc(url: str, body: str, content_type: str) -> AcquiredDoc:
     return AcquiredDoc(
         url=url,
@@ -407,34 +414,43 @@ def test_rsc_record_without_a_document_still_parses():
 
 
 # ------------------------------------------------------------------- WRAP ----
-def test_wrap_leaves_dictionary_encoded_fields_without_an_excerpt():
-    """Power BI stores repeated values once and refers to them by index.
+def test_wrap_feed_keeps_bangladesh_and_cites_each_facility_within_its_own_entry():
+    """WRAP's map feed (Oct 2026) lists every country in one compact JSON array.
 
-    A city shared by 200 facilities appears in the response as a number, so
-    there is no honest per-facility excerpt for it. Recording no excerpt marks
-    the claim unverifiable, which is the truthful outcome; inventing one would
-    let an unrelated dictionary entry stand as this facility's citation.
+    Only Bangladesh rows are read, and each facility's excerpt is cut from its
+    own object, so a neighbour's products or expiry can never stand as this
+    facility's citation.
     """
-    from etl.scrapers.wrap import _UNCITABLE_FIELDS
+    import pytest
 
-    # ValueDicts sit in their own block, well away from the row arrays — the
-    # padding stands in for the ~100 entries a real report carries.
-    raw = json.dumps(
-        {
-            "ValueDicts": {"D2": ["Dhaka", "Gazipur"] + [f"City{i}" for i in range(120)]},
-            "DM0": [
-                {"C": ["12345", "Alpha Apparels", 0]},
-                {"C": ["67890", "Beta Apparels", 1]},
-            ],
-        }
-    )
-    window = raw_window(raw, '"12345"', radius=200)
-    assert window is not None
-    assert make_excerpt(window, "12345", is_html=False) is not None
-    # The city arrived as a dictionary index, so it is not excerptable from the
-    # row and its claim is recorded without an excerpt.
-    assert make_excerpt(window, "Dhaka", is_html=False) is None
+    from etl.evidence.locate import json_record_window
+    from etl.scrapers.wrap import _UNCITABLE_FIELDS, _bangladesh_facilities
+
+    feed = {
+        "count": 3,
+        "facilities": [
+            {"certification_expiration": "2027-05-14", "country": "BD", "facility_name": "Alpha Apparels",
+             "products": "Jackets", "wrap_id": "12345"},
+            {"certification_expiration": "2026-11-02", "country": "BD", "facility_name": "Beta Knit",
+             "products": "Sweaters", "wrap_id": "67890"},
+            {"certification_expiration": "2027-01-26", "country": "VN", "facility_name": "Gamma Co",
+             "products": "Denim", "wrap_id": "11111"},
+        ],
+    }
+    rows = _bangladesh_facilities(feed)
+    assert [r["wrap_id"] for r in rows] == ["12345", "67890"]
+
+    raw = json.dumps(feed, separators=(",", ":"))
+    window = json_record_window(raw, '"wrap_id":"12345"')
+    assert window is not None and window in raw
+    assert make_excerpt(window, "Jackets", is_html=False) is not None
+    assert make_excerpt(window, "Sweaters", is_html=False) is None
+    assert "2026-11-02" not in window
     assert "wrap_profile_url" in _UNCITABLE_FIELDS
+
+    # A feed whose shape changed fails the run rather than reading as "no facilities".
+    with pytest.raises(RuntimeError):
+        _bangladesh_facilities({"items": []})
 
 
 # ------------------------------------------------------------ local files ----

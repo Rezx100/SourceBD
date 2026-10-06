@@ -17,6 +17,7 @@
 import { useRouter } from "next/navigation";
 import { createContext, useContext, useSyncExternalStore, type KeyboardEvent, type ReactNode } from "react";
 import { Drawer, Sheet } from "@/components/kit/overlay";
+import { PaneDivider, RECORD_PANE, usePaneWidth } from "./pane-divider";
 
 const WIDE = "(min-width: 1280px)";
 const PHONE = "(max-width: 767px)";
@@ -81,19 +82,25 @@ export function ListPane({
     if (e.key === "Escape" && !e.defaultPrevented && e.currentTarget.contains(t) && !t.closest("input, textarea, select, [contenteditable=true]")) close();
   };
   const overlay = presentation === "overlay";
+  const size = usePaneWidth(RECORD_PANE);
+  const docked = open && tier === "wide" && !overlay;
   return (
-    <div className={`flex min-h-0 flex-1${overlay ? " relative" : ""}`}>
+    <div ref={size.rowRef} className={`flex min-h-0 flex-1${overlay ? " relative" : ""}`}>
       <section aria-label={listLabel} className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
         {list}
       </section>
+      {docked ? <PaneDivider width={size.width} min={RECORD_PANE.min} max={size.max} paneId="list-pane" label="Resize the record pane" onWidth={size.set} onReset={size.reset} /> : null}
       {open && tier === "wide" ? (
         <section
           aria-label={paneTitle}
+          id={docked ? "list-pane" : undefined}
           onKeyDown={onKeyDown}
+          // The width is the buyer's; CSS keeps the pane at least 480 and the list 400 when the window narrows.
+          style={docked && size.stored ? { width: size.width } : undefined}
           className={
             overlay
               ? "absolute inset-y-0 right-0 z-overlay hidden min-h-0 w-panel flex-col overflow-y-auto border-l border-line bg-surface shadow-dialog xl:flex"
-              : "hidden min-h-0 w-pane shrink-0 flex-col overflow-y-auto border-l border-line xl:flex"
+              : "hidden min-h-0 w-pane min-w-[480px] max-w-[calc(100%-400px)] shrink-0 flex-col overflow-y-auto xl:flex"
           }
         >
           {pane}

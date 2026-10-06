@@ -171,9 +171,60 @@ describe("the frame a buyer receives", () => {
 describe("the list and the pane", () => {
   it("from 1280 the pane docks beside the list, 640 wide; closed, the list fills", () => {
     const open = renderToStaticMarkup(createElement(ListPane, { list: "LIST", listLabel: "Results", pane: "PANE", paneTitle: "Aboni Knitwear Ltd.", closeHref: "/app/discover?q=knit" }));
-    assert.match(open, /<section aria-label="Results"[^>]*>LIST<\/section><section aria-label="Aboni Knitwear Ltd\."[^>]*class="hidden [^"]*w-pane[^"]*xl:flex">PANE<\/section>/);
+    assert.match(open, /<section aria-label="Results"[^>]*>LIST<\/section><div role="separator"[^>]*>.*?<\/div><section aria-label="Aboni Knitwear Ltd\."[^>]*class="hidden [^"]*w-pane[^"]*xl:flex">PANE<\/section>/);
     const shut = renderToStaticMarkup(createElement(ListPane, { list: "LIST", listLabel: "Results", closeHref: "/app/discover" }));
     assert.doesNotMatch(shut, /w-pane/);
+    assert.doesNotMatch(shut, /role="separator"/, "a divider with no pane to resize");
+  });
+
+  it("the edge between the list and the docked pane is a keyboard-adjustable divider", () => {
+    // Founder, 6 Oct 2026: the pane must be resizable, as Paper's frame lets it be. The divider is
+    // drawn on the server at the 640 default (the buyer's own width is read after hydration).
+    const open = renderToStaticMarkup(createElement(ListPane, { list: "LIST", listLabel: "Results", pane: "PANE", paneTitle: "Aboni", closeHref: "/app/discover" }));
+    const sep = /<div role="separator"[^>]*>/.exec(open)?.[0] ?? "";
+    for (const a of ['aria-orientation="vertical"', 'aria-controls="list-pane"', 'aria-valuenow="640"', 'aria-valuemin="480"', 'aria-label="Resize the record pane"', 'tabindex="0"', "cursor-col-resize", "xl:block"]) assert.ok(sep.includes(a), `the divider lacks ${a}: ${sep}`);
+    assert.match(open, /<section aria-label="Aboni" id="list-pane"/, "the divider controls no pane");
+    // Paper's divider (`02 Components` · 5 Overlays): a 1px line at rest; under the pointer, held
+    // or focused, a 2px line and a 9 by 32 grip. Founder, 6 Oct 2026: "make sure the green is very
+    // subtle there", so neither may be solid brand green, and nothing fills the strip.
+    const inner = /<div role="separator"[^>]*>(.*?)<\/div>/.exec(open)?.[1] ?? "";
+    const [rest, line, grip] = inner.match(/<span [^>]*>/g) ?? [];
+    assert.match(rest ?? "", /class="[^"]*\bw-px bg-line\b/, "no 1px line at rest");
+    for (const [what, el, size] of [["2px line", line, "w-0.5"], ["grip", grip, "h-8 w-[9px]"]] as const) {
+      assert.ok(el?.includes(size) && / opacity-0 /.test(el), `the ${what} is missing or shows at rest: ${el}`);
+      for (const on of ["group-hover:opacity-100", "group-focus-visible:opacity-100", "group-active:opacity-100"]) assert.ok(el?.includes(on), `the ${what} lacks ${on}`);
+    }
+    assert.doesNotMatch(sep + inner, /(bg|border|text)-brand(?![\w/-])|bg-brand-(wash|tint)/, "the divider is drawn in solid green");
+    // The filters panel lies over the list: there is nothing beside it to resize.
+    const over = renderToStaticMarkup(createElement(ListPane, { list: "LIST", listLabel: "Results", pane: "PANE", paneTitle: "Filters", closeHref: "/app/discover", presentation: "overlay" }));
+    assert.doesNotMatch(over, /role="separator"/);
+  });
+
+  it("the pane keeps at least 480 and leaves the list at least 400 (Paper's caption)", () => {
+    const { clampPaneWidth, RECORD_PANE } = require("@/components/frame/pane-divider") as typeof import("@/components/frame/pane-divider"); // eslint-disable-line @typescript-eslint/no-require-imports
+    assert.deepEqual({ initial: RECORD_PANE.initial, min: RECORD_PANE.min, keep: RECORD_PANE.keep }, { initial: 640, min: 480, keep: 400 });
+    assert.equal(clampPaneWidth(640, 1216), 640);
+    assert.equal(clampPaneWidth(200, 1216), 480, "narrower than 480");
+    assert.equal(clampPaneWidth(420, 1216), 480, "a width kept from when the pane went down to 400");
+    assert.equal(clampPaneWidth(1000, 1216), 816, "into the list's 400");
+    assert.equal(clampPaneWidth(700, 800), 480, "a row too narrow for both still leaves the pane 480");
+    assert.equal(clampPaneWidth(Number.NaN, 1216), 640, "a stored width that is not a number");
+    assert.equal(clampPaneWidth(512.6, 1216), 513);
+    // Another pane brings its own limits: the RFQ page's preview.
+    assert.equal(clampPaneWidth(900, 1056, { key: "k", initial: 344, min: 320, keep: 480 }), 576);
+    // CSS holds the same two limits before the browser has measured the row.
+    const src = readFileSync(path.join(process.cwd(), "components", "frame", "list-pane.tsx"), "utf8");
+    assert.match(src, /w-pane min-w-\[480px\] max-w-\[calc\(100%-400px\)\]/);
+  });
+
+  it("there is one divider: the list's pane and the New RFQ page draw the shared one", () => {
+    // Founder, 6 Oct 2026: "Reuse the same for the divider." What each draws is tested where it
+    // is drawn (above, and in `components/rfqs/composer.test.ts`); this keeps a second one out.
+    for (const file of [["frame", "list-pane.tsx"], ["rfqs", "composer.tsx"]]) {
+      const src = readFileSync(path.join(process.cwd(), "components", ...file), "utf8");
+      assert.match(src, /<PaneDivider /, `${file[1]} does not use the shared divider`);
+      assert.doesNotMatch(src, /role="separator"/, `${file[1]} draws a divider of its own`);
+    }
   });
 
   it("the filters lie over the list from 1280, 360 wide, and the list keeps its width and stays live", () => {
@@ -188,7 +239,7 @@ describe("the list and the pane", () => {
     assert.doesNotMatch(out, /aria-modal|\sinert[\s=>]/, "a panel over live results claims to be modal");
     // Records stay docked beside the list, and the frame stays put for them.
     const docked = renderToStaticMarkup(createElement(ListPane, { list: "LIST", listLabel: "Results", pane: "PANE", paneTitle: "Aboni", closeHref: "/app/discover" }));
-    assert.doesNotMatch(docked, /w-panel|absolute/);
+    assert.doesNotMatch(/<section aria-label="Aboni"[^>]*>/.exec(docked)?.[0] ?? "absolute", /w-panel|absolute/);
   });
 
   it("under 1280 Escape typed in a field does not close the drawer or the sheet", () => {

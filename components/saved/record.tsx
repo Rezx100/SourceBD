@@ -17,7 +17,8 @@ export type SavedRecordRead = { slug: string; model: SupplierSheetModel | null; 
 export async function readSavedRecord(supabase: any, slug: string, today: Date, view: SavedView, supplierId: string | null = null): Promise<SavedRecordRead> {
   try {
     const model = await loadRecordSheet(supabase, slug, today, {
-      pins: parseTab(view.tab ?? undefined) === "sites",
+      // Every section is on the page at once (the tabs scroll to them), so the map's pins are always read.
+      pins: true,
       closeHref: savedHref({ ...view, open: null }),
       fullHref: `/app/suppliers/${slug}`,
       supplierId,

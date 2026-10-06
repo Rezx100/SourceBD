@@ -15,7 +15,7 @@ import { isProfileRpcTimeout } from "@/lib/public-supplier-profile";
 import { hscodesFromRpc } from "@/lib/epb-hscodes";
 import { geocodeTargets } from "@/lib/barikoi";
 import { buildProductSheet, buildSheet, locationTargets, type ProfilePayload, type RecordInput } from "./build-models";
-import { formatCount, formatDay } from "./facts";
+import { formatCount, formatDay, type CertChecks } from "./facts";
 import { heading4, hsCatalogueRow } from "./hs-photos";
 import { sanitizeFacilityPanel, type FacilityPanel } from "@/lib/format-facility-group";
 import type { ContactCounts, ProductSheetModel, RecordRfqRow, SupplierSheetModel } from "./models";
@@ -132,6 +132,45 @@ export async function fetchContactCounts(supabase: RecordRpc, slug: string): Pro
     const representatives = count("representatives");
     if (emails === null || phones === null || representatives === null) return null;
     return { emails, phones, representatives, website: row.website === true };
+  } catch {
+    return null;
+  }
+}
+
+/** The lists read daily (spec-etl-freshness S1); US WRO is a 2024 snapshot and ILAB is weekly, so neither dates the line. */
+export const DAILY_SANCTIONS_LISTS = ["ofac_sdn", "uk_ofsi", "eu_sanctions", "uflpa"] as const;
+
+/**
+ * The oldest last full read across the daily lists: the record says "on the lists read <day>",
+ * so it may only name the day the stalest of them was read. Null when 0120 is not applied, the
+ * read fails, or a list has never been read — the cell then says "Not listed" with no date.
+ */
+export async function fetchSanctionsRead(supabase: RecordRpc): Promise<string | null> {
+  try {
+    const { data, error } = await supabase.rpc("sanctions_lists_read", {});
+    if (error || !Array.isArray(data)) return null;
+    const rows = data as { list: string; last_read: string | null }[];
+    let oldest: string | null = null;
+    for (const code of DAILY_SANCTIONS_LISTS) {
+      const at = rows.find((r) => r.list === code)?.last_read ?? null;
+      if (!at) return null;
+      if (oldest === null || new Date(at) < new Date(oldest)) oldest = at;
+    }
+    return oldest;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * When each certificate's body last showed it (spec-etl-freshness S2, `supplier_cert_checks`, 0122).
+ * Null when 0122 is not applied or the read fails: the rows then carry no check line.
+ */
+export async function fetchCertChecks(supabase: RecordRpc, slug: string): Promise<CertChecks | null> {
+  try {
+    const { data, error } = await supabase.rpc("supplier_cert_checks", { p_slug: slug });
+    if (error || !data || typeof data !== "object" || !Array.isArray((data as CertChecks).certs)) return null;
+    return data as CertChecks;
   } catch {
     return null;
   }
@@ -272,8 +311,8 @@ export async function fetchRecordSaved(
 
 export type SheetView = {
   /**
-   * Read the geocode cache for the Sites tab's map. Only the Sites tab asks: it is one more read, after
-   * the profile, and no other tab draws a pin.
+   * Read the geocode cache for the Sites section's map: one more read, after the profile. Every view
+   * that stacks the record's sections asks, whichever tab the address names; a view with no map does not.
    */
   pins?: boolean;
   /** Where an overlay's Close returns to; absent on the full page. */
@@ -325,6 +364,8 @@ export async function loadRecordSheet(
   const buyerIdRead = callerId(supabase);
   const countsRead = fetchContactCounts(supabase, slug);
   const facilitiesRead = fetchFacilityPanel(supabase, slug);
+  const sanctionsRead = fetchSanctionsRead(supabase);
+  const certChecksRead = fetchCertChecks(supabase, slug);
   // Opened from a row that carries the id: the reads keyed by it start now,
   // beside the profile (founder's video, 29 Sep 2026: every open waited on a
   // second round trip after the first).
@@ -350,7 +391,7 @@ export async function loadRecordSheet(
         .then((found) => found?.map((g) => (g ? { latitude: g.latitude, longitude: g.longitude, confidencePct: g.confidencePct, addressStatus: g.addressStatus } : null)))
         .catch(() => undefined)
     : Promise.resolve(undefined);
-  const [workers, contactCounts, saved, rfqs, facilities, pins] = await Promise.all([
+  const [workers, contactCounts, saved, rfqs, facilities, pins, sanctionsReadAt, certChecks] = await Promise.all([
     // A failed batch leaves the figure the record's own payload carries.
     reuse ? reuse.workers : fetchDisplayWorkersBatch(supabase, [supplierId]).catch(() => null),
     countsRead,
@@ -358,6 +399,8 @@ export async function loadRecordSheet(
     reuse ? reuse.rfqs : buyerIdRead.then((buyerId) => fetchRecordRfqs(supabase, supplierId, buyerId)),
     facilitiesRead,
     pinsRead,
+    sanctionsRead,
+    certChecksRead,
   ]);
   if (workers) assignWorkers([record], workers);
   return buildSheet(record.input, {
@@ -365,6 +408,8 @@ export async function loadRecordSheet(
     contactCounts,
     facilities: { panel: facilities },
     pins,
+    sanctionsReadAt,
+    certChecks,
     saved,
     supplierId,
     rfqs,

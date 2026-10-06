@@ -12,6 +12,7 @@ from etl.core.logging import get_logger
 
 if TYPE_CHECKING:  # pragma: no cover
     from etl.acquire.models import AcquiredDoc
+    from etl.core.breaker import Breaker
 
 
 @dataclass
@@ -82,9 +83,20 @@ class ScrapedRecord:
     # emits these so covering unflagged RMG exporters cannot mint
     # single-source EPB profiles.
     enrich_only: bool = False
+    # Payload keys left out of the change hash: our own bookkeeping that moves
+    # on every read (a brand file's mirror path and fallback date) would
+    # otherwise make every record look changed (spec-etl-freshness S6).
+    hash_exclude: tuple[str, ...] = ()
+    # Set by a list-row gate (etl.core.listgate) that skipped the detail fetch
+    # because the list row is unchanged: the record IS the stored one, so it
+    # reports the stored hash and the upsert takes the unchanged path.
+    known_hash: str | None = None
 
     def hash(self) -> str:
-        canonical = json.dumps(self.payload, sort_keys=True, ensure_ascii=False, default=str)
+        if self.known_hash:
+            return self.known_hash
+        payload = {k: v for k, v in self.payload.items() if k not in self.hash_exclude}
+        canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False, default=str)
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
@@ -103,6 +115,10 @@ class BaseScraper(abc.ABC):
         self.last_run_id: str | None = None
         self.evidence_claims = 0
         self.credits_used = 0
+        # C4 circuit breaker for this run; built on the first record.
+        self.breaker: Breaker | None = None
+        # Founder knob (`run <code> --accept-changes`): release a held run.
+        self.accept_changes = False
         # Documents seen this run. A list page cited by 200 records is one
         # document and one credit, not two hundred.
         self._evidence_doc_ids: set[str] = set()
@@ -117,6 +133,29 @@ class BaseScraper(abc.ABC):
         if False:
             yield  # type: ignore[unreachable]
 
+    async def gated(self) -> AsyncIterator[ScrapedRecord]:
+        """`fetch()`, stopping before the first record that would cross a C4
+        limit (etl.core.breaker). Run loops iterate this, never fetch()."""
+        from etl.core.breaker import Breaker
+        from etl.core.upsert import classify_record  # local import: avoids cycle
+
+        async for rec in self.fetch():
+            with db.conn() as c, c.cursor() as cur:
+                if self.breaker is None:
+                    cur.execute(
+                        "select count(*) as n from public.source_records where source_id = %s",
+                        (get_source_id(rec.source_code),),
+                    )
+                    self.breaker = Breaker(stored=int(cur.fetchone()["n"]),
+                                           accept=self.accept_changes)
+                kind = classify_record(cur, rec)
+                c.rollback()
+            if not self.breaker.admit(kind):
+                self.log.warning("run.held", reason=self.breaker.tripped,
+                                 source_ref=rec.source_ref)
+                break
+            yield rec
+
     async def run(self) -> dict[str, int]:
         """Drive a full scrape: open run log, stream upserts, close run log."""
         from etl.core.upsert import upsert_supplier_with_source  # local import: avoids cycle
@@ -128,7 +167,7 @@ class BaseScraper(abc.ABC):
         seen = upserted = skipped = 0
         self._emit_progress(run_id, "started", "Scraper started.", seen, upserted, skipped)
         try:
-            async for rec in self.fetch():
+            async for rec in self.gated():
                 seen += 1
                 try:
                     supplier_id = upsert_supplier_with_source(rec)
@@ -238,6 +277,12 @@ class BaseScraper(abc.ABC):
         skipped: int,
         error: str | None,
     ) -> None:
+        breaker = self.breaker.summary() if self.breaker is not None else None
+        if status == "success" and breaker and breaker["tripped"]:
+            status = "held"
+        # S3 (§4.9): what the Sources page and the digest read. A held or failed
+        # run is not a complete read, so it never refreshes the source's age.
+        run_meta = json.dumps({"credits_used": self.credits_used, "complete": status == "success"})
         with db.conn() as c, c.cursor() as cur:
             cur.execute(
                 """update public.etl_runs
@@ -246,11 +291,25 @@ class BaseScraper(abc.ABC):
                          records_seen = %s,
                          records_upserted = %s,
                          records_skipped = %s,
-                         error = %s
+                         error = %s,
+                         meta = coalesce(meta, '{}'::jsonb) || %s::jsonb
+                                || case when %s::jsonb is null then '{}'::jsonb
+                                        else jsonb_build_object('circuit_breaker', %s::jsonb) end
                    where id = %s""",
-                (status, seen, upserted, skipped, error, run_id),
+                (status, seen, upserted, skipped, error, run_meta,
+                 json.dumps(breaker) if breaker else None,
+                 json.dumps(breaker) if breaker else None, run_id),
             )
             c.commit()
+        if status == "held":
+            from etl.core.notify import slack
+
+            slack(
+                f":octagonal_sign: SourceBD: {self.code} stopped itself — {breaker['tripped']}. "
+                f"{breaker['changed']} changed and {breaker['created']} new companies landed "
+                f"(the allowed amount); the rest waits. Look at run {run_id} in /admin/sources, "
+                f"then release with: docker compose run --rm etl run {self.code} --accept-changes"
+            )
         self.log.info("run.end", run_id=run_id, status=status,
                       seen=seen, upserted=upserted, skipped=skipped)
         self._emit_progress(

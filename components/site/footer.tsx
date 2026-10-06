@@ -17,7 +17,7 @@ export function SiteFooter({ facts, year }: { facts: SiteFacts; year: number }) 
       <div className="mx-auto flex max-w-[1440px] flex-col gap-12 px-6 py-14 lg:px-10">
         <div className="flex flex-col gap-10 lg:flex-row lg:justify-between">
           <div className="flex max-w-[360px] flex-col gap-3">
-            <Link href="/" className="text-lg font-semibold tracking-tight text-brand">
+            <Link href="/" className="text-lg font-semibold tracking-tight text-brand-ink">
               SourceBD
             </Link>
             <p className="text-md text-ink-2">{STRAPLINE}</p>

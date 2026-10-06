@@ -120,6 +120,25 @@ def run(
         help="epb_web only: association pass may create suppliers. "
         "Default is attach-only onto companies we already list.",
     ),
+    accept_delistings: bool = typer.Option(
+        False,
+        "--accept-delistings",
+        help="Sanctions lists and certificate bodies: mark entries missing from a complete read as no "
+        "longer listed even when there are more than the hold limit (founder knob, "
+        "after reading the held run's numbers in /admin/sources).",
+    ),
+    accept_changes: bool = typer.Option(
+        False,
+        "--accept-changes",
+        help="Release a run the circuit breaker stopped (more than 5% of rows changed or "
+        "more than 20 new companies). Founder knob, after reading the held run.",
+    ),
+    max_credits: int = typer.Option(
+        None,
+        "--max-credits",
+        help="Firecrawl sources: this run's credit limit, replacing the source's own "
+        "(spec-etl-freshness S4). For a deliberate full pass; the monthly ceiling still applies.",
+    ),
 ) -> None:
     """Run a scraper or maintenance job end-to-end."""
     cls = RUNNABLE.get(scraper)
@@ -145,13 +164,26 @@ def run(
             typer.echo("--existing-only only applies to epb_web.")
             raise typer.Exit(1)
         kwargs["existing_only"] = True
-    result = asyncio.run(cls(**kwargs).run())
+    instance = cls(**kwargs)
+    if accept_delistings:
+        if not hasattr(instance, "accept_delistings"):
+            typer.echo("--accept-delistings only applies to sanctions lists and certificate bodies.")
+            raise typer.Exit(1)
+        instance.accept_delistings = True
+    if accept_changes:
+        instance.accept_changes = True
+    if max_credits is not None:
+        if not hasattr(instance, "max_credits_per_run"):
+            typer.echo("--max-credits only applies to Firecrawl sources.")
+            raise typer.Exit(1)
+        instance.max_credits_per_run = max_credits
+    result = asyncio.run(instance.run())
     typer.echo(str(result))
 
 
 @app.command("verify-evidence")
 def verify_evidence_cmd(
-    limit: int = typer.Option(500, help="Check at most N due documents."),
+    limit: int = typer.Option(50, help="Check at most N due documents (of overdue sources unless --scraper is given)."),
     scraper: str = typer.Option(None, help="Restrict to one source's documents."),
     interval_hours: int = typer.Option(
         None,
@@ -214,6 +246,14 @@ def process_webhooks_cmd(
     from etl.evidence.webhook_inbox import process_pending
 
     typer.echo(str(process_pending(limit=limit)))
+
+
+@app.command("place-variants")
+def place_variants_cmd() -> None:
+    """List likely new spellings of places for the founder (spec-etl-freshness C3)."""
+    from etl.jobs.place_variants import main
+
+    main()
 
 
 @app.command("enqueue-due-schedules")

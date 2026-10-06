@@ -9,7 +9,10 @@ from etl.scrapers.gots import (
     _compose_address,
     _compose_scope,
     _parse_expires,
+    _public_page,
+    _write_certification,
 )
+from etl.core.scraper import ScrapedRecord
 
 
 def test_parse_expires_iso_date():
@@ -81,3 +84,53 @@ def test_absolute_scope_ref_none_or_blank():
     assert _absolute_scope_ref(None) is None
     assert _absolute_scope_ref("") is None
     assert _absolute_scope_ref("   ") is None
+
+
+def test_public_page_is_the_gots_directory_entry():
+    assert _public_page("SCO001636") == (
+        "https://global-standards.org/suppliers/certified-suppliers/details?gtbid=SCO001636"
+    )
+
+
+def test_write_certification_stores_the_public_page_not_the_login_walled_document(monkeypatch):
+    """The GTB certificate-document link ends at a login page (6 Oct 2026)."""
+    import etl.scrapers.gots as gots
+
+    sent: list[tuple] = []
+
+    class _Cur:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def execute(self, sql, params):
+            sent.append(params)
+
+        def fetchone(self):
+            return None
+
+    class _Conn(_Cur):
+        def cursor(self):
+            return _Cur()
+
+        def commit(self):
+            pass
+
+    class _Db:
+        def conn(self):
+            return _Conn()
+
+    monkeypatch.setattr(gots, "db", _Db())
+    monkeypatch.setattr(gots, "get_source_id", lambda code: "src")
+    rec = ScrapedRecord(
+        source_code="GOTS", source_ref="gots-SCO001636", company_name="4A Yarn Dyeing Ltd",
+        payload={
+            "gots_system_id": "SCO001636", "gots_license_number": "GOTS-11426",
+            "certificate_valid_until": "2027-02-05",
+            "gots_scope_certificate_url": "https://www.global-trace-base.org/SCO001636/certificate-document",
+        },
+    )
+    _write_certification("sup", rec)
+    assert sent[-1][-1] == _public_page("SCO001636")

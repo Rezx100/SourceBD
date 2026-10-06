@@ -14,35 +14,14 @@ Launch-readiness closeout: deploy to VPS `109.104.153.228`, apply required
 migrations, run the 30-day zero P1/P2 Sentry incident window.
 
 ## In progress
-- **Address premises merge — one row per premises on Locations** (11 Sep,
-  landed on `development` 17 Sep via PR #159). Matcher-only in
-  `lib/dedup-addresses.ts`; alternate spellings stay as "Also recorded as"
-  pills. No raw-string, geocode-key, ETL or schema change. Evidence:
-  `ops/plans/address-dedup-baseline.md`.
-- **EPB evidence + HS codes on existing companies, independent of BGMEA/BKMEA
-  flags** (REZ-113 follow-on, 15 Aug). Attach-only of 1,953 EPB matches and
-  the HS backfill are APPLIED on production (2,492 EPB records on 2,472
-  companies; 2,476 with HS codes; company count 10,922). Migration `0103`
-  applied. **Frontend HS card is in the working tree, not on the server.**
-  Evidence: `ops/plans/rez-113-epb-coverage-evidence.md`.
+- Address premises merge (PR #159) and EPB evidence + HS codes (0103, applied 15 Aug): done; detail in `archive/state-2026-sep.md`.
 - **REZ-73 — Facilities section + labelled group figures on mother profiles**,
   on branch `rez-73-facilities-lean`. Lean rewrite: migration `0097_` + thin
   UI; SQL owns the roll-up; under 400 product lines.
 - **Design-system rebuild** — spec `feature-specs/ds-rebuild-must-stay.md`.
   `design-rebuild` landed on `development` 18 Sep (`09ec96b`): tokens +
   `/dev/ds` gallery. Old pages are unstyled until rebuilt.
-- **Buyer dashboard v3.2, REZ-A (the code port of the dashboard kit)** —
-  DONE. `ACCEPTED_FOR_HUMAN_REVIEW` at cycle 21 (candidate `1ccb4bc`),
-  merged to `development` via PR #161 (21 Sep). Dev/admin-only gallery at
-  `/dev/ds`; no live route wired yet. Full history:
-  `context/feature-specs/handoff-rez-a-cycle21.md`.
-- **Buyer dashboard v3.2, REZ-B (results page)** — DONE. Judge
-  `ACCEPTED_FOR_HUMAN_REVIEW` at `4f6eff2`; `development` PR #164 (`cfbbf4a`),
-  `main` PR #165 (`1780c2c`), deployed 24 Sep, migration `0104` applied 25 Sep.
-  Loop history: `feature-specs/handoff-rez-b-cycle15.md`,
-  `handoff-rez-b-deploy.md`, `handoff-rez-b-live-migration.md` (its §5 is the
-  follow-up list; its first item, the stale "Selection arrives with the results
-  work" line, is fixed in REZ-C's PR).
+- REZ-A and REZ-B (dashboard kit, results page): DONE; detail in `archive/state-2026-sep.md`.
 - **Buyer dashboard v3.2, REZ-C (the company profile)** — IN PROGRESS on
   branch `rez-c-supplier-record`. `/app/suppliers/[slug]` is now the dashboard
   kit's `SupplierSheet`; the same component opens over the results as
@@ -102,6 +81,8 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
 
 - **Buyer app on a phone (30 Sep)** — BUILT on `development` (PRs #218, #220–#224), promotion to `main` next; detail in `archive/state-2026-sep.md`.
 
+- **Home page film (6 Oct)** — IN PROGRESS, `feature-specs/spec-home-film.md`. Slice 1 of 6 built (dark set, Pane family, thread, rail, planet and map engines, `/dev/ds`); nothing on `/` changes until the flag, which is the founder's call.
+
 ## Founder rules still in force (one line each; detail in archive)
 - EPB is a government register: show its evidence and HS codes whenever EPB has them, flagged or not. Never mint EPB-only suppliers. (15 Aug)
 - Registry columns are canonical-latest-wins: the provider's current page is the truth and shows without a review round-trip. (3 Aug)
@@ -130,8 +111,14 @@ Migration file headers are NOT live status. Check here or query the database.
 | `0104_discover_v32` | 25 Sep 2026 | REZ-B. Applied after its code was already live (`main` `1780c2c`, deployed 24 Sep) — signed-in search was down in between. Dry-run clean first (one transaction, rolled back). Verified after: 9 `discover_v32%` functions, `saved_searches` with 4 RLS policies, `discover_suppliers` at 25 args. sha256 (CRLF) `4f95641b7c8a1956d61d9b866373c963ec7150690afa2a46ff8b96cbbc3e8b47`. |
 | `0105_supplier_record_v32` | **not applied** | REZ-C. One function, `supplier_contact_counts(text)` — counts of a published record's contact details, never a value; `anon` explicitly revoked. Deliberately does NOT rewrite `buyer_supplier_profile`: production's copy is ahead of this repo (it emits `'fetched_at', rr.fetched_at` on rsc rows, which no migration here adds), so a `create or replace` from the repo would delete that key. sha256 (CRLF) `b6fd758a08f63f8b7abc9a65479c819cf47d30e1a4bb151988de44e43207b465` (26 Sep: one number with and without +880 counts once). **Dry run NOT re-run at this sha** (pooler down) — re-run before applying; the last clean run was at `4b2dfb8c…` on 25 Sep. Population guard for the contact stripper: `ops/verify_contact_text.py`. Evidence: `ops/plans/rez-c-0105-dry-run.md`. |
 | `0107_buyer_supplier_profile_one_supplier` | 29 Sep 2026 | 29 Sep video. Two FROM clauses: the profile's two views filtered on the one id instead of joined. Applied through the Supabase MCP on the founder's go-ahead (the pooler times out here), gated on the text's md5 and the live base (`63ee7ea0…`); dry run 45 records identical, 967 → 171 ms median; live md5 now `8648d817…`, recorded `20260929083008`. Evidence, rollback: `ops/plans/0107-profile-one-supplier.md`. |
-| `0108_compliance_expired_certs` | **not applied** | Expired certificates on the hub and Saved. One new function, nothing live rewritten; dry run clean 3 Oct (3 buyers, counts agree). Apply before its deploy: `ops/plans/0108-dry-run.md`. |
+| `0108_compliance_expired_certs` | 5 Oct 2026 | Applied as `20261005091012` (found 6 Oct; this row said not applied). 0116 re-scoped it to `workspace_owner()`; 0122 replaces its body. |
 | `0110_order_cancel_before_shipping` | **not applied** | OR-02: shipped/in-transit orders refuse a cancel. Dry run clean 4 Oct (0 live orders): `ops/plans/0110-dry-run.md`. |
+| `0120_sanctions_daily_reconcile` | 6 Oct 2026 | ETL freshness S1, via MCP; dry run `ops/plans/0120-dry-run.md`. |
+| `0121_etl_hold_review` | 6 Oct 2026 | ETL freshness C2, via MCP `20261006052146`; old plans unchanged. `ops/plans/0121-dry-run.md`. |
+| `0122_certificate_listing` | 6 Oct 2026 | ETL freshness S2, via MCP `20261006052254`; 4 cols, 2,627 OEKO-TEX re-keyed. `ops/plans/0122-dry-run.md`. |
+| `0123_source_freshness` | 6 Oct 2026 | ETL freshness S3, via MCP `20261006052420`; 30 sources (9 over limit), 14 schedules, certs off. `ops/plans/0123-dry-run.md`. |
+| `0124_register_schedules` | 6 Oct 2026 | ETL freshness S5, via MCP `20261006052539`; 5 register schedules off, RSC limit 336 h. `ops/plans/0124-dry-run.md`. |
+| `0125_sources_listed_brand_schedules` | 6 Oct 2026 | ETL freshness S6, via MCP `20261006052721`; public count 21, 4 brand schedules off. |
 
 Deploy-order hazard, twice hit: code that queries a new table with no
 missing-table guard crashes every ETL run if shipped before its migration.

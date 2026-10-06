@@ -921,9 +921,11 @@ describe("a building's brand list is named, never counted and never denied", () 
 
 // The action bar's "every source mark links to its register page" sentence
 // went with PR 5 of the founder's video (29 Sep 2026), and the flag computed
-// for it with the hand-off after it; what it guarded that still stands is
-// here: a certificate's square links exactly when its document is a record page.
-describe("a certificate's square links exactly when its document is a record page", () => {
+// for it with the hand-off after it. Since 6 Oct 2026 no certifier's square
+// links at all: WRAP's facility pages answer 404, an OEKO-TEX profile link's key
+// has run out, and the GOTS directory only shows a supplier it still lists, which
+// a square cannot know (the certificate's own row can, and links there).
+describe("a certificate's square never links to a page that may be gone", () => {
   /**
    * Aboni narrowed to the sources whose URL is a record page. RSC, BGAPMEA and
    * BKMEA file only their agency homepage, so on the whole record the claim is
@@ -944,15 +946,21 @@ describe("a certificate's square links exactly when its document is a record pag
     p.brand_attributions = [];
     p.addresses = [];
     p.rsc_remediation = null;
+    // GOTS drops an expired certificate from its list, so it has no public page to link.
+    p.certifications = p.certifications.filter((c) => !(c.kind === "gots" && c.expires_on !== null && c.expires_on < input.today.toISOString().slice(0, 10)));
     return input;
   }
 
-  it("a certificate whose document is a record page links, and is inside the claim", () => {
+  it("a certificate with a stored document still draws a square, and the square opens nothing", () => {
     const input = everyRegisterHasAPage();
+    assert.ok(input.profile.certifications.every((c) => recordPage(c.document_url)), "guard: every stored document is a record page by its shape");
     const sheet = buildSheet(input);
     const certMarks = sheet.certs.map((c) => sourceMark(c.markCode, c.documentUrl));
-    assert.ok(certMarks.length >= 4, "the record no longer holds the certificates this guard is about");
-    assert.ok(certMarks.every((m) => m.href), "a certificate document that is a record page must link");
+    assert.ok(certMarks.length >= 3, "the record no longer holds the certificates this guard is about");
+    assert.deepEqual(certMarks.map((m) => m.href), certMarks.map(() => null));
+    const certifiers = sheet.marks.filter((m) => m.tier === 3);
+    assert.ok(certifiers.length >= 3, "guard: the head draws the certifiers' marks");
+    assert.deepEqual(certifiers.map((m) => m.href), certifiers.map(() => null), "the head's certifier marks open nothing either");
   });
 
   it("one unlinked certificate mark is enough to withdraw the claim", () => {
@@ -980,10 +988,9 @@ describe("a certificate's square links exactly when its document is a record pag
       { ...own, building_name: "Aboni Knitwear Ltd (Unit-7)", document_url: null },
     ];
     const sheet = buildSheet(input);
-    assert.ok(sheet.certs.every((c) => c.documentUrl !== null), "guard: the record's own certificates all link");
     assert.equal(sheet.buildingCerts.length, 2, "guard: both buildings' certificates are drawn");
-    assert.ok(sheet.buildingCerts[0]!.certs.every((c) => c.documentUrl !== null), "guard: the first building's all link");
-    assert.ok(sheet.buildingCerts[1]!.certs.some((c) => c.documentUrl === null), "the second building's undocumented certificate is drawn");
+    assert.ok(sheet.buildingCerts[0]!.certs.some((c) => c.documentUrl !== null), "guard: the first building's has its document");
+    assert.ok(sheet.buildingCerts[1]!.certs.every((c) => c.documentUrl === null), "the second building's undocumented certificate is drawn");
   });
 
   it("a building's certificates are ordered as the record's own are", () => {

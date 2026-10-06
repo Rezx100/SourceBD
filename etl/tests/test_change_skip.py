@@ -142,6 +142,9 @@ def _stub_run(monkeypatch: pytest.MonkeyPatch, records: list[ScrapedRecord], ups
     closed: dict[str, Any] = {}
     evidence_calls: list[Any] = []
 
+    # The C4 gate classifies each record against the database; these tests
+    # are about the run loop's counting, so read the records straight through.
+    monkeypatch.setattr(scraper, "gated", scraper.fetch)
     monkeypatch.setattr(scraper, "_open_run", lambda: "run-1")
     monkeypatch.setattr(
         scraper,

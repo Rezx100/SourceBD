@@ -31,14 +31,17 @@ import { renderToStaticMarkup } from "react-dom/server";
 }
 
 /* eslint-disable @typescript-eslint/no-require-imports -- the navigation stub above must be in the cache first. */
-const { certLine } = require("@/components/patterns") as typeof import("@/components/patterns");
+const { certLine, certShort, certSummary } = require("@/components/patterns") as typeof import("@/components/patterns");
 const { attentionOf, attentionWords, certName, loadNeedsAttention } = require("@/lib/dashboard/needs-attention") as typeof import("@/lib/dashboard/needs-attention");
 const { SearchLanding } = require("@/components/search/landing") as typeof import("@/components/search/landing");
+const { pushRecent } = require("@/components/search/record-recent-search") as typeof import("@/components/search/record-recent-search");
+const { startsNavigation } = require("@/components/search/pending-nav") as typeof import("@/components/search/pending-nav");
+const { mapLimited } = require("@/lib/map-limited") as typeof import("@/lib/map-limited");
 const { ResultsBar, bulkRfqHref, TOO_MANY } = require("@/components/search/bulk-bar") as typeof import("@/components/search/bulk-bar");
 const { SelectionContext, SelectionProvider } = require("@/components/search/selection") as typeof import("@/components/search/selection");
 const { ResultsTable } = require("@/components/search/table") as typeof import("@/components/search/table");
 const { PaneListToolbar, PhoneToolbar, ResultsToolbar, barMenus, resultsTitle } = require("@/components/search/toolbar") as typeof import("@/components/search/toolbar");
-const { PaneRows, PhoneRows, ResultsEmpty, ResultsError, familyWords } = require("@/components/search/list") as typeof import("@/components/search/list");
+const { PaneRows, PhoneRows, ResultsEmpty, ResultsError, ResultsSkeleton, familyWords } = require("@/components/search/list") as typeof import("@/components/search/list");
 const { onRowKey } = require("@/components/search/keys") as typeof import("@/components/search/keys");
 const { resultRow } = require("@/components/search/model") as typeof import("@/components/search/model");
 const { EMPTY_STATE, parseDiscoverState } = require("@/lib/discover-v32-state") as typeof import("@/lib/discover-v32-state");
@@ -61,6 +64,13 @@ function hrefOf(out: string, text: string): string | undefined {
   return undefined;
 }
 
+// Aboni's four: WRAP lapsed four days ago, a GOTS about to, OEKO-TEX in date, and SA8000 (a body with no approved mark) undated.
+const ABONI_CERTS = [
+  { markCode: "oeko_tex", scheme: "OEKO-TEX Standard 100", expiresOn: "2027-05-01" },
+  { markCode: "wrap", scheme: "WRAP", expiresOn: "2026-09-29" },
+  { markCode: "gots", scheme: "GOTS", expiresOn: "2026-10-31" },
+  { markCode: "sa8000", scheme: "SA8000", expiresOn: null },
+];
 const ZAHEEN = "Zaheen Knitwears Limited (Shed - 3, 4, 5, 10, 11, 12, 13) & (Building - Security, ETP and Fire Pump)";
 const row = (over: Partial<ResultRow> = {}): ResultRow => ({
   slug: "aboni-knitwear",
@@ -72,12 +82,13 @@ const row = (over: Partial<ResultRow> = {}): ResultRow => ({
   workersSecond: null,
   sources: 11,
   cert: { state: "expired", text: "WRAP expired 29 Sep 2026", more: 3 },
+  certCell: certSummary(ABONI_CERTS, TODAY),
   paneHref: "/app/discover?q=knit&record=aboni-knitwear",
   pageHref: "/app/suppliers/aboni-knitwear?back=%2Fapp%2Fdiscover%3Fq%3Dknit",
   sanctioned: false,
   ...over,
 });
-const rows = [row(), row({ slug: "zaheen", supplierId: "id-zaheen", name: ZAHEEN, cert: null, sources: 4 }), row({ slug: "sm", supplierId: "id-sm", name: "SM Sourcing", cert: { state: "valid", text: "WRAP valid until 8 Jan 2027", more: 4 } })];
+const rows = [row(), row({ slug: "zaheen", supplierId: "id-zaheen", name: ZAHEEN, cert: null, certCell: null, sources: 4 }), row({ slug: "sm", supplierId: "id-sm", name: "SM Sourcing", cert: { state: "valid", text: "WRAP valid until 8 Jan 2027", more: 0 }, certCell: certSummary([{ markCode: "wrap", scheme: "WRAP", expiresOn: "2027-01-08" }], TODAY) })];
 const sortHrefs = { workers: "/app/discover?q=knit&sort=workers", sources: "/app/discover?q=knit" };
 
 describe("the certificate line of a row", () => {
@@ -97,6 +108,39 @@ describe("the certificate line of a row", () => {
     assert.deepEqual(certLine([{ scheme: "GOTS", expiresOn: "2026-10-08" }], TODAY)?.text, "GOTS expires in 5 days · 8 Oct 2026");
     assert.deepEqual(certLine([{ scheme: "WRAP", expiresOn: "2027-01-26" }], TODAY), { state: "valid", text: "WRAP valid until 26 Jan 2027", more: 0 });
     assert.equal(certLine([], TODAY), null, "no certificate is the row's own words, never an invented line");
+  });
+
+  it("the compact cell: the worst certificate's body and state, every other body once, the count, and the whole sentence", () => {
+    assert.deepEqual(certSummary(ABONI_CERTS, TODAY), {
+      state: "expired",
+      short: "Expired 29 Sep",
+      first: { code: "WRAP", scheme: "WRAP", words: "WRAP expired 29 Sep 2026" },
+      others: [
+        { code: "GOTS", scheme: "GOTS", words: "GOTS expires in 28 days · 31 Oct 2026" },
+        { code: "OEKO_TEX", scheme: "OEKO-TEX Standard 100", words: "OEKO-TEX Standard 100 valid until 1 May 2027" },
+        { code: "SA8000", scheme: "SA8000", words: "SA8000 no expiry date published" },
+      ],
+      total: 4,
+      words: "WRAP expired 29 Sep 2026 · 3 more certificates",
+    });
+    // Two certificates of one body are one mark; the worst one's body is never repeated after it.
+    const twoGots = certSummary([{ markCode: "gots", scheme: "GOTS", expiresOn: "2026-04-04" }, { markCode: "gots", scheme: "GOTS", expiresOn: "2027-05-12" }, { markCode: "wrap", scheme: "WRAP Gold", expiresOn: "2027-01-08" }, { markCode: "wrap", scheme: "WRAP Gold", expiresOn: "2027-06-08" }], TODAY)!;
+    assert.deepEqual([twoGots.first.code, twoGots.others.map((o) => o.code), twoGots.total, twoGots.words], ["GOTS", ["WRAP"], 4, "GOTS expired 4 Apr 2026 · 3 more certificates"]);
+    assert.equal(certSummary([{ scheme: "GOTS", expiresOn: "2027-01-08" }], TODAY)?.words, "GOTS valid until 8 Jan 2027", "one certificate has no 'more'");
+    assert.equal(certSummary([], TODAY), null);
+  });
+
+  it("the pill's words are short and still a fact", () => {
+    assert.equal(certShort("2026-09-29", TODAY), "Expired 29 Sep");
+    assert.equal(certShort("2025-11-30", TODAY), "Expired Nov 2025", "last year's lapse is its month and year: '30 Nov' alone would read as this year");
+    assert.equal(certShort("2026-10-03", TODAY), "Expires today");
+    assert.equal(certShort("2026-10-04", TODAY), "Expires in 1 day");
+    assert.equal(certShort("2026-11-01", TODAY), "Expires in 29 days");
+    assert.equal(certShort("2026-12-19", TODAY), "Expires 19 Dec");
+    assert.equal(certShort("2027-05-12", TODAY), "Valid to May 2027");
+    assert.equal(certShort(null, TODAY), "No expiry given");
+    assert.equal(certShort("not a date", TODAY), "No expiry given");
+    assert.equal(certShort("2027-05-12", TODAY, "2026-09-28"), "No longer listed", "its body stopped listing it, whatever its date says");
   });
 
   it("of two expired, the one that lapsed most recently leads; of two expiring, the soonest", () => {
@@ -158,9 +202,30 @@ describe("the results table", () => {
     assert.ok(!/\btruncate\b|text-ellipsis|line-clamp/.test(out));
   });
 
-  it("the first certificate problem is words with a glyph, 'No certificates found' is its own line", () => {
-    assert.ok(out.includes("WRAP expired 29 Sep 2026") && out.includes("· 3 more certificates"));
-    assert.ok(out.includes("WRAP valid until 8 Jan 2027"));
+  it("certificates are the bodies' marks and the worst one's state in a few words; 'No certificates found' is its own line", () => {
+    // Founder, 6 Oct 2026: "the certificate section has a long red line then gray line, it must be
+    // compacted and the entity logos must be visible here."
+    const cells = [...out.matchAll(/<td class="([^"]*)">(<span class="flex flex-wrap[\s\S]*?)<\/td>/g)];
+    assert.equal(cells.length, 2, "one compact cell per row that has a certificate");
+    const [aboni, sm] = cells.map((c) => c[2]!);
+    // The worst one leads: its mark, then its state as a pill. Then every other body with an
+    // approved mark, once; SA8000 has none (`context/logos.lock.md`: no row, no render), so it is counted.
+    assert.deepEqual([...aboni!.matchAll(/src="\/icons\/sources\/cert\/([a-z-]+)\.png"/g)].map((m) => m[1]), ["wrap", "gots", "oeko-tex"]);
+    assert.match(aboni!, /wrap\.png"[^>]*\/><\/span><span class="[^"]*\bbg-cert-expired-bg text-cert-expired-fg\b[^"]*">Expired 29 Sep<\/span>/);
+    assert.match(aboni!, />\+1<\/span>/);
+    assert.ok(!aboni!.includes(">SA8000<"), "a body with no approved mark is drawn");
+    // No mark stands without its name (`logos.lock.md` section 1): the cell's title is the line the
+    // narrow list says, each further mark is titled with its own body and state, and a screen
+    // reader hears every body as one sentence instead of the marks.
+    assert.match(aboni!, /^<span class="[^"]*" title="WRAP expired 29 Sep 2026 · 3 more certificates"><span class="sr-only">4 certificates: WRAP expired 29 Sep 2026; GOTS expires in 28 days · 31 Oct 2026; OEKO-TEX Standard 100 valid until 1 May 2027; SA8000 no expiry date published<\/span><span aria-hidden="true"/);
+    assert.match(aboni!, /<span title="GOTS expires in 28 days · 31 Oct 2026"><span [^>]*><img src="\/icons\/sources\/cert\/gots\.png"/);
+    assert.match(aboni!, /<span title="OEKO-TEX Standard 100 valid until 1 May 2027"><span [^>]*><img src="\/icons\/sources\/cert\/oeko-tex\.png"/);
+    assert.match(sm!, /<span class="sr-only">WRAP valid until 8 Jan 2027<\/span>/, "one certificate is its own sentence");
+    assert.equal((aboni!.match(/aria-hidden="true" class="inline-flex/g) ?? []).length, 2, "the marks and the pill are read twice");
+    // One valid certificate: its mark and a quiet pill, nothing after it.
+    assert.match(sm!, /wrap\.png"[^>]*\/><\/span><span class="[^"]*\bbg-sunken text-ink-2\b[^"]*">Valid to Jan 2027<\/span><\/span><\/span>$/);
+    // The marks are 24 tall in a 40 row: the cell gives up 2px of padding above and below.
+    assert.ok(cells.every((c) => c[1]!.split(" ").includes("py-1.5")));
     assert.ok(out.includes("No certificates found"));
   });
 
@@ -322,9 +387,25 @@ describe("the bar over the results", () => {
     assert.match(phone, /h-input-touch/);
     assert.match(phone, /h-touch/);
   });
+
+  it("every bar is one line: nothing in it may wrap, however many filters are on", () => {
+    const busy = { ...state, hs: ["6105", "6109"], cert: [{ kind: "gots" as const, state: "valid" as const }], district: ["Gazipur"] };
+    const props = { state: busy, title: "t", hrefFor, filtersHref: "#" };
+    const full = plain(h(ResultsToolbar, { ...props, filtersOpen: false, saveHref: "#", more: null }));
+    for (const out of [full, plain(h(PaneListToolbar, props)), plain(h(PhoneToolbar, { ...props, count: "t" }))]) assert.ok(!out.includes("flex-wrap"), "a bar that wraps breaks into two lines");
+    assert.match(full, /overflow-x-auto/, "the filters scroll sideways when they outgrow the bar");
+    assert.match(full, /sr-only">Save search</, "Save search keeps its name when it is drawn as its icon");
+  });
 });
 
 describe("the narrow list and the phone's rows", () => {
+  it("while loading, the table's column head is the desktop's alone; a phone waits on its own rows", () => {
+    const out = plain(h(ResultsSkeleton, { title: "knit" }));
+    const head = /<div[^>]*>(?=<span[^>]*>Supplier<)/.exec(out)![0];
+    assert.match(head, /max-md:hidden/, "a phone shows the desktop's column head over its skeleton");
+    assert.match(out, /<div class="md:hidden" aria-hidden="true">/, "a phone has no skeleton rows of its own");
+  });
+
   it("beside a pane: name, type and place, the first certificate problem, the count; the open row is marked", () => {
     const out = plain(h(PaneRows, { rows, currentSlug: "aboni-knitwear" }));
     assert.ok(out.includes("Aboni Knitwear Ltd.") && out.includes("11 sources") && out.includes("Factory · Dhaka"));
@@ -413,21 +494,63 @@ describe("the landing", () => {
   const attention = attentionOf({ total: 1, rows: [{ kind: "wrap", certificate_no: "7865", expires_on: "2026-09-29", supplier: { id: "a", slug: "aboni", company_name: "Aboni Knitwear Ltd." } }] }, { total: 7, rows: [] }, TODAY)!;
   const out = plain(h(SearchLanding, { published: 10268, attention, counts: Promise.resolve({}), saved: Promise.resolve([]) }));
 
-  it("is the work queue: one heading, the published count, needs attention with its total, a filter to start from, the common searches", () => {
+  it("is search first: one heading, the published count, the filter menus, the common searches, then the work queue", () => {
     assert.equal(out.match(/<h1\b/g)?.length, 1);
     assert.ok(out.includes("10,268 suppliers") && out.includes("every fact from a named source"));
-    assert.ok(out.includes("Needs attention · 8"));
+    assert.ok(out.includes("Products exported") && out.includes("Company type") && out.includes("Hiding sanctioned suppliers"));
+    assert.match(out, /aria-label="Common searches"/);
+    assert.ok(out.includes("GOTS-certified knitwear"));
+    assert.ok(out.indexOf('role="search"') < out.indexOf("Needs attention · 8"), "the field comes before the work queue");
     assert.ok(out.includes("See all 8 certificates"));
-    assert.ok(out.includes("Start with a filter") && out.includes("Products exported") && out.includes("Company type"));
-    assert.ok(out.includes("Common searches") && out.includes("GOTS-certified knitwear"));
     assert.match(out, /href="\/app\/rfqs\/new\?supplier=a"[^>]*>Ask for the new certificate/);
   });
 
-  it("lists no supplier before the buyer searches, and draws its own field only for a phone", () => {
+  it("lists no supplier before the buyer searches, and draws its one field at every width, the one Ctrl K reaches", () => {
     assert.doesNotMatch(out, /<table|data-row="result"/);
-    assert.match(out, /<form[^>]*role="search"[^>]*class="relative md:hidden"|<form[^>]*class="relative md:hidden"[^>]*role="search"/);
-    assert.ok(!out.includes('data-search="topbar"'), "the topbar's field is the one the shortcut focuses");
-    assert.match(out, /<input[^>]*role="combobox"[^>]*aria-controls=/, "the phone's field suggests as it is typed");
+    // Founder's walkthrough, 6 Oct 2026: the field was md:hidden while the topbar stepped its
+    // own aside on this page, so a desktop had no search field at all.
+    const form = out.match(/<form[^>]*role="search"[^>]*>/)?.[0] ?? "";
+    assert.ok(form, "the page draws a search form");
+    assert.doesNotMatch(form, /\bhidden\b/);
+    assert.equal(out.match(/data-search="topbar"/g)?.length, 1, "exactly one field carries the shortcut target");
+    assert.match(out, /<input[^>]*role="combobox"[^>]*aria-controls=/, "the field suggests as it is typed");
+    assert.match(out, /<button[^>]*type="submit"[^>]*>Search<\/button>/);
+  });
+
+  it("a recent search is kept once, whatever order or page it was run at", () => {
+    const label = "HS 6110 · Sanctioned hidden";
+    const byWorkers = { label, href: "/app/discover?hs=6110&sort=workers", count: 1777 };
+    const bySources = { label, href: "/app/discover?hs=6110", count: 1777 };
+    const other = { label: "Shirt · Sanctioned hidden", href: "/app/discover?q=shirt", count: 1403 };
+    const list = pushRecent(pushRecent(pushRecent([], byWorkers), other), bySources);
+    assert.deepEqual(list.map((r) => r.href), [bySources.href, other.href]);
+  });
+
+  it("the common searches' counts are read a few at a time, in order", async () => {
+    let live = 0;
+    let peak = 0;
+    const got = await mapLimited([1, 2, 3, 4, 5, 6, 7, 8, 9], 3, async (n) => {
+      peak = Math.max(peak, ++live);
+      await new Promise((r) => setTimeout(r, 5));
+      live--;
+      return n * 10;
+    });
+    assert.equal(peak, 3);
+    assert.deepEqual(got, [10, 20, 30, 40, 50, 60, 70, 80, 90]);
+    assert.deepEqual(await mapLimited([], 3, async () => 1), []);
+  });
+
+  it("a plain click on a link starts the loading bar; a new-tab click does not", () => {
+    const link = (href: string, target: string | null = null) => ({ closest: () => ({ getAttribute: (n: string) => (n === "href" ? href : target) }) });
+    const click = { button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false };
+    const here = "https://app.example/app";
+    assert.equal(startsNavigation({ ...click, target: link("/app/discover?hs=6110") }, here), true);
+    assert.equal(startsNavigation({ ...click, ctrlKey: true, target: link("/app/discover") }, here), false);
+    assert.equal(startsNavigation({ ...click, target: link("/app/discover", "_blank") }, here), false);
+    assert.equal(startsNavigation({ ...click, target: { closest: () => null } }, here), false);
+    // "Try again" is this page: the pathname never changes, so the bar would never come down.
+    assert.equal(startsNavigation({ ...click, target: link("/app") }, here), false);
+    assert.equal(startsNavigation({ ...click, target: link("https://global-standards.org/x") }, here), false);
   });
 
   it("an unread certificate check says so with a way to try again; it does not say nothing needs attention", () => {

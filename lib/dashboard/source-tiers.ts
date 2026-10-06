@@ -139,7 +139,36 @@ function opensA(code: string): "record" | "list" {
   return code.toUpperCase().startsWith("BRAND_") ? "list" : "record";
 }
 
+/**
+ * The page a stored link may still send a buyer to, or null when it now ends
+ * nowhere. Each shape was opened on 6 Oct 2026 (founder: "there is no point to
+ * route user to a 404 place"):
+ * - WRAP rebuilt its site: `/certified-facility/<id>/` is "Page not found" for
+ *   every id we hold, and it publishes no page per facility in its place;
+ * - an OEKO-TEX `customer_profile/<key>` link carries a key that runs out
+ *   ("Profile key has expired"), so a stored one never opens;
+ * - Global Trace Base put `/SCO…/certificate-document` behind its login; the
+ *   GOTS directory keeps a public page per listed supplier under the same SCO
+ *   id (`?gtbid=SCO001636` shows 4A Yarn Dyeing, GOTS-11426).
+ * Any other URL passes through unchanged.
+ */
+export function publicPage(url: string | null): string | null {
+  if (!url || /wrapcompliance\.org\/certified-facility\/|oeko-tex\.com\/.*\/customer_profile\//i.test(url)) return null;
+  const sco = /global-trace-base\.org\/(SCO\d+)\/certificate-document/i.exec(url)?.[1];
+  return sco ? `https://global-standards.org/suppliers/certified-suppliers/details?gtbid=${sco.toUpperCase()}` : url;
+}
+
+/**
+ * The GOTS directory's page for one supplier. It answers "Error loading data:
+ * 404" as soon as GOTS stops listing the supplier (SCO039488, 6 Oct 2026), so
+ * only a certificate row whose own check is in date may link to it (`certRows`);
+ * a mark does not know when GOTS was last read, and carries no link there.
+ */
+const GOTS_PAGE = /global-standards\.org\/suppliers\/certified-suppliers\/details/i;
+
 export function sourceMark(code: string, href: string | null = null): SourceMarkModel {
+  href = publicPage(href);
+  if (href && GOTS_PAGE.test(href)) href = null;
   const key = code.toUpperCase();
   const entry = REGISTRY[key] ?? REGISTRY[code] ?? fallback(code);
   return {

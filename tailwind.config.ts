@@ -5,6 +5,7 @@ import {
   boxShadow,
   containers,
   cssVarName,
+  dark,
   densitySizes,
   fontFamily,
   fontSize,
@@ -12,6 +13,7 @@ import {
   letterSpacing,
   light,
   maxWidth,
+  paneMaterial,
   screens,
   spacing,
   toChannels,
@@ -112,19 +114,33 @@ const config: Config = {
         "ds-rise": { from: { opacity: "0", transform: "translateY(8px)" }, to: { opacity: "1", transform: "none" } },
         "ds-sheet-in": { from: { opacity: "0", transform: "translateX(32px)" }, to: { opacity: "1", transform: "none" } },
         "ds-scrim-in": { from: { opacity: "0" }, to: { opacity: "0.32" } },
+        "ds-pending": { from: { transform: "translateX(-100%)" }, to: { transform: "translateX(300%)" } },
       },
       animation: {
         fade: `ds-fade ${transitionDuration.DEFAULT} ${transitionTimingFunction.out} both`,
         rise: `ds-rise ${transitionDuration.slow} ${transitionTimingFunction.out} both`,
         "sheet-in": `ds-sheet-in ${transitionDuration.slow} cubic-bezier(0.16, 1, 0.3, 1) both`,
         "scrim-in": `ds-scrim-in ${transitionDuration.DEFAULT} ${transitionTimingFunction.out} both`,
+        pending: "ds-pending 1.1s ease-in-out infinite",
       },
     },
   },
   plugins: [
-    plugin(({ addBase }) => {
-      // A dark set, when it comes, is a second block here keyed on `.dark`.
-      addBase({ ":root": colorVars(light) });
+    plugin(({ addBase, addVariant }) => {
+      // The home film's two conditions (components/site/film): `film:` where the film runs at all (the full and
+      // lite tiers), `film-full:` where every scene holds. With neither, a scene is a plain stacked section.
+      addVariant("film", ':is([data-film-tier="full"], [data-film-tier="lite"]) &');
+      addVariant("film-full", '[data-film-tier="full"] &');
+      // The dark set is the same variables again, in two places: where the
+      // system asks for dark and the page has opted in with `data-theme-auto`
+      // (CSS only, so no flash and no script), and inside a night scene, which
+      // is dark in either theme. Every page without the attribute stays light.
+      const night = { ...colorVars(dark), ...paneMaterial.dark, "color-scheme": "dark" };
+      addBase({
+        ":root": { ...colorVars(light), ...paneMaterial.light },
+        "@media (prefers-color-scheme: dark)": { ":root:has([data-theme-auto])": night },
+        '[data-ground="night"]': night,
+      });
     }),
   ],
 };

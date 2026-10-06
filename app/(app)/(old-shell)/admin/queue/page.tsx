@@ -55,6 +55,8 @@ type Row = {
   created_at: string;
   release_action: string | null;
   buyer_destination: string | null;
+  /** 0128: the Release plan has not been worked out for this row yet; the next load takes up to ten more. */
+  plan_pending?: boolean | null;
   supplier: Supplier | null;
 };
 
@@ -262,6 +264,10 @@ function QueueRowView({ r }: { r: Row }) {
           <span className="mt-1 block text-sm text-ink-2">
             Buyer destination: {r.buyer_destination}
           </span>
+        ) : !r.reviewed_at && r.plan_pending ? (
+          <span className="mt-1 block text-sm text-ink-3">
+            Not yet classified: each load works out up to ten more rows.
+          </span>
         ) : null}
       </Td>
       <Td>
@@ -360,6 +366,9 @@ function confidenceValue(raw: Row["confidence"]): number | null {
 function sourceSummary(sourceData: Record<string, unknown> | null): string {
   if (!sourceData || Object.keys(sourceData).length === 0) return "No source payload.";
   const preferred = [
+    // ETL holds (etl_hold_v1): both spellings first, side by side.
+    "incoming_name",
+    "candidate_name",
     "source",
     "source_code",
     "source_url",

@@ -35,3 +35,32 @@ founder's Q1–Q4 answers and seven design picks are in
 - Harness: `.impeccable/preview/video29.cjs` (gitignored).
 - Its leftovers were handed on to `feature-specs/handoff-dashboard-names-and-facts.md`
   (PR D there).
+
+## Moved from current-state (6 Oct 2026)
+
+- **Buyer dashboard v3.2, REZ-A (the code port of the dashboard kit)** —
+  DONE. `ACCEPTED_FOR_HUMAN_REVIEW` at cycle 21 (candidate `1ccb4bc`),
+  merged to `development` via PR #161 (21 Sep). Dev/admin-only gallery at
+  `/dev/ds`; no live route wired yet. Full history:
+  `context/feature-specs/handoff-rez-a-cycle21.md`.
+- **Buyer dashboard v3.2, REZ-B (results page)** — DONE. Judge
+  `ACCEPTED_FOR_HUMAN_REVIEW` at `4f6eff2`; `development` PR #164 (`cfbbf4a`),
+  `main` PR #165 (`1780c2c`), deployed 24 Sep, migration `0104` applied 25 Sep.
+  Loop history: `feature-specs/handoff-rez-b-cycle15.md`,
+  `handoff-rez-b-deploy.md`, `handoff-rez-b-live-migration.md` (its §5 is the
+  follow-up list; its first item, the stale "Selection arrives with the results
+  work" line, is fixed in REZ-C's PR).
+
+## Moved from current-state (6 Oct 2026, S6)
+
+- **Address premises merge — one row per premises on Locations** (11 Sep,
+  landed on `development` 17 Sep via PR #159). Matcher-only in
+  `lib/dedup-addresses.ts`; alternate spellings stay as "Also recorded as"
+  pills. No raw-string, geocode-key, ETL or schema change. Evidence:
+  `ops/plans/address-dedup-baseline.md`.
+- **EPB evidence + HS codes on existing companies, independent of BGMEA/BKMEA
+  flags** (REZ-113 follow-on, 15 Aug). Attach-only of 1,953 EPB matches and
+  the HS backfill are APPLIED on production (2,492 EPB records on 2,472
+  companies; 2,476 with HS codes; company count 10,922). Migration `0103`
+  applied. **Frontend HS card is in the working tree, not on the server.**
+  Evidence: `ops/plans/rez-113-epb-coverage-evidence.md`.

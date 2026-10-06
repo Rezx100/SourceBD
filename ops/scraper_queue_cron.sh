@@ -24,14 +24,24 @@ notify_etl_fail() {
 # moved" into re-check work. Running it before the queue means a page that
 # changed minutes ago is already at the front of the verify queue when the
 # verifier next runs, rather than a cycle behind.
-if ! docker compose run --rm etl process-webhooks --limit 200; then
-  notify_etl_fail "process-webhooks"
-  exit 1
-fi
+#
+# S3 (spec-etl-freshness §4.2): a tick starts every minute and a run can take
+# hours, so ticks overlap. Only one tick at a time drains and enqueues; a tick
+# that finds the lock taken skips straight to the queue. The queue itself caps
+# concurrency (2 running, one per scraper) in its claim, so run-queue stays
+# outside the lock.
+exec 9>/tmp/sourcebd-etl-enqueue.lock
+if flock -n 9; then
+  if ! docker compose run --rm etl process-webhooks --limit 200; then
+    notify_etl_fail "process-webhooks"
+    exit 1
+  fi
 
-if ! docker compose run --rm etl enqueue-due-schedules; then
-  notify_etl_fail "enqueue-due-schedules"
-  exit 1
+  if ! docker compose run --rm etl enqueue-due-schedules; then
+    notify_etl_fail "enqueue-due-schedules"
+    exit 1
+  fi
+  flock -u 9
 fi
 
 if ! docker compose run --rm etl run-queue --limit 1; then

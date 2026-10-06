@@ -59,8 +59,8 @@ export default async function SupplierRecordPage({
   let model: Awaited<ReturnType<typeof loadRecordSheet>>;
   try {
     model = await loadRecordSheet(supabase, slug, new Date(), {
-      // Only the Sites tab draws a pin, so only it reads the geocode cache.
-      pins: parseTab(sp.tab) === "sites",
+      // Every section is on the page at once (the tabs scroll to them), so the map's pins are always read.
+      pins: true,
       allLines,
       // "All N lines" is the Products tab, expanded.
       allLinesHref: allLines ? null : `/app/suppliers/${slug}?tab=products&lines=all`,

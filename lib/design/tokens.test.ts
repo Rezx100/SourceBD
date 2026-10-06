@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
-import { borderRadius, boxShadow, containers, contrastPairs, contrastRatio, cssVarName, density, densitySizes, fontSize, letterSpacing, light, maxWidth, resolve, screens, spacing, tiers, toRgb, transitionDuration, v4CertAliases, v4Colors, v4Ref, zIndex } from "./tokens";
+import { borderRadius, boxShadow, containers, contrastPairs, contrastRatio, cssVarName, density, densitySizes, filmColors, fontSize, letterSpacing, light, maxWidth, resolve, screens, spacing, tiers, toRgb, transitionDuration, v4CertAliases, v4Colors, v4Ref, zIndex } from "./tokens";
 
 // npm test runs from the repo root; the compiled test lives elsewhere.
 const repoRoot = process.cwd();
@@ -374,11 +374,13 @@ test("the radius scale is Paper's, with the old pages' extra names until B11", (
       md: "6px", // Paper: tables, source-mark frames
       lg: "8px", // Paper: panels, dialogs, cards
       full: "9999px",
+      pane: "20px", // the home film's Pane
+      "pane-phone": "16px",
       xs: "0.1875rem", // v3
       DEFAULT: "0.375rem", // v3
       xl: "1.25rem", // v3
     },
-    "Paper's --radius-sm/md/lg/full (4 Oct 2026); xs, DEFAULT and xl go with the old pages",
+    "Paper's --radius-sm/md/lg/full (4 Oct 2026) and the film's pane (6 Oct); xs, DEFAULT and xl go with the old pages",
   );
 });
 
@@ -633,6 +635,16 @@ test("the type scale, the widths and the durations are the approved ones", () =>
     assert.equal(fontSize[key]?.[1].lineHeight, lh, `text-${key} line height`);
     assert.equal(fontSize[key]?.[1].letterSpacing, undefined, `text-${key}: Paper puts tracking on the element, not the size`);
   }
+  // The home film's six, for that page only (handoff-home-film §3.2, approved 6 Oct 2026).
+  const film: Record<string, [string, string]> = {
+    "film-hero": ["104px", "1.02"], "film-hero-phone": ["44px", "1.04"], "film-figure": ["200px", "0.9"],
+    "film-figure-phone": ["96px", "0.9"], "film-scene": ["64px", "1.06"], "film-scene-phone": ["32px", "1.06"],
+  };
+  for (const [key, [size, lh]] of Object.entries(film)) {
+    assert.equal(fontSize[key]?.[0], size, `text-${key}`);
+    assert.equal(fontSize[key]?.[1].lineHeight, lh, `text-${key} line height`);
+  }
+  assert.deepEqual(Object.keys(fontSize).filter((k) => k.startsWith("film-")).sort(), Object.keys(film).sort());
   assert.deepEqual({ ...letterSpacing }, { tight: "-0.01em", tighter: "-0.02em" });
   assert.deepEqual({ ...containers }, { sidebar: "224px", details: "344px", panel: "360px", dialog: "480px", prose: "544px", pane: "640px" });
   assert.equal(maxWidth.prose, "544px", "Paper's prose, not Tailwind's 65ch");
@@ -661,6 +673,9 @@ test("every v4 colour is Paper's value, and light carries it under Paper's name"
     assert.equal(resolve(light, v4Ref(alias)), v4Colors[target], `${alias} is ${target}`);
   }
   assert.equal(resolve(light, "scrim"), v4Colors.ink, "the scrim is ink at 40%");
+  // The home film's four additions, in Paper's tokens too (6 Oct 2026).
+  assert.deepEqual({ ...filmColors }, { "brand-ink": "#1B5E20", "map-land": "#ECEEF1", "map-water": "#DCE4EC", "map-light": "#15181C" });
+  for (const [name, hex] of Object.entries(filmColors)) assert.equal(resolve(light, v4Ref(name)), hex, name);
 });
 
 test("the source-rank labels are the five §2 names", () => {

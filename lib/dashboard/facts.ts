@@ -2,6 +2,8 @@
 // counts, names. Pure functions — every rendered value on a card, table row or
 // sheet passes through here, so the boundary tests can pin the words.
 
+import { publicPage } from "./source-tiers";
+
 export type CertState = "valid" | "expiring" | "expired" | "no-expiry";
 
 export type CertModel = {
@@ -135,6 +137,56 @@ export function formatCount(n: number | null | undefined): string | null {
   return new Intl.NumberFormat("en-GB").format(Math.round(n));
 }
 
+/** One certificate as `supplier_cert_checks` (0122) returns it. */
+export type CertCheck = {
+  kind: string;
+  certificate_no: string | null;
+  listing_status: string;
+  checked_at: string | null;
+  delisted_at: string | null;
+};
+/** `supplier_cert_checks`: the record's certificates, and each scheme's last complete read. */
+export type CertChecks = { certs: CertCheck[]; reads: Record<string, string | null> };
+
+/** Who publishes each scheme's list, and how stale a check may be (spec-etl-freshness §3). */
+const CERT_BODY: Record<string, { name: string; slaHours: number }> = {
+  gots: { name: "GOTS", slaHours: 72 },
+  wrap: { name: "WRAP", slaHours: 72 },
+  oeko_tex: { name: "OEKO-TEX", slaHours: 240 },
+  sa8000: { name: "SAAS", slaHours: 240 },
+};
+
+/**
+ * The line under a certificate's state: when its body last showed it (spec §3). Says what we
+ * found, never "clear". Null for a scheme we do not read or a certificate with no check yet.
+ * `newer`: another certificate of the scheme on the record runs later, so "no newer" is untrue.
+ */
+export function certCheckLine(
+  kind: string,
+  expiresOn: string | null,
+  check: CertCheck | undefined,
+  reads: Record<string, string | null>,
+  now: Date,
+  newer = false,
+): { text: string; caution: boolean } | null {
+  const body = CERT_BODY[kind];
+  if (!body || !check) return null;
+  if (check.listing_status === "no_longer_listed") {
+    const was = formatDay(expiresOn);
+    return { text: `${body.name} no longer lists it${was ? ` (was valid until ${was})` : ""}`, caution: true };
+  }
+  const day = formatDay(check.checked_at);
+  if (!check.checked_at || !day) return null;
+  if (now.getTime() - Date.parse(check.checked_at) > body.slaHours * 3_600_000) {
+    return { text: `last shown by ${body.name} ${day} · not re-checked since`, caution: true };
+  }
+  if (kind === "oeko_tex") return { text: `listed by ${body.name} on ${day}`, caution: false };
+  if (!newer && certState(expiresOn, now) === "expired") {
+    return { text: `${body.name} lists no newer certificate (checked ${formatDay(reads[kind]) ?? day})`, caution: false };
+  }
+  return { text: `checked with ${body.name} ${day}`, caution: false };
+}
+
 /** The words on a certificate's state badge. */
 export function certStateLabel(c: Pick<CertModel, "state" | "daysLeft" | "expiresOn">): string {
   const day = formatDay(c.expiresOn);
@@ -250,6 +302,7 @@ export function certModel(
   },
   today: Date,
 ): CertModel {
+  const state = certState(raw.expires_on, today);
   return {
     kind: raw.kind,
     scheme: certScheme(raw.kind, raw.scope),
@@ -257,9 +310,10 @@ export function certModel(
     issuer: raw.issuer,
     scope: raw.scope,
     expiresOn: raw.expires_on,
-    state: certState(raw.expires_on, today),
+    state,
     daysLeft: daysUntil(raw.expires_on, today),
-    documentUrl: raw.document_url,
+    // GOTS drops an expired certificate from its list, and its public page with it.
+    documentUrl: raw.kind.toLowerCase() === "gots" && state === "expired" ? null : publicPage(raw.document_url),
     markCode: raw.kind,
   };
 }

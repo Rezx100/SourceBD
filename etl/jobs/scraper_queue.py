@@ -16,6 +16,14 @@ from etl.scrapers.registry import RUNNABLE
 
 log = get_logger("etl.jobs.scraper_queue")
 
+# S3 (spec-etl-freshness §4.2, §4.7). Cron starts a worker every minute and a
+# run can last hours, so the claim is where concurrency is bounded: at most
+# MAX_RUNNING jobs at once and never two of one scraper. A failed job is
+# retried after a backoff, then dead-lettered (failed, and Slack is told).
+MAX_RUNNING = 2
+MAX_ATTEMPTS = 3
+RETRY_BACKOFF_MINUTES = (15, 60)  # after attempt 1, after attempt 2
+
 
 class QueueJob(TypedDict):
     id: str
@@ -104,7 +112,16 @@ def enqueue_due_schedules(limit: int | None = None) -> dict[str, int]:
                     """
                     update public.etl_schedules
                        set last_enqueued_at = now(),
-                           next_run_at = now() + make_interval(mins => interval_minutes)
+                           -- S3 (§4.1): a schedule with a window starts in it, plus
+                           -- jitter, so runs do not drift round the clock.
+                           next_run_at = case
+                             when metadata ? 'run_window_utc' then
+                               date_trunc('day', now() + make_interval(mins => interval_minutes))
+                               + make_interval(hours => (metadata ->> 'run_window_utc')::int)
+                               + make_interval(mins => floor(random() * coalesce(
+                                   (metadata ->> 'jitter_minutes')::int, 15))::int)
+                             else now() + make_interval(mins => interval_minutes)
+                           end
                      where scraper_code = %s
                     """,
                     (scraper_code,),
@@ -219,6 +236,21 @@ def run_queue(limit: int = 1) -> dict[str, int]:
     # Reap before claiming, outside the per-job try/except: a reaper failure
     # must propagate so the cron's Slack alert fires.
     reap_stale(settings.etl_reap_stale_hours)
+    # C2: reviewed holds land within a minute rather than at the source's
+    # next read. Best-effort: a replay problem must not stop the queue.
+    try:
+        from etl.core.hold import replay_decided
+
+        replay_decided()
+    except Exception as exc:  # noqa: BLE001
+        log.error("hold.replay_batch_failed", error=str(exc))
+    # S3: the daily freshness digest rides on the minute tick (no extra cron).
+    try:
+        from etl.jobs.freshness_digest import post_daily_digest_once
+
+        post_daily_digest_once()
+    except Exception as exc:  # noqa: BLE001
+        log.error("digest.failed", error=str(exc))
     processed = 0
     failed = 0
 
@@ -238,15 +270,24 @@ def run_queue(limit: int = 1) -> dict[str, int]:
 
 def _claim_next_job() -> QueueJob | None:
     with db.conn() as c, c.cursor() as cur:
+        # One claimer at a time, so two overlapping ticks cannot both see a
+        # free slot. Held for this short transaction only.
+        cur.execute("select pg_advisory_xact_lock(hashtext('sourcebd.etl.claim'))")
         cur.execute(
             """
             select id, scraper_code
-              from public.etl_job_queue
+              from public.etl_job_queue q
              where status = 'pending'
+               and coalesce((metadata ->> 'retry_after')::timestamptz, '-infinity') <= now()
+               and (select count(*) from public.etl_job_queue r where r.status = 'running') < %s
+               and not exists (
+                     select 1 from public.etl_job_queue r
+                      where r.status = 'running' and r.scraper_code = q.scraper_code)
              order by priority asc, requested_at asc
              for update skip locked
              limit 1
-            """
+            """,
+            (MAX_RUNNING,),
         )
         row = cur.fetchone()
         if row is None:
@@ -299,6 +340,53 @@ def _run_job(job: QueueJob) -> None:
 
     _mark_success(job["id"], result, getattr(scraper, "last_run_id", None))
     log.info("job.success", job_id=job["id"], scraper_code=scraper_code, result=result)
+    try:
+        _chain_after(scraper_code, result)
+    except Exception as exc:  # noqa: BLE001 - a follow-up must not fail the run
+        log.error("job.chain_failed", scraper_code=scraper_code, error=str(exc))
+
+
+def _follow_ups(scraper_code: str, result: dict[str, Any]) -> list[tuple[str, int | None]]:
+    """What a successful run starts next (spec-etl-freshness §4.1, §5): pure.
+
+    Nothing changed means nothing follows. A supplier source that upserted
+    something asks for the SBI recompute, at most once a day; an RSC read that
+    changed something asks for its documents (new inspection URLs only).
+    """
+    from etl.core.scraper import BaseScraper
+    from etl.scrapers.registry import SCRAPERS
+
+    if int(result.get("upserted") or 0) <= 0:
+        return []
+    out: list[tuple[str, int | None]] = []
+    if scraper_code == "rsc":
+        out.append(("rsc_documents", None))
+    cls = SCRAPERS.get(scraper_code)
+    if cls is not None and isinstance(cls, type) and issubclass(cls, BaseScraper):
+        out.append(("sbi_recompute", 24))
+    return out
+
+
+def _chain_after(scraper_code: str, result: dict[str, Any]) -> None:
+    for code, debounce_hours in _follow_ups(scraper_code, result):
+        with db.conn() as c, c.cursor() as cur:
+            cur.execute(
+                """
+                insert into public.etl_job_queue (scraper_code, priority, metadata)
+                select %s, 100, jsonb_build_object('source', 'chain', 'after', %s::text)
+                 where not exists (
+                   select 1 from public.etl_job_queue q
+                    where q.scraper_code = %s
+                      and (q.status in ('pending', 'running')
+                           or (%s::int is not null
+                               and q.requested_at > now() - make_interval(hours => %s::int))))
+                returning id
+                """,
+                (code, scraper_code, code, debounce_hours, debounce_hours or 0),
+            )
+            if cur.fetchone():
+                log.info("job.chained", after=scraper_code, queued=code)
+            c.commit()
 
 
 def _mark_success(job_id: str, result: dict[str, int], etl_run_id: str | None) -> None:
@@ -336,6 +424,37 @@ def _mark_success(job_id: str, result: dict[str, int], etl_run_id: str | None) -
 def _mark_failed(job_id: str, error: str, etl_run_id: str | None = None) -> None:
     with db.conn() as c, c.cursor() as cur:
         cur.execute(
+            "select attempts, scraper_code from public.etl_job_queue where id = %s and status = 'running'",
+            (job_id,),
+        )
+        row = cur.fetchone()
+        if row is not None and int(row["attempts"] or 0) < MAX_ATTEMPTS:
+            minutes = RETRY_BACKOFF_MINUTES[min(int(row["attempts"] or 1), len(RETRY_BACKOFF_MINUTES)) - 1]
+            cur.execute(
+                """
+                update public.etl_job_queue
+                   set status = 'pending',
+                       started_at = null,
+                       etl_run_id = coalesce(%s, etl_run_id),
+                       error = %s,
+                       progress_message = %s,
+                       metadata = coalesce(metadata, '{}'::jsonb) || jsonb_build_object(
+                         'retry_after', now() + make_interval(mins => %s)),
+                       heartbeat_at = now()
+                 where id = %s
+                """,
+                (etl_run_id, error[:4000], f"Failed; retrying in {minutes} minutes.", minutes, job_id),
+            )
+            cur.execute(
+                """
+                insert into public.etl_job_events (job_id, etl_run_id, scraper_code, event_type, message)
+                values (%s, %s, %s, 'retry', %s)
+                """,
+                (job_id, etl_run_id, row["scraper_code"], f"Retry in {minutes} min: {error[:3800]}"),
+            )
+            c.commit()
+            return
+        cur.execute(
             """
             update public.etl_job_queue
                set status = 'failed',
@@ -365,6 +484,13 @@ def _mark_failed(job_id: str, error: str, etl_run_id: str | None = None) -> None
             (etl_run_id, error[:4000], job_id),
         )
         c.commit()
+    if row is not None:
+        from etl.core.notify import slack
+
+        slack(
+            f":x: SourceBD: {row['scraper_code']} failed {MAX_ATTEMPTS} times and has stopped "
+            f"retrying (job {job_id}): {error[:300]}"
+        )
 
 
 def _record_progress_event(job_id: str, event: dict[str, Any]) -> None:

@@ -6,7 +6,7 @@
 
 import type { CertRowData } from "@/components/patterns";
 import { SITE_WORDS, certWords, isApproximate, type SiteKind } from "@/components/patterns/words";
-import { certRowId } from "@/lib/dashboard/facts";
+import { certCheckLine, certRowId, formatDay } from "@/lib/dashboard/facts";
 import type { CertState } from "@/components/kit";
 import type { FactRow, LocationRow, ProductSheetModel, SitePin, SupplierSheetModel } from "@/lib/dashboard/models";
 import type { SourceMarkModel } from "@/lib/dashboard/source-tiers";
@@ -25,6 +25,16 @@ export type TabId = (typeof TABS)[number]["id"];
 export function parseTab(raw: string | string[] | null | undefined): TabId {
   const v = Array.isArray(raw) ? raw[0] : raw;
   return TABS.find((t) => t.id === v)?.id ?? "overview";
+}
+
+/**
+ * The section a reader is in, as the tabs mark it while the record scrolls: the first section (in
+ * page order) crossing the reading band under the sticky tabs; at the very foot, the last one (a
+ * short last section never reaches the band); with nothing in the band, wherever they were.
+ */
+export function sectionInView<T>(order: readonly T[], inBand: ReadonlySet<T>, atEnd: boolean, prev: T): T {
+  if (atEnd && order.length > 0) return order[order.length - 1]!;
+  return order.find((id) => inBand.has(id)) ?? prev;
 }
 
 /** `?site=` as the page reads it: a whole number from 1, or null. */
@@ -70,13 +80,27 @@ export type SummaryCell = {
 
 const namesOf = (names: string[]): string => (names.length <= 1 ? (names[0] ?? "") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`);
 
+/** Spec-etl-freshness §3: the lists are read daily; past 48 hours the cell says when, not that it is current. */
+export const SANCTIONS_MAX_AGE_MS = 48 * 3600 * 1000;
+
+/** "Not listed" is what we found on the lists we read, so it always carries when we read them (never "clear"). */
+function notListed(readAt: string | null, today: Date): SummaryCell {
+  const cell: SummaryCell = { key: "sanctions", label: "Sanctions", value: "Not listed", sub: null };
+  if (!readAt) return cell;
+  const day = formatDay(readAt);
+  if (!day) return cell;
+  return today.getTime() - new Date(readAt).getTime() > SANCTIONS_MAX_AGE_MS
+    ? { ...cell, tone: "caution", sub: `lists last read ${day} · not re-read since` }
+    : { ...cell, sub: `on the lists read ${day}` };
+}
+
 /** The summary strip. Nothing is scored: each cell is a count or a state the registers hold. */
 export function summaryCells(model: SupplierSheetModel, today: Date): SummaryCell[] {
   const hit = model.sanctions[0] ?? null;
   const list = hit?.list ?? "sanctions list";
   const sanctions: SummaryCell = model.sanctioned
     ? { key: "sanctions", label: "Sanctions", value: `On the ${list}`, tone: "sanction", sub: `From the ${list}${hit?.screenedOn ? ` · checked ${hit.screenedOn}` : ""}` }
-    : { key: "sanctions", label: "Sanctions", value: "Not listed", sub: null };
+    : notListed(model.sanctionsReadAt, today);
 
   const states = model.certs.map((c) => ({ c, w: certWords(c.expiresOn, today) }));
   const expired = states.filter((s) => s.w.state === "expired");
@@ -113,28 +137,52 @@ export function summaryCells(model: SupplierSheetModel, today: Date): SummaryCel
 }
 
 /** The certificates as the certificate table takes them; OEKO-TEX has a label check, not a certificate. */
-export function certRows(model: SupplierSheetModel): CertRowData[] {
-  return model.certs.map((c) => ({
-    scheme: c.scheme,
-    number: c.number,
-    issuer: c.issuer,
-    expiresOn: c.expiresOn,
-    documentUrl: c.documentUrl,
-    documentLabel: /oeko/i.test(c.scheme) ? "Open label check" : undefined,
-    anchor: certRowId(c.kind, c.number, c.expiresOn),
-  }));
+export function certRows(model: SupplierSheetModel, now: Date = new Date()): CertRowData[] {
+  const checks = model.certChecks;
+  return model.certs.map((c) => {
+    const check = checks?.certs.find((k) => k.kind === c.kind && k.certificate_no === c.number);
+    const newer = model.certs.some((o) => o !== c && o.kind === c.kind && (o.expiresOn ?? "") > (c.expiresOn ?? ""));
+    const delisted = check?.listing_status === "no_longer_listed";
+    const line = checks ? certCheckLine(c.kind, c.expiresOn, check, checks.reads, now, newer) : null;
+    // A GOTS link is the directory's page for the supplier, which errors once GOTS stops listing it. So it is
+    // linked only on a check that is in date and found it listed: never expired, delisted, overdue or unread.
+    const gots = c.kind.toLowerCase() === "gots";
+    const gotsOpen = line !== null && !line.caution && c.state !== "expired";
+    return {
+      delistedOn: delisted ? (check?.delisted_at ?? now.toISOString()) : null,
+      check: line,
+      scheme: c.scheme,
+      number: c.number,
+      issuer: c.issuer,
+      expiresOn: c.expiresOn,
+      documentUrl: gots && !gotsOpen ? null : c.documentUrl,
+      documentLabel: gots ? "Open on GOTS" : undefined,
+      anchor: certRowId(c.kind, c.number, c.expiresOn),
+    };
+  });
 }
 
 /** Certificates a buyer should look at first: expired, then expiring. A valid or undated one is on the Certificates tab. */
 export function needsLook(rows: CertRowData[], today: Date): CertRowData[] {
-  const state = (r: CertRowData) => certWords(r.expiresOn, today).state;
+  const state = (r: CertRowData) => certWords(r.expiresOn, today, r.delistedOn).state;
   return [...rows.filter((r) => state(r) === "expired"), ...rows.filter((r) => state(r) === "expiring")];
 }
 
 /** The facts the Overview lists: the record's own, in its order, under the words Paper uses. */
 const LABEL: Record<string, string> = { Established: "Founded", Registers: "Memberships", "Capacity, as filed": "Capacity", "Factory address": "Address" };
 
-export type KeyFact = { label: string; values: { text: string; mono: boolean; mark?: string }[]; source: string | null; empty: string | null };
+/** One registration as its line draws it: the register's mark and short name, then its number. */
+export type Membership = { mark: string | null; name: string; qualifier: string | null; number: string | null };
+
+export type KeyFact = { label: string; values: { text: string; mono: boolean; membership?: Membership }[]; source: string | null; empty: string | null };
+
+/** "BGMEA General" is the register and the class of member; "EPB Reg" is the register alone ("Reg" says nothing beside a number). */
+function membership(i: NonNullable<FactRow["items"]>[number]): Membership {
+  const short = i.mark?.label ?? "";
+  const own = short !== "" && i.label.toLowerCase().startsWith(short.toLowerCase());
+  const rest = own ? i.label.slice(short.length).trim().replace(/^reg\.?$/i, "") : "";
+  return { mark: i.mark?.code ?? null, name: own ? short : i.label, qualifier: rest || null, number: i.code };
+}
 
 export function keyFacts(model: SupplierSheetModel): KeyFact[] {
   // Rows that only say "not on file" are left out when they are extras: Paper's almost-empty record lists what it has and the few a buyer asks for.
@@ -149,10 +197,11 @@ export function keyFacts(model: SupplierSheetModel): KeyFact[] {
       !(sited && f.label === "Factory address"),
   );
   const out: KeyFact[] = rows.map((f) => {
-    const from = f.marks?.length ? `From ${f.marks.map((m) => m.label).join(", ")}` : f.pendingSource ? "Source not linked yet" : null;
+    // A list of registrations names its register on every line, so "From EPB, BGMEA" under it would say it twice.
+    const from = f.items?.length ? null : f.marks?.length ? `From ${f.marks.map((m) => m.label).join(", ")}` : f.pendingSource ? "Source not linked yet" : null;
     const source = [from, f.note ?? null].filter(Boolean).join(" · ") || null;
     const values = f.items?.length
-      ? f.items.map((i) => ({ text: [i.label, i.code].filter(Boolean).join(" reg. no. "), mono: Boolean(i.code), mark: i.mark?.code }))
+      ? f.items.map((i) => ({ text: [i.label, i.code].filter(Boolean).join(" reg. no. "), mono: Boolean(i.code), membership: membership(i) }))
       : f.value
         ? [{ text: f.value, mono: Boolean(f.code) }]
         : [];
