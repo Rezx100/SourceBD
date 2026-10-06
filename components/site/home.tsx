@@ -13,10 +13,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { DIFFER, ExportsScene, RECEIPTS, ReceiptsScene, SiteScene, SourceDates, SourcesScene, TimeScene } from "@/components/site/film/chapters";
+import { COMPLIANCE_LEDE, COMPLIANCE_SCREEN, COMPLIANCE_STEPS, CloseScene, FiguresScene, LADDER_NOTE, LadderScene, OrderScene, PROMISES, PromisesScene, SCREENS, TIERS, liveFigures } from "@/components/site/film/closing";
 import { TIER_SCRIPT } from "@/components/site/film/engine/tier";
 import { Opening } from "@/components/site/film/opening";
 import * as record from "@/components/site/film/record";
 import { FilmRuntime } from "@/components/site/film/runtime";
+import { HOME_CHAPTERS, Rail } from "@/components/site/film/thread";
 import { ClaimReceipt, Display, Faq, HeroActions, Label, Lede, RecordCard, Section, Stat, wrap, type Row } from "@/components/site/parts";
 import { RoleTabs } from "@/components/site/role-tabs";
 import { readDay, withCommas, type SiteFacts } from "@/lib/site-facts";
@@ -175,6 +177,16 @@ export function Home({ facts, film = false }: { facts: SiteFacts; film?: boolean
         </>
       )}
 
+      {film ? (
+        <>
+          <OrderScene />
+          <PromisesScene />
+          <LadderScene facts={facts} />
+          <FiguresScene facts={facts} />
+          <CloseScene />
+        </>
+      ) : (
+        <>
       <Section id="ch-7" label="07 · Can they make my order?" headline="Shortlist. Ask. Compare." lede="Save the suppliers you like. Send one RFQ, and each gets its own copy. The quotes come back side by side.">
         <RoleTabs
           tabs={[
@@ -184,11 +196,11 @@ export function Home({ facts, film = false }: { facts: SiteFacts; film?: boolean
               panel: (
                 <figure className="flex flex-col gap-4">
                   <ol className="flex flex-wrap gap-x-8 gap-y-2 text-md text-ink-2">
-                    <li><span className="font-mono text-ink-3">1 </span><strong className="text-ink">Shortlist from your saved suppliers</strong></li>
-                    <li><span className="font-mono text-ink-3">2 </span>Send one RFQ</li>
-                    <li><span className="font-mono text-ink-3">3 </span>Compare the quotes</li>
+                    <li><span className="font-mono text-ink-3">1 </span><strong className="text-ink">{SCREENS[0]!.step}</strong></li>
+                    <li><span className="font-mono text-ink-3">2 </span>{SCREENS[1]!.step}</li>
+                    <li><span className="font-mono text-ink-3">3 </span>{SCREENS[2]!.step}</li>
                   </ol>
-                  <Image src="/site/saved-selected.png" alt="The Saved page with three suppliers picked, and the bar offering one RFQ to all three." width={1440} height={900} className="h-auto w-full rounded-lg border border-line" />
+                  <Image src={SCREENS[0]!.src} alt={SCREENS[0]!.alt} width={1440} height={900} className="h-auto w-full rounded-lg border border-line" />
                   <figcaption className="font-mono text-xs text-ink-3">Real v4 screen &middot; Saved suppliers, 3 picked for one RFQ</figcaption>
                 </figure>
               ),
@@ -198,13 +210,13 @@ export function Home({ facts, film = false }: { facts: SiteFacts; film?: boolean
               label: "Compliance",
               panel: (
                 <figure className="flex flex-col gap-4">
-                  <p className="text-lg text-ink-2">Same loop, for compliance. Every supplier you shortlisted, with its certificate dates and list checks. Problems first.</p>
+                  <p className="text-lg text-ink-2">{COMPLIANCE_LEDE}</p>
                   <ol className="flex flex-wrap gap-x-8 gap-y-2 text-md text-ink-2">
-                    <li><span className="font-mono text-ink-3">1 </span><strong className="text-ink">Certificate dates, expired first</strong></li>
-                    <li><span className="font-mono text-ink-3">2 </span>UFLPA Entity List checks</li>
-                    <li><span className="font-mono text-ink-3">3 </span>Each fact with its source and date</li>
+                    <li><span className="font-mono text-ink-3">1 </span><strong className="text-ink">{COMPLIANCE_STEPS[0]}</strong></li>
+                    <li><span className="font-mono text-ink-3">2 </span>{COMPLIANCE_STEPS[1]}</li>
+                    <li><span className="font-mono text-ink-3">3 </span>{COMPLIANCE_STEPS[2]}</li>
                   </ol>
-                  <Image src="/site/compliance-hub.png" alt="The Compliance page: certificates that need a look, expired first, with an ask for the new certificate on each." width={1440} height={900} className="h-auto w-full rounded-lg border border-line" />
+                  <Image src={COMPLIANCE_SCREEN.src} alt={COMPLIANCE_SCREEN.alt} width={1440} height={900} className="h-auto w-full rounded-lg border border-line" />
                   <figcaption className="font-mono text-xs text-ink-3">Real v4 screen &middot; Compliance, certificate dates, expired first</figcaption>
                 </figure>
               ),
@@ -215,7 +227,7 @@ export function Home({ facts, film = false }: { facts: SiteFacts; film?: boolean
 
       <Section id="ch-8" label="08 · Why should I trust you?" headline="Three things we never do." lede="We show what the registers say. You decide what it means." tone="subtle">
         <ol className="grid gap-8 md:grid-cols-3">
-          {[["01", "No scores.", "No grade, rating or star on any supplier."], ["02", "No paid placement.", "No supplier pays to rank higher or look better."], ["03", "No fact without a source and a date.", "If we can’t say where it came from, we don’t show it."]].map(([n, h, b]) => (
+          {PROMISES.map(([n, h, b]) => (
             <li key={n} className="flex flex-col gap-2 border-t border-ink pt-4">
               <span className="font-mono text-base text-ink-3">{n}</span>
               <h3 className="text-3xl font-semibold tracking-tighter text-ink max-sm:text-2xl">{h}</h3>
@@ -227,19 +239,19 @@ export function Home({ facts, film = false }: { facts: SiteFacts; film?: boolean
           <Display>Every source has its rank.</Display>
           <Lede>Government registers come first. A source lower on the ladder never overwrites one above it.</Lede>
           <ol className="grid gap-6 md:grid-cols-5">
-            {[["Tier 1", "Government and RSC", ["EPB", "RSC"]], ["Tier 2", "Trade bodies", ["BGMEA", "BKMEA", "BTMA", "BGAPMEA"]], ["Tier 3", "Certification bodies", ["GOTS", "OEKO-TEX", "WRAP"]], ["Tier 4", "Brand supplier lists", ["ASOS", "H&M", "Next"]], ["Tier 5", "Foreign regulators", ["UFLPA Entity List · US DHS"]]].map(([t, n, list]) => (
-              <li key={String(t)} className="flex flex-col gap-2 border-t border-line pt-3">
+            {TIERS.map(([t, n, list]) => (
+              <li key={t} className="flex flex-col gap-2 border-t border-line pt-3">
                 <span className="font-mono text-xs text-ink-3">{t}</span>
                 <span className="text-md font-semibold text-ink">{n}</span>
                 <ul className="flex flex-col gap-0.5 text-base text-ink-2">
-                  {(list as string[]).map((s) => (
+                  {list.map((s) => (
                     <li key={s}>{s}</li>
                   ))}
                 </ul>
               </li>
             ))}
           </ol>
-          <p className="text-sm text-ink-3">Brand lists are named in words, only when the brand names that factory. Foreign regulators are checked against, never used to fill in a record.</p>
+          <p className="text-sm text-ink-3">{LADDER_NOTE}</p>
           <p className="flex flex-wrap items-baseline gap-x-3 text-md">
             {facts.sourcesListed !== null ? <span className="font-mono text-xs text-ink-3">{facts.sourcesListed} sources listed{facts.sourcesWithRecords !== null ? ` · ${facts.sourcesWithRecords} hold supplier records` : ""}</span> : null}
             <Link href="/methodology" prefetch={false} className="font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]">
@@ -252,10 +264,11 @@ export function Home({ facts, film = false }: { facts: SiteFacts; film?: boolean
             <Display>The numbers, as they stand.</Display>
             <Lede>Counted straight from our records, not rounded. The date says when.</Lede>
             <div className="grid gap-8 md:grid-cols-4">
-              {count ? <Stat figure={count}>Bangladesh garment suppliers</Stat> : null}
-              {facts.certificatesOnFile !== null ? <Stat figure={withCommas(facts.certificatesOnFile)}>certificates on file{facts.certificatesExpired !== null ? `, ${withCommas(facts.certificatesExpired)} already expired` : ""}</Stat> : null}
-              {facts.sourcesListed !== null ? <Stat figure={String(facts.sourcesListed)}>sources listed{facts.sourcesWithRecords !== null ? `, ${facts.sourcesWithRecords} hold supplier records` : ""}</Stat> : null}
-              {facts.rscRecords !== null ? <Stat figure={withCommas(facts.rscRecords)}>RSC factory records</Stat> : null}
+              {liveFigures(facts).map(([figure, what]) => (
+                <Stat key={what} figure={figure}>
+                  {what}
+                </Stat>
+              ))}
             </div>
             {updated || facts.latestRead ? <p className="font-mono text-xs text-ink-3">Updated {updated}{facts.latestRead ? ` · latest register read ${readDay(facts.latestRead)}` : ""}</p> : null}
           </div>
@@ -271,6 +284,8 @@ export function Home({ facts, film = false }: { facts: SiteFacts; film?: boolean
           </div>
         </div>
       </Section>
+        </>
+      )}
 
       <section className="border-t border-line py-24 max-md:py-14">
         <div className={cn(wrap, "flex flex-col gap-6")}>
@@ -284,6 +299,8 @@ export function Home({ facts, film = false }: { facts: SiteFacts; film?: boolean
       <Section id="faq" label="Questions" headline="Asked before you sign up." tone="subtle">
         <Faq items={FAQ_ITEMS(facts)} />
       </Section>
+      {/* The rail (§3.4): nine ticks at the left edge, the director moving the current one; a thin line on a phone. Last in the page, so the headline is still the first thing read. */}
+      {film ? <Rail chapters={HOME_CHAPTERS} className="fixed left-5 top-1/2 z-sticky hidden h-[280px] -translate-y-1/2 film:block 2xl:left-8" /> : null}
     </main>
   );
 }

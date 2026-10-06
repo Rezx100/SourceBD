@@ -12,11 +12,13 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { ALERT, CARTON_CAPTION, DAYS, DIFFER, EXPORT_LINES, ExportsScene, LIST_LINE, OVERLOCK_CAPTION, RECEIPTS, ReceiptsScene, SITE_NOTE, SiteScene, SourcesScene, TimeLine, TimeScene } from "./chapters";
-import { BAND, CARTON_END, EXPORTS, RECEIPTS as ROLL, SEAM_END, SITE, SOURCES as SEAM, TIME, curve, exportsAt, holds, receiptsAt, siteAt, sourcesAt, timeAt } from "./engine/chapters";
+import { Atmosphere, COMPLIANCE_SCREEN, CloseScene, FiguresScene, LADDER_NOTE, LadderScene, OrderScene, PROMISES, PromisesScene, SCREENS, STAGE_CAPTION, TIERS, WHOLE_RECORD, liveFigures } from "./closing";
+import { BAND, CARTON_END, CLOSE, EXPORTS, FIGURES, LADDER, ORDER, PROMISES as STEPS, RECEIPTS as ROLL, SEAM_END, SITE, SOURCES as SEAM, TIME, closeAt, curve, evenly, exportsAt, holds, orderAt, receiptsAt, siteAt, sourcesAt, timeAt } from "./engine/chapters";
 import { RING_KM, STOPS, grid, ring, siteStops } from "./engine/map";
 import { CARTON_TAG, Carton, Overlock, TAGS } from "./flats";
 import { MAP_CREDIT } from "./opening";
-import { GOTS, GOTS_DUE, SITE as SITE_ROW, SOURCES, SOURCE_DATES } from "./record";
+import { GOTS, GOTS_DUE, RFQ, SITE as SITE_ROW, SOURCES, SOURCE_DATES } from "./record";
+import { NO_FACTS, parseFacts } from "@/lib/site-facts";
 
 const repoRoot = process.cwd();
 type Position = [number, number];
@@ -312,13 +314,155 @@ describe("the later chapters' arithmetic", () => {
   });
 });
 
+describe("scene 09, the real product staged", () => {
+  const scene = draw(createElement(OrderScene));
+  const t = text(scene);
+  const atmosphere = draw(createElement(Atmosphere));
+
+  it("is chapter 07's scene: today's words, both roles' tabs in the page, the three steps in order with the first on, and the screens with their alt text", () => {
+    assert.match(scene, /^<section id="ch-7" data-scene="order" data-chapter="ch-7"/);
+    assert.match(t, /07 · Can they make my order\? Shortlist\. Ask\. Compare\. Save the suppliers you like\./);
+    assert.match(scene, /role="tablist"/);
+    assert.equal((scene.match(/role="tabpanel"/g) ?? []).length, 2);
+    const steps = scene.slice(scene.indexOf("<ol data-order-steps"), scene.indexOf("</ol>", scene.indexOf("<ol data-order-steps")));
+    assert.equal((steps.match(/<li /g) ?? []).length, 3);
+    assert.match(steps, /^<ol data-order-steps="true"[^>]*><li data-on=""/);
+    assert.deepEqual(SCREENS.map((x) => x.step), ["Shortlist from your saved suppliers", "Send one RFQ", "Compare the quotes"]);
+    for (const x of SCREENS) assert.ok(scene.includes(`src="${x.src}" alt="${x.alt.replace(/'/g, "&#x27;")}"`), x.src);
+    assert.match(scene, /alt="The Saved page with three suppliers picked/);
+    assert.ok(scene.includes(`src="${COMPLIANCE_SCREEN.src}" alt="The Compliance page: certificates that need a look`));
+    assert.match(t, /Same loop, for compliance\./);
+    assert.doesNotMatch(scene, /rounded-lg border border-line|pane-glass/, "no bordered card, and the windows are solid: the ground behind them is drawn, not live");
+  });
+
+  it("the screens sit on a stage, one window each, the step's own on; the cursor is on the composer only, aimed at Send RFQ; the caption says the app is light in both themes", () => {
+    const first = scene.indexOf('role="tabpanel"');
+    const sourcing = scene.slice(first, scene.indexOf('role="tabpanel"', first + 1));
+    assert.equal((sourcing.match(/data-screen="true"/g) ?? []).length, 3);
+    assert.equal((sourcing.match(/<div data-screen="true" data-on=""/g) ?? []).length, 1);
+    assert.match(sourcing, /<div data-screen="true" data-on="" class="stage-screen"><div class="pane [^"]*stage-window[^"]*" data-window="true"><img src="\/site\/saved-selected\.png"/);
+    assert.equal((sourcing.match(/data-cursor="true"/g) ?? []).length, 3, "the spotlight, the press and the cursor, once");
+    assert.ok(sourcing.indexOf("data-cursor") > sourcing.indexOf("rfq-one.png") && sourcing.indexOf("data-cursor") < sourcing.indexOf("rfq-quotes.png"));
+    assert.match(sourcing, /class="stage-cursor [^"]*" style="left:92\.6%;top:95\.5%"/);
+    assert.ok(t.includes(STAGE_CAPTION) && /light in both themes/.test(STAGE_CAPTION));
+    assert.equal((scene.match(/<figure class="flex flex-col gap-3"[^>]*><div class="relative isolate overflow-hidden rounded-pane bg-sunken/g) ?? []).length, 2, "one stage per role");
+    assert.equal((scene.match(/data-order-screens=""/g) ?? []).length, 1, "the engine swaps the sourcing stage's screens only; the compliance stage's one screen is never touched");
+    assert.match(sourcing, /<figure class="flex flex-col gap-3" data-order-screens="">/);
+  });
+
+  it("the atmosphere is our own drawing: no picture, no text, no colour typed, nothing that could pass for a real factory", () => {
+    assert.match(atmosphere, /^<svg aria-hidden="true"/);
+    assert.doesNotMatch(atmosphere, /<text|<image|href="http|#[0-9a-fA-F]{3,8}\b|rgb\(|white|black/);
+    assert.equal((scene.match(/<div aria-hidden="true" class="absolute inset-0 -z-10/g) ?? []).length, 2, "behind each stage");
+    assert.match(atmosphere, /stroke-brand-ink/, "one green thread in soft focus");
+  });
+});
+
+describe("scenes 10 and 11, the promises, the ladder and the figures", () => {
+  const facts = parseFacts({ suppliers_indexed: 10268, last_refreshed_at: "2026-10-02T05:48:07Z" }, { sources_listed: 25, sources_with_records: 14, certificates_on_file: 4275, certificates_expired: 518, rsc_records: 2331, latest_read: "2026-10-02T05:48:07Z", sources: [] });
+  const promises = draw(createElement(PromisesScene));
+  const ladder = draw(createElement(LadderScene, { facts }));
+  const figures = draw(createElement(FiguresScene, { facts }));
+
+  it("10 is chapter 08's scene: the three promises, words only, each a line that turns at its step with its reason beside it as a beat", () => {
+    assert.match(promises, /^<section id="ch-8" data-scene="promises" data-chapter="ch-8"/);
+    assert.match(text(promises), /08 · Why should I trust you\? Three things we never do\. We show what the registers say\./);
+    assert.deepEqual(PROMISES.map(([, x]) => x), ["No scores.", "No paid placement.", "No fact without a source and a date."]);
+    assert.equal((promises.match(/data-promise="true"/g) ?? []).length, 3);
+    assert.equal((promises.match(/<p data-beat="" /g) ?? []).length, 3);
+    assert.doesNotMatch(promises, /data-promise="true" data-on/, "none is on before the scroll reaches it");
+    assert.match(promises, /group-data-\[on\]\/promise:text-ink/);
+    assert.doesNotMatch(promises, /rounded-lg border border-line|pane|<img|<svg/);
+  });
+
+  it("the ladder is today's five tiers in rank order, each a beat, with the note and the methodology link", () => {
+    assert.match(ladder, /^<section data-scene="ladder" data-chapter="ch-8"/);
+    assert.deepEqual([...ladder.matchAll(/<li data-beat=""[^>]*><span class="font-mono text-xs text-ink-3">([^<]+)</g)].map((m) => m[1]), ["Tier 1", "Tier 2", "Tier 3", "Tier 4", "Tier 5"]);
+    assert.deepEqual(TIERS.map(([x]) => x), ["Tier 1", "Tier 2", "Tier 3", "Tier 4", "Tier 5"]);
+    assert.ok(text(ladder).includes(LADDER_NOTE));
+    assert.match(text(ladder), /25 sources listed · 14 hold supplier records/);
+    assert.match(ladder, /href="\/methodology"/);
+  });
+
+  it("11 is the live figures rising whole, each a beat with what it counts; none counts up; with nothing read there is no scene", () => {
+    assert.match(figures, /^<section data-scene="figures" data-chapter="ch-8"/);
+    assert.match(text(figures), /The numbers, as they stand\. Counted straight from our records, not rounded\./);
+    assert.deepEqual(liveFigures(facts), [["10,268", "Bangladesh garment suppliers"], ["4,275", "certificates on file, 518 already expired"], ["25", "sources listed, 14 hold supplier records"], ["2,331", "RSC factory records"]]);
+    assert.equal((figures.match(/<li data-beat=""/g) ?? []).length, 4);
+    assert.match(figures, /class="film-figure-fit [^"]*">10,268</);
+    assert.match(text(figures), /Updated 2 Oct 2026 · latest register read 2 Oct 2026/);
+    assert.doesNotMatch(figures, /count-?up|data-count|aria-valuenow/);
+    assert.equal(draw(createElement(FiguresScene, { facts: NO_FACTS })), "");
+    assert.deepEqual(liveFigures({ ...NO_FACTS, rscRecords: 7 }), [["7", "RSC factory records"]]);
+  });
+});
+
+describe("scene 12, the whole record and the way in", () => {
+  const scene = draw(createElement(CloseScene));
+  const t = text(scene);
+
+  it("is chapter 09's scene, night in either theme, with a stage for the planet to come back to, today's words and the search on public Discover", () => {
+    assert.match(scene, /^<section id="ch-9" data-scene="close" data-chapter="ch-9" data-ground="night"/);
+    assert.match(scene, /<div data-planet-close="true" aria-hidden="true" class="absolute inset-0 hidden film-full:block"><\/div>/);
+    assert.match(t, /09 · The whole record Every row, with its source\. Who they are, what is true/);
+    assert.match(scene, /<form[^>]*action="\/discover"/);
+    assert.match(scene, /<form[^>]*role="search"/);
+    assert.match(scene, /<input[^>]*id="close-q"/);
+    assert.match(scene, /<input[^>]*name="q"/);
+    assert.match(t, /Try .knit dresses Gazipur. or .GOTS./);
+  });
+
+  it("the record is whole: every row a beat in the chapters' order, the RFQ last and waiting; the thread ties on and ends in a bartack, never a circle; two panes of glass over the planet", () => {
+    assert.deepEqual(WHOLE_RECORD.map((r) => r.label), ["Sources", "BGMEA membership", "GOTS certificate", "Safety inspections", "Site", "Export records", "UFLPA Entity List", "RFQ"]);
+    assert.deepEqual([...scene.matchAll(/data-row="([^"]+)" data-beat=""/g)].map((m) => m[1]), [...WHOLE_RECORD.map((r) => r.label)]);
+    assert.equal((scene.match(/<dt /g) ?? []).length, 8);
+    assert.ok(t.includes(RFQ.value) && RFQ.value === "Waiting for a quote" && t.includes("Saved · watching"));
+    assert.equal((scene.match(/data-tie="true"/g) ?? []).length, 1);
+    assert.match(scene, /class="thread thread-join"/);
+    assert.match(scene, /class="thread thread-end"/);
+    assert.doesNotMatch(scene, /<circle|rounded-lg border border-line/);
+    assert.equal((scene.match(/pane-glass/g) ?? []).length, 2);
+  });
+});
+
+describe("the late chapters' arithmetic", () => {
+  it("09: the first step is on from the start, the next two at their marks; the cursor arrives and presses within the second step, before the third", () => {
+    assert.deepEqual(orderAt(0), { step: 0, cursor: 0 });
+    assert.equal(orderAt(ORDER.steps[1]).step, 0);
+    assert.equal(orderAt(ORDER.steps[1] + 0.001).step, 1);
+    assert.equal(orderAt(ORDER.steps[2] + 0.001).step, 2);
+    assert.deepEqual(orderAt(1), { step: 2, cursor: 1 });
+    assert.ok(ORDER.cursor[0] > ORDER.steps[1] && ORDER.cursor[1] < ORDER.steps[2]);
+    assert.equal(orderAt(ORDER.cursor[1]).cursor, 1, "pressed before the quotes slide in");
+    for (let p = 0; p < 1; p += 0.01) assert.ok(orderAt(p + 0.01).step >= orderAt(p).step && orderAt(p + 0.01).cursor >= orderAt(p).cursor);
+  });
+
+  it("the moments of a stretch are spread evenly, the first at its start and the last at its end; one moment sits at the start", () => {
+    assert.deepEqual([0, 1, 2, 3].map((i) => evenly([0.1, 0.7], 4, i)).map((v) => Number(v.toFixed(3))), [0.1, 0.3, 0.5, 0.7]);
+    assert.equal(evenly([0.2, 0.8], 1, 0), 0.2);
+    assert.ok(STEPS.steps[0] < STEPS.steps[1] && STEPS.steps[1] < STEPS.steps[2] && STEPS.steps[2] < 1);
+    assert.ok(LADDER.rows[0] > 0 && LADDER.rows[1] < 1 && FIGURES.rows[0] > 0 && FIGURES.rows[1] < 1);
+  });
+
+  it("12: the eight rows stitch on in order over the first half, then the thread ties, after the last row and before the end", () => {
+    const at = closeAt(0, 8);
+    assert.equal(at.rows.length, 8);
+    assert.ok(at.rows.every((m, i) => i === 0 || m > at.rows[i - 1]!));
+    assert.ok(Math.abs(at.rows[0]! - CLOSE.rows[0]) < 1e-12 && Math.abs(at.rows[7]! - CLOSE.rows[1]) < 1e-12);
+    assert.ok(CLOSE.rows[1] < CLOSE.tie[0] && CLOSE.tie[1] < 1);
+    assert.equal(closeAt(CLOSE.tie[0], 8).tie, 0);
+    assert.equal(closeAt(1, 8).tie, 1);
+    assert.equal(closeAt(0.5, 0).rows.length, 0, "a record with no rows asks for none");
+  });
+});
+
 describe("what Tailwind emits for the scenes", () => {
   /* eslint-disable @typescript-eslint/no-require-imports -- tailwind's loader and postcss are CommonJS tools */
   const postcss = require("postcss") as typeof import("postcss").default;
   const tailwind = require("tailwindcss") as (config: object) => import("postcss").AcceptedPlugin;
   const loadConfig = require("tailwindcss/loadConfig") as (file: string) => Record<string, unknown>;
   /* eslint-enable @typescript-eslint/no-require-imports */
-  const classes = ["pane", "ov-wheel", "ov-needle", "ov-lever", "roll-slot", "roll-sheet", "roll-print", "roll-tear", "receipt", "animate-rise", "rec-arrive", "fill-brand", "stroke-brand-ink", "fill-ink-3", "film-full:h-[400svh]", "time-run", "time-mark", "fill-caution-icon", "text-caution", "film-full:text-ink", "film-full:group-data-[due]/row:text-caution", "group/row"];
+  const classes = ["pane", "ov-wheel", "ov-needle", "ov-lever", "roll-slot", "roll-sheet", "roll-print", "roll-tear", "receipt", "animate-rise", "rec-arrive", "fill-brand", "stroke-brand-ink", "fill-ink-3", "film-full:h-[400svh]", "time-run", "time-mark", "fill-caution-icon", "text-caution", "film-full:text-ink", "film-full:group-data-[due]/row:text-caution", "group/row", "stage-screen", "stage-window", "stage-cursor", "stage-press", "stage-spot", "film-figure-fit", "film-full:group-data-[on]/promise:text-ink", "group/promise", "film-full:aspect-[1440/900]"];
   const compiled = postcss([tailwind({ ...loadConfig(path.join(repoRoot, "tailwind.config.ts")), content: [{ raw: classes.join(" "), extension: "html" }] })])
     .process(readFileSync(path.join(repoRoot, "app/ds.css"), "utf8"), { from: undefined })
     .then((r) => r.css.replace(/\s+/g, " "));
@@ -356,5 +500,18 @@ describe("what Tailwind emits for the scenes", () => {
     assert.match(block(css, ".fill-caution-icon {"), /--ds-caution-icon/);
     assert.match(block(css, ".text-caution {"), /--ds-caution/);
     assert.match(css, /\[data-film-tier="full"\] \.group\\\/row\[data-due\] \.film-full\\:group-data-\\\[due\\\]\\\/row\\:text-caution \{ --tw-text-opacity: 1; color: rgb\(var\(--ds-caution\)/);
+  });
+  it("the stage's windows, the cursor and the figures move by variables the engine writes, on the full tier where the screens swap; with nothing written the cursor rests pressed and the screens stand in a column", async () => {
+    const css = await compiled;
+    assert.match(block(css, ".stage-window {"), /rotateY\(calc\(\(var\(--p, 0\.5\) - 0\.5\) \* -6deg\)\)/);
+    assert.match(block(css, '[data-film-tier="full"] .stage-screen {'), /position: absolute; inset: 0; opacity: 0; transform: translateX\(32px\)/);
+    assert.match(block(css, '[data-film-tier="full"] .stage-screen[data-on] {'), /opacity: 1; transform: none/);
+    assert.doesNotMatch(block(css, ".stage-window {"), /position: absolute/, "off the full tier the windows stand in a column");
+    assert.match(block(css, ".stage-cursor {"), /translate\(calc\(\(1 - var\(--cursor, 1\)\) \* 180px\)/);
+    assert.match(block(css, ".stage-press {"), /opacity: clamp\(0, calc\(\(var\(--cursor, 1\) - 0\.9\) \* 10\), 1\)/);
+    assert.match(block(css, ".stage-spot {"), /radial-gradient\(circle at var\(--sx\) var\(--sy\)/);
+    assert.match(block(css, '[data-film-tier="full"] .film-figure-fit {'), /font-size: min\(200px, 20svh\)/);
+    assert.match(css, /\[data-film-tier="full"\] \.group\\\/promise\[data-on\] \.film-full\\:group-data-\\\[on\\\]\\\/promise\\:text-ink \{/);
+    assert.match(css, /\[data-film-tier="full"\] \.film-full\\:aspect-\\\[1440\\\/900\\\] \{ aspect-ratio: 1440\s*\/\s*900/);
   });
 });

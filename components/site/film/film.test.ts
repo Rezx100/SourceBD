@@ -12,7 +12,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { contrastRatio, dark, darkPairs, filmColors, filmPairs, light, paneBehind, paneGlass, paneGround, resolve, toRgb } from "@/lib/design/tokens";
-import { currentChapter, sceneProgress } from "./engine/director";
+import { currentChapter, nightAt, sceneProgress } from "./engine/director";
 import { DISTRICTS, STOPS, cameraAt, column, createMap, tileScale, toGeo, unpack, type BdData } from "./engine/map";
 import { HOME, blendFrame, defaultFrame, facing, frameFor, isLand, landPoints, lightSize, project, toVec } from "./engine/planet";
 import { OPENING, handoverFrame, openingAt, type CellFile } from "./engine/start";
@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
 import { TIER_SCRIPT, filmOn, pickTier, type Device } from "./engine/tier";
 import { LIGHTS, LIGHTS_FILE, MAP_CREDIT } from "./opening";
 import { FieldPane, Pane, RecordPane, type RecordRow } from "./pane";
-import { Rail, Thread, ThreadLayer } from "./thread";
+import { HOME_CHAPTERS, Rail, Thread, ThreadLayer } from "./thread";
 
 const repoRoot = process.cwd();
 const draw = (el: Parameters<typeof renderToStaticMarkup>[0]) => renderToStaticMarkup(el);
@@ -306,7 +306,7 @@ describe("the home page, film off and film on", () => {
     assert.match(on, /<canvas data-planet="true" aria-hidden="true"/);
     assert.match(on, /<div data-planet-callouts="true" aria-hidden="true"/);
     assert.match(on, /<div data-map="true" aria-hidden="true"/);
-    assert.deepEqual([...on.matchAll(/data-scene="([a-z]+)"/g)].map((m) => m[1]), ["opening", "planet", "sources", "receipts", "site", "exports", "time"]);
+    assert.deepEqual([...on.matchAll(/data-scene="([a-z]+)"/g)].map((m) => m[1]), ["opening", "planet", "sources", "receipts", "site", "exports", "time", "order", "promises", "ladder", "figures", "close"]);
   });
 
   it("the lite tier's planet can stick: nothing between its stage and the page clips overflow", () => {
@@ -376,18 +376,35 @@ describe("the home page, film off and film on", () => {
     assert.match(text(on), /1 of 10,268 suppliers/);
   });
 
-  it("chapters 02 to 06 are the film's scenes, with no bordered card; from chapter 07 on the page is untouched", () => {
-    const scenes = on.slice(on.indexOf('id="ch-02"'), on.indexOf('id="ch-7"'));
+  it("chapters 02 to 09 are the film's scenes, with no bordered card; the close and the FAQ after them are untouched", () => {
+    const close = '<section class="border-t border-line py-24 max-md:py-14">';
+    const scenes = on.slice(on.indexOf('id="ch-02"'), on.indexOf(close));
     assert.match(scenes, /^id="ch-02" data-scene="sources" data-chapter="ch-02"/);
-    for (const [n, name] of [["03", "receipts"], ["04", "site"], ["05", "exports"], ["06", "time"]]) assert.match(scenes, new RegExp(`<section id="ch-${n}" data-scene="${name}" data-chapter="ch-${n}"`));
+    for (const [n, name] of [["03", "receipts"], ["04", "site"], ["05", "exports"], ["06", "time"], ["7", "order"], ["8", "promises"], ["9", "close"]]) assert.match(scenes, new RegExp(`<section id="ch-${n}" data-scene="${name}" data-chapter="ch-${n}"`));
     assert.doesNotMatch(scenes, /rounded-lg border border-line/);
-    assert.equal((scenes.match(/<figure[^>]*aria-label="Supplier record: Mondol Fabrics Ltd\."/g) ?? []).length, 5, "the record once per scene");
+    assert.equal((scenes.match(/<figure[^>]*aria-label="Supplier record: Mondol Fabrics Ltd\."/g) ?? []).length, 6, "the record once per scene that grows it, and whole at the close");
     for (const dated of ["reg. no. 4002 · 24 Jul 2026", "exporter 2798 · 14 Aug 2026", "1004-B/2006 · 2 Aug 2026", "GOTS-19020 · 26 Jun 2026", "factory 10861 · 24 Jul 2026"]) assert.ok(text(scenes).includes(dated), `${dated}: each source's own number and day stay in the words`);
     // Scene 06 keeps to glass where the map is live under it: two panes, and the first screen's three is the most anywhere.
     const site = on.slice(on.indexOf('id="ch-04"'), on.indexOf('id="ch-05"'));
     assert.equal((site.match(/pane-glass/g) ?? []).length, 2);
-    const rest = (m: string) => m.slice(m.indexOf('id="ch-7"'));
+    assert.equal((on.slice(on.indexOf('id="ch-7"'), on.indexOf('id="ch-9"')).match(/pane-glass/g) ?? []).length, 0, "nothing live sits behind the stage, the promises or the figures");
+    assert.equal((on.slice(on.indexOf('id="ch-9"'), on.indexOf(close)).match(/pane-glass/g) ?? []).length, 2);
+    // From the close to the rail (the film's) or the end of the page (without it).
+    const rest = (m: string) => m.slice(m.indexOf(close), m.indexOf('<nav aria-label="Chapters"') < 0 ? m.indexOf("</main>") : m.indexOf('<nav aria-label="Chapters"'));
     assert.equal(rest(on), rest(off));
+    assert.match(text(on), /Real v4 screen . Saved suppliers, 3 picked for one RFQ|the app is light in both themes/);
+  });
+
+  it("the rail links the nine chapters in the page's own order, each id once; it is the last thing in the page, and not in the page without the film", () => {
+    const ids = [...on.matchAll(/<section id="(ch-[0-9]+)"/g)].map((m) => m[1]);
+    assert.deepEqual(ids, HOME_CHAPTERS.map((c) => c.id));
+    for (const c of HOME_CHAPTERS) assert.equal((on.match(new RegExp(`id="${c.id}"`, "g")) ?? []).length, 1, c.id);
+    const rail = on.slice(on.indexOf('<nav aria-label="Chapters"'));
+    assert.match(rail, /^<nav aria-label="Chapters" class="[^"]*fixed[^"]*hidden[^"]*film:block/);
+    assert.equal((rail.match(/<a href="#ch-/g) ?? []).length, 9);
+    assert.doesNotMatch(rail, /aria-current/, "the director sets the current chapter; the page starts with none");
+    assert.match(rail, /<\/nav><\/main>$/);
+    assert.doesNotMatch(off, /aria-label="Chapters"/);
   });
 });
 
@@ -450,6 +467,15 @@ describe("the scroll's arithmetic", () => {
     assert.equal(sceneProgress(10, 800, 1000), 0);
     assert.equal(sceneProgress(-10, 800, 1000), 1);
     assert.equal(sceneProgress(0, 1000, 1000), 1);
+  });
+
+  it("the rail takes the night's ink over a night scene: the planet's act until it has given way, and the close", () => {
+    const vh = 1000;
+    assert.equal(nightAt([{ night: false, top: -900 }, { night: true, top: 0 }], vh), true, "the planet's act over the opening");
+    assert.equal(nightAt([{ night: false, top: -900 }, { night: false, top: 0 }], vh), false, "the same act once it is past");
+    assert.equal(nightAt([{ night: true, top: -4000 }, { night: false, top: -200 }, { night: true, top: 700 }], vh), false, "a theme scene holds the screen; the close is still below");
+    assert.equal(nightAt([{ night: false, top: -4000 }, { night: true, top: 100 }], vh), true);
+    assert.equal(nightAt([{ night: true, top: 600 }], vh), false, "before the first scene");
   });
 
   it("the rail follows the last scene to pass the middle of the screen, and holds it across a gap", () => {

@@ -24,6 +24,8 @@ const stage = "py-24 max-md:py-14 film-full:sticky film-full:top-0 film-full:fle
 // The record stands at the top beside the words and only ever grows downward as its rows arrive, so nothing that has arrived moves again.
 const row = cn(wrap, "flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between");
 const left = "flex min-w-0 flex-col gap-10 lg:max-w-[680px]";
+/** A scene's frame, shared with the later scenes (closing.tsx): the tall section, its stage that holds, the row of words and record, the words' column. */
+export const SCENE = { hold, stage, row, left } as const;
 
 /** The three claims of chapter 03 and the receipt each is checked against, as the page without the film prints them. */
 export const RECEIPTS: Receipt[] = [

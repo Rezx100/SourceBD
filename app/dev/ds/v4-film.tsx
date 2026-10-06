@@ -5,26 +5,15 @@
 
 import type { ReactNode } from "react";
 import { DIFFER, OVERLOCK_CAPTION, RECEIPTS } from "@/components/site/film/chapters";
+import { Atmosphere } from "@/components/site/film/closing";
 import { Overlock } from "@/components/site/film/flats";
-import { AlertPane, Callout, FieldPane, NotePane, Pane, RecordPane, ScreenStage, type RecordRow } from "@/components/site/film/pane";
+import { AlertPane, Callout, FieldPane, NotePane, Pane, RecordPane, Screen, ScreenStage, type RecordRow } from "@/components/site/film/pane";
 import { ReceiptRoll } from "@/components/site/film/receipts";
 import { BGMEA, GOTS, LINE, NAME, SAFETY, SOURCES } from "@/components/site/film/record";
-import { Rail, Thread, ThreadLayer } from "@/components/site/film/thread";
+import { HOME_CHAPTERS, Rail, Thread, ThreadLayer } from "@/components/site/film/thread";
 import { cssVarName, darkColors, filmColors, fontSize, splitColorName, v4Colors } from "@/lib/design/tokens";
 
 export const FILM_ROWS: RecordRow[] = [SOURCES, BGMEA, GOTS, SAFETY];
-
-export const FILM_CHAPTERS = [
-  { id: "ch-1", n: "01", label: "Where are they?" },
-  { id: "ch-02", n: "02", label: "Who are they?" },
-  { id: "ch-03", n: "03", label: "Is that true?" },
-  { id: "ch-04", n: "04", label: "Where are they?" },
-  { id: "ch-05", n: "05", label: "Who do they ship to?" },
-  { id: "ch-06", n: "06", label: "Will it still be true next month?" },
-  { id: "ch-7", n: "07", label: "Can they make my order?" },
-  { id: "ch-8", n: "08", label: "Why should I trust you?" },
-  { id: "ch-9", n: "09", label: "The whole record" },
-];
 
 const FILM_SIZES: [string, string][] = [
   ["film-hero", "text-film-hero"],
@@ -148,7 +137,7 @@ export function V4Film() {
 
       <Board title="Thread and rail" note="One green path: solid when it leads, stitched when it joins, a bartack where it ends. The rail is nine ticks, each a link, with the dot on the current chapter.">
         <div className="flex gap-10">
-          <Rail chapters={FILM_CHAPTERS} current="ch-04" className="h-64" />
+          <Rail chapters={HOME_CHAPTERS} current="ch-04" className="h-64" />
           <div className="relative h-64 flex-1">
             <ThreadLayer viewBox="0 0 400 260">
               <Thread d="M20 50C120 0 210 100 380 34" />
@@ -178,14 +167,13 @@ export function V4Film() {
         </div>
       </Board>
 
-      <Board title="ScreenStage" note="A real screen on a stage: a window with no chrome, a spotlight on the part being talked about, a drawn cursor. The app has no dark theme, so the screen stays light in both.">
-        <ScreenStage
-          caption="Real v4 screen · Saved suppliers, 3 picked for one RFQ · the app is shown in its light theme"
-          spot={{ x: 78, y: 86 }}
-          cursor={{ x: 80, y: 88 }}
-          // eslint-disable-next-line @next/next/no-img-element -- a gallery sample of the staged screen
-          screen={<img src="/site/saved-selected.png" alt="" className="block h-auto w-full" />}
-        />
+      <Board title="ScreenStage" note="A real screen on a stage: an atmosphere behind, a window with no chrome, a spotlight on the part being talked about, a drawn cursor that presses. The app has no dark theme, so the screen stays light in both.">
+        <ScreenStage atmosphere={<Atmosphere />} caption="Real v4 screen · Saved suppliers, 3 picked for one RFQ · the app is light in both themes">
+          <Screen on cursor={{ x: 89.7, y: 24.8 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element -- a gallery sample of the staged screen */}
+            <img src="/site/saved-selected.png" alt="" className="block h-auto w-full" />
+          </Screen>
+        </ScreenStage>
       </Board>
     </div>
   );

@@ -491,6 +491,51 @@
     opacity: clamp(0, calc((var(--t, 1) - var(--at, 0)) * 60), 1);
   }
 
+  /* Scenes 09 to 12 (§3.8, §4). The windows on the stage: each tilts a little with the scroll (--p, written on
+     it); on the full tier the three screens sit on one another and the step's own shows, sliding in. The drawn
+     cursor arrives, a spotlight opens on the part it goes to, and it presses (--cursor on the three parts). The
+     live figures fit four to a stage. With nothing written the cursor rests on the button, pressed, the screens
+     stand in a column and the figures are the stacked page's. */
+  .stage-window {
+    transform: rotateX(2deg) rotateY(calc((var(--p, 0.5) - 0.5) * -6deg));
+  }
+
+  [data-film-tier="full"] .stage-screen {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transform: translateX(32px);
+    transition:
+      opacity 300ms cubic-bezier(0, 0, 0.2, 1),
+      transform 300ms cubic-bezier(0, 0, 0.2, 1);
+  }
+
+  [data-film-tier="full"] .stage-screen[data-on] {
+    opacity: 1;
+    transform: none;
+  }
+
+  .stage-cursor {
+    opacity: clamp(0, calc(var(--cursor, 1) * 4), 1);
+    transform: translate(calc((1 - var(--cursor, 1)) * 180px), calc((1 - var(--cursor, 1)) * 140px));
+  }
+
+  .stage-press {
+    margin: -20px 0 0 -20px;
+    opacity: clamp(0, calc((var(--cursor, 1) - 0.9) * 10), 1);
+    transform: scale(calc(1.6 - clamp(0, calc((var(--cursor, 1) - 0.9) * 10), 1) * 0.6));
+  }
+
+  .stage-spot {
+    background-image: radial-gradient(circle at var(--sx) var(--sy), transparent 0, transparent 22%, rgb(var(--ds-scrim) / 0.12) 60%);
+    opacity: clamp(0, calc((var(--cursor, 1) - 0.6) * 2.5), 1);
+  }
+
+  [data-film-tier="full"] .film-figure-fit {
+    font-size: min(200px, 20svh);
+    line-height: 0.9;
+  }
+
   /* A record whose rows are all still to come keeps no gap where they will be. */
   [data-film-tier="full"] .pane > dl:not(:has(> :not([data-beat]), > [data-on])) {
     margin-top: -1rem;
