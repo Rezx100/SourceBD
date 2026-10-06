@@ -83,6 +83,10 @@ class ScrapedRecord:
     # emits these so covering unflagged RMG exporters cannot mint
     # single-source EPB profiles.
     enrich_only: bool = False
+    # Payload keys left out of the change hash: our own bookkeeping that moves
+    # on every read (a brand file's mirror path and fallback date) would
+    # otherwise make every record look changed (spec-etl-freshness S6).
+    hash_exclude: tuple[str, ...] = ()
     # Set by a list-row gate (etl.core.listgate) that skipped the detail fetch
     # because the list row is unchanged: the record IS the stored one, so it
     # reports the stored hash and the upsert takes the unchanged path.
@@ -91,7 +95,8 @@ class ScrapedRecord:
     def hash(self) -> str:
         if self.known_hash:
             return self.known_hash
-        canonical = json.dumps(self.payload, sort_keys=True, ensure_ascii=False, default=str)
+        payload = {k: v for k, v in self.payload.items() if k not in self.hash_exclude}
+        canonical = json.dumps(payload, sort_keys=True, ensure_ascii=False, default=str)
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 

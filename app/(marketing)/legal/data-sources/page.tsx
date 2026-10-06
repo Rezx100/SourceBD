@@ -45,8 +45,7 @@ export default function DataSourcesPage() {
         <ol>
           <li>
             <strong>Tier 1 — Government &amp; regulatory</strong>:
-            RJSC company filings, fire-licence registries, tax-ID
-            registries.
+            EPB exporter records and RSC factory inspections.
           </li>
           <li>
             <strong>Tier 2 — Industry associations</strong>: BGMEA,
