@@ -11,7 +11,6 @@ import { preload } from "react-dom";
 import { AppFrame } from "@/components/frame";
 import { ChecklistSlot } from "@/components/onboarding/checklist";
 import { loadFrameBadges } from "@/lib/dashboard/frame-badges";
-import { getServerRole } from "@/lib/auth";
 import { loadBuyerShell } from "@/lib/dashboard/load-buyer-shell";
 import { SOURCE_LOGO_FILES } from "@/lib/dashboard/source-logos";
 import { PostHogProvider } from "@/lib/posthog/provider";
@@ -37,14 +36,12 @@ export default async function BuyerLayout({ children }: { children: React.ReactN
   // the frame is drawn at once and they fill in when they settle (row 24). Compliance is the hub's own
   // count; a slow or failed read draws no badge, never a 0.
   const badges = loadFrameBadges(supabase);
-  // The role is read beside the account: an admin's menu links to /admin (founder, 6 Oct 2026: signed in
-  // as admin, the buyer app offered no way into the console). A failed read just draws no link.
-  const [shell, role] = await Promise.all([loadBuyerShell(supabase), getServerRole().catch(() => null)]);
+  const shell = await loadBuyerShell(supabase);
   return (
     <PostHogProvider userId={shell.userId}>
       {/* The getting-started card reads beside the page, never ahead of it (and the old product tour is gone: Paper has no tours). */}
       <AppFrame
-        account={shell.account ? { ...shell.account, admin: role === "admin" } : null}
+        account={shell.account}
         badges={badges}
         sidebarExtra={
           <Suspense fallback={null}>

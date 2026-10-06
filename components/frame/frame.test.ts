@@ -158,7 +158,7 @@ describe("the frame a buyer receives", () => {
   it("the buyer layout draws the frame once, with the signed-in account", () => {
     const layout = readFileSync(path.join(process.cwd(), "app", "(app)", "app", "layout.tsx"), "utf8");
     assert.equal((layout.match(/<AppFrame\b/g) ?? []).length, 1);
-    assert.match(layout, /account=\{shell\.account \? \{ \.\.\.shell\.account, admin: role === "admin" \} : null\}/);
+    assert.match(layout, /account=\{shell\.account\}/);
   });
 
   it("an admin's account menu and phone sheet link to the console; nobody else's do (founder, 6 Oct 2026)", () => {
