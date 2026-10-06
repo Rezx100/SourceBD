@@ -133,6 +133,12 @@ def run(
         help="Release a run the circuit breaker stopped (more than 5% of rows changed or "
         "more than 20 new companies). Founder knob, after reading the held run.",
     ),
+    max_credits: int = typer.Option(
+        None,
+        "--max-credits",
+        help="Firecrawl sources: this run's credit limit, replacing the source's own "
+        "(spec-etl-freshness S4). For a deliberate full pass; the monthly ceiling still applies.",
+    ),
 ) -> None:
     """Run a scraper or maintenance job end-to-end."""
     cls = RUNNABLE.get(scraper)
@@ -166,13 +172,18 @@ def run(
         instance.accept_delistings = True
     if accept_changes:
         instance.accept_changes = True
+    if max_credits is not None:
+        if not hasattr(instance, "max_credits_per_run"):
+            typer.echo("--max-credits only applies to Firecrawl sources.")
+            raise typer.Exit(1)
+        instance.max_credits_per_run = max_credits
     result = asyncio.run(instance.run())
     typer.echo(str(result))
 
 
 @app.command("verify-evidence")
 def verify_evidence_cmd(
-    limit: int = typer.Option(500, help="Check at most N due documents."),
+    limit: int = typer.Option(50, help="Check at most N due documents (of overdue sources unless --scraper is given)."),
     scraper: str = typer.Option(None, help="Restrict to one source's documents."),
     interval_hours: int = typer.Option(
         None,

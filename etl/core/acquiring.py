@@ -34,6 +34,25 @@ from etl.core.sanctions import BaseSanctionScraper
 from etl.core.scraper import BaseScraper
 
 
+def _credits_this_month() -> int:
+    """Firecrawl credits recorded this calendar month (evidence documents).
+
+    ponytail: monitor checks are billed by Firecrawl and not recorded here; the
+    ceiling therefore undercounts by the monitors' ~210 a month (spec §2).
+    """
+    from etl.core.db import db
+
+    try:
+        with db.conn() as c, c.cursor() as cur:
+            cur.execute(
+                "select coalesce(sum(credits_used), 0)::int as n from public.evidence_documents "
+                "where created_at >= date_trunc('month', now())"
+            )
+            return int(cur.fetchone()["n"])
+    except Exception:  # noqa: BLE001 - no database means no run either
+        return 0
+
+
 class CreditBudgetExceeded(RuntimeError):
     """A run tried to spend past its credit ceiling and was stopped.
 
@@ -117,6 +136,8 @@ class AcquisitionMixin:
         # even on paths that never write evidence — `compare-parity` consumes
         # `fetch()` directly and would otherwise report a spend of zero.
         self.credits_spent = 0
+        # This month's spend before this run, read once at the first billed fetch.
+        self._month_spent: int | None = None
 
     # ------------------------------------------------------------------
     @property
@@ -138,18 +159,34 @@ class AcquisitionMixin:
         Firecrawl transport bills, so the direct and local adapters are exempt
         rather than being charged a notional cost they never incur.
         """
-        ceiling = self.credit_ceiling
-        if ceiling <= 0 or self.active_transport != Transport.FIRECRAWL.value:
+        if self.active_transport != Transport.FIRECRAWL.value:
             return
+        ceiling = self.credit_ceiling
         projected = sum(estimate_credits(r) for r in requests)
+        monthly = settings.firecrawl_monthly_ceiling
+        if monthly > 0:
+            if self._month_spent is None:
+                self._month_spent = _credits_this_month()
+            if self._month_spent + self.credits_spent + projected > monthly:
+                from etl.core.notify import slack
+
+                msg = (
+                    f"{self.code}: Firecrawl credits this month are at "
+                    f"{self._month_spent + self.credits_spent} of the {monthly} ceiling and the "
+                    f"next fetch needs about {projected}. Direct sources keep running; this one "
+                    f"waits for next month or a higher FIRECRAWL_MONTHLY_CEILING. Nothing was fetched."
+                )
+                slack(f":moneybag: SourceBD: {msg}")
+                raise CreditBudgetExceeded(msg)
+        if ceiling <= 0:
+            return
         if self.credits_spent + projected > ceiling:
             raise CreditBudgetExceeded(
                 f"{self.code}: this run has spent {self.credits_spent} Firecrawl "
                 f"credits and the next fetch needs about {projected} more, which "
-                f"would pass the ceiling of {ceiling}. Raise "
-                f"FIRECRAWL_MAX_CREDITS_PER_RUN (or the source's "
-                f"max_credits_per_run) if this run is genuinely meant to cost "
-                f"that much. Nothing was fetched."
+                f"would pass the ceiling of {ceiling}. If this run is genuinely "
+                f"meant to cost that much, re-run it with `run {self.code} "
+                f"--max-credits N`. Nothing was fetched."
             )
 
     # ------------------------------------------------------------------

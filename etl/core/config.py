@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     # Hard ceiling on billable credits one run may spend. 0 disables the guard.
     # A source may lower it further via `max_credits_per_run`, never raise it.
     firecrawl_max_credits_per_run: int = 0
+    # Founder ceiling on Firecrawl credits per calendar month, all sources
+    # together (spec-etl-freshness §4.8, decision 3, 6 Oct 2026). 0 disables.
+    firecrawl_monthly_ceiling: int = 1500
     # Shared secret the Firecrawl webhook must present back to our API route.
     firecrawl_webhook_secret: str = Field(default="")
     # Public base URL used when registering monitor webhooks.

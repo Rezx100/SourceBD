@@ -203,6 +203,9 @@ class BgmeaWebScraper(AcquiringScraper):
     """Scrape general (manufacturer) members from bgmea.com.bd."""
 
     code = "bgmea_web"
+    # spec-etl-freshness §4.8: this source's §2 monthly credits × 1.5. A run that
+    # needs more stops with CreditBudgetExceeded instead of spending it.
+    max_credits_per_run = 450
     source_code = "BGMEA"
     transport = "firecrawl"
     # These pages are server-rendered HTML, so httpx can stand in when Firecrawl
