@@ -1,55 +1,91 @@
-// The search landing (Paper `10 · Search landing, returning user` and `11 · Search landing`).
-// There is no second search box on a desktop: the topbar's is the only one (Ctrl K); on a phone
-// the page draws its own. What is here is the work queue: the certificates that need a
-// look, the buyer's recent and saved searches, a filter to start from, and the common
-// searches with how many suppliers each finds. No supplier is listed until the buyer asks.
+// The search landing (Paper `10 · Search landing v2 · search first, compact` and `11 · Search
+// landing`). Search first (founder's walkthrough, 6 Oct 2026: "there is no search input field,
+// only this information everywhere"): one large field, the filter menus under it with their
+// icons, and the common searches as a row of chips with how many suppliers each finds. Under
+// that, the work queue: the certificates that need a look beside the buyer's recent and saved
+// searches. The topbar steps its own field aside here (`topbar-search-slot.tsx`), so this field
+// is the one Ctrl K reaches. No supplier is listed until the buyer asks.
 // Server component; the counts stream in behind the page so nothing waits on them.
 
-import { CaretRight, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
+import { Buildings, CaretRight, MagnifyingGlass, MapPin, SealCheck, TShirt } from "@phosphor-icons/react/dist/ssr";
 import Form from "next/form";
 import Link from "next/link";
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 import { NeedsAttention, type AttentionItem } from "@/components/patterns";
 import { InlineError, Skeleton, buttonClass, linkClass } from "@/components/kit";
+import { ring } from "@/components/kit/classes";
+import { SearchShortcut } from "@/components/frame/search-shortcut";
+import { ShortcutHint } from "@/components/frame/topbar-search-slot";
 import { attentionWords, type Attention } from "@/lib/dashboard/needs-attention";
 import { SEARCH_TEMPLATES, filterMenus, templateHref } from "@/lib/dashboard/search-templates";
 import { DISCOVER_PATH, EMPTY_STATE, discoverHref } from "@/lib/discover-v32-state";
 import type { SavedSearchJson } from "@/lib/saved-searches";
 import { cn } from "@/lib/utils";
+import { PendingNav } from "./pending-nav";
 import { FilterMenuButton } from "./toolbar";
 import { RecentSearches } from "./recent";
 import { SearchCombobox } from "./typeahead";
 import { Count, LinkRow, LinkRows, h2, supplierCount } from "./rows";
 
+const MENU_ICON: Record<string, ReactNode> = {
+  product: <TShirt size={16} weight="fill" className="shrink-0 text-ink-2" aria-hidden />,
+  certificate: <SealCheck size={16} weight="fill" className="shrink-0 text-ink-2" aria-hidden />,
+  place: <MapPin size={16} weight="fill" className="shrink-0 text-ink-2" aria-hidden />,
+  type: <Buildings size={16} weight="fill" className="shrink-0 text-ink-2" aria-hidden />,
+};
 
-async function ResolvedCount({ counts, k }: { counts: Promise<Record<string, number | null>>; k: string }) {
+async function ChipCount({ counts, k }: { counts: Promise<Record<string, number | null>>; k: string }) {
   const n = (await counts)[k];
-  // An unread count says nothing: "0 suppliers" is a claim.
-  return typeof n === "number" ? <Count>{supplierCount(n)}</Count> : <Count>{null}</Count>;
+  // An unread count says nothing: "0" is a claim.
+  if (typeof n !== "number") return null;
+  return (
+    <span className="text-xs text-ink-3">
+      {n.toLocaleString("en-GB")}
+      <span className="sr-only"> {n === 1 ? "supplier" : "suppliers"}</span>
+    </span>
+  );
 }
 
+/** The common searches, one chip each with how many suppliers it finds. */
 function CommonSearches({ counts }: { counts: Promise<Record<string, number | null>> }) {
   return (
-    <section aria-labelledby="common-searches" className="flex flex-col gap-2">
-      <h2 id="common-searches" className={cn(h2, "max-sm:pb-0")}>
-        Common searches
-      </h2>
-      <LinkRows>
-        {SEARCH_TEMPLATES.map((t) => (
-          <LinkRow
-            key={t.key}
-            href={templateHref(t)}
-            label={t.title}
-            count={
-              <Suspense fallback={<Skeleton className="h-3 w-16" />}>
-                <ResolvedCount counts={counts} k={t.key} />
-              </Suspense>
-            }
-          />
-        ))}
-      </LinkRows>
-      <p className="text-xs text-ink-3 max-sm:hidden">Counts as of today.</p>
-    </section>
+    // One row that scrolls sideways on a phone; wraps from `sm`.
+    <nav aria-label="Common searches" className="-mx-4 flex items-center gap-1.5 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+      <span className="shrink-0 pr-1 text-sm text-ink-3">Try</span>
+      {SEARCH_TEMPLATES.map((t) => (
+        <Link
+          key={t.key}
+          href={templateHref(t)}
+          prefetch={false}
+          title={t.blurb}
+          className={cn("inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-subtle px-3 text-sm text-ink-2 transition-colors duration-fast hover:bg-sunken hover:text-ink", ring)}
+        >
+          {t.title}
+          <Suspense fallback={<Skeleton className="h-2.5 w-7" />}>
+            <ChipCount counts={counts} k={t.key} />
+          </Suspense>
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+/** The one search field: 48 tall on a phone, 56 from `sm`, with its button. */
+function SearchField() {
+  return (
+    <Form action={DISCOVER_PATH} role="search" aria-label="Search" className="relative">
+      <div className="flex h-input-touch items-center gap-3 rounded-md border border-line-strong bg-surface pl-3.5 pr-1.5 shadow-sm transition-colors duration-fast hover:border-ink-3 focus-within:border-brand focus-within:[box-shadow:inset_0_0_0_1px_theme(colors.brand)] sm:h-14 sm:rounded-lg sm:pl-4">
+        <MagnifyingGlass size={20} className="shrink-0 text-ink-3" aria-hidden />
+        <Suspense fallback={<input type="search" name="q" data-search="topbar" autoComplete="off" placeholder="Supplier, product or certificate" aria-label="Search" className="min-w-0 flex-1 bg-transparent text-md text-ink outline-none placeholder:text-ink-3" />}>
+          <SearchCombobox variant="phone" placeholder="Supplier, product or certificate" shortcutTarget />
+        </Suspense>
+        <ShortcutHint />
+        <button type="submit" className={buttonClass({ kind: "primary", size: "lg", className: "max-sm:hidden sm:h-11 sm:px-5 sm:font-semibold" })}>
+          Search
+        </button>
+      </div>
+      <SearchShortcut />
+    </Form>
   );
 }
 
@@ -135,42 +171,33 @@ export function SearchLanding({
 }) {
   const startMenus = filterMenus(EMPTY_STATE).filter((m) => m.key !== "more");
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-6 px-4 pb-6 pt-1 sm:px-8 sm:pt-7">
-      {/* A phone has no topbar field: the page draws its own, 48 tall at 16px. */}
-      <Form action={DISCOVER_PATH} role="search" aria-label="Search" className="relative md:hidden">
-        <div className="flex h-input-touch items-center gap-3 rounded-md border border-line-strong bg-surface px-3.5 focus-within:border-brand focus-within:[box-shadow:inset_0_0_0_1px_theme(colors.brand)]">
-          <MagnifyingGlass size={20} className="shrink-0 text-ink-3" aria-hidden />
-          <Suspense fallback={<input type="search" name="q" autoComplete="off" placeholder="Supplier, product or certificate" aria-label="Search" className="min-w-0 flex-1 bg-transparent text-md text-ink outline-none placeholder:text-ink-3" />}>
-            <SearchCombobox variant="phone" placeholder="Supplier, product or certificate" />
-          </Suspense>
-        </div>
-      </Form>
+    <PendingNav className="flex min-h-0 flex-1 flex-col gap-6 px-4 pb-6 pt-1 sm:px-8 sm:pt-7">
       <div className="flex items-baseline gap-4 max-sm:hidden">
         <h1 className="text-xl font-semibold tracking-tight text-ink">Search</h1>
         <p className="text-base text-ink-3">{published === null ? "Every published supplier" : supplierCount(published)} · every fact from a named source</p>
       </div>
+      <section aria-label="Find suppliers" className="flex flex-col gap-3">
+        <SearchField />
+        <div className="flex flex-wrap items-center gap-2 max-sm:hidden">
+          {startMenus.map((m) => (
+            <FilterMenuButton key={m.key} menu={m} hrefFor={discoverHref} icon={MENU_ICON[m.key]} />
+          ))}
+          <span aria-hidden className="mx-1 h-5 w-px bg-line" />
+          <span className="text-sm text-ink-3">Hiding sanctioned suppliers</span>
+        </div>
+        <CommonSearches counts={counts} />
+      </section>
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
         <div className="flex min-w-0 flex-1 flex-col gap-6">
           <Attention attention={attention} />
+        </div>
+        <div className="flex flex-col gap-6 lg:w-[400px] lg:shrink-0">
           <RecentSearches />
           <Suspense fallback={null}>
             <SavedSearches saved={saved} />
           </Suspense>
         </div>
-        <div className="flex flex-col gap-6 lg:w-[420px] lg:shrink-0 lg:gap-4">
-          <section aria-labelledby="start-filter" className="flex flex-col gap-2.5 max-sm:hidden">
-            <h2 id="start-filter" className={h2}>
-              Start with a filter
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {startMenus.map((m) => (
-                <FilterMenuButton key={m.key} menu={m} hrefFor={discoverHref} />
-              ))}
-            </div>
-          </section>
-          <CommonSearches counts={counts} />
-        </div>
       </div>
-    </div>
+    </PendingNav>
   );
 }

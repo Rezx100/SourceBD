@@ -34,6 +34,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 const { certLine } = require("@/components/patterns") as typeof import("@/components/patterns");
 const { attentionOf, attentionWords, certName, loadNeedsAttention } = require("@/lib/dashboard/needs-attention") as typeof import("@/lib/dashboard/needs-attention");
 const { SearchLanding } = require("@/components/search/landing") as typeof import("@/components/search/landing");
+const { pushRecent } = require("@/components/search/record-recent-search") as typeof import("@/components/search/record-recent-search");
+const { startsNavigation } = require("@/components/search/pending-nav") as typeof import("@/components/search/pending-nav");
+const { mapLimited } = require("@/lib/map-limited") as typeof import("@/lib/map-limited");
 const { ResultsBar, bulkRfqHref, TOO_MANY } = require("@/components/search/bulk-bar") as typeof import("@/components/search/bulk-bar");
 const { SelectionContext, SelectionProvider } = require("@/components/search/selection") as typeof import("@/components/search/selection");
 const { ResultsTable } = require("@/components/search/table") as typeof import("@/components/search/table");
@@ -413,21 +416,63 @@ describe("the landing", () => {
   const attention = attentionOf({ total: 1, rows: [{ kind: "wrap", certificate_no: "7865", expires_on: "2026-09-29", supplier: { id: "a", slug: "aboni", company_name: "Aboni Knitwear Ltd." } }] }, { total: 7, rows: [] }, TODAY)!;
   const out = plain(h(SearchLanding, { published: 10268, attention, counts: Promise.resolve({}), saved: Promise.resolve([]) }));
 
-  it("is the work queue: one heading, the published count, needs attention with its total, a filter to start from, the common searches", () => {
+  it("is search first: one heading, the published count, the filter menus, the common searches, then the work queue", () => {
     assert.equal(out.match(/<h1\b/g)?.length, 1);
     assert.ok(out.includes("10,268 suppliers") && out.includes("every fact from a named source"));
-    assert.ok(out.includes("Needs attention · 8"));
+    assert.ok(out.includes("Products exported") && out.includes("Company type") && out.includes("Hiding sanctioned suppliers"));
+    assert.match(out, /aria-label="Common searches"/);
+    assert.ok(out.includes("GOTS-certified knitwear"));
+    assert.ok(out.indexOf('role="search"') < out.indexOf("Needs attention · 8"), "the field comes before the work queue");
     assert.ok(out.includes("See all 8 certificates"));
-    assert.ok(out.includes("Start with a filter") && out.includes("Products exported") && out.includes("Company type"));
-    assert.ok(out.includes("Common searches") && out.includes("GOTS-certified knitwear"));
     assert.match(out, /href="\/app\/rfqs\/new\?supplier=a"[^>]*>Ask for the new certificate/);
   });
 
-  it("lists no supplier before the buyer searches, and draws its own field only for a phone", () => {
+  it("lists no supplier before the buyer searches, and draws its one field at every width, the one Ctrl K reaches", () => {
     assert.doesNotMatch(out, /<table|data-row="result"/);
-    assert.match(out, /<form[^>]*role="search"[^>]*class="relative md:hidden"|<form[^>]*class="relative md:hidden"[^>]*role="search"/);
-    assert.ok(!out.includes('data-search="topbar"'), "the topbar's field is the one the shortcut focuses");
-    assert.match(out, /<input[^>]*role="combobox"[^>]*aria-controls=/, "the phone's field suggests as it is typed");
+    // Founder's walkthrough, 6 Oct 2026: the field was md:hidden while the topbar stepped its
+    // own aside on this page, so a desktop had no search field at all.
+    const form = out.match(/<form[^>]*role="search"[^>]*>/)?.[0] ?? "";
+    assert.ok(form, "the page draws a search form");
+    assert.doesNotMatch(form, /\bhidden\b/);
+    assert.equal(out.match(/data-search="topbar"/g)?.length, 1, "exactly one field carries the shortcut target");
+    assert.match(out, /<input[^>]*role="combobox"[^>]*aria-controls=/, "the field suggests as it is typed");
+    assert.match(out, /<button[^>]*type="submit"[^>]*>Search<\/button>/);
+  });
+
+  it("a recent search is kept once, whatever order or page it was run at", () => {
+    const label = "HS 6110 · Sanctioned hidden";
+    const byWorkers = { label, href: "/app/discover?hs=6110&sort=workers", count: 1777 };
+    const bySources = { label, href: "/app/discover?hs=6110", count: 1777 };
+    const other = { label: "Shirt · Sanctioned hidden", href: "/app/discover?q=shirt", count: 1403 };
+    const list = pushRecent(pushRecent(pushRecent([], byWorkers), other), bySources);
+    assert.deepEqual(list.map((r) => r.href), [bySources.href, other.href]);
+  });
+
+  it("the common searches' counts are read a few at a time, in order", async () => {
+    let live = 0;
+    let peak = 0;
+    const got = await mapLimited([1, 2, 3, 4, 5, 6, 7, 8, 9], 3, async (n) => {
+      peak = Math.max(peak, ++live);
+      await new Promise((r) => setTimeout(r, 5));
+      live--;
+      return n * 10;
+    });
+    assert.equal(peak, 3);
+    assert.deepEqual(got, [10, 20, 30, 40, 50, 60, 70, 80, 90]);
+    assert.deepEqual(await mapLimited([], 3, async () => 1), []);
+  });
+
+  it("a plain click on a link starts the loading bar; a new-tab click does not", () => {
+    const link = (href: string, target: string | null = null) => ({ closest: () => ({ getAttribute: (n: string) => (n === "href" ? href : target) }) });
+    const click = { button: 0, metaKey: false, ctrlKey: false, shiftKey: false, altKey: false };
+    const here = "https://app.example/app";
+    assert.equal(startsNavigation({ ...click, target: link("/app/discover?hs=6110") }, here), true);
+    assert.equal(startsNavigation({ ...click, ctrlKey: true, target: link("/app/discover") }, here), false);
+    assert.equal(startsNavigation({ ...click, target: link("/app/discover", "_blank") }, here), false);
+    assert.equal(startsNavigation({ ...click, target: { closest: () => null } }, here), false);
+    // "Try again" is this page: the pathname never changes, so the bar would never come down.
+    assert.equal(startsNavigation({ ...click, target: link("/app") }, here), false);
+    assert.equal(startsNavigation({ ...click, target: link("https://global-standards.org/x") }, here), false);
   });
 
   it("an unread certificate check says so with a way to try again; it does not say nothing needs attention", () => {

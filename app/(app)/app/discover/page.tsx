@@ -26,7 +26,7 @@
 // rows. `?view=` and `?d=` are still read so an old link opens; they change nothing.
 
 import { redirect } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 import { ListPane } from "@/components/frame";
 import { RfqComposer } from "@/components/rfqs/composer";
 import type { ComposerTarget, ComposerWorkspace } from "@/components/rfqs/composer-model";
@@ -53,7 +53,7 @@ import { readSearch } from "@/lib/dashboard/search-cache";
 import { fetchDiscoverExplain, fetchDiscoverV32, fetchHsBatch } from "@/lib/discover-v32-rpc";
 import { hsBuyerLabel } from "@/lib/epb-hscode-labels";
 import { fetchFacilityParentSlug } from "@/lib/facility-parent-redirect";
-import { DISCOVER_PATH, discoverHref, filterCount, parseDiscoverState, queryTitle, serializeDiscoverState } from "@/lib/discover-v32-state";
+import { DISCOVER_PATH, discoverHref, filterCount, parseDiscoverState, queryTitle, serializeDiscoverState, withPaneParams, type DiscoverState } from "@/lib/discover-v32-state";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -89,7 +89,7 @@ export default async function BuyerDiscoverPage({
   // Every pane's Close is this same search: `discoverHref` serializes the state and none of
   // the pane parameters is part of it.
   const closeHref = discoverHref(state);
-  const withParams = (extra: string) => (extra ? `${closeHref}${closeHref.includes("?") ? "&" : "?"}${extra}` : closeHref);
+  const withParams = (extra: string) => withPaneParams(closeHref, extra);
   const recordHref = (slug: string) => withParams(`record=${encodeURIComponent(slug)}`);
   // The tab is part of what is open: the composer's Close and a line's Back return to it.
   const tab = parseTab(sp.tab);
@@ -105,7 +105,10 @@ export default async function BuyerDiscoverPage({
 
   const { rows, total, error, failure } = await readSearch(state, () => fetchDiscoverV32(supabase, state));
   const slugs = rows.map((r) => r.slug);
-  const [hs, savedRows] = await Promise.all([
+  // Not awaited here: the rows wait for their HS lines and saved marks, the pane does not. The
+  // record's read used to start only after these two answered, one more round trip to the
+  // database on every open and every page-size change with a record open (6 Oct 2026).
+  const decorated = Promise.all([
     fetchHsBatch(supabase, slugs),
     rows.length > 0
       ? supabase
@@ -117,13 +120,18 @@ export default async function BuyerDiscoverPage({
           )
           .then((r) => r.data ?? [])
       : Promise.resolve([] as unknown[]),
-  ]);
-  const savedSet = new Set<string>();
-  for (const r of savedRows) {
-    if (r && typeof r === "object" && typeof (r as { supplier_id?: unknown }).supplier_id === "string") {
-      savedSet.add((r as { supplier_id: string }).supplier_id);
+  ]).then(([hs, savedRows]) => {
+    const savedSet = new Set<string>();
+    for (const r of savedRows) {
+      if (r && typeof r === "object" && typeof (r as { supplier_id?: unknown }).supplier_id === "string") {
+        savedSet.add((r as { supplier_id: string }).supplier_id);
+      }
     }
-  }
+    const rowOpts = { today, hsLines: hs.lines, hsError: hs.error, recordHref, rfqHref };
+    return rows.map((row) => resultRow(buildDiscoverTableRow(row, { ...rowOpts, saved: savedSet.has(row.id) }), today, pageHref(row.slug)));
+  });
+  // An empty or failed search never draws the rows; its rejection must not go unhandled. Drawn, it still throws.
+  decorated.catch(() => {});
 
   let explain: { dropped: string; remaining: number }[] = [];
   if (!error && total === 0 && state.page === 1 && filterCount(state) > 0) {
@@ -131,8 +139,6 @@ export default async function BuyerDiscoverPage({
   }
 
   const pages = total !== null ? Math.max(1, Math.ceil(total / state.per)) : null;
-  const rowOpts = { today, hsLines: hs.lines, hsError: hs.error, recordHref, rfqHref };
-  const results = rows.map((row) => resultRow(buildDiscoverTableRow(row, { ...rowOpts, saved: savedSet.has(row.id) }), today, pageHref(row.slug)));
 
   // A pane docked beside the results narrows them; the filter panel lies over the full-width
   // table instead (B4 fix 4), so the results keep their own bar and columns under it.
@@ -141,8 +147,11 @@ export default async function BuyerDiscoverPage({
   const title = resultsTitle(state.q, error ? null : total);
   const filtersHref = withParams("filters=1");
   const saveHref = withParams("save=1");
-  const hrefFor = discoverHref;
-  const nextHref = pages && state.page < pages ? discoverHref(state, { page: state.page + 1 }) : null;
+  // Every results control (page, page size, sort, a filter) keeps the open record and its tab:
+  // the pane works on its own and the list's controls never close it (founder, 6 Oct 2026).
+  const openParams = recordParams && lineCode ? `${recordParams}&line=${lineCode}` : recordParams;
+  const hrefFor = (s: DiscoverState) => withPaneParams(discoverHref(s), openParams);
+  const nextHref = pages && state.page < pages ? hrefFor({ ...state, page: state.page + 1 }) : null;
 
   // Save this search is a popover under the bar (a sheet on a phone), not a pane: the results stay
   // live beside it. Close keeps the record that was open; a saved search lands on this search.
@@ -186,27 +195,31 @@ export default async function BuyerDiscoverPage({
         {error ? (
           <ResultsError failure={failure ?? "unavailable"} retryHref={closeHref} />
         ) : rows.length === 0 && state.page > 1 ? (
-          <PastEnd page={state.page} firstHref={discoverHref(state, { page: 1 })} />
+          <PastEnd page={state.page} firstHref={hrefFor({ ...state, page: 1 })} />
         ) : total === 0 ? (
           <ResultsEmpty state={state} explain={explain} clearHref={DISCOVER_PATH} saveHref={saveHref} />
         ) : (
           <>
             {/* From md the table, or the narrow list beside a pane; on a phone the rows that open as pages. */}
             <div className="hidden min-h-0 flex-1 overflow-y-auto md:block">
-              {paneOpen ? (
-                <PaneRows rows={results} currentSlug={recordSlug} />
-              ) : (
-                <div className="px-6">
-                <ResultsTable
-                  rows={results}
-                  sort={{ key: state.sort, dir: state.sort === "name" || state.sort === "cert_expiry" || state.sort === "established" ? "asc" : "desc" }}
-                  sortHrefs={{ workers: discoverHref(state, { sort: "workers", page: 1 }), sources: discoverHref(state, { sort: "sources", page: 1 }) }}
-                />
-                </div>
-              )}
+              <Await value={decorated}>
+                {(results) =>
+                  paneOpen ? (
+                    <PaneRows rows={results} currentSlug={recordSlug} />
+                  ) : (
+                    <div className="px-6">
+                    <ResultsTable
+                      rows={results}
+                      sort={{ key: state.sort, dir: state.sort === "name" || state.sort === "cert_expiry" || state.sort === "established" ? "asc" : "desc" }}
+                      sortHrefs={{ workers: hrefFor({ ...state, sort: "workers", page: 1 }), sources: hrefFor({ ...state, sort: "sources", page: 1 }) }}
+                    />
+                    </div>
+                  )
+                }
+              </Await>
             </div>
             <div className="md:hidden">
-              <PhoneRows rows={results} />
+              <Await value={decorated}>{(results) => <PhoneRows rows={results} />}</Await>
               <PhoneMore shown={(state.page - 1) * state.per + rows.length} total={total ?? rows.length} nextHref={nextHref} per={state.per} />
             </div>
             <div className="hidden md:block">
@@ -286,6 +299,11 @@ export default async function BuyerDiscoverPage({
       {one(sp.saved) === "1" ? <Flash text="Search saved" link={{ href: "/app/searches", label: "Saved searches" }} /> : null}
     </>
   );
+}
+
+/** Draws `children` once `value` is read: the page returns without waiting on it, so the pane's read starts beside it. */
+async function Await<T>({ value, children }: { value: Promise<T>; children: (v: T) => ReactNode }) {
+  return children(await value);
 }
 
 /** The RFQ composer in the pane, for one supplier or the ticked selection: published targets only, in the order they were ticked. */

@@ -11,7 +11,8 @@ import { SearchLanding } from "@/components/search/landing";
 import { getServerRole } from "@/lib/auth";
 import { loadNeedsAttention } from "@/lib/dashboard/needs-attention";
 import { readPublishedCount } from "@/lib/dashboard/load-buyer-shell";
-import { readSearchCount } from "@/lib/dashboard/search-cache";
+import { COUNT_READS_AT_ONCE, readSearchCount } from "@/lib/dashboard/search-cache";
+import { mapLimited } from "@/lib/map-limited";
 import { SEARCH_TEMPLATES } from "@/lib/dashboard/search-templates";
 import { runSavedSearchesGet, type SavedSearchJson } from "@/lib/saved-searches";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -26,10 +27,13 @@ export default async function SearchLandingPage() {
   const supabase = await createSupabaseServerClient();
   const today = new Date();
 
-  // Streamed: the page is usable before any count arrives.
-  const counts: Promise<Record<string, number | null>> = Promise.all(
-    SEARCH_TEMPLATES.map(async (t) => [t.key, await readSearchCount(t.state)] as const),
-  ).then((pairs) => Object.fromEntries(pairs));
+  // Streamed: the page is usable before any count arrives. Each count is a 2-2.5 s read and the
+  // anon role stops at 3 s; nine at once slowed each other past it and every one came back
+  // unread (production log, 6 Oct 2026: 345 statement timeouts in a day). A few at a time keeps
+  // each under the limit, and a read that succeeds is cached for an hour.
+  const counts: Promise<Record<string, number | null>> = mapLimited(SEARCH_TEMPLATES, COUNT_READS_AT_ONCE, async (t) => [t.key, await readSearchCount(t.state)] as const).then(
+    (pairs) => Object.fromEntries(pairs),
+  );
   const saved: Promise<SavedSearchJson[] | null> = (async () => {
     try {
       const listed = await runSavedSearchesGet({ role: await getServerRole(), supabase, now: today });

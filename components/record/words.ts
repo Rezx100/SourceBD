@@ -27,6 +27,16 @@ export function parseTab(raw: string | string[] | null | undefined): TabId {
   return TABS.find((t) => t.id === v)?.id ?? "overview";
 }
 
+/**
+ * The section a reader is in, as the tabs mark it while the record scrolls: the first section (in
+ * page order) crossing the reading band under the sticky tabs; at the very foot, the last one (a
+ * short last section never reaches the band); with nothing in the band, wherever they were.
+ */
+export function sectionInView<T>(order: readonly T[], inBand: ReadonlySet<T>, atEnd: boolean, prev: T): T {
+  if (atEnd && order.length > 0) return order[order.length - 1]!;
+  return order.find((id) => inBand.has(id)) ?? prev;
+}
+
 /** `?site=` as the page reads it: a whole number from 1, or null. */
 export function parseSite(raw: string | string[] | null | undefined): number | null {
   const v = Array.isArray(raw) ? raw[0] : raw;
@@ -132,15 +142,20 @@ export function certRows(model: SupplierSheetModel, now: Date = new Date()): Cer
   return model.certs.map((c) => {
     const check = checks?.certs.find((k) => k.kind === c.kind && k.certificate_no === c.number);
     const newer = model.certs.some((o) => o !== c && o.kind === c.kind && (o.expiresOn ?? "") > (c.expiresOn ?? ""));
+    const delisted = check?.listing_status === "no_longer_listed";
+    // A GOTS link is its public directory page, which goes when GOTS drops the certificate (expired or delisted).
+    const gots = c.kind.toLowerCase() === "gots";
+    const gotsGone = gots && (delisted || c.state === "expired");
     return {
-      delistedOn: check?.listing_status === "no_longer_listed" ? (check.delisted_at ?? now.toISOString()) : null,
+      delistedOn: delisted ? (check?.delisted_at ?? now.toISOString()) : null,
       check: checks ? certCheckLine(c.kind, c.expiresOn, check, checks.reads, now, newer) : null,
       scheme: c.scheme,
       number: c.number,
       issuer: c.issuer,
       expiresOn: c.expiresOn,
-      documentUrl: c.documentUrl,
-      documentLabel: /oeko/i.test(c.scheme) ? "Open label check" : undefined,
+      documentUrl: gotsGone ? null : c.documentUrl,
+      documentLabel: /oeko/i.test(c.scheme) ? "Open label check" : gots ? "Open on GOTS" : undefined,
+      documentNote: gotsGone ? "No longer on the GOTS list" : undefined,
       anchor: certRowId(c.kind, c.number, c.expiresOn),
     };
   });

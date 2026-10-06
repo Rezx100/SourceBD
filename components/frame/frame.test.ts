@@ -165,9 +165,32 @@ describe("the frame a buyer receives", () => {
 describe("the list and the pane", () => {
   it("from 1280 the pane docks beside the list, 640 wide; closed, the list fills", () => {
     const open = renderToStaticMarkup(createElement(ListPane, { list: "LIST", listLabel: "Results", pane: "PANE", paneTitle: "Aboni Knitwear Ltd.", closeHref: "/app/discover?q=knit" }));
-    assert.match(open, /<section aria-label="Results"[^>]*>LIST<\/section><section aria-label="Aboni Knitwear Ltd\."[^>]*class="hidden [^"]*w-pane[^"]*xl:flex">PANE<\/section>/);
+    assert.match(open, /<section aria-label="Results"[^>]*>LIST<\/section><div role="separator"[^>]*><\/div><section aria-label="Aboni Knitwear Ltd\."[^>]*class="hidden [^"]*w-pane[^"]*xl:flex">PANE<\/section>/);
     const shut = renderToStaticMarkup(createElement(ListPane, { list: "LIST", listLabel: "Results", closeHref: "/app/discover" }));
     assert.doesNotMatch(shut, /w-pane/);
+    assert.doesNotMatch(shut, /role="separator"/, "a divider with no pane to resize");
+  });
+
+  it("the edge between the list and the docked pane is a keyboard-adjustable divider", () => {
+    // Founder, 6 Oct 2026: the pane must be resizable, as Paper's frame lets it be. The divider is
+    // drawn on the server at the 640 default (the buyer's own width is read after hydration).
+    const open = renderToStaticMarkup(createElement(ListPane, { list: "LIST", listLabel: "Results", pane: "PANE", paneTitle: "Aboni", closeHref: "/app/discover" }));
+    const sep = /<div role="separator"[^>]*>/.exec(open)?.[0] ?? "";
+    for (const a of ['aria-orientation="vertical"', 'aria-controls="list-pane"', 'aria-valuenow="640"', 'aria-valuemin="400"', 'tabindex="0"', "cursor-col-resize"]) assert.ok(sep.includes(a), `the divider lacks ${a}: ${sep}`);
+    assert.match(open, /<section aria-label="Aboni" id="list-pane"/, "the divider controls no pane");
+    // The filters panel lies over the list: there is nothing beside it to resize.
+    const over = renderToStaticMarkup(createElement(ListPane, { list: "LIST", listLabel: "Results", pane: "PANE", paneTitle: "Filters", closeHref: "/app/discover", presentation: "overlay" }));
+    assert.doesNotMatch(over, /role="separator"/);
+  });
+
+  it("the pane's width stays between 400 and 60% of the row", () => {
+    const { clampPaneWidth } = require("@/components/frame/list-pane") as typeof import("@/components/frame/list-pane"); // eslint-disable-line @typescript-eslint/no-require-imports
+    assert.equal(clampPaneWidth(640, 1216), 640);
+    assert.equal(clampPaneWidth(200, 1216), 400, "narrower than 400");
+    assert.equal(clampPaneWidth(1000, 1216), 729, "wider than 60% of the row");
+    assert.equal(clampPaneWidth(500, 600), 400, "a row too narrow for 60% still leaves the pane 400");
+    assert.equal(clampPaneWidth(Number.NaN, 1216), 640, "a stored width that is not a number");
+    assert.equal(clampPaneWidth(512.6, 1216), 513);
   });
 
   it("the filters lie over the list from 1280, 360 wide, and the list keeps its width and stays live", () => {

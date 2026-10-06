@@ -14,8 +14,10 @@ export type CertRowData = {
   issuer: string | null;
   expiresOn: string | null;
   documentUrl: string | null;
-  /** "Open certificate", or "Open label check" for OEKO-TEX. */
+  /** "Open certificate", "Open label check" for OEKO-TEX, "Open on GOTS" for the GOTS directory page. */
   documentLabel?: string;
+  /** Said in place of the link when there is no public page left ("No longer on the GOTS list"). */
+  documentNote?: string;
   /** The row's id, so a link from another page (the Compliance hub) can land on this one row. */
   anchor?: string;
   /** The day its body stopped listing it (spec-etl-freshness S2); the chip then says so. */
@@ -99,7 +101,7 @@ export function CertTable({ certs, today, from, className, compact = false }: { 
             key={`${c.scheme}-${c.number}-${i}`}
             id={c.anchor}
             className={cn(
-              "relative scroll-mt-16 border-b border-line px-4 py-3 last:border-b-0 target:bg-brand-tint",
+              "relative scroll-mt-[var(--record-offset,4rem)] border-b border-line px-4 py-3 last:border-b-0 target:bg-brand-tint",
               compact
                 ? "grid min-h-11 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1"
                 : "flex flex-col gap-1.5 max-sm:min-h-11 sm:grid sm:min-h-14 sm:grid-cols-[minmax(0,200px)_minmax(0,1fr)_minmax(0,260px)_minmax(0,140px)] sm:items-center sm:gap-4 sm:py-2",
@@ -127,6 +129,8 @@ export function CertTable({ certs, today, from, className, compact = false }: { 
                     {c.documentLabel ?? "Open certificate"}
                   </a>
                 </>
+              ) : c.documentNote ? (
+                <span className="text-sm text-ink-3">{c.documentNote}</span>
               ) : null}
             </span>
           </li>

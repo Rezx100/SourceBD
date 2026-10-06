@@ -97,6 +97,12 @@ def _absolute_scope_ref(ref: str | None) -> str | None:
     return f"https://www.global-trace-base.org/{s}"
 
 
+def _public_page(system_id: str) -> str:
+    """The GOTS directory's public page for one supplier. The GTB
+    `/SCO…/certificate-document` link has sat behind a login since Oct 2026."""
+    return f"https://global-standards.org/suppliers/certified-suppliers/details?gtbid={system_id}"
+
+
 def _certificate_no(detail: dict[str, Any]) -> str:
     lic = (detail.get("gtb_license_number") or "").strip()
     if lic:
@@ -362,7 +368,7 @@ def _write_certification(supplier_id: str, rec: ScrapedRecord) -> None:
     if pc:
         scope_parts.append(f"Products: {pc}")
     scope = " | ".join(scope_parts) or None
-    doc_url = p.get("gots_scope_certificate_url")
+    doc_url = _public_page(p["gots_system_id"])
 
     with db.conn() as c, c.cursor() as cur:
         cur.execute(

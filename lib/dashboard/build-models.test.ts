@@ -944,6 +944,8 @@ describe("a certificate's square links exactly when its document is a record pag
     p.brand_attributions = [];
     p.addresses = [];
     p.rsc_remediation = null;
+    // GOTS drops an expired certificate from its list, so it has no public page to link.
+    p.certifications = p.certifications.filter((c) => !(c.kind === "gots" && c.expires_on !== null && c.expires_on < input.today.toISOString().slice(0, 10)));
     return input;
   }
 
@@ -951,7 +953,7 @@ describe("a certificate's square links exactly when its document is a record pag
     const input = everyRegisterHasAPage();
     const sheet = buildSheet(input);
     const certMarks = sheet.certs.map((c) => sourceMark(c.markCode, c.documentUrl));
-    assert.ok(certMarks.length >= 4, "the record no longer holds the certificates this guard is about");
+    assert.ok(certMarks.length >= 3, "the record no longer holds the certificates this guard is about");
     assert.ok(certMarks.every((m) => m.href), "a certificate document that is a record page must link");
   });
 

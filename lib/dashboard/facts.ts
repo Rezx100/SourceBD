@@ -2,6 +2,8 @@
 // counts, names. Pure functions — every rendered value on a card, table row or
 // sheet passes through here, so the boundary tests can pin the words.
 
+import { publicPage } from "./source-tiers";
+
 export type CertState = "valid" | "expiring" | "expired" | "no-expiry";
 
 export type CertModel = {
@@ -300,6 +302,7 @@ export function certModel(
   },
   today: Date,
 ): CertModel {
+  const state = certState(raw.expires_on, today);
   return {
     kind: raw.kind,
     scheme: certScheme(raw.kind, raw.scope),
@@ -307,9 +310,10 @@ export function certModel(
     issuer: raw.issuer,
     scope: raw.scope,
     expiresOn: raw.expires_on,
-    state: certState(raw.expires_on, today),
+    state,
     daysLeft: daysUntil(raw.expires_on, today),
-    documentUrl: raw.document_url,
+    // GOTS drops an expired certificate from its list, and its public page with it.
+    documentUrl: raw.kind.toLowerCase() === "gots" && state === "expired" ? null : publicPage(raw.document_url),
     markCode: raw.kind,
   };
 }

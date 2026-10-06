@@ -139,7 +139,20 @@ function opensA(code: string): "record" | "list" {
   return code.toUpperCase().startsWith("BRAND_") ? "list" : "record";
 }
 
+/**
+ * The public page for a stored link that now ends at a login wall. Global
+ * Trace Base put `/SCO…/certificate-document` behind its login in Oct 2026;
+ * the GOTS directory keeps a public page per listed supplier under the same
+ * SCO id (`?gtbid=SCO001636` shows 4A Yarn Dyeing, GOTS-11426). Any other URL
+ * passes through unchanged.
+ */
+export function publicPage(url: string | null): string | null {
+  const sco = url && /global-trace-base\.org\/(SCO\d+)\/certificate-document/i.exec(url)?.[1];
+  return sco ? `https://global-standards.org/suppliers/certified-suppliers/details?gtbid=${sco.toUpperCase()}` : url;
+}
+
 export function sourceMark(code: string, href: string | null = null): SourceMarkModel {
+  href = publicPage(href);
   const key = code.toUpperCase();
   const entry = REGISTRY[key] ?? REGISTRY[code] ?? fallback(code);
   return {
