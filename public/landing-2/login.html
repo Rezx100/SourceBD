@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Log in — circle0</title>
+  <meta name="description" content="Log in to your circle0 workspace.">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="assets/brand/favicon-32.png" sizes="32x32">
+  <link rel="icon" href="assets/brand/mark.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/brand/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@500;600&family=Instrument+Sans:wght@400;500&display=swap">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="container site-header__inner">
+      <a class="brand" href="index.html" aria-label="circle0 home">circle<svg class="brand__mark" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="22" fill="none" stroke="currentColor" stroke-width="13" stroke-linecap="round" stroke-dasharray="118 20.25" transform="rotate(-60 32 32)"/><circle cx="51" cy="13" r="6.5" fill="#ADF74C"/></svg></a>
+      <nav class="nav" id="primary-nav" aria-label="Primary">
+        <a class="nav__link" href="index.html">Home</a>
+        <a class="nav__link" href="pricing.html">Pricing</a>
+        <a class="nav__link" href="integrations.html">Integrations</a>
+        <a class="nav__link" href="careers.html">Careers</a>
+        <a class="nav__link" href="contact.html">Contact</a>
+        <div class="nav__mobile-actions">
+          <a class="btn btn--secondary" href="login.html">Log in</a>
+          <a class="btn btn--primary" href="signup.html">Get started</a>
+        </div>
+      </nav>
+      <div class="header-actions">
+        <a class="btn btn--ghost" href="login.html">Log in</a>
+        <a class="btn btn--primary" href="signup.html">Get started</a>
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-nav" aria-label="Open menu"><span></span></button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="auth" aria-labelledby="login-title">
+      <div class="container">
+        <h1 class="h-display split-words" id="login-title">Log in</h1>
+        <div class="auth__card" data-reveal>
+          <a class="brand brand--lg" href="index.html" aria-label="circle0 home">circle<svg class="brand__mark" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="22" fill="none" stroke="currentColor" stroke-width="13" stroke-linecap="round" stroke-dasharray="118 20.25" transform="rotate(-60 32 32)"/><circle cx="51" cy="13" r="6.5" fill="#ADF74C"/></svg></a>
+          <div class="stack" style="gap:10px">
+            <button class="btn btn--outline social-btn" type="button" onclick="window.circle0.toast('Google sign-in will be wired to your auth provider.')">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.4z"/><path fill="#34A853" d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z"/><path fill="#FBBC05" d="M6.4 14a6 6 0 0 1 0-3.9V7.5H3.1a10 10 0 0 0 0 9z"/><path fill="#EA4335" d="M12 6c1.5 0 2.8.5 3.8 1.5l2.8-2.8A10 10 0 0 0 3.1 7.5L6.4 10C7.2 7.8 9.4 6 12 6z"/></svg>
+              Continue with Google
+            </button>
+            <button class="btn btn--outline social-btn" type="button" onclick="window.circle0.toast('Microsoft sign-in will be wired to your auth provider.')">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#F25022" d="M3 3h8.5v8.5H3z"/><path fill="#7FBA00" d="M12.5 3H21v8.5h-8.5z"/><path fill="#00A4EF" d="M3 12.5h8.5V21H3z"/><path fill="#FFB900" d="M12.5 12.5H21V21h-8.5z"/></svg>
+              Continue with Microsoft
+            </button>
+          </div>
+          <div class="divider" aria-hidden="true">or</div>
+          <form class="form" data-validate data-success="Signed in. Taking you to your dashboard." data-redirect="index.html" data-endpoint="/api/auth/login" novalidate>
+            <div class="field">
+              <label for="email">Email address<span class="req" aria-hidden="true">*</span></label>
+              <input id="email" name="email" type="email" autocomplete="email" placeholder="name@company.com" required>
+              <p class="field__error" aria-live="polite"></p>
+            </div>
+            <div class="field field--password">
+              <label for="password">Password<span class="req" aria-hidden="true">*</span></label>
+              <input id="password" name="password" type="password" autocomplete="current-password" required minlength="8">
+              <button class="field__toggle" type="button" data-toggle-password="#password" aria-pressed="false" aria-label="Show password">Show</button>
+              <p class="field__error" aria-live="polite"></p>
+            </div>
+            <div class="auth__row">
+              <label class="check"><input id="remember" name="remember" type="checkbox" checked><span>Keep me signed in</span></label>
+              <a class="link" href="forgot-password.html">Forgot password?</a>
+            </div>
+            <div class="form-status" role="status" aria-live="polite"></div>
+            <button class="btn btn--primary btn--lg btn--block" type="submit">Log in</button>
+          </form>
+        </div>
+        <p class="auth__foot">New to circle0? <a href="signup.html">Create an account</a></p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer" style="padding-top:0">
+    <div class="container">
+      <div class="footer-bottom" style="margin-top:0">
+        <p>© <span data-year>2026</span> circle0, Inc. · <a class="link" href="contact.html">Help</a></p>
+        <div class="cluster small muted"><a href="index.html">Home</a><a href="pricing.html">Pricing</a><a href="contact.html">Contact</a></div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
+  <script src="js/main.js" defer></script>
+</body>
+</html>
