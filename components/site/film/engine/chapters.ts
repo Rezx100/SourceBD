@@ -293,23 +293,22 @@ export function startChapters(root: HTMLElement, tier: Tier, hooks: ChapterHooks
     if (!receipts || !paper || !items.length) return;
     if (staleReceipts) {
       staleReceipts = false;
-      // Measured with the paper at rest at the top of its window.
-      rollPaper?.style.setProperty("--roll-h", "0px");
+      // Each line's place at rest comes from its offsets inside the paper, which no transform moves, laid on the
+      // window's own box: a measure taken mid-print would otherwise carry the scroll of that moment.
       const box = layerOf(ties[0]);
       const height = paper.offsetHeight;
-      const edge = paper.getBoundingClientRect().right + 2;
+      const rollBox = roll?.getBoundingClientRect();
+      const edge = (rollBox?.right ?? 0) - (rollPaper?.offsetLeft ?? 0) + 2;
+      const rest = (rollBox?.top ?? 0) + (rollPaper?.offsetTop ?? 0);
       const h = rollPaper?.offsetHeight ?? 0;
       const win = roll && rollPaper ? Math.max(0, roll.clientHeight - rollPaper.offsetTop) : h;
       rollPaper?.style.setProperty("--roll-h", `${Math.round(h)}px`);
       rollPaper?.style.setProperty("--roll-win", `${Math.round(win)}px`);
-      const top = box && roll ? roll.getBoundingClientRect().top - box.top : 0;
+      const top = box && rollBox ? rollBox.top - box.top : 0;
       rollGeo = box
         ? {
             ends: items.map((item) => (item.offsetTop + item.offsetHeight) / height),
-            froms: lines.map((line) => {
-              const r = line?.getBoundingClientRect();
-              return r ? within(box, edge, r.top + r.height / 2) : null;
-            }),
+            froms: lines.map((line) => (line instanceof HTMLElement ? within(box, edge, rest + line.offsetTop + line.offsetHeight / 2) : null)),
             dots: [],
             h,
             win,
