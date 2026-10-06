@@ -37,7 +37,7 @@ export default async function AdminFeedbackPage({
 
   return (
     <AdminColumn narrow>
-      <AdminHead title="User feedback" lede="In-app notes submitted via the ? hotkey or the floating feedback button." />
+      <AdminHead title="User feedback" lede="Notes buyers send from Send feedback in the account menu." />
 
       <nav aria-label="Feedback status" className="flex gap-1 border-b border-line">
         {(["open", "triaged", "closed"] as const).map((s) => (
