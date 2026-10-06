@@ -7,6 +7,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { forwardedRequestHeaders } from "@/lib/ledger/request-headers";
+
 export function createSupabaseMiddlewareClient(req: NextRequest) {
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-sourcebd-pathname", req.nextUrl.pathname);
@@ -20,7 +22,10 @@ export function createSupabaseMiddlewareClient(req: NextRequest) {
       "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY",
     );
   }
+  // The visitor's address and browser, for the activity record (moderation plan 1b, 0131).
+  const forwarded = forwardedRequestHeaders(req.headers);
   const supabase = createServerClient(url, anonKey, {
+    ...(Object.keys(forwarded).length > 0 ? { global: { headers: forwarded } } : {}),
     cookies: {
       getAll() {
         return req.cookies.getAll();

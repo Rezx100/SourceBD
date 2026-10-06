@@ -10,9 +10,15 @@ import "server-only";
 
 import { createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+
+import { forwardedRequestHeaders } from "@/lib/ledger/request-headers";
 
 /**
+ * Every call carries the visitor's address and browser as `x-sourcebd-ip` / `x-sourcebd-ua` (moderation
+ * plan 1b), which the activity record (0131) reads from the request's headers; without them the database
+ * sees only this server. A request that cannot be read (a build, a script) sends none.
+ *
  * `userAgent` is the visitor's own browser, for a client that SIGNS SOMEONE IN: Auth records the agent of
  * the request that opens a session, and from a server action that would be this server's ("node"), so the
  * Security page could not tell one device from another. Pass it from the sign-in actions and the link
@@ -27,10 +33,17 @@ export async function createSupabaseServerClient(opts: { userAgent?: string | nu
       "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY",
     );
   }
+  let forwarded: Record<string, string> = {};
+  try {
+    forwarded = forwardedRequestHeaders(await headers());
+  } catch {
+    // No request to read (a build, a script): the record gets no address for this call.
+  }
   // A header value may not carry control characters (a newline would be a second header).
   const ua = typeof opts.userAgent === "string" ? opts.userAgent.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, 300) : "";
+  const extra = { ...forwarded, ...(ua ? { "User-Agent": ua } : {}) };
   return createServerClient(url, anonKey, {
-    ...(ua ? { global: { headers: { "User-Agent": ua } } } : {}),
+    ...(Object.keys(extra).length > 0 ? { global: { headers: extra } } : {}),
     cookies: {
       getAll() {
         return cookieStore.getAll();
