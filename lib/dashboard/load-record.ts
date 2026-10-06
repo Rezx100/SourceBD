@@ -311,8 +311,8 @@ export async function fetchRecordSaved(
 
 export type SheetView = {
   /**
-   * Read the geocode cache for the Sites tab's map. Only the Sites tab asks: it is one more read, after
-   * the profile, and no other tab draws a pin.
+   * Read the geocode cache for the Sites section's map: one more read, after the profile. Every view
+   * that stacks the record's sections asks, whichever tab the address names; a view with no map does not.
    */
   pins?: boolean;
   /** Where an overlay's Close returns to; absent on the full page. */
