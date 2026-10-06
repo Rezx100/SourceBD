@@ -186,7 +186,7 @@ describe("the list and the pane", () => {
     assert.match(rest ?? "", /class="[^"]*\bw-px bg-line\b/, "no 1px line at rest");
     for (const [what, el, size] of [["2px line", line, "w-0.5"], ["grip", grip, "h-8 w-[9px]"]] as const) {
       assert.ok(el?.includes(size) && / opacity-0 /.test(el), `the ${what} is missing or shows at rest: ${el}`);
-      for (const on of ["group-hover:opacity-100", "group-focus-visible:opacity-100", "group-active:opacity-100"]) assert.ok(el.includes(on), `the ${what} lacks ${on}`);
+      for (const on of ["group-hover:opacity-100", "group-focus-visible:opacity-100", "group-active:opacity-100"]) assert.ok(el?.includes(on), `the ${what} lacks ${on}`);
     }
     assert.doesNotMatch(sep + inner, /(bg|border|text)-brand(?![\w/-])|bg-brand-(wash|tint)/, "the divider is drawn in solid green");
     // The filters panel lies over the list: there is nothing beside it to resize.

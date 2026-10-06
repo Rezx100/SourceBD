@@ -176,7 +176,7 @@ describe("what the composer draws", () => {
     const page = draw([target(1)]);
     const m = /<div role="separator"([^>]*)>[\s\S]*?<\/div><aside id="([^"]+)" aria-label="Preview" style="--pane-w:344px" class="([^"]*)"/.exec(page);
     assert.ok(m, "no divider right before the preview");
-    const [, sep, id, cls] = m;
+    const [sep, id, cls] = [m[1] ?? "", m[2] ?? "", m[3] ?? ""];
     for (const a of [`aria-controls="${id}"`, 'aria-label="Resize the preview"', 'aria-orientation="vertical"', 'aria-valuenow="344"', 'aria-valuemin="320"', 'tabindex="0"']) assert.ok(sep.includes(a), `the divider lacks ${a}: ${sep}`);
     // The width is a variable read only from 1280: under that the preview is a row under the form.
     for (const c of ["xl:w-[var(--pane-w)]", "xl:min-w-[320px]", "xl:max-w-[calc(100%-480px)]"]) assert.ok(cls.split(" ").includes(c), `the preview lacks ${c}`);
