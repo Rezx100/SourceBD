@@ -40,7 +40,7 @@ function ProblemRows({ model, today }: { model: SupplierSheetModel; today: Date 
         {rows.map((c, i) => {
           const w = certWords(c.expiresOn, today);
           return (
-            <li key={`${c.scheme}-${c.number}-${i}`} id={c.anchor} className="relative flex scroll-mt-16 flex-col gap-1.5 border-b border-line py-3 target:bg-brand-tint sm:min-h-14 sm:flex-row sm:items-center sm:gap-4 sm:py-2">
+            <li key={`${c.scheme}-${c.number}-${i}`} className="relative flex scroll-mt-16 flex-col gap-1.5 border-b border-line py-3 target:bg-brand-tint sm:min-h-14 sm:flex-row sm:items-center sm:gap-4 sm:py-2">
               <span className="flex flex-col max-sm:order-2 max-sm:flex-row max-sm:items-baseline max-sm:gap-2 sm:w-[110px] sm:shrink-0">
                 <span className="text-md font-medium text-ink sm:text-base">{c.scheme}</span>
                 {c.number ? <span className="font-mono text-sm text-ink-2">{c.number}</span> : null}

@@ -1,7 +1,8 @@
 // The supplier record (B4c, Paper `10 · Record pane`, `Record full page`, `11 · Record`): one
 // view for the pane beside the results and the full page. A header with the name and the two
 // actions, a five-cell summary of what the registers hold, six tabs (each a link, so the tab
-// is in the address and the search behind a pane survives it), and the panel. A sanctioned
+// is in the address and the search behind a pane survives it), and the six sections stacked
+// under them: a tab jumps to its section and the scroll moves the marked tab. A sanctioned
 // record adds a solid band above everything and replaces Send RFQ with the refusal in words;
 // nothing here is scored and no contact value is in the model, only how many are on file.
 //
@@ -11,13 +12,14 @@
 
 import { CaretLeft, Clock, XCircle, X } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
-import { TabLink, buttonClass } from "@/components/kit";
+import { buttonClass } from "@/components/kit";
 import { LockedContact, REFUSAL, SanctionBanner, SourceList, onFileWords, type SourceEntry } from "@/components/patterns";
 import type { SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
 import { CertificatesPanel, OverviewPanel, ProductsPanel, RecordRfqs, SafetyPanel, SitesPanel, SourcesPanel } from "./panels";
 import { SourceCheckListener } from "@/components/onboarding/source-check";
 import { RecordSave } from "./save-button";
+import { SectionTabs } from "./section-tabs";
 import { TABS, dayOfWords, recordSubline, summaryCells, tabCount, type SummaryCell, type TabId } from "./words";
 
 export type RecordViewProps = {
@@ -165,32 +167,35 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
           ) : null}
           <Summary cells={cells} />
 
-          <nav aria-label="Record sections" className="-mx-4 flex gap-1 overflow-x-auto border-b border-line px-4 [scrollbar-width:none] max-sm:sticky max-sm:top-0 max-sm:z-raised max-sm:bg-surface sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden">
-            {TABS.map((t) => (
-              <TabLink key={t.id} href={tabHref(t.id)} current={t.id === tab} count={tabCount(model, t.id) ?? undefined} scroll={false} prefetch={false}>
-                {t.label}
-              </TabLink>
-            ))}
-          </nav>
+          {/* Keyed by record: a pane that opens another supplier starts again at its tab. */}
+          <SectionTabs
+            key={model.fullHref}
+            initial={tab}
+            tabs={TABS.map((t) => ({ id: t.id, label: t.label, href: `${tabHref(t.id)}#record-${t.id}`, count: tabCount(model, t.id) ?? undefined }))}
+          />
 
-          <div id={`record-${tab}`} role="region" aria-label={TABS.find((t) => t.id === tab)!.label}>
-            {tab === "overview" ? (
-              <div className="flex flex-col gap-5">
-                <OverviewPanel model={model} today={today} />
-                <RecordRfqs model={model} />
-              </div>
-            ) : tab === "certificates" ? (
-              <CertificatesPanel model={model} today={today} compact={!page} />
-            ) : tab === "safety" ? (
-              <SafetyPanel model={model} />
-            ) : tab === "sites" ? (
-              <SitesPanel model={model} tabHref={tabHref} site={site} wide={page} />
-            ) : tab === "sources" ? (
-              <SourcesPanel model={model} today={today} />
-            ) : (
-              <ProductsPanel model={model} />
-            )}
-          </div>
+          {/* Every section, in tab order: the tabs jump to one and follow the scroll through them. */}
+          {TABS.map((t) => (
+            <div key={t.id} id={`record-${t.id}`} role="region" aria-label={t.label} className="scroll-mt-[var(--record-offset,0px)]">
+              {t.id === "overview" ? (
+                <div className="flex flex-col gap-5">
+                  <OverviewPanel model={model} today={today} />
+                  <RecordRfqs model={model} />
+                </div>
+              ) : t.id === "certificates" ? (
+                <CertificatesPanel model={model} today={today} compact={!page} />
+              ) : t.id === "safety" ? (
+                <SafetyPanel model={model} />
+              ) : t.id === "sites" ? (
+                <SitesPanel model={model} tabHref={tabHref} site={site} wide={page} />
+              ) : t.id === "sources" ? (
+                <SourcesPanel model={model} today={today} />
+              ) : (
+                <ProductsPanel model={model} />
+              )}
+            </div>
+          ))}
+          <div data-record-end="" aria-hidden />
         </div>
 
         {page ? (
