@@ -315,8 +315,8 @@ const SOURCE_COLS =
 function sourceGroups(sources: SupplierSheetModel["sources"]): { kind: string; rows: SupplierSheetModel["sources"] }[] {
   const groups: { kind: string; rows: SupplierSheetModel["sources"] }[] = [];
   for (const s of sources) {
-    const last = groups.at(-1);
-    if (last?.kind === s.tier) last.rows.push(s);
+    const held = groups.find((g) => g.kind === s.tier);
+    if (held) held.rows.push(s);
     else groups.push({ kind: s.tier, rows: [s] });
   }
   return groups;
@@ -338,7 +338,7 @@ export function SourcesPanel({ model, today }: { model: SupplierSheetModel; toda
         <p className="px-4 py-3 text-base text-ink-2">No register has filed a record for this company.</p>
       ) : (
         <>
-          <div aria-hidden className={cn("hidden h-9 border-b border-line bg-subtle px-4 text-xs font-medium text-ink-3", SOURCE_COLS)}>
+          <div className={cn("hidden h-9 border-b border-line bg-subtle px-4 text-xs font-medium text-ink-3", SOURCE_COLS)}>
             <span>Source</span>
             <span>Number</span>
             <span>Last read</span>
@@ -370,7 +370,7 @@ export function SourcesPanel({ model, today }: { model: SupplierSheetModel; toda
                         <span className={cn("flex items-center gap-1 text-sm", stale ? "font-medium text-caution" : "text-ink-2")}>
                           {stale ? <Clock size={12} weight="fill" className="shrink-0 text-caution-icon" aria-hidden /> : null}
                           <span>
-                            {s.readDate ? <span className="[@container_(min-width:600px)]:hidden">read </span> : null}
+                            {s.readDate ? <span className="[@container_(min-width:600px)]:sr-only">read </span> : null}
                             {s.readDate ?? "Not dated"}
                           </span>
                         </span>

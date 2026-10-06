@@ -174,7 +174,7 @@ const LABEL: Record<string, string> = { Established: "Founded", Registers: "Memb
 /** One registration as its line draws it: the register's mark and short name, then its number. */
 export type Membership = { mark: string | null; name: string; qualifier: string | null; number: string | null };
 
-export type KeyFact = { label: string; values: { text: string; mono: boolean; mark?: string; membership?: Membership }[]; source: string | null; empty: string | null };
+export type KeyFact = { label: string; values: { text: string; mono: boolean; membership?: Membership }[]; source: string | null; empty: string | null };
 
 /** "BGMEA General" is the register and the class of member; "EPB Reg" is the register alone ("Reg" says nothing beside a number). */
 function membership(i: NonNullable<FactRow["items"]>[number]): Membership {
@@ -201,7 +201,7 @@ export function keyFacts(model: SupplierSheetModel): KeyFact[] {
     const from = f.items?.length ? null : f.marks?.length ? `From ${f.marks.map((m) => m.label).join(", ")}` : f.pendingSource ? "Source not linked yet" : null;
     const source = [from, f.note ?? null].filter(Boolean).join(" · ") || null;
     const values = f.items?.length
-      ? f.items.map((i) => ({ text: [i.label, i.code].filter(Boolean).join(" reg. no. "), mono: Boolean(i.code), mark: i.mark?.code, membership: membership(i) }))
+      ? f.items.map((i) => ({ text: [i.label, i.code].filter(Boolean).join(" reg. no. "), mono: Boolean(i.code), membership: membership(i) }))
       : f.value
         ? [{ text: f.value, mono: Boolean(f.code) }]
         : [];

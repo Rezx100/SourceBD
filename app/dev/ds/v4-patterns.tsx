@@ -123,11 +123,11 @@ export function V4Patterns() {
           today={TODAY}
           from="From GOTS, OEKO-TEX and WRAP"
           certs={[
-            { scheme: "OEKO-TEX Standard 100", number: "32597-100", issuer: "OEKO-TEX", expiresOn: null, documentUrl: "#", documentLabel: "Open label check" },
-            { scheme: "GOTS", number: "GOTS-31587", issuer: "TÜV Rheinland (China) Ltd.", expiresOn: "2027-05-12", documentUrl: "#" },
-            { scheme: "WRAP", number: "7865", issuer: "WRAP", expiresOn: "2026-09-29", documentUrl: "#" },
-            { scheme: "GOTS", number: "GOTS-26992", issuer: "IDFL Laboratory and Institute Inc.", expiresOn: "2026-10-08", documentUrl: "#" },
-            { scheme: "WRAP", number: "15037", issuer: "WRAP", expiresOn: "2026-11-19", documentUrl: "#" },
+            { scheme: "OEKO-TEX Standard 100", number: "32597-100", issuer: "OEKO-TEX", expiresOn: null, documentUrl: null },
+            { scheme: "GOTS", number: "GOTS-31587", issuer: "TÜV Rheinland (China) Ltd.", expiresOn: "2027-05-12", documentUrl: "#", documentLabel: "Open on GOTS" },
+            { scheme: "WRAP", number: "7865", issuer: "WRAP", expiresOn: "2026-09-29", documentUrl: null },
+            { scheme: "GOTS", number: "GOTS-26992", issuer: "IDFL Laboratory and Institute Inc.", expiresOn: "2026-10-08", documentUrl: "#", documentLabel: "Open on GOTS" },
+            { scheme: "WRAP", number: "15037", issuer: "WRAP", expiresOn: "2026-11-19", documentUrl: null },
           ]}
         />
       </Block>

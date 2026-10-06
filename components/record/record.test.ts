@@ -459,6 +459,10 @@ describe("the registrations and the sources read as columns (6 Oct 2026: 'scatte
     assert.deepEqual(kinds, [...new Set(model().sources.map((s) => s.tier))]);
     assert.equal(kinds[0], "Government register");
     assert.equal((out.match(/<li\b[^>]*@container/g) ?? []).length, model().sources.length, "one row per source");
+    // The words come from a row's own tier slug, the order from its mark's rank: a kind can come back after another.
+    const [a, b, c] = model().sources;
+    const split = view(model(aboniInput(), { sources: [{ ...a!, tier: "Foreign regulator" }, { ...b!, tier: "Cross-check only" }, { ...c!, tier: "Foreign regulator" }] }), { mode: "page", tab: "sources" });
+    assert.deepEqual([...split.matchAll(/<section aria-label="([^"]+)"[^>]*><h4/g)].map((m) => m[1]), ["Foreign regulator", "Cross-check only"]);
   });
 });
 describe("a record scrolled inside a pane (6 Oct 2026: no map on Sites, and the tabs hung loose under a header that had scrolled away)", () => {
