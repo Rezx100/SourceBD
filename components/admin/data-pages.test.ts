@@ -242,6 +242,32 @@ describe("/admin/audit-log", () => {
     assert.match(out, /role="alert"/);
     assert.match(text(out), /Could not load audit log: denied\./);
   });
+
+  it("shows the activity record's health with Verify now, and says in a sentence when it cannot be read (0135)", async () => {
+    const HEALTH = {
+      entries: 1234, oldest_entry_at: "2026-10-01T00:00:00Z", unsealed_entries: 7,
+      last_seal: { id: 40, sealed_through: "2026-10-06T14:00:00Z", seal_hash: "ab".repeat(32), sealed_at: "2026-10-06T14:05:00Z", entry_count: 12 },
+      last_stamp: { seal_id: 30, tsa_url: "https://freetsa.org/tsr", tsa_time: "2026-10-06T01:20:00Z", stamped_at: "2026-10-06T01:20:01Z", mailbox: "keeper@example.invalid", mailed_at: "2026-10-06T01:20:02Z" },
+      last_verify: { ok: true, seals_checked: 40, first_broken_seal: null, why: null, unsealed_entries: 7, checked_at: "2026-10-06T01:20:30Z" },
+    };
+    reset({ admin_audit_log_list: { data: { total: 0, rows: [], facets: { actions: [], target_tables: [] } }, error: null }, admin_ledger_health: { data: HEALTH, error: null } });
+    const out = await page("audit-log", sp());
+    const t = text(out);
+    assert.match(t, /Activity record/);
+    assert.match(t, /Entries 1,234/);
+    assert.match(t, /Waiting for their hour 7/);
+    assert.match(t, /Through 2026-10-06 14:00:00 · 12 entries · abababababab…/);
+    assert.match(t, /2026-10-06 01:20:00 by https:\/\/freetsa\.org\/tsr · mailed to keeper@example\.invalid/);
+    assert.match(t, /Every seal matched \(40 checked, 2026-10-06 01:20:30\)/);
+    assert.match(out, /<button[^>]*>Verify now<\/button>/);
+    reset({ admin_audit_log_list: { data: { total: 0, rows: [], facets: { actions: [], target_tables: [] } }, error: null }, admin_ledger_health: { data: { ...HEALTH, last_verify: { ...HEALTH.last_verify, ok: false, first_broken_seal: 3, why: "seal 3 does not chain to the seal before it" } }, error: null } });
+    assert.match(text(await page("audit-log", sp())), /Chain broken at seal 3: seal 3 does not chain to the seal before it/);
+    reset({ admin_audit_log_list: { data: { total: 0, rows: [], facets: { actions: [], target_tables: [] } }, error: null }, admin_ledger_health: { data: null, error: { message: "function admin_ledger_health does not exist" } } });
+    const bad = await page("audit-log", sp());
+    assert.match(text(bad), /The record's health could not be read: function admin_ledger_health does not exist\. The record itself is unaffected\./);
+    assert.doesNotMatch(bad, /Verify now/);
+    assert.doesNotMatch(bad, /role="alert"/, "a health read that fails is a sentence, not an alert over the log");
+  });
 });
 
 describe("/admin/audit-log/[id]", () => {
