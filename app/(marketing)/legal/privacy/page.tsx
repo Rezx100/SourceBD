@@ -86,11 +86,6 @@ export default function PrivacyPage() {
             <strong>Communications:</strong> messages sent through the
             in-platform messaging system and inbound support email.
           </li>
-          <li>
-            <strong>Billing data:</strong> handled by Stripe; we
-            receive only the last four card digits and billing
-            country, never full card numbers.
-          </li>
         </ul>
 
         <h2>

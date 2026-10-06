@@ -8,7 +8,7 @@ import { LegalShell, legalDay } from "@/components/site/legal";
 
 export const dynamic = "force-static";
 
-const LAST_UPDATED = "2026-06-03";
+const LAST_UPDATED = "2026-10-06";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://sourcebd.net";
@@ -51,7 +51,7 @@ export default function TermsPage() {
           3. Subscription and payment
         </h2>
         <p>
-          Paid plans are billed in advance through Stripe at the price
+          Paid plans are billed in advance at the price
           and cadence shown at checkout. Subscriptions renew
           automatically until cancelled from your account settings.
           Statutory consumer cancellation rights do not apply to B2B
