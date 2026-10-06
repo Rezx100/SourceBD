@@ -59,7 +59,7 @@ function ProblemRows({ model, today }: { model: SupplierSheetModel; today: Date 
                   </a>
                 </span>
               ) : (
-                <span className="sm:w-[124px] sm:shrink-0" />
+                <span className="text-sm text-ink-3 max-sm:order-4 sm:w-[124px] sm:shrink-0">{c.documentNote}</span>
               )}
             </li>
           );
