@@ -50,3 +50,17 @@ founder's Q1–Q4 answers and seven design picks are in
   `handoff-rez-b-deploy.md`, `handoff-rez-b-live-migration.md` (its §5 is the
   follow-up list; its first item, the stale "Selection arrives with the results
   work" line, is fixed in REZ-C's PR).
+
+## Moved from current-state (6 Oct 2026, S6)
+
+- **Address premises merge — one row per premises on Locations** (11 Sep,
+  landed on `development` 17 Sep via PR #159). Matcher-only in
+  `lib/dedup-addresses.ts`; alternate spellings stay as "Also recorded as"
+  pills. No raw-string, geocode-key, ETL or schema change. Evidence:
+  `ops/plans/address-dedup-baseline.md`.
+- **EPB evidence + HS codes on existing companies, independent of BGMEA/BKMEA
+  flags** (REZ-113 follow-on, 15 Aug). Attach-only of 1,953 EPB matches and
+  the HS backfill are APPLIED on production (2,492 EPB records on 2,472
+  companies; 2,476 with HS codes; company count 10,922). Migration `0103`
+  applied. **Frontend HS card is in the working tree, not on the server.**
+  Evidence: `ops/plans/rez-113-epb-coverage-evidence.md`.

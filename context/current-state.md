@@ -14,17 +14,7 @@ Launch-readiness closeout: deploy to VPS `109.104.153.228`, apply required
 migrations, run the 30-day zero P1/P2 Sentry incident window.
 
 ## In progress
-- **Address premises merge — one row per premises on Locations** (11 Sep,
-  landed on `development` 17 Sep via PR #159). Matcher-only in
-  `lib/dedup-addresses.ts`; alternate spellings stay as "Also recorded as"
-  pills. No raw-string, geocode-key, ETL or schema change. Evidence:
-  `ops/plans/address-dedup-baseline.md`.
-- **EPB evidence + HS codes on existing companies, independent of BGMEA/BKMEA
-  flags** (REZ-113 follow-on, 15 Aug). Attach-only of 1,953 EPB matches and
-  the HS backfill are APPLIED on production (2,492 EPB records on 2,472
-  companies; 2,476 with HS codes; company count 10,922). Migration `0103`
-  applied. **Frontend HS card is in the working tree, not on the server.**
-  Evidence: `ops/plans/rez-113-epb-coverage-evidence.md`.
+- Address premises merge (PR #159) and EPB evidence + HS codes (0103, applied 15 Aug): done; detail in `archive/state-2026-sep.md`.
 - **REZ-73 — Facilities section + labelled group figures on mother profiles**,
   on branch `rez-73-facilities-lean`. Lean rewrite: migration `0097_` + thin
   UI; SQL owns the roll-up; under 400 product lines.
@@ -126,6 +116,7 @@ Migration file headers are NOT live status. Check here or query the database.
 | `0122_certificate_listing` | **not applied** | ETL freshness S2: certificate last-seen / no longer listed, OEKO-TEX re-key, `supplier_cert_checks`; dry run clean 6 Oct `ops/plans/0122-dry-run.md`. |
 | `0123_source_freshness` | **not applied** | ETL freshness S3: `admin_source_freshness` / `etl_source_freshness`, 4 disabled certificate schedules, sanctions run windows. Needs 0122. Dry run clean 6 Oct `ops/plans/0123-dry-run.md`. |
 | `0124_register_schedules` | **not applied** | ETL freshness S5: disabled monthly register schedules (EPB, BKMEA, BGMEA, BGAPMEA), RSC age limit. Dry run clean 6 Oct `ops/plans/0124-dry-run.md`. |
+| `0125_sources_listed_brand_schedules` | **not applied** | ETL freshness S6: BEPZA, DIFE, RJSC, Inditex out of public counts (25 → 21), disabled brand schedules. Dry run clean 6 Oct `ops/plans/0125-dry-run.md`. |
 
 Deploy-order hazard, twice hit: code that queries a new table with no
 missing-table guard crashes every ETL run if shipped before its migration.

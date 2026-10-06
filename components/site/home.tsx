@@ -205,7 +205,7 @@ export function Home({ facts }: { facts: SiteFacts }) {
           <Display>Every source has its rank.</Display>
           <Lede>Government registers come first. A source lower on the ladder never overwrites one above it.</Lede>
           <ol className="grid gap-6 md:grid-cols-5">
-            {[["Tier 1", "Government and RSC", ["EPB", "BEPZA", "DIFE", "RSC"]], ["Tier 2", "Trade bodies", ["BGMEA", "BKMEA", "BTMA", "BGAPMEA"]], ["Tier 3", "Certification bodies", ["GOTS", "OEKO-TEX", "WRAP"]], ["Tier 4", "Brand supplier lists", ["ASOS", "H&M", "Next"]], ["Tier 5", "Foreign regulators", ["UFLPA Entity List · US DHS"]]].map(([t, n, list]) => (
+            {[["Tier 1", "Government and RSC", ["EPB", "RSC"]], ["Tier 2", "Trade bodies", ["BGMEA", "BKMEA", "BTMA", "BGAPMEA"]], ["Tier 3", "Certification bodies", ["GOTS", "OEKO-TEX", "WRAP"]], ["Tier 4", "Brand supplier lists", ["ASOS", "H&M", "Next"]], ["Tier 5", "Foreign regulators", ["UFLPA Entity List · US DHS"]]].map(([t, n, list]) => (
               <li key={String(t)} className="flex flex-col gap-2 border-t border-line pt-3">
                 <span className="font-mono text-xs text-ink-3">{t}</span>
                 <span className="text-md font-semibold text-ink">{n}</span>
