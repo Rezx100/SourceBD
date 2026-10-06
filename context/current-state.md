@@ -31,18 +31,7 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
 - **Design-system rebuild** — spec `feature-specs/ds-rebuild-must-stay.md`.
   `design-rebuild` landed on `development` 18 Sep (`09ec96b`): tokens +
   `/dev/ds` gallery. Old pages are unstyled until rebuilt.
-- **Buyer dashboard v3.2, REZ-A (the code port of the dashboard kit)** —
-  DONE. `ACCEPTED_FOR_HUMAN_REVIEW` at cycle 21 (candidate `1ccb4bc`),
-  merged to `development` via PR #161 (21 Sep). Dev/admin-only gallery at
-  `/dev/ds`; no live route wired yet. Full history:
-  `context/feature-specs/handoff-rez-a-cycle21.md`.
-- **Buyer dashboard v3.2, REZ-B (results page)** — DONE. Judge
-  `ACCEPTED_FOR_HUMAN_REVIEW` at `4f6eff2`; `development` PR #164 (`cfbbf4a`),
-  `main` PR #165 (`1780c2c`), deployed 24 Sep, migration `0104` applied 25 Sep.
-  Loop history: `feature-specs/handoff-rez-b-cycle15.md`,
-  `handoff-rez-b-deploy.md`, `handoff-rez-b-live-migration.md` (its §5 is the
-  follow-up list; its first item, the stale "Selection arrives with the results
-  work" line, is fixed in REZ-C's PR).
+- REZ-A and REZ-B (dashboard kit, results page): DONE; detail in `archive/state-2026-sep.md`.
 - **Buyer dashboard v3.2, REZ-C (the company profile)** — IN PROGRESS on
   branch `rez-c-supplier-record`. `/app/suppliers/[slug]` is now the dashboard
   kit's `SupplierSheet`; the same component opens over the results as
@@ -133,6 +122,7 @@ Migration file headers are NOT live status. Check here or query the database.
 | `0108_compliance_expired_certs` | **not applied** | Expired certificates on the hub and Saved. One new function, nothing live rewritten; dry run clean 3 Oct (3 buyers, counts agree). Apply before its deploy: `ops/plans/0108-dry-run.md`. |
 | `0110_order_cancel_before_shipping` | **not applied** | OR-02: shipped/in-transit orders refuse a cancel. Dry run clean 4 Oct (0 live orders): `ops/plans/0110-dry-run.md`. |
 | `0120_sanctions_daily_reconcile` | 6 Oct 2026 | ETL freshness S1, via MCP; dry run `ops/plans/0120-dry-run.md`. |
+| `0121_etl_hold_review` | **not applied** | ETL freshness C2: Release/Reject on held near-match records; dry run clean 6 Oct `ops/plans/0121-dry-run.md`. |
 
 Deploy-order hazard, twice hit: code that queries a new table with no
 missing-table guard crashes every ETL run if shipped before its migration.

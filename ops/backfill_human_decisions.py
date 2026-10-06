@@ -353,12 +353,13 @@ def matcher_would_merge(norm_a: str, norm_b: str) -> bool:
     """
     from rapidfuzz import fuzz
 
-    from etl.core.upsert import _FUZZY_THRESHOLD, _names_compatible
+    from etl.core.upsert import _FUZZY_THRESHOLD, _names_compatible, _same_head_word
 
     if norm_a.replace(" ", "") == norm_b.replace(" ", ""):
         return True
     return (fuzz.token_sort_ratio(norm_a, norm_b) >= _FUZZY_THRESHOLD
-            and _names_compatible(norm_a, norm_b))
+            and _names_compatible(norm_a, norm_b)
+            and _same_head_word(norm_a, norm_b))
 
 
 def verify() -> int:

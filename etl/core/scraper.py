@@ -12,6 +12,7 @@ from etl.core.logging import get_logger
 
 if TYPE_CHECKING:  # pragma: no cover
     from etl.acquire.models import AcquiredDoc
+    from etl.core.breaker import Breaker
 
 
 @dataclass
@@ -103,6 +104,10 @@ class BaseScraper(abc.ABC):
         self.last_run_id: str | None = None
         self.evidence_claims = 0
         self.credits_used = 0
+        # C4 circuit breaker for this run; built on the first record.
+        self.breaker: Breaker | None = None
+        # Founder knob (`run <code> --accept-changes`): release a held run.
+        self.accept_changes = False
         # Documents seen this run. A list page cited by 200 records is one
         # document and one credit, not two hundred.
         self._evidence_doc_ids: set[str] = set()
@@ -117,6 +122,29 @@ class BaseScraper(abc.ABC):
         if False:
             yield  # type: ignore[unreachable]
 
+    async def gated(self) -> AsyncIterator[ScrapedRecord]:
+        """`fetch()`, stopping before the first record that would cross a C4
+        limit (etl.core.breaker). Run loops iterate this, never fetch()."""
+        from etl.core.breaker import Breaker
+        from etl.core.upsert import classify_record  # local import: avoids cycle
+
+        async for rec in self.fetch():
+            with db.conn() as c, c.cursor() as cur:
+                if self.breaker is None:
+                    cur.execute(
+                        "select count(*) as n from public.source_records where source_id = %s",
+                        (get_source_id(rec.source_code),),
+                    )
+                    self.breaker = Breaker(stored=int(cur.fetchone()["n"]),
+                                           accept=self.accept_changes)
+                kind = classify_record(cur, rec)
+                c.rollback()
+            if not self.breaker.admit(kind):
+                self.log.warning("run.held", reason=self.breaker.tripped,
+                                 source_ref=rec.source_ref)
+                break
+            yield rec
+
     async def run(self) -> dict[str, int]:
         """Drive a full scrape: open run log, stream upserts, close run log."""
         from etl.core.upsert import upsert_supplier_with_source  # local import: avoids cycle
@@ -128,7 +156,7 @@ class BaseScraper(abc.ABC):
         seen = upserted = skipped = 0
         self._emit_progress(run_id, "started", "Scraper started.", seen, upserted, skipped)
         try:
-            async for rec in self.fetch():
+            async for rec in self.gated():
                 seen += 1
                 try:
                     supplier_id = upsert_supplier_with_source(rec)
@@ -238,6 +266,9 @@ class BaseScraper(abc.ABC):
         skipped: int,
         error: str | None,
     ) -> None:
+        breaker = self.breaker.summary() if self.breaker is not None else None
+        if status == "success" and breaker and breaker["tripped"]:
+            status = "held"
         with db.conn() as c, c.cursor() as cur:
             cur.execute(
                 """update public.etl_runs
@@ -246,11 +277,25 @@ class BaseScraper(abc.ABC):
                          records_seen = %s,
                          records_upserted = %s,
                          records_skipped = %s,
-                         error = %s
+                         error = %s,
+                         meta = case when %s::jsonb is null then meta
+                                     else coalesce(meta, '{}'::jsonb)
+                                          || jsonb_build_object('circuit_breaker', %s::jsonb) end
                    where id = %s""",
-                (status, seen, upserted, skipped, error, run_id),
+                (status, seen, upserted, skipped, error,
+                 json.dumps(breaker) if breaker else None,
+                 json.dumps(breaker) if breaker else None, run_id),
             )
             c.commit()
+        if status == "held":
+            from etl.core.notify import slack
+
+            slack(
+                f":octagonal_sign: SourceBD: {self.code} stopped itself — {breaker['tripped']}. "
+                f"{breaker['changed']} changed and {breaker['created']} new companies landed "
+                f"(the allowed amount); the rest waits. Look at run {run_id} in /admin/sources, "
+                f"then release with: docker compose run --rm etl run {self.code} --accept-changes"
+            )
         self.log.info("run.end", run_id=run_id, status=status,
                       seen=seen, upserted=upserted, skipped=skipped)
         self._emit_progress(

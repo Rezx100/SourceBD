@@ -314,7 +314,7 @@ class OekoTexScraper(AcquiringScraper):
         reset_document_cache()
         seen = upserted = skipped = 0
         try:
-            async for rec in self.fetch():
+            async for rec in self.gated():
                 seen += 1
                 if not rec.company_name:
                     skipped += 1

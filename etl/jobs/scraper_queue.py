@@ -219,6 +219,14 @@ def run_queue(limit: int = 1) -> dict[str, int]:
     # Reap before claiming, outside the per-job try/except: a reaper failure
     # must propagate so the cron's Slack alert fires.
     reap_stale(settings.etl_reap_stale_hours)
+    # C2: reviewed holds land within a minute rather than at the source's
+    # next read. Best-effort: a replay problem must not stop the queue.
+    try:
+        from etl.core.hold import replay_decided
+
+        replay_decided()
+    except Exception as exc:  # noqa: BLE001
+        log.error("hold.replay_batch_failed", error=str(exc))
     processed = 0
     failed = 0
 

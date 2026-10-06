@@ -516,7 +516,7 @@ class BrandDisclosureBase(AcquiringScraper, abc.ABC):
         reset_document_cache()
         seen = upserted = skipped = enqueued = 0
         try:
-            async for rec in self.fetch():
+            async for rec in self.gated():
                 seen += 1
                 try:
                     supplier_id = upsert_supplier_with_source(rec)

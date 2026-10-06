@@ -318,7 +318,7 @@ class WrapScraper(AcquiringScraper):
         seen = upserted = skipped = 0
         self._emit_progress(run_id, "started", "WRAP scraper started.", seen, upserted, skipped)
         try:
-            async for rec in self.fetch():
+            async for rec in self.gated():
                 seen += 1
                 try:
                     supplier_id = upsert_supplier_with_source(rec)
