@@ -26,8 +26,8 @@ const model = (input = aboniInput(), over: Partial<SupplierSheetModel> = {}): Su
   ...over,
 });
 const tabHref = (t: string) => `/app/discover?q=knit&record=x${t === "overview" ? "" : `&tab=${t}`}`;
-const view = (m: SupplierSheetModel, props: { mode?: "pane" | "page"; tab?: (typeof TABS)[number]["id"] } = {}) =>
-  renderToStaticMarkup(h(RecordView, { model: m, mode: props.mode ?? "pane", tab: props.tab ?? "overview", tabHref, today: TODAY, backHref: "/app/discover?q=knit" }));
+const view = (m: SupplierSheetModel, props: { mode?: "pane" | "page"; tab?: (typeof TABS)[number]["id"]; backHref?: string | null } = {}) =>
+  renderToStaticMarkup(h(RecordView, { model: m, mode: props.mode ?? "pane", tab: props.tab ?? "overview", tabHref, today: TODAY, backHref: props.backHref === undefined ? "/app/discover?q=knit" : props.backHref }));
 
 describe("the record's tabs", () => {
   it("are six links to the same record, the open one marked, and a stranger is the Overview", () => {
@@ -152,7 +152,7 @@ describe("a sanctioned record", () => {
   });
 
   it("on a phone swaps the action bar for the refusal, with Save beside it", () => {
-    const bar = /<div class="sticky bottom-0 sm:hidden">([\s\S]*?)<\/div><\/section>/.exec(view(sanctioned()))?.[1] ?? "";
+    const bar = /<div data-record-actions="" class="[^"]*">([\s\S]*?)<\/div><\/section>/.exec(view(sanctioned()))?.[1] ?? "";
     assert.match(bar, /role="status"/);
     assert.match(plain(bar), /You can't send this supplier an RFQ\./);
     assert.match(bar, /data-save="id-1"/);
@@ -185,6 +185,46 @@ describe("the view's rules", () => {
     assert.doesNotMatch(page, /aria-label="Close"|>Open full page</);
     // The way back carries the search the record was opened from.
     assert.match(plain(pane), /href="\/app\/suppliers\/aboni-knitwear\?back=%2Fapp%2Fdiscover%3Fq%3Dknit">Open full page/);
+  });
+
+  it("on a phone the page has a navigation bar of its own, stuck to the top, and the name on a plate under it", () => {
+    // Founder, 6 Oct 2026: the top "wasn't designed for the mobile phone ... the back button on the
+    // top looks very cheap and the company name pushes down".
+    const page = view(model(), { mode: "page" });
+    const nav = /<div data-record-bar="" class="([^"]*)"><a aria-label="Back to search" class="([^"]*)" href="([^"]*)">/.exec(plain(page));
+    assert.ok(nav, "no bar");
+    for (const c of ["sticky", "top-0", "z-raised", "h-topbar-phone", "border-b", "bg-surface", "sm:hidden"]) assert.ok(nav[1]!.split(" ").includes(c), `the bar lacks ${c}`);
+    assert.ok(nav[2]!.split(" ").includes("h-touch"), "the way back is under 44 tall");
+    assert.equal(nav[3], "/app/discover?q=knit", "back is not the search the record was opened from");
+    // Opened from a link there is no search behind it, and the app's bars are hidden: back is the search itself.
+    assert.match(view(model(), { mode: "page", backHref: null }), /<div data-record-bar=""[^>]*><a aria-label="Back to search" class="[^"]*" href="\/app">/);
+    // The tabs stick under the bar from the first paint, before their script has measured it.
+    assert.match(page, /<section aria-label="Supplier record" [^>]*class="[^"]*max-sm:\[--record-head:theme\(height\.topbar-phone\)\]/);
+    // The name is Paper's 24 on a phone (it was 32, six lines for a long name), on a tonal plate.
+    const head = /<header class="([^"]*)"><div [^>]*><h1 class="([^"]*)">/.exec(page);
+    assert.ok(head && ["max-sm:bg-subtle", "max-sm:border-b"].every((c) => head[1]!.split(" ").includes(c)), "the name has no plate");
+    assert.ok(head[2]!.split(" ").includes("text-xl") && !/max-sm:text-/.test(head[2]!), "the name is not 24 on a phone");
+    // The desktop's "Back to results" is not drawn twice on a phone, and the pane has no bar at all.
+    assert.match(page, /<div class="[^"]*\bmax-sm:hidden\b[^"]*"><a [^>]*>(?:<svg[\s\S]*?<\/svg>)?Back to results/);
+    assert.doesNotMatch(view(model(), { mode: "pane" }), /data-record-bar|max-sm:bg-subtle/, "the drawer a narrow window gets has its own title: no bar, no plate");
+    // The tabs' script counts the bar as what sticks over the sections, or a tab's section lands under it.
+    assert.match(readFileSync(path.join(dir, "section-tabs.tsx"), "utf8"), /querySelectorAll\(":scope > header, :scope > \[data-record-bar\]"\)/);
+  });
+
+  it("a phone's action bar is fixed to the foot of the screen on the page, and the record keeps room for it", () => {
+    // Founder, 6 Oct 2026: stuck inside the scrolling record, "it shakes or stutters when I scroll up
+    // and down fast. It's not fixed there". Fixed, as the app's own tab bar is.
+    const page = view(model(), { mode: "page" });
+    const bar = /<div data-record-actions="" class="([^"]*)">/.exec(page)?.[1]?.split(" ") ?? [];
+    for (const c of ["fixed", "inset-x-0", "bottom-0", "z-sticky", "sm:hidden"]) assert.ok(bar.includes(c), `the bar lacks ${c}`);
+    assert.ok(!bar.includes("sticky"));
+    assert.match(page, /<section aria-label="Supplier record" [^>]*class="[^"]*max-sm:pb-\[calc\(theme\(spacing\.action-bar\)_\+_env\(safe-area-inset-bottom\)\)\]/, "the record ends under the bar");
+    assert.match(page, /<div class="[^"]*pb-\[env\(safe-area-inset-bottom\)\][^"]*">(?:<button[\s\S]*?<\/button>(?:<span[^>]*><\/span>)?)?<div class="min-w-0 flex-1"><a [^>]*>Send RFQ/, "the bar ignores the phone's safe area");
+    // In the drawer a narrow window gets, the drawer scrolls, not the screen: there it sticks, with no room held.
+    const pane = view(model(), { mode: "pane" });
+    const inPane = /<div data-record-actions="" class="([^"]*)">/.exec(pane)?.[1]?.split(" ") ?? [];
+    assert.ok(inPane.includes("sticky") && !inPane.includes("fixed"));
+    assert.doesNotMatch(pane, /max-sm:pb-\[calc/);
   });
 
   it("on the page, a phone hides the app's bars (data-detail) and the page has a contact column from 1024", () => {
