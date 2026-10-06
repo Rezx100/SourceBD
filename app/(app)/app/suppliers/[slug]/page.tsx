@@ -34,6 +34,7 @@ import {
   fetchFacilityParentSlug,
   resolveUnpublishedProfileMiss,
 } from "@/lib/facility-parent-redirect";
+import { noteActivity } from "@/lib/ledger/note";
 import { urlOnSite } from "@/lib/site-origin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -95,6 +96,10 @@ export default async function SupplierRecordPage({
     if (miss.action === "redirect") permanentRedirect(urlOnSite(miss.path).toString());
     notFound();
   }
+
+  // The open is written to the activity record as this buyer's (moderation plan 1d): a signed-in record
+  // carries the company's contact details, so the open is the reveal. Not awaited, never failing the page.
+  void noteActivity(supabase, "supplier.viewed", { content: { slug, via: "page", contact_visible: true } });
 
   // The record fills the content region: its bar at the top, its action bar
   // at the bottom, the body scrolling between them at the record's measure.

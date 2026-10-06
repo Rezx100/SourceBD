@@ -9,6 +9,7 @@
 import { NextResponse } from "next/server";
 
 import { getServerRole } from "@/lib/auth";
+import { noteActivity } from "@/lib/ledger/note";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -35,6 +36,9 @@ export async function GET(req: Request) {
   if (error || !data?.signedUrl) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
+  // The bucket agreed to sign it, so this person may read the file: the download is written to the record
+  // (moderation plan 1d, "file downloaded").
+  await noteActivity(supabase, "file.downloaded", { threadId, content: { path } });
   const res = NextResponse.redirect(data.signedUrl, 302);
   res.headers.set("Cache-Control", "private, no-store");
   return res;

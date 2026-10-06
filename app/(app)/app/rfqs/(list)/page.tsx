@@ -18,6 +18,7 @@ import { ListHeader, PaneListHead, QuotesSwitch, RfqEmpty, RfqListError, RfqPane
 import { loadRfqList } from "@/components/rfqs/load";
 import { RfqTable } from "@/components/rfqs/table";
 import { buildListItems, countOf, itemsFor, listCaption, parseRfqSort, parseRfqTab, rfqsHref, RFQ_TABS } from "@/components/rfqs/words";
+import { noteActivity } from "@/lib/ledger/note";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -37,6 +38,11 @@ export default async function RfqsPage({ searchParams }: { searchParams: Promise
   const today = new Date();
   const [data, opened] = await Promise.all([loadRfqList(supabase), openId && openId !== "invalid" ? supabase.rpc("rfq_get", { p_id: openId }) : Promise.resolve(null)]);
   const { rows, drafts, quotes, names, orders } = data;
+  // An RFQ opened beside the list is a view, for the record (moderation plan 1d).
+  if (opened && !opened.error && opened.data && openId && openId !== "invalid") {
+    const role = (opened.data as { viewer_role?: unknown }).viewer_role;
+    void noteActivity(supabase, "rfq.viewed", { targetTable: "rfqs", targetId: openId, rfqId: openId, content: { viewer_role: typeof role === "string" ? role : null, via: "pane" } });
+  }
 
   const items = rows ? buildListItems({ rows, drafts, quotes, names, orders: orders ?? [], today }) : [];
   const shown = itemsFor(items, tab, sort);

@@ -12,6 +12,8 @@ import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared
 import { createElement, type ReactElement } from "react";
 import { prerenderToNodeStream } from "react-dom/static";
 
+import { TERMS_VERSION } from "@/lib/onboarding";
+
 const OUT = path.join(process.cwd(), process.env.TEST_BUILD_DIR || ".tests-build");
 
 type Reply = { data?: unknown; error?: { message: string } | null };
@@ -31,6 +33,12 @@ let user: { id: string } | null = { id: "u-supplier" };
       };
     }
     q.then = (res: (v: Reply) => unknown) => res(tables[table] ?? { data: [], error: null });
+    // `.maybeSingle()` answers the first row of the table's reply, or null (the profile's terms read).
+    q.maybeSingle = async () => {
+      const reply = tables[table];
+      const rows = Array.isArray(reply?.data) ? (reply.data as unknown[]) : [];
+      return { data: rows[0] ?? null, error: reply?.error ?? null };
+    };
     return q;
   };
   const client = {
@@ -102,6 +110,23 @@ describe("/supplier (the dashboard)", () => {
     assert.match(text(out), /You haven't claimed any companies yet\./);
     assert.match(out, /href="\/supplier\/claim"/);
     assert.match(text(out), /No claims awaiting verification or admin review\./);
+  });
+
+  it("asks a supplier who has not accepted the current terms to, names the old version when there was one, and leaves one who has alone (0134)", async () => {
+    tables = { profiles: { data: [{ terms_version: null }], error: null } };
+    let out = await render("page.js");
+    assert.match(text(out), /Please accept the Terms of Service to use the supplier portal\./);
+    assert.match(out, /href="\/legal\/terms"/);
+    assert.match(out, /<button[^>]*>I accept the terms<\/button>/);
+    tables = { profiles: { data: [{ terms_version: "2026-01-01" }], error: null } };
+    out = await render("page.js");
+    assert.match(text(out), /Our Terms of Service changed/);
+    assert.match(text(out), /You accepted version 2026-01-01\./);
+    tables = { profiles: { data: [{ terms_version: TERMS_VERSION }], error: null } };
+    assert.doesNotMatch(text(await render("page.js")), /accept the terms/i);
+    // A read that fails (0109 not applied) is unknown, and unknown is not a nag.
+    tables = { profiles: { data: null, error: { message: "column terms_version does not exist" } } };
+    assert.doesNotMatch(text(await render("page.js")), /accept the terms/i);
   });
 });
 

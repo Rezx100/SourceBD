@@ -8,6 +8,7 @@ import { notFound } from "next/navigation";
 import { RfqDetail, RfqDetailError } from "@/components/rfqs/detail";
 import { otherRfqLine, type RfqDoc } from "@/components/rfqs/doc";
 import { normaliseRow } from "@/components/rfqs/load";
+import { noteActivity } from "@/lib/ledger/note";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +33,8 @@ export default async function RfqDetailPage({ params }: { params: Promise<{ id: 
   }
   if (got.data == null) notFound();
   const rfq = got.data as RfqDoc;
+  // Who viewed which RFQ, for the record (moderation plan 1d): a supplier reading a buyer's RFQ is an event.
+  void noteActivity(supabase, "rfq.viewed", { targetTable: "rfqs", targetId: rfq.id, rfqId: rfq.id, content: { viewer_role: rfq.viewer_role, via: "page" } });
   const order = orders.find((o) => o.rfq_id === rfq.id) ?? null;
   const others = rows.filter((r) => r.id !== rfq.id && r.viewer_role !== "supplier").slice(0, 3).map((r) => ({ id: r.id, line: otherRfqLine(r) }));
   return <RfqDetail rfq={rfq} mode="page" today={new Date()} closeHref="/app/rfqs" order={order ? { id: order.id } : null} others={others} />;

@@ -54,6 +54,7 @@ import { fetchDiscoverExplain, fetchDiscoverV32, fetchHsBatch } from "@/lib/disc
 import { hsBuyerLabel } from "@/lib/epb-hscode-labels";
 import { fetchFacilityParentSlug } from "@/lib/facility-parent-redirect";
 import { DISCOVER_PATH, discoverHref, filterCount, parseDiscoverState, queryTitle, serializeDiscoverState, withPaneParams, type DiscoverState } from "@/lib/discover-v32-state";
+import { noteActivity } from "@/lib/ledger/note";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -104,6 +105,8 @@ export default async function BuyerDiscoverPage({
   const pageHref = (slug: string) => `/app/suppliers/${encodeURIComponent(slug)}?back=${encodeURIComponent(closeHref)}`;
 
   const { rows, total, error, failure } = await readSearch(state, () => fetchDiscoverV32(supabase, state));
+  // The search is written to the activity record as this buyer's (moderation plan 1d); not awaited, never failing the page.
+  void noteActivity(supabase, "search.run", { content: { search: serializeDiscoverState(state).toString().slice(0, 2000), total, shown: rows.length } });
   const slugs = rows.map((r) => r.slug);
   // Not awaited here: the rows wait for their HS lines and saved marks, the pane does not. The
   // record's read used to start only after these two answered, one more round trip to the
@@ -402,6 +405,7 @@ async function DiscoverRecord({
     // to the record, on this search.
     const read = await safe(loadLineBeside(supabase, slug, lineCode, today, { backHref: withParams(recordParams), closeHref, rfqHref: lineRfqHref, supplierId }));
     if (read.value?.line) {
+      void noteActivity(supabase, "supplier.line_viewed", { supplierId, content: { slug, hs: lineCode, via: "pane" } });
       return (
         <PaneFrame openKey={`line:${slug}:${lineCode}`}>
           <LineView model={read.value.line} mode="pane" />
@@ -426,6 +430,8 @@ async function DiscoverRecord({
     );
     const record = read.value;
     if (record) {
+      // A signed-in buyer's record carries the company's contact details, so the open is the reveal.
+      void noteActivity(supabase, "supplier.viewed", { supplierId, content: { slug, via: "pane", tab, contact_visible: true } });
       return (
         <PaneFrame openKey={`record:${slug}:${allLines ? "all" : ""}`}>
           <RecordView model={record} mode="pane" tab={tab} tabHref={tabHref} today={today} backHref={withParams(recordParams)} />

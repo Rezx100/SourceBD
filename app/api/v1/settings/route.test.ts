@@ -41,6 +41,22 @@ describe("/api/v1/settings without a session", () => {
   });
 });
 
+describe("POST /api/v1/settings, action accept_terms (0134)", () => {
+  it("records the acceptance of the named version through terms_accept", async () => {
+    const res = await post({ action: "accept_terms", version: " 2026-10-05 " });
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), { ok: true, version: "2026-10-05" });
+    assert.deepEqual(called("terms_accept").map((c) => c.args), [{ p_version: "2026-10-05" }]);
+  });
+
+  it("refuses a missing or oversized version before the database is asked, and passes a refusal on", async () => {
+    await refused({ action: "accept_terms" }, /version is required/);
+    await refused({ action: "accept_terms", version: "x".repeat(33) }, /version is required/);
+    fake.answers.terms_accept = { data: null, error: { message: "no profile for this account" } };
+    assert.equal((await post({ action: "accept_terms", version: "2026-10-05" })).status, 400);
+  });
+});
+
 describe("GET /api/v1/settings", () => {
   it("passes settings_get's workspace and inquiry through", async () => {
     const settings = {
