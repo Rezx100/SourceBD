@@ -3,16 +3,14 @@
 // full tier the roll prints out of its slot as the scroll moves (`--print`, written by engine/chapters.ts, moves
 // the sheet's end, the clip on the ink and the torn edge together); on the other tiers it is whole. Server component.
 
-import { cn } from "@/lib/utils";
-
 export type Receipt = { claim: string; source: string; fields: [string, string][] };
 
 /** The torn edge: twenty teeth across the roll, closed along the top so the fill is the sheet's own. */
 const TEAR = `M0 0${Array.from({ length: 20 }, (_, i) => `L${i * 20 + 10} 9L${i * 20 + 20} 0`).join("")}`;
 
-export function ReceiptRoll({ receipts, className }: { receipts: Receipt[]; className?: string }) {
+export function ReceiptRoll({ receipts }: { receipts: Receipt[] }) {
   return (
-    <div data-roll className={cn("relative w-[360px] max-w-full", className)}>
+    <div data-roll className="relative w-[360px] max-w-full">
       <div aria-hidden className="roll-slot" />
       <div className="relative mx-2.5">
         <div aria-hidden className="roll-sheet" />

@@ -89,19 +89,20 @@ export function Overlock({ className }: { className?: string }) {
       <g data-seam>
         <Thread d={`M113 ${SEAM_END.y}H${SEAM_END.x}`} join />
       </g>
-      {/* The five hang tags, one on each thread: the source and the number it files the factory under. */}
+      {/* The five hang tags, one on each thread: the source and the number it files the factory under. Their type is 13 units,
+          so at the height the full tier gives the drawing on a 900 px stage it renders at the system's 12 px floor. */}
       <g>
         {TAGS.map(([source, number], i) => {
           const x = CONES[i]! + 8;
           return (
             <g key={source}>
-              <path d={`M${x} -30V-18`} className="fill-none stroke-ink" strokeWidth={1} />
-              <rect x={x - 32} y={-18} width={64} height={28} rx={3} className="fill-surface stroke-ink" strokeWidth={1} />
-              <circle cx={x} cy={-15} r={1.4} className="fill-none stroke-ink" strokeWidth={0.8} />
-              <text x={x} y={-2} textAnchor="middle" fontSize={11} fontWeight={600} className="fill-ink font-sans">
+              <path d={`M${x} -30V-24`} className="fill-none stroke-ink" strokeWidth={1} />
+              <rect x={x - 37} y={-24} width={74} height={36} rx={3} className="fill-surface stroke-ink" strokeWidth={1} />
+              <circle cx={x} cy={-21} r={1.4} className="fill-none stroke-ink" strokeWidth={0.8} />
+              <text x={x} y={-7} textAnchor="middle" fontSize={13} fontWeight={600} className="fill-ink font-sans">
                 {source}
               </text>
-              <text x={x} y={7.5} textAnchor="middle" fontSize={8.5} className="fill-ink-3 font-mono">
+              <text x={x} y={7} textAnchor="middle" fontSize={13} className="fill-ink-3 font-mono">
                 {number}
               </text>
             </g>

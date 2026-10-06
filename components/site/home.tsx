@@ -12,7 +12,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ReceiptsScene, SourcesScene } from "@/components/site/film/chapters";
+import { DIFFER, RECEIPTS, ReceiptsScene, SourceDates, SourcesScene } from "@/components/site/film/chapters";
 import { TIER_SCRIPT } from "@/components/site/film/engine/tier";
 import { Opening } from "@/components/site/film/opening";
 import * as record from "@/components/site/film/record";
@@ -124,23 +124,16 @@ export function Home({ facts, film = false }: { facts: SiteFacts; film?: boolean
       ) : (
         <>
       <Chapter n="02" question="Who are they?" headline="One factory. One record." lede="Five registers file it under their own number, on their own date. We match them to one factory, and every fact keeps the source it came from and the day we read it." record={R(mark(SOURCES))}>
-        <ul className="flex flex-col divide-y divide-line border-y border-line">
-          {[["BGMEA", "reg. no. 4002 · 24 Jul 2026"], ["EPB", "exporter 2798 · 14 Aug 2026"], ["BKMEA", "1004-B/2006 · 2 Aug 2026"], ["GOTS", "GOTS-19020 · 26 Jun 2026"], ["RSC", "factory 10861 · 24 Jul 2026"]].map(([s, n]) => (
-            <li key={s} className="flex items-baseline justify-between gap-4 py-3">
-              <span className="text-base font-semibold text-ink">{s}</span>
-              <span className="font-mono text-xs text-ink-3">{n}</span>
-            </li>
-          ))}
-        </ul>
+        <SourceDates />
       </Chapter>
 
       <Chapter n="03" question="Is that true?" headline="Every claim, beside its source." lede="A factory says it is a BGMEA member, and the BGMEA register says so too, under number 4002. The certificate is on file: its number, who issued it and when it runs out. Safety comes from the RSC record. When two sources disagree, you see both." record={R(SOURCES, BGMEA, GOTS, mark(SAFETY))}>
-        <ClaimReceipt claim={"“A BGMEA member factory.”"} source="BGMEA member register" fields={[["reg. no.", "4002"], ["type", "general member"], ["name", NAME], ["read", "24 Jul 2026"]]} />
-        <ClaimReceipt claim={"“Organic cotton, GOTS certified.”"} source="GOTS certificate" fields={[["number", "GOTS-19020"], ["issued by", "GSCS International Ltd."], ["valid until", "15 Dec 2026"], ["read", "26 Jun 2026"]]} />
-        <ClaimReceipt claim={"“Safety inspected by RSC.”"} source="RSC factory record" fields={[["factory", "10861"], ["status", "covered by RSC"], ["initial items fixed", "100%"], ["read", "24 Jul 2026"]]} />
+        {RECEIPTS.map((r) => (
+          <ClaimReceipt key={r.source} claim={r.claim} source={r.source} fields={r.fields} />
+        ))}
         <div className="flex flex-col gap-1 rounded-lg border border-line bg-subtle p-4">
           <p className="text-sm font-semibold text-ink">2 sources differ</p>
-          <p className="text-base text-ink-2">RSC counted 2,060 workers in 2 buildings. BGMEA has 4,200 employees, as declared by the factory.</p>
+          <p className="text-base text-ink-2">{DIFFER}</p>
         </div>
       </Chapter>
         </>

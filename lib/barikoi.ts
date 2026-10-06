@@ -18,10 +18,8 @@ import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
 
+// The cache key (REZ-28) lives beside the lexicon, where a plain Node script can read it too.
 import { normalizeAddressKey } from "@/lib/bd-place-lexicon";
-
-/** The cache key (REZ-28) lives beside the lexicon, where a plain Node script can also read it; re-exported for the app. */
-export { normalizeAddressKey };
 
 export type GeocodedLocation = {
   latitude: number;

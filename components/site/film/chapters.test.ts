@@ -11,9 +11,9 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { DIFFER, OVERLOCK_CAPTION, RECEIPTS, ReceiptsScene, SourcesScene } from "./chapters";
-import { RECEIPTS as ROLL, SEAM_END, SOURCES as SEAM, curve, receiptsAt, sourcesAt } from "./engine/chapters";
+import { BAND, RECEIPTS as ROLL, SEAM_END, SOURCES as SEAM, curve, holds, receiptsAt, sourcesAt } from "./engine/chapters";
 import { Overlock, TAGS } from "./flats";
-import { SOURCES } from "./record";
+import { SOURCES, SOURCE_DATES } from "./record";
 
 const repoRoot = process.cwd();
 // React 19 puts a preload link for each source mark before the markup; the markup is what is under test.
@@ -33,6 +33,13 @@ describe("scene 04, the overlock", () => {
     assert.match(scene, /<div data-row="Sources" data-beat="" class="/);
     assert.equal((scene.match(/data-tie="true"/g) ?? []).length, 1, "one thread, from the seam to the row");
     assert.doesNotMatch(scene, /rounded-lg border border-line|pane-glass/, "no bordered card, and nothing live to put glass over");
+    assert.match(scene, /<svg data-overlock="true"[^>]*class="[^"]*self-start/, "a flex column would stretch the drawing's box and float it to the middle");
+  });
+
+  it("each source's own number and the day we read it stay in the words, under the record, as the page without the film lists them", () => {
+    assert.equal(SOURCE_DATES.length, 5);
+    for (const [source, filed] of SOURCE_DATES) assert.match(text(scene), new RegExp(`${source} ${filed.replace(/[.]/g, "\\.")}`));
+    assert.match(scene, /<\/figure><ul class="flex flex-col divide-y divide-line border-y border-line">/, "bare type on hairlines, never a card");
   });
 
   it("the five hang tags are the five sources, each with the number the record's Sources row carries", () => {
@@ -51,6 +58,13 @@ describe("scene 04, the overlock", () => {
     // The thread's mask is white by nature (its "show"); everything the drawing itself paints is a token class.
     assert.doesNotMatch(flat.replace(/<mask [\s\S]*?<\/mask>/g, ""), /#[0-9a-fA-F]{3,8}\b|rgb\(|white|black/);
     for (const part of ["ov-wheel", "ov-needle", "ov-lever"]) assert.equal((flat.match(new RegExp(`class="${part} `, "g")) ?? []).length, 1, part);
+  });
+
+  it("the tags' type is never under the system's floor at the size the full tier gives the drawing", () => {
+    const sizes = [...flat.matchAll(/font-size="([\d.]+)"/g)].map((m) => Number(m[1]));
+    assert.equal(sizes.length, 10, "two lines per tag");
+    // 490 units tall, drawn at 52svh of a 900 px stage (468 px): 13 units are 12.4 px.
+    for (const size of sizes) assert.ok(size * (468 / 490) >= 12, `${size} units render under 12 px`);
   });
 });
 
@@ -115,8 +129,10 @@ describe("the chapters' arithmetic", () => {
 
   it("05: the roll prints over most of the scroll; a row arrives only once its receipt's end has printed, in order; earlier receipts dim, the last never; the note is last", () => {
     const ends = [0.3, 0.6, 1];
-    assert.deepEqual(receiptsAt(0, ends), { print: 0, ties: [0, 0, 0], rows: [false, false, false], dim: [false, false, false], note: false });
-    assert.deepEqual(receiptsAt(1, ends), { print: 1, ties: [1, 1, 1], rows: [true, true, true], dim: [true, true, false], note: true });
+    const { arrives, ...start } = receiptsAt(0, ends);
+    assert.deepEqual(start, { print: 0, ties: [0, 0, 0], rows: [false, false, false], dim: [false, false, false], note: false });
+    assert.deepEqual(arrives.map((a) => a.toFixed(3)), ["0.308", "0.536", "0.840"], "each receipt's moment is where the print reaches its end");
+    assert.deepEqual(receiptsAt(1, ends), { print: 1, arrives, ties: [1, 1, 1], rows: [true, true, true], dim: [true, true, false], note: true });
     const firstAt = (pick: (a: ReturnType<typeof receiptsAt>) => boolean) => {
       for (let p = 0; p <= 1; p += 0.001) if (pick(receiptsAt(p, ends))) return p;
       return 2;
@@ -127,6 +143,15 @@ describe("the chapters' arithmetic", () => {
     ends.forEach((_, i) => assert.ok(receiptsAt(rows[i]!, ends).ties[i]! > 0, "a row is there as its thread sets out"));
     assert.ok(firstAt((a) => a.dim[0]!) > rows[0]! && firstAt((a) => a.dim[0]!) < rows[1]!, "the first receipt dims after its row and before the second's");
     for (let p = 0; p < 1; p += 0.01) assert.ok(receiptsAt(p + 0.01, ends).print >= receiptsAt(p, ends).print);
+  });
+
+  it("a beat comes at its moment and holds a little past it on the way back, so a scroll resting on the line does not flap it", () => {
+    assert.equal(holds(false, 0.6, 0.6), false);
+    assert.equal(holds(false, 0.601, 0.6), true);
+    assert.equal(holds(true, 0.6 - BAND / 2, 0.6), true, "still on just below its moment");
+    assert.equal(holds(true, 0.6 - BAND - 0.001, 0.6), false, "off again a band below");
+    assert.equal(holds(false, 0.6 - BAND / 2, 0.6), false, "never on before its moment");
+    assert.ok(BAND > 0 && BAND < ROLL.tie, "the band is shorter than a tie's draw");
   });
 
   it("a tie leaves to the right and arrives from the left, with at least a hand's width of curve", () => {
@@ -157,11 +182,13 @@ describe("what Tailwind emits for the scenes", () => {
     assert.match(block(css, ".ov-needle {"), /transform: translateY\(calc\(var\(--needle, 0\) \* 10px\)\)/);
     assert.match(block(css, ".ov-wheel {"), /stroke-dashoffset: calc\(var\(--wheel, 0\) \* -0\.25px\)/);
     assert.match(block(css, ".ov-lever {"), /transform-box: fill-box;[^}]*rotate\(calc\(var\(--needle, 0\) \* -16deg\)\)/);
-    assert.match(block(css, ".roll-sheet {"), /inset: 0 0 calc\(\(1 - var\(--print, 1\)\) \* 100%\) 0/);
-    assert.match(block(css, ".roll-print {"), /clip-path: inset\(0 0 calc\(\(1 - var\(--print, 1\)\) \* 100%\) 0\)/);
-    assert.match(block(css, ".roll-tear {"), /top: calc\(var\(--print, 1\) \* 100%\)/);
+    assert.match(block(css, '[data-film-tier="full"] .roll-sheet {'), /inset: 0 0 calc\(\(1 - var\(--print, 1\)\) \* 100%\) 0/);
+    assert.match(block(css, '[data-film-tier="full"] .roll-print {'), /clip-path: inset\(0 0 calc\(\(1 - var\(--print, 1\)\) \* 100%\) 0\)/);
+    assert.match(block(css, '[data-film-tier="full"] .roll-tear {'), /top: calc\(var\(--print, 1\) \* 100%\)/);
+    assert.doesNotMatch(block(css, ".roll-print {"), /clip-path/, "off the full tier the roll is whole whatever was written");
     assert.match(css, /\.receipt\[data-dim\] \{ opacity: 0\.5/);
-    assert.match(css, /\[data-film-tier="full"\] \[data-beat\]:not\(\[data-on\]\) \{ display: none/, "a beat takes no place until its moment, only on the tier whose scroll brings it");
+    assert.match(block(css, '[data-film-tier="full"] [data-beat]:not([data-on]) {'), /position: absolute; width: 1px; height: 1px;[^}]*clip: rect\(0, 0, 0, 0\)/, "a beat takes no place until its moment but stays in the page for a screen reader");
+    assert.doesNotMatch(block(css, '[data-film-tier="full"] [data-beat]:not([data-on]) {'), /display: none|visibility: hidden/);
     assert.match(block(css, ".animate-rise {"), /ds-rise/);
     assert.match(block(css, ".fill-brand {"), /--ds-brand/);
     assert.match(block(css, ".stroke-brand-ink {"), /--ds-brand-ink/);
