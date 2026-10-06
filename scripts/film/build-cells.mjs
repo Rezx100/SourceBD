@@ -1,7 +1,7 @@
 // Builds the home film's supplier lights (handoff-home-film §6.1) from production, read-only, into
 // public/site/film/cells.json: one row per square kilometre with published suppliers (longitude, latitude,
-// count), the day it was read, the two counts the page prints ("N of M have a mapped address") and the one
-// place the story follows. Never an address, a name or an id.
+// count), the day it was read, the two counts the page prints ("N of M have a mapped register address") and the
+// one place the story follows. Never an address, a name or an id.
 //
 // The read is the one lib/nearby-suppliers.ts makes, through the project's own service key and the PostgREST
 // API: published suppliers → v_supplier_addresses (address → supplier) → address_geocodes (the Barikoi cache,
@@ -59,8 +59,6 @@ async function all(from, select, order, filter = (q) => q) {
   return rows;
 }
 
-/** The same key the ETL geocode job and lib/barikoi.ts use. */
-const normalize = normalizeAddressKey;
 
 // Bangladesh, generously; a geocode outside it is the provider's miss, not a supplier.
 const INSIDE = ([lng, lat]) => lng > 87.9 && lng < 92.8 && lat > 20.4 && lat < 26.8;
@@ -75,7 +73,8 @@ const KIND_ORDER = ["factory", "factory_inherited", "registered", "registered_in
 const rank = (kind) => (KIND_ORDER.indexOf(kind) + 1 || KIND_ORDER.length + 1);
 
 const suppliers = await all("suppliers", "id, company_name", ["id"], (q) => q.eq("is_published", true));
-const addresses = await all("v_supplier_addresses", "supplier_id, address_kind, address", ["supplier_id", "address_kind", "address"]);
+// The view is a union of the sources' rows, so the three columns alone can tie; the source's code and reference make the order total.
+const addresses = await all("v_supplier_addresses", "supplier_id, address_kind, address, source_code, source_ref", ["supplier_id", "address_kind", "address", "source_code", "source_ref"]);
 const geocodes = await all("address_geocodes", "id, address_raw, address_norm, latitude, longitude, confidence_pct, address_status", ["id"], (q) => q.not("latitude", "is", null).not("longitude", "is", null));
 
 const byRaw = new Map(), byNorm = new Map();
@@ -95,7 +94,7 @@ let exact = 0, normalised = 0, outside = 0;
 const placeOf = (id) => {
   for (const a of (bySupplier.get(id) ?? []).sort((x, y) => x.rank - y.rank)) {
     const raw = byRaw.get(a.text);
-    const hit = raw ?? byNorm.get(normalize(a.text));
+    const hit = raw ?? byNorm.get(normalizeAddressKey(a.text));
     if (!hit) continue;
     if (!INSIDE(hit.at)) {
       outside++;
@@ -127,7 +126,9 @@ for (const s of suppliers) {
 if (!place) throw new Error(`"${STORY}" has no mapped address`);
 const cells = [...counts].map(([k, n]) => [...centre(k.split(",").map(Number)), n]).sort((a, b) => a[1] - b[1] || a[0] - b[0]);
 
-const date = new Date().toISOString().slice(0, 10);
+// The day as the machine that ran it counts it (the plan records the same day), not the UTC calendar's.
+const now = new Date();
+const date = [now.getFullYear(), now.getMonth() + 1, now.getDate()].map((n) => String(n).padStart(2, "0")).join("-");
 const file = { date, what: "suppliers per km²", mapped, suppliers: suppliers.length, cells, chosen: [+place.at[0].toFixed(4), +place.at[1].toFixed(4)] };
 writeFileSync(OUT, JSON.stringify(file));
 

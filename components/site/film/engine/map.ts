@@ -215,11 +215,15 @@ export function createMap(lib: MapLib, container: HTMLElement, opts: {
       p = v;
       if (ready) place();
     },
+    // Each is a round of paint, so a value that has not changed is not set again; what was asked before the style
+    // loaded is applied on `load`, so a map that comes up late still takes the scroll's current state.
     setDistrict(key) {
+      if (key === district) return;
       district = key;
       if (ready) apply({ columns: paint(container, district).columns! });
     },
     setChosen(level) {
+      if (level === chosen) return;
       chosen = level;
       dim();
     },

@@ -1,14 +1,20 @@
 // The director (handoff-home-film §5): the scroll is the film's only clock. A scene is a tall section whose stage
 // sticks to the screen; one passive scroll listener and one animation frame measure each scene's progress, 0 to 1,
-// and say it to the engine, which writes it where it is read. No smooth-scroll takeover, no scroll library. A scene
-// may ask for the number as CSS (`data-p`: then `--p` is set on it, and CSS does the rest); it is not set on every
-// scene, because an inherited property written on a tall subtree restyles all of it on every frame. The rail's
-// current chapter follows the scene that holds the middle of the screen, and its phone line gets the page's own
-// progress as `--film-p`.
+// and say it to the engine, which writes it on the small thing that reads it (a thread's group, the roll, a flat's
+// parts): never as a property on the scene itself, because one inherited by a tall subtree restyles all of it on
+// every frame. No smooth-scroll takeover, no scroll library. The rail's current chapter follows the scene that
+// holds the middle of the screen, and its phone line gets the page's own progress as `--film-p`.
 
 export const clamp = (v: number) => Math.max(0, Math.min(1, v));
 /** A stretch of a scroll, 0 before `a`, 1 after `b`, even between. */
 export const span = ([a, b]: readonly [number, number], p: number) => clamp((p - a) / (b - a));
+/** The elements under `el` that match, as an array; none when there is no `el`. */
+export const all = <T extends Element>(el: ParentNode | null | undefined, selector: string): T[] => [...(el?.querySelectorAll<T>(selector) ?? [])];
+/** Sizes a layer's drawing space to its box in pixels, once per size: an unchanged attribute written again still costs a layout. */
+export const fit = (svg: SVGSVGElement | null | undefined, w: number, h: number) => {
+  const v = `0 0 ${w} ${h}`;
+  if (svg && svg.getAttribute("viewBox") !== v) svg.setAttribute("viewBox", v);
+};
 
 /**
  * How far a scene has been scrolled through its hold. 0 while its top is at or below the top of the screen, 1 once
@@ -53,7 +59,6 @@ export function createDirector(root: HTMLElement, onScene?: (name: string, p: nu
       const p = Math.round(sceneProgress(box.top, box.height, vh) * 1000) / 1000;
       if (last.get(el) === p) continue;
       last.set(el, p);
-      if (el.hasAttribute("data-p")) el.style.setProperty("--p", String(p));
       onScene?.(el.dataset.scene ?? "", p);
     }
     const now = currentChapter(boxes.map(({ el, box }) => ({ chapter: el.dataset.chapter ?? "", top: box.top, bottom: box.bottom })), vh);
@@ -73,8 +78,13 @@ export function createDirector(root: HTMLElement, onScene?: (name: string, p: nu
   const queue = () => {
     if (!raf) raf = requestAnimationFrame(measure);
   };
+  // A new size moves every layout the engine measured: every scene is said again, even where its number held.
+  const resized = () => {
+    last.clear();
+    queue();
+  };
   addEventListener("scroll", queue, { passive: true });
-  addEventListener("resize", queue);
+  addEventListener("resize", resized);
   queue();
   return {
     replay() {
@@ -83,7 +93,7 @@ export function createDirector(root: HTMLElement, onScene?: (name: string, p: nu
     destroy() {
       cancelAnimationFrame(raf);
       removeEventListener("scroll", queue);
-      removeEventListener("resize", queue);
+      removeEventListener("resize", resized);
     },
   };
 }

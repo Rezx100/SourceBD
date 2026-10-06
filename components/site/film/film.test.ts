@@ -152,9 +152,12 @@ describe("what Tailwind emits", () => {
     assert.ok(css.includes(":has(input:focus-visible) { outline-color: rgb(var(--ds-focus)"), "no has-[input:focus-visible]:outline-focus rule");
   });
 
-  it("what has gone in the handover lets the pointer through, on the full tier only; nothing on the page is restyled by a scroll-written property", async () => {
+  it("what has gone in the handover lets the pointer through but stays in the page, and comes back for keyboard focus; nothing on the page is restyled by a scroll-written property", async () => {
     const css = await compiled;
-    assert.match(css, /\[data-film-tier="full"\] :is\(\[data-act="planet"\]\[data-past\], \[data-hero\]\[data-gone\]\) \{ visibility: hidden/);
+    assert.match(css, /\[data-film-tier="full"\] :is\(\[data-act="planet"\]\[data-past\], \[data-hero\]\[data-gone\] > \*\) \{ pointer-events: none/);
+    assert.doesNotMatch(css, /\[data-gone\][^{]*\{[^}]*visibility: hidden|\[data-past\][^{]*\{[^}]*visibility: hidden/, "the headline, the search and the two ways in stay the page's for a screen reader");
+    assert.match(css, /\[data-hero\]\[data-gone\]:has\(:focus-visible\) \{ opacity: 1 !important; transform: none !important/);
+    assert.match(css, /\[data-act="planet"\]\[data-past\]:has\(:focus-visible\) \{ opacity: 1 !important; pointer-events: auto/);
     // The only scroll-written properties CSS reads sit on the small things that read them: a thread's group, the roll, a flat's parts.
     assert.doesNotMatch(css, /var\(--hand|var\(--words|var\(--film-p/);
     assert.match(block(css, ".film-full\\:z-raised {"), /z-index: 10/);
@@ -379,6 +382,7 @@ describe("the home page, film off and film on", () => {
     assert.match(scenes, /<section id="ch-03" data-scene="receipts" data-chapter="ch-03"/);
     assert.doesNotMatch(scenes, /rounded-lg border border-line/);
     assert.equal((scenes.match(/<figure[^>]*aria-label="Supplier record: Mondol Fabrics Ltd\."/g) ?? []).length, 2, "the record once per scene");
+    for (const dated of ["reg. no. 4002 · 24 Jul 2026", "exporter 2798 · 14 Aug 2026", "1004-B/2006 · 2 Aug 2026", "GOTS-19020 · 26 Jun 2026", "factory 10861 · 24 Jul 2026"]) assert.ok(text(scenes).includes(dated), `${dated}: each source's own number and day stay in the words`);
     const rest = (m: string) => m.slice(m.indexOf('id="ch-04"'));
     assert.equal(rest(on), rest(off));
   });
@@ -616,7 +620,8 @@ describe("the lights file", () => {
   it("is a date, what it counts, two counts, the one place, and rows of a place and a count: no address, no name, no id", () => {
     assert.deepEqual(Object.keys(file).sort(), ["cells", "chosen", "date", "mapped", "suppliers", "what"]);
     assert.match(file.date, /^\d{4}-\d{2}-\d{2}$/);
-    assert.ok(Date.parse(file.date) >= Date.parse("2026-10-06") && Date.parse(file.date) <= Date.now(), "read on or after 6 Oct 2026, not in the future");
+    // The day is the one the machine that ran the script counts; parsed here as UTC midnight, it may sit up to a day ahead of a clock elsewhere.
+    assert.ok(Date.parse(file.date) >= Date.parse("2026-10-06") && Date.parse(file.date) <= Date.now() + 86_400_000, "read on or after 6 Oct 2026, not in the future");
     assert.equal(file.what, "suppliers per km²");
     assert.ok(file.cells.length >= 500, "real cells, not the four district counts");
     assert.ok(file.mapped <= file.suppliers && file.mapped > file.suppliers * 0.8, "most suppliers have a mapped address");

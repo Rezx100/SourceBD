@@ -66,7 +66,7 @@ after the review of the same evening: the first print counted the story's own su
 (9,513 + 29 did not make 9,541); the script now takes its place from the same pass as every other supplier, and a
 third run with the whole-read guard gave the same file, byte for byte.
 
-The page prints "One light per km² with suppliers · 9,541 of 10,277 have a mapped address · 6 Oct 2026"
+The page prints "One light per km² with suppliers · 9,541 of 10,277 have a mapped register address · 6 Oct 2026"
 (`LIGHTS_FILE` in `components/site/film/opening.tsx`; `film.test.ts` holds it to the file). The plan's "9,753 of
 10,268" was Paper's figure of 3 Oct and is superseded.
 

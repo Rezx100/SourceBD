@@ -5,16 +5,16 @@
 // One markup, three tiers. With no tier on the root (no script) and on the `still` tier it is a stacked page with
 // pictures of the planet and the map. On `lite` the planet turns live while the hero holds, and the map is a
 // picture. On `full` the whole opening is one tall section whose stage sticks: the planet dives, gives way to the
-// live map under it in one move (`--hand`, written by engine/start.ts), and the map's camera runs on. The `film:`
-// and `film-full:` variants (tailwind.config.ts) are those two conditions.
+// live map under it in one move (its opacity written by engine/start.ts), and the map's camera runs on. The
+// `film:` and `film-full:` variants (tailwind.config.ts) are those two conditions.
 
 import Link from "next/link";
 import { ButtonLink } from "@/components/kit";
 import { DISTRICTS } from "@/components/site/film/engine/map";
 import { Callout, FieldPane, RecordPane } from "@/components/site/film/pane";
-import { NAME } from "@/components/site/film/record";
+import { LINE, NAME } from "@/components/site/film/record";
 import { Thread, ThreadLayer } from "@/components/site/film/thread";
-import { SCENE_TYPE } from "@/components/site/film/words";
+import { SCENE_TYPE, Words } from "@/components/site/film/words";
 import { Label, Lede, wrap } from "@/components/site/parts";
 import { readDay, withCommas } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
@@ -51,7 +51,8 @@ export function Opening({ count, updated }: { count: string | null; updated: str
       <div className="relative film-full:sticky film-full:top-0 film-full:h-svh film-full:isolate film-full:overflow-hidden">
         {/* 01 · the planet: night in both themes. On the full tier it lies over the map and gives way to it. */}
         <div data-scene="planet" data-chapter="ch-1" data-act="planet" data-ground="night" className="relative bg-surface text-ink film:h-[190svh] film-full:absolute film-full:inset-0 film-full:z-raised film-full:h-auto">
-          <div className={cn(stage, "flex min-h-[600px] flex-col justify-center py-20 max-md:py-12 film:sticky film:top-0 film:h-svh film:py-0")}>
+          {/* With the film on, the stage is the screen and no taller: a minimum would set the planet's canvas off the map's frame. */}
+          <div className={cn(stage, "flex min-h-[600px] flex-col justify-center py-20 max-md:py-12 film:sticky film:top-0 film:h-svh film:min-h-0 film:py-0")}>
             {/* The still tier's planet: the same planet, drawn once. The full and lite tiers draw it live, and never fetch this (a lazy picture that is not displayed is not loaded). */}
             <picture className="absolute inset-0 block film:hidden">
               <source media="(max-width: 767px)" srcSet="/site/film/planet-upright.avif" />
@@ -110,11 +111,7 @@ export function Opening({ count, updated }: { count: string | null; updated: str
 
         <div data-act="districts" className={cn(wrap, act, "py-24 max-md:py-14 film-full:py-0")}>
           <MapStill name="map-country" />
-          <div className="flex flex-col gap-4">
-            <Label>Where are they?</Label>
-            <h2 className={cn(SCENE_TYPE, "max-w-[640px] leading-[1.06]")}>Most sit in four districts.</h2>
-            <Lede>Suppliers by district, from their register addresses, as counted on 3 Oct 2026.</Lede>
-          </div>
+          <Words label="Where are they?" headline="Most sit in four districts." lede="Suppliers by district, from their register addresses, as counted on 3 Oct 2026." />
           {/* Every count is in the page, and stays readable to a screen reader. On the full tier one shows at a time, whole: a figure never counts up. */}
           <ol data-steps className="grid max-w-[720px] grid-cols-2 gap-x-10 gap-y-6 md:grid-cols-4 film-full:block">
             {DISTRICTS.map((d, i) => (
@@ -139,7 +136,7 @@ export function Opening({ count, updated }: { count: string | null; updated: str
               <Lede>{NAME} makes knitwear in Kashimpur, Gazipur. Each row its record gains below comes from a named source.</Lede>
               <p className="font-mono text-xs text-ink-3">A real record, as it stands on 3 Oct 2026.</p>
             </div>
-            <RecordPane material="glass" name={NAME} line="Factory · Gazipur" rows={[]} state={count ? `1 of ${count} suppliers` : undefined} className="lg:shrink-0" />
+            <RecordPane material="glass" name={NAME} line={LINE} rows={[]} state={count ? `1 of ${count} suppliers` : undefined} className="lg:shrink-0" />
           </div>
         </div>
 

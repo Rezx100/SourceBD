@@ -4,14 +4,14 @@
 // its own and returns the function that stops it.
 
 import { startChapters } from "./chapters";
-import { clamp, createDirector, span } from "./director";
+import { all, clamp, createDirector, fit, span } from "./director";
 import { DISTRICTS, STOPS, createMap, tileScale, type BdData, type FilmMap, type MapLib } from "./map";
 import { HOME, blendFrame, createPlanet, defaultFrame, frameFor, project, type Cell, type Mask, type Planet } from "./planet";
 import type { Tier } from "./tier";
 
 /**
  * The dated file of supplier lights, `public/site/film/cells.json` (handoff §6.1): one row per square kilometre
- * with published suppliers, the two counts the page prints ("mapped of suppliers have a mapped address"), and
+ * with published suppliers, the two counts the page prints ("mapped of suppliers have a mapped register address"), and
  * `chosen`, the story's one place from the record's own dated geocode. Built by scripts/film/build-cells.mjs;
  * never an address, a name or an id.
  */
@@ -54,8 +54,7 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
   if (tier === "still") return () => {};
   const html = root.ownerDocument.documentElement;
   const $ = <T extends Element>(selector: string) => root.querySelector<T>(selector);
-  const paths = (selector: string) => [...root.querySelectorAll<SVGPathElement>(`${selector} path`)].slice(0, 2);
-  const fit = (svg: SVGSVGElement | null | undefined, w: number, h: number) => svg?.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  const paths = (selector: string) => all<SVGPathElement>(root, `${selector} path`).slice(0, 2);
   const cells = loadCells();
   let dead = false;
   let planet: Planet | null = null;
@@ -72,10 +71,9 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
 
   // 01 · the planet
   const canvas = $<HTMLCanvasElement>("canvas[data-planet]");
-  const callouts = [...root.querySelectorAll<HTMLElement>("[data-planet-callouts] > *")];
-  const leads = [...root.querySelectorAll<SVGPathElement>("[data-planet-leads] path")];
+  const callouts = all<HTMLElement>(root, "[data-planet-callouts] > *");
+  const leads = all<SVGPathElement>(root, "[data-planet-leads] path");
   const planetThread = paths("[data-planet-thread]");
-  let fitted: [number, number] = [0, 0];
   const shown: string[] = [];
   void Promise.all([loadMask(), cells]).then(([mask, file]) => {
     if (dead || !canvas) return;
@@ -92,11 +90,8 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
         const at = project(rot, f, HOME.lng, HOME.lat);
         const far = clamp(1 - (f.r / (h * 0.66) - 1) * 3);
         // Each write only when its value moved: a write of the same string still costs a style pass.
-        if (w !== fitted[0] || h !== fitted[1]) {
-          fitted = [w, h];
-          fit(planetThread[0]?.ownerSVGElement, w, h);
-          fit(leads[0]?.ownerSVGElement, w, h);
-        }
+        fit(planetThread[0]?.ownerSVGElement, w, h);
+        fit(leads[0]?.ownerSVGElement, w, h);
         const d = `M${at.x} ${at.y + 6}C${at.x - 8} ${at.y + 150} ${at.x - 96} ${at.y + 250} ${at.x - 110} ${h}`;
         for (const p of planetThread) p.setAttribute("d", d);
         DISTRICTS.forEach((place, i) => {
@@ -120,30 +115,24 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
   // 02 and 03 · the map, under the planet, loaded as the dive begins and only on the full tier
   const stage = $<HTMLElement>("[data-map]");
   const acts = { planet: $<HTMLElement>('[data-act="planet"]'), hero: $<HTMLElement>("[data-hero]"), districts: $<HTMLElement>('[data-act="districts"]'), record: $<HTMLElement>('[data-act="record"]') };
-  const steps = [...root.querySelectorAll<HTMLElement>("[data-steps] > li")];
+  const steps = all<HTMLElement>(root, "[data-steps] > li");
   const mapThread = paths("[data-map-thread]");
   const marks = STOPS.slice(1, 1 + DISTRICTS.length).map((s) => s.p);
-  let lastStep = -1;
-  let lastChosen = -1;
   const showMap = (p: number) => {
     mapP = p;
     // A district's figure shows while the camera travels to its mark; past the last mark the last one holds.
     const next = marks.findIndex((m) => p < m);
     const step = next < 0 ? DISTRICTS.length - 1 : next;
+    steps.forEach((li, i) => li.toggleAttribute("data-on", i === step));
     const second = p > 0.76;
     // Opacity only: both acts stay in the page for a screen reader, which does not scroll in step.
     if (acts.districts) acts.districts.style.opacity = second ? "0" : "1";
     if (acts.record) acts.record.style.opacity = second ? "1" : "0";
     mapThread[0]?.parentElement?.style.setProperty("--p", String(clamp((p - 0.82) / 0.14)));
+    // The map keeps its own state and paints only what changed, whether it was up for this step or came up later.
     map?.setProgress(p);
-    // The district and the one light are set when they change, not on every step: each is a round of paint.
-    if (step !== lastStep) {
-      lastStep = step;
-      steps.forEach((li, i) => li.toggleAttribute("data-on", i === step));
-      map?.setDistrict(DISTRICTS[step]!.key);
-    }
-    const chosen = clamp((p - 0.74) / 0.14);
-    if (chosen !== lastChosen) map?.setChosen((lastChosen = chosen));
+    map?.setDistrict(DISTRICTS[step]!.key);
+    map?.setChosen(clamp((p - 0.74) / 0.14));
   };
   const wantMap = () => {
     if (mapAsked || !stage) return;
@@ -204,8 +193,12 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
   const chapters = startChapters(root, tier);
   const director = createDirector(root, (name, p) => {
     if (name === "opening") show(p);
-    // On a phone the planet holds while it turns and the rest is stacked: its own section is its clock.
-    if (name === "planet" && tier === "lite") planet?.setProgress(p);
+    // On a phone the planet holds while it turns and the rest is stacked: its own section is its clock, and its
+    // thread draws with it.
+    if (name === "planet" && tier === "lite") {
+      planet?.setProgress(p);
+      planetThread[0]?.parentElement?.style.setProperty("--p", String(p));
+    }
     chapters.onScene(name, p);
   });
 

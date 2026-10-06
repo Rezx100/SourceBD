@@ -8,7 +8,7 @@ import { DIFFER, OVERLOCK_CAPTION, RECEIPTS } from "@/components/site/film/chapt
 import { Overlock } from "@/components/site/film/flats";
 import { AlertPane, Callout, FieldPane, NotePane, Pane, RecordPane, ScreenStage, type RecordRow } from "@/components/site/film/pane";
 import { ReceiptRoll } from "@/components/site/film/receipts";
-import { BGMEA, GOTS, SAFETY, SOURCES } from "@/components/site/film/record";
+import { BGMEA, GOTS, LINE, NAME, SAFETY, SOURCES } from "@/components/site/film/record";
 import { Rail, Thread, ThreadLayer } from "@/components/site/film/thread";
 import { cssVarName, darkColors, filmColors, fontSize, splitColorName, v4Colors } from "@/lib/design/tokens";
 
@@ -123,7 +123,7 @@ export function V4Film() {
 
       <Board title="RecordPane" note="The protagonist. A row arrives stitched: a green line sweeps its top edge, the mark stamps in, the words rise, and a green dot stays at its left. Sources shows the five marks, not a filled block.">
         <LiveGround className="flex justify-center rounded-lg p-6">
-          <RecordPane material="glass" name="Mondol Fabrics Ltd." line="Factory · Gazipur" state="Saved · watching" rows={FILM_ROWS} arriving="Safety inspections" />
+          <RecordPane material="glass" name={NAME} line={LINE} state="Saved · watching" rows={FILM_ROWS} arriving="Safety inspections" />
         </LiveGround>
       </Board>
 
@@ -133,7 +133,7 @@ export function V4Film() {
             The pin marks the area, not the building. From BGMEA and BKMEA.
           </NotePane>
           <NotePane tone="caution" eyebrow="2 sources differ">
-            RSC counted 2,060 workers in 2 buildings. BGMEA has 4,200 employees, as declared by the factory.
+            {DIFFER}
           </NotePane>
           <AlertPane when="Day 43 · 15 Nov 2026" title="A certificate is running out" due="Expires in 30 days · 15 Dec 2026" subject="Mondol Fabrics Ltd. · GOTS-19020" from="Issued by GSCS International Ltd." action="Ask for the renewal" />
           <LiveGround className="flex flex-col items-start gap-4 rounded-lg p-5">
