@@ -383,26 +383,86 @@ describe("the record components' rules", () => {
   });
 });
 
-describe("a GOTS certificate's link (6 Oct 2026: the GTB certificate document went behind a login)", () => {
-  it("opens the GOTS directory's public page, and an expired one says it is gone instead of linking", () => {
+// The founder opened three certificate links on 6 Oct 2026 and landed on a 404 (WRAP), an expired key
+// (OEKO-TEX) and "Error loading data" (GOTS, for a supplier GOTS had stopped listing since our last read).
+describe("a certificate links only to a page that opens (6 Oct 2026)", () => {
+  // GOTS-31587 as GOTS last showed it: `hoursAgo` back, listed or not.
+  const checked = (hoursAgo: number, listing_status = "listed"): SupplierSheetModel => {
+    const m = model();
+    const live = m.certs.find((c) => c.number === "GOTS-31587")!;
+    const at = new Date(TODAY.getTime() - hoursAgo * 3_600_000).toISOString();
+    return { ...m, certChecks: { reads: { gots: at }, certs: [{ kind: live.kind, certificate_no: "GOTS-31587", listing_status, checked_at: at, delisted_at: listing_status === "listed" ? null : at }] } };
+  };
+  const GOTS_LINK = /<a\b[^>]*href="https:\/\/global-standards\.org\/suppliers\/certified-suppliers\/details\?gtbid=SCO039488"[^>]*>Open on GOTS<\/a>/;
+
+  it("a GOTS certificate opens the directory's public page while our check of GOTS is in date", () => {
     for (const mode of ["pane", "page"] as const) {
-      for (const tab of ["overview", "certificates"] as const) {
-        const out = plain(view(model(), { mode, tab }));
-        assert.ok(!out.includes("global-trace-base.org"), `${mode}/${tab} still links to the login-walled document`);
-      }
-      const certs = plain(view(model(), { mode, tab: "certificates" }));
-      assert.match(certs, /<a\b[^>]*href="https:\/\/global-standards\.org\/suppliers\/certified-suppliers\/details\?gtbid=SCO039488"[^>]*>Open on GOTS<\/a>/, mode);
-      assert.ok(text(certs).includes("No longer on the GOTS list"), `${mode}: the expired GOTS-27605 says why it has no link`);
+      const certs = plain(view(checked(1), { mode, tab: "certificates" }));
+      assert.match(certs, GOTS_LINK, mode);
+      assert.equal((certs.match(/Open on GOTS/g) ?? []).length, 1, `${mode}: the expired GOTS-27605 has no page left and no link`);
+      assert.ok(!certs.includes("global-trace-base.org"), `${mode} still links to the login-walled document`);
     }
   });
 
-  it("drops the link when GOTS stops listing a certificate that has not expired", () => {
-    const m = model();
-    const live = m.certs.find((c) => c.number === "GOTS-31587")!;
-    const rows = certRows({ ...m, certChecks: { reads: {}, certs: [{ kind: live.kind, certificate_no: "GOTS-31587", listing_status: "no_longer_listed", delisted_at: "2026-10-01T00:00:00Z" }] } } as unknown as SupplierSheetModel, TODAY);
-    const row = rows.find((r) => r.number === "GOTS-31587")!;
-    assert.equal(row.documentUrl, null);
-    assert.equal(row.documentNote, "No longer on the GOTS list");
+  it("and has no link once the check is overdue, GOTS has dropped it, or GOTS was never read", () => {
+    const row = (m: SupplierSheetModel) => certRows(m, TODAY).find((r) => r.number === "GOTS-31587")!;
+    assert.ok(row(checked(1)).documentUrl, "guard: a check in date links");
+    assert.equal(row(checked(24 * 30)).documentUrl, null, "a month-old check cannot say the page is still there");
+    assert.equal(row(checked(1, "no_longer_listed")).documentUrl, null);
+    assert.equal(row(model()).documentUrl, null, "no check at all");
+  });
+
+  it("no WRAP or OEKO-TEX certificate links anywhere on the record, and no mark opens a certifier's page", () => {
+    for (const mode of ["pane", "page"] as const) {
+      const out = plain(view(checked(1), { mode }));
+      assert.ok(/WRAP/.test(out) && /OEKO-TEX/.test(out), "guard: the record holds both");
+      assert.doesNotMatch(out, /href="[^"]*(wrapcompliance\.org|oeko-tex\.com|global-trace-base\.org)/);
+      assert.doesNotMatch(out, /Open certificate|Open label check/);
+      assert.equal((out.match(/global-standards\.org/g) ?? []).length, 1, `${mode}: the one GOTS link is its certificate's row`);
+    }
+  });
+
+  it("the Document column is drawn only when a certificate has a page to open", () => {
+    const head = (m: SupplierSheetModel) => text(/<section aria-label="Certificates"[\s\S]*?<ul>/.exec(view(m, { mode: "page", tab: "certificates" }))?.[0] ?? "");
+    assert.match(head(checked(1)), /Certificate Issued by State Document/);
+    assert.match(head(model()), /Certificate Issued by State\s*$/);
+  });
+});
+
+describe("the registrations and the sources read as columns (6 Oct 2026: 'scattered, I have to look really closely')", () => {
+  it("a membership is its register's name, then its number: 'Reg' and 'reg. no.' are not printed", () => {
+    const fact = keyFacts(model()).find((f) => f.label === "Memberships")!;
+    const rows = fact.values.map((v) => v.membership!);
+    assert.ok(rows.length >= 3, "guard: Aboni holds several registrations");
+    assert.doesNotMatch(fact.source ?? "", /^From /, "every line carries its register's mark, so 'From EPB, BGMEA' under them says it twice");
+    assert.deepEqual(rows.find((r) => r.name === "EPB"), { mark: "EPB", name: "EPB", qualifier: null, number: "BD04293" });
+    assert.ok(rows.every((r) => r.number && !/\breg\b/i.test(`${r.name} ${r.qualifier ?? ""}`)));
+    const out = text(/<div id="record-overview"[\s\S]*?<div id="record-certificates"/.exec(view(model(), { mode: "page" }))?.[0] ?? "");
+    assert.match(out, /EPB registration number BD04293/);
+    assert.doesNotMatch(out, /reg\. no\./);
+  });
+
+  it("a source's number is the register's own, never our key for the read", () => {
+    const sources = model().sources;
+    const refs = (code: string) => sources.find((s) => s.mark.code.toUpperCase() === code)!.refs;
+    assert.deepEqual(refs("EPB"), ["BD04293"]);
+    assert.deepEqual(refs("RSC"), ["9342"], "RSC files the factory id itself");
+    assert.deepEqual(refs("GOTS"), ["GOTS-27605", "GOTS-31587"]);
+    assert.deepEqual(refs("WRAP"), ["7865"]);
+    assert.deepEqual(refs("BRAND_HM"), [], "a brand list's row has no number a buyer could quote");
+    for (const s of sources) for (const r of s.refs) assert.doesNotMatch(r, /:|^(gots|wrap|oeko-tex)-|^[0-9a-f]{16}$/, `${s.mark.code}: ${r}`);
+  });
+
+  it("the sources are grouped by kind, best rank first, each kind said once", () => {
+    const out = view(model(), { mode: "page", tab: "sources" });
+    const kinds = [...out.matchAll(/<section aria-label="([^"]+)"[^>]*><h4/g)].map((m) => plain(m[1]!));
+    assert.deepEqual(kinds, [...new Set(model().sources.map((s) => s.tier))]);
+    assert.equal(kinds[0], "Government register");
+    assert.equal((out.match(/<li\b[^>]*@container/g) ?? []).length, model().sources.length, "one row per source");
+    // The words come from a row's own tier slug, the order from its mark's rank: a kind can come back after another.
+    const [a, b, c] = model().sources;
+    const split = view(model(aboniInput(), { sources: [{ ...a!, tier: "Foreign regulator" }, { ...b!, tier: "Cross-check only" }, { ...c!, tier: "Foreign regulator" }] }), { mode: "page", tab: "sources" });
+    assert.deepEqual([...split.matchAll(/<section aria-label="([^"]+)"[^>]*><h4/g)].map((m) => m[1]), ["Foreign regulator", "Cross-check only"]);
   });
 });
 describe("a record scrolled inside a pane (6 Oct 2026: no map on Sites, and the tabs hung loose under a header that had scrolled away)", () => {

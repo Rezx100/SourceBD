@@ -1134,8 +1134,20 @@ function sourceRows(p: ProfilePayload): SourceRow[] {
   // 69 of 10,266 published records carry a `source_tags` entry with no
   // `source_records` row (SQL, 25 Sep 2026 — BGMEA in every case). Those get a
   // row that says the register has no read, rather than no row at all.
+  // The number a buyer can quote to the register: the record's own registration and certificate
+  // numbers. `source_ref` is our key for a read ("general:3498", "619:detail", "gots-SCO039488",
+  // a hash for a brand list), not the register's number (founder, 6 Oct 2026: "messy data"), so
+  // only RSC's is printed, which is the factory id RSC itself files.
+  const numbers = new Map<string, string[]>();
+  for (const pill of p.pills ?? []) {
+    if (!ownPill(pill) || !pill.value) continue;
+    const code = pill.source_code.toUpperCase();
+    const own = numbers.get(code) ?? [];
+    if (!own.includes(pill.value)) numbers.set(code, [...own, pill.value]);
+  }
   return marksFromTags(allSourceCodes(p), hrefs).map((m) => {
-    const held = read.get(m.code.toUpperCase());
+    const code = m.code.toUpperCase();
+    const held = read.get(code);
     return {
       mark: m,
       name: m.name,
@@ -1147,7 +1159,7 @@ function sourceRows(p: ProfilePayload): SourceRow[] {
         (held?.tier ? trustRankFromSlug(held.tier) : null) ?? (isKnownSource(m.code) ? m.tier : null),
         m.code,
       ),
-      ref: held?.ref ?? null,
+      refs: numbers.get(code) ?? (code === "RSC" && held?.ref ? [held.ref] : []),
       readDate: held && held.at >= 0 ? formatDay(new Date(held.at).toISOString()) : null,
     };
   });

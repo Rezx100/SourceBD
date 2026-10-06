@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { isKnownSource, marksFromTags, sourceMark, tierFromSlug, tierWords, topTier } from "./source-tiers";
+import { isKnownSource, marksFromTags, publicPage, sourceMark, tierFromSlug, tierWords, topTier } from "./source-tiers";
 
 describe("source rank (spec §2: government > industry bodies > cert bodies > brand lists > foreign regulators)", () => {
   it("ranks every register and brand list the database carries", () => {
@@ -47,6 +47,27 @@ describe("source rank (spec §2: government > industry bodies > cert bodies > br
     );
     assert.equal(topTier(["BGMEA"]), 2);
     assert.equal(topTier([]), 5);
+  });
+});
+
+// Each was opened on 6 Oct 2026: WRAP answered 404, OEKO-TEX "Profile key has expired", Global Trace
+// Base a login, and the GOTS directory "Error loading data" for a supplier it no longer lists.
+describe("a stored link that ends nowhere is not a link", () => {
+  it("drops WRAP's facility page and OEKO-TEX's keyed profile, and sends a GTB document to the GOTS directory", () => {
+    assert.equal(publicPage("https://wrapcompliance.org/certified-facility/7865/"), null);
+    assert.equal(publicPage("https://services.oeko-tex.com/newoekotex/portal/for-new-website/customer_profile/32597~1wdFVs~O_k6dxb3kavK9_H_E7YoN0nL2CE/"), null);
+    assert.equal(publicPage("https://www.global-trace-base.org/SCO039488/certificate-document"), "https://global-standards.org/suppliers/certified-suppliers/details?gtbid=SCO039488");
+    assert.equal(publicPage("https://www.bgmea.com.bd/member/71"), "https://www.bgmea.com.bd/member/71");
+    assert.equal(publicPage(null), null);
+  });
+
+  it("no certifier's mark links: a mark cannot know whether GOTS still lists the supplier", () => {
+    assert.equal(sourceMark("WRAP", "https://wrapcompliance.org/certified-facility/7865/").href, null);
+    assert.equal(sourceMark("OEKO_TEX", "https://services.oeko-tex.com/newoekotex/portal/for-new-website/customer_profile/9741~x/").href, null);
+    assert.equal(sourceMark("GOTS", "https://www.global-trace-base.org/SCO039488/certificate-document").href, null);
+    assert.equal(sourceMark("GOTS", "https://global-standards.org/suppliers/certified-suppliers/details?gtbid=SCO039488").href, null);
+    assert.equal(sourceMark("BGMEA", "https://www.bgmea.com.bd/member/71").href, "https://www.bgmea.com.bd/member/71");
+    assert.equal(sourceMark("EPB", "https://edb.epb.gov.bd/exporter/3335/aboni-knitwear-ltd").href, "https://edb.epb.gov.bd/exporter/3335/aboni-knitwear-ltd");
   });
 });
 
