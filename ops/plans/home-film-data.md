@@ -52,10 +52,15 @@ supplier counts once. The grid is 1 km square at the country's middle latitude (
 | Published suppliers | 10,277 |
 | Address rows read (`v_supplier_addresses`) | 27,873, for 9,971 suppliers |
 | Geocode rows with a position (`address_geocodes`) | 17,973 |
-| **Suppliers with a mapped address** | **9,541** (9,510 by the raw string, 32 by the normalised key) |
+| **Suppliers with a mapped address** | **9,541** (9,513 by the raw string, 29 by the normalised key) |
 | Positions outside Bangladesh skipped | 0 |
-| **Cells** | **1,242**; the fullest holds 227 suppliers; 476 hold one |
-| File | 22,439 bytes |
+| **Cells** | **1,245**; the fullest holds 231 suppliers; 488 hold one |
+| File | 22,494 bytes |
+
+Re-run the same evening with the pages ordered (the first run read each table in unordered pages of a thousand,
+which Postgres may skip or repeat a row across; `build-cells.mjs` now orders every page and reads until an empty
+one). The mapped total was the same, 9,541; 399 cells changed their count and 55 appeared where 52 went, so the
+file and the six stills were remade from this run. The figures above are this run's.
 
 The page prints "One light per km² with suppliers · 9,541 of 10,277 have a mapped address · 6 Oct 2026"
 (`LIGHTS_FILE` in `components/site/film/opening.tsx`; `film.test.ts` holds it to the file). The plan's "9,753 of

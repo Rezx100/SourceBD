@@ -8,7 +8,7 @@
 // Plain TypeScript with the library passed in: the pure parts (`unpack`, `toGeo`, `cameraAt`, `column`) run under
 // `node --test`, and the scene loads the library only when the dive nears.
 
-import type { Cell } from "./planet";
+import { HOME, type Cell } from "./planet";
 
 export type BdData = { credit: string; unit: number; box: number[]; districts: { name: string; rings: number[][] }[]; around: number[][]; rivers: { w: number; line: number[] }[] };
 type Position = [number, number];
@@ -85,7 +85,7 @@ export const tileScale = (zoom: number): number => (512 * 2 ** zoom) / 360;
  * small in its region, so the map takes over in place and the camera keeps coming in.
  */
 export const STOPS: readonly (Camera & { p: number })[] = [
-  { p: 0, center: [90.4, 23.7], zoom: 5.5, pitch: 18, bearing: 0 },
+  { p: 0, center: [HOME.lng, HOME.lat], zoom: 5.5, pitch: 18, bearing: 0 },
   { p: 0.2, center: [90.36, 23.6], zoom: 6.35, pitch: 42, bearing: -8 },
   { p: 0.4, center: [90.42, 23.75], zoom: 6.5, pitch: 44, bearing: -4 },
   { p: 0.55, center: [90.53, 23.5], zoom: 6.5, pitch: 44, bearing: 2 },

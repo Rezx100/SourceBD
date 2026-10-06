@@ -63,6 +63,7 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
   let mapAsked = false;
   let mapP = 0;
   let sceneP = 0;
+  let planetP = 0;
   // Without a planet there is no film: the page goes back to the still tier, which is the stacked page.
   const giveUp = () => {
     html.dataset.filmTier = "still";
@@ -102,9 +103,10 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
         });
       },
     });
-    // What the scroll said while the planet was still loading.
-    if (planet) show(sceneP);
-    else giveUp();
+    // What the scroll said while the planet was still loading: on a phone, the planet's own section.
+    if (!planet) return giveUp();
+    if (tier === "lite") planet.setProgress(planetP);
+    else show(sceneP);
   }, giveUp);
 
   // 02 and 03 · the map, under the planet, loaded as the dive begins and only on the full tier
@@ -155,7 +157,8 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
         },
       });
       showMap(mapP);
-    }, () => {});
+      // Without the map the planet would give way to an empty stage: the page goes back to the stacked one, with its pictures.
+    }, giveUp);
   };
 
   /** The opening at `p` on the full tier: the dive, the words, the handover, then the map. */
@@ -173,13 +176,17 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
     if (at.hand >= 1) planet?.park();
     else planet?.resume();
     if (p > 0.04) wantMap();
-    showMap(at.map);
+    // Only when the map's own scroll moved: while the planet dives the map waits, unplaced again, under it.
+    if (at.map !== mapP) showMap(at.map);
   };
 
   const director = createDirector(root, (name, p) => {
     if (name === "opening") show(p);
     // On a phone the planet holds while it turns and the rest is stacked: its own section is its clock.
-    if (name === "planet" && tier === "lite") planet?.setProgress(p);
+    if (name === "planet" && tier === "lite") {
+      planetP = p;
+      planet?.setProgress(p);
+    }
   });
 
   function stop() {

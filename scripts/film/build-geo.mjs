@@ -11,6 +11,7 @@ import { deflateSync, crc32 } from "node:zlib";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const NE = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/";
 const SOURCES = {
@@ -21,7 +22,7 @@ const SOURCES = {
   "bgd-adm2-s.geojson": "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/BGD/ADM2/geoBoundaries-BGD-ADM2_simplified.geojson",
 };
 const cache = process.argv[2] ?? path.join(tmpdir(), "sourcebd-film-geo");
-const out = path.join(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")), "../../public/site/film");
+const out = path.join(path.dirname(fileURLToPath(import.meta.url)), "../../public/site/film");
 mkdirSync(cache, { recursive: true });
 mkdirSync(out, { recursive: true });
 

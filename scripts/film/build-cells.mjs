@@ -14,6 +14,7 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 import { applyPlaceLexicon } from "../../lib/bd-place-lexicon.ts";
 
@@ -23,7 +24,7 @@ const arg = (name, fallback) => {
 };
 const envFile = arg("--env", ".env");
 const STORY = arg("--story", "Mondol Fabrics Ltd.");
-const OUT = path.join(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")), "../../public/site/film/cells.json");
+const OUT = path.join(path.dirname(fileURLToPath(import.meta.url)), "../../public/site/film/cells.json");
 
 // The env file may hold lines that are not variables; only KEY=value lines are read, and nothing is printed.
 try {
@@ -39,14 +40,20 @@ const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!url || !key) throw new Error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are needed (read-only; see ops/plans/home-film-data.md)");
 const sb = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 
-/** Every row of a table or view, a thousand at a time (PostgREST's page). */
-async function all(from, select, filter = (q) => q) {
+/**
+ * Every row of a table or view, a page at a time. The pages are ordered (Postgres gives separate LIMIT/OFFSET reads
+ * no order of their own, so an unordered page can skip or repeat a row), and the read goes on until an empty page
+ * comes back, whatever the server's own page size is.
+ */
+async function all(from, select, order, filter = (q) => q) {
   const rows = [];
-  for (let at = 0; ; at += 1000) {
-    const { data, error } = await filter(sb.from(from).select(select)).range(at, at + 999);
+  for (let at = 0; ; at += rows.length - at) {
+    let q = filter(sb.from(from).select(select));
+    for (const col of order) q = q.order(col);
+    const { data, error } = await q.range(at, at + 999);
     if (error) throw new Error(`${from}: ${error.message}`);
+    if (!data.length) return rows;
     rows.push(...data);
-    if (data.length < 1000) return rows;
   }
 }
 
@@ -65,9 +72,9 @@ const centre = ([ix, iy]) => [+((ix + 0.5) / KM_LNG).toFixed(3), +((iy + 0.5) / 
 const KIND_ORDER = ["factory", "factory_inherited", "registered", "registered_inherited", "mailing", "mailing_inherited"];
 const rank = (kind) => (KIND_ORDER.indexOf(kind) + 1 || KIND_ORDER.length + 1);
 
-const suppliers = await all("suppliers", "id, company_name", (q) => q.eq("is_published", true));
-const addresses = await all("v_supplier_addresses", "supplier_id, address_kind, address");
-const geocodes = await all("address_geocodes", "address_raw, address_norm, latitude, longitude, confidence_pct, address_status", (q) => q.not("latitude", "is", null).not("longitude", "is", null));
+const suppliers = await all("suppliers", "id, company_name", ["id"], (q) => q.eq("is_published", true));
+const addresses = await all("v_supplier_addresses", "supplier_id, address_kind, address", ["supplier_id", "address_kind", "address"]);
+const geocodes = await all("address_geocodes", "address_raw, address_norm, latitude, longitude, confidence_pct, address_status", ["id"], (q) => q.not("latitude", "is", null).not("longitude", "is", null));
 
 const byRaw = new Map(), byNorm = new Map();
 for (const g of geocodes) {
