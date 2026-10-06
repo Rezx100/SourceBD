@@ -426,14 +426,16 @@ describe("the tier and the flag", () => {
     }
   });
 
-  it("the film is off unless the address says film=1 or the build set the variable to 1", () => {
-    assert.equal(filmOn(undefined, undefined), false);
-    assert.equal(filmOn("", ""), false);
-    assert.equal(filmOn("0", "0"), false);
-    assert.equal(filmOn("true", "true"), false);
-    assert.equal(filmOn(["1", "1"], undefined), false, "a repeated parameter is not the flag");
-    assert.equal(filmOn("1", undefined), true);
+  it("the film is the page: on unless the build says NEXT_PUBLIC_HOME_FILM=0 or the address says film=0; film=1 wins over the build", () => {
+    assert.equal(filmOn(undefined, undefined), true);
+    assert.equal(filmOn("", ""), true);
     assert.equal(filmOn(undefined, "1"), true);
+    assert.equal(filmOn(undefined, "0"), false, "the build's switch");
+    assert.equal(filmOn("0", undefined), false, "one visit to the stacked page");
+    assert.equal(filmOn("0", "1"), false);
+    assert.equal(filmOn("1", "0"), true, "a look at the film on a build that turned it off");
+    assert.equal(filmOn(["1", "1"], "0"), false, "a repeated parameter is not the flag");
+    assert.equal(filmOn("true", undefined), true, "anything but 0 leaves the build's answer");
   });
 
   it("the tier is set on the root before the first paint, by the same rule, run here as the page runs it", () => {

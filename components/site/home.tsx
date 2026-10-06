@@ -64,7 +64,7 @@ function Chapter({ n, question, headline, lede, record, children }: { n: string;
   );
 }
 
-/** `film` is the flag (`?film=1` or NEXT_PUBLIC_HOME_FILM=1): off, the page is exactly what it was before the film. */
+/** `film` is the flag (`filmOn` in engine/tier.ts: on unless the build or the address turns it off): off, the page is exactly what it was before the film. */
 export function Home({ facts, film = false }: { facts: SiteFacts; film?: boolean }) {
   const count = facts.suppliers !== null ? withCommas(facts.suppliers) : null;
   const updated = readDay(facts.latestRead);
