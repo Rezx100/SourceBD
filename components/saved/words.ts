@@ -75,21 +75,26 @@ export type SavedRow = {
 };
 
 /** The row both compliance RPCs return (`compliance_expired_certs`, `compliance_expiring_certs`). */
-export type CertRead = { kind: string; certificate_no: string | null; expires_on: string; supplier: { id: string } | null };
+export type CertRead = { kind: string; certificate_no: string | null; expires_on: string; listing_status?: string; delisted_on?: string | null; supplier: { id: string } | null };
 
 /** What the compliance reads say, by supplier: complete only when BOTH reads worked. */
-export type CertsBySupplier = { bySupplier: Map<string, { scheme: string; expiresOn: string }[]>; complete: boolean };
+export type CertsBySupplier = { bySupplier: Map<string, { scheme: string; expiresOn: string; delistedOn?: string | null }[]>; complete: boolean };
 
 /**
  * Group the two reads by supplier. A read that failed is `null`, and then the cells of suppliers
  * not listed say nothing: "nothing to check" is a claim an unread list cannot make.
  */
 export function groupCerts(expired: readonly CertRead[] | null, expiring: readonly CertRead[] | null): CertsBySupplier {
-  const bySupplier = new Map<string, { scheme: string; expiresOn: string }[]>();
+  const bySupplier = new Map<string, { scheme: string; expiresOn: string; delistedOn?: string | null }[]>();
+  // A delisted certificate (0122) can come back in both reads; it counts once.
+  const seen = new Set<string>();
   for (const r of [...(expired ?? []), ...(expiring ?? [])]) {
     if (!r.supplier?.id) continue;
+    const key = `${r.supplier.id}|${r.kind}|${r.certificate_no ?? r.expires_on}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
     const list = bySupplier.get(r.supplier.id) ?? [];
-    list.push({ scheme: certScheme(r.kind), expiresOn: r.expires_on });
+    list.push({ scheme: certScheme(r.kind), expiresOn: r.expires_on, delistedOn: r.listing_status === "no_longer_listed" ? (r.delisted_on ?? r.expires_on) : null });
     bySupplier.set(r.supplier.id, list);
   }
   return { bySupplier, complete: expired !== null && expiring !== null };

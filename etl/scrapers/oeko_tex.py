@@ -43,6 +43,7 @@ from etl.acquire import AcquiredDoc, AcquireRequest
 from etl.core.acquiring import AcquiringScraper
 from etl.core.config import settings
 from etl.core.db import db, get_source_id
+from etl.core.listgate import list_row_hash, unchanged_record
 from etl.core.scraper import EvidenceAttachment, ScrapedRecord
 
 BASE = "https://services.oeko-tex.com"
@@ -167,12 +168,16 @@ _UNCITABLE_FIELDS = (
     "oeko_customer_id",
     "oeko_standard",
     "oeko_profile_url",
+    "oeko_list_hash",
     "country",
 )
 
 
 class OekoTexScraper(AcquiringScraper):
     code = "oeko_tex"
+    # Founder knob (`run <code> --accept-delistings`): release a held
+    # certificate reconcile (etl.core.cert_reconcile).
+    accept_delistings = False
     source_code = "OEKO_TEX"
     transport = "direct"
     fallback_transport = None
@@ -231,6 +236,23 @@ class OekoTexScraper(AcquiringScraper):
                     self.log.info("oeko.empty_page", oets=oets, page=page)
                     break
                 for r in rows:
+                    # S2: the session-keyed profile URL never enters the
+                    # payload (it changed every read and defeated change-skip),
+                    # and an unchanged list row re-emits the stored record
+                    # instead of fetching the profile again.
+                    ref = f"oeko-tex-{r['idx']}:{oets}"
+                    list_hash = list_row_hash({
+                        "idx": r["idx"], "oets": oets, "name": r["name"],
+                        "location_raw": r.get("location_raw"),
+                    })
+                    stored = unchanged_record(
+                        source_code="OEKO_TEX", source_ref=ref,
+                        company_name=r["name"] or "",
+                        key="oeko_list_hash", list_hash=list_hash,
+                    )
+                    if stored is not None:
+                        yield stored
+                        continue
                     profile_doc = await self._fetch_profile_doc(
                         r.get("profile_url"), idx=r["idx"], oets=oets
                     )
@@ -239,7 +261,7 @@ class OekoTexScraper(AcquiringScraper):
                         "oeko_customer_id": r["idx"],
                         "oeko_standard": oets,
                         "oeko_standard_label": label,
-                        "oeko_profile_url": r.get("profile_url"),
+                        "oeko_list_hash": list_hash,
                         "country": "Bangladesh",
                     }
                     if profile.get("address"):
@@ -252,7 +274,12 @@ class OekoTexScraper(AcquiringScraper):
                         payload["oeko_profile_website"] = profile["website"]
                     yield ScrapedRecord(
                         source_code="OEKO_TEX",
-                        source_ref=f"oeko-tex-{r['idx']}",
+                        # One customer holds several standards: one record
+                        # each, or every read overwrote one with the other.
+                        # The old shared ref stays an alias so Pass 0 still
+                        # finds the company (migration 0122 re-keys the rows).
+                        source_ref=ref,
+                        alias_refs=(f"oeko-tex-{r['idx']}",),
                         company_name=r["name"] or "",
                         city=r.get("city"),
                         address_raw=profile.get("address") or r.get("location_raw"),
@@ -313,9 +340,11 @@ class OekoTexScraper(AcquiringScraper):
         run_id = self._open_run()
         reset_document_cache()
         seen = upserted = skipped = 0
+        seen_certs: set[str] = set()
         try:
             async for rec in self.gated():
                 seen += 1
+                seen_certs.add(f"{rec.payload['oeko_customer_id']}-{rec.payload['oeko_standard']}")
                 if not rec.company_name:
                     skipped += 1
                     continue
@@ -337,6 +366,14 @@ class OekoTexScraper(AcquiringScraper):
                         await self._record_evidence(rec, supplier_id, run_id)
                 if seen % 100 == 0:
                     self.log.info("progress", seen=seen, upserted=upserted, skipped=skipped)
+            from etl.core.cert_reconcile import reconcile_certificates
+
+            reconcile_certificates(
+                kind="oeko_tex", scraper_code=self.code, run_id=run_id,
+                seen_cert_nos=seen_certs,
+                read_complete=not (self.breaker and self.breaker.tripped),
+                accept=self.accept_delistings,
+            )
             self._close_run(run_id, "success", seen, upserted, skipped, None)
         except Exception as exc:  # noqa: BLE001
             self._close_run(run_id, "failed", seen, upserted, skipped, str(exc))
@@ -443,7 +480,9 @@ def _write_certification(supplier_id: str, rec: ScrapedRecord) -> None:
                 None,
                 scope,
                 sr_id,
-                p.get("oeko_profile_url"),
+                # The profile link expires within minutes; cite the durable
+                # Buying Guide entry point, as the evidence does.
+                f"{BASE}/buying-guide/",
             ),
         )
         c.commit()

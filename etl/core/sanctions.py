@@ -95,35 +95,9 @@ class SanctionEntry:
         return hashlib.sha256(blob.encode("utf-8")).hexdigest()
 
 
-# A complete read must see at least this share of the entries listed before it,
-# or it is treated as partial (a layout change or a truncated download, never a
-# mass delisting).
-_COMPLETE_SHARE = 0.9
-# A complete read that would delist more than this share stops for a human
-# (spec §4.6). ponytail: the floor of 3 keeps a 75-row list (US WRO) from
-# holding on a single genuine removal; revisit if a list grows past ~10k.
-_DELIST_HOLD_SHARE = 0.02
-_DELIST_HOLD_FLOOR = 3
-
-
-def plan_reconcile(
-    *, read_complete: bool, listed_before: int, seen: int, missing: int, accept: bool = False
-) -> str:
-    """What to do with entries a run did not see.
-
-    'partial'   — do nothing; the read date does not advance.
-    'held'      — the read counts, but the delistings wait for a human.
-    'reconcile' — mark the missing entries no longer listed.
-    """
-    if not read_complete:
-        return "partial"
-    if accept:
-        return "reconcile"
-    if seen < _COMPLETE_SHARE * listed_before:
-        return "partial"
-    if missing > max(_DELIST_HOLD_FLOOR, _DELIST_HOLD_SHARE * listed_before):
-        return "held"
-    return "reconcile"
+# The completeness guard and removal limit are shared with the certificate
+# reconcile (S2): one rule for "is this read whole, and is this too many".
+from etl.core.breaker import plan_reconcile  # noqa: E402,F401  (re-exported)
 
 
 def ingest_sanction_entry(entry: SanctionEntry, run_id: str | None = None) -> dict[str, Any]:

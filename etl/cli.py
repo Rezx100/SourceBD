@@ -123,7 +123,7 @@ def run(
     accept_delistings: bool = typer.Option(
         False,
         "--accept-delistings",
-        help="Sanctions lists only: mark entries missing from a complete read as no "
+        help="Sanctions lists and certificate bodies: mark entries missing from a complete read as no "
         "longer listed even when there are more than the hold limit (founder knob, "
         "after reading the held run's numbers in /admin/sources).",
     ),
@@ -161,7 +161,7 @@ def run(
     instance = cls(**kwargs)
     if accept_delistings:
         if not hasattr(instance, "accept_delistings"):
-            typer.echo("--accept-delistings only applies to sanctions lists.")
+            typer.echo("--accept-delistings only applies to sanctions lists and certificate bodies.")
             raise typer.Exit(1)
         instance.accept_delistings = True
     if accept_changes:
