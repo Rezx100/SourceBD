@@ -47,7 +47,7 @@ declare
   bad text;
 begin
   -- 1. No dealing table keeps a cascade (or a set-null) back to a person or a company.
-  select string_agg(c.conrelid::regclass::text || '.' || a.attname || '=' || c.confdeltype, ', ')
+  select string_agg(c.conrelid::regclass::text || '.' || a.attname || '=' || c.confdeltype::text, ', ')
     into bad
     from pg_constraint c
     join pg_attribute a on a.attrelid = c.conrelid and a.attnum = any (c.conkey)

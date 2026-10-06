@@ -53,7 +53,7 @@ begin
     raise exception 'the literal is not the file';
   end if;
 
-  select jsonb_object_agg(c.conrelid::regclass::text || '.' || a.attname, c.confdeltype) into v_before
+  select jsonb_object_agg(c.conrelid::regclass::text || '.' || a.attname, c.confdeltype::text) into v_before
     from pg_constraint c join pg_attribute a on a.attrelid = c.conrelid and a.attnum = any (c.conkey)
    where c.contype = 'f' and (c.conrelid::regclass::text, a.attname) in ({KEYS});
   select jsonb_object_agg(t, n) into v_rows_b from (
@@ -70,7 +70,7 @@ begin
 
   execute v_mig;
 
-  select jsonb_object_agg(c.conrelid::regclass::text || '.' || a.attname, c.confdeltype) into v_after
+  select jsonb_object_agg(c.conrelid::regclass::text || '.' || a.attname, c.confdeltype::text) into v_after
     from pg_constraint c join pg_attribute a on a.attrelid = c.conrelid and a.attnum = any (c.conkey)
    where c.contype = 'f' and (c.conrelid::regclass::text, a.attname) in ({KEYS});
   select jsonb_object_agg(t, n) into v_rows_a from (
