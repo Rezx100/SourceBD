@@ -170,7 +170,8 @@ export function startChapters(root: HTMLElement, tier: Tier, hooks: ChapterHooks
   const paper = receipts?.querySelector<HTMLElement>("[data-paper]") ?? null;
   const roll = receipts?.querySelector<HTMLElement>("[data-roll]") ?? null;
   const rollPaper = receipts?.querySelector<HTMLElement>("[data-roll-paper]") ?? null;
-  const rollParts = all<HTMLElement>(receipts, ".roll-sheet, .roll-print, .roll-tear");
+  // The sheet, the ink, the torn edge and the paper's wrapper (which scrolls the window) each read --print themselves.
+  const rollParts = all<HTMLElement>(receipts, "[data-roll-paper], .roll-sheet, .roll-print, .roll-tear");
   const items = all<HTMLElement>(paper, "[data-receipt]");
   const lines = items.map((item) => item.querySelector("[data-tie-from]"));
   const ties = all<SVGGElement>(receipts, "[data-tie]");
