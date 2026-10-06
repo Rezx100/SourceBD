@@ -152,11 +152,11 @@ describe("what Tailwind emits", () => {
     assert.ok(css.includes(":has(input:focus-visible) { outline-color: rgb(var(--ds-focus)"), "no has-[input:focus-visible]:outline-focus rule");
   });
 
-  it("the handover is CSS from two numbers the scroll writes, on the full tier only, and what has gone lets the pointer through", async () => {
+  it("what has gone in the handover lets the pointer through, on the full tier only; nothing on the page is restyled by a scroll-written property", async () => {
     const css = await compiled;
-    assert.match(block(css, '[data-film-tier="full"] [data-act="planet"] {'), /opacity: calc\(1 - var\(--hand, 0\)\)/);
-    assert.match(block(css, '[data-film-tier="full"] [data-hero] {'), /opacity: calc\(1 - var\(--words, 0\)\); transform: translateY/);
     assert.match(css, /\[data-film-tier="full"\] :is\(\[data-act="planet"\]\[data-past\], \[data-hero\]\[data-gone\]\) \{ visibility: hidden/);
+    // The only scroll-written properties CSS reads sit on the small things that read them: a thread's group, the roll, a flat's parts.
+    assert.doesNotMatch(css, /var\(--hand|var\(--words|var\(--film-p/);
     assert.match(block(css, ".film-full\\:z-raised {"), /z-index: 10/);
     assert.match(css, /:is\(\[data-film-tier="full"\], \[data-film-tier="lite"\]\) \.film\\:hidden \{ display: none/);
   });
@@ -256,7 +256,9 @@ describe("/dev/ds", () => {
   it("shows the film's section: every dark value beside its light one, and each board in both grounds", () => {
     for (const [name, hex] of Object.entries(filmColors)) assert.ok(html.includes(`>${name}</span>`) && html.includes(hex), name);
     assert.ok(html.includes(resolve(dark, "surface")) && html.includes(resolve(dark, "brand.ink")));
-    assert.equal((html.match(/data-ground="night" class="flex flex-col gap-3 rounded-lg/g) ?? []).length, 5, "five boards, each drawn once more in a night scope");
+    assert.equal((html.match(/data-ground="night" class="flex flex-col gap-3 rounded-lg/g) ?? []).length, 7, "seven boards, each drawn once more in a night scope");
+    assert.match(html, /<svg data-overlock="true"/);
+    assert.match(html, /class="roll-print"/);
     assert.match(html, /aria-label="Supplier record: Mondol Fabrics Ltd\."/);
     assert.match(html, /text-film-figure /);
   });
@@ -275,7 +277,7 @@ describe("the home page, film off and film on", () => {
 
   it("with the film off the page carries nothing of the film", () => {
     assert.equal(off, page(false));
-    assert.doesNotMatch(off, /data-film|data-scene|data-theme-auto|data-ground|<script|<canvas|pane-glass/);
+    assert.doesNotMatch(off, /data-film|data-scene|data-theme-auto|data-ground|data-beat|data-roll|<script|<canvas|pane-glass/);
     assert.match(off, /<main class="font-sans text-ink">/);
   });
 
@@ -301,12 +303,19 @@ describe("the home page, film off and film on", () => {
     assert.match(on, /<canvas data-planet="true" aria-hidden="true"/);
     assert.match(on, /<div data-planet-callouts="true" aria-hidden="true"/);
     assert.match(on, /<div data-map="true" aria-hidden="true"/);
-    assert.equal((on.match(/data-scene="/g) ?? []).length, 2);
+    assert.deepEqual([...on.matchAll(/data-scene="([a-z]+)"/g)].map((m) => m[1]), ["opening", "planet", "sources", "receipts"]);
+  });
+
+  it("the lite tier's planet can stick: nothing between its stage and the page clips overflow", () => {
+    const wrapper = /<section id="ch-1"[^>]*><div class="([^"]*)">/.exec(on)?.[1] ?? "";
+    assert.doesNotMatch(wrapper, /(^|\s)overflow-(hidden|auto|scroll)(\s|$)/, wrapper);
+    assert.match(wrapper, /film-full:overflow-hidden/);
+    assert.doesNotMatch(/<div data-scene="planet"[^>]*><div class="([^"]*)"/.exec(on)?.[1] ?? "", /film-full:static|film-full:h-full/, "no class that undoes the hold on the full tier: the planet's act is laid over the stage there");
   });
 
   it("the tiers that do not draw live get pictures, lazily and in the system's theme, and the full tier hides them", () => {
     const planet = on.slice(on.indexOf("<picture"), on.indexOf("</picture>"));
-    assert.match(planet, /^<picture class="absolute inset-0 block film:hidden"><source media="\(max-width: 767px\)" srcSet="\/site\/film\/planet-upright\.avif"\/><img src="\/site\/film\/planet\.avif" alt=""/);
+    assert.match(planet, /^<picture class="absolute inset-0 block film:hidden"><source media="\(max-width: 767px\)" srcSet="\/site\/film\/planet-upright\.avif"\/><img src="\/site\/film\/planet\.avif" alt="" loading="lazy" decoding="async"/, "lazy, so the tiers that hide it never fetch it");
     const stills = [...on.matchAll(/<picture class="[^"]*film-full:hidden[^"]*"><source media="\(prefers-color-scheme: dark\)" srcSet="(\/site\/film\/[a-z-]+-dark\.avif)"\/><img src="(\/site\/film\/[a-z-]+-light\.avif)" alt="" width="1200" height="750" loading="lazy" decoding="async"/g)];
     assert.deepEqual(stills.map((m) => m[2]), ["/site/film/map-country-light.avif", "/site/film/map-gazipur-light.avif"]);
     const files = readdirSync(path.join(repoRoot, "public/site/film"));
@@ -322,7 +331,7 @@ describe("the home page, film off and film on", () => {
     assert.match(legal, /geoBoundaries/);
     assert.match(legal, /CC BY 3\.0 IGO/);
     assert.match(legal, /Natural Earth/);
-    assert.match(legal, /No address, name or identifier leaves our database/);
+    assert.match(legal, /No address, name or identifier is published for it/);
     assert.match(legal, /Last updated 6 Oct 2026/);
   });
 
@@ -336,7 +345,7 @@ describe("the home page, film off and film on", () => {
     const file = JSON.parse(readFileSync(path.join(repoRoot, "public/site/film/cells.json"), "utf8")) as CellFile;
     assert.ok(text(on).includes(LIGHTS));
     assert.deepEqual({ ...LIGHTS_FILE }, { date: file.date, mapped: file.mapped, suppliers: file.suppliers }, "LIGHTS_FILE in opening.tsx repeats the file: paste what build-cells.mjs printed");
-    assert.equal(LIGHTS, `One light per km² with suppliers · ${withCommas(file.mapped)} of ${withCommas(file.suppliers)} have a mapped address · ${readDay(file.date)}`);
+    assert.equal(LIGHTS, `One light per km² with suppliers · ${withCommas(file.mapped)} of ${withCommas(file.suppliers)} have a mapped register address · ${readDay(file.date)}`, "the source is named in the fact itself: the registers' addresses");
   });
 
   it("the four district counts are all in the page, dated, with no total, and none counts up", () => {
@@ -364,8 +373,13 @@ describe("the home page, film off and film on", () => {
     assert.match(text(on), /1 of 10,268 suppliers/);
   });
 
-  it("every later chapter is untouched", () => {
-    const rest = (m: string) => m.slice(m.indexOf('id="ch-02"'));
+  it("chapters 02 and 03 are the film's scenes, with no bordered card; from chapter 04 on the page is untouched", () => {
+    const scenes = on.slice(on.indexOf('id="ch-02"'), on.indexOf('id="ch-04"'));
+    assert.match(scenes, /^id="ch-02" data-scene="sources" data-chapter="ch-02"/);
+    assert.match(scenes, /<section id="ch-03" data-scene="receipts" data-chapter="ch-03"/);
+    assert.doesNotMatch(scenes, /rounded-lg border border-line/);
+    assert.equal((scenes.match(/<figure[^>]*aria-label="Supplier record: Mondol Fabrics Ltd\."/g) ?? []).length, 2, "the record once per scene");
+    const rest = (m: string) => m.slice(m.indexOf('id="ch-04"'));
     assert.equal(rest(on), rest(off));
   });
 });
@@ -443,7 +457,7 @@ describe("the opening's one scroll", () => {
   it("is four stretches in order: the dive, the words, the handover, the map; each 0 before and 1 after", () => {
     assert.deepEqual(openingAt(0), { dive: 0, words: 0, hand: 0, map: 0 });
     assert.deepEqual(openingAt(1), { dive: 1, words: 1, hand: 1, map: 1 });
-    assert.ok(OPENING.dive[1] <= OPENING.hand[1], "the dive is done before the planet is gone");
+    assert.ok(OPENING.dive[1] <= OPENING.hand[0], "the dive is done, and the planet still, before it starts to give way: one country through the crossfade");
     assert.ok(OPENING.words[1] <= OPENING.hand[1], "the words are gone before the planet is");
     assert.equal(OPENING.map[0], OPENING.hand[1], "the map's own scroll starts the moment the planet has given way");
     let last = openingAt(0);

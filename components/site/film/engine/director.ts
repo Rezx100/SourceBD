@@ -1,9 +1,14 @@
 // The director (handoff-home-film §5): the scroll is the film's only clock. A scene is a tall section whose stage
-// sticks to the screen; one passive scroll listener and one animation frame write `--p`, 0 to 1, on each scene, and
-// CSS does the rest. No smooth-scroll takeover, no scroll library. The rail's current chapter follows the scene
-// that holds the middle of the screen, and `--film-p` on the root is the page's own progress (the phone's line).
+// sticks to the screen; one passive scroll listener and one animation frame measure each scene's progress, 0 to 1,
+// and say it to the engine, which writes it where it is read. No smooth-scroll takeover, no scroll library. A scene
+// may ask for the number as CSS (`data-p`: then `--p` is set on it, and CSS does the rest); it is not set on every
+// scene, because an inherited property written on a tall subtree restyles all of it on every frame. The rail's
+// current chapter follows the scene that holds the middle of the screen, and its phone line gets the page's own
+// progress as `--film-p`.
 
-const clamp = (v: number) => Math.max(0, Math.min(1, v));
+export const clamp = (v: number) => Math.max(0, Math.min(1, v));
+/** A stretch of a scroll, 0 before `a`, 1 after `b`, even between. */
+export const span = ([a, b]: readonly [number, number], p: number) => clamp((p - a) / (b - a));
 
 /**
  * How far a scene has been scrolled through its hold. 0 while its top is at or below the top of the screen, 1 once
@@ -23,7 +28,11 @@ export function currentChapter(scenes: readonly { chapter: string; top: number; 
   return found;
 }
 
-export type Director = { destroy(): void };
+export type Director = {
+  /** Says every scene's last progress again: for a layer that was still loading when the scroll spoke. */
+  replay(): void;
+  destroy(): void;
+};
 
 /**
  * Drives every `[data-scene]` under `root`. `onScene` hears a scene's name and progress when it changes, for the
@@ -31,8 +40,10 @@ export type Director = { destroy(): void };
  */
 export function createDirector(root: HTMLElement, onScene?: (name: string, p: number) => void): Director {
   const scenes = [...root.querySelectorAll<HTMLElement>("[data-scene]")];
+  const line = root.querySelector<HTMLElement>('nav[aria-label="Chapters"] > span');
   const last = new Map<HTMLElement, number>();
   let chapter: string | null = null;
+  let pageP = -1;
   let raf = 0;
   const measure = () => {
     raf = 0;
@@ -42,7 +53,7 @@ export function createDirector(root: HTMLElement, onScene?: (name: string, p: nu
       const p = Math.round(sceneProgress(box.top, box.height, vh) * 1000) / 1000;
       if (last.get(el) === p) continue;
       last.set(el, p);
-      el.style.setProperty("--p", String(p));
+      if (el.hasAttribute("data-p")) el.style.setProperty("--p", String(p));
       onScene?.(el.dataset.scene ?? "", p);
     }
     const now = currentChapter(boxes.map(({ el, box }) => ({ chapter: el.dataset.chapter ?? "", top: box.top, bottom: box.bottom })), vh);
@@ -53,8 +64,11 @@ export function createDirector(root: HTMLElement, onScene?: (name: string, p: nu
         else a.removeAttribute("aria-current");
       }
     }
-    const page = root.getBoundingClientRect();
-    root.style.setProperty("--film-p", String(Math.round(sceneProgress(page.top, page.height, vh) * 1000) / 1000));
+    if (line) {
+      const page = root.getBoundingClientRect();
+      const p = Math.round(sceneProgress(page.top, page.height, vh) * 1000) / 1000;
+      if (p !== pageP) line.style.setProperty("--film-p", String((pageP = p)));
+    }
   };
   const queue = () => {
     if (!raf) raf = requestAnimationFrame(measure);
@@ -63,6 +77,9 @@ export function createDirector(root: HTMLElement, onScene?: (name: string, p: nu
   addEventListener("resize", queue);
   queue();
   return {
+    replay() {
+      for (const [el, p] of last) onScene?.(el.dataset.scene ?? "", p);
+    },
     destroy() {
       cancelAnimationFrame(raf);
       removeEventListener("scroll", queue);

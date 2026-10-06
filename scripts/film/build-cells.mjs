@@ -9,32 +9,28 @@
 // normalised key). The SQL it stands for, and each run's result, are in ops/plans/home-film-data.md (rule 14).
 //
 // Usage: node scripts/film/build-cells.mjs [--env E:/SourceBD/.env] [--story "Mondol Fabrics Ltd."]
-// Reads SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL) and SUPABASE_SERVICE_ROLE_KEY from the environment or
-// the env file. Prints counts only.
+// Node 22.18 or newer (it imports a .ts file). Reads SUPABASE_URL (or NEXT_PUBLIC_SUPABASE_URL) and
+// SUPABASE_SERVICE_ROLE_KEY from the environment or the env file. Prints counts only.
 
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
-import { applyPlaceLexicon } from "../../lib/bd-place-lexicon.ts";
+import { normalizeAddressKey } from "../../lib/bd-place-lexicon.ts";
 
 const arg = (name, fallback) => {
   const i = process.argv.indexOf(name);
-  return i > 0 ? process.argv[i + 1] : fallback;
+  if (i < 0) return fallback;
+  if (process.argv[i + 1] === undefined) throw new Error(`${name} needs a value`);
+  return process.argv[i + 1];
 };
 const envFile = arg("--env", ".env");
 const STORY = arg("--story", "Mondol Fabrics Ltd.");
 const OUT = path.join(path.dirname(fileURLToPath(import.meta.url)), "../../public/site/film/cells.json");
 
-// The env file may hold lines that are not variables; only KEY=value lines are read, and nothing is printed.
-try {
-  for (const line of readFileSync(envFile, "utf8").split(/\r?\n/)) {
-    const m = /^\s*([A-Z][A-Z0-9_]*)=(.*)$/.exec(line);
-    if (m && !(m[1] in process.env)) process.env[m[1]] = m[2].trim().replace(/^["']|["']$/g, "");
-  }
-} catch {
-  /* no env file: the variables must already be set */
-}
+// The default env file is optional (the variables may be set already); one named on the command line must exist.
+if (existsSync(envFile)) process.loadEnvFile(envFile);
+else if (envFile !== ".env") throw new Error(`no env file at ${envFile}`);
 const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!url || !key) throw new Error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are needed (read-only; see ops/plans/home-film-data.md)");
@@ -42,23 +38,29 @@ const sb = createClient(url, key, { auth: { persistSession: false, autoRefreshTo
 
 /**
  * Every row of a table or view, a page at a time. The pages are ordered (Postgres gives separate LIMIT/OFFSET reads
- * no order of their own, so an unordered page can skip or repeat a row), and the read goes on until an empty page
- * comes back, whatever the server's own page size is.
+ * no order of their own, so an unordered page can skip or repeat a row: the first run's defect), and the read goes
+ * on until an empty page comes back, whatever the server's own page size is. The guard that run lacked: the rows
+ * read must be as many as the server counts, with no `id` read twice, or nothing is written.
  */
 async function all(from, select, order, filter = (q) => q) {
   const rows = [];
-  for (let at = 0; ; at += rows.length - at) {
+  for (;;) {
     let q = filter(sb.from(from).select(select));
     for (const col of order) q = q.order(col);
-    const { data, error } = await q.range(at, at + 999);
+    const { data, error } = await q.range(rows.length, rows.length + 999);
     if (error) throw new Error(`${from}: ${error.message}`);
-    if (!data.length) return rows;
+    if (!data.length) break;
     rows.push(...data);
   }
+  const { count, error } = await filter(sb.from(from).select("*", { count: "exact", head: true }));
+  if (error) throw new Error(`${from}: ${error.message}`);
+  if (count !== rows.length) throw new Error(`${from}: read ${rows.length} rows, the server counts ${count}`);
+  if (order[0] === "id" && new Set(rows.map((r) => r.id)).size !== rows.length) throw new Error(`${from}: a row was read twice`);
+  return rows;
 }
 
 /** The same key the ETL geocode job and lib/barikoi.ts use. */
-const normalize = (address) => applyPlaceLexicon(address.trim().toLowerCase().replace(/\s+/g, " ")).replace(/\s+/g, " ").trim();
+const normalize = normalizeAddressKey;
 
 // Bangladesh, generously; a geocode outside it is the provider's miss, not a supplier.
 const INSIDE = ([lng, lat]) => lng > 87.9 && lng < 92.8 && lat > 20.4 && lat < 26.8;
@@ -74,7 +76,7 @@ const rank = (kind) => (KIND_ORDER.indexOf(kind) + 1 || KIND_ORDER.length + 1);
 
 const suppliers = await all("suppliers", "id, company_name", ["id"], (q) => q.eq("is_published", true));
 const addresses = await all("v_supplier_addresses", "supplier_id, address_kind, address", ["supplier_id", "address_kind", "address"]);
-const geocodes = await all("address_geocodes", "address_raw, address_norm, latitude, longitude, confidence_pct, address_status", ["id"], (q) => q.not("latitude", "is", null).not("longitude", "is", null));
+const geocodes = await all("address_geocodes", "id, address_raw, address_norm, latitude, longitude, confidence_pct, address_status", ["id"], (q) => q.not("latitude", "is", null).not("longitude", "is", null));
 
 const byRaw = new Map(), byNorm = new Map();
 for (const g of geocodes) {
@@ -105,23 +107,25 @@ const placeOf = (id) => {
   return null;
 };
 
-const counts = new Map();
-let mapped = 0;
-for (const s of suppliers) {
-  const hit = placeOf(s.id);
-  if (!hit) continue;
-  mapped++;
-  const k = cellOf(hit.at).join();
-  counts.set(k, (counts.get(k) ?? 0) + 1);
-}
-const cells = [...counts].map(([k, n]) => [...centre(k.split(",").map(Number)), n]).sort((a, b) => a[1] - b[1] || a[0] - b[0]);
-
 // The register spells the name in capitals with no stop ("MONDOL FABRICS LTD"); letters and digits decide.
 const plain = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 const story = suppliers.filter((s) => plain(s.company_name) === plain(STORY));
 if (story.length !== 1) throw new Error(`${story.length} published suppliers named "${STORY}"`);
-const place = placeOf(story[0].id);
+
+const counts = new Map();
+let mapped = 0;
+let place = null;
+for (const s of suppliers) {
+  const hit = placeOf(s.id);
+  if (!hit) continue;
+  mapped++;
+  // The story's place is taken from the same pass, so it is counted once like every other supplier.
+  if (s.id === story[0].id) place = hit;
+  const k = cellOf(hit.at).join();
+  counts.set(k, (counts.get(k) ?? 0) + 1);
+}
 if (!place) throw new Error(`"${STORY}" has no mapped address`);
+const cells = [...counts].map(([k, n]) => [...centre(k.split(",").map(Number)), n]).sort((a, b) => a[1] - b[1] || a[0] - b[0]);
 
 const date = new Date().toISOString().slice(0, 10);
 const file = { date, what: "suppliers per km²", mapped, suppliers: suppliers.length, cells, chosen: [+place.at[0].toFixed(4), +place.at[1].toFixed(4)] };

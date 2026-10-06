@@ -69,7 +69,10 @@ head.set([8, 0, 0, 0, 0], 8); // 8-bit greyscale
 writeFileSync(path.join(out, "land.png"), Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", head), chunk("IDAT", deflateSync(gray, { level: 9 })), chunk("IEND", Buffer.alloc(0))]));
 
 // --- the map of Bangladesh ---------------------------------------------------------------------------------
-const BOX = [66.0, 6.0, 106.0, 38.0]; // further than the camera ever looks (the handover at zoom 5.5 sees 75° to 106°), so the box's own edge is never seen
+// Further than the camera looks: the handover (zoom 5.5, 64 px per degree, the centre at 69% of the stage) sees 75° to 106° on a
+// 1440 px stage and 58° to 108° on one about 3,000 px wide, so the box's own edge is never seen on a screen that wide.
+// ponytail: a wider stage still meets the edge; a horizon that grows with the stage would need the clip done in the browser.
+const BOX = [58.0, 4.0, 108.0, 40.0];
 const UNIT = 1000;
 
 /** Douglas-Peucker: drop the points that move the line less than `tol` degrees. */

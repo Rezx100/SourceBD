@@ -18,7 +18,10 @@ import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
 
-import { applyPlaceLexicon } from "@/lib/bd-place-lexicon";
+import { normalizeAddressKey } from "@/lib/bd-place-lexicon";
+
+/** The cache key (REZ-28) lives beside the lexicon, where a plain Node script can also read it; re-exported for the app. */
+export { normalizeAddressKey };
 
 export type GeocodedLocation = {
   latitude: number;
@@ -44,13 +47,6 @@ export type GeocodeTarget = {
   lookups: readonly string[];
   kind?: string;
 };
-
-/** Same normalisation the ETL job uses — keep the two in sync (REZ-28:
- *  place lexicon applied so variant spellings share the same cache key). */
-export function normalizeAddressKey(address: string): string {
-  const lower = address.trim().toLowerCase().replace(/\s+/g, " ");
-  return applyPlaceLexicon(lower).replace(/\s+/g, " ").trim();
-}
 
 type CacheHit = {
   latitude: number;

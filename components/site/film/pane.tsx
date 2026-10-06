@@ -42,6 +42,8 @@ export type RecordRow = {
   mono?: string;
   /** The source the row comes from, or every source for the "Sources" row: their marks are drawn, in this order. */
   marks?: string[];
+  /** A row that arrives at its moment in a scene (engine/chapters.ts turns it on); on the full tier it is unseen until then. */
+  beat?: boolean;
 };
 
 /**
@@ -65,7 +67,7 @@ export function RecordPane({ name, line, rows, state, arriving, material = "soli
           {rows.map((r) => {
             const many = (r.marks?.length ?? 0) > 1;
             return (
-              <div key={r.label} className={cn("flex gap-3 border-t border-line py-3", arriving === r.label && "rec-arrive")}>
+              <div key={r.label} data-row={r.label} data-beat={r.beat ? "" : undefined} className={cn("flex gap-3 border-t border-line py-3", arriving === r.label && "rec-arrive")}>
                 {r.marks?.length === 1 ? <Mark source={r.marks[0]!} /> : null}
                 <div className="rec-words flex min-w-0 flex-1 flex-col gap-0.5">
                   <dt className="text-xs text-ink-3">{r.label}</dt>
