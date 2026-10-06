@@ -158,7 +158,7 @@ export function Home({ facts, film = false }: { facts: SiteFacts; film?: boolean
 
       <Chapter n="06" question="Will it still be true next month?" headline="The list changes. We check again." lede="Your saved suppliers are checked against our latest copy of the UFLPA Entity List. We say what we found, never “clear”." record={R(SOURCES, BGMEA, record.GOTS_DUE, SAFETY, SITE, EXPORTS, mark(UFLPA))}>
         <ol className="flex flex-col gap-4 border-l border-line pl-5">
-          {[["3 Oct", "Day 0 · shortlisted"], ["1 Nov", "Day 43 · alert: GOTS valid until 15 Dec"], ["1 Dec", "New list copy · checked again"]].map(([d, t]) => (
+          {[["3 Oct", "Day 0 · shortlisted"], ["15 Nov", "Day 43 · alert: GOTS valid until 15 Dec"], ["1 Dec", "New list copy · checked again"]].map(([d, t]) => (
             <li key={d} className="flex flex-col gap-0.5">
               <span className="font-mono text-xs text-ink-3">{d}</span>
               <span className="text-base text-ink">{t}</span>

@@ -102,7 +102,8 @@ Found while building slice 4 (7 Oct 2026):
 - A row to watch (`watch` on `RecordRow`) renders its value amber; on the full tier it is ink until the engine
   writes `data-due` on its day (Tailwind's `group-data-[due]/row` variant, no CSS of its own).
 - The dates of today's chapter 06 did not add up (1 Nov was called day 43): day 43 from 3 Oct is 15 Nov, which is
-  30 days before the certificate's 15 Dec, so the film says 15 Nov; the page without the film is untouched.
+  30 days before the certificate's 15 Dec. Both the film and the page without it now say 15 Nov (the one word
+  changed on the page without the film).
 - From the slice-3 session's follow-up, carried in this PR: the threads' geometry is measured only when the layout
   moves (a resize, the fonts arriving, a row arriving), never per frame; the overlock's and the roll's variables
   are written on the parts that read them; the record's marks are fetched lazily.

@@ -157,8 +157,9 @@ export function startFilm(root: HTMLElement, tier: Tier, loadMapLib: () => Promi
           return { left: Math.round(w * (WORDS_PAD - 0.2 * k)), right: Math.round(w * 0.16 * k), top: 0, bottom: 0 };
         },
         onMove(proj) {
-          // The thread draws from 0.82: until the camera nears, nothing to lay out.
-          if (mapP < 0.8) return;
+          // The thread draws from 0.82: until the camera nears, nothing to lay out; and nothing while scene 06 has
+          // the map, whose every frame would otherwise lay out this thread off screen.
+          if (mapP < 0.8 || owner === "site") return;
           const pane = acts.record?.querySelector("figure")?.getBoundingClientRect();
           const box = stage.getBoundingClientRect();
           if (!file.chosen || !pane) return;

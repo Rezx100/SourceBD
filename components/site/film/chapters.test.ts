@@ -287,8 +287,8 @@ describe("the later chapters' arithmetic", () => {
     assert.deepEqual({ ...timeAt(1), marks: undefined }, { t: 1, day: 73, marks: undefined, alert: true, list: true });
     const { marks } = timeAt(0.5);
     assert.ok(marks[0] === TIME.run[0] && marks[1]! < marks[2]! && marks[2]! < TIME.run[1]);
-    assert.equal(timeAt(marks[1]! - 0.01).alert, false);
-    assert.equal(timeAt(marks[1]!).alert, true, "the mark is the point at which the day comes");
+    assert.equal(timeAt(marks[1]!).alert, false);
+    assert.equal(timeAt(marks[1]! + 0.001).alert, true, "past its mark, by the same rule the beats use");
     assert.equal(timeAt(marks[2]! + 0.01).list, true);
     for (let p = 0; p < 1; p += 0.01) assert.ok(timeAt(p + 0.01).day >= timeAt(p).day, "the days never run backwards as the scroll runs forward");
   });

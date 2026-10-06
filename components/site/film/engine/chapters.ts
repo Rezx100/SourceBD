@@ -93,7 +93,9 @@ export function timeAt(p: number) {
   const day = Math.round(t * TIME.days);
   /** The point of the scroll at which a day comes. */
   const at = (d: number) => TIME.run[0] + (TIME.run[1] - TIME.run[0]) * (d / TIME.days);
-  return { t, day, marks: TIME.marks.map(at), alert: day >= TIME.marks[1], list: day >= TIME.marks[2] };
+  const marks = TIME.marks.map(at);
+  // The same rule the DOM uses for its beats (`holds`, from off): a mark is passed once the scroll is past it.
+  return { t, day, marks, alert: holds(false, p, marks[1]!), list: holds(false, p, marks[2]!) };
 }
 
 export type Point = { x: number; y: number };
@@ -138,10 +140,10 @@ export function startChapters(root: HTMLElement, tier: Tier, hooks: ChapterHooks
   const siteTie = all<SVGGElement>(site, "[data-tie]")[0];
   const siteRow = all<HTMLElement>(site, "[data-row][data-beat]")[0];
   const siteNote = all<HTMLElement>(site, "[data-beat]:not([data-row])")[0];
-  const exports = scene("exports");
-  const carton = exports?.querySelector<SVGSVGElement>("svg[data-carton]") ?? null;
-  const cartonTie = all<SVGGElement>(exports, "[data-tie]")[0];
-  const exportsRow = all<HTMLElement>(exports, "[data-row][data-beat]")[0];
+  const exportsScene = scene("exports");
+  const carton = exportsScene?.querySelector<SVGSVGElement>("svg[data-carton]") ?? null;
+  const cartonTie = all<SVGGElement>(exportsScene, "[data-tie]")[0];
+  const exportsRow = all<HTMLElement>(exportsScene, "[data-row][data-beat]")[0];
   const time = scene("time");
   const line = time?.querySelector<SVGSVGElement>("svg[data-timeline]") ?? null;
   const days = all<HTMLElement>(time, "[data-days] > li");
@@ -155,9 +157,10 @@ export function startChapters(root: HTMLElement, tier: Tier, hooks: ChapterHooks
   let staleSources = true;
   let staleReceipts = true;
   let staleExports = true;
+  let staleSite = true;
   let stalePlaces = true;
   const invalidate = () => {
-    staleSources = staleReceipts = staleExports = stalePlaces = true;
+    staleSources = staleReceipts = staleExports = staleSite = stalePlaces = true;
   };
   addEventListener("resize", invalidate);
   void document.fonts?.ready.then(invalidate);
@@ -261,7 +264,8 @@ export function startChapters(root: HTMLElement, tier: Tier, hooks: ChapterHooks
   };
 
   // The light moves with the camera on every frame, but the map says where it is without a layout; only the
-  // row's dot is measured, when it arrives.
+  // row's dot is measured, when it arrives or the layout moves (its own flag: an earlier scene in the same frame
+  // may have cleared the shared one).
   let siteDot: Point | null = null;
   const showSite = (p: number) => {
     if (!site) return;
@@ -269,7 +273,8 @@ export function startChapters(root: HTMLElement, tier: Tier, hooks: ChapterHooks
     const from = hooks.site?.(p) ?? null;
     beat(siteRow, p, SITE.tie[0]);
     beat(siteNote, p, SITE.note);
-    if (stalePlaces) {
+    if (stalePlaces || staleSite) {
+      staleSite = false;
       const box = layerOf(siteTie);
       siteDot = box ? dotOf(box, siteRow) : null;
     }
@@ -279,7 +284,7 @@ export function startChapters(root: HTMLElement, tier: Tier, hooks: ChapterHooks
   // The carton's edge is measured once it has slid in (the thread sets out only then); a measure mid-slide would be stale at once.
   let cartonGeo: { end: Point | null; dot: Point | null } | null = null;
   const showExports = (p: number) => {
-    if (!exports) return;
+    if (!exportsScene) return;
     const at = exportsAt(p);
     carton?.style.setProperty("--slide", at.slide.toFixed(3));
     beat(exportsRow, p, EXPORTS.tie[0]);
