@@ -86,6 +86,17 @@ export default function PrivacyPage() {
             <strong>Communications:</strong> messages sent through the
             in-platform messaging system and inbound support email.
           </li>
+          <li>
+            <strong>Activity record</strong> (from 5 November 2026):
+            every action taken on the platform — sign-ins, searches,
+            supplier profiles opened, RFQs, quotes, messages, files,
+            orders, claims and settings changes — written down once, at
+            the moment it happens, with the time, the account and its
+            email, the session, the IP address and the browser or
+            device it came from. The record cannot be edited or
+            deleted, and it is sealed each hour so that any later
+            change to it would show.
+          </li>
         </ul>
 
         <h2>
@@ -121,13 +132,21 @@ export default function PrivacyPage() {
         </p>
 
         <h2>
-          7. Retention
+          7. Retention and legal holds
         </h2>
         <p>
-          Account data is retained for the life of your account and
-          for 12 months after closure to handle billing disputes and
-          legal obligations. Aggregated usage data may be retained
-          longer in non-identifying form.
+          Account data is retained for the life of your account. From
+          5 November 2026, the record of your dealings on the platform
+          (RFQs, quotes, messages, files, orders, claims and the
+          activity record) is kept for <strong>7 years</strong> after
+          your account closes, because those records may be needed in
+          a dispute, a legal claim or a request from an authority.
+          After that, personal details are removed from them. Where a
+          dispute, an investigation or a legal request is open, we may
+          place a <em>legal hold</em> on the records involved, which
+          pauses that removal until the matter is closed. An account
+          with dealings on record is closed, not deleted. Aggregated
+          usage data may be retained longer in non-identifying form.
         </p>
 
         <h2>
@@ -142,7 +161,30 @@ export default function PrivacyPage() {
         </p>
 
         <h2>
-          9. Supplier records
+          9. Moderation, safety and legal requests
+        </h2>
+        <p>
+          From 5 November 2026, SourceBD staff may open and read RFQs,
+          quotes, messages and attached files sent through the
+          platform where that is needed to keep the platform safe:
+          to look into a report from another user, suspected fraud or
+          scraping, a dispute between a buyer and a supplier, a breach
+          of the Terms of Service, or a request from a court, the
+          police or a regulator. Every such access is made for a
+          stated reason, is written to the same activity record, and
+          can be seen by the people whose content was opened on
+          request. Staff do not read private content for any other
+          purpose. Where we act on what we find — a warning, a
+          restriction, a suspension, a ban, a hidden message or a
+          paused RFQ — we tell the account holder what was done and
+          why, and how to appeal. We disclose records to courts and
+          authorities only under a written procedure and where the law
+          requires or permits it, and we tell the account holder unless
+          the law forbids it.
+        </p>
+
+        <h2>
+          10. Supplier records
         </h2>
         <p>
           Most supplier records on the platform are business records
@@ -157,12 +199,16 @@ export default function PrivacyPage() {
         </p>
 
         <h2>
-          10. Changes
+          11. Changes
         </h2>
         <p>
           Material changes to this notice will be notified by email to
           active account holders at least 30 days before they take
-          effect.
+          effect. The changes of 6 October 2026 — the activity record
+          (section 3), the 7-year retention of dealings and legal holds
+          (section 7), and moderation, safety and legal requests
+          (section 9) — were notified on that day and take effect on
+          <strong>5 November 2026</strong>.
         </p>
       </LegalShell>
   );

@@ -336,6 +336,17 @@
     animation: ds-rec-rise 200ms cubic-bezier(0, 0, 0.2, 1) 460ms both;
   }
 
+  /* The film's map: the library's canvas fills its stage. Its own stylesheet is not loaded (it fetches two
+     more from a CDN), and its control corner is not drawn: the map shows none of its tiles here. */
+  [data-map] canvas {
+    position: absolute;
+    inset: 0;
+  }
+
+  [data-map] .maplibregl-control-container {
+    display: none;
+  }
+
   /* The thread (§3.4): one green path. `--p` (0 to 1, written by the scroll)
      draws it; with no `--p` it is whole, which is what a still page shows. */
   .thread {

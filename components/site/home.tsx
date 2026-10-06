@@ -12,6 +12,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { TIER_SCRIPT } from "@/components/site/film/engine/tier";
+import { Opening } from "@/components/site/film/opening";
+import { FilmRuntime } from "@/components/site/film/runtime";
 import { ClaimReceipt, Display, Faq, HeroActions, Label, Lede, RecordCard, Section, Stat, wrap, type Row } from "@/components/site/parts";
 import { RoleTabs } from "@/components/site/role-tabs";
 import { readDay, withCommas, type SiteFacts } from "@/lib/site-facts";
@@ -56,12 +59,21 @@ function Chapter({ n, question, headline, lede, record, children }: { n: string;
   );
 }
 
-export function Home({ facts }: { facts: SiteFacts }) {
+/** `film` is the flag (`?film=1` or NEXT_PUBLIC_HOME_FILM=1): off, the page is exactly what it was before the film. */
+export function Home({ facts, film = false }: { facts: SiteFacts; film?: boolean }) {
   const count = facts.suppliers !== null ? withCommas(facts.suppliers) : null;
   const updated = readDay(facts.latestRead);
   const R = (...rows: Row[]) => rows;
   return (
-    <main className="font-sans text-ink">
+    <main className="font-sans text-ink" {...(film ? { "data-film": "", "data-theme-auto": "" } : {})}>
+      {film ? (
+        <>
+          <script dangerouslySetInnerHTML={{ __html: TIER_SCRIPT }} />
+          <FilmRuntime />
+          <Opening count={count} updated={updated} />
+        </>
+      ) : (
+        <>
       {/* 1 · Opening */}
       <section className="pb-24 pt-20 max-md:pb-14 max-md:pt-10">
         <div className={cn(wrap, "flex flex-col gap-12 lg:flex-row lg:items-center lg:justify-between")}>
@@ -98,6 +110,8 @@ export function Home({ facts }: { facts: SiteFacts }) {
           <p className="font-mono text-xs text-ink-3">A real record, as it stands on 3 Oct 2026.</p>
         </div>
       </Section>
+        </>
+      )}
 
       <Chapter n="02" question="Who are they?" headline="One factory. One record." lede="Five registers file it under their own number, on their own date. We match them to one factory, and every fact keeps the source it came from and the day we read it." record={R(mark(SOURCES))}>
         <ul className="flex flex-col divide-y divide-line border-y border-line">

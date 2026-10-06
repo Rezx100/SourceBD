@@ -62,6 +62,7 @@
     "lib/strip-contact-keys.ts",
     "app/api/v1/settings/route.test.ts",
     "app/api/v1/team/route.test.ts",
+    "app/api/v1/claims/route.test.ts",
     "app/api/v1/feedback/route.test.ts",
     "components/frame/feedback.test.ts",
     "app/api/v1/rfqs/route.test.ts",
