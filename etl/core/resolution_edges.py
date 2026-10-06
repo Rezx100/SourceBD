@@ -66,8 +66,9 @@ def pair_key(a: str, b: str) -> tuple[str, str]:
 
 def clear_live_same_edge_cache() -> None:
     """Drop the process-local same-edge index (tests / new scraper run)."""
-    global _SAME_EDGE_INDEX
+    global _SAME_EDGE_INDEX, _DIFFERENT_PAIRS
     _SAME_EDGE_INDEX = None
+    _DIFFERENT_PAIRS = None
 
 
 def load_live_edges(cur) -> list[LiveEdge]:
@@ -112,6 +113,35 @@ def _index_same_edges(edges: list[LiveEdge]) -> dict[str, list[LiveEdge]]:
         index.setdefault(e.supplier_a, []).append(e)
         index.setdefault(e.supplier_b, []).append(e)
     return index
+
+
+_DIFFERENT_PAIRS: set[tuple[str, str]] | None = None
+
+
+def ruled_different(cur, a: str, b: str) -> bool:
+    """Live `different` ruling between a and b (loaded once per process)."""
+    global _DIFFERENT_PAIRS
+    if _DIFFERENT_PAIRS is None:
+        _DIFFERENT_PAIRS = {
+            (e.supplier_a, e.supplier_b)
+            for e in load_live_edges(cur) if e.verdict == "different"
+        }
+    return pair_key(a, b) in _DIFFERENT_PAIRS
+
+
+def write_edge(cur, a: str, b: str, *, verdict: str, decided_by: str,
+               rationale: str, evidence_note: str | None = None) -> None:
+    """Insert a live ruling; a live ruling for the pair already wins."""
+    lo, hi = pair_key(a, b)
+    cur.execute(
+        """insert into public.resolution_edges
+               (supplier_a, supplier_b, verdict, decided_by, rationale, evidence_note)
+           values (%s, %s, %s, %s, %s, %s)
+           on conflict (supplier_a, supplier_b) where superseded_at is null do nothing""",
+        (lo, hi, verdict, decided_by, rationale, evidence_note),
+    )
+    if verdict == "different" and _DIFFERENT_PAIRS is not None:
+        _DIFFERENT_PAIRS.add((lo, hi))
 
 
 def ensure_same_edge_index(cur) -> dict[str, list[LiveEdge]]:

@@ -36,6 +36,9 @@ corny-fashion / crony-fashion, and maxim-international against maxtrims-, max- a
 maximo-international. C2 holds an ambiguous match when the best candidate has a
 never-same ruling against another candidate; `--verify` lists these as "at risk".
 
+Update, C2 (same day): a fuzzy match must now also agree on the company's leading
+word, so none of these pairs can be joined; a near spelling is held for review.
+
 ## Founder commands
 
 Apply (on the server in /opt/sourcebd, after reading this; ops/ is mounted, not baked into the image):

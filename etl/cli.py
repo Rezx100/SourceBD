@@ -127,6 +127,12 @@ def run(
         "longer listed even when there are more than the hold limit (founder knob, "
         "after reading the held run's numbers in /admin/sources).",
     ),
+    accept_changes: bool = typer.Option(
+        False,
+        "--accept-changes",
+        help="Release a run the circuit breaker stopped (more than 5% of rows changed or "
+        "more than 20 new companies). Founder knob, after reading the held run.",
+    ),
 ) -> None:
     """Run a scraper or maintenance job end-to-end."""
     cls = RUNNABLE.get(scraper)
@@ -158,6 +164,8 @@ def run(
             typer.echo("--accept-delistings only applies to sanctions lists.")
             raise typer.Exit(1)
         instance.accept_delistings = True
+    if accept_changes:
+        instance.accept_changes = True
     result = asyncio.run(instance.run())
     typer.echo(str(result))
 

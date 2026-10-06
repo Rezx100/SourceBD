@@ -42,8 +42,9 @@ def _bkmea_record(**over) -> ScrapedRecord:
 
 
 def _reg_updates(cur: FakeCursor):
+    # Writes only: the C2 near-match check reads the column too.
     return [(sql, params) for sql, params in cur.executed
-            if "bkmea_reg_number" in sql]
+            if "bkmea_reg_number" in sql and not sql.lstrip().startswith("select")]
 
 
 def test_canonical_detail_record_overwrites_the_column(patched_db) -> None:
