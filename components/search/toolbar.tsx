@@ -166,7 +166,9 @@ export function ResultsToolbar({
   const words = filterCount(state) > (state.q ? 1 : 0) ? "[@container_(max-width:1439px)]:sr-only" : "[@container_(max-width:1151px)]:sr-only";
   const on = filterCount(state);
   return (
-    <div className="relative flex items-center gap-x-4 border-b border-line px-6 py-3 [container-type:inline-size] max-md:hidden">
+    <div className="relative border-b border-line max-md:hidden">
+      {/* The row measures itself here, not on the bar: a container is a stacking context, and the Save popover must stay above the table's sticky head. */}
+      <div className="flex items-center gap-x-4 px-6 py-3 [container-type:inline-size]">
       <h1 className="min-w-0 text-base font-semibold text-ink">{title}</h1>
       <div className={rail}>
         {barMenus(state).map((m) => (
@@ -201,6 +203,7 @@ export function ResultsToolbar({
         {more}
       </div>
       )}
+      </div>
       {savePanel}
     </div>
   );
