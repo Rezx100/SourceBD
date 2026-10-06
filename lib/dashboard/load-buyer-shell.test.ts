@@ -18,7 +18,7 @@ import { loadBuyerShell, readPublished, recordsCaption } from "./load-buyer-shel
 type Stub = Parameters<typeof loadBuyerShell>[0];
 
 function stub(over: {
-  settings?: { display_name?: unknown; avatar_url?: unknown } | null;
+  settings?: { display_name?: unknown; avatar_url?: unknown; role?: unknown } | null;
   user?: { id?: string; email?: string; user_metadata?: Record<string, unknown> } | null;
   throwOn?: "rpc" | "auth" | "all";
   calls?: string[];
@@ -45,7 +45,7 @@ function stub(over: {
 describe("the buyer shell names who is signed in, or says it could not", () => {
   it("the initial is two letters of a name, and the profile's own name and photo win", async () => {
     const { account } = await loadBuyerShell(stub({ user: { email: "r@example.invalid", user_metadata: { full_name: "Rezaul Karim" } } }));
-    assert.deepEqual(account, { initial: "RK", name: "Rezaul Karim", email: "r@example.invalid", avatarUrl: null });
+    assert.deepEqual(account, { initial: "RK", name: "Rezaul Karim", email: "r@example.invalid", avatarUrl: null, admin: false });
     const set = await loadBuyerShell(
       stub({ user: { email: "r@example.invalid", user_metadata: { full_name: "Rezaul Karim" } }, settings: { display_name: "Zahir Uddin", avatar_url: "https://img.example.invalid/z.png" } }),
     );
@@ -74,6 +74,13 @@ describe("the buyer shell names who is signed in, or says it could not", () => {
     assert.equal(failed.userId, null);
     assert.equal(failed.account, null, "an unread sign-in draws no account, not a made-up one");
     assert.deepEqual(await loadBuyerShell(stub({ throwOn: "all" })), { account: null, userId: null });
+  });
+
+  it("only an admin's account carries the console link, from the settings read already made", async () => {
+    const user = { email: "r@example.invalid" };
+    assert.equal((await loadBuyerShell(stub({ user, settings: { role: "admin" } }))).account?.admin, true);
+    assert.equal((await loadBuyerShell(stub({ user, settings: { role: "buyer" } }))).account?.admin, false);
+    assert.equal((await loadBuyerShell(stub({ user, throwOn: "rpc" }))).account?.admin, false, "an unread role draws no link");
   });
 
   it("a failed settings read keeps the session's name", async () => {

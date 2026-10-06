@@ -10,7 +10,7 @@ import { TAG_DISCOVER_SUPPLIERS } from "@/lib/cache/tags";
 
 export type BuyerShellModels = {
   /** Who is signed in, for the account menu; null when the sign-in was not read (the frame then draws "Your account"). */
-  account: { initial: string | null; name: string | null; email: string | null; avatarUrl: string | null } | null;
+  account: { initial: string | null; name: string | null; email: string | null; avatarUrl: string | null; admin: boolean } | null;
   /** Who is signed in, for analytics; null when the sign-in was not read. */
   userId: string | null;
 };
@@ -86,7 +86,7 @@ export async function loadBuyerShell(
       const [{ data }, settings] = await Promise.all([
         supabase.auth.getUser(),
         (async () => supabase.rpc("settings_get"))().then(
-          (r: { data?: unknown }) => (r?.data && typeof r.data === "object" ? (r.data as { display_name?: unknown; avatar_url?: unknown }) : null),
+          (r: { data?: unknown }) => (r?.data && typeof r.data === "object" ? (r.data as { display_name?: unknown; avatar_url?: unknown; role?: unknown }) : null),
           () => null,
         ),
       ]);
@@ -105,6 +105,9 @@ export async function loadBuyerShell(
           name: fullName || null,
           email: email.trim() || null,
           avatarUrl,
+          // An admin's menu links to /admin (founder, 6 Oct 2026). The role comes in the settings read
+          // already made, so the link costs no read; /admin checks the role on the server itself.
+          admin: settings?.role === "admin",
         },
       };
     } catch {
