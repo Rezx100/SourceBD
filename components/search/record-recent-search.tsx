@@ -45,15 +45,23 @@ export function readRecentSearches(): RecentSearch[] {
           return false;
         }
       })
+      .filter((r, i, all) => all.findIndex((o) => sameSearch(o, r)) === i)
       .slice(0, MAX);
   } catch {
     return [];
   }
 }
 
+/**
+ * One search, whatever page or order it was last seen at: the same words are the same search
+ * to the buyer. Keyed on the href alone, "HS 6110 · Sanctioned hidden" sorted by workers and by
+ * sources filled two of the three rows (founder's walkthrough, 6 Oct 2026).
+ */
+const sameSearch = (a: RecentSearch, b: RecentSearch) => a.href === b.href || (a.label !== "" && a.label === b.label);
+
 export function pushRecent(list: RecentSearch[], entry: RecentSearch, max = MAX): RecentSearch[] {
   if (!entry.href) return list.slice(0, max);
-  return [entry, ...list.filter((r) => r.href !== entry.href)].slice(0, max);
+  return [entry, ...list.filter((r) => !sameSearch(r, entry))].slice(0, max);
 }
 
 export function RecordRecentSearch({ label, href, count }: RecentSearch) {

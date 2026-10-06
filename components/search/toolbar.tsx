@@ -35,13 +35,14 @@ const triggerClass = (set: boolean) =>
   cn(buttonClass({ kind: "secondary", className: "gap-1 pl-3 pr-2" }), set && "border-brand bg-brand-tint hover:border-brand hover:bg-brand-tint");
 
 /** One filter menu: the button names it (and the value, once set), the list toggles values. */
-export function FilterMenuButton({ menu, hrefFor, counts }: { menu: FilterMenu; hrefFor: (s: DiscoverState) => string; counts?: Counts }) {
+export function FilterMenuButton({ menu, hrefFor, counts, icon }: { menu: FilterMenu; hrefFor: (s: DiscoverState) => string; counts?: Counts; icon?: ReactNode }) {
   const summary = menuSummary(menu);
   const name = MENU_LABEL[menu.key] ?? menu.label;
   return (
     <Menu
       trigger={
         <button type="button" aria-label={summary ? `${name}: ${summary}` : name} className={triggerClass(summary !== null)}>
+          {icon}
           <span>{summary ? `${name}: ${summary}` : name}</span>
           <CaretDown size={16} className="shrink-0 text-ink-2" aria-hidden />
         </button>
