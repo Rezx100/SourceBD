@@ -292,7 +292,9 @@ def test_an_enqueued_schedule_advances_its_timer(
     advance = _statements(store, "update public.etl_schedules")
     assert len(advance) == 1
     assert "last_enqueued_at = now()" in advance[0][0]
-    assert "next_run_at = now() + make_interval(mins => interval_minutes)" in advance[0][0]
+    # No window: the interval from now, as before. A window (S3) anchors it.
+    assert "else now() + make_interval(mins => interval_minutes)" in advance[0][0]
+    assert "run_window_utc" in advance[0][0]
 
 
 # ------------------------------------------------------------- heartbeats ----

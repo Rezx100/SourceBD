@@ -637,7 +637,29 @@ class BaseSanctionScraper(abc.ABC):
                    where id = %s""",
                 (status, seen, upserted, skipped, meta, error, run_id),
             )
+            # S3 (§4.7): sanctions changes are told at once, not in the digest.
+            cur.execute(
+                """select count(*) filter (where q.source_data ->> 'kind' is distinct from 'delisted') as hits,
+                          count(*) filter (where q.source_data ->> 'kind' = 'delisted') as cleared
+                     from public.verification_queue q, public.etl_runs r
+                    where r.id = %s and q.queue_type = 'sanctions_hit'
+                      and q.created_at >= r.started_at""",
+                (run_id,),
+            )
+            news = cur.fetchone() or {}
             c.commit()
+        held = [lst for lst, r in ((extra or {}).get("reconcile") or {}).items()
+                if (r or {}).get("action") == "held"]
+        if status == "success" and (news.get("hits") or news.get("cleared") or held):
+            from etl.core.notify import slack
+
+            slack(
+                f":rotating_light: SourceBD sanctions read ({self.code}): "
+                f"{news.get('hits') or 0} possible new matches (hidden from search, in "
+                f"/admin/sanctions for review), {news.get('cleared') or 0} suppliers whose "
+                f"entry was delisted (review before clearing)"
+                + (f"; delistings held for a human on {', '.join(held)}" if held else "") + "."
+            )
         self.log.info(
             "run.end", run_id=run_id, status=status,
             seen=seen, upserted=upserted, skipped=skipped, matched=matched,
