@@ -365,3 +365,19 @@ describe("a GOTS certificate's link (6 Oct 2026: the GTB certificate document we
     assert.equal(row.documentNote, "No longer on the GOTS list");
   });
 });
+describe("a record scrolled inside a pane (6 Oct 2026: no map on Sites, and the tabs hung loose under a header that had scrolled away)", () => {
+  it("the record is never squeezed to its pane's height: a sticky header lets go at the end of a box that short", () => {
+    for (const mode of ["pane", "page"] as const) {
+      const root = /<section[^>]*data-record="[^"]*"[^>]*>/.exec(view(model(aboniInput()), { mode }))![0];
+      assert.ok(!/\bmin-h-0\b/.test(root), `${mode}: the record may shrink below its sections, so its header stops sticking one pane down`);
+    }
+  });
+
+  it("every view that stacks the sections reads the map's pins, whichever tab the address names", () => {
+    for (const file of ["app/(app)/app/discover/page.tsx", "app/(app)/app/suppliers/[slug]/page.tsx", "components/saved/record.tsx"]) {
+      const src = readFileSync(path.join(process.cwd(), ...file.split("/")), "utf8");
+      assert.match(src, /\bpins: true,/, `${file}: the Sites section is always on the page, so its pins are always read`);
+      assert.ok(!/\bpins: [^t\n]*=== "sites"/.test(src), `${file}: pins are read only when the address says tab=sites, so a reader who scrolls to Sites gets no map`);
+    }
+  });
+});

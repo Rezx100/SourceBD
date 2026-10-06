@@ -116,7 +116,7 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
   );
 
   return (
-    <section aria-label="Supplier record" data-record={mode} data-detail={page ? "" : undefined} className="flex min-h-0 flex-1 flex-col bg-surface">
+    <section aria-label="Supplier record" data-record={mode} data-detail={page ? "" : undefined} className="flex flex-1 flex-col bg-surface">
       <SourceCheckListener />
       {model.sanctioned ? (
         <SanctionBanner
