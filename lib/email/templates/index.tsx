@@ -30,9 +30,11 @@ import { ContactLead, contactLeadSubject, type ContactLeadData } from "./contact
 import { TeamInvite, teamInviteSubject, type TeamInviteData } from "./team-invite";
 import { SavedSearchAlert, savedSearchAlertSubject, type SavedSearchAlertData } from "./saved-search-alert";
 import { ClaimVerify, claimVerifySubject, type ClaimVerifyData } from "./claim-verify";
+import { LedgerStamp, ledgerStampSubject, type LedgerStampData } from "./ledger-stamp";
 
 export type TemplateMap = {
   claim_verify: ClaimVerifyData;
+  ledger_stamp: LedgerStampData;
   contact_lead: ContactLeadData;
   saved_search_alert: SavedSearchAlertData;
   team_invite: TeamInviteData;
@@ -54,6 +56,10 @@ export const TEMPLATES: { [K in TemplateName]: Entry<K> } = {
   claim_verify: {
     subject: claimVerifySubject,
     render: (data) => <ClaimVerify data={data} />,
+  },
+  ledger_stamp: {
+    subject: ledgerStampSubject,
+    render: (data) => <LedgerStamp data={data} />,
   },
   contact_lead: {
     subject: contactLeadSubject,
