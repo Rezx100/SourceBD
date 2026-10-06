@@ -29,8 +29,10 @@ import {
 import { ContactLead, contactLeadSubject, type ContactLeadData } from "./contact-lead";
 import { TeamInvite, teamInviteSubject, type TeamInviteData } from "./team-invite";
 import { SavedSearchAlert, savedSearchAlertSubject, type SavedSearchAlertData } from "./saved-search-alert";
+import { ClaimVerify, claimVerifySubject, type ClaimVerifyData } from "./claim-verify";
 
 export type TemplateMap = {
+  claim_verify: ClaimVerifyData;
   contact_lead: ContactLeadData;
   saved_search_alert: SavedSearchAlertData;
   team_invite: TeamInviteData;
@@ -49,6 +51,10 @@ type Entry<K extends TemplateName> = {
 };
 
 export const TEMPLATES: { [K in TemplateName]: Entry<K> } = {
+  claim_verify: {
+    subject: claimVerifySubject,
+    render: (data) => <ClaimVerify data={data} />,
+  },
   contact_lead: {
     subject: contactLeadSubject,
     render: (data) => <ContactLead data={data} />,
