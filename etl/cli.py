@@ -248,6 +248,14 @@ def process_webhooks_cmd(
     typer.echo(str(process_pending(limit=limit)))
 
 
+@app.command("place-variants")
+def place_variants_cmd() -> None:
+    """List likely new spellings of places for the founder (spec-etl-freshness C3)."""
+    from etl.jobs.place_variants import main
+
+    main()
+
+
 @app.command("enqueue-due-schedules")
 def enqueue_due_schedules_cmd(
     limit: int = typer.Option(None, help="Only enqueue the first N due schedules."),

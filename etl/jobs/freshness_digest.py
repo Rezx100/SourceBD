@@ -85,11 +85,23 @@ def post_daily_digest_once(now: datetime | None = None) -> bool:
                 where created_at >= date_trunc('month', now())"""
         )
         credits = int(cur.fetchone()["n"])
+        variants: list[str] = []
+        if now.weekday() == 0:
+            # C3: the weekly list of place spellings, on Mondays.
+            from etl.jobs.place_variants import digest_lines, load_addresses, variant_pairs
+
+            # A failure here must not stop the digest (or retry it every minute).
+            try:
+                cur.execute("savepoint variants")
+                variants = digest_lines(variant_pairs(load_addresses(cur)))
+            except Exception as exc:  # noqa: BLE001
+                cur.execute("rollback to savepoint variants")
+                variants = [f"Place spellings could not be read this week ({str(exc)[:120]})."]
         cur.execute(
             """insert into public.etl_runs (scraper_code, status, finished_at)
                values ('freshness_digest', 'posted', now())"""
         )
         c.commit()
-    notify.slack(build_digest(rows, credits_month=credits, now=now))
+    notify.slack("\n".join([build_digest(rows, credits_month=credits, now=now), *variants]))
     log.info("digest.posted", sources=len(rows), credits=credits)
     return True

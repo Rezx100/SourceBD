@@ -81,8 +81,13 @@ class BgapmeaScraper(AcquiringScraper):
     # needs more stops with CreditBudgetExceeded instead of spending it.
     max_credits_per_run = 165
     source_code = "BGAPMEA"
-    transport = "firecrawl"
-    fallback_transport = "direct"
+    # S5 (spec-etl-freshness §2): the register serves its pages directly to a
+    # browser user agent; tested 6 Oct 2026 by fetching list and detail pages
+    # and parsing them with this class. Direct costs no Firecrawl credits.
+    # No fallback (house rule for direct sources): if the site starts blocking,
+    # the read fails loudly and the transport goes back to firecrawl.
+    transport = "direct"
+    fallback_transport = None
     monitor_urls = (LIST_URL,)
     request_headers = _BROWSER_HEADERS
     rps = 1.0
