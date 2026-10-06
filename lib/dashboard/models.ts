@@ -182,8 +182,8 @@ export type SourceRow = {
   name: string;
   /** "Government register", "Industry body", … — the tier in the founder's words, never `tier1_gov`. */
   tier: string;
-  /** The record's reference on that register (member number, certificate number). */
-  ref: string | null;
+  /** The record's own numbers on that register (registration, membership, certificate), never our key for the read. */
+  refs: string[];
   readDate: string | null;
 };
 

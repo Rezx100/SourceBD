@@ -143,19 +143,20 @@ export function certRows(model: SupplierSheetModel, now: Date = new Date()): Cer
     const check = checks?.certs.find((k) => k.kind === c.kind && k.certificate_no === c.number);
     const newer = model.certs.some((o) => o !== c && o.kind === c.kind && (o.expiresOn ?? "") > (c.expiresOn ?? ""));
     const delisted = check?.listing_status === "no_longer_listed";
-    // A GOTS link is its public directory page, which goes when GOTS drops the certificate (expired or delisted).
+    const line = checks ? certCheckLine(c.kind, c.expiresOn, check, checks.reads, now, newer) : null;
+    // A GOTS link is the directory's page for the supplier, which errors once GOTS stops listing it. So it is
+    // linked only on a check that is in date and found it listed: never expired, delisted, overdue or unread.
     const gots = c.kind.toLowerCase() === "gots";
-    const gotsGone = gots && (delisted || c.state === "expired");
+    const gotsOpen = line !== null && !line.caution && c.state !== "expired";
     return {
       delistedOn: delisted ? (check?.delisted_at ?? now.toISOString()) : null,
-      check: checks ? certCheckLine(c.kind, c.expiresOn, check, checks.reads, now, newer) : null,
+      check: line,
       scheme: c.scheme,
       number: c.number,
       issuer: c.issuer,
       expiresOn: c.expiresOn,
-      documentUrl: gotsGone ? null : c.documentUrl,
-      documentLabel: /oeko/i.test(c.scheme) ? "Open label check" : gots ? "Open on GOTS" : undefined,
-      documentNote: gotsGone ? "No longer on the GOTS list" : undefined,
+      documentUrl: gots && !gotsOpen ? null : c.documentUrl,
+      documentLabel: gots ? "Open on GOTS" : undefined,
       anchor: certRowId(c.kind, c.number, c.expiresOn),
     };
   });
@@ -170,7 +171,18 @@ export function needsLook(rows: CertRowData[], today: Date): CertRowData[] {
 /** The facts the Overview lists: the record's own, in its order, under the words Paper uses. */
 const LABEL: Record<string, string> = { Established: "Founded", Registers: "Memberships", "Capacity, as filed": "Capacity", "Factory address": "Address" };
 
-export type KeyFact = { label: string; values: { text: string; mono: boolean; mark?: string }[]; source: string | null; empty: string | null };
+/** One registration as its line draws it: the register's mark and short name, then its number. */
+export type Membership = { mark: string | null; name: string; qualifier: string | null; number: string | null };
+
+export type KeyFact = { label: string; values: { text: string; mono: boolean; mark?: string; membership?: Membership }[]; source: string | null; empty: string | null };
+
+/** "BGMEA General" is the register and the class of member; "EPB Reg" is the register alone ("Reg" says nothing beside a number). */
+function membership(i: NonNullable<FactRow["items"]>[number]): Membership {
+  const short = i.mark?.label ?? "";
+  const own = short !== "" && i.label.toLowerCase().startsWith(short.toLowerCase());
+  const rest = own ? i.label.slice(short.length).trim().replace(/^reg\.?$/i, "") : "";
+  return { mark: i.mark?.code ?? null, name: own ? short : i.label, qualifier: rest || null, number: i.code };
+}
 
 export function keyFacts(model: SupplierSheetModel): KeyFact[] {
   // Rows that only say "not on file" are left out when they are extras: Paper's almost-empty record lists what it has and the few a buyer asks for.
@@ -185,10 +197,11 @@ export function keyFacts(model: SupplierSheetModel): KeyFact[] {
       !(sited && f.label === "Factory address"),
   );
   const out: KeyFact[] = rows.map((f) => {
-    const from = f.marks?.length ? `From ${f.marks.map((m) => m.label).join(", ")}` : f.pendingSource ? "Source not linked yet" : null;
+    // A list of registrations names its register on every line, so "From EPB, BGMEA" under it would say it twice.
+    const from = f.items?.length ? null : f.marks?.length ? `From ${f.marks.map((m) => m.label).join(", ")}` : f.pendingSource ? "Source not linked yet" : null;
     const source = [from, f.note ?? null].filter(Boolean).join(" · ") || null;
     const values = f.items?.length
-      ? f.items.map((i) => ({ text: [i.label, i.code].filter(Boolean).join(" reg. no. "), mono: Boolean(i.code), mark: i.mark?.code }))
+      ? f.items.map((i) => ({ text: [i.label, i.code].filter(Boolean).join(" reg. no. "), mono: Boolean(i.code), mark: i.mark?.code, membership: membership(i) }))
       : f.value
         ? [{ text: f.value, mono: Boolean(f.code) }]
         : [];
