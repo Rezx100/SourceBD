@@ -22,7 +22,9 @@
 -- The constraint names are not hard-coded: each is looked up by table and column in
 -- pg_constraint and recreated under its own name, so production (which created them with the
 -- same migrations) and the CI replay take the same path. A key that is already `restrict` is
--- left alone, so the file can run twice.
+-- left alone, so the file can run twice. A table the database does not have yet is skipped with
+-- a notice (6 Oct: production had not yet applied 0106-0126, so 0112's and 0114's tables may be
+-- absent when this is first applied; apply in number order and they are not).
 --
 -- CHECKED, NOT CHANGED
 -- --------------------
@@ -75,6 +77,13 @@ begin
     ['evidence_pack_downloads', 'owner_id'],
     ['admin_audit_log',        'actor_id']
   ] loop
+    -- A table this database does not have yet (message_attachments came with 0112, evidence_pack_downloads
+    -- with 0114) is skipped with a notice. Migrations apply in number order, so a database that gets them
+    -- later gets them before this file runs; the skip is a safety net, not the plan.
+    if to_regclass('public.' || v_pair[1]) is null then
+      raise notice '0127: public.% does not exist here; skipped', v_pair[1];
+      continue;
+    end if;
     select c.oid, c.conname, c.confrelid, c.confkey, c.confdeltype
       into r
       from pg_constraint c
