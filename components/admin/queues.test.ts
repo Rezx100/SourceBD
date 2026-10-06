@@ -123,6 +123,15 @@ describe("/admin/queue", () => {
     assert.match(text(await page("queue/page.js", sp())), /No review items match this filter/);
   });
 
+  it("a row whose Release plan is not worked out yet says so, and only that row (0128)", async () => {
+    given({ admin_queue_list: ok({ total: 2, by_type: {}, rows: [{ ...QUEUE_ROW, queue_id: "p", buyer_destination: null, plan_pending: true }, { ...QUEUE_ROW, queue_id: "d", buyer_destination: null, plan_pending: false }] }) });
+    const t = text(await page("queue/page.js", sp()));
+    assert.equal(t.match(/Not yet classified/g)?.length, 1);
+    assert.doesNotMatch(t, /Buyer destination:/);
+    given({ admin_queue_list: ok({ total: 1, by_type: {}, rows: [{ ...QUEUE_ROW, reviewed_at: "2026-10-02T00:00:00Z", admin_action: "approve", buyer_destination: null, plan_pending: true }] }) });
+    assert.doesNotMatch(text(await page("queue/page.js", sp({ status: "reviewed" }))), /Not yet classified/, "a decided row is never pending");
+  });
+
   it("an unreadable read is an error and not an empty queue", async () => {
     given({ admin_queue_list: failed("permission denied") });
     const out = await page("queue/page.js", sp());
@@ -149,6 +158,31 @@ describe("/admin/claims", () => {
     assert.equal(out.match(/<button[^>]*>Decide<\/button>/g)?.length, 1, "only the waiting claim can be decided");
     assert.match(text(out), /me@textown\.example/);
     assert.match(out, /aria-current="page"[^>]*>Email Verified/);
+  });
+
+  it("opens on every open claim, links the claimant to their user file, and says what became of the email (0129)", async () => {
+    given({
+      claim_admin_list: ok({
+        results: [
+          { ...CLAIM_ROW, id: "cl-stuck", status: "pending_email", claimant_user_id: "u-1", token_expires_at: "2026-10-02T00:00:00Z", link_expired: true, email: { status: "failed", error: "no_api_key", sent_at: "2026-10-01T00:00:01Z", template: "claim_verify" } },
+          { ...CLAIM_ROW, id: "cl-sent", status: "pending_email", claimant_user_id: "u-2", token_expires_at: "2026-10-09T00:00:00Z", link_expired: false, email: { status: "sent", error: null, sent_at: "2026-10-08T09:00:00Z", template: "claim_verify" } },
+          { ...CLAIM_ROW, id: "cl-old", status: "pending_email", email: null },
+        ],
+      }),
+    });
+    const out = await page("claims/page.js", sp());
+    assert.deepEqual(calls[0], { fn: "claim_admin_list", args: { p_status: "open" } });
+    const t = text(out);
+    assert.match(out, /href="\/admin\/users\/u-1"[^>]*>me@textown\.example</);
+    assert.match(t, /Failed 2026-10-01 00:00:01: no_api_key/);
+    assert.match(t, /Link expired 2026-10-02 00:00:00/);
+    assert.match(t, /Sent 2026-10-08 09:00:00/);
+    assert.match(t, /Link expires 2026-10-09 00:00:00/);
+    assert.match(t, /No record of the email \(sent before the journal, or never sent\)/);
+    assert.equal(out.match(/>Resend link</g)?.length, 3, "every claim waiting for its email can be resent");
+    assert.equal(out.match(/<button[^>]*>Decide<\/button>/g)?.length, 3, "a decision is open at the email step too");
+    assert.match(out, /aria-current="page"[^>]*>Open/);
+    assert.match(out, /href="\/admin\/claims\?status=pending_email"/);
   });
 
   it("a failed read shows its message", async () => {

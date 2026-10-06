@@ -6,11 +6,11 @@
 import { CaretRight, Clock, FileText, WarningOctagon } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { CertChip, FactChip } from "@/components/kit";
-import { CertTable, FactList, FactRow, RSC_REPORTS, RscBlock, SourceChip, certWords, type RscBlockData, type RscReportName } from "@/components/patterns";
+import { CertTable, FactList, FactRow, RSC_REPORTS, RscBlock, SourceChip, SourceMark, certWords, type RscBlockData, type RscReportName } from "@/components/patterns";
 import type { RecordRfqRow, SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
 import { SitesView } from "./sites-view";
-import { certRows, isStale, keyFacts, needsLook, siteCards, type TabId } from "./words";
+import { certRows, isStale, keyFacts, needsLook, siteCards, type Membership, type TabId } from "./words";
 
 const LINK =
   "rounded-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
@@ -31,8 +31,10 @@ function Note({ children }: { children: React.ReactNode }) {
 
 /** The certificates that need a look: one row each, problems first, no frame (Paper `Needs a look`). */
 function ProblemRows({ model, today }: { model: SupplierSheetModel; today: Date }) {
-  const rows = needsLook(certRows(model), today);
+  const rows = needsLook(certRows(model, today), today);
   if (rows.length === 0) return null;
+  // The link's column is kept for every row once one row has a page to open, so the chips stay in line.
+  const docs = rows.some((c) => c.documentUrl);
   return (
     <section aria-label="Needs a look">
       <h3 className="py-2 text-xs font-semibold text-ink-3">Needs a look</h3>
@@ -58,9 +60,9 @@ function ProblemRows({ model, today }: { model: SupplierSheetModel; today: Date 
                     {c.documentLabel ?? "Open certificate"}
                   </a>
                 </span>
-              ) : (
-                <span className="text-sm text-ink-3 max-sm:order-4 sm:w-[124px] sm:shrink-0">{c.documentNote}</span>
-              )}
+              ) : docs ? (
+                <span className="max-sm:hidden sm:w-[124px] sm:shrink-0" />
+              ) : null}
             </li>
           );
         })}
@@ -102,6 +104,27 @@ function SanctionEvidence({ model }: { model: SupplierSheetModel }) {
   );
 }
 
+/**
+ * One registration on one line: the register's mark and short name in a column of their own, then
+ * the number in mono, so a list of them reads down as two columns (founder, 6 Oct 2026: "scattered,
+ * I have to look really closely to understand what is what").
+ */
+function MembershipLine({ m }: { m: Membership }) {
+  return (
+    <span className="flex items-center gap-2.5">
+      <SourceMark source={m.mark ?? m.name} />
+      <span className="w-24 shrink-0 text-md font-medium text-ink sm:text-base">{m.name}</span>
+      {m.number ? (
+        <span className="font-mono text-md font-normal text-ink [overflow-wrap:anywhere] sm:text-base">
+          <span className="sr-only">registration number </span>
+          {m.number}
+        </span>
+      ) : null}
+      {m.qualifier ? <span className="text-sm font-normal text-ink-3">{m.qualifier}</span> : null}
+    </span>
+  );
+}
+
 export function OverviewPanel({ model, today }: { model: SupplierSheetModel; today: Date }) {
   const facts = keyFacts(model);
   return (
@@ -115,7 +138,11 @@ export function OverviewPanel({ model, today }: { model: SupplierSheetModel; tod
           <FactRow
             key={f.label}
             label={f.label}
-            values={f.values.map((v, i) => ({ value: v.text, mono: v.mono, source: i === f.values.length - 1 ? f.source : null }))}
+            values={f.values.map((v, i) => ({
+              value: v.membership ? <MembershipLine m={v.membership} /> : v.text,
+              mono: v.mono && !v.membership,
+              source: i === f.values.length - 1 ? f.source : null,
+            }))}
             empty={f.empty}
           />
         ))}
@@ -136,7 +163,7 @@ export function CertificatesPanel({ model, today, compact = false }: { model: Su
   return (
     <div className="flex flex-col gap-4">
       {model.certs.length > 0 ? (
-        <CertTable certs={certRows(model)} today={today} from={certFrom(model)} compact={compact} />
+        <CertTable certs={certRows(model, today)} today={today} from={certFrom(model)} compact={compact} />
       ) : (
         <div className="flex flex-col gap-2">
           <h3 className="text-base font-semibold text-ink">Certificates</h3>
@@ -148,7 +175,7 @@ export function CertificatesPanel({ model, today, compact = false }: { model: Su
       {model.buildingCerts.map((b) => (
         <CertTable
           key={b.building}
-          certs={certRows({ ...model, certs: b.certs })}
+          certs={certRows({ ...model, certs: b.certs }, today)}
           today={today}
           compact={compact}
           from={`Held by ${b.building} · the building's own, not counted above`}
@@ -278,40 +305,89 @@ export function SitesPanel({ model, tabHref, site = null, wide = true }: { model
 
 /* ----------------------------------------------------------------- sources */
 
+// The Sources table's columns once the table itself is 600px wide (the full page; a docked pane stacks
+// them): source, the record's number there, the last read, the register's page. Sized by the table,
+// not the screen: the same record is drawn in a 640px pane and a 1200px page at one screen width.
+const SOURCE_COLS =
+  "[@container_(min-width:600px)]:grid [@container_(min-width:600px)]:grid-cols-[minmax(0,1fr)_minmax(0,11rem)_6.5rem_5.5rem] [@container_(min-width:600px)]:items-center [@container_(min-width:600px)]:gap-4";
+
+/** The sources in the model's order (best rank first), one group per kind: "Government register", "Industry body". */
+function sourceGroups(sources: SupplierSheetModel["sources"]): { kind: string; rows: SupplierSheetModel["sources"] }[] {
+  const groups: { kind: string; rows: SupplierSheetModel["sources"] }[] = [];
+  for (const s of sources) {
+    const held = groups.find((g) => g.kind === s.tier);
+    if (held) held.rows.push(s);
+    else groups.push({ kind: s.tier, rows: [s] });
+  }
+  return groups;
+}
+
+/**
+ * Who filed something on this record, grouped by how far each is trusted, so the kind is said once
+ * per group and every row is the same three facts in the same three columns (founder, 6 Oct 2026:
+ * the rows were a wrapping line each, so no column lined up with the row above it).
+ */
 export function SourcesPanel({ model, today }: { model: SupplierSheetModel; today: Date }) {
   return (
-    <section aria-label="Sources" className="flex flex-col gap-2">
-      <header className="flex flex-wrap items-baseline gap-x-3">
+    <section aria-label="Sources" className="flex flex-col rounded-md border border-line [container-type:inline-size]">
+      <header className="flex min-h-12 flex-wrap items-center justify-between gap-x-4 border-b border-line px-4 py-2">
         <h3 className="text-base font-semibold text-ink">Sources · {model.sources.length}</h3>
         <p className="text-xs text-ink-3">{model.sourcesCaption}</p>
       </header>
       {model.sources.length === 0 ? (
-        <p className="text-base text-ink-2">No register has filed a record for this company.</p>
+        <p className="px-4 py-3 text-base text-ink-2">No register has filed a record for this company.</p>
       ) : (
-        <ul className="flex flex-col overflow-clip rounded-lg border border-line">
-          {model.sources.map((s) => {
-            const stale = isStale(s.readDate, today);
-            return (
-              <li key={s.mark.code} className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-line px-4 py-3 last:border-b-0">
-                <span className="flex min-w-0 flex-1 basis-60 flex-col gap-0.5">
-                  <SourceChip source={s.mark.code} name={s.mark.label} />
-                  <span className="pl-[30px] text-xs text-ink-3">{s.name}</span>
-                </span>
-                <span className="w-40 text-sm text-ink-2">{s.tier}</span>
-                <span className="w-32 font-mono text-sm text-ink-2">{s.ref ?? ""}</span>
-                <span className={cn("flex w-[100px] items-center justify-end gap-1 text-xs", stale ? "font-medium text-caution" : "text-ink-2")}>
-                  {stale ? <Clock size={12} weight="fill" className="text-caution-icon" aria-hidden /> : null}
-                  {s.readDate ?? "Not dated"}
-                </span>
-                {s.mark.href ? (
-                  <a href={s.mark.href} className={cn(LINK, "text-sm")}>
-                    {s.mark.opens === "list" ? "Open the list" : "Open the register page"}
-                  </a>
-                ) : null}
-              </li>
-            );
-          })}
-        </ul>
+        <>
+          <div className={cn("hidden h-9 border-b border-line bg-subtle px-4 text-xs font-medium text-ink-3", SOURCE_COLS)}>
+            <span>Source</span>
+            <span>Number</span>
+            <span>Last read</span>
+            <span>Page</span>
+          </div>
+          {sourceGroups(model.sources).map((g) => (
+            <section key={g.kind} aria-label={g.kind} className="flex flex-col border-b border-line pb-1.5 last:border-b-0">
+              <h4 className="px-4 pb-0.5 pt-3 text-xs font-semibold text-ink-2">{g.kind}</h4>
+              <ul>
+                {g.rows.map((s) => {
+                  const stale = isStale(s.readDate, today);
+                  return (
+                    <li key={s.mark.code} className={cn("flex flex-col gap-1 px-4 py-2", SOURCE_COLS)}>
+                      <span className="flex min-w-0 flex-col gap-0.5">
+                        <SourceChip source={s.mark.code} name={s.mark.label} />
+                        {/* A brand list's full name is its short one: said once. */}
+                        {s.name !== s.mark.label ? <span className="pl-[30px] text-xs text-ink-3">{s.name}</span> : null}
+                      </span>
+                      {/* One wrapping line under the name where the table is narrow; a cell each where it is wide. */}
+                      <span className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 pl-[30px] [@container_(min-width:600px)]:contents">
+                        {/* A number is never broken: two certificates are two lines in their cell. */}
+                        <span className="flex flex-wrap gap-x-3 font-mono text-sm text-ink empty:hidden [@container_(min-width:600px)]:flex-col [@container_(min-width:600px)]:empty:flex">
+                          {s.refs.map((r) => (
+                            <span key={r} className="[overflow-wrap:anywhere]">
+                              {r}
+                            </span>
+                          ))}
+                        </span>
+                        <span className={cn("flex items-center gap-1 text-sm", stale ? "font-medium text-caution" : "text-ink-2")}>
+                          {stale ? <Clock size={12} weight="fill" className="shrink-0 text-caution-icon" aria-hidden /> : null}
+                          <span>
+                            {s.readDate ? <span className="[@container_(min-width:600px)]:sr-only">read </span> : null}
+                            {s.readDate ?? "Not dated"}
+                          </span>
+                        </span>
+                        {s.mark.href ? (
+                          <a href={s.mark.href} className={cn(LINK, "w-fit text-sm")}>
+                            Open <span className="sr-only">the {s.mark.label} </span>
+                            {s.mark.opens === "list" ? "list" : "page"}
+                          </a>
+                        ) : null}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ))}
+        </>
       )}
     </section>
   );

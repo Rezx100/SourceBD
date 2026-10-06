@@ -34,6 +34,8 @@ export type SendEmailInput<K extends TemplateName> = {
   refId?: string | null;
   /** Where a reply goes, when it is not the sender (the contact form's visitor). */
   replyTo?: string;
+  /** Files to attach (the record's daily seal token, 0135). Small: Resend takes up to 40 MB a message. */
+  attachments?: { filename: string; content: Buffer }[];
 };
 
 export type SendEmailResult =
@@ -160,6 +162,7 @@ export async function sendEmail<K extends TemplateName>(
       html,
       text,
       ...(input.replyTo ? { replyTo: input.replyTo } : {}),
+      ...(input.attachments && input.attachments.length > 0 ? { attachments: input.attachments.map((a) => ({ filename: a.filename, content: a.content })) } : {}),
     });
     if (error || !data) {
       const msg = error?.message ?? "unknown resend error";

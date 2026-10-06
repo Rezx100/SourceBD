@@ -10,6 +10,8 @@
 // POST {action:'change_password', current_password, new_password}
 //                                      → current password checked, then
 //                                        Supabase Auth updateUser({password})
+// POST {action:'accept_terms', version} → terms_accept (0134): the signed-in
+//                                        person's acceptance, recorded
 //
 // Auth: any authenticated user. Email/password changes use Supabase Auth
 // directly (the user is identified by the session cookie); the email
@@ -87,6 +89,18 @@ export async function POST(req: Request) {
   }
 
   const action = typeof body.action === "string" ? body.action : "";
+
+  if (action === "accept_terms") {
+    const version = typeof body.version === "string" ? body.version.trim() : "";
+    if (!version || version.length > 32) {
+      return NextResponse.json({ error: "The terms version is required, up to 32 characters." }, { status: 400 });
+    }
+    const { error } = await supabase.rpc("terms_accept", { p_version: version });
+    if (error) {
+      return NextResponse.json({ error: "terms_accept failed", detail: error.message }, { status: 400 });
+    }
+    return NextResponse.json({ ok: true, version });
+  }
 
   if (action === "update_profile") {
     const raw = body.display_name;

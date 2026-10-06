@@ -84,6 +84,15 @@ create table if not exists auth.sessions (
   ip            inet
 );
 
+-- 0132 copies Auth's own log into the activity record. The columns the real table has (GoTrue), no more.
+create table if not exists auth.audit_log_entries (
+  instance_id uuid,
+  id          uuid        primary key default gen_random_uuid(),
+  payload     json,
+  created_at  timestamptz default now(),
+  ip_address  varchar(64) not null default ''
+);
+
 -- The real ones read the request JWT out of a GUC. Same contract: null when
 -- nobody is signed in, which is what every RLS policy in these migrations is
 -- written against.
