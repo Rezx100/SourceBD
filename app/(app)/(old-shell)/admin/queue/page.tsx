@@ -55,6 +55,8 @@ type Row = {
   created_at: string;
   release_action: string | null;
   buyer_destination: string | null;
+  /** 0128: the Release plan has not been worked out for this row yet; the next load takes up to ten more. */
+  plan_pending?: boolean | null;
   supplier: Supplier | null;
 };
 
@@ -261,6 +263,10 @@ function QueueRowView({ r }: { r: Row }) {
         {r.buyer_destination ? (
           <span className="mt-1 block text-sm text-ink-2">
             Buyer destination: {r.buyer_destination}
+          </span>
+        ) : !r.reviewed_at && r.plan_pending ? (
+          <span className="mt-1 block text-sm text-ink-3">
+            Not yet classified: each load works out up to ten more rows.
           </span>
         ) : null}
       </Td>
