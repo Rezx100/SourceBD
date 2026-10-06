@@ -1,26 +1,22 @@
 """WRAP (Worldwide Responsible Accredited Production) certified-facility scraper.
 
-WRAP publishes its certified-facility list as a public Power BI report
-(`https://app.powerbi.com/view?r=…`). The dashboard data is served by a public
-querydata endpoint that accepts a per-report resource key in
-`x-powerbi-resourcekey` — no auth token, no cookies.
+WRAP publishes its certified-facility list through the map on
+wrapcompliance.org/facilities, which loads one public JSON feed:
+`https://wrap-maps.azurewebsites.net/api/facilities` (no key, no cookies). It
+replaced the Power BI report in October 2026; the report's resource key now
+answers 401. The feed lists certified facilities only, every country, with the
+same WRAP IDs as the report.
 
-Strategy: POST a Semantic Query DataShape command for the `CertifiedFacilities`
-entity, filtered to `Country = 'Bangladesh'`, decode the returned DSR (Data
-Stream Representation), and emit one `ScrapedRecord` per facility. Override
-`run()` to also write a `public.certifications` row keyed on
-`(supplier_id, kind='wrap', certificate_no=WRAPID)`.
+Strategy: GET the feed, keep `country == "BD"`, and emit one `ScrapedRecord`
+per facility. Override `run()` to also write a `public.certifications` row
+keyed on `(supplier_id, kind='wrap', certificate_no=wrap_id)`.
 
-Transport: direct, wrapped in the acquisition interface. The payload is a Power BI
-semantic query — a POST with a resource-key header returning a dictionary-encoded
-DSR blob — which no scraping API can express and which has to be decoded, not
-rendered. The wrapper adds per-field evidence and the shared admin controls.
+Transport: direct, wrapped in the acquisition interface (plain JSON).
 """
 from __future__ import annotations
 
 import json
 import re
-import uuid
 from datetime import date
 from typing import Any, AsyncIterator
 
@@ -29,17 +25,9 @@ from etl.core.acquiring import AcquiringScraper
 from etl.core.config import settings
 from etl.core.db import db, get_source_id
 from etl.core.scraper import EvidenceAttachment, ScrapedRecord
-from etl.evidence.locate import NO_EXCERPT, raw_window
+from etl.evidence.locate import NO_EXCERPT, json_record_window
 
-PBI_CLUSTER = "https://wabi-us-east2-api.analysis.windows.net"
-PBI_QUERY_URL = f"{PBI_CLUSTER}/public/reports/querydata?synchronous=true"
-
-# Public WRAP "Certified Facilities" Power BI report
-WRAP_RESOURCE_KEY = "f5af2bce-8672-47fe-858f-0a71c1498d01"
-WRAP_MODEL_ID = 8219769
-WRAP_DATASET_ID = "3f33f3bb-30ce-4532-a795-dc18afd66a26"
-WRAP_REPORT_ID = "0dbdf194-8a5c-422c-9102-8761299e3c60"
-WRAP_VISUAL_ID = "84b9582660511296522e"
+WRAP_FEED_URL = "https://wrap-maps.azurewebsites.net/api/facilities"
 
 # Public facility profile (informational — the page itself is JS-rendered)
 WRAP_FACILITY_URL_TEMPLATE = "https://wrapcompliance.org/certified-facility/{wrap_id}/"
@@ -62,130 +50,14 @@ def _is_non_rmg_only(products: Any) -> bool:
 
 _DATE_RE = re.compile(r"^(\d{4})-(\d{2})-(\d{2})$")
 
-# Power BI returns columns positionally as G0..G7; map to friendly names in the
-# same order as the `Select` clause in _build_query().
-_COL_MAP = {
-    "G0": "WRAPID",
-    "G1": "Name",
-    "G2": "CertType",
-    "G3": "Industries",
-    "G4": "City",
-    "G5": "CertExpires",
-    "G6": "Products",
-    "G7": "Country",
-}
 
-
-def _build_query(country: str) -> dict[str, Any]:
-    return {
-        "version": "1.0.0",
-        "queries": [{
-            "Query": {"Commands": [{
-                "SemanticQueryDataShapeCommand": {
-                    "Query": {
-                        "Version": 2,
-                        "From": [{"Name": "c", "Entity": "CertifiedFacilities", "Type": 0}],
-                        "Select": [
-                            {"Column": {"Expression": {"SourceRef": {"Source": "c"}},
-                                        "Property": "WRAPID"}, "Name": "WRAPID"},
-                            {"Column": {"Expression": {"SourceRef": {"Source": "c"}},
-                                        "Property": "Facility Name"}, "Name": "Name"},
-                            {"Column": {"Expression": {"SourceRef": {"Source": "c"}},
-                                        "Property": "Cert Type"}, "Name": "CertType"},
-                            {"Column": {"Expression": {"SourceRef": {"Source": "c"}},
-                                        "Property": "Industries"}, "Name": "Industries"},
-                            {"Column": {"Expression": {"SourceRef": {"Source": "c"}},
-                                        "Property": "City"}, "Name": "City"},
-                            {"Column": {"Expression": {"SourceRef": {"Source": "c"}},
-                                        "Property": "Cert Expires"}, "Name": "CertExpires"},
-                            {"Column": {"Expression": {"SourceRef": {"Source": "c"}},
-                                        "Property": "Products"}, "Name": "Products"},
-                            {"Column": {"Expression": {"SourceRef": {"Source": "c"}},
-                                        "Property": "Country"}, "Name": "Country"},
-                        ],
-                        "Where": [{
-                            "Condition": {"In": {
-                                "Expressions": [{"Column": {
-                                    "Expression": {"SourceRef": {"Source": "c"}},
-                                    "Property": "Country"}}],
-                                "Values": [[{"Literal": {"Value": f"'{country}'"}}]],
-                            }},
-                        }],
-                        "OrderBy": [{"Direction": 1, "Expression": {
-                            "Column": {"Expression": {"SourceRef": {"Source": "c"}},
-                                       "Property": "WRAPID"}}}],
-                    },
-                    "Binding": {
-                        "Primary": {"Groupings": [{"Projections": [0, 1, 2, 3, 4, 5, 6, 7]}]},
-                        "DataReduction": {"DataVolume": 3,
-                                          "Primary": {"Window": {"Count": 5000}}},
-                        "Version": 1,
-                    },
-                    "ExecutionMetricsKind": 1,
-                },
-            }]},
-            "QueryId": "",
-            "ApplicationContext": {
-                "DatasetId": WRAP_DATASET_ID,
-                "Sources": [{"ReportId": WRAP_REPORT_ID, "VisualId": WRAP_VISUAL_ID}],
-            },
-        }],
-        "cancelQueries": [],
-        "modelId": WRAP_MODEL_ID,
-    }
-
-
-def _decode_dsr(payload: dict[str, Any]) -> list[dict[str, Any]]:
-    """Decode Power BI Data Stream Representation into list of column-name dicts.
-
-    Encoding (observed):
-      * Each PH[0]['DM0'] entry represents one row.
-      * The first entry also carries the schema in 'S'.
-      * 'R' (repeat) bitmask: bit i set -> column i reuses previous row's value.
-      * 'Ø' (null) bitmask: bit i set -> column i is null.
-      * 'C' carries values for the remaining columns in column-index order.
-      * A value in 'C' is either (a) an int dictionary index into ValueDicts[Dn]
-        or (b) a literal string when the value falls outside the dictionary
-        (Power BI caps each dict at 100 entries and inlines values beyond that).
-    """
-    ds = payload["results"][0]["result"]["data"]["dsr"]["DS"][0]
-    ph = ds["PH"][0]["DM0"]
-    vd = ds.get("ValueDicts", {})
-
-    if not ph:
-        return []
-    schema = ph[0]["S"]
-    n_cols = len(schema)
-    col_names = [c["N"] for c in schema]
-    dict_names = [c.get("DN") for c in schema]
-
-    rows: list[list[Any]] = []
-    prev: list[Any] = [None] * n_cols
-    for entry in ph:
-        r_mask = entry.get("R", 0)
-        null_mask = entry.get("Ø", 0)
-        c_arr = entry.get("C", [])
-        row: list[Any] = [None] * n_cols
-        c_idx = 0
-        for col in range(n_cols):
-            if (r_mask >> col) & 1:
-                row[col] = prev[col]
-            elif (null_mask >> col) & 1:
-                row[col] = None
-            elif c_idx < len(c_arr):
-                v = c_arr[c_idx]
-                c_idx += 1
-                dn = dict_names[col]
-                if isinstance(v, int) and dn and dn in vd and 0 <= v < len(vd[dn]):
-                    row[col] = vd[dn][v]
-                else:
-                    row[col] = v  # literal (string already, or out-of-dict value)
-            else:
-                row[col] = None
-        prev = row
-        rows.append(row)
-
-    return [{_COL_MAP.get(n, n): v for n, v in zip(col_names, r)} for r in rows]
+def _bangladesh_facilities(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    """The feed's Bangladesh rows. Raises when the feed's shape is not the one
+    we read, so a changed feed fails the run instead of reporting no facilities."""
+    rows = payload.get("facilities")
+    if not isinstance(rows, list) or not rows:
+        raise RuntimeError("wrap: the feed has no `facilities` list; its shape changed.")
+    return [r for r in rows if isinstance(r, dict) and r.get("country") == "BD"]
 
 
 def _parse_expires(s: str | None) -> date | None:
@@ -200,12 +72,10 @@ def _parse_expires(s: str | None) -> date | None:
         return None
 
 
-# A Power BI DSR response encodes repeated values once in `ValueDicts` and refers
-# to them by integer index, so city / cert type / products / industries appear in
-# the document as numbers, not text. Those claims get a locator but no excerpt —
-# recorded as unverifiable rather than pretending a dictionary entry shared by
-# 200 facilities is this facility's citation. `WRAPID` and the facility name are
-# unique per row and inlined, so they anchor the row and can be re-checked.
+# Every feed value sits inline in its own facility object, so each claim can be
+# excerpted from the window around its WRAP ID. These three are ours, not the
+# feed's (a two-letter code, a URL we build, a date we parse), so they carry no
+# excerpt.
 _UNCITABLE_FIELDS = (
     "wrap_country",
     "wrap_profile_url",
@@ -225,89 +95,77 @@ class WrapScraper(AcquiringScraper):
     @property
     def request_headers(self) -> dict[str, str]:
         return {
-            "Content-Type": "application/json;charset=UTF-8",
             "Accept": "application/json, text/plain, */*",
-            "X-PowerBI-ResourceKey": WRAP_RESOURCE_KEY,
-            "ActivityId": str(uuid.uuid4()),
-            "RequestId": str(uuid.uuid4()),
-            "Referer": "https://app.powerbi.com/",
-            "Origin": "https://app.powerbi.com",
+            "Referer": "https://wrap-maps.azurewebsites.net/facility-map",
             "User-Agent": settings.etl_user_agent,
         }
 
     async def fetch(self) -> AsyncIterator[ScrapedRecord]:
-        body = json.dumps(_build_query("Bangladesh"))
         doc = await self.acquire(
-            AcquireRequest(
-                url=PBI_QUERY_URL,
-                method="POST",
-                content=body,
-                label="certified facilities (Bangladesh)",
-            )
+            AcquireRequest(url=WRAP_FEED_URL, label="certified facilities (all countries)")
         )
         if not doc.ok:
             raise RuntimeError(
-                f"wrap: Power BI query failed ({doc.fetch_status.value}: "
+                f"wrap: facility feed failed ({doc.fetch_status.value}: "
                 f"{doc.error_message}). Refusing to report an empty facility list."
             )
         raw = doc.text()
-        payload = json.loads(raw)
-
-        facilities = _decode_dsr(payload)
+        facilities = _bangladesh_facilities(json.loads(raw))
+        if not facilities:
+            raise RuntimeError("wrap: the feed lists no Bangladesh facility. Refusing to report none.")
         self.log.info("wrap.fetched", count=len(facilities))
         for fac in facilities:
-            wrap_id = fac.get("WRAPID")
-            name = fac.get("Name")
+            wrap_id = fac.get("wrap_id")
+            name = fac.get("facility_name")
             if not wrap_id or not name:
                 continue
             # Scope filter: SourceBD covers RMG (apparel + textile + trims).
-            # WRAP certifies cross-industry; skip rows whose Products field is
+            # WRAP certifies cross-industry; skip rows whose products field is
             # exclusively a non-RMG category (e.g. "Footwear"). Multi-category
             # rows that include any apparel/knit/woven token still pass.
-            if _is_non_rmg_only(fac.get("Products")):
+            if _is_non_rmg_only(fac.get("products")):
                 self.log.info(
                     "wrap.skip_non_rmg",
                     wrap_id=str(wrap_id).strip(),
                     name=str(name).strip(),
-                    products=fac.get("Products"),
+                    products=fac.get("products"),
                 )
                 continue
             wrap_id_s = str(wrap_id).strip()
-            expires = _parse_expires(fac.get("CertExpires"))
+            expires = _parse_expires(fac.get("certification_expiration"))
+            city = (fac.get("city") or "").strip()
+            loc = f"json:facilities[wrap_id={wrap_id_s}]"
             yield ScrapedRecord(
                 source_code="WRAP",
                 source_ref=f"wrap-{wrap_id_s}",
                 company_name=str(name).strip(),
-                city=(fac.get("City") or None),
+                city=city if city and city.upper() != "NA" else None,
                 payload={
                     "wrap_id": wrap_id_s,
-                    "wrap_cert_type": fac.get("CertType"),
-                    "wrap_industries": fac.get("Industries"),
-                    "wrap_products": fac.get("Products"),
-                    "wrap_cert_expires": fac.get("CertExpires"),
-                    "wrap_country": fac.get("Country"),
+                    "wrap_industries": fac.get("industry") or None,
+                    "wrap_products": fac.get("products") or None,
+                    "wrap_cert_expires": fac.get("certification_expiration"),
+                    "wrap_country": fac.get("country"),
                     "wrap_profile_url": WRAP_FACILITY_URL_TEMPLATE.format(wrap_id=wrap_id_s),
                     "expires_on": expires.isoformat() if expires else None,
                 },
                 evidence=EvidenceAttachment(
                     doc=doc,
                     locators={
-                        "wrap_id": f"powerbi:CertifiedFacilities[WRAPID={wrap_id_s}]/WRAPID",
-                        "wrap_cert_type": f"powerbi:CertifiedFacilities[WRAPID={wrap_id_s}]/Cert Type",
-                        "wrap_industries": f"powerbi:CertifiedFacilities[WRAPID={wrap_id_s}]/Industries",
-                        "wrap_products": f"powerbi:CertifiedFacilities[WRAPID={wrap_id_s}]/Products",
-                        "wrap_cert_expires": f"powerbi:CertifiedFacilities[WRAPID={wrap_id_s}]/Cert Expires",
+                        "wrap_id": f"{loc}/wrap_id",
+                        "wrap_industries": f"{loc}/industry",
+                        "wrap_products": f"{loc}/products",
+                        "wrap_cert_expires": f"{loc}/certification_expiration",
                     },
-                    default_locator=f"powerbi:CertifiedFacilities[WRAPID={wrap_id_s}]",
-                    document_text=raw_window(raw, f'"{wrap_id_s}"', radius=600)
+                    default_locator=loc,
+                    document_text=json_record_window(raw, f'"wrap_id":"{wrap_id_s}"')
                     or NO_EXCERPT,
                     document_is_html=False,
                     skip_keys=_UNCITABLE_FIELDS,
-                    # No `citable_url_override`: one query response backs every
-                    # Bangladesh facility, so a per-facility override would
-                    # stamp the first one's profile URL onto the document all
-                    # the others cite too. `wrap_profile_url` already carries
-                    # the public page into the payload.
+                    # No `citable_url_override`: one feed backs every facility,
+                    # so a per-facility override would stamp the first one's
+                    # profile URL onto the document all the others cite too.
+                    # `wrap_profile_url` already carries the public page.
                 ),
             )
 
