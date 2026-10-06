@@ -545,7 +545,7 @@ html { scrollbar-color: var(--line-strong) var(--canvas); }
 @media (max-width: 899px) { .cta-panel { padding-bottom: 72px; } .cta-panel__cards { display: none; } }
 
 /* ---------- Footer ---------- */
-.site-footer { padding: 88px 0 40px; background: var(--subtle); margin-top: var(--section); }
+.site-footer { padding: 88px 0 40px; background: var(--subtle); }
 :root .site-footer { background: color-mix(in srgb, var(--sunken) 45%, var(--canvas)); }
 .footer-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr)); gap: 40px; }
 .footer-brand p { margin-top: 14px; max-width: 320px; color: var(--ink-2); font-size: 15px; }
