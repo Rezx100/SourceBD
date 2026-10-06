@@ -37,6 +37,9 @@ const norm = (c: string) => c.toUpperCase();
 /** The tier a source sits in: its mark's, else 4 (a name with no mark is listed as a supplier list). */
 export const tierOf = (c: string): Tier => MARKS[norm(c)]?.tier ?? 4;
 
+/** Whether a source has an approved mark (`context/logos.lock.md`: no row, no render). */
+export const hasSourceMark = (c: string): boolean => norm(c) in MARKS;
+
 /** The 24px frame. A source with a mark shows it; any other shows the dashed document glyph. */
 export function SourceMark({ source, className }: { source: string; className?: string }) {
   const m = MARKS[norm(source)];

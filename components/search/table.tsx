@@ -1,13 +1,13 @@
 "use client";
 
 // The results table (Paper `10 · Results table`): select, Supplier, Type, Location, Workers,
-// Sources, then the first certificate problem. A real <table>, head 36 and sticky, rows 40
+// Sources, then the certificates as marks and the worst one's state. A real <table>, head 36 and sticky, rows 40
 // (they grow when a name wraps: nothing is cut off). The name opens the record in the pane;
 // arrows move between rows, Enter opens, Space ticks. Hover is brand-wash, a ticked row
 // brand-tint with the 2px bar. Client: it reads the selection and handles the keys.
 
 import Link from "next/link";
-import { CertProblem, LinkPending, SanctionTag, sanctionRowClass } from "@/components/patterns";
+import { CertSummaryCell, LinkPending, SanctionTag, sanctionRowClass } from "@/components/patterns";
 import { SelectCell, Table, Td, Th, Tr, Unpublished, rowLinkClass, type SortState } from "@/components/kit";
 import { cn } from "@/lib/utils";
 import { onRowKey } from "./keys";
@@ -102,11 +102,10 @@ export function ResultsTable({
                 <Td align="right" className="tabular-nums text-ink">
                   {r.sources}
                 </Td>
-                <Td>
-                  {r.cert ? (
-                    <CertProblem state={r.cert.state} more={r.cert.more}>
-                      {r.cert.text}
-                    </CertProblem>
+                {/* The 24px marks in a 40 row: 6 above and below, not the cell's 8. */}
+                <Td className="py-1.5">
+                  {r.certCell ? (
+                    <CertSummaryCell cert={r.certCell} />
                   ) : (
                     <Unpublished>No certificates found</Unpublished>
                   )}

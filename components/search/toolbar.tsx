@@ -31,6 +31,15 @@ const SORT_WORDS: Record<string, string> = {
 
 type Counts = Record<string, number | null>;
 
+/**
+ * The filters' row: one line at every width. When they outgrow it they scroll sideways and
+ * fade at the right edge; the padding keeps the last one clear of the fade and the focus rings unclipped.
+ * Under 720 the bar is the one beside a pane: the filters are behind the Filters button.
+ * Nothing is cut off with an ellipsis: a title too long for the row wraps inside itself.
+ */
+const rail =
+  "-my-1 -ml-1 flex min-w-0 flex-1 [@container_(max-width:719px)]:hidden items-center gap-2 overflow-x-auto py-1 pl-1 pr-6 [scrollbar-width:none] [mask-image:linear-gradient(to_right,black_calc(100%-24px),transparent)] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0 [&>*]:whitespace-nowrap";
+
 const triggerClass = (set: boolean) =>
   cn(buttonClass({ kind: "secondary", className: "gap-1 pl-3 pr-2" }), set && "border-brand bg-brand-tint hover:border-brand hover:bg-brand-tint");
 
@@ -96,13 +105,14 @@ export function SanctionedStanding({ state, hrefFor }: { state: DiscoverState; h
   );
 }
 
-export function SortMenu({ state, hrefFor, className }: { state: DiscoverState; hrefFor: (s: DiscoverState) => string; className?: string }) {
+export function SortMenu({ state, hrefFor, className, compact = false }: { state: DiscoverState; hrefFor: (s: DiscoverState) => string; className?: string; /** On a bar under 900 wide the button says "Sort" alone. */ compact?: boolean }) {
   return (
     <Menu
       align="end"
       trigger={
-        <button type="button" className={cn(buttonClass({ kind: "secondary", className: "gap-1 pl-3 pr-2" }), className)}>
-          <span>Sort: {SORT_WORDS[state.sort]}</span>
+        <button type="button" aria-label={`Sort: ${SORT_WORDS[state.sort]}`} className={cn(buttonClass({ kind: "secondary", className: "gap-1 pl-3 pr-2" }), className)}>
+          <span className={compact ? "[@container_(max-width:899px)]:hidden" : undefined}>Sort: {SORT_WORDS[state.sort]}</span>
+          {compact ? <span aria-hidden className="hidden [@container_(max-width:899px)]:inline">Sort</span> : null}
           <CaretDown size={16} className="shrink-0 text-ink-2" aria-hidden />
         </button>
       }
@@ -152,41 +162,48 @@ export function ResultsToolbar({
   /** Nothing to save, sort or download (no match, a failed search): the filters alone, as Paper draws the empty state. */
   bare?: boolean;
 }) {
+  // A filter that is on makes the bar longer than Paper draws it, so Save search gives up its words sooner.
+  const words = filterCount(state) > (state.q ? 1 : 0) ? "[@container_(max-width:1439px)]:sr-only" : "[@container_(max-width:1151px)]:sr-only";
+  const on = filterCount(state);
   return (
-    <div className="relative flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-line px-6 py-3 max-md:hidden">
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
-        <h1 className="pr-2 text-base font-semibold text-ink">{title}</h1>
+    <div className="relative border-b border-line max-md:hidden">
+      {/* The row measures itself here, not on the bar: a container is a stacking context, and the Save popover must stay above the table's sticky head. */}
+      <div className="flex items-center gap-x-4 px-6 py-3 [container-type:inline-size]">
+      <h1 className="min-w-0 text-base font-semibold text-ink">{title}</h1>
+      <div className={rail}>
         {barMenus(state).map((m) => (
           <FilterMenuButton key={m.key} menu={m} hrefFor={hrefFor} />
         ))}
         <OtherChips state={state} hrefFor={hrefFor} />
-        <Link href={filtersHref} prefetch={false} scroll={false} className={buttonClass({ kind: "secondary", className: "pl-2.5 pr-3" })}>
+        <Link href={filtersHref} prefetch={false} scroll={false} title="Add filter" className={buttonClass({ kind: "secondary", className: "px-2" })}>
           <Plus size={16} className="shrink-0 text-ink-2" aria-hidden />
-          Add filter
+          <span className={cn("pr-1", words)}>Add filter</span>
         </Link>
         <SanctionedStanding state={state} hrefFor={hrefFor} />
       </div>
       {bare ? null : (
-      <div className="flex items-center gap-2">
-        <Link href={saveHref} prefetch={false} scroll={false} className={buttonClass({ kind: "secondary", className: "pl-2.5 pr-3" })}>
+      <div className="ml-auto flex shrink-0 items-center gap-2">
+        <Link href={saveHref} prefetch={false} scroll={false} title="Save search" className={buttonClass({ kind: "secondary", className: "px-2" })}>
           <BookmarkSimple size={16} className="shrink-0 text-ink-2" aria-hidden />
-          Save search
+          <span className={cn("pr-1", words)}>Save search</span>
         </Link>
-        <SortMenu state={state} hrefFor={hrefFor} />
+        <SortMenu state={state} hrefFor={hrefFor} compact />
         <Link
           href={filtersHref}
           prefetch={false}
           scroll={false}
-          aria-label={filterCount(state) > 0 ? `Filters, ${filterCount(state)} on` : "Filters"}
+          aria-label={on > 0 ? `Filters, ${on} on` : "Filters"}
           aria-pressed={filtersOpen}
           title="Filters"
-          className={cn(buttonClass({ kind: "secondary", size: "icon-32" }), (filtersOpen || filterCount(state) > 0) && "border-ink-3 bg-subtle")}
+          className={cn(buttonClass({ kind: "secondary", size: "icon-32" }), "[@container_(max-width:719px)]:w-auto [@container_(max-width:719px)]:gap-2 [@container_(max-width:719px)]:px-3", (filtersOpen || on > 0) && "border-ink-3 bg-subtle")}
         >
           <SlidersHorizontal size={20} className="shrink-0 text-ink-2" aria-hidden />
+          <span aria-hidden className="hidden [@container_(max-width:719px)]:inline">{on > 0 ? `Filters · ${on} on` : "Filters"}</span>
         </Link>
         {more}
       </div>
       )}
+      </div>
       {savePanel}
     </div>
   );
@@ -196,9 +213,9 @@ export function ResultsToolbar({
 export function PaneListToolbar({ state, title, hrefFor, filtersHref, savePanel }: { state: DiscoverState; title: string; hrefFor: (s: DiscoverState) => string; filtersHref: string; savePanel?: ReactNode }) {
   const on = filterCount(state);
   return (
-    <div className="relative flex min-h-14 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-line px-4 py-2 max-md:hidden">
-      <h1 className="text-base font-semibold text-ink">{title}</h1>
-      <div className="flex items-center gap-2">
+    <div className="relative flex min-h-14 items-center justify-between gap-x-3 border-b border-line px-4 py-2 max-md:hidden">
+      <h1 className="min-w-0 text-base font-semibold text-ink">{title}</h1>
+      <div className="flex shrink-0 items-center gap-2">
         <Link href={filtersHref} prefetch={false} scroll={false} className={buttonClass({ kind: "secondary" })}>
           {on > 0 ? `Filters · ${on} on` : "Filters"}
         </Link>
@@ -216,7 +233,7 @@ export function PaneListToolbar({ state, title, hrefFor, filtersHref, savePanel 
  */
 export function PhoneToolbar({ state, count, hrefFor, filtersHref }: { state: DiscoverState; count: string; hrefFor: (s: DiscoverState) => string; filtersHref: string }) {
   const on = filterCount(state);
-  const half = "flex h-touch grow items-center justify-center gap-2 whitespace-nowrap rounded-md border border-line-strong bg-surface px-3 text-md font-medium text-ink outline-none hover:bg-subtle active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+  const half = "flex h-touch grow items-center justify-center gap-2 whitespace-nowrap rounded-md border border-line-strong bg-surface px-3 max-[389px]:px-2 text-md font-medium text-ink outline-none hover:bg-subtle active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
   return (
     <div className="flex flex-col gap-3 border-b border-line px-4 py-3 md:hidden">
       <Form action={DISCOVER_PATH} role="search" aria-label="Search" prefetch={false} className="relative">
@@ -236,17 +253,18 @@ export function PhoneToolbar({ state, count, hrefFor, filtersHref }: { state: Di
         </div>
       </Form>
       <h1 className="text-md font-semibold text-ink">{count}</h1>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex gap-2">
         <Link href={filtersHref} prefetch={false} scroll={false} className={half}>
-          <SlidersHorizontal size={20} className="shrink-0 text-ink-2" aria-hidden />
+          <SlidersHorizontal size={20} className="shrink-0 text-ink-2 max-[429px]:hidden" aria-hidden />
           {on > 0 ? `Filters · ${on} on` : "Filters"}
         </Link>
         <Menu
           align="end"
           trigger={
-            <button type="button" className={half}>
-              <CaretUpDown size={20} className="shrink-0 text-ink-2" aria-hidden />
-              Sort: {SORT_WORDS[state.sort]}
+            <button type="button" aria-label={`Sort: ${SORT_WORDS[state.sort]}`} className={half}>
+              <CaretUpDown size={20} className="shrink-0 text-ink-2 max-[429px]:hidden" aria-hidden />
+              <span className="max-[359px]:hidden">Sort: {SORT_WORDS[state.sort]}</span>
+              <span aria-hidden className="hidden max-[359px]:inline">Sort</span>
             </button>
           }
         >
@@ -262,7 +280,7 @@ export function PhoneToolbar({ state, count, hrefFor, filtersHref }: { state: Di
       </div>
       {state.sanctioned ? null : (
         <StandingFilter
-          className="h-11 self-start rounded-md px-3 text-base"
+          className="h-11 max-w-full self-start rounded-md px-3 text-base"
           action={
             <Link href={hrefFor({ ...state, sanctioned: true, page: 1 })} className={cn(linkClass, "text-base")}>
               Show them

@@ -413,7 +413,8 @@ async function DiscoverRecord({
   } else {
     const read = await safe(
       loadRecordSheet(supabase, slug, today, {
-        pins: tab === "sites",
+        // Every section is on the page at once (the tabs scroll to them), so the map's pins are always read.
+        pins: true,
         closeHref,
         fullHref: `/app/suppliers/${slug}`,
         allLines,
