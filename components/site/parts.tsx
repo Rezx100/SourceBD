@@ -49,7 +49,7 @@ export function HeroActions({ tryLine = "Try “knit dresses Gazipur” or “GO
         <ButtonLink href="/signup" prefetch={false} kind="primary" size="lg" className="max-sm:h-input-touch">
           Start free
         </ButtonLink>
-        <Link href="/contact" prefetch={false} className="text-md font-medium text-brand underline decoration-1 [text-underline-position:from-font] max-sm:flex max-sm:min-h-11 max-sm:items-center">
+        <Link href="/contact" prefetch={false} className="text-md font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] max-sm:flex max-sm:min-h-11 max-sm:items-center">
           Book a demo
         </Link>
       </div>
@@ -169,7 +169,7 @@ export function Close({ headline, lede }: { headline: ReactNode; lede?: ReactNod
           <ButtonLink href="/signup" prefetch={false} kind="primary" size="lg" className="max-sm:h-input-touch">
             Start free
           </ButtonLink>
-          <Link href="/contact" prefetch={false} className="text-md font-medium text-brand underline decoration-1 [text-underline-position:from-font] max-sm:flex max-sm:min-h-11 max-sm:items-center">
+          <Link href="/contact" prefetch={false} className="text-md font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] max-sm:flex max-sm:min-h-11 max-sm:items-center">
             Book a demo
           </Link>
         </div>
