@@ -444,6 +444,18 @@
     height: 10px;
   }
 
+  /* On a stage too short for the whole roll, the roll is a window and the paper scrolls up only once what has
+     printed runs past the window: the engine measures the paper's height and the window's (--roll-h, --roll-win,
+     on the paper's wrapper, once per layout) and the print moves it. */
+  [data-film-tier="full"] [data-roll] {
+    max-height: calc(100svh - 500px);
+    overflow: hidden;
+  }
+
+  [data-film-tier="full"] [data-roll-paper] {
+    transform: translateY(calc(-1 * max(0px, var(--print, 1) * var(--roll-h, 0px) - var(--roll-win, 0px))));
+  }
+
   [data-film-tier="full"] .roll-sheet {
     inset: 0 0 calc((1 - var(--print, 1)) * 100%) 0;
   }
@@ -529,6 +541,13 @@
   .stage-spot {
     background-image: radial-gradient(circle at var(--sx) var(--sy), transparent 0, transparent 22%, rgb(var(--ds-scrim) / 0.12) 60%);
     opacity: clamp(0, calc((var(--cursor, 1) - 0.6) * 2.5), 1);
+  }
+
+  /* The cropped screen on a narrow window looks at the part its step names (--focus, set by the scene). */
+  @media (max-width: 1023px) {
+    .stage-window img {
+      object-position: var(--focus, 50% 50%);
+    }
   }
 
   [data-film-tier="full"] .film-figure-fit {

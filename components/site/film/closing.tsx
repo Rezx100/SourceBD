@@ -14,17 +14,19 @@ import { FieldPane, RecordPane, Screen, ScreenStage } from "@/components/site/fi
 import { BGMEA, EXPORTS, GOTS, NAME, RFQ, SAFETY, SITE, SOURCES, UFLPA } from "@/components/site/film/record";
 import { Thread, ThreadLayer } from "@/components/site/film/thread";
 import { Words } from "@/components/site/film/words";
-import { Display, Lede, wrap } from "@/components/site/parts";
+import { wrap } from "@/components/site/parts";
 import { RoleTabs } from "@/components/site/role-tabs";
 import { readDay, withCommas, type SiteFacts } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
 
 /** Chapter 07's three steps, each a real v4 screen: the Saved page, the RFQ composer (where the cursor presses Send RFQ), the quotes. */
-export const SCREENS: readonly { src: string; alt: string; step: string; cursor?: { x: number; y: number } }[] = [
-  { src: "/site/saved-selected.png", alt: "The Saved page with three suppliers picked, and the bar offering one RFQ to all three.", step: "Shortlist from your saved suppliers" },
-  { src: "/site/rfq-one.png", alt: `The RFQ composer: one RFQ to ${NAME}, filled in, with Send RFQ ready to press.`, step: "Send one RFQ", cursor: { x: 92.6, y: 95.5 } },
-  { src: "/site/rfq-quotes.png", alt: "The RFQ's quotes, side by side.", step: "Compare the quotes" },
+export const SCREENS: readonly { src: string; alt: string; step: string; cursor?: { x: number; y: number }; focus: { x: number; y: number } }[] = [
+  { src: "/site/saved-selected.png", alt: "The Saved page with three suppliers picked, and the bar offering one RFQ to all three.", step: "Shortlist from your saved suppliers", focus: { x: 62, y: 38 } },
+  { src: "/site/rfq-one.png", alt: `The RFQ composer: one RFQ to ${NAME}, filled in, with Send RFQ ready to press.`, step: "Send one RFQ", cursor: { x: 92.6, y: 95.5 }, focus: { x: 48, y: 55 } },
+  { src: "/site/rfq-quotes.png", alt: "The RFQ's quotes, side by side.", step: "Compare the quotes", focus: { x: 42, y: 45 } },
 ];
+/** Where the compliance screen is looked at on a narrow window: the certificates that need a look. */
+const COMPLIANCE_FOCUS = { x: 45, y: 45 } as const;
 export const COMPLIANCE_STEPS = ["Certificate dates, expired first", "UFLPA Entity List checks", "Each fact with its source and date"] as const;
 export const COMPLIANCE_SCREEN = { src: "/site/compliance-hub.png", alt: "The Compliance page: certificates that need a look, expired first, with an ask for the new certificate on each." } as const;
 export const COMPLIANCE_LEDE = "Same loop, for compliance. Every supplier you shortlisted, with its certificate dates and list checks. Problems first.";
@@ -92,7 +94,7 @@ function SourcingStage() {
       </ol>
       <ScreenStage atmosphere={<Atmosphere />} caption={STAGE_CAPTION} data-order-screens="">
         {SCREENS.map((s, i) => (
-          <Screen key={s.src} on={i === 0} cursor={s.cursor}>
+          <Screen key={s.src} on={i === 0} cursor={s.cursor} focus={s.focus}>
             <Image src={s.src} alt={s.alt} width={1440} height={900} sizes="(min-width: 1024px) 720px, 100vw" className="block h-auto w-full" />
           </Screen>
         ))}
@@ -114,7 +116,7 @@ function ComplianceStage() {
         ))}
       </ol>
       <ScreenStage atmosphere={<Atmosphere />} caption={STAGE_CAPTION}>
-        <Screen on>
+        <Screen on focus={COMPLIANCE_FOCUS}>
           <Image src={COMPLIANCE_SCREEN.src} alt={COMPLIANCE_SCREEN.alt} width={1440} height={900} sizes="(min-width: 1024px) 720px, 100vw" className="block h-auto w-full" />
         </Screen>
       </ScreenStage>
@@ -175,10 +177,7 @@ export function LadderScene({ facts }: { facts: SiteFacts }) {
     <section data-scene="ladder" data-chapter="ch-8" className={cn(SCENE.hold, "film-full:h-[260svh]")}>
       <div className={SCENE.stage}>
         <div className={cn(wrap, "flex flex-col gap-10")}>
-          <div className="flex flex-col gap-4">
-            <Display>Every source has its rank.</Display>
-            <Lede>Government registers come first. A source lower on the ladder never overwrites one above it.</Lede>
-          </div>
+          <Words label="08 · Why should I trust you?" headline="Every source has its rank." lede="Government registers come first. A source lower on the ladder never overwrites one above it." />
           <ol className="grid gap-6 md:grid-cols-5">
             {TIERS.map(([t, n, list]) => (
               <li key={t} data-beat="" className="flex flex-col gap-2 border-t border-line pt-3">
@@ -223,16 +222,16 @@ export function FiguresScene({ facts }: { facts: SiteFacts }) {
   return (
     <section data-scene="figures" data-chapter="ch-8" className={cn(SCENE.hold, "film-full:h-[400svh]")}>
       <div className={SCENE.stage}>
-        <div className={cn(SCENE.row, "film-full:lg:items-center")}>
-          <div className={cn(SCENE.left, "lg:max-w-[400px]")}>
+        <div className={SCENE.row}>
+          <div className={cn(SCENE.left, "lg:w-[400px] lg:shrink-0")}>
             <Words label="08 · Why should I trust you?" headline="The numbers, as they stand." lede="Counted straight from our records, not rounded. The date says when." />
             {updated ? <p className="font-mono text-xs text-ink-3">Updated {updated} · latest register read {updated}</p> : null}
           </div>
-          <ul className="flex w-full flex-col gap-3 lg:max-w-[720px]">
+          <ul className="flex w-full flex-col gap-3 lg:max-w-[680px]">
             {figures.map(([figure, what]) => (
               <li key={what} data-beat="" className="flex flex-col gap-1 border-t border-line pt-3 md:flex-row md:items-baseline md:gap-6">
-                <p className="film-figure-fit font-mono text-3xl font-semibold tracking-tight text-ink max-sm:text-2xl film-full:font-sans film-full:tracking-[-0.04em]">{figure}</p>
-                <p className="text-md text-ink-2 md:max-w-[300px]">{what}</p>
+                <p className="film-figure-fit shrink-0 font-mono text-3xl font-semibold tracking-tight text-ink max-sm:text-2xl film-full:font-sans film-full:tracking-[-0.04em]">{figure}</p>
+                <p className="text-md text-ink-2 md:min-w-[200px] md:flex-1 md:[text-wrap:balance]">{what}</p>
               </li>
             ))}
           </ul>

@@ -26,12 +26,16 @@ export function sceneProgress(top: number, height: number, viewport: number): nu
   return clamp(-top / travel);
 }
 
-/** The chapter of the last scene (in page order) whose top has passed the middle of the screen; before the first, none. */
+/**
+ * The chapter of the last scene (in page order) whose top has passed the middle of the screen; before the first,
+ * and once the last scene's bottom has passed the middle too (the close, the FAQ, the footer), none.
+ */
 export function currentChapter(scenes: readonly { chapter: string; top: number; bottom: number }[], viewport: number): string | null {
   const mid = viewport / 2;
   let found: string | null = null;
   for (const s of scenes) if (s.top <= mid) found = s.chapter;
-  return found;
+  const last = scenes[scenes.length - 1];
+  return last && last.bottom <= mid ? null : found;
 }
 
 /** Whether the last scene (in page order) whose top has passed the middle of the screen is a night one. */
@@ -56,7 +60,8 @@ export function createDirector(root: HTMLElement, onScene?: (name: string, p: nu
   const rail = root.querySelector<HTMLElement>('nav[aria-label="Chapters"]');
   const line = rail?.querySelector<HTMLElement>(":scope > span") ?? null;
   const last = new Map<HTMLElement, number>();
-  let chapter: string | null = null;
+  // Undefined until the first measure, so a page restored past the last scene still settles the rail on its first frame.
+  let chapter: string | null | undefined;
   let night = false;
   let pageP = -1;
   let raf = 0;
@@ -84,6 +89,8 @@ export function createDirector(root: HTMLElement, onScene?: (name: string, p: nu
         if (a.hash === `#${now}`) a.setAttribute("aria-current", "step");
         else a.removeAttribute("aria-current");
       }
+      // With no chapter under the screen (the close, the FAQ, the footer) the ticks step aside; the phone's line stays.
+      rail?.toggleAttribute("data-off", now === null);
     }
     // The rail lies over whichever scene holds the screen: over a night scene it takes the night's own ink, so it
     // reads in either theme (the planet's act is night only until it has given way to the map).
@@ -120,6 +127,7 @@ export function createDirector(root: HTMLElement, onScene?: (name: string, p: nu
       removeEventListener("scroll", queue);
       removeEventListener("resize", resized);
       rail?.removeAttribute("data-ground");
+      rail?.removeAttribute("data-off");
     },
   };
 }

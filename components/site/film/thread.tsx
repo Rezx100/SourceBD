@@ -34,7 +34,7 @@ export type RailChapter = { id: string; n: string; label: string };
 
 /** The home page's nine chapters, as the rail links them: the opening, then the eight questions. */
 export const HOME_CHAPTERS: RailChapter[] = [
-  { id: "ch-1", n: "01", label: "Where are they?" },
+  { id: "ch-1", n: "01", label: "Where the suppliers are" },
   { id: "ch-02", n: "02", label: "Who are they?" },
   { id: "ch-03", n: "03", label: "Is that true?" },
   { id: "ch-04", n: "04", label: "Where are they?" },
@@ -51,11 +51,11 @@ export const HOME_CHAPTERS: RailChapter[] = [
  */
 export function Rail({ chapters, current, className }: { chapters: RailChapter[]; current?: string; className?: string }) {
   return (
-    <nav aria-label="Chapters" className={className}>
-      <ol className="flex h-full flex-col justify-between border-l border-line max-xl:hidden">
+    <nav aria-label="Chapters" className={cn("group/rail", className)}>
+      <ol className="flex h-full flex-col justify-between border-l border-line transition-opacity duration-slow group-data-[off]/rail:pointer-events-none group-data-[off]/rail:opacity-0 max-xl:hidden">
         {chapters.map((c) => (
           <li key={c.id}>
-            <a href={`#${c.id}`} aria-current={c.id === current ? "step" : undefined} className="group -ml-px flex h-6 items-center gap-2 font-mono text-xs text-ink-3 hover:text-ink aria-[current]:font-semibold aria-[current]:text-ink">
+            <a href={`#${c.id}`} aria-current={c.id === current ? "step" : undefined} className="group -ml-px flex h-6 items-center gap-2 rounded-sm font-mono text-xs text-ink-3 outline-none hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus aria-[current]:font-semibold aria-[current]:text-ink">
               <span aria-hidden className="h-px w-2.5 bg-line-strong group-aria-[current]:-ml-1 group-aria-[current]:size-2.5 group-aria-[current]:rounded-full group-aria-[current]:bg-brand-ink" />
               {c.n}
               <span className="sr-only"> {c.label}</span>

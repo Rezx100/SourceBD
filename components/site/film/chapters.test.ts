@@ -102,7 +102,7 @@ describe("scene 05, the receipt roll", () => {
   it("is paper, not glass, and no bordered card: a slot, a sheet, the clipped ink and a torn edge", () => {
     assert.doesNotMatch(scene, /rounded-lg border border-line|pane-glass/);
     for (const part of ["roll-slot", "roll-sheet", "roll-print", "roll-tear", "receipt"]) assert.ok(scene.includes(`class="${part}"`), part);
-    assert.match(scene, /<div data-roll="true" class="[^"]*"><div aria-hidden="true" class="roll-slot"><\/div><div class="relative mx-2\.5"><div aria-hidden="true" class="roll-sheet"><\/div><div data-paper="true" class="roll-print">/);
+    assert.match(scene, /<div data-roll="true" class="[^"]*"><div aria-hidden="true" class="roll-slot"><\/div><div data-roll-paper="true" class="relative mx-2\.5"><div aria-hidden="true" class="roll-sheet"><\/div><div data-paper="true" class="roll-print">/);
     assert.match(scene, /<svg aria-hidden="true" viewBox="0 0 400 10" preserveAspectRatio="none" class="roll-tear"><path d="M0 0L10 9L20 0[^"]*Z" class="fill-surface"><\/path><path d="M0 0L10 9[^"]*" class="fill-none stroke-line"/);
   });
 });
@@ -337,7 +337,7 @@ describe("scene 09, the real product staged", () => {
     }
     assert.match(scene, /alt="The Saved page with three suppliers picked/);
     assert.match(scene, /<img [^>]*alt="The Compliance page: certificates that need a look/);
-    assert.match(scene, /<img [^>]*compliance-hub\.png/);
+    assert.match(scene, new RegExp(`<img [^>]*${file(COMPLIANCE_SCREEN.src)}`));
     assert.match(t, /Same loop, for compliance\./);
     assert.doesNotMatch(scene, /rounded-lg border border-line|pane-glass/, "no bordered card, and the windows are solid: the ground behind them is drawn, not live");
   });
@@ -347,10 +347,16 @@ describe("scene 09, the real product staged", () => {
     const sourcing = scene.slice(first, scene.indexOf('role="tabpanel"', first + 1));
     assert.equal((sourcing.match(/data-screen="true"/g) ?? []).length, 3);
     assert.equal((sourcing.match(/<div data-screen="true" data-on=""/g) ?? []).length, 1);
-    assert.match(sourcing, /<div data-screen="true" data-on="" class="stage-screen"><div class="pane [^"]*stage-window[^"]*" data-window="true"><img [^>]*saved-selected/);
+    assert.match(sourcing, /<div data-screen="true" data-on="" class="stage-screen"><div class="pane [^"]*stage-window[^"]*" data-window="true"><div class="[^"]*max-lg:aspect-\[3\/4\][^"]*" style="--focus:62% 38%"><img [^>]*saved-selected/, "the first window, its screen cropped to the part the step names under 1024px");
     assert.equal((sourcing.match(/data-cursor="true"/g) ?? []).length, 3, "the spotlight, the press and the cursor, once");
     assert.ok(sourcing.indexOf("data-cursor") > sourcing.indexOf("rfq-one.png") && sourcing.indexOf("data-cursor") < sourcing.indexOf("rfq-quotes.png"));
     assert.match(sourcing, /class="stage-cursor [^"]*" style="left:92\.6%;top:95\.5%"/);
+    // Under 1024px each window looks at the part its step names: every focus is a point inside the screen, and each is written on its window.
+    for (const x of SCREENS) {
+      assert.ok(x.focus.x > 0 && x.focus.x < 100 && x.focus.y > 0 && x.focus.y < 100, x.step);
+      assert.ok(sourcing.includes(`style="--focus:${x.focus.x}% ${x.focus.y}%"`), x.step);
+    }
+    assert.equal((scene.match(/style="--focus:/g) ?? []).length, 4, "three sourcing screens and the compliance one");
     assert.ok(t.includes(STAGE_CAPTION) && /light in both themes/.test(STAGE_CAPTION));
     assert.equal((scene.match(/<figure class="flex flex-col gap-3"[^>]*><div class="relative isolate overflow-hidden rounded-pane bg-sunken/g) ?? []).length, 2, "one stage per role");
     assert.equal((scene.match(/data-order-screens=""/g) ?? []).length, 1, "the engine swaps the sourcing stage's screens only; the compliance stage's one screen is never touched");
@@ -360,7 +366,8 @@ describe("scene 09, the real product staged", () => {
   it("the atmosphere is our own drawing: no picture, no text, no colour typed, nothing that could pass for a real factory", () => {
     assert.match(atmosphere, /^<svg aria-hidden="true"/);
     assert.doesNotMatch(atmosphere, /<text|<image|href="http|#[0-9a-fA-F]{3,8}\b|rgb\(|white|black/);
-    assert.equal((scene.match(/<div aria-hidden="true" class="absolute inset-0 -z-10/g) ?? []).length, 2, "behind each stage");
+    assert.equal((scene.match(/<div aria-hidden="true" class="absolute inset-0 \[&amp;&gt;\*\]:size-full/g) ?? []).length, 2, "behind each stage, painted first");
+    assert.doesNotMatch(scene, /-z-10|z-\[/, "the z scale has no numbers: the order of paint is the order in the page");
     assert.match(atmosphere, /stroke-brand-ink/, "one green thread in soft focus");
   });
 });
@@ -485,6 +492,10 @@ describe("what Tailwind emits for the scenes", () => {
     assert.match(block(css, ".ov-wheel {"), /stroke-dashoffset: calc\(var\(--wheel, 0\) \* -0\.25px\)/);
     assert.match(block(css, ".ov-lever {"), /transform-box: fill-box;[^}]*rotate\(calc\(var\(--needle, 0\) \* -16deg\)\)/);
     assert.match(block(css, '[data-film-tier="full"] .roll-sheet {'), /inset: 0 0 calc\(\(1 - var\(--print, 1\)\) \* 100%\) 0/);
+    // On a stage too short for the whole roll it is a window and the paper scrolls up as it prints, on the full tier only.
+    assert.match(block(css, '[data-film-tier="full"] [data-roll] {'), /max-height: calc\(100svh - 500px\); overflow: hidden/);
+    assert.match(block(css, '[data-film-tier="full"] [data-roll-paper] {'), /translateY\(calc\(-1 \* max\(0px, var\(--print, 1\) \* var\(--roll-h, 0px\) - var\(--roll-win, 0px\)\)\)\)/, "the paper moves only once what has printed runs past the window");
+    assert.doesNotMatch(css, /(^|[^\]]) \[data-roll\] \{/, "off the full tier the roll is whole whatever the stage's height");
     assert.match(block(css, '[data-film-tier="full"] .roll-print {'), /clip-path: inset\(0 0 calc\(\(1 - var\(--print, 1\)\) \* 100%\) 0\)/);
     assert.match(block(css, '[data-film-tier="full"] .roll-tear {'), /top: calc\(var\(--print, 1\) \* 100%\)/);
     assert.doesNotMatch(block(css, ".roll-print {"), /clip-path/, "off the full tier the roll is whole whatever was written");

@@ -400,7 +400,8 @@ describe("the home page, film off and film on", () => {
     assert.deepEqual(ids, HOME_CHAPTERS.map((c) => c.id));
     for (const c of HOME_CHAPTERS) assert.equal((on.match(new RegExp(`id="${c.id}"`, "g")) ?? []).length, 1, c.id);
     const rail = on.slice(on.indexOf('<nav aria-label="Chapters"'));
-    assert.match(rail, /^<nav aria-label="Chapters" class="[^"]*fixed[^"]*hidden[^"]*film:block/);
+    assert.match(rail, /^<nav aria-label="Chapters" class="group\/rail [^"]*fixed[^"]*hidden[^"]*film:block/);
+    assert.match(rail, /<ol class="[^"]*group-data-\[off\]\/rail:opacity-0[^"]*max-xl:hidden"/, "the ticks step aside past the last scene");
     assert.equal((rail.match(/<a href="#ch-/g) ?? []).length, 9);
     assert.doesNotMatch(rail, /aria-current/, "the director sets the current chapter; the page starts with none");
     assert.match(rail, /<\/nav><\/main>$/);
@@ -483,6 +484,8 @@ describe("the scroll's arithmetic", () => {
     assert.equal(currentChapter(scenes, 1000), "ch-1", "between two scenes the one just left stays current");
     assert.equal(currentChapter([{ chapter: "ch-1", top: -1400, bottom: -400 }, { chapter: "ch-02", top: 200, bottom: 2200 }], 1000), "ch-02");
     assert.equal(currentChapter([{ chapter: "ch-1", top: 600, bottom: 1600 }], 1000), null, "before the first scene nothing is current");
+    assert.equal(currentChapter([{ chapter: "ch-1", top: -3000, bottom: -2000 }, { chapter: "ch-9", top: -1400, bottom: 400 }], 1000), null, "past the last scene (the close, the FAQ, the footer) nothing is current");
+    assert.equal(currentChapter([{ chapter: "ch-1", top: -3000, bottom: -2000 }, { chapter: "ch-9", top: -1400, bottom: 600 }], 1000), "ch-9");
   });
 });
 

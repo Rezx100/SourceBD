@@ -168,7 +168,10 @@ export function startChapters(root: HTMLElement, tier: Tier, hooks: ChapterHooks
   const sourcesRow = all<HTMLElement>(sources, "[data-row][data-beat]")[0];
   const receipts = scene("receipts");
   const paper = receipts?.querySelector<HTMLElement>("[data-paper]") ?? null;
-  const rollParts = all<HTMLElement>(receipts, ".roll-sheet, .roll-print, .roll-tear");
+  const roll = receipts?.querySelector<HTMLElement>("[data-roll]") ?? null;
+  const rollPaper = receipts?.querySelector<HTMLElement>("[data-roll-paper]") ?? null;
+  // The sheet, the ink, the torn edge and the paper's wrapper (which scrolls the window) each read --print themselves.
+  const rollParts = all<HTMLElement>(receipts, "[data-roll-paper], .roll-sheet, .roll-print, .roll-tear");
   const items = all<HTMLElement>(paper, "[data-receipt]");
   const lines = items.map((item) => item.querySelector("[data-tie-from]"));
   const ties = all<SVGGElement>(receipts, "[data-tie]");
@@ -178,6 +181,7 @@ export function startChapters(root: HTMLElement, tier: Tier, hooks: ChapterHooks
   const siteTie = all<SVGGElement>(site, "[data-tie]")[0];
   const siteRow = all<HTMLElement>(site, "[data-row][data-beat]")[0];
   const siteNote = all<HTMLElement>(site, "[data-beat]:not([data-row])")[0];
+  const siteLabel = site?.querySelector<HTMLElement>("[data-site-label]") ?? null;
   const exportsScene = scene("exports");
   const carton = exportsScene?.querySelector<SVGSVGElement>("svg[data-carton]") ?? null;
   const cartonTie = all<SVGGElement>(exportsScene, "[data-tie]")[0];
@@ -281,22 +285,34 @@ export function startChapters(root: HTMLElement, tier: Tier, hooks: ChapterHooks
     tie(seamTie, seamGeo.end, seamGeo.dot, at.tie);
   };
 
-  let rollGeo: { ends: number[]; froms: (Point | null)[]; dots: (Point | null)[] } | null = null;
+  // On a stage too short for the whole roll (under about 850 px), the roll is a window and the paper scrolls up once
+  // what has printed runs past it (app/ds.css reads --roll-h and --roll-win on the paper's wrapper); the receipts'
+  // lines move with it, so each thread's start is shifted by the same rule each frame, never measured again.
+  let rollGeo: { ends: number[]; froms: (Point | null)[]; dots: (Point | null)[]; h: number; win: number; top: number } | null = null;
   const showReceipts = (p: number) => {
     if (!receipts || !paper || !items.length) return;
     if (staleReceipts) {
       staleReceipts = false;
+      // Each line's place at rest comes from its offsets inside the paper, which no transform moves, laid on the
+      // window's own box: a measure taken mid-print would otherwise carry the scroll of that moment.
       const box = layerOf(ties[0]);
       const height = paper.offsetHeight;
-      const edge = paper.getBoundingClientRect().right + 2;
+      const rollBox = roll?.getBoundingClientRect();
+      const edge = (rollBox?.right ?? 0) - (rollPaper?.offsetLeft ?? 0) + 2;
+      const rest = (rollBox?.top ?? 0) + (rollPaper?.offsetTop ?? 0);
+      const h = rollPaper?.offsetHeight ?? 0;
+      const win = roll && rollPaper ? Math.max(0, roll.clientHeight - rollPaper.offsetTop) : h;
+      rollPaper?.style.setProperty("--roll-h", `${Math.round(h)}px`);
+      rollPaper?.style.setProperty("--roll-win", `${Math.round(win)}px`);
+      const top = box && rollBox ? rollBox.top - box.top : 0;
       rollGeo = box
         ? {
             ends: items.map((item) => (item.offsetTop + item.offsetHeight) / height),
-            froms: lines.map((line) => {
-              const r = line?.getBoundingClientRect();
-              return r ? within(box, edge, r.top + r.height / 2) : null;
-            }),
+            froms: lines.map((line) => (line instanceof HTMLElement ? within(box, edge, rest + line.offsetTop + line.offsetHeight / 2) : null)),
             dots: [],
+            h,
+            win,
+            top,
           }
         : null;
       stalePlaces = true;
@@ -312,7 +328,15 @@ export function startChapters(root: HTMLElement, tier: Tier, hooks: ChapterHooks
       const box = layerOf(ties[0]);
       rollGeo.dots = box ? rows.map((row) => dotOf(box, row)) : [];
     }
-    ties.forEach((g, i) => tie(g, rollGeo!.froms[i] ?? null, rollGeo!.dots[i] ?? null, at.ties[i] ?? 0));
+    // A receipt whose line scrolls out of the window's top takes its thread with it, drawn back over the last 24 px
+    // rather than cut in one frame; the row keeps its dot.
+    const shift = Math.max(0, at.print * rollGeo.h - rollGeo.win);
+    ties.forEach((g, i) => {
+      const from = rollGeo!.froms[i];
+      const y = from ? from.y - shift : 0;
+      const kept = from ? clamp((y - rollGeo!.top - 8) / 24) : 1;
+      tie(g, from ? { x: from.x, y } : null, rollGeo!.dots[i] ?? null, Math.min(at.ties[i] ?? 0, kept));
+    });
   };
 
   // The light moves with the camera on every frame, but the map says where it is without a layout; only the
@@ -325,6 +349,12 @@ export function startChapters(root: HTMLElement, tier: Tier, hooks: ChapterHooks
     const from = hooks.site?.(p) ?? null;
     beat(siteRow, p, SITE.tie[0]);
     beat(siteNote, p, SITE.note);
+    // The place's label sits up and left of the light and shows as the ring opens (the scroll eases it; no transition).
+    if (siteLabel && from) {
+      siteLabel.style.transform = `translate(${px(from.x - 150)}px, ${px(from.y - 120)}px)`;
+      const o = at.ring.toFixed(2);
+      if (siteLabel.style.opacity !== o) siteLabel.style.opacity = o;
+    }
     if (stalePlaces || staleSite) {
       staleSite = false;
       const box = layerOf(siteTie);
@@ -436,8 +466,9 @@ export function startChapters(root: HTMLElement, tier: Tier, hooks: ChapterHooks
   /** Everything written is put back, so a page the film has left is the stacked page: every part at rest, the roll whole, every row there. */
   const reset = () => {
     removeEventListener("resize", invalidate);
-    for (const el of [...needleParts, wheel, seam, seamTie, ...rollParts, ...ties, siteTie, carton, cartonTie, line, ...windows, ...cursorParts, closeTie]) for (const name of ["--wheel", "--needle", "--p", "--print", "--slide", "--t", "--cursor"]) el?.style.removeProperty(name);
+    for (const el of [...needleParts, wheel, seam, seamTie, ...rollParts, rollPaper, ...ties, siteTie, carton, cartonTie, line, ...windows, ...cursorParts, closeTie]) for (const name of ["--wheel", "--needle", "--p", "--print", "--slide", "--t", "--cursor", "--roll-h", "--roll-win"]) el?.style.removeProperty(name);
     for (const item of items) item.removeAttribute("data-dim");
+    if (siteLabel) Object.assign(siteLabel.style, { transform: "", opacity: "" });
     for (const el of [sourcesRow, ...rows, note, siteRow, siteNote, exportsRow, listRow, ...timeBeats, ...promises, ...promises.map((li) => li.querySelector("[data-beat]")), ...rungs, ...figures, ...closeRows]) {
       el?.removeAttribute("data-on");
       el?.classList.remove("rec-arrive", "animate-rise");
