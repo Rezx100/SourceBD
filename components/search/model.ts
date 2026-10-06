@@ -1,7 +1,7 @@
 // What a result row shows, worked out on the server from the search's row model so the client
 // table only draws it. The words of the certificate line are `certLine` (patterns/words.ts).
 
-import { certLine, type CertLine } from "@/components/patterns/words";
+import { certLine, certSummary, type CertLine, type CertSummary } from "@/components/patterns/words";
 import { formatCount } from "@/lib/dashboard/facts";
 import type { TableRowModel } from "@/lib/dashboard/models";
 
@@ -18,6 +18,8 @@ export type ResultRow = {
   /** Registers and certifiers, the figure the Sources sort orders by. */
   sources: number;
   cert: CertLine | null;
+  /** The same certificates as the table's compact cell: the bodies' marks and the worst one's state. */
+  certCell: CertSummary | null;
   /** Opens the record in the pane beside the results. */
   paneHref: string;
   /** Opens the record as a page (the phone, and "Open full page"). */
@@ -36,6 +38,7 @@ export function resultRow(t: TableRowModel, today: Date, pageHref: string): Resu
     workersSecond: t.workersSecondShort ? { short: t.workersSecondShort, words: t.workersSecond ?? t.workersSecondShort } : null,
     sources: t.sourceCount,
     cert: certLine(t.certs, today),
+    certCell: certSummary(t.certs, today),
     paneHref: t.recordHref ?? `/app/suppliers/${t.slug}`,
     pageHref,
     sanctioned: t.sanctioned,
