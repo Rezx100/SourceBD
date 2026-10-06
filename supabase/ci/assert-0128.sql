@@ -12,7 +12,8 @@ insert into auth.users (id, email, raw_user_meta_data) values
 on conflict do nothing;
 
 insert into public.suppliers (id, slug, company_name, company_name_norm, city, district, is_published, is_sanctioned)
-  values ('00000000-0000-4000-8000-0000000a1128', 'ci-0128-knit', 'CI 0128 Knit Ltd', 'ci 0128 knit ltd', 'Dhaka', 'Dhaka', true, false);
+  -- Not published: the publish trigger wants a Tier 1-3 source record, and the plan does not care.
+  values ('00000000-0000-4000-8000-0000000a1128', 'ci-0128-knit', 'CI 0128 Knit Ltd', 'ci 0128 knit ltd', 'Dhaka', 'Dhaka', false, false);
 
 -- Twelve open ETL holds, one a minute apart so the order is fixed, and one already decided.
 insert into public.verification_queue (id, queue_type, supplier_a_id, supplier_b_name, confidence, source_data, created_at)
