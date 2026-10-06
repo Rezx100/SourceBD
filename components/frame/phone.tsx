@@ -6,7 +6,7 @@
 // HS codes, Settings and Sign out. A page that draws its own bar (a record, a
 // thread: `data-detail`) hides both, as S-09 asks.
 
-import { CaretRight, GearSix, Hash, Package, SignOut, UserCircle } from "@phosphor-icons/react";
+import { CaretRight, ChatCircleText, GearSix, Hash, Package, SignOut, UserCircle } from "@phosphor-icons/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Dialog as D } from "radix-ui";
@@ -16,6 +16,7 @@ import { TabBar } from "@/components/kit/phone";
 import { PHONE_TABS, phoneTab, phoneTitle } from "@/lib/frame-nav";
 import { cn } from "@/lib/utils";
 import { NO_BADGES, useBadges, type BadgesInput, type FrameBadges } from "./badges";
+import { FeedbackDialog } from "./feedback";
 import { FRAME_ICONS } from "./sidebar";
 import { accountName, type FrameAccount } from "./topbar";
 
@@ -36,7 +37,7 @@ function SheetRow({ href, icon: G, title, line }: { href: string; icon: typeof P
   );
 }
 
-function AccountSheet({ account }: { account: FrameAccount }) {
+function AccountSheet({ account, onFeedback }: { account: FrameAccount; onFeedback: () => void }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   // The frame outlives every navigation: a chosen row closes the sheet.
@@ -75,6 +76,17 @@ function AccountSheet({ account }: { account: FrameAccount }) {
             <SheetRow href="/app/products" icon={Package} title="Products" line="Only you see these" />
             <SheetRow href="/app/headings" icon={Hash} title="HS codes" line="HS headings from EPB export records" />
             <SheetRow href="/app/settings" icon={GearSix} title="Settings" line="Profile, company, team, emails" />
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                onFeedback();
+              }}
+              className={cn("flex min-h-14 w-full items-center gap-3 border-b border-line px-4 text-left text-md font-medium text-ink", ringInset)}
+            >
+              <ChatCircleText size={24} className="shrink-0 text-ink-2" aria-hidden />
+              Send feedback
+            </button>
             <form action="/auth/sign-out" method="post">
               <button type="submit" className={cn("flex min-h-14 w-full items-center gap-3 px-4 text-md font-medium text-ink", ringInset)}>
                 <SignOut size={24} className="shrink-0 text-ink-2" aria-hidden />
@@ -91,10 +103,12 @@ function AccountSheet({ account }: { account: FrameAccount }) {
 /** The phone's top bar: the page title (24/600) and the account button. */
 export function PhoneBar({ account }: { account: FrameAccount | null }) {
   const title = phoneTitle(usePathname() ?? "");
+  const [feedback, setFeedback] = useState(false);
   return (
     <div className={cn("sticky top-0 z-raised flex h-topbar shrink-0 items-center justify-between bg-surface pl-4 pr-1 md:hidden", HIDE_ON_DETAIL)}>
       <span className="truncate text-xl font-semibold tracking-tight text-ink">{title}</span>
-      {account ? <AccountSheet account={account} /> : null}
+      {account ? <AccountSheet account={account} onFeedback={() => setFeedback(true)} /> : null}
+      {feedback ? <FeedbackDialog onClose={() => setFeedback(false)} /> : null}
     </div>
   );
 }
