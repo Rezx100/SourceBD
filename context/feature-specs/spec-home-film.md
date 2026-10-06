@@ -11,7 +11,7 @@ from a dot on the planet to an RFQ. Front end only: no migration, no new package
 | 2a | The flag (`?film=1`), the tier, the director, and scenes 01 to 03 on all three tiers | built, 6 Oct 2026 |
 | 2b | The dated supplier cells and the factory's own geocode (`cells.json`), `ops/plans/home-film-data.md`, the credit on `/legal/data-sources`, stills for the lite and still tiers, the planet handing over to the map in one move, `cobe` out of `package.json` | built, 6 Oct 2026 |
 | 3 | Scenes 04 (the overlock, five sources as hang tags, the seam that ties on the Sources row) and 05 (the receipt roll printing three claims beside their sources, three rows arriving, the note where two sources differ), on all three tiers; the fixes from the review of PR 370 (the real supplier lights) | built, 6 Oct 2026 |
-| 4 | Scenes 06 to 08 | |
+| 4 | Scenes 06 (the one live map tilts down on to the factory's area with a ring a kilometre wide, the record gains Site), 07 (one blank carton, "Coming in v2") and 08 (the calendar: the day, the time line, the alert at day 43 and the GOTS row turning amber, the list checked again at day 59), on all three tiers; the slice-3 session's efficiency follow-up | built, 7 Oct 2026 |
 | 5 | Scenes 09 to 12 and the rail | |
 | 6 | The phone, the lite and still tiers, the budgets, accessibility; then the flag on (the founder's call) | |
 
@@ -81,6 +81,32 @@ Found while building slice 3 (6 Oct 2026):
   moving it under `scripts/film/` so a clean clone can re-shoot them is slice 6's.
 - The engine puts back everything it wrote when the film stops (`chapters.stop()`, `start.ts`'s `stop()`), so a
   page that gives up mid-scene is the stacked page again; the roll follows `--print` on the full tier only.
+
+Found while building slice 4 (7 Oct 2026):
+- One map serves scenes 02, 03 and 06 (§3.5: one drawing context at a time). Its stage is moved into scene 06 the
+  moment scene 05 has run its hold (the scene after it is then just below the screen) and back when it has not;
+  `engine/start.ts` keeps the map and lends the chapters' engine a hook that moves the camera and says where the one
+  light is. A map that comes up late takes whichever scene has it.
+- The close on the factory's area draws no tiles and no roads: question 4 of §9 (the cost of Barikoi's tiles) has
+  no answer, so the default stands. The ground is our own data at zoom 13.6: the kilometre grid the lights are
+  counted on (`grid` in `engine/map.ts`, the same lattice as `scripts/film/build-cells.mjs`), each cell a soft
+  light, the one green light and the ring (`RING_KM`, 1 km: Barikoi gave the geocode as an area, confidence 40).
+  The district outlines and the rivers fade out past zoom 13, where their simplified lines would cross the ground.
+  The note says "the ring marks the area, not the building"; the page without the film still says "the pin".
+- The lite and still tiers get a picture of the same close (`map-site-{light,dark}.avif`, 3 KB each), shot by the
+  local `stills.cjs`.
+- Scene 08's day counter is three whole figures (0, 43, 59: the days the story stops on), one on at a time on the
+  full tier the way scene 02's district figures are, never a number counting up; the time line is drawn by `--t`
+  and each mark on it shows once the line has reached its own `--at`. The UFLPA check is a bare mono line under
+  the time line, not a pane; the row carries "No link found" and the date of our copy.
+- A row to watch (`watch` on `RecordRow`) renders its value amber; on the full tier it is ink until the engine
+  writes `data-due` on its day (Tailwind's `group-data-[due]/row` variant, no CSS of its own).
+- The dates of today's chapter 06 did not add up (1 Nov was called day 43): day 43 from 3 Oct is 15 Nov, which is
+  30 days before the certificate's 15 Dec. Both the film and the page without it now say 15 Nov (the one word
+  changed on the page without the film).
+- From the slice-3 session's follow-up, carried in this PR: the threads' geometry is measured only when the layout
+  moves (a resize, the fonts arriving, a row arriving), never per frame; the overlock's and the roll's variables
+  are written on the parts that read them; the record's marks are fetched lazily.
 
 ---
 

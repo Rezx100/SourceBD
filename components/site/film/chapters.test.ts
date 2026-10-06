@@ -1,7 +1,8 @@
-// The home film, slice 3 (handoff-home-film §3.7, §3.9, §4): scenes 04 and 05. The overlock flat with the five
-// sources as hang tags, the receipt roll with today's three claims beside their sources, the record gaining its
-// rows at their beats, the scroll's arithmetic for both scenes, and what Tailwind emits for the parts the engine
-// moves. The home page with the film on and off is held in film.test.ts.
+// The home film, slices 3 and 4 (handoff-home-film §3.6, §3.7, §3.9, §4): scenes 04 to 08. The overlock flat with
+// the five sources as hang tags, the receipt roll with today's three claims beside their sources, the map's close on
+// the factory's area with its ring, the blank carton, the calendar with its alert, the record gaining its rows at
+// their beats, the scroll's arithmetic for every scene, and what Tailwind emits for the parts the engine moves. The
+// home page with the film on and off is held in film.test.ts.
 
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -10,12 +11,15 @@ import { describe, it } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { DIFFER, OVERLOCK_CAPTION, RECEIPTS, ReceiptsScene, SourcesScene } from "./chapters";
-import { BAND, RECEIPTS as ROLL, SEAM_END, SOURCES as SEAM, curve, holds, receiptsAt, sourcesAt } from "./engine/chapters";
-import { Overlock, TAGS } from "./flats";
-import { SOURCES, SOURCE_DATES } from "./record";
+import { ALERT, CARTON_CAPTION, DAYS, DIFFER, EXPORT_LINES, ExportsScene, LIST_LINE, OVERLOCK_CAPTION, RECEIPTS, ReceiptsScene, SITE_NOTE, SiteScene, SourcesScene, TimeLine, TimeScene } from "./chapters";
+import { BAND, CARTON_END, EXPORTS, RECEIPTS as ROLL, SEAM_END, SITE, SOURCES as SEAM, TIME, curve, exportsAt, holds, receiptsAt, siteAt, sourcesAt, timeAt } from "./engine/chapters";
+import { RING_KM, STOPS, grid, ring, siteStops } from "./engine/map";
+import { CARTON_TAG, Carton, Overlock, TAGS } from "./flats";
+import { MAP_CREDIT } from "./opening";
+import { GOTS, GOTS_DUE, SITE as SITE_ROW, SOURCES, SOURCE_DATES } from "./record";
 
 const repoRoot = process.cwd();
+type Position = [number, number];
 // React 19 puts a preload link for each source mark before the markup; the markup is what is under test.
 const draw = (el: Parameters<typeof renderToStaticMarkup>[0]) => renderToStaticMarkup(el).replace(/<link rel="preload"[^>]*>/g, "");
 const text = (m: string) => m.replace(/<[^>]*>/g, " ").replace(/&#x27;|&rsquo;/g, "'").replace(/\s+/g, " ");
@@ -161,13 +165,160 @@ describe("the chapters' arithmetic", () => {
   });
 });
 
+
+describe("scene 06, the address on the map", () => {
+  const scene = draw(createElement(SiteScene));
+  const t = text(scene);
+
+  it("is chapter 04's scene: today's words, a stage for the one live map, a picture of the same close for the other tiers, and the credit on both", () => {
+    assert.match(scene, /^<section id="ch-04" data-scene="site" data-chapter="ch-04"/);
+    assert.match(t, /04 · Where are they\? One address, on the map\. The address comes from the registers\./);
+    assert.match(scene, /<div data-map-site="true" aria-hidden="true" class="absolute inset-0 hidden film-full:block"><\/div>/);
+    assert.match(scene, /srcSet="\/site\/film\/map-site-dark\.avif"\/><img src="\/site\/film\/map-site-light\.avif"/);
+    assert.equal((scene.match(new RegExp(MAP_CREDIT.replace(/\./g, "\\."), "g")) ?? []).length, 2);
+    assert.match(/<section[^>]*><div class="([^"]*)"/.exec(scene)?.[1] ?? "", /film-full:isolate film-full:overflow-hidden/, "the map is clipped to the stage, on the full tier only");
+  });
+
+  it("the ring is named for what it is, the record gains Site at its beat on glass, and one thread ties them", () => {
+    assert.ok(t.includes(SITE_NOTE.title) && t.includes(SITE_NOTE.body) && SITE_NOTE.body.includes("the area, not the building"));
+    assert.deepEqual([...scene.matchAll(/data-row="([^"]+)" data-beat=""/g)].map((m) => m[1]), ["Site"]);
+    assert.equal((scene.match(/<dt /g) ?? []).length, 5, "Sources, the three of chapter 03, and Site");
+    assert.equal((scene.match(/pane-glass/g) ?? []).length, 2, "the record and the note, over the live map; never a third");
+    assert.equal((scene.match(/data-tie="true"/g) ?? []).length, 1);
+    assert.doesNotMatch(scene, /rounded-lg border border-line/);
+    assert.ok(SITE_ROW.marks?.includes("BGMEA") && SITE_ROW.marks.includes("BKMEA"), "the row carries the marks of the two registers the note names");
+  });
+});
+
+describe("scene 07, the export carton", () => {
+  const scene = draw(createElement(ExportsScene));
+  const flat = draw(createElement(Carton));
+  const t = text(scene);
+
+  it("is chapter 05's scene: one blank carton with its tag, today's words on what the records will show, and no figure", () => {
+    assert.match(scene, /^<section id="ch-05" data-scene="exports" data-chapter="ch-05"/);
+    assert.match(t, /05 · Who do they ship to\? Export records are coming\./);
+    assert.equal((scene.match(/<svg data-carton="true" aria-hidden="true"/g) ?? []).length, 1);
+    assert.ok(flat.includes(`>${CARTON_TAG}</text>`) && CARTON_TAG === "Coming in v2");
+    assert.ok(t.includes(CARTON_CAPTION) && CARTON_CAPTION.endsWith("· illustration"));
+    for (const line of EXPORT_LINES) assert.ok(t.includes(line), line);
+    assert.doesNotMatch(t, /FOB US|PCS|\bSpain\b|\bCanada\b|\d{1,3},\d{3} pieces/);
+    assert.doesNotMatch(flat.replace(/<text[\s\S]*?<\/text>/g, ""), /[A-Z]{3,}/, "no shipping mark: the lines are there, the words are not");
+  });
+
+  it("the record gains Export records at its beat, the thread leaves the carton's side, and the drawing types no colour", () => {
+    assert.deepEqual([...scene.matchAll(/data-row="([^"]+)" data-beat=""/g)].map((m) => m[1]), ["Export records"]);
+    assert.equal((scene.match(/<dt /g) ?? []).length, 6);
+    assert.equal((scene.match(/data-tie="true"/g) ?? []).length, 1);
+    assert.ok(flat.includes(`M290 40 ${CARTON_END.x} 12V212L290 240Z`), "the side reaches the thread's edge");
+    assert.doesNotMatch(flat, /#[0-9a-fA-F]{3,8}\b|rgb\(|white|black/);
+    assert.doesNotMatch(scene, /rounded-lg border border-line|pane-glass/);
+  });
+});
+
+describe("scene 08, time moves", () => {
+  const scene = draw(createElement(TimeScene));
+  const line = draw(createElement(TimeLine));
+  const t = text(scene);
+
+  it("is chapter 06's scene: today's words, the three days in words, the alert, the list check with what was found, never 'clear'", () => {
+    assert.match(scene, /^<section id="ch-06" data-scene="time" data-chapter="ch-06"/);
+    assert.match(t, /06 · Will it still be true next month\? The list changes\. We check again\./);
+    assert.equal(DAYS.length, 3);
+    assert.deepEqual(DAYS.map(([d]) => d), [...TIME.marks]);
+    for (const [, when] of DAYS) assert.ok(t.includes(when), when);
+    for (const v of Object.values(ALERT)) assert.ok(t.includes(v), v);
+    assert.ok(t.includes(LIST_LINE) && LIST_LINE.includes("no link found") && LIST_LINE.includes("our copy from 14 May 2026"));
+    assert.doesNotMatch(t, /UFLPA[^.]{0,80}\bclear(ed)?\b/i);
+    assert.doesNotMatch(scene, /count-?up|data-count|aria-valuenow/);
+  });
+
+  it("the days are one at a time on the full tier, the first on; the alert and the line on the list are beats; the UFLPA row arrives last", () => {
+    const days = scene.slice(scene.indexOf("<ol data-days"), scene.indexOf("</ol>", scene.indexOf("<ol data-days")));
+    assert.equal((days.match(/<li data-on=""/g) ?? []).length, 1);
+    assert.match(days, /^<ol data-days="true"[^>]*><li data-on=""/);
+    assert.match(days, /film-full:sr-only/);
+    assert.equal((scene.match(/<div data-beat="" class="w-full max-w-\[360px\]"><div class="pane /g) ?? []).length, 1, "the alert is a beat on a solid pane");
+    assert.match(scene, /<p data-beat="" class="font-mono text-xs text-ink-3">Checked against the UFLPA Entity List/);
+    assert.deepEqual([...scene.matchAll(/data-row="([^"]+)" data-beat=""/g)].map((m) => m[1]), ["UFLPA Entity List"]);
+    assert.equal((scene.match(/<dt /g) ?? []).length, 7);
+  });
+
+  it("the GOTS row is the one to watch: amber, and on the full tier only once its day comes", () => {
+    assert.match(scene, /<div data-row="GOTS certificate" data-watch="" class="group\/row /);
+    assert.match(scene, /data-watch=""[^]*?<dd class="text-base font-semibold text-caution transition-colors duration-slow film-full:text-ink film-full:group-data-\[due\]\/row:text-caution">GOTS-19020 · expires 15 Dec 2026<\/dd>/);
+    assert.equal((scene.match(/data-watch=""/g) ?? []).length, 1);
+    assert.equal(GOTS_DUE.label, GOTS.label);
+  });
+
+  it("the time line is words and lines only: the dates, the run drawn by the scroll, a mark for each day that shows once the line reaches it", () => {
+    assert.match(line, /^<svg data-timeline="true" aria-hidden="true" viewBox="0 0 680 84"/);
+    for (const d of ["3 Oct", "1 Nov", "1 Dec", "15 Dec", "Day 0 · shortlisted", "Day 43 · alert", "Day 59 · checked again"]) assert.ok(line.includes(`>${d}</text>`) || line.includes(`${d}</text>`), d);
+    assert.match(line, /<path d="M8 44H672" pathLength="1" class="time-run fill-none stroke-ink"/);
+    const marks = [...line.matchAll(/class="time-mark [^"]*" style="--at:([\d.]+)"/g)].map((m) => Number(m[1]));
+    assert.deepEqual(marks, [43 / 73, 59 / 73, 43 / 73, 59 / 73].map((v) => Number(v.toFixed(3))), "the alert's dot, the check's dot and their two labels, each at its own day");
+    assert.doesNotMatch(line, /#[0-9a-fA-F]{3,8}\b|rgb\(|white|black/);
+  });
+});
+
+describe("the later chapters' arithmetic", () => {
+  it("06: the camera travels, then the ring opens, then the thread ties and the row arrives as it sets out, then the note", () => {
+    assert.deepEqual(siteAt(0), { camera: 0, ring: 0, tie: 0, row: false, note: false });
+    assert.deepEqual(siteAt(1), { camera: 1, ring: 1, tie: 1, row: true, note: true });
+    assert.ok(SITE.camera[1] <= SITE.ring[1] && SITE.ring[0] < SITE.tie[0] && SITE.tie[1] <= SITE.note);
+    assert.equal(siteAt(SITE.tie[0]).row, false);
+    assert.equal(siteAt(SITE.tie[0] + 0.001).row, true);
+    assert.ok(siteAt(SITE.tie[0]).camera === 1, "the camera has landed before the thread sets out");
+  });
+
+  it("07: the carton slides in whole before its thread sets out; the row arrives with the thread", () => {
+    assert.deepEqual(exportsAt(0), { slide: 0, tie: 0, row: false });
+    assert.deepEqual(exportsAt(1), { slide: 1, tie: 1, row: true });
+    assert.ok(EXPORTS.slide[1] < EXPORTS.tie[0]);
+    assert.equal(exportsAt(EXPORTS.tie[0]).slide, 1);
+    assert.equal(exportsAt(EXPORTS.tie[0] + 0.001).row, true);
+  });
+
+  it("08: the scroll is the calendar, 3 Oct to 15 Dec; day 43 is the alert (30 days left), day 59 the new list copy; the days rest at each end", () => {
+    assert.equal(TIME.days, 73, "3 Oct to 15 Dec 2026");
+    assert.equal(TIME.marks[1], 43, "15 Nov: 30 days before 15 Dec");
+    assert.equal(TIME.marks[2], 59, "1 Dec");
+    assert.deepEqual(timeAt(0), { t: 0, day: 0, marks: timeAt(0).marks, alert: false, list: false });
+    assert.deepEqual({ ...timeAt(1), marks: undefined }, { t: 1, day: 73, marks: undefined, alert: true, list: true });
+    const { marks } = timeAt(0.5);
+    assert.ok(marks[0] === TIME.run[0] && marks[1]! < marks[2]! && marks[2]! < TIME.run[1]);
+    assert.equal(timeAt(marks[1]!).alert, false);
+    assert.equal(timeAt(marks[1]! + 0.001).alert, true, "past its mark, by the same rule the beats use");
+    assert.equal(timeAt(marks[2]! + 0.01).list, true);
+    for (let p = 0; p < 1; p += 0.01) assert.ok(timeAt(p + 0.01).day >= timeAt(p).day, "the days never run backwards as the scroll runs forward");
+  });
+
+  it("the ring is a kilometre wide, round the place it is given; the site camera starts where the opening's ends and lands on the place, pitched like a table", () => {
+    const r = ring([90.32, 23.98]);
+    const pts = (r.geometry.coordinates as number[][][])[0]!;
+    assert.equal(pts.length, 65);
+    assert.deepEqual(pts[0], pts[64], "closed");
+    const widthKm = (Math.max(...pts.map((p) => p[0]!)) - Math.min(...pts.map((p) => p[0]!))) * 111.32 * Math.cos((23.98 * Math.PI) / 180);
+    assert.ok(Math.abs(widthKm - RING_KM) < 0.01, `${widthKm} km wide`);
+    const stops = siteStops([90.32, 23.98]);
+    assert.deepEqual({ ...stops[0], p: undefined }, { ...STOPS.at(-1), p: undefined });
+    assert.deepEqual(stops.at(-1)!.center, [90.32, 23.98]);
+    assert.ok(stops.at(-1)!.zoom > stops[0]!.zoom && stops.at(-1)!.pitch > stops[0]!.pitch);
+    assert.ok(stops.at(-1)!.zoom >= 13.5, "a kilometre is at least 170 px wide at this zoom, so the ring reads");
+    const lines = grid([90.32, 23.98], 2);
+    assert.equal(lines.length, 12, "two cells each way: six lines across, six down");
+    const first = lines[0]!.geometry.coordinates as Position[];
+    assert.ok(Math.abs((first[1]![1] - first[0]![1]) * 110.57 - 5) < 1e-6, "five kilometres long");
+  });
+});
+
 describe("what Tailwind emits for the scenes", () => {
   /* eslint-disable @typescript-eslint/no-require-imports -- tailwind's loader and postcss are CommonJS tools */
   const postcss = require("postcss") as typeof import("postcss").default;
   const tailwind = require("tailwindcss") as (config: object) => import("postcss").AcceptedPlugin;
   const loadConfig = require("tailwindcss/loadConfig") as (file: string) => Record<string, unknown>;
   /* eslint-enable @typescript-eslint/no-require-imports */
-  const classes = ["pane", "ov-wheel", "ov-needle", "ov-lever", "roll-slot", "roll-sheet", "roll-print", "roll-tear", "receipt", "animate-rise", "rec-arrive", "fill-brand", "stroke-brand-ink", "fill-ink-3", "film-full:h-[400svh]"];
+  const classes = ["pane", "ov-wheel", "ov-needle", "ov-lever", "roll-slot", "roll-sheet", "roll-print", "roll-tear", "receipt", "animate-rise", "rec-arrive", "fill-brand", "stroke-brand-ink", "fill-ink-3", "film-full:h-[400svh]", "time-run", "time-mark", "fill-caution-icon", "text-caution", "film-full:text-ink", "film-full:group-data-[due]/row:text-caution", "group/row"];
   const compiled = postcss([tailwind({ ...loadConfig(path.join(repoRoot, "tailwind.config.ts")), content: [{ raw: classes.join(" "), extension: "html" }] })])
     .process(readFileSync(path.join(repoRoot, "app/ds.css"), "utf8"), { from: undefined })
     .then((r) => r.css.replace(/\s+/g, " "));
@@ -194,5 +345,16 @@ describe("what Tailwind emits for the scenes", () => {
     assert.match(block(css, ".fill-brand {"), /--ds-brand/);
     assert.match(block(css, ".stroke-brand-ink {"), /--ds-brand-ink/);
     assert.match(css, /\[data-film-tier="full"\] \.film-full\\:h-\\\[400svh\\\] \{ height: 400svh/);
+  });
+
+  it("the carton slides by --slide on the full tier only; the calendar's line is drawn by --t and a mark shows once the line reaches its own --at; a watched row's value is amber, and on the full tier waits for data-due", async () => {
+    const css = await compiled;
+    assert.match(block(css, '[data-film-tier="full"] svg[data-carton] {'), /opacity: var\(--slide, 1\); transform: translateX\(calc\(\(var\(--slide, 1\) - 1\) \* 160px\)\)/);
+    assert.doesNotMatch(css, /(^|[^\]]) svg\[data-carton\] \{/, "off the full tier the carton stands whatever was written");
+    assert.match(block(css, ".time-run {"), /stroke-dasharray: 1; stroke-dashoffset: calc\(1 - var\(--t, 1\)\)/);
+    assert.match(block(css, ".time-mark {"), /opacity: clamp\(0, calc\(\(var\(--t, 1\) - var\(--at, 0\)\) \* 60\), 1\)/);
+    assert.match(block(css, ".fill-caution-icon {"), /--ds-caution-icon/);
+    assert.match(block(css, ".text-caution {"), /--ds-caution/);
+    assert.match(css, /\[data-film-tier="full"\] \.group\\\/row\[data-due\] \.film-full\\:group-data-\\\[due\\\]\\\/row\\:text-caution \{ --tw-text-opacity: 1; color: rgb\(var\(--ds-caution\)/);
   });
 });

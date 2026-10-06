@@ -306,7 +306,7 @@ describe("the home page, film off and film on", () => {
     assert.match(on, /<canvas data-planet="true" aria-hidden="true"/);
     assert.match(on, /<div data-planet-callouts="true" aria-hidden="true"/);
     assert.match(on, /<div data-map="true" aria-hidden="true"/);
-    assert.deepEqual([...on.matchAll(/data-scene="([a-z]+)"/g)].map((m) => m[1]), ["opening", "planet", "sources", "receipts"]);
+    assert.deepEqual([...on.matchAll(/data-scene="([a-z]+)"/g)].map((m) => m[1]), ["opening", "planet", "sources", "receipts", "site", "exports", "time"]);
   });
 
   it("the lite tier's planet can stick: nothing between its stage and the page clips overflow", () => {
@@ -320,14 +320,14 @@ describe("the home page, film off and film on", () => {
     const planet = on.slice(on.indexOf("<picture"), on.indexOf("</picture>"));
     assert.match(planet, /^<picture class="absolute inset-0 block film:hidden"><source media="\(max-width: 767px\)" srcSet="\/site\/film\/planet-upright\.avif"\/><img src="\/site\/film\/planet\.avif" alt="" loading="lazy" decoding="async"/, "lazy, so the tiers that hide it never fetch it");
     const stills = [...on.matchAll(/<picture class="[^"]*film-full:hidden[^"]*"><source media="\(prefers-color-scheme: dark\)" srcSet="(\/site\/film\/[a-z-]+-dark\.avif)"\/><img src="(\/site\/film\/[a-z-]+-light\.avif)" alt="" width="1200" height="750" loading="lazy" decoding="async"/g)];
-    assert.deepEqual(stills.map((m) => m[2]), ["/site/film/map-country-light.avif", "/site/film/map-gazipur-light.avif"]);
+    assert.deepEqual(stills.map((m) => m[2]), ["/site/film/map-country-light.avif", "/site/film/map-gazipur-light.avif", "/site/film/map-site-light.avif"]);
     const files = readdirSync(path.join(repoRoot, "public/site/film"));
     for (const src of ["/site/film/planet.avif", "/site/film/planet-upright.avif", ...stills.flatMap((m) => [m[1]!, m[2]!])]) assert.ok(files.includes(path.basename(src)), `${src} is not in public/site/film`);
     for (const name of files.filter((x) => x.endsWith(".avif"))) assert.ok(statSync(path.join(repoRoot, "public/site/film", name)).size < 160_000, `${name} is heavier than the budget allows`);
   });
 
   it("the map's data is credited on the stage, on the stacked page and on /legal/data-sources", () => {
-    assert.equal((on.match(new RegExp(MAP_CREDIT.replace(/\./g, "\\."), "g")) ?? []).length, 2, "once on the stage, once under the stacked page's picture");
+    assert.equal((on.match(new RegExp(MAP_CREDIT.replace(/\./g, "\\."), "g")) ?? []).length, 4, "on the opening's stage and under its stacked picture, and the same again on scene 06");
     const legal = text(draw(createElement(AppRouterContext.Provider, { value: router as never }, createElement(DataSourcesPage))));
     assert.match(legal, /8\. The map on the home page/);
     assert.match(legal, /Bangladesh Bureau of Statistics and OCHA ROAP/);
@@ -357,8 +357,8 @@ describe("the home page, film off and film on", () => {
     assert.match(t, /Most sit in four districts\./);
     assert.match(t, /as counted on 3 Oct 2026/);
     assert.equal((on.match(/id="ch-1"/g) ?? []).length, 1);
-    assert.equal((on.match(/<li data-on=""/g) ?? []).length, 1, "one district is on at a time, the first to begin with");
     const steps = on.slice(on.indexOf("<ol data-steps"), on.indexOf("</ol>", on.indexOf("<ol data-steps")));
+    assert.equal((steps.match(/<li data-on=""/g) ?? []).length, 1, "one district is on at a time, the first to begin with");
     assert.match(steps, /film-full:sr-only/, "a district that is not on stays in the page for a screen reader");
     assert.doesNotMatch(steps, /film-full:hidden(?!\s*film-full:inline)|film-full:invisible/);
     assert.doesNotMatch(/<div data-act="record" class="([^"]*)"/.exec(on)?.[1] ?? "invisible", /invisible|hidden/);
@@ -376,14 +376,17 @@ describe("the home page, film off and film on", () => {
     assert.match(text(on), /1 of 10,268 suppliers/);
   });
 
-  it("chapters 02 and 03 are the film's scenes, with no bordered card; from chapter 04 on the page is untouched", () => {
-    const scenes = on.slice(on.indexOf('id="ch-02"'), on.indexOf('id="ch-04"'));
+  it("chapters 02 to 06 are the film's scenes, with no bordered card; from chapter 07 on the page is untouched", () => {
+    const scenes = on.slice(on.indexOf('id="ch-02"'), on.indexOf('id="ch-7"'));
     assert.match(scenes, /^id="ch-02" data-scene="sources" data-chapter="ch-02"/);
-    assert.match(scenes, /<section id="ch-03" data-scene="receipts" data-chapter="ch-03"/);
+    for (const [n, name] of [["03", "receipts"], ["04", "site"], ["05", "exports"], ["06", "time"]]) assert.match(scenes, new RegExp(`<section id="ch-${n}" data-scene="${name}" data-chapter="ch-${n}"`));
     assert.doesNotMatch(scenes, /rounded-lg border border-line/);
-    assert.equal((scenes.match(/<figure[^>]*aria-label="Supplier record: Mondol Fabrics Ltd\."/g) ?? []).length, 2, "the record once per scene");
+    assert.equal((scenes.match(/<figure[^>]*aria-label="Supplier record: Mondol Fabrics Ltd\."/g) ?? []).length, 5, "the record once per scene");
     for (const dated of ["reg. no. 4002 · 24 Jul 2026", "exporter 2798 · 14 Aug 2026", "1004-B/2006 · 2 Aug 2026", "GOTS-19020 · 26 Jun 2026", "factory 10861 · 24 Jul 2026"]) assert.ok(text(scenes).includes(dated), `${dated}: each source's own number and day stay in the words`);
-    const rest = (m: string) => m.slice(m.indexOf('id="ch-04"'));
+    // Scene 06 keeps to glass where the map is live under it: two panes, and the first screen's three is the most anywhere.
+    const site = on.slice(on.indexOf('id="ch-04"'), on.indexOf('id="ch-05"'));
+    assert.equal((site.match(/pane-glass/g) ?? []).length, 2);
+    const rest = (m: string) => m.slice(m.indexOf('id="ch-7"'));
     assert.equal(rest(on), rest(off));
   });
 });

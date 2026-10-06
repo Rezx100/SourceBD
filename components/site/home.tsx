@@ -12,7 +12,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { DIFFER, RECEIPTS, ReceiptsScene, SourceDates, SourcesScene } from "@/components/site/film/chapters";
+import { DIFFER, ExportsScene, RECEIPTS, ReceiptsScene, SiteScene, SourceDates, SourcesScene, TimeScene } from "@/components/site/film/chapters";
 import { TIER_SCRIPT } from "@/components/site/film/engine/tier";
 import { Opening } from "@/components/site/film/opening";
 import * as record from "@/components/site/film/record";
@@ -29,10 +29,10 @@ const SOURCES: Row = { ...record.SOURCES, from: "EPB, RSC, BGMEA, BKMEA, GOTS" }
 const BGMEA: Row = record.BGMEA;
 const GOTS: Row = record.GOTS;
 const SAFETY: Row = record.SAFETY;
-const SITE: Row = { label: "Site", value: "Nayapara, Kashimpur, Gazipur", from: "Factory · approximate location" };
-const EXPORTS: Row = { label: "Export records", value: "Coming in v2" };
-const UFLPA: Row = { label: "UFLPA Entity List", value: "No link found", from: "US DHS · our copy from 14 May 2026" };
-const RFQ: Row = { label: "RFQ", value: "Waiting for a quote", from: "Sent 3 Oct 2026" };
+const SITE: Row = record.SITE;
+const EXPORTS: Row = record.EXPORTS;
+const UFLPA: Row = record.UFLPA;
+const RFQ: Row = record.RFQ;
 
 const mark = (r: Row): Row => ({ ...r, flag: "new" });
 
@@ -120,6 +120,9 @@ export function Home({ facts, film = false }: { facts: SiteFacts; film?: boolean
         <>
           <SourcesScene />
           <ReceiptsScene />
+          <SiteScene />
+          <ExportsScene />
+          <TimeScene />
         </>
       ) : (
         <>
@@ -136,8 +139,6 @@ export function Home({ facts, film = false }: { facts: SiteFacts; film?: boolean
           <p className="text-base text-ink-2">{DIFFER}</p>
         </div>
       </Chapter>
-        </>
-      )}
 
       <Chapter n="04" question="Where are they?" headline="One address, on the map." lede="The address comes from the registers. Where the pin is only close, we say so." record={R(SOURCES, BGMEA, GOTS, SAFETY, mark(SITE))}>
         <div className="flex flex-col gap-2 rounded-lg border border-line p-5">
@@ -155,9 +156,9 @@ export function Home({ facts, film = false }: { facts: SiteFacts; film?: boolean
         </div>
       </Chapter>
 
-      <Chapter n="06" question="Will it still be true next month?" headline="The list changes. We check again." lede="Your saved suppliers are checked against our latest copy of the UFLPA Entity List. We say what we found, never “clear”." record={R(SOURCES, BGMEA, { ...GOTS, value: "GOTS-19020 · expires 15 Dec 2026" }, SAFETY, SITE, EXPORTS, mark(UFLPA))}>
+      <Chapter n="06" question="Will it still be true next month?" headline="The list changes. We check again." lede="Your saved suppliers are checked against our latest copy of the UFLPA Entity List. We say what we found, never “clear”." record={R(SOURCES, BGMEA, record.GOTS_DUE, SAFETY, SITE, EXPORTS, mark(UFLPA))}>
         <ol className="flex flex-col gap-4 border-l border-line pl-5">
-          {[["3 Oct", "Day 0 · shortlisted"], ["1 Nov", "Day 43 · alert: GOTS valid until 15 Dec"], ["1 Dec", "New list copy · checked again"]].map(([d, t]) => (
+          {[["3 Oct", "Day 0 · shortlisted"], ["15 Nov", "Day 43 · alert: GOTS valid until 15 Dec"], ["1 Dec", "New list copy · checked again"]].map(([d, t]) => (
             <li key={d} className="flex flex-col gap-0.5">
               <span className="font-mono text-xs text-ink-3">{d}</span>
               <span className="text-base text-ink">{t}</span>
@@ -171,6 +172,8 @@ export function Home({ facts, film = false }: { facts: SiteFacts; film?: boolean
           <p className="text-sm text-ink-3">UFLPA Entity List, US DHS &middot; our copy from 14 May 2026</p>
         </div>
       </Chapter>
+        </>
+      )}
 
       <Section id="ch-7" label="07 · Can they make my order?" headline="Shortlist. Ask. Compare." lede="Save the suppliers you like. Send one RFQ, and each gets its own copy. The quotes come back side by side.">
         <RoleTabs

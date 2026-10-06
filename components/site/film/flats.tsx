@@ -4,7 +4,7 @@
 // writes `--wheel` and `--needle` on the drawing and `--p` on the seam); with nothing written every part rests, which
 // is what the lite and still tiers and a still page show. Each drawing is decoration: its caption says what it is.
 
-import { SEAM_END } from "@/components/site/film/engine/chapters";
+import { CARTON_END, SEAM_END } from "@/components/site/film/engine/chapters";
 import { Thread } from "@/components/site/film/thread";
 import { cn } from "@/lib/utils";
 
@@ -109,6 +109,38 @@ export function Overlock({ className }: { className?: string }) {
           );
         })}
       </g>
+    </svg>
+  );
+}
+
+export const CARTON_TAG = "Coming in v2";
+
+/**
+ * An export carton, blank: no shipping mark until export records are live, and a hang tag that says so. On the full tier
+ * it slides in with the scroll (`--slide`, written by engine/chapters.ts); with nothing written it stands still.
+ */
+export function Carton({ className }: { className?: string }) {
+  return (
+    <svg data-carton aria-hidden viewBox="0 0 330 250" className={cn("block overflow-visible", className)}>
+      {/* The three faces: front, top and side. */}
+      <g className="stroke-ink" strokeWidth={1.6} strokeLinejoin="round">
+        <path d="M10 40 44 12H324L290 40Z" className="fill-subtle" />
+        <path d={`M290 40 ${CARTON_END.x} 12V212L290 240Z`} className="fill-sunken" />
+        <rect x={10} y={40} width={280} height={200} className="fill-surface" />
+      </g>
+      {/* The tape across the top. */}
+      <path d="M138 40 172 12H196L162 40Z" className="fill-subtle stroke-line-strong" strokeWidth={1} strokeLinejoin="round" />
+      {/* This way up. */}
+      <path d="M244 84V58M236 66l8-8 8 8M266 84V58M258 66l8-8 8 8M232 90H278" className="fill-none stroke-ink" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+      {/* Where the shipping mark will print: the lines are there, the words are not. */}
+      <path d="M40 150H200M40 172H168M40 194H184M40 216H120" className="fill-none stroke-line-strong" strokeWidth={1} strokeDasharray="2 3" />
+      {/* The hang tag, on a string from the tape. */}
+      <path d="M164 40C150 50 120 56 110 62" className="fill-none stroke-ink" strokeWidth={1} />
+      <rect x={58} y={62} width={104} height={36} rx={3} className="fill-surface stroke-ink" strokeWidth={1} />
+      <circle cx={110} cy={65} r={1.4} className="fill-none stroke-ink" strokeWidth={0.8} />
+      <text x={110} y={86} textAnchor="middle" fontSize={13} fontWeight={600} className="fill-ink font-sans">
+        {CARTON_TAG}
+      </text>
     </svg>
   );
 }
