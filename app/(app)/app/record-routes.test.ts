@@ -1492,9 +1492,12 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
     const raw = "2-B/1, Darus Salam Road, Mirpur, Dhaka";
     for (const addresses of [[], [{ kind: "factory", address: "Mohd. Abid Hossain Belal, Proprietor", source_code: "BGMEA" }]]) {
       given({ profile: { data: { ...ABONI.profile, addresses, supplier: { ...ABONI.profile.supplier, address_raw: raw } }, error: null }, hscodes: HS });
-      const overview = html(await fullPage("aboni-knitwear"));
+      // The sections are stacked, so the Overview is its own region up to the Certificates one.
+      const page = html(await fullPage("aboni-knitwear"));
+      const overview = page.slice(page.indexOf('id="record-overview"'), page.indexOf('id="record-certificates"'));
       // RC-09: the address is the Sites tab's. The Overview does not print it a second time, in the
       // register's own capitals, while the Sites tab shows it once.
+      assert.ok(overview.length > 0, "the Overview section is drawn");
       assert.doesNotMatch(overview, /Darus Salam Road/, "the Overview repeats the address the Sites tab shows");
       const out = html(await fullPage("aboni-knitwear", { tab: "sites" }));
       assert.doesNotMatch(out, /No address on any register/, `Locations denies the address shown (${addresses.length} rows)`);

@@ -27,6 +27,16 @@ export function parseTab(raw: string | string[] | null | undefined): TabId {
   return TABS.find((t) => t.id === v)?.id ?? "overview";
 }
 
+/**
+ * The section a reader is in, as the tabs mark it while the record scrolls: the first section (in
+ * page order) crossing the reading band under the sticky tabs; at the very foot, the last one (a
+ * short last section never reaches the band); with nothing in the band, wherever they were.
+ */
+export function sectionInView<T>(order: readonly T[], inBand: ReadonlySet<T>, atEnd: boolean, prev: T): T {
+  if (atEnd && order.length > 0) return order[order.length - 1]!;
+  return order.find((id) => inBand.has(id)) ?? prev;
+}
+
 /** `?site=` as the page reads it: a whole number from 1, or null. */
 export function parseSite(raw: string | string[] | null | undefined): number | null {
   const v = Array.isArray(raw) ? raw[0] : raw;

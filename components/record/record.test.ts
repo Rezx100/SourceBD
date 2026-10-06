@@ -15,7 +15,7 @@ import { buildSheet } from "@/lib/dashboard/build-models";
 import { TODAY, aboniInput, arFashionInput, longestNameInput, sanctionedInput, zaheenSampleInput } from "@/lib/dashboard/fixtures";
 import type { LocationRow, SupplierSheetModel } from "@/lib/dashboard/models";
 import { RecordView } from "@/components/record/record-view";
-import { TABS, certRows, keyFacts, needsLook, parseSite, parseTab, recordSubline, siteCards, siteSummary, summaryCells, tabCount } from "@/components/record/words";
+import { TABS, certRows, keyFacts, needsLook, parseSite, parseTab, recordSubline, sectionInView, siteCards, siteSummary, summaryCells, tabCount } from "@/components/record/words";
 
 const h = createElement as (type: unknown, props: object | null, ...kids: unknown[]) => ReactNode & Parameters<typeof renderToStaticMarkup>[0];
 const plain = (s: string) => s.replace(/&#x27;/g, "'").replace(/&amp;/g, "&");
@@ -52,12 +52,26 @@ describe("the record's tabs", () => {
     assert.equal(tabCount(none, "sources"), 1);
   });
 
-  it("show one panel at a time: the open tab's, with its own region name", () => {
+  it("sit over all six sections, stacked in tab order, the address's tab the marked one", () => {
     for (const t of TABS) {
       const out = view(model(), { tab: t.id });
-      assert.match(out, new RegExp(`<div id="record-${t.id}" role="region" aria-label="${t.label}"`), t.id);
-      for (const other of TABS.filter((o) => o.id !== t.id)) assert.ok(!out.includes(`id="record-${other.id}"`), `${t.id} also draws ${other.id}`);
+      const at = TABS.map((o) => out.search(new RegExp(`<div id="record-${o.id}" role="region" aria-label="${o.label}"`)));
+      assert.ok(at.every((i, n) => i > 0 && (n === 0 || i > at[n - 1]!)), `${t.id}: every section, in tab order`);
+      const nav = /<nav aria-label="Record sections"[\s\S]*?<\/nav>/.exec(out)?.[0] ?? "";
+      assert.match(nav, new RegExp(`<a\\b[^>]*aria-current="page"[^>]*>${t.label}`), t.id);
+      assert.ok(plain(nav).includes(`#record-${t.id}"`), `${t.id}: without script the link still lands on its section`);
     }
+    const out = view(model(), { mode: "page" });
+    const ids = [...out.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]);
+    assert.equal(new Set(ids).size, ids.length, "a certificate's anchor is on its row once, not in Overview and Certificates both");
+  });
+
+  it("follow the scroll: the first section in the reading band, the last at the foot, else where the reader was", () => {
+    const order = TABS.map((t) => t.id);
+    assert.equal(sectionInView(order, new Set(), false, "overview"), "overview", "nothing in the band keeps the mark");
+    assert.equal(sectionInView(order, new Set(["sites", "safety"] as const), false, "overview"), "safety", "the higher of two on screen");
+    assert.equal(sectionInView(order, new Set(["sources"] as const), false, "overview"), "sources");
+    assert.equal(sectionInView(order, new Set(["sources"] as const), true, "sources"), "products", "a short last section is marked at the foot");
   });
 });
 
