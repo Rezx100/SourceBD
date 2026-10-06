@@ -19,6 +19,7 @@ import { FileText, Storefront } from "@phosphor-icons/react/dist/ssr";
 import { ButtonLink, linkClass } from "@/components/kit";
 import { RfqChip } from "@/components/rfqs/chip";
 import { SupplierQuoteForm } from "@/components/supplier-quote-form";
+import { noteActivity } from "@/lib/ledger/note";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { cn } from "@/lib/utils";
 
@@ -86,6 +87,8 @@ export default async function SupplierRfqDetailPage({
   if (rfq.viewer_role === "buyer") {
     redirect(`/app/rfqs/${rfq.id}`);
   }
+  // The supplier read the buyer's RFQ: an event for the record (moderation plan 1d, "viewed by a supplier").
+  void noteActivity(supabase, "rfq.viewed", { targetTable: "rfqs", targetId: rfq.id, rfqId: rfq.id, content: { viewer_role: rfq.viewer_role, via: "supplier_page" } });
 
   const { data: listData } = await supabase.rpc("rfq_list", { p_status: null });
   const listItems = ((listData ?? []) as RfqListPaneItem[]).filter(

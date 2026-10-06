@@ -7,6 +7,7 @@
 import { notFound } from "next/navigation";
 import { OrderDetail, OrderDetailError } from "@/components/orders/detail";
 import { readOrder } from "@/components/orders/load";
+import { noteActivity } from "@/lib/ledger/note";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -25,5 +26,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
     if (!known) notFound();
     return <OrderDetailError title={known.product_title} mode="page" closeHref="/app/orders" retryHref={`/app/orders/${id}`} />;
   }
+  // Who viewed which order, for the record (moderation plan 1d).
+  void noteActivity(supabase, "order.viewed", { targetTable: "orders", targetId: id, orderId: id, content: { via: "page" } });
   return <OrderDetail order={read.order} mode="page" today={new Date()} threadId={read.threadId} viewerId={read.viewerId} closeHref="/app/orders" />;
 }
