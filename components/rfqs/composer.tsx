@@ -16,7 +16,8 @@
 import { ArrowLeft, LockSimple, Plus, X } from "@phosphor-icons/react";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import Link from "next/link";
-import { useContext, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent } from "react";
+import { useContext, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent } from "react";
+import { PaneDivider, usePaneWidth, type PaneLimits } from "@/components/frame/pane-divider";
 import { Button, Dialog, DialogClose, Field, IconButton, Input, Select, buttonClass, fieldBox, fieldEdge } from "@/components/kit";
 import { SanctionBanner } from "@/components/patterns";
 import { formatDay, formatTime, nameSecondLine, splitQualifier } from "@/lib/dashboard/facts";
@@ -47,6 +48,9 @@ import {
 } from "./composer-model";
 import { SupplierPicker, resolvePicked } from "./picker";
 import { money, perUnit, quantityWords, unitWords } from "./words";
+
+/** The page's preview column: Paper's 344, at least 320, the form keeping 480. */
+const PREVIEW_PANE: PaneLimits = { key: "sourcebd.rfq-preview-width", initial: 344, min: 320, keep: 480 };
 
 const textarea = cn(fieldBox, fieldEdge, "block min-h-16 px-2.5 py-1.5 text-base");
 
@@ -208,6 +212,7 @@ export function RfqComposer({
 }) {
   const router = useContext(AppRouterContext);
   const id = useId();
+  const side = usePaneWidth(PREVIEW_PANE);
   const apple = useApplePlatform();
   const page = mode === "page";
   const [targets, setTargets] = useState(initialTargets);
@@ -388,7 +393,7 @@ export function RfqComposer({
         />
       ) : null}
 
-      <div className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto", page && "xl:flex-row xl:overflow-visible")}>
+      <div ref={page ? side.rowRef : undefined} className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto", page && "xl:flex-row xl:overflow-visible")}>
         <form
           id={`${id}-form`}
           ref={formRef}
@@ -477,7 +482,14 @@ export function RfqComposer({
           </div>
         </form>
 
-        <aside aria-label="Preview" className={cn("flex flex-col gap-3 border-t border-line bg-subtle px-4 py-5 sm:px-6", page ? "xl:w-details xl:shrink-0 xl:overflow-y-auto xl:border-l xl:border-t-0" : "")}>
+        {/* On the page from 1280 the preview sits beside the form, and its edge drags: the message is read and edited there. */}
+        {page ? <PaneDivider width={side.width} min={PREVIEW_PANE.min} max={side.max} paneId={`${id}-preview`} label="Resize the preview" onWidth={side.set} onReset={side.reset} /> : null}
+        <aside
+          id={`${id}-preview`}
+          aria-label="Preview"
+          style={page ? ({ "--pane-w": `${side.width}px` } as CSSProperties) : undefined}
+          className={cn("flex flex-col gap-3 border-t border-line bg-subtle px-4 py-5 sm:px-6", page ? "xl:w-[var(--pane-w)] xl:min-w-[320px] xl:max-w-[calc(100%-480px)] xl:shrink-0 xl:overflow-y-auto xl:border-t-0" : "")}
+        >
           <h2 className="text-md font-semibold text-ink">{single ? `What ${single} gets` : "What each supplier gets"}</h2>
           <div className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4">
             <p className="text-xs text-ink-3">RFQ from {workspace?.userName ?? "you"}, on SourceBD</p>
