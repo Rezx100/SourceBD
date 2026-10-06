@@ -49,6 +49,16 @@ def webhook_url() -> str | None:
     return urljoin(base.rstrip("/") + "/", WEBHOOK_PATH.lstrip("/"))
 
 
+# spec-etl-freshness §5: these pages report "changed" on 27–64 of ~65 days
+# (dynamic pages), so a monitor on them is ~240 credits a month of noise and the
+# re-read schedule does the job instead. They are not planned; existing ones are
+# deleted by hand in Firecrawl (refresh only ever creates).
+NOISY_MONITOR_CODES = frozenset({
+    "rsc_reports", "rsc_updates", "sa8000", "brand_ms", "brand_asos",
+    "brand_primark", "cbp_wro", "oeko_tex",
+})
+
+
 def planned_targets() -> list[dict[str, str]]:
     """Every (scraper_code, url) pair that should have a monitor."""
     from etl.scrapers.registry import SCRAPERS
@@ -56,6 +66,8 @@ def planned_targets() -> list[dict[str, str]]:
     out: list[dict[str, str]] = []
     seen: set[tuple[str, str]] = set()
     for code, cls in SCRAPERS.items():
+        if code in NOISY_MONITOR_CODES:
+            continue
         targets = cls.monitor_targets() if hasattr(cls, "monitor_targets") else ()
         for url in targets:
             key = (code, url)

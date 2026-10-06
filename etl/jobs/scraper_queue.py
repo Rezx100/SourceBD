@@ -340,6 +340,53 @@ def _run_job(job: QueueJob) -> None:
 
     _mark_success(job["id"], result, getattr(scraper, "last_run_id", None))
     log.info("job.success", job_id=job["id"], scraper_code=scraper_code, result=result)
+    try:
+        _chain_after(scraper_code, result)
+    except Exception as exc:  # noqa: BLE001 - a follow-up must not fail the run
+        log.error("job.chain_failed", scraper_code=scraper_code, error=str(exc))
+
+
+def _follow_ups(scraper_code: str, result: dict[str, Any]) -> list[tuple[str, int | None]]:
+    """What a successful run starts next (spec-etl-freshness §4.1, §5): pure.
+
+    Nothing changed means nothing follows. A supplier source that upserted
+    something asks for the SBI recompute, at most once a day; an RSC read that
+    changed something asks for its documents (new inspection URLs only).
+    """
+    from etl.core.scraper import BaseScraper
+    from etl.scrapers.registry import SCRAPERS
+
+    if int(result.get("upserted") or 0) <= 0:
+        return []
+    out: list[tuple[str, int | None]] = []
+    if scraper_code == "rsc":
+        out.append(("rsc_documents", None))
+    cls = SCRAPERS.get(scraper_code)
+    if cls is not None and isinstance(cls, type) and issubclass(cls, BaseScraper):
+        out.append(("sbi_recompute", 24))
+    return out
+
+
+def _chain_after(scraper_code: str, result: dict[str, Any]) -> None:
+    for code, debounce_hours in _follow_ups(scraper_code, result):
+        with db.conn() as c, c.cursor() as cur:
+            cur.execute(
+                """
+                insert into public.etl_job_queue (scraper_code, priority, metadata)
+                select %s, 100, jsonb_build_object('source', 'chain', 'after', %s::text)
+                 where not exists (
+                   select 1 from public.etl_job_queue q
+                    where q.scraper_code = %s
+                      and (q.status in ('pending', 'running')
+                           or (%s::int is not null
+                               and q.requested_at > now() - make_interval(hours => %s::int))))
+                returning id
+                """,
+                (code, scraper_code, code, debounce_hours, debounce_hours or 0),
+            )
+            if cur.fetchone():
+                log.info("job.chained", after=scraper_code, queued=code)
+            c.commit()
 
 
 def _mark_success(job_id: str, result: dict[str, int], etl_run_id: str | None) -> None:

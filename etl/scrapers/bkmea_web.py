@@ -65,6 +65,9 @@ _DETAIL_OWNED_FIELDS = ("bkmea_membership_no", "bkmea_reg_number", "bkmea_catego
 
 class BkmeaScraper(AcquiringScraper):
     code = "bkmea_web"
+    # spec-etl-freshness §4.8: this source's §2 monthly credits × 1.5. A run that
+    # needs more stops with CreditBudgetExceeded instead of spending it.
+    max_credits_per_run = 15
     source_code = "BKMEA"
     transport = "firecrawl"
     fallback_transport = "direct"

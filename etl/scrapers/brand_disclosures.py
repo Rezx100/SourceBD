@@ -298,6 +298,9 @@ class BrandDisclosureBase(AcquiringScraper, abc.ABC):
     landing_url: str = ""
     transport = "firecrawl"
     fallback_transport = "direct"
+    # spec-etl-freshness §4.8: about 2 credits a brand a quarter (§2) × 1.5. A run that
+    # needs more stops with CreditBudgetExceeded instead of spending it.
+    max_credits_per_run = 5
 
     @classmethod
     def monitor_targets(cls) -> tuple[str, ...]:

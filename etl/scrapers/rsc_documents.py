@@ -131,6 +131,18 @@ def _enumerate(rows: list[dict]) -> Iterable[_DocRef]:
             )
 
 
+def _known_urls() -> set[tuple[str, str, str]]:
+    """(supplier, doc type, URL) already downloaded. RSC files are keyed by
+    content hash and an inspection URL is never re-issued with new content,
+    so a URL we hold is not fetched again (spec-etl-freshness §5)."""
+    with db.conn() as c, c.cursor() as cur:
+        cur.execute(
+            "select supplier_id::text as s, doc_type, original_url from public.compliance_documents "
+            "where source = 'rsc' and original_url is not null"
+        )
+        return {(r["s"], r["doc_type"], r["original_url"]) for r in cur.fetchall()}
+
+
 def _mirror_path(slug: str, doc_type: str, ext: str, fetched_date: str) -> str:
     return f"rsc-docs/{slug}/{doc_type}-{fetched_date}.{ext}"
 
@@ -224,8 +236,12 @@ class RscDocumentsScraper(AcquiringScraper):
             # Pre-flight: ensure Bunny credentials are present (raises if not).
             await bunny_exists("rsc-docs/.healthcheck")
 
+            known = _known_urls()
             for ref in _enumerate(rows):
                 seen += 1
+                if (ref.supplier_id, ref.doc_type, ref.url) in known:
+                    skipped += 1
+                    continue
                 try:
                     doc = await self.acquire(
                         AcquireRequest(

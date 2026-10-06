@@ -257,6 +257,9 @@ def _detail_from_envelope(raw: str | None) -> dict[str, Any]:
 
 class Sa8000Scraper(AcquiringScraper):
     code = "sa8000"
+    # spec-etl-freshness §4.8: this source's §2 monthly credits × 1.5. A run that
+    # needs more stops with CreditBudgetExceeded instead of spending it.
+    max_credits_per_run = 30
     # Founder knob (`run <code> --accept-delistings`): release a held
     # certificate reconcile (etl.core.cert_reconcile).
     accept_delistings = False

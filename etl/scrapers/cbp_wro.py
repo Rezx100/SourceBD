@@ -180,6 +180,9 @@ def _is_data_table(table: Any) -> bool:
 
 class CbpWroScraper(AcquiringSanctionScraper):
     code = "cbp_wro"
+    # spec-etl-freshness §4.8: this source's §2 monthly credits × 1.5. A run that
+    # needs more stops with CreditBudgetExceeded instead of spending it.
+    max_credits_per_run = 45
     source_code = "US_WRO"
     transport = "firecrawl"
     fallback_transport = "direct"

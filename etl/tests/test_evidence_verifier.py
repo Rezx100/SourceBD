@@ -709,7 +709,7 @@ def test_cli_defaults_when_no_flags_are_given(monkeypatch: pytest.MonkeyPatch) -
     assert result.exit_code == 0, result.output
     assert captured["interval_hours"] == vmod.DEFAULT_INTERVAL_HOURS
     assert captured["max_credits"] is None
-    assert captured["limit"] == 500
+    assert captured["limit"] == 50  # spec-etl-freshness §5: 50 a day
 
 
 def test_post_backed_documents_are_marked_unreplayable_at_acquisition():

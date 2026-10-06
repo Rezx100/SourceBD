@@ -77,6 +77,9 @@ _BATCH_SIZE = 50
 
 class BgapmeaScraper(AcquiringScraper):
     code = "bgapmea_web"
+    # spec-etl-freshness §4.8: this source's §2 monthly credits × 1.5. A run that
+    # needs more stops with CreditBudgetExceeded instead of spending it.
+    max_credits_per_run = 165
     source_code = "BGAPMEA"
     transport = "firecrawl"
     fallback_transport = "direct"
