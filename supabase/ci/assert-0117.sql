@@ -37,8 +37,8 @@ begin
   if (f->>'suppliers_published')::int <> (select count(*) from public.suppliers where is_published) then
     raise exception 'suppliers_published disagrees with the table';
   end if;
-  if (f->>'sources_listed')::int <> (select count(*) from public.sources)
-     or jsonb_array_length(f->'sources') <> (select count(*) from public.sources) then
+  if (f->>'sources_listed')::int <> (select count(*) from public.sources where listed)
+     or jsonb_array_length(f->'sources') <> (select count(*) from public.sources where listed) then
     raise exception 'sources_listed disagrees with the table';
   end if;
   if (f->>'sources_with_records')::int < 1 then
