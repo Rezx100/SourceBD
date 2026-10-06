@@ -25,7 +25,8 @@
 -- One security-definer helper answers "which suppliers has the caller
 -- claimed" — only the caller's own ids, which is all the policies ever asked —
 -- and the six policies use it. `claimed_by` stays unreadable to authenticated
--- (REZ-22 keeps holding); the policies' meaning is unchanged.
+-- (REZ-22 keeps holding); the policies' meaning is unchanged. Each call is wrapped in
+-- `(select …)` so Postgres runs it once per query, not once per row.
 --
 -- REVERSE
 -- -------
@@ -56,21 +57,21 @@ create policy pol_rfqs_select_supplier
   on public.rfqs
   for select
   to authenticated
-  using (rfqs.target_supplier_ids && public.claimed_supplier_ids());
+  using (rfqs.target_supplier_ids && (select public.claimed_supplier_ids()));
 
 drop policy if exists pol_rfq_quotes_select_supplier on public.rfq_quotes;
 create policy pol_rfq_quotes_select_supplier
   on public.rfq_quotes
   for select
   to authenticated
-  using (rfq_quotes.supplier_id = any (public.claimed_supplier_ids()));
+  using (rfq_quotes.supplier_id = any ((select public.claimed_supplier_ids())));
 
 drop policy if exists pol_orders_select_supplier on public.orders;
 create policy pol_orders_select_supplier
   on public.orders
   for select
   to authenticated
-  using (orders.supplier_id = any (public.claimed_supplier_ids()));
+  using (orders.supplier_id = any ((select public.claimed_supplier_ids())));
 
 drop policy if exists pol_order_milestones_select_supplier on public.order_milestones;
 create policy pol_order_milestones_select_supplier
@@ -81,7 +82,7 @@ create policy pol_order_milestones_select_supplier
     exists (
       select 1 from public.orders o
        where o.id = order_milestones.order_id
-         and o.supplier_id = any (public.claimed_supplier_ids())
+         and o.supplier_id = any ((select public.claimed_supplier_ids()))
     )
   );
 
@@ -90,13 +91,13 @@ create policy pol_supplier_relationships_select_bh
   on public.supplier_relationships
   for select
   to authenticated
-  using (supplier_relationships.buying_house_id = any (public.claimed_supplier_ids()));
+  using (supplier_relationships.buying_house_id = any ((select public.claimed_supplier_ids())));
 
 drop policy if exists pol_supplier_relationships_select_factory on public.supplier_relationships;
 create policy pol_supplier_relationships_select_factory
   on public.supplier_relationships
   for select
   to authenticated
-  using (supplier_relationships.factory_id = any (public.claimed_supplier_ids()));
+  using (supplier_relationships.factory_id = any ((select public.claimed_supplier_ids())));
 
 notify pgrst, 'reload schema';
