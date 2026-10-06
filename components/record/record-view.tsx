@@ -7,8 +7,10 @@
 // nothing here is scored and no contact value is in the model, only how many are on file.
 //
 // Desktop pane: header, summary, tabs, panel, and a foot line that says what is locked. Full
-// page from 1024: the same, with Contact and Sources in a 344 column. On a phone the summary
-// is five rows, the tabs stick under the top, and a 64-tall action bar sits at the foot.
+// page from 1024: the same, with Contact and Sources in a 344 column. On a phone the page has a
+// navigation bar of its own stuck to the top (the way back), the name and its line on a tonal
+// plate under it, the summary as five rows, the tabs stuck under the bar, and a 64-tall action
+// bar fixed to the foot of the screen.
 
 import { CaretLeft, Clock, XCircle, X } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
@@ -116,7 +118,14 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
   );
 
   return (
-    <section aria-label="Supplier record" data-record={mode} data-detail={page ? "" : undefined} className="flex flex-1 flex-col bg-surface">
+    <section
+      aria-label="Supplier record"
+      data-record={mode}
+      data-detail={page ? "" : undefined}
+      // A phone's page: room at the foot for the fixed action bar, so nothing ends under it.
+      // The tabs stick under the phone's bar from the first paint; the tabs' script then measures it.
+      className={cn("flex flex-1 flex-col bg-surface", page && "max-sm:pb-[calc(theme(spacing.action-bar)_+_env(safe-area-inset-bottom))] max-sm:[--record-head:theme(height.topbar-phone)]")}
+    >
       <SourceCheckListener />
       {model.sanctioned ? (
         <SanctionBanner
@@ -125,20 +134,31 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
         />
       ) : null}
 
+      {/* A phone's navigation bar (founder, 6 Oct 2026: the lone "Search" link over the name "looks very
+          cheap ... a floating back button"): 52 tall, stuck to the top with the tabs under it, the way
+          back a 44 target at its start. The app's own bars are hidden on this page (`data-detail`), so
+          the bar is drawn even for a record opened from a link: back is then the search itself. */}
+      {page ? (
+        <div data-record-bar="" className="sticky top-0 z-raised flex h-topbar-phone shrink-0 items-center border-b border-line bg-surface px-1 sm:hidden">
+          <Link href={backHref ?? "/app"} aria-label="Back to search" className="inline-flex h-touch items-center gap-0.5 rounded-sm pl-1.5 pr-3 text-md font-medium text-ink outline-none active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand">
+            <CaretLeft size={24} className="shrink-0" aria-hidden />
+            Search
+          </Link>
+        </div>
+      ) : null}
       {page && backHref ? (
-        <div className="flex h-12 items-center px-4 sm:h-auto sm:px-6 sm:pt-3 lg:px-8">
-          <Link href={backHref} className="inline-flex min-h-6 items-center gap-1.5 rounded-sm text-md font-medium text-ink outline-none hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:text-sm sm:text-brand sm:underline sm:decoration-1 sm:[text-underline-position:from-font]">
-            <CaretLeft size={20} className="shrink-0 sm:hidden" aria-hidden />
-            <CaretLeft size={14} className="hidden shrink-0 sm:block" aria-hidden />
-            <span className="sm:hidden">Search</span>
-            <span className="max-sm:hidden">Back to results</span>
+        <div className="px-6 pt-3 max-sm:hidden lg:px-8">
+          <Link href={backHref} className="inline-flex min-h-6 items-center gap-1.5 rounded-sm text-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+            <CaretLeft size={14} className="shrink-0" aria-hidden />
+            Back to results
           </Link>
         </div>
       ) : null}
 
-      <header className={cn("flex flex-col gap-1.5 px-4 pb-3 pt-3 sm:sticky sm:top-0 sm:z-raised sm:border-b sm:border-line sm:bg-surface sm:px-6", page ? "sm:pt-3 lg:px-8" : "sm:pt-5")}>
+      {/* On a phone's page the name and its line are the record's plate: a tonal ground under the bar, closed by a line. */}
+      <header className={cn("flex flex-col gap-1.5 px-4 pb-3 pt-3 sm:sticky sm:top-0 sm:z-raised sm:border-b sm:border-line sm:bg-surface sm:px-6", page ? "max-sm:gap-1 max-sm:border-b max-sm:border-line max-sm:bg-subtle max-sm:pb-4 max-sm:pt-4 sm:pt-3 lg:px-8" : "sm:pt-5")}>
         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
-          <Title className="min-w-0 flex-1 basis-60 text-xl font-semibold tracking-tight text-ink [overflow-wrap:anywhere] max-sm:text-2xl">{model.name}</Title>
+          <Title className="min-w-0 flex-1 basis-60 text-xl font-semibold tracking-tight text-ink [overflow-wrap:anywhere]">{model.name}</Title>
           <div className="flex shrink-0 items-center gap-2">
             {!page ? (
               <Link href={expandHref} className="rounded-sm p-1.5 text-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand max-sm:hidden">
@@ -157,7 +177,7 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
         <p className="text-base text-ink-2 max-sm:text-md">{recordSubline(model)}</p>
       </header>
 
-      <div className={cn("flex gap-8 px-4 pb-8 pt-4 sm:px-6", page && "lg:px-8")}>
+      <div className={cn("flex gap-8 px-4 pb-8 pt-4 sm:px-6", page && "max-sm:pt-1 lg:px-8")}>
         <div className="flex min-w-0 flex-1 flex-col gap-5">
           {model.sanctionSample ? (
             <p className="flex flex-wrap items-center gap-2 text-xs text-ink-2">
@@ -213,15 +233,19 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
         </p>
       ) : null}
 
-      {/* A phone's one action: Save beside the primary, or the refusal in its place. */}
-      <div className="sticky bottom-0 sm:hidden">
+      {/* A phone's one action: Save beside the primary, or the refusal in its place. On the page it is
+          fixed to the foot of the screen, as the app's own tab bar is (founder, 6 Oct 2026: stuck inside
+          the scrolling record it "shakes or stutters" on a fast scroll, "not fixed there"); the 64 sit
+          above the phone's safe area, and the record keeps that much room at its foot. In the drawer a
+          narrow window gets, it sticks to the drawer's own scroll. */}
+      <div data-record-actions="" className={cn("bottom-0 sm:hidden", page ? "fixed inset-x-0 z-sticky" : "sticky")}>
         {model.sanctioned ? (
-          <div role="status" className="flex min-h-16 items-center gap-3 border-t-2 border-sanction bg-sanction-tint px-4 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+          <div role="status" className="flex min-h-action-bar items-center gap-3 border-t-2 border-sanction bg-sanction-tint px-4 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
             {model.supplierId ? <RecordSave supplierId={model.supplierId} saved={model.saved} appearance="icon" /> : null}
             <p className="text-base font-medium text-sanction">{REFUSAL}</p>
           </div>
         ) : (
-          <div className="flex min-h-action-bar items-center gap-2 border-t border-line bg-surface px-4 pb-[env(safe-area-inset-bottom)]">
+          <div className="box-content flex h-[calc(theme(spacing.action-bar)_-_1px)] items-center gap-2 border-t border-line bg-surface px-4 pb-[env(safe-area-inset-bottom)]">
             {model.supplierId ? <RecordSave supplierId={model.supplierId} saved={model.saved} appearance="icon" /> : null}
             {model.rfqHref ? (
               <div className="min-w-0 flex-1">

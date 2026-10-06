@@ -47,9 +47,12 @@ export function SectionTabs({ tabs, initial }: { tabs: SectionTab[]; initial: Ta
       if (!clicking.current) setActive((prev) => sectionInView(order, inBand, atEnd, prev));
     };
     const watch = () => {
-      // What sticks over the sections: the header (from 640) and the tab strip.
-      const head = record.querySelector(":scope > header");
-      const headH = head && getComputedStyle(head).position === "sticky" ? head.getBoundingClientRect().height : 0;
+      // What sticks over the sections: a phone's navigation bar or the header (from 640), then the
+      // tab strip. Whichever of the two is not drawn at this width has no height.
+      let headH = 0;
+      for (const el of record.querySelectorAll(":scope > header, :scope > [data-record-bar]")) {
+        if (getComputedStyle(el).position === "sticky") headH += el.getBoundingClientRect().height;
+      }
       const top = Math.round(headH + bar.getBoundingClientRect().height);
       record.style.setProperty("--record-head", `${Math.round(headH)}px`);
       record.style.setProperty("--record-offset", `${top}px`);
