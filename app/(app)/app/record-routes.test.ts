@@ -440,6 +440,59 @@ describe("/app/discover?record= — the overlay over the results", () => {
     assert.ok(!href.includes("record="), `Close keeps the record open: ${href}`);
   });
 
+  it("page size, page, sort and filters keep the open record and its tab (founder, 6 Oct 2026)", async () => {
+    // "100 per page" closed the pane: every results control linked to the search alone.
+    const Page = route("app/(app)/app/discover/page.js").default;
+    const sp = { q: "knit", record: "aboni-knitwear", tab: "certificates" };
+    given({ profile: PROFILE, hscodes: HS, discover: { data: [{ ...ROW, total_count: 300 }], error: null } });
+    const tree = (await Page({ searchParams: Promise.resolve(sp) })) as ReactElement;
+    /** Every `hrefFor` the page hands a results control, by the control's name. */
+    const hrefFors = (n: unknown): [string, (s: object) => string][] => {
+      if (!n || typeof n !== "object") return [];
+      if (Array.isArray(n)) return n.flatMap(hrefFors);
+      const el = n as { type?: { name?: string }; props?: Record<string, unknown> };
+      const own = typeof el.props?.hrefFor === "function" ? [[el.type?.name ?? "?", el.props.hrefFor as (s: object) => string] as [string, (s: object) => string]] : [];
+      return [...own, ...Object.values(el.props ?? {}).flatMap(hrefFors)];
+    };
+    const found = hrefFors(tree);
+    const names = found.map(([n]) => n);
+    for (const c of ["ResultsFooter", "PaneListToolbar", "PhoneToolbar"]) assert.ok(names.includes(c), `guard: ${c} is not handed an href builder (${names.join(", ")})`);
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { parseDiscoverState } = require(resolved("lib/discover-v32-state.js")) as typeof import("@/lib/discover-v32-state");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { perPageHrefs } = require(resolved("components/search/list.js")) as typeof import("@/components/search/list");
+    const state = parseDiscoverState(sp);
+    for (const [name, hrefFor] of found) {
+      const hrefs = [
+        ...perPageHrefs(state, hrefFor as never).map(([, h]) => h),
+        hrefFor({ ...state, page: 2 }),
+        hrefFor({ ...state, sort: "name", page: 1 }),
+        hrefFor({ ...state, sanctioned: true, page: 1 }),
+      ];
+      for (const h of hrefs) {
+        const p = new URL(h, "https://x.invalid").searchParams;
+        assert.equal(p.get("record"), "aboni-knitwear", `${name} closes the record: ${h}`);
+        assert.equal(p.get("tab"), "certificates", `${name} drops the record's tab: ${h}`);
+        assert.equal(p.get("q"), "knit", `${name} loses the search: ${h}`);
+      }
+    }
+    assert.match(perPageHrefs(state, found[0]![1] as never)[2]![1], /per=100/, "guard: the 100 size is a 100 size");
+    // …and the pagination a browser receives says the same.
+    given({ profile: PROFILE, hscodes: HS, discover: { data: [{ ...ROW, total_count: 300 }], error: null } });
+    const page = html(await outcome(() => Page({ searchParams: Promise.resolve(sp) })));
+    const next = /<a[^>]*href="([^"]*page=2[^"]*)"/.exec(page)?.[1]?.replace(/&amp;/g, "&");
+    assert.ok(next, "guard: no next-page link");
+    assert.match(next, /record=aboni-knitwear/, `Next page closes the record: ${next}`);
+    // With no record open the links are the search alone, as before.
+    given({ profile: PROFILE, hscodes: HS, discover: { data: [{ ...ROW, total_count: 300 }], error: null } });
+    const bare = hrefFors((await Page({ searchParams: Promise.resolve({ q: "knit" }) })) as ReactElement);
+    assert.ok(bare.length > 0 && bare.every(([, f]) => !f({ ...state, page: 2 }).includes("record=")), "a closed pane is reopened by a results control");
+    // A product line open in the pane stays open too.
+    given({ profile: PROFILE, hscodes: HS, discover: { data: [{ ...ROW, total_count: 300 }], error: null } });
+    const line = hrefFors((await Page({ searchParams: Promise.resolve({ q: "knit", record: "aboni-knitwear", line: "6105" }) })) as ReactElement);
+    assert.ok(line.length > 0 && line.every(([, f]) => /record=aboni-knitwear&line=6105/.test(f({ ...state, per: 100, page: 1 }))), "a results control closes the open line");
+  });
+
   it("an open record sits BESIDE the results, both live: nothing is inert, nothing claims to be modal", async () => {
     // The founder's one-viewport frame (27 Sep 2026), v4's `ListPane` (B3): the record is a
     // pane on the right of the list from 1280, and under it a drawer over a scrim. Either
@@ -734,7 +787,8 @@ describe("/app/discover — the panes beside the results", () => {
     const out = html(await search({ q: "knit", sort: "workers", record: "aboni-knitwear" }));
     assert.match(hrefOf(out, /Close/), /q=knit/);
     assert.match(hrefOf(out, /Close/), /sort=workers/);
-    const opens = [...out.matchAll(/href="([^"]*record=[^"]*)"/g)].map((m) => m[1]!.replace(/&amp;/g, "&"));
+    // Clearing the query is the one link meant to drop it; it keeps the open record like every results control.
+    const opens = [...out.matchAll(/<a\b(?![^>]*aria-label="Clear the search")[^>]*href="([^"]*record=[^"]*)"/g)].map((m) => m[1]!.replace(/&amp;/g, "&"));
     assert.ok(opens.length > 0, "guard: the rows link to their records");
     for (const href of opens) {
       assert.match(href, /q=knit/, `a record link throws the search away: ${href}`);

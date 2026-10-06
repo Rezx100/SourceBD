@@ -4,6 +4,7 @@
 
 export { ChatThread, Bubble, DateLine, FileChip } from "./chat";
 export { CertProblem, CertStateChip, CertTable, type CertRowData } from "./certificate";
+export { LinkPending } from "./link-pending";
 export { LockedContact, LockedContactRow, onFileWords } from "./contact";
 export { NeedsAttention, type AttentionItem } from "./attention";
 export { ExportsFreshness, ExportsSummary, ExportsTable, type ExportRow, type ExportStat } from "./exports";

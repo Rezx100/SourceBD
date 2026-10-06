@@ -304,6 +304,15 @@ export function discoverHref(state: DiscoverState, over: Partial<DiscoverState> 
   return qs ? `${DISCOVER_PATH}?${qs}` : DISCOVER_PATH;
 }
 
+/**
+ * `href` with the open pane's own parameters (`record=…&tab=…`) after the search's. None of them
+ * is part of `DiscoverState`, so every results control (page, page size, sort, a filter) builds
+ * its link through this to keep the record open beside the results (founder, 6 Oct 2026).
+ */
+export function withPaneParams(href: string, pane: string): string {
+  return pane ? `${href}${href.includes("?") ? "&" : "?"}${pane}` : href;
+}
+
 /** Query keys a GET form must keep as hidden inputs. Always drops `page`. */
 export function discoverHiddenParams(
   state: DiscoverState,
