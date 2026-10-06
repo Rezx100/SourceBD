@@ -6,17 +6,22 @@
 // POST { action:'initiate', supplier_id, proof_email, note? }
 // POST { action:'verify',   token }              (anon-callable; token is creds)
 // POST { action:'cancel',   id }
-// POST { action:'admin_decide', id, approve, note? }
+// POST { action:'admin_decide', id, approve, note? }   (0129: any open stage; a reason to reject)
+// POST { action:'admin_resend', id }                   (0129: a fresh link, emailed again)
 //
 // Middleware does NOT cover `/api/*` — auth is enforced in-handler via the
 // Supabase user-scoped client. Writes go through SECURITY DEFINER RPCs in
-// migration 0032 which re-check role + ownership at the database.
+// migrations 0032 and 0129 which re-check role + ownership at the database.
+//
+// The verification email goes through the journaled sender (lib/email/send.ts,
+// template claim_verify, refId = the claim id), so the admin claim queue can
+// show whether each claim's email went out and, if not, why.
 
 import { NextResponse } from "next/server";
 
 import { AppOriginError, getCanonicalAppOrigin } from "@/lib/app-origin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { sendTransactionalEmail } from "@/lib/email/resend";
+import { EmailError, sendEmail } from "@/lib/email/send";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,6 +33,80 @@ const UUID_RE =
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_NOTE = 2000;
 const MAX_DECISION_NOTE = 1000;
+
+type ClaimLinkPayload = {
+  claim_id: string;
+  verification_token: string;
+  method: "domain_email" | "manual_review";
+  expires_at: string;
+  proof_email: string;
+  supplier: { id: string; company_name: string };
+};
+
+/** The verification link for a claim, or a 500 when the site's origin is not configured. */
+function verifyLink(req: Request, token: string): string | NextResponse {
+  try {
+    return `${getCanonicalAppOrigin(req.headers)}/supplier/claim/verify?token=${encodeURIComponent(token)}`;
+  } catch (err) {
+    return NextResponse.json(
+      {
+        error: "app_origin_unavailable",
+        detail: err instanceof AppOriginError ? err.message : "Unable to build claim verification link.",
+      },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * Email the link through the journaled sender. "sent" when Resend took it; "dev" when there is no
+ * API key (the journal records a failed row saying so); "failed" when the send threw.
+ */
+async function emailClaimLink(payload: ClaimLinkPayload, link: string): Promise<"sent" | "dev" | "failed"> {
+  try {
+    const result = await sendEmail({
+      to: payload.proof_email,
+      template: "claim_verify",
+      data: {
+        link,
+        companyName: payload.supplier.company_name,
+        proofEmail: payload.proof_email,
+        autoApprove: payload.method === "domain_email",
+      },
+      refId: payload.claim_id,
+    });
+    return result.dev ? "dev" : "sent";
+  } catch (err) {
+    console.warn(`[claims] verification email failed: ${err instanceof EmailError ? err.message : "unknown error"}`);
+    return "failed";
+  }
+}
+
+/** The answer after a link was (or was not) emailed. The token itself is never in it. */
+function linkResponse(payload: ClaimLinkPayload, link: string, outcome: "sent" | "dev" | "failed", extra: Record<string, unknown>) {
+  // In production, a failed email send is a hard error — never expose the
+  // verification token via the API response, even as a fallback.
+  if (process.env.NODE_ENV === "production" && outcome !== "sent") {
+    return NextResponse.json(
+      {
+        error: "email_send_failed",
+        detail: "Verification email could not be sent. Please try again later.",
+      },
+      { status: 502 },
+    );
+  }
+  return NextResponse.json({
+    ok: true,
+    claim_id: payload.claim_id,
+    method: payload.method,
+    expires_at: payload.expires_at,
+    email_sent: outcome === "sent",
+    ...extra,
+    // dev_verification_url is only included outside production to aid
+    // local/preview workflows. It is never returned in production.
+    ...(process.env.NODE_ENV !== "production" ? { dev_verification_url: link } : {}),
+  });
+}
 
 async function requireAuth(): Promise<
   { supabase: Sb; userId: string } | NextResponse
@@ -48,6 +127,8 @@ function rpcStatus(detail: string): number {
   if (d.includes("not an admin") || d.includes("not a supplier")) return 403;
   if (d.includes("not found")) return 404;
   if (d.includes("already claimed")) return 409;
+  if (d.includes("not open for a decision") || d.includes("not waiting for its email")) return 409;
+  if (d.includes("reason is required")) return 422;
   if (d.includes("within the last hour")) return 429;
   return 400;
 }
@@ -170,82 +251,30 @@ export async function POST(req: Request) {
         { status: rpcStatus(error.message) },
       );
     }
-    const payload = (data ?? {}) as {
-      claim_id: string;
-      verification_token: string;
-      method: "domain_email" | "manual_review";
-      expires_at: string;
-      proof_email: string;
-      supplier: { id: string; company_name: string };
-    };
-    let verifyUrl: string;
-    try {
-      verifyUrl = `${getCanonicalAppOrigin(req.headers)}/supplier/claim/verify?token=${encodeURIComponent(
-        payload.verification_token,
-      )}`;
-    } catch (err) {
+    const payload = (data ?? {}) as ClaimLinkPayload;
+    const link = verifyLink(req, payload.verification_token);
+    if (link instanceof NextResponse) return link;
+    const outcome = await emailClaimLink(payload, link);
+    return linkResponse(payload, link, outcome, {});
+  }
+
+  if (action === "admin_resend") {
+    const id = body.id;
+    if (typeof id !== "string" || !UUID_RE.test(id)) {
+      return NextResponse.json({ error: "id must be a UUID" }, { status: 400 });
+    }
+    const { data, error } = await supabase.rpc("claim_admin_resend", { p_claim_id: id });
+    if (error) {
       return NextResponse.json(
-        {
-          error: "app_origin_unavailable",
-          detail:
-            err instanceof AppOriginError
-              ? err.message
-              : "Unable to build claim verification link.",
-        },
-        { status: 500 },
+        { error: "claim_admin_resend failed", detail: error.message },
+        { status: rpcStatus(error.message) },
       );
     }
-
-    const subject = `Confirm ownership of ${payload.supplier.company_name} on SourceBD`;
-    const text = [
-      `Hi,`,
-      ``,
-      `You requested to claim "${payload.supplier.company_name}" on SourceBD.`,
-      `To finish, confirm you control ${payload.proof_email} by clicking the link below.`,
-      `The link expires in 24 hours.`,
-      ``,
-      verifyUrl,
-      ``,
-      payload.method === "domain_email"
-        ? `Because your email matches the supplier's published domain, the claim will be activated automatically after you click.`
-        : `After verification, an admin will review your claim and notify you of the decision.`,
-      ``,
-      `If you did not request this, ignore this email.`,
-      ``,
-      `— SourceBD`,
-    ].join("\n");
-
-    const sendResult = await sendTransactionalEmail({
-      to: payload.proof_email,
-      subject,
-      text,
-    });
-
-    // In production, a failed email send is a hard error — never expose the
-    // verification token via the API response, even as a fallback.
-    if (process.env.NODE_ENV === "production" && !sendResult.sent) {
-      return NextResponse.json(
-        {
-          error: "email_send_failed",
-          detail:
-            "Verification email could not be sent. Please try again later.",
-        },
-        { status: 502 },
-      );
-    }
-
-    return NextResponse.json({
-      ok: true,
-      claim_id: payload.claim_id,
-      method: payload.method,
-      expires_at: payload.expires_at,
-      email_sent: sendResult.sent,
-      // dev_verification_url is only included outside production to aid
-      // local/preview workflows. It is never returned in production.
-      ...(process.env.NODE_ENV !== "production"
-        ? { dev_verification_url: verifyUrl }
-        : {}),
-    });
+    const payload = (data ?? {}) as ClaimLinkPayload;
+    const link = verifyLink(req, payload.verification_token);
+    if (link instanceof NextResponse) return link;
+    const outcome = await emailClaimLink(payload, link);
+    return linkResponse(payload, link, outcome, { resent: true });
   }
 
   if (action === "verify") {
@@ -352,7 +381,7 @@ export async function POST(req: Request) {
   return NextResponse.json(
     {
       error:
-        "unknown action; expected one of initiate|verify|cancel|admin_decide",
+        "unknown action; expected one of initiate|verify|cancel|admin_decide|admin_resend",
     },
     { status: 400 },
   );

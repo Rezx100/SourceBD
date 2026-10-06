@@ -65,9 +65,13 @@ export function project(rot: number[], frame: Frame, lng: number, lat: number): 
 /** A light's size on the sphere: it grows with the square root of the count, so area follows the count. */
 export const lightSize = (count: number): number => Math.min(10, 2.2 + Math.sqrt(count) * 0.6);
 
-/** The plan's composition: the planet large at the right, Bangladesh facing; `p` 0 to 1 brings the camera in. */
+/**
+ * The plan's composition: the planet large at the right, Bangladesh facing; `p` 0 to 1 brings the camera in. On an
+ * upright screen it sits above the words instead, smaller, with Bangladesh still on screen.
+ */
 export function defaultFrame(p: number, w: number, h: number): Frame {
   const e = p * p * (3 - 2 * p);
+  if (h > w) return { cx: w * 0.66, cy: h * 0.17, r: w * 0.5 * (1 + 1.2 * e) };
   const r0 = Math.max(h * 0.62, w * 0.36);
   return { cx: w * (0.74 - 0.24 * e), cy: h * (0.58 - 0.08 * e), r: r0 * (1 + 2.4 * e) };
 }
@@ -90,8 +94,8 @@ void main() {
     // From far away a district is many lights in a few pixels: each one is faint there, so the cluster glows
     // without burning out, and they come apart as the camera comes in.
     float near = clamp((uScale - 1.0) / 2.4, 0.0, 1.0);
-    a = smoothstep(-0.02, 0.12, p.z) * (0.72 + 0.28 * sin(uTime * (0.7 + fract(aPhase) * 0.9) + aPhase * 6.2831)) * mix(0.14, 0.42, near);
-    size *= mix(0.75, 1.25, near) * uBloom;
+    a = smoothstep(-0.02, 0.12, p.z) * (0.72 + 0.28 * sin(uTime * (0.7 + fract(aPhase) * 0.9) + aPhase * 6.2831)) * mix(0.14, 0.3, near);
+    size *= mix(0.75, 0.95, near) * uBloom;
   } else {                      // dust, far behind, shifting with the pointer and the scroll
     px = uRes * 0.5 + vec2(p.x, -p.y) * max(uRes.x, uRes.y) * 0.75 + uShift * (0.4 + fract(aPhase) * 1.2);
     a = (0.25 + 0.75 * fract(aPhase * 7.0)) * (0.6 + 0.4 * sin(uTime * 0.35 + aPhase * 6.2831));

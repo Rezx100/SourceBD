@@ -335,9 +335,15 @@ begin
       v_old := case when v_old is null then null else v_old - 'body_ciphertext' end;
       if tg_op = 'INSERT' then
         v_kind := 'message.sent';
-        v_content := jsonb_build_object(
-          'after', v_new,
-          'body_sha256', encode(extensions.digest(pgp_sym_decrypt(new.body_ciphertext, public._messages_key()), 'sha256'), 'hex'));
+        -- A body the key cannot open (a row written under another key) is recorded as unreadable: the
+        -- record never stops a message, and "no fingerprint" is itself a fact worth keeping.
+        begin
+          v_content := jsonb_build_object(
+            'after', v_new,
+            'body_sha256', encode(extensions.digest(pgp_sym_decrypt(new.body_ciphertext, public._messages_key()), 'sha256'), 'hex'));
+        exception when others then
+          v_content := jsonb_build_object('after', v_new, 'body_sha256', null, 'body_unreadable', true);
+        end;
       end if;
 
     when 'message_threads' then
