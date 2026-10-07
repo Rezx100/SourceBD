@@ -8,8 +8,9 @@ import { LegalShell, legalDay } from "@/components/site/legal";
 
 export const dynamic = "force-static";
 
-// 6 Oct 2026: section 8, the open data behind the home page's map (spec-home-film §6.2).
-const LAST_UPDATED = "2026-10-06";
+// 6 Oct 2026: section 8, the open data behind the home page's map (spec-home-film §6.2). 7 Oct 2026: the map
+// became a city drawn from the same counts, on the same district lines and rivers.
+const LAST_UPDATED = "2026-10-07";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://sourcebd.net";
@@ -142,9 +143,11 @@ export default function DataSourcesPage() {
           . The land, the coast, the rivers and the neighbouring
           countries are{" "}
           <a href="https://www.naturalearthdata.com">Natural Earth</a>{" "}
-          (public domain). The lights are our own count of published
-          suppliers per square kilometre, from their register addresses
-          as located by Barikoi; the page prints the day of that count.
+          (public domain). The lights on the planet and the blocks of the
+          city are our own count of published suppliers per square
+          kilometre, from their register addresses as located by Barikoi:
+          a block is drawn only where suppliers are, and its height follows
+          how many. The page prints the day of that count.
           No address, name or identifier is published for it: the file
           holds counts per square kilometre and one place.
         </p>
