@@ -17,11 +17,6 @@ const nextConfig: NextConfig = {
   // of 0 that re-ran the whole search on the server before the record could
   // close. Mutations call `router.refresh()`, which clears this cache.
   experimental: { staleTimes: { dynamic: 30 } },
-  // The second landing page (the circle0 build kit, public/landing-2/) is a static site kept for
-  // comparison with the home page film; this opens it without the file name. Delete with the folder.
-  async redirects() {
-    return [{ source: "/landing-2", destination: "/landing-2/index.html", permanent: false }];
-  },
   pageExtensions: isDev
     ? ["tsx", "ts", "jsx", "js", "dev.tsx"]
     : ["tsx", "ts", "jsx", "js"],
