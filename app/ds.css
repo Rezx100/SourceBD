@@ -281,61 +281,6 @@
     box-shadow: var(--pane-shadow);
   }
 
-  /* One pass of light across a pane as it arrives. Never a loop. */
-  .pane-sheen::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    background-image: linear-gradient(105deg, transparent 35%, var(--pane-highlight) 50%, transparent 65%);
-    background-size: 300% 100%;
-    opacity: 0;
-    animation: ds-pane-sheen 600ms cubic-bezier(0, 0, 0.2, 1) 120ms 1 both;
-  }
-
-  /* A one-colour source mark is drawn dark; on a dark pane it is turned over. */
-  .rec-mark img {
-    filter: var(--pane-mark);
-  }
-
-  /* A record row arriving, stitched on: a green line sweeps its top edge,
-     the source's mark stamps in, the words rise. The green dot at its left
-     stays. A row that has arrived never moves again. */
-  .rec-arrive {
-    position: relative;
-  }
-
-  .rec-arrive::before {
-    content: "";
-    position: absolute;
-    inset: -1px 0 auto 0;
-    height: 1px;
-    background-color: rgb(var(--ds-brand-ink));
-    transform-origin: left;
-    animation: ds-rec-sweep 300ms cubic-bezier(0, 0, 0.2, 1) both;
-  }
-
-  .rec-arrive::after {
-    content: "";
-    position: absolute;
-    left: -14px;
-    top: 18px;
-    width: 6px;
-    height: 6px;
-    border-radius: 9999px;
-    background-color: rgb(var(--ds-brand-ink));
-    animation: ds-rec-stamp 160ms cubic-bezier(0, 0, 0.2, 1) 300ms both;
-  }
-
-  .rec-arrive .rec-mark {
-    animation: ds-rec-stamp 160ms cubic-bezier(0, 0, 0.2, 1) 300ms both;
-  }
-
-  .rec-arrive .rec-words {
-    animation: ds-rec-rise 200ms cubic-bezier(0, 0, 0.2, 1) 460ms both;
-  }
-
   /* The film's map: the library's canvas fills its stage. Its own stylesheet is not loaded (it fetches two
      more from a CDN), and its control corner is not drawn: the map shows none of its tiles here. */
   [data-map] canvas {
@@ -370,34 +315,9 @@
     pointer-events: auto;
   }
 
-  /* The thread (§3.4): one green path. `--p` (0 to 1, written by the scroll)
-     draws it; with no `--p` it is whole, which is what a still page shows. */
-  .thread {
-    fill: none;
-    stroke: rgb(var(--ds-brand-ink));
-    stroke-width: 1.6;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-
-  .thread-join {
-    stroke-dasharray: 9 6;
-  }
-
-  .thread-draw {
-    stroke-dasharray: 1;
-    stroke-dashoffset: calc(1 - var(--p, 1));
-  }
-
-  .thread-end {
-    opacity: clamp(0, calc((var(--p, 1) - 0.96) * 25), 1);
-  }
-
-  /* Scenes 04 and 05 (§3.7, §3.9): what the scroll moves. On the full tier engine/chapters.ts writes --wheel
-     and --needle on the overlock drawing, --p on the seam and on each tie, --print on the roll, and turns each
-     beat on at its moment. With none of them written every part rests, the roll is whole and every beat shows:
-     the lite and still tiers, and a page with no script. The roll follows --print on the full tier only, so a
-     page the film has left is whole even before the engine has put its writes back. */
+  /* The overlock (founder's video, 7 Oct 2026: kept, and moved by the scroll): engine/chapters.ts writes --wheel
+     and --needle on the drawing's parts and --p on the seam. With none written every part rests and the seam is
+     whole: the lite and still tiers, and a page with no script. */
   .ov-wheel {
     stroke-dashoffset: calc(var(--wheel, 0) * -0.25px);
   }
@@ -412,102 +332,15 @@
     transform: rotate(calc(var(--needle, 0) * -16deg));
   }
 
-  .roll-slot {
-    position: relative;
-    z-index: 1;
-    height: 14px;
-    border-radius: 9999px;
-    background-color: rgb(var(--ds-sunken));
-    box-shadow: inset 0 1px 2px rgb(var(--ds-ink) / 0.25);
-  }
-
-  /* The sheet, the ink on it and its torn edge end at the same place: how much has printed. */
-  .roll-sheet {
-    position: absolute;
-    inset: 0;
-    background-color: rgb(var(--ds-surface));
-    border-left: 1px solid rgb(var(--ds-line));
-    border-right: 1px solid rgb(var(--ds-line));
-    box-shadow: var(--pane-shadow);
-  }
-
-  .roll-print {
-    position: relative;
-  }
-
-  .roll-tear {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 100%;
-    width: 100%;
-    height: 10px;
-  }
-
-  /* On a stage too short for the whole roll, the roll is a window and the paper scrolls up only once what has
-     printed runs past the window: the engine measures the paper's height and the window's (--roll-h, --roll-win,
-     on the paper's wrapper, once per layout) and the print moves it. */
-  [data-film-tier="full"] [data-roll] {
-    max-height: calc(100svh - 500px);
-    overflow: hidden;
-  }
-
-  [data-film-tier="full"] [data-roll-paper] {
-    transform: translateY(calc(-1 * max(0px, var(--print, 1) * var(--roll-h, 0px) - var(--roll-win, 0px))));
-  }
-
-  [data-film-tier="full"] .roll-sheet {
-    inset: 0 0 calc((1 - var(--print, 1)) * 100%) 0;
-  }
-
-  [data-film-tier="full"] .roll-print {
-    clip-path: inset(0 0 calc((1 - var(--print, 1)) * 100%) 0);
-  }
-
-  [data-film-tier="full"] .roll-tear {
-    top: calc(var(--print, 1) * 100%);
-  }
-
-  .receipt {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: 12px 16px;
-    border-top: 1px dashed rgb(var(--ds-line-strong));
-    transition: opacity 300ms cubic-bezier(0, 0, 0.2, 1);
-  }
-
-  .receipt:first-child {
-    border-top: 0;
-  }
-
-  .receipt[data-dim] {
-    opacity: 0.5;
-  }
-
-  /* Scenes 06 to 08 (§3.6, §3.7, §4): the carton slides in by --slide (written on the drawing), the calendar's line
-     is drawn by --t (written on it) and each mark on it shows once the line has reached it (--at, the mark's own
-     share of the span, set by the scene), both on the full tier by engine/chapters.ts; with nothing written the
-     carton stands and the line is whole with every mark. */
-  [data-film-tier="full"] svg[data-carton] {
-    opacity: var(--slide, 1);
-    transform: translateX(calc((var(--slide, 1) - 1) * 160px));
-  }
-
-  .time-run {
+  .ov-seam {
     stroke-dasharray: 1;
-    stroke-dashoffset: calc(1 - var(--t, 1));
+    stroke-dashoffset: calc(1 - var(--p, 1));
   }
 
-  .time-mark {
-    opacity: clamp(0, calc((var(--t, 1) - var(--at, 0)) * 60), 1);
-  }
-
-  /* Scenes 09 to 12 (§3.8, §4). The windows on the stage: each tilts a little with the scroll (--p, written on
+  /* The staged screens (§3.8). The windows on the stage: each tilts a little with the scroll (--p, written on
      it); on the full tier the three screens sit on one another and the step's own shows, sliding in. The drawn
-     cursor arrives, a spotlight opens on the part it goes to, and it presses (--cursor on the three parts). The
-     live figures fit four to a stage. With nothing written the cursor rests on the button, pressed, the screens
-     stand in a column and the figures are the stacked page's. */
+     cursor arrives and presses (--cursor on its parts). With nothing written the cursor rests on the button,
+     pressed, and the screens stand in a column. */
   .stage-window {
     transform: rotateX(2deg) rotateY(calc((var(--p, 0.5) - 0.5) * -6deg));
   }
@@ -538,26 +371,11 @@
     transform: scale(calc(1.6 - clamp(0, calc((var(--cursor, 1) - 0.9) * 10), 1) * 0.6));
   }
 
-  .stage-spot {
-    background-image: radial-gradient(circle at var(--sx) var(--sy), transparent 0, transparent 22%, rgb(var(--ds-scrim) / 0.12) 60%);
-    opacity: clamp(0, calc((var(--cursor, 1) - 0.6) * 2.5), 1);
-  }
-
   /* The cropped screen on a narrow window looks at the part its step names (--focus, set by the scene). */
   @media (max-width: 1023px) {
     .stage-window img {
       object-position: var(--focus, 50% 50%);
     }
-  }
-
-  [data-film-tier="full"] .film-figure-fit {
-    font-size: min(200px, 20svh);
-    line-height: 0.9;
-  }
-
-  /* A record whose rows are all still to come keeps no gap where they will be. */
-  [data-film-tier="full"] .pane > dl:not(:has(> :not([data-beat]), > [data-on])) {
-    margin-top: -1rem;
   }
 
   /* A beat takes no place until its moment, on the one tier whose scroll brings it: the record grows as its rows
@@ -573,48 +391,6 @@
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border-width: 0;
-  }
-}
-
-@keyframes ds-pane-sheen {
-  from {
-    opacity: 1;
-    background-position: 100% 0;
-  }
-  to {
-    opacity: 0;
-    background-position: 0 0;
-  }
-}
-
-@keyframes ds-rec-sweep {
-  from {
-    transform: scaleX(0);
-  }
-  to {
-    transform: scaleX(1);
-  }
-}
-
-@keyframes ds-rec-stamp {
-  from {
-    opacity: 0;
-    transform: scale(1.6);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes ds-rec-rise {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
   }
 }
 
