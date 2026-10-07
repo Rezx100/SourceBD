@@ -349,6 +349,13 @@ function darkLegacy(): typeof legacy {
  */
 export const dark: typeof light = overlay(darkLegacy(), darkColors, "#000000");
 
+/**
+ * The variables a night scene does not set, so they come from the page's theme: the primary button's fill and
+ * its label. A night scene in a light page draws the nav's own forest green with a white label (founder's video,
+ * 7 Oct 2026: "the colour is different"); in a dark page both are the dark set's.
+ */
+export const NIGHT_INHERITS: readonly string[] = ["--ds-brand", "--ds-brand-hover", "--ds-brand-active", "--ds-brand-on"];
+
 export type TierRank = 1 | 2 | 3 | 4 | 5;
 
 /** The five buyer-visible source tiers, in rank order (spec §2). */

@@ -1,16 +1,28 @@
 // The one record the film follows (handoff-home-film §1): Mondol Fabrics Ltd., read from production on 3 Oct
-// 2026, as the Pane draws it: each row names its source, so its one-colour mark can be drawn beside the fact.
-// `components/site/home.tsx` builds the old card's rows from these same facts for the page without the film.
+// 2026. Each fact names its source, so its one-colour mark can be drawn beside it. The film shows these facts as the
+// product shows them (the record's own rows); `components/site/home.tsx` builds the page-without-the-film's card
+// from the same facts.
 
-import type { RecordRow } from "@/components/site/film/pane";
+export type Fact = {
+  label: string;
+  value: string;
+  /** "From BGMEA · checked 24 Jul 2026". */
+  from?: string;
+  /** The numbers each source files it under, in mono. */
+  mono?: string;
+  /** The sources the fact comes from: their marks are drawn, in this order. */
+  marks?: string[];
+  /** A fact to watch: its value turns amber when its day comes. */
+  watch?: boolean;
+};
 
 export const NAME = "Mondol Fabrics Ltd.";
 export const LINE = "Factory · Gazipur";
 
-export const SOURCES: RecordRow = { label: "Sources", value: "5 sources", marks: ["EPB", "RSC", "BGMEA", "BKMEA", "GOTS"], mono: "EPB 2798 · RSC 10861 · BGMEA 4002 · BKMEA 1004-B/2006 · GOTS-19020" };
-export const BGMEA: RecordRow = { label: "BGMEA membership", value: "General member · reg. no. 4002", from: "From BGMEA · checked 24 Jul 2026", marks: ["BGMEA"] };
-export const GOTS: RecordRow = { label: "GOTS certificate", value: "GOTS-19020 · valid until 15 Dec 2026", from: "GSCS International Ltd. · checked 26 Jun 2026", marks: ["GOTS"] };
-export const SAFETY: RecordRow = { label: "Safety inspections", value: "Covered by RSC · factory 10861", from: "100% of initial items fixed · checked 24 Jul 2026", marks: ["RSC"] };
+export const SOURCES: Fact = { label: "Sources", value: "5 sources", marks: ["EPB", "RSC", "BGMEA", "BKMEA", "GOTS"], mono: "EPB 2798 · RSC 10861 · BGMEA 4002 · BKMEA 1004-B/2006 · GOTS-19020" };
+export const BGMEA: Fact = { label: "BGMEA membership", value: "General member · reg. no. 4002", from: "From BGMEA · checked 24 Jul 2026", marks: ["BGMEA"] };
+export const GOTS: Fact = { label: "GOTS certificate", value: "GOTS-19020 · valid until 15 Dec 2026", from: "GSCS International Ltd. · checked 26 Jun 2026", marks: ["GOTS"] };
+export const SAFETY: Fact = { label: "Safety inspections", value: "Covered by RSC · factory 10861", from: "100% of initial items fixed · checked 24 Jul 2026", marks: ["RSC"] };
 
 /** Each source, the number it files the factory under and the day we read it: chapter 02's list, in both the film and the page without it. */
 export const SOURCE_DATES: readonly [source: string, filed: string][] = [
@@ -21,10 +33,10 @@ export const SOURCE_DATES: readonly [source: string, filed: string][] = [
   ["RSC", "factory 10861 · 24 Jul 2026"],
 ];
 
-/** The rows chapters 04 to 09 add, in order. The site comes from the registers' address: an area, not a building. */
-export const SITE: RecordRow = { label: "Site", value: "Nayapara, Kashimpur, Gazipur", from: "Factory · approximate location", marks: ["BGMEA", "BKMEA"] };
-export const EXPORTS: RecordRow = { label: "Export records", value: "Coming in v2" };
-/** Chapter 06: the same certificate, now the one to watch (`watch` turns its value amber; on the full tier only once its day comes). */
-export const GOTS_DUE: RecordRow = { ...GOTS, value: "GOTS-19020 · expires 15 Dec 2026", watch: true };
-export const UFLPA: RecordRow = { label: "UFLPA Entity List", value: "No link found", from: "US DHS · our copy from 14 May 2026" };
-export const RFQ: RecordRow = { label: "RFQ", value: "Waiting for a quote", from: "Sent 3 Oct 2026" };
+/** The site comes from the registers' address: an area, not a building. */
+export const SITE: Fact = { label: "Site", value: "Nayapara, Kashimpur, Gazipur", from: "Factory · approximate location", marks: ["BGMEA", "BKMEA"] };
+export const EXPORTS: Fact = { label: "Export records", value: "Coming in v2" };
+/** The same certificate, now the one to watch. */
+export const GOTS_DUE: Fact = { ...GOTS, value: "GOTS-19020 · expires 15 Dec 2026", watch: true };
+export const UFLPA: Fact = { label: "UFLPA Entity List", value: "No link found", from: "US DHS · our copy from 14 May 2026" };
+export const RFQ: Fact = { label: "RFQ", value: "Waiting for a quote", from: "Sent 3 Oct 2026" };

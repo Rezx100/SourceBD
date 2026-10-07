@@ -1,19 +1,13 @@
 // /dev/ds: the home film's additions to SourceBD v4 (handoff-home-film §3): the dark set, the film's type sizes,
-// the Pane in its two materials with its family, the thread and the rail. Each board is drawn twice, in the light
-// set and inside a night scope, which carries the same variables the dark theme does. The record is the home
-// page's own (Mondol Fabrics Ltd., captured 3 Oct 2026), not an invented one. Server component.
+// the Pane in its two materials, the search, the overlock and the staged screen. Each board is drawn twice, in the
+// light set and inside a night scope, which carries the same variables the dark theme does. Server component.
 
 import type { ReactNode } from "react";
-import { DIFFER, OVERLOCK_CAPTION, RECEIPTS } from "@/components/site/film/chapters";
+import { OVERLOCK_CAPTION } from "@/components/site/film/chapters";
 import { Atmosphere } from "@/components/site/film/closing";
 import { Overlock } from "@/components/site/film/flats";
-import { AlertPane, Callout, FieldPane, NotePane, Pane, RecordPane, Screen, ScreenStage, type RecordRow } from "@/components/site/film/pane";
-import { ReceiptRoll } from "@/components/site/film/receipts";
-import { BGMEA, GOTS, LINE, NAME, SAFETY, SOURCES } from "@/components/site/film/record";
-import { HOME_CHAPTERS, Rail, Thread, ThreadLayer } from "@/components/site/film/thread";
+import { Pane, Screen, ScreenStage, SearchField } from "@/components/site/film/pane";
 import { cssVarName, darkColors, filmColors, fontSize, splitColorName, v4Colors } from "@/lib/design/tokens";
-
-export const FILM_ROWS: RecordRow[] = [SOURCES, BGMEA, GOTS, SAFETY];
 
 const FILM_SIZES: [string, string][] = [
   ["film-hero", "text-film-hero"],
@@ -110,45 +104,10 @@ export function V4Film() {
         </LiveGround>
       </Board>
 
-      <Board title="RecordPane" note="The protagonist. A row arrives stitched: a green line sweeps its top edge, the mark stamps in, the words rise, and a green dot stays at its left. Sources shows the five marks, not a filled block.">
-        <LiveGround className="flex justify-center rounded-lg p-6">
-          <RecordPane material="glass" name={NAME} line={LINE} state="Saved · watching" rows={FILM_ROWS} arriving="Safety inspections" />
+      <Board title="SearchField" note="The hero's and the close's search: it runs on public Discover, and its button is the kit's primary button, the nav's own.">
+        <LiveGround className="flex flex-col items-start gap-4 rounded-lg p-5">
+          <SearchField id="film-q" material="glass" />
         </LiveGround>
-      </Board>
-
-      <Board title="NotePane, AlertPane, FieldPane, Callout" note="The map note and the two-sources note, the certificate alert, the search, and a label on the planet or the map.">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <NotePane eyebrow="Factory · approximate location" title="Nayapara, Kashimpur, Gazipur">
-            The pin marks the area, not the building. From BGMEA and BKMEA.
-          </NotePane>
-          <NotePane tone="caution" eyebrow="2 sources differ">
-            {DIFFER}
-          </NotePane>
-          <AlertPane when="Day 43 · 15 Nov 2026" title="A certificate is running out" due="Expires in 30 days · 15 Dec 2026" subject="Mondol Fabrics Ltd. · GOTS-19020" from="Issued by GSCS International Ltd." action="Ask for the renewal" />
-          <LiveGround className="flex flex-col items-start gap-4 rounded-lg p-5">
-            <FieldPane id="film-q" material="glass" />
-            <div className="flex flex-wrap gap-2">
-              <Callout place="Dhaka district" figure="4,421" on />
-              <Callout place="Gazipur" figure="1,819" />
-            </div>
-          </LiveGround>
-        </div>
-      </Board>
-
-      <Board title="Thread and rail" note="One green path: solid when it leads, stitched when it joins, a bartack where it ends. The rail is nine ticks, each a link, with the dot on the current chapter.">
-        <div className="flex gap-10">
-          <Rail chapters={HOME_CHAPTERS} current="ch-04" className="h-64" />
-          <div className="relative h-64 flex-1">
-            <ThreadLayer viewBox="0 0 400 260">
-              <Thread d="M20 50C120 0 210 100 380 34" />
-              <Thread d="M20 130H380" join />
-              <Thread d="M20 210H300" end={{ x: 306, y: 210 }} />
-            </ThreadLayer>
-            <p className="absolute left-5 top-[70px] font-mono text-xs text-ink-3">leads</p>
-            <p className="absolute left-5 top-[142px] font-mono text-xs text-ink-3">joins</p>
-            <p className="absolute left-5 top-[222px] font-mono text-xs text-ink-3">ends in a bartack</p>
-          </div>
-        </div>
       </Board>
 
       <Board title="Overlock" note="The flat of scene 04: a 1.5px ink line, fills from the surface roles, green only for thread, the five source tags hung on their threads. The scroll turns the handwheel, drops the needle and draws the seam; at rest every part is still.">
@@ -158,16 +117,7 @@ export function V4Film() {
         </figure>
       </Board>
 
-      <Board title="Receipt roll" note="The roll of scene 05: paper, not glass. Mono type, a perforation per receipt, a torn edge, printing out of its slot as the scroll moves; whole at rest. Beside it, the note where two sources differ.">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-end">
-          <ReceiptRoll receipts={RECEIPTS} />
-          <NotePane tone="caution" eyebrow="2 sources differ" className="max-w-[280px]">
-            {DIFFER}
-          </NotePane>
-        </div>
-      </Board>
-
-      <Board title="ScreenStage" note="A real screen on a stage: an atmosphere behind, a window with no chrome, a spotlight on the part being talked about, a drawn cursor that presses. The app has no dark theme, so the screen stays light in both.">
+      <Board title="ScreenStage" note="A real screen on a stage: an atmosphere behind, a window with no chrome, a drawn cursor that presses. The app has no dark theme, so the screen stays light in both.">
         <ScreenStage atmosphere={<Atmosphere />} caption="Real v4 screen · Saved suppliers, 3 picked for one RFQ · the app is light in both themes">
           <Screen on cursor={{ x: 89.7, y: 24.8 }}>
             {/* eslint-disable-next-line @next/next/no-img-element -- a gallery sample of the staged screen */}

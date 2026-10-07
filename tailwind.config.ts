@@ -13,6 +13,7 @@ import {
   letterSpacing,
   light,
   maxWidth,
+  NIGHT_INHERITS,
   paneMaterial,
   screens,
   spacing,
@@ -135,7 +136,9 @@ const config: Config = {
       // system asks for dark and the page has opted in with `data-theme-auto`
       // (CSS only, so no flash and no script), and inside a night scene, which
       // is dark in either theme. Every page without the attribute stays light.
-      const night = { ...colorVars(dark), ...paneMaterial.dark, "color-scheme": "dark" };
+      // A night scene keeps the page's own brand fill (founder's video, 7 Oct 2026: the hero's button must be the
+      // nav's button, the same green): those variables are not set there, so they inherit the theme's.
+      const night = { ...Object.fromEntries(Object.entries(colorVars(dark)).filter(([name]) => !NIGHT_INHERITS.includes(name))), ...paneMaterial.dark, "color-scheme": "dark" };
       addBase({
         ":root": { ...colorVars(light), ...paneMaterial.light },
         "@media (prefers-color-scheme: dark)": { ":root:has([data-theme-auto])": night },

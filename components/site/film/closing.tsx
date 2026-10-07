@@ -1,20 +1,18 @@
-// Scenes 09 to 12 (handoff-home-film §3.8, §4): "07 · Can they make my order?", where the real product stands
-// staged on an atmosphere, three steps and a drawn cursor that presses Send RFQ; "08 · Why should I trust you?",
-// where the three promises turn from grey to ink at poster size, the source ladder's rungs arrive in rank order
-// and the live figures rise whole; and "09 · The whole record", night again, where the planet comes back, the
-// whole record stitches on row by row and the thread ends in a bartack at the RFQ. Server-rendered, every word in
-// the page on every tier; the engine moves them on the full tier only (engine/chapters.ts). The words are today's;
-// the promises, the ladder and the screens' words are the same data the page without the film draws.
+// The film's end (handoff-home-film §3.8, §4, rebuilt after the founder's video of 7 Oct 2026): "Shortlist. Ask.
+// Compare.", the real product on a stage; "Three things we never do."; "Every source has its rank." with the live
+// figures under it; and the close, night again, where the planet comes back behind the way in. Server-rendered,
+// every word in the page on every tier; the engine moves them on the full tier only (engine/chapters.ts). The
+// whole-record card and the thread that ended in it are gone.
 
 import Image from "next/image";
 import Link from "next/link";
 import { useId } from "react";
+import { ButtonLink } from "@/components/kit";
 import { SCENE } from "@/components/site/film/chapters";
-import { FieldPane, RecordPane, Screen, ScreenStage } from "@/components/site/film/pane";
-import { BGMEA, EXPORTS, GOTS, NAME, RFQ, SAFETY, SITE, SOURCES, UFLPA } from "@/components/site/film/record";
-import { Thread, ThreadLayer } from "@/components/site/film/thread";
+import { Screen, ScreenStage, SearchField } from "@/components/site/film/pane";
+import { NAME } from "@/components/site/film/record";
 import { Words } from "@/components/site/film/words";
-import { wrap } from "@/components/site/parts";
+import { Lede, wrap } from "@/components/site/parts";
 import { RoleTabs } from "@/components/site/role-tabs";
 import { readDay, withCommas, type SiteFacts } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
@@ -127,11 +125,11 @@ function ComplianceStage() {
 /** 09 · the real product, large: three steps and the screen for each on a staged window; the two roles' tabs both in the page. */
 export function OrderScene() {
   return (
-    <section id="ch-7" data-scene="order" data-chapter="ch-7" className={cn(SCENE.hold, "film-full:h-[420svh]")}>
+    <section id="ch-05" data-scene="order" className={cn(SCENE.hold, "film-full:h-[260svh]")}>
       <div className={SCENE.stage}>
         <div className={cn(SCENE.row, "film-full:lg:items-center")}>
           <div className={cn(SCENE.left, "lg:max-w-[400px]")}>
-            <Words label="07 · Can they make my order?" headline="Shortlist. Ask. Compare." lede="Save the suppliers you like. Send one RFQ, and each gets its own copy. The quotes come back side by side." />
+            <Words headline="Shortlist. Ask. Compare." lede="Save the suppliers you like. Send one RFQ, and each gets its own copy. The quotes come back side by side." />
           </div>
           <div className="w-full min-w-0 lg:max-w-[760px]">
             <RoleTabs
@@ -150,54 +148,20 @@ export function OrderScene() {
 /** 10 · the three promises at poster size: grey until the scroll reaches each, then ink, its line beside it. */
 export function PromisesScene() {
   return (
-    <section id="ch-8" data-scene="promises" data-chapter="ch-8" className={cn(SCENE.hold, "film-full:h-[360svh]")}>
+    <section id="ch-06" data-scene="promises" className={cn(SCENE.hold, "film-full:h-[200svh]")}>
       <div className={SCENE.stage}>
         <div className={cn(wrap, "flex flex-col gap-12")}>
-          <Words label="08 · Why should I trust you?" headline="Three things we never do." lede="We show what the registers say. You decide what it means." />
+          <Words headline="Three things we never do." lede="We show what the registers say. You decide what it means." />
           <ol className="flex flex-col gap-6">
             {PROMISES.map(([n, promise, line]) => (
-              <li key={n} data-promise className="group/promise flex flex-col gap-2 border-t border-ink pt-4 md:flex-row md:items-baseline md:gap-10">
-                <span className="font-mono text-base text-ink-3 md:w-10 md:shrink-0">{n}</span>
-                <h3 className="text-3xl font-semibold tracking-tighter text-ink max-sm:text-2xl md:flex-1 film-full:text-film-scene film-full:leading-[1.06] film-full:tracking-[-0.025em] film-full:text-ink-3 film-full:transition-colors film-full:duration-slow film-full:group-data-[on]/promise:text-ink">{promise}</h3>
+              <li key={n} data-promise className="group/promise flex flex-col gap-2 border-t border-line pt-4 md:flex-row md:items-baseline md:gap-10">
+                <h3 className="text-3xl font-semibold tracking-tighter text-ink max-sm:text-2xl md:flex-1 film-full:text-film-scene film-full:font-medium film-full:leading-[1.06] film-full:tracking-[-0.03em] film-full:text-ink-3 film-full:transition-colors film-full:duration-slow film-full:group-data-[on]/promise:text-ink">{promise}</h3>
                 <p data-beat="" className="text-md text-ink-2 md:w-[300px] md:shrink-0">
                   {line}
                 </p>
               </li>
             ))}
           </ol>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/** The source ladder, between 10 and 11, as it is today: its five rungs arrive in rank order. */
-export function LadderScene({ facts }: { facts: SiteFacts }) {
-  return (
-    <section data-scene="ladder" data-chapter="ch-8" className={cn(SCENE.hold, "film-full:h-[260svh]")}>
-      <div className={SCENE.stage}>
-        <div className={cn(wrap, "flex flex-col gap-10")}>
-          <Words label="08 · Why should I trust you?" headline="Every source has its rank." lede="Government registers come first. A source lower on the ladder never overwrites one above it." />
-          <ol className="grid gap-6 md:grid-cols-5">
-            {TIERS.map(([t, n, list]) => (
-              <li key={t} data-beat="" className="flex flex-col gap-2 border-t border-line pt-3">
-                <span className="font-mono text-xs text-ink-3">{t}</span>
-                <span className="text-md font-semibold text-ink">{n}</span>
-                <ul className="flex flex-col gap-0.5 text-base text-ink-2">
-                  {list.map((s) => (
-                    <li key={s}>{s}</li>
-                  ))}
-                </ul>
-              </li>
-            ))}
-          </ol>
-          <p className="text-sm text-ink-3">{LADDER_NOTE}</p>
-          <p className="flex flex-wrap items-baseline gap-x-3 text-md">
-            {facts.sourcesListed !== null ? <span className="font-mono text-xs text-ink-3">{facts.sourcesListed} sources listed{facts.sourcesWithRecords !== null ? ` · ${facts.sourcesWithRecords} hold supplier records` : ""}</span> : null}
-            <Link href="/methodology" prefetch={false} className="font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]">
-              See all {facts.sourcesListed ?? "the"} sources and how we check them
-            </Link>
-          </p>
         </div>
       </div>
     </section>
@@ -214,62 +178,73 @@ export function liveFigures(facts: SiteFacts): [figure: string, what: string][] 
   return out;
 }
 
-/** 11 · the numbers, as they stand: the live figures rise whole, one after another, never counting up. None was read: no scene. */
-export function FiguresScene({ facts }: { facts: SiteFacts }) {
+/**
+ * Why trust it: the source ladder, its five rungs in rank order, and the live figures under it, as one scene. Plain
+ * here; its own drawing comes with the next pass. A figure that was not read is left out, and with none read the
+ * figures are not drawn.
+ */
+export function TrustScene({ facts }: { facts: SiteFacts }) {
   const figures = liveFigures(facts);
   const updated = readDay(facts.latestRead);
-  if (!figures.length) return null;
   return (
-    <section data-scene="figures" data-chapter="ch-8" className={cn(SCENE.hold, "film-full:h-[400svh]")}>
-      <div className={SCENE.stage}>
-        <div className={SCENE.row}>
-          <div className={cn(SCENE.left, "lg:w-[400px] lg:shrink-0")}>
-            <Words label="08 · Why should I trust you?" headline="The numbers, as they stand." lede="Counted straight from our records, not rounded. The date says when." />
-            {updated ? <p className="font-mono text-xs text-ink-3">Updated {updated} · latest register read {updated}</p> : null}
-          </div>
-          <ul className="flex w-full flex-col gap-3 lg:max-w-[680px]">
+    <section id="ch-07" className="relative bg-surface py-24 text-ink max-md:py-14">
+      <div className={cn(wrap, "flex flex-col gap-12")}>
+        <Words headline="Every source has its rank." lede="Government registers come first. A source lower on the ladder never overwrites one above it." />
+        <ol className="grid gap-6 md:grid-cols-5">
+          {TIERS.map(([t, n, list]) => (
+            <li key={t} className="flex flex-col gap-2 border-t border-line pt-3">
+              <span className="font-mono text-xs text-ink-3">{t}</span>
+              <span className="text-md font-semibold text-ink">{n}</span>
+              <ul className="flex flex-col gap-0.5 text-base text-ink-2">
+                {list.map((s) => (
+                  <li key={s}>{s}</li>
+                ))}
+              </ul>
+            </li>
+          ))}
+        </ol>
+        <p className="text-sm text-ink-3">{LADDER_NOTE}</p>
+        {figures.length ? (
+          <ul className="grid gap-8 md:grid-cols-4">
             {figures.map(([figure, what]) => (
-              <li key={what} data-beat="" className="flex flex-col gap-1 border-t border-line pt-3 md:flex-row md:items-baseline md:gap-6">
-                <p className="film-figure-fit shrink-0 font-mono text-3xl font-semibold tracking-tight text-ink max-sm:text-2xl film-full:font-sans film-full:tracking-[-0.04em]">{figure}</p>
-                <p className="text-md text-ink-2 md:min-w-[200px] md:flex-1 md:[text-wrap:balance]">{what}</p>
+              <li key={what} className="flex flex-col gap-1 border-t border-line pt-3">
+                <p className="text-3xl font-medium tracking-[-0.03em] text-ink">{figure}</p>
+                <p className="text-base text-ink-2">{what}</p>
               </li>
             ))}
           </ul>
-        </div>
+        ) : null}
+        <p className="flex flex-wrap items-baseline gap-x-3 text-md">
+          {updated ? <span className="font-mono text-xs text-ink-3">Updated {updated}</span> : null}
+          <Link href="/methodology" prefetch={false} className="link font-medium">
+            See all {facts.sourcesListed ?? "the"} sources and how we check them
+          </Link>
+        </p>
       </div>
     </section>
   );
 }
 
-/** The whole record's rows, in the order the chapters added them, the RFQ last. */
-export const WHOLE_RECORD = [SOURCES, BGMEA, GOTS, SAFETY, SITE, EXPORTS, UFLPA, RFQ] as const;
-
-/** 12 · the whole record, and the way in: night again, the planet back as the ground, every row stitching on, the thread ending in a bartack at the RFQ, the search. */
-export function CloseScene() {
+/** The close: night again, the planet back behind the way in. The page's last words and its search. */
+export function CloseScene({ count }: { count: string | null }) {
   return (
-    <section id="ch-9" data-scene="close" data-chapter="ch-9" data-ground="night" className={cn(SCENE.hold, "film-full:h-[520svh]")}>
-      <div className={cn(SCENE.stage, "film-full:isolate film-full:overflow-hidden")}>
-        {/* The planet's canvas moves in here (engine/start.ts) when scene 11 has run its hold, and back when it has not. */}
+    <section id="ch-08" data-scene="close" data-ground="night" className={cn(SCENE.hold, "film-full:h-[200svh]")}>
+      <div className={cn(SCENE.stage, "film-full:isolate film-full:items-center film-full:overflow-hidden film-full:pt-0")}>
+        {/* The planet's canvas moves in here (engine/start.ts) when the scene before has run its hold, and back when it has not. */}
         <div data-planet-close aria-hidden className="absolute inset-0 hidden film-full:block" />
-        <div className={cn(SCENE.row, "relative")}>
-          <div className={cn(SCENE.left, "lg:max-w-[560px]")}>
-            <Words label="09 · The whole record" headline="Every row, with its source." lede="Who they are, what is true, where they are, who they ship to, and what to watch. Then you send the RFQ." />
-            <div className="flex w-full max-w-[560px] flex-col gap-2">
-              <FieldPane id="close-q" material="glass" />
-              <p className="text-md text-ink-3">Try &ldquo;knit dresses Gazipur&rdquo; or &ldquo;GOTS&rdquo;</p>
-            </div>
-          </div>
-          {/* Glass: the planet is live under it. Every row is a beat: the record fills top to bottom as the scroll moves. */}
-          <div className="flex w-full max-w-[400px] flex-col gap-6 lg:shrink-0">
-            <RecordPane material="glass" name={NAME} line="Factory · Kashimpur, Gazipur" state="Saved · watching" rows={WHOLE_RECORD.map((r) => ({ ...r, beat: true }))} />
+        <div className={cn(wrap, "relative flex flex-col items-start gap-8")}>
+          <h2 className="max-w-[820px] text-film-scene-phone font-medium leading-[1.02] tracking-[-0.035em] text-ink [text-wrap:balance] md:text-display-1">Now you know who you&rsquo;re buying from.</h2>
+          <Lede className="max-w-[520px]">{count ? `Do the same for any of ${count} suppliers. Search is free.` : "Do the same for any supplier. Search is free."}</Lede>
+          <SearchField id="close-q" material="glass" />
+          <div className="flex flex-wrap items-center gap-3">
+            <ButtonLink href="/signup" prefetch={false} kind="primary" size="lg" className="max-sm:h-input-touch">
+              Start free
+            </ButtonLink>
+            <ButtonLink href="/contact" prefetch={false} kind="secondary" size="lg" className="max-sm:h-input-touch">
+              Book a demo
+            </ButtonLink>
           </div>
         </div>
-        {/* From the planet's light down to the RFQ row; the engine lays it on every frame the planet draws, and sets the bartack at the row. */}
-        <ThreadLayer viewBox="0 0 1 1" className="hidden film-full:block">
-          <g data-tie>
-            <Thread d="M0 0" join end={{ x: 0, y: 0 }} />
-          </g>
-        </ThreadLayer>
       </div>
     </section>
   );

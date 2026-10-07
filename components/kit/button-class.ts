@@ -12,7 +12,7 @@ export type ButtonSize = "md" | "lg" | "touch" | "icon-24" | "icon-32" | "icon-4
 // is the same look for links, which cannot be `disabled`.
 const KIND: Record<Exclude<ButtonKind, "link">, string> = {
   primary:
-    "bg-brand text-surface hover:bg-brand-hover active:bg-brand-active disabled:bg-sunken disabled:text-disabled aria-disabled:bg-sunken aria-disabled:text-disabled",
+    "bg-brand text-brand-on hover:bg-brand-hover active:bg-brand-active disabled:bg-sunken disabled:text-disabled aria-disabled:bg-sunken aria-disabled:text-disabled",
   secondary:
     "border border-line-strong bg-surface text-ink hover:border-ink-3 hover:bg-subtle active:border-ink-3 active:bg-sunken disabled:border-sunken disabled:bg-sunken disabled:text-disabled aria-disabled:border-sunken aria-disabled:bg-sunken aria-disabled:text-disabled",
   quiet:
