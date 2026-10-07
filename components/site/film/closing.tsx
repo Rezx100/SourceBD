@@ -125,7 +125,7 @@ function ComplianceStage() {
 /** 09 · the real product, large: three steps and the screen for each on a staged window; the two roles' tabs both in the page. */
 export function OrderScene() {
   return (
-    <section id="ch-05" data-scene="order" className={cn(SCENE.hold, "film-full:h-[260svh]")}>
+    <section id="ch-05" data-scene="order" className={cn(SCENE.hold, "film-full:h-[220svh]")}>
       <div className={SCENE.stage}>
         <div className={cn(SCENE.row, "film-full:lg:items-center")}>
           <div className={cn(SCENE.left, "lg:max-w-[400px]")}>
@@ -148,7 +148,7 @@ export function OrderScene() {
 /** 10 · the three promises at poster size: grey until the scroll reaches each, then ink, its line beside it. */
 export function PromisesScene() {
   return (
-    <section id="ch-06" data-scene="promises" className={cn(SCENE.hold, "film-full:h-[200svh]")}>
+    <section id="ch-06" data-scene="promises" className={cn(SCENE.hold, "film-full:h-[160svh]")}>
       <div className={SCENE.stage}>
         <div className={cn(wrap, "flex flex-col gap-12")}>
           <Words headline="Three things we never do." lede="We show what the registers say. You decide what it means." />
@@ -228,7 +228,7 @@ export function TrustScene({ facts }: { facts: SiteFacts }) {
 /** The close: night again, the planet back behind the way in. The page's last words and its search. */
 export function CloseScene({ count }: { count: string | null }) {
   return (
-    <section id="ch-08" data-scene="close" data-ground="night" className={cn(SCENE.hold, "film-full:h-[200svh]")}>
+    <section id="ch-08" data-scene="close" data-ground="night" className={cn(SCENE.hold, "film-full:h-[160svh]")}>
       <div className={cn(SCENE.stage, "film-full:isolate film-full:items-center film-full:overflow-hidden film-full:pt-0")}>
         {/* The planet's canvas moves in here (engine/start.ts) when the scene before has run its hold, and back when it has not. */}
         <div data-planet-close aria-hidden className="absolute inset-0 hidden film-full:block" />

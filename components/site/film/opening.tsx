@@ -44,7 +44,7 @@ export function CityStill({ name }: { name: string }) {
 
 export function Opening({ count }: { count: string | null }) {
   return (
-    <section id="ch-1" data-scene="opening" className="relative bg-surface text-ink film-full:h-[460svh]">
+    <section id="ch-1" data-scene="opening" className="relative bg-surface text-ink film-full:h-[420svh]">
       {/* Clipped only on the full tier: an overflow on this box would be the lite tier's planet's scroll container, and it would never stick. */}
       <div data-ground="night" className="relative bg-surface text-ink film-full:sticky film-full:top-0 film-full:h-svh film-full:isolate film-full:overflow-hidden">
         {/* The planet. On the full tier it lies over the city and gives way to it. */}

@@ -11,10 +11,10 @@ import { describe, it } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { DAYS, DIFFER, LIST_LINE, OVERLOCK_CAPTION, ProofScene, RECEIPTS, SourcesScene, WatchScene } from "./chapters";
+import { DAYS, DIFFER, LIST_LINE, OVERLOCK_CAPTION, PROOF, ProofScene, RECEIPTS, SourcesScene, WATCHED, WatchScene } from "./chapters";
 import { Atmosphere, COMPLIANCE_SCREEN, CloseScene, LADDER_NOTE, OrderScene, PROMISES, PromisesScene, SCREENS, STAGE_CAPTION, TIERS, TrustScene, liveFigures } from "./closing";
-import { BAND, ORDER, PROMISES as STEPS, SEAM_END, SOURCES as SEAM, holds, orderAt, sourcesAt } from "./engine/chapters";
-import { Overlock, TAGS } from "./flats";
+import { BAND, ORDER, PROMISES as STEPS, PROOF as PROOF_STEPS, SEAM_END, SOURCES as SEAM, WATCH, holds, orderAt, proofAt, sourcesAt, stepAt, threadIn, watchAt } from "./engine/chapters";
+import { CareLabel, Overlock, TAGS, threadPath } from "./flats";
 import { SOURCES, SOURCE_DATES } from "./record";
 import { NO_FACTS, parseFacts } from "@/lib/site-facts";
 
@@ -27,27 +27,38 @@ const NOTHING_KILLED = /aria-label="Supplier record|class="thread|data-tie|data-
 describe("one factory, one record: the overlock", () => {
   const scene = draw(createElement(SourcesScene));
   const flat = draw(createElement(Overlock));
+  const label = draw(createElement(CareLabel));
 
-  it("its words, the flat labelled an illustration, each source's own number and day beside it; no card and no thread", () => {
+  it("its words, the machine labelled an illustration and the record sewn in as a label; no card, no thread to anything outside it", () => {
     assert.match(scene, /^<section id="ch-02" data-scene="sources" class="/);
     assert.match(text(scene), /One factory\. One record\. Five registers file it under their own number/);
     assert.doesNotMatch(text(scene), /\b0\d · /, "no numbered label above the headline");
     assert.match(scene, /<svg data-overlock="true" aria-hidden="true"/);
     assert.ok(text(scene).includes(OVERLOCK_CAPTION) && OVERLOCK_CAPTION.endsWith("· illustration"));
-    assert.equal(SOURCE_DATES.length, 5);
-    for (const [source, filed] of SOURCE_DATES) assert.match(text(scene), new RegExp(`${source} ${filed.replace(/[.]/g, "\\.")}`));
-    assert.match(scene, /<ul class="flex flex-col divide-y divide-line border-y border-line">/, "bare type on hairlines, never a card");
+    assert.ok(scene.indexOf("<svg data-overlock") < scene.indexOf("data-label"), "the label comes out of the machine");
     assert.doesNotMatch(scene, NOTHING_KILLED);
-    assert.match(scene, /<svg data-overlock="true"[^>]*class="[^"]*self-start/, "a flex column would stretch the drawing's box and float it to the middle");
+    assert.match(scene, /<svg data-overlock="true"[^>]*class="[^"]*film-full:h-\[min\(60svh,580px\)\]/, "large: most of the screen's height");
   });
 
-  it("the five hang tags are the five sources, each with the number the record files", () => {
+  it("the label is the five sources with their own numbers and the days we read them, in real type, one line each", () => {
+    assert.equal(SOURCE_DATES.length, 5);
+    assert.match(label, /^<figure data-label="true" aria-label="Mondol Fabrics Ltd\.: the five sources that file it"/);
+    for (const [source, filed] of SOURCE_DATES) assert.match(text(label), new RegExp(`${source} ${filed.replace(/[.]/g, "\\.")}`));
+    assert.equal((label.match(/data-line="true"/g) ?? []).length, 5);
+    assert.match(label, /data-line="true" class="[^"]*film-full:opacity-30[^"]*film-full:data-\[on\]:opacity-100/, "on the full tier a line lights when its thread is in; stacked, every line is whole");
+  });
+
+  it("each source is a cone, a tag with the number the record files, and its own thread from the cone to the needle", () => {
     assert.equal(TAGS.length, 5);
-    for (const [source, number] of TAGS) {
+    assert.deepEqual(TAGS.map(([s]) => s), SOURCE_DATES.map(([s]) => s), "thread i and label line i are the same source");
+    for (const [i, [source, number]] of TAGS.entries()) {
       assert.ok(flat.includes(`>${source}</text>`), source);
       assert.ok(flat.includes(`>${number}</text>`), number);
       assert.ok(SOURCES.marks?.includes(source) && SOURCES.mono?.includes(number), `${source} ${number} is not in the record`);
+      assert.ok(flat.includes(`d="${threadPath(i)}" pathLength="1" class="ov-thread `), `${source}'s thread`);
+      assert.match(threadPath(i), /M127 206C118 232 113 262 113 314$/, "every thread ends at the needle");
     }
+    assert.equal((flat.match(/class="ov-source"/g) ?? []).length, 5);
   });
 
   it("the seam is drawn by the scroll along the cloth to where it leaves the drawing; the drawing types no colour", () => {
@@ -57,13 +68,18 @@ describe("one factory, one record: the overlock", () => {
     for (const part of ["ov-wheel", "ov-needle", "ov-lever", "ov-seam"]) assert.equal((flat.match(new RegExp(`class="${part} `, "g")) ?? []).length, 1, part);
   });
 
-  it("the machine runs over most of the scene: four turns of the wheel, twelve stitches, the seam drawn with the run", () => {
-    assert.deepEqual(sourcesAt(0), { run: 0, wheel: 0, needle: 0 });
+  it("the threads go in one after another, each whole before the next starts its last half, then the machine runs: four turns, twelve stitches", () => {
+    assert.deepEqual(sourcesAt(0).threads, [0, 0, 0, 0, 0]);
+    assert.deepEqual(sourcesAt(1).threads, [1, 1, 1, 1, 1]);
+    for (let i = 0; i < 5; i++) {
+      assert.equal(sourcesAt(threadIn(i)).threads[i], 1);
+      if (i) assert.ok(threadIn(i) > threadIn(i - 1));
+    }
+    assert.ok(threadIn(4) < SEAM.run[1], "the last source is in before the seam is done");
     const end = sourcesAt(1);
     assert.equal(end.run, 1);
     assert.equal(end.wheel, 1440);
     assert.ok(Math.abs(end.needle) < 1e-9, "the needle is up again at the end");
-    assert.ok(SEAM.run[0] > 0 && SEAM.run[1] < 1, "a rest at each end");
     let downs = 0;
     for (let p = 0, last = 0; p <= 1.0001; p += 0.0005) {
       const n = sourcesAt(p).needle;
@@ -78,18 +94,35 @@ describe("every claim, beside its source", () => {
   const scene = draw(createElement(ProofScene));
   const t = text(scene);
 
-  it("today's three claims, each beside its source, number and day, and the two sources that differ; no roll and no card", () => {
-    assert.match(scene, /^<section id="ch-03" class="/);
+  it("the record as the app draws it, on a night stage with its moving ground; each claim with the register's record beside it, and the two sources that differ", () => {
+    assert.match(scene, /^<section id="ch-03" data-scene="proof" class="/);
     assert.match(t, /Every claim, beside its source\./);
-    assert.equal(RECEIPTS.length, 3);
+    assert.match(scene, /<div data-ground="night" class="film-stage [^"]*"><canvas data-field="true" aria-hidden="true"/);
+    assert.match(scene, /<figure data-ground="day" aria-label="The supplier record of Mondol Fabrics Ltd\., as the app shows it"/, "the app is light in either theme");
+    assert.equal(PROOF.length, 4);
     for (const r of RECEIPTS) {
-      assert.ok(t.includes(r.claim.replace(/&/g, "&amp;")) || t.includes(r.claim), r.claim);
+      assert.ok(t.includes(r.claim), r.claim);
       assert.ok(t.includes(r.source), r.source);
       for (const [k, v] of r.fields) assert.ok(t.includes(`${k} ${v}`), `${r.source}: ${k} ${v}`);
     }
     assert.match(t, /2 sources differ/);
-    assert.ok(t.includes(DIFFER));
+    assert.ok(t.includes("2,060 workers in 2 buildings") && t.includes("4,200 employees, as declared by the factory"));
+    assert.ok(DIFFER.includes("2,060") && DIFFER.includes("4,200"));
+    assert.equal((scene.match(/<li data-proof="true"/g) ?? []).length, 4);
+    assert.equal((scene.match(/<li data-proof="true" data-on=""/g) ?? []).length, 1, "the first row is on to begin with");
     assert.doesNotMatch(scene, NOTHING_KILLED);
+  });
+
+  it("the rows take the light in turn and hold a band past each mark on the way back", () => {
+    assert.equal(proofAt(0).step, 0);
+    PROOF_STEPS.steps.forEach((at, i) => {
+      if (!i) return;
+      assert.equal(proofAt(at).step, i - 1);
+      assert.equal(proofAt(at + 0.001).step, i);
+      assert.equal(proofAt(at - BAND / 2, i).step, i, "holds on the way back");
+    });
+    assert.equal(proofAt(1).step, 3);
+    assert.deepEqual(stepAt([0, 0.5], 0.2), 0);
   });
 });
 
@@ -97,16 +130,40 @@ describe("the watch", () => {
   const scene = draw(createElement(WatchScene));
   const t = text(scene);
 
-  it("today's words, the three days in words, and the list check with what was found, never 'clear'", () => {
-    assert.match(scene, /^<section id="ch-04" class="/);
+  it("the app's watch on the same factory: the three days in words, each fact with what it says, and what was found, never 'clear'", () => {
+    assert.match(scene, /^<section id="ch-04" data-scene="watch" class="/);
     assert.match(t, /The list changes\. We check again\./);
     assert.deepEqual(DAYS.map(([d]) => d), [0, 43, 59]);
+    assert.deepEqual([...WATCH.days], [0, 43, 59]);
     for (const [, when] of DAYS) assert.ok(t.includes(when), when);
     assert.ok(t.includes(LIST_LINE));
     assert.match(LIST_LINE, /no link found/);
     assert.doesNotMatch(t.replace(/never .clear./, ""), /\bclear\b/i);
+    assert.match(scene, /<figure data-ground="day" aria-label="The compliance watch on Mondol Fabrics Ltd\., as the app shows it"/);
+    assert.deepEqual(WATCHED.filter((w) => w.at !== undefined).map((w) => [w.label, w.at]), [["GOTS certificate", 43], ["UFLPA Entity List", 59]]);
+    assert.match(t, /30 days left · 15 Dec 2026/);
+    assert.match(t, /Next: ask for the renewal/);
     assert.doesNotMatch(scene, NOTHING_KILLED);
     assert.doesNotMatch(scene, /<circle/, "no dots on a line");
+  });
+
+  it("stacked, the page shows where each fact ends; on the full tier the before shows until its day", () => {
+    const gots = scene.slice(scene.indexOf('data-at="43"'), scene.indexOf("</li>", scene.indexOf('data-at="43"')));
+    assert.match(gots, /<span class="hidden film-full:inline-flex film-full:group-data-\[due\]\/w:hidden">/);
+    assert.match(gots, /<span class="inline-flex [^"]*film-full:hidden film-full:group-data-\[due\]\/w:inline-flex">/);
+    assert.equal((scene.match(/data-watched="true"/g) ?? []).length, WATCHED.length);
+  });
+
+  it("the scroll is the calendar: day 0, then 43 when the certificate turns, then 59 when the list is checked again", () => {
+    assert.deepEqual(watchAt(0), { step: 0, day: 0 });
+    assert.equal(watchAt(WATCH.steps[1] + 0.001).day, 43);
+    assert.equal(watchAt(WATCH.steps[2] + 0.001).day, 59);
+    assert.deepEqual(watchAt(1), { step: 2, day: 59 });
+    // Day 43 from 3 Oct 2026 is 15 Nov, 30 days before the certificate's 15 Dec; day 59 is 1 Dec.
+    const day = (n: number) => new Date(Date.UTC(2026, 9, 3 + n)).toISOString().slice(0, 10);
+    assert.equal(day(43), "2026-11-15");
+    assert.equal(day(59), "2026-12-01");
+    assert.equal(day(73), "2026-12-15");
   });
 });
 
@@ -236,7 +293,7 @@ describe("what Tailwind emits for the scenes", () => {
   const tailwind = require("tailwindcss") as (config: object) => import("postcss").AcceptedPlugin;
   const loadConfig = require("tailwindcss/loadConfig") as (file: string) => Record<string, unknown>;
   /* eslint-enable @typescript-eslint/no-require-imports */
-  const classes = ["pane", "ov-wheel", "ov-needle", "ov-lever", "ov-seam", "animate-rise", "fill-brand", "stroke-brand-ink", "film-full:h-[220svh]", "stage-screen", "stage-window", "stage-cursor", "stage-press", "film-full:group-data-[on]/promise:text-ink", "group/promise", "film-full:aspect-[1440/900]"];
+  const classes = ["pane", "ov-wheel", "ov-needle", "ov-lever", "ov-seam", "ov-thread", "ov-source", "care-label", "film-stage", "animate-rise", "fill-brand", "stroke-brand-ink", "film-full:h-[220svh]", "stage-screen", "stage-window", "stage-cursor", "stage-press", "film-full:group-data-[on]/promise:text-ink", "group/promise", "film-full:aspect-[1440/900]"];
   const compiled = postcss([tailwind({ ...loadConfig(path.join(repoRoot, "tailwind.config.ts")), content: [{ raw: classes.join(" "), extension: "html" }] })])
     .process(readFileSync(path.join(repoRoot, "app/ds.css"), "utf8"), { from: undefined })
     .then((r) => r.css.replace(/\s+/g, " "));
@@ -252,6 +309,9 @@ describe("what Tailwind emits for the scenes", () => {
     assert.match(block(css, ".ov-wheel {"), /stroke-dashoffset: calc\(var\(--wheel, 0\) \* -0\.25px\)/);
     assert.match(block(css, ".ov-lever {"), /transform-box: fill-box;[^}]*rotate\(calc\(var\(--needle, 0\) \* -16deg\)\)/);
     assert.match(block(css, ".ov-seam {"), /stroke-dashoffset: calc\(1 - var\(--p, 1\)\)/);
+    assert.match(block(css, ".ov-thread {"), /stroke-dasharray: 1; stroke-dashoffset: calc\(1 - var\(--t, 1\)\)/, "a thread is whole when nothing is written");
+    assert.match(block(css, ".ov-source {"), /opacity: clamp\(0\.3, calc\(0\.3 \+ var\(--t, 1\) \* 3\), 1\)/);
+    assert.match(block(css, ".film-stage {"), /rgb\(var\(--ds-brand-ink\) \/ 0\.16\)/, "the stage's still ground is the night's own colours, no hex");
     assert.match(block(css, '[data-film-tier="full"] [data-beat]:not([data-on]) {'), /position: absolute; width: 1px; height: 1px;[^}]*clip: rect\(0, 0, 0, 0\)/, "a beat takes no place until its moment but stays in the page for a screen reader");
     assert.match(block(css, ".animate-rise {"), /ds-rise/);
     assert.match(css, /\[data-film-tier="full"\] \.film-full\\:h-\\\[220svh\\\] \{ height: 220svh/);
