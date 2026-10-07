@@ -67,7 +67,8 @@ export function V4Film() {
           {names.map((name) => (
             <li key={name} className="flex items-center gap-2">
               <span className="size-6 shrink-0 rounded-sm border border-line" style={{ backgroundColor: chip(name) }} />
-              <span data-ground="night" className="size-6 shrink-0 rounded-sm border border-line" style={{ backgroundColor: chip(name) }} />
+              {/* The dark set's own value, not a night scope's: a night scene keeps the page's button green (NIGHT_INHERITS). */}
+              <span className="size-6 shrink-0 rounded-sm border border-line" style={{ backgroundColor: darkColors[name] }} />
               <span className="flex min-w-0 flex-col">
                 <span className="font-mono text-xs text-ink">{name}</span>
                 <span className="font-mono text-xs text-ink-3">{name in filmColors ? filmColors[name as keyof typeof filmColors] : v4Colors[name as keyof typeof v4Colors]} · {darkColors[name]}</span>
