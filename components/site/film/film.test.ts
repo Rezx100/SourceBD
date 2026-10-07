@@ -13,16 +13,16 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { NIGHT_INHERITS, contrastRatio, dark, darkPairs, filmColors, filmPairs, light, paneBehind, paneGlass, paneGround, resolve, toRgb } from "@/lib/design/tokens";
 import { SCRUB, SETTLED, ease, sceneProgress, scrub } from "./engine/director";
-import { DISTRICTS, STOPS, cameraAt, column, createMap, tileScale, toGeo, unpack, type BdData } from "./engine/map";
+import { BOX, CHATTOGRAM, DISTRICTS, FOV, MARKS, ORIGIN, RISE, STRIDE, blocks, cameraAt, glowGrid, groundLines, handoverFrame as cityHandover, projectWith, toLocal, towerHeight, unpack, viewProj, type BdData } from "./engine/city";
 import { HOME, blendFrame, defaultFrame, facing, frameFor, isLand, landPoints, lightSize, project, toVec } from "./engine/planet";
-import { OPENING, handoverFrame, openingAt, type CellFile } from "./engine/start";
+import { CITY_STEPS, OPENING, cityAt, openingAt, type CellFile } from "./engine/start";
 import { V4Film } from "@/app/dev/ds/v4-film";
 import { Home } from "@/components/site/home";
 import DataSourcesPage from "@/app/(marketing)/legal/data-sources/page";
 import { parseFacts, readDay, withCommas } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
 import { TIER_SCRIPT, filmOn, pickTier, type Device } from "./engine/tier";
-import { LIGHTS, LIGHTS_FILE, MAP_CREDIT } from "./opening";
+import { CHATTOGRAM_LINE, LIGHTS, LIGHTS_FILE, MAP_CREDIT } from "./opening";
 import { Pane, SearchField } from "./pane";
 
 const repoRoot = process.cwd();
@@ -240,7 +240,7 @@ describe("the home page, film off and film on", () => {
   it("the opening says less: the one headline, one line and the search on public Discover; the two ways in are in the nav and the close", () => {
     assert.equal((on.match(/<h1/g) ?? []).length, 1);
     assert.match(on, /<h1[^>]*>Know who you.re buying from\.<\/h1>/);
-    const hero = on.slice(on.indexOf("<div data-hero"), on.indexOf("<div data-map"));
+    const hero = on.slice(on.indexOf("<div data-hero"), on.indexOf("<canvas data-city"));
     assert.equal((hero.match(/id="hero-q"/g) ?? []).length, 1);
     assert.match(hero, /<form[^>]*action="\/discover"/);
     assert.match(text(hero), /10,268 Bangladesh garment suppliers, each checked against the registers that list them\./);
@@ -251,18 +251,21 @@ describe("the home page, film off and film on", () => {
     assert.match(close, /href="\/contact"[^>]*>Book a demo/);
   });
 
-  it("the opening is one scene with the planet's act over the map, night in either theme; the planet carries no labels, leads or thread", () => {
-    assert.match(on, /<section id="ch-1" data-scene="opening"/);
-    assert.match(on, /<div data-scene="planet" data-act="planet" data-ground="night" class="[^"]*film-full:absolute[^"]*film-full:z-raised/);
-    assert.ok(on.indexOf('data-act="planet"') < on.indexOf("<div data-map"), "the planet's act comes first: the page's headline is still the first thing read");
+  it("the opening is one scene, night in either theme, with the planet's act over the city; the planet carries no labels, leads or thread, and no map is left", () => {
+    assert.match(on, /<section id="ch-1" data-scene="opening" class="[^"]*"><div data-ground="night" class="/);
+    assert.match(on, /<div data-scene="planet" data-act="planet" class="[^"]*film-full:absolute[^"]*film-full:z-raised/);
+    assert.ok(on.indexOf('data-act="planet"') < on.indexOf("<canvas data-city"), "the planet's act comes first: the page's headline is still the first thing read");
     assert.match(on, /<canvas data-planet="true" aria-hidden="true"/);
-    assert.match(on, /<div data-map="true" aria-hidden="true"/);
-    assert.doesNotMatch(on, /data-planet-callouts|data-planet-leads|data-planet-thread|data-map-thread/);
+    assert.match(on, /<canvas data-city="true" aria-hidden="true" class="[^"]*hidden[^"]*film-full:block/);
+    assert.match(on, /<div data-city-labels="true" aria-hidden="true"/);
+    assert.equal((on.match(/data-place="true"/g) ?? []).length, DISTRICTS.length);
+    assert.match(on, /data-city-factory="true"[^>]*>[\s\S]*?Mondol Fabrics Ltd\.[\s\S]*?the area, not the building/, "the block is an area, not a building, and says so");
+    assert.doesNotMatch(on, /data-planet-callouts|data-planet-leads|data-planet-thread|data-map-thread|data-map=|bkoi/);
     assert.deepEqual([...on.matchAll(/data-scene="([a-z]+)"/g)].map((m) => m[1]), ["opening", "planet", "sources", "order", "promises", "close"]);
   });
 
   it("the lite tier's planet can stick: nothing between its stage and the page clips overflow", () => {
-    const wrapper = /<section id="ch-1"[^>]*><div class="([^"]*)">/.exec(on)?.[1] ?? "";
+    const wrapper = /<section id="ch-1"[^>]*><div data-ground="night" class="([^"]*)">/.exec(on)?.[1] ?? "";
     assert.doesNotMatch(wrapper, /(^|\s)overflow-(hidden|auto|scroll)(\s|$)/, wrapper);
     assert.match(wrapper, /film-full:overflow-hidden/);
     assert.doesNotMatch(/<div data-scene="planet"[^>]*><div class="([^"]*)"/.exec(on)?.[1] ?? "", /film-full:static|film-full:h-full/, "no class that undoes the hold on the full tier: the planet's act is laid over the stage there");
@@ -271,14 +274,16 @@ describe("the home page, film off and film on", () => {
   it("the tiers that do not draw live get pictures, lazily and in the system's theme, and the full tier hides them", () => {
     const planet = on.slice(on.indexOf("<picture"), on.indexOf("</picture>"));
     assert.match(planet, /^<picture class="absolute inset-0 block film:hidden"><source media="\(max-width: 767px\)" srcSet="\/site\/film\/planet-upright\.avif"\/><img src="\/site\/film\/planet\.avif" alt="" loading="lazy" decoding="async"/, "lazy, so the tiers that hide it never fetch it");
-    const stills = [...on.matchAll(/<picture class="[^"]*film-full:hidden[^"]*"><source media="\(prefers-color-scheme: dark\)" srcSet="(\/site\/film\/[a-z-]+-dark\.avif)"\/><img src="(\/site\/film\/[a-z-]+-light\.avif)" alt="" width="1200" height="750" loading="lazy" decoding="async"/g)];
-    assert.deepEqual(stills.map((m) => m[2]), ["/site/film/map-country-light.avif", "/site/film/map-gazipur-light.avif"]);
+    // The city is night in either theme, as the live one is: one picture each, no theme pair.
+    const stills = [...on.matchAll(/<img src="(\/site\/film\/city-[a-z]+\.avif)" alt="" width="1200" height="750" loading="lazy" decoding="async" class="[^"]*film-full:hidden/g)];
+    assert.deepEqual(stills.map((m) => m[1]), ["/site/film/city-belt.avif", "/site/film/city-site.avif"]);
     const files = readdirSync(path.join(repoRoot, "public/site/film"));
-    for (const src of ["/site/film/planet.avif", "/site/film/planet-upright.avif", ...stills.flatMap((m) => [m[1]!, m[2]!])]) assert.ok(files.includes(path.basename(src)), `${src} is not in public/site/film`);
+    for (const src of ["/site/film/planet.avif", "/site/film/planet-upright.avif", ...stills.map((m) => m[1]!)]) assert.ok(files.includes(path.basename(src)), `${src} is not in public/site/film`);
+    assert.ok(!files.some((f) => f.startsWith("map-")), "the map's pictures went with the map");
     for (const name of files.filter((x) => x.endsWith(".avif"))) assert.ok(statSync(path.join(repoRoot, "public/site/film", name)).size < 160_000, `${name} is heavier than the budget allows`);
   });
 
-  it("the map's data is credited on the stage, on the stacked page and on /legal/data-sources", () => {
+  it("the city's ground data is credited on the stage, on the stacked page and on /legal/data-sources", () => {
     assert.equal((on.match(new RegExp(MAP_CREDIT.replace(/\./g, "\\."), "g")) ?? []).length, 2, "on the opening's stage and under its stacked picture");
     const legal = text(draw(createElement(AppRouterContext.Provider, { value: router as never }, createElement(DataSourcesPage))));
     assert.match(legal, /8\. The map on the home page/);
@@ -287,11 +292,12 @@ describe("the home page, film off and film on", () => {
     assert.match(legal, /CC BY 3\.0 IGO/);
     assert.match(legal, /Natural Earth/);
     assert.match(legal, /No address, name or identifier is published for it/);
-    assert.match(legal, /Last updated 6 Oct 2026/);
+    assert.match(legal, /the blocks of the city are our own count of published suppliers per square kilometre/);
+    assert.match(legal, /Last updated 7 Oct 2026/);
   });
 
   it("the first screen keeps to one pane of glass, and the planet can be reached through the words", () => {
-    const first = on.slice(on.indexOf('data-act="planet"'), on.indexOf("<div data-map"));
+    const first = on.slice(on.indexOf('data-act="planet"'), on.indexOf("<canvas data-city"));
     assert.equal((first.match(/pane-glass/g) ?? []).length, 1);
     assert.match(first, /class="[^"]*pointer-events-none relative flex flex-col items-start[^"]*\[&amp;&gt;\*\]:pointer-events-auto/);
   });
@@ -300,12 +306,13 @@ describe("the home page, film off and film on", () => {
     const file = JSON.parse(readFileSync(path.join(repoRoot, "public/site/film/cells.json"), "utf8")) as CellFile;
     assert.ok(text(on).includes(LIGHTS));
     assert.deepEqual({ ...LIGHTS_FILE }, { date: file.date, mapped: file.mapped, suppliers: file.suppliers }, "LIGHTS_FILE in opening.tsx repeats the file: paste what build-cells.mjs printed");
-    assert.equal(LIGHTS, `One light per km² with suppliers · ${withCommas(file.mapped)} of ${withCommas(file.suppliers)} have a mapped register address · ${readDay(file.date)}`, "the source is named in the fact itself: the registers' addresses");
+    assert.equal(LIGHTS, `One block per km² with suppliers, taller where there are more · ${withCommas(file.mapped)} of ${withCommas(file.suppliers)} have a mapped register address · ${readDay(file.date)}`, "the source is named in the fact itself: the registers' addresses");
   });
 
   it("the four district counts are all in the page, dated, with no total, and none counts up", () => {
     const t = text(on);
     for (const n of ["4,421", "1,819", "1,628", "1,080"]) assert.ok(t.includes(n), n);
+    assert.ok(t.includes(CHATTOGRAM_LINE) && CHATTOGRAM_LINE === "Chattogram, down the coast, has 1,080 more.", "the fourth is said in words: it lies out of the city's frame");
     assert.match(t, /Most sit in four districts\./);
     assert.match(t, /as counted on 3 Oct 2026/);
     assert.equal((on.match(/id="ch-1"/g) ?? []).length, 1);
@@ -441,34 +448,38 @@ describe("the scroll's arithmetic", () => {
 });
 
 describe("the opening's one scroll", () => {
-  it("is four stretches in order: the dive, the words, the handover, the map; each 0 before and 1 after", () => {
-    assert.deepEqual(openingAt(0), { dive: 0, words: 0, hand: 0, map: 0 });
-    assert.deepEqual(openingAt(1), { dive: 1, words: 1, hand: 1, map: 1 });
+  it("is four stretches in order: the dive, the words, the handover, the city; each 0 before and 1 after", () => {
+    assert.deepEqual(openingAt(0), { dive: 0, words: 0, hand: 0, city: 0 });
+    assert.deepEqual(openingAt(1), { dive: 1, words: 1, hand: 1, city: 1 });
     assert.ok(OPENING.dive[1] <= OPENING.hand[0], "the dive is done, and the planet still, before it starts to give way: one country through the crossfade");
     assert.ok(OPENING.words[1] <= OPENING.hand[1], "the words are gone before the planet is");
-    assert.equal(OPENING.map[0], OPENING.hand[1], "the map's own scroll starts the moment the planet has given way");
+    assert.equal(OPENING.city[0], OPENING.hand[1], "the city's own scroll starts the moment the planet has given way");
     let last = openingAt(0);
     for (let p = 0.01; p <= 1; p += 0.01) {
       const at = openingAt(p);
-      for (const k of ["dive", "words", "hand", "map"] as const) assert.ok(at[k] >= last[k] && at[k] <= 1, `${k} at ${p.toFixed(2)}`);
+      for (const k of ["dive", "words", "hand", "city"] as const) assert.ok(at[k] >= last[k] && at[k] <= 1, `${k} at ${p.toFixed(2)}`);
       last = at;
     }
-    assert.equal(openingAt(OPENING.hand[1]).map, 0);
+    assert.equal(openingAt(OPENING.hand[1]).city, 0);
     assert.equal(openingAt(OPENING.dive[1]).dive, 1);
   });
 
-  it("the dive ends where the map begins: the story's home at the map's centre, one degree the same width on both", () => {
+  it("the dive ends where the city begins: the planet's home where the city's first camera draws it, a kilometre the same width on both", () => {
     const [w, h] = [1440, 900];
-    const end = handoverFrame(w, h);
-    const rot = facing(STOPS[0]!.center[0], STOPS[0]!.center[1]);
-    const home = project(rot, end, STOPS[0]!.center[0], STOPS[0]!.center[1]);
-    assert.ok(Math.abs(home.x - w * 0.69) < 1e-6 && Math.abs(home.y - h / 2) < 1e-6, "centred in the width the map keeps right of the words");
-    const east = project(rot, end, STOPS[0]!.center[0] + 1, STOPS[0]!.center[1]);
-    assert.ok(Math.abs(east.x - home.x - tileScale(STOPS[0]!.zoom)) / tileScale(STOPS[0]!.zoom) < 0.001, `${east.x - home.x} vs ${tileScale(STOPS[0]!.zoom)} px per degree`);
-    assert.ok(end.r > defaultFrame(0, w, h).r * 4, "the dive is a real dive");
-    assert.deepEqual(STOPS[0]!.center, [HOME.lng, HOME.lat]);
-    assert.equal(STOPS[0]!.bearing, 0, "north up, as the planet is");
-    assert.ok(STOPS[0]!.pitch < 20, "barely tilted, as the planet is");
+    const end = cityHandover(w, h);
+    const rot = facing(HOME.lng, HOME.lat);
+    const home = project(rot, end, HOME.lng, HOME.lat);
+    const first = cameraAt(0);
+    const m = viewProj(first, w, h);
+    const [hx, hz] = toLocal(HOME.lng, HOME.lat);
+    const there = projectWith(m, w, h, [hx, 0, hz]);
+    assert.ok(Math.abs(home.x - there.x) < 1e-6 && Math.abs(home.y - there.y) < 1e-6, "the planet's home and the city's are one point");
+    // Ten kilometres east of home, on both: the planet's degree and the city's kilometre agree within a pixel.
+    const east = project(rot, end, HOME.lng + 10 / (111.32 * Math.cos((HOME.lat * Math.PI) / 180)), HOME.lat);
+    const cityEast = projectWith(m, w, h, [hx + 10, 0, hz]);
+    assert.ok(Math.abs(east.x - cityEast.x) < 1.5, `${east.x} vs ${cityEast.x}`);
+    assert.ok(end.r > defaultFrame(0, w, h).r * 40, "the dive is a real dive: to one kilometre a block");
+    assert.ok(first.eye[1] > 80 && Math.hypot(first.eye[0] - first.target[0], first.eye[2] - first.target[2]) < 1, "the city's first camera looks straight down, as the planet does");
   });
 
   it("a frame blends by ratio of radius, as a camera zooms", () => {
@@ -477,7 +488,7 @@ describe("the opening's one scroll", () => {
     assert.deepEqual(blendFrame(a, b, 1), b);
     const mid = blendFrame(a, b, 0.5);
     assert.ok(Math.abs(mid.r - 400) < 1e-9 && Math.abs(mid.cx - 50) < 1e-9, "halfway is the geometric middle of the radii");
-    assert.ok(Math.abs(frameFor(tileScale(5.5), 23.7, 0, 0).r * Math.cos((23.7 * Math.PI) / 180) * (Math.PI / 180) - tileScale(5.5)) < 1e-9);
+    assert.ok(Math.abs(frameFor(1683, 23.7, 0, 0).r * Math.cos((23.7 * Math.PI) / 180) * (Math.PI / 180) - 1683) < 1e-9);
   });
 });
 
@@ -535,65 +546,97 @@ describe("the planet's arithmetic", () => {
   });
 });
 
-describe("the map's arithmetic", () => {
-  it("a ring unpacks from steps to degrees", () => {
-    assert.deepEqual(unpack([90400, 23700, 100, -50, -200, 0], 1000), [[90.4, 23.7], [90.5, 23.65], [90.3, 23.65]]);
-    assert.deepEqual(unpack([], 1000), []);
+describe("the city's arithmetic", () => {
+  const near = (a: number, b: number, e = 1e-9) => Math.abs(a - b) < e;
+
+  it("its kilometres: the origin at the belt's middle, east is +x, north is -z, a degree of latitude about 111 km", () => {
+    assert.deepEqual(toLocal(ORIGIN.lng, ORIGIN.lat), [0, -0]);
+    assert.ok(toLocal(ORIGIN.lng + 0.1, ORIGIN.lat)[0] > 10);
+    assert.ok(toLocal(ORIGIN.lng, ORIGIN.lat + 1)[1] < -110 && toLocal(ORIGIN.lng, ORIGIN.lat + 1)[1] > -111);
   });
 
-  it("the camera is each mark at its own place, holds before the first and after the last, and never jumps", () => {
-    for (const s of STOPS) {
-      const c = cameraAt(s.p);
-      assert.ok(Math.abs(c.zoom - s.zoom) < 1e-9 && Math.abs(c.center[0] - s.center[0]) < 1e-9, `at ${s.p}`);
+  it("a block's height grows with the count, slower and slower, and never towers out of the city", () => {
+    for (const [a, b] of [[1, 2], [2, 10], [10, 100], [100, 231]] as const) assert.ok(towerHeight(a) < towerHeight(b));
+    assert.ok(towerHeight(231) < 1 && towerHeight(1) > 0.05, `${towerHeight(1)} to ${towerHeight(231)} km`);
+    assert.ok(towerHeight(200) / towerHeight(10) < 2.5, "the log keeps one dense kilometre from dwarfing the rest: twenty times the suppliers, not twenty times the height");
+  });
+
+  it("the towers come from the cells and nothing else: two to sixteen to a cell, inside its kilometre, the tallest first, the same city every time", () => {
+    const cells: [number, number, number][] = [[90.4, 23.85, 1], [90.41, 23.86, 64], [90.3218, 23.9819, 9], [91.8, 22.35, 40]];
+    const a = blocks(cells, [90.3218, 23.9819]);
+    assert.deepEqual([...a.towers], [...blocks(cells, [90.3218, 23.9819]).towers], "seeded by the cell, not by chance");
+    assert.equal(a.towers.length, a.count * STRIDE);
+    const perCell = [4, 16, 8]; // round(2 + 2 * sqrt(count)), from two to sixteen
+    assert.equal(a.count, perCell.reduce((x, y) => x + y, 0), "Chattogram's cell lies outside the box and raises nothing");
+    let k = 0;
+    cells.slice(0, 3).forEach(([lng, lat, n], c) => {
+      const [cx, cz] = toLocal(lng, lat);
+      for (let i = 0; i < perCell[c]!; i++, k++) {
+        const t = a.towers.subarray(k * STRIDE, (k + 1) * STRIDE);
+        assert.ok(Math.abs(t[0]! - cx) < 0.5 && Math.abs(t[1]! - cz) < 0.5, "inside its kilometre");
+        assert.ok(t[4]! <= towerHeight(n) + 1e-6 && t[4]! > 0);
+        if (i === 0) assert.ok(near(t[4]!, towerHeight(n), 1e-6), "the first tower is the tallest");
+        assert.equal(t[6], c === 2 ? 1 : 0, "the story's block is the cell nearest its geocode, and only that one");
+      }
+    });
+    assert.equal(a.glows.length / 5, 3, "one soft light per block");
+  });
+
+  it("the story's own place is never typed into the engine: with none given, no block is the story's", () => {
+    const b = blocks([[90.3218, 23.9819, 9]]);
+    assert.equal(b.chosen, null);
+    for (let k = 0; k < b.count; k++) assert.equal(b.towers[k * STRIDE + 6], 0);
+    assert.equal(blocks([[90.3218, 23.9819, 9]], [90.6, 23.6]).chosen, null, "a geocode with no cell within a kilometre and a half picks none");
+  });
+
+  it("the camera is each mark at its own place, flies without a jump, and lands on the story's block", () => {
+    const chosen: [number, number] = [90.3218, 23.9819];
+    for (const m of MARKS) {
+      const c = cameraAt(m.at, chosen);
+      const [tx, tz] = m.target === "chosen" ? toLocal(...chosen) : toLocal(m.target[0], m.target[1]);
+      assert.ok(near(c.target[0], tx, 1e-6) && near(c.target[2], tz, 1e-6) && near(c.dist, m.dist, 1e-6), `at ${m.at}`);
     }
     assert.deepEqual(cameraAt(-1), cameraAt(0));
     assert.deepEqual(cameraAt(2), cameraAt(1));
-    for (let p = 0; p < 1; p += 0.01) assert.ok(Math.abs(cameraAt(p + 0.01).zoom - cameraAt(p).zoom) < 0.25, `a jump near ${p.toFixed(2)}`);
-  });
-
-  it("a column is a closed six-sided footprint whose height follows the count", () => {
-    const tall = column([90.4, 23.8], 4421), short = column([90.4, 23.8], 1080);
-    const ring = (tall.geometry.coordinates as number[][][])[0]!;
-    assert.equal(ring.length, 7);
-    assert.ok(Math.abs(ring[0]![0]! - ring[6]![0]!) < 1e-9 && Math.abs(ring[0]![1]! - ring[6]![1]!) < 1e-9);
-    assert.ok((tall.properties.height as number) > (short.properties.height as number));
-  });
-
-  it("the story's own place is never typed into the engine: with none given, the one light has nothing to stand on", () => {
-    const style: { sources?: Record<string, { data: { features?: unknown[] } }> } = {};
-    class FakeMap {
-      constructor(options: Record<string, unknown>) {
-        Object.assign(style, options.style);
-      }
-      on() {}
-      jumpTo() {}
-      project() {
-        return { x: 0, y: 0 };
-      }
-      setPaintProperty() {}
-      resize() {}
-      remove() {}
+    for (let p = 0; p < 1; p += 0.005) {
+      const [a, b] = [cameraAt(p), cameraAt(p + 0.005)];
+      assert.ok(Math.hypot(a.eye[0] - b.eye[0], a.eye[1] - b.eye[1], a.eye[2] - b.eye[2]) < a.dist * 0.2, `a jump near ${p.toFixed(3)}`);
+      assert.ok(b.dist <= a.dist + 1e-9, "the camera only comes down");
     }
-    const g = globalThis as Record<string, unknown>;
-    const had = { ResizeObserver: g.ResizeObserver, getComputedStyle: g.getComputedStyle };
-    g.ResizeObserver = class {
-      observe() {}
-      disconnect() {}
-    };
-    g.getComputedStyle = () => ({ getPropertyValue: () => "1 2 3" });
-    try {
-      const bd: BdData = { credit: "", unit: 1000, box: [], districts: [], around: [], rivers: [] };
-      createMap({ Map: FakeMap }, {} as HTMLElement, { bd, cells: [] }).destroy();
-      assert.deepEqual(style.sources?.chosen?.data.features, []);
-      createMap({ Map: FakeMap }, {} as HTMLElement, { bd, cells: [], chosen: [90.3, 24] }).destroy();
-      assert.equal(style.sources?.chosen?.data.features?.length, 1);
-    } finally {
-      Object.assign(g, had);
-    }
+    assert.ok(MARKS.every((m, i) => i === 0 || m.at > MARKS[i - 1]!.at));
+    assert.ok(RISE[0] > 0 && RISE[1] < MARKS[2]!.at, "the towers have risen before the camera is among them");
   });
 
-  it("the four districts are the counts of 3 Oct 2026, with no total", () => {
-    assert.deepEqual(DISTRICTS.map((d) => [d.label, d.count]), [["Dhaka district", 4421], ["Gazipur", 1819], ["Narayanganj", 1628], ["Chattogram", 1080]]);
+  it("the subject sits right of the middle, clear of the words, and straight down stays straight down", () => {
+    const [w, h] = [1440, 900];
+    for (const p of [0, 0.5, 1]) {
+      const c = cameraAt(p);
+      const at = projectWith(viewProj(c, w, h), w, h, c.target);
+      assert.ok(near(at.x, ((1 + c.shift) / 2) * w, 1e-3) && near(at.y, h / 2, 1e-3) && at.front, `p=${p}: ${at.x}, ${at.y}`);
+      assert.ok(c.shift >= 0.3, "the words keep the left");
+    }
+    assert.ok(FOV > 20 && FOV < 50);
+  });
+
+  it("the figures step whole, one district at a time in the order the camera meets them, then the story's factory", () => {
+    assert.deepEqual(cityAt(0), { figure: 0, factory: false });
+    assert.equal(cityAt(CITY_STEPS.figures[0]).figure, 1);
+    assert.equal(cityAt(CITY_STEPS.figures[1]).figure, 2);
+    assert.deepEqual(cityAt(1), { figure: 2, factory: true });
+    assert.ok(CITY_STEPS.figures[0] > MARKS[1]!.at && CITY_STEPS.figures[1] > MARKS[2]!.at && CITY_STEPS.factory > MARKS[3]!.at, "a figure changes once the camera has reached its district");
+  });
+
+  it("the three districts are the counts of 3 Oct 2026 in the camera's order, with Chattogram said in words, and no total", () => {
+    assert.deepEqual(DISTRICTS.map((d) => [d.label, d.count]), [["Narayanganj", 1628], ["Dhaka district", 4421], ["Gazipur", 1819]]);
+    assert.deepEqual([CHATTOGRAM.label, CHATTOGRAM.count], ["Chattogram", 1080]);
+  });
+
+  it("the glow on the ground is a small grid of the cells, brightest where most suppliers are, dark far from any", () => {
+    const g = glowGrid([[90.4, 23.85, 100], [90.45, 23.9, 1]], 64);
+    assert.equal(g.data.length, 64 * 64);
+    assert.equal(Math.max(...g.data), 255);
+    assert.equal(g.data[0], 0);
+    assert.ok(g.box[2] > 0 && g.box[3] > 0);
   });
 });
 
@@ -637,7 +680,7 @@ describe("the map data file", () => {
 
   it("holds the 64 districts, the story's four among them, the rivers and the neighbours, and nothing about a supplier", () => {
     assert.equal(bd.districts.length, 64);
-    for (const d of DISTRICTS) assert.ok(bd.districts.some((x) => x.name === d.key), d.key);
+    for (const d of [...DISTRICTS, CHATTOGRAM]) assert.ok(bd.districts.some((x) => x.name === d.key), d.key);
     assert.ok(bd.rivers.length >= 10 && bd.around.length >= 3);
     assert.deepEqual(Object.keys(bd).sort(), ["around", "box", "credit", "districts", "rivers", "unit"]);
     assert.match(bd.credit, /Bangladesh Bureau of Statistics and OCHA ROAP, CC BY 3\.0 IGO/, "the district set's licence asks for its credit wherever the data goes");
@@ -646,8 +689,6 @@ describe("the map data file", () => {
   });
 
   it("every district sits inside Bangladesh's bounds, and the story's places sit inside their own district's", () => {
-    const geo = toGeo(bd, [[90.4, 23.8, 3]]);
-    assert.equal(geo.cells.features.length, 1);
     const bounds = (name: string) => {
       const pts = bd.districts.find((d) => d.name === name)!.rings.flatMap((r) => unpack(r, bd.unit));
       return [Math.min(...pts.map((p) => p[0])), Math.min(...pts.map((p) => p[1])), Math.max(...pts.map((p) => p[0])), Math.max(...pts.map((p) => p[1]))] as const;
@@ -658,19 +699,22 @@ describe("the map data file", () => {
     }
     for (const d of DISTRICTS) {
       const [w, s, e, n] = bounds(d.key);
-      assert.ok(d.at[0] > w && d.at[0] < e && d.at[1] > s && d.at[1] < n, `${d.label}'s column stands outside ${d.key}`);
+      assert.ok(d.at[0] > w && d.at[0] < e && d.at[1] > s && d.at[1] < n, `${d.label}'s towers stand outside ${d.key}`);
     }
     const file = JSON.parse(readFileSync(path.join(repoRoot, "public/site/film/cells.json"), "utf8")) as CellFile;
     const [w, s, e, n] = bounds("Gazipur");
     assert.ok(file.chosen && file.chosen[0] > w && file.chosen[0] < e && file.chosen[1] > s && file.chosen[1] < n, "the story's one place is in Gazipur, where its record says it is");
   });
 
-  it("the box reaches further than the handover's camera sees, so its edge never shows", () => {
-    // At the first mark the camera centres at 69% of a 1440 screen: 993 px to the left edge, 447 to the right, 450 up and down.
-    const px = tileScale(STOPS[0]!.zoom);
-    const [lng, lat] = STOPS[0]!.center;
-    assert.ok(bd.box[0]! < lng - 993 / px && bd.box[2]! > lng + 447 / px, `east to west: ${bd.box.join()}`);
-    assert.ok(bd.box[1]! < lat - 450 / px && bd.box[3]! > lat + 450 / px + 3, `north to south (the tilt sees a little further north): ${bd.box.join()}`);
+  it("the city's ground keeps only the district lines and rivers near the belt, as segments", () => {
+    const lines = groundLines(bd);
+    assert.ok(lines.districts.length > 0 && lines.rivers.length > 0);
+    assert.equal(lines.districts.length % 4, 0);
+    assert.equal(lines.rivers.length % 4, 0);
+    const [west] = toLocal(BOX.west - 1, BOX.north);
+    const [east] = toLocal(BOX.east + 1, BOX.south);
+    for (let i = 0; i < lines.districts.length; i += 2) assert.ok(lines.districts[i]! > west && lines.districts[i]! < east, "a segment far from the belt");
+    assert.deepEqual(unpack([90400, 23700, 100, -50, -200, 0], 1000), [[90.4, 23.7], [90.5, 23.65], [90.3, 23.65]]);
   });
 
   it("the land mask is a small PNG", () => {

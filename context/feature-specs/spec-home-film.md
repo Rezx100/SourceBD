@@ -20,7 +20,7 @@ until v2 has figures, no Higgsfield credits (shaders and code only).
 | PR | What | State |
 | -- | -- | -- |
 | V1 | Removals; scenes cut to their words; the scrub; night scenes keep the page's button green (`NIGHT_INHERITS`); the kit's primary label is `brand-on`; the footer redone (night, statement, live dot, wordmark) | built, 7 Oct 2026 |
-| V2 | The city: one WebGL2 engine of our own in place of `bkoi-gl` on the home page; stills for the lite and still tiers | |
+| V2 | The city (`engine/city.ts`, raw WebGL2): every km² with suppliers a block of towers as tall as its count (log), the story's block green with a beam; the planet's dive ends on the city's first camera (`handoverFrame`); the camera flies Narayanganj, Dhaka, Gazipur, Kashimpur; district lines and rivers from `bd.json` on a glowing ground; `bkoi-gl` no longer loaded on the home page; `city-belt`/`city-site` stills replace the six map stills; /legal/data-sources says what a block is | built, 7 Oct 2026 |
 | V3 | The overlock as the scene; the record's real rows on a shader ground for "every claim" and "we check again" | |
 | V4 | The product screens sharp and large; the promises' visual; the trust section; the close | |
 

@@ -105,8 +105,11 @@ void main() {
     // From far away a district is many lights in a few pixels: each one is faint there, so the cluster glows
     // without burning out, and they come apart as the camera comes in.
     float near = clamp((uScale - 1.0) / 2.4, 0.0, 1.0);
-    a = smoothstep(-0.02, 0.12, p.z) * (0.72 + 0.28 * sin(uTime * (0.7 + fract(aPhase) * 0.9) + aPhase * 6.2831)) * mix(0.14, 0.3, near);
-    size *= mix(0.75, 0.95, near) * uBloom;
+    // At the end of the dive each light is one square kilometre, the roof the city raises there: bright and whole.
+    float deep = clamp((uScale - 20.0) / 120.0, 0.0, 1.0);
+    a = smoothstep(-0.02, 0.12, p.z) * (0.72 + 0.28 * sin(uTime * (0.7 + fract(aPhase) * 0.9) + aPhase * 6.2831)) * mix(mix(0.14, 0.3, near), 0.9, deep);
+    // ...and as wide as that square kilometre is on screen, so the dive ends on the blocks the city raises.
+    size = mix(size * mix(0.75, 0.95, near), max(size * 1.5, uRadius / 6371.0 * 1.3 / uDpr), deep) * uBloom;
   } else {                      // dust, far behind, shifting with the pointer and the scroll
     px = uRes * 0.5 + vec2(p.x, -p.y) * max(uRes.x, uRes.y) * 0.75 + uShift * (0.4 + fract(aPhase) * 1.2);
     a = (0.25 + 0.75 * fract(aPhase * 7.0)) * (0.6 + 0.4 * sin(uTime * 0.35 + aPhase * 6.2831));
@@ -280,11 +283,12 @@ export function createPlanet(canvas: HTMLCanvasElement, opts: PlanetOptions): Pl
       dragX += velX / 60;
       dragY += velY / 60;
     }
-    // The drift and a drag both settle as the camera comes in, so where the dive ends the planet is exactly where
-    // the map expects it (start.ts registers the two there).
-    const calm = still ? 0 : 1 - p;
-    const rot = facing(HOME.lng + (Math.sin(t / 7.3) * 5.5 + Math.sin(t / 3.1) * 0.8) * calm - dragX * (1 - p), HOME.lat + Math.sin(t / 9.7) * 2.2 * calm + dragY * (1 - p));
+    // The drift and a drag both settle as the camera comes in, by the zoom itself: a degree of drift is a thousand
+    // pixels at the end of the dive, so it shrinks as the planet grows and where the dive ends the planet is exactly
+    // where the city expects it (start.ts registers the two there).
     const f = frameOf(p, w, h);
+    const calm = still ? 0 : Math.min(1, frameOf(0, w, h).r / f.r) * (1 - p);
+    const rot = facing(HOME.lng + (Math.sin(t / 7.3) * 5.5 + Math.sin(t / 3.1) * 0.8) * calm - dragX * calm, HOME.lat + Math.sin(t / 9.7) * 2.2 * calm + dragY * calm);
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);

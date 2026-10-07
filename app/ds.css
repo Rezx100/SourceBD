@@ -281,22 +281,11 @@
     box-shadow: var(--pane-shadow);
   }
 
-  /* The film's map: the library's canvas fills its stage. Its own stylesheet is not loaded (it fetches two
-     more from a CDN), and its control corner is not drawn: the map shows none of its tiles here. */
-  [data-map] canvas {
-    position: absolute;
-    inset: 0;
-  }
-
-  [data-map] .maplibregl-control-container {
-    display: none;
-  }
-
   /* The opening's handover (§3.5): on the full tier the words leave first and the planet's act gives way to the
-     map under it; the scroll writes both opacities on the two elements themselves (engine/start.ts). What has
-     gone stops catching the pointer, so the map and the record can be reached, but stays in the page: a screen
+     city under it; the scroll writes both opacities on the two elements themselves (engine/start.ts). What has
+     gone stops catching the pointer, so the city can be reached, but stays in the page: a screen
      reader does not scroll in step, and the headline, the search and the two ways in are still the page's. A
-     control there that takes keyboard focus brings its act back over the map. */
+     control there that takes keyboard focus brings its act back over the city. */
   [data-film-tier="full"] :is([data-act="planet"][data-past], [data-hero][data-gone] > *) {
     pointer-events: none;
   }
