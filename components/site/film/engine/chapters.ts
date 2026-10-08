@@ -12,7 +12,7 @@ import type { Tier } from "./tier";
  * The overlock: the five threads go in one after another (each with its tag and its line on the label), then the
  * machine runs (the handwheel turns, the needle takes one stitch per step, the seam draws along the cloth).
  */
-export const SOURCES = { thread: [0.04, 0.15], gap: 0.11, run: [0.22, 0.9], stitches: 12 } as const;
+export const SOURCES = { thread: [0.03, 0.12], gap: 0.075, run: [0.44, 0.92], stitches: 12 } as const;
 /** Where thread `i` is drawn, 0 to 1, at `p`. */
 const threadAt = (i: number, p: number) => span([SOURCES.thread[0] + SOURCES.gap * i, SOURCES.thread[1] + SOURCES.gap * i], p);
 /** The moment thread `i` is all the way in: its line on the label lights. */
@@ -180,7 +180,7 @@ export function startChapters(root: HTMLElement, tier: Tier): Chapters {
         el?.removeAttribute("data-on");
         el?.classList.remove("animate-rise");
       }
-      for (const el of [...lines, ...watched]) el.removeAttribute("data-on");
+      for (const el of lines) el.removeAttribute("data-on");
       for (const el of watched) el.removeAttribute("data-due");
       only(proofRows, 0);
       only(days, 0);

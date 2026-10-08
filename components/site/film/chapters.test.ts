@@ -75,7 +75,7 @@ describe("one factory, one record: the overlock", () => {
       assert.equal(sourcesAt(threadIn(i)).threads[i], 1);
       if (i) assert.ok(threadIn(i) > threadIn(i - 1));
     }
-    assert.ok(threadIn(4) < SEAM.run[1], "the last source is in before the seam is done");
+    assert.ok(threadIn(4) <= SEAM.run[0], "every source is in before the machine runs");
     const end = sourcesAt(1);
     assert.equal(end.run, 1);
     assert.equal(end.wheel, 1440);

@@ -3,7 +3,7 @@
 // WebGL2: a slow, domain-warped drift of the brand's green and one cool tone over the night, a soft light that
 // follows the pointer, a vignette and a little grain. No text, no shape that could pass for data. Colours are read
 // from the CSS variables of the canvas's own scope (a night scene). It draws only while its stage is on screen;
-// `startFields` makes one when a stage nears and gives its context back when it is far, so at most two run.
+// `startFields` makes one when a stage first nears and keeps it, idle, until the film stops (one per stage).
 //
 // Plain TypeScript, no React, no library. A shader that fails to compile returns `null`: the stage keeps the CSS
 // ground drawn under the canvas, which is what the still tier shows.
@@ -110,6 +110,7 @@ export function createField(canvas: HTMLCanvasElement): Field | null {
     if (!raf && !dead) raf = requestAnimationFrame(draw);
   };
   const move = (e: PointerEvent) => {
+    if (!seen) return;
     const box = canvas.getBoundingClientRect();
     mx = (e.clientX - box.left) / Math.max(1, box.width);
     my = (e.clientY - box.top) / Math.max(1, box.height);
@@ -144,14 +145,15 @@ export function createField(canvas: HTMLCanvasElement): Field | null {
  */
 export function startFields(root: HTMLElement): { progress(scene: string, p: number): void; stop(): void } {
   const canvases = [...root.querySelectorAll<HTMLCanvasElement>("canvas[data-field]")];
-  const live = new Map<HTMLCanvasElement, Field>();
+  /** Each live field with the scene it stands in, read once. */
+  const live = new Map<HTMLCanvasElement, { field: Field; scene?: string }>();
   const near = new IntersectionObserver(
     (entries) => {
       for (const e of entries) {
         const canvas = e.target as HTMLCanvasElement;
         if (!e.isIntersecting || live.has(canvas)) continue;
         const field = createField(canvas);
-        if (field) live.set(canvas, field);
+        if (field) live.set(canvas, { field, scene: canvas.closest<HTMLElement>("[data-scene]")?.dataset.scene });
         near.unobserve(canvas);
       }
     },
@@ -160,11 +162,11 @@ export function startFields(root: HTMLElement): { progress(scene: string, p: num
   for (const c of canvases) near.observe(c);
   return {
     progress(scene, p) {
-      for (const [canvas, field] of live) if (canvas.closest<HTMLElement>("[data-scene]")?.dataset.scene === scene) field.setProgress(p);
+      for (const f of live.values()) if (f.scene === scene) f.field.setProgress(p);
     },
     stop() {
       near.disconnect();
-      for (const field of live.values()) field.destroy();
+      for (const f of live.values()) f.field.destroy();
       live.clear();
     },
   };
