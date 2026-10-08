@@ -1,3 +1,5 @@
+import { PANE_PARAMS } from "@/lib/search-suggest-ui";
+
 // The buyer rail's items and which one a path belongs to live in `lib/frame-nav.ts`
 // (the v4 frame). What is left here is the one rule about `?back=`.
 
@@ -15,4 +17,19 @@ export function backToList(raw: string | string[] | undefined): string | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * `back` (a list from `backToList`) with `slug` open in its pane, every other
+ * pane parameter dropped; null for a list that has no composer pane (only the search and Saved do). Saved names its open record `open`; the search names it `record`.
+ * Send RFQ on a full page that came from a list opens the composer here, beside
+ * the results with the record behind it, instead of leaving the search.
+ */
+export function listWithRecord(back: string, slug: string): string | null {
+  const url = new URL(back, "https://sourcebd.invalid");
+  const key = url.pathname === "/app/saved" ? "open" : url.pathname === "/app/discover" ? "record" : null;
+  if (!key) return null;
+  for (const p of [...PANE_PARAMS, "open"]) url.searchParams.delete(p);
+  url.searchParams.set(key, slug);
+  return `${url.pathname}?${url.searchParams.toString()}`;
 }

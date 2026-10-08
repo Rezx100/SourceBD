@@ -44,6 +44,8 @@ export default async function SavedPage({ searchParams }: { searchParams: Promis
   const rows = data.rows;
   const items = rows ? buildSavedItems(rows, data.certs, today, view) : [];
   const closeHref = savedHref({ sort, page });
+  const behindSlug = composerOpen ? one(sp.open) : null;
+  const behind = behindSlug ? savedHref({ sort, page, open: behindSlug }) : null;
   // A pane (the composer, or a record with rows to stand beside) always gets the narrow list, never the full table.
   const paneOpen = composerOpen || (openSlug !== null && rows !== null && rows.length > 0);
   const total = data.total ?? items.length;
@@ -100,7 +102,8 @@ export default async function SavedPage({ searchParams }: { searchParams: Promis
         </PaneFrame>
       }
     >
-      <ComposerPane supabase={supabase} rfqIds={rfqIds} closeHref={closeHref} />
+      {/* Sent from a record (`&open=`, the full page's Send RFQ): Close and Back return to it. */}
+      <ComposerPane supabase={supabase} rfqIds={rfqIds} closeHref={behind ?? closeHref} backHref={behind} />
     </Suspense>
   ) : paneOpen && record ? (
     <SavedRecordPane read={record} view={view} today={today} />

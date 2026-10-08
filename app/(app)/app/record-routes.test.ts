@@ -318,7 +318,7 @@ describe("/app/suppliers/[slug]/lines/[hs] — the line page", () => {
     assert.match(out, /<h1 [^>]*>Men&#x27;s or boys&#x27; shirts, knitted or crocheted<\/h1>/);
     assert.match(out, /<a [^>]*aria-label="Back to the record"[^>]*href="\/app\/suppliers\/aboni-knitwear\?tab=products"/);
     assert.match(out, /href="\/app\/discover\?hs=6105"[^>]*>Exporters of 6105<span [^>]*>· 1,634<\/span>/);
-    assert.match(out, /<a [^>]*href="\/app\/rfqs\/new\?supplier=[^"&]+&amp;hs=6105"[^>]*>Send RFQ for this line<\/a>/);
+    assert.match(out, /<a [^>]*href="\/app\/rfqs\/new\?supplier=[^"&]+&amp;hs=6105&amp;back=[^"]+"[^>]*>Send RFQ for this line<\/a>/);
     assert.doesNotMatch(out, /data-sheet-scroll|animate-sheet-in|bg-surface-sunken|text-ink-(?:muted|subtle)/, "a class of the old kit");
   });
 
@@ -817,6 +817,14 @@ describe("/app/saved?rfq= — the composer beside the saved list", () => {
       currentPath = "/app/discover";
     }
   };
+
+  it("?open=<slug>&rfq=<id> (the full page's Send RFQ, round 3 item 1): Close returns to the record beside the list", async () => {
+    const out = html(await saved({ open: "aboni-knitwear", rfq: ABONI_ID }));
+    const pane = out.search(/<section data-record-pane="" aria-label="New RFQ"/);
+    assert.ok(pane > -1, "no composer in the pane");
+    const close = /<a\b[^>]*aria-label="Close"[^>]*href="([^"]+)"|<a\b[^>]*href="([^"]+)"[^>]*aria-label="Close"/.exec(out.slice(pane));
+    assert.equal((close?.[1] ?? close?.[2] ?? "").replace(/&amp;/g, "&"), "/app/saved?open=aboni-knitwear");
+  });
 
   it("?rfq=<id> draws the composer in the pane beside the saved list, naming the target; Close is the list", async () => {
     const out = html(await saved({ rfq: ABONI_ID }));
@@ -1884,5 +1892,62 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
       // And it is the page frame with a skeleton inside, not an empty region.
       assert.match(out, /role="status" aria-busy="true"/, `${file}: no skeleton in the content region`);
     }
+  });
+});
+
+describe("Send RFQ keeps the search (critique of 8 Oct 2026, round 3, item 1)", () => {
+  const ABONI_ID = "8ce50581-2d84-4cc2-93aa-000000000001";
+  const SEARCH = "/app/discover?q=knit";
+  const hrefOf = (out: string, words: RegExp) =>
+    ([...out.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/g)].find((m) => words.test(m[2]!.replace(/<[^>]+>/g, "").trim()))?.[1]?.match(/href="([^"]+)"/)?.[1] ?? "").replace(/&amp;/g, "&");
+  const page = (Page: (p: unknown) => unknown, params: Record<string, string>, sp: Record<string, string>) =>
+    outcome(() => Page({ params: Promise.resolve(params), searchParams: Promise.resolve(sp) }) as Promise<ReactElement>);
+
+  it("the full record page opened from a search sends the RFQ beside that search, with the record behind it", async () => {
+    given({ profile: PROFILE, hscodes: HS });
+    const out = html(await page(route("app/(app)/app/suppliers/[slug]/page.js").default, { slug: "aboni-knitwear" }, { back: SEARCH }));
+    const send = new URL(hrefOf(out, /^Send RFQ$/), "https://x.invalid");
+    assert.equal(send.pathname, "/app/discover", `Send RFQ leaves the search: ${send}`);
+    assert.equal(send.searchParams.get("q"), "knit");
+    assert.equal(send.searchParams.get("record"), "aboni-knitwear");
+    assert.ok(send.searchParams.get("rfq"), "no rfq= on Send");
+    // A line opened from here keeps the list, so its own Send can do the same.
+    const line = out.match(/href="(\/app\/suppliers\/aboni-knitwear\/lines\/\d{4}[^"]*)"/)?.[1]?.replace(/&amp;/g, "&") ?? "";
+    assert.match(line, /back=%2Fapp%2Fdiscover%3Fq%3Dknit/, `a line forgets the list: ${line}`);
+  });
+
+  it("the line page opened from a search sends beside it with the line, and Back keeps the list", async () => {
+    given({ profile: PROFILE, hscodes: HS });
+    const out = html(await page(route("app/(app)/app/suppliers/[slug]/lines/[hs]/page.js").default, { slug: "aboni-knitwear", hs: "6105" }, { back: SEARCH }));
+    const send = new URL(hrefOf(out, /^Send RFQ for this line$/), "https://x.invalid");
+    assert.equal(send.pathname, "/app/discover");
+    assert.equal(send.searchParams.get("record"), "aboni-knitwear");
+    assert.equal(send.searchParams.get("hs_line"), "6105");
+    assert.ok(send.searchParams.get("rfq"));
+    assert.match(out, /aria-label="Back to the record"[^>]*href="\/app\/suppliers\/aboni-knitwear\?tab=products&amp;back=%2Fapp%2Fdiscover%3Fq%3Dknit"/);
+  });
+
+  it("a list with no composer pane, or a deep link to a line, falls back to the composer page", async () => {
+    given({ profile: PROFILE, hscodes: HS });
+    const out = html(await page(route("app/(app)/app/suppliers/[slug]/page.js").default, { slug: "aboni-knitwear" }, { back: "/app/compliance" }));
+    assert.match(hrefOf(out, /^Send RFQ$/), /^\/app\/rfqs\/new\?supplier=[^&]+&back=%2Fapp%2Fsuppliers%2Faboni-knitwear%3Fback%3D%252Fapp%252Fcompliance$/);
+    given({ profile: PROFILE, hscodes: HS });
+    const line = html(await page(route("app/(app)/app/suppliers/[slug]/lines/[hs]/page.js").default, { slug: "aboni-knitwear", hs: "6105" }, {}));
+    assert.match(hrefOf(line, /^Send RFQ for this line$/), /^\/app\/rfqs\/new\?supplier=[^&]+&hs=6105&back=%2Fapp%2Fsuppliers%2Faboni-knitwear%2Flines%2F6105$/);
+  });
+
+  it("a deep link with no list opens the composer page, and its Close comes back to the record it left", async () => {
+    given({ profile: PROFILE, hscodes: HS });
+    const out = html(await page(route("app/(app)/app/suppliers/[slug]/page.js").default, { slug: "aboni-knitwear" }, { tab: "certificates" }));
+    const send = hrefOf(out, /^Send RFQ$/);
+    assert.match(send, /^\/app\/rfqs\/new\?supplier=[^&]+&back=%2Fapp%2Fsuppliers%2Faboni-knitwear%3Ftab%3Dcertificates$/, send);
+    given({ tables: { suppliers: [{ id: ABONI_ID, slug: "aboni-knitwear", company_name: "ABONI KNITWEAR LTD.", entity_type: "factory", city: "Dhaka", district: "Dhaka", source_tags: ["BGMEA"], is_published: true, is_sanctioned: false }] } });
+    const Composer = route("app/(app)/app/rfqs/new/page.js").default;
+    const composer = html(await outcome(() => Composer({ searchParams: Promise.resolve({ supplier: ABONI_ID, back: "/app/suppliers/aboni-knitwear?tab=certificates" }) })));
+    assert.match(composer, /href="\/app\/suppliers\/aboni-knitwear\?tab=certificates"[^>]*>(?:<svg[\s\S]*?<\/svg>)?Back to Aboni Knitwear Ltd/, "Close drops the record's back");
+    // A back to somewhere else is not followed: Close is the target's record.
+    given({ tables: { suppliers: [{ id: ABONI_ID, slug: "aboni-knitwear", company_name: "ABONI KNITWEAR LTD.", entity_type: "factory", city: "Dhaka", district: "Dhaka", source_tags: ["BGMEA"], is_published: true, is_sanctioned: false }] } });
+    const elsewhere = html(await outcome(() => Composer({ searchParams: Promise.resolve({ supplier: ABONI_ID, back: "/app/suppliers/aboni-knitwear-two" }) })));
+    assert.match(elsewhere, /href="\/app\/suppliers\/aboni-knitwear"[^>]*>(?:<svg[\s\S]*?<\/svg>)?Back to/);
   });
 });
