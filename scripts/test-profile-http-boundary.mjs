@@ -1701,7 +1701,8 @@ const CASES = [
       // words, never inside either.
       bodyIncludesAll: [
         "1,200<span title=\"500 workers · across its buildings, not this record\" class=\"block text-xs text-ink-3\">500 in buildings</span>",
-        "100<span title=\"450 workers · RSC inspection\" class=\"block text-xs text-ink-3\">450 RSC</span>",
+        // The second figure's source is a defined term (critique of 8 Oct 2026, round 3, item 5).
+        "100<span title=\"450 workers · RSC inspection\" class=\"block text-xs text-ink-3\">450 <span tabindex=\"0\" data-define=\"RSC\"",
       ],
       bodyExcludes: ["450 workers · across this record and its buildings", "Search is under heavy load"],
     },
