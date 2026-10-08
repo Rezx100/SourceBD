@@ -4,24 +4,18 @@
 // words are Paper's (`10 · Results, empty`, `Errors`, `11 · Results`).
 
 import Link from "next/link";
-import { CertProblem, SupplierRow } from "@/components/patterns";
+import { CertSummaryCell, SupplierRow } from "@/components/patterns";
 import { ErrorPanel, Pagination, Skeleton, buttonClass } from "@/components/kit";
 import { PER_PAGE, discoverChips, discoverHref, filterCount, withoutFilterFamily, type DiscoverState } from "@/lib/discover-v32-state";
 import { formatCount } from "@/lib/dashboard/facts";
 import { discoverFailureCopy } from "@/lib/discover-v32-rpc";
-import { cn } from "@/lib/utils";
 import type { ResultRow } from "./model";
 import { PerPageMenu } from "./per-page";
 import { SlowHead } from "./slow";
 
-function Problem({ r, small }: { r: ResultRow; small?: boolean }) {
-  return r.cert ? (
-    <CertProblem state={r.cert.state} more={r.cert.more} small={small}>
-      {r.cert.text}
-    </CertProblem>
-  ) : (
-    <span className={cn("text-ink-3", small ? "text-xs" : "text-sm")}>No certificates found</span>
-  );
+/** The same cell the table draws, so a certificate looks the same beside a pane and on a phone. */
+function Problem({ r }: { r: ResultRow }) {
+  return r.certCell ? <CertSummaryCell cert={r.certCell} /> : <span className="text-xs text-ink-3">No certificates found</span>;
 }
 
 /** Beside a pane: name, type and place, the first certificate problem, the source count. A long name wraps. */
@@ -30,7 +24,7 @@ export function PaneRows({ rows, currentSlug }: { rows: readonly ResultRow[]; cu
     <ul>
       {rows.map((r) => (
         <li key={r.slug}>
-          <SupplierRow layout="pane" href={r.paneHref} name={r.name} type={r.type} place={r.place} sources={r.sources} problem={<Problem r={r} small />} selected={r.slug === currentSlug} />
+          <SupplierRow layout="pane" href={r.paneHref} name={r.name} type={r.type} place={r.place} sources={r.sources} problem={<Problem r={r} />} selected={r.slug === currentSlug} />
         </li>
       ))}
     </ul>

@@ -3,7 +3,7 @@
 // data and these decide the look and the words. Shells are B3.
 
 export { ChatThread, Bubble, DateLine, FileChip } from "./chat";
-export { CertProblem, CertStateChip, CertSummaryCell, CertTable, type CertRowData } from "./certificate";
+export { CertStateChip, CertSummaryCell, CertTable, type CertRowData } from "./certificate";
 export { LinkPending } from "./link-pending";
 export { LockedContact, LockedContactRow, onFileWords } from "./contact";
 export { NeedsAttention, type AttentionItem } from "./attention";
