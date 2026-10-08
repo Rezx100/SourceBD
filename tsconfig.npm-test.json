@@ -133,6 +133,7 @@
     "components/frame/frame.test.ts",
     "components/search/search.test.ts",
     "components/patterns/certificate.test.ts",
+    "components/patterns/absence.test.ts",
     "components/record/record.test.ts",
     "components/rfqs/rfqs.test.ts",
     "components/rfqs/composer.test.ts",

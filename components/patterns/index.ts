@@ -17,4 +17,4 @@ export { PendingMark, SourceChip, SourceGroups, SourceLine, SourceList, SourceMa
 export { ClaimRail, ConfirmedClaim, OpenClaim, downloadBlockedWords } from "./statement";
 export { SupplierRow } from "./supplier-row";
 export { Timeline, type Milestone } from "./timeline";
-export { CERT_ORDER, SITE_WORDS, certHeading, certLine, certShort, certSummary, certWords, isApproximate, lateWords, moqWarning, usd, vsTarget, type CertLine, type CertSummary, type SiteKind } from "./words";
+export { ABSENT, CERT_ORDER, SITE_WORDS, certHeading, certLine, certShort, certSummary, certWords, isApproximate, lateWords, moqWarning, usd, vsTarget, type CertLine, type CertSummary, type SiteKind } from "./words";

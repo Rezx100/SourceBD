@@ -4,6 +4,7 @@
 // sources that hold the supplier. Server components; the page decides the data, these decide the look.
 
 import Link from "next/link";
+import { ABSENT } from "@/components/patterns/words";
 import {
   Button,
   ButtonLink,
@@ -281,7 +282,7 @@ function ResultsTable({ rows }: { rows: PublicRow[] }) {
                 <Td align="right" className="tabular-nums text-ink">
                   {r.sources}
                 </Td>
-                <Td>{r.marks.length > 0 ? <SourcesCell sources={r.marks} /> : <Unpublished>None found</Unpublished>}</Td>
+                <Td>{r.marks.length > 0 ? <SourcesCell sources={r.marks} /> : <Unpublished>{ABSENT.sources}</Unpublished>}</Td>
               </Tr>
             ))}
           </tbody>

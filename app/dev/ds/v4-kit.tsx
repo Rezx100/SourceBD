@@ -290,7 +290,7 @@ function Chips() {
         <CertChip state="valid">Valid until 12 May 2027</CertChip>
         <CertChip state="expiring">Expires in 5 days · 8 Oct 2026</CertChip>
         <CertChip state="expired">Expired 29 Sep 2026</CertChip>
-        <CertChip state="none">No expiry date published</CertChip>
+        <CertChip state="none">No expiry on file</CertChip>
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <FactChip state="stale">Last checked 18 May 2026</FactChip>
@@ -340,9 +340,9 @@ type Row = { name: string; type: string | null; where: string | null; workers: s
 const ROWS: Row[] = [
   { name: "Aboni Knitwear Ltd.", type: "Factory", where: "Dhaka", workers: "3,166", sources: 11, selected: true, cert: <><CertChip state="expired" className="border-0 bg-transparent px-0">WRAP expired 29 Sep 2026</CertChip><span className="text-sm text-ink-3"> · 3 more certificates</span></> },
   { name: "SQ Celsius Limited", type: "Factory", where: "Dhaka", workers: "3,690", sources: 6, cert: <CertChip state="expired" className="border-0 bg-transparent px-0">WRAP expired 19 Sep 2026</CertChip> },
-  { name: "Plummy Fashions Ltd", type: "Factory", where: "Narayanganj", workers: "800", sources: 4, cert: <Unpublished>None found</Unpublished> },
-  { name: LONG_NAME, type: "Factory", where: "Narayanganj", workers: "1,634", sources: 1, cert: <Unpublished>None found</Unpublished> },
-  { name: "A.R. Fashion", type: "Buying house", where: null, workers: null, sources: 1, cert: <Unpublished>None found</Unpublished> },
+  { name: "Plummy Fashions Ltd", type: "Factory", where: "Narayanganj", workers: "800", sources: 4, cert: <Unpublished>No certificates on file</Unpublished> },
+  { name: LONG_NAME, type: "Factory", where: "Narayanganj", workers: "1,634", sources: 1, cert: <Unpublished>No certificates on file</Unpublished> },
+  { name: "A.R. Fashion", type: "Buying house", where: null, workers: null, sources: 1, cert: <Unpublished>No certificates on file</Unpublished> },
 ];
 
 function Tables() {

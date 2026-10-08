@@ -551,7 +551,7 @@ export function RfqComposer({
             <p className="text-base font-semibold text-ink [overflow-wrap:anywhere]">{title.trim() || "[product]"}</p>
             <dl className="flex flex-col gap-1 text-sm">
               {([
-                ["Quantity", Number(quantity) >= 1 ? quantityWords(Number(quantity), unit) : "Not set yet"],
+                ["Quantity", Number(quantity) >= 1 ? quantityWords(Number(quantity), unit) : "Not set"],
                 ["Target", targetPrice.trim() && Number(targetPrice) > 0 ? `${money(Number(targetPrice), currency)} per ${per}` : "Not set"],
                 ["Ship by", shipBy ? (formatDay(shipBy) ?? shipBy) : "Not set"],
                 ["Ship to", shipTo.trim() || "Not set"],

@@ -5,7 +5,7 @@
 // carries no figure the cell says so, and says nothing about a date it does not hold. Pure.
 
 import type { CertRowData } from "@/components/patterns";
-import { SITE_WORDS, certWords, isApproximate, type SiteKind } from "@/components/patterns/words";
+import { ABSENT, SITE_WORDS, certWords, isApproximate, type SiteKind } from "@/components/patterns/words";
 import { certCheckLine, certRowId, formatDay } from "@/lib/dashboard/facts";
 import type { CertState } from "@/components/kit";
 import type { FactRow, LocationRow, ProductSheetModel, SitePin, SupplierSheetModel } from "@/lib/dashboard/models";
@@ -81,7 +81,9 @@ export function recordSubline(model: SupplierSheetModel): string {
 export type SummaryCell = {
   key: "sanctions" | "certificates" | "rsc" | "workers" | "sources";
   label: string;
+  /** The figure or state; `ABSENT.dash` for nothing on file, with `valueWords` for a screen reader. */
   value: string;
+  valueWords?: string;
   /** What the value's colour and glyph say: a problem is never colour alone. */
   tone?: "danger" | "caution" | "sanction";
   sub: string | null;
@@ -117,7 +119,7 @@ export function summaryCells(model: SupplierSheetModel, today: Date): SummaryCel
   const problems = expired.length ? expired : expiring;
   const certificates: SummaryCell =
     model.certs.length === 0
-      ? { key: "certificates", label: "Certificates", value: "None found", sub: model.certsEmptyChip }
+      ? { key: "certificates", label: "Certificates", value: ABSENT.dash, valueWords: ABSENT.certificates, sub: model.certsEmptyChip }
       : {
           key: "certificates",
           label: "Certificates",
@@ -133,7 +135,7 @@ export function summaryCells(model: SupplierSheetModel, today: Date): SummaryCel
   const w = fact(model, "Workers");
   const workers: SummaryCell = w?.value
     ? { key: "workers", label: "Workers", value: w.value, sub: w.note ?? (w.marks?.length ? `from ${w.marks.map((m) => m.label).join(", ")}` : null) }
-    : { key: "workers", label: "Workers", value: "Not published", sub: "ask in your RFQ" };
+    : { key: "workers", label: "Workers", value: ABSENT.dash, valueWords: ABSENT.published, sub: `${ABSENT.published} · ask in your RFQ` };
 
   const one = model.sources.length === 1 ? model.sources[0]! : null;
   const sources: SummaryCell = {
@@ -238,7 +240,7 @@ export function keyFacts(model: SupplierSheetModel): KeyFact[] {
       values,
       source: values.length ? source : null,
       pending: values.length > 0 && !f.items?.length && !f.marks?.length && Boolean(f.pendingSource),
-      empty: values.length ? null : [f.empty ?? "Not on file", f.checked ?? null].filter(Boolean).join(" · "),
+      empty: values.length ? null : [f.empty ?? ABSENT.onFile, f.checked ?? null].filter(Boolean).join(" · "),
     };
   });
   // What it makes and exports is on the Products tab; the Overview says so only when there is nothing to open.
@@ -375,7 +377,7 @@ export function lineFacts(facts: readonly FactRow[]): LineFact[] {
       pending: Boolean(f.pendingSource) && !(f.marks && f.marks.length > 0),
       note: f.note ?? null,
       badge,
-      empty: values.length ? null : [f.empty ?? "Not on file", f.note ?? null, f.checked ?? null].filter(Boolean).join(" · "),
+      empty: values.length ? null : [f.empty ?? ABSENT.onFile, f.note ?? null, f.checked ?? null].filter(Boolean).join(" · "),
     };
   });
 }

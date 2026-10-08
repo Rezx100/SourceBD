@@ -26,7 +26,7 @@ export function SupplierRow({
   type: string | null;
   place: string | null;
   sources: number;
-  /** A CertProblem, or the plain "No certificates found" line. */
+  /** The certificates' compact cell, or the dash for none on file. */
   problem?: ReactNode;
   selected?: boolean;
 }) {

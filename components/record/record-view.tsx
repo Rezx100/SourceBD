@@ -59,7 +59,16 @@ function Cell({ c }: { c: SummaryCell }) {
           )}
         >
           {Glyph ? <Glyph size={16} weight="fill" className={cn("shrink-0", c.tone === "caution" && "text-caution-icon")} aria-hidden /> : null}
-          {c.value}
+          {c.valueWords ? (
+            <>
+              <span aria-hidden="true" className="text-ink-3" title={c.valueWords}>
+                {c.value}
+              </span>
+              <span className="sr-only">{c.valueWords}</span>
+            </>
+          ) : (
+            c.value
+          )}
         </span>
         {c.sub ? <span className="text-xs text-ink-3 max-sm:text-sm">{c.sub}</span> : null}
       </dd>

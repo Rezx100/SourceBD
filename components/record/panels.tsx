@@ -5,8 +5,8 @@
 
 import { CaretRight, FileText, Hourglass, WarningOctagon } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
-import { CertChip, FactChip } from "@/components/kit";
-import { CertTable, FactList, FactRow, PendingMark, RSC_REPORTS, RscBlock, SourceChip, SourceMark, certWords, type RscBlockData, type RscReportName } from "@/components/patterns";
+import { CertChip, FactChip, Unpublished } from "@/components/kit";
+import { ABSENT, CertTable, FactList, FactRow, PendingMark, RSC_REPORTS, RscBlock, SourceChip, SourceMark, certWords, type RscBlockData, type RscReportName } from "@/components/patterns";
 import type { RecordRfqRow, SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
 import { SitesView } from "./sites-view";
@@ -54,7 +54,7 @@ function ProblemRows({ model, today, level: H }: { model: SupplierSheetModel; to
                 <span className="text-md font-medium text-ink sm:text-base">{c.scheme}</span>
                 {c.number ? <span className="font-mono text-sm text-ink-2">{c.number}</span> : null}
               </span>
-              <span className="text-sm text-ink-2 max-sm:order-3 sm:min-w-0 sm:flex-1 sm:text-base">{c.issuer ?? <span className="text-ink-3">Issuer not published</span>}</span>
+              <span className="text-sm text-ink-2 max-sm:order-3 sm:min-w-0 sm:flex-1 sm:text-base">{c.issuer ?? <Unpublished>{ABSENT.issuer}</Unpublished>}</span>
               <span className="flex max-sm:order-1 sm:shrink-0">
                 <CertChip state={w.state} className="whitespace-nowrap">
                   {w.label}
@@ -392,7 +392,7 @@ export function SourcesPanel({ model, today, level: H = "h3" }: { model: Supplie
                           {stale ? <Hourglass size={12} weight="fill" className="shrink-0 text-caution-icon" aria-hidden /> : null}
                           <span>
                             {s.readDate && !stale ? <span className="[@container_(min-width:600px)]:sr-only">read </span> : null}
-                            {stale ?? s.readDate ?? "Not dated"}
+                            {stale ?? s.readDate ?? <Unpublished>{ABSENT.dated}</Unpublished>}
                           </span>
                         </span>
                         {s.mark.href ? (
@@ -458,7 +458,7 @@ export function ProductsPanel({ model, level: H = "h3", open = false }: { model:
         </section>
       ) : (
         <details open={open || undefined} className="group/filed flex flex-col gap-2">
-          <summary className="flex w-fit cursor-pointer list-none items-center gap-2 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand [&::-webkit-details-marker]:hidden">
+          <summary className="flex w-fit cursor-pointer list-none items-center gap-2 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus [&::-webkit-details-marker]:hidden">
             <CaretRight size={16} className="shrink-0 text-ink-3 transition-transform group-open/filed:rotate-90 motion-reduce:transition-none" aria-hidden />
             {heading}
           </summary>

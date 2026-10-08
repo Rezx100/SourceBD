@@ -122,7 +122,7 @@ export function V4Patterns() {
             chip={<FactChip state="disagree">Sources disagree</FactChip>}
           />
           <FactRow label="BKMEA membership" values={[{ value: "625 - B/2002", mono: true, source: "From BKMEA · page changed 22 Sep 2026" }]} chip={<FactChip state="changed">Source page changed</FactChip>} />
-          <FactRow label="Year founded" values={[{ value: "1985", source: "Source not linked yet. It is one of the 11 sources." }]} />
+          <FactRow label="Year founded" values={[{ value: "1985", pending: true }]} />
           <FactRow label="Lead time" empty="Ask in your RFQ." chip={<FactChip state="notOnFile">Not published</FactChip>} />
         </FactList>
       </Block>
@@ -188,7 +188,7 @@ export function V4Patterns() {
           </div>
           <div className="w-full max-w-[390px] overflow-clip rounded-lg border border-line">
             <SupplierRow layout="phone" href="#" name="Aboni Knitwear Ltd." type="Factory" place="Dhaka" sources={11} problem={<CertSummaryCell cert={certSummary(GALLERY_CERTS, TODAY)!} />} />
-            <SupplierRow layout="phone" href="#" name={LONG_NAME} type="Factory" place="Narayanganj" sources={1} problem={<span className="text-ink-3">No certificates found</span>} />
+            <SupplierRow layout="phone" href="#" name={LONG_NAME} type="Factory" place="Narayanganj" sources={1} problem={<Unpublished>No certificates on file</Unpublished>} />
           </div>
         </div>
         <TableFrame>
@@ -209,7 +209,7 @@ export function V4Patterns() {
               <Tr>
                 <Td className="font-medium text-ink">A.R. Fashion</Td>
                 <Td>
-                  <Unpublished>None found</Unpublished>
+                  <Unpublished>No source on file</Unpublished>
                 </Td>
               </Tr>
             </tbody>

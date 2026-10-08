@@ -123,9 +123,19 @@ export function SelectCell({ label, mixed, header, ...rest }: Omit<ComponentProp
   );
 }
 
-/** "Not published" and "None found": 13 ink-3, never a dash and never a blank. */
-export function Unpublished({ children = "Not published" }: { children?: ReactNode }) {
-  return <span className="text-sm text-ink-3">{children}</span>;
+/**
+ * Nothing on file, in a cell: an en dash in ink-subtle, never a blank, with the words ("Not
+ * published", "No certificates on file") in the title and for a screen reader. Absence must not
+ * out-shout presence in a grid (the critique of 7 Oct 2026, item 5); the words themselves live in
+ * `components/patterns/words.ts` (`ABSENT`).
+ */
+export function Unpublished({ children = "Not published" }: { children?: string }) {
+  return (
+    <span className="text-sm text-ink-3" title={children}>
+      <span aria-hidden="true">–</span>
+      <span className="sr-only">{children}</span>
+    </span>
+  );
 }
 
 /** "Showing 1–25 of 4,645 suppliers · Page 1 of 186 · Previous · Next". `perPage` is the page's own select. */

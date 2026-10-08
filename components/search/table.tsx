@@ -11,7 +11,7 @@ import { DotsThree } from "@phosphor-icons/react";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import Link from "next/link";
 import { startTransition, useContext, useEffect, useState } from "react";
-import { CertSummaryCell, LinkPending, SanctionTag, sanctionRowClass } from "@/components/patterns";
+import { ABSENT, CertSummaryCell, LinkPending, SanctionTag, sanctionRowClass } from "@/components/patterns";
 import { IconButton, Menu, MenuItem, SelectCell, Table, Td, Th, Toast, Tr, Unpublished, rowLinkClass, toastActionClass, type SortState } from "@/components/kit";
 import { rowSaveMessage } from "@/lib/dashboard/selection";
 import { cn } from "@/lib/utils";
@@ -132,7 +132,7 @@ export function ResultsTable({
                   {r.certCell ? (
                     <CertSummaryCell cert={r.certCell} />
                   ) : (
-                    <Unpublished>No certificates found</Unpublished>
+                    <Unpublished>{ABSENT.certificates}</Unpublished>
                   )}
                 </Td>
                 <td className="w-10 border-b border-line p-0 text-center align-middle">
