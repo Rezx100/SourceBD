@@ -31,7 +31,8 @@ function Eyebrow({ children, className, level: H = "h3" }: { children: string; c
 
 /** A line of prose that is not a fact: the record's summary, a note under a list. */
 function Note({ children }: { children: React.ReactNode }) {
-  return <p className="text-base text-ink-2">{children}</p>;
+  // A line of prose wraps at 72 characters (the RSC summary ran ~147 on one line).
+  return <p className="max-w-[72ch] text-base text-ink-2">{children}</p>;
 }
 
 /* ---------------------------------------------------------------- overview */

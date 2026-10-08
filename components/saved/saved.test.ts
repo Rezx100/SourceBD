@@ -403,9 +403,13 @@ describe("a saved search", () => {
 
   it("its filters in words; the count and when it was taken", () => {
     assert.match(searchFilters(SEARCH.query_state), /knit/i);
-    // A search that kept no filter is every supplier the search shows by default: sanctioned ones are hidden.
-    assert.equal(searchFilters({ search: "" }), "All published suppliers except sanctioned");
-    assert.equal(searchFilters(null), "All published suppliers except sanctioned");
+    // In words, each value once, the family names and the defaults left out (critique of 7 Oct 2026, item 9).
+    assert.equal(searchFilters({ search: "q=knit&cert=gots&district=Gazipur" }), "knit, GOTS, Gazipur");
+    assert.equal(searchFilters({ search: "cert=gots:expired&hs=6110" }), "HS 6110, GOTS, expired");
+    assert.doesNotMatch(searchFilters({ search: "q=knit&cert=gots&district=Gazipur" }), /Certificate ·|Sanctioned hidden|·/);
+    // A search that kept no filter is every published supplier; the default (sanctioned hidden) goes without saying.
+    assert.equal(searchFilters({ search: "" }), "All published suppliers");
+    assert.equal(searchFilters(null), "All published suppliers");
     assert.deepEqual(countWords(101, "2026-10-04T08:00:00Z", NOW), { count: "101", words: "suppliers today" });
     assert.match(countWords(101, "2026-10-01T08:00:00Z", NOW).words, /^suppliers · counted /);
     assert.deepEqual(countWords(null, null, NOW), { count: null, words: "not counted yet" });

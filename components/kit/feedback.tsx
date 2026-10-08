@@ -40,10 +40,10 @@ export function Empty({
   );
 }
 
-/** A section that failed to load: a 3px danger edge, the words, Try again (`retry`, a secondary button). */
+/** A section that failed to load: the danger tint, the icon and the words, Try again (`retry`, a secondary button). No side rule on a rounded block. */
 export function InlineError({ children, retry, className }: { children: ReactNode; retry?: ReactNode; className?: string }) {
   return (
-    <div role="alert" className={cn("flex flex-col items-start gap-3 rounded-md p-5 [border-left-width:3px] border-l-danger", className)}>
+    <div role="alert" className={cn("flex flex-col items-start gap-3 rounded-md bg-danger-tint p-5", className)}>
       <p className="flex items-start gap-2 text-base font-medium text-ink">
         <XCircle size={20} weight="fill" className="shrink-0 text-danger" aria-hidden />
         <span>{children}</span>
