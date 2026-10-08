@@ -262,8 +262,9 @@ describe("the table", () => {
     const out = html(createElement(SavedTable, { items: buildSavedItems(rows, CERTS, NOW, { sort: "recent", page: 1 }) }));
     const esc = ZAHEEN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     assert.equal(out.match(new RegExp(`title="${esc}"`, "g"))?.length, 1, "one title with the whole name");
-    assert.match(out, new RegExp(`aria-label="${esc}"`), "the row's accessible name is the whole name");
-    assert.match(out, /data-name=""[^>]*>Zaheen Knitwears Limited<\/a>/, "the link's words are the base name alone");
+    // Round 3, item 6: no aria-label on the row; the name link says the whole name.
+    assert.doesNotMatch(out, /<tr [^>]*aria-label=/, "an aria-label on a row replaces its cells for a screen reader");
+    assert.match(out, new RegExp(`<span aria-hidden="true">Zaheen Knitwears Limited</span><span class="sr-only">${esc}</span></a>`), "the link's visible words are the base name, its spoken words the whole name");
     assert.match(out, /<span data-name="" title="Shed - 3, 4, 5, 10, 11, 12, 13 · Building - Security, ETP and Fire Pump"/, "the qualifier leads the second line");
     assert.equal(out.match(/data-name=""/g)?.length, 2, "two lines, never a third");
     assert.ok(!/\btruncate\b|text-ellipsis|line-clamp/.test(out), "the cut is the deliberate CSS one");

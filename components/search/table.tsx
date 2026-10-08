@@ -37,6 +37,20 @@ export function SecondFigure({ short }: { short: string }) {
   );
 }
 
+/**
+ * The visible base name, with the whole name for a screen reader when they differ: the row has no
+ * `aria-label` (it silenced the cells), so the name link carries the whole name (round 3, item 6).
+ */
+export function WholeName({ name, base }: { name: string; base: string }) {
+  if (base === name) return <>{base}</>;
+  return (
+    <>
+      <span aria-hidden="true">{base}</span>
+      <span className="sr-only">{name}</span>
+    </>
+  );
+}
+
 export type ResultSort = { key: "workers" | "sources" | string; dir: "asc" | "desc" };
 
 export function ResultsTable({
@@ -97,7 +111,6 @@ export function ResultsTable({
                 key={r.slug}
                 data-row="result"
                 tabIndex={0}
-                aria-label={r.name}
                 aria-current={current ? "true" : undefined}
                 selected={selected || current}
                 className={cn("outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus", r.sanctioned && !selected && !current && sanctionRowClass)}
@@ -111,7 +124,7 @@ export function ResultsTable({
                 {/* `max-w-0`: the column keeps the header's width and the name is cut inside it, instead of the cell growing to the name. */}
                 <Td className="max-w-0">
                   <Link href={r.paneHref} prefetch={false} scroll={false} data-open="record" data-name="" title={r.name} className={cn(rowLinkClass, oneLine)}>
-                    {base}
+                    <WholeName name={r.name} base={base} />
                     <LinkPending className="ml-1.5 inline-block align-[-2px]" />
                   </Link>
                   {qualifier ? (

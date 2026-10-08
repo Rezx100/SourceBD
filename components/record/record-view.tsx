@@ -50,7 +50,7 @@ function Cell({ c }: { c: SummaryCell }) {
       )}
     >
       <dt className="text-md text-ink sm:text-xs sm:text-ink-3">
-        <Define term={c.label} />
+        <Define term={c.label} focusable={false} describedId={stripTermId(c.key)} />
       </dt>
       <dd className="flex flex-col items-end gap-0.5 text-right sm:items-start sm:text-left">
         <span
@@ -76,16 +76,29 @@ function Cell({ c }: { c: SummaryCell }) {
             c.value
           )}
         </span>
-        {c.sub ? <span className="text-xs text-ink-3 max-sm:text-sm">{c.subTerm ? <Define term={c.subTerm}>{c.sub}</Define> : c.sub}</span> : null}
+        {c.sub ? <span className="text-xs text-ink-3 max-sm:text-sm">{c.subTerm ? <Define term={c.subTerm} focusable={false}>{c.sub}</Define> : c.sub}</span> : null}
       </dd>
     </div>
   );
 }
 
-/** The five cells: a bordered strip from 640, five rows with their words on the right on a phone. */
+/** The id of a strip label's definition, so the strip itself can name all five. */
+export const stripTermId = (key: string) => `record-strip-term-${key}`;
+
+/**
+ * The five cells: a bordered strip from 640, five rows with their words on the right on a phone.
+ * One tab stop for the five labels (critique of 8 Oct 2026, round 3, item 6: six Tabs before the
+ * tabs): the strip is focusable and described by the five definitions; a label is reached by hover
+ * and through the strip, never a stop of its own.
+ */
 export function Summary({ cells }: { cells: SummaryCell[] }) {
   return (
-    <dl aria-label="Summary" className={cn("flex flex-col sm:flex-row sm:rounded-lg sm:border sm:border-line", TABULAR)}>
+    <dl
+      aria-label="Summary"
+      tabIndex={0}
+      aria-describedby={cells.map((c) => stripTermId(c.key)).join(" ")}
+      className={cn("flex flex-col rounded-sm sm:flex-row sm:rounded-lg sm:border sm:border-line", ring, TABULAR)}
+    >
       {cells.map((c) => (
         <Cell key={c.key} c={c} />
       ))}

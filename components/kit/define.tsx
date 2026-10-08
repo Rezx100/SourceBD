@@ -11,14 +11,29 @@ import { cn } from "@/lib/utils";
 import { ring } from "./classes";
 import { Tooltip } from "./overlay";
 
-export function Define({ term, children, className }: { term: string; children?: ReactNode; className?: string }) {
-  const id = useId();
+export function Define({
+  term,
+  children,
+  className,
+  focusable = true,
+  describedId,
+}: {
+  term: string;
+  children?: ReactNode;
+  className?: string;
+  /** False inside a group that is one tab stop itself (the record strip): reachable by hover and through the group. */
+  focusable?: boolean;
+  /** The definition's id, when the group names it in its own `aria-describedby`. */
+  describedId?: string;
+}) {
+  const own = useId();
+  const id = describedId ?? own;
   const what = define(term);
   if (!what) return <>{children ?? term}</>;
   return (
     <>
       <Tooltip label={what}>
-        <span tabIndex={0} data-define={term} aria-describedby={id} className={cn("cursor-help rounded-sm underline decoration-dotted decoration-1 underline-offset-2 [text-underline-position:from-font]", ring, className)}>
+        <span tabIndex={focusable ? 0 : -1} data-define={term} aria-describedby={id} className={cn("cursor-help rounded-sm underline decoration-dotted decoration-1 underline-offset-2 [text-underline-position:from-font]", ring, className)}>
           {children ?? term}
         </span>
       </Tooltip>
