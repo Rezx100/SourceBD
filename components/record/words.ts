@@ -60,6 +60,15 @@ export function tabCount(model: SupplierSheetModel, id: TabId): number | null {
 
 const fact = (model: SupplierSheetModel, label: string): FactRow | undefined => model.facts.find((f) => f.label === label);
 
+/** One name however it is cased, spaced or punctuated: "ABONI KNITWEAR LTD." is "Aboni Knitwear Ltd". */
+export function sameName(a: string, b: string): boolean {
+  const norm = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+  return norm(a) === norm(b);
+}
+
+/** The facts the first line under the name says; Key facts starts after them. */
+const SUBLINE_FACTS = new Set(["Type", "Parent group", "Established"]);
+
 /** "Factory · Savar, Dhaka · founded 1985 · part of Babylon Group": only what the record holds. */
 export function recordSubline(model: SupplierSheetModel): string {
   const type = model.meta[0]?.text ?? null;
@@ -123,14 +132,14 @@ export function summaryCells(model: SupplierSheetModel, today: Date): SummaryCel
 
   const w = fact(model, "Workers");
   const workers: SummaryCell = w?.value
-    ? { key: "workers", label: "Workers", value: `${w.value} workers`, sub: w.note ?? (w.marks?.length ? `from ${w.marks.map((m) => m.label).join(", ")}` : null) }
+    ? { key: "workers", label: "Workers", value: w.value, sub: w.note ?? (w.marks?.length ? `from ${w.marks.map((m) => m.label).join(", ")}` : null) }
     : { key: "workers", label: "Workers", value: "Not published", sub: "ask in your RFQ" };
 
   const one = model.sources.length === 1 ? model.sources[0]! : null;
   const sources: SummaryCell = {
     key: "sources",
     label: "Sources",
-    value: `${model.sourceCount} ${model.sourceCount === 1 ? "source" : "sources"}`,
+    value: String(model.sourceCount),
     sub: one ? [one.mark.label, one.readDate].filter(Boolean).join(" · ") : model.readDate ? `read ${model.readDate}` : null,
   };
   return [sanctions, certificates, rsc, workers, sources];
@@ -174,7 +183,20 @@ const LABEL: Record<string, string> = { Established: "Founded", Registers: "Memb
 /** One registration as its line draws it: the register's mark and short name, then its number. */
 export type Membership = { mark: string | null; name: string; qualifier: string | null; number: string | null };
 
-export type KeyFact = { label: string; values: { text: string; mono: boolean; membership?: Membership }[]; source: string | null; empty: string | null };
+export type KeyFact = {
+  label: string;
+  values: { text: string; mono: boolean; membership?: Membership }[];
+  source: string | null;
+  /** The record holds the fact but no register is linked to it: the pending mark, never a sentence. */
+  pending: boolean;
+  empty: string | null;
+};
+
+/** "Source pending · 3": the one legend under Key facts, or null when every fact names its register. */
+export function pendingLegend(facts: readonly KeyFact[]): string | null {
+  const n = facts.filter((f) => f.pending).length;
+  return n > 0 ? `Source pending · ${n}` : null;
+}
 
 /** "BGMEA General" is the register and the class of member; "EPB Reg" is the register alone ("Reg" says nothing beside a number). */
 function membership(i: NonNullable<FactRow["items"]>[number]): Membership {
@@ -190,15 +212,21 @@ export function keyFacts(model: SupplierSheetModel): KeyFact[] {
   // The address is the Sites tab's: one clean address per premises. The Overview prints the register's
   // own ALL-CAPS text only when there is no site to show there (RC-09).
   const sited = model.locations.length > 0;
-  const rows = model.facts.filter(
+  // The Type fact is "Factory · Dyeing, Knit": the subline said "Factory", so only the factory types stay, under their own label.
+  const type = model.meta[0]?.text ?? null;
+  const rows = model.facts
+    .map((f) => (f.label === "Type" && f.value && type && f.value.startsWith(`${type} · `) ? { ...f, label: "Factory types", value: f.value.slice(type.length + 3) } : f))
+    .filter(
     (f) =>
-      !(f.label === "Registered name" && f.value?.trim().toLowerCase() === model.name.trim().toLowerCase()) &&
+      !(f.label === "Registered name" && f.value && sameName(f.value, model.name)) &&
       !(optional.has(f.label) && !f.value && !f.items?.length) &&
-      !(sited && f.label === "Factory address"),
+      !(sited && f.label === "Factory address") &&
+      // The subline said these (type · place · founded · group): Key facts starts at what it did not say.
+      !(SUBLINE_FACTS.has(f.label) && f.value),
   );
   const out: KeyFact[] = rows.map((f) => {
     // A list of registrations names its register on every line, so "From EPB, BGMEA" under it would say it twice.
-    const from = f.items?.length ? null : f.marks?.length ? `From ${f.marks.map((m) => m.label).join(", ")}` : f.pendingSource ? "Source not linked yet" : null;
+    const from = f.items?.length ? null : f.marks?.length ? `From ${f.marks.map((m) => m.label).join(", ")}` : null;
     const source = [from, f.note ?? null].filter(Boolean).join(" · ") || null;
     const values = f.items?.length
       ? f.items.map((i) => ({ text: [i.label, i.code].filter(Boolean).join(" reg. no. "), mono: Boolean(i.code), membership: membership(i) }))
@@ -209,18 +237,20 @@ export function keyFacts(model: SupplierSheetModel): KeyFact[] {
       label: LABEL[f.label] ?? f.label,
       values,
       source: values.length ? source : null,
+      pending: values.length > 0 && !f.items?.length && !f.marks?.length && Boolean(f.pendingSource),
       empty: values.length ? null : [f.empty ?? "Not on file", f.checked ?? null].filter(Boolean).join(" · "),
     };
   });
   // What it makes and exports is on the Products tab; the Overview says so only when there is nothing to open.
   const p = model.products;
-  if (p.productListCount === 0) out.push({ label: "Products", values: [], source: null, empty: "Not published. Ask in your RFQ." });
-  if (p.lines === 0) out.push({ label: "Exports", values: [], source: null, empty: p.linesUnknown ? "The export lines could not be read." : p.onEpb ? "On the EPB exporter register · no lines on file" : "Not on the EPB exporter list" });
+  if (p.productListCount === 0) out.push({ label: "Products", values: [], source: null, pending: false, empty: "Not published. Ask in your RFQ." });
+  if (p.lines === 0) out.push({ label: "Exports", values: [], source: null, pending: false, empty: p.linesUnknown ? "The export lines could not be read." : p.onEpb ? "On the EPB exporter register · no lines on file" : "Not on the EPB exporter list" });
   const lists = model.products.buyerLists;
   out.push({
     label: "Brand supplier lists",
     values: lists.length ? [{ text: lists.join(", "), mono: false }] : [],
     source: lists.length ? "From the brands' disclosure lists" : null,
+    pending: false,
     empty: lists.length ? null : model.products.buyerListsEmpty,
   });
   return out;
@@ -285,10 +315,20 @@ export function dayOfWords(words: string | null): string | null {
   return Number.isNaN(t) ? null : new Date(t).toISOString();
 }
 
-/** A register read more than 90 days ago is stale: its date turns caution, with a clock and in words. */
+/** A register read more than 90 days ago is stale: its date turns caution, with an hourglass and in words. */
 export function isStale(readDate: string | null, today: Date): boolean {
+  return staleWords(readDate, today) !== null;
+}
+
+/**
+ * "read 102 days ago" for a register read more than 90 days ago, else null. Its own words and glyph (the
+ * hourglass), so the clock keeps one meaning on the record: a certificate that expires soon.
+ */
+export function staleWords(readDate: string | null, today: Date): string | null {
   const iso = dayOfWords(readDate);
-  return iso !== null && (today.getTime() - Date.parse(iso)) / 86_400_000 > 90;
+  if (iso === null) return null;
+  const days = Math.floor((today.getTime() - Date.parse(iso)) / 86_400_000);
+  return days > 90 ? `read ${days} days ago` : null;
 }
 
 /* ------------------------------------------------------------------- a line */

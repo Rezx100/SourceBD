@@ -22,12 +22,12 @@ export function onFileWords(emails: number, phones: number, website = false, rep
 }
 
 /** The details-panel block (344). `action` is the Send RFQ button; nothing on file has no action and no lock. */
-export function LockedContact({ emails, phones, website, representatives, action, className }: OnFile & { action?: ReactNode; className?: string }) {
+export function LockedContact({ emails, phones, website, representatives, action, className, level: H = "h3" }: OnFile & { action?: ReactNode; className?: string; level?: "h2" | "h3" }) {
   const words = onFileWords(emails, phones, website, representatives);
   return (
     <section aria-label="Contact" className={cn("flex w-full max-w-details flex-col gap-3 rounded-lg border border-line p-4", className)}>
       <header className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-ink">Contact</h3>
+        <H className="text-base font-semibold text-ink">Contact</H>
         {words ? <LockSimple size={16} className="shrink-0 text-ink-3" aria-hidden /> : null}
       </header>
       {words ? (

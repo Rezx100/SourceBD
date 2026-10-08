@@ -2,7 +2,7 @@
 // name in words. Marks run in tier order, each group named. A brand supplier list is a
 // name in a dashed frame with a document glyph, never a logo. Server-safe.
 
-import { Clock, FileText } from "@phosphor-icons/react/dist/ssr";
+import { FileText, Hourglass } from "@phosphor-icons/react/dist/ssr";
 import type { ReactNode } from "react";
 import { daysUntil, formatDay } from "@/lib/dashboard/facts";
 import { sourceFullName } from "@/lib/source-full-names";
@@ -57,6 +57,20 @@ export function SourceMark({ source, className, lazy }: { source: string; classN
   );
 }
 
+/**
+ * SourceBD's own mark for a fact the record holds but no register is linked to yet: the dashed
+ * document, 16px under a fact, named "Source pending". One glyph per fact; the words live once in
+ * the legend under the facts (DESIGN.md, Record Sheet), never as a sentence under each.
+ */
+export function PendingMark({ className }: { className?: string }) {
+  return (
+    <span className={cn("inline-flex size-4 items-center justify-center rounded-sm border border-dashed border-line-strong bg-subtle", className)} title="Source pending: the register that filed this fact is not linked yet">
+      <FileText size={10} className="text-ink-3" aria-hidden />
+      <span className="sr-only">Source pending</span>
+    </span>
+  );
+}
+
 /** Mark and short name: "BGMEA". The full name is its hover title. */
 export function SourceChip({ source, name, className }: { source: string; name?: string; className?: string }) {
   return (
@@ -97,13 +111,15 @@ export type SourceEntry = {
 
 /**
  * The record's details panel (344): every source with its full name and the date we last
- * checked it. Past 90 days the date turns caution, with a clock and in words.
+ * checked it. Past 90 days the read turns caution, as an hourglass and in words ("read 102 days
+ * ago", the date in its title): the clock on a record means a certificate expiring, nothing else.
+ * `level` is the heading's: h2 on the record's page, where the name is the h1.
  */
-export function SourceList({ sources, today, className }: { sources: SourceEntry[]; today: Date; className?: string }) {
+export function SourceList({ sources, today, className, level: H = "h3" }: { sources: SourceEntry[]; today: Date; className?: string; level?: "h2" | "h3" }) {
   return (
     <section aria-label="Sources" className={cn("flex w-full max-w-details flex-col rounded-lg border border-line bg-surface", className)}>
       <header className="flex h-11 items-center justify-between border-b border-line px-4">
-        <h3 className="text-base font-semibold text-ink">Sources · {sources.length}</h3>
+        <H className="text-base font-semibold text-ink">Sources · {sources.length}</H>
         <span className="text-xs text-ink-3">Last checked</span>
       </header>
       <ul>
@@ -115,9 +131,9 @@ export function SourceList({ sources, today, className }: { sources: SourceEntry
               <span className="flex flex-1">
                 <SourceChip source={source} name={label} />
               </span>
-              <span className={cn("flex w-[92px] shrink-0 items-center justify-end gap-1 text-right text-xs", stale ? "font-medium text-caution" : "text-ink-2")}>
-                {stale ? <Clock size={12} weight="fill" className="text-caution-icon" aria-hidden /> : null}
-                {formatDay(checkedOn) ?? "Not dated"}
+              <span className={cn("flex w-[132px] shrink-0 items-center justify-end gap-1 text-right text-xs", stale ? "font-medium text-caution" : "text-ink-2")} title={stale ? (formatDay(checkedOn) ?? undefined) : undefined}>
+                {stale ? <Hourglass size={12} weight="fill" className="shrink-0 text-caution-icon" aria-hidden /> : null}
+                {stale ? `read ${-age} days ago` : (formatDay(checkedOn) ?? "Not dated")}
               </span>
               <span className="w-full pl-[30px] text-xs text-ink-3">{fullName ?? sourceFullName(source) ?? source}</span>
             </li>
