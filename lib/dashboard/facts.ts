@@ -61,6 +61,28 @@ export function formatDay(iso: string | null | undefined): string | null {
 }
 
 /**
+ * A day as a buyer types it, to `YYYY-MM-DD`: "15 Nov 2026", "15 November 2026", "15/11/2026",
+ * "15.11.2026", "2026-11-15". Null when it is not a real day. Day first, never month first: the
+ * app's buyers write 15/11, and the browser's own date box showed them "10/15/2026".
+ */
+export function parseDay(text: string): string | null {
+  const s = text.trim();
+  let y = 0, m = 0, d = 0;
+  let r: RegExpExecArray | null;
+  if ((r = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s))) [y, m, d] = [Number(r[1]), Number(r[2]), Number(r[3])];
+  else if ((r = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/.exec(s))) [d, m, y] = [Number(r[1]), Number(r[2]), Number(r[3])];
+  else if ((r = /^(\d{1,2})\s+([a-z]{3,})\.?,?\s+(\d{4})$/i.exec(s))) {
+    const word = r[2]!.toLowerCase();
+    const i = MONTHS.findIndex((n) => word.startsWith(n.toLowerCase()));
+    if (i < 0) return null;
+    [d, m, y] = [Number(r[1]), i + 1, Number(r[3])];
+  } else return null;
+  const date = new Date(Date.UTC(y, m - 1, d));
+  if (date.getUTCFullYear() !== y || date.getUTCMonth() !== m - 1 || date.getUTCDate() !== d) return null;
+  return date.toISOString().slice(0, 10);
+}
+
+/**
  * The span a set of reads covers: `18 May – 18 Sep 2026`, or one date when
  * they all fall on the same day. Shared by the topbar and the sheet header so
  * the two cannot drift; both used to print a maximum, which said nothing

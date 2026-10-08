@@ -124,6 +124,48 @@ export function neededWords(missing: string[]): string {
 
 export type ComposerCopy = { sends: string; send: string };
 
+/** The three facts the message signs with. Typed in the composer when the workspace lacks one; saved there on send. */
+export type FromYou = { name: string; company: string; website: string };
+
+export const fromWorkspace = (w: ComposerWorkspace | null): FromYou => ({ name: w?.userName?.trim() ?? "", company: w?.companyName?.trim() ?? "", website: w?.website?.trim() ?? "" });
+
+/** The workspace lacks at least one of the three: the composer asks for them in place, prefilled where known. */
+export const needsFromYou = (w: ComposerWorkspace | null): boolean => Object.values(fromWorkspace(w)).some((v) => v === "");
+
+/** `karim.example` → `https://karim.example`: the settings route takes only a URL with its scheme. */
+export const websiteUrl = (typed: string): string => (typed.trim() && !/^https?:\/\//i.test(typed.trim()) ? `https://${typed.trim()}` : typed.trim());
+
+/** What of From you changed against the workspace, as the settings route's two bodies; nothing when nothing changed. */
+export function fromYouSaves(typed: FromYou, w: ComposerWorkspace | null): Record<string, unknown>[] {
+  const was = fromWorkspace(w);
+  const out: Record<string, unknown>[] = [];
+  const workspace: Record<string, string> = {};
+  if (typed.company.trim() && typed.company.trim() !== was.company) workspace.company_name = typed.company.trim();
+  if (typed.website.trim() && websiteUrl(typed.website) !== was.website) workspace.website = websiteUrl(typed.website);
+  if (Object.keys(workspace).length) out.push({ action: "update_workspace", ...workspace });
+  if (typed.name.trim() && typed.name.trim() !== was.name) out.push({ action: "update_profile", display_name: typed.name.trim() });
+  return out;
+}
+
+export type FooterStatus = { text: string; tone: "ink" | "caution" | "danger" | "sanction"; live: boolean };
+
+/**
+ * The footer under the buttons. Before a send is tried it only says where the RFQ goes, in ink,
+ * whatever is still empty (the critique of 7 Oct 2026: it scolded in red before the buyer typed);
+ * after one it names what is still missing, in caution. A refused send is danger, a sanction maroon.
+ * `live` is whether a screen reader is told: never on first paint, only after an action.
+ */
+export function footerStatus(s: { error: string | null; sanctioned: number; missing: readonly string[]; attempted: boolean; draftSavedAt: string | null; words: ComposerCopy }): FooterStatus {
+  if (s.error) return { text: s.error, tone: "danger", live: true };
+  if (s.sanctioned > 0) return { text: "RFQs cannot be sent to a sanctioned supplier", tone: "sanction", live: s.attempted };
+  if (s.attempted && s.missing.length > 0) return { text: neededWords([...s.missing]), tone: "caution", live: true };
+  if (s.draftSavedAt) return { text: `Draft saved ${s.draftSavedAt}. ${s.words.sends}`, tone: "ink", live: true };
+  return { text: s.words.sends, tone: "ink", live: false };
+}
+
+/** The message under one field once Send was tried and it is still empty; null before that. */
+export const fieldNote = (attempted: boolean, missing: readonly string[], field: string, words: string): string | null => (attempted && missing.includes(field) ? words : null);
+
 /** "Sends to 1 supplier: Aboni Knitwear Ltd." and the Send button's own words. */
 export function sendWords(targets: readonly Pick<ComposerTarget, "name">[]): ComposerCopy {
   const n = targets.length;
