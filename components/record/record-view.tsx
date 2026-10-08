@@ -14,7 +14,7 @@
 
 import { CaretLeft, Clock, XCircle, X } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
-import { buttonClass, ring } from "@/components/kit";
+import { Define, buttonClass, ring } from "@/components/kit";
 import { LockedContact, REFUSAL, SanctionBanner, onFileWords } from "@/components/patterns";
 import type { SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
@@ -49,7 +49,9 @@ function Cell({ c }: { c: SummaryCell }) {
         c.tone === "sanction" && "sm:bg-sanction-tint",
       )}
     >
-      <dt className="text-md text-ink sm:text-xs sm:text-ink-3">{c.label}</dt>
+      <dt className="text-md text-ink sm:text-xs sm:text-ink-3">
+        <Define term={c.label} />
+      </dt>
       <dd className="flex flex-col items-end gap-0.5 text-right sm:items-start sm:text-left">
         <span
           className={cn(
@@ -74,7 +76,7 @@ function Cell({ c }: { c: SummaryCell }) {
             c.value
           )}
         </span>
-        {c.sub ? <span className="text-xs text-ink-3 max-sm:text-sm">{c.sub}</span> : null}
+        {c.sub ? <span className="text-xs text-ink-3 max-sm:text-sm">{c.subTerm ? <Define term={c.subTerm}>{c.sub}</Define> : c.sub}</span> : null}
       </dd>
     </div>
   );

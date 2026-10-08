@@ -6,6 +6,7 @@ export { buttonClass, type ButtonKind, type ButtonSize } from "./button-class";
 export { fieldBox, fieldEdge, linkClass, menuClass, menuItemClass, oneLine, popoverClass, ring, ringInset, selectItemClass, toastActionClass, tooltipClass } from "./classes";
 export { CertChip, Chip, Count, FactChip, FilterChip, StandingFilter, TypeChip, type CertState, type FactState } from "./chip";
 export { Checkbox, Field, Input, Radio, Switch } from "./fields";
+export { Define } from "./define";
 export { DateInput } from "./date-input";
 export { Select } from "./select";
 export { Segmented, Tab, TabLink, Tabs, TabsContent, TabsList, TabsMore } from "./tabs";

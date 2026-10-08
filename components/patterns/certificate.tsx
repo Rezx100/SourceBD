@@ -5,6 +5,7 @@
 
 import { FileText } from "@phosphor-icons/react/dist/ssr";
 import { CertChip, Unpublished } from "@/components/kit";
+import { define } from "@/lib/dashboard/glossary";
 import { cn } from "@/lib/utils";
 import { SourceMark, hasSourceMark } from "./source-mark";
 import { ABSENT, CERT_ORDER, certHeading, certWords, type CertSummary } from "./words";
@@ -74,7 +75,12 @@ export function CertSummaryCell({ cert }: { cert: CertSummary }) {
               <SourceMark source={b.code} />
             </span>
           ))}
-          {rest ? <span className="pl-0.5 text-xs font-medium text-ink-3">+{rest}</span> : null}
+          {rest ? (
+            // Inside the cell's aria-hidden group (its sr-only sentence already counts them), so a title, not a focusable term.
+            <span title={define("more") ?? undefined} className="pl-0.5 text-xs font-medium text-ink-3">
+              +{rest}
+            </span>
+          ) : null}
         </span>
       ) : null}
     </span>
