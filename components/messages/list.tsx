@@ -33,7 +33,7 @@ export function InboxHead({ total, counts, state, Title = "h1" }: { total: numbe
           defaultValue={state.q}
           aria-label="Search conversations"
           placeholder="Search conversations"
-          className="h-8 w-full rounded-sm border border-line-strong bg-surface pl-[34px] pr-2.5 text-base text-ink outline-none placeholder:text-ink-3 hover:border-ink-3 focus:border-brand focus:[box-shadow:inset_0_0_0_1px_theme(colors.brand)]"
+          className="h-8 w-full rounded-sm border border-line-strong bg-surface pl-[34px] pr-2.5 text-base text-ink outline-none placeholder:text-ink-3 hover:border-ink-3 focus:border-brand-ink focus:[box-shadow:inset_0_0_0_1px_theme(colors.brand-ink)]"
         />
       </form>
       {tabs.length > 1 ? (
@@ -45,7 +45,7 @@ export function InboxHead({ total, counts, state, Title = "h1" }: { total: numbe
               prefetch={false}
               aria-current={t.key === state.show ? "true" : undefined}
               className={cn(
-                "flex items-center px-3 text-sm leading-4 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand",
+                "flex items-center px-3 text-sm leading-4 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus",
                 i > 0 && "border-l border-line-strong",
                 t.key === state.show ? "bg-brand-tint font-semibold text-ink" : "font-medium text-ink-2",
               )}
@@ -72,13 +72,13 @@ export function InboxRows({ items, state, currentId }: { items: readonly ThreadI
               prefetch={false}
               aria-current={current ? "page" : undefined}
               className={cn(
-                "flex min-h-14 flex-col gap-0.5 border-b border-l-2 border-line py-3 pl-3.5 pr-4 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand max-md:pl-[14px]",
-                current ? "border-l-brand bg-brand-tint" : "border-l-transparent",
+                "flex min-h-14 flex-col gap-0.5 border-b border-l-2 border-line py-3 pl-3.5 pr-4 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus max-md:pl-[14px]",
+                current ? "border-l-brand-ink bg-brand-tint" : "border-l-transparent",
               )}
             >
               <span className="flex justify-between gap-2">
                 <span className={cn("flex min-w-0 items-center gap-2 text-base max-md:text-md", i.unread ? "font-semibold text-ink" : "font-medium text-ink")}>
-                  {i.unread ? <span aria-hidden className="size-2 shrink-0 rounded-full bg-brand" /> : null}
+                  {i.unread ? <span aria-hidden className="size-2 shrink-0 rounded-full bg-brand-ink" /> : null}
                   <span className="min-w-0">{i.name}</span>
                   {i.unread ? <span className="sr-only">, unread</span> : null}
                 </span>
@@ -109,7 +109,7 @@ export function InboxNone({ state }: { state: ListState }) {
       <p className="text-base text-ink-2">
         {state.q ? "Search by a supplier's name or the title of an RFQ." : state.show === "unread" ? "You have read everything the suppliers sent." : "Every conversation here has a reply from the supplier."}
       </p>
-      <Link href={listHref({ show: "all", q: "" })} prefetch={false} className="pt-2 text-base font-medium text-brand underline decoration-1 [text-underline-position:from-font]">
+      <Link href={listHref({ show: "all", q: "" })} prefetch={false} className="pt-2 text-base font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]">
         Show all conversations
       </Link>
     </div>

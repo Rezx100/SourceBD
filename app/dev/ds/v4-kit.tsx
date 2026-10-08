@@ -213,7 +213,7 @@ function Inputs() {
           <div className={cn(menuClass, "static w-60")}>
             <div className={selectItemClass} data-state="checked">
               United Kingdom
-              <Check size={16} className="text-brand" aria-hidden />
+              <Check size={16} className="text-brand-ink" aria-hidden />
             </div>
             <div className={selectItemClass} data-highlighted="">
               Germany
@@ -389,7 +389,7 @@ function Tables() {
         <button type="button" className={bulkActionClass(true)}>Send RFQ to 2 suppliers</button>
       </BulkBar>
       <div className="flex flex-wrap items-center gap-6">
-        <Button iconRight={CaretDown} className="border-brand bg-brand-tint hover:bg-brand-tint">Certificate: GOTS</Button>
+        <Button iconRight={CaretDown} className="border-brand-ink bg-brand-tint hover:bg-brand-tint">Certificate: GOTS</Button>
         <Button iconRight={CaretDown}>Sort: most sources</Button>
         <Button icon={Plus}>Add filter</Button>
         <p className="text-xs text-ink-3">The button shows its value. The filter panel&apos;s action reads “Show {"{n}"} suppliers”, with the real count.</p>
@@ -532,7 +532,7 @@ function Phone() {
       <div className="flex flex-wrap items-start gap-10">
         <div className="flex h-[420px] w-[390px] flex-col justify-end overflow-clip rounded-lg bg-scrim">
           <SheetPanel kind="sheet" title="Filters" close={<IconButton icon={X} label="Close" kind="quiet" size={44} />} footer={<><Button size="touch">Clear all</Button><Button kind="primary" size="touch" className="flex-1">Show 4,645 suppliers</Button></>}>
-            <div className="flex min-h-14 items-center justify-between border-b border-line"><div><p className="text-md text-ink">Certificates</p><p className="text-sm font-medium text-brand">GOTS</p></div></div>
+            <div className="flex min-h-14 items-center justify-between border-b border-line"><div><p className="text-md text-ink">Certificates</p><p className="text-sm font-medium text-brand-ink">GOTS</p></div></div>
             <div className="flex min-h-14 items-center justify-between"><div><p className="text-md text-ink">Location</p><p className="text-sm text-ink-3">Any</p></div></div>
           </SheetPanel>
         </div>

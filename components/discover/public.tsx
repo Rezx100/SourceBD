@@ -248,7 +248,7 @@ export function SortRow({ basePath, current, baseQuery }: { basePath: string; cu
 function ResultsTable({ rows }: { rows: PublicRow[] }) {
   return (
     <TableFrame className="max-md:hidden">
-      <TableScroll role="region" aria-label="Results table" tabIndex={0} className="outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand">
+      <TableScroll role="region" aria-label="Results table" tabIndex={0} className="outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
         <Table className="min-w-[860px]">
           <thead>
             <tr>

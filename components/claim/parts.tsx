@@ -24,7 +24,7 @@ export function ClaimSteps({ current }: { current: number }) {
             <span
               className={cn(
                 "mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full border text-sm font-medium",
-                done ? "border-brand bg-brand text-surface" : here ? "border-brand bg-brand-tint text-brand" : "border-line-strong text-ink-3",
+                done ? "border-brand-ink bg-brand text-surface" : here ? "border-brand-ink bg-brand-tint text-brand-ink" : "border-line-strong text-ink-3",
               )}
             >
               {i + 1}

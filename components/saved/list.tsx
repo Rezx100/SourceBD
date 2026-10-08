@@ -33,7 +33,7 @@ export function SortMenu({ view }: { view: SavedView }) {
       {SAVED_SORTS.map((o) => (
         <MenuItem key={o.value} href={savedHref({ ...view, sort: o.value as SavedSort, page: 1, open: null })}>
           <span className="flex items-center gap-2">
-            <span className="flex size-4 shrink-0 items-center justify-center">{o.value === view.sort ? <Check size={16} className="text-brand" aria-label="Sorted by" /> : null}</span>
+            <span className="flex size-4 shrink-0 items-center justify-center">{o.value === view.sort ? <Check size={16} className="text-brand-ink" aria-label="Sorted by" /> : null}</span>
             {o.label}
           </span>
         </MenuItem>
@@ -80,7 +80,7 @@ export function PhoneTabs({ tab, suppliers, searches }: { tab: Tab; suppliers: n
       prefetch={false}
       aria-current={tab === key ? "page" : undefined}
       className={cn(
-        "flex flex-1 items-center justify-center text-md outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand",
+        "flex flex-1 items-center justify-center text-md outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus",
         !first && "border-l border-line-strong",
         tab === key ? "bg-brand-tint font-semibold text-ink" : "font-medium text-ink-2",
       )}

@@ -21,7 +21,7 @@ export function trustMetadata(path: string, title: string, description: string):
   return { title, description, alternates: { canonical: `${SITE_URL}${path}` }, openGraph: { title, description, url: `${SITE_URL}${path}`, siteName: "SourceBD", locale: "en_GB", type: "website" } };
 }
 
-const mailto = "font-medium text-brand underline decoration-1 [text-underline-position:from-font]";
+const mailto = "font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]";
 const A = ({ href, children }: { href: string; children: ReactNode }) =>
   href.startsWith("mailto:") ? (
     <a href={href} className={mailto}>

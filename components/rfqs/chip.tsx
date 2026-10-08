@@ -9,7 +9,7 @@ import type { ChipTone } from "./words";
 const TONE: Record<ChipTone, string> = {
   quoted: "bg-info-tint text-info",
   waiting: "border border-line text-ink-2",
-  accepted: "bg-brand-tint text-brand",
+  accepted: "bg-brand-tint text-brand-ink",
   draft: "border border-dashed border-line-strong text-ink-3",
   closed: "border border-line text-ink-3",
 };

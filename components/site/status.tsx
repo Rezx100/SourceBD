@@ -56,7 +56,7 @@ export function StatusView({ doc, error, now = Date.now() }: { doc: StatusDoc | 
             <Display level={2} as="h1">
               System status
             </Display>
-            <Lede>When we last read each source. Built live on each visit{doc ? `, as of ${readDay(doc.generated_at)}` : ""}. Per-source dates are on the <Link href="/methodology" prefetch={false} className="font-medium text-brand underline decoration-1 [text-underline-position:from-font]">Data and methodology</Link> page.</Lede>
+            <Lede>When we last read each source. Built live on each visit{doc ? `, as of ${readDay(doc.generated_at)}` : ""}. Per-source dates are on the <Link href="/methodology" prefetch={false} className="font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]">Data and methodology</Link> page.</Lede>
           </div>
 
           {error || !doc ? (
@@ -64,7 +64,7 @@ export function StatusView({ doc, error, now = Date.now() }: { doc: StatusDoc | 
               <p className="text-md font-semibold text-ink">We could not load the status just now.</p>
               <p className="mt-1 text-md text-ink-2">
                 If this keeps happening, write to{" "}
-                <a href="mailto:support@sourcebd.net" className="font-medium text-brand underline decoration-1 [text-underline-position:from-font]">
+                <a href="mailto:support@sourcebd.net" className="font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]">
                   support@sourcebd.net
                 </a>
                 .

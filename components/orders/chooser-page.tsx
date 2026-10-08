@@ -11,7 +11,7 @@ export function ChooserPage({ fromRfqs, hint, total }: { fromRfqs: ChooserRow[];
   return (
     <section aria-label="New order" data-detail="" className="flex min-h-0 flex-1 flex-col bg-surface">
       <header className="flex flex-col gap-3 border-b border-line px-4 py-4 sm:px-6">
-        <Link href="/app/orders" prefetch={false} className="inline-flex min-h-11 w-fit items-center gap-1.5 rounded-sm text-base font-medium text-ink-2 outline-none hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:min-h-6">
+        <Link href="/app/orders" prefetch={false} className="inline-flex min-h-11 w-fit items-center gap-1.5 rounded-sm text-base font-medium text-ink-2 outline-none hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:min-h-6">
           <ArrowLeft size={16} className="shrink-0" aria-hidden />
           Back to orders
         </Link>
@@ -31,7 +31,7 @@ export function ChooserPage({ fromRfqs, hint, total }: { fromRfqs: ChooserRow[];
               <p className="text-sm text-ink-2">
                 {hint.waiting} {hint.waiting === 1 ? "quote" : "quotes"} waiting{hint.best ? ` · best ${hint.best}` : ""}
               </p>
-              <Link href={`/app/rfqs/${hint.id}`} prefetch={false} className="inline-flex w-fit text-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] hover:decoration-2 max-sm:min-h-11 max-sm:items-center">
+              <Link href={`/app/rfqs/${hint.id}`} prefetch={false} className="inline-flex w-fit text-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] hover:decoration-2 max-sm:min-h-11 max-sm:items-center">
                 Compare quotes
               </Link>
             </div>

@@ -247,7 +247,7 @@ export function InviteLinks({ invite }: { invite: Invite }) {
   return (
     <span className="flex gap-3">
       {invite.canResend ? (
-        <button type="button" disabled={busy !== null} onClick={() => resend(invite)} className={cn(link, "text-brand")}>
+        <button type="button" disabled={busy !== null} onClick={() => resend(invite)} className={cn(link, "text-brand-ink")}>
           Resend<span className="sr-only"> invite to {invite.email}</span>
         </button>
       ) : null}

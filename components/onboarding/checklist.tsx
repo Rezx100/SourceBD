@@ -20,7 +20,7 @@ function Hide({ size, label }: { size: "sm" | "touch"; label: string }) {
         type="submit"
         aria-label={label}
         title={label}
-        className={cn("flex items-center justify-center rounded-sm text-ink-3 hover:bg-sunken hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand", size === "touch" ? "size-11" : "size-6")}
+        className={cn("flex items-center justify-center rounded-sm text-ink-3 hover:bg-sunken hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus", size === "touch" ? "size-11" : "size-6")}
       >
         <X size={size === "touch" ? 18 : 14} aria-hidden />
       </button>
@@ -30,8 +30,8 @@ function Hide({ size, label }: { size: "sm" | "touch"; label: string }) {
 
 /** The mark: a ticked circle when done, a ring (brand for the next one) when not. */
 function Mark({ done, next, px }: { done: boolean; next: boolean; px: number }) {
-  if (done) return <CheckCircle size={px} weight="fill" className="shrink-0 text-brand" aria-hidden />;
-  return <span aria-hidden style={{ width: px, height: px }} className={cn("block shrink-0 rounded-full", next ? "border-[1.5px] border-brand" : "border border-line-strong")} />;
+  if (done) return <CheckCircle size={px} weight="fill" className="shrink-0 text-brand-ink" aria-hidden />;
+  return <span aria-hidden style={{ width: px, height: px }} className={cn("block shrink-0 rounded-full", next ? "border-[1.5px] border-brand-ink" : "border border-line-strong")} />;
 }
 
 export function ChecklistCard({ checklist, variant }: { checklist: Checklist; variant: "sidebar" | "phone" }) {
@@ -53,7 +53,7 @@ export function ChecklistCard({ checklist, variant }: { checklist: Checklist; va
               href={s.href}
               prefetch={false}
               className={cn(
-                "flex items-center gap-2 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+                "flex items-center gap-2 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
                 phone ? "min-h-11 gap-3 px-4 text-md" : "items-start text-sm",
                 s.done ? "text-ink-3 line-through decoration-1" : i === next ? "font-medium text-ink" : "text-ink",
               )}

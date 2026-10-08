@@ -170,10 +170,10 @@ export function CertTable({ certs, today, from, className, compact = false, leve
             </span>
             {c.documentUrl ? (
               <span className={cn("flex h-8 items-center gap-1.5", compact ? "col-start-2 row-start-2 justify-self-end" : "max-sm:order-4")}>
-                <FileText size={16} className="shrink-0 text-brand" aria-hidden />
+                <FileText size={16} className="shrink-0 text-brand-ink" aria-hidden />
                 <a
                   href={c.documentUrl}
-                  className="rounded-sm text-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand max-sm:after:absolute max-sm:after:inset-0"
+                  className="rounded-sm text-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus max-sm:after:absolute max-sm:after:inset-0"
                 >
                   {c.documentLabel ?? "Open certificate"}
                 </a>

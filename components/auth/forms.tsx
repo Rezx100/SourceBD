@@ -30,7 +30,7 @@ function PasswordField({ label, name, autoComplete, error, help, required = true
             onClick={() => setShown((s) => !s)}
             aria-pressed={shown}
             aria-controls={a.id}
-            className="absolute right-1 top-1/2 flex h-8 -translate-y-1/2 items-center px-2.5 text-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] max-sm:h-11"
+            className="absolute right-1 top-1/2 flex h-8 -translate-y-1/2 items-center px-2.5 text-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] max-sm:h-11"
           >
             {shown ? "Hide" : "Show"}
           </button>
@@ -237,7 +237,7 @@ export function ResendLine() {
         {left > 0 ? (
           <span>{resendLabel(left).toLowerCase()}</span>
         ) : (
-          <button type="submit" disabled={pending} className="font-medium text-brand underline decoration-1 [text-underline-position:from-font] max-sm:min-h-11">
+          <button type="submit" disabled={pending} className="font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] max-sm:min-h-11">
             {pending ? "sending" : "resend the email"}
           </button>
         )}

@@ -15,7 +15,7 @@ import { siteSummary, type SiteCard } from "./words";
 
 const SITE_PARAM = "site";
 
-const segment = "min-h-11 px-3.5 text-sm font-medium outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand sm:min-h-9";
+const segment = "min-h-11 px-3.5 text-sm font-medium outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus sm:min-h-9";
 
 export function SitesView({
   cards,
@@ -105,9 +105,9 @@ export function SitesView({
               role="switch"
               aria-checked={nearby.enabled}
               onClick={nearby.toggle}
-              className="flex min-h-11 items-center gap-2.5 rounded-sm text-sm text-ink outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:min-h-9"
+              className="flex min-h-11 items-center gap-2.5 rounded-sm text-sm text-ink outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:min-h-9"
             >
-              <span aria-hidden className={cn("flex h-5 w-9 shrink-0 items-center rounded-full p-0.5 transition-colors", nearby.enabled ? "bg-brand" : "bg-line-strong")}>
+              <span aria-hidden className={cn("flex h-5 w-9 shrink-0 items-center rounded-full p-0.5 transition-colors", nearby.enabled ? "bg-brand-ink" : "bg-line-strong")}>
                 <span className={cn("size-4 rounded-full bg-surface transition-transform", nearby.enabled && "translate-x-4")} />
               </span>
               {nearby.pending ? "Loading nearby suppliers" : "Show nearby suppliers"}

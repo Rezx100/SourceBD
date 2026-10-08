@@ -48,7 +48,7 @@ function Row({ item, current, badge }: { item: FrameItem; current: "page" | "tru
       className={cn(
         "relative flex h-10 shrink-0 items-center justify-center gap-2.5 rounded-sm text-base transition-colors duration-fast 2xl:justify-start",
         current
-          ? "rounded-l-none border-l-2 border-brand bg-brand-tint font-semibold text-ink 2xl:px-2.5"
+          ? "rounded-l-none border-l-2 border-brand-ink bg-brand-tint font-semibold text-ink 2xl:px-2.5"
           : "font-medium text-ink-2 hover:bg-sunken hover:text-ink 2xl:px-3",
         ringInset,
       )}

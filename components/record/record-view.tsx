@@ -141,7 +141,7 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
           the bar is drawn even for a record opened from a link: back is then the search itself. */}
       {page ? (
         <div data-record-bar="" className="sticky top-0 z-raised flex h-topbar-phone shrink-0 items-center border-b border-line bg-surface px-1 sm:hidden">
-          <Link href={backHref ?? "/app"} aria-label="Back to search" className="inline-flex h-touch items-center gap-0.5 rounded-sm pl-1.5 pr-3 text-md font-medium text-ink outline-none active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand">
+          <Link href={backHref ?? "/app"} aria-label="Back to search" className="inline-flex h-touch items-center gap-0.5 rounded-sm pl-1.5 pr-3 text-md font-medium text-ink outline-none active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
             <CaretLeft size={24} className="shrink-0" aria-hidden />
             Search
           </Link>
@@ -149,7 +149,7 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
       ) : null}
       {page && backHref ? (
         <div className="px-6 pt-3 max-sm:hidden lg:px-8">
-          <Link href={backHref} className="inline-flex min-h-6 items-center gap-1.5 rounded-sm text-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+          <Link href={backHref} className="inline-flex min-h-6 items-center gap-1.5 rounded-sm text-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
             <CaretLeft size={14} className="shrink-0" aria-hidden />
             Back to results
           </Link>
@@ -162,7 +162,7 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
           <Title className="min-w-0 flex-1 basis-60 text-xl font-semibold tracking-tight text-ink [overflow-wrap:anywhere]">{model.name}</Title>
           <div className="flex shrink-0 items-center gap-2">
             {!page ? (
-              <Link href={expandHref} className="rounded-sm p-1.5 text-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand max-sm:hidden">
+              <Link href={expandHref} className="rounded-sm p-1.5 text-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus max-sm:hidden">
                 Open full page
               </Link>
             ) : null}

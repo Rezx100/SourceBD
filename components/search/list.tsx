@@ -159,7 +159,7 @@ export function ResultsEmpty({
         <ul className="flex flex-col gap-1 text-base">
           {options.slice(1).map((o) => (
             <li key={o.e.dropped}>
-              <Link href={discoverHref(o.without)} className="rounded-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] hover:decoration-2">
+              <Link href={discoverHref(o.without)} className="rounded-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] hover:decoration-2">
                 Remove {o.words} · {formatCount(o.e.remaining)} {o.e.remaining === 1 ? "supplier" : "suppliers"}
               </Link>
             </li>
@@ -169,7 +169,7 @@ export function ResultsEmpty({
       {n > 0 ? (
         <p className="pt-2 text-sm text-ink-3">
           Or{" "}
-          <Link href={saveHref} className="rounded-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] hover:decoration-2">
+          <Link href={saveHref} className="rounded-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] hover:decoration-2">
             save this search
           </Link>{" "}
           to hear when a supplier starts to match it.

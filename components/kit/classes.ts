@@ -4,15 +4,15 @@ import { cn } from "@/lib/utils";
 
 /** Focus-visible, drawn once on the Buttons board: a 2px brand ring, 2px off the control. Keyboard only. */
 export const ring =
-  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 /** The same ring drawn inside a row that fills its box (menu items, tabs), so a neighbour never clips it. */
 export const ringInset =
-  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand";
+  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus";
 
 /** A field's focus and error are a 2px edge: the 1px border plus a 1px inner line, so nothing shifts. */
 export const fieldEdge =
-  "outline-none focus:border-brand focus:[box-shadow:inset_0_0_0_1px_theme(colors.brand)] aria-[invalid=true]:border-danger aria-[invalid=true]:[box-shadow:inset_0_0_0_1px_theme(colors.danger)]";
+  "outline-none focus:border-brand-ink focus:[box-shadow:inset_0_0_0_1px_theme(colors.brand-ink)] aria-[invalid=true]:border-danger aria-[invalid=true]:[box-shadow:inset_0_0_0_1px_theme(colors.danger)]";
 
 /** A control's resting edge, hover edge and disabled fill (inputs, selects). */
 export const fieldBox =
@@ -20,7 +20,7 @@ export const fieldBox =
 
 /** A link in text and rows: brand, underlined 1px, 2px on hover (Buttons board, "Link"). */
 export const linkClass =
-  "rounded-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] hover:text-brand-hover hover:decoration-2 active:text-brand-active aria-disabled:pointer-events-none aria-disabled:text-disabled " +
+  "rounded-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] hover:decoration-2 aria-disabled:pointer-events-none aria-disabled:text-disabled " +
   ring;
 
 // Shared by client and server files: a class string exported from a "use client" file reaches a server file as a reference, not a string.

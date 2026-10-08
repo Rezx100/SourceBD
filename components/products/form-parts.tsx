@@ -52,7 +52,7 @@ export function ChipInput({ id, values, onChange, placeholder, label }: { id: st
     }
   };
   return (
-    <div className={cn(fieldBox, "flex min-h-control min-w-0 flex-wrap items-center gap-1 px-1 py-[3px] focus-within:border-brand focus-within:[box-shadow:inset_0_0_0_1px_theme(colors.brand)] max-md:min-h-input-touch")}>
+    <div className={cn(fieldBox, "flex min-h-control min-w-0 flex-wrap items-center gap-1 px-1 py-[3px] focus-within:border-brand-ink focus-within:[box-shadow:inset_0_0_0_1px_theme(colors.brand-ink)] max-md:min-h-input-touch")}>
       {values.map((t, i) => (
         <span key={t} className="inline-flex h-6 items-center gap-0.5 rounded-sm border border-line bg-subtle pl-2 pr-0.5 text-sm text-ink">
           {t}
@@ -60,7 +60,7 @@ export function ChipInput({ id, values, onChange, placeholder, label }: { id: st
             type="button"
             aria-label={`Remove ${t}`}
             onClick={() => onChange(values.filter((_, j) => j !== i))}
-            className="grid size-5 place-items-center rounded-sm text-ink-3 outline-none hover:bg-sunken hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand max-md:size-8"
+            className="grid size-5 place-items-center rounded-sm text-ink-3 outline-none hover:bg-sunken hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus max-md:size-8"
           >
             <X size={12} aria-hidden />
           </button>
@@ -90,7 +90,7 @@ export function RowsTable<K extends string>({ label, columns, rows, onChange, bl
     <div className="flex flex-col gap-3">
       {rows.length > 0 ? (
         <>
-          <div role="region" aria-label={label} tabIndex={0} className="overflow-x-auto rounded-md border border-line outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand max-md:hidden">
+          <div role="region" aria-label={label} tabIndex={0} className="overflow-x-auto rounded-md border border-line outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus max-md:hidden">
             <table className="w-full min-w-[640px] border-separate border-spacing-0 text-left text-base">
               <thead>
                 <tr className="bg-subtle text-xs font-medium text-ink-3">

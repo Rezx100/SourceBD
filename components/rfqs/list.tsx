@@ -72,8 +72,8 @@ export function RfqPaneRows({ items, tab, sort, currentId }: { items: readonly L
               scroll={false}
               aria-current={current ? "true" : undefined}
               className={cn(
-                "flex min-h-14 items-start gap-3 border-b border-l-2 border-line py-2.5 pl-3.5 pr-4 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand",
-                current ? "border-l-brand bg-brand-tint" : "border-l-transparent",
+                "flex min-h-14 items-start gap-3 border-b border-l-2 border-line py-2.5 pl-3.5 pr-4 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus",
+                current ? "border-l-brand-ink bg-brand-tint" : "border-l-transparent",
               )}
             >
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -98,7 +98,7 @@ export function RfqPhoneRows({ items }: { items: readonly ListItem[] }) {
           <Link
             href={i.kind === "draft" ? `${NEW_RFQ_HREF}?draft=${encodeURIComponent(i.id)}` : `/app/rfqs/${i.id}`}
             prefetch={false}
-            className="flex min-h-11 flex-col gap-2 border-b border-line px-4 py-4 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand"
+            className="flex min-h-11 flex-col gap-2 border-b border-line px-4 py-4 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
           >
             <span className="flex items-start justify-between gap-3">
               <span className="text-md font-medium text-ink">{i.title}</span>
@@ -133,13 +133,13 @@ export function RfqPhoneRows({ items }: { items: readonly ListItem[] }) {
 export function QuotesSwitch({ current, rfqs, orders, newHref = NEW_RFQ_HREF, newLabel = "New RFQ" }: { current: "rfqs" | "orders"; rfqs: number | null; orders: number | null; newHref?: string; newLabel?: string }) {
   const tile = (on: boolean) =>
     cn(
-      "flex h-11 flex-1 items-center justify-center rounded-md text-md font-medium outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+      "flex h-11 flex-1 items-center justify-center rounded-md text-md font-medium outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
       on ? "border border-line-strong bg-surface text-ink" : "text-ink-2",
     );
   return (
     <div className="flex flex-col gap-3 px-4 pb-3 pt-3 md:hidden">
       <div className="flex justify-end">
-        <Link href={newHref} prefetch={false} className="inline-flex min-h-11 items-center rounded-sm px-1 text-md font-semibold text-brand outline-none hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+        <Link href={newHref} prefetch={false} className="inline-flex min-h-11 items-center rounded-sm px-1 text-md font-semibold text-brand-ink outline-none hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
           {newLabel}
         </Link>
       </div>
@@ -171,7 +171,7 @@ export function RfqEmpty() {
         <ul className="flex flex-col gap-3">
           {PROMISES.map((p) => (
             <li key={p} className="flex items-start gap-3 text-base text-ink-2">
-              <Check size={20} className="mt-px shrink-0 text-brand" aria-hidden />
+              <Check size={20} className="mt-px shrink-0 text-brand-ink" aria-hidden />
               {p}
             </li>
           ))}
