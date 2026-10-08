@@ -131,9 +131,12 @@ describe("the frame a buyer receives", () => {
   });
 
   it("a badge is a mono figure in a pill, its words in the row's accessible name, and a dot on the phone tab", () => {
-    const html = frame("/app", { compliance: { text: "2 to check", tone: "danger" } });
+    const html = frame("/app", { compliance: { text: "2 to check", tone: "caution" } });
     assert.match(html, /Compliance<span class="sr-only">, 2 to check<\/span>/);
-    assert.match(html, /class="hidden h-5 shrink-0 items-center rounded-md px-1\.5 font-mono text-xs font-medium tabular-nums 2xl:inline-flex bg-danger-tint text-danger">2</, "the pill is the number alone");
+    // Critique of 8 Oct 2026, item 3: a count of dates that passed is caution, never danger red.
+    assert.match(html, /class="hidden h-5 shrink-0 items-center rounded-md px-1\.5 font-mono text-xs font-medium tabular-nums 2xl:inline-flex bg-caution-tint text-caution">2</, "the pill is the number alone, in caution");
+    assert.doesNotMatch(html, /bg-danger-tint|text-danger/, "red in the rail for a date that passed");
+    assert.match(html, /rounded-full border-2 border-subtle 2xl:hidden bg-caution-icon"/, "the collapsed rail's dot follows the badge's tone");
     assert.ok(!/>2 to check</.test(html), "the words are drawn, not only read");
     assert.match(html, /aria-label="Alerts, new"/);
     assert.doesNotMatch(frame("/app", { compliance: null }), /to check|Alerts, new/, "an unread count draws nothing");
@@ -141,9 +144,9 @@ describe("the frame a buyer receives", () => {
 
   // Critique of 7 Oct 2026, item 7: "Complia… 10 to check" at 232px, the topbar's icon + "Account" placeholder, "Certificates · 4" tabs.
   it("a three-digit badge cannot clip its label: the label never truncates, the pill is the figure, the words stay for a screen reader", () => {
-    const html = frame("/app", { compliance: { text: "120 to check", tone: "danger" }, messages: { text: "99+ new" } });
+    const html = frame("/app", { compliance: { text: "120 to check", tone: "caution" }, messages: { text: "99+ new" } });
     assert.match(html, /Compliance<span class="sr-only">, 120 to check<\/span>/);
-    assert.match(html, /tabular-nums 2xl:inline-flex bg-danger-tint text-danger">120</);
+    assert.match(html, /tabular-nums 2xl:inline-flex bg-caution-tint text-caution">120</);
     assert.match(html, /tabular-nums 2xl:inline-flex bg-sunken text-ink-2">99\+</);
     assert.doesNotMatch(/<nav aria-label="Main menu"[\s\S]*?<\/nav>/.exec(html)?.[0] ?? "", /truncate|text-ellipsis|line-clamp/, "a label is cut in the rail");
     assert.deepEqual([badgeFigure("120 to check"), badgeFigure("99+ new"), badgeFigure("new")], ["120", "99+", "new"]);
@@ -181,7 +184,7 @@ describe("the frame a buyer receives", () => {
       assert.deepEqual([...early.matchAll(/<a [^>]*title="([^"]+)"/g)].map((m) => m[1]).length, 8);
       assert.doesNotMatch(early, /to check|new<|Alerts, new/);
       // Settled: both counts are there, the same words as a plain object gives.
-      const late = await withPromise(Promise.resolve({ messages: { text: "2 new" }, compliance: { text: "5 to check", tone: "danger" } }));
+      const late = await withPromise(Promise.resolve({ messages: { text: "2 new" }, compliance: { text: "5 to check", tone: "caution" } }));
       assert.match(late, /Messages<span class="sr-only">, 2 new<\/span>/);
       assert.match(late, /Compliance<span class="sr-only">, 5 to check<\/span>/);
       assert.match(late, /aria-label="Alerts, new"/);

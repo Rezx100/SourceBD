@@ -41,7 +41,7 @@ export type RecordViewProps = {
 const TABULAR = "[font-variant-numeric:tabular-nums]";
 
 function Cell({ c }: { c: SummaryCell }) {
-  const Glyph = c.tone === "danger" ? XCircle : c.tone === "caution" ? Clock : null;
+  const Glyph = c.tone === "caution" ? (c.lapsed ? XCircle : Clock) : null;
   return (
     <div
       className={cn(
@@ -55,7 +55,7 @@ function Cell({ c }: { c: SummaryCell }) {
           className={cn(
             "flex items-center gap-1.5 text-md font-semibold",
             c.tone !== "sanction" && "sm:whitespace-nowrap",
-            c.tone === "danger" ? "text-danger" : c.tone === "caution" ? "text-caution" : c.tone === "sanction" ? "text-sanction" : "text-ink",
+            c.tone === "caution" ? "text-caution" : c.tone === "sanction" ? "text-sanction" : "text-ink",
           )}
         >
           {Glyph ? <Glyph size={16} weight="fill" className={cn("shrink-0", c.tone === "caution" && "text-caution-icon")} aria-hidden /> : null}

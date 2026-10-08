@@ -18,7 +18,8 @@ function Glyph({ icon: G, weight = "fill", className }: { icon: Icon; weight?: "
 const CERT = {
   valid: { box: "border-cert-valid-edge bg-surface text-cert-valid-fg", icon: CheckCircle, glyph: "text-cert-valid-fg", weight: "fill" },
   expiring: { box: "border-caution-icon bg-cert-expiring-bg text-cert-expiring-fg", icon: Clock, glyph: "text-caution-icon", weight: "fill" },
-  expired: { box: "border-danger bg-cert-expired-bg text-cert-expired-fg", icon: XCircle, glyph: "text-danger", weight: "fill" },
+  // Expired is caution like expiring (a date passed, not a failure); the XCircle keeps the two apart by shape.
+  expired: { box: "border-caution-icon bg-cert-expired-bg text-cert-expired-fg", icon: XCircle, glyph: "text-caution-icon", weight: "fill" },
   // No expiry on file is not a problem and not a pass: dashed, minus, ink-2 words.
   none: { box: "border-dashed border-cert-no-expiry-edge bg-surface font-medium text-ink-2", icon: MinusCircle, glyph: "text-cert-no-expiry-fg", weight: "regular" },
 } as const;

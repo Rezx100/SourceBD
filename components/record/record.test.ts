@@ -120,7 +120,10 @@ describe("the summary", () => {
     if (expired) assert.match(cell.value, new RegExp(`^${m.certs.length} · ${expired} expired$`));
     else if (expiring) assert.match(cell.value, new RegExp(`^${m.certs.length} · ${expiring} expiring$`));
     else assert.equal(cell.value, String(m.certs.length));
-    assert.equal(cell.tone, expired ? "danger" : expiring ? "caution" : undefined);
+    // Founder, 8 Oct 2026: a date that passed is caution, as DESIGN.md's Colors says; the XCircle keeps it apart from expiring.
+    assert.equal(cell.tone, expired || expiring ? "caution" : undefined);
+    assert.equal(cell.lapsed, expired > 0);
+    assert.notEqual(cell.tone as string, "danger");
   });
 
   it("puts the first line under the name together from the record, never from a guess", () => {

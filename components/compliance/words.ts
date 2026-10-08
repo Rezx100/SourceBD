@@ -72,9 +72,9 @@ export function attentionGroupLines(rows: readonly Pick<AttentionRow, "state" | 
   };
 }
 
-/** The sidebar's Compliance badge: "8 to check" in danger ink, nothing when none or unread, never a 0. */
-export function complianceBadge(a: Pick<Attention, "total"> | null): { text: string; tone: "danger" } | null {
-  return a && a.total > 0 ? { text: `${formatCount(a.total)} to check`, tone: "danger" } : null;
+/** The sidebar's Compliance badge: "8 to check" in caution ink (dates that passed, not a failure), nothing when none or unread, never a 0. */
+export function complianceBadge(a: Pick<Attention, "total"> | null): { text: string; tone: "caution" } | null {
+  return a && a.total > 0 ? { text: `${formatCount(a.total)} to check`, tone: "caution" } : null;
 }
 
 /** The hub's caption: "... for 11 saved suppliers". */

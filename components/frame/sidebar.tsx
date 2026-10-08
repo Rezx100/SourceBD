@@ -68,10 +68,10 @@ function Row({ item, current, badge }: { item: FrameItem; current: "page" | "tru
       </span>
       {badge ? (
         <>
-          <span aria-hidden className={cn("hidden h-5 shrink-0 items-center rounded-md px-1.5 font-mono text-xs font-medium tabular-nums 2xl:inline-flex", badge.tone === "danger" ? "bg-danger-tint text-danger" : "bg-sunken text-ink-2")}>
+          <span aria-hidden className={cn("hidden h-5 shrink-0 items-center rounded-md px-1.5 font-mono text-xs font-medium tabular-nums 2xl:inline-flex", badge.tone === "caution" ? "bg-caution-tint text-caution" : "bg-sunken text-ink-2")}>
             {badgeFigure(badge.text)}
           </span>
-          <span aria-hidden className="absolute left-1/2 top-2 ml-[5px] size-2 rounded-full border-2 border-subtle bg-danger-solid 2xl:hidden" />
+          <span aria-hidden className={cn("absolute left-1/2 top-2 ml-[5px] size-2 rounded-full border-2 border-subtle 2xl:hidden", badge.tone === "caution" ? "bg-caution-icon" : "bg-danger-solid")} />
         </>
       ) : null}
     </Link>

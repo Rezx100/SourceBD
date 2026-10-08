@@ -7,7 +7,7 @@
 import { complianceBadge } from "@/components/compliance/words";
 import { loadNeedsAttention } from "@/lib/dashboard/needs-attention";
 
-type Badge = { text: string; tone: "danger" } | null;
+type Badge = { text: string; tone: "caution" } | null;
 
 /** How long the frame waits for the count before drawing without it. */
 export const BADGE_WAIT_MS = 1500;
