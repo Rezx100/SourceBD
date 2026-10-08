@@ -4,7 +4,7 @@
 // remembered count. Everything is worked out from what `buyer_saved_list`, the two compliance
 // reads and `saved_searches` return, so nothing here says more than they hold. Pure.
 
-import { certLine, type CertLine } from "@/components/patterns/words";
+import { certLine, certSummary, type CertLine, type CertSummary } from "@/components/patterns/words";
 import { discoverWorkers, workersSecondShort } from "@/lib/dashboard/build-discover-row";
 import { certScheme, displayName, entityLabel, formatCount, formatDay, formatRelative, placeLabel } from "@/lib/dashboard/facts";
 import { SEND_RFQ_MAX } from "@/lib/dashboard/selection";
@@ -78,14 +78,14 @@ export type SavedRow = {
 export type CertRead = { kind: string; certificate_no: string | null; expires_on: string; listing_status?: string; delisted_on?: string | null; supplier: { id: string } | null };
 
 /** What the compliance reads say, by supplier: complete only when BOTH reads worked. */
-export type CertsBySupplier = { bySupplier: Map<string, { scheme: string; expiresOn: string; delistedOn?: string | null }[]>; complete: boolean };
+export type CertsBySupplier = { bySupplier: Map<string, { scheme: string; expiresOn: string; markCode?: string; delistedOn?: string | null }[]>; complete: boolean };
 
 /**
  * Group the two reads by supplier. A read that failed is `null`, and then the cells of suppliers
  * not listed say nothing: "nothing to check" is a claim an unread list cannot make.
  */
 export function groupCerts(expired: readonly CertRead[] | null, expiring: readonly CertRead[] | null): CertsBySupplier {
-  const bySupplier = new Map<string, { scheme: string; expiresOn: string; delistedOn?: string | null }[]>();
+  const bySupplier = new Map<string, { scheme: string; expiresOn: string; markCode?: string; delistedOn?: string | null }[]>();
   // A delisted certificate (0122) can come back in both reads; it counts once.
   const seen = new Set<string>();
   for (const r of [...(expired ?? []), ...(expiring ?? [])]) {
@@ -94,19 +94,21 @@ export function groupCerts(expired: readonly CertRead[] | null, expiring: readon
     if (seen.has(key)) continue;
     seen.add(key);
     const list = bySupplier.get(r.supplier.id) ?? [];
-    list.push({ scheme: certScheme(r.kind), expiresOn: r.expires_on, delistedOn: r.listing_status === "no_longer_listed" ? (r.delisted_on ?? r.expires_on) : null });
+    // The kind is the code the body's mark is filed under (`wrap`, `gots`, `oeko_tex`), so the cell draws its logo.
+    list.push({ scheme: certScheme(r.kind), expiresOn: r.expires_on, markCode: r.kind.toUpperCase(), delistedOn: r.listing_status === "no_longer_listed" ? (r.delisted_on ?? r.expires_on) : null });
     bySupplier.set(r.supplier.id, list);
   }
   return { bySupplier, complete: expired !== null && expiring !== null };
 }
 
-/** The first certificate to check: the worst one's words, "nothing to check", or that it was not read. */
-export type CertCell = { kind: "line"; line: CertLine } | { kind: "clear" } | { kind: "unread" };
+/** The certificates to check: the worst one's words and the compact cell the results draw, "nothing to check", or that it was not read. */
+export type CertCell = { kind: "line"; line: CertLine; summary: CertSummary } | { kind: "clear" } | { kind: "unread" };
 
 export function certCell(certs: CertsBySupplier | null, supplierId: string, today: Date): CertCell {
   const own = certs?.bySupplier.get(supplierId);
   const line = own && own.length ? certLine(own, today) : null;
-  if (line) return { kind: "line", line };
+  const summary = own && own.length ? certSummary(own, today) : null;
+  if (line && summary) return { kind: "line", line, summary };
   return certs?.complete ? { kind: "clear" } : { kind: "unread" };
 }
 

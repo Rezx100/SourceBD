@@ -4,11 +4,16 @@
 // Sources, then the certificates as marks and the worst one's state. A real <table>, head 36 and sticky, rows 40
 // (they grow when a name wraps: nothing is cut off). The name opens the record in the pane;
 // arrows move between rows, Enter opens, Space ticks. Hover is brand-wash, a ticked row
-// brand-tint with the 2px bar. Client: it reads the selection and handles the keys.
+// brand-tint with the 2px bar. Every row ends in the ⋯ menu Saved's rows have (Save, Send RFQ,
+// Open full page), so the two tables share one grammar. Client: it reads the selection and handles the keys.
 
+import { DotsThree } from "@phosphor-icons/react";
+import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import Link from "next/link";
+import { startTransition, useContext, useEffect, useState } from "react";
 import { CertSummaryCell, LinkPending, SanctionTag, sanctionRowClass } from "@/components/patterns";
-import { SelectCell, Table, Td, Th, Tr, Unpublished, rowLinkClass, type SortState } from "@/components/kit";
+import { IconButton, Menu, MenuItem, SelectCell, Table, Td, Th, Toast, Tr, Unpublished, rowLinkClass, toastActionClass, type SortState } from "@/components/kit";
+import { rowSaveMessage } from "@/lib/dashboard/selection";
 import { cn } from "@/lib/utils";
 import { onRowKey } from "./keys";
 import type { ResultRow } from "./model";
@@ -31,9 +36,26 @@ export function ResultsTable({
 }) {
   const sel = useSelection();
   const state = (key: "workers" | "sources"): SortState => (sort.key === key ? sort.dir : "none");
+  // Save from a row's menu: the record's Save behaviour (one request, a toast, a background refresh).
+  const router = useContext(AppRouterContext);
+  const [toast, setToast] = useState("");
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(""), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+  async function save(id: string) {
+    try {
+      const res = await fetch("/api/v1/saved", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ supplier_id: id }) });
+      setToast(res.ok ? "Saved to your list" : rowSaveMessage(res.status, true));
+      if (res.ok) startTransition(() => router?.refresh());
+    } catch {
+      setToast(rowSaveMessage("network", true));
+    }
+  }
   return (
     <div role="region" aria-label="Results table" tabIndex={0} className="relative min-w-0 overflow-x-auto outline-none xl:overflow-visible focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
-      <Table className="min-w-[860px]">
+      <Table className="min-w-[900px]">
         <thead>
           <tr>
             <SelectCell
@@ -55,6 +77,9 @@ export function ResultsTable({
               Sources
             </Th>
             <Th>Certificates</Th>
+            <th scope="col" className="sticky top-0 z-raised h-row-head w-10 border-b border-line bg-subtle p-0">
+              <span className="sr-only">Actions</span>
+            </th>
           </tr>
         </thead>
         <tbody onKeyDown={onRowKey}>
@@ -110,11 +135,35 @@ export function ResultsTable({
                     <Unpublished>No certificates found</Unpublished>
                   )}
                 </Td>
+                <td className="w-10 border-b border-line p-0 text-center align-middle">
+                  <Menu align="end" trigger={<IconButton icon={DotsThree} label={`More actions for ${r.name}`} kind="quiet" />}>
+                    {r.supplierId ? <MenuItem onSelect={() => void save(r.supplierId!)}>Save</MenuItem> : null}
+                    {r.supplierId && !r.sanctioned ? <MenuItem href={`/app/rfqs/new?supplier=${encodeURIComponent(r.supplierId)}`}>Send RFQ</MenuItem> : null}
+                    <MenuItem href={r.pageHref}>Open full page</MenuItem>
+                  </Menu>
+                </td>
               </Tr>
             );
           })}
         </tbody>
       </Table>
+      {toast ? (
+        <div className="pointer-events-none fixed inset-x-0 bottom-6 z-toast flex justify-center px-4">
+          <Toast
+            tone="brand"
+            className="pointer-events-auto"
+            action={
+              toast === "Saved to your list" ? (
+                <Link href="/app/saved" prefetch={false} className={toastActionClass}>
+                  View saved
+                </Link>
+              ) : undefined
+            }
+          >
+            {toast}
+          </Toast>
+        </div>
+      ) : null}
     </div>
   );
 }

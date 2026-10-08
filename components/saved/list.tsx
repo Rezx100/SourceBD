@@ -104,7 +104,7 @@ export function SavedPaneRows({ items, currentSlug }: { items: readonly SavedIte
     <ul>
       {items.map((i) => (
         <li key={i.id}>
-          <SupplierRow layout="pane" href={i.paneHref} name={i.name} type={i.type} place={i.place} sources={i.sources} problem={<CertCellView cell={i.cert} small />} selected={i.slug === currentSlug} />
+          <SupplierRow layout="pane" href={i.paneHref} name={i.name} type={i.type} place={i.place} sources={i.sources} problem={<CertCellView cell={i.cert} />} selected={i.slug === currentSlug} />
         </li>
       ))}
     </ul>

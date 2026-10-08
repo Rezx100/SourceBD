@@ -1,4 +1,4 @@
-// Chips (`02 Components · 3`): 24 tall, a 14px glyph and words, radius 4, 13/500. A
+// Chips (`02 Components · 3`): 24 tall, a 14px glyph and words, radius 6 (one radius for every chip and pill in the app), 13/500. A
 // problem gets colour, glyph and words; a normal state stays neutral; "not on file" is
 // dashed. Server-safe.
 
@@ -9,7 +9,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { ring } from "./classes";
 
-const CHIP = "inline-flex h-6 w-fit items-center gap-1.5 rounded-sm border px-2 text-sm font-medium";
+const CHIP = "inline-flex h-6 w-fit items-center gap-1.5 rounded-md border px-2 text-sm font-medium";
 
 function Glyph({ icon: G, weight = "fill", className }: { icon: Icon; weight?: "fill" | "regular"; className: string }) {
   return <G size={14} weight={weight} className={cn("shrink-0", className)} aria-hidden />;
@@ -61,7 +61,7 @@ export function TypeChip({ children, published = true, className }: { children: 
   return (
     <span
       className={cn(
-        "inline-flex h-6 items-center rounded-sm px-2 text-sm font-medium",
+        "inline-flex h-6 items-center rounded-md px-2 text-sm font-medium",
         published ? "bg-sunken text-ink-2" : "border border-dashed border-line-strong text-ink-3",
         className,
       )}
@@ -74,7 +74,7 @@ export function TypeChip({ children, published = true, className }: { children: 
 /** A count in nav and tabs only. Say its noun to a screen reader: `label="11 saved suppliers"`. */
 export function Count({ children, label, className }: { children: ReactNode; label?: string; className?: string }) {
   return (
-    <span aria-label={label} className={cn("inline-flex h-5 items-center rounded-sm bg-sunken px-1.5 text-xs font-medium text-ink-2", className)}>
+    <span aria-label={label} className={cn("inline-flex h-5 items-center rounded-md bg-sunken px-1.5 text-xs font-medium text-ink-2", className)}>
       {children}
     </span>
   );
@@ -97,7 +97,7 @@ export function FilterChip({
   className?: string;
 }) {
   return (
-    <span className={cn("inline-flex h-6 items-center gap-0.5 rounded-sm border border-line-strong bg-surface pl-2 text-sm font-medium text-ink hover:border-ink-3 hover:bg-subtle", className)}>
+    <span className={cn("inline-flex h-6 items-center gap-0.5 rounded-md border border-line-strong bg-surface pl-2 text-sm font-medium text-ink hover:border-ink-3 hover:bg-subtle", className)}>
       {children}
       <Link
         href={removeHref}
@@ -113,7 +113,7 @@ export function FilterChip({
 /** A filter the buyer did not choose but may undo: "Hiding sanctioned suppliers · Show them". */
 export function StandingFilter({ children, action, className }: { children: ReactNode; action: ReactNode; className?: string }) {
   return (
-    <span className={cn("inline-flex h-6 items-center gap-2 rounded-sm bg-sunken px-2 text-sm font-medium text-ink-2", className)}>
+    <span className={cn("inline-flex h-6 items-center gap-2 rounded-md bg-sunken px-2 text-sm font-medium text-ink-2", className)}>
       {children}
       {action}
     </span>

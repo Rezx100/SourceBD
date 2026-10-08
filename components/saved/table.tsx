@@ -1,30 +1,27 @@
 "use client";
 
-// The saved suppliers on a desktop (Paper `10 · Saved · 3 selected for one RFQ`): select, Supplier,
-// Type and district, Workers, Sources, the first certificate to check, Saved on, and a menu. A
+// The saved suppliers on a desktop (Paper `10 · Saved · 3 selected for one RFQ`): the results
+// table's columns and widths exactly (select, Supplier, Type, Location, Workers, Sources,
+// Certificates; the critique of 7 Oct 2026: Saved was a second, slightly different table of the
+// same entity, with Workers wrapping "Not published" at 100px), then Saved on and a menu. A
 // real <table>; the name opens the record in the pane, arrows move the row, Enter opens, Space
 // ticks (the results' keys). Ticking turns the bar above into the ink bulk bar: Remove from saved
 // and one RFQ to everyone ticked. Client: it reads the selection and handles the keys.
 
 import { DotsThree, PaperPlaneTilt } from "@phosphor-icons/react";
 import Link from "next/link";
-import { CertProblem } from "@/components/patterns";
+import { CertSummaryCell } from "@/components/patterns";
 import { BulkBar, IconButton, Menu, MenuItem, SelectCell, Table, Td, Th, Tr, Unpublished, bulkActionClass, rowLinkClass } from "@/components/kit";
 import { onRowKey } from "@/components/search/keys";
 import { SELECT_ALL_ID, useSelection } from "@/components/search/selection";
 import { SEND_RFQ_MAX, clearKeepingFocus } from "@/lib/dashboard/selection";
 import { cn } from "@/lib/utils";
 import { useRemove } from "./actions";
-import { TOO_MANY, rfqHref, typeAndPlace, type CertCell, type SavedItem } from "./words";
+import { TOO_MANY, rfqHref, type CertCell, type SavedItem } from "./words";
 
-/** The certificate cell: the worst certificate to check, nothing to check, or that it could not be read. */
-export function CertCellView({ cell, small }: { cell: CertCell; small?: boolean }) {
-  if (cell.kind === "line")
-    return (
-      <CertProblem state={cell.line.state} more={cell.line.more} small={small}>
-        {cell.line.text}
-      </CertProblem>
-    );
+/** The certificate cell: the same compact cell the results draw, nothing to check, or that it could not be read. */
+export function CertCellView({ cell }: { cell: CertCell }) {
+  if (cell.kind === "line") return <CertSummaryCell cert={cell.summary} />;
   return <Unpublished>{cell.kind === "clear" ? "Nothing to check" : "Not read just now"}</Unpublished>;
 }
 
@@ -45,15 +42,16 @@ export function SavedTable({ items, currentSlug }: { items: readonly SavedItem[]
               disabled={!sel.interactive}
               onChange={sel.toggleAllOnPage}
             />
-            <Th className="w-[330px]">Supplier</Th>
-            <Th className="w-[150px]">Type and district</Th>
-            <Th align="right" className="w-[100px]">
+            <Th className="w-80">Supplier</Th>
+            <Th className="w-[120px]">Type</Th>
+            <Th className="w-[140px]">Location</Th>
+            <Th align="right" className="w-[110px]">
               Workers
             </Th>
-            <Th align="right" className="w-[84px]">
+            <Th align="right" className="w-[90px]">
               Sources
             </Th>
-            <Th>First certificate to check</Th>
+            <Th>Certificates</Th>
             <Th className="w-[120px]">Saved on</Th>
             <th scope="col" className="sticky top-0 z-raised h-row-head w-10 border-b border-line bg-subtle p-0">
               <span className="sr-only">Actions</span>
@@ -80,7 +78,8 @@ export function SavedTable({ items, currentSlug }: { items: readonly SavedItem[]
                     {i.name}
                   </Link>
                 </Td>
-                <Td>{typeAndPlace(i)}</Td>
+                <Td>{i.type}</Td>
+                <Td>{i.place ?? <Unpublished />}</Td>
                 <Td align="right" className="tabular-nums text-ink">
                   {i.workers ?? <Unpublished />}
                   {i.workersSecond ? (
@@ -92,7 +91,8 @@ export function SavedTable({ items, currentSlug }: { items: readonly SavedItem[]
                 <Td align="right" className="tabular-nums text-ink">
                   {i.sources}
                 </Td>
-                <Td>
+                {/* The 24px marks in a 40 row: 6 above and below, not the cell's 8. */}
+                <Td className="py-1.5">
                   <CertCellView cell={i.cert} />
                 </Td>
                 <Td className="whitespace-nowrap tabular-nums">{i.savedOn ?? <Unpublished>Not dated</Unpublished>}</Td>

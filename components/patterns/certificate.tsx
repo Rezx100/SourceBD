@@ -3,7 +3,7 @@
 // urgency is read first, and the whole row opens the document (44 tall at least).
 // Server-safe; the document link is the only link, stretched over the row on a phone.
 
-import { CheckCircle, Clock, FileText, MinusCircle, XCircle } from "@phosphor-icons/react/dist/ssr";
+import { FileText } from "@phosphor-icons/react/dist/ssr";
 import { CertChip } from "@/components/kit";
 import { cn } from "@/lib/utils";
 import { SourceMark, hasSourceMark } from "./source-mark";
@@ -36,45 +36,6 @@ export function CertStateChip({ expiresOn, today, className }: { expiresOn: stri
   );
 }
 
-/**
- * The first certificate problem in a list or table row: glyph, words, "· 3 more certificates".
- * `valid` is a quiet check in ink-2, `none` the no-expiry line; with no certificates at all the row says "None found".
- */
-export function CertProblem({
-  state,
-  children,
-  more,
-  small,
-}: {
-  state: "expired" | "expiring" | "valid" | "none";
-  children: string;
-  more?: number;
-  small?: boolean;
-}) {
-  const px = small ? 12 : 14;
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      {state === "expired" ? (
-        <XCircle size={px} weight="fill" className="shrink-0 text-danger" aria-hidden />
-      ) : state === "expiring" ? (
-        <Clock size={px} weight="fill" className="shrink-0 text-caution-icon" aria-hidden />
-      ) : state === "valid" ? (
-        <CheckCircle size={px} weight="fill" className="shrink-0 text-ink-2" aria-hidden />
-      ) : (
-        <MinusCircle size={px} className="shrink-0 text-ink-3" aria-hidden />
-      )}
-      <span className={cn(small ? "text-xs" : "text-sm", state === "expired" && "font-medium text-danger", state === "expiring" && "font-medium text-caution", (state === "none" || state === "valid") && "text-ink-2")}>
-        {children}
-      </span>
-      {more ? (
-        <span className={cn("text-ink-3", small ? "text-xs" : "text-sm")}>
-          · {more} more {more === 1 ? "certificate" : "certificates"}
-        </span>
-      ) : null}
-    </span>
-  );
-}
-
 const PILL: Record<CertSummary["state"], string> = {
   expired: "bg-cert-expired-bg text-cert-expired-fg",
   expiring: "bg-cert-expiring-bg text-cert-expiring-fg",
@@ -83,11 +44,12 @@ const PILL: Record<CertSummary["state"], string> = {
 };
 
 /**
- * The certificates of a results-table row on one short line (Paper's compact certificate rows,
- * `11 · Record · v2 tiles + marks, compact certs`: a 24px mark, then the state as a pill): the
- * worst certificate's body and its state, then the other bodies' marks and "+N" for the rest.
- * A body with no approved mark is its name (the first) or part of the count (the others). Each
- * mark names its body and state on hover; a screen reader hears them all as one sentence.
+ * The one way a list or table says what a supplier's certificates are doing (the critique of
+ * 7 Oct 2026: one certificate was drawn four ways with three date forms). Results, the pane list,
+ * the phone list and Saved all call this: a 24px mark, then the state as a 6px pill in the fewest
+ * words (`certShort`), then the other bodies' marks and "+N" for the rest. The full date lives in
+ * the cell's title and its sr-only sentence, never in the pill. A body with no approved mark is
+ * its name (the first) or part of the count (the others).
  */
 export function CertSummaryCell({ cert }: { cert: CertSummary }) {
   const others = cert.others.filter((b) => hasSourceMark(b.code)).slice(0, 2);
@@ -103,7 +65,7 @@ export function CertSummaryCell({ cert }: { cert: CertSummary }) {
         ) : (
           <span className="inline-flex h-6 items-center rounded-md border border-line px-1.5 text-xs font-medium text-ink-2">{cert.first.scheme}</span>
         )}
-        <span className={cn("inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium", PILL[cert.state])}>{cert.short}</span>
+        <span className={cn("inline-flex whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-medium", PILL[cert.state])}>{cert.short}</span>
       </span>
       {others.length || rest ? (
         <span aria-hidden className="inline-flex items-center gap-1">

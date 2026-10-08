@@ -161,7 +161,11 @@ describe("the address", () => {
 describe("the first certificate to check", () => {
   it("the worst certificate speaks first, with how many more follow", () => {
     const [a, b] = items();
-    assert.deepEqual(a!.cert, { kind: "line", line: { state: "expired", text: "WRAP expired 28 May 2026", more: 0 } });
+    assert.equal(a!.cert.kind, "line");
+    assert.deepEqual((a!.cert as { line: unknown }).line, { state: "expired", text: "WRAP expired 28 May 2026", more: 0 });
+    // The same cell the results draw: the body's mark and the short state, the full date in its words.
+    const summary = (a!.cert as { summary: { short: string; words: string; first: { code: string } } }).summary;
+    assert.deepEqual([summary.short, summary.words, summary.first.code], ["Expired 28 May", "WRAP expired 28 May 2026", "WRAP"]);
     const line = (b!.cert as { kind: "line"; line: { state: string; text: string; more: number } }).line;
     assert.equal(line.state, "expiring");
     assert.match(line.text, /^GOTS expires in 4 days/);
@@ -227,10 +231,15 @@ const withSelection = (value: ReturnType<typeof selected>, el: ReactElement) => 
 describe("the table", () => {
   it("the columns in Paper's order, a real table, each name opening the record in the pane", () => {
     const out = html(createElement(SavedTable, { items: items() }));
-    assert.match(text(out), /Supplier Type and district Workers Sources First certificate to check Saved on Actions/);
+    // The results table's columns, in its order (critique of 7 Oct 2026, item 4: one grammar for the two tables).
+    assert.match(text(out), /Supplier Type Location Workers Sources Certificates Saved on Actions/);
     assert.match(out, /<table\b/);
     assert.match(out, /<a(?=[^>]*href="\/app\/saved\?open=slug-1")(?=[^>]*data-open="record")[^>]*>Tex Town Ltd/);
-    assert.match(text(out), /Tex Town Ltd Factory · Dhaka 1,408 8 WRAP expired 28 May 2026 1 Oct 2026/);
+    assert.match(text(out), /Tex Town Ltd Factory Dhaka 1,408 8 WRAP expired 28 May 2026 .*1 Oct 2026/);
+    // The certificate is the results' compact cell: the body's mark and the state as a pill, the full date in the title.
+    assert.match(out, /<td class="[^"]*py-1\.5[^"]*"><span class="flex flex-wrap[^"]*" title="WRAP expired 28 May 2026"><span class="sr-only">WRAP expired 28 May 2026<\/span>/);
+    assert.match(out, /cert\/wrap\.png/);
+    assert.match(out, /rounded-md[^"]*bg-cert-expired-bg[^"]*">Expired 28 May</);
     assert.match(text(out), /Nothing to check/);
     assert.match(out, /aria-label="Select all on this page"/);
     assert.match(out, /aria-label="More actions for Tex Town Ltd"/);
@@ -287,8 +296,9 @@ describe("the phone list", () => {
     const out = html(withSelection(selected([S1, S2]), createElement(SavedPhoneList, { items: items() })));
     assert.match(text(out), /2 selected Clear/);
     assert.match(text(out), /Remove Send one RFQ to 2/);
-    assert.match(out, /^<div class="md:hidden pb-20">/, "the last rows keep their room above the action bar");
-    assert.match(html(createElement(SavedPhoneList, { items: items() })), /^<div class="md:hidden">/);
+    // React hoists the marks' image preloads ahead of the list.
+    assert.match(out, /^(?:<link [^>]*\/>)*<div class="md:hidden pb-20">/, "the last rows keep their room above the action bar");
+    assert.match(html(createElement(SavedPhoneList, { items: items() })), /^(?:<link [^>]*\/>)*<div class="md:hidden">/);
     assert.match(out, new RegExp(`href="/app/rfqs/new\\?supplier=${S1},${S2}"`));
   });
 });
@@ -500,7 +510,7 @@ describe("/app/saved", () => {
     assert.match(text(out.html), /Suppliers · 3/);
     assert.match(text(out.html), /Saved searches · 2/);
     assert.match(out.html, /href="\/app\/searches"/);
-    assert.match(text(out.html), /Tex Town Ltd Factory · Dhaka 1,408 8 WRAP expired 28 May 2026/);
+    assert.match(text(out.html), /Tex Town Ltd Factory Dhaka 1,408 8 WRAP expired 28 May 2026/);
     assert.match(text(out.html), /GOTS expires in/);
     assert.match(text(out.html), /A\.R\. Fashion .* Nothing to check/);
     assert.doesNotMatch(out.html, /data-record-pane/);
@@ -513,7 +523,7 @@ describe("/app/saved", () => {
     const out = text((await saved()).html);
     assert.match(out, /A\.R\. Fashion .* WRAP valid until/);
     assert.doesNotMatch(out, /A\.R\. Fashion .* Nothing to check/);
-    assert.match(out, /GOTS expires in 10 days .* 1 more certificate/, "a valid one never outranks an expiring one");
+    assert.match(out, /2 certificates: GOTS expires in 10 days/, "a valid one never outranks an expiring one");
     assert.equal(rpcCalls.find((c) => c.fn === "compliance_expiring_certs")?.args?.p_window_days, 365, "the widest window the read allows, so valid certificates come back");
   });
 
