@@ -388,6 +388,29 @@ describe("the record's first screen says each fact once, with its receipt", () =
   });
 });
 
+// Critique of 7 Oct 2026, item 9: the one genuine side-tab, a second dark green and 10px text in the map's
+// popups, a 7px baseline gap between the two headers, and a summary line ~147 characters long.
+describe("the small tidy", () => {
+  it("the map's popups use the tokens, no second dark green, nothing under 12px", () => {
+    const map = readFileSync(path.join(dir, "locations-map.tsx"), "utf8");
+    assert.doesNotMatch(map, /#[0-9a-fA-F]{3,6}\b/, "a hand-typed colour in the map");
+    assert.doesNotMatch(map, /font-size:\s*(?:[0-9]|1[01])(?:\.\d+)?px|text-\[1[01]px\]|text-\[[0-9]px\]/, "text under 12px in the map");
+    assert.match(map, /import \{ light as C \} from "@\/lib\/design\/tokens";/);
+    assert.match(map, /color:\$\{C\.ink\.strong\}/);
+  });
+
+  it("the error block keeps its tint and icon and loses the side rule; the pane head shares the list bar's baseline; the summary wraps at 72", () => {
+    const feedback = readFileSync(path.join(dir, "..", "kit", "feedback.tsx"), "utf8");
+    assert.doesNotMatch(feedback, /border-left-width|border-l-danger/);
+    assert.match(feedback, /role="alert" className=\{cn\("flex flex-col items-start gap-3 rounded-md bg-danger-tint p-5"/);
+    const pane = view(model(), { mode: "pane" });
+    const head = /<header class="([^"]*)">/.exec(pane)?.[1]?.split(" ") ?? [];
+    assert.ok(head.includes("sm:pt-3") && !head.includes("sm:pt-5"), "the pane head sits 7px under the list bar's title");
+    const withSummary = view(model(aboniInput(), { summary: "A".repeat(147) }), { mode: "page" });
+    assert.match(withSummary, /<p class="max-w-\[72ch\] text-base text-ink-2">A{147}<\/p>/);
+  });
+});
+
 const pin = (confidencePct: number | null) => ({ latitude: 23.8, longitude: 90.3, confidencePct, addressStatus: "full_address" });
 const site = (address: string, kind: string, over: Partial<LocationRow> = {}): LocationRow => ({ kind, address, marks: [], alsoRecordedAs: ["PLOT 1 OLD SPELLING"], ...over });
 

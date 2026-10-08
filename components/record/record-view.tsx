@@ -166,7 +166,8 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
       ) : null}
 
       {/* On a phone's page the name and its line are the record's plate: a tonal ground under the bar, closed by a line. */}
-      <header className={cn("flex flex-col gap-1.5 px-4 pb-3 pt-3 sm:sticky sm:top-0 sm:z-raised sm:border-b sm:border-line sm:bg-surface sm:px-6", page ? "max-sm:gap-1 max-sm:border-b max-sm:border-line max-sm:bg-subtle max-sm:pb-4 max-sm:pt-4 sm:pt-3 lg:px-8" : "sm:pt-5")}>
+      {/* 12px over the name in the pane too: its baseline then meets the list bar's title beside it (56 tall, centred), instead of sitting 7px under it. */}
+      <header className={cn("flex flex-col gap-1.5 px-4 pb-3 pt-3 sm:sticky sm:top-0 sm:z-raised sm:border-b sm:border-line sm:bg-surface sm:px-6", page ? "max-sm:gap-1 max-sm:border-b max-sm:border-line max-sm:bg-subtle max-sm:pb-4 max-sm:pt-4 sm:pt-3 lg:px-8" : "sm:pt-3")}>
         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
           <Title className="min-w-0 flex-1 basis-60 text-xl font-semibold tracking-tight text-ink [overflow-wrap:anywhere]">{model.name}</Title>
           <div className="flex shrink-0 items-center gap-2">

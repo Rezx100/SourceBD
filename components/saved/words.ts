@@ -8,7 +8,7 @@ import { certLine, certSummary, type CertLine, type CertSummary } from "@/compon
 import { discoverWorkers, workersSecondShort } from "@/lib/dashboard/build-discover-row";
 import { certScheme, displayName, entityLabel, formatCount, formatDay, formatRelative, placeLabel } from "@/lib/dashboard/facts";
 import { SEND_RFQ_MAX } from "@/lib/dashboard/selection";
-import { discoverHref, parseDiscoverState, queryTitle } from "@/lib/discover-v32-state";
+import { discoverChips, discoverHref, parseDiscoverState, queryTitle } from "@/lib/discover-v32-state";
 import type { WorkersBasis } from "@/lib/enrich-discover-workers";
 import type { SavedSearchJson } from "@/lib/saved-searches";
 
@@ -189,7 +189,12 @@ export type SearchItem = {
   alert: boolean | null;
 };
 
-/** The words of a saved search's filters, from the query it kept; "All published suppliers" when it kept none. */
+/**
+ * The words of a saved search's filters, from the query it kept: "GOTS, Gazipur", not "knit · Certificate ·
+ * GOTS · Gazipur · Sanctioned hidden" (the critique of 7 Oct 2026, item 9). Each filter is its value in
+ * words; a family's name and a value that is the default (a valid certificate, sanctioned suppliers
+ * hidden) are left out. "All published suppliers" when it kept none.
+ */
 export function searchFilters(queryState: unknown): string {
   const raw = queryState && typeof queryState === "object" ? (queryState as { search?: unknown }).search : null;
   const params = typeof raw === "string" ? new URLSearchParams(raw) : new URLSearchParams();
@@ -198,7 +203,11 @@ export function searchFilters(queryState: unknown): string {
     const all = params.getAll(k);
     sp[k] = all.length > 1 ? all : (all[0] ?? "");
   }
-  return queryTitle(parseDiscoverState(sp));
+  const words = discoverChips(parseDiscoverState(sp))
+    .map((c) => c.label)
+    .filter((l) => l !== "Sanctioned hidden")
+    .map((l) => l.replace(/^Certificate · /, "").replace(/, valid$/, "").replace(/ \(any state\)$/, ""));
+  return words.length ? words.join(", ") : "All published suppliers";
 }
 
 /** The count and when it was taken: most are remembered, not live, and the row says which. */
