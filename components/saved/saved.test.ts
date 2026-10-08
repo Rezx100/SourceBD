@@ -584,7 +584,8 @@ describe("/app/searches", () => {
     base({}, { saved_searches: { data: SEARCH_ROWS, error: null, count: 2 } });
     const out = await searches();
     assert.match(text(out.html), /Saved 2 saved searches · only you see them/);
-    assert.match(out.html, /aria-current="page"[^>]*>Saved searches · 2|>Saved searches · 2<\/a>/);
+    // The count is a mono figure beside the label, read as "Saved searches · 2".
+    assert.match(out.html, />Saved searches<span class="[^"]*font-mono[^"]*"><span class="sr-only"> · <\/span>2<\/span><\/a>/);
     assert.match(text(out.html), /Suppliers · 3/);
     assert.match(text(out.html), /GOTS knit factories in Gazipur/);
     assert.match(text(out.html), /101 suppliers today/);

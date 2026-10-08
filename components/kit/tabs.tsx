@@ -1,7 +1,7 @@
 "use client";
 
-// Client: Radix's tab strip needs context. Tabs and the segmented control (`02 Components · 3`). Tabs are 40 tall with a 2px brand
-// underline; counts read "Certificates · 4". Selected, hover, default, focus-visible,
+// Client: Radix's tab strip needs context. Tabs and the segmented control (`02 Components · 3`). Tabs are 40 tall with a 2px
+// underline; a count is a mono figure beside the label (read as "Certificates · 4"). Selected, hover, default, focus-visible,
 // disabled. The selected tab never moves under "More": the page keeps it in `items`.
 
 import { CaretDown } from "@phosphor-icons/react";
@@ -16,7 +16,19 @@ const TAB =
   "flex h-10 shrink-0 items-center whitespace-nowrap border-b-2 border-transparent px-3 text-base font-medium text-ink-2 outline-none transition-colors duration-fast hover:border-line-strong hover:text-ink aria-[selected=true]:border-brand-ink aria-[selected=true]:text-ink aria-[current=page]:border-brand-ink aria-[current=page]:text-ink data-[state=active]:border-brand-ink data-[state=active]:text-ink disabled:pointer-events-none disabled:text-disabled aria-disabled:pointer-events-none aria-disabled:text-disabled focus-visible:rounded-sm focus-visible:outline-offset-[-4px] " +
   ringInset;
 
-const label = (children: ReactNode, count?: number) => (count === undefined ? children : <>{children} · {count}</>);
+/** The label and, beside it, its count in mono (DESIGN.md, Sheet tabs); a screen reader hears "Certificates · 4". */
+const label = (children: ReactNode, count?: number) =>
+  count === undefined ? (
+    children
+  ) : (
+    <>
+      {children}
+      <span className="ml-1.5 font-mono text-xs font-normal tabular-nums text-ink-3">
+        <span className="sr-only"> · </span>
+        {count}
+      </span>
+    </>
+  );
 
 /** A tab strip with its own state (arrow keys move, Home and End jump). Use `TabLink` when each tab is a page. */
 export const Tabs = T.Root;

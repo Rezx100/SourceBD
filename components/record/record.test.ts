@@ -33,7 +33,7 @@ describe("the record's tabs", () => {
   it("are six links to the same record, the open one marked, and a stranger is the Overview", () => {
     const out = view(model());
     const nav = /<nav aria-label="Record sections"[\s\S]*?<\/nav>/.exec(out)?.[0] ?? "";
-    assert.deepEqual([...nav.matchAll(/<a\b[^>]*>([\s\S]*?)<\/a>/g)].map((m) => text(m[1]!).replace(/ · \d+$/, "").trim()), TABS.map((t) => t.label));
+    assert.deepEqual([...nav.matchAll(/<a\b[^>]*>([\s\S]*?)<\/a>/g)].map((m) => text(m[1]!).trim().replace(/ · \d+$/, "")), TABS.map((t) => t.label));
     assert.equal((nav.match(/aria-current="page"/g) ?? []).length, 1);
     assert.match(nav, /<a\b[^>]*aria-current="page"[^>]*>Overview/);
     for (const t of TABS.slice(1)) assert.ok(plain(nav).includes(`tab=${t.id}`), `no link to ${t.id}`);

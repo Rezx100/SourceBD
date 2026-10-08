@@ -36,9 +36,9 @@ export function AppFrame({ account: read, badges, sidebarExtra, children }: { ac
       >
         Skip to content
       </a>
-      <FrameSidebar badges={badges} extra={sidebarExtra} />
+      <FrameSidebar badges={badges} extra={sidebarExtra} account={account} />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <FrameTopbar account={account} />
+        <FrameTopbar />
         <PhoneBar account={account} />
         <main
           id={MAIN_ID}
