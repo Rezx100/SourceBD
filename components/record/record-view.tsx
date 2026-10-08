@@ -14,15 +14,15 @@
 
 import { CaretLeft, Clock, XCircle, X } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
-import { buttonClass } from "@/components/kit";
-import { LockedContact, REFUSAL, SanctionBanner, SourceList, onFileWords, type SourceEntry } from "@/components/patterns";
+import { buttonClass, ring } from "@/components/kit";
+import { LockedContact, REFUSAL, SanctionBanner, onFileWords } from "@/components/patterns";
 import type { SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
 import { CertificatesPanel, OverviewPanel, ProductsPanel, RecordRfqs, SafetyPanel, SitesPanel, SourcesPanel } from "./panels";
 import { SourceCheckListener } from "@/components/onboarding/source-check";
 import { RecordSave } from "./save-button";
 import { SectionTabs } from "./section-tabs";
-import { TABS, dayOfWords, recordSubline, summaryCells, tabCount, type SummaryCell, type TabId } from "./words";
+import { TABS, recordSubline, summaryCells, tabCount, type SummaryCell, type TabId } from "./words";
 
 export type RecordViewProps = {
   model: SupplierSheetModel;
@@ -66,6 +66,10 @@ function Cell({ c }: { c: SummaryCell }) {
               </span>
               <span className="sr-only">{c.valueWords}</span>
             </>
+          ) : c.href ? (
+            <Link href={c.href} prefetch={false} scroll={false} className={cn("rounded-sm underline decoration-1 [text-underline-position:from-font] hover:decoration-2", ring)}>
+              {c.value}
+            </Link>
           ) : (
             c.value
           )}
@@ -106,13 +110,13 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
   // The search's own title is the page's h1 beside a pane; the sections head one level under the name.
   const Title = page ? "h1" : "h2";
   const level = page ? "h2" : "h3";
-  const cells = summaryCells(model, today);
+  // The Sources cell opens the Sources tab: the page says its sources once, there (critique of 8 Oct 2026, item 5).
+  const cells = summaryCells(model, today).map((c) => (c.key === "sources" ? { ...c, href: `${tabHref("sources")}#record-sources` } : c));
   const list = model.sanctions[0] ?? null;
   const listName = list?.list ?? "sanctions list";
   const expandHref = backHref ? `${model.fullHref}${model.fullHref.includes("?") ? "&" : "?"}back=${encodeURIComponent(backHref)}` : model.fullHref;
   const counts = model.contact.counts;
   const locked = counts ? onFileWords(counts.emails, counts.phones, counts.website, counts.representatives) : null;
-  const sources: SourceEntry[] = model.sources.map((s) => ({ source: s.mark.code, label: s.mark.label, fullName: s.name, checkedOn: dayOfWords(s.readDate) }));
 
   const actions = (
     <>
@@ -234,7 +238,6 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
           // critique of 7 Oct 2026: four screens of facts beside a card that fits in one).
           <aside aria-label="Contact and sources" className="hidden w-details shrink-0 flex-col gap-4 pt-1 lg:sticky lg:top-[var(--record-offset,0px)] lg:flex lg:self-start">
             <Contact model={model} level={level} />
-            {tab !== "sources" && sources.length > 0 ? <SourceList sources={sources} today={today} level={level} /> : null}
           </aside>
         ) : null}
       </div>
