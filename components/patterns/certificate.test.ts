@@ -72,7 +72,7 @@ describe("Saved is the same table as the results", () => {
   it("results rows end in the ⋯ menu Saved's rows have, with the same three actions", () => {
     const src = read("search", "table.tsx");
     assert.match(src, /label=\{`More actions for \$\{r\.name\}`\}/);
-    for (const item of [">Save<", ">Send RFQ<", ">Open full page<"]) assert.ok(src.includes(item), item);
+    for (const item of ["Save", "Send RFQ", "Open full page"]) assert.match(src, new RegExp(`>\s*${item}\s*<`), item);
     assert.match(read("saved", "table.tsx"), /label=\{`More actions for \$\{i\.name\}`\}/);
   });
 });
