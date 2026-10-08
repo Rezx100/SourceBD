@@ -1,7 +1,7 @@
 // One certificate component, one radius, one date form (the critique of 7 Oct 2026, item 4: one
 // certificate was drawn four ways with three date forms, and Saved was a second table of the same
-// entity). Results, the pane list, the phone list and Saved all call `CertSummaryCell`; the short
-// words live only inside its 6px pill, with the full date in the cell's title and sr-only sentence;
+// entity). Results, the pane list, the phone list and Saved all call `CertSummaryCell`: marks only,
+// lit when a certificate has lapsed or is lapsing, the full date behind a hover or a tap;
 // the record's chip shares the radius; Saved's columns are the results' columns, width for width.
 
 import assert from "node:assert/strict";
@@ -48,18 +48,29 @@ describe("one certificate component", () => {
     assert.match(read("kit", "chip.tsx"), /expired: \{ box: "border-caution-icon bg-cert-expired-bg text-cert-expired-fg", icon: XCircle/);
   });
 
-  it("the short words sit only inside a 6px pill; the full date is the cell's title and its sr-only sentence", () => {
+  // Founder, 9 Oct 2026: the pill beside the first mark read as a stray warning. Only the mark
+  // lights up; the words open on hover (desktop) or tap (touch), and never print in the row.
+  it("only the marks show; a mark with a problem lights up; the words are the title and the sr-only sentence, never printed", () => {
     const cert = certSummary(CERTS, TODAY)!;
-    const out = renderToStaticMarkup(createElement(CertSummaryCell, { cert }));
-    const full = certWords("2026-09-29", TODAY).label;
-    assert.equal(full, "Expired 29 Sep 2026");
+    assert.equal(certWords("2026-09-29", TODAY).label, "Expired 29 Sep 2026");
     assert.equal(cert.short, certShort("2026-09-29", TODAY));
-    assert.match(out, new RegExp(`title="WRAP expired 29 Sep 2026 · 2 more certificates"><span class="sr-only">3 certificates: WRAP expired 29 Sep 2026;`));
-    // Round 3, item 7: the pill carries the full sentence in its title too.
-    assert.match(out, /<span title="WRAP expired 29 Sep 2026" class="inline-flex whitespace-nowrap rounded-md [^"]*">Expired 29 Sep<\/span>/, "the pill is 6px and holds the short words");
-    assert.doesNotMatch(out, /rounded-full/);
-    // The full date is never printed: it is in the cell's title, the pill's title (round 3, item 7) and the screen reader's sentence; the pill says the short form.
-    assert.equal((out.match(/29 Sep 2026/g) ?? []).length, 3);
+    // Inside a link (the pane and phone lists) the cell is not a button: a button cannot nest in a link.
+    const still = renderToStaticMarkup(createElement(CertSummaryCell, { cert }));
+    assert.doesNotMatch(still, /<button/);
+    assert.match(still, new RegExp(`title="WRAP expired 29 Sep 2026 · 2 more certificates"><span class="sr-only">3 certificates: WRAP expired 29 Sep 2026;`));
+    // In a table it is one button over the marks that opens the details.
+    const out = renderToStaticMarkup(createElement(CertSummaryCell, { cert, reveal: true }));
+    assert.match(out, /<button type="button" aria-haspopup="dialog" aria-expanded="false"/);
+    for (const html of [still, out]) {
+      assert.doesNotMatch(html, />Expired 29 Sep</, "no pill");
+      assert.deepEqual([...html.matchAll(/data-lit="(\w+)"/g)].map((m) => m[1]), ["expired", "expiring"], "WRAP lapsed and GOTS lapsing both light up");
+      assert.match(html, /border-caution-icon/);
+      // SA8000 has no approved mark and is not the worst: it is counted, not drawn.
+      assert.match(html, />\+1</);
+    }
+    // The popover's words: every body's whole sentence, read from the source (closed, it is not rendered).
+    assert.match(read("patterns", "cert-summary.tsx"), /\{b\.words\}/);
+    assert.match(read("patterns", "cert-summary.tsx"), /onPointerEnter=\{\(e\) => e\.pointerType === "mouse" && setOpen\(true\)\}/, "a mouse opens it on hover");
   });
 
   it("the record's chip shares the radius: every chip in the kit is 6px, none 4px or a pill", () => {

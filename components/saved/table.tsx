@@ -22,8 +22,8 @@ import { useRemove } from "./actions";
 import { TOO_MANY, type CertCell, type SavedItem } from "./words";
 
 /** The certificate cell: the same compact cell the results draw, nothing to check, or that it could not be read. */
-export function CertCellView({ cell }: { cell: CertCell }) {
-  if (cell.kind === "line") return <CertSummaryCell cert={cell.summary} />;
+export function CertCellView({ cell, reveal }: { cell: CertCell; reveal?: boolean }) {
+  if (cell.kind === "line") return <CertSummaryCell cert={cell.summary} reveal={reveal} />;
   // A failed read is a sentence, not an absence: the lists were not read, so nothing is claimed.
   if (cell.kind === "unread") return <span className="text-sm text-ink-3">{ABSENT.unread}</span>;
   return <Unpublished>{ABSENT.toCheck}</Unpublished>;
@@ -102,7 +102,7 @@ export function SavedTable({ items, currentSlug }: { items: readonly SavedItem[]
                 </Td>
                 {/* The 24px marks in a 40 row: 6 above and below, not the cell's 8. */}
                 <Td className="py-1.5">
-                  <CertCellView cell={i.cert} />
+                  <CertCellView cell={i.cert} reveal />
                 </Td>
                 <Td className="whitespace-nowrap tabular-nums">{i.savedOn ?? <Unpublished>{ABSENT.dated}</Unpublished>}</Td>
                 <td className="w-10 border-b border-line p-0 text-center align-middle">

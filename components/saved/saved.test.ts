@@ -243,10 +243,11 @@ describe("the table", () => {
     assert.match(out, /<table\b/);
     assert.match(out, /<a(?=[^>]*href="\/app\/saved\?open=slug-1")(?=[^>]*data-open="record")[^>]*>Tex Town Ltd/);
     assert.match(text(out), /Tex Town Ltd Factory Dhaka 1,408 8 WRAP expired 28 May 2026 .*1 Oct 2026/);
-    // The certificate is the results' compact cell: the body's mark and the state as a pill, the full date in the title.
-    assert.match(out, /<td class="[^"]*py-1\.5[^"]*"><span class="flex flex-wrap[^"]*" title="WRAP expired 28 May 2026"><span class="sr-only">WRAP expired 28 May 2026<\/span>/);
+    // The certificate is the results' compact cell: the body's mark lit up, the words behind a hover or a tap.
+    assert.match(out, /<td class="[^"]*py-1\.5[^"]*"><button type="button" aria-haspopup="dialog"[^>]*><span class="sr-only">WRAP expired 28 May 2026<\/span>/);
     assert.match(out, /cert\/wrap\.png/);
-    assert.match(out, /rounded-md[^"]*bg-cert-expired-bg[^"]*">Expired 28 May</);
+    assert.match(out, /data-lit="expired"/);
+    assert.doesNotMatch(out, />Expired 28 May</);
     assert.match(text(out), /Nothing to check/);
     assert.match(out, /aria-label="Select all on this page"/);
     assert.match(out, /aria-label="More actions for Tex Town Ltd"/);
