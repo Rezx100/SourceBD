@@ -61,7 +61,7 @@ export function MessageList({ messages, supplierName, today }: { messages: reado
                     target="_blank"
                     rel="noopener"
                     aria-label={`Open ${a.file_name}`}
-                    className="block rounded-md outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                    className="block rounded-md outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
                   >
                     <FileChip name={a.file_name} detail={fileDetail(a)} />
                   </a>
@@ -353,7 +353,7 @@ export function ThreadLive({
             aria-describedby={error ? `${composerId}-error` : undefined}
             className={cn(
               "max-h-[9.5rem] min-h-8 flex-1 resize-none overflow-y-auto rounded-sm border border-line-strong bg-surface px-2.5 py-1.5 text-base text-ink outline-none placeholder:text-ink-3 hover:border-ink-3 disabled:bg-sunken",
-              "focus:border-brand focus:[box-shadow:inset_0_0_0_1px_theme(colors.brand)] aria-[invalid=true]:border-danger",
+              "focus:border-brand-ink focus:[box-shadow:inset_0_0_0_1px_theme(colors.brand-ink)] aria-[invalid=true]:border-danger",
               "max-md:min-h-12 max-md:rounded-md max-md:px-3 max-md:text-md",
             )}
           />

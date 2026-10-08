@@ -154,7 +154,7 @@ export function SupplierLink({ id, children }: { id: string; children: ReactNode
 /** A link to a document or a source, opened in a new tab. */
 export function OutLink({ href }: { href: string }) {
   return (
-    <a href={href} target="_blank" rel="noreferrer" className="font-mono text-sm font-medium text-brand underline decoration-1 hover:decoration-2">
+    <a href={href} target="_blank" rel="noreferrer" className="font-mono text-sm font-medium text-brand-ink underline decoration-1 hover:decoration-2">
       view
     </a>
   );

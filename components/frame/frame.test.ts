@@ -2,7 +2,7 @@
 // titles and tabs, and the markup a buyer, a keyboard and a screen reader meet.
 
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { createElement } from "react";
@@ -84,12 +84,38 @@ describe("the frame a buyer receives", () => {
     assert.match(frame("/app/rfqs/12"), /<a aria-current="true" title="RFQs and quotes"/);
   });
 
-  it("one skip link to one main, and no data-shell (B0: it turns v4's brand tint grey)", () => {
+  it("one skip link to one main, and data-shell on the root (the Spent Green Rule: ds.css turns the brand tints and link ink grey inside it)", () => {
     const html = frame("/app");
     assert.match(html, /<a href="#main-content"[^>]*>Skip to content<\/a>/);
     assert.equal((html.match(/<main [^>]*id="main-content"/g) ?? []).length, 1);
     assert.match(html, /PAGE-BODY/);
-    assert.doesNotMatch(html, /data-shell/);
+    assert.match(html, /^<div data-shell="" class="group\/shell /, "the remap in app/ds.css never runs without data-shell on the root");
+    const css = readFileSync(path.join(process.cwd(), "app", "ds.css"), "utf8");
+    const block = /\[data-shell\] \{([\s\S]*?)\}/.exec(css)?.[1] ?? "";
+    for (const v of ["--ds-brand-ink", "--ds-brand-tint", "--ds-brand-tint-strong", "--ds-brand-wash", "--ds-focus"]) assert.match(block, new RegExp(`${v}: var\\(--ds-(accent|ink|surface)`), v);
+  });
+
+  // Critique of 7 Oct 2026, item 2: 27 green elements on the record page, because the kit drew the solid
+  // `brand` on links, rings, tab underlines, bars and ticked boxes, which no remap reaches. Inside the app
+  // those take `brand-ink` (remapped to the hueless accent) and `focus` (remapped too); outside it both are
+  // brand green, so the marketing site is unchanged. Solid `brand` is the primary button and the wordmark.
+  it("spends solid brand green on the primary button and the wordmark only: no link, ring, tab, bar or box draws `brand`", () => {
+    const retired = /\b(?:[\w[\]:-]+:)?(?:text|border|border-l|outline|ring|decoration)-brand\b(?!-)(?!\/)/g;
+    const roots = ["frame", "kit", "search", "record", "patterns", "saved", "rfqs", "compliance", "messages", "orders", "settings", "headings", "onboarding"].map((d) => path.join(process.cwd(), "components", d));
+    const hits: string[] = [];
+    for (const root of roots) {
+      for (const f of readdirSync(root).filter((f) => /\.tsx?$/.test(f) && !/\.test\.ts$/.test(f))) {
+        if (f === "pane-divider.tsx") continue; // the founder's 40% green divider (6 Oct 2026), decided
+        const src = readFileSync(path.join(root, f), "utf8");
+        for (const [i, line] of src.split("\n").entries()) {
+          if (/tracking-tight text-brand 2xl:block/.test(line)) continue; // the wordmark
+          if (retired.test(line)) hits.push(`${path.basename(root)}/${f}:${i + 1}`);
+          retired.lastIndex = 0;
+        }
+      }
+    }
+    assert.deepEqual(hits, [], "a solid brand class the data-shell remap cannot reach");
+    assert.match(readFileSync(path.join(process.cwd(), "components", "kit", "button-class.ts"), "utf8"), /bg-brand text-brand-on/, "the primary button keeps brand green");
   });
 
   it("the search landing draws its own field; every other page gets the topbar's, with the query", () => {

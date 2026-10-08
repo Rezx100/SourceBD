@@ -215,7 +215,7 @@ export function SupplierProfileForm({
                       type="button"
                       onClick={() => removeCap(c)}
                       aria-label={`Remove ${c}`}
-                      className="flex size-5 items-center justify-center rounded-sm text-ink-3 outline-none hover:text-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"
+                      className="flex size-5 items-center justify-center rounded-sm text-ink-3 outline-none hover:text-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus"
                     >
                       ×
                     </button>
@@ -264,7 +264,7 @@ export function SupplierProfileForm({
           </p>
         ) : null}
         {info ? (
-          <p role="status" className="text-sm font-medium text-brand">
+          <p role="status" className="text-sm font-medium text-brand-ink">
             {info}
           </p>
         ) : null}

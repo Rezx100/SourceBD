@@ -5,7 +5,7 @@ import Link from "next/link";
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 
-export const authLinkClass = "font-medium text-brand underline decoration-1 [text-underline-position:from-font]";
+export const authLinkClass = "font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]";
 
 export function AuthLink({ href, children, className, ...rest }: ComponentProps<typeof Link>) {
   return (

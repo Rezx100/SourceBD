@@ -21,7 +21,7 @@ export function RoleTabs({ tabs }: { tabs: { key: string; label: string; panel: 
             aria-selected={on === t.key}
             aria-controls={`${id}-${t.key}`}
             onClick={() => setOn(t.key)}
-            className={cn("h-9 rounded-sm px-4 text-base font-medium outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand max-sm:h-11", on === t.key ? "bg-ink text-surface" : "text-ink-2 hover:bg-sunken")}
+            className={cn("h-9 rounded-sm px-4 text-base font-medium outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus max-sm:h-11", on === t.key ? "bg-ink text-surface" : "text-ink-2 hover:bg-sunken")}
           >
             {t.label}
           </button>

@@ -20,7 +20,7 @@ export type Level = "h2" | "h3";
 const under = (h: Level) => (h === "h2" ? "h3" : "h4");
 
 const LINK =
-  "rounded-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+  "rounded-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 const names = (xs: string[]) => (xs.length <= 1 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`);
 
@@ -62,7 +62,7 @@ function ProblemRows({ model, today, level: H }: { model: SupplierSheetModel; to
               </span>
               {c.documentUrl ? (
                 <span className="flex h-8 items-center gap-1.5 max-sm:order-4 sm:w-[124px] sm:shrink-0">
-                  <FileText size={16} className="shrink-0 text-brand" aria-hidden />
+                  <FileText size={16} className="shrink-0 text-brand-ink" aria-hidden />
                   <a href={c.documentUrl} className={cn(LINK, "text-sm max-sm:after:absolute max-sm:after:inset-0")}>
                     {c.documentLabel ?? "Open certificate"}
                   </a>
@@ -494,7 +494,7 @@ export function ProductsPanel({ model, level: H = "h3", open = false }: { model:
             <ul className="flex flex-col overflow-clip rounded-lg border border-line">
               {p.tiles.map((t) => (
                 <li key={t.hs} className="border-b border-line last:border-b-0">
-                  <Link href={model.lineHref(t.hs)} prefetch={false} scroll={false} className="flex min-h-11 items-center justify-between gap-3 px-4 py-2 hover:bg-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand">
+                  <Link href={model.lineHref(t.hs)} prefetch={false} scroll={false} className="flex min-h-11 items-center justify-between gap-3 px-4 py-2 hover:bg-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
                     <span className="flex items-baseline gap-3">
                       <span className="font-mono text-sm text-ink-2">{t.hs}</span>
                       <span className="text-base font-medium text-ink">{t.short}</span>
@@ -530,7 +530,7 @@ export function RecordRfqs({ model, level = "h3" }: { model: SupplierSheetModel;
         <ul className="flex flex-col overflow-clip rounded-lg border border-line">
           {rfqs.rows.map((r: RecordRfqRow) => (
             <li key={r.id} className="border-b border-line last:border-b-0">
-              <Link href={r.href} prefetch={false} className="flex min-h-12 flex-wrap items-center justify-between gap-x-4 gap-y-0.5 px-4 py-2 hover:bg-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand">
+              <Link href={r.href} prefetch={false} className="flex min-h-12 flex-wrap items-center justify-between gap-x-4 gap-y-0.5 px-4 py-2 hover:bg-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
                 <span className="flex flex-col">
                   <span className="text-base font-medium text-ink">{r.title}</span>
                   <span className="text-xs text-ink-3">{[r.quantity, r.sent ? `sent ${r.sent}` : null, r.shipBy ? `ship by ${r.shipBy}` : null].filter(Boolean).join(" · ")}</span>

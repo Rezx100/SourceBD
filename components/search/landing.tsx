@@ -74,7 +74,7 @@ function CommonSearches({ counts }: { counts: Promise<Record<string, number | nu
 function SearchField() {
   return (
     <Form action={DISCOVER_PATH} role="search" aria-label="Search" className="relative">
-      <div className="flex h-input-touch items-center gap-3 rounded-md border border-line-strong bg-surface pl-3.5 pr-1.5 shadow-sm transition-colors duration-fast hover:border-ink-3 focus-within:border-brand focus-within:[box-shadow:inset_0_0_0_1px_theme(colors.brand)] sm:h-14 sm:rounded-lg sm:pl-4">
+      <div className="flex h-input-touch items-center gap-3 rounded-md border border-line-strong bg-surface pl-3.5 pr-1.5 shadow-sm transition-colors duration-fast hover:border-ink-3 focus-within:border-brand-ink focus-within:[box-shadow:inset_0_0_0_1px_theme(colors.brand-ink)] sm:h-14 sm:rounded-lg sm:pl-4">
         <MagnifyingGlass size={20} className="shrink-0 text-ink-3" aria-hidden />
         <Suspense fallback={<input type="search" name="q" data-search="topbar" autoComplete="off" placeholder="Supplier, product or certificate" aria-label="Search" className="min-w-0 flex-1 bg-transparent text-md text-ink outline-none placeholder:text-ink-3" />}>
           <SearchCombobox variant="phone" placeholder="Supplier, product or certificate" shortcutTarget />
@@ -144,7 +144,7 @@ function Attention({ attention }: { attention: Attention | null }) {
         header="phone"
         footer={
           attention.total > items.length ? (
-            <Link href="/app/compliance" className="flex h-12 items-center justify-between px-4 text-md font-medium text-brand sm:hidden">
+            <Link href="/app/compliance" className="flex h-12 items-center justify-between px-4 text-md font-medium text-brand-ink sm:hidden">
               {words.seeAll}
               <CaretRight size={20} className="shrink-0 text-ink-2" aria-hidden />
             </Link>

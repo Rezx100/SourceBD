@@ -171,7 +171,7 @@ export function SupplierQuoteForm({
         </p>
       ) : null}
       {ok ? (
-        <p role="status" className="text-sm font-medium text-brand">
+        <p role="status" className="text-sm font-medium text-brand-ink">
           {ok}
         </p>
       ) : null}

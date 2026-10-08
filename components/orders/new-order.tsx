@@ -42,10 +42,10 @@ function Row({ name, line, href, onChoose, active }: { name: string; line: strin
         <span className="text-base font-medium text-ink [overflow-wrap:anywhere]">{name}</span>
         <span className="text-xs text-ink-3 max-sm:text-sm">{line}</span>
       </span>
-      <span className="shrink-0 text-sm font-medium text-brand max-sm:hidden">Choose</span>
+      <span className="shrink-0 text-sm font-medium text-brand-ink max-sm:hidden">Choose</span>
     </>
   );
-  const cls = cn("flex min-h-12 w-full items-center gap-3 px-3 py-2 text-left outline-none hover:bg-brand-wash focus-visible:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand max-sm:min-h-14", active && "bg-brand-wash");
+  const cls = cn("flex min-h-12 w-full items-center gap-3 px-3 py-2 text-left outline-none hover:bg-brand-wash focus-visible:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus max-sm:min-h-14", active && "bg-brand-wash");
   return href ? (
     <Link href={href} prefetch={false} className={cls}>
       {body}
@@ -139,7 +139,7 @@ export function SupplierChooser({ fromRfqs, total }: { fromRfqs: ChooserRow[]; t
       <label htmlFor={`${id}-q`} className="sr-only">
         Type a supplier&apos;s name
       </label>
-      <Input id={`${id}-q`} type="search" icon={MagnifyingGlass} autoFocus placeholder="Type a supplier's name" value={q} onChange={(e) => setQ(e.target.value)} className="border-brand max-sm:h-input-touch max-sm:text-md" />
+      <Input id={`${id}-q`} type="search" icon={MagnifyingGlass} autoFocus placeholder="Type a supplier's name" value={q} onChange={(e) => setQ(e.target.value)} className="border-brand-ink max-sm:h-input-touch max-sm:text-md" />
       {note ? <p role="alert" className="text-sm font-medium text-danger">{note}</p> : null}
       <div className="flex flex-col overflow-clip rounded-md border border-line bg-surface">
         {rfqRows.length > 0 ? (
@@ -167,7 +167,7 @@ export function SupplierChooser({ fromRfqs, total }: { fromRfqs: ChooserRow[]; t
         {term && found === "failed" ? <p className="border-b border-line px-3 py-3 text-sm text-ink-3">The search could not run just now. Try again in a moment.</p> : null}
         {term && found !== null && found !== "failed" && rfqRows.length + savedRows.length + searchRows.length === 0 ? <p className="px-3 py-3 text-base text-ink-3">No supplier by that name.</p> : null}
         {!term && rfqRows.length + savedRows.length === 0 && saved !== null ? <p className="px-3 py-3 text-base text-ink-3">You have not asked or saved a supplier yet. Type a name to search.</p> : null}
-        <p className="flex min-h-11 items-center gap-2 px-3 text-sm font-medium text-brand">
+        <p className="flex min-h-11 items-center gap-2 px-3 text-sm font-medium text-brand-ink">
           <MagnifyingGlass size={16} aria-hidden />
           {total ? `Type to search all ${total.toLocaleString("en-GB")} suppliers` : "Type to search all suppliers"}
         </p>
@@ -231,7 +231,7 @@ export function OrderForm({ seed, prefill, cancelHref, backLabel, changeHref }: 
   return (
     <section aria-label="New order" data-detail="" onKeyDown={(e) => ((e.metaKey || e.ctrlKey) && e.key === "Enter" ? (e.preventDefault(), void create()) : undefined)} className="flex min-h-0 flex-1 flex-col bg-surface">
       <header className="flex flex-col gap-3 border-b border-line px-4 py-4 sm:px-6">
-        <Link href={cancelHref} prefetch={false} className="inline-flex min-h-11 w-fit items-center gap-1.5 rounded-sm text-base font-medium text-ink-2 outline-none hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:min-h-6">
+        <Link href={cancelHref} prefetch={false} className="inline-flex min-h-11 w-fit items-center gap-1.5 rounded-sm text-base font-medium text-ink-2 outline-none hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:min-h-6">
           <ArrowLeft size={16} className="shrink-0" aria-hidden />
           {backLabel}
         </Link>

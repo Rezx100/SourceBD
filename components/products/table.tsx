@@ -43,7 +43,7 @@ function RowMenu({ row, className }: { row: ProductRow; className?: string }) {
 
 export function ProductTable({ rows }: { rows: readonly ProductRow[] }) {
   return (
-    <div role="region" aria-label="Products table" tabIndex={0} className="relative min-w-0 overflow-x-auto outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand">
+    <div role="region" aria-label="Products table" tabIndex={0} className="relative min-w-0 overflow-x-auto outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
       <Table className="min-w-[860px]">
         <thead>
           <tr>
@@ -92,7 +92,7 @@ export function ProductPhoneList({ rows }: { rows: readonly ProductRow[] }) {
         const moq = moqWords(r.moq);
         return (
           <li key={r.id} className="flex gap-1 border-b border-line py-3 pl-4 pr-1">
-            <Link href={openHref(r.id)} prefetch={false} className="flex min-h-11 min-w-0 flex-1 flex-col gap-1 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+            <Link href={openHref(r.id)} prefetch={false} className="flex min-h-11 min-w-0 flex-1 flex-col gap-1 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
               <span className="text-md font-medium text-ink">{r.name}</span>
               <span className="flex flex-wrap items-center gap-2">
                 <StatusChip status={r.status} />

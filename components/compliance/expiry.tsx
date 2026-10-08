@@ -34,7 +34,7 @@ export function ExpiryHead({ groups, saved, show, download }: { groups: ExpiryGr
                 prefetch={false}
                 aria-current={t.show === show ? "true" : undefined}
                 className={cn(
-                  "flex items-center px-3 text-sm leading-4 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand",
+                  "flex items-center px-3 text-sm leading-4 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus",
                   i > 0 && "border-l border-line-strong",
                   t.show === show ? "bg-brand-tint font-semibold text-ink" : "font-medium text-ink-2",
                 )}
@@ -158,12 +158,12 @@ export function ExpiryNone({ show, anyRead }: { show: ExpiryShow; anyRead: boole
             : "Every certificate on your saved suppliers is in another group."}
       </p>
       {!anyRead ? (
-        <Link href={expiryHref(show)} prefetch={false} className="pt-2 text-base font-medium text-brand underline decoration-1 [text-underline-position:from-font]">
+        <Link href={expiryHref(show)} prefetch={false} className="pt-2 text-base font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]">
           Try again
         </Link>
       ) : null}
       {show === "all" || !anyRead ? null : (
-        <Link href={expiryHref("all")} prefetch={false} className="pt-2 text-base font-medium text-brand underline decoration-1 [text-underline-position:from-font]">
+        <Link href={expiryHref("all")} prefetch={false} className="pt-2 text-base font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]">
           Show every certificate
         </Link>
       )}

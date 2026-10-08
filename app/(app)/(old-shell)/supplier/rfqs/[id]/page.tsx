@@ -305,7 +305,7 @@ function RfqListPane({
               href={`/supplier/rfqs/${r.id}`}
               aria-current={r.id === activeId ? "page" : undefined}
               className={cn(
-                "flex flex-col gap-1 px-3 py-2.5 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand",
+                "flex flex-col gap-1 px-3 py-2.5 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus",
                 r.id === activeId && "bg-brand-tint",
               )}
             >

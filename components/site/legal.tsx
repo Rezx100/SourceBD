@@ -21,7 +21,7 @@ const body = [
   "[&_p]:text-md [&_p]:leading-relaxed [&_p]:text-ink-2 [&_p+p]:mt-3 [&_h2+p]:mt-3",
   "[&_ul]:mt-3 [&_ul]:flex [&_ul]:list-disc [&_ul]:flex-col [&_ul]:gap-1.5 [&_ul]:pl-5 [&_ul]:text-md [&_ul]:text-ink-2 [&_ol]:mt-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:text-md [&_ol]:text-ink-2",
   "[&_strong]:font-semibold [&_strong]:text-ink",
-  "[&_a]:font-medium [&_a]:text-brand [&_a]:underline [&_a]:decoration-1 [&_a:hover]:text-brand-hover [&_a]:[text-underline-position:from-font]",
+  "[&_a]:font-medium [&_a]:text-brand-ink [&_a]:underline [&_a]:decoration-1 [&_a:hover]:text-brand-hover [&_a]:[text-underline-position:from-font]",
   "[&_code]:rounded-sm [&_code]:bg-sunken [&_code]:px-1 [&_code]:font-mono [&_code]:text-sm [&_code]:text-ink",
   "[&_table]:mt-4 [&_table]:w-full [&_table]:border-collapse [&_table]:text-left [&_table]:text-md [&_thead]:border-b [&_thead]:border-ink [&_th]:py-2 [&_th]:pr-4 [&_th]:text-sm [&_th]:font-medium [&_th]:text-ink-3 [&_td]:py-3 [&_td]:pr-4 [&_td]:align-top [&_td]:text-ink-2 [&_tbody_tr]:border-b [&_tbody_tr]:border-line",
   "[&_.note]:mt-4 [&_.note]:rounded-lg [&_.note]:border [&_.note]:border-line [&_.note]:bg-subtle [&_.note]:p-4 [&_.note_p]:mt-0 [&_.note_p]:text-base",

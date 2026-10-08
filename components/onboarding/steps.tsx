@@ -64,7 +64,7 @@ export function AboutForm({ name, role }: { name: string; role: JobRole | null }
               name="role"
               value={r.value}
               defaultChecked={role === r.value}
-              className={cn("min-h-12 w-full gap-3 px-3 sm:min-h-10 has-[:checked]:border-l-2 has-[:checked]:border-l-brand has-[:checked]:bg-brand-tint has-[:checked]:pl-2.5 has-[:checked]:font-medium", i > 0 && "border-t border-line")}
+              className={cn("min-h-12 w-full gap-3 px-3 sm:min-h-10 has-[:checked]:border-l-2 has-[:checked]:border-l-brand-ink has-[:checked]:bg-brand-tint has-[:checked]:pl-2.5 has-[:checked]:font-medium", i > 0 && "border-t border-line")}
             >
               {r.label}
             </Radio>
@@ -87,11 +87,11 @@ export function StartPanel() {
   return (
     <>
       <p className="text-sm font-medium text-ink-3">Where you&rsquo;ll start</p>
-      <div className={cn("flex w-full max-w-[440px] flex-col gap-1 rounded-lg border-l-2 border-brand bg-surface py-4 pl-[18px] pr-5", `${picked}border-l-0 ${picked}border ${picked}border-line ${picked}bg-transparent ${picked}pl-5`)}>
+      <div className={cn("flex w-full max-w-[440px] flex-col gap-1 rounded-lg border-l-2 border-brand-ink bg-surface py-4 pl-[18px] pr-5", `${picked}border-l-0 ${picked}border ${picked}border-line ${picked}bg-transparent ${picked}pl-5`)}>
         <p className={cn("text-lg font-semibold text-ink", `${picked}text-ink-3`)}>Search</p>
         <p className={cn("text-base text-ink-2", `${picked}text-ink-3`)}>Suppliers that match what you source, with every certificate and its date.</p>
       </div>
-      <div className={cn("flex w-full max-w-[440px] flex-col gap-1 rounded-lg border border-line px-5 py-4", `${picked}border-l-2 ${picked}border-brand ${picked}bg-surface ${picked}pl-[18px]`)}>
+      <div className={cn("flex w-full max-w-[440px] flex-col gap-1 rounded-lg border border-line px-5 py-4", `${picked}border-l-2 ${picked}border-brand-ink ${picked}bg-surface ${picked}pl-[18px]`)}>
         <p className={cn("text-lg font-semibold text-ink-3", `${picked}text-ink`)}>Compliance</p>
         <p className={cn("text-base text-ink-3", `${picked}text-ink-2`)}>If you work in compliance: expired certificates and UFLPA Entity List checks on suppliers you save.</p>
       </div>
@@ -121,10 +121,10 @@ export function CompanyForm({ company, type, country, people }: { company: strin
           {COMPANY_TYPE_CHOICES.map((o) => (
             <label
               key={o.value}
-              className="flex h-8 cursor-pointer items-center gap-1.5 rounded-sm border border-line-strong px-3 text-base text-ink hover:border-ink-3 has-[:checked]:border-brand has-[:checked]:bg-brand-tint has-[:checked]:font-medium has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand max-sm:h-11"
+              className="flex h-8 cursor-pointer items-center gap-1.5 rounded-sm border border-line-strong px-3 text-base text-ink hover:border-ink-3 has-[:checked]:border-brand-ink has-[:checked]:bg-brand-tint has-[:checked]:font-medium has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus max-sm:h-11"
             >
               <input type="radio" name="type" value={o.value} checked={t === o.value} onChange={() => setT(o.value)} className="peer sr-only" />
-              <Check size={14} className="hidden shrink-0 text-brand peer-checked:block" aria-hidden />
+              <Check size={14} className="hidden shrink-0 text-brand-ink peer-checked:block" aria-hidden />
               {o.label}
             </label>
           ))}
@@ -215,7 +215,7 @@ export function SourceForm({ options, suggested, hs, certs, markets }: { options
             onChange={(e) => setQ(e.target.value)}
             aria-label="Search products or HS codes"
             placeholder="Search products or HS codes"
-            className={cn("w-full rounded-sm border border-line-strong bg-surface pl-[34px] pr-3 text-base text-ink outline-none placeholder:text-ink-3 focus:border-brand focus:[box-shadow:inset_0_0_0_1px_theme(colors.brand)]", box)}
+            className={cn("w-full rounded-sm border border-line-strong bg-surface pl-[34px] pr-3 text-base text-ink outline-none placeholder:text-ink-3 focus:border-brand-ink focus:[box-shadow:inset_0_0_0_1px_theme(colors.brand-ink)]", box)}
           />
         </div>
         <ul className="flex flex-col overflow-clip rounded-md border border-line">
