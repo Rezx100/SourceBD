@@ -26,6 +26,8 @@ export type AttentionRow = {
   supplierId: string;
   /** "WRAP 7865 expired 29 Sep 2026." */
   what: string;
+  /** The scheme `what` opens with, for its definition. */
+  scheme: string;
   /** "No renewal on file." on a lapsed certificate; "asked 3 Oct 2026" once an RFQ went to the supplier. */
   note?: string;
   /** The ask goes through the one channel a supplier answers on: an RFQ. */
@@ -55,7 +57,7 @@ function rowOf(r: AttentionCertRow, today: Date): AttentionRow | null {
   const days = daysUntil(r.expires_on, today);
   if (!r.supplier) return null;
   const name = certName(r.kind, r.certificate_no);
-  const base = { supplier: r.supplier.company_name, slug: r.supplier.slug, supplierId: r.supplier.id, askHref: `/app/rfqs/new?supplier=${encodeURIComponent(r.supplier.id)}` };
+  const base = { scheme: certScheme(r.kind), supplier: r.supplier.company_name, slug: r.supplier.slug, supplierId: r.supplier.id, askHref: `/app/rfqs/new?supplier=${encodeURIComponent(r.supplier.id)}` };
   // Its body stopped listing it (spec-etl-freshness S2): a problem whatever its date, and an
   // OEKO-TEX label has no date at all.
   if (r.listing_status === "no_longer_listed") {

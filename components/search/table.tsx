@@ -14,13 +14,28 @@ import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared
 import Link from "next/link";
 import { startTransition, useContext, useEffect, useState, type ReactNode } from "react";
 import { ABSENT, CertSummaryCell, LinkPending, SanctionTag, sanctionRowClass } from "@/components/patterns";
-import { IconButton, Menu, MenuItem, SelectCell, Table, Td, Th, Toast, Tr, Unpublished, oneLine, rowLinkClass, toastActionClass, type SortState } from "@/components/kit";
+import { Define, IconButton, Menu, MenuItem, SelectCell, Table, Td, Th, Toast, Tr, Unpublished, oneLine, rowLinkClass, toastActionClass, type SortState } from "@/components/kit";
 import { splitQualifier } from "@/lib/dashboard/facts";
+import { define } from "@/lib/dashboard/glossary";
 import { rowSaveMessage } from "@/lib/dashboard/selection";
 import { cn } from "@/lib/utils";
 import { onRowKey } from "./keys";
 import type { ResultRow } from "./model";
 import { SELECT_ALL_ID, useSelection } from "./selection";
+
+/** The Sources column's head says what it counts (round 3, item 5). */
+export const SOURCES_TITLE = "Registers and certifiers that filed something on this company";
+
+/** "793 RSC": the figure, then its source as a defined term when the glossary holds it. */
+export function SecondFigure({ short }: { short: string }) {
+  const m = /^(.*\S)\s+(\S+)$/.exec(short);
+  if (!m || !define(m[2]!)) return <>{short}</>;
+  return (
+    <>
+      {m[1]} <Define term={m[2]!} />
+    </>
+  );
+}
 
 export type ResultSort = { key: "workers" | "sources" | string; dir: "asc" | "desc" };
 
@@ -61,7 +76,7 @@ export function ResultsTable({
             <Th align="right" className="w-[110px]" sort={state("workers")} href={sortHrefs.workers}>
               Workers
             </Th>
-            <Th align="right" className="w-[90px]" sort={state("sources")} href={sortHrefs.sources}>
+            <Th align="right" className="w-[90px]" sort={state("sources")} href={sortHrefs.sources} title={SOURCES_TITLE}>
               Sources
             </Th>
             <Th>Certificates</Th>
@@ -116,7 +131,7 @@ export function ResultsTable({
                   {r.workers ?? <Unpublished />}
                   {r.workersSecond ? (
                     <span title={r.workersSecond.words} className="block text-xs text-ink-3">
-                      {r.workersSecond.short}
+                      <SecondFigure short={r.workersSecond.short} />
                     </span>
                   ) : null}
                 </Td>

@@ -9,7 +9,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { prerenderToNodeStream } from "react-dom/static";
 
-import { KEY_WORDS, SHORTCUTS, ShortcutList } from "@/components/frame/shortcuts";
+import { KEY_WORDS, SHORTCUTS, ShortcutList, installHelpKey, isHelpKey } from "@/components/frame/shortcuts";
 
 let currentPath = "/app";
 {
@@ -235,6 +235,20 @@ describe("the frame a buyer receives", () => {
     assert.match(html, /<kbd[^>]*>↓<\/kbd>/);
     assert.match(html, /<kbd[^>]*>Ctrl K<\/kbd>/);
     assert.equal((html.match(/<kbd/g) ?? []).length, SHORTCUTS.reduce((n, s) => n + s.keys.length, 0));
+  });
+
+  it("? outside a field opens the sheet, and is its first row (critique of 8 Oct 2026, round 3, item 5)", () => {
+    assert.deepEqual(SHORTCUTS[0]!.keys, ["?"]);
+    assert.equal(isHelpKey({ key: "?", target: { tagName: "DIV" } }), true);
+    assert.equal(isHelpKey({ key: "?", target: { tagName: "INPUT" } }), false, "a question mark typed in a field opened the sheet");
+    assert.equal(isHelpKey({ key: "?", ctrlKey: true, target: null }), false);
+    const added: string[] = [];
+    let opened = 0;
+    const win = { addEventListener: (t: string, fn: (e: never) => void) => { added.push(t); (fn as (e: unknown) => void)({ key: "?", target: null, preventDefault() {} }); }, removeEventListener() {} };
+    installHelpKey(win, () => opened++);
+    assert.deepEqual([added, opened], [["keydown"], 1]);
+    const topbar = readFileSync(path.join(process.cwd(), "components", "frame", "topbar.tsx"), "utf8");
+    assert.match(topbar, /useEffect\(\(\) => installHelpKey\(window as never, \(\) => setShortcuts\(true\)\), \[\]\);/, "the ? key is not bound");
   });
 
   it("an admin's account menu and phone sheet link to the console; nobody else's do (founder, 6 Oct 2026)", () => {

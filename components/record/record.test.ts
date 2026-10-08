@@ -307,6 +307,14 @@ describe("the view's rules", () => {
     for (const term of ["fixed", "Source pending", "stale read", "more", "EPB", "BGMEA", "BKMEA", "BGAPMEA", "BTMA", "GOTS", "WRAP", "OEKO-TEX"]) assert.ok(define(term), `${term} has no definition`);
     for (const [term, what] of Object.entries(GLOSSARY)) assert.ok(/^[A-Z\u201c].{40,}[.]$/.test(what), `${term}: one plain sentence, ending in a full stop`);
     assert.equal(define("nonsense"), null);
+    // Round 3, item 5: the help layer reaches the results and the composer.
+    assert.ok(define("FOB"), "FOB has no definition");
+    const table = readFileSync(path.join(process.cwd(), "components", "search", "table.tsx"), "utf8");
+    assert.match(table, /sort=\{state\("sources"\)\} href=\{sortHrefs\.sources\} title=\{SOURCES_TITLE\}/, "the Sources header has no title");
+    const composer = readFileSync(path.join(process.cwd(), "components", "rfqs", "composer.tsx"), "utf8");
+    assert.match(composer, /<Defined text=\{q\} \/>/, "the questions list does not define its terms");
+    const attention = readFileSync(path.join(process.cwd(), "components", "patterns", "attention.tsx"), "utf8");
+    assert.match(attention, /<Define term=\{it\.scheme\}>/, "an attention row's scheme is not defined");
     const page = view(m, { mode: "page", tab: "sources" });
     for (const label of ["Sanctions", "Certificates", "RSC", "Workers", "Sources"]) {
       const m2 = new RegExp(`<span tabindex="0" data-define="${label}" aria-describedby="([^"]+)"[^>]*>${label}</span>`).exec(page);

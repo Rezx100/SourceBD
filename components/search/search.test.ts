@@ -272,7 +272,7 @@ describe("the results table", () => {
 
   it("two worker figures stay two: the record's own and the other beside it, with its source in the title", () => {
     const two = plain(h(ResultsTable, { rows: [row({ workers: "3,314", workersSecond: { short: "3,166 RSC", words: "3,166 workers · RSC inspection" } })], sort: { key: "sources", dir: "desc" }, sortHrefs }));
-    assert.ok(two.includes("3,314") && two.includes("3,166 RSC") && two.includes('title="3,166 workers · RSC inspection"'));
+    assert.ok(two.includes("3,314") && /3,166 <span[^>]*data-define="RSC"[^>]*>RSC<\/span>/.test(two) && two.includes('title="3,166 workers · RSC inspection"'));
   });
 });
 
@@ -853,5 +853,13 @@ describe("the pane list is a ledger too (critique of 8 Oct 2026, round 3, item 2
     const toolbar = h(PaneListToolbar, { state: { ...EMPTY_STATE, q: "knit" }, title: "knit", hrefFor: () => "/app/discover?q=knit", filtersHref: "/app/discover?q=knit&filters=1" });
     const out = plain(h(SelectionProvider, { pageIds: ["a"] }, h(ResultsBar, { toolbar, exportHref: "/x", searchHref: "/app/discover?q=knit", pageSize: 1 })));
     assert.match(out, /filters=1/, "the pane toolbar is not the bar's face");
+  });
+});
+
+describe("the help layer in the results (critique of 8 Oct 2026, round 3, item 5)", () => {
+  it("the Workers cell's second figure names its source as a defined term, and Sources says what it counts", () => {
+    const out = plain(h(SelectionProvider, { pageIds: ["x"] }, h(ResultsTable, { rows: [row({ supplierId: "x", workersSecond: { short: "793 RSC", words: "793 workers by RSC's count" } })], sort: { key: "sources", dir: "desc" }, sortHrefs })));
+    assert.match(out, /793 <span tabindex="0" data-define="RSC"[^>]*>RSC<\/span>/);
+    assert.match(out, /<th [^>]*title="Registers and certifiers that filed something on this company"/);
   });
 });

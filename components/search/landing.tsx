@@ -141,6 +141,7 @@ function Attention({ attention }: { attention: Attention | null }) {
     state: r.state,
     supplier: r.supplier,
     what: r.what,
+    scheme: r.scheme,
     note: r.note,
     action: (
       <Link href={r.askHref} className={buttonClass({ kind: "secondary" })}>
