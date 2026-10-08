@@ -486,8 +486,20 @@ describe("buildSheet — facts panel and contact card", () => {
     // matches, not the first one.
     assert.equal(byLabel["Factory address"]!.marks?.[0]?.code, "BKMEA", "the factory row whose text is the address shown names its register");
     assert.equal(byLabel["Capacity, as filed"]!.value, "1,000,000 pcs/day");
-    assert.equal(byLabel["Established"]!.pendingSource, true);
-    assert.deepEqual(byLabel["Established"]!.marks, []);
+    // The ETL's projection map says who files what: founding year is BGMEA's, machines BGMEA's and
+    // BKMEA's, pcs/day BKMEA's. Only a register the record holds is named; the name stays pending.
+    assert.equal(byLabel["Established"]!.pendingSource, undefined);
+    assert.deepEqual(byLabel["Established"]!.marks?.map((m) => m.code), ["BGMEA"]);
+    assert.deepEqual(byLabel["Sewing machines"]!.marks?.map((m) => m.code), ["BGMEA", "BKMEA"]);
+    assert.deepEqual(byLabel["Capacity, as filed"]!.marks?.map((m) => m.code), ["BKMEA"]);
+    assert.equal(byLabel["Registered name"]!.pendingSource, true);
+    const noBgmea = aboniInput();
+    noBgmea.profile.supplier.source_tags = noBgmea.profile.supplier.source_tags.filter((t) => t !== "BGMEA");
+    noBgmea.profile.pills = noBgmea.profile.pills.filter((x) => x.source_code !== "BGMEA");
+    noBgmea.profile.provenance = noBgmea.profile.provenance.filter((x) => x.source_code !== "BGMEA");
+    const without = Object.fromEntries(buildSheet(noBgmea).facts.map((f) => [f.label, f]));
+    assert.equal(without["Established"]!.pendingSource, true, "a record without BGMEA cannot say BGMEA filed its year");
+    assert.deepEqual(without["Sewing machines"]!.marks?.map((m) => m.code), ["BKMEA"]);
     assert.equal(byLabel["Registers"]!.value, "EPB Reg BD04293 · BGAPMEA 597 · BGMEA General 3498 · BKMEA 625 - B/2002");
     assert.equal(byLabel["Registers"]!.marks?.length, 4);
     assert.equal(byLabel["Registers"]!.marks?.[0]?.href, "https://edb.epb.gov.bd/exporter/3335/aboni-knitwear-ltd");

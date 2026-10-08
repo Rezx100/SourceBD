@@ -78,13 +78,13 @@ export function Summary({ cells }: { cells: SummaryCell[] }) {
   );
 }
 
-function Contact({ model }: { model: SupplierSheetModel }) {
+function Contact({ model, level: H }: { model: SupplierSheetModel; level: "h2" | "h3" }) {
   const counts = model.contact.counts;
-  if (counts) return <LockedContact {...counts} />;
+  if (counts) return <LockedContact {...counts} level={H} />;
   // An unread count says only that the details are locked: "none on file" would be a claim.
   return (
     <section aria-label="Contact" className="flex w-full max-w-details flex-col gap-2 rounded-lg border border-line p-4">
-      <h3 className="text-base font-semibold text-ink">Contact</h3>
+      <H className="text-base font-semibold text-ink">Contact</H>
       <p className="text-sm text-ink-2">Contact details are locked. Send an RFQ and the supplier replies here.</p>
     </section>
   );
@@ -94,8 +94,9 @@ const sendClass = buttonClass({ kind: "primary" });
 
 export function RecordView({ model, mode, tab, tabHref, today, backHref = null, site = null }: RecordViewProps) {
   const page = mode === "page";
-  // The search's own title is the page's h1 beside a pane.
+  // The search's own title is the page's h1 beside a pane; the sections head one level under the name.
   const Title = page ? "h1" : "h2";
+  const level = page ? "h2" : "h3";
   const cells = summaryCells(model, today);
   const list = model.sanctions[0] ?? null;
   const listName = list?.list ?? "sanctions list";
@@ -199,19 +200,19 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
             <div key={t.id} id={`record-${t.id}`} role="region" aria-label={t.label} className="scroll-mt-[var(--record-offset,0px)]">
               {t.id === "overview" ? (
                 <div className="flex flex-col gap-5">
-                  <OverviewPanel model={model} today={today} />
-                  <RecordRfqs model={model} />
+                  <OverviewPanel model={model} today={today} level={level} />
+                  <RecordRfqs model={model} level={level} />
                 </div>
               ) : t.id === "certificates" ? (
-                <CertificatesPanel model={model} today={today} compact={!page} />
+                <CertificatesPanel model={model} today={today} compact={!page} level={level} />
               ) : t.id === "safety" ? (
-                <SafetyPanel model={model} />
+                <SafetyPanel model={model} level={level} />
               ) : t.id === "sites" ? (
-                <SitesPanel model={model} tabHref={tabHref} site={site} wide={page} />
+                <SitesPanel model={model} tabHref={tabHref} site={site} wide={page} level={level} />
               ) : t.id === "sources" ? (
-                <SourcesPanel model={model} today={today} />
+                <SourcesPanel model={model} today={today} level={level} />
               ) : (
-                <ProductsPanel model={model} />
+                <ProductsPanel model={model} level={level} open={tab === "products"} />
               )}
             </div>
           ))}
@@ -219,9 +220,11 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
         </div>
 
         {page ? (
-          <aside aria-label="Contact and sources" className="hidden w-details shrink-0 flex-col gap-4 pt-1 lg:flex">
-            <Contact model={model} />
-            {tab !== "sources" && sources.length > 0 ? <SourceList sources={sources} today={today} /> : null}
+          // The column sticks under the record's sticky head while the main column scrolls past it (the
+          // critique of 7 Oct 2026: four screens of facts beside a card that fits in one).
+          <aside aria-label="Contact and sources" className="hidden w-details shrink-0 flex-col gap-4 pt-1 lg:sticky lg:top-[var(--record-offset,0px)] lg:flex lg:self-start">
+            <Contact model={model} level={level} />
+            {tab !== "sources" && sources.length > 0 ? <SourceList sources={sources} today={today} level={level} /> : null}
           </aside>
         ) : null}
       </div>

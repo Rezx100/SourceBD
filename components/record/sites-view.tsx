@@ -24,8 +24,11 @@ export function SitesView({
   initial = null,
   wide,
   mapKey,
+  level: H = "h3",
 }: {
   cards: SiteCard[];
+  /** The heading's level: h2 on the record's page, where the name is the h1. */
+  level?: "h2" | "h3";
   slug: string;
   /** The Sites tab's own link; a card adds `site=N` to it, so the list works with no script. (A string: a function cannot cross from the server page.) */
   baseHref: string;
@@ -79,7 +82,7 @@ export function SitesView({
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <div className="flex min-w-0 flex-wrap items-baseline gap-x-3">
-          <h3 className="text-lg font-semibold text-ink">Sites · {cards.length}</h3>
+          <H className="text-lg font-semibold text-ink">Sites · {cards.length}</H>
           <p className="text-sm text-ink-2">{siteSummary(cards)}</p>
         </div>
         {mapped ? (

@@ -13,7 +13,7 @@ export { MapCard, Pin, PinLegend, SiteList, type Site } from "./locations";
 export { AcceptSummary, QuoteComparison, SampleLabel, sortQuotes, type Quote } from "./quotes";
 export { RSC_REPORTS, RscBlock, type RscBlockData, type RscReportName } from "./rsc";
 export { REFUSAL, Refusal, SanctionBanner, SanctionDropped, SanctionTag, sanctionRowClass } from "./sanction";
-export { SourceChip, SourceGroups, SourceLine, SourceList, SourceMark, SourcesCell, TIER_LABEL, tierOf, type SourceEntry } from "./source-mark";
+export { PendingMark, SourceChip, SourceGroups, SourceLine, SourceList, SourceMark, SourcesCell, TIER_LABEL, tierOf, type SourceEntry } from "./source-mark";
 export { ClaimRail, ConfirmedClaim, OpenClaim, downloadBlockedWords } from "./statement";
 export { SupplierRow } from "./supplier-row";
 export { Timeline, type Milestone } from "./timeline";

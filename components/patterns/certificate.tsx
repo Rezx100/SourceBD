@@ -127,7 +127,7 @@ const COLS_DOC = "sm:grid-cols-[minmax(0,180px)_minmax(0,1fr)_minmax(0,250px)_mi
  * The certificates of a record: heading with the count and the problems, then the rows.
  * `compact` keeps the stacked layout at every width: a docked pane is 640 wide, too narrow for four columns.
  */
-export function CertTable({ certs, today, from, className, compact = false }: { certs: CertRowData[]; today: Date; from?: string; className?: string; compact?: boolean }) {
+export function CertTable({ certs, today, from, className, compact = false, level: H = "h3" }: { certs: CertRowData[]; today: Date; from?: string; className?: string; compact?: boolean; level?: "h2" | "h3" }) {
   const rows = certs
     .map((c) => ({ c, w: certWords(c.expiresOn, today, c.delistedOn) }))
     .sort((a, b) => CERT_ORDER[a.w.state] - CERT_ORDER[b.w.state]);
@@ -136,7 +136,7 @@ export function CertTable({ certs, today, from, className, compact = false }: { 
   return (
     <section aria-label="Certificates" className={cn("flex flex-col rounded-md border border-line", className)}>
       <header className="flex min-h-12 flex-wrap items-center justify-between gap-x-4 border-b border-line px-4 py-2">
-        <h3 className="text-base font-semibold text-ink">{certHeading(rows.map((r) => r.w.state))}</h3>
+        <H className="text-base font-semibold text-ink">{certHeading(rows.map((r) => r.w.state))}</H>
         {from ? <p className="text-xs text-ink-3">{from}</p> : null}
       </header>
       <div className={cn("hidden h-9 items-center gap-4 border-b border-line bg-subtle px-4 text-xs font-medium text-ink-3", !compact && "sm:grid", !compact && cols)}>

@@ -15,7 +15,7 @@ import { buildSheet } from "@/lib/dashboard/build-models";
 import { TODAY, aboniInput, arFashionInput, longestNameInput, sanctionedInput, zaheenSampleInput } from "@/lib/dashboard/fixtures";
 import type { LocationRow, SupplierSheetModel } from "@/lib/dashboard/models";
 import { RecordView } from "@/components/record/record-view";
-import { TABS, certRows, keyFacts, needsLook, parseSite, parseTab, recordSubline, sectionInView, siteCards, siteSummary, summaryCells, tabCount } from "@/components/record/words";
+import { TABS, certRows, keyFacts, needsLook, parseSite, parseTab, pendingLegend, recordSubline, sameName, sectionInView, siteCards, siteSummary, staleWords, summaryCells, tabCount } from "@/components/record/words";
 
 const h = createElement as (type: unknown, props: object | null, ...kids: unknown[]) => ReactNode & Parameters<typeof renderToStaticMarkup>[0];
 const plain = (s: string) => s.replace(/&#x27;/g, "'").replace(/&amp;/g, "&");
@@ -80,7 +80,9 @@ describe("the summary", () => {
     const cells = summaryCells(model(), TODAY);
     assert.deepEqual(cells.map((c) => c.key), ["sanctions", "certificates", "rsc", "workers", "sources"]);
     assert.equal(cells[0]!.value, "Not listed");
-    assert.match(cells[4]!.value, /^\d+ sources?$/);
+    // The value is the figure alone under its label: "Sources · 11", never "Sources · 11 sources".
+    assert.match(cells[4]!.value, /^\d+$/);
+    assert.match(cells[3]!.value, /^[\d,]+$/);
     const out = text(view(model()));
     assert.doesNotMatch(out, /\b(score|grade|rating|stars?)\b/i);
   });
@@ -103,7 +105,7 @@ describe("the summary", () => {
     assert.equal(cells.rsc!.value, "Not covered");
     assert.equal(cells.workers!.value, "Not published");
     assert.equal(cells.workers!.sub, "ask in your RFQ");
-    assert.equal(cells.sources!.value, "1 source");
+    assert.equal(cells.sources!.value, "1");
     assert.match(cells.sources!.sub ?? "", /^BGMEA · \d{1,2} \w{3} 2026$/);
   });
 
@@ -273,6 +275,114 @@ describe("the view's rules", () => {
     }
     const out = text(view(model(arFashionInput())));
     assert.match(out, /Founded Not on file/);
+  });
+});
+
+// The critique of 7 Oct 2026 (`.impeccable/critique/2026-10-07T09-39-14Z__app-app-app.md`, item 1): the
+// record's first screen said "Source not linked yet" seven times, each head fact two or three times,
+// and jumped from h1 to h3.
+describe("the record's first screen says each fact once, with its receipt", () => {
+  it("never prints 'Source not linked yet': a fact without a register carries the pending mark and one legend", () => {
+    // Aboni holds BGMEA and BKMEA, so every figure names its register; the factory types are the one fact no register is linked to.
+    const full = keyFacts(model());
+    assert.deepEqual(full.filter((f) => f.pending).map((f) => f.label), ["Factory types"]);
+    assert.equal(full.find((f) => f.label === "Factory types")?.values[0]?.text, "Dyeing, Knit, Packaging, Woven", "the subline said Factory; the types it did not say stay");
+    assert.equal(pendingLegend(full), "Source pending · 1");
+    assert.doesNotMatch(view(model(), { mode: "page" }), /Source not linked/);
+    assert.equal(pendingLegend([]), null);
+    // Without them the machine count and the capacity are the record's but no register is linked: the mark, once each, and one legend.
+    const bare = aboniInput();
+    const gone = new Set(["BGMEA", "BKMEA"]);
+    bare.profile.supplier.source_tags = bare.profile.supplier.source_tags.filter((t) => !gone.has(t));
+    bare.profile.pills = bare.profile.pills.filter((x) => !gone.has(x.source_code));
+    bare.profile.provenance = bare.profile.provenance.filter((x) => !gone.has(x.source_code));
+    for (const mode of ["page", "pane"] as const) {
+      const out = view(model(bare), { mode });
+      assert.doesNotMatch(out, /Source not linked/, mode);
+      const facts = keyFacts(model(bare));
+      const pending = facts.filter((f) => f.pending);
+      assert.deepEqual(pending.map((f) => f.label), ["Factory types", "Sewing machines", "Capacity"]);
+      assert.ok(pending.every((f) => f.source === null), "a pending fact never also has a source sentence");
+      assert.equal(pendingLegend(facts), "Source pending · 3");
+      assert.equal((text(out).match(/Source pending · \d+/g) ?? []).length, 1, `${mode}: one legend`);
+      // One mark under each pending fact, one in the legend, one on the filed product list's heading.
+      assert.equal((out.match(/title="Source pending: /g) ?? []).length, 5, `${mode}: a mark per pending fact`);
+    }
+  });
+
+  it("marks the figures the ETL attributes to a register: founding year, machines and capacity name BGMEA or BKMEA", () => {
+    const m = model();
+    const by = Object.fromEntries(m.facts.map((f) => [f.label, f]));
+    assert.deepEqual(by["Sewing machines"]!.marks?.map((x) => x.code), ["BGMEA", "BKMEA"]);
+    assert.deepEqual(by["Capacity, as filed"]!.marks?.map((x) => x.code), ["BKMEA"]);
+    assert.match(text(view(m)), /Sewing machines 850 From BGMEA, BKMEA/);
+  });
+
+  it("starts Key facts after the subline: type, founded and parent group are said once, in the line under the name", () => {
+    const m = model();
+    const line = recordSubline(m);
+    assert.match(line, /^Factory · .* · founded 1985 · part of Babylon Group$/);
+    const labels = keyFacts(m).map((f) => f.label);
+    for (const said of ["Type", "Founded", "Parent group"]) assert.ok(!labels.includes(said), `${said} is said again under Key facts`);
+    const out = text(view(m, { mode: "page" }));
+    assert.equal((out.match(/Babylon Group/g) ?? []).length, 1, "the parent group is said once");
+    assert.equal((out.match(/1985/g) ?? []).length, 1, "the founding year is said once");
+    // A record whose subline cannot say the year still says so under Key facts.
+    assert.ok(keyFacts(model(arFashionInput())).some((f) => f.label === "Founded" && f.empty));
+  });
+
+  it("the summary strip's value is the figure alone under its label", () => {
+    const cells = Object.fromEntries(summaryCells(model(), TODAY).map((c) => [c.key, c]));
+    assert.equal(cells.workers!.value, "3,166");
+    assert.equal(cells.sources!.value, String(model().sourceCount));
+    assert.doesNotMatch(text(view(model())), /\d workers\b.*Sources|\d+ sources/);
+  });
+
+  it("one name: the registered name is the shown name whatever its case, spacing or punctuation", () => {
+    assert.ok(sameName("ABONI KNITWEAR LTD.", "Aboni Knitwear Ltd"));
+    assert.ok(sameName("S M Knitwears  Limited", "S.M. Knitwears Limited"));
+    assert.ok(!sameName("Aboni Knitwear Ltd", "Aboni Knitwear Unit-2 Ltd"));
+    const m = model();
+    assert.equal(m.name, "Aboni Knitwear Ltd");
+    assert.ok(!keyFacts(m).some((f) => f.label === "Registered name"), "ABONI KNITWEAR LTD. survives beside Aboni Knitwear Ltd");
+    assert.equal((text(view(m, { mode: "page" })).match(/aboni knitwear ltd/gi) ?? []).length, 1, "the name is on the screen once");
+  });
+
+  it("runs the headings in order: h1 then h2 on the page, h2 then h3 in the pane, never skipping a level", () => {
+    for (const [mode, first] of [["page", 1], ["pane", 2]] as const) {
+      const levels = [...view(model(), { mode, tab: "overview" }).matchAll(/<h([1-6])\b/g)].map((x) => Number(x[1]));
+      assert.equal(levels[0], first, `${mode}: the name`);
+      let prev: number = first;
+      for (const l of levels) {
+        assert.ok(l <= prev + 1, `${mode}: h${prev} jumps to h${l}`);
+        prev = l;
+      }
+      assert.ok(levels.includes(first + 1), `${mode}: the sections head one level under the name`);
+    }
+  });
+
+  it("a stale register read is an hourglass with its words, so the clock keeps one meaning (expiry)", () => {
+    assert.equal(staleWords("26 Jun 2026", new Date("2026-10-06T10:00:00Z")), "read 102 days ago");
+    assert.equal(staleWords("6 Oct 2026", new Date("2026-10-06T10:00:00Z")), null);
+    assert.equal(staleWords(null, TODAY), null);
+    const count = (m: SupplierSheetModel) => (text(view(m, { mode: "page", tab: "overview" })).match(/read \d+ days ago/g) ?? []).length;
+    const fresh = model(aboniInput(), { sources: model().sources.map((s) => ({ ...s, readDate: "17 Sep 2026" })) });
+    assert.equal(count(fresh), 0, "a fresh read is its date");
+    // One stale read: once in the Sources section and once in the page's Sources card, in the same words.
+    assert.equal(count(model(aboniInput(), { sources: fresh.sources.map((s, i) => (i === 0 ? { ...s, readDate: "26 Jun 2025" } : s)) })), 2);
+    assert.doesNotMatch(view(fresh, { mode: "page" }), /Not dated/);
+    // The glyph is Phosphor's hourglass, not the clock the certificate rows use.
+    assert.match(readFileSync(path.join(dir, "panels.tsx"), "utf8"), /Hourglass size=\{12\}/);
+    assert.doesNotMatch(readFileSync(path.join(dir, "panels.tsx"), "utf8"), /\bClock\b/);
+    assert.doesNotMatch(readFileSync(path.join(dir, "..", "patterns", "source-mark.tsx"), "utf8"), /\bClock\b/);
+  });
+
+  it("folds 'Products as filed' by default and unfolds it on the Products tab; the Sources column sticks on the page", () => {
+    const overview = view(model(), { mode: "page", tab: "overview" });
+    assert.match(overview, /<details class="group\/filed[^"]*"><summary/);
+    assert.doesNotMatch(overview, /<details open="" class="group\/filed/);
+    assert.match(view(model(), { mode: "page", tab: "products" }), /<details open="" class="group\/filed/);
+    assert.match(overview, /<aside aria-label="Contact and sources" class="[^"]*lg:sticky[^"]*lg:self-start/);
   });
 });
 
@@ -455,14 +565,16 @@ describe("the registrations and the sources read as columns (6 Oct 2026: 'scatte
 
   it("the sources are grouped by kind, best rank first, each kind said once", () => {
     const out = view(model(), { mode: "page", tab: "sources" });
-    const kinds = [...out.matchAll(/<section aria-label="([^"]+)"[^>]*><h4/g)].map((m) => plain(m[1]!));
+    const kinds = [...out.matchAll(/<section aria-label="([^"]+)"[^>]*><h3/g)].map((m) => plain(m[1]!));
     assert.deepEqual(kinds, [...new Set(model().sources.map((s) => s.tier))]);
     assert.equal(kinds[0], "Government register");
     assert.equal((out.match(/<li\b[^>]*@container/g) ?? []).length, model().sources.length, "one row per source");
     // The words come from a row's own tier slug, the order from its mark's rank: a kind can come back after another.
     const [a, b, c] = model().sources;
     const split = view(model(aboniInput(), { sources: [{ ...a!, tier: "Foreign regulator" }, { ...b!, tier: "Cross-check only" }, { ...c!, tier: "Foreign regulator" }] }), { mode: "page", tab: "sources" });
-    assert.deepEqual([...split.matchAll(/<section aria-label="([^"]+)"[^>]*><h4/g)].map((m) => m[1]), ["Foreign regulator", "Cross-check only"]);
+    assert.deepEqual([...split.matchAll(/<section aria-label="([^"]+)"[^>]*><h3/g)].map((m) => m[1]), ["Foreign regulator", "Cross-check only"]);
+    // In the pane the name is the h2, so a group is an h4 there.
+    assert.equal((view(model(), { mode: "pane", tab: "sources" }).match(/<section aria-label="[^"]+"[^>]*><h4/g) ?? []).length, kinds.length);
   });
 });
 describe("a record scrolled inside a pane (6 Oct 2026: no map on Sites, and the tabs hung loose under a header that had scrolled away)", () => {
