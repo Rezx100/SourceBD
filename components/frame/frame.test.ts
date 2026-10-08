@@ -136,6 +136,7 @@ describe("the frame a buyer receives", () => {
     // Critique of 8 Oct 2026, item 3: a count of dates that passed is caution, never danger red.
     assert.match(html, /class="hidden h-5 shrink-0 items-center rounded-md px-1\.5 font-mono text-xs font-medium tabular-nums 2xl:inline-flex bg-caution-tint text-caution">2</, "the pill is the number alone, in caution");
     assert.doesNotMatch(html, /bg-danger-tint|text-danger/, "red in the rail for a date that passed");
+    assert.match(html, /rounded-full border-2 border-subtle 2xl:hidden bg-caution-icon"/, "the collapsed rail's dot follows the badge's tone");
     assert.ok(!/>2 to check</.test(html), "the words are drawn, not only read");
     assert.match(html, /aria-label="Alerts, new"/);
     assert.doesNotMatch(frame("/app", { compliance: null }), /to check|Alerts, new/, "an unread count draws nothing");
