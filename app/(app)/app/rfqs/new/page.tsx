@@ -16,6 +16,7 @@ import { notFound } from "next/navigation";
 import type { ComposerPrefill } from "@/components/rfqs/composer-model";
 import { RfqComposer } from "@/components/rfqs/composer";
 import { TARGET_COLUMNS, targetFromRow, workspaceFrom, type SupplierRow } from "@/lib/dashboard/composer-target";
+import { backToList } from "@/lib/dashboard/nav";
 import { hsBuyerLabel } from "@/lib/epb-hscode-labels";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -73,7 +74,7 @@ async function draftPrefill(
 export default async function NewRfqPage({
   searchParams,
 }: {
-  searchParams: Promise<{ supplier?: string; hs?: string; product?: string; draft?: string }>;
+  searchParams: Promise<{ supplier?: string; hs?: string; product?: string; draft?: string; back?: string }>;
 }) {
   const sp = await searchParams;
   const draftId = typeof sp.draft === "string" && UUID_RE.test(sp.draft) ? sp.draft : null;
@@ -112,7 +113,10 @@ export default async function NewRfqPage({
   const targets = ids.map((id) => rows.find((r) => r.id === id)).filter((r): r is SupplierRow => Boolean(r)).map(targetFromRow);
   const prefill: ComposerPrefill = draft ? draft.prefill : hs ? { hs, title: `HS ${hs} · ${hsBuyerLabel(hs, null)}` } : product;
   // One supplier: Close returns to its record. Several, or a product: the RFQ list.
-  const closeHref = targets.length === 1 ? `/app/suppliers/${targets[0]!.slug}` : "/app/rfqs";
+  // `&back=` is the record page that sent the buyer here, with its tab: Close returns to it as it was.
+  const back = backToList(sp.back);
+  const own = targets.length === 1 ? `/app/suppliers/${targets[0]!.slug}` : null;
+  const closeHref = own ? (back && (back === own || back.startsWith(`${own}?`)) ? back : own) : "/app/rfqs";
   return (
     <RfqComposer
       targets={targets}

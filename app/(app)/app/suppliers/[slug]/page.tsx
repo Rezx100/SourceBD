@@ -29,7 +29,8 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { ButtonLink } from "@/components/kit";
 import { RecordView, parseSite, parseTab, type TabId } from "@/components/record";
 import { ProfileReadTimeout, loadRecordSheet } from "@/lib/dashboard/load-record";
-import { backToList } from "@/lib/dashboard/nav";
+import { backToList, listWithRecord } from "@/lib/dashboard/nav";
+import { rfqHref } from "@/lib/dashboard/selection";
 import {
   fetchFacilityParentSlug,
   resolveUnpublishedProfileMiss,
@@ -54,6 +55,15 @@ export default async function SupplierRecordPage({
   // already sat in while six of Aboni's twelve headings had no route at all.
   const linesRaw = sp.lines;
   const allLines = (Array.isArray(linesRaw) ? linesRaw[0] : linesRaw) === "all";
+  // The list the page was expanded from. Send RFQ opens the composer beside it with this record behind
+  // (PRODUCT.md principle 4: the buyer never loses their search); a true deep link has no list, so it
+  // opens the composer page, whose Close comes back here. A line carries the list in and out.
+  const back = backToList(sp.back);
+  const here = (path: string, q: URLSearchParams) => {
+    if (back) q.set("back", back);
+    const qs = q.toString();
+    return `${path}${qs ? `?${qs}` : ""}`;
+  };
   const supabase = await createSupabaseServerClient();
   // The layout draws the shell around every state this page returns, the
   // timeout state included.
@@ -64,10 +74,14 @@ export default async function SupplierRecordPage({
       pins: true,
       allLines,
       // "All N lines" is the Products tab, expanded.
-      allLinesHref: allLines ? null : `/app/suppliers/${slug}?tab=products&lines=all`,
+      allLinesHref: allLines ? null : here(`/app/suppliers/${slug}`, new URLSearchParams({ tab: "products", lines: "all" })),
       // A line opened from the expanded grid comes back to it: without this,
       // Back from line 9 of "All N lines" landed on six tiles without it.
-      lineHref: allLines ? (hs) => `/app/suppliers/${slug}/lines/${hs}?lines=all` : undefined,
+      lineHref: allLines || back ? (hs) => here(`/app/suppliers/${slug}/lines/${hs}`, new URLSearchParams(allLines ? { lines: "all" } : {})) : undefined,
+      rfqHref: (id) =>
+        back
+          ? rfqHref(listWithRecord(back, slug), [id])
+          : `/app/rfqs/new?supplier=${id}&back=${encodeURIComponent(`/app/suppliers/${slug}${parseTab(sp.tab) !== "overview" ? `?tab=${parseTab(sp.tab)}` : ""}`)}`,
     });
   } catch (err) {
     // A slow read is not a missing record. The page this replaced said so and
@@ -105,7 +119,6 @@ export default async function SupplierRecordPage({
   // at the bottom, the body scrolling between them at the record's measure.
   // A tab is a link to this page with `?tab=`; the way back to the list and the expanded
   // lines ride along, so the record does not forget where it was opened from.
-  const back = backToList(sp.back);
   const tabHref = (t: TabId) => {
     const q = new URLSearchParams();
     if (t !== "overview") q.set("tab", t);
