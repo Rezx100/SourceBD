@@ -7,7 +7,7 @@
 import { certLine, certSummary, type CertLine, type CertSummary } from "@/components/patterns/words";
 import { discoverWorkers, workersSecondShort } from "@/lib/dashboard/build-discover-row";
 import { certScheme, displayName, entityLabel, formatCount, formatDay, formatRelative, placeLabel } from "@/lib/dashboard/facts";
-import { SEND_RFQ_MAX } from "@/lib/dashboard/selection";
+import { SEND_RFQ_MAX, rfqHref } from "@/lib/dashboard/selection";
 import { discoverChips, discoverHref, parseDiscoverState, queryTitle } from "@/lib/discover-v32-state";
 import type { WorkersBasis } from "@/lib/enrich-discover-workers";
 import type { SavedSearchJson } from "@/lib/saved-searches";
@@ -50,9 +50,6 @@ export const SEARCHES_HREF = "/app/searches";
 
 /** Download CSV on Saved: the whole list in the page's sort (`/api/v1/export`). */
 export const savedExportHref = (sort: SavedSort) => `/api/v1/export?kind=saved&sort=${sort}`;
-
-/** One RFQ to everyone ticked: the composer takes the suppliers as `?supplier=a,b,c`. */
-export const rfqHref = (ids: readonly string[]) => `/app/rfqs/new?supplier=${ids.map(encodeURIComponent).join(",")}`;
 
 export const TOO_MANY = `One RFQ goes to up to ${SEND_RFQ_MAX} suppliers. Untick some to send.`;
 
@@ -129,6 +126,10 @@ export type SavedItem = {
   paneHref: string;
   /** Opens the record as a page, with the way back to this list. */
   pageHref: string;
+  /** Opens the composer in the pane beside this list with the supplier as its target. */
+  rfqHref: string;
+  /** This list without a pane: one RFQ to everyone ticked is `rfqHref(listHref, ids)`. */
+  listHref: string;
 };
 
 export function buildSavedItems(rows: readonly SavedRow[], certs: CertsBySupplier | null, today: Date, view: SavedView): SavedItem[] {
@@ -149,6 +150,8 @@ export function buildSavedItems(rows: readonly SavedRow[], certs: CertsBySupplie
       savedOn: formatDay(r.saved_at),
       paneHref: savedHref({ ...view, open: r.slug, tab: null }),
       pageHref: `/app/suppliers/${r.slug}?back=${encodeURIComponent(back)}`,
+      rfqHref: rfqHref(back, [r.id]),
+      listHref: back,
     };
   });
 }

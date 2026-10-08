@@ -28,8 +28,7 @@
 import { redirect } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
 import { ListPane } from "@/components/frame";
-import { RfqComposer } from "@/components/rfqs/composer";
-import type { ComposerTarget, ComposerWorkspace } from "@/components/rfqs/composer-model";
+import { ComposerPane, parseRfqIds } from "@/components/rfqs/composer-pane";
 import { LineView, RecordView, parseTab, type TabId } from "@/components/record";
 import { FirstResultsCoach } from "@/components/onboarding/coach";
 import { RecordLastSearch } from "@/components/saved/last-search";
@@ -46,12 +45,10 @@ import { RecordRecentSearch } from "@/components/search/record-recent-search";
 import { SelectionProvider } from "@/components/search/selection";
 import { ResultsTable } from "@/components/search/table";
 import { PaneListToolbar, PhoneToolbar, ResultsToolbar, resultsTitle } from "@/components/search/toolbar";
-import { TARGET_COLUMNS, targetFromRow, workspaceFrom, type SupplierRow } from "@/lib/dashboard/composer-target";
 import { buildDiscoverTableRow } from "@/lib/dashboard/build-discover-row";
 import { ProfileReadTimeout, loadLineBeside, loadRecordSheet } from "@/lib/dashboard/load-record";
 import { readSearch } from "@/lib/dashboard/search-cache";
 import { fetchDiscoverExplain, fetchDiscoverV32, fetchHsBatch } from "@/lib/discover-v32-rpc";
-import { hsBuyerLabel } from "@/lib/epb-hscode-labels";
 import { fetchFacilityParentSlug } from "@/lib/facility-parent-redirect";
 import { DISCOVER_PATH, discoverHref, filterCount, parseDiscoverState, queryTitle, serializeDiscoverState, withPaneParams, type DiscoverState } from "@/lib/discover-v32-state";
 import { noteActivity } from "@/lib/ledger/note";
@@ -76,7 +73,7 @@ export default async function BuyerDiscoverPage({
   const recordSlug = one(sp.record);
   const lineCode = /^\d{4}$/.test(one(sp.line) ?? "") ? one(sp.line)! : null;
   const allLines = one(sp.lines) === "all";
-  const rfqIds = [...new Set((one(sp.rfq) ?? "").split(",").map((x) => x.trim()).filter((x) => UUID_RE.test(x)))].slice(0, 50);
+  const rfqIds = parseRfqIds(sp.rfq);
   const composerOpen = rfqIds.length > 0;
   const prefillHs = /^\d{4}$/.test(one(sp.hs_line) ?? "") ? one(sp.hs_line)! : null;
   const filtersOpen = !composerOpen && one(sp.filters) === "1";
@@ -245,7 +242,7 @@ export default async function BuyerDiscoverPage({
         </PaneFrame>
       }
     >
-      <DiscoverComposer
+      <ComposerPane
         supabase={supabase}
         rfqIds={rfqIds}
         prefillHs={prefillHs}
@@ -307,50 +304,6 @@ export default async function BuyerDiscoverPage({
 /** Draws `children` once `value` is read: the page returns without waiting on it, so the pane's read starts beside it. */
 async function Await<T>({ value, children }: { value: Promise<T>; children: (v: T) => ReactNode }) {
   return children(await value);
-}
-
-/** The RFQ composer in the pane, for one supplier or the ticked selection: published targets only, in the order they were ticked. */
-async function DiscoverComposer({
-  supabase,
-  rfqIds,
-  prefillHs,
-  closeHref,
-  backHref,
-}: {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the Supabase server client.
-  supabase: any;
-  rfqIds: string[];
-  prefillHs: string | null;
-  closeHref: string;
-  backHref: string | null;
-}) {
-  const [targets, workspace] = await Promise.all([
-    (async (): Promise<ComposerTarget[]> => {
-      const r = await supabase.from("suppliers").select(TARGET_COLUMNS).in("id", rfqIds);
-      const rows = (Array.isArray(r.data) ? r.data : []) as SupplierRow[];
-      // An unpublished id is dropped rather than drawn as a target the server would refuse.
-      return rfqIds.map((id) => rows.find((x) => x.id === id)).filter((x): x is SupplierRow => Boolean(x && x.is_published)).map(targetFromRow);
-    })(),
-    (async (): Promise<ComposerWorkspace | null> => {
-      try {
-        const r = await supabase.rpc("settings_get");
-        return workspaceFrom(r.data);
-      } catch {
-        return null;
-      }
-    })(),
-  ]);
-  return (
-    <PaneFrame openKey={`rfq:${rfqIds.join(",")}`}>
-      <RfqComposer
-        targets={targets}
-        workspace={workspace}
-        prefill={prefillHs ? { hs: prefillHs, title: `HS ${prefillHs} · ${hsBuyerLabel(prefillHs, null)}` } : {}}
-        closeHref={closeHref}
-        backHref={backHref}
-      />
-    </PaneFrame>
-  );
 }
 
 /**

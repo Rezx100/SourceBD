@@ -11,7 +11,7 @@ import { X } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { BulkBar, bulkActionClass, bulkCloseClass } from "@/components/kit";
-import { SEND_RFQ_MAX, announceBulkSaved, bulkExportHref, clearKeepingFocus, interceptPlainClick, runBulkSave, runExport, saveBlob } from "@/lib/dashboard/selection";
+import { SEND_RFQ_MAX, announceBulkSaved, bulkExportHref, clearKeepingFocus, interceptPlainClick, rfqHref, runBulkSave, runExport, saveBlob } from "@/lib/dashboard/selection";
 import { useRouter } from "next/navigation";
 import { SELECT_ALL_ID, useSelection } from "./selection";
 
@@ -22,11 +22,6 @@ export const PREPARING = "Preparing the download…";
 export const STILL_PREPARING = "Still preparing the download. Its result will show here.";
 /** A result that lands after the selection changed says which selection it was for. */
 export const EARLIER = "For your earlier selection: ";
-
-/** The search URL with `rfq=` carrying the selection: the composer opens beside these results with every ticked supplier as a target. */
-export function bulkRfqHref(searchHref: string, ids: readonly string[]): string {
-  return `${searchHref}${searchHref.includes("?") ? "&" : "?"}rfq=${ids.map(encodeURIComponent).join(",")}`;
-}
 
 const sentence = (s: string) => (/[.!?…]$/.test(s) ? s : `${s}.`);
 
@@ -141,7 +136,7 @@ export function ResultsBar({
             Download CSV
           </a>
           {count <= SEND_RFQ_MAX ? (
-            <Link href={bulkRfqHref(searchHref, ids)} scroll={false} className={bulkActionClass(true)}>
+            <Link href={rfqHref(searchHref, ids)} scroll={false} className={bulkActionClass(true)}>
               Send RFQ to {count} {count === 1 ? "supplier" : "suppliers"}
             </Link>
           ) : (

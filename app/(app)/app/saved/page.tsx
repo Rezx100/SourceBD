@@ -1,14 +1,18 @@
 // /app/saved: the buyer's saved suppliers on the v4 frame (B6b, Paper `10 · Saved`, `· 3 selected for
 // one RFQ`, `11 · Saved`). A table of every saved supplier with its workers, sources, the first
 // certificate to check and when it was saved; `?open=<slug>` draws the record in the pane beside a
-// narrow list (a drawer under 1280). Ticking suppliers turns the bar into Remove from saved and
-// one RFQ to everyone ticked. `?sort=` and `?page=` are the list's.
+// narrow list (a drawer under 1280); `?rfq=<id,...>` draws the RFQ composer there instead, for one
+// supplier or everyone ticked, so the buyer never leaves the list. Ticking suppliers turns the bar
+// into Remove from saved and one RFQ to everyone ticked. `?sort=` and `?page=` are the list's.
 //
 // A failed `buyer_saved_list` is an error where the list was: "No saved suppliers yet" is a claim
 // about the account that a failed read cannot make. A certificate cell that could not be read says
 // so, and never "nothing to check". Saved searches are `/app/searches`, the second tab.
 
+import { Suspense } from "react";
 import { ListPane } from "@/components/frame";
+import { ComposerPane, parseRfqIds } from "@/components/rfqs/composer-pane";
+import { ComposerSkeleton, PaneFrame } from "@/components/search/pane";
 import { SelectionProvider } from "@/components/search/selection";
 import { RemoveProvider } from "@/components/saved/actions";
 import { SavedEmpty, SavedError, SavedFooter, SavedHead, SavedPaneRows, SavedPastEnd, PhoneTabs } from "@/components/saved/list";
@@ -29,7 +33,9 @@ export default async function SavedPage({ searchParams }: { searchParams: Promis
   const sp = await searchParams;
   const sort = parseSort(sp.sort);
   const page = parsePage(sp.page);
-  const openSlug = one(sp.open);
+  const rfqIds = parseRfqIds(sp.rfq);
+  const composerOpen = rfqIds.length > 0;
+  const openSlug = composerOpen ? null : one(sp.open);
   const view = { sort, page, tab: one(sp.tab) };
   const supabase = await createSupabaseServerClient();
   const today = new Date();
@@ -38,7 +44,8 @@ export default async function SavedPage({ searchParams }: { searchParams: Promis
   const rows = data.rows;
   const items = rows ? buildSavedItems(rows, data.certs, today, view) : [];
   const closeHref = savedHref({ sort, page });
-  const paneOpen = openSlug !== null && rows !== null && rows.length > 0;
+  // A pane (the composer, or a record with rows to stand beside) always gets the narrow list, never the full table.
+  const paneOpen = composerOpen || (openSlug !== null && rows !== null && rows.length > 0);
   const total = data.total ?? items.length;
 
   const body =
@@ -84,6 +91,19 @@ export default async function SavedPage({ searchParams }: { searchParams: Promis
     </div>
   );
 
-  const pane = paneOpen && record ? <SavedRecordPane read={record} view={view} today={today} /> : null;
-  return <ListPane list={list} listLabel="Saved suppliers" pane={pane} paneTitle={record?.model?.name ?? "Supplier record"} closeHref={closeHref} />;
+  const pane = composerOpen ? (
+    <Suspense
+      key={`rfq:${rfqIds.join(",")}`}
+      fallback={
+        <PaneFrame openKey="loading:rfq">
+          <ComposerSkeleton />
+        </PaneFrame>
+      }
+    >
+      <ComposerPane supabase={supabase} rfqIds={rfqIds} closeHref={closeHref} />
+    </Suspense>
+  ) : paneOpen && record ? (
+    <SavedRecordPane read={record} view={view} today={today} />
+  ) : null;
+  return <ListPane list={list} listLabel="Saved suppliers" pane={pane} paneTitle={composerOpen ? "New request" : (record?.model?.name ?? "Supplier record")} closeHref={closeHref} />;
 }

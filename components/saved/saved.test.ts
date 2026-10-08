@@ -9,6 +9,7 @@
 // (the pattern in `components/orders/orders.test.ts`).
 
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
@@ -22,6 +23,7 @@ import { SavedPhoneList, phoneLine } from "./phone";
 import { SavedEmpty, SavedError, SearchesEmpty, SearchesError } from "./list";
 import { SearchList } from "./searches";
 import { LastSearchCardView } from "./last-search";
+import { rfqHref } from "@/lib/dashboard/selection";
 import { removeMessage, runRemove, runUndo } from "./transport";
 import { SaveSearchForm, SaveSearchPanel, saveSummary } from "./save-search";
 import {
@@ -36,7 +38,6 @@ import {
   parsePage,
   parseSort,
   removedWords,
-  rfqHref,
   savedCaption,
   savedExportHref,
   savedHref,
@@ -152,8 +153,13 @@ describe("the address", () => {
     assert.equal(savedExportHref("name"), "/api/v1/export?kind=saved&sort=name");
   });
 
-  it("one RFQ to everyone ticked is the composer with their ids", () => {
-    assert.equal(rfqHref([S1, S2]), `/app/rfqs/new?supplier=${S1},${S2}`);
+  // Critique of 8 Oct 2026, item 2: Saved's doors to the composer were a page jump away from the list.
+  it("one RFQ to everyone ticked, and a row's own, open the composer in the pane beside this list", () => {
+    assert.equal(rfqHref("/app/saved", [S1, S2]), `/app/saved?rfq=${S1},${S2}`);
+    assert.equal(rfqHref("/app/saved?sort=name&page=2", [S1]), `/app/saved?sort=name&page=2&rfq=${S1}`);
+    const first = buildSavedItems(ROWS, CERTS, NOW, { sort: "name", page: 2 })[0]!;
+    assert.equal(first.rfqHref, `/app/saved?sort=name&page=2&rfq=${S1}`);
+    assert.equal(first.listHref, "/app/saved?sort=name&page=2");
     assert.match(TOO_MANY, /up to 50 suppliers/);
   });
 });
@@ -243,6 +249,9 @@ describe("the table", () => {
     assert.match(text(out), /Nothing to check/);
     assert.match(out, /aria-label="Select all on this page"/);
     assert.match(out, /aria-label="More actions for Tex Town Ltd"/);
+    // The results' row menu, word for word, then Remove from saved (Radix draws the menu only once opened, so the source is read).
+    const table = readFileSync(path.join(process.cwd(), "components", "saved", "table.tsx"), "utf8");
+    assert.match(table, /<MenuItem href=\{i\.rfqHref\}>Send RFQ<\/MenuItem>\s*<MenuItem href=\{i\.pageHref\}>Open full page<\/MenuItem>\s*<MenuItem onSelect=[\s\S]*?>Remove from saved<\/MenuItem>/);
   });
 
   it("a certificate that was not read says so, and never 'Nothing to check'", () => {
@@ -268,7 +277,8 @@ describe("the bulk bar", () => {
   it("names the count, offers Clear and Remove from saved, and sends one RFQ to everyone ticked", () => {
     const out = bar([S1, S2]);
     assert.match(text(out), /2 suppliers selected Clear Remove from saved Send one RFQ to 2 suppliers/);
-    assert.match(out, new RegExp(`href="/app/rfqs/new\\?supplier=${S1},${S2}"`));
+    assert.match(out, new RegExp(`href="/app/saved\\?rfq=${S1},${S2}"`));
+    assert.doesNotMatch(out, /rfqs\/new/);
     assert.match(bar([S1]), /1 supplier selected/);
     assert.match(bar([S1]), /Send one RFQ to 1 supplier</);
   });
@@ -296,10 +306,11 @@ describe("the phone list", () => {
     const out = html(withSelection(selected([S1, S2]), createElement(SavedPhoneList, { items: items() })));
     assert.match(text(out), /2 selected Clear/);
     assert.match(text(out), /Remove Send one RFQ to 2/);
+    assert.doesNotMatch(out, /rfqs\/new/);
     // React hoists the marks' image preloads ahead of the list.
     assert.match(out, /^(?:<link [^>]*\/>)*<div class="md:hidden pb-20">/, "the last rows keep their room above the action bar");
     assert.match(html(createElement(SavedPhoneList, { items: items() })), /^(?:<link [^>]*\/>)*<div class="md:hidden">/);
-    assert.match(out, new RegExp(`href="/app/rfqs/new\\?supplier=${S1},${S2}"`));
+    assert.match(out, new RegExp(`href="/app/saved\\?rfq=${S1},${S2}"`));
   });
 });
 

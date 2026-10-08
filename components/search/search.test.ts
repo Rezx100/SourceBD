@@ -37,7 +37,8 @@ const { SearchLanding } = require("@/components/search/landing") as typeof impor
 const { pushRecent } = require("@/components/search/record-recent-search") as typeof import("@/components/search/record-recent-search");
 const { startsNavigation } = require("@/components/search/pending-nav") as typeof import("@/components/search/pending-nav");
 const { mapLimited } = require("@/lib/map-limited") as typeof import("@/lib/map-limited");
-const { ResultsBar, bulkRfqHref, TOO_MANY } = require("@/components/search/bulk-bar") as typeof import("@/components/search/bulk-bar");
+const { ResultsBar, TOO_MANY } = require("@/components/search/bulk-bar") as typeof import("@/components/search/bulk-bar");
+const { rfqHref } = require("@/lib/dashboard/selection") as typeof import("@/lib/dashboard/selection");
 const { SelectionContext, SelectionProvider } = require("@/components/search/selection") as typeof import("@/components/search/selection");
 const { ResultsTable } = require("@/components/search/table") as typeof import("@/components/search/table");
 const { PaneListToolbar, PhoneToolbar, ResultsToolbar, barMenus, resultsTitle } = require("@/components/search/toolbar") as typeof import("@/components/search/toolbar");
@@ -85,6 +86,7 @@ const row = (over: Partial<ResultRow> = {}): ResultRow => ({
   certCell: certSummary(ABONI_CERTS, TODAY),
   paneHref: "/app/discover?q=knit&record=aboni-knitwear",
   pageHref: "/app/suppliers/aboni-knitwear?back=%2Fapp%2Fdiscover%3Fq%3Dknit",
+  rfqHref: `/app/discover?q=knit&rfq=${over.supplierId ?? "id-aboni"}`,
   sanctioned: false,
   ...over,
 });
@@ -195,6 +197,19 @@ describe("the results table", () => {
     assert.ok(out.includes('data-open="record"'));
     assert.ok(out.includes('aria-label="Select Aboni Knitwear Ltd."'), "the box names its row");
     assert.ok(out.includes('aria-label="Select all on this page"'));
+  });
+
+  // Critique of 8 Oct 2026, item 2: from a row and from `r` the composer was a page jump that lost the search.
+  it("a row's Send RFQ and the hidden r target open the composer in the pane beside these results, never a page", () => {
+    assert.match(out, /<a data-action="rfq"[^>]*href="\/app\/discover\?q=knit&rfq=id-aboni"/);
+    assert.match(out, /<a data-action="rfq"[^>]*href="\/app\/discover\?q=knit&rfq=id-zaheen"/);
+    assert.doesNotMatch(out, /rfqs\/new/);
+    // The ⋯ menu's item is the same link (Radix draws the menu only once opened, so the source is read).
+    const table = readFileSync(path.join(process.cwd(), "components", "search", "table.tsx"), "utf8");
+    assert.match(table, /<MenuItem hint="R" href=\{r\.rfqHref\}>\s*Send RFQ/);
+    assert.doesNotMatch(table, /rfqs\/new/);
+    const sanctioned = plain(h(SelectionProvider, { pageIds: ["x"] }, h(ResultsTable, { rows: [row({ supplierId: "x", sanctioned: true, rfqHref: null })], sort: { key: "workers", dir: "asc" }, sortHrefs })));
+    assert.doesNotMatch(sanctioned, /data-action="rfq"/, "no RFQ door for a sanctioned supplier");
   });
 
   it("the 100-character name is whole, and nothing is cut off", () => {
@@ -316,7 +331,8 @@ describe("the bar over the table", () => {
   it("Send RFQ names how many, and opens the composer on this search with every ticked supplier", () => {
     const two = bar(["id-aboni", "id-zaheen"]);
     assert.equal(hrefOf(two, "Send RFQ to 2 suppliers"), "/app/discover?q=knit&rfq=id-aboni,id-zaheen");
-    assert.equal(bulkRfqHref("/app/discover", ["a", "b"]), "/app/discover?rfq=a,b");
+    assert.equal(rfqHref("/app/discover", ["a", "b"]), "/app/discover?rfq=a,b");
+    assert.equal(rfqHref("/app/discover?q=knit", ["a"]), "/app/discover?q=knit&rfq=a");
     assert.ok(bar(["id-aboni"]).includes("1 supplier selected") && bar(["id-aboni"]).includes("Send RFQ to 1 supplier<"));
   });
 

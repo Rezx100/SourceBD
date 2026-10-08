@@ -10,12 +10,12 @@ import Link from "next/link";
 import { Button } from "@/components/kit";
 import { buttonClass } from "@/components/kit/button-class";
 import { useSelection } from "@/components/search/selection";
-import { SEND_RFQ_MAX } from "@/lib/dashboard/selection";
+import { SEND_RFQ_MAX, rfqHref } from "@/lib/dashboard/selection";
 import { formatCount } from "@/lib/dashboard/facts";
 import { cn } from "@/lib/utils";
 import { useRemove } from "./actions";
 import { CertCellView } from "./table";
-import { TOO_MANY, rfqHref, typeAndPlace, type SavedItem } from "./words";
+import { TOO_MANY, typeAndPlace, type SavedItem } from "./words";
 
 const noun = (n: number) => `${n} ${n === 1 ? "source" : "sources"}`;
 
@@ -86,7 +86,7 @@ export function SavedPhoneList({ items }: { items: readonly SavedItem[] }) {
             Remove
           </Button>
           {count <= SEND_RFQ_MAX ? (
-            <Link href={rfqHref(chosen.map((c) => c.id))} className={buttonClass({ kind: "primary", size: "touch", className: "min-w-0 flex-1 font-semibold" })}>
+            <Link href={rfqHref(chosen[0]!.listHref, chosen.map((c) => c.id))} className={buttonClass({ kind: "primary", size: "touch", className: "min-w-0 flex-1 font-semibold" })}>
               Send one RFQ to {count}
             </Link>
           ) : (
