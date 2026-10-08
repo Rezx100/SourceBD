@@ -808,3 +808,25 @@ describe("the search components' rules", () => {
     assert.ok(!/SupplierResultCard|supplier-result-card/.test(page));
   });
 });
+
+describe("the pane list is a ledger too (critique of 8 Oct 2026, round 3, item 2)", () => {
+  it("each pane row has its tick, the row's keys and the hidden r and s targets; the name still opens the record", () => {
+    const out = plain(h(SelectionProvider, { pageIds: rows.map((r) => r.supplierId) }, h(PaneRows, { rows, currentSlug: "aboni-knitwear" })));
+    assert.match(out, /<ul data-follow="record">/, "the arrows do not follow the open record");
+    assert.equal((out.match(/<li data-row="result" tabindex="0"/g) ?? []).length, rows.length, "a pane row is not a keyboard row");
+    assert.match(out, /aria-label="Select Aboni Knitwear Ltd\."/);
+    assert.match(out, /data-action="rfq"[^>]*href="\/app\/discover\?q=knit&(?:amp;)?rfq=id-aboni"|href="\/app\/discover\?q=knit&(?:amp;)?rfq=id-aboni"[^>]*data-action="rfq"/);
+    assert.match(out, /data-action="save"/);
+    assert.match(out, /aria-label="More actions for Aboni Knitwear Ltd\."/);
+    assert.match(out, /<a [^>]*data-open="record"[^>]*aria-current="true"|<a [^>]*aria-current="true"[^>]*data-open="record"/);
+  });
+
+  it("beside a pane the results bar still draws, with the pane's toolbar as its idle face", () => {
+    const page = readFileSync(path.join(process.cwd(), "app", "(app)", "app", "discover", "page.tsx"), "utf8");
+    assert.doesNotMatch(page, /paneOpen \? toolbar :/, "the bulk bar is not drawn beside a pane");
+    assert.match(page, /<ResultsBar toolbar=\{toolbar\}/);
+    const toolbar = h(PaneListToolbar, { state: { ...EMPTY_STATE, q: "knit" }, title: "knit", hrefFor: () => "/app/discover?q=knit", filtersHref: "/app/discover?q=knit&filters=1" });
+    const out = plain(h(SelectionProvider, { pageIds: ["a"] }, h(ResultsBar, { toolbar, exportHref: "/x", searchHref: "/app/discover?q=knit", pageSize: 1 })));
+    assert.match(out, /filters=1/, "the pane toolbar is not the bar's face");
+  });
+});

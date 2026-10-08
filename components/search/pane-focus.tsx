@@ -30,7 +30,9 @@ export function PaneFocus({ openKey }: { openKey: string }) {
     if (keyFollow.pending) {
       keyFollow.pending = false;
       opener.current = new URLSearchParams(window.location.search).get("record") ?? opener.current;
-      const name = document.querySelector('[data-row="result"][aria-current="true"]')?.getAttribute("aria-label");
+      // The row's whole name: its `title` (the One-Line Name Rule keeps it there), else a label it carries.
+      const row = document.querySelector('[data-row="result"][aria-current="true"]');
+      const name = row?.querySelector("[data-name][title]")?.getAttribute("title") ?? row?.getAttribute("aria-label");
       if (name) setSaid(`Showing ${name}`);
       return;
     }

@@ -18,7 +18,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { aboniInput } from "@/lib/dashboard/fixtures";
 import { SelectionContext } from "../search/selection";
-import { SavedBar, SavedTable } from "./table";
+import { SavedBar, SavedPaneRows, SavedTable } from "./table";
+import { RemoveProvider } from "./actions";
 import { SavedPhoneList, phoneLine } from "./phone";
 import { SavedEmpty, SavedError, SearchesEmpty, SearchesError } from "./list";
 import { SearchList } from "./searches";
@@ -665,5 +666,19 @@ describe("/app/searches", () => {
     assert.match(failed.html, /role="alert"/);
     assert.match(text(failed.html), /We couldn't load your saved searches\./);
     assert.doesNotMatch(failed.html, /No saved searches yet/);
+  });
+});
+
+describe("Saved's pane list is a ledger too (critique of 8 Oct 2026, round 3, item 2)", () => {
+  it("each pane row has its tick, data-row and the ⋯ menu; the page draws the bulk bar beside the pane", () => {
+    const list = items();
+    const out = html(createElement(RemoveProvider, null, createElement(SavedPaneRows, { items: list, currentSlug: list[0]!.slug })));
+    assert.equal((out.match(/<li data-row="result" tabindex="0"/g) ?? []).length, list.length);
+    assert.ok(out.includes(`aria-label="Select ${list[0]!.name.replace(/&/g, "&amp;")}"`), "no tick on a pane row");
+    assert.match(out, /<ul data-follow="record">/);
+    assert.match(out, /aria-label="More actions for /);
+    const page = readFileSync(path.join(process.cwd(), "app", "(app)", "app", "saved", "page.tsx"), "utf8");
+    const pane = page.slice(page.indexOf(") : paneOpen ? ("), page.indexOf("<SavedPaneRows"));
+    assert.match(pane, /<SelectionProvider[\s\S]*<SavedBar items=\{items\} \/>/, "Saved's pane list has no bulk bar");
   });
 });

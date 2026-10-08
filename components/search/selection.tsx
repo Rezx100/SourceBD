@@ -41,6 +41,11 @@ export function SelectionProvider({ pageIds, children }: { pageIds: readonly str
   return <SelectionContext.Provider value={value}>{children}</SelectionContext.Provider>;
 }
 
+/** Where focus goes when the bar's Clear unmounts it: the select-all box, or beside a pane (no header) the first row. */
+export function clearTarget(doc: Pick<Document, "getElementById" | "querySelector">): HTMLElement | null {
+  return doc.getElementById(SELECT_ALL_ID) ?? doc.querySelector<HTMLElement>('[data-row="result"]');
+}
+
 export function useSelection(): SelectionContextValue {
   return useContext(SelectionContext) ?? INERT;
 }

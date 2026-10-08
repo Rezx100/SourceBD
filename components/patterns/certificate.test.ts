@@ -69,7 +69,7 @@ describe("one certificate component", () => {
   });
 
   it("results, the pane list, the phone list and Saved all call CertSummaryCell; CertProblem is gone", () => {
-    for (const f of [["search", "table.tsx"], ["search", "list.tsx"], ["saved", "table.tsx"]] as const) {
+    for (const f of [["search", "table.tsx"], ["search", "pane-rows.tsx"], ["saved", "table.tsx"]] as const) {
       const src = read(...f);
       assert.match(src, /CertSummaryCell/, f.join("/"));
       assert.doesNotMatch(src, /CertProblem/, f.join("/"));

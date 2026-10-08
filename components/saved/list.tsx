@@ -5,12 +5,10 @@
 
 import { BookmarkSimple, CaretDown, Check, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
-import { CertCellView } from "./table";
 import { DownloadCsv } from "@/components/export/download-csv";
 import { ErrorPanel, Menu, MenuItem, Pagination, Skeleton, TabLink, buttonClass } from "@/components/kit";
-import { SupplierRow } from "@/components/patterns";
 import { cn } from "@/lib/utils";
-import { PAGE_SIZE, SAVED_SORTS, SEARCHES_HREF, savedCaption, savedExportHref, savedHref, searchesCaption, tabLabels, type SavedItem, type SavedSort, type SavedView } from "./words";
+import { PAGE_SIZE, SAVED_SORTS, SEARCHES_HREF, savedCaption, savedExportHref, savedHref, searchesCaption, tabLabels, type SavedSort, type SavedView } from "./words";
 
 export type Tab = "suppliers" | "searches";
 
@@ -98,18 +96,8 @@ export function PhoneTabs({ tab, suppliers, searches }: { tab: Tab; suppliers: n
   );
 }
 
-/** Beside a pane: name, type and place, the first certificate to check, the source count. */
-export function SavedPaneRows({ items, currentSlug }: { items: readonly SavedItem[]; currentSlug: string | null }) {
-  return (
-    <ul>
-      {items.map((i) => (
-        <li key={i.id}>
-          <SupplierRow layout="pane" href={i.paneHref} name={i.name} type={i.type} place={i.place} sources={i.sources} problem={<CertCellView cell={i.cert} />} selected={i.slug === currentSlug} />
-        </li>
-      ))}
-    </ul>
-  );
-}
+/** Beside a pane: tick, name, type and place, the first certificate to check, the source count, the ⋯ menu. */
+export { SavedPaneRows } from "./table";
 
 /** "Showing 1–24 of 57 suppliers · Page 1 of 3". */
 export function SavedFooter({ view, shown, total }: { view: SavedView; shown: number; total: number }) {

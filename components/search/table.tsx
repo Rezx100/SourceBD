@@ -12,7 +12,7 @@
 import { DotsThree } from "@phosphor-icons/react";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import Link from "next/link";
-import { startTransition, useContext, useEffect, useState } from "react";
+import { startTransition, useContext, useEffect, useState, type ReactNode } from "react";
 import { ABSENT, CertSummaryCell, LinkPending, SanctionTag, sanctionRowClass } from "@/components/patterns";
 import { IconButton, Menu, MenuItem, SelectCell, Table, Td, Th, Toast, Tr, Unpublished, oneLine, rowLinkClass, toastActionClass, type SortState } from "@/components/kit";
 import { splitQualifier } from "@/lib/dashboard/facts";
@@ -39,23 +39,7 @@ export function ResultsTable({
 }) {
   const sel = useSelection();
   const state = (key: "workers" | "sources"): SortState => (sort.key === key ? sort.dir : "none");
-  // Save from a row's menu: the record's Save behaviour (one request, a toast, a background refresh).
-  const router = useContext(AppRouterContext);
-  const [toast, setToast] = useState("");
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(""), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
-  async function save(id: string) {
-    try {
-      const res = await fetch("/api/v1/saved", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ supplier_id: id }) });
-      setToast(res.ok ? "Saved to your list" : rowSaveMessage(res.status, true));
-      if (res.ok) startTransition(() => router?.refresh());
-    } catch {
-      setToast(rowSaveMessage("network", true));
-    }
-  }
+  const { save, toast } = useRowSave();
   // Not a tab stop (critique of 8 Oct 2026, item 7: two Tabs before the first name): the rows are.
   return (
     <div role="region" aria-label="Results table" className="relative min-w-0 overflow-x-auto xl:overflow-visible">
@@ -148,45 +132,78 @@ export function ResultsTable({
                   )}
                 </Td>
                 <td className="w-10 border-b border-line p-0 text-center align-middle">
-                  <Menu align="end" trigger={<IconButton icon={DotsThree} label={`More actions for ${r.name}`} kind="quiet" />}>
-                    {r.supplierId ? (
-                      <MenuItem hint="S" onSelect={() => void save(r.supplierId!)}>
-                        Save
-                      </MenuItem>
-                    ) : null}
-                    {r.rfqHref ? (
-                      <MenuItem hint="R" href={r.rfqHref}>
-                        Send RFQ
-                      </MenuItem>
-                    ) : null}
-                    <MenuItem href={r.pageHref}>Open full page</MenuItem>
-                  </Menu>
-                  {/* The same two actions for the keyboard (s, r): drawn nowhere, out of the tab order, driven by `onRowKey`. */}
-                  {r.supplierId ? <button type="button" data-action="save" tabIndex={-1} aria-hidden className="hidden" onClick={() => void save(r.supplierId!)} /> : null}
-                  {r.rfqHref ? <Link href={r.rfqHref} prefetch={false} scroll={false} data-action="rfq" tabIndex={-1} aria-hidden className="hidden" /> : null}
+                  <RowActions r={r} save={save} />
                 </td>
               </Tr>
             );
           })}
         </tbody>
       </Table>
-      {toast ? (
-        <div className="pointer-events-none fixed inset-x-0 bottom-6 z-toast flex justify-center px-4">
-          <Toast
-            tone="brand"
-            className="pointer-events-auto"
-            action={
-              toast === "Saved to your list" ? (
-                <Link href="/app/saved" prefetch={false} className={toastActionClass}>
-                  View saved
-                </Link>
-              ) : undefined
-            }
-          >
-            {toast}
-          </Toast>
-        </div>
-      ) : null}
+      {toast}
     </div>
+  );
+}
+
+/** Save from a row's menu: the record's Save behaviour (one request, a toast, a background refresh). Shared by the table and the pane list. */
+export function useRowSave(): { save: (id: string) => Promise<void>; toast: ReactNode } {
+  const router = useContext(AppRouterContext);
+  const [toast, setToast] = useState("");
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(""), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+  async function save(id: string) {
+    try {
+      const res = await fetch("/api/v1/saved", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ supplier_id: id }) });
+      setToast(res.ok ? "Saved to your list" : rowSaveMessage(res.status, true));
+      if (res.ok) startTransition(() => router?.refresh());
+    } catch {
+      setToast(rowSaveMessage("network", true));
+    }
+  }
+  return {
+    save,
+    toast: toast ? (
+      <div className="pointer-events-none fixed inset-x-0 bottom-6 z-toast flex justify-center px-4">
+        <Toast
+          tone="brand"
+          className="pointer-events-auto"
+          action={
+            toast === "Saved to your list" ? (
+              <Link href="/app/saved" prefetch={false} className={toastActionClass}>
+                View saved
+              </Link>
+            ) : undefined
+          }
+        >
+          {toast}
+        </Toast>
+      </div>
+    ) : null,
+  };
+}
+
+/** A row's ⋯ menu (Save, Send RFQ, Open full page) and the same two actions for the keyboard; the table and the pane list draw the same. */
+export function RowActions({ r, save }: { r: ResultRow; save: (id: string) => void | Promise<void> }) {
+  return (
+    <>
+      <Menu align="end" trigger={<IconButton icon={DotsThree} label={`More actions for ${r.name}`} kind="quiet" />}>
+        {r.supplierId ? (
+          <MenuItem hint="S" onSelect={() => void save(r.supplierId!)}>
+            Save
+          </MenuItem>
+        ) : null}
+        {r.rfqHref ? (
+          <MenuItem hint="R" href={r.rfqHref}>
+            Send RFQ
+          </MenuItem>
+        ) : null}
+        <MenuItem href={r.pageHref}>Open full page</MenuItem>
+      </Menu>
+      {/* The same two actions for the keyboard (s, r): drawn nowhere, out of the tab order, driven by `onRowKey`. */}
+      {r.supplierId ? <button type="button" data-action="save" tabIndex={-1} aria-hidden className="hidden" onClick={() => void save(r.supplierId!)} /> : null}
+      {r.rfqHref ? <Link href={r.rfqHref} prefetch={false} scroll={false} data-action="rfq" tabIndex={-1} aria-hidden className="hidden" /> : null}
+    </>
   );
 }
