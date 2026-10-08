@@ -19,6 +19,9 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
+/** How long the landing waits for the common searches' counts before drawing the chips without them. */
+export const COUNT_WAIT_MS = 1500;
+
 export const metadata = {
   title: "Search · SourceBD",
 };
@@ -27,13 +30,16 @@ export default async function SearchLandingPage() {
   const supabase = await createSupabaseServerClient();
   const today = new Date();
 
-  // Streamed: the page is usable before any count arrives. Each count is a 2-2.5 s read and the
-  // anon role stops at 3 s; nine at once slowed each other past it and every one came back
-  // unread (production log, 6 Oct 2026: 345 statement timeouts in a day). A few at a time keeps
-  // each under the limit, and a read that succeeds is cached for an hour.
-  const counts: Promise<Record<string, number | null>> = mapLimited(SEARCH_TEMPLATES, COUNT_READS_AT_ONCE, async (t) => [t.key, await readSearchCount(t.state)] as const).then(
-    (pairs) => Object.fromEntries(pairs),
-  );
+  // Read in the render, so a chip paints with its count and never behind a skeleton (the critique of
+  // 7 Oct 2026, item 6). A count that succeeds is cached for an hour, so the usual read is at once;
+  // each is a 2-2.5 s read uncached and the anon role stops at 3 s, so a few go at a time (production
+  // log, 6 Oct 2026: 345 statement timeouts in a day), and one still late at the cap is drawn as a
+  // chip with no count: its read finishes in the background and fills the cache for the next visit.
+  const late = new Promise<Record<string, number | null>>((r) => setTimeout(() => r({}), COUNT_WAIT_MS));
+  const counts = await Promise.race([
+    mapLimited(SEARCH_TEMPLATES, COUNT_READS_AT_ONCE, async (t) => [t.key, await readSearchCount(t.state)] as const).then((pairs) => Object.fromEntries(pairs)),
+    late,
+  ]);
   const saved: Promise<SavedSearchJson[] | null> = (async () => {
     try {
       const listed = await runSavedSearchesGet({ role: await getServerRole(), supabase, now: today });

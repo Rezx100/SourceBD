@@ -41,7 +41,7 @@ const rail =
   "-my-1 -ml-1 flex min-w-0 flex-1 [@container_(max-width:719px)]:hidden items-center gap-2 overflow-x-auto py-1 pl-1 pr-6 [scrollbar-width:none] [mask-image:linear-gradient(to_right,black_calc(100%-24px),transparent)] [&::-webkit-scrollbar]:hidden [&>*]:shrink-0 [&>*]:whitespace-nowrap";
 
 const triggerClass = (set: boolean) =>
-  cn(buttonClass({ kind: "secondary", className: "gap-1 pl-3 pr-2" }), set && "border-brand bg-brand-tint hover:border-brand hover:bg-brand-tint");
+  cn(buttonClass({ kind: "secondary", className: "gap-1 pl-3 pr-2" }), set && "border-brand-ink bg-brand-tint hover:border-brand-ink hover:bg-brand-tint");
 
 /** One filter menu: the button names it (and the value, once set), the list toggles values. */
 export function FilterMenuButton({ menu, hrefFor, counts, icon }: { menu: FilterMenu; hrefFor: (s: DiscoverState) => string; counts?: Counts; icon?: ReactNode }) {
@@ -60,7 +60,7 @@ export function FilterMenuButton({ menu, hrefFor, counts, icon }: { menu: Filter
       {menu.options.map((o) => (
         <MenuItem key={o.key} href={hrefFor(o.toggled)} hint={typeof counts?.[o.key] === "number" ? formatCount(counts[o.key]) : undefined}>
           <span className="flex items-center gap-2">
-            <span className="flex size-4 shrink-0 items-center justify-center">{o.on ? <Check size={16} className="text-brand" aria-label="On" /> : null}</span>
+            <span className="flex size-4 shrink-0 items-center justify-center">{o.on ? <Check size={16} className="text-ink" aria-label="On" /> : null}</span>
             {o.label}
             {o.code ? <span className="font-mono text-sm text-ink-3">{o.code}</span> : null}
           </span>
@@ -120,7 +120,7 @@ export function SortMenu({ state, hrefFor, className, compact = false }: { state
       {SORTS.map((s) => (
         <MenuItem key={s.value} href={hrefFor({ ...state, sort: s.value, page: 1 })}>
           <span className="flex items-center gap-2">
-            <span className="flex size-4 shrink-0 items-center justify-center">{s.value === state.sort ? <Check size={16} className="text-brand" aria-label="Sorted by" /> : null}</span>
+            <span className="flex size-4 shrink-0 items-center justify-center">{s.value === state.sort ? <Check size={16} className="text-ink" aria-label="Sorted by" /> : null}</span>
             {s.label}
           </span>
         </MenuItem>
@@ -179,11 +179,14 @@ export function ResultsToolbar({
           <Plus size={16} className="shrink-0 text-ink-2" aria-hidden />
           <span className={cn("pr-1", words)}>Add filter</span>
         </Link>
-        <SanctionedStanding state={state} hrefFor={hrefFor} />
       </div>
-      {bare ? null : (
+      {/* The standing filter sits at the bar's end, as it does on the landing, not between the filters and the actions. */}
       <div className="ml-auto flex shrink-0 items-center gap-2">
-        <Link href={saveHref} prefetch={false} scroll={false} title="Save search" className={buttonClass({ kind: "secondary", className: "px-2" })}>
+        <SanctionedStanding state={state} hrefFor={hrefFor} />
+      {bare ? null : (
+      <>
+        {/* Eight controls on one line was too many (critique of 8 Oct 2026, item 7): under 1280 Save search is in the ⋯ menu. */}
+        <Link href={saveHref} prefetch={false} scroll={false} title="Save search" className={buttonClass({ kind: "secondary", className: "px-2 max-xl:hidden" })}>
           <BookmarkSimple size={16} className="shrink-0 text-ink-2" aria-hidden />
           <span className={cn("pr-1", words)}>Save search</span>
         </Link>
@@ -201,25 +204,44 @@ export function ResultsToolbar({
           <span aria-hidden className="hidden [@container_(max-width:719px)]:inline">{on > 0 ? `Filters · ${on} on` : "Filters"}</span>
         </Link>
         {more}
-      </div>
+      </>
       )}
+      </div>
       </div>
       {savePanel}
     </div>
   );
 }
 
-/** The narrow bar over the list when a pane is open (576): the title and the two buttons that fit. */
-export function PaneListToolbar({ state, title, hrefFor, filtersHref, savePanel }: { state: DiscoverState; title: string; hrefFor: (s: DiscoverState) => string; filtersHref: string; savePanel?: ReactNode }) {
+/**
+ * The narrow bar over the list when a pane is open (576): the title, then Save search and Add filter as
+ * icons with their names on hover and for a screen reader (the critique of 7 Oct 2026: beside a pane the
+ * bar dropped both, in the state a power user lives in), and Sort.
+ */
+export function PaneListToolbar({ state, title, hrefFor, filtersHref, saveHref, savePanel, more }: { state: DiscoverState; title: string; hrefFor: (s: DiscoverState) => string; filtersHref: string; saveHref?: string; savePanel?: ReactNode; /** The ⋯ menu (Download CSV), as `ResultsToolbar` takes it: beside a pane it was unreachable. */ more?: ReactNode }) {
   const on = filterCount(state);
   return (
     <div className="relative flex min-h-14 items-center justify-between gap-x-3 border-b border-line px-4 py-2 max-md:hidden">
       <h1 className="min-w-0 text-base font-semibold text-ink">{title}</h1>
       <div className="flex shrink-0 items-center gap-2">
-        <Link href={filtersHref} prefetch={false} scroll={false} className={buttonClass({ kind: "secondary" })}>
-          {on > 0 ? `Filters · ${on} on` : "Filters"}
+        {saveHref ? (
+          <Link href={saveHref} prefetch={false} scroll={false} aria-label="Save search" title="Save search" className={buttonClass({ kind: "secondary", size: "icon-32" })}>
+            <BookmarkSimple size={16} className="shrink-0 text-ink-2" aria-hidden />
+          </Link>
+        ) : null}
+        <Link
+          href={filtersHref}
+          prefetch={false}
+          scroll={false}
+          aria-label={on > 0 ? `Add filter · ${on} on` : "Add filter"}
+          title="Add filter"
+          className={cn(buttonClass({ kind: "secondary", size: "icon-32" }), on > 0 && "w-auto gap-1 border-ink-3 bg-subtle px-2")}
+        >
+          <Plus size={16} className="shrink-0 text-ink-2" aria-hidden />
+          {on > 0 ? <span aria-hidden className="font-mono text-xs tabular-nums text-ink-2">{on}</span> : null}
         </Link>
         <SortMenu state={state} hrefFor={hrefFor} />
+        {more}
       </div>
       {savePanel}
     </div>
@@ -233,26 +255,27 @@ export function PaneListToolbar({ state, title, hrefFor, filtersHref, savePanel 
  */
 export function PhoneToolbar({ state, count, hrefFor, filtersHref }: { state: DiscoverState; count: string; hrefFor: (s: DiscoverState) => string; filtersHref: string }) {
   const on = filterCount(state);
-  const half = "flex h-touch grow items-center justify-center gap-2 whitespace-nowrap rounded-md border border-line-strong bg-surface px-3 max-[389px]:px-2 text-md font-medium text-ink outline-none hover:bg-subtle active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+  const half = "flex h-touch grow items-center justify-center gap-2 whitespace-nowrap rounded-md border border-line-strong bg-surface px-3 max-[389px]:px-2 text-md font-medium text-ink outline-none hover:bg-subtle active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
   return (
     <div className="flex flex-col gap-3 border-b border-line px-4 py-3 md:hidden">
       <Form action={DISCOVER_PATH} role="search" aria-label="Search" prefetch={false} className="relative">
         {discoverHiddenParams(state, ["q"]).map(([k, v]) => (
           <input key={`${k}-${v}`} type="hidden" name={k} value={v} />
         ))}
-        <div className="flex h-input-touch items-center gap-3 rounded-md border border-line-strong bg-surface pl-3.5 pr-0.5 focus-within:border-brand focus-within:[box-shadow:inset_0_0_0_1px_theme(colors.brand)]">
+        <div className="flex h-input-touch items-center gap-3 rounded-md border border-line-strong bg-surface pl-3.5 pr-0.5 focus-within:border-brand-ink focus-within:[box-shadow:inset_0_0_0_1px_theme(colors.brand-ink)]">
           <MagnifyingGlass size={20} className="shrink-0 text-ink-3" aria-hidden />
           <Suspense fallback={<input type="search" name="q" defaultValue={state.q} autoComplete="off" placeholder="Supplier, product or certificate" aria-label="Search" className="min-w-0 flex-1 bg-transparent text-md text-ink outline-none placeholder:text-ink-3" />}>
             <SearchCombobox variant="phone" defaultValue={state.q} placeholder="Supplier, product or certificate" />
           </Suspense>
           {state.q ? (
-            <Link href={hrefFor({ ...state, q: "", page: 1 })} aria-label="Clear the search" className="flex size-11 shrink-0 items-center justify-center rounded-sm text-ink-2 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand">
+            <Link href={hrefFor({ ...state, q: "", page: 1 })} aria-label="Clear the search" className="flex size-11 shrink-0 items-center justify-center rounded-sm text-ink-2 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
               <X size={20} aria-hidden />
             </Link>
           ) : null}
         </div>
       </Form>
-      <h1 className="text-md font-semibold text-ink">{count}</h1>
+      {/* Not an h1: the desktop bar's heading is the page's one, and this bar is on the page too (hidden by CSS from 768). */}
+      <p className="text-md font-semibold text-ink">{count}</p>
       <div className="flex gap-2">
         <Link href={filtersHref} prefetch={false} scroll={false} className={half}>
           <SlidersHorizontal size={20} className="shrink-0 text-ink-2 max-[429px]:hidden" aria-hidden />
@@ -271,7 +294,7 @@ export function PhoneToolbar({ state, count, hrefFor, filtersHref }: { state: Di
           {SORTS.map((s) => (
             <MenuItem key={s.value} href={hrefFor({ ...state, sort: s.value, page: 1 })}>
               <span className="flex items-center gap-2">
-                <span className="flex size-4 shrink-0 items-center justify-center">{s.value === state.sort ? <Check size={16} className="text-brand" aria-label="Sorted by" /> : null}</span>
+                <span className="flex size-4 shrink-0 items-center justify-center">{s.value === state.sort ? <Check size={16} className="text-ink" aria-label="Sorted by" /> : null}</span>
                 {s.label}
               </span>
             </MenuItem>

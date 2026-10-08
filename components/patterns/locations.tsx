@@ -15,10 +15,10 @@ export function Pin({ n, kind, ring, className }: { n: number; kind: SiteKind; r
     <span
       className={cn(
         "flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
-        kind === "factory-exact" && "bg-brand text-surface",
+        kind === "factory-exact" && "bg-brand-ink text-surface",
         kind === "office" && "bg-ink-2 text-surface",
         kind === "factory-approx" && "border-2 border-ink bg-surface text-ink",
-        ring && "[box-shadow:0_0_0_3px_theme(colors.surface),0_0_0_5px_theme(colors.brand)]",
+        ring && "[box-shadow:0_0_0_3px_theme(colors.surface),0_0_0_5px_theme(colors.brand-ink)]",
         className,
       )}
       aria-hidden
@@ -59,7 +59,7 @@ export function SiteList({ sites, selected, onSelect, className }: { sites: Site
             </span>
           </>
         );
-        const cls = cn("flex gap-3 border-b border-l-2 border-line px-3.5 py-3 last:border-b-0", on ? "border-l-brand bg-brand-tint" : "border-l-transparent");
+        const cls = cn("flex gap-3 border-b border-l-2 border-line px-3.5 py-3 last:border-b-0", on ? "border-l-brand-ink bg-brand-tint" : "border-l-transparent");
         return (
           <li key={s.n} aria-current={on ? "true" : undefined}>
             {s.href ? (
@@ -75,7 +75,7 @@ export function SiteList({ sites, selected, onSelect, className }: { sites: Site
                       }
                     : undefined
                 }
-                className={cn(cls, "hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand", on && "hover:bg-brand-tint")}>
+                className={cn(cls, "hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus", on && "hover:bg-brand-tint")}>
                 {body}
               </Link>
             ) : (
@@ -100,7 +100,7 @@ export function PinLegend() {
       <p className="text-xs font-semibold text-ink-2">Pins</p>
       {LEGEND.map(([k, words]) => (
         <p key={k} className="flex items-center gap-2.5 text-sm text-ink">
-          <span className={cn("size-5 shrink-0 rounded-full", k === "factory-exact" && "bg-brand", k === "office" && "bg-ink-2", k === "factory-approx" && "border-2 border-ink bg-surface")} aria-hidden />
+          <span className={cn("size-5 shrink-0 rounded-full", k === "factory-exact" && "bg-brand-ink", k === "office" && "bg-ink-2", k === "factory-approx" && "border-2 border-ink bg-surface")} aria-hidden />
           {words}
         </p>
       ))}
@@ -114,7 +114,7 @@ export function MapCard({ count, summary, href, map }: { count: number; summary:
     <section className="flex flex-col gap-3 rounded-lg border border-line p-4">
       <header className="flex items-baseline justify-between">
         <h3 className="text-md font-semibold text-ink">Sites · {count}</h3>
-        <Link href={href} className="rounded-sm text-base font-medium text-brand underline decoration-1 [text-underline-position:from-font] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+        <Link href={href} className="rounded-sm text-base font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
           Open map
         </Link>
       </header>

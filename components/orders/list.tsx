@@ -64,8 +64,8 @@ export function OrderPaneRows({ items, tab, currentId }: { items: readonly Order
               scroll={false}
               aria-current={current ? "true" : undefined}
               className={cn(
-                "flex min-h-14 items-start gap-3 border-b border-l-2 border-line py-2.5 pl-3.5 pr-4 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand",
-                current ? "border-l-brand bg-brand-tint" : "border-l-transparent",
+                "flex min-h-14 items-start gap-3 border-b border-l-2 border-line py-2.5 pl-3.5 pr-4 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus",
+                current ? "border-l-brand-ink bg-brand-tint" : "border-l-transparent",
               )}
             >
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -90,7 +90,7 @@ export function OrderPhoneRows({ items }: { items: readonly OrderItem[] }) {
           <Link
             href={`/app/orders/${i.id}`}
             prefetch={false}
-            className="flex min-h-11 flex-col gap-1.5 border-b border-line px-4 py-4 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand"
+            className="flex min-h-11 flex-col gap-1.5 border-b border-line px-4 py-4 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
           >
             <span className="flex items-start justify-between gap-3">
               <span className="text-md font-medium text-ink">{i.title}</span>
@@ -143,7 +143,7 @@ export function OrdersEmpty() {
         <ul className="flex flex-col gap-3">
           {PROMISES.map((p) => (
             <li key={p} className="flex items-start gap-3 text-base text-ink-2">
-              <Check size={20} className="mt-px shrink-0 text-brand" aria-hidden />
+              <Check size={20} className="mt-px shrink-0 text-brand-ink" aria-hidden />
               {p}
             </li>
           ))}

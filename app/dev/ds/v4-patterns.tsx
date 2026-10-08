@@ -8,8 +8,9 @@ import { Button, FactChip, Table, TableFrame, Td, Th, Tr, Unpublished } from "@/
 import {
   AcceptSummary,
   Bubble,
-  CertProblem,
+  CertSummaryCell,
   CertTable,
+  certSummary,
   ChatThread,
   ClaimRail,
   ConfirmedClaim,
@@ -42,6 +43,14 @@ import {
   type RscBlockData,
 } from "@/components/patterns";
 import { cn } from "@/lib/utils";
+
+/** Aboni's four certificates as the compact cell draws them (worst first). */
+const GALLERY_CERTS = [
+  { scheme: "WRAP", expiresOn: "2026-09-29", markCode: "WRAP" },
+  { scheme: "GOTS", expiresOn: "2026-10-31", markCode: "GOTS" },
+  { scheme: "OEKO-TEX Standard 100", expiresOn: "2027-05-01", markCode: "OEKO_TEX" },
+  { scheme: "SA8000", expiresOn: null },
+];
 
 const TODAY = new Date("2026-10-03T00:00:00Z");
 const LONG_NAME = "Zaheen Knitwears Limited (Shed - 3, 4, 5, 10, 11, 12, 13) & (Building - Security, ETP and Fire Pump)";
@@ -113,7 +122,7 @@ export function V4Patterns() {
             chip={<FactChip state="disagree">Sources disagree</FactChip>}
           />
           <FactRow label="BKMEA membership" values={[{ value: "625 - B/2002", mono: true, source: "From BKMEA · page changed 22 Sep 2026" }]} chip={<FactChip state="changed">Source page changed</FactChip>} />
-          <FactRow label="Year founded" values={[{ value: "1985", source: "Source not linked yet. It is one of the 11 sources." }]} />
+          <FactRow label="Year founded" values={[{ value: "1985", pending: true }]} />
           <FactRow label="Lead time" empty="Ask in your RFQ." chip={<FactChip state="notOnFile">Not published</FactChip>} />
         </FactList>
       </Block>
@@ -173,13 +182,13 @@ export function V4Patterns() {
       <Block title="Supplier list row" note="The narrow forms: with the pane docked, and on a phone. A long name wraps; nothing is cut off. The wide row is a row of the table. 03 Patterns · 7.">
         <div className="flex flex-wrap items-start gap-8">
           <div className="w-full max-w-[440px] overflow-clip rounded-md border border-line">
-            <SupplierRow layout="pane" href="#" name="Aboni Knitwear Ltd." type="Factory" place="Dhaka" sources={11} selected problem={<CertProblem small state="expired">WRAP expired 29 Sep 2026</CertProblem>} />
-            <SupplierRow layout="pane" href="#" name="Hossain Dyeing & Printing Mills Ltd." type="Factory" place="Gazipur" sources={1} problem={<CertProblem small state="none">OEKO-TEX, no expiry date published</CertProblem>} />
+            <SupplierRow layout="pane" href="#" name="Aboni Knitwear Ltd." type="Factory" place="Dhaka" sources={11} selected problem={<CertSummaryCell cert={certSummary(GALLERY_CERTS, TODAY)!} />} />
+            <SupplierRow layout="pane" href="#" name="Hossain Dyeing & Printing Mills Ltd." type="Factory" place="Gazipur" sources={1} problem={<CertSummaryCell cert={certSummary([{ scheme: "OEKO-TEX Standard 100", expiresOn: null, markCode: "OEKO_TEX" }], TODAY)!} />} />
             <SupplierRow layout="pane" href="#" name="A.R. Fashion" type="Buying house" place={null} sources={1} />
           </div>
           <div className="w-full max-w-[390px] overflow-clip rounded-lg border border-line">
-            <SupplierRow layout="phone" href="#" name="Aboni Knitwear Ltd." type="Factory" place="Dhaka" sources={11} problem={<CertProblem state="expired" more={3}>WRAP expired 29 Sep 2026</CertProblem>} />
-            <SupplierRow layout="phone" href="#" name={LONG_NAME} type="Factory" place="Narayanganj" sources={1} problem={<span className="text-ink-3">No certificates found</span>} />
+            <SupplierRow layout="phone" href="#" name="Aboni Knitwear Ltd." type="Factory" place="Dhaka" sources={11} problem={<CertSummaryCell cert={certSummary(GALLERY_CERTS, TODAY)!} />} />
+            <SupplierRow layout="phone" href="#" name={LONG_NAME} type="Factory" place="Narayanganj" sources={1} problem={<Unpublished>No certificates on file</Unpublished>} />
           </div>
         </div>
         <TableFrame>
@@ -200,7 +209,7 @@ export function V4Patterns() {
               <Tr>
                 <Td className="font-medium text-ink">A.R. Fashion</Td>
                 <Td>
-                  <Unpublished>None found</Unpublished>
+                  <Unpublished>No source on file</Unpublished>
                 </Td>
               </Tr>
             </tbody>

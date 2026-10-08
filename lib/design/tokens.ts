@@ -65,8 +65,9 @@ export const v4CertAliases = {
   "cert-valid-edge": "line",
   "cert-expiring-fg": "caution",
   "cert-expiring-bg": "caution-tint",
-  "cert-expired-fg": "danger",
-  "cert-expired-bg": "danger-tint",
+  // Founder, 8 Oct 2026: a date that passed is caution, as DESIGN.md's Colors says; red is a failed read, a form error.
+  "cert-expired-fg": "caution",
+  "cert-expired-bg": "caution-tint",
   "cert-no-expiry-fg": "ink-3",
   "cert-no-expiry-edge": "line-strong",
 } as const satisfies Record<string, keyof typeof v4Colors>;
@@ -348,6 +349,13 @@ function darkLegacy(): typeof legacy {
  * in), and inside any `data-ground="night"` scene in either theme.
  */
 export const dark: typeof light = overlay(darkLegacy(), darkColors, "#000000");
+
+/**
+ * The variables a night scene does not set, so they come from the page's theme: the primary button's fill and
+ * its label. A night scene in a light page draws the nav's own forest green with a white label (founder's video,
+ * 7 Oct 2026: "the colour is different"); in a dark page both are the dark set's.
+ */
+export const NIGHT_INHERITS: readonly string[] = ["--ds-brand", "--ds-brand-hover", "--ds-brand-active", "--ds-brand-on"];
 
 export type TierRank = 1 | 2 | 3 | 4 | 5;
 
@@ -798,7 +806,7 @@ function v4Pairs(): ContrastPair[] {
     p("caution", "surface", TEXT, "caution line"),
     p("caution-icon", "caution-tint", UI, "caution icon"),
     p("caution-icon", "surface", UI, "caution icon"),
-    p("danger", "danger-tint", TEXT, "error, expired"),
+    p("danger", "danger-tint", TEXT, "error note"),
     p("danger", "surface", TEXT, "field error"),
     p("sanction", "sanction-tint", 7, "sanction note (held to AAA)"),
     p("sanction", "surface", 7, "sanction line (held to AAA)"),

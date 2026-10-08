@@ -213,7 +213,7 @@ function Inputs() {
           <div className={cn(menuClass, "static w-60")}>
             <div className={selectItemClass} data-state="checked">
               United Kingdom
-              <Check size={16} className="text-brand" aria-hidden />
+              <Check size={16} className="text-brand-ink" aria-hidden />
             </div>
             <div className={selectItemClass} data-highlighted="">
               Germany
@@ -290,7 +290,7 @@ function Chips() {
         <CertChip state="valid">Valid until 12 May 2027</CertChip>
         <CertChip state="expiring">Expires in 5 days · 8 Oct 2026</CertChip>
         <CertChip state="expired">Expired 29 Sep 2026</CertChip>
-        <CertChip state="none">No expiry date published</CertChip>
+        <CertChip state="none">No expiry on file</CertChip>
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <FactChip state="stale">Last checked 18 May 2026</FactChip>
@@ -340,9 +340,9 @@ type Row = { name: string; type: string | null; where: string | null; workers: s
 const ROWS: Row[] = [
   { name: "Aboni Knitwear Ltd.", type: "Factory", where: "Dhaka", workers: "3,166", sources: 11, selected: true, cert: <><CertChip state="expired" className="border-0 bg-transparent px-0">WRAP expired 29 Sep 2026</CertChip><span className="text-sm text-ink-3"> · 3 more certificates</span></> },
   { name: "SQ Celsius Limited", type: "Factory", where: "Dhaka", workers: "3,690", sources: 6, cert: <CertChip state="expired" className="border-0 bg-transparent px-0">WRAP expired 19 Sep 2026</CertChip> },
-  { name: "Plummy Fashions Ltd", type: "Factory", where: "Narayanganj", workers: "800", sources: 4, cert: <Unpublished>None found</Unpublished> },
-  { name: LONG_NAME, type: "Factory", where: "Narayanganj", workers: "1,634", sources: 1, cert: <Unpublished>None found</Unpublished> },
-  { name: "A.R. Fashion", type: "Buying house", where: null, workers: null, sources: 1, cert: <Unpublished>None found</Unpublished> },
+  { name: "Plummy Fashions Ltd", type: "Factory", where: "Narayanganj", workers: "800", sources: 4, cert: <Unpublished>No certificates on file</Unpublished> },
+  { name: LONG_NAME, type: "Factory", where: "Narayanganj", workers: "1,634", sources: 1, cert: <Unpublished>No certificates on file</Unpublished> },
+  { name: "A.R. Fashion", type: "Buying house", where: null, workers: null, sources: 1, cert: <Unpublished>No certificates on file</Unpublished> },
 ];
 
 function Tables() {
@@ -389,7 +389,7 @@ function Tables() {
         <button type="button" className={bulkActionClass(true)}>Send RFQ to 2 suppliers</button>
       </BulkBar>
       <div className="flex flex-wrap items-center gap-6">
-        <Button iconRight={CaretDown} className="border-brand bg-brand-tint hover:bg-brand-tint">Certificate: GOTS</Button>
+        <Button iconRight={CaretDown} className="border-brand-ink bg-brand-tint hover:bg-brand-tint">Certificate: GOTS</Button>
         <Button iconRight={CaretDown}>Sort: most sources</Button>
         <Button icon={Plus}>Add filter</Button>
         <p className="text-xs text-ink-3">The button shows its value. The filter panel&apos;s action reads “Show {"{n}"} suppliers”, with the real count.</p>
@@ -532,7 +532,7 @@ function Phone() {
       <div className="flex flex-wrap items-start gap-10">
         <div className="flex h-[420px] w-[390px] flex-col justify-end overflow-clip rounded-lg bg-scrim">
           <SheetPanel kind="sheet" title="Filters" close={<IconButton icon={X} label="Close" kind="quiet" size={44} />} footer={<><Button size="touch">Clear all</Button><Button kind="primary" size="touch" className="flex-1">Show 4,645 suppliers</Button></>}>
-            <div className="flex min-h-14 items-center justify-between border-b border-line"><div><p className="text-md text-ink">Certificates</p><p className="text-sm font-medium text-brand">GOTS</p></div></div>
+            <div className="flex min-h-14 items-center justify-between border-b border-line"><div><p className="text-md text-ink">Certificates</p><p className="text-sm font-medium text-brand-ink">GOTS</p></div></div>
             <div className="flex min-h-14 items-center justify-between"><div><p className="text-md text-ink">Location</p><p className="text-sm text-ink-3">Any</p></div></div>
           </SheetPanel>
         </div>

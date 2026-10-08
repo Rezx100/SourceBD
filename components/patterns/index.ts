@@ -3,7 +3,7 @@
 // data and these decide the look and the words. Shells are B3.
 
 export { ChatThread, Bubble, DateLine, FileChip } from "./chat";
-export { CertProblem, CertStateChip, CertSummaryCell, CertTable, type CertRowData } from "./certificate";
+export { CertStateChip, CertSummaryCell, CertTable, type CertRowData } from "./certificate";
 export { LinkPending } from "./link-pending";
 export { LockedContact, LockedContactRow, onFileWords } from "./contact";
 export { NeedsAttention, type AttentionItem } from "./attention";
@@ -13,8 +13,8 @@ export { MapCard, Pin, PinLegend, SiteList, type Site } from "./locations";
 export { AcceptSummary, QuoteComparison, SampleLabel, sortQuotes, type Quote } from "./quotes";
 export { RSC_REPORTS, RscBlock, type RscBlockData, type RscReportName } from "./rsc";
 export { REFUSAL, Refusal, SanctionBanner, SanctionDropped, SanctionTag, sanctionRowClass } from "./sanction";
-export { SourceChip, SourceGroups, SourceLine, SourceList, SourceMark, SourcesCell, TIER_LABEL, tierOf, type SourceEntry } from "./source-mark";
+export { PendingMark, SourceChip, SourceGroups, SourceLine, SourceList, SourceMark, SourcesCell, TIER_LABEL, tierOf, type SourceEntry } from "./source-mark";
 export { ClaimRail, ConfirmedClaim, OpenClaim, downloadBlockedWords } from "./statement";
 export { SupplierRow } from "./supplier-row";
 export { Timeline, type Milestone } from "./timeline";
-export { CERT_ORDER, SITE_WORDS, certHeading, certLine, certShort, certSummary, certWords, isApproximate, lateWords, moqWarning, usd, vsTarget, type CertLine, type CertSummary, type SiteKind } from "./words";
+export { ABSENT, CERT_ORDER, SITE_WORDS, certHeading, certLine, certShort, certSummary, certWords, isApproximate, lateWords, moqWarning, rankCerts, usd, vsTarget, type CertInput, type CertLine, type CertSummary, type SiteKind } from "./words";

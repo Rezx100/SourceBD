@@ -27,9 +27,9 @@ export type RscBlockData = {
 };
 
 const LINK =
-  "rounded-sm text-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+  "rounded-sm text-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
-export function RscBlock({ data, className }: { data: RscBlockData; className?: string }) {
+export function RscBlock({ data, className, level: H = "h3" }: { data: RscBlockData; className?: string; level?: "h2" | "h3" | "h4" }) {
   const facts = (
     [
       ["Remediation", data.remediation],
@@ -41,7 +41,7 @@ export function RscBlock({ data, className }: { data: RscBlockData; className?: 
     <section aria-label="Safety inspections" className={cn("flex flex-col rounded-lg border border-line bg-surface", className)}>
       <header className="flex flex-wrap items-center gap-2 border-b border-line p-4">
         <SourceChip source="RSC" />
-        <h3 className="min-w-0 flex-1 text-base font-semibold text-ink">Safety inspections{data.factoryId ? ` · factory ${data.factoryId}` : ""}</h3>
+        <H className="min-w-0 flex-1 text-base font-semibold text-ink">Safety inspections{data.factoryId ? ` · factory ${data.factoryId}` : ""}</H>
         {data.covered ? (
           <Chip icon={CheckCircle}>Covered by RSC</Chip>
         ) : (
@@ -76,7 +76,7 @@ export function RscBlock({ data, className }: { data: RscBlockData; className?: 
             );
           })}
         </ul>
-        <p className="text-xs text-ink-3">{[data.factoryId ? `RSC factory ${data.factoryId}` : "RSC", data.checkedOn ? `checked ${data.checkedOn}` : null].filter(Boolean).join(" · ")}</p>
+        <p className="max-w-[72ch] text-xs text-ink-3">{[data.factoryId ? `RSC factory ${data.factoryId}` : "RSC", data.checkedOn ? `checked ${data.checkedOn}` : null].filter(Boolean).join(" · ")}</p>
       </footer>
     </section>
   );

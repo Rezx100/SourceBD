@@ -16,7 +16,7 @@ import type { RfqDoc } from "@/components/rfqs/doc";
 import { quantityWords } from "@/components/rfqs/words";
 import { cn } from "@/lib/utils";
 
-const textLink = "rounded-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+const textLink = "rounded-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 function Row({ label, children, muted }: { label: string; children: React.ReactNode; muted?: boolean }) {
   return (
@@ -111,8 +111,8 @@ export function RecordColumn({
       <dl className="flex flex-col border-b border-line px-5 pb-4 pt-2">
         <Row label="Certificates">{joined(certs)}</Row>
         <Row label="RSC safety inspections">{joined(rsc)}</Row>
-        <Row label="Workers" muted={workers.value === "Not published"}>
-          {workers.value === "Not published" ? "Workforce not published" : joined(workers)}
+        <Row label="Workers" muted={Boolean(workers.valueWords)}>
+          {workers.valueWords ? "Workforce not published" : joined(workers)}
         </Row>
         <Row label="Contact" muted>
           {locked ? `${locked} · locked` : "Details are locked until the supplier replies"}

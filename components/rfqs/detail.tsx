@@ -19,7 +19,7 @@ import { shortName } from "./words";
 
 export type OrderRef = { id: string } | null;
 
-const NAME = "rounded-sm font-medium text-ink underline decoration-line-strong decoration-1 [text-underline-position:from-font] outline-none hover:decoration-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+const NAME = "rounded-sm font-medium text-ink underline decoration-line-strong decoration-1 [text-underline-position:from-font] outline-none hover:decoration-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 const TABULAR = "[font-variant-numeric:tabular-nums]";
 /** The quotes table's head: two lines allowed, a little side padding (Paper's dense head). */
 const HEAD_WRAP = "h-auto min-h-row-head";
@@ -333,7 +333,7 @@ function RequestBody({ rfq, others, rule }: { rfq: RfqDoc; others: { id: string;
         <h2 className="text-md font-semibold text-ink">Sent to · {rfq.targets.length === 1 ? "1 supplier" : `${rfq.targets.length} suppliers`}</h2>
         {rfq.targets.map((t) => (
           <div key={t.id} className="flex flex-col">
-            <Link href={`/app/suppliers/${t.slug}`} prefetch={false} className="inline-flex w-fit rounded-sm text-base font-medium text-ink outline-none max-sm:min-h-11 max-sm:items-center hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+            <Link href={`/app/suppliers/${t.slug}`} prefetch={false} className="inline-flex w-fit rounded-sm text-base font-medium text-ink outline-none max-sm:min-h-11 max-sm:items-center hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
               {t.company_name}
             </Link>
             <span className="text-xs text-ink-3">{entityPlace(t)}</span>
@@ -347,7 +347,7 @@ function RequestBody({ rfq, others, rule }: { rfq: RfqDoc; others: { id: string;
           <section aria-label="Your other RFQs" className="flex flex-col gap-1.5">
             <Label>Your other RFQs</Label>
             {others.map((o) => (
-              <Link key={o.id} href={`/app/rfqs/${o.id}`} prefetch={false} className="inline-flex w-fit rounded-sm text-base text-ink underline max-sm:min-h-11 max-sm:items-center decoration-line-strong decoration-1 [text-underline-position:from-font] outline-none hover:decoration-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+              <Link key={o.id} href={`/app/rfqs/${o.id}`} prefetch={false} className="inline-flex w-fit rounded-sm text-base text-ink underline max-sm:min-h-11 max-sm:items-center decoration-line-strong decoration-1 [text-underline-position:from-font] outline-none hover:decoration-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
                 {o.line}
               </Link>
             ))}
@@ -363,7 +363,7 @@ function entityPlace(t: RfqDoc["targets"][number]): string {
   return [kind, [t.city, t.district].filter(Boolean).join(", ") || null].filter(Boolean).join(" · ");
 }
 
-const ICON_LINK = "inline-flex size-8 shrink-0 items-center justify-center rounded-sm text-ink-2 outline-none hover:bg-sunken hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+const ICON_LINK = "inline-flex size-8 shrink-0 items-center justify-center rounded-sm text-ink-2 outline-none hover:bg-sunken hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 export type RfqDetailProps = {
   rfq: RfqDoc;
@@ -400,7 +400,7 @@ export function RfqDetail({ rfq, mode, today, closeHref, order = null, others = 
     <section aria-label={`RFQ: ${rfq.product_title}`} data-record-pane={page ? undefined : ""} data-detail={page ? "" : undefined} tabIndex={page ? undefined : -1} className="flex min-h-0 flex-1 flex-col bg-surface outline-none">
       {page ? (
         <div className="flex h-12 items-center px-4 sm:h-auto sm:px-6 sm:pt-4">
-          <Link href={closeHref} prefetch={false} className="inline-flex min-h-11 items-center gap-1.5 sm:min-h-6 rounded-sm text-md font-medium text-ink-2 outline-none hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:text-base">
+          <Link href={closeHref} prefetch={false} className="inline-flex min-h-11 items-center gap-1.5 sm:min-h-6 rounded-sm text-md font-medium text-ink-2 outline-none hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:text-base">
             <ArrowLeft size={16} className="shrink-0" aria-hidden />
             <span className="sm:hidden">Quotes</span>
             <span className="max-sm:hidden">Back to RFQs</span>
@@ -418,7 +418,7 @@ export function RfqDetail({ rfq, mode, today, closeHref, order = null, others = 
               <span className="max-sm:hidden">{messages}</span>
             ) : (
               <>
-                <Link href={`/app/rfqs/${rfq.id}`} prefetch={false} className="rounded-sm p-1.5 text-base font-medium text-brand underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand max-sm:hidden">
+                <Link href={`/app/rfqs/${rfq.id}`} prefetch={false} className="rounded-sm p-1.5 text-base font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus max-sm:hidden">
                   Open full page
                 </Link>
                 {/* Under 1280 the pane is the kit's drawer, which draws its own close. */}

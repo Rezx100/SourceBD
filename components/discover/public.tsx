@@ -4,6 +4,7 @@
 // sources that hold the supplier. Server components; the page decides the data, these decide the look.
 
 import Link from "next/link";
+import { ABSENT } from "@/components/patterns/words";
 import {
   Button,
   ButtonLink,
@@ -248,7 +249,7 @@ export function SortRow({ basePath, current, baseQuery }: { basePath: string; cu
 function ResultsTable({ rows }: { rows: PublicRow[] }) {
   return (
     <TableFrame className="max-md:hidden">
-      <TableScroll role="region" aria-label="Results table" tabIndex={0} className="outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand">
+      <TableScroll role="region" aria-label="Results table" tabIndex={0} className="outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
         <Table className="min-w-[860px]">
           <thead>
             <tr>
@@ -281,7 +282,7 @@ function ResultsTable({ rows }: { rows: PublicRow[] }) {
                 <Td align="right" className="tabular-nums text-ink">
                   {r.sources}
                 </Td>
-                <Td>{r.marks.length > 0 ? <SourcesCell sources={r.marks} /> : <Unpublished>None found</Unpublished>}</Td>
+                <Td>{r.marks.length > 0 ? <SourcesCell sources={r.marks} /> : <Unpublished>{ABSENT.sources}</Unpublished>}</Td>
               </Tr>
             ))}
           </tbody>

@@ -5,16 +5,19 @@
 
 import { Clock, XCircle } from "@phosphor-icons/react/dist/ssr";
 import { Fragment, type ReactNode } from "react";
+import { Define } from "@/components/kit/define";
 import { cn } from "@/lib/utils";
 
 export type AttentionItem = {
-  /** "expired" is red, "expiring" is amber. */
+  /** Both are amber (a date passed is caution, never a failure); "expired" is the XCircle, "expiring" the clock. */
   state: "expired" | "expiring";
   supplier: string;
   /** "WRAP 7865 expired 29 Sep 2026." */
   what: string;
   /** "No renewal on file." */
   note?: string;
+  /** The scheme `what` opens with ("WRAP"), drawn as a defined term (round 3, item 5). */
+  scheme?: string;
   /** A secondary Button or ButtonLink. */
   action: ReactNode;
   /** A line over this row when it differs from the row before: the hub's "Coming up in 31 to 90 days". */
@@ -42,13 +45,14 @@ export function NeedsAttention({
   const n = total ?? items.length;
   if (items.length === 0)
     return (
-      <section className={cn("flex flex-col gap-1 rounded-lg border border-line p-4", className)}>
+      <section className={cn("flex flex-col gap-1 rounded-lg bg-subtle p-4", className)}>
         <h3 className="text-base font-semibold text-ink">Nothing needs attention</h3>
         <p className="text-sm text-ink-2">No certificate on your saved suppliers expires in the next 90 days.</p>
       </section>
     );
   return (
-    <section aria-label="Needs attention" className={cn("flex flex-col rounded-lg border border-line", className)}>
+    // On the landing's surface ground a card takes a tonal step, never a border (DESIGN.md Don'ts).
+    <section aria-label="Needs attention" className={cn("flex flex-col rounded-lg bg-subtle", className)}>
       <header className={cn("flex h-12 items-center justify-between border-b border-line px-4", header === "phone" && "sm:hidden")}>
         <h3 className="text-md font-semibold text-ink sm:text-base">
           Needs attention · {n} {n === 1 ? "certificate" : "certificates"}
@@ -67,14 +71,23 @@ export function NeedsAttention({
               </li>
             ) : null}
             <li className="flex flex-col gap-2 border-b border-line px-4 py-3 last:border-b-0 sm:min-h-16 sm:flex-row sm:items-center sm:gap-3">
-              <Glyph size={20} weight="fill" className={cn("shrink-0 max-sm:hidden", it.state === "expired" ? "text-danger" : "text-caution-icon")} aria-hidden />
+              <Glyph size={20} weight="fill" className="shrink-0 text-caution-icon max-sm:hidden" aria-hidden />
               <div className="flex flex-1 flex-col gap-0.5">
                 <p className="flex items-center gap-2 text-md font-medium text-ink sm:text-base">
-                  <Glyph size={16} weight="fill" className={cn("shrink-0 sm:hidden", it.state === "expired" ? "text-danger" : "text-caution-icon")} aria-hidden />
+                  <Glyph size={16} weight="fill" className="shrink-0 text-caution-icon sm:hidden" aria-hidden />
                   {it.supplier}
                 </p>
                 <p className="flex flex-wrap gap-x-1.5 text-base sm:text-sm">
-                  <span className={cn("font-medium", it.state === "expired" ? "text-danger" : "text-caution")}>{it.what}</span>
+                  <span className="font-medium text-caution">
+                    {it.scheme && it.what.startsWith(it.scheme) ? (
+                      <>
+                        <Define term={it.scheme}>{it.scheme}</Define>
+                        {it.what.slice(it.scheme.length)}
+                      </>
+                    ) : (
+                      it.what
+                    )}
+                  </span>
                   {it.note ? <span className="text-ink-3 max-sm:hidden">{it.note}</span> : null}
                 </p>
               </div>

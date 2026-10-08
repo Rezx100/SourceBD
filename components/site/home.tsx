@@ -12,13 +12,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { DIFFER, ExportsScene, RECEIPTS, ReceiptsScene, SiteScene, SourceDates, SourcesScene, TimeScene } from "@/components/site/film/chapters";
-import { COMPLIANCE_LEDE, COMPLIANCE_SCREEN, COMPLIANCE_STEPS, CloseScene, FiguresScene, LADDER_NOTE, LadderScene, OrderScene, PROMISES, PromisesScene, SCREENS, TIERS, liveFigures } from "@/components/site/film/closing";
+import { DIFFER, ProofScene, RECEIPTS, SourceDates, SourcesScene, WatchScene } from "@/components/site/film/chapters";
+import { COMPLIANCE_LEDE, COMPLIANCE_SCREEN, COMPLIANCE_STEPS, CloseScene, LADDER_NOTE, OrderScene, PROMISES, PromisesScene, SCREENS, TIERS, TrustScene, liveFigures } from "@/components/site/film/closing";
 import { TIER_SCRIPT } from "@/components/site/film/engine/tier";
 import { Opening } from "@/components/site/film/opening";
 import * as record from "@/components/site/film/record";
 import { FilmRuntime } from "@/components/site/film/runtime";
-import { HOME_CHAPTERS, Rail } from "@/components/site/film/thread";
 import { ClaimReceipt, Display, Faq, HeroActions, Label, Lede, RecordCard, Section, Stat, wrap, type Row } from "@/components/site/parts";
 import { RoleTabs } from "@/components/site/role-tabs";
 import { readDay, withCommas, type SiteFacts } from "@/lib/site-facts";
@@ -75,7 +74,7 @@ export function Home({ facts, film = false }: { facts: SiteFacts; film?: boolean
         <>
           <script dangerouslySetInnerHTML={{ __html: TIER_SCRIPT }} />
           <FilmRuntime />
-          <Opening count={count} updated={updated} />
+          <Opening count={count} />
         </>
       ) : (
         <>
@@ -121,10 +120,8 @@ export function Home({ facts, film = false }: { facts: SiteFacts; film?: boolean
       {film ? (
         <>
           <SourcesScene />
-          <ReceiptsScene />
-          <SiteScene />
-          <ExportsScene />
-          <TimeScene />
+          <ProofScene />
+          <WatchScene />
         </>
       ) : (
         <>
@@ -181,9 +178,8 @@ export function Home({ facts, film = false }: { facts: SiteFacts; film?: boolean
         <>
           <OrderScene />
           <PromisesScene />
-          <LadderScene facts={facts} />
-          <FiguresScene facts={facts} />
-          <CloseScene />
+          <TrustScene facts={facts} />
+          <CloseScene count={count} />
         </>
       ) : (
         <>
@@ -287,20 +283,21 @@ export function Home({ facts, film = false }: { facts: SiteFacts; film?: boolean
         </>
       )}
 
-      <section className="border-t border-line py-24 max-md:py-14">
-        <div className={cn(wrap, "flex flex-col gap-6")}>
-          <Label>One factory, followed from a dot to an RFQ</Label>
-          <Display level={1}>Now you know who you&rsquo;re buying from.</Display>
-          <Lede>{count ? `Do the same for any of ${count} suppliers. Search is free.` : "Do the same for any supplier. Search is free."}</Lede>
-          <HeroActions />
-        </div>
-      </section>
+      {/* With the film on, the close carries these words and the search, on the planet. */}
+      {film ? null : (
+        <section className="border-t border-line py-24 max-md:py-14">
+          <div className={cn(wrap, "flex flex-col gap-6")}>
+            <Label>One factory, followed from a dot to an RFQ</Label>
+            <Display level={1}>Now you know who you&rsquo;re buying from.</Display>
+            <Lede>{count ? `Do the same for any of ${count} suppliers. Search is free.` : "Do the same for any supplier. Search is free."}</Lede>
+            <HeroActions />
+          </div>
+        </section>
+      )}
 
       <Section id="faq" label="Questions" headline="Asked before you sign up." tone="subtle">
         <Faq items={FAQ_ITEMS(facts)} />
       </Section>
-      {/* The rail (§3.4): nine ticks at the left edge, the director moving the current one; a thin line on a phone. Last in the page, so the headline is still the first thing read. */}
-      {film ? <Rail chapters={HOME_CHAPTERS} className="fixed left-5 top-1/2 z-sticky hidden h-[280px] -translate-y-1/2 film:block 2xl:left-8" /> : null}
     </main>
   );
 }

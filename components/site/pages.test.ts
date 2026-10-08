@@ -91,7 +91,7 @@ describe("the product and solutions pages", () => {
 
   it("certificates are never 'active': four states, each with a date", () => {
     const t = text(page("product/records"));
-    for (const s of ["Expired", "Expires in N days", "Valid until", "No expiry date published"]) assert.ok(t.includes(s), s);
+    for (const s of ["Expired", "Expires in N days", "Valid until", "No expiry on file"]) assert.ok(t.includes(s), s);
     assert.doesNotMatch(t, /\bactive certificate/i);
     assert.match(t, /2 sources differ/);
   });

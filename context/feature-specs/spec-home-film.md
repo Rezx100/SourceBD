@@ -4,7 +4,27 @@ Written 6 Oct 2026 from the founder-approved plan and his review of the same day
 verbatim below from section 0 on). The home page (`/`) becomes a scroll-led film that follows one real factory
 from a dot on the planet to an RFQ. Front end only: no migration, no new package.
 
-## Status
+## v2: the founder's video of 7 Oct 2026
+
+He watched the live film and asked for it rebuilt (he approved the plan, then "do it end to end"). Kept: the night
+globe at the top, the scroll-led feel, the overlock (made larger and the centre of its scene). Killed: the green
+threads, dashed lines, dots and dotted rings; the floating record card and every pane beside a scene; the 01 to 09
+rail; the receipt roll; the second map; the carton and its scene; numbered labels above headlines. Rebuilt: a
+quieter first screen (headline, one line, the search) with the nav's own buttons; both maps replaced by one city
+drawn in code from our supplier cells; the dashboard's real rows on moving, high-contrast grounds in place of the
+cards; sharp product screens; a visual for the promises; a trust section that does not read as a footer; a new
+footer; the scroll cut from about 46 screens to about 15, and eased (`SCRUB` in engine/director.ts). Defaults he
+took: keep IBM Plex (less text, lighter weight), the city from our own counts (no OpenStreetMap), no export scene
+until v2 has figures, no Higgsfield credits (shaders and code only).
+
+| PR | What | State |
+| -- | -- | -- |
+| V1 | Removals; scenes cut to their words; the scrub; night scenes keep the page's button green (`NIGHT_INHERITS`); the kit's primary label is `brand-on`; the footer redone (night, statement, live dot, wordmark) | built, 7 Oct 2026 |
+| V2 | The city (`engine/city.ts`, raw WebGL2): every km² with suppliers a block of towers as tall as its count (log), the story's block green with a beam; the planet's dive ends on the city's first camera (`handoverFrame`); the camera flies Narayanganj, Dhaka, Gazipur, Kashimpur; district lines and rivers from `bd.json` on a glowing ground; `bkoi-gl` no longer loaded on the home page; `city-belt`/`city-site` stills replace the six map stills; /legal/data-sources says what a block is | built, 7 Oct 2026 |
+| V3 | The overlock as the scene; the record's real rows on a shader ground for "every claim" and "we check again" | |
+| V4 | The product screens sharp and large; the promises' visual; the trust section; the close | |
+
+## Status (v1)
 | Slice | What | State |
 | -- | -- | -- |
 | 1 | The dark set, the film tokens and type sizes, the Pane family, the thread, the rail, `/dev/ds`, the planet and map engines, the open map data | built, 6 Oct 2026 |

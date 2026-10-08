@@ -24,7 +24,7 @@ import {
   type SortKey,
 } from "./words";
 
-const FOCUS = "outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+const FOCUS = "outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 /** The title, what the counts mean, and the search. Named, because the top bar has a `search` landmark too. */
 export function HeadingsHead({ caption, q }: { caption: string; q: string }) {
@@ -43,7 +43,7 @@ export function HeadingsHead({ caption, q }: { caption: string; q: string }) {
             defaultValue={q}
             placeholder={SEARCH_PLACEHOLDER}
             aria-label={SEARCH_PLACEHOLDER}
-            className="h-control w-full rounded-sm border border-line-strong bg-surface pl-[34px] pr-2.5 text-base text-ink outline-none placeholder:text-ink-3 hover:border-ink-3 focus:border-brand focus:[box-shadow:inset_0_0_0_1px_theme(colors.brand)] max-md:h-input-touch max-md:pl-10 max-md:text-md"
+            className="h-control w-full rounded-sm border border-line-strong bg-surface pl-[34px] pr-2.5 text-base text-ink outline-none placeholder:text-ink-3 hover:border-ink-3 focus:border-brand-ink focus:[box-shadow:inset_0_0_0_1px_theme(colors.brand-ink)] max-md:h-input-touch max-md:pl-10 max-md:text-md"
           />
         </form>
       </div>
@@ -53,7 +53,7 @@ export function HeadingsHead({ caption, q }: { caption: string; q: string }) {
 
 function ChapterCard({ c, current, href }: { c: Chapter; current: boolean; href: string }) {
   return (
-    <Link href={href} prefetch={false} aria-current={current ? "true" : undefined} className={cn("flex flex-col gap-1 rounded-md border p-3", FOCUS, current ? "border-brand bg-brand-tint" : "border-line hover:bg-subtle")}>
+    <Link href={href} prefetch={false} aria-current={current ? "true" : undefined} className={cn("flex flex-col gap-1 rounded-md border p-3", FOCUS, current ? "border-brand-ink bg-brand-tint" : "border-line hover:bg-subtle")}>
       <span className="font-mono text-sm text-ink-3">{c.code}</span>
       <span className="text-base font-semibold text-ink">{c.name}</span>
       <span className="text-sm text-ink-3">{headingsWord(c.headings.length)}</span>

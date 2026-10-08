@@ -14,15 +14,15 @@
 
 import { CaretLeft, Clock, XCircle, X } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
-import { buttonClass } from "@/components/kit";
-import { LockedContact, REFUSAL, SanctionBanner, SourceList, onFileWords, type SourceEntry } from "@/components/patterns";
+import { Define, buttonClass, ring } from "@/components/kit";
+import { LockedContact, REFUSAL, SanctionBanner, onFileWords } from "@/components/patterns";
 import type { SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
 import { CertificatesPanel, OverviewPanel, ProductsPanel, RecordRfqs, SafetyPanel, SitesPanel, SourcesPanel } from "./panels";
 import { SourceCheckListener } from "@/components/onboarding/source-check";
 import { RecordSave } from "./save-button";
 import { SectionTabs } from "./section-tabs";
-import { TABS, dayOfWords, recordSubline, summaryCells, tabCount, type SummaryCell, type TabId } from "./words";
+import { TABS, recordSubline, summaryCells, tabCount, type SummaryCell, type TabId } from "./words";
 
 export type RecordViewProps = {
   model: SupplierSheetModel;
@@ -41,7 +41,7 @@ export type RecordViewProps = {
 const TABULAR = "[font-variant-numeric:tabular-nums]";
 
 function Cell({ c }: { c: SummaryCell }) {
-  const Glyph = c.tone === "danger" ? XCircle : c.tone === "caution" ? Clock : null;
+  const Glyph = c.tone === "caution" ? (c.lapsed ? XCircle : Clock) : null;
   return (
     <div
       className={cn(
@@ -49,28 +49,56 @@ function Cell({ c }: { c: SummaryCell }) {
         c.tone === "sanction" && "sm:bg-sanction-tint",
       )}
     >
-      <dt className="text-md text-ink sm:text-xs sm:text-ink-3">{c.label}</dt>
+      <dt className="text-md text-ink sm:text-xs sm:text-ink-3">
+        <Define term={c.label} focusable={false} describedId={stripTermId(c.key)} />
+      </dt>
       <dd className="flex flex-col items-end gap-0.5 text-right sm:items-start sm:text-left">
         <span
           className={cn(
             "flex items-center gap-1.5 text-md font-semibold",
             c.tone !== "sanction" && "sm:whitespace-nowrap",
-            c.tone === "danger" ? "text-danger" : c.tone === "caution" ? "text-caution" : c.tone === "sanction" ? "text-sanction" : "text-ink",
+            c.tone === "caution" ? "text-caution" : c.tone === "sanction" ? "text-sanction" : "text-ink",
           )}
         >
           {Glyph ? <Glyph size={16} weight="fill" className={cn("shrink-0", c.tone === "caution" && "text-caution-icon")} aria-hidden /> : null}
-          {c.value}
+          {c.valueWords ? (
+            <>
+              <span aria-hidden="true" className="text-ink-3" title={c.valueWords}>
+                {c.value}
+              </span>
+              <span className="sr-only">{c.valueWords}</span>
+            </>
+          ) : c.href ? (
+            <Link href={c.href} prefetch={false} scroll={false} className={cn("rounded-sm underline decoration-1 [text-underline-position:from-font] hover:decoration-2", ring)}>
+              {c.value}
+            </Link>
+          ) : (
+            c.value
+          )}
         </span>
-        {c.sub ? <span className="text-xs text-ink-3 max-sm:text-sm">{c.sub}</span> : null}
+        {c.sub ? <span className="text-xs text-ink-3 max-sm:text-sm">{c.subTerm ? <Define term={c.subTerm} focusable={false}>{c.sub}</Define> : c.sub}</span> : null}
       </dd>
     </div>
   );
 }
 
-/** The five cells: a bordered strip from 640, five rows with their words on the right on a phone. */
+/** The id of a strip label's definition, so the strip itself can name all five. */
+export const stripTermId = (key: string) => `record-strip-term-${key}`;
+
+/**
+ * The five cells: a bordered strip from 640, five rows with their words on the right on a phone.
+ * One tab stop for the five labels (critique of 8 Oct 2026, round 3, item 6: six Tabs before the
+ * tabs): the strip is focusable and described by the five definitions; a label is reached by hover
+ * and through the strip, never a stop of its own.
+ */
 export function Summary({ cells }: { cells: SummaryCell[] }) {
   return (
-    <dl aria-label="Summary" className={cn("flex flex-col sm:flex-row sm:rounded-lg sm:border sm:border-line", TABULAR)}>
+    <dl
+      aria-label="Summary"
+      tabIndex={0}
+      aria-describedby={cells.map((c) => stripTermId(c.key)).join(" ")}
+      className={cn("flex flex-col rounded-sm sm:flex-row sm:rounded-lg sm:border sm:border-line", ring, TABULAR)}
+    >
       {cells.map((c) => (
         <Cell key={c.key} c={c} />
       ))}
@@ -78,13 +106,13 @@ export function Summary({ cells }: { cells: SummaryCell[] }) {
   );
 }
 
-function Contact({ model }: { model: SupplierSheetModel }) {
+function Contact({ model, level: H }: { model: SupplierSheetModel; level: "h2" | "h3" }) {
   const counts = model.contact.counts;
-  if (counts) return <LockedContact {...counts} />;
+  if (counts) return <LockedContact {...counts} level={H} />;
   // An unread count says only that the details are locked: "none on file" would be a claim.
   return (
     <section aria-label="Contact" className="flex w-full max-w-details flex-col gap-2 rounded-lg border border-line p-4">
-      <h3 className="text-base font-semibold text-ink">Contact</h3>
+      <H className="text-base font-semibold text-ink">Contact</H>
       <p className="text-sm text-ink-2">Contact details are locked. Send an RFQ and the supplier replies here.</p>
     </section>
   );
@@ -94,15 +122,16 @@ const sendClass = buttonClass({ kind: "primary" });
 
 export function RecordView({ model, mode, tab, tabHref, today, backHref = null, site = null }: RecordViewProps) {
   const page = mode === "page";
-  // The search's own title is the page's h1 beside a pane.
+  // The search's own title is the page's h1 beside a pane; the sections head one level under the name.
   const Title = page ? "h1" : "h2";
-  const cells = summaryCells(model, today);
+  const level = page ? "h2" : "h3";
+  // The Sources cell opens the Sources tab: the page says its sources once, there (critique of 8 Oct 2026, item 5).
+  const cells = summaryCells(model, today).map((c) => (c.key === "sources" ? { ...c, href: `${tabHref("sources")}#record-sources` } : c));
   const list = model.sanctions[0] ?? null;
   const listName = list?.list ?? "sanctions list";
   const expandHref = backHref ? `${model.fullHref}${model.fullHref.includes("?") ? "&" : "?"}back=${encodeURIComponent(backHref)}` : model.fullHref;
   const counts = model.contact.counts;
   const locked = counts ? onFileWords(counts.emails, counts.phones, counts.website, counts.representatives) : null;
-  const sources: SourceEntry[] = model.sources.map((s) => ({ source: s.mark.code, label: s.mark.label, fullName: s.name, checkedOn: dayOfWords(s.readDate) }));
 
   const actions = (
     <>
@@ -140,7 +169,7 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
           the bar is drawn even for a record opened from a link: back is then the search itself. */}
       {page ? (
         <div data-record-bar="" className="sticky top-0 z-raised flex h-topbar-phone shrink-0 items-center border-b border-line bg-surface px-1 sm:hidden">
-          <Link href={backHref ?? "/app"} aria-label="Back to search" className="inline-flex h-touch items-center gap-0.5 rounded-sm pl-1.5 pr-3 text-md font-medium text-ink outline-none active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand">
+          <Link href={backHref ?? "/app"} aria-label="Back to search" className="inline-flex h-touch items-center gap-0.5 rounded-sm pl-1.5 pr-3 text-md font-medium text-ink outline-none active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
             <CaretLeft size={24} className="shrink-0" aria-hidden />
             Search
           </Link>
@@ -148,7 +177,7 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
       ) : null}
       {page && backHref ? (
         <div className="px-6 pt-3 max-sm:hidden lg:px-8">
-          <Link href={backHref} className="inline-flex min-h-6 items-center gap-1.5 rounded-sm text-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+          <Link href={backHref} className="inline-flex min-h-6 items-center gap-1.5 rounded-sm text-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
             <CaretLeft size={14} className="shrink-0" aria-hidden />
             Back to results
           </Link>
@@ -156,12 +185,13 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
       ) : null}
 
       {/* On a phone's page the name and its line are the record's plate: a tonal ground under the bar, closed by a line. */}
-      <header className={cn("flex flex-col gap-1.5 px-4 pb-3 pt-3 sm:sticky sm:top-0 sm:z-raised sm:border-b sm:border-line sm:bg-surface sm:px-6", page ? "max-sm:gap-1 max-sm:border-b max-sm:border-line max-sm:bg-subtle max-sm:pb-4 max-sm:pt-4 sm:pt-3 lg:px-8" : "sm:pt-5")}>
+      {/* 12px over the name in the pane too: its baseline then meets the list bar's title beside it (56 tall, centred), instead of sitting 7px under it. */}
+      <header className={cn("flex flex-col gap-1.5 px-4 pb-3 pt-3 sm:sticky sm:top-0 sm:z-raised sm:border-b sm:border-line sm:bg-surface sm:px-6", page ? "max-sm:gap-1 max-sm:border-b max-sm:border-line max-sm:bg-subtle max-sm:pb-4 max-sm:pt-4 sm:pt-3 lg:px-8" : "sm:pt-3")}>
         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
           <Title className="min-w-0 flex-1 basis-60 text-xl font-semibold tracking-tight text-ink [overflow-wrap:anywhere]">{model.name}</Title>
           <div className="flex shrink-0 items-center gap-2">
             {!page ? (
-              <Link href={expandHref} className="rounded-sm p-1.5 text-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand max-sm:hidden">
+              <Link href={expandHref} className="rounded-sm p-1.5 text-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus max-sm:hidden">
                 Open full page
               </Link>
             ) : null}
@@ -199,19 +229,19 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
             <div key={t.id} id={`record-${t.id}`} role="region" aria-label={t.label} className="scroll-mt-[var(--record-offset,0px)]">
               {t.id === "overview" ? (
                 <div className="flex flex-col gap-5">
-                  <OverviewPanel model={model} today={today} />
-                  <RecordRfqs model={model} />
+                  <OverviewPanel model={model} today={today} level={level} />
+                  <RecordRfqs model={model} level={level} />
                 </div>
               ) : t.id === "certificates" ? (
-                <CertificatesPanel model={model} today={today} compact={!page} />
+                <CertificatesPanel model={model} today={today} compact={!page} level={level} />
               ) : t.id === "safety" ? (
-                <SafetyPanel model={model} />
+                <SafetyPanel model={model} level={level} />
               ) : t.id === "sites" ? (
-                <SitesPanel model={model} tabHref={tabHref} site={site} wide={page} />
+                <SitesPanel model={model} tabHref={tabHref} site={site} wide={page} level={level} />
               ) : t.id === "sources" ? (
-                <SourcesPanel model={model} today={today} />
+                <SourcesPanel model={model} today={today} level={level} />
               ) : (
-                <ProductsPanel model={model} />
+                <ProductsPanel model={model} level={level} open={tab === "products"} />
               )}
             </div>
           ))}
@@ -219,9 +249,10 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
         </div>
 
         {page ? (
-          <aside aria-label="Contact and sources" className="hidden w-details shrink-0 flex-col gap-4 pt-1 lg:flex">
-            <Contact model={model} />
-            {tab !== "sources" && sources.length > 0 ? <SourceList sources={sources} today={today} /> : null}
+          // The column sticks under the record's sticky head while the main column scrolls past it (the
+          // critique of 7 Oct 2026: four screens of facts beside a card that fits in one).
+          <aside aria-label="Contact and sources" className="hidden w-details shrink-0 flex-col gap-4 pt-1 lg:sticky lg:top-[var(--record-offset,0px)] lg:flex lg:self-start">
+            <Contact model={model} level={level} />
           </aside>
         ) : null}
       </div>
@@ -229,7 +260,7 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
       {/* Where the contact column is not: what is locked, in one line (a phone: a row above the action bar). */}
       {locked ? (
         <p className={cn("flex min-h-16 items-center gap-1 border-t border-line px-4 text-sm text-ink-3 sm:sticky sm:bottom-0 sm:bg-surface sm:px-6", page && "lg:hidden")}>
-          {locked} · locked
+          Locked · {locked}
         </p>
       ) : null}
 

@@ -4,11 +4,11 @@
 // remembered count. Everything is worked out from what `buyer_saved_list`, the two compliance
 // reads and `saved_searches` return, so nothing here says more than they hold. Pure.
 
-import { certLine, type CertLine } from "@/components/patterns/words";
+import { certLine, certSummary, type CertLine, type CertSummary } from "@/components/patterns/words";
 import { discoverWorkers, workersSecondShort } from "@/lib/dashboard/build-discover-row";
 import { certScheme, displayName, entityLabel, formatCount, formatDay, formatRelative, placeLabel } from "@/lib/dashboard/facts";
-import { SEND_RFQ_MAX } from "@/lib/dashboard/selection";
-import { discoverHref, parseDiscoverState, queryTitle } from "@/lib/discover-v32-state";
+import { SEND_RFQ_MAX, rfqHref } from "@/lib/dashboard/selection";
+import { discoverChips, discoverHref, parseDiscoverState, queryTitle } from "@/lib/discover-v32-state";
 import type { WorkersBasis } from "@/lib/enrich-discover-workers";
 import type { SavedSearchJson } from "@/lib/saved-searches";
 
@@ -51,9 +51,6 @@ export const SEARCHES_HREF = "/app/searches";
 /** Download CSV on Saved: the whole list in the page's sort (`/api/v1/export`). */
 export const savedExportHref = (sort: SavedSort) => `/api/v1/export?kind=saved&sort=${sort}`;
 
-/** One RFQ to everyone ticked: the composer takes the suppliers as `?supplier=a,b,c`. */
-export const rfqHref = (ids: readonly string[]) => `/app/rfqs/new?supplier=${ids.map(encodeURIComponent).join(",")}`;
-
 export const TOO_MANY = `One RFQ goes to up to ${SEND_RFQ_MAX} suppliers. Untick some to send.`;
 
 /** What `buyer_saved_list` returns, with the two worker figures `enrichDiscoverWorkers` adds. */
@@ -78,14 +75,14 @@ export type SavedRow = {
 export type CertRead = { kind: string; certificate_no: string | null; expires_on: string; listing_status?: string; delisted_on?: string | null; supplier: { id: string } | null };
 
 /** What the compliance reads say, by supplier: complete only when BOTH reads worked. */
-export type CertsBySupplier = { bySupplier: Map<string, { scheme: string; expiresOn: string; delistedOn?: string | null }[]>; complete: boolean };
+export type CertsBySupplier = { bySupplier: Map<string, { scheme: string; expiresOn: string; markCode?: string; delistedOn?: string | null }[]>; complete: boolean };
 
 /**
  * Group the two reads by supplier. A read that failed is `null`, and then the cells of suppliers
  * not listed say nothing: "nothing to check" is a claim an unread list cannot make.
  */
 export function groupCerts(expired: readonly CertRead[] | null, expiring: readonly CertRead[] | null): CertsBySupplier {
-  const bySupplier = new Map<string, { scheme: string; expiresOn: string; delistedOn?: string | null }[]>();
+  const bySupplier = new Map<string, { scheme: string; expiresOn: string; markCode?: string; delistedOn?: string | null }[]>();
   // A delisted certificate (0122) can come back in both reads; it counts once.
   const seen = new Set<string>();
   for (const r of [...(expired ?? []), ...(expiring ?? [])]) {
@@ -94,19 +91,21 @@ export function groupCerts(expired: readonly CertRead[] | null, expiring: readon
     if (seen.has(key)) continue;
     seen.add(key);
     const list = bySupplier.get(r.supplier.id) ?? [];
-    list.push({ scheme: certScheme(r.kind), expiresOn: r.expires_on, delistedOn: r.listing_status === "no_longer_listed" ? (r.delisted_on ?? r.expires_on) : null });
+    // The kind is the code the body's mark is filed under (`wrap`, `gots`, `oeko_tex`), so the cell draws its logo.
+    list.push({ scheme: certScheme(r.kind), expiresOn: r.expires_on, markCode: r.kind.toUpperCase(), delistedOn: r.listing_status === "no_longer_listed" ? (r.delisted_on ?? r.expires_on) : null });
     bySupplier.set(r.supplier.id, list);
   }
   return { bySupplier, complete: expired !== null && expiring !== null };
 }
 
-/** The first certificate to check: the worst one's words, "nothing to check", or that it was not read. */
-export type CertCell = { kind: "line"; line: CertLine } | { kind: "clear" } | { kind: "unread" };
+/** The certificates to check: the worst one's words and the compact cell the results draw, "nothing to check", or that it was not read. */
+export type CertCell = { kind: "line"; line: CertLine; summary: CertSummary } | { kind: "clear" } | { kind: "unread" };
 
 export function certCell(certs: CertsBySupplier | null, supplierId: string, today: Date): CertCell {
   const own = certs?.bySupplier.get(supplierId);
   const line = own && own.length ? certLine(own, today) : null;
-  if (line) return { kind: "line", line };
+  const summary = own && own.length ? certSummary(own, today) : null;
+  if (line && summary) return { kind: "line", line, summary };
   return certs?.complete ? { kind: "clear" } : { kind: "unread" };
 }
 
@@ -127,6 +126,10 @@ export type SavedItem = {
   paneHref: string;
   /** Opens the record as a page, with the way back to this list. */
   pageHref: string;
+  /** Opens the composer in the pane beside this list with the supplier as its target. */
+  rfqHref: string;
+  /** This list without a pane: one RFQ to everyone ticked is `rfqHref(listHref, ids)`. */
+  listHref: string;
 };
 
 export function buildSavedItems(rows: readonly SavedRow[], certs: CertsBySupplier | null, today: Date, view: SavedView): SavedItem[] {
@@ -147,6 +150,8 @@ export function buildSavedItems(rows: readonly SavedRow[], certs: CertsBySupplie
       savedOn: formatDay(r.saved_at),
       paneHref: savedHref({ ...view, open: r.slug, tab: null }),
       pageHref: `/app/suppliers/${r.slug}?back=${encodeURIComponent(back)}`,
+      rfqHref: rfqHref(back, [r.id]),
+      listHref: back,
     };
   });
 }
@@ -187,7 +192,12 @@ export type SearchItem = {
   alert: boolean | null;
 };
 
-/** The words of a saved search's filters, from the query it kept; "All published suppliers" when it kept none. */
+/**
+ * The words of a saved search's filters, from the query it kept: "GOTS, Gazipur", not "knit · Certificate ·
+ * GOTS · Gazipur · Sanctioned hidden" (the critique of 7 Oct 2026, item 9). Each filter is its value in
+ * words; a family's name and a value that is the default (a valid certificate, sanctioned suppliers
+ * hidden) are left out. "All published suppliers" when it kept none.
+ */
 export function searchFilters(queryState: unknown): string {
   const raw = queryState && typeof queryState === "object" ? (queryState as { search?: unknown }).search : null;
   const params = typeof raw === "string" ? new URLSearchParams(raw) : new URLSearchParams();
@@ -196,7 +206,12 @@ export function searchFilters(queryState: unknown): string {
     const all = params.getAll(k);
     sp[k] = all.length > 1 ? all : (all[0] ?? "");
   }
-  return queryTitle(parseDiscoverState(sp));
+  // The typed term in quotes, so it reads as a word typed and not as a filter ("knit, GOTS" said two things one way).
+  const words = discoverChips(parseDiscoverState(sp))
+    .map((c) => (c.key === "q" ? `\u201c${c.label}\u201d` : c.label))
+    .filter((l) => l !== "Sanctioned hidden")
+    .map((l) => l.replace(/^Certificate · /, "").replace(/, valid$/, "").replace(/ \(any state\)$/, ""));
+  return words.length ? words.join(", ") : "All published suppliers";
 }
 
 /** The count and when it was taken: most are remembered, not live, and the row says which. */

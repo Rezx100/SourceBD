@@ -318,7 +318,7 @@ describe("/app/suppliers/[slug]/lines/[hs] — the line page", () => {
     assert.match(out, /<h1 [^>]*>Men&#x27;s or boys&#x27; shirts, knitted or crocheted<\/h1>/);
     assert.match(out, /<a [^>]*aria-label="Back to the record"[^>]*href="\/app\/suppliers\/aboni-knitwear\?tab=products"/);
     assert.match(out, /href="\/app\/discover\?hs=6105"[^>]*>Exporters of 6105<span [^>]*>· 1,634<\/span>/);
-    assert.match(out, /<a [^>]*href="\/app\/rfqs\/new\?supplier=[^"&]+&amp;hs=6105"[^>]*>Send RFQ for this line<\/a>/);
+    assert.match(out, /<a [^>]*href="\/app\/rfqs\/new\?supplier=[^"&]+&amp;hs=6105&amp;back=[^"]+"[^>]*>Send RFQ for this line<\/a>/);
     assert.doesNotMatch(out, /data-sheet-scroll|animate-sheet-in|bg-surface-sunken|text-ink-(?:muted|subtle)/, "a class of the old kit");
   });
 
@@ -635,6 +635,11 @@ describe("/app/discover — the panes beside the results", () => {
   };
   const sendButton = (html: string) => /<button\b[^>]*>(?:(?!<\/button>)[\s\S])*?Send RFQ/.exec(html)?.[0] ?? "";
 
+  it("the results page has one h1 (the desktop bar's; the phone bar's title is a p)", async () => {
+    const out = html(await search({ q: "knit" }));
+    assert.equal((out.match(/<h1\b/g) ?? []).length, 1);
+  });
+
   it("?rfq=<id> opens the composer in the pane beside the results, naming the target and none of its contact details", async () => {
     const out = html(await search({ q: "knit", rfq: ABONI_ID }));
     assert.match(out, /<section data-record-pane="" aria-label="New RFQ"/);
@@ -675,7 +680,7 @@ describe("/app/discover — the panes beside the results", () => {
     const only = html(await search({ q: "knit", rfq: UNPUBLISHED_ID }));
     assert.doesNotMatch(only, /Hidden Knit/i);
     assert.match(only, /No supplier yet\./);
-    assert.match(sendButton(only), /\sdisabled=""/);
+    assert.doesNotMatch(sendButton(only), /\sdisabled=""/, "Send is live with nobody listed; the click says to add a supplier (critique of 8 Oct 2026, item 1)");
     // Not an id at all: no composer.
     const junk = html(await search({ q: "knit", rfq: "not-an-id" }));
     assert.doesNotMatch(junk, /aria-label="New RFQ"/);
@@ -797,6 +802,73 @@ describe("/app/discover — the panes beside the results", () => {
   });
 });
 
+describe("/app/saved?rfq= — the composer beside the saved list", () => {
+  // Critique of 8 Oct 2026, item 2: Saved's Send RFQ was a page jump; now it is the pane beside the list.
+  const ABONI_ID = "8ce50581-2d84-4cc2-93aa-000000000001";
+  const SAVED_ROW = { id: ABONI_ID, slug: "aboni-knitwear", company_name: "ABONI KNITWEAR LTD.", entity_type: "factory", city: "Dhaka", district: "Dhaka", source_tags: ["BGMEA"], t13_source_count: 1, employees_total: 3166, saved_at: "2026-10-01T10:00:00Z", total_count: 1 };
+  const SUPPLIERS = [{ id: ABONI_ID, slug: "aboni-knitwear", company_name: "ABONI KNITWEAR LTD.", entity_type: "factory", city: "Dhaka", district: "Dhaka", source_tags: ["BGMEA"], is_published: true, is_sanctioned: false }];
+  const saved = async (sp: Record<string, string>) => {
+    given({ profile: PROFILE, hscodes: HS, tables: { suppliers: SUPPLIERS }, rpcs: { buyer_saved_list: { data: [SAVED_ROW], error: null }, compliance_expired_certs: { data: [], error: null }, compliance_expiring_certs: { data: [], error: null } } });
+    currentPath = "/app/saved";
+    try {
+      const Page = route("app/(app)/app/saved/page.js").default;
+      return await outcome(() => Page({ searchParams: Promise.resolve(sp) }));
+    } finally {
+      currentPath = "/app/discover";
+    }
+  };
+
+  it("?open=<slug>&rfq=<id> (the full page's Send RFQ, round 3 item 1): Close returns to the record beside the list", async () => {
+    const out = html(await saved({ open: "aboni-knitwear", rfq: ABONI_ID }));
+    const pane = out.search(/<section data-record-pane="" aria-label="New RFQ"/);
+    assert.ok(pane > -1, "no composer in the pane");
+    const close = /<a\b[^>]*aria-label="Close"[^>]*href="([^"]+)"|<a\b[^>]*href="([^"]+)"[^>]*aria-label="Close"/.exec(out.slice(pane));
+    assert.equal((close?.[1] ?? close?.[2] ?? "").replace(/&amp;/g, "&"), "/app/saved?open=aboni-knitwear");
+  });
+
+  it("?rfq=<id> draws the composer in the pane beside the saved list, naming the target; Close is the list", async () => {
+    const out = html(await saved({ rfq: ABONI_ID }));
+    const pane = out.search(/<section data-record-pane="" aria-label="New RFQ"/);
+    assert.ok(pane > -1, "no composer in the pane");
+    const list = out.indexOf('aria-label="Saved suppliers"');
+    assert.ok(list > -1 && list < pane, "the saved list does not stand beside the composer");
+    assert.match(out.slice(pane), /1 supplier · you can add up to 50[\s\S]*Aboni Knitwear Ltd/);
+    assert.doesNotMatch(out, /aria-label="Supplier record"/, "a record and the composer in one pane");
+    const close = /<a\b[^>]*aria-label="Close"[^>]*href="([^"]+)"|<a\b[^>]*href="([^"]+)"[^>]*aria-label="Close"/.exec(out.slice(pane));
+    assert.equal((close?.[1] ?? close?.[2] ?? "").replace(/&amp;/g, "&"), "/app/saved");
+    assert.doesNotMatch(out, /role="dialog"|aria-modal/);
+  });
+
+  it("the list's sort survives the composer: Close returns to the sorted list, and no door is a page jump", async () => {
+    const out = html(await saved({ sort: "name", rfq: ABONI_ID }));
+    const pane = out.search(/aria-label="New RFQ"/);
+    assert.ok(pane > -1, "no composer in the pane");
+    const close = /<a\b[^>]*aria-label="Close"[^>]*href="([^"]+)"|<a\b[^>]*href="([^"]+)"[^>]*aria-label="Close"/.exec(out.slice(pane));
+    assert.equal((close?.[1] ?? close?.[2] ?? "").replace(/&amp;/g, "&"), "/app/saved?sort=name");
+    assert.doesNotMatch(out, /rfqs\/new/);
+    // Nothing open: the plain list, no composer, and still no page jump anywhere in it.
+    const plain = html(await saved({ sort: "name" }));
+    assert.doesNotMatch(plain, /aria-label="New RFQ"|rfqs\/new/);
+  });
+
+  it("the record beside the saved list sends through the list too, and a failed list beside the composer is the narrow notice, not the full table", async () => {
+    const out = html(await saved({ open: "aboni-knitwear" }));
+    // The record carries its profile's own supplier id (the fixture's), so the door is matched by shape.
+    assert.match(out, /href="\/app\/saved\?rfq=[0-9a-f-]{36}"[^>]*>Send RFQ</, "the record's Send RFQ opens the composer beside this list");
+    assert.doesNotMatch(out, /rfqs\/new/);
+    given({ profile: PROFILE, hscodes: HS, tables: { suppliers: SUPPLIERS }, rpcs: { buyer_saved_list: { data: null, error: { message: "down" } } } });
+    currentPath = "/app/saved";
+    try {
+      const Page = route("app/(app)/app/saved/page.js").default;
+      const failed = html(await outcome(() => Page({ searchParams: Promise.resolve({ rfq: ABONI_ID }) })));
+      assert.match(failed, /aria-label="New RFQ"/);
+      assert.doesNotMatch(failed, /aria-label="Saved suppliers table"/, "the full table beside a pane");
+    } finally {
+      currentPath = "/app/discover";
+    }
+  });
+});
+
 describe("/app/rfqs/new — the composer as a page", () => {
   const ABONI_ID = "8ce50581-2d84-4cc2-93aa-000000000001";
   const SANCTIONED_ID = "9d1e0000-0000-4000-8000-000000000002";
@@ -860,7 +932,8 @@ describe("/app/rfqs/new — the composer as a page", () => {
       const page = html(out);
       assert.match(page, /No supplier yet\./);
       assert.match(page, />Add suppliers</);
-      assert.match(/<button\b[^>]*>(?:(?!<\/button>)[\s\S])*?Send RFQ/.exec(page)?.[0] ?? "", /\sdisabled=""/);
+      // Send is live (critique of 8 Oct 2026, item 1): a click says "Add a supplier"; only a sanction disables it.
+      assert.doesNotMatch(/<button\b[^>]*>(?:(?!<\/button>)[\s\S])*?Send RFQ/.exec(page)?.[0] ?? "", /\sdisabled=""/);
     }
     const hidden = await newRfq({ supplier: UNPUBLISHED_ID }, SUPPLIERS.filter((s) => s.id === UNPUBLISHED_ID));
     assert.ok("threw" in hidden && /404|NOT_FOUND/.test(hidden.threw), `an unpublished supplier is drawn: ${JSON.stringify(hidden)}`);
@@ -1103,6 +1176,15 @@ describe("cycle 3: the boundaries the first route tests did not reach", () => {
     assert.match(out, /data-record-pane/);
     assert.doesNotMatch(out, /aria-modal|\sinert\b/);
     assert.match(out, /could not be read just now/, "a failed read is presented as certainly unpublished");
+  });
+
+  it("beside an open record the narrow list keeps the ticks and the keys (critique of 8 Oct 2026, round 3, item 2)", async () => {
+    const out = html(await overlay({ q: "knit", record: "aboni-knitwear" }));
+    const results = out.slice(0, out.indexOf('data-record="pane"'));
+    assert.match(results, /<ul data-follow="record">/, "the pane list's arrows do not follow the record");
+    assert.match(results, /<li data-row="result" tabindex="0"/, "a pane row is not a keyboard row");
+    assert.match(results, /<input type="checkbox"[^>]*aria-label="Select [^"]+"|aria-label="Select [^"]+"[^>]*type="checkbox"/, "no tick beside an open record");
+    // Whether the bulk bar is drawn beside the pane is in search.test.ts: it shows only once ticked, after hydration.
   });
 
   it("beside an open record the table gives way to the narrow list with the record's row marked, and comes back when it closes", async () => {
@@ -1819,5 +1901,62 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
       // And it is the page frame with a skeleton inside, not an empty region.
       assert.match(out, /role="status" aria-busy="true"/, `${file}: no skeleton in the content region`);
     }
+  });
+});
+
+describe("Send RFQ keeps the search (critique of 8 Oct 2026, round 3, item 1)", () => {
+  const ABONI_ID = "8ce50581-2d84-4cc2-93aa-000000000001";
+  const SEARCH = "/app/discover?q=knit";
+  const hrefOf = (out: string, words: RegExp) =>
+    ([...out.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/g)].find((m) => words.test(m[2]!.replace(/<[^>]+>/g, "").trim()))?.[1]?.match(/href="([^"]+)"/)?.[1] ?? "").replace(/&amp;/g, "&");
+  const page = (Page: (p: unknown) => unknown, params: Record<string, string>, sp: Record<string, string>) =>
+    outcome(() => Page({ params: Promise.resolve(params), searchParams: Promise.resolve(sp) }) as Promise<ReactElement>);
+
+  it("the full record page opened from a search sends the RFQ beside that search, with the record behind it", async () => {
+    given({ profile: PROFILE, hscodes: HS });
+    const out = html(await page(route("app/(app)/app/suppliers/[slug]/page.js").default, { slug: "aboni-knitwear" }, { back: SEARCH }));
+    const send = new URL(hrefOf(out, /^Send RFQ$/), "https://x.invalid");
+    assert.equal(send.pathname, "/app/discover", `Send RFQ leaves the search: ${send}`);
+    assert.equal(send.searchParams.get("q"), "knit");
+    assert.equal(send.searchParams.get("record"), "aboni-knitwear");
+    assert.ok(send.searchParams.get("rfq"), "no rfq= on Send");
+    // A line opened from here keeps the list, so its own Send can do the same.
+    const line = out.match(/href="(\/app\/suppliers\/aboni-knitwear\/lines\/\d{4}[^"]*)"/)?.[1]?.replace(/&amp;/g, "&") ?? "";
+    assert.match(line, /back=%2Fapp%2Fdiscover%3Fq%3Dknit/, `a line forgets the list: ${line}`);
+  });
+
+  it("the line page opened from a search sends beside it with the line, and Back keeps the list", async () => {
+    given({ profile: PROFILE, hscodes: HS });
+    const out = html(await page(route("app/(app)/app/suppliers/[slug]/lines/[hs]/page.js").default, { slug: "aboni-knitwear", hs: "6105" }, { back: SEARCH }));
+    const send = new URL(hrefOf(out, /^Send RFQ for this line$/), "https://x.invalid");
+    assert.equal(send.pathname, "/app/discover");
+    assert.equal(send.searchParams.get("record"), "aboni-knitwear");
+    assert.equal(send.searchParams.get("hs_line"), "6105");
+    assert.ok(send.searchParams.get("rfq"));
+    assert.match(out, /aria-label="Back to the record"[^>]*href="\/app\/suppliers\/aboni-knitwear\?tab=products&amp;back=%2Fapp%2Fdiscover%3Fq%3Dknit"/);
+  });
+
+  it("a list with no composer pane, or a deep link to a line, falls back to the composer page", async () => {
+    given({ profile: PROFILE, hscodes: HS });
+    const out = html(await page(route("app/(app)/app/suppliers/[slug]/page.js").default, { slug: "aboni-knitwear" }, { back: "/app/compliance" }));
+    assert.match(hrefOf(out, /^Send RFQ$/), /^\/app\/rfqs\/new\?supplier=[^&]+&back=%2Fapp%2Fsuppliers%2Faboni-knitwear%3Fback%3D%252Fapp%252Fcompliance$/);
+    given({ profile: PROFILE, hscodes: HS });
+    const line = html(await page(route("app/(app)/app/suppliers/[slug]/lines/[hs]/page.js").default, { slug: "aboni-knitwear", hs: "6105" }, {}));
+    assert.match(hrefOf(line, /^Send RFQ for this line$/), /^\/app\/rfqs\/new\?supplier=[^&]+&hs=6105&back=%2Fapp%2Fsuppliers%2Faboni-knitwear%2Flines%2F6105$/);
+  });
+
+  it("a deep link with no list opens the composer page, and its Close comes back to the record it left", async () => {
+    given({ profile: PROFILE, hscodes: HS });
+    const out = html(await page(route("app/(app)/app/suppliers/[slug]/page.js").default, { slug: "aboni-knitwear" }, { tab: "certificates" }));
+    const send = hrefOf(out, /^Send RFQ$/);
+    assert.match(send, /^\/app\/rfqs\/new\?supplier=[^&]+&back=%2Fapp%2Fsuppliers%2Faboni-knitwear%3Ftab%3Dcertificates$/, send);
+    given({ tables: { suppliers: [{ id: ABONI_ID, slug: "aboni-knitwear", company_name: "ABONI KNITWEAR LTD.", entity_type: "factory", city: "Dhaka", district: "Dhaka", source_tags: ["BGMEA"], is_published: true, is_sanctioned: false }] } });
+    const Composer = route("app/(app)/app/rfqs/new/page.js").default;
+    const composer = html(await outcome(() => Composer({ searchParams: Promise.resolve({ supplier: ABONI_ID, back: "/app/suppliers/aboni-knitwear?tab=certificates" }) })));
+    assert.match(composer, /href="\/app\/suppliers\/aboni-knitwear\?tab=certificates"[^>]*>(?:<svg[\s\S]*?<\/svg>)?Back to Aboni Knitwear Ltd/, "Close drops the record's back");
+    // A back to somewhere else is not followed: Close is the target's record.
+    given({ tables: { suppliers: [{ id: ABONI_ID, slug: "aboni-knitwear", company_name: "ABONI KNITWEAR LTD.", entity_type: "factory", city: "Dhaka", district: "Dhaka", source_tags: ["BGMEA"], is_published: true, is_sanctioned: false }] } });
+    const elsewhere = html(await outcome(() => Composer({ searchParams: Promise.resolve({ supplier: ABONI_ID, back: "/app/suppliers/aboni-knitwear-two" }) })));
+    assert.match(elsewhere, /href="\/app\/suppliers\/aboni-knitwear"[^>]*>(?:<svg[\s\S]*?<\/svg>)?Back to/);
   });
 });

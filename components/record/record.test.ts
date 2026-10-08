@@ -14,8 +14,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { buildSheet } from "@/lib/dashboard/build-models";
 import { TODAY, aboniInput, arFashionInput, longestNameInput, sanctionedInput, zaheenSampleInput } from "@/lib/dashboard/fixtures";
 import type { LocationRow, SupplierSheetModel } from "@/lib/dashboard/models";
+import { rankCerts } from "@/components/patterns";
+import { GLOSSARY, define } from "@/lib/dashboard/glossary";
+import { tierWords } from "@/lib/dashboard/source-tiers";
 import { RecordView } from "@/components/record/record-view";
-import { TABS, certRows, keyFacts, needsLook, parseSite, parseTab, recordSubline, sectionInView, siteCards, siteSummary, summaryCells, tabCount } from "@/components/record/words";
+import { TABS, certRows, keyFacts, needsLook, parseSite, parseTab, pendingLegend, recordSubline, sameName, sectionInView, siteCards, siteSummary, staleWords, summaryCells, tabCount } from "@/components/record/words";
 
 const h = createElement as (type: unknown, props: object | null, ...kids: unknown[]) => ReactNode & Parameters<typeof renderToStaticMarkup>[0];
 const plain = (s: string) => s.replace(/&#x27;/g, "'").replace(/&amp;/g, "&");
@@ -33,7 +36,7 @@ describe("the record's tabs", () => {
   it("are six links to the same record, the open one marked, and a stranger is the Overview", () => {
     const out = view(model());
     const nav = /<nav aria-label="Record sections"[\s\S]*?<\/nav>/.exec(out)?.[0] ?? "";
-    assert.deepEqual([...nav.matchAll(/<a\b[^>]*>([\s\S]*?)<\/a>/g)].map((m) => text(m[1]!).replace(/ · \d+$/, "").trim()), TABS.map((t) => t.label));
+    assert.deepEqual([...nav.matchAll(/<a\b[^>]*>([\s\S]*?)<\/a>/g)].map((m) => text(m[1]!).trim().replace(/ · \d+$/, "")), TABS.map((t) => t.label));
     assert.equal((nav.match(/aria-current="page"/g) ?? []).length, 1);
     assert.match(nav, /<a\b[^>]*aria-current="page"[^>]*>Overview/);
     for (const t of TABS.slice(1)) assert.ok(plain(nav).includes(`tab=${t.id}`), `no link to ${t.id}`);
@@ -80,7 +83,9 @@ describe("the summary", () => {
     const cells = summaryCells(model(), TODAY);
     assert.deepEqual(cells.map((c) => c.key), ["sanctions", "certificates", "rsc", "workers", "sources"]);
     assert.equal(cells[0]!.value, "Not listed");
-    assert.match(cells[4]!.value, /^\d+ sources?$/);
+    // The value is the figure alone under its label: "Sources · 11", never "Sources · 11 sources".
+    assert.match(cells[4]!.value, /^\d+$/);
+    assert.match(cells[3]!.value, /^[\d,]+$/);
     const out = text(view(model()));
     assert.doesNotMatch(out, /\b(score|grade|rating|stars?)\b/i);
   });
@@ -99,11 +104,13 @@ describe("the summary", () => {
 
   it("says what is missing in words: no certificate, no RSC record, no workers figure", () => {
     const cells = Object.fromEntries(summaryCells(model(arFashionInput()), TODAY).map((c) => [c.key, c]));
-    assert.equal(cells.certificates!.value, "None found");
+    // In the strip a missing figure is the dash, its words for a screen reader and in the line under it.
+    assert.deepEqual([cells.certificates!.value, cells.certificates!.valueWords], ["–", "No certificates on file"]);
     assert.equal(cells.rsc!.value, "Not covered");
-    assert.equal(cells.workers!.value, "Not published");
-    assert.equal(cells.workers!.sub, "ask in your RFQ");
-    assert.equal(cells.sources!.value, "1 source");
+    assert.deepEqual([cells.workers!.value, cells.workers!.valueWords], ["–", "Not published"]);
+    assert.equal(cells.workers!.sub, "Not published · ask in your RFQ");
+    assert.match(view(model(arFashionInput())), /<span aria-hidden="true" class="text-ink-3" title="Not published">–<\/span><span class="sr-only">Not published<\/span>/);
+    assert.equal(cells.sources!.value, "1");
     assert.match(cells.sources!.sub ?? "", /^BGMEA · \d{1,2} \w{3} 2026$/);
   });
 
@@ -116,7 +123,10 @@ describe("the summary", () => {
     if (expired) assert.match(cell.value, new RegExp(`^${m.certs.length} · ${expired} expired$`));
     else if (expiring) assert.match(cell.value, new RegExp(`^${m.certs.length} · ${expiring} expiring$`));
     else assert.equal(cell.value, String(m.certs.length));
-    assert.equal(cell.tone, expired ? "danger" : expiring ? "caution" : undefined);
+    // Founder, 8 Oct 2026: a date that passed is caution, as DESIGN.md's Colors says; the XCircle keeps it apart from expiring.
+    assert.equal(cell.tone, expired || expiring ? "caution" : undefined);
+    assert.equal(cell.lapsed, expired > 0);
+    assert.notEqual(cell.tone as string, "danger");
   });
 
   it("puts the first line under the name together from the record, never from a guess", () => {
@@ -253,9 +263,80 @@ describe("the view's rules", () => {
     assert.doesNotMatch(phonesOnly, /Email \d|Website on file|Contact person/);
     const none = text(view(model(aboniInput(), { contact: { hidden: "", plan: null, counts: { emails: 0, phones: 0, website: false, representatives: 0 }, held: null } }), { mode: "page" }));
     assert.match(none, /No email or phone on file/);
-    assert.doesNotMatch(none, /on file · locked/);
+    assert.doesNotMatch(none, /Locked · /);
+    // The foot line leads with what it is (critique of 8 Oct 2026, item 7), and the two cards say "Last read" alike.
+    assert.match(out, /Locked · Email 1 on file · Phone 6 on file · Website on file · Contact person 1 on file/);
+    assert.doesNotMatch(out, /on file · locked/);
+    assert.doesNotMatch(readFileSync(path.join(dir, "..", "patterns", "source-mark.tsx"), "utf8"), /Last checked/);
     const unread = text(view(model(arFashionInput(), { contact: { hidden: "", plan: null, counts: null, held: null } }), { mode: "page" }));
-    assert.doesNotMatch(unread, /No email or phone on file|on file · locked/, "an unread count claims none on file");
+    assert.doesNotMatch(unread, /No email or phone on file|Locked · /, "an unread count claims none on file");
+  });
+
+  // Critique of 8 Oct 2026, item 5: the page said its sources twice and "11" three times; "Needs a look"
+  // kept model order while the strip ranked by date, so GOTS and WRAP swapped between the pane and Saved.
+  it("the page says its sources once: the strip's count opens the Sources tab, the aside keeps Contact only, the section stays", () => {
+    const page = view(model(), { mode: "page" });
+    assert.equal((page.match(/<h[23][^>]*>Sources · \d+<\/h[23]>/g) ?? []).length, 1, "the sources list is drawn twice");
+    assert.doesNotMatch(page, /<aside[^>]*>[\s\S]*?<section aria-label="Sources"/, "the aside still carries the source list");
+    const strip = /<dl aria-label="Summary"[\s\S]*?<\/dl>/.exec(page)?.[0] ?? "";
+    assert.match(strip, /data-define="Sources"[\s\S]*?<a[^>]*href="\/app\/discover\?q=knit&amp;record=x&amp;tab=sources#record-sources"[^>]*>\d+<\/a>/, "the Sources cell is not a link to the tab");
+    assert.ok((page.match(/Sources · \d+/g) ?? []).length <= 2, "the count said three times (strip, tab, aside)");
+  });
+
+  it("'Needs a look' and the strip lead with the worst lapse, in rankCerts's one order, everywhere", () => {
+    const row = (scheme: string, expiresOn: string) => ({ scheme, number: null, issuer: null, expiresOn, documentUrl: null });
+    // Model order GOTS then WRAP; GOTS lapsed earlier, so WRAP (the latest lapse) leads.
+    assert.deepEqual(needsLook([row("GOTS", "2026-01-04"), row("WRAP", "2026-03-29"), row("OEKO-TEX", "2027-05-01")], TODAY).map((r) => r.scheme), ["WRAP", "GOTS"]);
+    // Two expiring: the soonest leads.
+    assert.deepEqual(needsLook([row("GOTS", "2026-11-01"), row("WRAP", "2026-10-08")], TODAY).map((r) => r.scheme), ["WRAP", "GOTS"]);
+    const m = model();
+    const rows = needsLook(certRows(m), TODAY);
+    const ranked = rankCerts(certRows(m), TODAY).filter((r) => r.w.state === "expired" || r.w.state === "expiring").map((r) => r.c.scheme);
+    assert.deepEqual(rows.map((r) => r.scheme), ranked);
+    const cell = summaryCells(m, TODAY).find((c) => c.key === "certificates")!;
+    if (rows.length > 0) assert.ok(cell.sub?.startsWith(rows[0]!.scheme), `the strip leads with ${cell.sub}, the rows with ${rows[0]!.scheme}`);
+  });
+
+  // Critique of 8 Oct 2026, item 6: heuristic 10 sat at 1 for three runs; nothing defined RSC, a tier,
+  // "fixed" or a mark's "+3" on hover or focus. One glossary, one `Define`.
+  it("every strip label, every Sources group heading and the panel's own words resolve to a glossary entry, drawn as a defined term", () => {
+    const m = model();
+    for (const c of summaryCells(m, TODAY)) assert.ok(define(c.label), `${c.label} has no definition`);
+    for (const rank of [1, 2, 3, 4, 5, 6] as const) assert.ok(define(tierWords(rank)), `${tierWords(rank)} has no definition`);
+    assert.ok(define(tierWords(1, "RSC")));
+    for (const term of ["fixed", "Source pending", "stale read", "more", "EPB", "BGMEA", "BKMEA", "BGAPMEA", "BTMA", "GOTS", "WRAP", "OEKO-TEX"]) assert.ok(define(term), `${term} has no definition`);
+    for (const [term, what] of Object.entries(GLOSSARY)) assert.ok(/^[A-Z\u201c].{40,}[.]$/.test(what), `${term}: one plain sentence, ending in a full stop`);
+    assert.equal(define("nonsense"), null);
+    // Round 3, item 5: the help layer reaches the results and the composer.
+    assert.ok(define("FOB"), "FOB has no definition");
+    const table = readFileSync(path.join(process.cwd(), "components", "search", "table.tsx"), "utf8");
+    assert.match(table, /sort=\{state\("sources"\)\} href=\{sortHrefs\.sources\} title=\{SOURCES_TITLE\}/, "the Sources header has no title");
+    const composer = readFileSync(path.join(process.cwd(), "components", "rfqs", "composer.tsx"), "utf8");
+    assert.match(composer, /<Defined text=\{q\} \/>/, "the questions list does not define its terms");
+    const attention = readFileSync(path.join(process.cwd(), "components", "patterns", "attention.tsx"), "utf8");
+    assert.match(attention, /<Define term=\{it\.scheme\}>/, "an attention row's scheme is not defined");
+    const page = view(m, { mode: "page", tab: "sources" });
+    const strip = /<dl aria-label="Summary" tabindex="0" aria-describedby="([^"]+)"/.exec(page);
+    assert.ok(strip, "the strip is not one tab stop");
+    assert.equal(strip[1]!.split(" ").length, 5, "the strip is not described by its five definitions");
+    for (const id of strip[1]!.split(" ")) assert.ok(page.includes(`<span id="${id}" class="sr-only">`), `${id} names no definition`);
+    const inStrip = page.slice(page.indexOf('<dl aria-label="Summary"'), page.indexOf("</dl>", page.indexOf('<dl aria-label="Summary"')));
+    assert.doesNotMatch(inStrip, /<span tabindex="0" data-define=/, "a label in the strip is a tab stop of its own");
+    for (const label of ["Sanctions", "Certificates", "RSC", "Workers", "Sources"]) {
+      // Round 3, item 6: the strip is the one tab stop; its labels are reached through it and by hover.
+      const m2 = new RegExp(`<span tabindex="-1" data-define="${label}" aria-describedby="([^"]+)"[^>]*>${label}</span>`).exec(page);
+      assert.ok(m2, `${label} is not a defined term in the strip`);
+      assert.ok(page.includes(`<span id="${m2![1]}" class="sr-only">${define(label)!.replace(/'/g, "&#x27;")}</span>`), `${label}'s definition is not read to a screen reader`);
+    }
+    assert.match(page, /data-define="Government register"|data-define="Industry body"/, "the Sources group headings are not defined");
+    if (/fixed</.test(page)) assert.match(page, /data-define="fixed"[^>]*>\d+% fixed</);
+    assert.match(page, /class="[^"]*decoration-dotted/, "a defined term is not marked by a dotted underline");
+  });
+
+  it("the long captions wrap at 72 characters: the Sources caption and the RSC block's", () => {
+    const page = view(model(), { mode: "page" });
+    assert.match(page, /<p class="max-w-\[72ch\] text-xs text-ink-3">[^<]*registers?[^<]*<\/p>/, "the Sources caption runs the panel's width");
+    if (/RSC factory/.test(page)) assert.match(page, /<p class="max-w-\[72ch\] text-xs text-ink-3">RSC factory/, "the RSC caption runs the panel's width");
   });
 
   it("lists problems first: only expired and expiring certificates are under 'Needs a look'", () => {
@@ -273,6 +354,137 @@ describe("the view's rules", () => {
     }
     const out = text(view(model(arFashionInput())));
     assert.match(out, /Founded Not on file/);
+  });
+});
+
+// The critique of 7 Oct 2026 (`.impeccable/critique/2026-10-07T09-39-14Z__app-app-app.md`, item 1): the
+// record's first screen said "Source not linked yet" seven times, each head fact two or three times,
+// and jumped from h1 to h3.
+describe("the record's first screen says each fact once, with its receipt", () => {
+  it("never prints 'Source not linked yet': a fact without a register carries the pending mark and one legend", () => {
+    // Aboni holds BGMEA and BKMEA, so every figure names its register; the factory types are the one fact no register is linked to.
+    const full = keyFacts(model());
+    assert.deepEqual(full.filter((f) => f.pending).map((f) => f.label), ["Factory types"]);
+    assert.equal(full.find((f) => f.label === "Factory types")?.values[0]?.text, "Dyeing, Knit, Packaging, Woven", "the subline said Factory; the types it did not say stay");
+    assert.equal(pendingLegend(full), "Source pending · 1");
+    assert.doesNotMatch(view(model(), { mode: "page" }), /Source not linked/);
+    assert.equal(pendingLegend([]), null);
+    // Without them the machine count and the capacity are the record's but no register is linked: the mark, once each, and one legend.
+    const bare = aboniInput();
+    const gone = new Set(["BGMEA", "BKMEA"]);
+    bare.profile.supplier.source_tags = bare.profile.supplier.source_tags.filter((t) => !gone.has(t));
+    bare.profile.pills = bare.profile.pills.filter((x) => !gone.has(x.source_code));
+    bare.profile.provenance = bare.profile.provenance.filter((x) => !gone.has(x.source_code));
+    for (const mode of ["page", "pane"] as const) {
+      const out = view(model(bare), { mode });
+      assert.doesNotMatch(out, /Source not linked/, mode);
+      const facts = keyFacts(model(bare));
+      const pending = facts.filter((f) => f.pending);
+      assert.deepEqual(pending.map((f) => f.label), ["Factory types", "Sewing machines", "Capacity"]);
+      assert.ok(pending.every((f) => f.source === null), "a pending fact never also has a source sentence");
+      assert.equal(pendingLegend(facts), "Source pending · 3");
+      assert.equal((text(out).match(/Source pending · \d+/g) ?? []).length, 1, `${mode}: one legend`);
+      // One mark under each pending fact, one in the legend, one on the filed product list's heading.
+      assert.equal((out.match(/title="Source pending: /g) ?? []).length, 5, `${mode}: a mark per pending fact`);
+    }
+  });
+
+  it("marks the figures the ETL attributes to a register: founding year, machines and capacity name BGMEA or BKMEA", () => {
+    const m = model();
+    const by = Object.fromEntries(m.facts.map((f) => [f.label, f]));
+    assert.deepEqual(by["Sewing machines"]!.marks?.map((x) => x.code), ["BGMEA", "BKMEA"]);
+    assert.deepEqual(by["Capacity, as filed"]!.marks?.map((x) => x.code), ["BKMEA"]);
+    assert.match(text(view(m)), /Sewing machines 850 From BGMEA, BKMEA/);
+  });
+
+  it("starts Key facts after the subline: type, founded and parent group are said once, in the line under the name", () => {
+    const m = model();
+    const line = recordSubline(m);
+    assert.match(line, /^Factory · .* · founded 1985 · part of Babylon Group$/);
+    const labels = keyFacts(m).map((f) => f.label);
+    for (const said of ["Type", "Founded", "Parent group"]) assert.ok(!labels.includes(said), `${said} is said again under Key facts`);
+    const out = text(view(m, { mode: "page" }));
+    assert.equal((out.match(/Babylon Group/g) ?? []).length, 1, "the parent group is said once");
+    assert.equal((out.match(/1985/g) ?? []).length, 1, "the founding year is said once");
+    // A record whose subline cannot say the year still says so under Key facts.
+    assert.ok(keyFacts(model(arFashionInput())).some((f) => f.label === "Founded" && f.empty));
+  });
+
+  it("the summary strip's value is the figure alone under its label", () => {
+    const cells = Object.fromEntries(summaryCells(model(), TODAY).map((c) => [c.key, c]));
+    assert.equal(cells.workers!.value, "3,166");
+    assert.equal(cells.sources!.value, String(model().sourceCount));
+    assert.doesNotMatch(text(view(model())), /\d workers\b.*Sources|\d+ sources/);
+  });
+
+  it("one name: the registered name is the shown name whatever its case, spacing or punctuation", () => {
+    assert.ok(sameName("ABONI KNITWEAR LTD.", "Aboni Knitwear Ltd"));
+    assert.ok(sameName("S M Knitwears  Limited", "S.M. Knitwears Limited"));
+    assert.ok(!sameName("Aboni Knitwear Ltd", "Aboni Knitwear Unit-2 Ltd"));
+    const m = model();
+    assert.equal(m.name, "Aboni Knitwear Ltd");
+    assert.ok(!keyFacts(m).some((f) => f.label === "Registered name"), "ABONI KNITWEAR LTD. survives beside Aboni Knitwear Ltd");
+    assert.equal((text(view(m, { mode: "page" })).match(/aboni knitwear ltd/gi) ?? []).length, 1, "the name is on the screen once");
+  });
+
+  it("runs the headings in order: h1 then h2 on the page, h2 then h3 in the pane, never skipping a level", () => {
+    for (const [mode, first] of [["page", 1], ["pane", 2]] as const) {
+      const levels = [...view(model(), { mode, tab: "overview" }).matchAll(/<h([1-6])\b/g)].map((x) => Number(x[1]));
+      assert.equal(levels[0], first, `${mode}: the name`);
+      let prev: number = first;
+      for (const l of levels) {
+        assert.ok(l <= prev + 1, `${mode}: h${prev} jumps to h${l}`);
+        prev = l;
+      }
+      assert.ok(levels.includes(first + 1), `${mode}: the sections head one level under the name`);
+    }
+  });
+
+  it("a stale register read is an hourglass with its words, so the clock keeps one meaning (expiry)", () => {
+    assert.equal(staleWords("26 Jun 2026", new Date("2026-10-06T10:00:00Z")), "read 102 days ago");
+    assert.equal(staleWords("6 Oct 2026", new Date("2026-10-06T10:00:00Z")), null);
+    assert.equal(staleWords(null, TODAY), null);
+    const count = (m: SupplierSheetModel) => (text(view(m, { mode: "page", tab: "overview" })).match(/read \d+ days ago/g) ?? []).length;
+    const fresh = model(aboniInput(), { sources: model().sources.map((s) => ({ ...s, readDate: "17 Sep 2026" })) });
+    assert.equal(count(fresh), 0, "a fresh read is its date");
+    // One stale read, said once: in the Sources section (the aside no longer repeats the list; critique of 8 Oct 2026, item 5).
+    assert.equal(count(model(aboniInput(), { sources: fresh.sources.map((s, i) => (i === 0 ? { ...s, readDate: "26 Jun 2025" } : s)) })), 1);
+    assert.doesNotMatch(view(fresh, { mode: "page" }), /Not dated/);
+    // The glyph is Phosphor's hourglass, not the clock the certificate rows use.
+    assert.match(readFileSync(path.join(dir, "panels.tsx"), "utf8"), /Hourglass size=\{12\}/);
+    assert.doesNotMatch(readFileSync(path.join(dir, "panels.tsx"), "utf8"), /\bClock\b/);
+    assert.doesNotMatch(readFileSync(path.join(dir, "..", "patterns", "source-mark.tsx"), "utf8"), /\bClock\b/);
+  });
+
+  it("folds 'Products as filed' by default and unfolds it on the Products tab; the Sources column sticks on the page", () => {
+    const overview = view(model(), { mode: "page", tab: "overview" });
+    assert.match(overview, /<details class="group\/filed[^"]*"><summary/);
+    assert.doesNotMatch(overview, /<details open="" class="group\/filed/);
+    assert.match(view(model(), { mode: "page", tab: "products" }), /<details open="" class="group\/filed/);
+    assert.match(overview, /<aside aria-label="Contact and sources" class="[^"]*lg:sticky[^"]*lg:self-start/);
+  });
+});
+
+// Critique of 7 Oct 2026, item 9: the one genuine side-tab, a second dark green and 10px text in the map's
+// popups, a 7px baseline gap between the two headers, and a summary line ~147 characters long.
+describe("the small tidy", () => {
+  it("the map's popups use the tokens, no second dark green, nothing under 12px", () => {
+    const map = readFileSync(path.join(dir, "locations-map.tsx"), "utf8");
+    assert.doesNotMatch(map, /#[0-9a-fA-F]{3,6}\b/, "a hand-typed colour in the map");
+    assert.doesNotMatch(map, /font-size:\s*(?:[0-9]|1[01])(?:\.\d+)?px|text-\[1[01]px\]|text-\[[0-9]px\]/, "text under 12px in the map");
+    assert.match(map, /import \{ light as C \} from "@\/lib\/design\/tokens";/);
+    assert.match(map, /color:\$\{C\.ink\.strong\}/);
+  });
+
+  it("the error block keeps its tint and icon and loses the side rule; the pane head shares the list bar's baseline; the summary wraps at 72", () => {
+    const feedback = readFileSync(path.join(dir, "..", "kit", "feedback.tsx"), "utf8");
+    assert.doesNotMatch(feedback, /border-left-width|border-l-danger/);
+    assert.match(feedback, /role="alert" className=\{cn\("flex flex-col items-start gap-3 rounded-md bg-danger-tint p-5"/);
+    const pane = view(model(), { mode: "pane" });
+    const head = /<header class="([^"]*)">/.exec(pane)?.[1]?.split(" ") ?? [];
+    assert.ok(head.includes("sm:pt-3") && !head.includes("sm:pt-5"), "the pane head sits 7px under the list bar's title");
+    const withSummary = view(model(aboniInput(), { summary: "A".repeat(147) }), { mode: "page" });
+    assert.match(withSummary, /<p class="max-w-\[72ch\] text-base text-ink-2">A{147}<\/p>/);
   });
 });
 
@@ -455,14 +667,16 @@ describe("the registrations and the sources read as columns (6 Oct 2026: 'scatte
 
   it("the sources are grouped by kind, best rank first, each kind said once", () => {
     const out = view(model(), { mode: "page", tab: "sources" });
-    const kinds = [...out.matchAll(/<section aria-label="([^"]+)"[^>]*><h4/g)].map((m) => plain(m[1]!));
+    const kinds = [...out.matchAll(/<section aria-label="([^"]+)"[^>]*><h3/g)].map((m) => plain(m[1]!));
     assert.deepEqual(kinds, [...new Set(model().sources.map((s) => s.tier))]);
     assert.equal(kinds[0], "Government register");
     assert.equal((out.match(/<li\b[^>]*@container/g) ?? []).length, model().sources.length, "one row per source");
     // The words come from a row's own tier slug, the order from its mark's rank: a kind can come back after another.
     const [a, b, c] = model().sources;
     const split = view(model(aboniInput(), { sources: [{ ...a!, tier: "Foreign regulator" }, { ...b!, tier: "Cross-check only" }, { ...c!, tier: "Foreign regulator" }] }), { mode: "page", tab: "sources" });
-    assert.deepEqual([...split.matchAll(/<section aria-label="([^"]+)"[^>]*><h4/g)].map((m) => m[1]), ["Foreign regulator", "Cross-check only"]);
+    assert.deepEqual([...split.matchAll(/<section aria-label="([^"]+)"[^>]*><h3/g)].map((m) => m[1]), ["Foreign regulator", "Cross-check only"]);
+    // In the pane the name is the h2, so a group is an h4 there.
+    assert.equal((view(model(), { mode: "pane", tab: "sources" }).match(/<section aria-label="[^"]+"[^>]*><h4/g) ?? []).length, kinds.length);
   });
 });
 describe("a record scrolled inside a pane (6 Oct 2026: no map on Sites, and the tabs hung loose under a header that had scrolled away)", () => {

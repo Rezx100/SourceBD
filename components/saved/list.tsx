@@ -5,12 +5,10 @@
 
 import { BookmarkSimple, CaretDown, Check, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
-import { CertCellView } from "./table";
 import { DownloadCsv } from "@/components/export/download-csv";
 import { ErrorPanel, Menu, MenuItem, Pagination, Skeleton, TabLink, buttonClass } from "@/components/kit";
-import { SupplierRow } from "@/components/patterns";
 import { cn } from "@/lib/utils";
-import { PAGE_SIZE, SAVED_SORTS, SEARCHES_HREF, savedCaption, savedExportHref, savedHref, searchesCaption, tabLabels, type SavedItem, type SavedSort, type SavedView } from "./words";
+import { PAGE_SIZE, SAVED_SORTS, SEARCHES_HREF, savedCaption, savedExportHref, savedHref, searchesCaption, tabLabels, type SavedSort, type SavedView } from "./words";
 
 export type Tab = "suppliers" | "searches";
 
@@ -33,7 +31,7 @@ export function SortMenu({ view }: { view: SavedView }) {
       {SAVED_SORTS.map((o) => (
         <MenuItem key={o.value} href={savedHref({ ...view, sort: o.value as SavedSort, page: 1, open: null })}>
           <span className="flex items-center gap-2">
-            <span className="flex size-4 shrink-0 items-center justify-center">{o.value === view.sort ? <Check size={16} className="text-brand" aria-label="Sorted by" /> : null}</span>
+            <span className="flex size-4 shrink-0 items-center justify-center">{o.value === view.sort ? <Check size={16} className="text-brand-ink" aria-label="Sorted by" /> : null}</span>
             {o.label}
           </span>
         </MenuItem>
@@ -80,7 +78,7 @@ export function PhoneTabs({ tab, suppliers, searches }: { tab: Tab; suppliers: n
       prefetch={false}
       aria-current={tab === key ? "page" : undefined}
       className={cn(
-        "flex flex-1 items-center justify-center text-md outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand",
+        "flex flex-1 items-center justify-center text-md outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus",
         !first && "border-l border-line-strong",
         tab === key ? "bg-brand-tint font-semibold text-ink" : "font-medium text-ink-2",
       )}
@@ -98,18 +96,8 @@ export function PhoneTabs({ tab, suppliers, searches }: { tab: Tab; suppliers: n
   );
 }
 
-/** Beside a pane: name, type and place, the first certificate to check, the source count. */
-export function SavedPaneRows({ items, currentSlug }: { items: readonly SavedItem[]; currentSlug: string | null }) {
-  return (
-    <ul>
-      {items.map((i) => (
-        <li key={i.id}>
-          <SupplierRow layout="pane" href={i.paneHref} name={i.name} type={i.type} place={i.place} sources={i.sources} problem={<CertCellView cell={i.cert} small />} selected={i.slug === currentSlug} />
-        </li>
-      ))}
-    </ul>
-  );
-}
+/** Beside a pane: tick, name, type and place, the first certificate to check, the source count, the ⋯ menu. */
+export { SavedPaneRows } from "./table";
 
 /** "Showing 1–24 of 57 suppliers · Page 1 of 3". */
 export function SavedFooter({ view, shown, total }: { view: SavedView; shown: number; total: number }) {

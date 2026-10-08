@@ -155,7 +155,7 @@ export default function Tour({ flavour, initialStep = 0 }: TourProps) {
   return (
     // The tour mounts after the frame, not inside it (the page's <main> is
     // isolated, and a scrim inside it could not cover the topbar). It is drawn
-    // on the v4 kit, with no `data-shell` (B0: it turns v4's brand tint grey).
+    // on the v4 kit, under `data-shell` (the brand tints and link ink are the hueless accent there).
     <div
       aria-hidden={!open}
       className="fixed inset-0 z-modal flex items-end justify-center bg-surface-inverse/40 px-0 py-0 sm:items-center sm:px-4 sm:py-8"

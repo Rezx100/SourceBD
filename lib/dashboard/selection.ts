@@ -41,6 +41,15 @@ export function bulkExportHref(exportHref: string, ids: readonly string[]): stri
   return `${exportHref}${sep}ids=${ids.map(encodeURIComponent).join(",")}`;
 }
 
+/**
+ * The list's own URL with `rfq=` carrying the suppliers, so the composer opens in that list's pane
+ * (PRODUCT.md principle 4: the buyer never loses their search). `/app/rfqs/new` stays for deep
+ * links, drafts and the landing, which has no pane.
+ */
+export function rfqHref(listHref: string, ids: readonly string[]): string {
+  return `${listHref}${listHref.includes("?") ? "&" : "?"}rfq=${ids.map(encodeURIComponent).join(",")}`;
+}
+
 /** What the bar says after one bulk save request came back with `status`.
  * `skipped` counts selected suppliers no longer listed (removed or unpublished
  * since the page rendered), which the server leaves out rather than failing. */

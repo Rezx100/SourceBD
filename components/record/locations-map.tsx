@@ -50,6 +50,7 @@ import {
   widestSpanKm,
 } from "@/lib/geo";
 import type { NearbySupplierSite } from "@/lib/nearby-suppliers";
+import { light as C } from "@/lib/design/tokens";
 import { cn } from "@/lib/utils";
 
 import "bkoi-gl/dist/style/bkoi-gl.css";
@@ -130,30 +131,30 @@ const KIND_STYLE: Record<
 > = {
   factory: {
     label: "Factory",
-    color: "#1f4d3a",
-    badgeColor: "#ffffff",
-    inkColor: "#1f4d3a",
+    color: C.accent.DEFAULT,
+    badgeColor: C.accent.on,
+    inkColor: C.accent.DEFAULT,
     head: "round",
   },
   registered: {
     label: "Registered office",
-    color: "#3f3f46",
-    badgeColor: "#ffffff",
-    inkColor: "#3f3f46",
+    color: C.ink.muted,
+    badgeColor: C.surface.DEFAULT,
+    inkColor: C.ink.muted,
     head: "round",
   },
   mailing: {
     label: "Mailing address",
-    color: "#a1a1aa",
-    badgeColor: "#27272a",
-    inkColor: "#52525b",
+    color: C.line.strong,
+    badgeColor: C.ink.strong,
+    inkColor: C.ink.muted,
     head: "square",
   },
   other: {
     label: "Other address",
-    color: "#71717a",
-    badgeColor: "#ffffff",
-    inkColor: "#52525b",
+    color: C.ink.subtle,
+    badgeColor: C.surface.DEFAULT,
+    inkColor: C.ink.muted,
     head: "square",
   },
 };
@@ -161,8 +162,10 @@ const KIND_STYLE: Record<
 /** Lighter sage — reserved for a live best-effort locate, which is not in the
  *  geocode cache at all and so is a different class of thing from a pin whose
  *  cached geocode merely resolved to an area. */
-const APPROXIMATE_COLOR = "#6b9e83";
-const NEARBY_COLOR = "#2d6a4f";
+// Every colour in the popups' HTML is a token from `lib/design/tokens.ts` (the One File Rule): no second
+// dark green beside the brand, and nothing hand-typed (the critique of 7 Oct 2026, item 9).
+const APPROXIMATE_COLOR = C.ink.subtle;
+const NEARBY_COLOR = C.ink.muted;
 
 const LANDMARK_ICON: Record<LandmarkKind, React.ReactNode> = {
   seaport: <Anchor size={12} weight="bold" aria-hidden />,
@@ -268,8 +271,8 @@ function pinSvg(
 ): string {
   const path = head === "round" ? ROUND_HEAD_PATH : SQUARE_HEAD_PATH;
   const badgeY = head === "round" ? 16.6 : 16.1;
-  const fill = approximate ? "#ffffff" : color;
-  const ring = approximate ? inkColor : "#ffffff";
+  const fill = approximate ? C.surface.DEFAULT : color;
+  const ring = approximate ? inkColor : C.surface.DEFAULT;
   const ringWidth = approximate ? 2.6 : 2;
   const numeralInk = approximate ? inkColor : badgeColor;
   return `
@@ -340,15 +343,15 @@ function pinPopupHtml(marker: LocationMapMarker, badge: string | null) {
 
   return `
     <div style="min-width:196px;max-width:250px;padding:3px 2px">
-      <p style="margin:0 0 4px;font-size:10px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:${kind.color}">
+      <p style="margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:${kind.color}">
         ${badge ? `Site ${escapeHtml(badge)} · ` : ""}${escapeHtml(kind.label)}
       </p>
-      <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#171717;line-height:1.4">${escapeHtml(marker.label)}</p>
-      <p style="margin:0 0 4px;font-size:11.5px;color:#737373;font-family:ui-monospace,SFMono-Regular,monospace">${lat}, ${lng}</p>
-      <p style="margin:0 0 9px;font-size:10.5px;color:#a3a3a3;line-height:1.45">${confidence}</p>
+      <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:${C.ink.strong};line-height:1.4">${escapeHtml(marker.label)}</p>
+      <p style="margin:0 0 4px;font-size:12px;color:${C.ink.muted};font-family:ui-monospace,SFMono-Regular,monospace">${lat}, ${lng}</p>
+      <p style="margin:0 0 9px;font-size:12px;color:${C.ink.subtle};line-height:1.45">${confidence}</p>
       <button
         data-copy-coords="${lat},${lng}"
-        style="width:100%;padding:5px 8px;font-size:11.5px;font-weight:600;color:#404040;background:#fafaf9;border:1px solid #e5e5e5;border-radius:6px;cursor:pointer"
+        style="width:100%;padding:5px 8px;font-size:12px;font-weight:600;color:${C.ink.DEFAULT};background:${C.surface.sunken};border:1px solid ${C.line.DEFAULT};border-radius:6px;cursor:pointer"
       >Copy coordinates</button>
     </div>`;
 }
@@ -358,13 +361,13 @@ function nearbyPopupHtml(site: NearbySupplierSite, profileBasePath: string) {
     site.entityType === "buying_house" ? "Buying house" : "Factory";
   return `
     <div style="min-width:186px;max-width:240px;padding:3px 2px">
-      <p style="margin:0 0 4px;font-size:10px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:${NEARBY_COLOR}">
+      <p style="margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:${NEARBY_COLOR}">
         ${escapeHtml(kindLabel)} · ${escapeHtml(formatDistanceKm(site.distanceKm))} away
       </p>
-      <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#171717;line-height:1.4">${escapeHtml(site.companyName)}</p>
+      <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:${C.ink.strong};line-height:1.4">${escapeHtml(site.companyName)}</p>
       <a
         href="${escapeHtml(profileBasePath)}/${encodeURIComponent(site.slug)}"
-        style="display:block;padding:5px 8px;font-size:11.5px;font-weight:600;color:#1f4d3a;background:#ecf3ee;border-radius:6px;text-align:center;text-decoration:none"
+        style="display:block;padding:5px 8px;font-size:12px;font-weight:600;color:${C.accent.ink};background:${C.accent.tint};border-radius:6px;text-align:center;text-decoration:none"
       >View verified profile</a>
     </div>`;
 }
@@ -603,10 +606,10 @@ function useMapInstance(
         maxWidth: "250px",
       }).setHTML(`
         <div style="min-width:186px;padding:3px 2px">
-          <p style="margin:0 0 4px;font-size:10px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:${APPROXIMATE_COLOR}">Best-effort locate</p>
-          <p style="margin:0 0 6px;font-size:12.5px;font-weight:600;color:#171717;line-height:1.4">${escapeHtml(m.label)}</p>
-          <p style="margin:0 0 4px;font-size:11px;color:#737373;font-family:ui-monospace,SFMono-Regular,monospace">${lat}, ${lng}</p>
-          <p style="margin:0;font-size:10.5px;color:#a3a3a3;line-height:1.45">Not registry-verified and not in our geocode cache</p>
+          <p style="margin:0 0 4px;font-size:12px;font-weight:700;letter-spacing:0.07em;text-transform:uppercase;color:${APPROXIMATE_COLOR}">Best-effort locate</p>
+          <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:${C.ink.strong};line-height:1.4">${escapeHtml(m.label)}</p>
+          <p style="margin:0 0 4px;font-size:12px;color:${C.ink.muted};font-family:ui-monospace,SFMono-Regular,monospace">${lat}, ${lng}</p>
+          <p style="margin:0;font-size:12px;color:${C.ink.subtle};line-height:1.45">Not registry-verified and not in our geocode cache</p>
         </div>`);
 
       // Hollow, like any other approximate pin, and unnumbered — a live locate
@@ -615,7 +618,7 @@ function useMapInstance(
         head: "round",
         color: APPROXIMATE_COLOR,
         badge: null,
-        badgeColor: "#ffffff",
+        badgeColor: C.surface.DEFAULT,
         inkColor: APPROXIMATE_COLOR,
         approximate: true,
         title: m.label,
@@ -662,7 +665,7 @@ function useMapInstance(
           root.title = site.companyName;
           root.innerHTML = `
             <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-              <circle cx="8" cy="8" r="5.6" fill="#ffffff" stroke="${NEARBY_COLOR}" stroke-width="2.4" />
+              <circle cx="8" cy="8" r="5.6" fill="${C.surface.DEFAULT}" stroke="${NEARBY_COLOR}" stroke-width="2.4" />
             </svg>`;
           root.style.filter = "drop-shadow(0 1px 2px rgba(15,15,20,0.4))";
           const marker = new bkoi.Marker({
@@ -747,7 +750,7 @@ function MapToolbar({
   const isMulti = markerCount > 1;
 
   return (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-neutral-200 bg-[#fafaf9] px-2 py-1.5">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b border-neutral-200 bg-subtle px-2 py-1.5">
       {isMulti ? (
         <div className="flex items-center gap-1">
           <ToolbarButton
@@ -873,7 +876,7 @@ function ScaleBar({
       />
       <span
         ref={labelRef}
-        className="font-mono text-[10px] font-semibold tabular-nums text-neutral-600"
+        className="font-mono text-xs font-semibold tabular-nums text-neutral-600"
       />
     </div>
   );
@@ -971,7 +974,7 @@ function InsightsStrip({
           {landmarks.map(({ landmark, km }) => (
             <span
               key={landmark.name}
-              className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-2 py-[3px] text-[11px] text-neutral-600"
+              className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-2 py-[3px] text-xs text-neutral-600"
             >
               <span className="text-neutral-400">
                 {LANDMARK_ICON[landmark.kind]}
@@ -1007,7 +1010,7 @@ function InsightsStrip({
           return (
             <span
               key={kind}
-              className="inline-flex items-center gap-1.5 text-[11px] text-neutral-500"
+              className="inline-flex items-center gap-1.5 text-xs text-neutral-500"
             >
               {/* Swatch mirrors the pin's head shape, not just its colour. */}
               <span
@@ -1023,7 +1026,7 @@ function InsightsStrip({
           );
         })}
         {anyApproximate ? (
-          <span className="inline-flex items-center gap-1.5 text-[11px] text-neutral-500">
+          <span className="inline-flex items-center gap-1.5 text-xs text-neutral-500">
             <span
               className="size-3 shrink-0 rounded-full border-2 border-neutral-500 bg-white"
               aria-hidden
@@ -1037,7 +1040,7 @@ function InsightsStrip({
         </span>
       </div>
 
-      <p className="flex items-start gap-1.5 text-[11px] leading-[1.55] text-neutral-400">
+      <p className="flex items-start gap-1.5 text-xs leading-[1.55] text-neutral-400">
         <Info size={13} weight="bold" className="mt-[2px] shrink-0" aria-hidden />
         Pins are geocoded from the registry address text, so they locate the
         premises approximately — not to survey accuracy. Distances are

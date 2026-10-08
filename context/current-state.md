@@ -14,10 +14,7 @@ Launch-readiness closeout: deploy to VPS `109.104.153.228`, apply required
 migrations, run the 30-day zero P1/P2 Sentry incident window.
 
 ## In progress
-- Address premises merge (PR #159) and EPB evidence + HS codes (0103, applied 15 Aug): done; detail in `archive/state-2026-sep.md`.
-- **REZ-73 — Facilities section + labelled group figures on mother profiles**,
-  on branch `rez-73-facilities-lean`. Lean rewrite: migration `0097_` + thin
-  UI; SQL owns the roll-up; under 400 product lines.
+- **Six-screen critique, round two (8 Oct)** — the seven PRs of `.impeccable/handoff-critique-round-2.md` landed on `development` (#395–#401): Send talks when a field is empty, every in-shell door opens the composer beside its list, expired is amber, the One-Line Name Rule in both tables and the pane list, the record says its sources once, a glossary with `Define` and a shortcuts sheet, the minors. Re-critique 31/40 (`.impeccable/critique/` latest `app-app-app`), up from 27: P0 the full record page's Send RFQ still loses the search; P1 the pane list has no tick, keys or bulk bar; P1 a fifty-supplier send has no confirmation. Round one and the pre-September entries are in `archive/state-2026-oct.md`.
 - **Design-system rebuild** — spec `feature-specs/ds-rebuild-must-stay.md`.
   `design-rebuild` landed on `development` 18 Sep (`09ec96b`): tokens +
   `/dev/ds` gallery. Old pages are unstyled until rebuilt.
@@ -81,7 +78,7 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
 
 - **Buyer app on a phone (30 Sep)** — BUILT on `development` (PRs #218, #220–#224), promotion to `main` next; detail in `archive/state-2026-sep.md`.
 
-- **Home page film (6 Oct)** — IN PROGRESS, `feature-specs/spec-home-film.md`. Slices 1 to 6 built (every scene, every tier, budgets, audit, critique); Paper pages and the flag PR wait; nothing on `/` changes until the flag, which is the founder's call.
+- **Home page film (6 Oct)** — flag on, slices 1 to 6 built; v2 rebuild IN PROGRESS from the founder's video of 7 Oct (`feature-specs/spec-home-film.md` §"v2").
 
 ## Founder rules still in force (one line each; detail in archive)
 - EPB is a government register: show its evidence and HS codes whenever EPB has them, flagged or not. Never mint EPB-only suppliers. (15 Aug)
@@ -140,6 +137,7 @@ pre-existing founder work. Do not revert it during unrelated tasks. Rule 11
 (clean tree at spec start) still applies to new specs.
 
 ## Where history lives
+- `context/archive/state-2026-oct.md` — the first 8 Oct critique round, and the pre-September entries moved out of In progress.
 - `context/archive/state-2026-jun-aug.md` — every closeout Jun–Aug 2026 (51 sections).
 - `context/archive/specs-shipped-2026.md` — every shipped spec entry.
 - `context/archive/progress-tracker-archive-2026-06-25.md` — older.

@@ -7,6 +7,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ButtonLink } from "@/components/kit";
+import { buttonClass } from "@/components/kit/button-class";
 import { cn } from "@/lib/utils";
 
 export const wrap = "mx-auto w-full max-w-[1200px] px-6 lg:px-10";
@@ -37,9 +38,9 @@ export function HeroActions({ tryLine = "Try “knit dresses Gazipur” or “GO
             type="search"
             autoComplete="off"
             placeholder="Supplier, product or certificate"
-            className="h-12 min-w-0 flex-1 rounded-sm border border-line-strong bg-surface px-3 text-md text-ink outline-none placeholder:text-ink-3 focus:border-brand focus:[box-shadow:inset_0_0_0_1px_theme(colors.brand)]"
+            className="h-12 min-w-0 flex-1 rounded-sm border border-line-strong bg-surface px-3 text-md text-ink outline-none placeholder:text-ink-3 focus:border-brand-ink focus:[box-shadow:inset_0_0_0_1px_theme(colors.brand-ink)]"
           />
-          <button type="submit" className="h-12 rounded-sm bg-brand px-6 text-base font-semibold text-surface hover:bg-brand-hover active:bg-brand-active max-sm:h-input-touch">
+          <button type="submit" className={buttonClass({ kind: "primary", size: "lg", className: "h-12 px-6 max-sm:h-input-touch" })}>
             Search
           </button>
         </div>

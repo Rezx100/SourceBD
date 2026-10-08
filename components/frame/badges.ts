@@ -7,7 +7,7 @@ import { use } from "react";
 import type { FrameKey } from "@/lib/frame-nav";
 
 /** "2 new", "2 to check": live words from the layout; null draws nothing, never a 0. */
-export type FrameBadges = Partial<Record<FrameKey, { text: string; tone?: "ink" | "danger" } | null>>;
+export type FrameBadges = Partial<Record<FrameKey, { text: string; tone?: "ink" | "caution" } | null>>;
 
 /** What the frame takes: the badges, or a promise of them that never rejects (see `loadFrameBadges`). */
 export type BadgesInput = FrameBadges | Promise<FrameBadges> | undefined;

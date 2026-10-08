@@ -3,41 +3,49 @@
 // what it holds: a missing figure is a sentence ("Not published. Ask in your RFQ."), never a
 // zero, and no contact value is in the model at all. Server-safe; links are real links.
 
-import { CaretRight, Clock, FileText, WarningOctagon } from "@phosphor-icons/react/dist/ssr";
+import { CaretRight, FileText, Hourglass, WarningOctagon } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
-import { CertChip, FactChip } from "@/components/kit";
-import { CertTable, FactList, FactRow, RSC_REPORTS, RscBlock, SourceChip, SourceMark, certWords, type RscBlockData, type RscReportName } from "@/components/patterns";
+import { CertChip, Define, FactChip, Unpublished } from "@/components/kit";
+import { ABSENT, CertTable, FactList, FactRow, PendingMark, RSC_REPORTS, RscBlock, SourceChip, SourceMark, certWords, type RscBlockData, type RscReportName } from "@/components/patterns";
 import type { RecordRfqRow, SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
 import { SitesView } from "./sites-view";
-import { certRows, isStale, keyFacts, needsLook, siteCards, type Membership, type TabId } from "./words";
+import { certRows, keyFacts, needsLook, pendingLegend, siteCards, staleWords, type Membership, type TabId } from "./words";
+
+/**
+ * The level of a panel's headings: h3 beside the results (the search owns the h1, the record's name
+ * is the h2) and h2 on the record's own page, where the name is the h1, so no level is skipped.
+ */
+export type Level = "h2" | "h3";
+const under = (h: Level) => (h === "h2" ? "h3" : "h4");
 
 const LINK =
-  "rounded-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+  "rounded-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 const names = (xs: string[]) => (xs.length <= 1 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`);
 
 /** The small caption over a group of rows ("Needs a look", "Key facts"). */
-function Eyebrow({ children, className }: { children: string; className?: string }) {
-  return <h3 className={cn("pb-1 pt-5 text-xs font-semibold text-ink-2", className)}>{children}</h3>;
+function Eyebrow({ children, className, level: H = "h3" }: { children: string; className?: string; level?: Level }) {
+  return <H className={cn("pb-1 pt-5 text-xs font-semibold text-ink-2", className)}>{children}</H>;
 }
 
 /** A line of prose that is not a fact: the record's summary, a note under a list. */
 function Note({ children }: { children: React.ReactNode }) {
-  return <p className="text-base text-ink-2">{children}</p>;
+  // A line of prose wraps at 72 characters (the RSC summary ran ~147 on one line).
+  return <p className="max-w-[72ch] text-base text-ink-2">{children}</p>;
 }
 
 /* ---------------------------------------------------------------- overview */
 
 /** The certificates that need a look: one row each, problems first, no frame (Paper `Needs a look`). */
-function ProblemRows({ model, today }: { model: SupplierSheetModel; today: Date }) {
+function ProblemRows({ model, today, level: H }: { model: SupplierSheetModel; today: Date; level: Level }) {
   const rows = needsLook(certRows(model, today), today);
   if (rows.length === 0) return null;
   // The link's column is kept for every row once one row has a page to open, so the chips stay in line.
   const docs = rows.some((c) => c.documentUrl);
   return (
     <section aria-label="Needs a look">
-      <h3 className="py-2 text-xs font-semibold text-ink-3">Needs a look</h3>
+      <H className="py-2 text-xs font-semibold text-ink-3">Needs a look</H>
       <ul>
         {rows.map((c, i) => {
           const w = certWords(c.expiresOn, today);
@@ -47,7 +55,7 @@ function ProblemRows({ model, today }: { model: SupplierSheetModel; today: Date 
                 <span className="text-md font-medium text-ink sm:text-base">{c.scheme}</span>
                 {c.number ? <span className="font-mono text-sm text-ink-2">{c.number}</span> : null}
               </span>
-              <span className="text-sm text-ink-2 max-sm:order-3 sm:min-w-0 sm:flex-1 sm:text-base">{c.issuer ?? <span className="text-ink-3">Issuer not published</span>}</span>
+              <span className="text-sm text-ink-2 max-sm:order-3 sm:min-w-0 sm:flex-1 sm:text-base">{c.issuer ?? <Unpublished>{ABSENT.issuer}</Unpublished>}</span>
               <span className="flex max-sm:order-1 sm:shrink-0">
                 <CertChip state={w.state} className="whitespace-nowrap">
                   {w.label}
@@ -55,7 +63,7 @@ function ProblemRows({ model, today }: { model: SupplierSheetModel; today: Date 
               </span>
               {c.documentUrl ? (
                 <span className="flex h-8 items-center gap-1.5 max-sm:order-4 sm:w-[124px] sm:shrink-0">
-                  <FileText size={16} className="shrink-0 text-brand" aria-hidden />
+                  <FileText size={16} className="shrink-0 text-brand-ink" aria-hidden />
                   <a href={c.documentUrl} className={cn(LINK, "text-sm max-sm:after:absolute max-sm:after:inset-0")}>
                     {c.documentLabel ?? "Open certificate"}
                   </a>
@@ -72,10 +80,10 @@ function ProblemRows({ model, today }: { model: SupplierSheetModel; today: Date 
 }
 
 /** What the watchlist matched, where a buyer reads it: the banner asserts, this evidences. */
-function SanctionEvidence({ model }: { model: SupplierSheetModel }) {
+function SanctionEvidence({ model, level: H }: { model: SupplierSheetModel; level: Level }) {
   return (
     <section aria-label="Sanctions matches" id="sanctions" className="flex flex-col gap-2">
-      <h3 className="pt-1 text-xs font-semibold text-ink-2">Sanctions matches{model.sanctions.length ? ` · ${model.sanctions.length}` : ""}</h3>
+      <H className="pt-1 text-xs font-semibold text-ink-2">Sanctions matches{model.sanctions.length ? ` · ${model.sanctions.length}` : ""}</H>
       {model.sanctions.length === 0 ? (
         <p className="text-base text-ink-2">{model.sanctionsEmpty}</p>
       ) : (
@@ -125,14 +133,15 @@ function MembershipLine({ m }: { m: Membership }) {
   );
 }
 
-export function OverviewPanel({ model, today }: { model: SupplierSheetModel; today: Date }) {
+export function OverviewPanel({ model, today, level = "h3" }: { model: SupplierSheetModel; today: Date; level?: Level }) {
   const facts = keyFacts(model);
+  const legend = pendingLegend(facts);
   return (
     <div className="flex flex-col gap-1">
       {model.summary ? <Note>{model.summary}</Note> : null}
-      {model.sanctioned ? <SanctionEvidence model={model} /> : null}
-      <ProblemRows model={model} today={today} />
-      <Eyebrow>Key facts</Eyebrow>
+      {model.sanctioned ? <SanctionEvidence model={model} level={level} /> : null}
+      <ProblemRows model={model} today={today} level={level} />
+      <Eyebrow level={level}>Key facts</Eyebrow>
       <FactList>
         {facts.map((f) => (
           <FactRow
@@ -142,11 +151,19 @@ export function OverviewPanel({ model, today }: { model: SupplierSheetModel; tod
               value: v.membership ? <MembershipLine m={v.membership} /> : v.text,
               mono: v.mono && !v.membership,
               source: i === f.values.length - 1 ? f.source : null,
+              pending: i === f.values.length - 1 && f.pending,
             }))}
             empty={f.empty}
           />
         ))}
       </FactList>
+      {/* The pending mark's one legend: what the dashed document under a fact means, said once. */}
+      {legend ? (
+        <p className="flex items-center gap-1.5 pt-2 text-xs text-ink-3">
+          <PendingMark />
+          <Define term="Source pending">{legend}</Define>
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -159,14 +176,14 @@ function certFrom(model: SupplierSheetModel): string | undefined {
   return schemes.length ? `From ${names(schemes)}` : undefined;
 }
 
-export function CertificatesPanel({ model, today, compact = false }: { model: SupplierSheetModel; today: Date; compact?: boolean }) {
+export function CertificatesPanel({ model, today, compact = false, level: H = "h3" }: { model: SupplierSheetModel; today: Date; compact?: boolean; level?: Level }) {
   return (
     <div className="flex flex-col gap-4">
       {model.certs.length > 0 ? (
-        <CertTable certs={certRows(model, today)} today={today} from={certFrom(model)} compact={compact} />
+        <CertTable certs={certRows(model, today)} today={today} from={certFrom(model)} compact={compact} level={H} />
       ) : (
         <div className="flex flex-col gap-2">
-          <h3 className="text-base font-semibold text-ink">Certificates</h3>
+          <H className="text-base font-semibold text-ink">Certificates</H>
           <FactChip state="notOnFile">{model.certsEmptyChip}</FactChip>
           <p className="text-base text-ink-2">{model.certsEmpty}</p>
         </div>
@@ -178,6 +195,7 @@ export function CertificatesPanel({ model, today, compact = false }: { model: Su
           certs={certRows({ ...model, certs: b.certs }, today)}
           today={today}
           compact={compact}
+          level={H}
           from={`Held by ${b.building} · the building's own, not counted above`}
         />
       ))}
@@ -210,12 +228,13 @@ function rscData(r: Pick<Rsc, "progress" | "status" | "training" | "links" | "re
   };
 }
 
-export function SafetyPanel({ model }: { model: SupplierSheetModel }) {
+export function SafetyPanel({ model, level: H = "h3" }: { model: SupplierSheetModel; level?: Level }) {
+  const Sub = under(H);
   return (
     <div className="flex flex-col gap-4">
-      <h3 className="text-lg font-semibold text-ink">Safety (RSC)</h3>
+      <H className="text-lg font-semibold text-ink">Safety (RSC)</H>
       {model.rsc ? (
-        <RscBlock data={rscData(model.rsc)} />
+        <RscBlock data={rscData(model.rsc)} level={Sub} />
       ) : (
         <div className="flex flex-col gap-2">
           <FactChip state="notOnFile">No active RSC record on file</FactChip>
@@ -231,7 +250,7 @@ export function SafetyPanel({ model }: { model: SupplierSheetModel }) {
         return (
           <section key={b.name} className="flex flex-col gap-2 rounded-lg border border-line px-4 py-3">
             <div className="flex flex-col gap-0.5">
-              <h4 className="text-base font-medium text-ink">{b.name} · RSC record for this building</h4>
+              <Sub className="text-base font-medium text-ink">{b.name} · RSC record for this building</Sub>
               <p className="text-xs text-ink-3">{[d.remediation, b.training ? `training ${b.training}` : null, b.readDate ? `checked ${b.readDate}` : null].filter(Boolean).join(" · ")}</p>
             </div>
             {open.length > 0 ? (
@@ -259,7 +278,7 @@ export function SafetyPanel({ model }: { model: SupplierSheetModel }) {
  * other spellings never printed (RC-09). With the geocode cache read, a card says whether its pin is
  * on the address or only the area; where the cache was not read, nothing is said about a pin.
  */
-export function SitesPanel({ model, tabHref, site = null, wide = true }: { model: SupplierSheetModel; tabHref: (tab: TabId) => string; site?: number | null; wide?: boolean }) {
+export function SitesPanel({ model, tabHref, site = null, wide = true, level: H = "h3" }: { model: SupplierSheetModel; tabHref: (tab: TabId) => string; site?: number | null; wide?: boolean; level?: Level }) {
   const { locations, facilities } = model;
   const cards = siteCards(locations);
   const base = tabHref("sites");
@@ -268,7 +287,7 @@ export function SitesPanel({ model, tabHref, site = null, wide = true }: { model
       <section id="locations" className="flex flex-col gap-2">
         {locations.length === 0 ? (
           <>
-            <h3 className="text-base font-semibold text-ink">Sites</h3>
+            <H className="text-base font-semibold text-ink">Sites</H>
             <p className="text-base text-ink-2">{model.locationsEmpty}</p>
           </>
         ) : (
@@ -278,13 +297,14 @@ export function SitesPanel({ model, tabHref, site = null, wide = true }: { model
             baseHref={base}
             initial={site}
             wide={wide}
+            level={H}
             mapKey={Boolean(process.env.NEXT_PUBLIC_BARIKOI_API_KEY)}
           />
         )}
       </section>
       {/* The extension buildings: an unread list says so, and never says there are none. */}
       <section id="facilities" className="flex flex-col gap-2">
-        <h3 className="text-base font-semibold text-ink">Extension buildings{facilities.count ? ` · ${facilities.count}` : ""}</h3>
+        <H className="text-base font-semibold text-ink">Extension buildings{facilities.count ? ` · ${facilities.count}` : ""}</H>
         {facilities.rows.length === 0 ? (
           <p className="text-base text-ink-2">{facilities.empty}</p>
         ) : (
@@ -309,7 +329,7 @@ export function SitesPanel({ model, tabHref, site = null, wide = true }: { model
 // them): source, the record's number there, the last read, the register's page. Sized by the table,
 // not the screen: the same record is drawn in a 640px pane and a 1200px page at one screen width.
 const SOURCE_COLS =
-  "[@container_(min-width:600px)]:grid [@container_(min-width:600px)]:grid-cols-[minmax(0,1fr)_minmax(0,11rem)_6.5rem_5.5rem] [@container_(min-width:600px)]:items-center [@container_(min-width:600px)]:gap-4";
+  "[@container_(min-width:600px)]:grid [@container_(min-width:600px)]:grid-cols-[minmax(0,1fr)_minmax(0,10rem)_8.25rem_5.5rem] [@container_(min-width:600px)]:items-center [@container_(min-width:600px)]:gap-4";
 
 /** The sources in the model's order (best rank first), one group per kind: "Government register", "Industry body". */
 function sourceGroups(sources: SupplierSheetModel["sources"]): { kind: string; rows: SupplierSheetModel["sources"] }[] {
@@ -327,12 +347,13 @@ function sourceGroups(sources: SupplierSheetModel["sources"]): { kind: string; r
  * per group and every row is the same three facts in the same three columns (founder, 6 Oct 2026:
  * the rows were a wrapping line each, so no column lined up with the row above it).
  */
-export function SourcesPanel({ model, today }: { model: SupplierSheetModel; today: Date }) {
+export function SourcesPanel({ model, today, level: H = "h3" }: { model: SupplierSheetModel; today: Date; level?: Level }) {
+  const Sub = under(H);
   return (
     <section aria-label="Sources" className="flex flex-col rounded-md border border-line [container-type:inline-size]">
       <header className="flex min-h-12 flex-wrap items-center justify-between gap-x-4 border-b border-line px-4 py-2">
-        <h3 className="text-base font-semibold text-ink">Sources · {model.sources.length}</h3>
-        <p className="text-xs text-ink-3">{model.sourcesCaption}</p>
+        <H className="text-base font-semibold text-ink">Sources · {model.sources.length}</H>
+        <p className="max-w-[72ch] text-xs text-ink-3">{model.sourcesCaption}</p>
       </header>
       {model.sources.length === 0 ? (
         <p className="px-4 py-3 text-base text-ink-2">No register has filed a record for this company.</p>
@@ -346,10 +367,12 @@ export function SourcesPanel({ model, today }: { model: SupplierSheetModel; toda
           </div>
           {sourceGroups(model.sources).map((g) => (
             <section key={g.kind} aria-label={g.kind} className="flex flex-col border-b border-line pb-1.5 last:border-b-0">
-              <h4 className="px-4 pb-0.5 pt-3 text-xs font-semibold text-ink-2">{g.kind}</h4>
+              <Sub className="px-4 pb-0.5 pt-3 text-xs font-semibold text-ink-2">
+                <Define term={g.kind} />
+              </Sub>
               <ul>
                 {g.rows.map((s) => {
-                  const stale = isStale(s.readDate, today);
+                  const stale = staleWords(s.readDate, today);
                   return (
                     <li key={s.mark.code} className={cn("flex flex-col gap-1 px-4 py-2", SOURCE_COLS)}>
                       <span className="flex min-w-0 flex-col gap-0.5">
@@ -367,11 +390,12 @@ export function SourcesPanel({ model, today }: { model: SupplierSheetModel; toda
                             </span>
                           ))}
                         </span>
-                        <span className={cn("flex items-center gap-1 text-sm", stale ? "font-medium text-caution" : "text-ink-2")}>
-                          {stale ? <Clock size={12} weight="fill" className="shrink-0 text-caution-icon" aria-hidden /> : null}
+                        {/* A stale read is its own glyph and its own words (the clock means a certificate expiring). */}
+                        <span className={cn("flex items-center gap-1 text-sm", stale ? "font-medium text-caution" : "text-ink-2")} title={stale ? (s.readDate ?? undefined) : undefined}>
+                          {stale ? <Hourglass size={12} weight="fill" className="shrink-0 text-caution-icon" aria-hidden /> : null}
                           <span>
-                            {s.readDate ? <span className="[@container_(min-width:600px)]:sr-only">read </span> : null}
-                            {s.readDate ?? "Not dated"}
+                            {s.readDate && !stale ? <span className="[@container_(min-width:600px)]:sr-only">read </span> : null}
+                            {stale ? <Define term="stale read">{stale}</Define> : (s.readDate ?? <Unpublished>{ABSENT.dated}</Unpublished>)}
                           </span>
                         </span>
                         {s.mark.href ? (
@@ -407,7 +431,12 @@ export function productItems(items: readonly string[]): string[] {
 
 const PRODUCTS_SHOWN = 8;
 
-export function ProductsPanel({ model }: { model: SupplierSheetModel }) {
+/**
+ * `open`: the filed list unfolds on the Products tab and stays folded elsewhere, so the Overview's
+ * long tail is one line (the critique of 7 Oct 2026: the record ran four screens beside a card that
+ * fits in one). The register that filed the list is not linked yet: the pending mark, not a sentence.
+ */
+export function ProductsPanel({ model, level: H = "h3", open = false }: { model: SupplierSheetModel; level?: Level; open?: boolean }) {
   const p = model.products;
   const items = productItems(p.productList);
   const shown = items.slice(0, PRODUCTS_SHOWN);
@@ -417,35 +446,47 @@ export function ProductsPanel({ model }: { model: SupplierSheetModel }) {
       {t}
     </li>
   );
+  const heading = (
+    <span className="flex flex-wrap items-center gap-x-3">
+      <H className="text-lg font-semibold text-ink">Products as filed{items.length ? ` · ${items.length}` : ""}</H>
+      {/* The mark had no legend here: the definition is on the mark itself, on hover and focus. */}
+      {items.length ? (
+        <Define term="Source pending" className="inline-flex no-underline">
+          <PendingMark />
+        </Define>
+      ) : null}
+    </span>
+  );
   return (
     <div className="flex flex-col gap-5">
-      <section className="flex flex-col gap-2">
-        <header className="flex flex-wrap items-baseline gap-x-3">
-          <h3 className="text-lg font-semibold text-ink">Products as filed{items.length ? ` · ${items.length}` : ""}</h3>
-          {items.length ? <p className="text-xs text-ink-3">Source not linked yet</p> : null}
-        </header>
-        {items.length === 0 ? (
+      {items.length === 0 ? (
+        <section className="flex flex-col gap-2">
+          {heading}
           <p className="text-base text-ink-2">Not published. Ask in your RFQ.</p>
-        ) : (
-          <>
-            <ul data-product-list="true" className="flex flex-col overflow-clip rounded-lg border border-line">
-              {shown.map(row)}
-            </ul>
-            {rest.length > 0 ? (
-              <details className="group/more flex flex-col gap-2">
-                <summary className={cn(LINK, "w-fit cursor-pointer list-none text-sm [&::-webkit-details-marker]:hidden")}>
-                  <span className="group-open/more:hidden">Show all {items.length} as declared</span>
-                  <span className="hidden group-open/more:inline">Show fewer</span>
-                </summary>
-                <ul className="mt-2 flex flex-col overflow-clip rounded-lg border border-line">{rest.map(row)}</ul>
-              </details>
-            ) : null}
-          </>
-        )}
-      </section>
+        </section>
+      ) : (
+        <details open={open || undefined} className="group/filed flex flex-col gap-2">
+          <summary className="flex w-fit cursor-pointer list-none items-center gap-2 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus [&::-webkit-details-marker]:hidden">
+            <CaretRight size={16} className="shrink-0 text-ink-3 transition-transform group-open/filed:rotate-90 motion-reduce:transition-none" aria-hidden />
+            {heading}
+          </summary>
+          <ul data-product-list="true" className="mt-2 flex flex-col overflow-clip rounded-lg border border-line">
+            {shown.map(row)}
+          </ul>
+          {rest.length > 0 ? (
+            <details className="group/more mt-2 flex flex-col gap-2">
+              <summary className={cn(LINK, "w-fit cursor-pointer list-none text-sm [&::-webkit-details-marker]:hidden")}>
+                <span className="group-open/more:hidden">Show all {items.length} as declared</span>
+                <span className="hidden group-open/more:inline">Show fewer</span>
+              </summary>
+              <ul className="mt-2 flex flex-col overflow-clip rounded-lg border border-line">{rest.map(row)}</ul>
+            </details>
+          ) : null}
+        </details>
+      )}
       <section className="flex flex-col gap-2">
         <header className="flex flex-wrap items-baseline gap-x-3">
-          <h3 className="text-base font-semibold text-ink">Export lines (EPB){p.lines > 0 ? ` · ${p.lines}` : ""}</h3>
+          <H className="text-base font-semibold text-ink">Export lines (EPB){p.lines > 0 ? ` · ${p.lines}` : ""}</H>
           {p.exporterHref ? (
             <a href={p.exporterHref} className={cn(LINK, "text-xs")}>
               Exporter page {p.exporterRef}
@@ -461,7 +502,7 @@ export function ProductsPanel({ model }: { model: SupplierSheetModel }) {
             <ul className="flex flex-col overflow-clip rounded-lg border border-line">
               {p.tiles.map((t) => (
                 <li key={t.hs} className="border-b border-line last:border-b-0">
-                  <Link href={model.lineHref(t.hs)} prefetch={false} scroll={false} className="flex min-h-11 items-center justify-between gap-3 px-4 py-2 hover:bg-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand">
+                  <Link href={model.lineHref(t.hs)} prefetch={false} scroll={false} className="flex min-h-11 items-center justify-between gap-3 px-4 py-2 hover:bg-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
                     <span className="flex items-baseline gap-3">
                       <span className="font-mono text-sm text-ink-2">{t.hs}</span>
                       <span className="text-base font-medium text-ink">{t.short}</span>
@@ -486,18 +527,18 @@ export function ProductsPanel({ model }: { model: SupplierSheetModel }) {
 /* ------------------------------------------------------------------- rfqs */
 
 /** The buyer's own RFQs to this supplier, under the Overview's facts: an unread list says so. */
-export function RecordRfqs({ model }: { model: SupplierSheetModel }) {
+export function RecordRfqs({ model, level = "h3" }: { model: SupplierSheetModel; level?: Level }) {
   const { rfqs } = model;
   return (
     <section aria-label="Your RFQs" className="flex flex-col gap-1">
-      <Eyebrow>{rfqs.count === null ? "Your RFQs" : `Your RFQs · ${rfqs.count}`}</Eyebrow>
+      <Eyebrow level={level}>{rfqs.count === null ? "Your RFQs" : `Your RFQs · ${rfqs.count}`}</Eyebrow>
       {rfqs.rows.length === 0 ? (
         <p className="text-base text-ink-2">{rfqs.empty}</p>
       ) : (
         <ul className="flex flex-col overflow-clip rounded-lg border border-line">
           {rfqs.rows.map((r: RecordRfqRow) => (
             <li key={r.id} className="border-b border-line last:border-b-0">
-              <Link href={r.href} prefetch={false} className="flex min-h-12 flex-wrap items-center justify-between gap-x-4 gap-y-0.5 px-4 py-2 hover:bg-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand">
+              <Link href={r.href} prefetch={false} className="flex min-h-12 flex-wrap items-center justify-between gap-x-4 gap-y-0.5 px-4 py-2 hover:bg-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
                 <span className="flex flex-col">
                   <span className="text-base font-medium text-ink">{r.title}</span>
                   <span className="text-xs text-ink-3">{[r.quantity, r.sent ? `sent ${r.sent}` : null, r.shipBy ? `ship by ${r.shipBy}` : null].filter(Boolean).join(" · ")}</span>

@@ -72,7 +72,7 @@ export function InviteDialog({ onClose, onSent }: { onClose: () => void; onSent:
         // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- the box only hands a click to the real input inside it.
         <div
           onClick={() => input.current?.focus()}
-          className={cn(fieldBox, "flex min-h-10 flex-wrap items-center gap-1.5 px-2 py-1 focus-within:border-brand focus-within:[box-shadow:inset_0_0_0_1px_theme(colors.brand)]", phone && "min-h-12 rounded-md px-3", error && "border-danger")}
+          className={cn(fieldBox, "flex min-h-10 flex-wrap items-center gap-1.5 px-2 py-1 focus-within:border-brand-ink focus-within:[box-shadow:inset_0_0_0_1px_theme(colors.brand-ink)]", phone && "min-h-12 rounded-md px-3", error && "border-danger")}
         >
           {chips.map((e) => (
             <span key={e} className="flex h-6 items-center gap-1 rounded-sm bg-sunken pl-2 pr-1 text-sm text-ink">
@@ -125,7 +125,7 @@ export function InviteDialog({ onClose, onSent }: { onClose: () => void; onSent:
                 "items-start [&>input]:mt-[3px]",
                 phone ? "min-h-14 px-3 py-2.5 last:border-b-0" : "w-full rounded-md border px-3 py-2.5",
                 on ? "bg-brand-wash" : "",
-                !phone && (on ? "border-brand" : "border-line"),
+                !phone && (on ? "border-brand-ink" : "border-line"),
               )}
             >
               <span className="flex flex-col">

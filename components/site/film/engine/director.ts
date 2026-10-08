@@ -1,9 +1,10 @@
 // The director (handoff-home-film §5): the scroll is the film's only clock. A scene is a tall section whose stage
 // sticks to the screen; one passive scroll listener and one animation frame measure each scene's progress, 0 to 1,
-// and say it to the engine, which writes it on the small thing that reads it (a thread's group, the roll, a flat's
-// parts): never as a property on the scene itself, because one inherited by a tall subtree restyles all of it on
-// every frame. No smooth-scroll takeover, no scroll library. The rail's current chapter follows the scene that
-// holds the middle of the screen, and its phone line gets the page's own progress as `--film-p`.
+// and say it to the engine, which writes it on the small thing that reads it: never as a property on the scene
+// itself, because one inherited by a tall subtree restyles all of it on every frame. No smooth-scroll takeover and
+// no scroll library: the page scrolls natively, and only what the scroll drives is eased. A wheel moves the page in
+// steps of about a hundred pixels; each scene's progress follows its target with a short exponential lag (`SCRUB`),
+// so a step reads as one glide rather than a jump (founder's video, 7 Oct 2026: "the scrolling timing must be fixed").
 
 export const clamp = (v: number) => Math.max(0, Math.min(1, v));
 /** A stretch of a scroll, 0 before `a`, 1 after `b`, even between. */
@@ -16,6 +17,15 @@ export const fit = (svg: SVGSVGElement | null | undefined, w: number, h: number)
   if (svg && svg.getAttribute("viewBox") !== v) svg.setAttribute("viewBox", v);
 };
 
+/** The film's easing, one place: an exponential ease-out for anything that arrives, a smoothstep for a move between two holds. */
+export const ease = {
+  out: (t: number) => 1 - (1 - clamp(t)) ** 3,
+  inOut: (t: number) => {
+    const x = clamp(t);
+    return x * x * (3 - 2 * x);
+  },
+} as const;
+
 /**
  * How far a scene has been scrolled through its hold. 0 while its top is at or below the top of the screen, 1 once
  * its bottom has reached the bottom of the screen. A scene no taller than the screen has no hold: it is 0, then 1.
@@ -26,23 +36,20 @@ export function sceneProgress(top: number, height: number, viewport: number): nu
   return clamp(-top / travel);
 }
 
-/**
- * The chapter of the last scene (in page order) whose top has passed the middle of the screen; before the first,
- * and once the last scene's bottom has passed the middle too (the close, the FAQ, the footer), none.
- */
-export function currentChapter(scenes: readonly { chapter: string; top: number; bottom: number }[], viewport: number): string | null {
-  const mid = viewport / 2;
-  let found: string | null = null;
-  for (const s of scenes) if (s.top <= mid) found = s.chapter;
-  const last = scenes[scenes.length - 1];
-  return last && last.bottom <= mid ? null : found;
-}
+/** The lag of the scrub, in milliseconds: the time a scene's progress takes to cover 63% of a step. */
+export const SCRUB = 110;
+/** Below this the progress is the target: the glide has landed and the frames stop. */
+export const SETTLED = 0.0005;
 
-/** Whether the last scene (in page order) whose top has passed the middle of the screen is a night one. */
-export function nightAt(scenes: readonly { night: boolean; top: number }[], viewport: number): boolean {
-  let found = false;
-  for (const s of scenes) if (s.top <= viewport / 2) found = s.night;
-  return found;
+/**
+ * One frame of the scrub: from `shown` toward `target` after `dt` milliseconds, by the same fraction of the gap
+ * whatever the frame rate. A jump bigger than a third of the scene (a link to a chapter, a restored page) lands at
+ * once: a glide across a whole scene would replay it.
+ */
+export function scrub(shown: number, target: number, dt: number): number {
+  const gap = target - shown;
+  if (Math.abs(gap) < SETTLED || Math.abs(gap) > 0.34) return target;
+  return shown + gap * (1 - Math.exp(-Math.max(0, dt) / SCRUB));
 }
 
 export type Director = {
@@ -53,66 +60,54 @@ export type Director = {
 
 /**
  * Drives every `[data-scene]` under `root`. `onScene` hears a scene's name and progress when it changes, for the
- * parts CSS cannot move (the planet, the map). A scene names its chapter with `data-chapter` (the id the rail links to).
+ * parts CSS cannot move (the planet, the city, the drawings). Under reduced motion the film does not run (tier.ts),
+ * so the scrub has no still case of its own.
  */
 export function createDirector(root: HTMLElement, onScene?: (name: string, p: number) => void): Director {
   const scenes = [...root.querySelectorAll<HTMLElement>("[data-scene]")];
-  const rail = root.querySelector<HTMLElement>('nav[aria-label="Chapters"]');
-  const line = rail?.querySelector<HTMLElement>(":scope > span") ?? null;
-  const last = new Map<HTMLElement, number>();
-  // Undefined until the first measure, so a page restored past the last scene still settles the rail on its first frame.
-  let chapter: string | null | undefined;
-  let night = false;
-  let pageP = -1;
+  const target = new Map<HTMLElement, number>();
+  const shown = new Map<HTMLElement, number>();
+  const said = new Map<HTMLElement, number>();
   let raf = 0;
-  // The phone's line is the one thing that reads the page's own progress; where it is not drawn (a wide screen)
-  // the page's box is not measured for it. Asked once, and again on a resize, never per frame.
-  let lineShown = false;
-  const lookAtLine = () => {
-    lineShown = !!line && getComputedStyle(line).display !== "none";
+  let last = 0;
+  let measured = false;
+  const say = (el: HTMLElement, p: number) => {
+    const q = Math.round(p * 1000) / 1000;
+    if (said.get(el) === q) return;
+    said.set(el, q);
+    onScene?.(el.dataset.scene ?? "", q);
   };
-  lookAtLine();
-  const measure = () => {
+  const frame = (now: number) => {
     raf = 0;
-    const vh = innerHeight;
-    const boxes = scenes.map((el) => ({ el, box: el.getBoundingClientRect() }));
-    for (const { el, box } of boxes) {
-      const p = Math.round(sceneProgress(box.top, box.height, vh) * 1000) / 1000;
-      if (last.get(el) === p) continue;
-      last.set(el, p);
-      onScene?.(el.dataset.scene ?? "", p);
-    }
-    const now = currentChapter(boxes.map(({ el, box }) => ({ chapter: el.dataset.chapter ?? "", top: box.top, bottom: box.bottom })), vh);
-    if (now !== chapter) {
-      chapter = now;
-      for (const a of rail?.querySelectorAll<HTMLAnchorElement>("a") ?? []) {
-        if (a.hash === `#${now}`) a.setAttribute("aria-current", "step");
-        else a.removeAttribute("aria-current");
+    const dt = last ? now - last : 16;
+    last = now;
+    if (!measured) {
+      measured = true;
+      const vh = innerHeight;
+      for (const el of scenes) {
+        const box = el.getBoundingClientRect();
+        target.set(el, sceneProgress(box.top, box.height, vh));
       }
-      // With no chapter under the screen (the close, the FAQ, the footer) the ticks step aside; the phone's line stays.
-      rail?.toggleAttribute("data-off", now === null);
     }
-    // The rail lies over whichever scene holds the screen: over a night scene it takes the night's own ink, so it
-    // reads in either theme (the planet's act is night only until it has given way to the map).
-    const dark = nightAt(boxes.map(({ el, box }) => ({ night: el.dataset.ground === "night" && !el.hasAttribute("data-past"), top: box.top })), vh);
-    if (rail && dark !== night) {
-      night = dark;
-      if (dark) rail.setAttribute("data-ground", "night");
-      else rail.removeAttribute("data-ground");
+    let moving = false;
+    for (const el of scenes) {
+      const to = target.get(el) ?? 0;
+      // The first frame lands: a page opened halfway down starts where it is.
+      const p = shown.has(el) ? scrub(shown.get(el)!, to, dt) : to;
+      shown.set(el, p);
+      say(el, p);
+      if (p !== to) moving = true;
     }
-    if (line && lineShown) {
-      const page = root.getBoundingClientRect();
-      const p = Math.round(sceneProgress(page.top, page.height, vh) * 1000) / 1000;
-      if (p !== pageP) line.style.setProperty("--film-p", String((pageP = p)));
-    }
+    if (moving) raf = requestAnimationFrame(frame);
+    else last = 0;
   };
   const queue = () => {
-    if (!raf) raf = requestAnimationFrame(measure);
+    measured = false;
+    if (!raf) raf = requestAnimationFrame(frame);
   };
   // A new size moves every layout the engine measured: every scene is said again, even where its number held.
   const resized = () => {
-    last.clear();
-    lookAtLine();
+    said.clear();
     queue();
   };
   addEventListener("scroll", queue, { passive: true });
@@ -120,14 +115,12 @@ export function createDirector(root: HTMLElement, onScene?: (name: string, p: nu
   queue();
   return {
     replay() {
-      for (const [el, p] of last) onScene?.(el.dataset.scene ?? "", p);
+      for (const [el, p] of said) onScene?.(el.dataset.scene ?? "", p);
     },
     destroy() {
       cancelAnimationFrame(raf);
       removeEventListener("scroll", queue);
       removeEventListener("resize", resized);
-      rail?.removeAttribute("data-ground");
-      rail?.removeAttribute("data-off");
     },
   };
 }

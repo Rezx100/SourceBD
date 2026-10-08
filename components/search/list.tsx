@@ -4,38 +4,17 @@
 // words are Paper's (`10 · Results, empty`, `Errors`, `11 · Results`).
 
 import Link from "next/link";
-import { CertProblem, SupplierRow } from "@/components/patterns";
+import { SupplierRow } from "@/components/patterns";
 import { ErrorPanel, Pagination, Skeleton, buttonClass } from "@/components/kit";
 import { PER_PAGE, discoverChips, discoverHref, filterCount, withoutFilterFamily, type DiscoverState } from "@/lib/discover-v32-state";
 import { formatCount } from "@/lib/dashboard/facts";
 import { discoverFailureCopy } from "@/lib/discover-v32-rpc";
-import { cn } from "@/lib/utils";
 import type { ResultRow } from "./model";
+import { Problem } from "./pane-rows";
 import { PerPageMenu } from "./per-page";
 import { SlowHead } from "./slow";
 
-function Problem({ r, small }: { r: ResultRow; small?: boolean }) {
-  return r.cert ? (
-    <CertProblem state={r.cert.state} more={r.cert.more} small={small}>
-      {r.cert.text}
-    </CertProblem>
-  ) : (
-    <span className={cn("text-ink-3", small ? "text-xs" : "text-sm")}>No certificates found</span>
-  );
-}
-
-/** Beside a pane: name, type and place, the first certificate problem, the source count. A long name wraps. */
-export function PaneRows({ rows, currentSlug }: { rows: readonly ResultRow[]; currentSlug?: string | null }) {
-  return (
-    <ul>
-      {rows.map((r) => (
-        <li key={r.slug}>
-          <SupplierRow layout="pane" href={r.paneHref} name={r.name} type={r.type} place={r.place} sources={r.sources} problem={<Problem r={r} small />} selected={r.slug === currentSlug} />
-        </li>
-      ))}
-    </ul>
-  );
-}
+export { PaneRows } from "./pane-rows";
 
 /** On a phone a row opens the record as a page, with the way back to this search. */
 export function PhoneRows({ rows }: { rows: readonly ResultRow[] }) {
@@ -159,7 +138,7 @@ export function ResultsEmpty({
         <ul className="flex flex-col gap-1 text-base">
           {options.slice(1).map((o) => (
             <li key={o.e.dropped}>
-              <Link href={discoverHref(o.without)} className="rounded-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] hover:decoration-2">
+              <Link href={discoverHref(o.without)} className="rounded-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] hover:decoration-2">
                 Remove {o.words} · {formatCount(o.e.remaining)} {o.e.remaining === 1 ? "supplier" : "suppliers"}
               </Link>
             </li>
@@ -169,7 +148,7 @@ export function ResultsEmpty({
       {n > 0 ? (
         <p className="pt-2 text-sm text-ink-3">
           Or{" "}
-          <Link href={saveHref} className="rounded-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] hover:decoration-2">
+          <Link href={saveHref} className="rounded-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] hover:decoration-2">
             save this search
           </Link>{" "}
           to hear when a supplier starts to match it.

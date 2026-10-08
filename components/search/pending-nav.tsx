@@ -54,7 +54,7 @@ export function PendingNav({ children, className }: { children: ReactNode; class
     >
       {busy ? (
         <div role="status" aria-label="Loading suppliers" className="fixed inset-x-0 top-0 z-50 h-0.5 overflow-hidden bg-brand-tint">
-          <div className="h-full w-1/3 bg-brand motion-safe:animate-pending" />
+          <div className="h-full w-1/3 bg-brand-ink motion-safe:animate-pending" />
         </div>
       ) : null}
       {children}

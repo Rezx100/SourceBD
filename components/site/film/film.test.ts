@@ -1,7 +1,7 @@
-// The home film, slices 1 and 2 (handoff-home-film §3 to §6): the dark set and its contrast, the Pane's legibility
-// over what may pass behind it, what Tailwind really emits for the theme and the film's classes, the markup of the
-// Pane family, the thread and the rail, the home page with the film off and on, the tier and the flag, the
-// engine's arithmetic (the scroll, the opening's handover, the planet, the map), and the shape of the data files.
+// The home film (handoff-home-film §3 to §6, rebuilt after the founder's video of 7 Oct 2026): the dark set and its
+// contrast, the Pane's legibility over what may pass behind it, what Tailwind really emits for the theme and the
+// film's classes, the search, the home page with the film off and on, the tier and the flag, the engine's
+// arithmetic (the scroll and its scrub, the opening's handover, the planet, the map), and the shape of the data files.
 
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -11,20 +11,19 @@ import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { contrastRatio, dark, darkPairs, filmColors, filmPairs, light, paneBehind, paneGlass, paneGround, resolve, toRgb } from "@/lib/design/tokens";
-import { currentChapter, nightAt, sceneProgress } from "./engine/director";
-import { DISTRICTS, STOPS, cameraAt, column, createMap, tileScale, toGeo, unpack, type BdData } from "./engine/map";
+import { NIGHT_INHERITS, contrastRatio, dark, darkPairs, filmColors, filmPairs, light, paneBehind, paneGlass, paneGround, resolve, toRgb } from "@/lib/design/tokens";
+import { SCRUB, SETTLED, ease, sceneProgress, scrub } from "./engine/director";
+import { BOX, CHATTOGRAM, DISTRICTS, FOV, MARKS, ORIGIN, RISE, STRIDE, blocks, cameraAt, glowGrid, groundLines, handoverFrame as cityHandover, projectWith, toLocal, towerHeight, unpack, viewProj, type BdData } from "./engine/city";
 import { HOME, blendFrame, defaultFrame, facing, frameFor, isLand, landPoints, lightSize, project, toVec } from "./engine/planet";
-import { OPENING, handoverFrame, openingAt, type CellFile } from "./engine/start";
+import { CITY_STEPS, OPENING, cityAt, openingAt, type CellFile } from "./engine/start";
 import { V4Film } from "@/app/dev/ds/v4-film";
 import { Home } from "@/components/site/home";
 import DataSourcesPage from "@/app/(marketing)/legal/data-sources/page";
 import { parseFacts, readDay, withCommas } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
 import { TIER_SCRIPT, filmOn, pickTier, type Device } from "./engine/tier";
-import { LIGHTS, LIGHTS_FILE, MAP_CREDIT } from "./opening";
-import { FieldPane, Pane, RecordPane, type RecordRow } from "./pane";
-import { HOME_CHAPTERS, Rail, Thread, ThreadLayer } from "./thread";
+import { CHATTOGRAM_LINE, LIGHTS, LIGHTS_FILE, MAP_CREDIT } from "./opening";
+import { Pane, SearchField } from "./pane";
 
 const repoRoot = process.cwd();
 const draw = (el: Parameters<typeof renderToStaticMarkup>[0]) => renderToStaticMarkup(el);
@@ -83,7 +82,7 @@ describe("what Tailwind emits", () => {
   const tailwind = require("tailwindcss") as (config: object) => import("postcss").AcceptedPlugin;
   const loadConfig = require("tailwindcss/loadConfig") as (file: string) => Record<string, unknown>;
   /* eslint-enable @typescript-eslint/no-require-imports */
-  const classes = ["has-[input:focus-visible]:outline-focus", "text-brand-ink", "bg-map-water", "text-film-hero", "text-film-figure-phone", "rounded-pane", "max-sm:rounded-pane-phone", "pane", "pane-glass", "pane-sheen", "rec-arrive", "thread", "thread-join", "thread-draw", "thread-end", "film-full:z-raised", "film:hidden", "film-full:hidden"];
+  const classes = ["has-[input:focus-visible]:outline-focus", "text-brand-ink", "text-brand-on", "bg-map-water", "text-film-hero", "text-film-figure-phone", "rounded-pane", "max-sm:rounded-pane-phone", "pane", "pane-glass", "ov-seam", "film-full:z-raised", "film:hidden", "film-full:hidden"];
   const compiled = postcss([tailwind({ ...loadConfig(path.join(repoRoot, "tailwind.config.ts")), content: [{ raw: classes.join(" "), extension: "html" }] })])
     .process(readFileSync(path.join(repoRoot, "app/ds.css"), "utf8"), { from: undefined })
     .then((r) => r.css.replace(/\s+/g, " "));
@@ -114,10 +113,13 @@ describe("what Tailwind emits", () => {
     assert.match(css, /html \{ color-scheme: light;/, "every page without the attribute stays light");
   });
 
-  it("a night scene carries the same dark variables in either theme", async () => {
+  it("a night scene carries the same dark variables in either theme, but the page's own button green", async () => {
     const night = block(await compiled, '[data-ground="night"] {');
     assert.match(night, /--ds-surface: 16 18 20;/);
     assert.match(night, /--ds-map-light: 255 241 214;/);
+    assert.match(night, /--ds-brand-ink: 123 211 137;/, "green text is still the dark set's");
+    for (const name of NIGHT_INHERITS) assert.doesNotMatch(night, new RegExp(`${name}:`), `${name} is the theme's, so the hero's button is the nav's`);
+    assert.deepEqual([...NIGHT_INHERITS].sort(), ["--ds-brand", "--ds-brand-active", "--ds-brand-hover", "--ds-brand-on"]);
   });
 
   it("the film's sizes, radius and colours are classes", async () => {
@@ -144,7 +146,6 @@ describe("what Tailwind emits", () => {
     const css = await compiled;
     const reduced = css.slice(css.indexOf("@media (prefers-reduced-motion: reduce)"));
     assert.match(reduced, /animation-delay: 0s !important/);
-    assert.match(block(css, ".rec-arrive .rec-words {"), /animation: ds-rec-rise 200ms [^;]* 460ms both/);
   });
 
   it("the search pane's focus ring is a real rule", async () => {
@@ -158,98 +159,46 @@ describe("what Tailwind emits", () => {
     assert.doesNotMatch(css, /\[data-gone\][^{]*\{[^}]*visibility: hidden|\[data-past\][^{]*\{[^}]*visibility: hidden/, "the headline, the search and the two ways in stay the page's for a screen reader");
     assert.match(css, /\[data-hero\]\[data-gone\]:has\(:focus-visible\) \{ opacity: 1 !important; transform: none !important/);
     assert.match(css, /\[data-act="planet"\]\[data-past\]:has\(:focus-visible\) \{ opacity: 1 !important; pointer-events: auto/);
-    // The only scroll-written properties CSS reads sit on the small things that read them: a thread's group, the roll, a flat's parts.
+    // The only scroll-written properties CSS reads sit on the small things that read them: a drawing's parts, a window, the cursor.
     assert.doesNotMatch(css, /var\(--hand|var\(--words|var\(--film-p/);
     assert.match(block(css, ".film-full\\:z-raised {"), /z-index: 10/);
     assert.match(css, /:is\(\[data-film-tier="full"\], \[data-film-tier="lite"\]\) \.film\\:hidden \{ display: none/);
   });
 
-  it("the sheen passes once, never in a loop", async () => {
-    const sheen = block(await compiled, ".pane-sheen::after {");
-    assert.match(sheen, /animation: ds-pane-sheen 600ms [^;]* 1 both/);
-    assert.doesNotMatch(sheen, /infinite/);
+  it("the seam is drawn by --p on itself, and is whole when nothing is written", async () => {
+    assert.match(block(await compiled, ".ov-seam {"), /stroke-dasharray: 1; stroke-dashoffset: calc\(1 - var\(--p, 1\)\)/);
+  });
+
+  it("the primary button's label is the brand's own label colour, so it follows the button's fill", async () => {
+    assert.match(block(await compiled, ".text-brand-on {"), /--ds-brand-on/);
   });
 });
 
 describe("the Pane family", () => {
-  const ROWS: RecordRow[] = [
-    { label: "Sources", value: "5 sources", marks: ["EPB", "RSC", "BGMEA", "BKMEA", "GOTS"], mono: "EPB 2798 · RSC 10861" },
-    { label: "BGMEA membership", value: "General member · reg. no. 4002", from: "From BGMEA · checked 24 Jul 2026", marks: ["BGMEA"] },
-    { label: "RFQ", value: "Waiting for a quote", from: "Sent 3 Oct 2026", marks: ["XY"] },
-  ];
-  const record = draw(createElement(RecordPane, { name: "Mondol Fabrics Ltd.", line: "Factory · Gazipur", rows: ROWS, state: "Saved · watching", arriving: "RFQ", material: "glass" }));
-
   it("a pane is solid unless asked for glass", () => {
     assert.match(draw(Pane({ children: "x" })), /^<div class="pane rounded-pane p-6[^"]*">x<\/div>$/);
     assert.match(draw(Pane({ material: "glass", children: "x" })), /class="pane pane-glass /);
   });
 
-  it("the record is a figure named for its supplier, with one term per row", () => {
-    assert.match(record, /<figure[^>]*aria-label="Supplier record: Mondol Fabrics Ltd\."/);
-    assert.equal((record.match(/<dt /g) ?? []).length, ROWS.length);
-    assert.match(record, /Saved · watching/);
-  });
-
-  it("Sources shows the five marks in a row, and no row is a filled block", () => {
-    const sources = record.slice(record.indexOf(">Sources<"), record.indexOf("</dd>", record.indexOf(">Sources<")));
-    assert.equal((sources.match(/<img /g) ?? []).length, 5);
-    assert.doesNotMatch(record, /bg-brand-wash|bg-brand-tint[^"]*py-3/);
-  });
-
-  it("only the arriving row is stitched on, and a source with no approved mark gets a two-letter stamp", () => {
-    assert.equal((record.match(/rec-arrive/g) ?? []).length, 1);
-    assert.match(record, /rec-arrive"><span aria-hidden="true" class="rec-mark[^"]*">XY<\/span>/);
-  });
-
-  it("the search pane runs on public Discover, as the hero's form does", () => {
-    const field = draw(createElement(FieldPane, { id: "q", material: "glass" }));
+  it("the search pane runs on public Discover, as the hero's form does, with the kit's primary button", () => {
+    const field = draw(createElement(SearchField, { id: "q", material: "glass" }));
     assert.match(field, /^<form[^>]*action="\/discover"/);
     assert.match(field, /<form[^>]*role="search"/);
     assert.match(field, /<form[^>]*method="get"/);
     assert.match(field, /<label for="q" class="sr-only">/);
     assert.match(field, /<input[^>]*name="q"/);
-    assert.match(field, /<button type="submit"/);
+    assert.match(field, /<button type="submit" class="[^"]*bg-brand text-brand-on hover:bg-brand-hover[^"]*"/, "the nav's own button, not a copy of it");
   });
 
   it("the search pane wears the field's keyboard focus, since the field itself has no outline", () => {
-    const field = draw(createElement(FieldPane, { id: "q" }));
+    const field = draw(createElement(SearchField, { id: "q" }));
     assert.match(field, /<input[^>]*class="[^"]*outline-none/);
     assert.match(field, /<form[^>]*class="[^"]*has-\[input:focus-visible\]:outline-2[^"]*has-\[input:focus-visible\]:outline-focus/);
   });
 
   it("a caller's radius replaces the pane's, rather than sitting beside it", () => {
     assert.equal(cn("rounded-pane max-sm:rounded-pane-phone", "rounded-lg"), "max-sm:rounded-pane-phone rounded-lg");
-    assert.doesNotMatch(/^<form class="([^"]*)"/.exec(draw(createElement(FieldPane, { id: "q" })))?.[1] ?? "rounded-lg", /rounded-lg/);
-  });
-});
-
-describe("the thread and the rail", () => {
-  const svg = draw(ThreadLayer({ viewBox: "0 0 10 10", children: createElement(Thread, { d: "M0 0H9", join: true, end: { x: 9, y: 0 } }) }));
-
-  it("the thread is decoration, stitched when it joins, and ends in a bartack, never a circle", () => {
-    assert.match(svg, /^<svg aria-hidden="true"/);
-    assert.match(svg, /class="thread thread-join"/);
-    assert.match(svg, /class="thread thread-end"/);
-    assert.doesNotMatch(svg, /<circle/);
-  });
-
-  it("it is drawn by a mask of the same path, so a still page shows it whole", () => {
-    const id = /<mask id="([^"]+)"/.exec(svg)?.[1];
-    assert.ok(id);
-    assert.ok(svg.includes(`mask="url(#${id})"`));
-    assert.match(svg, /<path d="M0 0H9" pathLength="1" class="thread-draw"/);
-  });
-
-  const chapters = Array.from({ length: 9 }, (_, i) => ({ id: `ch-${i + 1}`, n: `0${i + 1}`, label: `Question ${i + 1}` }));
-  const rail = draw(createElement(Rail, { chapters, current: "ch-4" }));
-
-  it("the rail is nine links, one of them current, and it counts nothing", () => {
-    assert.match(rail, /^<nav aria-label="Chapters"/);
-    assert.equal((rail.match(/<a href="#ch-\d"/g) ?? []).length, 9);
-    assert.equal((rail.match(/aria-current="step"/g) ?? []).length, 1);
-    assert.match(rail, /<a href="#ch-4" aria-current="step"/);
-    assert.match(rail, /<span class="sr-only"> Question 4<\/span>/);
-    assert.doesNotMatch(rail, /aria-valuenow|role="progressbar"/);
+    assert.doesNotMatch(/^<form class="([^"]*)"/.exec(draw(createElement(SearchField, { id: "q" })))?.[1] ?? "rounded-lg", /rounded-lg/);
   });
 });
 
@@ -259,10 +208,10 @@ describe("/dev/ds", () => {
   it("shows the film's section: every dark value beside its light one, and each board in both grounds", () => {
     for (const [name, hex] of Object.entries(filmColors)) assert.ok(html.includes(`>${name}</span>`) && html.includes(hex), name);
     assert.ok(html.includes(resolve(dark, "surface")) && html.includes(resolve(dark, "brand.ink")));
-    assert.equal((html.match(/data-ground="night" class="flex flex-col gap-3 rounded-lg/g) ?? []).length, 7, "seven boards, each drawn once more in a night scope");
+    assert.equal((html.match(/data-ground="night" class="flex flex-col gap-3 rounded-lg/g) ?? []).length, 4, "four boards, each drawn once more in a night scope");
     assert.match(html, /<svg data-overlock="true"/);
-    assert.match(html, /class="roll-print"/);
-    assert.match(html, /aria-label="Supplier record: Mondol Fabrics Ltd\."/);
+    assert.match(html, /role="search"/);
+    assert.doesNotMatch(html, /roll-print|aria-label="Supplier record|class="thread/, "the roll, the record card and the thread are gone");
     assert.match(html, /text-film-figure /);
   });
 });
@@ -288,29 +237,35 @@ describe("the home page, film off and film on", () => {
     assert.match(on, /<main class="font-sans text-ink" data-film="" data-theme-auto=""><script>document\.documentElement\.dataset\.filmTier=/);
   });
 
-  it("the opening keeps the page's one headline, its search on public Discover and its two ways in", () => {
+  it("the opening says less: the one headline, one line and the search on public Discover; the two ways in are in the nav and the close", () => {
     assert.equal((on.match(/<h1/g) ?? []).length, 1);
     assert.match(on, /<h1[^>]*>Know who you.re buying from\.<\/h1>/);
-    assert.equal((on.slice(0, on.indexOf('id="ch-02"')).match(/id="hero-q"/g) ?? []).length, 1);
-    assert.match(on, /<form[^>]*role="search"[^>]*action="\/discover"/);
-    assert.match(text(on), /10,268 Bangladesh garment suppliers, each checked against the registers that list them\./);
-    assert.match(text(on), /Try .knit dresses Gazipur. or .GOTS./);
-    assert.match(on, /href="\/signup"[^>]*>Start free/);
-    assert.match(on, /href="\/contact"[^>]*>Book a demo/);
+    const hero = on.slice(on.indexOf("<div data-hero"), on.indexOf("<canvas data-city"));
+    assert.equal((hero.match(/id="hero-q"/g) ?? []).length, 1);
+    assert.match(hero, /<form[^>]*action="\/discover"/);
+    assert.match(text(hero), /10,268 Bangladesh garment suppliers, each checked against the registers that list them\./);
+    assert.doesNotMatch(text(hero), /Try .knit dresses|updated \d/, "no hint line and no mono label: the first screen was too heavy");
+    assert.doesNotMatch(hero, /href="\/signup"|href="\/contact"/);
+    const close = on.slice(on.indexOf('data-scene="close"'));
+    assert.match(close, /href="\/signup"[^>]*>Start free/);
+    assert.match(close, /href="\/contact"[^>]*>Book a demo/);
   });
 
-  it("the opening is one scene with the planet's act over the map, night in either theme; what they draw is decoration", () => {
-    assert.match(on, /<section id="ch-1" data-scene="opening" data-chapter="ch-1"/);
-    assert.match(on, /<div data-scene="planet" data-chapter="ch-1" data-act="planet" data-ground="night" class="[^"]*film-full:absolute[^"]*film-full:z-raised/);
-    assert.ok(on.indexOf('data-act="planet"') < on.indexOf("<div data-map"), "the planet's act comes first: the page's headline is still the first thing read");
+  it("the opening is one scene, night in either theme, with the planet's act over the city; the planet carries no labels, leads or thread, and no map is left", () => {
+    assert.match(on, /<section id="ch-1" data-scene="opening" class="[^"]*"><div data-ground="night" class="/);
+    assert.match(on, /<div data-scene="planet" data-act="planet" class="[^"]*film-full:absolute[^"]*film-full:z-raised/);
+    assert.ok(on.indexOf('data-act="planet"') < on.indexOf("<canvas data-city"), "the planet's act comes first: the page's headline is still the first thing read");
     assert.match(on, /<canvas data-planet="true" aria-hidden="true"/);
-    assert.match(on, /<div data-planet-callouts="true" aria-hidden="true"/);
-    assert.match(on, /<div data-map="true" aria-hidden="true"/);
-    assert.deepEqual([...on.matchAll(/data-scene="([a-z]+)"/g)].map((m) => m[1]), ["opening", "planet", "sources", "receipts", "site", "exports", "time", "order", "promises", "ladder", "figures", "close"]);
+    assert.match(on, /<canvas data-city="true" aria-hidden="true" class="[^"]*hidden[^"]*film-full:block/);
+    assert.match(on, /<div data-city-labels="true" aria-hidden="true"/);
+    assert.equal((on.match(/data-place="true"/g) ?? []).length, DISTRICTS.length);
+    assert.match(on, /data-city-factory="true"[^>]*>[\s\S]*?Mondol Fabrics Ltd\.[\s\S]*?the area, not the building/, "the block is an area, not a building, and says so");
+    assert.doesNotMatch(on, /data-planet-callouts|data-planet-leads|data-planet-thread|data-map-thread|data-map=|bkoi/);
+    assert.deepEqual([...on.matchAll(/data-scene="([a-z]+)"/g)].map((m) => m[1]), ["opening", "planet", "sources", "order", "promises", "close"]);
   });
 
   it("the lite tier's planet can stick: nothing between its stage and the page clips overflow", () => {
-    const wrapper = /<section id="ch-1"[^>]*><div class="([^"]*)">/.exec(on)?.[1] ?? "";
+    const wrapper = /<section id="ch-1"[^>]*><div data-ground="night" class="([^"]*)">/.exec(on)?.[1] ?? "";
     assert.doesNotMatch(wrapper, /(^|\s)overflow-(hidden|auto|scroll)(\s|$)/, wrapper);
     assert.match(wrapper, /film-full:overflow-hidden/);
     assert.doesNotMatch(/<div data-scene="planet"[^>]*><div class="([^"]*)"/.exec(on)?.[1] ?? "", /film-full:static|film-full:h-full/, "no class that undoes the hold on the full tier: the planet's act is laid over the stage there");
@@ -319,15 +274,17 @@ describe("the home page, film off and film on", () => {
   it("the tiers that do not draw live get pictures, lazily and in the system's theme, and the full tier hides them", () => {
     const planet = on.slice(on.indexOf("<picture"), on.indexOf("</picture>"));
     assert.match(planet, /^<picture class="absolute inset-0 block film:hidden"><source media="\(max-width: 767px\)" srcSet="\/site\/film\/planet-upright\.avif"\/><img src="\/site\/film\/planet\.avif" alt="" loading="lazy" decoding="async"/, "lazy, so the tiers that hide it never fetch it");
-    const stills = [...on.matchAll(/<picture class="[^"]*film-full:hidden[^"]*"><source media="\(prefers-color-scheme: dark\)" srcSet="(\/site\/film\/[a-z-]+-dark\.avif)"\/><img src="(\/site\/film\/[a-z-]+-light\.avif)" alt="" width="1200" height="750" loading="lazy" decoding="async"/g)];
-    assert.deepEqual(stills.map((m) => m[2]), ["/site/film/map-country-light.avif", "/site/film/map-gazipur-light.avif", "/site/film/map-site-light.avif"]);
+    // The city is night in either theme, as the live one is: one picture each, no theme pair.
+    const stills = [...on.matchAll(/<img src="(\/site\/film\/city-[a-z]+\.avif)" alt="" width="1200" height="750" loading="lazy" decoding="async" class="[^"]*film-full:hidden/g)];
+    assert.deepEqual(stills.map((m) => m[1]), ["/site/film/city-belt.avif", "/site/film/city-site.avif"]);
     const files = readdirSync(path.join(repoRoot, "public/site/film"));
-    for (const src of ["/site/film/planet.avif", "/site/film/planet-upright.avif", ...stills.flatMap((m) => [m[1]!, m[2]!])]) assert.ok(files.includes(path.basename(src)), `${src} is not in public/site/film`);
+    for (const src of ["/site/film/planet.avif", "/site/film/planet-upright.avif", ...stills.map((m) => m[1]!)]) assert.ok(files.includes(path.basename(src)), `${src} is not in public/site/film`);
+    assert.ok(!files.some((f) => f.startsWith("map-")), "the map's pictures went with the map");
     for (const name of files.filter((x) => x.endsWith(".avif"))) assert.ok(statSync(path.join(repoRoot, "public/site/film", name)).size < 160_000, `${name} is heavier than the budget allows`);
   });
 
-  it("the map's data is credited on the stage, on the stacked page and on /legal/data-sources", () => {
-    assert.equal((on.match(new RegExp(MAP_CREDIT.replace(/\./g, "\\."), "g")) ?? []).length, 4, "on the opening's stage and under its stacked picture, and the same again on scene 06");
+  it("the city's ground data is credited on the stage, on the stacked page and on /legal/data-sources", () => {
+    assert.equal((on.match(new RegExp(MAP_CREDIT.replace(/\./g, "\\."), "g")) ?? []).length, 2, "on the opening's stage and under its stacked picture");
     const legal = text(draw(createElement(AppRouterContext.Provider, { value: router as never }, createElement(DataSourcesPage))));
     assert.match(legal, /8\. The map on the home page/);
     assert.match(legal, /Bangladesh Bureau of Statistics and OCHA ROAP/);
@@ -335,12 +292,13 @@ describe("the home page, film off and film on", () => {
     assert.match(legal, /CC BY 3\.0 IGO/);
     assert.match(legal, /Natural Earth/);
     assert.match(legal, /No address, name or identifier is published for it/);
-    assert.match(legal, /Last updated 6 Oct 2026/);
+    assert.match(legal, /the blocks of the city are our own count of published suppliers per square kilometre/);
+    assert.match(legal, /Last updated 7 Oct 2026/);
   });
 
-  it("the first screen keeps to three panes of glass, and the planet can be reached through the words", () => {
-    const first = on.slice(on.indexOf('data-act="planet"'), on.indexOf("<div data-map"));
-    assert.ok((first.match(/pane-glass/g) ?? []).length <= 3);
+  it("the first screen keeps to one pane of glass, and the planet can be reached through the words", () => {
+    const first = on.slice(on.indexOf('data-act="planet"'), on.indexOf("<canvas data-city"));
+    assert.equal((first.match(/pane-glass/g) ?? []).length, 1);
     assert.match(first, /class="[^"]*pointer-events-none relative flex flex-col items-start[^"]*\[&amp;&gt;\*\]:pointer-events-auto/);
   });
 
@@ -348,12 +306,13 @@ describe("the home page, film off and film on", () => {
     const file = JSON.parse(readFileSync(path.join(repoRoot, "public/site/film/cells.json"), "utf8")) as CellFile;
     assert.ok(text(on).includes(LIGHTS));
     assert.deepEqual({ ...LIGHTS_FILE }, { date: file.date, mapped: file.mapped, suppliers: file.suppliers }, "LIGHTS_FILE in opening.tsx repeats the file: paste what build-cells.mjs printed");
-    assert.equal(LIGHTS, `One light per km² with suppliers · ${withCommas(file.mapped)} of ${withCommas(file.suppliers)} have a mapped register address · ${readDay(file.date)}`, "the source is named in the fact itself: the registers' addresses");
+    assert.equal(LIGHTS, `One block per km² with suppliers, taller where there are more · ${withCommas(file.mapped)} of ${withCommas(file.suppliers)} have a mapped register address · ${readDay(file.date)}`, "the source is named in the fact itself: the registers' addresses");
   });
 
   it("the four district counts are all in the page, dated, with no total, and none counts up", () => {
     const t = text(on);
     for (const n of ["4,421", "1,819", "1,628", "1,080"]) assert.ok(t.includes(n), n);
+    assert.ok(t.includes(CHATTOGRAM_LINE) && CHATTOGRAM_LINE === "Chattogram, down the coast, has 1,080 more.", "the fourth is said in words: it lies out of the city's frame");
     assert.match(t, /Most sit in four districts\./);
     assert.match(t, /as counted on 3 Oct 2026/);
     assert.equal((on.match(/id="ch-1"/g) ?? []).length, 1);
@@ -366,46 +325,33 @@ describe("the home page, film off and film on", () => {
     assert.doesNotMatch(on, /count-?up|data-count|aria-valuenow/);
   });
 
-  it("the record still starts as a name with no rows and only ever gains them", () => {
-    const cards = [...on.matchAll(/<figure[^>]*aria-label="Supplier record: Mondol Fabrics Ltd\."[^>]*>([\s\S]*?)<\/figure>/g)].map((m) => m[1] ?? "");
-    const counts = cards.map((c) => (c.match(/<dt /g) ?? []).length);
-    assert.equal(counts[0], 0);
-    assert.ok(counts.every((n, i) => i === 0 || n >= (counts[i - 1] ?? 0)), counts.join(","));
-    assert.ok((counts.at(-1) ?? 0) >= 8);
-    assert.match(text(on), /A real record, as it stands on 3 Oct 2026\./);
-    assert.match(text(on), /1 of 10,268 suppliers/);
+  it("the story's factory is real and dated, and no card, thread, rail or numbered label is left anywhere in the film", () => {
+    const t = text(on);
+    assert.match(t, /Follow one factory down the page\./);
+    assert.match(t, /A real record, as it stands on 3 Oct 2026\./);
+    for (const dated of ["reg. no. 4002 · 24 Jul 2026", "exporter 2798 · 14 Aug 2026", "1004-B/2006 · 2 Aug 2026", "GOTS-19020 · 26 Jun 2026", "factory 10861 · 24 Jul 2026"]) assert.ok(t.includes(dated), `${dated}: each source's own number and day stay in the words`);
+    assert.doesNotMatch(on, /aria-label="Supplier record|class="thread|data-tie|data-roll|rec-arrive|aria-label="Chapters"|data-chapter=/);
+    assert.doesNotMatch(on, /rounded-lg border border-line/, "no bordered card");
+    assert.doesNotMatch(t, /\b0[1-9] · /, "no numbered label above a headline");
+    assert.doesNotMatch(t, /Export records are coming/, "the export records carry no figure until v2, so they get no scene");
   });
 
-  it("chapters 02 to 09 are the film's scenes, with no bordered card; the close and the FAQ after them are untouched", () => {
-    const close = '<section class="border-t border-line py-24 max-md:py-14">';
-    const scenes = on.slice(on.indexOf('id="ch-02"'), on.indexOf(close));
-    assert.match(scenes, /^id="ch-02" data-scene="sources" data-chapter="ch-02"/);
-    for (const [n, name] of [["03", "receipts"], ["04", "site"], ["05", "exports"], ["06", "time"], ["7", "order"], ["8", "promises"], ["9", "close"]]) assert.match(scenes, new RegExp(`<section id="ch-${n}" data-scene="${name}" data-chapter="ch-${n}"`));
-    assert.doesNotMatch(scenes, /rounded-lg border border-line/);
-    assert.equal((scenes.match(/<figure[^>]*aria-label="Supplier record: Mondol Fabrics Ltd\."/g) ?? []).length, 6, "the record once per scene that grows it, and whole at the close");
-    for (const dated of ["reg. no. 4002 · 24 Jul 2026", "exporter 2798 · 14 Aug 2026", "1004-B/2006 · 2 Aug 2026", "GOTS-19020 · 26 Jun 2026", "factory 10861 · 24 Jul 2026"]) assert.ok(text(scenes).includes(dated), `${dated}: each source's own number and day stay in the words`);
-    // Scene 06 keeps to glass where the map is live under it: two panes, and the first screen's three is the most anywhere.
-    const site = on.slice(on.indexOf('id="ch-04"'), on.indexOf('id="ch-05"'));
-    assert.equal((site.match(/pane-glass/g) ?? []).length, 2);
-    assert.equal((on.slice(on.indexOf('id="ch-7"'), on.indexOf('id="ch-9"')).match(/pane-glass/g) ?? []).length, 0, "nothing live sits behind the stage, the promises or the figures");
-    assert.equal((on.slice(on.indexOf('id="ch-9"'), on.indexOf(close)).match(/pane-glass/g) ?? []).length, 2);
-    // From the close to the rail (the film's) or the end of the page (without it).
-    const rest = (m: string) => m.slice(m.indexOf(close), m.indexOf('<nav aria-label="Chapters"') < 0 ? m.indexOf("</main>") : m.indexOf('<nav aria-label="Chapters"'));
-    assert.equal(rest(on), rest(off));
-    assert.match(text(on), /Real v4 screen . Saved suppliers, 3 picked for one RFQ|the app is light in both themes/);
-  });
-
-  it("the rail links the nine chapters in the page's own order, each id once; it is the last thing in the page, and not in the page without the film", () => {
+  it("the scenes run in the story's order, each id once, and the film is about fifteen screens, not forty-six", () => {
     const ids = [...on.matchAll(/<section id="(ch-[0-9]+)"/g)].map((m) => m[1]);
-    assert.deepEqual(ids, HOME_CHAPTERS.map((c) => c.id));
-    for (const c of HOME_CHAPTERS) assert.equal((on.match(new RegExp(`id="${c.id}"`, "g")) ?? []).length, 1, c.id);
-    const rail = on.slice(on.indexOf('<nav aria-label="Chapters"'));
-    assert.match(rail, /^<nav aria-label="Chapters" class="group\/rail [^"]*fixed[^"]*hidden[^"]*film:block/);
-    assert.match(rail, /<ol class="[^"]*group-data-\[off\]\/rail:opacity-0[^"]*max-xl:hidden"/, "the ticks step aside past the last scene");
-    assert.equal((rail.match(/<a href="#ch-/g) ?? []).length, 9);
-    assert.doesNotMatch(rail, /aria-current/, "the director sets the current chapter; the page starts with none");
-    assert.match(rail, /<\/nav><\/main>$/);
-    assert.doesNotMatch(off, /aria-label="Chapters"/);
+    assert.deepEqual(ids, ["ch-1", "ch-02", "ch-03", "ch-04", "ch-05", "ch-06", "ch-07", "ch-08"]);
+    const heights = [...on.matchAll(/film-full:h-\[(\d+)svh\]/g)].map((m) => Number(m[1]));
+    const screens = heights.reduce((a, b) => a + b, 0) / 100;
+    assert.ok(screens <= 16, `${screens} screens of held scenes`);
+  });
+
+  it("with the film on, the close carries the last words and the search on the planet; the FAQ after it is the page's own", () => {
+    const close = on.slice(on.indexOf('<section id="ch-08"'), on.indexOf('id="faq"'));
+    assert.match(close, /data-scene="close" data-ground="night"/);
+    assert.match(close, /<div data-planet-close="true" aria-hidden="true"/);
+    assert.match(text(close), /Now you know who you.re buying from\. Do the same for any of 10,268 suppliers\. Search is free\./);
+    assert.match(close, /id="close-q"/);
+    assert.equal((on.match(/Now you know who you/g) ?? []).length, 1, "said once: the shared closing section is the page without the film's");
+    assert.equal(on.slice(on.indexOf('id="faq"')), off.slice(off.indexOf('id="faq"')));
   });
 });
 
@@ -472,54 +418,68 @@ describe("the scroll's arithmetic", () => {
     assert.equal(sceneProgress(0, 1000, 1000), 1);
   });
 
-  it("the rail takes the night's ink over a night scene: the planet's act until it has given way, and the close", () => {
-    const vh = 1000;
-    assert.equal(nightAt([{ night: false, top: -900 }, { night: true, top: 0 }], vh), true, "the planet's act over the opening");
-    assert.equal(nightAt([{ night: false, top: -900 }, { night: false, top: 0 }], vh), false, "the same act once it is past");
-    assert.equal(nightAt([{ night: true, top: -4000 }, { night: false, top: -200 }, { night: true, top: 700 }], vh), false, "a theme scene holds the screen; the close is still below");
-    assert.equal(nightAt([{ night: false, top: -4000 }, { night: true, top: 100 }], vh), true);
-    assert.equal(nightAt([{ night: true, top: 600 }], vh), false, "before the first scene");
+  it("the scrub glides each step by the same share of the gap whatever the frame rate, and lands", () => {
+    assert.equal(scrub(0.5, 0.5, 16), 0.5);
+    const one = scrub(0, 0.1, SCRUB);
+    assert.ok(Math.abs(one - 0.1 * (1 - Math.exp(-1))) < 1e-9, "after one lag, 63% of the step");
+    // Two frames of 8 ms cover what one frame of 16 ms does.
+    assert.ok(Math.abs(scrub(scrub(0, 0.1, 8), 0.1, 8) - scrub(0, 0.1, 16)) < 1e-9);
+    assert.equal(scrub(0.2, 0.2 + SETTLED / 2, 16), 0.2 + SETTLED / 2, "a gap under the threshold lands at once");
+    assert.equal(scrub(0, 0.9, 16), 0.9, "a jump across most of a scene (a link, a restored page) lands at once rather than replaying it");
+    let p = 0;
+    for (let i = 0; i < 120 && p !== 0.2; i++) p = scrub(p, 0.2, 16);
+    assert.equal(p, 0.2, "a glide lands within two seconds");
+    for (let i = 0, q = 0; i < 30; i++) {
+      const next = scrub(q, 0.3, 16);
+      assert.ok(next >= q && next <= 0.3, "never past the target, never back");
+      q = next;
+    }
   });
 
-  it("the rail follows the last scene to pass the middle of the screen, and holds it across a gap", () => {
-    const scenes = [{ chapter: "ch-1", top: -900, bottom: 100 }, { chapter: "ch-02", top: 700, bottom: 2700 }];
-    assert.equal(currentChapter(scenes, 1000), "ch-1", "between two scenes the one just left stays current");
-    assert.equal(currentChapter([{ chapter: "ch-1", top: -1400, bottom: -400 }, { chapter: "ch-02", top: 200, bottom: 2200 }], 1000), "ch-02");
-    assert.equal(currentChapter([{ chapter: "ch-1", top: 600, bottom: 1600 }], 1000), null, "before the first scene nothing is current");
-    assert.equal(currentChapter([{ chapter: "ch-1", top: -3000, bottom: -2000 }, { chapter: "ch-9", top: -1400, bottom: 400 }], 1000), null, "past the last scene (the close, the FAQ, the footer) nothing is current");
-    assert.equal(currentChapter([{ chapter: "ch-1", top: -3000, bottom: -2000 }, { chapter: "ch-9", top: -1400, bottom: 600 }], 1000), "ch-9");
+  it("the film's eases start and end where they should", () => {
+    for (const f of [ease.out, ease.inOut]) {
+      assert.equal(f(0), 0);
+      assert.equal(f(1), 1);
+      assert.equal(f(-1), 0);
+      assert.equal(f(2), 1);
+    }
+    assert.ok(ease.out(0.25) > 0.25, "an arrival is fast first");
   });
 });
 
 describe("the opening's one scroll", () => {
-  it("is four stretches in order: the dive, the words, the handover, the map; each 0 before and 1 after", () => {
-    assert.deepEqual(openingAt(0), { dive: 0, words: 0, hand: 0, map: 0 });
-    assert.deepEqual(openingAt(1), { dive: 1, words: 1, hand: 1, map: 1 });
+  it("is four stretches in order: the dive, the words, the handover, the city; each 0 before and 1 after", () => {
+    assert.deepEqual(openingAt(0), { dive: 0, words: 0, hand: 0, city: 0 });
+    assert.deepEqual(openingAt(1), { dive: 1, words: 1, hand: 1, city: 1 });
     assert.ok(OPENING.dive[1] <= OPENING.hand[0], "the dive is done, and the planet still, before it starts to give way: one country through the crossfade");
     assert.ok(OPENING.words[1] <= OPENING.hand[1], "the words are gone before the planet is");
-    assert.equal(OPENING.map[0], OPENING.hand[1], "the map's own scroll starts the moment the planet has given way");
+    assert.equal(OPENING.city[0], OPENING.hand[1], "the city's own scroll starts the moment the planet has given way");
     let last = openingAt(0);
     for (let p = 0.01; p <= 1; p += 0.01) {
       const at = openingAt(p);
-      for (const k of ["dive", "words", "hand", "map"] as const) assert.ok(at[k] >= last[k] && at[k] <= 1, `${k} at ${p.toFixed(2)}`);
+      for (const k of ["dive", "words", "hand", "city"] as const) assert.ok(at[k] >= last[k] && at[k] <= 1, `${k} at ${p.toFixed(2)}`);
       last = at;
     }
-    assert.equal(openingAt(OPENING.hand[1]).map, 0);
+    assert.equal(openingAt(OPENING.hand[1]).city, 0);
     assert.equal(openingAt(OPENING.dive[1]).dive, 1);
   });
 
-  it("the dive ends where the map begins: the story's home at the map's centre, one degree the same width on both", () => {
+  it("the dive ends where the city begins: the planet's home where the city's first camera draws it, a kilometre the same width on both", () => {
     const [w, h] = [1440, 900];
-    const end = handoverFrame(w, h);
-    const rot = facing(STOPS[0]!.center[0], STOPS[0]!.center[1]);
-    const home = project(rot, end, STOPS[0]!.center[0], STOPS[0]!.center[1]);
-    assert.ok(Math.abs(home.x - w * 0.69) < 1e-6 && Math.abs(home.y - h / 2) < 1e-6, "centred in the width the map keeps right of the words");
-    const east = project(rot, end, STOPS[0]!.center[0] + 1, STOPS[0]!.center[1]);
-    assert.ok(Math.abs(east.x - home.x - tileScale(STOPS[0]!.zoom)) / tileScale(STOPS[0]!.zoom) < 0.001, `${east.x - home.x} vs ${tileScale(STOPS[0]!.zoom)} px per degree`);
-    assert.ok(end.r > defaultFrame(0, w, h).r * 4, "the dive is a real dive");
-    assert.deepEqual(STOPS[0]!.center, [HOME.lng, HOME.lat]);
-    assert.equal(STOPS[0]!.bearing, 0, "north up, as the planet is");
-    assert.ok(STOPS[0]!.pitch < 20, "barely tilted, as the planet is");
+    const end = cityHandover(w, h);
+    const rot = facing(HOME.lng, HOME.lat);
+    const home = project(rot, end, HOME.lng, HOME.lat);
+    const first = cameraAt(0);
+    const m = viewProj(first, w, h);
+    const [hx, hz] = toLocal(HOME.lng, HOME.lat);
+    const there = projectWith(m, w, h, [hx, 0, hz]);
+    assert.ok(Math.abs(home.x - there.x) < 1e-6 && Math.abs(home.y - there.y) < 1e-6, "the planet's home and the city's are one point");
+    // Ten kilometres east of home, on both: the planet's degree and the city's kilometre agree within a pixel.
+    const east = project(rot, end, HOME.lng + 10 / (111.32 * Math.cos((HOME.lat * Math.PI) / 180)), HOME.lat);
+    const cityEast = projectWith(m, w, h, [hx + 10, 0, hz]);
+    assert.ok(Math.abs(east.x - cityEast.x) < 1.5, `${east.x} vs ${cityEast.x}`);
+    assert.ok(end.r > defaultFrame(0, w, h).r * 40, "the dive is a real dive: to one kilometre a block");
+    assert.ok(first.eye[1] > 80 && Math.hypot(first.eye[0] - first.target[0], first.eye[2] - first.target[2]) < 1, "the city's first camera looks straight down, as the planet does");
   });
 
   it("a frame blends by ratio of radius, as a camera zooms", () => {
@@ -528,7 +488,7 @@ describe("the opening's one scroll", () => {
     assert.deepEqual(blendFrame(a, b, 1), b);
     const mid = blendFrame(a, b, 0.5);
     assert.ok(Math.abs(mid.r - 400) < 1e-9 && Math.abs(mid.cx - 50) < 1e-9, "halfway is the geometric middle of the radii");
-    assert.ok(Math.abs(frameFor(tileScale(5.5), 23.7, 0, 0).r * Math.cos((23.7 * Math.PI) / 180) * (Math.PI / 180) - tileScale(5.5)) < 1e-9);
+    assert.ok(Math.abs(frameFor(1683, 23.7, 0, 0).r * Math.cos((23.7 * Math.PI) / 180) * (Math.PI / 180) - 1683) < 1e-9);
   });
 });
 
@@ -586,65 +546,97 @@ describe("the planet's arithmetic", () => {
   });
 });
 
-describe("the map's arithmetic", () => {
-  it("a ring unpacks from steps to degrees", () => {
-    assert.deepEqual(unpack([90400, 23700, 100, -50, -200, 0], 1000), [[90.4, 23.7], [90.5, 23.65], [90.3, 23.65]]);
-    assert.deepEqual(unpack([], 1000), []);
+describe("the city's arithmetic", () => {
+  const near = (a: number, b: number, e = 1e-9) => Math.abs(a - b) < e;
+
+  it("its kilometres: the origin at the belt's middle, east is +x, north is -z, a degree of latitude about 111 km", () => {
+    assert.deepEqual(toLocal(ORIGIN.lng, ORIGIN.lat), [0, -0]);
+    assert.ok(toLocal(ORIGIN.lng + 0.1, ORIGIN.lat)[0] > 10);
+    assert.ok(toLocal(ORIGIN.lng, ORIGIN.lat + 1)[1] < -110 && toLocal(ORIGIN.lng, ORIGIN.lat + 1)[1] > -111);
   });
 
-  it("the camera is each mark at its own place, holds before the first and after the last, and never jumps", () => {
-    for (const s of STOPS) {
-      const c = cameraAt(s.p);
-      assert.ok(Math.abs(c.zoom - s.zoom) < 1e-9 && Math.abs(c.center[0] - s.center[0]) < 1e-9, `at ${s.p}`);
+  it("a block's height grows with the count, slower and slower, and never towers out of the city", () => {
+    for (const [a, b] of [[1, 2], [2, 10], [10, 100], [100, 231]] as const) assert.ok(towerHeight(a) < towerHeight(b));
+    assert.ok(towerHeight(231) < 1 && towerHeight(1) > 0.05, `${towerHeight(1)} to ${towerHeight(231)} km`);
+    assert.ok(towerHeight(200) / towerHeight(10) < 2.5, "the log keeps one dense kilometre from dwarfing the rest: twenty times the suppliers, not twenty times the height");
+  });
+
+  it("the towers come from the cells and nothing else: two to sixteen to a cell, inside its kilometre, the tallest first, the same city every time", () => {
+    const cells: [number, number, number][] = [[90.4, 23.85, 1], [90.41, 23.86, 64], [90.3218, 23.9819, 9], [91.8, 22.35, 40]];
+    const a = blocks(cells, [90.3218, 23.9819]);
+    assert.deepEqual([...a.towers], [...blocks(cells, [90.3218, 23.9819]).towers], "seeded by the cell, not by chance");
+    assert.equal(a.towers.length, a.count * STRIDE);
+    const perCell = [4, 16, 8]; // round(2 + 2 * sqrt(count)), from two to sixteen
+    assert.equal(a.count, perCell.reduce((x, y) => x + y, 0), "Chattogram's cell lies outside the box and raises nothing");
+    let k = 0;
+    cells.slice(0, 3).forEach(([lng, lat, n], c) => {
+      const [cx, cz] = toLocal(lng, lat);
+      for (let i = 0; i < perCell[c]!; i++, k++) {
+        const t = a.towers.subarray(k * STRIDE, (k + 1) * STRIDE);
+        assert.ok(Math.abs(t[0]! - cx) < 0.5 && Math.abs(t[1]! - cz) < 0.5, "inside its kilometre");
+        assert.ok(t[4]! <= towerHeight(n) + 1e-6 && t[4]! > 0);
+        if (i === 0) assert.ok(near(t[4]!, towerHeight(n), 1e-6), "the first tower is the tallest");
+        assert.equal(t[6], c === 2 ? 1 : 0, "the story's block is the cell nearest its geocode, and only that one");
+      }
+    });
+    assert.equal(a.glows.length / 5, 3, "one soft light per block");
+  });
+
+  it("the story's own place is never typed into the engine: with none given, no block is the story's", () => {
+    const b = blocks([[90.3218, 23.9819, 9]]);
+    assert.equal(b.chosen, null);
+    for (let k = 0; k < b.count; k++) assert.equal(b.towers[k * STRIDE + 6], 0);
+    assert.equal(blocks([[90.3218, 23.9819, 9]], [90.6, 23.6]).chosen, null, "a geocode with no cell within a kilometre and a half picks none");
+  });
+
+  it("the camera is each mark at its own place, flies without a jump, and lands on the story's block", () => {
+    const chosen: [number, number] = [90.3218, 23.9819];
+    for (const m of MARKS) {
+      const c = cameraAt(m.at, chosen);
+      const [tx, tz] = m.target === "chosen" ? toLocal(...chosen) : toLocal(m.target[0], m.target[1]);
+      assert.ok(near(c.target[0], tx, 1e-6) && near(c.target[2], tz, 1e-6) && near(c.dist, m.dist, 1e-6), `at ${m.at}`);
     }
     assert.deepEqual(cameraAt(-1), cameraAt(0));
     assert.deepEqual(cameraAt(2), cameraAt(1));
-    for (let p = 0; p < 1; p += 0.01) assert.ok(Math.abs(cameraAt(p + 0.01).zoom - cameraAt(p).zoom) < 0.25, `a jump near ${p.toFixed(2)}`);
-  });
-
-  it("a column is a closed six-sided footprint whose height follows the count", () => {
-    const tall = column([90.4, 23.8], 4421), short = column([90.4, 23.8], 1080);
-    const ring = (tall.geometry.coordinates as number[][][])[0]!;
-    assert.equal(ring.length, 7);
-    assert.ok(Math.abs(ring[0]![0]! - ring[6]![0]!) < 1e-9 && Math.abs(ring[0]![1]! - ring[6]![1]!) < 1e-9);
-    assert.ok((tall.properties.height as number) > (short.properties.height as number));
-  });
-
-  it("the story's own place is never typed into the engine: with none given, the one light has nothing to stand on", () => {
-    const style: { sources?: Record<string, { data: { features?: unknown[] } }> } = {};
-    class FakeMap {
-      constructor(options: Record<string, unknown>) {
-        Object.assign(style, options.style);
-      }
-      on() {}
-      jumpTo() {}
-      project() {
-        return { x: 0, y: 0 };
-      }
-      setPaintProperty() {}
-      resize() {}
-      remove() {}
+    for (let p = 0; p < 1; p += 0.005) {
+      const [a, b] = [cameraAt(p), cameraAt(p + 0.005)];
+      assert.ok(Math.hypot(a.eye[0] - b.eye[0], a.eye[1] - b.eye[1], a.eye[2] - b.eye[2]) < a.dist * 0.2, `a jump near ${p.toFixed(3)}`);
+      assert.ok(b.dist <= a.dist + 1e-9, "the camera only comes down");
     }
-    const g = globalThis as Record<string, unknown>;
-    const had = { ResizeObserver: g.ResizeObserver, getComputedStyle: g.getComputedStyle };
-    g.ResizeObserver = class {
-      observe() {}
-      disconnect() {}
-    };
-    g.getComputedStyle = () => ({ getPropertyValue: () => "1 2 3" });
-    try {
-      const bd: BdData = { credit: "", unit: 1000, box: [], districts: [], around: [], rivers: [] };
-      createMap({ Map: FakeMap }, {} as HTMLElement, { bd, cells: [] }).destroy();
-      assert.deepEqual(style.sources?.chosen?.data.features, []);
-      createMap({ Map: FakeMap }, {} as HTMLElement, { bd, cells: [], chosen: [90.3, 24] }).destroy();
-      assert.equal(style.sources?.chosen?.data.features?.length, 1);
-    } finally {
-      Object.assign(g, had);
-    }
+    assert.ok(MARKS.every((m, i) => i === 0 || m.at > MARKS[i - 1]!.at));
+    assert.ok(RISE[0] > 0 && RISE[1] < MARKS[2]!.at, "the towers have risen before the camera is among them");
   });
 
-  it("the four districts are the counts of 3 Oct 2026, with no total", () => {
-    assert.deepEqual(DISTRICTS.map((d) => [d.label, d.count]), [["Dhaka district", 4421], ["Gazipur", 1819], ["Narayanganj", 1628], ["Chattogram", 1080]]);
+  it("the subject sits right of the middle, clear of the words, and straight down stays straight down", () => {
+    const [w, h] = [1440, 900];
+    for (const p of [0, 0.5, 1]) {
+      const c = cameraAt(p);
+      const at = projectWith(viewProj(c, w, h), w, h, c.target);
+      assert.ok(near(at.x, ((1 + c.shift) / 2) * w, 1e-3) && near(at.y, h / 2, 1e-3) && at.front, `p=${p}: ${at.x}, ${at.y}`);
+      assert.ok(c.shift >= 0.3, "the words keep the left");
+    }
+    assert.ok(FOV > 20 && FOV < 50);
+  });
+
+  it("the figures step whole, one district at a time in the order the camera meets them, then the story's factory", () => {
+    assert.deepEqual(cityAt(0), { figure: 0, factory: false });
+    assert.equal(cityAt(CITY_STEPS.figures[0]).figure, 1);
+    assert.equal(cityAt(CITY_STEPS.figures[1]).figure, 2);
+    assert.deepEqual(cityAt(1), { figure: 2, factory: true });
+    assert.ok(CITY_STEPS.figures[0] > MARKS[1]!.at && CITY_STEPS.figures[1] > MARKS[2]!.at && CITY_STEPS.factory > MARKS[3]!.at, "a figure changes once the camera has reached its district");
+  });
+
+  it("the three districts are the counts of 3 Oct 2026 in the camera's order, with Chattogram said in words, and no total", () => {
+    assert.deepEqual(DISTRICTS.map((d) => [d.label, d.count]), [["Narayanganj", 1628], ["Dhaka district", 4421], ["Gazipur", 1819]]);
+    assert.deepEqual([CHATTOGRAM.label, CHATTOGRAM.count], ["Chattogram", 1080]);
+  });
+
+  it("the glow on the ground is a small grid of the cells, brightest where most suppliers are, dark far from any", () => {
+    const g = glowGrid([[90.4, 23.85, 100], [90.45, 23.9, 1]], 64);
+    assert.equal(g.data.length, 64 * 64);
+    assert.equal(Math.max(...g.data), 255);
+    assert.equal(g.data[0], 0);
+    assert.ok(g.box[2] > 0 && g.box[3] > 0);
   });
 });
 
@@ -688,7 +680,7 @@ describe("the map data file", () => {
 
   it("holds the 64 districts, the story's four among them, the rivers and the neighbours, and nothing about a supplier", () => {
     assert.equal(bd.districts.length, 64);
-    for (const d of DISTRICTS) assert.ok(bd.districts.some((x) => x.name === d.key), d.key);
+    for (const d of [...DISTRICTS, CHATTOGRAM]) assert.ok(bd.districts.some((x) => x.name === d.key), d.key);
     assert.ok(bd.rivers.length >= 10 && bd.around.length >= 3);
     assert.deepEqual(Object.keys(bd).sort(), ["around", "box", "credit", "districts", "rivers", "unit"]);
     assert.match(bd.credit, /Bangladesh Bureau of Statistics and OCHA ROAP, CC BY 3\.0 IGO/, "the district set's licence asks for its credit wherever the data goes");
@@ -697,8 +689,6 @@ describe("the map data file", () => {
   });
 
   it("every district sits inside Bangladesh's bounds, and the story's places sit inside their own district's", () => {
-    const geo = toGeo(bd, [[90.4, 23.8, 3]]);
-    assert.equal(geo.cells.features.length, 1);
     const bounds = (name: string) => {
       const pts = bd.districts.find((d) => d.name === name)!.rings.flatMap((r) => unpack(r, bd.unit));
       return [Math.min(...pts.map((p) => p[0])), Math.min(...pts.map((p) => p[1])), Math.max(...pts.map((p) => p[0])), Math.max(...pts.map((p) => p[1]))] as const;
@@ -709,19 +699,22 @@ describe("the map data file", () => {
     }
     for (const d of DISTRICTS) {
       const [w, s, e, n] = bounds(d.key);
-      assert.ok(d.at[0] > w && d.at[0] < e && d.at[1] > s && d.at[1] < n, `${d.label}'s column stands outside ${d.key}`);
+      assert.ok(d.at[0] > w && d.at[0] < e && d.at[1] > s && d.at[1] < n, `${d.label}'s towers stand outside ${d.key}`);
     }
     const file = JSON.parse(readFileSync(path.join(repoRoot, "public/site/film/cells.json"), "utf8")) as CellFile;
     const [w, s, e, n] = bounds("Gazipur");
     assert.ok(file.chosen && file.chosen[0] > w && file.chosen[0] < e && file.chosen[1] > s && file.chosen[1] < n, "the story's one place is in Gazipur, where its record says it is");
   });
 
-  it("the box reaches further than the handover's camera sees, so its edge never shows", () => {
-    // At the first mark the camera centres at 69% of a 1440 screen: 993 px to the left edge, 447 to the right, 450 up and down.
-    const px = tileScale(STOPS[0]!.zoom);
-    const [lng, lat] = STOPS[0]!.center;
-    assert.ok(bd.box[0]! < lng - 993 / px && bd.box[2]! > lng + 447 / px, `east to west: ${bd.box.join()}`);
-    assert.ok(bd.box[1]! < lat - 450 / px && bd.box[3]! > lat + 450 / px + 3, `north to south (the tilt sees a little further north): ${bd.box.join()}`);
+  it("the city's ground keeps only the district lines and rivers near the belt, as segments", () => {
+    const lines = groundLines(bd);
+    assert.ok(lines.districts.length > 0 && lines.rivers.length > 0);
+    assert.equal(lines.districts.length % 4, 0);
+    assert.equal(lines.rivers.length % 4, 0);
+    const [west] = toLocal(BOX.west - 1, BOX.north);
+    const [east] = toLocal(BOX.east + 1, BOX.south);
+    for (let i = 0; i < lines.districts.length; i += 2) assert.ok(lines.districts[i]! > west && lines.districts[i]! < east, "a segment far from the belt");
+    assert.deepEqual(unpack([90400, 23700, 100, -50, -200, 0], 1000), [[90.4, 23.7], [90.5, 23.65], [90.3, 23.65]]);
   });
 
   it("the land mask is a small PNG", () => {

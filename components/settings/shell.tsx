@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import type { SettingsDoc } from "./doc";
 import { COMPANY_PHONE_HREF, SETTINGS_ERROR_BODY, SETTINGS_ERROR_TITLE, SETTINGS_GROUPS, SETTINGS_HOME, rowLine, settingsSubline, type SettingsKey } from "./words";
 
-const FOCUS = "outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+const FOCUS = "outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 function SideNav({ current, doc }: { current: SettingsKey | null; doc: SettingsDoc | null }) {
   const sub = settingsSubline(doc);
@@ -31,7 +31,7 @@ function SideNav({ current, doc }: { current: SettingsKey | null; doc: SettingsD
                   href={i.href}
                   prefetch={false}
                   aria-current={on ? "page" : undefined}
-                  className={cn("flex h-9 items-center text-base", FOCUS, on ? "rounded-r-sm border-l-2 border-brand bg-brand-tint pl-2 pr-2.5 font-semibold text-ink" : "rounded-sm px-2.5 text-ink-2 hover:bg-sunken hover:text-ink")}
+                  className={cn("flex h-9 items-center text-base", FOCUS, on ? "rounded-r-sm border-l-2 border-brand-ink bg-brand-tint pl-2 pr-2.5 font-semibold text-ink" : "rounded-sm px-2.5 text-ink-2 hover:bg-sunken hover:text-ink")}
                 >
                   {i.label}
                 </Link>

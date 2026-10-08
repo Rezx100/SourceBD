@@ -2,12 +2,14 @@
 // titles and tabs, and the markup a buyer, a keyboard and a screen reader meet.
 
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { prerenderToNodeStream } from "react-dom/static";
+
+import { KEY_WORDS, SHORTCUTS, ShortcutList, installHelpKey, isHelpKey } from "@/components/frame/shortcuts";
 
 let currentPath = "/app";
 {
@@ -35,6 +37,9 @@ let currentPath = "/app";
 const { AppFrame, ListPane } = require("@/components/frame") as typeof import("@/components/frame");
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const nav = require("@/lib/frame-nav") as typeof import("@/lib/frame-nav");
+// After the mock, like the frame itself: a static import would load the sidebar before `usePathname` is replaced.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { badgeFigure } = require("@/components/frame/sidebar") as typeof import("@/components/frame/sidebar");
 
 const account = { initial: "RK", name: "Rezaul Karim", email: "rk@example.invalid" };
 
@@ -84,12 +89,38 @@ describe("the frame a buyer receives", () => {
     assert.match(frame("/app/rfqs/12"), /<a aria-current="true" title="RFQs and quotes"/);
   });
 
-  it("one skip link to one main, and no data-shell (B0: it turns v4's brand tint grey)", () => {
+  it("one skip link to one main, and data-shell on the root (the Spent Green Rule: ds.css turns the brand tints and link ink grey inside it)", () => {
     const html = frame("/app");
     assert.match(html, /<a href="#main-content"[^>]*>Skip to content<\/a>/);
     assert.equal((html.match(/<main [^>]*id="main-content"/g) ?? []).length, 1);
     assert.match(html, /PAGE-BODY/);
-    assert.doesNotMatch(html, /data-shell/);
+    assert.match(html, /^<div data-shell="" class="group\/shell /, "the remap in app/ds.css never runs without data-shell on the root");
+    const css = readFileSync(path.join(process.cwd(), "app", "ds.css"), "utf8");
+    const block = /\[data-shell\] \{([\s\S]*?)\}/.exec(css)?.[1] ?? "";
+    for (const v of ["--ds-brand-ink", "--ds-brand-tint", "--ds-brand-tint-strong", "--ds-brand-wash", "--ds-focus"]) assert.match(block, new RegExp(`${v}: var\\(--ds-(accent|ink|surface)`), v);
+  });
+
+  // Critique of 7 Oct 2026, item 2: 27 green elements on the record page, because the kit drew the solid
+  // `brand` on links, rings, tab underlines, bars and ticked boxes, which no remap reaches. Inside the app
+  // those take `brand-ink` (remapped to the hueless accent) and `focus` (remapped too); outside it both are
+  // brand green, so the marketing site is unchanged. Solid `brand` is the primary button and the wordmark.
+  it("spends solid brand green on the primary button and the wordmark only: no link, ring, tab, bar or box draws `brand`", () => {
+    const retired = /\b(?:[\w[\]:-]+:)?(?:text|border|border-l|outline|ring|decoration)-brand\b(?!-)(?!\/)/g;
+    const roots = ["frame", "kit", "search", "record", "patterns", "saved", "rfqs", "compliance", "messages", "orders", "settings", "headings", "onboarding"].map((d) => path.join(process.cwd(), "components", d));
+    const hits: string[] = [];
+    for (const root of roots) {
+      for (const f of readdirSync(root).filter((f) => /\.tsx?$/.test(f) && !/\.test\.ts$/.test(f))) {
+        if (f === "pane-divider.tsx") continue; // the founder's 40% green divider (6 Oct 2026), decided
+        const src = readFileSync(path.join(root, f), "utf8");
+        for (const [i, line] of src.split("\n").entries()) {
+          if (/tracking-tight text-brand 2xl:block/.test(line)) continue; // the wordmark
+          if (retired.test(line)) hits.push(`${path.basename(root)}/${f}:${i + 1}`);
+          retired.lastIndex = 0;
+        }
+      }
+    }
+    assert.deepEqual(hits, [], "a solid brand class the data-shell remap cannot reach");
+    assert.match(readFileSync(path.join(process.cwd(), "components", "kit", "button-class.ts"), "utf8"), /bg-brand text-brand-on/, "the primary button keeps brand green");
   });
 
   it("the search landing draws its own field; every other page gets the topbar's, with the query", () => {
@@ -101,12 +132,41 @@ describe("the frame a buyer receives", () => {
     assert.match(results, /<input[^>]*role="combobox"[^>]*aria-autocomplete="list"[^>]*aria-expanded="false"[^>]*aria-controls=/, "the one field is a combobox over a listbox");
   });
 
-  it("a badge reads as words beside the name, and as a dot on the phone tab", () => {
-    const html = frame("/app", { compliance: { text: "2 to check", tone: "danger" } });
+  it("a badge is a mono figure in a pill, its words in the row's accessible name, and a dot on the phone tab", () => {
+    const html = frame("/app", { compliance: { text: "2 to check", tone: "caution" } });
     assert.match(html, /Compliance<span class="sr-only">, 2 to check<\/span>/);
-    assert.match(html, /class="hidden shrink-0 whitespace-nowrap text-xs font-semibold 2xl:inline text-danger">2 to check</, "a two-digit count must not wrap in the 224 column");
+    // Critique of 8 Oct 2026, item 3: a count of dates that passed is caution, never danger red.
+    assert.match(html, /class="hidden h-5 shrink-0 items-center rounded-md px-1\.5 font-mono text-xs font-medium tabular-nums 2xl:inline-flex bg-caution-tint text-caution">2</, "the pill is the number alone, in caution");
+    assert.doesNotMatch(html, /bg-danger-tint|text-danger/, "red in the rail for a date that passed");
+    assert.match(html, /rounded-full border-2 border-subtle 2xl:hidden bg-caution-icon"/, "the collapsed rail's dot follows the badge's tone");
+    assert.ok(!/>2 to check</.test(html), "the words are drawn, not only read");
     assert.match(html, /aria-label="Alerts, new"/);
     assert.doesNotMatch(frame("/app", { compliance: null }), /to check|Alerts, new/, "an unread count draws nothing");
+  });
+
+  // Critique of 7 Oct 2026, item 7: "Complia… 10 to check" at 232px, the topbar's icon + "Account" placeholder, "Certificates · 4" tabs.
+  it("a three-digit badge cannot clip its label: the label never truncates, the pill is the figure, the words stay for a screen reader", () => {
+    const html = frame("/app", { compliance: { text: "120 to check", tone: "caution" }, messages: { text: "99+ new" } });
+    assert.match(html, /Compliance<span class="sr-only">, 120 to check<\/span>/);
+    assert.match(html, /tabular-nums 2xl:inline-flex bg-caution-tint text-caution">120</);
+    assert.match(html, /tabular-nums 2xl:inline-flex bg-sunken text-ink-2">99\+</);
+    assert.doesNotMatch(/<nav aria-label="Main menu"[\s\S]*?<\/nav>/.exec(html)?.[0] ?? "", /truncate|text-ellipsis|line-clamp/, "a label is cut in the rail");
+    assert.deepEqual([badgeFigure("120 to check"), badgeFigure("99+ new"), badgeFigure("new")], ["120", "99+", "new"]);
+  });
+
+  it("the account control is the row at the sidebar's foot (photo, name, plan, a menu), and the topbar draws none", () => {
+    const html = frame("/app/orders");
+    const foot = /<div class="border-t border-line px-3 py-2">([\s\S]*?)<\/div><\/aside>/.exec(html)?.[1] ?? "";
+    assert.ok(foot, "no account row under Products and Settings");
+    assert.match(foot, /<button type="button" aria-label="Account: Rezaul Karim" title="Rezaul Karim · Public beta" data-account-row="" class="flex h-12 w-full/);
+    assert.match(foot, /<span aria-hidden="true" class="[^"]*size-8[^"]*rounded-full[^"]*">RK<\/span>/, "the initials stand in for a photo");
+    assert.match(foot, /<span class="text-base font-medium text-ink \[overflow-wrap:anywhere\]">Rezaul Karim<\/span><span class="text-sm text-ink-3">Public beta<\/span>/);
+    const topbar = /<div class="hidden h-topbar[^"]*">[\s\S]*?<\/div><div class="sticky|<div class="hidden h-topbar[^"]*">[\s\S]*?<\/form><\/div>/.exec(html)?.[0] ?? "";
+    assert.ok(!/Account/.test(topbar), "the topbar still draws an account control");
+    assert.equal((html.match(/aria-label="Account: Rezaul Karim"/g) ?? []).length, 2, "the sidebar's row and the phone's button");
+    // A known plan is the row's second line, as a workspace switcher draws it.
+    const planned = renderToStaticMarkup(createElement(AppFrame, { account: { ...account, plan: "Free plan" } } as Parameters<typeof AppFrame>[0], "x"));
+    assert.match(planned, /<span class="text-sm text-ink-3">Free plan · Public beta<\/span>/);
   });
 
   describe("badges that arrive after the frame (row 24)", () => {
@@ -126,7 +186,7 @@ describe("the frame a buyer receives", () => {
       assert.deepEqual([...early.matchAll(/<a [^>]*title="([^"]+)"/g)].map((m) => m[1]).length, 8);
       assert.doesNotMatch(early, /to check|new<|Alerts, new/);
       // Settled: both counts are there, the same words as a plain object gives.
-      const late = await withPromise(Promise.resolve({ messages: { text: "2 new" }, compliance: { text: "5 to check", tone: "danger" } }));
+      const late = await withPromise(Promise.resolve({ messages: { text: "2 new" }, compliance: { text: "5 to check", tone: "caution" } }));
       assert.match(late, /Messages<span class="sr-only">, 2 new<\/span>/);
       assert.match(late, /Compliance<span class="sr-only">, 5 to check<\/span>/);
       assert.match(late, /aria-label="Alerts, new"/);
@@ -159,6 +219,36 @@ describe("the frame a buyer receives", () => {
     const layout = readFileSync(path.join(process.cwd(), "app", "(app)", "app", "layout.tsx"), "utf8");
     assert.equal((layout.match(/<AppFrame\b/g) ?? []).length, 1);
     assert.match(layout, /account=\{shell\.account\}/);
+  });
+
+  // Critique of 8 Oct 2026, item 6: no help layer. The account menu opens a sheet listing the keys the app handles.
+  it("the account menu offers Keyboard shortcuts, and the sheet lists every key keys.ts handles, plus Esc, Ctrl K and Ctrl ↵", () => {
+    const topbar = readFileSync(path.join(process.cwd(), "components", "frame", "topbar.tsx"), "utf8");
+    assert.match(topbar, /<MenuItem onSelect=\{\(\) => setShortcuts\(true\)\}>Keyboard shortcuts<\/MenuItem>/);
+    const keys = readFileSync(path.join(process.cwd(), "components", "search", "keys.ts"), "utf8");
+    const handled = [...keys.matchAll(/case "([^"]+)":/g)].map((m) => KEY_WORDS[m[1]!] ?? m[1]!);
+    assert.ok(handled.length >= 8, `keys.ts handles ${handled.length} keys`);
+    const listed = new Set(SHORTCUTS.flatMap((s) => s.keys));
+    for (const k of handled) assert.ok(listed.has(k), `the sheet does not list ${k}`);
+    for (const k of ["Esc", "Ctrl K", "Ctrl ↵"]) assert.ok(listed.has(k), `the sheet does not list ${k}`);
+    const html = renderToStaticMarkup(createElement(ShortcutList));
+    assert.match(html, /<kbd[^>]*>↓<\/kbd>/);
+    assert.match(html, /<kbd[^>]*>Ctrl K<\/kbd>/);
+    assert.equal((html.match(/<kbd/g) ?? []).length, SHORTCUTS.reduce((n, s) => n + s.keys.length, 0));
+  });
+
+  it("? outside a field opens the sheet, and is its first row (critique of 8 Oct 2026, round 3, item 5)", () => {
+    assert.deepEqual(SHORTCUTS[0]!.keys, ["?"]);
+    assert.equal(isHelpKey({ key: "?", target: { tagName: "DIV" } }), true);
+    assert.equal(isHelpKey({ key: "?", target: { tagName: "INPUT" } }), false, "a question mark typed in a field opened the sheet");
+    assert.equal(isHelpKey({ key: "?", ctrlKey: true, target: null }), false);
+    const added: string[] = [];
+    let opened = 0;
+    const win = { addEventListener: (t: string, fn: (e: never) => void) => { added.push(t); (fn as (e: unknown) => void)({ key: "?", target: null, preventDefault() {} }); }, removeEventListener() {} };
+    installHelpKey(win, () => opened++);
+    assert.deepEqual([added, opened], [["keydown"], 1]);
+    const topbar = readFileSync(path.join(process.cwd(), "components", "frame", "topbar.tsx"), "utf8");
+    assert.match(topbar, /useEffect\(\(\) => installHelpKey\(window as never, \(\) => setShortcuts\(true\)\), \[\]\);/, "the ? key is not bound");
   });
 
   it("an admin's account menu and phone sheet link to the console; nobody else's do (founder, 6 Oct 2026)", () => {

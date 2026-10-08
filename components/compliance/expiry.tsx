@@ -2,8 +2,9 @@
 // certificate expiry`): every certificate on the saved suppliers that has lapsed with no renewal on
 // file, then those lapsing inside 90 days, in three groups under a filter, one ask each. A real
 // table from 768; on a phone each row is the date, the certificate, the supplier and a 48-tall Ask.
-// Server components. Paper's "Follow-up: Not asked yet" is not here: nothing records whether a
-// supplier was asked. Download CSV writes the certificates the filter shows (`/api/v1/export`).
+// Server components. Paper's "Follow-up: Not asked yet" is not here; the landing's rows read "asked
+// 3 Oct 2026" from the RFQs sent to the supplier (`askedDates`), which is the record of the ask.
+// Download CSV writes the certificates the filter shows (`/api/v1/export`).
 
 import { Clock, XCircle } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
@@ -34,7 +35,7 @@ export function ExpiryHead({ groups, saved, show, download }: { groups: ExpiryGr
                 prefetch={false}
                 aria-current={t.show === show ? "true" : undefined}
                 className={cn(
-                  "flex items-center px-3 text-sm leading-4 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand",
+                  "flex items-center px-3 text-sm leading-4 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus",
                   i > 0 && "border-l border-line-strong",
                   t.show === show ? "bg-brand-tint font-semibold text-ink" : "font-medium text-ink-2",
                 )}
@@ -64,9 +65,9 @@ function Name({ i }: { i: CertItem }) {
 function GroupBar({ state, children }: { state: "expired" | "expiring"; children: React.ReactNode }) {
   const Glyph = state === "expired" ? XCircle : Clock;
   return (
-    <div className={cn("flex h-8 items-center gap-2 px-4 max-md:h-9", state === "expired" ? "bg-danger-tint" : "bg-caution-tint")}>
-      <Glyph size={16} weight="fill" className={cn("shrink-0", state === "expired" ? "text-danger" : "text-caution-icon")} aria-hidden />
-      <h2 className={cn("text-sm font-semibold max-md:text-base", state === "expired" ? "text-danger" : "text-caution")}>{children}</h2>
+    <div className="flex h-8 items-center gap-2 bg-caution-tint px-4 max-md:h-9">
+      <Glyph size={16} weight="fill" className="shrink-0 text-caution-icon" aria-hidden />
+      <h2 className="text-sm font-semibold text-caution max-md:text-base">{children}</h2>
     </div>
   );
 }
@@ -82,7 +83,7 @@ function Group({ state, heading, items }: { state: "expired" | "expiring"; headi
             {items.map((i) => (
               <Tr key={i.key}>
                 <Td className="w-[210px] pl-4">
-                  <span className={cn("font-medium", i.state === "expired" ? "text-danger" : "text-caution")}>{i.when}</span>
+                  <span className="font-medium text-caution">{i.when}</span>
                   {i.relative ? <span className="block text-xs text-ink-3">{i.relative}</span> : null}
                 </Td>
                 <Td className="w-[190px]">
@@ -107,7 +108,7 @@ function Group({ state, heading, items }: { state: "expired" | "expiring"; headi
         {items.map((i) => (
           <li key={i.key} className="flex items-center gap-3 border-b border-line px-4 py-3">
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <p className={cn("text-base font-medium", i.state === "expired" ? "text-danger" : "text-caution")}>
+              <p className="text-base font-medium text-caution">
                 {i.when}
                 {i.relative ? <span className="font-normal text-ink-3"> · {i.relative}</span> : null}
               </p>
@@ -158,12 +159,12 @@ export function ExpiryNone({ show, anyRead }: { show: ExpiryShow; anyRead: boole
             : "Every certificate on your saved suppliers is in another group."}
       </p>
       {!anyRead ? (
-        <Link href={expiryHref(show)} prefetch={false} className="pt-2 text-base font-medium text-brand underline decoration-1 [text-underline-position:from-font]">
+        <Link href={expiryHref(show)} prefetch={false} className="pt-2 text-base font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]">
           Try again
         </Link>
       ) : null}
       {show === "all" || !anyRead ? null : (
-        <Link href={expiryHref("all")} prefetch={false} className="pt-2 text-base font-medium text-brand underline decoration-1 [text-underline-position:from-font]">
+        <Link href={expiryHref("all")} prefetch={false} className="pt-2 text-base font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]">
           Show every certificate
         </Link>
       )}

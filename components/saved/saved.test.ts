@@ -9,6 +9,7 @@
 // (the pattern in `components/orders/orders.test.ts`).
 
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
@@ -17,11 +18,13 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { aboniInput } from "@/lib/dashboard/fixtures";
 import { SelectionContext } from "../search/selection";
-import { SavedBar, SavedTable } from "./table";
+import { SavedBar, SavedPaneRows, SavedTable } from "./table";
+import { RemoveProvider } from "./actions";
 import { SavedPhoneList, phoneLine } from "./phone";
 import { SavedEmpty, SavedError, SearchesEmpty, SearchesError } from "./list";
 import { SearchList } from "./searches";
 import { LastSearchCardView } from "./last-search";
+import { rfqHref } from "@/lib/dashboard/selection";
 import { removeMessage, runRemove, runUndo } from "./transport";
 import { SaveSearchForm, SaveSearchPanel, saveSummary } from "./save-search";
 import {
@@ -36,7 +39,6 @@ import {
   parsePage,
   parseSort,
   removedWords,
-  rfqHref,
   savedCaption,
   savedExportHref,
   savedHref,
@@ -152,8 +154,13 @@ describe("the address", () => {
     assert.equal(savedExportHref("name"), "/api/v1/export?kind=saved&sort=name");
   });
 
-  it("one RFQ to everyone ticked is the composer with their ids", () => {
-    assert.equal(rfqHref([S1, S2]), `/app/rfqs/new?supplier=${S1},${S2}`);
+  // Critique of 8 Oct 2026, item 2: Saved's doors to the composer were a page jump away from the list.
+  it("one RFQ to everyone ticked, and a row's own, open the composer in the pane beside this list", () => {
+    assert.equal(rfqHref("/app/saved", [S1, S2]), `/app/saved?rfq=${S1},${S2}`);
+    assert.equal(rfqHref("/app/saved?sort=name&page=2", [S1]), `/app/saved?sort=name&page=2&rfq=${S1}`);
+    const first = buildSavedItems(ROWS, CERTS, NOW, { sort: "name", page: 2 })[0]!;
+    assert.equal(first.rfqHref, `/app/saved?sort=name&page=2&rfq=${S1}`);
+    assert.equal(first.listHref, "/app/saved?sort=name&page=2");
     assert.match(TOO_MANY, /up to 50 suppliers/);
   });
 });
@@ -161,7 +168,11 @@ describe("the address", () => {
 describe("the first certificate to check", () => {
   it("the worst certificate speaks first, with how many more follow", () => {
     const [a, b] = items();
-    assert.deepEqual(a!.cert, { kind: "line", line: { state: "expired", text: "WRAP expired 28 May 2026", more: 0 } });
+    assert.equal(a!.cert.kind, "line");
+    assert.deepEqual((a!.cert as { line: unknown }).line, { state: "expired", text: "WRAP expired 28 May 2026", more: 0 });
+    // The same cell the results draw: the body's mark and the short state, the full date in its words.
+    const summary = (a!.cert as { summary: { short: string; words: string; first: { code: string } } }).summary;
+    assert.deepEqual([summary.short, summary.words, summary.first.code], ["Expired 28 May", "WRAP expired 28 May 2026", "WRAP"]);
     const line = (b!.cert as { kind: "line"; line: { state: string; text: string; more: number } }).line;
     assert.equal(line.state, "expiring");
     assert.match(line.text, /^GOTS expires in 4 days/);
@@ -227,13 +238,39 @@ const withSelection = (value: ReturnType<typeof selected>, el: ReactElement) => 
 describe("the table", () => {
   it("the columns in Paper's order, a real table, each name opening the record in the pane", () => {
     const out = html(createElement(SavedTable, { items: items() }));
-    assert.match(text(out), /Supplier Type and district Workers Sources First certificate to check Saved on Actions/);
+    // The results table's columns, in its order (critique of 7 Oct 2026, item 4: one grammar for the two tables).
+    assert.match(text(out), /Supplier Type Location Workers Sources Certificates Saved on Actions/);
     assert.match(out, /<table\b/);
     assert.match(out, /<a(?=[^>]*href="\/app\/saved\?open=slug-1")(?=[^>]*data-open="record")[^>]*>Tex Town Ltd/);
-    assert.match(text(out), /Tex Town Ltd Factory · Dhaka 1,408 8 WRAP expired 28 May 2026 1 Oct 2026/);
+    assert.match(text(out), /Tex Town Ltd Factory Dhaka 1,408 8 WRAP expired 28 May 2026 .*1 Oct 2026/);
+    // The certificate is the results' compact cell: the body's mark and the state as a pill, the full date in the title.
+    assert.match(out, /<td class="[^"]*py-1\.5[^"]*"><span class="flex flex-wrap[^"]*" title="WRAP expired 28 May 2026"><span class="sr-only">WRAP expired 28 May 2026<\/span>/);
+    assert.match(out, /cert\/wrap\.png/);
+    assert.match(out, /rounded-md[^"]*bg-cert-expired-bg[^"]*">Expired 28 May</);
     assert.match(text(out), /Nothing to check/);
     assert.match(out, /aria-label="Select all on this page"/);
     assert.match(out, /aria-label="More actions for Tex Town Ltd"/);
+    // The results' row menu, word for word, then Remove from saved (Radix draws the menu only once opened, so the source is read).
+    const table = readFileSync(path.join(process.cwd(), "components", "saved", "table.tsx"), "utf8");
+    assert.match(table, /<MenuItem href=\{i\.rfqHref\}>Send RFQ<\/MenuItem>\s*<MenuItem href=\{i\.pageHref\}>Open full page<\/MenuItem>\s*<MenuItem onSelect=[\s\S]*?>Remove from saved<\/MenuItem>/);
+  });
+
+  // Critique of 8 Oct 2026, item 4: the One-Line Name Rule in Saved too, and the table full-bleed like the results.
+  it("a long name is the base on one line with the whole name in title and the qualifier under; the table has no frame", () => {
+    const ZAHEEN = "Zaheen Knitwears Limited (Shed - 3, 4, 5, 10, 11, 12, 13) & (Building - Security, ETP and Fire Pump)";
+    const rows = [row(S1, { company_name: ZAHEEN, slug: "zaheen" })];
+    const out = html(createElement(SavedTable, { items: buildSavedItems(rows, CERTS, NOW, { sort: "recent", page: 1 }) }));
+    const esc = ZAHEEN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    assert.equal(out.match(new RegExp(`title="${esc}"`, "g"))?.length, 1, "one title with the whole name");
+    // Round 3, item 6: no aria-label on the row; the name link says the whole name.
+    assert.doesNotMatch(out, /<tr [^>]*aria-label=/, "an aria-label on a row replaces its cells for a screen reader");
+    assert.match(out, new RegExp(`<span aria-hidden="true">Zaheen Knitwears Limited</span><span class="sr-only">${esc}</span></a>`), "the link's visible words are the base name, its spoken words the whole name");
+    assert.match(out, /<span data-name="" title="Shed - 3, 4, 5, 10, 11, 12, 13 · Building - Security, ETP and Fire Pump"/, "the qualifier leads the second line");
+    assert.equal(out.match(/data-name=""/g)?.length, 2, "two lines, never a third");
+    assert.ok(!/\btruncate\b|text-ellipsis|line-clamp/.test(out), "the cut is the deliberate CSS one");
+    assert.doesNotMatch(/<div role="region"[^>]*>/.exec(out)?.[0] ?? "", /rounded-md|border border-line/, "Saved is framed where the results are full-bleed");
+    // The phone row's line leads with the qualifier too.
+    assert.match(phoneLine(buildSavedItems(rows, CERTS, NOW, { sort: "recent", page: 1 })[0]!), /^Shed - 3, 4, 5, 10, 11, 12, 13 · Building - Security, ETP and Fire Pump · Factory · Dhaka · /);
   });
 
   it("a certificate that was not read says so, and never 'Nothing to check'", () => {
@@ -259,7 +296,8 @@ describe("the bulk bar", () => {
   it("names the count, offers Clear and Remove from saved, and sends one RFQ to everyone ticked", () => {
     const out = bar([S1, S2]);
     assert.match(text(out), /2 suppliers selected Clear Remove from saved Send one RFQ to 2 suppliers/);
-    assert.match(out, new RegExp(`href="/app/rfqs/new\\?supplier=${S1},${S2}"`));
+    assert.match(out, new RegExp(`href="/app/saved\\?rfq=${S1},${S2}"`));
+    assert.doesNotMatch(out, /rfqs\/new/);
     assert.match(bar([S1]), /1 supplier selected/);
     assert.match(bar([S1]), /Send one RFQ to 1 supplier</);
   });
@@ -287,9 +325,11 @@ describe("the phone list", () => {
     const out = html(withSelection(selected([S1, S2]), createElement(SavedPhoneList, { items: items() })));
     assert.match(text(out), /2 selected Clear/);
     assert.match(text(out), /Remove Send one RFQ to 2/);
-    assert.match(out, /^<div class="md:hidden pb-20">/, "the last rows keep their room above the action bar");
-    assert.match(html(createElement(SavedPhoneList, { items: items() })), /^<div class="md:hidden">/);
-    assert.match(out, new RegExp(`href="/app/rfqs/new\\?supplier=${S1},${S2}"`));
+    assert.doesNotMatch(out, /rfqs\/new/);
+    // React hoists the marks' image preloads ahead of the list.
+    assert.match(out, /^(?:<link [^>]*\/>)*<div class="md:hidden pb-20">/, "the last rows keep their room above the action bar");
+    assert.match(html(createElement(SavedPhoneList, { items: items() })), /^(?:<link [^>]*\/>)*<div class="md:hidden">/);
+    assert.match(out, new RegExp(`href="/app/saved\\?rfq=${S1},${S2}"`));
   });
 });
 
@@ -393,9 +433,14 @@ describe("a saved search", () => {
 
   it("its filters in words; the count and when it was taken", () => {
     assert.match(searchFilters(SEARCH.query_state), /knit/i);
-    // A search that kept no filter is every supplier the search shows by default: sanctioned ones are hidden.
-    assert.equal(searchFilters({ search: "" }), "All published suppliers except sanctioned");
-    assert.equal(searchFilters(null), "All published suppliers except sanctioned");
+    // In words, each value once, the family names and the defaults left out (critique of 7 Oct 2026, item 9).
+    // The typed term in quotes (critique of 8 Oct 2026, item 7): a word typed, not a filter.
+    assert.equal(searchFilters({ search: "q=knit&cert=gots&district=Gazipur" }), "\u201cknit\u201d, GOTS, Gazipur");
+    assert.equal(searchFilters({ search: "cert=gots:expired&hs=6110" }), "HS 6110, GOTS, expired");
+    assert.doesNotMatch(searchFilters({ search: "q=knit&cert=gots&district=Gazipur" }), /Certificate ·|Sanctioned hidden|·/);
+    // A search that kept no filter is every published supplier; the default (sanctioned hidden) goes without saying.
+    assert.equal(searchFilters({ search: "" }), "All published suppliers");
+    assert.equal(searchFilters(null), "All published suppliers");
     assert.deepEqual(countWords(101, "2026-10-04T08:00:00Z", NOW), { count: "101", words: "suppliers today" });
     assert.match(countWords(101, "2026-10-01T08:00:00Z", NOW).words, /^suppliers · counted /);
     assert.deepEqual(countWords(null, null, NOW), { count: null, words: "not counted yet" });
@@ -500,7 +545,7 @@ describe("/app/saved", () => {
     assert.match(text(out.html), /Suppliers · 3/);
     assert.match(text(out.html), /Saved searches · 2/);
     assert.match(out.html, /href="\/app\/searches"/);
-    assert.match(text(out.html), /Tex Town Ltd Factory · Dhaka 1,408 8 WRAP expired 28 May 2026/);
+    assert.match(text(out.html), /Tex Town Ltd Factory Dhaka 1,408 8 WRAP expired 28 May 2026/);
     assert.match(text(out.html), /GOTS expires in/);
     assert.match(text(out.html), /A\.R\. Fashion .* Nothing to check/);
     assert.doesNotMatch(out.html, /data-record-pane/);
@@ -513,7 +558,7 @@ describe("/app/saved", () => {
     const out = text((await saved()).html);
     assert.match(out, /A\.R\. Fashion .* WRAP valid until/);
     assert.doesNotMatch(out, /A\.R\. Fashion .* Nothing to check/);
-    assert.match(out, /GOTS expires in 10 days .* 1 more certificate/, "a valid one never outranks an expiring one");
+    assert.match(out, /2 certificates: GOTS expires in 10 days/, "a valid one never outranks an expiring one");
     assert.equal(rpcCalls.find((c) => c.fn === "compliance_expiring_certs")?.args?.p_window_days, 365, "the widest window the read allows, so valid certificates come back");
   });
 
@@ -574,7 +619,8 @@ describe("/app/searches", () => {
     base({}, { saved_searches: { data: SEARCH_ROWS, error: null, count: 2 } });
     const out = await searches();
     assert.match(text(out.html), /Saved 2 saved searches · only you see them/);
-    assert.match(out.html, /aria-current="page"[^>]*>Saved searches · 2|>Saved searches · 2<\/a>/);
+    // The count is a mono figure beside the label, read as "Saved searches · 2".
+    assert.match(out.html, />Saved searches<span class="[^"]*font-mono[^"]*"><span class="sr-only"> · <\/span>2<\/span><\/a>/);
     assert.match(text(out.html), /Suppliers · 3/);
     assert.match(text(out.html), /GOTS knit factories in Gazipur/);
     assert.match(text(out.html), /101 suppliers today/);
@@ -621,5 +667,19 @@ describe("/app/searches", () => {
     assert.match(failed.html, /role="alert"/);
     assert.match(text(failed.html), /We couldn't load your saved searches\./);
     assert.doesNotMatch(failed.html, /No saved searches yet/);
+  });
+});
+
+describe("Saved's pane list is a ledger too (critique of 8 Oct 2026, round 3, item 2)", () => {
+  it("each pane row has its tick, data-row and the ⋯ menu; the page draws the bulk bar beside the pane", () => {
+    const list = items();
+    const out = html(createElement(RemoveProvider, null, createElement(SavedPaneRows, { items: list, currentSlug: list[0]!.slug })));
+    assert.equal((out.match(/<li data-row="result" tabindex="0"/g) ?? []).length, list.length);
+    assert.ok(out.includes(`aria-label="Select ${list[0]!.name.replace(/&/g, "&amp;")}"`), "no tick on a pane row");
+    assert.match(out, /<ul data-follow="record">/);
+    assert.match(out, /aria-label="More actions for /);
+    const page = readFileSync(path.join(process.cwd(), "app", "(app)", "app", "saved", "page.tsx"), "utf8");
+    const pane = page.slice(page.indexOf(") : paneOpen ? ("), page.indexOf("<SavedPaneRows"));
+    assert.match(pane, /<SelectionProvider[\s\S]*<SavedBar items=\{items\} \/>/, "Saved's pane list has no bulk bar");
   });
 });

@@ -3,11 +3,12 @@
 // urgency is read first, and the whole row opens the document (44 tall at least).
 // Server-safe; the document link is the only link, stretched over the row on a phone.
 
-import { CheckCircle, Clock, FileText, MinusCircle, XCircle } from "@phosphor-icons/react/dist/ssr";
-import { CertChip } from "@/components/kit";
+import { FileText } from "@phosphor-icons/react/dist/ssr";
+import { CertChip, Unpublished } from "@/components/kit";
+import { define } from "@/lib/dashboard/glossary";
 import { cn } from "@/lib/utils";
 import { SourceMark, hasSourceMark } from "./source-mark";
-import { CERT_ORDER, certHeading, certWords, type CertSummary } from "./words";
+import { ABSENT, CERT_ORDER, certHeading, certWords, type CertSummary } from "./words";
 
 export type CertRowData = {
   scheme: string;
@@ -36,45 +37,6 @@ export function CertStateChip({ expiresOn, today, className }: { expiresOn: stri
   );
 }
 
-/**
- * The first certificate problem in a list or table row: glyph, words, "· 3 more certificates".
- * `valid` is a quiet check in ink-2, `none` the no-expiry line; with no certificates at all the row says "None found".
- */
-export function CertProblem({
-  state,
-  children,
-  more,
-  small,
-}: {
-  state: "expired" | "expiring" | "valid" | "none";
-  children: string;
-  more?: number;
-  small?: boolean;
-}) {
-  const px = small ? 12 : 14;
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      {state === "expired" ? (
-        <XCircle size={px} weight="fill" className="shrink-0 text-danger" aria-hidden />
-      ) : state === "expiring" ? (
-        <Clock size={px} weight="fill" className="shrink-0 text-caution-icon" aria-hidden />
-      ) : state === "valid" ? (
-        <CheckCircle size={px} weight="fill" className="shrink-0 text-ink-2" aria-hidden />
-      ) : (
-        <MinusCircle size={px} className="shrink-0 text-ink-3" aria-hidden />
-      )}
-      <span className={cn(small ? "text-xs" : "text-sm", state === "expired" && "font-medium text-danger", state === "expiring" && "font-medium text-caution", (state === "none" || state === "valid") && "text-ink-2")}>
-        {children}
-      </span>
-      {more ? (
-        <span className={cn("text-ink-3", small ? "text-xs" : "text-sm")}>
-          · {more} more {more === 1 ? "certificate" : "certificates"}
-        </span>
-      ) : null}
-    </span>
-  );
-}
-
 const PILL: Record<CertSummary["state"], string> = {
   expired: "bg-cert-expired-bg text-cert-expired-fg",
   expiring: "bg-cert-expiring-bg text-cert-expiring-fg",
@@ -83,11 +45,12 @@ const PILL: Record<CertSummary["state"], string> = {
 };
 
 /**
- * The certificates of a results-table row on one short line (Paper's compact certificate rows,
- * `11 · Record · v2 tiles + marks, compact certs`: a 24px mark, then the state as a pill): the
- * worst certificate's body and its state, then the other bodies' marks and "+N" for the rest.
- * A body with no approved mark is its name (the first) or part of the count (the others). Each
- * mark names its body and state on hover; a screen reader hears them all as one sentence.
+ * The one way a list or table says what a supplier's certificates are doing (the critique of
+ * 7 Oct 2026: one certificate was drawn four ways with three date forms). Results, the pane list,
+ * the phone list and Saved all call this: a 24px mark, then the state as a 6px pill in the fewest
+ * words (`certShort`), then the other bodies' marks and "+N" for the rest. The full date lives in
+ * the cell's title and its sr-only sentence, never in the pill. A body with no approved mark is
+ * its name (the first) or part of the count (the others).
  */
 export function CertSummaryCell({ cert }: { cert: CertSummary }) {
   const others = cert.others.filter((b) => hasSourceMark(b.code)).slice(0, 2);
@@ -103,7 +66,7 @@ export function CertSummaryCell({ cert }: { cert: CertSummary }) {
         ) : (
           <span className="inline-flex h-6 items-center rounded-md border border-line px-1.5 text-xs font-medium text-ink-2">{cert.first.scheme}</span>
         )}
-        <span className={cn("inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium", PILL[cert.state])}>{cert.short}</span>
+        <span className={cn("inline-flex whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-medium", PILL[cert.state])}>{cert.short}</span>
       </span>
       {others.length || rest ? (
         <span aria-hidden className="inline-flex items-center gap-1">
@@ -112,7 +75,12 @@ export function CertSummaryCell({ cert }: { cert: CertSummary }) {
               <SourceMark source={b.code} />
             </span>
           ))}
-          {rest ? <span className="pl-0.5 text-xs font-medium text-ink-3">+{rest}</span> : null}
+          {rest ? (
+            // Inside the cell's aria-hidden group (its sr-only sentence already counts them), so a title, not a focusable term.
+            <span title={define("more") ?? undefined} className="pl-0.5 text-xs font-medium text-ink-3">
+              +{rest}
+            </span>
+          ) : null}
         </span>
       ) : null}
     </span>
@@ -127,7 +95,7 @@ const COLS_DOC = "sm:grid-cols-[minmax(0,180px)_minmax(0,1fr)_minmax(0,250px)_mi
  * The certificates of a record: heading with the count and the problems, then the rows.
  * `compact` keeps the stacked layout at every width: a docked pane is 640 wide, too narrow for four columns.
  */
-export function CertTable({ certs, today, from, className, compact = false }: { certs: CertRowData[]; today: Date; from?: string; className?: string; compact?: boolean }) {
+export function CertTable({ certs, today, from, className, compact = false, level: H = "h3" }: { certs: CertRowData[]; today: Date; from?: string; className?: string; compact?: boolean; level?: "h2" | "h3" }) {
   const rows = certs
     .map((c) => ({ c, w: certWords(c.expiresOn, today, c.delistedOn) }))
     .sort((a, b) => CERT_ORDER[a.w.state] - CERT_ORDER[b.w.state]);
@@ -136,7 +104,7 @@ export function CertTable({ certs, today, from, className, compact = false }: { 
   return (
     <section aria-label="Certificates" className={cn("flex flex-col rounded-md border border-line", className)}>
       <header className="flex min-h-12 flex-wrap items-center justify-between gap-x-4 border-b border-line px-4 py-2">
-        <h3 className="text-base font-semibold text-ink">{certHeading(rows.map((r) => r.w.state))}</h3>
+        <H className="text-base font-semibold text-ink">{certHeading(rows.map((r) => r.w.state))}</H>
         {from ? <p className="text-xs text-ink-3">{from}</p> : null}
       </header>
       <div className={cn("hidden h-9 items-center gap-4 border-b border-line bg-subtle px-4 text-xs font-medium text-ink-3", !compact && "sm:grid", !compact && cols)}>
@@ -161,7 +129,7 @@ export function CertTable({ certs, today, from, className, compact = false }: { 
               <span className="text-md font-medium text-ink sm:text-base">{c.scheme}</span>
               {c.number ? <span className="font-mono text-sm text-ink-2">{c.number}</span> : null}
             </span>
-            <span className={cn("text-sm text-ink-2 sm:text-base", compact ? "col-start-1 row-start-2" : "max-sm:order-3")}>{c.issuer ?? <span className="text-ink-3">Issuer not published</span>}</span>
+            <span className={cn("text-sm text-ink-2 sm:text-base", compact ? "col-start-1 row-start-2" : "max-sm:order-3")}>{c.issuer ?? <Unpublished>{ABSENT.issuer}</Unpublished>}</span>
             <span className={cn("flex flex-col gap-0.5", compact ? "col-start-2 row-start-1 items-end justify-self-end" : "max-sm:order-1 sm:items-start")}>
               <CertChip state={w.state} className="whitespace-nowrap">
                 {w.label}
@@ -170,10 +138,10 @@ export function CertTable({ certs, today, from, className, compact = false }: { 
             </span>
             {c.documentUrl ? (
               <span className={cn("flex h-8 items-center gap-1.5", compact ? "col-start-2 row-start-2 justify-self-end" : "max-sm:order-4")}>
-                <FileText size={16} className="shrink-0 text-brand" aria-hidden />
+                <FileText size={16} className="shrink-0 text-brand-ink" aria-hidden />
                 <a
                   href={c.documentUrl}
-                  className="rounded-sm text-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand max-sm:after:absolute max-sm:after:inset-0"
+                  className="rounded-sm text-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus max-sm:after:absolute max-sm:after:inset-0"
                 >
                   {c.documentLabel ?? "Open certificate"}
                 </a>

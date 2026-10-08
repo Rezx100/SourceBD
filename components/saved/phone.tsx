@@ -10,18 +10,19 @@ import Link from "next/link";
 import { Button } from "@/components/kit";
 import { buttonClass } from "@/components/kit/button-class";
 import { useSelection } from "@/components/search/selection";
-import { SEND_RFQ_MAX } from "@/lib/dashboard/selection";
-import { formatCount } from "@/lib/dashboard/facts";
+import { SEND_RFQ_MAX, rfqHref } from "@/lib/dashboard/selection";
+import { formatCount, nameSecondLine, splitQualifier } from "@/lib/dashboard/facts";
+import { oneLine } from "@/components/kit/classes";
 import { cn } from "@/lib/utils";
 import { useRemove } from "./actions";
 import { CertCellView } from "./table";
-import { TOO_MANY, rfqHref, typeAndPlace, type SavedItem } from "./words";
+import { TOO_MANY, typeAndPlace, type SavedItem } from "./words";
 
 const noun = (n: number) => `${n} ${n === 1 ? "source" : "sources"}`;
 
-/** The line under a name: "Factory · Dhaka · 8 sources · 1,408 workers". */
+/** The line under a name: "Factory · Dhaka · 8 sources · 1,408 workers", led by the name's qualifier when it has one. */
 export function phoneLine(i: SavedItem): string {
-  return [typeAndPlace(i), noun(i.sources), i.workers ? `${i.workers} workers` : null].filter(Boolean).join(" · ");
+  return [nameSecondLine(i.name, typeAndPlace(i)), noun(i.sources), i.workers ? `${i.workers} workers` : null].filter(Boolean).join(" · ");
 }
 
 export function SavedPhoneList({ items }: { items: readonly SavedItem[] }) {
@@ -35,7 +36,7 @@ export function SavedPhoneList({ items }: { items: readonly SavedItem[] }) {
       {count > 0 ? (
         <div className="flex h-11 items-center justify-between border-y border-cert-valid-edge bg-subtle px-4">
           <p className="text-md font-semibold text-ink">{formatCount(count)} selected</p>
-          <button type="button" onClick={sel.clear} className="flex h-11 items-center rounded-sm text-md font-medium text-brand underline decoration-1 [text-underline-position:from-font] outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand">
+          <button type="button" onClick={sel.clear} className="flex h-11 items-center rounded-sm text-md font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
             Clear
           </button>
         </div>
@@ -49,14 +50,25 @@ export function SavedPhoneList({ items }: { items: readonly SavedItem[] }) {
                 <input type="checkbox" aria-label={`Select ${i.name}`} checked={on} disabled={!sel.interactive} onChange={() => sel.toggle(i.id)} className="peer sr-only" />
                 <span
                   aria-hidden
-                  className="flex size-[22px] items-center justify-center rounded-sm border-[1.5px] border-line-strong bg-surface text-transparent peer-checked:border-brand peer-checked:bg-brand peer-checked:text-surface peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand"
+                  className="flex size-[22px] items-center justify-center rounded-sm border-[1.5px] border-line-strong bg-surface text-transparent peer-checked:border-brand-ink peer-checked:bg-brand-ink peer-checked:text-surface peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus"
                 >
                   <Check size={16} />
                 </span>
               </label>
-              <Link href={i.pageHref} prefetch={false} className="flex min-h-11 min-w-0 flex-1 flex-col gap-1 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
-                <span className="text-md font-medium text-ink">{i.name}</span>
-                <span className="text-sm text-ink-3">{phoneLine(i)}</span>
+              <Link href={i.pageHref} prefetch={false} className="flex min-h-11 min-w-0 flex-1 flex-col gap-1 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+                <span data-name="" title={i.name} className={cn(oneLine, "text-md font-medium text-ink")}>
+                  {splitQualifier(i.name).qualifier ? (
+                    <>
+                      <span aria-hidden="true">{splitQualifier(i.name).base}</span>
+                      <span className="sr-only">{i.name}</span>
+                    </>
+                  ) : (
+                    i.name
+                  )}
+                </span>
+                <span data-name="" className={cn(oneLine, "text-sm text-ink-3")}>
+                  {phoneLine(i)}
+                </span>
                 <span className="text-sm">
                   <CertCellView cell={i.cert} />
                 </span>
@@ -86,7 +98,7 @@ export function SavedPhoneList({ items }: { items: readonly SavedItem[] }) {
             Remove
           </Button>
           {count <= SEND_RFQ_MAX ? (
-            <Link href={rfqHref(chosen.map((c) => c.id))} className={buttonClass({ kind: "primary", size: "touch", className: "min-w-0 flex-1 font-semibold" })}>
+            <Link href={rfqHref(chosen[0]!.listHref, chosen.map((c) => c.id))} className={buttonClass({ kind: "primary", size: "touch", className: "min-w-0 flex-1 font-semibold" })}>
               Send one RFQ to {count}
             </Link>
           ) : (

@@ -16,6 +16,7 @@ import {
   establishedYearOf,
   formatCount,
   formatDay,
+  parseDay,
   initials,
   placeLabel,
   RSC_STATUS_WORDS,
@@ -75,6 +76,26 @@ describe("certificate state (spec §5: valid · expiring ≤ 90 days · expired 
   it("never invents a scheme name", () => {
     assert.equal(certScheme("sa8000"), "SA8000");
     assert.equal(certScheme("bsci"), "BSCI");
+  });
+});
+
+describe("a day as a buyer types it (parseDay)", () => {
+  it("reads the app's own form, day-first numerals and ISO, and refuses what is not a day", () => {
+    for (const [text, iso] of [
+      ["15 Nov 2026", "2026-11-15"],
+      ["15 November 2026", "2026-11-15"],
+      ["1 sept 2027", "2027-09-01"],
+      ["15/11/2026", "2026-11-15"],
+      ["15.11.2026", "2026-11-15"],
+      ["15-11-2026", "2026-11-15"],
+      ["2026-11-15", "2026-11-15"],
+      [" 5 Jan 2027 ", "2027-01-05"],
+      ["31 Nov 2026", null],
+      ["11/15/2026", null],
+      ["15 Ju 2026", null],
+      ["soon", null],
+      ["", null],
+    ] as const) assert.equal(parseDay(text), iso, text);
   });
 });
 

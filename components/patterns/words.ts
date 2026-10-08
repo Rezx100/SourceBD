@@ -5,10 +5,33 @@ import { certState, daysUntil, formatDay, formatMonth } from "@/lib/dashboard/fa
 import type { CertState } from "@/components/kit";
 
 /**
+ * The one vocabulary for "nothing on file" (the critique of 7 Oct 2026, item 5: fourteen phrasings,
+ * and absence out-shouted presence). In a cell (Workers, Location, Certificates, Saved's column, a
+ * date) an unpublished figure is `dash`, drawn by the kit's `Unpublished` with the words in its
+ * title and for a screen reader. A sentence is allowed only in the record's empty sections and in
+ * Compliance. Two phrasings are kept on purpose and are not absences: "Not listed" is a positive
+ * finding on the sanctions lists, and "Not read just now" is a live check that failed.
+ */
+export const ABSENT = {
+  /** An en dash, `ink-subtle`, in a cell. */
+  dash: "–",
+  published: "Not published",
+  onFile: "Not on file",
+  certificates: "No certificates on file",
+  expiry: "No expiry on file",
+  issuer: "Issuer not published",
+  dated: "Not dated",
+  toCheck: "Nothing to check",
+  sources: "No source on file",
+  notSet: "Not set",
+  unread: "Not read just now",
+} as const;
+
+/**
  * A certificate's chip: its state and its words. Within 30 days it counts down in words
  * with the date ("Expires in 5 days · 8 Oct 2026"); from 31 to 90 days it shows the date
  * only ("Expires 19 Nov 2026"); further out "Valid until"; no date is not a pass and not a
- * problem ("No expiry date published").
+ * problem ("No expiry on file").
  */
 export function certWords(expiresOn: string | null | undefined, today: Date, delistedOn?: string | null): { state: CertState; label: string } {
   // A certificate its body stopped listing (spec-etl-freshness S2) is a problem whatever its date says.
@@ -16,7 +39,7 @@ export function certWords(expiresOn: string | null | undefined, today: Date, del
   const day = formatDay(expiresOn);
   const days = daysUntil(expiresOn, today);
   const s = certState(expiresOn, today);
-  if (s === "no-expiry" || day === null || days === null) return { state: "none", label: "No expiry date published" };
+  if (s === "no-expiry" || day === null || days === null) return { state: "none", label: ABSENT.expiry };
   if (s === "expired") return { state: "expired", label: `Expired ${day}` };
   if (s === "valid") return { state: "valid", label: `Valid until ${day}` };
   if (days === 0) return { state: "expiring", label: `Expires today · ${day}` };
@@ -77,7 +100,7 @@ export type CertLine = { state: "expired" | "expiring" | "valid" | "none"; text:
  * The one line a list row or table cell says about certificates: the worst one first
  * (expired, then expiring, then valid, then none dated), its scheme and the chip's own
  * words in lower case after it, and "· 3 more certificates" for the rest. `null` when the
- * supplier has no certificate at all, so the row says "None found" itself.
+ * supplier has no certificate at all, so the row draws the dash itself.
  */
 export function certLine(certs: readonly CertInput[], today: Date): CertLine | null {
   if (certs.length === 0) return null;
@@ -85,11 +108,15 @@ export function certLine(certs: readonly CertInput[], today: Date): CertLine | n
   return { state: ranked[0]!.w.state, text: lineWords(ranked[0]!), more: ranked.length - 1 };
 }
 
-type CertInput = { scheme: string; expiresOn: string | null; delistedOn?: string | null; markCode?: string };
-type Ranked = { c: CertInput; w: { state: CertLine["state"]; label: string }; t: number };
+export type CertInput = { scheme: string; expiresOn: string | null; delistedOn?: string | null; markCode?: string };
+type Ranked<T extends CertInput = CertInput> = { c: T; w: { state: CertLine["state"]; label: string }; t: number };
 
-/** Worst first: expired (the latest lapse leading), expiring (the soonest), valid, then none dated. */
-function rankCerts(certs: readonly CertInput[], today: Date): Ranked[] {
+/**
+ * Worst first: expired (the latest lapse leading), expiring (the soonest), valid, then none dated.
+ * The one order every list, cell, strip and "Needs a look" uses, so the worst lapse leads everywhere
+ * (critique of 8 Oct 2026, item 5: the strip and the rows swapped order between the pane and Saved).
+ */
+export function rankCerts<T extends CertInput>(certs: readonly T[], today: Date): Ranked<T>[] {
   return certs
     .map((c) => ({ c, w: certWords(c.expiresOn, today, c.delistedOn), t: c.expiresOn ? Date.parse(c.expiresOn) : 0 }))
     .sort((a, b) => CERT_ORDER[a.w.state] - CERT_ORDER[b.w.state] || (a.w.state === "expired" ? b.t - a.t : a.t - b.t) || a.c.scheme.localeCompare(b.c.scheme));
@@ -136,7 +163,7 @@ export function certSummary(certs: readonly CertInput[], today: Date): CertSumma
 
 /**
  * A certificate's state in the fewest words that are still a fact (Paper's compact certificate
- * rows: "Expired 29 Sep", "Valid to May 2027", "No expiry given"). The exact date stays in
+ * rows: "Expired 29 Sep", "Valid to May 2027", "No expiry on file"). The exact date stays in
  * `certWords`, which the cell's title and the record carry.
  */
 export function certShort(expiresOn: string | null | undefined, today: Date, delistedOn?: string | null): string {
@@ -145,7 +172,7 @@ export function certShort(expiresOn: string | null | undefined, today: Date, del
   const day = formatDay(expiresOn);
   const month = formatMonth(expiresOn);
   const days = daysUntil(expiresOn, today);
-  if (state === "none" || day === null || month === null || days === null) return "No expiry given";
+  if (state === "none" || day === null || month === null || days === null) return ABSENT.expiry;
   if (state === "valid") return `Valid to ${month}`;
   const dayMonth = day.slice(0, day.lastIndexOf(" "));
   // This year the day and month are the date; an older lapse is its month and year.

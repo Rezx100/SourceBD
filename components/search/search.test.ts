@@ -34,10 +34,12 @@ import { renderToStaticMarkup } from "react-dom/server";
 const { certLine, certShort, certSummary } = require("@/components/patterns") as typeof import("@/components/patterns");
 const { attentionOf, attentionWords, certName, loadNeedsAttention } = require("@/lib/dashboard/needs-attention") as typeof import("@/lib/dashboard/needs-attention");
 const { SearchLanding } = require("@/components/search/landing") as typeof import("@/components/search/landing");
+const { Flash } = require("@/components/search/flash") as typeof import("@/components/search/flash");
 const { pushRecent } = require("@/components/search/record-recent-search") as typeof import("@/components/search/record-recent-search");
 const { startsNavigation } = require("@/components/search/pending-nav") as typeof import("@/components/search/pending-nav");
 const { mapLimited } = require("@/lib/map-limited") as typeof import("@/lib/map-limited");
-const { ResultsBar, bulkRfqHref, TOO_MANY } = require("@/components/search/bulk-bar") as typeof import("@/components/search/bulk-bar");
+const { ResultsBar, TOO_MANY } = require("@/components/search/bulk-bar") as typeof import("@/components/search/bulk-bar");
+const { rfqHref } = require("@/lib/dashboard/selection") as typeof import("@/lib/dashboard/selection");
 const { SelectionContext, SelectionProvider } = require("@/components/search/selection") as typeof import("@/components/search/selection");
 const { ResultsTable } = require("@/components/search/table") as typeof import("@/components/search/table");
 const { PaneListToolbar, PhoneToolbar, ResultsToolbar, barMenus, resultsTitle } = require("@/components/search/toolbar") as typeof import("@/components/search/toolbar");
@@ -85,6 +87,7 @@ const row = (over: Partial<ResultRow> = {}): ResultRow => ({
   certCell: certSummary(ABONI_CERTS, TODAY),
   paneHref: "/app/discover?q=knit&record=aboni-knitwear",
   pageHref: "/app/suppliers/aboni-knitwear?back=%2Fapp%2Fdiscover%3Fq%3Dknit",
+  rfqHref: `/app/discover?q=knit&rfq=${over.supplierId ?? "id-aboni"}`,
   sanctioned: false,
   ...over,
 });
@@ -118,7 +121,7 @@ describe("the certificate line of a row", () => {
       others: [
         { code: "GOTS", scheme: "GOTS", words: "GOTS expires in 28 days · 31 Oct 2026" },
         { code: "OEKO_TEX", scheme: "OEKO-TEX Standard 100", words: "OEKO-TEX Standard 100 valid until 1 May 2027" },
-        { code: "SA8000", scheme: "SA8000", words: "SA8000 no expiry date published" },
+        { code: "SA8000", scheme: "SA8000", words: "SA8000 no expiry on file" },
       ],
       total: 4,
       words: "WRAP expired 29 Sep 2026 · 3 more certificates",
@@ -138,8 +141,8 @@ describe("the certificate line of a row", () => {
     assert.equal(certShort("2026-11-01", TODAY), "Expires in 29 days");
     assert.equal(certShort("2026-12-19", TODAY), "Expires 19 Dec");
     assert.equal(certShort("2027-05-12", TODAY), "Valid to May 2027");
-    assert.equal(certShort(null, TODAY), "No expiry given");
-    assert.equal(certShort("not a date", TODAY), "No expiry given");
+    assert.equal(certShort(null, TODAY), "No expiry on file");
+    assert.equal(certShort("not a date", TODAY), "No expiry on file");
     assert.equal(certShort("2027-05-12", TODAY, "2026-09-28"), "No longer listed", "its body stopped listing it, whatever its date says");
   });
 
@@ -195,10 +198,43 @@ describe("the results table", () => {
     assert.ok(out.includes('data-open="record"'));
     assert.ok(out.includes('aria-label="Select Aboni Knitwear Ltd."'), "the box names its row");
     assert.ok(out.includes('aria-label="Select all on this page"'));
+    // The region is not a tab stop (critique of 8 Oct 2026, item 7: two Tabs before the first name); the rows are.
+    assert.doesNotMatch(/<div role="region" aria-label="Results table"[^>]*>/.exec(out)?.[0] ?? "", /tabindex/);
+    assert.match(out, /<tr[^>]*data-row="result"[^>]*tabindex="0"/);
   });
 
-  it("the 100-character name is whole, and nothing is cut off", () => {
-    assert.ok(out.includes(ZAHEEN));
+  // Critique of 8 Oct 2026, item 2: from a row and from `r` the composer was a page jump that lost the search.
+  it("a row's Send RFQ and the hidden r target open the composer in the pane beside these results, never a page", () => {
+    assert.match(out, /<a data-action="rfq"[^>]*href="\/app\/discover\?q=knit&rfq=id-aboni"/);
+    assert.match(out, /<a data-action="rfq"[^>]*href="\/app\/discover\?q=knit&rfq=id-zaheen"/);
+    assert.doesNotMatch(out, /rfqs\/new/);
+    // The ⋯ menu's item is the same link (Radix draws the menu only once opened, so the source is read).
+    const table = readFileSync(path.join(process.cwd(), "components", "search", "table.tsx"), "utf8");
+    assert.match(table, /<MenuItem hint="R" href=\{r\.rfqHref\}>\s*Send RFQ/);
+    assert.doesNotMatch(table, /rfqs\/new/);
+    const sanctioned = plain(h(SelectionProvider, { pageIds: ["x"] }, h(ResultsTable, { rows: [row({ supplierId: "x", sanctioned: true, rfqHref: null })], sort: { key: "workers", dir: "asc" }, sortHrefs })));
+    assert.doesNotMatch(sanctioned, /data-action="rfq"/, "no RFQ door for a sanctioned supplier");
+  });
+
+  // Critique of 8 Oct 2026, item 4: the One-Line Name Rule. The 100-character name ran three lines
+  // (a 57px row among 40s); now the base name is one line, cut at the end, the whole name in `title`
+  // and the row's accessible name, and the qualifier is the line under.
+  it("the 100-character name is two lines: the base cut at the end with the whole name in title, the qualifier under; nothing else is cut", () => {
+    assert.ok(out.includes(ZAHEEN), "the whole name left the DOM");
+    assert.equal(out.match(new RegExp(`title="${ZAHEEN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`, "g"))?.length, 1, "one title with the whole name");
+    // Round 3, item 6: no aria-label on the row (it silenced the cells); the name link says the whole name.
+    assert.doesNotMatch(out, /<tr [^>]*aria-label=/, "an aria-label on a row replaces its cells for a screen reader");
+    assert.match(out, new RegExp(`<span aria-hidden="true">Zaheen Knitwears Limited</span><span class="sr-only">${ZAHEEN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}</span>`), "the name link does not carry the whole name");
+    const cell = /<td class="[^"]*max-w-0[^"]*">([\s\S]*?)<\/td>/g;
+    const zaheen = [...out.matchAll(cell)].map((m) => m[1]!).find((c) => c.includes("Zaheen"))!;
+    assert.ok(zaheen, "no name cell for Zaheen");
+    assert.match(zaheen, /data-name=""[^>]*><span aria-hidden="true">Zaheen Knitwears Limited</, "the link's visible words are the base name alone");
+    assert.match(zaheen, /<span data-name="" title="Shed - 3, 4, 5, 10, 11, 12, 13 · Building - Security, ETP and Fire Pump"[^>]*>Shed - 3/, "the qualifier leads the second line");
+    assert.equal(zaheen.match(/data-name=""/g)?.length, 2, "two lines, never a third");
+    for (const m of zaheen.matchAll(/data-name=""[^>]*class="([^"]*)"/g)) assert.match(m[1]!, /\boverflow-hidden\b.*\bwhitespace-nowrap\b.*\[text-overflow:ellipsis\]/, "the cut is the deliberate one-line cut");
+    const aboni = [...out.matchAll(cell)].map((m) => m[1]!).find((c) => c.includes("Aboni"))!;
+    assert.equal(aboni.match(/data-name=""/g)?.length, 1, "a name without a qualifier is one line, no empty second");
+    // The house rule stands: no truncate anywhere in the markup; the cut is CSS the guards can exempt by data-name.
     assert.ok(!/\btruncate\b|text-ellipsis|line-clamp/.test(out));
   });
 
@@ -217,7 +253,7 @@ describe("the results table", () => {
     // No mark stands without its name (`logos.lock.md` section 1): the cell's title is the line the
     // narrow list says, each further mark is titled with its own body and state, and a screen
     // reader hears every body as one sentence instead of the marks.
-    assert.match(aboni!, /^<span class="[^"]*" title="WRAP expired 29 Sep 2026 · 3 more certificates"><span class="sr-only">4 certificates: WRAP expired 29 Sep 2026; GOTS expires in 28 days · 31 Oct 2026; OEKO-TEX Standard 100 valid until 1 May 2027; SA8000 no expiry date published<\/span><span aria-hidden="true"/);
+    assert.match(aboni!, /^<span class="[^"]*" title="WRAP expired 29 Sep 2026 · 3 more certificates"><span class="sr-only">4 certificates: WRAP expired 29 Sep 2026; GOTS expires in 28 days · 31 Oct 2026; OEKO-TEX Standard 100 valid until 1 May 2027; SA8000 no expiry on file<\/span><span aria-hidden="true"/);
     assert.match(aboni!, /<span title="GOTS expires in 28 days · 31 Oct 2026"><span [^>]*><img src="\/icons\/sources\/cert\/gots\.png"/);
     assert.match(aboni!, /<span title="OEKO-TEX Standard 100 valid until 1 May 2027"><span [^>]*><img src="\/icons\/sources\/cert\/oeko-tex\.png"/);
     assert.match(sm!, /<span class="sr-only">WRAP valid until 8 Jan 2027<\/span>/, "one certificate is its own sentence");
@@ -226,7 +262,9 @@ describe("the results table", () => {
     assert.match(sm!, /wrap\.png"[^>]*\/><\/span><span class="[^"]*\bbg-sunken text-ink-2\b[^"]*">Valid to Jan 2027<\/span><\/span><\/span>$/);
     // The marks are 24 tall in a 40 row: the cell gives up 2px of padding above and below.
     assert.ok(cells.every((c) => c[1]!.split(" ").includes("py-1.5")));
-    assert.ok(out.includes("No certificates found"));
+    // Nothing on file is a dash in the cell, the words behind it for a screen reader.
+    assert.match(out, /<span class="text-sm text-ink-3" title="No certificates on file"><span aria-hidden="true">–<\/span><span class="sr-only">No certificates on file<\/span><\/span>/);
+    assert.ok(!out.includes("No certificates found"));
   });
 
   it("a sanctioned supplier says so in words on its row, and keeps its place", () => {
@@ -237,7 +275,7 @@ describe("the results table", () => {
 
   it("two worker figures stay two: the record's own and the other beside it, with its source in the title", () => {
     const two = plain(h(ResultsTable, { rows: [row({ workers: "3,314", workersSecond: { short: "3,166 RSC", words: "3,166 workers · RSC inspection" } })], sort: { key: "sources", dir: "desc" }, sortHrefs }));
-    assert.ok(two.includes("3,314") && two.includes("3,166 RSC") && two.includes('title="3,166 workers · RSC inspection"'));
+    assert.ok(two.includes("3,314") && /3,166 <span[^>]*data-define="RSC"[^>]*>RSC<\/span>/.test(two) && two.includes('title="3,166 workers · RSC inspection"'));
   });
 });
 
@@ -314,7 +352,8 @@ describe("the bar over the table", () => {
   it("Send RFQ names how many, and opens the composer on this search with every ticked supplier", () => {
     const two = bar(["id-aboni", "id-zaheen"]);
     assert.equal(hrefOf(two, "Send RFQ to 2 suppliers"), "/app/discover?q=knit&rfq=id-aboni,id-zaheen");
-    assert.equal(bulkRfqHref("/app/discover", ["a", "b"]), "/app/discover?rfq=a,b");
+    assert.equal(rfqHref("/app/discover", ["a", "b"]), "/app/discover?rfq=a,b");
+    assert.equal(rfqHref("/app/discover?q=knit", ["a"]), "/app/discover?q=knit&rfq=a");
     assert.ok(bar(["id-aboni"]).includes("1 supplier selected") && bar(["id-aboni"]).includes("Send RFQ to 1 supplier<"));
   });
 
@@ -359,6 +398,10 @@ describe("the bar over the results", () => {
 
   it("Save search, Sort, Filters and More are on the right; Filters names how many are on", () => {
     assert.ok(bar.includes("Save search") && bar.includes("Sort: most sources") && bar.includes(">MORE<"));
+    // Critique of 8 Oct 2026, item 7: eight controls on one line; under 1280 Save search folds into the ⋯ menu, which the pane bar gets too.
+    assert.match(bar, /<a[^>]*title="Save search"[^>]*class="[^"]*max-xl:hidden/);
+    assert.ok(plain(h(PaneListToolbar, { state, title: "t", hrefFor, filtersHref: "#", more: h("i", null, "MORE") })).includes(">MORE<"), "the pane bar has no ⋯ menu");
+    assert.match(readFileSync(path.join(process.cwd(), "components", "search", "more-menu.tsx"), "utf8"), /\{saveHref \? <MenuItem href=\{saveHref\}>Save search<\/MenuItem> : null\}/);
     assert.match(bar, /aria-label="Filters, 1 on"/, "the query counts as the one filter that is on");
     assert.match(plain(h(ResultsToolbar, { state: EMPTY_STATE, title: "t", hrefFor, filtersHref: "#", filtersOpen: false, saveHref: "#", more: null })), /aria-label="Filters"/);
     const on = plain(h(ResultsToolbar, { state: { ...state, hs: ["6105"] }, title: "t", hrefFor, filtersHref: "#", filtersOpen: false, saveHref: "#", more: null }));
@@ -373,7 +416,8 @@ describe("the bar over the results", () => {
 
   it("beside a pane the bar is the title with Filters and Sort", () => {
     const narrow = plain(h(PaneListToolbar, { state: { ...state, cert: [{ kind: "wrap" as const, state: "valid" as const }] }, title: "knit · 4,645 suppliers", hrefFor, filtersHref: "#" }));
-    assert.ok(narrow.includes("Filters · 2 on") && narrow.includes("Sort: most sources"));
+    // Beside a pane the filters are the "+" icon with the count, named in words (keys.test.ts covers the bar).
+    assert.ok(narrow.includes('aria-label="Add filter · 2 on"') && narrow.includes("Sort: most sources"));
   });
 
   it("a phone's bar is a 48-tall field with its ×, the count, and two 44-tall halves", () => {
@@ -386,6 +430,8 @@ describe("the bar over the results", () => {
     assert.ok(phone.includes("4,645 suppliers") && phone.includes("Sort: most sources") && phone.includes("Hiding sanctioned suppliers"));
     assert.match(phone, /h-input-touch/);
     assert.match(phone, /h-touch/);
+    // Critique of 8 Oct 2026, item 5: two h1 on the results page, the phone bar's hidden title and the desktop title.
+    assert.doesNotMatch(phone, /<h1\b/, "the phone bar's title is a second h1 on the page");
   });
 
   it("every bar is one line: nothing in it may wrap, however many filters are on", () => {
@@ -394,6 +440,7 @@ describe("the bar over the results", () => {
     const full = plain(h(ResultsToolbar, { ...props, filtersOpen: false, saveHref: "#", more: null }));
     for (const out of [full, plain(h(PaneListToolbar, props)), plain(h(PhoneToolbar, { ...props, count: "t" }))]) assert.ok(!out.includes("flex-wrap"), "a bar that wraps breaks into two lines");
     assert.match(full, /overflow-x-auto/, "the filters scroll sideways when they outgrow the bar");
+    assert.equal(((full + plain(h(PhoneToolbar, { ...props, count: "t" }))).match(/<h1\b/g) ?? []).length, 1, "one h1 per results page: the desktop bar's");
     assert.match(full, /sr-only">Save search</, "Save search keeps its name when it is drawn as its icon");
   });
 });
@@ -410,7 +457,13 @@ describe("the narrow list and the phone's rows", () => {
     const out = plain(h(PaneRows, { rows, currentSlug: "aboni-knitwear" }));
     assert.ok(out.includes("Aboni Knitwear Ltd.") && out.includes("11 sources") && out.includes("Factory · Dhaka"));
     assert.match(out, /aria-current="true"[^>]*href="\/app\/discover\?q=knit&record=aboni-knitwear"|href="\/app\/discover\?q=knit&record=aboni-knitwear"[^>]*aria-current="true"/);
-    assert.ok(out.includes(ZAHEEN) && out.includes("No certificates found"));
+    assert.ok(out.includes(ZAHEEN) && out.includes("No certificates on file"));
+    // The pane list keeps the One-Line Name Rule too: base name on one line, the qualifier leading the line under.
+    // The whole name stays in the DOM (sr-only beside the hidden base), never as an aria-label that would silence the sources and certificate words.
+    assert.match(out, new RegExp(`<span aria-hidden="true">Zaheen Knitwears Limited</span><span class="sr-only">${ZAHEEN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}</span>`));
+    assert.doesNotMatch(out, /<a aria-label=/, "an aria-label on a row hides its sources and certificate words from a screen reader");
+    assert.match(out, /data-name="" title="Aboni Knitwear Ltd\."[^>]*>Aboni Knitwear Ltd\.</, "a name without a qualifier is said once");
+    assert.match(out, /data-name="" title="Shed - 3, 4, 5, 10, 11, 12, 13 · Building - Security, ETP and Fire Pump · Factory · Dhaka"/);
   });
 
   it("on a phone a row opens the record as a page, and the way back is in the address", () => {
@@ -490,19 +543,92 @@ describe("needs attention", () => {
   });
 });
 
+/** The landing with its Suspense resolved: `renderToStaticMarkup` stops at the fallback. */
+async function streamedLanding(props: Parameters<typeof SearchLanding>[0]): Promise<string> {
+  const { prerenderToNodeStream } = await import("react-dom/static");
+  const { prelude } = await prerenderToNodeStream(h(SearchLanding, props));
+  let html = "";
+  for await (const chunk of prelude) html += chunk.toString();
+  return html.replace(/<!-- -->/g, "");
+}
+
 describe("the landing", () => {
   const attention = attentionOf({ total: 1, rows: [{ kind: "wrap", certificate_no: "7865", expires_on: "2026-09-29", supplier: { id: "a", slug: "aboni", company_name: "Aboni Knitwear Ltd." } }] }, { total: 7, rows: [] }, TODAY)!;
-  const out = plain(h(SearchLanding, { published: 10268, attention, counts: Promise.resolve({}), saved: Promise.resolve([]) }));
+  const out = plain(h(SearchLanding, { published: 10268, attention, counts: { "gots-knit": 373, sweaters: null }, saved: Promise.resolve([]) }));
 
   it("is search first: one heading, the published count, the filter menus, the common searches, then the work queue", () => {
     assert.equal(out.match(/<h1\b/g)?.length, 1);
-    assert.ok(out.includes("10,268 suppliers") && out.includes("every fact from a named source"));
+    assert.ok(out.includes("10,268 suppliers"));
+    // The marketing line beside the h1 went (round 3, item 4): the page says what it holds, not a slogan.
+    assert.ok(!out.includes("every fact from a named source"));
     assert.ok(out.includes("Products exported") && out.includes("Company type") && out.includes("Hiding sanctioned suppliers"));
-    assert.match(out, /aria-label="Common searches"/);
+    assert.match(out, /aria-labelledby="common-searches"/);
     assert.ok(out.includes("GOTS-certified knitwear"));
     assert.ok(out.indexOf('role="search"') < out.indexOf("Needs attention · 8"), "the field comes before the work queue");
+    // A card on the landing's surface ground takes a tonal step, never a border (critique of 8 Oct 2026, item 7).
+    assert.match(out, /<section aria-label="Needs attention" class="[^"]*bg-subtle/);
+    assert.doesNotMatch(/<section aria-label="Needs attention" class="[^"]*"/.exec(out)?.[0] ?? "", /border-line/);
+    assert.doesNotMatch(/<ul class="[^"]*">/.exec(/aria-labelledby="common-searches"[\s\S]*?<ul[^>]*>/.exec(out)?.[0] ?? "")?.[0] ?? "", /border-line/);
     assert.ok(out.includes("See all 8 certificates"));
     assert.match(out, /href="\/app\/rfqs\/new\?supplier=a"[^>]*>Ask for the new certificate/);
+  });
+
+  // Critique of 7 Oct 2026, item 6 (no skeletons, 6px, a heading), and of 8 Oct round 3, item 4: the
+  // common searches are the first screen's body, two lines each, with the work queue under them.
+  it("draws the common searches as the first screen's body: two lines each, the count read in time, no skeleton", () => {
+    const row = /<nav aria-labelledby="common-searches"[\s\S]*?<\/nav>/.exec(out)?.[0] ?? "";
+    assert.ok(row, "no common searches");
+    assert.doesNotMatch(row, /skel|Skeleton|animate-pulse/);
+    assert.match(row, /<h2 id="common-searches" class="[^"]*">Common searches<\/h2>/);
+    assert.match(row, /GOTS-certified knitwear<\/span><span class="text-sm text-ink-3">373 suppliers<\/span>/, "a count read in time is the cell's second line");
+    assert.doesNotMatch(row, /rounded-full/);
+    assert.equal((row.match(/rounded-md bg-subtle/g) ?? []).length, 9, "one tonal 6px cell per common search");
+    // A late or unread count is a cell with no figure, never "0" and never a skeleton.
+    assert.match(row, />Sweaters and cardigans<\/span><\/a>/);
+    assert.ok(out.indexOf('aria-labelledby="common-searches"') < out.indexOf('aria-label="Needs attention"'), "the work queue comes before the common searches");
+    assert.match(out, /<section class="[^"]*max-w-pane[^"]*" aria-label="Needs attention">/, "the attention card is not at the pane's measure");
+  });
+
+  it("the saved column is always drawn: its heading at once, and two sentences when nothing is saved", async () => {
+    const streamed = await streamedLanding({ published: 1, attention, counts: {}, saved: Promise.resolve([]) });
+    assert.match(streamed, /<h2 id="saved-searches"[^>]*>Saved searches<\/h2>/);
+    assert.ok(streamed.includes("No saved searches yet. Save one from the results bar."));
+    assert.ok(!streamed.includes("All saved searches"), "a link to an empty list");
+    // Before the read answers, the column's heading holds its place (the fallback is not null).
+    assert.match(out, /<h2 id="saved-searches"[^>]*>Saved searches<\/h2>/);
+    const failed = await streamedLanding({ published: 1, attention, counts: {}, saved: Promise.resolve(null) });
+    assert.ok(failed.includes("Your saved searches could not be read just now."));
+  });
+
+  it("hides sanctioned suppliers with the same quiet toggle the results bar has, at the bar's end, with Show them", () => {
+    // The bar ends the search section now that the common searches lead the body (round 3, item 4).
+    const bar = /<div class="flex flex-wrap items-center gap-2 max-sm:hidden">[\s\S]*?<\/div><\/section>/.exec(out)?.[0] ?? "";
+    assert.ok(bar, "no filter bar");
+    assert.match(bar, /<span class="sm:ml-auto"><span class="[^"]*">Hiding sanctioned suppliers<a [^>]*href="\/app\/discover\?sanctioned=1"[^>]*>Show them<\/a><\/span><\/span><\/div><\/section>$/);
+    assert.ok(!out.includes("Hiding sanctioned suppliers</span></div>"), "a sentence with no control");
+  });
+
+  it("the way to the other certificates is in the card's foot at every width, and one supplier is one row with one Ask", () => {
+    const foot = /<div class="border-t border-line"><a [^>]*href="\/app\/compliance"([^>]*)>([^<]*)</.exec(out);
+    assert.ok(foot, "no footer link");
+    assert.ok(!foot[1]!.includes("sm:hidden"), "the footer is phone-only");
+    assert.equal(foot[2], "See all 8 certificates");
+    assert.ok(!out.includes(">Open Compliance<"), "a second way at the top right beside the footer");
+    // One supplier with two certificates is one row: the worst leads, the rest are counted, one Ask.
+    const two = attentionOf(
+      { total: 2, rows: [{ kind: "wrap", certificate_no: "7865", expires_on: "2026-09-29", supplier: { id: "a", slug: "aboni", company_name: "Aboni Knitwear Ltd." } }] },
+      { total: 3, rows: [{ kind: "gots", certificate_no: "GOTS-1", expires_on: "2026-10-20", supplier: { id: "a", slug: "aboni", company_name: "Aboni Knitwear Ltd." } }, { kind: "gots", certificate_no: "GOTS-2", expires_on: "2026-10-25", supplier: { id: "b", slug: "b", company_name: "B Ltd" } }] },
+      TODAY,
+      3,
+      { perSupplier: true, asked: new Map([["a", "2026-10-03T09:00:00Z"]]) },
+    )!;
+    assert.equal(two.total, 5);
+    assert.deepEqual(two.rows.map((r) => [r.supplier, r.more, r.note ?? null]), [["Aboni Knitwear Ltd.", 1, "asked 3 Oct 2026"], ["B Ltd", 0, null]]);
+    assert.match(two.rows[0]!.what, /^WRAP 7865 expired 29 Sep 2026\. · 1 more certificate$/);
+    assert.equal(two.rows[0]!.asked, "2026-10-03T09:00:00Z");
+    const drawn = plain(h(SearchLanding, { published: 1, attention: two, counts: {}, saved: Promise.resolve([]) }));
+    assert.equal((drawn.match(/Ask for the/g) ?? []).length, 2, "one Ask per supplier");
+    assert.ok(drawn.includes("asked 3 Oct 2026"));
   });
 
   it("lists no supplier before the buyer searches, and draws its one field at every width, the one Ctrl K reaches", () => {
@@ -554,7 +680,7 @@ describe("the landing", () => {
   });
 
   it("an unread certificate check says so with a way to try again; it does not say nothing needs attention", () => {
-    const failed = plain(h(SearchLanding, { published: null, attention: null, counts: Promise.resolve({}), saved: Promise.resolve(null) }));
+    const failed = plain(h(SearchLanding, { published: null, attention: null, counts: {}, saved: Promise.resolve(null) }));
     assert.ok(failed.includes("We couldn't load the certificate checks.") && failed.includes("Try again"));
     assert.ok(!failed.includes("Nothing needs attention"));
     assert.ok(failed.includes("Every published supplier"));
@@ -708,5 +834,53 @@ describe("the search components' rules", () => {
     for (const [file, src] of sources) assert.ok(!/SupplierResultCard|view=cards|supplier-result-card/.test(src), `${file}: cards are dropped`);
     const page = readFileSync(path.join(process.cwd(), "app", "(app)", "app", "discover", "page.tsx"), "utf8");
     assert.ok(!/SupplierResultCard|supplier-result-card/.test(page));
+  });
+});
+
+describe("the pane list is a ledger too (critique of 8 Oct 2026, round 3, item 2)", () => {
+  it("each pane row has its tick, the row's keys and the hidden r and s targets; the name still opens the record", () => {
+    const out = plain(h(SelectionProvider, { pageIds: rows.map((r) => r.supplierId) }, h(PaneRows, { rows, currentSlug: "aboni-knitwear" })));
+    assert.match(out, /<ul data-follow="record">/, "the arrows do not follow the open record");
+    assert.equal((out.match(/<li data-row="result" tabindex="0"/g) ?? []).length, rows.length, "a pane row is not a keyboard row");
+    assert.match(out, /aria-label="Select Aboni Knitwear Ltd\."/);
+    assert.match(out, /data-action="rfq"[^>]*href="\/app\/discover\?q=knit&(?:amp;)?rfq=id-aboni"|href="\/app\/discover\?q=knit&(?:amp;)?rfq=id-aboni"[^>]*data-action="rfq"/);
+    assert.match(out, /data-action="save"/);
+    assert.match(out, /aria-label="More actions for Aboni Knitwear Ltd\."/);
+    assert.match(out, /<a [^>]*data-open="record"[^>]*aria-current="true"|<a [^>]*aria-current="true"[^>]*data-open="record"/);
+  });
+
+  it("beside a pane the results bar still draws, with the pane's toolbar as its idle face", () => {
+    const page = readFileSync(path.join(process.cwd(), "app", "(app)", "app", "discover", "page.tsx"), "utf8");
+    assert.doesNotMatch(page, /paneOpen \? toolbar :/, "the bulk bar is not drawn beside a pane");
+    assert.match(page, /<ResultsBar toolbar=\{toolbar\}/);
+    const toolbar = h(PaneListToolbar, { state: { ...EMPTY_STATE, q: "knit" }, title: "knit", hrefFor: () => "/app/discover?q=knit", filtersHref: "/app/discover?q=knit&filters=1" });
+    const out = plain(h(SelectionProvider, { pageIds: ["a"] }, h(ResultsBar, { toolbar, exportHref: "/x", searchHref: "/app/discover?q=knit", pageSize: 1 })));
+    assert.match(out, /filters=1/, "the pane toolbar is not the bar's face");
+  });
+});
+
+describe("the help layer in the results (critique of 8 Oct 2026, round 3, item 5)", () => {
+  it("the Workers cell's second figure names its source as a defined term, and Sources says what it counts", () => {
+    const out = plain(h(SelectionProvider, { pageIds: ["x"] }, h(ResultsTable, { rows: [row({ supplierId: "x", workersSecond: { short: "793 RSC", words: "793 workers by RSC's count" } })], sort: { key: "sources", dir: "desc" }, sortHrefs })));
+    assert.match(out, /793 <span tabindex="0" data-define="RSC"[^>]*>RSC<\/span>/);
+    assert.match(out, /<th [^>]*title="Registers and certifiers that filed something on this company"/);
+  });
+});
+
+describe("Sam's list: the keyboard and the screen reader (critique of 8 Oct 2026, round 3, item 6)", () => {
+  it("a confirmation is a polite live region, first in the results' list region", () => {
+    const out = plain(h(Flash, { text: "RFQ sent", link: { href: "/app/rfqs/x", label: "Open the RFQ" } }));
+    assert.match(out, /^<div role="status" aria-live="polite"/);
+    const page = readFileSync(path.join(process.cwd(), "app", "(app)", "app", "discover", "page.tsx"), "utf8");
+    const list = page.slice(page.indexOf("const list = ("));
+    assert.ok(list.indexOf("<Flash") > -1 && list.indexOf("<Flash") < list.indexOf("<RecordRecentSearch"), "the Flash is not first in the list region");
+  });
+
+  it("a short name's link is the name itself; the composer's busy Send is aria-busy, never disabled", () => {
+    const out = plain(h(SelectionProvider, { pageIds: ["x"] }, h(ResultsTable, { rows: [row({ supplierId: "x" })], sort: { key: "sources", dir: "desc" }, sortHrefs })));
+    assert.match(out, /data-open="record"[^>]*>Aboni Knitwear Ltd\./);
+    assert.doesNotMatch(out, /<tr [^>]*aria-label=/);
+    const composer = readFileSync(path.join(process.cwd(), "components", "rfqs", "composer.tsx"), "utf8");
+    assert.match(composer, /loadingLabel="Sending" aria-busy=\{busy !== null \|\| undefined\}/);
   });
 });

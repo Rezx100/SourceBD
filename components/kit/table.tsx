@@ -92,7 +92,7 @@ export function Tr({ selected, className, ...rest }: ComponentProps<"tr"> & { se
       aria-selected={selected || undefined}
       className={cn(
         "group/row h-row [&>td]:border-b [&>td]:border-line",
-        selected ? "bg-brand-tint [&>td:first-child]:[box-shadow:inset_2px_0_0_theme(colors.brand)]" : "hover:bg-brand-wash",
+        selected ? "bg-brand-tint [&>td:first-child]:[box-shadow:inset_2px_0_0_theme(colors.brand-ink)]" : "hover:bg-brand-wash",
         className,
       )}
       {...rest}
@@ -107,7 +107,7 @@ export function Td({ align = "left", className, ...rest }: Omit<ComponentProps<"
 /** The name in a row: 14/500 ink, underlined while the row is hovered or focused. */
 export const rowLinkClass =
   "rounded-sm font-medium text-ink decoration-1 [text-underline-position:from-font] outline-none group-hover/row:underline hover:underline focus-visible:underline " +
-  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 /** The tick column: 40 wide, the box centred. Name the row: `label="Select Aboni Knitwear Ltd."`. */
 export function SelectCell({ label, mixed, header, ...rest }: Omit<ComponentProps<"input">, "type" | "size"> & { label: string; mixed?: boolean; header?: boolean }) {
@@ -123,9 +123,19 @@ export function SelectCell({ label, mixed, header, ...rest }: Omit<ComponentProp
   );
 }
 
-/** "Not published" and "None found": 13 ink-3, never a dash and never a blank. */
-export function Unpublished({ children = "Not published" }: { children?: ReactNode }) {
-  return <span className="text-sm text-ink-3">{children}</span>;
+/**
+ * Nothing on file, in a cell: an en dash in ink-subtle, never a blank, with the words ("Not
+ * published", "No certificates on file") in the title and for a screen reader. Absence must not
+ * out-shout presence in a grid (the critique of 7 Oct 2026, item 5); the words themselves live in
+ * `components/patterns/words.ts` (`ABSENT`).
+ */
+export function Unpublished({ children = "Not published" }: { children?: string }) {
+  return (
+    <span className="text-sm text-ink-3" title={children}>
+      <span aria-hidden="true">–</span>
+      <span className="sr-only">{children}</span>
+    </span>
+  );
 }
 
 /** "Showing 1–25 of 4,645 suppliers · Page 1 of 186 · Previous · Next". `perPage` is the page's own select. */

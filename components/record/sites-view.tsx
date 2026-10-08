@@ -15,7 +15,7 @@ import { siteSummary, type SiteCard } from "./words";
 
 const SITE_PARAM = "site";
 
-const segment = "min-h-11 px-3.5 text-sm font-medium outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand sm:min-h-9";
+const segment = "min-h-11 px-3.5 text-sm font-medium outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus sm:min-h-9";
 
 export function SitesView({
   cards,
@@ -24,8 +24,11 @@ export function SitesView({
   initial = null,
   wide,
   mapKey,
+  level: H = "h3",
 }: {
   cards: SiteCard[];
+  /** The heading's level: h2 on the record's page, where the name is the h1. */
+  level?: "h2" | "h3";
   slug: string;
   /** The Sites tab's own link; a card adds `site=N` to it, so the list works with no script. (A string: a function cannot cross from the server page.) */
   baseHref: string;
@@ -79,7 +82,7 @@ export function SitesView({
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <div className="flex min-w-0 flex-wrap items-baseline gap-x-3">
-          <h3 className="text-lg font-semibold text-ink">Sites · {cards.length}</h3>
+          <H className="text-lg font-semibold text-ink">Sites · {cards.length}</H>
           <p className="text-sm text-ink-2">{siteSummary(cards)}</p>
         </div>
         {mapped ? (
@@ -102,9 +105,9 @@ export function SitesView({
               role="switch"
               aria-checked={nearby.enabled}
               onClick={nearby.toggle}
-              className="flex min-h-11 items-center gap-2.5 rounded-sm text-sm text-ink outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:min-h-9"
+              className="flex min-h-11 items-center gap-2.5 rounded-sm text-sm text-ink outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:min-h-9"
             >
-              <span aria-hidden className={cn("flex h-5 w-9 shrink-0 items-center rounded-full p-0.5 transition-colors", nearby.enabled ? "bg-brand" : "bg-line-strong")}>
+              <span aria-hidden className={cn("flex h-5 w-9 shrink-0 items-center rounded-full p-0.5 transition-colors", nearby.enabled ? "bg-brand-ink" : "bg-line-strong")}>
                 <span className={cn("size-4 rounded-full bg-surface transition-transform", nearby.enabled && "translate-x-4")} />
               </span>
               {nearby.pending ? "Loading nearby suppliers" : "Show nearby suppliers"}

@@ -48,7 +48,7 @@ const FAQ = [
     a: (
       <>
         In our Supabase database, AWS region us-west-1, in the United States. See{" "}
-        <Link href="/security" prefetch={false} className="font-medium text-brand underline decoration-1 [text-underline-position:from-font]">
+        <Link href="/security" prefetch={false} className="font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]">
           Security
         </Link>
         .
@@ -167,7 +167,7 @@ export function Pricing({ facts }: { facts: SiteFacts }) {
 
       <Section label="02 · Questions" headline="Questions buyers ask." tone="subtle">
         <Faq items={FAQ} />
-        <Link href="/contact" prefetch={false} className="w-fit text-md font-medium text-brand underline decoration-1 [text-underline-position:from-font]">
+        <Link href="/contact" prefetch={false} className="w-fit text-md font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]">
           Contact sales
         </Link>
       </Section>

@@ -11,6 +11,8 @@ import { notFound, redirect } from "next/navigation";
 import { LineView } from "@/components/record";
 import { heading4 } from "@/lib/dashboard/hs-photos";
 import { LinesUnreadable, ProfileReadTimeout, loadRecordLine } from "@/lib/dashboard/load-record";
+import { backToList, listWithRecord } from "@/lib/dashboard/nav";
+import { rfqHref } from "@/lib/dashboard/selection";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -25,9 +27,12 @@ export default async function ProductLinePage({
   const { slug, hs } = await params;
   // A line is opened from the record's Products tab; opened from its expanded list
   // (`?lines=all`), Back returns to that list.
-  const linesRaw = (await searchParams).lines;
+  const sp = await searchParams;
+  const linesRaw = sp.lines;
   const allLines = (Array.isArray(linesRaw) ? linesRaw[0] : linesRaw) === "all";
-  const recordHref = `/app/suppliers/${slug}?tab=products${allLines ? "&lines=all" : ""}`;
+  // The list the record was expanded from rides in and out of the line, and Send opens the composer beside it.
+  const back = backToList(sp.back);
+  const recordHref = `/app/suppliers/${slug}?tab=products${allLines ? "&lines=all" : ""}${back ? `&back=${encodeURIComponent(back)}` : ""}`;
   // No `decodeURIComponent` here. Next already decodes dynamic segments, so a
   // second pass threw `URIError` on a segment containing a bare `%`
   // (`/lines/%`) — an unhandled throw inside a server component, which is a 500
@@ -43,7 +48,16 @@ export default async function ProductLinePage({
   const supabase = await createSupabaseServerClient();
   let model: Awaited<ReturnType<typeof loadRecordLine>>;
   try {
-    model = await loadRecordLine(supabase, slug, code, new Date(), { backHref: recordHref });
+    model = await loadRecordLine(supabase, slug, code, new Date(), {
+      backHref: recordHref,
+      // Beside the list with the line; else the composer page, whose Close comes back to this line.
+      rfqHref: (id, line) => {
+        const list = back ? listWithRecord(back, slug) : null;
+        if (list) return `${rfqHref(list, [id])}&hs_line=${line}`;
+        const self = `/app/suppliers/${slug}/lines/${line}${allLines || back ? `?${new URLSearchParams([...(allLines ? [["lines", "all"]] : []), ...(back ? [["back", back]] : [])])}` : ""}`;
+        return `/app/rfqs/new?supplier=${id}&hs=${line}&back=${encodeURIComponent(self)}`;
+      },
+    });
   } catch (err) {
     // A slow read sends the reader to the record, which has its own retry
     // state — never a 404, which would say the line does not exist.

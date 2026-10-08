@@ -118,10 +118,10 @@ describe("the one count", () => {
   });
 
   it("the badge is the same total in words: '4 to check', nothing for none or unread, never '0 to check'", () => {
-    assert.deepEqual(complianceBadge(attention(EXPIRED, EXPIRING, NOW)), { text: "4 to check", tone: "danger" });
+    assert.deepEqual(complianceBadge(attention(EXPIRED, EXPIRING, NOW)), { text: "4 to check", tone: "caution" });
     assert.equal(complianceBadge(attention(list([]), list([]), NOW)), null);
     assert.equal(complianceBadge(null), null);
-    assert.deepEqual(complianceBadge({ total: 1234 }), { text: "1,234 to check", tone: "danger" });
+    assert.deepEqual(complianceBadge({ total: 1234 }), { text: "1,234 to check", tone: "caution" });
   });
 
   it("the hub's caption names how many are saved, or says 'your saved suppliers' when that was not read", () => {
@@ -324,7 +324,7 @@ describe("the reads and the layout's badge", () => {
 
   it("the badge is the hub's count from the same two reads", async () => {
     given({ compliance_expired_certs: { data: EXPIRED, error: null }, compliance_expiring_certs: { data: EXPIRING, error: null } });
-    assert.deepEqual(await loadComplianceBadge(client, NOW), { text: "4 to check", tone: "danger" });
+    assert.deepEqual(await loadComplianceBadge(client, NOW), { text: "4 to check", tone: "caution" });
     assert.equal(attention(EXPIRED, EXPIRING, NOW)!.total, 4, "the hub's heading reads the same total");
   });
 
@@ -359,7 +359,7 @@ describe("/app/compliance", () => {
     assert.match(t, /Expires within 30 days · 1/);
     assert.match(t, /Coming up in 31 to 90 days · 2/);
     assert.ok(t.indexOf("Expired · 2") < t.indexOf("Expires within 30 days · 1") && t.indexOf("Expires within 30 days · 1") < t.indexOf("Coming up in 31 to 90 days · 2"));
-    assert.deepEqual(await loadComplianceBadge(client), { text: "5 to check", tone: "danger" });
+    assert.deepEqual(await loadComplianceBadge(client), { text: "5 to check", tone: "caution" });
   });
 
   it("nothing lapses within 30 days: no empty '0' group is drawn", async () => {
@@ -380,7 +380,7 @@ describe("/app/compliance", () => {
     assert.match(text(out), /Forced labour: UFLPA checks/);
     assert.match(text(out), /Modern slavery statement/);
     assert.match(text(out), /See every expiry date/);
-    assert.deepEqual(await loadComplianceBadge(client), { text: `${attention(EXPIRED, EXPIRING, new Date())!.total} to check`, tone: "danger" });
+    assert.deepEqual(await loadComplianceBadge(client), { text: `${attention(EXPIRED, EXPIRING, new Date())!.total} to check`, tone: "caution" });
     assert.match(out, />Download CSV</);
     assert.doesNotMatch(out, /Download evidence|sanctions lists|Continue the draft/);
   });

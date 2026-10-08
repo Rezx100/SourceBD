@@ -1295,13 +1295,18 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
     pendingMarks(value, m ? [m] : [], checked);
   const pendingMarks = (value: string | null, ms: SourceMarkModel[], checked = "registers checked"): Pick<FactRow, "value" | "marks" | "pendingSource" | "checked"> =>
     value === null ? { value, marks: [], checked } : ms.length > 0 ? { value, marks: ms } : { value, marks: [], pendingSource: true };
+  // Which register files which figure is fixed in the ETL (`etl/core/projection.py`, COLUMN_SOURCES:
+  // sewing machines from BGMEA and BKMEA, pcs/day from BKMEA, dozen/year from BGMEA; BGMEA's member
+  // page is the one filing "Date of Establishment"). A figure is marked with the registers of its
+  // set that this record itself carries; a record holding neither keeps the pending mark.
+  const filedBy = (...codes: string[]): SourceMarkModel[] => codes.map((c) => ownMark(p, c)).filter((m): m is SourceMarkModel => m !== null);
 
   const facts: FactRow[] = [
     { label: "Registered name", ...pending(s.company_name) },
     { label: "Type", ...pending([entityLabel(s.entity_type), s.factory_types?.length ? s.factory_types.join(", ") : null].filter(Boolean).join(" · ")) },
     { label: "Parent group", ...pending(s.parent_group_name, null, "registers and RSC checked") },
     { label: "Factory address", ...pendingMarks(addr.text, addr.marks) },
-    { label: "Established", ...pending(establishedYearOf(s.established_date)) },
+    { label: "Established", ...pendingMarks(establishedYearOf(s.established_date), filedBy("BGMEA")) },
     {
       label: "Workers",
       ...pending(w.value !== null ? formatCount(w.value) : null, workersMark, "registers and RSC checked"),
@@ -1311,8 +1316,8 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
     // total, and withheld when the two halves do not add up to the figure shown
     // (within 10%) — the registers file the total and the split independently.
     ...(workforceSplit(w, s) ? [{ label: "Women · men", ...pending(workforceSplit(w, s)) }] : []),
-    { label: "Sewing machines", ...pending(formatCount(s.machines_sewing)) },
-    { label: "Capacity, as filed", ...pending(capacity) },
+    { label: "Sewing machines", ...pendingMarks(formatCount(s.machines_sewing), filedBy("BGMEA", "BKMEA")) },
+    { label: "Capacity, as filed", ...pendingMarks(capacity, filedBy(...(s.production_capacity_pcs_day ? ["BKMEA"] : []), ...(s.production_capacity_dozen_yearly ? ["BGMEA"] : []))) },
     ...(s.bepza_zone ? [{ label: "EPZ zone", ...pending(s.bepza_zone) }] : []),
     {
       label: "Registers",

@@ -7,6 +7,7 @@ import { buttonClass } from "@/components/kit";
 import { RecordView, parseTab, type TabId } from "@/components/record";
 import { PaneFrame } from "@/components/search/pane";
 import { ProfileReadTimeout, loadRecordSheet } from "@/lib/dashboard/load-record";
+import { rfqHref } from "@/lib/dashboard/selection";
 import type { SupplierSheetModel } from "@/lib/dashboard/models";
 import { savedHref, type SavedView } from "./words";
 
@@ -21,6 +22,8 @@ export async function readSavedRecord(supabase: any, slug: string, today: Date, 
       pins: true,
       closeHref: savedHref({ ...view, open: null }),
       fullHref: `/app/suppliers/${slug}`,
+      // Send RFQ opens the composer beside this list (critique of 8 Oct 2026, item 2), never a page.
+      rfqHref: (id) => rfqHref(savedHref({ ...view, open: null }), [id]),
       supplierId,
     });
     return { slug, model, slow: false };

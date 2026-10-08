@@ -112,7 +112,7 @@ function SectionNav({ sections, bySection }: { sections: readonly Section[]; byS
           <a
             key={s.id}
             href={`#${s.id}`}
-            className="flex flex-col gap-0.5 rounded-sm px-3 py-2 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand"
+            className="flex flex-col gap-0.5 rounded-sm px-3 py-2 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
           >
             <span className="text-base font-medium text-ink">{s.number ? `${s.number}. ${s.title}` : s.title}</span>
             <span className={cn("text-xs", n > 0 ? "font-semibold text-caution" : "text-ink-3")}>{n > 0 ? claimsToConfirm(n) : "Nothing to confirm"}</span>
@@ -128,7 +128,7 @@ function Seg({ s, focus, onClaim }: { s: Segment; focus: string | null; onClaim:
   if (s.kind === "bold") return <strong className="font-semibold">{s.text}</strong>;
   if (s.fill !== null) return <ConfirmedClaim>{s.fill}</ConfirmedClaim>;
   return (
-    <button type="button" onClick={() => onClaim(s.claim)} className="rounded-sm align-baseline outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+    <button type="button" onClick={() => onClaim(s.claim)} className="rounded-sm align-baseline outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
       <OpenClaim focused={focus === s.claim}>{claimLabel(s.text)}</OpenClaim>
     </button>
   );
