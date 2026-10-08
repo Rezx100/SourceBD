@@ -18,6 +18,14 @@ export const fieldEdge =
 export const fieldBox =
   "w-full rounded-sm border border-line-strong bg-surface text-ink placeholder:text-ink-3 hover:border-ink-3 disabled:border-sunken disabled:bg-sunken disabled:text-disabled disabled:placeholder:text-disabled";
 
+/**
+ * The One-Line Name Rule (DESIGN.md): a name in a list or row is one line, cut at the end with an
+ * ellipsis, the whole name in `title` and the row's accessible name. Written as plain CSS rather than
+ * `truncate`, which `search.test.ts` bans in `components/search` (a cut there must be this deliberate
+ * one, never an accident). Mark the element `data-name` so the overflow guards exempt it.
+ */
+export const oneLine = "block min-w-0 overflow-hidden whitespace-nowrap [text-overflow:ellipsis]";
+
 /** A link in text and rows: brand, underlined 1px, 2px on hover (Buttons board, "Link"). */
 export const linkClass =
   "rounded-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] hover:decoration-2 aria-disabled:pointer-events-none aria-disabled:text-disabled " +
