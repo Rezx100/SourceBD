@@ -212,15 +212,32 @@ export function ResultsToolbar({
   );
 }
 
-/** The narrow bar over the list when a pane is open (576): the title and the two buttons that fit. */
-export function PaneListToolbar({ state, title, hrefFor, filtersHref, savePanel }: { state: DiscoverState; title: string; hrefFor: (s: DiscoverState) => string; filtersHref: string; savePanel?: ReactNode }) {
+/**
+ * The narrow bar over the list when a pane is open (576): the title, then Save search and Add filter as
+ * icons with their names on hover and for a screen reader (the critique of 7 Oct 2026: beside a pane the
+ * bar dropped both, in the state a power user lives in), and Sort.
+ */
+export function PaneListToolbar({ state, title, hrefFor, filtersHref, saveHref, savePanel }: { state: DiscoverState; title: string; hrefFor: (s: DiscoverState) => string; filtersHref: string; saveHref?: string; savePanel?: ReactNode }) {
   const on = filterCount(state);
   return (
     <div className="relative flex min-h-14 items-center justify-between gap-x-3 border-b border-line px-4 py-2 max-md:hidden">
       <h1 className="min-w-0 text-base font-semibold text-ink">{title}</h1>
       <div className="flex shrink-0 items-center gap-2">
-        <Link href={filtersHref} prefetch={false} scroll={false} className={buttonClass({ kind: "secondary" })}>
-          {on > 0 ? `Filters · ${on} on` : "Filters"}
+        {saveHref ? (
+          <Link href={saveHref} prefetch={false} scroll={false} aria-label="Save search" title="Save search" className={buttonClass({ kind: "secondary", size: "icon-32" })}>
+            <BookmarkSimple size={16} className="shrink-0 text-ink-2" aria-hidden />
+          </Link>
+        ) : null}
+        <Link
+          href={filtersHref}
+          prefetch={false}
+          scroll={false}
+          aria-label={on > 0 ? `Add filter · ${on} on` : "Add filter"}
+          title="Add filter"
+          className={cn(buttonClass({ kind: "secondary", size: "icon-32" }), on > 0 && "w-auto gap-1 border-ink-3 bg-subtle px-2")}
+        >
+          <Plus size={16} className="shrink-0 text-ink-2" aria-hidden />
+          {on > 0 ? <span aria-hidden className="font-mono text-xs tabular-nums text-ink-2">{on}</span> : null}
         </Link>
         <SortMenu state={state} hrefFor={hrefFor} />
       </div>

@@ -172,7 +172,7 @@ export default async function BuyerDiscoverPage({
   ) : null;
 
   const toolbar = paneOpen ? (
-    <PaneListToolbar state={state} title={title} hrefFor={hrefFor} filtersHref={filtersOpen ? closeHref : filtersHref} savePanel={savePanel} />
+    <PaneListToolbar state={state} title={title} hrefFor={hrefFor} filtersHref={filtersOpen ? closeHref : filtersHref} saveHref={saveHref} savePanel={savePanel} />
   ) : (
     <ResultsToolbar
       state={state}
