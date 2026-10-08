@@ -44,6 +44,7 @@ import {
   missingFields,
   needsFromYou,
   refusalWords,
+  reviewWords,
   sendDecision,
   sendWords,
   shownNumber,
@@ -66,7 +67,7 @@ const NOT_SET = "none";
 const OTHER = "other";
 const shipToPickOf = (country: string): string => (!country.trim() ? NOT_SET : (SHIP_TO as readonly string[]).includes(country) ? country : OTHER);
 
-const TONE = { ink: "text-ink-3", caution: "text-caution", danger: "text-danger", sanction: "text-sanction" } as const;
+const TONE = { ink: "text-ink", caution: "text-caution", danger: "text-danger", sanction: "text-sanction" } as const;
 
 function useApplePlatform(): boolean {
   return useSyncExternalStore(
@@ -159,11 +160,34 @@ function Targets({
 }
 
 /** The list inside "Review all": every supplier by name with a way to take one out, and a search over them. */
-export function ReviewBody({ targets, onRemove, q = "", onQuery }: { targets: ComposerTarget[]; onRemove: (t: ComposerTarget) => void; q?: string; onQuery?: (q: string) => void }) {
-  const shown = targets.filter((t) => t.name.toLowerCase().includes(q.trim().toLowerCase()));
+export function ReviewBody({
+  targets,
+  onRemove,
+  q = "",
+  onQuery,
+  byName = false,
+  onSort,
+}: {
+  targets: ComposerTarget[];
+  onRemove: (t: ComposerTarget) => void;
+  q?: string;
+  onQuery?: (q: string) => void;
+  /** A to Z by name instead of the order they were added, so fifty can be checked against a list. */
+  byName?: boolean;
+  onSort?: (byName: boolean) => void;
+}) {
+  const found = targets.filter((t) => t.name.toLowerCase().includes(q.trim().toLowerCase()));
+  const shown = byName ? [...found].sort((a, b) => a.name.localeCompare(b.name, "en")) : found;
   return (
     <>
-      <Input type="search" aria-label={`Find in these ${targets.length}`} placeholder={`Find in these ${targets.length}`} value={q} onChange={(e) => onQuery?.(e.target.value)} />
+      <div className="flex items-center gap-2">
+        <Input type="search" aria-label={`Find in these ${targets.length}`} placeholder={`Find in these ${targets.length}`} value={q} onChange={(e) => onQuery?.(e.target.value)} className="min-w-0 flex-1" />
+        {onSort ? (
+          <Button kind="secondary" aria-pressed={byName} onClick={() => onSort(!byName)}>
+            {byName ? "Sorted A to Z" : "Sort by name"}
+          </Button>
+        ) : null}
+      </div>
       <ul className="-mb-2 max-h-80 overflow-y-auto border-t border-line">
         {shown.map((t) => (
           <li key={t.slug} className="flex items-center gap-3 border-b border-line py-2">
@@ -182,22 +206,53 @@ export function ReviewBody({ targets, onRemove, q = "", onQuery }: { targets: Co
   );
 }
 
-/** `912-0`: every supplier by name in a dialog. */
-function ReviewAll({ open, onOpenChange, targets, onRemove }: { open: boolean; onOpenChange: (open: boolean) => void; targets: ComposerTarget[]; onRemove: (t: ComposerTarget) => void }) {
+/** `912-0`: every supplier by name in a dialog; with `onConfirm`, the confirmation a send above five opens. */
+function ReviewAll({
+  open,
+  onOpenChange,
+  targets,
+  onRemove,
+  onConfirm,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  targets: ComposerTarget[];
+  onRemove: (t: ComposerTarget) => void;
+  onConfirm?: () => void;
+}) {
   const [q, setQ] = useState("");
+  const [byName, setByName] = useState(false);
+  const words = reviewWords(targets.length, Boolean(onConfirm));
   return (
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
       kind="form"
-      title={`${targets.length} ${targets.length === 1 ? "supplier gets" : "suppliers get"} this RFQ`}
+      title={words.title}
       footer={
-        <DialogClose asChild>
-          <Button kind="primary">Done</Button>
-        </DialogClose>
+        onConfirm ? (
+          <>
+            <DialogClose asChild>
+              <Button kind="secondary">Back to the RFQ</Button>
+            </DialogClose>
+            <Button
+              kind="primary"
+              onClick={() => {
+                onOpenChange(false);
+                onConfirm();
+              }}
+            >
+              {words.primary}
+            </Button>
+          </>
+        ) : (
+          <DialogClose asChild>
+            <Button kind="primary">{words.primary}</Button>
+          </DialogClose>
+        )
       }
     >
-      <ReviewBody targets={targets} onRemove={onRemove} q={q} onQuery={setQ} />
+      <ReviewBody targets={targets} onRemove={onRemove} q={q} onQuery={setQ} byName={byName} onSort={setByName} />
     </Dialog>
   );
 }
@@ -256,7 +311,8 @@ export function RfqComposer({
   const [draftId, setDraftId] = useState<string | null>(initialDraftId);
   const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
-  const [reviewing, setReviewing] = useState(false);
+  // "review": Review all, opened by the buyer; "confirm": the same list, opened by a send above five.
+  const [reviewing, setReviewing] = useState<false | "review" | "confirm">(false);
   const [pickNote, setPickNote] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -284,8 +340,10 @@ export function RfqComposer({
   );
   const message = messageEdited ?? filled.text;
   const missing = [...missingFields({ title, quantity, unit, targets: targets.length, targetPrice }), ...leftoverPlaceholders(message).map((label) => `${label} in the message`)];
-  // Send is withheld only while busy or for a sanctioned target: an empty field is a sentence the click produces.
-  const blocked = sanctioned.length > 0 || busy !== null;
+  // Send is withheld only for a sanctioned target: an empty field is a sentence the click produces, and
+  // while a send or a draft is in flight it is `aria-busy` and ignores clicks, never disabled, so focus
+  // stays on it (the kit's rule in `save-button.tsx`).
+  const blocked = sanctioned.length > 0;
   const words = sendWords(targets);
 
   function payload() {
@@ -302,9 +360,13 @@ export function RfqComposer({
     }
   }
 
-  async function send() {
+  async function send(confirmed = false) {
+    if (busy) return;
+    const decision = sendDecision({ blocked, missing, targets: targets.length, confirmed });
+    // Above five the review dialog is the confirmation; nothing is marked missing, so focus stays put.
+    if (decision === "review") return setReviewing("confirm");
     setAttempt((n) => n + 1);
-    if (sendDecision({ blocked, missing }) !== "post") return;
+    if (decision !== "post") return;
     setBusy("send");
     setError(null);
     // What was typed under From you is the workspace's from now on. A save that fails does not stop
@@ -330,6 +392,7 @@ export function RfqComposer({
   }
 
   async function saveDraft() {
+    if (busy) return;
     setBusy("draft");
     setError(null);
     const r = await post({ action: "save_draft", draft_id: draftId ?? undefined, payload: payload() });
@@ -432,7 +495,7 @@ export function RfqComposer({
           className={cn("flex min-w-0 flex-col gap-6 px-4 py-5 sm:px-6", page ? "xl:flex-1 xl:overflow-y-auto" : "")}
         >
           <div className="flex w-full max-w-pane flex-col gap-6">
-            <Targets targets={targets} onRemove={remove} onAdd={() => setPicking(true)} onReview={() => setReviewing(true)} note={pickNote ?? note("a supplier", "Add at least one supplier.")} />
+            <Targets targets={targets} onRemove={remove} onAdd={() => setPicking(true)} onReview={() => setReviewing("review")} note={pickNote ?? note("a supplier", "Add at least one supplier.")} />
 
             <section aria-label="What you're asking for" className="flex flex-col gap-3">
               <h2 className="text-md font-semibold text-ink">What you&apos;re asking for</h2>
@@ -626,17 +689,18 @@ export function RfqComposer({
       <div className="flex shrink-0 flex-col gap-2 border-t border-line bg-surface px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] max-sm:sticky max-sm:bottom-0 max-sm:z-sticky sm:h-16 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-0">
         {/* The live region is on the page from the first paint but empty: a screen reader hears it only
             after an action (a send tried, a draft saved, a refusal), never an instruction on arrival. */}
-        <div className="min-w-0 text-sm">
+        {/* Who this goes to, in ink at 14 (critique of 8 Oct 2026, round 3, item 3): it is the sentence that matters. */}
+        <div className="min-w-0 text-base">
           {!status.live ? <p className={TONE[status.tone]}>{status.text}</p> : null}
           <p role="status" aria-live="polite" className={cn(TONE[status.tone], !status.live && "sr-only")}>
             {status.live ? status.text : ""}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button kind="secondary" size="lg" onClick={() => void saveDraft()} loading={busy === "draft"} loadingLabel="Saving" disabled={busy !== null} className="max-sm:h-12">
+          <Button kind="secondary" size="lg" onClick={() => void saveDraft()} loading={busy === "draft"} loadingLabel="Saving" aria-busy={busy !== null || undefined} className="max-sm:h-12">
             Save draft
           </Button>
-          <Button type="submit" form={`${id}-form`} kind="primary" size="lg" disabled={blocked} loading={busy === "send"} loadingLabel="Sending" aria-describedby={`${id}-send-hint`} className="max-sm:h-12 max-sm:flex-1">
+          <Button type="submit" form={`${id}-form`} kind="primary" size="lg" disabled={blocked} loading={busy === "send"} loadingLabel="Sending" aria-busy={busy !== null || undefined} aria-describedby={`${id}-send-hint`} className="max-sm:h-12 max-sm:flex-1">
             {words.send}
             <span className="text-xs font-medium opacity-85 max-sm:hidden">{apple ? "⌘↵" : "Ctrl ↵"}</span>
           </Button>
@@ -647,7 +711,13 @@ export function RfqComposer({
       </div>
 
       <SupplierPicker open={picking} onOpenChange={setPicking} selected={targets} max={MAX_TARGETS} onConfirm={(p) => void confirmPicked(p)} />
-      <ReviewAll open={reviewing} onOpenChange={setReviewing} targets={targets} onRemove={remove} />
+      <ReviewAll
+        open={reviewing !== false}
+        onOpenChange={(open) => setReviewing(open ? (reviewing || "review") : false)}
+        targets={targets}
+        onRemove={remove}
+        onConfirm={reviewing === "confirm" ? () => void send(true) : undefined}
+      />
     </>,
   );
 }
