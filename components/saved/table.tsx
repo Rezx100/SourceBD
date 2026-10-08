@@ -11,9 +11,10 @@
 import { DotsThree, PaperPlaneTilt } from "@phosphor-icons/react";
 import Link from "next/link";
 import { ABSENT, CertSummaryCell } from "@/components/patterns";
-import { BulkBar, IconButton, Menu, MenuItem, SelectCell, Table, Td, Th, Tr, Unpublished, bulkActionClass, rowLinkClass } from "@/components/kit";
+import { BulkBar, IconButton, Menu, MenuItem, SelectCell, Table, Td, Th, Tr, Unpublished, bulkActionClass, oneLine, rowLinkClass } from "@/components/kit";
 import { onRowKey } from "@/components/search/keys";
 import { SELECT_ALL_ID, useSelection } from "@/components/search/selection";
+import { splitQualifier } from "@/lib/dashboard/facts";
 import { SEND_RFQ_MAX, clearKeepingFocus, rfqHref } from "@/lib/dashboard/selection";
 import { cn } from "@/lib/utils";
 import { useRemove } from "./actions";
@@ -31,7 +32,8 @@ export function SavedTable({ items, currentSlug }: { items: readonly SavedItem[]
   const sel = useSelection();
   const { remove } = useRemove();
   return (
-    <div role="region" aria-label="Saved suppliers table" tabIndex={0} className="relative min-w-0 overflow-x-auto rounded-md border border-line outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
+    // Full-bleed like the results table (critique of 8 Oct 2026, item 4): the two tables are one grammar, no frame around this one.
+    <div role="region" aria-label="Saved suppliers table" tabIndex={0} className="relative min-w-0 overflow-x-auto outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
       <Table className="min-w-[960px]">
         <thead>
           <tr>
@@ -75,10 +77,15 @@ export function SavedTable({ items, currentSlug }: { items: readonly SavedItem[]
                 className="outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
               >
                 <SelectCell label={`Select ${i.name}`} checked={selected} disabled={!sel.interactive} onChange={() => sel.toggle(i.id)} />
-                <Td>
-                  <Link href={i.paneHref} prefetch={false} scroll={false} data-open="record" className={rowLinkClass}>
-                    {i.name}
+                <Td className="max-w-0">
+                  <Link href={i.paneHref} prefetch={false} scroll={false} data-open="record" data-name="" title={i.name} className={cn(rowLinkClass, oneLine)}>
+                    {splitQualifier(i.name).base}
                   </Link>
+                  {splitQualifier(i.name).qualifier ? (
+                    <span data-name="" title={splitQualifier(i.name).qualifier!} className={cn(oneLine, "text-xs text-ink-3")}>
+                      {splitQualifier(i.name).qualifier}
+                    </span>
+                  ) : null}
                 </Td>
                 <Td>{i.type}</Td>
                 <Td>{i.place ?? <Unpublished />}</Td>

@@ -212,8 +212,23 @@ describe("the results table", () => {
     assert.doesNotMatch(sanctioned, /data-action="rfq"/, "no RFQ door for a sanctioned supplier");
   });
 
-  it("the 100-character name is whole, and nothing is cut off", () => {
-    assert.ok(out.includes(ZAHEEN));
+  // Critique of 8 Oct 2026, item 4: the One-Line Name Rule. The 100-character name ran three lines
+  // (a 57px row among 40s); now the base name is one line, cut at the end, the whole name in `title`
+  // and the row's accessible name, and the qualifier is the line under.
+  it("the 100-character name is two lines: the base cut at the end with the whole name in title, the qualifier under; nothing else is cut", () => {
+    assert.ok(out.includes(ZAHEEN), "the whole name left the DOM");
+    assert.equal(out.match(new RegExp(`title="${ZAHEEN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`, "g"))?.length, 1, "one title with the whole name");
+    assert.match(out, new RegExp(`aria-label="${ZAHEEN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`), "the row's accessible name is the whole name");
+    const cell = /<td class="[^"]*max-w-0[^"]*">([\s\S]*?)<\/td>/g;
+    const zaheen = [...out.matchAll(cell)].map((m) => m[1]!).find((c) => c.includes("Zaheen"))!;
+    assert.ok(zaheen, "no name cell for Zaheen");
+    assert.match(zaheen, /data-name=""[^>]*>Zaheen Knitwears Limited</, "the link's words are the base name alone");
+    assert.match(zaheen, /<span data-name="" title="Shed - 3, 4, 5, 10, 11, 12, 13 · Building - Security, ETP and Fire Pump"[^>]*>Shed - 3/, "the qualifier leads the second line");
+    assert.equal(zaheen.match(/data-name=""/g)?.length, 2, "two lines, never a third");
+    for (const m of zaheen.matchAll(/data-name=""[^>]*class="([^"]*)"/g)) assert.match(m[1]!, /\boverflow-hidden\b.*\bwhitespace-nowrap\b.*\[text-overflow:ellipsis\]/, "the cut is the deliberate one-line cut");
+    const aboni = [...out.matchAll(cell)].map((m) => m[1]!).find((c) => c.includes("Aboni"))!;
+    assert.equal(aboni.match(/data-name=""/g)?.length, 1, "a name without a qualifier is one line, no empty second");
+    // The house rule stands: no truncate anywhere in the markup; the cut is CSS the guards can exempt by data-name.
     assert.ok(!/\btruncate\b|text-ellipsis|line-clamp/.test(out));
   });
 
@@ -430,6 +445,10 @@ describe("the narrow list and the phone's rows", () => {
     assert.ok(out.includes("Aboni Knitwear Ltd.") && out.includes("11 sources") && out.includes("Factory · Dhaka"));
     assert.match(out, /aria-current="true"[^>]*href="\/app\/discover\?q=knit&record=aboni-knitwear"|href="\/app\/discover\?q=knit&record=aboni-knitwear"[^>]*aria-current="true"/);
     assert.ok(out.includes(ZAHEEN) && out.includes("No certificates on file"));
+    // The pane list keeps the One-Line Name Rule too: base name on one line, the qualifier leading the line under.
+    assert.match(out, new RegExp(`<a aria-label="${ZAHEEN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`), "the row's accessible name is the whole name");
+    assert.match(out, /data-name="" title="[^"]*Fire Pump\)"[^>]*>Zaheen Knitwears Limited</);
+    assert.match(out, /data-name="" title="Shed - 3, 4, 5, 10, 11, 12, 13 · Building - Security, ETP and Fire Pump · Factory · Dhaka"/);
   });
 
   it("on a phone a row opens the record as a page, and the way back is in the address", () => {

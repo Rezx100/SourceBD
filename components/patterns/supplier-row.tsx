@@ -1,10 +1,13 @@
 // Supplier list row (`03 Patterns · 7`), the two narrow forms. The full-width desktop row is a
 // row of the kit's table. `pane`: with the record docked the list keeps name, type and place, the
 // first certificate problem and the source count. `phone`: name 16/500, "Factory · Dhaka · 11
-// sources", the first certificate problem. A long name wraps; nothing truncates. Server-safe.
+// sources", the first certificate problem. A name is one line (the One-Line Name Rule): the base
+// name cut at the end with the whole name in `title`, its qualifier leading the line under. Server-safe.
 
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { oneLine } from "@/components/kit/classes";
+import { nameSecondLine, splitQualifier } from "@/lib/dashboard/facts";
 import { cn } from "@/lib/utils";
 import { LinkPending } from "./link-pending";
 
@@ -30,16 +33,17 @@ export function SupplierRow({
   problem?: ReactNode;
   selected?: boolean;
 }) {
-  const kind = [type ?? "Type not published", place ?? "place not published"].join(" · ");
-  const base = "flex flex-col border-b border-line outline-none last:border-b-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus";
+  const base = splitQualifier(name).base;
+  const kind = nameSecondLine(name, type ?? "Type not published", place ?? "place not published");
+  const box = "flex flex-col border-b border-line outline-none last:border-b-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus";
   if (layout === "phone")
     return (
-      <Link href={href} aria-current={selected ? "true" : undefined} className={cn(base, "min-h-11 gap-1 px-4 py-3 hover:bg-brand-wash", selected && "bg-brand-tint")}>
-        <span className="text-md font-medium text-ink">
-          {name}
+      <Link href={href} aria-label={name} aria-current={selected ? "true" : undefined} className={cn(box, "min-h-11 gap-1 px-4 py-3 hover:bg-brand-wash", selected && "bg-brand-tint")}>
+        <span data-name="" title={name} className={cn(oneLine, "text-md font-medium text-ink")}>
+          {base}
           <LinkPending className="ml-1.5 inline-block align-[-2px]" />
         </span>
-        <span className="text-sm text-ink-3">
+        <span data-name="" className={cn(oneLine, "text-sm text-ink-3")}>
           {kind} · {noun(sources)}
         </span>
         {problem ? <span className="text-sm">{problem}</span> : null}
@@ -49,21 +53,22 @@ export function SupplierRow({
     <Link
       href={href}
       aria-current={selected ? "true" : undefined}
-      className={cn(base, "min-h-14 gap-0.5 border-l-2 px-3 py-2.5 hover:bg-brand-wash", selected ? "border-l-brand-ink bg-brand-tint" : "border-l-transparent")}
+      aria-label={name}
+      className={cn(box, "min-h-14 gap-0.5 border-l-2 px-3 py-2.5 hover:bg-brand-wash", selected ? "border-l-brand-ink bg-brand-tint" : "border-l-transparent")}
     >
       <span className="flex justify-between gap-3">
-        <span className="text-base font-medium text-ink">
-          {name}
+        <span data-name="" title={name} className={cn(oneLine, "text-base font-medium text-ink")}>
+          {base}
           <LinkPending className="ml-1.5 inline-block align-[-2px]" />
         </span>
         <span className="shrink-0 text-xs text-ink-3">{noun(sources)}</span>
       </span>
-      <span className="flex flex-wrap items-center gap-x-1.5 text-xs text-ink-3">
-        <span>{kind}</span>
+      <span className="flex items-center gap-x-1.5 text-xs text-ink-3">
+        <span data-name="" title={kind} className={oneLine}>{kind}</span>
         {problem ? (
           <>
             <span aria-hidden>·</span>
-            {problem}
+            <span className="shrink-0">{problem}</span>
           </>
         ) : null}
       </span>

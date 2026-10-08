@@ -3,7 +3,7 @@
 
 export { Button, ButtonLink, IconButton } from "./button";
 export { buttonClass, type ButtonKind, type ButtonSize } from "./button-class";
-export { fieldBox, fieldEdge, linkClass, menuClass, menuItemClass, popoverClass, ring, ringInset, selectItemClass, toastActionClass, tooltipClass } from "./classes";
+export { fieldBox, fieldEdge, linkClass, menuClass, menuItemClass, oneLine, popoverClass, ring, ringInset, selectItemClass, toastActionClass, tooltipClass } from "./classes";
 export { CertChip, Chip, Count, FactChip, FilterChip, StandingFilter, TypeChip, type CertState, type FactState } from "./chip";
 export { Checkbox, Field, Input, Radio, Switch } from "./fields";
 export { DateInput } from "./date-input";
