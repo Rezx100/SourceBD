@@ -44,7 +44,8 @@ export default async function SavedPage({ searchParams }: { searchParams: Promis
   const rows = data.rows;
   const items = rows ? buildSavedItems(rows, data.certs, today, view) : [];
   const closeHref = savedHref({ sort, page });
-  const paneOpen = (composerOpen || openSlug !== null) && rows !== null && rows.length > 0;
+  // A pane (the composer, or a record with rows to stand beside) always gets the narrow list, never the full table.
+  const paneOpen = composerOpen || (openSlug !== null && rows !== null && rows.length > 0);
   const total = data.total ?? items.length;
 
   const body =

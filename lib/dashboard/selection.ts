@@ -36,6 +36,11 @@ export function selectAllState(selected: ReadonlySet<string>, pageIds: readonly 
 /** The bar's Export link: the page's own export URL — same filters, sort,
  * page and per-page — scoped to the selection with `ids=`. Without `ids` the
  * route exports the whole filtered result set, so this must never drop it. */
+export function bulkExportHref(exportHref: string, ids: readonly string[]): string {
+  const sep = exportHref.includes("?") ? "&" : "?";
+  return `${exportHref}${sep}ids=${ids.map(encodeURIComponent).join(",")}`;
+}
+
 /**
  * The list's own URL with `rfq=` carrying the suppliers, so the composer opens in that list's pane
  * (PRODUCT.md principle 4: the buyer never loses their search). `/app/rfqs/new` stays for deep
@@ -43,11 +48,6 @@ export function selectAllState(selected: ReadonlySet<string>, pageIds: readonly 
  */
 export function rfqHref(listHref: string, ids: readonly string[]): string {
   return `${listHref}${listHref.includes("?") ? "&" : "?"}rfq=${ids.map(encodeURIComponent).join(",")}`;
-}
-
-export function bulkExportHref(exportHref: string, ids: readonly string[]): string {
-  const sep = exportHref.includes("?") ? "&" : "?";
-  return `${exportHref}${sep}ids=${ids.map(encodeURIComponent).join(",")}`;
 }
 
 /** What the bar says after one bulk save request came back with `status`.

@@ -837,6 +837,23 @@ describe("/app/saved?rfq= — the composer beside the saved list", () => {
     const plain = html(await saved({ sort: "name" }));
     assert.doesNotMatch(plain, /aria-label="New RFQ"|rfqs\/new/);
   });
+
+  it("the record beside the saved list sends through the list too, and a failed list beside the composer is the narrow notice, not the full table", async () => {
+    const out = html(await saved({ open: "aboni-knitwear" }));
+    // The record carries its profile's own supplier id (the fixture's), so the door is matched by shape.
+    assert.match(out, /href="\/app\/saved\?rfq=[0-9a-f-]{36}"[^>]*>Send RFQ</, "the record's Send RFQ opens the composer beside this list");
+    assert.doesNotMatch(out, /rfqs\/new/);
+    given({ profile: PROFILE, hscodes: HS, tables: { suppliers: SUPPLIERS }, rpcs: { buyer_saved_list: { data: null, error: { message: "down" } } } });
+    currentPath = "/app/saved";
+    try {
+      const Page = route("app/(app)/app/saved/page.js").default;
+      const failed = html(await outcome(() => Page({ searchParams: Promise.resolve({ rfq: ABONI_ID }) })));
+      assert.match(failed, /aria-label="New RFQ"/);
+      assert.doesNotMatch(failed, /aria-label="Saved suppliers table"/, "the full table beside a pane");
+    } finally {
+      currentPath = "/app/discover";
+    }
+  });
 });
 
 describe("/app/rfqs/new — the composer as a page", () => {

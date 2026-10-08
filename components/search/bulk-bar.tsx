@@ -23,9 +23,6 @@ export const STILL_PREPARING = "Still preparing the download. Its result will sh
 /** A result that lands after the selection changed says which selection it was for. */
 export const EARLIER = "For your earlier selection: ";
 
-/** The search URL with `rfq=` carrying the selection: the composer opens beside these results with every ticked supplier as a target. */
-export const bulkRfqHref = rfqHref;
-
 const sentence = (s: string) => (/[.!?…]$/.test(s) ? s : `${s}.`);
 
 export function ResultsBar({
@@ -139,7 +136,7 @@ export function ResultsBar({
             Download CSV
           </a>
           {count <= SEND_RFQ_MAX ? (
-            <Link href={bulkRfqHref(searchHref, ids)} scroll={false} className={bulkActionClass(true)}>
+            <Link href={rfqHref(searchHref, ids)} scroll={false} className={bulkActionClass(true)}>
               Send RFQ to {count} {count === 1 ? "supplier" : "suppliers"}
             </Link>
           ) : (
