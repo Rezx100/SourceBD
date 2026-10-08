@@ -78,13 +78,13 @@ export function Summary({ cells }: { cells: SummaryCell[] }) {
   );
 }
 
-function Contact({ model }: { model: SupplierSheetModel }) {
+function Contact({ model, level: H }: { model: SupplierSheetModel; level: "h2" | "h3" }) {
   const counts = model.contact.counts;
-  if (counts) return <LockedContact {...counts} />;
+  if (counts) return <LockedContact {...counts} level={H} />;
   // An unread count says only that the details are locked: "none on file" would be a claim.
   return (
     <section aria-label="Contact" className="flex w-full max-w-details flex-col gap-2 rounded-lg border border-line p-4">
-      <h3 className="text-base font-semibold text-ink">Contact</h3>
+      <H className="text-base font-semibold text-ink">Contact</H>
       <p className="text-sm text-ink-2">Contact details are locked. Send an RFQ and the supplier replies here.</p>
     </section>
   );
@@ -94,8 +94,9 @@ const sendClass = buttonClass({ kind: "primary" });
 
 export function RecordView({ model, mode, tab, tabHref, today, backHref = null, site = null }: RecordViewProps) {
   const page = mode === "page";
-  // The search's own title is the page's h1 beside a pane.
+  // The search's own title is the page's h1 beside a pane; the sections head one level under the name.
   const Title = page ? "h1" : "h2";
+  const level = page ? "h2" : "h3";
   const cells = summaryCells(model, today);
   const list = model.sanctions[0] ?? null;
   const listName = list?.list ?? "sanctions list";
@@ -140,7 +141,7 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
           the bar is drawn even for a record opened from a link: back is then the search itself. */}
       {page ? (
         <div data-record-bar="" className="sticky top-0 z-raised flex h-topbar-phone shrink-0 items-center border-b border-line bg-surface px-1 sm:hidden">
-          <Link href={backHref ?? "/app"} aria-label="Back to search" className="inline-flex h-touch items-center gap-0.5 rounded-sm pl-1.5 pr-3 text-md font-medium text-ink outline-none active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand">
+          <Link href={backHref ?? "/app"} aria-label="Back to search" className="inline-flex h-touch items-center gap-0.5 rounded-sm pl-1.5 pr-3 text-md font-medium text-ink outline-none active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
             <CaretLeft size={24} className="shrink-0" aria-hidden />
             Search
           </Link>
@@ -148,7 +149,7 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
       ) : null}
       {page && backHref ? (
         <div className="px-6 pt-3 max-sm:hidden lg:px-8">
-          <Link href={backHref} className="inline-flex min-h-6 items-center gap-1.5 rounded-sm text-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+          <Link href={backHref} className="inline-flex min-h-6 items-center gap-1.5 rounded-sm text-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
             <CaretLeft size={14} className="shrink-0" aria-hidden />
             Back to results
           </Link>
@@ -161,7 +162,7 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
           <Title className="min-w-0 flex-1 basis-60 text-xl font-semibold tracking-tight text-ink [overflow-wrap:anywhere]">{model.name}</Title>
           <div className="flex shrink-0 items-center gap-2">
             {!page ? (
-              <Link href={expandHref} className="rounded-sm p-1.5 text-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand max-sm:hidden">
+              <Link href={expandHref} className="rounded-sm p-1.5 text-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus max-sm:hidden">
                 Open full page
               </Link>
             ) : null}
@@ -199,19 +200,19 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
             <div key={t.id} id={`record-${t.id}`} role="region" aria-label={t.label} className="scroll-mt-[var(--record-offset,0px)]">
               {t.id === "overview" ? (
                 <div className="flex flex-col gap-5">
-                  <OverviewPanel model={model} today={today} />
-                  <RecordRfqs model={model} />
+                  <OverviewPanel model={model} today={today} level={level} />
+                  <RecordRfqs model={model} level={level} />
                 </div>
               ) : t.id === "certificates" ? (
-                <CertificatesPanel model={model} today={today} compact={!page} />
+                <CertificatesPanel model={model} today={today} compact={!page} level={level} />
               ) : t.id === "safety" ? (
-                <SafetyPanel model={model} />
+                <SafetyPanel model={model} level={level} />
               ) : t.id === "sites" ? (
-                <SitesPanel model={model} tabHref={tabHref} site={site} wide={page} />
+                <SitesPanel model={model} tabHref={tabHref} site={site} wide={page} level={level} />
               ) : t.id === "sources" ? (
-                <SourcesPanel model={model} today={today} />
+                <SourcesPanel model={model} today={today} level={level} />
               ) : (
-                <ProductsPanel model={model} />
+                <ProductsPanel model={model} level={level} open={tab === "products"} />
               )}
             </div>
           ))}
@@ -219,9 +220,11 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
         </div>
 
         {page ? (
-          <aside aria-label="Contact and sources" className="hidden w-details shrink-0 flex-col gap-4 pt-1 lg:flex">
-            <Contact model={model} />
-            {tab !== "sources" && sources.length > 0 ? <SourceList sources={sources} today={today} /> : null}
+          // The column sticks under the record's sticky head while the main column scrolls past it (the
+          // critique of 7 Oct 2026: four screens of facts beside a card that fits in one).
+          <aside aria-label="Contact and sources" className="hidden w-details shrink-0 flex-col gap-4 pt-1 lg:sticky lg:top-[var(--record-offset,0px)] lg:flex lg:self-start">
+            <Contact model={model} level={level} />
+            {tab !== "sources" && sources.length > 0 ? <SourceList sources={sources} today={today} level={level} /> : null}
           </aside>
         ) : null}
       </div>

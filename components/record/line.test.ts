@@ -121,9 +121,10 @@ describe("the facts", () => {
     assert.match(row(none, "Certified scope", "Product list"), /Not on file/);
   });
 
-  it("a product list the register filed without a source says so, and the exporter page is a link to EPB", () => {
+  it("a product list the register filed without a source carries the pending mark, never a sentence, and the exporter page is a link to EPB", () => {
     const out = view(sheet());
-    assert.match(row(out, "Product list", "Buyer lists"), /Source not linked yet/);
+    assert.match(row(out, "Product list", "Buyer lists"), /Source pending/);
+    assert.doesNotMatch(out, /Source not linked/);
     assert.match(out, /<a href="https?:\/\/[^"]*"[^>]*>edb\.epb\.gov\.bd · exporter [^<]*/);
   });
 });

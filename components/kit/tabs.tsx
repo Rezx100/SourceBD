@@ -13,7 +13,7 @@ import { ringInset } from "./classes";
 import { Menu, MenuItem } from "./overlay";
 
 const TAB =
-  "flex h-10 shrink-0 items-center whitespace-nowrap border-b-2 border-transparent px-3 text-base font-medium text-ink-2 outline-none transition-colors duration-fast hover:border-line-strong hover:text-ink aria-[selected=true]:border-brand aria-[selected=true]:text-ink aria-[current=page]:border-brand aria-[current=page]:text-ink data-[state=active]:border-brand data-[state=active]:text-ink disabled:pointer-events-none disabled:text-disabled aria-disabled:pointer-events-none aria-disabled:text-disabled focus-visible:rounded-sm focus-visible:outline-offset-[-4px] " +
+  "flex h-10 shrink-0 items-center whitespace-nowrap border-b-2 border-transparent px-3 text-base font-medium text-ink-2 outline-none transition-colors duration-fast hover:border-line-strong hover:text-ink aria-[selected=true]:border-brand-ink aria-[selected=true]:text-ink aria-[current=page]:border-brand-ink aria-[current=page]:text-ink data-[state=active]:border-brand-ink data-[state=active]:text-ink disabled:pointer-events-none disabled:text-disabled aria-disabled:pointer-events-none aria-disabled:text-disabled focus-visible:rounded-sm focus-visible:outline-offset-[-4px] " +
   ringInset;
 
 const label = (children: ReactNode, count?: number) => (count === undefined ? children : <>{children} · {count}</>);
@@ -105,14 +105,14 @@ export function Segmented({
       aria-label={groupLabel}
       aria-disabled={disabled || undefined}
       className={cn(
-        "inline-flex w-fit gap-0.5 rounded-sm bg-sunken p-0.5 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand",
+        "inline-flex w-fit gap-0.5 rounded-sm bg-sunken p-0.5 has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus",
         disabled && "pointer-events-none",
         className,
       )}
     >
       {options.map((o) =>
         o.href ? (
-          <Link key={o.value} href={o.href} aria-current={o.value === value ? "page" : undefined} className={cn(BOX, o.value === value ? ON : IDLE, disabled && "text-disabled", "outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand")}>
+          <Link key={o.value} href={o.href} aria-current={o.value === value ? "page" : undefined} className={cn(BOX, o.value === value ? ON : IDLE, disabled && "text-disabled", "outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus")}>
             {o.label}
           </Link>
         ) : (

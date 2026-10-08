@@ -16,7 +16,7 @@ import type { RfqDoc } from "@/components/rfqs/doc";
 import { quantityWords } from "@/components/rfqs/words";
 import { cn } from "@/lib/utils";
 
-const textLink = "rounded-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+const textLink = "rounded-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 function Row({ label, children, muted }: { label: string; children: React.ReactNode; muted?: boolean }) {
   return (

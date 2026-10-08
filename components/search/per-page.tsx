@@ -29,7 +29,7 @@ export function PerPageMenu({ per, sizes }: { per: number; sizes: readonly (read
       {sizes.map(([n, href]) => (
         <MenuItem key={n} onSelect={() => start(() => router.push(href, { scroll: false }))}>
           <span className="flex items-center gap-2">
-            <span className="flex size-4 shrink-0 items-center justify-center">{n === per ? <Check size={16} className="text-brand" aria-label="Page size" /> : null}</span>
+            <span className="flex size-4 shrink-0 items-center justify-center">{n === per ? <Check size={16} className="text-brand-ink" aria-label="Page size" /> : null}</span>
             {n} per page
           </span>
         </MenuItem>

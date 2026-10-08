@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 /** An open claim inside the draft. `focused` is the one the rail is pointing at (a 2px brand edge). */
 export function OpenClaim({ children, focused }: { children: string; focused?: boolean }) {
   return (
-    <span className={cn("inline-flex items-center rounded-sm bg-caution-tint px-1.5 text-md font-medium text-caution", focused ? "border-2 border-brand" : "border border-dashed border-caution-icon")}>
+    <span className={cn("inline-flex items-center rounded-sm bg-caution-tint px-1.5 text-md font-medium text-caution", focused ? "border-2 border-brand-ink" : "border border-dashed border-caution-icon")}>
       [Confirm: {children}]
     </span>
   );

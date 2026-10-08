@@ -14,7 +14,7 @@ const SUPPORT = "mailto:support@sourcebd.net?subject=Suspended%20account";
 function SignOut({ className }: { className?: string }) {
   return (
     <form action="/auth/sign-out" method="post">
-      <button type="submit" className={className ?? "font-medium text-brand underline decoration-1 [text-underline-position:from-font] max-sm:min-h-11"}>
+      <button type="submit" className={className ?? "font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] max-sm:min-h-11"}>
         Sign out
       </button>
     </form>

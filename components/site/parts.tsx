@@ -38,7 +38,7 @@ export function HeroActions({ tryLine = "Try “knit dresses Gazipur” or “GO
             type="search"
             autoComplete="off"
             placeholder="Supplier, product or certificate"
-            className="h-12 min-w-0 flex-1 rounded-sm border border-line-strong bg-surface px-3 text-md text-ink outline-none placeholder:text-ink-3 focus:border-brand focus:[box-shadow:inset_0_0_0_1px_theme(colors.brand)]"
+            className="h-12 min-w-0 flex-1 rounded-sm border border-line-strong bg-surface px-3 text-md text-ink outline-none placeholder:text-ink-3 focus:border-brand-ink focus:[box-shadow:inset_0_0_0_1px_theme(colors.brand-ink)]"
           />
           <button type="submit" className={buttonClass({ kind: "primary", size: "lg", className: "h-12 px-6 max-sm:h-input-touch" })}>
             Search

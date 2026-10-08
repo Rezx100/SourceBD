@@ -22,7 +22,7 @@ const CELL = "px-0 pr-3 py-2";
 export function RfqTable({ items, tab, sort, currentId = null }: { items: readonly ListItem[]; tab: RfqTab; sort: RfqSort; currentId?: string | null }) {
   const shipSort: SortState = sort === "ship_by" ? "asc" : "none";
   return (
-    <div role="region" aria-label="RFQs table" tabIndex={0} className="relative min-w-0 overflow-x-auto outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand">
+    <div role="region" aria-label="RFQs table" tabIndex={0} className="relative min-w-0 overflow-x-auto outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
       {/* Paper's column widths (360 / 110 / 200 / 250 / 120 / 128) with no side padding, so the text has the room the board gives it. */}
       <Table className="min-w-[1168px] table-fixed">
         <thead>
@@ -56,7 +56,7 @@ export function RfqTable({ items, tab, sort, currentId = null }: { items: readon
               aria-label={i.title}
               aria-current={i.id === currentId ? "true" : undefined}
               selected={i.id === currentId}
-              className="relative min-h-14 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand"
+              className="relative min-h-14 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
             >
               <Td className={CELL}>
                 <span className="flex flex-wrap items-center gap-x-2">

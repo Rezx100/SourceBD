@@ -102,7 +102,7 @@ export default async function AdminBetaPage() {
                   <span className="mr-2 font-mono text-sm text-ink-3">#{i + 1}</span>
                   <Link
                     href={`/admin/suppliers/${s.supplier_id}`}
-                    className="rounded-sm font-medium text-brand underline decoration-1 hover:decoration-2"
+                    className="rounded-sm font-medium text-brand-ink underline decoration-1 hover:decoration-2"
                   >
                     {s.company_name}
                   </Link>

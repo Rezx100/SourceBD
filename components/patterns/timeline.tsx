@@ -22,8 +22,8 @@ function Dot({ m, late }: { m: Milestone; late: boolean }) {
   if (m.status === "done") return <CheckCircle size={20} weight="fill" className="shrink-0 text-ink-2" aria-hidden />;
   if (m.status === "now")
     return (
-      <span className="flex size-5 shrink-0 items-center justify-center rounded-full border-2 border-brand bg-brand-tint" aria-hidden>
-        <span className="size-2 rounded-full bg-brand" />
+      <span className="flex size-5 shrink-0 items-center justify-center rounded-full border-2 border-brand-ink bg-brand-tint" aria-hidden>
+        <span className="size-2 rounded-full bg-brand-ink" />
       </span>
     );
   return <span className={cn("size-5 shrink-0 rounded-full border-2 border-dashed", late ? "border-caution-icon" : "border-line-strong")} aria-hidden />;
@@ -68,12 +68,12 @@ export function Timeline({ items, today, className }: { items: Milestone[]; toda
       <div className="sm:hidden">
         {done.length ? (
           <details className="group">
-            <summary className="flex h-11 cursor-pointer list-none items-center justify-between rounded-md bg-subtle px-3 text-md text-ink-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+            <summary className="flex h-11 cursor-pointer list-none items-center justify-between rounded-md bg-subtle px-3 text-md text-ink-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
               <span>
                 {done.length} {done.length === 1 ? "milestone" : "milestones"} done · last {formatDay(lastDone?.on)}
               </span>
-              <span className="text-base font-medium text-brand underline decoration-1 [text-underline-position:from-font] group-open:hidden">Show</span>
-              <span className="hidden text-base font-medium text-brand underline decoration-1 [text-underline-position:from-font] group-open:inline">Hide</span>
+              <span className="text-base font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] group-open:hidden">Show</span>
+              <span className="hidden text-base font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] group-open:inline">Hide</span>
             </summary>
             <ol className="pt-4">
               {done.map((m, i) => (

@@ -92,7 +92,7 @@ export function Tr({ selected, className, ...rest }: ComponentProps<"tr"> & { se
       aria-selected={selected || undefined}
       className={cn(
         "group/row h-row [&>td]:border-b [&>td]:border-line",
-        selected ? "bg-brand-tint [&>td:first-child]:[box-shadow:inset_2px_0_0_theme(colors.brand)]" : "hover:bg-brand-wash",
+        selected ? "bg-brand-tint [&>td:first-child]:[box-shadow:inset_2px_0_0_theme(colors.brand-ink)]" : "hover:bg-brand-wash",
         className,
       )}
       {...rest}
@@ -107,7 +107,7 @@ export function Td({ align = "left", className, ...rest }: Omit<ComponentProps<"
 /** The name in a row: 14/500 ink, underlined while the row is hovered or focused. */
 export const rowLinkClass =
   "rounded-sm font-medium text-ink decoration-1 [text-underline-position:from-font] outline-none group-hover/row:underline hover:underline focus-visible:underline " +
-  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 /** The tick column: 40 wide, the box centred. Name the row: `label="Select Aboni Knitwear Ltd."`. */
 export function SelectCell({ label, mixed, header, ...rest }: Omit<ComponentProps<"input">, "type" | "size"> & { label: string; mixed?: boolean; header?: boolean }) {

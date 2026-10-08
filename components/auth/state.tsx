@@ -12,7 +12,7 @@ import { AuthLink, authLinkClass } from "./link";
 export function AuthBar({ lead, link, border }: { lead?: string; link: ReactNode; border?: boolean }) {
   return (
     <div className={cn("flex h-14 shrink-0 items-center justify-between px-4 sm:px-10", border && "border-b border-line")}>
-      <Link href="/" className="text-md font-semibold tracking-tight text-brand">
+      <Link href="/" className="text-md font-semibold tracking-tight text-brand-ink">
         SourceBD
       </Link>
       <div className="flex items-center gap-1.5 text-base">

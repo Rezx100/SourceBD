@@ -21,7 +21,7 @@ export function ContactForm() {
   if (state.sent) {
     return (
       <div role="status" className="flex items-start gap-3 rounded-lg border border-line bg-surface p-6">
-        <CheckCircle size={24} weight="fill" className="mt-0.5 shrink-0 text-brand" aria-hidden />
+        <CheckCircle size={24} weight="fill" className="mt-0.5 shrink-0 text-brand-ink" aria-hidden />
         <div className="flex flex-col gap-1">
           <p className="text-lg font-semibold text-ink">Sent to the founder.</p>
           <p className="text-md text-ink-2">We will reply to the email address you gave.</p>
@@ -86,11 +86,11 @@ export function ContactForm() {
         </Button>
         <p className="text-sm text-ink-3">
           We use these details only to reply. See the{" "}
-          <a href="/legal/privacy" className="font-medium text-brand underline decoration-1 [text-underline-position:from-font]">
+          <a href="/legal/privacy" className="font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]">
             privacy notice
           </a>
           . Prefer email? Write to{" "}
-          <a href={`mailto:${CONTACT_TO}`} className="font-medium text-brand underline decoration-1 [text-underline-position:from-font]">
+          <a href={`mailto:${CONTACT_TO}`} className="font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]">
             {CONTACT_TO}
           </a>
           .

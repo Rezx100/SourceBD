@@ -50,7 +50,7 @@ export function Select({
           fieldBox,
           "flex items-center justify-between text-left outline-none",
           size === "touch" ? "h-input-touch pl-3 pr-2.5 text-md" : "h-control pl-2.5 pr-2 text-base",
-          "data-[state=open]:border-brand data-[state=open]:[box-shadow:inset_0_0_0_1px_theme(colors.brand)] focus:border-brand focus:[box-shadow:inset_0_0_0_1px_theme(colors.brand)]",
+          "data-[state=open]:border-brand-ink data-[state=open]:[box-shadow:inset_0_0_0_1px_theme(colors.brand-ink)] focus:border-brand-ink focus:[box-shadow:inset_0_0_0_1px_theme(colors.brand-ink)]",
           "aria-[invalid=true]:border-danger aria-[invalid=true]:[box-shadow:inset_0_0_0_1px_theme(colors.danger)]",
           className,
         )}
@@ -75,7 +75,7 @@ export function Select({
               >
                 <S.ItemText>{o.label}</S.ItemText>
                 <S.ItemIndicator>
-                  <Check size={16} className="text-brand" aria-hidden />
+                  <Check size={16} className="text-brand-ink" aria-hidden />
                 </S.ItemIndicator>
               </S.Item>
             ))}

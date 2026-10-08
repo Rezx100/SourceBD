@@ -53,7 +53,7 @@ export function PhoneProductsHead({ rows, tab }: { rows: readonly ProductRow[] |
       <div className="flex items-center justify-between gap-2 pr-2">
         <p className="text-sm text-ink-3">{productsCaption(rows)}</p>
         {tabs ? (
-          <Link href={addHref} prefetch={false} className="flex h-11 items-center px-2 text-md font-semibold text-brand outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand">
+          <Link href={addHref} prefetch={false} className="flex h-11 items-center px-2 text-md font-semibold text-brand-ink outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
             Add product
           </Link>
         ) : null}
@@ -70,8 +70,8 @@ export function PhoneProductsHead({ rows, tab }: { rows: readonly ProductRow[] |
                 prefetch={false}
                 aria-current={on ? "page" : undefined}
                 className={cn(
-                  "flex h-11 shrink-0 items-center rounded-md border px-3.5 text-md outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
-                  on ? "border-brand bg-brand-tint font-semibold text-brand" : "border-line font-medium text-ink-2",
+                  "flex h-11 shrink-0 items-center rounded-md border px-3.5 text-md outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
+                  on ? "border-brand-ink bg-brand-tint font-semibold text-brand-ink" : "border-line font-medium text-ink-2",
                 )}
               >
                 {t.label}

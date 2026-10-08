@@ -380,7 +380,7 @@ export function RfqComposer({
     <>
       {page ? (
         <header className="flex flex-col gap-3 border-b border-line px-4 py-4 sm:px-6">
-          <Link href={closeHref} prefetch={false} className="inline-flex min-h-11 w-fit items-center gap-1.5 rounded-sm text-base font-medium text-ink-2 outline-none hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:min-h-6">
+          <Link href={closeHref} prefetch={false} className="inline-flex min-h-11 w-fit items-center gap-1.5 rounded-sm text-base font-medium text-ink-2 outline-none hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:min-h-6">
             <ArrowLeft size={16} className="shrink-0" aria-hidden />
             {backLabel ?? "Back"}
           </Link>
@@ -390,7 +390,7 @@ export function RfqComposer({
         <header className="flex items-start justify-between gap-3 border-b border-line px-4 py-4 sm:px-6">
           <div className="flex min-w-0 flex-col gap-1">
             {backHref ? (
-              <Link href={backHref} scroll={false} prefetch={false} className="inline-flex w-fit items-center gap-1 rounded-sm text-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+              <Link href={backHref} scroll={false} prefetch={false} className="inline-flex w-fit items-center gap-1 rounded-sm text-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
                 Record
               </Link>
             ) : null}
@@ -567,11 +567,11 @@ export function RfqComposer({
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs text-ink-3">Message · {messageEdited === null ? "from your RFQ template" : "edited here"}</p>
                 {editing ? (
-                  <button type="button" onClick={() => setEditing(false)} className="min-h-6 rounded-sm text-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] hover:decoration-2 max-sm:min-h-11">
+                  <button type="button" onClick={() => setEditing(false)} className="min-h-6 rounded-sm text-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] hover:decoration-2 max-sm:min-h-11">
                     Done
                   </button>
                 ) : (
-                  <button type="button" onClick={() => setEditing(true)} className="min-h-6 rounded-sm text-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] hover:decoration-2 max-sm:min-h-11">
+                  <button type="button" onClick={() => setEditing(true)} className="min-h-6 rounded-sm text-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] hover:decoration-2 max-sm:min-h-11">
                     Edit
                   </button>
                 )}
@@ -580,7 +580,7 @@ export function RfqComposer({
                 <>
                   <textarea aria-label="Message" value={message} onChange={(e) => setMessageEdited(e.target.value)} rows={8} maxLength={8000} className={textarea} />
                   {messageEdited !== null ? (
-                    <button type="button" onClick={() => setMessageEdited(null)} className="min-h-6 w-fit rounded-sm text-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] hover:decoration-2 max-sm:min-h-11">
+                    <button type="button" onClick={() => setMessageEdited(null)} className="min-h-6 w-fit rounded-sm text-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] hover:decoration-2 max-sm:min-h-11">
                       Reset to template
                     </button>
                   ) : null}
@@ -599,7 +599,7 @@ export function RfqComposer({
               <p className="font-medium">
                 {listAnd(leftoverPlaceholders(message).map((l) => l.replace(/^your /, "")))} {leftoverPlaceholders(message).length === 1 ? "is" : "are"} missing, so it shows in [brackets].
               </p>
-              <Link href="/app/settings/workspace" prefetch={false} className="inline-flex min-h-6 w-fit items-center text-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] max-sm:min-h-11">
+              <Link href="/app/settings/workspace" prefetch={false} className="inline-flex min-h-6 w-fit items-center text-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] max-sm:min-h-11">
                 Add it in Settings
               </Link>
             </div>

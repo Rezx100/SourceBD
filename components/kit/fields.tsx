@@ -107,7 +107,7 @@ export function Checkbox({
           className={cn(
             "peer absolute inset-0 m-0 size-full cursor-pointer appearance-none border border-line-strong bg-surface",
             touch ? "rounded-sm" : "rounded-[3px]",
-            "[&:not(:checked):hover]:border-ink-2 [&:not(:checked):hover]:bg-subtle checked:border-brand checked:bg-brand group-data-[mixed]/box:border-brand group-data-[mixed]/box:bg-brand",
+            "[&:not(:checked):hover]:border-ink-2 [&:not(:checked):hover]:bg-subtle checked:border-brand-ink checked:bg-brand-ink group-data-[mixed]/box:border-brand-ink group-data-[mixed]/box:bg-brand-ink",
             "disabled:cursor-not-allowed disabled:border-line disabled:bg-sunken aria-[invalid=true]:border-2 aria-[invalid=true]:border-danger",
             ring,
           )}
@@ -136,7 +136,7 @@ export function Radio({
         className={cn(
           "m-0 shrink-0 cursor-pointer appearance-none rounded-full border border-line-strong bg-surface",
           touch ? "size-5 checked:border-[6px]" : "size-4 checked:border-[5px]",
-          "checked:border-brand disabled:cursor-not-allowed disabled:border-line disabled:bg-sunken",
+          "checked:border-brand-ink disabled:cursor-not-allowed disabled:border-line disabled:bg-sunken",
           ring,
         )}
         {...rest}
@@ -168,7 +168,7 @@ export function Switch({
         touch
           ? "h-8 w-[52px] before:left-[3px] before:top-[3px] before:size-[26px] checked:before:translate-x-5"
           : "h-[18px] w-8 before:left-0.5 before:top-0.5 before:size-3.5 checked:before:translate-x-3.5",
-        "checked:bg-brand disabled:cursor-not-allowed disabled:bg-sunken disabled:before:border disabled:before:border-line",
+        "checked:bg-brand-ink disabled:cursor-not-allowed disabled:bg-sunken disabled:before:border disabled:before:border-line",
         ring,
         !children && className,
       )}

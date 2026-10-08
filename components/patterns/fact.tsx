@@ -5,7 +5,7 @@
 
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { SourceLine } from "./source-mark";
+import { PendingMark, SourceLine } from "./source-mark";
 
 export type FactValue = {
   value: ReactNode;
@@ -13,6 +13,8 @@ export type FactValue = {
   mono?: boolean;
   /** "From BGMEA · checked 24 Jul 2026". Missing means the fact has no source line yet. */
   source?: ReactNode;
+  /** The record holds the value but no register is linked to it yet: the pending mark, never a sentence. */
+  pending?: boolean;
 };
 
 /** `<dl>` of fact rows. Rows are at least 56 tall on desktop. */
@@ -43,7 +45,12 @@ export function FactRow({
           values.map((v, i) => (
             <span key={i} className="flex flex-col gap-0.5">
               <span className={cn("text-md font-medium text-ink sm:text-base", v.mono && "font-mono")}>{v.value}</span>
-              {v.source ? <SourceLine>{v.source}</SourceLine> : null}
+              {v.source || v.pending ? (
+                <span className="flex items-center gap-1.5">
+                  {v.pending ? <PendingMark /> : null}
+                  {v.source ? <SourceLine>{v.source}</SourceLine> : null}
+                </span>
+              ) : null}
             </span>
           ))
         ) : (

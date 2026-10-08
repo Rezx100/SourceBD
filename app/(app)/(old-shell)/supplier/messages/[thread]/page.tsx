@@ -118,7 +118,7 @@ function ThreadListPane({
               href={`/supplier/messages/${t.id}`}
               aria-current={t.id === activeId ? "page" : undefined}
               className={cn(
-                "flex flex-col px-3 py-2.5 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand",
+                "flex flex-col px-3 py-2.5 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus",
                 t.id === activeId && "bg-brand-tint",
               )}
             >

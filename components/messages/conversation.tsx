@@ -7,7 +7,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { listHref, threadHref, threadSub, type ListState, type RfqStrip, type ThreadRow } from "./words";
 
-const textLink = "rounded-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+const textLink = "rounded-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 export function ThreadHead({ thread, state, recordOpen }: { thread: ThreadRow; state: ListState; recordOpen: boolean }) {
   return (
@@ -16,7 +16,7 @@ export function ThreadHead({ thread, state, recordOpen }: { thread: ThreadRow; s
         href={listHref(state)}
         prefetch={false}
         aria-label="Back to messages"
-        className="flex size-11 shrink-0 items-center justify-center rounded-sm text-ink outline-none hover:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand md:hidden"
+        className="flex size-11 shrink-0 items-center justify-center rounded-sm text-ink outline-none hover:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus md:hidden"
       >
         <ArrowLeft size={24} aria-hidden />
       </Link>

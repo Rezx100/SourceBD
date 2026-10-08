@@ -150,11 +150,11 @@ export function TwoStepCard({ factors }: { factors: Factor[] | null }) {
   return (
     <section aria-label="Two-step sign-in" className="flex flex-col gap-3 rounded-lg border border-line p-5 max-md:p-4">
       <div className="flex items-start gap-3">
-        <Shield size={20} className={on ? "mt-0.5 shrink-0 text-brand" : "mt-0.5 shrink-0 text-caution-icon"} aria-hidden />
+        <Shield size={20} className={on ? "mt-0.5 shrink-0 text-brand-ink" : "mt-0.5 shrink-0 text-caution-icon"} aria-hidden />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <h2 className="flex items-center gap-2 text-md font-semibold text-ink">
             Two-step sign-in
-            {factors ? <span className={on ? "text-sm font-medium text-brand" : "text-sm font-medium text-ink-3"}>{on ? "On" : "Off"}</span> : null}
+            {factors ? <span className={on ? "text-sm font-medium text-brand-ink" : "text-sm font-medium text-ink-3"}>{on ? "On" : "Off"}</span> : null}
           </h2>
           <p className="text-base text-ink-2">{factors === null ? "We couldn't load this setting just now. Nothing was changed." : on ? SECURITY_COPY.twoStepOn : SECURITY_COPY.twoStepOff}</p>
           {on ? <p className="pt-1 text-sm text-ink-3">{SECURITY_COPY.lostPhone}</p> : null}

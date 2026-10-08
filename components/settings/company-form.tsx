@@ -55,7 +55,7 @@ export function CompanyForm({ initial }: { initial: WorkspaceDoc }) {
         <div className="flex flex-wrap items-center gap-3">
           <Segmented name="company_type" label={COMPANY_LABELS.company_type} value={v.company_type} onValueChange={set("company_type")} options={typeValues.map((t) => ({ value: t, label: companyTypeWord(t) }))} className="max-w-full flex-wrap" />
           {v.company_type ? (
-            <button type="button" onClick={() => set("company_type")("")} className="flex h-8 items-center rounded-sm px-1 text-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand max-md:h-11">
+            <button type="button" onClick={() => set("company_type")("")} className="flex h-8 items-center rounded-sm px-1 text-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus max-md:h-11">
               Clear
             </button>
           ) : null}

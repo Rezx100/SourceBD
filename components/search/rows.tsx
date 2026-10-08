@@ -17,7 +17,7 @@ export function LinkRow({ href, label, count }: { href: string; label: string; c
       <Link
         href={href}
         prefetch={false}
-        className="flex min-h-touch items-center justify-between gap-3 py-2.5 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand sm:min-h-11 sm:px-4 sm:py-0"
+        className="flex min-h-touch items-center justify-between gap-3 py-2.5 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus sm:min-h-11 sm:px-4 sm:py-0"
       >
         <span className="text-md font-medium text-ink sm:text-base">{label}</span>
         {count}

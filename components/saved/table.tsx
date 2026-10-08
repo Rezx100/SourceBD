@@ -32,7 +32,7 @@ export function SavedTable({ items, currentSlug }: { items: readonly SavedItem[]
   const sel = useSelection();
   const { remove } = useRemove();
   return (
-    <div role="region" aria-label="Saved suppliers table" tabIndex={0} className="relative min-w-0 overflow-x-auto rounded-md border border-line outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand">
+    <div role="region" aria-label="Saved suppliers table" tabIndex={0} className="relative min-w-0 overflow-x-auto rounded-md border border-line outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
       <Table className="min-w-[960px]">
         <thead>
           <tr>
@@ -72,7 +72,7 @@ export function SavedTable({ items, currentSlug }: { items: readonly SavedItem[]
                 aria-label={i.name}
                 aria-current={current ? "true" : undefined}
                 selected={selected || current}
-                className="outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand"
+                className="outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
               >
                 <SelectCell label={`Select ${i.name}`} checked={selected} disabled={!sel.interactive} onChange={() => sel.toggle(i.id)} />
                 <Td>

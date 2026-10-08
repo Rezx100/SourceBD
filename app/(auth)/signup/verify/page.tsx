@@ -34,7 +34,7 @@ export default async function VerifyPage() {
         <ResendLine />
         <form action={changeSignupEmail} className="flex items-baseline gap-1.5 text-base text-ink-3">
           Wrong email?
-          <button type="submit" className="font-medium text-brand underline decoration-1 [text-underline-position:from-font] max-sm:min-h-11">
+          <button type="submit" className="font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] max-sm:min-h-11">
             Change it
           </button>
         </form>
