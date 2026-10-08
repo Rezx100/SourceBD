@@ -318,7 +318,7 @@ describe("/app/suppliers/[slug]/lines/[hs] — the line page", () => {
     assert.match(out, /<h1 [^>]*>Men&#x27;s or boys&#x27; shirts, knitted or crocheted<\/h1>/);
     assert.match(out, /<a [^>]*aria-label="Back to the record"[^>]*href="\/app\/suppliers\/aboni-knitwear\?tab=products"/);
     assert.match(out, /href="\/app\/discover\?hs=6105"[^>]*>Exporters of 6105<span [^>]*>· 1,634<\/span>/);
-    assert.match(out, /<a [^>]*href="\/app\/rfqs\/new\?supplier=[^"&]+&amp;hs=6105"[^>]*>Send RFQ for this line<\/a>/);
+    assert.match(out, /<a [^>]*href="\/app\/rfqs\/new\?supplier=[^"&]+&amp;hs=6105&amp;back=[^"]+"[^>]*>Send RFQ for this line<\/a>/);
     assert.doesNotMatch(out, /data-sheet-scroll|animate-sheet-in|bg-surface-sunken|text-ink-(?:muted|subtle)/, "a class of the old kit");
   });
 
@@ -817,6 +817,14 @@ describe("/app/saved?rfq= — the composer beside the saved list", () => {
       currentPath = "/app/discover";
     }
   };
+
+  it("?open=<slug>&rfq=<id> (the full page's Send RFQ, round 3 item 1): Close returns to the record beside the list", async () => {
+    const out = html(await saved({ open: "aboni-knitwear", rfq: ABONI_ID }));
+    const pane = out.search(/<section data-record-pane="" aria-label="New RFQ"/);
+    assert.ok(pane > -1, "no composer in the pane");
+    const close = /<a\b[^>]*aria-label="Close"[^>]*href="([^"]+)"|<a\b[^>]*href="([^"]+)"[^>]*aria-label="Close"/.exec(out.slice(pane));
+    assert.equal((close?.[1] ?? close?.[2] ?? "").replace(/&amp;/g, "&"), "/app/saved?open=aboni-knitwear");
+  });
 
   it("?rfq=<id> draws the composer in the pane beside the saved list, naming the target; Close is the list", async () => {
     const out = html(await saved({ rfq: ABONI_ID }));
@@ -1917,6 +1925,15 @@ describe("Send RFQ keeps the search (critique of 8 Oct 2026, round 3, item 1)", 
     assert.equal(send.searchParams.get("hs_line"), "6105");
     assert.ok(send.searchParams.get("rfq"));
     assert.match(out, /aria-label="Back to the record"[^>]*href="\/app\/suppliers\/aboni-knitwear\?tab=products&amp;back=%2Fapp%2Fdiscover%3Fq%3Dknit"/);
+  });
+
+  it("a list with no composer pane, or a deep link to a line, falls back to the composer page", async () => {
+    given({ profile: PROFILE, hscodes: HS });
+    const out = html(await page(route("app/(app)/app/suppliers/[slug]/page.js").default, { slug: "aboni-knitwear" }, { back: "/app/compliance" }));
+    assert.match(hrefOf(out, /^Send RFQ$/), /^\/app\/rfqs\/new\?supplier=[^&]+&back=%2Fapp%2Fsuppliers%2Faboni-knitwear%3Fback%3D%252Fapp%252Fcompliance$/);
+    given({ profile: PROFILE, hscodes: HS });
+    const line = html(await page(route("app/(app)/app/suppliers/[slug]/lines/[hs]/page.js").default, { slug: "aboni-knitwear", hs: "6105" }, {}));
+    assert.match(hrefOf(line, /^Send RFQ for this line$/), /^\/app\/rfqs\/new\?supplier=[^&]+&hs=6105&back=%2Fapp%2Fsuppliers%2Faboni-knitwear%2Flines%2F6105$/);
   });
 
   it("a deep link with no list opens the composer page, and its Close comes back to the record it left", async () => {

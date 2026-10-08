@@ -113,10 +113,10 @@ export default async function NewRfqPage({
   const targets = ids.map((id) => rows.find((r) => r.id === id)).filter((r): r is SupplierRow => Boolean(r)).map(targetFromRow);
   const prefill: ComposerPrefill = draft ? draft.prefill : hs ? { hs, title: `HS ${hs} · ${hsBuyerLabel(hs, null)}` } : product;
   // One supplier: Close returns to its record. Several, or a product: the RFQ list.
-  // `&back=` is the record page that sent the buyer here, with its tab: Close returns to it as it was.
+  // `&back=` is the record (or line) page that sent the buyer here: Close returns to it as it was.
   const back = backToList(sp.back);
   const own = targets.length === 1 ? `/app/suppliers/${targets[0]!.slug}` : null;
-  const closeHref = own ? (back && (back === own || back.startsWith(`${own}?`)) ? back : own) : "/app/rfqs";
+  const closeHref = own ? (back && (back === own || back.startsWith(`${own}?`) || back.startsWith(`${own}/lines/`)) ? back : own) : "/app/rfqs";
   return (
     <RfqComposer
       targets={targets}

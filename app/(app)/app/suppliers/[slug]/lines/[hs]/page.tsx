@@ -50,7 +50,13 @@ export default async function ProductLinePage({
   try {
     model = await loadRecordLine(supabase, slug, code, new Date(), {
       backHref: recordHref,
-      rfqHref: back ? (id, line) => `${rfqHref(listWithRecord(back, slug), [id])}&hs_line=${line}` : undefined,
+      // Beside the list with the line; else the composer page, whose Close comes back to this line.
+      rfqHref: (id, line) => {
+        const list = back ? listWithRecord(back, slug) : null;
+        if (list) return `${rfqHref(list, [id])}&hs_line=${line}`;
+        const self = `/app/suppliers/${slug}/lines/${line}${allLines || back ? `?${new URLSearchParams([...(allLines ? [["lines", "all"]] : []), ...(back ? [["back", back]] : [])])}` : ""}`;
+        return `/app/rfqs/new?supplier=${id}&hs=${line}&back=${encodeURIComponent(self)}`;
+      },
     });
   } catch (err) {
     // A slow read sends the reader to the record, which has its own retry

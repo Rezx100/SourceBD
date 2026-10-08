@@ -59,11 +59,21 @@ export default async function SupplierRecordPage({
   // (PRODUCT.md principle 4: the buyer never loses their search); a true deep link has no list, so it
   // opens the composer page, whose Close comes back here. A line carries the list in and out.
   const back = backToList(sp.back);
+  const list = back ? listWithRecord(back, slug) : null;
   const here = (path: string, q: URLSearchParams) => {
     if (back) q.set("back", back);
     const qs = q.toString();
     return `${path}${qs ? `?${qs}` : ""}`;
   };
+  // This page as it is drawn (tab, expanded lines, site, list), for the composer page's Close.
+  const selfHref = here(
+    `/app/suppliers/${slug}`,
+    new URLSearchParams([
+      ...(parseTab(sp.tab) !== "overview" ? [["tab", parseTab(sp.tab)]] : []),
+      ...(allLines ? [["lines", "all"]] : []),
+      ...(typeof sp.site === "string" ? [["site", sp.site]] : []),
+    ]),
+  );
   const supabase = await createSupabaseServerClient();
   // The layout draws the shell around every state this page returns, the
   // timeout state included.
@@ -78,10 +88,7 @@ export default async function SupplierRecordPage({
       // A line opened from the expanded grid comes back to it: without this,
       // Back from line 9 of "All N lines" landed on six tiles without it.
       lineHref: allLines || back ? (hs) => here(`/app/suppliers/${slug}/lines/${hs}`, new URLSearchParams(allLines ? { lines: "all" } : {})) : undefined,
-      rfqHref: (id) =>
-        back
-          ? rfqHref(listWithRecord(back, slug), [id])
-          : `/app/rfqs/new?supplier=${id}&back=${encodeURIComponent(`/app/suppliers/${slug}${parseTab(sp.tab) !== "overview" ? `?tab=${parseTab(sp.tab)}` : ""}`)}`,
+      rfqHref: (id) => (list ? rfqHref(list, [id]) : `/app/rfqs/new?supplier=${id}&back=${encodeURIComponent(selfHref)}`),
     });
   } catch (err) {
     // A slow read is not a missing record. The page this replaced said so and
