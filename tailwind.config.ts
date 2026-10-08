@@ -137,12 +137,17 @@ const config: Config = {
       // (CSS only, so no flash and no script), and inside a night scene, which
       // is dark in either theme. Every page without the attribute stays light.
       // A night scene keeps the page's own brand fill (founder's video, 7 Oct 2026: the hero's button must be the
-      // nav's button, the same green): those variables are not set there, so they inherit the theme's.
-      const night = { ...Object.fromEntries(Object.entries(colorVars(dark)).filter(([name]) => !NIGHT_INHERITS.includes(name))), ...paneMaterial.dark, "color-scheme": "dark" };
+      // nav's button, the same green): those variables are not set there, so they inherit the theme's. The dark
+      // theme itself sets every one, so in a dark page the nav, the hero and the close share the dark set's green.
+      const darkSet = { ...colorVars(dark), ...paneMaterial.dark, "color-scheme": "dark" };
+      const night = Object.fromEntries(Object.entries(darkSet).filter(([name]) => !NIGHT_INHERITS.includes(name)));
       addBase({
         ":root": { ...colorVars(light), ...paneMaterial.light },
-        "@media (prefers-color-scheme: dark)": { ":root:has([data-theme-auto])": night },
+        "@media (prefers-color-scheme: dark)": { ":root:has([data-theme-auto])": darkSet },
         '[data-ground="night"]': night,
+        // The product's own pieces, staged in the film on a night ground: the app has no dark theme, so a window
+        // of it is light in either theme and inside any night scene.
+        '[data-ground="day"]': { ...colorVars(light), ...paneMaterial.light, "color-scheme": "light" },
       });
     }),
   ],

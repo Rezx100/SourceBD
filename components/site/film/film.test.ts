@@ -108,6 +108,8 @@ describe("what Tailwind emits", () => {
     assert.match(night, /--ds-surface: 16 18 20;/);
     assert.match(night, /--ds-ink: 242 244 246;/);
     assert.match(night, /--ds-brand-ink: 123 211 137;/);
+    assert.match(night, /--ds-brand: 111 207 127;/, "the dark theme sets its own button green, which its night scenes then inherit");
+    assert.match(night, /--ds-brand-on: 16 18 20;/);
     assert.match(night, /--pane-tint: 0\.7;/);
     assert.match(night, /color-scheme: dark/);
     assert.match(css, /html \{ color-scheme: light;/, "every page without the attribute stays light");
@@ -261,7 +263,7 @@ describe("the home page, film off and film on", () => {
     assert.equal((on.match(/data-place="true"/g) ?? []).length, DISTRICTS.length);
     assert.match(on, /data-city-factory="true"[^>]*>[\s\S]*?Mondol Fabrics Ltd\.[\s\S]*?the area, not the building/, "the block is an area, not a building, and says so");
     assert.doesNotMatch(on, /data-planet-callouts|data-planet-leads|data-planet-thread|data-map-thread|data-map=|bkoi/);
-    assert.deepEqual([...on.matchAll(/data-scene="([a-z]+)"/g)].map((m) => m[1]), ["opening", "planet", "sources", "order", "promises", "close"]);
+    assert.deepEqual([...on.matchAll(/data-scene="([a-z]+)"/g)].map((m) => m[1]), ["opening", "planet", "sources", "proof", "watch", "order", "promises", "close"]);
   });
 
   it("the lite tier's planet can stick: nothing between its stage and the page clips overflow", () => {

@@ -18,6 +18,7 @@ export type Fact = {
 
 export const NAME = "Mondol Fabrics Ltd.";
 export const LINE = "Factory · Gazipur";
+export const LINE_FULL = "Factory · Kashimpur, Gazipur";
 
 export const SOURCES: Fact = { label: "Sources", value: "5 sources", marks: ["EPB", "RSC", "BGMEA", "BKMEA", "GOTS"], mono: "EPB 2798 · RSC 10861 · BGMEA 4002 · BKMEA 1004-B/2006 · GOTS-19020" };
 export const BGMEA: Fact = { label: "BGMEA membership", value: "General member · reg. no. 4002", from: "From BGMEA · checked 24 Jul 2026", marks: ["BGMEA"] };
