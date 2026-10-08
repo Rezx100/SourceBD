@@ -32,7 +32,8 @@ export function SecondFigure({ short }: { short: string }) {
   if (!m || !define(m[2]!)) return <>{short}</>;
   return (
     <>
-      {m[1]} <Define term={m[2]!} />
+      {`${m[1]} `}
+      <Define term={m[2]!} />
     </>
   );
 }
