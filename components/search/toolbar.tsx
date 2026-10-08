@@ -182,11 +182,12 @@ export function ResultsToolbar({
       </div>
       {/* The standing filter sits at the bar's end, as it does on the landing, not between the filters and the actions. */}
       <div className="ml-auto flex shrink-0 items-center gap-2">
-        <SanctionedStanding state={state} hrefFor={hrefFor} />
+        {/* With another filter on, the line lives in the Filters pane's first row (round 3, item 7): the bar was eight controls. */}
+        {on > (state.q ? 1 : 0) ? null : <SanctionedStanding state={state} hrefFor={hrefFor} />}
       {bare ? null : (
       <>
-        {/* Eight controls on one line was too many (critique of 8 Oct 2026, item 7): under 1280 Save search is in the ⋯ menu. */}
-        <Link href={saveHref} prefetch={false} scroll={false} title="Save search" className={buttonClass({ kind: "secondary", className: "px-2 max-xl:hidden" })}>
+        {/* Eight controls on one line was too many (critique of 8 Oct 2026, item 7, and round 3): under 1536 Save search is in the ⋯ menu. */}
+        <Link href={saveHref} prefetch={false} scroll={false} title="Save search" className={buttonClass({ kind: "secondary", className: "px-2 max-2xl:hidden" })}>
           <BookmarkSimple size={16} className="shrink-0 text-ink-2" aria-hidden />
           <span className={cn("pr-1", words)}>Save search</span>
         </Link>

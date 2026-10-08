@@ -65,10 +65,11 @@ export function ResultsTable({
   currentSlug?: string | null;
   sort: ResultSort;
   /** The page sorted by Workers and by Sources: strings, since this is a client component and the page a server one. */
-  sortHrefs: { workers: string; sources: string };
+  sortHrefs: { workers: string; sources: string; name?: string; cert_expiry?: string };
 }) {
   const sel = useSelection();
-  const state = (key: "workers" | "sources"): SortState => (sort.key === key ? sort.dir : "none");
+  // Every column the search can order by sorts from its head (round 3, item 7); Type and Location have no sort in the search.
+  const state = (key: "workers" | "sources" | "name" | "cert_expiry"): SortState => (sort.key === key ? sort.dir : "none");
   const { save, toast } = useRowSave();
   // Not a tab stop (critique of 8 Oct 2026, item 7: two Tabs before the first name): the rows are.
   return (
@@ -85,7 +86,9 @@ export function ResultsTable({
               disabled={!sel.interactive}
               onChange={sel.toggleAllOnPage}
             />
-            <Th className="w-80">Supplier</Th>
+            <Th className="w-80" sort={sortHrefs.name ? state("name") : undefined} href={sortHrefs.name}>
+              Supplier
+            </Th>
             <Th className="w-[120px]">Type</Th>
             <Th className="w-[140px]">Location</Th>
             <Th align="right" className="w-[110px]" sort={state("workers")} href={sortHrefs.workers}>
@@ -94,7 +97,9 @@ export function ResultsTable({
             <Th align="right" className="w-[90px]" sort={state("sources")} href={sortHrefs.sources} title={SOURCES_TITLE}>
               Sources
             </Th>
-            <Th>Certificates</Th>
+            <Th sort={sortHrefs.cert_expiry ? state("cert_expiry") : undefined} href={sortHrefs.cert_expiry} title={sortHrefs.cert_expiry ? "Sort by the certificate that expires soonest" : undefined}>
+              Certificates
+            </Th>
             <th scope="col" className="sticky top-0 z-raised h-row-head w-10 border-b border-line bg-subtle p-0">
               <span className="sr-only">Actions</span>
             </th>

@@ -55,10 +55,11 @@ describe("one certificate component", () => {
     assert.equal(full, "Expired 29 Sep 2026");
     assert.equal(cert.short, certShort("2026-09-29", TODAY));
     assert.match(out, new RegExp(`title="WRAP expired 29 Sep 2026 · 2 more certificates"><span class="sr-only">3 certificates: WRAP expired 29 Sep 2026;`));
-    assert.match(out, /<span class="inline-flex whitespace-nowrap rounded-md [^"]*">Expired 29 Sep<\/span>/, "the pill is 6px and holds the short words");
+    // Round 3, item 7: the pill carries the full sentence in its title too.
+    assert.match(out, /<span title="WRAP expired 29 Sep 2026" class="inline-flex whitespace-nowrap rounded-md [^"]*">Expired 29 Sep<\/span>/, "the pill is 6px and holds the short words");
     assert.doesNotMatch(out, /rounded-full/);
-    // The full date is never printed twice: once in the title, once for a screen reader, and the pill says the short form.
-    assert.equal((out.match(/29 Sep 2026/g) ?? []).length, 2);
+    // The full date is never printed: it is in the cell's title, the pill's title (round 3, item 7) and the screen reader's sentence; the pill says the short form.
+    assert.equal((out.match(/29 Sep 2026/g) ?? []).length, 3);
   });
 
   it("the record's chip shares the radius: every chip in the kit is 6px, none 4px or a pill", () => {

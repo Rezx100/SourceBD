@@ -18,7 +18,7 @@ import { Define, buttonClass, ring } from "@/components/kit";
 import { LockedContact, REFUSAL, SanctionBanner, onFileWords } from "@/components/patterns";
 import type { SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
-import { CertificatesPanel, OverviewPanel, ProductsPanel, RecordRfqs, SafetyPanel, SitesPanel, SourcesPanel } from "./panels";
+import { CertificatesPanel, NeedsLookAside, OverviewPanel, ProductsPanel, RecordRfqs, SafetyPanel, SitesPanel, SourcesPanel } from "./panels";
 import { SourceCheckListener } from "@/components/onboarding/source-check";
 import { RecordSave } from "./save-button";
 import { SectionTabs } from "./section-tabs";
@@ -126,7 +126,10 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
   const Title = page ? "h1" : "h2";
   const level = page ? "h2" : "h3";
   // The Sources cell opens the Sources tab: the page says its sources once, there (critique of 8 Oct 2026, item 5).
-  const cells = summaryCells(model, today).map((c) => (c.key === "sources" ? { ...c, href: `${tabHref("sources")}#record-sources` } : c));
+  // The two counts with a tab of their own link to it, one grammar (critique of 8 Oct 2026, round 3, item 7).
+  const cells = summaryCells(model, today).map((c) =>
+    c.key === "sources" ? { ...c, href: `${tabHref("sources")}#record-sources` } : c.key === "certificates" && model.certs.length > 0 ? { ...c, href: `${tabHref("certificates")}#record-certificates` } : c,
+  );
   const list = model.sanctions[0] ?? null;
   const listName = list?.list ?? "sanctions list";
   const expandHref = backHref ? `${model.fullHref}${model.fullHref.includes("?") ? "&" : "?"}back=${encodeURIComponent(backHref)}` : model.fullHref;
@@ -229,7 +232,7 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
             <div key={t.id} id={`record-${t.id}`} role="region" aria-label={t.label} className="scroll-mt-[var(--record-offset,0px)]">
               {t.id === "overview" ? (
                 <div className="flex flex-col gap-5">
-                  <OverviewPanel model={model} today={today} level={level} />
+                  <OverviewPanel model={model} today={today} level={level} lookAside={page} />
                   <RecordRfqs model={model} level={level} />
                 </div>
               ) : t.id === "certificates" ? (
@@ -253,6 +256,7 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
           // critique of 7 Oct 2026: four screens of facts beside a card that fits in one).
           <aside aria-label="Contact and sources" className="hidden w-details shrink-0 flex-col gap-4 pt-1 lg:sticky lg:top-[var(--record-offset,0px)] lg:flex lg:self-start">
             <Contact model={model} level={level} />
+            <NeedsLookAside model={model} today={today} level={level} />
           </aside>
         ) : null}
       </div>

@@ -649,7 +649,7 @@ describe("/app/messages/[thread]", () => {
     assert.match(out.html, new RegExp(`href="/app/messages/${T3}"[^>]*>Hide record`));
     assert.match(out.html, new RegExp(`href="/app/messages/${T3}"[^>]*aria-label="Close record"|aria-label="Close record"[^>]*href="/app/messages/${T3}"`));
     assert.match(text(out.html), /Your RFQ in this conversation French terry hoodies 10,000 pieces · ship by 15 Oct 2026 · sent 18 Jul 2026 Waiting for quote View RFQ/);
-    assert.match(text(out.html), /Email 1 on file · Phone 6 on file · Website on file · Contact person 1 on file · locked/);
+    assert.match(text(out.html), /1 email on file · 6 phone numbers on file · Website on file · 1 contact person on file · locked/);
     assert.match(out.html, /href="\/app\/suppliers\/aboni-knitwear/, "Open full record");
     assert.equal(rpcCalls.find((c) => c.fn === "buyer_supplier_profile")?.args?.p_slug, "aboni-knitwear");
     for (const key of ["email_primary", "phones", "contact_name", "contact_role"]) assert.ok(!out.html.includes(key), `${key} reached the HTML`);

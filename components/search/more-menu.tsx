@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from "react";
 import { IconButton, Menu, MenuItem, Toast } from "@/components/kit";
 import { runExport, saveBlob } from "@/lib/dashboard/selection";
 
-export function MoreMenu({ exportHref, total, saveHref }: { exportHref: string; total: number | null; /** Save search lives here too: under 1280 the bar folds its button away, and beside a pane the bar is icons. */ saveHref?: string }) {
+export function MoreMenu({ exportHref, total, saveHref }: { exportHref: string; total: number | null; /** Save search lives here too: under 1536 the bar folds its button away, and beside a pane the bar is icons. */ saveHref?: string }) {
   const [said, setSaid] = useState("");
   const running = useRef(false);
   useEffect(() => {

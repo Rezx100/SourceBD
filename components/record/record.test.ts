@@ -14,7 +14,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { buildSheet } from "@/lib/dashboard/build-models";
 import { TODAY, aboniInput, arFashionInput, longestNameInput, sanctionedInput, zaheenSampleInput } from "@/lib/dashboard/fixtures";
 import type { LocationRow, SupplierSheetModel } from "@/lib/dashboard/models";
-import { rankCerts } from "@/components/patterns";
+import { onFileWords, rankCerts } from "@/components/patterns";
 import { GLOSSARY, define } from "@/lib/dashboard/glossary";
 import { tierWords } from "@/lib/dashboard/source-tiers";
 import { RecordView } from "@/components/record/record-view";
@@ -253,19 +253,19 @@ describe("the view's rules", () => {
 
   it("says the details are locked from the counts alone, and nothing when the count could not be read", () => {
     const out = text(view(model(), { mode: "page" }));
-    assert.match(out, /Email 1 on file · Phone 6 on file · Website on file · Contact person 1 on file/);
+    assert.match(out, /1 email on file · 6 phone numbers on file · Website on file · 1 contact person on file/);
     assert.match(out, /Contact details are locked\. Send an RFQ and the supplier replies here\./);
     // Every kind the register holds is named in the column and again in the foot line; a kind that is absent is not.
     const withTwo = text(view(model(aboniInput(), { contact: { hidden: "", plan: null, counts: { emails: 1, phones: 6, website: true, representatives: 2 }, held: null } }), { mode: "page" }));
-    assert.equal(withTwo.match(/Email 1 on file · Phone 6 on file · Website on file · Contact person 2 on file/g)?.length, 2, "the column and the foot line");
+    assert.equal(withTwo.match(/1 email on file · 6 phone numbers on file · Website on file · 2 contact people on file/g)?.length, 2, "the column and the foot line");
     const phonesOnly = text(view(model(aboniInput(), { contact: { hidden: "", plan: null, counts: { emails: 0, phones: 2, website: false, representatives: 0 }, held: null } }), { mode: "page" }));
-    assert.match(phonesOnly, /Phone 2 on file/);
+    assert.match(phonesOnly, /2 phone numbers on file/);
     assert.doesNotMatch(phonesOnly, /Email \d|Website on file|Contact person/);
     const none = text(view(model(aboniInput(), { contact: { hidden: "", plan: null, counts: { emails: 0, phones: 0, website: false, representatives: 0 }, held: null } }), { mode: "page" }));
     assert.match(none, /No email or phone on file/);
     assert.doesNotMatch(none, /Locked · /);
     // The foot line leads with what it is (critique of 8 Oct 2026, item 7), and the two cards say "Last read" alike.
-    assert.match(out, /Locked · Email 1 on file · Phone 6 on file · Website on file · Contact person 1 on file/);
+    assert.match(out, /Locked · 1 email on file · 6 phone numbers on file · Website on file · 1 contact person on file/);
     assert.doesNotMatch(out, /on file · locked/);
     assert.doesNotMatch(readFileSync(path.join(dir, "..", "patterns", "source-mark.tsx"), "utf8"), /Last checked/);
     const unread = text(view(model(arFashionInput(), { contact: { hidden: "", plan: null, counts: null, held: null } }), { mode: "page" }));
@@ -693,5 +693,23 @@ describe("a record scrolled inside a pane (6 Oct 2026: no map on Sites, and the 
       assert.match(src, /\bpins: true,/, `${file}: the Sites section is always on the page, so its pins are always read`);
       assert.ok(!/\bpins: [^t\n]*=== "sites"/.test(src), `${file}: pins are read only when the address says tab=sites, so a reader who scrolls to Sites gets no map`);
     }
+  });
+});
+
+describe("the record's minors, round 3 (critique of 8 Oct 2026, round 3, item 7)", () => {
+  it("Certificates links to its tab as Sources does, and on the page Needs a look sits under Contact", () => {
+    const m = model();
+    const page = view(m, { mode: "page" });
+    assert.match(page, /<a [^>]*href="[^"]*tab=certificates#record-certificates"/, "the Certificates value is not a link to its tab");
+    assert.match(page, /<a [^>]*href="[^"]*tab=sources#record-sources"/);
+    const aside = page.slice(page.indexOf('aria-label="Contact and sources"'));
+    assert.match(aside, /aria-label="Needs a look"/, "the page's right column has no Needs a look");
+    const pane = view(m);
+    assert.equal((pane.match(/aria-label="Needs a look"/g) ?? []).length, 1, "the pane keeps Needs a look in its column, once");
+  });
+
+  it("a contact count leads with its noun", () => {
+    assert.equal(onFileWords(1, 6, true, 2), "1 email on file · 6 phone numbers on file · Website on file · 2 contact people on file");
+    assert.equal(onFileWords(2, 1, false, 1), "2 emails on file · 1 phone number on file · 1 contact person on file");
   });
 });

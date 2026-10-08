@@ -10,13 +10,16 @@ import { cn } from "@/lib/utils";
 /** What the register holds, as counts: the four kinds the record reads, never a value. */
 export type OnFile = { emails: number; phones: number; website?: boolean; representatives?: number };
 
-/** "Email 1 on file · Phone 4 on file · Website on file · Contact person 2 on file"; only the kinds that exist are named. */
+/**
+ * "1 email on file · 6 phone numbers on file · Website on file · 2 contact people on file"; only the
+ * kinds that exist are named. The count leads with its noun ("Phone 6 on file" read as six phones).
+ */
 export function onFileWords(emails: number, phones: number, website = false, representatives = 0): string | null {
   const parts = [
-    emails > 0 ? `Email ${emails} on file` : null,
-    phones > 0 ? `Phone ${phones} on file` : null,
+    emails > 0 ? `${emails} ${emails === 1 ? "email" : "emails"} on file` : null,
+    phones > 0 ? `${phones} ${phones === 1 ? "phone number" : "phone numbers"} on file` : null,
     website ? "Website on file" : null,
-    representatives > 0 ? `Contact person ${representatives} on file` : null,
+    representatives > 0 ? `${representatives} ${representatives === 1 ? "contact person" : "contact people"} on file` : null,
   ].filter(Boolean);
   return parts.length ? parts.join(" · ") : null;
 }
