@@ -35,6 +35,9 @@ let currentPath = "/app";
 const { AppFrame, ListPane } = require("@/components/frame") as typeof import("@/components/frame");
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const nav = require("@/lib/frame-nav") as typeof import("@/lib/frame-nav");
+// After the mock, like the frame itself: a static import would load the sidebar before `usePathname` is replaced.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { badgeFigure } = require("@/components/frame/sidebar") as typeof import("@/components/frame/sidebar");
 
 const account = { initial: "RK", name: "Rezaul Karim", email: "rk@example.invalid" };
 
@@ -127,12 +130,38 @@ describe("the frame a buyer receives", () => {
     assert.match(results, /<input[^>]*role="combobox"[^>]*aria-autocomplete="list"[^>]*aria-expanded="false"[^>]*aria-controls=/, "the one field is a combobox over a listbox");
   });
 
-  it("a badge reads as words beside the name, and as a dot on the phone tab", () => {
+  it("a badge is a mono figure in a pill, its words in the row's accessible name, and a dot on the phone tab", () => {
     const html = frame("/app", { compliance: { text: "2 to check", tone: "danger" } });
     assert.match(html, /Compliance<span class="sr-only">, 2 to check<\/span>/);
-    assert.match(html, /class="hidden shrink-0 whitespace-nowrap text-xs font-semibold 2xl:inline text-danger">2 to check</, "a two-digit count must not wrap in the 224 column");
+    assert.match(html, /class="hidden h-5 shrink-0 items-center rounded-md px-1\.5 font-mono text-xs font-medium tabular-nums 2xl:inline-flex bg-danger-tint text-danger">2</, "the pill is the number alone");
+    assert.ok(!/>2 to check</.test(html), "the words are drawn, not only read");
     assert.match(html, /aria-label="Alerts, new"/);
     assert.doesNotMatch(frame("/app", { compliance: null }), /to check|Alerts, new/, "an unread count draws nothing");
+  });
+
+  // Critique of 7 Oct 2026, item 7: "Complia… 10 to check" at 232px, the topbar's icon + "Account" placeholder, "Certificates · 4" tabs.
+  it("a three-digit badge cannot clip its label: the label never truncates, the pill is the figure, the words stay for a screen reader", () => {
+    const html = frame("/app", { compliance: { text: "120 to check", tone: "danger" }, messages: { text: "99+ new" } });
+    assert.match(html, /Compliance<span class="sr-only">, 120 to check<\/span>/);
+    assert.match(html, /tabular-nums 2xl:inline-flex bg-danger-tint text-danger">120</);
+    assert.match(html, /tabular-nums 2xl:inline-flex bg-sunken text-ink-2">99\+</);
+    assert.doesNotMatch(/<nav aria-label="Main menu"[\s\S]*?<\/nav>/.exec(html)?.[0] ?? "", /truncate|text-ellipsis|line-clamp/, "a label is cut in the rail");
+    assert.deepEqual([badgeFigure("120 to check"), badgeFigure("99+ new"), badgeFigure("new")], ["120", "99+", "new"]);
+  });
+
+  it("the account control is the row at the sidebar's foot (photo, name, plan, a menu), and the topbar draws none", () => {
+    const html = frame("/app/orders");
+    const foot = /<div class="border-t border-line px-3 py-2">([\s\S]*?)<\/div><\/aside>/.exec(html)?.[1] ?? "";
+    assert.ok(foot, "no account row under Products and Settings");
+    assert.match(foot, /<button type="button" aria-label="Account: Rezaul Karim" title="Rezaul Karim · Public beta" data-account-row="" class="flex h-12 w-full/);
+    assert.match(foot, /<span aria-hidden="true" class="[^"]*size-8[^"]*rounded-full[^"]*">RK<\/span>/, "the initials stand in for a photo");
+    assert.match(foot, /<span class="text-base font-medium text-ink \[overflow-wrap:anywhere\]">Rezaul Karim<\/span><span class="text-sm text-ink-3">Public beta<\/span>/);
+    const topbar = /<div class="hidden h-topbar[^"]*">[\s\S]*?<\/div><div class="sticky|<div class="hidden h-topbar[^"]*">[\s\S]*?<\/form><\/div>/.exec(html)?.[0] ?? "";
+    assert.ok(!/Account/.test(topbar), "the topbar still draws an account control");
+    assert.equal((html.match(/aria-label="Account: Rezaul Karim"/g) ?? []).length, 2, "the sidebar's row and the phone's button");
+    // A known plan is the row's second line, as a workspace switcher draws it.
+    const planned = renderToStaticMarkup(createElement(AppFrame, { account: { ...account, plan: "Free plan" } } as Parameters<typeof AppFrame>[0], "x"));
+    assert.match(planned, /<span class="text-sm text-ink-3">Free plan · Public beta<\/span>/);
   });
 
   describe("badges that arrive after the frame (row 24)", () => {

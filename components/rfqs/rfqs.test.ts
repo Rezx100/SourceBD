@@ -480,7 +480,7 @@ describe("/app/rfqs", () => {
     assert.ok("html" in r);
     assert.ok(r.html.includes("US$8.55 per piece") && r.html.includes("Aboni Knitwear"));
     assert.ok(r.html.includes("5 RFQs · 4 sent · 3 quotes received"));
-    assert.match(r.html, /Draft · 1/);
+    assert.match(r.html, /Draft<span class="[^"]*font-mono[^"]*"><span class="sr-only"> · <\/span>1<\/span>/);
     assert.match(r.html, /Orders · 1/, "the phone switch counts the orders");
     const quoteRead = calls.find((c) => c.table === "rfq_quotes");
     assert.deepEqual((quoteRead?.ids as string[]).slice().sort(), [ID1, ID3].sort());

@@ -1,25 +1,25 @@
 "use client";
 
 // The desktop topbar (Paper `03 Patterns` · App shell desktop 1440): 56 tall, the
-// app's one search box (480, Ctrl K) and the account menu. Below 768 the phone
-// bar takes its place. The field is a plain GET form to the results, so it works
-// before any script runs; the suggestions under it are `components/search/typeahead.tsx`.
+// app's one search box (480, Ctrl K). The account control is the row at the sidebar's foot
+// (DESIGN.md, Sidebar; the critique of 7 Oct 2026, item 7: the topbar's icon + "Account" was a
+// placeholder), whose menu is `AccountMenu` here. Below 768 the phone bar takes its place. The
+// field is a plain GET form to the results, so it works before any script runs; the suggestions
+// under it are `components/search/typeahead.tsx`.
 
-import { CaretDown, MagnifyingGlass, UserCircle } from "@phosphor-icons/react";
+import { MagnifyingGlass } from "@phosphor-icons/react";
 import Form from "next/form";
 import { usePathname } from "next/navigation";
-import { Suspense, useRef, useState } from "react";
-import { ring } from "@/components/kit/classes";
+import { Suspense, useRef, useState, type ReactNode } from "react";
 import { Menu, MenuItem, MenuSeparator } from "@/components/kit/overlay";
 import { SearchCombobox } from "@/components/search/typeahead";
-import { cn } from "@/lib/utils";
 import { FeedbackDialog } from "./feedback";
 import { SearchCarry } from "./search-carry";
 import { SearchShortcut } from "./search-shortcut";
 import { pageDrawsOwnField, useApplePlatform } from "./topbar-search-slot";
 
-/** `admin` only adds a link: /admin checks the role on the server itself (AGENTS rule 7). */
-export type FrameAccount = { initial: string | null; name: string | null; email: string | null; avatarUrl?: string | null; admin?: boolean };
+/** `admin` only adds a link: /admin checks the role on the server itself (AGENTS rule 7). `plan` is the row's second line ("Free plan"). */
+export type FrameAccount = { initial: string | null; name: string | null; email: string | null; avatarUrl?: string | null; admin?: boolean; plan?: string | null };
 
 /** The name the account menu prints: the profile's name, else the email's name part. */
 export function accountName(account: FrameAccount): string {
@@ -49,7 +49,8 @@ function SearchField() {
   );
 }
 
-function AccountMenu({ account }: { account: FrameAccount }) {
+/** The account menu (the name, Settings, Plan, Send feedback, Sign out) behind whatever `trigger` opens it: the sidebar's account row. */
+export function AccountMenu({ account, trigger, align = "end" }: { account: FrameAccount; trigger: ReactNode; align?: "start" | "end" }) {
   const signOut = useRef<HTMLFormElement>(null);
   const [feedback, setFeedback] = useState(false);
   const name = accountName(account);
@@ -57,20 +58,7 @@ function AccountMenu({ account }: { account: FrameAccount }) {
     <>
       <form ref={signOut} action="/auth/sign-out" method="post" hidden />
       {feedback ? <FeedbackDialog onClose={() => setFeedback(false)} /> : null}
-      <Menu
-        align="end"
-        trigger={
-          <button
-            type="button"
-            aria-label={`Account: ${name}`}
-            className={cn("flex h-9 items-center gap-2 rounded-sm px-2 text-base font-medium text-ink-2 transition-colors duration-fast hover:bg-sunken hover:text-ink", ring)}
-          >
-            <UserCircle size={20} className="shrink-0" aria-hidden />
-            Account
-            <CaretDown size={16} className="shrink-0 text-ink-3" aria-hidden />
-          </button>
-        }
-      >
+      <Menu align={align} trigger={trigger}>
         <div className="flex flex-col px-2 pb-2 pt-1">
           <span className="text-base font-medium text-ink [overflow-wrap:anywhere]">{name}</span>
           {account.email && account.email !== name ? <span className="text-sm text-ink-3 [overflow-wrap:anywhere]">{account.email}</span> : null}
@@ -89,13 +77,12 @@ function AccountMenu({ account }: { account: FrameAccount }) {
   );
 }
 
-export function FrameTopbar({ account }: { account: FrameAccount | null }) {
+export function FrameTopbar() {
   const own = pageDrawsOwnField(usePathname());
   return (
-    <div className="hidden h-topbar shrink-0 items-center justify-between gap-4 border-b border-line px-6 md:flex">
+    <div className="hidden h-topbar shrink-0 items-center gap-4 border-b border-line px-6 md:flex">
       {/* The search landing draws the one large field itself: no second box above it. */}
-      {own ? <span /> : <SearchField />}
-      {account ? <AccountMenu account={account} /> : null}
+      {own ? null : <SearchField />}
     </div>
   );
 }
