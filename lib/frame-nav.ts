@@ -11,7 +11,7 @@ export const FRAME_NAV: readonly FrameItem[] = [
   { key: "search", label: "Search", href: "/app" },
   { key: "saved", label: "Saved", href: "/app/saved" },
   { key: "messages", label: "Messages", href: "/app/messages" },
-  { key: "rfqs", label: "RFQs and quotes", href: "/app/rfqs" },
+  { key: "rfqs", label: "Quotes", href: "/app/rfqs" },
   { key: "orders", label: "Orders", href: "/app/orders" },
   { key: "compliance", label: "Compliance", href: "/app/compliance" },
 ];
@@ -22,11 +22,11 @@ export const FRAME_FOOT: readonly FrameItem[] = [
   { key: "settings", label: "Settings", href: "/app/settings" },
 ];
 
-/** D-3: Messages · Quotes · Alerts · Saved · Search. Quotes holds the RFQs and the orders. */
+/** D-3: Messages · Quotes · Compliance · Saved · Search, the desktop's names (critique of 8 Oct 2026, round 3, item 7). Quotes holds the RFQs and the orders. */
 export const PHONE_TABS: readonly FrameItem[] = [
   { key: "messages", label: "Messages", href: "/app/messages" },
   { key: "rfqs", label: "Quotes", href: "/app/rfqs" },
-  { key: "compliance", label: "Alerts", href: "/app/compliance" },
+  { key: "compliance", label: "Compliance", href: "/app/compliance" },
   { key: "saved", label: "Saved", href: "/app/saved" },
   { key: "search", label: "Search", href: "/app" },
 ];
@@ -78,7 +78,7 @@ const TITLES: readonly [string, string][] = [
   ["/app/rfqs/new", "New RFQ"],
   ["/app/orders", "Quotes"],
   ["/app/orders/new", "New order"],
-  ["/app/compliance", "Alerts"],
+  ["/app/compliance", "Compliance"],
   ["/app/compliance/expiry", "Certificate expiry"],
   ["/app/compliance/uflpa", "UFLPA checks"],
   ["/app/compliance/msa", "Modern slavery statement"],

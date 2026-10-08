@@ -250,7 +250,7 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     // The contact block names every kind the register holds, as counts with their nouns. Paper's
     // board draws the first two only; the founder asked for all four (4 Oct 2026).
     const card = out.slice(out.indexOf('aria-label="Contact"'));
-    assert.match(card.replace(/<[^>]*>/g, " ").replace(/\s+/g, " "), /Contact .*Email 1 on file · Phone 6 on file · Website on file · Contact person 2 on file .*Contact details are locked\. Send an RFQ and the supplier replies here\./);
+    assert.match(card.replace(/<[^>]*>/g, " ").replace(/\s+/g, " "), /Contact .*1 email on file · 6 phone numbers on file · Website on file · 2 contact people on file .*Contact details are locked\. Send an RFQ and the supplier replies here\./);
     // A count that could not be read claims nothing: no "none on file".
     given({ profile: PROFILE, hscodes: HS, contactCounts: { data: null, error: { message: "boom" } } });
     const unread = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({}) })));

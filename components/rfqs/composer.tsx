@@ -18,7 +18,7 @@ import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared
 import Link from "next/link";
 import { useContext, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent } from "react";
 import { PaneDivider, usePaneWidth, type PaneLimits } from "@/components/frame/pane-divider";
-import { Button, DateInput, Define, Dialog, DialogClose, Field, IconButton, Input, Select, buttonClass, fieldBox, fieldEdge } from "@/components/kit";
+import { Button, DateInput, Define, Dialog, oneLine, DialogClose, Field, IconButton, Input, Select, buttonClass, fieldBox, fieldEdge } from "@/components/kit";
 import { SanctionBanner } from "@/components/patterns";
 import { SAVE_FAILED, browserFetch, postSettings } from "@/components/settings/transport";
 import { formatDay, formatTime, nameSecondLine, splitQualifier } from "@/lib/dashboard/facts";
@@ -114,10 +114,10 @@ function Targets({
           {targets.map((t) => (
             <div key={t.slug} className="flex items-center gap-3 border-b border-line py-2 pl-3 pr-2 last:border-b-0">
               <div className="flex min-w-0 flex-1 flex-col">
-                <span className="text-base font-medium text-ink [overflow-wrap:anywhere]" title={t.name}>
+                <span data-name="" className={cn(oneLine, "text-base font-medium text-ink")} title={t.name}>
                   {splitQualifier(t.name).base}
                 </span>
-                <span className="text-xs text-ink-3 max-sm:text-sm">
+                <span data-name="" className={cn(oneLine, "text-xs text-ink-3 max-sm:text-sm")} title={nameSecondLine(t.name, t.type, t.place)}>
                   {[nameSecondLine(t.name, t.type, t.place), t.sanctioned ? "sanctioned" : "contact details locked"].filter(Boolean).join(" · ")}
                 </span>
               </div>
@@ -192,8 +192,10 @@ export function ReviewBody({
         {shown.map((t) => (
           <li key={t.slug} className="flex items-center gap-3 border-b border-line py-2">
             <span className="flex min-w-0 flex-1 flex-col">
-              <span className="text-base font-medium text-ink [overflow-wrap:anywhere]">{t.name}</span>
-              <span className="text-xs text-ink-3">{[t.type, t.place, t.sanctioned ? "sanctioned" : null].filter(Boolean).join(" · ")}</span>
+              <span data-name="" title={t.name} className={cn(oneLine, "text-base font-medium text-ink")}>
+                {splitQualifier(t.name).base}
+              </span>
+              <span data-name="" className={cn(oneLine, "text-xs text-ink-3")}>{[nameSecondLine(t.name, t.type, t.place), t.sanctioned ? "sanctioned" : null].filter(Boolean).join(" · ")}</span>
             </span>
             <Button kind="quiet" onClick={() => onRemove(t)} aria-label={`Remove ${t.name}`}>
               Remove
@@ -522,7 +524,7 @@ export function RfqComposer({
                     </div>
                   )}
                 </Field>
-                <Field label="Ship by" help="For example 15 Nov 2026">
+                <Field label="Ship by" help={shipBy ? undefined : "For example 15 Nov 2026"}>
                   {(a) => <DateInput {...a} value={shipBy} onChange={setShipBy} className="max-sm:h-input-touch max-sm:text-md" />}
                 </Field>
                 {/* A list where the answer is a list (DESIGN.md, Inputs); another country is typed. */}

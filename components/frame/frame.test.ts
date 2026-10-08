@@ -71,7 +71,8 @@ describe("which item a path belongs to", () => {
     assert.equal(nav.phoneTab("/app/discover"), "search");
   });
   it("the phone titles are Paper's", () => {
-    assert.equal(nav.phoneTitle("/app/compliance"), "Alerts");
+    // One name each on the phone and the desktop (critique of 8 Oct 2026, round 3, item 7).
+    assert.equal(nav.phoneTitle("/app/compliance"), "Compliance");
     assert.equal(nav.phoneTitle("/app/compliance/uflpa"), "UFLPA checks");
     assert.equal(nav.phoneTitle("/app/rfqs/new"), "New RFQ");
     assert.equal(nav.phoneTitle("/app/rfqs/42"), "Quotes");
@@ -84,9 +85,9 @@ describe("the frame a buyer receives", () => {
   it("the sidebar, in Paper's order, marks the page and the section", () => {
     const html = frame("/app/saved");
     const labels = [...html.matchAll(/<a [^>]*title="([^"]+)"/g)].map((m) => m[1]);
-    assert.deepEqual(labels, ["Search", "Saved", "Messages", "RFQs and quotes", "Orders", "Compliance", "Products", "Settings"]);
+    assert.deepEqual(labels, ["Search", "Saved", "Messages", "Quotes", "Orders", "Compliance", "Products", "Settings"]);
     assert.match(html, /<a aria-current="page" title="Saved" class="[^"]*bg-brand-tint[^"]*" href="\/app\/saved"/);
-    assert.match(frame("/app/rfqs/12"), /<a aria-current="true" title="RFQs and quotes"/);
+    assert.match(frame("/app/rfqs/12"), /<a aria-current="true" title="Quotes"/);
   });
 
   it("one skip link to one main, and data-shell on the root (the Spent Green Rule: ds.css turns the brand tints and link ink grey inside it)", () => {
@@ -140,8 +141,8 @@ describe("the frame a buyer receives", () => {
     assert.doesNotMatch(html, /bg-danger-tint|text-danger/, "red in the rail for a date that passed");
     assert.match(html, /rounded-full border-2 border-subtle 2xl:hidden bg-caution-icon"/, "the collapsed rail's dot follows the badge's tone");
     assert.ok(!/>2 to check</.test(html), "the words are drawn, not only read");
-    assert.match(html, /aria-label="Alerts, new"/);
-    assert.doesNotMatch(frame("/app", { compliance: null }), /to check|Alerts, new/, "an unread count draws nothing");
+    assert.match(html, /aria-label="Compliance, new"/);
+    assert.doesNotMatch(frame("/app", { compliance: null }), /to check|Compliance, new/, "an unread count draws nothing");
   });
 
   // Critique of 7 Oct 2026, item 7: "Complia… 10 to check" at 232px, the topbar's icon + "Account" placeholder, "Certificates · 4" tabs.
@@ -184,12 +185,12 @@ describe("the frame a buyer receives", () => {
       const early = frame("/app", new Promise(() => {}));
       assert.match(early, /PAGE-BODY/);
       assert.deepEqual([...early.matchAll(/<a [^>]*title="([^"]+)"/g)].map((m) => m[1]).length, 8);
-      assert.doesNotMatch(early, /to check|new<|Alerts, new/);
+      assert.doesNotMatch(early, /to check|new<|Compliance, new/);
       // Settled: both counts are there, the same words as a plain object gives.
       const late = await withPromise(Promise.resolve({ messages: { text: "2 new" }, compliance: { text: "5 to check", tone: "caution" } }));
       assert.match(late, /Messages<span class="sr-only">, 2 new<\/span>/);
       assert.match(late, /Compliance<span class="sr-only">, 5 to check<\/span>/);
-      assert.match(late, /aria-label="Alerts, new"/);
+      assert.match(late, /aria-label="Compliance, new"/);
       assert.match(late, /aria-label="Messages, new"/);
     });
 
@@ -205,7 +206,7 @@ describe("the frame a buyer receives", () => {
     assert.match(html, /<span class="truncate text-xl font-semibold tracking-tight text-ink">Quotes<\/span>/);
     assert.match(html, /aria-label="Account: Rezaul Karim"/);
     const tabs = /<nav aria-label="Tabs".*?<\/nav>/.exec(html)?.[0] ?? "";
-    assert.deepEqual([...tabs.matchAll(/<a [^>]*>.*?<\/svg>([^<]+)/g)].map((m) => m[1]), ["Messages", "Quotes", "Alerts", "Saved", "Search"]);
+    assert.deepEqual([...tabs.matchAll(/<a [^>]*>.*?<\/svg>([^<]+)/g)].map((m) => m[1]), ["Messages", "Quotes", "Compliance", "Saved", "Search"]);
     assert.match(tabs, /<a aria-current="page"[^>]*href="\/app\/rfqs"/);
   });
 

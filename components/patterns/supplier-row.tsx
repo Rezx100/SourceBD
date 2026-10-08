@@ -13,6 +13,9 @@ import { LinkPending } from "./link-pending";
 
 const noun = (n: number) => `${n} ${n === 1 ? "source" : "sources"}`;
 
+/** What a list's source count counts, which the record's does not limit (lib/dashboard/build-models.ts). */
+export const LIST_SOURCES_RULE = "Registers and certifiers that filed on this company; the record also counts brand lists";
+
 export function SupplierRow({
   layout,
   href,
@@ -86,7 +89,9 @@ export function SupplierRow({
           {spoken}
           <LinkPending className="ml-1.5 inline-block align-[-2px]" />
         </span>
-        <span className="shrink-0 text-xs text-ink-3">{noun(sources)}</span>
+        <span title={LIST_SOURCES_RULE} className="shrink-0 text-xs text-ink-3">
+          {noun(sources)}
+        </span>
       </span>
       <span className="flex items-center gap-x-1.5 text-xs text-ink-3">
         <span data-name="" title={kind} className={oneLine}>{kind}</span>

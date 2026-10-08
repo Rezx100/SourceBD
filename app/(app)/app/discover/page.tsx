@@ -215,7 +215,12 @@ export default async function BuyerDiscoverPage({
                     <ResultsTable
                       rows={results}
                       sort={{ key: state.sort, dir: state.sort === "name" || state.sort === "cert_expiry" || state.sort === "established" ? "asc" : "desc" }}
-                      sortHrefs={{ workers: hrefFor({ ...state, sort: "workers", page: 1 }), sources: hrefFor({ ...state, sort: "sources", page: 1 }) }}
+                      sortHrefs={{
+                        workers: hrefFor({ ...state, sort: "workers", page: 1 }),
+                        sources: hrefFor({ ...state, sort: "sources", page: 1 }),
+                        name: hrefFor({ ...state, sort: "name", page: 1 }),
+                        cert_expiry: hrefFor({ ...state, sort: "cert_expiry", page: 1 }),
+                      }}
                     />
                     </div>
                   )

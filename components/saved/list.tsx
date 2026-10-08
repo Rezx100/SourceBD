@@ -22,7 +22,7 @@ export function SortMenu({ view }: { view: SavedView }) {
     <Menu
       align="end"
       trigger={
-        <button type="button" className={buttonClass({ kind: "secondary", className: "gap-2 pl-2.5 pr-2 font-normal" })}>
+        <button type="button" className={buttonClass({ kind: "secondary", className: "gap-2 pl-2.5 pr-2" })}>
           Sort: {current.label.toLowerCase()}
           <CaretDown size={16} className="shrink-0 text-ink-2" aria-hidden />
         </button>

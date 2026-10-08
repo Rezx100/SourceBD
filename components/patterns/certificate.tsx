@@ -66,7 +66,9 @@ export function CertSummaryCell({ cert }: { cert: CertSummary }) {
         ) : (
           <span className="inline-flex h-6 items-center rounded-md border border-line px-1.5 text-xs font-medium text-ink-2">{cert.first.scheme}</span>
         )}
-        <span className={cn("inline-flex whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-medium", PILL[cert.state])}>{cert.short}</span>
+        <span title={cert.first.words} className={cn("inline-flex whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-medium", PILL[cert.state])}>
+          {cert.short}
+        </span>
       </span>
       {others.length || rest ? (
         <span aria-hidden className="inline-flex items-center gap-1">

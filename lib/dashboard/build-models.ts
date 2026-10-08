@@ -1020,6 +1020,10 @@ export function buildTableRow(filed: RecordInput): TableRowModel {
     place: placeOf(p),
     initials: initials(name),
     topTier: topTier(codes),
+    // The record counts every source that filed on it, brand lists and cross-checks included. The lists
+    // count `t13_source_count`, tiers 1-3 only (registers and certifiers, what the Sources sort orders
+    // by): on 8 Oct 2026, 276 of 10,278 published suppliers had a source outside tiers 1-3, so the two
+    // can differ, and the list's figure says so (`LIST_SOURCES_RULE`).
     sourceCount: marksFromTags(codes).length,
     marks: marksFromTags(codes, hrefs),
     certs: certList,
