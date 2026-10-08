@@ -480,7 +480,7 @@ describe("/app/orders", () => {
     assert.ok(r.html.includes("Women's knitted dresses") && r.html.includes("Heavyweight hoodies"));
     assert.match(r.html, /Orders · 6/, "the phone switch counts the orders");
     assert.match(r.html, /RFQs · 4/, "and the RFQs with the drafts");
-    assert.match(r.html, /In progress[^<]*(<[^>]+>)*[^<]*3/);
+    assert.match(r.html, /In progress(?:<[^>]+>|[^<0-9])*3/);
     assert.ok(r.html.includes('href="/app/orders/new"') && r.html.includes("New order"));
   });
 
