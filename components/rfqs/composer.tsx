@@ -44,7 +44,9 @@ import {
   missingFields,
   needsFromYou,
   refusalWords,
+  sendDecision,
   sendWords,
+  shownNumber,
   targetSummary,
   typeCounts,
   type ComposerPrefill,
@@ -102,7 +104,7 @@ function Targets({
       {targets.length === 0 ? (
         <div className="flex flex-col items-start gap-3 rounded-md border border-dashed border-line-strong p-4">
           <p className="text-base text-ink-2">No supplier yet. Add them from your saved suppliers, a search or a recent RFQ.</p>
-          <Button kind="secondary" icon={Plus} onClick={onAdd} className="max-sm:h-input-touch max-sm:text-md">
+          <Button kind="secondary" icon={Plus} onClick={onAdd} data-add-suppliers="" className="max-sm:h-input-touch max-sm:text-md">
             Add suppliers
           </Button>
         </div>
@@ -240,8 +242,10 @@ export function RfqComposer({
   // The facts the message signs with, typed here when the workspace lacks one and saved there on send.
   const [fromYou, setFromYou] = useState(() => fromWorkspace(workspace));
   const askFromYou = needsFromYou(workspace);
-  // Nothing is named as missing until a send is tried.
-  const [attempted, setAttempted] = useState(false);
+  // Nothing is named as missing until a send is tried; each try moves focus to the first gap.
+  const [attempt, setAttempt] = useState(0);
+  const attempted = attempt > 0;
+  const [focused, setFocused] = useState<"quantity" | "price" | null>(null);
   const baseQuestions = prefill.questions?.length ? prefill.questions : workspace?.questions?.length ? workspace.questions : [...DEFAULT_QUESTIONS];
   const [questions, setQuestions] = useState<string[]>([...baseQuestions]);
   const [newQuestion, setNewQuestion] = useState("");
@@ -279,8 +283,9 @@ export function RfqComposer({
     [workspace, targets, productLine, fromYou],
   );
   const message = messageEdited ?? filled.text;
-  const missing = [...missingFields({ title, quantity, unit, targets: targets.length }), ...leftoverPlaceholders(message).map((label) => `${label} in the message`)];
-  const blocked = sanctioned.length > 0 || missing.length > 0 || busy !== null;
+  const missing = [...missingFields({ title, quantity, unit, targets: targets.length, targetPrice }), ...leftoverPlaceholders(message).map((label) => `${label} in the message`)];
+  // Send is withheld only while busy or for a sanctioned target: an empty field is a sentence the click produces.
+  const blocked = sanctioned.length > 0 || busy !== null;
   const words = sendWords(targets);
 
   function payload() {
@@ -298,8 +303,8 @@ export function RfqComposer({
   }
 
   async function send() {
-    setAttempted(true);
-    if (blocked) return;
+    setAttempt((n) => n + 1);
+    if (sendDecision({ blocked, missing }) !== "post") return;
     setBusy("send");
     setError(null);
     // What was typed under From you is the workspace's from now on. A save that fails does not stop
@@ -350,6 +355,11 @@ export function RfqComposer({
   useEffect(() => {
     formRef.current?.querySelector<HTMLInputElement>("input, textarea")?.focus({ preventScroll: true });
   }, []);
+
+  // A send tried with a field empty: the first field marked missing takes focus.
+  useEffect(() => {
+    if (attempt > 0) (formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]') ?? formRef.current?.querySelector<HTMLElement>("[data-add-suppliers]"))?.focus();
+  }, [attempt]);
 
   function addQuestion() {
     const q = newQuestion.trim();
@@ -413,6 +423,8 @@ export function RfqComposer({
         <form
           id={`${id}-form`}
           ref={formRef}
+          // The composer names what is missing itself: the browser's own bubble would stop the click before `send()`.
+          noValidate
           onSubmit={(e) => {
             e.preventDefault();
             void send();
@@ -434,16 +446,16 @@ export function RfqComposer({
                 <Field label="Quantity · required" error={note("quantity", "Add a quantity")}>
                   {(a) => (
                     <div className="flex gap-2">
-                      <Input {...a} required type="number" min={1} step="any" inputMode="decimal" value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder="e.g. 24,000" className="min-w-0 flex-1 text-right max-sm:h-input-touch max-sm:text-md" />
+                      <Input {...a} required inputMode="decimal" value={shownNumber(quantity, focused === "quantity", "count")} onChange={(e) => setQuantity(e.target.value.replace(/,/g, ""))} onFocus={() => setFocused("quantity")} onBlur={() => setFocused(null)} placeholder="e.g. 24,000" className="min-w-0 flex-1 text-right max-sm:h-input-touch max-sm:text-md" />
                       <UnitSelect value={unit} onChange={setUnit} />
                     </div>
                   )}
                 </Field>
-                <Field label={`Target price per ${per}`} help="Suppliers see your target price.">
+                <Field label={`Target price per ${per}`} help="Suppliers see your target price." error={note("target price", "Enter a number, like 8.90")}>
                   {(a) => (
                     <div className="flex gap-2">
                       <Select aria-label="Currency" value={currency} onValueChange={setCurrency} options={CURRENCIES.map((c) => ({ value: c, label: c === "USD" ? "US$" : c }))} className="w-24 shrink-0 max-sm:h-input-touch max-sm:text-md" />
-                      <Input {...a} type="number" min={0} step="any" inputMode="decimal" value={targetPrice} onChange={(e) => setTargetPrice(e.target.value)} className="min-w-0 flex-1 text-right max-sm:h-input-touch max-sm:text-md" />
+                      <Input {...a} inputMode="decimal" value={shownNumber(targetPrice, focused === "price", "money")} onChange={(e) => setTargetPrice(e.target.value)} onFocus={() => setFocused("price")} onBlur={() => setFocused(null)} className="min-w-0 flex-1 text-right max-sm:h-input-touch max-sm:text-md" />
                     </div>
                   )}
                 </Field>
@@ -626,10 +638,10 @@ export function RfqComposer({
           </Button>
           <Button type="submit" form={`${id}-form`} kind="primary" size="lg" disabled={blocked} loading={busy === "send"} loadingLabel="Sending" aria-describedby={`${id}-send-hint`} className="max-sm:h-12 max-sm:flex-1">
             {words.send}
-            <span className="text-xs font-medium opacity-85 max-sm:hidden">{apple ? "⌘↵" : "Ctrl+Enter"}</span>
+            <span className="text-xs font-medium opacity-85 max-sm:hidden">{apple ? "⌘↵" : "Ctrl ↵"}</span>
           </Button>
           <span id={`${id}-send-hint`} className="sr-only">
-            Sends to every supplier listed. {apple ? "Command" : "Control"} plus Enter also sends.
+            {sanctioned.length > 0 ? "Remove the sanctioned supplier to send." : "Sends to every supplier listed."} {apple ? "Command" : "Control"} plus Enter also sends.
           </span>
         </div>
       </div>

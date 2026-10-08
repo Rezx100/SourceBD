@@ -93,11 +93,13 @@ export function listAnd(items: string[]): string {
 }
 
 /** What is still required before Send, as the field's own name. */
-export function missingFields(v: { title: string; quantity: string; unit: string; targets: number }): string[] {
+export function missingFields(v: { title: string; quantity: string; unit: string; targets: number; targetPrice?: string }): string[] {
   const out: string[] = [];
   if (!v.title.trim()) out.push("product title");
   if (!(Number(v.quantity) >= 1)) out.push("quantity");
   if (!v.unit.trim()) out.push("unit");
+  // A price typed that is not a number ("8,5", "-3"): named, never posted.
+  if (v.targetPrice?.trim() && !(Number(v.targetPrice) >= 0)) out.push("target price");
   if (v.targets === 0) out.push("a supplier");
   return out;
 }
@@ -113,6 +115,7 @@ export function neededWords(missing: string[]): string {
     if (m === "quantity") return "a quantity";
     if (m === "product title") return "a product";
     if (m === "unit") return "a unit";
+    if (m === "target price") return "a target price as a number";
     if (m === "a supplier") return "a supplier";
     if (m === "website in the message") return "your website";
     if (m === "your name in the message") return "your name";
@@ -161,6 +164,20 @@ export function footerStatus(s: { error: string | null; sanctioned: number; miss
   if (s.attempted && s.missing.length > 0) return { text: neededWords([...s.missing]), tone: "caution", live: true };
   if (s.draftSavedAt) return { text: `Draft saved ${s.draftSavedAt}. ${s.words.sends}`, tone: "ink", live: true };
   return { text: s.words.sends, tone: "ink", live: false };
+}
+
+/**
+ * What a click on Send does: it always marks the attempt (so the footer and the fields name what is
+ * missing); it posts only when nothing is missing and nothing blocks. Send is never withheld for an
+ * empty field, so a mouse user gets the sentence a keyboard user got from Ctrl+Enter.
+ */
+export const sendDecision = (s: { blocked: boolean; missing: readonly string[] }): "post" | "wait" | "blocked" => (s.blocked ? "blocked" : s.missing.length > 0 ? "wait" : "post");
+
+/** A number field while not focused: 10000 → "10,000", 8.9 → "8.90"; what was typed while it is, or when it is not a number. */
+export function shownNumber(raw: string, focused: boolean, kind: "count" | "money"): string {
+  const n = Number(raw);
+  if (focused || !raw.trim() || !Number.isFinite(n)) return raw;
+  return kind === "count" ? new Intl.NumberFormat("en-GB", { maximumFractionDigits: 4 }).format(n) : n.toFixed(2);
 }
 
 /** The message under one field once Send was tried and it is still empty; null before that. */

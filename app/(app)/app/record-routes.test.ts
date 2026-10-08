@@ -675,7 +675,7 @@ describe("/app/discover — the panes beside the results", () => {
     const only = html(await search({ q: "knit", rfq: UNPUBLISHED_ID }));
     assert.doesNotMatch(only, /Hidden Knit/i);
     assert.match(only, /No supplier yet\./);
-    assert.match(sendButton(only), /\sdisabled=""/);
+    assert.doesNotMatch(sendButton(only), /\sdisabled=""/, "Send is live with nobody listed; the click says to add a supplier (critique of 8 Oct 2026, item 1)");
     // Not an id at all: no composer.
     const junk = html(await search({ q: "knit", rfq: "not-an-id" }));
     assert.doesNotMatch(junk, /aria-label="New RFQ"/);
@@ -860,7 +860,8 @@ describe("/app/rfqs/new — the composer as a page", () => {
       const page = html(out);
       assert.match(page, /No supplier yet\./);
       assert.match(page, />Add suppliers</);
-      assert.match(/<button\b[^>]*>(?:(?!<\/button>)[\s\S])*?Send RFQ/.exec(page)?.[0] ?? "", /\sdisabled=""/);
+      // Send is live (critique of 8 Oct 2026, item 1): a click says "Add a supplier"; only a sanction disables it.
+      assert.doesNotMatch(/<button\b[^>]*>(?:(?!<\/button>)[\s\S])*?Send RFQ/.exec(page)?.[0] ?? "", /\sdisabled=""/);
     }
     const hidden = await newRfq({ supplier: UNPUBLISHED_ID }, SUPPLIERS.filter((s) => s.id === UNPUBLISHED_ID));
     assert.ok("threw" in hidden && /404|NOT_FOUND/.test(hidden.threw), `an unpublished supplier is drawn: ${JSON.stringify(hidden)}`);
