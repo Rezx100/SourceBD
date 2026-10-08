@@ -420,6 +420,8 @@ describe("the bar over the results", () => {
     assert.ok(phone.includes("4,645 suppliers") && phone.includes("Sort: most sources") && phone.includes("Hiding sanctioned suppliers"));
     assert.match(phone, /h-input-touch/);
     assert.match(phone, /h-touch/);
+    // Critique of 8 Oct 2026, item 5: two h1 on the results page, the phone bar's hidden title and the desktop title.
+    assert.doesNotMatch(phone, /<h1\b/, "the phone bar's title is a second h1 on the page");
   });
 
   it("every bar is one line: nothing in it may wrap, however many filters are on", () => {
@@ -428,6 +430,7 @@ describe("the bar over the results", () => {
     const full = plain(h(ResultsToolbar, { ...props, filtersOpen: false, saveHref: "#", more: null }));
     for (const out of [full, plain(h(PaneListToolbar, props)), plain(h(PhoneToolbar, { ...props, count: "t" }))]) assert.ok(!out.includes("flex-wrap"), "a bar that wraps breaks into two lines");
     assert.match(full, /overflow-x-auto/, "the filters scroll sideways when they outgrow the bar");
+    assert.equal(((full + plain(h(PhoneToolbar, { ...props, count: "t" }))).match(/<h1\b/g) ?? []).length, 1, "one h1 per results page: the desktop bar's");
     assert.match(full, /sr-only">Save search</, "Save search keeps its name when it is drawn as its icon");
   });
 });

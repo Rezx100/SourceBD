@@ -76,7 +76,7 @@ export function RscBlock({ data, className, level: H = "h3" }: { data: RscBlockD
             );
           })}
         </ul>
-        <p className="text-xs text-ink-3">{[data.factoryId ? `RSC factory ${data.factoryId}` : "RSC", data.checkedOn ? `checked ${data.checkedOn}` : null].filter(Boolean).join(" · ")}</p>
+        <p className="max-w-[72ch] text-xs text-ink-3">{[data.factoryId ? `RSC factory ${data.factoryId}` : "RSC", data.checkedOn ? `checked ${data.checkedOn}` : null].filter(Boolean).join(" · ")}</p>
       </footer>
     </section>
   );

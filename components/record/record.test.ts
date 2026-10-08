@@ -14,6 +14,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { buildSheet } from "@/lib/dashboard/build-models";
 import { TODAY, aboniInput, arFashionInput, longestNameInput, sanctionedInput, zaheenSampleInput } from "@/lib/dashboard/fixtures";
 import type { LocationRow, SupplierSheetModel } from "@/lib/dashboard/models";
+import { rankCerts } from "@/components/patterns";
 import { RecordView } from "@/components/record/record-view";
 import { TABS, certRows, keyFacts, needsLook, parseSite, parseTab, pendingLegend, recordSubline, sameName, sectionInView, siteCards, siteSummary, staleWords, summaryCells, tabCount } from "@/components/record/words";
 
@@ -265,6 +266,37 @@ describe("the view's rules", () => {
     assert.doesNotMatch(unread, /No email or phone on file|on file · locked/, "an unread count claims none on file");
   });
 
+  // Critique of 8 Oct 2026, item 5: the page said its sources twice and "11" three times; "Needs a look"
+  // kept model order while the strip ranked by date, so GOTS and WRAP swapped between the pane and Saved.
+  it("the page says its sources once: the strip's count opens the Sources tab, the aside keeps Contact only, the section stays", () => {
+    const page = view(model(), { mode: "page" });
+    assert.equal((page.match(/<h[23][^>]*>Sources · \d+<\/h[23]>/g) ?? []).length, 1, "the sources list is drawn twice");
+    assert.doesNotMatch(page, /<aside[^>]*>[\s\S]*?<section aria-label="Sources"/, "the aside still carries the source list");
+    const strip = /<dl aria-label="Summary"[\s\S]*?<\/dl>/.exec(page)?.[0] ?? "";
+    assert.match(strip, /<dt[^>]*>Sources<\/dt>[\s\S]*?<a[^>]*href="\/app\/discover\?q=knit&amp;record=x&amp;tab=sources#record-sources"[^>]*>\d+<\/a>/, "the Sources cell is not a link to the tab");
+    assert.ok((page.match(/Sources · \d+/g) ?? []).length <= 2, "the count said three times (strip, tab, aside)");
+  });
+
+  it("'Needs a look' and the strip lead with the worst lapse, in rankCerts's one order, everywhere", () => {
+    const row = (scheme: string, expiresOn: string) => ({ scheme, number: null, issuer: null, expiresOn, documentUrl: null });
+    // Model order GOTS then WRAP; GOTS lapsed earlier, so WRAP (the latest lapse) leads.
+    assert.deepEqual(needsLook([row("GOTS", "2026-01-04"), row("WRAP", "2026-03-29"), row("OEKO-TEX", "2027-05-01")], TODAY).map((r) => r.scheme), ["WRAP", "GOTS"]);
+    // Two expiring: the soonest leads.
+    assert.deepEqual(needsLook([row("GOTS", "2026-11-01"), row("WRAP", "2026-10-08")], TODAY).map((r) => r.scheme), ["WRAP", "GOTS"]);
+    const m = model();
+    const rows = needsLook(certRows(m), TODAY);
+    const ranked = rankCerts(certRows(m), TODAY).filter((r) => r.w.state === "expired" || r.w.state === "expiring").map((r) => r.c.scheme);
+    assert.deepEqual(rows.map((r) => r.scheme), ranked);
+    const cell = summaryCells(m, TODAY).find((c) => c.key === "certificates")!;
+    if (rows.length > 0) assert.ok(cell.sub?.startsWith(rows[0]!.scheme), `the strip leads with ${cell.sub}, the rows with ${rows[0]!.scheme}`);
+  });
+
+  it("the long captions wrap at 72 characters: the Sources caption and the RSC block's", () => {
+    const page = view(model(), { mode: "page" });
+    assert.match(page, /<p class="max-w-\[72ch\] text-xs text-ink-3">[^<]*registers?[^<]*<\/p>/, "the Sources caption runs the panel's width");
+    if (/RSC factory/.test(page)) assert.match(page, /<p class="max-w-\[72ch\] text-xs text-ink-3">RSC factory/, "the RSC caption runs the panel's width");
+  });
+
   it("lists problems first: only expired and expiring certificates are under 'Needs a look'", () => {
     const m = model();
     const rows = needsLook(certRows(m), TODAY);
@@ -373,8 +405,8 @@ describe("the record's first screen says each fact once, with its receipt", () =
     const count = (m: SupplierSheetModel) => (text(view(m, { mode: "page", tab: "overview" })).match(/read \d+ days ago/g) ?? []).length;
     const fresh = model(aboniInput(), { sources: model().sources.map((s) => ({ ...s, readDate: "17 Sep 2026" })) });
     assert.equal(count(fresh), 0, "a fresh read is its date");
-    // One stale read: once in the Sources section and once in the page's Sources card, in the same words.
-    assert.equal(count(model(aboniInput(), { sources: fresh.sources.map((s, i) => (i === 0 ? { ...s, readDate: "26 Jun 2025" } : s)) })), 2);
+    // One stale read, said once: in the Sources section (the aside no longer repeats the list; critique of 8 Oct 2026, item 5).
+    assert.equal(count(model(aboniInput(), { sources: fresh.sources.map((s, i) => (i === 0 ? { ...s, readDate: "26 Jun 2025" } : s)) })), 1);
     assert.doesNotMatch(view(fresh, { mode: "page" }), /Not dated/);
     // The glyph is Phosphor's hourglass, not the clock the certificate rows use.
     assert.match(readFileSync(path.join(dir, "panels.tsx"), "utf8"), /Hourglass size=\{12\}/);

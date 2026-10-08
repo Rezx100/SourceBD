@@ -635,6 +635,11 @@ describe("/app/discover — the panes beside the results", () => {
   };
   const sendButton = (html: string) => /<button\b[^>]*>(?:(?!<\/button>)[\s\S])*?Send RFQ/.exec(html)?.[0] ?? "";
 
+  it("the results page has one h1 (the desktop bar's; the phone bar's title is a p)", async () => {
+    const out = html(await search({ q: "knit" }));
+    assert.equal((out.match(/<h1\b/g) ?? []).length, 1);
+  });
+
   it("?rfq=<id> opens the composer in the pane beside the results, naming the target and none of its contact details", async () => {
     const out = html(await search({ q: "knit", rfq: ABONI_ID }));
     assert.match(out, /<section data-record-pane="" aria-label="New RFQ"/);

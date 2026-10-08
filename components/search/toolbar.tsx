@@ -272,7 +272,8 @@ export function PhoneToolbar({ state, count, hrefFor, filtersHref }: { state: Di
           ) : null}
         </div>
       </Form>
-      <h1 className="text-md font-semibold text-ink">{count}</h1>
+      {/* Not an h1: the desktop bar's heading is the page's one, and this bar is on the page too (hidden by CSS from 768). */}
+      <p className="text-md font-semibold text-ink">{count}</p>
       <div className="flex gap-2">
         <Link href={filtersHref} prefetch={false} scroll={false} className={half}>
           <SlidersHorizontal size={20} className="shrink-0 text-ink-2 max-[429px]:hidden" aria-hidden />
