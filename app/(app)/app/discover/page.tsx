@@ -191,7 +191,8 @@ export default async function BuyerDiscoverPage({
       {welcome && !error && total !== 0 ? <FirstResultsCoach supabase={supabase} closeHref={keepOpen} /> : null}
       <div className="flex min-h-0 flex-1 flex-col">
         <PhoneToolbar state={state} count={resultsTitle("", error ? null : total)} hrefFor={hrefFor} filtersHref={filtersHref} />
-        {paneOpen ? toolbar : <ResultsBar toolbar={toolbar} exportHref={exportHref} searchHref={closeHref} pageSize={rows.length} />}
+        {/* Beside a pane too: ticking turns the pane list's toolbar into the bulk bar, as it does the filter bar. */}
+        <ResultsBar toolbar={toolbar} exportHref={exportHref} searchHref={closeHref} pageSize={rows.length} narrow={paneOpen} />
         {error ? (
           <ResultsError failure={failure ?? "unavailable"} retryHref={closeHref} />
         ) : rows.length === 0 && state.page > 1 ? (

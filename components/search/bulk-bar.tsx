@@ -1,8 +1,8 @@
 "use client";
 
 // The bar over the table: the filter bar while nothing is ticked, the ink bulk bar while
-// something is (Paper `10 · Results, 3 selected`). "3 suppliers selected · Select all 25 on
-// this page", Save, Download CSV, "Send RFQ to 3 suppliers", and the × that clears. Save and
+// something is (Paper `10 Â· Results, 3 selected`). "3 suppliers selected Â· Select all 25 on
+// this page", Save, Download CSV, "Send RFQ to 3 suppliers", and the Ã— that clears. Save and
 // Download say how they ended in a live region, even after the selection is cleared. The
 // rules (the 50-supplier cap on one RFQ, what a partial save says, the CSV's refusals) are
 // `lib/dashboard/selection.ts`.
@@ -13,23 +13,24 @@ import { useEffect, useId, useRef, useState, type MouseEvent, type ReactNode } f
 import { BulkBar, bulkActionClass, bulkCloseClass } from "@/components/kit";
 import { SEND_RFQ_MAX, announceBulkSaved, bulkExportHref, clearKeepingFocus, interceptPlainClick, rfqHref, runBulkSave, runExport, saveBlob } from "@/lib/dashboard/selection";
 import { useRouter } from "next/navigation";
-import { SELECT_ALL_ID, useSelection } from "./selection";
+import { clearTarget, useSelection } from "./selection";
 
 export const TOO_MANY = `One RFQ goes to up to ${SEND_RFQ_MAX} suppliers. Untick some to send.`;
 export const STILL_SAVING = "Still saving. Its result will show here.";
-export const SAVING = "Saving…";
-export const PREPARING = "Preparing the download…";
+export const SAVING = "Savingâ€¦";
+export const PREPARING = "Preparing the downloadâ€¦";
 export const STILL_PREPARING = "Still preparing the download. Its result will show here.";
 /** A result that lands after the selection changed says which selection it was for. */
 export const EARLIER = "For your earlier selection: ";
 
-const sentence = (s: string) => (/[.!?…]$/.test(s) ? s : `${s}.`);
+const sentence = (s: string) => (/[.!?â€¦]$/.test(s) ? s : `${s}.`);
 
 export function ResultsBar({
   toolbar,
   exportHref,
   searchHref,
   pageSize,
+  narrow = false,
 }: {
   /** The filter bar, drawn by the page; shown while nothing is ticked. */
   toolbar: ReactNode;
@@ -38,6 +39,8 @@ export function ResultsBar({
   searchHref: string;
   /** How many suppliers this page lists: "Select all 25 on this page". */
   pageSize: number;
+  /** Beside a pane (576 wide): "3 selected", no Select all, "Send RFQ to 3", so the bar stays one line. */
+  narrow?: boolean;
 }) {
   const sel = useSelection();
   const router = useRouter();
@@ -115,16 +118,16 @@ export function ResultsBar({
       {announcer}
       {count > 0 ? (
         <BulkBar
-          summary={`${count} ${count === 1 ? "supplier" : "suppliers"} selected`}
+          summary={narrow ? `${count} selected` : `${count} ${count === 1 ? "supplier" : "suppliers"} selected`}
           selectAll={
-            sel.allState === true ? null : (
+            sel.allState === true || narrow ? null : (
               <button type="button" onClick={sel.toggleAllOnPage} className="rounded-sm font-medium underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-surface">
                 Select all {pageSize} on this page
               </button>
             )
           }
           clear={
-            <button type="button" aria-label="Clear selection" className={bulkCloseClass} onClick={() => clearKeepingFocus(document.getElementById(SELECT_ALL_ID), sel.clear)}>
+            <button type="button" aria-label="Clear selection" className={bulkCloseClass} onClick={() => clearKeepingFocus(clearTarget(document), sel.clear)}>
               <X size={16} aria-hidden />
             </button>
           }
@@ -137,7 +140,8 @@ export function ResultsBar({
           </a>
           {count <= SEND_RFQ_MAX ? (
             <Link href={rfqHref(searchHref, ids)} scroll={false} className={bulkActionClass(true)}>
-              Send RFQ to {count} {count === 1 ? "supplier" : "suppliers"}
+              Send RFQ to {count}
+              {narrow ? null : ` ${count === 1 ? "supplier" : "suppliers"}`}
             </Link>
           ) : (
             <span aria-disabled="true" aria-describedby={noteId} className={`${bulkActionClass(true)} cursor-not-allowed text-disabled`}>

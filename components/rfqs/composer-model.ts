@@ -171,7 +171,21 @@ export function footerStatus(s: { error: string | null; sanctioned: number; miss
  * missing); it posts only when nothing is missing and nothing blocks. Send is never withheld for an
  * empty field, so a mouse user gets the sentence a keyboard user got from Ctrl+Enter.
  */
-export const sendDecision = (s: { blocked: boolean; missing: readonly string[] }): "post" | "wait" | "blocked" => (s.blocked ? "blocked" : s.missing.length > 0 ? "wait" : "post");
+export const sendDecision = (s: { blocked: boolean; missing: readonly string[]; targets?: number; confirmed?: boolean }): "post" | "wait" | "blocked" | "review" =>
+  s.blocked ? "blocked" : s.missing.length > 0 ? "wait" : !s.confirmed && confirmFirst(s.targets ?? 0) ? "review" : "post";
+
+/**
+ * Above the five the composer lists, Send (a click or Ctrl ↵) opens the review dialog as the
+ * confirmation: an RFQ is irreversible, and to fifty named companies one click was too little
+ * (critique of 8 Oct 2026, round 3, item 3). Five or fewer are all on screen and send at once.
+ */
+export const confirmFirst = (targets: number): boolean => targets > LISTED_TARGETS;
+
+/** The review dialog's title and primary: "Done" while reviewing, the send itself while confirming. */
+export function reviewWords(n: number, confirming: boolean): { title: string; primary: string } {
+  if (confirming) return { title: `Send this RFQ to ${n} suppliers?`, primary: `Send to ${n} suppliers` };
+  return { title: `${n} ${n === 1 ? "supplier gets" : "suppliers get"} this RFQ`, primary: "Done" };
+}
 
 /** A number field while not focused: 10000 → "10,000", 8.9 → "8.90"; what was typed while it is, or when it is not a number. */
 export function shownNumber(raw: string, focused: boolean, kind: "count" | "money"): string {

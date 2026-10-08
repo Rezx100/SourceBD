@@ -15,7 +15,8 @@ type RowLike = {
   querySelector(selector: string): { click(): void } | null;
 };
 
-export const ROW_SELECTOR = 'tr[data-row="result"]';
+/** A table row or a pane list's item: the list beside an open record keeps the same keys (critique of 8 Oct 2026, round 3, item 2). */
+export const ROW_SELECTOR = '[data-row="result"]';
 
 /**
  * Set while an arrow key changes the open record, so the pane does not take focus from the row it
@@ -31,7 +32,7 @@ export function onRowKey(e: RowEvent): void {
   // A modified key is the browser's or the app's (Ctrl R reloads, Ctrl K searches), never a row action.
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   const row = e.target as RowLike;
-  if (!row || row.tagName !== "TR") return;
+  if (!row || (row.tagName !== "TR" && row.tagName !== "LI")) return;
   const follows = row.parentElement?.getAttribute?.("data-follow") === "record";
   const move = (dir: 1 | -1) => {
     const rows = Array.from(row.parentElement?.querySelectorAll(ROW_SELECTOR) ?? []);
