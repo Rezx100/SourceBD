@@ -540,13 +540,24 @@ describe("needs attention", () => {
   });
 });
 
+/** The landing with its Suspense resolved: `renderToStaticMarkup` stops at the fallback. */
+async function streamedLanding(props: Parameters<typeof SearchLanding>[0]): Promise<string> {
+  const { prerenderToNodeStream } = await import("react-dom/static");
+  const { prelude } = await prerenderToNodeStream(h(SearchLanding, props));
+  let html = "";
+  for await (const chunk of prelude) html += chunk.toString();
+  return html.replace(/<!-- -->/g, "");
+}
+
 describe("the landing", () => {
   const attention = attentionOf({ total: 1, rows: [{ kind: "wrap", certificate_no: "7865", expires_on: "2026-09-29", supplier: { id: "a", slug: "aboni", company_name: "Aboni Knitwear Ltd." } }] }, { total: 7, rows: [] }, TODAY)!;
   const out = plain(h(SearchLanding, { published: 10268, attention, counts: { "gots-knit": 373, sweaters: null }, saved: Promise.resolve([]) }));
 
   it("is search first: one heading, the published count, the filter menus, the common searches, then the work queue", () => {
     assert.equal(out.match(/<h1\b/g)?.length, 1);
-    assert.ok(out.includes("10,268 suppliers") && out.includes("every fact from a named source"));
+    assert.ok(out.includes("10,268 suppliers"));
+    // The marketing line beside the h1 went (round 3, item 4): the page says what it holds, not a slogan.
+    assert.ok(!out.includes("every fact from a named source"));
     assert.ok(out.includes("Products exported") && out.includes("Company type") && out.includes("Hiding sanctioned suppliers"));
     assert.match(out, /aria-labelledby="common-searches"/);
     assert.ok(out.includes("GOTS-certified knitwear"));
@@ -559,24 +570,38 @@ describe("the landing", () => {
     assert.match(out, /href="\/app\/rfqs\/new\?supplier=a"[^>]*>Ask for the new certificate/);
   });
 
-  // Critique of 7 Oct 2026, item 6: nine skeletons on first paint, pills among 6px chips, a "Try" row
-  // with no heading, a sanctions sentence with no control, and the way to the other six hidden on a desktop.
-  it("draws the chips with their counts and no skeleton, at 6px, under an h2 that reads as the Try label", () => {
+  // Critique of 7 Oct 2026, item 6 (no skeletons, 6px, a heading), and of 8 Oct round 3, item 4: the
+  // common searches are the first screen's body, two lines each, with the work queue under them.
+  it("draws the common searches as the first screen's body: two lines each, the count read in time, no skeleton", () => {
     const row = /<nav aria-labelledby="common-searches"[\s\S]*?<\/nav>/.exec(out)?.[0] ?? "";
-    assert.ok(row, "no common-searches row");
+    assert.ok(row, "no common searches");
     assert.doesNotMatch(row, /skel|Skeleton|animate-pulse/);
-    assert.match(row, /<h2 id="common-searches" class="[^"]*">Try<\/h2>/);
-    assert.match(row, />373<span class="sr-only"> suppliers<\/span>/, "a count read in time paints with its chip");
+    assert.match(row, /<h2 id="common-searches" class="[^"]*">Common searches<\/h2>/);
+    assert.match(row, /GOTS-certified knitwear<\/span><span class="text-sm text-ink-3">373 suppliers<\/span>/, "a count read in time is the cell's second line");
     assert.doesNotMatch(row, /rounded-full/);
-    assert.equal((row.match(/rounded-md/g) ?? []).length, 9, "one 6px chip per common search");
-    // A late or unread count is a chip with no figure, never "0" and never a skeleton.
-    assert.match(row, />Sweaters and cardigans<\/a>/);
+    assert.equal((row.match(/rounded-md bg-subtle/g) ?? []).length, 9, "one tonal 6px cell per common search");
+    // A late or unread count is a cell with no figure, never "0" and never a skeleton.
+    assert.match(row, />Sweaters and cardigans<\/span><\/a>/);
+    assert.ok(out.indexOf('aria-labelledby="common-searches"') < out.indexOf('aria-label="Needs attention"'), "the work queue comes before the common searches");
+    assert.match(out, /<section class="[^"]*max-w-pane[^"]*" aria-label="Needs attention">/, "the attention card is not at the pane's measure");
+  });
+
+  it("the saved column is always drawn: its heading at once, and two sentences when nothing is saved", async () => {
+    const streamed = await streamedLanding({ published: 1, attention, counts: {}, saved: Promise.resolve([]) });
+    assert.match(streamed, /<h2 id="saved-searches"[^>]*>Saved searches<\/h2>/);
+    assert.ok(streamed.includes("No saved searches yet. Save one from the results bar."));
+    assert.ok(!streamed.includes("All saved searches"), "a link to an empty list");
+    // Before the read answers, the column's heading holds its place (the fallback is not null).
+    assert.match(out, /<h2 id="saved-searches"[^>]*>Saved searches<\/h2>/);
+    const failed = await streamedLanding({ published: 1, attention, counts: {}, saved: Promise.resolve(null) });
+    assert.ok(failed.includes("Your saved searches could not be read just now."));
   });
 
   it("hides sanctioned suppliers with the same quiet toggle the results bar has, at the bar's end, with Show them", () => {
-    const bar = /<div class="flex flex-wrap items-center gap-2 max-sm:hidden">[\s\S]*?<\/div><nav/.exec(out)?.[0] ?? "";
+    // The bar ends the search section now that the common searches lead the body (round 3, item 4).
+    const bar = /<div class="flex flex-wrap items-center gap-2 max-sm:hidden">[\s\S]*?<\/div><\/section>/.exec(out)?.[0] ?? "";
     assert.ok(bar, "no filter bar");
-    assert.match(bar, /<span class="sm:ml-auto"><span class="[^"]*">Hiding sanctioned suppliers<a [^>]*href="\/app\/discover\?sanctioned=1"[^>]*>Show them<\/a><\/span><\/span><\/div><nav$/);
+    assert.match(bar, /<span class="sm:ml-auto"><span class="[^"]*">Hiding sanctioned suppliers<a [^>]*href="\/app\/discover\?sanctioned=1"[^>]*>Show them<\/a><\/span><\/span><\/div><\/section>$/);
     assert.ok(!out.includes("Hiding sanctioned suppliers</span></div>"), "a sentence with no control");
   });
 

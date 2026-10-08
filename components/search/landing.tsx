@@ -1,9 +1,10 @@
 // The search landing (Paper `10 · Search landing v2 · search first, compact` and `11 · Search
 // landing`). Search first (founder's walkthrough, 6 Oct 2026: "there is no search input field,
 // only this information everywhere"): one large field, the filter menus under it with their
-// icons, and the common searches as a row of chips with how many suppliers each finds. Under
-// that, the work queue: the certificates that need a look beside the buyer's recent and saved
-// searches. The topbar steps its own field aside here (`topbar-search-slot.tsx`), so this field
+// icons. Under it the common searches are the first screen's body, two lines each (the search and
+// how many suppliers it finds), with the certificates that need a look under them at the pane's
+// measure, and beside them the buyer's recent and saved searches, always drawn (critique of 8 Oct
+// 2026, round 3, item 4: the app opened on one amber card over empty paper). The topbar steps its own field aside here (`topbar-search-slot.tsx`), so this field
 // is the one Ctrl K reaches. No supplier is listed until the buyer asks.
 // Server component; the counts are read by the page (cached an hour) so a chip paints with its
 // count, never a skeleton; a count that was late is simply not drawn.
@@ -35,37 +36,33 @@ const MENU_ICON: Record<string, ReactNode> = {
   type: <Buildings size={16} weight="fill" className="shrink-0 text-ink-2" aria-hidden />,
 };
 
-function ChipCount({ n }: { n: number | null | undefined }) {
-  // An unread or late count says nothing: "0" is a claim, and a skeleton a promise the page may not keep.
-  if (typeof n !== "number") return null;
-  return (
-    <span className="text-xs text-ink-3">
-      {n.toLocaleString("en-GB")}
-      <span className="sr-only"> {n === 1 ? "supplier" : "suppliers"}</span>
-    </span>
-  );
-}
-
-/** The common searches, one 6px chip each with how many suppliers it finds, under a heading that reads as the "Try" label. */
+/** The common searches, the first screen's body: one tonal cell each, the search on the first line and how many suppliers it finds on the second. */
 function CommonSearches({ counts }: { counts: Record<string, number | null> }) {
   return (
-    // One row that scrolls sideways on a phone; wraps from `sm`.
-    <nav aria-labelledby="common-searches" className="-mx-4 flex items-center gap-1.5 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
-      <h2 id="common-searches" className="shrink-0 pr-1 text-sm font-normal text-ink-3">
-        Try
+    <nav aria-labelledby="common-searches" className="flex flex-col gap-2">
+      <h2 id="common-searches" className={h2}>
+        Common searches
       </h2>
-      {SEARCH_TEMPLATES.map((t) => (
-        <Link
-          key={t.key}
-          href={templateHref(t)}
-          prefetch={false}
-          title={t.blurb}
-          className={cn("inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md bg-subtle px-3 text-sm text-ink-2 transition-colors duration-fast hover:bg-sunken hover:text-ink", ring)}
-        >
-          {t.title}
-          <ChipCount n={counts[t.key]} />
-        </Link>
-      ))}
+      {/* A phone scrolls them sideways, so the work queue is still on its first screen; a grid from `sm`. */}
+      <ul className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 xl:grid-cols-3">
+        {SEARCH_TEMPLATES.map((t) => {
+          const n = counts[t.key];
+          return (
+            <li key={t.key} className="w-60 shrink-0 sm:w-auto">
+              <Link
+                href={templateHref(t)}
+                prefetch={false}
+                title={t.blurb}
+                className={cn("flex h-full min-h-14 flex-col justify-center gap-0.5 rounded-md bg-subtle px-4 py-2.5 transition-colors duration-fast hover:bg-sunken", ring)}
+              >
+                <span className="text-base font-medium text-ink">{t.title}</span>
+                {/* An unread or late count says nothing: "0" is a claim, and a skeleton a promise the page may not keep. */}
+                {typeof n === "number" ? <span className="text-sm text-ink-3">{supplierCount(n)}</span> : null}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
     </nav>
   );
 }
@@ -89,26 +86,47 @@ function SearchField() {
   );
 }
 
-async function SavedSearches({ saved }: { saved: Promise<SavedSearchJson[] | null> }) {
-  const list = await saved;
-  if (list === null) return null;
-  if (list.length === 0) return <p className="text-sm text-ink-3">No saved searches yet. Save a search to hear when new suppliers match it.</p>;
+/** The saved column's frame, drawn at once (the Suspense fallback) and around whatever the read says. */
+function SavedFrame({ all, children }: { all?: boolean; children?: ReactNode }) {
   return (
     <section aria-labelledby="saved-searches" className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between">
         <h2 id="saved-searches" className={h2}>
           Saved searches
         </h2>
-        <Link href="/app/searches" prefetch={false} className={cn(linkClass, "text-sm")}>
-          All saved searches
-        </Link>
+        {all ? (
+          <Link href="/app/searches" prefetch={false} className={cn(linkClass, "text-sm")}>
+            All saved searches
+          </Link>
+        ) : null}
       </div>
+      {children}
+    </section>
+  );
+}
+
+async function SavedSearches({ saved }: { saved: Promise<SavedSearchJson[] | null> }) {
+  const list = await saved;
+  if (list === null)
+    return (
+      <SavedFrame>
+        <p className="text-sm text-ink-3">Your saved searches could not be read just now.</p>
+      </SavedFrame>
+    );
+  if (list.length === 0)
+    return (
+      <SavedFrame>
+        <p className="text-sm text-ink-3">No saved searches yet. Save one from the results bar.</p>
+      </SavedFrame>
+    );
+  return (
+    <SavedFrame all>
       <LinkRows>
         {list.slice(0, 5).map((s) => (
           <LinkRow key={s.id} href={s.href} label={s.name || "Untitled search"} count={s.last_count === null ? null : <Count>{supplierCount(s.last_count)}</Count>} />
         ))}
       </LinkRows>
-    </section>
+    </SavedFrame>
   );
 }
 
@@ -134,7 +152,8 @@ function Attention({ attention }: { attention: Attention | null }) {
   // the other six were reachable only through a link at the top right and a phone-only footer).
   const shown = items.reduce((n, _, i) => n + 1 + (attention.rows[i]?.more ?? 0), 0);
   return (
-    <section className="flex flex-col gap-2" aria-label="Needs attention">
+    // At the pane's measure, under the common searches: a work queue, not the page (round 3, item 4).
+    <section className="flex w-full max-w-pane flex-col gap-2" aria-label="Needs attention">
       <h2 className={cn(h2, "max-sm:hidden")}>{words.heading}</h2>
       <NeedsAttention
         items={items}
@@ -170,7 +189,7 @@ export function SearchLanding({
     <PendingNav className="flex min-h-0 flex-1 flex-col gap-6 px-4 pb-6 pt-1 sm:px-8 sm:pt-7">
       <div className="flex items-baseline gap-4 max-sm:hidden">
         <h1 className="text-xl font-semibold tracking-tight text-ink">Search</h1>
-        <p className="text-base text-ink-3">{published === null ? "Every published supplier" : supplierCount(published)} · every fact from a named source</p>
+        <p className="text-base text-ink-3">{published === null ? "Every published supplier" : supplierCount(published)}</p>
       </div>
       <section aria-label="Find suppliers" className="flex flex-col gap-3">
         <SearchField />
@@ -183,15 +202,15 @@ export function SearchLanding({
             <SanctionedStanding state={EMPTY_STATE} hrefFor={discoverHref} />
           </span>
         </div>
-        <CommonSearches counts={counts} />
       </section>
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
-        <div className="flex min-w-0 flex-1 flex-col gap-6">
+        <div className="flex min-w-0 flex-1 flex-col gap-8">
+          <CommonSearches counts={counts} />
           <Attention attention={attention} />
         </div>
         <div className="flex flex-col gap-6 lg:w-[400px] lg:shrink-0">
           <RecentSearches />
-          <Suspense fallback={null}>
+          <Suspense fallback={<SavedFrame />}>
             <SavedSearches saved={saved} />
           </Suspense>
         </div>
