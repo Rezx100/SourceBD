@@ -133,19 +133,19 @@ test("source marks: tier order with each group named, a name with no mark has no
 
 test("locked contact gives counts with their nouns and never a value; nothing on file offers no unlock", () => {
   const locked = plain(h(LockedContact, { emails: 1, phones: 4, action: h("button", null, "Send RFQ") }));
-  assert.ok(locked.includes("Email 1 on file · Phone 4 on file") && locked.includes("Contact details are locked.") && locked.includes("Send RFQ"));
+  assert.ok(locked.includes("1 email on file · 4 phone numbers on file") && locked.includes("Contact details are locked.") && locked.includes("Send RFQ"));
   assert.ok(!/@|\+\d|tel:|mailto:/.test(locked));
   const none = plain(h(LockedContact, { emails: 0, phones: 0, action: h("button", null, "Send RFQ") }));
   assert.ok(none.includes("No email or phone on file") && !none.includes("Send RFQ") && !none.includes("locked"));
-  assert.ok(plain(h(LockedContact, { emails: 0, phones: 2 })).includes("Phone 2 on file") && !plain(h(LockedContact, { emails: 0, phones: 2 })).includes("Email"));
+  assert.ok(plain(h(LockedContact, { emails: 0, phones: 2 })).includes("2 phone numbers on file") && !plain(h(LockedContact, { emails: 0, phones: 2 })).includes("email"));
   // All four kinds, in this order, each with its noun; website is a yes, never a number.
   const all = plain(h(LockedContact, { emails: 1, phones: 6, website: true, representatives: 2 }));
-  assert.ok(all.includes("Email 1 on file · Phone 6 on file · Website on file · Contact person 2 on file"));
+  assert.ok(all.includes("1 email on file · 6 phone numbers on file · Website on file · 2 contact people on file"));
   const rest = plain(h(LockedContact, { emails: 0, phones: 0, website: true, representatives: 0 }));
   assert.ok(rest.includes("Website on file") && !rest.includes("Email") && !rest.includes("Phone") && !rest.includes("Contact person") && !rest.includes("No email or phone"));
-  assert.equal(onFileWords(0, 0, false, 3), "Contact person 3 on file");
+  assert.equal(onFileWords(0, 0, false, 3), "3 contact people on file");
   assert.equal(onFileWords(0, 0), null);
-  assert.ok(plain(h(LockedContactRow, { emails: 1, phones: 4, website: true, representatives: 1 })).includes("Email 1 on file · Phone 4 on file · Website on file · Contact person 1 on file"));
+  assert.ok(plain(h(LockedContactRow, { emails: 1, phones: 4, website: true, representatives: 1 })).includes("1 email on file · 4 phone numbers on file · Website on file · 1 contact person on file"));
 });
 
 test("the sanction banner has no way to close and refuses the RFQ in words", () => {

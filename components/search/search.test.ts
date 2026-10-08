@@ -247,7 +247,7 @@ describe("the results table", () => {
     // The worst one leads: its mark, then its state as a pill. Then every other body with an
     // approved mark, once; SA8000 has none (`context/logos.lock.md`: no row, no render), so it is counted.
     assert.deepEqual([...aboni!.matchAll(/src="\/icons\/sources\/cert\/([a-z-]+)\.png"/g)].map((m) => m[1]), ["wrap", "gots", "oeko-tex"]);
-    assert.match(aboni!, /wrap\.png"[^>]*\/><\/span><span class="[^"]*\bbg-cert-expired-bg text-cert-expired-fg\b[^"]*">Expired 29 Sep<\/span>/);
+    assert.match(aboni!, /wrap\.png"[^>]*\/><\/span><span title="[^"]+" class="[^"]*\bbg-cert-expired-bg text-cert-expired-fg\b[^"]*">Expired 29 Sep<\/span>/);
     assert.match(aboni!, />\+1<\/span>/);
     assert.ok(!aboni!.includes(">SA8000<"), "a body with no approved mark is drawn");
     // No mark stands without its name (`logos.lock.md` section 1): the cell's title is the line the
@@ -259,7 +259,7 @@ describe("the results table", () => {
     assert.match(sm!, /<span class="sr-only">WRAP valid until 8 Jan 2027<\/span>/, "one certificate is its own sentence");
     assert.equal((aboni!.match(/aria-hidden="true" class="inline-flex/g) ?? []).length, 2, "the marks and the pill are read twice");
     // One valid certificate: its mark and a quiet pill, nothing after it.
-    assert.match(sm!, /wrap\.png"[^>]*\/><\/span><span class="[^"]*\bbg-sunken text-ink-2\b[^"]*">Valid to Jan 2027<\/span><\/span><\/span>$/);
+    assert.match(sm!, /wrap\.png"[^>]*\/><\/span><span title="[^"]+" class="[^"]*\bbg-sunken text-ink-2\b[^"]*">Valid to Jan 2027<\/span><\/span><\/span>$/);
     // The marks are 24 tall in a 40 row: the cell gives up 2px of padding above and below.
     assert.ok(cells.every((c) => c[1]!.split(" ").includes("py-1.5")));
     // Nothing on file is a dash in the cell, the words behind it for a screen reader.
@@ -398,8 +398,8 @@ describe("the bar over the results", () => {
 
   it("Save search, Sort, Filters and More are on the right; Filters names how many are on", () => {
     assert.ok(bar.includes("Save search") && bar.includes("Sort: most sources") && bar.includes(">MORE<"));
-    // Critique of 8 Oct 2026, item 7: eight controls on one line; under 1280 Save search folds into the ⋯ menu, which the pane bar gets too.
-    assert.match(bar, /<a[^>]*title="Save search"[^>]*class="[^"]*max-xl:hidden/);
+    // Critique of 8 Oct 2026, item 7 and round 3: eight controls on one line; under 1536 Save search folds into the ⋯ menu, which the pane bar gets too.
+    assert.match(bar, /<a[^>]*title="Save search"[^>]*class="[^"]*max-2xl:hidden/);
     assert.ok(plain(h(PaneListToolbar, { state, title: "t", hrefFor, filtersHref: "#", more: h("i", null, "MORE") })).includes(">MORE<"), "the pane bar has no ⋯ menu");
     assert.match(readFileSync(path.join(process.cwd(), "components", "search", "more-menu.tsx"), "utf8"), /\{saveHref \? <MenuItem href=\{saveHref\}>Save search<\/MenuItem> : null\}/);
     assert.match(bar, /aria-label="Filters, 1 on"/, "the query counts as the one filter that is on");
@@ -882,5 +882,39 @@ describe("Sam's list: the keyboard and the screen reader (critique of 8 Oct 2026
     assert.doesNotMatch(out, /<tr [^>]*aria-label=/);
     const composer = readFileSync(path.join(process.cwd(), "components", "rfqs", "composer.tsx"), "utf8");
     assert.match(composer, /loadingLabel="Sending" aria-busy=\{busy !== null \|\| undefined\}/);
+  });
+});
+
+describe("the minors, round 3 (critique of 8 Oct 2026, round 3, item 7)", () => {
+  const src = (...f: string[]) => readFileSync(path.join(process.cwd(), ...f), "utf8");
+
+  it("Supplier and Certificates sort from their heads, as Workers and Sources do", () => {
+    const out = plain(h(SelectionProvider, { pageIds: ["x"] }, h(ResultsTable, { rows: [row({ supplierId: "x" })], sort: { key: "name", dir: "asc" }, sortHrefs: { ...sortHrefs, name: "/app/discover?q=knit&sort=name", cert_expiry: "/app/discover?q=knit&sort=cert_expiry" } })));
+    assert.match(out, /<th scope="col" aria-sort="ascending"[^>]*>.*?href="\/app\/discover\?q=knit&sort=name"/);
+    assert.match(out, /href="\/app\/discover\?q=knit&sort=cert_expiry"/);
+    assert.match(src("app", "(app)", "app", "discover", "page.tsx"), /cert_expiry: hrefFor\(\{ \.\.\.state, sort: "cert_expiry", page: 1 \}\)/);
+  });
+
+  it("Save search folds under 1536, and the sanctioned line folds into the Filters pane once another filter is on", () => {
+    const bar = src("components", "search", "toolbar.tsx");
+    assert.match(bar, /className: "px-2 max-2xl:hidden"/);
+    assert.match(bar, /\{on > \(state\.q \? 1 : 0\) \? null : <SanctionedStanding/);
+    const toolbar = (st: typeof EMPTY_STATE) => plain(h(ResultsToolbar, { state: st, title: "t", hrefFor: () => "#", filtersHref: "#", filtersOpen: false, saveHref: "#", more: null }));
+    assert.ok(toolbar({ ...EMPTY_STATE, q: "knit" }).includes("Hiding sanctioned suppliers"));
+    assert.ok(!toolbar({ ...EMPTY_STATE, q: "knit", district: ["Gazipur"] }).includes("Hiding sanctioned suppliers"));
+  });
+
+  it("the pane list's count says what it counts, and a certificate pill carries its full sentence", () => {
+    const out = plain(h(PaneRows, { rows, currentSlug: null }));
+    assert.match(out, /title="Registers and certifiers that filed on this company; the record also counts brand lists"[^>]*>11 sources/);
+    assert.match(src("components", "patterns", "certificate.tsx"), /<span title=\{cert\.first\.words\} className=\{cn\("inline-flex whitespace-nowrap rounded-md/);
+    assert.match(src("lib", "dashboard", "build-models.ts"), /276 of 10,278 published suppliers had a source outside tiers 1-3/);
+  });
+
+  it("the composer's names are one line; Ship by's example shows only while it is empty; Saved's Sort is medium", () => {
+    const composer = src("components", "rfqs", "composer.tsx");
+    assert.doesNotMatch(composer, /text-base font-medium text-ink \[overflow-wrap:anywhere\]/, "a composer name still wraps");
+    assert.match(composer, /help=\{shipBy \? undefined : "For example 15 Nov 2026"\}/);
+    assert.doesNotMatch(src("components", "saved", "list.tsx"), /font-normal/);
   });
 });

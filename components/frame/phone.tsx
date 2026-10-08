@@ -114,7 +114,7 @@ export function PhoneBar({ account }: { account: FrameAccount | null }) {
   );
 }
 
-/** The tab bar, fixed to the foot below 768. A badge on a tab is a dot, and "Alerts, new" to a screen reader. */
+/** The tab bar, fixed to the foot below 768. A badge on a tab is a dot, and "Compliance, new" to a screen reader. */
 export function PhoneTabs({ badges }: { badges?: BadgesInput }) {
   return (
     <Suspense fallback={<PhoneTabsBody badges={NO_BADGES} />}>

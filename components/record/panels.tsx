@@ -133,14 +133,50 @@ function MembershipLine({ m }: { m: Membership }) {
   );
 }
 
-export function OverviewPanel({ model, today, level = "h3" }: { model: SupplierSheetModel; today: Date; level?: Level }) {
+/**
+ * Needs a look in the full page's right column, under Contact (critique of 8 Oct 2026, round 3, item 7:
+ * the main column ran four screens beside a column that held only the padlock). Stacked for 344.
+ */
+export function NeedsLookAside({ model, today, level: H = "h3" }: { model: SupplierSheetModel; today: Date; level?: Level }) {
+  const rows = needsLook(certRows(model, today), today);
+  if (rows.length === 0) return null;
+  return (
+    <section aria-label="Needs a look" className="flex w-full max-w-details flex-col rounded-lg border border-line p-4">
+      <H className="pb-1 text-base font-semibold text-ink">Needs a look</H>
+      <ul>
+        {rows.map((c, i) => {
+          const w = certWords(c.expiresOn, today);
+          return (
+            <li key={`${c.scheme}-${c.number}-${i}`} className="flex items-center justify-between gap-3 border-b border-line py-2 last:border-b-0">
+              <span className="flex min-w-0 flex-col">
+                <span className="text-base font-medium text-ink">{c.scheme}</span>
+                {c.number ? <span className="font-mono text-sm text-ink-2">{c.number}</span> : null}
+              </span>
+              <CertChip state={w.state} className="shrink-0 whitespace-nowrap">
+                {w.label}
+              </CertChip>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+export function OverviewPanel({ model, today, level = "h3", lookAside = false }: { model: SupplierSheetModel; today: Date; level?: Level; /** The full page draws Needs a look beside the column from `lg`. */ lookAside?: boolean }) {
   const facts = keyFacts(model);
   const legend = pendingLegend(facts);
   return (
     <div className="flex flex-col gap-1">
       {model.summary ? <Note>{model.summary}</Note> : null}
       {model.sanctioned ? <SanctionEvidence model={model} level={level} /> : null}
-      <ProblemRows model={model} today={today} level={level} />
+      {lookAside ? (
+        <div className="lg:hidden">
+          <ProblemRows model={model} today={today} level={level} />
+        </div>
+      ) : (
+        <ProblemRows model={model} today={today} level={level} />
+      )}
       <Eyebrow level={level}>Key facts</Eyebrow>
       <FactList>
         {facts.map((f) => (
