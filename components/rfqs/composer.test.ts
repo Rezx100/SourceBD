@@ -25,7 +25,9 @@ import {
   missingFields,
   neededWords,
   refusalWords,
+  sendDecision,
   sendWords,
+  shownNumber,
   targetSummary,
   typeCounts,
   type ComposerTarget,
@@ -126,8 +128,9 @@ describe("what the composer draws", () => {
     assert.ok(!out.includes("Add a quantity"));
     assert.ok(out.includes("Each supplier gets its own copy. No supplier sees who else you asked."));
     assert.ok(out.includes(`Questions · ${DEFAULT_QUESTIONS.length}`));
-    assert.match(/<button\b[^>]*>(?:(?!<\/button>)[\s\S])*?Send RFQ/.exec(out)?.[0] ?? "", /\sdisabled=""/);
-    assert.ok(out.includes("Ctrl+Enter"));
+    // Critique of 8 Oct 2026, item 1: a mouse user with a field empty saw a grey Send and no reason.
+    assert.doesNotMatch(/<button\b[^>]*>(?:(?!<\/button>)[\s\S])*?Send RFQ/.exec(out)?.[0] ?? "", /\sdisabled=""/, "Send is withheld for an empty quantity");
+    assert.ok(out.includes("Ctrl ↵") && !out.includes("Ctrl+Enter"), "the hint in the buyer's own keys, as DESIGN.md writes it");
   });
 
   it("a workspace missing its website gets From you's three fields in place, prefilled from the account, with Settings as the other way; Send waits", () => {
@@ -138,7 +141,7 @@ describe("what the composer draws", () => {
     assert.match(out, /value="Karim Trading"/);
     assert.ok(out.includes('href="/app/settings/workspace"'), "Settings stays a way, not the only one");
     assert.ok(!out.includes("so it shows in [brackets]"), "no caution note before a send is tried");
-    assert.match(/<button\b[^>]*>(?:(?!<\/button>)[\s\S])*?Send RFQ/.exec(out)?.[0] ?? "", /\sdisabled=""/, "the message still holds [website]");
+    assert.doesNotMatch(/<button\b[^>]*>(?:(?!<\/button>)[\s\S])*?Send RFQ/.exec(out)?.[0] ?? "", /\sdisabled=""/, "the message still holds [website], which the click names");
     const full = draw([target(1)], { prefill: { title: "Hoodies", quantity: "10000" }, workspace: { ...WORKSPACE, website: "karim.example" } });
     assert.doesNotMatch(full, /<section aria-label="From you"/, "a complete workspace is not asked again");
     assert.ok(full.includes("Sends to 1 supplier: Aboni Knitwear Ltd."));
@@ -212,7 +215,7 @@ describe("what the composer draws", () => {
     const none = draw([]);
     assert.ok(none.includes("No supplier yet."));
     assert.ok(none.includes("Add a supplier to send this RFQ.") || none.includes("Add a product"));
-    assert.match(/<button\b[^>]*>(?:(?!<\/button>)[\s\S])*?Send RFQ/.exec(none)?.[0] ?? "", /\sdisabled=""/);
+    assert.doesNotMatch(/<button\b[^>]*>(?:(?!<\/button>)[\s\S])*?Send RFQ/.exec(none)?.[0] ?? "", /\sdisabled=""/, "the click says to add a supplier");
   });
 
   it("a sanctioned supplier is a solid banner, a Remove, no live Send, and the reason in the footer", () => {
@@ -221,6 +224,30 @@ describe("what the composer draws", () => {
     assert.ok(out.includes("RFQs cannot be sent to a sanctioned supplier"));
     assert.ok(out.includes('aria-label="Remove Sanctioned Knit Ltd."'));
     assert.match(/<button\b[^>]*>(?:(?!<\/button>)[\s\S])*?Send RFQ/.exec(out)?.[0] ?? "", /\sdisabled=""/);
+    assert.match(out, /<span id="[^"]+-send-hint" class="sr-only">Remove the sanctioned supplier to send\./, "the disabled Send's description says why");
+  });
+
+  // Critique of 8 Oct 2026, item 1: Send is never disabled for an empty field; a click marks the
+  // attempt, posts nothing, and the footer turns caution with the inline notes.
+  it("a click with a field empty marks the attempt and posts nothing; a complete form posts; a sanction blocks", () => {
+    assert.equal(sendDecision({ blocked: false, missing: ["quantity"] }), "wait");
+    assert.equal(sendDecision({ blocked: false, missing: [] }), "post");
+    assert.equal(sendDecision({ blocked: true, missing: [] }), "blocked");
+    const words = { sends: "Sends to 1 supplier: Aboni Knitwear Ltd.", send: "Send RFQ" };
+    assert.deepEqual(footerStatus({ error: null, sanctioned: 0, missing: ["quantity"], attempted: true, draftSavedAt: null, words }), { text: "Add a quantity to send.", tone: "caution", live: true });
+  });
+
+  it("a quantity and a target price read as figures once the field is left, and as typed while in it", () => {
+    assert.equal(shownNumber("10000", false, "count"), "10,000");
+    assert.equal(shownNumber("1250.5", false, "count"), "1,250.5");
+    assert.equal(shownNumber("10000", true, "count"), "10000");
+    assert.equal(shownNumber("8.9", false, "money"), "8.90");
+    assert.equal(shownNumber("", false, "money"), "");
+    assert.equal(shownNumber("abc", false, "count"), "abc");
+    const out = draw([target(1)], { prefill: { title: "Hoodies", quantity: "10000", targetPrice: "8.9" } });
+    assert.match(out, /value="10,000"/);
+    assert.match(out, /value="8\.90"/);
+    assert.doesNotMatch(out, /value="10000"/);
   });
 
   it("in the pane it is a labelled region with Close and a Record link; on the page, a back link and no Close", () => {

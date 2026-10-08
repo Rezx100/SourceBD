@@ -164,6 +164,20 @@ export function footerStatus(s: { error: string | null; sanctioned: number; miss
 }
 
 /** The message under one field once Send was tried and it is still empty; null before that. */
+/**
+ * What a click on Send does: it always marks the attempt (so the footer and the fields name what is
+ * missing); it posts only when nothing is missing and nothing blocks. Send is never withheld for an
+ * empty field, so a mouse user gets the sentence a keyboard user got from Ctrl+Enter.
+ */
+export const sendDecision = (s: { blocked: boolean; missing: readonly string[] }): "post" | "wait" | "blocked" => (s.blocked ? "blocked" : s.missing.length > 0 ? "wait" : "post");
+
+/** A number field while not focused: 10000 → "10,000", 8.9 → "8.90"; what was typed while it is, or when it is not a number. */
+export function shownNumber(raw: string, focused: boolean, kind: "count" | "money"): string {
+  const n = Number(raw);
+  if (focused || !raw.trim() || !Number.isFinite(n)) return raw;
+  return kind === "count" ? new Intl.NumberFormat("en-GB", { maximumFractionDigits: 4 }).format(n) : n.toFixed(2);
+}
+
 export const fieldNote = (attempted: boolean, missing: readonly string[], field: string, words: string): string | null => (attempted && missing.includes(field) ? words : null);
 
 /** "Sends to 1 supplier: Aboni Knitwear Ltd." and the Send button's own words. */
