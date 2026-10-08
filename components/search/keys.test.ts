@@ -12,6 +12,7 @@ import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { ACTION_SELECTOR, ROW_SELECTOR, keyFollow, onRowKey } from "@/components/search/keys";
+import { clearTarget } from "@/components/search/selection";
 import { PaneListToolbar } from "@/components/search/toolbar";
 import { EMPTY_STATE } from "@/lib/discover-v32-state";
 
@@ -130,5 +131,15 @@ describe("the pane list keeps the keys (critique of 8 Oct 2026, round 3, item 2)
     // Any other element is still not a row.
     const [d] = make(1, false, "DIV") as [Fake];
     assert.equal(press("j", d), false);
+  });
+});
+
+describe("beside a pane the keys still say where they are (round 3, item 2)", () => {
+  it("the arrows announce the record by the row's name title, and Clear lands on a row when there is no select-all box", () => {
+    const focus = readFileSync(path.join(process.cwd(), "components", "search", "pane-focus.tsx"), "utf8");
+    assert.match(focus, /row\?\.querySelector\("\[data-name\]\[title\]"\)/);
+    const row = { focus() {} };
+    const doc = { getElementById: () => null, querySelector: (sel: string) => (sel === '[data-row="result"]' ? row : null) };
+    assert.equal(clearTarget(doc as never), row);
   });
 });

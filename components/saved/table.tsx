@@ -13,7 +13,7 @@ import Link from "next/link";
 import { ABSENT, CertSummaryCell, SupplierRow } from "@/components/patterns";
 import { BulkBar, Checkbox, IconButton, Menu, MenuItem, SelectCell, Table, Td, Th, Tr, Unpublished, bulkActionClass, oneLine, rowLinkClass } from "@/components/kit";
 import { onRowKey } from "@/components/search/keys";
-import { SELECT_ALL_ID, useSelection } from "@/components/search/selection";
+import { SELECT_ALL_ID, clearTarget, useSelection } from "@/components/search/selection";
 import { splitQualifier } from "@/lib/dashboard/facts";
 import { SEND_RFQ_MAX, clearKeepingFocus, rfqHref } from "@/lib/dashboard/selection";
 import { cn } from "@/lib/utils";
@@ -137,7 +137,7 @@ export function SavedPaneRows({ items, currentSlug }: { items: readonly SavedIte
       {items.map((i) => {
         const ticked = sel.interactive && sel.isSelected(i.id);
         return (
-          <li key={i.id} data-row="result" tabIndex={0} className="outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
+          <li key={i.id} data-row="result" tabIndex={0} aria-current={i.slug === currentSlug ? "true" : undefined} className="outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
             <SupplierRow
               layout="pane"
               href={i.paneHref}
@@ -176,7 +176,7 @@ export function SavedBar({ items }: { items: readonly SavedItem[] }) {
           selectAll={
             <button
               type="button"
-              onClick={() => clearKeepingFocus(document.getElementById(SELECT_ALL_ID), sel.clear)}
+              onClick={() => clearKeepingFocus(clearTarget(document), sel.clear)}
               className="rounded-sm text-surface underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-surface"
             >
               Clear

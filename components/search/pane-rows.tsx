@@ -29,7 +29,7 @@ export function PaneRows({ rows, currentSlug }: { rows: readonly ResultRow[]; cu
           const selectable = sel.interactive && Boolean(r.supplierId);
           const ticked = selectable && sel.isSelected(r.supplierId!);
           return (
-            <li key={r.slug} data-row="result" tabIndex={0} className="outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
+            <li key={r.slug} data-row="result" tabIndex={0} aria-current={r.slug === currentSlug ? "true" : undefined} className="outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
               <SupplierRow
                 layout="pane"
                 href={r.paneHref}
