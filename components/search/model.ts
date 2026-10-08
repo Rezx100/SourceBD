@@ -24,6 +24,8 @@ export type ResultRow = {
   paneHref: string;
   /** Opens the record as a page (the phone, and "Open full page"). */
   pageHref: string;
+  /** Opens the composer in the pane beside this list with the supplier as its target; null for a sanctioned one. */
+  rfqHref: string | null;
   sanctioned: boolean;
 };
 
@@ -41,6 +43,7 @@ export function resultRow(t: TableRowModel, today: Date, pageHref: string): Resu
     certCell: certSummary(t.certs, today),
     paneHref: t.recordHref ?? `/app/suppliers/${t.slug}`,
     pageHref,
+    rfqHref: t.rfqHref ?? null,
     sanctioned: t.sanctioned,
   };
 }

@@ -797,6 +797,48 @@ describe("/app/discover — the panes beside the results", () => {
   });
 });
 
+describe("/app/saved?rfq= — the composer beside the saved list", () => {
+  // Critique of 8 Oct 2026, item 2: Saved's Send RFQ was a page jump; now it is the pane beside the list.
+  const ABONI_ID = "8ce50581-2d84-4cc2-93aa-000000000001";
+  const SAVED_ROW = { id: ABONI_ID, slug: "aboni-knitwear", company_name: "ABONI KNITWEAR LTD.", entity_type: "factory", city: "Dhaka", district: "Dhaka", source_tags: ["BGMEA"], t13_source_count: 1, employees_total: 3166, saved_at: "2026-10-01T10:00:00Z", total_count: 1 };
+  const SUPPLIERS = [{ id: ABONI_ID, slug: "aboni-knitwear", company_name: "ABONI KNITWEAR LTD.", entity_type: "factory", city: "Dhaka", district: "Dhaka", source_tags: ["BGMEA"], is_published: true, is_sanctioned: false }];
+  const saved = async (sp: Record<string, string>) => {
+    given({ profile: PROFILE, hscodes: HS, tables: { suppliers: SUPPLIERS }, rpcs: { buyer_saved_list: { data: [SAVED_ROW], error: null }, compliance_expired_certs: { data: [], error: null }, compliance_expiring_certs: { data: [], error: null } } });
+    currentPath = "/app/saved";
+    try {
+      const Page = route("app/(app)/app/saved/page.js").default;
+      return await outcome(() => Page({ searchParams: Promise.resolve(sp) }));
+    } finally {
+      currentPath = "/app/discover";
+    }
+  };
+
+  it("?rfq=<id> draws the composer in the pane beside the saved list, naming the target; Close is the list", async () => {
+    const out = html(await saved({ rfq: ABONI_ID }));
+    const pane = out.search(/<section data-record-pane="" aria-label="New RFQ"/);
+    assert.ok(pane > -1, "no composer in the pane");
+    const list = out.indexOf('aria-label="Saved suppliers"');
+    assert.ok(list > -1 && list < pane, "the saved list does not stand beside the composer");
+    assert.match(out.slice(pane), /1 supplier · you can add up to 50[\s\S]*Aboni Knitwear Ltd/);
+    assert.doesNotMatch(out, /aria-label="Supplier record"/, "a record and the composer in one pane");
+    const close = /<a\b[^>]*aria-label="Close"[^>]*href="([^"]+)"|<a\b[^>]*href="([^"]+)"[^>]*aria-label="Close"/.exec(out.slice(pane));
+    assert.equal((close?.[1] ?? close?.[2] ?? "").replace(/&amp;/g, "&"), "/app/saved");
+    assert.doesNotMatch(out, /role="dialog"|aria-modal/);
+  });
+
+  it("the list's sort survives the composer: Close returns to the sorted list, and no door is a page jump", async () => {
+    const out = html(await saved({ sort: "name", rfq: ABONI_ID }));
+    const pane = out.search(/aria-label="New RFQ"/);
+    assert.ok(pane > -1, "no composer in the pane");
+    const close = /<a\b[^>]*aria-label="Close"[^>]*href="([^"]+)"|<a\b[^>]*href="([^"]+)"[^>]*aria-label="Close"/.exec(out.slice(pane));
+    assert.equal((close?.[1] ?? close?.[2] ?? "").replace(/&amp;/g, "&"), "/app/saved?sort=name");
+    assert.doesNotMatch(out, /rfqs\/new/);
+    // Nothing open: the plain list, no composer, and still no page jump anywhere in it.
+    const plain = html(await saved({ sort: "name" }));
+    assert.doesNotMatch(plain, /aria-label="New RFQ"|rfqs\/new/);
+  });
+});
+
 describe("/app/rfqs/new — the composer as a page", () => {
   const ABONI_ID = "8ce50581-2d84-4cc2-93aa-000000000001";
   const SANCTIONED_ID = "9d1e0000-0000-4000-8000-000000000002";

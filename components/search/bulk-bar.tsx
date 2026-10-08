@@ -11,7 +11,7 @@ import { X } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import { BulkBar, bulkActionClass, bulkCloseClass } from "@/components/kit";
-import { SEND_RFQ_MAX, announceBulkSaved, bulkExportHref, clearKeepingFocus, interceptPlainClick, runBulkSave, runExport, saveBlob } from "@/lib/dashboard/selection";
+import { SEND_RFQ_MAX, announceBulkSaved, bulkExportHref, clearKeepingFocus, interceptPlainClick, rfqHref, runBulkSave, runExport, saveBlob } from "@/lib/dashboard/selection";
 import { useRouter } from "next/navigation";
 import { SELECT_ALL_ID, useSelection } from "./selection";
 
@@ -24,9 +24,7 @@ export const STILL_PREPARING = "Still preparing the download. Its result will sh
 export const EARLIER = "For your earlier selection: ";
 
 /** The search URL with `rfq=` carrying the selection: the composer opens beside these results with every ticked supplier as a target. */
-export function bulkRfqHref(searchHref: string, ids: readonly string[]): string {
-  return `${searchHref}${searchHref.includes("?") ? "&" : "?"}rfq=${ids.map(encodeURIComponent).join(",")}`;
-}
+export const bulkRfqHref = rfqHref;
 
 const sentence = (s: string) => (/[.!?…]$/.test(s) ? s : `${s}.`);
 

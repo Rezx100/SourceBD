@@ -85,6 +85,7 @@ const row = (over: Partial<ResultRow> = {}): ResultRow => ({
   certCell: certSummary(ABONI_CERTS, TODAY),
   paneHref: "/app/discover?q=knit&record=aboni-knitwear",
   pageHref: "/app/suppliers/aboni-knitwear?back=%2Fapp%2Fdiscover%3Fq%3Dknit",
+  rfqHref: `/app/discover?q=knit&rfq=${over.supplierId ?? "id-aboni"}`,
   sanctioned: false,
   ...over,
 });
@@ -195,6 +196,19 @@ describe("the results table", () => {
     assert.ok(out.includes('data-open="record"'));
     assert.ok(out.includes('aria-label="Select Aboni Knitwear Ltd."'), "the box names its row");
     assert.ok(out.includes('aria-label="Select all on this page"'));
+  });
+
+  // Critique of 8 Oct 2026, item 2: from a row and from `r` the composer was a page jump that lost the search.
+  it("a row's Send RFQ and the hidden r target open the composer in the pane beside these results, never a page", () => {
+    assert.match(out, /<a data-action="rfq"[^>]*href="\/app\/discover\?q=knit&rfq=id-aboni"/);
+    assert.match(out, /<a data-action="rfq"[^>]*href="\/app\/discover\?q=knit&rfq=id-zaheen"/);
+    assert.doesNotMatch(out, /rfqs\/new/);
+    // The ⋯ menu's item is the same link (Radix draws the menu only once opened, so the source is read).
+    const table = readFileSync(path.join(process.cwd(), "components", "search", "table.tsx"), "utf8");
+    assert.match(table, /<MenuItem hint="R" href=\{r\.rfqHref\}>\s*Send RFQ/);
+    assert.doesNotMatch(table, /rfqs\/new/);
+    const sanctioned = plain(h(SelectionProvider, { pageIds: ["x"] }, h(ResultsTable, { rows: [row({ supplierId: "x", sanctioned: true, rfqHref: null })], sort: { key: "workers", dir: "asc" }, sortHrefs })));
+    assert.doesNotMatch(sanctioned, /data-action="rfq"/, "no RFQ door for a sanctioned supplier");
   });
 
   it("the 100-character name is whole, and nothing is cut off", () => {

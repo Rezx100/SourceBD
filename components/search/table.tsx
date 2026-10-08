@@ -143,8 +143,8 @@ export function ResultsTable({
                         Save
                       </MenuItem>
                     ) : null}
-                    {r.supplierId && !r.sanctioned ? (
-                      <MenuItem hint="R" href={`/app/rfqs/new?supplier=${encodeURIComponent(r.supplierId)}`}>
+                    {r.rfqHref ? (
+                      <MenuItem hint="R" href={r.rfqHref}>
                         Send RFQ
                       </MenuItem>
                     ) : null}
@@ -152,7 +152,7 @@ export function ResultsTable({
                   </Menu>
                   {/* The same two actions for the keyboard (s, r): drawn nowhere, out of the tab order, driven by `onRowKey`. */}
                   {r.supplierId ? <button type="button" data-action="save" tabIndex={-1} aria-hidden className="hidden" onClick={() => void save(r.supplierId!)} /> : null}
-                  {r.supplierId && !r.sanctioned ? <Link href={`/app/rfqs/new?supplier=${encodeURIComponent(r.supplierId)}`} prefetch={false} data-action="rfq" tabIndex={-1} aria-hidden className="hidden" /> : null}
+                  {r.rfqHref ? <Link href={r.rfqHref} prefetch={false} scroll={false} data-action="rfq" tabIndex={-1} aria-hidden className="hidden" /> : null}
                 </td>
               </Tr>
             );

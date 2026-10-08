@@ -14,10 +14,10 @@ import { ABSENT, CertSummaryCell } from "@/components/patterns";
 import { BulkBar, IconButton, Menu, MenuItem, SelectCell, Table, Td, Th, Tr, Unpublished, bulkActionClass, rowLinkClass } from "@/components/kit";
 import { onRowKey } from "@/components/search/keys";
 import { SELECT_ALL_ID, useSelection } from "@/components/search/selection";
-import { SEND_RFQ_MAX, clearKeepingFocus } from "@/lib/dashboard/selection";
+import { SEND_RFQ_MAX, clearKeepingFocus, rfqHref } from "@/lib/dashboard/selection";
 import { cn } from "@/lib/utils";
 import { useRemove } from "./actions";
-import { TOO_MANY, rfqHref, type CertCell, type SavedItem } from "./words";
+import { TOO_MANY, type CertCell, type SavedItem } from "./words";
 
 /** The certificate cell: the same compact cell the results draw, nothing to check, or that it could not be read. */
 export function CertCellView({ cell }: { cell: CertCell }) {
@@ -103,8 +103,9 @@ export function SavedTable({ items, currentSlug }: { items: readonly SavedItem[]
                     align="end"
                     trigger={<IconButton icon={DotsThree} label={`More actions for ${i.name}`} kind="quiet" />}
                   >
-                    <MenuItem href={i.pageHref}>Open full record</MenuItem>
-                    <MenuItem href={rfqHref([i.id])}>Send an RFQ</MenuItem>
+                    {/* The results' row menu, word for word (Save is what this list is), then this list's own action. */}
+                    <MenuItem href={i.rfqHref}>Send RFQ</MenuItem>
+                    <MenuItem href={i.pageHref}>Open full page</MenuItem>
                     <MenuItem onSelect={() => void remove([{ id: i.id, name: i.name }])}>Remove from saved</MenuItem>
                   </Menu>
                 </td>
@@ -155,7 +156,7 @@ export function SavedBar({ items }: { items: readonly SavedItem[] }) {
             Remove from saved
           </button>
           {count <= SEND_RFQ_MAX ? (
-            <Link href={rfqHref(chosen.map((c) => c.id))} className={cn(bulkActionClass(true), "gap-1.5")}>
+            <Link href={rfqHref(chosen[0]!.listHref, chosen.map((c) => c.id))} scroll={false} className={cn(bulkActionClass(true), "gap-1.5")}>
               <PaperPlaneTilt size={16} aria-hidden />
               Send one RFQ to {count} {count === 1 ? "supplier" : "suppliers"}
             </Link>
