@@ -179,10 +179,12 @@ export function ResultsToolbar({
           <Plus size={16} className="shrink-0 text-ink-2" aria-hidden />
           <span className={cn("pr-1", words)}>Add filter</span>
         </Link>
-        <SanctionedStanding state={state} hrefFor={hrefFor} />
       </div>
-      {bare ? null : (
+      {/* The standing filter sits at the bar's end, as it does on the landing, not between the filters and the actions. */}
       <div className="ml-auto flex shrink-0 items-center gap-2">
+        <SanctionedStanding state={state} hrefFor={hrefFor} />
+      {bare ? null : (
+      <>
         <Link href={saveHref} prefetch={false} scroll={false} title="Save search" className={buttonClass({ kind: "secondary", className: "px-2" })}>
           <BookmarkSimple size={16} className="shrink-0 text-ink-2" aria-hidden />
           <span className={cn("pr-1", words)}>Save search</span>
@@ -201,8 +203,9 @@ export function ResultsToolbar({
           <span aria-hidden className="hidden [@container_(max-width:719px)]:inline">{on > 0 ? `Filters · ${on} on` : "Filters"}</span>
         </Link>
         {more}
-      </div>
+      </>
       )}
+      </div>
       </div>
       {savePanel}
     </div>

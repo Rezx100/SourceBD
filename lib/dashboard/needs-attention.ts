@@ -26,11 +26,15 @@ export type AttentionRow = {
   supplierId: string;
   /** "WRAP 7865 expired 29 Sep 2026." */
   what: string;
-  /** "No renewal on file." on a lapsed certificate. */
+  /** "No renewal on file." on a lapsed certificate; "asked 3 Oct 2026" once an RFQ went to the supplier. */
   note?: string;
   /** The ask goes through the one channel a supplier answers on: an RFQ. */
   askHref: string;
   askLabel: string;
+  /** The day the buyer last sent this supplier an RFQ, when one row is one supplier; null when none was. */
+  asked?: string | null;
+  /** Other certificates of the same supplier folded into this row (one row per supplier). */
+  more?: number;
 };
 
 export type Attention = {
@@ -74,6 +78,16 @@ export function attentionOf(
   expiring: { total: number; rows: AttentionCertRow[] } | null,
   today: Date,
   limit = 3,
+  options: {
+    /**
+     * One row per supplier (the landing; the critique of 7 Oct 2026, item 6: one supplier got two
+     * identical buttons): the worst certificate leads, the rest are "· 2 more certificates", one Ask.
+     * The hub keeps one row per certificate under its three headings.
+     */
+    perSupplier?: boolean;
+    /** The day the buyer last sent each supplier an RFQ: the row then reads "asked 3 Oct 2026". */
+    asked?: ReadonlyMap<string, string>;
+  } = {},
 ): Attention | null {
   if (expired === null && expiring === null) return null;
   // A delisted certificate (0122) can come back in both reads: it is one thing to check.
@@ -81,11 +95,60 @@ export function attentionOf(
   const lapsed = new Set((expired?.rows ?? []).map(key));
   const coming = (expiring?.rows ?? []).filter((r) => !lapsed.has(key(r)));
   const twice = (expiring?.rows.length ?? 0) - coming.length;
-  const rows = [...(expired?.rows ?? []), ...coming]
-    .map((r) => rowOf(r, today))
-    .filter((r): r is AttentionRow => r !== null)
-    .slice(0, limit);
-  return { total: (expired?.total ?? 0) + (expiring?.total ?? 0) - twice, rows };
+  let rows = [...(expired?.rows ?? []), ...coming].map((r) => rowOf(r, today)).filter((r): r is AttentionRow => r !== null);
+  if (options.perSupplier) {
+    const bySupplier = new Map<string, AttentionRow>();
+    for (const r of rows) {
+      const held = bySupplier.get(r.supplierId);
+      if (held) held.more = (held.more ?? 0) + 1;
+      else bySupplier.set(r.supplierId, { ...r, more: 0 });
+    }
+    rows = [...bySupplier.values()].map((r) => {
+      const asked = options.asked?.get(r.supplierId) ?? null;
+      const askedDay = asked ? formatDay(asked) : null;
+      return {
+        ...r,
+        asked,
+        what: r.more ? `${r.what} · ${r.more} more ${r.more === 1 ? "certificate" : "certificates"}` : r.what,
+        // Once asked, the row says so in place of "No renewal on file."
+        note: askedDay ? `asked ${askedDay}` : r.note,
+      };
+    });
+  }
+  return { total: (expired?.total ?? 0) + (expiring?.total ?? 0) - twice, rows: rows.slice(0, limit) };
+}
+
+/**
+ * When the buyer last sent each of these suppliers an RFQ (the Ask button opens the composer, so the
+ * RFQ is the record of the ask; nothing else needs to be stored). Drafts do not count. An unread list
+ * says nothing: no supplier is then marked asked.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- the Supabase server client, as the record loaders take it.
+export async function askedDates(supabase: any, supplierIds: readonly string[]): Promise<Map<string, string>> {
+  const asked = new Map<string, string>();
+  if (supplierIds.length === 0) return asked;
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user?.id) return asked;
+    const { data, error } = await supabase
+      .from("rfqs")
+      .select("created_at, target_supplier_ids")
+      .eq("buyer_id", user.id)
+      .neq("status", "draft")
+      .overlaps("target_supplier_ids", [...supplierIds])
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (error || !Array.isArray(data)) return asked;
+    for (const r of data as { created_at?: unknown; target_supplier_ids?: unknown }[]) {
+      if (typeof r.created_at !== "string" || !Array.isArray(r.target_supplier_ids)) continue;
+      for (const id of r.target_supplier_ids) if (typeof id === "string" && supplierIds.includes(id) && !asked.has(id)) asked.set(id, r.created_at);
+    }
+  } catch {
+    // An unread list says nothing.
+  }
+  return asked;
 }
 
 /** "Needs attention · 8 certificates" and the link under it, from the one total. */
@@ -105,5 +168,9 @@ export async function loadNeedsAttention(supabase: any, today: Date, limit = 3):
     }
   };
   const [expired, expiring] = await Promise.all([read("compliance_expired_certs"), read("compliance_expiring_certs", { p_window_days: 90 })]);
-  return attentionOf(expired, expiring, today, limit);
+  if (limit === 0) return attentionOf(expired, expiring, today, limit);
+  // The landing: one row per supplier, each saying whether it was asked.
+  const ids = [...new Set([...(expired?.rows ?? []), ...(expiring?.rows ?? [])].map((r) => r.supplier?.id).filter((id): id is string => Boolean(id)))];
+  const asked = await askedDates(supabase, ids);
+  return attentionOf(expired, expiring, today, limit, { perSupplier: true, asked });
 }

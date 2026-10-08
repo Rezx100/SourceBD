@@ -494,17 +494,61 @@ describe("needs attention", () => {
 
 describe("the landing", () => {
   const attention = attentionOf({ total: 1, rows: [{ kind: "wrap", certificate_no: "7865", expires_on: "2026-09-29", supplier: { id: "a", slug: "aboni", company_name: "Aboni Knitwear Ltd." } }] }, { total: 7, rows: [] }, TODAY)!;
-  const out = plain(h(SearchLanding, { published: 10268, attention, counts: Promise.resolve({}), saved: Promise.resolve([]) }));
+  const out = plain(h(SearchLanding, { published: 10268, attention, counts: { "gots-knit": 373, sweaters: null }, saved: Promise.resolve([]) }));
 
   it("is search first: one heading, the published count, the filter menus, the common searches, then the work queue", () => {
     assert.equal(out.match(/<h1\b/g)?.length, 1);
     assert.ok(out.includes("10,268 suppliers") && out.includes("every fact from a named source"));
     assert.ok(out.includes("Products exported") && out.includes("Company type") && out.includes("Hiding sanctioned suppliers"));
-    assert.match(out, /aria-label="Common searches"/);
+    assert.match(out, /aria-labelledby="common-searches"/);
     assert.ok(out.includes("GOTS-certified knitwear"));
     assert.ok(out.indexOf('role="search"') < out.indexOf("Needs attention · 8"), "the field comes before the work queue");
     assert.ok(out.includes("See all 8 certificates"));
     assert.match(out, /href="\/app\/rfqs\/new\?supplier=a"[^>]*>Ask for the new certificate/);
+  });
+
+  // Critique of 7 Oct 2026, item 6: nine skeletons on first paint, pills among 6px chips, a "Try" row
+  // with no heading, a sanctions sentence with no control, and the way to the other six hidden on a desktop.
+  it("draws the chips with their counts and no skeleton, at 6px, under an h2 that reads as the Try label", () => {
+    const row = /<nav aria-labelledby="common-searches"[\s\S]*?<\/nav>/.exec(out)?.[0] ?? "";
+    assert.ok(row, "no common-searches row");
+    assert.doesNotMatch(row, /skel|Skeleton|animate-pulse/);
+    assert.match(row, /<h2 id="common-searches" class="[^"]*">Try<\/h2>/);
+    assert.match(row, />373<span class="sr-only"> suppliers<\/span>/, "a count read in time paints with its chip");
+    assert.doesNotMatch(row, /rounded-full/);
+    assert.equal((row.match(/rounded-md/g) ?? []).length, 9, "one 6px chip per common search");
+    // A late or unread count is a chip with no figure, never "0" and never a skeleton.
+    assert.match(row, />Sweaters and cardigans<\/a>/);
+  });
+
+  it("hides sanctioned suppliers with the same quiet toggle the results bar has, at the bar's end, with Show them", () => {
+    const bar = /<div class="flex flex-wrap items-center gap-2 max-sm:hidden">[\s\S]*?<\/div><nav/.exec(out)?.[0] ?? "";
+    assert.ok(bar, "no filter bar");
+    assert.match(bar, /<span class="sm:ml-auto"><span class="[^"]*">Hiding sanctioned suppliers<a [^>]*href="\/app\/discover\?sanctioned=1"[^>]*>Show them<\/a><\/span><\/span><\/div><nav$/);
+    assert.ok(!out.includes("Hiding sanctioned suppliers</span></div>"), "a sentence with no control");
+  });
+
+  it("the way to the other certificates is in the card's foot at every width, and one supplier is one row with one Ask", () => {
+    const foot = /<div class="border-t border-line"><a [^>]*href="\/app\/compliance"([^>]*)>([^<]*)</.exec(out);
+    assert.ok(foot, "no footer link");
+    assert.ok(!foot[1]!.includes("sm:hidden"), "the footer is phone-only");
+    assert.equal(foot[2], "See all 8 certificates");
+    assert.ok(!out.includes(">Open Compliance<"), "a second way at the top right beside the footer");
+    // One supplier with two certificates is one row: the worst leads, the rest are counted, one Ask.
+    const two = attentionOf(
+      { total: 2, rows: [{ kind: "wrap", certificate_no: "7865", expires_on: "2026-09-29", supplier: { id: "a", slug: "aboni", company_name: "Aboni Knitwear Ltd." } }] },
+      { total: 3, rows: [{ kind: "gots", certificate_no: "GOTS-1", expires_on: "2026-10-20", supplier: { id: "a", slug: "aboni", company_name: "Aboni Knitwear Ltd." } }, { kind: "gots", certificate_no: "GOTS-2", expires_on: "2026-10-25", supplier: { id: "b", slug: "b", company_name: "B Ltd" } }] },
+      TODAY,
+      3,
+      { perSupplier: true, asked: new Map([["a", "2026-10-03T09:00:00Z"]]) },
+    )!;
+    assert.equal(two.total, 5);
+    assert.deepEqual(two.rows.map((r) => [r.supplier, r.more, r.note ?? null]), [["Aboni Knitwear Ltd.", 1, "asked 3 Oct 2026"], ["B Ltd", 0, null]]);
+    assert.match(two.rows[0]!.what, /^WRAP 7865 expired 29 Sep 2026\. · 1 more certificate$/);
+    assert.equal(two.rows[0]!.asked, "2026-10-03T09:00:00Z");
+    const drawn = plain(h(SearchLanding, { published: 1, attention: two, counts: {}, saved: Promise.resolve([]) }));
+    assert.equal((drawn.match(/Ask for the/g) ?? []).length, 2, "one Ask per supplier");
+    assert.ok(drawn.includes("asked 3 Oct 2026"));
   });
 
   it("lists no supplier before the buyer searches, and draws its one field at every width, the one Ctrl K reaches", () => {
@@ -556,7 +600,7 @@ describe("the landing", () => {
   });
 
   it("an unread certificate check says so with a way to try again; it does not say nothing needs attention", () => {
-    const failed = plain(h(SearchLanding, { published: null, attention: null, counts: Promise.resolve({}), saved: Promise.resolve(null) }));
+    const failed = plain(h(SearchLanding, { published: null, attention: null, counts: {}, saved: Promise.resolve(null) }));
     assert.ok(failed.includes("We couldn't load the certificate checks.") && failed.includes("Try again"));
     assert.ok(!failed.includes("Nothing needs attention"));
     assert.ok(failed.includes("Every published supplier"));

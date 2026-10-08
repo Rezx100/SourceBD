@@ -2,8 +2,9 @@
 // certificate expiry`): every certificate on the saved suppliers that has lapsed with no renewal on
 // file, then those lapsing inside 90 days, in three groups under a filter, one ask each. A real
 // table from 768; on a phone each row is the date, the certificate, the supplier and a 48-tall Ask.
-// Server components. Paper's "Follow-up: Not asked yet" is not here: nothing records whether a
-// supplier was asked. Download CSV writes the certificates the filter shows (`/api/v1/export`).
+// Server components. Paper's "Follow-up: Not asked yet" is not here; the landing's rows read "asked
+// 3 Oct 2026" from the RFQs sent to the supplier (`askedDates`), which is the record of the ask.
+// Download CSV writes the certificates the filter shows (`/api/v1/export`).
 
 import { Clock, XCircle } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
