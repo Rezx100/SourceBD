@@ -185,7 +185,8 @@ export function ResultsToolbar({
         <SanctionedStanding state={state} hrefFor={hrefFor} />
       {bare ? null : (
       <>
-        <Link href={saveHref} prefetch={false} scroll={false} title="Save search" className={buttonClass({ kind: "secondary", className: "px-2" })}>
+        {/* Eight controls on one line was too many (critique of 8 Oct 2026, item 7): under 1280 Save search is in the ⋯ menu. */}
+        <Link href={saveHref} prefetch={false} scroll={false} title="Save search" className={buttonClass({ kind: "secondary", className: "px-2 max-xl:hidden" })}>
           <BookmarkSimple size={16} className="shrink-0 text-ink-2" aria-hidden />
           <span className={cn("pr-1", words)}>Save search</span>
         </Link>
@@ -217,7 +218,7 @@ export function ResultsToolbar({
  * icons with their names on hover and for a screen reader (the critique of 7 Oct 2026: beside a pane the
  * bar dropped both, in the state a power user lives in), and Sort.
  */
-export function PaneListToolbar({ state, title, hrefFor, filtersHref, saveHref, savePanel }: { state: DiscoverState; title: string; hrefFor: (s: DiscoverState) => string; filtersHref: string; saveHref?: string; savePanel?: ReactNode }) {
+export function PaneListToolbar({ state, title, hrefFor, filtersHref, saveHref, savePanel, more }: { state: DiscoverState; title: string; hrefFor: (s: DiscoverState) => string; filtersHref: string; saveHref?: string; savePanel?: ReactNode; /** The ⋯ menu (Download CSV), as `ResultsToolbar` takes it: beside a pane it was unreachable. */ more?: ReactNode }) {
   const on = filterCount(state);
   return (
     <div className="relative flex min-h-14 items-center justify-between gap-x-3 border-b border-line px-4 py-2 max-md:hidden">
@@ -240,6 +241,7 @@ export function PaneListToolbar({ state, title, hrefFor, filtersHref, saveHref, 
           {on > 0 ? <span aria-hidden className="font-mono text-xs tabular-nums text-ink-2">{on}</span> : null}
         </Link>
         <SortMenu state={state} hrefFor={hrefFor} />
+        {more}
       </div>
       {savePanel}
     </div>

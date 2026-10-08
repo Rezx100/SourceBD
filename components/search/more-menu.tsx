@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from "react";
 import { IconButton, Menu, MenuItem, Toast } from "@/components/kit";
 import { runExport, saveBlob } from "@/lib/dashboard/selection";
 
-export function MoreMenu({ exportHref, total }: { exportHref: string; total: number | null }) {
+export function MoreMenu({ exportHref, total, saveHref }: { exportHref: string; total: number | null; /** Save search lives here too: under 1280 the bar folds its button away, and beside a pane the bar is icons. */ saveHref?: string }) {
   const [said, setSaid] = useState("");
   const running = useRef(false);
   useEffect(() => {
@@ -34,6 +34,7 @@ export function MoreMenu({ exportHref, total }: { exportHref: string; total: num
   return (
     <>
       <Menu align="end" trigger={<IconButton icon={DotsThree} label="More actions" />}>
+        {saveHref ? <MenuItem href={saveHref}>Save search</MenuItem> : null}
         <MenuItem onSelect={download} disabled={total === 0} hint={total === 0 ? "Nothing to download" : undefined}>
           Download CSV
         </MenuItem>

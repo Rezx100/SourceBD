@@ -169,7 +169,7 @@ export default async function BuyerDiscoverPage({
   ) : null;
 
   const toolbar = paneOpen ? (
-    <PaneListToolbar state={state} title={title} hrefFor={hrefFor} filtersHref={filtersOpen ? closeHref : filtersHref} saveHref={saveHref} savePanel={savePanel} />
+    <PaneListToolbar state={state} title={title} hrefFor={hrefFor} filtersHref={filtersOpen ? closeHref : filtersHref} saveHref={saveHref} savePanel={savePanel} more={error || total === 0 ? null : <MoreMenu exportHref={exportHref} total={total} saveHref={saveHref} />} />
   ) : (
     <ResultsToolbar
       state={state}
@@ -179,7 +179,7 @@ export default async function BuyerDiscoverPage({
       filtersOpen={filtersOpen}
       saveHref={saveHref}
       savePanel={savePanel}
-      more={<MoreMenu exportHref={exportHref} total={error ? null : total} />}
+      more={<MoreMenu exportHref={exportHref} total={error ? null : total} saveHref={saveHref} />}
       bare={Boolean(error) || total === 0}
     />
   );

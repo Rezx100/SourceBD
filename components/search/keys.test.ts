@@ -87,6 +87,9 @@ describe("the four keys", () => {
   it("the pane's focus helper honours the flag, and the table marks its body when a record is open", () => {
     const focus = readFileSync(path.join(process.cwd(), "components", "search", "pane-focus.tsx"), "utf8");
     assert.match(focus, /if \(keyFollow\.pending\) \{\s*keyFollow\.pending = false;/);
+    // When ↑↓ change the open record nothing else announces it: a polite live region says "Showing <name>" (critique of 8 Oct 2026, item 7).
+    assert.match(focus, /setSaid\(`Showing \$\{name\}`\)/);
+    assert.match(focus, /<span role="status" aria-live="polite" className="sr-only">/);
     const table = readFileSync(path.join(process.cwd(), "components", "search", "table.tsx"), "utf8");
     assert.match(table, /<tbody onKeyDown=\{onRowKey\} data-follow=\{currentSlug != null \? "record" : undefined\}>/);
     // The ⋯ menu shows the two keys, and the row keeps the two actions for the keyboard.

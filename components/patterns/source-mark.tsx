@@ -122,7 +122,7 @@ export function SourceList({ sources, today, className, level: H = "h3" }: { sou
     <section aria-label="Sources" className={cn("flex w-full max-w-details flex-col rounded-lg border border-line bg-surface", className)}>
       <header className="flex h-11 items-center justify-between border-b border-line px-4">
         <H className="text-base font-semibold text-ink">Sources · {sources.length}</H>
-        <span className="text-xs text-ink-3">Last checked</span>
+        <span className="text-xs text-ink-3">Last read</span>
       </header>
       <ul>
         {sources.map(({ source, checkedOn, label, fullName }) => {

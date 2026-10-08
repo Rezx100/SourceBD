@@ -5,7 +5,7 @@
 // On open and whenever the pane's content changes, focus moves into the pane; on close it
 // returns to the row that opened it.
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { keyFollow } from "./keys";
 
 /** The record link in the results for `slug`: the element focus returns to. */
@@ -21,6 +21,8 @@ export function openerFor(slug: string, links: Iterable<HTMLAnchorElement>, key:
 export function PaneFocus({ openKey }: { openKey: string }) {
   // The record that OPENED the pane, read once: the row focus returns to.
   const opener = useRef<string | null>(null);
+  // "Showing Aboni Knitwear Ltd.": said once per record the arrows move to (focus stays on the row, so nothing else says the pane changed).
+  const [said, setSaid] = useState("");
   useEffect(() => {
     if (opener.current === null) opener.current = new URLSearchParams(window.location.search).get("record") ?? "";
     // An arrow key changed the open record: focus stays on the row it moved to, which is now the
@@ -28,6 +30,8 @@ export function PaneFocus({ openKey }: { openKey: string }) {
     if (keyFollow.pending) {
       keyFollow.pending = false;
       opener.current = new URLSearchParams(window.location.search).get("record") ?? opener.current;
+      const name = document.querySelector('[data-row="result"][aria-current="true"]')?.getAttribute("aria-label");
+      if (name) setSaid(`Showing ${name}`);
       return;
     }
     const frame = document.querySelector<HTMLElement>("[data-pane-frame]");
@@ -43,5 +47,9 @@ export function PaneFocus({ openKey }: { openKey: string }) {
     },
     [],
   );
-  return null;
+  return (
+    <span role="status" aria-live="polite" className="sr-only">
+      {said}
+    </span>
+  );
 }

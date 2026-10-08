@@ -131,6 +131,9 @@ describe("what the composer draws", () => {
     assert.ok(out.includes("Sends to 1 supplier: Aboni Knitwear Ltd."));
     assert.ok(!out.includes("Add a quantity"));
     assert.ok(out.includes("Each supplier gets its own copy. No supplier sees who else you asked."));
+    // The preview is a card on the preview column's ground, not a card inside a card (critique of 8 Oct 2026, item 7).
+    assert.match(out, /<div class="flex flex-col gap-3 rounded-lg bg-surface p-4">/);
+    assert.doesNotMatch(out, /rounded-lg border border-line bg-surface p-4/);
     assert.ok(out.includes(`Questions · ${DEFAULT_QUESTIONS.length}`));
     // Critique of 8 Oct 2026, item 1: a mouse user with a field empty saw a grey Send and no reason.
     assert.doesNotMatch(/<button\b[^>]*>(?:(?!<\/button>)[\s\S])*?Send RFQ/.exec(out)?.[0] ?? "", /\sdisabled=""/, "Send is withheld for an empty quantity");

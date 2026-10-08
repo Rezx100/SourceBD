@@ -8,7 +8,7 @@ export const h2 = "text-md font-semibold text-ink sm:text-lg";
 
 /** A list of links, one per line, each with a count at the end: recent searches, saved searches, common searches. */
 export function LinkRows({ children }: { children: ReactNode }) {
-  return <ul className="flex flex-col sm:overflow-clip sm:rounded-lg sm:border sm:border-line">{children}</ul>;
+  return <ul className="flex flex-col sm:overflow-clip sm:rounded-lg sm:bg-subtle">{children}</ul>;
 }
 
 export function LinkRow({ href, label, count }: { href: string; label: string; count: ReactNode }) {

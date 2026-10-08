@@ -206,8 +206,9 @@ export function searchFilters(queryState: unknown): string {
     const all = params.getAll(k);
     sp[k] = all.length > 1 ? all : (all[0] ?? "");
   }
+  // The typed term in quotes, so it reads as a word typed and not as a filter ("knit, GOTS" said two things one way).
   const words = discoverChips(parseDiscoverState(sp))
-    .map((c) => c.label)
+    .map((c) => (c.key === "q" ? `\u201c${c.label}\u201d` : c.label))
     .filter((l) => l !== "Sanctioned hidden")
     .map((l) => l.replace(/^Certificate · /, "").replace(/, valid$/, "").replace(/ \(any state\)$/, ""));
   return words.length ? words.join(", ") : "All published suppliers";

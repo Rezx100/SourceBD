@@ -42,13 +42,14 @@ export function NeedsAttention({
   const n = total ?? items.length;
   if (items.length === 0)
     return (
-      <section className={cn("flex flex-col gap-1 rounded-lg border border-line p-4", className)}>
+      <section className={cn("flex flex-col gap-1 rounded-lg bg-subtle p-4", className)}>
         <h3 className="text-base font-semibold text-ink">Nothing needs attention</h3>
         <p className="text-sm text-ink-2">No certificate on your saved suppliers expires in the next 90 days.</p>
       </section>
     );
   return (
-    <section aria-label="Needs attention" className={cn("flex flex-col rounded-lg border border-line", className)}>
+    // On the landing's surface ground a card takes a tonal step, never a border (DESIGN.md Don'ts).
+    <section aria-label="Needs attention" className={cn("flex flex-col rounded-lg bg-subtle", className)}>
       <header className={cn("flex h-12 items-center justify-between border-b border-line px-4", header === "phone" && "sm:hidden")}>
         <h3 className="text-md font-semibold text-ink sm:text-base">
           Needs attention · {n} {n === 1 ? "certificate" : "certificates"}

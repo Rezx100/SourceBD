@@ -197,6 +197,9 @@ describe("the results table", () => {
     assert.ok(out.includes('data-open="record"'));
     assert.ok(out.includes('aria-label="Select Aboni Knitwear Ltd."'), "the box names its row");
     assert.ok(out.includes('aria-label="Select all on this page"'));
+    // The region is not a tab stop (critique of 8 Oct 2026, item 7: two Tabs before the first name); the rows are.
+    assert.doesNotMatch(/<div role="region" aria-label="Results table"[^>]*>/.exec(out)?.[0] ?? "", /tabindex/);
+    assert.match(out, /<tr[^>]*data-row="result"[^>]*tabindex="0"/);
   });
 
   // Critique of 8 Oct 2026, item 2: from a row and from `r` the composer was a page jump that lost the search.
@@ -392,6 +395,10 @@ describe("the bar over the results", () => {
 
   it("Save search, Sort, Filters and More are on the right; Filters names how many are on", () => {
     assert.ok(bar.includes("Save search") && bar.includes("Sort: most sources") && bar.includes(">MORE<"));
+    // Critique of 8 Oct 2026, item 7: eight controls on one line; under 1280 Save search folds into the ⋯ menu, which the pane bar gets too.
+    assert.match(bar, /<a[^>]*title="Save search"[^>]*class="[^"]*max-xl:hidden/);
+    assert.ok(plain(h(PaneListToolbar, { state, title: "t", hrefFor, filtersHref: "#", more: h("i", null, "MORE") })).includes(">MORE<"), "the pane bar has no ⋯ menu");
+    assert.match(readFileSync(path.join(process.cwd(), "components", "search", "more-menu.tsx"), "utf8"), /\{saveHref \? <MenuItem href=\{saveHref\}>Save search<\/MenuItem> : null\}/);
     assert.match(bar, /aria-label="Filters, 1 on"/, "the query counts as the one filter that is on");
     assert.match(plain(h(ResultsToolbar, { state: EMPTY_STATE, title: "t", hrefFor, filtersHref: "#", filtersOpen: false, saveHref: "#", more: null })), /aria-label="Filters"/);
     const on = plain(h(ResultsToolbar, { state: { ...state, hs: ["6105"] }, title: "t", hrefFor, filtersHref: "#", filtersOpen: false, saveHref: "#", more: null }));
@@ -544,6 +551,10 @@ describe("the landing", () => {
     assert.match(out, /aria-labelledby="common-searches"/);
     assert.ok(out.includes("GOTS-certified knitwear"));
     assert.ok(out.indexOf('role="search"') < out.indexOf("Needs attention · 8"), "the field comes before the work queue");
+    // A card on the landing's surface ground takes a tonal step, never a border (critique of 8 Oct 2026, item 7).
+    assert.match(out, /<section aria-label="Needs attention" class="[^"]*bg-subtle/);
+    assert.doesNotMatch(/<section aria-label="Needs attention" class="[^"]*"/.exec(out)?.[0] ?? "", /border-line/);
+    assert.doesNotMatch(/<ul class="[^"]*">/.exec(/aria-labelledby="common-searches"[\s\S]*?<ul[^>]*>/.exec(out)?.[0] ?? "")?.[0] ?? "", /border-line/);
     assert.ok(out.includes("See all 8 certificates"));
     assert.match(out, /href="\/app\/rfqs\/new\?supplier=a"[^>]*>Ask for the new certificate/);
   });

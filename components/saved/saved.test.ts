@@ -432,7 +432,8 @@ describe("a saved search", () => {
   it("its filters in words; the count and when it was taken", () => {
     assert.match(searchFilters(SEARCH.query_state), /knit/i);
     // In words, each value once, the family names and the defaults left out (critique of 7 Oct 2026, item 9).
-    assert.equal(searchFilters({ search: "q=knit&cert=gots&district=Gazipur" }), "knit, GOTS, Gazipur");
+    // The typed term in quotes (critique of 8 Oct 2026, item 7): a word typed, not a filter.
+    assert.equal(searchFilters({ search: "q=knit&cert=gots&district=Gazipur" }), "\u201cknit\u201d, GOTS, Gazipur");
     assert.equal(searchFilters({ search: "cert=gots:expired&hs=6110" }), "HS 6110, GOTS, expired");
     assert.doesNotMatch(searchFilters({ search: "q=knit&cert=gots&district=Gazipur" }), /Certificate ·|Sanctioned hidden|·/);
     // A search that kept no filter is every published supplier; the default (sanctioned hidden) goes without saying.

@@ -247,7 +247,7 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
       {/* Where the contact column is not: what is locked, in one line (a phone: a row above the action bar). */}
       {locked ? (
         <p className={cn("flex min-h-16 items-center gap-1 border-t border-line px-4 text-sm text-ink-3 sm:sticky sm:bottom-0 sm:bg-surface sm:px-6", page && "lg:hidden")}>
-          {locked} · locked
+          Locked · {locked}
         </p>
       ) : null}
 
