@@ -18,7 +18,7 @@ function Refusal({ kind, email }: { kind: InviteRefusal; email?: string | null }
   const { title, body } = REFUSALS[kind];
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-[480px] flex-col justify-center gap-4 px-4 py-10">
-      <p className="text-md font-semibold tracking-tight text-brand">SourceBD</p>
+      <p className="text-md font-semibold tracking-tight text-brand-ink">SourceBD</p>
       <h1 className="text-xl font-semibold tracking-tight text-ink">{title}</h1>
       <p className="text-base text-ink-2">{body}</p>
       {kind === "wrong_email" && email ? <p className="text-sm text-ink-3">You are signed in as {email}.</p> : null}

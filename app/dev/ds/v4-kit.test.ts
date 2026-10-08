@@ -47,7 +47,7 @@ test("sizes are Paper's: 32, 40 and 48 for text, 24, 32, 44 and 48 for icons; fo
     assert.match(el, new RegExp(`\\b${c}\\b`), `${n}`);
     assert.match(el, /aria-label="Save"/);
   }
-  assert.match(buttonClass(), /focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand/);
+  assert.match(buttonClass(), /focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus/);
 });
 
 test("disabled is a colour, never an opacity; the link has no box", () => {

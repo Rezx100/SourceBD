@@ -5,9 +5,11 @@
 // themselves. Below 768 the document scrolls as one, under a sticky 56 top bar,
 // above the fixed tab bar.
 //
-// No `data-shell` (B0: `app/ds.css` turns v4's brand tint grey inside it).
-// `group/shell` stays for the old pages until B4–B7 rebuild them: their
-// `data-detail` bars hide the phone bars through it.
+// `data-shell` on the root (the Spent Green Rule, DESIGN.md; critique of 7 Oct 2026, item 2):
+// inside it `app/ds.css` remaps the brand tints, the link ink, the hover wash and the focus
+// ring to the hueless `accent` role, so green is spent on the primary button and the wordmark
+// only. `group/shell` stays for the old pages until B4–B7 rebuild them: their `data-detail`
+// bars hide the phone bars through it.
 
 import type { ReactNode } from "react";
 import { ring } from "@/components/kit/classes";
@@ -27,7 +29,7 @@ const UNREAD: FrameAccount = { initial: null, name: null, email: null };
 export function AppFrame({ account: read, badges, sidebarExtra, children }: { account: FrameAccount | null; badges?: BadgesInput; sidebarExtra?: ReactNode; children: ReactNode }) {
   const account = read ?? UNREAD;
   return (
-    <div className="group/shell flex min-h-dvh flex-col bg-surface font-sans text-ink antialiased md:h-dvh md:flex-row md:overflow-clip">
+    <div data-shell="" className="group/shell flex min-h-dvh flex-col bg-surface font-sans text-ink antialiased md:h-dvh md:flex-row md:overflow-clip">
       <a
         href={`#${MAIN_ID}`}
         className={cn("sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-toast focus:rounded-sm focus:bg-surface focus:px-3 focus:py-2 focus:text-base focus:font-medium focus:text-ink", ring)}

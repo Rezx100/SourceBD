@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { PHOTO_CAPTION, lineEyebrow, lineFacts, type LineFact } from "./words";
 
 const LINK =
-  "rounded-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+  "rounded-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 /** "From BGMEA · read 12 Aug 2026", each register a link where the record carries its page; or that the source is not linked yet. */
 function sourceOf(fact: LineFact): ReactNode {
@@ -75,7 +75,7 @@ export function LineView({ model, mode }: { model: ProductSheetModel; mode: "pan
             aria-label="Back to the record"
             scroll={false}
             prefetch={false}
-            className="inline-flex min-h-6 items-center gap-1.5 rounded-sm text-md font-medium text-ink outline-none hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand sm:text-sm sm:text-brand sm:underline sm:decoration-1 sm:[text-underline-position:from-font]"
+            className="inline-flex min-h-6 items-center gap-1.5 rounded-sm text-md font-medium text-ink outline-none hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:text-sm sm:text-brand-ink sm:underline sm:decoration-1 sm:[text-underline-position:from-font]"
           >
             <CaretLeft size={20} className="shrink-0 sm:hidden" aria-hidden />
             <CaretLeft size={14} className="hidden shrink-0 sm:block" aria-hidden />

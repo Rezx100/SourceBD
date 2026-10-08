@@ -173,7 +173,7 @@ export function PasswordForm() {
           help={
             <>
               Forgotten it, or always signed in with an email link?{" "}
-              <Link href="/forgot-password" prefetch={false} className="text-brand underline decoration-1 [text-underline-position:from-font]">
+              <Link href="/forgot-password" prefetch={false} className="text-brand-ink underline decoration-1 [text-underline-position:from-font]">
                 Reset it by email
               </Link>
               .

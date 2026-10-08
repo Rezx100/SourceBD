@@ -32,7 +32,7 @@ export function ResultsTable({
   const sel = useSelection();
   const state = (key: "workers" | "sources"): SortState => (sort.key === key ? sort.dir : "none");
   return (
-    <div role="region" aria-label="Results table" tabIndex={0} className="relative min-w-0 overflow-x-auto outline-none xl:overflow-visible focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand">
+    <div role="region" aria-label="Results table" tabIndex={0} className="relative min-w-0 overflow-x-auto outline-none xl:overflow-visible focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
       <Table className="min-w-[860px]">
         <thead>
           <tr>
@@ -70,7 +70,7 @@ export function ResultsTable({
                 aria-label={r.name}
                 aria-current={current ? "true" : undefined}
                 selected={selected || current}
-                className={cn("outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand", r.sanctioned && !selected && !current && sanctionRowClass)}
+                className={cn("outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus", r.sanctioned && !selected && !current && sanctionRowClass)}
               >
                 <SelectCell
                   label={`Select ${r.name}`}

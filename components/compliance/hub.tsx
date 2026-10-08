@@ -13,7 +13,7 @@ import type { Attention } from "@/lib/dashboard/needs-attention";
 import { cn } from "@/lib/utils";
 import { COMPLIANCE_HREF, EXPIRY_HREF, attentionGroup, attentionGroupLines, certExportHref, MSA_HREF, UFLPA_HREF, UFLPA_WORDS, comingUp, hubCaption, uflpaCounts, uflpaNote, type CertList, type MsaSummary, type UflpaPayload } from "./words";
 
-const textLink = "rounded-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+const textLink = "rounded-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 /** The way back to the hub from a sub-page. */
 export function BackToHub() {

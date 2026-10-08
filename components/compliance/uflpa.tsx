@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { BackToHub } from "./hub";
 import { DHS_LIST_URL, UFLPA_WORDS, uflpaCounts, uflpaEvidence, uflpaPlace, uflpaSubline, type UflpaPayload, type UflpaRow, type UflpaStatus } from "./words";
 
-const textLink = "rounded-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+const textLink = "rounded-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 export function UflpaHead({ checked }: { /** How many suppliers the check read (the tracker's total), not how many are saved. */ checked: number | null }) {
   return (

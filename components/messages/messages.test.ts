@@ -231,11 +231,11 @@ describe("the rows as drawn", () => {
 
   it("an unread conversation has a dot, a bold name and 'unread' for a screen reader; a read one has none", () => {
     const out = html(createElement(InboxRows, { items: items(), state, currentId: null }));
-    assert.equal(out.match(/rounded-full bg-brand/g)?.length, 1, "one dot, on the one unread row");
+    assert.equal(out.match(/rounded-full bg-brand-ink/g)?.length, 1, "one dot, on the one unread row");
     assert.match(text(out), /Thermax Woven Dyeing Ltd\. , unread/);
     assert.doesNotMatch(text(out), /Quattro Fashion Limited , unread|Aboni Knitwear Ltd\. , unread/);
     const open = html(createElement(InboxRows, { items: buildThreadItems(ROWS, NOW, T1), state, currentId: T1 }));
-    assert.doesNotMatch(open, /rounded-full bg-brand|unread/, "the open conversation is not drawn unread");
+    assert.doesNotMatch(open, /rounded-full bg-brand-ink|unread/, "the open conversation is not drawn unread");
   });
 
   it("'Sent a file' and 'You: ' show as the line under a name", () => {

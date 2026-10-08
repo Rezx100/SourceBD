@@ -17,7 +17,7 @@ const CELL = "px-0 pr-3 py-2";
 
 export function OrdersTable({ items, tab, currentId = null }: { items: readonly OrderItem[]; tab: OrderTab; currentId?: string | null }) {
   return (
-    <div role="region" aria-label="Orders table" tabIndex={0} className="relative min-w-0 overflow-x-auto outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand">
+    <div role="region" aria-label="Orders table" tabIndex={0} className="relative min-w-0 overflow-x-auto outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
       <Table className="min-w-[1100px] table-fixed">
         <thead>
           <tr>
@@ -48,7 +48,7 @@ export function OrdersTable({ items, tab, currentId = null }: { items: readonly 
               aria-label={i.title}
               aria-current={i.id === currentId ? "true" : undefined}
               selected={i.id === currentId}
-              className="relative min-h-14 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand"
+              className="relative min-h-14 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
             >
               <Td className={CELL}>
                 <Link href={ordersHref(tab, i.id)} prefetch={false} scroll={false} data-open="record" className={`${rowLinkClass} after:absolute after:inset-0 after:content-['']`}>

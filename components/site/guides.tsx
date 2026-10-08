@@ -46,7 +46,7 @@ export function GuidesIndex() {
                   <span className="text-xl font-semibold tracking-tight text-ink">{p.shortName}</span>
                   <span className="flex-1 text-md text-ink-2">{p.headline}</span>
                   <span className="text-sm text-ink-3">Last reviewed {readDay(p.last_reviewed_at)}</span>
-                  <span className="text-md font-medium text-brand underline decoration-1 [text-underline-position:from-font]">Read the guide</span>
+                  <span className="text-md font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]">Read the guide</span>
                 </Link>
               </li>
             ))}
@@ -114,7 +114,7 @@ export function GuideArticle({ page }: { page: CompliancePage }) {
               <ul className="flex flex-col gap-3 text-md">
                 {page.references.map((r) => (
                   <li key={r.url} className="flex flex-col gap-0.5 [overflow-wrap:anywhere]">
-                    <a href={r.url} rel="noopener noreferrer external" target="_blank" className="font-medium text-brand underline decoration-1 [text-underline-position:from-font]">
+                    <a href={r.url} rel="noopener noreferrer external" target="_blank" className="font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]">
                       {r.label}
                     </a>
                     <span className="text-sm text-ink-3">

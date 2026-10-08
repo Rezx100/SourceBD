@@ -104,7 +104,7 @@ export function ProductView({ initial, updatedAt = null }: { initial: ProductVal
   return (
     <div aria-label="Product view" className="flex min-h-0 flex-1 flex-col md:hidden">
       <header className="flex flex-col gap-1 px-4 pb-4 pt-2">
-        <Link href="/app/products" prefetch={false} className="-ml-2 flex h-11 w-fit items-center gap-1.5 rounded-sm px-2 text-base font-medium text-ink-2 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand">
+        <Link href="/app/products" prefetch={false} className="-ml-2 flex h-11 w-fit items-center gap-1.5 rounded-sm px-2 text-base font-medium text-ink-2 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus">
           <ArrowLeft size={16} aria-hidden />
           Products
         </Link>
@@ -150,7 +150,7 @@ export function ProductView({ initial, updatedAt = null }: { initial: ProductVal
         </Row>
         <Row label="Tech pack">
           {techPack ? (
-            <a href={techPack} target="_blank" rel="noreferrer" className="flex min-h-11 items-center font-medium text-brand underline decoration-1 [overflow-wrap:anywhere]">
+            <a href={techPack} target="_blank" rel="noreferrer" className="flex min-h-11 items-center font-medium text-brand-ink underline decoration-1 [overflow-wrap:anywhere]">
               {fileNameOf(techPack)}
             </a>
           ) : (

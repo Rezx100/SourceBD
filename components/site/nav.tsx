@@ -21,7 +21,7 @@ const MENUS: { key: Menu; label: string }[] = [
   { key: "resources", label: "Resources" },
 ];
 
-const ring = "outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+const ring = "outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 function Item({ item, wide }: { item: NavItem; wide?: boolean }) {
   return (

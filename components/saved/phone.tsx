@@ -35,7 +35,7 @@ export function SavedPhoneList({ items }: { items: readonly SavedItem[] }) {
       {count > 0 ? (
         <div className="flex h-11 items-center justify-between border-y border-cert-valid-edge bg-subtle px-4">
           <p className="text-md font-semibold text-ink">{formatCount(count)} selected</p>
-          <button type="button" onClick={sel.clear} className="flex h-11 items-center rounded-sm text-md font-medium text-brand underline decoration-1 [text-underline-position:from-font] outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand">
+          <button type="button" onClick={sel.clear} className="flex h-11 items-center rounded-sm text-md font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
             Clear
           </button>
         </div>
@@ -49,12 +49,12 @@ export function SavedPhoneList({ items }: { items: readonly SavedItem[] }) {
                 <input type="checkbox" aria-label={`Select ${i.name}`} checked={on} disabled={!sel.interactive} onChange={() => sel.toggle(i.id)} className="peer sr-only" />
                 <span
                   aria-hidden
-                  className="flex size-[22px] items-center justify-center rounded-sm border-[1.5px] border-line-strong bg-surface text-transparent peer-checked:border-brand peer-checked:bg-brand peer-checked:text-surface peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand"
+                  className="flex size-[22px] items-center justify-center rounded-sm border-[1.5px] border-line-strong bg-surface text-transparent peer-checked:border-brand-ink peer-checked:bg-brand-ink peer-checked:text-surface peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus"
                 >
                   <Check size={16} />
                 </span>
               </label>
-              <Link href={i.pageHref} prefetch={false} className="flex min-h-11 min-w-0 flex-1 flex-col gap-1 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+              <Link href={i.pageHref} prefetch={false} className="flex min-h-11 min-w-0 flex-1 flex-col gap-1 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
                 <span className="text-md font-medium text-ink">{i.name}</span>
                 <span className="text-sm text-ink-3">{phoneLine(i)}</span>
                 <span className="text-sm">

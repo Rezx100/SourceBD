@@ -34,7 +34,7 @@ function SearchField() {
       role="search"
       aria-label="Search"
       action="/app/discover"
-      className="relative flex h-9 w-dialog min-w-0 shrink items-center gap-2 rounded-sm border border-line-strong px-3 transition-colors duration-fast hover:border-ink-3 focus-within:border-brand focus-within:[box-shadow:inset_0_0_0_1px_theme(colors.brand)]"
+      className="relative flex h-9 w-dialog min-w-0 shrink items-center gap-2 rounded-sm border border-line-strong px-3 transition-colors duration-fast hover:border-ink-3 focus-within:border-brand-ink focus-within:[box-shadow:inset_0_0_0_1px_theme(colors.brand-ink)]"
     >
       <MagnifyingGlass size={16} className="shrink-0 text-ink-3" aria-hidden />
       <Suspense fallback={<input type="search" name="q" data-search="topbar" aria-label="Search" placeholder="Supplier, product or certificate" className="min-w-0 flex-1 bg-transparent text-base text-ink outline-none placeholder:text-ink-3" />}>

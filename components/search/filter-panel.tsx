@@ -314,7 +314,7 @@ function Group({ id, title, summary, open, onToggle, children }: { id: string; t
         >
           <span className="flex min-w-0 flex-col">
             <span className={`text-md text-ink md:text-base ${open ? "md:font-semibold" : "md:font-medium"}`}>{title}</span>
-            <span className={`text-sm md:hidden ${summary ? "font-medium text-brand" : "text-ink-3"}`}>{summary ?? "Any"}</span>
+            <span className={`text-sm md:hidden ${summary ? "font-medium text-brand-ink" : "text-ink-3"}`}>{summary ?? "Any"}</span>
           </span>
           <CaretRight size={20} className={`shrink-0 text-ink-3 md:hidden ${open ? "rotate-90" : ""}`} aria-hidden />
           <CaretDown size={16} className={`hidden shrink-0 text-ink-2 md:block ${open ? "rotate-180" : ""}`} aria-hidden />

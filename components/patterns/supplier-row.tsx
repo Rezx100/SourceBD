@@ -31,7 +31,7 @@ export function SupplierRow({
   selected?: boolean;
 }) {
   const kind = [type ?? "Type not published", place ?? "place not published"].join(" · ");
-  const base = "flex flex-col border-b border-line outline-none last:border-b-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand";
+  const base = "flex flex-col border-b border-line outline-none last:border-b-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus";
   if (layout === "phone")
     return (
       <Link href={href} aria-current={selected ? "true" : undefined} className={cn(base, "min-h-11 gap-1 px-4 py-3 hover:bg-brand-wash", selected && "bg-brand-tint")}>
@@ -49,7 +49,7 @@ export function SupplierRow({
     <Link
       href={href}
       aria-current={selected ? "true" : undefined}
-      className={cn(base, "min-h-14 gap-0.5 border-l-2 px-3 py-2.5 hover:bg-brand-wash", selected ? "border-l-brand bg-brand-tint" : "border-l-transparent")}
+      className={cn(base, "min-h-14 gap-0.5 border-l-2 px-3 py-2.5 hover:bg-brand-wash", selected ? "border-l-brand-ink bg-brand-tint" : "border-l-transparent")}
     >
       <span className="flex justify-between gap-3">
         <span className="text-base font-medium text-ink">

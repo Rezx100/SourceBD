@@ -184,7 +184,7 @@ export function SupplierPartnerRequestForm({
                         setHits([]);
                         setQuery("");
                       }}
-                      className="flex w-full flex-col items-start gap-0.5 rounded-sm px-2 py-1.5 text-left text-base outline-none hover:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand"
+                      className="flex w-full flex-col items-start gap-0.5 rounded-sm px-2 py-1.5 text-left text-base outline-none hover:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
                     >
                       <span className="font-medium text-ink">
                         {h.company_name}
@@ -221,7 +221,7 @@ export function SupplierPartnerRequestForm({
         </p>
       ) : null}
       {info ? (
-        <p role="status" className="text-sm font-medium text-brand">
+        <p role="status" className="text-sm font-medium text-brand-ink">
           {info}
         </p>
       ) : null}

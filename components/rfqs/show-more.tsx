@@ -19,7 +19,7 @@ export function ShowMore({ text, label = "Show all details", lines = 2 }: { text
           type="button"
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
-          className="w-fit rounded-sm text-sm font-medium text-brand underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          className="w-fit rounded-sm text-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         >
           {open ? "Show less" : label}
         </button>

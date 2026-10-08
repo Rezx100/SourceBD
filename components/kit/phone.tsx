@@ -32,7 +32,7 @@ export function TabBar({ items, label = "Main" }: { items: TabBarItem[]; label?:
               aria-label={isNew ? `${text}, new` : undefined}
               className={cn(
                 "relative flex h-tabbar flex-col items-center justify-center gap-0.5 text-xs outline-none",
-                current ? "font-semibold text-brand [box-shadow:inset_0_2px_0_theme(colors.brand)]" : "font-medium text-ink-2",
+                current ? "font-semibold text-brand-ink [box-shadow:inset_0_2px_0_theme(colors.brand-ink)]" : "font-medium text-ink-2",
                 ringInset,
               )}
             >

@@ -78,6 +78,7 @@
     --ds-brand-ink-inverse: var(--ds-ink-inverse);
     --ds-brand-tint: var(--ds-accent-tint);
     --ds-brand-tint-strong: var(--ds-accent-tint-strong);
+    --ds-brand-wash: var(--ds-surface-sunken);
     --ds-focus: var(--ds-accent);
     accent-color: rgb(var(--ds-accent));
     caret-color: rgb(var(--ds-ink-strong));

@@ -152,7 +152,7 @@ export function ProductForm({ initial, updatedAt = null }: { initial: ProductVal
       className="flex min-h-0 flex-1 flex-col"
     >
       <header className="flex flex-col gap-1 px-8 pb-5 pt-5 max-md:px-4 max-md:pt-2">
-        <Link href="/app/products" prefetch={false} className="-ml-2 flex h-9 w-fit items-center gap-1.5 rounded-sm px-2 text-base font-medium text-ink-2 outline-none hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand max-md:h-11">
+        <Link href="/app/products" prefetch={false} className="-ml-2 flex h-9 w-fit items-center gap-1.5 rounded-sm px-2 text-base font-medium text-ink-2 outline-none hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus max-md:h-11">
           <ArrowLeft size={16} aria-hidden />
           Products
         </Link>
@@ -179,7 +179,7 @@ export function ProductForm({ initial, updatedAt = null }: { initial: ProductVal
       <div className="flex min-h-0 flex-1 gap-8 border-t border-line px-8 pb-8 pt-6 max-md:flex-col max-md:px-4">
         <nav aria-label="Sections" className="sticky top-6 flex h-fit w-[184px] shrink-0 flex-col gap-0.5 max-md:hidden">
           {SECTIONS.map((s) => (
-            <a key={s.id} href={`#${s.id}`} className="flex h-9 items-center rounded-sm px-2.5 text-base text-ink-2 outline-none hover:bg-sunken hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand">
+            <a key={s.id} href={`#${s.id}`} className="flex h-9 items-center rounded-sm px-2.5 text-base text-ink-2 outline-none hover:bg-sunken hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus">
               {s.label}
             </a>
           ))}
@@ -322,7 +322,7 @@ export function ProductForm({ initial, updatedAt = null }: { initial: ProductVal
                 onClick={() => imageInput.current?.click()}
                 disabled={uploading !== null}
                 aria-busy={uploading === "image" || undefined}
-                className="flex size-20 flex-col items-center justify-center gap-1 rounded-md border border-dashed border-line-strong text-xs font-medium text-ink-2 outline-none hover:bg-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:text-disabled"
+                className="flex size-20 flex-col items-center justify-center gap-1 rounded-md border border-dashed border-line-strong text-xs font-medium text-ink-2 outline-none hover:bg-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:text-disabled"
               >
                 <UploadSimple size={20} aria-hidden />
                 {uploading === "image" ? "Uploading" : "Add images"}
@@ -336,7 +336,7 @@ export function ProductForm({ initial, updatedAt = null }: { initial: ProductVal
             {techPack ? (
               <div className="flex min-w-0 items-center gap-3 rounded-md border border-line p-3">
                 <File size={24} className="shrink-0 text-ink-2" aria-hidden />
-                <a href={techPack} target="_blank" rel="noreferrer" className="min-w-0 flex-1 text-base font-medium text-brand underline decoration-1 [text-underline-position:from-font] [overflow-wrap:anywhere] max-md:flex max-md:min-h-11 max-md:items-center">
+                <a href={techPack} target="_blank" rel="noreferrer" className="min-w-0 flex-1 text-base font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] [overflow-wrap:anywhere] max-md:flex max-md:min-h-11 max-md:items-center">
                   {fileNameOf(techPack)}
                 </a>
                 <Button onClick={() => techInput.current?.click()} disabled={uploading !== null} className="max-md:h-11">
