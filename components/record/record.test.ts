@@ -263,9 +263,13 @@ describe("the view's rules", () => {
     assert.doesNotMatch(phonesOnly, /Email \d|Website on file|Contact person/);
     const none = text(view(model(aboniInput(), { contact: { hidden: "", plan: null, counts: { emails: 0, phones: 0, website: false, representatives: 0 }, held: null } }), { mode: "page" }));
     assert.match(none, /No email or phone on file/);
-    assert.doesNotMatch(none, /on file · locked/);
+    assert.doesNotMatch(none, /Locked · /);
+    // The foot line leads with what it is (critique of 8 Oct 2026, item 7), and the two cards say "Last read" alike.
+    assert.match(out, /Locked · Email 1 on file · Phone 6 on file · Website on file · Contact person 1 on file/);
+    assert.doesNotMatch(out, /on file · locked/);
+    assert.doesNotMatch(readFileSync(path.join(dir, "..", "patterns", "source-mark.tsx"), "utf8"), /Last checked/);
     const unread = text(view(model(arFashionInput(), { contact: { hidden: "", plan: null, counts: null, held: null } }), { mode: "page" }));
-    assert.doesNotMatch(unread, /No email or phone on file|on file · locked/, "an unread count claims none on file");
+    assert.doesNotMatch(unread, /No email or phone on file|Locked · /, "an unread count claims none on file");
   });
 
   // Critique of 8 Oct 2026, item 5: the page said its sources twice and "11" three times; "Needs a look"

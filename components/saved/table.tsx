@@ -33,7 +33,7 @@ export function SavedTable({ items, currentSlug }: { items: readonly SavedItem[]
   const { remove } = useRemove();
   return (
     // Full-bleed like the results table (critique of 8 Oct 2026, item 4): the two tables are one grammar, no frame around this one.
-    <div role="region" aria-label="Saved suppliers table" tabIndex={0} className="relative min-w-0 overflow-x-auto outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
+    <div role="region" aria-label="Saved suppliers table" className="relative min-w-0 overflow-x-auto">
       <Table className="min-w-[960px]">
         <thead>
           <tr>

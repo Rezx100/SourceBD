@@ -56,8 +56,9 @@ export function ResultsTable({
       setToast(rowSaveMessage("network", true));
     }
   }
+  // Not a tab stop (critique of 8 Oct 2026, item 7: two Tabs before the first name): the rows are.
   return (
-    <div role="region" aria-label="Results table" tabIndex={0} className="relative min-w-0 overflow-x-auto outline-none xl:overflow-visible focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
+    <div role="region" aria-label="Results table" className="relative min-w-0 overflow-x-auto xl:overflow-visible">
       <Table className="min-w-[900px]">
         <thead>
           <tr>
