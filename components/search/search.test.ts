@@ -34,6 +34,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 const { certLine, certShort, certSummary } = require("@/components/patterns") as typeof import("@/components/patterns");
 const { attentionOf, attentionWords, certName, loadNeedsAttention } = require("@/lib/dashboard/needs-attention") as typeof import("@/lib/dashboard/needs-attention");
 const { SearchLanding } = require("@/components/search/landing") as typeof import("@/components/search/landing");
+const { Flash } = require("@/components/search/flash") as typeof import("@/components/search/flash");
 const { pushRecent } = require("@/components/search/record-recent-search") as typeof import("@/components/search/record-recent-search");
 const { startsNavigation } = require("@/components/search/pending-nav") as typeof import("@/components/search/pending-nav");
 const { mapLimited } = require("@/lib/map-limited") as typeof import("@/lib/map-limited");
@@ -221,11 +222,13 @@ describe("the results table", () => {
   it("the 100-character name is two lines: the base cut at the end with the whole name in title, the qualifier under; nothing else is cut", () => {
     assert.ok(out.includes(ZAHEEN), "the whole name left the DOM");
     assert.equal(out.match(new RegExp(`title="${ZAHEEN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`, "g"))?.length, 1, "one title with the whole name");
-    assert.match(out, new RegExp(`aria-label="${ZAHEEN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`), "the row's accessible name is the whole name");
+    // Round 3, item 6: no aria-label on the row (it silenced the cells); the name link says the whole name.
+    assert.doesNotMatch(out, /<tr [^>]*aria-label=/, "an aria-label on a row replaces its cells for a screen reader");
+    assert.match(out, new RegExp(`<span aria-hidden="true">Zaheen Knitwears Limited</span><span class="sr-only">${ZAHEEN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}</span>`), "the name link does not carry the whole name");
     const cell = /<td class="[^"]*max-w-0[^"]*">([\s\S]*?)<\/td>/g;
     const zaheen = [...out.matchAll(cell)].map((m) => m[1]!).find((c) => c.includes("Zaheen"))!;
     assert.ok(zaheen, "no name cell for Zaheen");
-    assert.match(zaheen, /data-name=""[^>]*>Zaheen Knitwears Limited</, "the link's words are the base name alone");
+    assert.match(zaheen, /data-name=""[^>]*><span aria-hidden="true">Zaheen Knitwears Limited</, "the link's visible words are the base name alone");
     assert.match(zaheen, /<span data-name="" title="Shed - 3, 4, 5, 10, 11, 12, 13 · Building - Security, ETP and Fire Pump"[^>]*>Shed - 3/, "the qualifier leads the second line");
     assert.equal(zaheen.match(/data-name=""/g)?.length, 2, "two lines, never a third");
     for (const m of zaheen.matchAll(/data-name=""[^>]*class="([^"]*)"/g)) assert.match(m[1]!, /\boverflow-hidden\b.*\bwhitespace-nowrap\b.*\[text-overflow:ellipsis\]/, "the cut is the deliberate one-line cut");
@@ -272,7 +275,7 @@ describe("the results table", () => {
 
   it("two worker figures stay two: the record's own and the other beside it, with its source in the title", () => {
     const two = plain(h(ResultsTable, { rows: [row({ workers: "3,314", workersSecond: { short: "3,166 RSC", words: "3,166 workers · RSC inspection" } })], sort: { key: "sources", dir: "desc" }, sortHrefs }));
-    assert.ok(two.includes("3,314") && two.includes("3,166 RSC") && two.includes('title="3,166 workers · RSC inspection"'));
+    assert.ok(two.includes("3,314") && /3,166 <span[^>]*data-define="RSC"[^>]*>RSC<\/span>/.test(two) && two.includes('title="3,166 workers · RSC inspection"'));
   });
 });
 
@@ -853,5 +856,31 @@ describe("the pane list is a ledger too (critique of 8 Oct 2026, round 3, item 2
     const toolbar = h(PaneListToolbar, { state: { ...EMPTY_STATE, q: "knit" }, title: "knit", hrefFor: () => "/app/discover?q=knit", filtersHref: "/app/discover?q=knit&filters=1" });
     const out = plain(h(SelectionProvider, { pageIds: ["a"] }, h(ResultsBar, { toolbar, exportHref: "/x", searchHref: "/app/discover?q=knit", pageSize: 1 })));
     assert.match(out, /filters=1/, "the pane toolbar is not the bar's face");
+  });
+});
+
+describe("the help layer in the results (critique of 8 Oct 2026, round 3, item 5)", () => {
+  it("the Workers cell's second figure names its source as a defined term, and Sources says what it counts", () => {
+    const out = plain(h(SelectionProvider, { pageIds: ["x"] }, h(ResultsTable, { rows: [row({ supplierId: "x", workersSecond: { short: "793 RSC", words: "793 workers by RSC's count" } })], sort: { key: "sources", dir: "desc" }, sortHrefs })));
+    assert.match(out, /793 <span tabindex="0" data-define="RSC"[^>]*>RSC<\/span>/);
+    assert.match(out, /<th [^>]*title="Registers and certifiers that filed something on this company"/);
+  });
+});
+
+describe("Sam's list: the keyboard and the screen reader (critique of 8 Oct 2026, round 3, item 6)", () => {
+  it("a confirmation is a polite live region, first in the results' list region", () => {
+    const out = plain(h(Flash, { text: "RFQ sent", link: { href: "/app/rfqs/x", label: "Open the RFQ" } }));
+    assert.match(out, /^<div role="status" aria-live="polite"/);
+    const page = readFileSync(path.join(process.cwd(), "app", "(app)", "app", "discover", "page.tsx"), "utf8");
+    const list = page.slice(page.indexOf("const list = ("));
+    assert.ok(list.indexOf("<Flash") > -1 && list.indexOf("<Flash") < list.indexOf("<RecordRecentSearch"), "the Flash is not first in the list region");
+  });
+
+  it("a short name's link is the name itself; the composer's busy Send is aria-busy, never disabled", () => {
+    const out = plain(h(SelectionProvider, { pageIds: ["x"] }, h(ResultsTable, { rows: [row({ supplierId: "x" })], sort: { key: "sources", dir: "desc" }, sortHrefs })));
+    assert.match(out, /data-open="record"[^>]*>Aboni Knitwear Ltd\./);
+    assert.doesNotMatch(out, /<tr [^>]*aria-label=/);
+    const composer = readFileSync(path.join(process.cwd(), "components", "rfqs", "composer.tsx"), "utf8");
+    assert.match(composer, /loadingLabel="Sending" aria-busy=\{busy !== null \|\| undefined\}/);
   });
 });

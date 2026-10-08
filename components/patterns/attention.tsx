@@ -5,6 +5,7 @@
 
 import { Clock, XCircle } from "@phosphor-icons/react/dist/ssr";
 import { Fragment, type ReactNode } from "react";
+import { Define } from "@/components/kit/define";
 import { cn } from "@/lib/utils";
 
 export type AttentionItem = {
@@ -15,6 +16,8 @@ export type AttentionItem = {
   what: string;
   /** "No renewal on file." */
   note?: string;
+  /** The scheme `what` opens with ("WRAP"), drawn as a defined term (round 3, item 5). */
+  scheme?: string;
   /** A secondary Button or ButtonLink. */
   action: ReactNode;
   /** A line over this row when it differs from the row before: the hub's "Coming up in 31 to 90 days". */
@@ -75,7 +78,16 @@ export function NeedsAttention({
                   {it.supplier}
                 </p>
                 <p className="flex flex-wrap gap-x-1.5 text-base sm:text-sm">
-                  <span className="font-medium text-caution">{it.what}</span>
+                  <span className="font-medium text-caution">
+                    {it.scheme && it.what.startsWith(it.scheme) ? (
+                      <>
+                        <Define term={it.scheme}>{it.scheme}</Define>
+                        {it.what.slice(it.scheme.length)}
+                      </>
+                    ) : (
+                      it.what
+                    )}
+                  </span>
                   {it.note ? <span className="text-ink-3 max-sm:hidden">{it.note}</span> : null}
                 </p>
               </div>

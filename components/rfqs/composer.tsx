@@ -18,7 +18,7 @@ import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared
 import Link from "next/link";
 import { useContext, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent } from "react";
 import { PaneDivider, usePaneWidth, type PaneLimits } from "@/components/frame/pane-divider";
-import { Button, DateInput, Dialog, DialogClose, Field, IconButton, Input, Select, buttonClass, fieldBox, fieldEdge } from "@/components/kit";
+import { Button, DateInput, Define, Dialog, DialogClose, Field, IconButton, Input, Select, buttonClass, fieldBox, fieldEdge } from "@/components/kit";
 import { SanctionBanner } from "@/components/patterns";
 import { SAVE_FAILED, browserFetch, postSettings } from "@/components/settings/transport";
 import { formatDay, formatTime, nameSecondLine, splitQualifier } from "@/lib/dashboard/facts";
@@ -582,7 +582,9 @@ export function RfqComposer({
               <ul className="flex flex-col gap-2">
                 {questions.map((q, i) => (
                   <li key={`${i}-${q}`} className="flex min-h-10 items-center rounded-sm border border-line pl-3">
-                    <span className="min-w-0 flex-1 py-2 text-base text-ink [overflow-wrap:anywhere]">{q}</span>
+                    <span className="min-w-0 flex-1 py-2 text-base text-ink [overflow-wrap:anywhere]">
+                      <Defined text={q} />
+                    </span>
                     <span className="flex size-10 shrink-0 items-center justify-center max-sm:size-11">
                       <IconButton icon={X} label={`Remove question: ${q}`} kind="quiet" size={32} onClick={() => setQuestions((qs) => qs.filter((_, j) => j !== i))} className="max-sm:size-11" />
                     </span>
@@ -720,6 +722,12 @@ export function RfqComposer({
       />
     </>,
   );
+}
+
+/** A question with its trade terms defined ("FOB"), the rest as typed. */
+function Defined({ text }: { text: string }) {
+  const parts = text.split(/\b(FOB)\b/);
+  return <>{parts.map((p, i) => (i % 2 === 1 ? <Define key={i} term={p} /> : p))}</>;
 }
 
 function UnitSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {

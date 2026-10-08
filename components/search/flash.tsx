@@ -8,7 +8,8 @@ import { Toast, toastActionClass } from "@/components/kit";
 
 export function Flash({ text, link }: { text: string; link?: { href: string; label: string } }) {
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-6 z-toast flex justify-center px-4 max-md:bottom-[calc(theme(spacing.tabbar)_+_1.5rem)]">
+    // A polite live region, first in the list region, so its arrival is announced (round 3, item 6).
+    <div role="status" aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-6 z-toast flex justify-center px-4 max-md:bottom-[calc(theme(spacing.tabbar)_+_1.5rem)]">
       <Toast tone="brand" className="pointer-events-auto" action={link ? <Link href={link.href} prefetch={false} className={toastActionClass}>{link.label}</Link> : undefined}>
         {text}
       </Toast>

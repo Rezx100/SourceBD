@@ -13,6 +13,7 @@ import Link from "next/link";
 import { ABSENT, CertSummaryCell, SupplierRow } from "@/components/patterns";
 import { BulkBar, Checkbox, IconButton, Menu, MenuItem, SelectCell, Table, Td, Th, Tr, Unpublished, bulkActionClass, oneLine, rowLinkClass } from "@/components/kit";
 import { onRowKey } from "@/components/search/keys";
+import { WholeName } from "@/components/search/table";
 import { SELECT_ALL_ID, clearTarget, useSelection } from "@/components/search/selection";
 import { splitQualifier } from "@/lib/dashboard/facts";
 import { SEND_RFQ_MAX, clearKeepingFocus, rfqHref } from "@/lib/dashboard/selection";
@@ -71,7 +72,6 @@ export function SavedTable({ items, currentSlug }: { items: readonly SavedItem[]
                 key={i.id}
                 data-row="result"
                 tabIndex={0}
-                aria-label={i.name}
                 aria-current={current ? "true" : undefined}
                 selected={selected || current}
                 className="outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
@@ -79,7 +79,7 @@ export function SavedTable({ items, currentSlug }: { items: readonly SavedItem[]
                 <SelectCell label={`Select ${i.name}`} checked={selected} disabled={!sel.interactive} onChange={() => sel.toggle(i.id)} />
                 <Td className="max-w-0">
                   <Link href={i.paneHref} prefetch={false} scroll={false} data-open="record" data-name="" title={i.name} className={cn(rowLinkClass, oneLine)}>
-                    {base}
+                    <WholeName name={i.name} base={base} />
                   </Link>
                   {qualifier ? (
                     <span data-name="" title={qualifier} className={cn(oneLine, "text-xs text-ink-3")}>

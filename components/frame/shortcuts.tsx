@@ -6,10 +6,30 @@
 // checks every key it handles is here. Not a help page (founder, 24 Sep 2026).
 
 import { Dialog } from "@/components/kit/overlay";
+import { targetIsEditable } from "./search-shortcut";
+
+type HelpEvent = { key: string; metaKey?: boolean; ctrlKey?: boolean; altKey?: boolean; target?: unknown; preventDefault?: () => void };
+
+/** `?` outside a field opens this sheet (round 3, item 5); in a field it is a question mark. */
+export const isHelpKey = (e: HelpEvent): boolean => e.key === "?" && !e.metaKey && !e.ctrlKey && !e.altKey && !targetIsEditable(e.target);
+
+type Listenable = { addEventListener: (type: string, fn: (e: never) => void) => void; removeEventListener: (type: string, fn: (e: never) => void) => void };
+
+/** Installs the `?` listener and returns the cleanup; apart from the component so a stub can see it subscribe. */
+export function installHelpKey(win: Listenable, open: () => void): () => void {
+  const onKeyDown = ((e: HelpEvent) => {
+    if (!isHelpKey(e)) return;
+    e.preventDefault?.();
+    open();
+  }) as (e: never) => void;
+  win.addEventListener("keydown", onKeyDown);
+  return () => win.removeEventListener("keydown", onKeyDown);
+}
 
 export type Shortcut = { keys: string[]; does: string };
 
 export const SHORTCUTS: readonly Shortcut[] = [
+  { keys: ["?"], does: "Show these shortcuts" },
   { keys: ["↑", "↓"], does: "Move between rows; with a record open beside the list, it changes the record" },
   { keys: ["j", "k"], does: "The same, from the keys under the fingers" },
   { keys: ["↵"], does: "Open the row's record beside the list" },

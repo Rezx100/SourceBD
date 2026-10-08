@@ -14,13 +14,43 @@ import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared
 import Link from "next/link";
 import { startTransition, useContext, useEffect, useState, type ReactNode } from "react";
 import { ABSENT, CertSummaryCell, LinkPending, SanctionTag, sanctionRowClass } from "@/components/patterns";
-import { IconButton, Menu, MenuItem, SelectCell, Table, Td, Th, Toast, Tr, Unpublished, oneLine, rowLinkClass, toastActionClass, type SortState } from "@/components/kit";
+import { Define, IconButton, Menu, MenuItem, SelectCell, Table, Td, Th, Toast, Tr, Unpublished, oneLine, rowLinkClass, toastActionClass, type SortState } from "@/components/kit";
 import { splitQualifier } from "@/lib/dashboard/facts";
+import { define } from "@/lib/dashboard/glossary";
 import { rowSaveMessage } from "@/lib/dashboard/selection";
 import { cn } from "@/lib/utils";
 import { onRowKey } from "./keys";
 import type { ResultRow } from "./model";
 import { SELECT_ALL_ID, useSelection } from "./selection";
+
+/** The Sources column's head says what it counts (round 3, item 5). */
+export const SOURCES_TITLE = "Registers and certifiers that filed something on this company";
+
+/** "793 RSC": the figure, then its source as a defined term when the glossary holds it. */
+export function SecondFigure({ short }: { short: string }) {
+  const m = /^(.*\S)\s+(\S+)$/.exec(short);
+  if (!m || !define(m[2]!)) return <>{short}</>;
+  return (
+    <>
+      {`${m[1]} `}
+      <Define term={m[2]!} />
+    </>
+  );
+}
+
+/**
+ * The visible base name, with the whole name for a screen reader when they differ: the row has no
+ * `aria-label` (it silenced the cells), so the name link carries the whole name (round 3, item 6).
+ */
+export function WholeName({ name, base }: { name: string; base: string }) {
+  if (base === name) return <>{base}</>;
+  return (
+    <>
+      <span aria-hidden="true">{base}</span>
+      <span className="sr-only">{name}</span>
+    </>
+  );
+}
 
 export type ResultSort = { key: "workers" | "sources" | string; dir: "asc" | "desc" };
 
@@ -61,7 +91,7 @@ export function ResultsTable({
             <Th align="right" className="w-[110px]" sort={state("workers")} href={sortHrefs.workers}>
               Workers
             </Th>
-            <Th align="right" className="w-[90px]" sort={state("sources")} href={sortHrefs.sources}>
+            <Th align="right" className="w-[90px]" sort={state("sources")} href={sortHrefs.sources} title={SOURCES_TITLE}>
               Sources
             </Th>
             <Th>Certificates</Th>
@@ -82,7 +112,6 @@ export function ResultsTable({
                 key={r.slug}
                 data-row="result"
                 tabIndex={0}
-                aria-label={r.name}
                 aria-current={current ? "true" : undefined}
                 selected={selected || current}
                 className={cn("outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus", r.sanctioned && !selected && !current && sanctionRowClass)}
@@ -96,7 +125,7 @@ export function ResultsTable({
                 {/* `max-w-0`: the column keeps the header's width and the name is cut inside it, instead of the cell growing to the name. */}
                 <Td className="max-w-0">
                   <Link href={r.paneHref} prefetch={false} scroll={false} data-open="record" data-name="" title={r.name} className={cn(rowLinkClass, oneLine)}>
-                    {base}
+                    <WholeName name={r.name} base={base} />
                     <LinkPending className="ml-1.5 inline-block align-[-2px]" />
                   </Link>
                   {qualifier ? (
@@ -116,7 +145,7 @@ export function ResultsTable({
                   {r.workers ?? <Unpublished />}
                   {r.workersSecond ? (
                     <span title={r.workersSecond.words} className="block text-xs text-ink-3">
-                      {r.workersSecond.short}
+                      <SecondFigure short={r.workersSecond.short} />
                     </span>
                   ) : null}
                 </Td>

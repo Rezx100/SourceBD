@@ -25,6 +25,8 @@ export const GLOSSARY: Readonly<Record<string, string>> = {
   "Brand disclosure list": "A brand\u2019s published supplier list: shows who sources from this company and is cross-checked against the registers, never the only source of a fact.",
   "Foreign regulator": "A US, UK or EU regulator\u2019s list (trade enforcement, import holds): read for what it says about this company, below the Bangladesh registers.",
   "Cross-check only": "A source SourceBD uses to confirm a fact another source filed, never to add a fact on its own.",
+  // The results table and the RFQ composer (critique of 8 Oct 2026, round 3, item 5).
+  FOB: "Free on board: the price covers the goods loaded on the ship at the named port (Chattogram); freight and insurance from there are the buyer\u2019s.",
   // The bodies behind the marks.
   EPB: "The Export Promotion Bureau, the government\u2019s register of Bangladesh exporters and what they export.",
   BGMEA: "The Bangladesh Garment Manufacturers and Exporters Association, the woven and knit garment makers\u2019 trade body and member register.",

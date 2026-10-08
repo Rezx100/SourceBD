@@ -10,11 +10,11 @@
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import Form from "next/form";
 import { usePathname } from "next/navigation";
-import { Suspense, useRef, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { Menu, MenuItem, MenuSeparator } from "@/components/kit/overlay";
 import { SearchCombobox } from "@/components/search/typeahead";
 import { FeedbackDialog } from "./feedback";
-import { ShortcutsSheet } from "./shortcuts";
+import { ShortcutsSheet, installHelpKey } from "./shortcuts";
 import { SearchCarry } from "./search-carry";
 import { SearchShortcut } from "./search-shortcut";
 import { pageDrawsOwnField, useApplePlatform } from "./topbar-search-slot";
@@ -55,6 +55,8 @@ export function AccountMenu({ account, trigger, align = "end" }: { account: Fram
   const signOut = useRef<HTMLFormElement>(null);
   const [feedback, setFeedback] = useState(false);
   const [shortcuts, setShortcuts] = useState(false);
+  // `?` opens the same sheet from anywhere in the app (the account menu is on every desktop page).
+  useEffect(() => installHelpKey(window as never, () => setShortcuts(true)), []);
   const name = accountName(account);
   return (
     <>

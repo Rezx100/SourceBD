@@ -307,9 +307,24 @@ describe("the view's rules", () => {
     for (const term of ["fixed", "Source pending", "stale read", "more", "EPB", "BGMEA", "BKMEA", "BGAPMEA", "BTMA", "GOTS", "WRAP", "OEKO-TEX"]) assert.ok(define(term), `${term} has no definition`);
     for (const [term, what] of Object.entries(GLOSSARY)) assert.ok(/^[A-Z\u201c].{40,}[.]$/.test(what), `${term}: one plain sentence, ending in a full stop`);
     assert.equal(define("nonsense"), null);
+    // Round 3, item 5: the help layer reaches the results and the composer.
+    assert.ok(define("FOB"), "FOB has no definition");
+    const table = readFileSync(path.join(process.cwd(), "components", "search", "table.tsx"), "utf8");
+    assert.match(table, /sort=\{state\("sources"\)\} href=\{sortHrefs\.sources\} title=\{SOURCES_TITLE\}/, "the Sources header has no title");
+    const composer = readFileSync(path.join(process.cwd(), "components", "rfqs", "composer.tsx"), "utf8");
+    assert.match(composer, /<Defined text=\{q\} \/>/, "the questions list does not define its terms");
+    const attention = readFileSync(path.join(process.cwd(), "components", "patterns", "attention.tsx"), "utf8");
+    assert.match(attention, /<Define term=\{it\.scheme\}>/, "an attention row's scheme is not defined");
     const page = view(m, { mode: "page", tab: "sources" });
+    const strip = /<dl aria-label="Summary" tabindex="0" aria-describedby="([^"]+)"/.exec(page);
+    assert.ok(strip, "the strip is not one tab stop");
+    assert.equal(strip[1]!.split(" ").length, 5, "the strip is not described by its five definitions");
+    for (const id of strip[1]!.split(" ")) assert.ok(page.includes(`<span id="${id}" class="sr-only">`), `${id} names no definition`);
+    const inStrip = page.slice(page.indexOf('<dl aria-label="Summary"'), page.indexOf("</dl>", page.indexOf('<dl aria-label="Summary"')));
+    assert.doesNotMatch(inStrip, /<span tabindex="0" data-define=/, "a label in the strip is a tab stop of its own");
     for (const label of ["Sanctions", "Certificates", "RSC", "Workers", "Sources"]) {
-      const m2 = new RegExp(`<span tabindex="0" data-define="${label}" aria-describedby="([^"]+)"[^>]*>${label}</span>`).exec(page);
+      // Round 3, item 6: the strip is the one tab stop; its labels are reached through it and by hover.
+      const m2 = new RegExp(`<span tabindex="-1" data-define="${label}" aria-describedby="([^"]+)"[^>]*>${label}</span>`).exec(page);
       assert.ok(m2, `${label} is not a defined term in the strip`);
       assert.ok(page.includes(`<span id="${m2![1]}" class="sr-only">${define(label)!.replace(/'/g, "&#x27;")}</span>`), `${label}'s definition is not read to a screen reader`);
     }

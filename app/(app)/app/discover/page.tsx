@@ -186,6 +186,9 @@ export default async function BuyerDiscoverPage({
 
   const list = (
     <SelectionProvider key={serializeDiscoverState(state).toString()} pageIds={error ? null : rows.map((r) => r.id)}>
+      {/* First in the list region, so a screen reader hears "RFQ sent" as it arrives (round 3, item 6). */}
+      {sentId ? <Flash text="RFQ sent" link={{ href: `/app/rfqs/${sentId}`, label: "Open the RFQ" }} /> : null}
+      {one(sp.saved) === "1" ? <Flash text="Search saved" link={{ href: "/app/searches", label: "Saved searches" }} /> : null}
       <RecordRecentSearch label={queryTitle(state)} href={discoverHref(state)} count={total} />
       {error || filterCount(state) === 0 ? null : <RecordLastSearch search={serializeDiscoverState({ ...state, page: 1 }).toString()} />}
       {welcome && !error && total !== 0 ? <FirstResultsCoach supabase={supabase} closeHref={keepOpen} /> : null}
@@ -296,8 +299,6 @@ export default async function BuyerDiscoverPage({
         closeHref={closeHref}
         presentation={filtersOpen ? "overlay" : "docked"}
       />
-      {sentId ? <Flash text="RFQ sent" link={{ href: `/app/rfqs/${sentId}`, label: "Open the RFQ" }} /> : null}
-      {one(sp.saved) === "1" ? <Flash text="Search saved" link={{ href: "/app/searches", label: "Saved searches" }} /> : null}
     </>
   );
 }
