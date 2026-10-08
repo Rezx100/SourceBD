@@ -14,6 +14,7 @@ import { Suspense, useRef, useState, type ReactNode } from "react";
 import { Menu, MenuItem, MenuSeparator } from "@/components/kit/overlay";
 import { SearchCombobox } from "@/components/search/typeahead";
 import { FeedbackDialog } from "./feedback";
+import { ShortcutsSheet } from "./shortcuts";
 import { SearchCarry } from "./search-carry";
 import { SearchShortcut } from "./search-shortcut";
 import { pageDrawsOwnField, useApplePlatform } from "./topbar-search-slot";
@@ -49,15 +50,17 @@ function SearchField() {
   );
 }
 
-/** The account menu (the name, Settings, Plan, Send feedback, Sign out) behind whatever `trigger` opens it: the sidebar's account row. */
+/** The account menu (the name, Settings, Plan, Keyboard shortcuts, Send feedback, Sign out) behind whatever `trigger` opens it: the sidebar's account row. */
 export function AccountMenu({ account, trigger, align = "end" }: { account: FrameAccount; trigger: ReactNode; align?: "start" | "end" }) {
   const signOut = useRef<HTMLFormElement>(null);
   const [feedback, setFeedback] = useState(false);
+  const [shortcuts, setShortcuts] = useState(false);
   const name = accountName(account);
   return (
     <>
       <form ref={signOut} action="/auth/sign-out" method="post" hidden />
       {feedback ? <FeedbackDialog onClose={() => setFeedback(false)} /> : null}
+      {shortcuts ? <ShortcutsSheet onClose={() => setShortcuts(false)} /> : null}
       <Menu align={align} trigger={trigger}>
         <div className="flex flex-col px-2 pb-2 pt-1">
           <span className="text-base font-medium text-ink [overflow-wrap:anywhere]">{name}</span>
@@ -67,6 +70,7 @@ export function AccountMenu({ account, trigger, align = "end" }: { account: Fram
         {account.admin ? <MenuItem href="/admin">Admin console</MenuItem> : null}
         <MenuItem href="/app/settings">Settings</MenuItem>
         <MenuItem href="/app/settings/subscription">Plan</MenuItem>
+        <MenuItem onSelect={() => setShortcuts(true)}>Keyboard shortcuts</MenuItem>
         <MenuItem onSelect={() => setFeedback(true)}>Send feedback</MenuItem>
         <MenuSeparator />
         <MenuItem onSelect={() => signOut.current?.requestSubmit()}>

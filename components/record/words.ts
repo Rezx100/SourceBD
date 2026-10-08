@@ -90,6 +90,8 @@ export type SummaryCell = {
   lapsed?: boolean;
   /** The value opens something: the Sources cell is a link to the Sources tab (the aside no longer repeats the list). */
   href?: string;
+  /** The line under the value carries a defined word ("100% fixed"): the glossary term `Define` explains it with. */
+  subTerm?: string;
   sub: string | null;
 };
 
@@ -135,7 +137,7 @@ export function summaryCells(model: SupplierSheetModel, today: Date): SummaryCel
         };
 
   const rsc: SummaryCell = model.rsc
-    ? { key: "rsc", label: "RSC", value: "Covered", sub: model.rsc.progress !== null ? `${model.rsc.progress}% fixed` : model.rsc.status }
+    ? { key: "rsc", label: "RSC", value: "Covered", sub: model.rsc.progress !== null ? `${model.rsc.progress}% fixed` : model.rsc.status, subTerm: model.rsc.progress !== null ? "fixed" : undefined }
     : { key: "rsc", label: "RSC", value: "Not covered", sub: model.rscBuildings.length > 0 ? "its buildings have a record" : "no RSC record" };
 
   const w = fact(model, "Workers");

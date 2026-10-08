@@ -9,6 +9,8 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { prerenderToNodeStream } from "react-dom/static";
 
+import { KEY_WORDS, SHORTCUTS, ShortcutList } from "@/components/frame/shortcuts";
+
 let currentPath = "/app";
 {
   // The client hooks need a mounted App Router; only they are replaced.
@@ -217,6 +219,22 @@ describe("the frame a buyer receives", () => {
     const layout = readFileSync(path.join(process.cwd(), "app", "(app)", "app", "layout.tsx"), "utf8");
     assert.equal((layout.match(/<AppFrame\b/g) ?? []).length, 1);
     assert.match(layout, /account=\{shell\.account\}/);
+  });
+
+  // Critique of 8 Oct 2026, item 6: no help layer. The account menu opens a sheet listing the keys the app handles.
+  it("the account menu offers Keyboard shortcuts, and the sheet lists every key keys.ts handles, plus Esc, Ctrl K and Ctrl ↵", () => {
+    const topbar = readFileSync(path.join(process.cwd(), "components", "frame", "topbar.tsx"), "utf8");
+    assert.match(topbar, /<MenuItem onSelect=\{\(\) => setShortcuts\(true\)\}>Keyboard shortcuts<\/MenuItem>/);
+    const keys = readFileSync(path.join(process.cwd(), "components", "search", "keys.ts"), "utf8");
+    const handled = [...keys.matchAll(/case "([^"]+)":/g)].map((m) => KEY_WORDS[m[1]!] ?? m[1]!);
+    assert.ok(handled.length >= 8, `keys.ts handles ${handled.length} keys`);
+    const listed = new Set(SHORTCUTS.flatMap((s) => s.keys));
+    for (const k of handled) assert.ok(listed.has(k), `the sheet does not list ${k}`);
+    for (const k of ["Esc", "Ctrl K", "Ctrl ↵"]) assert.ok(listed.has(k), `the sheet does not list ${k}`);
+    const html = renderToStaticMarkup(createElement(ShortcutList));
+    assert.match(html, /<kbd[^>]*>↓<\/kbd>/);
+    assert.match(html, /<kbd[^>]*>Ctrl K<\/kbd>/);
+    assert.equal((html.match(/<kbd/g) ?? []).length, SHORTCUTS.reduce((n, s) => n + s.keys.length, 0));
   });
 
   it("an admin's account menu and phone sheet link to the console; nobody else's do (founder, 6 Oct 2026)", () => {

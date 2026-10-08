@@ -5,7 +5,7 @@
 
 import { CaretRight, FileText, Hourglass, WarningOctagon } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
-import { CertChip, FactChip, Unpublished } from "@/components/kit";
+import { CertChip, Define, FactChip, Unpublished } from "@/components/kit";
 import { ABSENT, CertTable, FactList, FactRow, PendingMark, RSC_REPORTS, RscBlock, SourceChip, SourceMark, certWords, type RscBlockData, type RscReportName } from "@/components/patterns";
 import type { RecordRfqRow, SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
@@ -161,7 +161,7 @@ export function OverviewPanel({ model, today, level = "h3" }: { model: SupplierS
       {legend ? (
         <p className="flex items-center gap-1.5 pt-2 text-xs text-ink-3">
           <PendingMark />
-          {legend}
+          <Define term="Source pending">{legend}</Define>
         </p>
       ) : null}
     </div>
@@ -367,7 +367,9 @@ export function SourcesPanel({ model, today, level: H = "h3" }: { model: Supplie
           </div>
           {sourceGroups(model.sources).map((g) => (
             <section key={g.kind} aria-label={g.kind} className="flex flex-col border-b border-line pb-1.5 last:border-b-0">
-              <Sub className="px-4 pb-0.5 pt-3 text-xs font-semibold text-ink-2">{g.kind}</Sub>
+              <Sub className="px-4 pb-0.5 pt-3 text-xs font-semibold text-ink-2">
+                <Define term={g.kind} />
+              </Sub>
               <ul>
                 {g.rows.map((s) => {
                   const stale = staleWords(s.readDate, today);
@@ -393,7 +395,7 @@ export function SourcesPanel({ model, today, level: H = "h3" }: { model: Supplie
                           {stale ? <Hourglass size={12} weight="fill" className="shrink-0 text-caution-icon" aria-hidden /> : null}
                           <span>
                             {s.readDate && !stale ? <span className="[@container_(min-width:600px)]:sr-only">read </span> : null}
-                            {stale ?? s.readDate ?? <Unpublished>{ABSENT.dated}</Unpublished>}
+                            {stale ? <Define term="stale read">{stale}</Define> : (s.readDate ?? <Unpublished>{ABSENT.dated}</Unpublished>)}
                           </span>
                         </span>
                         {s.mark.href ? (
@@ -447,7 +449,12 @@ export function ProductsPanel({ model, level: H = "h3", open = false }: { model:
   const heading = (
     <span className="flex flex-wrap items-center gap-x-3">
       <H className="text-lg font-semibold text-ink">Products as filed{items.length ? ` · ${items.length}` : ""}</H>
-      {items.length ? <PendingMark /> : null}
+      {/* The mark had no legend here: the definition is on the mark itself, on hover and focus. */}
+      {items.length ? (
+        <Define term="Source pending" className="inline-flex no-underline">
+          <PendingMark />
+        </Define>
+      ) : null}
     </span>
   );
   return (

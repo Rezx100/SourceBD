@@ -15,6 +15,8 @@ import { buildSheet } from "@/lib/dashboard/build-models";
 import { TODAY, aboniInput, arFashionInput, longestNameInput, sanctionedInput, zaheenSampleInput } from "@/lib/dashboard/fixtures";
 import type { LocationRow, SupplierSheetModel } from "@/lib/dashboard/models";
 import { rankCerts } from "@/components/patterns";
+import { GLOSSARY, define } from "@/lib/dashboard/glossary";
+import { tierWords } from "@/lib/dashboard/source-tiers";
 import { RecordView } from "@/components/record/record-view";
 import { TABS, certRows, keyFacts, needsLook, parseSite, parseTab, pendingLegend, recordSubline, sameName, sectionInView, siteCards, siteSummary, staleWords, summaryCells, tabCount } from "@/components/record/words";
 
@@ -273,7 +275,7 @@ describe("the view's rules", () => {
     assert.equal((page.match(/<h[23][^>]*>Sources · \d+<\/h[23]>/g) ?? []).length, 1, "the sources list is drawn twice");
     assert.doesNotMatch(page, /<aside[^>]*>[\s\S]*?<section aria-label="Sources"/, "the aside still carries the source list");
     const strip = /<dl aria-label="Summary"[\s\S]*?<\/dl>/.exec(page)?.[0] ?? "";
-    assert.match(strip, /<dt[^>]*>Sources<\/dt>[\s\S]*?<a[^>]*href="\/app\/discover\?q=knit&amp;record=x&amp;tab=sources#record-sources"[^>]*>\d+<\/a>/, "the Sources cell is not a link to the tab");
+    assert.match(strip, /data-define="Sources"[\s\S]*?<a[^>]*href="\/app\/discover\?q=knit&amp;record=x&amp;tab=sources#record-sources"[^>]*>\d+<\/a>/, "the Sources cell is not a link to the tab");
     assert.ok((page.match(/Sources · \d+/g) ?? []).length <= 2, "the count said three times (strip, tab, aside)");
   });
 
@@ -289,6 +291,27 @@ describe("the view's rules", () => {
     assert.deepEqual(rows.map((r) => r.scheme), ranked);
     const cell = summaryCells(m, TODAY).find((c) => c.key === "certificates")!;
     if (rows.length > 0) assert.ok(cell.sub?.startsWith(rows[0]!.scheme), `the strip leads with ${cell.sub}, the rows with ${rows[0]!.scheme}`);
+  });
+
+  // Critique of 8 Oct 2026, item 6: heuristic 10 sat at 1 for three runs; nothing defined RSC, a tier,
+  // "fixed" or a mark's "+3" on hover or focus. One glossary, one `Define`.
+  it("every strip label, every Sources group heading and the panel's own words resolve to a glossary entry, drawn as a defined term", () => {
+    const m = model();
+    for (const c of summaryCells(m, TODAY)) assert.ok(define(c.label), `${c.label} has no definition`);
+    for (const rank of [1, 2, 3, 4, 5, 6] as const) assert.ok(define(tierWords(rank)), `${tierWords(rank)} has no definition`);
+    assert.ok(define(tierWords(1, "RSC")));
+    for (const term of ["fixed", "Source pending", "stale read", "more", "EPB", "BGMEA", "BKMEA", "BGAPMEA", "BTMA", "GOTS", "WRAP", "OEKO-TEX"]) assert.ok(define(term), `${term} has no definition`);
+    for (const [term, what] of Object.entries(GLOSSARY)) assert.ok(/^[A-Z\u201c].{40,}[.]$/.test(what), `${term}: one plain sentence, ending in a full stop`);
+    assert.equal(define("nonsense"), null);
+    const page = view(m, { mode: "page", tab: "sources" });
+    for (const label of ["Sanctions", "Certificates", "RSC", "Workers", "Sources"]) {
+      const m2 = new RegExp(`<span tabindex="0" data-define="${label}" aria-describedby="([^"]+)"[^>]*>${label}</span>`).exec(page);
+      assert.ok(m2, `${label} is not a defined term in the strip`);
+      assert.ok(page.includes(`<span id="${m2![1]}" class="sr-only">${define(label)!.replace(/'/g, "&#x27;")}</span>`), `${label}'s definition is not read to a screen reader`);
+    }
+    assert.match(page, /data-define="Government register"|data-define="Industry body"/, "the Sources group headings are not defined");
+    if (/fixed</.test(page)) assert.match(page, /data-define="fixed"[^>]*>\d+% fixed</);
+    assert.match(page, /class="[^"]*decoration-dotted/, "a defined term is not marked by a dotted underline");
   });
 
   it("the long captions wrap at 72 characters: the Sources caption and the RSC block's", () => {
