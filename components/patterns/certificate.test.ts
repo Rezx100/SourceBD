@@ -12,7 +12,8 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { CertChip } from "@/components/kit";
-import { CertSummaryCell, certShort, certSummary, certWords } from "@/components/patterns";
+import { CertSummaryCell, NeedsAttention, certShort, certSummary, certWords } from "@/components/patterns";
+import { v4CertAliases } from "@/lib/design/tokens";
 
 const TODAY = new Date("2026-10-03T00:00:00Z");
 const read = (...p: string[]) => readFileSync(path.join(process.cwd(), "components", ...p), "utf8");
@@ -23,6 +24,30 @@ const CERTS = [
 ];
 
 describe("one certificate component", () => {
+  // Critique of 8 Oct 2026, item 3 (founder: amber): expired was danger red in the build and Amber
+  // Caution in DESIGN.md, so on a record the only red things were dates that had passed.
+  it("an expired certificate is caution everywhere it is drawn, with the XCircle keeping it apart from expiring; red is never a date", () => {
+    assert.equal(v4CertAliases["cert-expired-fg"], "caution");
+    assert.equal(v4CertAliases["cert-expired-bg"], "caution-tint");
+    const chip = renderToStaticMarkup(createElement(CertChip, { state: "expired" } as Parameters<typeof CertChip>[0], "Expired 29 Sep 2026"));
+    const pill = renderToStaticMarkup(createElement(CertSummaryCell, { cert: certSummary(CERTS, TODAY)! }));
+    const rows = renderToStaticMarkup(
+      createElement(NeedsAttention, {
+        items: [
+          { state: "expired", supplier: "Aboni Knitwear Ltd.", what: "WRAP 7865 expired 29 Sep 2026.", note: "No renewal on file.", action: createElement("button", null, "Ask") },
+          { state: "expiring", supplier: "Fakir Apparels Ltd", what: "GOTS expires in 29 days, 1 Nov 2026.", action: createElement("button", null, "Ask") },
+        ],
+        scope: "Your saved suppliers",
+      } as Parameters<typeof NeedsAttention>[0]),
+    );
+    for (const [name, out] of [["chip", chip], ["pill", pill], ["attention rows", rows]] as const) assert.doesNotMatch(out, /danger/, `${name} draws a date in red`);
+    assert.match(chip, /text-caution-icon/);
+    assert.match(rows, /text-caution-icon/);
+    // Shape still tells them apart (the test stub draws every icon as an empty svg, so the source is read).
+    assert.match(read("patterns", "attention.tsx"), /const Glyph = it\.state === "expired" \? XCircle : Clock;/);
+    assert.match(read("kit", "chip.tsx"), /expired: \{ box: "border-caution-icon bg-cert-expired-bg text-cert-expired-fg", icon: XCircle/);
+  });
+
   it("the short words sit only inside a 6px pill; the full date is the cell's title and its sr-only sentence", () => {
     const cert = certSummary(CERTS, TODAY)!;
     const out = renderToStaticMarkup(createElement(CertSummaryCell, { cert }));

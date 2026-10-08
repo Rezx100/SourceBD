@@ -8,7 +8,7 @@ import { Fragment, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 export type AttentionItem = {
-  /** "expired" is red, "expiring" is amber. */
+  /** Both are amber (a date passed is caution, never a failure); "expired" is the XCircle, "expiring" the clock. */
   state: "expired" | "expiring";
   supplier: string;
   /** "WRAP 7865 expired 29 Sep 2026." */
@@ -67,14 +67,14 @@ export function NeedsAttention({
               </li>
             ) : null}
             <li className="flex flex-col gap-2 border-b border-line px-4 py-3 last:border-b-0 sm:min-h-16 sm:flex-row sm:items-center sm:gap-3">
-              <Glyph size={20} weight="fill" className={cn("shrink-0 max-sm:hidden", it.state === "expired" ? "text-danger" : "text-caution-icon")} aria-hidden />
+              <Glyph size={20} weight="fill" className="shrink-0 text-caution-icon max-sm:hidden" aria-hidden />
               <div className="flex flex-1 flex-col gap-0.5">
                 <p className="flex items-center gap-2 text-md font-medium text-ink sm:text-base">
-                  <Glyph size={16} weight="fill" className={cn("shrink-0 sm:hidden", it.state === "expired" ? "text-danger" : "text-caution-icon")} aria-hidden />
+                  <Glyph size={16} weight="fill" className="shrink-0 text-caution-icon sm:hidden" aria-hidden />
                   {it.supplier}
                 </p>
                 <p className="flex flex-wrap gap-x-1.5 text-base sm:text-sm">
-                  <span className={cn("font-medium", it.state === "expired" ? "text-danger" : "text-caution")}>{it.what}</span>
+                  <span className="font-medium text-caution">{it.what}</span>
                   {it.note ? <span className="text-ink-3 max-sm:hidden">{it.note}</span> : null}
                 </p>
               </div>

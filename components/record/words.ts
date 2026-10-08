@@ -84,8 +84,10 @@ export type SummaryCell = {
   /** The figure or state; `ABSENT.dash` for nothing on file, with `valueWords` for a screen reader. */
   value: string;
   valueWords?: string;
-  /** What the value's colour and glyph say: a problem is never colour alone. */
-  tone?: "danger" | "caution" | "sanction";
+  /** What the value's colour and glyph say: a problem is never colour alone. A date that passed is caution, never danger. */
+  tone?: "caution" | "sanction";
+  /** With `caution`: the date has passed (the XCircle), not only approaches (the clock). */
+  lapsed?: boolean;
   sub: string | null;
 };
 
@@ -124,7 +126,8 @@ export function summaryCells(model: SupplierSheetModel, today: Date): SummaryCel
           key: "certificates",
           label: "Certificates",
           value: expired.length ? `${model.certs.length} · ${expired.length} expired` : expiring.length ? `${model.certs.length} · ${expiring.length} expiring` : String(model.certs.length),
-          tone: expired.length ? "danger" : expiring.length ? "caution" : undefined,
+          tone: expired.length || expiring.length ? "caution" : undefined,
+          lapsed: expired.length > 0,
           sub: problems.length ? namesOf([...new Set(problems.map((p) => p.c.scheme))]) : namesOf([...new Set(model.certs.map((c) => c.scheme))]),
         };
 

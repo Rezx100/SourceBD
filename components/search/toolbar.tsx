@@ -60,7 +60,7 @@ export function FilterMenuButton({ menu, hrefFor, counts, icon }: { menu: Filter
       {menu.options.map((o) => (
         <MenuItem key={o.key} href={hrefFor(o.toggled)} hint={typeof counts?.[o.key] === "number" ? formatCount(counts[o.key]) : undefined}>
           <span className="flex items-center gap-2">
-            <span className="flex size-4 shrink-0 items-center justify-center">{o.on ? <Check size={16} className="text-brand-ink" aria-label="On" /> : null}</span>
+            <span className="flex size-4 shrink-0 items-center justify-center">{o.on ? <Check size={16} className="text-ink" aria-label="On" /> : null}</span>
             {o.label}
             {o.code ? <span className="font-mono text-sm text-ink-3">{o.code}</span> : null}
           </span>
@@ -120,7 +120,7 @@ export function SortMenu({ state, hrefFor, className, compact = false }: { state
       {SORTS.map((s) => (
         <MenuItem key={s.value} href={hrefFor({ ...state, sort: s.value, page: 1 })}>
           <span className="flex items-center gap-2">
-            <span className="flex size-4 shrink-0 items-center justify-center">{s.value === state.sort ? <Check size={16} className="text-brand-ink" aria-label="Sorted by" /> : null}</span>
+            <span className="flex size-4 shrink-0 items-center justify-center">{s.value === state.sort ? <Check size={16} className="text-ink" aria-label="Sorted by" /> : null}</span>
             {s.label}
           </span>
         </MenuItem>
@@ -291,7 +291,7 @@ export function PhoneToolbar({ state, count, hrefFor, filtersHref }: { state: Di
           {SORTS.map((s) => (
             <MenuItem key={s.value} href={hrefFor({ ...state, sort: s.value, page: 1 })}>
               <span className="flex items-center gap-2">
-                <span className="flex size-4 shrink-0 items-center justify-center">{s.value === state.sort ? <Check size={16} className="text-brand-ink" aria-label="Sorted by" /> : null}</span>
+                <span className="flex size-4 shrink-0 items-center justify-center">{s.value === state.sort ? <Check size={16} className="text-ink" aria-label="Sorted by" /> : null}</span>
                 {s.label}
               </span>
             </MenuItem>

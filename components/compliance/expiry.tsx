@@ -65,9 +65,9 @@ function Name({ i }: { i: CertItem }) {
 function GroupBar({ state, children }: { state: "expired" | "expiring"; children: React.ReactNode }) {
   const Glyph = state === "expired" ? XCircle : Clock;
   return (
-    <div className={cn("flex h-8 items-center gap-2 px-4 max-md:h-9", state === "expired" ? "bg-danger-tint" : "bg-caution-tint")}>
-      <Glyph size={16} weight="fill" className={cn("shrink-0", state === "expired" ? "text-danger" : "text-caution-icon")} aria-hidden />
-      <h2 className={cn("text-sm font-semibold max-md:text-base", state === "expired" ? "text-danger" : "text-caution")}>{children}</h2>
+    <div className="flex h-8 items-center gap-2 bg-caution-tint px-4 max-md:h-9">
+      <Glyph size={16} weight="fill" className="shrink-0 text-caution-icon" aria-hidden />
+      <h2 className="text-sm font-semibold text-caution max-md:text-base">{children}</h2>
     </div>
   );
 }
@@ -83,7 +83,7 @@ function Group({ state, heading, items }: { state: "expired" | "expiring"; headi
             {items.map((i) => (
               <Tr key={i.key}>
                 <Td className="w-[210px] pl-4">
-                  <span className={cn("font-medium", i.state === "expired" ? "text-danger" : "text-caution")}>{i.when}</span>
+                  <span className="font-medium text-caution">{i.when}</span>
                   {i.relative ? <span className="block text-xs text-ink-3">{i.relative}</span> : null}
                 </Td>
                 <Td className="w-[190px]">
@@ -108,7 +108,7 @@ function Group({ state, heading, items }: { state: "expired" | "expiring"; headi
         {items.map((i) => (
           <li key={i.key} className="flex items-center gap-3 border-b border-line px-4 py-3">
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <p className={cn("text-base font-medium", i.state === "expired" ? "text-danger" : "text-caution")}>
+              <p className="text-base font-medium text-caution">
                 {i.when}
                 {i.relative ? <span className="font-normal text-ink-3"> · {i.relative}</span> : null}
               </p>

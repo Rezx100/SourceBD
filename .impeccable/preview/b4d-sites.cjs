@@ -29,7 +29,7 @@ const { buildSheet } = B("lib/dashboard/build-models.js");
 const fx = B("lib/dashboard/fixtures.js");
 const { EMPTY_STATE } = B("lib/discover-v32-state.js");
 const account = { initial: "RK", name: "Rezaul Karim", email: "rk@example.invalid" };
-const badges = { messages: { text: "2 new" }, compliance: { text: "2 to check", tone: "danger" } };
+const badges = { messages: { text: "2 new" }, compliance: { text: "2 to check", tone: "caution" } };
 const counts = { emails: 1, phones: 6, website: true, representatives: 1 };
 const sheet = (input, over = {}, pins) => ({ ...buildSheet(input, { pins, supplierId: "id-1", rfqHref: "/app/rfqs/new?supplier=id-1", closeHref: "/app/discover?q=knit", contactCounts: counts }), ...over });
 const tabHref = (t) => `#${t}`;

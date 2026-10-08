@@ -6,7 +6,7 @@
 import type { FrameBadges } from "@/components/frame/badges";
 import { loadComplianceBadge, BADGE_WAIT_MS } from "@/lib/dashboard/compliance-badge";
 
-type Badge = { text: string; tone?: "ink" | "danger" } | null;
+type Badge = { text: string; tone?: "ink" | "caution" } | null;
 
 /** "2 new": conversations with something the buyer has not read. Nothing for none, a failed read or no number. */
 export function messagesBadge(total: unknown): Badge {
