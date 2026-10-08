@@ -458,7 +458,7 @@ export function ProductsPanel({ model, level: H = "h3", open = false }: { model:
         </section>
       ) : (
         <details open={open || undefined} className="group/filed flex flex-col gap-2">
-          <summary className="flex w-fit cursor-pointer list-none items-center gap-2 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand [&::-webkit-details-marker]:hidden">
+          <summary className="flex w-fit cursor-pointer list-none items-center gap-2 rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus [&::-webkit-details-marker]:hidden">
             <CaretRight size={16} className="shrink-0 text-ink-3 transition-transform group-open/filed:rotate-90 motion-reduce:transition-none" aria-hidden />
             {heading}
           </summary>
