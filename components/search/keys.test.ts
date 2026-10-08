@@ -17,12 +17,12 @@ import { EMPTY_STATE } from "@/lib/discover-v32-state";
 
 type Fake = { tagName: string; focused: boolean; clicked: string[]; focus(): void; parentElement: { querySelectorAll(): Fake[]; getAttribute(name: string): string | null }; querySelector(sel: string): { click(): void } };
 
-const make = (n: number, follow = false): Fake[] => {
+const make = (n: number, follow = false, tagName = "TR"): Fake[] => {
   const list: Fake[] = [];
   const parent = { querySelectorAll: () => list, getAttribute: (name: string) => (name === "data-follow" && follow ? "record" : null) };
   for (let i = 0; i < n; i++) {
     const r: Fake = {
-      tagName: "TR",
+      tagName,
       focused: false,
       clicked: [],
       focus() {
@@ -81,7 +81,8 @@ describe("the four keys", () => {
     press("j", c);
     assert.deepEqual(c.clicked, []);
     assert.equal(keyFollow.pending, false);
-    assert.equal(ROW_SELECTOR, 'tr[data-row="result"]');
+    // A table row and a pane list's item alike (critique of 8 Oct 2026, round 3, item 2).
+    assert.equal(ROW_SELECTOR, '[data-row="result"]');
   });
 
   it("the pane's focus helper honours the flag, and the table marks its body when a record is open", () => {
@@ -111,5 +112,23 @@ describe("the list bar beside a pane", () => {
     assert.match(on, /aria-label="Add filter · 2 on"/);
     assert.match(on, /font-mono text-xs tabular-nums text-ink-2">2</);
     assert.doesNotMatch(on, /Save search/, "no save href, no Save search");
+  });
+});
+
+describe("the pane list keeps the keys (critique of 8 Oct 2026, round 3, item 2)", () => {
+  it("an li[data-row=result] moves, opens, ticks and acts like a table row", () => {
+    const [a, b] = make(2, true, "LI") as [Fake, Fake];
+    keyFollow.pending = false;
+    press("j", a);
+    assert.ok(b.focused);
+    assert.deepEqual(b.clicked, ['a[data-open="record"]']);
+    keyFollow.pending = false;
+    press(" ", a);
+    press("r", a);
+    press("s", a);
+    assert.deepEqual(a.clicked, ['input[type="checkbox"]:not(:disabled)', ACTION_SELECTOR.rfq, ACTION_SELECTOR.save]);
+    // Any other element is still not a row.
+    const [d] = make(1, false, "DIV") as [Fake];
+    assert.equal(press("j", d), false);
   });
 });

@@ -22,6 +22,9 @@ export function SupplierRow({
   sources,
   problem,
   selected,
+  ticked,
+  select,
+  actions,
 }: {
   layout: "pane" | "phone";
   href: string;
@@ -32,6 +35,12 @@ export function SupplierRow({
   /** The certificates' compact cell, or the dash for none on file. */
   problem?: ReactNode;
   selected?: boolean;
+  /** `pane`: the row's tick is on (the brand bar and tint, as a ticked table row). */
+  ticked?: boolean;
+  /** `pane`: the leading checkbox, so the list beside a record is a ledger too. */
+  select?: ReactNode;
+  /** `pane`: the trailing ⋯ menu and the keyboard's hidden actions. */
+  actions?: ReactNode;
 }) {
   const { base, qualifier } = splitQualifier(name);
   const kind = nameSecondLine(name, type ?? "Type not published", place ?? "place not published");
@@ -59,11 +68,18 @@ export function SupplierRow({
         {problem ? <span className="text-sm">{problem}</span> : null}
       </Link>
     );
+  // The name's link covers the row (`after:inset-0`), so a click anywhere opens the record; the tick
+  // and the menu sit above it. The link carries `data-open` for the row's Enter and arrow keys.
   return (
+    <div className={cn("relative flex min-h-14 items-start gap-2 border-b border-l-2 border-line py-2.5 last:border-b-0 hover:bg-brand-wash", select ? "pl-2" : "pl-3", actions ? "pr-1" : "pr-3", selected || ticked ? "border-l-brand-ink bg-brand-tint" : "border-l-transparent")}>
+      {select ? <span className="relative z-raised flex h-5 shrink-0 items-center">{select}</span> : null}
     <Link
       href={href}
+      prefetch={false}
+      scroll={false}
+      data-open="record"
       aria-current={selected ? "true" : undefined}
-      className={cn(box, "min-h-14 gap-0.5 border-l-2 px-3 py-2.5 hover:bg-brand-wash", selected ? "border-l-brand-ink bg-brand-tint" : "border-l-transparent")}
+      className="flex min-w-0 flex-1 flex-col gap-0.5 rounded-sm outline-none after:absolute after:inset-0 after:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
     >
       <span className="flex justify-between gap-3">
         <span data-name="" title={name} className={cn(oneLine, "text-base font-medium text-ink")}>
@@ -82,5 +98,7 @@ export function SupplierRow({
         ) : null}
       </span>
     </Link>
+      {actions ? <span className="relative z-raised -my-1 shrink-0">{actions}</span> : null}
+    </div>
   );
 }

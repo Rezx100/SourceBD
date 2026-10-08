@@ -10,8 +10,8 @@
 
 import { DotsThree, PaperPlaneTilt } from "@phosphor-icons/react";
 import Link from "next/link";
-import { ABSENT, CertSummaryCell } from "@/components/patterns";
-import { BulkBar, IconButton, Menu, MenuItem, SelectCell, Table, Td, Th, Tr, Unpublished, bulkActionClass, oneLine, rowLinkClass } from "@/components/kit";
+import { ABSENT, CertSummaryCell, SupplierRow } from "@/components/patterns";
+import { BulkBar, Checkbox, IconButton, Menu, MenuItem, SelectCell, Table, Td, Th, Tr, Unpublished, bulkActionClass, oneLine, rowLinkClass } from "@/components/kit";
 import { onRowKey } from "@/components/search/keys";
 import { SELECT_ALL_ID, useSelection } from "@/components/search/selection";
 import { splitQualifier } from "@/lib/dashboard/facts";
@@ -30,7 +30,6 @@ export function CertCellView({ cell }: { cell: CertCell }) {
 
 export function SavedTable({ items, currentSlug }: { items: readonly SavedItem[]; currentSlug?: string | null }) {
   const sel = useSelection();
-  const { remove } = useRemove();
   return (
     // Full-bleed like the results table (critique of 8 Oct 2026, item 4): the two tables are one grammar, no frame around this one.
     <div role="region" aria-label="Saved suppliers table" className="relative min-w-0 overflow-x-auto">
@@ -107,15 +106,7 @@ export function SavedTable({ items, currentSlug }: { items: readonly SavedItem[]
                 </Td>
                 <Td className="whitespace-nowrap tabular-nums">{i.savedOn ?? <Unpublished>{ABSENT.dated}</Unpublished>}</Td>
                 <td className="w-10 border-b border-line p-0 text-center align-middle">
-                  <Menu
-                    align="end"
-                    trigger={<IconButton icon={DotsThree} label={`More actions for ${i.name}`} kind="quiet" />}
-                  >
-                    {/* The results' row menu, word for word (Save is what this list is), then this list's own action. */}
-                    <MenuItem href={i.rfqHref}>Send RFQ</MenuItem>
-                    <MenuItem href={i.pageHref}>Open full page</MenuItem>
-                    <MenuItem onSelect={() => void remove([{ id: i.id, name: i.name }])}>Remove from saved</MenuItem>
-                  </Menu>
+                  <SavedRowMenu item={i} />
                 </td>
               </Tr>
             );
@@ -123,6 +114,47 @@ export function SavedTable({ items, currentSlug }: { items: readonly SavedItem[]
         </tbody>
       </Table>
     </div>
+  );
+}
+
+/** A saved row's ⋯ menu: the results' row menu, word for word (Save is what this list is), then this list's own action. */
+export function SavedRowMenu({ item: i }: { item: SavedItem }) {
+  const { remove } = useRemove();
+  return (
+    <Menu align="end" trigger={<IconButton icon={DotsThree} label={`More actions for ${i.name}`} kind="quiet" />}>
+      <MenuItem href={i.rfqHref}>Send RFQ</MenuItem>
+      <MenuItem href={i.pageHref}>Open full page</MenuItem>
+      <MenuItem onSelect={() => void remove([{ id: i.id, name: i.name }])}>Remove from saved</MenuItem>
+    </Menu>
+  );
+}
+
+/** Beside a pane: the table's tick, keys and ⋯ menu on the narrow rows (critique of 8 Oct 2026, round 3, item 2). */
+export function SavedPaneRows({ items, currentSlug }: { items: readonly SavedItem[]; currentSlug: string | null }) {
+  const sel = useSelection();
+  return (
+    <ul onKeyDown={onRowKey} data-follow={currentSlug != null ? "record" : undefined}>
+      {items.map((i) => {
+        const ticked = sel.interactive && sel.isSelected(i.id);
+        return (
+          <li key={i.id} data-row="result" tabIndex={0} className="outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
+            <SupplierRow
+              layout="pane"
+              href={i.paneHref}
+              name={i.name}
+              type={i.type}
+              place={i.place}
+              sources={i.sources}
+              problem={<CertCellView cell={i.cert} />}
+              selected={i.slug === currentSlug}
+              ticked={ticked}
+              select={<Checkbox aria-label={`Select ${i.name}`} checked={ticked} disabled={!sel.interactive} onChange={() => sel.toggle(i.id)} />}
+              actions={<SavedRowMenu item={i} />}
+            />
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 

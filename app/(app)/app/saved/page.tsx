@@ -58,18 +58,20 @@ export default async function SavedPage({ searchParams }: { searchParams: Promis
         <SavedEmpty />
       )
     ) : paneOpen ? (
-      <>
-        <div className="min-h-0 flex-1 overflow-y-auto max-md:hidden">
-          <SavedPaneRows items={items} currentSlug={openSlug} />
-        </div>
-        <div className="md:hidden">
-          <SelectionProvider pageIds={items.map((i) => i.id)}>
-            <RemoveProvider>
-              <SavedPhoneList items={items} />
-            </RemoveProvider>
-          </SelectionProvider>
-        </div>
-      </>
+      // The list beside a pane keeps the table's tick and bulk bar (critique of 8 Oct 2026, round 3, item 2).
+      <SelectionProvider key={`${sort}:${page}`} pageIds={items.map((i) => i.id)}>
+        <RemoveProvider>
+          <div className="max-md:hidden [&>*:not(.sr-only)]:mx-3 [&>*:not(.sr-only)]:mt-3">
+            <SavedBar items={items} />
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto max-md:hidden">
+            <SavedPaneRows items={items} currentSlug={openSlug} />
+          </div>
+          <div className="md:hidden">
+            <SavedPhoneList items={items} />
+          </div>
+        </RemoveProvider>
+      </SelectionProvider>
     ) : (
       <SelectionProvider key={`${sort}:${page}`} pageIds={items.map((i) => i.id)}>
         <RemoveProvider>

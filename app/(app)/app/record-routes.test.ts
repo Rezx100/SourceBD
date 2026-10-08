@@ -1170,6 +1170,15 @@ describe("cycle 3: the boundaries the first route tests did not reach", () => {
     assert.match(out, /could not be read just now/, "a failed read is presented as certainly unpublished");
   });
 
+  it("beside an open record the narrow list keeps the ticks and the keys (critique of 8 Oct 2026, round 3, item 2)", async () => {
+    const out = html(await overlay({ q: "knit", record: "aboni-knitwear" }));
+    const results = out.slice(0, out.indexOf('data-record="pane"'));
+    assert.match(results, /<ul data-follow="record">/, "the pane list's arrows do not follow the record");
+    assert.match(results, /<li data-row="result" tabindex="0"/, "a pane row is not a keyboard row");
+    assert.match(results, /<input type="checkbox"[^>]*aria-label="Select [^"]+"|aria-label="Select [^"]+"[^>]*type="checkbox"/, "no tick beside an open record");
+    // Whether the bulk bar is drawn beside the pane is in search.test.ts: it shows only once ticked, after hydration.
+  });
+
   it("beside an open record the table gives way to the narrow list with the record's row marked, and comes back when it closes", async () => {
     // Master and detail (Paper `03 Patterns` · supplier list row): the list keeps only what
     // finds the next item: name, type and place, the first certificate problem, the sources.

@@ -30,6 +30,7 @@ export function ResultsBar({
   exportHref,
   searchHref,
   pageSize,
+  narrow = false,
 }: {
   /** The filter bar, drawn by the page; shown while nothing is ticked. */
   toolbar: ReactNode;
@@ -38,6 +39,8 @@ export function ResultsBar({
   searchHref: string;
   /** How many suppliers this page lists: "Select all 25 on this page". */
   pageSize: number;
+  /** Beside a pane (576 wide): "3 selected", no Select all, "Send RFQ to 3", so the bar stays one line. */
+  narrow?: boolean;
 }) {
   const sel = useSelection();
   const router = useRouter();
@@ -115,9 +118,9 @@ export function ResultsBar({
       {announcer}
       {count > 0 ? (
         <BulkBar
-          summary={`${count} ${count === 1 ? "supplier" : "suppliers"} selected`}
+          summary={narrow ? `${count} selected` : `${count} ${count === 1 ? "supplier" : "suppliers"} selected`}
           selectAll={
-            sel.allState === true ? null : (
+            sel.allState === true || narrow ? null : (
               <button type="button" onClick={sel.toggleAllOnPage} className="rounded-sm font-medium underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-surface">
                 Select all {pageSize} on this page
               </button>
@@ -137,7 +140,8 @@ export function ResultsBar({
           </a>
           {count <= SEND_RFQ_MAX ? (
             <Link href={rfqHref(searchHref, ids)} scroll={false} className={bulkActionClass(true)}>
-              Send RFQ to {count} {count === 1 ? "supplier" : "suppliers"}
+              Send RFQ to {count}
+              {narrow ? null : ` ${count === 1 ? "supplier" : "suppliers"}`}
             </Link>
           ) : (
             <span aria-disabled="true" aria-describedby={noteId} className={`${bulkActionClass(true)} cursor-not-allowed text-disabled`}>
