@@ -93,11 +93,13 @@ export function listAnd(items: string[]): string {
 }
 
 /** What is still required before Send, as the field's own name. */
-export function missingFields(v: { title: string; quantity: string; unit: string; targets: number }): string[] {
+export function missingFields(v: { title: string; quantity: string; unit: string; targets: number; targetPrice?: string }): string[] {
   const out: string[] = [];
   if (!v.title.trim()) out.push("product title");
   if (!(Number(v.quantity) >= 1)) out.push("quantity");
   if (!v.unit.trim()) out.push("unit");
+  // A price typed that is not a number ("8,5", "-3"): named, never posted.
+  if (v.targetPrice?.trim() && !(Number(v.targetPrice) >= 0)) out.push("target price");
   if (v.targets === 0) out.push("a supplier");
   return out;
 }
@@ -113,6 +115,7 @@ export function neededWords(missing: string[]): string {
     if (m === "quantity") return "a quantity";
     if (m === "product title") return "a product";
     if (m === "unit") return "a unit";
+    if (m === "target price") return "a target price as a number";
     if (m === "a supplier") return "a supplier";
     if (m === "website in the message") return "your website";
     if (m === "your name in the message") return "your name";
@@ -163,7 +166,6 @@ export function footerStatus(s: { error: string | null; sanctioned: number; miss
   return { text: s.words.sends, tone: "ink", live: false };
 }
 
-/** The message under one field once Send was tried and it is still empty; null before that. */
 /**
  * What a click on Send does: it always marks the attempt (so the footer and the fields name what is
  * missing); it posts only when nothing is missing and nothing blocks. Send is never withheld for an
@@ -178,6 +180,7 @@ export function shownNumber(raw: string, focused: boolean, kind: "count" | "mone
   return kind === "count" ? new Intl.NumberFormat("en-GB", { maximumFractionDigits: 4 }).format(n) : n.toFixed(2);
 }
 
+/** The message under one field once Send was tried and it is still empty; null before that. */
 export const fieldNote = (attempted: boolean, missing: readonly string[], field: string, words: string): string | null => (attempted && missing.includes(field) ? words : null);
 
 /** "Sends to 1 supplier: Aboni Knitwear Ltd." and the Send button's own words. */

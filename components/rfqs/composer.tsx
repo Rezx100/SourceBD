@@ -104,7 +104,7 @@ function Targets({
       {targets.length === 0 ? (
         <div className="flex flex-col items-start gap-3 rounded-md border border-dashed border-line-strong p-4">
           <p className="text-base text-ink-2">No supplier yet. Add them from your saved suppliers, a search or a recent RFQ.</p>
-          <Button kind="secondary" icon={Plus} onClick={onAdd} className="max-sm:h-input-touch max-sm:text-md">
+          <Button kind="secondary" icon={Plus} onClick={onAdd} data-add-suppliers="" className="max-sm:h-input-touch max-sm:text-md">
             Add suppliers
           </Button>
         </div>
@@ -283,7 +283,7 @@ export function RfqComposer({
     [workspace, targets, productLine, fromYou],
   );
   const message = messageEdited ?? filled.text;
-  const missing = [...missingFields({ title, quantity, unit, targets: targets.length }), ...leftoverPlaceholders(message).map((label) => `${label} in the message`)];
+  const missing = [...missingFields({ title, quantity, unit, targets: targets.length, targetPrice }), ...leftoverPlaceholders(message).map((label) => `${label} in the message`)];
   // Send is withheld only while busy or for a sanctioned target: an empty field is a sentence the click produces.
   const blocked = sanctioned.length > 0 || busy !== null;
   const words = sendWords(targets);
@@ -358,7 +358,7 @@ export function RfqComposer({
 
   // A send tried with a field empty: the first field marked missing takes focus.
   useEffect(() => {
-    if (attempt > 0) formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+    if (attempt > 0) (formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]') ?? formRef.current?.querySelector<HTMLElement>("[data-add-suppliers]"))?.focus();
   }, [attempt]);
 
   function addQuestion() {
@@ -423,6 +423,8 @@ export function RfqComposer({
         <form
           id={`${id}-form`}
           ref={formRef}
+          // The composer names what is missing itself: the browser's own bubble would stop the click before `send()`.
+          noValidate
           onSubmit={(e) => {
             e.preventDefault();
             void send();
@@ -449,11 +451,11 @@ export function RfqComposer({
                     </div>
                   )}
                 </Field>
-                <Field label={`Target price per ${per}`} help="Suppliers see your target price.">
+                <Field label={`Target price per ${per}`} help="Suppliers see your target price." error={note("target price", "Enter a number, like 8.90")}>
                   {(a) => (
                     <div className="flex gap-2">
                       <Select aria-label="Currency" value={currency} onValueChange={setCurrency} options={CURRENCIES.map((c) => ({ value: c, label: c === "USD" ? "US$" : c }))} className="w-24 shrink-0 max-sm:h-input-touch max-sm:text-md" />
-                      <Input {...a} inputMode="decimal" value={shownNumber(targetPrice, focused === "price", "money")} onChange={(e) => setTargetPrice(e.target.value.replace(/,/g, ""))} onFocus={() => setFocused("price")} onBlur={() => setFocused(null)} className="min-w-0 flex-1 text-right max-sm:h-input-touch max-sm:text-md" />
+                      <Input {...a} inputMode="decimal" value={shownNumber(targetPrice, focused === "price", "money")} onChange={(e) => setTargetPrice(e.target.value)} onFocus={() => setFocused("price")} onBlur={() => setFocused(null)} className="min-w-0 flex-1 text-right max-sm:h-input-touch max-sm:text-md" />
                     </div>
                   )}
                 </Field>

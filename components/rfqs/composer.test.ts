@@ -58,6 +58,10 @@ describe("what the composer says", () => {
   it("names what is still missing as a sentence, in the order the form asks", () => {
     assert.deepEqual(missingFields({ title: "", quantity: "", unit: "pcs", targets: 1 }), ["product title", "quantity"]);
     assert.deepEqual(missingFields({ title: "x", quantity: "0", unit: "", targets: 0 }), ["quantity", "unit", "a supplier"]);
+    assert.deepEqual(missingFields({ title: "x", quantity: "5", unit: "pcs", targets: 1, targetPrice: "8,5" }), ["target price"], "a price that is not a number is named");
+    assert.deepEqual(missingFields({ title: "x", quantity: "5", unit: "pcs", targets: 1, targetPrice: "-3" }), ["target price"]);
+    assert.deepEqual(missingFields({ title: "x", quantity: "5", unit: "pcs", targets: 1, targetPrice: "" }), []);
+    assert.equal(neededWords(["target price"]), "Add a target price as a number to send.");
     assert.equal(neededWords(["quantity", "website in the message"]), "Add a quantity and your website to send.");
     assert.equal(neededWords(["product title", "quantity", "a supplier"]), "Add a product, a quantity and a supplier to send.");
   });
@@ -248,6 +252,8 @@ describe("what the composer draws", () => {
     assert.match(out, /value="10,000"/);
     assert.match(out, /value="8\.90"/);
     assert.doesNotMatch(out, /value="10000"/);
+    assert.match(out, /<form [^>]*noValidate=""/, "the browser's own bubble would stop a click on Send before the composer names the gap");
+    assert.match(draw([]), /data-add-suppliers=""/, "a send tried with nobody listed moves focus to Add suppliers");
   });
 
   it("in the pane it is a labelled region with Close and a Record link; on the page, a back link and no Close", () => {
