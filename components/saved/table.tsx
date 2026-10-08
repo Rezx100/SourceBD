@@ -66,6 +66,7 @@ export function SavedTable({ items, currentSlug }: { items: readonly SavedItem[]
           {items.map((i) => {
             const selected = sel.interactive && sel.isSelected(i.id);
             const current = currentSlug != null && i.slug === currentSlug;
+            const { base, qualifier } = splitQualifier(i.name);
             return (
               <Tr
                 key={i.id}
@@ -79,11 +80,11 @@ export function SavedTable({ items, currentSlug }: { items: readonly SavedItem[]
                 <SelectCell label={`Select ${i.name}`} checked={selected} disabled={!sel.interactive} onChange={() => sel.toggle(i.id)} />
                 <Td className="max-w-0">
                   <Link href={i.paneHref} prefetch={false} scroll={false} data-open="record" data-name="" title={i.name} className={cn(rowLinkClass, oneLine)}>
-                    {splitQualifier(i.name).base}
+                    {base}
                   </Link>
-                  {splitQualifier(i.name).qualifier ? (
-                    <span data-name="" title={splitQualifier(i.name).qualifier!} className={cn(oneLine, "text-xs text-ink-3")}>
-                      {splitQualifier(i.name).qualifier}
+                  {qualifier ? (
+                    <span data-name="" title={qualifier} className={cn(oneLine, "text-xs text-ink-3")}>
+                      {qualifier}
                     </span>
                   ) : null}
                 </Td>

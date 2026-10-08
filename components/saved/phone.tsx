@@ -57,7 +57,14 @@ export function SavedPhoneList({ items }: { items: readonly SavedItem[] }) {
               </label>
               <Link href={i.pageHref} prefetch={false} className="flex min-h-11 min-w-0 flex-1 flex-col gap-1 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
                 <span data-name="" title={i.name} className={cn(oneLine, "text-md font-medium text-ink")}>
-                  {splitQualifier(i.name).base}
+                  {splitQualifier(i.name).qualifier ? (
+                    <>
+                      <span aria-hidden="true">{splitQualifier(i.name).base}</span>
+                      <span className="sr-only">{i.name}</span>
+                    </>
+                  ) : (
+                    i.name
+                  )}
                 </span>
                 <span data-name="" className={cn(oneLine, "text-sm text-ink-3")}>
                   {phoneLine(i)}

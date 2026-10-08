@@ -91,6 +91,7 @@ export function ResultsTable({
             const selectable = sel.interactive && Boolean(r.supplierId);
             const selected = selectable && sel.isSelected(r.supplierId!);
             const current = currentSlug != null && r.slug === currentSlug;
+            const { base, qualifier } = splitQualifier(r.name);
             return (
               <Tr
                 key={r.slug}
@@ -110,12 +111,12 @@ export function ResultsTable({
                 {/* `max-w-0`: the column keeps the header's width and the name is cut inside it, instead of the cell growing to the name. */}
                 <Td className="max-w-0">
                   <Link href={r.paneHref} prefetch={false} scroll={false} data-open="record" data-name="" title={r.name} className={cn(rowLinkClass, oneLine)}>
-                    {splitQualifier(r.name).base}
+                    {base}
                     <LinkPending className="ml-1.5 inline-block align-[-2px]" />
                   </Link>
-                  {splitQualifier(r.name).qualifier ? (
-                    <span data-name="" title={splitQualifier(r.name).qualifier!} className={cn(oneLine, "text-xs text-ink-3")}>
-                      {splitQualifier(r.name).qualifier}
+                  {qualifier ? (
+                    <span data-name="" title={qualifier} className={cn(oneLine, "text-xs text-ink-3")}>
+                      {qualifier}
                     </span>
                   ) : null}
                   {r.sanctioned ? (

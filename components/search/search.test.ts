@@ -446,8 +446,10 @@ describe("the narrow list and the phone's rows", () => {
     assert.match(out, /aria-current="true"[^>]*href="\/app\/discover\?q=knit&record=aboni-knitwear"|href="\/app\/discover\?q=knit&record=aboni-knitwear"[^>]*aria-current="true"/);
     assert.ok(out.includes(ZAHEEN) && out.includes("No certificates on file"));
     // The pane list keeps the One-Line Name Rule too: base name on one line, the qualifier leading the line under.
-    assert.match(out, new RegExp(`<a aria-label="${ZAHEEN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`), "the row's accessible name is the whole name");
-    assert.match(out, /data-name="" title="[^"]*Fire Pump\)"[^>]*>Zaheen Knitwears Limited</);
+    // The whole name stays in the DOM (sr-only beside the hidden base), never as an aria-label that would silence the sources and certificate words.
+    assert.match(out, new RegExp(`<span aria-hidden="true">Zaheen Knitwears Limited</span><span class="sr-only">${ZAHEEN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}</span>`));
+    assert.doesNotMatch(out, /<a aria-label=/, "an aria-label on a row hides its sources and certificate words from a screen reader");
+    assert.match(out, /data-name="" title="Aboni Knitwear Ltd\."[^>]*>Aboni Knitwear Ltd\.</, "a name without a qualifier is said once");
     assert.match(out, /data-name="" title="Shed - 3, 4, 5, 10, 11, 12, 13 · Building - Security, ETP and Fire Pump · Factory · Dhaka"/);
   });
 
