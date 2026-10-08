@@ -1,8 +1,10 @@
 "use client";
 
 // The results table (Paper `10 · Results table`): select, Supplier, Type, Location, Workers,
-// Sources, then the certificates as marks and the worst one's state. A real <table>, head 36 and sticky, rows 40
-// (they grow when a name wraps: nothing is cut off). The name opens the record in the pane;
+// Sources, then the certificates as marks and the worst one's state. A real <table>, head 36 and sticky, rows 40.
+// A name is one line (the One-Line Name Rule): the base name cut at the end with the whole name in
+// `title` and the row's accessible name, its qualifier (a shed, a building, a group) on the line
+// under. The name opens the record in the pane;
 // arrows move between rows, Enter opens, Space ticks. Hover is brand-wash, a ticked row
 // brand-tint with the 2px bar. Every row ends in the ⋯ menu Saved's rows have (Save, Send RFQ,
 // Open full page), so the two tables share one grammar. Client: it reads the selection and handles the keys.
@@ -12,7 +14,8 @@ import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared
 import Link from "next/link";
 import { startTransition, useContext, useEffect, useState } from "react";
 import { ABSENT, CertSummaryCell, LinkPending, SanctionTag, sanctionRowClass } from "@/components/patterns";
-import { IconButton, Menu, MenuItem, SelectCell, Table, Td, Th, Toast, Tr, Unpublished, rowLinkClass, toastActionClass, type SortState } from "@/components/kit";
+import { IconButton, Menu, MenuItem, SelectCell, Table, Td, Th, Toast, Tr, Unpublished, oneLine, rowLinkClass, toastActionClass, type SortState } from "@/components/kit";
+import { splitQualifier } from "@/lib/dashboard/facts";
 import { rowSaveMessage } from "@/lib/dashboard/selection";
 import { cn } from "@/lib/utils";
 import { onRowKey } from "./keys";
@@ -88,6 +91,7 @@ export function ResultsTable({
             const selectable = sel.interactive && Boolean(r.supplierId);
             const selected = selectable && sel.isSelected(r.supplierId!);
             const current = currentSlug != null && r.slug === currentSlug;
+            const { base, qualifier } = splitQualifier(r.name);
             return (
               <Tr
                 key={r.slug}
@@ -104,11 +108,17 @@ export function ResultsTable({
                   disabled={!selectable}
                   onChange={selectable ? () => sel.toggle(r.supplierId!) : () => {}}
                 />
-                <Td>
-                  <Link href={r.paneHref} prefetch={false} scroll={false} data-open="record" className={rowLinkClass}>
-                    {r.name}
+                {/* `max-w-0`: the column keeps the header's width and the name is cut inside it, instead of the cell growing to the name. */}
+                <Td className="max-w-0">
+                  <Link href={r.paneHref} prefetch={false} scroll={false} data-open="record" data-name="" title={r.name} className={cn(rowLinkClass, oneLine)}>
+                    {base}
                     <LinkPending className="ml-1.5 inline-block align-[-2px]" />
                   </Link>
+                  {qualifier ? (
+                    <span data-name="" title={qualifier} className={cn(oneLine, "text-xs text-ink-3")}>
+                      {qualifier}
+                    </span>
+                  ) : null}
                   {r.sanctioned ? (
                     <div className="pt-0.5">
                       <SanctionTag list="sanctions list" />

@@ -11,7 +11,8 @@ import { Button } from "@/components/kit";
 import { buttonClass } from "@/components/kit/button-class";
 import { useSelection } from "@/components/search/selection";
 import { SEND_RFQ_MAX, rfqHref } from "@/lib/dashboard/selection";
-import { formatCount } from "@/lib/dashboard/facts";
+import { formatCount, nameSecondLine, splitQualifier } from "@/lib/dashboard/facts";
+import { oneLine } from "@/components/kit/classes";
 import { cn } from "@/lib/utils";
 import { useRemove } from "./actions";
 import { CertCellView } from "./table";
@@ -19,9 +20,9 @@ import { TOO_MANY, typeAndPlace, type SavedItem } from "./words";
 
 const noun = (n: number) => `${n} ${n === 1 ? "source" : "sources"}`;
 
-/** The line under a name: "Factory · Dhaka · 8 sources · 1,408 workers". */
+/** The line under a name: "Factory · Dhaka · 8 sources · 1,408 workers", led by the name's qualifier when it has one. */
 export function phoneLine(i: SavedItem): string {
-  return [typeAndPlace(i), noun(i.sources), i.workers ? `${i.workers} workers` : null].filter(Boolean).join(" · ");
+  return [nameSecondLine(i.name, typeAndPlace(i)), noun(i.sources), i.workers ? `${i.workers} workers` : null].filter(Boolean).join(" · ");
 }
 
 export function SavedPhoneList({ items }: { items: readonly SavedItem[] }) {
@@ -55,8 +56,19 @@ export function SavedPhoneList({ items }: { items: readonly SavedItem[] }) {
                 </span>
               </label>
               <Link href={i.pageHref} prefetch={false} className="flex min-h-11 min-w-0 flex-1 flex-col gap-1 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-                <span className="text-md font-medium text-ink">{i.name}</span>
-                <span className="text-sm text-ink-3">{phoneLine(i)}</span>
+                <span data-name="" title={i.name} className={cn(oneLine, "text-md font-medium text-ink")}>
+                  {splitQualifier(i.name).qualifier ? (
+                    <>
+                      <span aria-hidden="true">{splitQualifier(i.name).base}</span>
+                      <span className="sr-only">{i.name}</span>
+                    </>
+                  ) : (
+                    i.name
+                  )}
+                </span>
+                <span data-name="" className={cn(oneLine, "text-sm text-ink-3")}>
+                  {phoneLine(i)}
+                </span>
                 <span className="text-sm">
                   <CertCellView cell={i.cert} />
                 </span>
