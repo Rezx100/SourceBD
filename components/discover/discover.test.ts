@@ -117,9 +117,9 @@ describe("the public Discover page: results", () => {
     assert.match(text(out), /Factory/);
     assert.match(text(out), /1,200/);
     assert.match(text(out), /Knit tops, Dresses/);
-    // A figure that was not published says so; it is never a dash or a blank.
-    assert.match(text(out), /Not published/);
-    assert.match(text(out), /None found/);
+    // A figure that was not published is a dash in the cell with the words behind it for a screen reader; never a blank.
+    assert.match(out, /title="Not published"><span aria-hidden="true">–<\/span><span class="sr-only">Not published<\/span>/);
+    assert.match(text(out), /No source on file/);
     // The phone's rows carry the same two links.
     assert.equal((out.match(/href="\/suppliers\/tex-town-1"/g) ?? []).length, 2);
     assert.doesNotMatch(out, OLD_KIT);

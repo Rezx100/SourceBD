@@ -4,8 +4,10 @@
 
 import { FileText, Hourglass } from "@phosphor-icons/react/dist/ssr";
 import type { ReactNode } from "react";
+import { Unpublished } from "@/components/kit";
 import { daysUntil, formatDay } from "@/lib/dashboard/facts";
 import { sourceFullName } from "@/lib/source-full-names";
+import { ABSENT } from "./words";
 import { cn } from "@/lib/utils";
 
 type Tier = 1 | 2 | 3 | 4;
@@ -133,7 +135,7 @@ export function SourceList({ sources, today, className, level: H = "h3" }: { sou
               </span>
               <span className={cn("flex w-[132px] shrink-0 items-center justify-end gap-1 text-right text-xs", stale ? "font-medium text-caution" : "text-ink-2")} title={stale ? (formatDay(checkedOn) ?? undefined) : undefined}>
                 {stale ? <Hourglass size={12} weight="fill" className="shrink-0 text-caution-icon" aria-hidden /> : null}
-                {stale ? `read ${-age} days ago` : (formatDay(checkedOn) ?? "Not dated")}
+                {stale ? `read ${-age} days ago` : (formatDay(checkedOn) ?? <Unpublished>{ABSENT.dated}</Unpublished>)}
               </span>
               <span className="w-full pl-[30px] text-xs text-ink-3">{fullName ?? sourceFullName(source) ?? source}</span>
             </li>

@@ -101,10 +101,12 @@ describe("the summary", () => {
 
   it("says what is missing in words: no certificate, no RSC record, no workers figure", () => {
     const cells = Object.fromEntries(summaryCells(model(arFashionInput()), TODAY).map((c) => [c.key, c]));
-    assert.equal(cells.certificates!.value, "None found");
+    // In the strip a missing figure is the dash, its words for a screen reader and in the line under it.
+    assert.deepEqual([cells.certificates!.value, cells.certificates!.valueWords], ["–", "No certificates on file"]);
     assert.equal(cells.rsc!.value, "Not covered");
-    assert.equal(cells.workers!.value, "Not published");
-    assert.equal(cells.workers!.sub, "ask in your RFQ");
+    assert.deepEqual([cells.workers!.value, cells.workers!.valueWords], ["–", "Not published"]);
+    assert.equal(cells.workers!.sub, "Not published · ask in your RFQ");
+    assert.match(view(model(arFashionInput())), /<span aria-hidden="true" class="text-ink-3" title="Not published">–<\/span><span class="sr-only">Not published<\/span>/);
     assert.equal(cells.sources!.value, "1");
     assert.match(cells.sources!.sub ?? "", /^BGMEA · \d{1,2} \w{3} 2026$/);
   });

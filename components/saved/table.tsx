@@ -10,7 +10,7 @@
 
 import { DotsThree, PaperPlaneTilt } from "@phosphor-icons/react";
 import Link from "next/link";
-import { CertSummaryCell } from "@/components/patterns";
+import { ABSENT, CertSummaryCell } from "@/components/patterns";
 import { BulkBar, IconButton, Menu, MenuItem, SelectCell, Table, Td, Th, Tr, Unpublished, bulkActionClass, rowLinkClass } from "@/components/kit";
 import { onRowKey } from "@/components/search/keys";
 import { SELECT_ALL_ID, useSelection } from "@/components/search/selection";
@@ -22,7 +22,9 @@ import { TOO_MANY, rfqHref, type CertCell, type SavedItem } from "./words";
 /** The certificate cell: the same compact cell the results draw, nothing to check, or that it could not be read. */
 export function CertCellView({ cell }: { cell: CertCell }) {
   if (cell.kind === "line") return <CertSummaryCell cert={cell.summary} />;
-  return <Unpublished>{cell.kind === "clear" ? "Nothing to check" : "Not read just now"}</Unpublished>;
+  // A failed read is a sentence, not an absence: the lists were not read, so nothing is claimed.
+  if (cell.kind === "unread") return <span className="text-sm text-ink-3">{ABSENT.unread}</span>;
+  return <Unpublished>{ABSENT.toCheck}</Unpublished>;
 }
 
 export function SavedTable({ items, currentSlug }: { items: readonly SavedItem[]; currentSlug?: string | null }) {
@@ -95,7 +97,7 @@ export function SavedTable({ items, currentSlug }: { items: readonly SavedItem[]
                 <Td className="py-1.5">
                   <CertCellView cell={i.cert} />
                 </Td>
-                <Td className="whitespace-nowrap tabular-nums">{i.savedOn ?? <Unpublished>Not dated</Unpublished>}</Td>
+                <Td className="whitespace-nowrap tabular-nums">{i.savedOn ?? <Unpublished>{ABSENT.dated}</Unpublished>}</Td>
                 <td className="w-10 border-b border-line p-0 text-center align-middle">
                   <Menu
                     align="end"

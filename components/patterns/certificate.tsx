@@ -4,10 +4,10 @@
 // Server-safe; the document link is the only link, stretched over the row on a phone.
 
 import { FileText } from "@phosphor-icons/react/dist/ssr";
-import { CertChip } from "@/components/kit";
+import { CertChip, Unpublished } from "@/components/kit";
 import { cn } from "@/lib/utils";
 import { SourceMark, hasSourceMark } from "./source-mark";
-import { CERT_ORDER, certHeading, certWords, type CertSummary } from "./words";
+import { ABSENT, CERT_ORDER, certHeading, certWords, type CertSummary } from "./words";
 
 export type CertRowData = {
   scheme: string;
@@ -123,7 +123,7 @@ export function CertTable({ certs, today, from, className, compact = false, leve
               <span className="text-md font-medium text-ink sm:text-base">{c.scheme}</span>
               {c.number ? <span className="font-mono text-sm text-ink-2">{c.number}</span> : null}
             </span>
-            <span className={cn("text-sm text-ink-2 sm:text-base", compact ? "col-start-1 row-start-2" : "max-sm:order-3")}>{c.issuer ?? <span className="text-ink-3">Issuer not published</span>}</span>
+            <span className={cn("text-sm text-ink-2 sm:text-base", compact ? "col-start-1 row-start-2" : "max-sm:order-3")}>{c.issuer ?? <Unpublished>{ABSENT.issuer}</Unpublished>}</span>
             <span className={cn("flex flex-col gap-0.5", compact ? "col-start-2 row-start-1 items-end justify-self-end" : "max-sm:order-1 sm:items-start")}>
               <CertChip state={w.state} className="whitespace-nowrap">
                 {w.label}

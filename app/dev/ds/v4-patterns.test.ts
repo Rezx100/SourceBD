@@ -63,7 +63,7 @@ test("a certificate's words: countdown inside 30 days, the date alone to 90, the
   assert.deepEqual(w("2026-11-03"), { state: "expiring", label: "Expires 3 Nov 2026" });
   assert.deepEqual(w("2027-01-01"), { state: "expiring", label: "Expires 1 Jan 2027" });
   assert.deepEqual(w("2027-01-02"), { state: "valid", label: "Valid until 2 Jan 2027" });
-  assert.deepEqual(w(null), { state: "none", label: "No expiry date published" });
+  assert.deepEqual(w(null), { state: "none", label: "No expiry on file" });
   assert.equal(certHeading(["expired", "expired", "valid", "none"]), "Certificates · 4 · 2 expired");
   assert.equal(certHeading(["valid"]), "Certificates · 1");
 });

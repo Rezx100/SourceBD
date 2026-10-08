@@ -4,8 +4,8 @@
 // words are Paper's (`10 · Results, empty`, `Errors`, `11 · Results`).
 
 import Link from "next/link";
-import { CertSummaryCell, SupplierRow } from "@/components/patterns";
-import { ErrorPanel, Pagination, Skeleton, buttonClass } from "@/components/kit";
+import { ABSENT, CertSummaryCell, SupplierRow } from "@/components/patterns";
+import { ErrorPanel, Pagination, Skeleton, Unpublished, buttonClass } from "@/components/kit";
 import { PER_PAGE, discoverChips, discoverHref, filterCount, withoutFilterFamily, type DiscoverState } from "@/lib/discover-v32-state";
 import { formatCount } from "@/lib/dashboard/facts";
 import { discoverFailureCopy } from "@/lib/discover-v32-rpc";
@@ -15,7 +15,7 @@ import { SlowHead } from "./slow";
 
 /** The same cell the table draws, so a certificate looks the same beside a pane and on a phone. */
 function Problem({ r }: { r: ResultRow }) {
-  return r.certCell ? <CertSummaryCell cert={r.certCell} /> : <span className="text-xs text-ink-3">No certificates found</span>;
+  return r.certCell ? <CertSummaryCell cert={r.certCell} /> : <Unpublished>{ABSENT.certificates}</Unpublished>;
 }
 
 /** Beside a pane: name, type and place, the first certificate problem, the source count. A long name wraps. */

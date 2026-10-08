@@ -1,4 +1,4 @@
-// Shoots b4d-*.html. node b4d-shoot.cjs [names] [widths]; defaults: pane pages at 1440 and 1280, page screens at 1440, 390 and 320.
+﻿// Shoots b4d-*.html. node b4d-shoot.cjs [names] [widths]; defaults: pane pages at 1440 and 1280, page screens at 1440, 390 and 320.
 const { chromium } = require("playwright");
 const path = require("path");
 const fs = require("fs");
@@ -18,3 +18,4 @@ const only = process.argv[2] ? process.argv[2].split(",") : Object.keys(all);
     }
   await browser.close();
 })();
+

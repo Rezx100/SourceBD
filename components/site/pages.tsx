@@ -44,7 +44,7 @@ const STATES: [string, string][] = [
   ["Expired", "with the date it ended"],
   ["Expires in N days", "with the date it ends"],
   ["Valid until", "with the date"],
-  ["No expiry date published", "said as it is, never guessed"],
+  ["No expiry on file", "said as it is, never guessed"],
 ];
 
 /** The lists the Compliance page screens against, as read on the days shown (captured 3 Oct 2026; the product shows today's). */

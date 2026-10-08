@@ -118,7 +118,7 @@ describe("the certificate line of a row", () => {
       others: [
         { code: "GOTS", scheme: "GOTS", words: "GOTS expires in 28 days · 31 Oct 2026" },
         { code: "OEKO_TEX", scheme: "OEKO-TEX Standard 100", words: "OEKO-TEX Standard 100 valid until 1 May 2027" },
-        { code: "SA8000", scheme: "SA8000", words: "SA8000 no expiry date published" },
+        { code: "SA8000", scheme: "SA8000", words: "SA8000 no expiry on file" },
       ],
       total: 4,
       words: "WRAP expired 29 Sep 2026 · 3 more certificates",
@@ -138,8 +138,8 @@ describe("the certificate line of a row", () => {
     assert.equal(certShort("2026-11-01", TODAY), "Expires in 29 days");
     assert.equal(certShort("2026-12-19", TODAY), "Expires 19 Dec");
     assert.equal(certShort("2027-05-12", TODAY), "Valid to May 2027");
-    assert.equal(certShort(null, TODAY), "No expiry given");
-    assert.equal(certShort("not a date", TODAY), "No expiry given");
+    assert.equal(certShort(null, TODAY), "No expiry on file");
+    assert.equal(certShort("not a date", TODAY), "No expiry on file");
     assert.equal(certShort("2027-05-12", TODAY, "2026-09-28"), "No longer listed", "its body stopped listing it, whatever its date says");
   });
 
@@ -217,7 +217,7 @@ describe("the results table", () => {
     // No mark stands without its name (`logos.lock.md` section 1): the cell's title is the line the
     // narrow list says, each further mark is titled with its own body and state, and a screen
     // reader hears every body as one sentence instead of the marks.
-    assert.match(aboni!, /^<span class="[^"]*" title="WRAP expired 29 Sep 2026 · 3 more certificates"><span class="sr-only">4 certificates: WRAP expired 29 Sep 2026; GOTS expires in 28 days · 31 Oct 2026; OEKO-TEX Standard 100 valid until 1 May 2027; SA8000 no expiry date published<\/span><span aria-hidden="true"/);
+    assert.match(aboni!, /^<span class="[^"]*" title="WRAP expired 29 Sep 2026 · 3 more certificates"><span class="sr-only">4 certificates: WRAP expired 29 Sep 2026; GOTS expires in 28 days · 31 Oct 2026; OEKO-TEX Standard 100 valid until 1 May 2027; SA8000 no expiry on file<\/span><span aria-hidden="true"/);
     assert.match(aboni!, /<span title="GOTS expires in 28 days · 31 Oct 2026"><span [^>]*><img src="\/icons\/sources\/cert\/gots\.png"/);
     assert.match(aboni!, /<span title="OEKO-TEX Standard 100 valid until 1 May 2027"><span [^>]*><img src="\/icons\/sources\/cert\/oeko-tex\.png"/);
     assert.match(sm!, /<span class="sr-only">WRAP valid until 8 Jan 2027<\/span>/, "one certificate is its own sentence");
@@ -226,7 +226,9 @@ describe("the results table", () => {
     assert.match(sm!, /wrap\.png"[^>]*\/><\/span><span class="[^"]*\bbg-sunken text-ink-2\b[^"]*">Valid to Jan 2027<\/span><\/span><\/span>$/);
     // The marks are 24 tall in a 40 row: the cell gives up 2px of padding above and below.
     assert.ok(cells.every((c) => c[1]!.split(" ").includes("py-1.5")));
-    assert.ok(out.includes("No certificates found"));
+    // Nothing on file is a dash in the cell, the words behind it for a screen reader.
+    assert.match(out, /<span class="text-sm text-ink-3" title="No certificates on file"><span aria-hidden="true">–<\/span><span class="sr-only">No certificates on file<\/span><\/span>/);
+    assert.ok(!out.includes("No certificates found"));
   });
 
   it("a sanctioned supplier says so in words on its row, and keeps its place", () => {
@@ -410,7 +412,7 @@ describe("the narrow list and the phone's rows", () => {
     const out = plain(h(PaneRows, { rows, currentSlug: "aboni-knitwear" }));
     assert.ok(out.includes("Aboni Knitwear Ltd.") && out.includes("11 sources") && out.includes("Factory · Dhaka"));
     assert.match(out, /aria-current="true"[^>]*href="\/app\/discover\?q=knit&record=aboni-knitwear"|href="\/app\/discover\?q=knit&record=aboni-knitwear"[^>]*aria-current="true"/);
-    assert.ok(out.includes(ZAHEEN) && out.includes("No certificates found"));
+    assert.ok(out.includes(ZAHEEN) && out.includes("No certificates on file"));
   });
 
   it("on a phone a row opens the record as a page, and the way back is in the address", () => {
