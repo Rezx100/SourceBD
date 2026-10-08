@@ -5,14 +5,15 @@
 // that, the work queue: the certificates that need a look beside the buyer's recent and saved
 // searches. The topbar steps its own field aside here (`topbar-search-slot.tsx`), so this field
 // is the one Ctrl K reaches. No supplier is listed until the buyer asks.
-// Server component; the counts stream in behind the page so nothing waits on them.
+// Server component; the counts are read by the page (cached an hour) so a chip paints with its
+// count, never a skeleton; a count that was late is simply not drawn.
 
 import { Buildings, CaretRight, MagnifyingGlass, MapPin, SealCheck, TShirt } from "@phosphor-icons/react/dist/ssr";
 import Form from "next/form";
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 import { NeedsAttention, type AttentionItem } from "@/components/patterns";
-import { InlineError, Skeleton, buttonClass, linkClass } from "@/components/kit";
+import { InlineError, buttonClass, linkClass } from "@/components/kit";
 import { ring } from "@/components/kit/classes";
 import { SearchShortcut } from "@/components/frame/search-shortcut";
 import { ShortcutHint } from "@/components/frame/topbar-search-slot";
@@ -22,7 +23,7 @@ import { DISCOVER_PATH, EMPTY_STATE, discoverHref } from "@/lib/discover-v32-sta
 import type { SavedSearchJson } from "@/lib/saved-searches";
 import { cn } from "@/lib/utils";
 import { PendingNav } from "./pending-nav";
-import { FilterMenuButton } from "./toolbar";
+import { FilterMenuButton, SanctionedStanding } from "./toolbar";
 import { RecentSearches } from "./recent";
 import { SearchCombobox } from "./typeahead";
 import { Count, LinkRow, LinkRows, h2, supplierCount } from "./rows";
@@ -34,9 +35,8 @@ const MENU_ICON: Record<string, ReactNode> = {
   type: <Buildings size={16} weight="fill" className="shrink-0 text-ink-2" aria-hidden />,
 };
 
-async function ChipCount({ counts, k }: { counts: Promise<Record<string, number | null>>; k: string }) {
-  const n = (await counts)[k];
-  // An unread count says nothing: "0" is a claim.
+function ChipCount({ n }: { n: number | null | undefined }) {
+  // An unread or late count says nothing: "0" is a claim, and a skeleton a promise the page may not keep.
   if (typeof n !== "number") return null;
   return (
     <span className="text-xs text-ink-3">
@@ -46,24 +46,24 @@ async function ChipCount({ counts, k }: { counts: Promise<Record<string, number 
   );
 }
 
-/** The common searches, one chip each with how many suppliers it finds. */
-function CommonSearches({ counts }: { counts: Promise<Record<string, number | null>> }) {
+/** The common searches, one 6px chip each with how many suppliers it finds, under a heading that reads as the "Try" label. */
+function CommonSearches({ counts }: { counts: Record<string, number | null> }) {
   return (
     // One row that scrolls sideways on a phone; wraps from `sm`.
-    <nav aria-label="Common searches" className="-mx-4 flex items-center gap-1.5 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
-      <span className="shrink-0 pr-1 text-sm text-ink-3">Try</span>
+    <nav aria-labelledby="common-searches" className="-mx-4 flex items-center gap-1.5 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
+      <h2 id="common-searches" className="shrink-0 pr-1 text-sm font-normal text-ink-3">
+        Try
+      </h2>
       {SEARCH_TEMPLATES.map((t) => (
         <Link
           key={t.key}
           href={templateHref(t)}
           prefetch={false}
           title={t.blurb}
-          className={cn("inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-subtle px-3 text-sm text-ink-2 transition-colors duration-fast hover:bg-sunken hover:text-ink", ring)}
+          className={cn("inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md bg-subtle px-3 text-sm text-ink-2 transition-colors duration-fast hover:bg-sunken hover:text-ink", ring)}
         >
           {t.title}
-          <Suspense fallback={<Skeleton className="h-2.5 w-7" />}>
-            <ChipCount counts={counts} k={t.key} />
-          </Suspense>
+          <ChipCount n={counts[t.key]} />
         </Link>
       ))}
     </nav>
@@ -112,7 +112,7 @@ async function SavedSearches({ saved }: { saved: Promise<SavedSearchJson[] | nul
   );
 }
 
-/** The certificates that need a look: the first few, the total, and the way to the rest. */
+/** The suppliers whose certificates need a look (one row each), the total, and the way to the rest in the card's foot at every width. */
 function Attention({ attention }: { attention: Attention | null }) {
   if (attention === null)
     return (
@@ -130,25 +130,21 @@ function Attention({ attention }: { attention: Attention | null }) {
       </Link>
     ),
   }));
+  // The way to the rest is in the card's foot at every width (the critique of 7 Oct 2026: on a desktop
+  // the other six were reachable only through a link at the top right and a phone-only footer).
+  const shown = items.reduce((n, _, i) => n + 1 + (attention.rows[i]?.more ?? 0), 0);
   return (
     <section className="flex flex-col gap-2" aria-label="Needs attention">
-      <div className="flex items-baseline justify-between max-sm:hidden">
-        <h2 className={h2}>{words.heading}</h2>
-        <Link href="/app/compliance" className={cn(linkClass, "text-sm")}>
-          Open Compliance
-        </Link>
-      </div>
+      <h2 className={cn(h2, "max-sm:hidden")}>{words.heading}</h2>
       <NeedsAttention
         items={items}
         total={attention.total}
         header="phone"
         footer={
-          attention.total > items.length ? (
-            <Link href="/app/compliance" className="flex h-12 items-center justify-between px-4 text-md font-medium text-brand-ink sm:hidden">
-              {words.seeAll}
-              <CaretRight size={20} className="shrink-0 text-ink-2" aria-hidden />
-            </Link>
-          ) : null
+          <Link href="/app/compliance" className="flex h-12 items-center justify-between px-4 text-md font-medium text-brand-ink sm:text-sm">
+            {attention.total > shown ? words.seeAll : "Open Compliance"}
+            <CaretRight size={20} className="shrink-0 text-ink-2" aria-hidden />
+          </Link>
         }
       />
     </section>
@@ -164,8 +160,8 @@ export function SearchLanding({
   /** Published suppliers; null when it could not be read. */
   published: number | null;
   attention: Attention | null;
-  /** The common searches' counts, resolved behind a `Suspense` boundary. */
-  counts: Promise<Record<string, number | null>>;
+  /** The common searches' counts, read by the page; a key that is missing or null draws a chip with no count. */
+  counts: Record<string, number | null>;
   /** The buyer's own saved searches, newest first; null when they could not be read. */
   saved: Promise<SavedSearchJson[] | null>;
 }) {
@@ -182,8 +178,10 @@ export function SearchLanding({
           {startMenus.map((m) => (
             <FilterMenuButton key={m.key} menu={m} hrefFor={discoverHref} icon={MENU_ICON[m.key]} />
           ))}
-          <span aria-hidden className="mx-1 h-5 w-px bg-line" />
-          <span className="text-sm text-ink-3">Hiding sanctioned suppliers</span>
+          {/* The same quiet toggle the results bar carries, at the bar's end, with the way to lift it. */}
+          <span className="sm:ml-auto">
+            <SanctionedStanding state={EMPTY_STATE} hrefFor={discoverHref} />
+          </span>
         </div>
         <CommonSearches counts={counts} />
       </section>
