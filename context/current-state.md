@@ -14,7 +14,7 @@ Launch-readiness closeout: deploy to VPS `109.104.153.228`, apply required
 migrations, run the 30-day zero P1/P2 Sentry incident window.
 
 ## In progress
-- **Six-screen critique, round two (8 Oct)** — the seven PRs of `.impeccable/handoff-critique-round-2.md` landed on `development` (#395–#401): Send talks when a field is empty, every in-shell door opens the composer beside its list, expired is amber, the One-Line Name Rule in both tables and the pane list, the record says its sources once, a glossary with `Define` and a shortcuts sheet, the minors. Re-critique 31/40 (`.impeccable/critique/` latest `app-app-app`), up from 27: P0 the full record page's Send RFQ still loses the search; P1 the pane list has no tick, keys or bulk bar; P1 a fifty-supplier send has no confirmation. Round one and the pre-September entries are in `archive/state-2026-oct.md`.
+- **Six-screen critique, round three (8 Oct)** — the seven PRs of `.impeccable/handoff-critique-round-3.md` landed on `development` (#403–#406, #408 carrying item 5, #410): Send RFQ keeps the search, the pane list is a ledger, a confirmation above five recipients, the landing leads with common searches, the help layer everywhere, Sam's list, the minors. Re-critique 33/40, up from 31 (`.impeccable/critique/` latest `app-app-app`): P2 Saved beside a record has no pager; P2 the 50-supplier place line repeats a district; P2 filters beside a record are a bare "+ 2". Earlier rounds: `archive/state-2026-oct.md`.
 - **Design-system rebuild** — spec `feature-specs/ds-rebuild-must-stay.md`.
   `design-rebuild` landed on `development` 18 Sep (`09ec96b`): tokens +
   `/dev/ds` gallery. Old pages are unstyled until rebuilt.
@@ -137,7 +137,7 @@ pre-existing founder work. Do not revert it during unrelated tasks. Rule 11
 (clean tree at spec start) still applies to new specs.
 
 ## Where history lives
-- `context/archive/state-2026-oct.md` — the first 8 Oct critique round, and the pre-September entries moved out of In progress.
+- `context/archive/state-2026-oct.md` — the first two 8 Oct critique rounds, and the pre-September entries moved out of In progress.
 - `context/archive/state-2026-jun-aug.md` — every closeout Jun–Aug 2026 (51 sections).
 - `context/archive/specs-shipped-2026.md` — every shipped spec entry.
 - `context/archive/progress-tracker-archive-2026-06-25.md` — older.
