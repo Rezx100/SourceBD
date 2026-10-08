@@ -92,6 +92,17 @@
     color: rgb(var(--ds-accent-on));
   }
 
+  /* A number is typed, never stepped: the spinners go (critique of 7 Oct 2026, item 3). */
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
   /* iOS zooms the page into any field set under 16px, and the app's fields
      are 15px (`text-base` inside the shell): the RFQ composer zoomed on every
      tap (founder's video, 30 Sep 2026). On a touch screen a field is at least

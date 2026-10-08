@@ -1,4 +1,4 @@
-// Inputs (`02 Components · 2`): label above at 13/500, help below at 12, the error
+// Inputs (`02 Components Â· 2`): label above at 13/500, help below at 12, the error
 // below with an icon at 13. Native elements throughout (input, checkbox, radio), so a
 // form posts and the keyboard works with no script. Phone sizes are `size="touch"`:
 // 48 tall at 16px in a field, 44+ rows for a tick, 52x32 for a switch.

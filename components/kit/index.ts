@@ -1,4 +1,4 @@
-// SourceBD v4 kit (B1): the primitives of Paper's `02 Components`. Every state is on a
+﻿// SourceBD v4 kit (B1): the primitives of Paper's `02 Components`. Every state is on a
 // board and in `/dev/ds`. Import from here; the old `components/ui/*` primitives go away in B11.
 
 export { Button, ButtonLink, IconButton } from "./button";
@@ -6,6 +6,7 @@ export { buttonClass, type ButtonKind, type ButtonSize } from "./button-class";
 export { fieldBox, fieldEdge, linkClass, menuClass, menuItemClass, popoverClass, ring, ringInset, selectItemClass, toastActionClass, tooltipClass } from "./classes";
 export { CertChip, Chip, Count, FactChip, FilterChip, StandingFilter, TypeChip, type CertState, type FactState } from "./chip";
 export { Checkbox, Field, Input, Radio, Switch } from "./fields";
+export { DateInput } from "./date-input";
 export { Select } from "./select";
 export { Segmented, Tab, TabLink, Tabs, TabsContent, TabsList, TabsMore } from "./tabs";
 export {

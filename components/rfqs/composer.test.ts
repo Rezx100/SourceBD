@@ -8,12 +8,18 @@ import { describe, it } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { RfqComposer } from "./composer";
 import {
   DEFAULT_QUESTIONS,
   afterPick,
   buildPayload,
+  fieldNote,
   fillTemplate,
+  footerStatus,
+  fromYouSaves,
+  needsFromYou,
   leftoverPlaceholders,
   listAnd,
   missingFields,
@@ -115,21 +121,78 @@ describe("what the composer draws", () => {
     assert.ok(out.includes("US$8.90 per piece") && out.includes("15 Oct 2026") && out.includes("United Kingdom"));
     assert.ok(out.includes("Suppliers see your target price."), "the form must not promise a hidden target");
     assert.ok(!/Share target price|Attach a tech pack/.test(out), "a switch or an upload the product cannot keep");
-    assert.ok(out.includes("Add a quantity and your website to send."));
+    // Nothing scolds before a send is tried: the footer says where it goes, in ink.
+    assert.ok(out.includes("Sends to 1 supplier: Aboni Knitwear Ltd."));
+    assert.ok(!out.includes("Add a quantity"));
     assert.ok(out.includes("Each supplier gets its own copy. No supplier sees who else you asked."));
     assert.ok(out.includes(`Questions · ${DEFAULT_QUESTIONS.length}`));
     assert.match(/<button\b[^>]*>(?:(?!<\/button>)[\s\S])*?Send RFQ/.exec(out)?.[0] ?? "", /\sdisabled=""/);
     assert.ok(out.includes("Ctrl+Enter"));
   });
 
-  it("the workspace's missing website is said in words, with the way to add it, and keeps Send waiting", () => {
+  it("a workspace missing its website gets From you's three fields in place, prefilled from the account, with Settings as the other way; Send waits", () => {
     const out = draw([target(1)], { prefill: { title: "Hoodies", quantity: "10000" } });
-    assert.ok(out.includes("website is missing, so it shows in [brackets]"));
-    assert.ok(out.includes('href="/app/settings/workspace"'));
+    assert.match(out, /<section aria-label="From you"/);
+    for (const label of ["Your name", "Company", "Website"]) assert.match(out, new RegExp(`<label for="[^"]+" class="[^"]*">${label}</label>`), label);
+    assert.match(out, /value="Rezaul Karim"/, "the name the account knows is prefilled");
+    assert.match(out, /value="Karim Trading"/);
+    assert.ok(out.includes('href="/app/settings/workspace"'), "Settings stays a way, not the only one");
+    assert.ok(!out.includes("so it shows in [brackets]"), "no caution note before a send is tried");
+    assert.match(/<button\b[^>]*>(?:(?!<\/button>)[\s\S])*?Send RFQ/.exec(out)?.[0] ?? "", /\sdisabled=""/, "the message still holds [website]");
     const full = draw([target(1)], { prefill: { title: "Hoodies", quantity: "10000" }, workspace: { ...WORKSPACE, website: "karim.example" } });
-    assert.ok(!full.includes("is missing, so it shows"));
+    assert.doesNotMatch(full, /<section aria-label="From you"/, "a complete workspace is not asked again");
     assert.ok(full.includes("Sends to 1 supplier: Aboni Knitwear Ltd."));
     assert.doesNotMatch(/<button\b[^>]*>(?:(?!<\/button>)[\s\S])*?Send RFQ/.exec(full)?.[0] ?? "", /\sdisabled=""/);
+    assert.equal(needsFromYou(WORKSPACE), true);
+    assert.equal(needsFromYou({ ...WORKSPACE, website: "https://karim.example" }), false);
+    assert.equal(needsFromYou(null), true);
+  });
+
+  // Critique of 7 Oct 2026, item 3: the composer went red before a send was tried whenever the
+  // workspace was incomplete, and a screen reader heard "Add a quantity to send." on arrival.
+  it("the footer is ink and silent on first paint whatever is empty, caution only after a send is tried, and announces only after an action", () => {
+    const words = { sends: "Sends to 1 supplier: Aboni Knitwear Ltd.", send: "Send RFQ" };
+    const base = { error: null, sanctioned: 0, missing: ["quantity", "website in the message"], attempted: false, draftSavedAt: null, words };
+    assert.deepEqual(footerStatus(base), { text: words.sends, tone: "ink", live: false });
+    assert.deepEqual(footerStatus({ ...base, attempted: true }), { text: "Add a quantity and your website to send.", tone: "caution", live: true });
+    assert.deepEqual(footerStatus({ ...base, attempted: true, missing: [] }), { text: words.sends, tone: "ink", live: false });
+    assert.deepEqual(footerStatus({ ...base, draftSavedAt: "8 Oct 2026, 10:00 UTC" }), { text: `Draft saved 8 Oct 2026, 10:00 UTC. ${words.sends}`, tone: "ink", live: true });
+    assert.deepEqual(footerStatus({ ...base, error: "Could not send." }), { text: "Could not send.", tone: "danger", live: true });
+    assert.equal(footerStatus({ ...base, sanctioned: 1 }).live, false, "the banner already announces a sanction");
+    assert.equal(fieldNote(false, ["quantity"], "quantity", "Add a quantity"), null);
+    assert.equal(fieldNote(true, ["quantity"], "quantity", "Add a quantity"), "Add a quantity");
+    assert.equal(fieldNote(true, [], "quantity", "Add a quantity"), null);
+    // Drawn: the words in ink, no inline message, and the live region present but empty.
+    const out = draw([target(1)], { prefill: { title: "", quantity: "" } });
+    assert.match(out, /<p class="text-ink-3">Sends to 1 supplier: Aboni Knitwear Ltd\.<\/p>/);
+    assert.match(out, /<p role="status" aria-live="polite" class="text-ink-3 sr-only"><\/p>/, "the live region speaks on mount");
+    assert.doesNotMatch(out, /text-danger|Add a product|Add a quantity/);
+  });
+
+  it("Ship by is the app's own date field in the 15 Nov 2026 form, never the browser's date box; Ship to is a list with another country typed", () => {
+    const out = draw([target(1)], { prefill: { shipBy: "2026-10-15", shipTo: "United Kingdom" } });
+    assert.doesNotMatch(out, /type="date"/);
+    assert.match(out, /placeholder="15 Nov 2026"/);
+    assert.match(out, /<input [^>]*value="15 Oct 2026"/);
+    // Radix draws only the chosen row on the server; the list itself opens live.
+    assert.ok(out.includes("United Kingdom"));
+    assert.doesNotMatch(out, /<datalist/);
+    // A country off the list is shown typed.
+    const other = draw([target(1)], { prefill: { shipTo: "Norway" } });
+    assert.match(other, /<input [^>]*aria-label="Country"[^>]*value="Norway"/);
+    // No spinners on the number fields: the one stylesheet turns them off.
+    assert.match(readFileSync(path.join(process.cwd(), "app", "ds.css"), "utf8"), /input\[type="number"\] \{\s*-moz-appearance: textfield;\s*appearance: textfield;/);
+  });
+
+  it("what was typed under From you is saved to the workspace on send, only what changed, the website with its scheme", () => {
+    const ws = { ...WORKSPACE, website: null };
+    assert.deepEqual(fromYouSaves({ name: "Rezaul Karim", company: "Karim Trading", website: "" }, ws), [], "nothing changed, nothing saved");
+    assert.deepEqual(fromYouSaves({ name: "Rezaul Karim", company: "Karim Trading", website: "karim.example" }, ws), [{ action: "update_workspace", website: "https://karim.example" }]);
+    assert.deepEqual(fromYouSaves({ name: "R. Karim", company: "Karim Trading Ltd", website: "https://karim.example" }, ws), [
+      { action: "update_workspace", company_name: "Karim Trading Ltd", website: "https://karim.example" },
+      { action: "update_profile", display_name: "R. Karim" },
+    ]);
+    assert.deepEqual(fromYouSaves({ name: "", company: "", website: "" }, null), [], "an empty field never blanks the workspace");
   });
 
   it("fifty suppliers are a summary with Review all, not fifty rows; five or fewer are named", () => {
