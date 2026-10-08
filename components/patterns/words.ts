@@ -130,7 +130,7 @@ const lineWords = ({ c, w }: Ranked) => `${c.scheme} ${w.label.charAt(0).toLower
  * the whole sentence about its worst certificate, which is the mark's name on hover and to a
  * screen reader (`context/logos.lock.md` section 1: a mark never stands without its name).
  */
-export type CertBody = { code: string; scheme: string; words: string };
+export type CertBody = { code: string; scheme: string; words: string; state: CertLine["state"] };
 
 /**
  * The certificates of a row as a compact table cell (founder, 6 Oct 2026: "it must be compacted
@@ -147,7 +147,7 @@ export function certSummary(certs: readonly CertInput[], today: Date): CertSumma
   const bodies = new Map<string, CertBody>();
   for (const r of ranked) {
     const code = (r.c.markCode ?? r.c.scheme).toUpperCase();
-    if (!bodies.has(code)) bodies.set(code, { code, scheme: r.c.scheme, words: lineWords(r) });
+    if (!bodies.has(code)) bodies.set(code, { code, scheme: r.c.scheme, words: lineWords(r), state: r.w.state });
   }
   const [first, ...others] = [...bodies.values()];
   const more = ranked.length - 1;
