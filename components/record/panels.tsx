@@ -353,7 +353,7 @@ export function SourcesPanel({ model, today, level: H = "h3" }: { model: Supplie
     <section aria-label="Sources" className="flex flex-col rounded-md border border-line [container-type:inline-size]">
       <header className="flex min-h-12 flex-wrap items-center justify-between gap-x-4 border-b border-line px-4 py-2">
         <H className="text-base font-semibold text-ink">Sources · {model.sources.length}</H>
-        <p className="text-xs text-ink-3">{model.sourcesCaption}</p>
+        <p className="max-w-[72ch] text-xs text-ink-3">{model.sourcesCaption}</p>
       </header>
       {model.sources.length === 0 ? (
         <p className="px-4 py-3 text-base text-ink-2">No register has filed a record for this company.</p>

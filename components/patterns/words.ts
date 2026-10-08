@@ -108,11 +108,15 @@ export function certLine(certs: readonly CertInput[], today: Date): CertLine | n
   return { state: ranked[0]!.w.state, text: lineWords(ranked[0]!), more: ranked.length - 1 };
 }
 
-type CertInput = { scheme: string; expiresOn: string | null; delistedOn?: string | null; markCode?: string };
-type Ranked = { c: CertInput; w: { state: CertLine["state"]; label: string }; t: number };
+export type CertInput = { scheme: string; expiresOn: string | null; delistedOn?: string | null; markCode?: string };
+type Ranked<T extends CertInput = CertInput> = { c: T; w: { state: CertLine["state"]; label: string }; t: number };
 
-/** Worst first: expired (the latest lapse leading), expiring (the soonest), valid, then none dated. */
-function rankCerts(certs: readonly CertInput[], today: Date): Ranked[] {
+/**
+ * Worst first: expired (the latest lapse leading), expiring (the soonest), valid, then none dated.
+ * The one order every list, cell, strip and "Needs a look" uses, so the worst lapse leads everywhere
+ * (critique of 8 Oct 2026, item 5: the strip and the rows swapped order between the pane and Saved).
+ */
+export function rankCerts<T extends CertInput>(certs: readonly T[], today: Date): Ranked<T>[] {
   return certs
     .map((c) => ({ c, w: certWords(c.expiresOn, today, c.delistedOn), t: c.expiresOn ? Date.parse(c.expiresOn) : 0 }))
     .sort((a, b) => CERT_ORDER[a.w.state] - CERT_ORDER[b.w.state] || (a.w.state === "expired" ? b.t - a.t : a.t - b.t) || a.c.scheme.localeCompare(b.c.scheme));

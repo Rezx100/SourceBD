@@ -5,7 +5,7 @@
 // carries no figure the cell says so, and says nothing about a date it does not hold. Pure.
 
 import type { CertRowData } from "@/components/patterns";
-import { ABSENT, SITE_WORDS, certWords, isApproximate, type SiteKind } from "@/components/patterns/words";
+import { ABSENT, SITE_WORDS, rankCerts, isApproximate, type SiteKind } from "@/components/patterns/words";
 import { certCheckLine, certRowId, formatDay } from "@/lib/dashboard/facts";
 import type { CertState } from "@/components/kit";
 import type { FactRow, LocationRow, ProductSheetModel, SitePin, SupplierSheetModel } from "@/lib/dashboard/models";
@@ -88,6 +88,8 @@ export type SummaryCell = {
   tone?: "caution" | "sanction";
   /** With `caution`: the date has passed (the XCircle), not only approaches (the clock). */
   lapsed?: boolean;
+  /** The value opens something: the Sources cell is a link to the Sources tab (the aside no longer repeats the list). */
+  href?: string;
   sub: string | null;
 };
 
@@ -115,9 +117,10 @@ export function summaryCells(model: SupplierSheetModel, today: Date): SummaryCel
     ? { key: "sanctions", label: "Sanctions", value: `On the ${list}`, tone: "sanction", sub: `From the ${list}${hit?.screenedOn ? ` · checked ${hit.screenedOn}` : ""}` }
     : notListed(model.sanctionsReadAt, today);
 
-  const states = model.certs.map((c) => ({ c, w: certWords(c.expiresOn, today) }));
-  const expired = states.filter((s) => s.w.state === "expired");
-  const expiring = states.filter((s) => s.w.state === "expiring");
+  // Ranked worst first, so the strip names the same first scheme "Needs a look" and every list lead with.
+  const ranked = rankCerts(model.certs, today);
+  const expired = ranked.filter((s) => s.w.state === "expired");
+  const expiring = ranked.filter((s) => s.w.state === "expiring");
   const problems = expired.length ? expired : expiring;
   const certificates: SummaryCell =
     model.certs.length === 0
@@ -176,10 +179,11 @@ export function certRows(model: SupplierSheetModel, now: Date = new Date()): Cer
   });
 }
 
-/** Certificates a buyer should look at first: expired, then expiring. A valid or undated one is on the Certificates tab. */
+/** Certificates a buyer should look at first: expired (the latest lapse leading), then expiring (the soonest), in `rankCerts`'s one order. A valid or undated one is on the Certificates tab. */
 export function needsLook(rows: CertRowData[], today: Date): CertRowData[] {
-  const state = (r: CertRowData) => certWords(r.expiresOn, today, r.delistedOn).state;
-  return [...rows.filter((r) => state(r) === "expired"), ...rows.filter((r) => state(r) === "expiring")];
+  return rankCerts(rows, today)
+    .filter((r) => r.w.state === "expired" || r.w.state === "expiring")
+    .map((r) => r.c);
 }
 
 /** The facts the Overview lists: the record's own, in its order, under the words Paper uses. */
