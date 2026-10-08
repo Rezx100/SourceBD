@@ -375,7 +375,8 @@ describe("the bar over the results", () => {
 
   it("beside a pane the bar is the title with Filters and Sort", () => {
     const narrow = plain(h(PaneListToolbar, { state: { ...state, cert: [{ kind: "wrap" as const, state: "valid" as const }] }, title: "knit · 4,645 suppliers", hrefFor, filtersHref: "#" }));
-    assert.ok(narrow.includes("Filters · 2 on") && narrow.includes("Sort: most sources"));
+    // Beside a pane the filters are the "+" icon with the count, named in words (keys.test.ts covers the bar).
+    assert.ok(narrow.includes('aria-label="Add filter · 2 on"') && narrow.includes("Sort: most sources"));
   });
 
   it("a phone's bar is a 48-tall field with its ×, the count, and two 44-tall halves", () => {

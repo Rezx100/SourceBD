@@ -82,7 +82,8 @@ export function ResultsTable({
             </th>
           </tr>
         </thead>
-        <tbody onKeyDown={onRowKey}>
+        {/* With a record open beside the list the arrows change it (`data-follow`); without one they move focus. */}
+        <tbody onKeyDown={onRowKey} data-follow={currentSlug != null ? "record" : undefined}>
           {rows.map((r) => {
             const selectable = sel.interactive && Boolean(r.supplierId);
             const selected = selectable && sel.isSelected(r.supplierId!);
@@ -137,10 +138,21 @@ export function ResultsTable({
                 </Td>
                 <td className="w-10 border-b border-line p-0 text-center align-middle">
                   <Menu align="end" trigger={<IconButton icon={DotsThree} label={`More actions for ${r.name}`} kind="quiet" />}>
-                    {r.supplierId ? <MenuItem onSelect={() => void save(r.supplierId!)}>Save</MenuItem> : null}
-                    {r.supplierId && !r.sanctioned ? <MenuItem href={`/app/rfqs/new?supplier=${encodeURIComponent(r.supplierId)}`}>Send RFQ</MenuItem> : null}
+                    {r.supplierId ? (
+                      <MenuItem hint="S" onSelect={() => void save(r.supplierId!)}>
+                        Save
+                      </MenuItem>
+                    ) : null}
+                    {r.supplierId && !r.sanctioned ? (
+                      <MenuItem hint="R" href={`/app/rfqs/new?supplier=${encodeURIComponent(r.supplierId)}`}>
+                        Send RFQ
+                      </MenuItem>
+                    ) : null}
                     <MenuItem href={r.pageHref}>Open full page</MenuItem>
                   </Menu>
+                  {/* The same two actions for the keyboard (s, r): drawn nowhere, out of the tab order, driven by `onRowKey`. */}
+                  {r.supplierId ? <button type="button" data-action="save" tabIndex={-1} aria-hidden className="hidden" onClick={() => void save(r.supplierId!)} /> : null}
+                  {r.supplierId && !r.sanctioned ? <Link href={`/app/rfqs/new?supplier=${encodeURIComponent(r.supplierId)}`} prefetch={false} data-action="rfq" tabIndex={-1} aria-hidden className="hidden" /> : null}
                 </td>
               </Tr>
             );
