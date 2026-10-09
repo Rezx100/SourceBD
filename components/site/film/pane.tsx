@@ -55,7 +55,7 @@ export function ScreenStage({ caption, children, className, ...rest }: { caption
   return (
     <figure className={cn("flex flex-col gap-3", className)} {...rest}>
       <Stage className="p-8 max-sm:p-4">
-        <div className="flex flex-col gap-6 [perspective:1800px] film-full:relative film-full:aspect-[11/5]">{children}</div>
+        <div className="flex flex-col gap-6 film-full:relative film-full:aspect-[11/5]">{children}</div>
       </Stage>
       <figcaption className="font-mono text-xs text-ink-3">{caption}</figcaption>
     </figure>
@@ -74,7 +74,7 @@ export function Screen({ on, cursor, focus, zoom, children, className }: { on?: 
   const at = cursor ? ({ left: `${cursor.x}%`, top: `${cursor.y}%` } as CSSProperties) : undefined;
   const look = { "--focus": `${focus.x}% ${focus.y}%`, "--fx": zoom.x / 100, "--fy": zoom.y / 100 } as CSSProperties;
   return (
-    <div data-screen data-on={on ? "" : undefined} className={cn("stage-screen", className)}>
+    <div data-screen data-on={on ? "" : undefined} className={cn("stage-screen [perspective:1800px]", className)}>
       <Pane data-window data-ground="day" className="stage-window overflow-hidden p-0 max-sm:p-0">
         <div className="stage-zoom max-lg:aspect-[3/4] max-lg:overflow-hidden" style={look}>
           <div className="stage-zoom-in relative max-lg:size-full max-lg:[&>img]:size-full max-lg:[&>img]:object-cover">

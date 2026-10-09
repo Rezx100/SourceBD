@@ -67,7 +67,7 @@ function SourcingStage() {
       <ScreenStage caption={STAGE_CAPTION} data-order-screens="">
         {SCREENS.map((s, i) => (
           <Screen key={s.src} on={i === 0} cursor={s.cursor} focus={s.focus} zoom={s.zoom}>
-            <Image src={s.src} alt={s.alt} width={1440} height={900} sizes="(min-width: 1024px) 1520px, 100vw" className="block h-auto w-full" />
+            <Image src={s.src} alt={s.alt} width={1440} height={900} sizes="(min-width: 1024px) 1320px, 100vw" className="block h-auto w-full" />
           </Screen>
         ))}
       </ScreenStage>
@@ -89,7 +89,7 @@ function ComplianceStage() {
       </ol>
       <ScreenStage caption={STAGE_CAPTION}>
         <Screen on focus={COMPLIANCE_FOCUS} zoom={COMPLIANCE_ZOOM}>
-          <Image src={COMPLIANCE_SCREEN.src} alt={COMPLIANCE_SCREEN.alt} width={1440} height={900} sizes="(min-width: 1024px) 1520px, 100vw" className="block h-auto w-full" />
+          <Image src={COMPLIANCE_SCREEN.src} alt={COMPLIANCE_SCREEN.alt} width={1440} height={900} sizes="(min-width: 1024px) 1320px, 100vw" className="block h-auto w-full" />
         </Screen>
       </ScreenStage>
     </div>
@@ -115,11 +115,11 @@ export function OrderScene() {
   );
 }
 
-/** A result as the search draws it. Real records, as the app's own screens show them. */
+/** A result as the search draws it. Real records, with only the marks the app's own screens show for them. */
 const RESULTS: readonly { name: string; line: string; marks: string[]; workers: string }[] = [
   { name: NAME, line: LINE_FULL, marks: ["BGMEA", "GOTS", "RSC"], workers: "4,200" },
-  { name: "Aboni Knitwear Ltd", line: "Factory · Savar, Dhaka", marks: ["BKMEA", "WRAP"], workers: "3,166" },
-  { name: "S M Knitwears Limited", line: "Factory · Gazipur", marks: ["BGMEA", "GOTS"], workers: "4,820" },
+  { name: "Aboni Knitwear Ltd", line: "Factory · Savar, Dhaka", marks: ["WRAP"], workers: "3,166" },
+  { name: "S M Knitwears Limited", line: "Factory · Gazipur", marks: ["GOTS"], workers: "4,820" },
 ];
 /** One fact, both of its sources and the day each was read. */
 const WORKERS: readonly [source: string, tier: string, value: string, read: string][] = [
@@ -129,7 +129,12 @@ const WORKERS: readonly [source: string, tier: string, value: string, read: stri
 
 /** What another directory would put on the row, struck out: the app never draws it. */
 function Never({ children }: { children: ReactNode }) {
-  return <span className="inline-flex shrink-0 items-center gap-1.5 rounded-sm bg-sunken px-2 py-1 text-xs text-ink-3 line-through decoration-ink-2">{children}</span>;
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-sm bg-sunken px-2 py-1 text-xs text-ink-3 line-through decoration-ink-2">
+      <span className="sr-only">Never shown on SourceBD: </span>
+      {children}
+    </span>
+  );
 }
 
 /** Each promise as the app keeps it, one window each; on the full tier the window of the promise the scroll is on shows. */

@@ -210,7 +210,7 @@ describe("shortlist, ask, compare: the real product staged", () => {
     assert.equal((scene.match(/class="stage-zoom /g) ?? []).length, SCREENS.length + 1);
     for (const x of SCREENS) for (const at of [x.focus, x.zoom]) assert.ok(at.x >= 0 && at.x <= 100 && at.y >= 0 && at.y <= 100, x.step);
     assert.match(scene, /--fx:0.85;--fy:1/, "the composer's window looks at its corner, where Send RFQ is pressed");
-    assert.match(scene, /sizes="\(min-width: 1024px\) 1520px, 100vw"/, "the screens are asked for at the size they are drawn");
+    assert.match(scene, /sizes="\(min-width: 1024px\) 1320px, 100vw"/, "the screens are asked for at the size they are drawn");
     assert.doesNotMatch(scene, /<pattern|feGaussianBlur/, "the drawn atmosphere is gone");
   });
 
@@ -249,7 +249,8 @@ describe("three things we never do", () => {
     assert.equal((scene.match(/data-promise-view="true"/g) ?? []).length, 3);
     assert.equal((scene.match(/data-promise-view="true" data-on=""/g) ?? []).length, 1, "the first shows from the start");
     assert.match(scene, /line-through[^"]*">.*?4\.6 · score 87/, "the score is struck out, never shown as ours");
-    assert.match(scene, /line-through[^"]*">Sponsored</);
+    assert.match(scene, /line-through[^"]*">.*?Sponsored</);
+    assert.equal((text(scene).match(/Never shown on SourceBD: /g) ?? []).length, 2, "a screen reader hears that the struck-out score and tag are never ours");
     assert.match(text(scene), /2,060 workers in 2 buildings RSC read 24 Jul 2026/);
     assert.match(scene, /<canvas data-field/);
   });
