@@ -6,6 +6,7 @@
 import { startChapters } from "./chapters";
 import { DISTRICTS, createCity, handoverFrame, toLocal, type BdData, type City, type V3 } from "./city";
 import { all, createDirector, span } from "./director";
+import { startFields } from "./field";
 import { blendFrame, createPlanet, defaultFrame, type Cell, type Frame, type Mask, type Planet } from "./planet";
 import type { Tier } from "./tier";
 
@@ -211,14 +212,17 @@ export function startFilm(root: HTMLElement, tier: Tier): () => void {
     if (at.city !== cityP) showCity(at.city);
   };
 
-  // The chapters that hold on the full tier (engine/chapters.ts).
+  // The chapters that hold on the full tier (engine/chapters.ts), and the moving grounds under the product's pieces
+  // (engine/field.ts), on both tiers that draw.
   const chapters = startChapters(root, tier);
+  const fields = startFields(root);
   const director = createDirector(root, (name, p) => {
     if (name === "opening") show(p);
     if (name === closeCue && tier === "full") ownPlanet(p >= 1 ? "close" : "opening");
     // On a phone the planet holds while it turns and the rest is stacked: its own section is its clock.
     if (name === "planet" && tier === "lite") planet?.setProgress(p);
     chapters.onScene(name, p);
+    fields.progress(name, p);
   });
 
   function stop() {
@@ -226,6 +230,7 @@ export function startFilm(root: HTMLElement, tier: Tier): () => void {
     dead = true;
     director.destroy();
     chapters.stop();
+    fields.stop();
     planet?.destroy();
     city?.destroy();
     // Everything written on the page is put back, so a page the film has left is the stacked page again.

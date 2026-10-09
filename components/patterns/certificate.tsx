@@ -5,10 +5,8 @@
 
 import { FileText } from "@phosphor-icons/react/dist/ssr";
 import { CertChip, Unpublished } from "@/components/kit";
-import { define } from "@/lib/dashboard/glossary";
 import { cn } from "@/lib/utils";
-import { SourceMark, hasSourceMark } from "./source-mark";
-import { ABSENT, CERT_ORDER, certHeading, certWords, type CertSummary } from "./words";
+import { ABSENT, CERT_ORDER, certHeading, certWords } from "./words";
 
 export type CertRowData = {
   scheme: string;
@@ -34,58 +32,6 @@ export function CertStateChip({ expiresOn, today, className }: { expiresOn: stri
     <CertChip state={state} className={className}>
       {label}
     </CertChip>
-  );
-}
-
-const PILL: Record<CertSummary["state"], string> = {
-  expired: "bg-cert-expired-bg text-cert-expired-fg",
-  expiring: "bg-cert-expiring-bg text-cert-expiring-fg",
-  valid: "bg-sunken text-ink-2",
-  none: "border border-dashed border-line-strong text-ink-3",
-};
-
-/**
- * The one way a list or table says what a supplier's certificates are doing (the critique of
- * 7 Oct 2026: one certificate was drawn four ways with three date forms). Results, the pane list,
- * the phone list and Saved all call this: a 24px mark, then the state as a 6px pill in the fewest
- * words (`certShort`), then the other bodies' marks and "+N" for the rest. The full date lives in
- * the cell's title and its sr-only sentence, never in the pill. A body with no approved mark is
- * its name (the first) or part of the count (the others).
- */
-export function CertSummaryCell({ cert }: { cert: CertSummary }) {
-  const others = cert.others.filter((b) => hasSourceMark(b.code)).slice(0, 2);
-  const rest = cert.total - 1 - others.length;
-  // A screen reader hears every body the marks show, each with its state, not the marks.
-  const said = cert.total === 1 ? cert.first.words : `${cert.total} certificates: ${[cert.first, ...cert.others].map((b) => b.words).join("; ")}`;
-  return (
-    <span className="flex flex-wrap items-center gap-x-2 gap-y-1" title={cert.words}>
-      <span className="sr-only">{said}</span>
-      <span aria-hidden className="inline-flex items-center gap-1.5">
-        {hasSourceMark(cert.first.code) ? (
-          <SourceMark source={cert.first.code} />
-        ) : (
-          <span className="inline-flex h-6 items-center rounded-md border border-line px-1.5 text-xs font-medium text-ink-2">{cert.first.scheme}</span>
-        )}
-        <span title={cert.first.words} className={cn("inline-flex whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-medium", PILL[cert.state])}>
-          {cert.short}
-        </span>
-      </span>
-      {others.length || rest ? (
-        <span aria-hidden className="inline-flex items-center gap-1">
-          {others.map((b) => (
-            <span key={b.code} title={b.words}>
-              <SourceMark source={b.code} />
-            </span>
-          ))}
-          {rest ? (
-            // Inside the cell's aria-hidden group (its sr-only sentence already counts them), so a title, not a focusable term.
-            <span title={define("more") ?? undefined} className="pl-0.5 text-xs font-medium text-ink-3">
-              +{rest}
-            </span>
-          ) : null}
-        </span>
-      ) : null}
-    </span>
   );
 }
 

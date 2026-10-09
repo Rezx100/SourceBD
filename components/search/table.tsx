@@ -160,7 +160,7 @@ export function ResultsTable({
                 {/* The 24px marks in a 40 row: 6 above and below, not the cell's 8. */}
                 <Td className="py-1.5">
                   {r.certCell ? (
-                    <CertSummaryCell cert={r.certCell} />
+                    <CertSummaryCell cert={r.certCell} reveal />
                   ) : (
                     <Unpublished>{ABSENT.certificates}</Unpublished>
                   )}

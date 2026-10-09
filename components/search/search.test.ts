@@ -117,11 +117,11 @@ describe("the certificate line of a row", () => {
     assert.deepEqual(certSummary(ABONI_CERTS, TODAY), {
       state: "expired",
       short: "Expired 29 Sep",
-      first: { code: "WRAP", scheme: "WRAP", words: "WRAP expired 29 Sep 2026" },
+      first: { code: "WRAP", scheme: "WRAP", words: "WRAP expired 29 Sep 2026", state: "expired" },
       others: [
-        { code: "GOTS", scheme: "GOTS", words: "GOTS expires in 28 days · 31 Oct 2026" },
-        { code: "OEKO_TEX", scheme: "OEKO-TEX Standard 100", words: "OEKO-TEX Standard 100 valid until 1 May 2027" },
-        { code: "SA8000", scheme: "SA8000", words: "SA8000 no expiry on file" },
+        { code: "GOTS", scheme: "GOTS", words: "GOTS expires in 28 days · 31 Oct 2026", state: "expiring" },
+        { code: "OEKO_TEX", scheme: "OEKO-TEX Standard 100", words: "OEKO-TEX Standard 100 valid until 1 May 2027", state: "valid" },
+        { code: "SA8000", scheme: "SA8000", words: "SA8000 no expiry on file", state: "none" },
       ],
       total: 4,
       words: "WRAP expired 29 Sep 2026 · 3 more certificates",
@@ -238,28 +238,28 @@ describe("the results table", () => {
     assert.ok(!/\btruncate\b|text-ellipsis|line-clamp/.test(out));
   });
 
-  it("certificates are the bodies' marks and the worst one's state in a few words; 'No certificates found' is its own line", () => {
-    // Founder, 6 Oct 2026: "the certificate section has a long red line then gray line, it must be
-    // compacted and the entity logos must be visible here."
-    const cells = [...out.matchAll(/<td class="([^"]*)">(<span class="flex flex-wrap[\s\S]*?)<\/td>/g)];
+  it("certificates are the bodies' marks only; a mark with a problem lights up and the words open on hover or tap", () => {
+    // Founder, 9 Oct 2026: the pill beside the first mark read as a stray warning. Only the icon
+    // lights up; a hover on a desktop or a tap on a phone reveals the words.
+    const cells = [...out.matchAll(/<td class="([^"]*)">(<button type="button" aria-haspopup="dialog"[\s\S]*?)<\/td>/g)];
     assert.equal(cells.length, 2, "one compact cell per row that has a certificate");
     const [aboni, sm] = cells.map((c) => c[2]!);
-    // The worst one leads: its mark, then its state as a pill. Then every other body with an
-    // approved mark, once; SA8000 has none (`context/logos.lock.md`: no row, no render), so it is counted.
+    // The worst one leads, then every other body with an approved mark, once; SA8000 has none
+    // (`context/logos.lock.md`: no row, no render), so it is counted.
     assert.deepEqual([...aboni!.matchAll(/src="\/icons\/sources\/cert\/([a-z-]+)\.png"/g)].map((m) => m[1]), ["wrap", "gots", "oeko-tex"]);
-    assert.match(aboni!, /wrap\.png"[^>]*\/><\/span><span title="[^"]+" class="[^"]*\bbg-cert-expired-bg text-cert-expired-fg\b[^"]*">Expired 29 Sep<\/span>/);
     assert.match(aboni!, />\+1<\/span>/);
     assert.ok(!aboni!.includes(">SA8000<"), "a body with no approved mark is drawn");
-    // No mark stands without its name (`logos.lock.md` section 1): the cell's title is the line the
-    // narrow list says, each further mark is titled with its own body and state, and a screen
-    // reader hears every body as one sentence instead of the marks.
-    assert.match(aboni!, /^<span class="[^"]*" title="WRAP expired 29 Sep 2026 · 3 more certificates"><span class="sr-only">4 certificates: WRAP expired 29 Sep 2026; GOTS expires in 28 days · 31 Oct 2026; OEKO-TEX Standard 100 valid until 1 May 2027; SA8000 no expiry on file<\/span><span aria-hidden="true"/);
-    assert.match(aboni!, /<span title="GOTS expires in 28 days · 31 Oct 2026"><span [^>]*><img src="\/icons\/sources\/cert\/gots\.png"/);
-    assert.match(aboni!, /<span title="OEKO-TEX Standard 100 valid until 1 May 2027"><span [^>]*><img src="\/icons\/sources\/cert\/oeko-tex\.png"/);
+    // No pill: the short words are gone from the row.
+    assert.doesNotMatch(aboni!, /Expired 29 Sep</);
+    assert.doesNotMatch(sm!, /Valid to Jan 2027</);
+    // WRAP has lapsed and GOTS is lapsing: both marks light up, each with its own glyph; OEKO-TEX and the valid WRAP stay quiet.
+    assert.deepEqual([...aboni!.matchAll(/data-lit="(\w+)"/g)].map((m) => m[1]), ["expired", "expiring"]);
+    assert.doesNotMatch(sm!, /data-lit=/);
+    // The marks are one button that opens the details (a tap or a key; a mouse opens it on hover).
+    assert.match(aboni!, /<button type="button" aria-haspopup="dialog" aria-expanded="false"/);
+    // No mark stands without its name (`logos.lock.md` section 1): a screen reader hears every body as one sentence.
+    assert.match(aboni!, /<span class="sr-only">4 certificates: WRAP expired 29 Sep 2026; GOTS expires in 28 days · 31 Oct 2026; OEKO-TEX Standard 100 valid until 1 May 2027; SA8000 no expiry on file<\/span><span aria-hidden="true"/);
     assert.match(sm!, /<span class="sr-only">WRAP valid until 8 Jan 2027<\/span>/, "one certificate is its own sentence");
-    assert.equal((aboni!.match(/aria-hidden="true" class="inline-flex/g) ?? []).length, 2, "the marks and the pill are read twice");
-    // One valid certificate: its mark and a quiet pill, nothing after it.
-    assert.match(sm!, /wrap\.png"[^>]*\/><\/span><span title="[^"]+" class="[^"]*\bbg-sunken text-ink-2\b[^"]*">Valid to Jan 2027<\/span><\/span><\/span>$/);
     // The marks are 24 tall in a 40 row: the cell gives up 2px of padding above and below.
     assert.ok(cells.every((c) => c[1]!.split(" ").includes("py-1.5")));
     // Nothing on file is a dash in the cell, the words behind it for a screen reader.
@@ -907,7 +907,7 @@ describe("the minors, round 3 (critique of 8 Oct 2026, round 3, item 7)", () => 
   it("the pane list's count says what it counts, and a certificate pill carries its full sentence", () => {
     const out = plain(h(PaneRows, { rows, currentSlug: null }));
     assert.match(out, /title="Registers and certifiers that filed on this company; the record also counts brand lists"[^>]*>11 sources/);
-    assert.match(src("components", "patterns", "certificate.tsx"), /<span title=\{cert\.first\.words\} className=\{cn\("inline-flex whitespace-nowrap rounded-md/);
+    assert.match(src("components", "patterns", "cert-summary.tsx"), /\{b\.words\}/, "the popover carries every body's full sentence");
     assert.match(src("lib", "dashboard", "build-models.ts"), /276 of 10,278 published suppliers had a source outside tiers 1-3/);
   });
 
