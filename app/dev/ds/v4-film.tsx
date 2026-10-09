@@ -4,7 +4,6 @@
 
 import type { ReactNode } from "react";
 import { OVERLOCK_CAPTION } from "@/components/site/film/chapters";
-import { Atmosphere } from "@/components/site/film/closing";
 import { Overlock } from "@/components/site/film/flats";
 import { Pane, Screen, ScreenStage, SearchField } from "@/components/site/film/pane";
 import { cssVarName, darkColors, filmColors, fontSize, splitColorName, v4Colors } from "@/lib/design/tokens";
@@ -118,9 +117,9 @@ export function V4Film() {
         </figure>
       </Board>
 
-      <Board title="ScreenStage" note="A real screen on a stage: an atmosphere behind, a window with no chrome, a drawn cursor that presses. The app has no dark theme, so the screen stays light in both.">
-        <ScreenStage atmosphere={<Atmosphere />} caption="Real v4 screen · Saved suppliers, 3 picked for one RFQ · the app is light in both themes">
-          <Screen on cursor={{ x: 89.7, y: 24.8 }}>
+      <Board title="ScreenStage" note="A real screen on the night stage with its moving field: a window with no chrome that shows the part the step is about, larger, and a drawn cursor that presses. The app has no dark theme, so the screen stays light in both.">
+        <ScreenStage caption="Real v4 screen · Saved suppliers, 3 picked for one RFQ · the app is light in both themes">
+          <Screen on cursor={{ x: 89.7, y: 24.8 }} focus={{ x: 62, y: 38 }} zoom={{ x: 85, y: 39 }}>
             {/* eslint-disable-next-line @next/next/no-img-element -- a gallery sample of the staged screen */}
             <img src="/site/saved-selected.png" alt="" className="block h-auto w-full" />
           </Screen>

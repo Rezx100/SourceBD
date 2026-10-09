@@ -400,6 +400,25 @@
     transform: scale(calc(1.6 - clamp(0, calc((var(--cursor, 1) - 0.9) * 10), 1) * 0.6));
   }
 
+  /* From 1024px a window is wide and low and shows the part its step names (--fx, --fy, 0 to 1) a quarter larger
+     than the app draws it, so its words read sharply: the screen is laid out at 1.25 times the window's width and
+     moved so that part is in view (container units: the window is the container). */
+  @media (min-width: 1024px) {
+    .stage-zoom {
+      container-type: size;
+      position: relative;
+      aspect-ratio: 11 / 5;
+      overflow: hidden;
+    }
+
+    .stage-zoom-in {
+      position: absolute;
+      width: calc(var(--zoom, 1.25) * 100cqw);
+      left: calc((100cqw - var(--zoom, 1.25) * 100cqw) * var(--fx, 0.5));
+      top: calc((100cqh - var(--zoom, 1.25) * 100cqw * 0.625) * var(--fy, 0.5));
+    }
+  }
+
   /* The cropped screen on a narrow window looks at the part its step names (--focus, set by the scene). */
   @media (max-width: 1023px) {
     .stage-window img {

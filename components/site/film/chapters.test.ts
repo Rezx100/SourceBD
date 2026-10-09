@@ -12,7 +12,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { DAYS, DIFFER, LIST_LINE, OVERLOCK_CAPTION, PROOF, ProofScene, RECEIPTS, SourcesScene, WATCHED, WatchScene } from "./chapters";
-import { Atmosphere, COMPLIANCE_SCREEN, CloseScene, LADDER_NOTE, OrderScene, PROMISES, PromisesScene, SCREENS, STAGE_CAPTION, TIERS, TrustScene, liveFigures } from "./closing";
+import { COMPLIANCE_SCREEN, CloseScene, LADDER_NOTE, OrderScene, PROMISES, PROMISE_VIEWS, PromisesScene, SCREENS, STAGE_CAPTION, TIERS, TrustScene, liveFigures } from "./closing";
 import { BAND, ORDER, PROMISES as STEPS, PROOF as PROOF_STEPS, SEAM_END, SOURCES as SEAM, WATCH, holds, orderAt, proofAt, sourcesAt, stepAt, threadIn, watchAt } from "./engine/chapters";
 import { CareLabel, Overlock, TAGS, threadPath } from "./flats";
 import { SOURCES, SOURCE_DATES } from "./record";
@@ -170,7 +170,6 @@ describe("the watch", () => {
 describe("shortlist, ask, compare: the real product staged", () => {
   const scene = draw(createElement(OrderScene));
   const t = text(scene);
-  const atmosphere = draw(createElement(Atmosphere));
 
   it("today's words, both roles' tabs in the page, the three steps in order with the first on, and the screens with their alt text", () => {
     assert.match(scene, /^<section id="ch-05" data-scene="order" class="/);
@@ -206,9 +205,13 @@ describe("shortlist, ask, compare: the real product staged", () => {
     assert.equal((scene.match(/data-order-screens=""/g) ?? []).length, 1, "the engine swaps the sourcing stage's screens only");
   });
 
-  it("the atmosphere is our own drawing: no picture, no text, no colour typed", () => {
-    assert.match(atmosphere, /^<svg aria-hidden="true"/);
-    assert.doesNotMatch(atmosphere, /<text|<image|href="http|#[0-9a-fA-F]{3,8}\b|rgb\(|white|black/);
+  it("the screens stand on the night stage with its field, each window looking at its step's part, large and sharp", () => {
+    assert.equal((scene.match(/<canvas data-field/g) ?? []).length, 2, "one stage per role");
+    assert.equal((scene.match(/class="stage-zoom /g) ?? []).length, SCREENS.length + 1);
+    for (const x of SCREENS) for (const at of [x.focus, x.zoom]) assert.ok(at.x >= 0 && at.x <= 100 && at.y >= 0 && at.y <= 100, x.step);
+    assert.match(scene, /--fx:0.85;--fy:1/, "the composer's window looks at its corner, where Send RFQ is pressed");
+    assert.match(scene, /sizes="\(min-width: 1024px\) 1520px, 100vw"/, "the screens are asked for at the size they are drawn");
+    assert.doesNotMatch(scene, /<pattern|feGaussianBlur/, "the drawn atmosphere is gone");
   });
 
   it("the first step is on from the start, the next two at their marks; the cursor presses within the second step, before the third", () => {
@@ -240,6 +243,16 @@ describe("three things we never do", () => {
     assert.doesNotMatch(text(scene), /\b0[1-3]\b/);
     assert.ok(STEPS.steps[0] < STEPS.steps[1] && STEPS.steps[1] < STEPS.steps[2] && STEPS.steps[2] < 1);
   });
+
+  it("each promise has the app beside it showing it kept: no score, no sponsored row, each fact with its source and day", () => {
+    assert.equal(PROMISE_VIEWS.length, PROMISES.length);
+    assert.equal((scene.match(/data-promise-view="true"/g) ?? []).length, 3);
+    assert.equal((scene.match(/data-promise-view="true" data-on=""/g) ?? []).length, 1, "the first shows from the start");
+    assert.match(scene, /line-through[^"]*">.*?4\.6 · score 87/, "the score is struck out, never shown as ours");
+    assert.match(scene, /line-through[^"]*">Sponsored</);
+    assert.match(text(scene), /2,060 workers in 2 buildings RSC read 24 Jul 2026/);
+    assert.match(scene, /<canvas data-field/);
+  });
 });
 
 describe("every source has its rank", () => {
@@ -264,10 +277,19 @@ describe("every source has its rank", () => {
     assert.match(scene, /href="\/methodology"/);
   });
 
+  it("on the night stage: the ladder carries the sources' own marks, and the rule is shown on a real fact, the higher source first", () => {
+    assert.match(scene, /<canvas data-field/);
+    assert.match(scene, /aria-label="The source ladder, highest first"/);
+    for (const file of ["regulatory/epb", "regulatory/rsc", "associations/bgmea", "cert/gots"]) assert.ok(scene.includes(`/icons/sources/${file}.png`), file);
+    assert.ok(t.indexOf("RSC · Tier 1") >= 0 && t.indexOf("RSC · Tier 1") < t.indexOf("BGMEA · Tier 2"));
+    assert.ok(t.includes("leads") && t.includes("shown beside it"));
+  });
+
   it("with nothing read no figure is printed", () => {
     const bare = text(draw(createElement(TrustScene, { facts: NO_FACTS })));
     assert.equal(liveFigures(NO_FACTS).length, 0);
-    assert.doesNotMatch(bare, /\d,\d{3}/);
+    // The worked example's two worker counts are the story's record, not live figures; no live figure's label is printed.
+    assert.doesNotMatch(bare, /garment suppliers|certificates on file|sources listed|RSC factory records/);
     assert.match(bare, /See all the sources/);
   });
 });

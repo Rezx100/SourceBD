@@ -78,7 +78,7 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
 
 - **Buyer app on a phone (30 Sep)** — BUILT on `development` (PRs #218, #220–#224), promotion to `main` next; detail in `archive/state-2026-sep.md`.
 
-- **Home page film (6 Oct)** — flag on, slices 1 to 6 built; v2 rebuild IN PROGRESS from the founder's video of 7 Oct (`feature-specs/spec-home-film.md` §"v2").
+- **Home page film (6 Oct)** — flag on, slices 1 to 6 built; v2 rebuild BUILT 9 Oct (four PRs, the last V4) from the founder's video of 7 Oct (`feature-specs/spec-home-film.md` §"v2").
 
 ## Founder rules still in force (one line each; detail in archive)
 - EPB is a government register: show its evidence and HS codes whenever EPB has them, flagged or not. Never mint EPB-only suppliers. (15 Aug)

@@ -103,6 +103,8 @@ export function startChapters(root: HTMLElement, tier: Tier): Chapters {
   const windows = all<HTMLElement>(order, "[data-window]");
   const cursorParts = all<HTMLElement>(order, "[data-cursor]");
   const promises = all<HTMLElement>(scene("promises"), "[data-promise]");
+  /** The app beside the promises: one window per promise, the last one reached shows. */
+  const promiseViews = all<HTMLElement>(scene("promises"), "[data-promise-view]");
 
   // A beat is a thing that arrives at its moment and rises; once on it holds a little past its moment on the way back.
   const beat = (el: Element | null | undefined, p: number, at: number) => {
@@ -156,13 +158,15 @@ export function startChapters(root: HTMLElement, tier: Tier): Chapters {
     for (const c of cursorParts) c.style.setProperty("--cursor", at.cursor.toFixed(3));
   };
 
-  // A promise is ink once reached and stays so; its line beside it is a beat that rises at the same moment.
+  // A promise is ink once reached and stays so; its line beside it is a beat that rises at the same moment, and the
+  // app beside them shows the last one reached.
   const showPromises = (p: number) => {
     promises.forEach((li, i) => {
       const at = PROMISES.steps[i] ?? 1;
       li.toggleAttribute("data-on", holds(li.hasAttribute("data-on"), p, at));
       beat(li.querySelector("[data-beat]"), p, at);
     });
+    only(promiseViews, Math.max(0, promises.filter((li) => li.hasAttribute("data-on")).length - 1));
   };
 
   return {
@@ -187,6 +191,7 @@ export function startChapters(root: HTMLElement, tier: Tier): Chapters {
       only(dates, dates.length - 1);
       only(orderSteps, 0);
       only(screens, 0);
+      only(promiseViews, 0);
     },
   };
 }

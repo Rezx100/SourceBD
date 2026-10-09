@@ -58,8 +58,8 @@ same PR. Read once per session.
   `development` (PRs #218, #220–#224); promotion to `main` next. Detail:
   `archive/specs-shipped-2026.md`.
 
-- **Home page film v2** — `spec-home-film.md` §"v2" (founder's video, 7 Oct). IN PROGRESS, four PRs: V1 removals,
-  scroll, buttons, footer; V2 the city; V3 overlock and dashboard pieces; V4 product, promises, trust, close.
+- **Home page film v2** — `spec-home-film.md` §"v2" (founder's video, 7 Oct). BUILT 9 Oct: V1 #384, V2 #385, V3 #414,
+  V4 (product, promises, trust) in its PR. Next: promote to `main`; the Paper pages 32/33 are still to draw.
 
 ## Queued
 - **ETL freshness: check each fact as often as it changes** (6 Oct) —
