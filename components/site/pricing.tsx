@@ -106,7 +106,7 @@ export function Pricing({ facts }: { facts: SiteFacts }) {
             <h2 id="plans" className="font-mono text-base text-ink-3 max-sm:text-sm">
               Two plans, as they really are today
             </h2>
-            <p className="font-mono text-sm text-ink-3">No prices yet · updated 3 Oct 2026</p>
+            <p className="text-sm text-ink-3">No prices yet · updated 3 Oct 2026</p>
           </div>
           <div className="grid gap-6 md:grid-cols-2">
             <Plan

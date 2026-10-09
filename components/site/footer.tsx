@@ -50,7 +50,7 @@ export function SiteFooter({ facts, year }: { facts: SiteFacts; year: number }) 
                     <span>Registers read daily</span>
                   )}
                 </p>
-                {line ? <p className="font-mono text-xs leading-5 text-ink-3">{line}</p> : null}
+                {line ? <p className="text-sm leading-5 text-ink-3">{line}</p> : null}
                 {status.links.map((l) => (
                   <Link key={l.href} href={l.href} prefetch={false} className={link}>
                     {l.label}

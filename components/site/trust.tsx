@@ -79,7 +79,7 @@ export function Security({ facts }: { facts: SiteFacts }) {
             <h2 id="nine" className="font-mono text-base text-ink-3 max-sm:text-sm">
               Nine answers for your security review
             </h2>
-            <p className="font-mono text-sm text-ink-3">Checked against our own runbooks · 5 Oct 2026</p>
+            <p className="text-sm text-ink-3">Checked against our own runbooks · 5 Oct 2026</p>
           </div>
           <dl className="grid gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
             {ANSWERS.map(([q, a]) => (
@@ -232,7 +232,7 @@ export function Methodology({ facts, now = Date.now() }: { facts: SiteFacts; now
     <main className="font-sans text-ink">
       <Hero label="Data & methodology" h1="How we check every supplier." lede={sub} count={count}>
         <div id="tiers" className="flex scroll-mt-24 flex-col gap-4 pt-6">
-          <p className="font-mono text-sm text-ink-3">The source ladder · a higher tier is never overwritten by a lower one</p>
+          <p className="text-sm text-ink-3">The source ladder · a higher tier is never overwritten by a lower one</p>
           <ol className="grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-5">
             {TIERS.map((t) => (
               <li key={t.key} className="flex flex-col gap-1 border-t border-ink pt-3">
@@ -252,7 +252,7 @@ export function Methodology({ facts, now = Date.now() }: { facts: SiteFacts; now
           {TIERS.map((t) => (
             <TierTable key={t.key} tier={t} facts={facts} now={now} />
           ))}
-          {facts.sources !== null && updated ? <p className="font-mono text-sm text-ink-3">From the sources table · latest read {updated}</p> : null}
+          {facts.sources !== null && updated ? <p className="text-sm text-ink-3">From the sources table · latest read {updated}</p> : null}
         </div>
       </Section>
 
@@ -327,7 +327,7 @@ export function ForSuppliers({ facts }: { facts: SiteFacts }) {
         </div>
         <figure className="flex flex-col gap-3 pt-6">
           <Image src="/site/records-overview.png" alt="A supplier record as a buyer sees it: sanctions, certificates, safety, workers and sources at the top, then the key facts, each with where it came from." width={1440} height={900} className="h-auto w-full rounded-lg border border-line shadow-dialog" />
-          <figcaption className="font-mono text-sm text-ink-3">
+          <figcaption className="text-sm text-ink-3">
             Real screen · what buyers see today on Aboni Knitwear Ltd., a real public record
             {count ? ` · ${count} published suppliers${updated ? ` · updated ${updated}` : ""}` : ""}
           </figcaption>
@@ -414,7 +414,7 @@ export function About({ facts }: { facts: SiteFacts }) {
             <h2 id="where" className="font-mono text-base text-ink-3 max-sm:text-sm">
               Bangladesh only · where the suppliers are
             </h2>
-            <p className="font-mono text-sm text-ink-3">Published suppliers by district · counted 3 Oct 2026</p>
+            <p className="text-sm text-ink-3">Published suppliers by district · counted 3 Oct 2026</p>
           </div>
           <dl className="grid gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
             {DISTRICTS.map(([place, n, what]) => (

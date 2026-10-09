@@ -328,7 +328,7 @@ export function TrustScene({ facts }: { facts: SiteFacts }) {
               </ul>
             ) : null}
             <p className="flex flex-wrap items-baseline gap-x-3 text-md">
-              {updated ? <span className="font-mono text-xs text-ink-3">Updated {updated}</span> : null}
+              {updated ? <span className="text-sm text-ink-3">Updated {updated}</span> : null}
               <Link href="/methodology" prefetch={false} className="link font-medium">
                 See all {facts.sourcesListed ?? "the"} sources and how we check them
               </Link>

@@ -193,7 +193,7 @@ export default async function DesignSystemGallery() {
         <h1 className="text-4xl font-bold text-ink-strong">Tokens</h1>
         <p className="max-w-prose text-lg text-ink-muted">
           Every colour, size and shadow the new design is allowed to use, exported from the Paper
-          file &ldquo;SourceBD v4&rdquo; and set in IBM Plex Sans. The first section is v4 under
+          file &ldquo;SourceBD v4&rdquo; and set in Geist. The first section is v4 under
           Paper&apos;s own names. The sections after it are the old pages&apos; names (v3), which stay
           until those pages are rebuilt; where a name is in both, the value is v4&apos;s.
         </p>

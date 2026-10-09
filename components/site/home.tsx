@@ -111,7 +111,7 @@ export function Home({ facts, film = false }: { facts: SiteFacts; film?: boolean
           <Label>Pick one</Label>
           <p className="text-3xl font-semibold tracking-tighter text-ink max-sm:text-2xl">Follow one factory down the page.</p>
           <Lede>{NAME} makes knitwear in Kashimpur, Gazipur. Each row its record gains below comes from a named source.</Lede>
-          <p className="font-mono text-xs text-ink-3">A real record, as it stands on 3 Oct 2026.</p>
+          <p className="text-sm text-ink-3">A real record, as it stands on 3 Oct 2026.</p>
         </div>
       </Section>
         </>
@@ -197,7 +197,7 @@ export function Home({ facts, film = false }: { facts: SiteFacts; film?: boolean
                     <li><span className="font-mono text-ink-3">3 </span>{SCREENS[2]!.step}</li>
                   </ol>
                   <Image src={SCREENS[0]!.src} alt={SCREENS[0]!.alt} width={1440} height={900} className="h-auto w-full rounded-lg border border-line" />
-                  <figcaption className="font-mono text-xs text-ink-3">Real v4 screen &middot; Saved suppliers, 3 picked for one RFQ</figcaption>
+                  <figcaption className="text-sm text-ink-3">Real v4 screen &middot; Saved suppliers, 3 picked for one RFQ</figcaption>
                 </figure>
               ),
             },
@@ -213,7 +213,7 @@ export function Home({ facts, film = false }: { facts: SiteFacts; film?: boolean
                     <li><span className="font-mono text-ink-3">3 </span>{COMPLIANCE_STEPS[2]}</li>
                   </ol>
                   <Image src={COMPLIANCE_SCREEN.src} alt={COMPLIANCE_SCREEN.alt} width={1440} height={900} className="h-auto w-full rounded-lg border border-line" />
-                  <figcaption className="font-mono text-xs text-ink-3">Real v4 screen &middot; Compliance, certificate dates, expired first</figcaption>
+                  <figcaption className="text-sm text-ink-3">Real v4 screen &middot; Compliance, certificate dates, expired first</figcaption>
                 </figure>
               ),
             },
@@ -249,7 +249,7 @@ export function Home({ facts, film = false }: { facts: SiteFacts; film?: boolean
           </ol>
           <p className="text-sm text-ink-3">{LADDER_NOTE}</p>
           <p className="flex flex-wrap items-baseline gap-x-3 text-md">
-            {facts.sourcesListed !== null ? <span className="font-mono text-xs text-ink-3">{facts.sourcesListed} sources listed{facts.sourcesWithRecords !== null ? ` · ${facts.sourcesWithRecords} hold supplier records` : ""}</span> : null}
+            {facts.sourcesListed !== null ? <span className="text-sm text-ink-3">{facts.sourcesListed} sources listed{facts.sourcesWithRecords !== null ? ` · ${facts.sourcesWithRecords} hold supplier records` : ""}</span> : null}
             <Link href="/methodology" prefetch={false} className="font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]">
               See all {facts.sourcesListed ?? "the"} sources and how we check them
             </Link>
@@ -266,7 +266,7 @@ export function Home({ facts, film = false }: { facts: SiteFacts; film?: boolean
                 </Stat>
               ))}
             </div>
-            {updated || facts.latestRead ? <p className="font-mono text-xs text-ink-3">Updated {updated}{facts.latestRead ? ` · latest register read ${readDay(facts.latestRead)}` : ""}</p> : null}
+            {updated || facts.latestRead ? <p className="text-sm text-ink-3">Updated {updated}{facts.latestRead ? ` · latest register read ${readDay(facts.latestRead)}` : ""}</p> : null}
           </div>
         ) : null}
       </Section>

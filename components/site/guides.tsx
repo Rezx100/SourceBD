@@ -35,7 +35,7 @@ export function GuidesIndex() {
 
       <section className="pb-24 max-md:pb-14">
         <div className={cn(wrap, "flex flex-col gap-6")}>
-          <p className="font-mono text-sm text-ink-3">
+          <p className="text-sm text-ink-3">
             {pages.length} guides · not legal advice · all last reviewed {reviewed}
           </p>
           <ul className="grid gap-6 md:grid-cols-2">
@@ -79,7 +79,7 @@ export function GuideArticle({ page }: { page: CompliancePage }) {
           <Display level={2} as="h1" className="max-w-[880px]">
             {page.title}
           </Display>
-          <p className="flex flex-wrap gap-x-6 gap-y-1 font-mono text-sm text-ink-3">
+          <p className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-ink-3">
             <span>{LAW[page.slug]}</span>
             <span>Last reviewed {readDay(page.last_reviewed_at)}</span>
             <span>{page.references.length} sources</span>
