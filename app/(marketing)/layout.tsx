@@ -7,10 +7,8 @@
 // shared with `app/(public)` (the supplier profile route group) so the two
 // marketing-surface groups can never drift.
 //
-// M6a (updated): fonts are unified in app/layout.tsx (Archivo / Hanken Grotesk /
-// IBM Plex Mono). The [data-surface="marketing"] block in globals.css bridges
-// --mkt-font-* CSS variables to the root --font-* set by next/font, so all
-// marketing styles resolve correctly without a duplicate font bundle here.
+// Fonts load once in app/layout.tsx (Geist and Geist Mono); the Tailwind
+// `font-sans` and `font-mono` stacks read them, so no font bundle lives here.
 
 import { MarketingChrome, marketingMetadata } from "@/components/site/chrome";
 

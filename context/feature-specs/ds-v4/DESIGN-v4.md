@@ -33,7 +33,9 @@ Certificate aliases: `cert-valid-fg` → ink-2, `cert-valid-edge` → line,
 danger, `cert-expired-bg` → danger-tint, `cert-no-expiry-fg` → ink-3,
 `cert-no-expiry-edge` → line-strong. All prefixed `--color-`.
 
-**Type.** `--font-sans` "IBM Plex Sans", `--font-mono` "IBM Plex Mono".
+**Type.** `--font-sans` "Geist", `--font-mono` "Geist Mono" (founder, 9 Oct 2026; Paper
+drew IBM Plex, replaced site-wide). Mono is for what a register filed and for labels of a
+few words; a caption that is a sentence is sans at `--text-sm`, never mono.
 `--font-weight-regular|medium|semibold` 400/500/600. `--text-xs` 12, `-sm` 13,
 `-base` 14, `-md` 16, `-lg` 20, `-xl` 24, `-2xl` 32, `-3xl` 40, each with a line
 height 16/18/20/24/28/32/40/48. `--leading-tight` 125%, `-normal` 150%.

@@ -76,7 +76,7 @@ export function SourcesScene() {
               <Overlock className="h-auto w-full max-w-[560px] self-start film-full:h-[min(60svh,580px)] film-full:w-auto film-full:max-w-none" />
               <CareLabel className="film-full:absolute film-full:bottom-[calc(11.9%-10px)] film-full:left-full" />
             </div>
-            <figcaption className="font-mono text-xs text-ink-3">{OVERLOCK_CAPTION}</figcaption>
+            <figcaption className="text-sm text-ink-3">{OVERLOCK_CAPTION}</figcaption>
           </figure>
         </div>
       </div>
@@ -222,7 +222,7 @@ export function WatchScene() {
               </ul>
             </AppWindow>
           </Stage>
-          <p className="font-mono text-xs text-ink-3">{LIST_LINE}</p>
+          <p className="text-sm text-ink-3">{LIST_LINE}</p>
         </div>
       </div>
     </section>

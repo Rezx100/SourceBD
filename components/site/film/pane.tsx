@@ -57,7 +57,7 @@ export function ScreenStage({ caption, children, className, ...rest }: { caption
       <Stage className="p-8 max-sm:p-4">
         <div className="flex flex-col gap-6 film-full:relative film-full:aspect-[11/5]">{children}</div>
       </Stage>
-      <figcaption className="font-mono text-xs text-ink-3">{caption}</figcaption>
+      <figcaption className="text-sm text-ink-3">{caption}</figcaption>
     </figure>
   );
 }
