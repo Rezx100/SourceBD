@@ -10,7 +10,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { describe, it } from "node:test";
+import { after, before, describe, it, mock } from "node:test";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { createElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -78,6 +78,10 @@ const given = (a: typeof rpcs) => {
 };
 
 const NOW = new Date("2026-10-04T12:00:00Z");
+// The pages read today's date; the certificates here are dated around NOW, so the pages run on NOW's clock too,
+// or a certificate crosses from expiring to expired as the real days pass (CI went red on 9 Oct 2026 for that).
+before(() => mock.timers.enable({ apis: ["Date"], now: NOW }));
+after(() => mock.timers.reset());
 const S = (n: number) => `0f1e2d3c-0000-4000-8000-00000000000${n}`;
 const cert = (sid: string, name: string, kind: string, no: string, expires_on: string, over: Partial<CertRead["supplier"]> = {}): CertRead => ({
   kind,
