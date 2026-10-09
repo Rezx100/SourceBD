@@ -37,6 +37,5 @@ pnpm dlx magicui-cli@latest add <component-name>
 
 ### Typography
 
-- Headings: Archivo (font-display)
-- Body: Hanken Grotesk
-- Mono: IBM Plex Mono
+- Everything a person reads: Geist (`font-sans`), loaded once in `app/layout.tsx`
+- Mono: Geist Mono (`font-mono`), only for register numbers, dates beside them and labels of a few words; a caption that is a sentence is never mono

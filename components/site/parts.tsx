@@ -65,9 +65,9 @@ export function RecordCard({ name, line, rows, badge, className }: { name: strin
   return (
     <figure aria-label={`Supplier record: ${name}`} className={cn("flex w-full max-w-[460px] flex-col gap-4 rounded-lg border border-line bg-surface p-6 shadow-dialog max-sm:p-4", className)}>
       <div className="flex flex-col gap-1">
-        <figcaption className="flex items-center justify-between gap-3 font-mono text-xs text-ink-3">
+        <figcaption className="flex items-center justify-between gap-3 text-sm text-ink-3">
           <span>Supplier record</span>
-          {badge ? <span className="font-sans text-xs font-semibold text-ink">{badge}</span> : null}
+          {badge ? <span className="text-xs font-semibold text-ink">{badge}</span> : null}
         </figcaption>
         <p className="text-xl font-semibold tracking-tight text-ink">{name}</p>
         <p className="text-base text-ink-3">{line}</p>

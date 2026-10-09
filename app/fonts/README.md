@@ -1,14 +1,13 @@
 # Fonts
 
-SourceBD v4 sets IBM Plex Sans and IBM Plex Mono (Paper, decision D-2), loaded in
-`app/layout.tsx` with `next/font/local` from the files in this folder (latin subset), so
-the build never calls Google and a visitor's browser never calls a font CDN. The same
-folder holds the faces for the sign-in pages (Archivo, Hanken Grotesk, IBM Plex Mono) and
-the document error page (Bricolage Grotesque, Plus Jakarta Sans). All are SIL Open Font
-License 1.1, downloaded once from Google Fonts on 5 Oct 2026 (latin subset, woff2). To add
-a weight or a face, download the woff2 the same way and list it in the layout that uses it;
-do not go back to `next/font/google` (a Google fetch failure fails the CI build).
+SourceBD sets Geist and Geist Mono (founder, 9 Oct 2026, replacing the IBM Plex pair Paper
+picked on 5 Oct), loaded once in `app/layout.tsx` with `next/font/local` from the two
+variable files in this folder, so the build never calls Google and a visitor's browser never
+calls a font CDN. Geist is Vercel's face, SIL Open Font License 1.1. Mono is for what a
+register filed (a number, a date beside it) and for short labels; a caption that is a
+sentence is sans. To add a face, download its woff2 from Google Fonts (latin subset) and
+list it in the layout that uses it; do not go back to `next/font/google` (a Google fetch
+failure fails the CI build).
 
-Geist and Geist Mono (the v3 kit's faces, SIL Open Font License 1.1) stay in this
-folder only for the old gallery script `scripts/gallery/render-gallery-fixtures.ts`.
-No page loads them. They go with the old kit (B11).
+Archivo, Hanken Grotesk, Bricolage Grotesque and Plus Jakarta Sans (also SIL OFL 1.1,
+downloaded 5 Oct 2026) are not loaded by any page.

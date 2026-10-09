@@ -99,9 +99,9 @@ export function Opening({ count }: { count: string | null }) {
           </ol>
           <div className="flex max-w-[520px] flex-col gap-2">
             <p className="text-md text-ink-2">{CHATTOGRAM_LINE}</p>
-            <p className="font-mono text-xs leading-5 text-ink-3">{LIGHTS}</p>
+            <p className="text-sm leading-5 text-ink-3">{LIGHTS}</p>
           </div>
-          <p className="font-mono text-xs text-ink-3 film-full:hidden">{MAP_CREDIT}</p>
+          <p className="text-sm text-ink-3 film-full:hidden">{MAP_CREDIT}</p>
         </div>
 
         <div data-act="record" className={cn(wrap, act, "pb-24 max-md:pb-14 film-full:pb-0 film-full:opacity-0")}>
@@ -109,11 +109,11 @@ export function Opening({ count }: { count: string | null }) {
           <div className="flex max-w-[480px] flex-col gap-5">
             <p className={cn(SCENE_TYPE, "leading-[1.04]")}>Follow one factory down the page.</p>
             <Lede>{NAME} makes knitwear in Kashimpur, Gazipur. Every fact on its record below comes from a named source.</Lede>
-            <p className="font-mono text-xs text-ink-3">A real record, as it stands on 3 Oct 2026.</p>
+            <p className="text-sm text-ink-3">A real record, as it stands on 3 Oct 2026.</p>
           </div>
         </div>
 
-        <p className="absolute bottom-6 right-6 hidden font-mono text-xs text-ink-3 film-full:block">{MAP_CREDIT}</p>
+        <p className="absolute bottom-6 right-6 hidden text-sm text-ink-3 film-full:block">{MAP_CREDIT}</p>
       </div>
     </section>
   );

@@ -33,7 +33,7 @@ function Figure({ shot }: { shot: Shot }) {
   return (
     <figure className="flex flex-col gap-3">
       <Image src={shot.src} alt={shot.alt} width={1440} height={900} className="h-auto w-full rounded-lg border border-line shadow-dialog" />
-      <figcaption className="font-mono text-sm text-ink-3">{shot.caption}</figcaption>
+      <figcaption className="text-sm text-ink-3">{shot.caption}</figcaption>
     </figure>
   );
 }
@@ -113,7 +113,7 @@ export const PAGES: Record<string, Page> = {
           <div className="flex max-w-[560px] flex-col gap-1 rounded-lg border border-line bg-subtle p-4">
             <p className="text-sm font-semibold text-ink">2 sources differ</p>
             <p className="text-base text-ink-2">RSC counted 2,060 workers in 2 buildings. BGMEA has 4,200 employees, as declared by the factory.</p>
-            <p className="font-mono text-xs text-ink-3">Mondol Fabrics Ltd. · as read on 3 Oct 2026</p>
+            <p className="text-sm text-ink-3">Mondol Fabrics Ltd. · as read on 3 Oct 2026</p>
           </div>
         ),
       },
@@ -250,7 +250,7 @@ export function SitePage({ pageKey, facts }: { pageKey: string; facts: SiteFacts
           </div>
           <Figure shot={p.hero} />
           {count ? (
-            <p className="font-mono text-sm text-ink-3">
+            <p className="text-sm text-ink-3">
               {count} published suppliers{updated ? ` · updated ${updated}` : ""}
             </p>
           ) : null}

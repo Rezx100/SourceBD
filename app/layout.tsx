@@ -3,24 +3,23 @@ import localFont from "next/font/local";
 import "./ds.css";
 import { cn } from "@/lib/utils";
 
-// SourceBD v4 type (Paper, D-2): IBM Plex Sans for everything, Plex Mono only
-// for certificate, register and HS numbers. Paper draws weights 400, 500 and
-// 600. The files are committed in `app/fonts` (SIL Open Font License 1.1, latin
-// subset) and loaded with next/font/local: the build never calls Google, and a
-// visitor's browser never calls a font CDN. The Tailwind `font-sans` and
-// `font-mono` stacks read the two CSS variables set here.
+// Type, site-wide (founder, 9 Oct 2026, replacing Paper's IBM Plex): Geist for
+// everything a person reads, Geist Mono only for what a register filed (a
+// certificate, register or HS number, a date beside it) and for short labels.
+// A caption that is a sentence is sans. Both are self-hosted variable files in
+// `app/fonts` (SIL Open Font License 1.1) loaded with next/font/local: the build
+// never calls Google, and a visitor's browser never calls a font CDN. The
+// Tailwind `font-sans` and `font-mono` stacks read the two CSS variables set here.
 const sans = localFont({
-  src: [{ path: "./fonts/ibm-plex-sans.woff2", weight: "400 600", style: "normal" }],
+  src: "./fonts/Geist-Variable.woff2",
+  weight: "100 900",
   variable: "--font-sans",
   display: "swap",
 });
 
 const mono = localFont({
-  src: [
-    { path: "./fonts/ibm-plex-mono-400.woff2", weight: "400", style: "normal" },
-    { path: "./fonts/ibm-plex-mono-500.woff2", weight: "500", style: "normal" },
-    { path: "./fonts/ibm-plex-mono-600.woff2", weight: "600", style: "normal" },
-  ],
+  src: "./fonts/GeistMono-Variable.woff2",
+  weight: "100 900",
   variable: "--font-mono",
   display: "swap",
 });

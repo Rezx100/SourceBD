@@ -169,6 +169,7 @@
     "app/(app)/(old-shell)/admin/sanctions/page.tsx",
     "components/admin/queues.test.ts",
     "components/site/site.test.ts",
+    "components/site/type.test.ts",
     "components/site/home.test.ts",
     "components/site/film/film.test.ts",
     "components/site/film/chapters.test.ts",
