@@ -73,7 +73,7 @@ describe("/admin/suppliers", () => {
     assert.match(t, /71/, "the internal score stays on this admin-only page");
     assert.match(out, /href="\/admin\/suppliers\?published=false"[^>]*>[^]*?Previous/, "Previous keeps the filter");
     assert.match(out, /href="\/admin\/suppliers\?published=false&page=3"/, "Next keeps the filter");
-    assert.match(out, /Showing 51–52 of 120 suppliers/);
+    assert.match(t, /Showing 51–52 of 120 suppliers/);
     assert.deepEqual(calls[0]!.args, { p_search: null, p_entity_type: null, p_published: false, p_claimed: null, p_sanctioned: null, p_tier_min: null, p_limit: 50, p_offset: 50 });
   });
 

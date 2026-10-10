@@ -164,10 +164,10 @@ describe("the public Discover page: pages", () => {
     const second = await visit({ q: "knit", cert: "gots", page: "2" });
     assert.equal(sent().p_offset, 24);
     assert.match(text(second), /Showing 25–25 of 60 suppliers Page 2 of 3/);
-    assert.match(second, /<a[^>]*href="\/discover\?q=knit&cert=gots"[^>]*>(?:<svg[^>]*><\/svg>)?Previous/);
-    assert.match(second, /<a[^>]*href="\/discover\?q=knit&cert=gots&page=3"[^>]*>Next/);
+    assert.match(second, /<a[^>]*href="\/discover\?q=knit&cert=gots"[^>]*>(?:<svg[^>]*><\/svg>)?(?:<span[^>]*>)?Previous/);
+    assert.match(second, /<a[^>]*href="\/discover\?q=knit&cert=gots&page=3"[^>]*>(?:<span[^>]*>)?Next/);
     const first = await visit({ q: "knit", cert: "gots" });
-    assert.match(first, /<span aria-disabled="true"[^>]*>(?:<svg[^>]*><\/svg>)?Previous/);
+    assert.match(first, /<span aria-disabled="true"[^>]*>(?:<svg[^>]*><\/svg>)?(?:<span[^>]*>)?Previous/);
     assert.match(first, /href="\/discover\?q=knit&cert=gots&page=2"/);
     assert.doesNotMatch(first + second, OLD_KIT);
   });
