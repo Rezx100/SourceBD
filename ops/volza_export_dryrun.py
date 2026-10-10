@@ -108,6 +108,7 @@ class Volza:
         )
         self.last = 0.0
         self.calls = 0
+        self.remaining_daily = 10**6
         self.baseline: float | None = None
 
     def call(self, method: str, path: str, **kw: Any) -> tuple[int, Any]:
@@ -126,6 +127,9 @@ class Volza:
             if r.status_code == 402 or (used is not None and float(used) > self.baseline):
                 raise SystemExit(f"STOP: credit used on {path} (X-Credit-Used={used}, "
                                  f"was {self.baseline}); tell the founder")
+            self.remaining_daily = int(r.headers.get("X-RateLimit-Remaining-Daily") or 10**6)
+            if r.status_code == 429 and "sandbox_limit_exceeded" in r.text:
+                raise SystemExit(f"STOP: sandbox limit used up on {path}: {r.text[:200]}")
             if r.status_code == 429:
                 time.sleep(60)
                 continue

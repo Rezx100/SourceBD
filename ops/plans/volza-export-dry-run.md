@@ -270,3 +270,55 @@ about 5,530 ($553).
 (spent). The list lookups for all 7,786 fit in 8 days of the daily limit. Whether Volza is happy for the
 sandbox key to pre-screen production work is unasked; the paid lookup with `page_size=1` costs $0.011 a
 supplier (about $86 for all 7,786) and is the clean alternative.
+
+## 10. The hard group: non-EPB suppliers on the company list (free scan, started 11 Oct 2026)
+
+Script: `ops/volza_company_list.py` (sandbox key, `companies/search` only, no export searches, credit stayed
+at 25.200). Raw results: `etl/raw/volza/company_list.jsonl` and `company_list_sample.jsonl` (gitignored).
+
+**The 1,000.** Non-EPB, published, not in the 200-supplier sample, every name we hold; candidates from
+`candidates.json` (built 10 Oct), sorted by id and shuffled with seed **20261011**. Per supplier, at most 4
+lookups, stopping once our name is found: starts-with on our cleaned name, contains on it, then contains on
+our other names and spelling forms (`&`/`and`, `Inds`→`Industries`, `Mfg`→`Manufacturing`,
+`Knit Wear`/`Knitwear`, hyphen and full-stop forms). Classes: exact (normalizes equal), close (fuzzy ratio
+≥ 90), several (ours is found and 2+ different names contain ours), other (only other companies), not listed.
+
+**Progress.** The sandbox key had 287 calls left today, so the scan stopped at 23 left after **109 of the
+1,000** (206 calls, 1.9 a supplier, no errors; Volza echoed the contains setting every time). It resumes
+with the same command: about 1,700 calls, two more days. The figures below are the first 109.
+
+| class | suppliers |
+| -- | -- |
+| exact | 35 |
+| close | 0 |
+| several | 8 |
+| other (only different companies, e.g. "Expressions" → "Shanta Expressions") | 6 |
+| not listed | 60 |
+
+So **43 of 109 (39%)** are on the list under our name; 66 would be skipped for free. Starts-with found 42
+of the 43; the spelling forms rescued one ("DK KNIT WEAR" → "Dk Knitwear Ltd"), at about 1.5 extra
+calls for every miss. Spelling is not what keeps this group off the list.
+
+**Hand check.** No "close" results yet, so nothing to check there. Of the 8 "several", **5 are one company**
+whose second list entry is a typo or a pasted address ("Annesha Style Lyd", "Jams Apparels Pvt Ptd",
+"Sky Apparels Ltd Ho Water Fr", "Ital Adweg Pvt Ltd House 966"), and **3 really share the name** with other
+firms (Printex with "Printex Chemizol Dyestuff", Badhan Corporation with Badhan Enterprise/Industries,
+Trutex Apparel with "Trutex Apparel House"). For those 3 the paid search needs the full legal name.
+The 30 + 20 check reruns when the scan finishes.
+
+**A second free signal? No.** The list returns only a name and an ID (city is a filter, not a field). On
+the 53 non-EPB sample suppliers the list found in section 9 (58 calls), with the paid result known:
+
+| signal | 6 that shipped | 47 that did not |
+| -- | -- | -- |
+| our name exact/close/several on the list | 6 | 42 (5 were other companies' names) |
+| list ID (lower = older entry) | 21M – 146M | 7.7M – 134M: no separation |
+| 3+ list entries | 4 | 8 of 42: but drops 2 of the 6 real exporters |
+
+Requiring an exact name is free and loses nothing (53 → 48). Nothing else separates real exporters
+without dropping real ones, so about **1 in 8** listed non-EPB suppliers will have shipments.
+
+**Proposed first paid batch.** The 43 found so far, one export search each with Volza's spelling
+(full legal name for the 3 true "several"). Expect about 5 with shipments. Cost: 38 misses × $0.10 +
+5 hits × $0.15 = about $4.55; **cap $6**. If the hit rate holds near 1 in 8, the full 1,000 would list
+about 390, costing about $45 for about 50 exporters (cap $55), asked separately after the scan ends.
