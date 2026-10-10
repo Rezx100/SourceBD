@@ -1,10 +1,11 @@
-// What on /admin/sources needs the founder, in the words and commands they act on.
-// Pure, so the page test can pin each item and its release command. The commands are
-// the ones in context/feature-specs/handoff-etl-freshness-golive.md ("What held means").
+// What on /admin/sources needs the founder, in plain words, each with the one button
+// that settles it. Pure, so the page test can pin each item. A release is a queued run
+// carrying accept_changes / accept_delistings, which etl/jobs/scraper_queue.py honours
+// from an admin; the founder never needs a server command (10 Oct 2026).
 
 import type { DashboardDoc, EtlRun } from "./etl-monitoring";
 import type { FreshnessDoc } from "./source-freshness";
-import type { ScraperGroup } from "./etl-scrapers";
+import { SCRAPER_BY_CODE, type ScraperGroup } from "./etl-scrapers";
 
 export type NeedKind = "held" | "delistings" | "partial" | "failed" | "over_limit" | "near_match";
 
@@ -14,14 +15,14 @@ export type Need = {
   code: string | null;
   /** One plain sentence: what happened. */
   text: string;
-  /** The server command that releases it, run from /opt/sourcebd. */
-  command: string | null;
-  /** In-app action: Run now on the source, or a link. */
-  action: "run" | "queue" | null;
+  /** What to look at before pressing the button; null when there is nothing to check. */
+  check: string | null;
+  /** The button: let a paused read finish, mark removals, read again, or open the queue. */
+  action: "release_changes" | "release_delistings" | "run" | "queue" | null;
 };
 
-export const releaseCommand = (code: string, flag: "--accept-changes" | "--accept-delistings") =>
-  `docker compose run --rm etl run ${code} ${flag}`;
+/** The source's name as the founder knows it ("WRAP", "BGMEA web"). */
+export const sourceLabel = (code: string) => SCRAPER_BY_CODE.get(code)?.label ?? code;
 
 type Reconcile = { action?: unknown; missing?: unknown };
 
@@ -31,14 +32,15 @@ function reconciles(run: EtlRun): [string, Reconcile][] {
   return r && typeof r === "object" ? Object.entries(r as Record<string, Reconcile>) : [];
 }
 
-export function breakerOf(run: EtlRun | null): { tripped: string; changed?: number; created?: number } | null {
-  const b = run?.meta?.circuit_breaker as { tripped?: unknown; changed?: unknown; created?: unknown } | undefined;
+export function breakerOf(
+  run: EtlRun | null,
+): { tripped: string; changed?: number; created?: number; stored?: number } | null {
+  const b = run?.meta?.circuit_breaker as
+    | { tripped?: unknown; changed?: unknown; created?: unknown; stored?: unknown }
+    | undefined;
   if (!b || typeof b.tripped !== "string" || !b.tripped) return null;
-  return {
-    tripped: b.tripped,
-    changed: typeof b.changed === "number" ? b.changed : undefined,
-    created: typeof b.created === "number" ? b.created : undefined,
-  };
+  const num = (v: unknown) => (typeof v === "number" ? v : undefined);
+  return { tripped: b.tripped, changed: num(b.changed), created: num(b.created), stored: num(b.stored) };
 }
 
 const n = (v: number) => v.toLocaleString("en-GB");
@@ -50,41 +52,46 @@ const n = (v: number) => v.toLocaleString("en-GB");
  */
 export function needsYou(doc: DashboardDoc, freshness: FreshnessDoc | null, nearMatches: number | null): Need[] {
   const out: Need[] = [];
-  const latest = doc.scrapers.flatMap((s) => (s.latest_run && !s.active_job ? [s.latest_run] : []));
+  // The source's own code, not the run's: the dashboard's latest_run can arrive without
+  // scraper_code, which printed "undefined stopped at the safety limit" (10 Oct 2026).
+  const latest = doc.scrapers.flatMap((s) =>
+    s.latest_run && !s.active_job ? [{ code: s.scraper_code, run: s.latest_run }] : [],
+  );
 
-  for (const run of latest) {
-    const code = run.scraper_code;
+  for (const { code, run } of latest) {
+    const name = sourceLabel(code);
     const breaker = breakerOf(run);
     if (run.status === "held" || breaker) {
+      const changed = breaker?.changed;
       const landed =
-        breaker?.changed !== undefined && breaker.created !== undefined
-          ? ` ${n(breaker.changed)} changed and ${n(breaker.created)} new landed; the rest waits.`
+        changed !== undefined
+          ? ` It updated ${n(changed)} ${changed === 1 ? "company" : "companies"}${breaker?.created ? ` and added ${n(breaker.created)} new` : ""}, the most it does on its own${breaker?.stored ? ` (5% of ${n(breaker.stored)})` : ""}.`
           : "";
       out.push({
         kind: "held",
         code,
-        text: `${code} stopped at the safety limit (${breaker?.tripped ?? "change limit"}).${landed}`,
-        command: releaseCommand(code, "--accept-changes"),
-        action: null,
+        text: `${name} paused partway through because more changed than usual.${landed} The rest is waiting for you.`,
+        check: `Open ${name} to see what its last read changed. If it looks right, let the rest through.`,
+        action: "release_changes",
       });
     }
-    for (const [scheme, r] of reconciles(run)) {
-      const missing = typeof r.missing === "number" ? `${n(r.missing)} ` : "";
+    for (const [, r] of reconciles(run)) {
+      const count = typeof r.missing === "number" ? n(r.missing) : "Some";
       if (r.action === "held") {
         out.push({
           kind: "delistings",
           code,
-          text: `${code}: ${missing}${scheme.toUpperCase()} records not seen this read are waiting before they are marked no longer listed.`,
-          command: releaseCommand(code, "--accept-delistings"),
-          action: null,
+          text: `${count} ${name} entries are no longer on ${name}'s own list. They still show as listed until you agree.`,
+          check: `Check a few on the source's website. If they are really gone, mark them no longer listed.`,
+          action: "release_delistings",
         });
       } else if (r.action === "partial") {
         out.push({
           kind: "partial",
           code,
-          text: `${code}: the ${scheme.toUpperCase()} read was incomplete, so nothing was marked. Read the run's error before running it again.`,
-          command: null,
-          action: null,
+          text: `${name}'s last read stopped early, so nothing was removed. If it stops again, the source's website has probably changed.`,
+          check: null,
+          action: "run",
         });
       }
     }
@@ -92,8 +99,8 @@ export function needsYou(doc: DashboardDoc, freshness: FreshnessDoc | null, near
       out.push({
         kind: "failed",
         code,
-        text: `${code} failed${run.error ? `: ${run.error}` : "."}`,
-        command: null,
+        text: `${name} could not finish its last read${run.error ? ` (${run.error})` : ""}.`,
+        check: null,
         action: "run",
       });
     }
@@ -101,11 +108,19 @@ export function needsYou(doc: DashboardDoc, freshness: FreshnessDoc | null, near
 
   for (const r of freshness?.rows ?? []) {
     if (r.over_sla === true && r.enabled && !out.some((x) => x.code === r.scraper_code)) {
+      const name = sourceLabel(r.scraper_code);
+      const limit =
+        r.max_age_hours === null
+          ? ""
+          : `; it should be read every ${r.max_age_hours >= 48 ? `${Math.round(r.max_age_hours / 24)} days` : `${r.max_age_hours} hours`}`;
       out.push({
         kind: "over_limit",
         code: r.scraper_code,
-        text: `${r.scraper_code} is past its age limit${r.age_hours === null ? " and has never been read in full" : ` (${Math.round(r.age_hours)} h old, limit ${r.max_age_hours ?? "?"} h)`}.`,
-        command: null,
+        text:
+          r.age_hours === null
+            ? `${name} has never been read in full.`
+            : `${name} was last read in full ${Math.max(1, Math.round(r.age_hours / 24))} days ago${limit}.`,
+        check: null,
         action: "run",
       });
     }
@@ -115,8 +130,8 @@ export function needsYou(doc: DashboardDoc, freshness: FreshnessDoc | null, near
     out.push({
       kind: "near_match",
       code: null,
-      text: `${n(nearMatches)} near-match ${nearMatches === 1 ? "record is" : "records are"} waiting for a decision.`,
-      command: null,
+      text: `${n(nearMatches)} ${nearMatches === 1 ? "company looks" : "companies look"} like one we already have. Each waits for you to say same or different.`,
+      check: null,
       action: "queue",
     });
   }
