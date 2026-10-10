@@ -1,0 +1,95 @@
+"""Paid check: does Volza's live export search honour country and buyer filters? (founder: up to $3, 11 Oct 2026)
+
+Seven export searches on Aboni Knitwear (Sep 2024 - Aug 2026), production key, so it runs only with
+--apply (the founder runs it). Spend control is the live sample's (ops/volza_live_sample.py): cap
+checked before every call, Volza's credit header watched. Each result keeps what Volza echoed back
+(api_request_details): a filter missing from the echo was ignored, and its count is the unfiltered one.
+
+  1-3  destination_country Germany / United Kingdom, buyer_country United Kingdom (1 record each)
+  4-5  buyer_name NEW YORKER / H&M                                                 (1 record each)
+  6    no filter, 10 records: which country and buyer fields a record really carries
+  7    buyer_name PRIMARK with no supplier: does one brand search list its suppliers?   (1 record)
+
+  python ops/volza_filter_test.py            # the plan, no key read, no calls
+  python ops/volza_filter_test.py --apply    # run it (cap $3); results in etl/raw/volza/filter_test.json
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import logging
+import sys
+import time
+from pathlib import Path
+from typing import Any
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from volza_export_dryrun import HS, MIN_GAP, RAW  # noqa: E402
+from volza_live_sample import WINDOW, Live, Stop, account_used  # noqa: E402
+
+OUT = RAW / "filter_test.json"
+CAP = 3.0
+NAME = "Aboni Knit Wear"
+TESTS: list[tuple[str, dict[str, Any], int]] = [
+    ("country Germany", {"supplier_name": [NAME], "destination_country": ["Germany"]}, 1),
+    ("country United Kingdom", {"supplier_name": [NAME], "destination_country": ["United Kingdom"]}, 1),
+    ("buyer_country United Kingdom", {"supplier_name": [NAME], "buyer_country": ["United Kingdom"]}, 1),
+    ("buyer NEW YORKER", {"supplier_name": [NAME], "buyer_name": ["NEW YORKER"]}, 1),
+    ("buyer H&M", {"supplier_name": [NAME], "buyer_name": ["H&M"]}, 1),
+    ("no filter, 10 records", {"supplier_name": [NAME]}, 10),
+    ("brand only PRIMARK", {"buyer_name": ["PRIMARK"]}, 1),
+]
+
+
+def worst(records: int) -> float:
+    return 0.10 + 0.05 * records
+
+
+def main() -> None:
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--apply", action="store_true", help="spend real credit (production key)")
+    a = p.parse_args()
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    total = sum(worst(n) for _, _, n in TESTS)
+    if not a.apply:
+        for label, f, n in TESTS:
+            print(f"  {label:32} {json.dumps(f)}  up to ${worst(n):.2f}")
+        print(f"{len(TESTS)} searches, worst case ${total:.2f}, hard cap ${CAP:.2f}. Pass --apply to run.")
+        return
+    v = Live(CAP, 0.0, start_used=account_used())
+    out: list[dict[str, Any]] = []
+    try:
+        for label, f, n in TESTS:
+            if v.spent + worst(n) > CAP + 1e-9:
+                raise Stop(f"cap: ${v.spent:.2f} spent, next call up to ${worst(n):.2f}")
+            body = {"hsn_code": HS, "start_date": WINDOW[0], "end_date": WINDOW[1], "max_count_per_page": n,
+                    "sort_by": "trade_value_usd", "sort_order": "DESC", **f}
+            wait = MIN_GAP - (time.monotonic() - v.last)
+            if wait > 0:
+                time.sleep(wait)
+            v.last = time.monotonic()
+            r = v.http.post("/bangladesh-exports", json=body)
+            v.calls += 1
+            v._read_headers(r)
+            data = r.json() if r.headers.get("content-type", "").startswith("application/json") else {"_text": r.text[:300]}
+            recs = (data.get("api_records") or []) if isinstance(data, dict) else []
+            v.tally += (0.10 + 0.05 * len(recs)) if r.status_code == 200 else 0.0
+            out.append({"label": label, "sent": f, "status": r.status_code,
+                        "echo": data.get("api_request_details") if isinstance(data, dict) else None,
+                        "summary": data.get("api_summary") if isinstance(data, dict) else None,
+                        "records": recs, "error": data.get("error") if isinstance(data, dict) else None})
+            s = (data.get("api_summary") or {}) if isinstance(data, dict) else {}
+            print(f"{label:32} {r.status_code} shipments={s.get('count_of_shipments')} "
+                  f"exporters={s.get('count_of_suppliers')} records={len(recs)}")
+    except Stop as e:
+        print(f"STOPPED: {e}")
+    finally:
+        RAW.mkdir(parents=True, exist_ok=True)
+        OUT.write_text(json.dumps(out, indent=1, ensure_ascii=False), encoding="utf-8")
+    print(f"calls={v.calls}; spent: our tally ${v.tally:.2f}, by Volza's header ${v.header_spent:.2f} -> {OUT}")
+
+
+if __name__ == "__main__":
+    main()
