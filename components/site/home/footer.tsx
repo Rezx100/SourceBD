@@ -1,6 +1,7 @@
 // 19 · The home page's footer (Paper `1F2K-0` / `1FEE-0`): the wordmark and its line, five columns of real routes,
-// and the promise. Every address is a page of the site (`home.test.ts` checks each one has a route); the board's
-// "Orders" has no public page, so it is not linked. Cookie settings reopen the banner, as on every other page.
+// and the promise. Every address is a page of the site (`page.test.ts` checks each one has a route); the board's
+// "Orders" has no public page, so it is not linked, and its "Messages" shares the RFQs page. Cookie settings reopen
+// the banner, as on every other page.
 
 import Link from "next/link";
 import { CookieSettingsButton } from "@/components/site/cookie-banner";
@@ -8,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { measure, ring } from "./ui";
 
 export const FOOT: [string, [string, string][]][] = [
-  ["Product", [["Search", "/product/search"], ["Supplier records", "/product/records"], ["RFQs and quotes", "/product/rfqs"], ["Messages", "/product/rfqs"], ["Compliance hub", "/product/compliance"]]],
+  ["Product", [["Search", "/product/search"], ["Supplier records", "/product/records"], ["RFQs and messages", "/product/rfqs"], ["Compliance hub", "/product/compliance"]]],
   ["Solutions", [["Sourcing teams", "/solutions/sourcing"], ["Compliance teams", "/solutions/compliance"], ["For suppliers", "/suppliers"]]],
   ["Learn", [["Methodology", "/methodology"], ["Compliance guides", "/compliance"], ["Data status", "/status"], ["Security", "/security"]]],
   ["Company", [["About", "/about"], ["Pricing", "/pricing"], ["Contact", "/contact"]]],

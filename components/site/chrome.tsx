@@ -55,7 +55,8 @@ export async function MarketingChrome({
   top?: React.ReactNode;
   footer?: boolean;
 }) {
-  const facts = await loadSiteFacts();
+  // The facts feed only the footer; a page that draws its own footer does not wait for them.
+  const facts = footer ? await loadSiteFacts() : null;
   return (
     <PostHogProvider userId={null}>
       <div className="flex min-h-dvh flex-col bg-surface font-sans text-ink antialiased">
@@ -70,7 +71,7 @@ export async function MarketingChrome({
         >
           {children}
         </div>
-        {footer ? <SiteFooter facts={facts} year={new Date().getUTCFullYear()} /> : null}
+        {facts ? <SiteFooter facts={facts} year={new Date().getUTCFullYear()} /> : null}
         <CookieBanner />
       </div>
     </PostHogProvider>

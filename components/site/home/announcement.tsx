@@ -1,9 +1,12 @@
 "use client";
 
 // 1 · The announcement bar (Paper `1EU6-0` / `1EV3-0`). Dismissing it keeps a cookie for 30 days, the one cookie
-// the home page sets; the page reads it on the server, so a dismissed bar never flashes back.
+// the home page sets; the page reads it on the server, so a dismissed bar never flashes back. The film, when it is
+// asked for, opens on its own ground with no bar, as it always has.
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { filmOn } from "@/components/site/film/engine/tier";
 import { useState } from "react";
 import { ANNOUNCE_COOKIE } from "./cookie";
 
@@ -11,7 +14,9 @@ const ring = "outline-none focus-visible:outline focus-visible:outline-2 focus-v
 
 export function Announcement() {
   const [open, setOpen] = useState(true);
-  if (!open) return null;
+  // `?.`: outside the app router (a test, a static render) there are no search params.
+  const film = filmOn(useSearchParams()?.get("film") ?? undefined, process.env.NEXT_PUBLIC_HOME_FILM ?? "0");
+  if (!open || film) return null;
   const dismiss = () => {
     document.cookie = `${ANNOUNCE_COOKIE}=1; Max-Age=${60 * 60 * 24 * 30}; Path=/; SameSite=Lax`;
     setOpen(false);

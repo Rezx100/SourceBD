@@ -2,7 +2,7 @@
 // read), the first open. Native <details> sharing one `name`, so one is open at a time with no script and every
 // answer is in the page.
 
-import { FAQ_ITEMS } from "@/components/site/home";
+import { FAQ_ITEMS } from "./faq-items";
 import type { SiteFacts } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
 import { H2, measure, ring } from "./ui";

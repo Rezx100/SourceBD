@@ -7,6 +7,7 @@ import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import { SearchParamsContext } from "next/dist/shared/lib/hooks-client-context.shared-runtime";
 import { createElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { NO_FACTS, parseFacts, type SiteFacts } from "@/lib/site-facts";
@@ -15,6 +16,8 @@ import { NO_FACTS, parseFacts, type SiteFacts } from "@/lib/site-facts";
 const { HomeMercury } = require("@/components/site/home/index") as typeof import("@/components/site/home/index");
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
 const { PRODUCT_GROUPS } = require("@/components/site/map") as typeof import("@/components/site/map");
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
+const { Announcement } = require("@/components/site/home/announcement") as typeof import("@/components/site/home/announcement");
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
 const { FOOT } = require("@/components/site/home/footer") as typeof import("@/components/site/home/footer");
 
@@ -123,5 +126,13 @@ describe("the Mercury home page", () => {
 
   it("keeps green for the wordmark, the primary buttons and the icons' one detail: no green link", () => {
     for (const a of page().match(/<a [^>]*>/g) ?? []) if (/text-brand\b/.test(a)) assert.match(a, /href="\/"/, a);
+  });
+
+  it("the announcement links to the Compliance hub, and stays off the film when the film is asked for", () => {
+    const bar = (qs: string) => draw(createElement(SearchParamsContext.Provider, { value: new URLSearchParams(qs) as never }, createElement(Announcement)));
+    assert.match(text(bar("")), /UFLPA and sanctions checks now run on every saved supplier See the Compliance hub/);
+    assert.match(bar(""), /href="\/compliance"/);
+    assert.match(bar(""), /aria-label="Dismiss announcement"/);
+    assert.equal(bar("film=1"), "");
   });
 });
