@@ -164,6 +164,14 @@ _FIELD_LOCATORS = {
 }
 # `oeko_customer_id`/`oeko_standard`/`oeko_profile_url` are request plumbing, and
 # `country` is the Bangladesh filter we applied rather than text on the page.
+# What a buyer sees from an OEKO-TEX row (the certificate and the contact
+# block); the list hash and the expiring profile URL are bookkeeping, so a
+# record that differs only there is a refresh for breaker C4, not a change.
+_SHOWN_KEYS = (
+    "oeko_customer_id", "oeko_standard", "oeko_standard_label",
+    "oeko_profile_address", "oeko_profile_phone", "oeko_profile_email",
+    "oeko_profile_website",
+)
 _UNCITABLE_FIELDS = (
     "oeko_customer_id",
     "oeko_standard",
@@ -280,6 +288,7 @@ class OekoTexScraper(AcquiringScraper):
                         # finds the company (migration 0122 re-keys the rows).
                         source_ref=ref,
                         alias_refs=(f"oeko-tex-{r['idx']}",),
+                        shown_keys=_SHOWN_KEYS,
                         company_name=r["name"] or "",
                         city=r.get("city"),
                         address_raw=profile.get("address") or r.get("location_raw"),

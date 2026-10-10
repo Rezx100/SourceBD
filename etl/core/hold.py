@@ -247,6 +247,7 @@ def record_from_payload(data: dict[str, Any]) -> ScrapedRecord:
     data = dict(data)
     data["alias_refs"] = tuple(data.get("alias_refs") or ())
     data["hash_exclude"] = tuple(data.get("hash_exclude") or ())
+    data["shown_keys"] = tuple(data.get("shown_keys") or ())
     return ScrapedRecord(**data)
 
 

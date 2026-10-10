@@ -186,14 +186,19 @@ def classify_record(cur, rec: ScrapedRecord) -> str:
     written. Same decisions as the write path, minus the writes.
     """
     cur.execute(
-        "select supplier_id, raw_hash from public.source_records "
+        "select supplier_id, raw_hash, fields from public.source_records "
         "where source_id = %s and source_ref = %s",
         (get_source_id(rec.source_code), rec.source_ref),
     )
     rows = cur.fetchall()
     if rows:
-        same = len({str(r["supplier_id"]) for r in rows}) == 1 and rows[0]["raw_hash"] == rec.hash()
-        return "unchanged" if same else "changed"
+        if len({str(r["supplier_id"]) for r in rows}) != 1:
+            return "changed"
+        if rows[0]["raw_hash"] == rec.hash():
+            return "unchanged"
+        if rec.shown_keys and shown_unchanged(rows[0].get("fields"), rec):
+            return "refresh"
+        return "changed"
     norm = normalize_company_name(rec.company_name)
     phones = normalize_phones(rec.phone_raw)
     email = (rec.email or "").strip().lower() or None
@@ -208,6 +213,18 @@ def classify_record(cur, rec: ScrapedRecord) -> str:
     facility_of = _find_facility_parent(cur, base) if base is not None else None
     return plan_new_supplier(cur, rec, norm=norm, email=email, phones=phones,
                              facility_of=facility_of).action
+
+
+def shown_unchanged(stored: dict | None, rec: ScrapedRecord) -> bool:
+    """True when every key in `rec.shown_keys` holds the same value as the
+    stored copy. Empty and missing read the same; surrounding space is ignored."""
+    def norm(v: Any) -> Any:
+        if isinstance(v, str):
+            v = v.strip()
+        return None if v in ("", None) else v
+
+    stored = stored or {}
+    return all(norm(stored.get(k)) == norm(rec.payload.get(k)) for k in rec.shown_keys)
 
 
 # -----------------------------------------------------------------------------
