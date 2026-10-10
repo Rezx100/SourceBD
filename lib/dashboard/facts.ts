@@ -170,6 +170,71 @@ export type CertCheck = {
 /** `supplier_cert_checks`: the record's certificates, and each scheme's last complete read. */
 export type CertChecks = { certs: CertCheck[]; reads: Record<string, string | null> };
 
+/** One shipment as Volza returned it (0137 `top_shipments`). */
+export type VolzaShipment = {
+  shipment_date: string | null;
+  hsn_code: string | null;
+  product_description: string | null;
+  buyer_name: string | null;
+  destination_country: string | null;
+  trade_value_usd: number | null;
+  unit_rate_usd: number | null;
+  unit: string | null;
+};
+/** `supplier_volza_exports` (0137): null unless the reader is on a paying plan and there is an exact match. */
+export type VolzaExports = {
+  shipments: number;
+  fob_usd: number | null;
+  buyers: number | null;
+  window_start: string;
+  window_end: string;
+  volza_name: string | null;
+  top_shipments: VolzaShipment[];
+  fetched_at: string;
+};
+
+const usd = (n: number, digits = 0) =>
+  `US$${n.toLocaleString("en-GB", { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
+
+/** US$21.7m, US$340k, US$950: export totals at a glance. */
+export function formatUsdShort(n: number): string {
+  if (n >= 1e6) return `US$${(n / 1e6).toFixed(n >= 1e8 ? 0 : 1)}m`;
+  if (n >= 1e3) return `US$${Math.round(n / 1e3)}k`;
+  return usd(n);
+}
+
+/** Volza's figures as fact rows, each with the one source line the licence asks for. */
+export function volzaRows(v: VolzaExports): { label: string; value: string }[] {
+  const window = formatDayRange(v.window_start, v.window_end);
+  const rows = [
+    { label: "Shipments", value: `${v.shipments.toLocaleString("en-GB")}${window ? ` · ${window}` : ""}` },
+  ];
+  if (v.fob_usd !== null) rows.push({ label: "Export value", value: `${formatUsdShort(v.fob_usd)} FOB` });
+  if (v.buyers !== null) rows.push({ label: "Buyers", value: v.buyers.toLocaleString("en-GB") });
+  const top = v.top_shipments[0];
+  if (top) {
+    const dest = top.destination_country && top.destination_country !== "Not Available" ? top.destination_country : null;
+    rows.push({
+      label: "Largest shipment",
+      value: [
+        // Volza sends "2026-03-24T00:00:00" with no zone: the day is the text, never a local midnight.
+        formatDay(top.shipment_date?.slice(0, 10)),
+        top.product_description,
+        top.buyer_name ? `to ${top.buyer_name}${dest ? ` (${dest})` : ""}` : dest ? `to ${dest}` : null,
+        top.trade_value_usd !== null ? usd(top.trade_value_usd) : null,
+        top.unit_rate_usd !== null ? `${usd(top.unit_rate_usd, 2)} per ${(top.unit ?? "unit").toLowerCase()}` : null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    });
+  }
+  return rows;
+}
+
+export function volzaSource(v: VolzaExports): string {
+  return `Customs shipment records via Volza · fetched ${formatDay(v.fetched_at) ?? "date unknown"}`;
+}
+
 /** Who publishes each scheme's list, and how stale a check may be (spec-etl-freshness §3). */
 const CERT_BODY: Record<string, { name: string; slaHours: number }> = {
   gots: { name: "GOTS", slaHours: 72 },

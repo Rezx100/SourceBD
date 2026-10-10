@@ -215,3 +215,22 @@ Which option for the 2,388 EPB-registered suppliers: A (top 1), B (top 3, recomm
 Then: **may I build the real fetch with a cap of $385 (A), $615 (B) or $1,420 (C)?** The cap is the high
 end of the range above; the script stops there even if more suppliers match than expected. Nothing is
 spent until you run it, and the table and migration need your "apply" first.
+
+## 8. The 200-supplier sample, stored and shown (11 Oct 2026)
+
+Founder, 11 Oct: keep the 200 sample results for one year and show them on the front end; visible to
+Growth/Enterprise buyers and admins only.
+
+- **Table** `volza_export_checks` (migration 0137): one row per supplier, matches and "nothing found"
+  alike, so a fetch within the year skips them instead of paying again. `expires_at` is at most one year
+  after `fetched_at` (a check constraint); the read deletes expired rows and never returns one.
+- **Read** `supplier_volza_exports(slug)`: null unless the reader is an admin or on Growth/Enterprise and
+  not suspended; only `exact` matches (41 of the 200). Dry run on production, 11 Oct, rolled back:
+  anonymous null, admin 406 shipments, free user null, a row kept 13 months refused, an expired row
+  deleted and not returned. Waits for "apply 0137".
+- **Load** `python ops/volza_load_sample.py` (dry run: 200 rows, 41 shown, expiry 10 Oct 2027);
+  `--apply` writes them, after 0137 is applied. No Volza calls.
+- **Shown** on the record's Products tab under Export lines: "Customs shipments", with shipments and the
+  two-year window, FOB value, buyer count and the largest shipment, and one source line "Customs
+  shipment records via Volza · fetched 10 Oct 2026". Test: `app/(app)/app/record-routes.test.ts`.
+- Today one account has a Growth/Enterprise plan and one is an admin; everyone else sees nothing.

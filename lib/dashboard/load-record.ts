@@ -15,7 +15,7 @@ import { isProfileRpcTimeout } from "@/lib/public-supplier-profile";
 import { hscodesFromRpc } from "@/lib/epb-hscodes";
 import { geocodeTargets } from "@/lib/barikoi";
 import { buildProductSheet, buildSheet, locationTargets, type ProfilePayload, type RecordInput } from "./build-models";
-import { formatCount, formatDay, type CertChecks } from "./facts";
+import { formatCount, formatDay, type CertChecks, type VolzaExports } from "./facts";
 import { heading4, hsCatalogueRow } from "./hs-photos";
 import { sanitizeFacilityPanel, type FacilityPanel } from "@/lib/format-facility-group";
 import type { ContactCounts, ProductSheetModel, RecordRfqRow, SupplierSheetModel } from "./models";
@@ -171,6 +171,22 @@ export async function fetchCertChecks(supabase: RecordRpc, slug: string): Promis
     const { data, error } = await supabase.rpc("supplier_cert_checks", { p_slug: slug });
     if (error || !data || typeof data !== "object" || !Array.isArray((data as CertChecks).certs)) return null;
     return data as CertChecks;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Customs shipment records via Volza (`supplier_volza_exports`, 0137). The database returns null
+ * unless the reader is an admin or on Growth/Enterprise (Volza's licence: paying users only), so
+ * a null here hides the section; so does a read that failed or 0137 not being applied yet.
+ */
+export async function fetchVolzaExports(supabase: RecordRpc, slug: string): Promise<VolzaExports | null> {
+  try {
+    const { data, error } = await supabase.rpc("supplier_volza_exports", { p_slug: slug });
+    if (error || !data || typeof data !== "object" || typeof (data as VolzaExports).shipments !== "number") return null;
+    const v = data as VolzaExports;
+    return { ...v, top_shipments: Array.isArray(v.top_shipments) ? v.top_shipments : [] };
   } catch {
     return null;
   }
@@ -366,6 +382,7 @@ export async function loadRecordSheet(
   const facilitiesRead = fetchFacilityPanel(supabase, slug);
   const sanctionsRead = fetchSanctionsRead(supabase);
   const certChecksRead = fetchCertChecks(supabase, slug);
+  const volzaRead = fetchVolzaExports(supabase, slug);
   // Opened from a row that carries the id: the reads keyed by it start now,
   // beside the profile (founder's video, 29 Sep 2026: every open waited on a
   // second round trip after the first).
@@ -391,7 +408,7 @@ export async function loadRecordSheet(
         .then((found) => found?.map((g) => (g ? { latitude: g.latitude, longitude: g.longitude, confidencePct: g.confidencePct, addressStatus: g.addressStatus } : null)))
         .catch(() => undefined)
     : Promise.resolve(undefined);
-  const [workers, contactCounts, saved, rfqs, facilities, pins, sanctionsReadAt, certChecks] = await Promise.all([
+  const [workers, contactCounts, saved, rfqs, facilities, pins, sanctionsReadAt, certChecks, volza] = await Promise.all([
     // A failed batch leaves the figure the record's own payload carries.
     reuse ? reuse.workers : fetchDisplayWorkersBatch(supabase, [supplierId]).catch(() => null),
     countsRead,
@@ -401,6 +418,7 @@ export async function loadRecordSheet(
     pinsRead,
     sanctionsRead,
     certChecksRead,
+    volzaRead,
   ]);
   if (workers) assignWorkers([record], workers);
   return buildSheet(record.input, {
@@ -410,6 +428,7 @@ export async function loadRecordSheet(
     pins,
     sanctionsReadAt,
     certChecks,
+    volza,
     saved,
     supplierId,
     rfqs,
