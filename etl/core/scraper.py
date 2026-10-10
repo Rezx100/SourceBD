@@ -105,6 +105,10 @@ class ScrapedRecord:
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
+# How often gated() tells the queue a run is alive (records read between beats).
+HEARTBEAT_EVERY = 25
+
+
 class BaseScraper(abc.ABC):
     """Inherit and implement `fetch()`. Lifecycle: run() handles run-log + commit."""
 
@@ -144,7 +148,20 @@ class BaseScraper(abc.ABC):
         from etl.core.breaker import Breaker
         from etl.core.upsert import classify_record  # local import: avoids cycle
 
+        read = 0
         async for rec in self.fetch():
+            read += 1
+            if read % HEARTBEAT_EVERY == 0 and self.progress_callback is not None:
+                # Every run loop reads through here, so this is the one place a
+                # long read tells the queue it is alive; without it a 3-hour
+                # OEKO-TEX read was reaped as dead while still writing (10 Oct 2026).
+                self.progress_callback({
+                    "etl_run_id": self.last_run_id,
+                    "scraper_code": self.code,
+                    "event_type": "heartbeat",
+                    "message": f"Read {read:,} records so far.",
+                    "records_seen": read,
+                })
             with db.conn() as c, c.cursor() as cur:
                 if self.breaker is None:
                     cur.execute(
