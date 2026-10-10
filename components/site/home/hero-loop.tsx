@@ -2,9 +2,9 @@
 
 // The hero's 8 s cotton loop (public/site/home/hero-loop-720.*, PROVENANCE.md) over the still. It is not in the
 // server's HTML: the video element is added once the page has loaded, so the first paint is the still alone, and it
-// is never added under reduced motion or Save-Data. It sits behind the screen, muted, looping, inline, with the
-// still as its poster, and fades in when it can play, so there is no jump and no layout shift (it fills a box that
-// already has its size).
+// is never added under reduced motion, Save-Data or below 768 px. It sits behind the screen, muted, looping, inline,
+// with the still as its poster, and fades in when it can play, so there is no jump and no layout shift (it fills a
+// box that already has its size).
 
 import { useEffect, useState } from "react";
 
@@ -14,14 +14,20 @@ export function HeroLoop() {
 
   useEffect(() => {
     const saver = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true;
-    if (saver || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const still = matchMedia("(prefers-reduced-motion: reduce)");
+    // A phone's stage is a thin border of cloth around the screen: not worth 340 KB.
+    if (saver || still.matches || matchMedia("(max-width: 767px)").matches) return;
     const start = () => setOn(true);
-    if (document.readyState === "complete") {
-      const id = window.setTimeout(start, 300);
-      return () => window.clearTimeout(id);
-    }
-    window.addEventListener("load", start, { once: true });
-    return () => window.removeEventListener("load", start);
+    // Reduced motion switched on while the page is open stops the loop at once.
+    const stop = (e: MediaQueryListEvent) => e.matches && setOn(false);
+    still.addEventListener("change", stop);
+    const id = document.readyState === "complete" ? window.setTimeout(start, 300) : undefined;
+    if (id === undefined) window.addEventListener("load", start, { once: true });
+    return () => {
+      still.removeEventListener("change", stop);
+      window.clearTimeout(id);
+      window.removeEventListener("load", start);
+    };
   }, []);
 
   if (!on) return null;
