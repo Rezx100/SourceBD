@@ -159,15 +159,18 @@ added. "Left" is after the $25.20 already spent.
 
 | option | matched (low–high) | cost incl. 10% (low–high) | left of $3,000 at the high end |
 | -- | -- | -- | -- |
-| A: summary + top 1 shipment | 1,615–2,092 | $352–$378 | $2,597 |
-| **B: summary + top 3 shipments** | 1,615–2,092 | **$529–$608** | **$2,367** |
-| C: summary + top 10 shipments | 1,615–2,092 | $1,151–$1,413 | $1,562 |
+| A: summary + top 1 shipment | 1,615–2,092 | $355–$382 | $2,593 |
+| **B: summary + top 3 shipments** | 1,615–2,092 | **$533–$612** | **$2,363** |
+| C: summary + top 10 shipments | 1,615–2,092 | $1,154–$1,418 | $1,557 |
+
+All figures above come from `python ops/volza_live_sample.py --summarize` (it prints the group
+split and these tables; subtract the $25.20 already spent for "left").
 
 **The other 5,398 suppliers** (5% match): about 244 matches for about $607 at option A, since
 roughly 5,150 misses cost $0.10 each. That is $2.49 per exporter found, against about $0.20 in the EPB
 group. Better spent on demand: look a supplier up when a paying buyer opens its profile ($0.10–$0.25).
 
-For reference, all 7,786 at the sample's 29%: A $1,094, B $1,343, C $2,212 (from `--summarize`).
+For reference, all 7,786 (23–35% match): A $957–$1,013, B $1,152–$1,315, C $1,832–$2,373.
 
 ## 5. Constraints found
 
@@ -199,15 +202,16 @@ For reference, all 7,786 at the sample's 29%: A $1,094, B $1,343, C $2,212 (from
   Volza, fetched <date>". Not on public pages, not in any export or API.
 - **Script**: built from `ops/volza_live_sample.py`, which already has the spend controls tested
   (`etl/tests/test_volza_live_sample.py`): `--apply` only, `--max-spend` checked before every call against
-  the larger of our price tally and Volza's account counter, stops at the cap, resumes from where it
-  stopped, never follows pagination. Add: the EPB-only scope, the chosen record count, no retries, and a
-  check that `api_request_details` echoes every filter sent. The founder runs it (the guard hook refuses
+  the larger of our price tally and the rise in Volza's account counter (read first with a free sandbox
+  call), counts network and server errors as the worst case and stops, stops at the cap, resumes from
+  where it stopped, never follows pagination, no retries. Add: the EPB-only scope, the chosen record
+  count, and a check that `api_request_details` echoes every filter sent. The founder runs it (the guard hook refuses
   `--apply` from an agent).
 - Everyone outside the EPB group: on demand only, when a paying buyer opens the profile.
 
 ## 7. The question
 
 Which option for the 2,388 EPB-registered suppliers: A (top 1), B (top 3, recommended) or C (top 10)?
-Then: **may I build the real fetch with a cap of $380 (A), $610 (B) or $1,415 (C)?** The cap is the high
+Then: **may I build the real fetch with a cap of $385 (A), $615 (B) or $1,420 (C)?** The cap is the high
 end of the range above; the script stops there even if more suppliers match than expected. Nothing is
 spent until you run it, and the table and migration need your "apply" first.

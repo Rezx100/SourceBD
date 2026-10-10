@@ -6,10 +6,11 @@ most $30, and never more than one shipment record per call.
 
 Spend control: before every call, spent-so-far plus the worst case for one call ($0.10 search +
 $0.05 x 1 record) must stay within --max-spend, or the run stops. Spent-so-far is the larger of
-our own tally (Volza's published prices) and 3,000 minus the X-Credit-Remaining header (the plan
-started at $3,000 with nothing used). A call that costs more than the worst case also stops it.
-No pagination is ever followed. Progress is saved per supplier, so a rerun resumes and the
-spend from earlier runs still counts toward the cap.
+our own tally (Volza's published prices) and the rise in the account's X-Credit-Used header since
+the run started (read first with a free sandbox call; without it, from zero, which overcounts).
+A call whose header rise exceeds the worst case stops it, as do network and server errors, which
+count as the worst case. No pagination is ever followed. Progress is saved per supplier, so a
+rerun resumes and the spend from earlier runs still counts toward the cap.
 
   python ops/volza_live_sample.py              # what it would do; no key read, no calls
   python ops/volza_live_sample.py --apply      # run it (cap $30)
@@ -44,7 +45,6 @@ SEED = 20261010
 RECORDS = 1  # one shipment record per call, never the full list
 WORST_CALL = 0.10 + 0.05 * RECORDS
 CAP_LIMIT = 30.0  # the founder's approved ceiling; --max-spend cannot go above it
-PLAN_CREDIT = 3000.0
 
 
 class Stop(Exception):
@@ -63,11 +63,30 @@ def production_key() -> str:
     return key
 
 
+def account_used() -> float | None:
+    """The account's X-Credit-Used now, read with a free sandbox call (the header is account-wide)."""
+    from volza_export_dryrun import Volza as Sandbox
+
+    try:  # countries/list carries no credit headers; a sandbox export query does, and is free
+        r = Sandbox().http.post("/bangladesh-exports", json={
+            "hsn_code": ["61"], "supplier_name": ["Square Fashions"], "start_date": "2021-01-01",
+            "end_date": "2021-03-31", "max_count_per_page": 1})
+        used = r.headers.get("X-Credit-Used")
+        return float(used) if used is not None else None
+    except (httpx.HTTPError, SystemExit):
+        return None
+
+
 class Live:
-    def __init__(self, cap: float, spent_before: float, http: httpx.Client | None = None) -> None:
+    def __init__(self, cap: float, spent_before: float, http: httpx.Client | None = None,
+                 start_used: float | None = None) -> None:
         self.cap = cap
         self.tally = spent_before
+        self.spent_before_run = spent_before
         self.header_spent = 0.0
+        # the account's X-Credit-Used before this run (None: unknown, measured from zero)
+        self.start_used = start_used
+        self.prev_used: float | None = start_used
         self.http = http or httpx.Client(
             base_url=BASE, timeout=60, headers={"Authorization": f"Bearer {production_key()}"})
         self.last = 0.0
@@ -87,28 +106,43 @@ class Live:
             if wait > 0:
                 time.sleep(wait)
             self.last = time.monotonic()
-            r = self.http.post("/bangladesh-exports", json=body)
+            try:
+                r = self.http.post("/bangladesh-exports", json=body)
+            except httpx.HTTPError as e:  # Volza may have billed it; count the worst case and stop
+                self.tally += WORST_CALL
+                raise Stop(f"network error, counted ${WORST_CALL:.2f} as spent: {type(e).__name__}") from e
             self.calls += 1
-            if r.status_code in (429, 500, 502, 503, 504):  # not charged (Volza pricing docs)
-                time.sleep(60 if r.status_code == 429 else 10)
+            self._read_headers(r)
+            if r.status_code == 429:  # rate limit: not charged (Volza pricing docs)
+                time.sleep(60)
                 continue
             if r.status_code == 402:
                 raise Stop("Volza says the credit is used up (402)")
+            if r.status_code >= 500:  # billing unknown: count the worst case and stop, no blind retries
+                self.tally += WORST_CALL
+                raise Stop(f"Volza server error {r.status_code}, counted ${WORST_CALL:.2f} as spent")
             data = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
-            recs = data.get("api_records") or [] if isinstance(data, dict) else []
+            recs = (data.get("api_records") or []) if isinstance(data, dict) else []
             if len(recs) > RECORDS:
                 raise Stop(f"Volza returned {len(recs)} records for max_count_per_page={RECORDS}")
             cost = (0.10 + 0.05 * len(recs)) if r.status_code == 200 else 0.0  # 400s are free
             self.tally += cost
-            remaining = r.headers.get("X-Credit-Remaining")
-            if remaining is not None:
-                before = self.header_spent
-                self.header_spent = max(self.header_spent, PLAN_CREDIT - float(remaining))
-                if self.header_spent - before > WORST_CALL + 0.001 and before > 0:
-                    raise Stop(f"one call cost ${self.header_spent - before:.3f}, above the "
-                               f"${WORST_CALL:.2f} worst case; prices differ from the docs")
             return r.status_code, data, cost
         return 429, {}, 0.0
+
+    def _read_headers(self, r: httpx.Response) -> None:
+        used = r.headers.get("X-Credit-Used")
+        if used is None:
+            return
+        used = float(used)
+        if self.start_used is None:  # no pre-run reading: measure from the plan's untouched $3,000
+            self.start_used = 0.0
+        step = None if self.prev_used is None else used - self.prev_used
+        self.prev_used = used
+        self.header_spent = max(self.header_spent, self.spent_before_run + used - self.start_used)
+        if step is not None and step > WORST_CALL + 0.001:  # recorded above first, then stop
+            raise Stop(f"one call cost ${step:.3f}, above the ${WORST_CALL:.2f} "
+                       "worst case; prices differ from the docs or someone else is spending")
 
 
 def sample_rows() -> list[dict[str, Any]]:
@@ -126,7 +160,7 @@ def run(cap: float) -> None:
     done = load()
     seen = {r["id"] for r in done}
     todo = [r for r in sample_rows() if r["id"] not in seen]
-    v = Live(cap, sum(r["cost"] for r in done))
+    v = Live(cap, sum(r["cost"] for r in done), start_used=account_used())
     print(f"{len(done)} done, {len(todo)} to go, ${v.spent:.2f} already spent, cap ${cap:.2f}")
     try:
         with OUT.open("a", encoding="utf-8") as out:
@@ -155,9 +189,7 @@ def run(cap: float) -> None:
                     for name in r["variants"]:
                         if attempt(name):
                             break
-                    full = (r["company_name"] or "").strip()
-                    if rec["suppliers"] > 1 and full.lower() != (rec["matched_variant"] or "").lower():
-                        attempt(full)
+                    # no full-legal-name retry for ambiguous names: 11 of 15 found nothing (report §2)
                 finally:
                     if rec["tried"]:  # whatever was paid for is saved, even when the cap stops us mid-supplier
                         rec["class"] = classify(r["company_name"], rec["volza_supplier"],
@@ -184,16 +216,36 @@ def summarize() -> None:
         by[r["class"]] = by.get(r["class"], 0) + 1
     print(f"checked {n}/{SAMPLE}, matched {len(hits)} = {p:.1%} (95% range {p - half:.1%} to {p + half:.1%})")
     print("classes", by, "| spent $", round(sum(r["cost"] for r in recs), 2))
-    unmatched = [r for r in recs if not r["shipments"]]
-    ratios = {
-        "miss_per_unmatched": sum(len(r["tried"]) for r in unmatched) / max(len(unmatched), 1),
-        "miss_per_matched": sum(1 for r in hits for t in r["tried"] if not t[2]) / max(len(hits), 1),
-        "extra_hit_per_matched": sum(sum(1 for t in r["tried"] if t[2]) - 1 for r in hits) / max(len(hits), 1),
+    cands = {c["id"]: c for c in json.loads(CANDIDATES.read_text(encoding="utf-8"))}
+    groups = {
+        "all RMG": lambda c: True,
+        "EPB 61/62": lambda c: c["epb_6162"],
+        "no EPB 61/62": lambda c: not c["epb_6162"],
+        "BGMEA": lambda c: c["bgmea"],
+        "BKMEA": lambda c: c["bkmea"],
     }
-    rmg = len(json.loads(CANDIDATES.read_text(encoding="utf-8")))
-    for label, rate in (("low end", p - half), ("sample rate", p), ("high end", p + half)):
-        print(f"\n### {label}: {round(rmg * rate)} of {rmg} matched\n")
-        print(cost_table(rmg, round(rmg * rate), ratios))
+    for label, keep in groups.items():
+        g = [r for r in recs if keep(cands[r["id"]])]
+        gh = [r for r in g if r["shipments"]]
+        gp = len(gh) / max(len(g), 1)
+        gh_half = 1.96 * math.sqrt(gp * (1 - gp) / max(len(g), 1))
+        size = sum(1 for c in cands.values() if keep(c))
+        print(f"\n### {label}: {len(gh)}/{len(g)} matched = {gp:.0%} ({gp - gh_half:.0%} to {gp + gh_half:.0%}), "
+              f"{size} suppliers in the group")
+        if label in ("all RMG", "EPB 61/62"):
+            for end, rate in (("low", gp - gh_half), ("high", gp + gh_half)):
+                print(f"\n{end} end, {round(size * rate)} matched, one call per supplier, no retries:\n")
+                print(cost_table(size, round(size * rate), _ratios(g)))
+
+
+def _ratios(recs: list[dict[str, Any]]) -> dict[str, float]:
+    hits = [r for r in recs if r["shipments"]]
+    unmatched = [r for r in recs if not r["shipments"]]
+    return {  # retries are dropped from the real fetch, so only first-name misses count
+        "miss_per_unmatched": 1.0 if unmatched else 0.0,
+        "miss_per_matched": sum(1 for r in hits if not r["tried"][0][2]) / max(len(hits), 1),
+        "extra_hit_per_matched": 0.0,
+    }
 
 
 def main() -> None:
@@ -208,7 +260,7 @@ def main() -> None:
     elif not a.apply:
         rows = sample_rows()
         calls = sum(len(r["variants"]) for r in rows)
-        print(f"would check {len(rows)} suppliers, {calls} name tries at most before narrowing retries, "
+        print(f"would check {len(rows)} suppliers, {calls} name tries at most, "
               f"window {WINDOW[0]}..{WINDOW[1]}, {RECORDS} record per call, worst case "
               f"${calls * WORST_CALL:.2f}, hard cap ${min(a.max_spend, CAP_LIMIT):.2f}. Pass --apply to run.")
     else:

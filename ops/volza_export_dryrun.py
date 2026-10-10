@@ -1,12 +1,12 @@
 """Dry run: how many of our garment suppliers Volza holds Bangladesh export records for.
 
 Sandbox key only (VOLZA_SANDBOX_KEY). This script never reads the production key and has
-no live mode; the real fetch is a separate script built after the founder approves a spend.
-Every Volza response's X-Credit-Used header is checked and the run stops on anything above 0.
+no live mode; live calls live in ops/volza_live_sample.py. X-Credit-Used is the whole
+account's total, so the run stops if it rises above the value it found at the start.
 
 Steps (run from the repo root so etl/.env loads):
   candidates  read published RMG suppliers (BGMEA/BKMEA member or EPB HS 61/62) -> JSON
-  match       per supplier: companies/search + bangladesh-exports (Q1 2021), resumable
+  match       per supplier: bangladesh-exports by name (Q1 2021), resumable
   overview    summary + top 5 for three known exporters, and the filter tests
   summarize   match rate, classes, 50-row hand-check sample, cost table
 
@@ -172,11 +172,11 @@ def shipments(resp: Any) -> int:
 def _rest_all(http: httpx.Client, path: str) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     while True:
-        r = http.get(path, headers={"Range": f"{len(out)}-{len(out) + 999}"})
+        r = http.get(f"{path}&limit=1000&offset={len(out)}")  # past the end: 200 with [], not a 416
         r.raise_for_status()
-        out += r.json()
-        if len(r.json()) < 1000:
+        if not r.json():  # stop on an empty page, whatever page size the server caps us at
             return out
+        out += r.json()
 
 
 def rmg_rows() -> list[dict[str, Any]]:
@@ -336,8 +336,6 @@ def cmd_summarize(_: argparse.Namespace) -> None:
     hits = [r for r in recs if r["shipments"]]
     print("export errors", sum(1 for r in recs for t in r["tried"] if t[1] != 200))
     print("matched on a later variant", sum(1 for r in hits if r["tried"][0][2] == 0))
-    print("narrowed by the full legal name", sum(1 for r in hits if len(r["tried"]) > 1 and r["tried"][-1][2]
-                                                  and r["tried"][-1][0] == r["matched_variant"] and r["tried"][0][2]))
     print("median shipments", sorted(r["shipments"] for r in hits)[matched // 2] if matched else 0)
     ratios = {
         "miss_per_unmatched": sum(len(r["tried"]) for r in unmatched) / max(len(unmatched), 1),
