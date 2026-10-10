@@ -82,6 +82,18 @@ def worst(records: int) -> float:
     return 0.10 + 0.05 * records
 
 
+def save(out: list[dict[str, Any]], label: str, sent: dict[str, Any], st: int, data: Any) -> None:
+    """Saved per call, before the next one can stop the run."""
+    d = data if isinstance(data, dict) else {}
+    recs = d.get("api_records") or []
+    out.append({"label": label, "sent": sent, "status": st, "echo": d.get("api_request_details"),
+                "summary": d.get("api_summary"), "records": recs, "error": d.get("errors") or d.get("error")})
+    OUT.write_text(json.dumps(out, indent=1, ensure_ascii=False), encoding="utf-8")
+    s = d.get("api_summary") or {}
+    print(f"{label:32} {st} shipments={s.get('count_of_shipments')} "
+          f"exporters={s.get('count_of_suppliers')} records={len(recs)}")
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--apply", action="store_true", help="spend real credit (production key)")
@@ -102,16 +114,15 @@ def main() -> None:
     try:
         for label, f, n in todo:
             v.records = n  # the guard's worst case follows the records this call asks for
-            st, data, _ = v.search(f)
-            d = data if isinstance(data, dict) else {}
-            recs = d.get("api_records") or []
-            # saved per call, before the next one can stop the run
-            out.append({"label": label, "sent": f, "status": st, "echo": d.get("api_request_details"),
-                        "summary": d.get("api_summary"), "records": recs, "error": d.get("errors") or d.get("error")})
-            OUT.write_text(json.dumps(out, indent=1, ensure_ascii=False), encoding="utf-8")
-            s = d.get("api_summary") or {}
-            print(f"{label:32} {st} shipments={s.get('count_of_shipments')} "
-                  f"exporters={s.get('count_of_suppliers')} records={len(recs)}")
+            v.last_response = None
+            try:
+                st, data, _ = v.search(f)
+            except Stop:
+                r = v.last_response  # billed, then stopped by the header check: keep what was paid for
+                if r is not None and r.headers.get("content-type", "").startswith("application/json"):
+                    save(out, label, f, r.status_code, r.json())
+                raise
+            save(out, label, f, st, data)
     except Stop as e:
         print(f"STOPPED: {e}")
     print(f"calls={v.calls}; spent: our tally ${v.tally:.2f}, by Volza's header ${v.header_spent:.2f} -> {OUT}")

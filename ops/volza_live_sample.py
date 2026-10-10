@@ -92,6 +92,7 @@ class Live:
             base_url=BASE, timeout=60, headers={"Authorization": f"Bearer {production_key()}"})
         self.last = 0.0
         self.calls = 0
+        self.last_response: httpx.Response | None = None
 
     @property
     def spent(self) -> float:
@@ -121,6 +122,7 @@ class Live:
                 self.tally += self.worst
                 raise Stop(f"network error, counted ${self.worst:.2f} as spent: {type(e).__name__}") from e
             self.calls += 1
+            self.last_response = r  # kept: the header check below may stop after Volza billed it
             self._read_headers(r)
             if r.status_code == 429:  # rate limit: not charged (Volza pricing docs)
                 time.sleep(60)
