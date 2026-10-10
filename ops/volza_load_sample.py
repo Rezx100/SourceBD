@@ -44,6 +44,9 @@ def rows(recs: list[dict[str, Any]], fetched_at: datetime) -> list[dict[str, Any
     """fetched_at stands in for rows that carry no time of their own (the sample)."""
     out = []
     for r in recs:
+        if not any(t[1] == 200 for t in r["tried"]):  # Volza answered none of its searches: not "nothing found"
+            print(f"skipped {r['name']!r}: no search for it succeeded {[t[1] for t in r['tried']]}")
+            continue
         at = datetime.fromisoformat(r["fetched_at"]) if r.get("fetched_at") else fetched_at
         expires = one_year_on(at)
         hit = bool(r["shipments"])
@@ -62,6 +65,9 @@ def rows(recs: list[dict[str, Any]], fetched_at: datetime) -> list[dict[str, Any
             "fetched_at": at.isoformat(),
             "expires_at": expires.isoformat(),
         })
+        if any("summary" in x for x in recs):  # files that kept the whole preview (0138 columns)
+            out[-1].update(summary=r.get("summary") if hit else None,
+                           top_record=r["top"] if hit and r.get("summary") else None)
     return out
 
 
@@ -86,6 +92,8 @@ def main() -> None:
         return
     from etl.core.config import settings
 
+    if not settings.supabase_url:  # .env is read from the current folder
+        raise SystemExit("no Supabase address: run this from E:\\SourceBD so .env loads. Nothing written.")
     key = settings.supabase_service_role_key
     http = httpx.Client(base_url=f"{settings.supabase_url}/rest/v1", timeout=60,
                         headers={"apikey": key, "Authorization": f"Bearer {key}"})
