@@ -71,6 +71,8 @@ describe("one certificate component", () => {
     // The popover's words: every body's whole sentence, read from the source (closed, it is not rendered).
     assert.match(read("patterns", "cert-summary.tsx"), /\{b\.words\}/);
     assert.match(read("patterns", "cert-summary.tsx"), /onPointerEnter=\{\(e\) => e\.pointerType === "mouse" && setOpen\(true\)\}/, "a mouse opens it on hover");
+    // Founder, 10 Oct 2026: left open on a scroll, it rode over the sticky search bar. Any scroll closes it.
+    assert.match(read("patterns", "cert-summary.tsx"), /addEventListener\("scroll", close, \{ capture: true, passive: true \}\)/);
   });
 
   it("the record's chip shares the radius: every chip in the kit is 6px, none 4px or a pill", () => {

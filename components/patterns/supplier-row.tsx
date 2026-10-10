@@ -58,18 +58,22 @@ export function SupplierRow({
     base
   );
   const box = "flex flex-col border-b border-line outline-none last:border-b-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus";
+  // The link covers the row (`after:inset-0`); the certificate marks sit beside it, not inside, so a
+  // tap on them opens their words (a button cannot nest in a link) and a tap anywhere else opens the record.
   if (layout === "phone")
     return (
-      <Link href={href} aria-current={selected ? "true" : undefined} className={cn(box, "min-h-11 gap-1 px-4 py-3 hover:bg-brand-wash", selected && "bg-brand-tint")}>
-        <span data-name="" title={name} className={cn(oneLine, "text-md font-medium text-ink")}>
-          {spoken}
-          <LinkPending className="ml-1.5 inline-block align-[-2px]" />
-        </span>
-        <span data-name="" className={cn(oneLine, "text-sm text-ink-3")}>
-          {kind} · {noun(sources)}
-        </span>
-        {problem ? <span className="text-sm">{problem}</span> : null}
-      </Link>
+      <div className={cn("relative min-h-11 gap-1 px-4 py-3 hover:bg-brand-wash has-[>a:focus-visible]:outline has-[>a:focus-visible]:outline-2 has-[>a:focus-visible]:outline-offset-[-2px] has-[>a:focus-visible]:outline-focus", box, selected && "bg-brand-tint")}>
+        <Link href={href} aria-current={selected ? "true" : undefined} className="flex flex-col gap-1 outline-none after:absolute after:inset-0 after:content-['']">
+          <span data-name="" title={name} className={cn(oneLine, "text-md font-medium text-ink")}>
+            {spoken}
+            <LinkPending className="ml-1.5 inline-block align-[-2px]" />
+          </span>
+          <span data-name="" className={cn(oneLine, "text-sm text-ink-3")}>
+            {kind} · {noun(sources)}
+          </span>
+        </Link>
+        {problem ? <span className="pointer-events-none relative z-raised self-start text-sm [&_button]:pointer-events-auto">{problem}</span> : null}
+      </div>
     );
   // The name's link covers the row (`after:inset-0`), so a click anywhere opens the record; the tick
   // and the menu sit above it. The link carries `data-open` for the row's Enter and arrow keys.

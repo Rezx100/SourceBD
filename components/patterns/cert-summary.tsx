@@ -4,12 +4,14 @@
 // first mark read as a stray warning). A mark whose body has a lapsed or lapsing certificate lights
 // up: a caution frame and a corner glyph, XCircle for expired and Clock for expiring (shape tells
 // them apart; red is never a date). Hover with a mouse, or tap or press Enter, and every body's
-// sentence opens under the marks. Inside a link (the pane and phone lists) a button cannot nest, so
-// `reveal` is off there: the marks still light up and the row opens the record with every certificate.
+// sentence opens under the marks. Inside a link (the pane list) a button cannot nest, so `reveal` is
+// off there: the marks still light up and the row opens the record with every certificate. The phone
+// list sets the marks beside its link, so a tap there opens them. A scroll closes them (founder,
+// 10 Oct 2026: left open, the card rode up over the sticky search bar).
 
 import { CheckCircle, Clock, MinusCircle, XCircle } from "@phosphor-icons/react/dist/ssr";
 import { Popover as P } from "radix-ui";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { popoverClass } from "@/components/kit";
 import { cn } from "@/lib/utils";
 import { SourceMark, hasSourceMark } from "./source-mark";
@@ -82,6 +84,13 @@ function Detail({ cert }: { cert: CertSummary }) {
 export function CertSummaryCell({ cert, reveal = false }: { cert: CertSummary; reveal?: boolean }) {
   const [open, setOpen] = useState(false);
   const mouse = useRef(false);
+  // Any scroll (the page's or a list's own, hence capture) closes it, so it never floats over the bars.
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    addEventListener("scroll", close, { capture: true, passive: true });
+    return () => removeEventListener("scroll", close, { capture: true });
+  }, [open]);
   // A screen reader hears every body the marks show, each with its state, not the marks.
   const said = cert.total === 1 ? cert.first.words : `${cert.total} certificates: ${[cert.first, ...cert.others].map((b) => b.words).join("; ")}`;
   if (!reveal)
@@ -95,7 +104,7 @@ export function CertSummaryCell({ cert, reveal = false }: { cert: CertSummary; r
     <P.Root open={open} onOpenChange={setOpen}>
       <P.Trigger
         type="button"
-        className="-m-1 inline-flex items-center rounded-md p-1 outline-none hover:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus data-[state=open]:bg-sunken"
+        className="-m-1 inline-flex items-center rounded-md p-1 outline-none [touch-action:manipulation] max-sm:-m-2 max-sm:min-h-11 max-sm:p-2 hover:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus data-[state=open]:bg-sunken"
         onPointerEnter={(e) => e.pointerType === "mouse" && setOpen(true)}
         onPointerLeave={(e) => e.pointerType === "mouse" && setOpen(false)}
         onPointerDown={(e) => {

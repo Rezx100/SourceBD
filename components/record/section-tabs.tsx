@@ -99,12 +99,15 @@ export function SectionTabs({ tabs, initial }: { tabs: SectionTab[]; initial: Ta
     };
   }, [tabs, initial]);
 
-  // Keep the marked tab in sight inside a strip that overflows sideways (a phone).
+  // Keep the marked tab in sight inside a strip that overflows sideways (a phone): only when it has
+  // left the strip, and at once. A smooth sideways scroll on the stuck strip while the page is still
+  // moving under a finger made it shake (founder, 10 Oct 2026).
   useEffect(() => {
     const bar = nav.current;
     const a = bar?.querySelector<HTMLElement>('[aria-current="page"]');
     if (!bar || !a || bar.scrollWidth <= bar.clientWidth) return;
-    bar.scrollTo({ left: a.offsetLeft - (bar.clientWidth - a.offsetWidth) / 2, behavior: reduced() ? "auto" : "smooth" });
+    if (a.offsetLeft >= bar.scrollLeft && a.offsetLeft + a.offsetWidth <= bar.scrollLeft + bar.clientWidth) return;
+    bar.scrollLeft = a.offsetLeft - (bar.clientWidth - a.offsetWidth) / 2;
   }, [active]);
 
   const go = (e: MouseEvent<HTMLAnchorElement>, t: SectionTab) => {
@@ -131,16 +134,20 @@ export function SectionTabs({ tabs, initial }: { tabs: SectionTab[]; initial: Ta
   };
 
   return (
-    <nav
-      ref={nav}
-      aria-label="Record sections"
-      className="sticky top-[var(--record-head,0px)] z-raised -mx-4 flex gap-1 overflow-x-auto border-b border-line bg-surface px-4 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden"
-    >
-      {tabs.map((t) => (
-        <TabLink key={t.id} href={t.href} current={t.id === active} count={t.count} scroll={false} prefetch={false} onClick={(e) => go(e, t)}>
-          {t.label}
-        </TabLink>
-      ))}
-    </nav>
+    // What sticks is a plain box on its own layer, and the strip that scrolls sideways sits inside it:
+    // a stuck element that is itself a scroller repaints a beat behind the page on a phone and shakes.
+    <div className="sticky top-[var(--record-head,0px)] z-raised -mx-4 bg-surface [transform:translateZ(0)] sm:mx-0">
+      <nav
+        ref={nav}
+        aria-label="Record sections"
+        className="flex gap-1 overflow-x-auto overscroll-x-contain border-b border-line px-4 [scrollbar-width:none] sm:px-0 [&::-webkit-scrollbar]:hidden"
+      >
+        {tabs.map((t) => (
+          <TabLink key={t.id} href={t.href} current={t.id === active} count={t.count} scroll={false} prefetch={false} onClick={(e) => go(e, t)}>
+            {t.label}
+          </TabLink>
+        ))}
+      </nav>
+    </div>
   );
 }

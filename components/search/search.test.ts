@@ -470,6 +470,11 @@ describe("the narrow list and the phone's rows", () => {
     const out = plain(h(PhoneRows, { rows }));
     assert.ok(out.includes('href="/app/suppliers/aboni-knitwear?back=%2Fapp%2Fdiscover%3Fq%3Dknit"'));
     assert.ok(out.includes("Factory · Dhaka · 11 sources"));
+    // Founder, 10 Oct 2026: a tap on the marks did nothing. They sit beside the row's link (a button
+    // cannot nest in one) as a button that opens their words; the rest of the row still opens the record.
+    assert.match(out, /<\/a><span class="pointer-events-none[^"]*\[&_button\]:pointer-events-auto[^"]*"><button type="button" aria-haspopup="dialog"/);
+    assert.doesNotMatch(out, /<a [^>]*>(?:(?!<\/a>)[\s\S])*<button/, "a button inside the link");
+    assert.match(out, /<a [^>]*class="[^"]*after:inset-0/, "the link does not cover the row");
   });
 });
 
