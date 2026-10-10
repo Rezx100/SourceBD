@@ -77,7 +77,9 @@ def main() -> None:
     p.add_argument("--file", type=Path, default=OUT, help="results file (default: the live sample)")
     a = p.parse_args()
     logging.getLogger("httpx").setLevel(logging.WARNING)
-    recs = [json.loads(line) for line in a.file.read_text(encoding="utf-8").splitlines()]
+    recs = [json.loads(line) for line in a.file.read_text(encoding="utf-8").splitlines() if line.strip()]
+    # a resumed batch can hold a partial row and then the full one for the same supplier: the last wins
+    recs = list({r["id"]: r for r in recs}.values())
     fetched_at = datetime.fromtimestamp(a.file.stat().st_mtime, tz=timezone.utc).replace(microsecond=0)
     out = rows(recs, fetched_at)
     if min(one_year_on(datetime.fromisoformat(r["fetched_at"])) for r in out) <= datetime.now(timezone.utc):

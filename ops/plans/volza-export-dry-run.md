@@ -7,7 +7,7 @@ this file holds counts and worked examples only. Every call is Bangladesh export
 only; no import data, no other HS chapters. Founder defaults applied: Volza is Tier 6 cross-check
 data; RMG = BGMEA or BKMEA member, or EPB HS chapter 61/62.
 
-**Spend so far: $35.65** (Volza's counter, read 11 Oct 2026; section 11). Was: **$25.20** of the $3,000 credit (Volza's own counter, read 10 Oct 23:3x), on the
+**Spend so far: $36.65** (Volza's counter after batch 0, 11 Oct 2026; section 11). Was: **$25.20** of the $3,000 credit (Volza's own counter, read 10 Oct 23:3x), on the
 200-supplier live sample the founder approved at up to $30 and ran from their own machine. Sandbox calls cost nothing:
 the account counter read 0.000 through 400+ sandbox calls before the live run started.
 
@@ -436,3 +436,55 @@ the rest for reveals and next year's refresh (every row expires a year after it 
    shipments are filed under?
 2. A volume price for the company transaction summary, for about 2,000 Bangladeshi exporters.
 3. May we use the sandbox key's free company search to decide which production searches to run?
+
+### Batch 0 result (11 Oct 2026, founder ran it; $1.00 by Volza's counter, 35.650 → 36.650)
+
+Ten searches (three approved earlier, seven new), every response saved whole in
+`etl/raw/volza/filter_test.json`.
+
+| check | result | what it means |
+| -- | -- | -- |
+| duplicates removed, Aboni | 4,652 shipments, $97.6m: unchanged | no duplicate flags here; our counts stand. The flag is sent anyway from now on |
+| the 27 EU countries in one call, Aboni | echoed all 27; 2,342 shipments, $60.2m, 81 buyers, 12 EU countries | **one EU call works**; four market calls per supplier, as planned |
+| buyer "Tesco Stores", Aboni | 296 shipments, $8.1m | buyer names work when the buyer is on Volza's company list |
+| brand only "PRIMARK", no supplier | 0 | a brand-first search is not reliable; not used |
+| 10 largest shipments, Aboni | 3 buyers in 10 (New Yorker, Inditex, Moris MJ), 3 countries | the largest shipments name few buyers: the four market calls name more, cheaper |
+| exact name, Utah / UTAH / Square Apparels / Sisal / Rhythm | the same totals and exporter counts as starts-with, every time | either "exact" is ignored, or every swept-in "exporter" is the same name filed under several Volza IDs. Two $0.10 checks without "Ltd" tell which (below) |
+
+**Volza does not charge twice for a shipment record we already bought.** Every call in batch 0
+cost $0.10 even with records, because each record had been fetched before (the 10-record call's
+records were bought in the first run, whose result was lost). The same explains two old gaps: the
+refetch of the 47 cost $4.70 by the counter, exactly 47 × $0.10, not our tally of $7.05; and the
+sample's record fees came to 60 records ($3.00) for 67 record-bearing calls, the 7 repeats free.
+So a market call whose biggest shipment was already bought costs $0.10, and so does fetching any
+supplier again. Package B's top end ($0.55) is an overestimate.
+
+**Next check, $0.30 at most, inside the same $3 cap ($2.00 spent):** exact "Utah Fashions" and exact
+"Aboni Knit Wear", both without "Ltd". No shipment carries those names exactly, so 0 means the
+exact setting works and the "ambiguous" names are one company under several IDs (shown after one
+$0.10 exact call each); the full totals mean it is ignored, and ambiguous names stay hidden.
+
+**Result (founder ran it, 11 Oct; $0.20, counter 36.650 → 36.850; $2.20 of the $3 cap):** both
+returned **0**. The exact setting works, and case does not matter. So for Utah, Square Apparels,
+Sisal and Rhythm, every shipment the starts-with search swept in carries our own legal name: the
+"2–4 exporters" are one company filed under several Volza IDs, not other companies. A name that
+sweeps in others is settled with one exact search on our legal name in its suffix forms: what it
+finds is ours and can be shown; what it does not find stays hidden.
+
+### Batch 1 (proposed, cap $50): `ops/volza_launch.py --batch 1`
+
+Package B, everything Volza returns kept per call (whole response and credit headers), one row per
+supplier in `etl/raw/volza/launch_1.jsonl`, resumable, a refused search never stored as "nothing
+found". In this order until the cap:
+
+1. the 47 exact suppliers already shown: the four market calls for the 38 that ship to more than
+   one country (about $15–23; the biggest shipments already bought cost $0.10 a call);
+2. the 18 held names that swept in other IDs: one exact search each, then the markets for those it
+   settles (about $2–13);
+3. EPB suppliers not yet checked, in a fixed shuffled order (seed 20261011): preview, exact search
+   when needed, markets. About 30–70 suppliers with what is left.
+
+Expected: about 60 suppliers newly shown or completed with UK, US, EU and Canada figures and the
+biggest buyer in each. The market figures stay in the raw file until a database column holds them
+(the card work, spec slice B); previews load with `ops/volza_load_sample.py --file
+etl/raw/volza/launch_1.jsonl` once 0138 is applied. Tests: `etl/tests/test_volza_live_sample.py`.
