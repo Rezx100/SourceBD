@@ -242,3 +242,31 @@ Growth/Enterprise buyers and admins only.
   deletes them if no one reads or loads; **before 10 Oct 2027**, add a daily purge to the VPS cron
   (the `ops/ledger_cron.sh` pattern) or delete the rows by hand. Dry run re-run at the final text, 11 Oct:
   same results, and the free reader's call left the row untouched.
+
+## 9. Checking Volza's company list first (free test, 11 Oct 2026)
+
+Founder, 11 Oct: fetch every company we hold (EPB-listed or not) without paying for empty searches or
+spelling misses. Volza's company list (`companies/search`) is free with the sandbox key and is not the
+2021 shipment data. Script: `ops/volza_directory_test.py` (174 lookups, 0 credit). For each of the 200
+live-sample suppliers it looked up our name (starts-with, Bangladesh) and compared with the paid result:
+
+| | result |
+| -- | -- |
+| suppliers with 2024–26 shipments that are on the list | **58 of 58 (100%)**; exact name 57 (the other is "Alema Textile" vs "Alema Textiles") |
+| suppliers with no shipments that are NOT on the list | **86 of 142 (61%)**: these would be skipped, no charge |
+| no shipments, but the exact name is on the list | 49: on Volza, but no HS 61/62 export in Sep 2024 – Aug 2026 (older exports, other goods or imports). Spelling is not their problem. |
+| how many list entries a name has | a weak signal: requiring 2+ would drop 10 of the 58 real exporters, so not used |
+
+**After 2021.** The list found every one of the 58 suppliers that shipped in 2024–26, so it is not limited
+to 2021: new exporters are on it. (Only 5 of the 58 overlap the saved sandbox 2021 run, too few to count
+"new since 2021" directly; the sandbox's 500 free export searches are spent, so that cannot be re-run.)
+
+**Workflow for every batch:** look the name up on the list; not listed = skip (free); listed = one export
+search using Volza's spelling. Per 200 suppliers: 114 export searches instead of 200, misses 56 instead
+of 142, about $8.60 saved. For all 7,786: about 4,440 searches, about 2,180 misses ($218) instead of
+about 5,530 ($553).
+
+**Limits found.** Sandbox key: 1,000 calls a day, 30,000 a month, and 500 export searches in total
+(spent). The list lookups for all 7,786 fit in 8 days of the daily limit. Whether Volza is happy for the
+sandbox key to pre-screen production work is unasked; the paid lookup with `page_size=1` costs $0.011 a
+supplier (about $86 for all 7,786) and is the clean alternative.
