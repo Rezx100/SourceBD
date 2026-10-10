@@ -144,7 +144,7 @@ describe("/admin/queue", () => {
     given({ admin_queue_list: ok({ total: 120, by_type: {}, rows: [QUEUE_ROW] }) });
     const out = await page("queue/page.js", sp({ type: "cert_doc_review", page: "2" }));
     assert.equal(calls[0]!.args!.p_offset, 50);
-    assert.match(out, /href="\/admin\/queue\?type=cert_doc_review"[^>]*>[^<]*(<svg[^>]*>.*?<\/svg>)?Previous/);
+    assert.match(out, /href="\/admin\/queue\?type=cert_doc_review"[^>]*>[^<]*(<svg[^>]*>.*?<\/svg>)?(?:<span[^>]*>)?Previous/);
     assert.match(out, /href="\/admin\/queue\?type=cert_doc_review&amp;page=3"|href="\/admin\/queue\?type=cert_doc_review&page=3"/);
   });
 });
