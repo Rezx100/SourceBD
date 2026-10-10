@@ -1,4 +1,5 @@
-"""Load the 200-supplier live sample (etl/raw/volza/live_sample.jsonl) into volza_export_checks.
+"""Load the 200-supplier live sample (etl/raw/volza/live_sample.jsonl), or a later batch file
+(--file, e.g. batch_1.jsonl from ops/volza_batch.py), into volza_export_checks.
 
 Needs migration 0137. No Volza calls, no credit. Without --apply it prints what it would write;
 --apply upserts one row per supplier (matches and "nothing found" alike, so a fetch within the year
@@ -40,9 +41,11 @@ def one_year_on(t: datetime) -> datetime:
 
 
 def rows(recs: list[dict[str, Any]], fetched_at: datetime) -> list[dict[str, Any]]:
-    expires = one_year_on(fetched_at)
+    """fetched_at stands in for rows that carry no time of their own (the sample)."""
     out = []
     for r in recs:
+        at = datetime.fromisoformat(r["fetched_at"]) if r.get("fetched_at") else fetched_at
+        expires = one_year_on(at)
         hit = bool(r["shipments"])
         out.append({
             "supplier_id": r["id"],
@@ -56,7 +59,7 @@ def rows(recs: list[dict[str, Any]], fetched_at: datetime) -> list[dict[str, Any
             "fob_usd": round(r["fob_usd"], 2) if hit and r.get("fob_usd") is not None else None,
             "buyers": r.get("buyers") if hit else None,
             "top_shipments": [{k: r["top"].get(k) for k in TOP_KEYS}] if hit and r.get("top") else [],
-            "fetched_at": fetched_at.isoformat(),
+            "fetched_at": at.isoformat(),
             "expires_at": expires.isoformat(),
         })
     return out
@@ -65,13 +68,14 @@ def rows(recs: list[dict[str, Any]], fetched_at: datetime) -> list[dict[str, Any
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--apply", action="store_true", help="write to production")
+    p.add_argument("--file", type=Path, default=OUT, help="results file (default: the live sample)")
     a = p.parse_args()
     logging.getLogger("httpx").setLevel(logging.WARNING)
-    recs = [json.loads(line) for line in OUT.read_text(encoding="utf-8").splitlines()]
-    fetched_at = datetime.fromtimestamp(OUT.stat().st_mtime, tz=timezone.utc).replace(microsecond=0)
+    recs = [json.loads(line) for line in a.file.read_text(encoding="utf-8").splitlines()]
+    fetched_at = datetime.fromtimestamp(a.file.stat().st_mtime, tz=timezone.utc).replace(microsecond=0)
     out = rows(recs, fetched_at)
-    if one_year_on(fetched_at) <= datetime.now(timezone.utc):
-        raise SystemExit("this sample is over a year old; Volza's licence ends its storage. Nothing written.")
+    if min(one_year_on(datetime.fromisoformat(r["fetched_at"])) for r in out) <= datetime.now(timezone.utc):
+        raise SystemExit("some rows are over a year old; Volza's licence ends its storage. Nothing written.")
     print(f"{len(out)} rows, fetched_at {out[0]['fetched_at']}, expires_at {out[0]['expires_at']}")
     print("by class", dict(Counter(r["match_class"] for r in out)),
           "| shown to paying buyers (exact):", sum(1 for r in out if r["match_class"] == "exact"))

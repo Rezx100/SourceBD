@@ -322,3 +322,9 @@ without dropping real ones, so about **1 in 8** listed non-EPB suppliers will ha
 (full legal name for the 3 true "several"). Expect about 5 with shipments. Cost: 38 misses × $0.10 +
 5 hits × $0.15 = about $4.55; **cap $6**. If the hit rate holds near 1 in 8, the full 1,000 would list
 about 390, costing about $45 for about 50 exporters (cap $55), asked separately after the scan ends.
+
+**Batch 1 approved (founder, 11 Oct 2026: "spend only $6", and store the results).** Script:
+`ops/volza_batch.py` (hard cap $6, one search per supplier, the name that found it on the free list;
+Badhan, Trutex and Zehad narrowed by hand). Results go to `etl/raw/volza/batch_1.jsonl`, then into
+`volza_export_checks` through `ops/volza_load_sample.py --file etl/raw/volza/batch_1.jsonl` (matches
+and "nothing found" alike, each row expiring a year after its own fetch time). The founder runs both.
