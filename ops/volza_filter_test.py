@@ -28,8 +28,11 @@ import argparse
 import json
 import logging
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -82,15 +85,22 @@ def worst(records: int) -> float:
     return 0.10 + 0.05 * records
 
 
-def save(out: list[dict[str, Any]], label: str, sent: dict[str, Any], st: int, data: Any) -> None:
-    """Saved per call, before the next one can stop the run."""
-    d = data if isinstance(data, dict) else {}
-    recs = d.get("api_records") or []
-    out.append({"label": label, "sent": sent, "status": st, "echo": d.get("api_request_details"),
-                "summary": d.get("api_summary"), "records": recs, "error": d.get("errors") or d.get("error")})
+def save(out: list[dict[str, Any]], label: str, sent: dict[str, Any], r: httpx.Response) -> None:
+    """Everything Volza sent back, saved per call before the next one can stop the run: the whole body
+    (echo, summary, every record, pagination, errors), the credit headers and when it was fetched."""
+    try:
+        d = r.json()
+    except ValueError:
+        d = {"_text": r.text}
+    out.append({"label": label, "sent": json.loads(r.request.content), "filters": sent, "status": r.status_code,
+                "fetched_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+                "credit": {k: v for k, v in r.headers.items() if k.lower().startswith("x-credit")},
+                "response": d})
     OUT.write_text(json.dumps(out, indent=1, ensure_ascii=False), encoding="utf-8")
+    d = d if isinstance(d, dict) else {}
+    recs = d.get("api_records") or []
     s = d.get("api_summary") or {}
-    print(f"{label:32} {st} shipments={s.get('count_of_shipments')} "
+    print(f"{label:32} {r.status_code} shipments={s.get('count_of_shipments')} "
           f"exporters={s.get('count_of_suppliers')} records={len(recs)}")
 
 
@@ -102,7 +112,8 @@ def main() -> None:
     logging.getLogger("httpx").setLevel(logging.WARNING)
     tests = TESTS + (RULES if a.rules else [])
     out: list[dict[str, Any]] = json.loads(OUT.read_text(encoding="utf-8")) if OUT.exists() else []
-    done = {r["label"] for r in out}
+    # a rate-limited or failed call is kept for the record but asked again; a 200 or a 400 is an answer
+    done = {r["label"] for r in out if r["status"] in (200, 400)}
     todo = [t for t in tests if t[0] not in done]
     if not a.apply:
         for label, f, n in todo:
@@ -116,13 +127,10 @@ def main() -> None:
             v.records = n  # the guard's worst case follows the records this call asks for
             v.last_response = None
             try:
-                st, data, _ = v.search(f)
-            except Stop:
-                r = v.last_response  # billed, then stopped by the header check: keep what was paid for
-                if r is not None and r.headers.get("content-type", "").startswith("application/json"):
-                    save(out, label, f, r.status_code, r.json())
-                raise
-            save(out, label, f, st, data)
+                v.search(f)
+            finally:  # also when the header check stops the run after Volza billed the call
+                if v.last_response is not None:
+                    save(out, label, f, v.last_response)
     except Stop as e:
         print(f"STOPPED: {e}")
     print(f"calls={v.calls}; spent: our tally ${v.tally:.2f}, by Volza's header ${v.header_spent:.2f} -> {OUT}")

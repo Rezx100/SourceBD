@@ -103,3 +103,18 @@ def test_loader_never_stores_a_failed_search_as_nothing_found():
             {"id": "b", "name": "B", "tried": [["B", 200, 0, 0]], **base}]
     out = load.rows(recs, datetime(2026, 10, 11, tzinfo=timezone.utc))
     assert [r["supplier_id"] for r in out] == ["b"]
+
+
+def test_filter_check_keeps_everything_volza_sent(tmp_path, monkeypatch):
+    from ops import volza_filter_test as ft
+
+    monkeypatch.setattr(ft, "OUT", tmp_path / "out.json")
+    body = {"api_request_details": {"x": 1}, "api_summary": {"count_of_shipments": 2},
+            "api_records": [{"buyer_name": "B"}], "api_pagination": {"next_cursor": "c"}}
+    req = httpx.Request("POST", ls.BASE + "/bangladesh-exports", json={"supplier_name": ["A"]})
+    r = httpx.Response(200, json=body, headers={"X-Credit-Used": "35.800"}, request=req)
+    out = []
+    ft.save(out, "t", {"supplier_name": ["A"]}, r)
+    saved = json.loads(ft.OUT.read_text(encoding="utf-8"))[0]
+    assert saved["response"] == body and saved["credit"] == {"x-credit-used": "35.800"}
+    assert saved["sent"] == {"supplier_name": ["A"]}
