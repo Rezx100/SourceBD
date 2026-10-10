@@ -237,6 +237,20 @@ describe("the view's rules", () => {
     assert.doesNotMatch(pane, /max-sm:pb-\[calc/);
   });
 
+  it("a phone's bars hold still on a scroll: each on its own layer, and the stuck tabs are not themselves a scroller", () => {
+    // Founder, 10 Oct 2026: the tabs at the top and Save and Send RFQ at the foot "jerk, stutter and shake" on a phone.
+    const page = view(model(), { mode: "page" });
+    const layer = "[transform:translateZ(0)]";
+    assert.ok(/<div data-record-bar="" class="([^"]*)"/.exec(page)![1]!.split(" ").includes(layer), "the top bar repaints with the page");
+    assert.ok(/<div data-record-actions="" class="([^"]*)"/.exec(page)![1]!.split(" ").includes(layer), "the action bar repaints with the page");
+    const stuck = /<div class="([^"]*)"><nav aria-label="Record sections" class="([^"]*)"/.exec(page);
+    assert.ok(stuck, "the tabs have no sticky box of their own");
+    assert.ok(stuck[1]!.split(" ").includes("sticky") && stuck[1]!.split(" ").includes(layer) && !stuck[1]!.includes("overflow"), "what sticks scrolls sideways too");
+    assert.ok(stuck[2]!.split(" ").includes("overflow-x-auto") && !stuck[2]!.split(" ").includes("sticky"));
+    // The strip follows the marked tab at once, never with a smooth scroll while the page moves.
+    assert.doesNotMatch(readFileSync(path.join(dir, "section-tabs.tsx"), "utf8"), /bar\.scrollTo\(/);
+  });
+
   it("on the page, a phone hides the app's bars (data-detail) and the page has a contact column from 1024", () => {
     const page = view(model(), { mode: "page" });
     assert.match(page, /data-detail=""/);
