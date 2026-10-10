@@ -155,3 +155,18 @@ def test_launch_never_records_a_rejected_search_as_nothing_found():
     with pytest.raises(vl.Rejected):
         vl.fetch(v, row, rec)
     assert rec["partial"] and rec["tried"] == [] and rec["cost"] == 0
+
+
+def test_launch_settles_a_held_swept_name_without_a_stored_summary():
+    from ops import volza_launch as vl
+
+    v = _live(lambda req: httpx.Response(200, headers={"X-Credit-Used": "0.000"}, json={
+        "api_summary": {"count_of_shipments": 4568, "count_of_suppliers": 2, "count_of_unique_destination_countries": 1},
+        "api_records": [{"supplier_name": "Utah Fashions Ltd"}]}), start_used=0.0)
+    held = {"id": "u", "slug": "utah", "name": "UTAH Fashions Ltd", "class": "ambiguous", "shipments": 4568,
+            "suppliers": 2, "matched_variant": "UTAH Fashions Ltd", "volza_supplier": "Utah Fashions Ltd",
+            "fob_usd": 1.0, "buyers": 71, "top": {"supplier_name": "Utah Fashions Ltd"}}
+    row = {"id": "u", "slug": "utah", "name": "UTAH Fashions Ltd", "held": held}
+    rec = vl.new_rec(row)
+    vl.fetch(v, row, rec)
+    assert [c["kind"] for c in rec["calls"]] == ["exact"] and rec["class"] == "exact"

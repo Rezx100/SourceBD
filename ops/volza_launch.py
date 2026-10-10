@@ -125,7 +125,11 @@ def fetch(v: Live, row: dict[str, Any], rec: dict[str, Any]) -> None:
         names = [held["matched_variant"]] if held else row["variants"]
         for name in names:
             if held:  # its starts-with result is held; go straight to the exact search
-                data = {"api_summary": held.get("summary") or {"count_of_suppliers": held["suppliers"]},
+                # the sample kept no summary: rebuild the two counts the flow reads from what it kept
+                data = {"api_summary": held.get("summary") or {"count_of_shipments": held["shipments"],
+                                                               "count_of_suppliers": held["suppliers"],
+                                                               "sum_of_trade_value_usd": held.get("fob_usd"),
+                                                               "count_of_buyers": held.get("buyers")},
                         "api_records": [held.get("top") or {"supplier_name": held["volza_supplier"]}]}
                 take(data, name, name)
             else:
