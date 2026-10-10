@@ -45,18 +45,25 @@ export const marketingMetadata: Metadata = {
   },
 };
 
+/** `top` draws above the navigation (the home page's announcement); `footer={false}` leaves the footer to the page. */
 export async function MarketingChrome({
   children,
+  top,
+  footer = true,
 }: {
   children: React.ReactNode;
+  top?: React.ReactNode;
+  footer?: boolean;
 }) {
-  const facts = await loadSiteFacts();
+  // The facts feed only the footer; a page that draws its own footer does not wait for them.
+  const facts = footer ? await loadSiteFacts() : null;
   return (
     <PostHogProvider userId={null}>
       <div className="flex min-h-dvh flex-col bg-surface font-sans text-ink antialiased">
         <ScrollToTop />
         <SkipLink />
-        <SiteNav listed={facts.sourcesListed} withRecords={facts.sourcesWithRecords} />
+        {top}
+        <SiteNav />
         <div
           id="main-content"
           tabIndex={-1}
@@ -64,7 +71,7 @@ export async function MarketingChrome({
         >
           {children}
         </div>
-        <SiteFooter facts={facts} year={new Date().getUTCFullYear()} />
+        {facts ? <SiteFooter facts={facts} year={new Date().getUTCFullYear()} /> : null}
         <CookieBanner />
       </div>
     </PostHogProvider>

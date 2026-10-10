@@ -58,8 +58,8 @@ same PR. Read once per session.
   `development` (PRs #218, #220–#224); promotion to `main` next. Detail:
   `archive/specs-shipped-2026.md`.
 
-- **Home page film v2** — `spec-home-film.md` §"v2" (founder's video, 7 Oct). BUILT 9 Oct: V1 #384, V2 #385, V3 #414,
-  V4 (product, promises, trust) in its PR. Next: promote to `main`; the Paper pages 32/33 are still to draw.
+- **Home page film v2** — `spec-home-film.md` §"v2". BUILT 9 Oct (#384, #385, #414, #416); behind `?film=1` since the
+  Mercury home page (10 Oct, `archive/specs-shipped-2026.md`).
 
 ## Queued
 - **ETL freshness: check each fact as often as it changes** (6 Oct) —

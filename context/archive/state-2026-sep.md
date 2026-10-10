@@ -64,3 +64,7 @@ founder's Q1–Q4 answers and seven design picks are in
   companies; 2,476 with HS codes; company count 10,922). Migration `0103`
   applied. **Frontend HS card is in the working tree, not on the server.**
   Evidence: `ops/plans/rez-113-epb-coverage-evidence.md`.
+
+## Moved from current-state.md, 10 Oct 2026
+
+- **One-line names, fact icons, the video's leftovers (29 Sep)** — slate then dropped for greys and near-black (founder, same day: `accent` has no hue, `.link` underlines). BUILT, on `main` via #213 (deploy waiting), `feature-specs/handoff-dashboard-names-and-facts.md`: PR 0 #206 (z-index tokens, guard in `tokens.test.ts`; on `main`, deploy waiting), A #209 (`splitQualifier`, `OneLine`), B #210 (`factIcon`, certificate rows), C #211 (card rebuilt, `resultsView`), D #212 (tappable reasons, sidebar foot, tour, folded filters). Harness: `.impeccable/preview/build-names30.cjs`. Not done: Linear issues (not connected). The record tabs stick below 768px (phone hand-off M0, M4).

@@ -594,3 +594,11 @@ This file keeps routine agent sessions from scanning every inactive feature spec
 
 ## Loading Rule
 Only open another file under `context/feature-specs/` when the user names that spec, the code path clearly belongs to that old spec, or a regression requires historical acceptance criteria.
+
+- **Home page, Mercury direction** (10 Oct 2026) — the Paper page "32 Home · Mercury direction" (approved 10 Oct) as `/`,
+  desktop and phone from one tree, in `components/site/home/` under its own route group `app/(home)`. Live facts only:
+  the figures from `lib/site-facts.ts`, three record cards and Aboni's callouts from the anon `buyer_supplier_profile`
+  read (`lib/home-records.ts`, ten minutes, each fact with source and date), the chips' counts from `readSearchCount`.
+  Assets converted by `scripts/home-assets.mjs` (provenance in `public/site/home/PROVENANCE.md`). The film moved behind
+  `?film=1`. PRs #421 (assets, icons), #422 (page), #423 (live sections), #424 (motion, loop); handoff
+  `.impeccable/handoff-home-mercury-build.md`.
