@@ -5,8 +5,9 @@ Seven export searches on Aboni Knitwear (Sep 2024 - Aug 2026), production key, s
 checked before every call, Volza's credit header watched. Each result keeps what Volza echoed back
 (api_request_details): a filter missing from the echo was ignored, and its count is the unfiltered one.
 
-  1-3  destination_country Germany / United Kingdom, buyer_country United Kingdom (1 record each)
-  4-5  buyer_name NEW YORKER / H&M                                                 (1 record each)
+  1-2  destination_country_name Germany / United Kingdom                          (1 record each)
+  3-4  buyer_name NEW YORKER / H&M (contains)                                      (1 record each)
+  5    supplier_company_id: Aboni's two IDs on the free company list, no name      (1 record)
   6    no filter, 10 records: which country and buyer fields a record really carries
   7    buyer_name PRIMARK with no supplier: does one brand search list its suppliers?   (1 record)
 
@@ -33,13 +34,17 @@ OUT = RAW / "filter_test.json"
 CAP = 3.0
 NAME = "Aboni Knit Wear"
 TESTS: list[tuple[str, dict[str, Any], int]] = [
-    ("country Germany", {"supplier_name": [NAME], "destination_country": ["Germany"]}, 1),
-    ("country United Kingdom", {"supplier_name": [NAME], "destination_country": ["United Kingdom"]}, 1),
-    ("buyer_country United Kingdom", {"supplier_name": [NAME], "buyer_country": ["United Kingdom"]}, 1),
-    ("buyer NEW YORKER", {"supplier_name": [NAME], "buyer_name": ["NEW YORKER"]}, 1),
-    ("buyer H&M", {"supplier_name": [NAME], "buyer_name": ["H&M"]}, 1),
+    # Field names from Volza's published spec (backend.volza.com/swagger/v1/swagger.json, read 11 Oct
+    # 2026): destination_country_name, buyer_name + buyer_name_search_type, supplier_company_id. The
+    # sandbox test of 10 Oct used destination_country and volza_company_id, which are not fields.
+    ("country Germany", {"supplier_name": [NAME], "destination_country_name": ["Germany"]}, 1),
+    ("country United Kingdom", {"supplier_name": [NAME], "destination_country_name": ["United Kingdom"]}, 1),
+    ("buyer NEW YORKER", {"supplier_name": [NAME], "buyer_name": ["NEW YORKER"], "buyer_name_search_type": "contains"}, 1),
+    ("buyer H&M", {"supplier_name": [NAME], "buyer_name": ["H&M"], "buyer_name_search_type": "contains"}, 1),
+    # The free company list's IDs for Aboni (11 Oct): does an ID match the shipments filed as "Aboni Knit Wear Ltd"?
+    ("supplier IDs from the free list", {"supplier_company_id": [70153649, 33452214]}, 1),
     ("no filter, 10 records", {"supplier_name": [NAME]}, 10),
-    ("brand only PRIMARK", {"buyer_name": ["PRIMARK"]}, 1),
+    ("brand only PRIMARK", {"buyer_name": ["PRIMARK"], "buyer_name_search_type": "contains"}, 1),
 ]
 
 
