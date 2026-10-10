@@ -6,7 +6,8 @@
 import { CaretRight, FileText, Hourglass, WarningOctagon } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { CertChip, Define, FactChip, Unpublished } from "@/components/kit";
-import { ABSENT, CertTable, FactList, FactRow, PendingMark, RSC_REPORTS, RscBlock, SourceChip, SourceMark, certWords, type RscBlockData, type RscReportName } from "@/components/patterns";
+import { ABSENT, CertTable, ExportsSummary, FactList, FactRow, PendingMark, RSC_REPORTS, RscBlock, SourceChip, SourceLine, SourceMark, certWords, type RscBlockData, type RscReportName } from "@/components/patterns";
+import { volzaSource, volzaStats, type VolzaExports } from "@/lib/dashboard/facts";
 import type { RecordRfqRow, SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
 import { SitesView } from "./sites-view";
@@ -556,7 +557,26 @@ export function ProductsPanel({ model, level: H = "h3", open = false }: { model:
           </>
         )}
       </section>
+      {model.volza ? <VolzaSection v={model.volza} level={H} /> : null}
     </div>
+  );
+}
+
+/**
+ * Bangladesh customs export records (0137), drawn with the Exports pattern (03 Patterns · 14). The
+ * database sends them only to admins and paying plans, and only for an exact name match. The
+ * provider is named on /legal/data-sources, not here (founder, 11 Oct 2026).
+ */
+function VolzaSection({ v, level: H }: { v: VolzaExports; level: Level }) {
+  return (
+    <section aria-label="Customs shipments" className="flex flex-col gap-2">
+      <header className="flex flex-col gap-0.5">
+        <H className="text-base font-semibold text-ink">Customs shipments</H>
+        <p className="text-sm text-ink-3">Garment exports (HS 61 and 62) cleared through Bangladesh customs{v.volza_name ? `, filed as ${v.volza_name.replace(/\.+$/, "")}` : ""}.</p>
+        <SourceLine>{volzaSource(v)}</SourceLine>
+      </header>
+      <ExportsSummary stats={volzaStats(v)} />
+    </section>
   );
 }
 

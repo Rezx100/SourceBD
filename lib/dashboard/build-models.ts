@@ -39,6 +39,7 @@ import {
   rscTrainingWords,
   sortCerts,
   type CertChecks,
+  type VolzaExports,
   type CertModel,
   formatDayRange,
   placeLabel,
@@ -1089,6 +1090,8 @@ export type SheetOptions = {
   sanctionsReadAt?: string | null;
   /** `supplier_cert_checks(slug)` (0122); null when it could not be read. */
   certChecks?: CertChecks | null;
+  /** `supplier_volza_exports(slug)` (0137); null for a reader not on a paying plan, or no match. */
+  volza?: VolzaExports | null;
 };
 
 /**
@@ -1467,6 +1470,7 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
     sanctions: sanctionRows(p),
     sanctionsReadAt: options.sanctionsReadAt ?? null,
     certChecks: options.certChecks ?? null,
+    volza: options.volza ?? null,
     // A flagged record whose payload carries no row is not "no match" — it is a
     // match whose receipt did not come back.
     sanctionsEmpty:

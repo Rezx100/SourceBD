@@ -9,8 +9,9 @@ import { LegalShell, legalDay } from "@/components/site/legal";
 export const dynamic = "force-static";
 
 // 6 Oct 2026: section 8, the open data behind the home page's map (spec-home-film §6.2). 7 Oct 2026: the map
-// became a city drawn from the same counts, on the same district lines and rivers.
-const LAST_UPDATED = "2026-10-07";
+// became a city drawn from the same counts, on the same district lines and rivers. 11 Oct 2026: section 9,
+// customs shipment records via Volza (named here only, never on the profile: founder, 11 Oct).
+const LAST_UPDATED = "2026-10-11";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://sourcebd.net";
@@ -150,6 +151,24 @@ export default function DataSourcesPage() {
           how many. The page prints the day of that count.
           No address, name or identifier is published for it: the file
           holds counts per square kilometre and one place.
+        </p>
+
+        <h2>
+          9. Customs shipment records
+        </h2>
+        <p>
+          The &ldquo;Customs shipments&rdquo; section on a supplier
+          profile summarises that company&apos;s garment exports (HS
+          chapters 61 and 62) cleared through Bangladesh customs: the
+          number of shipments, their FOB value, the number of buyers and
+          the largest shipment over a two-year window. The records come
+          from <a href="https://www.volza.com">Volza</a>, a trade data
+          provider, and are a Tier 6 cross-check source: they are shown
+          only on suppliers already published from Tier 1–3 sources,
+          matched by the company&apos;s exact registered name, and never
+          change a register fact. They are shown to signed-in buyers on
+          paid plans only, never on public pages or in any export, and
+          each set is deleted one year after we fetched it.
         </p>
       </LegalShell>
   );

@@ -36,9 +36,17 @@ describe("the legal pages", () => {
     assert.match(text(html("cookies")), /Last updated 3 Jun 2026/);
     // Privacy (section 5, and the Stripe billing line gone) and Terms (no Stripe) were reworded on 6 Oct 2026;
     // Data sources gained section 8, the open data behind the home page's map, the same day, and said on 7 Oct
-    // 2026 what the city's blocks are when the map became a city.
+    // 2026 what the city's blocks are when the map became a city, and on 11 Oct 2026 gained section 9.
     for (const slug of ["privacy", "terms"]) assert.match(text(html(slug)), /Last updated 6 Oct 2026/, slug);
-    assert.match(text(html("data-sources")), /Last updated 7 Oct 2026/);
+    assert.match(text(html("data-sources")), /Last updated 11 Oct 2026/);
+  });
+
+  it("the data sources page names the customs records' provider, which the supplier profile does not (founder, 11 Oct 2026)", () => {
+    const page = text(html("data-sources"));
+    assert.match(page, /9\. Customs shipment records/);
+    assert.match(page, /from Volza ?, a trade data provider, and are a Tier 6 cross-check source/);
+    assert.match(page, /paid plans only, never on public pages or in any export/);
+    assert.match(page, /deleted one year after we fetched it/);
   });
 
   it("no legal page names a payment company: none is chosen yet and the beta is free", () => {

@@ -28,7 +28,7 @@ export function ExportsSummary({ stats, className }: { stats: ExportStat[]; clas
 
 /** The freshness line every view carries. */
 export function ExportsFreshness({ latest }: { latest: string }) {
-  return <p className="text-sm text-ink-2">Bangladesh customs export records, via Volza · latest {latest}</p>;
+  return <p className="text-sm text-ink-2">Bangladesh customs export records · latest {latest}</p>;
 }
 
 export type ExportRow = {

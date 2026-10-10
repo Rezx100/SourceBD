@@ -192,7 +192,7 @@ the last 12 months, FOB per piece low to high by HS code, destinations, buyers,
 latest export). Table: date, product in plain words + HS code in mono, pieces, FOB per
 piece, FOB value, buyer (as filed, minus address fragments), destination, sea/air.
 Row detail: customs house and weights. Freshness line on every view: "Bangladesh
-customs export records, via Volza · latest {date}". Sister-company rows stay on their
+customs export records · latest {date}" (the provider, Volza, is named on /legal/data-sources only; founder, 11 Oct 2026). Sister-company rows stay on their
 own record; when the buyer's country differs from the destination, both show.
 Never: notify party, shipper address, a guessed brand, a score. Real rows live only in
 Paper (private); none go in this repo.
