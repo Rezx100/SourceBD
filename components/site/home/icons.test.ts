@@ -46,7 +46,7 @@ describe("the home assets", () => {
 
   it("every file PROVENANCE.md names exists", () => {
     // The sources (`hf-*`) live outside the repo; every other file named is one of ours.
-    const named = (note.match(/`[a-z0-9-]+\.(?:webp|avif|mp4|webm)`/g) ?? []).filter((n) => !n.startsWith("`hf-"));
+    const named = (note.match(/`[\w.@-]+\.(?:webp|avif|mp4|webm)`/g) ?? []).filter((n) => !n.startsWith("`hf-"));
     assert.ok(named.length > 0);
     for (const n of named) assert.ok(files.includes(n.slice(1, -1)), `${n} is named but missing`);
   });

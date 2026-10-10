@@ -15,11 +15,11 @@ const OUT = join(import.meta.dirname, "..", "public", "site", "home");
 mkdirSync(OUT, { recursive: true });
 
 /** The backdrops, by their name in the page (`hf-<name>.png` in the source folder). */
-export const STILLS = ["hero-cotton", "thread-cones", "weave", "thread-cone", "carton", "paper-seal", "hangtags-fanned", "selvedge", "night-eyelet", "cutting-table", "hangtag", "night-floor"];
+const STILLS = ["hero-cotton", "thread-cones", "weave", "thread-cone", "carton", "paper-seal", "hangtags-fanned", "selvedge", "night-eyelet", "cutting-table", "hangtag", "night-floor"];
 /** The desktop screens (`paper-<name>@2x.png`, 2880×1800). */
-export const SCREENS = ["results", "saved-selected", "rfq-detail", "compliance", "record", "messages-thread", "full-certs2", "record-sanctioned", "full", "settings-members", "landing"];
+const SCREENS = ["results", "saved-selected", "rfq-detail", "compliance", "record", "messages-thread", "full-certs2", "record-sanctioned", "full", "settings-members", "landing"];
 /** The phone screens (`paper-<name>-m@2x.png`, 780 wide; the record at Certificates is cut to one 390×844 screen). */
-export const PHONE = ["results", "saved-selected", "rfq-detail", "compliance", "messages-thread", "full-certs2"];
+const PHONE = ["results", "saved-selected", "rfq-detail", "compliance", "messages-thread", "full-certs2"];
 
 const ff = (...args) => execFileSync("ffmpeg", ["-v", "error", "-y", ...args], { stdio: "inherit" });
 const kb = (f) => `${Math.round(statSync(f).size / 1024)} KB`;
@@ -29,7 +29,7 @@ for (const name of STILLS) {
   for (const w of [1600, 2560]) {
     const base = join(OUT, `${name}-${w}`);
     ff("-i", src, "-vf", `scale=${w}:-2:flags=lanczos`, "-c:v", "libwebp", "-quality", "78", "-compression_level", "6", `${base}.webp`);
-    ff("-i", src, "-vf", `scale=${w}:-2:flags=lanczos,format=yuv420p`, "-c:v", "libaom-av1", "-still-picture", "1", "-crf", "34", "-cpu-used", "4", `${base}.avif`);
+    ff("-i", src, "-vf", `scale=${w}:-2:flags=lanczos,format=yuv420p`, "-c:v", "libaom-av1", "-still-picture", "1", "-crf", "30", "-cpu-used", "4", `${base}.avif`);
     console.log(name, w, kb(`${base}.webp`), kb(`${base}.avif`));
   }
 }

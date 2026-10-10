@@ -11,7 +11,7 @@ on 10 Oct 2026. sharp is not a dependency; nothing here was resized in the brows
 Made on the founder's Higgsfield account. No people, faces, text, logos or products: cloth, thread, paper and a
 factory floor at night, so they claim nothing about any supplier. Round 1 (9 Oct 2026) made six and the hero
 loop; round 2 (10 Oct 2026) made six with `gpt_image_2` at 2k (6.5 credits each). Round 1's job ids and still
-model were not recorded. Each is AVIF (crf 34) and WebP (quality 78) at 1600 and 2560 wide.
+model were not recorded. Each is AVIF (crf 30) and WebP (quality 78) at 1600 and 2560 wide.
 
 | Source | Round | Where it is drawn | Files |
 | -- | -- | -- | -- |
