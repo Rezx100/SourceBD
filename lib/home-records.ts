@@ -90,9 +90,10 @@ export function factFrom(profile: Obj, spec: FactSpec, today: Date): HomeFact | 
   const value = pill ? str(pill.value) : null;
   const read = readOn(profile, code);
   if (!value || !read) return null;
-  return spec.kind === "epb"
-    ? { icon: "ledger", title: `EPB exporter ${value}`, sub: `Export Promotion Bureau · read ${read}` }
-    : { icon: "ledger", title: `${code} general member ${value}`, sub: `${code} member register · read ${read}` };
+  if (spec.kind === "epb") return { icon: "ledger", title: `EPB exporter ${value}`, sub: `Export Promotion Bureau · read ${read}` };
+  // The class as the register files it: "BGMEA General member #" is a general member, never assumed.
+  const cls = /(\w+) member\b/i.exec(String(pill!.label))?.[1]?.toLowerCase();
+  return { icon: "ledger", title: `${code} ${cls && cls !== code.toLowerCase() ? `${cls} ` : ""}member ${value}`, sub: `${code} member register · read ${read}` };
 }
 
 /** A card from one `buyer_supplier_profile` answer, or null when the answer is not a record. */
@@ -115,36 +116,35 @@ export function recordFrom(raw: unknown, slug: string, specs: FactSpec[], today:
   };
 }
 
-async function readProfiles(): Promise<Record<string, unknown>> {
+/** One record through the anon read. Throws on a failed read, so the cache keeps only answers, never a miss. */
+async function readProfile(slug: string): Promise<unknown> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anon) return {};
+  if (!url || !anon) return null;
   const sb = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
-  const slugs = [...new Set([...CARDS.map((c) => c.slug), CALLOUT_SLUG])];
-  const rows = await Promise.all(
-    slugs.map(async (slug) => {
-      try {
-        const { data, error } = await sb.rpc("buyer_supplier_profile", { p_slug: slug });
-        return [slug, error ? null : data] as const;
-      } catch {
-        return [slug, null] as const;
-      }
-    }),
-  );
-  return Object.fromEntries(rows.filter(([, d]) => d !== null));
+  const { data, error } = await sb.rpc("buyer_supplier_profile", { p_slug: slug });
+  if (error) throw new Error(`buyer_supplier_profile ${slug}: ${error.message}`);
+  return data;
 }
 
-const cached = unstable_cache(readProfiles, ["home-records-v1"], { revalidate: 600 });
-
-/** The three cards and Aboni's callouts, each fact dated; a failed read is an empty list, never a stand-in. */
-export async function loadHomeRecords(today = new Date()): Promise<{ cards: HomeRecord[]; callouts: HomeFact[] }> {
-  let raw: Record<string, unknown> = {};
+/** Each record cached ten minutes on its own; a read that fails is retried on the next request, not remembered. */
+async function profile(slug: string): Promise<unknown> {
   try {
-    raw = await cached();
+    return await unstable_cache(() => readProfile(slug), ["home-record-v1", slug], { revalidate: 600 })();
   } catch {
-    raw = {};
+    return null;
   }
-  const cards = CARDS.map((c) => recordFrom(raw[c.slug], c.slug, c.facts, today)).filter((r): r is HomeRecord => r !== null && r.facts.length > 0);
-  const callouts = recordFrom(raw[CALLOUT_SLUG], CALLOUT_SLUG, CALLOUTS, today)?.facts ?? [];
+}
+
+/**
+ * The three cards and Aboni's callouts, each fact dated. The callouts keep their places (`CALLOUTS` order, null where
+ * the record does not hold that fact), because each is drawn against its own row of the dated screen.
+ */
+export async function loadHomeRecords(today = new Date()): Promise<{ cards: HomeRecord[]; callouts: (HomeFact | null)[] }> {
+  const slugs = [...new Set([...CARDS.map((c) => c.slug), CALLOUT_SLUG])];
+  const read = Object.fromEntries(await Promise.all(slugs.map(async (s) => [s, await profile(s)] as const)));
+  const cards = CARDS.map((c) => recordFrom(read[c.slug], c.slug, c.facts, today)).filter((r): r is HomeRecord => r !== null && r.facts.length > 0);
+  const aboni = read[CALLOUT_SLUG];
+  const callouts = recordFrom(aboni, CALLOUT_SLUG, [], today) ? CALLOUTS.map((spec) => factFrom(obj(aboni), spec, today)) : [];
   return { cards, callouts };
 }

@@ -46,8 +46,10 @@ function Fact({ fact }: { fact: HomeFact }) {
   );
 }
 
-export function InsideRecord({ callouts }: { callouts: HomeFact[] }) {
-  const shown = callouts.slice(0, AT.length);
+/** `callouts` in `CALLOUTS` order, null where the record no longer holds that fact: each keeps its own row. */
+export function InsideRecord({ callouts }: { callouts: (HomeFact | null)[] }) {
+  const placed = callouts.slice(0, AT.length).map((fact, i) => ({ fact, at: AT[i]! })).filter((c): c is { fact: HomeFact; at: (typeof AT)[number] } => c.fact !== null);
+  const shown = placed.map((c) => c.fact);
   return (
     <section aria-labelledby="home-inside" className="bg-brand-wash py-14 md:py-[120px]">
       <div className={cn(measure, "flex flex-col items-center gap-8 md:gap-14")}>
@@ -70,8 +72,8 @@ export function InsideRecord({ callouts }: { callouts: HomeFact[] }) {
           </div>
           {shown.length ? (
             <ul aria-label="What the record shows" className="max-lg:hidden">
-              {shown.map((f, i) => (
-                <Callout key={f.title} fact={f} at={AT[i]!} />
+              {placed.map((c) => (
+                <Callout key={c.fact.title} fact={c.fact} at={c.at} />
               ))}
             </ul>
           ) : null}

@@ -23,7 +23,7 @@ import { Showcase } from "./showcase";
 import { StartInAMinute } from "./start";
 import { ForSuppliers } from "./suppliers";
 
-export function HomeMercury({ facts, year, chips = [], cards = [], callouts = [] }: { facts: SiteFacts; year: number; chips?: Chip[]; cards?: HomeRecord[]; callouts?: HomeFact[] }) {
+export function HomeMercury({ facts, year, chips = [], cards = [], callouts = [] }: { facts: SiteFacts; year: number; chips?: Chip[]; cards?: HomeRecord[]; callouts?: (HomeFact | null)[] }) {
   return (
     <div className="bg-canvas font-sans text-ink-strong antialiased">
       <main>

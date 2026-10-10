@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 import { HomeIcon } from "./icons";
 import { H2, Lede, Mark, Still, measure, ring } from "./ui";
 
+const COUNT = ["", "One record", "Two records", "Three records"];
+
 /** Where each card's crop of the hang tags sits, as the board has it. */
 const AT = ["object-[50%_40%]", "object-center", "object-[50%_60%]"];
 
@@ -18,7 +20,7 @@ export function RealRecords({ cards }: { cards: HomeRecord[] }) {
     <section aria-labelledby="home-records" className={cn(measure, "flex flex-col items-center gap-8 py-14 md:gap-14 md:py-[120px]")}>
       <div className="flex flex-col items-center gap-4 text-center">
         <H2 id="home-records">Real records, not reviews.</H2>
-        <Lede className="max-w-[720px]">We have no testimonials and will not invent them. Three records as production holds them, each fact with its source and the day we read it.</Lede>
+        <Lede className="max-w-[720px]">We have no testimonials and will not invent them. {COUNT[cards.length] ?? `${cards.length} records`} as production holds {cards.length === 1 ? "it" : "them"}, each fact with its source and the day we read it.</Lede>
       </div>
       <ul className="grid w-full gap-5 md:gap-8 lg:grid-cols-3">
         {cards.map((r, i) => (
@@ -34,11 +36,13 @@ export function RealRecords({ cards }: { cards: HomeRecord[] }) {
                 <p className="text-[14px] leading-[18px] text-ink-muted">{r.meta}</p>
               </div>
               {r.marks.length ? (
-                <p className="flex flex-wrap gap-1.5" aria-label={`Listed by ${r.marks.join(", ")}`}>
+                <ul className="flex flex-wrap gap-1.5" aria-label={`Listed by ${r.marks.join(", ")}`}>
                   {r.marks.map((m) => (
-                    <Mark key={m} code={m} />
+                    <li key={m}>
+                      <Mark code={m} />
+                    </li>
                   ))}
-                </p>
+                </ul>
               ) : null}
               <ul className="flex flex-col gap-3 border-t border-line-subtle pt-1">
                 {r.facts.map((f) => (

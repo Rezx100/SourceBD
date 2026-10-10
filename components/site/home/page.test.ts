@@ -180,4 +180,16 @@ describe("the live sections", () => {
     assert.match(out, /alt="A placeholder supplier, Example Apparel Ltd, marked sanctioned/);
     assert.match(text(out), /“No link found” is not a clearance/);
   });
+
+  it("a callout the record no longer holds leaves its slot empty: the others keep their own rows", () => {
+    const out = live({ callouts: [null, { ...CALLOUT, title: "GOTS-31587 · valid to 12 May 2027", tone: undefined }, null] });
+    // Slot 2 of the board: the card at (880, 290) of the 1280×830 stage.
+    assert.match(out, /left:68\.75%;top:34\.93975903614458%"><span[^>]*>GOTS-31587/);
+    assert.doesNotMatch(out, /top:22\.89156626506024%/, "slot 1 is empty");
+  });
+
+  it("the real records say how many were read", () => {
+    assert.match(text(live()), /We have no testimonials and will not invent them\. One record as production holds it/);
+    assert.match(text(live({ cards: [CARD, { ...CARD, slug: "x" }] })), /Two records as production holds them/);
+  });
 });
