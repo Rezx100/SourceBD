@@ -524,6 +524,22 @@ def _record_progress_event(job_id: str, event: dict[str, Any]) -> None:
     upserted = _int_value(event.get("records_upserted"))
     skipped = _int_value(event.get("records_skipped"))
     matched = _int_value(event.get("records_matched"))
+    if event_type == "heartbeat":
+        # Alive, nothing more: the run's own progress figures and event log stay
+        # as its last real progress event left them.
+        with db.conn() as c, c.cursor() as cur:
+            cur.execute(
+                """
+                update public.etl_job_queue
+                   set etl_run_id = coalesce(%s, etl_run_id),
+                       progress_message = %s,
+                       heartbeat_at = now()
+                 where id = %s
+                """,
+                (etl_run_id, message, job_id),
+            )
+            c.commit()
+        return
     with db.conn() as c, c.cursor() as cur:
         cur.execute(
             """

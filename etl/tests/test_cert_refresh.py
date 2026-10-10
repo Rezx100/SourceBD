@@ -154,3 +154,75 @@ def test_queued_release_reaches_the_scraper(monkeypatch):
     sq._run_job({"id": "j1", "scraper_code": "fake", "accept_changes": True,
                  "accept_delistings": True})
     assert seen == {"changes": True, "delistings": True}
+
+
+def test_long_reads_send_a_heartbeat(monkeypatch):
+    """A run with no progress events of its own (OEKO-TEX, GOTS, RSC, brands) was
+    reaped as dead after 3 hours while still writing. gated() beats for all."""
+    import asyncio
+    from contextlib import contextmanager
+
+    import etl.core.scraper as sc
+    import etl.core.upsert as up
+
+    class Cur:
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+        def execute(self, *a): pass
+        def fetchone(self): return {"n": 1000}
+
+    class Conn:
+        def cursor(self): return Cur()
+        def rollback(self): pass
+
+    @contextmanager
+    def conn():
+        yield Conn()
+
+    monkeypatch.setattr(sc.db, "conn", conn)
+    monkeypatch.setattr(sc, "get_source_id", lambda code: "src")
+    monkeypatch.setattr(up, "classify_record", lambda cur, rec: "unchanged")
+
+    class Fake(sc.BaseScraper):
+        code = "fake"
+
+        async def fetch(self):
+            for i in range(60):
+                yield ScrapedRecord(source_code="WRAP", source_ref=f"r{i}", company_name="A")
+
+    events = []
+    s = Fake()
+    s.progress_callback = events.append
+
+    async def drain():
+        return [r async for r in s.gated()]
+
+    assert len(asyncio.run(drain())) == 60
+    assert [e["records_seen"] for e in events] == [25, 50]
+    assert all(e["event_type"] == "heartbeat" for e in events)
+
+
+def test_heartbeat_only_touches_the_heartbeat(monkeypatch):
+    from contextlib import contextmanager
+
+    import etl.jobs.scraper_queue as sq
+
+    sqls = []
+
+    class Cur:
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+        def execute(self, sql, params=None): sqls.append(sql)
+
+    class Conn:
+        def cursor(self): return Cur()
+        def commit(self): pass
+
+    @contextmanager
+    def conn():
+        yield Conn()
+
+    monkeypatch.setattr(sq.db, "conn", conn)
+    sq._record_progress_event("j1", {"event_type": "heartbeat", "message": "Read 25 records so far."})
+    assert len(sqls) == 1
+    assert "heartbeat_at = now()" in sqls[0] and "progress_seen" not in sqls[0]
