@@ -118,3 +118,37 @@ def test_wrap_certificate_write_keeps_the_stored_grade(monkeypatch):
     scope, url = cur.writes[0][5], cur.writes[0][7]
     assert scope == "Gold | Industries: Apparel"
     assert url == WRAP_LIST_URL
+
+
+def test_queue_release_only_from_a_service_key_job():
+    from etl.jobs.scraper_queue import _release_flags
+
+    meta = {"accept_changes": True, "accept_delistings": True}
+    assert _release_flags({"requested_by": None, "metadata": meta}) == meta
+    # An admin button press (requested_by stamped by the RPC) cannot release.
+    assert _release_flags({"requested_by": "u1", "metadata": meta}) == {
+        "accept_changes": False, "accept_delistings": False}
+    assert _release_flags({"requested_by": None, "metadata": {"accept_changes": "yes"}}) == {
+        "accept_changes": False, "accept_delistings": False}
+
+
+def test_queued_release_reaches_the_scraper(monkeypatch):
+    import etl.jobs.scraper_queue as sq
+
+    seen = {}
+
+    class Fake:
+        accept_changes = False
+        accept_delistings = False
+        progress_callback = None
+        last_run_id = None
+
+        async def run(self):
+            seen.update(changes=self.accept_changes, delistings=self.accept_delistings)
+            return {"upserted": 0}
+
+    monkeypatch.setitem(sq.RUNNABLE, "fake", Fake)
+    monkeypatch.setattr(sq, "_mark_success", lambda *a: None)
+    sq._run_job({"id": "j1", "scraper_code": "fake", "accept_changes": True,
+                 "accept_delistings": True})
+    assert seen == {"changes": True, "delistings": True}
