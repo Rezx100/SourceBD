@@ -308,7 +308,8 @@ def test_claiming_a_job_sets_the_heartbeat(monkeypatch: pytest.MonkeyPatch):
 
     job = sq._claim_next_job()
 
-    assert job == {"id": "job-1", "scraper_code": "rsc"}
+    assert job == {"id": "job-1", "scraper_code": "rsc",
+                   "accept_changes": False, "accept_delistings": False}
     updates = _statements(store, "update public.etl_job_queue")
     assert len(updates) == 1
     assert "status = 'running'" in updates[0][0]

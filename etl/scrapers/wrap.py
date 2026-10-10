@@ -29,8 +29,35 @@ from etl.evidence.locate import NO_EXCERPT, json_record_window
 
 WRAP_FEED_URL = "https://wrap-maps.azurewebsites.net/api/facilities"
 
-# Public facility profile (informational — the page itself is JS-rendered)
-WRAP_FACILITY_URL_TEMPLATE = "https://wrapcompliance.org/certified-facility/{wrap_id}/"
+# WRAP's rebuilt site has no page per facility: `/certified-facility/<id>/`
+# answers "Page not found" for every id (checked 10 Oct 2026). The public page a
+# buyer can check a facility on is the searchable map on this list page.
+WRAP_LIST_URL = "https://wrapcompliance.org/en/certification/facility-monitor-list/"
+
+# What a buyer sees from a WRAP row: the certificate number, its expiry, and
+# the industries and products in its scope. Anything else in the payload is
+# bookkeeping, so a change there alone is a refresh, not a change (breaker C4).
+_SHOWN_KEYS = ("wrap_id", "expires_on", "wrap_industries", "wrap_products")
+
+_GRADE_RE = re.compile(r"^(gold|platinum|silver)(?![a-z])", re.I)
+
+
+def _carry_grade(scope: str | None, old_scope: str | None,
+                 old_expires: str | None, new_expires: str | None) -> str | None:
+    """Keep the grade the old WRAP report published ("Gold | ...").
+
+    The October 2026 feed carries no grade, so a re-read would drop "WRAP Gold"
+    from every record. The grade belongs to one certificate period, so it is
+    kept only while the expiry date is the one it was read with; a renewal
+    (new expiry) drops it rather than guess.
+    """
+    if not old_scope or not old_expires or old_expires != new_expires:
+        return scope
+    grade = _GRADE_RE.match(old_scope.strip())
+    if not grade or (scope and _GRADE_RE.match(scope)):
+        return scope
+    return " | ".join(x for x in (grade.group(0), scope) if x)
+
 
 # Scope filter: SourceBD covers the RMG supply chain (apparel + textile +
 # trims). Drop a WRAP row only when EVERY product category it lists is in this
@@ -57,7 +84,10 @@ def _bangladesh_facilities(payload: dict[str, Any]) -> list[dict[str, Any]]:
     rows = payload.get("facilities")
     if not isinstance(rows, list) or not rows:
         raise RuntimeError("wrap: the feed has no `facilities` list; its shape changed.")
-    return [r for r in rows if isinstance(r, dict) and r.get("country") == "BD"]
+    # Every row read "certified" on 10 Oct 2026; any other status is not a
+    # current certificate, so it is left unseen and reconciled as delisted.
+    return [r for r in rows if isinstance(r, dict) and r.get("country") == "BD"
+            and (r.get("certification_status") or "certified").lower() == "certified"]
 
 
 def _parse_expires(s: str | None) -> date | None:
@@ -140,13 +170,14 @@ class WrapScraper(AcquiringScraper):
                 source_ref=f"wrap-{wrap_id_s}",
                 company_name=str(name).strip(),
                 city=city if city and city.upper() != "NA" else None,
+                shown_keys=_SHOWN_KEYS,
                 payload={
                     "wrap_id": wrap_id_s,
                     "wrap_industries": fac.get("industry") or None,
                     "wrap_products": fac.get("products") or None,
                     "wrap_cert_expires": fac.get("certification_expiration"),
                     "wrap_country": fac.get("country"),
-                    "wrap_profile_url": WRAP_FACILITY_URL_TEMPLATE.format(wrap_id=wrap_id_s),
+                    "wrap_profile_url": WRAP_LIST_URL,
                     "expires_on": expires.isoformat() if expires else None,
                 },
                 evidence=EvidenceAttachment(
@@ -254,6 +285,17 @@ def _write_certification(supplier_id: str, rec: ScrapedRecord) -> None:
         )
         sr = cur.fetchone()
         sr_id = str(sr["id"]) if sr else None
+        cur.execute(
+            """select scope, expires_on from public.certifications
+                where supplier_id = %s and kind = 'wrap' and certificate_no = %s""",
+            (supplier_id, p["wrap_id"]),
+        )
+        old = cur.fetchone()
+        if old:
+            scope = _carry_grade(
+                scope, old["scope"],
+                old["expires_on"].isoformat() if old["expires_on"] else None, expires_iso,
+            )
         cur.execute(
             """insert into public.certifications
                  (supplier_id, kind, certificate_no, issuer,

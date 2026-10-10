@@ -91,6 +91,11 @@ class ScrapedRecord:
     # because the list row is unchanged: the record IS the stored one, so it
     # reports the stored hash and the upsert takes the unchanged path.
     known_hash: str | None = None
+    # Payload keys a buyer can see (directly or through the row a scraper
+    # derives from them). When set, a record whose hash moved but whose shown
+    # keys did not is a 'refresh' for the C4 breaker: a feed or format change
+    # rewrites the raw copy without counting as a change on screen.
+    shown_keys: tuple[str, ...] = ()
 
     def hash(self) -> str:
         if self.known_hash:

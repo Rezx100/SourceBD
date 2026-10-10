@@ -73,9 +73,10 @@ class Breaker:
     def admit(self, kind: str) -> bool:
         """May a record of this kind be written? Once tripped, nothing is.
 
-        kind: 'unchanged' | 'changed' | 'attach' | 'create' | 'hold' | 'wait'
-        | 'skip'. A new source row attached to a known company counts as a
-        change; a held record changes nothing on screen.
+        kind: 'unchanged' | 'refresh' | 'changed' | 'attach' | 'create' | 'hold'
+        | 'wait' | 'skip'. A new source row attached to a known company counts
+        as a change; a held record changes nothing on screen, nor does a
+        'refresh' (the raw copy moved, every shown value stayed).
         """
         self.counts[kind] = self.counts.get(kind, 0) + 1
         if self.tripped:
