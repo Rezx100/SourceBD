@@ -44,6 +44,9 @@ def rows(recs: list[dict[str, Any]], fetched_at: datetime) -> list[dict[str, Any
     """fetched_at stands in for rows that carry no time of their own (the sample)."""
     out = []
     for r in recs:
+        if not any(t[1] == 200 for t in r["tried"]):  # Volza answered none of its searches: not "nothing found"
+            print(f"skipped {r['name']!r}: no search for it succeeded {[t[1] for t in r['tried']]}")
+            continue
         at = datetime.fromisoformat(r["fetched_at"]) if r.get("fetched_at") else fetched_at
         expires = one_year_on(at)
         hit = bool(r["shipments"])

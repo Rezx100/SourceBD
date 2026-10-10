@@ -66,6 +66,9 @@ def run(rows: list[dict[str, Any]], path: Path, cap: float) -> None:
         with path.open("a", encoding="utf-8") as out:
             for r in todo:
                 st, data, cost = v.exports(r["search"])
+                if st != 200:  # a rejected search found nothing out; storing it as "none" would hide the supplier a year
+                    print(f"  {st} for {r['search']!r}, not recorded: {str(data)[:200]}")
+                    continue
                 n, sup = shipments(data), summary_suppliers(data)
                 top = (data.get("api_records") or [{}])[0] if n else {}
                 s = data.get("api_summary") or {}

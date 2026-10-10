@@ -67,10 +67,10 @@ def account_used() -> float | None:
     """The account's X-Credit-Used now, read with a free sandbox call (the header is account-wide)."""
     from volza_export_dryrun import Volza as Sandbox
 
-    try:  # countries/list carries no credit headers; a sandbox export query does, and is free
-        r = Sandbox().http.post("/bangladesh-exports", json={
-            "hsn_code": ["61"], "supplier_name": ["Square Fashions"], "start_date": "2021-01-01",
-            "end_date": "2021-03-31", "max_count_per_page": 1})
+    # countries/list carries no credit headers. The free company list does (checked 11 Oct 2026), and
+    # unlike a sandbox export search it is not capped at 500 in total (those are spent): 1,000 a day.
+    try:
+        r = Sandbox().http.get("/companies/search", params={"company_name": "Square Fashions", "page_size": 1})
         used = r.headers.get("X-Credit-Used")
         return float(used) if used is not None else None
     except (httpx.HTTPError, SystemExit):
@@ -79,8 +79,9 @@ def account_used() -> float | None:
 
 class Live:
     def __init__(self, cap: float, spent_before: float, http: httpx.Client | None = None,
-                 start_used: float | None = None) -> None:
+                 start_used: float | None = None, records: int = RECORDS) -> None:
         self.cap = cap
+        self.records = records  # shipment records asked for per call; sets the worst case
         self.tally = spent_before
         self.spent_before_run = spent_before
         self.header_spent = 0.0
@@ -96,11 +97,19 @@ class Live:
     def spent(self) -> float:
         return max(self.tally, self.header_spent)
 
-    def exports(self, name: str) -> tuple[int, Any, float]:
-        body = {"hsn_code": HS, "supplier_name": [name], "start_date": WINDOW[0], "end_date": WINDOW[1],
-                "max_count_per_page": RECORDS, "sort_by": "trade_value_usd", "sort_order": "DESC"}
+    @property
+    def worst(self) -> float:
+        return 0.10 + 0.05 * self.records
+
+    def exports(self, name: str, **filters: Any) -> tuple[int, Any, float]:
+        return self.search({"supplier_name": [name], **filters})
+
+    def search(self, filters: dict[str, Any]) -> tuple[int, Any, float]:
+        """One guarded export search: HS 61/62, the live window, biggest shipments first."""
+        body = {"hsn_code": HS, "start_date": WINDOW[0], "end_date": WINDOW[1], "max_count_per_page": self.records,
+                "sort_by": "trade_value_usd", "sort_order": "DESC", **filters}
         for _ in range(5):
-            if self.spent + WORST_CALL > self.cap + 1e-9:
+            if self.spent + self.worst > self.cap + 1e-9:
                 raise Stop(f"cap reached: spent ${self.spent:.2f} of ${self.cap:.2f}")
             wait = MIN_GAP - (time.monotonic() - self.last)
             if wait > 0:
@@ -109,8 +118,8 @@ class Live:
             try:
                 r = self.http.post("/bangladesh-exports", json=body)
             except httpx.HTTPError as e:  # Volza may have billed it; count the worst case and stop
-                self.tally += WORST_CALL
-                raise Stop(f"network error, counted ${WORST_CALL:.2f} as spent: {type(e).__name__}") from e
+                self.tally += self.worst
+                raise Stop(f"network error, counted ${self.worst:.2f} as spent: {type(e).__name__}") from e
             self.calls += 1
             self._read_headers(r)
             if r.status_code == 429:  # rate limit: not charged (Volza pricing docs)
@@ -119,16 +128,17 @@ class Live:
             if r.status_code == 402:
                 raise Stop("Volza says the credit is used up (402)")
             if r.status_code >= 500:  # billing unknown: count the worst case and stop, no blind retries
-                self.tally += WORST_CALL
-                raise Stop(f"Volza server error {r.status_code}, counted ${WORST_CALL:.2f} as spent")
+                self.tally += self.worst
+                raise Stop(f"Volza server error {r.status_code}, counted ${self.worst:.2f} as spent")
             data = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
             recs = (data.get("api_records") or []) if isinstance(data, dict) else []
-            if len(recs) > RECORDS:
-                raise Stop(f"Volza returned {len(recs)} records for max_count_per_page={RECORDS}")
+            if len(recs) > self.records:
+                raise Stop(f"Volza returned {len(recs)} records for max_count_per_page={self.records}")
             cost = (0.10 + 0.05 * len(recs)) if r.status_code == 200 else 0.0  # 400s are free
             self.tally += cost
             return r.status_code, data, cost
-        return 429, {}, 0.0
+        # never handed back as an empty result: a caller would store "nothing found" for a year
+        raise Stop("Volza rate-limited five calls in a row (429)")
 
     def _read_headers(self, r: httpx.Response) -> None:
         used = r.headers.get("X-Credit-Used")
@@ -140,8 +150,8 @@ class Live:
         step = None if self.prev_used is None else used - self.prev_used
         self.prev_used = used
         self.header_spent = max(self.header_spent, self.spent_before_run + used - self.start_used)
-        if step is not None and step > WORST_CALL + 0.001:  # recorded above first, then stop
-            raise Stop(f"one call cost ${step:.3f}, above the ${WORST_CALL:.2f} "
+        if step is not None and step > self.worst + 0.001:  # recorded above first, then stop
+            raise Stop(f"one call cost ${step:.3f}, above the ${self.worst:.2f} "
                        "worst case; prices differ from the docs or someone else is spending")
 
 

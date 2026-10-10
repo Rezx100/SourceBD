@@ -226,10 +226,12 @@ def cmd_candidates(_: argparse.Namespace) -> None:
 
 
 def classify(ours: str, volza_supplier: str | None, n: int, suppliers: int) -> str:
-    """api_summary.count_of_suppliers says how many exporters the contains-match swept in.
+    """api_summary.count_of_suppliers says how many exporters the name swept in.
 
-    bangladesh-exports ignores volza_company_id (sandbox test, 10 Oct 2026), so the name
-    is the only key and a count above 1 means other companies' shipments are mixed in.
+    supplier_name is a starts-with match by default (Volza's spec; every live hit's name begins with
+    the name searched). Shipment records carry no company ID and the free list's IDs are other
+    entities (report section 11), so the name is the only key and a count above 1 means other
+    companies' shipments are mixed in.
     """
     if n == 0:
         return "none"

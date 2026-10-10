@@ -76,3 +76,30 @@ def test_cap_cannot_be_raised_above_approval(monkeypatch):
     monkeypatch.setattr("sys.argv", ["x", "--apply", "--max-spend", "31"])
     with pytest.raises(SystemExit, match="approved"):
         ls.main()
+
+
+def test_a_rate_limit_that_never_clears_stops_instead_of_returning_an_empty_result():
+    v = _live(_ok(used="0.000", status=429), start_used=0.0)
+    with pytest.raises(ls.Stop, match="429"):
+        v.exports("Square Fashions")
+    assert v.spent == 0
+
+
+def test_the_worst_case_follows_the_records_asked_for():
+    v = _live(_ok(records=10), spent_before=29.50, start_used=0.0)
+    v.records = 10  # worst case $0.60: $29.50 + $0.60 passes the $30 cap
+    with pytest.raises(ls.Stop, match="cap reached"):
+        v.search({"supplier_name": ["Square Fashions"]})
+    assert v.calls == 0
+
+
+def test_loader_never_stores_a_failed_search_as_nothing_found():
+    from datetime import datetime, timezone
+
+    from ops import volza_load_sample as load
+
+    base = {"shipments": 0, "suppliers": 0, "matched_variant": None, "volza_supplier": None, "class": "none"}
+    recs = [{"id": "a", "name": "A", "tried": [["A", 400, 0, 0]], **base},
+            {"id": "b", "name": "B", "tried": [["B", 200, 0, 0]], **base}]
+    out = load.rows(recs, datetime(2026, 10, 11, tzinfo=timezone.utc))
+    assert [r["supplier_id"] for r in out] == ["b"]
