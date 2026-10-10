@@ -282,6 +282,39 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     assert.doesNotMatch(out, /<main\b|<aside\b|href="#main-content"/, "the slow-read state draws a shell inside the layout's");
   });
 
+  it("customs shipments via Volza show only when the database returns them, with its source line (0137)", async () => {
+    // The plan gate is in `supplier_volza_exports`: a free reader gets null, and null must draw nothing.
+    const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
+    const open = () => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({ tab: "products" }) });
+    given({ profile: PROFILE, hscodes: HS });
+    assert.doesNotMatch(html(await outcome(open)), /Customs shipments|Volza/, "a reader the database refused still sees the section");
+    assert.ok(rpcCalls.some((c) => c.fn === "supplier_volza_exports" && c.args?.p_slug === "aboni-knitwear"), "the page never asked for the Volza read");
+
+    given({
+      profile: PROFILE,
+      hscodes: HS,
+      rpcs: {
+        supplier_volza_exports: {
+          data: {
+            shipments: 406, fob_usd: 21698439.68, buyers: 43, window_start: "2024-09-01", window_end: "2026-08-31",
+            volza_name: "Aboni Knitwear Ltd.", fetched_at: "2026-10-10T17:36:14+00:00",
+            top_shipments: [{ shipment_date: "2026-03-24T00:00:00", hsn_code: "61091000", product_description: "BOYS TEE", buyer_name: "THE HADDAD APPAREL GROUP", destination_country: "United States", trade_value_usd: 607667.888, unit_rate_usd: 1.71, unit: "PCS" }],
+          },
+          error: null,
+        },
+      },
+    });
+    const text = html(await outcome(open)).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
+    assert.match(text, /Customs shipments/);
+    assert.match(text, /Shipments 406 shipments 1 Sep 2024 – 31 Aug 2026/);
+    assert.match(text, /FOB value US\$21\.7m From 406 records/);
+    assert.match(text, /Buyers 43 buyers/);
+    assert.match(text, /Largest shipment US\$607,668 24 Mar 2026 · BOYS TEE · to THE HADDAD APPAREL GROUP \(United States\) · US\$1\.71 per pcs/);
+    assert.equal((text.match(/Bangladesh customs export records · fetched 10 Oct 2026/g) ?? []).length, 1, "the section without its one source line");
+    // The provider is named on /legal/data-sources only, never on the profile (founder, 11 Oct 2026).
+    assert.doesNotMatch(text, /Volza/i, "the profile names the data provider");
+  });
+
   it("?lines=all expands the grid past six tiles", async () => {
     given({ profile: PROFILE, hscodes: HS });
     const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;

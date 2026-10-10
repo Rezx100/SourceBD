@@ -117,7 +117,8 @@ $9.55, 27,695 kg, Chittagong Custom House. Destination country and port: "Not Av
 
 What we would show on a profile (signed-in paying users only): shipments, FOB value, buyer count and
 HS-code count for the last two years, and the top 1 / 3 / 10 shipments (date, product, buyer, value,
-unit price), labelled "Customs shipment records via Volza, fetched <date>".
+unit price), labelled "Bangladesh customs export records · fetched <date>" (Volza is named on the data
+sources page only; founder, 11 Oct 2026).
 
 **Epyllion shows the main risk.** "Epyllion" pulled in Epyllion Style, Epyllion Knitwears and a third
 Epyllion exporter. Our Epyllion profiles are separate units, so a contains-match on the group word would
@@ -215,3 +216,57 @@ Which option for the 2,388 EPB-registered suppliers: A (top 1), B (top 3, recomm
 Then: **may I build the real fetch with a cap of $385 (A), $615 (B) or $1,420 (C)?** The cap is the high
 end of the range above; the script stops there even if more suppliers match than expected. Nothing is
 spent until you run it, and the table and migration need your "apply" first.
+
+## 8. The 200-supplier sample, stored and shown (11 Oct 2026)
+
+Founder, 11 Oct: keep the 200 sample results for one year and show them on the front end; visible to
+Growth/Enterprise buyers and admins only.
+
+- **Table** `volza_export_checks` (migration 0137): one row per supplier, matches and "nothing found"
+  alike, so a fetch within the year skips them instead of paying again. `expires_at` is at most one year
+  after `fetched_at` (a check constraint); the read deletes expired rows and never returns one.
+- **Read** `supplier_volza_exports(slug)`: null unless the reader is an admin or on Growth/Enterprise and
+  not suspended; only `exact` matches (41 of the 200). Dry run on production, 11 Oct, rolled back:
+  anonymous null, admin 406 shipments, free user null, a row kept 13 months refused, an expired row
+  deleted and not returned. Waits for "apply 0137".
+- **Load** `python ops/volza_load_sample.py` (dry run: 200 rows, 41 shown, expiry 10 Oct 2027);
+  `--apply` writes them, after 0137 is applied. No Volza calls.
+- **Shown** on the record's Products tab under Export lines: "Customs shipments", drawn with the kit's
+  Exports pattern (shipments, FOB value, buyers, largest shipment) and one source line "Bangladesh customs
+  export records · fetched 10 Oct 2026". **Volza is not named on the profile** (founder, 11 Oct); it is
+  named in section 9 of `/legal/data-sources`, with the paid-plan and one-year rules. Tests:
+  `app/(app)/app/record-routes.test.ts` (no "Volza" on the profile), `components/site/legal.test.ts`.
+- Today one account has a Growth/Enterprise plan and one is an admin; everyone else sees nothing.
+- Deletion after a year: the first entitled read after expiry deletes expired rows (a free reader's view
+  stays a read), the loader deletes them before writing and refuses a sample over a year old. Nothing
+  deletes them if no one reads or loads; **before 10 Oct 2027**, add a daily purge to the VPS cron
+  (the `ops/ledger_cron.sh` pattern) or delete the rows by hand. Dry run re-run at the final text, 11 Oct:
+  same results, and the free reader's call left the row untouched.
+
+## 9. Checking Volza's company list first (free test, 11 Oct 2026)
+
+Founder, 11 Oct: fetch every company we hold (EPB-listed or not) without paying for empty searches or
+spelling misses. Volza's company list (`companies/search`) is free with the sandbox key and is not the
+2021 shipment data. Script: `ops/volza_directory_test.py` (174 lookups, 0 credit). For each of the 200
+live-sample suppliers it looked up our name (starts-with, Bangladesh) and compared with the paid result:
+
+| | result |
+| -- | -- |
+| suppliers with 2024–26 shipments that are on the list | **58 of 58 (100%)**; exact name 57 (the other is "Alema Textile" vs "Alema Textiles") |
+| suppliers with no shipments that are NOT on the list | **86 of 142 (61%)**: these would be skipped, no charge |
+| no shipments, but the exact name is on the list | 49: on Volza, but no HS 61/62 export in Sep 2024 – Aug 2026 (older exports, other goods or imports). Spelling is not their problem. |
+| how many list entries a name has | a weak signal: requiring 2+ would drop 10 of the 58 real exporters, so not used |
+
+**After 2021.** The list found every one of the 58 suppliers that shipped in 2024–26, so it is not limited
+to 2021: new exporters are on it. (Only 5 of the 58 overlap the saved sandbox 2021 run, too few to count
+"new since 2021" directly; the sandbox's 500 free export searches are spent, so that cannot be re-run.)
+
+**Workflow for every batch:** look the name up on the list; not listed = skip (free); listed = one export
+search using Volza's spelling. Per 200 suppliers: 114 export searches instead of 200, misses 56 instead
+of 142, about $8.60 saved. For all 7,786: about 4,440 searches, about 2,180 misses ($218) instead of
+about 5,530 ($553).
+
+**Limits found.** Sandbox key: 1,000 calls a day, 30,000 a month, and 500 export searches in total
+(spent). The list lookups for all 7,786 fit in 8 days of the daily limit. Whether Volza is happy for the
+sandbox key to pre-screen production work is unasked; the paid lookup with `page_size=1` costs $0.011 a
+supplier (about $86 for all 7,786) and is the clean alternative.
