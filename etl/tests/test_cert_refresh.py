@@ -77,3 +77,44 @@ def test_wrap_reads_only_certified_rows():
         {"country": "BD", "wrap_id": "3"},
     ]})
     assert [r["wrap_id"] for r in rows] == ["1", "3"]
+
+
+def test_wrap_certificate_write_keeps_the_stored_grade(monkeypatch):
+    """The DB path: the grade comes from the stored certificate row."""
+    from contextlib import contextmanager
+    from datetime import date
+
+    import etl.scrapers.wrap as wrap
+
+    class Cur:
+        def __init__(self):
+            self.sql, self.writes = "", []
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+        def execute(self, sql, params=None):
+            self.sql = sql
+            if "insert into public.certifications" in sql:
+                self.writes.append(params)
+        def fetchone(self):
+            if "from public.certifications" in self.sql:
+                return {"scope": "Gold | Industries: Apparel", "expires_on": date(2027, 8, 25)}
+            return {"id": "sr1"}
+
+    cur = Cur()
+
+    class Conn:
+        def cursor(self): return cur
+        def commit(self): pass
+
+    @contextmanager
+    def conn():
+        yield Conn()
+
+    monkeypatch.setattr(wrap.db, "conn", conn)
+    monkeypatch.setattr(wrap, "get_source_id", lambda code: "src")
+    rec = _rec(wrap_id="7865", expires_on="2027-08-25", wrap_industries="Apparel",
+               wrap_profile_url=WRAP_LIST_URL)
+    wrap._write_certification("s1", rec)
+    scope, url = cur.writes[0][5], cur.writes[0][7]
+    assert scope == "Gold | Industries: Apparel"
+    assert url == WRAP_LIST_URL
