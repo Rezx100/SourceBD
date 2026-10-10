@@ -3,6 +3,7 @@
 // are not on the strip.
 
 import { cn } from "@/lib/utils";
+import { Reveal } from "./reveal";
 import { Mark, measure } from "./ui";
 
 export const STRIP = ["EPB", "RSC", "BGMEA", "BKMEA", "BTMA", "BGAPMEA", "GOTS", "OEKO-TEX", "WRAP"] as const;
@@ -14,14 +15,15 @@ export function MarksStrip() {
         <h2 id="home-marks" className="text-[15px] leading-[18px] text-ink-subtle">
           Read from the registers that matter
         </h2>
-        <ul className="grid grid-cols-3 gap-x-6 gap-y-7 sm:flex sm:flex-wrap sm:justify-center sm:gap-9">
-          {STRIP.map((c) => (
-            <li key={c} className="flex w-16 flex-col items-center gap-2.5">
+        {/* The marks fade in left to right, 40 ms apart, once. */}
+        <Reveal as="ul" className="grid grid-cols-3 gap-x-6 gap-y-7 sm:flex sm:flex-wrap sm:justify-center sm:gap-9">
+          {STRIP.map((c, i) => (
+            <li key={c} style={{ transitionDelay: `${i * 40}ms` }} className="flex w-16 flex-col items-center gap-2.5 transition-opacity duration-slow motion-reduce:transition-none group-data-[reveal=wait]/reveal:opacity-0">
               <Mark code={c} large />
               <span className="font-mono text-[11px] leading-[14px] text-ink-subtle">{c}</span>
             </li>
           ))}
-        </ul>
+        </Reveal>
       </div>
     </section>
   );
