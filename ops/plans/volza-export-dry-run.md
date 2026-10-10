@@ -328,3 +328,9 @@ about 390, costing about $45 for about 50 exporters (cap $55), asked separately 
 Badhan, Trutex and Zehad narrowed by hand). Results go to `etl/raw/volza/batch_1.jsonl`, then into
 `volza_export_checks` through `ops/volza_load_sample.py --file etl/raw/volza/batch_1.jsonl` (matches
 and "nothing found" alike, each row expiring a year after its own fetch time). The founder runs both.
+
+**Batch 1 result (11 Oct 2026).** 43 searches, **$4.75** spent. **9 of 43 (21%) had 2024–26 shipments**,
+better than the 1 in 8 the sample suggested: 6 clean (Jadid Apparels 291 shipments and $16.2M to 36
+buyers; NGS Fashion 12; Printex 9; Lucas Fashion, Azmery Garments, JNG Fashion Fabrics 1 each) and 3 whose
+name swept in other exporters (Tirnoi Fashion 2 exporters, Ital Adweg 4, Trutex Apparel 3, even with
+"Ltd" added). 34 found nothing. Not listed on the free list (66 of the 109) were skipped at no charge.
