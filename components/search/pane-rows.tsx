@@ -12,9 +12,9 @@ import type { ResultRow } from "./model";
 import { useSelection } from "./selection";
 import { RowActions, useRowSave } from "./table";
 
-/** The same cell the table draws, so a certificate looks the same beside a pane and on a phone. */
-export function Problem({ r }: { r: ResultRow }) {
-  return r.certCell ? <CertSummaryCell cert={r.certCell} /> : <Unpublished>{ABSENT.certificates}</Unpublished>;
+/** The same cell the table draws, so a certificate looks the same beside a pane and on a phone; `reveal` where it sits outside the row's link. */
+export function Problem({ r, reveal }: { r: ResultRow; reveal?: boolean }) {
+  return r.certCell ? <CertSummaryCell cert={r.certCell} reveal={reveal} /> : <Unpublished>{ABSENT.certificates}</Unpublished>;
 }
 
 /** Beside a pane: tick, name, type and place, the first certificate problem, the source count, the ⋯ menu. */

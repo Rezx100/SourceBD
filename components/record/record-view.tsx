@@ -171,7 +171,7 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
           back a 44 target at its start. The app's own bars are hidden on this page (`data-detail`), so
           the bar is drawn even for a record opened from a link: back is then the search itself. */}
       {page ? (
-        <div data-record-bar="" className="sticky top-0 z-raised flex h-topbar-phone shrink-0 items-center border-b border-line bg-surface px-1 sm:hidden">
+        <div data-record-bar="" className="sticky top-0 z-raised flex h-topbar-phone shrink-0 items-center border-b border-line bg-surface px-1 [transform:translateZ(0)] sm:hidden">
           <Link href={backHref ?? "/app"} aria-label="Back to search" className="inline-flex h-touch items-center gap-0.5 rounded-sm pl-1.5 pr-3 text-md font-medium text-ink outline-none active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
             <CaretLeft size={24} className="shrink-0" aria-hidden />
             Search
@@ -272,8 +272,10 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
           fixed to the foot of the screen, as the app's own tab bar is (founder, 6 Oct 2026: stuck inside
           the scrolling record it "shakes or stutters" on a fast scroll, "not fixed there"); the 64 sit
           above the phone's safe area, and the record keeps that much room at its foot. In the drawer a
-          narrow window gets, it sticks to the drawer's own scroll. */}
-      <div data-record-actions="" className={cn("bottom-0 sm:hidden", page ? "fixed inset-x-0 z-sticky" : "sticky")}>
+          narrow window gets, it sticks to the drawer's own scroll. Both phone bars sit on their own layer
+          (translateZ), so the phone moves them with the page instead of repainting them a beat late
+          (founder, 10 Oct 2026: still shaking); Save's note then places itself against this bar, the same spot. */}
+      <div data-record-actions="" className={cn("bottom-0 sm:hidden", page ? "fixed inset-x-0 z-sticky [transform:translateZ(0)]" : "sticky")}>
         {model.sanctioned ? (
           <div role="status" className="flex min-h-action-bar items-center gap-3 border-t-2 border-sanction bg-sanction-tint px-4 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
             {model.supplierId ? <RecordSave supplierId={model.supplierId} saved={model.saved} appearance="icon" /> : null}

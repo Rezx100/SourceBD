@@ -16,13 +16,13 @@ import { SlowHead } from "./slow";
 
 export { PaneRows } from "./pane-rows";
 
-/** On a phone a row opens the record as a page, with the way back to this search. */
+/** On a phone a row opens the record as a page, with the way back to this search; a tap on the marks opens their words. */
 export function PhoneRows({ rows }: { rows: readonly ResultRow[] }) {
   return (
     <ul>
       {rows.map((r) => (
         <li key={r.slug}>
-          <SupplierRow layout="phone" href={r.pageHref} name={r.name} type={r.type} place={r.place} sources={r.sources} problem={<Problem r={r} />} />
+          <SupplierRow layout="phone" href={r.pageHref} name={r.name} type={r.type} place={r.place} sources={r.sources} problem={<Problem r={r} reveal />} />
         </li>
       ))}
     </ul>
