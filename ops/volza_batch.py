@@ -62,9 +62,9 @@ def run(cap: float) -> None:
                        "matched_variant": r["search"] if n else None, "volza_supplier": pick(top, "supplier_name"),
                        "fob_usd": s.get("sum_of_trade_value_usd") if n else None,
                        "buyers": s.get("count_of_buyers") if n else None,
-                       "top": {k: top.get(k) for k in ("shipment_date", "hsn_code", "product_description",
-                                                      "buyer_name", "destination_country", "trade_value_usd",
-                                                      "unit_rate_usd", "unit")} if n else None,
+                       # the whole summary and record, kept raw: batch 1 dropped the port, weight, city and
+                       # count fields, and getting them back means paying for the search again
+                       "summary": s if n else None, "top": top if n else None,
                        "fetched_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat()}
                 rec["class"] = classify(r["name"], rec["volza_supplier"], n, sup)
                 out.write(json.dumps(rec, ensure_ascii=False) + "\n")
