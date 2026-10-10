@@ -82,7 +82,7 @@ describe("the live facts", () => {
 
 describe("the navigation", () => {
   it("the wordmark, three menus, Pricing, Sign in, Book a demo and Start free: every one a real link or button", () => {
-    const out = draw(createElement(site().nav.SiteNav, { listed: 25, withRecords: 14 }));
+    const out = draw(createElement(site().nav.SiteNav));
     const t = text(out);
     for (const w of ["SourceBD", "Product", "Solutions", "Resources", "Pricing", "Sign in", "Book a demo", "Start free"]) assert.match(t, new RegExp(w));
     assert.match(out, /href="\/signup"[^>]*>Start free/);
@@ -90,12 +90,6 @@ describe("the navigation", () => {
     assert.match(out, /href="\/login"/);
     assert.equal((out.match(/aria-expanded="false"/g) ?? []).length, 3, "three menus, all closed until asked");
     assert.match(out, /aria-label="Menu"/);
-  });
-
-  it("the methodology card says what is true: the live counts when read, none when not", () => {
-    const { methodologyLine } = site().nav;
-    assert.equal(methodologyLine(25, 14), "The 25 sources we list, by tier, and how we match them. 14 hold supplier records.");
-    assert.equal(methodologyLine(null, null), "Every source we list, by tier, and how we match them.");
   });
 
   it("the menus are the site map: four product pages with Paper's lines, two solutions, the resources", () => {
