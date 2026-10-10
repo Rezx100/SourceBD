@@ -86,6 +86,8 @@ def main() -> None:
         return
     from etl.core.config import settings
 
+    if not settings.supabase_url:  # .env is read from the current folder
+        raise SystemExit("no Supabase address: run this from E:\\SourceBD so .env loads. Nothing written.")
     key = settings.supabase_service_role_key
     http = httpx.Client(base_url=f"{settings.supabase_url}/rest/v1", timeout=60,
                         headers={"apikey": key, "Authorization": f"Bearer {key}"})
