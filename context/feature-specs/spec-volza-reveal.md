@@ -43,6 +43,10 @@ No opinion words and no score: plain facts with their basis (agent-brief: no sco
 - Only 'exact' matches get the button; ambiguous names never trigger a paid call.
 - The revealed card: recent shipments list (date, product, buyer, country, value, unit price),
   top buyers, top destination countries, product mix, all from the 25 lines.
+- One list of export lines, never two (founder, 11 Oct 2026): each 4-digit HS heading once, tagged
+  "Registered" (EPB) and/or "Shipped" (seen in the revealed shipments). Customs headings missing
+  from the EPB list are added as "Shipped · not on their EPB list". Before a reveal only the EPB
+  tags show (the preview gives a count of codes, not which ones). Paper page 34, boards B and C.
 
 ## 4. Placement: the most valuable data goes first (founder, 11 Oct 2026)
 
