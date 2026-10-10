@@ -75,6 +75,50 @@ export function RunNowButton({ scraperCode, kind = "primary" }: { scraperCode: s
 }
 
 /**
+ * Let a paused read finish, or mark what a list dropped as no longer listed. Two presses:
+ * the first says what will happen, the second queues the run that carries the release
+ * (etl/jobs/scraper_queue.py honours it only from an admin).
+ */
+export function ReleaseButton({ scraperCode, what }: { scraperCode: string; what: "changes" | "delistings" }) {
+  const { pending, error, post } = usePost();
+  const [sure, setSure] = useState(false);
+  const label = what === "changes" ? "Let the rest through" : "Mark no longer listed";
+  return (
+    <span className="inline-flex flex-col items-end gap-1">
+      <span className="inline-flex items-center gap-2">
+        {sure && !pending ? (
+          <Button kind="secondary" onClick={() => setSure(false)}>
+            Not yet
+          </Button>
+        ) : null}
+        <Button
+          kind={sure ? "primary" : "secondary"}
+          disabled={pending}
+          onClick={() => {
+            if (!sure) return setSure(true);
+            post("/api/v1/admin/etl/enqueue", {
+              scraper_code: scraperCode,
+              priority: 10,
+              metadata: what === "changes"
+                ? { source: "admin_release", accept_changes: true }
+                : { source: "admin_release", accept_delistings: true },
+            });
+          }}
+        >
+          {pending ? "Starting..." : sure ? `Yes, ${label.toLowerCase()}` : label}
+        </Button>
+      </span>
+      {sure && !pending && !error ? (
+        <p className="text-sm text-ink-3">
+          {what === "changes" ? "It reads the source again and updates the live site." : "They show as no longer listed on the live site."}
+        </p>
+      ) : null}
+      <ErrorLine error={error} />
+    </span>
+  );
+}
+
+/**
  * The timer: off or an interval. Nothing is saved until Save is pressed, so a slip on
  * the select never switches a production schedule; Save shows only once it would change something.
  */

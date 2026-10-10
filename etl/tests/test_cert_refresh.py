@@ -125,9 +125,11 @@ def test_queue_release_only_from_a_service_key_job():
 
     meta = {"accept_changes": True, "accept_delistings": True}
     assert _release_flags({"requested_by": None, "metadata": meta}) == meta
-    # An admin button press (requested_by stamped by the RPC) cannot release.
-    assert _release_flags({"requested_by": "u1", "metadata": meta}) == {
-        "accept_changes": False, "accept_delistings": False}
+    # The Needs-you button: an admin may release; anyone else may not.
+    assert _release_flags({"requested_by": "u1", "requester_role": "admin", "metadata": meta}) == meta
+    for role in ("buyer", "supplier", None):
+        assert _release_flags({"requested_by": "u1", "requester_role": role, "metadata": meta}) == {
+            "accept_changes": False, "accept_delistings": False}
     assert _release_flags({"requested_by": None, "metadata": {"accept_changes": "yes"}}) == {
         "accept_changes": False, "accept_delistings": False}
 

@@ -34,11 +34,12 @@ class QueueJob(TypedDict, total=False):
 
 def _release_flags(row: dict[str, Any]) -> dict[str, bool]:
     """A job may carry the founder's release (`run <code> --accept-changes
-    --accept-delistings`) in its metadata. Honoured only on a job no signed-in
-    user requested: the admin enqueue RPCs always stamp `requested_by`, so only
-    a service-key insert (the founder's go-ahead, given in chat) can release."""
+    --accept-delistings`) in its metadata: the Needs-you buttons on
+    /admin/sources, or a service-key insert. Honoured only when no signed-in
+    user requested it or the requester is an admin today (`requester_role`,
+    read at claim time, so a demoted account's old job releases nothing)."""
     meta = row.get("metadata") or {}
-    if row.get("requested_by") is not None:
+    if row.get("requested_by") is not None and row.get("requester_role") != "admin":
         return {"accept_changes": False, "accept_delistings": False}
     return {"accept_changes": meta.get("accept_changes") is True,
             "accept_delistings": meta.get("accept_delistings") is True}
@@ -289,7 +290,9 @@ def _claim_next_job() -> QueueJob | None:
         cur.execute("select pg_advisory_xact_lock(hashtext('sourcebd.etl.claim'))")
         cur.execute(
             """
-            select id, scraper_code, requested_by, metadata
+            select id, scraper_code, requested_by, metadata,
+                   (select p.role::text from public.profiles p where p.id = q.requested_by)
+                     as requester_role
               from public.etl_job_queue q
              where status = 'pending'
                and coalesce((metadata ->> 'retry_after')::timestamptz, '-infinity') <= now()
