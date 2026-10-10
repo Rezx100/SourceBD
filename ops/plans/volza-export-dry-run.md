@@ -143,6 +143,15 @@ across Ha-Meem Textiles, Ha-Meem Design and others. Volza's company list is not 
 Ignored filters fail silently, so the real fetch must check `api_request_details` echoes every filter it
 sent, or it pays for unfiltered data.
 
+**Correction, 11 Oct 2026 (Volza's published spec, `backend.volza.com/swagger/v1/swagger.json`).** Two
+of the "ignored" rows above sent names that are not fields. The documented ones are
+`destination_country_name` / `destination_country_ids`, `supplier_company_id` (Volza IDs; overrides
+`supplier_name`), and `buyer_name` with `buyer_name_search_type` / `supplier_name_search_type`
+(`starts_with` by default, or `contains`, `exact`). `company-transaction-summary` returns top 10 buyers,
+destination countries, ports and HS codes plus KPIs and 10 shipments per company; its price is not in
+the spec (the $5 above came from Volza's pricing, not re-checked). The live check is
+`ops/volza_filter_test.py` (cap $3).
+
 ### Volza's own company summary: rejected
 
 `GET /company-transaction-summary` gives a ready-made company profile, but costs a flat **$5 per
