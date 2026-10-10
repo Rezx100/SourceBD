@@ -173,6 +173,7 @@
     "components/site/home.test.ts",
     "components/site/home/icons.test.ts",
     "components/site/home/page.test.ts",
+    "lib/home-records.test.ts",
     "components/site/film/film.test.ts",
     "components/site/film/chapters.test.ts",
     "app/dev/ds/v4-film.tsx",
