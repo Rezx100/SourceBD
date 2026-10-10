@@ -29,6 +29,10 @@ describe("the home icon family", () => {
     }
   });
 
+  it("no file in the home folder carries mangled text (UTF-8 read as Windows-1252: \"Â·\", \"â€™\")", () => {
+    for (const f of readdirSync(join(root, "components/site/home"))) assert.doesNotMatch(readFileSync(join(root, "components/site/home", f), "utf8"), /Â|â€/, f);
+  });
+
   it("names no colour by hex", () => {
     const src = readFileSync(join(root, "components/site/home/icons.tsx"), "utf8");
     assert.doesNotMatch(src, /#[0-9a-f]{3,8}\b/i);

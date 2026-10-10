@@ -1,4 +1,4 @@
-// 15 Â· For suppliers (Paper `1FXA-0` / `1G0M-0`): the cutting table, the copy panel and the three steps to a claimed
+// 15 · For suppliers (Paper `1FXA-0` / `1G0M-0`): the cutting table, the copy panel and the three steps to a claimed
 // record. Claiming is free; the claim is checked against the registers before the record changes hands.
 
 import { ButtonLink } from "@/components/kit";
@@ -40,7 +40,7 @@ export function ForSuppliers() {
               <HomeIcon name={icon} className="text-ink-strong" />
               <div className="flex flex-col gap-1">
                 <h3 className="text-[17px] font-medium leading-[22px] text-ink-strong">
-                  {i + 1} Â· {title}
+                  {i + 1} · {title}
                 </h3>
                 <p className="text-[15px] leading-[22px] text-ink-muted">{body}</p>
               </div>

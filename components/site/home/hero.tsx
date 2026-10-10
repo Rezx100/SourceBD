@@ -1,4 +1,4 @@
-// 3 Â· Hero copy (Paper `Z05-0` / `Z5H-0`) and 4 Â· Hero stage (`Z0H-0` / `Z5R-0`). The lede carries the live
+// 3 · Hero copy (Paper `Z05-0` / `Z5H-0`) and 4 · Hero stage (`Z0H-0` / `Z5R-0`). The lede carries the live
 // published count when it was read and says the same thing without a number when it was not. The email field
 // hands its address to sign-up; the record link opens Aboni Knitwear's public record. The chips under the form
 // are the nine common searches (PR 3 gives them their live counts).
