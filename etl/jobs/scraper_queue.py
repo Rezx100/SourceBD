@@ -25,9 +25,23 @@ MAX_ATTEMPTS = 3
 RETRY_BACKOFF_MINUTES = (15, 60)  # after attempt 1, after attempt 2
 
 
-class QueueJob(TypedDict):
+class QueueJob(TypedDict, total=False):
     id: str
     scraper_code: str
+    accept_changes: bool
+    accept_delistings: bool
+
+
+def _release_flags(row: dict[str, Any]) -> dict[str, bool]:
+    """A job may carry the founder's release (`run <code> --accept-changes
+    --accept-delistings`) in its metadata. Honoured only on a job no signed-in
+    user requested: the admin enqueue RPCs always stamp `requested_by`, so only
+    a service-key insert (the founder's go-ahead, given in chat) can release."""
+    meta = row.get("metadata") or {}
+    if row.get("requested_by") is not None:
+        return {"accept_changes": False, "accept_delistings": False}
+    return {"accept_changes": meta.get("accept_changes") is True,
+            "accept_delistings": meta.get("accept_delistings") is True}
 
 
 def enqueue_due_schedules(limit: int | None = None) -> dict[str, int]:
@@ -275,7 +289,7 @@ def _claim_next_job() -> QueueJob | None:
         cur.execute("select pg_advisory_xact_lock(hashtext('sourcebd.etl.claim'))")
         cur.execute(
             """
-            select id, scraper_code
+            select id, scraper_code, requested_by, metadata
               from public.etl_job_queue q
              where status = 'pending'
                and coalesce((metadata ->> 'retry_after')::timestamptz, '-infinity') <= now()
@@ -319,7 +333,8 @@ def _claim_next_job() -> QueueJob | None:
             (row["id"], row["scraper_code"]),
         )
         c.commit()
-        return {"id": str(row["id"]), "scraper_code": str(row["scraper_code"])}
+        return {"id": str(row["id"]), "scraper_code": str(row["scraper_code"]),
+                **_release_flags(row)}
 
 
 def _run_job(job: QueueJob) -> None:
@@ -330,6 +345,10 @@ def _run_job(job: QueueJob) -> None:
         return
 
     scraper = scraper_cls()
+    if job.get("accept_changes"):
+        scraper.accept_changes = True
+    if job.get("accept_delistings") and hasattr(scraper, "accept_delistings"):
+        scraper.accept_delistings = True
     scraper.progress_callback = lambda event: _record_progress_event(job["id"], event)
     log.info("job.start", job_id=job["id"], scraper_code=scraper_code)
     try:
