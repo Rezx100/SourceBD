@@ -123,11 +123,12 @@ export function LinkForm({ next }: { next: string }) {
 }
 
 /** Sign up. The terms are accepted in words, not a ticked box; a supplier signs up with a password only. */
-export function SignUpForm({ role, next }: { role: "buyer" | "supplier"; next: string }) {
+/** `email`: the address typed on the home page's hero, carried here so nobody types it twice. */
+export function SignUpForm({ role, next, email: typed = "" }: { role: "buyer" | "supplier"; next: string; email?: string }) {
   const [up, upAction, upPending] = useActionState(signUp, INITIAL);
   const [link, linkAction, linkPending] = useActionState(signInWithMagicLink, INITIAL);
   const [last, setLast] = useState<"up" | "link">("up");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(typed);
   const state = last === "link" ? link : up;
   const provider = personalProvider(email);
   const exists = state.kind === "exists" && state.field === "email";
@@ -137,7 +138,7 @@ export function SignUpForm({ role, next }: { role: "buyer" | "supplier"; next: s
       <input type="hidden" name="next" value={next} />
       <Banner state={state} />
       <div className="flex flex-col gap-2">
-        <EmailField state={state} onChange={setEmail} />
+        <EmailField state={state} defaultValue={typed || undefined} onChange={setEmail} />
         {exists ? (
           <p className="flex gap-4 text-base">
             <AuthLink href="/login">Sign in</AuthLink>

@@ -12,7 +12,8 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Button, ButtonLink, Sheet } from "@/components/kit";
 import { cn } from "@/lib/utils";
-import { METHODOLOGY_CARD, PRODUCT, RESOURCES, SOLUTIONS, type NavItem } from "./map";
+import { HomeIcon } from "./home/icons";
+import { PRODUCT, PRODUCT_GROUPS, RESOURCES, SOLUTIONS, type NavItem } from "./map";
 
 type Menu = "product" | "solutions" | "resources";
 const MENUS: { key: Menu; label: string }[] = [
@@ -23,40 +24,36 @@ const MENUS: { key: Menu; label: string }[] = [
 
 const ring = "outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
-function Item({ item, wide }: { item: NavItem; wide?: boolean }) {
+function Item({ item }: { item: NavItem }) {
   return (
-    <Link href={item.href} prefetch={false} className={cn("flex flex-col gap-0.5 rounded-lg p-3 hover:bg-brand-wash", wide && "w-[316px]", ring)}>
+    <Link href={item.href} prefetch={false} className={cn("flex flex-col gap-0.5 rounded-lg p-3 hover:bg-brand-wash", ring)}>
       <span className="text-md font-medium text-ink">{item.title}</span>
       {item.body ? <span className="text-base text-ink-3">{item.body}</span> : null}
     </Link>
   );
 }
 
-/** The methodology card's line: Paper's, with the live counts when they were read ("The 25 sources we list, by tier, and how we match them. 14 hold supplier records."). */
-export function methodologyLine(listed: number | null, withRecords: number | null): string {
-  return listed !== null ? `The ${listed} sources we list, by tier, and how we match them.${withRecords !== null ? ` ${withRecords} hold supplier records.` : ""}` : "Every source we list, by tier, and how we match them.";
-}
-
-function Panel({ menu, listed, withRecords }: { menu: Menu; listed: number | null; withRecords: number | null }) {
+function Panel({ menu }: { menu: Menu }) {
   if (menu === "product") {
     return (
-      <div className="mx-auto flex max-w-[1440px] gap-16 px-10 pb-10 pt-8">
-        <div className="flex w-pane shrink-0 flex-col gap-1">
-          <p className="px-3 pb-2 font-mono text-xs text-ink-3">Product</p>
-          <div className="flex flex-wrap gap-1">
-            {PRODUCT.map((p) => (
-              <Item key={p.href} item={p} wide />
-            ))}
+      <div className="mx-auto flex max-w-[1440px] gap-10 px-10 pb-8 pt-7">
+        {PRODUCT_GROUPS.map((g) => (
+          <div key={g.title} className="flex w-[200px] flex-col gap-3.5">
+            <p className="flex items-center gap-2.5 text-[15px] font-medium leading-[18px] text-ink-strong">
+              <HomeIcon name={g.icon} className="text-ink-strong" />
+              {g.title}
+            </p>
+            <ul className="flex flex-col gap-0.5">
+              {g.items.map((i) => (
+                <li key={i.href}>
+                  <Link href={i.href} prefetch={false} className={cn("flex min-h-8 items-center rounded-md px-2 py-[7px] text-[14px] leading-[18px] text-ink-strong hover:bg-sunken", ring)}>
+                    {i.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
-        </div>
-        <div className="flex w-[360px] shrink-0 flex-col gap-3 border-l border-line pl-8">
-          <p className="font-mono text-xs text-ink-3">{METHODOLOGY_CARD.kicker}</p>
-          <p className="text-md font-medium text-ink">{METHODOLOGY_CARD.title}</p>
-          <p className="text-base text-ink-3">{methodologyLine(listed, withRecords)}</p>
-          <Link href={METHODOLOGY_CARD.href} prefetch={false} className={cn("w-fit text-base font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]", ring)}>
-            {METHODOLOGY_CARD.cta}
-          </Link>
-        </div>
+        ))}
       </div>
     );
   }
@@ -70,7 +67,7 @@ function Panel({ menu, listed, withRecords }: { menu: Menu; listed: number | nul
   );
 }
 
-export function SiteNav({ listed = null, withRecords = null }: { listed?: number | null; withRecords?: number | null }) {
+export function SiteNav() {
   const [open, setOpen] = useState<Menu | null>(null);
   const [sheet, setSheet] = useState(false);
   const path = usePathname();
@@ -155,7 +152,7 @@ export function SiteNav({ listed = null, withRecords = null }: { listed?: number
         {MENUS.map((m) =>
           open === m.key ? (
             <div key={m.key} id={`site-menu-${m.key}`} className="absolute inset-x-0 top-full border-b border-line bg-surface shadow-dialog max-lg:hidden">
-              <Panel menu={m.key} listed={listed} withRecords={withRecords} />
+              <Panel menu={m.key} />
             </div>
           ) : null,
         )}

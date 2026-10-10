@@ -29,6 +29,12 @@ describe("the home icon family", () => {
     }
   });
 
+  it("no file in the home folder carries mangled text (UTF-8 read back as Windows-1252, a middle dot turned into two letters)", () => {
+    // U+00C2 and U+00E2 U+20AC: what "·" and "’" become; spelled by code so this file does not hold them.
+    const mangled = new RegExp(String.fromCharCode(0xc2) + "|" + String.fromCharCode(0xe2, 0x20ac));
+    for (const f of readdirSync(join(root, "components/site/home"))) assert.doesNotMatch(readFileSync(join(root, "components/site/home", f), "utf8"), mangled, f);
+  });
+
   it("names no colour by hex", () => {
     const src = readFileSync(join(root, "components/site/home/icons.tsx"), "utf8");
     assert.doesNotMatch(src, /#[0-9a-f]{3,8}\b/i);

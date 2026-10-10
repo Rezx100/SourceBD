@@ -21,6 +21,7 @@ import { FilmRuntime } from "@/components/site/film/runtime";
 import { ClaimReceipt, Display, Faq, HeroActions, Label, Lede, RecordCard, Section, Stat, wrap, type Row } from "@/components/site/parts";
 import { RoleTabs } from "@/components/site/role-tabs";
 import { readDay, withCommas, type SiteFacts } from "@/lib/site-facts";
+import { FAQ_ITEMS } from "@/components/site/home/faq-items";
 import { cn } from "@/lib/utils";
 
 const NAME = record.NAME;
@@ -40,17 +41,7 @@ const mark = (r: Row): Row => ({ ...r, flag: "new" });
 /** The district counts of 3 Oct 2026, from the suppliers' register addresses. Not live: dated, and not a district total (the column mixes spellings). */
 const DISTRICTS: [string, number][] = [["Dhaka district", 4421], ["Gazipur", 1819], ["Narayanganj", 1628], ["Chattogram", 1080]];
 
-export const FAQ_ITEMS = (f: SiteFacts) => [
-  {
-    q: "Where do the facts come from?",
-    a: `From ${f.sourcesListed ?? "our"} public sources${f.sourcesWithRecords !== null ? `, ${f.sourcesWithRecords} of them holding supplier records` : ""}: government bodies and RSC, trade bodies such as BGMEA and BKMEA, certification bodies, brand supplier lists and the UFLPA Entity List. Each fact shows its source and the date we read it.`,
-  },
-  { q: "Do you score or rank suppliers?", a: "No. We show what each source says and when we read it. There is no grade, rating or star on any supplier." },
-  { q: "Can a supplier pay to appear higher?", a: "No. No supplier pays to rank higher or look better." },
-  { q: "How fresh is each fact?", a: `Each fact shows the date we read its source.${readDay(f.latestRead) ? ` The latest register read was ${readDay(f.latestRead)}.` : ""}` },
-  { q: "How do I contact a supplier?", a: "Contact details stay locked. Send an RFQ and the supplier replies in Messages." },
-  { q: "Do you list buying houses too?", a: "Yes. Search can be narrowed to factories or to buying houses." },
-];
+export { FAQ_ITEMS } from "@/components/site/home/faq-items";
 
 function Chapter({ n, question, headline, lede, record, children }: { n: string; question: string; headline: string; lede: string; record: Row[]; children?: React.ReactNode }) {
   return (

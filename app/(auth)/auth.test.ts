@@ -283,6 +283,11 @@ describe("sign up", () => {
     assert.doesNotMatch(text(out), /Email me a sign-in link instead/);
   });
 
+  it("the home page's email arrives in the field; anything that is not an address is ignored", async () => {
+    assert.match(await render("app/(auth)/signup/page.js", q({ email: "buyer@brand.co.uk" })), /name="email"[^>]*value="buyer@brand\.co\.uk"|value="buyer@brand\.co\.uk"[^>]*name="email"/);
+    for (const email of ["", "not an email", "a@b@c"]) assert.doesNotMatch(await render("app/(auth)/signup/page.js", q({ email })), /name="email"[^>]*value="|value="[^"]*"[^>]*name="email"/, email);
+  });
+
   it("an invite link's way back goes through the form and to Sign in", async () => {
     const out = await render("app/(auth)/signup/page.js", q({ next: "/invite/abc" }));
     assert.match(out, /name="next" value="\/invite\/abc"/);

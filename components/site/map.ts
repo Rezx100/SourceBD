@@ -11,6 +11,15 @@ export const PRODUCT: readonly NavItem[] = [
   { title: "Compliance", body: "Expiry alerts and Entity List checks.", href: "/product/compliance" },
 ];
 
+/** The Product menu on a wide screen (Paper "Home · Nav · Product menu open"): four groups, each a route of the app.
+ * The board's "Supplier records" (/app/suppliers) has no index page, a record opens from a search, so it is not listed. */
+export const PRODUCT_GROUPS: readonly { title: string; icon: "search" | "receipt" | "send" | "bell"; items: readonly NavItem[] }[] = [
+  { title: "Find", icon: "search", items: [{ title: "Search", href: "/app" }, { title: "Saved suppliers", href: "/app/saved" }, { title: "Saved searches", href: "/app/searches" }, { title: "HS headings", href: "/app/headings" }] },
+  { title: "Check", icon: "receipt", items: [{ title: "Compliance hub", href: "/app/compliance" }, { title: "UFLPA checks", href: "/app/compliance/uflpa" }, { title: "Expiry dates", href: "/app/compliance/expiry" }, { title: "Modern slavery statement", href: "/app/compliance/msa" }] },
+  { title: "Ask", icon: "send", items: [{ title: "RFQs and quotes", href: "/app/rfqs" }, { title: "Messages", href: "/app/messages" }, { title: "Orders", href: "/app/orders" }, { title: "Your products", href: "/app/products" }] },
+  { title: "Watch", icon: "bell", items: [{ title: "Alerts and notifications", href: "/app/settings/notifications" }, { title: "Team and roles", href: "/app/settings/members" }, { title: "Methodology", href: "/methodology" }, { title: "Data status", href: "/status" }] },
+];
+
 export const SOLUTIONS: readonly NavItem[] = [
   { title: "Sourcing teams", href: "/solutions/sourcing" },
   { title: "Compliance teams", href: "/solutions/compliance" },
@@ -23,9 +32,6 @@ export const RESOURCES: readonly NavItem[] = [
   { title: "For suppliers", href: "/suppliers" },
   { title: "System status", href: "/status" },
 ];
-
-/** The methodology card in the Product menu. */
-export const METHODOLOGY_CARD = { kicker: "How we check", title: "Data & methodology", href: "/methodology", cta: "Read the methodology" } as const;
 
 export const FOOTER: readonly { title: string; links: readonly { label: string; href: string }[] }[] = [
   {
