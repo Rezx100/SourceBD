@@ -16,9 +16,11 @@
 -- ----
 --   1. verification_queue.release_plan / release_plan_at: the plan as last worked out, and when.
 --   2. admin_queue_list reads the kept plan. A row whose plan is missing or older than a day is
---      worked out afresh, AT MOST TEN ROWS PER CALL, newest first, and kept. Rows past the cap
---      answer `plan_pending: true` with no destination; the next load takes the next ten. So a
---      page costs at most ten plans, and a queue that has been loaded once costs none.
+--      worked out afresh, AT MOST TEN ROWS AND ABOUT 2.5 SECONDS PER CALL, newest first, and
+--      kept. Rows past the cap answer `plan_pending: true` with no destination; the next load
+--      takes the next ones. Measured read-only on production 10 Oct 2026: the old list took 72 s
+--      (34 brand-disclosure plans at 1-3 s each); a ten-row cap alone took 11.6 s on the third
+--      load, past the 8 s timeout, so the time budget is what keeps every load under it.
 --   3. admin_queue_decide is untouched: it still works out the plan fresh at the moment of the
 --      decision (0102), so a kept plan can only ever affect the label on the list, never what
 --      Release does.
@@ -62,6 +64,9 @@ declare
   v_offset    int  := greatest(0, coalesce(p_offset, 0));
   v_max_age   constant interval := interval '1 day';
   v_fresh_cap constant int := 10;
+  v_budget    constant interval := interval '2.5 seconds';
+  v_started   timestamptz := clock_timestamp();
+  v_row       record;
   v_out       jsonb;
 begin
   if v_uid is null then
@@ -86,12 +91,11 @@ begin
   end if;
 
   -- Work out and keep the plan for at most v_fresh_cap rows of THIS page that have none or a
-  -- stale one. Open rows only (a decided row's label is history), and never the two queue types
-  -- that have their own decision flow.
-  update public.verification_queue q
-     set release_plan    = public.admin_queue_release_plan(q.id),
-         release_plan_at = now()
-   where q.id in (
+  -- stale one, and stop once v_budget has gone: one brand-disclosure plan costs 1-3 s on
+  -- production (10 Oct 2026), so ten of them overran the 8 s statement timeout and, rolled back,
+  -- kept nothing, which would have timed out every load after. Open rows only (a decided row's
+  -- label is history), and never the two queue types that have their own decision flow.
+  for v_row in
      select p.id
        from (
          select q2.id, q2.created_at, q2.reviewed_at, q2.queue_type, q2.release_plan_at
@@ -110,7 +114,13 @@ begin
         and (p.release_plan_at is null or p.release_plan_at < now() - v_max_age)
       order by p.created_at desc
       limit v_fresh_cap
-   );
+  loop
+    exit when clock_timestamp() - v_started > v_budget;
+    update public.verification_queue
+       set release_plan    = public.admin_queue_release_plan(v_row.id),
+           release_plan_at = now()
+     where id = v_row.id;
+  end loop;
 
   with open_by_type as (
     select q.queue_type::text as queue_type, count(*)::bigint as n
@@ -206,7 +216,7 @@ $$;
 
 comment on function public.admin_queue_list(text, text, int, int) is
   '0128: admin-only review queue page. Reads the kept Release plan; works out and keeps at most ten '
-  'missing or day-old plans per call (plan_pending marks the rest). Decide recomputes the plan itself.';
+  'missing or day-old plans, and about 2.5 s of them, per call (plan_pending marks the rest). Decide recomputes the plan itself.';
 
 revoke all on function public.admin_queue_list(text, text, int, int) from public, anon, authenticated;
 grant execute on function public.admin_queue_list(text, text, int, int) to authenticated;

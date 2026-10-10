@@ -40,6 +40,10 @@ begin
   if (select provolatile from pg_proc where oid = 'public.admin_queue_list(text, text, int, int)'::regprocedure) <> 'v' then
     raise exception 'admin_queue_list is not volatile, so it cannot keep a plan';
   end if;
+  -- Ten slow plans overran the 8 s timeout on production (10 Oct 2026); the time budget is the fix.
+  if (select prosrc from pg_proc where oid = 'public.admin_queue_list(text, text, int, int)'::regprocedure) !~ 'exit when clock_timestamp\(\) - v_started > v_budget' then
+    raise exception 'admin_queue_list lost its time budget for working out plans';
+  end if;
 
   -- A buyer is refused.
   set local role authenticated;
