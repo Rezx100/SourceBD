@@ -28,10 +28,14 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from volza_export_dryrun import HS, MIN_GAP, RAW  # noqa: E402
+import volza_live_sample  # noqa: E402
 from volza_live_sample import WINDOW, Live, Stop, account_used  # noqa: E402
 
 OUT = RAW / "filter_test.json"
 CAP = 3.0
+# The first run (11 Oct 2026) spent $1.00 by Volza's header, $0.55 of it on the 10-record call that the
+# guard stopped before its result was saved; it counts toward the $3.
+PRIOR = 1.00
 NAME = "Aboni Knit Wear"
 TESTS: list[tuple[str, dict[str, Any], int]] = [
     # Field names from Volza's published spec (backend.volza.com/swagger/v1/swagger.json, read 11 Oct
@@ -44,6 +48,9 @@ TESTS: list[tuple[str, dict[str, Any], int]] = [
     # The free company list's IDs for Aboni (11 Oct): does an ID match the shipments filed as "Aboni Knit Wear Ltd"?
     ("supplier IDs from the free list", {"supplier_company_id": [70153649, 33452214]}, 1),
     ("no filter, 10 records", {"supplier_name": [NAME]}, 10),
+    # NEW YORKER found 0 although the biggest shipment's buyer is "NEW YORKER FASHION LOGISTICS INT L":
+    # one more buyer test with a name taken verbatim from a record (the UK top shipment, 11 Oct).
+    ("buyer Tesco Stores", {"supplier_name": [NAME], "buyer_name": ["Tesco Stores"]}, 1),
     ("brand only PRIMARK", {"buyer_name": ["PRIMARK"], "buyer_name_search_type": "contains"}, 1),
 ]
 
@@ -63,10 +70,13 @@ def main() -> None:
             print(f"  {label:32} {json.dumps(f)}  up to ${worst(n):.2f}")
         print(f"{len(TESTS)} searches, worst case ${total:.2f}, hard cap ${CAP:.2f}. Pass --apply to run.")
         return
-    v = Live(CAP, 0.0, start_used=account_used())
-    out: list[dict[str, Any]] = []
+    out: list[dict[str, Any]] = json.loads(OUT.read_text(encoding="utf-8")) if OUT.exists() else []
+    done = {r["label"] for r in out}
+    v = Live(CAP, PRIOR, start_used=account_used())
     try:
         for label, f, n in TESTS:
+            if label in done:
+                continue
             if v.spent + worst(n) > CAP + 1e-9:
                 raise Stop(f"cap: ${v.spent:.2f} spent, next call up to ${worst(n):.2f}")
             body = {"hsn_code": HS, "start_date": WINDOW[0], "end_date": WINDOW[1], "max_count_per_page": n,
@@ -77,7 +87,6 @@ def main() -> None:
             v.last = time.monotonic()
             r = v.http.post("/bangladesh-exports", json=body)
             v.calls += 1
-            v._read_headers(r)
             data = r.json() if r.headers.get("content-type", "").startswith("application/json") else {"_text": r.text[:300]}
             recs = (data.get("api_records") or []) if isinstance(data, dict) else []
             v.tally += (0.10 + 0.05 * len(recs)) if r.status_code == 200 else 0.0
@@ -88,6 +97,10 @@ def main() -> None:
             s = (data.get("api_summary") or {}) if isinstance(data, dict) else {}
             print(f"{label:32} {r.status_code} shipments={s.get('count_of_shipments')} "
                   f"exporters={s.get('count_of_suppliers')} records={len(recs)}")
+            # The live sample's per-call guard assumes one record; this call may ask for ten. The result
+            # is saved above first, so a stop here never throws away what was paid for.
+            volza_live_sample.WORST_CALL = worst(n)
+            v._read_headers(r)
     except Stop as e:
         print(f"STOPPED: {e}")
     finally:
