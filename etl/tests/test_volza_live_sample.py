@@ -118,3 +118,40 @@ def test_filter_check_keeps_everything_volza_sent(tmp_path, monkeypatch):
     saved = json.loads(ft.OUT.read_text(encoding="utf-8"))[0]
     assert saved["response"] == body and saved["credit"] == {"x-credit-used": "35.800"}
     assert saved["sent"] == {"supplier_name": ["A"]}
+
+
+def test_launch_narrows_a_swept_name_then_fetches_the_four_markets():
+    from ops import volza_launch as vl
+
+    sent = []
+
+    def handler(req):
+        body = json.loads(req.content)
+        sent.append(body)
+        exact = body.get("supplier_name_search_type") == "exact"
+        summary = {"count_of_shipments": 9, "count_of_suppliers": 1 if exact else 2,
+                   "count_of_unique_destination_countries": 3, "sum_of_trade_value_usd": 100.0, "count_of_buyers": 2}
+        return httpx.Response(200, headers={"X-Credit-Used": "0.000"},
+                              json={"api_summary": summary, "api_records": [{"supplier_name": "Utah Fashions Ltd"}]})
+
+    v = _live(handler, start_used=0.0)
+    row = {"id": "u", "slug": "utah", "name": "UTAH Fashions Ltd", "variants": ["UTAH Fashions"]}
+    rec = vl.new_rec(row)
+    vl.fetch(v, row, rec)
+    assert rec["class"] == "exact" and not rec["partial"]
+    assert [c["kind"] for c in rec["calls"]] == ["preview", "exact", "market:United Kingdom",
+                                                 "market:United States", "market:EU", "market:Canada"]
+    assert "Utah Fashions Ltd" in sent[1]["supplier_name"] and all(b["remove_duplicate_shipments"] for b in sent)
+    assert sent[4]["destination_country_name"] == vl.EU and sent[4]["supplier_name_search_type"] == "exact"
+    assert rec["cost"] == pytest.approx(6 * 0.15)
+
+
+def test_launch_never_records_a_rejected_search_as_nothing_found():
+    from ops import volza_launch as vl
+
+    v = _live(lambda req: httpx.Response(400, json={"errors": {}}), start_used=0.0)
+    row = {"id": "h", "slug": "h", "name": "H&M Knit", "variants": ["H&M Knit"]}
+    rec = vl.new_rec(row)
+    with pytest.raises(vl.Rejected):
+        vl.fetch(v, row, rec)
+    assert rec["partial"] and rec["tried"] == [] and rec["cost"] == 0

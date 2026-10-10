@@ -463,3 +463,28 @@ supplier again. Package B's top end ($0.55) is an overestimate.
 "Aboni Knit Wear", both without "Ltd". No shipment carries those names exactly, so 0 means the
 exact setting works and the "ambiguous" names are one company under several IDs (shown after one
 $0.10 exact call each); the full totals mean it is ignored, and ambiguous names stay hidden.
+
+**Result (founder ran it, 11 Oct; $0.20, counter 36.650 → 36.850; $2.20 of the $3 cap):** both
+returned **0**. The exact setting works, and case does not matter. So for Utah, Square Apparels,
+Sisal and Rhythm, every shipment the starts-with search swept in carries our own legal name: the
+"2–4 exporters" are one company filed under several Volza IDs, not other companies. A name that
+sweeps in others is settled with one exact search on our legal name in its suffix forms: what it
+finds is ours and can be shown; what it does not find stays hidden.
+
+### Batch 1 (proposed, cap $50): `ops/volza_launch.py --batch 1`
+
+Package B, everything Volza returns kept per call (whole response and credit headers), one row per
+supplier in `etl/raw/volza/launch_1.jsonl`, resumable, a refused search never stored as "nothing
+found". In this order until the cap:
+
+1. the 47 exact suppliers already shown: the four market calls for the 38 that ship to more than
+   one country (about $15–23; the biggest shipments already bought cost $0.10 a call);
+2. the 18 held names that swept in other IDs: one exact search each, then the markets for those it
+   settles (about $2–13);
+3. EPB suppliers not yet checked, in a fixed shuffled order (seed 20261011): preview, exact search
+   when needed, markets. About 30–70 suppliers with what is left.
+
+Expected: about 60 suppliers newly shown or completed with UK, US, EU and Canada figures and the
+biggest buyer in each. The market figures stay in the raw file until a database column holds them
+(the card work, spec slice B); previews load with `ops/volza_load_sample.py --file
+etl/raw/volza/launch_1.jsonl` once 0138 is applied. Tests: `etl/tests/test_volza_live_sample.py`.

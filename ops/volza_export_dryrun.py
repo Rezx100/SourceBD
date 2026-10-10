@@ -65,11 +65,11 @@ order by su.slug
 def search_name(name: str) -> str:
     """Name without the trailing Ltd/Limited/(Pvt.) part, case and hyphens kept.
 
-    Volza's supplier_name is a contains-match, so "Square Fashions" also finds
-    "Square Fashions Ltd" and "Square Fashions Limited"; the suffix only narrows.
+    Volza's supplier_name is a starts-with match, so "Square Fashions" also finds
+    "Square Fashions Ltd" and "Square Fashions Limited"; the suffix only narrows (report section 11).
     """
     n = re.sub(r"\s*\((?:pvt|private)\.?\)\s*", " ", name or "", flags=re.IGNORECASE)
-    n = n.split("(")[0]  # "(FOR UD)", "(Bangladesh) Co." notes: a cut name still contains-matches
+    n = n.split("(")[0]  # "(FOR UD)", "(Bangladesh) Co." notes: a cut name still starts-with-matches
     n = re.sub(r"\.(?=[A-Za-z])", ". ", n)  # "Inds.Ltd" -> "Inds. Ltd" so the suffix strips
     n = re.sub(r"\s+", " ", n).strip()
     for _ in range(4):
