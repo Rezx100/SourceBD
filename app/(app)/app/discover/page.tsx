@@ -37,6 +37,7 @@ import { SaveSearchPanel, saveSummary } from "@/components/saved/save-search";
 import { ResultsBar } from "@/components/search/bulk-bar";
 import { FilterPane } from "@/components/search/filters";
 import { Flash } from "@/components/search/flash";
+import { ShortScroll } from "@/components/search/short-scroll";
 import { PastEnd, PaneRows, PhoneMore, PhoneRows, ResultsEmpty, ResultsError, ResultsFooter } from "@/components/search/list";
 import { resultRow } from "@/components/search/model";
 import { MoreMenu } from "@/components/search/more-menu";
@@ -205,7 +206,7 @@ export default async function BuyerDiscoverPage({
         ) : (
           <>
             {/* From md the table, or the narrow list beside a pane; on a phone the rows that open as pages. */}
-            <div className="hidden min-h-0 flex-1 overflow-y-auto md:block">
+            <ShortScroll className="hidden flex-1 md:block">
               <Await value={decorated}>
                 {(results) =>
                   paneOpen ? (
@@ -226,7 +227,7 @@ export default async function BuyerDiscoverPage({
                   )
                 }
               </Await>
-            </div>
+            </ShortScroll>
             <div className="md:hidden">
               <Await value={decorated}>{(results) => <PhoneRows rows={results} />}</Await>
               <PhoneMore shown={(state.page - 1) * state.per + rows.length} total={total ?? rows.length} nextHref={nextHref} per={state.per} />

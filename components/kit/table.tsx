@@ -138,6 +138,8 @@ export function Unpublished({ children = "Not published" }: { children?: string 
   );
 }
 
+const NARROW_WORDS = "[@container_(max-width:719px)]:sr-only";
+
 /** "Showing 1–25 of 4,645 suppliers · Page 1 of 186 · Previous · Next". `perPage` is the page's own select. */
 export function Pagination({
   noun,
@@ -165,15 +167,15 @@ export function Pagination({
     const body = lead ? (
       <>
         <CaretLeft size={16} className="shrink-0" aria-hidden />
-        {label}
+        <span className={NARROW_WORDS}>{label}</span>
       </>
     ) : (
       <>
-        {label}
+        <span className={NARROW_WORDS}>{label}</span>
         <CaretRight size={16} className="shrink-0" aria-hidden />
       </>
     );
-    const cls = buttonClass({ kind: "secondary", className: cn("gap-1", lead ? "pl-2 pr-3" : "pl-3 pr-2") });
+    const cls = buttonClass({ kind: "secondary", className: cn("gap-1", lead ? "pl-2 pr-3" : "pl-3 pr-2", "[@container_(max-width:719px)]:px-2") });
     return href ? (
       <Link href={href} className={cls}>
         {body}
@@ -185,18 +187,25 @@ export function Pagination({
     );
   };
   return (
-    <nav aria-label={`${noun} pages`} className="flex h-12 shrink-0 items-center justify-between bg-surface px-3">
-      <p className="text-sm text-ink-2">
-        Showing {n(from)}–{n(to)} of {n(total)} {noun}
-      </p>
-      <div className="flex items-center gap-4">
-        {perPage}
+    // The footer measures itself, not the window: beside a record pane it can be 360px on a wide
+    // screen. Narrower than 720 the words go (to screen readers only) and the steps become arrows;
+    // narrower than 480 the page count goes; narrower than 360 the page size. Nothing wraps.
+    <nav aria-label={`${noun} pages`} className="shrink-0 bg-surface [container-type:inline-size]">
+      <div className="flex h-12 items-center justify-between gap-3 whitespace-nowrap px-3">
         <p className="text-sm text-ink-2">
-          Page {n(page)} of {n(pages)}
+          <span className={NARROW_WORDS}>Showing </span>
+          {n(from)}–{n(to)} of {n(total)}
+          <span className={NARROW_WORDS}> {noun}</span>
         </p>
-        <div className="flex gap-2">
-          {step(prevHref, "Previous", true)}
-          {step(nextHref, "Next", false)}
+        <div className="flex items-center gap-4 [@container_(max-width:719px)]:gap-2">
+          {perPage ? <span className="[@container_(max-width:359px)]:hidden">{perPage}</span> : null}
+          <p className="text-sm text-ink-2 [@container_(max-width:479px)]:sr-only">
+            Page {n(page)} of {n(pages)}
+          </p>
+          <div className="flex gap-2">
+            {step(prevHref, "Previous", true)}
+            {step(nextHref, "Next", false)}
+          </div>
         </div>
       </div>
     </nav>

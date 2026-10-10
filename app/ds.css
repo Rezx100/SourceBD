@@ -117,21 +117,30 @@
      the hairline system rather than as chrome. On every scroll region, not
      only the page: `scrollbar-width` does not inherit, so set on `:root` it
      left the record sheet's and the table's scrollbars at the browser's. */
+  /* Almost invisible at rest; it darkens while the pointer is over its region. */
   * {
     scrollbar-width: thin;
-    scrollbar-color: rgb(var(--ds-line-strong) / 0.55) transparent;
+    scrollbar-color: rgb(var(--ds-line-strong) / 0.25) transparent;
+  }
+
+  *:hover {
+    scrollbar-color: rgb(var(--ds-line-strong) / 0.6) transparent;
   }
 
   ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
   }
 
   ::-webkit-scrollbar-thumb {
-    background-color: rgb(var(--ds-line-strong) / 0.55);
+    background-color: rgb(var(--ds-line-strong) / 0.25);
     border: 3px solid transparent;
     background-clip: padding-box;
     border-radius: 9999px;
+  }
+
+  :hover::-webkit-scrollbar-thumb {
+    background-color: rgb(var(--ds-line-strong) / 0.6);
   }
 
   ::-webkit-scrollbar-track {

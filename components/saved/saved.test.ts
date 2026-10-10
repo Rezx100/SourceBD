@@ -551,7 +551,7 @@ describe("/app/saved", () => {
     assert.match(text(out.html), /A\.R\. Fashion .* Nothing to check/);
     assert.doesNotMatch(out.html, /data-record-pane/);
     assert.ok(rpcCalls.some((c) => c.fn === "buyer_saved_list" && c.args?.p_limit === PAGE_SIZE && c.args?.p_offset === 0));
-    assert.match(out.html, /Showing 1–3 of 3 suppliers/);
+    assert.match(text(out.html), /Showing 1–3 of 3 suppliers/);
   });
 
   it("a supplier whose certificates are all valid prints the first one to lapse, and a worse one still comes first", async () => {
