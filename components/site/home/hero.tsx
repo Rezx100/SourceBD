@@ -7,6 +7,7 @@ import { buttonClass } from "@/components/kit/button-class";
 import { withCommas } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
+import { HeroLoop } from "./hero-loop";
 import { Screen, Still, TextLink, measure } from "./ui";
 
 export const RECORD_HREF = "/suppliers/aboni-knitwear";
@@ -51,12 +52,13 @@ export function HeroCopy({ suppliers, chips }: { suppliers: number | null; chips
   );
 }
 
-/** The cotton backdrop and the results screen on top. */
+/** The cotton backdrop, the loop over it once the page has loaded, and the results screen on top. */
 export function HeroStage() {
   return (
     <div className={cn(measure, "pb-14 md:pb-[120px]")}>
       <div className="relative isolate mx-auto flex max-w-[350px] items-center justify-center overflow-hidden rounded-pane-phone px-4 py-6 md:max-w-none md:rounded-[24px] md:px-16 md:py-[68px]">
         <Still name="hero-cotton" eager />
+        <HeroLoop />
         <Screen name="results" eager alt="SourceBD search results: suppliers with their source marks, one record open beside the list" className="mx-auto max-w-[1152px]" />
       </div>
     </div>

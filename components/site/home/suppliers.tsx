@@ -4,6 +4,7 @@
 import { ButtonLink } from "@/components/kit";
 import { cn } from "@/lib/utils";
 import { HomeIcon, type IconName } from "./icons";
+import { Reveal } from "./reveal";
 import { Still, TextLink, measure } from "./ui";
 
 export const STEPS: [IconName, string, string][] = [
@@ -34,9 +35,10 @@ export function ForSuppliers() {
             </TextLink>
           </div>
         </div>
-        <ol className="relative flex flex-col rounded-[16px] border border-ink-strong/10 bg-surface/90 px-6 py-2 md:px-7 lg:w-[560px]">
+        {/* The three steps reveal one after another, 120 ms apart. */}
+        <Reveal as="ol" className="relative flex flex-col rounded-[16px] border border-ink-strong/10 bg-surface/90 px-6 py-2 md:px-7 lg:w-[560px]">
           {STEPS.map(([icon, title, body], i) => (
-            <li key={title} className={cn("flex gap-4 py-5", i > 0 && "border-t border-line-subtle")}>
+            <li key={title} style={{ transitionDelay: `${i * 120}ms` }} className={cn("flex gap-4 py-5 transition duration-slow motion-reduce:transition-none group-data-[reveal=wait]/reveal:translate-y-2 group-data-[reveal=wait]/reveal:opacity-0", i > 0 && "border-t border-line-subtle")}>
               <HomeIcon name={icon} className="text-ink-strong" />
               <div className="flex flex-col gap-1">
                 <h3 className="text-[17px] font-medium leading-[22px] text-ink-strong">
@@ -46,7 +48,7 @@ export function ForSuppliers() {
               </div>
             </li>
           ))}
-        </ol>
+        </Reveal>
       </div>
     </section>
   );

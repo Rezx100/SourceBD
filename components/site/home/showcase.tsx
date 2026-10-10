@@ -2,6 +2,7 @@
 // On a phone every row is the screen first, then its words. Each screen is the app as shipped (b4b85e8).
 
 import { cn } from "@/lib/utils";
+import { Reveal } from "./reveal";
 import { H2, Screen, Still, TextLink, measure, type ScreenName, type StillName } from "./ui";
 
 type Row = { title: string; body: string; link: [string, string]; screen: ScreenName; phone?: ScreenName; alt: string; still: StillName; at: string };
@@ -58,12 +59,13 @@ export const HALVES: Row[] = [
   },
 ];
 
-function Stage({ row, wide }: { row: Row; wide: boolean }) {
+function Stage({ row, wide, delay = 0 }: { row: Row; wide: boolean; delay?: number }) {
+  // The screen rises 16 px and fades in once as its row scrolls in.
   return (
-    <div className={cn("relative isolate flex items-center justify-center overflow-hidden rounded-pane-phone px-4 py-6 md:rounded-pane", wide ? "md:p-12 lg:h-[560px]" : "md:p-8 lg:h-[420px]")}>
+    <Reveal className={cn("relative isolate flex items-center justify-center overflow-hidden rounded-pane-phone px-4 py-6 md:rounded-pane", wide ? "md:p-12 lg:h-[560px]" : "md:p-8 lg:h-[420px]")}>
       <Still name={row.still} className={row.at} sizes={wide ? "(min-width: 1440px) 816px, 100vw" : "(min-width: 1440px) 608px, 100vw"} />
-      <Screen name={row.screen} phone={row.phone} alt={row.alt} sizes={wide ? "(min-width: 1440px) 720px, 90vw" : "(min-width: 1440px) 544px, 90vw"} className={cn("mx-auto max-md:max-w-[318px]", wide ? "max-w-[720px]" : "max-w-[544px]")} />
-    </div>
+      <Screen name={row.screen} phone={row.phone} alt={row.alt} sizes={wide ? "(min-width: 1440px) 720px, 90vw" : "(min-width: 1440px) 544px, 90vw"} className={cn("mx-auto transition duration-reveal ease-out motion-reduce:transition-none max-md:max-w-[318px] group-data-[reveal=wait]/reveal:translate-y-4 group-data-[reveal=wait]/reveal:opacity-0", delay ? "delay-[120ms]" : "", wide ? "max-w-[720px]" : "max-w-[544px]")} />
+    </Reveal>
   );
 }
 
@@ -98,9 +100,9 @@ export function Showcase() {
           </div>
         ))}
         <div className="grid w-full gap-14 lg:grid-cols-2 lg:gap-16">
-          {HALVES.map((row) => (
+          {HALVES.map((row, i) => (
             <div key={row.title} className="flex flex-col gap-5 md:gap-6">
-              <Stage row={row} wide={false} />
+              <Stage row={row} wide={false} delay={i} />
               <Copy row={row} half />
             </div>
           ))}

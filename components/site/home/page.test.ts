@@ -192,4 +192,13 @@ describe("the live sections", () => {
     assert.match(text(live()), /We have no testimonials and will not invent them\. One record as production holds it/);
     assert.match(text(live({ cards: [CARD, { ...CARD, slug: "x" }] })), /Two records as production holds them/);
   });
+
+  it("motion never hides anything on the server: no element waits, the figures are final, and the loop is not in the first paint", () => {
+    const out = live();
+    assert.doesNotMatch(out, /data-reveal=/, "only the browser holds a section back, and only one below the fold");
+    assert.doesNotMatch(out, /<video/, "the loop is added after load, never under reduced motion or Save-Data");
+    assert.match(text(out), /10,278 Bangladesh garment suppliers published/);
+    for (const m of out.match(/group-data-\[reveal=wait\]\/reveal:\S+/g) ?? []) assert.match(m, /opacity-0|translate-y-\d/, m);
+  });
 });
+

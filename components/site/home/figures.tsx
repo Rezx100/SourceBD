@@ -4,6 +4,7 @@
 
 import { readDay, withCommas, type SiteFacts } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
+import { CountUp } from "./reveal";
 import { measure } from "./ui";
 
 /** The figures as [number, what it counts], each only when it was read. */
@@ -30,7 +31,9 @@ export function Figures({ facts }: { facts: SiteFacts }) {
       <ul className="grid w-full border-y border-line sm:grid-cols-2 lg:flex">
         {cells.map(([n, what], i) => (
           <li key={what} className={cn("flex flex-col gap-1.5 py-6 md:py-9 lg:flex-1", i > 0 && "max-sm:border-t max-sm:border-line-subtle lg:border-l lg:border-line-subtle lg:pl-8")}>
-            <span className="text-[44px] font-light leading-[52px] tracking-[-0.03em] text-ink-strong md:text-[52px] md:leading-[60px]">{n}</span>
+            <span className="text-[44px] font-light leading-[52px] tracking-[-0.03em] text-ink-strong md:text-[52px] md:leading-[60px]">
+              <CountUp value={n} />
+            </span>
             <span className="text-[15px] leading-5 text-ink-muted">{what}</span>
           </li>
         ))}

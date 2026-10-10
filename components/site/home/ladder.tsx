@@ -15,8 +15,8 @@ export const LADDER: { tier: string; name: string; what: string; marks: string[]
 
 export function Ladder() {
   return (
-    <section aria-labelledby="home-ladder" className={cn(measure, "flex flex-col gap-8 py-14 lg:flex-row lg:items-start lg:justify-between lg:gap-24 lg:py-[140px]")}>
-      <div className="flex flex-col gap-5 lg:w-[480px] lg:shrink-0">
+    <section aria-labelledby="home-ladder" className={cn(measure, "flex flex-col gap-8 py-14 lg:flex-row lg:items-start lg:justify-between lg:gap-16 lg:py-[140px] xl:gap-24")}>
+      <div className="flex flex-col gap-5 lg:w-[400px] lg:shrink-0 xl:w-[480px]">
         <H2 id="home-ladder">
           Receipts,
           <br className="max-md:hidden" /> not opinions.
@@ -28,16 +28,16 @@ export function Ladder() {
           <TextLink href="/methodology">Read the methodology</TextLink>
         </div>
       </div>
-      <ol className="flex flex-col border-t border-line lg:w-[704px]">
+      <ol className="flex min-w-0 flex-col border-t border-line lg:max-w-[704px] lg:flex-1">
         {LADDER.map((r, i) => {
           const quiet = i === LADDER.length - 1;
           return (
-            <li key={r.tier} className="flex flex-wrap items-baseline gap-x-6 gap-y-1 border-b border-line-subtle py-4 last:border-b-0 md:flex-nowrap md:py-[22px]">
+            <li key={r.tier} className="flex flex-wrap items-baseline gap-x-6 gap-y-1 border-b border-line-subtle py-4 last:border-b-0 xl:flex-nowrap md:py-[22px]">
               <span className="w-[72px] shrink-0 font-mono text-[13px] leading-4 text-ink-subtle">{r.tier}</span>
-              <span className={cn("shrink-0 text-[18px] font-medium leading-[22px] md:w-[260px]", quiet ? "text-ink-subtle" : "text-ink-strong")}>{r.name}</span>
-              <span className={cn("basis-full text-[15px] leading-[18px] md:basis-auto", quiet ? "text-ink-subtle" : "text-ink-muted")}>{r.what}</span>
+              <span className={cn("shrink-0 text-[18px] font-medium leading-[22px] xl:w-[260px]", quiet ? "text-ink-subtle" : "text-ink-strong")}>{r.name}</span>
+              <span className={cn("basis-full text-[15px] leading-[18px] xl:basis-auto", quiet ? "text-ink-subtle" : "text-ink-muted")}>{r.what}</span>
               {r.marks.length ? (
-                <span className="flex shrink-0 gap-1.5 self-center pt-2 md:ml-auto md:pt-0">
+                <span className="flex shrink-0 gap-1.5 self-center pt-2 xl:ml-auto xl:pt-0">
                   {r.marks.map((m) => (
                     <Mark key={m} code={m} />
                   ))}
