@@ -3,27 +3,37 @@
 Moderation and evidence plan, item 0d. Migration
 `supabase/migrations/0128_admin_queue_plan_cache.sql`.
 
-## The numbers: NOT MEASURED yet (6 Oct 2026)
+## The numbers (measured read-only on production, 10 Oct 2026)
 
-The founder asked for production timings before the fix. This machine cannot reach production
-(no psql, no Python, the pooler times out, the Supabase MCP is not authorised in this session),
-so the measurement is ready to run instead of run:
+Before 0128, `python ops/time_admin_queue_list.py --print` run through the Supabase MCP:
 
-```
-python ops/time_admin_queue_list.py --print
-```
-
-Paste the output into the Supabase SQL editor (or the MCP `execute_sql`). It is read-only and
-rolls back. It reports, as the first active admin:
-
-| Figure | Meaning |
+| Figure | Value |
 | -- | -- |
-| `admin_queue_list_open_50_ms` | the "All open" tab exactly as the page calls it (or `admin_queue_list_error` if it hits the statement timeout, which is the symptom itself) |
-| `plan_total_ms_newest_50` | the sum of the fifty Release plans the old list computed on every load |
-| `plan_slowest_10` | which rows cost the most, with their queue type and rule |
-| `plan_by_type` | rows, total and worst ms per queue type |
+| open rows | 60 |
+| `admin_queue_list_open_50_ms` | 71,719 ms (the API's limit for a signed-in user is 8 s, so the page always failed) |
+| `plan_total_ms_newest_50` | 34,898 ms |
+| by type | brand_disclosure_match_review 34 rows, 34,895 ms, worst 3,336 ms; fuzzy_match_review 12 rows, 3 ms; group_parent_review 4 rows, 0 ms |
 
-Run it once before applying 0128 and once after. Record both here, in place, with the date.
+The cause is the brand-disclosure plans, not the building-shaped names the code suggested.
+
+0128 as first written (ten rows per call), applied inside a rolled-back block on production:
+load 1 15 ms, load 2 6,223 ms, load 3 11,573 ms. Load 3 would pass the 8 s limit, roll back
+what it kept, and every load after would fail the same way. So 0128 now also stops after about
+2.5 s of plan work per call. The same rolled-back test, eight loads in a row:
+
+| load | ms | still pending |
+| -- | -- | -- |
+| 1 | 15 | 40 |
+| 2 | 3,274 | 31 |
+| 3 | 3,506 | 29 |
+| 4 | 3,344 | 28 |
+| 5 | 2,665 | 24 |
+| 6 | 4,238 | 22 |
+| 7 | 3,488 | 20 |
+| 8 | 3,259 | 17 |
+
+Every load stays under the limit, and the queue is fully classified after about fifteen loads.
+After applying, re-run the timing script and add the after figures here.
 
 ## The likely cause, from the code
 
@@ -37,7 +47,7 @@ passes. The 0121 wrapper short-cuts only ETL holds.
 
 - `verification_queue.release_plan` and `release_plan_at` keep the plan as last worked out.
 - `admin_queue_list` reads the kept plan. A page row with no plan, or one older than a day,
-  is worked out afresh, at most ten rows per call (newest first), and kept. The rest answer
+  is worked out afresh, at most ten rows and about 2.5 s per call (newest first), and kept. The rest answer
   `plan_pending: true`; the page says "Not yet classified" and the next load takes the next
   ten. First load of a cold queue: at most ten plans. Every load after: none.
 - `admin_queue_decide` is untouched and still works the plan out fresh when the admin clicks

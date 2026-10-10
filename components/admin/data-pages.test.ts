@@ -73,7 +73,7 @@ describe("/admin/suppliers", () => {
     assert.match(t, /71/, "the internal score stays on this admin-only page");
     assert.match(out, /href="\/admin\/suppliers\?published=false"[^>]*>[^]*?Previous/, "Previous keeps the filter");
     assert.match(out, /href="\/admin\/suppliers\?published=false&page=3"/, "Next keeps the filter");
-    assert.match(out, /Showing 51–52 of 120 suppliers/);
+    assert.match(t, /Showing 51–52 of 120 suppliers/);
     assert.deepEqual(calls[0]!.args, { p_search: null, p_entity_type: null, p_published: false, p_claimed: null, p_sanctioned: null, p_tier_min: null, p_limit: 50, p_offset: 50 });
   });
 
@@ -383,11 +383,12 @@ describe("/admin/sources", () => {
     assert.match(out, /<details[^>]*>[\s\S]*Run history[\s\S]*No scraper jobs have been queued yet\./);
   });
 
-  it("Needs you lists a held run with --accept-changes, held removals with --accept-delistings, a failed run with Run now, near matches with the queue", async () => {
+  it("Needs you says in plain words what paused, with a button for each and no server command", async () => {
     const doc = {
       ...DOC,
       scrapers: [
-        STATE("gots", { ...RUN, id: "r1", scraper_code: "gots", status: "held", meta: { circuit_breaker: { tripped: "more than 50 of 1000 rows changed", changed: 50, created: 0 } } }),
+        // No scraper_code on the run: the panel once printed "undefined stopped at the safety limit".
+        STATE("gots", { ...RUN, id: "r1", status: "held", meta: { circuit_breaker: { tripped: "more than 50 of 1000 rows changed", changed: 50, created: 0, stored: 1000 } } }),
         STATE("wrap", { ...RUN, id: "r2", scraper_code: "wrap", status: "success", meta: { reconcile: { wrap: { action: "held", missing: 76 } } } }),
         STATE("ofac_sdn", { ...RUN, id: "r3", scraper_code: "ofac_sdn", status: "failed", error: "HTTP 503" }),
         STATE("uk_ofsi", { ...RUN, id: "r4", scraper_code: "uk_ofsi", status: "success" }),
@@ -398,11 +399,11 @@ describe("/admin/sources", () => {
     const t = text(out);
     const strip = text(out.slice(out.indexOf('aria-label="Needs you"'), out.indexOf('aria-label="Summary"')));
     assert.match(strip, /Needs you · 4/);
-    assert.match(strip, /Held gots stopped at the safety limit \(more than 50 of 1000 rows changed\)\. 50 changed and 0 new landed; the rest waits\. docker compose run --rm etl run gots --accept-changes Copy/);
-    assert.match(strip, /Removals held wrap: 76 WRAP records not seen this read .* docker compose run --rm etl run wrap --accept-delistings Copy/);
-    assert.match(strip, /Failed ofac_sdn failed: HTTP 503 Run now/);
-    assert.doesNotMatch(strip, /run ofac_sdn --accept|run uk_ofsi/);
-    assert.match(strip, /Near matches 3 near-match records are waiting for a decision\. Open the queue/);
+    assert.match(strip, /Paused GOTS paused partway through because more changed than usual\. It updated 50 companies, the most it does on its own \(5% of 1,000\)\. The rest is waiting for you\. Open GOTS to see what its last read changed\. If it looks right, let the rest through\. Open GOTS Let the rest through/);
+    assert.match(strip, /Gone from the list 76 WRAP entries are no longer on WRAP's own list\. They still show as listed until you agree\. .* Mark no longer listed/);
+    assert.match(strip, /Did not finish OFAC SDN could not finish its last read \(HTTP 503\)\. Open OFAC SDN Run now/);
+    assert.match(strip, /Same company\? 3 companies look like one we already have\. Each waits for you to say same or different\. Open the queue/);
+    assert.doesNotMatch(strip, /undefined|docker|--accept|safety limit/);
     assert.match(out, /href="\/admin\/queue\?type=fuzzy_match_review"/);
     assert.deepEqual(calls.find((c) => c.fn === "admin_queue_list")!.args, { p_type: "fuzzy_match_review", p_status: "open", p_limit: 1, p_offset: 0 });
     assert.doesNotMatch(t, /Nothing needs you/);

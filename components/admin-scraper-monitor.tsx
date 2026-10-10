@@ -17,6 +17,7 @@ import {
 import {
   AdminScraperActions,
   AdminScraperJobAction,
+  ReleaseButton,
   RunNowButton,
   TimerControl,
 } from "@/components/admin-scraper-actions";
@@ -50,6 +51,7 @@ import {
   breakerOf,
   failedLastDay,
   needsYou,
+  sourceLabel,
   sourceGroup,
   type Need,
 } from "@/lib/admin/source-needs";
@@ -196,19 +198,26 @@ function NeedsYou({ needs, onOpen }: { needs: Need[]; onOpen: (code: string) => 
           >
             <div className="flex min-w-0 items-start gap-2">
               <Dot tone={need.kind === "over_limit" || need.kind === "near_match" ? "caution" : "danger"} className="mt-1.5" />
-              <p className="min-w-0 text-base text-ink">
-                <span className="mr-1.5 text-sm font-medium text-ink-3">{NEED_LABEL[need.kind]}</span>
-                {need.code ? (
-                  <button type="button" onClick={() => onOpen(need.code!)} className="text-left underline-offset-2 hover:underline">
-                    {need.text}
-                  </button>
-                ) : (
-                  need.text
-                )}
-              </p>
+              <div className="min-w-0">
+                <p className="text-base text-ink">
+                  <span className="mr-1.5 text-sm font-medium text-ink-3">{NEED_LABEL[need.kind]}</span>
+                  {need.text}
+                </p>
+                {need.check || need.code ? (
+                  <p className="mt-0.5 text-sm text-ink-3">
+                    {need.check}{" "}
+                    {need.code ? (
+                      <button type="button" onClick={() => onOpen(need.code!)} className="link">
+                        Open {sourceLabel(need.code)}
+                      </button>
+                    ) : null}
+                  </p>
+                ) : null}
+              </div>
             </div>
             <div className="flex shrink-0 justify-end">
-              {need.command ? <CopyCommand command={need.command} /> : null}
+              {need.action === "release_changes" && need.code ? <ReleaseButton scraperCode={need.code} what="changes" /> : null}
+              {need.action === "release_delistings" && need.code ? <ReleaseButton scraperCode={need.code} what="delistings" /> : null}
               {need.action === "run" && need.code ? <RunNowButton scraperCode={need.code} kind="secondary" /> : null}
               {need.action === "queue" ? (
                 <ButtonLink href="/admin/queue?type=fuzzy_match_review">Open the queue</ButtonLink>
@@ -222,37 +231,13 @@ function NeedsYou({ needs, onOpen }: { needs: Need[]; onOpen: (code: string) => 
 }
 
 const NEED_LABEL: Record<Need["kind"], string> = {
-  held: "Held",
-  delistings: "Removals held",
-  partial: "Incomplete",
-  failed: "Failed",
-  over_limit: "Too old",
-  near_match: "Near matches",
+  held: "Paused",
+  delistings: "Gone from the list",
+  partial: "Stopped early",
+  failed: "Did not finish",
+  over_limit: "Out of date",
+  near_match: "Same company?",
 };
-
-function CopyCommand({ command }: { command: string }) {
-  const [copied, setCopied] = useState<"yes" | "no" | null>(null);
-  return (
-    <span className="flex min-w-0 max-w-full items-stretch overflow-hidden rounded-sm border border-line">
-      <code className="min-w-0 bg-subtle sm:overflow-x-auto sm:whitespace-nowrap px-2 py-1.5 font-mono text-xs text-ink">{command}</code>
-      <button
-        type="button"
-        className="shrink-0 border-l border-line px-2.5 text-sm font-medium text-ink hover:bg-sunken"
-        onClick={() => {
-          // A refused write says so: the founder must not paste a stale command on the server.
-          const done = (ok: "yes" | "no") => {
-            setCopied(ok);
-            window.setTimeout(() => setCopied(null), 2000);
-          };
-          if (!navigator.clipboard) return done("no");
-          navigator.clipboard.writeText(command).then(() => done("yes"), () => done("no"));
-        }}
-      >
-        {copied === "yes" ? "Copied" : copied === "no" ? "Select and copy" : "Copy"}
-      </button>
-    </span>
-  );
-}
 
 /* ----------------------------------------------------------------- tiles */
 
