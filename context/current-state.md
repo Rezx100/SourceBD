@@ -116,6 +116,7 @@ Migration file headers are NOT live status. Check here or query the database.
 | `0123_source_freshness` | 6 Oct 2026 | ETL freshness S3, via MCP `20261006052420`; 30 sources (9 over limit), 14 schedules, certs off. `ops/plans/0123-dry-run.md`. |
 | `0124_register_schedules` | 6 Oct 2026 | ETL freshness S5, via MCP `20261006052539`; 5 register schedules off, RSC limit 336 h. `ops/plans/0124-dry-run.md`. |
 | `0125_sources_listed_brand_schedules` | 6 Oct 2026 | ETL freshness S6, via MCP `20261006052721`; public count 21, 4 brand schedules off. |
+| `0137_volza_export_checks` | **not applied** | Volza customs shipments on the record, admins and Growth/Enterprise only, rows kept one year. Dry run clean 11 Oct. Then the founder loads the 200-supplier sample (`ops/volza_load_sample.py`). `ops/plans/volza-export-dry-run.md` §8. |
 
 Deploy-order hazard, twice hit: code that queries a new table with no
 missing-table guard crashes every ETL run if shipped before its migration.

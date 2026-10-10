@@ -306,11 +306,13 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     });
     const text = html(await outcome(open)).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
     assert.match(text, /Customs shipments/);
-    assert.match(text, /Shipments 406 · 1 Sep 2024 – 31 Aug 2026/);
-    assert.match(text, /Export value US\$21\.7m FOB/);
-    assert.match(text, /Buyers 43/);
-    assert.match(text, /Largest shipment 24 Mar 2026 · BOYS TEE · to THE HADDAD APPAREL GROUP \(United States\) · US\$607,668 · US\$1\.71 per pcs/);
-    assert.equal((text.match(/Customs shipment records via Volza · fetched 10 Oct 2026/g) ?? []).length, 1, "the Volza section without its one source line");
+    assert.match(text, /Shipments 406 shipments 1 Sep 2024 – 31 Aug 2026/);
+    assert.match(text, /FOB value US\$21\.7m From 406 records/);
+    assert.match(text, /Buyers 43 buyers/);
+    assert.match(text, /Largest shipment US\$607,668 24 Mar 2026 · BOYS TEE · to THE HADDAD APPAREL GROUP \(United States\) · US\$1\.71 per pcs/);
+    assert.equal((text.match(/Bangladesh customs export records · fetched 10 Oct 2026/g) ?? []).length, 1, "the section without its one source line");
+    // The provider is named on /legal/data-sources only, never on the profile (founder, 11 Oct 2026).
+    assert.doesNotMatch(text, /Volza/i, "the profile names the data provider");
   });
 
   it("?lines=all expands the grid past six tiles", async () => {

@@ -117,7 +117,8 @@ $9.55, 27,695 kg, Chittagong Custom House. Destination country and port: "Not Av
 
 What we would show on a profile (signed-in paying users only): shipments, FOB value, buyer count and
 HS-code count for the last two years, and the top 1 / 3 / 10 shipments (date, product, buyer, value,
-unit price), labelled "Customs shipment records via Volza, fetched <date>".
+unit price), labelled "Bangladesh customs export records · fetched <date>" (Volza is named on the data
+sources page only; founder, 11 Oct 2026).
 
 **Epyllion shows the main risk.** "Epyllion" pulled in Epyllion Style, Epyllion Knitwears and a third
 Epyllion exporter. Our Epyllion profiles are separate units, so a contains-match on the group word would
@@ -230,7 +231,14 @@ Growth/Enterprise buyers and admins only.
   deleted and not returned. Waits for "apply 0137".
 - **Load** `python ops/volza_load_sample.py` (dry run: 200 rows, 41 shown, expiry 10 Oct 2027);
   `--apply` writes them, after 0137 is applied. No Volza calls.
-- **Shown** on the record's Products tab under Export lines: "Customs shipments", with shipments and the
-  two-year window, FOB value, buyer count and the largest shipment, and one source line "Customs
-  shipment records via Volza · fetched 10 Oct 2026". Test: `app/(app)/app/record-routes.test.ts`.
+- **Shown** on the record's Products tab under Export lines: "Customs shipments", drawn with the kit's
+  Exports pattern (shipments, FOB value, buyers, largest shipment) and one source line "Bangladesh customs
+  export records · fetched 10 Oct 2026". **Volza is not named on the profile** (founder, 11 Oct); it is
+  named in section 9 of `/legal/data-sources`, with the paid-plan and one-year rules. Tests:
+  `app/(app)/app/record-routes.test.ts` (no "Volza" on the profile), `components/site/legal.test.ts`.
 - Today one account has a Growth/Enterprise plan and one is an admin; everyone else sees nothing.
+- Deletion after a year: the first entitled read after expiry deletes expired rows (a free reader's view
+  stays a read), the loader deletes them before writing and refuses a sample over a year old. Nothing
+  deletes them if no one reads or loads; **before 10 Oct 2027**, add a daily purge to the VPS cron
+  (the `ops/ledger_cron.sh` pattern) or delete the rows by hand. Dry run re-run at the final text, 11 Oct:
+  same results, and the free reader's call left the row untouched.

@@ -57,9 +57,6 @@ as $$
 declare
   v_allowed boolean;
 begin
-  -- The licence ends a row's life at one year; whoever reads first after that deletes it.
-  delete from public.volza_export_checks where expires_at <= now();
-
   select (p.role = 'admin' or p.plan_tier in ('growth', 'enterprise'))
          and not coalesce(p.is_suspended, false)
     into v_allowed
@@ -68,6 +65,10 @@ begin
   if not coalesce(v_allowed, false) then
     return null;
   end if;
+
+  -- The licence ends a row's life at one year; the first entitled read after that deletes it
+  -- (the loaders purge too). A free reader's view stays a read.
+  delete from public.volza_export_checks where expires_at <= now();
 
   return (
     select jsonb_build_object(

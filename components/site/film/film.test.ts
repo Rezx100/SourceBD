@@ -295,7 +295,7 @@ describe("the home page, film off and film on", () => {
     assert.match(legal, /Natural Earth/);
     assert.match(legal, /No address, name or identifier is published for it/);
     assert.match(legal, /the blocks of the city are our own count of published suppliers per square kilometre/);
-    assert.match(legal, /Last updated 7 Oct 2026/);
+    assert.match(legal, /Last updated 11 Oct 2026/);
   });
 
   it("the first screen keeps to one pane of glass, and the planet can be reached through the words", () => {

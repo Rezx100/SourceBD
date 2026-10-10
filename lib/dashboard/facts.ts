@@ -198,41 +198,44 @@ const usd = (n: number, digits = 0) =>
 
 /** US$21.7m, US$340k, US$950: export totals at a glance. */
 export function formatUsdShort(n: number): string {
-  if (n >= 1e6) return `US$${(n / 1e6).toFixed(n >= 1e8 ? 0 : 1)}m`;
+  if (n >= 999_500) return `US$${(n / 1e6).toFixed(n >= 99_950_000 ? 0 : 1)}m`; // never "US$1000k"
   if (n >= 1e3) return `US$${Math.round(n / 1e3)}k`;
   return usd(n);
 }
 
-/** Volza's figures as fact rows, each with the one source line the licence asks for. */
-export function volzaRows(v: VolzaExports): { label: string; value: string }[] {
-  const window = formatDayRange(v.window_start, v.window_end);
-  const rows = [
-    { label: "Shipments", value: `${v.shipments.toLocaleString("en-GB")}${window ? ` · ${window}` : ""}` },
-  ];
-  if (v.fob_usd !== null) rows.push({ label: "Export value", value: `${formatUsdShort(v.fob_usd)} FOB` });
-  if (v.buyers !== null) rows.push({ label: "Buyers", value: v.buyers.toLocaleString("en-GB") });
+/**
+ * The customs totals as the Exports pattern's cells (`ExportsSummary`, 03 Patterns · 14): value, then
+ * the note saying what it covers. Only what the stored summary holds; no figure is derived.
+ */
+export function volzaStats(v: VolzaExports): { label: string; value: string; note: string }[] {
+  const window = formatDayRange(v.window_start, v.window_end) ?? "the two-year window";
+  const n = v.shipments.toLocaleString("en-GB");
+  const stats = [{ label: "Shipments", value: `${n} shipment${v.shipments === 1 ? "" : "s"}`, note: window }];
+  if (v.fob_usd !== null) stats.push({ label: "FOB value", value: formatUsdShort(v.fob_usd), note: `From ${n} record${v.shipments === 1 ? "" : "s"}` });
+  if (v.buyers !== null) stats.push({ label: "Buyers", value: `${v.buyers.toLocaleString("en-GB")} buyer${v.buyers === 1 ? "" : "s"}`, note: window });
   const top = v.top_shipments[0];
-  if (top) {
+  if (top && top.trade_value_usd !== null) {
     const dest = top.destination_country && top.destination_country !== "Not Available" ? top.destination_country : null;
-    rows.push({
+    stats.push({
       label: "Largest shipment",
-      value: [
+      value: usd(top.trade_value_usd),
+      note: [
         // Volza sends "2026-03-24T00:00:00" with no zone: the day is the text, never a local midnight.
         formatDay(top.shipment_date?.slice(0, 10)),
         top.product_description,
         top.buyer_name ? `to ${top.buyer_name}${dest ? ` (${dest})` : ""}` : dest ? `to ${dest}` : null,
-        top.trade_value_usd !== null ? usd(top.trade_value_usd) : null,
         top.unit_rate_usd !== null ? `${usd(top.unit_rate_usd, 2)} per ${(top.unit ?? "unit").toLowerCase()}` : null,
       ]
         .filter(Boolean)
         .join(" · "),
     });
   }
-  return rows;
+  return stats;
 }
 
+/** The profile names the records, not the provider: Volza is named on /legal/data-sources only (founder, 11 Oct 2026). */
 export function volzaSource(v: VolzaExports): string {
-  return `Customs shipment records via Volza · fetched ${formatDay(v.fetched_at) ?? "date unknown"}`;
+  return `Bangladesh customs export records · fetched ${formatDay(v.fetched_at) ?? "date unknown"}`;
 }
 
 /** Who publishes each scheme's list, and how stale a check may be (spec-etl-freshness §3). */

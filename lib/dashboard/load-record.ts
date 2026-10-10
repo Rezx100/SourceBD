@@ -186,7 +186,8 @@ export async function fetchVolzaExports(supabase: RecordRpc, slug: string): Prom
     const { data, error } = await supabase.rpc("supplier_volza_exports", { p_slug: slug });
     if (error || !data || typeof data !== "object" || typeof (data as VolzaExports).shipments !== "number") return null;
     const v = data as VolzaExports;
-    return { ...v, top_shipments: Array.isArray(v.top_shipments) ? v.top_shipments : [] };
+    const top = Array.isArray(v.top_shipments) ? v.top_shipments.filter((s) => s !== null && typeof s === "object") : [];
+    return { ...v, top_shipments: top };
   } catch {
     return null;
   }
