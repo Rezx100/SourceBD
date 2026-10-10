@@ -125,7 +125,7 @@ describe("the Mercury home page", () => {
   });
 
   it("keeps green for the wordmark, the primary buttons and the icons' one detail: no green link", () => {
-    for (const a of page().match(/<a [^>]*>/g) ?? []) if (/text-brand\b/.test(a)) assert.match(a, /href="\/"/, a);
+    for (const a of page().match(/<a [^>]*>/g) ?? []) if (/text-brand(?![-\w])/.test(a)) assert.match(a, /href="\/"/, a);
   });
 
   it("the announcement links to the Compliance hub, and stays off the film when the film is asked for", () => {

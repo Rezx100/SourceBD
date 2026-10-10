@@ -1,8 +1,8 @@
 // The pieces every section of the home page is drawn with (Paper "32 Home · Mercury direction"): the 1280 measure,
 // the 48/56 heading and its lede, the underlined text link, a backdrop still, a product screen and a framed source
-// mark. The colours are the token names Paper's values resolve to (`ink-strong` #0F130F, `ink-muted` #545C54,
-// `ink-subtle` #626B62, `line-subtle` #E7E7E4, `brand-wash` #F4F9F4); green is spent on the primary button, the
-// wordmark and the icons' one detail, never on a link (PR #387).
+// mark. The colours are the token names Paper's values resolve to (`ink-strong`, `ink-muted`, `ink-subtle`,
+// `line-subtle`, `brand-wash`); green is spent on the primary button, the wordmark and the icons' one detail, never on
+// a link (the founder's critique of 7 Oct, item 2).
 
 import Link from "next/link";
 import type { ReactNode } from "react";
