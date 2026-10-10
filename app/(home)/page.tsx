@@ -7,7 +7,9 @@ import type { Metadata } from "next";
 import { filmOn } from "@/components/site/film/engine/tier";
 import { SiteFooter } from "@/components/site/footer";
 import { Home } from "@/components/site/home";
+import { loadChips } from "@/components/site/home/chips";
 import { HomeMercury } from "@/components/site/home/index";
+import { loadHomeRecords } from "@/lib/home-records";
 import { loadSiteFacts } from "@/lib/site-facts";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sourcebd.net";
@@ -30,11 +32,18 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image", title: "SourceBD — Bangladesh sourcing, on the record", description: "Every fact on a Bangladesh garment supplier, with its source and date." },
 };
 
+/** The Mercury page's live reads, in parallel: the chips' counts and the three records. Each is soft and cached. */
+async function mercuryData() {
+  const [chips, records] = await Promise.all([loadChips(), loadHomeRecords()]);
+  return { chips, ...records };
+}
+
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ film?: string | string[] }> }) {
   const [facts, { film }] = await Promise.all([loadSiteFacts(), searchParams]);
   // The film is off unless asked for: an unset build flag now means the Mercury page (filmOn reads unset as on).
   const showFilm = filmOn(film, process.env.NEXT_PUBLIC_HOME_FILM ?? "0");
   const year = new Date().getUTCFullYear();
+  const data = showFilm ? null : await mercuryData();
   return (
     <>
       <script
@@ -56,7 +65,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           <SiteFooter facts={facts} year={year} />
         </>
       ) : (
-        <HomeMercury facts={facts} year={year} />
+        <HomeMercury facts={facts} year={year} {...data} />
       )}
     </>
   );

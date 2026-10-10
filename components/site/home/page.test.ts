@@ -120,7 +120,8 @@ describe("the Mercury home page", () => {
     // A buyer's question ("Do you score or rank suppliers?") is asked, not claimed.
     for (const m of t.matchAll(/scor/gi)) {
       const around = t.slice(Math.max(0, m.index - 40), m.index + 40);
-      assert.ok(/\b(no|never|not)\b/i.test(t.slice(Math.max(0, m.index - 40), m.index)) || /^[^.]*\?/.test(t.slice(m.index)), around);
+      // A no, never or not just before it, or the figure 0 ("0 scores, grades or stars").
+      assert.ok(/\b(no|never|not)\b|\b0 $/i.test(t.slice(Math.max(0, m.index - 40), m.index)) || /^[^.]*\?/.test(t.slice(m.index)), around);
     }
   });
 
@@ -134,5 +135,61 @@ describe("the Mercury home page", () => {
     assert.match(bar(""), /href="\/compliance"/);
     assert.match(bar(""), /aria-label="Dismiss announcement"/);
     assert.equal(bar("film=1"), "");
+  });
+});
+
+const CARD = { slug: "aboni-knitwear", name: "Aboni Knitwear Ltd", meta: "Factory · Dhaka · 3,314 workers filed · 8 sources", marks: ["EPB", "WRAP"], facts: [{ icon: "rosette" as const, title: "WRAP 7865 · valid to 25 Aug 2027", sub: "WRAP register · read 8 Oct 2026" }] };
+const CALLOUT = { icon: "rosette" as const, title: "GOTS-27605 · expired 4 Apr 2026", sub: "GSCS International Ltd. · GOTS database · read 26 Jun 2026", tone: "caution" as const };
+const live = (over: Partial<Parameters<typeof HomeMercury>[0]> = {}) => draw(createElement(HomeMercury, { facts: LIVE, year: 2026, cards: [CARD], callouts: [CALLOUT], chips: [{ key: "a", title: "GOTS-certified knitwear", href: "/app/discover?hs=6109", count: 205 }, { key: "b", title: "Buying houses in Dhaka", href: "/app/discover?entity=buying_house", count: null }], ...over }));
+
+describe("the live sections", () => {
+  it("the figures are the site's facts, the two true-by-definition ones always, and a figure not read is left out", () => {
+    const t = text(live());
+    for (const f of ["10,278 Bangladesh garment suppliers published", "14 of 21 public sources holding records", "4,289 certificates on file", "50 suppliers reached by one RFQ", "0 scores, grades or stars on any supplier"]) assert.match(t, new RegExp(f), f);
+    assert.match(t, /the latest register read was 9 Oct 2026/);
+    const bare = text(live({ facts: NO_FACTS }));
+    assert.doesNotMatch(bare, /garment suppliers published|public sources holding records|certificates on file|latest register read/);
+    assert.match(bare, /50 suppliers reached by one RFQ/);
+    assert.match(bare, /0 scores, grades or stars on any supplier/);
+  });
+
+  it("a chip shows its count only when the count was read, and links to its search", () => {
+    const out = live();
+    assert.match(out, /href="\/app\/discover\?hs=6109"[^>]*>.*?GOTS-certified knitwear<\/span><span[^>]*>205<\/span>/);
+    assert.match(out, /Buying houses in Dhaka<\/span><\/a>/);
+    assert.doesNotMatch(text(live({ chips: [] })), /GOTS-certified knitwear/);
+  });
+
+  it("the real records and the callouts carry their sources and dates; with none read, neither is drawn", () => {
+    const t = text(live());
+    assert.match(t, /Real records, not reviews\./);
+    assert.match(t, /WRAP 7865 · valid to 25 Aug 2027 WRAP register · read 8 Oct 2026/);
+    assert.match(t, /GOTS-27605 · expired 4 Apr 2026 GSCS International Ltd\. · GOTS database · read 26 Jun 2026/);
+    assert.match(live(), /href="\/suppliers\/aboni-knitwear"[^>]*>Aboni Knitwear Ltd</);
+    const none = text(live({ cards: [], callouts: [] }));
+    assert.doesNotMatch(none, /Real records, not reviews|GOTS-27605|What the record shows/);
+    assert.match(none, /Inside one record\./, "the dated screen still stands");
+  });
+
+  it("Buy with confidence: four tabs, every panel in the page, the sanctioned company a placeholder", () => {
+    const out = live();
+    assert.equal((out.match(/role="tab"/g) ?? []).length, 4);
+    assert.equal((out.match(/role="tabpanel"/g) ?? []).length, 4);
+    assert.equal((out.match(/aria-selected="true"/g) ?? []).length, 1);
+    assert.match(text(out), /A sanctioned supplier is marked on every surface\./);
+    assert.match(out, /alt="A placeholder supplier, Example Apparel Ltd, marked sanctioned/);
+    assert.match(text(out), /“No link found” is not a clearance/);
+  });
+
+  it("a callout the record no longer holds leaves its slot empty: the others keep their own rows", () => {
+    const out = live({ callouts: [null, { ...CALLOUT, title: "GOTS-31587 · valid to 12 May 2027", tone: undefined }, null] });
+    // Slot 2 of the board: the card at (880, 290) of the 1280×830 stage.
+    assert.match(out, /left:68\.75%;top:34\.93975903614458%"><span[^>]*>GOTS-31587/);
+    assert.doesNotMatch(out, /top:22\.89156626506024%/, "slot 1 is empty");
+  });
+
+  it("the real records say how many were read", () => {
+    assert.match(text(live()), /We have no testimonials and will not invent them\. One record as production holds it/);
+    assert.match(text(live({ cards: [CARD, { ...CARD, slug: "x" }] })), /Two records as production holds them/);
   });
 });
