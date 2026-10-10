@@ -15,11 +15,12 @@ checked before every call, Volza's credit header watched. Each result keeps what
   --rules (batch 0, report section 11; asked separately, inside the same $3 cap):
   9    remove_duplicate_shipments on Aboni: are our counts inflated by duplicates?
   10   the 27 EU countries in one call on Aboni: one market call instead of 27
-  11-15 supplier_name_search_type exact on five names that swept in 2-4 exporters, and case
+  11-17 supplier_name_search_type exact on five names that swept in 2-4 exporters, case, and two names
+       without "Ltd" (is exact honoured at all?)
 
   python ops/volza_filter_test.py                     # the plan, no key read, no calls
   python ops/volza_filter_test.py --apply             # run 1-8 (cap $3); results in etl/raw/volza/filter_test.json
-  python ops/volza_filter_test.py --rules --apply     # 1-15, same cap and file
+  python ops/volza_filter_test.py --rules --apply     # 1-17, same cap and file
 """
 
 from __future__ import annotations
@@ -42,8 +43,9 @@ from volza_live_sample import Live, Stop, account_used  # noqa: E402
 OUT = RAW / "filter_test.json"
 CAP = 3.0
 # The first run (11 Oct 2026) spent $1.00 by Volza's header, $0.55 of it on the 10-record call that the
-# guard stopped before its result was saved; it counts toward the $3.
-PRIOR = 1.00
+# guard stopped before its result was saved; it counts toward the $3. The second run (batch 0, 11 Oct)
+# took the counter from 35.650 to 36.650: $1.00 more, so $2.00 of the $3 is spent.
+PRIOR = 2.00
 NAME = "Aboni Knit Wear"
 TESTS: list[tuple[str, dict[str, Any], int]] = [
     # Field names from Volza's published spec (backend.volza.com/swagger/v1/swagger.json, read 11 Oct
@@ -78,6 +80,10 @@ RULES: list[tuple[str, dict[str, Any], int]] = [
     ("exact Sisal", {"supplier_name": ["Sisal Composite Ltd", "Sisal Composite Ltd."], **EXACT}, 1),  # 4, 1,660
     ("exact Rhythm", {"supplier_name": ["Rhythm Fashion Ltd", "Rhythm Fashion Limited",
                                         "Rhythm Fashion Ltd."], **EXACT}, 1),  # 4 exporters, 147
+    # Batch 0 gave every exact search the starts-with totals, so is "exact" honoured at all? Without the
+    # "Ltd" no shipment carries these names exactly: honoured means 0, ignored means 4,568 and 4,652.
+    ("exact Utah without Ltd", {"supplier_name": ["Utah Fashions"], **EXACT}, 1),
+    ("exact Aboni without Ltd", {"supplier_name": [NAME], **EXACT}, 1),
 ]
 
 
@@ -107,7 +113,7 @@ def save(out: list[dict[str, Any]], label: str, sent: dict[str, Any], r: httpx.R
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--apply", action="store_true", help="spend real credit (production key)")
-    p.add_argument("--rules", action="store_true", help="add the batch 0 checks (9-15)")
+    p.add_argument("--rules", action="store_true", help="add the batch 0 checks (9-17)")
     a = p.parse_args()
     logging.getLogger("httpx").setLevel(logging.WARNING)
     tests = TESTS + (RULES if a.rules else [])
