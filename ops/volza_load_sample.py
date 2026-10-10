@@ -62,6 +62,9 @@ def rows(recs: list[dict[str, Any]], fetched_at: datetime) -> list[dict[str, Any
             "fetched_at": at.isoformat(),
             "expires_at": expires.isoformat(),
         })
+        if any("summary" in x for x in recs):  # files that kept the whole preview (0138 columns)
+            out[-1].update(summary=r.get("summary") if hit else None,
+                           top_record=r["top"] if hit and r.get("summary") else None)
     return out
 
 
