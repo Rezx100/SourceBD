@@ -2,12 +2,13 @@
 -- (moderation plan 1f, the RFQ half).
 --
 -- 0131's triggers only see writes made after 6 Oct 2026, so the seven RFQs sent before then have no
--- timeline. This writes one 'rfq.sent' per RFQ and one 'quote.submitted' per quote that has no entry of
--- its own, with the row as it stands today under content.after and content.as_found = true. The entry's
--- time is when it was written (the record never back-dates); the row's own created_at says when it was sent.
+-- timeline. This writes one 'rfq.sent' per RFQ and one 'quote.submitted' per quote that lacks one, with
+-- the row as it stands today under content.after and content.as_found = true. The entry's time is when it
+-- was written (the record never back-dates); the row's own created_at says when it was sent.
 --
--- Idempotent: a row that already has any entry (from a trigger or an earlier run) is skipped, so running
--- the function again writes nothing. Kept as a function so the CI replay can assert exactly that.
+-- Idempotent: a row that already has its 'sent' or 'submitted' entry (from a trigger or an earlier run) is
+-- skipped, so a second run writes nothing. An old row edited after 6 Oct (say, closed) still gets its
+-- as-found 'sent', because only that kind is checked. Kept as a function so the CI replay can assert this.
 
 create or replace function public._ledger_as_found_rfqs()
 returns integer
@@ -21,7 +22,7 @@ declare
 begin
   for r in
     select x.* from public.rfqs x
-     where not exists (select 1 from public.activity_ledger l where l.target_table = 'rfqs' and l.target_id = x.id)
+     where not exists (select 1 from public.activity_ledger l where l.target_table = 'rfqs' and l.target_id = x.id and l.kind = 'rfq.sent')
      order by x.created_at, x.id
   loop
     perform public._ledger_write(
@@ -34,7 +35,7 @@ begin
   for r in
     select q.*, x.buyer_id from public.rfq_quotes q
       join public.rfqs x on x.id = q.rfq_id
-     where not exists (select 1 from public.activity_ledger l where l.target_table = 'rfq_quotes' and l.target_id = q.id)
+     where not exists (select 1 from public.activity_ledger l where l.target_table = 'rfq_quotes' and l.target_id = q.id and l.kind = 'quote.submitted')
      order by q.created_at, q.id
   loop
     perform public._ledger_write(

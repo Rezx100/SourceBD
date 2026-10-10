@@ -18,12 +18,15 @@ insert into public.suppliers (id, slug, company_name, company_name_norm, city, d
 -- The old rows: written with every trigger off, so the record has never seen them.
 set local session_replication_role = replica;
 insert into public.rfqs (id, buyer_id, product_title, quantity, quantity_unit, target_supplier_ids)
-  values ('00000000-0000-4000-8000-0000000d1136', '00000000-0000-4000-8000-00000000a136', 'CI old tee', 500, 'pcs',
+  values ('00000000-0000-4000-8000-0000000d1136', '00000000-0000-4000-8000-00000000a136', 'CI old draft', 500, 'pcs',
           array['00000000-0000-4000-8000-0000000a1136'::uuid]);
 insert into public.rfq_quotes (id, rfq_id, supplier_id, submitted_by, unit_price, notes)
   values ('00000000-0000-4000-8000-0000000c1136', '00000000-0000-4000-8000-0000000d1136',
           '00000000-0000-4000-8000-0000000a1136', '00000000-0000-4000-8000-00000000b136', 3.1, 'CI old quote');
 set local session_replication_role = origin;
+
+-- The old RFQ is edited after the record went live: the trigger writes rfq.updated, not rfq.sent.
+update public.rfqs set product_title = 'CI old tee' where id = '00000000-0000-4000-8000-0000000d1136';
 
 -- A new RFQ the trigger records itself.
 insert into public.rfqs (id, buyer_id, product_title, quantity, quantity_unit, target_supplier_ids)
@@ -70,7 +73,7 @@ begin
     raise exception 'a second run wrote entries';
   end if;
   select count(*) into n from public.activity_ledger where rfq_id in (old_rfq, new_rfq);
-  if n <> 3 then raise exception 'want 3 entries across both RFQs after two runs, got %', n; end if;
+  if n <> 4 then raise exception 'want 4 entries (updated, as-found sent, as-found quote, new sent) after two runs, got %', n; end if;
 end
 $$;
 

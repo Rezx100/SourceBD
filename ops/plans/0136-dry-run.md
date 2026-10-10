@@ -1,8 +1,8 @@
 # 0136 dry run: as-found record entries for existing RFQs
 
-Run 10 Oct 2026 on production (stnrfxrxfonwexzcvvpv) through MCP `execute_sql`, inside a DO block that
+Run 10 Oct 2026 (twice; this is the second, after the review fix) on production (stnrfxrxfonwexzcvvpv) through MCP `execute_sql`, inside a DO block that
 ends in `raise exception`, so every write rolled back. Migration file sha256
-`eb875e9066873343612cbbbd65a13ea7b14a374c57d3955f09efc21dabf9caeb`.
+`ee756b984c43ae337d87e7d4d22daaec5f1db966f3e0d87d40bcf2ca9f99a2e7`.
 
 Before: 7 RFQs (all open, first 18 Jul 2026), 0 quotes, 0 record entries for RFQs or quotes.
 
