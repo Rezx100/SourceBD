@@ -57,7 +57,8 @@ class FakeCursor:
             self.is_published = self.facility_of_inserted is None
 
     def fetchall(self) -> list[dict[str, Any]]:
-        if "select supplier_id, raw_hash from public.source_records" in self._last_sql:
+        if ("select supplier_id, raw_hash" in self._last_sql
+                and "from public.source_records" in self._last_sql):
             return list(self._skip_rows)
         if "from public.supplier_field_locks" in self._last_sql:
             return list(self._lock_rows)
