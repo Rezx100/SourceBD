@@ -23,6 +23,7 @@ import {
   discoverHiddenParams,
   exportsSort,
   exportsView,
+  isExportSort,
   filterCount,
   withoutExports,
   type DiscoverSort,
@@ -57,7 +58,8 @@ type SortChoice = { value: DiscoverSort; label: string; hint: string | null };
  */
 export function sortChoices(state: DiscoverState, entitled: boolean): { options: SortChoice[]; current: DiscoverSort } {
   const base: SortChoice[] = SORTS.map((s) => ({ value: s.value, label: s.label, hint: null }));
-  if (!entitled) return { options: base, current: state.sort };
+  // An exports sort in the link of a reader who may not use it orders nothing: the list is in the default order.
+  if (!entitled) return { options: base, current: isExportSort(state.sort) ? "sources" : state.sort };
   const exportsOptions: SortChoice[] = EXPORT_SORTS.map((s) => ({ value: s.value, label: s.label, hint: s.hint }));
   if (!exportsView(state, true)) return { options: [...base, ...exportsOptions], current: state.sort };
   return { options: [...exportsOptions, ...base.filter((o) => o.value === "workers" || o.value === "name")], current: exportsSort(state) };

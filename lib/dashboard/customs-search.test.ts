@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { exportsCell, exportsHead } from "@/lib/dashboard/customs-search";
-import { EMPTY_STATE, exportsSort, exportsView, parseDiscoverState, serializeDiscoverState, withoutExports } from "@/lib/discover-v32-state";
+import { EMPTY_STATE, exportsSort, exportsView, parseDiscoverState, queryTitle, serializeDiscoverState, withoutExports } from "@/lib/discover-v32-state";
 
 describe("exportsCell — line 1 the sort's figure, line 2 the shipments (Paper boards E, J1)", () => {
   const f = { fob_usd: 97_600_000, shipments: 4652, buyers: 131 };
@@ -57,6 +57,11 @@ describe("the exports view in the URL", () => {
     assert.equal(exportsSort({ ...EMPTY_STATE, sort: "hs_lines" }), "avg_shipment");
     assert.equal(exportsSort({ ...EMPTY_STATE, sort: "name" }), "name");
     assert.equal(exportsSort({ ...EMPTY_STATE, sort: "shipments" }), "shipments");
+  });
+
+  it("names a saved or recent exports search by the view, not as every supplier", () => {
+    assert.equal(queryTitle({ ...EMPTY_STATE, exports: true }), "Has customs exports");
+    assert.equal(queryTitle({ ...EMPTY_STATE, sort: "buyers", type: ["factory"] }), "Has customs exports · Factory");
   });
 
   it("switching it off clears every exports parameter and an exports sort", () => {

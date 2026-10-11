@@ -677,6 +677,10 @@ export function filterFamilyLabel(dropped: string): string {
 
 export function queryTitle(state: DiscoverState): string {
   const chips = discoverChips(state);
+  // The exports view is not a chip (it has its own menu), but a saved or recent search is named by it.
+  if (state.exports || state.exportsMin != null || state.ships != null || isExportSort(state.sort)) {
+    return ["Has customs exports", ...chips.filter((c) => c.key !== "sanctioned").map((c) => c.label)].join(" · ");
+  }
   if (chips.length === 0) return "All published suppliers";
   // The sanctioned exclusion is a chip like any other, but on its own it
   // describes the whole set rather than narrowing it to something worth

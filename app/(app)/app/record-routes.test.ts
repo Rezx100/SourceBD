@@ -2119,7 +2119,7 @@ describe("/app/discover — customs exports in the search (0142, spec-volza-reve
     assert.match(out, /US\$21,000 a shipment/);
     assert.match(out, /4,652 shipments/);
     assert.match(out, />Average shipment</, "the column's head names the sort");
-    assert.match(out, /Customs figures are not in downloads|Exports · US\$10m\+ · UK/);
+    assert.match(out, /aria-label="Exports · US\$10m\+ · UK"/, "the Exports menu does not name what the view is narrowed to");
   });
 
   it("an exports sort alone turns the view on, with the sort's figure first", async () => {
@@ -2134,6 +2134,7 @@ describe("/app/discover — customs exports in the search (0142, spec-volza-reve
     assert.ok(!rpcCalls.some((c) => c.fn === "discover_customs_exports"), "an unentitled reader's search read the customs view");
     assert.doesNotMatch(out, /with customs exports|a shipment|US\$97\.6m|4,652 shipments/);
     assert.doesNotMatch(out, /aria-label="Exports"/, "the Exports menu was offered to a reader who may not see it");
+    assert.doesNotMatch(out, /Sort: export value/, "the sort button named an exports sort the list is not in");
   });
 
   it("an entitled reader without the filter gets the ordinary list and the Exports menu to turn it on", async () => {
