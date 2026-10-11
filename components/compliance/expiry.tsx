@@ -13,7 +13,7 @@ import { DownloadCsv } from "@/components/export/download-csv";
 import { LinkPending } from "@/components/patterns/link-pending";
 import { cn } from "@/lib/utils";
 import { BackToHub } from "./hub";
-import { shortDay } from "./uflpa-read";
+import { shortDay, type UflpaNotice } from "./uflpa-read";
 import { certExportHref, expiredHeading, expiryCounts, expiryHref, expiryItems, expirySubline, expiryTabs, within30Heading, within90Heading, type CertItem, type ExpiryGroups, type ExpiryShow } from "./words";
 
 export function ExpiryHead({ groups, saved, show, download }: { groups: ExpiryGroups; saved: number | null; show: ExpiryShow; download: boolean }) {
@@ -124,9 +124,11 @@ export function phoneWhen(i: CertItem, today: Date): string {
  * then the certificates the filter shows, expired first, with how many have expired over a meter,
  * one card of rows with Ask for it each.
  */
-export function ExpiryPhone({ groups, show, uflpa, today }: { groups: ExpiryGroups; show: ExpiryShow; /** `uflpaResultLine`; null when the check was not read. */ uflpa: { line: string; hit: boolean } | null; today: Date }) {
+export function ExpiryPhone({ groups, show, uflpa, today }: { groups: ExpiryGroups; show: ExpiryShow; /** `uflpaNotice`; null when the check was not read. */ uflpa: UflpaNotice | null; today: Date }) {
   const items = expiryItems(groups, show);
   const expired = items.filter((i) => i.state === "expired").length;
+  // Nothing to say: no empty padded box over the page's own sentence.
+  if (!uflpa && items.length === 0) return null;
   return (
     <div className="flex flex-col gap-5 px-5 pb-6 pt-2 md:hidden">
       {uflpa ? (

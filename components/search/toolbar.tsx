@@ -424,7 +424,7 @@ export function PhoneToolbar({ state, count, hrefFor, filtersHref, entitled = fa
         </FilterChip>
       ) : null}
       {/* Not an h1: the desktop bar's heading is the page's one, and this bar is on the page too (hidden by CSS from 768). */}
-      <div className="flex items-baseline justify-between gap-3">
+      <div className="flex items-baseline justify-between gap-3 max-[359px]:flex-col max-[359px]:items-start max-[359px]:gap-0">
         <p className="flex items-baseline gap-2 text-lg tracking-tight">
           {figure ? <span className="font-medium tabular-nums text-ink">{figure}</span> : null}
           <span className={figure ? "text-ink-3" : "font-medium text-ink"}>{noun}</span>

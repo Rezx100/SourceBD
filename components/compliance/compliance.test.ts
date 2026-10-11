@@ -17,7 +17,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { loadComplianceBadge } from "@/lib/dashboard/compliance-badge";
 import { attentionOf } from "@/lib/dashboard/needs-attention";
-import { ExpiryHead, ExpiryList, ExpiryNone } from "./expiry";
+import { ExpiryHead, ExpiryList, ExpiryNone, ExpiryPhone, phoneWhen } from "./expiry";
+import { uflpaNotice, uflpaSheetNotice } from "./uflpa-read";
 import { AttentionCard, AttentionError, ComplianceSkeleton, ExpiryCard, HubEmpty, MsaCard, PartialNote, UflpaCard } from "./hub";
 import { loadCompliance } from "./load";
 import { UflpaError, UflpaStats, UflpaTable } from "./uflpa";
@@ -529,5 +530,41 @@ describe("a certificate its body no longer lists (spec-etl-freshness S2)", () =>
     assert.equal(a.rows[0]!.what, "GOTS-27401 is no longer listed by GOTS since 3 Oct 2026.");
     assert.equal(a.rows[0]!.state, "expired");
     assert.equal(a.rows[1]!.what, "OEKO-TEX 37940-100 is no longer listed by OEKO-TEX since 3 Oct 2026.");
+  });
+});
+
+describe("the UFLPA line on a phone (Paper page 36, `alerts` and `filters`)", () => {
+  const clear = { total: 10, hits: 0, flags: 0 };
+  const READ = "2026-10-01T03:10:00Z";
+
+  it("is the saved suppliers' own result, dated by the list's last full read; a hit is never 'no link found'", () => {
+    assert.deepEqual(uflpaNotice(clear, READ, NOW), { line: "No link found · not a clearance · read 1 Oct", hit: false });
+    assert.deepEqual(uflpaNotice({ ...clear, hits: 2 }, READ, NOW), { line: "2 on the list · read 1 Oct", hit: true });
+    assert.deepEqual(uflpaNotice({ ...clear, flags: 1 }, READ, NOW), { line: "1 possible Xinjiang link · read 1 Oct", hit: true });
+    assert.equal(uflpaNotice(clear, "2025-12-30T00:00:00Z", NOW)!.line, "No link found · not a clearance · read 30 Dec 2025", "another year's read keeps its year");
+    assert.equal(uflpaNotice(clear, null, NOW)!.line, "No link found · not a clearance · read date not stored");
+    assert.equal(uflpaNotice(null, READ, NOW), null, "an unread check claims nothing");
+    assert.equal(uflpaNotice({ ...clear, total: 0 }, READ, NOW), null, "nothing published to check claims nothing");
+  });
+
+  it("in the filters sheet says whose result it is; with nothing saved, only that the list was read", () => {
+    assert.deepEqual(uflpaSheetNotice(clear, READ, NOW), { line: "UFLPA list, your saved suppliers: No link found · not a clearance · read 1 Oct", hit: false });
+    assert.deepEqual(uflpaSheetNotice({ ...clear, hits: 1 }, READ, NOW), { line: "UFLPA list, your saved suppliers: 1 on the list · read 1 Oct", hit: true });
+    assert.deepEqual(uflpaSheetNotice(null, READ, NOW), { line: "UFLPA list read 1 Oct", hit: false });
+    assert.deepEqual(uflpaSheetNotice({ ...clear, total: 0 }, READ, NOW), { line: "UFLPA list read 1 Oct", hit: false });
+    assert.equal(uflpaSheetNotice(null, null, NOW), null, "neither read: nothing is said, never 'not read yet'");
+  });
+
+  it("Alerts' rows say the scheme, the day and how far off it is; with nothing to say the phone block is not drawn", () => {
+    const g = expiryGroups(EXPIRED, EXPIRING, NOW);
+    assert.equal(phoneWhen(g.expired[0]!, NOW), "WRAP expired 29 Sep · 5 days ago");
+    assert.equal(phoneWhen(g.within30[0]!, NOW), "GOTS ends 8 Oct · in 4 days");
+    const none = expiryGroups(list([]), list([]), NOW);
+    assert.equal(render(createElement(ExpiryPhone, { groups: none, show: "all", uflpa: null, today: NOW })), "");
+    const out = html(createElement(ExpiryPhone, { groups: g, show: "all", uflpa: uflpaNotice(clear, READ, NOW), today: NOW }));
+    assert.match(out, /^<div class="[^"]*\bmd:hidden\b/, "a phone's block: nothing of it from 768");
+    assert.match(text(out), /UFLPA Entity List No link found · not a clearance · read 1 Oct Certificates 4 Expired first Expired 2 of 4 /);
+    assert.equal(out.match(/>Ask for it</g)?.length, 4, "one ask per certificate");
+    assert.equal(out.match(/href="\/app\/rfqs\/new\?supplier=/g)?.length, 4, "each through the RFQ, the one channel a supplier answers on");
   });
 });

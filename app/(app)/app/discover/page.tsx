@@ -35,7 +35,7 @@ import { RecordLastSearch } from "@/components/saved/last-search";
 import { alertsAvailable } from "@/components/saved/load";
 import { SaveSearchPanel, saveSummary } from "@/components/saved/save-search";
 import { ResultsBar } from "@/components/search/bulk-bar";
-import { FilterPane } from "@/components/search/filters";
+import { FilterPane, UflpaSheetNote } from "@/components/search/filters";
 import { Flash } from "@/components/search/flash";
 import { ShortScroll } from "@/components/search/short-scroll";
 import { PastEnd, PaneRows, PhoneMore, PhoneRows, ResultsEmpty, ResultsError, ResultsFooter } from "@/components/search/list";
@@ -278,7 +278,16 @@ export default async function BuyerDiscoverPage({
     </Suspense>
   ) : filtersOpen ? (
     <PaneFrame openKey="filters">
-      <FilterPane state={state} count={error ? null : total} closeHref={closeHref} />
+      <FilterPane
+        state={state}
+        count={error ? null : total}
+        closeHref={closeHref}
+        note={
+          <Suspense fallback={null}>
+            <UflpaSheetNote supabase={supabase} today={today} />
+          </Suspense>
+        }
+      />
     </PaneFrame>
   ) : recordSlug ? (
     // The pane's silhouette at once, the record streamed into it: a new key per record or

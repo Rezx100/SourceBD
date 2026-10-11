@@ -4,6 +4,7 @@
 // was not read draws nothing, and a list with no read date says so.
 
 import { formatDay } from "@/lib/dashboard/facts";
+import { loadCompliance } from "./load";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the Supabase server client, as the other loaders take it.
 type Client = any;
@@ -40,4 +41,33 @@ export function uflpaResultLine(check: { total: number; hits: number; flags: num
   if (check.hits > 0) return `${check.hits} on the list · ${read}`;
   if (check.flags > 0) return `${check.flags} possible Xinjiang ${check.flags === 1 ? "link" : "links"} · ${read}`;
   return `No link found · not a clearance · ${read}`;
+}
+
+type Check = { total: number; hits: number; flags: number } | null;
+
+/** The line and whether it is a warning: a supplier on the list or flagged draws in caution ink. */
+export type UflpaNotice = { line: string; hit: boolean };
+
+/** Alerts' card: the saved suppliers' result; null when the check was not read or had nothing to check. */
+export function uflpaNotice(check: Check, readAt: string | null, today: Date): UflpaNotice | null {
+  const line = uflpaResultLine(check, readAt, today);
+  return line ? { line, hit: (check?.hits ?? 0) + (check?.flags ?? 0) > 0 } : null;
+}
+
+/**
+ * The filters sheet's line under the sanctions switch. The only UFLPA result a buyer's session can
+ * read is the check of their own saved suppliers, so the line says whose it is; with nothing saved
+ * it says only that the list was read, and with no read date it says nothing.
+ */
+export function uflpaSheetNotice(check: Check, readAt: string | null, today: Date): UflpaNotice | null {
+  const saved = uflpaNotice(check, readAt, today);
+  if (saved) return { ...saved, line: `UFLPA list, your saved suppliers: ${saved.line}` };
+  const day = readAt ? shortDay(readAt, today) : null;
+  return day ? { line: `UFLPA list read ${day}`, hit: false } : null;
+}
+
+/** Both reads for the filters sheet, in one wave; neither throws. */
+export async function loadUflpaSheetNotice(supabase: Client, today: Date): Promise<UflpaNotice | null> {
+  const [d, readAt] = await Promise.all([loadCompliance(supabase, { uflpa: true }), readUflpaListDate(supabase)]);
+  return uflpaSheetNotice(d.uflpa, readAt, today);
 }
