@@ -310,6 +310,14 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     assert.match(text, /FOB value US\$21\.7m From 406 records/);
     assert.match(text, /Buyers 43 buyers/);
     assert.match(text, /Largest shipment US\$607,668 24 Mar 2026 · BOYS TEE · to THE HADDAD APPAREL GROUP \(United States\) · US\$1\.71 per pcs/);
+    // 0140: once the stored shipment is the latest one, it is never called the largest.
+    const latest = { data: { shipments: 406, fob_usd: 21698439.68, buyers: 43, window_start: "2024-09-01", window_end: "2026-08-31",
+      volza_name: "Hamza Clothing Ltd", fetched_at: "2026-10-10T17:36:14+00:00", record_sort: "date",
+      top_shipments: [{ shipment_date: "2026-08-31T00:00:00", hsn_code: "61091000", product_description: "MEN'S BASIC T SHIRT", buyer_name: "Action Service Distributie B V", destination_country: "Netherlands", trade_value_usd: 25000, unit_rate_usd: 1.2, unit: "PCS" }] }, error: null };
+    given({ profile: PROFILE, hscodes: HS, rpcs: { supplier_volza_exports: latest } });
+    const now = html(await outcome(open)).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
+    assert.match(now, /Latest shipment on record US\$25,000 31 Aug 2026/);
+    assert.doesNotMatch(now, /Largest shipment/, "a latest shipment labelled the largest");
     assert.equal((text.match(/Bangladesh customs export records · fetched 10 Oct 2026/g) ?? []).length, 1, "the section without its one source line");
     // The provider is named on /legal/data-sources only, never on the profile (founder, 11 Oct 2026).
     assert.doesNotMatch(text, /Volza/i, "the profile names the data provider");
