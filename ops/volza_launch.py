@@ -50,11 +50,12 @@ from volza_export_dryrun import (  # noqa: E402
     CANDIDATES, RAW, classify, normalize_company_name, shipments, summary_suppliers, variants,
 )
 from volza_filter_test import EU  # noqa: E402
-from volza_live_sample import Live, Stop, account_used  # noqa: E402
+from volza_live_sample import DAILY_RESERVE, Live, Stop, account_used  # noqa: E402
 from volza_review import decisions, newest  # noqa: E402
 
 CAP_LIMIT = 50.0  # each batch is approved at up to $50 unless --cap says otherwise
-NEW_AVG = 0.55  # batch 1: 21 unchecked suppliers cost $11.65
+REQ_PER_SUPPLIER = 4.6  # batch 2: 231 requests for 50 suppliers
+NEW_AVG = 0.62  # batch 2: 41 unchecked suppliers and 9 yeses cost $31.80 (yeses about $0.75)
 SEED = 20261011
 MARKETS = [("United Kingdom", ["United Kingdom"]), ("United States", ["United States"]), ("EU", EU),
            ("Canada", ["Canada"])]
@@ -295,26 +296,38 @@ def main() -> None:
         return
     if a.batch is None:
         p.error("--batch N or --latest")
-    path = out_path(a.batch)
+    run_batch(out_path(a.batch), a.limit, a.cap, a.apply)
+
+
+def started(path: Path) -> int:
+    """Unchecked suppliers this batch file has already finished."""
+    return len({r["id"] for r in load(path) if not r.get("partial") and any(c["kind"] == "preview" for c in r["calls"])})
+
+
+def run_batch(path: Path, limit: int | None, cap: float, apply: bool) -> None:
+    """limit and cap count the whole file, so a rerun resumes inside them."""
     rows = plan()
-    if a.limit is not None:  # resumable: the new suppliers this batch already finished count toward it
-        started = {r["id"] for r in load(path) if not r.get("partial") and any(c["kind"] == "preview" for c in r["calls"])}
-        fresh = [r for r in rows if "variants" in r][:max(0, a.limit - len(started))]
+    if limit is not None:
+        fresh = [r for r in rows if "variants" in r][:max(0, limit - started(path))]
         rows = [r for r in rows if "variants" not in r] + fresh
-    if not a.apply:
+    if not apply:
         held = [r for r in rows if r.get("held")]
         yes = sum(1 for r in rows if r.get("reviewed"))
         new = len(rows) - len(held) - yes
-        print(f"batch {a.batch}: {yes} the founder said yes to (about $0.75 each), "
+        print(f"{path.name}: {yes} the founder said yes to (about $0.75 each), "
               f"{sum(1 for r in held if r['held']['class'] == 'exact')} held exact (markets), "
               f"{sum(1 for r in held if r['held']['class'] == 'ambiguous')} held ambiguous (exact search), then "
-              f"{new} unchecked EPB suppliers in order. Batch 1 averaged ${NEW_AVG:.2f} a new supplier: about "
-              f"${yes * 0.75 + new * NEW_AVG:.0f} expected; the cap of ${a.cap:.0f} stops it whatever happens. "
-              "Pass --apply to run.")
+              f"{new} unchecked EPB suppliers in order. Batch 2 averaged ${NEW_AVG:.2f} a new supplier: about "
+              f"${yes * 0.75 + new * NEW_AVG:.0f} expected; the cap of ${cap:.0f} stops it whatever happens. "
+              f"About {round((yes + new) * REQ_PER_SUPPLIER)} Volza requests: Volza allows 1,000 a day and the run "
+              f"stops at {DAILY_RESERVE} left, so about {int((1000 - DAILY_RESERVE) / REQ_PER_SUPPLIER)} suppliers "
+              "fit in a fresh day. Pass --apply to run.")
         return
     prior = sum(r["cost"] for r in load(path))
-    v = Live(a.cap, prior, start_used=account_used())
-    print(f"${prior:.2f} already spent in batch {a.batch}, cap ${a.cap:.2f}")
+    v = Live(cap, prior, start_used=account_used())
+    left = v.read_daily()
+    print(f"${prior:.2f} already spent in {path.name}, cap ${cap:.2f}; Volza requests left today: {left} "
+          f"(the run stops at {DAILY_RESERVE}, kept for buyers' reveals)", flush=True)
     with path.open("a", encoding="utf-8") as out:
         for row in rows:
             rec = new_rec(row)
@@ -331,7 +344,7 @@ def main() -> None:
                     out.flush()
             if rec["partial"]:
                 continue
-            print(f"  {rec['class']:9} {rec['shipments']:>6} shipments  markets={','.join(rec.get('markets') or [])}  {row['name']}")
+            print(f"  {rec['class']:9} {rec['shipments']:>6} shipments  markets={','.join(rec.get('markets') or [])}  {row['name']}", flush=True)
     recs = load(path)
     print(f"calls={v.calls}; spent this run: our tally ${v.tally - prior:.2f}, by Volza's header "
           f"${v.header_spent - prior:.2f}; batch total ${v.spent:.2f}; rows {len(recs)}, "
