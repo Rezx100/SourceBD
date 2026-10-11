@@ -323,6 +323,47 @@ const ENDINGS = [["CO", "KG"], ["Z", "O", "O"], ["S", "P", "A"], ["B", "V"], ["S
 const CASED: Record<string, string> = { GMBH: "GmbH", LTD: "Ltd", INC: "Inc", THE: "The", AND: "and", OF: "of" };
 
 /**
+ * How customs names the brands whose own lists we hold (source-tiers' BRAND_* labels). Strict on
+ * purpose: "NEXT" alone would match Next Level Apparel, so a miss is preferred to a false match.
+ */
+const CUSTOMS_BRANDS: Record<string, RegExp> = {
+  "H&M": /\bH\s*&\s*M\b|\bHENNES\b/i,
+  ASOS: /\bASOS\b/i,
+  NEXT: /\bNEXT\s+(RETAIL|SOURCING|PLC|DIRECTORY|HOLDINGS)\b/i,
+  "M&S": /\bMARKS\s*(&|AND)\s*SPENCER\b/i,
+  Inditex: /\bINDITEX\b|\bZARA\b|\bBERSHKA\b|\bSTRADIVARIUS\b|\bMASSIMO\s+DUTTI\b|\bPULL\s*(&|AND)\s*BEAR\b/i,
+  Primark: /\bPRIMARK\b|\bPENNEYS\b/i,
+};
+
+/** Buyer names on the shipments the customs row holds (the stored one, and the biggest to each market). */
+function customsBuyerNames(v: VolzaExports | null | undefined): string[] {
+  if (!v) return [];
+  const markets = Object.values(v.markets ?? {}).map((m) => m?.top ?? null);
+  return [v.top_record ?? null, ...v.top_shipments, ...markets].map((x) => x?.buyer_name ?? "").filter(Boolean);
+}
+
+/**
+ * Up to five distinct buyers from those shipments, tidied ("Action Service Distributie B V"). Customs
+ * buyers are importers: often a logistics or buying house rather than the brand, so they sit beside
+ * the brands' own lists, never in place of them (founder, 11 Oct 2026). Empty for a reader the
+ * customs read refused.
+ */
+export function customsBuyers(v: VolzaExports | null | undefined): string[] {
+  const seen = new Map<string, string>();
+  for (const raw of customsBuyerNames(v)) {
+    const name = tidyBuyer(raw);
+    if (name && !seen.has(name.toLowerCase())) seen.set(name.toLowerCase(), name);
+  }
+  return [...seen.values()].slice(0, 5);
+}
+
+/** The listed brands a customs buyer on file also names: the two sources agreeing. */
+export function brandsInCustoms(brands: readonly string[], v: VolzaExports | null | undefined): Set<string> {
+  const names = customsBuyerNames(v);
+  return new Set(brands.filter((b) => CUSTOMS_BRANDS[b] && names.some((n) => CUSTOMS_BRANDS[b]!.test(n))));
+}
+
+/**
  * A buyer as the customs record files it, tidied (Volza data session, 11 Oct 2026): up to and
  * including the first legal ending, else up to the first number; an all-capitals name in title case,
  * words of three letters or fewer kept as filed ("TJX UK"). "THE HADDAD APPAREL GROUP LTD 131 D" is
