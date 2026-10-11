@@ -1,10 +1,10 @@
 // 3 · The common-search chips under the hero form (Paper `Z05-0`): the nine searches the app offers before a buyer has
-// typed (`SEARCH_TEMPLATES`), each a link to that search, with its live count (`readSearchCount`, cached an hour)
+// typed (`SEARCH_TEMPLATES`), each a link to that search, with its live count (`readTemplateCounts`, cached an hour, waited for 1.5 s at most)
 // when the count was read and no number at all when it was not. The searches set HS headings and certificate states,
 // which public Discover cannot express, so each opens in the app (sign-in first for a visitor).
 
 import Link from "next/link";
-import { readSearchCount } from "@/lib/dashboard/search-cache";
+import { readTemplateCounts } from "@/lib/dashboard/search-cache";
 import { SEARCH_TEMPLATES } from "@/lib/dashboard/search-templates";
 import { discoverHref } from "@/lib/discover-v32-state";
 import { withCommas } from "@/lib/site-facts";
@@ -13,9 +13,10 @@ import { ring } from "./ui";
 
 export type Chip = { key: string; title: string; href: string; count: number | null };
 
-/** Every template with its count, or null for a count that was not read. Never throws. */
+/** Every template with its count, or null for a count that was not read in time. Never throws. */
 export async function loadChips(): Promise<Chip[]> {
-  return Promise.all(SEARCH_TEMPLATES.map(async (t) => ({ key: t.key, title: t.title, href: discoverHref(t.state), count: await readSearchCount(t.state).catch(() => null) })));
+  const counts = await readTemplateCounts(SEARCH_TEMPLATES).catch((): Record<string, number | null> => ({}));
+  return SEARCH_TEMPLATES.map((t) => ({ key: t.key, title: t.title, href: discoverHref(t.state), count: counts[t.key] ?? null }));
 }
 
 export function Chips({ chips }: { chips: Chip[] }) {

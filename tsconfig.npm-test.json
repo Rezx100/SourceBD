@@ -265,6 +265,7 @@
     "lib/dashboard/hs-photos.test.ts",
     "lib/dashboard/facts.ts",
     "lib/dashboard/facts.test.ts",
+    "lib/dashboard/search-cache.test.ts",
     "lib/dashboard/customs-search.ts",
     "lib/dashboard/customs-search.test.ts",
     "lib/admin/source-freshness.test.ts",

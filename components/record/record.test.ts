@@ -32,6 +32,17 @@ const tabHref = (t: string) => `/app/discover?q=knit&record=x${t === "overview" 
 const view = (m: SupplierSheetModel, props: { mode?: "pane" | "page"; tab?: (typeof TABS)[number]["id"]; backHref?: string | null } = {}) =>
   renderToStaticMarkup(h(RecordView, { model: m, mode: props.mode ?? "pane", tab: props.tab ?? "overview", tabHref, today: TODAY, backHref: props.backHref === undefined ? "/app/discover?q=knit" : props.backHref }));
 
+describe("the record on a phone never pans sideways (founder, 11 Oct 2026)", () => {
+  it("clips its width and wraps a long value, in the pane and on the page, without becoming a scroller of its own", () => {
+    for (const mode of ["pane", "page"] as const) {
+      const root = /<section aria-label="Supplier record"[^>]*class="([^"]*)"/.exec(view(model(), { mode }))?.[1] ?? "";
+      for (const c of ["min-w-0", "overflow-x-clip", "[overflow-wrap:break-word]"]) assert.ok(root.split(" ").includes(c), `${mode}: ${c}`);
+      // `hidden` or `auto` would make the record the sticky tabs' scroller, and they would stop sticking.
+      assert.ok(!/\boverflow-(x-|y-)?(hidden|auto|scroll)\b/.test(root), `${mode}: ${root}`);
+    }
+  });
+});
+
 describe("the record's tabs", () => {
   it("are six links to the same record, the open one marked, and a stranger is the Overview", () => {
     const out = view(model());
