@@ -6,13 +6,17 @@
 // everything: Products, HS codes, the settings pages, feedback and Sign out. A page that draws its own bar (a record, a
 // thread: `data-detail`) hides both, as S-09 asks.
 
-import { ArrowLeft, CaretRight, ChatCircleText, Cube, Hash, Package, ShieldCheck, SignOut, UserCircle } from "@phosphor-icons/react";
+import { CaretRight, ChatCircleText, GearSix, Hash, Package, ShieldCheck, SignOut, UserCircle } from "@phosphor-icons/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Dialog as D } from "radix-ui";
 import { Suspense, useEffect, useState } from "react";
+// The account page's own icons. The import above is left as `development` has it (GearSix is no
+// longer used) so `phone-redesign-1`, which adds a line under it, merges clean: fold these in after.
+import { ArrowLeft, Cube } from "@phosphor-icons/react";
 import { ring, ringInset } from "@/components/kit/classes";
 import { TabBar } from "@/components/kit/phone";
+import { LinkPending } from "@/components/patterns/link-pending";
 import { PHONE_TABS, phoneTab, phoneTitle } from "@/lib/frame-nav";
 import { cn } from "@/lib/utils";
 import { NO_BADGES, useBadges, type BadgesInput, type FrameBadges } from "./badges";
@@ -31,6 +35,7 @@ function SheetRow({ href, icon: G, title, line }: { href: string; icon: typeof P
         <span className="text-[15px]/[18px] font-medium text-ink">{title}</span>
         <span className="text-xs text-ink-3">{line}</span>
       </span>
+      <LinkPending />
       <CaretRight size={16} weight="thin" className="shrink-0 text-ink-3" aria-hidden />
     </Link>
   );
@@ -43,6 +48,7 @@ function SettingsRow({ href, title, note }: { href: string; title: string; note?
       <span className="text-[15px]/[18px] text-ink">{title}</span>
       <span className="flex items-center gap-2">
         {note ? <span className="text-sm text-ink-3">{note}</span> : null}
+        <LinkPending />
         <CaretRight size={16} weight="thin" className="shrink-0 text-ink-3" aria-hidden />
       </span>
     </Link>
@@ -75,7 +81,7 @@ function AccountSheet({ account, onFeedback }: { account: FrameAccount; onFeedba
           aria-describedby={undefined}
           className="fixed inset-0 z-modal flex flex-col overflow-auto bg-surface pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)] outline-none animate-rise motion-reduce:animate-none"
         >
-          <div className="flex h-14 shrink-0 items-center px-2">
+          <div className="flex h-14 shrink-0 items-center px-3">
             <D.Close aria-label="Close" className={cn("group flex size-11 items-center justify-center rounded-full", ring)}>
               <span className="flex size-9 items-center justify-center rounded-full bg-sunken text-ink-2 group-active:bg-line">
                 <ArrowLeft size={17} weight="thin" aria-hidden />

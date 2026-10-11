@@ -17,8 +17,8 @@ const roundFace = "flex size-9 items-center justify-center rounded-full bg-sunke
 export function ThreadHead({ thread, state, recordOpen }: { thread: ThreadRow; state: ListState; recordOpen: boolean }) {
   const recordHref = recordOpen ? threadHref(thread.id, state) : threadHref(thread.id, state, thread.supplier_slug);
   return (
-    <header className="flex h-14 shrink-0 items-center gap-2 border-b border-line bg-surface px-5 max-md:sticky max-md:top-0 max-md:z-raised max-md:h-auto max-md:min-h-14 max-md:gap-1 max-md:pb-2.5 max-md:pl-5 max-md:pr-2 max-md:pt-1.5">
-      <div className="flex min-w-0 flex-1 flex-col">
+    <header className="flex h-14 shrink-0 items-center gap-2 border-b border-line bg-surface px-5 max-md:sticky max-md:top-0 max-md:z-raised max-md:h-auto max-md:min-h-14 max-md:gap-0 max-md:pb-2.5 max-md:pl-5 max-md:pr-3 max-md:pt-1.5">
+      <div className="flex min-w-0 flex-1 flex-col max-md:pr-2">
         <h1 className="truncate text-md font-semibold text-ink max-md:text-xl/[30px] max-md:tracking-[-0.025em]">{thread.supplier_name}</h1>
         <p className="truncate text-xs text-ink-3 max-md:text-sm">{threadSub(thread)}</p>
       </div>
@@ -33,7 +33,7 @@ export function ThreadHead({ thread, state, recordOpen }: { thread: ThreadRow; s
         )}
       </Link>
       <Link href={recordHref} prefetch={false} scroll={false} aria-current={recordOpen ? "true" : undefined} aria-label={recordOpen ? "Hide record" : "Show record"} className={roundButton}>
-        <span className={cn(roundFace, recordOpen && "bg-ink text-surface")}>
+        <span className={roundFace}>
           <Storefront size={17} weight="thin" aria-hidden />
         </span>
       </Link>

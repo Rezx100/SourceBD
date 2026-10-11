@@ -134,7 +134,7 @@ export function UnreadLine({ unread }: { unread: number }) {
 /** A tab or a search that matches nothing, in the list's own place. */
 export function InboxNone({ state }: { state: ListState }) {
   return (
-    <div className="flex flex-col gap-1 px-4 py-8">
+    <div className="flex flex-col gap-1 px-4 py-8 max-md:px-5">
       <p className="text-md font-semibold text-ink">{state.q ? "No conversation matches that" : state.show === "unread" ? "Nothing unread" : "No conversation is waiting on a reply"}</p>
       <p className="text-base text-ink-2">
         {state.q ? "Search by a supplier's name or the title of an RFQ." : state.show === "unread" ? "You have read everything the suppliers sent." : "Every conversation here has a reply from the supplier."}
@@ -148,7 +148,7 @@ export function InboxNone({ state }: { state: ListState }) {
 
 /** "3 conversations" under the list when a tab or a search is narrowing it. */
 export function InboxFoot({ shown, total }: { shown: number; total: number }) {
-  return shown === total ? null : <p className="px-4 py-3 text-sm text-ink-3">{`${conversationsWords(shown)} shown of ${total}`}</p>;
+  return shown === total ? null : <p className="px-4 py-3 text-sm text-ink-3 max-md:px-5">{`${conversationsWords(shown)} shown of ${total}`}</p>;
 }
 
 /** The list beside a conversation or the empty pane: head, rows, scroll inside. */

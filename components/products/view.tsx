@@ -128,7 +128,7 @@ export function ProductView({ initial, updatedAt = null }: { initial: ProductVal
   return (
     // `data-detail`: the view draws its own bar, so the phone frame hides its bar and tabs (S-09).
     <div aria-label="Product view" data-detail="" className="flex min-h-0 flex-1 flex-col md:hidden">
-      <div className="flex h-14 shrink-0 items-center px-2">
+      <div className="flex h-14 shrink-0 items-center px-3">
         <Link href="/app/products" aria-label="Back to products" className={roundButton}>
           <span className={roundFace}>
             <ArrowLeft size={17} weight="thin" aria-hidden />

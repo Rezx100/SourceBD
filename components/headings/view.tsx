@@ -174,7 +174,8 @@ const moreRow = cn("flex min-h-12 items-center justify-between gap-3 border-t bo
  * chapters". `?more=1` shows every chapter and every heading of the open one.
  */
 export function PhoneChapters({ chapters, open, more }: { chapters: Chapter[]; open: string | null; more: boolean }) {
-  const shown = more ? chapters : chapters.slice(0, PHONE_FIRST);
+  // The open chapter is always in the list: a link to a later one (`?chapter=52`) must show it.
+  const shown = more ? chapters : chapters.filter((c, i) => i < PHONE_FIRST || c.code === open);
   const hidden = chapters.length - shown.length;
   return (
     <ul aria-label="Chapters" className={cn(phoneCard, "mt-4")}>

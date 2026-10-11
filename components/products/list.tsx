@@ -52,7 +52,7 @@ export function ProductsHead({ rows, tab }: { rows: readonly ProductRow[] | null
 export function PhoneProductsHead({ rows, tab }: { rows: readonly ProductRow[] | null; tab: ProductTab }) {
   const tabs = rows !== null && rows.length > 0;
   return (
-    <div className="flex flex-col gap-2 pb-3 pl-5 pr-2 md:hidden">
+    <div className="flex flex-col gap-2 pb-3 pl-5 pr-3 md:hidden">
       <div className="flex min-h-11 items-center justify-between gap-2">
         <p className="text-sm text-ink-3">{productsCaption(rows)}</p>
         {tabs ? (

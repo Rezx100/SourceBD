@@ -157,7 +157,7 @@ export function ProductForm({ initial, updatedAt = null }: { initial: ProductVal
       data-detail=""
       className="flex min-h-0 flex-1 flex-col"
     >
-      <header className="flex flex-col gap-1 px-8 pb-5 pt-5 max-md:flex-row max-md:items-center max-md:gap-1 max-md:pb-2.5 max-md:pl-2 max-md:pr-4 max-md:pt-1.5">
+      <header className="flex flex-col gap-1 px-8 pb-5 pt-5 max-md:flex-row max-md:items-center max-md:gap-2 max-md:pb-2.5 max-md:pl-3 max-md:pr-4 max-md:pt-1.5">
         <Link href="/app/products" prefetch={false} className="-ml-2 flex h-9 w-fit items-center gap-1.5 rounded-sm px-2 text-base font-medium text-ink-2 outline-none hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus max-md:hidden">
           <ArrowLeft size={16} aria-hidden />
           Products

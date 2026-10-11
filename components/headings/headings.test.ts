@@ -172,6 +172,8 @@ describe("/app/headings", () => {
     assert.ok(out.includes('href="/app/headings?chapter=61&more=1"'), "the more row opens every heading");
     assert.match(t, /1 more chapter: trims, packaging, other/);
     assert.match(t, /Supplier counts leave out sanctioned suppliers, as search does\./);
+    // A chapter past the first four is still drawn open when the address asks for it.
+    assert.match(text(await page({ chapter: "99" })), /Chapter 99 1 heading · most suppliers first/);
   });
 
   it("?more=1 draws every other chapter as a card", async () => {
