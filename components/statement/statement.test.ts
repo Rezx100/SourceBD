@@ -13,7 +13,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { buildStatement, countPlaceholders, type MsaInputs } from "@/lib/msa-statement";
 import { StatementEditor } from "./editor";
 import { ScreeningNote, StatementError, StatementHead, StatementSkeleton } from "./head";
-import { claimKey, claimLabel, claimsOf, claimsToConfirm, downloadBlocked, fileName, finalText, openBySection, openClaims, parseStatement, subsOf } from "./words";
+import { claimKey, claimLabel, claimsOf, claimsToConfirm, downloadBlocked, fileName, finalText, foldWords, openBySection, openClaims, parseStatement, phoneBlocked, subsOf } from "./words";
 
 const OUT = path.join(process.cwd(), process.env.TEST_BUILD_DIR || ".tests-build");
 type Answer = { data: unknown; error: unknown };
@@ -130,6 +130,13 @@ describe("the draft as sections and claims", () => {
     assert.doesNotMatch(json, /\*\*/);
   });
 
+  it("a phone's words: the fold under the first claims, and the line over Download", () => {
+    assert.equal(foldWords([{ section: "Section 5 · Training" }, { section: "Section 6 · Effectiveness — key performance indicators" }, { section: "Section 7 · Approval" }]), "3 more: training, effectiveness, approval");
+    assert.equal(phoneBlocked([{ detail: null }, { detail: null }, { detail: "signerName" }]), "Confirm 2 claims and your signatory to download");
+    assert.equal(phoneBlocked([{ detail: "org" }]), "Confirm your details to download");
+    assert.equal(phoneBlocked([{ detail: null }]), "Confirm 1 claim to download");
+  });
+
   it("the words: how many claims, and why Download is held", () => {
     assert.equal(claimsToConfirm(1), "1 claim to confirm");
     assert.equal(claimsToConfirm(3), "3 claims to confirm");
@@ -241,6 +248,19 @@ describe("/app/compliance/msa", () => {
     assert.match(text(out), /The UFLPA check did not load, so the draft leaves its result for you to confirm\./);
     assert.match(out, /\[Confirm: The result of checking your suppliers against the UFLPA Entity List\]/);
     assert.doesNotMatch(text(out), /region flags?:|UFLPA Entity List matches/);
+  });
+
+  it("a phone: the way back, what we wrote from the reads (the UFLPA row dated by the list's own read), Download in a bar", async () => {
+    const lists = { data: [{ list: "uflpa", entries_listed: 253, last_read: "2026-10-01T03:10:00+00:00" }], error: null };
+    rpcs = { compliance_msa_inputs: MSA_INPUTS, compliance_uflpa_tracker: { data: { ...SCREENING, flags: 0, clear: 16 }, error: null }, sanctions_lists_read: lists };
+    const out = await page();
+    assert.match(out, /data-detail=""/);
+    assert.match(out, /aria-label="Back to Compliance"/);
+    assert.match(text(out), /Written for you As at [^ ]+ [A-Z][a-z]{2}( \d{4})? Supply chain 16 suppliers, all Bangladesh/);
+    assert.match(text(out), /UFLPA No link found Not a clearance · list read 1 Oct/);
+    assert.match(text(out), /Certificates Did not load/, "the certificate reads failed here and say so");
+    assert.match(text(out), /Confirm \d+ claims and your details to download/);
+    assert.match(out, /aria-label="Copy draft"/);
   });
 
   it("a footprint that fails is an error and no editor", async () => {

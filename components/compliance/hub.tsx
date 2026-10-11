@@ -3,15 +3,17 @@
 // modern slavery statement and the expiry dates. Server components. Each card stands on its own
 // read: a failed read is said in the card that needed it, and never shown as nothing to check.
 
-import { ArrowLeft, CheckCircle } from "@phosphor-icons/react/dist/ssr";
+import { ArrowLeft, CaretRight, Clock, FileText, Hourglass, Scales, ShieldCheck, XCircle } from "@phosphor-icons/react/dist/ssr";
+import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 import Link from "next/link";
 import { ButtonLink, ErrorPanel, InlineError, Skeleton, buttonClass } from "@/components/kit";
 import { DownloadCsv } from "@/components/export/download-csv";
 import { EvidencePackButton } from "./evidence-pack";
-import { NeedsAttention, type AttentionItem } from "@/components/patterns";
+import { LinkPending, NeedsAttention, type AttentionItem } from "@/components/patterns";
+import type { ComplianceData } from "./load";
 import type { Attention } from "@/lib/dashboard/needs-attention";
 import { cn } from "@/lib/utils";
-import { COMPLIANCE_HREF, EXPIRY_HREF, attentionGroup, attentionGroupLines, certExportHref, MSA_HREF, UFLPA_HREF, UFLPA_WORDS, comingUp, hubCaption, uflpaCounts, uflpaNote, type CertList, type MsaSummary, type UflpaPayload } from "./words";
+import { COMPLIANCE_HREF, EXPIRY_HREF, attentionGroup, attentionGroupLines, certExportHref, MSA_HREF, UFLPA_HREF, UFLPA_WORDS, certLedger, comingUp, hubCaption, hubHeadline, hubLooks, hubSummary, listRead, sanctionsLedger, statementLedger, uflpaCounts, uflpaLedger, type CertList, type Ledger, type Look, type MsaSummary, type UflpaPayload } from "./words";
 
 const textLink = "rounded-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
@@ -40,11 +42,136 @@ export function HubHead({ saved, download = false, pack = false }: { saved: numb
   );
 }
 
-/** The phone has no header bar: the same button, over the cards. */
-export function PhonePack({ saved }: { saved: number | null }) {
+/* ------------------------------------------------------------------ the phone (Paper page 36) */
+
+const TONE_INK = { danger: "text-danger", caution: "text-caution" } as const;
+const toneInk = (tone: "danger" | "caution" | null, fallback = "text-ink") => (tone ? TONE_INK[tone] : fallback);
+
+/** A sub-page's head on a phone, where the frame's bars are hidden (`data-detail`): back, the title, its line. */
+export function PhoneSubHead({ title, line }: { title: string; line: string }) {
   return (
-    <div className="px-4 pb-1 pt-3 md:hidden">
-      <EvidencePackButton saved={saved} className="max-md:h-input-touch max-md:w-full" />
+    <div className="flex min-h-14 items-center gap-3 px-4 pb-2.5 pt-1.5 md:hidden">
+      <Link href={COMPLIANCE_HREF} aria-label="Back to Compliance" className="-m-1 flex size-11 shrink-0 items-center justify-center rounded-full outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus [&:active>span]:bg-line">
+        <span className="flex size-9 items-center justify-center rounded-full bg-sunken">
+          <ArrowLeft size={17} weight="thin" className="shrink-0 text-ink-2" aria-hidden />
+        </span>
+      </Link>
+      <div className="flex min-w-0 grow basis-0 flex-col">
+        <h1 className="line-clamp-1 text-xl/[30px] font-semibold tracking-[-0.025em] text-ink">{title}</h1>
+        <p className="text-sm text-ink-3">{line}</p>
+      </div>
+    </div>
+  );
+}
+
+/** "Status · 4 checks": a phone section's head. */
+export function PhoneSectionHead({ title, count, aside }: { title: string; count?: number; aside?: string }) {
+  return (
+    <div className="flex items-baseline justify-between pb-3.5 pt-6">
+      <h2 className="flex items-baseline gap-2 text-lg font-medium tracking-tight text-ink">
+        {title}
+        {count !== undefined ? <span className="font-normal text-ink-3">{count}</span> : null}
+      </h2>
+      {aside ? <span className="text-sm text-ink-3">{aside}</span> : null}
+    </div>
+  );
+}
+
+export type LedgerRow = { key: string; icon: PhosphorIcon; label: string; ledger: Ledger; href?: string };
+
+/** The 10-radius ledger: a label at 96, the value and its line on the right. A row with somewhere to go is a link. */
+export function PhoneLedger({ rows }: { rows: readonly LedgerRow[] }) {
+  return (
+    <div className="flex flex-col divide-y divide-line overflow-clip rounded-[10px] border border-line">
+      {rows.map(({ key, icon: G, label, ledger: l, href }) => {
+        const inner = (
+          <>
+            <G size={18} weight="thin" className={cn("shrink-0", toneInk(l.tone, "text-ink-2"))} aria-hidden />
+            <span className="w-24 shrink-0 text-base text-ink-2">{label}</span>
+            <span className="flex grow basis-0 flex-col items-end text-right">
+              <span className={cn("text-base font-medium", toneInk(l.tone))}>{l.value}</span>
+              <span className="text-xs text-ink-3">{l.sub}</span>
+            </span>
+          </>
+        );
+        const row = "flex min-h-12 items-center gap-2.5 px-4 py-3";
+        return href ? (
+          <Link key={key} href={href} className={cn(row, "outline-none active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus")}>
+            {inner}
+          </Link>
+        ) : (
+          <div key={key} className={row}>
+            {inner}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+const LOOK_ICON: Record<Look["key"], PhosphorIcon> = { certs: Hourglass, uflpa: Clock, msa: FileText };
+
+/** The hub on a phone: the summary, the four checks, what needs a look. Desktop keeps its own layout. */
+export function PhoneHub({ data, today }: { data: ComplianceData; today: Date }) {
+  const saved = data.msa?.total_saved ?? null;
+  const pill = hubHeadline(data.expired, data.uflpa);
+  const looks = hubLooks({ ...data, uflpaRead: listRead(data.lists, "uflpa") }, today);
+  const certs = certLedger(data.expired, data.expiring, today);
+  return (
+    <div className="flex flex-col px-5 pb-6 pt-3 md:hidden">
+      <div className="flex flex-col gap-3 pb-1">
+        <p className="text-[15px]/[22px] text-ink-2">{hubSummary(saved)}</p>
+        {pill ? (
+          <p className="flex h-7 shrink-0 items-center gap-1.5 self-start rounded-full bg-danger-tint pl-2 pr-2.5 text-sm font-medium text-danger">
+            <XCircle size={16} weight="thin" className="shrink-0" aria-hidden />
+            {pill.text}
+          </p>
+        ) : null}
+        {saved !== null ? <EvidencePackButton saved={saved} className="h-11 w-full rounded-full border-0 bg-sunken px-3.5 text-base hover:bg-sunken active:bg-line" /> : null}
+      </div>
+      <PhoneSectionHead title="Status" aside="4 checks" />
+      <PhoneLedger
+        rows={[
+          { key: "certs", icon: Hourglass, label: "Certificates", ledger: certs, href: EXPIRY_HREF },
+          { key: "uflpa", icon: Scales, label: "UFLPA", ledger: uflpaLedger(data.uflpa, listRead(data.lists, "uflpa"), today), href: UFLPA_HREF },
+          { key: "sanctions", icon: ShieldCheck, label: "Sanctions", ledger: sanctionsLedger(data.msa, data.lists, today) },
+          { key: "statement", icon: FileText, label: "Statement", ledger: statementLedger(data.msa), href: MSA_HREF },
+        ]}
+      />
+      {data.expired === null && data.expiring === null ? (
+        <div className="pt-3">
+          <AttentionError retryHref={COMPLIANCE_HREF} />
+        </div>
+      ) : data.expired === null || data.expiring === null ? (
+        <div className="pt-3">
+          <PartialNote missing={data.expired === null ? "expired" : "expiring"} />
+        </div>
+      ) : null}
+      {looks.length > 0 ? (
+        <>
+          <PhoneSectionHead title="Needs a look" count={looks.length} />
+          <ul className="flex flex-col divide-y divide-line overflow-clip rounded-[10px] border border-line">
+            {looks.map((l) => {
+              const G = LOOK_ICON[l.key];
+              return (
+                <li key={l.key}>
+                  <Link href={l.href} className="flex flex-col gap-2.5 p-4 outline-none active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
+                    <span className="flex items-center gap-1.5">
+                      <G size={16} weight="thin" className={cn("shrink-0", l.tone === "caution" ? "text-caution-icon" : toneInk(l.tone, "text-ink-2"))} aria-hidden />
+                      <span className={cn("grow basis-0 text-xs font-medium", toneInk(l.tone, "text-ink-2"))}>{l.head}</span>
+                      <LinkPending />
+                      <CaretRight size={16} weight="thin" className="shrink-0 text-ink-3" aria-hidden />
+                    </span>
+                    <span className="text-md/[22px] font-medium text-ink">{l.title}</span>
+                    <span className="text-sm text-ink-2">{l.body}</span>
+                    <span className="text-xs text-ink-3">{l.foot}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      ) : null}
     </div>
   );
 }
@@ -157,18 +284,6 @@ export function ExpiryCard({ expiring, today }: { expiring: CertList | null; tod
         See every expiry date
       </Link>
     </Card>
-  );
-}
-
-/** The phone's line over the certificates: what none found means. */
-export function PhoneUflpaNote({ uflpa, saved }: { uflpa: UflpaPayload | null; saved: number | null }) {
-  const words = uflpaNote(uflpa, saved);
-  if (!words) return null;
-  return (
-    <p className="flex items-start gap-2 px-4 pb-3 pt-2 text-base text-ink-2 md:hidden">
-      <CheckCircle size={16} weight="fill" className="mt-1 shrink-0 text-ink-2" aria-hidden />
-      {words}
-    </p>
   );
 }
 

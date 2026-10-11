@@ -38,7 +38,10 @@ export type UflpaRow = {
 export type UflpaPayload = { total: number; hits: number; flags: number; clear: number; rows: UflpaRow[] };
 
 /** What `compliance_msa_inputs` says about the footprint the statement is drawn from. */
-export type MsaSummary = { total_saved: number; total_published: number; rsc_covered: number; expiring_certs_90d: number };
+export type MsaSummary = { total_saved: number; total_published: number; rsc_covered: number; expiring_certs_90d: number; /** Published saved suppliers with an active match on any list held. */ sanctions_hits?: number };
+
+/** One row of `sanctions_lists_read()` (0120): a list, how many entries it still lists, and its last full read. */
+export type ListRead = { list: string; entries_listed: number | null; last_read: string | null };
 
 export const DHS_LIST_URL = "https://www.dhs.gov/uflpa-entity-list";
 export const COMPLIANCE_HREF = "/app/compliance";
@@ -238,18 +241,173 @@ export function uflpaEvidence(r: UflpaRow): string[] {
   return r.status === "region_flag" ? ["Xinjiang-linked text in the record"] : [];
 }
 
-/** The phone's one line over the page: what none found means, in words. */
-export function uflpaNote(p: UflpaPayload | null, saved: number | null): string | null {
-  if (p === null) return null;
-  // The tracker checks published suppliers only, so what it says is about `p.total`, not about every saved supplier.
-  if (p.total === 0) return "None of your saved suppliers is published yet, so there is nothing to check.";
-  const of = saved !== null && saved > p.total ? `${formatCount(p.total)} published of your ${formatCount(saved)} saved suppliers` : `your ${noun(p.total, "saved supplier")}`;
-  if (p.hits > 0) return `${noun(p.hits, "supplier")} on the UFLPA Entity List among ${of}. You can't send them an RFQ.`;
-  if (p.flags > 0) return `${noun(p.flags, "supplier")} with a possible Xinjiang link among ${of}.`;
-  return `No link found on the UFLPA Entity List for ${of}. Not a clearance.`;
-}
-
 /** The phone's line under the UFLPA title: how many suppliers the check read. */
 export function uflpaSubline(checked: number | null): string {
-  return checked === null ? "Your saved suppliers against the UFLPA Entity List (US DHS)" : `${noun(checked, "saved supplier")} against the UFLPA Entity List (US DHS)`;
+  return checked === null ? "Your saved suppliers against the US forced-labour list" : `${noun(checked, "saved supplier")} against the US forced-labour list`;
+}
+
+/* ------------------------------------------------------------------ the phone's ledgers (Paper page 36) */
+
+/** UFLPA checks on a phone: "Read 8 Oct. Entries added since are not checked." */
+export function uflpaReadLine(read: ListRead | null, today: Date): string {
+  const day = shortDay(read?.last_read, today);
+  return day ? `Read ${day}. Entries added since are not checked.` : "Entries added since our last read are not checked.";
+}
+
+/** "UFLPA Entity List, US DHS · 253 entries · read 8 Oct": what was matched against. */
+export function uflpaSourceLine(read: ListRead | null, today: Date): string {
+  const day = shortDay(read?.last_read, today);
+  const n = read?.entries_listed;
+  return ["UFLPA Entity List, US DHS", typeof n === "number" ? noun(n, "entry", "entries") : null, day ? `read ${day}` : null].filter(Boolean).join(" · ");
+}
+
+/** The fold under the first rows: "7 more, all no link found", or "7 more". */
+export const uflpaMore = (rest: readonly Pick<UflpaRow, "status">[]) => `${formatCount(rest.length)} more${rest.every((r) => r.status === "clear") ? ", all no link found" : ""}`;
+
+/** "8 Oct" in this year, "8 Oct 2025" otherwise: the phone boards' day. */
+export function shortDay(iso: string | null | undefined, today: Date): string | null {
+  const day = formatDay(iso);
+  if (!day) return null;
+  return day.endsWith(` ${today.getUTCFullYear()}`) ? day.slice(0, day.lastIndexOf(" ")) : day;
+}
+
+/** "6–11 Oct", "30 Sep – 11 Oct", or one day when both are the same. */
+function shortSpan(a: string, b: string, today: Date): string | null {
+  const [x, y] = [shortDay(a, today), shortDay(b, today)];
+  if (!x || !y || x === y) return x ?? y;
+  const [dx, ...mx] = x.split(" ");
+  const [dy, ...my] = y.split(" ");
+  return mx.join(" ") === my.join(" ") ? `${dx}–${dy} ${my.join(" ")}` : `${x} – ${y}`;
+}
+
+const daysAgo = (iso: string, today: Date) => {
+  const n = -(daysUntil(iso, today) ?? 0);
+  return n <= 0 ? "today" : n === 1 ? "yesterday" : `${n} days ago`;
+};
+
+/** A list's row from `sanctions_lists_read()`; null when the read failed or the list is not there. */
+export const listRead = (lists: readonly ListRead[] | null, code: string): ListRead | null => lists?.find((l) => l.list === code) ?? null;
+
+/** One row of a phone ledger: the value, the line under it, and its ink. */
+export type Ledger = { value: string; sub: string; tone: "danger" | "caution" | null };
+
+const UNREAD: Ledger = { value: "Did not load", sub: "Try again in a moment", tone: null };
+
+/** Certificates: "7 of 8 expired · 1 more ends 15 Oct", or what lapses within 90 days. */
+export function certLedger(expired: CertList | null, expiring: CertList | null, today: Date): Ledger {
+  const a = attention(expired, expiring, today);
+  if (a === null) return UNREAD;
+  if (a.total === 0) return { value: "None need a look", sub: "Nothing ends in the next 90 days", tone: null };
+  const g = expiryGroups(expired, expiring, today);
+  const lapsed = expired?.total ?? 0;
+  const coming = a.total - lapsed;
+  const first = [...g.within30, ...g.within90][0] ?? null;
+  const firstDay = first ? shortDay(first.expiresOn, today) : null;
+  if (lapsed > 0) {
+    const sub = coming === 0 ? "No renewal on file" : firstDay ? `${formatCount(coming)} more ${coming === 1 ? "ends" : "end, the first"} ${firstDay}` : `${formatCount(coming)} more end within 90 days`;
+    return { value: `${formatCount(lapsed)} of ${formatCount(a.total)} expired`, sub, tone: "danger" };
+  }
+  return { value: `${formatCount(coming)} ${coming === 1 ? "ends" : "end"} within 90 days`, sub: first && firstDay ? `${first.supplier} ${first.scheme}, ${firstDay}` : "On your saved suppliers", tone: "caution" };
+}
+
+/** UFLPA: "No link found · Not a clearance · list read 8 Oct", the date from the list's own last read. */
+export function uflpaLedger(p: Pick<UflpaPayload, "total" | "hits" | "flags"> | null, read: ListRead | null, today: Date): Ledger {
+  if (p === null) return UNREAD;
+  if (p.total === 0) return { value: "Nothing to check", sub: "No saved supplier is published yet", tone: null };
+  if (p.hits > 0) return { value: `${noun(p.hits, "supplier")} listed`, sub: "You can't send them an RFQ", tone: "danger" };
+  if (p.flags > 0) return { value: noun(p.flags, "possible link"), sub: "Record mentions Xinjiang", tone: "caution" };
+  const day = shortDay(read?.last_read, today);
+  return { value: "No link found", sub: day ? `Not a clearance · list read ${day}` : "Not a clearance", tone: null };
+}
+
+/** The daily sanctions lists the ledger names (UFLPA has its own row). */
+const SANCTION_LISTS = ["ofac_sdn", "uk_ofsi", "eu_sanctions"] as const;
+
+/** Sanctions: "None of 11 listed · UK, EU, US lists · read 6–11 Oct". */
+export function sanctionsLedger(msa: MsaSummary | null, lists: readonly ListRead[] | null, today: Date): Ledger {
+  if (msa === null || typeof msa.sanctions_hits !== "number") return UNREAD;
+  const reads = SANCTION_LISTS.map((c) => listRead(lists, c)?.last_read ?? null);
+  const known = reads.filter((r): r is string => r !== null).sort();
+  const span = known.length === reads.length ? shortSpan(known[0]!, known[known.length - 1]!, today) : null;
+  const sub = span ? `UK, EU, US lists · read ${span}` : "UK, EU, US lists";
+  const n = msa.total_published;
+  if (msa.sanctions_hits > 0) return { value: `${formatCount(msa.sanctions_hits)} of ${formatCount(n)} listed`, sub, tone: "danger" };
+  return { value: n === 0 ? "Nothing to check" : `None of ${formatCount(n)} listed`, sub, tone: null };
+}
+
+/** The statement is drafted on the page and nothing is stored, so the row never claims a draft exists or not. */
+export function statementLedger(msa: MsaSummary | null): Ledger {
+  if (msa === null) return UNREAD;
+  return { value: "Ready to draft", sub: `Built from your ${noun(msa.total_published, "supplier")}`, tone: null };
+}
+
+/** The hub's pill: what needs action first, or nothing. */
+export function hubHeadline(expired: CertList | null, uflpa: UflpaPayload | null): { text: string; tone: "danger" } | null {
+  if (uflpa && uflpa.hits > 0) return { text: "Needs action · UFLPA listing", tone: "danger" };
+  if (expired && expired.total > 0) return { text: "Needs action · expired certificates", tone: "danger" };
+  return null;
+}
+
+/** "Your 11 saved suppliers, checked four ways." */
+export const hubSummary = (saved: number | null) => `Your ${saved === null ? "saved suppliers" : noun(saved, "saved supplier")}, checked four ways.`;
+
+/** A card under "Needs a look": what to do and where it opens. */
+export type Look = { key: "certs" | "uflpa" | "msa"; href: string; tone: "danger" | "caution" | null; head: string; title: string; body: string; foot: string };
+
+/** The cards under "Needs a look", worst first: a certificate to ask for, the UFLPA read, the statement. */
+export function hubLooks(d: { expired: CertList | null; expiring: CertList | null; uflpa: UflpaPayload | null; uflpaRead: ListRead | null; msa: MsaSummary | null }, today: Date): Look[] {
+  const out: Look[] = [];
+  const a = attention(d.expired, d.expiring, today);
+  const g = expiryGroups(d.expired, d.expiring, today);
+  const first = g.expired[0] ?? g.within30[0] ?? g.within90[0];
+  if (a && a.total > 0 && first) {
+    const day = shortDay(first.expiresOn, today);
+    const delisted = first.when.startsWith("No longer listed");
+    const lapsed = first.state === "expired";
+    const others = a.total - 1;
+    out.push({
+      key: "certs",
+      href: EXPIRY_HREF,
+      tone: lapsed ? "danger" : "caution",
+      head: delisted ? "Certificates · no longer listed" : `Certificates · ${lapsed ? "newest expiry" : "next expiry"} ${day}`,
+      title: lapsed ? `Ask ${first.supplier} for its new ${first.scheme} certificate` : `Ask ${first.supplier} to renew its ${first.scheme} certificate`,
+      body: `${delisted ? `${first.scheme} no longer lists it.` : `Its ${first.scheme} ${lapsed ? "ended" : "ends"} ${day}.`}${others > 0 ? ` ${formatCount(others)} more ${others === 1 ? "is" : "are"} on the certificate list.` : ""}`,
+      foot: "Opens Certificate expiry",
+    });
+  }
+  const u = d.uflpa;
+  if (u && u.total > 0) {
+    const day = shortDay(d.uflpaRead?.last_read, today);
+    const base = { key: "uflpa" as const, href: UFLPA_HREF, foot: "Opens UFLPA checks" };
+    if (u.hits > 0) out.push({ ...base, tone: "danger", head: `UFLPA · ${noun(u.hits, "supplier")} listed`, title: `${noun(u.hits, "saved supplier")} ${u.hits === 1 ? "is" : "are"} on the UFLPA Entity List`, body: "You can't send them an RFQ. See which, and the entry each one matches." });
+    else if (u.flags > 0) out.push({ ...base, tone: "caution", head: "UFLPA · possible Xinjiang link", title: `${noun(u.flags, "saved supplier")} ${u.flags === 1 ? "mentions" : "mention"} Xinjiang in the record`, body: "A mention is not a listing. Read the record before you decide." });
+    else
+      out.push({
+        ...base,
+        tone: "caution",
+        head: day ? `UFLPA · read ${day}, ${daysAgo(d.uflpaRead!.last_read!, today)}` : "UFLPA",
+        title: day ? `Entries added to the US list since ${day} are not checked yet` : "Entries added to the US list since our last read are not checked yet",
+        body: "Our match is only as new as our last read of the forced-labour list (UFLPA). Keep your own checks too.",
+      });
+  }
+  if (d.msa && d.msa.total_published > 0)
+    out.push({
+      key: "msa",
+      href: MSA_HREF,
+      tone: null,
+      head: "Modern slavery statement",
+      title: `Draft your statement from these ${noun(d.msa.total_published, "supplier")}`,
+      body: "UK Modern Slavery Act, section 54. We write the supply chain part; you confirm what only you know.",
+      foot: "Nothing leaves your phone",
+    });
+  return out;
+}
+
+/** The statement's "Written for you" supply chain row: how many suppliers, in which countries, mostly where. */
+export function supplyLedger(inputs: { total_published: number; by_country: { country: string; count: number }[]; top_regions: { city: string | null; district: string | null; count: number }[] }): Ledger {
+  const n = inputs.total_published;
+  const countries = inputs.by_country.filter((c) => c.count > 0);
+  const where = countries.length === 1 ? `all ${countries[0]!.country}` : countries.length > 1 ? `${countries.length} countries` : null;
+  const places = [...new Set(inputs.top_regions.map((r) => r.district ?? r.city).filter((x): x is string => Boolean(x)))].slice(0, 2);
+  return { value: where ? `${noun(n, "supplier")}, ${where}` : noun(n, "supplier"), sub: places.length ? `Mostly ${places.join(" and ")}` : "Where they are is not published", tone: null };
 }

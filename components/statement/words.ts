@@ -180,6 +180,20 @@ export function openBySection(sections: readonly Section[]): Record<string, numb
 export const claimsToConfirm = (n: number) => `${n} ${n === 1 ? "claim" : "claims"} to confirm`;
 export const downloadBlocked = (n: number) => `Confirm ${n} ${n === 1 ? "claim" : "claims"} to download.`;
 
+/** A phone's line over Download: "Confirm 6 claims and your signatory to download"; the details card answers the four details. */
+export function phoneBlocked(open: readonly Pick<Claim, "detail">[]): string {
+  const n = open.filter((c) => !c.detail).length;
+  const details = open.filter((c) => c.detail);
+  const who = details.length === 0 ? null : details.every((c) => c.detail === "signerName" || c.detail === "signerRole") ? "your signatory" : "your details";
+  return `Confirm ${[n > 0 ? `${n} ${n === 1 ? "claim" : "claims"}` : null, who].filter(Boolean).join(" and ")} to download`;
+}
+
+/** The fold under a phone's first claims: "3 more: training, effectiveness, approval". */
+export function foldWords(rest: readonly Pick<Claim, "section">[]): string {
+  const names = [...new Set(rest.map((c) => (c.section.split(" · ")[1] ?? c.section).split(" — ")[0]!.toLowerCase()))];
+  return `${rest.length} more: ${names.join(", ")}`;
+}
+
 /** The text that downloads or is copied: each answered claim replaced by its fill; a DRAFT note over what is still open. */
 export function finalText(markdown: string, fills: Readonly<Record<string, string>>, subs: Subs = []): string {
   let out = markdown.replace(/\[Confirm:\s*([^\]]*)\]/g, (whole, raw: string) => {

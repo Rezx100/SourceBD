@@ -9,17 +9,22 @@
 // right; on a phone the claims come first and the draft is under "Read the whole draft".
 // Paper's PDF/Word download and saved versions are not here: no document library is installed and
 // nothing is stored, so the file is Markdown and the draft lives in the page.
+// Below 768 the page is Paper page 36's: a pill with the claims left, the section claims in a card
+// (three, then the rest folded), the details with the signatory side by side, what we wrote for you
+// (`written`, drawn by the page), and Copy and Download in a bar fixed to the foot.
 
-import { CaretRight } from "@phosphor-icons/react";
-import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { Button, Field, Input } from "@/components/kit";
+import { CaretDown, CaretRight, Clock, Copy, FileText, PencilSimple } from "@phosphor-icons/react";
+import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { ActionBar, Button, Field, IconButton, Input } from "@/components/kit";
 import { fieldBox, fieldEdge } from "@/components/kit/classes";
 import { ConfirmedClaim, OpenClaim, downloadBlockedWords } from "@/components/patterns";
 import { buildStatement, type MsaInputs, type MsaScreening } from "@/lib/msa-statement";
 import { cn } from "@/lib/utils";
-import { DETAIL_LABELS, claimLabel, claimsOf, claimsToConfirm, fileName, finalText, openBySection, openClaims, parseStatement, subsOf, type Block, type DetailKey, type Section, type Segment } from "./words";
+import { DETAIL_LABELS, claimLabel, claimsOf, claimsToConfirm, fileName, finalText, foldWords, openBySection, openClaims, parseStatement, phoneBlocked, subsOf, type Block, type DetailKey, type Section, type Segment } from "./words";
 
 const neverChanges = () => () => {};
+/** Section claims a phone shows before the fold. */
+const PHONE_SHOWN = 3;
 const isoDay = (d: Date, local: boolean) => (local ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}` : d.toISOString().slice(0, 10));
 
 /** Today in the buyer's own time zone: the server renders the UTC day and the browser swaps in its own after hydration. */
@@ -27,7 +32,7 @@ function useToday(): string {
   return useSyncExternalStore(neverChanges, () => isoDay(new Date(), true), () => isoDay(new Date(), false));
 }
 
-export function StatementEditor({ inputs, screening }: { inputs: MsaInputs; screening: MsaScreening | null }) {
+export function StatementEditor({ inputs, screening, written }: { inputs: MsaInputs; screening: MsaScreening | null; /** A phone's "Written for you", drawn on the server. */ written?: ReactNode }) {
   const today = useToday();
   const [details, setDetails] = useState<Record<DetailKey, string>>({ org: "", year: String(new Date().getFullYear() - 1), signerName: "", signerRole: "Director" });
   const [fills, setFills] = useState<Record<string, string>>({});
@@ -78,12 +83,23 @@ export function StatementEditor({ inputs, screening }: { inputs: MsaInputs; scre
   }
 
   return (
-    <div className="flex min-h-0 flex-1 max-lg:flex-col">
+    <div className="flex min-h-0 flex-1 max-lg:flex-col max-md:pb-[120px]">
       <SectionNav sections={sections} bySection={bySection} />
       <div className="order-3 flex min-w-0 flex-1 flex-col items-center bg-subtle px-8 py-6 max-lg:px-0 max-lg:py-0 lg:order-none" id="draft">
         <Document sections={sections} focus={editing} onClaim={(key) => setEditing(key)} />
       </div>
-      <aside aria-label="Claims to confirm" className="order-2 flex w-80 shrink-0 flex-col gap-5 border-l border-line bg-surface p-4 max-lg:w-auto max-lg:border-l-0 max-lg:px-4 lg:sticky lg:top-0 lg:order-none lg:max-h-[calc(100dvh-3.5rem)] lg:self-start lg:overflow-y-auto">
+      <aside aria-label="Claims to confirm" className="order-2 flex w-80 shrink-0 flex-col gap-5 border-l border-line bg-surface p-4 max-lg:w-auto max-lg:border-l-0 max-lg:px-4 max-md:gap-0 max-md:px-5 max-md:pt-2 lg:sticky lg:top-0 lg:order-none lg:max-h-[calc(100dvh-3.5rem)] lg:self-start lg:overflow-y-auto">
+        <div className="flex flex-col gap-3 md:hidden">
+          {open.some((c) => !c.detail) ? (
+            <p className="flex h-7 shrink-0 items-center gap-1.5 self-start rounded-full bg-caution-tint pl-2 pr-2.5 text-sm font-medium text-caution">
+              <PencilSimple size={16} weight="thin" className="shrink-0 text-caution-icon" aria-hidden />
+              Draft · {claimsToConfirm(open.filter((c) => !c.detail).length)}
+            </p>
+          ) : null}
+          <p className="text-[15px]/[22px] text-ink-2">
+            We wrote the supply chain part from your {inputs.total_published === 1 ? "1 saved supplier" : `${inputs.total_published} saved suppliers`}. Only you can answer the rest.
+          </p>
+        </div>
         <Rail
           open={open}
           claims={claims}
@@ -97,6 +113,12 @@ export function StatementEditor({ inputs, screening }: { inputs: MsaInputs; scre
           note={note}
         />
         <Details details={details} setDetails={setDetails} refs={detailRefs} />
+        {written ? <div className="flex flex-col md:hidden">{written}</div> : null}
+        <a href="#draft" className="mt-4 flex h-11 items-center justify-center gap-1.5 rounded-full bg-sunken px-3.5 text-base font-medium text-ink outline-none active:bg-line focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus md:hidden">
+          <FileText size={16} weight="thin" className="shrink-0" aria-hidden />
+          Read the whole draft
+        </a>
+        <p className="pt-4 text-xs text-ink-3 md:hidden">Your board approves it and a director signs it. Have counsel review it before you publish. Nothing leaves your phone.</p>
       </aside>
     </div>
   );
@@ -202,21 +224,40 @@ function Rail({
   note: string;
 }) {
   const reason = useId();
+  const phoneReason = useId();
+  const [unfolded, setUnfolded] = useState(false);
   const openKeys = new Set(open.map((c) => c.key));
   // Answered claims stay listed while one is being edited, so the field does not vanish under the buyer's hands.
   const rows = claims.filter((c) => openKeys.has(c.key) || c.key === editing);
+  // A phone lists the section claims only (the details card answers the rest): three, then the others folded.
+  const phoneRows = rows.filter((c) => !c.detail);
+  const folded = unfolded ? [] : phoneRows.slice(PHONE_SHOWN);
+  const foldedKeys = new Set(folded.map((c) => c.key));
+  const firstShown = phoneRows[0]?.key;
+  const phoneOpen = open.filter((c) => !c.detail).length;
   return (
-    <section className="flex flex-col gap-3">
-      <h2 className="text-md font-semibold text-ink">Before you download{open.length > 0 ? ` · ${claimsToConfirm(open.length)}` : ""}</h2>
-      <ul>
+    <section className="flex flex-col gap-3 max-md:gap-0">
+      <div className="flex items-baseline justify-between max-md:pb-3.5 max-md:pt-6">
+        <h2 className="text-md font-semibold text-ink max-md:flex max-md:items-baseline max-md:gap-2 max-md:text-lg max-md:font-medium max-md:tracking-tight">
+          Before you download<span className="max-md:hidden">{open.length > 0 ? ` · ${claimsToConfirm(open.length)}` : ""}</span>
+          {phoneOpen > 0 ? <span className="font-normal text-ink-3 md:hidden">{phoneOpen}</span> : null}
+        </h2>
+        <span className="text-sm text-ink-3 md:hidden">In draft order</span>
+      </div>
+      <ul className={cn("max-md:overflow-clip max-md:rounded-[10px] max-md:border max-md:border-line", folded.length > 0 && "max-md:rounded-b-none max-md:border-b-0", phoneRows.length === 0 && "max-md:hidden")}>
         {rows.map((c) => (
-          <li key={c.key} className="border-t border-line py-2.5 last:border-b">
+          <li key={c.key} className={cn("border-t border-line py-2.5 last:border-b max-md:border-b-0 max-md:p-4", c.key === firstShown && "max-md:border-t-0", (c.detail || foldedKeys.has(c.key)) && "max-md:hidden")}>
             <div className="flex items-center justify-between gap-3">
-              <span className="flex min-w-0 flex-col">
-                <span className="text-sm text-ink-3 lg:hidden">{c.section}</span>
-                <span className="text-base text-ink max-lg:text-md max-lg:font-medium">{c.label}</span>
+              <span className="flex min-w-0 flex-col max-md:gap-1">
+                <span className="text-sm text-ink-3 lg:hidden max-md:text-xs max-md:font-medium max-md:text-caution">{c.section}</span>
+                <span className="text-base text-ink max-lg:text-md max-lg:font-medium max-md:leading-[22px]">{c.label}</span>
               </span>
-              <Button kind="secondary" className="max-lg:h-12 max-lg:px-3.5 max-lg:text-md" onClick={() => onFill(c.key, c.detail)} aria-expanded={c.detail ? undefined : editing === c.key}>
+              <Button
+                kind="secondary"
+                className="max-lg:h-12 max-lg:px-3.5 max-lg:text-md max-md:h-11 max-md:rounded-full max-md:border-0 max-md:bg-sunken max-md:text-base max-md:hover:bg-sunken max-md:active:bg-line"
+                onClick={() => onFill(c.key, c.detail)}
+                aria-expanded={c.detail ? undefined : editing === c.key}
+              >
                 Fill in
               </Button>
             </div>
@@ -243,12 +284,20 @@ function Rail({
           </li>
         ))}
       </ul>
-      <a href="#draft" className="flex min-h-12 items-center justify-between border-b border-line text-md font-medium text-ink lg:hidden">
+      {folded.length > 0 ? (
+        <div className="overflow-clip rounded-b-[10px] border border-line md:hidden">
+          <button type="button" onClick={() => setUnfolded(true)} className="flex min-h-12 w-full items-center justify-between bg-subtle px-4 py-3 text-left text-sm text-ink-2 outline-none active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
+            {foldWords(folded)}
+            <CaretDown size={16} weight="thin" className="shrink-0 text-ink-3" aria-hidden />
+          </button>
+        </div>
+      ) : null}
+      <a href="#draft" className="flex min-h-12 items-center justify-between border-b border-line text-md font-medium text-ink lg:hidden max-md:hidden">
         Read the whole draft
         <CaretRight size={20} className="text-ink-2" aria-hidden />
       </a>
       {/* Download stays in reach however many claims are listed above it. */}
-      <div className="sticky bottom-0 -mx-4 flex flex-col gap-1.5 border-t border-line bg-surface px-4 py-3 max-lg:bottom-[calc(theme(spacing.tabbar)+env(safe-area-inset-bottom))]">
+      <div className="sticky bottom-0 -mx-4 flex flex-col gap-1.5 border-t border-line bg-surface px-4 py-3 max-lg:bottom-[calc(theme(spacing.tabbar)+env(safe-area-inset-bottom))] max-md:hidden">
         <Button kind="primary" size="lg" full disabled={open.length > 0} aria-describedby={open.length > 0 ? reason : undefined} onClick={onDownload} className="max-lg:h-input-touch">
           Download statement
         </Button>
@@ -264,7 +313,22 @@ function Rail({
           {note}
         </p>
       </div>
-      <div className="flex flex-col gap-3 border-t border-line pt-3">
+      {/* A phone's bar, fixed to the foot (the frame's tabs step aside on this page): Copy beside Download, the reason over them. */}
+      <div className="fixed inset-x-0 bottom-0 z-raised flex flex-col border-t border-line bg-surface md:hidden">
+        {note || open.length > 0 ? (
+          <p id={phoneReason} className={cn("flex items-center gap-1.5 px-4 pt-2.5 text-xs font-medium", note ? "text-ink-2" : "text-caution")}>
+            {note ? null : <Clock size={14} weight="thin" className="shrink-0 text-caution-icon" aria-hidden />}
+            {note || phoneBlocked(open)}
+          </p>
+        ) : null}
+        <ActionBar className="border-t-0">
+          <IconButton icon={Copy} label="Copy draft" size={48} onClick={onCopy} className="rounded-lg border-line" />
+          <Button kind="primary" size="touch" full disabled={open.length > 0} aria-describedby={open.length > 0 ? phoneReason : undefined} onClick={onDownload} className="h-12 rounded-lg">
+            Download statement
+          </Button>
+        </ActionBar>
+      </div>
+      <div className="flex flex-col gap-3 border-t border-line pt-3 max-md:hidden">
         <div className="flex flex-col gap-1">
           <p className="text-sm font-medium text-ink">Format</p>
           <p className="text-sm text-ink-2">Markdown (.md). Open it in Word or Google Docs to make a PDF or a Word file.</p>
@@ -280,11 +344,17 @@ function Rail({
 
 function Details({ details, setDetails, refs }: { details: Record<DetailKey, string>; setDetails: (d: Record<DetailKey, string>) => void; refs: React.MutableRefObject<Partial<Record<DetailKey, HTMLInputElement | null>>> }) {
   const keys: DetailKey[] = ["org", "year", "signerName", "signerRole"];
+  const filled = keys.filter((k) => details[k].trim()).length;
   return (
-    <section aria-label="Your details" className="flex flex-col gap-3 border-t border-line pt-4">
-      <h2 className="text-md font-semibold text-ink">Your details</h2>
+    <section aria-label="Your details" className="flex flex-col gap-3 border-t border-line pt-4 max-md:grid max-md:grid-cols-2 max-md:gap-x-3 max-md:gap-y-4 max-md:border-t-0 max-md:pt-0">
+      <div className="flex items-baseline justify-between max-md:col-span-2 max-md:-mb-4 max-md:pb-3.5 max-md:pt-6">
+        <h2 className="text-md font-semibold text-ink max-md:text-lg max-md:font-medium max-md:tracking-tight">Your details</h2>
+        <span className="text-sm text-ink-3 md:hidden">
+          {filled} of {keys.length} filled
+        </span>
+      </div>
       {keys.map((k) => (
-        <Field key={k} label={DETAIL_LABELS[k]}>
+        <Field key={k} label={DETAIL_LABELS[k]} className={k === "org" || k === "year" ? "max-md:col-span-2" : undefined}>
           {(a) => (
             <Input
               {...a}
@@ -299,6 +369,8 @@ function Details({ details, setDetails, refs }: { details: Record<DetailKey, str
           )}
         </Field>
       ))}
+      {/* Under the year on a phone (the grid's fourth row); nothing from 768. */}
+      <p className="col-span-2 row-start-4 -mt-3 text-xs text-ink-3 md:hidden">The year before this one, unless you change it</p>
     </section>
   );
 }
