@@ -205,6 +205,50 @@ export type VolzaExports = {
   record_sort?: "value" | "date" | null;
 };
 
+/**
+ * Pieces a year the customs row says the supplier shipped: the window's export value a year over the
+ * stored shipment's price a piece (at least US$1, so a cheap line cannot inflate it). Null when the row
+ * is missing (a reader not on a paying plan) or not counted in pieces.
+ */
+export function shippedPiecesPerYear(v: VolzaExports | null | undefined): number | null {
+  const one = v?.top_record ?? v?.top_shipments[0];
+  const years = v ? (Date.parse(v.window_end) - Date.parse(v.window_start)) / (365.25 * 864e5) : 0;
+  if (!v?.fob_usd || !one?.unit_rate_usd || one.unit !== "PCS" || !(years > 0)) return null;
+  return v.fob_usd / years / Math.max(one.unit_rate_usd, 1);
+}
+
+export const CAPACITY_EXPORTS_MORE = "Exports suggest more than this";
+export const CAPACITY_INCONSISTENT = "Filed figures look inconsistent; confirm with the supplier";
+
+/**
+ * The registers' capacity stays as filed (no figure is rewritten from another source). A buyer gets
+ * one of two notes (founder, 11 Oct 2026: one plain line, not a diagnosis); the checks behind the
+ * second, in pieces a year (a day's figure counts 300 working days, a dozen 12 pieces):
+ * - filed over 25 times exports, for a supplier with 50+ shipments (Hamza Clothing: 20,000,000 dozen);
+ * - the same number filed per day and per year (17 published records);
+ * - the two figures over 3 times apart, a year of pieces filed as dozens among them (247 of 376);
+ * - over 1,000,000 pieces a day or 10,000,000 dozen a year: more than one factory makes.
+ * The first: exports over 3 times the larger figure (RAM Apparel, about 14 times its 25,000 dozen).
+ * Both export checks need the customs row, which only a reader on a paying plan gets.
+ */
+export function capacityNote(
+  s: { production_capacity_pcs_day?: number | null; production_capacity_dozen_yearly?: number | null },
+  v: VolzaExports | null | undefined,
+): string | null {
+  const day = s.production_capacity_pcs_day ?? 0;
+  const dozen = s.production_capacity_dozen_yearly ?? 0;
+  const filed = Math.max(day * 300, dozen * 12);
+  if (!filed) return null;
+  const shipped = shippedPiecesPerYear(v);
+  if (shipped !== null && shipped > 3 * filed) return CAPACITY_EXPORTS_MORE;
+  const wrong =
+    (shipped !== null && v!.shipments >= 50 && filed > 25 * shipped) ||
+    (day > 0 && dozen > 0 && (day === dozen || filed > 3 * Math.min(day * 300, dozen * 12))) ||
+    day > 1_000_000 ||
+    dozen > 10_000_000;
+  return wrong ? CAPACITY_INCONSISTENT : null;
+}
+
 const usd = (n: number, digits = 0) =>
   `US$${n.toLocaleString("en-GB", { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
 

@@ -333,6 +333,14 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     assert.match(latest, /latest shipment on record 29 Aug 2026/);
     assert.match(latest, /Latest shipment on record US\$607,668 · 29 Aug 2026/);
     assert.doesNotMatch(latest, /Biggest shipment US/);
+
+    // The Overview's capacity is the register's, never rewritten; against these exports (about 6.3m pieces
+    // a year) the fixture's 1,000,000 a day is noted. A reader the customs read refused sees no such note.
+    const overview = () => Page({ params: Promise.resolve({ slug: "hamza-clothing" }), searchParams: Promise.resolve({}) });
+    const capacity = html(await outcome(overview)).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
+    assert.match(capacity, /Capacity 1,000,000 pcs\/day From BKMEA · Filed figures look inconsistent; confirm with the supplier/);
+    given({ profile: PROFILE, hscodes: HS });
+    assert.doesNotMatch(html(await outcome(overview)), /look inconsistent|Exports suggest/, "a capacity note from customs data reached a reader without it");
   });
 
   it("?lines=all expands the grid past six tiles", async () => {

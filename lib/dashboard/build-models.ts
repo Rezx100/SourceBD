@@ -40,6 +40,8 @@ import {
   sortCerts,
   type CertChecks,
   type VolzaExports,
+  capacityNote,
+  shippedPiecesPerYear,
   type CertModel,
   formatDayRange,
   placeLabel,
@@ -1290,12 +1292,17 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
   // Every figure the register filed: 376 published records file both, and
   // showing only the daily one dropped the other (the capacity tab this folds
   // in showed both).
+  // When the two disagree and the customs row is there, the one nearer what was shipped goes first.
+  const shipped = shippedPiecesPerYear(options.volza);
+  const off = (pieces: number) => (shipped ? Math.abs(Math.log(pieces / shipped)) : 0);
   const capacity =
     [
-      s.production_capacity_pcs_day ? `${formatCount(s.production_capacity_pcs_day)} pcs/day` : null,
-      s.production_capacity_dozen_yearly ? `${formatCount(s.production_capacity_dozen_yearly)} dozen/year` : null,
+      s.production_capacity_pcs_day ? { text: `${formatCount(s.production_capacity_pcs_day)} pcs/day`, off: off(s.production_capacity_pcs_day * 300) } : null,
+      s.production_capacity_dozen_yearly ? { text: `${formatCount(s.production_capacity_dozen_yearly)} dozen/year`, off: off(s.production_capacity_dozen_yearly * 12) } : null,
     ]
-      .filter(Boolean)
+      .filter((c): c is { text: string; off: number } => c !== null)
+      .sort((a, b) => a.off - b.off)
+      .map((c) => c.text)
       .join(" · ") || null;
 
   const pending = (value: string | null, m: SourceMarkModel | null = null, checked = "registers checked"): Pick<FactRow, "value" | "marks" | "pendingSource" | "checked"> =>
@@ -1324,7 +1331,11 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
     // (within 10%) — the registers file the total and the split independently.
     ...(workforceSplit(w, s) ? [{ label: "Women · men", ...pending(workforceSplit(w, s)) }] : []),
     { label: "Sewing machines", ...pendingMarks(formatCount(s.machines_sewing), filedBy("BGMEA", "BKMEA")) },
-    { label: "Capacity, as filed", ...pendingMarks(capacity, filedBy(...(s.production_capacity_pcs_day ? ["BKMEA"] : []), ...(s.production_capacity_dozen_yearly ? ["BGMEA"] : []))) },
+    {
+      label: "Capacity, as filed",
+      ...pendingMarks(capacity, filedBy(...(s.production_capacity_pcs_day ? ["BKMEA"] : []), ...(s.production_capacity_dozen_yearly ? ["BGMEA"] : []))),
+      note: capacityNote(s, options.volza),
+    },
     ...(s.bepza_zone ? [{ label: "EPZ zone", ...pending(s.bepza_zone) }] : []),
     {
       label: "Registers",
