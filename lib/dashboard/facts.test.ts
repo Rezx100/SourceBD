@@ -3,6 +3,12 @@ import { describe, it } from "node:test";
 
 import {
   certCheckLine,
+  customsBand,
+  customsRows,
+  formatUsdShort,
+  marketRows,
+  tidyBuyer,
+  type VolzaExports,
   certChipLabel,
   certModel,
   certScheme,
@@ -360,5 +366,54 @@ describe("certCheckLine (spec-etl-freshness §3)", () => {
   it("nothing for an unread scheme or a certificate with no check", () => {
     assert.equal(certCheckLine("bsci", null, check(), reads, now), null);
     assert.equal(certCheckLine("gots", null, undefined, reads, now), null);
+  });
+});
+describe("customs exports (critique of 11 Oct 2026)", () => {
+  it("tidies a buyer to its legal ending or its first number, keeping short words as filed", () => {
+    assert.equal(tidyBuyer("THE HADDAD APPAREL GROUP LTD 131 D"), "The Haddad Apparel Group Ltd");
+    assert.equal(tidyBuyer("BUGATTI GMBH HANSA STRASSE 55 32049"), "Bugatti GmbH");
+    assert.equal(tidyBuyer("GATE A S TEXTILNA 643523 034 0"), "Gate A S Textilna");
+    assert.equal(tidyBuyer("TJX UK"), "TJX UK");
+    assert.equal(tidyBuyer("Action Service Distributie B V"), "Action Service Distributie B V");
+    assert.equal(tidyBuyer("167081 Canada Inc"), "167081 Canada Inc");
+    assert.equal(tidyBuyer("SA FASHION TRADING LTD 12"), "SA Fashion Trading Ltd");
+    assert.equal(tidyBuyer("  "), null);
+  });
+
+  it("states totals in three figures at most", () => {
+    assert.equal(formatUsdShort(190_961_493), "US$191m");
+    assert.equal(formatUsdShort(21_698_439), "US$21.7m");
+    assert.equal(formatUsdShort(4_965_812), "US$4.97m");
+    assert.equal(formatUsdShort(999_600), "US$1m");
+    assert.equal(formatUsdShort(51_920), "US$52k");
+    assert.equal(formatUsdShort(4_900_000), "US$4.9m");
+  });
+
+  const base: VolzaExports = { shipments: 9, fob_usd: 58627, buyers: 3, window_start: "2024-09-01", window_end: "2026-08-31", volza_name: null, top_shipments: [], fetched_at: "2026-10-10T20:36:01Z" };
+  const top = { shipment_date: "2025-05-18T00:00:00", hsn_code: "62034200", product_description: "GAB CARGO", buyer_name: "CHEEK S A CUYO 3040", destination_country: "Argentina", trade_value_usd: 34203.34, unit_rate_usd: 2.25, unit: "PCS" };
+
+  it("a supplier that ships to one country names it from its stored shipment, and no market rows", () => {
+    const v = { ...base, top_record: top, markets: null, summary: { count_of_unique_destination_countries: 1 } };
+    assert.equal(customsBand(v).shipsTo, "Argentina");
+    assert.deepEqual(marketRows(v), []);
+  });
+
+  it("no markets line without the counts, and no date unless the stored shipment is the latest", () => {
+    const band = customsBand({ ...base, top_shipments: [top] });
+    assert.equal(band.shipsTo, null);
+    assert.equal(band.window, "Sep 2024 – Aug 2026");
+    assert.ok(!band.figures.some((f) => f.label.includes("latest")), "the biggest shipment's date passed off as the latest");
+    assert.ok(customsBand({ ...base, top_record: top, record_sort: "date" }).figures.some((f) => f.value === "18 May 2025" && f.label === "latest shipment on record"));
+  });
+
+  it("markets with shipments first, by shipments; a market with none says so", () => {
+    const v = { ...base, markets: { "United Kingdom": { shipments: 0, fob_usd: null, buyers: null, top: null }, EU: { shipments: 3, fob_usd: 9000, buyers: 1, top: null }, "United States": { shipments: 6, fob_usd: 40000, buyers: 2, top: null } } };
+    assert.deepEqual(marketRows(v).map((r) => [r.label, r.value]), [["United States", "6 shipments · US$40k · 2 buyers"], ["EU", "3 shipments · US$9k · 1 buyer"], ["United Kingdom", "No shipments to the UK"]]);
+    assert.equal(customsBand(v).shipsTo, "US, EU");
+  });
+
+  it("a product filed mostly in capitals reads in sentence case", () => {
+    const v = { ...base, top_record: { ...top, product_description: "MEN'S BASIC T SHIRT (Men's T-Shirt)" } };
+    assert.match(customsRows(v).find((r) => r.label === "Biggest shipment")!.note!, /^Men's basic t shirt \(men's t-shirt\) \(HS 6203\.42\) to Cheek S A, Argentina$/);
   });
 });

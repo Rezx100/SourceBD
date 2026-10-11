@@ -13,6 +13,7 @@ import type { SourceMarkModel } from "@/lib/dashboard/source-tiers";
 
 export const TABS = [
   { id: "overview", label: "Overview" },
+  { id: "exports", label: "Exports" },
   { id: "certificates", label: "Certificates" },
   { id: "safety", label: "Safety" },
   { id: "sites", label: "Sites" },
@@ -53,8 +54,10 @@ export function tabCount(model: SupplierSheetModel, id: TabId): number | null {
         : id === "sources"
           ? model.sources.length
           : id === "products"
-            ? model.products.lines || model.products.productListCount
-            : 0;
+            ? model.products.productListCount
+            : id === "exports"
+              ? model.products.lines
+              : 0;
   return n > 0 ? n : null;
 }
 

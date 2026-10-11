@@ -7,7 +7,7 @@ this file holds counts and worked examples only. Every call is Bangladesh export
 only; no import data, no other HS chapters. Founder defaults applied: Volza is Tier 6 cross-check
 data; RMG = BGMEA or BKMEA member, or EPB HS chapter 61/62.
 
-**Spend so far: $25.20** of the $3,000 credit (Volza's own counter, read 10 Oct 23:3x), on the
+**Spend so far: $93.95** (Volza's counter after the latest-shipment refetch, 11 Oct 2026; section 11). Was: **$25.20** of the $3,000 credit (Volza's own counter, read 10 Oct 23:3x), on the
 200-supplier live sample the founder approved at up to $30 and ran from their own machine. Sandbox calls cost nothing:
 the account counter read 0.000 through 400+ sandbox calls before the live run started.
 
@@ -143,6 +143,15 @@ across Ha-Meem Textiles, Ha-Meem Design and others. Volza's company list is not 
 Ignored filters fail silently, so the real fetch must check `api_request_details` echoes every filter it
 sent, or it pays for unfiltered data.
 
+**Correction, 11 Oct 2026 (Volza's published spec, `backend.volza.com/swagger/v1/swagger.json`).** Two
+of the "ignored" rows above sent names that are not fields. The documented ones are
+`destination_country_name` / `destination_country_ids`, `supplier_company_id` (Volza IDs; overrides
+`supplier_name`), and `buyer_name` with `buyer_name_search_type` / `supplier_name_search_type`
+(`starts_with` by default, or `contains`, `exact`). `company-transaction-summary` returns top 10 buyers,
+destination countries, ports and HS codes plus KPIs and 10 shipments per company; its price is not in
+the spec (the $5 above came from Volza's pricing, not re-checked). The live check is
+`ops/volza_filter_test.py` (cap $3).
+
 ### Volza's own company summary: rejected
 
 `GET /company-transaction-summary` gives a ready-made company profile, but costs a flat **$5 per
@@ -175,9 +184,9 @@ For reference, all 7,786 (23–35% match): A $957–$1,013, B $1,152–$1,315, C
 
 ## 5. Constraints found
 
-- Supplier name: list of strings, 4+ characters, case-insensitive contains-match. Punctuation matters
+- Supplier name: list of strings, 4+ characters, case-insensitive **starts-with** match (section 11 corrects "contains"). Punctuation matters
   ("Ha-Meem" matches, "Hameem" does not).
-- No filter by Volza company ID on the export call; the name is the only key.
+- The company-ID filter works, but shipment records carry no ID and the free list's IDs are other entities, so the name is the only key (section 11).
 - Unknown filters are ignored silently, not rejected.
 - `max_count_per_page` 1–2000; pagination by `api_pagination` (the sandbox returned page numbers, not a
   cursor).
@@ -270,3 +279,296 @@ about 5,530 ($553).
 (spent). The list lookups for all 7,786 fit in 8 days of the daily limit. Whether Volza is happy for the
 sandbox key to pre-screen production work is unasked; the paid lookup with `page_size=1` costs $0.011 a
 supplier (about $86 for all 7,786) and is the clean alternative.
+
+## 10. The hard group: non-EPB suppliers on the company list (free scan, started 11 Oct 2026)
+
+Script: `ops/volza_company_list.py` (sandbox key, `companies/search` only, no export searches, credit stayed
+at 25.200). Raw results: `etl/raw/volza/company_list.jsonl` and `company_list_sample.jsonl` (gitignored).
+
+**The 1,000.** Non-EPB, published, not in the 200-supplier sample, every name we hold; candidates from
+`candidates.json` (built 10 Oct), sorted by id and shuffled with seed **20261011**. Per supplier, at most 4
+lookups, stopping once our name is found: starts-with on our cleaned name, contains on it, then contains on
+our other names and spelling forms (`&`/`and`, `Inds`→`Industries`, `Mfg`→`Manufacturing`,
+`Knit Wear`/`Knitwear`, hyphen and full-stop forms). Classes: exact (normalizes equal), close (fuzzy ratio
+≥ 90), several (ours is found and 2+ different names contain ours), other (only other companies), not listed.
+
+**Progress.** The sandbox key had 287 calls left today, so the scan stopped at 23 left after **109 of the
+1,000** (206 calls, 1.9 a supplier, no errors; Volza echoed the contains setting every time). It resumes
+with the same command: about 1,700 calls, two more days. The figures below are the first 109.
+
+| class | suppliers |
+| -- | -- |
+| exact | 35 |
+| close | 0 |
+| several | 8 |
+| other (only different companies, e.g. "Expressions" → "Shanta Expressions") | 6 |
+| not listed | 60 |
+
+So **43 of 109 (39%)** are on the list under our name; 66 would be skipped for free. Starts-with found 42
+of the 43; the spelling forms rescued one ("DK KNIT WEAR" → "Dk Knitwear Ltd"), at about 1.5 extra
+calls for every miss. Spelling is not what keeps this group off the list.
+
+**Hand check.** No "close" results yet, so nothing to check there. Of the 8 "several", **5 are one company**
+whose second list entry is a typo or a pasted address ("Annesha Style Lyd", "Jams Apparels Pvt Ptd",
+"Sky Apparels Ltd Ho Water Fr", "Ital Adweg Pvt Ltd House 966"), and **3 really share the name** with other
+firms (Printex with "Printex Chemizol Dyestuff", Badhan Corporation with Badhan Enterprise/Industries,
+Trutex Apparel with "Trutex Apparel House"). For those 3 the paid search needs the full legal name.
+The 30 + 20 check reruns when the scan finishes.
+
+**A second free signal? No.** The list returns only a name and an ID (city is a filter, not a field). On
+the 53 non-EPB sample suppliers the list found in section 9 (58 calls), with the paid result known:
+
+| signal | 6 that shipped | 47 that did not |
+| -- | -- | -- |
+| our name exact/close/several on the list | 6 | 42 (5 were other companies' names) |
+| list ID (lower = older entry) | 21M – 146M | 7.7M – 134M: no separation |
+| 3+ list entries | 4 | 8 of 42: but drops 2 of the 6 real exporters |
+
+Requiring an exact name is free and loses nothing (53 → 48). Nothing else separates real exporters
+without dropping real ones, so about **1 in 8** listed non-EPB suppliers will have shipments.
+
+**Proposed first paid batch.** The 43 found so far, one export search each with Volza's spelling
+(full legal name for the 3 true "several"). Expect about 5 with shipments. Cost: 38 misses × $0.10 +
+5 hits × $0.15 = about $4.55; **cap $6**. If the hit rate holds near 1 in 8, the full 1,000 would list
+about 390, costing about $45 for about 50 exporters (cap $55), asked separately after the scan ends.
+
+**Batch 1 approved (founder, 11 Oct 2026: "spend only $6", and store the results).** Script:
+`ops/volza_batch.py` (hard cap $6, one search per supplier, the name that found it on the free list;
+Badhan, Trutex and Zehad narrowed by hand). Results go to `etl/raw/volza/batch_1.jsonl`, then into
+`volza_export_checks` through `ops/volza_load_sample.py --file etl/raw/volza/batch_1.jsonl` (matches
+and "nothing found" alike, each row expiring a year after its own fetch time). The founder runs both.
+
+**Batch 1 result (11 Oct 2026).** 43 searches, **$4.75** spent. **9 of 43 (21%) had 2024–26 shipments**,
+better than the 1 in 8 the sample suggested: 6 clean (Jadid Apparels 291 shipments and $16.2M to 36
+buyers; NGS Fashion 12; Printex 9; Lucas Fashion, Azmery Garments, JNG Fashion Fabrics 1 each) and 3 whose
+name swept in other exporters (Tirnoi Fashion 2 exporters, Ital Adweg 4, Trutex Apparel 3, even with
+"Ltd" added). 34 found nothing. Not listed on the free list (66 of the 109) were skipped at no charge.
+
+## 11. Audit, and the cheapest accurate fetch for launch (11 Oct 2026, nothing spent)
+
+Sources: Volza's spec (`backend.volza.com/swagger/v1/swagger.json`) and its docs site
+(`docs.volza.com`, which answers a normal browser; its pages are drawn by script, so they were read
+from the site's own content files), the saved results in `etl/raw/volza/`, and 10 free calls (4
+company-list lookups, which also read the credit counter, and 6 deliberately incomplete or
+wrong-method requests, which Volza does not bill; the counter did not move). Pricing script: `ops/volza_launch_plan.py`.
+
+### What was wrong
+
+| # | claim | what is true |
+| -- | -- | -- |
+| 1 | PR #443 holds 0138, the spec, the filter check and the refetch | #443 merged on 10 Oct with its first 3 commits only. The other 8 never had a PR; this section's PR carries them |
+| 2 | about $31.70 spent; the refetch of the 47 not yet run | Volza's counter: **$35.65 used, $2,964.35 left**. The refetch ran (`refetch_1.jsonl`, 47 rows, every count identical to the first fetch). Our own tallies add up to $38.35, so they overcount; the counter is the number to trust |
+| 3 | supplier name is a contains-match | **starts-with** (the spec's default; every one of the 67 live hits' names begins with the name searched). "Square Apparels" sweeps in any firm whose name starts that way |
+| 4 | `supplier_company_id` does not work | it works: an ignored filter returns everything (469,466 shipments in the sandbox), this one returned 0. The free list's IDs belong to other entries: Aboni files its shipments as "Aboni Knit Wear Ltd", a spelling the list does not hold (looked up 11 Oct). Records carry no company ID, so IDs are a dead end |
+| 5 | a filter missing from the echo was ignored | the echo has no field for `supplier_company_id` or any `*_search_type` (spec), so silence there proves nothing. Judge by the count |
+| 6 | the free list gives Volza's spelling | it gives presence only: 4 of the 58 sample exporters ship under a spelling the list lacks (Dharla Fashions, Ever Fashion Tongi, Radix Collections, Alema Textiles). As a skip filter it held (58 of 58) |
+| 7 | `buyer_name` is unresolved | likely resolved through the company list: "New Yorker" has 269 list entries, but not "New Yorker Fashion Logistics Int L", the buyer on Aboni's record, hence 0. "Tesco Stores Ltd" is listed 80 times; the pending Tesco check settles it |
+| 8 | summary only with `max_count_per_page: 0` | not allowed (minimum 1). Dropped |
+| 9 | company summary "believed $5" | **confirmed** (docs): $5 whenever it finds anything (1 to 10 records), $0.10 when empty. By name it is a "like" match that adds up every match, so it mixes companies |
+| 10 | bulk export may be far cheaper | no: a fixed charge per export plus the same $0.05 a record (Bangladesh Export T3). Aboni alone is 4,652 records ($233) |
+| 11 | market research endpoint | an internal step of Volza's web app (takes the app's user ID), not something we can buy. The docs' cheaper "Buyer/Supplier Insights" call ($0.10 + $0.10 a record, with top buyers and countries) no longer exists: every unknown address falls through to the shipment search |
+| 12 | counts are shipments | no call ever set `remove_duplicate_shipments`; our shipment counts and values may include records Volza itself flags as duplicates. Batch 0 checks it on Aboni |
+| 13 | the reveal's top buyers come from the 25 most recent shipments | for the median shown exporter (142 shipments in two years) that is about 4 months; for Aboni about 2 days. Use the largest shipments, not the most recent |
+
+Code (fixed in this PR, tested in `etl/tests/test_volza_live_sample.py`): a search Volza rejected
+(400) or rate-limited five times was written as "nothing found", which the loader would have stored
+for a year, hiding the supplier; now the batch skips it, the loader refuses it, and a stuck 429 stops
+the run. The spend guard took its one-record worst case from a module constant that the filter check
+overwrote; it now follows the records each call asks for. The credit counter was read through a
+sandbox export search, whose 500 are spent; it now uses the free company list.
+
+### What one call can tell us (Bangladesh exports, $0.10 + $0.05 a record)
+
+The summary comes with any call: shipments, value, number of buyers, exporters, HS codes, ports and
+destination countries. It never names them. Names come only from records (one shipment each: date,
+HS code, product text, buyer, destination country and port, value, unit price, weight). So **counts
+are cheap and every name costs a record.** A destination filter turns the summary into a per-market
+answer (Aboni to the UK: 1,073 shipments, US$14.65m, 17 buyers), and that call's one record is the
+biggest shipment to that market, which names its biggest buyer there.
+
+### The design
+
+1. **Preview** (held for 290 suppliers): one starts-with search, 1 record, biggest shipment first.
+2. **Narrow** a name that swept in other exporters: one more search with
+   `supplier_name_search_type: exact` on our legal name in its suffix forms ("X Ltd", "X Ltd.",
+   "X Limited", "X (Pvt) Ltd") plus the spellings seen in records that equal ours. Bangladeshi
+   company names are unique, so the exact legal name is the same company; anything else stays
+   hidden. The rule is checked in batch 0.
+3. **Markets**, for every supplier shown that ships to more than one country (81% of the 47): four
+   searches (UK, US, the 27 EU countries in one call, Canada), 1 record each. Per market: ships there
+   or not, shipments, value, buyers, and the biggest buyer and product there.
+4. **Top buyers and product headings** at launch: the up to 5 buyers and HS codes named by the
+   biggest shipment overall and per market, labelled as such ("biggest shipment to the UK: Tesco
+   Stores, HS 6108"). A true top-10 list costs $5 (company summary) or many records; it belongs in
+   the reveal, sorted by value, for the suppliers buyers actually open.
+
+### Price for the 2,321 EPB suppliers not yet checked (78% have shipments, 27% of names sweep)
+
+| package | per supplier | all 2,321 |
+| -- | -- | -- |
+| A preview only | $0.17 | $395 |
+| **B preview + narrow + 4 markets (recommended)** | **$0.42–0.55** | **$977–1,269** |
+| C B plus the 10 largest shipments | $0.86–0.99 | $2,006–2,297 |
+| Volza's company summary | $5 a supplier with shipments | about $9,000 |
+
+Plus markets for the 47 exact rows already held: up to $23. The other 5,222 RMG suppliers: free list
+first (about 10 days of the sandbox's 1,000 a day), then B on the roughly 2,000 listed: about
+$375–445 for about 430 exporters. B everywhere: about **$1,400–1,750 of the $2,964 left**, leaving
+the rest for reveals and next year's refresh (every row expires a year after it is fetched).
+
+### Batches
+
+- **Batch 0, rule checks (the first question).** Seven searches on suppliers whose answer we know:
+  duplicates removed on Aboni, the EU-27 in one call, and the exact-name rule on Utah, Square
+  Apparels, Sisal and Rhythm (one in upper case). $1.05, run with the three checks already approved
+  ($0.90) inside the same $3 cap: `python ops/volza_filter_test.py --rules` shows the plan; the
+  founder adds `--apply`. Each answer changes batch 1: if the EU list or the exact rule fails, B
+  needs more calls; if duplicates are many, every count shown so far is high.
+- **Batch 1 onward, about $50 each.** 90 EPB suppliers per batch with package B, hard cap $50:
+  expect about 70 with shipments and 55–65 shown with their four markets. The script is built after
+  batch 0, from `ops/volza_batch.py` (guard, resume, per-supplier saving). About 26 batches for the
+  EPB group, then the non-EPB group once the free list scan ends.
+
+### Ask Volza (free; email helpdesk@volza.com, the founder sends)
+
+1. Company search gives Aboni Knitwear the IDs 70153649 and 33452214, which return no Bangladesh
+   export shipments, while the name "Aboni Knit Wear" returns 4,652. How do we get the ID the
+   shipments are filed under?
+2. A volume price for the company transaction summary, for about 2,000 Bangladeshi exporters.
+3. May we use the sandbox key's free company search to decide which production searches to run?
+
+### Batch 0 result (11 Oct 2026, founder ran it; $1.00 by Volza's counter, 35.650 → 36.650)
+
+Ten searches (three approved earlier, seven new), every response saved whole in
+`etl/raw/volza/filter_test.json`.
+
+| check | result | what it means |
+| -- | -- | -- |
+| duplicates removed, Aboni | 4,652 shipments, $97.6m: unchanged | no duplicate flags here; our counts stand. The flag is sent anyway from now on |
+| the 27 EU countries in one call, Aboni | echoed all 27; 2,342 shipments, $60.2m, 81 buyers, 12 EU countries | **one EU call works**; four market calls per supplier, as planned |
+| buyer "Tesco Stores", Aboni | 296 shipments, $8.1m | buyer names work when the buyer is on Volza's company list |
+| brand only "PRIMARK", no supplier | 0 | a brand-first search is not reliable; not used |
+| 10 largest shipments, Aboni | 3 buyers in 10 (New Yorker, Inditex, Moris MJ), 3 countries | the largest shipments name few buyers: the four market calls name more, cheaper |
+| exact name, Utah / UTAH / Square Apparels / Sisal / Rhythm | the same totals and exporter counts as starts-with, every time | either "exact" is ignored, or every swept-in "exporter" is the same name filed under several Volza IDs. Two $0.10 checks without "Ltd" tell which (below) |
+
+**Volza does not charge twice for a shipment record we already bought.** Every call in batch 0
+cost $0.10 even with records, because each record had been fetched before (the 10-record call's
+records were bought in the first run, whose result was lost). The same explains two old gaps: the
+refetch of the 47 cost $4.70 by the counter, exactly 47 × $0.10, not our tally of $7.05; and the
+sample's record fees came to 60 records ($3.00) for 67 record-bearing calls, the 7 repeats free.
+So a market call whose biggest shipment was already bought costs $0.10, and so does fetching any
+supplier again. Package B's top end ($0.55) is an overestimate.
+
+**Next check, $0.30 at most, inside the same $3 cap ($2.00 spent):** exact "Utah Fashions" and exact
+"Aboni Knit Wear", both without "Ltd". No shipment carries those names exactly, so 0 means the
+exact setting works and the "ambiguous" names are one company under several IDs (shown after one
+$0.10 exact call each); the full totals mean it is ignored, and ambiguous names stay hidden.
+
+**Result (founder ran it, 11 Oct; $0.20, counter 36.650 → 36.850; $2.20 of the $3 cap):** both
+returned **0**. The exact setting works, and case does not matter. So for Utah, Square Apparels,
+Sisal and Rhythm, every shipment the starts-with search swept in carries our own legal name: the
+"2–4 exporters" are one company filed under several Volza IDs, not other companies. A name that
+sweeps in others is settled with one exact search on our legal name in its suffix forms: what it
+finds is ours and can be shown; what it does not find stays hidden.
+
+### Batch 1 (proposed, cap $50): `ops/volza_launch.py --batch 1`
+
+Package B, everything Volza returns kept per call (whole response and credit headers), one row per
+supplier in `etl/raw/volza/launch_1.jsonl`, resumable, a refused search never stored as "nothing
+found". In this order until the cap:
+
+1. the 47 exact suppliers already shown: the four market calls for the 38 that ship to more than
+   one country (about $15–23; the biggest shipments already bought cost $0.10 a call);
+2. the 18 held names that swept in other IDs: one exact search each, then the markets for those it
+   settles (about $2–13);
+3. EPB suppliers not yet checked, in a fixed shuffled order (seed 20261011): preview, exact search
+   when needed, markets. About 30–70 suppliers with what is left.
+
+Expected: about 60 suppliers newly shown or completed with UK, US, EU and Canada figures and the
+biggest buyer in each. The market figures stay in the raw file until a database column holds them
+(the card work, spec slice B); previews load with `ops/volza_load_sample.py --file
+etl/raw/volza/launch_1.jsonl` once 0138 is applied. Tests: `etl/tests/test_volza_live_sample.py`.
+
+### Small-orders check (11 Oct 2026, founder ran it; $0.30, counter 36.850 → 37.150; $2.50 of the $3 cap)
+
+Volza's quantity filter works (`"quantity": {"operator": "lt", "value": n}`; the echo has no field
+for it, the counts prove it): Aboni has 950 of 4,652 shipments under 1,000 units (20%) and 2,295
+under 5,000 (49%). **Units matter:** the biggest "small" line is 720 KGS, which its product text says
+is 4,292 pieces, so a supplier that declares some lines in kilos would look smaller than it is.
+37 of the 47 shown suppliers ship only in pieces (one unit, PCS); the other 10 mix pieces and kilos.
+
+So batch 1 adds one search per exact supplier that ships only in pieces: shipments under 1,000
+pieces (about $0.10–0.15 each, about $4–6 for the 37 held ones), for a card line such as "20% of its
+shipments were under 1,000 pieces". Suppliers with mixed units get no such line.
+
+Unit prices come with every record bought (declared FOB at the Bangladesh port, per shipment line,
+not per order). The card shows the biggest shipment's price per market; a full list belongs in the
+"See recent shipments" table bought for a credit (spec slice C), most recent first.
+
+### Launch batch 1 result (11 Oct 2026, founder ran it)
+
+365 searches, all answered (no refusals, no errors). Our tally $49.95 (the cap stopped it); Volza's
+counter 37.150 → 83.500, so $46.35: records already bought were free again. Raw rows, every response
+whole: `etl/raw/volza/launch_1.jsonl` (86 rows; one, Textune Apparels, stopped halfway and is fetched
+again next batch).
+
+| group | suppliers | result |
+| -- | -- | -- |
+| exact, already shown | 47 | all completed: markets for 38, small-orders search for those in pieces only |
+| swept names held hidden | 18 | 12 now shown; 6 stay hidden (below) |
+| new EPB suppliers | 21 (one partial) | 14 shown, 1 likely another firm ("Interlink Dresses Shirin Chowdhury Complex"), 5 nothing found; $0.55 each |
+| **ready to show** | **73** | the loader's dry run, after the rule below |
+
+**The exact-name search is not enough on its own.** For 15 of 22 swept names it kept every shipment
+(Utah, Square Apparels, Sisal, Loyal, Rupa Fabrics, Tex Tech…). But for Columbia Apparels it kept 84
+of 2,468 although it found the same Dhaka factory and the same Target shipment; for Rashad Industries
+it picked a namesake in Kolkata; Fashion Trousers kept 8 of 152 and Trutex 7 of 22. **Rule (in
+`ops/volza_launch.py` and the loader): a swept name is shown only if its exact search keeps 90% of
+the shipments; otherwise it stays hidden for a person to check.** Hidden now: Columbia, Rashad,
+Fashion Trousers, Trutex, Dharla (ships as "Dharla Fashions", plural) and Radix (another firm). Of all
+records bought, only Rashad's came from a factory outside Bangladesh. Also fixed: our name cleaner cut
+"Nipun (Pte) Ltd." to "Nipun (Pte" in the 10 Oct candidates file; names are now rebuilt each run.
+
+**What the 73 look like.** 62 ship to two or more countries, 11 to one. Of the 62: EU 60, US 45,
+UK 40, Canada 34 (median shipments where they ship: EU 138, UK 54, US 41, Canada 19). 162 different
+buyer names across the market rows. 56 ship in pieces only; their share of shipments under 1,000
+pieces runs from 0% (13 suppliers) to 89%, median 9%. Every record bought was in pieces, but 6 of
+252 prices are clearly not per piece (men's shirts at $183.51, socks at $29.69): a price check is
+needed before showing one.
+
+### The card, line by line (for the design; all from what one supplier row holds)
+
+| line | formula | shown when |
+| -- | -- | -- |
+| Header cell | "{shipments} shipments · US${value} · 2 yrs" | class exact |
+| Buyers | "{buyers} buyers" | class exact |
+| Reach | "Ships to {countries} countries" | class exact |
+| Average shipment | value ÷ shipments, "about US${avg} a shipment" | class exact |
+| Market row (×4: UK, US, EU, Canada) | "{market}: {n} shipments · US${value} · {buyers} buyers" | n > 0 |
+| Market none | "No shipments to {market}, Sep 2024 – Aug 2026" | n = 0 and the markets were fetched |
+| Biggest buyer per market | "Biggest shipment to {market}: {buyer}, {product}, US${unit price} a piece" | n > 0; price only if it passes the price check |
+| Single-country supplier | the market row comes from the biggest shipment's destination, no other market rows | 1 destination country |
+| Small orders | "{share}% of its shipments were under 1,000 pieces" | small-orders search done (pieces only); 0% shown as "None under 1,000 pieces" |
+| Products | "{n} product codes"; named codes only from the biggest shipments, as "Shipped" tags beside the EPB list | class exact |
+| Hidden | nothing; admins see "needs a person: name matched several Volza records" | class ambiguous or likely |
+| Checked, nothing | "No customs shipments found under this name, Sep 2024 – Aug 2026" | class none |
+
+Buyer names, tidy rule: keep the text up to and including the first legal ending (Ltd, LLC, Inc,
+GmbH, B V/BV, S A/SA, S L, S p A, Corp, Co KG, Z O O, LP), otherwise up to the first number; title
+case; label "buyer on the customs record" (often a shipping arm or a Bangladeshi middleman, e.g.
+"Padma Textiles"). Price check: show a unit price only when it is under 3× the median price for the
+same 4-digit heading across stored rows (with 5+ rows for that heading), else show the shipment
+without a price. Never call the small-orders line a minimum order.
+
+### Database and the latest shipment (11 Oct 2026)
+
+Applied on the founder's "apply": 0138 (whole summary and record), 0139 (markets, small_orders),
+0140 (record_sort: is the stored record the biggest or the latest shipment). Batch 1 loaded: 263
+rows, 73 shown, 62 with markets, 56 with small orders, none of the hidden rows carrying markets.
+
+The card's band shows "Latest shipment on record: <date>" (design session, 11 Oct), so preview and
+exact searches now sort by date and market searches stay value-sorted. The 73 shown were refetched
+latest-first (`ops/volza_launch.py --latest`, founder ran it): 73 searches, all sorted by date per
+Volza's echo, **$10.45** by the counter (93.950). Loaded: all 73 have record_sort 'date'. Latest
+shipment on record: Aug 2026 (the end of Volza's data) 50, Jun–Jul 2026 11, 2025 to early 2026 9,
+Sep–Nov 2024 3. Raw rows: `etl/raw/volza/latest_1.jsonl`.

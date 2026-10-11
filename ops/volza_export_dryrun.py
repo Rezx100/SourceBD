@@ -65,11 +65,11 @@ order by su.slug
 def search_name(name: str) -> str:
     """Name without the trailing Ltd/Limited/(Pvt.) part, case and hyphens kept.
 
-    Volza's supplier_name is a contains-match, so "Square Fashions" also finds
-    "Square Fashions Ltd" and "Square Fashions Limited"; the suffix only narrows.
+    Volza's supplier_name is a starts-with match, so "Square Fashions" also finds
+    "Square Fashions Ltd" and "Square Fashions Limited"; the suffix only narrows (report section 11).
     """
     n = re.sub(r"\s*\((?:pvt|private)\.?\)\s*", " ", name or "", flags=re.IGNORECASE)
-    n = n.split("(")[0]  # "(FOR UD)", "(Bangladesh) Co." notes: a cut name still contains-matches
+    n = n.split("(")[0]  # "(FOR UD)", "(Bangladesh) Co." notes: a cut name still starts-with-matches
     n = re.sub(r"\.(?=[A-Za-z])", ". ", n)  # "Inds.Ltd" -> "Inds. Ltd" so the suffix strips
     n = re.sub(r"\s+", " ", n).strip()
     for _ in range(4):
@@ -108,6 +108,7 @@ class Volza:
         )
         self.last = 0.0
         self.calls = 0
+        self.remaining_daily = 10**6
         self.baseline: float | None = None
 
     def call(self, method: str, path: str, **kw: Any) -> tuple[int, Any]:
@@ -126,6 +127,9 @@ class Volza:
             if r.status_code == 402 or (used is not None and float(used) > self.baseline):
                 raise SystemExit(f"STOP: credit used on {path} (X-Credit-Used={used}, "
                                  f"was {self.baseline}); tell the founder")
+            self.remaining_daily = int(r.headers.get("X-RateLimit-Remaining-Daily") or 10**6)
+            if r.status_code == 429 and "sandbox_limit_exceeded" in r.text:
+                raise SystemExit(f"STOP: sandbox limit used up on {path}: {r.text[:200]}")
             if r.status_code == 429:
                 time.sleep(60)
                 continue
@@ -222,10 +226,12 @@ def cmd_candidates(_: argparse.Namespace) -> None:
 
 
 def classify(ours: str, volza_supplier: str | None, n: int, suppliers: int) -> str:
-    """api_summary.count_of_suppliers says how many exporters the contains-match swept in.
+    """api_summary.count_of_suppliers says how many exporters the name swept in.
 
-    bangladesh-exports ignores volza_company_id (sandbox test, 10 Oct 2026), so the name
-    is the only key and a count above 1 means other companies' shipments are mixed in.
+    supplier_name is a starts-with match by default (Volza's spec; every live hit's name begins with
+    the name searched). Shipment records carry no company ID and the free list's IDs are other
+    entities (report section 11), so the name is the only key and a count above 1 means other
+    companies' shipments are mixed in.
     """
     if n == 0:
         return "none"

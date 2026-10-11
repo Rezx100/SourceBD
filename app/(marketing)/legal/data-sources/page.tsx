@@ -157,11 +157,12 @@ export default function DataSourcesPage() {
           9. Customs shipment records
         </h2>
         <p>
-          The &ldquo;Customs shipments&rdquo; section on a supplier
+          The &ldquo;Customs exports&rdquo; section on a supplier
           profile summarises that company&apos;s garment exports (HS
           chapters 61 and 62) cleared through Bangladesh customs: the
-          number of shipments, their FOB value, the number of buyers and
-          the largest shipment over a two-year window. The records come
+          number of shipments, their FOB value, the number of buyers, the
+          shipments to the UK, the US, the EU and Canada, and one stored
+          shipment over a two-year window. The records come
           from <a href="https://www.volza.com">Volza</a>, a trade data
           provider, and are a Tier 6 cross-check source: they are shown
           only on suppliers already published from Tier 1–3 sources,

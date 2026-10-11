@@ -1,4 +1,5 @@
-"""Load the 200-supplier live sample (etl/raw/volza/live_sample.jsonl) into volza_export_checks.
+"""Load the 200-supplier live sample (etl/raw/volza/live_sample.jsonl), or a later batch file
+(--file, e.g. batch_1.jsonl from ops/volza_batch.py), into volza_export_checks.
 
 Needs migration 0137. No Volza calls, no credit. Without --apply it prints what it would write;
 --apply upserts one row per supplier (matches and "nothing found" alike, so a fetch within the year
@@ -39,10 +40,30 @@ def one_year_on(t: datetime) -> datetime:
         return t.replace(year=t.year + 1, day=28) - timedelta(seconds=1)
 
 
+def shown_class(r: dict[str, Any]) -> str:
+    """'exact' only when the exact-name search kept 90% of what the name swept in (report section 11).
+
+    Batch 1 wrote some rows before that rule existed (Columbia Apparels: 84 of 2,468); the swept count
+    is the search just before the "exact:" one in tried.
+    """
+    i = next((n for n, t in enumerate(r["tried"]) if str(t[0]).startswith("exact:")), None)
+    if r["class"] == "exact" and i and r["tried"][i][2] < 0.9 * r["tried"][i - 1][2]:
+        return "ambiguous"
+    return r["class"]
+
+
 def rows(recs: list[dict[str, Any]], fetched_at: datetime) -> list[dict[str, Any]]:
-    expires = one_year_on(fetched_at)
+    """fetched_at stands in for rows that carry no time of their own (the sample)."""
     out = []
     for r in recs:
+        if not any(t[1] == 200 for t in r["tried"]):  # Volza answered none of its searches: not "nothing found"
+            print(f"skipped {r['name']!r}: no search for it succeeded {[t[1] for t in r['tried']]}")
+            continue
+        if r.get("partial"):  # a batch stopped in the middle of it; the next batch fetches it again
+            print(f"skipped {r['name']!r}: fetched only in part")
+            continue
+        at = datetime.fromisoformat(r["fetched_at"]) if r.get("fetched_at") else fetched_at
+        expires = one_year_on(at)
         hit = bool(r["shipments"])
         out.append({
             "supplier_id": r["id"],
@@ -51,27 +72,62 @@ def rows(recs: list[dict[str, Any]], fetched_at: datetime) -> list[dict[str, Any
             "window_end": WINDOW[1],
             "shipments": r["shipments"],
             "exporters_matched": r["suppliers"],
-            "match_class": r["class"] if hit else "none",
+            "match_class": shown_class(r) if hit else "none",
             "volza_supplier_name": r["volza_supplier"],
             "fob_usd": round(r["fob_usd"], 2) if hit and r.get("fob_usd") is not None else None,
             "buyers": r.get("buyers") if hit else None,
             "top_shipments": [{k: r["top"].get(k) for k in TOP_KEYS}] if hit and r.get("top") else [],
-            "fetched_at": fetched_at.isoformat(),
+            "fetched_at": at.isoformat(),
             "expires_at": expires.isoformat(),
         })
+        if any("summary" in x for x in recs):  # files that kept the whole preview (0138 columns)
+            out[-1].update(summary=r.get("summary") if hit else None,
+                           top_record=r["top"] if hit and r.get("summary") else None)
+        if any("markets" in x or "small_orders" in x for x in recs):  # launch batches (0139 columns)
+            shown = out[-1]["match_class"] == "exact"  # a hidden row's market counts used a doubtful name
+            out[-1].update(markets=r.get("markets") if shown else None,
+                           small_orders=r.get("small_orders") if shown else None)
+        if any("calls" in x for x in recs):  # launch and --latest files say how their record was chosen (0140)
+            out[-1]["record_sort"] = record_sort(r)
     return out
+
+
+def record_sort(r: dict[str, Any]) -> str:
+    """'date' when the stored record is the latest shipment, 'value' when it is the biggest."""
+    if r.get("top_is") == "latest":
+        return "date"
+    defining = [c for c in r.get("calls") or [] if c["kind"] in ("preview", "exact")]
+    return "date" if defining and defining[-1]["filters"].get("sort_by") == "date" else "value"
+
+
+def drop_missing_columns(http: httpx.Client, out: list[dict[str, Any]]) -> None:
+    """Before 0139/0140 are applied the table lacks their columns: write the rest, say what waited.
+
+    Except a latest shipment without record_sort: it would be labelled the biggest one. Refuse instead.
+    """
+    for col, mig in (("markets", "0139"), ("small_orders", "0139"), ("record_sort", "0140")):
+        if out and col in out[0] and http.get("/volza_export_checks", params={"select": col, "limit": 0}).status_code == 400:
+            if col == "record_sort" and any(r[col] == "date" for r in out):
+                raise SystemExit("these rows hold latest shipments but the table has no record_sort column: "
+                                 "apply migration 0140 first. Nothing written.")
+            for r in out:
+                r.pop(col, None)
+            print(f"the table has no {col} column yet (migration {mig}); written without it, load again after")
 
 
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--apply", action="store_true", help="write to production")
+    p.add_argument("--file", type=Path, default=OUT, help="results file (default: the live sample)")
     a = p.parse_args()
     logging.getLogger("httpx").setLevel(logging.WARNING)
-    recs = [json.loads(line) for line in OUT.read_text(encoding="utf-8").splitlines()]
-    fetched_at = datetime.fromtimestamp(OUT.stat().st_mtime, tz=timezone.utc).replace(microsecond=0)
+    recs = [json.loads(line) for line in a.file.read_text(encoding="utf-8").splitlines() if line.strip()]
+    # a resumed batch can hold a partial row and then the full one for the same supplier: the last wins
+    recs = list({r["id"]: r for r in recs}.values())
+    fetched_at = datetime.fromtimestamp(a.file.stat().st_mtime, tz=timezone.utc).replace(microsecond=0)
     out = rows(recs, fetched_at)
-    if one_year_on(fetched_at) <= datetime.now(timezone.utc):
-        raise SystemExit("this sample is over a year old; Volza's licence ends its storage. Nothing written.")
+    if min(one_year_on(datetime.fromisoformat(r["fetched_at"])) for r in out) <= datetime.now(timezone.utc):
+        raise SystemExit("some rows are over a year old; Volza's licence ends its storage. Nothing written.")
     print(f"{len(out)} rows, fetched_at {out[0]['fetched_at']}, expires_at {out[0]['expires_at']}")
     print("by class", dict(Counter(r["match_class"] for r in out)),
           "| shown to paying buyers (exact):", sum(1 for r in out if r["match_class"] == "exact"))
@@ -82,6 +138,8 @@ def main() -> None:
         return
     from etl.core.config import settings
 
+    if not settings.supabase_url:  # .env is read from the current folder
+        raise SystemExit("no Supabase address: run this from E:\\SourceBD so .env loads. Nothing written.")
     key = settings.supabase_service_role_key
     http = httpx.Client(base_url=f"{settings.supabase_url}/rest/v1", timeout=60,
                         headers={"apikey": key, "Authorization": f"Bearer {key}"})
@@ -92,6 +150,7 @@ def main() -> None:
     ids = ",".join(r["supplier_id"] for r in out)
     alive = {s["id"] for s in http.get("/suppliers", params={"select": "id", "id": f"in.({ids})"}).json()}
     keep = [r for r in out if r["supplier_id"] in alive]
+    drop_missing_columns(http, keep)
     http.post("/volza_export_checks", params={"on_conflict": "supplier_id"}, json=keep,
               headers={"Prefer": "resolution=merge-duplicates,return=minimal"}).raise_for_status()
     print(f"wrote {len(keep)} rows; skipped {len(out) - len(keep)} suppliers no longer on file")
