@@ -205,6 +205,44 @@ export type VolzaExports = {
   record_sort?: "value" | "date" | null;
 };
 
+/**
+ * The registers' capacity stays as filed (no figure is ever rewritten from another source); a note
+ * says when it looks wrong (founder, 11 Oct 2026). Rules, first match wins, all in pieces a year
+ * (a day's figure counts 300 working days, a dozen 12 pieces):
+ * - exports over 3 times the larger filed figure (RAM Apparel: about 14 times its 25,000 dozen);
+ * - the filed figure over 25 times exports, for a supplier with 50+ shipments (Hamza Clothing's
+ *   20,000,000 dozen a year against about 6 million pieces shipped);
+ * - the same number filed per day and per year (17 published records);
+ * - the yearly figure about 300 times the daily one: a year of pieces filed as dozens (19);
+ * - the two figures otherwise over 3 times apart (Moon Readywears' 15,000 a day, 90,000 dozen a year);
+ * - over 1,000,000 pieces a day or 10,000,000 dozen a year: more than one factory makes.
+ * Exported pieces: the window's export value a year over the stored shipment's price a piece (at
+ * least US$1, so a cheap line cannot inflate it). The two export rules need the customs row, which
+ * only a reader on a paying plan gets; the others read the registers alone.
+ */
+export function capacityNote(
+  s: { production_capacity_pcs_day?: number | null; production_capacity_dozen_yearly?: number | null },
+  v: VolzaExports | null | undefined,
+): string | null {
+  const day = s.production_capacity_pcs_day ?? 0;
+  const dozen = s.production_capacity_dozen_yearly ?? 0;
+  const filed = Math.max(day * 300, dozen * 12);
+  if (!filed) return null;
+  const one = v?.top_record ?? v?.top_shipments[0];
+  const years = v ? (Date.parse(v.window_end) - Date.parse(v.window_start)) / (365.25 * 864e5) : 0;
+  if (v?.fob_usd && one?.unit_rate_usd && one.unit === "PCS" && years > 0) {
+    const shipped = v.fob_usd / years / Math.max(one.unit_rate_usd, 1);
+    if (shipped > 3 * filed) return "Exports suggest more than this";
+    if (v.shipments >= 50 && filed > 25 * shipped) return "Far above what its exports suggest; possibly a typo";
+  }
+  if (day && dozen) {
+    if (day === dozen) return "The same number is filed per day and per year";
+    if (dozen / day >= 250 && dozen / day <= 365) return "The yearly figure looks like pieces, not dozens";
+    if (Math.max(day * 300, dozen * 12) > 3 * Math.min(day * 300, dozen * 12)) return "The two filed figures disagree";
+  }
+  return day > 1_000_000 || dozen > 10_000_000 ? "Unusually high for one factory" : null;
+}
+
 const usd = (n: number, digits = 0) =>
   `US$${n.toLocaleString("en-GB", { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
 

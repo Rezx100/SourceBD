@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  capacityNote,
   certCheckLine,
   customsBand,
   customsRows,
@@ -415,5 +416,42 @@ describe("customs exports (critique of 11 Oct 2026)", () => {
   it("a product filed mostly in capitals reads in sentence case", () => {
     const v = { ...base, top_record: { ...top, product_description: "MEN'S BASIC T SHIRT (Men's T-Shirt)" } };
     assert.match(customsRows(v).find((r) => r.label === "Biggest shipment")!.note!, /^Men's basic t shirt \(men's t-shirt\) \(HS 6203\.42\) to Cheek S A, Argentina$/);
+  });
+});
+
+describe("capacityNote: a filed capacity that looks wrong is noted, never rewritten (11 Oct 2026)", () => {
+  // Real figures from the first 73: each register's number and the supplier's own exports.
+  const top = { shipment_date: null, hsn_code: null, product_description: null, buyer_name: null, destination_country: null, trade_value_usd: null, unit: "PCS" };
+  const exports = (fob: number, rate: number, shipments = 500): VolzaExports => ({
+    shipments, fob_usd: fob, buyers: 10, window_start: "2024-09-01", window_end: "2026-08-31", volza_name: null,
+    top_shipments: [], top_record: { ...top, unit_rate_usd: rate }, fetched_at: "2026-10-10T20:36:01Z",
+  });
+  const cap = (day: number | null, dozen: number | null) => ({ production_capacity_pcs_day: day, production_capacity_dozen_yearly: dozen });
+
+  it("exports well over the filed figure: RAM Apparel ships about 14 times its 25,000 dozen", () => {
+    assert.equal(capacityNote(cap(null, 25000), exports(64369118, 7.77)), "Exports suggest more than this");
+  });
+  it("a filed figure far above exports: Hamza Clothing's 20,000,000 dozen a year", () => {
+    assert.equal(capacityNote(cap(null, 20000000), exports(21698440, 1.72)), "Far above what its exports suggest; possibly a typo");
+    // A handful of shipments says too little to call a figure a typo; the register-only rules still run.
+    assert.equal(capacityNote(cap(null, 20000000), exports(21698440, 1.72, 12)), "Unusually high for one factory");
+  });
+  it("exports that fit the larger figure: no note (Moon Readywears' daily figure fits)", () => {
+    assert.equal(capacityNote(cap(15000, null), exports(41243211, 4.02)), null);
+  });
+  it("the registers' own figures checked against each other, with or without exports", () => {
+    assert.equal(capacityNote(cap(15000, 90000), null), "The two filed figures disagree");
+    assert.equal(capacityNote(cap(8000, 8000), null), "The same number is filed per day and per year");
+    assert.equal(capacityNote(cap(7000, 2120000), null), "The yearly figure looks like pieces, not dozens");
+    assert.equal(capacityNote(cap(10000, 250000), null), null, "10,000 a day and 250,000 dozen a year are the same 3 million pieces");
+  });
+  it("more than one factory makes; nothing filed, nothing said", () => {
+    assert.equal(capacityNote(cap(null, 15000000), null), "Unusually high for one factory");
+    assert.equal(capacityNote(cap(1000000, null), null), null, "Aboni's 1,000,000 a day is at the line, not over it");
+    assert.equal(capacityNote(cap(null, null), exports(64369118, 7.77)), null);
+  });
+  it("only pieces count: a supplier priced per kilo is not compared", () => {
+    const kilos = { ...exports(64369118, 7.77), top_record: { ...top, unit: "KGS", unit_rate_usd: 7.77 } };
+    assert.equal(capacityNote(cap(null, 25000), kilos), null);
   });
 });

@@ -40,6 +40,7 @@ import {
   sortCerts,
   type CertChecks,
   type VolzaExports,
+  capacityNote,
   type CertModel,
   formatDayRange,
   placeLabel,
@@ -1324,7 +1325,11 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
     // (within 10%) — the registers file the total and the split independently.
     ...(workforceSplit(w, s) ? [{ label: "Women · men", ...pending(workforceSplit(w, s)) }] : []),
     { label: "Sewing machines", ...pendingMarks(formatCount(s.machines_sewing), filedBy("BGMEA", "BKMEA")) },
-    { label: "Capacity, as filed", ...pendingMarks(capacity, filedBy(...(s.production_capacity_pcs_day ? ["BKMEA"] : []), ...(s.production_capacity_dozen_yearly ? ["BGMEA"] : []))) },
+    {
+      label: "Capacity, as filed",
+      ...pendingMarks(capacity, filedBy(...(s.production_capacity_pcs_day ? ["BKMEA"] : []), ...(s.production_capacity_dozen_yearly ? ["BGMEA"] : []))),
+      note: capacityNote(s, options.volza),
+    },
     ...(s.bepza_zone ? [{ label: "EPZ zone", ...pending(s.bepza_zone) }] : []),
     {
       label: "Registers",
