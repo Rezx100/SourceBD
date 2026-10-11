@@ -37,6 +37,7 @@ export function PaneRows({ rows, currentSlug }: { rows: readonly ResultRow[]; cu
                 type={r.type}
                 place={r.place}
                 sources={r.sources}
+                figure={r.exports ? { key: r.exports.key, detail: r.exports.detail } : null}
                 problem={<Problem r={r} />}
                 selected={r.slug === currentSlug}
                 ticked={ticked}

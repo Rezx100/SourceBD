@@ -25,7 +25,31 @@ export const SORTS = [
   { value: "hs_lines", rpc: "hs_lines", label: "Most HS headings" },
 ] as const;
 
-export type DiscoverSort = (typeof SORTS)[number]["value"];
+/**
+ * The customs-exports sorts (spec-volza-reveal section 4, Paper boards E, H, J1). Offered only to a
+ * reader entitled to Volza figures; choosing one narrows the search to suppliers with a customs record.
+ */
+export const EXPORT_SORTS = [
+  { value: "avg_shipment", label: "Average shipment", hint: "Ranks suppliers with 10+ shipments first" },
+  { value: "export_value", label: "Export value", hint: null },
+  { value: "shipments", label: "Shipments", hint: null },
+  { value: "buyers", label: "Buyers", hint: null },
+] as const;
+export type ExportSort = (typeof EXPORT_SORTS)[number]["value"];
+
+export type DiscoverSort = (typeof SORTS)[number]["value"] | ExportSort;
+
+export function isExportSort(sort: DiscoverSort): sort is ExportSort {
+  return EXPORT_SORTS.some((s) => s.value === sort);
+}
+
+/** The Exports menu's value floors, in millions of US dollars over the two-year window. */
+export const EXPORT_MINS = [1, 10, 50] as const;
+export type ExportMin = (typeof EXPORT_MINS)[number];
+
+/** The four markets as the URL names them, and as 0139 keys them. */
+export const SHIPS_TO = { uk: "United Kingdom", us: "United States", eu: "EU", ca: "Canada" } as const;
+export type ShipsTo = keyof typeof SHIPS_TO;
 
 export const CERT_KINDS = ["gots", "wrap", "oeko_tex", "sa8000"] as const;
 export type CertKind = (typeof CERT_KINDS)[number];
@@ -81,6 +105,12 @@ export type DiscoverState = {
    * records at all.
    */
   sanctioned: boolean;
+  /** "Has customs exports" (`exports=1`). Read only for an entitled reader; see `exportsView`. */
+  exports: boolean;
+  /** Export value floor in US$ millions (`exports_min`). */
+  exportsMin: ExportMin | null;
+  /** One market (`ships`). */
+  ships: ShipsTo | null;
 };
 
 export const EMPTY_STATE: DiscoverState = {
@@ -104,6 +134,9 @@ export const EMPTY_STATE: DiscoverState = {
   view: "table",
   ask: false,
   sanctioned: false,
+  exports: false,
+  exportsMin: null,
+  ships: null,
 };
 
 function one(sp: URLSearchParams, key: string): string {
@@ -164,7 +197,7 @@ const CERT_KIND_SET = new Set<string>(CERT_KINDS);
 const CERT_STATE_SET = new Set<string>(["valid", "expiring", "expired", "any"]);
 const TYPE_SET = new Set<string>(ENTITY_TYPES);
 const REG_SET = new Set<string>(REGISTRIES);
-const SORT_SET = new Set<string>(SORTS.map((s) => s.value));
+const SORT_SET = new Set<string>([...SORTS, ...EXPORT_SORTS].map((s) => s.value));
 const PER_SET = new Set<number>(PER_PAGE);
 
 function parseCert(token: string): CertFilter | null {
@@ -256,6 +289,9 @@ export function parseDiscoverState(
     view: viewRaw === "cards" ? "cards" : "table",
     ask: one(sp, "ask") === "1",
     sanctioned: one(sp, "sanctioned") === "1",
+    exports: one(sp, "exports") === "1",
+    exportsMin: (EXPORT_MINS as readonly number[]).includes(Number(one(sp, "exports_min"))) ? (Number(one(sp, "exports_min")) as ExportMin) : null,
+    ships: Object.hasOwn(SHIPS_TO, one(sp, "ships")) ? (one(sp, "ships") as ShipsTo) : null,
   };
 }
 
@@ -295,6 +331,9 @@ export function serializeDiscoverState(state: DiscoverState): URLSearchParams {
   if (state.view === "cards") sp.set("view", "cards");
   if (state.ask) sp.set("ask", "1");
   if (state.sanctioned) sp.set("sanctioned", "1");
+  if (state.exports) sp.set("exports", "1");
+  if (state.exportsMin != null) sp.set("exports_min", String(state.exportsMin));
+  if (state.ships) sp.set("ships", state.ships);
   return sp;
 }
 
@@ -346,7 +385,27 @@ export function sortRpc(sort: DiscoverSort): string {
 }
 
 export function sortLabel(sort: DiscoverSort): string {
-  return SORTS.find((s) => s.value === sort)?.label ?? "Most sources";
+  return [...SORTS, ...EXPORT_SORTS].find((s) => s.value === sort)?.label ?? "Most sources";
+}
+
+/**
+ * True when the results are the customs-exports view: the reader is entitled to Volza figures and the
+ * exports filter, a value floor, a market or an exports sort is on. For anyone else the exports
+ * parameters are ignored and the search is the ordinary one.
+ */
+export function exportsView(state: DiscoverState, entitled: boolean): boolean {
+  return entitled && (state.exports || state.exportsMin != null || state.ships != null || isExportSort(state.sort));
+}
+
+/** The sort the exports view orders by: average shipment by default, else the buyer's choice where it has one. */
+export function exportsSort(state: DiscoverState): ExportSort | "workers" | "name" {
+  if (isExportSort(state.sort)) return state.sort;
+  return state.sort === "workers" || state.sort === "name" ? state.sort : "avg_shipment";
+}
+
+/** The state with the exports view switched off: every exports parameter cleared, an exports sort back to the default. */
+export function withoutExports(state: DiscoverState): DiscoverState {
+  return { ...state, exports: false, exportsMin: null, ships: null, sort: isExportSort(state.sort) ? "sources" : state.sort, page: 1 };
 }
 
 export function certKinds(state: DiscoverState): string[] | null {

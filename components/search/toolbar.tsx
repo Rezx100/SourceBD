@@ -9,11 +9,26 @@ import { BookmarkSimple, CaretDown, CaretUpDown, Check, MagnifyingGlass, Plus, S
 import Form from "next/form";
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
-import { FilterChip, Menu, MenuItem, StandingFilter, buttonClass, linkClass } from "@/components/kit";
+import { FilterChip, Menu, MenuItem, MenuSeparator, StandingFilter, buttonClass, linkClass } from "@/components/kit";
 import { SearchCombobox } from "./typeahead";
 import { formatCount } from "@/lib/dashboard/facts";
 import { filterMenus, inFilterMenu, menuSummary, type FilterMenu } from "@/lib/dashboard/search-templates";
-import { DISCOVER_PATH, SORTS, discoverChips, discoverHiddenParams, filterCount, type DiscoverState } from "@/lib/discover-v32-state";
+import {
+  DISCOVER_PATH,
+  EXPORT_MINS,
+  EXPORT_SORTS,
+  SHIPS_TO,
+  SORTS,
+  discoverChips,
+  discoverHiddenParams,
+  exportsSort,
+  exportsView,
+  filterCount,
+  withoutExports,
+  type DiscoverSort,
+  type DiscoverState,
+  type ShipsTo,
+} from "@/lib/discover-v32-state";
 import { cn } from "@/lib/utils";
 
 /** The menus' names as Paper prints them. */
@@ -27,7 +42,81 @@ const SORT_WORDS: Record<string, string> = {
   established: "established",
   cert_expiry: "certificate expiry",
   hs_lines: "most HS headings",
+  avg_shipment: "average shipment",
+  export_value: "export value",
+  shipments: "shipments",
+  buyers: "buyers",
 };
+
+type SortChoice = { value: DiscoverSort; label: string; hint: string | null };
+
+/**
+ * The sorts this reader is offered, and the one the list is in. An entitled reader also gets the
+ * exports sorts (Paper board H); in the exports view the list orders only by those, workers and name,
+ * and with no choice made it is by average shipment.
+ */
+export function sortChoices(state: DiscoverState, entitled: boolean): { options: SortChoice[]; current: DiscoverSort } {
+  const base: SortChoice[] = SORTS.map((s) => ({ value: s.value, label: s.label, hint: null }));
+  if (!entitled) return { options: base, current: state.sort };
+  const exportsOptions: SortChoice[] = EXPORT_SORTS.map((s) => ({ value: s.value, label: s.label, hint: s.hint }));
+  if (!exportsView(state, true)) return { options: [...base, ...exportsOptions], current: state.sort };
+  return { options: [...exportsOptions, ...base.filter((o) => o.value === "workers" || o.value === "name")], current: exportsSort(state) };
+}
+
+const SHIPS_SHORT: Record<ShipsTo, string> = { uk: "UK", us: "US", eu: "EU", ca: "Canada" };
+
+/** "Has customs exports · US$10m+ · UK": what the exports view is narrowed to. */
+export function exportsWords(state: DiscoverState): string {
+  return ["Has customs exports", state.exportsMin != null ? `US$${state.exportsMin}m+` : null, state.ships ? SHIPS_SHORT[state.ships] : null].filter(Boolean).join(" · ");
+}
+
+/** The Exports menu (Paper board H): has customs exports, an export value floor, one market. Entitled readers only. */
+export function ExportsMenu({ state, hrefFor }: { state: DiscoverState; hrefFor: (s: DiscoverState) => string }) {
+  const on = exportsView(state, true);
+  const parts = [state.exportsMin != null ? `US$${state.exportsMin}m+` : null, state.ships ? SHIPS_SHORT[state.ships] : null].filter(Boolean);
+  const label = on ? ["Exports", ...parts].join(" · ") : "Exports";
+  const tick = (yes: boolean, what: string) => <span className="flex size-4 shrink-0 items-center justify-center">{yes ? <Check size={16} className="text-ink" aria-label={what} /> : null}</span>;
+  const heading = "px-3 pb-1 pt-2 font-mono text-xs uppercase tracking-wide text-ink-3";
+  const set = (over: Partial<DiscoverState>) => hrefFor({ ...state, exports: true, page: 1, ...over });
+  return (
+    <Menu
+      trigger={
+        <button type="button" aria-label={label} className={triggerClass(on)}>
+          <span>{label}</span>
+          <CaretDown size={16} className="shrink-0 text-ink-2" aria-hidden />
+        </button>
+      }
+    >
+      <MenuItem href={on ? hrefFor(withoutExports(state)) : set({})}>
+        <span className="flex items-center gap-2">
+          {tick(on, "On")}
+          Has customs exports
+        </span>
+      </MenuItem>
+      <MenuSeparator />
+      <div className={heading}>Export value, 2 years</div>
+      {[null, ...EXPORT_MINS].map((m) => (
+        <MenuItem key={m ?? "any"} href={set({ exportsMin: m })}>
+          <span className="flex items-center gap-2">
+            {tick(on && state.exportsMin === m, "Chosen")}
+            {m == null ? "Any" : `US$${m}m or more`}
+          </span>
+        </MenuItem>
+      ))}
+      <MenuSeparator />
+      <div className={heading}>Ships to</div>
+      {(Object.keys(SHIPS_TO) as ShipsTo[]).map((k) => (
+        <MenuItem key={k} href={set({ ships: state.ships === k ? null : k })}>
+          <span className="flex items-center gap-2">
+            {tick(state.ships === k, "Chosen")}
+            {SHIPS_TO[k]}
+          </span>
+        </MenuItem>
+      ))}
+      <div className="px-3 pb-2 pt-1 text-xs text-ink-3">By shipments there, Bangladesh customs, Sep 2024 – Aug 2026</div>
+    </Menu>
+  );
+}
 
 type Counts = Record<string, number | null>;
 
@@ -105,22 +194,23 @@ export function SanctionedStanding({ state, hrefFor }: { state: DiscoverState; h
   );
 }
 
-export function SortMenu({ state, hrefFor, className, compact = false }: { state: DiscoverState; hrefFor: (s: DiscoverState) => string; className?: string; /** On a bar under 900 wide the button says "Sort" alone. */ compact?: boolean }) {
+export function SortMenu({ state, hrefFor, className, compact = false, entitled = false }: { state: DiscoverState; hrefFor: (s: DiscoverState) => string; className?: string; /** On a bar under 900 wide the button says "Sort" alone. */ compact?: boolean; /** The reader may see customs figures: the exports sorts are offered. */ entitled?: boolean }) {
+  const { options, current } = sortChoices(state, entitled);
   return (
     <Menu
       align="end"
       trigger={
-        <button type="button" aria-label={`Sort: ${SORT_WORDS[state.sort]}`} className={cn(buttonClass({ kind: "secondary", className: "gap-1 pl-3 pr-2" }), className)}>
-          <span className={compact ? "[@container_(max-width:899px)]:hidden" : undefined}>Sort: {SORT_WORDS[state.sort]}</span>
+        <button type="button" aria-label={`Sort: ${SORT_WORDS[current]}`} className={cn(buttonClass({ kind: "secondary", className: "gap-1 pl-3 pr-2" }), className)}>
+          <span className={compact ? "[@container_(max-width:899px)]:hidden" : undefined}>Sort: {SORT_WORDS[current]}</span>
           {compact ? <span aria-hidden className="hidden [@container_(max-width:899px)]:inline">Sort</span> : null}
           <CaretDown size={16} className="shrink-0 text-ink-2" aria-hidden />
         </button>
       }
     >
-      {SORTS.map((s) => (
-        <MenuItem key={s.value} href={hrefFor({ ...state, sort: s.value, page: 1 })}>
+      {options.map((s) => (
+        <MenuItem key={s.value} href={hrefFor({ ...state, sort: s.value, page: 1 })} hint={s.hint ?? undefined}>
           <span className="flex items-center gap-2">
-            <span className="flex size-4 shrink-0 items-center justify-center">{s.value === state.sort ? <Check size={16} className="text-ink" aria-label="Sorted by" /> : null}</span>
+            <span className="flex size-4 shrink-0 items-center justify-center">{s.value === current ? <Check size={16} className="text-ink" aria-label="Sorted by" /> : null}</span>
             {s.label}
           </span>
         </MenuItem>
@@ -130,8 +220,8 @@ export function SortMenu({ state, hrefFor, className, compact = false }: { state
 }
 
 /** What the search is, in words: the query and how many suppliers it finds. */
-export function resultsTitle(q: string, total: number | null): string {
-  const n = total === null ? null : `${formatCount(total)} ${total === 1 ? "supplier" : "suppliers"}`;
+export function resultsTitle(q: string, total: number | null, exports = false): string {
+  const n = total === null ? null : `${formatCount(total)} ${total === 1 ? "supplier" : "suppliers"}${exports ? " with customs exports" : ""}`;
   return [q, n].filter(Boolean).join(" · ") || "Suppliers";
 }
 
@@ -149,8 +239,11 @@ export function ResultsToolbar({
   savePanel,
   more,
   bare = false,
+  entitled = false,
 }: {
   state: DiscoverState;
+  /** The reader may see customs figures: the Exports menu and the exports sorts. */
+  entitled?: boolean;
   title: string;
   hrefFor: (s: DiscoverState) => string;
   filtersHref: string;
@@ -174,6 +267,7 @@ export function ResultsToolbar({
         {barMenus(state).map((m) => (
           <FilterMenuButton key={m.key} menu={m} hrefFor={hrefFor} />
         ))}
+        {entitled ? <ExportsMenu state={state} hrefFor={hrefFor} /> : null}
         <OtherChips state={state} hrefFor={hrefFor} />
         <Link href={filtersHref} prefetch={false} scroll={false} title="Add filter" className={buttonClass({ kind: "secondary", className: "px-2" })}>
           <Plus size={16} className="shrink-0 text-ink-2" aria-hidden />
@@ -191,7 +285,7 @@ export function ResultsToolbar({
           <BookmarkSimple size={16} className="shrink-0 text-ink-2" aria-hidden />
           <span className={cn("pr-1", words)}>Save search</span>
         </Link>
-        <SortMenu state={state} hrefFor={hrefFor} compact />
+        <SortMenu state={state} hrefFor={hrefFor} compact entitled={entitled} />
         <Link
           href={filtersHref}
           prefetch={false}
@@ -219,7 +313,7 @@ export function ResultsToolbar({
  * icons with their names on hover and for a screen reader (the critique of 7 Oct 2026: beside a pane the
  * bar dropped both, in the state a power user lives in), and Sort.
  */
-export function PaneListToolbar({ state, title, hrefFor, filtersHref, saveHref, savePanel, more }: { state: DiscoverState; title: string; hrefFor: (s: DiscoverState) => string; filtersHref: string; saveHref?: string; savePanel?: ReactNode; /** The ⋯ menu (Download CSV), as `ResultsToolbar` takes it: beside a pane it was unreachable. */ more?: ReactNode }) {
+export function PaneListToolbar({ state, title, hrefFor, filtersHref, saveHref, savePanel, more, entitled = false }: { state: DiscoverState; entitled?: boolean; title: string; hrefFor: (s: DiscoverState) => string; filtersHref: string; saveHref?: string; savePanel?: ReactNode; /** The ⋯ menu (Download CSV), as `ResultsToolbar` takes it: beside a pane it was unreachable. */ more?: ReactNode }) {
   const on = filterCount(state);
   return (
     <div className="relative flex min-h-14 items-center justify-between gap-x-3 border-b border-line px-4 py-2 max-md:hidden">
@@ -241,7 +335,7 @@ export function PaneListToolbar({ state, title, hrefFor, filtersHref, saveHref, 
           <Plus size={16} className="shrink-0 text-ink-2" aria-hidden />
           {on > 0 ? <span aria-hidden className="font-mono text-xs tabular-nums text-ink-2">{on}</span> : null}
         </Link>
-        <SortMenu state={state} hrefFor={hrefFor} />
+        <SortMenu state={state} hrefFor={hrefFor} entitled={entitled} />
         {more}
       </div>
       {savePanel}
@@ -254,8 +348,9 @@ export function PaneListToolbar({ state, title, hrefFor, filtersHref, saveHref, 
  * Filters and Sort as two 44-tall halves, and the standing filter. The field is a form to the
  * results that carries the other filters; the filter pane and the sort list open from here.
  */
-export function PhoneToolbar({ state, count, hrefFor, filtersHref }: { state: DiscoverState; count: string; hrefFor: (s: DiscoverState) => string; filtersHref: string }) {
+export function PhoneToolbar({ state, count, hrefFor, filtersHref, entitled = false }: { state: DiscoverState; count: string; hrefFor: (s: DiscoverState) => string; filtersHref: string; entitled?: boolean }) {
   const on = filterCount(state);
+  const { options, current } = sortChoices(state, entitled);
   const half = "flex h-touch grow items-center justify-center gap-2 whitespace-nowrap rounded-md border border-line-strong bg-surface px-3 max-[389px]:px-2 text-md font-medium text-ink outline-none hover:bg-subtle active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
   return (
     <div className="flex flex-col gap-3 border-b border-line px-4 py-3 md:hidden">
@@ -285,23 +380,28 @@ export function PhoneToolbar({ state, count, hrefFor, filtersHref }: { state: Di
         <Menu
           align="end"
           trigger={
-            <button type="button" aria-label={`Sort: ${SORT_WORDS[state.sort]}`} className={half}>
+            <button type="button" aria-label={`Sort: ${SORT_WORDS[current]}`} className={half}>
               <CaretUpDown size={20} className="shrink-0 text-ink-2 max-[429px]:hidden" aria-hidden />
-              <span className="max-[359px]:hidden">Sort: {SORT_WORDS[state.sort]}</span>
+              <span className="max-[359px]:hidden">Sort: {SORT_WORDS[current]}</span>
               <span aria-hidden className="hidden max-[359px]:inline">Sort</span>
             </button>
           }
         >
-          {SORTS.map((s) => (
+          {options.map((s) => (
             <MenuItem key={s.value} href={hrefFor({ ...state, sort: s.value, page: 1 })}>
               <span className="flex items-center gap-2">
-                <span className="flex size-4 shrink-0 items-center justify-center">{s.value === state.sort ? <Check size={16} className="text-ink" aria-label="Sorted by" /> : null}</span>
+                <span className="flex size-4 shrink-0 items-center justify-center">{s.value === current ? <Check size={16} className="text-ink" aria-label="Sorted by" /> : null}</span>
                 {s.label}
               </span>
             </MenuItem>
           ))}
         </Menu>
       </div>
+      {exportsView(state, entitled) ? (
+        <FilterChip removeHref={hrefFor(withoutExports(state))} removeLabel="Remove the customs exports filter">
+          {exportsWords(state)}
+        </FilterChip>
+      ) : null}
       {state.sanctioned ? null : (
         <StandingFilter
           className="h-11 max-w-full self-start rounded-md px-3 text-base"

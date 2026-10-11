@@ -2071,3 +2071,75 @@ describe("Send RFQ keeps the search (critique of 8 Oct 2026, round 3, item 1)", 
     assert.match(elsewhere, /href="\/app\/suppliers\/aboni-knitwear"[^>]*>(?:<svg[\s\S]*?<\/svg>)?Back to/);
   });
 });
+
+describe("/app/discover — customs exports in the search (0142, spec-volza-reveal section 4)", () => {
+  const ROW = {
+    id: "8ce50581-2d84-4cc2-93aa-000000000009",
+    slug: "aboni-knitwear",
+    company_name: "ABONI KNITWEAR LTD.",
+    entity_type: "factory",
+    city: "Dhaka",
+    district: "Dhaka",
+    source_tags: ["BGMEA"],
+    t13_source_count: 11,
+    completeness_pct: 50,
+    employees_total: 3166,
+    established_date: "1985-01-01",
+    principal_products: [],
+    factory_types: [],
+    rsc_progress_pct: null,
+    parent_group_name: null,
+    primary_address: null,
+    total_count: 47,
+    is_sanctioned: false,
+    cert_summary: null,
+    hs_codes: [],
+    brand_codes: [],
+    registries: [],
+  };
+  const EXPORTS_ROW = { ...ROW, export_fob_usd: "97600000", export_shipments: 4652, export_buyers: 131 };
+  const run = async (sp: Record<string, string>, entitled: boolean) => {
+    given({
+      discover: { data: [{ ...ROW, total_count: 1 }], error: null },
+      rpcs: { volza_reader_entitled: { data: entitled, error: null }, discover_customs_exports: { data: [EXPORTS_ROW], error: null } },
+    });
+    const Page = route("app/(app)/app/discover/page.js").default;
+    return html(await outcome(() => Page({ searchParams: Promise.resolve(sp) })));
+  };
+
+  it("an entitled reader with the filter on gets the exports list, sorted by average shipment, its figures in the rows", async () => {
+    const out = await run({ exports: "1", ships: "uk", exports_min: "10" }, true);
+    const call = rpcCalls.find((c) => c.fn === "discover_customs_exports");
+    assert.ok(call, "the exports view did not read discover_customs_exports");
+    assert.equal(call.args?.p_sort, "avg_shipment", "the exports view's default sort is average shipment");
+    assert.equal(call.args?.p_ships_to, "United Kingdom");
+    assert.equal(call.args?.p_exports_min, 10_000_000);
+    assert.ok(!rpcCalls.some((c) => c.fn === "discover_suppliers"), "the exports view also ran the ordinary search");
+    assert.match(out, /47 suppliers with customs exports/);
+    assert.match(out, /US\$21,000 a shipment/);
+    assert.match(out, /4,652 shipments/);
+    assert.match(out, />Average shipment</, "the column's head names the sort");
+    assert.match(out, /Customs figures are not in downloads|Exports · US\$10m\+ · UK/);
+  });
+
+  it("an exports sort alone turns the view on, with the sort's figure first", async () => {
+    const out = await run({ sort: "export_value" }, true);
+    assert.equal(rpcCalls.find((c) => c.fn === "discover_customs_exports")?.args?.p_sort, "export_value");
+    assert.match(out, /US\$97\.6m/);
+    assert.match(out, /4,652 shipments · 131 buyers/);
+  });
+
+  it("a reader who is not entitled gets the ordinary search: no exports read, no figures, no Exports menu", async () => {
+    const out = await run({ exports: "1", sort: "export_value" }, false);
+    assert.ok(!rpcCalls.some((c) => c.fn === "discover_customs_exports"), "an unentitled reader's search read the customs view");
+    assert.doesNotMatch(out, /with customs exports|a shipment|US\$97\.6m|4,652 shipments/);
+    assert.doesNotMatch(out, /aria-label="Exports"/, "the Exports menu was offered to a reader who may not see it");
+  });
+
+  it("an entitled reader without the filter gets the ordinary list and the Exports menu to turn it on", async () => {
+    const out = await run({}, true);
+    assert.ok(!rpcCalls.some((c) => c.fn === "discover_customs_exports"));
+    assert.match(out, /aria-label="Exports"/);
+    assert.doesNotMatch(out, /a shipment/);
+  });
+});

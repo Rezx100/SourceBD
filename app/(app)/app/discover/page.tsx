@@ -47,11 +47,12 @@ import { SelectionProvider } from "@/components/search/selection";
 import { ResultsTable } from "@/components/search/table";
 import { PaneListToolbar, PhoneToolbar, ResultsToolbar, resultsTitle } from "@/components/search/toolbar";
 import { buildDiscoverTableRow } from "@/lib/dashboard/build-discover-row";
+import { exportsCell, exportsHead } from "@/lib/dashboard/customs-search";
 import { ProfileReadTimeout, loadLineBeside, loadRecordSheet } from "@/lib/dashboard/load-record";
 import { readSearch } from "@/lib/dashboard/search-cache";
-import { fetchDiscoverExplain, fetchDiscoverV32, fetchHsBatch } from "@/lib/discover-v32-rpc";
+import { fetchDiscoverExplain, fetchDiscoverExports, fetchDiscoverV32, fetchExportsEntitled, fetchHsBatch } from "@/lib/discover-v32-rpc";
 import { fetchFacilityParentSlug } from "@/lib/facility-parent-redirect";
-import { DISCOVER_PATH, discoverHref, filterCount, parseDiscoverState, queryTitle, serializeDiscoverState, withPaneParams, type DiscoverState } from "@/lib/discover-v32-state";
+import { DISCOVER_PATH, discoverHref, exportsSort, exportsView, filterCount, parseDiscoverState, queryTitle, serializeDiscoverState, withPaneParams, type DiscoverState } from "@/lib/discover-v32-state";
 import { noteActivity } from "@/lib/ledger/note";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -102,7 +103,14 @@ export default async function BuyerDiscoverPage({
   // A phone opens the record as a page and comes back to this search.
   const pageHref = (slug: string) => `/app/suppliers/${encodeURIComponent(slug)}?back=${encodeURIComponent(closeHref)}`;
 
-  const { rows, total, error, failure } = await readSearch(state, () => fetchDiscoverV32(supabase, state));
+  // Customs exports (spec-volza-reveal section 4): only a reader entitled to Volza figures gets the
+  // Exports menu, its sorts and the figures. That view is read with the reader's own session, never
+  // through the shared cache; for anyone else its parameters change nothing.
+  const entitledRead = fetchExportsEntitled(supabase);
+  const exportsOn = exportsView(state, true) && (await entitledRead);
+  const { rows, total, error, failure } = exportsOn ? await fetchDiscoverExports(supabase, state) : await readSearch(state, () => fetchDiscoverV32(supabase, state));
+  const entitled = await entitledRead;
+  const rowSort = exportsSort(state);
   // The search is written to the activity record as this buyer's (moderation plan 1d); not awaited, never failing the page.
   void noteActivity(supabase, "search.run", { content: { search: serializeDiscoverState(state).toString().slice(0, 2000), total, shown: rows.length } });
   const slugs = rows.map((r) => r.slug);
@@ -129,13 +137,15 @@ export default async function BuyerDiscoverPage({
       }
     }
     const rowOpts = { today, hsLines: hs.lines, hsError: hs.error, recordHref, rfqHref };
-    return rows.map((row) => resultRow(buildDiscoverTableRow(row, { ...rowOpts, saved: savedSet.has(row.id) }), today, pageHref(row.slug)));
+    return rows.map((row) =>
+      resultRow(buildDiscoverTableRow(row, { ...rowOpts, saved: savedSet.has(row.id) }), today, pageHref(row.slug), exportsOn && row.exports ? exportsCell(row.exports, rowSort) : null),
+    );
   });
   // An empty or failed search never draws the rows; its rejection must not go unhandled. Drawn, it still throws.
   decorated.catch(() => {});
 
   let explain: { dropped: string; remaining: number }[] = [];
-  if (!error && total === 0 && state.page === 1 && filterCount(state) > 0) {
+  if (!exportsOn && !error && total === 0 && state.page === 1 && filterCount(state) > 0) {
     explain = await fetchDiscoverExplain(supabase, state);
   }
 
@@ -145,7 +155,9 @@ export default async function BuyerDiscoverPage({
   // table instead (B4 fix 4), so the results keep their own bar and columns under it.
   const paneOpen = composerOpen || recordSlug !== null;
   const exportHref = `/api/v1/discover/export?${serializeDiscoverState(state).toString()}`;
-  const title = resultsTitle(state.q, error ? null : total);
+  const title = resultsTitle(state.q, error ? null : total, exportsOn);
+  // The Volza licence keeps customs figures out of every download, and a CSV of this search without them would be another list.
+  const downloadOff = exportsOn ? "Customs figures are not in downloads" : undefined;
   const filtersHref = withParams("filters=1");
   const saveHref = withParams("save=1");
   // Every results control (page, page size, sort, a filter) keeps the open record and its tab:
@@ -170,17 +182,18 @@ export default async function BuyerDiscoverPage({
   ) : null;
 
   const toolbar = paneOpen ? (
-    <PaneListToolbar state={state} title={title} hrefFor={hrefFor} filtersHref={filtersOpen ? closeHref : filtersHref} saveHref={saveHref} savePanel={savePanel} more={error || total === 0 ? null : <MoreMenu exportHref={exportHref} total={total} saveHref={saveHref} />} />
+    <PaneListToolbar state={state} entitled={entitled} title={title} hrefFor={hrefFor} filtersHref={filtersOpen ? closeHref : filtersHref} saveHref={saveHref} savePanel={savePanel} more={error || total === 0 ? null : <MoreMenu exportHref={exportHref} total={total} saveHref={saveHref} downloadOff={downloadOff} />} />
   ) : (
     <ResultsToolbar
       state={state}
+      entitled={entitled}
       title={title}
       hrefFor={hrefFor}
       filtersHref={filtersHref}
       filtersOpen={filtersOpen}
       saveHref={saveHref}
       savePanel={savePanel}
-      more={<MoreMenu exportHref={exportHref} total={error ? null : total} saveHref={saveHref} />}
+      more={<MoreMenu exportHref={exportHref} total={error ? null : total} saveHref={saveHref} downloadOff={downloadOff} />}
       bare={Boolean(error) || total === 0}
     />
   );
@@ -194,7 +207,7 @@ export default async function BuyerDiscoverPage({
       {error || filterCount(state) === 0 ? null : <RecordLastSearch search={serializeDiscoverState({ ...state, page: 1 }).toString()} />}
       {welcome && !error && total !== 0 ? <FirstResultsCoach supabase={supabase} closeHref={keepOpen} /> : null}
       <div className="flex min-h-0 flex-1 flex-col">
-        <PhoneToolbar state={state} count={resultsTitle("", error ? null : total)} hrefFor={hrefFor} filtersHref={filtersHref} />
+        <PhoneToolbar state={state} entitled={entitled} count={resultsTitle("", error ? null : total, exportsOn)} hrefFor={hrefFor} filtersHref={filtersHref} />
         {/* Beside a pane too: ticking turns the pane list's toolbar into the bulk bar, as it does the filter bar. */}
         <ResultsBar toolbar={toolbar} exportHref={exportHref} searchHref={closeHref} pageSize={rows.length} narrow={paneOpen} />
         {error ? (
@@ -215,6 +228,7 @@ export default async function BuyerDiscoverPage({
                     <div className="px-6">
                     <ResultsTable
                       rows={results}
+                      exportsHead={exportsOn ? exportsHead(rowSort) : null}
                       sort={{ key: state.sort, dir: state.sort === "name" || state.sort === "cert_expiry" || state.sort === "established" ? "asc" : "desc" }}
                       sortHrefs={{
                         workers: hrefFor({ ...state, sort: "workers", page: 1 }),

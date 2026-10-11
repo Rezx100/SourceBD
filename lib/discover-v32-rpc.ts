@@ -12,7 +12,9 @@ import { resolveDiscoverSmartQuery } from "@/lib/discover-smart-query";
 import {
   type DiscoverRpcArgs,
   type DiscoverState,
+  SHIPS_TO,
   discoverRpcArgs,
+  exportsSort,
 } from "@/lib/discover-v32-state";
 
 export type DiscoverV32Row = {
@@ -50,6 +52,8 @@ export type DiscoverV32Row = {
   /** The supplier row's own figure — what the Workers sort and filter use. */
   workers_own?: number | null;
   top_tier: number | null;
+  /** `discover_customs_exports` (0142) only: the supplier's customs figures over the two-year window. */
+  exports?: { fob_usd: number | null; shipments: number; buyers: number | null };
 };
 
 export type DiscoverExplainRow = { dropped: string; remaining: number };
@@ -92,7 +96,16 @@ function asRow(raw: unknown): DiscoverV32Row | null {
     brand_codes: asStringArray(r.brand_codes),
     registries: asStringArray(r.registries),
     top_tier: typeof r.top_tier === "number" ? r.top_tier : null,
+    ...(typeof r.export_shipments === "number"
+      ? { exports: { fob_usd: num(r.export_fob_usd), shipments: r.export_shipments, buyers: num(r.export_buyers) } }
+      : {}),
   };
+}
+
+/** PostgREST sends a `numeric` as a number or a string. */
+function num(v: unknown): number | null {
+  const n = typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v) : NaN;
+  return Number.isFinite(n) ? n : null;
 }
 
 /**
@@ -171,6 +184,45 @@ export async function fetchDiscoverV32(
   const rows = await enrichDiscoverWorkers(supabase, parsed);
   const total = parseTotalCount(rows);
   return { rows, total, error: null, failure: null };
+}
+
+/** True when the signed-in reader may see Volza customs figures (0142); false for anyone else, or on any failure. */
+export async function fetchExportsEntitled(supabase: RpcClient): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc("volza_reader_entitled");
+    return !error && data === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The search narrowed to suppliers with a customs record, with their figures (0142). Read with the
+ * reader's own session, never through the shared search cache: the database answers only an entitled
+ * reader, and the cache is keyed by the URL alone.
+ */
+export async function fetchDiscoverExports(
+  supabase: RpcClient,
+  state: DiscoverState,
+): Promise<{ rows: DiscoverV32Row[]; total: number | null; error: string | null; failure: DiscoverFailure | null }> {
+  const smart = resolveDiscoverSmartQuery(state.q, "");
+  const args = {
+    ...discoverRpcArgs(state, { rpcQ: smart.rpcQ || null }),
+    p_sort: exportsSort(state),
+    p_exports_min: state.exportsMin != null ? state.exportsMin * 1_000_000 : null,
+    p_ships_to: state.ships ? SHIPS_TO[state.ships] : null,
+  };
+  const { data, error } = await supabase.rpc("discover_customs_exports", args);
+  if (error) {
+    return { rows: [], total: null, error: error.message ?? "discover_customs_exports failed", failure: discoverFailureKind(error) };
+  }
+  const rawRows = Array.isArray(data) ? data : [];
+  if (rawRows.some(discoverRowHasPii)) {
+    return { rows: [], total: null, error: "discover_customs_exports returned contact fields", failure: "unavailable" };
+  }
+  const parsed = rawRows.map(asRow).filter((r): r is DiscoverV32Row => r !== null);
+  const rows = await enrichDiscoverWorkers(supabase, parsed);
+  return { rows, total: parseTotalCount(rows), error: null, failure: null };
 }
 
 /** The cheap default ordering, for calls that want a count and not an order. */
