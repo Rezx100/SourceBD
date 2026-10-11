@@ -1,0 +1,128 @@
+Frame "Search · filters sheet · phone" (1QEB-0) 390×1207
+  Frame "Status bar" (1QEC-0) 390×62
+    Frame "Time" (1QED-0) 94×22
+      Text "9:41" (1QEE-0) 31×22 "9:41"
+    Frame "Icons" (1QEF-0) 94×22
+      SVG "SVG" (1QEG-0) 82×22
+        SVGVisualElement "Path" (1QEH-0) 19×12
+        SVGVisualElement "Path" (1QEI-0) 17×12
+        SVGVisualElement "Path" (1QEJ-0) 25×13
+        SVGVisualElement "Path" (1QEK-0) 21×9
+        SVGVisualElement "Path" (1QEL-0) 1×4
+  Frame "Sheet" (1QEM-0) 390×1145
+    Frame "Grabber" (1QEN-0) 390×12
+      Rectangle "Rectangle" (1QEO-0) 36×4
+    Frame "Head" (1QEP-0) 390×61
+      Frame "Frame" (1QEQ-0) 223×30
+        Text "Filters" (1QER-0) 69×30 "Filters"
+        Text "4" (1QES-0) 15×30 "4"
+      Frame "Frame" (1QET-0) 71×20
+        Text "Clear all" (1QEU-0) 55×20 "Clear all"
+      Frame "Close" (1QEV-0) 36×36
+        SVG "SVG" (1QEW-0) 17×17
+          SVGVisualElement "Path" (1QEX-0) 10×10
+    Frame "Groups" (1QEY-0) 390×985
+      Frame "Group · Ships to" (1QF0-0) 350×131
+        Frame "Frame" (1QF1-0) 350×42
+          Text "Ships to" (1QF2-0) 350×22 "Ships to"
+          Text "From customs records…" (1QF3-0) 350×18 "From customs records, Sep 2024 – Aug 2026"
+        Frame "Chips" (1QF4-0) 350×36
+          Frame "Chip · UK (on)" (1QF5-0) 65×36
+            SVG "SVG" (1QF6-0) 16×16
+              SVGVisualElement "Path" (1QF7-0) 12×9
+            Text "UK" (1QF8-0) 19×20 "UK"
+          Frame "Chip · EU" (1QF9-0) 49×36
+            Text "EU" (1QFA-0) 19×20 "EU"
+          Frame "Chip · US" (1QFB-0) 49×36
+            Text "US" (1QFC-0) 19×20 "US"
+          Frame "Chip · Canada" (1QFD-0) 80×36
+            Text "Canada" (1QFE-0) 50×20 "Canada"
+      Frame "Group · Exports" (1QFG-0) 350×199
+        Frame "Frame" (1QFH-0) 350×42
+          Text "Exported in 2 years" (1QFI-0) 350×22 "Exported in 2 years"
+          Text "Total value of its s…" (1QFJ-0) 350×18 "Total value of its shipments, in US dollars"
+        Frame "Chips" (1QFK-0) 350×36
+          Frame "Chip · Any (on)" (1QFL-0) 71×36
+            SVG "SVG" (1QFM-0) 16×16
+              SVGVisualElement "Path" (1QFN-0) 12×9
+            Text "Any" (1QFO-0) 25×20 "Any"
+          Frame "Frame" (1QFP-0) 66×36
+            Text "$1M+" (1QFQ-0) 36×20 "$1M+"
+          Frame "Frame" (1QFR-0) 75×36
+            Text "$10M+" (1QFS-0) 45×20 "$10M+"
+          Frame "Frame" (1QFT-0) 78×36
+            Text "$50M+" (1QFU-0) 48×20 "$50M+"
+        Frame "Coverage note" (1QFV-0) 350×56
+          SVG "SVG" (1QFW-0) 16×16
+            SVGVisualElement "Path" (1QFX-0) 13×13
+          Text "We have customs reco…" (1QFY-0) 302×36 "We have customs records for 114 suppliers so far. A size or "
+      Frame "Group · Certificates" (1QG0-0) 350×187
+        Frame "Frame" (1QG1-0) 350×42
+          Text "Certificates" (1QG2-0) 350×22 "Certificates"
+          Text "Checked with each is…" (1QG3-0) 350×18 "Checked with each issuer’s own list"
+        Frame "Chips" (1QG4-0) 350×36
+          Frame "Chip · GOTS (on)" (1QG5-0) 83×36
+            SVG "SVG" (1QG6-0) 16×16
+              SVGVisualElement "Path" (1QG7-0) 12×9
+            Text "GOTS" (1QG8-0) 37×20 "GOTS"
+          Frame "Frame" (1QG9-0) 72×36
+            Text "WRAP" (1QGA-0) 42×20 "WRAP"
+          Frame "Frame" (1QGB-0) 99×36
+            Text "OEKO-TEX" (1QGC-0) 69×20 "OEKO-TEX"
+        Frame "Toggle · still valid" (1QGD-0) 350×44
+          Frame "Frame" (1QGE-0) 294×42
+            Text "Valid for 30 more da…" (1QGF-0) 294×22 "Valid for 30 more days or longer"
+            Text "Leaves out ones that…" (1QGG-0) 294×18 "Leaves out ones that expired or end soon"
+          Frame "Switch (on)" (1QGH-0) 44×26
+            Rectangle "Rectangle" (1QGI-0) 20×20
+      Frame "Group · Safety" (1QGK-0) 350×171
+        Frame "Frame" (1QGL-0) 350×26
+          Text "Factory safety" (1QGM-0) 350×22 "Factory safety"
+        Frame "Toggle · RSC" (1QGN-0) 350×52
+          Frame "Frame" (1QGO-0) 294×42
+            Text "Inspected by RSC" (1QGP-0) 294×22 "Inspected by RSC"
+            Text "Building and fire sa…" (1QGQ-0) 294×18 "Building and fire safety programme"
+          Frame "Switch (off)" (1QGR-0) 44×26
+            Rectangle "Rectangle" (1QGS-0) 20×20
+        Frame "Toggle · on schedule" (1QGT-0) 350×52
+          Frame "Frame" (1QGU-0) 294×42
+            Text "Repairs on schedule" (1QGV-0) 294×22 "Repairs on schedule"
+            Text "Every building, as R…" (1QGW-0) 294×18 "Every building, as RSC last reported"
+          Frame "Switch (off)" (1QGX-0) 44×26
+            Rectangle "Rectangle" (1QGY-0) 20×20
+      Frame "Group · Location" (1QH0-0) 350×155
+        Text "Location" (1QH1-0) 350×22 "Location"
+        Frame "Chips" (1QH2-0) 350×80
+          Frame "Frame" (1QH3-0) 72×36
+            Text "Dhaka" (1QH4-0) 42×20 "Dhaka"
+          Frame "Frame" (1QH5-0) 82×36
+            Text "Gazipur" (1QH6-0) 52×20 "Gazipur"
+          Frame "Frame" (1QH7-0) 113×36
+            Text "Narayanganj" (1QH8-0) 83×20 "Narayanganj"
+          Frame "Frame" (1QH9-0) 108×36
+            Text "Chattogram" (1QHA-0) 78×20 "Chattogram"
+          Frame "Frame" (1QHB-0) 76×36
+            Text "More" (1QHC-0) 34×20 "More"
+            SVG "SVG" (1QHD-0) 14×14
+              SVGVisualElement "Path" (1QHE-0) 9×5
+      Frame "Group · Sanctions" (1QHG-0) 350×142
+        Frame "Frame" (1QHH-0) 350×26
+          Text "Sanctions" (1QHI-0) 350×22 "Sanctions"
+        Frame "Toggle · hide listed" (1QHJ-0) 350×52
+          Frame "Frame" (1QHK-0) 294×42
+            Text "Hide suppliers on a …" (1QHL-0) 294×22 "Hide suppliers on a sanctions list"
+            Text "UK, EU and US lists …" (1QHM-0) 294×18 "UK, EU and US lists read 6 to 11 Oct"
+          Frame "Switch (on)" (1QHN-0) 44×26
+            Rectangle "Rectangle" (1QHO-0) 20×20
+        Frame "Frame" (1QHP-0) 350×16
+          SVG "SVG" (1QHQ-0) 14×14
+            SVGVisualElement "Path" (1QHR-0) 11×11
+          Text "The US forced-labour…" (1QHS-0) 270×16 "The US forced-labour list (UFLPA) is not read yet"
+    Frame "Action bar" (1QHU-0) 390×87
+      Frame "Frame" (1QHV-0) 390×64
+        Frame "Clear" (1QHW-0) 79×48
+          Text "Clear" (1QHX-0) 41×20 "Clear"
+        Frame "Show results" (1QHY-0) 271×48
+          Text "Show 2 suppliers" (1QHZ-0) 129×20 "Show 2 suppliers"
+      Frame "Frame" (1QI0-0) 390×22
+        Rectangle "Rectangle" (1QI1-0) 134×5

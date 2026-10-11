@@ -1,0 +1,60 @@
+Frame "State · empty · no customs records (Friends Knitwear) · phone" (1NL6-0) 390×844
+  Frame "Status bar" (1NL7-0) ?×?
+    Frame "Time" (1NL8-0) ?×?
+      Text "9:41" (1NL9-0) ?×? "9:41"
+    Frame "Icons" (1NLA-0) ?×?
+      SVG "SVG" (1NLB-0) ?×?
+        SVGVisualElement "Path" (1NLC-0) ?×?
+        SVGVisualElement "Path" (1NLD-0) ?×?
+        SVGVisualElement "Path" (1NLE-0) ?×?
+        SVGVisualElement "Path" (1NLF-0) ?×?
+        SVGVisualElement "Path" (1NLG-0) ?×?
+  Frame "Compact head · Friends" (1NLH-0) ?×?
+    Frame "Head" (1OP0-0) ?×?
+      Frame "Bar" (1OP1-0) ?×?
+        Text "Name" (1OP2-0) ?×? "Friends Knitwear & Accessories Ltd."
+        Frame "Actions" (1OP3-0) ?×?
+          Frame "Share" (1OP4-0) 36×36
+            SVG "SVG" (1OP5-0) ?×?
+              SVGVisualElement "Path" (1OP6-0) ?×?
+          Frame "Close" (1OP7-0) 36×36
+            SVG "SVG" (1OP8-0) ?×?
+              SVGVisualElement "Path" (1OP9-0) ?×?
+      Frame "Status strip" (1OPA-0) ?×30
+        Frame "Status · Safety" (1OPB-0) ?×?
+          SVG "SVG" (1OPC-0) ?×?
+            SVGVisualElement "Path" (1OPD-0) ?×?
+          Text "Not in RSC" (1OPE-0) ?×? "Not in RSC"
+        Rectangle "Rectangle" (1OPF-0) 1×14
+        Frame "Status · Sanctions" (1OPL-0) ?×?
+          SVG "SVG" (1OPM-0) ?×?
+            SVGVisualElement "Path" (1OPN-0) ?×?
+          Text "Not listed" (1OPO-0) ?×? "Not listed"
+    Frame "Tabs" (1NLZ-0) ?×48
+      Frame "Frame" (1NM0-0) ?×?
+        Text "Overview" (1NM1-0) ?×? "Overview"
+      Frame "Tab · Exports (current)" (1NM2-0) ?×?
+        Text "Exports" (1NM3-0) ?×? "Exports"
+        Rectangle "Rectangle" (1NM4-0) ?×2
+      Frame "Frame" (1NM5-0) ?×?
+        Text "Certificates" (1NM6-0) ?×? "Certificates"
+      Frame "Frame" (1NM7-0) ?×?
+        Text "Safety" (1NM8-0) ?×? "Safety"
+      Frame "Frame" (1NM9-0) ?×?
+        Text "Sites" (1NMA-0) ?×? "Sites"
+  Frame "Empty · exports" (1NMB-0) ?×?
+    Frame "Frame" (1NMC-0) 56×56
+      SVG "SVG" (1NMD-0) ?×?
+        SVGVisualElement "Path" (1NME-0) ?×?
+    Text "No customs export re…" (1NMF-0) ?×? "No customs export records"
+    Text "We found no shipment…" (1NMG-0) ?×? "We found no shipments under this company’s name between Sep "
+    Text "Customs records · ch…" (1NMH-0) ?×? "Customs records · checked 11 Oct"
+    Frame "Next step" (1NMI-0) ?×?
+      Text "Registered as an exp…" (1NMJ-0) ?×? "Registered as an exporter with EPB"
+      Text "Ask for its export h…" (1NMK-0) ?×? "Ask for its export history in your RFQ."
+  Frame "Action bar" (1NML-0) ?×64
+    Frame "Frame" (1NMM-0) 48×48
+      SVG "SVG" (1NMN-0) ?×?
+        SVGVisualElement "Path" (1NMO-0) ?×?
+    Frame "Frame" (1NMP-0) ?×48
+      Text "Send RFQ" (1NMQ-0) ?×? "Send RFQ"

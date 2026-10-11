@@ -1,0 +1,113 @@
+Frame "Many buildings · Liberty Knitwear · overview top · phone" (1OQP-0) 390×?
+  Frame "Status bar" (1OXX-0) ?×?
+    Frame "Time" (1OY5-0) ?×?
+      Text "9:41" (1OY6-0) ?×? "9:41"
+    Frame "Icons" (1OXY-0) ?×?
+      SVG "SVG" (1OXZ-0) ?×?
+        SVGVisualElement "Path" (1OY4-0) ?×?
+        SVGVisualElement "Path" (1OY3-0) ?×?
+        SVGVisualElement "Path" (1OY2-0) ?×?
+        SVGVisualElement "Path" (1OY1-0) ?×?
+        SVGVisualElement "Path" (1OY0-0) ?×?
+  Frame "Sheet" (1OQQ-0) ?×?
+    Frame "Bar" (1OXP-0) ?×56
+      Frame "Share" (1OXU-0) 36×36
+        SVG "SVG" (1OXV-0) ?×?
+          SVGVisualElement "Path" (1OXW-0) ?×?
+      Frame "Close" (1OXR-0) 36×36
+        SVG "SVG" (1OXS-0) ?×?
+          SVGVisualElement "Path" (1OXT-0) ?×?
+      Frame "Grabber" (1OXQ-0) 36×4
+    Frame "Head" (1OWM-0) ?×?
+      Text "Name" (1OXO-0) ?×? "Liberty Knitwear Ltd"
+      Frame "Identity" (1OXF-0) ?×?
+        Frame "Frame" (1OXK-0) ?×?
+          SVG "SVG" (1OXM-0) ?×?
+            SVGVisualElement "Path" (1OXN-0) ?×?
+          Text "Knit composite facto…" (1OXL-0) ?×? "Knit composite factory"
+        Frame "Frame" (1OXG-0) ?×?
+          SVG "SVG" (1OXI-0) ?×?
+            SVGVisualElement "Path" (1OXJ-0) ?×?
+          Text "Fatullah, Narayangan…" (1OXH-0) ?×? "Fatullah, Narayanganj · Kaliakoir, Gazipur"
+      Frame "Status ledger" (1OWN-0) ?×?
+        Frame "Status · Safety" (1OX6-0) ?×?
+          SVG "SVG" (1OXD-0) ?×?
+            SVGVisualElement "Path" (1OXE-0) ?×?
+          Text "Safety" (1OXC-0) 96×? "Safety"
+          Frame "Value" (1OX9-0) ?×?
+            Text "Behind schedule" (1OXB-0) ?×? "Behind schedule"
+            Text "worst of 6 buildings" (1OXA-0) ?×? "worst of 6 buildings"
+          SVG "SVG" (1OX7-0) ?×?
+            SVGVisualElement "Path" (1OX8-0) ?×?
+        Frame "Status · Certificates" (1OWX-0) ?×?
+          SVG "SVG" (1OX4-0) ?×?
+            SVGVisualElement "Path" (1OX5-0) ?×?
+          Text "Certificates" (1OX3-0) 96×? "Certificates"
+          Frame "Value" (1OX0-0) ?×?
+            Text "Listed, no end dates" (1OX2-0) ?×? "Listed, no end dates"
+            Text "5 OEKO-TEX listings" (1OX1-0) ?×? "5 OEKO-TEX listings"
+          SVG "SVG" (1OWY-0) ?×?
+            SVGVisualElement "Path" (1OWZ-0) ?×?
+        Frame "Status · Sanctions" (1OWO-0) ?×?
+          SVG "SVG" (1OWV-0) ?×?
+            SVGVisualElement "Path" (1OWW-0) ?×?
+          Text "Sanctions" (1OWU-0) 96×? "Sanctions"
+          Frame "Value" (1OWR-0) ?×?
+            Text "Not listed" (1OWT-0) ?×? "Not listed"
+            Text "lists read 6 Oct" (1OWS-0) ?×? "lists read 6 Oct"
+          SVG "SVG" (1OWP-0) ?×?
+            SVGVisualElement "Path" (1OWQ-0) ?×?
+    Frame "Tabs" (1OW7-0) ?×48
+      Frame "Tab · Overview (current)" (1OWJ-0) ?×?
+        Text "Overview" (1OWL-0) ?×? "Overview"
+        Frame "Indicator" (1OWK-0) ?×2
+      Frame "Tab · Exports" (1OWH-0) ?×?
+        Text "Exports" (1OWI-0) ?×? "Exports"
+      Frame "Tab · Certificates" (1OWE-0) ?×?
+        Text "Certificates" (1OWG-0) ?×? "Certificates"
+      Frame "Tab · Safety" (1OWB-0) ?×?
+        Text "Safety" (1OWD-0) ?×? "Safety"
+      Frame "Tab · Sites" (1OW8-0) ?×?
+        Text "Sites" (1OWA-0) ?×? "Sites"
+        Text "2" (1OW9-0) ?×? "2"
+    Frame "Needs a look" (1OTC-0) ?×?
+      Frame "Section head" (1OUL-0) ?×?
+        Frame "Frame" (1OUN-0) ?×?
+          Text "Needs a look" (1OUP-0) ?×? "Needs a look"
+          Text "2" (1OUO-0) ?×? "2"
+        Text "Worst first" (1OUM-0) ?×? "Worst first"
+      Frame "Items" (1OTD-0) ?×?
+        Frame "Item · Safety" (1OU4-0) ?×?
+          Frame "Tag" (1OUE-0) ?×?
+            Frame "Frame" (1OUH-0) ?×?
+              SVG "SVG" (1OUJ-0) ?×?
+                SVGVisualElement "Path" (1OUK-0) ?×?
+              Text "Safety · 4 of 6 buil…" (1OUI-0) ?×? "Safety · 4 of 6 buildings"
+            SVG "SVG" (1OUF-0) ?×?
+              SVGVisualElement "Path" (1OUG-0) ?×?
+          Text "Four buildings are b…" (1OUD-0) ?×? "Four buildings are behind on repairs"
+          Frame "Meter" (1OU7-0) ?×?
+            Frame "Frame" (1OUA-0) ?×?
+              Text "Worst: Unit-2 · Exte…" (1OUC-0) ?×? "Worst: Unit-2 · Extension 3"
+              Text "52%" (1OUB-0) ?×? "52%"
+            Frame "Frame" (1OU8-0) ?×6
+              Rectangle "Rectangle" (1OU9-0) ?×?
+          Text "Safety training has …" (1OU6-0) ?×? "Safety training has not started in any of the four."
+          Text "Read 2 Oct" (1OU5-0) ?×? "Read 2 Oct"
+        Frame "Item · Sanctions" (1OTE-0) ?×?
+          Frame "Tag" (1OTI-0) ?×?
+            Frame "Frame" (1OTL-0) ?×?
+              SVG "SVG" (1OTN-0) ?×?
+                SVGVisualElement "Path" (1OTO-0) ?×?
+              Text "Sanctions · freshnes…" (1OTM-0) ?×? "Sanctions · freshness"
+            SVG "SVG" (1OTJ-0) ?×?
+              SVGVisualElement "Path" (1OTK-0) ?×?
+          Text "The sanctions check …" (1OTH-0) ?×? "The sanctions check is 5 days old"
+          Text "Not listed when the …" (1OTG-0) ?×? "Not listed when the UK and EU lists were last read on 6 Oct."
+          Text "OFSI, EU, OFAC, ILAB…" (1OTF-0) ?×? "OFSI, EU, OFAC, ILAB · 6 to 11 Oct"
+    Frame "Action bar" (1OQR-0) ?×64
+      Frame "Save" (1OQU-0) 48×48
+        SVG "SVG" (1OQV-0) ?×?
+          SVGVisualElement "Path" (1OQW-0) ?×?
+      Frame "Send RFQ" (1OQS-0) ?×48
+        Text "Send RFQ" (1OQT-0) ?×? "Send RFQ"

@@ -1,0 +1,94 @@
+Frame "Compliance · UFLPA checks · no link found · phone" (1QQZ-0) 390×1019
+  Frame "Status bar" (1QR0-0) 390×62
+    Frame "Time" (1QR1-0) 94×22
+      Text "9:41" (1QR2-0) 31×22 "9:41"
+    Frame "Icons" (1QR3-0) 94×22
+      SVG "SVG" (1QR4-0) 82×22
+        SVGVisualElement "Path" (1QR5-0) 19×12
+        SVGVisualElement "Path" (1QR6-0) 17×12
+        SVGVisualElement "Path" (1QR7-0) 25×13
+        SVGVisualElement "Path" (1QR8-0) 21×9
+        SVGVisualElement "Path" (1QR9-0) 1×4
+  Frame "Compact head" (1QRA-0) 390×64
+    Frame "Back" (1QRB-0) 36×36
+      SVG "SVG" (1QRC-0) 17×17
+        SVGVisualElement "Path" (1QRD-0) 12×10
+    Frame "Frame" (1QRE-0) 310×48
+      Text "UFLPA checks" (1QRF-0) 310×30 "UFLPA checks"
+      Text "11 saved suppliers a…" (1QRG-0) 310×18 "11 saved suppliers against the US forced-labour list"
+  Frame "Body" (1QRH-0) 390×893
+    Frame "Summary" (1QRI-0) 350×172
+      Text "Each saved supplier …" (1QRJ-0) 350×88 "Each saved supplier is matched against the UFLPA Entity List"
+      Frame "Frame" (1QRK-0) 350×16
+        SVG "SVG" (1QRL-0) 14×14
+          SVGVisualElement "Path" (1QRM-0) 11×11
+        Text "Read 8 Oct. Entries …" (1QRN-0) 275×16 "Read 8 Oct. Entries added since are not checked."
+      Frame "Frame" (1QRO-0) 208×44
+        SVG "SVG" (1QRP-0) 16×16
+          SVGVisualElement "Path" (1QRQ-0) 13×13
+        Text "Open the list on dhs…" (1QRR-0) 158×20 "Open the list on dhs.gov"
+    Frame "Result" (1QRT-0) 350×250
+      Frame "Section head" (1QRU-0) 350×66
+        Text "Result" (1QRV-0) 59×28 "Result"
+        Text "Worst first" (1QRW-0) 62×18 "Worst first"
+      Frame "Frame" (1QRX-0) 350×184
+        Frame "Frame" (1QRY-0) 348×60
+          SVG "SVG" (1QRZ-0) 18×18
+            SVGVisualElement "Path" (1QS0-0) 14×14
+          Frame "Frame" (1QS1-0) 263×36
+            Text "On the UFLPA Entity …" (1QS2-0) 263×20 "On the UFLPA Entity List"
+            Text "You can’t send them …" (1QS3-0) 263×16 "You can’t send them an RFQ"
+          Text "0" (1QS4-0) 15×32 "0"
+        Frame "Frame" (1QS5-0) 348×61
+          SVG "SVG" (1QS6-0) 18×18
+            SVGVisualElement "Path" (1QS7-0) 15×14
+          Frame "Frame" (1QS8-0) 263×36
+            Text "Possible Xinjiang li…" (1QS9-0) 263×20 "Possible Xinjiang link"
+            Text "Record mentions Xinj…" (1QSA-0) 263×16 "Record mentions Xinjiang, XUAR or Uyghur"
+          Text "0" (1QSB-0) 15×32 "0"
+        Frame "Frame" (1QSC-0) 348×61
+          SVG "SVG" (1QSD-0) 18×18
+            SVGVisualElement "Path" (1QSE-0) 15×13
+          Frame "Frame" (1QSF-0) 248×36
+            Text "No link found" (1QSG-0) 248×20 "No link found"
+            Text "Not a clearance; kee…" (1QSH-0) 248×16 "Not a clearance; keep your due diligence"
+          Text "11" (1QSI-0) 30×32 "11"
+    Frame "Suppliers" (1QSK-0) 350×359
+      Frame "Section head" (1QSL-0) 350×66
+        Frame "Frame" (1QSM-0) 110×28
+          Text "Suppliers" (1QSN-0) 87×28 "Suppliers"
+          Text "11" (1QSO-0) 15×28 "11"
+        Text "A to Z" (1QSP-0) 35×18 "A to Z"
+      Frame "List" (1QSQ-0) 350×293
+        Frame "Row" (1QSR-0) 348×60
+          Frame "Frame" (1QSS-0) 224×40
+            Text "Aboni Knitwear Ltd." (1QST-0) 224×22 "Aboni Knitwear Ltd."
+            Text "Dhaka" (1QSU-0) 224×18 "Dhaka"
+          Text "No link found" (1QSV-0) 80×18 "No link found"
+        Frame "Row" (1QSW-0) 348×61
+          Frame "Frame" (1QSX-0) 224×40
+            Text "Aswad Composite Mill…" (1QSY-0) 224×22 "Aswad Composite Mills Ltd."
+            Text "Gazipur" (1QSZ-0) 224×18 "Gazipur"
+          Text "No link found" (1QT0-0) 80×18 "No link found"
+        Frame "Row" (1QT1-0) 348×61
+          Frame "Frame" (1QT2-0) 224×40
+            Text "Fabrica Knit Composi…" (1QT3-0) 224×22 "Fabrica Knit Composite Ltd"
+            Text "Dhaka" (1QT4-0) 224×18 "Dhaka"
+          Text "No link found" (1QT5-0) 80×18 "No link found"
+        Frame "Row" (1QT6-0) 348×61
+          Frame "Frame" (1QT7-0) 224×40
+            Text "Fariha Knit Tex Ltd." (1QT8-0) 224×22 "Fariha Knit Tex Ltd."
+            Text "Narayanganj" (1QT9-0) 224×18 "Narayanganj"
+          Text "No link found" (1QTA-0) 80×18 "No link found"
+        Frame "More" (1QTB-0) 348×48
+          Text "7 more, all no link …" (1QTC-0) 141×18 "7 more, all no link found"
+          SVG "SVG" (1QTD-0) 16×16
+            SVGVisualElement "Path" (1QTE-0) 11×6
+    Frame "Notes" (1QTF-0) 350×56
+      Frame "Frame" (1QTG-0) 350×16
+        SVG "SVG" (1QTH-0) 14×14
+          SVGVisualElement "Path" (1QTI-0) 9×11
+        Text "UFLPA Entity List, U…" (1QTJ-0) 281×16 "UFLPA Entity List, US DHS · 253 entries · read 8 Oct"
+      Frame "Frame" (1QTK-0) 350×16
+        Rectangle "Rectangle" (1QTL-0) 14×1
+        Text "Sample saved list; t…" (1QTM-0) 229×16 "Sample saved list; the match result is real"

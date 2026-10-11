@@ -1,0 +1,83 @@
+Frame "Products · list · all · Sample state · phone" (1R6J-0) 390×843
+  Frame "Status bar" (1R6K-0) 390×62
+    Frame "Time" (1R6L-0) 94×22
+      Text "9:41" (1R6M-0) 31×22 "9:41"
+    Frame "Icons" (1R6N-0) 94×22
+      SVG "SVG" (1R6O-0) 82×22
+        SVGVisualElement "Path" (1R6P-0) 19×12
+        SVGVisualElement "Path" (1R6Q-0) 17×12
+        SVGVisualElement "Path" (1R6R-0) 25×13
+        SVGVisualElement "Path" (1R6S-0) 21×9
+        SVGVisualElement "Path" (1R6T-0) 1×4
+  Frame "Compact head" (1R6U-0) 390×64
+    Frame "Back" (1R6V-0) 36×36
+      SVG "SVG" (1R6W-0) 17×17
+        SVGVisualElement "Path" (1R6X-0) 12×10
+    Frame "Frame" (1R6Y-0) 262×48
+      Text "Products" (1R6Z-0) 262×30 "Products"
+      Text "4 products · only yo…" (1R70-0) 262×18 "4 products · only you see these"
+    Frame "Add product" (1R71-0) 36×36
+      SVG "SVG" (1R72-0) 17×17
+        SVGVisualElement "Path" (1R73-0) 12×12
+  Frame "Body" (1R74-0) 390×717
+    Frame "Status chips" (1R75-0) 350×36
+      Frame "Frame" (1R76-0) 74×36
+        SVG "SVG" (1R77-0) 16×16
+          SVGVisualElement "Path" (1R78-0) 12×9
+        Text "All 4" (1R79-0) 30×20 "All 4"
+      Frame "Frame" (1R7A-0) 80×36
+        Text "Active 2" (1R7B-0) 54×20 "Active 2"
+      Frame "Frame" (1R7C-0) 69×36
+        Text "Draft 1" (1R7D-0) 43×20 "Draft 1"
+      Frame "Frame" (1R7E-0) 93×36
+        Text "Archived 1" (1R7F-0) 67×20 "Archived 1"
+    Frame "Product list" (1R7G-0) 350×541
+      Frame "Product" (1R7H-0) 348×134
+        Frame "Frame" (1R7I-0) 316×16
+          SVG "SVG" (1R7J-0) 16×16
+            SVGVisualElement "Path" (1R7K-0) 13×13
+          Text "Active" (1R7L-0) 36×16 "Active"
+          Text "· NW-701" (1R7M-0) 230×16 "· NW-701"
+          SVG "SVG" (1R7N-0) 16×16
+            SVGVisualElement "Path" (1R7O-0) 6×11
+        Text "Women’s knitted dres…" (1R7P-0) 316×22 "Women’s knitted dresses"
+        Text "US$4.20 per piece · …" (1R7Q-0) 316×18 "US$4.20 per piece · MOQ 3,000 pieces"
+        Text "Updated 2 Oct · in 1…" (1R7R-0) 316×16 "Updated 2 Oct · in 1 order"
+      Frame "Product" (1R7T-0) 348×135
+        Frame "Frame" (1R7X-0) 316×16
+          SVG "SVG" (1R82-0) 16×16
+            SVGVisualElement "Path" (1R83-0) 13×13
+          Text "Active" (1R81-0) 36×16 "Active"
+          Text "· FT-114" (1R80-0) 230×16 "· FT-114"
+          SVG "SVG" (1R7Y-0) 16×16
+            SVGVisualElement "Path" (1R7Z-0) 6×11
+        Text "French terry hoodie" (1R7W-0) 316×22 "French terry hoodie"
+        Text "US$7.80 per piece · …" (1R7V-0) 316×18 "US$7.80 per piece · MOQ 1,200 pieces"
+        Text "Updated 26 Sep · in …" (1R7U-0) 316×16 "Updated 26 Sep · in 1 RFQ"
+      Frame "Product" (1R84-0) 348×135
+        Frame "Frame" (1R88-0) 316×16
+          SVG "SVG" (1R8F-0) 16×16
+            SVGVisualElement "Path" (1R8G-0) 12×12
+          Text "Draft" (1R8C-0) 29×16 "Draft"
+          Text "· TS-020" (1R8B-0) 237×16 "· TS-020"
+          SVG "SVG" (1R89-0) 16×16
+            SVGVisualElement "Path" (1R8A-0) 6×11
+        Text "Basic crew T-shirt" (1R87-0) 316×22 "Basic crew T-shirt"
+        Text "No price yet · MOQ 5…" (1R86-0) 316×18 "No price yet · MOQ 5,000 pieces"
+        Text "Updated 9 Oct · make…" (1R85-0) 316×16 "Updated 9 Oct · make it active to send an RFQ"
+      Frame "Product" (1R8O-0) 348×135
+        Frame "Frame" (1R8S-0) 316×16
+          SVG "SVG" (1R8Z-0) 16×16
+            SVGVisualElement "Path" (1R90-0) 13×14
+          Text "Archived" (1R8W-0) 50×16 "Archived"
+          Text "· SS-24-09" (1R8V-0) 216×16 "· SS-24-09"
+          SVG "SVG" (1R8T-0) 16×16
+            SVGVisualElement "Path" (1R8U-0) 6×11
+        Text "Summer polo, last se…" (1R8R-0) 316×22 "Summer polo, last season"
+        Text "US$3.10 per piece · …" (1R8Q-0) 316×18 "US$3.10 per piece · MOQ 2,000 pieces"
+        Text "Archived 14 Aug · re…" (1R8P-0) 316×16 "Archived 14 Aug · restore it to use it again"
+    Frame "Notes" (1R8I-0) 350×56
+      Text "Every RFQ from a pro…" (1R8J-0) 350×32 "Every RFQ from a product carries its size chart, materials a"
+      Frame "Frame" (1R8K-0) 350×16
+        Rectangle "Rectangle" (1R8L-0) 14×1
+        Text "Sample products; nob…" (1R8M-0) 243×16 "Sample products; nobody has saved one yet"

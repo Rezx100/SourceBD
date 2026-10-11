@@ -1,0 +1,95 @@
+Frame "HS codes · chapter 61 open · phone" (1REZ-0) 390×860
+  Frame "Status bar" (1RF0-0) 390×62
+    Frame "Time" (1RF1-0) 94×22
+      Text "9:41" (1RF2-0) 31×22 "9:41"
+    Frame "Icons" (1RF3-0) 94×22
+      SVG "SVG" (1RF4-0) 82×22
+        SVGVisualElement "Path" (1RF5-0) 19×12
+        SVGVisualElement "Path" (1RF6-0) 17×12
+        SVGVisualElement "Path" (1RF7-0) 25×13
+        SVGVisualElement "Path" (1RF8-0) 21×9
+        SVGVisualElement "Path" (1RF9-0) 1×4
+  Frame "Compact head" (1RFA-0) 390×64
+    Frame "Back" (1RFB-0) 36×36
+      SVG "SVG" (1RFC-0) 17×17
+        SVGVisualElement "Path" (1RFD-0) 12×10
+    Frame "Frame" (1RFE-0) 310×48
+      Text "HS codes" (1RFF-0) 310×30 "HS codes"
+      Text "210 headings in 46 c…" (1RFG-0) 310×18 "210 headings in 46 chapters"
+  Frame "Body" (1RFH-0) 390×734
+    Frame "Search" (1RFI-0) 350×48
+      SVG "SVG" (1RFJ-0) 18×18
+        SVGVisualElement "Path" (1RFK-0) 14×14
+      Text "Search by code (6109…" (1RFL-0) 225×22 "Search by code (6109) or name"
+    Frame "Chapters" (1RFM-0) 350×562
+      Frame "Chapter 61 (open)" (1RFN-0) 348×332
+        Frame "Frame" (1RFO-0) 348×60
+          Text "61" (1RFP-0) 32×22 "61"
+          Frame "Frame" (1RFQ-0) 244×40
+            Text "Knitted clothing" (1RFR-0) 244×22 "Knitted clothing"
+            Text "17 headings · most s…" (1RFS-0) 244×18 "17 headings · most suppliers first"
+          SVG "SVG" (1RFT-0) 16×16
+            SVGVisualElement "Path" (1RFU-0) 11×6
+        Frame "Frame" (1RG2-0) 348×56
+          Text "6104" (1RG3-0) 44×20 "6104"
+          Frame "Frame" (1RG4-0) 232×36
+            Text "Women’s suits, dress…" (1RG5-0) 232×20 "Women’s suits, dresses, skirts"
+            Text "1,802 suppliers" (1RG6-0) 232×16 "1,802 suppliers"
+          SVG "SVG" (1RG7-0) 16×16
+            SVGVisualElement "Path" (1RG8-0) 6×11
+        Frame "Frame" (1RG9-0) 348×56
+          Text "6110" (1RGA-0) 44×20 "6110"
+          Frame "Frame" (1RGB-0) 232×36
+            Text "Jerseys, pullovers, …" (1RGC-0) 232×20 "Jerseys, pullovers, cardigans"
+            Text "1,782 suppliers" (1RGD-0) 232×16 "1,782 suppliers"
+          SVG "SVG" (1RGE-0) 16×16
+            SVGVisualElement "Path" (1RGF-0) 6×11
+        Frame "Frame" (1RGG-0) 348×56
+          Text "6109" (1RGH-0) 44×20 "6109"
+          Frame "Frame" (1RGI-0) 232×36
+            Text "T-shirts, singlets a…" (1RGJ-0) 232×20 "T-shirts, singlets and vests"
+            Text "1,767 suppliers" (1RGK-0) 232×16 "1,767 suppliers"
+          SVG "SVG" (1RGL-0) 16×16
+            SVGVisualElement "Path" (1RGM-0) 6×11
+        Frame "Frame" (1RGN-0) 348×56
+          Text "6103" (1RGO-0) 44×20 "6103"
+          Frame "Frame" (1RGP-0) 232×36
+            Text "Men’s suits and trou…" (1RGQ-0) 232×20 "Men’s suits and trousers, knitted"
+            Text "1,714 suppliers" (1RGR-0) 232×16 "1,714 suppliers"
+          SVG "SVG" (1RGS-0) 16×16
+            SVGVisualElement "Path" (1RGT-0) 6×11
+        Frame "Frame" (1RGU-0) 348×48
+          Text "13 more headings in …" (1RGV-0) 134×18 "13 more headings in 61"
+          SVG "SVG" (1RGW-0) 16×16
+            SVGVisualElement "Path" (1RGX-0) 11×6
+      Frame "Frame" (1RGZ-0) 348×60
+        Text "62" (1RH0-0) 32×22 "62"
+        Frame "Frame" (1RH1-0) 244×40
+          Text "Woven clothing" (1RH2-0) 244×22 "Woven clothing"
+          Text "17 headings" (1RH3-0) 244×18 "17 headings"
+        SVG "SVG" (1RH4-0) 16×16
+          SVGVisualElement "Path" (1RH5-0) 11×6
+      Frame "Frame" (1RH6-0) 348×60
+        Text "52" (1RH7-0) 32×22 "52"
+        Frame "Frame" (1RH8-0) 244×40
+          Text "Cotton yarn and fabr…" (1RH9-0) 244×22 "Cotton yarn and fabric"
+          Text "12 headings" (1RHA-0) 244×18 "12 headings"
+        SVG "SVG" (1RHB-0) 16×16
+          SVGVisualElement "Path" (1RHC-0) 11×6
+      Frame "Frame" (1RHD-0) 348×60
+        Text "63" (1RHE-0) 32×22 "63"
+        Frame "Frame" (1RHF-0) 244×40
+          Text "Home textiles and ma…" (1RHG-0) 244×22 "Home textiles and made-ups"
+          Text "10 headings" (1RHH-0) 244×18 "10 headings"
+        SVG "SVG" (1RHI-0) 16×16
+          SVGVisualElement "Path" (1RHJ-0) 11×6
+      Frame "Frame" (1RHK-0) 348×48
+        Text "42 more chapters: tr…" (1RHL-0) 249×18 "42 more chapters: trims, packaging, other"
+        SVG "SVG" (1RHM-0) 16×16
+          SVGVisualElement "Path" (1RHN-0) 11×6
+    Frame "Notes" (1RFV-0) 350×40
+      Frame "Frame" (1RFW-0) 350×16
+        SVG "SVG" (1RFX-0) 14×14
+          SVGVisualElement "Path" (1RFY-0) 9×11
+        Text "From EPB exporter pa…" (1RFZ-0) 244×16 "From EPB exporter pages · read up to 14 Aug"
+      Text "Supplier counts leav…" (1RG0-0) 350×16 "Supplier counts leave out sanctioned suppliers, as search do"

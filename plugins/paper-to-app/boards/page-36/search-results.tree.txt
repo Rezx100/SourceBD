@@ -1,0 +1,175 @@
+Frame "Search · results · knit · phone" (1P55-0) 390×1035
+  Frame "Status bar" (1P56-0) 390×62
+    Frame "Time" (1P57-0) 94×22
+      Text "9:41" (1P58-0) 31×22 "9:41"
+    Frame "Icons" (1P59-0) 94×22
+      SVG "SVG" (1P5A-0) 82×22
+        SVGVisualElement "Path" (1P5B-0) 19×12
+        SVGVisualElement "Path" (1P5C-0) 17×12
+        SVGVisualElement "Path" (1P5D-0) 25×13
+        SVGVisualElement "Path" (1P5E-0) 21×9
+        SVGVisualElement "Path" (1P5F-0) 1×4
+  Frame "Body" (1P5G-0) 390×973
+    Frame "Search field" (1P5H-0) 350×52
+      SVG "SVG" (1P5I-0) 20×20
+        SVGVisualElement "Path" (1P5J-0) 16×16
+      Text "knit" (1P5K-0) 250×24 "knit"
+      Frame "Frame" (1P5L-0) 36×36
+        SVG "SVG" (1P5M-0) 18×18
+          SVGVisualElement "Path" (1P5N-0) 11×11
+    Frame "Result head" (1Q9I-0) 350×92
+      Frame "Controls" (1Q9J-0) 350×40
+        Frame "Filters · 1 on" (1QE5-0) 44×36
+          SVG "SVG" (1QE6-0) 18×18
+            SVGVisualElement "Path" (1QE7-0) 13×11
+          Frame "Count" (1QE8-0) 19×18
+            Text "1" (1QE9-0) 5×14 "1"
+        Frame "Quick filter · Ships to UK" (1QE0-0) 123×36
+          SVG "SVG" (1QE1-0) 16×16
+            SVGVisualElement "Path" (1QE2-0) 13×14
+          Text "Ships to UK" (1QE3-0) 77×20 "Ships to UK"
+        Frame "Frame" (1Q9O-0) 131×36
+          Text "Most exports" (1Q9P-0) 87×20 "Most exports"
+          SVG "SVG" (1Q9Q-0) 14×14
+            SVGVisualElement "Path" (1Q9R-0) 9×5
+      Frame "Section head" (1Q9S-0) 350×28
+        Frame "Frame" (1Q9T-0) 145×28
+          Text "4,645" (1Q9U-0) 53×28 "4,645"
+          Text "suppliers" (1Q9V-0) 84×28 "suppliers"
+        Frame "Frame" (1Q9W-0) 156×18
+          Text "Sanctioned hidden ·" (1Q9X-0) 117×18 "Sanctioned hidden ·"
+          Text "Show" (1Q9Y-0) 35×18 "Show"
+    Frame "Results" (1QA0-0) 350×649
+      Frame "Result · Fabrica" (1QA1-0) 350×129
+        Frame "Body" (1QA2-0) 298×96
+          Frame "Frame" (1QA3-0) 298×46
+            Text "Fabrica Knit Composi…" (1QA4-0) 298×26 "Fabrica Knit Composite Ltd"
+            Text "Dhaka · 9 sources" (1QA5-0) 298×18 "Dhaka · 9 sources"
+          Frame "Exports" (1QA6-0) 298×20
+            Frame "Frame" (1QA7-0) 298×20
+              Frame "Frame" (1QA8-0) 211×20
+                Text "US$209.8M" (1QA9-0) 78×20 "US$209.8M"
+                Text "exported in 2 years …" (1QAA-0) 129×20 "exported in 2 years ·"
+              Text "79% to EU" (1QAB-0) 67×20 "79% to EU"
+          Frame "Cert" (1QAE-0) 298×18
+            SVG "SVG" (1QAF-0) 14×14
+              SVGVisualElement "Path" (1QAG-0) 7×11
+            Text "GOTS expired 27 Jul" (1QAH-0) 123×18 "GOTS expired 27 Jul"
+            Text "· WRAP ends 22 Oct" (1QAI-0) 120×18 "· WRAP ends 22 Oct"
+        Frame "Save" (1QAJ-0) 40×26
+          SVG "SVG" (1QAK-0) 22×22
+            SVGVisualElement "Path" (1QAL-0) 12×17
+      Frame "Result · Fabrica" (1QAN-0) 350×129
+        Frame "Body" (1QAR-0) 298×96
+          Frame "Frame" (1QB5-0) 298×46
+            Text "Fariha Knit Tex Limi…" (1QB7-0) 298×26 "Fariha Knit Tex Limited"
+            Text "Narayanganj · 12 sou…" (1QB6-0) 298×18 "Narayanganj · 12 sources"
+          Frame "Exports" (1QAX-0) 298×20
+            Frame "Frame" (1QB0-0) 298×20
+              Frame "Frame" (1QB2-0) 211×20
+                Text "US$149.1M" (1QB4-0) 78×20 "US$149.1M"
+                Text "exported in 2 years …" (1QB3-0) 129×20 "exported in 2 years ·"
+              Text "69% to EU" (1QB1-0) 67×20 "69% to EU"
+          Frame "Cert" (1QAS-0) 298×18
+            SVG "SVG" (1QCZ-0) 14×14
+              SVGVisualElement "Path" (1QD0-0) 10×11
+            Text "No certificate ends …" (1QAU-0) 177×18 "No certificate ends in 30 days"
+            Text "· 6 listed" (1QAT-0) 50×18 "· 6 listed"
+        Frame "Save" (1QAO-0) 40×26
+          SVG "SVG" (1QAP-0) 22×22
+            SVGVisualElement "Path" (1QAQ-0) 12×17
+      Frame "Result · Fabrica" (1QB8-0) 350×129
+        Frame "Body" (1QBC-0) 298×96
+          Frame "Frame" (1QBQ-0) 298×46
+            Text "Aboni Knitwear Ltd." (1QBS-0) 298×26 "Aboni Knitwear Ltd."
+            Text "Dhaka · 14 sources" (1QBR-0) 298×18 "Dhaka · 14 sources"
+          Frame "Exports" (1QBI-0) 298×20
+            Frame "Frame" (1QBL-0) 298×20
+              Frame "Frame" (1QBN-0) 203×20
+                Text "US$97.6M" (1QBP-0) 70×20 "US$97.6M"
+                Text "exported in 2 years …" (1QBO-0) 129×20 "exported in 2 years ·"
+              Text "62% to EU" (1QBM-0) 67×20 "62% to EU"
+          Frame "Cert" (1QBD-0) 298×18
+            SVG "SVG" (1QD2-0) 14×14
+              SVGVisualElement "Path" (1QD3-0) 10×11
+            Text "No certificate ends …" (1QBF-0) 177×18 "No certificate ends in 30 days"
+            Text "· 4 listed" (1QBE-0) 50×18 "· 4 listed"
+        Frame "Save" (1QB9-0) 40×26
+          SVG "SVG" (1QBA-0) 22×22
+            SVGVisualElement "Path" (1QBB-0) 12×17
+      Frame "Result · Fabrica" (1QBT-0) 350×129
+        Frame "Body" (1QBX-0) 298×96
+          Frame "Frame" (1QCB-0) 298×46
+            Text "MG Knit Flair Ltd." (1QCD-0) 298×26 "MG Knit Flair Ltd."
+            Text "Dhaka · 4 sources" (1QCC-0) 298×18 "Dhaka · 4 sources"
+          Frame "Exports" (1QC3-0) 298×20
+            Frame "Frame" (1QC6-0) 298×20
+              Frame "Frame" (1QC8-0) 203×20
+                Text "US$11.5M" (1QCA-0) 70×20 "US$11.5M"
+                Text "exported in 2 years …" (1QC9-0) 129×20 "exported in 2 years ·"
+              Text "56% to EU" (1QC7-0) 67×20 "56% to EU"
+          Frame "Cert" (1QBY-0) 298×18
+            SVG "SVG" (1QC1-0) 14×14
+              SVGVisualElement "Path" (1QC2-0) 7×11
+            Text "GOTS expired 19 Jun" (1QC0-0) 125×18 "GOTS expired 19 Jun"
+            Text "· OEKO-TEX listed" (1QBZ-0) 105×18 "· OEKO-TEX listed"
+        Frame "Save" (1QBU-0) 40×26
+          SVG "SVG" (1QBV-0) 22×22
+            SVGVisualElement "Path" (1QBW-0) 12×17
+      Frame "Result · Fabrica" (1QCE-0) 350×129
+        Frame "Body" (1QCI-0) 298×96
+          Frame "Frame" (1QCW-0) 298×46
+            Text "Fine Tex Knitwears L…" (1QCY-0) 298×26 "Fine Tex Knitwears Ltd"
+            Text "Narayanganj · 5 sour…" (1QCX-0) 298×18 "Narayanganj · 5 sources"
+          Frame "Exports" (1QCO-0) 298×20
+            Frame "Frame" (1QCR-0) 298×20
+              Frame "Frame" (1QCT-0) 194×20
+                Text "US$8.0M" (1QCV-0) 61×20 "US$8.0M"
+                Text "exported in 2 years …" (1QCU-0) 129×20 "exported in 2 years ·"
+              Text "69% to EU" (1QCS-0) 67×20 "69% to EU"
+          Frame "Cert" (1QCJ-0) 298×18
+            SVG "SVG" (1QD5-0) 14×14
+              SVGVisualElement "Path" (1QD6-0) 11×11
+            Text "OEKO-TEX listed" (1QCL-0) 99×18 "OEKO-TEX listed"
+            Text "· no end date shown" (1QCK-0) 119×18 "· no end date shown"
+        Frame "Save" (1QCF-0) 40×26
+          SVG "SVG" (1QCG-0) 22×22
+            SVGVisualElement "Path" (1QCH-0) 12×17
+    Frame "Source line" (1QD8-0) 350×172
+      Frame "Frame" (1QD9-0) 350×16
+        SVG "SVG" (1QDA-0) 14×14
+          SVGVisualElement "Path" (1QDB-0) 9×11
+        Text "Customs records, Sep…" (1QDC-0) 308×16 "Customs records, Sep 2024 – Aug 2026 · read 10–11 Oct"
+      Frame "Frame" (1QDD-0) 350×16
+        SVG "SVG" (1QDE-0) 14×14
+          SVGVisualElement "Path" (1QDF-0) 11×11
+        Text "The records end 41 d…" (1QDG-0) 158×16 "The records end 41 days ago"
+      Frame "Frame" (1QDH-0) 350×16
+        SVG "SVG" (1QDI-0) 14×14
+          SVGVisualElement "Path" (1QDJ-0) 9×11
+        Text "WRAP list read 10 Oc…" (1QDK-0) 273×16 "WRAP list read 10 Oct · GOTS read date not stored"
+  Frame "Tab bar" (1P7N-0) 390×85
+    Frame "Tabs" (1P7O-0) 390×56
+      Frame "Tab · Messages" (1P7P-0) 78×56
+        SVG "SVG" (1P7Q-0) 24×24
+          SVGVisualElement "Path" (1P7R-0) 19×19
+        Text "Messages" (1P7S-0) 53×14 "Messages"
+      Frame "Tab · Quotes" (1P7T-0) 78×56
+        SVG "SVG" (1P7U-0) 24×24
+          SVGVisualElement "Path" (1P7V-0) 19×16
+        Text "Quotes" (1P7W-0) 38×14 "Quotes"
+      Frame "Tab · Alerts" (1P7X-0) 78×56
+        SVG "SVG" (1P7Y-0) 24×24
+          SVGVisualElement "Path" (1P7Z-0) 17×19
+        Text "Alerts" (1P80-0) 31×14 "Alerts"
+        Frame "Alert dot" (1P81-0) 7×7
+      Frame "Tab · Saved" (1P82-0) 78×56
+        SVG "SVG" (1P83-0) 24×24
+          SVGVisualElement "Path" (1P84-0) 13×18
+        Text "Saved" (1P85-0) 32×14 "Saved"
+      Frame "Tab · Search" (1P86-0) 78×56
+        SVG "SVG" (1P87-0) 24×24
+          SVGVisualElement "Path" (1P88-0) 19×19
+        Text "Search" (1P89-0) 38×14 "Search"
+    Frame "Home indicator" (1P8A-0) 390×28
+      Rectangle "Rectangle" (1P8B-0) 134×5

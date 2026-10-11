@@ -1,0 +1,144 @@
+Frame "Safety · Square Apparels · phone" (1MXZ-0) 390×?
+  Frame "Status bar" (1N12-0) ?×?
+    Frame "Time" (1N1A-0) ?×?
+      Text "9:41" (1N1B-0) ?×? "9:41"
+    Frame "Icons" (1N13-0) ?×?
+      SVG "SVG" (1N14-0) ?×?
+        SVGVisualElement "Path" (1N19-0) ?×?
+        SVGVisualElement "Path" (1N18-0) ?×?
+        SVGVisualElement "Path" (1N17-0) ?×?
+        SVGVisualElement "Path" (1N16-0) ?×?
+        SVGVisualElement "Path" (1N15-0) ?×?
+  Frame "Compact head" (1N01-0) ?×?
+    Frame "Head" (1OKO-0) ?×?
+      Frame "Bar" (1OKP-0) ?×?
+        Text "Name" (1OKQ-0) ?×? "Square Apparels Limited"
+        Frame "Actions" (1OKR-0) ?×?
+          Frame "Share" (1OKS-0) 36×36
+            SVG "SVG" (1OKT-0) ?×?
+              SVGVisualElement "Path" (1OKU-0) ?×?
+          Frame "Close" (1OKV-0) 36×36
+            SVG "SVG" (1OKW-0) ?×?
+              SVGVisualElement "Path" (1OKX-0) ?×?
+      Frame "Status strip" (1OKY-0) ?×30
+        Frame "Status · Safety" (1OKZ-0) ?×?
+          SVG "SVG" (1OL0-0) ?×?
+            SVGVisualElement "Path" (1OL1-0) ?×?
+          Text "RSC behind" (1OL2-0) ?×? "RSC behind"
+        Rectangle "Rectangle" (1OL3-0) 1×14
+        Frame "Status · Certificates" (1OL4-0) ?×?
+          SVG "SVG" (1OL5-0) ?×?
+            SVGVisualElement "Path" (1OL6-0) ?×?
+          Text "GOTS 31 days" (1OL7-0) ?×? "GOTS 31 days"
+        Rectangle "Rectangle" (1OL8-0) 1×14
+        Frame "Status · Sanctions" (1OL9-0) ?×?
+          SVG "SVG" (1OLA-0) ?×?
+            SVGVisualElement "Path" (1OLB-0) ?×?
+          Text "Not listed" (1OLC-0) ?×? "Not listed"
+    Frame "Tabs" (1N02-0) ?×48
+      Frame "Tab · Overview (current)" (1N0E-0) ?×?
+        Text "Overview" (1N0G-0) ?×? "Overview"
+      Frame "Tab · Exports" (1N0C-0) ?×?
+        Text "Exports" (1N0D-0) ?×? "Exports"
+      Frame "Tab · Certificates" (1N09-0) ?×?
+        Text "Certificates" (1N0B-0) ?×? "Certificates"
+      Frame "Tab · Safety" (1N06-0) ?×?
+        Text "Safety" (1N08-0) ?×? "Safety"
+        Frame "Indicator" (1NZL-0) ?×2
+      Frame "Tab · Sites" (1N03-0) ?×?
+        Text "Sites" (1N05-0) ?×? "Sites"
+        Text "2" (1N04-0) ?×? "2"
+  Frame "Safety" (1NBK-0) ?×?
+    Frame "Summary" (1NBL-0) ?×?
+      Text "2 buildings in the R…" (1NBM-0) ?×? "2 buildings in the RSC programme"
+      Text "Worst first. Both ar…" (1NBN-0) ?×? "Worst first. Both are behind schedule."
+    Frame "Building · Extension" (1NBO-0) ?×?
+      Frame "Head" (1NBP-0) ?×?
+        Frame "Frame" (1NBQ-0) ?×?
+          Text "Extension building" (1NBR-0) ?×? "Extension building"
+          Frame "Meta" (1NBS-0) ?×?
+            Text "RSC 25620" (1NBT-0) ?×? "RSC 25620"
+            Text "· 136 workers" (1NBU-0) ?×? "· 136 workers"
+        Frame "Status" (1NBV-0) ?×28
+          SVG "SVG" (1NBW-0) ?×?
+            SVGVisualElement "Path" (1NBX-0) ?×?
+          Text "Behind schedule" (1NBY-0) ?×? "Behind schedule"
+      Frame "Remediation" (1NBZ-0) ?×?
+        Frame "Frame" (1NC0-0) ?×?
+          Text "Safety issues fixed" (1NC1-0) ?×? "Safety issues fixed"
+          Text "81%" (1NC2-0) ?×? "81%"
+        Frame "Meter" (1NC3-0) ?×10
+          Frame "Fill" (1NC4-0) ?×?
+      Frame "Training" (1NC5-0) ?×?
+        Text "Worker safety traini…" (1NC6-0) ?×? "Worker safety training"
+        Text "Training value" (1NC7-0) ?×? "Not started"
+      Frame "Documents" (1NC8-0) ?×?
+        Text "Inspection reports" (1NC9-0) ?×? "Inspection reports"
+        Frame "Doc chips" (1NCA-0) ?×?
+          Frame "Frame" (1NCB-0) ?×36
+            SVG "SVG" (1NCC-0) ?×?
+              SVGVisualElement "Path" (1NCD-0) ?×?
+            Text "Fire" (1NCE-0) ?×? "Fire"
+          Frame "Frame" (1NCF-0) ?×36
+            SVG "SVG" (1NCG-0) ?×?
+              SVGVisualElement "Path" (1NCH-0) ?×?
+            Text "Electrical" (1NCI-0) ?×? "Electrical"
+          Frame "Frame" (1NCJ-0) ?×36
+            SVG "SVG" (1NCK-0) ?×?
+              SVGVisualElement "Path" (1NCL-0) ?×?
+            Text "Structural" (1NCM-0) ?×? "Structural"
+          Frame "Chip · Action plan" (1NCN-0) ?×36
+            SVG "SVG" (1NCO-0) ?×?
+              SVGVisualElement "Path" (1NCP-0) ?×?
+            Text "Action plan" (1NCQ-0) ?×? "Action plan"
+        Text "Missing doc" (1NCR-0) ?×? "No boiler report on the register · RSC · read 2 Oct"
+    Frame "Building · Extension" (1NCT-0) ?×?
+      Frame "Head" (1NDN-0) ?×?
+        Frame "Frame" (1NDS-0) ?×?
+          Text "Main building" (1NDW-0) ?×? "Main building"
+          Frame "Meta" (1NDT-0) ?×?
+            Text "RSC 24418" (1NDV-0) ?×? "RSC 24418"
+            Text "· 4,488 workers" (1NDU-0) ?×? "· 4,488 workers"
+        Frame "Status" (1NDO-0) ?×28
+          SVG "SVG" (1NDQ-0) ?×?
+            SVGVisualElement "Path" (1NDR-0) ?×?
+          Text "Behind schedule" (1NDP-0) ?×? "Behind schedule"
+      Frame "Remediation" (1NDH-0) ?×?
+        Frame "Frame" (1NDK-0) ?×?
+          Text "Safety issues fixed" (1NDM-0) ?×? "Safety issues fixed"
+          Text "100%" (1NDL-0) ?×? "100%"
+        Frame "Meter" (1NDI-0) ?×10
+          Frame "Fill" (1NDJ-0) ?×?
+      Frame "Training" (1NDE-0) ?×?
+        Text "Worker safety traini…" (1NDG-0) ?×? "Worker safety training"
+        Text "Training value" (1NDF-0) ?×? "Completed"
+      Frame "Documents" (1NCU-0) ?×?
+        Text "Inspection reports" (1NDD-0) ?×? "Inspection reports"
+        Frame "Doc chips" (1NCW-0) ?×?
+          Frame "Frame" (1ND9-0) ?×36
+            SVG "SVG" (1NDB-0) ?×?
+              SVGVisualElement "Path" (1NDC-0) ?×?
+            Text "Fire" (1NDA-0) ?×? "Fire"
+          Frame "Frame" (1ND5-0) ?×36
+            SVG "SVG" (1ND7-0) ?×?
+              SVGVisualElement "Path" (1ND8-0) ?×?
+            Text "Electrical" (1ND6-0) ?×? "Electrical"
+          Frame "Frame" (1ND1-0) ?×36
+            SVG "SVG" (1ND3-0) ?×?
+              SVGVisualElement "Path" (1ND4-0) ?×?
+            Text "Structural" (1ND2-0) ?×? "Structural"
+          Frame "Frame" (1NDX-0) ?×36
+            SVG "SVG" (1NDZ-0) ?×?
+              SVGVisualElement "Path" (1NE0-0) ?×?
+            Text "Boiler" (1NDY-0) ?×? "Boiler"
+          Frame "Chip · Action plan" (1NCX-0) ?×36
+            SVG "SVG" (1NCZ-0) ?×?
+              SVGVisualElement "Path" (1ND0-0) ?×?
+            Text "Action plan" (1NCY-0) ?×? "Action plan"
+        Text "Missing doc" (1NCV-0) ?×? "RSC marks every issue fixed but still lists this building as"
+  Frame "Action bar" (1NE1-0) ?×64
+    Frame "Save" (1NE2-0) 48×48
+      SVG "SVG" (1NE3-0) ?×?
+        SVGVisualElement "Path" (1NE4-0) ?×?
+    Frame "Send RFQ" (1NE5-0) ?×48
+      Text "Send RFQ" (1NE6-0) ?×? "Send RFQ"

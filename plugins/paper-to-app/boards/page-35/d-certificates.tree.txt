@@ -1,0 +1,158 @@
+Frame "Certificates · Square Apparels · phone" (1MUM-0) 390×?
+  Frame "Status bar" (1MXP-0) ?×?
+    Frame "Time" (1MXX-0) ?×?
+      Text "9:41" (1MXY-0) ?×? "9:41"
+    Frame "Icons" (1MXQ-0) ?×?
+      SVG "SVG" (1MXR-0) ?×?
+        SVGVisualElement "Path" (1MXW-0) ?×?
+        SVGVisualElement "Path" (1MXV-0) ?×?
+        SVGVisualElement "Path" (1MXU-0) ?×?
+        SVGVisualElement "Path" (1MXT-0) ?×?
+        SVGVisualElement "Path" (1MXS-0) ?×?
+  Frame "Compact head" (1MWO-0) ?×?
+    Frame "Head" (1OJY-0) ?×?
+      Frame "Bar" (1OJZ-0) ?×?
+        Text "Name" (1OK0-0) ?×? "Square Apparels Limited"
+        Frame "Actions" (1OK1-0) ?×?
+          Frame "Share" (1OK2-0) 36×36
+            SVG "SVG" (1OK3-0) ?×?
+              SVGVisualElement "Path" (1OK4-0) ?×?
+          Frame "Close" (1OK5-0) 36×36
+            SVG "SVG" (1OK6-0) ?×?
+              SVGVisualElement "Path" (1OK7-0) ?×?
+      Frame "Status strip" (1OK8-0) ?×30
+        Frame "Status · Safety" (1OK9-0) ?×?
+          SVG "SVG" (1OKA-0) ?×?
+            SVGVisualElement "Path" (1OKB-0) ?×?
+          Text "RSC behind" (1OKC-0) ?×? "RSC behind"
+        Rectangle "Rectangle" (1OKD-0) 1×14
+        Frame "Status · Certificates" (1OKE-0) ?×?
+          SVG "SVG" (1OKF-0) ?×?
+            SVGVisualElement "Path" (1OKG-0) ?×?
+          Text "GOTS 31 days" (1OKH-0) ?×? "GOTS 31 days"
+        Rectangle "Rectangle" (1OKI-0) 1×14
+        Frame "Status · Sanctions" (1OKJ-0) ?×?
+          SVG "SVG" (1OKK-0) ?×?
+            SVGVisualElement "Path" (1OKL-0) ?×?
+          Text "Not listed" (1OKM-0) ?×? "Not listed"
+    Frame "Tabs" (1MWP-0) ?×48
+      Frame "Tab · Overview (current)" (1MX1-0) ?×?
+        Text "Overview" (1MX3-0) ?×? "Overview"
+      Frame "Tab · Exports" (1MWZ-0) ?×?
+        Text "Exports" (1MX0-0) ?×? "Exports"
+      Frame "Tab · Certificates" (1MWW-0) ?×?
+        Text "Certificates" (1MWY-0) ?×? "Certificates"
+        Frame "Indicator" (1NZJ-0) ?×2
+      Frame "Tab · Safety" (1MWT-0) ?×?
+        Text "Safety" (1MWV-0) ?×? "Safety"
+      Frame "Tab · Sites" (1MWQ-0) ?×?
+        Text "Sites" (1MWS-0) ?×? "Sites"
+        Text "2" (1MWR-0) ?×? "2"
+  Frame "Certificates" (1N8A-0) ?×?
+    Frame "Summary" (1N8B-0) ?×?
+      Text "4 certifications" (1N8C-0) ?×? "4 certifications"
+      Text "Soonest expiry first…" (1N8D-0) ?×? "Soonest expiry first. Each one checked with its issuer."
+    Frame "Card · GOTS" (1N8E-0) ?×?
+      Frame "Status" (1N8F-0) ?×28
+        SVG "SVG" (1N8G-0) ?×?
+          SVGVisualElement "Path" (1N8H-0) ?×?
+        Text "Expires in 31 days" (1N8I-0) ?×? "Expires in 31 days"
+      Frame "Frame" (1N8J-0) ?×?
+        Text "GOTS" (1N8K-0) ?×? "GOTS"
+        Text "Organic textiles · w…" (1N8L-0) ?×? "Organic textiles · woven and denim garments, dyed fabric"
+      Frame "Facts" (1N8M-0) ?×?
+        Frame "Frame" (1N8N-0) ?×?
+          Text "Valid until" (1N8O-0) ?×? "Valid until"
+          Text "11 Nov 2026" (1N8P-0) ?×? "11 Nov 2026"
+        Frame "Frame" (1N8Q-0) ?×?
+          Text "Licence" (1N8R-0) ?×? "Licence"
+          Text "GOTS-22719" (1N8S-0) ?×? "GOTS-22719"
+        Frame "Frame" (1N8T-0) ?×?
+          Text "Issued by" (1N8U-0) ?×? "Issued by"
+          Text "GSCS International" (1N8V-0) ?×? "GSCS International"
+      Frame "Footer" (1N8W-0) ?×?
+        Frame "Frame" (1N8X-0) ?×?
+          Text "Checked with GOTS on…" (1N8Y-0) ?×? "Checked with GOTS on 26 Jun"
+          Frame "Frame" (1N8Z-0) ?×?
+            SVG "SVG" (1N90-0) ?×?
+              SVGVisualElement "Path" (1N91-0) ?×?
+            Text "107 days ago" (1N92-0) ?×? "107 days ago"
+        Frame "Open certificate" (1N93-0) ?×44
+          SVG "SVG" (1N94-0) ?×?
+            SVGVisualElement "Path" (1N95-0) ?×?
+          Text "Certificate" (1N96-0) ?×? "Certificate"
+    Frame "Card · GOTS" (1N98-0) ?×?
+      Frame "Status" (1N9X-0) ?×28
+        SVG "SVG" (1NA1-0) ?×?
+          SVGVisualElement "Path" (1NA2-0) ?×?
+        Text "Valid" (1N9Y-0) ?×? "Valid"
+      Frame "Frame" (1N9U-0) ?×?
+        Text "WRAP Gold" (1N9W-0) ?×? "WRAP Gold"
+        Text "Social compliance · …" (1N9V-0) ?×? "Social compliance · woven shirts"
+      Frame "Facts" (1N9K-0) ?×?
+        Frame "Frame" (1N9R-0) ?×?
+          Text "Valid until" (1N9T-0) ?×? "Valid until"
+          Text "13 Jul 2027" (1N9S-0) ?×? "13 Jul 2027"
+        Frame "Frame" (1N9O-0) ?×?
+          Text "Certificate" (1N9Q-0) ?×? "Certificate"
+          Text "129386" (1N9P-0) ?×? "129386"
+        Frame "Frame" (1N9L-0) ?×?
+          Text "Issued by" (1N9N-0) ?×? "Issued by"
+          Text "WRAP" (1N9M-0) ?×? "WRAP"
+      Frame "Footer" (1N99-0) ?×?
+        Frame "Frame" (1N9E-0) ?×?
+          Text "Checked with WRAP on…" (1N9J-0) ?×? "Checked with WRAP on 10 Oct"
+        Frame "Open certificate" (1N9A-0) ?×44
+          SVG "SVG" (1N9C-0) ?×?
+            SVGVisualElement "Path" (1N9D-0) ?×?
+          Text "Listing" (1N9B-0) ?×? "Listing"
+    Frame "Card · OEKO-TEX Standard 100" (1NA4-0) ?×?
+      Frame "Status" (1NA5-0) ?×28
+        SVG "SVG" (1NA6-0) ?×?
+          SVGVisualElement "Path" (1NA7-0) ?×?
+        Text "Listed · no end date…" (1NA8-0) ?×? "Listed · no end date shown"
+      Frame "Frame" (1NA9-0) ?×?
+        Text "OEKO-TEX Standard 10…" (1NAA-0) ?×? "OEKO-TEX Standard 100"
+        Text "Tested for harmful s…" (1NAB-0) ?×? "Tested for harmful substances · 3 listings"
+      Frame "Listing codes" (1NAC-0) ?×?
+        Frame "Frame" (1NAD-0) ?×28
+          Text "28071" (1NAE-0) ?×? "28071"
+        Frame "Frame" (1NAF-0) ?×28
+          Text "76557" (1NAG-0) ?×? "76557"
+        Frame "Frame" (1NAH-0) ?×28
+          Text "66428" (1NAI-0) ?×? "66428"
+      Frame "Footer" (1NAJ-0) ?×?
+        Text "Checked with OEKO-TE…" (1NAK-0) ?×? "Checked with OEKO-TEX on 10 Oct"
+        Frame "Open listing" (1NAL-0) ?×44
+          SVG "SVG" (1NAM-0) ?×?
+            SVGVisualElement "Path" (1NAN-0) ?×?
+          Text "Listing" (1NAO-0) ?×? "Listing"
+    Frame "Card · OEKO-TEX STeP" (1NAP-0) ?×?
+      Frame "Status" (1NAQ-0) ?×28
+        SVG "SVG" (1NAR-0) ?×?
+          SVGVisualElement "Path" (1NAS-0) ?×?
+        Text "Listed · no end date…" (1NAT-0) ?×? "Listed · no end date shown"
+      Frame "Frame" (1NAU-0) ?×?
+        Text "OEKO-TEX STeP" (1NAV-0) ?×? "OEKO-TEX STeP"
+        Text "Sustainable producti…" (1NAW-0) ?×? "Sustainable production at the site · 2 listings"
+      Frame "Listing codes" (1NAX-0) ?×?
+        Frame "Frame" (1NAY-0) ?×28
+          Text "76557" (1NAZ-0) ?×? "76557"
+        Frame "Frame" (1NB0-0) ?×28
+          Text "66428" (1NB1-0) ?×? "66428"
+      Frame "Footer" (1NB2-0) ?×?
+        Text "Checked with OEKO-TE…" (1NB3-0) ?×? "Checked with OEKO-TEX on 10 Oct"
+        Frame "Open listing" (1NB4-0) ?×44
+          SVG "SVG" (1NB5-0) ?×?
+            SVGVisualElement "Path" (1NB6-0) ?×?
+          Text "Listing" (1NB7-0) ?×? "Listing"
+    Frame "Self-declared" (1NB8-0) ?×?
+      Text "Named by the supplie…" (1NB9-0) ?×? "Named by the supplier, not checked"
+      Text "BSCI, SEDEX, OCS, GR…" (1NBA-0) ?×? "BSCI, SEDEX, OCS, GRS and ISO 9001 are on the supplier’s BGM"
+      Text "BGMEA · read 11 Oct" (1NBB-0) ?×? "BGMEA · read 11 Oct"
+  Frame "Action bar" (1NBD-0) ?×64
+    Frame "Save" (1NBE-0) 48×48
+      SVG "SVG" (1NBF-0) ?×?
+        SVGVisualElement "Path" (1NBG-0) ?×?
+    Frame "Send RFQ" (1NBH-0) ?×48
+      Text "Send RFQ" (1NBI-0) ?×? "Send RFQ"

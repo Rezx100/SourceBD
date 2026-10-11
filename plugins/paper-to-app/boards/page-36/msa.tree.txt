@@ -1,0 +1,128 @@
+Frame "Compliance · modern slavery statement · 6 claims open · phone" (1QN9-0) 390×1462
+  Frame "Status bar" (1QNA-0) 390×62
+    Frame "Time" (1QNB-0) 94×22
+      Text "9:41" (1QNC-0) 31×22 "9:41"
+    Frame "Icons" (1QND-0) 94×22
+      SVG "SVG" (1QNE-0) 82×22
+        SVGVisualElement "Path" (1QNF-0) 19×12
+        SVGVisualElement "Path" (1QNG-0) 17×12
+        SVGVisualElement "Path" (1QNH-0) 25×13
+        SVGVisualElement "Path" (1QNI-0) 21×9
+        SVGVisualElement "Path" (1QNJ-0) 1×4
+  Frame "Compact head" (1QNK-0) 390×64
+    Frame "Back" (1QNL-0) 36×36
+      SVG "SVG" (1QNM-0) 17×17
+        SVGVisualElement "Path" (1QNN-0) 12×10
+    Frame "Frame" (1QNO-0) 310×48
+      Text "Modern slavery state…" (1QNP-0) 310×30 "Modern slavery statement"
+      Text "UK Modern Slavery Ac…" (1QNQ-0) 310×18 "UK Modern Slavery Act 2015, section 54"
+  Frame "Body" (1QNS-0) 390×1336
+    Frame "Summary" (1QNT-0) 350×84
+      Frame "Frame" (1QNU-0) 197×28
+        SVG "SVG" (1QNV-0) 16×16
+          SVGVisualElement "Path" (1QNW-0) 12×12
+        Text "Draft · 6 claims to …" (1QNX-0) 157×18 "Draft · 6 claims to confirm"
+      Text "We wrote the supply …" (1QNY-0) 350×44 "We wrote the supply chain part from your 11 saved suppliers."
+    Frame "Claims" (1QNZ-0) 350×406
+      Frame "Section head" (1QO0-0) 350×66
+        Frame "Frame" (1QO1-0) 214×28
+          Text "Before you download" (1QO2-0) 194×28 "Before you download"
+          Text "6" (1QO3-0) 12×28 "6"
+        Text "In draft order" (1QO4-0) 78×18 "In draft order"
+      Frame "Claim list" (1QO5-0) 350×340
+        Frame "Claim" (1QO6-0) 348×96
+          Frame "Frame" (1QO7-0) 241×64
+            Text "Section 1 · Organisa…" (1QO8-0) 241×16 "Section 1 · Organisation and supply chain"
+            Text "What you sell, where…" (1QO9-0) 241×44 "What you sell, where, your turnover and headcount"
+          Frame "Frame" (1QOA-0) 63×44
+            Text "Fill in" (1QOB-0) 35×20 "Fill in"
+        Frame "Claim" (1QOD-0) 348×97
+          Frame "Frame" (1QOG-0) 241×64
+            Text "Section 3 · Due dili…" (1QOI-0) 241×16 "Section 3 · Due diligence"
+            Text "The checks you run b…" (1QOH-0) 241×44 "The checks you run before and during a supplier relationship"
+          Frame "Frame" (1QOE-0) 63×44
+            Text "Fill in" (1QOF-0) 35×20 "Fill in"
+        Frame "Claim" (1QOJ-0) 348×97
+          Frame "Frame" (1QOM-0) 241×64
+            Text "Section 4 · Risk ass…" (1QOO-0) 241×16 "Section 4 · Risk assessment"
+            Text "How you assess the r…" (1QON-0) 241×44 "How you assess the risk, and where you focus"
+          Frame "Frame" (1QOK-0) 63×44
+            Text "Fill in" (1QOL-0) 35×20 "Fill in"
+        Frame "More" (1QOP-0) 348×48
+          Text "3 more: training, ef…" (1QOQ-0) 274×18 "3 more: training, effectiveness, board approval"
+          SVG "SVG" (1QOR-0) 16×16
+            SVGVisualElement "Path" (1QOS-0) 11×6
+    Frame "Your details" (1QOU-0) 350×336
+      Frame "Section head" (1QOV-0) 350×66
+        Text "Your details" (1QOW-0) 108×28 "Your details"
+        Text "2 of 4 filled" (1QOX-0) 68×18 "2 of 4 filled"
+      Frame "Frame" (1QOY-0) 350×270
+        Frame "Field" (1QOZ-0) 350×72
+          Text "Organisation name" (1QP0-0) 350×18 "Organisation name"
+          Frame "Frame" (1QP1-0) 350×48
+            Text "Example Apparel Ltd" (1QP2-0) 152×22 "Example Apparel Ltd"
+        Frame "Field" (1QP3-0) 350×94
+          Text "Reporting financial …" (1QP4-0) 350×18 "Reporting financial year"
+          Frame "Frame" (1QP5-0) 350×48
+            Text "2025" (1QP6-0) 41×22 "2025"
+            SVG "SVG" (1QP7-0) 16×16
+              SVGVisualElement "Path" (1QP8-0) 11×6
+          Text "The year before this…" (1QP9-0) 350×16 "The year before this one, unless you change it"
+        Frame "Frame" (1QPA-0) 350×72
+          Frame "Field" (1QPB-0) 169×72
+            Text "Signatory name" (1QPC-0) 169×18 "Signatory name"
+            Frame "Frame" (1QPD-0) 169×48
+              Text "Full name" (1QPE-0) 72×22 "Full name"
+          Frame "Field" (1QPF-0) 169×72
+            Text "Signatory role" (1QPG-0) 169×18 "Signatory role"
+            Frame "Frame" (1QPH-0) 169×48
+              Text "Director" (1QPI-0) 59×22 "Director"
+    Frame "Written for you" (1QPK-0) 350×250
+      Frame "Section head" (1QPL-0) 350×66
+        Text "Written for you" (1QPM-0) 137×28 "Written for you"
+        Text "As at 11 Oct" (1QPN-0) 68×18 "As at 11 Oct"
+      Frame "Frame" (1QPO-0) 350×184
+        Frame "Frame" (1QPP-0) 348×60
+          SVG "SVG" (1QPQ-0) 18×18
+            SVGVisualElement "Path" (1QPR-0) 16×14
+          Text "Supply chain" (1QPS-0) 96×20 "Supply chain"
+          Frame "Frame" (1QPT-0) 182×36
+            Text "11 suppliers, all Ba…" (1QPU-0) 178×20 "11 suppliers, all Bangladesh"
+            Text "Mostly Dhaka and Gaz…" (1QPV-0) 145×16 "Mostly Dhaka and Gazipur"
+        Frame "Frame" (1QPW-0) 348×61
+          SVG "SVG" (1QPX-0) 18×18
+            SVGVisualElement "Path" (1QPY-0) 15×13
+          Text "UFLPA" (1QPZ-0) 96×20 "UFLPA"
+          Frame "Frame" (1QQ0-0) 182×36
+            Text "No link found" (1QQ1-0) 88×20 "No link found"
+            Text "US Entity List read …" (1QQ2-0) 135×16 "US Entity List read 8 Oct"
+        Frame "Frame" (1QQ3-0) 348×61
+          SVG "SVG" (1QQ4-0) 18×18
+            SVGVisualElement "Path" (1QQ5-0) 10×14
+          Text "Certificates" (1QQ6-0) 96×20 "Certificates"
+          Frame "Frame" (1QQ7-0) 182×36
+            Text "1 ends within 90 day…" (1QQ8-0) 141×20 "1 ends within 90 days"
+            Text "Tex Town GOTS, 15 Oc…" (1QQ9-0) 125×16 "Tex Town GOTS, 15 Oct"
+    Frame "Read draft" (1QQA-0) 350×60
+      Frame "Frame" (1QQB-0) 350×44
+        SVG "SVG" (1QQC-0) 16×16
+          SVGVisualElement "Path" (1QQD-0) 11×13
+        Text "Read the whole draft" (1QQE-0) 138×20 "Read the whole draft"
+    Frame "Notes" (1QQF-0) 350×72
+      Text "Your board approves …" (1QQG-0) 350×32 "Your board approves it and a director signs it. Have counsel"
+      Frame "Frame" (1QQH-0) 350×16
+        Rectangle "Rectangle" (1QQI-0) 14×1
+        Text "Sample company and s…" (1QQJ-0) 274×16 "Sample company and saved list; list reads are real"
+  Frame "Action bar" (1QQL-0) 390×113
+    Frame "Frame" (1QQM-0) 390×26
+      SVG "SVG" (1QQN-0) 14×14
+        SVGVisualElement "Path" (1QQO-0) 11×11
+      Text "Confirm 6 claims and…" (1QQP-0) 275×16 "Confirm 6 claims and your signatory to download"
+    Frame "Frame" (1QQQ-0) 390×64
+      Frame "Copy draft" (1QQR-0) 48×48
+        SVG "SVG" (1QQS-0) 22×22
+          SVGVisualElement "Path" (1QQT-0) 16×16
+      Frame "Download (waiting)" (1QQU-0) 302×48
+        Text "Download statement" (1QQV-0) 156×20 "Download statement"
+    Frame "Frame" (1QQW-0) 390×22
+      Rectangle "Rectangle" (1QQX-0) 134×5

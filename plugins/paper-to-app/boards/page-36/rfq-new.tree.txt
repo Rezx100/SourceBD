@@ -1,0 +1,76 @@
+Frame "New RFQ · to 1 supplier · phone" (1PRJ-0) 390×844
+  Frame "Status bar" (1PRK-0) 390×62
+    Frame "Time" (1PRL-0) 94×22
+      Text "9:41" (1PRM-0) 31×22 "9:41"
+    Frame "Icons" (1PRN-0) 94×22
+      SVG "SVG" (1PRO-0) 82×22
+        SVGVisualElement "Path" (1PRP-0) 19×12
+        SVGVisualElement "Path" (1PRQ-0) 17×12
+        SVGVisualElement "Path" (1PRR-0) 25×13
+        SVGVisualElement "Path" (1PRS-0) 21×9
+        SVGVisualElement "Path" (1PRT-0) 1×4
+  Frame "Bar" (1Q8M-0) 390×56
+    Frame "Frame" (1Q8N-0) 89×18
+      SVG "SVG" (1Q8O-0) 14×14
+        SVGVisualElement "Path" (1Q8P-0) 11×11
+      Text "Draft saved" (1Q8Q-0) 69×18 "Draft saved"
+    Frame "Close" (1Q8R-0) 36×36
+      SVG "SVG" (1Q8S-0) 17×17
+        SVGVisualElement "Path" (1Q8T-0) 10×10
+  Frame "Body" (1PRX-0) 390×533
+    Text "New RFQ" (1PRY-0) 350×36 "New RFQ"
+    Frame "To" (1PRZ-0) 350×60
+      Frame "Frame" (1PS0-0) 36×36
+        Text "AK" (1PS1-0) 17×16 "AK"
+      Frame "Frame" (1PS2-0) 193×34
+        Text "To 1 supplier" (1PS3-0) 193×16 "To 1 supplier"
+        Text "Aboni Knitwear Ltd." (1PS4-0) 193×18 "Aboni Knitwear Ltd."
+      Frame "Frame" (1PS5-0) 69×34
+        SVG "SVG" (1PS6-0) 14×14
+          SVGVisualElement "Path" (1PS7-0) 10×10
+        Text "Add" (1PS8-0) 25×16 "Add"
+    Frame "Field · product" (1PS9-0) 350×92
+      Text "Product" (1PSA-0) 350×16 "Product"
+      Frame "Frame" (1PSB-0) 350×70
+        Text "Men’s heavyweight Fr…" (1PSC-0) 320×44 "Men’s heavyweight French terry hoodies, 420gsm"
+    Frame "Row · qty" (1PSD-0) 350×74
+      Frame "Frame" (1PSE-0) 170×74
+        Text "Quantity" (1PSF-0) 170×16 "Quantity"
+        Frame "Frame" (1PSG-0) 170×52
+          Text "10,000" (1PSH-0) 52×20 "10,000"
+          Text "pieces" (1PSI-0) 42×18 "pieces"
+      Frame "Frame" (1PSJ-0) 170×74
+        Text "Target price" (1PSK-0) 170×16 "Target price"
+        Frame "Frame" (1PSL-0) 170×52
+          Text "US$" (1PSM-0) 28×18 "US$"
+          Text "8.90" (1PSN-0) 33×20 "8.90"
+    Frame "Row · ship" (1PSO-0) 350×74
+      Frame "Frame" (1PSP-0) 170×74
+        Text "Ship by" (1PSQ-0) 170×16 "Ship by"
+        Frame "Frame" (1PSR-0) 170×52
+          Text "15 Jan 2027" (1PSS-0) 91×20 "15 Jan 2027"
+      Frame "Frame" (1PST-0) 170×74
+        Text "Ship to" (1PSU-0) 170×16 "Ship to"
+        Frame "Frame" (1PSV-0) 170×52
+          Text "United Kingdom" (1PSW-0) 117×20 "United Kingdom"
+    Frame "More" (1PSX-0) 350×113
+      Frame "Frame" (1PSY-0) 350×56
+        Frame "Frame" (1PSZ-0) 234×34
+          Text "Questions · 3" (1PT0-0) 234×18 "Questions · 3"
+          Text "Price per piece, MOQ…" (1PT1-0) 234×16 "Price per piece, MOQ per colour, certificate"
+        SVG "SVG" (1PT2-0) 16×16
+          SVGVisualElement "Path" (1PT3-0) 6×11
+      Frame "Frame" (1PT4-0) 350×56
+        Frame "Frame" (1PT5-0) 135×34
+          Text "Message" (1PT6-0) 135×18 "Message"
+          Text "From your RFQ templa…" (1PT7-0) 135×16 "From your RFQ template"
+        SVG "SVG" (1PT8-0) 16×16
+          SVGVisualElement "Path" (1PT9-0) 6×11
+  Frame "Action bar" (1PTA-0) 390×111
+    Frame "Frame" (1PTB-0) 390×26
+      Text "Suppliers reply in M…" (1PTC-0) 358×16 "Suppliers reply in Messages. Your email stays private."
+    Frame "Frame" (1PTD-0) 390×62
+      Frame "Frame" (1PTE-0) 358×48
+        Text "Send RFQ" (1PTF-0) 75×20 "Send RFQ"
+    Frame "Frame" (1PTG-0) 390×22
+      Rectangle "Rectangle" (1PTH-0) 134×5

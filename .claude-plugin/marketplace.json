@@ -1,0 +1,11 @@
+{
+  "name": "sourcebd",
+  "owner": { "name": "Rezx100" },
+  "plugins": [
+    {
+      "name": "paper-to-app",
+      "source": "./plugins/paper-to-app",
+      "description": "Turn SourceBD's Paper boards into app screens: pull, convert to Tailwind TSX with the app's tokens, pixel-check, wire to the route. Includes the phone-redesign handoff."
+    }
+  ]
+}

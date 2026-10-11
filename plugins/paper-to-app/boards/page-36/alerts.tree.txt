@@ -1,0 +1,109 @@
+Frame "Alerts · certificates and lists · phone" (1PMX-0) 390×910
+  Frame "Status bar" (1PMY-0) 390×62
+    Frame "Time" (1PMZ-0) 94×22
+      Text "9:41" (1PN0-0) 31×22 "9:41"
+    Frame "Icons" (1PN1-0) 94×22
+      SVG "SVG" (1PN2-0) 82×22
+        SVGVisualElement "Path" (1PN3-0) 19×12
+        SVGVisualElement "Path" (1PN4-0) 17×12
+        SVGVisualElement "Path" (1PN5-0) 25×13
+        SVGVisualElement "Path" (1PN6-0) 21×9
+        SVGVisualElement "Path" (1PN7-0) 1×4
+  Frame "Page head" (1PN8-0) 390×44
+    Text "Alerts" (1PN9-0) 86×36 "Alerts"
+    Frame "Frame" (1PNA-0) 36×36
+      Text "AM" (1PNB-0) 21×16 "AM"
+  Frame "Body" (1PNC-0) 390×804
+    Frame "List notice" (1PND-0) 350×87
+      SVG "SVG" (1PNE-0) 20×20
+        SVGVisualElement "Path" (1PNF-0) 16×16
+      Frame "Frame" (1PNG-0) 290×59
+        Text "The UFLPA list is no…" (1PNH-0) 290×21 "The UFLPA list is not read yet"
+        Text "Your 11 saved suppli…" (1PNI-0) 290×36 "Your 11 saved suppliers are not checked against it. Other sa"
+    Frame "Certificates" (1Q4T-0) 350×577
+      Frame "Section head" (1Q4U-0) 350×66
+        Frame "Frame" (1Q4V-0) 128×28
+          Text "Certificates" (1Q4W-0) 107×28 "Certificates"
+          Text "8" (1Q4X-0) 13×28 "8"
+        Text "Latest first" (1Q4Y-0) 65×18 "Latest first"
+      Frame "Meter" (1Q4Z-0) 350×46
+        Frame "Frame" (1Q50-0) 350×18
+          Text "Expired" (1Q51-0) 45×18 "Expired"
+          Text "7 of 8" (1Q52-0) 35×18 "7 of 8"
+        Frame "Frame" (1Q53-0) 350×6
+          Rectangle "Rectangle" (1Q54-0) 308×6
+      Frame "Items" (1Q55-0) 350×437
+        Frame "Item · Mondol Intimates GOTS" (1Q57-0) 348×130
+          Frame "Frame" (1Q58-0) 316×16
+            SVG "SVG" (1Q59-0) 16×16
+              SVGVisualElement "Path" (1Q5A-0) 9×13
+            Text "GOTS expired 8 Oct ·…" (1Q5B-0) 179×16 "GOTS expired 8 Oct · 3 days ago"
+          Text "Mondol Intimates Ltd…" (1Q5C-0) 316×22 "Mondol Intimates Ltd."
+          Frame "Frame" (1Q5D-0) 316×44
+            Frame "Frame" (1Q5E-0) 153×34
+              Text "GOTS-26992" (1Q5F-0) 153×16 "GOTS-26992"
+              Text "GOTS register · no r…" (1Q5G-0) 153×16 "GOTS register · no read date"
+            Frame "Ask" (1Q5H-0) 110×44
+              SVG "SVG" (1Q5I-0) 16×16
+                SVGVisualElement "Path" (1Q5J-0) 12×13
+              Text "Ask for it" (1Q5K-0) 60×20 "Ask for it"
+        Frame "Item · Mondol Intimates GOTS" (1Q5M-0) 348×131
+          Frame "Frame" (1Q5W-0) 316×16
+            SVG "SVG" (1Q5Y-0) 16×16
+              SVGVisualElement "Path" (1Q5Z-0) 9×13
+            Text "WRAP expired 21 Jul …" (1Q5X-0) 193×16 "WRAP expired 21 Jul · 82 days ago"
+          Text "S M Knitwears Limite…" (1Q5V-0) 316×22 "S M Knitwears Limited"
+          Frame "Frame" (1Q5N-0) 316×44
+            Frame "Frame" (1Q5S-0) 181×34
+              Text "124992" (1Q5U-0) 181×16 "124992"
+              Text "Not on the WRAP list…" (1Q5T-0) 181×16 "Not on the WRAP list read 10 Oct"
+            Frame "Ask" (1Q5O-0) 110×44
+              SVG "SVG" (1Q5Q-0) 16×16
+                SVGVisualElement "Path" (1Q5R-0) 12×13
+              Text "Ask for it" (1Q5P-0) 60×20 "Ask for it"
+        Frame "Item · Mondol Intimates GOTS" (1Q60-0) 348×131
+          Frame "Frame" (1Q6A-0) 316×16
+            SVG "SVG" (1Q6C-0) 16×16
+              SVGVisualElement "Path" (1Q6D-0) 9×13
+            Text "GOTS expired 27 Jun …" (1Q6B-0) 199×16 "GOTS expired 27 Jun · 106 days ago"
+          Text "Aswad Composite Mill…" (1Q69-0) 316×22 "Aswad Composite Mills Ltd."
+          Frame "Frame" (1Q61-0) 316×44
+            Frame "Frame" (1Q66-0) 153×34
+              Text "GOTS-11587" (1Q68-0) 153×16 "GOTS-11587"
+              Text "GOTS register · no r…" (1Q67-0) 153×16 "GOTS register · no read date"
+            Frame "Ask" (1Q62-0) 110×44
+              SVG "SVG" (1Q64-0) 16×16
+                SVGVisualElement "Path" (1Q65-0) 12×13
+              Text "Ask for it" (1Q63-0) 60×20 "Ask for it"
+        Frame "More" (1Q6E-0) 348×43
+          Text "5 more, including Te…" (1Q6F-0) 291×18 "5 more, including Tex Town’s GOTS ending 15 Oct"
+          SVG "SVG" (1Q6G-0) 16×16
+            SVGVisualElement "Path" (1Q6H-0) 6×11
+      Frame "Sample note" (1Q6J-0) 350×28
+        Rectangle "Rectangle" (1Q6K-0) 14×1
+        Text "Sample saved list; c…" (1Q6L-0) 312×16 "Sample saved list; certificates shown are real, read 11 Oct"
+  Frame "Tab bar" (1POP-0) 390×85
+    Frame "Tabs" (1POQ-0) 390×56
+      Frame "Tab · Messages" (1POR-0) 78×56
+        SVG "SVG" (1POS-0) 24×24
+          SVGVisualElement "Path" (1POT-0) 19×19
+        Text "Messages" (1POU-0) 53×14 "Messages"
+      Frame "Tab · Quotes" (1POV-0) 78×56
+        SVG "SVG" (1POW-0) 24×24
+          SVGVisualElement "Path" (1POX-0) 19×16
+        Text "Quotes" (1POY-0) 38×14 "Quotes"
+      Frame "Tab · Alerts" (1POZ-0) 78×56
+        SVG "SVG" (1PP0-0) 24×24
+          SVGVisualElement "Path" (1PP1-0) 17×19
+        Text "Alerts" (1PP2-0) 32×14 "Alerts"
+        Frame "Alert dot" (1PP3-0) 7×7
+      Frame "Tab · Saved" (1PP4-0) 78×56
+        SVG "SVG" (1PP5-0) 24×24
+          SVGVisualElement "Path" (1PP6-0) 13×18
+        Text "Saved" (1PP7-0) 32×14 "Saved"
+      Frame "Tab · Search" (1PP8-0) 78×56
+        SVG "SVG" (1PP9-0) 24×24
+          SVGVisualElement "Path" (1PPA-0) 19×19
+        Text "Search" (1PPB-0) 37×14 "Search"
+    Frame "Home indicator" (1PPC-0) 390×28
+      Rectangle "Rectangle" (1PPD-0) 134×5

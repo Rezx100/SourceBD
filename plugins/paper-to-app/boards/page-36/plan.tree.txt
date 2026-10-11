@@ -1,0 +1,51 @@
+Frame "Settings · plan · free in the beta · phone" (1RUI-0) 390×637
+  Frame "Status bar" (1RUJ-0) 390×62
+    Frame "Time" (1RUK-0) 94×22
+      Text "9:41" (1RUL-0) 31×22 "9:41"
+    Frame "Icons" (1RUM-0) 94×22
+      SVG "SVG" (1RUN-0) 82×22
+        SVGVisualElement "Path" (1RUO-0) 19×12
+        SVGVisualElement "Path" (1RUP-0) 17×12
+        SVGVisualElement "Path" (1RUQ-0) 25×13
+        SVGVisualElement "Path" (1RUR-0) 21×9
+        SVGVisualElement "Path" (1RUS-0) 1×4
+  Frame "Compact head" (1RUT-0) 390×64
+    Frame "Back" (1RUU-0) 36×36
+      SVG "SVG" (1RUV-0) 17×17
+        SVGVisualElement "Path" (1RUW-0) 12×10
+    Frame "Frame" (1RUX-0) 310×48
+      Text "Plan and usage" (1RUY-0) 310×30 "Plan and usage"
+      Text "What your account in…" (1RUZ-0) 310×18 "What your account includes"
+  Frame "Body" (1RV0-0) 390×511
+    Frame "Your plan" (1RV1-0) 350×197
+      Frame "Section head" (1RV2-0) 350×58
+        Text "Your plan" (1RV3-0) 86×28 "Your plan"
+        Text "Free in the beta" (1RV4-0) 93×18 "Free in the beta"
+      Frame "Frame" (1RV5-0) 350×139
+        Frame "Frame" (1RV6-0) 348×88
+          Text "Includes" (1RV7-0) 96×60 "Includes"
+          Text "Search, saved suppli…" (1RV8-0) 210×60 "Search, saved suppliers, RFQs, messages, orders and the comp"
+        Frame "Frame" (1RV9-0) 348×49
+          Text "Billing" (1RVA-0) 96×20 "Billing"
+          Text "Not set up. Nothing …" (1RVB-0) 210×20 "Not set up. Nothing is charged."
+    Frame "This month" (1RVC-0) 350×170
+      Frame "Section head" (1RVD-0) 350×66
+        Text "This month" (1RVE-0) 101×28 "This month"
+        Text "1 to 11 Oct" (1RVF-0) 59×18 "1 to 11 Oct"
+      Frame "Frame" (1RVG-0) 350×104
+        Frame "Frame" (1RVH-0) 175×102
+          Text "Evidence packs" (1RVI-0) 146×18 "Evidence packs"
+          Text "2" (1RVJ-0) 146×32 "2"
+          Text "up to 50 a day" (1RVK-0) 146×18 "up to 50 a day"
+        Frame "Frame" (1RVL-0) 174×102
+          Text "RFQs sent" (1RVM-0) 146×18 "RFQs sent"
+          Text "3" (1RVN-0) 146×32 "3"
+          Text "to 7 suppliers" (1RVO-0) 146×18 "to 7 suppliers"
+    Frame "Frame" (1RVP-0) 350×64
+      Frame "Frame" (1RVQ-0) 350×44
+        SVG "SVG" (1RVR-0) 16×16
+          SVGVisualElement "Path" (1RVS-0) 13×10
+        Text "Contact support abou…" (1RVT-0) 213×20 "Contact support about your plan"
+    Frame "Frame" (1RVU-0) 350×32
+      Rectangle "Rectangle" (1RVV-0) 14×1
+      Text "Sample usage" (1RVW-0) 78×16 "Sample usage"

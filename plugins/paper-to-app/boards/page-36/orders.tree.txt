@@ -1,0 +1,117 @@
+Frame "Quotes · Orders · Sample state · phone" (1PDG-0) 390×844
+  Frame "Status bar" (1PDH-0) 390×62
+    Frame "Time" (1PDI-0) 94×22
+      Text "9:41" (1PDJ-0) 31×22 "9:41"
+    Frame "Icons" (1PDK-0) 94×22
+      SVG "SVG" (1PDL-0) 82×22
+        SVGVisualElement "Path" (1PDM-0) 19×12
+        SVGVisualElement "Path" (1PDN-0) 17×12
+        SVGVisualElement "Path" (1PDO-0) 25×13
+        SVGVisualElement "Path" (1PDP-0) 21×9
+        SVGVisualElement "Path" (1PDQ-0) 1×4
+  Frame "Page head" (1PDR-0) 390×56
+    Text "Quotes" (1PDS-0) 105×36 "Quotes"
+    Frame "Frame" (1PDT-0) 158×36
+      Frame "Frame" (1PDU-0) 114×36
+        SVG "SVG" (1PDV-0) 16×16
+          SVGVisualElement "Path" (1PDW-0) 12×12
+        Text "New order" (1PDX-0) 68×18 "New order"
+      Frame "Frame" (1PDY-0) 36×36
+        Text "AM" (1PDZ-0) 21×16 "AM"
+  Frame "Tabs" (1PXX-0) 390×48
+    Frame "Tab · RFQs" (1PXY-0) 72×47
+      Text "RFQs" (1PXZ-0) 42×20 "RFQs"
+      Text "6" (1PY0-0) 8×16 "6"
+    Frame "Tab · Orders (current)" (1PY1-0) 81×47
+      Text "Orders" (1PY2-0) 51×20 "Orders"
+      Text "4" (1PY3-0) 8×16 "4"
+      Frame "Indicator" (1PY4-0) 65×2
+  Frame "Body" (1PY6-0) 390×585
+    Frame "Sample note" (1PY7-0) 350×42
+      Rectangle "Rectangle" (1PY8-0) 14×1
+      Text "Sample state: no rea…" (1PY9-0) 308×16 "Sample state: no real orders yet, supplier names are real"
+    Frame "Items" (1PYA-0) 350×543
+      Frame "Item · Dresses" (1PYB-0) 348×148
+        Frame "Tag" (1PYC-0) 316×16
+          Frame "Frame" (1PYD-0) 162×16
+            SVG "SVG" (1PYE-0) 16×16
+              SVGVisualElement "Path" (1PYF-0) 13×13
+            Text "In production · 1 st…" (1PYG-0) 140×16 "In production · 1 step late"
+          SVG "SVG" (1PYH-0) 16×16
+            SVGVisualElement "Path" (1PYI-0) 6×11
+        Text "Women’s knitted dres…" (1PYJ-0) 316×22 "Women’s knitted dresses"
+        Text "Mondol Fabrics · US$…" (1PYK-0) 316×18 "Mondol Fabrics · US$84,000 · 20,000 pieces"
+        Frame "Progress" (1PYL-0) 316×4
+          Rectangle "Rectangle" (1PYM-0) 61×4
+          Rectangle "Rectangle" (1PYN-0) 61×4
+          Rectangle "Rectangle" (1PYO-0) 61×4
+          Rectangle "Rectangle" (1PYP-0) 61×4
+          Rectangle "Rectangle" (1PYQ-0) 61×4
+        Frame "Frame" (1PYR-0) 316×16
+          Text "Trims in house · 11 …" (1PYS-0) 165×16 "Trims in house · 11 days late"
+          Text "ship by 14 Nov" (1PYT-0) 79×16 "ship by 14 Nov"
+      Frame "Item · Polos" (1PYV-0) 348×149
+        Frame "Tag" (1PYW-0) 316×16
+          Frame "Frame" (1PYX-0) 58×16
+            SVG "SVG" (1PYY-0) 16×16
+              SVGVisualElement "Path" (1PYZ-0) 13×14
+            Text "At sea" (1PZ0-0) 36×16 "At sea"
+          SVG "SVG" (1PZ1-0) 16×16
+            SVGVisualElement "Path" (1PZ2-0) 6×11
+        Text "Men’s knitted polo s…" (1PZ3-0) 316×22 "Men’s knitted polo shirts"
+        Text "S M Knitwears · US$2…" (1PZ4-0) 316×18 "S M Knitwears · US$26,550 · 4,500 pieces"
+        Frame "Progress" (1PZ5-0) 316×4
+          Rectangle "Rectangle" (1PZ6-0) 61×4
+          Rectangle "Rectangle" (1PZ7-0) 61×4
+          Rectangle "Rectangle" (1PZ8-0) 61×4
+          Rectangle "Rectangle" (1PZ9-0) 61×4
+          Rectangle "Rectangle" (1PZA-0) 61×4
+        Frame "Frame" (1PZB-0) 316×16
+          Text "Left Chattogram 25 S…" (1PZC-0) 143×16 "Left Chattogram 25 Sep"
+          Text "Felixstowe 24 Oct" (1PZD-0) 99×16 "Felixstowe 24 Oct"
+      Frame "Item · T-shirts" (1PZF-0) 348×109
+        Frame "Tag" (1PZG-0) 316×16
+          Frame "Frame" (1PZH-0) 119×16
+            SVG "SVG" (1PZI-0) 16×16
+              SVGVisualElement "Path" (1PZJ-0) 13×13
+            Text "Delivered 30 Aug" (1PZK-0) 97×16 "Delivered 30 Aug"
+          SVG "SVG" (1PZL-0) 16×16
+            SVGVisualElement "Path" (1PZM-0) 6×11
+        Text "Kids’ cotton T-shirt…" (1PZN-0) 316×22 "Kids’ cotton T-shirts"
+        Text "Aboni Knitwear · US$…" (1PZO-0) 316×18 "Aboni Knitwear · US$37,200 · 12,000 pieces"
+      Frame "Item · Crew-neck" (1PZQ-0) 348×135
+        Frame "Tag" (1PZR-0) 316×16
+          Frame "Frame" (1PZS-0) 106×16
+            SVG "SVG" (1PZT-0) 16×16
+              SVGVisualElement "Path" (1PZU-0) 12×12
+            Text "Draft · not sent" (1PZV-0) 84×16 "Draft · not sent"
+          SVG "SVG" (1PZW-0) 16×16
+            SVGVisualElement "Path" (1PZX-0) 6×11
+        Text "Men’s crew-neck T-sh…" (1PZY-0) 316×22 "Men’s crew-neck T-shirts"
+        Text "Zaheen Knitwears Lim…" (1PZZ-0) 316×18 "Zaheen Knitwears Limited · Sheds 3–5, 10–13"
+        Text "30,000 pieces · no p…" (1Q00-0) 316×16 "30,000 pieces · no price yet · ship by 15 Feb 2027"
+  Frame "Tab bar" (1PFM-0) 390×85
+    Frame "Tabs" (1PFN-0) 390×56
+      Frame "Tab · Messages" (1PFO-0) 78×56
+        SVG "SVG" (1PFP-0) 24×24
+          SVGVisualElement "Path" (1PFQ-0) 19×19
+        Text "Messages" (1PFR-0) 53×14 "Messages"
+      Frame "Tab · Quotes" (1PFS-0) 78×56
+        SVG "SVG" (1PFT-0) 24×24
+          SVGVisualElement "Path" (1PFU-0) 19×16
+        Text "Quotes" (1PFV-0) 39×14 "Quotes"
+      Frame "Tab · Alerts" (1PFW-0) 78×56
+        SVG "SVG" (1PFX-0) 24×24
+          SVGVisualElement "Path" (1PFY-0) 17×19
+        Text "Alerts" (1PFZ-0) 31×14 "Alerts"
+        Frame "Alert dot" (1PG0-0) 7×7
+      Frame "Tab · Saved" (1PG1-0) 78×56
+        SVG "SVG" (1PG2-0) 24×24
+          SVGVisualElement "Path" (1PG3-0) 13×18
+        Text "Saved" (1PG4-0) 32×14 "Saved"
+      Frame "Tab · Search" (1PG5-0) 78×56
+        SVG "SVG" (1PG6-0) 24×24
+          SVGVisualElement "Path" (1PG7-0) 19×19
+        Text "Search" (1PG8-0) 37×14 "Search"
+    Frame "Home indicator" (1PG9-0) 390×28
+      Rectangle "Rectangle" (1PGA-0) 134×5

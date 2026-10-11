@@ -1,0 +1,68 @@
+Frame "State · loading · phone" (1NJ3-0) 390×844
+  Frame "Status bar" (1NJ4-0) ?×?
+    Frame "Time" (1NJ5-0) ?×?
+      Text "9:41" (1NJ6-0) ?×? "9:41"
+    Frame "Icons" (1NJ7-0) ?×?
+      SVG "SVG" (1NJ8-0) ?×?
+        SVGVisualElement "Path" (1NJ9-0) ?×?
+        SVGVisualElement "Path" (1NJA-0) ?×?
+        SVGVisualElement "Path" (1NJB-0) ?×?
+        SVGVisualElement "Path" (1NJC-0) ?×?
+        SVGVisualElement "Path" (1NJD-0) ?×?
+  Frame "Sheet" (1NJE-0) ?×?
+    Frame "Bar" (1NJF-0) ?×52
+      Frame "Frame" (1NJH-0) 44×44
+        SVG "SVG" (1NJI-0) ?×?
+          SVGVisualElement "Path" (1NJJ-0) ?×?
+      Rectangle "Rectangle" (1NJG-0) 36×4
+    Frame "Head skeleton" (1NJK-0) ?×?
+      Text "Square Apparels Limi…" (1NJL-0) ?×? "Square Apparels Limited"
+      Rectangle "Rectangle" (1NJM-0) 240×14
+      Frame "Frame" (1NJN-0) ?×?
+        Rectangle "Rectangle" (1NJO-0) 150×32
+        Rectangle "Rectangle" (1NJP-0) 120×32
+    Frame "Tabs" (1NJQ-0) ?×48
+      Frame "Tab · Overview (current)" (1NJR-0) ?×?
+        Text "Overview" (1NJS-0) ?×? "Overview"
+        Frame "Indicator" (1NJT-0) ?×2
+      Frame "Tab · Exports" (1NJU-0) ?×?
+        Text "Exports" (1NJV-0) ?×? "Exports"
+      Frame "Tab · Certificates" (1NJW-0) ?×?
+        Text "Certificates" (1NJX-0) ?×? "Certificates"
+      Frame "Tab · Safety" (1NJZ-0) ?×?
+        Text "Safety" (1NK0-0) ?×? "Safety"
+      Frame "Tab · Sites" (1NK2-0) ?×?
+        Text "Sites" (1NK3-0) ?×? "Sites"
+    Frame "Body skeleton" (1NK5-0) ?×?
+      Rectangle "Rectangle" (1NK6-0) 96×20
+      Frame "Tiles" (1NK7-0) ?×?
+        Frame "Frame" (1NK8-0) ?×?
+          Frame "Frame" (1NK9-0) ?×120
+            Rectangle "Rectangle" (1NKA-0) 90×12
+            Rectangle "Rectangle" (1NKB-0) 70×24
+          Frame "Frame" (1NKC-0) ?×120
+            Rectangle "Rectangle" (1NKD-0) 90×12
+            Rectangle "Rectangle" (1NKE-0) 50×24
+        Frame "Frame" (1NKF-0) ?×?
+          Frame "Frame" (1NKG-0) ?×120
+            Rectangle "Rectangle" (1NKH-0) 60×12
+            Rectangle "Rectangle" (1NKI-0) 56×24
+          Frame "Frame" (1NKJ-0) ?×120
+            Rectangle "Rectangle" (1NKK-0) 96×12
+            Rectangle "Rectangle" (1NKL-0) 76×24
+      Frame "Frame" (1NKM-0) ?×?
+        Rectangle "Rectangle" (1NKN-0) 36×36
+        Frame "Frame" (1NKO-0) ?×?
+          Rectangle "Rectangle" (1NKP-0) 220×14
+          Rectangle "Rectangle" (1NKQ-0) 260×12
+      Frame "Frame" (1NKR-0) ?×?
+        Rectangle "Rectangle" (1NKS-0) 36×36
+        Frame "Frame" (1NKT-0) ?×?
+          Rectangle "Rectangle" (1NKU-0) 180×14
+          Rectangle "Rectangle" (1NKV-0) 240×12
+  Frame "Action bar · waiting" (1NKZ-0) ?×64
+    Frame "Frame" (1NL0-0) 48×48
+      SVG "SVG" (1NL1-0) ?×?
+        SVGVisualElement "Path" (1NL2-0) ?×?
+    Frame "Frame" (1NL3-0) ?×48
+      Text "Send RFQ" (1NL4-0) ?×? "Send RFQ"
