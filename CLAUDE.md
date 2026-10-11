@@ -22,8 +22,8 @@ Then the lean boot set from AGENTS.md rule 3 (`context/agent-brief.md`, `context
    That approval is the only human gate. Never `gh workflow run` it yourself.
 
 Do not run locally what CI runs. CI (`.github/workflows/ci.yml`) is `tsc`, `next lint`, `next build`,
-`pnpm test` on Node 22, the HTTP-boundary guard, the migration replay on Postgres 16, and
-`pytest etl/tests`. All five must be required checks on `development` and `main`; the settings
+`pnpm test` and `pnpm test:slow` on Node 22, the HTTP-boundary guard, the migration replay on Postgres 16, and
+`pytest etl/tests`. All six must be required checks on `development` and `main`; the settings
 that make that true are in `docs/ENTERPRISE_DEPLOYMENT.md` (Branch and release model). `ruff` runs nowhere:
 49 pre-existing findings (ruff 0.15) would make it red on day one; fix them before adding it.
 
