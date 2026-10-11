@@ -45,7 +45,7 @@ function Row({ name, line, href, onChoose, active }: { name: string; line: strin
       <span className="shrink-0 text-sm font-medium text-brand-ink max-sm:hidden">Choose</span>
     </>
   );
-  const cls = cn("flex min-h-12 w-full items-center gap-3 px-3 py-2 text-left outline-none hover:bg-brand-wash focus-visible:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus max-sm:min-h-14", active && "bg-brand-wash");
+  const cls = cn("flex min-h-12 w-full items-center gap-3 px-3 py-2 text-left outline-none hover:bg-brand-wash focus-visible:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus max-sm:min-h-14 max-sm:active:bg-sunken", active && "bg-brand-wash");
   return href ? (
     <Link href={href} prefetch={false} className={cls}>
       {body}
@@ -237,7 +237,7 @@ export function OrderForm({ seed, prefill, cancelHref, backLabel, changeHref }: 
           {backLabel}
         </Link>
         {/* The phone's compact head (Paper 36 `new-order`): a round back, the title and where the order comes from. */}
-        <Link href={cancelHref} prefetch={false} aria-label={backLabel} className="group -ml-1 flex size-11 shrink-0 items-center justify-center rounded-full outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus sm:hidden">
+        <Link href={cancelHref} aria-label={backLabel} className="group -ml-1 flex size-11 shrink-0 items-center justify-center rounded-full outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus sm:hidden">
           <span className="flex size-9 items-center justify-center rounded-full bg-sunken group-active:bg-line">
             <ArrowLeft size={17} weight="thin" className="shrink-0 text-ink-2" aria-hidden />
           </span>

@@ -240,7 +240,7 @@ function QuoteCards({ m, order, threadHref }: { m: DetailModel; order: OrderRef;
             <QuoteAction q={q} m={m} order={order} size="touch" full best={i === 0} />
             {q.moqSentence && threadHref && m.canAccept ? (
               <div className="flex items-center justify-end gap-3 border-t border-line pt-3">
-                <Link href={threadHref} prefetch={false} className="flex h-11 items-center gap-1.5 rounded-full bg-sunken px-3.5 text-base font-medium text-ink outline-none active:bg-line focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+                <Link href={threadHref} className="flex h-11 items-center gap-1.5 rounded-full bg-sunken px-3.5 text-base font-medium text-ink outline-none active:bg-line focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
                   <ChatCircle size={16} weight="thin" className="shrink-0" aria-hidden />
                   Ask about MOQ
                 </Link>
@@ -261,8 +261,8 @@ function QuoteCards({ m, order, threadHref }: { m: DetailModel; order: OrderRef;
   );
 }
 
-/** Where the target line and its label stand: the track starts after the 112 name and an 8 gap, and leaves 80 for the price. */
-const TARGET_X = "left-[calc(120px_+_(100%_-_200px)_*_0.56)]";
+/** Where the target line and its label stand: the track starts after the 112 name and an 8 gap, and leaves 104 for the price ("US$0.35 under" on one line, where the board's "$0.35 under" took 80). */
+const TARGET_X = "left-[calc(120px_+_(100%_-_224px)_*_0.56)]";
 
 /** The phone's price comparison (Paper 36 `rfq-detail`): a dot per quote against the dashed target, cheaper to the left. Each card says the same in words for a screen reader. */
 function PriceChart({ c }: { c: QuoteChart }) {
@@ -283,12 +283,12 @@ function PriceChart({ c }: { c: QuoteChart }) {
             ) : null}
           </span>
           {r.price ? (
-            <span className="flex w-[72px] shrink-0 flex-col items-end">
+            <span className="flex w-24 shrink-0 flex-col items-end whitespace-nowrap">
               <span className="text-base/[18px] font-medium text-ink">{r.price}</span>
               {r.delta ? <span className={cn("text-xs font-medium", r.over ? "text-caution" : "text-brand")}>{r.delta}</span> : null}
             </span>
           ) : (
-            <span className="w-[72px] shrink-0 text-right text-xs text-ink-3">No quote yet</span>
+            <span className="w-24 shrink-0 text-right text-xs text-ink-3">No quote yet</span>
           )}
         </div>
       ))}
@@ -470,13 +470,13 @@ export function RfqDetail({ rfq, mode, today, closeHref, order = null, others = 
         <>
           {/* The phone's bar (Paper 36 `rfq-detail`): back to Quotes, and the conversation when there is one. */}
           <div className="flex h-14 items-center justify-between px-3 sm:hidden">
-            <Link href={closeHref} prefetch={false} aria-label="Back to Quotes" className={PHONE_ROUND}>
+            <Link href={closeHref} aria-label="Back to Quotes" className={PHONE_ROUND}>
               <span className={PHONE_ROUND_FACE}>
                 <ArrowLeft size={17} weight="thin" className="shrink-0 text-ink-2" aria-hidden />
               </span>
             </Link>
             {threadHref ? (
-              <Link href={threadHref} prefetch={false} aria-label="Open messages" className={PHONE_ROUND}>
+              <Link href={threadHref} aria-label="Open messages" className={PHONE_ROUND}>
                 <span className={PHONE_ROUND_FACE}>
                   <ChatCircle size={20} weight="thin" className="shrink-0 text-ink-2" aria-hidden />
                 </span>
@@ -495,7 +495,8 @@ export function RfqDetail({ rfq, mode, today, closeHref, order = null, others = 
         <div className="flex items-start justify-between gap-4">
           <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 max-sm:flex-col max-sm:items-start max-sm:gap-3">
             <Title className="text-xl font-semibold tracking-tight text-ink [overflow-wrap:anywhere] max-sm:text-2xl/[36px] max-sm:font-medium max-sm:tracking-tighter">{rfq.product_title}</Title>
-            {page ? <RfqChip tone={m.chip.tone} className="max-sm:order-first">{m.chip.label}</RfqChip> : null}
+            {/* On a phone an open RFQ's count is "Quotes 2 of 3" below (Paper 36 `rfq-detail`); an accepted or closed one keeps its chip, over the title. */}
+            {page ? <RfqChip tone={m.chip.tone} className={rfq.status === "open" ? "max-sm:hidden" : "max-sm:order-first"}>{m.chip.label}</RfqChip> : null}
           </div>
           <div className="flex shrink-0 items-center gap-2 pt-1">
             {page ? (

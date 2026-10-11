@@ -122,7 +122,7 @@ export function OrderDetail({ order, mode, today, threadId, viewerId, closeHref 
         <>
           {/* The phone's bar (Paper 36 `order-detail`): back to Quotes, and the "..." menu when there is one. */}
           <div className="flex h-14 items-center justify-between px-3 sm:hidden">
-            <Link href={closeHref} prefetch={false} aria-label="Back to orders" className={PHONE_ROUND}>
+            <Link href={closeHref} aria-label="Back to orders" className={PHONE_ROUND}>
               <span className={PHONE_ROUND_FACE}>
                 <ArrowLeft size={17} weight="thin" className="shrink-0 text-ink-2" aria-hidden />
               </span>
@@ -247,7 +247,6 @@ export function OrderDetail({ order, mode, today, threadId, viewerId, closeHref 
           {threadId ? (
             <Link
               href={`/app/messages/${threadId}`}
-              prefetch={false}
               aria-label={`Message ${supplier}`}
               className="flex size-12 shrink-0 items-center justify-center rounded-lg border border-line text-ink outline-none active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
             >

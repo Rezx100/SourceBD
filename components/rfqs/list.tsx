@@ -173,7 +173,6 @@ export function QuotesSwitch({ current, rfqs, orders, newHref = NEW_RFQ_HREF, ne
     return (
       <Link
         href={`/app/${key}`}
-        prefetch={false}
         aria-current={on ? "page" : undefined}
         className="relative flex shrink-0 items-center gap-1.5 px-2 outline-none active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
       >
@@ -194,7 +193,7 @@ export function QuotesSwitch({ current, rfqs, orders, newHref = NEW_RFQ_HREF, ne
         {tab("rfqs", "RFQs", rfqs)}
         {tab("orders", "Orders", orders)}
       </nav>
-      <Link href={newHref} prefetch={false} className="group ml-auto flex items-center rounded-full outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
+      <Link href={newHref} className="group ml-auto flex items-center rounded-full outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
         <span className="flex h-9 items-center gap-1.5 rounded-full bg-sunken pl-2.5 pr-3.5 group-active:bg-line">
           <Plus size={16} weight="thin" className="shrink-0 text-ink" aria-hidden />
           <span className="text-base/[18px] font-medium text-ink">{newLabel}</span>
@@ -257,7 +256,7 @@ export function RfqEmpty() {
           ))}
         </ol>
         {/* Class strings, not `cn`: tailwind-merge reads `text-md/[20px]` as a colour and would drop one. */}
-        <Link href="/app/discover" prefetch={false} className="flex h-12 items-center justify-center gap-1.5 rounded-lg bg-brand text-md/[20px] font-medium text-surface outline-none active:bg-brand-active focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+        <Link href="/app/discover" className="flex h-12 items-center justify-center gap-1.5 rounded-lg bg-brand text-md/[20px] font-medium text-surface outline-none active:bg-brand-active focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
           <MagnifyingGlass size={18} weight="thin" className="shrink-0" aria-hidden />
           Search suppliers
         </Link>

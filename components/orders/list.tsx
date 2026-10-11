@@ -131,7 +131,7 @@ export function OrderPhoneRows({ items }: { items: readonly OrderItem[] }) {
                         <span key={s} className={`grow basis-0 rounded-full ${n > at ? "bg-sunken" : n === at && i.dates.late ? "bg-caution-icon" : "bg-ink-2"}`} />
                       ))}
                     </span>
-                    <span className="flex items-baseline justify-between gap-3">
+                    <span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
                       {i.dates.late ? <span className="text-sm/[16px] font-medium text-caution">{i.dates.late}</span> : <span className="text-sm/[16px] text-ink-2">{i.dates.line}</span>}
                       <span className="text-right text-xs text-ink-3">{i.dates.late ? i.dates.line : i.dates.sub}</span>
                     </span>

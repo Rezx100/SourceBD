@@ -130,7 +130,7 @@ function Targets({
             <span className="text-xs text-ink-3">
               To {targets.length} {targets.length === 1 ? "supplier" : "suppliers"}
             </span>
-            <span className="text-[15px]/[18px] font-medium text-ink [overflow-wrap:anywhere]">{targets.length === 1 ? first.name : targetSummary(targets)}</span>
+            <span className="line-clamp-2 text-[15px]/[18px] font-medium text-ink [overflow-wrap:anywhere]">{targets.length === 1 ? first.name : targetSummary(targets)}</span>
           </span>
           {targets.length > 1 || first.sanctioned ? (
             <button type="button" onClick={onReview} className={PILL}>
@@ -517,7 +517,7 @@ export function RfqComposer({
               {draftSavedAt ? <CheckCircle size={14} weight="thin" className="shrink-0" aria-hidden /> : null}
               {busy === "draft" ? "Saving draft" : draftSavedAt ? "Draft saved" : "Save draft"}
             </button>
-            <Link href={closeHref} prefetch={false} aria-label={backLabel ?? "Close"} className="group flex size-11 shrink-0 items-center justify-center rounded-full outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
+            <Link href={closeHref} aria-label={backLabel ?? "Close"} className="group flex size-11 shrink-0 items-center justify-center rounded-full outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
               <span className="flex size-9 items-center justify-center rounded-full bg-sunken group-active:bg-line">
                 <X size={17} weight="thin" className="shrink-0 text-ink-2" aria-hidden />
               </span>
@@ -568,7 +568,7 @@ export function RfqComposer({
             <Targets targets={targets} onRemove={remove} onAdd={() => setPicking(true)} onReview={() => setReviewing("review")} note={pickNote ?? note("a supplier", "Add at least one supplier.")} />
 
             <section aria-label="What you're asking for" className="flex flex-col gap-3">
-              <h2 className="text-md font-semibold text-ink">What you&apos;re asking for</h2>
+              <h2 className="text-md font-semibold text-ink max-sm:sr-only">What you&apos;re asking for</h2>
               <Field label="Product · required" error={note("product title", "Add a product")}>
                 {(a) => <Input {...a} required value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} placeholder="e.g. Men's knitted piqué polo, 220 gsm" className="max-sm:h-[52px] max-sm:rounded-[10px] max-sm:text-md" />}
               </Field>
