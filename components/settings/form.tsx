@@ -10,7 +10,7 @@ import { fieldBox, fieldEdge } from "@/components/kit/classes";
 import { cn } from "@/lib/utils";
 import { PHONE_PILL } from "./phone";
 
-export const textareaClass = cn(fieldBox, fieldEdge, "block min-h-16 px-2.5 py-1.5 text-base max-md:rounded-lg max-md:px-3.5 max-md:py-3 max-md:text-md");
+export const textareaClass = cn(fieldBox, fieldEdge, "block min-h-16 px-2.5 py-1.5 text-base max-md:min-h-24 max-md:rounded-lg max-md:px-3.5 max-md:py-3 max-md:text-md");
 
 /** A sentence to say once and let go (the kit's toast), cleared after four seconds. */
 export function useFlash(ms = 4000) {

@@ -102,9 +102,9 @@ export function SettingsShell({
   return (
     <div className="flex min-h-0 flex-1">
       <SideNav current={current} doc={doc} />
-      <div className={cn("min-w-0 flex-1 px-8 pb-8 pt-7 max-md:px-5 max-md:pt-0", phoneAction ? "max-md:pb-0" : "max-md:pb-12")}>
+      <div className={cn("min-w-0 flex-1 px-8 pb-8 pt-7 max-md:px-5 max-md:pt-0", phoneAction ? "max-md:flex max-md:flex-col max-md:pb-0" : "max-md:pb-12")}>
         {desktopOnly ? null : <PhoneHead title={current ? phoneLabel(current) : title} line={line ?? (current ? PHONE_LINES[current] : undefined)} />}
-        <div className={cn("flex flex-col", wide ? "max-w-[920px]" : "max-w-[760px]")}>
+        <div className={cn("flex flex-col", wide ? "max-w-[920px]" : "max-w-[760px]", phoneAction && "max-md:pb-8")}>
           {action ? (
             <div className="flex items-end justify-between gap-4 pb-5 max-md:block max-md:p-0">
               <div className="min-w-0 max-md:sr-only">
@@ -122,7 +122,8 @@ export function SettingsShell({
           {children}
         </div>
         {phoneAction ? (
-          <div className="sticky bottom-0 z-raised -mx-5 mt-8 flex min-h-16 items-center gap-2 border-t border-line bg-surface px-4 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden">{phoneAction}</div>
+          // `mt-auto` on the phone's column: a short page still ends with the bar at the foot of the screen.
+          <div className="sticky bottom-0 z-raised -mx-5 mt-auto flex min-h-16 items-center gap-2 border-t border-line bg-surface px-4 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden">{phoneAction}</div>
         ) : null}
       </div>
     </div>
@@ -219,9 +220,11 @@ export function SettingsSkeleton() {
 }
 
 /** A titled block of a Settings page: its name, what it is for, then the fields; a hairline above all but the first. */
-export function Section({ title, caption, phoneHead = true, children }: { title: string; caption?: ReactNode; /** false: Paper's phone board draws no head here (it is still read out). */ phoneHead?: boolean; children: ReactNode }) {
+export function Section({ title, caption, phoneHead = true, className, children }: { title: string; caption?: ReactNode; /** false: Paper's phone board draws no head here (it is still read out). */ phoneHead?: boolean; className?: string; children: ReactNode }) {
+  // On a phone the page's first block sits under the compact head with no hairline (Paper `11 · Profile`);
+  // `first-of-type`, because the page's `h1` comes before it.
   return (
-    <section aria-label={title} className="flex flex-col gap-3 border-t border-line py-6 first:border-t-0 first:pt-0 max-md:first:pt-4">
+    <section aria-label={title} className={cn("flex flex-col gap-3 border-t border-line py-6 first:border-t-0 first:pt-0 max-md:first-of-type:border-t-0 max-md:first-of-type:pt-4", className)}>
       <div className={cn("flex flex-col gap-0.5", !phoneHead && "max-md:sr-only")}>
         <h2 className="text-md font-semibold text-ink max-md:font-medium max-md:leading-[22px]">{title}</h2>
         {caption ? <p className="text-base text-ink-2 max-md:text-sm max-md:text-ink-3">{caption}</p> : null}

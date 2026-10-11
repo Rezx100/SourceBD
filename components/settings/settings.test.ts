@@ -19,6 +19,7 @@ import { DEFAULT_QUESTIONS, DEFAULT_TEMPLATE, FILL_INS, MAX_QUESTIONS, gapWords,
 import { EMAIL_SENT, emailRefusal, initialsOf, passwordBody, passwordFailureField, passwordRefusal, pictureRefusal } from "./profile";
 import { deleteAvatar, postAvatar, postSettings, routeSentence, type Fetch } from "./transport";
 import { SETTINGS_GROUPS, itemOf, planWords, rowCaution, rowLine, settingsSubline } from "./words";
+import { unsavedWords } from "./form";
 import { monthSoFar } from "./plan";
 
 const DOC: SettingsDoc = {
@@ -311,7 +312,7 @@ describe("/app/settings and /app/settings/workspace", () => {
     assert.match(out, /data-detail=""/);
     assert.match(out, /<a[^>]*href="\/app\/settings"[^>]*aria-label="Back to Settings"|<a[^>]*aria-label="Back to Settings"[^>]*href="\/app\/settings"/);
     assert.match(text(out), /Suppliers see the name and website on every RFQ/);
-    assert.equal(out.match(/<h1/g)?.length, 1);
+    assert.equal(out.match(/<h1\b/g)?.length, 1);
   });
 
   it("a failed read is an error and draws no form and no list", async () => {
@@ -488,6 +489,31 @@ describe("the other three pages (Team and roles is `components/team/team.test.ts
     assert.match(t, /How every new RFQ starts/);
     assert.match(t, new RegExp(`Questions ${DEFAULT_QUESTIONS.length} Up to 20, in this order`));
     assert.equal(out.match(/>Save message</g)?.length, 2, "the phone pill and the desktop button");
+    // One arrow a row on a phone: down on every row but the last, up on the last. Both stay from 768.
+    const arrow = (n: number, way: string) => out.match(new RegExp(`<button[^>]*aria-label="Move question ${n} ${way}"[^>]*>`))?.[0] ?? "";
+    const last = DEFAULT_QUESTIONS.length;
+    assert.match(arrow(1, "up"), /max-md:hidden/);
+    assert.doesNotMatch(arrow(1, "down"), /max-md:hidden/);
+    assert.match(arrow(last, "down"), /max-md:hidden/);
+    assert.doesNotMatch(arrow(last, "up"), /max-md:hidden/);
+  });
+
+  it("from 768 a page's first block keeps its hairline: nothing wraps the plan's sections", async () => {
+    answer = { data: DOC, error: null };
+    const out = await page(PLAN);
+    assert.match(out, /<\/div><section aria-label="Your plan" class="[^"]*border-t[^"]*max-md:hidden[^"]*">/, "a sibling of the phone page, not the first child of a wrapper");
+    assert.match(out, /<section aria-label="Enterprise · talk to us" class="[^"]*max-md:hidden/);
+    // On a phone the first block of a page sits under the compact head without one.
+    assert.match(await page(PROFILE), /<section aria-label="Your name" class="[^"]*max-md:first-of-type:border-t-0/);
+  });
+
+  it("Company details on a phone: the type as pills, and one bar at the foot that names what changed", async () => {
+    answer = { data: DOC, error: null };
+    const out = await page(WORKSPACE);
+    assert.match(out, /<div role="radiogroup" aria-label="Company type"[^>]*md:hidden/);
+    assert.match(out, /<input[^>]*type="radio"[^>]*name="company_type_phone"[^>]*checked=""[^>]*value="retailer"|<input[^>]*type="radio"[^>]*name="company_type_phone"[^>]*value="retailer"[^>]*checked=""/, "the saved type is the one chosen");
+    assert.equal(unsavedWords(["Website"]), "Unsaved change: website");
+    assert.equal(unsavedWords(["Company name", "Website"]), "Unsaved changes: company name, website");
   });
 
   it("RFQ templates shows the composer's defaults until the buyer has questions of their own, then theirs", async () => {

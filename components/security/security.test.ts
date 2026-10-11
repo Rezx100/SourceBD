@@ -261,6 +261,21 @@ describe("/app/settings/security", () => {
     assert.doesNotMatch(t, /\b\d{1,3}(\.\d{1,3}){3}\b/, "no address anywhere");
   });
 
+  it("on a phone (Paper `11 · Security`): its own head, Off in caution, Password a row to Profile, and every sign-out it had", async () => {
+    replies.settings_get = { data: { email: "alex.morgan@example.com", plan_tier: "free" }, error: null };
+    const out = await page();
+    const t = text(out);
+    assert.match(out, /data-detail=""/, "the phone page's own head hides the frame's bar");
+    assert.match(t, /Security Sign-in and devices/);
+    assert.equal(out.match(/<h1\b/g)?.length, 1);
+    assert.match(out, /<p class="[^"]*text-caution[^"]*">.*?Off<\/p>/);
+    assert.equal(out.match(/>Turn on</g)?.length, 2, "the phone pill and the desktop button open the same dialog");
+    assert.match(out, /<a(?=[^>]*href="\/app\/settings\/profile")(?=[^>]*[" ]md:hidden)(?=[^>]*active:bg-sunken)[^>]*>.*?Change it on your Profile<\/span>/, "the whole row goes to Profile, and has a pressed state");
+    assert.match(t, /Where you.re signed in 3 /, "the phone's head counts the devices");
+    assert.equal(out.match(/>Sign out everywhere else</g)?.length, 2, "kept on a phone, under the list");
+    assert.equal((out.match(/aria-label="Sign out (Safari|Edge)/g) ?? []).length, 2, "one button a device, drawn once");
+  });
+
   it("on: says so, offers Turn off, and keeps the lost-phone line", async () => {
     replies.listFactors = { data: { all: [{ id: "f1", factor_type: "totp", status: "verified" }], totp: [{ id: "f1" }] }, error: null };
     const t = text(await page());

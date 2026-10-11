@@ -83,8 +83,7 @@ export function PlanPanel({ doc, packs = null, now = new Date() }: { doc: Settin
   return (
     <>
       <PhonePlan doc={doc} packs={packs} free={free} now={now} />
-      <div className="max-md:hidden">
-      <Section title="Your plan">
+      <Section title="Your plan" className="max-md:hidden">
         <div className="flex max-w-[560px] flex-col gap-3 rounded-lg border border-line p-5">
           <p className="text-lg font-semibold text-ink">{planWords(doc)}</p>
           {free ? <p className="text-base text-ink-2">{FREE_INCLUDES}</p> : null}
@@ -97,7 +96,7 @@ export function PlanPanel({ doc, packs = null, now = new Date() }: { doc: Settin
         </div>
       </Section>
       {packs !== null ? (
-        <Section title="This month">
+        <Section title="This month" className="max-md:hidden">
           <dl className="flex max-w-[560px] flex-col">
             <div className="flex justify-between gap-3 border-b border-line py-2">
               <dt className="text-base text-ink-2">Evidence packs downloaded</dt>
@@ -106,7 +105,7 @@ export function PlanPanel({ doc, packs = null, now = new Date() }: { doc: Settin
           </dl>
         </Section>
       ) : null}
-      <Section title="Enterprise · talk to us">
+      <Section title="Enterprise · talk to us" className="max-md:hidden">
         <div className="flex max-w-[560px] flex-col gap-3">
           <ul className="flex flex-col gap-2">
             {ENTERPRISE.map((f) => (
@@ -123,7 +122,6 @@ export function PlanPanel({ doc, packs = null, now = new Date() }: { doc: Settin
           </div>
         </div>
       </Section>
-      </div>
     </>
   );
 }

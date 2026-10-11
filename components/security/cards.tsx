@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { Button, Dialog, Field, Input, Sheet } from "@/components/kit";
 import { useIsPhone } from "@/components/kit/use-phone";
+import { LinkPending } from "@/components/patterns/link-pending";
 import { PHONE_PILL } from "@/components/settings/phone";
 import { cn } from "@/lib/utils";
 import { cancelTwoStep, endDevice, finishTwoStep, signOutOtherDevices, startTwoStep, turnOffTwoStep, type Started } from "./actions";
@@ -171,24 +172,24 @@ export function TwoStepCard({ factors }: { factors: Factor[] | null }) {
           </div>
         ) : null}
       </section>
-    <section aria-label="Two-step sign-in" className="flex flex-col gap-3 rounded-lg border border-line p-5 max-md:hidden">
-      <div className="flex items-start gap-3">
-        <Shield size={20} className={on ? "mt-0.5 shrink-0 text-brand-ink" : "mt-0.5 shrink-0 text-caution-icon"} aria-hidden />
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <h2 className="flex items-center gap-2 text-md font-semibold text-ink">
-            Two-step sign-in
-            {factors ? <span className={on ? "text-sm font-medium text-brand-ink" : "text-sm font-medium text-ink-3"}>{on ? "On" : "Off"}</span> : null}
-          </h2>
-          <p className="text-base text-ink-2">{words}</p>
-          {on ? <p className="pt-1 text-sm text-ink-3">{SECURITY_COPY.lostPhone}</p> : null}
+      <section aria-label="Two-step sign-in" className="flex flex-col gap-3 rounded-lg border border-line p-5 max-md:hidden">
+        <div className="flex items-start gap-3">
+          <Shield size={20} className={on ? "mt-0.5 shrink-0 text-brand-ink" : "mt-0.5 shrink-0 text-caution-icon"} aria-hidden />
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <h2 className="flex items-center gap-2 text-md font-semibold text-ink">
+              Two-step sign-in
+              {factors ? <span className={on ? "text-sm font-medium text-brand-ink" : "text-sm font-medium text-ink-3"}>{on ? "On" : "Off"}</span> : null}
+            </h2>
+            <p className="text-base text-ink-2">{words}</p>
+            {on ? <p className="pt-1 text-sm text-ink-3">{SECURITY_COPY.lostPhone}</p> : null}
+          </div>
+          {factors ? (
+            <Button kind={on ? "secondary" : "primary"} size="md" className={touch} onClick={() => setDialog(on ? "off" : "on")}>
+              {on ? "Turn off" : "Turn on"}
+            </Button>
+          ) : null}
         </div>
-        {factors ? (
-          <Button kind={on ? "secondary" : "primary"} size="md" className={touch} onClick={() => setDialog(on ? "off" : "on")}>
-            {on ? "Turn off" : "Turn on"}
-          </Button>
-        ) : null}
-      </div>
-    </section>
+      </section>
       {dialog === "on" ? <TurnOn onClose={() => setDialog(null)} /> : null}
       {dialog === "off" ? <TurnOff onClose={() => setDialog(null)} /> : null}
     </>
@@ -209,18 +210,19 @@ export function PasswordRow() {
           <span className="text-md/[22px] text-ink">Password</span>
           <span className="text-sm text-ink-3">{SECURITY_COPY.passwordPhone}</span>
         </span>
+        <LinkPending />
         <CaretRight size={16} className="shrink-0 text-ink-3" aria-hidden />
       </Link>
-    <section aria-label="Password" className="flex items-center gap-3 rounded-lg border border-line p-5 max-md:hidden">
-      <Lock size={20} className="shrink-0 text-ink-2" aria-hidden />
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <h2 className="text-md font-semibold text-ink">Password</h2>
-        <p className="text-base text-ink-2">{SECURITY_COPY.passwordNote}</p>
-      </div>
-      <Link href="/app/settings/profile" prefetch={false} className="flex h-control items-center rounded-sm border border-line-strong px-3 text-base font-medium text-ink hover:bg-subtle max-md:h-input-touch max-md:text-md">
-        Change password
-      </Link>
-    </section>
+      <section aria-label="Password" className="flex items-center gap-3 rounded-lg border border-line p-5 max-md:hidden">
+        <Lock size={20} className="shrink-0 text-ink-2" aria-hidden />
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <h2 className="text-md font-semibold text-ink">Password</h2>
+          <p className="text-base text-ink-2">{SECURITY_COPY.passwordNote}</p>
+        </div>
+        <Link href="/app/settings/profile" prefetch={false} className="flex h-control items-center rounded-sm border border-line-strong px-3 text-base font-medium text-ink hover:bg-subtle max-md:h-input-touch max-md:text-md">
+          Change password
+        </Link>
+      </section>
     </>
   );
 }

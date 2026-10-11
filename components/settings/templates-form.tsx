@@ -176,8 +176,9 @@ export function TemplatesForm({ initial, facts, suppliers = [] }: { initial: Inq
                   }}
                   className="min-w-0 flex-1 border-transparent hover:border-line-strong max-md:h-11 max-md:px-1.5 max-md:text-md"
                 />
-                <IconButton icon={ArrowUp} label={`Move question ${i + 1} up`} kind="quiet" size={32} disabled={i === 0} onClick={() => move(i, -1)} className="max-md:size-11" />
-                <IconButton icon={ArrowDown} label={`Move question ${i + 1} down`} kind="quiet" size={32} disabled={i === questions.length - 1} onClick={() => move(i, 1)} className="max-md:size-11" />
+                {/* Paper `11 · RFQ template`: one arrow a row on a phone (down, and up on the last), which still reaches every order and leaves the words room. */}
+                <IconButton icon={ArrowUp} label={`Move question ${i + 1} up`} kind="quiet" size={32} disabled={i === 0} onClick={() => move(i, -1)} className={i === questions.length - 1 ? "max-md:size-11" : "max-md:hidden"} />
+                <IconButton icon={ArrowDown} label={`Move question ${i + 1} down`} kind="quiet" size={32} disabled={i === questions.length - 1} onClick={() => move(i, 1)} className={i === questions.length - 1 ? "max-md:hidden" : "max-md:size-11"} />
                 <IconButton icon={X} label={`Remove question ${i + 1}`} kind="quiet" size={32} onClick={() => setQuestions((l) => l.filter((_, j) => j !== i))} className="max-md:size-11" />
               </li>
             ))}
