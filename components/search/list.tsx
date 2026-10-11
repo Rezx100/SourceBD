@@ -22,7 +22,7 @@ export function PhoneRows({ rows }: { rows: readonly ResultRow[] }) {
     <ul>
       {rows.map((r) => (
         <li key={r.slug}>
-          <SupplierRow layout="phone" href={r.pageHref} name={r.name} type={r.type} place={r.place} sources={r.sources} problem={<Problem r={r} reveal />} />
+          <SupplierRow layout="phone" href={r.pageHref} name={r.name} type={r.type} place={r.place} sources={r.sources} figure={r.exports ? { key: r.exports.shipments, detail: null } : null} problem={<Problem r={r} reveal />} />
         </li>
       ))}
     </ul>

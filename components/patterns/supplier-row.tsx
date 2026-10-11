@@ -23,6 +23,7 @@ export function SupplierRow({
   type,
   place,
   sources,
+  figure,
   problem,
   selected,
   ticked,
@@ -35,6 +36,11 @@ export function SupplierRow({
   type: string | null;
   place: string | null;
   sources: number;
+  /**
+   * The customs figure in the exports view: it takes the source count's place on the right (the row
+   * drops "N sources"). `pane`: the sort's figure over its detail; `phone`: the shipment count alone.
+   */
+  figure?: { key: string; detail: string | null } | null;
   /** The certificates' compact cell, or the dash for none on file. */
   problem?: ReactNode;
   selected?: boolean;
@@ -64,12 +70,15 @@ export function SupplierRow({
     return (
       <div className={cn("relative min-h-11 gap-1 px-4 py-3 hover:bg-brand-wash has-[>a:focus-visible]:outline has-[>a:focus-visible]:outline-2 has-[>a:focus-visible]:outline-offset-[-2px] has-[>a:focus-visible]:outline-focus", box, selected && "bg-brand-tint")}>
         <Link href={href} aria-current={selected ? "true" : undefined} className="flex flex-col gap-1 outline-none after:absolute after:inset-0 after:content-['']">
-          <span data-name="" title={name} className={cn(oneLine, "text-md font-medium text-ink")}>
-            {spoken}
-            <LinkPending className="ml-1.5 inline-block align-[-2px]" />
+          <span className="flex justify-between gap-3">
+            <span data-name="" title={name} className={cn(oneLine, "text-md font-medium text-ink")}>
+              {spoken}
+              <LinkPending className="ml-1.5 inline-block align-[-2px]" />
+            </span>
+            {figure ? <span className="shrink-0 text-sm tabular-nums text-ink-2">{figure.key}</span> : null}
           </span>
           <span data-name="" className={cn(oneLine, "text-sm text-ink-3")}>
-            {kind} · {noun(sources)}
+            {figure ? kind : `${kind} · ${noun(sources)}`}
           </span>
         </Link>
         {problem ? <span className="pointer-events-none relative z-raised self-start text-sm [&_button]:pointer-events-auto">{problem}</span> : null}
@@ -93,9 +102,13 @@ export function SupplierRow({
           {spoken}
           <LinkPending className="ml-1.5 inline-block align-[-2px]" />
         </span>
-        <span title={LIST_SOURCES_RULE} className="shrink-0 text-xs text-ink-3">
-          {noun(sources)}
-        </span>
+        {figure ? (
+          <span className="shrink-0 text-sm tabular-nums text-ink">{figure.key}</span>
+        ) : (
+          <span title={LIST_SOURCES_RULE} className="shrink-0 text-xs text-ink-3">
+            {noun(sources)}
+          </span>
+        )}
       </span>
       <span className="flex items-center gap-x-1.5 text-xs text-ink-3">
         <span data-name="" title={kind} className={oneLine}>{kind}</span>
@@ -105,6 +118,7 @@ export function SupplierRow({
             <span className="shrink-0">{problem}</span>
           </>
         ) : null}
+        {figure?.detail ? <span className="ml-auto shrink-0 pl-2 tabular-nums">{figure.detail}</span> : null}
       </span>
     </Link>
       {actions ? <span className="relative z-raised -my-1 shrink-0">{actions}</span> : null}

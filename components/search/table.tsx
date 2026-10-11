@@ -59,8 +59,11 @@ export function ResultsTable({
   currentSlug,
   sort,
   sortHrefs,
+  exportsHead,
 }: {
   rows: readonly ResultRow[];
+  /** The exports view: its column's head ("Average shipment"), drawn where Sources was. */
+  exportsHead?: string | null;
   /** The record open beside the results, so its row is marked. */
   currentSlug?: string | null;
   sort: ResultSort;
@@ -94,9 +97,15 @@ export function ResultsTable({
             <Th align="right" className="w-[110px]" sort={state("workers")} href={sortHrefs.workers}>
               Workers
             </Th>
-            <Th align="right" className="w-[90px]" sort={state("sources")} href={sortHrefs.sources} title={SOURCES_TITLE}>
-              Sources
-            </Th>
+            {exportsHead ? (
+              <Th align="right" className="w-[200px]" title="Bangladesh customs records, Sep 2024 – Aug 2026">
+                {exportsHead}
+              </Th>
+            ) : (
+              <Th align="right" className="w-[90px]" sort={state("sources")} href={sortHrefs.sources} title={SOURCES_TITLE}>
+                Sources
+              </Th>
+            )}
             <Th sort={sortHrefs.cert_expiry ? state("cert_expiry") : undefined} href={sortHrefs.cert_expiry} title={sortHrefs.cert_expiry ? "Sort by the certificate that expires soonest" : undefined}>
               Certificates
             </Th>
@@ -154,9 +163,20 @@ export function ResultsTable({
                     </span>
                   ) : null}
                 </Td>
-                <Td align="right" className="tabular-nums text-ink">
-                  {r.sources}
-                </Td>
+                {exportsHead ? (
+                  <Td align="right" className="tabular-nums text-ink">
+                    {r.exports ? (
+                      <>
+                        {r.exports.key}
+                        <span className="block text-xs text-ink-3">{r.exports.detail}</span>
+                      </>
+                    ) : null}
+                  </Td>
+                ) : (
+                  <Td align="right" className="tabular-nums text-ink">
+                    {r.sources}
+                  </Td>
+                )}
                 {/* The 24px marks in a 40 row: 6 above and below, not the cell's 8. */}
                 <Td className="py-1.5">
                   {r.certCell ? (
