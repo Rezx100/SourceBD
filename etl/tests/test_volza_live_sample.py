@@ -123,13 +123,13 @@ def test_filter_check_keeps_everything_volza_sent(tmp_path, monkeypatch):
 def test_launch_narrows_a_swept_name_then_fetches_the_four_markets():
     from ops import volza_launch as vl
 
-    sent = []
+    sent, n = [], 12
 
     def handler(req):
         body = json.loads(req.content)
         sent.append(body)
         exact = body.get("supplier_name_search_type") == "exact"
-        summary = {"count_of_shipments": 9, "count_of_suppliers": 1 if exact else 2,
+        summary = {"count_of_shipments": n, "count_of_suppliers": 1 if exact else 2,
                    "count_of_unique_destination_countries": 3, "sum_of_trade_value_usd": 100.0, "count_of_buyers": 2,
                    "count_of_units": 1}
         return httpx.Response(200, headers={"X-Credit-Used": "0.000"}, json={
@@ -143,10 +143,15 @@ def test_launch_narrows_a_swept_name_then_fetches_the_four_markets():
     assert [c["kind"] for c in rec["calls"]] == ["preview", "exact", "market:United Kingdom",
                                                  "market:United States", "market:EU", "market:Canada",
                                                  "small:under 1000 pcs"]
-    assert sent[6]["quantity"] == {"operator": "lt", "value": 1000} and rec["small_orders"]["of"] == 9
+    assert sent[6]["quantity"] == {"operator": "lt", "value": 1000} and rec["small_orders"]["of"] == 12
     assert "Utah Fashions Ltd" in sent[1]["supplier_name"] and all(b["remove_duplicate_shipments"] for b in sent)
     assert sent[4]["destination_country_name"] == vl.EU and sent[4]["supplier_name_search_type"] == "exact"
     assert rec["cost"] == pytest.approx(7 * 0.15)
+
+    n = 9  # under 10 shipments: no small-orders search
+    rec = vl.new_rec(row)
+    vl.fetch(v, row, rec)
+    assert rec["calls"][-1]["kind"] == "market:Canada" and "small_orders" not in rec
 
 
 def test_launch_never_records_a_rejected_search_as_nothing_found():
