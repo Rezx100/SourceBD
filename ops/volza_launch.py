@@ -11,8 +11,13 @@ Per supplier: starts-with search on each of our names until one finds shipments;
 more than one exporter, one exact search on our legal name in its suffix forms (only that counts
 from then on); if exact and shipping to 2+ countries, four searches filtered to the UK, the US, the
 27 EU countries and Canada; if every shipment is counted in pieces, one more search for those under
-1,000 pieces (a small-orders signal). One record per call, biggest shipment first, duplicates removed. Volza
-does not charge again for a record already bought, so repeat calls cost $0.10.
+1,000 pieces (a small-orders signal). One record per call, duplicates removed. The preview and exact
+searches return the latest shipment (the card's "Latest shipment on record"; design session, 11 Oct
+2026); the market searches return the biggest shipment to that market. Volza does not charge again
+for a record already bought, so repeat calls cost $0.10.
+
+--latest fetches that latest shipment again for the suppliers already shown, whose stored record is
+the biggest one (batch 1 sorted every call by value): one search each, cap $11 (73 suppliers).
 
 Everything Volza sends is kept: each call's whole response and credit headers go into the row.
 A row is written per supplier, also when the cap stops it halfway (then marked "partial" and
@@ -20,6 +25,7 @@ fetched again on resume).
 
   python ops/volza_launch.py --batch 1            # the plan, no key read, no calls
   python ops/volza_launch.py --batch 1 --apply    # run it (cap $50)
+  python ops/volza_launch.py --latest [--apply]   # the latest shipment for the suppliers shown (cap $11)
 Then store: python ops/volza_load_sample.py --file etl/raw/volza/launch_1.jsonl [--apply] (markets stay
 in the raw file until a column holds them).
 """
@@ -50,6 +56,8 @@ MARKETS = [("United Kingdom", ["United Kingdom"]), ("United States", ["United St
            ("Canada", ["Canada"])]
 SHOWN_SHARE = 0.9  # an exact search must keep 90% of the swept-in shipments to be shown
 SMALL_PCS = 1000  # "N% of its shipments were under 1,000 pieces" (founder, 11 Oct 2026)
+LATEST = {"sort_by": "date", "sort_order": "DESC"}  # Volza's spec: sort fields include "date"
+LATEST_CAP = 11.0  # refetch of the 73 shown suppliers' latest shipment (about $0.15 each)
 SUFFIXES = ("", " Ltd", " Ltd.", " Limited", " (Pvt) Ltd", " (Pvt.) Ltd.", " Pvt Ltd", " Pvt. Ltd.",
             " Private Limited")
 
@@ -142,7 +150,7 @@ def fetch(v: Live, row: dict[str, Any], rec: dict[str, Any]) -> None:
                 take(data, name, name)
             else:
                 main = {"supplier_name": [name]}
-                data = call("preview", main)
+                data = call("preview", {**main, **LATEST})
                 take(data, name, name)
             if rec["shipments"]:
                 break
@@ -150,7 +158,7 @@ def fetch(v: Live, row: dict[str, Any], rec: dict[str, Any]) -> None:
             swept = rec["shipments"]
             main = {"supplier_name": legal_forms(rec["matched_variant"], rec["volza_supplier"]),
                     "supplier_name_search_type": "exact"}
-            data = call("exact", main)
+            data = call("exact", {**main, **LATEST})
             if shipments(data):
                 take(data, rec["matched_variant"], "exact:" + rec["matched_variant"])
                 rec["suppliers"] = 1  # every shipment in it carries our legal name
@@ -189,12 +197,80 @@ def _json(r: Any) -> Any:
         return {"_text": r.text}
 
 
+LATEST_OUT = RAW / "latest_1.jsonl"
+
+
+def shown_rows() -> list[dict[str, Any]]:
+    """The newest complete row of every supplier the loader shows (class exact after the 90% rule)."""
+    from volza_load_sample import shown_class
+
+    rows = {r["id"]: r for f in sorted(RAW.glob("launch_*.jsonl")) for r in load(f) if not r.get("partial")}
+    return [r for r in rows.values() if r["shipments"] and shown_class(r) == "exact"]
+
+
+def refetch_latest(v: Live, r: dict[str, Any]) -> dict[str, Any]:
+    """The same search that defines the supplier (its exact-name search if it had one), latest first.
+
+    Returns the row with its record and summary replaced and the call kept; fetched_at stays the
+    original one, so the row still expires a year after its first fetch (Volza's licence).
+    """
+    ex = next((c for c in r["calls"] if c["kind"] == "exact"), None)
+    main = {k: x for k, x in ex["filters"].items() if k not in LATEST} if ex else {"supplier_name": [r["matched_variant"]]}
+    v.last_response = None
+    try:
+        st, data, cost = v.search({**main, **LATEST, "remove_duplicate_shipments": True})
+    finally:
+        resp = v.last_response
+    if st != 200:
+        raise Stop(f"{st} for {r['name']!r}: {str(data)[:200]}")
+    top = (data.get("api_records") or [None])[0]
+    if not top:  # cannot happen for a shown supplier; keep the row as it was rather than empty it
+        raise Stop(f"no record came back for {r['name']!r}")
+    s = data.get("api_summary") or {}
+    call = {"kind": "latest", "filters": main, "status": st, "response": data,
+            "credit": {k: x for k, x in resp.headers.items() if k.lower().startswith("x-credit")} if resp else {}}
+    return {**r, "top": top, "summary": s, "shipments": s.get("count_of_shipments", r["shipments"]),
+            "fob_usd": s.get("sum_of_trade_value_usd", r.get("fob_usd")), "buyers": s.get("count_of_buyers", r.get("buyers")),
+            "calls": r["calls"] + [call], "cost": round(r["cost"] + cost, 3), "top_is": "latest",
+            "latest_fetched_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat()}
+
+
+def run_latest(apply: bool) -> None:
+    done = {r["id"] for r in load(LATEST_OUT)} if LATEST_OUT.exists() else set()
+    todo = [r for r in shown_rows() if r["id"] not in done]
+    if not apply:
+        print(f"latest shipment for {len(todo)} shown suppliers ({len(done)} done), one search each, worst case "
+              f"${len(todo) * 0.15:.2f}, cap ${LATEST_CAP:.2f}. Pass --apply to run.")
+        return
+    # earlier runs' spend counts toward the cap: each done row's last call is its latest search
+    prior = sum(0.10 + 0.05 * len(r["calls"][-1]["response"].get("api_records") or []) for r in load(LATEST_OUT)) \
+        if LATEST_OUT.exists() else 0.0
+    v = Live(LATEST_CAP, prior, start_used=account_used())
+    with LATEST_OUT.open("a", encoding="utf-8") as out:
+        for r in todo:
+            try:
+                new = refetch_latest(v, r)
+            except Stop as e:
+                print(f"STOPPED at {r['name']!r}: {e}")
+                break
+            out.write(json.dumps(new, ensure_ascii=False) + "\n")
+            out.flush()
+            print(f"  {new['top'].get('shipment_date', '')[:10]}  {r['name']}")
+    print(f"calls={v.calls}; spent: our tally ${v.tally:.2f}, by Volza's header ${v.header_spent:.2f} -> {LATEST_OUT.name}")
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--batch", type=int, required=True)
+    p.add_argument("--batch", type=int)
+    p.add_argument("--latest", action="store_true", help="refetch the latest shipment of the suppliers shown")
     p.add_argument("--apply", action="store_true", help="spend real credit (production key)")
     a = p.parse_args()
     logging.getLogger("httpx").setLevel(logging.WARNING)
+    if a.latest:
+        run_latest(a.apply)
+        return
+    if a.batch is None:
+        p.error("--batch N or --latest")
     path = out_path(a.batch)
     rows = plan()
     if not a.apply:

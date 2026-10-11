@@ -87,16 +87,32 @@ def rows(recs: list[dict[str, Any]], fetched_at: datetime) -> list[dict[str, Any
             shown = out[-1]["match_class"] == "exact"  # a hidden row's market counts used a doubtful name
             out[-1].update(markets=r.get("markets") if shown else None,
                            small_orders=r.get("small_orders") if shown else None)
+        if any("calls" in x for x in recs):  # launch and --latest files say how their record was chosen (0140)
+            out[-1]["record_sort"] = record_sort(r)
     return out
 
 
+def record_sort(r: dict[str, Any]) -> str:
+    """'date' when the stored record is the latest shipment, 'value' when it is the biggest."""
+    if r.get("top_is") == "latest":
+        return "date"
+    defining = [c for c in r.get("calls") or [] if c["kind"] in ("preview", "exact")]
+    return "date" if defining and defining[-1]["filters"].get("sort_by") == "date" else "value"
+
+
 def drop_missing_columns(http: httpx.Client, out: list[dict[str, Any]]) -> None:
-    """Before 0139 is applied the table has no markets/small_orders: write the rest, say what waited."""
-    for col in ("markets", "small_orders"):
+    """Before 0139/0140 are applied the table lacks their columns: write the rest, say what waited.
+
+    Except a latest shipment without record_sort: it would be labelled the biggest one. Refuse instead.
+    """
+    for col, mig in (("markets", "0139"), ("small_orders", "0139"), ("record_sort", "0140")):
         if out and col in out[0] and http.get("/volza_export_checks", params={"select": col, "limit": 0}).status_code == 400:
+            if col == "record_sort" and any(r[col] == "date" for r in out):
+                raise SystemExit("these rows hold latest shipments but the table has no record_sort column: "
+                                 "apply migration 0140 first. Nothing written.")
             for r in out:
                 r.pop(col, None)
-            print(f"the table has no {col} column yet (migration 0139); written without it, load again after")
+            print(f"the table has no {col} column yet (migration {mig}); written without it, load again after")
 
 
 def main() -> None:
