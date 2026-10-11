@@ -64,6 +64,7 @@
     "app/api/v1/team/route.test.ts",
     "app/api/v1/claims/route.test.ts",
     "app/api/v1/feedback/route.test.ts",
+    "app/api/v1/suppliers/[slug]/shipments/route.test.ts",
     "components/frame/feedback.test.ts",
     "app/api/v1/rfqs/route.test.ts",
     "app/api/v1/products/route.test.ts",

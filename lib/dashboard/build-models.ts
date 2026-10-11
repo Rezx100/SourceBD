@@ -39,6 +39,7 @@ import {
   rscTrainingWords,
   sortCerts,
   type CertChecks,
+  type ShipmentRevealState,
   type VolzaExports,
   capacityNote,
   shippedPiecesPerYear,
@@ -1094,6 +1095,8 @@ export type SheetOptions = {
   certChecks?: CertChecks | null;
   /** `supplier_volza_exports(slug)` (0137); null for a reader not on a paying plan, or no match. */
   volza?: VolzaExports | null;
+  /** `supplier_shipment_reveal_state(slug)` (0141); null draws no Recent shipments section. */
+  shipments?: ShipmentRevealState | null;
 };
 
 /**
@@ -1482,6 +1485,7 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
     sanctionsReadAt: options.sanctionsReadAt ?? null,
     certChecks: options.certChecks ?? null,
     volza: options.volza ?? null,
+    shipments: options.shipments ?? null,
     // A flagged record whose payload carries no row is not "no match" — it is a
     // match whose receipt did not come back.
     sanctionsEmpty:

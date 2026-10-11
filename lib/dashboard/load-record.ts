@@ -15,7 +15,7 @@ import { isProfileRpcTimeout } from "@/lib/public-supplier-profile";
 import { hscodesFromRpc } from "@/lib/epb-hscodes";
 import { geocodeTargets } from "@/lib/barikoi";
 import { buildProductSheet, buildSheet, locationTargets, type ProfilePayload, type RecordInput } from "./build-models";
-import { formatCount, formatDay, type CertChecks, type VolzaExports } from "./facts";
+import { formatCount, formatDay, type CertChecks, type ShipmentRevealState, type VolzaExports } from "./facts";
 import { heading4, hsCatalogueRow } from "./hs-photos";
 import { sanitizeFacilityPanel, type FacilityPanel } from "@/lib/format-facility-group";
 import type { ContactCounts, ProductSheetModel, RecordRfqRow, SupplierSheetModel } from "./models";
@@ -188,6 +188,30 @@ export async function fetchVolzaExports(supabase: RecordRpc, slug: string): Prom
     const v = data as VolzaExports;
     const top = Array.isArray(v.top_shipments) ? v.top_shipments.filter((s) => s !== null && typeof s === "object") : [];
     return { ...v, top_shipments: top };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * What the Recent shipments section shows this reader (`supplier_shipment_reveal_state`, 0141): the upgrade line,
+ * the offer with this month's allowance, or the table already revealed. Null hides the section: signed out,
+ * no exact customs match, a failed read, or 0141 not applied yet. A shape it does not know is null too.
+ */
+export async function fetchShipmentRevealState(supabase: RecordRpc, slug: string): Promise<ShipmentRevealState | null> {
+  try {
+    const { data, error } = await supabase.rpc("supplier_shipment_reveal_state", { p_slug: slug });
+    if (error || !data || typeof data !== "object") return null;
+    const d = data as Record<string, unknown>;
+    if (d.state === "upgrade") return { state: "upgrade" };
+    if (d.state === "offer" && typeof d.shown === "number" && typeof d.used === "number") {
+      return { state: "offer", shown: d.shown, used: d.used, limit: typeof d.limit === "number" ? d.limit : null };
+    }
+    const r = d.reveal as Record<string, unknown> | null | undefined;
+    if (d.state === "shown" && r && typeof r.fetched_at === "string" && typeof r.limit === "number" && Array.isArray(r.records)) {
+      return { state: "shown", reveal: { fetched_at: r.fetched_at, limit: r.limit, records: r.records.filter((x) => x && typeof x === "object") } };
+    }
+    return null;
   } catch {
     return null;
   }
@@ -384,6 +408,7 @@ export async function loadRecordSheet(
   const sanctionsRead = fetchSanctionsRead(supabase);
   const certChecksRead = fetchCertChecks(supabase, slug);
   const volzaRead = fetchVolzaExports(supabase, slug);
+  const shipmentsRead = fetchShipmentRevealState(supabase, slug);
   // Opened from a row that carries the id: the reads keyed by it start now,
   // beside the profile (founder's video, 29 Sep 2026: every open waited on a
   // second round trip after the first).
@@ -409,7 +434,7 @@ export async function loadRecordSheet(
         .then((found) => found?.map((g) => (g ? { latitude: g.latitude, longitude: g.longitude, confidencePct: g.confidencePct, addressStatus: g.addressStatus } : null)))
         .catch(() => undefined)
     : Promise.resolve(undefined);
-  const [workers, contactCounts, saved, rfqs, facilities, pins, sanctionsReadAt, certChecks, volza] = await Promise.all([
+  const [workers, contactCounts, saved, rfqs, facilities, pins, sanctionsReadAt, certChecks, volza, shipments] = await Promise.all([
     // A failed batch leaves the figure the record's own payload carries.
     reuse ? reuse.workers : fetchDisplayWorkersBatch(supabase, [supplierId]).catch(() => null),
     countsRead,
@@ -420,6 +445,7 @@ export async function loadRecordSheet(
     sanctionsRead,
     certChecksRead,
     volzaRead,
+    shipmentsRead,
   ]);
   if (workers) assignWorkers([record], workers);
   return buildSheet(record.input, {
@@ -430,6 +456,7 @@ export async function loadRecordSheet(
     sanctionsReadAt,
     certChecks,
     volza,
+    shipments,
     saved,
     supplierId,
     rfqs,
