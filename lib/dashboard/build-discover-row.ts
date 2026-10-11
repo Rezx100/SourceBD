@@ -202,7 +202,7 @@ export function buildDiscoverCard(
   const certChips: HighlightChip[] = [];
   for (const c of certList) {
     certChips.push({
-      tone: c.state === "valid" ? "positive" : c.state === "no-expiry" ? "neutral" : "caution",
+      tone: c.state === "valid" ? "positive" : "caution",
       icon: c.state === "valid" ? "check-c" : c.state === "expiring" ? "clock" : c.state === "expired" ? "warn" : undefined,
       label: certChipLabel(c),
       href: `${recordHref}#certificates`,

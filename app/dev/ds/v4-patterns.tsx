@@ -122,7 +122,7 @@ export function V4Patterns() {
             chip={<FactChip state="disagree">Sources disagree</FactChip>}
           />
           <FactRow label="BKMEA membership" values={[{ value: "625 - B/2002", mono: true, source: "From BKMEA · page changed 22 Sep 2026" }]} chip={<FactChip state="changed">Source page changed</FactChip>} />
-          <FactRow label="Year founded" values={[{ value: "1985", pending: true }]} />
+          <FactRow label="Year founded" values={[{ value: "1985" }]} />
           <FactRow label="Lead time" empty="Ask in your RFQ." chip={<FactChip state="notOnFile">Not published</FactChip>} />
         </FactList>
       </Block>

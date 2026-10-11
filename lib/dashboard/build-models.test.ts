@@ -83,8 +83,8 @@ describe("buildCard — the 11-source record (Aboni)", () => {
         ["positive", "GOTS valid to 12 May 2027"],
         ["positive", "RSC active · 100 % remediated"],
         ["neutral", "EPB exporter · 12 lines"],
+        ["positive", "OEKO-TEX Standard 100 listed as valid"],
         ["caution", "GOTS expired 4 Apr 2026"],
-        ["neutral", "OEKO-TEX Standard 100 · no expiry on file"],
       ],
     );
     assert.ok(card.chips.every((c) => !/%\s*match|score|rating|verified/i.test(c.label)));
@@ -105,7 +105,7 @@ describe("buildCard — the 11-source record (Aboni)", () => {
     const labels = card.chips.map((c) => c.label).join(" | ");
     assert.match(labels, /expires in 11 days/);
     assert.match(labels, /expired/, "an expired certificate may not vanish because another is expiring");
-    assert.match(labels, /no expiry on file/);
+    assert.match(labels, /listed as valid/);
   });
 
   // Cycle 5, finding 18: the results panel has no #certificates or #sources of
@@ -627,8 +627,8 @@ describe("buildSheet — a record with two EPB registrations (S M Knitwears)", (
     const sheet = buildSheet(smKnitwearInput());
     assert.equal(sheet.certs.length, 6);
     assert.equal(sheet.tabs.find((t) => t.label === "Certificates")?.count, "6");
-    // Sorted the way a buyer needs them: expiring, then valid, then expired,
-    // then undated (§5's four states).
+    // Sorted the way a buyer needs them: expiring, then valid (dated first,
+    // then the undated OEKO-TEX rows its label check lists), then expired.
     // Cycle 8: the four OEKO-TEX certificates all read "OEKO-TEX · no expiry
     // on file", because only Standard 100 of the six OEKO-TEX schemes was
     // named. 242 published records hold one that is not Standard 100.
@@ -636,11 +636,11 @@ describe("buildSheet — a record with two EPB registrations (S M Knitwears)", (
       sheet.certs.map((c) => [c.number, c.state, c.scheme]),
       [
         ["GOTS-28946", "valid", "GOTS"],
+        ["9741-mig", "valid", "OEKO-TEX Made In Green"],
+        ["9741-organic-cotton", "valid", "OEKO-TEX Organic Cotton"],
+        ["9741-100", "valid", "OEKO-TEX Standard 100"],
+        ["9741-step", "valid", "OEKO-TEX STeP"],
         ["124992", "expired", "WRAP Gold"],
-        ["9741-mig", "no-expiry", "OEKO-TEX Made In Green"],
-        ["9741-organic-cotton", "no-expiry", "OEKO-TEX Organic Cotton"],
-        ["9741-100", "no-expiry", "OEKO-TEX Standard 100"],
-        ["9741-step", "no-expiry", "OEKO-TEX STeP"],
       ],
     );
   });
@@ -702,7 +702,7 @@ describe("buildProductSheet — HS 6105 on the Aboni record", () => {
     const undated = aboniInput();
     undated.profile.certifications = [{ ...undated.profile.certifications[0]!, expires_on: null }];
     const badge = buildProductSheet(undated, "6105").facts.find((f) => f.label === "Certified scope")!.badge;
-    assert.equal(badge?.label, "No expiry on file");
+    assert.equal(badge?.label, "Listed as valid");
     assert.doesNotMatch(badge?.label ?? "", /^\s*·/);
   });
 

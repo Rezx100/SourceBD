@@ -936,7 +936,7 @@ export function buildCard(filed: RecordInput): SupplierCardModel {
   // Status only: every certificate a chip (the card draws four and names the
   // rest on "+N"), then RSC and EPB, the links the tiles carried on them.
   const certChips: HighlightChip[] = certList.map((c) => ({
-    tone: c.state === "valid" ? "positive" : c.state === "no-expiry" ? "neutral" : "caution",
+    tone: c.state === "valid" ? "positive" : "caution",
     icon: c.state === "valid" ? "check-c" : c.state === "expiring" ? "clock" : c.state === "expired" ? "warn" : undefined,
     label: certChipLabel(c),
     href: `${recordHref}#certificates`,
@@ -1471,7 +1471,7 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
       count: rfqs.count,
       rows: rfqs.rows,
       empty: rfqs.error
-        ? "Your RFQs could not be read."
+        ? "Your RFQs to this supplier did not load just now. Reload to try again."
         : "You have not sent this supplier an RFQ yet.",
       error: rfqs.error,
     },
@@ -1727,9 +1727,7 @@ export function buildProductSheet(filed: RecordInput, hs: string, options: Produ
         ? {
             label: "Certified scope",
             value: `${scoped.number ?? scoped.scheme} · ${scopeWords(scoped.scope)}`,
-            // `certChipLabel` reads "GOTS · no expiry on file"; stripping the
-            // scheme alone left the badge starting with a stray middle dot.
-            badge: { tone: scoped.state === "valid" ? "positive" : scoped.state === "no-expiry" ? "type" : "caution", label: certStateLabel(scoped) },
+            badge: { tone: scoped.state === "valid" ? "positive" : "caution", label: certStateLabel(scoped) },
             marks: [sourceMark(scoped.markCode, scoped.documentUrl)],
           }
         : { label: "Certified scope", value: null, checked: scopeEmptyWords(p, certList) },

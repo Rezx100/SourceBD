@@ -17,7 +17,7 @@ import { ABSENT, certShort, certWords } from "@/components/patterns";
 const ROOTS = ["search", "saved", "record", "patterns", "kit", "compliance", "rfqs", "messages", "discover", "frame"];
 const RETIRED = ["No certificates found", "None found", "No expiry given", "No expiry date published", "Not set yet", "Source not linked", "Nothing on file yet"];
 /** Allowed only through `ABSENT`: a literal of these outside words.ts is a second spelling waiting to drift. */
-const ONLY_VIA_ABSENT = ["Issuer not published", "Nothing to check", "Not dated", "No certificates on file", "No expiry on file"];
+const ONLY_VIA_ABSENT = ["Issuer not published", "Nothing to check", "Not dated", "No certificates on file"];
 
 function sources(): [string, string][] {
   const out: [string, string][] = [];
@@ -55,16 +55,15 @@ describe("one word for nothing on file", () => {
     assert.match(renderToStaticMarkup(createElement(Unpublished, null, ABSENT.certificates)), /title="No certificates on file"/);
   });
 
-  it("the two 'No expiry' phrasings are one, in the chip and in the pill", () => {
+  it("an undated certificate is listed as valid, in the chip and in the pill alike", () => {
     const today = new Date("2026-10-03T00:00:00Z");
-    assert.equal(certWords(null, today).label, ABSENT.expiry);
-    assert.equal(certShort(null, today), ABSENT.expiry);
-    assert.equal(ABSENT.expiry, "No expiry on file");
+    assert.deepEqual(certWords(null, today), { state: "valid", label: "Listed as valid" });
+    assert.equal(certShort(null, today), "Listed as valid");
   });
 
   it("'Not listed' (a finding) and 'Not read just now' (a failed check) are kept, and are not in the absence set", () => {
     assert.equal(ABSENT.unread, "Not read just now");
     assert.ok(!Object.values(ABSENT).includes("Not listed" as never));
-    assert.equal(Object.keys(ABSENT).length, 11);
+    assert.equal(Object.keys(ABSENT).length, 10);
   });
 });

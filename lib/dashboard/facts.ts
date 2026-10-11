@@ -4,7 +4,7 @@
 
 import { publicPage } from "./source-tiers";
 
-export type CertState = "valid" | "expiring" | "expired" | "no-expiry";
+export type CertState = "valid" | "expiring" | "expired";
 
 export type CertModel = {
   kind: string;
@@ -41,10 +41,14 @@ export function daysUntil(iso: string | null | undefined, today: Date): number |
   return Math.round((d - t) / DAY);
 }
 
-/** valid · expiring (≤ 90 days) · expired · no expiry on file. */
+/**
+ * valid · expiring (≤ 90 days) · expired. An undated certificate is one its body lists without a
+ * date (every OEKO-TEX row: the label check publishes none), so while it is listed it is valid; a
+ * delisted one is caught by its listing status, never by a date.
+ */
 export function certState(expiresOn: string | null | undefined, today: Date): CertState {
   const days = daysUntil(expiresOn, today);
-  if (days === null) return "no-expiry";
+  if (days === null) return "valid";
   if (days < 0) return "expired";
   if (days <= EXPIRING_WITHIN_DAYS) return "expiring";
   return "valid";
@@ -519,7 +523,7 @@ export function marketRows(v: VolzaExports): CustomsRow[] {
 /** The profile names the records, not the provider: Volza is named on /legal/data-sources only (founder, 11 Oct 2026). */
 export function customsSource(v: VolzaExports): string {
   const filed = v.volza_name ? `, filed as ${v.volza_name.replace(/\.+$/, "")}` : "";
-  return `Garment exports (HS 61 and 62) cleared through Bangladesh customs${filed} · fetched ${formatDay(v.fetched_at) ?? "date unknown"}`;
+  return `Garment export shipments (HS 61 and 62)${filed} · fetched ${formatDay(v.fetched_at) ?? "date unknown"}`;
 }
 
 /** Who publishes each scheme's list, and how stale a check may be (spec-etl-freshness §3). */
@@ -566,15 +570,13 @@ export function certStateLabel(c: Pick<CertModel, "state" | "daysLeft" | "expire
   const day = formatDay(c.expiresOn);
   switch (c.state) {
     case "valid":
-      return day ? `Valid to ${day}` : "Valid";
+      return day ? `Valid to ${day}` : "Listed as valid";
     case "expiring":
       return day
         ? `Expires ${day} · ${c.daysLeft} ${c.daysLeft === 1 ? "day" : "days"}`
         : `Expires in ${c.daysLeft} days`;
     case "expired":
       return day ? `Expired ${day}` : "Expired";
-    default:
-      return "No expiry on file";
   }
 }
 
@@ -583,7 +585,7 @@ export function certChipLabel(c: Pick<CertModel, "scheme" | "state" | "daysLeft"
   const day = formatDay(c.expiresOn);
   switch (c.state) {
     case "valid":
-      return day ? `${c.scheme} valid to ${day}` : `${c.scheme} valid`;
+      return day ? `${c.scheme} valid to ${day}` : `${c.scheme} listed as valid`;
     case "expiring":
       // Four published certificates expire today; "expires in 0 days" is not
       // how anyone says that.
@@ -591,8 +593,6 @@ export function certChipLabel(c: Pick<CertModel, "scheme" | "state" | "daysLeft"
       return `${c.scheme} expires in ${c.daysLeft} ${c.daysLeft === 1 ? "day" : "days"}`;
     case "expired":
       return day ? `${c.scheme} expired ${day}` : `${c.scheme} expired`;
-    default:
-      return `${c.scheme} · no expiry on file`;
   }
 }
 
@@ -605,8 +605,6 @@ export function certTableLabel(c: Pick<CertModel, "scheme" | "state" | "daysLeft
       return `${c.scheme} ${c.daysLeft} d`;
     case "expired":
       return `${c.scheme} expired`;
-    default:
-      return `${c.scheme} on file`;
   }
 }
 
@@ -702,11 +700,11 @@ export function certRowId(kind: string, number: string | null, expiresOn: string
   return `cert-${kind}-${number ?? expiresOn ?? ""}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-$/, "");
 }
 
-/** Certificates in the order a buyer needs them: expiring soonest, then valid, then expired, then undated. */
+/** Certificates in the order a buyer needs them: expiring soonest, then valid, then expired. */
 export function sortCerts(certs: readonly CertModel[]): CertModel[] {
-  const rank: Record<CertState, number> = { expiring: 0, valid: 1, expired: 2, "no-expiry": 3 };
+  const rank: Record<CertState, number> = { expiring: 0, valid: 1, expired: 2 };
   return [...certs].sort(
-    (a, b) => rank[a.state] - rank[b.state] || (a.daysLeft ?? 0) - (b.daysLeft ?? 0) || a.scheme.localeCompare(b.scheme),
+    (a, b) => rank[a.state] - rank[b.state] || (a.daysLeft ?? Infinity) - (b.daysLeft ?? Infinity) || a.scheme.localeCompare(b.scheme),
   );
 }
 
@@ -717,7 +715,7 @@ export function onFileLabel(n: number): string {
 
 /**
  * The tile's sub-line: every state that needs a look, soonest expiry first —
- * "1 expiring in 11 days · 1 expired · 4 no expiry" — and "all valid" when
+ * "1 expiring in 11 days · 1 expired" — and "all valid" when
  * none does. It used to return early on the expiring branch, so a record with
  * both an expiring and an expired certificate showed only the expiring one and
  * the expired certificate vanished from the card and the table.
@@ -737,9 +735,7 @@ export function certTileSubline(certs: readonly CertModel[]): string | null {
     );
   }
   const expired = certs.filter((c) => c.state === "expired").length;
-  const undated = certs.filter((c) => c.state === "no-expiry").length;
   if (expired) parts.push(`${expired} expired`);
-  if (undated) parts.push(`${undated} no expiry`);
   return parts.length ? parts.join(" · ") : "all valid";
 }
 

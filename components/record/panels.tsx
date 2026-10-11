@@ -6,13 +6,13 @@
 import { CaretRight, FileText, Hourglass, WarningOctagon } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { ButtonLink, CertChip, Define, FactChip, Unpublished } from "@/components/kit";
-import { ABSENT, CertTable, FactList, FactRow, PendingMark, RSC_REPORTS, RscBlock, SourceChip, SourceMark, certWords, type RscBlockData, type RscReportName } from "@/components/patterns";
+import { ABSENT, CertTable, FactList, FactRow, RSC_REPORTS, RscBlock, SourceChip, SourceMark, certWords, type RscBlockData, type RscReportName } from "@/components/patterns";
 import { customsBand, customsRows, customsSource, marketRows } from "@/lib/dashboard/facts";
 import type { RecordRfqRow, SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
 import { ShipmentRevealSection } from "./shipment-reveal";
 import { SitesView } from "./sites-view";
-import { certRows, keyFacts, needsLook, pendingLegend, siteCards, staleWords, type Membership, type TabId } from "./words";
+import { certRows, keyFacts, needsLook, siteCards, staleWords, type Membership, type TabId } from "./words";
 
 /**
  * The level of a panel's headings: h3 beside the results (the search owns the h1, the record's name
@@ -167,7 +167,6 @@ export function NeedsLookAside({ model, today, level: H = "h3" }: { model: Suppl
 
 export function OverviewPanel({ model, today, level = "h3", lookAside = false }: { model: SupplierSheetModel; today: Date; level?: Level; /** The full page draws Needs a look beside the column from `lg`. */ lookAside?: boolean }) {
   const facts = keyFacts(model);
-  const legend = pendingLegend(facts);
   return (
     <div className="flex flex-col gap-1">
       {model.summary ? <Note>{model.summary}</Note> : null}
@@ -189,19 +188,11 @@ export function OverviewPanel({ model, today, level = "h3", lookAside = false }:
               value: v.membership ? <MembershipLine m={v.membership} /> : v.text,
               mono: v.mono && !v.membership,
               source: i === f.values.length - 1 ? f.source : null,
-              pending: i === f.values.length - 1 && f.pending,
             }))}
             empty={f.empty}
           />
         ))}
       </FactList>
-      {/* The pending mark's one legend: what the dashed document under a fact means, said once. */}
-      {legend ? (
-        <p className="flex items-center gap-1.5 pt-2 text-xs text-ink-3">
-          <PendingMark />
-          <Define term="Source pending">{legend}</Define>
-        </p>
-      ) : null}
     </div>
   );
 }
@@ -472,7 +463,7 @@ const PRODUCTS_SHOWN = 8;
 /**
  * `open`: the filed list unfolds on the Products tab and stays folded elsewhere, so the Overview's
  * long tail is one line (the critique of 7 Oct 2026: the record ran four screens beside a card that
- * fits in one). The register that filed the list is not linked yet: the pending mark, not a sentence.
+ * fits in one).
  */
 export function ProductsPanel({ model, level: H = "h3", open = false }: { model: SupplierSheetModel; level?: Level; open?: boolean }) {
   const p = model.products;
@@ -487,12 +478,6 @@ export function ProductsPanel({ model, level: H = "h3", open = false }: { model:
   const heading = (
     <span className="flex flex-wrap items-center gap-x-3">
       <H className="text-lg font-semibold text-ink">Products as filed{items.length ? ` · ${items.length}` : ""}</H>
-      {/* The mark had no legend here: the definition is on the mark itself, on hover and focus. */}
-      {items.length ? (
-        <Define term="Source pending" className="inline-flex no-underline">
-          <PendingMark />
-        </Define>
-      ) : null}
     </span>
   );
   return (
@@ -542,7 +527,7 @@ export function ExportsBand({ model, href, revealHref, level: H = "h3" }: { mode
     <section aria-label="Customs exports" className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4 [font-variant-numeric:tabular-nums]">
       <header className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
         <H className="text-sm font-semibold text-ink">Customs exports</H>
-        <p className="text-xs text-ink-3">Bangladesh customs · {band.window}</p>
+        <p className="text-xs text-ink-3">Shipment records · {band.window}</p>
       </header>
       {band.shipsTo ? (
         <p className="text-base text-ink-2">

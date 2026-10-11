@@ -102,10 +102,10 @@ describe("the facts", () => {
     assert.match(out, /class="[^"]*border-cert-valid-edge/, "the valid state is the kit's certificate chip");
   });
 
-  it("a certificate with no expiry on file is the dashed chip, and a lapsed one is the expired chip", () => {
+  it("an undated certificate is the valid chip, listed as valid, and a lapsed one is the expired chip", () => {
     const undated = aboniInput();
     undated.profile.certifications = [{ ...undated.profile.certifications[0]!, expires_on: null }];
-    assert.match(view(sheet(undated)), /class="[^"]*border-dashed border-cert-no-expiry-edge[^"]*">[\s\S]*?No expiry on file/);
+    assert.match(view(sheet(undated)), /class="[^"]*border-cert-valid-edge[^"]*">[\s\S]*?Listed as valid/);
     const facts = lineFacts([
       { label: "Certified scope", value: "X", badge: { tone: "caution", label: "Expired 4 Apr 2026" } },
       { label: "Certified scope", value: "X", badge: { tone: "caution", label: "Expires 1 Nov 2026 · 11 days" } },
@@ -121,9 +121,9 @@ describe("the facts", () => {
     assert.match(row(none, "Certified scope", "Product list"), /Not on file/);
   });
 
-  it("a product list the register filed without a source carries the pending mark, never a sentence, and the exporter page is a link to EPB", () => {
+  it("a product list the register filed without a source carries no mark and no sentence, and the exporter page is a link to EPB", () => {
     const out = view(sheet());
-    assert.match(row(out, "Product list", "Buyer lists"), /Source pending/);
+    assert.doesNotMatch(row(out, "Product list", "Buyer lists"), /Source pending/);
     assert.doesNotMatch(out, /Source not linked/);
     assert.match(out, /<a href="https?:\/\/[^"]*"[^>]*>edb\.epb\.gov\.bd · exporter [^<]*/);
   });
@@ -222,11 +222,5 @@ describe("lineFacts", () => {
     assert.equal(lineFacts([f({})])[0]!.empty, "Not on file");
     assert.equal(lineFacts([f({ empty: "Not attested", note: "supplier-attested", checked: "registers checked" })])[0]!.empty, "Not attested · supplier-attested · registers checked");
     assert.equal(lineFacts([f({ value: "x" })])[0]!.empty, null);
-  });
-
-  it("is pending only where the payload names no register", () => {
-    const mark = { code: "EPB", tier: 1, mark: "EP", label: "EPB", name: "Export Promotion Bureau" } as const;
-    assert.equal(lineFacts([f({ value: "x", pendingSource: true })])[0]!.pending, true);
-    assert.equal(lineFacts([f({ value: "x", pendingSource: true, marks: [mark] })])[0]!.pending, false);
   });
 });

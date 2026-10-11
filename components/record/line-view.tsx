@@ -19,7 +19,7 @@ import { PHOTO_CAPTION, lineEyebrow, lineFacts, type LineFact } from "./words";
 const LINK =
   "rounded-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
-/** "From BGMEA · read 12 Aug 2026", each register a link where the record carries its page; a pending source is the mark, not a sentence. */
+/** "From BGMEA · read 12 Aug 2026", each register a link where the record carries its page */
 function sourceOf(fact: LineFact): ReactNode {
   const from = fact.marks.length ? (
     <>
@@ -134,7 +134,6 @@ export function LineView({ model, mode }: { model: ProductSheetModel; mode: "pan
                     ),
                     mono: v.mono,
                     source: i === f.values.length - 1 ? sourceOf(f) : null,
-                    pending: i === f.values.length - 1 && f.pending,
                   }))}
                   chip={f.badge ? <CertChip state={f.badge.state}>{f.badge.label}</CertChip> : undefined}
                   empty={f.empty}

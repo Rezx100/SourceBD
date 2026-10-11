@@ -310,7 +310,7 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     given({ profile: PROFILE, hscodes: HS, rpcs: { supplier_volza_exports: { data: row({ record_sort: "value" }), error: null } } });
     const text = html(await outcome(open)).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
     // The band: one source line in its head, the markets line, the figures; no fetched date in it.
-    assert.match(text, /Customs exports Bangladesh customs · Sep 2024 – Aug 2026 Ships to EU, US, UK · 16 countries in all/);
+    assert.match(text, /Customs exports Shipment records · Sep 2024 – Aug 2026 Ships to EU, US, UK · 16 countries in all/);
     assert.match(text, /export value US\$21\.7m shipments 406 buyers 43 average shipment US\$53,400/);
     assert.doesNotMatch(text, /latest shipment on record/i, "the biggest shipment's date passed off as the latest");
     // The Exports tab says what the band cannot.
@@ -321,7 +321,7 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     assert.match(text, /Where it ships EU 236 shipments · US\$15\.6m · 10 buyers Biggest shipment there: Boys tee \(HS 6109\.10\) to Action Service Distributie B V, Netherlands/);
     assert.match(text, /United Kingdom 5 shipments · US\$52k · 4 buyers Biggest shipment there: Mens knitted sweatshirt \(HS 6109\.10\) to TJX UK/);
     assert.match(text, /Canada No shipments to Canada Sep 2024 – Aug 2026/);
-    assert.equal((text.match(/Garment exports \(HS 61 and 62\) cleared through Bangladesh customs, filed as Hamza Clothing Ltd · fetched 10 Oct 2026/g) ?? []).length, 1, "the scope, the matched name and the fetched date are not said once, in the tab");
+    assert.equal((text.match(/Garment export shipments \(HS 61 and 62\), filed as Hamza Clothing Ltd · fetched 10 Oct 2026/g) ?? []).length, 1, "the scope, the matched name and the fetched date are not said once, in the tab");
     // Gone (critique of 11 Oct 2026): the placeholder row, the repeated band figures, a price before its check.
     assert.doesNotMatch(text, /Coming with the next update|Reach|What the customs records show|per pcs|a piece/);
     // The provider is named on /legal/data-sources only, never on the profile (founder, 11 Oct 2026).
@@ -340,9 +340,9 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     const capacity = html(await outcome(overview)).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
     assert.match(capacity, /Capacity 1,000,000 pcs\/day From BKMEA · Filed figures look inconsistent; confirm with the supplier/);
     // Who imported sits beside who disclosed: its own line, the brands' lists untouched.
-    assert.match(capacity, /Buyers in customs records The Haddad Apparel Group Ltd, TJX UK, Action Service Distributie B V From Bangladesh customs records/);
+    assert.match(capacity, /Buyers in shipment records The Haddad Apparel Group Ltd, TJX UK, Action Service Distributie B V From export shipment records/);
     given({ profile: PROFILE, hscodes: HS });
-    assert.doesNotMatch(html(await outcome(overview)), /look inconsistent|Exports suggest|customs records/, "customs data reached a reader without it on the Overview");
+    assert.doesNotMatch(html(await outcome(overview)), /look inconsistent|Exports suggest|shipment records/, "customs data reached a reader without it on the Overview");
   });
 
   it("Recent shipments draws what supplier_shipment_reveal_state says: nothing, the plans line, the offer, used up, or the table (0141, K1–K7)", async () => {
@@ -359,7 +359,7 @@ describe("/app/suppliers/[slug] — the full record page", () => {
 
     // Starter (K5): the plans line and Compare plans, never the button.
     const upgrade = await open({ state: "upgrade" });
-    assert.match(words(upgrade), /Recent shipments Latest shipments from Bangladesh customs\. .*Growth shows the latest 15, Enterprise 25\. Compare plans/);
+    assert.match(words(upgrade), /Recent shipments Latest export shipments on record\. .*Growth shows the latest 15, Enterprise 25\. Compare plans/);
     assert.match(upgrade, /href="\/pricing"[^>]*>Compare plans/);
     assert.doesNotMatch(upgrade, /See the latest/);
 
@@ -379,7 +379,7 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     const rec = { date: "2026-08-31", product: "MEN'S BASIC T SHIRT (Men's T-Shirt)", hs_code: "61091000", buyer: "Action Service Distributie B V", buyer_country: "Netherlands", destination: "Netherlands", unit: "PCS", value_usd: 109209.096, weight_kg: 14817.6 };
     const shown = await open({ state: "shown", reveal: { fetched_at: "2026-10-11T04:00:00+00:00", limit: 15, records: [rec, { ...rec, date: "2026-08-20", destination: "Not Available", weight_kg: null }] } });
     const t = words(shown);
-    assert.match(t, /Latest 2 shipments Fetched 11 Oct 2026 · Bangladesh customs/);
+    assert.match(t, /Latest 2 shipments Fetched 11 Oct 2026 · shipment records/);
     assert.match(t, /Date Shipment Value 31 Aug 2026 31 Aug 2026 Men's basic t shirt \(men's t-shirt\) 6109\.10 Action Service Distributie B V · Netherlands US\$109,209 14,818 kg/);
     assert.match(t, /Action Service Distributie B V US\$109,209 Buyer names as on the customs record/, "an unknown destination is printed, or a missing weight is");
     assert.doesNotMatch(t, /a piece|per pcs|pieces|Quantity|See the latest|Volza/i);
@@ -1135,7 +1135,7 @@ describe("the RFQs section is the caller's own", () => {
     given({ profile: PROFILE, hscodes: HS, userId: "buyer-42", rfqs: { data: null, error: { message: "boom" }, count: null } });
     const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
     const out = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({}) })));
-    assert.match(out, /Your RFQs could not be read\./);
+    assert.match(out, /Your RFQs to this supplier did not load just now\. Reload to try again\./);
     assert.doesNotMatch(out, /Your RFQs · \d/);
     assert.doesNotMatch(out, /have not sent this supplier an RFQ/);
   });

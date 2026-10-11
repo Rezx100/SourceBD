@@ -18,7 +18,6 @@ export const ABSENT = {
   published: "Not published",
   onFile: "Not on file",
   certificates: "No certificates on file",
-  expiry: "No expiry on file",
   issuer: "Issuer not published",
   dated: "Not dated",
   toCheck: "Nothing to check",
@@ -30,8 +29,8 @@ export const ABSENT = {
 /**
  * A certificate's chip: its state and its words. Within 30 days it counts down in words
  * with the date ("Expires in 5 days · 8 Oct 2026"); from 31 to 90 days it shows the date
- * only ("Expires 19 Nov 2026"); further out "Valid until"; no date is not a pass and not a
- * problem ("No expiry on file").
+ * only ("Expires 19 Nov 2026"); further out "Valid until"; no date is a certificate its body
+ * lists without one ("Listed as valid").
  */
 export function certWords(expiresOn: string | null | undefined, today: Date, delistedOn?: string | null): { state: CertState; label: string } {
   // A certificate its body stopped listing (spec-etl-freshness S2) is a problem whatever its date says.
@@ -39,7 +38,8 @@ export function certWords(expiresOn: string | null | undefined, today: Date, del
   const day = formatDay(expiresOn);
   const days = daysUntil(expiresOn, today);
   const s = certState(expiresOn, today);
-  if (s === "no-expiry" || day === null || days === null) return { state: "none", label: ABSENT.expiry };
+  // Undated is listed by its body without a date (OEKO-TEX's label check publishes none): valid while listed.
+  if (day === null || days === null) return { state: "valid", label: LISTED };
   if (s === "expired") return { state: "expired", label: `Expired ${day}` };
   if (s === "valid") return { state: "valid", label: `Valid until ${day}` };
   if (days === 0) return { state: "expiring", label: `Expires today · ${day}` };
@@ -47,7 +47,9 @@ export function certWords(expiresOn: string | null | undefined, today: Date, del
   return { state: "expiring", label: `Expires ${day}` };
 }
 
-/** Problems sort first: expired, expiring, valid, then no expiry on file. */
+const LISTED = "Listed as valid";
+
+/** Problems sort first: expired, expiring, valid. */
 export const CERT_ORDER: Record<CertState, number> = { expired: 0, expiring: 1, valid: 2, none: 3 };
 
 /** "Certificates · 4 · 2 expired": the count with its noun, and the problems in words. */
@@ -172,7 +174,7 @@ export function certShort(expiresOn: string | null | undefined, today: Date, del
   const day = formatDay(expiresOn);
   const month = formatMonth(expiresOn);
   const days = daysUntil(expiresOn, today);
-  if (state === "none" || day === null || month === null || days === null) return ABSENT.expiry;
+  if (day === null || month === null || days === null) return LISTED;
   if (state === "valid") return `Valid to ${month}`;
   const dayMonth = day.slice(0, day.lastIndexOf(" "));
   // This year the day and month are the date; an older lapse is its month and year.
