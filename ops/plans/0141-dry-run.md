@@ -26,3 +26,17 @@ credit floor, no settings row, abort, empty answer, expiry) is asserted on every
 `supabase/ci/assert-0141.sql`.
 
 Apply: the founder says "apply 0141"; then `apply_migration` with the file as merged, and a read to confirm.
+
+## 0143 (11 Oct 2026): the first live reveal failed; fix dry-run
+
+The first live reveal (Moon Readywears, 05:10 UTC) reached Volza, then `volza_reveal_finish` and
+`volza_reveal_abort` were both refused by production's pg_safeupdate: `_volza_reveal_spend` updated the one
+settings row without a WHERE ("UPDATE requires a WHERE clause", 21000, in the Postgres log). Nothing was saved
+and the spend was not logged. Neither CI nor the dry runs above load pg_safeupdate (the owner account cannot load
+it either: "access to library safeupdate is not allowed"), so this is now guarded by `lib/migrations-safeupdate.test.ts`.
+
+`0143_volza_reveal_spend_where.sql` dry run on production (rolled back):
+
+```
+DRY RUN OK | spent before 0.00 -> after lost call logged and a test 0.10 call 1.45 | stale claims 1 -> 0 | where in body: t
+```
