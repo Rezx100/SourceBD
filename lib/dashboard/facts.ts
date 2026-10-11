@@ -191,6 +191,8 @@ export type VolzaExports = {
   volza_name: string | null;
   top_shipments: VolzaShipment[];
   fetched_at: string;
+  /** 0140: "date" when the stored shipment is the latest on record, "value" (or absent) when it is the largest. */
+  record_sort?: "value" | "date";
 };
 
 const usd = (n: number, digits = 0) =>
@@ -217,7 +219,8 @@ export function volzaStats(v: VolzaExports): { label: string; value: string; not
   if (top && top.trade_value_usd !== null) {
     const dest = top.destination_country && top.destination_country !== "Not Available" ? top.destination_country : null;
     stats.push({
-      label: "Largest shipment",
+      // Since 11 Oct 2026 the stored shipment is the latest one (0140), not the largest: never call it largest.
+      label: v.record_sort === "date" ? "Latest shipment on record" : "Largest shipment",
       value: usd(top.trade_value_usd),
       note: [
         // Volza sends "2026-03-24T00:00:00" with no zone: the day is the text, never a local midnight.
