@@ -173,3 +173,12 @@ def test_launch_settles_a_held_swept_name_without_a_stored_summary():
     rec = vl.new_rec(row)
     vl.fetch(v, row, rec)
     assert [c["kind"] for c in rec["calls"]] == ["exact"] and rec["class"] == "exact"
+
+
+def test_loader_hides_an_exact_search_that_kept_too_little():
+    from ops import volza_load_sample as load
+
+    kept = {"class": "exact", "tried": [["Utah Fashions", 200, 4568, 2], ["exact:Utah Fashions", 200, 4568, 2]]}
+    lost = {"class": "exact", "tried": [["Columbia Apparels Ltd", 200, 2468, 2], ["exact:Columbia Apparels Ltd", 200, 84, 1]]}
+    plain = {"class": "exact", "tried": [["Hamza Clothing", 200, 406, 1]]}
+    assert [load.shown_class(r) for r in (kept, lost, plain)] == ["exact", "ambiguous", "exact"]

@@ -7,7 +7,7 @@ this file holds counts and worked examples only. Every call is Bangladesh export
 only; no import data, no other HS chapters. Founder defaults applied: Volza is Tier 6 cross-check
 data; RMG = BGMEA or BKMEA member, or EPB HS chapter 61/62.
 
-**Spend so far: $36.65** (Volza's counter after batch 0, 11 Oct 2026; section 11). Was: **$25.20** of the $3,000 credit (Volza's own counter, read 10 Oct 23:3x), on the
+**Spend so far: $83.50** (Volza's counter after launch batch 1, 11 Oct 2026; section 11). Was: **$25.20** of the $3,000 credit (Volza's own counter, read 10 Oct 23:3x), on the
 200-supplier live sample the founder approved at up to $30 and ran from their own machine. Sandbox calls cost nothing:
 the account counter read 0.000 through 400+ sandbox calls before the live run started.
 
@@ -504,3 +504,58 @@ shipments were under 1,000 pieces". Suppliers with mixed units get no such line.
 Unit prices come with every record bought (declared FOB at the Bangladesh port, per shipment line,
 not per order). The card shows the biggest shipment's price per market; a full list belongs in the
 "See recent shipments" table bought for a credit (spec slice C), most recent first.
+
+### Launch batch 1 result (11 Oct 2026, founder ran it)
+
+365 searches, all answered (no refusals, no errors). Our tally $49.95 (the cap stopped it); Volza's
+counter 37.150 → 83.500, so $46.35: records already bought were free again. Raw rows, every response
+whole: `etl/raw/volza/launch_1.jsonl` (86 rows; one, Textune Apparels, stopped halfway and is fetched
+again next batch).
+
+| group | suppliers | result |
+| -- | -- | -- |
+| exact, already shown | 47 | all completed: markets for 38, small-orders search for those in pieces only |
+| swept names held hidden | 18 | 12 now shown; 6 stay hidden (below) |
+| new EPB suppliers | 21 (one partial) | 14 shown, 1 likely another firm ("Interlink Dresses Shirin Chowdhury Complex"), 5 nothing found; $0.55 each |
+| **ready to show** | **73** | the loader's dry run, after the rule below |
+
+**The exact-name search is not enough on its own.** For 15 of 22 swept names it kept every shipment
+(Utah, Square Apparels, Sisal, Loyal, Rupa Fabrics, Tex Tech…). But for Columbia Apparels it kept 84
+of 2,468 although it found the same Dhaka factory and the same Target shipment; for Rashad Industries
+it picked a namesake in Kolkata; Fashion Trousers kept 8 of 152 and Trutex 7 of 22. **Rule (in
+`ops/volza_launch.py` and the loader): a swept name is shown only if its exact search keeps 90% of
+the shipments; otherwise it stays hidden for a person to check.** Hidden now: Columbia, Rashad,
+Fashion Trousers, Trutex, Dharla (ships as "Dharla Fashions", plural) and Radix (another firm). Of all
+records bought, only Rashad's came from a factory outside Bangladesh. Also fixed: our name cleaner cut
+"Nipun (Pte) Ltd." to "Nipun (Pte" in the 10 Oct candidates file; names are now rebuilt each run.
+
+**What the 73 look like.** 62 ship to two or more countries, 11 to one. Of the 62: EU 60, US 45,
+UK 40, Canada 34 (median shipments where they ship: EU 138, UK 54, US 41, Canada 19). 162 different
+buyer names across the market rows. 56 ship in pieces only; their share of shipments under 1,000
+pieces runs from 0% (13 suppliers) to 89%, median 9%. Every record bought was in pieces, but 6 of
+252 prices are clearly not per piece (men's shirts at $183.51, socks at $29.69): a price check is
+needed before showing one.
+
+### The card, line by line (for the design; all from what one supplier row holds)
+
+| line | formula | shown when |
+| -- | -- | -- |
+| Header cell | "{shipments} shipments · US${value} · 2 yrs" | class exact |
+| Buyers | "{buyers} buyers" | class exact |
+| Reach | "Ships to {countries} countries" | class exact |
+| Average shipment | value ÷ shipments, "about US${avg} a shipment" | class exact |
+| Market row (×4: UK, US, EU, Canada) | "{market}: {n} shipments · US${value} · {buyers} buyers" | n > 0 |
+| Market none | "No shipments to {market}, Sep 2024 – Aug 2026" | n = 0 and the markets were fetched |
+| Biggest buyer per market | "Biggest shipment to {market}: {buyer}, {product}, US${unit price} a piece" | n > 0; price only if it passes the price check |
+| Single-country supplier | the market row comes from the biggest shipment's destination, no other market rows | 1 destination country |
+| Small orders | "{share}% of its shipments were under 1,000 pieces" | small-orders search done (pieces only); 0% shown as "None under 1,000 pieces" |
+| Products | "{n} product codes"; named codes only from the biggest shipments, as "Shipped" tags beside the EPB list | class exact |
+| Hidden | nothing; admins see "needs a person: name matched several Volza records" | class ambiguous or likely |
+| Checked, nothing | "No customs shipments found under this name, Sep 2024 – Aug 2026" | class none |
+
+Buyer names, tidy rule: keep the text up to and including the first legal ending (Ltd, LLC, Inc,
+GmbH, B V/BV, S A/SA, S L, S p A, Corp, Co KG, Z O O, LP), otherwise up to the first number; title
+case; label "buyer on the customs record" (often a shipping arm or a Bangladeshi middleman, e.g.
+"Padma Textiles"). Price check: show a unit price only when it is under 3× the median price for the
+same 4-digit heading across stored rows (with 5+ rows for that heading), else show the shipment
+without a price. Never call the small-orders line a minimum order.

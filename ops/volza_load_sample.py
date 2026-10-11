@@ -40,12 +40,27 @@ def one_year_on(t: datetime) -> datetime:
         return t.replace(year=t.year + 1, day=28) - timedelta(seconds=1)
 
 
+def shown_class(r: dict[str, Any]) -> str:
+    """'exact' only when the exact-name search kept 90% of what the name swept in (report section 11).
+
+    Batch 1 wrote some rows before that rule existed (Columbia Apparels: 84 of 2,468); the swept count
+    is the search just before the "exact:" one in tried.
+    """
+    i = next((n for n, t in enumerate(r["tried"]) if str(t[0]).startswith("exact:")), None)
+    if r["class"] == "exact" and i and r["tried"][i][2] < 0.9 * r["tried"][i - 1][2]:
+        return "ambiguous"
+    return r["class"]
+
+
 def rows(recs: list[dict[str, Any]], fetched_at: datetime) -> list[dict[str, Any]]:
     """fetched_at stands in for rows that carry no time of their own (the sample)."""
     out = []
     for r in recs:
         if not any(t[1] == 200 for t in r["tried"]):  # Volza answered none of its searches: not "nothing found"
             print(f"skipped {r['name']!r}: no search for it succeeded {[t[1] for t in r['tried']]}")
+            continue
+        if r.get("partial"):  # a batch stopped in the middle of it; the next batch fetches it again
+            print(f"skipped {r['name']!r}: fetched only in part")
             continue
         at = datetime.fromisoformat(r["fetched_at"]) if r.get("fetched_at") else fetched_at
         expires = one_year_on(at)
@@ -57,7 +72,7 @@ def rows(recs: list[dict[str, Any]], fetched_at: datetime) -> list[dict[str, Any
             "window_end": WINDOW[1],
             "shipments": r["shipments"],
             "exporters_matched": r["suppliers"],
-            "match_class": r["class"] if hit else "none",
+            "match_class": shown_class(r) if hit else "none",
             "volza_supplier_name": r["volza_supplier"],
             "fob_usd": round(r["fob_usd"], 2) if hit and r.get("fob_usd") is not None else None,
             "buyers": r.get("buyers") if hit else None,
