@@ -75,7 +75,6 @@ export function PhoneTabs({ tab, suppliers, searches }: { tab: Tab; suppliers: n
   const item = (key: Tab, href: string, label: string, count: number | null) => (
     <Link
       href={href}
-      prefetch={false}
       aria-current={tab === key ? "page" : undefined}
       className="relative flex shrink-0 items-center gap-1.5 px-2 outline-none active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
     >

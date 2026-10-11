@@ -4,6 +4,7 @@
 // Customs figures are per supplier and per market only: nothing here splits them by HS code, and a
 // figure the records do not hold (a yearly change, a buyer's share) is never made up. Pure.
 
+import { shortDay } from "@/components/compliance/words";
 import type { CertRowData } from "@/components/patterns";
 import { certWords, rankCerts } from "@/components/patterns/words";
 import { customsWindow, daysUntil, formatDay, formatUsdShort, tidyBuyer, type VolzaExports, type VolzaMarketName, type VolzaShipment } from "@/lib/dashboard/facts";
@@ -187,13 +188,8 @@ export function lineShipments(v: VolzaExports, hs: string): LineShipment[] {
 
 /* ------------------------------------------------------------ needs a look */
 
-/** "8 Oct", with the year only when it is not this year's. */
-export function shortDay(iso: string | null | undefined, today: Date): string | null {
-  const day = formatDay(iso);
-  if (!day) return null;
-  const year = ` ${today.getUTCFullYear()}`;
-  return day.endsWith(year) ? day.slice(0, -year.length) : day;
-}
+// "8 Oct", with the year only when it is not this year's: the compliance pages' own helper.
+export { shortDay };
 
 /** One card under "Needs a look", worst first: the buildings behind on repairs, each certificate that lapsed or is about to, a stale sanctions read. */
 export type LookCard = {

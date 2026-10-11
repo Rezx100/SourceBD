@@ -557,7 +557,7 @@ function Certificates({ model, today, level: H }: PanelProps) {
 const REPORT: Record<string, string> = { CAP: "Action plan" };
 const sentence = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const rscTone = (c: RscCard) => (rscBehind(c) ? "bg-caution-icon" : c.progress === 100 ? "bg-brand" : "bg-line-strong");
-const trainingTone = (t: string) => (/complete/i.test(t) ? "text-brand" : /yet|not start/i.test(t) ? "text-caution" : "text-ink");
+const trainingTone = (t: string) => (/complete/i.test(t) ? "text-brand-ink" : /yet|not start/i.test(t) ? "text-caution" : "text-ink");
 
 /** What the register says under a building's figures: the training, the reports that open, the ones it does not hold, the read. */
 function RscDetail({ c }: { c: RscCard }) {
@@ -632,7 +632,7 @@ function RscRow({ c, open }: { c: RscCard; open: boolean }) {
           <span className="flex min-w-0 flex-1 flex-col gap-1.5">
             <span className="flex justify-between gap-3">
               <span className="text-[15px]/[20px] font-medium text-ink">{c.name}</span>
-              <span className={cn("shrink-0 text-sm/[20px] font-medium", NUM, behind ? "text-caution" : c.progress === 100 ? "text-brand" : "text-ink-2")}>
+              <span className={cn("shrink-0 text-sm/[20px] font-medium", NUM, behind ? "text-caution" : c.progress === 100 ? "text-brand-ink" : "text-ink-2")}>
                 {[c.progress !== null ? `${c.progress}%` : null, behind ? "behind" : c.progress === 100 ? "finished" : c.status].filter(Boolean).join(" · ")}
               </span>
             </span>

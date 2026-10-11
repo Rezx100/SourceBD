@@ -72,4 +72,19 @@ describe("phone speed pass", () => {
     }
     assert.match(code("components/record/locations-map.tsx"), /await near;[\s\S]*await import\("bkoi-gl"\)/);
   });
+
+  // Each of these pages has a `loading.tsx`, so a prefetch is its skeleton, ready before the tap.
+  it("a phone row that leads to a page with a skeleton lets Next prefetch it", () => {
+    for (const page of ["(search)", "discover", "saved", "searches"]) assert.ok(existsSync(join(process.cwd(), "app/(app)/app", page, "loading.tsx")), `${page} lost its skeleton`);
+    const off = /prefetch=\{false\}/;
+    const part = (rel: string, from: string, to: string) => {
+      const s = code(rel);
+      const a = s.indexOf(from);
+      assert.ok(a >= 0, `${from} not found in ${rel}`);
+      return s.slice(a, s.indexOf(to, a) + to.length);
+    };
+    assert.doesNotMatch(part("components/saved/list.tsx", "export function PhoneTabs", "\n}"), off, "the Saved tabs");
+    assert.doesNotMatch(part("components/saved/searches.tsx", "<ButtonLink href={item.runHref} kind=\"quiet\"", "Run search"), off, "a saved search's Run on a phone");
+    assert.doesNotMatch(part("components/search/landing.tsx", "href={templateHref(t)}", "</Link>"), off, "the landing's common searches");
+  });
 });

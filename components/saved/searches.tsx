@@ -276,7 +276,7 @@ function SearchRow({ item }: { item: SearchItem }) {
               item.countWords
             )}
           </p>
-          <ButtonLink href={item.runHref} prefetch={false} kind="quiet" className="h-11 gap-1.5 rounded-full bg-sunken px-3.5 text-base text-ink active:bg-line">
+          <ButtonLink href={item.runHref} kind="quiet" className="h-11 gap-1.5 rounded-full bg-sunken px-3.5 text-base text-ink active:bg-line">
             <MagnifyingGlass size={16} className="shrink-0" aria-hidden />
             Run search
           </ButtonLink>

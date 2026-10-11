@@ -53,7 +53,6 @@ function CommonSearches({ counts }: { counts: Record<string, number | null> }) {
             <li key={t.key} className="w-60 shrink-0 sm:w-auto">
               <Link
                 href={templateHref(t)}
-                prefetch={false}
                 title={t.blurb}
                 className={cn("flex h-full min-h-14 flex-col justify-center gap-0.5 rounded-md bg-subtle px-4 py-2.5 transition-colors duration-fast hover:bg-sunken", ring)}
               >
