@@ -19,8 +19,8 @@
 --
 -- Allowance: distinct suppliers per buyer per calendar month (UTC); opening one again that month is free.
 -- Numbers, cap and switch live in the one row of volza_reveal_settings, so the founder changes them with an
--- update, not a deploy. Defaults are the handoff's proposals (Growth 30, Enterprise 100, 20 a day, $100 a
--- month, stop below $100 of Volza credit), pending the founder's confirmation.
+-- update, not a deploy. Confirmed by the founder on 11 Oct 2026: Growth 30 suppliers a month, Enterprise 100,
+-- 20 a day per customer, $100 a month spend cap; live calls also stop below $100 of Volza credit.
 --
 -- Saved copies live one year (Volza licence, 8 Oct 2026) and are refetched when older than 30 days. Every
 -- reveal is written to the activity record (0131) as shipments.revealed. Unit prices are stored (whole record)
