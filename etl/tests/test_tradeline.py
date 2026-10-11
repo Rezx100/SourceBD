@@ -36,6 +36,18 @@ def test_one_country_supplier_gets_its_markets_free():
     assert one_country_markets({**r, "summary": {"count_of_unique_destination_countries": 2}}) is None
 
 
+def test_run_stops_before_using_the_buyers_daily_share():
+    # 11 Oct 2026: batch 2 used Volza's 1,000 requests a day and every buyer's reveal failed
+    v = volza_live_sample.Live(100.0, 0.0, http=object())
+    v.daily_left = volza_live_sample.DAILY_RESERVE
+    try:
+        v.search({"supplier_name": ["X"]})
+    except volza_live_sample.Stop as e:
+        assert "buyers" in str(e)
+    else:
+        raise AssertionError("searched into the reserve")
+
+
 def test_pace_never_sends_more_than_40_in_a_minute(monkeypatch):
     clock = [0.0]
     monkeypatch.setattr(volza_live_sample.time, "monotonic", lambda: clock[0])

@@ -50,6 +50,9 @@ CAP_LIMIT = 30.0  # the founder's approved ceiling; --max-spend cannot go above 
 # company-list scan and the credit reading share it, so a run keeps to 40 in any 60 seconds.
 PER_MINUTE = 40
 WAITS_429 = (60, 120, 180, 300, 300)  # 15 minutes in all, then stop: a longer limit is in force
+# The key also has 1,000 requests a day, shared with the buyers' shipment reveal on the live site
+# (11 Oct 2026: batch 2 used the day up and every reveal failed). A run stops with this many left.
+DAILY_RESERVE = 300
 
 
 class Stop(Exception):
@@ -97,6 +100,7 @@ class Live:
             base_url=BASE, timeout=60, headers={"Authorization": f"Bearer {production_key()}"})
         self.last = 0.0
         self.sent: deque[float] = deque()  # when the requests of the last 60 seconds went out
+        self.daily_left: int | None = None  # Volza's X-RateLimit-Remaining-Daily after the last answer
         self.calls = 0
         self.last_response: httpx.Response | None = None
 
@@ -118,6 +122,9 @@ class Live:
         for attempt in range(len(WAITS_429) + 1):
             if self.spent + self.worst > self.cap + 1e-9:
                 raise Stop(f"cap reached: spent ${self.spent:.2f} of ${self.cap:.2f}")
+            if self.daily_left is not None and self.daily_left <= DAILY_RESERVE:
+                raise Stop(f"{self.daily_left} of Volza's 1,000 requests a day left: kept for buyers' shipment "
+                           "reveals; run again tomorrow")
             self._pace()
             try:
                 r = self.http.post("/bangladesh-exports", json=body)
@@ -128,6 +135,8 @@ class Live:
             self.last_response = r  # kept: the header check below may stop after Volza billed it
             self._read_headers(r)
             if r.status_code == 429:  # rate limit: not charged (Volza pricing docs)
+                if self.daily_left == 0:
+                    raise Stop("Volza's 1,000 requests for today are used up; run again tomorrow")
                 if attempt == len(WAITS_429):
                     break
                 try:
@@ -153,6 +162,17 @@ class Live:
         # never handed back as an empty result: a caller would store "nothing found" for a year
         raise Stop("Volza refused every try for 15 minutes (429): a longer limit is in force; run again in an hour")
 
+    def read_daily(self) -> int | None:
+        """Today's requests left, read with one free company-list call on this key."""
+        try:
+            r = self.http.get("/companies/search", params={"company_name": "Square Fashions", "page_size": 1})
+        except httpx.HTTPError:
+            return None
+        self.sent.append(time.monotonic())
+        left = r.headers.get("X-RateLimit-Remaining-Daily")
+        self.daily_left = int(left) if left and left.isdigit() else self.daily_left
+        return self.daily_left
+
     def _pace(self) -> None:
         """At least MIN_GAP between requests and never more than PER_MINUTE in any 60 seconds."""
         now = time.monotonic()
@@ -167,6 +187,9 @@ class Live:
         self.sent.append(self.last)
 
     def _read_headers(self, r: httpx.Response) -> None:
+        left = r.headers.get("X-RateLimit-Remaining-Daily")
+        if left is not None and left.isdigit():
+            self.daily_left = int(left)
         used = r.headers.get("X-Credit-Used")
         if used is None:
             return
