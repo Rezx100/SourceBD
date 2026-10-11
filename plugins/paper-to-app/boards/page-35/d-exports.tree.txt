@@ -1,0 +1,296 @@
+Frame "Exports · Square Apparels · phone" (1MK9-0) 390×?
+  Frame "Status bar" (1MNC-0) ?×?
+    Frame "Time" (1MNK-0) ?×?
+      Text "9:41" (1MNL-0) ?×? "9:41"
+    Frame "Icons" (1MND-0) ?×?
+      SVG "SVG" (1MNE-0) ?×?
+        SVGVisualElement "Path" (1MNJ-0) ?×?
+        SVGVisualElement "Path" (1MNI-0) ?×?
+        SVGVisualElement "Path" (1MNH-0) ?×?
+        SVGVisualElement "Path" (1MNG-0) ?×?
+        SVGVisualElement "Path" (1MNF-0) ?×?
+  Frame "Compact head" (1MMB-0) ?×?
+    Frame "Head" (1OJ8-0) ?×?
+      Frame "Bar" (1OJ9-0) ?×?
+        Text "Name" (1OJA-0) ?×? "Square Apparels Limited"
+        Frame "Actions" (1OJB-0) ?×?
+          Frame "Share" (1OJC-0) 36×36
+            SVG "SVG" (1OJD-0) ?×?
+              SVGVisualElement "Path" (1OJE-0) ?×?
+          Frame "Close" (1OJF-0) 36×36
+            SVG "SVG" (1OJG-0) ?×?
+              SVGVisualElement "Path" (1OJH-0) ?×?
+      Frame "Status strip" (1OJI-0) ?×30
+        Frame "Status · Safety" (1OJJ-0) ?×?
+          SVG "SVG" (1OJK-0) ?×?
+            SVGVisualElement "Path" (1OJL-0) ?×?
+          Text "RSC behind" (1OJM-0) ?×? "RSC behind"
+        Rectangle "Rectangle" (1OJN-0) 1×14
+        Frame "Status · Certificates" (1OJO-0) ?×?
+          SVG "SVG" (1OJP-0) ?×?
+            SVGVisualElement "Path" (1OJQ-0) ?×?
+          Text "GOTS 31 days" (1OJR-0) ?×? "GOTS 31 days"
+        Rectangle "Rectangle" (1OJS-0) 1×14
+        Frame "Status · Sanctions" (1OJT-0) ?×?
+          SVG "SVG" (1OJU-0) ?×?
+            SVGVisualElement "Path" (1OJV-0) ?×?
+          Text "Not listed" (1OJW-0) ?×? "Not listed"
+    Frame "Tabs" (1MMC-0) ?×48
+      Frame "Tab · Overview (current)" (1MMO-0) ?×?
+        Text "Overview" (1MMQ-0) ?×? "Overview"
+      Frame "Tab · Exports" (1MMM-0) ?×?
+        Text "Exports" (1MMN-0) ?×? "Exports"
+        Frame "Indicator" (1NZH-0) ?×2
+      Frame "Tab · Certificates" (1MMJ-0) ?×?
+        Text "Certificates" (1MML-0) ?×? "Certificates"
+      Frame "Tab · Safety" (1MMG-0) ?×?
+        Text "Safety" (1MMI-0) ?×? "Safety"
+      Frame "Tab · Sites" (1MMD-0) ?×?
+        Text "Sites" (1MMF-0) ?×? "Sites"
+        Text "2" (1MME-0) ?×? "2"
+  Frame "Value by month" (1MNM-0) ?×?
+    Text "Export value, Sep 20…" (1MNN-0) ?×? "Export value, Sep 2024 – Aug 2026"
+    Frame "Headline" (1MNO-0) ?×?
+      Text "$76.6M" (1MNP-0) ?×? "$76.6M"
+      Frame "Frame" (1MNQ-0) ?×?
+        Text "+11% on the year bef…" (1MNR-0) ?×? "+11% on the year before"
+    Frame "Bars" (1MNS-0) ?×128
+      Rectangle "Rectangle" (1MNT-0) ?×78
+      Rectangle "Rectangle" (1MNU-0) ?×87
+      Rectangle "Rectangle" (1MNV-0) ?×102
+      Rectangle "Rectangle" (1MNW-0) ?×93
+      Rectangle "Rectangle" (1MNX-0) ?×72
+      Rectangle "Rectangle" (1MNY-0) ?×66
+      Rectangle "Rectangle" (1MNZ-0) ?×84
+      Rectangle "Rectangle" (1MO0-0) ?×99
+      Rectangle "Rectangle" (1MO1-0) ?×108
+      Rectangle "Rectangle" (1MO2-0) ?×90
+      Rectangle "Rectangle" (1MO3-0) ?×81
+      Rectangle "Rectangle" (1MO4-0) ?×93
+      Rectangle "Rectangle" (1MO5-0) ?×87
+      Rectangle "Rectangle" (1MO6-0) ?×96
+      Rectangle "Rectangle" (1MO7-0) ?×114
+      Rectangle "Rectangle" (1MO8-0) ?×105
+      Rectangle "Rectangle" (1MO9-0) ?×78
+      Rectangle "Rectangle" (1MOA-0) ?×75
+      Rectangle "Rectangle" (1MOB-0) ?×93
+      Rectangle "Rectangle" (1MOC-0) ?×108
+      Rectangle "Rectangle" (1MOD-0) ?×120
+      Rectangle "Rectangle" (1MOE-0) ?×102
+      Rectangle "Rectangle" (1MOF-0) ?×90
+      Rectangle "Rectangle" (1MOG-0) ?×105
+    Frame "Axis" (1MOH-0) ?×?
+      Text "Sep 2024" (1MOI-0) ?×? "Sep 2024"
+      Text "Sep 2025" (1MOJ-0) ?×? "Sep 2025"
+      Text "Aug 2026" (1MOK-0) ?×? "Aug 2026"
+    Frame "Legend" (1MOL-0) ?×?
+      Frame "Frame" (1MOM-0) ?×?
+        Rectangle "Rectangle" (1MON-0) 10×10
+        Text "Year before · $35.1M" (1MOO-0) ?×? "Year before · $35.1M"
+      Frame "Frame" (1MOP-0) ?×?
+        Rectangle "Rectangle" (1MOQ-0) 10×10
+        Text "Last 12 months · $39…" (1MOR-0) ?×? "Last 12 months · $39.1M"
+    Frame "Placeholder note (design only)" (1MOS-0) ?×?
+      Rectangle "Rectangle" (1MOT-0) 14×?
+      Text "Placeholder: monthly…" (1MOU-0) ?×? "Placeholder: monthly values are not in the data yet; the tot"
+  Frame "Where it goes" (1MOW-0) ?×?
+    Frame "Frame" (1MOX-0) ?×?
+      Text "Where it goes" (1MOY-0) ?×? "Where it goes"
+    Frame "Frame" (1MOZ-0) ?×?
+      Text "Share of export valu…" (1MP0-0) ?×? "Share of export value, by market"
+    Frame "Share bar" (1MP1-0) ?×14
+      Rectangle "Rectangle" (1MP2-0) ?×?
+      Rectangle "Rectangle" (1MP3-0) ?×?
+      Rectangle "Rectangle" (1MP4-0) ?×?
+      Rectangle "Rectangle" (1MP5-0) ?×?
+      Rectangle "Rectangle" (1MP6-0) ?×?
+    Frame "Markets" (1MP8-0) ?×?
+      Frame "Market · EU" (1MP9-0) ?×?
+        Rectangle "Rectangle" (1MPA-0) 10×10
+        Frame "Frame" (1MPB-0) ?×?
+          Text "European Union" (1MPC-0) ?×? "European Union"
+          Text "1,018 shipments · 85…" (1MPD-0) ?×? "1,018 shipments · 85 buyers"
+        Frame "Frame" (1MPE-0) ?×?
+          Text "56%" (1MPF-0) ?×? "56%"
+          Text "$43.0M" (1MPG-0) ?×? "$43.0M"
+      Frame "Market · US" (1MPH-0) ?×?
+        Rectangle "Rectangle" (1MPI-0) 10×10
+        Frame "Frame" (1MPJ-0) ?×?
+          Text "United States" (1MPK-0) ?×? "United States"
+          Text "394 shipments · 40 b…" (1MPL-0) ?×? "394 shipments · 40 buyers"
+        Frame "Frame" (1MPM-0) ?×?
+          Text "15%" (1MPN-0) ?×? "15%"
+          Text "$11.5M" (1MPO-0) ?×? "$11.5M"
+      Frame "Market · UK" (1MPP-0) ?×?
+        Rectangle "Rectangle" (1MPQ-0) 10×10
+        Frame "Frame" (1MPR-0) ?×?
+          Text "United Kingdom" (1MPS-0) ?×? "United Kingdom"
+          Text "347 shipments · 30 b…" (1MPT-0) ?×? "347 shipments · 30 buyers"
+        Frame "Frame" (1MPU-0) ?×?
+          Text "9%" (1MPV-0) ?×? "9%"
+          Text "$7.2M" (1MPW-0) ?×? "$7.2M"
+      Frame "Market · Canada" (1MPX-0) ?×?
+        Rectangle "Rectangle" (1MPY-0) 10×10
+        Frame "Frame" (1MPZ-0) ?×?
+          Text "Canada" (1MQ0-0) ?×? "Canada"
+          Text "323 shipments · 27 b…" (1MQ1-0) ?×? "323 shipments · 27 buyers"
+        Frame "Frame" (1MQ2-0) ?×?
+          Text "8%" (1MQ3-0) ?×? "8%"
+          Text "$5.9M" (1MQ4-0) ?×? "$5.9M"
+      Frame "Market · Other" (1MQ5-0) ?×?
+        Rectangle "Rectangle" (1MQ6-0) 10×10
+        Frame "Frame" (1MQ7-0) ?×?
+          Text "Rest of the world" (1MQ8-0) ?×? "Rest of the world"
+          Text "748 shipments" (1MQ9-0) ?×? "748 shipments"
+        Frame "Frame" (1MQA-0) ?×?
+          Text "12%" (1MQB-0) ?×? "12%"
+          Text "$8.9M" (1MQC-0) ?×? "$8.9M"
+  Frame "Top buyers" (1MQE-0) ?×?
+    Frame "Frame" (1MQF-0) ?×?
+      Text "Top buyers" (1MQG-0) ?×? "Top buyers"
+      Text "of 254" (1MQH-0) ?×? "of 254"
+    Frame "Frame" (1MQI-0) ?×?
+      Text "Each buyer once, all…" (1MQJ-0) ?×? "Each buyer once, all its shipments together. The top 5 take "
+    Frame "Buyer · Hugo Boss" (1MQK-0) ?×?
+      Frame "Frame" (1MQL-0) ?×?
+        Text "Hugo Boss" (1MQM-0) ?×? "Hugo Boss"
+        Frame "Frame" (1MQN-0) ?×?
+          Text "13%" (1MQO-0) ?×? "13%"
+      Frame "Frame" (1MQP-0) ?×6
+        Rectangle "Rectangle" (1MQQ-0) ?×?
+      Text "Men’s shirts · to Ge…" (1MQR-0) ?×? "Men’s shirts · to Germany, UK, Canada"
+    Frame "Buyer · Engelbert Strauss" (1MQS-0) ?×?
+      Frame "Frame" (1MQT-0) ?×?
+        Text "Engelbert Strauss" (1MQU-0) ?×? "Engelbert Strauss"
+        Frame "Frame" (1MQV-0) ?×?
+          Text "8%" (1MQW-0) ?×? "8%"
+      Frame "Frame" (1MQX-0) ?×6
+        Rectangle "Rectangle" (1MQY-0) ?×?
+      Text "Men’s shirts · to th…" (1MQZ-0) ?×? "Men’s shirts · to the US, Germany"
+    Frame "Buyer · Moss Bros" (1MR0-0) ?×?
+      Frame "Frame" (1MR1-0) ?×?
+        Text "Moss Bros Group" (1MR2-0) ?×? "Moss Bros Group"
+        Frame "Frame" (1MR3-0) ?×?
+          Text "6%" (1MR4-0) ?×? "6%"
+      Frame "Frame" (1MR5-0) ?×6
+        Rectangle "Rectangle" (1MR6-0) ?×?
+      Text "Men’s shirts · to th…" (1MR7-0) ?×? "Men’s shirts · to the UK"
+    Frame "Buyer · Decjuba" (1MR8-0) ?×?
+      Frame "Frame" (1MR9-0) ?×?
+        Text "Decjuba" (1MRA-0) ?×? "Decjuba"
+        Frame "Frame" (1MRB-0) ?×?
+          Text "4%" (1MRC-0) ?×? "4%"
+      Frame "Frame" (1MRD-0) ?×6
+        Rectangle "Rectangle" (1MRE-0) ?×?
+      Text "Women’s shirts and t…" (1MRF-0) ?×? "Women’s shirts and trousers · to Australia"
+    Frame "Buyer · Modextil" (1MRG-0) ?×?
+      Frame "Frame" (1MRH-0) ?×?
+        Text "Modextil" (1MRI-0) ?×? "Modextil"
+        Frame "Frame" (1MRJ-0) ?×?
+          Text "3%" (1MRK-0) ?×? "3%"
+      Frame "Frame" (1MRL-0) ?×6
+        Rectangle "Rectangle" (1MRM-0) ?×?
+      Text "Men’s dress shirts ·…" (1MRN-0) ?×? "Men’s dress shirts · to Canada"
+    Frame "Placeholder note (design only)" (1MRO-0) ?×?
+      Rectangle "Rectangle" (1MRP-0) 14×?
+      Text "Placeholder shares: …" (1MRQ-0) ?×? "Placeholder shares: buyer names are real, value by buyer is "
+  Frame "What it ships" (1MRS-0) ?×?
+    Frame "Frame" (1MRT-0) ?×?
+      Text "What it ships" (1MRU-0) ?×? "What it ships"
+    Frame "Frame" (1MRV-0) ?×?
+      Text "39 product codes, in…" (1MRW-0) ?×? "39 product codes, in 5 families. Share of value."
+    Frame "Product chips" (1MRX-0) ?×?
+      Frame "Frame" (1MRY-0) ?×36
+        Text "6205" (1MRZ-0) ?×? "6205"
+        Text "Men’s shirts" (1MS0-0) ?×? "Men’s shirts"
+        Frame "Frame" (1MS1-0) ?×?
+          Text "64%" (1MS2-0) ?×? "64%"
+      Frame "Frame" (1MS3-0) ?×36
+        Text "6206" (1MS4-0) ?×? "6206"
+        Text "Women’s shirts" (1MS5-0) ?×? "Women’s shirts"
+        Frame "Frame" (1MS6-0) ?×?
+          Text "18%" (1MS7-0) ?×? "18%"
+      Frame "Frame" (1MS8-0) ?×36
+        Text "6204" (1MS9-0) ?×? "6204"
+        Text "Women’s trousers" (1MSA-0) ?×? "Women’s trousers"
+        Frame "Frame" (1MSB-0) ?×?
+          Text "9%" (1MSC-0) ?×? "9%"
+      Frame "Frame" (1MSD-0) ?×36
+        Text "6105" (1MSE-0) ?×? "6105"
+        Text "Knit shirts" (1MSF-0) ?×? "Knit shirts"
+        Frame "Frame" (1MSG-0) ?×?
+          Text "5%" (1MSH-0) ?×? "5%"
+      Frame "Frame" (1MSI-0) ?×36
+        Text "6211" (1MSJ-0) ?×? "6211"
+        Text "Other garments" (1MSK-0) ?×? "Other garments"
+        Frame "Frame" (1MSL-0) ?×?
+          Text "4%" (1MSM-0) ?×? "4%"
+  Frame "Order size" (1MSN-0) ?×?
+    Frame "Frame" (1MSO-0) ?×?
+      Text "Order size" (1MSP-0) ?×? "Order size"
+    Frame "Meter head" (1MSQ-0) ?×?
+      Text "Shipments under 1,00…" (1MSR-0) ?×? "Shipments under 1,000 pieces"
+      Text "43%" (1MSS-0) ?×? "43%"
+    Frame "Meter" (1MST-0) ?×10
+      Rectangle "Rectangle" (1MSU-0) ?×?
+    Frame "Frame" (1MSV-0) ?×?
+      Text "1,224 of 2,830 shipm…" (1MSW-0) ?×? "1,224 of 2,830 shipments in two years"
+  Frame "Recent shipments" (1MSY-0) ?×?
+    Frame "Frame" (1MSZ-0) ?×?
+      Text "Recent shipments" (1MT0-0) ?×? "Recent shipments"
+    Frame "Frame" (1MT1-0) ?×?
+      Text "The latest 25, from …" (1MT2-0) ?×? "The latest 25, from 27 to 30 Aug 2026, by buyer"
+    Frame "Group · Decjuba" (1MT3-0) ?×?
+      Frame "Frame" (1MT4-0) ?×?
+        Text "Decjuba" (1MT5-0) ?×? "Decjuba"
+        Text "Women’s shirts, trou…" (1MT6-0) ?×? "Women’s shirts, trousers, a playsuit · Australia"
+      Frame "Frame" (1MT7-0) ?×?
+        Text "$220.8K" (1MT8-0) ?×? "$220.8K"
+        Text "3 shipments" (1MT9-0) ?×? "3 shipments"
+    Frame "Group · Olymp" (1MTA-0) ?×?
+      Frame "Frame" (1MTB-0) ?×?
+        Text "Olymp" (1MTC-0) ?×? "Olymp"
+        Text "Men’s cotton shirts …" (1MTD-0) ?×? "Men’s cotton shirts · Germany"
+      Frame "Frame" (1MTE-0) ?×?
+        Text "$58.9K" (1MTF-0) ?×? "$58.9K"
+        Text "1 shipment" (1MTG-0) ?×? "1 shipment"
+    Frame "Group · Hugo Boss" (1MTH-0) ?×?
+      Frame "Frame" (1MTI-0) ?×?
+        Text "Hugo Boss" (1MTJ-0) ?×? "Hugo Boss"
+        Text "Men’s cotton shirts …" (1MTK-0) ?×? "Men’s cotton shirts · Germany, UK, Canada"
+      Frame "Frame" (1MTL-0) ?×?
+        Text "$49.8K" (1MTM-0) ?×? "$49.8K"
+        Text "6 shipments" (1MTN-0) ?×? "6 shipments"
+    Frame "Group · Fenicia" (1MTO-0) ?×?
+      Frame "Frame" (1MTP-0) ?×?
+        Text "Fenicia" (1MTQ-0) ?×? "Fenicia"
+        Text "Men’s cotton shirts …" (1MTR-0) ?×? "Men’s cotton shirts · Italy"
+      Frame "Frame" (1MTS-0) ?×?
+        Text "$49.1K" (1MTT-0) ?×? "$49.1K"
+        Text "1 shipment" (1MTU-0) ?×? "1 shipment"
+    Frame "Group · Premier Clothing" (1MTV-0) ?×?
+      Frame "Frame" (1MTW-0) ?×?
+        Text "Premier Clothing" (1MTX-0) ?×? "Premier Clothing"
+        Text "Women’s and men’s sh…" (1MTY-0) ?×? "Women’s and men’s shirts · UK, Netherlands"
+      Frame "Frame" (1MTZ-0) ?×?
+        Text "$34.9K" (1MU0-0) ?×? "$34.9K"
+        Text "3 shipments" (1MU1-0) ?×? "3 shipments"
+    Frame "View all" (1MU2-0) ?×44
+      Text "View all 25 shipment…" (1MU3-0) ?×? "View all 25 shipments, 12 buyers"
+      SVG "SVG" (1MU4-0) ?×?
+        SVGVisualElement "Path" (1MU5-0) ?×?
+    Frame "Source line" (1MU6-0) ?×?
+      Frame "Frame" (1MU7-0) ?×?
+        SVG "SVG" (1MU8-0) ?×?
+          SVGVisualElement "Path" (1MU9-0) ?×?
+        Text "Customs records, Sep…" (1MUA-0) ?×? "Customs records, Sep 2024 – Aug 2026 · read 11 Oct"
+      Frame "Frame" (1MUB-0) ?×?
+        SVG "SVG" (1MUC-0) ?×?
+          SVGVisualElement "Path" (1MUD-0) ?×?
+        Text "The records end 41 d…" (1MUE-0) ?×? "The records end 41 days ago"
+  Frame "Action bar" (1MUF-0) ?×64
+    Frame "Save" (1MUG-0) 48×48
+      SVG "SVG" (1MUH-0) ?×?
+        SVGVisualElement "Path" (1MUI-0) ?×?
+    Frame "Send RFQ" (1MUJ-0) ?×48
+      Text "Send RFQ" (1MUK-0) ?×? "Send RFQ"

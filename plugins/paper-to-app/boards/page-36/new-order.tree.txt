@@ -1,0 +1,116 @@
+Frame "Orders · new order · filled · Sample state · phone" (1QYR-0) 390×1144
+  Frame "Status bar" (1QYS-0) 390×62
+    Frame "Time" (1QYT-0) 94×22
+      Text "9:41" (1QYU-0) 31×22 "9:41"
+    Frame "Icons" (1QYV-0) 94×22
+      SVG "SVG" (1QYW-0) 82×22
+        SVGVisualElement "Path" (1QYX-0) 19×12
+        SVGVisualElement "Path" (1QYY-0) 17×12
+        SVGVisualElement "Path" (1QYZ-0) 25×13
+        SVGVisualElement "Path" (1QZ0-0) 21×9
+        SVGVisualElement "Path" (1QZ1-0) 1×4
+  Frame "Compact head" (1QZ2-0) 390×64
+    Frame "Back" (1QZ3-0) 36×36
+      SVG "SVG" (1QZ4-0) 17×17
+        SVGVisualElement "Path" (1QZ5-0) 12×10
+    Frame "Frame" (1QZ6-0) 310×48
+      Text "New order" (1QZ7-0) 310×30 "New order"
+      Text "From the quote you a…" (1QZ8-0) 310×18 "From the quote you accepted on 2 Oct"
+  Frame "Body" (1QZ9-0) 390×1018
+    Frame "Supplier" (1QZA-0) 350×74
+      Frame "Frame" (1QZB-0) 40×40
+        SVG "SVG" (1QZC-0) 20×20
+          SVGVisualElement "Path" (1QZD-0) 16×14
+      Frame "Frame" (1QZE-0) 173×40
+        Text "Mondol Fabrics Ltd." (1QZF-0) 173×22 "Mondol Fabrics Ltd."
+        Text "Factory · Gazipur" (1QZG-0) 173×18 "Factory · Gazipur"
+      Frame "Frame" (1QZH-0) 79×44
+        Text "Change" (1QZI-0) 51×20 "Change"
+    Frame "Ordering" (1QZK-0) 350×434
+      Frame "Section head" (1QZL-0) 350×66
+        Text "What you’re ordering" (1QZM-0) 190×28 "What you’re ordering"
+      Frame "Frame" (1QZN-0) 350×368
+        Frame "Frame" (1QZO-0) 350×72
+          Text "Product" (1QZP-0) 350×18 "Product"
+          Frame "Frame" (1QZQ-0) 350×48
+            Text "Women’s knitted dres…" (1QZR-0) 183×22 "Women’s knitted dresses"
+        Frame "Frame" (1QZS-0) 350×72
+          Frame "Frame" (1QZT-0) 169×72
+            Text "Quantity" (1QZU-0) 169×18 "Quantity"
+            Frame "Frame" (1QZV-0) 169×48
+              Text "20,000" (1QZW-0) 52×22 "20,000"
+              Frame "Frame" (1QZX-0) 50×32
+                Text "pcs" (1QZY-0) 22×18 "pcs"
+                SVG "SVG" (1QZZ-0) 12×12
+                  SVGVisualElement "Path" (1R00-0) 8×4
+          Frame "Frame" (1R01-0) 169×72
+            Text "Price per piece" (1R02-0) 169×18 "Price per piece"
+            Frame "Frame" (1R03-0) 169×48
+              Text "4.20" (1R04-0) 33×22 "4.20"
+              Frame "Frame" (1R05-0) 54×32
+                Text "US$" (1R06-0) 26×18 "US$"
+                SVG "SVG" (1R07-0) 12×12
+                  SVGVisualElement "Path" (1R08-0) 8×4
+        Frame "Frame" (1R09-0) 350×72
+          Text "PO number · optional" (1R0A-0) 350×18 "PO number · optional"
+          Frame "Frame" (1R0B-0) 350×48
+            Text "PO-2026-0917" (1R0C-0) 108×22 "PO-2026-0917"
+        Frame "Order value" (1R0D-0) 350×104
+          Text "Order value" (1R0E-0) 316×18 "Order value"
+          Text "US$84,000" (1R0F-0) 316×32 "US$84,000"
+          Text "20,000 pcs at US$4.2…" (1R0G-0) 316×18 "20,000 pcs at US$4.20, as quoted"
+    Frame "Shipping" (1R0I-0) 350×326
+      Frame "Section head" (1R0J-0) 350×66
+        Text "Shipping" (1R0K-0) 82×28 "Shipping"
+      Frame "Frame" (1R0L-0) 350×260
+        Frame "Frame" (1R0M-0) 350×62
+          Text "Incoterm" (1R0N-0) 350×18 "Incoterm"
+          Frame "Frame" (1R0O-0) 350×36
+            Frame "Frame" (1R0P-0) 75×36
+              SVG "SVG" (1R0Q-0) 16×16
+                SVGVisualElement "Path" (1R0R-0) 12×9
+              Text "FOB" (1R0S-0) 29×20 "FOB"
+            Frame "Frame" (1R0T-0) 52×36
+              Text "CIF" (1R0U-0) 22×20 "CIF"
+            Frame "Frame" (1R0V-0) 61×36
+              Text "EXW" (1R0W-0) 31×20 "EXW"
+            Frame "Frame" (1R0X-0) 60×36
+              Text "DDP" (1R0Y-0) 30×20 "DDP"
+            Frame "Frame" (1R0Z-0) 58×36
+              Text "DAP" (1R10-0) 28×20 "DAP"
+        Frame "Frame" (1R11-0) 350×72
+          Frame "Frame" (1R12-0) 169×72
+            Text "From port" (1R13-0) 169×18 "From port"
+            Frame "Frame" (1R14-0) 169×48
+              Text "Chattogram" (1R15-0) 86×22 "Chattogram"
+          Frame "Frame" (1R16-0) 169×72
+            Text "Ship to" (1R17-0) 169×18 "Ship to"
+            Frame "Frame" (1R18-0) 169×48
+              Text "United Kingdom" (1R19-0) 117×22 "United Kingdom"
+        Frame "Frame" (1R1A-0) 350×94
+          Frame "Frame" (1R1B-0) 169×94
+            Text "Ship by" (1R1C-0) 169×18 "Ship by"
+            Frame "Frame" (1R1D-0) 169×48
+              Text "14 Nov 2026" (1R1E-0) 93×22 "14 Nov 2026"
+              SVG "SVG" (1R1F-0) 16×16
+                SVGVisualElement "Path" (1R1G-0) 12×13
+            Text "In 34 days" (1R1H-0) 169×16 "In 34 days"
+          Frame "Frame" (1R1I-0) 169×94
+            Text "Deliver by" (1R1J-0) 169×18 "Deliver by"
+            Frame "Frame" (1R1K-0) 169×48
+              Text "Optional" (1R1L-0) 62×22 "Optional"
+              SVG "SVG" (1R1M-0) 16×16
+                SVGVisualElement "Path" (1R1N-0) 12×13
+    Frame "Notes" (1R1O-0) 350×60
+      Text "Mondol Fabrics sees …" (1R1P-0) 350×16 "Mondol Fabrics sees this order and can log its own updates."
+      Frame "Frame" (1R1Q-0) 350×16
+        Rectangle "Rectangle" (1R1R-0) 14×1
+        Text "Sample order; the su…" (1R1S-0) 181×16 "Sample order; the supplier is real"
+  Frame "Action bar" (1R1U-0) 390×87
+    Frame "Frame" (1R1V-0) 390×64
+      Frame "Frame" (1R1W-0) 91×48
+        Text "Cancel" (1R1X-0) 53×20 "Cancel"
+      Frame "Frame" (1R1Y-0) 259×48
+        Text "Create order" (1R1Z-0) 94×20 "Create order"
+    Frame "Frame" (1R20-0) 390×22
+      Rectangle "Rectangle" (1R21-0) 134×5

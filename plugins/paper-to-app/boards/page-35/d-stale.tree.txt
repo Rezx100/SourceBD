@@ -1,0 +1,108 @@
+Frame "State · stale data · exports over 30 days old · phone" (1NWI-0) 390×844
+  Frame "Status bar" (1NWJ-0) ?×?
+    Frame "Time" (1NWK-0) ?×?
+      Text "9:41" (1NWL-0) ?×? "9:41"
+    Frame "Icons" (1NWM-0) ?×?
+      SVG "SVG" (1NWN-0) ?×?
+        SVGVisualElement "Path" (1NWO-0) ?×?
+        SVGVisualElement "Path" (1NWP-0) ?×?
+        SVGVisualElement "Path" (1NWQ-0) ?×?
+        SVGVisualElement "Path" (1NWR-0) ?×?
+        SVGVisualElement "Path" (1NWS-0) ?×?
+  Frame "Compact head" (1NWT-0) ?×?
+    Frame "Head" (1ONK-0) ?×?
+      Frame "Bar" (1ONL-0) ?×?
+        Text "Name" (1ONM-0) ?×? "Square Apparels Limited"
+        Frame "Actions" (1ONN-0) ?×?
+          Frame "Share" (1ONO-0) 36×36
+            SVG "SVG" (1ONP-0) ?×?
+              SVGVisualElement "Path" (1ONQ-0) ?×?
+          Frame "Close" (1ONR-0) 36×36
+            SVG "SVG" (1ONS-0) ?×?
+              SVGVisualElement "Path" (1ONT-0) ?×?
+      Frame "Status strip" (1ONU-0) ?×30
+        Frame "Status · Safety" (1ONV-0) ?×?
+          SVG "SVG" (1ONW-0) ?×?
+            SVGVisualElement "Path" (1ONX-0) ?×?
+          Text "RSC behind" (1ONY-0) ?×? "RSC behind"
+        Rectangle "Rectangle" (1ONZ-0) 1×14
+        Frame "Status · Certificates" (1OO0-0) ?×?
+          SVG "SVG" (1OO1-0) ?×?
+            SVGVisualElement "Path" (1OO2-0) ?×?
+          Text "GOTS 31 days" (1OO3-0) ?×? "GOTS 31 days"
+        Rectangle "Rectangle" (1OO4-0) 1×14
+        Frame "Status · Sanctions" (1OO5-0) ?×?
+          SVG "SVG" (1OO6-0) ?×?
+            SVGVisualElement "Path" (1OO7-0) ?×?
+          Text "Not listed" (1OO8-0) ?×? "Not listed"
+    Frame "Tabs" (1NXF-0) ?×48
+      Frame "Tab · Overview (current)" (1NXG-0) ?×?
+        Text "Overview" (1NXH-0) ?×? "Overview"
+      Frame "Tab · Exports" (1NXI-0) ?×?
+        Text "Exports" (1NXJ-0) ?×? "Exports"
+        Frame "Indicator" (1NZR-0) ?×2
+      Frame "Tab · Certificates" (1NXL-0) ?×?
+        Text "Certificates" (1NXM-0) ?×? "Certificates"
+      Frame "Tab · Safety" (1NXO-0) ?×?
+        Text "Safety" (1NXP-0) ?×? "Safety"
+      Frame "Tab · Sites" (1NXR-0) ?×?
+        Text "Sites" (1NXS-0) ?×? "Sites"
+        Text "2" (1NXT-0) ?×? "2"
+  Frame "Stale banner" (1NXU-0) ?×?
+    Frame "Frame" (1NXV-0) ?×?
+      SVG "SVG" (1NXW-0) ?×?
+        SVGVisualElement "Path" (1NXX-0) ?×?
+      Frame "Frame" (1NXY-0) ?×?
+        Text "These records end 31…" (1NXZ-0) ?×? "These records end 31 Aug, 41 days ago"
+        Text "Shipments after that…" (1NY0-0) ?×? "Shipments after that date are not counted here yet."
+  Frame "Value by month" (1NY1-0) ?×?
+    Text "Export value, Sep 20…" (1NY2-0) ?×? "Export value, Sep 2024 – Aug 2026"
+    Frame "Headline" (1NY3-0) ?×?
+      Text "$76.6M" (1NY4-0) ?×? "$76.6M"
+      Frame "Frame" (1NY5-0) ?×?
+        Text "+11% on the year bef…" (1NY6-0) ?×? "+11% on the year before"
+    Frame "Bars" (1NY7-0) ?×128
+      Rectangle "Rectangle" (1NY8-0) ?×78
+      Rectangle "Rectangle" (1NY9-0) ?×87
+      Rectangle "Rectangle" (1NYA-0) ?×102
+      Rectangle "Rectangle" (1NYB-0) ?×93
+      Rectangle "Rectangle" (1NYC-0) ?×72
+      Rectangle "Rectangle" (1NYD-0) ?×66
+      Rectangle "Rectangle" (1NYE-0) ?×84
+      Rectangle "Rectangle" (1NYF-0) ?×99
+      Rectangle "Rectangle" (1NYG-0) ?×108
+      Rectangle "Rectangle" (1NYH-0) ?×90
+      Rectangle "Rectangle" (1NYI-0) ?×81
+      Rectangle "Rectangle" (1NYJ-0) ?×93
+      Rectangle "Rectangle" (1NYK-0) ?×87
+      Rectangle "Rectangle" (1NYL-0) ?×96
+      Rectangle "Rectangle" (1NYM-0) ?×114
+      Rectangle "Rectangle" (1NYN-0) ?×105
+      Rectangle "Rectangle" (1NYO-0) ?×78
+      Rectangle "Rectangle" (1NYP-0) ?×75
+      Rectangle "Rectangle" (1NYQ-0) ?×93
+      Rectangle "Rectangle" (1NYR-0) ?×108
+      Rectangle "Rectangle" (1NYS-0) ?×120
+      Rectangle "Rectangle" (1NYT-0) ?×102
+      Rectangle "Rectangle" (1NYU-0) ?×90
+      Rectangle "Rectangle" (1NYV-0) ?×105
+    Frame "Axis" (1NYW-0) ?×?
+      Text "Sep 2024" (1NYX-0) ?×? "Sep 2024"
+      Text "Sep 2025" (1NYY-0) ?×? "Sep 2025"
+      Text "Aug 2026" (1NYZ-0) ?×? "Aug 2026"
+    Frame "Legend" (1NZ0-0) ?×?
+      Frame "Frame" (1NZ1-0) ?×?
+        Rectangle "Rectangle" (1NZ2-0) 10×10
+        Text "Year before · $35.1M" (1NZ3-0) ?×? "Year before · $35.1M"
+      Frame "Frame" (1NZ4-0) ?×?
+        Rectangle "Rectangle" (1NZ5-0) 10×10
+        Text "Last 12 months · $39…" (1NZ6-0) ?×? "Last 12 months · $39.1M"
+    Frame "Placeholder note (design only)" (1NZ7-0) ?×?
+      Rectangle "Rectangle" (1NZ8-0) 14×?
+      Text "Placeholder: monthly…" (1NZ9-0) ?×? "Placeholder: monthly values are not in the data yet; the tot"
+  Frame "Action bar" (1NZA-0) ?×64
+    Frame "Frame" (1NZB-0) 48×48
+      SVG "SVG" (1NZC-0) ?×?
+        SVGVisualElement "Path" (1NZD-0) ?×?
+    Frame "Frame" (1NZE-0) ?×48
+      Text "Send RFQ" (1NZF-0) ?×? "Send RFQ"

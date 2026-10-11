@@ -1,0 +1,65 @@
+Frame "Settings · profile · Sample state · phone" (1RKC-0) 390×1117
+  Frame "Status bar" (1RKD-0) 390×62
+    Frame "Time" (1RKE-0) 94×22
+      Text "9:41" (1RKF-0) 31×22 "9:41"
+    Frame "Icons" (1RKG-0) 94×22
+      SVG "SVG" (1RKH-0) 82×22
+        SVGVisualElement "Path" (1RKI-0) 19×12
+        SVGVisualElement "Path" (1RKJ-0) 17×12
+        SVGVisualElement "Path" (1RKK-0) 25×13
+        SVGVisualElement "Path" (1RKL-0) 21×9
+        SVGVisualElement "Path" (1RKM-0) 1×4
+  Frame "Compact head" (1RKN-0) 390×64
+    Frame "Back" (1RKO-0) 36×36
+      SVG "SVG" (1RKP-0) 17×17
+        SVGVisualElement "Path" (1RKQ-0) 12×10
+    Frame "Frame" (1RKR-0) 310×48
+      Text "Profile" (1RKS-0) 310×30 "Profile"
+      Text "Name, picture, email…" (1RKT-0) 310×18 "Name, picture, email and password"
+  Frame "Body" (1RKU-0) 390×991
+    Frame "Your name" (1RKV-0) 350×211
+      Frame "Frame" (1RKW-0) 350×60
+        Frame "Frame" (1RKX-0) 60×60
+          Text "AM" (1RKY-0) 32×24 "AM"
+        Frame "Frame" (1RKZ-0) 125×44
+          Frame "Frame" (1RL0-0) 125×44
+            Text "Upload picture" (1RL1-0) 97×20 "Upload picture"
+      Frame "Frame" (1RL2-0) 350×94
+        Text "Display name" (1RL3-0) 350×18 "Display name"
+        Frame "Frame" (1RL4-0) 350×48
+          Text "Alex Morgan" (1RL5-0) 92×22 "Alex Morgan"
+        Text "Suppliers see it in …" (1RL6-0) 350×16 "Suppliers see it in messages and orders."
+    Frame "Email" (1RL7-0) 350×253
+      Frame "Frame" (1RL8-0) 350×42
+        Text "Email" (1RL9-0) 350×22 "Email"
+        Text "Now alex@exampleappa…" (1RLA-0) 350×18 "Now alex@exampleapparel.co.uk"
+      Frame "Frame" (1RLB-0) 350×94
+        Text "New email" (1RLC-0) 350×18 "New email"
+        Frame "Frame" (1RLD-0) 350×48
+          Text "name@company.com" (1RLE-0) 157×22 "name@company.com"
+        Text "We email a link to t…" (1RLF-0) 350×16 "We email a link to the new address. Click it to confirm."
+      Frame "Frame" (1RLG-0) 90×44
+        Text "Send link" (1RLH-0) 62×20 "Send link"
+    Frame "Password" (1RLI-0) 350×399
+      Frame "Frame" (1RLJ-0) 350×42
+        Text "Password" (1RLK-0) 350×22 "Password"
+        Text "At least 8 character…" (1RLL-0) 350×18 "At least 8 characters. Pick one you don’t use elsewhere."
+      Frame "Frame" (1RLM-0) 350×72
+        Text "Current password" (1RLN-0) 350×18 "Current password"
+        Rectangle "Rectangle" (1RLO-0) 350×48
+      Frame "Frame" (1RLP-0) 350×72
+        Text "New password" (1RLQ-0) 350×18 "New password"
+        Rectangle "Rectangle" (1RLR-0) 350×48
+      Frame "Frame" (1RLS-0) 350×72
+        Text "Confirm new password" (1RLT-0) 350×18 "Confirm new password"
+        Rectangle "Rectangle" (1RLU-0) 350×48
+      Frame "Frame" (1RLV-0) 143×44
+        Text "Update password" (1RLW-0) 115×20 "Update password"
+    Frame "Sign out" (1RLX-0) 350×52
+      Frame "Frame" (1RLY-0) 24×20
+        SVG "SVG" (1RLZ-0) 20×20
+          SVGVisualElement "Path" (1RM0-0) 14×14
+      Text "Sign out of this dev…" (1RM1-0) 163×22 "Sign out of this device"
+    Frame "Frame" (1RM2-0) 350×28
+      Rectangle "Rectangle" (1RM3-0) 14×1
+      Text "Sample person" (1RM4-0) 83×16 "Sample person"

@@ -1,0 +1,38 @@
+Frame "Supplier · customs records · none yet · Tex Town · phone" (1S26-0) 390×594
+  Frame "Status bar" (1S27-0) 390×62
+    Frame "Time" (1S28-0) 94×22
+      Text "9:41" (1S29-0) 31×22 "9:41"
+    Frame "Icons" (1S2A-0) 94×22
+      SVG "SVG" (1S2B-0) 82×22
+        SVGVisualElement "Path" (1S2C-0) 19×12
+        SVGVisualElement "Path" (1S2D-0) 17×12
+        SVGVisualElement "Path" (1S2E-0) 25×13
+        SVGVisualElement "Path" (1S2F-0) 21×9
+        SVGVisualElement "Path" (1S2G-0) 1×4
+  Frame "Compact head" (1S2H-0) 390×64
+    Frame "Back" (1S2I-0) 36×36
+      SVG "SVG" (1S2J-0) 17×17
+        SVGVisualElement "Path" (1S2K-0) 12×10
+    Frame "Frame" (1S2L-0) 310×48
+      Text "Tex Town Ltd." (1S2M-0) 310×30 "Tex Town Ltd."
+      Text "Customs records" (1S2N-0) 310×18 "Customs records"
+  Frame "Body" (1S2O-0) 390×468
+    Frame "Frame" (1S2P-0) 48×48
+      SVG "SVG" (1S2Q-0) 24×24
+        SVGVisualElement "Path" (1S2R-0) 19×20
+    Frame "Frame" (1S2S-0) 350×134
+      Text "We have no customs r…" (1S2T-0) 350×60 "We have no customs records for this supplier yet"
+      Text "We haven’t looked it…" (1S2U-0) 350×66 "We haven’t looked it up. That says nothing about whether it "
+    Frame "Frame" (1S2V-0) 350×98
+      Frame "Frame" (1S2W-0) 348×48
+        Text "Checked so far" (1S2X-0) 120×20 "Checked so far"
+        Text "303 suppliers" (1S2Y-0) 186×20 "303 suppliers"
+      Frame "Frame" (1S2Z-0) 348×48
+        Text "With records" (1S30-0) 120×20 "With records"
+        Text "114 of them" (1S31-0) 186×20 "114 of them"
+    Frame "Frame" (1S32-0) 350×56
+      Text "Other facts on Tex T…" (1S33-0) 350×32 "Other facts on Tex Town’s record, such as its GOTS certifica"
+      Frame "Frame" (1S34-0) 350×16
+        SVG "SVG" (1S35-0) 14×14
+          SVGVisualElement "Path" (1S36-0) 9×11
+        Text "Customs records Sep …" (1S37-0) 306×16 "Customs records Sep 2024 – Aug 2026 · read 10–11 Oct"

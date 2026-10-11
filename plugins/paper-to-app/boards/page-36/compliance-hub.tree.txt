@@ -1,0 +1,128 @@
+Frame "Compliance · hub · worst first · phone" (1QJ8-0) 390×1321
+  Frame "Status bar" (1QJ9-0) 390×62
+    Frame "Time" (1QJA-0) 94×22
+      Text "9:41" (1QJB-0) 31×22 "9:41"
+    Frame "Icons" (1QJC-0) 94×22
+      SVG "SVG" (1QJD-0) 82×22
+        SVGVisualElement "Path" (1QJE-0) 19×12
+        SVGVisualElement "Path" (1QJF-0) 17×12
+        SVGVisualElement "Path" (1QJG-0) 25×13
+        SVGVisualElement "Path" (1QJH-0) 21×9
+        SVGVisualElement "Path" (1QJI-0) 1×4
+  Frame "Page head" (1QJJ-0) 390×44
+    Text "Compliance" (1QJK-0) 171×36 "Compliance"
+    Frame "Frame" (1QJL-0) 36×36
+      Text "AM" (1QJM-0) 21×16 "AM"
+  Frame "Body" (1QJO-0) 390×1215
+    Frame "Summary" (1QJP-0) 350×122
+      Text "Your 11 saved suppli…" (1QJQ-0) 350×22 "Your 11 saved suppliers, checked four ways."
+      Frame "Headline pill" (1QJR-0) 246×28
+        SVG "SVG" (1QJS-0) 16×16
+          SVGVisualElement "Path" (1QJT-0) 13×13
+        Text "Needs action · expir…" (1QJU-0) 206×18 "Needs action · expired certificates"
+      Frame "Evidence pack button" (1QN4-0) 350×44
+        SVG "SVG" (1QN5-0) 16×16
+          SVGVisualElement "Path" (1QN6-0) 11×13
+        Text "Download an evidence…" (1QN7-0) 184×20 "Download an evidence pack"
+    Frame "Status section" (1QJW-0) 350×311
+      Frame "Section head" (1QJX-0) 350×66
+        Text "Status" (1QJY-0) 61×28 "Status"
+        Text "4 checks" (1QJZ-0) 54×18 "4 checks"
+      Frame "Ledger" (1QK0-0) 350×245
+        Frame "Row · Certificates" (1QK1-0) 348×60
+          SVG "SVG" (1QK2-0) 18×18
+            SVGVisualElement "Path" (1QK3-0) 10×14
+          Text "Certificates" (1QK4-0) 96×20 "Certificates"
+          Frame "Frame" (1QK5-0) 182×36
+            Text "7 of 8 expired" (1QK6-0) 89×20 "7 of 8 expired"
+            Text "1 more ends 15 Oct" (1QK7-0) 104×16 "1 more ends 15 Oct"
+        Frame "Row · UFLPA" (1QK9-0) 348×61
+          SVG "SVG" (1QN1-0) 18×18
+            SVGVisualElement "Path" (1QN2-0) 15×13
+          Text "UFLPA" (1QKC-0) 96×20 "UFLPA"
+          Frame "Frame" (1QKD-0) 182×36
+            Text "No link found" (1QKE-0) 88×20 "No link found"
+            Text "Not a clearance · li…" (1QKF-0) 172×16 "Not a clearance · list read 8 Oct"
+        Frame "Row · Sanctions" (1QKN-0) 348×61
+          SVG "SVG" (1QKO-0) 18×18
+            SVGVisualElement "Path" (1QKP-0) 13×14
+          Text "Sanctions" (1QKQ-0) 96×20 "Sanctions"
+          Frame "Frame" (1QKR-0) 182×36
+            Text "None of 11 listed" (1QKS-0) 106×20 "None of 11 listed"
+            Text "UK, EU, US lists · r…" (1QKT-0) 166×16 "UK, EU, US lists · read 6–11 Oct"
+        Frame "Row · Statements" (1QKG-0) 348×61
+          SVG "SVG" (1QKH-0) 18×18
+            SVGVisualElement "Path" (1QKI-0) 12×14
+          Text "Statement" (1QKJ-0) 96×20 "Statement"
+          Frame "Frame" (1QKK-0) 182×36
+            Text "Not drafted" (1QKL-0) 76×20 "Not drafted"
+            Text "Built from your 11 s…" (1QKM-0) 146×16 "Built from your 11 suppliers"
+    Frame "Needs a look" (1QKV-0) 350×610
+      Frame "Section head" (1QKW-0) 350×66
+        Frame "Frame" (1QKX-0) 141×28
+          Text "Needs a look" (1QKY-0) 120×28 "Needs a look"
+          Text "3" (1QKZ-0) 13×28 "3"
+      Frame "Cards" (1QL0-0) 350×544
+        Frame "Card · Certificates" (1QL1-0) 348×174
+          Frame "Frame" (1QL2-0) 316×16
+            SVG "SVG" (1QL3-0) 16×16
+              SVGVisualElement "Path" (1QL4-0) 9×13
+            Text "Certificates · newes…" (1QL5-0) 272×16 "Certificates · newest expiry 8 Oct"
+            SVG "SVG" (1QL6-0) 16×16
+              SVGVisualElement "Path" (1QL7-0) 6×11
+          Text "Ask Mondol Intimates…" (1QL8-0) 316×44 "Ask Mondol Intimates for its new GOTS certificate"
+          Text "Its GOTS ended 8 Oct…" (1QL9-0) 316×36 "Its GOTS ended 8 Oct. Six older ones are on Alerts, and Tex "
+          Text "Opens Alerts" (1QLA-0) 316×16 "Opens Alerts"
+        Frame "Card · Certificates" (1QLC-0) 348×193
+          Frame "Frame" (1QLG-0) 316×16
+            SVG "SVG" (1QLW-0) 16×16
+              SVGVisualElement "Path" (1QLX-0) 13×13
+            Text "UFLPA · read 8 Oct, …" (1QLJ-0) 272×16 "UFLPA · read 8 Oct, 3 days ago"
+            SVG "SVG" (1QLH-0) 16×16
+              SVGVisualElement "Path" (1QLI-0) 6×11
+          Text "Entries added to the…" (1QLF-0) 316×44 "Entries added to the US list since 8 Oct are not checked yet"
+          Text "Our match is only as…" (1QLE-0) 316×54 "Our match is only as new as our last read of the forced-labo"
+          Text "Opens UFLPA checks" (1QLD-0) 316×16 "Opens UFLPA checks"
+        Frame "Card · Certificates" (1QLM-0) 348×175
+          Frame "Frame" (1QLQ-0) 316×16
+            SVG "SVG" (1QLZ-0) 16×16
+              SVGVisualElement "Path" (1QM0-0) 11×13
+            Text "Modern slavery state…" (1QLT-0) 272×16 "Modern slavery statement"
+            SVG "SVG" (1QLR-0) 16×16
+              SVGVisualElement "Path" (1QLS-0) 6×11
+          Text "Draft your statement…" (1QLP-0) 316×44 "Draft your statement from these 11 suppliers"
+          Text "UK Modern Slavery Ac…" (1QLO-0) 316×36 "UK Modern Slavery Act, section 54. We write the supply chain"
+          Text "Nothing leaves your …" (1QLN-0) 316×16 "Nothing leaves your phone"
+    Frame "Notes" (1QM2-0) 350×56
+      Frame "Frame" (1QM3-0) 350×16
+        SVG "SVG" (1QM4-0) 14×14
+          SVGVisualElement "Path" (1QM5-0) 9×11
+        Text "WRAP read 10 Oct · G…" (1QM6-0) 234×16 "WRAP read 10 Oct · GOTS has no read date"
+      Frame "Frame" (1QM7-0) 350×16
+        Rectangle "Rectangle" (1QM8-0) 14×1
+        Text "Sample saved list; c…" (1QM9-0) 285×16 "Sample saved list; certificates and list reads are real"
+  Frame "Tab bar" (1QMB-0) 390×85
+    Frame "Tabs" (1QMC-0) 390×56
+      Frame "Tab · Messages" (1QMD-0) 78×56
+        SVG "SVG" (1QME-0) 24×24
+          SVGVisualElement "Path" (1QMF-0) 19×19
+        Text "Messages" (1QMG-0) 53×14 "Messages"
+      Frame "Tab · Quotes" (1QMH-0) 78×56
+        SVG "SVG" (1QMI-0) 24×24
+          SVGVisualElement "Path" (1QMJ-0) 19×16
+        Text "Quotes" (1QMK-0) 38×14 "Quotes"
+      Frame "Tab · Alerts" (1QML-0) 78×56
+        SVG "SVG" (1QMM-0) 24×24
+          SVGVisualElement "Path" (1QMN-0) 17×19
+        Text "Alerts" (1QMO-0) 32×14 "Alerts"
+        Frame "Alert dot" (1QMP-0) 7×7
+      Frame "Tab · Saved" (1QMQ-0) 78×56
+        SVG "SVG" (1QMR-0) 24×24
+          SVGVisualElement "Path" (1QMS-0) 13×18
+        Text "Saved" (1QMT-0) 32×14 "Saved"
+      Frame "Tab · Search" (1QMU-0) 78×56
+        SVG "SVG" (1QMV-0) 24×24
+          SVGVisualElement "Path" (1QMW-0) 19×19
+        Text "Search" (1QMX-0) 37×14 "Search"
+    Frame "Home indicator" (1QMY-0) 390×28
+      Rectangle "Rectangle" (1QMZ-0) 134×5

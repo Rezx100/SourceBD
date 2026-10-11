@@ -7,11 +7,11 @@
 // and "Show N suppliers" opens the search the draft describes. The URL stays the search: the
 // chips and the button are links and navigations, the same filters the results bar reads.
 //
-// From 768 a group is a section that opens in place; on a phone it is a 56-tall row with its
-// value under the name. The sub-pickers a phone would open are not drawn in Paper, so a row
-// opens its controls in place at touch size.
+// From 768 a group is a section that opens in place. On a phone (Paper page 36, `filters`) the
+// certificates, factory safety, location and sanctions are drawn open, as pills and switches; the
+// groups the board does not draw stay 56-tall rows that open their controls in place at touch size.
 
-import { CaretDown, CaretRight, X } from "@phosphor-icons/react";
+import { CaretDown, CaretRight, Check, X } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
@@ -63,7 +63,10 @@ export function FilterPanel({
   hsOptions,
   closeHref,
   defaultOpen,
+  sanctionsNote,
 }: {
+  /** Under the sanctions switch on a phone: what the UFLPA list's last read found (`UflpaSheetNote`). */
+  sanctionsNote?: ReactNode;
   /** The groups that start open, when the page says (the gallery and the proof shots do); otherwise the width decides. */
   defaultOpen?: readonly GroupId[];
   /** The search in the address: the draft starts as this and the chips remove from it. */
@@ -114,6 +117,19 @@ export function FilterPanel({
   const pick = (list: string[], v: string) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
   const districts = [...DISTRICTS, ...form.district.filter((d) => !DISTRICTS.includes(d))];
+  // A phone shows four districts until More; a city in the address is a filter that must not sit unseen.
+  const placeOpen = isOpen("place") || state.city.length > 0;
+  const certStatus = (
+    <Segmented
+      name="cert_state"
+      label="Certificate status"
+      value={form.certState}
+      options={CERT_STATES}
+      disabled={form.cert.length === 0}
+      onValueChange={(v) => set({ certState: v as CertState })}
+      className="max-w-full max-md:[&_span]:h-11"
+    />
+  );
 
   return (
     <form
@@ -153,39 +169,71 @@ export function FilterPanel({
         </div>
       ) : null}
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 md:px-0">
-        <Group id="cert" title="Certificates" summary={summaries.cert} open={isOpen("cert")} onToggle={() => toggle("cert")}>
-          {CERT_ORDER.map((k) => (
-            <Box desktop={desktop} key={k} name="cert" value={k} checked={form.cert.includes(k)} onChange={() => set({ cert: pick(form.cert, k) })}>
-              {CERT_NAME[k]}
-            </Box>
-          ))}
-          <p className="pt-1 text-xs font-semibold text-ink-3">Certificate status</p>
-          <Segmented
-            name="cert_state"
-            label="Certificate status"
-            value={form.certState}
-            options={CERT_STATES}
-            disabled={form.cert.length === 0}
-            onValueChange={(v) => set({ certState: v as CertState })}
-            className="max-w-full max-md:[&_span]:h-11"
-          />
-          {form.cert.length === 0 ? <p className="text-xs text-ink-3">Tick a certificate to choose its status.</p> : null}
-        </Group>
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 md:px-0">
+        {desktop ? (
+          <>
+            <Group id="cert" title="Certificates" summary={summaries.cert} open={isOpen("cert")} onToggle={() => toggle("cert")}>
+              {CERT_ORDER.map((k) => (
+                <Box desktop={desktop} key={k} name="cert" value={k} checked={form.cert.includes(k)} onChange={() => set({ cert: pick(form.cert, k) })}>
+                  {CERT_NAME[k]}
+                </Box>
+              ))}
+              <p className="pt-1 text-xs font-semibold text-ink-3">Certificate status</p>
+              {certStatus}
+              {form.cert.length === 0 ? <p className="text-xs text-ink-3">Tick a certificate to choose its status.</p> : null}
+            </Group>
 
-        <Group id="place" title="Location" summary={summaries.place} open={isOpen("place")} onToggle={() => toggle("place")}>
-          <Select
-            name="district"
-            size={size}
-            aria-label="District"
-            placeholder="Any district"
-            value={form.district[0] ?? "any"}
-            options={[{ value: "any", label: "Any district" }, ...districts.map((d) => ({ value: d, label: d }))]}
-            onValueChange={(v) => set({ district: v === "any" ? [] : [v] })}
-          />
-          {form.district.length > 1 ? <p className="text-xs text-ink-3">Also filtering on {form.district.slice(1).join(", ")}. Clear all removes them.</p> : null}
-          <Input size={size} name="city" aria-label="City" placeholder="City" value={form.city} onChange={(e) => set({ city: e.target.value })} />
-        </Group>
+            <Group id="place" title="Location" summary={summaries.place} open={isOpen("place")} onToggle={() => toggle("place")}>
+              <Select
+                name="district"
+                size={size}
+                aria-label="District"
+                placeholder="Any district"
+                value={form.district[0] ?? "any"}
+                options={[{ value: "any", label: "Any district" }, ...districts.map((d) => ({ value: d, label: d }))]}
+                onValueChange={(v) => set({ district: v === "any" ? [] : [v] })}
+              />
+              {form.district.length > 1 ? <p className="text-xs text-ink-3">Also filtering on {form.district.slice(1).join(", ")}. Clear all removes them.</p> : null}
+              <Input size={size} name="city" aria-label="City" placeholder="City" value={form.city} onChange={(e) => set({ city: e.target.value })} />
+            </Group>
+          </>
+        ) : (
+          // A phone (Paper page 36, `filters`): the choices are pills on the sheet itself, no row to open first.
+          <>
+            <PhoneGroup title="Certificates" sub="Checked with each issuer’s own list">
+              <div className="flex flex-wrap gap-2">
+                {CERT_ORDER.map((k) => (
+                  <PickChip key={k} name="cert" value={k} checked={form.cert.includes(k)} onChange={() => set({ cert: pick(form.cert, k) })}>
+                    {CERT_NAME[k]}
+                  </PickChip>
+                ))}
+              </div>
+              {/* The board draws one "valid" switch; the search has four states, so the four stay. */}
+              {form.cert.length === 0 ? null : certStatus}
+            </PhoneGroup>
+
+            <PhoneGroup title="Factory safety" tight>
+              <PhoneSwitch title="Covered by RSC" hint="Building and fire safety programme" name="rsc" checked={form.rsc} onChange={(on) => set({ rsc: on, rscLapsed: false })} />
+            </PhoneGroup>
+
+            <PhoneGroup title="Location">
+              <div className="flex flex-wrap gap-2">
+                {(placeOpen ? districts : districts.filter((d, i) => i < 4 || form.district.includes(d))).map((d) => (
+                  <PickChip key={d} name="district" value={d} checked={form.district.includes(d)} onChange={() => set({ district: pick(form.district, d) })}>
+                    {d}
+                  </PickChip>
+                ))}
+                {placeOpen ? null : (
+                  <button type="button" aria-expanded={false} onClick={() => toggle("place")} className={`flex h-9 items-center gap-1 rounded-full bg-sunken pl-3.5 pr-2.5 text-base font-medium text-ink active:bg-line ${ring}`}>
+                    More
+                    <CaretDown size={14} className="shrink-0 text-ink-2" aria-hidden />
+                  </button>
+                )}
+              </div>
+              {placeOpen ? <Input size="touch" name="city" aria-label="City" placeholder="City" value={form.city} onChange={(e) => set({ city: e.target.value })} /> : null}
+            </PhoneGroup>
+          </>
+        )}
 
         <Group id="type" title="Company type" summary={summaries.type} open={isOpen("type")} onToggle={() => toggle("type")}>
           {(Object.keys(TYPE_NAME) as (keyof typeof TYPE_NAME)[]).map((t) => (
@@ -253,29 +301,33 @@ export function FilterPanel({
           </Field>
         </Group>
 
-        <SwitchRow title="In the RSC safety programme" name="rsc" checked={form.rsc} desktop={desktop} onChange={(on) => set({ rsc: on, rscLapsed: false })} />
-        <SwitchRow
-          title={desktop ? "Hide sanctioned suppliers" : "Hiding sanctioned suppliers"}
-          hint={desktop ? undefined : "Suppliers on the UFLPA Entity List stay out of the results."}
-          name="hide_sanctioned"
-          checked={form.hideSanctioned}
-          desktop={desktop}
-          last
-          onChange={(on) => set({ hideSanctioned: on })}
-        />
+        {desktop ? (
+          <>
+            <SwitchRow title="In the RSC safety programme" name="rsc" checked={form.rsc} desktop={desktop} onChange={(on) => set({ rsc: on, rscLapsed: false })} />
+            <SwitchRow title="Hide sanctioned suppliers" name="hide_sanctioned" checked={form.hideSanctioned} desktop={desktop} last onChange={(on) => set({ hideSanctioned: on })} />
+            {/* The phone's line (hidden from 768): here too, so it is in the page before the width is known. */}
+            {sanctionsNote}
+          </>
+        ) : (
+          <section className="flex flex-col gap-1 pb-6 pt-4">
+            <h3 className="pt-1 text-md/[22px] font-medium text-ink">Sanctions</h3>
+            <PhoneSwitch title="Hide suppliers on a sanctions list" hint="UK, EU and US lists, the UFLPA Entity List among them" name="hide_sanctioned" checked={form.hideSanctioned} onChange={(on) => set({ hideSanctioned: on })} />
+            {sanctionsNote}
+          </section>
+        )}
       </div>
 
-      <div className="sticky bottom-0 flex shrink-0 items-center justify-between gap-3 border-t border-line bg-surface px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 md:h-16 md:px-5 md:py-0">
+      <div className="sticky bottom-0 flex shrink-0 items-center justify-between gap-3 border-t border-line bg-surface px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 max-md:gap-2 max-md:pt-2 md:h-16 md:px-5 md:py-0">
         {desktop ? (
           <button type="button" onClick={() => setForm(clearedForm())} className={`inline-flex min-h-6 items-center rounded-sm text-base font-medium text-ink-2 underline decoration-1 [text-underline-position:from-font] hover:text-ink ${ring}`}>
             Clear all
           </button>
         ) : (
-          <button type="button" onClick={() => setForm(clearedForm())} className={buttonClass({ kind: "secondary", size: "touch" })}>
-            Clear all
+          <button type="button" onClick={() => setForm(clearedForm())} className={buttonClass({ kind: "secondary", size: "touch", className: "rounded-lg px-[18px]" })}>
+            Clear
           </button>
         )}
-        <button type="submit" aria-busy={pending || undefined} className={buttonClass({ kind: "primary", size: desktop ? "lg" : "touch", className: desktop ? undefined : "flex-1" })}>
+        <button type="submit" aria-busy={pending || undefined} className={buttonClass({ kind: "primary", size: desktop ? "lg" : "touch", className: desktop ? undefined : "flex-1 rounded-lg" })}>
           {showLabel(shownCount)}
         </button>
       </div>
@@ -326,6 +378,45 @@ function Group({ id, title, summary, open, onToggle, children }: { id: string; t
         </div>
       ) : null}
     </section>
+  );
+}
+
+/** A phone's group (Paper page 36, `filters`): its name, a line under it, then its pills or switches. */
+function PhoneGroup({ title, sub, tight, children }: { title: string; sub?: string; tight?: boolean; children: ReactNode }) {
+  return (
+    <section className={`flex flex-col border-b border-line ${tight ? "gap-1 py-4" : "gap-3 py-5"}`}>
+      <div className={`flex flex-col gap-0.5 ${tight ? "pt-1" : ""}`}>
+        <h3 className="text-md/[22px] font-medium text-ink">{title}</h3>
+        {sub ? <p className="text-sm text-ink-3">{sub}</p> : null}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/** A choice as a pill: outlined when off, ink with a tick when on. 36 tall, 44 with its hit area. A checkbox, so it posts with the form. */
+function PickChip({ name, value, checked, onChange, children }: { name: string; value: string; checked: boolean; onChange: () => void; children: ReactNode }) {
+  return (
+    <label>
+      <input type="checkbox" name={name} value={value} checked={checked} onChange={onChange} className="peer sr-only" />
+      <span className="relative flex h-9 items-center gap-1.5 rounded-full border border-line px-3.5 text-base font-medium text-ink before:absolute before:inset-x-0 before:-inset-y-1 before:content-[''] active:bg-sunken peer-checked:border-ink peer-checked:bg-ink peer-checked:pl-2.5 peer-checked:text-surface peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus">
+        {checked ? <Check size={16} className="shrink-0" aria-hidden /> : null}
+        {children}
+      </span>
+    </label>
+  );
+}
+
+/** A phone's yes/no filter: the name and what it covers, the kit's touch switch at the end. */
+function PhoneSwitch({ title, hint, name, checked, onChange }: { title: string; hint: string; name: string; checked: boolean; onChange: (on: boolean) => void }) {
+  return (
+    <label className="-mx-2 flex min-h-[52px] items-center gap-3 rounded-md px-2 active:bg-sunken">
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="text-[15px]/[22px] text-ink">{title}</span>
+        <span className="text-sm text-ink-3">{hint}</span>
+      </span>
+      <Switch name={name} aria-label={title} size="touch" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+    </label>
   );
 }
 

@@ -49,7 +49,9 @@ export default async function BuyerLayout({ children }: { children: React.ReactN
           </Suspense>
         }
       >
-        {children}
+        {/* The page's box. It was a template that remounted and faded every page in over 200 ms;
+            the phone speed pass (11 Oct 2026) keeps the box and drops the wait. */}
+        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
       </AppFrame>
     </PostHogProvider>
   );

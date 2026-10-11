@@ -1,0 +1,150 @@
+Frame "Sources · Square Apparels · phone" (1N4P-0) 390×?
+  Frame "Status bar" (1N7S-0) ?×?
+    Frame "Time" (1N80-0) ?×?
+      Text "9:41" (1N81-0) ?×? "9:41"
+    Frame "Icons" (1N7T-0) ?×?
+      SVG "SVG" (1N7U-0) ?×?
+        SVGVisualElement "Path" (1N7Z-0) ?×?
+        SVGVisualElement "Path" (1N7Y-0) ?×?
+        SVGVisualElement "Path" (1N7X-0) ?×?
+        SVGVisualElement "Path" (1N7W-0) ?×?
+        SVGVisualElement "Path" (1N7V-0) ?×?
+  Frame "Compact head" (1N6R-0) ?×?
+    Frame "Head" (1OM4-0) ?×?
+      Frame "Bar" (1OM5-0) ?×?
+        Text "Name" (1OM6-0) ?×? "Square Apparels Limited"
+        Frame "Actions" (1OM7-0) ?×?
+          Frame "Share" (1OM8-0) 36×36
+            SVG "SVG" (1OM9-0) ?×?
+              SVGVisualElement "Path" (1OMA-0) ?×?
+          Frame "Close" (1OMB-0) 36×36
+            SVG "SVG" (1OMC-0) ?×?
+              SVGVisualElement "Path" (1OMD-0) ?×?
+      Frame "Status strip" (1OME-0) ?×30
+        Frame "Status · Safety" (1OMF-0) ?×?
+          SVG "SVG" (1OMG-0) ?×?
+            SVGVisualElement "Path" (1OMH-0) ?×?
+          Text "RSC behind" (1OMI-0) ?×? "RSC behind"
+        Rectangle "Rectangle" (1OMJ-0) 1×14
+        Frame "Status · Certificates" (1OMK-0) ?×?
+          SVG "SVG" (1OML-0) ?×?
+            SVGVisualElement "Path" (1OMM-0) ?×?
+          Text "GOTS 31 days" (1OMN-0) ?×? "GOTS 31 days"
+        Rectangle "Rectangle" (1OMO-0) 1×14
+        Frame "Status · Sanctions" (1OMP-0) ?×?
+          SVG "SVG" (1OMQ-0) ?×?
+            SVGVisualElement "Path" (1OMR-0) ?×?
+          Text "Not listed" (1OMS-0) ?×? "Not listed"
+    Frame "Tabs" (1N6S-0) ?×48
+      Frame "Tab · Certificates" (1N6Z-0) ?×?
+        Text "Certificates" (1N71-0) ?×? "Certificates"
+      Frame "Tab · Safety" (1N6W-0) ?×?
+        Text "Safety" (1N6Y-0) ?×? "Safety"
+      Frame "Tab · Sites" (1N6T-0) ?×?
+        Text "Sites" (1N6V-0) ?×? "Sites"
+        Text "2" (1N6U-0) ?×? "2"
+      Frame "Tab · Sources (current)" (1N86-0) ?×?
+        Text "Sources" (1N87-0) ?×? "Sources"
+        Text "9" (1N88-0) ?×? "9"
+        Frame "Indicator" (1NZN-0) ?×2
+  Frame "Sources" (1NG7-0) ?×?
+    Frame "Summary" (1NG8-0) ?×?
+      Text "9 sources" (1NG9-0) ?×? "9 sources"
+      Text "Every fact on this r…" (1NGA-0) ?×? "Every fact on this record comes from one of these, highest t"
+    Frame "Group · Registers" (1NGB-0) ?×?
+      Frame "Frame" (1NGC-0) ?×?
+        Text "Government and safet…" (1NGD-0) ?×? "Government and safety registers"
+      Frame "Source · EPB" (1NGE-0) ?×?
+        Frame "Frame" (1NGF-0) ?×?
+          Text "Export Promotion Bur…" (1NGG-0) ?×? "Export Promotion Bureau"
+          Text "Exporter registratio…" (1NGH-0) ?×? "Exporter registration"
+        Frame "Frame" (1NGI-0) ?×?
+          Text "14 Aug" (1NGJ-0) ?×? "14 Aug"
+          Text "58 days ago" (1NGK-0) ?×? "58 days ago"
+      Frame "Source · RSC" (1NGL-0) ?×?
+        Frame "Frame" (1NGM-0) ?×?
+          Text "RMG Sustainability C…" (1NGN-0) ?×? "RMG Sustainability Council"
+          Text "Building safety, 2 b…" (1NGO-0) ?×? "Building safety, 2 buildings"
+        Text "2 Oct" (1NGP-0) ?×? "2 Oct"
+    Frame "Group · Industry" (1NGQ-0) ?×?
+      Frame "Frame" (1NGR-0) ?×?
+        Text "Industry body" (1NGS-0) ?×? "Industry body"
+      Frame "Source · BGMEA" (1NGT-0) ?×?
+        Frame "Frame" (1NGU-0) ?×?
+          Text "BGMEA" (1NGV-0) ?×? "BGMEA"
+          Text "Membership, workers,…" (1NGW-0) ?×? "Membership, workers, machines, address"
+        Text "11 Oct" (1NGX-0) ?×? "11 Oct"
+    Frame "Group · Certification" (1NGY-0) ?×?
+      Frame "Frame" (1NGZ-0) ?×?
+        Text "Certification bodies" (1NH0-0) ?×? "Certification bodies"
+      Frame "Source · GOTS" (1NH1-0) ?×?
+        Frame "Frame" (1NH2-0) ?×?
+          Text "GOTS" (1NH3-0) ?×? "GOTS"
+          Text "Organic certificate" (1NH4-0) ?×? "Organic certificate"
+        Frame "Frame" (1NH5-0) ?×?
+          Text "26 Jun" (1NH6-0) ?×? "26 Jun"
+          Text "107 days ago" (1NH7-0) ?×? "107 days ago"
+      Frame "Source · WRAP" (1NH8-0) ?×?
+        Frame "Frame" (1NH9-0) ?×?
+          Text "WRAP" (1NHA-0) ?×? "WRAP"
+          Text "Social compliance ce…" (1NHB-0) ?×? "Social compliance certificate"
+        Text "10 Oct" (1NHC-0) ?×? "10 Oct"
+      Frame "Source · OEKO-TEX" (1NHD-0) ?×?
+        Frame "Frame" (1NHE-0) ?×?
+          Text "OEKO-TEX" (1NHF-0) ?×? "OEKO-TEX"
+          Text "5 listings, 2 standa…" (1NHG-0) ?×? "5 listings, 2 standards"
+        Text "10 Oct" (1NHH-0) ?×? "10 Oct"
+    Frame "Group · Brands" (1NHJ-0) ?×?
+      Frame "Frame" (1NHK-0) ?×?
+        Text "Brand supplier lists" (1NHL-0) ?×? "Brand supplier lists"
+      Frame "Source · H&M" (1NHM-0) ?×?
+        Frame "Frame" (1NHN-0) ?×?
+          Text "H&M Group" (1NHO-0) ?×? "H&M Group"
+          Text "List of Aug 2026" (1NHP-0) ?×? "List of Aug 2026"
+        Text "10 Oct" (1NHQ-0) ?×? "10 Oct"
+      Frame "Source · Next" (1NHR-0) ?×?
+        Frame "Frame" (1NHS-0) ?×?
+          Text "Next" (1NHT-0) ?×? "Next"
+          Text "List of Feb 2026" (1NHU-0) ?×? "List of Feb 2026"
+        Frame "Frame" (1NHV-0) ?×?
+          Text "10 Oct" (1NHW-0) ?×? "10 Oct"
+          Text "list 8 months old" (1NHX-0) ?×? "list 8 months old"
+    Frame "Group · Customs" (1NHY-0) ?×?
+      Frame "Frame" (1NHZ-0) ?×?
+        Text "Customs records" (1NI0-0) ?×? "Customs records"
+      Frame "Source · Customs" (1NI1-0) ?×?
+        Frame "Frame" (1NI2-0) ?×?
+          Text "Bangladesh customs e…" (1NI3-0) ?×? "Bangladesh customs exports"
+          Text "Sep 2024 – Aug 2026,…" (1NI4-0) ?×? "Sep 2024 – Aug 2026, through Volza"
+        Frame "Frame" (1NI5-0) ?×?
+          Text "11 Oct" (1NI6-0) ?×? "11 Oct"
+          Text "ends 41 days ago" (1NI7-0) ?×? "ends 41 days ago"
+    Frame "Group · Sanctions" (1NI8-0) ?×?
+      Frame "Frame" (1NI9-0) ?×?
+        Text "Sanctions lists · no…" (1NIA-0) ?×? "Sanctions lists · not listed"
+        Text "Read for every suppl…" (1NIB-0) ?×? "Read for every supplier, not only this one"
+      Frame "List rows" (1NIC-0) ?×?
+        Frame "Frame" (1NID-0) ?×?
+          Text "US Treasury (OFAC)" (1NIE-0) ?×? "US Treasury (OFAC)"
+          Text "8 Oct" (1NIF-0) ?×? "8 Oct"
+        Frame "Frame" (1NIG-0) ?×?
+          Text "US Labor (ILAB)" (1NIH-0) ?×? "US Labor (ILAB)"
+          Text "11 Oct" (1NII-0) ?×? "11 Oct"
+        Frame "Frame" (1NIJ-0) ?×?
+          Text "European Union" (1NIK-0) ?×? "European Union"
+          Text "6 Oct" (1NIL-0) ?×? "6 Oct"
+        Frame "Frame" (1NIM-0) ?×?
+          Text "UK (OFSI)" (1NIN-0) ?×? "UK (OFSI)"
+          Text "6 Oct" (1NIO-0) ?×? "6 Oct"
+        Frame "Frame" (1NIP-0) ?×?
+          Text "US forced labour (UF…" (1NIQ-0) ?×? "US forced labour (UFLPA)"
+          Text "Not read yet" (1NIR-0) ?×? "Not read yet"
+        Frame "Frame" (1NIS-0) ?×?
+          Text "US withhold orders (…" (1NIT-0) ?×? "US withhold orders (WRO)"
+          Text "Not read yet" (1NIU-0) ?×? "Not read yet"
+  Frame "Action bar" (1NIW-0) ?×64
+    Frame "Save" (1NIX-0) 48×48
+      SVG "SVG" (1NIY-0) ?×?
+        SVGVisualElement "Path" (1NIZ-0) ?×?
+    Frame "Send RFQ" (1NJ0-0) ?×48
+      Text "Send RFQ" (1NJ1-0) ?×? "Send RFQ"

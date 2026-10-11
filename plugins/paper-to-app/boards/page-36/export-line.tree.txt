@@ -1,0 +1,155 @@
+Frame "Supplier · export line · HS 6109 · Fabrica Knit · phone" (1R23-0) 390×1583
+  Frame "Status bar" (1R24-0) 390×62
+    Frame "Time" (1R25-0) 94×22
+      Text "9:41" (1R26-0) 31×22 "9:41"
+    Frame "Icons" (1R27-0) 94×22
+      SVG "SVG" (1R28-0) 82×22
+        SVGVisualElement "Path" (1R29-0) 19×12
+        SVGVisualElement "Path" (1R2A-0) 17×12
+        SVGVisualElement "Path" (1R2B-0) 25×13
+        SVGVisualElement "Path" (1R2C-0) 21×9
+        SVGVisualElement "Path" (1R2D-0) 1×4
+  Frame "Compact head" (1R2E-0) 390×64
+    Frame "Back" (1R2F-0) 36×36
+      SVG "SVG" (1R2G-0) 17×17
+        SVGVisualElement "Path" (1R2H-0) 12×10
+    Frame "Frame" (1R2I-0) 310×48
+      Text "Fabrica Knit Composi…" (1R2J-0) 310×30 "Fabrica Knit Composite"
+      Frame "Frame" (1R2K-0) 310×18
+        Text "HS 6109" (1R2L-0) 55×18 "HS 6109"
+        Text "· T-shirts and vests…" (1R2M-0) 159×18 "· T-shirts and vests, knitted"
+  Frame "Body" (1R2N-0) 390×1457
+    Frame "Line facts" (1R2O-0) 350×46
+      Frame "Frame" (1R2P-0) 350×20
+        SVG "SVG" (1R2Q-0) 16×16
+          SVGVisualElement "Path" (1R2R-0) 11×13
+        Text "One of 34 lines on i…" (1R2S-0) 259×20 "One of 34 lines on its EPB exporter page"
+      Frame "Frame" (1R2T-0) 350×20
+        SVG "SVG" (1R2U-0) 16×16
+          SVGVisualElement "Path" (1R2V-0) 13×12
+        Text "Factory · Ashulia, S…" (1R2W-0) 195×20 "Factory · Ashulia, Savar, Dhaka"
+    Frame "Customs" (1R2Y-0) 350×341
+      Frame "Section head" (1R2Z-0) 350×66
+        Text "Customs records" (1R30-0) 157×28 "Customs records"
+        Text "Sep 2024 – Aug 2026" (1R31-0) 133×18 "Sep 2024 – Aug 2026"
+      Frame "Frame" (1R32-0) 350×275
+        Frame "KPI tiles" (1R33-0) 350×207
+          Frame "Frame" (1R34-0) 348×103
+            Text "Exported in 2 years" (1R35-0) 320×18 "Exported in 2 years"
+            Text "US$209.8M" (1R36-0) 320×32 "US$209.8M"
+            Text "Free on board, acros…" (1R37-0) 320×18 "Free on board, across all 34 lines"
+          Frame "Frame" (1R38-0) 348×102
+            Frame "Frame" (1R39-0) 175×102
+              Text "Shipments" (1R3A-0) 146×18 "Shipments"
+              Text "5,306" (1R3B-0) 146×32 "5,306"
+              Text "to 23 countries" (1R3C-0) 146×18 "to 23 countries"
+            Frame "Frame" (1R3D-0) 174×102
+              Text "Buyers" (1R3E-0) 146×18 "Buyers"
+              Text "169" (1R3F-0) 146×32 "169"
+              Text "named on the records" (1R3G-0) 146×18 "named on the records"
+        Frame "Frame" (1R3H-0) 350×56
+          SVG "SVG" (1R3I-0) 16×16
+            SVGVisualElement "Path" (1R3J-0) 13×13
+          Text "We don’t split these…" (1R3K-0) 302×36 "We don’t split these totals by HS code yet. The shipments be"
+    Frame "By market" (1R3M-0) 350×311
+      Frame "Section head" (1R3N-0) 350×66
+        Text "By market" (1R3O-0) 94×28 "By market"
+        Text "Largest first" (1R3P-0) 73×18 "Largest first"
+      Frame "Frame" (1R3Q-0) 350×245
+        Frame "Frame" (1R3R-0) 348×60
+          SVG "SVG" (1R3S-0) 18×18
+            SVGVisualElement "Path" (1R3T-0) 14×14
+          Text "EU" (1R3U-0) 96×20 "EU"
+          Frame "Frame" (1R3V-0) 182×36
+            Text "US$165.4M" (1R3W-0) 78×20 "US$165.4M"
+            Text "3,972 shipments · 74…" (1R3X-0) 152×16 "3,972 shipments · 74 buyers"
+        Frame "Frame" (1R3Y-0) 348×61
+          SVG "SVG" (1R3Z-0) 18×18
+            SVGVisualElement "Path" (1R40-0) 14×14
+          Text "US" (1R41-0) 96×20 "US"
+          Frame "Frame" (1R42-0) 182×36
+            Text "US$10.4M" (1R43-0) 70×20 "US$10.4M"
+            Text "110 shipments · 13 b…" (1R44-0) 137×16 "110 shipments · 13 buyers"
+        Frame "Frame" (1R45-0) 348×61
+          SVG "SVG" (1R46-0) 18×18
+            SVGVisualElement "Path" (1R47-0) 14×14
+          Text "Canada" (1R48-0) 96×20 "Canada"
+          Frame "Frame" (1R49-0) 182×36
+            Text "US$1.2M" (1R4A-0) 61×20 "US$1.2M"
+            Text "61 shipments · 9 buy…" (1R4B-0) 128×16 "61 shipments · 9 buyers"
+        Frame "Frame" (1R4C-0) 348×61
+          SVG "SVG" (1R4D-0) 18×18
+            SVGVisualElement "Path" (1R4E-0) 14×14
+          Text "UK" (1R4F-0) 96×20 "UK"
+          Frame "Frame" (1R4G-0) 182×36
+            Text "US$187,120" (1R4H-0) 83×20 "US$187,120"
+            Text "16 shipments · 4 buy…" (1R4I-0) 128×16 "16 shipments · 4 buyers"
+    Frame "Shipments" (1R4K-0) 350×390
+      Frame "Section head" (1R4L-0) 350×66
+        Text "T-shirt shipments" (1R4M-0) 161×28 "T-shirt shipments"
+        Text "Top one per market" (1R4N-0) 115×18 "Top one per market"
+      Frame "Frame" (1R4O-0) 350×324
+        Frame "Shipment" (1R4P-0) 348×96
+          Frame "Frame" (1R4Q-0) 234×64
+            Text "New Yorker Fashion L…" (1R4R-0) 234×22 "New Yorker Fashion Logistics"
+            Text "Ladies T-shirts to G…" (1R4S-0) 234×18 "Ladies T-shirts to Germany"
+            Frame "Frame" (1R4T-0) 234×16
+              Text "6109.10" (1R4U-0) 51×16 "6109.10"
+              Text "· 27 Apr 2025 · US$1…" (1R4V-0) 171×16 "· 27 Apr 2025 · US$1.88 a piece"
+          Text "US$1.0M" (1R4W-0) 70×64 "US$1.0M"
+        Frame "Shipment" (1R4X-0) 348×113
+          Frame "Frame" (1R4Y-0) 209×80
+            Text "YJM Apparel" (1R4Z-0) 209×22 "YJM Apparel"
+            Text "Men’s T-shirts to th…" (1R50-0) 209×18 "Men’s T-shirts to the US"
+            Frame "Frame" (1R51-0) 209×32
+              Text "6109.10" (1R52-0) 51×16 "6109.10"
+              Text "· 18 May 2025 · US$2…" (1R53-0) 152×32 "· 18 May 2025 · US$2.94 a piece"
+          Text "US$423,817" (1R54-0) 95×80 "US$423,817"
+        Frame "Shipment" (1R55-0) 348×113
+          Frame "Frame" (1R56-0) 219×80
+            Text "Whispering Smith Ltd…" (1R57-0) 219×22 "Whispering Smith Ltd."
+            Text "Ladies T-shirts to L…" (1R58-0) 219×18 "Ladies T-shirts to London"
+            Frame "Frame" (1R59-0) 219×32
+              Text "6109.10" (1R5A-0) 51×16 "6109.10"
+              Text "· 15 Jul 2025 · US$2…" (1R5B-0) 162×32 "· 15 Jul 2025 · US$2.21 a piece"
+          Text "US$34,222" (1R5C-0) 85×80 "US$34,222"
+    Frame "Certified" (1R5D-0) 350×189
+      Frame "Section head" (1R5E-0) 350×66
+        Text "Certified scope" (1R5F-0) 140×28 "Certified scope"
+        Text "Worst first" (1R5G-0) 62×18 "Worst first"
+      Frame "Frame" (1R5H-0) 350×123
+        Frame "Frame" (1R5I-0) 348×60
+          SVG "SVG" (1R5J-0) 18×18
+            SVGVisualElement "Path" (1R5K-0) 14×14
+          Text "GOTS" (1R5L-0) 96×20 "GOTS"
+          Frame "Frame" (1R5M-0) 182×36
+            Text "Expired 27 Jul" (1R5N-0) 93×20 "Expired 27 Jul"
+            Text "GOTS-29119" (1R5O-0) 72×16 "GOTS-29119"
+        Frame "Frame" (1R5P-0) 348×61
+          SVG "SVG" (1R5Q-0) 18×18
+            SVGVisualElement "Path" (1R5R-0) 10×14
+          Text "WRAP Gold" (1R5S-0) 96×20 "WRAP Gold"
+          Frame "Frame" (1R5T-0) 182×36
+            Text "Ends 22 Oct, in 11 d…" (1R5U-0) 148×20 "Ends 22 Oct, in 11 days"
+            Text "130130" (1R5V-0) 44×16 "130130"
+    Frame "Sources" (1R5W-0) 350×56
+      Frame "Frame" (1R5X-0) 350×16
+        SVG "SVG" (1R5Y-0) 14×14
+          SVGVisualElement "Path" (1R5Z-0) 9×11
+        Text "Customs records · re…" (1R60-0) 161×16 "Customs records · read 11 Oct"
+        SVG "SVG" (1R61-0) 12×12
+          SVGVisualElement "Path" (1R62-0) 9×9
+        Text "ends 41 days ago" (1R63-0) 96×16 "ends 41 days ago"
+      Frame "Frame" (1R64-0) 350×16
+        SVG "SVG" (1R65-0) 14×14
+          SVGVisualElement "Path" (1R66-0) 9×11
+        Text "EPB exporter page · …" (1R67-0) 304×16 "EPB exporter page · read 14 Aug · WRAP list read 10 Oct"
+  Frame "Action bar" (1R69-0) 390×87
+    Frame "Frame" (1R6A-0) 390×64
+      Frame "Frame" (1R6B-0) 94×48
+        Text "Exporters" (1R6C-0) 64×18 "Exporters"
+        Text "1,767" (1R6D-0) 32×14 "1,767"
+      Frame "Frame" (1R6E-0) 256×48
+        Text "Send RFQ for this li…" (1R6F-0) 164×20 "Send RFQ for this line"
+    Frame "Frame" (1R6G-0) 390×22
+      Rectangle "Rectangle" (1R6H-0) 134×5

@@ -10,6 +10,7 @@ import { ArrowLeft, CaretRight, ChatCircleText, Cube, Hash, Package, ShieldCheck
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Dialog as D } from "radix-ui";
+import dynamic from "next/dynamic";
 import { Suspense, useEffect, useState } from "react";
 import { ring, ringInset } from "@/components/kit/classes";
 import { TabBar } from "@/components/kit/phone";
@@ -17,9 +18,11 @@ import { LinkPending } from "@/components/patterns/link-pending";
 import { PHONE_TABS, phoneTab, phoneTitle } from "@/lib/frame-nav";
 import { cn } from "@/lib/utils";
 import { NO_BADGES, useBadges, type BadgesInput, type FrameBadges } from "./badges";
-import { FeedbackDialog } from "./feedback";
 import { FRAME_ICONS } from "./sidebar";
 import { accountName, type FrameAccount } from "./topbar";
+
+// The feedback form is fetched when it is first opened, not with every page (11 Oct 2026, speed pass).
+const FeedbackDialog = dynamic(() => import("./feedback").then((m) => m.FeedbackDialog), { ssr: false });
 
 const HIDE_ON_DETAIL = "max-md:group-has-[[data-detail]]/shell:hidden";
 

@@ -11,6 +11,7 @@ import { X } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 import { PaneSkeleton, Skeleton, buttonClass } from "@/components/kit";
+import { PhoneRecordSkeleton } from "@/components/record/phone-record";
 import { PaneFocus } from "./pane-focus";
 
 export function PaneFrame({ openKey, children }: { /** What the pane shows; focus moves whenever it changes. */ openKey: string; children: ReactNode }) {
@@ -26,8 +27,10 @@ export function PaneFrame({ openKey, children }: { /** What the pane shows; focu
 /** The record while it is read: the kit's pane silhouette (name, line, tabs, fact rows). */
 export function RecordSkeleton() {
   return (
-    <div className="flex min-h-0 flex-1 flex-col p-4 sm:p-6">
-      <PaneSkeleton />
+    <div className="flex min-h-0 flex-1 flex-col sm:p-6">
+      <PaneSkeleton className="max-sm:hidden" />
+      {/* A phone's own silhouette (Paper page 35, `d-loading`): the statuses, the tabs' place, four tiles. */}
+      <PhoneRecordSkeleton className="sm:hidden" />
     </div>
   );
 }

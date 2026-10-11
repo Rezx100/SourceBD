@@ -12,7 +12,7 @@ import { PhoneTabs, SavedHead, SearchesEmpty, SearchesError } from "@/components
 import { LastSearchCardView } from "@/components/saved/last-search";
 import { loadSearches } from "@/components/saved/load";
 import { SearchList } from "@/components/saved/searches";
-import { buildSearchItems, lastSearchCard, SEARCHES_HREF } from "@/components/saved/words";
+import { buildSearchItems, lastSearchCard, searchesCaption, SEARCHES_HREF } from "@/components/saved/words";
 import { getServerRole } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -22,9 +22,9 @@ export const metadata = { title: "Saved searches · SourceBD" };
 
 export default async function SearchesPage() {
   const supabase = await createSupabaseServerClient();
-  const role = await getServerRole();
   const now = new Date();
-  const data = await loadSearches(supabase, role, now);
+  // The role read and the three reads that do not need it run side by side (11 Oct 2026, speed pass).
+  const data = await loadSearches(supabase, getServerRole(), now);
   const items = data.searches ? buildSearchItems(data.searches, now, data.alerts) : [];
   const count = data.searches === null ? null : items.length;
   const view = { sort: "recent" as const, page: 1 };
@@ -36,7 +36,16 @@ export default async function SearchesPage() {
       <SavedHead tab="searches" suppliers={data.suppliers} searches={count} view={view} capped={data.capped} />
       <PhoneTabs tab="searches" suppliers={data.suppliers} searches={count} />
       {card ? <LastSearchCardView card={card} /> : null}
-      {data.searches === null ? <SearchesError retryHref={SEARCHES_HREF} /> : items.length === 0 ? <SearchesEmpty /> : <SearchList items={items} />}
+      {data.searches === null ? (
+        <SearchesError retryHref={SEARCHES_HREF} />
+      ) : items.length === 0 ? (
+        <SearchesEmpty />
+      ) : (
+        <>
+          <p className="px-5 pb-4 pt-4 text-sm text-ink-3 md:hidden">{searchesCaption(count, data.capped)}</p>
+          <SearchList items={items} />
+        </>
+      )}
     </div>
   );
 }

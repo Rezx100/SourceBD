@@ -1,0 +1,143 @@
+Frame "Many buildings · Liberty Knitwear · Safety · phone" (1OY7-0) 390×?
+  Frame "Status bar" (1OY8-0) ?×?
+    Frame "Time" (1OY9-0) ?×?
+      Text "9:41" (1OYA-0) ?×? "9:41"
+    Frame "Icons" (1OYB-0) ?×?
+      SVG "SVG" (1OYC-0) ?×?
+        SVGVisualElement "Path" (1OYD-0) ?×?
+        SVGVisualElement "Path" (1OYE-0) ?×?
+        SVGVisualElement "Path" (1OYF-0) ?×?
+        SVGVisualElement "Path" (1OYG-0) ?×?
+        SVGVisualElement "Path" (1OYH-0) ?×?
+  Frame "Compact head" (1OYI-0) ?×?
+    Frame "Head" (1OYJ-0) ?×?
+      Frame "Bar" (1OYK-0) ?×?
+        Text "Name" (1OYL-0) ?×? "Liberty Knitwear Ltd"
+        Frame "Actions" (1OYM-0) ?×?
+          Frame "Share" (1OYN-0) 36×36
+            SVG "SVG" (1OYO-0) ?×?
+              SVGVisualElement "Path" (1OYP-0) ?×?
+          Frame "Close" (1OYQ-0) 36×36
+            SVG "SVG" (1OYR-0) ?×?
+              SVGVisualElement "Path" (1OYS-0) ?×?
+      Frame "Status strip" (1OYT-0) ?×30
+        Frame "Status · Safety" (1OYU-0) ?×?
+          SVG "SVG" (1OYV-0) ?×?
+            SVGVisualElement "Path" (1OYW-0) ?×?
+          Text "4 behind" (1OYX-0) ?×? "4 behind"
+        Rectangle "Rectangle" (1OYY-0) 1×14
+        Frame "Status · Certificates" (1OYZ-0) ?×?
+          SVG "SVG" (1OZ0-0) ?×?
+            SVGVisualElement "Path" (1OZ1-0) ?×?
+          Text "OEKO-TEX listed" (1OZ2-0) ?×? "OEKO-TEX listed"
+        Rectangle "Rectangle" (1OZ3-0) 1×14
+        Frame "Status · Sanctions" (1OZ4-0) ?×?
+          SVG "SVG" (1OZ5-0) ?×?
+            SVGVisualElement "Path" (1OZ6-0) ?×?
+          Text "Not listed" (1OZ7-0) ?×? "Not listed"
+    Frame "Tabs" (1OZ8-0) ?×48
+      Frame "Tab · Overview (current)" (1OZ9-0) ?×?
+        Text "Overview" (1OZA-0) ?×? "Overview"
+      Frame "Tab · Exports" (1OZB-0) ?×?
+        Text "Exports" (1OZC-0) ?×? "Exports"
+      Frame "Tab · Certificates" (1OZD-0) ?×?
+        Text "Certificates" (1OZE-0) ?×? "Certificates"
+      Frame "Tab · Safety" (1OZF-0) ?×?
+        Text "Safety" (1OZG-0) ?×? "Safety"
+        Frame "Indicator" (1OZH-0) ?×2
+      Frame "Tab · Sites" (1OZI-0) ?×?
+        Text "Sites" (1OZJ-0) ?×? "Sites"
+        Text "6" (1OZK-0) ?×? "6"
+  Frame "Safety · many buildings" (1OZM-0) ?×?
+    Frame "Summary" (1OZN-0) ?×?
+      Frame "Frame" (1OZO-0) ?×?
+        Text "6 buildings in the R…" (1OZP-0) ?×? "6 buildings in the RSC programme"
+        Text "4 behind schedule, 2…" (1OZQ-0) ?×? "4 behind schedule, 2 finished. Worst first, by unit."
+      Frame "Building tally" (1OZR-0) ?×8
+        Rectangle "Rectangle" (1OZS-0) ?×?
+        Rectangle "Rectangle" (1OZT-0) ?×?
+        Rectangle "Rectangle" (1OZU-0) ?×?
+        Rectangle "Rectangle" (1OZV-0) ?×?
+        Rectangle "Rectangle" (1OZW-0) ?×?
+        Rectangle "Rectangle" (1OZX-0) ?×?
+    Frame "Unit · Unit-2" (1OZZ-0) ?×?
+      Frame "Unit head" (1P00-0) ?×?
+        Text "Unit-2" (1P01-0) ?×? "Unit-2"
+        Text "4 buildings · 16,739…" (1P02-0) ?×? "4 buildings · 16,739 workers"
+      Frame "Buildings" (1P03-0) ?×?
+        Frame "Building · Extension 3 (open)" (1P04-0) ?×?
+          Frame "Frame" (1P05-0) ?×?
+            Frame "Frame" (1P06-0) ?×?
+              Text "Extension 3" (1P07-0) ?×? "Extension 3"
+              Frame "Frame" (1P08-0) ?×?
+                Text "RSC 26562" (1P09-0) ?×? "RSC 26562"
+                Text "· 304 workers" (1P0A-0) ?×? "· 304 workers"
+            Text "52%" (1P0B-0) ?×? "52%"
+          Frame "Frame" (1P0C-0) ?×6
+            Rectangle "Rectangle" (1P0D-0) ?×?
+          Text "Behind schedule · tr…" (1P0E-0) ?×? "Behind schedule · training not started"
+          Frame "Doc chips" (1P0F-0) ?×?
+            Frame "Frame" (1P0G-0) ?×32
+              Text "Fire" (1P0H-0) ?×? "Fire"
+            Frame "Frame" (1P0I-0) ?×32
+              Text "Electrical" (1P0J-0) ?×? "Electrical"
+            Frame "Frame" (1P0K-0) ?×32
+              Text "Structural" (1P0L-0) ?×? "Structural"
+            Frame "Frame" (1P0M-0) ?×32
+              Text "Action plan" (1P0N-0) ?×? "Action plan"
+          Text "No boiler report on …" (1P0O-0) ?×? "No boiler report on the register"
+        Frame "Building · Extension 2" (1P0P-0) ?×?
+          Frame "Frame" (1P0Q-0) ?×?
+            Frame "Frame" (1P0R-0) ?×?
+              Text "Extension 2" (1P0S-0) ?×? "Extension 2"
+              Text "69% · behind" (1P0T-0) ?×? "69% · behind"
+            Frame "Frame" (1P0U-0) ?×4
+              Rectangle "Rectangle" (1P0V-0) ?×?
+          SVG "SVG" (1P0W-0) ?×?
+            SVGVisualElement "Path" (1P0X-0) ?×?
+        Frame "Building · Extension" (1P0Y-0) ?×?
+          Frame "Frame" (1P0Z-0) ?×?
+            Frame "Frame" (1P10-0) ?×?
+              Text "Extension" (1P11-0) ?×? "Extension"
+              Text "89% · behind" (1P12-0) ?×? "89% · behind"
+            Frame "Frame" (1P13-0) ?×4
+              Rectangle "Rectangle" (1P14-0) ?×?
+          SVG "SVG" (1P15-0) ?×?
+            SVGVisualElement "Path" (1P16-0) ?×?
+        Frame "Building · Unit-2 main" (1P17-0) ?×?
+          Frame "Frame" (1P18-0) ?×?
+            Frame "Frame" (1P19-0) ?×?
+              Text "Main building" (1P1A-0) ?×? "Main building"
+              Text "100% · finished" (1P1B-0) ?×? "100% · finished"
+            Rectangle "Rectangle" (1P1C-0) ?×4
+          SVG "SVG" (1P1D-0) ?×?
+            SVGVisualElement "Path" (1P1E-0) ?×?
+    Frame "Unit · Main unit" (1P1G-0) ?×?
+      Frame "Unit head" (1P1H-0) ?×?
+        Text "Main unit" (1P1I-0) ?×? "Main unit"
+        Text "2 buildings · 2,265 …" (1P1J-0) ?×? "2 buildings · 2,265 workers"
+      Frame "Buildings" (1P1K-0) ?×?
+        Frame "Building · Extension" (1P1L-0) ?×?
+          Frame "Frame" (1P1M-0) ?×?
+            Frame "Frame" (1P1N-0) ?×?
+              Text "Extension" (1P1O-0) ?×? "Extension"
+              Text "73% · behind" (1P1P-0) ?×? "73% · behind"
+            Frame "Frame" (1P1Q-0) ?×4
+              Rectangle "Rectangle" (1P1R-0) ?×?
+          SVG "SVG" (1P1S-0) ?×?
+            SVGVisualElement "Path" (1P1T-0) ?×?
+        Frame "Building · Main building" (1P1U-0) ?×?
+          Frame "Frame" (1P1V-0) ?×?
+            Frame "Frame" (1P1W-0) ?×?
+              Text "Main building" (1P1X-0) ?×? "Main building"
+              Text "100% · finished" (1P1Y-0) ?×? "100% · finished"
+            Rectangle "Rectangle" (1P1Z-0) ?×4
+          SVG "SVG" (1P20-0) ?×?
+            SVGVisualElement "Path" (1P21-0) ?×?
+    Text "Source line" (1P22-0) ?×? "RSC · read 2 Oct · names shortened from the register’s, e.g."
+  Frame "Action bar" (1P24-0) ?×64
+    Frame "Save" (1P25-0) 48×48
+      SVG "SVG" (1P26-0) ?×?
+        SVGVisualElement "Path" (1P27-0) ?×?
+    Frame "Send RFQ" (1P28-0) ?×48
+      Text "Send RFQ" (1P29-0) ?×? "Send RFQ"

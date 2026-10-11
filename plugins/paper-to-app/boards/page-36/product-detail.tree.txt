@@ -1,0 +1,105 @@
+Frame "Products · detail · active · Sample state · phone" (1R92-0) 390×1056
+  Frame "Status bar" (1R93-0) 390×62
+    Frame "Time" (1R94-0) 94×22
+      Text "9:41" (1R95-0) 31×22 "9:41"
+    Frame "Icons" (1R96-0) 94×22
+      SVG "SVG" (1R97-0) 82×22
+        SVGVisualElement "Path" (1R98-0) 19×12
+        SVGVisualElement "Path" (1R99-0) 17×12
+        SVGVisualElement "Path" (1R9A-0) 25×13
+        SVGVisualElement "Path" (1R9B-0) 21×9
+        SVGVisualElement "Path" (1R9C-0) 1×4
+  Frame "Bar" (1R9D-0) 390×56
+    Frame "Back" (1R9E-0) 36×36
+      SVG "SVG" (1R9F-0) 17×17
+        SVGVisualElement "Path" (1R9G-0) 12×10
+    Frame "More" (1R9H-0) 36×36
+      SVG "SVG" (1R9I-0) 22×22
+        SVGVisualElement "Path" (1R9J-0) 13×1
+  Frame "Body" (1R9K-0) 390×938
+    Frame "Hero" (1R9L-0) 350×174
+      Frame "Frame" (1R9M-0) 179×28
+        SVG "SVG" (1R9N-0) 16×16
+          SVGVisualElement "Path" (1R9O-0) 13×13
+        Text "Active · ready for R…" (1R9P-0) 139×18 "Active · ready for RFQs"
+      Text "Women’s knitted dres…" (1R9Q-0) 350×72 "Women’s knitted dresses"
+      Frame "Frame" (1R9R-0) 350×46
+        Frame "Frame" (1R9S-0) 350×20
+          SVG "SVG" (1R9T-0) 16×16
+            SVGVisualElement "Path" (1R9U-0) 13×12
+          Text "NW-701" (1R9V-0) 47×20 "NW-701"
+          Text "· updated 2 Oct" (1R9W-0) 98×20 "· updated 2 Oct"
+        Frame "Frame" (1R9X-0) 350×20
+          SVG "SVG" (1R9Y-0) 16×16
+            SVGVisualElement "Path" (1R9Z-0) 12×13
+          Text "Only you see this pr…" (1RA0-0) 163×20 "Only you see this product"
+    Frame "Basics" (1RA2-0) 350×308
+      Frame "Section head" (1RA3-0) 350×66
+        Text "Basics" (1RA4-0) 61×28 "Basics"
+        Text "Edit" (1RA5-0) 24×18 "Edit"
+      Frame "Frame" (1RA6-0) 350×242
+        Frame "Frame" (1RA7-0) 348×48
+          Text "Target price" (1RA8-0) 120×20 "Target price"
+          Text "US$4.20 per piece" (1RA9-0) 186×20 "US$4.20 per piece"
+        Frame "Frame" (1RAA-0) 348×48
+          Text "MOQ" (1RAB-0) 120×20 "MOQ"
+          Text "3,000 pieces" (1RAC-0) 186×20 "3,000 pieces"
+        Frame "Frame" (1RAD-0) 348×48
+          Text "Main material" (1RAE-0) 120×20 "Main material"
+          Text "95% cotton, 5% elast…" (1RAF-0) 186×20 "95% cotton, 5% elastane"
+        Frame "Frame" (1RAG-0) 348×48
+          Text "Category" (1RAH-0) 120×20 "Category"
+          Text "Knit apparel" (1RAI-0) 186×20 "Knit apparel"
+        Frame "Frame" (1RAJ-0) 348×48
+          Text "Customer ref." (1RAK-0) 120×20 "Customer ref."
+          Text "Not set" (1RAL-0) 186×20 "Not set"
+    Frame "Files" (1RAM-0) 350×276
+      Frame "Section head" (1RAN-0) 350×66
+        Text "Sizes, materials, fi…" (1RAO-0) 192×28 "Sizes, materials, files"
+      Frame "Frame" (1RAP-0) 350×210
+        Frame "Frame" (1RAQ-0) 348×52
+          Frame "Frame" (1RAR-0) 24×20
+            SVG "SVG" (1RAS-0) 20×20
+              SVGVisualElement "Path" (1RAT-0) 14×14
+          Text "Size chart" (1RAU-0) 141×22 "Size chart"
+          Text "5 sizes · 8 points" (1RAV-0) 99×18 "5 sizes · 8 points"
+          SVG "SVG" (1RAW-0) 16×16
+            SVGVisualElement "Path" (1RAX-0) 6×11
+        Frame "Frame" (1RAY-0) 348×52
+          Frame "Frame" (1RAZ-0) 24×20
+            SVG "SVG" (1RB0-0) 20×20
+              SVGVisualElement "Path" (1RB1-0) 16×17
+          Text "Materials" (1RB2-0) 197×22 "Materials"
+          Text "3 parts" (1RB3-0) 43×18 "3 parts"
+          SVG "SVG" (1RB4-0) 16×16
+            SVGVisualElement "Path" (1RB5-0) 6×11
+        Frame "Frame" (1RB6-0) 348×52
+          Frame "Frame" (1RB7-0) 24×20
+            SVG "SVG" (1RB8-0) 20×20
+              SVGVisualElement "Path" (1RB9-0) 13×16
+          Text "Tech pack" (1RBA-0) 163×22 "Tech pack"
+          Text "PDF · 2.4 MB" (1RBB-0) 77×18 "PDF · 2.4 MB"
+          SVG "SVG" (1RBC-0) 16×16
+            SVGVisualElement "Path" (1RBD-0) 6×11
+        Frame "Frame" (1RBE-0) 348×52
+          Frame "Frame" (1RBF-0) 24×20
+            SVG "SVG" (1RBG-0) 20×20
+              SVGVisualElement "Path" (1RBH-0) 14×14
+          Text "Colour and size opti…" (1RBI-0) 186×22 "Colour and size options"
+          Text "None yet" (1RBJ-0) 54×18 "None yet"
+          SVG "SVG" (1RBK-0) 16×16
+            SVGVisualElement "Path" (1RBL-0) 6×11
+    Frame "Notes" (1RBM-0) 350×56
+      Text "An RFQ from this pro…" (1RBN-0) 350×16 "An RFQ from this product sends all of the above to the suppl"
+      Frame "Frame" (1RBO-0) 350×16
+        Rectangle "Rectangle" (1RBP-0) 14×1
+        Text "Sample product" (1RBQ-0) 88×16 "Sample product"
+  Frame "Action bar" (1RBS-0) 390×87
+    Frame "Frame" (1RBT-0) 390×64
+      Frame "Edit" (1RBU-0) 48×48
+        SVG "SVG" (1RBV-0) 22×22
+          SVGVisualElement "Path" (1RBW-0) 17×17
+      Frame "Frame" (1RBX-0) 302×48
+        Text "Send RFQ" (1RBY-0) 75×20 "Send RFQ"
+    Frame "Frame" (1RBZ-0) 390×22
+      Rectangle "Rectangle" (1RC0-0) 134×5

@@ -11,6 +11,7 @@
 import "server-only";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { sessionUserId } from "@/lib/supabase/session-user";
 
 export type Role = "admin" | "buyer" | "supplier";
 
@@ -33,14 +34,13 @@ export async function getServerRole(): Promise<Role | null> {
     return "admin";
   }
   const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+  // The id from the session token, checked locally (lib/supabase/session-user); the role is still read.
+  const userId = await sessionUserId(supabase);
+  if (!userId) return null;
   const { data, error } = await supabase
     .from("profiles")
     .select("role")
-    .eq("id", user.id)
+    .eq("id", userId)
     .maybeSingle();
   if (error || !data) return null;
   const role = data.role as Role;

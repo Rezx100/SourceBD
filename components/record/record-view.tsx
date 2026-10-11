@@ -7,10 +7,9 @@
 // nothing here is scored and no contact value is in the model, only how many are on file.
 //
 // Desktop pane: header, summary, tabs, panel, and a foot line that says what is locked. Full
-// page from 1024: the same, with Contact and Sources in a 344 column. On a phone the page has a
-// navigation bar of its own stuck to the top (the way back), the name and its line on a tonal
-// plate under it, the summary as five rows, the tabs stuck under the bar, and a 64-tall action
-// bar fixed to the foot of the screen.
+// page from 1024: the same, with Contact and Sources in a 344 column. Under 640 none of that is
+// drawn: a phone gets `PhoneRecord` (Paper page 35) and a 64-tall action bar fixed to the foot
+// of the screen.
 
 import { CaretLeft, Clock, XCircle, X } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
@@ -20,6 +19,7 @@ import type { SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
 import { CertificatesPanel, ExportsBand, ExportsPanel, NeedsLookAside, OverviewPanel, ProductsPanel, RecordRfqs, SafetyPanel, SitesPanel, SourcesPanel } from "./panels";
 import { SourceCheckListener } from "@/components/onboarding/source-check";
+import { PhoneRecord } from "./phone-record";
 import { RecordSave } from "./save-button";
 import { SectionTabs } from "./section-tabs";
 import { TABS, recordSubline, summaryCells, tabCount, type SummaryCell, type TabId } from "./words";
@@ -158,7 +158,7 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
       // The tabs stick under the phone's bar from the first paint; the tabs' script then measures it.
       // Never wider than its scroller: a long unbroken value wraps, and anything still too wide is clipped
       // rather than letting a phone pan the record sideways (`clip` keeps the sticky bars sticking, `hidden` would not).
-      className={cn("flex min-w-0 flex-1 flex-col overflow-x-clip bg-surface [overflow-wrap:break-word]", page && "max-sm:pb-[calc(theme(spacing.action-bar)_+_env(safe-area-inset-bottom))] max-sm:[--record-head:theme(height.topbar-phone)]")}
+      className={cn("flex min-w-0 flex-1 flex-col overflow-x-clip bg-surface [overflow-wrap:break-word]", page && "max-sm:pb-[calc(theme(spacing.action-bar)_+_env(safe-area-inset-bottom))]")}
     >
       <SourceCheckListener />
       {model.sanctioned ? (
@@ -168,18 +168,6 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
         />
       ) : null}
 
-      {/* A phone's navigation bar (founder, 6 Oct 2026: the lone "Search" link over the name "looks very
-          cheap ... a floating back button"): 52 tall, stuck to the top with the tabs under it, the way
-          back a 44 target at its start. The app's own bars are hidden on this page (`data-detail`), so
-          the bar is drawn even for a record opened from a link: back is then the search itself. */}
-      {page ? (
-        <div data-record-bar="" className="sticky top-0 z-raised flex h-topbar-phone shrink-0 items-center border-b border-line bg-surface px-1 [transform:translateZ(0)] sm:hidden">
-          <Link href={backHref ?? "/app"} aria-label="Back to search" className="inline-flex h-touch items-center gap-0.5 rounded-sm pl-1.5 pr-3 text-md font-medium text-ink outline-none active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
-            <CaretLeft size={24} className="shrink-0" aria-hidden />
-            Search
-          </Link>
-        </div>
-      ) : null}
       {page && backHref ? (
         <div className="px-6 pt-3 max-sm:hidden lg:px-8">
           <Link href={backHref} className="inline-flex min-h-6 items-center gap-1.5 rounded-sm text-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
@@ -191,7 +179,7 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
 
       {/* On a phone's page the name and its line are the record's plate: a tonal ground under the bar, closed by a line. */}
       {/* 12px over the name in the pane too: its baseline then meets the list bar's title beside it (56 tall, centred), instead of sitting 7px under it. */}
-      <header className={cn("flex flex-col gap-1.5 px-4 pb-3 pt-3 sm:sticky sm:top-0 sm:z-raised sm:border-b sm:border-line sm:bg-surface sm:px-6", page ? "max-sm:gap-1 max-sm:border-b max-sm:border-line max-sm:bg-subtle max-sm:pb-4 max-sm:pt-4 sm:pt-3 lg:px-8" : "sm:pt-3")}>
+      <header className={cn("flex flex-col gap-1.5 px-4 pb-3 pt-3 max-sm:hidden sm:sticky sm:top-0 sm:z-raised sm:border-b sm:border-line sm:bg-surface sm:px-6", page ? "sm:pt-3 lg:px-8" : "sm:pt-3")}>
         <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
           <Title className="min-w-0 flex-1 basis-60 text-xl font-semibold tracking-tight text-ink [overflow-wrap:anywhere]">{model.name}</Title>
           <div className="flex shrink-0 items-center gap-2">
@@ -209,10 +197,10 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
             ) : null}
           </div>
         </div>
-        <p className="text-base text-ink-2 max-sm:text-md">{recordSubline(model)}</p>
+        <p className="text-base text-ink-2">{recordSubline(model)}</p>
       </header>
 
-      <div className={cn("flex gap-8 px-4 pb-8 pt-4 sm:px-6", page && "max-sm:pt-1 lg:px-8")}>
+      <div className={cn("flex gap-8 px-4 pb-8 pt-4 max-sm:hidden sm:px-6", page && "lg:px-8")}>
         <div className="flex min-w-0 flex-1 flex-col gap-5">
           {model.sanctionSample ? (
             <p className="flex flex-wrap items-center gap-2 text-xs text-ink-2">
@@ -266,12 +254,16 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
         ) : null}
       </div>
 
-      {/* Where the contact column is not: what is locked, in one line (a phone: a row above the action bar). */}
+      {/* Where the contact column is not: what is locked, in one line (a phone says it in its Contact box). */}
       {locked ? (
-        <p className={cn("flex min-h-16 items-center gap-1 border-t border-line px-4 text-sm text-ink-3 sm:sticky sm:bottom-0 sm:bg-surface sm:px-6", page && "lg:hidden")}>
+        <p className={cn("flex min-h-16 items-center gap-1 border-t border-line px-4 text-sm text-ink-3 max-sm:hidden sm:sticky sm:bottom-0 sm:bg-surface sm:px-6", page && "lg:hidden")}>
           Locked · {locked}
         </p>
       ) : null}
+
+      {/* A phone's record (Paper page 35): its own bar, statuses, tabs and one tab's view at a time. After the
+          desktop's in the page, so an anchor (`#record-certificates`) still lands on the desktop's section. */}
+      <PhoneRecord model={model} page={page} tab={tab} tabHref={tabHref} today={today} backHref={backHref} site={site} />
 
       {/* A phone's one action: Save beside the primary, or the refusal in its place. On the page it is
           fixed to the foot of the screen, as the app's own tab bar is (founder, 6 Oct 2026: stuck inside

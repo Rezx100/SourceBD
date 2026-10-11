@@ -1,0 +1,58 @@
+Frame "Messages · thread · Thermax · Sample state · phone" (1PLF-0) 390×844
+  Frame "Head" (1PLG-0) 390×127
+    Frame "Status bar" (1PLH-0) 390×62
+      Frame "Time" (1PLI-0) 94×22
+        Text "9:41" (1PLJ-0) 31×22 "9:41"
+      Frame "Icons" (1PLK-0) 94×22
+        SVG "SVG" (1PLL-0) 82×22
+          SVGVisualElement "Path" (1PLM-0) 19×12
+          SVGVisualElement "Path" (1PLN-0) 17×12
+          SVGVisualElement "Path" (1PLO-0) 25×13
+          SVGVisualElement "Path" (1PLP-0) 21×9
+          SVGVisualElement "Path" (1PLQ-0) 1×4
+    Frame "Bar" (1Q86-0) 390×64
+      Frame "Frame" (1Q87-0) 262×48
+        Text "Thermax Woven Dyeing" (1Q88-0) 262×30 "Thermax Woven Dyeing"
+        Text "RFQ · French terry h…" (1Q89-0) 262×18 "RFQ · French terry hoodies"
+      Frame "Frame" (1Q8A-0) 80×36
+        Frame "Record" (1Q8B-0) 36×36
+          SVG "SVG" (1Q8C-0) 17×17
+            SVGVisualElement "Path" (1Q8D-0) 13×12
+        Frame "Close" (1Q8E-0) 36×36
+          SVG "SVG" (1Q8F-0) 17×17
+            SVGVisualElement "Path" (1Q8G-0) 10×10
+  Frame "Conversation" (1PM0-0) 390×606
+    Frame "RFQ card" (1PM1-0) 358×62
+      Frame "Frame" (1PM2-0) 36×36
+        SVG "SVG" (1PM3-0) 20×20
+          SVGVisualElement "Path" (1PM4-0) 16×13
+      Frame "Frame" (1PM5-0) 280×34
+        Text "French terry hoodies…" (1PM6-0) 280×18 "French terry hoodies · 12,000 pieces"
+        Text "Sent 18 Jul · quote …" (1PM7-0) 280×16 "Sent 18 Jul · quote promised by Monday"
+    Frame "Sample note" (1Q8I-0) 358×16
+      Rectangle "Rectangle" (1Q8J-0) 14×1
+      Text "Sample messages" (1Q8K-0) 101×16 "Sample messages"
+    Frame "Bubble · them" (1PMB-0) 358×82
+      Frame "Frame" (1PMC-0) 280×64
+        Text "Thank you. We will s…" (1PMD-0) 250×42 "Thank you. We will send the quote by Monday."
+      Text "11:20" (1PME-0) 26×14 "11:20"
+    Frame "Bubble · you" (1PMF-0) 358×80
+      Frame "Frame" (1PMG-0) 280×62
+        Text "Thank you, Monday wo…" (1PMH-0) 252×42 "Thank you, Monday works. Can you share the size chart too?"
+      Text "11:22 · Read" (1PMI-0) 59×14 "11:22 · Read"
+  Frame "Composer" (1PMJ-0) 390×111
+    Frame "Composer row" (1Q94-0) 390×88
+      Frame "Field" (1Q95-0) 358×50
+        Frame "Attach" (1Q96-0) 40×40
+          SVG "SVG" (1Q97-0) 20×20
+            SVGVisualElement "Path" (1Q98-0) 14×16
+        Text "Message Thermax" (1Q99-0) 260×24 "Message Thermax"
+        Frame "Send (disabled until typed)" (1Q9A-0) 40×40
+          SVG "SVG" (1Q9B-0) 18×18
+            SVGVisualElement "Path" (1Q9C-0) 15×15
+      Frame "Frame" (1Q9D-0) 358×16
+        SVG "SVG" (1Q9E-0) 13×13
+          SVGVisualElement "Path" (1Q9F-0) 9×11
+        Text "Replies come here. Y…" (1Q9G-0) 239×16 "Replies come here. Your email stays private."
+    Frame "Frame" (1PMU-0) 390×22
+      Rectangle "Rectangle" (1PMV-0) 134×5

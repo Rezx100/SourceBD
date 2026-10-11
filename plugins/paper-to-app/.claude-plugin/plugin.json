@@ -1,0 +1,6 @@
+{
+  "name": "paper-to-app",
+  "version": "1.0.0",
+  "description": "Paper board -> SourceBD app screen pipeline (pull, convert, check) and the buyer phone-redesign handoff.",
+  "author": { "name": "Rezx100" }
+}

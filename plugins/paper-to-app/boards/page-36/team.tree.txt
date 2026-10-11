@@ -1,0 +1,101 @@
+Frame "Settings · team · 3 people, 1 invite · Sample state · phone" (1RO6-0) 390×1113
+  Frame "Status bar" (1RO7-0) 390×62
+    Frame "Time" (1RO8-0) 94×22
+      Text "9:41" (1RO9-0) 31×22 "9:41"
+    Frame "Icons" (1ROA-0) 94×22
+      SVG "SVG" (1ROB-0) 82×22
+        SVGVisualElement "Path" (1ROC-0) 19×12
+        SVGVisualElement "Path" (1ROD-0) 17×12
+        SVGVisualElement "Path" (1ROE-0) 25×13
+        SVGVisualElement "Path" (1ROF-0) 21×9
+        SVGVisualElement "Path" (1ROG-0) 1×4
+  Frame "Compact head" (1ROH-0) 390×64
+    Frame "Back" (1ROI-0) 36×36
+      SVG "SVG" (1ROJ-0) 17×17
+        SVGVisualElement "Path" (1ROK-0) 12×10
+    Frame "Frame" (1ROL-0) 310×48
+      Text "Team and roles" (1ROM-0) 310×30 "Team and roles"
+      Text "3 people · 1 invite …" (1RON-0) 310×18 "3 people · 1 invite waiting"
+  Frame "Body" (1ROO-0) 390×987
+    Frame "People" (1ROP-0) 350×254
+      Frame "Section head" (1ROQ-0) 350×58
+        Frame "Frame" (1ROR-0) 85×28
+          Text "People" (1ROS-0) 64×28 "People"
+          Text "3" (1ROT-0) 13×28 "3"
+      Frame "Frame" (1ROU-0) 350×196
+        Frame "Frame" (1ROV-0) 348×64
+          Frame "Frame" (1ROW-0) 36×36
+            Text "AM" (1ROX-0) 21×16 "AM"
+          Frame "Frame" (1ROY-0) 208×40
+            Frame "Frame" (1ROZ-0) 208×22
+              Text "Alex Morgan" (1RP0-0) 95×22 "Alex Morgan"
+              Text "you" (1RP1-0) 21×16 "you"
+            Text "Active now" (1RP2-0) 208×18 "Active now"
+          Frame "Frame" (1RP3-0) 52×20
+            Text "Owner" (1RP4-0) 44×20 "Owner"
+        Frame "Frame" (1RP5-0) 348×65
+          Frame "Frame" (1RP6-0) 36×36
+            Text "PS" (1RP7-0) 18×16 "PS"
+          Frame "Frame" (1RP8-0) 158×40
+            Text "Priya Shah" (1RP9-0) 158×22 "Priya Shah"
+            Text "Last active 9 Oct" (1RPA-0) 158×18 "Last active 9 Oct"
+          Frame "Frame" (1RPB-0) 102×44
+            Text "Approver" (1RPC-0) 60×20 "Approver"
+            SVG "SVG" (1RPD-0) 14×14
+              SVGVisualElement "Path" (1RPE-0) 9×5
+        Frame "Frame" (1RPF-0) 348×65
+          Frame "Frame" (1RPG-0) 36×36
+            Text "TO" (1RPH-0) 17×16 "TO"
+          Frame "Frame" (1RPI-0) 179×40
+            Text "Tom Okafor" (1RPJ-0) 179×22 "Tom Okafor"
+            Text "Not yet signed in" (1RPK-0) 179×18 "Not yet signed in"
+          Frame "Frame" (1RPL-0) 81×44
+            Text "Editor" (1RPM-0) 39×20 "Editor"
+            SVG "SVG" (1RPN-0) 14×14
+              SVGVisualElement "Path" (1RPO-0) 9×5
+    Frame "Invites" (1RPP-0) 350×230
+      Frame "Section head" (1RPQ-0) 350×66
+        Frame "Frame" (1RPR-0) 86×28
+          Text "Waiting" (1RPS-0) 70×28 "Waiting"
+          Text "1" (1RPT-0) 8×28 "1"
+      Frame "Frame" (1RPU-0) 350×164
+        Frame "Frame" (1RPV-0) 316×16
+          SVG "SVG" (1RPW-0) 16×16
+            SVGVisualElement "Path" (1RPX-0) 13×10
+          Text "Invite sent 9 Oct · …" (1RPY-0) 167×16 "Invite sent 9 Oct · ends 16 Oct"
+        Text "sam.lee@exampleappar…" (1RPZ-0) 316×22 "sam.lee@exampleapparel.co.uk"
+        Text "Joins as a Viewer" (1RQ0-0) 316×18 "Joins as a Viewer"
+        Frame "Frame" (1RQ1-0) 316×44
+          Frame "Frame" (1RQ2-0) 117×44
+            Text "Resend invite" (1RQ3-0) 89×20 "Resend invite"
+          Frame "Frame" (1RQ4-0) 113×44
+            Text "Cancel invite" (1RQ5-0) 85×20 "Cancel invite"
+    Frame "Roles" (1RQ7-0) 350×327
+      Frame "Section head" (1RQ8-0) 350×66
+        Text "What each role can d…" (1RQ9-0) 204×28 "What each role can do"
+      Frame "Frame" (1RQA-0) 350×261
+        Frame "Frame" (1RQB-0) 348×64
+          Text "Owner" (1RQC-0) 96×40 "Owner"
+          Text "Everything, plus the…" (1RQD-0) 210×40 "Everything, plus the plan and the team"
+        Frame "Frame" (1RQE-0) 348×65
+          Text "Approver" (1RQF-0) 96×40 "Approver"
+          Text "Signs off quotes and…" (1RQG-0) 210×40 "Signs off quotes and the modern slavery statement"
+        Frame "Frame" (1RQH-0) 348×65
+          Text "Editor" (1RQI-0) 96×40 "Editor"
+          Text "Searches, saves supp…" (1RQJ-0) 210×40 "Searches, saves suppliers, sends RFQs, accepts quotes"
+        Frame "Frame" (1RQK-0) 348×65
+          Text "Viewer" (1RQL-0) 96×40 "Viewer"
+          Text "Reads records and do…" (1RQM-0) 210×40 "Reads records and downloads evidence. Can’t send RFQs."
+    Frame "Notes" (1RQN-0) 350×56
+      Text "Each person still wo…" (1RQO-0) 350×16 "Each person still works in their own account for now."
+      Frame "Frame" (1RQP-0) 350×16
+        Rectangle "Rectangle" (1RQQ-0) 14×1
+        Text "Sample team" (1RQR-0) 73×16 "Sample team"
+  Frame "Action bar" (1RQT-0) 390×87
+    Frame "Frame" (1RQU-0) 390×64
+      Frame "Frame" (1RQV-0) 358×48
+        SVG "SVG" (1RQW-0) 18×18
+          SVGVisualElement "Path" (1RQX-0) 13×13
+        Text "Invite people" (1RQY-0) 97×20 "Invite people"
+    Frame "Frame" (1RQZ-0) 390×22
+      Rectangle "Rectangle" (1RR0-0) 134×5

@@ -1,0 +1,110 @@
+Frame "State · expired certificate (GOTS from 12 Nov) · phone" (1NS3-0) 390×?
+  Frame "Status bar" (1NW5-0) ?×?
+    Frame "Time" (1NWD-0) ?×?
+      Text "9:41" (1NWE-0) ?×? "9:41"
+    Frame "Icons" (1NW6-0) ?×?
+      SVG "SVG" (1NW7-0) ?×?
+        SVGVisualElement "Path" (1NWC-0) ?×?
+        SVGVisualElement "Path" (1NWB-0) ?×?
+        SVGVisualElement "Path" (1NWA-0) ?×?
+        SVGVisualElement "Path" (1NW9-0) ?×?
+        SVGVisualElement "Path" (1NW8-0) ?×?
+  Frame "Compact head" (1NV4-0) ?×?
+    Frame "Head" (1OOA-0) ?×?
+      Frame "Bar" (1OOB-0) ?×?
+        Text "Name" (1OOC-0) ?×? "Square Apparels Limited"
+        Frame "Actions" (1OOD-0) ?×?
+          Frame "Share" (1OOE-0) 36×36
+            SVG "SVG" (1OOF-0) ?×?
+              SVGVisualElement "Path" (1OOG-0) ?×?
+          Frame "Close" (1OOH-0) 36×36
+            SVG "SVG" (1OOI-0) ?×?
+              SVGVisualElement "Path" (1OOJ-0) ?×?
+      Frame "Status strip" (1OOK-0) ?×30
+        Frame "Status · Safety" (1OOL-0) ?×?
+          SVG "SVG" (1OOM-0) ?×?
+            SVGVisualElement "Path" (1OON-0) ?×?
+          Text "RSC behind" (1OOO-0) ?×? "RSC behind"
+        Rectangle "Rectangle" (1OOP-0) 1×14
+        Frame "Status · Certificates" (1OOQ-0) ?×?
+          SVG "SVG" (1OOR-0) ?×?
+            SVGVisualElement "Path" (1OOS-0) ?×?
+          Text "GOTS expired" (1OOT-0) ?×? "GOTS expired"
+        Rectangle "Rectangle" (1OOU-0) 1×14
+        Frame "Status · Sanctions" (1OOV-0) ?×?
+          SVG "SVG" (1OOW-0) ?×?
+            SVGVisualElement "Path" (1OOX-0) ?×?
+          Text "Not listed" (1OOY-0) ?×? "Not listed"
+    Frame "Tabs" (1NV5-0) ?×48
+      Frame "Tab · Overview (current)" (1NVI-0) ?×?
+        Text "Overview" (1NVJ-0) ?×? "Overview"
+      Frame "Tab · Exports" (1NVG-0) ?×?
+        Text "Exports" (1NVH-0) ?×? "Exports"
+      Frame "Tab · Certificates" (1NVC-0) ?×?
+        Text "Certificates" (1NVF-0) ?×? "Certificates"
+        Frame "Indicator" (1NZT-0) ?×2
+      Frame "Tab · Safety" (1NV9-0) ?×?
+        Text "Safety" (1NVB-0) ?×? "Safety"
+      Frame "Tab · Sites" (1NV6-0) ?×?
+        Text "Sites" (1NV8-0) ?×? "Sites"
+        Text "2" (1NV7-0) ?×? "2"
+  Frame "Certificates" (1NSA-0) ?×?
+    Frame "Summary" (1NV1-0) ?×?
+      Text "4 certifications" (1NV3-0) ?×? "4 certifications"
+      Text "1 expired. Expired a…" (1NV2-0) ?×? "1 expired. Expired and expiring come first."
+    Frame "Card · GOTS" (1NU8-0) ?×?
+      Frame "Status" (1NUX-0) ?×28
+        SVG "SVG" (1NWF-0) ?×?
+          SVGVisualElement "Path" (1NWG-0) ?×?
+        Text "Expired 11 Nov" (1NUY-0) ?×? "Expired 11 Nov"
+      Frame "Frame" (1NUU-0) ?×?
+        Text "GOTS" (1NUW-0) ?×? "GOTS"
+        Text "Organic textiles · w…" (1NUV-0) ?×? "Organic textiles · woven and denim garments, dyed fabric"
+      Frame "Facts" (1NUK-0) ?×?
+        Frame "Frame" (1NUR-0) ?×?
+          Text "Expired on" (1NUT-0) ?×? "Expired on"
+          Text "11 Nov 2026" (1NUS-0) ?×? "11 Nov 2026"
+        Frame "Frame" (1NUO-0) ?×?
+          Text "Licence" (1NUQ-0) ?×? "Licence"
+          Text "GOTS-22719" (1NUP-0) ?×? "GOTS-22719"
+        Frame "Frame" (1NUL-0) ?×?
+          Text "Issued by" (1NUN-0) ?×? "Issued by"
+          Text "GSCS International" (1NUM-0) ?×? "GSCS International"
+      Frame "Footer" (1NU9-0) ?×?
+        Frame "Frame" (1NUE-0) ?×?
+          Text "Checked 12 Nov · not…" (1NUJ-0) ?×? "Checked 12 Nov · not renewed"
+        Frame "Open certificate" (1NUA-0) ?×44
+          SVG "SVG" (1NUC-0) ?×?
+            SVGVisualElement "Path" (1NUD-0) ?×?
+          Text "Certificate" (1NUB-0) ?×? "Certificate"
+    Frame "Card · GOTS" (1NTJ-0) ?×?
+      Frame "Status" (1NU4-0) ?×28
+        SVG "SVG" (1NU6-0) ?×?
+          SVGVisualElement "Path" (1NU7-0) ?×?
+        Text "Valid" (1NU5-0) ?×? "Valid"
+      Frame "Frame" (1NU1-0) ?×?
+        Text "WRAP Gold" (1NU3-0) ?×? "WRAP Gold"
+        Text "Social compliance · …" (1NU2-0) ?×? "Social compliance · woven shirts"
+      Frame "Facts" (1NTR-0) ?×?
+        Frame "Frame" (1NTY-0) ?×?
+          Text "Valid until" (1NU0-0) ?×? "Valid until"
+          Text "13 Jul 2027" (1NTZ-0) ?×? "13 Jul 2027"
+        Frame "Frame" (1NTV-0) ?×?
+          Text "Certificate" (1NTX-0) ?×? "Certificate"
+          Text "129386" (1NTW-0) ?×? "129386"
+        Frame "Frame" (1NTS-0) ?×?
+          Text "Issued by" (1NTU-0) ?×? "Issued by"
+          Text "WRAP" (1NTT-0) ?×? "WRAP"
+      Frame "Footer" (1NTK-0) ?×?
+        Frame "Frame" (1NTP-0) ?×?
+          Text "Checked with WRAP on…" (1NTQ-0) ?×? "Checked with WRAP on 10 Oct"
+        Frame "Open certificate" (1NTL-0) ?×44
+          SVG "SVG" (1NTN-0) ?×?
+            SVGVisualElement "Path" (1NTO-0) ?×?
+          Text "Listing" (1NTM-0) ?×? "Listing"
+  Frame "Action bar" (1NS4-0) ?×64
+    Frame "Save" (1NS7-0) 48×48
+      SVG "SVG" (1NS8-0) ?×?
+        SVGVisualElement "Path" (1NS9-0) ?×?
+    Frame "Send RFQ" (1NS5-0) ?×48
+      Text "Send RFQ" (1NS6-0) ?×? "Send RFQ"

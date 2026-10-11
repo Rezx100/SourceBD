@@ -20,6 +20,16 @@
     text-rendering: optimizeLegibility;
   }
 
+  /* A tap is a tap at once: no double-tap-to-zoom wait before the click, and no grey flash from the
+     browser over our own pressed states (the active: classes), which are the only feedback a phone gets
+     (hover is off on touch screens). 11 Oct 2026, the phone speed pass. */
+  a,
+  button,
+  [role="button"] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   /* One visible keyboard focus everywhere (spec §3: keyboard works everywhere). */
   :focus-visible {
     @apply outline outline-2 outline-offset-2 outline-focus;

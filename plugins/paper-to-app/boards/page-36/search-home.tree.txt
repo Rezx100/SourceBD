@@ -1,0 +1,94 @@
+Frame "Search · home · phone" (1P2B-0) 390×844
+  Frame "Status bar" (1P2C-0) 390×62
+    Frame "Time" (1P2D-0) 94×22
+      Text "9:41" (1P2E-0) 31×22 "9:41"
+    Frame "Icons" (1P2F-0) 94×22
+      SVG "SVG" (1P2G-0) 82×22
+        SVGVisualElement "Path" (1P2H-0) 19×12
+        SVGVisualElement "Path" (1P2I-0) 17×12
+        SVGVisualElement "Path" (1P2J-0) 25×13
+        SVGVisualElement "Path" (1P2K-0) 21×9
+        SVGVisualElement "Path" (1P2L-0) 1×4
+  Frame "Page head" (1P2M-0) 390×44
+    Text "Search" (1P2N-0) 102×36 "Search"
+    Frame "Account" (1P2O-0) 36×36
+      Text "AM" (1P2P-0) 21×16 "AM"
+  Frame "Body" (1P2V-0) 390×559
+    Frame "Search field" (1P2W-0) 350×52
+      SVG "SVG" (1P2X-0) 20×20
+        SVGVisualElement "Path" (1P2Y-0) 16×16
+      Text "Supplier, product or…" (1P2Z-0) 220×24 "Supplier, product or certificate"
+    Frame "Quick searches" (1P30-0) 350×34
+      Frame "Frame" (1P31-0) 56×34
+        Text "Knit" (1P32-0) 26×18 "Knit"
+      Frame "Frame" (1P33-0) 75×34
+        Text "Woven" (1P34-0) 45×18 "Woven"
+      Frame "Frame" (1P35-0) 73×34
+        Text "Denim" (1P36-0) 43×18 "Denim"
+      Frame "Frame" (1P37-0) 67×34
+        Text "GOTS" (1P38-0) 37×18 "GOTS"
+    Frame "Needs a look" (1Q3D-0) 350×269
+      Frame "Section head" (1Q3E-0) 350×42
+        Frame "Frame" (1Q3F-0) 141×28
+          Text "Needs a look" (1Q3G-0) 120×28 "Needs a look"
+          Text "2" (1Q3H-0) 13×28 "2"
+        Text "In your saved suppli…" (1Q3I-0) 137×18 "In your saved suppliers"
+      Frame "Items" (1Q3J-0) 350×199
+        Frame "Item · Mondol Intimates" (1Q3K-0) 348×98
+          Frame "Frame" (1Q3L-0) 316×16
+            Frame "Frame" (1Q3M-0) 199×16
+              SVG "SVG" (1Q3N-0) 16×16
+                SVGVisualElement "Path" (1Q3O-0) 9×13
+              Text "Certificate · GOTS e…" (1Q3P-0) 177×16 "Certificate · GOTS expired 8 Oct"
+            SVG "SVG" (1Q3Q-0) 16×16
+              SVGVisualElement "Path" (1Q3R-0) 6×11
+          Text "Mondol Intimates Ltd…" (1Q3S-0) 316×22 "Mondol Intimates Ltd."
+          Text "3 days ago · renewal…" (1Q3T-0) 316×16 "3 days ago · renewal not checked yet"
+        Frame "Item · Tex Town" (1Q3U-0) 348×99
+          Frame "Frame" (1Q3V-0) 316×16
+            Frame "Frame" (1Q3W-0) 190×16
+              SVG "SVG" (1Q3X-0) 16×16
+                SVGVisualElement "Path" (1Q3Y-0) 9×13
+              Text "Certificate · GOTS e…" (1Q3Z-0) 168×16 "Certificate · GOTS ends 15 Oct"
+            SVG "SVG" (1Q40-0) 16×16
+              SVGVisualElement "Path" (1Q41-0) 6×11
+          Text "Tex Town Ltd." (1Q42-0) 316×22 "Tex Town Ltd."
+          Text "4 days left · WRAP v…" (1Q43-0) 316×16 "4 days left · WRAP valid to Jun 2027"
+      Frame "Source line" (1Q44-0) 350×28
+        SVG "SVG" (1Q45-0) 14×14
+          SVGVisualElement "Path" (1Q46-0) 9×11
+        Text "GOTS register · read…" (1Q47-0) 195×16 "GOTS register · read date not stored"
+    Frame "Recent searches" (1P45-0) 350×128
+      Frame "Frame" (1P46-0) 350×32
+        Text "Recent searches" (1P47-0) 350×28 "Recent searches"
+      Frame "Frame" (1P48-0) 350×48
+        Text "knit" (1P49-0) 26×18 "knit"
+        Text "4,645 suppliers" (1P4A-0) 92×16 "4,645 suppliers"
+      Frame "Frame" (1P4B-0) 350×48
+        Text "knit · GOTS · Gazipu…" (1P4C-0) 139×18 "knit · GOTS · Gazipur"
+        Text "71 suppliers" (1P4D-0) 73×16 "71 suppliers"
+  Frame "Tab bar" (1P4F-0) 390×85
+    Frame "Tabs" (1P4G-0) 390×56
+      Frame "Tab · Messages" (1P4H-0) 78×56
+        SVG "SVG" (1P4I-0) 24×24
+          SVGVisualElement "Path" (1P4J-0) 19×19
+        Text "Messages" (1P4K-0) 53×14 "Messages"
+      Frame "Tab · Quotes" (1P4L-0) 78×56
+        SVG "SVG" (1P4M-0) 24×24
+          SVGVisualElement "Path" (1P4N-0) 19×16
+        Text "Quotes" (1P4O-0) 38×14 "Quotes"
+      Frame "Tab · Alerts" (1P4P-0) 78×56
+        SVG "SVG" (1P4Q-0) 24×24
+          SVGVisualElement "Path" (1P4R-0) 17×19
+        Text "Alerts" (1P4T-0) 31×14 "Alerts"
+        Frame "Alert dot" (1P4S-0) 7×7
+      Frame "Tab · Saved" (1P4U-0) 78×56
+        SVG "SVG" (1P4V-0) 24×24
+          SVGVisualElement "Path" (1P4W-0) 13×18
+        Text "Saved" (1P4X-0) 32×14 "Saved"
+      Frame "Tab · Search" (1P4Y-0) 78×56
+        SVG "SVG" (1P4Z-0) 24×24
+          SVGVisualElement "Path" (1P50-0) 19×19
+        Text "Search" (1P51-0) 38×14 "Search"
+    Frame "Home indicator" (1P52-0) 390×28
+      Rectangle "Rectangle" (1P53-0) 134×5

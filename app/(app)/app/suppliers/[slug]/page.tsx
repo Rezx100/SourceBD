@@ -74,6 +74,11 @@ export default async function SupplierRecordPage({
       ...(typeof sp.site === "string" ? [["site", sp.site]] : []),
     ]),
   );
+  // A row that knows the supplier's id carries it (`?sid=`), so the reads keyed by the id start beside
+  // the profile instead of after it (11 Oct 2026, the phone speed pass). The loader trusts it only when
+  // it equals the profile's own id; any other value just costs the second wave it would have anyway.
+  const sidRaw = Array.isArray(sp.sid) ? sp.sid[0] : sp.sid;
+  const supplierId = typeof sidRaw === "string" && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(sidRaw) ? sidRaw : undefined;
   const supabase = await createSupabaseServerClient();
   // The layout draws the shell around every state this page returns, the
   // timeout state included.
@@ -82,6 +87,7 @@ export default async function SupplierRecordPage({
     model = await loadRecordSheet(supabase, slug, new Date(), {
       // Every section is on the page at once (the tabs scroll to them), so the map's pins are always read.
       pins: true,
+      supplierId,
       allLines,
       // "All N lines" is the Products tab, expanded.
       allLinesHref: allLines ? null : here(`/app/suppliers/${slug}`, new URLSearchParams({ tab: "exports", lines: "all" })),

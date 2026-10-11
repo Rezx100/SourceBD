@@ -1,0 +1,134 @@
+Frame "RFQ detail · quotes compared · Sample state · phone" (1PB7-0) 390×1222
+  Frame "Status bar" (1PB8-0) 390×62
+    Frame "Time" (1PB9-0) 94×22
+      Text "9:41" (1PBA-0) 31×22 "9:41"
+    Frame "Icons" (1PBB-0) 94×22
+      SVG "SVG" (1PBC-0) 82×22
+        SVGVisualElement "Path" (1PBD-0) 19×12
+        SVGVisualElement "Path" (1PBE-0) 17×12
+        SVGVisualElement "Path" (1PBF-0) 25×13
+        SVGVisualElement "Path" (1PBG-0) 21×9
+        SVGVisualElement "Path" (1PBH-0) 1×4
+  Frame "Bar" (1Q02-0) 390×56
+    Frame "Back" (1Q03-0) 36×36
+      SVG "SVG" (1Q04-0) 17×17
+        SVGVisualElement "Path" (1Q05-0) 12×10
+    Frame "More" (1Q06-0) 36×36
+      SVG "SVG" (1Q07-0) 22×22
+        SVGVisualElement "Path" (1Q08-0) 13×1
+  Frame "Head" (1Q0A-0) 390×146
+    Text "Men’s French terry h…" (1Q0B-0) 350×72 "Men’s French terry hoodies, 420gsm"
+    Frame "Identity" (1Q0C-0) 350×62
+      Frame "Frame" (1Q0D-0) 350×22
+        SVG "SVG" (1Q0E-0) 18×18
+          SVGVisualElement "Path" (1Q0F-0) 14×15
+        Text "10,000 pieces · targ…" (1Q0G-0) 251×22 "10,000 pieces · target US$8.90 each"
+      Frame "Frame" (1Q0H-0) 350×22
+        SVG "SVG" (1Q0I-0) 18×18
+          SVGVisualElement "Path" (1Q0J-0) 14×15
+        Text "Ship by 15 Jan 2027,…" (1Q0K-0) 210×22 "Ship by 15 Jan 2027, to the UK"
+  Frame "Quotes" (1Q0M-0) 390×958
+    Frame "Section head" (1Q0N-0) 350×66
+      Frame "Frame" (1Q0O-0) 129×28
+        Text "Quotes" (1Q0P-0) 67×28 "Quotes"
+        Text "2 of 3" (1Q0Q-0) 54×28 "2 of 3"
+      Text "Cheapest first" (1Q0R-0) 85×18 "Cheapest first"
+    Frame "Price comparison" (1QI3-0) 350×195
+      Frame "Target line" (1QI4-0) 1×148
+      Frame "Target label" (1QI5-0) 108×16
+        Text "Your target $8.90" (1QI6-0) 99×16 "Your target $8.90"
+      Frame "Row · Aboni" (1QI7-0) 350×48
+        Text "Aboni" (1QI8-0) 112×20 "Aboni"
+        Frame "Track" (1QI9-0) 150×48
+          Rectangle "Rectangle" (1QIA-0) 150×2
+          Rectangle "Rectangle" (1QIB-0) 32×2
+          Frame "Dot" (1QIC-0) 12×12
+        Frame "Frame" (1QIY-0) 72×34
+          Text "$8.55" (1QIZ-0) 38×18 "$8.55"
+          Text "$0.35 under" (1QJ0-0) 68×16 "$0.35 under"
+      Frame "Row · S M" (1QIE-0) 350×48
+        Text "S M Knitwears" (1QIF-0) 112×20 "S M Knitwears"
+        Frame "Track" (1QIG-0) 150×48
+          Rectangle "Rectangle" (1QIH-0) 150×2
+          Rectangle "Rectangle" (1QII-0) 38×2
+          Frame "Dot" (1QIJ-0) 12×12
+        Frame "Frame" (1QJ2-0) 72×34
+          Text "$9.30" (1QJ3-0) 38×18 "$9.30"
+          Text "$0.40 over" (1QJ4-0) 60×16 "$0.40 over"
+      Frame "Row · Thermax" (1QIL-0) 350×48
+        Text "Thermax" (1QIM-0) 112×20 "Thermax"
+        Frame "Track (empty)" (1QJ6-0) 150×48
+        Text "No quote yet" (1QIO-0) 72×16 "No quote yet"
+      Frame "Legend" (1QIP-0) 350×27
+        Text "Cheaper to the left" (1QIQ-0) 104×16 "Cheaper to the left"
+        Text "Price per piece, US …" (1QIR-0) 143×16 "Price per piece, US dollars"
+    Frame "Cards" (1Q14-0) 350×565
+      Frame "Card · Aboni" (1Q19-0) 350×290
+        Frame "Status" (1Q1A-0) 172×28
+          SVG "SVG" (1Q1B-0) 16×16
+            SVGVisualElement "Path" (1Q1C-0) 13×13
+          Text "Cheapest of 2 quotes" (1Q1D-0) 132×18 "Cheapest of 2 quotes"
+        Frame "Frame" (1Q1E-0) 316×62
+          Text "Aboni Knitwear Ltd." (1Q1F-0) 316×28 "Aboni Knitwear Ltd."
+          Frame "Frame" (1Q1G-0) 316×32
+            Text "US$8.55" (1Q1H-0) 94×32 "US$8.55"
+            Text "per piece" (1Q1I-0) 60×20 "per piece"
+        Frame "Facts" (1Q1J-0) 316×76
+          Frame "Frame" (1Q1K-0) 316×20
+            Text "Minimum order" (1Q1L-0) 90×20 "Minimum order"
+            Text "3,000 pieces" (1Q1M-0) 87×20 "3,000 pieces"
+          Frame "Frame" (1Q1N-0) 316×20
+            Text "Lead time" (1Q1O-0) 60×20 "Lead time"
+            Text "60 days" (1Q1P-0) 53×20 "60 days"
+          Frame "Frame" (1Q1Q-0) 316×20
+            Text "Quote valid until" (1Q1R-0) 97×20 "Quote valid until"
+            Text "30 Oct · 19 days" (1Q1S-0) 104×20 "30 Oct · 19 days"
+        Frame "Accept" (1Q1T-0) 316×48
+          Text "Accept quote" (1Q1U-0) 101×20 "Accept quote"
+      Frame "Card · S M" (1Q1W-0) 350×243
+        Frame "Status" (1Q1X-0) 209×28
+          SVG "SVG" (1Q1Y-0) 16×16
+            SVGVisualElement "Path" (1Q1Z-0) 14×12
+          Text "Minimum order above …" (1Q20-0) 169×18 "Minimum order above yours"
+        Frame "Frame" (1Q21-0) 316×62
+          Text "S M Knitwears Limite…" (1Q22-0) 316×28 "S M Knitwears Limited"
+          Frame "Frame" (1Q23-0) 316×32
+            Text "US$9.30" (1Q24-0) 94×32 "US$9.30"
+            Text "per piece" (1Q25-0) 60×20 "per piece"
+        Frame "Facts" (1Q26-0) 316×20
+          Frame "Frame" (1Q27-0) 316×20
+            Text "Minimum order" (1Q28-0) 90×20 "Minimum order"
+            Text "12,000 · above your …" (1Q29-0) 178×20 "12,000 · above your 10,000"
+        Frame "Footer" (1Q2A-0) 316×57
+          Frame "Message" (1Q2C-0) 154×44
+            SVG "SVG" (1Q2D-0) 16×16
+              SVGVisualElement "Path" (1Q2E-0) 12×13
+            Text "Ask about MOQ" (1Q2F-0) 104×20 "Ask about MOQ"
+    Frame "Sample note" (1Q15-0) 350×28
+      Rectangle "Rectangle" (1Q16-0) 14×1
+      Text "Sample figures: supp…" (1Q17-0) 330×16 "Sample figures: supplier names are real, quotes are samples"
+  Frame "Tab bar" (1PCQ-0) 390×85
+    Frame "Tabs" (1PCR-0) 390×56
+      Frame "Tab · Messages" (1PCS-0) 78×56
+        SVG "SVG" (1PCT-0) 24×24
+          SVGVisualElement "Path" (1PCU-0) 19×19
+        Text "Messages" (1PCV-0) 53×14 "Messages"
+      Frame "Tab · Quotes" (1PCW-0) 78×56
+        SVG "SVG" (1PCX-0) 24×24
+          SVGVisualElement "Path" (1PCY-0) 19×16
+        Text "Quotes" (1PCZ-0) 39×14 "Quotes"
+      Frame "Tab · Alerts" (1PD0-0) 78×56
+        SVG "SVG" (1PD1-0) 24×24
+          SVGVisualElement "Path" (1PD2-0) 17×19
+        Text "Alerts" (1PD3-0) 31×14 "Alerts"
+        Frame "Alert dot" (1PD4-0) 7×7
+      Frame "Tab · Saved" (1PD5-0) 78×56
+        SVG "SVG" (1PD6-0) 24×24
+          SVGVisualElement "Path" (1PD7-0) 13×18
+        Text "Saved" (1PD8-0) 32×14 "Saved"
+      Frame "Tab · Search" (1PD9-0) 78×56
+        SVG "SVG" (1PDA-0) 24×24
+          SVGVisualElement "Path" (1PDB-0) 19×19
+        Text "Search" (1PDC-0) 37×14 "Search"
+    Frame "Home indicator" (1PDD-0) 390×28
+      Rectangle "Rectangle" (1PDE-0) 134×5

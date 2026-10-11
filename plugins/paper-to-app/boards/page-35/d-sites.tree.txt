@@ -1,0 +1,115 @@
+Frame "Sites · Square Apparels · phone" (1N1C-0) 390×?
+  Frame "Status bar" (1N4F-0) ?×?
+    Frame "Time" (1N4N-0) ?×?
+      Text "9:41" (1N4O-0) ?×? "9:41"
+    Frame "Icons" (1N4G-0) ?×?
+      SVG "SVG" (1N4H-0) ?×?
+        SVGVisualElement "Path" (1N4M-0) ?×?
+        SVGVisualElement "Path" (1N4L-0) ?×?
+        SVGVisualElement "Path" (1N4K-0) ?×?
+        SVGVisualElement "Path" (1N4J-0) ?×?
+        SVGVisualElement "Path" (1N4I-0) ?×?
+  Frame "Compact head" (1N3E-0) ?×?
+    Frame "Head" (1OLE-0) ?×?
+      Frame "Bar" (1OLF-0) ?×?
+        Text "Name" (1OLG-0) ?×? "Square Apparels Limited"
+        Frame "Actions" (1OLH-0) ?×?
+          Frame "Share" (1OLI-0) 36×36
+            SVG "SVG" (1OLJ-0) ?×?
+              SVGVisualElement "Path" (1OLK-0) ?×?
+          Frame "Close" (1OLL-0) 36×36
+            SVG "SVG" (1OLM-0) ?×?
+              SVGVisualElement "Path" (1OLN-0) ?×?
+      Frame "Status strip" (1OLO-0) ?×30
+        Frame "Status · Safety" (1OLP-0) ?×?
+          SVG "SVG" (1OLQ-0) ?×?
+            SVGVisualElement "Path" (1OLR-0) ?×?
+          Text "RSC behind" (1OLS-0) ?×? "RSC behind"
+        Rectangle "Rectangle" (1OLT-0) 1×14
+        Frame "Status · Certificates" (1OLU-0) ?×?
+          SVG "SVG" (1OLV-0) ?×?
+            SVGVisualElement "Path" (1OLW-0) ?×?
+          Text "GOTS 31 days" (1OLX-0) ?×? "GOTS 31 days"
+        Rectangle "Rectangle" (1OLY-0) 1×14
+        Frame "Status · Sanctions" (1OLZ-0) ?×?
+          SVG "SVG" (1OM0-0) ?×?
+            SVGVisualElement "Path" (1OM1-0) ?×?
+          Text "Not listed" (1OM2-0) ?×? "Not listed"
+    Frame "Tabs" (1N3F-0) ?×48
+      Frame "Tab · Certificates" (1N3M-0) ?×?
+        Text "Certificates" (1N3O-0) ?×? "Certificates"
+      Frame "Tab · Safety" (1N3J-0) ?×?
+        Text "Safety" (1N3L-0) ?×? "Safety"
+      Frame "Tab · Sites" (1N3G-0) ?×?
+        Text "Sites" (1N3I-0) ?×? "Sites"
+        Text "2" (1N3H-0) ?×? "2"
+        Frame "Indicator" (1NG5-0) ?×2
+      Frame "Tab · Sources" (1N82-0) ?×?
+        Text "Sources" (1N83-0) ?×? "Sources"
+        Text "9" (1N84-0) ?×? "9"
+  Frame "Sites" (1NE8-0) ?×?
+    Frame "Summary" (1NE9-0) ?×?
+      Text "2 sites" (1NEA-0) ?×? "2 sites"
+      Text "Both in Bhaluka, Mym…" (1NEB-0) ?×? "Both in Bhaluka, Mymensingh. Worker counts by source."
+    Frame "Map" (1NEC-0) ?×220
+      SVG "SVG" (1NED-0) ?×?
+        SVGVisualElement "Path" (1NEE-0) ?×?
+        SVGVisualElement "Path" (1NEF-0) ?×?
+        SVGVisualElement "Path" (1NEG-0) ?×?
+        SVGVisualElement "Path" (1NEH-0) ?×?
+      Frame "Pin 1" (1NEI-0) 28×28
+        Text "1" (1NEJ-0) ?×? "1"
+      Frame "Pin 2" (1NEK-0) 28×28
+        Text "2" (1NEL-0) ?×? "2"
+      Text "Place" (1NEM-0) ?×? "Bhaluka, Mymensingh"
+      Frame "Expand" (1NEN-0) 44×44
+        SVG "SVG" (1NEO-0) ?×?
+          SVGVisualElement "Path" (1NEP-0) ?×?
+    Frame "Placeholder note (design only)" (1NEQ-0) ?×?
+      Rectangle "Rectangle" (1NER-0) 14×?
+      Text "Map drawing is a pla…" (1NES-0) ?×? "Map drawing is a placeholder for the real map tiles"
+    Frame "Site 1" (1NEU-0) ?×?
+      Frame "Frame" (1NEV-0) 28×28
+        Text "1" (1NEW-0) ?×? "1"
+      Frame "Frame" (1NEX-0) ?×?
+        Frame "Frame" (1NEY-0) ?×?
+          Text "Mamarishpur, Mallikb…" (1NEZ-0) ?×? "Mamarishpur, Mallikbari"
+          Text "Factory · woven and …" (1NF0-0) ?×? "Factory · woven and dyeing"
+        Frame "Figures" (1NF1-0) ?×?
+          Frame "Frame" (1NF2-0) ?×?
+            Text "2,402" (1NF3-0) ?×? "2,402"
+            Text "workers · 37% women" (1NF4-0) ?×? "workers · 37% women"
+          Frame "Frame" (1NF5-0) ?×?
+            Text "1,554" (1NF6-0) ?×? "1,554"
+            Text "sewing machines" (1NF7-0) ?×? "sewing machines"
+        Text "Capacity 338,000 doz…" (1NF8-0) ?×? "Capacity 338,000 dozen a year"
+        Text "BGMEA · also named b…" (1NF9-0) ?×? "BGMEA · also named by Next, OEKO-TEX"
+    Frame "Site 2" (1NFA-0) ?×?
+      Frame "Frame" (1NFB-0) 28×28
+        Text "2" (1NFC-0) ?×? "2"
+      Frame "Frame" (1NFD-0) ?×?
+        Frame "Frame" (1NFE-0) ?×?
+          Text "Zamirdia, Habirbari" (1NFF-0) ?×? "Zamirdia, Habirbari"
+          Text "Factory" (1NFG-0) ?×? "Factory"
+        Frame "Figures" (1NFH-0) ?×?
+          Text "1,001 – 2,000" (1NFI-0) ?×? "1,001 – 2,000"
+          Text "workers, as a range" (1NFJ-0) ?×? "workers, as a range"
+        Text "H&M Group list · als…" (1NFK-0) ?×? "H&M Group list · also named by OEKO-TEX"
+    Frame "Unplaced RSC buildings" (1NFL-0) ?×?
+      SVG "SVG" (1NFM-0) ?×?
+        SVGVisualElement "Path" (1NFN-0) ?×?
+      Frame "Frame" (1NFO-0) ?×?
+        Text "RSC counts 4,624 wor…" (1NFP-0) ?×? "RSC counts 4,624 workers in 2 buildings"
+        Text "4,488 in the main bu…" (1NFQ-0) ?×? "4,488 in the main building and 136 in the extension. RSC giv"
+        Text "RSC · read 2 Oct" (1NFR-0) ?×? "RSC · read 2 Oct"
+    Frame "Head office" (1NFS-0) ?×?
+      Frame "Frame" (1NFT-0) ?×?
+        Text "Head office, not a p…" (1NFU-0) ?×? "Head office, not a production site"
+        Text "Square Centre, 48 Mo…" (1NFV-0) ?×? "Square Centre, 48 Mohakhali, Dhaka"
+      Text "BGMEA" (1NFW-0) ?×? "BGMEA"
+  Frame "Action bar" (1NFY-0) ?×64
+    Frame "Save" (1NFZ-0) 48×48
+      SVG "SVG" (1NG0-0) ?×?
+        SVGVisualElement "Path" (1NG1-0) ?×?
+    Frame "Send RFQ" (1NG2-0) ?×48
+      Text "Send RFQ" (1NG3-0) ?×? "Send RFQ"

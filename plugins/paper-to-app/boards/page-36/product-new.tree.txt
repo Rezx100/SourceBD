@@ -1,0 +1,102 @@
+Frame "Products · new product · name only · phone" (1RC2-0) 390×1144
+  Frame "Status bar" (1RC3-0) 390×62
+    Frame "Time" (1RC4-0) 94×22
+      Text "9:41" (1RC5-0) 31×22 "9:41"
+    Frame "Icons" (1RC6-0) 94×22
+      SVG "SVG" (1RC7-0) 82×22
+        SVGVisualElement "Path" (1RC8-0) 19×12
+        SVGVisualElement "Path" (1RC9-0) 17×12
+        SVGVisualElement "Path" (1RCA-0) 25×13
+        SVGVisualElement "Path" (1RCB-0) 21×9
+        SVGVisualElement "Path" (1RCC-0) 1×4
+  Frame "Compact head" (1RCD-0) 390×64
+    Frame "Back" (1RCE-0) 36×36
+      SVG "SVG" (1RCF-0) 17×17
+        SVGVisualElement "Path" (1RCG-0) 12×10
+    Frame "Frame" (1RCH-0) 310×48
+      Text "New product" (1RCI-0) 310×30 "New product"
+      Text "Only the name is req…" (1RCJ-0) 310×18 "Only the name is required. Only you see it."
+  Frame "Body" (1RCK-0) 390×1018
+    Frame "Basics" (1RCL-0) 350×596
+      Frame "Section head" (1RCM-0) 350×58
+        Text "Basics" (1RCN-0) 61×28 "Basics"
+      Frame "Frame" (1RCO-0) 350×538
+        Frame "Frame" (1RCP-0) 350×94
+          Text "Name · required" (1RCQ-0) 350×18 "Name · required"
+          Frame "Frame" (1RCR-0) 350×48
+            Text "Basic crew T-shirt" (1RCS-0) 132×22 "Basic crew T-shirt"
+            Rectangle "Rectangle" (1RCT-0) 2×20
+          Text "Your name for it. RF…" (1RCU-0) 350×16 "Your name for it. RFQs from this product use it."
+        Frame "Frame" (1RCV-0) 350×72
+          Frame "Frame" (1RCW-0) 169×72
+            Text "Style number" (1RCX-0) 169×18 "Style number"
+            Frame "Frame" (1RCY-0) 169×48
+              Text "TS-020" (1RCZ-0) 54×22 "TS-020"
+          Frame "Frame" (1RD0-0) 169×72
+            Text "Category" (1RD1-0) 169×18 "Category"
+            Frame "Frame" (1RD2-0) 169×48
+              Text "Not set" (1RD3-0) 54×22 "Not set"
+              SVG "SVG" (1RD4-0) 16×16
+                SVGVisualElement "Path" (1RD5-0) 11×6
+        Frame "Frame" (1RD6-0) 350×94
+          Frame "Frame" (1RD7-0) 169×94
+            Text "Target price, US$" (1RD8-0) 169×18 "Target price, US$"
+            Frame "Frame" (1RD9-0) 169×48
+              Text "0.00" (1RDA-0) 36×22 "0.00"
+            Text "Per piece" (1RDB-0) 169×16 "Per piece"
+          Frame "Frame" (1RDC-0) 169×94
+            Text "MOQ, in pieces" (1RDD-0) 169×18 "MOQ, in pieces"
+            Frame "Frame" (1RDE-0) 169×48
+              Text "0" (1RDF-0) 11×22 "0"
+            Text "Minimum order" (1RDG-0) 169×16 "Minimum order"
+        Frame "Frame" (1RDH-0) 350×94
+          Text "Main material" (1RDI-0) 350×18 "Main material"
+          Frame "Frame" (1RDJ-0) 350×48
+            Text "100% cotton jersey, …" (1RDK-0) 207×22 "100% cotton jersey, 160 gsm"
+          Text "As it goes on the ca…" (1RDL-0) 350×16 "As it goes on the care label"
+        Frame "Frame" (1RDM-0) 350×120
+          Text "Description" (1RDN-0) 350×18 "Description"
+          Frame "Frame" (1RDO-0) 350×96
+            Text "Fit, fabric feel, wa…" (1RDP-0) 320×44 "Fit, fabric feel, wash, trims: whatever a factory needs to q"
+    Frame "Add more" (1RDR-0) 350×298
+      Frame "Section head" (1RDS-0) 350×66
+        Text "Add now or later" (1RDT-0) 151×28 "Add now or later"
+      Frame "Frame" (1RDU-0) 350×232
+        Frame "Frame" (1RDV-0) 348×60
+          Frame "Frame" (1RDW-0) 235×40
+            Text "Size chart" (1RDX-0) 235×22 "Size chart"
+            Text "Points of measure, w…" (1RDY-0) 235×18 "Points of measure, with tolerances"
+          Frame "Frame" (1RDZ-0) 77×44
+            SVG "SVG" (1RE0-0) 16×16
+              SVGVisualElement "Path" (1RE1-0) 12×12
+            Text "Add" (1RE2-0) 27×20 "Add"
+        Frame "Frame" (1RE3-0) 348×61
+          Frame "Frame" (1RE4-0) 235×40
+            Text "Materials" (1RE5-0) 235×22 "Materials"
+            Text "Fabric and trims per…" (1RE6-0) 235×18 "Fabric and trims per piece"
+          Frame "Frame" (1RE7-0) 77×44
+            SVG "SVG" (1RE8-0) 16×16
+              SVGVisualElement "Path" (1RE9-0) 12×12
+            Text "Add" (1REA-0) 27×20 "Add"
+        Frame "Frame" (1REB-0) 348×61
+          Frame "Frame" (1REC-0) 235×40
+            Text "Tech pack" (1RED-0) 235×22 "Tech pack"
+            Text "One PDF or image, up…" (1REE-0) 235×18 "One PDF or image, up to 10 MB"
+          Frame "Frame" (1REF-0) 77×44
+            SVG "SVG" (1REG-0) 16×16
+              SVGVisualElement "Path" (1REH-0) 12×12
+            Text "Add" (1REI-0) 27×20 "Add"
+        Frame "Frame" (1REJ-0) 348×48
+          Text "More: images, colour…" (1REK-0) 256×18 "More: images, colour and size options, tags"
+          SVG "SVG" (1REL-0) 16×16
+            SVGVisualElement "Path" (1REM-0) 11×6
+  Frame "Action bar" (1REO-0) 390×113
+    Frame "Frame" (1REP-0) 390×26
+      Text "Only an active produ…" (1REQ-0) 243×16 "Only an active product can go out in an RFQ."
+    Frame "Frame" (1RER-0) 390×64
+      Frame "Frame" (1RES-0) 116×48
+        Text "Save draft" (1RET-0) 78×20 "Save draft"
+      Frame "Frame" (1REU-0) 234×48
+        Text "Make active" (1REV-0) 91×20 "Make active"
+    Frame "Frame" (1REW-0) 390×22
+      Rectangle "Rectangle" (1REX-0) 134×5

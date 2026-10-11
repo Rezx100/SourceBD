@@ -1,0 +1,81 @@
+Frame "Messages · inbox · Sample state · phone" (1PJA-0) 390×844
+  Frame "Status bar" (1PJB-0) 390×62
+    Frame "Time" (1PJC-0) 94×22
+      Text "9:41" (1PJD-0) 31×22 "9:41"
+    Frame "Icons" (1PJE-0) 94×22
+      SVG "SVG" (1PJF-0) 82×22
+        SVGVisualElement "Path" (1PJG-0) 19×12
+        SVGVisualElement "Path" (1PJH-0) 17×12
+        SVGVisualElement "Path" (1PJI-0) 25×13
+        SVGVisualElement "Path" (1PJJ-0) 21×9
+        SVGVisualElement "Path" (1PJK-0) 1×4
+  Frame "Page head" (1PJL-0) 390×44
+    Text "Messages" (1PJM-0) 148×36 "Messages"
+    Frame "Frame" (1PJN-0) 36×36
+      Text "AM" (1PJO-0) 21×16 "AM"
+  Frame "Body" (1PJP-0) 390×339
+    Frame "Sample note" (1Q7U-0) 350×26
+      Frame "Frame" (1Q7V-0) 255×16
+        Rectangle "Rectangle" (1Q7W-0) 14×1
+        Text "Sample messages; sup…" (1Q7X-0) 235×16 "Sample messages; supplier names are real"
+      Text "2 unread" (1Q7Y-0) 53×18 "2 unread"
+    Frame "Thread · Thermax" (1PJU-0) 350×93
+      Frame "Frame" (1PJV-0) 44×44
+        Text "TW" (1PJW-0) 22×18 "TW"
+      Frame "Frame" (1PJX-0) 294×64
+        Frame "Frame" (1PJY-0) 294×22
+          Text "Thermax Woven Dyeing" (1PJZ-0) 180×22 "Thermax Woven Dyeing"
+          Text "11:20" (1PK0-0) 29×16 "11:20"
+        Text "Thank you. We will s…" (1PK1-0) 294×20 "Thank you. We will send the quote by Monday."
+        Frame "Frame" (1PK2-0) 294×16
+          Text "RFQ · French terry h…" (1PK3-0) 145×16 "RFQ · French terry hoodies"
+          Rectangle "Rectangle" (1PK4-0) 8×8
+    Frame "Thread · Quattro" (1PK5-0) 350×113
+      Frame "Frame" (1PK6-0) 44×44
+        Text "QF" (1PK7-0) 20×18 "QF"
+      Frame "Frame" (1PK8-0) 294×84
+        Frame "Frame" (1PK9-0) 294×22
+          Text "Quattro Fashion Limi…" (1PKA-0) 183×22 "Quattro Fashion Limited"
+          Text "Yesterday" (1PKB-0) 56×16 "Yesterday"
+        Text "We can make the T-sh…" (1PKC-0) 294×40 "We can make the T-shirts. Our MOQ is 500 pieces per colour."
+        Frame "Frame" (1PKD-0) 294×16
+          Text "RFQ · T-shirt" (1PKE-0) 69×16 "RFQ · T-shirt"
+          Rectangle "Rectangle" (1PKF-0) 8×8
+    Frame "Thread · Aboni" (1PKG-0) 350×93
+      Frame "Frame" (1PKH-0) 44×44
+        Text "AK" (1PKI-0) 20×18 "AK"
+      Frame "Frame" (1PKJ-0) 294×64
+        Frame "Frame" (1PKK-0) 294×22
+          Text "Aboni Knitwear Ltd." (1PKL-0) 146×22 "Aboni Knitwear Ltd."
+          Text "26 Sep" (1PKM-0) 40×16 "26 Sep"
+        Text "You: Can you confirm…" (1PKN-0) 294×20 "You: Can you confirm the fabric mill?"
+        Frame "Frame" (1Q80-0) 294×16
+          SVG "SVG" (1Q81-0) 14×14
+            SVGVisualElement "Path" (1Q82-0) 11×11
+          Text "No reply in 15 days" (1Q83-0) 105×16 "No reply in 15 days"
+          Text "· RFQ · French terry…" (1Q84-0) 151×16 "· RFQ · French terry hoodies"
+  Frame "Tab bar" (1PKP-0) 390×85
+    Frame "Tabs" (1PKQ-0) 390×56
+      Frame "Tab · Messages" (1PKR-0) 78×56
+        SVG "SVG" (1PKS-0) 24×24
+          SVGVisualElement "Path" (1PKT-0) 19×19
+        Text "Messages" (1PKU-0) 54×14 "Messages"
+      Frame "Tab · Quotes" (1PKV-0) 78×56
+        SVG "SVG" (1PKW-0) 24×24
+          SVGVisualElement "Path" (1PKX-0) 19×16
+        Text "Quotes" (1PKY-0) 38×14 "Quotes"
+      Frame "Tab · Alerts" (1PKZ-0) 78×56
+        SVG "SVG" (1PL0-0) 24×24
+          SVGVisualElement "Path" (1PL1-0) 17×19
+        Text "Alerts" (1PL2-0) 31×14 "Alerts"
+        Frame "Alert dot" (1PL3-0) 7×7
+      Frame "Tab · Saved" (1PL4-0) 78×56
+        SVG "SVG" (1PL5-0) 24×24
+          SVGVisualElement "Path" (1PL6-0) 13×18
+        Text "Saved" (1PL7-0) 32×14 "Saved"
+      Frame "Tab · Search" (1PL8-0) 78×56
+        SVG "SVG" (1PL9-0) 24×24
+          SVGVisualElement "Path" (1PLA-0) 19×19
+        Text "Search" (1PLB-0) 37×14 "Search"
+    Frame "Home indicator" (1PLC-0) 390×28
+      Rectangle "Rectangle" (1PLD-0) 134×5

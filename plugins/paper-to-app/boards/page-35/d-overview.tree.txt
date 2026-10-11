@@ -1,0 +1,268 @@
+Frame "Overview · Square Apparels · phone" (1M8L-0) 390×?
+  Frame "Status bar" (1M8X-0) ?×?
+    Frame "Time" (1M8Y-0) ?×?
+      Text "9:41" (1M8Z-0) ?×? "9:41"
+    Frame "Icons" (1M90-0) ?×?
+      SVG "SVG" (1M91-0) ?×?
+        SVGVisualElement "Path" (1M92-0) ?×?
+        SVGVisualElement "Path" (1M93-0) ?×?
+        SVGVisualElement "Path" (1M94-0) ?×?
+        SVGVisualElement "Path" (1M95-0) ?×?
+        SVGVisualElement "Path" (1M96-0) ?×?
+  Frame "Sheet" (1M98-0) ?×?
+    Frame "Bar" (1OQG-0) ?×56
+      Frame "Share" (1OQI-0) 36×36
+        SVG "SVG" (1OQJ-0) ?×?
+          SVGVisualElement "Path" (1OQK-0) ?×?
+      Frame "Close" (1OQL-0) 36×36
+        SVG "SVG" (1OQM-0) ?×?
+          SVGVisualElement "Path" (1OQN-0) ?×?
+      Frame "Grabber" (1OQH-0) 36×4
+    Frame "Head" (1M9I-0) ?×?
+      Text "Name" (1M9J-0) ?×? "Square Apparels Limited"
+      Frame "Identity" (1NZV-0) ?×?
+        Frame "Frame" (1NZW-0) ?×?
+          SVG "SVG" (1NZX-0) ?×?
+            SVGVisualElement "Path" (1NZY-0) ?×?
+          Text "Woven and dyeing fac…" (1NZZ-0) ?×? "Woven and dyeing factory"
+        Frame "Frame" (1O00-0) ?×?
+          SVG "SVG" (1O01-0) ?×?
+            SVGVisualElement "Path" (1O02-0) ?×?
+          Text "Bhaluka, Mymensingh" (1O03-0) ?×? "Bhaluka, Mymensingh"
+      Frame "Status ledger" (1O05-0) ?×?
+        Frame "Status · Safety" (1O06-0) ?×?
+          SVG "SVG" (1O07-0) ?×?
+            SVGVisualElement "Path" (1O08-0) ?×?
+          Text "Safety" (1O09-0) 96×? "Safety"
+          Frame "Value" (1O0S-0) ?×?
+            Text "Behind schedule" (1O0T-0) ?×? "Behind schedule"
+            Text "worst of 2 buildings" (1O0U-0) ?×? "worst of 2 buildings"
+          SVG "SVG" (1O0B-0) ?×?
+            SVGVisualElement "Path" (1O0C-0) ?×?
+        Frame "Status · Certificates" (1O0D-0) ?×?
+          SVG "SVG" (1O0E-0) ?×?
+            SVGVisualElement "Path" (1O0F-0) ?×?
+          Text "Certificates" (1O0G-0) 96×? "Certificates"
+          Frame "Value" (1O0W-0) ?×?
+            Text "GOTS ends in 31 days" (1O0X-0) ?×? "GOTS ends in 31 days"
+            Text "soonest of 4" (1O0Y-0) ?×? "soonest of 4"
+          SVG "SVG" (1O0I-0) ?×?
+            SVGVisualElement "Path" (1O0J-0) ?×?
+        Frame "Status · Sanctions" (1O0K-0) ?×?
+          SVG "SVG" (1O0L-0) ?×?
+            SVGVisualElement "Path" (1O0M-0) ?×?
+          Text "Sanctions" (1O0N-0) 96×? "Sanctions"
+          Frame "Value" (1O10-0) ?×?
+            Text "Not listed" (1O11-0) ?×? "Not listed"
+            Text "lists read 6 Oct" (1O12-0) ?×? "lists read 6 Oct"
+          SVG "SVG" (1O0P-0) ?×?
+            SVGVisualElement "Path" (1O0Q-0) ?×?
+    Frame "Tabs" (1MA6-0) ?×48
+      Frame "Tab · Overview (current)" (1MA7-0) ?×?
+        Text "Overview" (1MA8-0) ?×? "Overview"
+        Frame "Indicator" (1MA9-0) ?×2
+      Frame "Tab · Exports" (1MAA-0) ?×?
+        Text "Exports" (1MAB-0) ?×? "Exports"
+      Frame "Tab · Certificates" (1MAC-0) ?×?
+        Text "Certificates" (1MAD-0) ?×? "Certificates"
+      Frame "Tab · Safety" (1MAF-0) ?×?
+        Text "Safety" (1MAG-0) ?×? "Safety"
+      Frame "Tab · Sites" (1MAI-0) ?×?
+        Text "Sites" (1MAJ-0) ?×? "Sites"
+        Text "2" (1MAK-0) ?×? "2"
+    Frame "Exports" (1MAM-0) ?×?
+      Frame "Section head" (1MAN-0) ?×?
+        Text "Exports" (1MAO-0) ?×? "Exports"
+        Frame "Deep link · All exports" (1MAP-0) ?×44
+          Text "All exports" (1MAQ-0) ?×? "All exports"
+          SVG "SVG" (1MAR-0) ?×?
+            SVGVisualElement "Path" (1MAS-0) ?×?
+      Frame "KPI tiles" (1MAT-0) ?×?
+        Frame "Row 1" (1MAV-0) ?×?
+          Frame "Tile · Export value" (1MAW-0) ?×?
+            Text "Export value, 2 year…" (1MAX-0) ?×? "Export value, 2 years"
+            Frame "Frame" (1MAY-0) ?×?
+              Text "$76.6M" (1MAZ-0) ?×? "$76.6M"
+            Frame "Context" (1MB0-0) ?×?
+              Frame "Placeholder figure" (1MB1-0) ?×?
+                Text "+11%" (1MB2-0) ?×? "+11%"
+              Text "on the year before" (1MB3-0) ?×? "on the year before"
+          Frame "Tile · Shipments" (1MB4-0) ?×?
+            Text "Shipments a month" (1MB5-0) ?×? "Shipments a month"
+            Frame "Frame" (1MB6-0) ?×?
+              Text "118" (1MB7-0) ?×? "118"
+            Frame "Context" (1MB8-0) ?×?
+              Frame "Placeholder figure" (1MB9-0) ?×?
+                Text "+9%" (1MBA-0) ?×? "+9%"
+              Text "on the year before" (1MBB-0) ?×? "on the year before"
+        Frame "Row 2" (1MBD-0) ?×?
+          Frame "Tile · Buyers" (1MBE-0) ?×?
+            Frame "Top" (1MBF-0) ?×?
+              Text "Buyers" (1MBG-0) ?×? "Buyers"
+              Text "254" (1MBH-0) ?×? "254"
+            Frame "Context" (1MBI-0) ?×?
+              Text "Top 5 take" (1MBJ-0) ?×? "Top 5 take"
+              Frame "Placeholder figure" (1MBK-0) ?×?
+                Text "34%" (1MBL-0) ?×? "34%"
+              Text "of value" (1MBT-0) ?×? "of value"
+          Frame "Tile · Latest shipment" (1MBM-0) ?×?
+            Frame "Top" (1MBN-0) ?×?
+              Text "Latest shipment" (1MBO-0) ?×? "Latest shipment"
+              Text "30 Aug" (1MBP-0) ?×? "30 Aug"
+            Frame "Frame" (1MBQ-0) ?×?
+              Text "Women’s shirts to th…" (1MBR-0) ?×? "Women’s shirts to the UK, 42 days ago"
+      Frame "Source line" (1MBV-0) ?×?
+        Frame "Read" (1MBW-0) ?×?
+          SVG "SVG" (1MBX-0) ?×?
+            SVGVisualElement "Path" (1MBY-0) ?×?
+          Text "Customs records, Sep…" (1MBZ-0) ?×? "Customs records, Sep 2024 – Aug 2026 · read 11 Oct"
+        Frame "Lag" (1MC0-0) ?×?
+          SVG "SVG" (1MC1-0) ?×?
+            SVGVisualElement "Path" (1MC2-0) ?×?
+          Text "The records end 41 d…" (1MC3-0) ?×? "The records end 41 days ago"
+        Frame "Placeholder note (design only)" (1MDN-0) ?×?
+          Rectangle "Rectangle" (1MDO-0) 14×?
+          Text "Placeholder figure: …" (1MDP-0) ?×? "Placeholder figure: no yearly split in the data yet"
+    Frame "Needs a look" (1O14-0) ?×?
+      Frame "Section head" (1O15-0) ?×?
+        Frame "Frame" (1O16-0) ?×?
+          Text "Needs a look" (1O17-0) ?×? "Needs a look"
+          Text "3" (1O18-0) ?×? "3"
+        Text "Worst first" (1O19-0) ?×? "Worst first"
+      Frame "Items" (1O1A-0) ?×?
+        Frame "Item · Safety" (1O1B-0) ?×?
+          Frame "Tag" (1O1C-0) ?×?
+            Frame "Frame" (1O1D-0) ?×?
+              SVG "SVG" (1O1E-0) ?×?
+                SVGVisualElement "Path" (1O1F-0) ?×?
+              Text "Safety · Extension b…" (1O1G-0) ?×? "Safety · Extension building"
+            SVG "SVG" (1O1H-0) ?×?
+              SVGVisualElement "Path" (1O1I-0) ?×?
+          Text "One building is behi…" (1O1J-0) ?×? "One building is behind on repairs"
+          Frame "Meter" (1O1K-0) ?×?
+            Frame "Frame" (1O1L-0) ?×?
+              Text "Issues fixed" (1O1M-0) ?×? "Issues fixed"
+              Text "81%" (1O1N-0) ?×? "81%"
+            Frame "Frame" (1O1O-0) ?×6
+              Rectangle "Rectangle" (1O1P-0) ?×?
+          Text "Worker safety traini…" (1O1Q-0) ?×? "Worker safety training has not started."
+          Text "Read 2 Oct" (1O1R-0) ?×? "Read 2 Oct"
+        Frame "Item · Certificate" (1O1S-0) ?×?
+          Frame "Tag" (1O1T-0) ?×?
+            Frame "Frame" (1O1U-0) ?×?
+              SVG "SVG" (1O1V-0) ?×?
+                SVGVisualElement "Path" (1O1W-0) ?×?
+              Text "Certificate · GOTS" (1O1X-0) ?×? "Certificate · GOTS"
+            SVG "SVG" (1O1Y-0) ?×?
+              SVGVisualElement "Path" (1O1Z-0) ?×?
+          Text "Organic certificate …" (1O20-0) ?×? "Organic certificate ends 11 Nov"
+          Frame "Countdown" (1O21-0) ?×?
+            Text "31" (1O22-0) ?×? "31"
+            Text "days left · no renew…" (1O23-0) ?×? "days left · no renewal listed yet"
+          Frame "Frame" (1O24-0) ?×?
+            Text "Checked with GOTS 26…" (1O25-0) ?×? "Checked with GOTS 26 Jun ·"
+            Text "107 days ago" (1O26-0) ?×? "107 days ago"
+        Frame "Item · Sanctions" (1O27-0) ?×?
+          Frame "Tag" (1O28-0) ?×?
+            Frame "Frame" (1O29-0) ?×?
+              SVG "SVG" (1O2A-0) ?×?
+                SVGVisualElement "Path" (1O2B-0) ?×?
+              Text "Sanctions · freshnes…" (1O2C-0) ?×? "Sanctions · freshness"
+            SVG "SVG" (1O2D-0) ?×?
+              SVGVisualElement "Path" (1O2E-0) ?×?
+          Text "The sanctions check …" (1O2F-0) ?×? "The sanctions check is 5 days old"
+          Text "Not listed when the …" (1O2G-0) ?×? "Not listed when the UK and EU lists were last read on 6 Oct."
+          Text "OFSI, EU, OFAC, ILAB…" (1O2H-0) ?×? "OFSI, EU, OFAC, ILAB · 6 to 11 Oct"
+    Frame "Key facts" (1MDR-0) ?×?
+      Frame "Frame" (1MDS-0) ?×?
+        Text "Key facts" (1MDT-0) ?×? "Key facts"
+      Frame "Fact · Makes" (1MDU-0) ?×?
+        Frame "Frame" (1MDV-0) ?×?
+          Text "Makes" (1MDW-0) ?×? "Makes"
+          Text "Woven garments, with…" (1MDX-0) ?×? "Woven garments, with its own dye house"
+        Text "BGMEA" (1MDY-0) 56×? "BGMEA"
+      Frame "Fact · Makes" (1ME0-0) ?×?
+        Frame "Frame" (1ME2-0) ?×?
+          Text "Established" (1ME4-0) ?×? "Established"
+          Text "2015 · 11 years ago" (1ME3-0) ?×? "2015 · 11 years ago"
+        Text "BGMEA" (1ME1-0) 56×? "BGMEA"
+      Frame "Fact · Makes" (1ME5-0) ?×?
+        Frame "Frame" (1ME7-0) ?×?
+          Text "Workers" (1ME9-0) ?×? "Workers"
+          Text "4,624 across 2 build…" (1ME8-0) ?×? "4,624 across 2 buildings"
+        Text "RSC" (1ME6-0) 56×? "RSC"
+      Frame "Fact · Makes" (1MEA-0) ?×?
+        Frame "Frame" (1MEC-0) ?×?
+          Text "Head office" (1MEE-0) ?×? "Head office"
+          Text "Square Centre, Mohak…" (1MED-0) ?×? "Square Centre, Mohakhali, Dhaka"
+        Text "BGMEA" (1MEB-0) 56×? "BGMEA"
+    Frame "Memberships and brand lists" (1MEF-0) ?×?
+      Frame "Frame" (1MEG-0) ?×?
+        Text "Memberships and bran…" (1MEH-0) ?×? "Memberships and brand lists"
+      Frame "Row · BGMEA" (1MEI-0) ?×?
+        Frame "Icon slot" (1MEJ-0) 36×36
+          SVG "SVG" (1MEK-0) ?×?
+            SVGVisualElement "Path" (1MEL-0) ?×?
+        Frame "Body" (1MEM-0) ?×?
+          Text "BGMEA general member" (1MEN-0) ?×? "BGMEA general member"
+          Frame "Meta" (1MEO-0) ?×?
+            Text "6027" (1MEP-0) ?×? "6027"
+            Text "· read 11 Oct" (1MEQ-0) ?×? "· read 11 Oct"
+        Frame "Open slot" (1MER-0) 44×44
+          SVG "SVG" (1MES-0) ?×?
+            SVGVisualElement "Path" (1MET-0) ?×?
+      Frame "Row · BGMEA" (1MEV-0) ?×?
+        Frame "Icon slot" (1MF4-0) 36×36
+          SVG "SVG" (1MF5-0) ?×?
+            SVGVisualElement "Path" (1MF6-0) ?×?
+        Frame "Body" (1MEZ-0) ?×?
+          Text "Registered exporter,…" (1MF3-0) ?×? "Registered exporter, EPB"
+          Frame "Meta" (1MF0-0) ?×?
+            Text "BD06106" (1MF2-0) ?×? "BD06106"
+            Text "· read 14 Aug" (1MF1-0) ?×? "· read 14 Aug"
+            SVG "SVG" (1MG4-0) ?×?
+              SVGVisualElement "Path" (1MG5-0) ?×?
+            Text "58 days ago" (1MG6-0) ?×? "58 days ago"
+        Frame "Open slot" (1MEW-0) 44×44
+          SVG "SVG" (1MEX-0) ?×?
+            SVGVisualElement "Path" (1MEY-0) ?×?
+      Frame "Row · BGMEA" (1MF7-0) ?×?
+        Frame "Icon slot" (1MFG-0) 36×36
+          SVG "SVG" (1MG8-0) ?×?
+            SVGVisualElement "Path" (1MG9-0) ?×?
+        Frame "Body" (1MFB-0) ?×?
+          Text "H&M Group" (1MFF-0) ?×? "H&M Group"
+          Text "Meta" (1MFV-0) ?×? "Supplier list of Aug 2026 · read 10 Oct"
+        Frame "Open slot" (1MF8-0) 44×44
+          SVG "SVG" (1MF9-0) ?×?
+            SVGVisualElement "Path" (1MFA-0) ?×?
+      Frame "Row · BGMEA" (1MFJ-0) ?×?
+        Frame "Icon slot" (1MFS-0) 36×36
+          SVG "SVG" (1MGB-0) ?×?
+            SVGVisualElement "Path" (1MGC-0) ?×?
+        Frame "Body" (1MFN-0) ?×?
+          Text "Next" (1MFR-0) ?×? "Next"
+          Frame "Meta" (1MFX-0) ?×?
+            Text "Feb 2026 list, via D…" (1MFY-0) ?×? "Feb 2026 list, via Denim Solutions"
+            Frame "Frame" (1MFZ-0) ?×?
+              SVG "SVG" (1MG0-0) ?×?
+                SVGVisualElement "Path" (1MG1-0) ?×?
+              Text "The list is 8 months…" (1MG2-0) ?×? "The list is 8 months old"
+        Frame "Open slot" (1MFK-0) 44×44
+          SVG "SVG" (1MFL-0) ?×?
+            SVGVisualElement "Path" (1MFM-0) ?×?
+    Frame "Contact" (1MGE-0) ?×?
+      Frame "Frame" (1MGF-0) ?×?
+        Text "Contact" (1MGG-0) ?×? "Contact"
+      Frame "Locked" (1MGH-0) ?×?
+        SVG "SVG" (1MGI-0) ?×?
+          SVGVisualElement "Path" (1MGJ-0) ?×?
+        Frame "Frame" (1MGK-0) ?×?
+          Text "1 email, 6 phones an…" (1MGL-0) ?×? "1 email, 6 phones and a website on file"
+          Text "Locked. Send an RFQ …" (1MGM-0) ?×? "Locked. Send an RFQ and the supplier replies in Messages."
+    Frame "Action bar" (1MGN-0) ?×64
+      Frame "Save" (1MGO-0) 48×48
+        SVG "SVG" (1MGP-0) ?×?
+          SVGVisualElement "Path" (1MGQ-0) ?×?
+      Frame "Send RFQ" (1MGR-0) ?×48
+        Text "Send RFQ" (1MGS-0) ?×? "Send RFQ"

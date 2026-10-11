@@ -1,0 +1,55 @@
+Frame "Messages · inbox · empty · phone" (1S0M-0) 390×844
+  Frame "Status bar" (1S0N-0) 390×62
+    Frame "Time" (1S0O-0) 94×22
+      Text "9:41" (1S0P-0) 31×22 "9:41"
+    Frame "Icons" (1S0Q-0) 94×22
+      SVG "SVG" (1S0R-0) 82×22
+        SVGVisualElement "Path" (1S0S-0) 19×12
+        SVGVisualElement "Path" (1S0T-0) 17×12
+        SVGVisualElement "Path" (1S0U-0) 25×13
+        SVGVisualElement "Path" (1S0V-0) 21×9
+        SVGVisualElement "Path" (1S0W-0) 1×4
+  Frame "Page head" (1S0X-0) 390×44
+    Text "Messages" (1S0Y-0) 148×36 "Messages"
+    Frame "Frame" (1S0Z-0) 36×36
+      Text "AM" (1S10-0) 21×16 "AM"
+  Frame "Body" (1S11-0) 390×432
+    Frame "Frame" (1S12-0) 48×48
+      SVG "SVG" (1S13-0) 24×24
+        SVGVisualElement "Path" (1S14-0) 19×19
+    Frame "Frame" (1S15-0) 350×82
+      Text "No messages yet" (1S16-0) 350×30 "No messages yet"
+      Text "A thread opens when …" (1S17-0) 350×44 "A thread opens when you send an RFQ or message a supplier fr"
+    Frame "Frame" (1S18-0) 350×38
+      SVG "SVG" (1S19-0) 16×16
+        SVGVisualElement "Path" (1S1A-0) 12×13
+      Text "Only you and the sup…" (1S1B-0) 231×18 "Only you and the supplier see a thread."
+    Frame "Frame" (1S1C-0) 224×44
+      SVG "SVG" (1S1D-0) 16×16
+        SVGVisualElement "Path" (1S1E-0) 9×12
+      Text "Open your saved supp…" (1S1F-0) 174×20 "Open your saved suppliers"
+  Frame "Tab bar" (1S1G-0) 390×85
+    Frame "Tabs" (1S1H-0) 390×56
+      Frame "Tab · Messages" (1S1I-0) 78×56
+        SVG "SVG" (1S1J-0) 24×24
+          SVGVisualElement "Path" (1S1K-0) 19×19
+        Text "Messages" (1S1L-0) 54×14 "Messages"
+      Frame "Tab · Quotes" (1S1M-0) 78×56
+        SVG "SVG" (1S1N-0) 24×24
+          SVGVisualElement "Path" (1S1O-0) 19×16
+        Text "Quotes" (1S1P-0) 38×14 "Quotes"
+      Frame "Tab · Alerts" (1S1Q-0) 78×56
+        SVG "SVG" (1S1R-0) 24×24
+          SVGVisualElement "Path" (1S1S-0) 17×19
+        Text "Alerts" (1S1T-0) 31×14 "Alerts"
+        Frame "Alert dot" (1S1U-0) 7×7
+      Frame "Tab · Saved" (1S1V-0) 78×56
+        SVG "SVG" (1S1W-0) 24×24
+          SVGVisualElement "Path" (1S1X-0) 13×18
+        Text "Saved" (1S1Y-0) 32×14 "Saved"
+      Frame "Tab · Search" (1S1Z-0) 78×56
+        SVG "SVG" (1S20-0) 24×24
+          SVGVisualElement "Path" (1S21-0) 19×19
+        Text "Search" (1S22-0) 37×14 "Search"
+    Frame "Home indicator" (1S23-0) 390×28
+      Rectangle "Rectangle" (1S24-0) 134×5

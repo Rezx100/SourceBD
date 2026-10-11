@@ -1,0 +1,93 @@
+Frame "Settings · root · Sample state · phone" (1RHP-0) 390×754
+  Frame "Status bar" (1RHQ-0) 390×62
+    Frame "Time" (1RHR-0) 94×22
+      Text "9:41" (1RHS-0) 31×22 "9:41"
+    Frame "Icons" (1RHT-0) 94×22
+      SVG "SVG" (1RHU-0) 82×22
+        SVGVisualElement "Path" (1RHV-0) 19×12
+        SVGVisualElement "Path" (1RHW-0) 17×12
+        SVGVisualElement "Path" (1RHX-0) 25×13
+        SVGVisualElement "Path" (1RHY-0) 21×9
+        SVGVisualElement "Path" (1RHZ-0) 1×4
+  Frame "Compact head" (1RI0-0) 390×64
+    Frame "Back" (1RI1-0) 36×36
+      SVG "SVG" (1RI2-0) 17×17
+        SVGVisualElement "Path" (1RI3-0) 12×10
+    Frame "Frame" (1RI4-0) 310×48
+      Text "Settings" (1RI5-0) 310×30 "Settings"
+      Text "Signed in as alex@ex…" (1RI6-0) 310×18 "Signed in as alex@exampleapparel.co.uk"
+  Frame "Body" (1RI7-0) 390×628
+    Frame "Your account" (1RI8-0) 350×240
+      Frame "Section head" (1RI9-0) 350×58
+        Text "Your account" (1RIA-0) 120×28 "Your account"
+      Frame "Frame" (1RIB-0) 350×182
+        Frame "Frame" (1RIC-0) 348×60
+          Frame "Frame" (1RID-0) 24×20
+            SVG "SVG" (1RIE-0) 20×20
+              SVGVisualElement "Path" (1RIF-0) 16×15
+          Frame "Frame" (1RIG-0) 252×40
+            Text "Profile" (1RIH-0) 252×22 "Profile"
+            Text "Name, picture, email…" (1RII-0) 252×18 "Name, picture, email, password"
+          SVG "SVG" (1RIJ-0) 16×16
+            SVGVisualElement "Path" (1RIK-0) 6×11
+        Frame "Frame" (1RIL-0) 348×60
+          Frame "Frame" (1RIM-0) 24×20
+            SVG "SVG" (1RIN-0) 20×20
+              SVGVisualElement "Path" (1RIO-0) 14×16
+          Frame "Frame" (1RIP-0) 252×40
+            Text "Security" (1RIQ-0) 252×22 "Security"
+            Text "Two-step sign-in is …" (1RIR-0) 252×18 "Two-step sign-in is off"
+          SVG "SVG" (1RIS-0) 16×16
+            SVGVisualElement "Path" (1RIT-0) 6×11
+        Frame "Frame" (1RIU-0) 348×60
+          Frame "Frame" (1RIV-0) 24×20
+            SVG "SVG" (1RIW-0) 20×20
+              SVGVisualElement "Path" (1RIX-0) 16×12
+          Frame "Frame" (1RIY-0) 252×40
+            Text "Emails" (1RIZ-0) 252×22 "Emails"
+            Text "Quotes, saved suppli…" (1RJ0-0) 252×18 "Quotes, saved suppliers, weekly summary"
+          SVG "SVG" (1RJ1-0) 16×16
+            SVGVisualElement "Path" (1RJ2-0) 6×11
+    Frame "Your company" (1RJ4-0) 350×308
+      Frame "Section head" (1RJ5-0) 350×66
+        Text "Your company" (1RJ6-0) 130×28 "Your company"
+      Frame "Frame" (1RJ7-0) 350×242
+        Frame "Frame" (1RJ8-0) 348×60
+          Frame "Frame" (1RJ9-0) 24×20
+            SVG "SVG" (1RJA-0) 20×20
+              SVGVisualElement "Path" (1RJB-0) 18×16
+          Frame "Frame" (1RJC-0) 252×40
+            Text "Company details" (1RJD-0) 252×22 "Company details"
+            Text "Example Apparel Ltd …" (1RJE-0) 252×18 "Example Apparel Ltd · Brand"
+          SVG "SVG" (1RJF-0) 16×16
+            SVGVisualElement "Path" (1RJG-0) 6×11
+        Frame "Frame" (1RJH-0) 348×60
+          Frame "Frame" (1RJI-0) 24×20
+            SVG "SVG" (1RJJ-0) 20×20
+              SVGVisualElement "Path" (1RJK-0) 19×12
+          Frame "Frame" (1RJL-0) 252×40
+            Text "Team and roles" (1RJM-0) 252×22 "Team and roles"
+            Text "3 people · 1 invite …" (1RJN-0) 252×18 "3 people · 1 invite waiting"
+          SVG "SVG" (1RJO-0) 16×16
+            SVGVisualElement "Path" (1RJP-0) 6×11
+        Frame "Frame" (1RJQ-0) 348×60
+          Frame "Frame" (1RJR-0) 24×20
+            SVG "SVG" (1RJS-0) 20×20
+              SVGVisualElement "Path" (1RJT-0) 14×14
+          Frame "Frame" (1RJU-0) 252×40
+            Text "RFQ template" (1RJV-0) 252×22 "RFQ template"
+            Text "Opening message and …" (1RJW-0) 252×18 "Opening message and questions"
+          SVG "SVG" (1RJX-0) 16×16
+            SVGVisualElement "Path" (1RJY-0) 6×11
+        Frame "Frame" (1RJZ-0) 348×60
+          Frame "Frame" (1RK0-0) 24×20
+            SVG "SVG" (1RK1-0) 20×20
+              SVGVisualElement "Path" (1RK2-0) 17×12
+          Frame "Frame" (1RK3-0) 252×40
+            Text "Plan and usage" (1RK4-0) 252×22 "Plan and usage"
+            Text "Free in the beta" (1RK5-0) 252×18 "Free in the beta"
+          SVG "SVG" (1RK6-0) 16×16
+            SVGVisualElement "Path" (1RK7-0) 6×11
+    Frame "Notes" (1RK8-0) 350×32
+      Rectangle "Rectangle" (1RK9-0) 14×1
+      Text "Sample person and co…" (1RKA-0) 159×16 "Sample person and company"

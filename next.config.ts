@@ -16,7 +16,9 @@ const nextConfig: NextConfig = {
   // goes back to the exact search URL the buyer was just on; with the default
   // of 0 that re-ran the whole search on the server before the record could
   // close. Mutations call `router.refresh()`, which clears this cache.
-  experimental: { staleTimes: { dynamic: 30 } },
+  // optimizePackageImports: an icon or a primitive imported from the package's barrel ships alone,
+  // not the barrel (11 Oct 2026, the phone speed pass: every page downloaded both).
+  experimental: { staleTimes: { dynamic: 30 }, optimizePackageImports: ["@phosphor-icons/react", "radix-ui"] },
   pageExtensions: isDev
     ? ["tsx", "ts", "jsx", "js", "dev.tsx"]
     : ["tsx", "ts", "jsx", "js"],

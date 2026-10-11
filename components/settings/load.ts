@@ -2,6 +2,7 @@
 // never an empty document: a form drawn over defaults would let a save blank the company, the name or
 // the preferences the buyer never had a chance to see.
 
+import { sessionUserId } from "@/lib/supabase/session-user";
 import type { SettingsDoc } from "./doc";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the Supabase server client, as the other loaders take it.
@@ -14,8 +15,7 @@ type Client = any;
  */
 export async function loadPackCount(supabase: Client, now: Date): Promise<number | null> {
   try {
-    const { data: auth } = await supabase.auth.getUser();
-    const uid = auth?.user?.id;
+    const uid = await sessionUserId(supabase);
     if (!uid) return null;
     const since = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
     const res = await supabase.from("evidence_pack_downloads").select("id", { count: "exact", head: true }).eq("owner_id", uid).gte("created_at", since);

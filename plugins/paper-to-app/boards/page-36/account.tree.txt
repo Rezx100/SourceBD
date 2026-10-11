@@ -1,0 +1,73 @@
+Frame "Account · Sample state · phone" (1PTJ-0) 390×844
+  Frame "Status bar" (1PTK-0) 390×62
+    Frame "Time" (1PTL-0) 94×22
+      Text "9:41" (1PTM-0) 31×22 "9:41"
+    Frame "Icons" (1PTN-0) 94×22
+      SVG "SVG" (1PTO-0) 82×22
+        SVGVisualElement "Path" (1PTP-0) 19×12
+        SVGVisualElement "Path" (1PTQ-0) 17×12
+        SVGVisualElement "Path" (1PTR-0) 25×13
+        SVGVisualElement "Path" (1PTS-0) 21×9
+        SVGVisualElement "Path" (1PTT-0) 1×4
+  Frame "Bar" (1Q8V-0) 390×56
+    Frame "Back" (1Q8W-0) 36×36
+      SVG "SVG" (1Q8X-0) 17×17
+        SVGVisualElement "Path" (1Q8Y-0) 12×10
+  Frame "Body" (1PTZ-0) 390×578
+    Frame "Profile" (1PU0-0) 350×68
+      Frame "Frame" (1PU1-0) 60×60
+        Text "AM" (1PU2-0) 32×24 "AM"
+      Frame "Frame" (1PU3-0) 276×68
+        Text "Alex Morgan" (1PU4-0) 276×30 "Alex Morgan"
+        Text "Example Apparel Ltd …" (1PU5-0) 276×16 "Example Apparel Ltd · Buyer"
+        Frame "Sample note" (1Q90-0) 276×18
+          Rectangle "Rectangle" (1Q91-0) 14×1
+          Text "Sample person and co…" (1Q92-0) 159×16 "Sample person and company"
+    Frame "Group · Workspace" (1PU8-0) 350×122
+      Frame "Frame" (1PU9-0) 348×60
+        SVG "SVG" (1PUA-0) 22×22
+          SVGVisualElement "Path" (1PUB-0) 17×19
+        Frame "Frame" (1PUC-0) 254×34
+          Text "Products" (1PUD-0) 254×18 "Products"
+          Text "4 products · only yo…" (1PUE-0) 254×16 "4 products · only you see these"
+        SVG "SVG" (1PUF-0) 16×16
+          SVGVisualElement "Path" (1PUG-0) 6×11
+      Frame "Frame" (1PUH-0) 348×60
+        SVG "SVG" (1PUI-0) 22×22
+          SVGVisualElement "Path" (1PUJ-0) 17×16
+        Frame "Frame" (1PUK-0) 254×34
+          Text "HS codes" (1PUL-0) 254×18 "HS codes"
+          Text "210 headings from EP…" (1PUM-0) 254×16 "210 headings from EPB export records"
+        SVG "SVG" (1PUN-0) 16×16
+          SVGVisualElement "Path" (1PUO-0) 6×11
+    Frame "Group · Settings" (1PUP-0) 350×262
+      Frame "Frame" (1PUQ-0) 348×52
+        Text "Profile and company" (1PUR-0) 140×18 "Profile and company"
+        SVG "SVG" (1PUS-0) 16×16
+          SVGVisualElement "Path" (1PUT-0) 6×11
+      Frame "Frame" (1PUU-0) 348×52
+        Text "Team and roles" (1PUV-0) 104×18 "Team and roles"
+        Frame "Frame" (1PUW-0) 16×16
+          SVG "SVG" (1PUY-0) 16×16
+            SVGVisualElement "Path" (1PUZ-0) 6×11
+      Frame "Frame" (1PV0-0) 348×52
+        Text "Emails" (1PV1-0) 46×18 "Emails"
+        Frame "Frame" (1PV2-0) 146×16
+          Text "Sanctions always on" (1PV3-0) 122×16 "Sanctions always on"
+          SVG "SVG" (1PV4-0) 16×16
+            SVGVisualElement "Path" (1PV5-0) 6×11
+      Frame "Frame" (1PV6-0) 348×52
+        Text "Security" (1PV7-0) 57×18 "Security"
+        SVG "SVG" (1PV8-0) 16×16
+          SVGVisualElement "Path" (1PV9-0) 6×11
+      Frame "Frame" (1PVA-0) 348×52
+        Text "Plan and usage" (1PVB-0) 106×18 "Plan and usage"
+        Frame "Frame" (1PVC-0) 117×22
+          Frame "Frame" (1PVD-0) 93×22
+            Text "Free in the beta" (1PVE-0) 93×18 "Free in the beta"
+          SVG "SVG" (1PVF-0) 16×16
+            SVGVisualElement "Path" (1PVG-0) 6×11
+    Frame "Sign out" (1PVH-0) 350×52
+      SVG "SVG" (1PVI-0) 20×20
+        SVGVisualElement "Path" (1PVJ-0) 14×14
+      Text "Sign out of this dev…" (1PVK-0) 153×18 "Sign out of this device"

@@ -8,16 +8,19 @@
 // under it are `components/search/typeahead.tsx`.
 
 import { MagnifyingGlass } from "@phosphor-icons/react";
+import dynamic from "next/dynamic";
 import Form from "next/form";
 import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { Menu, MenuItem, MenuSeparator } from "@/components/kit/overlay";
 import { SearchCombobox } from "@/components/search/typeahead";
-import { FeedbackDialog } from "./feedback";
 import { ShortcutsSheet, installHelpKey } from "./shortcuts";
 import { SearchCarry } from "./search-carry";
 import { SearchShortcut } from "./search-shortcut";
 import { pageDrawsOwnField, useApplePlatform } from "./topbar-search-slot";
+
+// The feedback form is fetched when it is first opened, not with every page (11 Oct 2026, speed pass).
+const FeedbackDialog = dynamic(() => import("./feedback").then((m) => m.FeedbackDialog), { ssr: false });
 
 /** `admin` only adds a link: /admin checks the role on the server itself (AGENTS rule 7). `plan` is the row's second line ("Free plan"). */
 export type FrameAccount = { initial: string | null; name: string | null; email: string | null; avatarUrl?: string | null; admin?: boolean; plan?: string | null };

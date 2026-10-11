@@ -35,7 +35,7 @@ import { RecordLastSearch } from "@/components/saved/last-search";
 import { alertsAvailable } from "@/components/saved/load";
 import { SaveSearchPanel, saveSummary } from "@/components/saved/save-search";
 import { ResultsBar } from "@/components/search/bulk-bar";
-import { FilterPane } from "@/components/search/filters";
+import { FilterPane, UflpaSheetNote } from "@/components/search/filters";
 import { Flash } from "@/components/search/flash";
 import { ShortScroll } from "@/components/search/short-scroll";
 import { PastEnd, PaneRows, PhoneMore, PhoneRows, ResultsEmpty, ResultsError, ResultsFooter } from "@/components/search/list";
@@ -52,7 +52,7 @@ import { ProfileReadTimeout, loadLineBeside, loadRecordSheet } from "@/lib/dashb
 import { readSearch } from "@/lib/dashboard/search-cache";
 import { fetchDiscoverExplain, fetchDiscoverExports, fetchDiscoverV32, fetchExportsEntitled, fetchHsBatch } from "@/lib/discover-v32-rpc";
 import { fetchFacilityParentSlug } from "@/lib/facility-parent-redirect";
-import { DISCOVER_PATH, discoverHref, exportsSort, exportsView, filterCount, parseDiscoverState, queryTitle, serializeDiscoverState, withPaneParams, type DiscoverState } from "@/lib/discover-v32-state";
+import { DISCOVER_PATH, discoverChips, discoverHref, exportsSort, exportsView, filterCount, parseDiscoverState, queryTitle, serializeDiscoverState, withPaneParams, type DiscoverState } from "@/lib/discover-v32-state";
 import { noteActivity } from "@/lib/ledger/note";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -176,6 +176,8 @@ export default async function BuyerDiscoverPage({
       search={serializeDiscoverState({ ...state, page: 1 }).toString()}
       defaultName={queryTitle(state)}
       summary={saveSummary(queryTitle(state), error ? null : total)}
+      count={error ? null : total}
+      filters={discoverChips(state).map((c) => c.label)}
       closeHref={keepOpen}
       nextHref={`${keepOpen}${keepOpen.includes("?") ? "&" : "?"}saved=1`}
     />
@@ -276,7 +278,16 @@ export default async function BuyerDiscoverPage({
     </Suspense>
   ) : filtersOpen ? (
     <PaneFrame openKey="filters">
-      <FilterPane state={state} count={error ? null : total} closeHref={closeHref} />
+      <FilterPane
+        state={state}
+        count={error ? null : total}
+        closeHref={closeHref}
+        note={
+          <Suspense fallback={null}>
+            <UflpaSheetNote supabase={supabase} today={today} />
+          </Suspense>
+        }
+      />
     </PaneFrame>
   ) : recordSlug ? (
     // The pane's silhouette at once, the record streamed into it: a new key per record or

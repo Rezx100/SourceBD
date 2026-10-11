@@ -7,8 +7,9 @@ import { BookmarkSimple, CaretDown, Check, MagnifyingGlass } from "@phosphor-ico
 import Link from "next/link";
 import { DownloadCsv } from "@/components/export/download-csv";
 import { ErrorPanel, Menu, MenuItem, Pagination, Skeleton, TabLink, buttonClass } from "@/components/kit";
+import { formatCount } from "@/lib/dashboard/facts";
 import { cn } from "@/lib/utils";
-import { PAGE_SIZE, SAVED_SORTS, SEARCHES_HREF, savedCaption, savedExportHref, savedHref, searchesCaption, tabLabels, type SavedSort, type SavedView } from "./words";
+import { PAGE_SIZE, SAVED_SORTS, SEARCHES_HREF, savedCaption, savedExportHref, savedHref, searchesCaption, type SavedSort, type SavedView } from "./words";
 
 export type Tab = "suppliers" | "searches";
 
@@ -69,29 +70,28 @@ export function SavedHead({ tab, suppliers, searches, caption, view, capped }: {
   );
 }
 
-/** On a phone the two tabs are one two-part switch (`11 · Saved`). */
+/** On a phone the two tabs are underlined labels with their counts (Paper page 36, `saved`, `saved-searches`). */
 export function PhoneTabs({ tab, suppliers, searches }: { tab: Tab; suppliers: number | null; searches: number | null }) {
-  const l = tabLabels(suppliers, searches);
-  const item = (key: Tab, href: string, label: string, first: boolean) => (
+  const item = (key: Tab, href: string, label: string, count: number | null) => (
     <Link
       href={href}
-      prefetch={false}
       aria-current={tab === key ? "page" : undefined}
-      className={cn(
-        "flex flex-1 items-center justify-center text-md outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus",
-        !first && "border-l border-line-strong",
-        tab === key ? "bg-brand-tint font-semibold text-ink" : "font-medium text-ink-2",
-      )}
+      className="relative flex shrink-0 items-center gap-1.5 px-2 outline-none active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
     >
-      {label}
+      <span className={cn("text-md/[20px] font-medium", tab === key ? "text-ink" : "text-ink-3")}>{label}</span>
+      {count === null ? null : (
+        <span className="text-sm/[16px] tabular-nums text-ink-3">
+          <span className="sr-only"> · </span>
+          {formatCount(count)}
+        </span>
+      )}
+      {tab === key ? <span aria-hidden className="absolute inset-x-2 -bottom-px h-0.5 rounded-t-[2px] bg-ink" /> : null}
     </Link>
   );
   return (
-    <nav aria-label="Saved" className="flex px-4 pb-2 pt-1 md:hidden">
-      <div className="flex h-[46px] flex-1 overflow-clip rounded-md border border-line-strong">
-        {item("suppliers", "/app/saved", l.suppliers, true)}
-        {item("searches", SEARCHES_HREF, l.phoneSearches, false)}
-      </div>
+    <nav aria-label="Saved" className="flex h-12 shrink-0 gap-1 border-b border-line px-3 md:hidden">
+      {item("suppliers", "/app/saved", "Suppliers", suppliers)}
+      {item("searches", SEARCHES_HREF, "Searches", searches)}
     </nav>
   );
 }

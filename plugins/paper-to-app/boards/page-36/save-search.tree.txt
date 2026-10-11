@@ -1,0 +1,54 @@
+Frame "Search · save this search sheet · phone" (1QX6-0) 390×824
+  Frame "Status bar" (1QX7-0) 390×62
+    Frame "Time" (1QX8-0) 94×22
+      Text "9:41" (1QX9-0) 31×22 "9:41"
+    Frame "Icons" (1QXA-0) 94×22
+      SVG "SVG" (1QXB-0) 82×22
+        SVGVisualElement "Path" (1QXC-0) 19×12
+        SVGVisualElement "Path" (1QXD-0) 17×12
+        SVGVisualElement "Path" (1QXE-0) 25×13
+        SVGVisualElement "Path" (1QXF-0) 21×9
+        SVGVisualElement "Path" (1QXG-0) 1×4
+  Frame "Results behind" (1QXH-0) 390×180
+  Frame "Sheet" (1QXI-0) 390×582
+    Frame "Frame" (1QXJ-0) 390×12
+      Rectangle "Rectangle" (1QXK-0) 36×4
+    Frame "Sheet head" (1QXL-0) 390×73
+      Frame "Frame" (1QXM-0) 306×48
+        Text "Save this search" (1QXN-0) 306×30 "Save this search"
+        Text "2 suppliers match it…" (1QXO-0) 306×18 "2 suppliers match it today"
+      Frame "Frame" (1QXP-0) 36×36
+        SVG "SVG" (1QXQ-0) 17×17
+          SVGVisualElement "Path" (1QXR-0) 10×10
+    Frame "Sheet body" (1QXS-0) 390×410
+      Frame "Name" (1QXT-0) 350×135
+        Text "Name" (1QXU-0) 350×18 "Name"
+        Frame "Frame" (1QXV-0) 350×48
+          Text "UK knitwear, GOTS va…" (1QXW-0) 175×22 "UK knitwear, GOTS valid"
+          Rectangle "Rectangle" (1QXX-0) 2×20
+        Text "Filled in from your …" (1QXY-0) 350×16 "Filled in from your filters. Only you see it."
+      Frame "Filters" (1QY0-0) 350×175
+        Frame "Frame" (1QY1-0) 350×42
+          Text "What it looks for" (1QY2-0) 350×22 "What it looks for"
+          Text "4 filters, from the …" (1QY3-0) 350×18 "4 filters, from the search you just ran"
+        Frame "Frame" (1QY4-0) 350×80
+          Frame "Frame" (1QY5-0) 89×36
+            Text "Knitwear" (1QY6-0) 59×20 "Knitwear"
+          Frame "Frame" (1QY7-0) 107×36
+            Text "Ships to UK" (1QY8-0) 77×20 "Ships to UK"
+          Frame "Frame" (1QY9-0) 165×36
+            Text "GOTS valid 30+ days" (1QYA-0) 135×20 "GOTS valid 30+ days"
+          Frame "Frame" (1QYB-0) 153×36
+            Text "Sanctioned hidden" (1QYC-0) 123×20 "Sanctioned hidden"
+      Frame "Alert" (1QYD-0) 350×100
+        Frame "Frame" (1QYE-0) 294×60
+          Text "Tell me about new ma…" (1QYF-0) 294×22 "Tell me about new matches"
+          Text "One email on Monday,…" (1QYG-0) 294×36 "One email on Monday, only when something new matches"
+        Frame "Frame" (1QYH-0) 44×26
+          Rectangle "Rectangle" (1QYI-0) 20×20
+    Frame "Action bar" (1QYK-0) 390×87
+      Frame "Frame" (1QYL-0) 390×64
+        Frame "Frame" (1QYM-0) 358×48
+          Text "Save search" (1QYN-0) 92×20 "Save search"
+      Frame "Frame" (1QYO-0) 390×22
+        Rectangle "Rectangle" (1QYP-0) 134×5

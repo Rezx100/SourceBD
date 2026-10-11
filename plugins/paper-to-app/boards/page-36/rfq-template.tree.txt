@@ -1,0 +1,93 @@
+Frame "Settings · RFQ template · one gap · phone" (1RVY-0) 390×1110
+  Frame "Status bar" (1RVZ-0) 390×62
+    Frame "Time" (1RW0-0) 94×22
+      Text "9:41" (1RW1-0) 31×22 "9:41"
+    Frame "Icons" (1RW2-0) 94×22
+      SVG "SVG" (1RW3-0) 82×22
+        SVGVisualElement "Path" (1RW4-0) 19×12
+        SVGVisualElement "Path" (1RW5-0) 17×12
+        SVGVisualElement "Path" (1RW6-0) 25×13
+        SVGVisualElement "Path" (1RW7-0) 21×9
+        SVGVisualElement "Path" (1RW8-0) 1×4
+  Frame "Compact head" (1RW9-0) 390×64
+    Frame "Back" (1RWA-0) 36×36
+      SVG "SVG" (1RWB-0) 17×17
+        SVGVisualElement "Path" (1RWC-0) 12×10
+    Frame "Frame" (1RWD-0) 310×48
+      Text "RFQ template" (1RWE-0) 310×30 "RFQ template"
+      Text "How every new RFQ st…" (1RWF-0) 310×18 "How every new RFQ starts"
+  Frame "Body" (1RWG-0) 390×984
+    Frame "Message" (1RWH-0) 350×360
+      Frame "Section head" (1RWI-0) 350×46
+        Text "Opening message" (1RWJ-0) 166×28 "Opening message"
+      Frame "Frame" (1RWK-0) 350×202
+        Text "Dear [Supplier name]…" (1RWL-0) 320×176 "Dear [Supplier name] team,
+
+We are [Your company], a UK clot"
+      Frame "Frame" (1RWM-0) 350×44
+        Frame "Frame" (1RWN-0) 126×44
+          SVG "SVG" (1RWO-0) 16×16
+            SVGVisualElement "Path" (1RWP-0) 12×12
+          Text "Insert fill-in" (1RWQ-0) 76×20 "Insert fill-in"
+        Frame "Frame" (1RWR-0) 124×44
+          Text "Save message" (1RWS-0) 96×20 "Save message"
+      Text "Fill-ins in [bracket…" (1RWT-0) 350×32 "Fill-ins in [brackets] become real names on each RFQ. You ca"
+    Frame "Preview" (1RWU-0) 350×238
+      Frame "Section head" (1RWV-0) 350×66
+        Text "Preview" (1RWW-0) 74×28 "Preview"
+        Frame "Frame" (1RWX-0) 136×18
+          Text "with Mondol Fabrics" (1RWY-0) 120×18 "with Mondol Fabrics"
+          SVG "SVG" (1RWZ-0) 12×12
+            SVGVisualElement "Path" (1RX0-0) 8×4
+      Frame "Frame" (1RX1-0) 350×146
+        Text "Dear Mondol Fabrics …" (1RX2-0) 318×80 "Dear Mondol Fabrics Ltd. team, we are Example Apparel Ltd, a"
+        Frame "Frame" (1RX3-0) 157×28
+          Text "Your website · missi…" (1RX4-0) 135×18 "Your website · missing"
+      Frame "Frame" (1RX5-0) 350×26
+        SVG "SVG" (1RX6-0) 14×14
+          SVGVisualElement "Path" (1RX7-0) 11×11
+        Text "1 gap: add your webs…" (1RX8-0) 242×16 "1 gap: add your website in Company details"
+    Frame "Questions" (1RXA-0) 350×306
+      Frame "Section head" (1RXB-0) 350×66
+        Frame "Frame" (1RXC-0) 114×28
+          Text "Questions" (1RXD-0) 93×28 "Questions"
+          Text "3" (1RXE-0) 13×28 "3"
+        Text "Up to 20, in this or…" (1RXF-0) 129×18 "Up to 20, in this order"
+      Frame "Frame" (1RXG-0) 350×184
+        Frame "Frame" (1RXH-0) 348×60
+          Text "1" (1RXI-0) 20×20 "1"
+          Text "What is your MOQ per…" (1RXJ-0) 196×44 "What is your MOQ per colour?"
+          Frame "Frame" (1RXK-0) 44×44
+            SVG "SVG" (1RXL-0) 18×18
+              SVGVisualElement "Path" (1RXM-0) 12×6
+          Frame "Frame" (1RXN-0) 44×44
+            SVG "SVG" (1RXO-0) 18×18
+              SVGVisualElement "Path" (1RXP-0) 13×14
+        Frame "Frame" (1RXQ-0) 348×61
+          Text "2" (1RXR-0) 20×20 "2"
+          Text "Which mill makes the…" (1RXS-0) 196×44 "Which mill makes the fabric?"
+          Frame "Frame" (1RXT-0) 44×44
+            SVG "SVG" (1RXU-0) 18×18
+              SVGVisualElement "Path" (1RXV-0) 12×6
+          Frame "Frame" (1RXW-0) 44×44
+            SVG "SVG" (1RXX-0) 18×18
+              SVGVisualElement "Path" (1RXY-0) 13×14
+        Frame "Frame" (1RXZ-0) 348×61
+          Text "3" (1RY0-0) 20×20 "3"
+          Text "Lead time for 3,000 …" (1RY1-0) 196×22 "Lead time for 3,000 pieces?"
+          Frame "Frame" (1RY2-0) 44×44
+            SVG "SVG" (1RY3-0) 18×18
+              SVGVisualElement "Path" (1RY4-0) 12×6
+          Frame "Frame" (1RY5-0) 44×44
+            SVG "SVG" (1RY6-0) 18×18
+              SVGVisualElement "Path" (1RY7-0) 13×14
+      Frame "Frame" (1RY8-0) 350×56
+        Frame "Frame" (1RY9-0) 137×44
+          SVG "SVG" (1RYA-0) 16×16
+            SVGVisualElement "Path" (1RYB-0) 12×12
+          Text "Add question" (1RYC-0) 87×20 "Add question"
+        Frame "Frame" (1RYD-0) 129×44
+          Text "Save questions" (1RYE-0) 101×20 "Save questions"
+    Frame "Frame" (1RYF-0) 350×32
+      Rectangle "Rectangle" (1RYG-0) 14×1
+      Text "Sample template; the…" (1RYH-0) 201×16 "Sample template; the supplier is real"

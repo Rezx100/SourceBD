@@ -7,6 +7,7 @@
 // other saved-search paths do.
 
 import { enrichDiscoverWorkers } from "@/lib/enrich-discover-workers";
+import { sessionUserId } from "@/lib/supabase/session-user";
 import { LIST_LIMIT, runSavedSearchesGet, type SavedSearchJson } from "@/lib/saved-searches";
 import { PAGE_SIZE, groupCerts, type CertRead, type CertsBySupplier, type SavedRow, type SavedSort } from "./words";
 
@@ -34,8 +35,7 @@ const certRows = (d: unknown): CertRead[] | null => (d && typeof d === "object" 
 /** How many saved searches the buyer has; null when it could not be counted. */
 export async function countSavedSearches(supabase: Client): Promise<number | null> {
   try {
-    const { data: auth } = await supabase.auth.getUser();
-    const uid = auth?.user?.id;
+    const uid = await sessionUserId(supabase);
     if (!uid) return null;
     const res = await supabase.from("saved_searches").select("id", { count: "exact", head: true }).eq("owner_id", uid);
     return res.error || typeof res.count !== "number" ? null : res.count;
@@ -51,8 +51,7 @@ export async function countSavedSearches(supabase: Client): Promise<number | nul
  */
 export async function readAlerts(supabase: Client): Promise<Record<string, boolean> | null> {
   try {
-    const { data: auth } = await supabase.auth.getUser();
-    const uid = auth?.user?.id;
+    const uid = await sessionUserId(supabase);
     if (!uid) return null;
     const res = await supabase.from("saved_searches").select("id, alert_weekly").eq("owner_id", uid).limit(LIST_LIMIT);
     if (res.error || !Array.isArray(res.data)) return null;
@@ -108,9 +107,10 @@ export type SearchesData = {
   alerts: Record<string, boolean> | null;
 };
 
-export async function loadSearches(supabase: Client, role: string | null | undefined, now: Date): Promise<SearchesData> {
+/** `role` may still be on its way: only the list waits for it, the other three reads start at once. */
+export async function loadSearches(supabase: Client, role: string | null | undefined | PromiseLike<string | null | undefined>, now: Date): Promise<SearchesData> {
   const [listed, suppliers, last, alerts] = await Promise.all([
-    runSavedSearchesGet({ role, supabase, now } as Parameters<typeof runSavedSearchesGet>[0]),
+    Promise.resolve(role).then((r) => runSavedSearchesGet({ role: r, supabase, now } as Parameters<typeof runSavedSearchesGet>[0])),
     soft<number | null>(() => supabase.rpc("buyer_saved_list", { p_sort: "recent", p_limit: 1, p_offset: 0 }), (d) => (Array.isArray(d) ? (d.length > 0 ? Number((d[0] as { total_count?: number }).total_count ?? d.length) : 0) : null), null),
     soft<unknown>(() => supabase.rpc("buyer_last_search"), (d) => d, null),
     readAlerts(supabase),

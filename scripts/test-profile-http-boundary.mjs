@@ -87,6 +87,9 @@ const GUARD_TOKEN = "http-guard-access-token";
 /** A second session whose profile row is role "supplier" (see the profiles
  * mock), so a route's own role check can be exercised at the wire. */
 const SUPPLIER_TOKEN = "http-guard-supplier-access-token";
+/** A buyer whose profile row says is_suspended, so the middleware's suspension
+ * gate is exercised at the wire after the sign-in check moved to getClaims. */
+const SUSPENDED_TOKEN = "http-guard-suspended-access-token";
 let timeoutRecovered = false;
 let overlapRecovered = false;
 let timeoutOverlapHoldMs = 0;
@@ -360,6 +363,12 @@ const SUPPLIER_USER = {
   aud: "authenticated",
   role: "authenticated",
   email: "http-guard-supplier@example.test",
+};
+const SUSPENDED_USER = {
+  id: "00000000-0000-4000-8000-0000000000ac",
+  aud: "authenticated",
+  role: "authenticated",
+  email: "http-guard-suspended@example.test",
 };
 
 function mockHandler(req, res) {
@@ -653,6 +662,7 @@ function mockHandler(req, res) {
       // prove the app reads and forwards the session token.
       const auth = req.headers.authorization ?? "";
       if (auth === `Bearer ${SUPPLIER_TOKEN}`) return json(SUPPLIER_USER);
+      if (auth === `Bearer ${SUSPENDED_TOKEN}`) return json(SUSPENDED_USER);
       if (auth !== `Bearer ${GUARD_TOKEN}`) {
         return json({ message: "invalid JWT", code: "invalid_token" }, 401);
       }
@@ -686,7 +696,8 @@ function mockHandler(req, res) {
       // The app asks for its own user's row (`id=eq.<uid>`); the supplier
       // session's row is role "supplier", every other session is a buyer.
       const asSupplier = url.searchParams.get("id") === `eq.${SUPPLIER_USER.id}`;
-      const row = { role: asSupplier ? "supplier" : "buyer", is_suspended: false };
+      const suspended = url.searchParams.get("id") === `eq.${SUSPENDED_USER.id}`;
+      const row = { role: asSupplier ? "supplier" : "buyer", is_suspended: suspended };
       const wantsObject = (req.headers.accept || "").includes("vnd.pgrst.object");
       return json(wantsObject ? row : [row]);
     }
@@ -713,13 +724,14 @@ function mockHandler(req, res) {
 
 function buildAuthCookieHeader(who = "buyer") {
   const supplier = who === "supplier";
+  const suspended = who === "suspended";
   const session = {
-    access_token: supplier ? SUPPLIER_TOKEN : GUARD_TOKEN,
+    access_token: supplier ? SUPPLIER_TOKEN : suspended ? SUSPENDED_TOKEN : GUARD_TOKEN,
     token_type: "bearer",
     expires_in: 3600,
     expires_at: Math.floor(Date.now() / 1000) + 3600,
-    refresh_token: supplier ? "http-guard-supplier-refresh-token" : "http-guard-refresh-token",
-    user: supplier ? SUPPLIER_USER : TEST_USER,
+    refresh_token: supplier ? "http-guard-supplier-refresh-token" : suspended ? "http-guard-suspended-refresh-token" : "http-guard-refresh-token",
+    user: supplier ? SUPPLIER_USER : suspended ? SUSPENDED_USER : TEST_USER,
   };
   // @supabase/ssr cookieEncoding "base64url" writes values as
   // `base64-<base64url(JSON)>`; getChunks only decodes when the prefix is
@@ -960,7 +972,7 @@ function startServerAndWait(args, env, readyToken) {
 
 async function probeOnce(path, { auth = false } = {}) {
   const headers = { "user-agent": "sourcebd-http-guard/1.0" };
-  if (auth) headers.cookie = buildAuthCookieHeader(auth === "supplier" ? "supplier" : "buyer");
+  if (auth) headers.cookie = buildAuthCookieHeader(typeof auth === "string" ? auth : "buyer");
   const res = await fetch(`${APP_URL}${path}`, {
     redirect: "manual",
     headers,
@@ -1602,6 +1614,25 @@ const CASES = [
     // the query vary.
     expect: { status: 307, locationPath: "/login" },
   },
+  // The sign-in check reads the session token locally now (getClaims, 11 Oct
+  // 2026); role and suspension still come from profiles on every request.
+  {
+    name: "app: a signed-out phone tab -> 307 to /login",
+    path: "/app/saved",
+    expect: { status: 307, locationPath: "/login" },
+  },
+  {
+    name: "app: a suspended buyer -> 307 to /suspended",
+    path: "/app/saved",
+    auth: "suspended",
+    expect: { status: 307, locationPath: "/suspended" },
+  },
+  {
+    name: "api: a suspended buyer -> 403",
+    path: "/api/v1/saved-searches",
+    auth: "suspended",
+    expect: { status: 403 },
+  },
 
   // ---- B8a: the v4 sign-in, sign-up and account-state pages --------------
   // Each is a page a person reaches by an address or by an email link, so each is held to its status
@@ -1920,8 +1951,8 @@ async function main() {
     }
 
     for (const c of CASES) {
-      // `auth: true` is the buyer session; `auth: "supplier"` the supplier one.
-      const opts = { auth: c.auth === "supplier" ? "supplier" : c.auth === true, devMode: mode === "dev" };
+      // `auth: true` is the buyer session; `auth: "supplier"` / `"suspended"` the named one.
+      const opts = { auth: typeof c.auth === "string" ? c.auth : c.auth === true, devMode: mode === "dev" };
       const rpcBeforeHit1 = {};
       if (
         typeof c.expect.hit1MustRpcMax === "number" ||

@@ -46,9 +46,9 @@ const { PaneListToolbar, PhoneToolbar, ResultsToolbar, barMenus, resultsTitle } 
 const { PaneRows, PhoneRows, ResultsEmpty, ResultsError, ResultsSkeleton, familyWords } = require("@/components/search/list") as typeof import("@/components/search/list");
 const { onRowKey } = require("@/components/search/keys") as typeof import("@/components/search/keys");
 const { resultRow } = require("@/components/search/model") as typeof import("@/components/search/model");
-const { EMPTY_STATE, parseDiscoverState } = require("@/lib/discover-v32-state") as typeof import("@/lib/discover-v32-state");
+const { EMPTY_STATE, discoverHref, parseDiscoverState } = require("@/lib/discover-v32-state") as typeof import("@/lib/discover-v32-state");
 const { appliedChips, clearedForm, countKey, formOf, groupsSet, searchOf, showLabel, summaryOf } = require("@/components/search/filter-model") as typeof import("@/components/search/filter-model");
-const { FilterPane } = require("@/components/search/filters") as typeof import("@/components/search/filters");
+const { FilterPane, UflpaSheetNote } = require("@/components/search/filters") as typeof import("@/components/search/filters");
 const { selectionValue } = require("@/lib/dashboard/selection") as typeof import("@/lib/dashboard/selection");
 /* eslint-enable @typescript-eslint/no-require-imports */
 import type { ResultRow } from "@/components/search/model";
@@ -89,6 +89,7 @@ const row = (over: Partial<ResultRow> = {}): ResultRow => ({
   pageHref: "/app/suppliers/aboni-knitwear?back=%2Fapp%2Fdiscover%3Fq%3Dknit",
   rfqHref: `/app/discover?q=knit&rfq=${over.supplierId ?? "id-aboni"}`,
   sanctioned: false,
+  saved: false,
   ...over,
 });
 const rows = [row(), row({ slug: "zaheen", supplierId: "id-zaheen", name: ZAHEEN, cert: null, certCell: null, sources: 4 }), row({ slug: "sm", supplierId: "id-sm", name: "SM Sourcing", cert: { state: "valid", text: "WRAP valid until 8 Jan 2027", more: 0 }, certCell: certSummary([{ markCode: "wrap", scheme: "WRAP", expiresOn: "2027-01-08" }], TODAY) })];
@@ -420,16 +421,30 @@ describe("the bar over the results", () => {
     assert.ok(narrow.includes('aria-label="Add filter · 2 on"') && narrow.includes("Sort: most sources"));
   });
 
-  it("a phone's bar is a 48-tall field with its ×, the count, and two 44-tall halves", () => {
+  it("a phone's bar is a 52-tall tonal field with its ×, a row of pills, then the count and the standing filter (Paper page 36, search-results)", () => {
     const phone = plain(h(PhoneToolbar, { state: { ...state, per: 50 as const }, count: "4,645 suppliers", hrefFor, filtersHref: "#" }));
     assert.match(phone, /role="search"/);
     assert.ok(phone.includes('value="knit"') && phone.includes('aria-label="Clear the search"'));
     assert.match(phone, /<input[^>]*role="combobox"[^>]*aria-expanded="false"/, "a combobox, closed until the buyer types or focuses it");
     assert.match(phone, /type="hidden" name="per" value="50"/, "the field carries the other filters");
     assert.ok(!/name="q" value=/.test(phone.replace('name="q" value="knit"', "")), "the query is the field, not also a hidden input");
-    assert.ok(phone.includes("4,645 suppliers") && phone.includes("Sort: most sources") && phone.includes("Hiding sanctioned suppliers"));
-    assert.match(phone, /h-input-touch/);
-    assert.match(phone, /h-touch/);
+    const words = phone.replace(/<[^>]*>/g, " ").replace(/ +/g, " ");
+    assert.ok(words.includes("4,645 suppliers") && words.includes("Most sources") && phone.includes('aria-label="Sort: most sources"'));
+    // The one filter the buyer did not choose is said, with the way to lift it.
+    assert.ok(words.includes("Sanctioned hidden · Show"));
+    const bar = (st: typeof state, entitled = false) => plain(h(PhoneToolbar, { state: st, entitled, count: "4,645 suppliers", hrefFor: discoverHref, filtersHref: "#" }));
+    assert.equal(hrefOf(bar(state), "Show"), "/app/discover?q=knit&sanctioned=1");
+    assert.ok(!bar({ ...state, sanctioned: true }).includes("Sanctioned hidden"), "nothing is held back, so nothing to show");
+    assert.match(phone, /h-\[52px\]/);
+    // Filters is a 36-tall pill that says how many are on (the query is one, as the count on it always was).
+    const filters = /<a[^>]*aria-label="Filters, 1 on"[^>]*>/.exec(phone)?.[0] ?? "";
+    assert.ok(/\sclass="[^"]*(?<![\w-])h-9(?![\w-])/.test(filters), "Filters is a pill that names itself");
+    assert.match(bar({ ...state, district: ["Gazipur"] }), /aria-label="Filters, 2 on"/);
+    assert.match(bar(EMPTY_STATE), /aria-label="Filters"/);
+    // Customs figures are an entitled reader's: no market pill for anyone else.
+    assert.ok(!phone.includes("Ships to UK"));
+    const ships = new URLSearchParams((hrefOf(bar(state, true), "Ships to UK") ?? "").split("?")[1]);
+    assert.deepEqual([ships.get("q"), ships.get("exports"), ships.get("ships")], ["knit", "1", "uk"], "the pill turns the market on, keeping the search");
     // Critique of 8 Oct 2026, item 5: two h1 on the results page, the phone bar's hidden title and the desktop title.
     assert.doesNotMatch(phone, /<h1\b/, "the phone bar's title is a second h1 on the page");
   });
@@ -469,7 +484,9 @@ describe("the narrow list and the phone's rows", () => {
   it("on a phone a row opens the record as a page, and the way back is in the address", () => {
     const out = plain(h(PhoneRows, { rows }));
     assert.ok(out.includes('href="/app/suppliers/aboni-knitwear?back=%2Fapp%2Fdiscover%3Fq%3Dknit"'));
-    assert.ok(out.includes("Factory · Dhaka · 11 sources"));
+    // Paper page 36, `search-results`: where it is and its sources under the name, the bookmark at the row's end.
+    assert.ok(out.includes("Dhaka · 11 sources"));
+    assert.match(out, /<button[^>]*aria-pressed="false"[^>]*>/, "a row's bookmark saves it");
     // Founder, 10 Oct 2026: a tap on the marks did nothing. They sit beside the row's link (a button
     // cannot nest in one) as a button that opens their words; the rest of the row still opens the record.
     assert.match(out, /<\/a><span class="pointer-events-none[^"]*\[&_button\]:pointer-events-auto[^"]*"><button type="button" aria-haspopup="dialog"/);
@@ -814,6 +831,34 @@ describe("the filter pane (B4b)", () => {
   it("holds no score and no contact field", () => {
     const out = pane();
     for (const key of ["email_primary", "contact_name", "contact_role", "phones"]) assert.ok(!out.includes(key), key);
+  });
+
+  it("a phone's sheet says what the last read of the UFLPA list found, dated from the record; never 'not read yet'", async () => {
+    // What a buyer's session can read: the check of their own saved suppliers, and the day the list was last read in full.
+    const clear = { total: 11, hits: 0, flags: 0, clear: 11, rows: [] };
+    const lists = [{ list: "uflpa", entries_listed: 253, last_read: "2026-10-08T04:00:00Z" }, { list: "ofac_sdn", entries_listed: 9799, last_read: "2026-10-11T04:00:00Z" }];
+    const client = (answers: Record<string, unknown>) => ({ rpc: async (fn: string) => (fn in answers ? { data: answers[fn], error: null } : { data: null, error: { message: `no function ${fn}` } }) });
+    const sheet = async (answers: Record<string, unknown>) => plain(h(FilterPane, { state, count: 71, closeHref: "/app/discover", note: await UflpaSheetNote({ supabase: client(answers), today: TODAY }) }));
+    const line = /<p class="([^"]*)"><svg[^>]*>[\s\S]*?<\/svg>([^<]*)<\/p>/;
+
+    const read = await sheet({ compliance_uflpa_tracker: clear, sanctions_lists_read: lists });
+    assert.equal(line.exec(read)?.[2], "UFLPA list, your saved suppliers: No link found · not a clearance · read 8 Oct");
+    assert.match(line.exec(read)![1]!, /\bmd:hidden\b/, "the phone's line: a desktop pane draws as before");
+    assert.doesNotMatch(read, /not read yet/i);
+
+    const hit = await sheet({ compliance_uflpa_tracker: { ...clear, hits: 1, clear: 10 }, sanctions_lists_read: lists });
+    assert.equal(line.exec(hit)?.[2], "UFLPA list, your saved suppliers: 1 on the list · read 8 Oct");
+    assert.match(line.exec(hit)![1]!, /\btext-caution\b/);
+    assert.doesNotMatch(hit, /No link found/, "a listed supplier is never under 'no link found'");
+
+    // Nothing saved, or the check unread: only that the list was read, no result claimed.
+    assert.equal(line.exec(await sheet({ compliance_uflpa_tracker: { ...clear, total: 0, clear: 0 }, sanctions_lists_read: lists }))?.[2], "UFLPA list read 8 Oct");
+    assert.equal(line.exec(await sheet({ sanctions_lists_read: lists }))?.[2], "UFLPA list read 8 Oct");
+    // The check read but no read date in the record: said, never invented.
+    assert.equal(line.exec(await sheet({ compliance_uflpa_tracker: clear }))?.[2], "UFLPA list, your saved suppliers: No link found · not a clearance · read date not stored");
+    // Neither read: the sheet says nothing about the list.
+    assert.doesNotMatch(await sheet({}), /UFLPA/);
+    assert.doesNotMatch(pane(), /UFLPA/);
   });
 });
 

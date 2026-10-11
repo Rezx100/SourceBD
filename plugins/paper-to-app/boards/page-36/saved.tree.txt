@@ -1,0 +1,95 @@
+Frame "Saved · 3 selected, one RFQ · Sample list · phone" (1PPF-0) 390×844
+  Frame "Status bar" (1PPG-0) 390×62
+    Frame "Time" (1PPH-0) 94×22
+      Text "9:41" (1PPI-0) 31×22 "9:41"
+    Frame "Icons" (1PPJ-0) 94×22
+      SVG "SVG" (1PPK-0) 82×22
+        SVGVisualElement "Path" (1PPL-0) 19×12
+        SVGVisualElement "Path" (1PPM-0) 17×12
+        SVGVisualElement "Path" (1PPN-0) 25×13
+        SVGVisualElement "Path" (1PPO-0) 21×9
+        SVGVisualElement "Path" (1PPP-0) 1×4
+  Frame "Page head" (1PPQ-0) 390×56
+    Text "Saved" (1PPR-0) 90×36 "Saved"
+    Frame "Frame" (1PPS-0) 36×36
+      Text "AM" (1PPT-0) 21×16 "AM"
+  Frame "Tabs" (1Q6N-0) 390×48
+    Frame "Tab · Suppliers (current)" (1Q6O-0) 103×47
+      Text "Suppliers" (1Q6P-0) 71×20 "Suppliers"
+      Text "11" (1Q6Q-0) 10×16 "11"
+      Frame "Indicator" (1Q6R-0) 87×2
+    Frame "Tab · Searches" (1Q6S-0) 102×47
+      Text "Searches" (1Q6T-0) 71×20 "Searches"
+      Text "2" (1Q6U-0) 9×16 "2"
+  Frame "Body" (1PPU-0) 390×540
+    Frame "Selection bar" (1PQ2-0) 350×40
+      Text "3 selected" (1PQ3-0) 76×18 "3 selected"
+      Text "Clear" (1PQ4-0) 36×18 "Clear"
+    Frame "Rows" (1PQ5-0) 350×436
+      Frame "Frame" (1PQ6-0) 348×86
+        Frame "Frame" (1PQ7-0) 22×22
+          SVG "SVG" (1PQ8-0) 14×14
+            SVGVisualElement "Path" (1PQ9-0) 11×7
+        Frame "Frame" (1PQA-0) 282×58
+          Text "Tex Town Ltd." (1PQB-0) 282×18 "Tex Town Ltd."
+          Text "Dhaka · 8 sources · …" (1PQC-0) 282×16 "Dhaka · 8 sources · 1,408 workers"
+          Frame "Frame" (1Q6W-0) 282×20
+            SVG "SVG" (1Q6X-0) 14×14
+              SVGVisualElement "Path" (1Q6Y-0) 7×11
+            Text "GOTS ends 15 Oct · 4…" (1Q6Z-0) 158×18 "GOTS ends 15 Oct · 4 days"
+      Frame "Frame" (1PQE-0) 348×87
+        Frame "Frame" (1PQF-0) 22×22
+          SVG "SVG" (1PQG-0) 14×14
+            SVGVisualElement "Path" (1PQH-0) 11×7
+        Frame "Frame" (1PQI-0) 282×58
+          Text "Aboni Knitwear Ltd." (1PQJ-0) 282×18 "Aboni Knitwear Ltd."
+          Text "Dhaka · 11 sources ·…" (1PQK-0) 282×16 "Dhaka · 11 sources · 3,166 workers"
+          Frame "Frame" (1Q71-0) 282×20
+            SVG "SVG" (1Q72-0) 14×14
+              SVGVisualElement "Path" (1Q73-0) 10×11
+            Text "WRAP valid to 25 Aug…" (1Q74-0) 168×18 "WRAP valid to 25 Aug 2027"
+      Frame "Frame" (1PQM-0) 348×87
+        Frame "Frame" (1PQN-0) 22×22
+          SVG "SVG" (1PQO-0) 14×14
+            SVGVisualElement "Path" (1PQP-0) 11×7
+        Frame "Frame" (1PQQ-0) 282×58
+          Text "Mondol Intimates Ltd…" (1PQR-0) 282×18 "Mondol Intimates Ltd."
+          Text "Dhaka · 6 sources · …" (1PQS-0) 282×16 "Dhaka · 6 sources · 2,950 workers"
+          Frame "Frame" (1Q76-0) 282×20
+            SVG "SVG" (1Q77-0) 14×14
+              SVGVisualElement "Path" (1Q78-0) 7×11
+            Text "GOTS expired 8 Oct" (1Q79-0) 119×18 "GOTS expired 8 Oct"
+      Frame "Frame" (1PQU-0) 348×87
+        Rectangle "Rectangle" (1PQV-0) 22×22
+        Frame "Frame" (1PQW-0) 282×58
+          Text "Quattro Fashion Limi…" (1PQX-0) 282×18 "Quattro Fashion Limited"
+          Text "Dhaka · 8 sources · …" (1PQY-0) 282×16 "Dhaka · 8 sources · 2,584 workers"
+          Frame "Frame" (1Q7B-0) 282×20
+            SVG "SVG" (1Q7C-0) 14×14
+              SVGVisualElement "Path" (1Q7D-0) 10×11
+            Text "WRAP valid to 19 Nov" (1Q7E-0) 130×18 "WRAP valid to 19 Nov"
+      Frame "Frame" (1PR0-0) 348×87
+        Rectangle "Rectangle" (1PR1-0) 22×22
+        Frame "Frame" (1PR2-0) 282×58
+          Text "Aswad Composite Mill…" (1PR3-0) 282×18 "Aswad Composite Mills Ltd."
+          Text "Gazipur · 6 sources …" (1PR4-0) 282×16 "Gazipur · 6 sources · 6,703 workers"
+          Frame "Frame" (1Q7G-0) 282×20
+            SVG "SVG" (1Q7H-0) 14×14
+              SVGVisualElement "Path" (1Q7I-0) 7×11
+            Text "GOTS expired 27 Jun" (1Q7J-0) 127×18 "GOTS expired 27 Jun"
+    Frame "Notes" (1Q7L-0) 350×48
+      Frame "Frame" (1Q7M-0) 350×16
+        SVG "SVG" (1Q7N-0) 14×14
+          SVGVisualElement "Path" (1Q7O-0) 9×11
+        Text "WRAP list read 10 Oc…" (1Q7P-0) 273×16 "WRAP list read 10 Oct · GOTS read date not stored"
+      Frame "Frame" (1Q7Q-0) 350×16
+        Rectangle "Rectangle" (1Q7R-0) 14×1
+        Text "Sample saved list; c…" (1Q7S-0) 236×16 "Sample saved list; certificate dates are real"
+  Frame "Action bar" (1PRA-0) 390×87
+    Frame "Frame" (1PRB-0) 390×64
+      Frame "Frame" (1PRC-0) 110×48
+        Text "Remove" (1PRD-0) 61×20 "Remove"
+      Frame "Frame" (1PRE-0) 240×48
+        Text "Send one RFQ to 3" (1PRF-0) 141×20 "Send one RFQ to 3"
+    Frame "Frame" (1PRG-0) 390×22
+      Rectangle "Rectangle" (1PRH-0) 134×5
