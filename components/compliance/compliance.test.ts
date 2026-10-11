@@ -513,26 +513,6 @@ describe("/app/compliance/uflpa", () => {
   });
 });
 
-describe("a certificate its body no longer lists (spec-etl-freshness S2)", () => {
-  const delisted: CertRead = { ...cert(S(4), "Tex Town Ltd.", "gots", "GOTS-27401", "2026-11-19"), listing_status: "no_longer_listed", delisted_on: "2026-10-03" };
-  const oeko: CertRead = { ...cert(S(6), "Label Co", "oeko_tex", "37940-100", ""), expires_on: null as unknown as string, listing_status: "no_longer_listed", delisted_on: "2026-10-03" };
-
-  it("sits with the expired, says since when, and is not listed again as expiring", () => {
-    const g = expiryGroups(list([delisted, oeko]), EXPIRING, NOW);
-    assert.deepEqual(g.expired.map((c) => c.when), ["No longer listed by GOTS since 3 Oct 2026", "No longer listed by OEKO-TEX since 3 Oct 2026"]);
-    assert.equal(g.expired[0]!.askLabel, "Ask for the new certificate");
-    assert.ok(!g.within90.some((c) => c.number === "GOTS-27401"), "the same certificate is one problem, not two");
-  });
-
-  it("the one count counts it once and says it is no longer listed", () => {
-    const a = attentionOf(list([delisted, oeko]), EXPIRING, NOW, 10)!;
-    assert.equal(a.total, 3, "2 delisted + 2 expiring, one of them the same certificate");
-    assert.equal(a.rows[0]!.what, "GOTS-27401 is no longer listed by GOTS since 3 Oct 2026.");
-    assert.equal(a.rows[0]!.state, "expired");
-    assert.equal(a.rows[1]!.what, "OEKO-TEX 37940-100 is no longer listed by OEKO-TEX since 3 Oct 2026.");
-  });
-});
-
 describe("the UFLPA line on a phone (Paper page 36, `alerts` and `filters`)", () => {
   const clear = { total: 10, hits: 0, flags: 0 };
   const READ = "2026-10-01T03:10:00Z";
@@ -566,5 +546,25 @@ describe("the UFLPA line on a phone (Paper page 36, `alerts` and `filters`)", ()
     assert.match(text(out), /UFLPA Entity List No link found · not a clearance · read 1 Oct Certificates 4 Expired first Expired 2 of 4 /);
     assert.equal(out.match(/>Ask for it</g)?.length, 4, "one ask per certificate");
     assert.equal(out.match(/href="\/app\/rfqs\/new\?supplier=/g)?.length, 4, "each through the RFQ, the one channel a supplier answers on");
+  });
+});
+
+describe("a certificate its body no longer lists (spec-etl-freshness S2)", () => {
+  const delisted: CertRead = { ...cert(S(4), "Tex Town Ltd.", "gots", "GOTS-27401", "2026-11-19"), listing_status: "no_longer_listed", delisted_on: "2026-10-03" };
+  const oeko: CertRead = { ...cert(S(6), "Label Co", "oeko_tex", "37940-100", ""), expires_on: null as unknown as string, listing_status: "no_longer_listed", delisted_on: "2026-10-03" };
+
+  it("sits with the expired, says since when, and is not listed again as expiring", () => {
+    const g = expiryGroups(list([delisted, oeko]), EXPIRING, NOW);
+    assert.deepEqual(g.expired.map((c) => c.when), ["No longer listed by GOTS since 3 Oct 2026", "No longer listed by OEKO-TEX since 3 Oct 2026"]);
+    assert.equal(g.expired[0]!.askLabel, "Ask for the new certificate");
+    assert.ok(!g.within90.some((c) => c.number === "GOTS-27401"), "the same certificate is one problem, not two");
+  });
+
+  it("the one count counts it once and says it is no longer listed", () => {
+    const a = attentionOf(list([delisted, oeko]), EXPIRING, NOW, 10)!;
+    assert.equal(a.total, 3, "2 delisted + 2 expiring, one of them the same certificate");
+    assert.equal(a.rows[0]!.what, "GOTS-27401 is no longer listed by GOTS since 3 Oct 2026.");
+    assert.equal(a.rows[0]!.state, "expired");
+    assert.equal(a.rows[1]!.what, "OEKO-TEX 37940-100 is no longer listed by OEKO-TEX since 3 Oct 2026.");
   });
 });
