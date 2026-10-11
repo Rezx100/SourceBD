@@ -21,6 +21,7 @@
     "lib/dedup-addresses.ts",
     "lib/dedup-addresses.test.ts",
     "lib/dedup-addresses-fixture.slow-test.ts",
+    "lib/phone-speed.test.ts",
     "lib/format-location.ts",
     "lib/resolve-location-from-address.ts",
     "ops/report_address_near_dups.ts",

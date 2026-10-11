@@ -19,6 +19,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { createSupabaseMiddlewareClient } from "@/lib/supabase/middleware";
+import { sessionUserId } from "@/lib/supabase/session-user";
 import {
   RATE_LIMITS,
   classifyRoute,
@@ -95,10 +96,7 @@ export async function middleware(req: NextRequest) {
     const spec = RATE_LIMITS[klass];
     let ident: string;
     if (spec.identifier === "user") {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      cachedUserId = user?.id ?? null;
+      cachedUserId = await sessionUserId(supabase);
       // Unauthed hits on /api/v1/* still get bucketed (by IP) so a logged-out
       // attacker cannot bypass the gate by omitting cookies.
       ident = cachedUserId ?? leftmostIp(req.headers);
@@ -141,10 +139,7 @@ export async function middleware(req: NextRequest) {
         .some((c) => c.name.startsWith("sb-"));
       if (hasSbCookie) {
         if (cachedUserId === undefined) {
-          const {
-            data: { user },
-          } = await supabase.auth.getUser();
-          cachedUserId = user?.id ?? null;
+          cachedUserId = await sessionUserId(supabase);
         }
         if (cachedUserId) {
           const { data: profile } = await supabase
@@ -192,12 +187,8 @@ export async function middleware(req: NextRequest) {
 
   if (!needsAuthGate) return res;
 
-  const user =
-    cachedUserId === undefined
-      ? (await supabase.auth.getUser()).data.user
-      : cachedUserId
-        ? { id: cachedUserId }
-        : null;
+  const userId = cachedUserId === undefined ? await sessionUserId(supabase) : cachedUserId;
+  const user = userId ? { id: userId } : null;
 
   if (!user) {
     if (isApi) {

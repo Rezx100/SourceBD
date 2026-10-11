@@ -10,6 +10,7 @@ import "server-only";
 // the gallery does not need. It returns counts, never values — see the
 // migration's header for why the counts do not live on `buyer_supplier_profile`.
 
+import { sessionUserId } from "@/lib/supabase/session-user";
 import { fetchDisplayWorkersBatch } from "@/lib/enrich-discover-workers";
 import { isProfileRpcTimeout } from "@/lib/public-supplier-profile";
 import { hscodesFromRpc } from "@/lib/epb-hscodes";
@@ -328,9 +329,8 @@ export async function callerId(
   supabase: any,
 ): Promise<string | null> {
   try {
-    const { data } = await supabase.auth.getUser();
-    const id = data?.user?.id;
-    return typeof id === "string" && id ? id : null;
+    // Read from the session token locally where it can be (lib/supabase/session-user).
+    return await sessionUserId(supabase);
   } catch {
     return null;
   }

@@ -149,7 +149,8 @@ export function buildSavedItems(rows: readonly SavedRow[], certs: CertsBySupplie
       cert: certCell(certs, r.id, today),
       savedOn: formatDay(r.saved_at),
       paneHref: savedHref({ ...view, open: r.slug, tab: null }),
-      pageHref: `/app/suppliers/${r.slug}?back=${encodeURIComponent(back)}`,
+      // `sid`: the record page starts its id-keyed reads beside the profile (11 Oct 2026, speed pass).
+      pageHref: `/app/suppliers/${r.slug}?back=${encodeURIComponent(back)}&sid=${r.id}`,
       rfqHref: rfqHref(back, [r.id]),
       listHref: back,
     };

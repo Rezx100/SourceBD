@@ -22,9 +22,9 @@ export const metadata = { title: "Saved searches · SourceBD" };
 
 export default async function SearchesPage() {
   const supabase = await createSupabaseServerClient();
-  const role = await getServerRole();
   const now = new Date();
-  const data = await loadSearches(supabase, role, now);
+  // The role read and the three reads that do not need it run side by side (11 Oct 2026, speed pass).
+  const data = await loadSearches(supabase, getServerRole(), now);
   const items = data.searches ? buildSearchItems(data.searches, now, data.alerts) : [];
   const count = data.searches === null ? null : items.length;
   const view = { sort: "recent" as const, page: 1 };
