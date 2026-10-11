@@ -12,6 +12,9 @@ export const LIMIT_API_READ = 120;
  * Bounds this route only — a signed-in PostgREST caller reaches the RPC
  * directly, outside the app (hand-off §7.1). */
 export const LIMIT_API_EXPORT = 6;
+/** The shipment reveal: each new supplier may cost a paid Volza search, so the bucket sits under the
+ * monthly and daily allowances 0141 enforces, as a burst guard (handoff-volza-reveal.md). */
+export const LIMIT_API_REVEAL = 10;
 export const LIMIT_PUBLIC_MARKETING = 240;
 
 export type RateLimitClass =
@@ -19,6 +22,7 @@ export type RateLimitClass =
   | "api_write"
   | "api_read"
   | "api_export"
+  | "api_reveal"
   | "public_marketing";
 
 export type RateLimitSpec = {
@@ -31,6 +35,7 @@ export const RATE_LIMITS: Record<RateLimitClass, RateLimitSpec> = {
   api_write: { perMin: LIMIT_API_WRITE, identifier: "user" },
   api_read: { perMin: LIMIT_API_READ, identifier: "user" },
   api_export: { perMin: LIMIT_API_EXPORT, identifier: "user" },
+  api_reveal: { perMin: LIMIT_API_REVEAL, identifier: "user" },
   public_marketing: { perMin: LIMIT_PUBLIC_MARKETING, identifier: "ip" },
 };
 
@@ -66,6 +71,7 @@ export function classifyRoute(
   method: string,
 ): RateLimitClass | null {
   if (pathname === "/api/v1/discover/export") return "api_export";
+  if (/^\/api\/v1\/suppliers\/[^/]+\/shipments$/.test(pathname)) return "api_reveal";
   if (pathname.startsWith("/api/v1")) {
     return WRITE_METHODS.has(method) ? "api_write" : "api_read";
   }

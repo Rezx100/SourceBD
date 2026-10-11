@@ -56,6 +56,14 @@ describe("rate-limit classes", () => {
     const allow = sql.match(/v_bucket\s*<>\s*all\s*\(\s*array\[([\s\S]*?)\]/i);
     assert.ok(allow, `${file}: rl_check has no bucket allow-list`);
     const listed = new Set([...(allow[1] ?? "").matchAll(/'([a-z_:]+)'/g)].map((m) => m[1]));
+    // Plus the classes a later migration patches into the live definition with 0119's shape (0141: api_reveal).
+    for (const f of readdirSync(MIG).filter((x) => x.endsWith(".sql"))) {
+      const patch = stripSql(readFileSync(path.join(MIG, f), "utf8"));
+      if (!/pg_get_functiondef\('public\.rl_check\(text, text, integer\)'::regprocedure\)/.test(patch)) continue;
+      for (const block of patch.matchAll(/foreach v_name in array array\[([\s\S]*?)\]/g)) {
+        for (const m of (block[1] ?? "").matchAll(/'([a-z_]+)'/g)) listed.add(m[1]);
+      }
+    }
     for (const klass of Object.keys(RATE_LIMITS) as RateLimitClass[]) {
       assert.ok(listed.has(klass), `bucket "${klass}" is not in rl_check's allow-list (${file}), so it is never limited`);
     }

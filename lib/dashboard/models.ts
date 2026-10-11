@@ -3,7 +3,7 @@
 // them, so a boundary test can construct one and assert the rendered HTML.
 
 import type { TierRank } from "@/lib/design/tokens";
-import type { CertChecks, CertModel, CertState, VolzaExports } from "./facts";
+import type { CertChecks, CertModel, CertState, ShipmentRevealState, VolzaExports } from "./facts";
 import type { PhotoTileModel } from "./hs-photos";
 import type { SourceMarkModel } from "./source-tiers";
 
@@ -367,6 +367,8 @@ export type SupplierSheetModel = {
   certChecks: CertChecks | null;
   /** `supplier_volza_exports` (0137): customs shipments for paying readers; null otherwise. */
   volza: VolzaExports | null;
+  /** `supplier_shipment_reveal_state` (0141): the Recent shipments section; null draws nothing. */
+  shipments?: ShipmentRevealState | null;
 };
 
 export type ProductSheetModel = {

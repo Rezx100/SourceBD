@@ -205,6 +205,50 @@ export type VolzaExports = {
   record_sort?: "value" | "date" | null;
 };
 
+/** One shipment in a reveal, as `supplier_shipment_reveal` (0141) returns it: no unit price. */
+export type RevealRecord = {
+  date: string | null;
+  product: string | null;
+  hs_code: string | null;
+  buyer: string | null;
+  buyer_country: string | null;
+  destination: string | null;
+  unit: string | null;
+  value_usd: number | null;
+  weight_kg: number | null;
+};
+/** `supplier_shipment_reveal` (0141): the saved latest shipments, cut to 15 or 25 by the database. */
+export type ShipmentReveal = { fetched_at: string; limit: number; records: RevealRecord[] };
+/** `supplier_shipment_reveal_state` (0141): what the Recent shipments section shows this reader. */
+export type ShipmentRevealState =
+  | { state: "upgrade" }
+  | { state: "shown"; reveal: ShipmentReveal }
+  | { state: "offer"; shown: number; limit: number | null; used: number };
+
+/** A reveal row as the table prints it (Paper page 34, K4, three columns after the founder's note of 11 Oct). */
+export type RevealRow = { key: string; date: string; product: string; hs: string | null; buyerTo: string | null; value: string | null; weight: string | null };
+
+/**
+ * The reveal's rows: the date, the product as filed in sentence case with its HS code (6109.10), the buyer tidied
+ * as on the band ("The Haddad Apparel Group Ltd") with where it went, the value and the gross weight. Never a unit
+ * price, and never a quantity: the records carry none (only value over unit price, which is a price).
+ */
+export function revealRows(records: readonly RevealRecord[]): RevealRow[] {
+  return records.map((r, i) => {
+    const hs = r.hs_code && /^\d{6,}$/.test(r.hs_code) ? `${r.hs_code.slice(0, 4)}.${r.hs_code.slice(4, 6)}` : null;
+    const buyerTo = [tidyBuyer(r.buyer), place(r.destination)].filter(Boolean).join(" · ") || null;
+    return {
+      key: `${i}`,
+      date: formatDay(r.date) ?? "Date not filed",
+      product: productWords(r.product) ?? "Garments",
+      hs,
+      buyerTo,
+      value: typeof r.value_usd === "number" ? usd(Math.round(r.value_usd)) : null,
+      weight: typeof r.weight_kg === "number" && r.weight_kg > 0 ? `${Math.round(r.weight_kg).toLocaleString("en-GB")} kg` : null,
+    };
+  });
+}
+
 /**
  * Pieces a year the customs row says the supplier shipped: the window's export value a year over the
  * stored shipment's price a piece (at least US$1, so a cheap line cannot inflate it). Null when the row

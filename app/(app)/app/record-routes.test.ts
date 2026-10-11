@@ -345,6 +345,54 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     assert.doesNotMatch(html(await outcome(overview)), /look inconsistent|Exports suggest|customs records/, "customs data reached a reader without it on the Overview");
   });
 
+  it("Recent shipments draws what supplier_shipment_reveal_state says: nothing, the plans line, the offer, used up, or the table (0141, K1–K7)", async () => {
+    const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
+    const open = async (state: unknown) => {
+      given({ profile: PROFILE, hscodes: HS, rpcs: { supplier_shipment_reveal_state: { data: state, error: null } } });
+      return html(await outcome(() => Page({ params: Promise.resolve({ slug: "hamza-clothing" }), searchParams: Promise.resolve({ tab: "exports" }) })));
+    };
+    const words = (s: string) => s.replace(/<[^>]*>/g, " ").replace(/&#x27;|&#39;/g, "'").replace(/\s+/g, " ");
+
+    // Null (signed out, suspended, no exact match, a failed read): no section at all.
+    assert.doesNotMatch(words(await open(null)), /Recent shipments|See the latest/);
+    assert.ok(rpcCalls.some((c) => c.fn === "supplier_shipment_reveal_state" && c.args?.p_slug === "hamza-clothing"), "the page never asked for the reveal state");
+
+    // Starter (K5): the plans line and Compare plans, never the button.
+    const upgrade = await open({ state: "upgrade" });
+    assert.match(words(upgrade), /Recent shipments Latest shipments from Bangladesh customs\. .*Growth shows the latest 15, Enterprise 25\. Compare plans/);
+    assert.match(upgrade, /href="\/pricing"[^>]*>Compare plans/);
+    assert.doesNotMatch(upgrade, /See the latest/);
+
+    // Growth (K1): the plan's number on the button, what is left this month.
+    const offer = words(await open({ state: "offer", shown: 15, limit: 30, used: 12 }));
+    assert.match(offer, /See the latest 15 shipments 18 of 30 left this month/);
+    // Enterprise (K2) and an admin, whose limit is null: no "left" line.
+    assert.match(words(await open({ state: "offer", shown: 25, limit: 100, used: 12 })), /See the latest 25 shipments 88 of 100 left this month/);
+    assert.doesNotMatch(words(await open({ state: "offer", shown: 25, limit: null, used: 3 })), /left this month/);
+
+    // Used up (K6): the box, when it resets, Compare plans; no button.
+    const used = words(await open({ state: "offer", shown: 15, limit: 30, used: 30 }));
+    assert.match(used, /All 30 suppliers used this month Resets 1 [A-Z][a-z]+ Compare plans/);
+    assert.doesNotMatch(used, /See the latest/);
+
+    // Revealed this month (K4, three columns): the table straight away, newest first, no price, no quantity.
+    const rec = { date: "2026-08-31", product: "MEN'S BASIC T SHIRT (Men's T-Shirt)", hs_code: "61091000", buyer: "Action Service Distributie B V", buyer_country: "Netherlands", destination: "Netherlands", unit: "PCS", value_usd: 109209.096, weight_kg: 14817.6 };
+    const shown = await open({ state: "shown", reveal: { fetched_at: "2026-10-11T04:00:00+00:00", limit: 15, records: [rec, { ...rec, date: "2026-08-20", destination: "Not Available", weight_kg: null }] } });
+    const t = words(shown);
+    assert.match(t, /Latest 2 shipments Fetched 11 Oct 2026 · Bangladesh customs/);
+    assert.match(t, /Date Shipment Value 31 Aug 2026 31 Aug 2026 Men's basic t shirt \(men's t-shirt\) 6109\.10 Action Service Distributie B V · Netherlands US\$109,209 14,818 kg/);
+    assert.match(t, /Action Service Distributie B V US\$109,209 Buyer names as on the customs record/, "an unknown destination is printed, or a missing weight is");
+    assert.doesNotMatch(t, /a piece|per pcs|pieces|Quantity|See the latest|Volza/i);
+    // The band's button jumps to the section for a reader who can reveal, and only for them.
+    const band = (state: unknown) => {
+      const volza = { shipments: 406, fob_usd: 21698439.68, buyers: 43, window_start: "2024-09-01", window_end: "2026-08-31", volza_name: "Hamza Clothing Ltd.", fetched_at: "2026-10-10T21:33:30+00:00", top_shipments: [] };
+      given({ profile: PROFILE, hscodes: HS, rpcs: { supplier_volza_exports: { data: volza, error: null }, supplier_shipment_reveal_state: { data: state, error: null } } });
+      return outcome(() => Page({ params: Promise.resolve({ slug: "hamza-clothing" }), searchParams: Promise.resolve({}) })).then(html);
+    };
+    assert.match((await band({ state: "offer", shown: 15, limit: 30, used: 12 })).replace(/&amp;/g, "&"), /href="[^"]*tab=exports#recent-shipments"[^>]*>Show recent shipments/);
+    assert.doesNotMatch(await band(null), /Show recent shipments/);
+  });
+
   it("?lines=all expands the grid past six tiles", async () => {
     given({ profile: PROFILE, hscodes: HS });
     const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
