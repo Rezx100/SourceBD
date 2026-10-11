@@ -38,7 +38,9 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from volza_company_list import load  # noqa: E402
-from volza_export_dryrun import CANDIDATES, RAW, classify, normalize_company_name, shipments, summary_suppliers  # noqa: E402
+from volza_export_dryrun import (  # noqa: E402
+    CANDIDATES, RAW, classify, normalize_company_name, shipments, summary_suppliers, variants,
+)
 from volza_filter_test import EU  # noqa: E402
 from volza_live_sample import Live, Stop, account_used  # noqa: E402
 
@@ -46,6 +48,7 @@ CAP_LIMIT = 50.0  # each batch is approved at up to $50
 SEED = 20261011
 MARKETS = [("United Kingdom", ["United Kingdom"]), ("United States", ["United States"]), ("EU", EU),
            ("Canada", ["Canada"])]
+SHOWN_SHARE = 0.9  # an exact search must keep 90% of the swept-in shipments to be shown
 SMALL_PCS = 1000  # "N% of its shipments were under 1,000 pieces" (founder, 11 Oct 2026)
 SUFFIXES = ("", " Ltd", " Ltd.", " Limited", " (Pvt) Ltd", " (Pvt.) Ltd.", " Pvt Ltd", " Pvt. Ltd.",
             " Private Limited")
@@ -69,7 +72,9 @@ def plan() -> list[dict[str, Any]]:
     done = {r["id"] for f in sorted(RAW.glob("launch_*.jsonl")) for r in load(f) if not r.get("partial")}
     rows = [{"id": r["id"], "slug": r["slug"], "name": r["name"], "held": r} for r in held.values()
             if r["class"] in ("exact", "ambiguous") and r["id"] not in done]
-    cands = [c for c in json.loads(CANDIDATES.read_text(encoding="utf-8")) if c["epb_6162"] and c["variants"]]
+    # names rebuilt with today's cleaner: candidates.json (10 Oct) cut "Nipun (Pte) Ltd." to "Nipun (Pte"
+    cands = [{**c, "variants": variants(c)} for c in json.loads(CANDIDATES.read_text(encoding="utf-8")) if c["epb_6162"]]
+    cands = [c for c in cands if c["variants"]]
     cands.sort(key=lambda c: c["id"])
     random.Random(SEED).shuffle(cands)
     rows += [{"id": c["id"], "slug": c["slug"], "name": c["company_name"], "variants": c["variants"]}
@@ -132,7 +137,8 @@ def fetch(v: Live, row: dict[str, Any], rec: dict[str, Any]) -> None:
                                                                "count_of_suppliers": held["suppliers"],
                                                                "sum_of_trade_value_usd": held.get("fob_usd"),
                                                                "count_of_buyers": held.get("buyers")},
-                        "api_records": [held.get("top") or {"supplier_name": held["volza_supplier"]}]}
+                        # the sample's stored record has no supplier_name; Volza's spelling is kept beside it
+                        "api_records": [{**(held.get("top") or {}), "supplier_name": held["volza_supplier"]}]}
                 take(data, name, name)
             else:
                 main = {"supplier_name": [name]}
@@ -141,14 +147,22 @@ def fetch(v: Live, row: dict[str, Any], rec: dict[str, Any]) -> None:
             if rec["shipments"]:
                 break
         if rec["shipments"] and rec["suppliers"] > 1:
+            swept = rec["shipments"]
             main = {"supplier_name": legal_forms(rec["matched_variant"], rec["volza_supplier"]),
                     "supplier_name_search_type": "exact"}
             data = call("exact", main)
             if shipments(data):
                 take(data, rec["matched_variant"], "exact:" + rec["matched_variant"])
                 rec["suppliers"] = 1  # every shipment in it carries our legal name
-            rec["exact_check"] = {"shipments": shipments(data), "exporter_ids": summary_suppliers(data)}
+            rec["exact_check"] = {"shipments": shipments(data), "exporter_ids": summary_suppliers(data),
+                                  "starts_with": swept}
         rec["class"] = classify(row["name"], rec["volza_supplier"], rec["shipments"], rec["suppliers"])
+        check = rec.get("exact_check")
+        if rec["class"] == "exact" and check and check["shipments"] < SHOWN_SHARE * check["starts_with"]:
+            # Batch 1: Volza's exact search can keep a fraction of the right company (Columbia Apparels, same
+            # Dhaka factory and Target shipment: 84 of 2,468) or pick a namesake abroad (Rashad Industries,
+            # Kolkata). Hidden for a person to look at, rather than shown with a count that may be wrong.
+            rec["class"] = "ambiguous"
         if rec["class"] == "ambiguous":  # the exact search found none of it under our name
             main = None
     countries = (rec.get("summary") or {}).get("count_of_unique_destination_countries") or 0
