@@ -20,7 +20,7 @@ const PILL: Record<OrderStatus, { icon: typeof Clock; tone: string; glyph: strin
   in_production: { icon: Clock, tone: "bg-sunken text-ink-2", glyph: "text-ink-3" },
   shipped: { icon: Boat, tone: "bg-info-tint text-info", glyph: "text-info" },
   in_transit: { icon: Boat, tone: "bg-info-tint text-info", glyph: "text-info" },
-  delivered: { icon: CheckCircle, tone: "bg-brand-tint text-brand", glyph: "text-brand" },
+  delivered: { icon: CheckCircle, tone: "bg-brand-tint text-brand-ink", glyph: "text-brand-ink" },
   cancelled: { icon: XCircle, tone: "bg-sunken text-ink-3", glyph: "text-ink-3" },
 };
 const LATE_PILL = { tone: "bg-caution-tint text-caution", glyph: "text-caution-icon" };

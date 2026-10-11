@@ -211,8 +211,8 @@ function QuoteCards({ m, order, threadHref }: { m: DetailModel; order: OrderRef;
         return (
           <li key={q.id} className="flex flex-col gap-3.5 rounded-lg border border-line bg-surface p-4">
             {pill ? (
-              <span className={cn("flex h-7 shrink-0 items-center gap-1.5 self-start rounded-full pl-2 pr-2.5 text-sm font-medium", pill.caution ? "bg-caution-tint text-caution" : "bg-brand-tint text-brand")}>
-                {pill.caution ? <Warning size={16} weight="thin" className="shrink-0 text-caution-icon" aria-hidden /> : <CheckCircle size={16} weight="thin" className="shrink-0 text-brand" aria-hidden />}
+              <span className={cn("flex h-7 shrink-0 items-center gap-1.5 self-start rounded-full pl-2 pr-2.5 text-sm font-medium", pill.caution ? "bg-caution-tint text-caution" : "bg-brand-tint text-brand-ink")}>
+                {pill.caution ? <Warning size={16} weight="thin" className="shrink-0 text-caution-icon" aria-hidden /> : <CheckCircle size={16} weight="thin" className="shrink-0 text-brand-ink" aria-hidden />}
                 {pill.text}
               </span>
             ) : null}
@@ -285,7 +285,7 @@ function PriceChart({ c }: { c: QuoteChart }) {
           {r.price ? (
             <span className="flex w-24 shrink-0 flex-col items-end whitespace-nowrap">
               <span className="text-base/[18px] font-medium text-ink">{r.price}</span>
-              {r.delta ? <span className={cn("text-xs font-medium", r.over ? "text-caution" : "text-brand")}>{r.delta}</span> : null}
+              {r.delta ? <span className={cn("text-xs font-medium", r.over ? "text-caution" : "text-brand-ink")}>{r.delta}</span> : null}
             </span>
           ) : (
             <span className="w-24 shrink-0 text-right text-xs text-ink-3">No quote yet</span>

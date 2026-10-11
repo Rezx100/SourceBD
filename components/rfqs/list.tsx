@@ -117,8 +117,8 @@ export function RfqPhoneRows({ items }: { items: readonly ListItem[] }) {
                 className="flex flex-col gap-2.5 p-4 outline-none active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
               >
                 <span className="flex items-center justify-between gap-2">
-                  <span className={cn("flex min-w-0 items-center gap-1.5 text-xs font-medium", t.brand ? "text-brand" : "text-ink-3")}>
-                    <t.icon size={16} weight="thin" className={cn("shrink-0", t.brand ? "text-brand" : "text-ink-3")} aria-hidden />
+                  <span className={cn("flex min-w-0 items-center gap-1.5 text-xs font-medium", t.brand ? "text-brand-ink" : "text-ink-3")}>
+                    <t.icon size={16} weight="thin" className={cn("shrink-0", t.brand ? "text-brand-ink" : "text-ink-3")} aria-hidden />
                     {t.label}
                   </span>
                   <span className="flex shrink-0 items-center gap-1">
@@ -136,8 +136,8 @@ export function RfqPhoneRows({ items }: { items: readonly ListItem[] }) {
                     </span>
                     <span className="grow basis-0" />
                     {versus ? (
-                      <span className={cn("flex h-6 shrink-0 items-center gap-1 self-center rounded-full pl-1.5 pr-2 text-xs font-medium", i.best.over ? "bg-caution-tint text-caution" : "bg-brand-tint text-brand")}>
-                        {i.best.over ? <Warning size={14} weight="thin" className="shrink-0 text-caution-icon" aria-hidden /> : <CheckCircle size={14} weight="thin" className="shrink-0 text-brand" aria-hidden />}
+                      <span className={cn("flex h-6 shrink-0 items-center gap-1 self-center rounded-full pl-1.5 pr-2 text-xs font-medium", i.best.over ? "bg-caution-tint text-caution" : "bg-brand-tint text-brand-ink")}>
+                        {i.best.over ? <Warning size={14} weight="thin" className="shrink-0 text-caution-icon" aria-hidden /> : <CheckCircle size={14} weight="thin" className="shrink-0 text-brand-ink" aria-hidden />}
                         <span className="w-max">{versus}</span>
                       </span>
                     ) : null}

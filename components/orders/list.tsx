@@ -93,8 +93,8 @@ function rowTag(i: OrderItem): { icon: Icon; label: string; tone: "ink" | "cauti
   return tag(Boat, i.chip.label);
 }
 
-const TAG_TONE = { ink: "text-ink-3", caution: "text-caution", brand: "text-brand" } as const;
-const ICON_TONE = { ink: "text-ink-3", caution: "text-caution-icon", brand: "text-brand" } as const;
+const TAG_TONE = { ink: "text-ink-3", caution: "text-caution", brand: "text-brand-ink" } as const;
+const ICON_TONE = { ink: "text-ink-3", caution: "text-caution-icon", brand: "text-brand-ink" } as const;
 
 /** On a phone a row opens the order as a page (Paper 36 `orders`): the tag, the title, supplier · value · quantity, and while it is live the road it is on. */
 export function OrderPhoneRows({ items }: { items: readonly OrderItem[] }) {

@@ -6,14 +6,11 @@
 // everything: Products, HS codes, the settings pages, feedback and Sign out. A page that draws its own bar (a record, a
 // thread: `data-detail`) hides both, as S-09 asks.
 
-import { CaretRight, ChatCircleText, GearSix, Hash, Package, ShieldCheck, SignOut, UserCircle } from "@phosphor-icons/react";
+import { ArrowLeft, CaretRight, ChatCircleText, Cube, Hash, Package, ShieldCheck, SignOut, UserCircle } from "@phosphor-icons/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Dialog as D } from "radix-ui";
 import { Suspense, useEffect, useState } from "react";
-// The account page's own icons. The import above is left as `development` has it (GearSix is no
-// longer used) so `phone-redesign-1`, which adds a line under it, merges clean: fold these in after.
-import { ArrowLeft, Cube } from "@phosphor-icons/react";
 import { ring, ringInset } from "@/components/kit/classes";
 import { TabBar } from "@/components/kit/phone";
 import { LinkPending } from "@/components/patterns/link-pending";
