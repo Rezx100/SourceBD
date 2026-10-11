@@ -44,8 +44,11 @@ def shown_class(r: dict[str, Any]) -> str:
     """'exact' only when the exact-name search kept 90% of what the name swept in (report section 11).
 
     Batch 1 wrote some rows before that rule existed (Columbia Apparels: 84 of 2,468); the swept count
-    is the search just before the "exact:" one in tried.
+    is the search just before the "exact:" one in tried. A row fetched after the founder's yes
+    (ops/volza_review.py) is shown whatever the counts said.
     """
+    if r.get("review") in ("all", "exact") and r["class"] == "exact":
+        return "exact"
     i = next((n for n, t in enumerate(r["tried"]) if str(t[0]).startswith("exact:")), None)
     if r["class"] == "exact" and i and r["tried"][i][2] < 0.9 * r["tried"][i - 1][2]:
         return "ambiguous"

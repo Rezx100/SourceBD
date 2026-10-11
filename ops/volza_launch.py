@@ -25,6 +25,8 @@ fetched again on resume).
 
   python ops/volza_launch.py --batch 1            # the plan, no key read, no calls
   python ops/volza_launch.py --batch 1 --apply    # run it (cap $50)
+  python ops/volza_launch.py --batch 2 --limit 200 --cap 130   # 200 unchecked EPB suppliers, cap $130
+Unsure matches wait for the founder's answer in ops/volza_review.py; a yes is fetched in the next batch.
   python ops/volza_launch.py --latest [--apply]   # the latest shipment for the suppliers shown (cap $11)
 Then store: python ops/volza_load_sample.py --file etl/raw/volza/launch_1.jsonl [--apply] (markets stay
 in the raw file until a column holds them).
@@ -49,8 +51,10 @@ from volza_export_dryrun import (  # noqa: E402
 )
 from volza_filter_test import EU  # noqa: E402
 from volza_live_sample import Live, Stop, account_used  # noqa: E402
+from volza_review import decisions, newest  # noqa: E402
 
-CAP_LIMIT = 50.0  # each batch is approved at up to $50
+CAP_LIMIT = 50.0  # each batch is approved at up to $50 unless --cap says otherwise
+NEW_AVG = 0.55  # batch 1: 21 unchecked suppliers cost $11.65
 SEED = 20261011
 MARKETS = [("United Kingdom", ["United Kingdom"]), ("United States", ["United States"]), ("EU", EU),
            ("Canada", ["Canada"])]
@@ -76,11 +80,16 @@ def legal_forms(base: str, seen: str | None) -> list[str]:
 
 
 def plan() -> list[dict[str, Any]]:
-    """Held suppliers first (markets, narrowing), then unchecked EPB suppliers in a fixed order."""
+    """The founder's yeses first, then held suppliers (markets, narrowing), then unchecked EPB suppliers
+    in a fixed order. A supplier the founder said no to is never searched again."""
+    said = {k: d["decision"] for k, d in decisions().items()}
+    rows = [{"id": r["id"], "slug": r["slug"], "name": r["name"], "reviewed": r, "confirmed": said[r["id"]]}
+            for r in newest().values() if said.get(r["id"]) in ("all", "exact") and not r.get("review")]
     held = {r["id"]: r for f in ("live_sample.jsonl", "batch_1.jsonl", "refetch_1.jsonl") for r in load(RAW / f)}
     done = {r["id"] for f in sorted(RAW.glob("launch_*.jsonl")) for r in load(f) if not r.get("partial")}
-    rows = [{"id": r["id"], "slug": r["slug"], "name": r["name"], "held": r} for r in held.values()
-            if r["class"] in ("exact", "ambiguous") and r["id"] not in done]
+    done |= set(said)
+    rows += [{"id": r["id"], "slug": r["slug"], "name": r["name"], "held": r} for r in held.values()
+             if r["class"] in ("exact", "ambiguous") and r["id"] not in done]
     # names rebuilt with today's cleaner: candidates.json (10 Oct) cut "Nipun (Pte) Ltd." to "Nipun (Pte"
     cands = [{**c, "variants": variants(c)} for c in json.loads(CANDIDATES.read_text(encoding="utf-8")) if c["epb_6162"]]
     cands = [c for c in cands if c["variants"]]
@@ -132,7 +141,18 @@ def fetch(v: Live, row: dict[str, Any], rec: dict[str, Any]) -> None:
 
     held = row.get("held")
     main: dict[str, Any] | None = None
-    if held and held["class"] == "exact":  # preview held; only the markets are missing
+    if row.get("reviewed"):  # the founder said yes: that search again (latest first), then markets
+        r, choice = row["reviewed"], row["confirmed"]
+        ex = next((c for c in r.get("calls") or [] if c["kind"] == "exact"), None)
+        if choice == "exact" and ex:
+            main = {k: x for k, x in ex["filters"].items() if k not in LATEST}
+        else:
+            name = next(t[0] for t in reversed(r["tried"]) if not str(t[0]).startswith("exact:") and t[2])
+            main = {"supplier_name": [name]}
+        data = call("review:" + choice, {**main, **LATEST})
+        take(data, r.get("matched_variant") or main["supplier_name"][0], "review:" + choice)
+        rec.update({"class": "exact" if rec["shipments"] else "none", "review": choice})
+    elif held and held["class"] == "exact":  # preview held; only the markets are missing
         rec.update({k: held.get(k) for k in ("tried", "shipments", "suppliers", "matched_variant", "volza_supplier",
                                              "fob_usd", "buyers", "summary", "top", "fetched_at", "class")})
         rec["fetched_at"] = held.get("fetched_at") or rec["fetched_at"]
@@ -265,6 +285,8 @@ def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--batch", type=int)
     p.add_argument("--latest", action="store_true", help="refetch the latest shipment of the suppliers shown")
+    p.add_argument("--limit", type=int, help="at most this many unchecked EPB suppliers in the batch")
+    p.add_argument("--cap", type=float, default=CAP_LIMIT, help="dollars this batch may spend (default 50)")
     p.add_argument("--apply", action="store_true", help="spend real credit (production key)")
     a = p.parse_args()
     logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -275,16 +297,24 @@ def main() -> None:
         p.error("--batch N or --latest")
     path = out_path(a.batch)
     rows = plan()
+    if a.limit is not None:  # resumable: the new suppliers this batch already finished count toward it
+        started = {r["id"] for r in load(path) if not r.get("partial") and any(c["kind"] == "preview" for c in r["calls"])}
+        fresh = [r for r in rows if "variants" in r][:max(0, a.limit - len(started))]
+        rows = [r for r in rows if "variants" not in r] + fresh
     if not a.apply:
         held = [r for r in rows if r.get("held")]
-        print(f"batch {a.batch}: {sum(1 for r in held if r['held']['class'] == 'exact')} held exact (markets), "
+        yes = sum(1 for r in rows if r.get("reviewed"))
+        new = len(rows) - len(held) - yes
+        print(f"batch {a.batch}: {yes} the founder said yes to (about $0.75 each), "
+              f"{sum(1 for r in held if r['held']['class'] == 'exact')} held exact (markets), "
               f"{sum(1 for r in held if r['held']['class'] == 'ambiguous')} held ambiguous (exact search), then "
-              f"{len(rows) - len(held)} unchecked EPB suppliers in order until the cap of ${CAP_LIMIT:.0f}. "
+              f"{new} unchecked EPB suppliers in order. Batch 1 averaged ${NEW_AVG:.2f} a new supplier: about "
+              f"${yes * 0.75 + new * NEW_AVG:.0f} expected; the cap of ${a.cap:.0f} stops it whatever happens. "
               "Pass --apply to run.")
         return
     prior = sum(r["cost"] for r in load(path))
-    v = Live(CAP_LIMIT, prior, start_used=account_used())
-    print(f"${prior:.2f} already spent in batch {a.batch}, cap ${CAP_LIMIT:.2f}")
+    v = Live(a.cap, prior, start_used=account_used())
+    print(f"${prior:.2f} already spent in batch {a.batch}, cap ${a.cap:.2f}")
     with path.open("a", encoding="utf-8") as out:
         for row in rows:
             rec = new_rec(row)
