@@ -87,6 +87,7 @@ export const SECURITY_COPY = {
   twoStepOn: "On. You enter a code from your authenticator app each time you sign in.",
   lostPhone: "If you lose your phone, contact support: we can remove it once we know it is you.",
   passwordNote: "Change it on your Profile. We ask for the current one first.",
+  passwordPhone: "Change it on your Profile",
   signedOutOthers: "Signed out of your other devices. They can work for up to an hour before the sign-out reaches them.",
   ended: "Signed out of that device.",
   sso: "Single sign-on (SAML) comes with Enterprise.",
