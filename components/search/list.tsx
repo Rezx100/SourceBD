@@ -4,10 +4,11 @@
 // words are Paper's (`10 · Results, empty`, `Errors`, `11 · Results`).
 
 import Link from "next/link";
-import { SupplierRow } from "@/components/patterns";
+import { LinkPending } from "@/components/patterns/link-pending";
+import { RecordSave } from "@/components/record/save-button";
 import { ErrorPanel, Pagination, Skeleton, buttonClass } from "@/components/kit";
 import { PER_PAGE, discoverChips, discoverHref, filterCount, withoutFilterFamily, type DiscoverState } from "@/lib/discover-v32-state";
-import { formatCount } from "@/lib/dashboard/facts";
+import { formatCount, nameSecondLine, splitQualifier } from "@/lib/dashboard/facts";
 import { discoverFailureCopy } from "@/lib/discover-v32-rpc";
 import type { ResultRow } from "./model";
 import { Problem } from "./pane-rows";
@@ -16,15 +17,51 @@ import { SlowHead } from "./slow";
 
 export { PaneRows } from "./pane-rows";
 
-/** On a phone a row opens the record as a page, with the way back to this search; a tap on the marks opens their words. */
+/**
+ * On a phone (Paper page 36, `search-results`) a row is the name large, where it is and its sources,
+ * the customs figures for a reader who may see them, the certificates' cell, and a bookmark. The
+ * link covers the row and opens the record as a page with the way back to this search; a tap on the
+ * marks opens their words and the bookmark saves, both above the link.
+ */
 export function PhoneRows({ rows }: { rows: readonly ResultRow[] }) {
   return (
-    <ul>
-      {rows.map((r) => (
-        <li key={r.slug}>
-          <SupplierRow layout="phone" href={r.pageHref} name={r.name} type={r.type} place={r.place} sources={r.sources} figure={r.exports ? { key: r.exports.shipments, detail: null } : null} problem={<Problem r={r} reveal />} />
-        </li>
-      ))}
+    <ul className="px-5 pt-1">
+      {rows.map((r) => {
+        const { base, qualifier } = splitQualifier(r.name);
+        return (
+          <li key={r.slug} className="relative flex gap-3 border-b border-line py-4 active:bg-sunken has-[>div>a:focus-visible]:outline has-[>div>a:focus-visible]:outline-2 has-[>div>a:focus-visible]:outline-offset-[-2px] has-[>div>a:focus-visible]:outline-focus">
+            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+              <Link href={r.pageHref} className="flex flex-col gap-0.5 outline-none after:absolute after:inset-0 after:content-['']">
+                <span data-name="" title={r.name} className="line-clamp-2 text-[19px]/[26px] font-semibold tracking-[-0.015em] text-ink">
+                  {qualifier ? (
+                    <>
+                      <span aria-hidden="true">{base}</span>
+                      <span className="sr-only">{r.name}</span>
+                    </>
+                  ) : (
+                    base
+                  )}
+                  <LinkPending className="ml-1.5 inline-block align-[-2px]" />
+                </span>
+                <span data-name="" className="text-sm text-ink-3">
+                  {[nameSecondLine(r.name, r.place ?? r.type), `${r.sources} ${r.sources === 1 ? "source" : "sources"}`].join(" · ")}
+                </span>
+                {r.exports ? (
+                  <span className="text-base text-ink-3">
+                    <span className="font-medium tabular-nums text-ink-2">{r.exports.key}</span> · {r.exports.detail}
+                  </span>
+                ) : null}
+              </Link>
+              <span className="pointer-events-none relative z-raised self-start text-sm [&_button]:pointer-events-auto">
+                <Problem r={r} reveal />
+              </span>
+            </div>
+            {r.supplierId && !r.sanctioned ? (
+              <RecordSave supplierId={r.supplierId} saved={r.saved} appearance="icon" className="relative z-raised -my-2 -mr-2 size-11 self-start border-transparent bg-transparent text-ink-2 hover:bg-sunken active:bg-sunken" />
+            ) : null}
+          </li>
+        );
+      })}
     </ul>
   );
 }

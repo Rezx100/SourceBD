@@ -8,7 +8,7 @@
 // Monday" is a switch saved at once (0113's `alert_weekly`, sent by the Monday job,
 // lib/email/jobs/saved-search-alerts.ts); it is drawn only when the database answered it.
 
-import { DotsThree } from "@phosphor-icons/react";
+import { DotsThree, MagnifyingGlass } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 import { Button, ButtonLink, Dialog, Field, IconButton, Input, Menu, MenuItem, Sheet, Switch } from "@/components/kit";
@@ -112,7 +112,7 @@ function AlertSwitch({ a, phone }: { a: ReturnType<typeof useAlert>; phone: bool
   if (!a.shown) return null;
   return (
     <div className="flex flex-col gap-1">
-      <Switch size={phone ? "touch" : "md"} checked={a.on} disabled={a.busy} onChange={(e) => void a.set(e.currentTarget.checked)}>
+      <Switch size={phone ? "touch" : "md"} className={phone ? "border-y-0 py-0" : undefined} checked={a.on} disabled={a.busy} onChange={(e) => void a.set(e.currentTarget.checked)}>
         {alertWords(a.on)}
       </Switch>
       <p role="status" aria-live="polite" className={a.error ? "text-sm text-danger" : "sr-only"}>
@@ -259,16 +259,28 @@ function SearchRow({ item }: { item: SearchItem }) {
           <RowMenu item={item} d={d} r={r} />
         </div>
       </div>
-      <div className="flex flex-col gap-2 py-4 md:hidden">
-        <div className="flex items-start justify-between gap-3">
-          <p className="text-md font-semibold text-ink [overflow-wrap:anywhere]">{item.name}</p>
+      <div className="flex flex-col gap-2.5 p-4 md:hidden">
+        <div className="-mr-2 -mt-2 flex items-start justify-between gap-3">
+          <p className="pt-2 text-md/[22px] font-medium text-ink [overflow-wrap:anywhere]">{item.name}</p>
           <RowMenu item={item} d={d} r={r} />
         </div>
-        <p className="text-base text-ink-2">{[item.filters, item.count ? `${item.count} ${item.countWords}` : item.countWords].join(" · ")}</p>
+        <p className="text-sm text-ink-2">{item.filters}</p>
         <AlertSwitch a={a} phone />
-        <ButtonLink href={item.runHref} prefetch={false} size="touch" full>
-          Run search
-        </ButtonLink>
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs text-ink-3">
+            {item.count ? (
+              <>
+                <span className="font-medium tabular-nums text-ink">{item.count}</span> {item.countWords}
+              </>
+            ) : (
+              item.countWords
+            )}
+          </p>
+          <ButtonLink href={item.runHref} prefetch={false} kind="quiet" className="h-11 gap-1.5 rounded-full bg-sunken px-3.5 text-base text-ink active:bg-line">
+            <MagnifyingGlass size={16} className="shrink-0" aria-hidden />
+            Run search
+          </ButtonLink>
+        </div>
       </div>
       <RenameDialog item={item} r={r} />
       <DeleteConfirm item={item} d={d} />
@@ -278,10 +290,14 @@ function SearchRow({ item }: { item: SearchItem }) {
 
 export function SearchList({ items }: { items: readonly SearchItem[] }) {
   return (
-    <ul aria-label="Saved searches" className="px-6 py-2 max-md:px-4">
-      {items.map((i) => (
-        <SearchRow key={i.id} item={i} />
-      ))}
-    </ul>
+    <>
+      {/* A phone draws them as one card (Paper page 36, `saved-searches`). */}
+      <ul aria-label="Saved searches" className="px-6 py-2 max-md:mx-5 max-md:overflow-clip max-md:rounded-[10px] max-md:border max-md:border-line max-md:p-0 max-md:[&>li:last-child]:border-b-0">
+        {items.map((i) => (
+          <SearchRow key={i.id} item={i} />
+        ))}
+      </ul>
+      {items.some((i) => i.alert !== null) ? <p className="px-5 pb-6 pt-4 text-xs text-ink-3 md:hidden">Alert emails go out on Monday, only when something new matches.</p> : null}
+    </>
   );
 }

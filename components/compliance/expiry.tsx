@@ -6,13 +6,15 @@
 // 3 Oct 2026" from the RFQs sent to the supplier (`askedDates`), which is the record of the ask.
 // Download CSV writes the certificates the filter shows (`/api/v1/export`).
 
-import { Clock, XCircle } from "@phosphor-icons/react/dist/ssr";
+import { ChatCircle, Clock, Hourglass, ShieldCheck, XCircle } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { ButtonLink, Table, Td, Tr, Unpublished, rowLinkClass } from "@/components/kit";
 import { DownloadCsv } from "@/components/export/download-csv";
+import { LinkPending } from "@/components/patterns/link-pending";
 import { cn } from "@/lib/utils";
 import { BackToHub } from "./hub";
-import { certExportHref, expiredHeading, expiryCounts, expiryHref, expirySubline, expiryTabs, within30Heading, within90Heading, type CertItem, type ExpiryGroups, type ExpiryShow } from "./words";
+import { shortDay } from "./uflpa-read";
+import { certExportHref, expiredHeading, expiryCounts, expiryHref, expiryItems, expirySubline, expiryTabs, within30Heading, within90Heading, type CertItem, type ExpiryGroups, type ExpiryShow } from "./words";
 
 export function ExpiryHead({ groups, saved, show, download }: { groups: ExpiryGroups; saved: number | null; show: ExpiryShow; download: boolean }) {
   const counts = expiryCounts(groups);
@@ -104,27 +106,84 @@ function Group({ state, heading, items }: { state: "expired" | "expiring"; headi
           </tbody>
         </Table>
       </div>
-      <ul className="md:hidden">
-        {items.map((i) => (
-          <li key={i.key} className="flex items-center gap-3 border-b border-line px-4 py-3">
-            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <p className="text-base font-medium text-caution">
-                {i.when}
-                {i.relative ? <span className="font-normal text-ink-3"> · {i.relative}</span> : null}
-              </p>
-              <p className="flex items-baseline gap-1.5 text-md font-medium text-ink">
-                {i.scheme}
-                {i.number ? <span className="font-mono text-sm font-normal text-ink-2">{i.number}</span> : null}
-              </p>
-              <p className="text-base text-ink-2">{i.supplier}</p>
-            </div>
-            <ButtonLink href={i.askHref} kind="secondary" size="touch" prefetch={false} className="h-12 shrink-0">
-              Ask
-            </ButtonLink>
-          </li>
-        ))}
-      </ul>
     </section>
+  );
+}
+
+/** "GOTS expired 8 Oct · 3 days ago", "WRAP ends 15 Oct · in 4 days": the phone row's first line. */
+export function phoneWhen(i: CertItem, today: Date): string {
+  if (i.when.startsWith("No longer listed")) return i.when;
+  const day = shortDay(i.expiresOn, today) ?? i.expiresOn;
+  if (i.state === "expiring") return `${i.scheme} ends ${day}${i.relative ? ` · ${i.relative}` : ""}`;
+  const ago = -i.days;
+  return `${i.scheme} expired ${day}${ago > 0 ? ` · ${ago} ${ago === 1 ? "day" : "days"} ago` : ""}`;
+}
+
+/**
+ * Alerts on a phone (Paper page 36 `alerts`): the UFLPA result of the saved suppliers in one card,
+ * then the certificates the filter shows, expired first, with how many have expired over a meter,
+ * one card of rows with Ask for it each.
+ */
+export function ExpiryPhone({ groups, show, uflpa, today }: { groups: ExpiryGroups; show: ExpiryShow; /** `uflpaResultLine`; null when the check was not read. */ uflpa: { line: string; hit: boolean } | null; today: Date }) {
+  const items = expiryItems(groups, show);
+  const expired = items.filter((i) => i.state === "expired").length;
+  return (
+    <div className="flex flex-col gap-5 px-5 pb-6 pt-2 md:hidden">
+      {uflpa ? (
+        <div className={cn("flex gap-3 rounded-[12px] p-3.5", uflpa.hit ? "bg-caution-tint" : "bg-subtle")}>
+          <ShieldCheck size={20} className={cn("shrink-0", uflpa.hit ? "text-caution-icon" : "text-ink-3")} aria-hidden />
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <p className={cn("text-[15px]/[21px] font-medium", uflpa.hit ? "text-caution" : "text-ink")}>UFLPA Entity List</p>
+            <p className={cn("text-sm", uflpa.hit ? "text-caution" : "text-ink-2")}>{uflpa.line}</p>
+          </div>
+        </div>
+      ) : null}
+      {items.length > 0 ? (
+        <section aria-labelledby="alerts-certs" className="flex flex-col">
+          <div className="flex items-baseline justify-between pb-3.5 pt-1">
+            <h2 id="alerts-certs" className="flex items-baseline gap-2 text-lg font-medium tracking-tight text-ink">
+              Certificates <span className="font-normal text-ink-3">{items.length}</span>
+            </h2>
+            <span className="text-sm text-ink-3">Expired first</span>
+          </div>
+          <div className="flex flex-col gap-1.5 pb-4">
+            <div className="flex justify-between text-sm">
+              <span className="text-ink-2">Expired</span>
+              <span className="font-medium tabular-nums text-ink">
+                {expired} of {items.length}
+              </span>
+            </div>
+            <div className="flex h-1.5 shrink-0 overflow-clip rounded-full bg-sunken">
+              <div className="rounded-full bg-caution-icon" style={{ width: `${Math.round((expired / items.length) * 100)}%` }} />
+            </div>
+          </div>
+          <ul className="flex flex-col overflow-clip rounded-[10px] border border-line">
+            {items.map((i) => (
+              <li key={i.key} className="flex flex-col gap-2 border-t border-line p-4 first:border-t-0">
+                <p className="flex items-center gap-1.5 text-xs font-medium text-caution">
+                  <Hourglass size={16} className="shrink-0 text-caution-icon" aria-hidden />
+                  {phoneWhen(i, today)}
+                </p>
+                <Link href={i.certHref} prefetch={false} className="flex items-center gap-1.5 self-start rounded-sm text-md/[22px] font-medium text-ink outline-none active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus">
+                  {i.supplier}
+                  <LinkPending />
+                </Link>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 flex-col gap-0.5 text-xs">
+                    {i.number ? <span className="font-mono text-ink-2">{i.number}</span> : null}
+                    <span className="text-ink-3">{i.issuer ? `Issued by ${i.issuer}` : i.scheme}</span>
+                  </div>
+                  <Link href={i.askHref} prefetch={false} className="flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-sunken px-3.5 text-base font-medium text-ink outline-none active:bg-line focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus">
+                    <ChatCircle size={16} className="shrink-0" aria-hidden />
+                    Ask for it
+                  </Link>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+    </div>
   );
 }
 
@@ -132,7 +191,7 @@ function Group({ state, heading, items }: { state: "expired" | "expiring"; headi
 export function ExpiryList({ groups, show }: { groups: ExpiryGroups; show: ExpiryShow }) {
   const all = show === "all";
   return (
-    <div className="mx-6 mb-6 flex flex-col overflow-clip rounded-md border border-line max-md:mx-0 max-md:rounded-none max-md:border-x-0">
+    <div className="mx-6 mb-6 flex flex-col overflow-clip rounded-md border border-line max-md:hidden">
       <div className="flex h-9 items-center border-b border-line bg-subtle text-xs font-semibold text-ink-3 max-md:hidden">
         <span className="w-[210px] pl-4">Expires</span>
         <span className="w-[190px] px-3">Certificate</span>

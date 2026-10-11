@@ -28,6 +28,8 @@ export type ResultRow = {
   /** Opens the composer in the pane beside this list with the supplier as its target; null for a sanctioned one. */
   rfqHref: string | null;
   sanctioned: boolean;
+  /** On the reader's saved list: the phone row's bookmark starts filled. */
+  saved: boolean;
   /** The customs figures, in the exports view only (an entitled reader); they take the sources' place. */
   exports?: ExportsCell | null;
 };
@@ -48,6 +50,7 @@ export function resultRow(t: TableRowModel, today: Date, pageHref: string, expor
     pageHref,
     rfqHref: t.rfqHref ?? null,
     sanctioned: t.sanctioned,
+    saved: t.saved ?? false,
     exports,
   };
 }

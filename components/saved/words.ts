@@ -164,12 +164,6 @@ export function savedCaption(total: number | null): string {
   return total === null ? "Only you see this list" : `${formatCount(total)} saved ${total === 1 ? "supplier" : "suppliers"} · only you see this list`;
 }
 
-/** The two tab labels: "Suppliers · 11" and "Saved searches · 2"; a count that could not be read is left off. */
-export function tabLabels(suppliers: number | null, searches: number | null): { suppliers: string; searches: string; phoneSearches: string } {
-  const n = (label: string, c: number | null) => (c === null ? label : `${label} · ${formatCount(c)}`);
-  return { suppliers: n("Suppliers", suppliers), searches: n("Saved searches", searches), phoneSearches: n("Searches", searches) };
-}
-
 /** "Removed Aboni Knitwear Ltd. from saved", or "Removed 3 suppliers from saved". */
 export function removedWords(names: readonly string[]): string {
   return names.length === 1 ? `Removed ${names[0]} from saved` : `Removed ${formatCount(names.length)} suppliers from saved`;

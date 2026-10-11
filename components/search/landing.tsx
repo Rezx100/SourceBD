@@ -9,13 +9,14 @@
 // Server component; the counts are read by the page (cached an hour) so a chip paints with its
 // count, never a skeleton; a count that was late is simply not drawn.
 
-import { Buildings, CaretRight, MagnifyingGlass, MapPin, SealCheck, TShirt } from "@phosphor-icons/react/dist/ssr";
+import { Buildings, CaretRight, Hourglass, MagnifyingGlass, MapPin, SealCheck, TShirt } from "@phosphor-icons/react/dist/ssr";
 import Form from "next/form";
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 import { NeedsAttention, type AttentionItem } from "@/components/patterns";
+import { LinkPending } from "@/components/patterns/link-pending";
 import { InlineError, buttonClass, linkClass } from "@/components/kit";
-import { ring } from "@/components/kit/classes";
+import { ring, ringInset } from "@/components/kit/classes";
 import { SearchShortcut } from "@/components/frame/search-shortcut";
 import { ShortcutHint } from "@/components/frame/topbar-search-slot";
 import { attentionWords, type Attention } from "@/lib/dashboard/needs-attention";
@@ -39,7 +40,8 @@ const MENU_ICON: Record<string, ReactNode> = {
 /** The common searches, the first screen's body: one tonal cell each, the search on the first line and how many suppliers it finds on the second. */
 function CommonSearches({ counts }: { counts: Record<string, number | null> }) {
   return (
-    <nav aria-labelledby="common-searches" className="flex flex-col gap-2">
+    // A phone has the quick searches under the field instead (Paper page 36, `search-home`).
+    <nav aria-labelledby="common-searches" className="flex flex-col gap-2 max-sm:hidden">
       <h2 id="common-searches" className={h2}>
         Common searches
       </h2>
@@ -71,8 +73,9 @@ function CommonSearches({ counts }: { counts: Record<string, number | null> }) {
 function SearchField() {
   return (
     <Form action={DISCOVER_PATH} role="search" aria-label="Search" className="relative">
-      <div className="flex h-input-touch items-center gap-3 rounded-md border border-line-strong bg-surface pl-3.5 pr-1.5 shadow-sm transition-colors duration-fast hover:border-ink-3 focus-within:border-brand-ink focus-within:[box-shadow:inset_0_0_0_1px_theme(colors.brand-ink)] sm:h-14 sm:rounded-lg sm:pl-4">
-        <MagnifyingGlass size={20} className="shrink-0 text-ink-3" aria-hidden />
+      {/* A phone draws it as a 52 tall tonal field (Paper page 36, `search-home`); the ring comes back on focus. */}
+      <div className="flex h-input-touch items-center gap-3 rounded-md border border-line-strong bg-surface pl-3.5 pr-1.5 shadow-sm transition-colors duration-fast hover:border-ink-3 focus-within:border-brand-ink focus-within:[box-shadow:inset_0_0_0_1px_theme(colors.brand-ink)] max-sm:h-[52px] max-sm:gap-2.5 max-sm:rounded-[12px] max-sm:bg-sunken max-sm:pl-4 max-sm:shadow-none max-sm:[&:not(:focus-within)]:border-transparent sm:h-14 sm:rounded-lg sm:pl-4">
+        <MagnifyingGlass size={20} className="shrink-0 text-ink-3 max-sm:text-ink-2" aria-hidden />
         <Suspense fallback={<input type="search" name="q" data-search="topbar" autoComplete="off" placeholder="Supplier, product or certificate" aria-label="Search" className="min-w-0 flex-1 bg-transparent text-md text-ink outline-none placeholder:text-ink-3" />}>
           <SearchCombobox variant="phone" placeholder="Supplier, product or certificate" shortcutTarget />
         </Suspense>
@@ -130,6 +133,74 @@ async function SavedSearches({ saved }: { saved: Promise<SavedSearchJson[] | nul
   );
 }
 
+/** A phone's four quick searches under the field (Paper page 36, `search-home`), in place of the common searches. */
+export const QUICK_SEARCHES: readonly { label: string; href: string }[] = [
+  { label: "Knit", href: discoverHref({ ...EMPTY_STATE, q: "knit" }) },
+  { label: "Woven", href: discoverHref({ ...EMPTY_STATE, q: "woven" }) },
+  { label: "Denim", href: discoverHref({ ...EMPTY_STATE, q: "denim" }) },
+  { label: "GOTS", href: discoverHref({ ...EMPTY_STATE, cert: [{ kind: "gots", state: "valid" }] }) },
+];
+
+function QuickSearches() {
+  return (
+    <nav aria-label="Quick searches" className="sm:hidden">
+      <ul className="flex flex-wrap gap-2">
+        {QUICK_SEARCHES.map((s) => (
+          <li key={s.label}>
+            <Link href={s.href} className={cn("flex h-[34px] items-center rounded-full border border-line px-3.5 text-base/[18px] font-medium text-ink-2 active:bg-sunken", ring)}>
+              {s.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
+/**
+ * Needs a look on a phone (Paper page 36, `search-home`): one card, a row per supplier with the
+ * certificate's state over its name and what is on file, each opening the supplier's record.
+ */
+function PhoneAttention({ attention }: { attention: Attention }) {
+  const shown = attention.rows.reduce((n, r) => n + 1 + (r.more ?? 0), 0);
+  return (
+    <section aria-labelledby="needs-a-look" className="flex flex-col sm:hidden">
+      <div className="flex items-baseline justify-between pb-3.5">
+        <h2 id="needs-a-look" className="flex items-baseline gap-2 text-lg font-medium tracking-tight text-ink">
+          Needs a look <span className="font-normal text-ink-3">{attention.total}</span>
+        </h2>
+        <p className="text-sm text-ink-3">In your saved suppliers</p>
+      </div>
+      <ul className="flex flex-col overflow-clip rounded-[10px] border border-line">
+        {attention.rows.map((r) => (
+          <li key={`${r.supplierId}-${r.what}`} className="border-t border-line first:border-t-0">
+            <Link href={`/app/suppliers/${encodeURIComponent(r.slug)}`} className={cn("flex flex-col gap-1.5 p-4 active:bg-sunken", ringInset)}>
+              <span className="flex items-center justify-between gap-3">
+                <span className="flex items-center gap-1.5 text-xs font-medium text-caution">
+                  <Hourglass size={16} className="shrink-0 text-caution-icon" aria-hidden />
+                  Certificate · {r.what.replace(/\.$/, "")}
+                </span>
+                <LinkPending />
+                <CaretRight size={16} className="shrink-0 text-ink-3" aria-hidden />
+              </span>
+              <span className="text-md/[22px] font-medium text-ink">{r.supplier}</span>
+              {r.note || r.more ? <span className="text-xs text-ink-3">{[r.note?.replace(/\.$/, ""), r.more ? `${r.more} more ${r.more === 1 ? "certificate" : "certificates"}` : null].filter(Boolean).join(" · ")}</span> : null}
+            </Link>
+          </li>
+        ))}
+        {attention.total > shown ? (
+          <li className="border-t border-line">
+            <Link href="/app/compliance/expiry" className={cn("flex min-h-12 items-center justify-between gap-3 bg-subtle px-4 text-sm text-ink-2 active:bg-line", ringInset)}>
+              {attentionWords(attention.total).seeAll}
+              <CaretRight size={16} className="shrink-0 text-ink-3" aria-hidden />
+            </Link>
+          </li>
+        ) : null}
+      </ul>
+    </section>
+  );
+}
+
 /** The suppliers whose certificates need a look (one row each), the total, and the way to the rest in the card's foot at every width. */
 function Attention({ attention }: { attention: Attention | null }) {
   if (attention === null)
@@ -152,9 +223,12 @@ function Attention({ attention }: { attention: Attention | null }) {
   // The way to the rest is in the card's foot at every width (the critique of 7 Oct 2026: on a desktop
   // the other six were reachable only through a link at the top right and a phone-only footer).
   const shown = items.reduce((n, _, i) => n + 1 + (attention.rows[i]?.more ?? 0), 0);
+  const phone = items.length > 0;
   return (
-    // At the pane's measure, under the common searches: a work queue, not the page (round 3, item 4).
-    <section className="flex w-full max-w-pane flex-col gap-2" aria-label="Needs attention">
+    <>
+    {phone ? <PhoneAttention attention={attention} /> : null}
+    {/* At the pane's measure, under the common searches: a work queue, not the page (round 3, item 4). */}
+    <section className={cn("flex w-full max-w-pane flex-col gap-2", phone && "max-sm:hidden")} aria-label="Needs attention">
       <h2 className={cn(h2, "max-sm:hidden")}>{words.heading}</h2>
       <NeedsAttention
         items={items}
@@ -168,6 +242,7 @@ function Attention({ attention }: { attention: Attention | null }) {
         }
       />
     </section>
+    </>
   );
 }
 
@@ -187,13 +262,14 @@ export function SearchLanding({
 }) {
   const startMenus = filterMenus(EMPTY_STATE).filter((m) => m.key !== "more");
   return (
-    <PendingNav className="flex min-h-0 flex-1 flex-col gap-6 px-4 pb-6 pt-1 sm:px-8 sm:pt-7">
+    <PendingNav className="flex min-h-0 flex-1 flex-col gap-6 px-5 pb-6 pt-2 sm:px-8 sm:pt-7">
       <div className="flex items-baseline gap-4 max-sm:hidden">
         <h1 className="text-xl font-semibold tracking-tight text-ink">Search</h1>
         <p className="text-base text-ink-3">{published === null ? "Every published supplier" : supplierCount(published)}</p>
       </div>
       <section aria-label="Find suppliers" className="flex flex-col gap-3">
         <SearchField />
+        <QuickSearches />
         <div className="flex flex-wrap items-center gap-2 max-sm:hidden">
           {startMenus.map((m) => (
             <FilterMenuButton key={m.key} menu={m} hrefFor={discoverHref} icon={MENU_ICON[m.key]} />

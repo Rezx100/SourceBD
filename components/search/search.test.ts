@@ -89,6 +89,7 @@ const row = (over: Partial<ResultRow> = {}): ResultRow => ({
   pageHref: "/app/suppliers/aboni-knitwear?back=%2Fapp%2Fdiscover%3Fq%3Dknit",
   rfqHref: `/app/discover?q=knit&rfq=${over.supplierId ?? "id-aboni"}`,
   sanctioned: false,
+  saved: false,
   ...over,
 });
 const rows = [row(), row({ slug: "zaheen", supplierId: "id-zaheen", name: ZAHEEN, cert: null, certCell: null, sources: 4 }), row({ slug: "sm", supplierId: "id-sm", name: "SM Sourcing", cert: { state: "valid", text: "WRAP valid until 8 Jan 2027", more: 0 }, certCell: certSummary([{ markCode: "wrap", scheme: "WRAP", expiresOn: "2027-01-08" }], TODAY) })];
