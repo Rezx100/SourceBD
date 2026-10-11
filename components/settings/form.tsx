@@ -8,8 +8,9 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Button, Toast } from "@/components/kit";
 import { fieldBox, fieldEdge } from "@/components/kit/classes";
 import { cn } from "@/lib/utils";
+import { PHONE_PILL } from "./phone";
 
-export const textareaClass = cn(fieldBox, fieldEdge, "block min-h-16 px-2.5 py-1.5 text-base");
+export const textareaClass = cn(fieldBox, fieldEdge, "block min-h-16 px-2.5 py-1.5 text-base max-md:rounded-lg max-md:px-3.5 max-md:py-3 max-md:text-md");
 
 /** A sentence to say once and let go (the kit's toast), cleared after four seconds. */
 export function useFlash(ms = 4000) {
@@ -30,7 +31,7 @@ export function Flash({ text }: { text: string | null }) {
         {text ?? ""}
       </p>
       {text ? (
-        <div className="pointer-events-none fixed inset-x-0 bottom-6 z-toast flex justify-center px-4 max-md:bottom-[calc(theme(spacing.tabbar)+1rem+env(safe-area-inset-bottom))]">
+        <div className="pointer-events-none fixed inset-x-0 bottom-6 z-toast flex justify-center px-4 max-md:bottom-[calc(theme(spacing.action-bar)+1.5rem+env(safe-area-inset-bottom))]">
           <Toast tone="brand" className="pointer-events-auto">
             {text}
           </Toast>
@@ -50,24 +51,33 @@ export function FormNote({ children }: { children: ReactNode }) {
   );
 }
 
+/** "Unsaved change: website", the phone bar's one line (Paper `11 · Company details`). */
+export const unsavedWords = (changed: readonly string[]): string => `Unsaved ${changed.length === 1 ? "change" : "changes"}: ${changed.map((c) => c.toLowerCase()).join(", ")}`;
+
 /**
  * The foot of a page whose fields can be changed: absent while nothing differs, then "Unsaved changes"
- * and the names of the fields, Discard and Save changes. Inside the form, so Save is its submit.
+ * and the names of the fields, Discard and Save changes. Inside the form, so Save is its submit. On a
+ * phone (Paper `11 · Company details`) it is the page's foot, where the tab bar was: a caution line
+ * naming what changed, then Discard and a wide Save changes.
  */
 export function SaveBar({ changed, saving, onDiscard }: { changed: readonly string[]; saving: boolean; onDiscard: () => void }) {
   if (changed.length === 0 && !saving) return null;
   return (
-    <div className="sticky bottom-0 z-raised -mx-8 mt-6 flex items-center justify-between gap-3 border-t border-line bg-surface px-8 py-3 [box-shadow:0_-4px_12px_rgb(21_24_28_/_0.06)] max-md:-mx-4 max-md:bottom-[calc(theme(spacing.tabbar)+env(safe-area-inset-bottom))] max-md:flex-col max-md:items-stretch max-md:px-4">
-      <p className="flex min-w-0 items-center gap-3 text-base">
+    <div className="sticky bottom-0 z-raised -mx-8 mt-6 flex items-center justify-between gap-3 border-t border-line bg-surface px-8 py-3 [box-shadow:0_-4px_12px_rgb(21_24_28_/_0.06)] max-md:-mx-5 max-md:flex-col max-md:items-stretch max-md:gap-0 max-md:px-4 max-md:pb-[env(safe-area-inset-bottom)] max-md:pt-2.5 max-md:[box-shadow:none]">
+      <p className="flex min-w-0 items-center gap-3 text-base max-md:hidden">
         <span aria-hidden className="size-2 shrink-0 rounded-full bg-caution-icon" />
         <span className="font-medium text-ink">Unsaved changes</span>
         <span className="min-w-0 text-sm text-ink-3 [overflow-wrap:anywhere]">{changed.join(", ")}</span>
       </p>
-      <div className="flex gap-2 max-md:[&>*]:flex-1">
-        <Button kind="secondary" onClick={onDiscard} disabled={saving} className="max-md:h-input-touch">
+      <p className="flex min-w-0 items-center gap-1.5 md:hidden">
+        <span aria-hidden className="size-2 shrink-0 rounded-full bg-caution-icon" />
+        <span className="text-xs font-medium text-caution [overflow-wrap:anywhere]">{unsavedWords(changed)}</span>
+      </p>
+      <div className="flex gap-2 max-md:min-h-16 max-md:items-center max-md:py-2">
+        <Button kind="secondary" onClick={onDiscard} disabled={saving} className="max-md:h-12 max-md:rounded-lg max-md:border-line max-md:px-[18px] max-md:text-md">
           Discard
         </Button>
-        <Button kind="primary" type="submit" loading={saving} loadingLabel="Saving" className="max-md:h-input-touch">
+        <Button kind="primary" type="submit" loading={saving} loadingLabel="Saving" className="max-md:h-12 max-md:grow max-md:basis-0 max-md:rounded-lg max-md:text-md">
           Save changes
         </Button>
       </div>
@@ -79,7 +89,7 @@ export function SaveBar({ changed, saving, onDiscard }: { changed: readonly stri
 export function SaveRow({ label, saving, loadingLabel = "Saving", disabled }: { label: string; saving: boolean; loadingLabel?: string; disabled?: boolean }) {
   return (
     <div>
-      <Button kind="primary" type="submit" loading={saving} loadingLabel={loadingLabel} disabled={disabled} className="max-md:h-input-touch max-md:w-full">
+      <Button kind="primary" type="submit" loading={saving} loadingLabel={loadingLabel} disabled={disabled} className={PHONE_PILL}>
         {label}
       </Button>
     </div>

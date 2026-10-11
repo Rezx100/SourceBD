@@ -10,7 +10,7 @@ import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared
 import { createElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { INVITE_NOTE, REFUSALS, ROLES, addEmails, countsLine, initialsOf, inviteExpiryWords, inviteSentWords, inviteSummary, joinedWords, lastActiveWords, parseTeam, refusalOf, removeTitle, resultsOf, sendLabel, splitEmails, type TeamDoc } from "./model";
+import { INVITE_NOTE, REFUSALS, ROLES, addEmails, countsLine, initialsOf, inviteEndsWords, inviteExpiryWords, inviteSentWords, inviteSummary, joinedWords, joinsAsWords, lastActiveWords, parseTeam, phoneActiveWords, refusalOf, removeTitle, resultsOf, sendLabel, splitEmails, type TeamDoc } from "./model";
 import { cancelInvite, inviteEmails, removeMember, resendInvite, setRole, type Fetch } from "./transport";
 
 const NOW = new Date("2026-10-05T12:00:00Z");
@@ -242,12 +242,33 @@ describe("/app/settings/members as the owner", () => {
     assert.match(t, /Each person still works in their own account/, "the page does not promise more than roles do today");
   });
 
-  it("draws the phone's list too: a row each, with the invite as an envelope row", async () => {
+  it("draws the phone's page too: the people as a card, the invite as a card with Resend and Cancel, Invite people at the foot", async () => {
     reset();
     const out = await members();
+    const t = text(out);
     assert.match(out, /<ul aria-label="People"[^>]*md:hidden/);
-    assert.match(text(out), /Alex Morgan \(you\)/);
-    assert.match(out, /aria-label="More actions for the invite to sam\.lee@example\.com"/);
+    assert.match(t, /People 3/);
+    assert.match(t, /Waiting 1/);
+    assert.match(t, /Last active 2 Oct 2026/);
+    assert.match(t, /Not yet signed in/);
+    assert.match(t, /Invite sent 1 Oct 2026 · ends 8 Oct 2026/);
+    assert.match(t, /Joins as an? (Viewer|Editor|Approver)/);
+    assert.match(out, /<ul aria-label="Invites waiting"/);
+    assert.equal(out.match(/>Invite people</g)?.length, 2, "the header's button from 768, the bar's on a phone");
+    assert.match(out, /data-detail=""/, "the phone page's own head hides the frame's bar");
+    assert.equal(out.match(/aria-label="Role of Priya Shah"/g)?.length, 2, "the table's chooser and the phone row's");
+  });
+
+  it("the phone's words for a person and an invite", () => {
+    const now = new Date("2026-10-11T12:00:00Z");
+    assert.equal(phoneActiveWords(null, now), "Not yet signed in");
+    assert.equal(phoneActiveWords("2026-10-11T11:58:00Z", now), "Active now");
+    assert.equal(phoneActiveWords("2026-10-02T09:00:00Z", now), "Last active 2 Oct 2026");
+    assert.equal(joinsAsWords("viewer"), "Joins as a Viewer");
+    assert.equal(joinsAsWords("editor"), "Joins as an Editor");
+    assert.equal(joinsAsWords("approver"), "Joins as an Approver");
+    assert.equal(inviteEndsWords({ expiresAt: "2026-10-08T00:00:00Z", expired: false }), "ends 8 Oct 2026");
+    assert.equal(inviteEndsWords({ expiresAt: "2026-10-08T00:00:00Z", expired: true }), "expired 8 Oct 2026");
   });
 
   it("is not the old one-person page: no contact-support fallback, no Enterprise line", async () => {

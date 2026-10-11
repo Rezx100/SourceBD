@@ -27,7 +27,9 @@ export default async function SettingsMembersPage({ searchParams }: { searchPara
         title="Team and roles"
         wide
         caption={team ? countsLine(team) : undefined}
+        line={team ? countsLine(team) : undefined}
         action={team ? isOwner(team) ? <InviteButton /> : me ? <LeaveButton me={me} /> : undefined : undefined}
+        phoneAction={team ? isOwner(team) ? <InviteButton phone /> : me ? <LeaveButton me={me} phone /> : undefined : undefined}
       >
         {team ? <TeamView team={team} now={new Date()} joined={sp.joined === "1" ? joinedWords(team) : null} /> : <TeamError />}
       </SettingsShell>

@@ -8,9 +8,9 @@ import { SettingsError, SettingsShell } from "./shell";
 
 export const COMPANY_CAPTION = "Suppliers see your company name and website on every RFQ.";
 
-export function CompanyPage({ doc, retryHref }: { doc: SettingsDoc | null; retryHref: string }) {
+export function CompanyPage({ doc, retryHref, desktopOnly }: { doc: SettingsDoc | null; retryHref: string; desktopOnly?: boolean }) {
   return (
-    <SettingsShell current="company" doc={doc} title="Company details" caption={COMPANY_CAPTION}>
+    <SettingsShell current="company" doc={doc} title="Company details" caption={COMPANY_CAPTION} desktopOnly={desktopOnly}>
       {doc ? <CompanyForm initial={workspaceOf(doc)} /> : <SettingsError retryHref={retryHref} />}
     </SettingsShell>
   );

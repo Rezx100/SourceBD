@@ -3,6 +3,8 @@
 // React so a test reads them. Paper's Audit log is design only (nothing records it) and is not here;
 // Security is `components/security/`, Team and roles is `components/team/`.
 
+import type { Factor } from "@/components/security/model";
+import { countsLine, type TeamDoc } from "@/components/team/model";
 import { companyTypeWord, planLabel, workspaceOf, type SettingsDoc } from "./doc";
 
 export type SettingsKey = "profile" | "security" | "emails" | "company" | "team" | "templates" | "plan";
@@ -47,13 +49,34 @@ export function planWords(doc: SettingsDoc | null): string {
   return label === "Free" ? "Free during the beta" : `${label} plan`;
 }
 
+/** The name a phone row and a phone page's head print, where Paper's phone boards word it differently. */
+export const phoneLabel = (key: SettingsKey): string => (key === "templates" ? "RFQ template" : itemOf(key).label);
+
+/** The line under a phone page's title (Paper `11 · Settings · …` compact heads). Team and roles prints its counts instead. */
+export const PHONE_LINES: Record<SettingsKey, string> = {
+  profile: "Name, picture, email and password",
+  security: "Sign-in and devices",
+  emails: "What we email you about",
+  company: "Suppliers see the name and website on every RFQ",
+  team: "People, roles and invites",
+  templates: "How every new RFQ starts",
+  plan: "What your account includes",
+};
+
+/** What the phone list knows beyond `settings_get`: each read is null when it failed, and the row then says what is in it, never a guess. */
+export type RowFacts = { factors?: Factor[] | null; team?: TeamDoc | null };
+
+/** Two-step sign-in is off: the one row Paper draws in caution. */
+export const rowCaution = (key: SettingsKey, facts: RowFacts = {}): boolean => key === "security" && Array.isArray(facts.factors) && !facts.factors.some((f) => f.verified);
+
 /** The line a phone row carries under its name. */
-export function rowLine(key: SettingsKey, doc: SettingsDoc | null): string {
+export function rowLine(key: SettingsKey, doc: SettingsDoc | null, facts: RowFacts = {}): string {
   switch (key) {
     case "profile":
       return "Name, picture, email, password";
     case "security":
-      return "Two-step sign-in, devices";
+      if (!facts.factors) return "Two-step sign-in, devices";
+      return facts.factors.some((f) => f.verified) ? "Two-step sign-in is on" : "Two-step sign-in is off";
     case "emails":
       return "Quotes, saved suppliers, weekly summary";
     case "company": {
@@ -62,11 +85,13 @@ export function rowLine(key: SettingsKey, doc: SettingsDoc | null): string {
       return line || "Not filled in yet";
     }
     case "team":
-      return "People, roles and invites";
+      return facts.team ? countsLine(facts.team) : "People, roles and invites";
     case "templates":
       return "Opening message and questions";
-    case "plan":
-      return planWords(doc);
+    case "plan": {
+      const label = planLabel(doc?.plan_tier);
+      return label === "Free" ? "Free in the beta" : `${label} plan`;
+    }
   }
 }
 

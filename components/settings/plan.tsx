@@ -3,11 +3,12 @@
 // but one (evidence packs downloaded, 0114; no read gives the others), the sessions and the audit
 // log. Team and roles is `components/team/`.
 
-import { Check } from "@phosphor-icons/react/dist/ssr";
+import { Check, Envelope } from "@phosphor-icons/react/dist/ssr";
+import type { ReactNode } from "react";
 import { buttonClass } from "@/components/kit";
 import type { SettingsDoc } from "./doc";
 import { Section } from "./shell";
-import { planWords } from "./words";
+import { planWords, rowLine } from "./words";
 
 export const SUPPORT = "mailto:support@sourcebd.net";
 export const PLAN_CAPTION = "Free while SourceBD is in beta.";
@@ -17,11 +18,72 @@ export const BILLING_NOTE = "Billing isn't set up yet.";
 // team are not built, and a list on a plan page is a promise (founder, 5 Oct 2026: keep seats, drop the other three).
 export const ENTERPRISE = ["Team seats with roles"] as const;
 
+/** Paper `11 · Plan and usage`: what the free plan holds, and the billing line. */
+export const FREE_INCLUDES_PHONE = "Search, saved suppliers, RFQs, messages, orders and the compliance hub";
+export const BILLING_PHONE = "Not set up. Nothing is charged.";
+
+/** "1 to 11 Oct": this month so far, in UTC as the count is ("1 Oct" on the 1st). */
+export function monthSoFar(now: Date): string {
+  const month = new Intl.DateTimeFormat("en-GB", { month: "short", timeZone: "UTC" }).format(now);
+  const day = now.getUTCDate();
+  return day === 1 ? `1 ${month}` : `1 to ${day} ${month}`;
+}
+
+function PhoneHead({ title, aside, first }: { title: string; aside: ReactNode; first?: boolean }) {
+  return (
+    <div className={first ? "flex items-baseline justify-between gap-3 pb-3.5 pt-4" : "flex items-baseline justify-between gap-3 pb-3.5 pt-6"}>
+      <h2 className="text-lg font-medium tracking-tight text-ink">{title}</h2>
+      <p className="text-sm text-ink-3">{aside}</p>
+    </div>
+  );
+}
+
+/** The phone's page (Paper `11 · Plan and usage`): the plan as a card, the month's one count, and support. Enterprise is not drawn here. */
+function PhonePlan({ doc, packs, free, now }: { doc: SettingsDoc; packs: number | null; free: boolean; now: Date }) {
+  const term = "w-24 shrink-0 text-base text-ink-2";
+  return (
+    <div className="md:hidden">
+      <section aria-label="Your plan">
+        <PhoneHead title="Your plan" aside={rowLine("plan", doc)} first />
+        <dl className="overflow-clip rounded-[10px] border border-line">
+          {free ? (
+            <div className="flex gap-2.5 px-4 py-3.5">
+              <dt className={term}>Includes</dt>
+              <dd className="grow basis-0 text-base text-ink">{FREE_INCLUDES_PHONE}</dd>
+            </div>
+          ) : null}
+          <div className="flex gap-2.5 border-t border-line px-4 py-3.5 first:border-t-0">
+            <dt className={term}>Billing</dt>
+            <dd className="grow basis-0 text-base text-ink-3">{BILLING_PHONE}</dd>
+          </div>
+        </dl>
+      </section>
+      {packs !== null ? (
+        <section aria-label="This month">
+          <PhoneHead title="This month" aside={monthSoFar(now)} />
+          <div className="flex flex-col gap-1 rounded-[10px] border border-line px-3.5 pb-3 pt-3.5">
+            <p className="text-sm text-ink-3">Evidence packs</p>
+            <p className="text-xl font-medium tabular-nums tracking-tighter text-ink">{packs}</p>
+          </div>
+        </section>
+      ) : null}
+      <div className="flex pt-5">
+        <a href={`${SUPPORT}?subject=SourceBD%20plan`} className={buttonClass({ kind: "quiet", className: "h-11 grow gap-1.5 rounded-full bg-sunken px-3.5 text-ink hover:bg-sunken active:bg-line" })}>
+          <Envelope size={16} aria-hidden />
+          Contact support about your plan
+        </a>
+      </div>
+    </div>
+  );
+}
+
 /** `packs` is "Evidence packs downloaded" this month; null (not counted) draws nothing, so no "0" stands in for a failed read. */
-export function PlanPanel({ doc, packs = null }: { doc: SettingsDoc; packs?: number | null }) {
+export function PlanPanel({ doc, packs = null, now = new Date() }: { doc: SettingsDoc; packs?: number | null; now?: Date }) {
   const free = planWords(doc) === "Free during the beta";
   return (
     <>
+      <PhonePlan doc={doc} packs={packs} free={free} now={now} />
+      <div className="max-md:hidden">
       <Section title="Your plan">
         <div className="flex max-w-[560px] flex-col gap-3 rounded-lg border border-line p-5">
           <p className="text-lg font-semibold text-ink">{planWords(doc)}</p>
@@ -61,6 +123,7 @@ export function PlanPanel({ doc, packs = null }: { doc: SettingsDoc; packs?: num
           </div>
         </div>
       </Section>
+      </div>
     </>
   );
 }

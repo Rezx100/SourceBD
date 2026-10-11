@@ -25,7 +25,7 @@ export default async function SettingsNotificationsPage() {
         </>
       }
     >
-      {doc ? <EmailsForm initial={doc.notifications} /> : <SettingsError retryHref="/app/settings/notifications" />}
+      {doc ? <EmailsForm initial={doc.notifications} email={doc.email} /> : <SettingsError retryHref="/app/settings/notifications" />}
     </SettingsShell>
   );
 }

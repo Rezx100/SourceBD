@@ -11,10 +11,11 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, type FormEvent } from "react";
 import { Button, Field, Input } from "@/components/kit";
 import { Flash, FormNote, SaveBar, SaveRow, useFlash } from "./form";
+import { PHONE_INPUT, PHONE_PILL } from "./phone";
 import { EMAIL_SENT, NAME_MAX, NAME_SAVED, PASSWORD_SAVED, PICTURE_ACCEPT, PICTURE_REMOVED, PICTURE_SAVED, emailRefusal, initialsOf, passwordBody, passwordFailureField, passwordRefusal, pictureRefusal, type PasswordField } from "./profile";
 import { SAVE_FAILED, browserFetch, deleteAvatar, postAvatar, postSettings } from "./transport";
 
-const touchInput = "max-md:h-input-touch max-md:text-md";
+const touchInput = PHONE_INPUT;
 const doFetch = { fetch: browserFetch };
 
 /** The picture and the display name: the picture is saved on choosing; the name by the bar. */
@@ -71,33 +72,55 @@ export function NameForm({ initialName, initialAvatarUrl, email }: { initialName
     router.refresh();
   }
 
+  const picture = (phone: boolean) =>
+    url ? (
+      // eslint-disable-next-line @next/next/no-img-element -- the buyer's own upload on storage, drawn at 48px (60 on a phone)
+      <img src={url} alt="Your profile picture" className={phone ? "size-[60px] shrink-0 rounded-full border border-line object-cover" : "size-12 shrink-0 rounded-full border border-line object-cover"} />
+    ) : (
+      <span aria-hidden className={phone ? "grid size-[60px] shrink-0 place-items-center rounded-full bg-sunken text-lg/[24px] font-semibold text-ink-2" : "grid size-12 shrink-0 place-items-center rounded-full bg-sunken text-md font-semibold text-ink-2"}>
+        {initialsOf(name, email)}
+      </span>
+    );
+  const pick = (phone: boolean) => (
+    <>
+      <Button onClick={() => input.current?.click()} loading={busy} loadingLabel="Saving" className={phone ? PHONE_PILL : undefined}>
+        {url ? "Change picture" : "Upload picture"}
+      </Button>
+      {url ? (
+        <Button kind="quiet" onClick={onRemove} disabled={busy} className={phone ? "h-11 rounded-full px-3.5" : undefined}>
+          Remove
+        </Button>
+      ) : null}
+    </>
+  );
+
   return (
-    <form onSubmit={onSubmit} aria-label="Your name" className="flex flex-col gap-3">
+    <form onSubmit={onSubmit} aria-label="Your name" className="flex flex-col gap-3 max-md:gap-4">
+      <input ref={input} type="file" accept={PICTURE_ACCEPT} onChange={onPick} className="hidden" tabIndex={-1} aria-hidden />
+      {/* Paper `11 · Profile`: the picture and its buttons first, the name under them. */}
+      <div className="flex items-center gap-3.5 md:hidden">
+        {picture(true)}
+        <div className="flex flex-wrap gap-2">{pick(true)}</div>
+      </div>
       <div className="flex items-end gap-3 max-sm:flex-col max-sm:items-stretch">
-        <div className="flex items-center gap-3">
-          {url ? (
-            // eslint-disable-next-line @next/next/no-img-element -- the buyer's own upload on storage, drawn at 48px
-            <img src={url} alt="Your profile picture" className="size-12 shrink-0 rounded-full border border-line object-cover" />
-          ) : (
-            <span aria-hidden className="grid size-12 shrink-0 place-items-center rounded-full bg-sunken text-md font-semibold text-ink-2">
-              {initialsOf(name, email)}
-            </span>
-          )}
-          <Field label="Display name" help={`Up to ${NAME_MAX} characters`} className="w-72 max-sm:w-full">
+        <div className="flex items-center gap-3 max-md:w-full">
+          <span className="contents max-md:hidden">{picture(false)}</span>
+          <Field
+            label="Display name"
+            help={
+              <>
+                <span className="max-md:hidden">Up to {NAME_MAX} characters</span>
+                <span className="md:hidden">Suppliers see it in messages and orders.</span>
+              </>
+            }
+            className="w-72 max-md:w-full"
+          >
             {(a) => <Input {...a} value={name} onChange={(e) => setName(e.target.value.slice(0, NAME_MAX))} maxLength={NAME_MAX} placeholder="e.g. Jane Doe" autoComplete="name" className={touchInput} />}
           </Field>
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <input ref={input} type="file" accept={PICTURE_ACCEPT} onChange={onPick} className="hidden" tabIndex={-1} aria-hidden />
-        <Button onClick={() => input.current?.click()} loading={busy} loadingLabel="Saving" className="max-md:h-input-touch">
-          {url ? "Change picture" : "Upload picture"}
-        </Button>
-        {url ? (
-          <Button kind="quiet" onClick={onRemove} disabled={busy} className="max-md:h-input-touch">
-            Remove
-          </Button>
-        ) : null}
+      <div className="flex flex-wrap items-center gap-2 max-md:hidden">
+        {pick(false)}
         <span className="text-xs text-ink-3">PNG, JPEG, WebP or GIF · up to 5 MB</span>
       </div>
       <FormNote>{error}</FormNote>
@@ -130,7 +153,7 @@ export function EmailForm() {
 
   return (
     <form onSubmit={onSubmit} aria-label="Change email" noValidate className="flex flex-col gap-3">
-      <Field label="New email" error={error} help="We'll email a link to the new address. Click it to confirm." className="w-72 max-sm:w-full">
+      <Field label="New email" error={error} help="We'll email a link to the new address. Click it to confirm." className="w-72 max-md:w-full">
         {(a) => <Input {...a} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="e.g. you@company.com" autoComplete="email" className={touchInput} />}
       </Field>
       <SaveRow label="Send link" loadingLabel="Sending" saving={saving} />
@@ -166,7 +189,7 @@ export function PasswordForm() {
 
   return (
     <form onSubmit={onSubmit} aria-label="Change password" noValidate className="flex flex-col gap-3">
-      <div className="flex max-w-72 flex-col gap-3 max-sm:max-w-none">
+      <div className="flex max-w-72 flex-col gap-3 max-md:max-w-none">
         <Field
           label="Current password"
           error={under("current")}

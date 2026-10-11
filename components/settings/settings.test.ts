@@ -18,7 +18,8 @@ import { loadPreviewSuppliers } from "./templates-load";
 import { DEFAULT_QUESTIONS, DEFAULT_TEMPLATE, FILL_INS, MAX_QUESTIONS, gapWords, inquiryPayload, insertAt, moveItem, previewOf, startOf } from "./templates";
 import { EMAIL_SENT, emailRefusal, initialsOf, passwordBody, passwordFailureField, passwordRefusal, pictureRefusal } from "./profile";
 import { deleteAvatar, postAvatar, postSettings, routeSentence, type Fetch } from "./transport";
-import { SETTINGS_GROUPS, itemOf, planWords, rowLine, settingsSubline } from "./words";
+import { SETTINGS_GROUPS, itemOf, planWords, rowCaution, rowLine, settingsSubline } from "./words";
+import { monthSoFar } from "./plan";
 
 const DOC: SettingsDoc = {
   email: "alex.morgan@example.com",
@@ -52,8 +53,20 @@ describe("the words", () => {
   it("a phone row says what is in it, and says when the company is empty", () => {
     assert.equal(rowLine("company", DOC), "Example Apparel Ltd · Retailer");
     assert.equal(rowLine("company", { ...DOC, workspace: null }), "Not filled in yet");
-    assert.equal(rowLine("plan", DOC), "Free during the beta");
+    assert.equal(rowLine("plan", DOC), "Free in the beta");
     assert.equal(rowLine("team", DOC), "People, roles and invites");
+  });
+
+  it("the phone list's Security and Team rows say what the reads found, and never guess when a read failed", () => {
+    assert.equal(rowLine("security", DOC, { factors: null }), "Two-step sign-in, devices");
+    assert.equal(rowCaution("security", { factors: null }), false);
+    assert.equal(rowLine("security", DOC, { factors: [] }), "Two-step sign-in is off");
+    assert.equal(rowCaution("security", { factors: [] }), true);
+    assert.equal(rowLine("security", DOC, { factors: [{ id: "f", verified: true, createdAt: null }] }), "Two-step sign-in is on");
+    assert.equal(rowCaution("security", { factors: [{ id: "f", verified: true, createdAt: null }] }), false);
+    const team = { ownerId: "o", myRole: "owner" as const, members: [{ userId: "o", name: "A", email: "a@x.co", role: "owner" as const, lastActiveAt: null, isYou: true }], invites: [] };
+    assert.equal(rowLine("team", DOC, { team }), "1 person");
+    assert.equal(rowLine("team", DOC, { team: null }), "People, roles and invites");
   });
 });
 
@@ -194,11 +207,12 @@ let saved: Rpc = { data: [], error: null };
 let calls: string[] = [];
 let packs: { count: number | null; error: unknown } = { count: null, error: { message: "no table evidence_pack_downloads" } };
 let packAsked: unknown[][] = [];
+let mfa: { data: unknown; error: unknown } = { data: null, error: { message: "no auth" } };
 {
   const id = require.resolve(path.join(OUT, "lib/supabase/server.js"));
   const client = {
     rpc: async (fn: string) => (calls.push(fn), fn === "buyer_saved_list" ? saved : answer),
-    auth: { getUser: async () => ({ data: { user: { id: "buyer-1" } } }) },
+    auth: { getUser: async () => ({ data: { user: { id: "buyer-1" } } }), mfa: { listFactors: async () => mfa } },
     // The evidence packs downloaded this month: a count under the buyer's own rows since the 1st.
     from: (table: string) => {
       const chain = {
@@ -229,7 +243,7 @@ describe("/app/settings and /app/settings/workspace", () => {
       answer = { data: DOC, error: null };
       calls = [];
       const out = await page(file);
-      assert.deepEqual(calls, ["settings_get"], "read once");
+      assert.deepEqual(calls, file === COMPANY ? ["settings_get", "workspace_team"] : ["settings_get"], "read once (the phone list also reads the team)");
       assert.deepEqual(navOf(out), ["Profile", "Security", "Emails", "Company details", "Team and roles", "RFQ templates", "Plan and usage"]);
       assert.match(out, /aria-current="page"[^>]*>Company details</);
       assert.equal(out.match(/aria-current="page"/g)?.length, 1);
@@ -272,9 +286,32 @@ describe("/app/settings and /app/settings/workspace", () => {
     const t = text(out);
     for (const row of ["Profile", "Security", "Emails", "Company details", "Team and roles", "RFQ templates", "Plan and usage"]) assert.ok(t.includes(row), row);
     assert.match(t, /Example Apparel Ltd · Retailer/);
-    assert.match(t, /Free during the beta/);
+    assert.match(t, /Free in the beta/);
+    assert.match(t, /Signed in as alex\.morgan@example\.com/);
+    assert.match(t, /RFQ template Opening message and questions/, "Paper's phone row is singular");
+    assert.match(t, /Two-step sign-in, devices/, "a failed factors read says what is in the page, never that it is off");
+    assert.doesNotMatch(out, /data-detail/, "the list keeps the frame's bar and tab bar");
     assert.ok(out.includes('href="/app/settings/workspace"'), "the list's Company details goes to its own page");
     assert.doesNotMatch(t, /Audit log/);
+  });
+
+  it("the phone list says when two-step sign-in is off, in caution, and what the team holds", async () => {
+    answer = { data: DOC, error: null };
+    mfa = { data: { all: [] }, error: null };
+    const off = await page(COMPANY);
+    assert.match(off, /text-caution[^"]*">Two-step sign-in is off</);
+    mfa = { data: { all: [{ id: "f1", factor_type: "totp", status: "verified" }] }, error: null };
+    assert.match(text(await page(COMPANY)), /Two-step sign-in is on/);
+    mfa = { data: null, error: { message: "no auth" } };
+  });
+
+  it("a phone page opens with its own head: back to the list, its name and what it holds, and hides the frame's bar", async () => {
+    answer = { data: DOC, error: null };
+    const out = await page(WORKSPACE);
+    assert.match(out, /data-detail=""/);
+    assert.match(out, /<a[^>]*href="\/app\/settings"[^>]*aria-label="Back to Settings"|<a[^>]*aria-label="Back to Settings"[^>]*href="\/app\/settings"/);
+    assert.match(text(out), /Suppliers see the name and website on every RFQ/);
+    assert.equal(out.match(/<h1/g)?.length, 1);
   });
 
   it("a failed read is an error and draws no form and no list", async () => {
@@ -299,7 +336,11 @@ describe("/app/settings/profile", () => {
     assert.match(out, /<h1[^>]*>Profile<\/h1>/);
     assert.match(out, /aria-current="page"[^>]*>Profile</);
     assert.match(out, /value="Alex Morgan"/);
-    assert.match(text(out), /Current: alex\.morgan@example\.com/);
+    assert.match(out, /Current: <\/span>/);
+    assert.match(text(out), /Now alex\.morgan@example\.com/, "Paper's phone words for the address in use");
+    assert.match(text(out), /Sign out of this device/);
+    assert.match(out, /data-detail=""/);
+    assert.equal(out.match(/<h1\b/g)?.length, 1);
     assert.match(out, /type="password"/);
     assert.match(out, /action="\/auth\/sign-out" method="post"/);
     assert.match(text(out), /Upload picture/);
@@ -421,6 +462,32 @@ describe("the other three pages (Team and roles is `components/team/team.test.ts
     assert.doesNotMatch(tag("saved_alerts"), /checked=""/, "saved alerts is off in the document");
     assert.match(text(out), /Sending starts later in the beta/);
     assert.doesNotMatch(text(out), /Slack|Always on/);
+    assert.match(text(out), /Sending starts later in the beta\. Your choices are saved now\./, "the phone's note");
+    assert.match(text(out), /Saved as you switch · to alex\.morgan@example\.com/);
+    assert.match(text(out), /What we email you about/);
+  });
+
+  it("Plan and usage on a phone: the plan as a card, this month so far, and support", async () => {
+    answer = { data: DOC, error: null };
+    packs = { count: 2, error: null };
+    const t = text(await page(PLAN));
+    assert.match(t, /Your plan Free in the beta Includes Search, saved suppliers, RFQs, messages, orders and the compliance hub Billing Not set up\. Nothing is charged\./);
+    assert.match(t, /This month 1( to \d+)? \w{3} Evidence packs 2/);
+    assert.match(t, /Contact support about your plan/);
+    assert.doesNotMatch(t, /RFQs sent|up to 50 a day/, "no read gives either");
+    packs = { count: null, error: { message: "no table" } };
+    assert.equal(monthSoFar(new Date("2026-10-11T08:00:00Z")), "1 to 11 Oct");
+    assert.equal(monthSoFar(new Date("2026-10-01T08:00:00Z")), "1 Oct");
+  });
+
+  it("RFQ templates on a phone: the opening message, Insert fill-in and Save as pills, and the questions counted", async () => {
+    answer = { data: DOC, error: null };
+    const out = await page(TEMPLATES);
+    const t = text(out);
+    assert.match(t, /Opening message/);
+    assert.match(t, /How every new RFQ starts/);
+    assert.match(t, new RegExp(`Questions ${DEFAULT_QUESTIONS.length} Up to 20, in this order`));
+    assert.equal(out.match(/>Save message</g)?.length, 2, "the phone pill and the desktop button");
   });
 
   it("RFQ templates shows the composer's defaults until the buyer has questions of their own, then theirs", async () => {

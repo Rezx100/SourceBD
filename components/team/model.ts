@@ -71,6 +71,18 @@ export function lastActiveWords(iso: string | null, now: Date): string {
   return now.getTime() - t < ACTIVE_NOW_MS ? "Active now" : (formatDay(iso) ?? "Not yet");
 }
 
+/** A phone row's line (Paper `11 · Team and roles`): "Active now", "Last active 2 Oct 2026", "Not yet signed in". */
+export function phoneActiveWords(iso: string | null, now: Date): string {
+  const w = lastActiveWords(iso, now);
+  return w === "Active now" ? w : w === "Not yet" ? "Not yet signed in" : `Last active ${w}`;
+}
+
+/** "Joins as a Viewer", "Joins as an Editor". */
+export const joinsAsWords = (r: TeamRole): string => `Joins as ${/^[AEIOU]/.test(roleLabel(r)) ? "an" : "a"} ${roleLabel(r)}`;
+
+/** The phone invite card's end date: "ends 8 Oct 2026", or "expired 8 Oct 2026". */
+export const inviteEndsWords = (i: Pick<Invite, "expiresAt" | "expired">): string => `${i.expired ? "expired" : "ends"} ${formatDay(i.expiresAt) ?? "soon"}`;
+
 /** The phone row's line and the desktop row's two parts. */
 export const inviteSentWords = (i: Pick<Invite, "sentAt">): string => `Invite sent ${formatDay(i.sentAt) ?? "recently"}`;
 export const inviteExpiryWords = (i: Pick<Invite, "expiresAt" | "expired">): string => `${i.expired ? "expired" : "expires"} ${formatDay(i.expiresAt) ?? "soon"}`;
