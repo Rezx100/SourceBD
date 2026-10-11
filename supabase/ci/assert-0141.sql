@@ -22,9 +22,15 @@ update public.profiles set plan_tier = 'enterprise' where id = '00000000-0000-40
 update public.profiles set is_suspended = true where id = '00000000-0000-4000-8000-00000000e141';
 
 insert into public.suppliers (id, slug, company_name, company_name_norm, city, district, is_published, is_sanctioned) values
-  ('00000000-0000-4000-8000-0000000a1141', 'ci-0141-a', 'CI 0141 A Ltd', 'ci 0141 a ltd', 'Dhaka', 'Dhaka', true, false),
-  ('00000000-0000-4000-8000-0000000a2141', 'ci-0141-b', 'CI 0141 B Ltd', 'ci 0141 b ltd', 'Dhaka', 'Dhaka', true, false),
-  ('00000000-0000-4000-8000-0000000a3141', 'ci-0141-c', 'CI 0141 C Ltd', 'ci 0141 c ltd', 'Dhaka', 'Dhaka', true, false);
+  ('00000000-0000-4000-8000-0000000a1141', 'ci-0141-a', 'CI 0141 A Ltd', 'ci 0141 a ltd', 'Dhaka', 'Dhaka', false, false),
+  ('00000000-0000-4000-8000-0000000a2141', 'ci-0141-b', 'CI 0141 B Ltd', 'ci 0141 b ltd', 'Dhaka', 'Dhaka', false, false),
+  ('00000000-0000-4000-8000-0000000a3141', 'ci-0141-c', 'CI 0141 C Ltd', 'ci 0141 c ltd', 'Dhaka', 'Dhaka', false, false);
+
+-- Published only once each holds a Tier 1 source (enforce_publish_tier).
+insert into public.source_records (supplier_id, source_id, source_tier, source_ref)
+select sp.id, s.id, s.tier, 'CI-0141-' || sp.slug from public.suppliers sp, public.sources s
+ where sp.slug like 'ci-0141-%' and s.code = 'RSC';
+update public.suppliers set is_published = true where slug like 'ci-0141-%';
 
 insert into public.volza_export_checks
   (supplier_id, name_searched, window_start, window_end, shipments, exporters_matched, match_class,
