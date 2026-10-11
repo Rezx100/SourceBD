@@ -7,7 +7,7 @@ this file holds counts and worked examples only. Every call is Bangladesh export
 only; no import data, no other HS chapters. Founder defaults applied: Volza is Tier 6 cross-check
 data; RMG = BGMEA or BKMEA member, or EPB HS chapter 61/62.
 
-**Spend so far: $83.50** (Volza's counter after launch batch 1, 11 Oct 2026; section 11). Was: **$25.20** of the $3,000 credit (Volza's own counter, read 10 Oct 23:3x), on the
+**Spend so far: $93.95** (Volza's counter after the latest-shipment refetch, 11 Oct 2026; section 11). Was: **$25.20** of the $3,000 credit (Volza's own counter, read 10 Oct 23:3x), on the
 200-supplier live sample the founder approved at up to $30 and ran from their own machine. Sandbox calls cost nothing:
 the account counter read 0.000 through 400+ sandbox calls before the live run started.
 
@@ -559,3 +559,16 @@ case; label "buyer on the customs record" (often a shipping arm or a Bangladeshi
 "Padma Textiles"). Price check: show a unit price only when it is under 3× the median price for the
 same 4-digit heading across stored rows (with 5+ rows for that heading), else show the shipment
 without a price. Never call the small-orders line a minimum order.
+
+### Database and the latest shipment (11 Oct 2026)
+
+Applied on the founder's "apply": 0138 (whole summary and record), 0139 (markets, small_orders),
+0140 (record_sort: is the stored record the biggest or the latest shipment). Batch 1 loaded: 263
+rows, 73 shown, 62 with markets, 56 with small orders, none of the hidden rows carrying markets.
+
+The card's band shows "Latest shipment on record: <date>" (design session, 11 Oct), so preview and
+exact searches now sort by date and market searches stay value-sorted. The 73 shown were refetched
+latest-first (`ops/volza_launch.py --latest`, founder ran it): 73 searches, all sorted by date per
+Volza's echo, **$10.45** by the counter (93.950). Loaded: all 73 have record_sort 'date'. Latest
+shipment on record: Aug 2026 (the end of Volza's data) 50, Jun–Jul 2026 11, 2025 to early 2026 9,
+Sep–Nov 2024 3. Raw rows: `etl/raw/volza/latest_1.jsonl`.
