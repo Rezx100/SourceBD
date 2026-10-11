@@ -488,3 +488,19 @@ Expected: about 60 suppliers newly shown or completed with UK, US, EU and Canada
 biggest buyer in each. The market figures stay in the raw file until a database column holds them
 (the card work, spec slice B); previews load with `ops/volza_load_sample.py --file
 etl/raw/volza/launch_1.jsonl` once 0138 is applied. Tests: `etl/tests/test_volza_live_sample.py`.
+
+### Small-orders check (11 Oct 2026, founder ran it; $0.30, counter 36.850 → 37.150; $2.50 of the $3 cap)
+
+Volza's quantity filter works (`"quantity": {"operator": "lt", "value": n}`; the echo has no field
+for it, the counts prove it): Aboni has 950 of 4,652 shipments under 1,000 units (20%) and 2,295
+under 5,000 (49%). **Units matter:** the biggest "small" line is 720 KGS, which its product text says
+is 4,292 pieces, so a supplier that declares some lines in kilos would look smaller than it is.
+37 of the 47 shown suppliers ship only in pieces (one unit, PCS); the other 10 mix pieces and kilos.
+
+So batch 1 adds one search per exact supplier that ships only in pieces: shipments under 1,000
+pieces (about $0.10–0.15 each, about $4–6 for the 37 held ones), for a card line such as "20% of its
+shipments were under 1,000 pieces". Suppliers with mixed units get no such line.
+
+Unit prices come with every record bought (declared FOB at the Bangladesh port, per shipment line,
+not per order). The card shows the biggest shipment's price per market; a full list belongs in the
+"See recent shipments" table bought for a credit (spec slice C), most recent first.
