@@ -6,7 +6,7 @@
 // load (the pattern in `app/(app)/app/record-routes.test.ts`).
 
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
@@ -688,5 +688,12 @@ describe("/app/rfqs/[id]", () => {
     rpcs.rfq_list = { data: [], error: null };
     const unknown = await outcome(() => route(PAGE)({ params: Promise.resolve({ id: ID1 }) }));
     assert.ok("threw" in unknown, "an RFQ nobody can name and nobody could read is not found");
+  });
+
+  // Solid brand green is the primary button's (frame.test); the phone's price chart draws in the accent ink.
+  it("the phone's price chart spends no solid brand green", () => {
+    const chart = /function PriceChart[\s\S]*?\r?\n}\r?\n/.exec(readFileSync(path.join(process.cwd(), "components", "rfqs", "detail.tsx"), "utf8"))?.[0] ?? "";
+    assert.ok(chart.length > 0, "PriceChart not found");
+    assert.doesNotMatch(chart, /\bbg-brand\b(?!-)/);
   });
 });

@@ -132,11 +132,10 @@ function Targets({
             </span>
             <span className="line-clamp-2 text-[15px]/[18px] font-medium text-ink [overflow-wrap:anywhere]">{targets.length === 1 ? first.name : targetSummary(targets)}</span>
           </span>
-          {targets.length > 1 || first.sanctioned ? (
-            <button type="button" onClick={onReview} className={PILL}>
-              Review
-            </button>
-          ) : null}
+          {/* Always: the list with Remove is not drawn on a phone, so Review is the one way to take a supplier off. */}
+          <button type="button" onClick={onReview} className={PILL}>
+            Review
+          </button>
           <button type="button" onClick={onAdd} className={cn(PILL, "gap-1")}>
             <Plus size={14} weight="thin" className="shrink-0" aria-hidden />
             Add

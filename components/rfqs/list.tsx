@@ -256,7 +256,7 @@ export function RfqEmpty() {
           ))}
         </ol>
         {/* Class strings, not `cn`: tailwind-merge reads `text-md/[20px]` as a colour and would drop one. */}
-        <Link href="/app/discover" className="flex h-12 items-center justify-center gap-1.5 rounded-lg bg-brand text-md/[20px] font-medium text-surface outline-none active:bg-brand-active focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+        <Link href="/app/discover" className="flex h-12 items-center justify-center gap-1.5 rounded-lg bg-brand text-md/[20px] font-medium text-brand-on outline-none active:bg-brand-active focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
           <MagnifyingGlass size={18} weight="thin" className="shrink-0" aria-hidden />
           Search suppliers
         </Link>

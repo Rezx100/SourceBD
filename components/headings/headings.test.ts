@@ -174,6 +174,11 @@ describe("/app/headings", () => {
     assert.match(t, /Supplier counts leave out sanctioned suppliers, as search does\./);
     // A chapter past the first four is still drawn open when the address asks for it.
     assert.match(text(await page({ chapter: "99" })), /Chapter 99 1 heading · most suppliers first/);
+    // Main chapters hidden after the first four are not "trims, packaging, other".
+    answer = { data: ["6109", "6203", "6302", "6006", "6505", "6403"].map((hs, i) => ({ hs, heading: null, exporter_count: 10 + i })), error: null };
+    const main = text(await page());
+    assert.match(main, /2 more chapters/);
+    assert.doesNotMatch(main, /trims, packaging, other/);
   });
 
   it("?more=1 draws every other chapter as a card", async () => {

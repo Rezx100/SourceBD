@@ -17,7 +17,7 @@
 import { ArrowLeft, CaretDown, CaretUp, File, Paperclip, PaperPlaneTilt, Plus, Trash, UploadSimple, X } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button, ButtonLink, Field, IconButton, Input, Select, Table, TableFrame, Td, Th, Tr } from "@/components/kit";
 import { fieldBox, fieldEdge } from "@/components/kit/classes";
 import {
@@ -61,6 +61,14 @@ export function ProductForm({ initial, updatedAt = null }: { initial: ProductVal
   const [open, setOpen] = useState(() => openSections(initial));
   // The phone's "More: images, colour and size options" row (`11 · New product`).
   const [more, setMore] = useState(false);
+  // The phone's product view links to a section by its anchor (`view.tsx`). A shut section is not
+  // drawn on a phone, so the one the address names opens, then scrolls into view.
+  useEffect(() => {
+    const id = window.location.hash.slice(1);
+    if (!ADD_LATER.some((r) => r.id === id)) return;
+    setOpen((o) => ({ ...o, [id]: true }));
+    requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView());
+  }, []);
   const [errors, setErrors] = useState<ProductErrors>({});
   const [busy, setBusy] = useState<ProductStatus | null>(null);
   const [uploading, setUploading] = useState<MediaKind | null>(null);

@@ -4,7 +4,7 @@
 // unknown id, a failed read that is an error and not a 404, Send RFQ for an active product only).
 
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
@@ -12,7 +12,7 @@ import { createElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { emptyProduct, fromProduct, type ProductValues } from "@/components/product-form-model";
-import { OPTIONAL_LINES, SECTIONS, changedLabels, editLine, footButtons, hasContent, openSections, refusal } from "./edit";
+import { ADD_LATER, OPTIONAL_LINES, SECTIONS, changedLabels, editLine, footButtons, hasContent, openSections, refusal } from "./edit";
 import { releaseFile, saveProduct, uploadMedia, type Fetch } from "./transport";
 import { FULL_EDITOR_LABEL, detailsPayload, viewCounts, viewFacts } from "./view";
 
@@ -249,6 +249,14 @@ describe("/app/products/[id]", () => {
 });
 
 describe("the phone's Product view", () => {
+  it("every section a row links to is one the editor opens from the address (a shut section is not drawn on a phone)", () => {
+    const src = (f: string) => readFileSync(path.join(process.cwd(), "components", "products", f), "utf8");
+    const anchors = [...src("view.tsx").matchAll(/\$\{editor\}#([a-z-]+)/g)].map((m) => m[1]);
+    assert.ok(anchors.length >= 4);
+    for (const a of anchors) assert.ok(ADD_LATER.some((r) => r.id === a), `#${a} is not a section the editor can open`);
+    assert.match(src("form.tsx"), /window\.location\.hash[\s\S]{0,200}setOpen\(/, "the editor opens the section the address names");
+  });
+
   it("says what is set and 'Not set' for what is not; the sections it does not edit are counted", () => {
     const facts = Object.fromEntries(viewFacts(saved({ tags: ["SS27", "organic"] })).map((x) => [x.label, x.value]));
     assert.equal(facts["Style number"], "NW-702");

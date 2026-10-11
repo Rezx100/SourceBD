@@ -353,7 +353,7 @@ export function ThreadLive({
             ))}
           </ul>
         ) : null}
-        <div className="flex items-end gap-2 max-md:min-h-12 max-md:items-center max-md:gap-1 max-md:rounded-[24px] max-md:border max-md:border-line max-md:p-1 max-md:focus-within:border-brand-ink">
+        <div className="flex items-end gap-2 max-md:min-h-12 max-md:items-center max-md:gap-1 max-md:rounded-[24px] max-md:border max-md:border-line max-md:p-1 max-md:focus-within:border-brand-ink max-md:has-[[aria-invalid=true]]:border-danger">
           <input ref={fileInputRef} type="file" multiple accept={FILE_TYPES.join(",")} onChange={onPick} tabIndex={-1} aria-hidden className="hidden" />
           <IconButton icon={Paperclip} label="Attach files" kind="quiet" size={32} disabled={sending} onClick={() => fileInputRef.current?.click()} className="max-md:size-10 max-md:rounded-full" />
           <textarea

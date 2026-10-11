@@ -218,6 +218,8 @@ describe("what the composer draws", () => {
     const five = draw(Array.from({ length: 5 }, (_, i) => target(i + 1)));
     assert.ok(five.includes("Supplier 5") && !five.includes("Review all"));
     assert.ok(five.includes('aria-label="Remove Supplier 5"'));
+    // A phone draws no list with Remove, so its card offers Review even for one supplier.
+    assert.match(draw([target(1)]), /sm:hidden">.*?>Review<\/button>/s, "one supplier can still be taken off on a phone");
   });
 
   it("the only supplier has no Remove (an RFQ needs one); nobody means an empty state and no Send", () => {

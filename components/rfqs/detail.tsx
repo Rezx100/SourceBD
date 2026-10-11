@@ -277,8 +277,8 @@ function PriceChart({ c }: { c: QuoteChart }) {
             {r.at !== null ? (
               <>
                 <span className="absolute inset-x-0 top-[23px] h-0.5 rounded-full bg-sunken" />
-                <span className={cn("absolute top-[23px] h-0.5", r.over ? "bg-caution-icon" : "bg-brand")} style={{ left: `${Math.min(r.at, CHART_TARGET_AT) * 100}%`, width: `${Math.abs(r.at - CHART_TARGET_AT) * 100}%` }} />
-                <span className={cn("absolute top-[18px] size-3 -translate-x-1/2 rounded-full border-2 border-surface", r.over ? "bg-caution-icon" : "bg-brand")} style={{ left: `${r.at * 100}%` }} />
+                <span className={cn("absolute top-[23px] h-0.5", r.over ? "bg-caution-icon" : "bg-brand-ink")} style={{ left: `${Math.min(r.at, CHART_TARGET_AT) * 100}%`, width: `${Math.abs(r.at - CHART_TARGET_AT) * 100}%` }} />
+                <span className={cn("absolute top-[18px] size-3 -translate-x-1/2 rounded-full border-2 border-surface", r.over ? "bg-caution-icon" : "bg-brand-ink")} style={{ left: `${r.at * 100}%` }} />
               </>
             ) : null}
           </span>
