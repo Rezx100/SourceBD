@@ -83,7 +83,20 @@ def rows(recs: list[dict[str, Any]], fetched_at: datetime) -> list[dict[str, Any
         if any("summary" in x for x in recs):  # files that kept the whole preview (0138 columns)
             out[-1].update(summary=r.get("summary") if hit else None,
                            top_record=r["top"] if hit and r.get("summary") else None)
+        if any("markets" in x or "small_orders" in x for x in recs):  # launch batches (0139 columns)
+            shown = out[-1]["match_class"] == "exact"  # a hidden row's market counts used a doubtful name
+            out[-1].update(markets=r.get("markets") if shown else None,
+                           small_orders=r.get("small_orders") if shown else None)
     return out
+
+
+def drop_missing_columns(http: httpx.Client, out: list[dict[str, Any]]) -> None:
+    """Before 0139 is applied the table has no markets/small_orders: write the rest, say what waited."""
+    for col in ("markets", "small_orders"):
+        if out and col in out[0] and http.get("/volza_export_checks", params={"select": col, "limit": 0}).status_code == 400:
+            for r in out:
+                r.pop(col, None)
+            print(f"the table has no {col} column yet (migration 0139); written without it, load again after")
 
 
 def main() -> None:
@@ -121,6 +134,7 @@ def main() -> None:
     ids = ",".join(r["supplier_id"] for r in out)
     alive = {s["id"] for s in http.get("/suppliers", params={"select": "id", "id": f"in.({ids})"}).json()}
     keep = [r for r in out if r["supplier_id"] in alive]
+    drop_missing_columns(http, keep)
     http.post("/volza_export_checks", params={"on_conflict": "supplier_id"}, json=keep,
               headers={"Prefer": "resolution=merge-duplicates,return=minimal"}).raise_for_status()
     print(f"wrote {len(keep)} rows; skipped {len(out) - len(keep)} suppliers no longer on file")

@@ -182,3 +182,22 @@ def test_loader_hides_an_exact_search_that_kept_too_little():
     lost = {"class": "exact", "tried": [["Columbia Apparels Ltd", 200, 2468, 2], ["exact:Columbia Apparels Ltd", 200, 84, 1]]}
     plain = {"class": "exact", "tried": [["Hamza Clothing", 200, 406, 1]]}
     assert [load.shown_class(r) for r in (kept, lost, plain)] == ["exact", "ambiguous", "exact"]
+
+
+def test_loader_keeps_markets_only_for_shown_rows_and_waits_for_the_column():
+    from datetime import datetime, timezone
+
+    from ops import volza_load_sample as load
+
+    base = {"suppliers": 1, "volza_supplier": "Hamza Clothing Ltd", "fob_usd": 1.0, "buyers": 2, "top": {}}
+    shown = {"id": "a", "name": "Hamza Clothing Ltd.", "class": "exact", "shipments": 406, "matched_variant": "Hamza Clothing",
+             "tried": [["Hamza Clothing", 200, 406, 1]], "markets": {"EU": {"shipments": 236}},
+             "small_orders": {"under_pcs": 1000, "shipments": 26, "of": 406}, **base}
+    hidden = {**shown, "id": "b", "tried": [["Columbia Apparels Ltd", 200, 2468, 2], ["exact:Columbia Apparels Ltd", 200, 84, 1]]}
+    out = load.rows([shown, hidden], datetime(2026, 10, 11, tzinfo=timezone.utc))
+    assert out[0]["markets"] == {"EU": {"shipments": 236}} and out[0]["small_orders"]["shipments"] == 26
+    assert out[1]["match_class"] == "ambiguous" and out[1]["markets"] is None
+
+    http = httpx.Client(base_url="http://x", transport=httpx.MockTransport(lambda req: httpx.Response(400)))
+    load.drop_missing_columns(http, out)
+    assert "markets" not in out[0] and "small_orders" not in out[0]
