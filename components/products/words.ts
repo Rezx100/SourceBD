@@ -76,8 +76,17 @@ export function styleLine(r: Pick<ProductRow, "product_number" | "category">): s
 
 export const updatedWords = (iso: string): string => formatDay(iso) ?? "Not dated";
 
-/** The phone row's last line: "Updated 26 Sep 2026". */
-export const phoneUpdated = (iso: string) => `Updated ${updatedWords(iso)}`;
+/** What a status asks of the buyer on the phone's card: a draft cannot go out yet, an archived product is put away. */
+const STATUS_HINT: Record<ProductStatus, string | null> = { active: null, draft: "make it active to send an RFQ", archived: "restore it to use it again" };
+
+/** The phone card's last line (`11 · Products`): "Updated 9 Oct 2026 · make it active to send an RFQ". */
+export const phoneUpdated = (r: Pick<ProductRow, "updated_at" | "status">) => [`Updated ${updatedWords(r.updated_at)}`, STATUS_HINT[r.status]].filter(Boolean).join(" · ");
+
+/** The phone card's figures: "US$4.20 per piece · MOQ 3,000 pieces", "No price yet · MOQ 5,000 pieces". */
+export function phoneFigures(r: Pick<ProductRow, "price_usd" | "moq">): string {
+  const moq = moqWords(r.moq);
+  return `${priceWords(r.price_usd) ?? "No price yet"} · ${moq ? `MOQ ${moq}` : "No MOQ yet"}`;
+}
 
 export const addHref = "/app/products/new";
 export const openHref = (id: string) => `/app/products/${encodeURIComponent(id)}`;

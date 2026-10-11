@@ -162,6 +162,18 @@ describe("/app/headings", () => {
     assert.match(text(await page({ chapter: "77" })), /61 Knitted clothing/);
   });
 
+  it("on a phone the open chapter lists its headings by most suppliers, four then 'N more', under a short caption and the sanctions note", async () => {
+    answer = { data: [...(CATALOGUE.data as object[]), ...["6104", "6110", "6103"].map((hs, i) => ({ hs, heading: null, exporter_count: 100 + i }))], error: null };
+    const out = await page();
+    const t = text(out);
+    assert.match(out, /<span class="md:hidden">9 headings in 5 chapters<\/span>/);
+    assert.match(t, /61 Knitted clothing 5 headings · most suppliers first/);
+    assert.match(t, /1 more heading in 61/);
+    assert.ok(out.includes('href="/app/headings?chapter=61&more=1"'), "the more row opens every heading");
+    assert.match(t, /1 more chapter: trims, packaging, other/);
+    assert.match(t, /Supplier counts leave out sanctioned suppliers, as search does\./);
+  });
+
   it("?more=1 draws every other chapter as a card", async () => {
     answer = CATALOGUE;
     const t = text(await page({ more: "1" }));

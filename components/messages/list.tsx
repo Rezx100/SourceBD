@@ -2,9 +2,11 @@
 // list's head with its search and tabs, the rows, the empty teaching state, the failed read and the
 // loading skeleton. Server components; the conversation is `conversation.tsx` and `thread-live.tsx`.
 
-import { Clock, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
+import { BookmarkSimple, ChatCircle, Clock, Lock, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { ErrorPanel, Skeleton, buttonClass } from "@/components/kit";
+import { LinkPending } from "@/components/patterns/link-pending";
+import { initials } from "@/lib/dashboard/facts";
 import { cn } from "@/lib/utils";
 import { conversationsWords, listHref, threadHref, type ListState, type ShowTab, type ThreadItem } from "./words";
 
@@ -59,7 +61,11 @@ export function InboxHead({ total, counts, state, Title = "h1" }: { total: numbe
   );
 }
 
-/** One row: the name and when, the newest line, and "RFQ · title" (with "No reply yet" when the last word is yours). */
+/**
+ * One row: the name and when, the newest line, and "RFQ · title" (with "No reply yet" when the last
+ * word is yours). On a phone (`11 · Messages`) the row also has the supplier's initials, the unread
+ * dot at the end of its last line, and "No reply in 15 days" in caution.
+ */
 export function InboxRows({ items, state, currentId }: { items: readonly ThreadItem[]; state: ListState; currentId: string | null }) {
   return (
     <ul>
@@ -72,26 +78,45 @@ export function InboxRows({ items, state, currentId }: { items: readonly ThreadI
               prefetch={false}
               aria-current={current ? "page" : undefined}
               className={cn(
-                "flex min-h-14 flex-col gap-0.5 border-b border-l-2 border-line py-3 pl-3.5 pr-4 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus max-md:pl-[14px]",
+                "flex min-h-14 gap-3 border-b border-l-2 border-line py-3 pl-3.5 pr-4 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus active:bg-sunken max-md:mx-5 max-md:border-l-0 max-md:px-0 max-md:py-3.5",
                 current ? "border-l-brand-ink bg-brand-tint" : "border-l-transparent",
               )}
             >
-              <span className="flex justify-between gap-2">
-                <span className={cn("flex min-w-0 items-center gap-2 text-base max-md:text-md", i.unread ? "font-semibold text-ink" : "font-medium text-ink")}>
-                  {i.unread ? <span aria-hidden className="size-2 shrink-0 rounded-full bg-brand-ink" /> : null}
-                  <span className="min-w-0">{i.name}</span>
-                  {i.unread ? <span className="sr-only">, unread</span> : null}
-                </span>
-                {i.when ? (
-                  <time dateTime={i.at ?? undefined} title={i.at ? "UTC" : undefined} className="shrink-0 text-xs leading-5 text-ink-3 max-md:text-sm">
-                    {i.when}
-                  </time>
-                ) : null}
+              <span aria-hidden className="flex size-11 shrink-0 items-center justify-center rounded-[12px] bg-sunken text-base/[18px] font-semibold text-ink-2 md:hidden">
+                {initials(i.name)}
               </span>
-              {i.line ? <span className={cn("line-clamp-2 text-base max-md:text-md", i.unread ? "font-medium text-ink" : "text-ink-2")}>{i.line}</span> : null}
-              <span className="flex items-center gap-1.5 text-xs text-ink-3 max-md:text-sm">
-                {i.noReply ? <Clock size={14} className="shrink-0" aria-hidden /> : null}
-                {i.noReply ? `No reply yet · ${i.sub}` : i.sub}
+              <span className="flex min-w-0 flex-1 flex-col gap-0.5 max-md:gap-[3px]">
+                <span className="flex justify-between gap-2">
+                  <span className={cn("flex min-w-0 items-center gap-2 text-base max-md:text-md/[22px]", i.unread ? "font-semibold text-ink" : "font-medium text-ink")}>
+                    {i.unread ? <span aria-hidden className="size-2 shrink-0 rounded-full bg-brand-ink max-md:hidden" /> : null}
+                    <span className="min-w-0">{i.name}</span>
+                    {i.unread ? <span className="sr-only">, unread</span> : null}
+                  </span>
+                  <span className="flex shrink-0 items-center gap-1.5">
+                    <LinkPending />
+                    {i.when ? (
+                      <time dateTime={i.at ?? undefined} title={i.at ? "UTC" : undefined} className={cn("shrink-0 text-xs leading-5 text-ink-3", i.unread && "max-md:font-medium max-md:text-ink")}>
+                        {i.when}
+                      </time>
+                    ) : null}
+                  </span>
+                </span>
+                {i.line ? <span className={cn("line-clamp-2 text-base", i.unread ? "font-medium text-ink max-md:font-normal" : "text-ink-2")}>{i.line}</span> : null}
+                <span className="flex items-center gap-1.5 text-xs text-ink-3 max-md:gap-[5px]">
+                  {i.noReply ? <Clock size={14} className="shrink-0 max-md:text-caution-icon" aria-hidden /> : null}
+                  {i.noReply ? (
+                    <>
+                      <span className="max-md:hidden">{`No reply yet · ${i.sub}`}</span>
+                      <span className="min-w-0 md:hidden">
+                        <span className="font-medium text-caution">{i.waiting}</span>
+                        {` · ${i.sub}`}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="min-w-0">{i.sub}</span>
+                  )}
+                  {i.unread ? <span aria-hidden className="ml-auto size-2 shrink-0 rounded-full bg-ink md:hidden" /> : null}
+                </span>
               </span>
             </Link>
           </li>
@@ -99,6 +124,11 @@ export function InboxRows({ items, state, currentId }: { items: readonly ThreadI
       })}
     </ul>
   );
+}
+
+/** The phone's line over the rows: "2 unread", when the data says what is unread and something is. */
+export function UnreadLine({ unread }: { unread: number }) {
+  return unread > 0 ? <p className="px-5 pb-1 pt-[18px] text-right text-sm text-ink-3 md:hidden">{`${unread} unread`}</p> : null;
 }
 
 /** A tab or a search that matches nothing, in the list's own place. */
@@ -137,27 +167,45 @@ const STEPS = [
   { title: "Check them as you talk", body: "Certificates, RSC inspections and sources sit beside the thread." },
 ];
 
+/** The phone's empty inbox (`11 · Messages empty`). The copy is a test's: an outside caller reads it. */
+export const EMPTY_PHONE = {
+  title: "No messages yet",
+  body: "A thread opens when you send an RFQ. Replies land here.",
+  note: "Only you and the supplier see a thread.",
+  action: "Open your saved suppliers",
+} as const;
+
 /** No conversations at all (`10 · Messages empty`, `11 · Messages empty`): what it is for and the way to start. */
 export function InboxEmpty() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex max-w-prose flex-col gap-3 px-16 pb-0 pt-16 max-lg:px-8 max-lg:pt-10 max-md:gap-4 max-md:px-4 max-md:py-6">
-        <p className="text-xs font-semibold text-ink-3 max-md:hidden">Messages</p>
-        <h1 className="text-2xl font-semibold tracking-tighter text-ink max-md:text-xl">
-          <span className="max-md:hidden">Talk to suppliers here, with their record beside you.</span>
-          <span className="md:hidden">Supplier replies land here.</span>
-        </h1>
-        <p className="text-md text-ink-2">
-          <span className="max-md:hidden">Send an RFQ and the supplier replies in this inbox. Contact details stay locked until then.</span>
-          <span className="md:hidden">Send an RFQ. Replies and their records land here.</span>
+      <div className="flex flex-col gap-5 px-5 pb-[104px] pt-14 md:hidden">
+        <span aria-hidden className="flex size-12 shrink-0 items-center justify-center rounded-full bg-sunken">
+          <ChatCircle size={24} weight="thin" className="text-ink-2" />
+        </span>
+        <div className="flex flex-col gap-2">
+          <h1 className="text-xl/[30px] font-medium tracking-tighter text-ink">{EMPTY_PHONE.title}</h1>
+          <p className="text-[15px]/[22px] text-ink-2">{EMPTY_PHONE.body}</p>
+        </div>
+        <p className="flex items-center gap-2 rounded-lg bg-subtle px-3 py-2.5 text-sm text-ink-2">
+          <Lock size={16} weight="thin" className="shrink-0 text-ink-3" aria-hidden />
+          {EMPTY_PHONE.note}
         </p>
-        <div className="flex gap-2 pt-2 max-md:flex-col max-md:pt-0">
-          <Link href="/app" prefetch={false} className={buttonClass({ kind: "primary", size: "lg", className: "max-md:h-input-touch max-md:w-full" })}>
+        <Link href="/app/saved" className="flex h-11 items-center justify-center gap-1.5 self-start rounded-full bg-sunken px-3.5 text-base font-medium text-ink outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus active:bg-line">
+          <BookmarkSimple size={16} weight="thin" className="shrink-0" aria-hidden />
+          {EMPTY_PHONE.action}
+        </Link>
+      </div>
+      <div className="flex max-w-prose flex-col gap-3 px-16 pb-0 pt-16 max-lg:px-8 max-lg:pt-10 max-md:hidden">
+        <p className="text-xs font-semibold text-ink-3">Messages</p>
+        <h1 className="text-2xl font-semibold tracking-tighter text-ink">Talk to suppliers here, with their record beside you.</h1>
+        <p className="text-md text-ink-2">Send an RFQ and the supplier replies in this inbox. Contact details stay locked until then.</p>
+        <div className="flex gap-2 pt-2">
+          <Link href="/app" prefetch={false} className={buttonClass({ kind: "primary", size: "lg" })}>
             Search suppliers
           </Link>
-          <Link href="/app/rfqs/new" prefetch={false} className={buttonClass({ kind: "secondary", size: "lg", className: "max-md:h-input-touch max-md:w-full" })}>
-            <span className="max-md:hidden">Send an RFQ to a saved supplier</span>
-            <span className="md:hidden">Send an RFQ</span>
+          <Link href="/app/rfqs/new" prefetch={false} className={buttonClass({ kind: "secondary", size: "lg" })}>
+            Send an RFQ to a saved supplier
           </Link>
         </div>
       </div>
