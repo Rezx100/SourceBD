@@ -339,8 +339,10 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     const overview = () => Page({ params: Promise.resolve({ slug: "hamza-clothing" }), searchParams: Promise.resolve({}) });
     const capacity = html(await outcome(overview)).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
     assert.match(capacity, /Capacity 1,000,000 pcs\/day From BKMEA · Filed figures look inconsistent; confirm with the supplier/);
+    // Who imported sits beside who disclosed: its own line, the brands' lists untouched.
+    assert.match(capacity, /Buyers in customs records The Haddad Apparel Group Ltd, TJX UK, Action Service Distributie B V From Bangladesh customs records/);
     given({ profile: PROFILE, hscodes: HS });
-    assert.doesNotMatch(html(await outcome(overview)), /look inconsistent|Exports suggest/, "a capacity note from customs data reached a reader without it");
+    assert.doesNotMatch(html(await outcome(overview)), /look inconsistent|Exports suggest|customs records/, "customs data reached a reader without it on the Overview");
   });
 
   it("?lines=all expands the grid past six tiles", async () => {

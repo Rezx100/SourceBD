@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  brandsInCustoms,
   capacityNote,
+  customsBuyers,
   certCheckLine,
   customsBand,
   customsRows,
@@ -452,5 +454,24 @@ describe("capacityNote: a filed capacity that looks wrong gets one of two plain 
     assert.equal(capacityNote(cap(null, null), exports(64369118, 7.77)), null);
     const kilos = { ...exports(64369118, 7.77), top_record: { ...top, unit: "KGS", unit_rate_usd: 7.77 } };
     assert.equal(capacityNote(cap(null, 25000), kilos), null);
+  });
+});
+
+describe("customs buyers sit beside the brands' own lists, never in place of them (11 Oct 2026)", () => {
+  const ship = (buyer: string | null) => ({ shipment_date: null, hsn_code: null, product_description: null, buyer_name: buyer, destination_country: null, trade_value_usd: null, unit_rate_usd: null, unit: "PCS" });
+  const v = (buyers: (string | null)[]): VolzaExports => ({
+    shipments: 406, fob_usd: 1, buyers: 43, window_start: "2024-09-01", window_end: "2026-08-31", volza_name: null, fetched_at: "2026-10-10T20:36:01Z",
+    top_shipments: [ship(buyers[0] ?? null)], top_record: ship(buyers[0] ?? null),
+    markets: { "United Kingdom": { shipments: 5, fob_usd: 1, buyers: 1, top: ship(buyers[1] ?? null) }, EU: { shipments: 5, fob_usd: 1, buyers: 1, top: ship(buyers[2] ?? null) }, Canada: { shipments: 0, fob_usd: null, buyers: null, top: null } },
+  });
+
+  it("distinct, tidied buyers from the shipments on file; none for a reader the read refused", () => {
+    assert.deepEqual(customsBuyers(v(["THE HADDAD APPAREL GROUP LTD 131 D", "TJX UK", "THE HADDAD APPAREL GROUP LTD 131 D"])), ["The Haddad Apparel Group Ltd", "TJX UK"]);
+    assert.deepEqual(customsBuyers(null), []);
+  });
+  it("a listed brand is marked only when a customs buyer names it, strictly", () => {
+    const agreed = brandsInCustoms(["H&M", "NEXT", "Primark"], v(["H & M HENNES & MAURITZ GBC AB", "NEXT LEVEL APPAREL INC", "PENNEYS DUBLIN"]));
+    assert.deepEqual([...agreed].sort(), ["H&M", "Primark"], "Next Level Apparel is not NEXT");
+    assert.equal(brandsInCustoms(["H&M"], null).size, 0);
   });
 });
