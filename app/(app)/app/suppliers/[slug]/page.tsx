@@ -84,7 +84,7 @@ export default async function SupplierRecordPage({
       pins: true,
       allLines,
       // "All N lines" is the Products tab, expanded.
-      allLinesHref: allLines ? null : here(`/app/suppliers/${slug}`, new URLSearchParams({ tab: "products", lines: "all" })),
+      allLinesHref: allLines ? null : here(`/app/suppliers/${slug}`, new URLSearchParams({ tab: "exports", lines: "all" })),
       // A line opened from the expanded grid comes back to it: without this,
       // Back from line 9 of "All N lines" landed on six tiles without it.
       lineHref: allLines || back ? (hs) => here(`/app/suppliers/${slug}/lines/${hs}`, new URLSearchParams(allLines ? { lines: "all" } : {})) : undefined,

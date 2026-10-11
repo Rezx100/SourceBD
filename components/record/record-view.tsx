@@ -1,6 +1,6 @@
 // The supplier record (B4c, Paper `10 · Record pane`, `Record full page`, `11 · Record`): one
 // view for the pane beside the results and the full page. A header with the name and the two
-// actions, a five-cell summary of what the registers hold, six tabs (each a link, so the tab
+// actions, a five-cell summary of what the registers hold, the customs band for a paying reader, seven tabs (each a link, so the tab
 // is in the address and the search behind a pane survives it), and the six sections stacked
 // under them: a tab jumps to its section and the scroll moves the marked tab. A sanctioned
 // record adds a solid band above everything and replaces Send RFQ with the refusal in words;
@@ -18,7 +18,7 @@ import { Define, buttonClass, ring } from "@/components/kit";
 import { LockedContact, REFUSAL, SanctionBanner, onFileWords } from "@/components/patterns";
 import type { SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
-import { CertificatesPanel, NeedsLookAside, OverviewPanel, ProductsPanel, RecordRfqs, SafetyPanel, SitesPanel, SourcesPanel } from "./panels";
+import { CertificatesPanel, ExportsBand, ExportsPanel, NeedsLookAside, OverviewPanel, ProductsPanel, RecordRfqs, SafetyPanel, SitesPanel, SourcesPanel } from "./panels";
 import { SourceCheckListener } from "@/components/onboarding/source-check";
 import { RecordSave } from "./save-button";
 import { SectionTabs } from "./section-tabs";
@@ -219,6 +219,7 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
             </p>
           ) : null}
           <Summary cells={cells} />
+          <ExportsBand model={model} href={`${tabHref("exports")}#record-exports`} level={level} />
 
           {/* Keyed by record: a pane that opens another supplier starts again at its tab. */}
           <SectionTabs
@@ -235,6 +236,8 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
                   <OverviewPanel model={model} today={today} level={level} lookAside={page} />
                   <RecordRfqs model={model} level={level} />
                 </div>
+              ) : t.id === "exports" ? (
+                <ExportsPanel model={model} level={level} />
               ) : t.id === "certificates" ? (
                 <CertificatesPanel model={model} today={today} compact={!page} level={level} />
               ) : t.id === "safety" ? (

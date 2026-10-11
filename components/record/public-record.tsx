@@ -11,11 +11,11 @@ import { buttonClass } from "@/components/kit";
 import { REFUSAL, SanctionBanner, SourceList, type SourceEntry } from "@/components/patterns";
 import type { SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
-import { CertificatesPanel, OverviewPanel, ProductsPanel, SafetyPanel, SitesPanel, SourcesPanel } from "./panels";
+import { CertificatesPanel, ExportsPanel, OverviewPanel, ProductsPanel, SafetyPanel, SitesPanel, SourcesPanel } from "./panels";
 import { Summary } from "./record-view";
 import { TABS, dayOfWords, recordSubline, summaryCells, tabCount, type TabId } from "./words";
 
-const SECTION: Record<TabId, string> = { overview: "Overview", certificates: "Certificates", safety: "Safety", sites: "Sites", sources: "Sources", products: "Products" };
+const SECTION: Record<TabId, string> = { overview: "Overview", exports: "Exports", certificates: "Certificates", safety: "Safety", sites: "Sites", sources: "Sources", products: "Products" };
 
 export const PUBLIC_NOTICE =
   "Authority logos identify the data sources we aggregate from. SourceBD is not affiliated with or endorsed by BGMEA, BKMEA, BTMA, EPB, OEKO-TEX, WRAP, GOTS, RSC, or any of the brands named on this page. Every datum traces to the issuing authority shown in Sources.";
@@ -52,6 +52,7 @@ export function PublicRecord({ model, today }: { model: SupplierSheetModel; toda
     { id: "certificates", body: <CertificatesPanel model={model} today={today} /> },
     { id: "safety", body: <SafetyPanel model={model} /> },
     { id: "sites", body: <SitesPanel model={model} tabHref={() => sitesHref} site={null} wide /> },
+    { id: "exports", body: <ExportsPanel model={model} level="h3" /> },
     { id: "products", body: <ProductsPanel model={model} /> },
     { id: "sources", body: <SourcesPanel model={model} today={today} /> },
   ];

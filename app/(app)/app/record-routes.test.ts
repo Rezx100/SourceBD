@@ -282,37 +282,57 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     assert.doesNotMatch(out, /<main\b|<aside\b|href="#main-content"/, "the slow-read state draws a shell inside the layout's");
   });
 
-  it("customs shipments via Volza show only when the database returns them, with its source line (0137)", async () => {
+  it("customs exports show only when the database returns them: the band under the strip and the Exports tab (0137, 0139, 0140)", async () => {
     // The plan gate is in `supplier_volza_exports`: a free reader gets null, and null must draw nothing.
     const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
-    const open = () => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({ tab: "products" }) });
+    const open = () => Page({ params: Promise.resolve({ slug: "hamza-clothing" }), searchParams: Promise.resolve({ tab: "exports" }) });
     given({ profile: PROFILE, hscodes: HS });
-    assert.doesNotMatch(html(await outcome(open)), /Customs shipments|Volza/, "a reader the database refused still sees the section");
-    assert.ok(rpcCalls.some((c) => c.fn === "supplier_volza_exports" && c.args?.p_slug === "aboni-knitwear"), "the page never asked for the Volza read");
+    const refused = html(await outcome(open)).replace(/<[^>]*>/g, " ");
+    assert.doesNotMatch(refused, /Customs exports|Volza|not checked/i, "a reader the database refused still sees customs words");
+    assert.match(refused, /Export lines/, "the Exports tab lost the EPB export lines");
+    assert.ok(rpcCalls.some((c) => c.fn === "supplier_volza_exports" && c.args?.p_slug === "hamza-clothing"), "the page never asked for the customs read");
 
-    given({
-      profile: PROFILE,
-      hscodes: HS,
-      rpcs: {
-        supplier_volza_exports: {
-          data: {
-            shipments: 406, fob_usd: 21698439.68, buyers: 43, window_start: "2024-09-01", window_end: "2026-08-31",
-            volza_name: "Aboni Knitwear Ltd.", fetched_at: "2026-10-10T17:36:14+00:00",
-            top_shipments: [{ shipment_date: "2026-03-24T00:00:00", hsn_code: "61091000", product_description: "BOYS TEE", buyer_name: "THE HADDAD APPAREL GROUP", destination_country: "United States", trade_value_usd: 607667.888, unit_rate_usd: 1.71, unit: "PCS" }],
-          },
-          error: null,
-        },
+    // Hamza Clothing's real row (launch batch, 10 Oct 2026), the biggest shipment stored (record_sort "value").
+    const top = { shipment_date: "2026-03-24T00:00:00", hsn_code: "61091000", product_description: "BOYS TEE", buyer_name: "THE HADDAD APPAREL GROUP LTD 131 D", destination_country: "United States", trade_value_usd: 607667.888, unit_rate_usd: 1.71, unit: "PCS" };
+    const row = (extra: Record<string, unknown>) => ({
+      shipments: 406, fob_usd: 21698439.68, buyers: 43, window_start: "2024-09-01", window_end: "2026-08-31",
+      volza_name: "Hamza Clothing Ltd.", fetched_at: "2026-10-10T21:33:30+00:00", top_shipments: [top], top_record: top,
+      summary: { count_of_hsn_codes: 8, count_of_unique_destination_countries: 16, count_of_shipment_modes: 2 },
+      markets: {
+        "United Kingdom": { shipments: 5, fob_usd: 51920.1, buyers: 4, top: { ...top, product_description: "MENS KNITTED SWEATSHIRT", buyer_name: "TJX UK", destination_country: "United Kingdom", unit_rate_usd: 7.05 } },
+        "United States": { shipments: 100, fob_usd: 4965812.04, buyers: 11, top },
+        EU: { shipments: 236, fob_usd: 15553268.46, buyers: 10, top: { ...top, buyer_name: "Action Service Distributie B V", destination_country: "Netherlands" } },
+        Canada: { shipments: 0, fob_usd: null, buyers: null, top: null },
       },
+      small_orders: { under_pcs: 1000, shipments: 26, of: 406 },
+      ...extra,
     });
+    given({ profile: PROFILE, hscodes: HS, rpcs: { supplier_volza_exports: { data: row({ record_sort: "value" }), error: null } } });
     const text = html(await outcome(open)).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
-    assert.match(text, /Customs shipments/);
-    assert.match(text, /Shipments 406 shipments 1 Sep 2024 – 31 Aug 2026/);
-    assert.match(text, /FOB value US\$21\.7m From 406 records/);
-    assert.match(text, /Buyers 43 buyers/);
-    assert.match(text, /Largest shipment US\$607,668 24 Mar 2026 · BOYS TEE · to THE HADDAD APPAREL GROUP \(United States\) · US\$1\.71 per pcs/);
-    assert.equal((text.match(/Bangladesh customs export records · fetched 10 Oct 2026/g) ?? []).length, 1, "the section without its one source line");
+    // The band: one source line in its head, the markets line, the figures; no fetched date in it.
+    assert.match(text, /Customs exports Bangladesh customs · Sep 2024 – Aug 2026 Ships to EU, US, UK · 16 countries in all/);
+    assert.match(text, /export value US\$21\.7m shipments 406 buyers 43 average shipment US\$53,400/);
+    assert.doesNotMatch(text, /latest shipment on record/i, "the biggest shipment's date passed off as the latest");
+    // The Exports tab says what the band cannot.
+    assert.match(text, /Shipping rhythm About 17 shipments a month/);
+    assert.match(text, /Product range 8 product codes 16 destination countries · 2 shipping modes/);
+    assert.match(text, /Biggest shipment US\$607,668 · 24 Mar 2026 Boys tee \(HS 6109\.10\) to The Haddad Apparel Group Ltd, United States/);
+    assert.match(text, /Small orders 26 of 406 shipments under 1,000 pieces 6%, counted in pieces\. Not a minimum order\./);
+    assert.match(text, /Where it ships EU 236 shipments · US\$15\.6m · 10 buyers Biggest shipment there: Boys tee \(HS 6109\.10\) to Action Service Distributie B V, Netherlands/);
+    assert.match(text, /United Kingdom 5 shipments · US\$52k · 4 buyers Biggest shipment there: Mens knitted sweatshirt \(HS 6109\.10\) to TJX UK/);
+    assert.match(text, /Canada No shipments to Canada Sep 2024 – Aug 2026/);
+    assert.equal((text.match(/Bangladesh customs export records · fetched 10 Oct 2026/g) ?? []).length, 1, "the fetched date is not said once, in the tab");
+    // Gone (critique of 11 Oct 2026): the placeholder row, the repeated band figures, a price before its check.
+    assert.doesNotMatch(text, /Coming with the next update|Reach|What the customs records show|per pcs|a piece/);
     // The provider is named on /legal/data-sources only, never on the profile (founder, 11 Oct 2026).
     assert.doesNotMatch(text, /Volza/i, "the profile names the data provider");
+
+    // 0140 says the stored shipment is the latest: the band dates it and the tab names it so.
+    given({ profile: PROFILE, hscodes: HS, rpcs: { supplier_volza_exports: { data: row({ record_sort: "date", top_record: { ...top, shipment_date: "2026-08-29T00:00:00" } }), error: null } } });
+    const latest = html(await outcome(open)).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
+    assert.match(latest, /latest shipment on record 29 Aug 2026/);
+    assert.match(latest, /Latest shipment on record US\$607,668 · 29 Aug 2026/);
+    assert.doesNotMatch(latest, /Biggest shipment US/);
   });
 
   it("?lines=all expands the grid past six tiles", async () => {
@@ -327,7 +347,7 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     assert.match(six, /All \d+ lines/);
     assert.ok(six.includes("lines=all"), "the six-tile view has no route to the other lines");
     // It is the Products tab, expanded, so the tab is not lost on the way.
-    assert.match(six.replace(/&amp;/g, "&"), /href="\/app\/suppliers\/aboni-knitwear\?tab=products&lines=all"/);
+    assert.match(six.replace(/&amp;/g, "&"), /href="\/app\/suppliers\/aboni-knitwear\?tab=exports&lines=all"/);
   });
 });
 
@@ -349,7 +369,7 @@ describe("/app/suppliers/[slug]/lines/[hs] — the line page", () => {
   it("draws the line on the v4 kit: its heading is the page's h1, Back is the record's Products tab, and the exporters are counted", async () => {
     const out = html(await run("6105"));
     assert.match(out, /<h1 [^>]*>Men&#x27;s or boys&#x27; shirts, knitted or crocheted<\/h1>/);
-    assert.match(out, /<a [^>]*aria-label="Back to the record"[^>]*href="\/app\/suppliers\/aboni-knitwear\?tab=products"/);
+    assert.match(out, /<a [^>]*aria-label="Back to the record"[^>]*href="\/app\/suppliers\/aboni-knitwear\?tab=exports"/);
     assert.match(out, /href="\/app\/discover\?hs=6105"[^>]*>Exporters of 6105<span [^>]*>· 1,634<\/span>/);
     assert.match(out, /<a [^>]*href="\/app\/rfqs\/new\?supplier=[^"&]+&amp;hs=6105&amp;back=[^"]+"[^>]*>Send RFQ for this line<\/a>/);
     assert.doesNotMatch(out, /data-sheet-scroll|animate-sheet-in|bg-surface-sunken|text-ink-(?:muted|subtle)/, "a class of the old kit");
@@ -1371,9 +1391,9 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
     for (const h of tiles) assert.match(h, /\?lines=all$/, `a tile of the expanded grid forgets it: ${h}`);
     // Back from a line is the record's Products tab, expanded or not.
     given({ profile: PROFILE, hscodes: HS });
-    assert.ok(hrefsIn(html(await linePage("6105", { lines: "all" }))).includes("/app/suppliers/aboni-knitwear?tab=products&lines=all"), "Back from a line returns to six tiles");
+    assert.ok(hrefsIn(html(await linePage("6105", { lines: "all" }))).includes("/app/suppliers/aboni-knitwear?tab=exports&lines=all"), "Back from a line returns to six tiles");
     given({ profile: PROFILE, hscodes: HS });
-    assert.ok(hrefsIn(html(await linePage("6105"))).includes("/app/suppliers/aboni-knitwear?tab=products"), "Back from a line opened from six tiles");
+    assert.ok(hrefsIn(html(await linePage("6105"))).includes("/app/suppliers/aboni-knitwear?tab=exports"), "Back from a line opened from six tiles");
   });
 
   it("a line outside the catalogue, after a failed EPB read, goes to the record — no 404, no invented line", async () => {
@@ -1385,11 +1405,11 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
       const r = await linePage(hs);
       assert.ok("threw" in r, `/lines/${hs} rendered a sheet while the EPB read had failed`);
       assert.match(r.threw, /NEXT_REDIRECT/, `/lines/${hs}: ${r.threw}`);
-      assert.match(r.threw, /\/app\/suppliers\/aboni-knitwear\?tab=products(?:;|$)/, `/lines/${hs} goes somewhere else: ${r.threw}`);
+      assert.match(r.threw, /\/app\/suppliers\/aboni-knitwear\?tab=exports(?:;|$)/, `/lines/${hs} goes somewhere else: ${r.threw}`);
     }
     given({ profile: PROFILE, hscodes: { data: null, error: { message: "boom" } } });
     const all = await linePage("3923", { lines: "all" });
-    assert.ok("threw" in all && /\/app\/suppliers\/aboni-knitwear\?tab=products&lines=all/.test(all.threw), "the expanded grid is lost on the way back");
+    assert.ok("threw" in all && /\/app\/suppliers\/aboni-knitwear\?tab=exports&lines=all/.test(all.threw), "the expanded grid is lost on the way back");
     // A catalogue heading still renders, and says the lines could not be read.
     given({ profile: PROFILE, hscodes: { data: null, error: { message: "boom" } } });
     assert.match(html(await linePage("6105")), /EPB lines could not be read/);
@@ -1648,10 +1668,10 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
     given({ profile: slow, hscodes: HS });
     const plain = await linePage("6105");
     assert.ok("threw" in plain && /NEXT_REDIRECT/.test(plain.threw), `a slow read on a line answered ${"threw" in plain ? plain.threw : "a page"}`);
-    assert.match(plain.threw, /\/app\/suppliers\/aboni-knitwear\?tab=products(?:;|$)/);
+    assert.match(plain.threw, /\/app\/suppliers\/aboni-knitwear\?tab=exports(?:;|$)/);
     given({ profile: slow, hscodes: HS });
     const all = await linePage("6105", { lines: "all" });
-    assert.ok("threw" in all && /\/app\/suppliers\/aboni-knitwear\?tab=products&lines=all/.test(all.threw), "the expanded grid is lost on a slow read");
+    assert.ok("threw" in all && /\/app\/suppliers\/aboni-knitwear\?tab=exports&lines=all/.test(all.threw), "the expanded grid is lost on a slow read");
   });
 
   it("Locations never says 'no address' under a Factory address the Overview shows", async () => {
@@ -1966,7 +1986,7 @@ describe("Send RFQ keeps the search (critique of 8 Oct 2026, round 3, item 1)", 
     assert.equal(send.searchParams.get("record"), "aboni-knitwear");
     assert.equal(send.searchParams.get("hs_line"), "6105");
     assert.ok(send.searchParams.get("rfq"));
-    assert.match(out, /aria-label="Back to the record"[^>]*href="\/app\/suppliers\/aboni-knitwear\?tab=products&amp;back=%2Fapp%2Fdiscover%3Fq%3Dknit"/);
+    assert.match(out, /aria-label="Back to the record"[^>]*href="\/app\/suppliers\/aboni-knitwear\?tab=exports&amp;back=%2Fapp%2Fdiscover%3Fq%3Dknit"/);
   });
 
   it("a list with no composer pane, or a deep link to a line, falls back to the composer page", async () => {
