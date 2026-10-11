@@ -1338,8 +1338,8 @@ const CASES = [
     path: `/suppliers/${MOTHER}`,
     expect: {
       status: 200,
-      // B9g: the v4 record's Products section lists the EPB lines as heading rows.
-      bodyIncludesAll: ["Export lines (EPB)", "6103"],
+      // B9g: the v4 record's Exports section lists the EPB lines as heading rows (moved from Products, customs slice A).
+      bodyIncludesAll: ["Export lines", "6103"],
       replayCacheControlMustMatch: /s-maxage=300/,
       replayCacheControlMustNotMatch: /no-store|\bprivate\b|\bno-cache\b/,
       replayMustNotRpc: PACK_RPCS,
