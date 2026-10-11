@@ -21,6 +21,7 @@ import argparse
 import html
 import json
 import sys
+import threading
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
@@ -102,7 +103,8 @@ dl{{display:grid;grid-template-columns:130px 1fr;gap:2px 10px;margin:10px 0}} dt
 button{{font:inherit;padding:6px 12px;margin:4px 6px 0 0;border:1px solid #bbb;border-radius:6px;background:#fff;cursor:pointer}}
 button.on{{background:#1a1a1a;color:#fff;border-color:#1a1a1a}}
 </style><h1>Is this our company?</h1><p>{left} of {len(rows)} still to answer. A yes is fetched and shown
-after the next batch; a no stays hidden. You can change an answer until then.</p>{"".join(cards)}"""
+after the next batch; a no stays hidden. You can change an answer until then.</p>{"".join(cards)}
+<form method=post action=/done><button>Done, close the page</button></form>"""
 
 
 def serve(port: int) -> None:
@@ -111,6 +113,10 @@ def serve(port: int) -> None:
             self._send(200, page(queue(), decisions()))
 
         def do_POST(self) -> None:
+            if self.path == "/done":  # Ctrl+C does not reach a waiting server on Windows
+                self._send(200, "<p style='font:16px system-ui;margin:40px'>Saved. You can close this tab.</p>")
+                threading.Thread(target=server.shutdown).start()
+                return
             f = parse_qs(self.rfile.read(int(self.headers.get("Content-Length", 0))).decode())
             try:
                 decide(f["id"][0], f["choice"][0], f["name"][0])
@@ -130,8 +136,10 @@ def serve(port: int) -> None:
         def log_message(self, *_: Any) -> None:
             pass
 
-    print(f"review page at http://127.0.0.1:{port} (Ctrl+C to stop); answers go to {REVIEW}")
-    HTTPServer(("127.0.0.1", port), H).serve_forever()
+    print(f"review page at http://127.0.0.1:{port}; press Done on the page to stop. Answers go to {REVIEW}")
+    server = HTTPServer(("127.0.0.1", port), H)
+    server.serve_forever()
+    print("review page closed")
 
 
 def main() -> None:
