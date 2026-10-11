@@ -170,7 +170,7 @@ export type CertCheck = {
 /** `supplier_cert_checks`: the record's certificates, and each scheme's last complete read. */
 export type CertChecks = { certs: CertCheck[]; reads: Record<string, string | null> };
 
-/** One shipment as Volza returned it (0137 `top_shipments`). */
+/** One shipment as Volza returned it (0137 `top_shipments`, 0139 `top_record` and each market's `top`). */
 export type VolzaShipment = {
   shipment_date: string | null;
   hsn_code: string | null;
@@ -181,7 +181,9 @@ export type VolzaShipment = {
   unit_rate_usd: number | null;
   unit: string | null;
 };
-/** `supplier_volza_exports` (0137): null unless the reader is on a paying plan and there is an exact match. */
+export type VolzaMarketName = "United Kingdom" | "United States" | "EU" | "Canada";
+export type VolzaMarket = { shipments: number; fob_usd: number | null; buyers: number | null; top: VolzaShipment | null };
+/** `supplier_volza_exports` (0137, 0139, 0140): null unless the reader is on a paying plan and there is an exact match. */
 export type VolzaExports = {
   shipments: number;
   fob_usd: number | null;
@@ -191,54 +193,204 @@ export type VolzaExports = {
   volza_name: string | null;
   top_shipments: VolzaShipment[];
   fetched_at: string;
-  /** 0140: "date" when the stored shipment is the latest on record, "value" (or absent) when it is the largest. */
-  record_sort?: "value" | "date";
+  /** 0139: Volza's counts as returned. */
+  summary?: { count_of_hsn_codes?: number | null; count_of_unique_destination_countries?: number | null; count_of_shipment_modes?: number | null } | null;
+  /** 0139: the one stored shipment, every field. */
+  top_record?: VolzaShipment | null;
+  /** 0139: null for a supplier that ships to one country. */
+  markets?: Partial<Record<VolzaMarketName, VolzaMarket>> | null;
+  /** 0139: null unless every shipment is counted in pieces. */
+  small_orders?: { under_pcs: number; shipments: number; of: number } | null;
+  /** 0140: what the stored shipment is. Absent or "value": the biggest; "date": the latest on record. */
+  record_sort?: "value" | "date" | null;
 };
 
 const usd = (n: number, digits = 0) =>
   `US$${n.toLocaleString("en-GB", { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
 
-/** US$21.7m, US$340k, US$950: export totals at a glance. */
+/** US$21.7m, US$4.97m, US$845k, US$950: export totals at a glance. */
 export function formatUsdShort(n: number): string {
-  if (n >= 999_500) return `US$${(n / 1e6).toFixed(n >= 99_950_000 ? 0 : 1)}m`; // never "US$1000k"
+  if (n >= 999_500) {
+    const m = n / 1e6;
+    // Three figures at most, never "US$1000k": 191m, 21.7m, 4.97m.
+    return `US$${m.toFixed(m >= 99.95 ? 0 : m >= 9.995 ? 1 : 2).replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "")}m`;
+  }
   if (n >= 1e3) return `US$${Math.round(n / 1e3)}k`;
   return usd(n);
 }
 
+const MARKETS: VolzaMarketName[] = ["United Kingdom", "United States", "EU", "Canada"];
+const SHORT: Record<VolzaMarketName, string> = { "United Kingdom": "UK", "United States": "US", EU: "EU", Canada: "Canada" };
+const plural = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString("en-GB")} ${n === 1 ? one : many}`;
+const utcDay = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00Z`);
+
+/** "Sep 2024 – Aug 2026": the customs window, in months. */
+export function customsWindow(v: Pick<VolzaExports, "window_start" | "window_end">): string {
+  const [a, b] = [utcDay(v.window_start), utcDay(v.window_end)];
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return "the two-year window";
+  return `${MONTHS[a.getUTCMonth()]} ${a.getUTCFullYear()} – ${MONTHS[b.getUTCMonth()]} ${b.getUTCFullYear()}`;
+}
+
+const ENDINGS = [["CO", "KG"], ["Z", "O", "O"], ["S", "P", "A"], ["B", "V"], ["S", "A"], ["S", "L"], ["LTD"], ["LIMITED"], ["LLC"], ["INC"], ["GMBH"], ["BV"], ["SA"], ["SL"], ["SPA"], ["SRL"], ["CORP"], ["PLC"], ["LP"]];
+const CASED: Record<string, string> = { GMBH: "GmbH", LTD: "Ltd", INC: "Inc", THE: "The", AND: "and", OF: "of" };
+
 /**
- * The customs totals as the Exports pattern's cells (`ExportsSummary`, 03 Patterns · 14): value, then
- * the note saying what it covers. Only what the stored summary holds; no figure is derived.
+ * A buyer as the customs record files it, tidied (Volza data session, 11 Oct 2026): up to and
+ * including the first legal ending, else up to the first number; an all-capitals name in title case,
+ * words of three letters or fewer kept as filed ("TJX UK"). "THE HADDAD APPAREL GROUP LTD 131 D" is
+ * "The Haddad Apparel Group Ltd"; "BUGATTI GMBH HANSA STRASSE 55 32049" is "Bugatti GmbH".
  */
-export function volzaStats(v: VolzaExports): { label: string; value: string; note: string }[] {
-  const window = formatDayRange(v.window_start, v.window_end) ?? "the two-year window";
-  const n = v.shipments.toLocaleString("en-GB");
-  const stats = [{ label: "Shipments", value: `${n} shipment${v.shipments === 1 ? "" : "s"}`, note: window }];
-  if (v.fob_usd !== null) stats.push({ label: "FOB value", value: formatUsdShort(v.fob_usd), note: `From ${n} record${v.shipments === 1 ? "" : "s"}` });
-  if (v.buyers !== null) stats.push({ label: "Buyers", value: `${v.buyers.toLocaleString("en-GB")} buyer${v.buyers === 1 ? "" : "s"}`, note: window });
-  const top = v.top_shipments[0];
-  if (top && top.trade_value_usd !== null) {
-    const dest = top.destination_country && top.destination_country !== "Not Available" ? top.destination_country : null;
-    stats.push({
-      // Since 11 Oct 2026 the stored shipment is the latest one (0140), not the largest: never call it largest.
-      label: v.record_sort === "date" ? "Latest shipment on record" : "Largest shipment",
-      value: usd(top.trade_value_usd),
-      note: [
-        // Volza sends "2026-03-24T00:00:00" with no zone: the day is the text, never a local midnight.
-        formatDay(top.shipment_date?.slice(0, 10)),
-        top.product_description,
-        top.buyer_name ? `to ${top.buyer_name}${dest ? ` (${dest})` : ""}` : dest ? `to ${dest}` : null,
-        top.unit_rate_usd !== null ? `${usd(top.unit_rate_usd, 2)} per ${(top.unit ?? "unit").toLowerCase()}` : null,
-      ]
-        .filter(Boolean)
-        .join(" · "),
+export function tidyBuyer(raw: string | null | undefined): string | null {
+  const words = (raw ?? "").replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+  if (!words.length) return null;
+  const up = words.map((w) => w.toUpperCase().replace(/[.,]/g, ""));
+  let cut = -1;
+  for (let i = 0; i < up.length && cut < 0; i++) {
+    // Never the first word: "SA FASHION TRADING LTD" is cut at Ltd, not at "SA".
+    const e = i > 0 ? ENDINGS.find((end) => end.every((t, j) => up[i + j] === t)) : undefined;
+    if (e) cut = i + e.length;
+  }
+  if (cut < 0) {
+    const n = words.findIndex((w) => /\d/.test(w));
+    cut = n > 0 ? n : words.length;
+  }
+  const kept = words.slice(0, cut);
+  if (/[a-z]/.test(kept.join(" "))) return kept.join(" ");
+  return kept.map((w) => CASED[w] ?? (w.length > 3 ? w[0] + w.slice(1).toLowerCase() : w)).join(" ");
+}
+
+/** "MEN'S BASIC T SHIRT" is "Men's basic t shirt": a product as filed, in sentence case. */
+function productWords(raw: string | null): string | null {
+  const t = (raw ?? "").replace(/\s+/g, " ").trim();
+  if (!t) return null;
+  // Mostly capitals ("MEN'S BASIC T SHIRT (Men's T-Shirt)") reads as filed in capitals.
+  const upper = (t.match(/[A-Z]/g) ?? []).length;
+  const lower = (t.match(/[a-z]/g) ?? []).length;
+  const s = upper > lower ? t.toLowerCase() : t;
+  return s[0]!.toUpperCase() + s.slice(1);
+}
+const place = (raw: string | null | undefined) => (raw && raw !== "Not Available" ? raw : null);
+
+/** The one stored shipment: 0139's `top_record`, else 0137's first of `top_shipments`. */
+const stored = (v: VolzaExports): VolzaShipment | null => v.top_record ?? v.top_shipments[0] ?? null;
+const isLatest = (v: VolzaExports) => v.record_sort === "date";
+
+export type CustomsFigure = { value: string; label: string };
+export type CustomsBand = { window: string; shipsTo: string | null; figures: CustomsFigure[] };
+
+/**
+ * The band under the compliance strip (Paper page 34, boards A, B, F): the window, the markets line
+ * when the markets were fetched, and the figures, export value first. "Latest shipment on record"
+ * only when 0140 says the stored shipment is the latest: the biggest shipment's date is never passed
+ * off as the last one.
+ */
+export function customsBand(v: VolzaExports): CustomsBand {
+  const figures: CustomsFigure[] = [];
+  if (v.fob_usd !== null) figures.push({ value: formatUsdShort(v.fob_usd), label: "export value" });
+  const s = stored(v);
+  const latest = isLatest(v) ? formatDay(s?.shipment_date?.slice(0, 10)) : null;
+  if (latest) figures.push({ value: latest, label: "latest shipment on record" });
+  figures.push({ value: v.shipments.toLocaleString("en-GB"), label: v.shipments === 1 ? "shipment" : "shipments" });
+  if (v.buyers !== null) figures.push({ value: v.buyers.toLocaleString("en-GB"), label: v.buyers === 1 ? "buyer" : "buyers" });
+  if (v.fob_usd !== null && v.shipments > 0) {
+    const avg = v.fob_usd / v.shipments;
+    const step = avg >= 10_000 ? 100 : 10;
+    figures.push({ value: usd(Math.round(avg / step) * step), label: "average shipment" });
+  }
+  const total = v.summary?.count_of_unique_destination_countries ?? null;
+  let shipsTo: string | null = null;
+  if (v.markets) {
+    const m = v.markets;
+    const named = MARKETS.filter((k) => (m[k]?.shipments ?? 0) > 0).sort((a, b) => m[b]!.shipments - m[a]!.shipments);
+    if (named.length) shipsTo = `${named.map((k) => SHORT[k]).join(", ")}${total && total > named.length ? ` · ${total} countries in all` : ""}`;
+  } else if (total === 1) {
+    shipsTo = place(s?.destination_country);
+  }
+  return { window: customsWindow(v), shipsTo, figures };
+}
+
+export type CustomsRow = { label: string; value: string; note: string | null };
+
+/** "Boys tee (HS 6109.10) to The Haddad Apparel Group Ltd, United States": one shipment in words. */
+function shipmentWords(s: VolzaShipment, withCountry = true): string {
+  const hs = s.hsn_code && /^\d{6,}$/.test(s.hsn_code) ? ` (HS ${s.hsn_code.slice(0, 4)}.${s.hsn_code.slice(4, 6)})` : "";
+  const to = [tidyBuyer(s.buyer_name), withCountry ? place(s.destination_country) : null].filter(Boolean).join(", ");
+  return `${productWords(s.product_description) ?? "Garments"}${hs}${to ? ` to ${to}` : ""}`;
+}
+
+/**
+ * The Exports tab's own lines (board B): only what the band cannot say. Unit prices wait for the
+ * per-heading price check (spec §2: 6 of 252 stored prices are plainly not per piece), so none is
+ * printed yet.
+ */
+export function customsRows(v: VolzaExports): CustomsRow[] {
+  const rows: CustomsRow[] = [];
+  const [a, b] = [utcDay(v.window_start), utcDay(v.window_end)];
+  const months = (b.getUTCFullYear() - a.getUTCFullYear()) * 12 + b.getUTCMonth() - a.getUTCMonth() + 1;
+  if (months > 0 && v.shipments > 0) {
+    const per = v.shipments / months;
+    rows.push({
+      label: "Shipping rhythm",
+      value: per >= 1.5 ? `About ${Math.round(per).toLocaleString("en-GB")} shipments a month` : `${plural(v.shipments, "shipment")} in ${months} months`,
+      note: `${plural(v.shipments, "shipment")}, ${customsWindow(v)}`,
     });
   }
-  return stats;
+  const codes = v.summary?.count_of_hsn_codes ?? null;
+  if (codes) {
+    const total = v.summary?.count_of_unique_destination_countries ?? null;
+    const modes = v.summary?.count_of_shipment_modes ?? null;
+    const note = [total ? plural(total, "destination country", "destination countries") : null, modes ? plural(modes, "shipping mode") : null].filter(Boolean).join(" · ");
+    rows.push({ label: "Product range", value: plural(codes, "product code"), note: note || null });
+  }
+  const s = stored(v);
+  if (s && s.trade_value_usd !== null) {
+    rows.push({
+      label: isLatest(v) ? "Latest shipment on record" : "Biggest shipment",
+      value: [usd(Math.round(s.trade_value_usd)), formatDay(s.shipment_date?.slice(0, 10))].filter(Boolean).join(" · "),
+      note: shipmentWords(s),
+    });
+  }
+  const small = v.small_orders;
+  if (small && small.of > 0) {
+    rows.push(
+      small.shipments === 0
+        ? { label: "Small orders", value: `None under ${small.under_pcs.toLocaleString("en-GB")} pieces`, note: "Counted in pieces. Not a minimum order." }
+        : {
+            label: "Small orders",
+            value: `${small.shipments.toLocaleString("en-GB")} of ${plural(small.of, "shipment")} under ${small.under_pcs.toLocaleString("en-GB")} pieces`,
+            note: `${Math.round((100 * small.shipments) / small.of)}%, counted in pieces. Not a minimum order.`,
+          },
+    );
+  }
+  return rows;
+}
+
+const THE: Record<VolzaMarketName, string> = { "United Kingdom": "the UK", "United States": "the US", EU: "the EU", Canada: "Canada" };
+
+/** "Where it ships" (board B): one row per market, most shipments first; a market with none says so for the window. */
+export function marketRows(v: VolzaExports): CustomsRow[] {
+  const m = v.markets;
+  if (!m) return [];
+  const shipped = MARKETS.filter((k) => (m[k]?.shipments ?? 0) > 0).sort((a, b) => m[b]!.shipments - m[a]!.shipments);
+  const none = MARKETS.filter((k) => m[k] && m[k]!.shipments === 0);
+  return [
+    ...shipped.map((k) => {
+      const x = m[k]!;
+      return {
+        label: k,
+        value: [plural(x.shipments, "shipment"), x.fob_usd !== null ? formatUsdShort(x.fob_usd) : null, x.buyers !== null ? plural(x.buyers, "buyer") : null].filter(Boolean).join(" · "),
+        // The EU is 27 countries, so its row names the country; the others are the country.
+        note: x.top ? `Biggest shipment there: ${shipmentWords(x.top, k === "EU")}` : null,
+      };
+    }),
+    ...none.map((k) => ({ label: k, value: `No shipments to ${THE[k]}`, note: customsWindow(v) })),
+  ];
 }
 
 /** The profile names the records, not the provider: Volza is named on /legal/data-sources only (founder, 11 Oct 2026). */
-export function volzaSource(v: VolzaExports): string {
-  return `Bangladesh customs export records · fetched ${formatDay(v.fetched_at) ?? "date unknown"}`;
+export function customsSource(v: VolzaExports): string {
+  const filed = v.volza_name ? `, filed as ${v.volza_name.replace(/\.+$/, "")}` : "";
+  return `Garment exports (HS 61 and 62) cleared through Bangladesh customs${filed} · fetched ${formatDay(v.fetched_at) ?? "date unknown"}`;
 }
 
 /** Who publishes each scheme's list, and how stale a check may be (spec-etl-freshness §3). */

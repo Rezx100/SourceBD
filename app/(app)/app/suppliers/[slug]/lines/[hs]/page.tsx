@@ -32,7 +32,7 @@ export default async function ProductLinePage({
   const allLines = (Array.isArray(linesRaw) ? linesRaw[0] : linesRaw) === "all";
   // The list the record was expanded from rides in and out of the line, and Send opens the composer beside it.
   const back = backToList(sp.back);
-  const recordHref = `/app/suppliers/${slug}?tab=products${allLines ? "&lines=all" : ""}${back ? `&back=${encodeURIComponent(back)}` : ""}`;
+  const recordHref = `/app/suppliers/${slug}?tab=exports${allLines ? "&lines=all" : ""}${back ? `&back=${encodeURIComponent(back)}` : ""}`;
   // No `decodeURIComponent` here. Next already decodes dynamic segments, so a
   // second pass threw `URIError` on a segment containing a bare `%`
   // (`/lines/%`) — an unhandled throw inside a server component, which is a 500

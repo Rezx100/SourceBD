@@ -1,13 +1,13 @@
 // The panels of the supplier record (B4c, Paper `10 · Record` and `11 · Record`): Overview,
-// Certificates, Safety, Sites, Sources, Products. Each takes the record's model and says only
+// Exports, Certificates, Safety, Sites, Sources, Products. Each takes the record's model and says only
 // what it holds: a missing figure is a sentence ("Not published. Ask in your RFQ."), never a
 // zero, and no contact value is in the model at all. Server-safe; links are real links.
 
 import { CaretRight, FileText, Hourglass, WarningOctagon } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { CertChip, Define, FactChip, Unpublished } from "@/components/kit";
-import { ABSENT, CertTable, ExportsSummary, FactList, FactRow, PendingMark, RSC_REPORTS, RscBlock, SourceChip, SourceLine, SourceMark, certWords, type RscBlockData, type RscReportName } from "@/components/patterns";
-import { volzaSource, volzaStats, type VolzaExports } from "@/lib/dashboard/facts";
+import { ABSENT, CertTable, FactList, FactRow, PendingMark, RSC_REPORTS, RscBlock, SourceChip, SourceMark, certWords, type RscBlockData, type RscReportName } from "@/components/patterns";
+import { customsBand, customsRows, customsSource, marketRows } from "@/lib/dashboard/facts";
 import type { RecordRfqRow, SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
 import { SitesView } from "./sites-view";
@@ -521,12 +521,90 @@ export function ProductsPanel({ model, level: H = "h3", open = false }: { model:
           ) : null}
         </details>
       )}
-      <section className="flex flex-col gap-2">
+    </div>
+  );
+}
+
+/* ----------------------------------------------------------------- exports */
+
+/**
+ * The customs band under the compliance strip, on every tab (Paper page 34, boards A, B, F): white on a
+ * hairline, one step lighter than the strip, its largest figure 24px, so sanctions and certificates
+ * read first (critique of 11 Oct 2026, point 12). One source line, in its own head. Nothing for a
+ * reader the database refused: the read answers null for a free plan and for no exact match alike.
+ */
+export function ExportsBand({ model, href, level: H = "h3" }: { model: SupplierSheetModel; href: string; level?: Level }) {
+  const v = model.volza;
+  if (!v) return null;
+  const band = customsBand(v);
+  return (
+    <section aria-label="Customs exports" className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4 [font-variant-numeric:tabular-nums]">
+      <header className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
+        <H className="text-sm font-semibold text-ink">Customs exports</H>
+        <p className="text-xs text-ink-3">Bangladesh customs · {band.window}</p>
+      </header>
+      {band.shipsTo ? (
+        <p className="text-base text-ink-2">
+          Ships to <span className="font-semibold text-ink">{band.shipsTo}</span>
+        </p>
+      ) : null}
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:flex sm:flex-wrap sm:items-end sm:gap-x-7">
+        {band.figures.map((f, i) => (
+          <div key={f.label} className="flex flex-col-reverse">
+            <dt className="text-xs text-ink-3">{f.label}</dt>
+            <dd className={cn("font-semibold text-ink", i === 0 ? "text-xl tracking-tight" : "text-md")}>{f.value}</dd>
+          </div>
+        ))}
+      </dl>
+      <Link href={href} prefetch={false} scroll={false} className={cn(LINK, "w-fit text-sm")}>
+        All export facts
+      </Link>
+    </section>
+  );
+}
+
+/**
+ * The Exports tab (board B): what the customs records say that the band cannot, then where it ships,
+ * then the EPB export lines, each product heading once. Without a customs record it is the export
+ * lines alone: no "not checked" text, because a null read cannot tell unchecked from not entitled.
+ */
+export function ExportsPanel({ model, level: H = "h3" }: { model: SupplierSheetModel; level?: Level }) {
+  const p = model.products;
+  const v = model.volza;
+  const rows = v ? customsRows(v) : [];
+  const markets = v ? marketRows(v) : [];
+  const Sub = under(H);
+  return (
+    <div className="flex flex-col gap-6">
+      {v ? (
+        <section aria-label="Customs exports, in detail" className="flex flex-col">
+          <H className="pb-1.5 text-base font-semibold text-ink">Customs exports</H>
+          <FactList>
+            {rows.map((r) => (
+              <FactRow key={r.label} label={r.label} values={[{ value: r.value, source: r.note ?? undefined }]} />
+            ))}
+          </FactList>
+          {markets.length ? (
+            <>
+              <Sub className="pb-1 pt-5 text-xs font-semibold text-ink-2">Where it ships</Sub>
+              <FactList>
+                {markets.map((r) => (
+                  <FactRow key={r.label} label={r.label} values={[{ value: r.value, source: r.note ?? undefined }]} />
+                ))}
+              </FactList>
+            </>
+          ) : null}
+          <p className="pt-2 text-xs text-ink-3">
+            {customsSource(v)}. Buyer names are as written on the customs record: often a shipping arm or an agent, not the brand.
+          </p>
+        </section>
+      ) : null}
+      <section aria-label="Export lines" className="flex flex-col gap-2">
         <header className="flex flex-wrap items-baseline gap-x-3">
-          <H className="text-base font-semibold text-ink">Export lines (EPB){p.lines > 0 ? ` · ${p.lines}` : ""}</H>
+          <H className="text-base font-semibold text-ink">Export lines{p.lines > 0 ? ` · ${p.lines}` : ""}</H>
           {p.exporterHref ? (
             <a href={p.exporterHref} className={cn(LINK, "text-xs")}>
-              Exporter page {p.exporterRef}
+              EPB exporter page {p.exporterRef}
             </a>
           ) : null}
         </header>
@@ -557,26 +635,7 @@ export function ProductsPanel({ model, level: H = "h3", open = false }: { model:
           </>
         )}
       </section>
-      {model.volza ? <VolzaSection v={model.volza} level={H} /> : null}
     </div>
-  );
-}
-
-/**
- * Bangladesh customs export records (0137), drawn with the Exports pattern (03 Patterns · 14). The
- * database sends them only to admins and paying plans, and only for an exact name match. The
- * provider is named on /legal/data-sources, not here (founder, 11 Oct 2026).
- */
-function VolzaSection({ v, level: H }: { v: VolzaExports; level: Level }) {
-  return (
-    <section aria-label="Customs shipments" className="flex flex-col gap-2">
-      <header className="flex flex-col gap-0.5">
-        <H className="text-base font-semibold text-ink">Customs shipments</H>
-        <p className="text-sm text-ink-3">Garment exports (HS 61 and 62) cleared through Bangladesh customs{v.volza_name ? `, filed as ${v.volza_name.replace(/\.+$/, "")}` : ""}.</p>
-        <SourceLine>{volzaSource(v)}</SourceLine>
-      </header>
-      <ExportsSummary stats={volzaStats(v)} />
-    </section>
   );
 }
 
