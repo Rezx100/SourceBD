@@ -17,10 +17,11 @@ checked before every call, Volza's credit header watched. Each result keeps what
   10   the 27 EU countries in one call on Aboni: one market call instead of 27
   11-17 supplier_name_search_type exact on five names that swept in 2-4 exporters, case, and two names
        without "Ltd" (is exact honoured at all?)
+  18-19 quantity under 1,000 and 5,000 pieces on Aboni: a small-orders signal for the card
 
   python ops/volza_filter_test.py                     # the plan, no key read, no calls
   python ops/volza_filter_test.py --apply             # run 1-8 (cap $3); results in etl/raw/volza/filter_test.json
-  python ops/volza_filter_test.py --rules --apply     # 1-17, same cap and file
+  python ops/volza_filter_test.py --rules --apply     # 1-19, same cap and file
 """
 
 from __future__ import annotations
@@ -44,8 +45,8 @@ OUT = RAW / "filter_test.json"
 CAP = 3.0
 # The first run (11 Oct 2026) spent $1.00 by Volza's header, $0.55 of it on the 10-record call that the
 # guard stopped before its result was saved; it counts toward the $3. The second run (batch 0, 11 Oct)
-# took the counter from 35.650 to 36.650: $1.00 more, so $2.00 of the $3 is spent.
-PRIOR = 2.00
+# took the counter from 35.650 to 36.650: $1.00 more; the two exact checks took it to 36.850: $2.20 spent.
+PRIOR = 2.20
 NAME = "Aboni Knit Wear"
 TESTS: list[tuple[str, dict[str, Any], int]] = [
     # Field names from Volza's published spec (backend.volza.com/swagger/v1/swagger.json, read 11 Oct
@@ -84,6 +85,11 @@ RULES: list[tuple[str, dict[str, Any], int]] = [
     # "Ltd" no shipment carries these names exactly: honoured means 0, ignored means 4,568 and 4,652.
     ("exact Utah without Ltd", {"supplier_name": ["Utah Fashions"], **EXACT}, 1),
     ("exact Aboni without Ltd", {"supplier_name": [NAME], **EXACT}, 1),
+    # A small-orders signal for the card ("12% of its shipments were under 1,000 pieces"): does the
+    # quantity filter work (docs: {"operator": "lt", "value": n})? Ignored would give all 4,652. The echo
+    # has no quantity field, so the count is the proof. Aboni ships in 2 units, so the share is approximate.
+    ("small shipments under 1,000", {"supplier_name": [NAME], "quantity": {"operator": "lt", "value": 1000}}, 1),
+    ("small shipments under 5,000", {"supplier_name": [NAME], "quantity": {"operator": "lt", "value": 5000}}, 1),
 ]
 
 
@@ -113,7 +119,7 @@ def save(out: list[dict[str, Any]], label: str, sent: dict[str, Any], r: httpx.R
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--apply", action="store_true", help="spend real credit (production key)")
-    p.add_argument("--rules", action="store_true", help="add the batch 0 checks (9-17)")
+    p.add_argument("--rules", action="store_true", help="add the batch 0 checks (9-19)")
     a = p.parse_args()
     logging.getLogger("httpx").setLevel(logging.WARNING)
     tests = TESTS + (RULES if a.rules else [])
