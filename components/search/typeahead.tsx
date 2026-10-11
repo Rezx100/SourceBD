@@ -103,6 +103,20 @@ export function SearchCombobox({
     return () => document.removeEventListener("pointerdown", onDown);
   }, []);
 
+  // A search that ran is done with the list: the form submitting (Enter, the Search button, a row)
+  // and the address changing both close it, or it floated over the results until a click elsewhere.
+  useEffect(() => {
+    const form = input.current?.form;
+    const close = () => setOpen(false);
+    form?.addEventListener("submit", close);
+    return () => form?.removeEventListener("submit", close);
+  }, []);
+  const where = `${pathname}?${params?.toString() ?? ""}`;
+  useEffect(() => {
+    setOpen(false);
+    setActive(-1);
+  }, [where]);
+
   const rows = suggestionRows(value, fetched, recent);
   const shown = open && rows.length > 0;
   const phone = variant === "phone";

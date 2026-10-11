@@ -39,11 +39,12 @@ async function mercuryData() {
 }
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ film?: string | string[] }> }) {
-  const [facts, { film }] = await Promise.all([loadSiteFacts(), searchParams]);
+  const { film } = await searchParams;
   // The film is off unless asked for: an unset build flag now means the Mercury page (filmOn reads unset as on).
   const showFilm = filmOn(film, process.env.NEXT_PUBLIC_HOME_FILM ?? "0");
   const year = new Date().getUTCFullYear();
-  const data = showFilm ? null : await mercuryData();
+  // Side by side: the facts used to be read first and the page's own reads only after them.
+  const [facts, data] = await Promise.all([loadSiteFacts(), showFilm ? null : mercuryData()]);
   return (
     <>
       <script
