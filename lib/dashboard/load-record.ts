@@ -19,7 +19,7 @@ import { buildProductSheet, buildSheet, locationTargets, type ProfilePayload, ty
 import { formatCount, formatDay, type CertChecks, type ShipmentRevealState, type VolzaExports } from "./facts";
 import { heading4, hsCatalogueRow } from "./hs-photos";
 import { sanitizeFacilityPanel, type FacilityPanel } from "@/lib/format-facility-group";
-import type { ContactCounts, ProductSheetModel, RecordRfqRow, SupplierSheetModel } from "./models";
+import type { ContactCounts, ProductSheetModel, RecordRfqRow, SanctionListRead, SupplierSheetModel } from "./models";
 
 /** The narrow slice of the Supabase client these loaders use. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the generated client type is not in scope here; gallery-data.ts uses the same shape.
@@ -147,20 +147,29 @@ export const DAILY_SANCTIONS_LISTS = ["ofac_sdn", "uk_ofsi", "eu_sanctions", "uf
  * read fails, or a list has never been read — the cell then says "Not listed" with no date.
  */
 export async function fetchSanctionsRead(supabase: RecordRpc): Promise<string | null> {
+  return oldestDailyRead(await fetchSanctionLists(supabase));
+}
+
+/** Every list's own last full read, as `sanctions_lists_read()` answers (the phone's Sources tab); null when it could not be read. */
+export async function fetchSanctionLists(supabase: RecordRpc): Promise<SanctionListRead[] | null> {
   try {
     const { data, error } = await supabase.rpc("sanctions_lists_read", {});
     if (error || !Array.isArray(data)) return null;
-    const rows = data as { list: string; last_read: string | null }[];
-    let oldest: string | null = null;
-    for (const code of DAILY_SANCTIONS_LISTS) {
-      const at = rows.find((r) => r.list === code)?.last_read ?? null;
-      if (!at) return null;
-      if (oldest === null || new Date(at) < new Date(oldest)) oldest = at;
-    }
-    return oldest;
+    return (data as { list?: unknown; last_read?: unknown }[]).flatMap((r) => (typeof r.list === "string" ? [{ list: r.list, last_read: typeof r.last_read === "string" ? r.last_read : null }] : []));
   } catch {
     return null;
   }
+}
+
+function oldestDailyRead(rows: SanctionListRead[] | null): string | null {
+  if (!rows) return null;
+  let oldest: string | null = null;
+  for (const code of DAILY_SANCTIONS_LISTS) {
+    const at = rows.find((r) => r.list === code)?.last_read ?? null;
+    if (!at) return null;
+    if (oldest === null || new Date(at) < new Date(oldest)) oldest = at;
+  }
+  return oldest;
 }
 
 /**
@@ -405,7 +414,7 @@ export async function loadRecordSheet(
   const buyerIdRead = callerId(supabase);
   const countsRead = fetchContactCounts(supabase, slug);
   const facilitiesRead = fetchFacilityPanel(supabase, slug);
-  const sanctionsRead = fetchSanctionsRead(supabase);
+  const sanctionsRead = fetchSanctionLists(supabase);
   const certChecksRead = fetchCertChecks(supabase, slug);
   const volzaRead = fetchVolzaExports(supabase, slug);
   const shipmentsRead = fetchShipmentRevealState(supabase, slug);
@@ -434,7 +443,7 @@ export async function loadRecordSheet(
         .then((found) => found?.map((g) => (g ? { latitude: g.latitude, longitude: g.longitude, confidencePct: g.confidencePct, addressStatus: g.addressStatus } : null)))
         .catch(() => undefined)
     : Promise.resolve(undefined);
-  const [workers, contactCounts, saved, rfqs, facilities, pins, sanctionsReadAt, certChecks, volza, shipments] = await Promise.all([
+  const [workers, contactCounts, saved, rfqs, facilities, pins, sanctionLists, certChecks, volza, shipments] = await Promise.all([
     // A failed batch leaves the figure the record's own payload carries.
     reuse ? reuse.workers : fetchDisplayWorkersBatch(supabase, [supplierId]).catch(() => null),
     countsRead,
@@ -453,7 +462,8 @@ export async function loadRecordSheet(
     contactCounts,
     facilities: { panel: facilities },
     pins,
-    sanctionsReadAt,
+    sanctionsReadAt: oldestDailyRead(sanctionLists),
+    sanctionLists,
     certChecks,
     volza,
     shipments,
@@ -502,6 +512,8 @@ async function lineFrom(
     return null;
   }
   const supplierId = record.input.profile.supplier.id;
+  // Beside the worker figure, never after it: the phone's line draws the supplier's customs totals.
+  const volzaRead = fetchVolzaExports(supabase, record.slug);
   if (workersEarly && view.supplierId === supplierId) {
     const byId = await workersEarly;
     if (byId) assignWorkers([record], byId);
@@ -509,6 +521,7 @@ async function lineFrom(
     await fillRecordWorkersSafely(supabase, [record]);
   }
   return buildProductSheet(record.input, hs, {
+    volza: await volzaRead,
     backHref: view.backHref ?? `/app/suppliers/${record.slug}`,
     closeHref: view.closeHref ?? null,
     rfqHref: view.rfqHref?.(supplierId, heading4(hs)) ?? `/app/rfqs/new?supplier=${supplierId}&hs=${heading4(hs)}`,

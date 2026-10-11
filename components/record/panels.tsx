@@ -82,9 +82,9 @@ function ProblemRows({ model, today, level: H }: { model: SupplierSheetModel; to
 }
 
 /** What the watchlist matched, where a buyer reads it: the banner asserts, this evidences. */
-function SanctionEvidence({ model, level: H }: { model: SupplierSheetModel; level: Level }) {
+export function SanctionEvidence({ model, level: H, anchor = true }: { model: SupplierSheetModel; level: Level; /** False for a second drawing of it (a phone's): the banner's link lands on one. */ anchor?: boolean }) {
   return (
-    <section aria-label="Sanctions matches" id="sanctions" className="flex flex-col gap-2">
+    <section aria-label="Sanctions matches" id={anchor ? "sanctions" : undefined} className="flex flex-col gap-2">
       <H className="pt-1 text-xs font-semibold text-ink-2">Sanctions matches{model.sanctions.length ? ` · ${model.sanctions.length}` : ""}</H>
       {model.sanctions.length === 0 ? (
         <p className="text-base text-ink-2">{model.sanctionsEmpty}</p>
@@ -361,7 +361,7 @@ const SOURCE_COLS =
   "[@container_(min-width:600px)]:grid [@container_(min-width:600px)]:grid-cols-[minmax(0,1fr)_minmax(0,10rem)_8.25rem_5.5rem] [@container_(min-width:600px)]:items-center [@container_(min-width:600px)]:gap-4";
 
 /** The sources in the model's order (best rank first), one group per kind: "Government register", "Industry body". */
-function sourceGroups(sources: SupplierSheetModel["sources"]): { kind: string; rows: SupplierSheetModel["sources"] }[] {
+export function sourceGroups(sources: SupplierSheetModel["sources"]): { kind: string; rows: SupplierSheetModel["sources"] }[] {
   const groups: { kind: string; rows: SupplierSheetModel["sources"] }[] = [];
   for (const s of sources) {
     const held = groups.find((g) => g.kind === s.tier);

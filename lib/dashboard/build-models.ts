@@ -52,6 +52,7 @@ import { heading4, hsCatalogueRow, hsExporterCount, hsPhotoSrc, hsShortLabel, ph
 import { groupWorkers, type SiteWorkerInput } from "@/lib/profile-metrics";
 import type {
   ContactCounts,
+  SanctionListRead,
   SanctionRow,
   FactRow,
   FactWithMark,
@@ -1091,6 +1092,8 @@ export type SheetOptions = {
   allLinesHref?: string | null;
   /** `sanctions_lists_read()` (0120): the oldest last full read of the daily lists; null when it could not be read. */
   sanctionsReadAt?: string | null;
+  /** The same read, list by list. */
+  sanctionLists?: SanctionListRead[] | null;
   /** `supplier_cert_checks(slug)` (0122); null when it could not be read. */
   certChecks?: CertChecks | null;
   /** `supplier_volza_exports(slug)` (0137); null for a reader not on a paying plan, or no match. */
@@ -1483,6 +1486,7 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
     lineHref: options.lineHref ?? ((hs: string) => `/app/suppliers/${s.slug}/lines/${hs}`),
     sanctions: sanctionRows(p),
     sanctionsReadAt: options.sanctionsReadAt ?? null,
+    sanctionLists: options.sanctionLists ?? null,
     certChecks: options.certChecks ?? null,
     volza: options.volza ?? null,
     shipments: options.shipments ?? null,
@@ -1661,6 +1665,8 @@ export type ProductSheetOptions = {
   backHref?: string | null;
   closeHref?: string | null;
   rfqHref?: string | null;
+  /** `supplier_volza_exports(slug)` (0137), as the record's own sheet takes it. */
+  volza?: VolzaExports | null;
 };
 
 export function buildProductSheet(filed: RecordInput, hs: string, options: ProductSheetOptions = {}): ProductSheetModel {
@@ -1754,6 +1760,9 @@ export function buildProductSheet(filed: RecordInput, hs: string, options: Produ
     backHref: options.backHref === undefined ? `/app/suppliers/${s.slug}` : options.backHref,
     closeHref: options.closeHref ?? null,
     rfqHref: options.rfqHref ?? null,
+    place: [entityLabel(s.entity_type), placeOf(p)].filter(Boolean).join(" · "),
+    lines: unknown ? 0 : headings(input).length,
+    volza: options.volza ?? null,
   };
 }
 
