@@ -338,9 +338,9 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     // a year) the fixture's 1,000,000 a day is noted. A reader the customs read refused sees no such note.
     const overview = () => Page({ params: Promise.resolve({ slug: "hamza-clothing" }), searchParams: Promise.resolve({}) });
     const capacity = html(await outcome(overview)).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
-    assert.match(capacity, /Capacity 1,000,000 pcs\/day From BKMEA · Far above what its exports suggest; possibly a typo/);
+    assert.match(capacity, /Capacity 1,000,000 pcs\/day From BKMEA · Filed figures look inconsistent; confirm with the supplier/);
     given({ profile: PROFILE, hscodes: HS });
-    assert.doesNotMatch(html(await outcome(overview)), /its exports suggest/, "a capacity note from customs data reached a reader without it");
+    assert.doesNotMatch(html(await outcome(overview)), /look inconsistent|Exports suggest/, "a capacity note from customs data reached a reader without it");
   });
 
   it("?lines=all expands the grid past six tiles", async () => {
