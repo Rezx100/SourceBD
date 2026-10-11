@@ -24,6 +24,7 @@ import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from volza_filter_test import EU  # noqa: E402
 from volza_live_sample import OUT, WINDOW  # noqa: E402
 
 # The sample ran 10 Oct 2026, about 23:30-23:36 Dhaka time; the file's last write stands in for
@@ -88,11 +89,30 @@ def rows(recs: list[dict[str, Any]], fetched_at: datetime) -> list[dict[str, Any
                            top_record=r["top"] if hit and r.get("summary") else None)
         if any("markets" in x or "small_orders" in x for x in recs):  # launch batches (0139 columns)
             shown = out[-1]["match_class"] == "exact"  # a hidden row's market counts used a doubtful name
-            out[-1].update(markets=r.get("markets") if shown else None,
+            out[-1].update(markets=(r.get("markets") or one_country_markets(r)) if shown else None,
                            small_orders=r.get("small_orders") if shown else None)
         if any("calls" in x for x in recs):  # launch and --latest files say how their record was chosen (0140)
             out[-1]["record_sort"] = record_sort(r)
     return out
+
+
+MARKET_COUNTRIES = {"United Kingdom": ["United Kingdom"], "United States": ["United States"], "EU": EU,
+                    "Canada": ["Canada"]}
+
+
+def one_country_markets(r: dict[str, Any]) -> dict[str, Any] | None:
+    """The four markets of a supplier whose every shipment went to one country, from what we hold.
+
+    The launch skips the four market searches when there is only one destination; this fills them
+    for free: that country's market holds the whole total, the others hold nothing.
+    """
+    s, top = r.get("summary") or {}, r.get("top") or {}
+    dest = top.get("destination_country")
+    if s.get("count_of_unique_destination_countries") != 1 or not dest:
+        return None
+    return {label: ({"shipments": r["shipments"], "fob_usd": r.get("fob_usd"), "buyers": r.get("buyers"), "top": top}
+                    if dest in names else {"shipments": 0, "fob_usd": 0.0, "buyers": 0, "top": None})
+            for label, names in MARKET_COUNTRIES.items()}
 
 
 def record_sort(r: dict[str, Any]) -> str:

@@ -27,6 +27,7 @@ import os
 import random
 import sys
 import time
+from collections import deque
 from pathlib import Path
 from typing import Any
 
@@ -45,6 +46,10 @@ SEED = 20261010
 RECORDS = 1  # one shipment record per call, never the full list
 WORST_CALL = 0.10 + 0.05 * RECORDS
 CAP_LIMIT = 30.0  # the founder's approved ceiling; --max-spend cannot go above it
+# Volza's plan allows 50 requests a minute for the whole key (dashboard, 11 Oct 2026); the free
+# company-list scan and the credit reading share it, so a run keeps to 40 in any 60 seconds.
+PER_MINUTE = 40
+WAITS_429 = (60, 120, 180, 300, 300)  # 15 minutes in all, then stop: a longer limit is in force
 
 
 class Stop(Exception):
@@ -91,6 +96,7 @@ class Live:
         self.http = http or httpx.Client(
             base_url=BASE, timeout=60, headers={"Authorization": f"Bearer {production_key()}"})
         self.last = 0.0
+        self.sent: deque[float] = deque()  # when the requests of the last 60 seconds went out
         self.calls = 0
         self.last_response: httpx.Response | None = None
 
@@ -109,13 +115,10 @@ class Live:
         """One guarded export search: HS 61/62, the live window, biggest shipments first."""
         body = {"hsn_code": HS, "start_date": WINDOW[0], "end_date": WINDOW[1], "max_count_per_page": self.records,
                 "sort_by": "trade_value_usd", "sort_order": "DESC", **filters}
-        for _ in range(5):
+        for attempt in range(len(WAITS_429) + 1):
             if self.spent + self.worst > self.cap + 1e-9:
                 raise Stop(f"cap reached: spent ${self.spent:.2f} of ${self.cap:.2f}")
-            wait = MIN_GAP - (time.monotonic() - self.last)
-            if wait > 0:
-                time.sleep(wait)
-            self.last = time.monotonic()
+            self._pace()
             try:
                 r = self.http.post("/bangladesh-exports", json=body)
             except httpx.HTTPError as e:  # Volza may have billed it; count the worst case and stop
@@ -125,7 +128,15 @@ class Live:
             self.last_response = r  # kept: the header check below may stop after Volza billed it
             self._read_headers(r)
             if r.status_code == 429:  # rate limit: not charged (Volza pricing docs)
-                time.sleep(60)
+                if attempt == len(WAITS_429):
+                    break
+                try:
+                    wait = max(int(r.headers.get("Retry-After", 0)), WAITS_429[attempt])
+                except ValueError:
+                    wait = WAITS_429[attempt]
+                print(f"  Volza says slow down; waiting {wait}s (try {attempt + 2} of {len(WAITS_429) + 1}), "
+                      "nothing is charged", flush=True)
+                time.sleep(wait)
                 continue
             if r.status_code == 402:
                 raise Stop("Volza says the credit is used up (402)")
@@ -140,7 +151,20 @@ class Live:
             self.tally += cost
             return r.status_code, data, cost
         # never handed back as an empty result: a caller would store "nothing found" for a year
-        raise Stop("Volza rate-limited five calls in a row (429)")
+        raise Stop("Volza refused every try for 15 minutes (429): a longer limit is in force; run again in an hour")
+
+    def _pace(self) -> None:
+        """At least MIN_GAP between requests and never more than PER_MINUTE in any 60 seconds."""
+        now = time.monotonic()
+        while self.sent and now - self.sent[0] >= 60:
+            self.sent.popleft()
+        wait = MIN_GAP - (now - self.last)
+        if len(self.sent) >= PER_MINUTE:
+            wait = max(wait, 60.5 - (now - self.sent[0]))  # half a second spare against clock rounding
+        if wait > 0:
+            time.sleep(wait)
+        self.last = time.monotonic()
+        self.sent.append(self.last)
 
     def _read_headers(self, r: httpx.Response) -> None:
         used = r.headers.get("X-Credit-Used")
