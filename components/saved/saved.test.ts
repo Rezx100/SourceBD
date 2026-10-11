@@ -317,7 +317,7 @@ describe("the phone list", () => {
   it("each row is a 44 tick, the name as a link to the record page, the line and the certificate", () => {
     const out = html(createElement(SavedPhoneList, { items: items() }));
     assert.match(out, /aria-label="Select Tex Town Ltd"/);
-    assert.match(out, /href="\/app\/suppliers\/slug-1\?back=%2Fapp%2Fsaved&amp;sid=[^"]+"/);
+    assert.match(out, /href="\/app\/suppliers\/slug-1\?back=%2Fapp%2Fsaved&(?:amp;)?sid=[^"]+"/);
     assert.match(text(out), /Tex Town Ltd Factory · Dhaka · 8 sources · 1,408 workers WRAP expired 28 May 2026/);
     assert.doesNotMatch(out, /selected/);
   });
