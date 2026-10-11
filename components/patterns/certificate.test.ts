@@ -96,7 +96,8 @@ describe("one certificate component", () => {
 describe("Saved is the same table as the results", () => {
   const widths = (src: string) => [...src.matchAll(/<Th([^>]*)>\s*([^<]+?)\s*</g)].map((m) => [m[2]!.trim(), /className="([^"]*)"/.exec(m[1]!)?.[1]?.split(" ").find((c) => /^w-/.test(c)) ?? null]);
   it("copies the results' columns and widths exactly, and heads the certificate column 'Certificates'", () => {
-    const results = widths(read("search", "table.tsx"));
+    // The exports view's head (`{exportsHead}`) stands in for Sources and has no counterpart in Saved.
+    const results = widths(read("search", "table.tsx")).filter(([h]) => !h!.startsWith("{"));
     const saved = widths(read("saved", "table.tsx"));
     assert.deepEqual(
       results.map(([h]) => h),
