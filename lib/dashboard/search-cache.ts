@@ -24,6 +24,7 @@ import { unstable_cache } from "next/cache";
 import { TAG_DISCOVER_SUPPLIERS } from "@/lib/cache/tags";
 import { COUNT_ONLY_SORT, fetchDiscoverV32, parseTotalCount, type DiscoverV32Row } from "@/lib/discover-v32-rpc";
 import { discoverRpcArgs, serializeDiscoverState, type DiscoverState } from "@/lib/discover-v32-state";
+import { mapLimited } from "@/lib/map-limited";
 
 function anonClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -84,8 +85,28 @@ export async function readFilterCount(state: DiscoverState): Promise<number | nu
   }
 }
 
-/** How many of the landing's counts are read at once (see the landing page). */
+/** How many of the template counts are read at once. */
 export const COUNT_READS_AT_ONCE = 3;
+
+/** How long a page waits for the template counts before drawing its chips without them. */
+export const COUNT_WAIT_MS = 1500;
+
+/**
+ * The common searches' counts by template key, for the buyer landing and the home page's chips. A count that
+ * succeeds is cached an hour, so the usual read is at once; each is a 2-2.5 s read uncached and the anon role
+ * stops at 3 s, so a few go at a time (production log, 6 Oct 2026: 345 statement timeouts in a day), and a count
+ * still late at the cap is missing from the answer: its read finishes in the background and fills the cache for
+ * the next visit. The home page awaited all nine with no cap: 4-5 s before its first byte (11 Oct 2026).
+ */
+export async function readTemplateCounts(
+  templates: readonly { key: string; state: DiscoverState }[],
+  waitMs = COUNT_WAIT_MS,
+  read: (state: DiscoverState) => Promise<number | null> = readSearchCount,
+): Promise<Record<string, number | null>> {
+  const late = new Promise<Record<string, number | null>>((r) => setTimeout(() => r({}), waitMs));
+  const all = mapLimited(templates, COUNT_READS_AT_ONCE, async (t) => [t.key, await read(t.state)] as const).then((pairs) => Object.fromEntries(pairs));
+  return Promise.race([all, late]);
+}
 
 /** How many published suppliers a search finds, cached an hour; null when it could not be read. */
 export async function readSearchCount(state: DiscoverState): Promise<number | null> {

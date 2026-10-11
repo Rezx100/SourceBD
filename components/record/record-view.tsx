@@ -156,7 +156,9 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
       data-detail={page ? "" : undefined}
       // A phone's page: room at the foot for the fixed action bar, so nothing ends under it.
       // The tabs stick under the phone's bar from the first paint; the tabs' script then measures it.
-      className={cn("flex flex-1 flex-col bg-surface", page && "max-sm:pb-[calc(theme(spacing.action-bar)_+_env(safe-area-inset-bottom))] max-sm:[--record-head:theme(height.topbar-phone)]")}
+      // Never wider than its scroller: a long unbroken value wraps, and anything still too wide is clipped
+      // rather than letting a phone pan the record sideways (`clip` keeps the sticky bars sticking, `hidden` would not).
+      className={cn("flex min-w-0 flex-1 flex-col overflow-x-clip bg-surface [overflow-wrap:break-word]", page && "max-sm:pb-[calc(theme(spacing.action-bar)_+_env(safe-area-inset-bottom))] max-sm:[--record-head:theme(height.topbar-phone)]")}
     >
       <SourceCheckListener />
       {model.sanctioned ? (
