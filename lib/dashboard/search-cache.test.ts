@@ -19,4 +19,9 @@ describe("readTemplateCounts", () => {
     assert.deepEqual(out, {});
     assert.ok(Date.now() - started < 1000, "waited past the cap");
   });
+
+  it("keeps the counts read by the cap and drops only the late ones", async () => {
+    const out = await readTemplateCounts(templates, 100, (s) => (s.q === "d" ? new Promise<number | null>(() => {}) : Promise.resolve(7)));
+    assert.deepEqual(out, { a: 7, b: 7, c: 7 });
+  });
 });

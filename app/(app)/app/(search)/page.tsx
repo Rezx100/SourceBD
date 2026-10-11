@@ -26,6 +26,11 @@ export default async function SearchLandingPage() {
   const supabase = await createSupabaseServerClient();
   const today = new Date();
 
+  // Read in the render, so a chip paints with its count and never behind a skeleton (the critique of
+  // 7 Oct 2026, item 6), and beside the page's other reads rather than before them: the counts wait up to
+  // COUNT_WAIT_MS, and the reads after them used to start only then (11 Oct 2026).
+  const [counts, published, attention] = await Promise.all([readTemplateCounts(SEARCH_TEMPLATES), readPublishedCount(), loadNeedsAttention(supabase, today)]);
+  // Streamed, and started after the counts: its own refresh reads the same slow counts.
   const saved: Promise<SavedSearchJson[] | null> = (async () => {
     try {
       const listed = await runSavedSearchesGet({ role: await getServerRole(), supabase, now: today });
@@ -36,9 +41,5 @@ export default async function SearchLandingPage() {
     }
   })();
 
-  // Read in the render, so a chip paints with its count and never behind a skeleton (the critique of
-  // 7 Oct 2026, item 6), and beside the page's other reads rather than before them: the counts wait up to
-  // COUNT_WAIT_MS, and the reads after them used to start only then (11 Oct 2026).
-  const [counts, published, attention] = await Promise.all([readTemplateCounts(SEARCH_TEMPLATES), readPublishedCount(), loadNeedsAttention(supabase, today)]);
   return <SearchLanding published={published} attention={attention} counts={counts} saved={saved} />;
 }

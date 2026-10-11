@@ -95,7 +95,7 @@ export const COUNT_WAIT_MS = 1500;
  * The common searches' counts by template key, for the buyer landing and the home page's chips. A count that
  * succeeds is cached an hour, so the usual read is at once; each is a 2-2.5 s read uncached and the anon role
  * stops at 3 s, so a few go at a time (production log, 6 Oct 2026: 345 statement timeouts in a day), and a count
- * still late at the cap is missing from the answer: its read finishes in the background and fills the cache for
+ * still late at the cap is missing from the answer (those read by then are kept): its read finishes in the background and fills the cache for
  * the next visit. The home page awaited all nine with no cap: 4-5 s before its first byte (11 Oct 2026).
  */
 export async function readTemplateCounts(
@@ -103,9 +103,16 @@ export async function readTemplateCounts(
   waitMs = COUNT_WAIT_MS,
   read: (state: DiscoverState) => Promise<number | null> = readSearchCount,
 ): Promise<Record<string, number | null>> {
-  const late = new Promise<Record<string, number | null>>((r) => setTimeout(() => r({}), waitMs));
-  const all = mapLimited(templates, COUNT_READS_AT_ONCE, async (t) => [t.key, await read(t.state)] as const).then((pairs) => Object.fromEntries(pairs));
-  return Promise.race([all, late]);
+  // The counts read by the cap are kept; a read that throws is a count not read.
+  const got: Record<string, number | null> = {};
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<void>((r) => (timer = setTimeout(r, waitMs)));
+  const all = mapLimited(templates, COUNT_READS_AT_ONCE, async (t) => {
+    got[t.key] = await read(t.state).catch(() => null);
+  });
+  await Promise.race([all, late]);
+  clearTimeout(timer);
+  return { ...got };
 }
 
 /** How many published suppliers a search finds, cached an hour; null when it could not be read. */
