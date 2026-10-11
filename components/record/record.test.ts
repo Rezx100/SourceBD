@@ -29,8 +29,15 @@ const model = (input = aboniInput(), over: Partial<SupplierSheetModel> = {}): Su
   ...over,
 });
 const tabHref = (t: string) => `/app/discover?q=knit&record=x${t === "overview" ? "" : `&tab=${t}`}`;
-const view = (m: SupplierSheetModel, props: { mode?: "pane" | "page"; tab?: (typeof TABS)[number]["id"]; backHref?: string | null } = {}) =>
+type ViewProps = { mode?: "pane" | "page"; tab?: (typeof TABS)[number]["id"]; backHref?: string | null };
+const both = (m: SupplierSheetModel, props: ViewProps = {}) =>
   renderToStaticMarkup(h(RecordView, { model: m, mode: props.mode ?? "pane", tab: props.tab ?? "overview", tabHref, today: TODAY, backHref: props.backHref === undefined ? "/app/discover?q=knit" : props.backHref }));
+// A phone's record (`PhoneRecord`, Paper page 35) is a second drawing of the same model, beside the desktop's and
+// hidden from 640. `view` is the record without it, so "said once" means once on the screen a reader has; `phone`
+// is that drawing alone. The action bar after it belongs to both.
+const PHONE = /<div data-record-phone=""[\s\S]*?(?=<div data-record-actions="")/;
+const view = (m: SupplierSheetModel, props: ViewProps = {}) => both(m, props).replace(PHONE, "");
+const phone = (m: SupplierSheetModel, props: ViewProps = {}) => PHONE.exec(both(m, props))?.[0] ?? "";
 
 describe("the record on a phone never pans sideways (founder, 11 Oct 2026)", () => {
   it("clips its width and wraps a long value, in the pane and on the page, without becoming a scroller of its own", () => {
@@ -40,6 +47,87 @@ describe("the record on a phone never pans sideways (founder, 11 Oct 2026)", () 
       // `hidden` or `auto` would make the record the sticky tabs' scroller, and they would stop sticking.
       assert.ok(!/\boverflow-(x-|y-)?(hidden|auto|scroll)\b/.test(root), `${mode}: ${root}`);
     }
+  });
+});
+
+describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
+  const VOLZA: NonNullable<SupplierSheetModel["volza"]> = {
+    shipments: 406, fob_usd: 21698439.68, buyers: 43, window_start: "2024-09-01", window_end: "2026-08-31", volza_name: "Hamza Clothing Ltd.", fetched_at: "2026-09-17T21:33:30+00:00", top_shipments: [],
+    markets: { EU: { shipments: 236, fob_usd: 15553268.46, buyers: 10, top: null }, "United States": { shipments: 100, fob_usd: 4965812.04, buyers: 11, top: null } },
+    small_orders: { under_pcs: 1000, shipments: 26, of: 406 },
+  };
+  const LISTS = [
+    { list: "ofac_sdn", last_read: "2026-09-17T02:10:00Z" },
+    { list: "eu_sanctions", last_read: "2026-09-12T02:30:00Z" },
+    { list: "uflpa", last_read: "2026-09-08T02:40:00Z" },
+    { list: "us_wro", last_read: null },
+  ];
+
+  it("shows one tab's view at a time, every tab a link, and the three statuses open their tabs", () => {
+    const out = plain(phone(model(), { mode: "page" }));
+    assert.deepEqual([...out.matchAll(/data-phone-panel="([a-z]+)"( hidden="")?/g)].map((m) => `${m[1]}${m[2] ? "" : "*"}`), ["overview*", "exports", "certificates", "safety", "sites", "sources", "products"]);
+    assert.match(plain(phone(model(), { mode: "page", tab: "safety" })), /data-phone-panel="safety">/);
+    const strip = /<nav aria-label="Record sections"[^>]*>([\s\S]*?)<\/nav>/.exec(out)![1]!;
+    assert.equal((strip.match(/<a /g) ?? []).length, TABS.length);
+    assert.match(strip, /aria-current="page"[^>]*>Overview/);
+    assert.match(strip, /href="\/app\/discover\?q=knit&record=x&tab=sources"/);
+    // The statuses: a row each, pressed state and all, to Safety, Certificates and Sources.
+    const summary = /<ul aria-label="Summary"[^>]*>([\s\S]*?)<\/ul>/.exec(out)![1]!;
+    assert.deepEqual([...summary.matchAll(/href="[^"]*?(?:&tab=([a-z]+))?"/g)].map((m) => m[1]), ["safety", "certificates", "sources"]);
+    assert.equal((summary.match(/active:bg-sunken/g) ?? []).length, 3);
+    assert.match(text(summary), /Safety .* Certificates .* Sanctions Not listed/);
+  });
+
+  it("does not build the map, or repeat the desktop's anchors, until Sites is the tab shown", () => {
+    assert.doesNotMatch(phone(model(), { mode: "page" }), /id="locations"|id="record-/);
+    assert.match(view(model(), { mode: "page" }), /id="locations"/);
+  });
+
+  it("says there are no customs records in words the read supports, and only when it has none to show", () => {
+    const none = phone(model(), { mode: "page", tab: "exports" });
+    assert.match(none, /data-phone-empty="customs"/);
+    assert.match(text(none), /We have no customs records for this supplier yet That says nothing about whether it exports; it only means we have no receipt to show\./);
+    // The read cannot tell "never looked up" from "no match": neither is claimed, and no count is invented.
+    assert.doesNotMatch(text(none), /looked it up|found no shipments|Checked so far|not checked/i);
+    assert.match(text(none), /What it ships/, "the EPB export lines went with the customs records");
+    // A record the reader's plan does not include is on file: the plans line says so, never "no records".
+    assert.doesNotMatch(phone(model(aboniInput(), { shipments: { state: "upgrade" } }), { mode: "page" }), /data-phone-empty="customs"/);
+    const held = phone(model(aboniInput(), { volza: VOLZA }), { mode: "page" });
+    assert.doesNotMatch(held, /data-phone-empty="customs"/);
+    assert.match(text(held), /Export value, 2 years US\$21\.7m/);
+    assert.match(text(held), /Where it goes Share of export value, by market European Union 236 shipments · 10 buyers 72%/);
+    assert.match(text(held), /Shipments under 1,000 pieces 6%/);
+    // Customs figures are per supplier and per market: no line or code carries a share or a value.
+    assert.doesNotMatch(text(held), /on the year before|Placeholder|Top 5 take/);
+  });
+
+  it("prints the UFLPA line with the list's own read date, and never that the list was not read", () => {
+    const read = text(phone(model(aboniInput(), { sanctionLists: LISTS }), { mode: "page" }));
+    assert.match(read, /Sanctions lists · not listed Read for every supplier, not only this one US Treasury \(OFAC\) 17 Sep European Union 12 Sep US forced labour \(UFLPA\) No link found · not a clearance · read 8 Sep/);
+    // A list with no read on file is left out: nothing is said about it.
+    assert.doesNotMatch(read, /not read|WRO/i);
+    const unread = text(phone(model(aboniInput(), { sanctionLists: LISTS.filter((l) => l.list !== "uflpa") }), { mode: "page" }));
+    assert.doesNotMatch(unread, /UFLPA|not read/i);
+    assert.doesNotMatch(text(phone(model(), { mode: "page" })), /UFLPA|Sanctions lists ·/, "an unread set of lists is described");
+    // A sanctioned record is never told "no link found".
+    const listed = text(phone(model(sanctionedInput(), { sanctionLists: LISTS }), { mode: "page" }));
+    assert.match(listed, /US forced labour \(UFLPA\) read 8 Sep/);
+    assert.doesNotMatch(listed, /No link found|not listed/i);
+  });
+
+  it("says a record outside the RSC programme is not the same as unsafe, and that the buyer's RFQs did not load", () => {
+    const out = text(phone(model(aboniInput(), { rsc: null, rscBuildings: [], rscBuildingBlocks: [], rfqs: { count: null, rows: [], empty: "", error: true } }), { mode: "page" }));
+    assert.match(out, /Not in the RSC programme .* Not the same as unsafe RSC covers factories that brands signed up\./);
+    assert.match(out, /Your RFQs didn't load\. Retry/);
+    assert.doesNotMatch(text(phone(model(), { mode: "page" })), /didn't load/);
+  });
+
+  it("keeps the contact locked: how many are on file, never a value", () => {
+    const out = text(phone(model(), { mode: "page" }));
+    assert.match(out, /Contact 1 email on file · 6 phone numbers on file · Website on file · 1 contact person on file Locked\. Send an RFQ and the supplier replies in Messages\./);
+    const unread = text(phone(model(aboniInput(), { contact: { hidden: "", plan: null, counts: null, held: null } }), { mode: "page" }));
+    assert.match(unread, /Contact details are locked Send an RFQ/);
+    assert.doesNotMatch(unread, /on file Locked/);
   });
 });
 
@@ -188,6 +276,9 @@ describe("the view's rules", () => {
     const out = view(m);
     assert.ok(plain(out).includes(m.name), "the name is cut");
     assert.doesNotMatch(out, /truncate|line-clamp|text-ellipsis/);
+    // A phone's page: the h1 holds it whole and wraps; only the stuck bar's repeat of it (hidden from a screen reader) is one line.
+    const h1 = /<h1 data-phone-name="" class="([^"]*)">([^<]*)<\/h1>/.exec(phone(m, { mode: "page" }));
+    assert.ok(h1 && plain(h1[2]!) === m.name && !/truncate|line-clamp|text-ellipsis/.test(h1[1]!), "a phone cuts the name");
   });
 
   it("heads the pane with an h2 (the search owns the h1) and the page with the h1", () => {
@@ -208,28 +299,29 @@ describe("the view's rules", () => {
     assert.match(plain(pane), /href="\/app\/suppliers\/aboni-knitwear\?back=%2Fapp%2Fdiscover%3Fq%3Dknit">Open full page/);
   });
 
-  it("on a phone the page has a navigation bar of its own, stuck to the top, and the name on a plate under it", () => {
-    // Founder, 6 Oct 2026: the top "wasn't designed for the mobile phone ... the back button on the
-    // top looks very cheap and the company name pushes down".
-    const page = view(model(), { mode: "page" });
-    const nav = /<div data-record-bar="" class="([^"]*)"><a aria-label="Back to search" class="([^"]*)" href="([^"]*)">/.exec(plain(page));
-    assert.ok(nav, "no bar");
-    for (const c of ["sticky", "top-0", "z-raised", "h-topbar-phone", "border-b", "bg-surface", "sm:hidden"]) assert.ok(nav[1]!.split(" ").includes(c), `the bar lacks ${c}`);
-    assert.ok(nav[2]!.split(" ").includes("h-touch"), "the way back is under 44 tall");
-    assert.equal(nav[3], "/app/discover?q=knit", "back is not the search the record was opened from");
+  it("on a phone the page has a bar of its own, stuck to the top, with Share and the way back, and the name is the h1 under it", () => {
+    // Paper page 35 (`d-overview`, `d-overview-scrolled`), after the founder's note of 6 Oct 2026 that the
+    // top "wasn't designed for the mobile phone".
+    const page = plain(phone(model(), { mode: "page" }));
+    assert.match(page, /^<div data-record-phone="" class="[^"]*\bsm:hidden\b/, "the phone's record is drawn from 640");
+    const bar = /<div data-record-bar="" class="([^"]*)">/.exec(page);
+    assert.ok(bar, "no bar");
+    for (const c of ["sticky", "top-0", "z-raised", "h-14", "bg-surface"]) assert.ok(bar[1]!.split(" ").includes(c), `the bar lacks ${c}`);
+    assert.match(page, /<button type="button" aria-label="Share"/);
+    // The X is a link, 36 round with a 44 target, back to the search the record was opened from (a page has nothing to "close").
+    const close = /<a aria-label="Back to search" class="([^"]*)" href="([^"]*)">/.exec(page);
+    assert.ok(close && close[1]!.includes("before:-inset-1") && close[1]!.includes("active:bg-line"), "the way back has no 44 target or no pressed state");
+    assert.equal(close[2], "/app/discover?q=knit", "back is not the search the record was opened from");
     // Opened from a link there is no search behind it, and the app's bars are hidden: back is the search itself.
-    assert.match(view(model(), { mode: "page", backHref: null }), /<div data-record-bar=""[^>]*><a aria-label="Back to search" class="[^"]*" href="\/app">/);
-    // The tabs stick under the bar from the first paint, before their script has measured it.
-    assert.match(page, /<section aria-label="Supplier record" [^>]*class="[^"]*max-sm:\[--record-head:theme\(height\.topbar-phone\)\]/);
-    // The name is Paper's 24 on a phone (it was 32, six lines for a long name), on a tonal plate.
-    const head = /<header class="([^"]*)"><div [^>]*><h1 class="([^"]*)">/.exec(page);
-    assert.ok(head && ["max-sm:bg-subtle", "max-sm:border-b"].every((c) => head[1]!.split(" ").includes(c)), "the name has no plate");
-    assert.ok(head[2]!.split(" ").includes("text-xl") && !/max-sm:text-/.test(head[2]!), "the name is not 24 on a phone");
-    // The desktop's "Back to results" is not drawn twice on a phone, and the pane has no bar at all.
-    assert.match(page, /<div class="[^"]*\bmax-sm:hidden\b[^"]*"><a [^>]*>(?:<svg[\s\S]*?<\/svg>)?Back to results/);
-    assert.doesNotMatch(view(model(), { mode: "pane" }), /data-record-bar|max-sm:bg-subtle/, "the drawer a narrow window gets has its own title: no bar, no plate");
-    // The tabs' script counts the bar as what sticks over the sections, or a tab's section lands under it.
-    assert.match(readFileSync(path.join(dir, "section-tabs.tsx"), "utf8"), /querySelectorAll\(":scope > header, :scope > \[data-record-bar\]"\)/);
+    assert.match(phone(model(), { mode: "page", backHref: null }), /<a aria-label="Back to search" class="[^"]*" href="\/app">/);
+    assert.match(page, /<h1 data-phone-name="" class="[^"]*text-2xl\/\[36px\][^"]*">Aboni Knitwear Ltd<\/h1>/);
+    // The desktop's head, body and "Back to results" are not drawn on a phone, and the phone's are not drawn twice.
+    const desk = view(model(), { mode: "page" });
+    assert.match(desk, /<header class="[^"]*\bmax-sm:hidden\b/);
+    assert.match(desk, /<div class="[^"]*\bmax-sm:hidden\b[^"]*"><a [^>]*>(?:<svg[\s\S]*?<\/svg>)?Back to results/);
+    assert.doesNotMatch(desk, /data-record-bar|data-phone-/);
+    // The drawer a narrow window gets has its own title and Close: no bar, no second name.
+    assert.doesNotMatch(phone(model(), { mode: "pane" }), /data-record-bar|data-phone-name|aria-label="Back to search"/);
   });
 
   it("a phone's action bar is fixed to the foot of the screen on the page, and the record keeps room for it", () => {
@@ -252,8 +344,12 @@ describe("the view's rules", () => {
     // Founder, 10 Oct 2026: the tabs at the top and Save and Send RFQ at the foot "jerk, stutter and shake" on a phone.
     const page = view(model(), { mode: "page" });
     const layer = "[transform:translateZ(0)]";
-    assert.ok(/<div data-record-bar="" class="([^"]*)"/.exec(page)![1]!.split(" ").includes(layer), "the top bar repaints with the page");
+    const onPhone = phone(model(), { mode: "page" });
+    assert.ok(/<div data-record-bar="" class="([^"]*)"/.exec(onPhone)![1]!.split(" ").includes(layer), "the top bar repaints with the page");
     assert.ok(/<div data-record-actions="" class="([^"]*)"/.exec(page)![1]!.split(" ").includes(layer), "the action bar repaints with the page");
+    const phoneTabs = /<div data-phone-tabs="" class="([^"]*)"><nav aria-label="Record sections" class="([^"]*)"/.exec(onPhone);
+    assert.ok(phoneTabs && phoneTabs[1]!.split(" ").includes("sticky") && phoneTabs[1]!.split(" ").includes(layer) && !phoneTabs[1]!.includes("overflow"), "a phone's stuck tabs scroll sideways too");
+    assert.ok(phoneTabs[2]!.split(" ").includes("overflow-x-auto"));
     const stuck = /<div class="([^"]*)"><nav aria-label="Record sections" class="([^"]*)"/.exec(page);
     assert.ok(stuck, "the tabs have no sticky box of their own");
     assert.ok(stuck[1]!.split(" ").includes("sticky") && stuck[1]!.split(" ").includes(layer) && !stuck[1]!.includes("overflow"), "what sticks scrolls sideways too");
@@ -543,7 +639,7 @@ describe("the Sites tab (B4d)", () => {
     assert.equal(hrefs.length, 4);
     assert.ok(hrefs.every((h, i) => h!.endsWith(`site=${i + 1}`)));
     assert.equal((out.match(/aria-current="true"/g) ?? []).length, 0);
-    const picked = renderToStaticMarkup(h(RecordView, { model: model(aboniInput(), { locations: rows }), mode: "page", tab: "sites", tabHref, today: TODAY, site: 2 }));
+    const picked = renderToStaticMarkup(h(RecordView, { model: model(aboniInput(), { locations: rows }), mode: "page", tab: "sites", tabHref, today: TODAY, site: 2 })).replace(PHONE, "");
     assert.equal((picked.match(/aria-current="true"/g) ?? []).length, 1);
     assert.match(picked, /<li aria-current="true"[\s\S]*?Nayapara/);
   });
@@ -599,7 +695,10 @@ describe("the record components' rules", () => {
     for (const [file, src] of sources) {
       const code = src.replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
       assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(code), `${file}: a typed hex colour`);
-      assert.ok(!/\btruncate\b|text-ellipsis|line-clamp/.test(code), `${file}: text cut off`);
+      // One line is cut by design: the name repeated in a phone's stuck bar (Paper page 35, `d-overview-scrolled`),
+      // hidden from a screen reader, with the whole name in the h1 under it.
+      const uncut = file === "phone-record.tsx" ? code.replace(/<p aria-hidden className="[^"]*\btruncate\b[^"]*group-data-\[stuck\]\/bar:opacity-100">/, "") : code;
+      assert.ok(!/\btruncate\b|text-ellipsis|line-clamp/.test(uncut), `${file}: text cut off`);
       assert.ok(!/\b(score|grade|rating|stars?)\b/i.test(code.replace(/"[^"]*"/g, "").replace(/`[^`]*`/g, "")), `${file}: a score-like value`);
       assert.ok(!/from "@\/components\/(ui|dashboard)\//.test(src), `${file} imports the old kit`);
     }

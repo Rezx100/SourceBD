@@ -4,10 +4,11 @@
 // Customs figures are per supplier and per market only: nothing here splits them by HS code, and a
 // figure the records do not hold (a yearly change, a buyer's share) is never made up. Pure.
 
-import { rankCerts } from "@/components/patterns/words";
+import type { CertRowData } from "@/components/patterns";
+import { certWords, rankCerts } from "@/components/patterns/words";
 import { customsWindow, daysUntil, formatDay, formatUsdShort, tidyBuyer, type VolzaExports, type VolzaMarketName, type VolzaShipment } from "@/lib/dashboard/facts";
 import type { SupplierSheetModel } from "@/lib/dashboard/models";
-import { SANCTIONS_MAX_AGE_MS } from "./words";
+import { SANCTIONS_MAX_AGE_MS, certRows, needsLook } from "./words";
 
 export type Tone = "caution" | "sanction" | null;
 export type StatusRow = { key: "safety" | "certificates" | "sanctions"; label: string; value: string; sub: string | null; short: string; tone: Tone };
@@ -182,4 +183,159 @@ export function lineShipments(v: VolzaExports, hs: string): LineShipment[] {
       day: formatDay(s.shipment_date?.slice(0, 10)),
       value: s.trade_value_usd !== null ? `US$${Math.round(s.trade_value_usd).toLocaleString("en-GB")}` : null,
     }));
+}
+
+/* ------------------------------------------------------------ needs a look */
+
+/** "8 Oct", with the year only when it is not this year's. */
+export function shortDay(iso: string | null | undefined, today: Date): string | null {
+  const day = formatDay(iso);
+  if (!day) return null;
+  const year = ` ${today.getUTCFullYear()}`;
+  return day.endsWith(year) ? day.slice(0, -year.length) : day;
+}
+
+/** One card under "Needs a look", worst first: the buildings behind on repairs, each certificate that lapsed or is about to, a stale sanctions read. */
+export type LookCard = {
+  key: string;
+  kind: "safety" | "certificate" | "sanctions";
+  /** The tab the card opens. */
+  tab: "safety" | "certificates" | "sources";
+  tag: string;
+  title: string;
+  progress: { label: string; pct: number } | null;
+  /** The days left, set large. */
+  figure: { n: number; words: string } | null;
+  body: string | null;
+  foot: string | null;
+  footCaution: boolean;
+};
+
+export function lookCards(model: SupplierSheetModel, today: Date): LookCard[] {
+  const out: LookCard[] = [];
+  const cards = rscCards(model);
+  const behind = cards.filter(rscBehind);
+  const worst = behind[0];
+  if (worst) {
+    const many = cards.length > 1;
+    out.push({
+      key: "safety",
+      kind: "safety",
+      tab: "safety",
+      tag: behind.length > 1 ? `Safety · ${behind.length} of ${cards.length} buildings` : many ? `Safety · ${worst.name}` : "Safety · RSC",
+      title: behind.length > 1 ? `${countWord(behind.length)} buildings are behind on repairs` : many ? "One building is behind on repairs" : "Behind schedule on safety repairs",
+      progress: worst.progress !== null ? { label: behind.length > 1 ? `Worst: ${worst.name}` : "Issues fixed", pct: worst.progress } : null,
+      figure: null,
+      body: worst.training ? `Worker safety ${worst.training}.` : null,
+      foot: worst.readDate ? `Read ${worst.readDate}` : null,
+      footCaution: false,
+    });
+  }
+  for (const c of needsLook(certRows(model, today), today)) {
+    const w = certWords(c.expiresOn, today, c.delistedOn);
+    const days = daysUntil(c.expiresOn, today);
+    out.push({
+      key: `cert-${c.scheme}-${c.number ?? ""}-${c.expiresOn ?? ""}`,
+      kind: "certificate",
+      tab: "certificates",
+      tag: `Certificate · ${c.scheme}`,
+      title: w.label,
+      progress: null,
+      figure: w.state === "expiring" && days !== null && days > 0 ? { n: days, words: days === 1 ? "day left" : "days left" } : null,
+      body: null,
+      foot: c.check ? cap(c.check.text) : null,
+      footCaution: Boolean(c.check?.caution),
+    });
+  }
+  const read = model.sanctionsReadAt;
+  const age = read ? today.getTime() - Date.parse(read) : 0;
+  if (!model.sanctioned && read && age > SANCTIONS_MAX_AGE_MS) {
+    const days = Math.floor(age / 86_400_000);
+    out.push({
+      key: "sanctions",
+      kind: "sanctions",
+      tab: "sources",
+      tag: "Sanctions · freshness",
+      title: `The sanctions check is ${days} ${days === 1 ? "day" : "days"} old`,
+      progress: null,
+      figure: null,
+      body: `Not listed when the lists were last read on ${shortDay(read, today)}.`,
+      foot: null,
+      footCaution: false,
+    });
+  }
+  return out;
+}
+
+/* ------------------------------------------------------------ certificates */
+
+export type PhoneCert = CertRowData & { scope: string | null };
+/** One card on the Certificates tab: a certificate, or every undated listing of one scheme together (OEKO-TEX publishes no end date). */
+export type CertGroup = { scheme: string; state: ReturnType<typeof certWords>["state"]; label: string; listed: boolean; rows: PhoneCert[] };
+
+export function certGroups(model: SupplierSheetModel, today: Date): CertGroup[] {
+  const rows: PhoneCert[] = certRows(model, today).map((r, i) => ({ ...r, scope: model.certs[i]?.scope ?? null }));
+  const out: CertGroup[] = [];
+  for (const { c, w } of rankCerts(rows, today)) {
+    const listed = !c.expiresOn && !c.delistedOn;
+    const held = listed ? out.find((g) => g.listed && g.scheme === c.scheme) : undefined;
+    if (held) held.rows.push(c);
+    else out.push({ scheme: c.scheme, state: w.state, label: w.label, listed, rows: [c] });
+  }
+  return out;
+}
+
+/* --------------------------------------------------------- sanctions lists */
+
+// The daily lists turn caution once a read is two days old; ILAB is weekly and the WRO list is a 2024 snapshot, so neither does.
+const LISTS: { code: string; label: string; daily: boolean }[] = [
+  { code: "ofac_sdn", label: "US Treasury (OFAC)", daily: true },
+  { code: "ilab_tvpra", label: "US Labor (ILAB)", daily: false },
+  { code: "eu_sanctions", label: "European Union", daily: true },
+  { code: "uk_ofsi", label: "UK (OFSI)", daily: true },
+  { code: "us_wro", label: "US withhold orders (WRO)", daily: false },
+];
+
+export type ListRead = { label: string; day: string; old: boolean };
+
+/** Each sanctions list with the day it was last read in full. A list with no read on file is left out: nothing is said about it. */
+export function sanctionListRows(model: Pick<SupplierSheetModel, "sanctionLists">, today: Date): ListRead[] {
+  const reads = model.sanctionLists ?? [];
+  return LISTS.flatMap((l) => {
+    const at = reads.find((r) => r.list === l.code)?.last_read ?? null;
+    const day = shortDay(at, today);
+    return at && day ? [{ label: l.label, day, old: l.daily && today.getTime() - Date.parse(at) > SANCTIONS_MAX_AGE_MS }] : [];
+  });
+}
+
+export const UFLPA_LABEL = "US forced labour (UFLPA)";
+
+/**
+ * The record's UFLPA line: "No link found · not a clearance · read 8 Oct", the day from the list's own
+ * last full read. Null when no read is on file, so the record never says the list was not read. A
+ * sanctioned record says only when the list was read: its matches are listed above the line.
+ */
+export function uflpaLine(model: Pick<SupplierSheetModel, "sanctioned" | "sanctionLists">, today: Date): string | null {
+  const day = shortDay(model.sanctionLists?.find((r) => r.list === "uflpa")?.last_read, today);
+  if (!day) return null;
+  return model.sanctioned ? `read ${day}` : `No link found · not a clearance · read ${day}`;
+}
+
+/* ------------------------------------------------------------- no customs */
+
+/**
+ * What the Exports tab says with no customs record to draw. Null (say nothing) when the record has one
+ * that the reader's plan does not include: the Recent shipments section says that. Otherwise the read
+ * only tells us no matched record is on file, so the words claim no more: not that it was looked up,
+ * not that the supplier does not export.
+ */
+export const NO_CUSTOMS = {
+  title: "We have no customs records for this supplier yet",
+  body: "That says nothing about whether it exports; it only means we have no receipt to show.",
+  epbTitle: "Registered as an exporter with EPB",
+  epbBody: "Ask for its export history in your RFQ.",
+} as const;
+
+export function noCustoms(model: Pick<SupplierSheetModel, "volza" | "shipments">): boolean {
+  return !model.volza && model.shipments?.state !== "upgrade";
 }
