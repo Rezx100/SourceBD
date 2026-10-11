@@ -10,7 +10,7 @@ import type { Icon } from "@phosphor-icons/react";
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 import { CertChip, Skeleton, ring } from "@/components/kit";
-import { onFileWords } from "@/components/patterns";
+import { ABSENT, onFileWords } from "@/components/patterns";
 import { LinkPending } from "@/components/patterns/link-pending";
 import { brandsInCustoms, customsBuyers, customsWindow, formatDay, formatUsdShort } from "@/lib/dashboard/facts";
 import type { SupplierSheetModel } from "@/lib/dashboard/models";
@@ -518,7 +518,7 @@ function Certificates({ model, today, level: H }: PanelProps) {
     <div className="flex flex-col gap-3 px-5 pb-8 pt-6">
       {n === 0 ? (
         <div className="flex flex-col gap-0.5 pb-1">
-          <H className={TITLE}>No certificates on file</H>
+          <H className={TITLE}>{ABSENT.certificates}</H>
           <p className="text-base text-ink-2">{model.certsEmpty}</p>
           <p className="pt-1 text-xs text-ink-3">{model.certsEmptyChip}</p>
         </div>

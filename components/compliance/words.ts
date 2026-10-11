@@ -6,6 +6,7 @@
 // the same thing. Everything is worked out from what the four compliance reads return. Pure.
 
 import { attentionOf, certName, type Attention, type AttentionCertRow, type AttentionRow } from "@/lib/dashboard/needs-attention";
+import { ABSENT } from "@/components/patterns/words";
 import { certRowId, daysUntil, displayName, formatCount, formatDay } from "@/lib/dashboard/facts";
 
 /** A certificate as the two compliance reads return it (`compliance_expiring_certs`, `compliance_expired_certs`). */
@@ -313,7 +314,7 @@ export function certLedger(expired: CertList | null, expiring: CertList | null, 
 /** UFLPA: "No link found · Not a clearance · list read 8 Oct", the date from the list's own last read. */
 export function uflpaLedger(p: Pick<UflpaPayload, "total" | "hits" | "flags"> | null, read: ListRead | null, today: Date): Ledger {
   if (p === null) return UNREAD;
-  if (p.total === 0) return { value: "Nothing to check", sub: "No saved supplier is published yet", tone: null };
+  if (p.total === 0) return { value: ABSENT.toCheck, sub: "No saved supplier is published yet", tone: null };
   if (p.hits > 0) return { value: `${noun(p.hits, "supplier")} listed`, sub: "You can't send them an RFQ", tone: "danger" };
   if (p.flags > 0) return { value: noun(p.flags, "possible link"), sub: "Record mentions Xinjiang", tone: "caution" };
   const day = shortDay(read?.last_read, today);
@@ -332,7 +333,7 @@ export function sanctionsLedger(msa: MsaSummary | null, lists: readonly ListRead
   const sub = span ? `UK, EU, US lists · read ${span}` : "UK, EU, US lists";
   const n = msa.total_published;
   if (msa.sanctions_hits > 0) return { value: `${formatCount(msa.sanctions_hits)} of ${formatCount(n)} listed`, sub, tone: "danger" };
-  return { value: n === 0 ? "Nothing to check" : `None of ${formatCount(n)} listed`, sub, tone: null };
+  return { value: n === 0 ? ABSENT.toCheck : `None of ${formatCount(n)} listed`, sub, tone: null };
 }
 
 /** The statement is drafted on the page and nothing is stored, so the row never claims a draft exists or not. */
