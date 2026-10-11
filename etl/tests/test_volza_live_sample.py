@@ -201,3 +201,38 @@ def test_loader_keeps_markets_only_for_shown_rows_and_waits_for_the_column():
     http = httpx.Client(base_url="http://x", transport=httpx.MockTransport(lambda req: httpx.Response(400)))
     load.drop_missing_columns(http, out)
     assert "markets" not in out[0] and "small_orders" not in out[0]
+
+
+def test_latest_records_are_marked_and_never_written_without_the_mark():
+    from ops import volza_load_sample as load
+
+    old = {"calls": [{"kind": "market:EU", "filters": {"supplier_name": ["X"]}}]}
+    new_batch = {"calls": [{"kind": "preview", "filters": {"supplier_name": ["X"], "sort_by": "date"}}]}
+    refetched = {**old, "top_is": "latest"}
+    assert [load.record_sort(r) for r in (old, new_batch, refetched)] == ["value", "date", "date"]
+
+    http = httpx.Client(base_url="http://x", transport=httpx.MockTransport(lambda req: httpx.Response(400)))
+    with pytest.raises(SystemExit, match="0140"):
+        load.drop_missing_columns(http, [{"record_sort": "date"}])
+    rows = [{"record_sort": "value"}]
+    load.drop_missing_columns(http, rows)
+    assert rows == [{}]
+
+
+def test_refetch_asks_for_the_latest_shipment_with_the_defining_search():
+    from ops import volza_launch as vl
+
+    sent = []
+
+    def handler(req):
+        sent.append(json.loads(req.content))
+        return httpx.Response(200, headers={"X-Credit-Used": "0.000"}, json={
+            "api_summary": {"count_of_shipments": 4568}, "api_records": [{"shipment_date": "2026-08-30T00:00:00"}]})
+
+    exact = {"supplier_name": ["Utah Fashions Ltd"], "supplier_name_search_type": "exact", "sort_by": "date", "sort_order": "DESC"}
+    r = {"name": "UTAH Fashions Ltd", "matched_variant": "UTAH Fashions", "shipments": 4568, "cost": 1.0,
+         "calls": [{"kind": "exact", "filters": exact}], "top": {"shipment_date": "2024-12-18"}}
+    new = vl.refetch_latest(_live(handler, start_used=0.0), r)
+    assert sent[0]["supplier_name_search_type"] == "exact" and sent[0]["sort_by"] == "date"
+    assert new["top"]["shipment_date"].startswith("2026-08-30") and new["top_is"] == "latest"
+    assert new["calls"][-1]["kind"] == "latest" and new["cost"] == pytest.approx(1.15)
