@@ -158,8 +158,8 @@ export default function DataSourcesPage() {
         </h2>
         <p>
           The &ldquo;Customs exports&rdquo; section on a supplier
-          profile summarises that company&apos;s garment exports (HS
-          chapters 61 and 62) cleared through Bangladesh customs: the
+          profile summarises that company&apos;s garment export shipments (HS
+          chapters 61 and 62): the
           number of shipments, their FOB value, the number of buyers, the
           shipments to the UK, the US, the EU and Canada, and one stored
           shipment over a two-year window. The records come

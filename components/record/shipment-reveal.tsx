@@ -95,14 +95,14 @@ function Box({ title, line, action }: { title: string; line: string; action?: Re
 
 function Table({ reveal, level: H }: { reveal: ShipmentReveal; level: "h2" | "h3" }) {
   const rows = revealRows(reveal.records);
-  const fetched = `Fetched ${formatDay(reveal.fetched_at) ?? "recently"} · Bangladesh customs`;
+  const fetched = `Fetched ${formatDay(reveal.fetched_at) ?? "recently"} · shipment records`;
   if (rows.length === 0) {
     return (
       <div className="flex flex-col gap-1">
         <H id="recent-shipments-title" tabIndex={-1} className="text-md font-semibold text-ink focus:outline-none">
           Recent shipments
         </H>
-        <p className="text-base text-ink-2">No garment shipments under this name in the customs records for this window.</p>
+        <p className="text-base text-ink-2">No garment shipments under this name in the shipment records for this window.</p>
         <p className="text-xs text-ink-3">{fetched}</p>
       </div>
     );
@@ -195,7 +195,7 @@ export function ShipmentRevealSection({ slug, initial, level = "h3" }: { slug: s
       break;
     case "upgrade":
       body = (
-        <Frame level={level} lead="Latest shipments from Bangladesh customs.">
+        <Frame level={level} lead="Latest export shipments on record.">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-base text-ink">Growth shows the latest 15, Enterprise 25.</p>
             <ButtonLink href="/pricing" prefetch={false}>
@@ -207,7 +207,7 @@ export function ShipmentRevealSection({ slug, initial, level = "h3" }: { slug: s
       break;
     case "used-up":
       body = (
-        <Frame level={level} lead="Latest shipments from Bangladesh customs.">
+        <Frame level={level} lead="Latest export shipments on record.">
           <Box
             title={`All ${phase.limit} suppliers used this month`}
             line={`Resets ${resetsOn(new Date())}`}
@@ -222,14 +222,14 @@ export function ShipmentRevealSection({ slug, initial, level = "h3" }: { slug: s
       break;
     case "today":
       body = (
-        <Frame level={level} lead="Latest shipments from Bangladesh customs.">
+        <Frame level={level} lead="Latest export shipments on record.">
           <Box title={`All ${phase.limit} for today used`} line="Try again tomorrow." />
         </Frame>
       );
       break;
     case "failed":
       body = (
-        <Frame level={level} lead="Latest shipments from Bangladesh customs.">
+        <Frame level={level} lead="Latest export shipments on record.">
           <Box
             title="Couldn’t load. Try again shortly."
             line="Nothing was used."
@@ -246,7 +246,7 @@ export function ShipmentRevealSection({ slug, initial, level = "h3" }: { slug: s
       const loading = phase.at === "loading";
       const left = phase.limit === null ? null : Math.max(0, phase.limit - phase.used);
       body = (
-        <Frame level={level} lead={loading ? "Reading Bangladesh customs records." : "Latest shipments from Bangladesh customs."} busy={loading}>
+        <Frame level={level} lead={loading ? "Reading shipment records." : "Latest export shipments on record."} busy={loading}>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <Button
               kind="secondary"

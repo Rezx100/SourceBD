@@ -201,16 +201,8 @@ export type KeyFact = {
   label: string;
   values: { text: string; mono: boolean; membership?: Membership }[];
   source: string | null;
-  /** The record holds the fact but no register is linked to it: the pending mark, never a sentence. */
-  pending: boolean;
   empty: string | null;
 };
-
-/** "Source pending · 3": the one legend under Key facts, or null when every fact names its register. */
-export function pendingLegend(facts: readonly KeyFact[]): string | null {
-  const n = facts.filter((f) => f.pending).length;
-  return n > 0 ? `Source pending · ${n}` : null;
-}
 
 /** "BGMEA General" is the register and the class of member; "EPB Reg" is the register alone ("Reg" says nothing beside a number). */
 function membership(i: NonNullable<FactRow["items"]>[number]): Membership {
@@ -251,28 +243,26 @@ export function keyFacts(model: SupplierSheetModel): KeyFact[] {
       label: LABEL[f.label] ?? f.label,
       values,
       source: values.length ? source : null,
-      pending: values.length > 0 && !f.items?.length && !f.marks?.length && Boolean(f.pendingSource),
       empty: values.length ? null : [f.empty ?? ABSENT.onFile, f.checked ?? null].filter(Boolean).join(" · "),
     };
   });
   // What it makes and exports is on the Products tab; the Overview says so only when there is nothing to open.
   const p = model.products;
-  if (p.productListCount === 0) out.push({ label: "Products", values: [], source: null, pending: false, empty: "Not published. Ask in your RFQ." });
-  if (p.lines === 0) out.push({ label: "Exports", values: [], source: null, pending: false, empty: p.linesUnknown ? "The export lines could not be read." : p.onEpb ? "On the EPB exporter register · no lines on file" : "Not on the EPB exporter list" });
+  if (p.productListCount === 0) out.push({ label: "Products", values: [], source: null, empty: "Not published. Ask in your RFQ." });
+  if (p.lines === 0) out.push({ label: "Exports", values: [], source: null, empty: p.linesUnknown ? "The export lines could not be read." : p.onEpb ? "On the EPB exporter register · no lines on file" : "Not on the EPB exporter list" });
   const lists = model.products.buyerLists;
   // A brand that a customs buyer on file also names is marked: two sources agreeing (founder, 11 Oct 2026).
   const agreed = brandsInCustoms(lists, model.volza);
   out.push({
     label: "Brand supplier lists",
-    values: lists.length ? [{ text: lists.map((b) => (agreed.has(b) ? `${b} (also in customs records)` : b)).join(", "), mono: false }] : [],
+    values: lists.length ? [{ text: lists.map((b) => (agreed.has(b) ? `${b} (also in shipment records)` : b)).join(", "), mono: false }] : [],
     source: lists.length ? "From the brands' disclosure lists" : null,
-    pending: false,
     empty: lists.length ? null : model.products.buyerListsEmpty,
   });
   // Paying readers only (the customs read returns nothing to anyone else): who imported, beside who disclosed.
   const buyers = customsBuyers(model.volza);
   if (buyers.length) {
-    out.push({ label: "Buyers in customs records", values: [{ text: buyers.join(", "), mono: false }], source: "From Bangladesh customs records", pending: false, empty: null });
+    out.push({ label: "Buyers in shipment records", values: [{ text: buyers.join(", "), mono: false }], source: "From export shipment records", empty: null });
   }
   return out;
 }
@@ -371,8 +361,6 @@ export type LineFact = {
   values: { text: string; mono: boolean; href: string | null }[];
   /** The registers it is from, linked where the record carries the page. */
   marks: SourceMarkModel[];
-  /** The payload does not attribute the fact to a register yet. */
-  pending: boolean;
   note: string | null;
   /** What the certified scope's certificate is doing: a state and its words. */
   badge: { state: CertState; label: string } | null;
@@ -393,7 +381,6 @@ export function lineFacts(facts: readonly FactRow[]): LineFact[] {
       label: f.label,
       values,
       marks: f.marks ?? [],
-      pending: Boolean(f.pendingSource) && !(f.marks && f.marks.length > 0),
       note: f.note ?? null,
       badge,
       empty: values.length ? null : [f.empty ?? ABSENT.onFile, f.note ?? null, f.checked ?? null].filter(Boolean).join(" · "),

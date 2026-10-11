@@ -39,9 +39,9 @@ import {
 
 const TODAY = new Date("2026-09-18T10:00:00Z");
 
-describe("certificate state (spec §5: valid · expiring ≤ 90 days · expired · no expiry on file)", () => {
+describe("certificate state (valid · expiring ≤ 90 days · expired; undated is listed, so valid)", () => {
   it("classifies the four states on the day boundaries", () => {
-    assert.equal(certState(null, TODAY), "no-expiry");
+    assert.equal(certState(null, TODAY), "valid", "only OEKO-TEX is undated: its label check lists it without a date");
     assert.equal(certState("2026-09-17", TODAY), "expired");
     assert.equal(certState("2026-09-18", TODAY), "expiring"); // 0 days: still valid today, expiring
     assert.equal(certState("2026-12-17", TODAY), "expiring"); // exactly 90 days
@@ -64,20 +64,21 @@ describe("certificate state (spec §5: valid · expiring ≤ 90 days · expired 
     assert.equal(certChipLabel(wrap), "WRAP Gold expires in 11 days");
     assert.equal(certChipLabel(old), "GOTS expired 4 Apr 2026");
     assert.equal(certStateLabel(wrap), "Expires 29 Sep 2026 · 11 days");
-    assert.equal(certStateLabel(oeko), "No expiry on file");
+    assert.equal(certStateLabel(oeko), "Listed as valid");
+    assert.equal(certChipLabel(oeko), "OEKO-TEX Standard 100 listed as valid");
     assert.equal(certTableLabel(wrap), "WRAP Gold 11 d");
     assert.equal(certTableLabel(gots), "GOTS valid");
     assert.equal(oeko.scheme, "OEKO-TEX Standard 100");
     assert.deepEqual(
       sortCerts([oeko, old, gots, wrap]).map((c) => c.number),
-      ["7865", "GOTS-31587", "GOTS-27605", "32597-100"],
+      ["7865", "GOTS-31587", "32597-100", "GOTS-27605"],
     );
     // Cycle 5, finding 12: the sub-line returned on the expiring branch, so an
     // expired certificate vanished from the card whenever another was expiring.
     // Aboni holds both, and the buyer needs to see both.
-    assert.equal(certTileSubline([gots, wrap, oeko, old]), "1 expiring in 11 days · 1 expired · 1 no expiry");
+    assert.equal(certTileSubline([gots, wrap, oeko, old]), "1 expiring in 11 days · 1 expired");
     assert.equal(certTileSubline([gots, wrap]), "1 expiring in 11 days");
-    assert.equal(certTileSubline([gots, oeko, old]), "1 expired · 1 no expiry");
+    assert.equal(certTileSubline([gots, oeko, old]), "1 expired");
     assert.equal(certTileSubline([gots]), "all valid");
     assert.equal(certTileSubline([]), null);
   });

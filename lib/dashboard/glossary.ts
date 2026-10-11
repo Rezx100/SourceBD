@@ -14,7 +14,6 @@ export const GLOSSARY: Readonly<Record<string, string>> = {
   Sources: "The registers, certification bodies and brand lists that filed something about this company; every fact on the record names its source.",
   // Words inside the strip and the panels.
   fixed: "The share of the safety findings from RSC inspections that the factory has closed, as RSC last recorded it.",
-  "Source pending": "The record holds this fact, but the register that filed it is not linked to it yet; the dashed document marks it until the link is made.",
   "stale read": "The hourglass: SourceBD has not re-read this source for more than 90 days, so the fact stands as last read and the words say how old that read is.",
   more: "More certificates than the cell has room for; the record\u2019s Certificates tab lists every one with its date.",
   // The trust tiers, as the Sources tab groups them (`tierWords` in lib/dashboard/source-tiers.ts).

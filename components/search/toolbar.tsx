@@ -115,7 +115,7 @@ export function ExportsMenu({ state, hrefFor }: { state: DiscoverState; hrefFor:
           </span>
         </MenuItem>
       ))}
-      <div className="px-3 pb-2 pt-1 text-xs text-ink-3">By shipments there, Bangladesh customs, Sep 2024 – Aug 2026</div>
+      <div className="px-3 pb-2 pt-1 text-xs text-ink-3">By shipments there, Sep 2024 – Aug 2026</div>
     </Menu>
   );
 }
@@ -319,7 +319,14 @@ export function PaneListToolbar({ state, title, hrefFor, filtersHref, saveHref, 
   const on = filterCount(state);
   return (
     <div className="relative flex min-h-14 items-center justify-between gap-x-3 border-b border-line px-4 py-2 max-md:hidden">
-      <h1 className="min-w-0 text-base font-semibold text-ink">{title}</h1>
+      {/* The query over its count in smaller words: squeezed into one line beside four buttons the title broke a word a line. */}
+      <h1 className="flex min-w-0 flex-1 flex-col text-base font-semibold text-ink">
+        {title.split(" · ").map((part, i) => (
+          <span key={i} className={cn(i > 0 && "text-sm font-normal text-ink-2")}>
+            {part}
+          </span>
+        ))}
+      </h1>
       <div className="flex shrink-0 items-center gap-2">
         {saveHref ? (
           <Link href={saveHref} prefetch={false} scroll={false} aria-label="Save search" title="Save search" className={buttonClass({ kind: "secondary", size: "icon-32" })}>

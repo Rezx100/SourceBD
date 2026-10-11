@@ -120,8 +120,8 @@ describe("the certificate line of a row", () => {
       first: { code: "WRAP", scheme: "WRAP", words: "WRAP expired 29 Sep 2026", state: "expired" },
       others: [
         { code: "GOTS", scheme: "GOTS", words: "GOTS expires in 28 days · 31 Oct 2026", state: "expiring" },
+        { code: "SA8000", scheme: "SA8000", words: "SA8000 listed as valid", state: "valid" },
         { code: "OEKO_TEX", scheme: "OEKO-TEX Standard 100", words: "OEKO-TEX Standard 100 valid until 1 May 2027", state: "valid" },
-        { code: "SA8000", scheme: "SA8000", words: "SA8000 no expiry on file", state: "none" },
       ],
       total: 4,
       words: "WRAP expired 29 Sep 2026 · 3 more certificates",
@@ -141,8 +141,8 @@ describe("the certificate line of a row", () => {
     assert.equal(certShort("2026-11-01", TODAY), "Expires in 29 days");
     assert.equal(certShort("2026-12-19", TODAY), "Expires 19 Dec");
     assert.equal(certShort("2027-05-12", TODAY), "Valid to May 2027");
-    assert.equal(certShort(null, TODAY), "No expiry on file");
-    assert.equal(certShort("not a date", TODAY), "No expiry on file");
+    assert.equal(certShort(null, TODAY), "Listed as valid");
+    assert.equal(certShort("not a date", TODAY), "Listed as valid");
     assert.equal(certShort("2027-05-12", TODAY, "2026-09-28"), "No longer listed", "its body stopped listing it, whatever its date says");
   });
 
@@ -258,7 +258,7 @@ describe("the results table", () => {
     // The marks are one button that opens the details (a tap or a key; a mouse opens it on hover).
     assert.match(aboni!, /<button type="button" aria-haspopup="dialog" aria-expanded="false"/);
     // No mark stands without its name (`logos.lock.md` section 1): a screen reader hears every body as one sentence.
-    assert.match(aboni!, /<span class="sr-only">4 certificates: WRAP expired 29 Sep 2026; GOTS expires in 28 days · 31 Oct 2026; OEKO-TEX Standard 100 valid until 1 May 2027; SA8000 no expiry on file<\/span><span aria-hidden="true"/);
+    assert.match(aboni!, /<span class="sr-only">4 certificates: WRAP expired 29 Sep 2026; GOTS expires in 28 days · 31 Oct 2026; SA8000 listed as valid; OEKO-TEX Standard 100 valid until 1 May 2027<\/span><span aria-hidden="true"/);
     assert.match(sm!, /<span class="sr-only">WRAP valid until 8 Jan 2027<\/span>/, "one certificate is its own sentence");
     // The marks are 24 tall in a 40 row: the cell gives up 2px of padding above and below.
     assert.ok(cells.every((c) => c[1]!.split(" ").includes("py-1.5")));

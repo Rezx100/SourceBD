@@ -18,7 +18,7 @@ import { onFileWords, rankCerts } from "@/components/patterns";
 import { GLOSSARY, define } from "@/lib/dashboard/glossary";
 import { tierWords } from "@/lib/dashboard/source-tiers";
 import { RecordView } from "@/components/record/record-view";
-import { TABS, certRows, keyFacts, needsLook, parseSite, parseTab, pendingLegend, recordSubline, sameName, sectionInView, siteCards, siteSummary, staleWords, summaryCells, tabCount } from "@/components/record/words";
+import { TABS, certRows, keyFacts, needsLook, parseSite, parseTab, recordSubline, sameName, sectionInView, siteCards, siteSummary, staleWords, summaryCells, tabCount } from "@/components/record/words";
 
 const h = createElement as (type: unknown, props: object | null, ...kids: unknown[]) => ReactNode & Parameters<typeof renderToStaticMarkup>[0];
 const plain = (s: string) => s.replace(/&#x27;/g, "'").replace(/&amp;/g, "&");
@@ -318,7 +318,7 @@ describe("the view's rules", () => {
     for (const c of summaryCells(m, TODAY)) assert.ok(define(c.label), `${c.label} has no definition`);
     for (const rank of [1, 2, 3, 4, 5, 6] as const) assert.ok(define(tierWords(rank)), `${tierWords(rank)} has no definition`);
     assert.ok(define(tierWords(1, "RSC")));
-    for (const term of ["fixed", "Source pending", "stale read", "more", "EPB", "BGMEA", "BKMEA", "BGAPMEA", "BTMA", "GOTS", "WRAP", "OEKO-TEX"]) assert.ok(define(term), `${term} has no definition`);
+    for (const term of ["fixed", "stale read", "more", "EPB", "BGMEA", "BKMEA", "BGAPMEA", "BTMA", "GOTS", "WRAP", "OEKO-TEX"]) assert.ok(define(term), `${term} has no definition`);
     for (const [term, what] of Object.entries(GLOSSARY)) assert.ok(/^[A-Z\u201c].{40,}[.]$/.test(what), `${term}: one plain sentence, ending in a full stop`);
     assert.equal(define("nonsense"), null);
     // Round 3, item 5: the help layer reaches the results and the composer.
@@ -375,15 +375,9 @@ describe("the view's rules", () => {
 // record's first screen said "Source not linked yet" seven times, each head fact two or three times,
 // and jumped from h1 to h3.
 describe("the record's first screen says each fact once, with its receipt", () => {
-  it("never prints 'Source not linked yet': a fact without a register carries the pending mark and one legend", () => {
-    // Aboni holds BGMEA and BKMEA, so every figure names its register; the factory types are the one fact no register is linked to.
+  it("a fact without a register is the value alone: no 'Source not linked yet', no pending mark, no legend", () => {
     const full = keyFacts(model());
-    assert.deepEqual(full.filter((f) => f.pending).map((f) => f.label), ["Factory types"]);
     assert.equal(full.find((f) => f.label === "Factory types")?.values[0]?.text, "Dyeing, Knit, Packaging, Woven", "the subline said Factory; the types it did not say stay");
-    assert.equal(pendingLegend(full), "Source pending · 1");
-    assert.doesNotMatch(view(model(), { mode: "page" }), /Source not linked/);
-    assert.equal(pendingLegend([]), null);
-    // Without them the machine count and the capacity are the record's but no register is linked: the mark, once each, and one legend.
     const bare = aboniInput();
     const gone = new Set(["BGMEA", "BKMEA"]);
     bare.profile.supplier.source_tags = bare.profile.supplier.source_tags.filter((t) => !gone.has(t));
@@ -391,15 +385,7 @@ describe("the record's first screen says each fact once, with its receipt", () =
     bare.profile.provenance = bare.profile.provenance.filter((x) => !gone.has(x.source_code));
     for (const mode of ["page", "pane"] as const) {
       const out = view(model(bare), { mode });
-      assert.doesNotMatch(out, /Source not linked/, mode);
-      const facts = keyFacts(model(bare));
-      const pending = facts.filter((f) => f.pending);
-      assert.deepEqual(pending.map((f) => f.label), ["Factory types", "Sewing machines", "Capacity"]);
-      assert.ok(pending.every((f) => f.source === null), "a pending fact never also has a source sentence");
-      assert.equal(pendingLegend(facts), "Source pending · 3");
-      assert.equal((text(out).match(/Source pending · \d+/g) ?? []).length, 1, `${mode}: one legend`);
-      // One mark under each pending fact, one in the legend, one on the filed product list's heading.
-      assert.equal((out.match(/title="Source pending: /g) ?? []).length, 5, `${mode}: a mark per pending fact`);
+      assert.doesNotMatch(out, /Source not linked|Source pending/, mode);
     }
   });
 
