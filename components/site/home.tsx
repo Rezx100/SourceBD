@@ -142,7 +142,7 @@ export function Home({ facts, film = false }: { facts: SiteFacts; film?: boolean
         <div className="flex flex-col gap-3 rounded-lg border border-line p-5">
           <p className="text-lg font-semibold text-ink">Export records, per supplier</p>
           <p className="text-md text-ink-2">Each record will show the date, the product and its HS code, pieces, FOB per piece, the buyer, the destination, and sea or air.</p>
-          <p className="text-base text-ink-3">From Bangladesh customs export records. Used to cross-check, never to replace a register.</p>
+          <p className="text-base text-ink-3">From export shipment records. Used to cross-check, never to replace a register.</p>
         </div>
       </Chapter>
 

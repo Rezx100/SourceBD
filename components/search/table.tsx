@@ -98,7 +98,7 @@ export function ResultsTable({
               Workers
             </Th>
             {exportsHead ? (
-              <Th align="right" className="w-[200px]" title="Bangladesh customs records, Sep 2024 – Aug 2026">
+              <Th align="right" className="w-[200px]" title="Export shipment records, Sep 2024 – Aug 2026">
                 {exportsHead}
               </Th>
             ) : (

@@ -59,20 +59,6 @@ export function SourceMark({ source, className, lazy }: { source: string; classN
   );
 }
 
-/**
- * SourceBD's own mark for a fact the record holds but no register is linked to yet: the dashed
- * document, 16px under a fact, named "Source pending". One glyph per fact; the words live once in
- * the legend under the facts (DESIGN.md, Record Sheet), never as a sentence under each.
- */
-export function PendingMark({ className }: { className?: string }) {
-  return (
-    <span className={cn("inline-flex size-4 items-center justify-center rounded-sm border border-dashed border-line-strong bg-subtle", className)} title="Source pending: the register that filed this fact is not linked yet">
-      <FileText size={10} className="text-ink-3" aria-hidden />
-      <span className="sr-only">Source pending</span>
-    </span>
-  );
-}
-
 /** Mark and short name: "BGMEA". The full name is its hover title. */
 export function SourceChip({ source, name, className }: { source: string; name?: string; className?: string }) {
   return (

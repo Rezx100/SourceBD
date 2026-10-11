@@ -63,7 +63,7 @@ test("a certificate's words: countdown inside 30 days, the date alone to 90, the
   assert.deepEqual(w("2026-11-03"), { state: "expiring", label: "Expires 3 Nov 2026" });
   assert.deepEqual(w("2027-01-01"), { state: "expiring", label: "Expires 1 Jan 2027" });
   assert.deepEqual(w("2027-01-02"), { state: "valid", label: "Valid until 2 Jan 2027" });
-  assert.deepEqual(w(null), { state: "none", label: "No expiry on file" });
+  assert.deepEqual(w(null), { state: "valid", label: "Listed as valid" });
   assert.equal(certHeading(["expired", "expired", "valid", "none"]), "Certificates · 4 · 2 expired");
   assert.equal(certHeading(["valid"]), "Certificates · 1");
 });
@@ -97,8 +97,8 @@ test("the certificates list puts problems first, counts them in the heading and 
     }),
   );
   assert.ok(html.includes("Certificates · 3 · 1 expired"));
-  const order = ["WRAP", "GOTS", "OEKO-TEX Standard 100"].map((s) => html.indexOf(`>${s}</span>`));
-  assert.ok(order.every((v, i) => i === 0 || v > order[i - 1]!), "expired, then valid, then no expiry on file");
+  const order = ["WRAP", "OEKO-TEX Standard 100", "GOTS"].map((s) => html.indexOf(`>${s}</span>`));
+  assert.ok(order.every((v, i) => i === 0 || v > order[i - 1]!), "expired first, then the valid ones (undated OEKO-TEX is listed, so valid)");
   assert.equal((html.match(/Open certificate/g) ?? []).length, 2, "a certificate with no document has no link");
 });
 
