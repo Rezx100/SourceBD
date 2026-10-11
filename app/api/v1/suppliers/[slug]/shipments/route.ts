@@ -13,13 +13,13 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
-import { fetchLatestShipments, REVEAL_WORST_COST, revealTiming } from "@/lib/volza/shipments";
+import { fetchLatestShipments, revealTiming } from "@/lib/volza/shipments";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const SLUG_RE = /^[a-z0-9][a-z0-9-]{0,159}$/;
-const BUSY_TRIES = 10;
+const BUSY_TRIES = 25; // × 2 s: outlasts the other fetch's 45 s Volza timeout
 
 type Begin =
   | { status: "ready"; reveal: unknown }
@@ -70,7 +70,8 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ sl
 
   const service = await createSupabaseServiceClient();
   const key = process.env.VOLZA_API_KEY;
-  if (!service) return shortly(); // the claim lapses on its own after two minutes
+  // Misconfigured (no service key): only the service role may release a claim, so it lapses after two minutes.
+  if (!service) return shortly();
   if (!key) {
     await service.rpc("volza_reveal_abort", { p_claim: begin.claim, p_cost_usd: 0 });
     return shortly();
@@ -91,7 +92,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ sl
   });
   if (finished.error) {
     // Nothing saved; Volza has billed it, so the spend is still logged.
-    await service.rpc("volza_reveal_abort", { p_claim: begin.claim, p_cost_usd: Math.min(got.cost, REVEAL_WORST_COST) });
+    await service.rpc("volza_reveal_abort", { p_claim: begin.claim, p_cost_usd: got.cost });
     return shortly();
   }
 

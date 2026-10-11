@@ -155,6 +155,13 @@ begin
   reset role;
   update public.volza_reveal_settings set credit_remaining_usd = 2900;
 
+  -- No settings row: no cap to check, so no claim.
+  delete from public.volza_reveal_settings;
+  set local role authenticated;
+  if public.volza_reveal_begin('ci-0141-b') ->> 'status' <> 'paused' then raise exception 'no settings row gave a claim'; end if;
+  reset role;
+  insert into public.volza_reveal_settings (spent_usd, credit_remaining_usd) values (1.35, 2900);
+
   -- A failed fetch: nothing saved, no allowance, a possible charge logged.
   set local role authenticated;
   j := public.volza_reveal_begin('ci-0141-b');

@@ -19,6 +19,9 @@ Afterwards: `volza_shipment_reveals`, `volza_reveal_settings` and `volza_reveal_
 unpatched, no `shipments.revealed` entries. `claim_verify=f` is production as it stands (0129 not applied);
 0141 leaves the email buckets alone.
 
+After the review, `volza_reveal_begin` gained one guard (no settings row: answer 'paused', never a claim);
+that path is asserted in CI. Re-run the dry run on the merged file before "apply 0141" if in doubt.
+
 The full behaviour (Starter/suspended refused, 15 vs 25, busy, allowance, off switch, cap, credit floor,
 abort, empty answer, expiry) is asserted on every CI run by `supabase/ci/assert-0141.sql`.
 

@@ -173,6 +173,8 @@ describe("/api/v1/suppliers/:slug/shipments", () => {
   it("a Volza 429, 500, timeout or bad answer saves nothing, uses no allowance, logs what it may have cost", async () => {
     const cases: [() => Promise<Response>, number][] = [
       [async () => new Response("slow down", { status: 429 }), 0],
+      [async () => new Response("bad key", { status: 401 }), 0],
+      [async () => Response.json({ message: "no records key" }), 1.35],
       [async () => new Response("oops", { status: 500 }), 1.35],
       [async () => { throw new DOMException("timed out", "TimeoutError"); }, 1.35],
       [async () => Response.json({ api_records: Array(26).fill({}) }), 1.35],

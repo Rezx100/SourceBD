@@ -255,6 +255,9 @@ begin
 
   delete from public.volza_shipment_reveals where expires_at <= now();
   select * into cfg from public.volza_reveal_settings;
+  if not found then   -- no settings row: no cap to check, so nothing may be fetched or served
+    return jsonb_build_object('status', 'paused');
+  end if;
 
   -- The allowance: distinct suppliers this month and today, a fetch this buyer has in flight counting too.
   if not v_admin and not exists (

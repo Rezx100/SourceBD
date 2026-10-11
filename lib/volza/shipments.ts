@@ -5,8 +5,8 @@
 // always: Growth's 15 are the first 15 of the same saved set. Server only; the key never reaches a browser.
 //
 // What a call may have cost, by Volza's pricing ($0.10 a search, $0.05 a record, never twice for a record we
-// already bought, so this is an upper bound): an answer with n records counts 0.10 + 0.05n; a 400, 402 or 429 is
-// not billed; a timeout, a network error, a 5xx or an answer we cannot read counts the worst case, as the batch
+// already bought, so this is an upper bound): an answer with n records counts 0.10 + 0.05n; a 4xx (a refused
+// request, a bad key, 402 credit used up, 429) is not billed; a timeout, a network error, a 5xx or an answer we cannot read counts the worst case, as the batch
 // scripts do.
 
 export const VOLZA_EXPORTS_URL = "https://backend.volza.com/api/v1/bangladesh-exports";
@@ -52,9 +52,7 @@ export async function fetchLatestShipments(
   } catch (e) {
     return { ok: false, cost: REVEAL_WORST_COST, reason: `network: ${(e as Error).name}` };
   }
-  if (res.status === 400 || res.status === 402 || res.status === 429) {
-    return { ok: false, cost: 0, reason: `volza ${res.status}` };
-  }
+  if (res.status >= 400 && res.status < 500) return { ok: false, cost: 0, reason: `volza ${res.status}` };
   if (res.status !== 200) return { ok: false, cost: REVEAL_WORST_COST, reason: `volza ${res.status}` };
 
   let body: unknown;
@@ -63,8 +61,10 @@ export async function fetchLatestShipments(
   } catch {
     return { ok: false, cost: REVEAL_WORST_COST, reason: "unreadable answer" };
   }
-  const records = (body as { api_records?: unknown } | null)?.api_records ?? [];
-  if (!Array.isArray(records) || records.length > REVEAL_RECORDS || records.some((r) => !r || typeof r !== "object")) {
+  // An empty search still answers `api_records: []` (178 of 178 saved empty answers): an answer without the
+  // array is not "nothing found", and saving it as that would hide the supplier's shipments for 30 days.
+  const records = (body as { api_records?: unknown } | null)?.api_records;
+  if (!Array.isArray(records) ||records.length > REVEAL_RECORDS || records.some((r) => !r || typeof r !== "object")) {
     return { ok: false, cost: REVEAL_WORST_COST, reason: "unexpected records" };
   }
   const credit = Number.parseFloat(res.headers.get("x-credit-remaining") ?? "");
