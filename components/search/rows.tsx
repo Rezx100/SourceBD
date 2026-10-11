@@ -4,7 +4,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-export const h2 = "text-md font-semibold text-ink sm:text-lg";
+/** A phone sets them as Paper page 36 does: 18, medium, a little tight. */
+export const h2 = "text-lg font-medium tracking-tight text-ink sm:font-semibold sm:tracking-normal";
 
 /** A list of links, one per line, each with a count at the end: recent searches, saved searches, common searches. */
 export function LinkRows({ children }: { children: ReactNode }) {
@@ -17,9 +18,9 @@ export function LinkRow({ href, label, count }: { href: string; label: string; c
       <Link
         href={href}
         prefetch={false}
-        className="flex min-h-touch items-center justify-between gap-3 py-2.5 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus sm:min-h-11 sm:px-4 sm:py-0"
+        className="flex min-h-12 items-center justify-between gap-3 py-2.5 outline-none hover:bg-brand-wash active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus sm:min-h-11 sm:px-4 sm:py-0"
       >
-        <span className="text-md font-medium text-ink sm:text-base">{label}</span>
+        <span className="text-[15px]/[18px] text-ink sm:text-base sm:font-medium">{label}</span>
         {count}
       </Link>
     </li>
@@ -27,7 +28,7 @@ export function LinkRow({ href, label, count }: { href: string; label: string; c
 }
 
 export function Count({ children }: { children: ReactNode }) {
-  return <span className="shrink-0 text-base text-ink-3 sm:text-sm">{children}</span>;
+  return <span className="shrink-0 text-sm/[16px] text-ink-3 max-sm:tabular-nums sm:text-sm">{children}</span>;
 }
 
 export const supplierCount = (n: number) => `${n.toLocaleString("en-GB")} ${n === 1 ? "supplier" : "suppliers"}`;

@@ -17,7 +17,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { loadComplianceBadge } from "@/lib/dashboard/compliance-badge";
 import { attentionOf } from "@/lib/dashboard/needs-attention";
-import { ExpiryHead, ExpiryList, ExpiryNone } from "./expiry";
+import { ExpiryHead, ExpiryList, ExpiryNone, ExpiryPhone, phoneWhen } from "./expiry";
+import { uflpaNotice, uflpaSheetNotice } from "./uflpa-read";
 import { AttentionCard, AttentionError, ComplianceSkeleton, ExpiryCard, HubEmpty, MsaCard, PartialNote, UflpaCard } from "./hub";
 import { loadCompliance } from "./load";
 import { UflpaError, UflpaPhone, UflpaStats, UflpaTable } from "./uflpa";
@@ -457,6 +458,23 @@ describe("/app/compliance/expiry", () => {
     assert.match(text(out), /The expired certificates did not load/);
     assert.match(text(out), /GOTS-26992/);
   });
+
+  it("a phone's Alerts opens on the UFLPA result, dated by the list's last full read; an unread check draws no claim", async () => {
+    const year = new Date().getUTCFullYear();
+    const LISTS: Answer = { data: [{ list: "uflpa", entries_listed: 253, last_read: `${year}-10-08T04:00:00Z` }, { list: "ofac_sdn", entries_listed: 9799, last_read: `${year}-10-11T04:00:00Z` }], error: null };
+    given({ ...ROWS, compliance_msa_inputs: MSA, compliance_uflpa_tracker: UFL, sanctions_lists_read: LISTS });
+    const out = text(await expiry());
+    assert.match(out, /UFLPA Entity List No link found · not a clearance · read 8 Oct /);
+    assert.doesNotMatch(out, /not read yet/i);
+    given({ ...ROWS, compliance_msa_inputs: MSA, compliance_uflpa_tracker: UFL });
+    assert.match(text(await expiry()), /No link found · not a clearance · read date not stored/, "no read date is said, never invented");
+    given({ ...ROWS, compliance_msa_inputs: MSA, compliance_uflpa_tracker: { data: { ...(UFL.data as object), hits: 1, clear: 9 }, error: null }, sanctions_lists_read: LISTS });
+    const hit = text(await expiry());
+    assert.match(hit, /1 on the list · read 8 Oct/);
+    assert.doesNotMatch(hit, /No link found/);
+    given({ ...ROWS, compliance_msa_inputs: MSA, sanctions_lists_read: LISTS });
+    assert.doesNotMatch(text(await expiry()), /UFLPA Entity List|No link found/, "an unread check says nothing about the list");
+  });
 });
 
 describe("/app/compliance/uflpa", () => {
@@ -489,6 +507,42 @@ describe("/app/compliance/uflpa", () => {
     assert.doesNotMatch(failed, /No link found/);
     given({ compliance_uflpa_tracker: { data: { total: 0, hits: 0, flags: 0, clear: 0, rows: [] }, error: null }, compliance_msa_inputs: MSA });
     assert.match(text(await uflpa()), /No saved suppliers yet\./);
+  });
+});
+
+describe("the UFLPA line on a phone (Paper page 36, `alerts` and `filters`)", () => {
+  const clear = { total: 10, hits: 0, flags: 0 };
+  const READ = "2026-10-01T03:10:00Z";
+
+  it("is the saved suppliers' own result, dated by the list's last full read; a hit is never 'no link found'", () => {
+    assert.deepEqual(uflpaNotice(clear, READ, NOW), { line: "No link found · not a clearance · read 1 Oct", hit: false });
+    assert.deepEqual(uflpaNotice({ ...clear, hits: 2 }, READ, NOW), { line: "2 on the list · read 1 Oct", hit: true });
+    assert.deepEqual(uflpaNotice({ ...clear, flags: 1 }, READ, NOW), { line: "1 possible Xinjiang link · read 1 Oct", hit: true });
+    assert.equal(uflpaNotice(clear, "2025-12-30T00:00:00Z", NOW)!.line, "No link found · not a clearance · read 30 Dec 2025", "another year's read keeps its year");
+    assert.equal(uflpaNotice(clear, null, NOW)!.line, "No link found · not a clearance · read date not stored");
+    assert.equal(uflpaNotice(null, READ, NOW), null, "an unread check claims nothing");
+    assert.equal(uflpaNotice({ ...clear, total: 0 }, READ, NOW), null, "nothing published to check claims nothing");
+  });
+
+  it("in the filters sheet says whose result it is; with nothing saved, only that the list was read", () => {
+    assert.deepEqual(uflpaSheetNotice(clear, READ, NOW), { line: "UFLPA list, your saved suppliers: No link found · not a clearance · read 1 Oct", hit: false });
+    assert.deepEqual(uflpaSheetNotice({ ...clear, hits: 1 }, READ, NOW), { line: "UFLPA list, your saved suppliers: 1 on the list · read 1 Oct", hit: true });
+    assert.deepEqual(uflpaSheetNotice(null, READ, NOW), { line: "UFLPA list read 1 Oct", hit: false });
+    assert.deepEqual(uflpaSheetNotice({ ...clear, total: 0 }, READ, NOW), { line: "UFLPA list read 1 Oct", hit: false });
+    assert.equal(uflpaSheetNotice(null, null, NOW), null, "neither read: nothing is said, never 'not read yet'");
+  });
+
+  it("Alerts' rows say the scheme, the day and how far off it is; with nothing to say the phone block is not drawn", () => {
+    const g = expiryGroups(EXPIRED, EXPIRING, NOW);
+    assert.equal(phoneWhen(g.expired[0]!, NOW), "WRAP expired 29 Sep · 5 days ago");
+    assert.equal(phoneWhen(g.within30[0]!, NOW), "GOTS ends 8 Oct · in 4 days");
+    const none = expiryGroups(list([]), list([]), NOW);
+    assert.equal(render(createElement(ExpiryPhone, { groups: none, show: "all", uflpa: null, today: NOW })), "");
+    const out = html(createElement(ExpiryPhone, { groups: g, show: "all", uflpa: uflpaNotice(clear, READ, NOW), today: NOW }));
+    assert.match(out, /^<div class="[^"]*\bmd:hidden\b/, "a phone's block: nothing of it from 768");
+    assert.match(text(out), /UFLPA Entity List No link found · not a clearance · read 1 Oct Certificates 4 Expired first Expired 2 of 4 /);
+    assert.equal(out.match(/>Ask for it</g)?.length, 4, "one ask per certificate");
+    assert.equal(out.match(/href="\/app\/rfqs\/new\?supplier=/g)?.length, 4, "each through the RFQ, the one channel a supplier answers on");
   });
 });
 

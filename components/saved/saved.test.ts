@@ -44,7 +44,6 @@ import {
   savedHref,
   searchFilters,
   searchesCaption,
-  tabLabels,
   type CertRead,
   type SavedItem,
   type SavedRow,
@@ -215,8 +214,6 @@ describe("a saved supplier's row", () => {
     assert.equal(savedCaption(11), "11 saved suppliers · only you see this list");
     assert.equal(savedCaption(1), "1 saved supplier · only you see this list");
     assert.equal(savedCaption(null), "Only you see this list");
-    assert.deepEqual(tabLabels(11, 2), { suppliers: "Suppliers · 11", searches: "Saved searches · 2", phoneSearches: "Searches · 2" });
-    assert.deepEqual(tabLabels(11, null), { suppliers: "Suppliers · 11", searches: "Saved searches", phoneSearches: "Searches" });
     assert.equal(removedWords(["Aboni Knitwear Ltd."]), "Removed Aboni Knitwear Ltd. from saved");
     assert.equal(removedWords(["a", "b", "c"]), "Removed 3 suppliers from saved");
     assert.equal(PAGE_SIZE, 24);
