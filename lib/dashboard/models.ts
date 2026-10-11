@@ -233,6 +233,9 @@ export type SanctionRow = {
   opens: "entry" | "list";
 };
 
+/** One sanctions list and when it was last read in full (`sanctions_lists_read()`, 0120). */
+export type SanctionListRead = { list: string; last_read: string | null };
+
 /** One of the calling buyer's RFQs that names this supplier. */
 export type RecordRfqRow = {
   id: string;
@@ -363,6 +366,8 @@ export type SupplierSheetModel = {
   sanctionsEmpty: string;
   /** When the daily sanctions lists were last all read in full (ISO), or null when unknown. */
   sanctionsReadAt: string | null;
+  /** Each list's own last full read (the phone's Sources tab); absent or null when it could not be read. */
+  sanctionLists?: SanctionListRead[] | null;
   /** `supplier_cert_checks` (0122): when each certificate's body last showed it; null when unread. */
   certChecks: CertChecks | null;
   /** `supplier_volza_exports` (0137): customs shipments for paying readers; null otherwise. */
@@ -400,6 +405,12 @@ export type ProductSheetModel = {
   closeHref: string | null;
   /** Send RFQ for this line — the composer with the HS code prefilled. */
   rfqHref: string | null;
+  /** The phone's line under the name: "Factory · Ashulia, Dhaka". */
+  place?: string | null;
+  /** How many headings the record's EPB page carries; 0 when none or unread. */
+  lines?: number;
+  /** `supplier_volza_exports` (0137): the supplier's customs totals, per supplier and per market, never per HS code; null for a reader the database refused or no match. */
+  volza?: VolzaExports | null;
 };
 
 export type RfqRowModel = {

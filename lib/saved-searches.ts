@@ -5,6 +5,7 @@
  */
 
 import { formatCount } from "@/lib/dashboard/facts";
+import { sessionUserId } from "@/lib/supabase/session-user";
 import { SAVED_SEARCH_ERROR } from "@/lib/saved-search-errors";
 import { COUNT_ONLY_SORT, fetchDiscoverV32 } from "@/lib/discover-v32-rpc";
 import { filterCount, parseDiscoverState, serializeDiscoverState, type DiscoverState } from "@/lib/discover-v32-state";
@@ -99,8 +100,7 @@ export async function runSavedSearchesGet(input: {
   if (input.role !== "buyer" && input.role !== "admin") {
     return { status: 401, body: { error: "unauthorised" } };
   }
-  const { data: user } = await input.supabase.auth.getUser();
-  const ownerId = user.user?.id;
+  const ownerId = await sessionUserId(input.supabase);
   if (!ownerId) return { status: 401, body: { error: "unauthorised" } };
 
   const listed = await input.supabase
@@ -181,8 +181,7 @@ export async function runSavedSearchesPost(input: {
   if (input.role !== "buyer" && input.role !== "admin") {
     return { status: 401, body: { error: "unauthorised" } };
   }
-  const { data: user } = await input.supabase.auth.getUser();
-  const ownerId = user.user?.id;
+  const ownerId = await sessionUserId(input.supabase);
   if (!ownerId) return { status: 401, body: { error: "unauthorised" } };
 
   if (!input.raw || typeof input.raw !== "object" || Array.isArray(input.raw)) {
@@ -237,8 +236,7 @@ export async function runSavedSearchesDelete(input: {
   if (!input.id || !UUID_RE.test(input.id)) {
     return { status: 400, body: { error: "invalid id" } };
   }
-  const { data: user } = await input.supabase.auth.getUser();
-  const ownerId = user.user?.id;
+  const ownerId = await sessionUserId(input.supabase);
   if (!ownerId) return { status: 401, body: { error: "unauthorised" } };
 
   const deleted = await input.supabase.from("saved_searches").delete().eq("id", input.id).eq("owner_id", ownerId);
@@ -268,8 +266,7 @@ export async function runSavedSearchesRename(input: {
   if (!name || name.length > 120) {
     return { status: 400, body: { error: SAVED_SEARCH_ERROR.invalidName } };
   }
-  const { data: user } = await input.supabase.auth.getUser();
-  const ownerId = user.user?.id;
+  const ownerId = await sessionUserId(input.supabase);
   if (!ownerId) return { status: 401, body: { error: "unauthorised" } };
 
   // `select` after the update says whether a row matched: someone else's id, or one already
@@ -301,8 +298,7 @@ export async function runSavedSearchesAlert(input: {
     return { status: 400, body: { error: "invalid id" } };
   }
   if (typeof rec.alert_weekly !== "boolean") return { status: 400, body: { error: "invalid alert_weekly" } };
-  const { data: user } = await input.supabase.auth.getUser();
-  const ownerId = user.user?.id;
+  const ownerId = await sessionUserId(input.supabase);
   if (!ownerId) return { status: 401, body: { error: "unauthorised" } };
 
   const updated = await input.supabase.from("saved_searches").update({ alert_weekly: rec.alert_weekly }).eq("id", rec.id).eq("owner_id", ownerId).select("id");

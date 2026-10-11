@@ -393,12 +393,77 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     assert.doesNotMatch(await band(null), /Show recent shipments/);
   });
 
+  it("a phone's record says there are no customs records only when none is on file, in words the read supports (Paper pages 35 and 36)", async () => {
+    const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
+    const open = () => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({ tab: "exports" }) });
+    // The phone's drawing of the record, as the browser receives it beside the desktop's.
+    const phone = (out: string) => /<div data-record-phone=""[\s\S]*?(?=<div data-record-actions="")/.exec(out)?.[0] ?? "";
+    const words = (out: string) => phone(out).replace(/<[^>]*>/g, " ").replace(/&#x27;/g, "'").replace(/\s+/g, " ");
+
+    // No matched customs record (the read answers null, and no reveal state): the state a buyer sees.
+    given({ profile: PROFILE, hscodes: HS });
+    const none = html(await outcome(open));
+    assert.match(phone(none), /data-phone-empty="customs"/, "the phone's Exports tab says nothing where it has no customs record");
+    assert.match(words(none), /We have no customs records for this supplier yet That says nothing about whether it exports; it only means we have no receipt to show\./);
+    // Null cannot tell "never looked up" from "no match", so neither is claimed, and no coverage count is invented.
+    assert.doesNotMatch(words(none), /looked it up|found no shipments|Checked so far|With records|not checked/i);
+    assert.match(words(none), /What it ships/, "the EPB export lines went with the customs records");
+    assert.ok(rpcCalls.some((c) => c.fn === "supplier_shipment_reveal_state"), "the page never asked whether a customs record is on file");
+
+    // A record is on file but the reader's plan does not include it: never "no customs records".
+    given({ profile: PROFILE, hscodes: HS, rpcs: { supplier_shipment_reveal_state: { data: { state: "upgrade" }, error: null } } });
+    assert.doesNotMatch(phone(html(await outcome(open))), /data-phone-empty="customs"|no customs records/);
+
+    // With the record: the supplier's own totals and its markets. Nothing is split by HS code.
+    const volza = { shipments: 406, fob_usd: 21698439.68, buyers: 43, window_start: "2024-09-01", window_end: "2026-08-31", volza_name: "Hamza Clothing Ltd.", fetched_at: "2026-10-10T21:33:30+00:00", top_shipments: [], markets: { EU: { shipments: 236, fob_usd: 15553268.46, buyers: 10, top: null } } };
+    given({ profile: PROFILE, hscodes: HS, rpcs: { supplier_volza_exports: { data: volza, error: null } } });
+    const held = html(await outcome(open));
+    assert.doesNotMatch(phone(held), /data-phone-empty="customs"/);
+    assert.match(words(held), /Export value, Sep 2024 – Aug 2026 US\$21\.7m/);
+    assert.match(words(held), /European Union 236 shipments · 10 buyers 72%/);
+    assert.doesNotMatch(words(held), /Volza|Placeholder|on the year before/i);
+  });
+
+  it("a phone's record prints the UFLPA line with the list's own read date, never that it was not read", async () => {
+    const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
+    const open = () => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({ tab: "sources" }) });
+    const words = (out: string) => (/<section aria-label="Sanctions lists" data-phone-sanctions=""[\s\S]*?<\/section>/.exec(out)?.[0] ?? "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
+    const year = new Date().getUTCFullYear();
+    const lists = (uflpa: string | null) => ({
+      data: [
+        { list: "ofac_sdn", entries_listed: 1, last_read: `${year}-10-08T02:10:00Z` },
+        { list: "uk_ofsi", entries_listed: 1, last_read: `${year}-10-06T02:20:00Z` },
+        { list: "eu_sanctions", entries_listed: 1, last_read: `${year}-10-06T02:30:00Z` },
+        { list: "uflpa", entries_listed: 253, last_read: uflpa },
+        { list: "us_wro", entries_listed: 1, last_read: null },
+      ],
+      error: null,
+    });
+    given({ profile: PROFILE, hscodes: HS, rpcs: { sanctions_lists_read: lists(`${year}-10-08T02:40:00Z`) } });
+    const read = words(html(await outcome(open)));
+    assert.match(read, /Sanctions lists · not listed .* US forced labour \(UFLPA\) No link found · not a clearance · read 8 Oct/);
+    assert.equal(rpcCalls.filter((c) => c.fn === "sanctions_lists_read").length, 1, "the lists' reads are asked for more than once a record");
+    // A list with no full read on file is left out; the record never says a list was not read.
+    assert.doesNotMatch(read, /not read|WRO/i);
+    given({ profile: PROFILE, hscodes: HS, rpcs: { sanctions_lists_read: lists(null) } });
+    assert.doesNotMatch(words(html(await outcome(open))), /UFLPA|No link found|not read/i);
+    // The read failed: no box at all, and no claim.
+    given({ profile: PROFILE, hscodes: HS });
+    assert.doesNotMatch(html(await outcome(open)), /data-phone-sanctions|UFLPA/);
+    // A sanctioned record is never told "no link found".
+    given({ profile: { data: sanctionedInput().profile, error: null }, hscodes: { data: [], error: null }, rpcs: { sanctions_lists_read: lists(`${year}-10-08T02:40:00Z`) } });
+    const listed = words(html(await outcome(() => Page({ params: Promise.resolve({ slug: "zaheen" }), searchParams: Promise.resolve({ tab: "sources" }) }))));
+    assert.match(listed, /US forced labour \(UFLPA\) read 8 Oct/);
+    assert.doesNotMatch(listed, /No link found|not listed/i);
+  });
+
   it("?lines=all expands the grid past six tiles", async () => {
     given({ profile: PROFILE, hscodes: HS });
     const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
     const six = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({ tab: "products" }) })));
     const all = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({ tab: "products", lines: "all" }) })));
-    const tiles = (s: string) => (s.match(/\/app\/suppliers\/aboni-knitwear\/lines\/\d{4}/g) ?? []).length;
+    // Counted on the desktop's drawing: a phone draws the same lines again, as chips.
+    const tiles = (s: string) => (s.replace(/<div data-record-phone=""[\s\S]*?(?=<div data-record-actions="")/, "").match(/\/app\/suppliers\/aboni-knitwear\/lines\/\d{4}/g) ?? []).length;
     assert.equal(tiles(six), 6, "the grid shows six tiles by default");
     assert.ok(tiles(all) > 6, `?lines=all still shows only ${tiles(all)} of the record's lines`);
     // And the six-tile view offers the way to the rest.
@@ -431,6 +496,29 @@ describe("/app/suppliers/[slug]/lines/[hs] — the line page", () => {
     assert.match(out, /href="\/app\/discover\?hs=6105"[^>]*>Exporters of 6105<span [^>]*>· 1,634<\/span>/);
     assert.match(out, /<a [^>]*href="\/app\/rfqs\/new\?supplier=[^"&]+&amp;hs=6105&amp;back=[^"]+"[^>]*>Send RFQ for this line<\/a>/);
     assert.doesNotMatch(out, /data-sheet-scroll|animate-sheet-in|bg-surface-sunken|text-ink-(?:muted|subtle)/, "a class of the old kit");
+  });
+
+  it("a phone's line draws the customs totals as the supplier's, never as the line's (Paper page 36, export-line)", async () => {
+    const Page = route("app/(app)/app/suppliers/[slug]/lines/[hs]/page.js").default;
+    const open = () => outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear", hs: "6105" }), searchParams: Promise.resolve({}) }));
+    const words = (out: string) => out.replace(/<[^>]*>/g, " ").replace(/&#x27;/g, "'").replace(/\s+/g, " ");
+    const top = { shipment_date: "2026-03-24T00:00:00", hsn_code: "61051000", product_description: "MENS POLO SHIRT", buyer_name: "THE HADDAD APPAREL GROUP LTD 131 D", destination_country: "United States", trade_value_usd: 607667.888, unit_rate_usd: 1.71, unit: "PCS" };
+    const volza = {
+      shipments: 406, fob_usd: 21698439.68, buyers: 43, window_start: "2024-09-01", window_end: "2026-08-31", volza_name: "Aboni", fetched_at: "2026-10-10T21:33:30+00:00", top_shipments: [top],
+      summary: { count_of_unique_destination_countries: 16 },
+      markets: { "United States": { shipments: 100, fob_usd: 4965812.04, buyers: 11, top }, EU: { shipments: 236, fob_usd: 15553268.46, buyers: 10, top: { ...top, hsn_code: "61091000", destination_country: "Netherlands" } } },
+    };
+    given({ profile: PROFILE, hscodes: HS, rpcs: { supplier_volza_exports: { data: volza, error: null } } });
+    const held = words(html(await open()));
+    assert.ok(rpcCalls.some((c) => c.fn === "supplier_volza_exports" && c.args?.p_slug === "aboni-knitwear"), "the line never asked for the customs read");
+    assert.match(held, /Customs records Sep 2024 – Aug 2026 Exported in 2 years US\$21\.7m Free on board, across (?:all \d+ lines|every line) Shipments 406 to 16 countries Buyers 43 named on the records/);
+    assert.match(held, /These totals are the supplier's, every line together: customs records are not split by HS code\. The shipments below are the ones coded 6105\./);
+    // Only the stored shipment whose own code is this heading is listed under it: the EU's is a 6109.
+    assert.match(held, /Shipments coded 6105 Top one per market The Haddad Apparel Group Ltd Mens polo shirt to United States 6105\.10 · 24 Mar 2026 US\$607,668/);
+    assert.doesNotMatch(held, /6109\.10|a piece|Volza/i);
+    // A reader the database refused sees no customs words on the line.
+    given({ profile: PROFILE, hscodes: HS });
+    assert.doesNotMatch(words(html(await open())), /Customs records|not split by HS code|Shipments coded/);
   });
 
   for (const bad of ["abcd", "61", "61059", "%", "6105a", ""]) {

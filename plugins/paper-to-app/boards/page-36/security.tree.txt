@@ -1,0 +1,64 @@
+Frame "Settings · security · two-step off · phone" (1RSL-0) 390×701
+  Frame "Status bar" (1RSM-0) 390×62
+    Frame "Time" (1RSN-0) 94×22
+      Text "9:41" (1RSO-0) 31×22 "9:41"
+    Frame "Icons" (1RSP-0) 94×22
+      SVG "SVG" (1RSQ-0) 82×22
+        SVGVisualElement "Path" (1RSR-0) 19×12
+        SVGVisualElement "Path" (1RSS-0) 17×12
+        SVGVisualElement "Path" (1RST-0) 25×13
+        SVGVisualElement "Path" (1RSU-0) 21×9
+        SVGVisualElement "Path" (1RSV-0) 1×4
+  Frame "Compact head" (1RSW-0) 390×64
+    Frame "Back" (1RSX-0) 36×36
+      SVG "SVG" (1RSY-0) 17×17
+        SVGVisualElement "Path" (1RSZ-0) 12×10
+    Frame "Frame" (1RT0-0) 310×48
+      Text "Security" (1RT1-0) 310×30 "Security"
+      Text "Sign-in and devices" (1RT2-0) 310×18 "Sign-in and devices"
+  Frame "Body" (1RT3-0) 390×575
+    Frame "Two-step" (1RT4-0) 350×182
+      Frame "Frame" (1RT5-0) 316×16
+        SVG "SVG" (1RT6-0) 16×16
+          SVGVisualElement "Path" (1RT7-0) 12×12
+        Text "Off" (1RT8-0) 18×16 "Off"
+      Text "Two-step sign-in" (1RT9-0) 316×22 "Two-step sign-in"
+      Text "Ask for a code from …" (1RTA-0) 316×36 "Ask for a code from an authenticator app each time you sign "
+      Frame "Frame" (1RTB-0) 77×44
+        Text "Turn on" (1RTC-0) 49×20 "Turn on"
+    Frame "Password" (1RTD-0) 350×60
+      Frame "Frame" (1RTE-0) 24×20
+        SVG "SVG" (1RTF-0) 20×20
+          SVGVisualElement "Path" (1RTG-0) 16×16
+      Frame "Frame" (1RTH-0) 252×40
+        Text "Password" (1RTI-0) 252×22 "Password"
+        Text "Change it on your Pr…" (1RTJ-0) 252×18 "Change it on your Profile"
+      SVG "SVG" (1RTK-0) 16×16
+        SVGVisualElement "Path" (1RTL-0) 6×11
+    Frame "Devices" (1RTM-0) 350×185
+      Frame "Section head" (1RTN-0) 350×54
+        Frame "Frame" (1RTO-0) 229×28
+          Text "Where you’re signed …" (1RTP-0) 208×28 "Where you’re signed in"
+          Text "2" (1RTQ-0) 13×28 "2"
+      Frame "Frame" (1RTR-0) 350×131
+        Frame "Frame" (1RTS-0) 348×64
+          Frame "Frame" (1RTT-0) 24×20
+            SVG "SVG" (1RTU-0) 20×20
+              SVGVisualElement "Path" (1RTV-0) 11×17
+          Frame "Frame" (1RTW-0) 284×40
+            Text "Safari on iPhone" (1RTX-0) 284×22 "Safari on iPhone"
+            Text "This phone · active …" (1RTY-0) 284×18 "This phone · active now"
+        Frame "Frame" (1RTZ-0) 348×65
+          Frame "Frame" (1RU0-0) 24×20
+            SVG "SVG" (1RU1-0) 20×20
+              SVGVisualElement "Path" (1RU2-0) 16×16
+          Frame "Frame" (1RU3-0) 189×40
+            Text "Chrome on Windows" (1RU4-0) 189×22 "Chrome on Windows"
+            Text "Last active 9 Oct" (1RU5-0) 189×18 "Last active 9 Oct"
+          Frame "Frame" (1RU6-0) 83×44
+            Text "Sign out" (1RU7-0) 55×20 "Sign out"
+    Frame "Frame" (1RU8-0) 350×56
+      Text "Single sign-on (SAML…" (1RU9-0) 350×16 "Single sign-on (SAML) comes with Enterprise."
+      Frame "Frame" (1RUA-0) 350×16
+        Rectangle "Rectangle" (1RUB-0) 14×1
+        Text "Sample devices" (1RUC-0) 87×16 "Sample devices"

@@ -20,11 +20,11 @@ export default async function SettingsSecurityPage() {
   const [doc, factors, devices] = await Promise.all([loadSettings(supabase), loadFactors(supabase), loadDevices(supabase)]);
   return (
     <SettingsShell current="security" doc={doc} title="Security">
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 max-md:gap-3 max-md:pt-2">
         <TwoStepCard factors={factors} />
         <PasswordRow />
         <DevicesCard devices={devices} />
-        <p className="px-1 text-sm text-ink-3">{SECURITY_COPY.sso}</p>
+        <p className="px-1 text-sm text-ink-3 max-md:px-0 max-md:pt-4 max-md:text-xs">{SECURITY_COPY.sso}</p>
       </div>
     </SettingsShell>
   );

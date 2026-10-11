@@ -1,25 +1,25 @@
 "use client";
 
-// The phone's Product view (Paper `· Product view`, gap row 20): a saved product read-only, then Edit
+// The phone's Product view (Paper `11 · Product`, gap row 20): a saved product read-only, then Edit
 // opens a sheet of the simple fields (name, style, price, MOQ, main material, description). Sizes,
-// materials, options and files are not edited on a phone; "Edit sizes, materials and files" opens the
-// full editor (`?edit=full`). The save is the editor's own: `POST /api/v1/products {upsert}` with the
-// product as it was plus the six fields, under the status it has, so nothing else on it changes.
+// materials, options and files are not edited on a phone; their rows and "Edit sizes, materials and
+// files" open the full editor (`?edit=full`). The save is the editor's own: `POST /api/v1/products
+// {upsert}` with the product as it was plus the six fields, under the status it has, so nothing else on
+// it changes. Paper's "More" button is not here: Archive, Restore and Delete live on the list's menu.
 
-import { ArrowLeft, PaperPlaneTilt, PencilSimple } from "@phosphor-icons/react";
+import { ArrowLeft, CaretRight, CheckCircle, FileText, Hash, ImageSquare, Lock, Note, Package, PencilSimple, Plus } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useState, type ReactNode } from "react";
+import { useId, useState } from "react";
 import { Button, ButtonLink, Field, Input, Sheet } from "@/components/kit";
+import { ActionBar } from "@/components/kit/phone";
 import { fieldBox, fieldEdge } from "@/components/kit/classes";
 import { fileNameOf, toPayload, validateProduct, variantMatrix, type ProductErrors, type ProductValues } from "@/components/product-form-model";
 import { usd } from "@/components/patterns/words";
 import { formatCount } from "@/lib/dashboard/facts";
 import { cn } from "@/lib/utils";
-import { editLine } from "./edit";
-import { StatusChip } from "./table";
 import { browserFetch, saveProduct } from "./transport";
-import { rfqHref } from "./words";
+import { rfqHref, updatedWords, type ProductStatus } from "./words";
 
 export const FULL_EDITOR_LABEL = "Edit sizes, materials and files";
 export const fullEditorHref = (id: string) => `/app/products/${encodeURIComponent(id)}?edit=full`;
@@ -40,7 +40,7 @@ export function viewFacts(v: ProductValues): { label: string; value: string | nu
   const moq = v.moq.trim() === "" ? null : Number(v.moq);
   return [
     { label: "Style number", value: v.product_number.trim() || null },
-    { label: "Customer product number", value: v.customer_product_number.trim() || null },
+    { label: "Customer ref.", value: v.customer_product_number.trim() || null },
     { label: "Target price", value: price !== null && Number.isFinite(price) ? `${usd(price)} per piece` : null },
     { label: "MOQ", value: moq !== null && Number.isFinite(moq) ? `${formatCount(moq)} pieces` : null },
     { label: "Main material", value: v.main_material.trim() || null },
@@ -62,6 +62,19 @@ export function viewCounts(v: ProductValues): { label: string; value: string }[]
 }
 
 const textarea = cn(fieldBox, fieldEdge, "block min-h-24 px-2.5 py-1.5 text-md");
+
+/** The pill over the name (`11 · Product`): the status and what it means for an RFQ. */
+const VIEW_STATUS: Record<ProductStatus, { icon: typeof CheckCircle; words: string }> = {
+  active: { icon: CheckCircle, words: "Active · ready for RFQs" },
+  draft: { icon: PencilSimple, words: "Draft · make it active to send an RFQ" },
+  archived: { icon: Package, words: "Archived · restore it to use it again" },
+};
+
+/** The bar's 36 round button, 44 to the finger. */
+const roundButton = "group flex size-11 shrink-0 items-center justify-center rounded-full outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus";
+const roundFace = "flex size-9 items-center justify-center rounded-full bg-sunken text-ink-2 group-active:bg-line";
+/** "Edit" beside a section's title: 14 to the eye, 44 to the finger. */
+const sectionEdit = "-my-3 -mr-2 flex min-h-11 items-center rounded-sm px-2 text-sm font-medium text-ink outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus active:bg-sunken";
 
 export function ProductView({ initial, updatedAt = null }: { initial: ProductValues; updatedAt?: string | null }) {
   const router = useRouter();
@@ -100,70 +113,117 @@ export function ProductView({ initial, updatedAt = null }: { initial: ProductVal
     router.refresh();
   }
 
-  const facts = viewFacts(initial);
+  const facts = viewFacts(initial).filter((x) => x.label !== "Style number");
+  const counts = Object.fromEntries(viewCounts(initial).map((x) => [x.label, x.value]));
+  const editor = fullEditorHref(initial.id!);
+  const files: { icon: typeof Note; label: string; value: string; href: string; external?: boolean }[] = [
+    { icon: Note, label: "Size chart", value: counts["Size chart"] ?? "None yet", href: `${editor}#size-chart` },
+    { icon: Package, label: "Materials", value: counts["Materials"] ?? "None yet", href: `${editor}#materials` },
+    techPack ? { icon: FileText, label: "Tech pack", value: fileNameOf(techPack), href: techPack, external: true } : { icon: FileText, label: "Tech pack", value: "None yet", href: `${editor}#tech-pack` },
+    { icon: ImageSquare, label: "Images", value: images.length ? `${formatCount(images.length)} ${images.length === 1 ? "image" : "images"}` : "None yet", href: `${editor}#images` },
+    { icon: Plus, label: "Colour and size options", value: counts["Options"] ?? "None yet", href: `${editor}#options` },
+  ];
+  const status = VIEW_STATUS[initial.status] ?? VIEW_STATUS.draft;
+  const StatusIcon = status.icon;
   return (
-    <div aria-label="Product view" className="flex min-h-0 flex-1 flex-col md:hidden">
-      <header className="flex flex-col gap-1 px-4 pb-4 pt-2">
-        <Link href="/app/products" prefetch={false} className="-ml-2 flex h-11 w-fit items-center gap-1.5 rounded-sm px-2 text-base font-medium text-ink-2 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus">
-          <ArrowLeft size={16} aria-hidden />
-          Products
+    // `data-detail`: the view draws its own bar, so the phone frame hides its bar and tabs (S-09).
+    <div aria-label="Product view" data-detail="" className="flex min-h-0 flex-1 flex-col md:hidden">
+      <div className="flex h-14 shrink-0 items-center px-3">
+        <Link href="/app/products" aria-label="Back to products" className={roundButton}>
+          <span className={roundFace}>
+            <ArrowLeft size={17} weight="thin" aria-hidden />
+          </span>
         </Link>
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-xl font-semibold tracking-tight text-ink [overflow-wrap:anywhere]">{initial.name || "Product"}</h1>
-          <StatusChip status={initial.status} />
-        </div>
-        <p className="text-base text-ink-3">{editLine(initial, updatedAt)}</p>
-        <div className="flex flex-col gap-2 pt-2">
-          {initial.status === "active" ? (
-            <ButtonLink href={rfqHref(initial.id!)} kind="secondary" icon={PaperPlaneTilt} className="h-input-touch w-full">
+      </div>
+      <div className="flex flex-col px-5 pb-[120px] pt-1">
+        <header className="flex flex-col gap-3 pb-1">
+          <span className="flex h-7 items-center gap-1.5 self-start rounded-full bg-sunken pl-2 pr-2.5 text-sm font-medium text-ink-2">
+            <StatusIcon size={16} weight="thin" className="shrink-0" aria-hidden />
+            {status.words}
+          </span>
+          <h1 className="text-2xl/[36px] font-medium tracking-tighter text-ink [overflow-wrap:anywhere]">{initial.name || "Product"}</h1>
+          <div className="flex flex-col gap-1.5 text-base text-ink-2">
+            <p className="flex items-center gap-2">
+              <Hash size={16} weight="thin" className="shrink-0 text-ink-3" aria-hidden />
+              {initial.product_number.trim() ? <span className="font-mono text-sm/[20px]">{initial.product_number.trim()}</span> : <span className="text-ink-3">No style number</span>}
+              {updatedAt ? <span>{`· updated ${updatedWords(updatedAt)}`}</span> : null}
+            </p>
+            <p className="flex items-center gap-2">
+              <Lock size={16} weight="thin" className="shrink-0 text-ink-3" aria-hidden />
+              Only you see this product
+            </p>
+          </div>
+        </header>
+
+        <section aria-labelledby={`${id}-basics`} className="flex flex-col">
+          <div className="flex items-baseline justify-between pb-3.5 pt-6">
+            <h2 id={`${id}-basics`} className="text-lg font-medium tracking-tight text-ink">
+              Basics
+            </h2>
+            <button type="button" onClick={() => setOpen(true)} className={sectionEdit}>
+              Edit
+            </button>
+          </div>
+          <dl className="flex flex-col overflow-clip rounded-[10px] border border-line">
+            {facts.map((x) => (
+              <div key={x.label} className="flex min-h-12 items-center gap-2.5 border-t border-line px-4 py-3 first:border-t-0">
+                <dt className="w-[120px] shrink-0 text-base text-ink-2">{x.label}</dt>
+                <dd className={cn("flex min-w-0 flex-1 flex-wrap justify-end text-right text-base [overflow-wrap:anywhere]", x.value === null ? "text-ink-3" : "font-medium tabular-nums text-ink")}>{x.value ?? "Not set"}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        <section aria-labelledby={`${id}-files`} className="flex flex-col">
+          <div className="flex items-baseline justify-between pb-3.5 pt-6">
+            <h2 id={`${id}-files`} className="text-lg font-medium tracking-tight text-ink">
+              Sizes, materials, files
+            </h2>
+            <Link href={editor} prefetch={false} aria-label={FULL_EDITOR_LABEL} className={sectionEdit}>
+              Edit
+            </Link>
+          </div>
+          <ul className="flex flex-col overflow-clip rounded-[10px] border border-line">
+            {files.map(({ icon: G, label, value, href, external }) => (
+              <li key={label} className="border-t border-line first:border-t-0">
+                <Link
+                  href={href}
+                  prefetch={false}
+                  {...(external ? { target: "_blank", rel: "noreferrer" } : {})}
+                  className="flex min-h-[52px] items-center gap-3 px-4 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus active:bg-sunken"
+                >
+                  <span className="flex w-6 shrink-0 justify-center">
+                    <G size={20} weight="thin" className="text-ink-2" aria-hidden />
+                  </span>
+                  <span className="min-w-0 flex-1 text-md/[22px] text-ink">{label}</span>
+                  <span className="min-w-0 truncate text-sm text-ink-3">{value}</span>
+                  <CaretRight size={16} weight="thin" className="shrink-0 text-ink-3" aria-hidden />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <p className="pt-4 text-xs text-ink-3">An RFQ from this product sends all of the above to the supplier.</p>
+      </div>
+
+      <ActionBar className="fixed inset-x-0 bottom-0 z-raised">
+        {initial.status === "active" ? (
+          <>
+            <button type="button" onClick={() => setOpen(true)} className="flex size-12 shrink-0 items-center justify-center rounded-lg border border-line text-ink outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus active:bg-sunken">
+              <PencilSimple size={22} weight="thin" aria-hidden />
+              <span className="sr-only">Edit details</span>
+            </button>
+            <ButtonLink href={rfqHref(initial.id!)} kind="primary" className="h-12 flex-1 rounded-lg text-md">
               Send RFQ
             </ButtonLink>
-          ) : null}
-          <Button kind="primary" icon={PencilSimple} onClick={() => setOpen(true)} className="h-input-touch w-full">
+          </>
+        ) : (
+          <Button kind="primary" icon={PencilSimple} onClick={() => setOpen(true)} className="h-12 flex-1 rounded-lg text-md">
             Edit details
           </Button>
-        </div>
-      </header>
-
-      <dl className="border-t border-line px-4">
-        {facts.map((x) => (
-          <Row key={x.label} label={x.label}>
-            {x.value ?? <span className="text-ink-3">Not set</span>}
-          </Row>
-        ))}
-        {viewCounts(initial).map((x) => (
-          <Row key={x.label} label={x.label}>
-            <span className={x.value === "None yet" ? "text-ink-3" : undefined}>{x.value}</span>
-          </Row>
-        ))}
-        <Row label="Images">
-          {images.length ? (
-            <span className="flex flex-wrap gap-2 pt-1">
-              {images.map((m, i) => (
-                // eslint-disable-next-line @next/next/no-img-element -- the buyer's own upload on storage, drawn at 64px
-                <img key={m.url} src={m.url} alt={`Product image ${i + 1}`} className="size-16 rounded-md border border-line bg-sunken object-cover" />
-              ))}
-            </span>
-          ) : (
-            <span className="text-ink-3">None yet</span>
-          )}
-        </Row>
-        <Row label="Tech pack">
-          {techPack ? (
-            <a href={techPack} target="_blank" rel="noreferrer" className="flex min-h-11 items-center font-medium text-brand-ink underline decoration-1 [overflow-wrap:anywhere]">
-              {fileNameOf(techPack)}
-            </a>
-          ) : (
-            <span className="text-ink-3">None yet</span>
-          )}
-        </Row>
-      </dl>
-
-      <div className="px-4 py-4">
-        <ButtonLink href={fullEditorHref(initial.id!)} kind="secondary" prefetch={false} className="h-input-touch w-full">
-          {FULL_EDITOR_LABEL}
-        </ButtonLink>
-      </div>
+        )}
+      </ActionBar>
 
       <Sheet
         open={open}
@@ -207,15 +267,6 @@ export function ProductView({ initial, updatedAt = null }: { initial: ProductVal
           </p>
         </form>
       </Sheet>
-    </div>
-  );
-}
-
-function Row({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="flex flex-col gap-0.5 border-b border-line py-3 last:border-b-0">
-      <dt className="text-sm text-ink-3">{label}</dt>
-      <dd className="text-md text-ink [overflow-wrap:anywhere]">{children}</dd>
     </div>
   );
 }

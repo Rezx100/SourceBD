@@ -1,0 +1,118 @@
+Frame "Quotes · RFQs · Sample state · phone" (1P8D-0) 390×853
+  Frame "Status bar" (1P8E-0) 390×62
+    Frame "Time" (1P8F-0) 94×22
+      Text "9:41" (1P8G-0) 31×22 "9:41"
+    Frame "Icons" (1P8H-0) 94×22
+      SVG "SVG" (1P8I-0) 82×22
+        SVGVisualElement "Path" (1P8J-0) 19×12
+        SVGVisualElement "Path" (1P8K-0) 17×12
+        SVGVisualElement "Path" (1P8L-0) 25×13
+        SVGVisualElement "Path" (1P8M-0) 21×9
+        SVGVisualElement "Path" (1P8N-0) 1×4
+  Frame "Page head" (1P8O-0) 390×56
+    Text "Quotes" (1P8P-0) 105×36 "Quotes"
+    Frame "Frame" (1P8Q-0) 152×36
+      Frame "New RFQ" (1P8R-0) 108×36
+        SVG "SVG" (1P8S-0) 16×16
+          SVGVisualElement "Path" (1P8T-0) 12×12
+        Text "New RFQ" (1P8U-0) 62×18 "New RFQ"
+      Frame "Frame" (1P8V-0) 36×36
+        Text "AM" (1P8W-0) 21×16 "AM"
+  Frame "Tabs" (1PVM-0) 390×48
+    Frame "Tab · RFQs (current)" (1PVN-0) 72×47
+      Text "RFQs" (1PVO-0) 42×20 "RFQs"
+      Text "6" (1PVP-0) 8×16 "6"
+      Frame "Indicator" (1PVQ-0) 56×2
+    Frame "Tab · Orders" (1PVR-0) 81×47
+      Text "Orders" (1PVS-0) 51×20 "Orders"
+      Text "4" (1PVT-0) 8×16 "4"
+  Frame "Body" (1PVV-0) 390×687
+    Frame "Sample note" (1PW2-0) 350×42
+      Rectangle "Rectangle" (1PW3-0) 14×1
+      Text "Sample state: suppli…" (1PW4-0) 320×16 "Sample state: supplier names are real, quotes are samples"
+    Frame "Items" (1PW1-0) 350×541
+      Frame "Item · Hoodies" (1PW6-0) 348×146
+        Frame "Tag" (1PW7-0) 316×16
+          Frame "Frame" (1PW8-0) 129×16
+            SVG "SVG" (1PW9-0) 16×16
+              SVGVisualElement "Path" (1PWA-0) 12×13
+            Text "RFQ · 2 of 3 replied" (1PWB-0) 107×16 "RFQ · 2 of 3 replied"
+          SVG "SVG" (1PWC-0) 16×16
+            SVGVisualElement "Path" (1PWD-0) 6×11
+        Text "Men’s French terry h…" (1PWE-0) 316×22 "Men’s French terry hoodies, 420gsm"
+        Frame "Frame" (1PWF-0) 316×30
+          Text "US$8.55" (1PWG-0) 94×30 "US$8.55"
+          Text "from Aboni" (1PWH-0) 66×16 "from Aboni"
+          Frame "Spacer" (1QDM-0) 14×?
+          Frame "Delta" (1QDN-0) 118×24
+            SVG "SVG" (1QDO-0) 14×14
+              SVGVisualElement "Path" (1QDP-0) 11×11
+            Text "US$0.35 under" (1QDQ-0) 86×16 "US$0.35 under"
+        Text "10,000 pieces · next…" (1QDY-0) 316×16 "10,000 pieces · next S M Knitwears, US$9.30"
+      Frame "Item · Hoodies, waiting" (1PWS-0) 348×135
+        Frame "Tag" (1PWT-0) 316×16
+          Frame "Frame" (1PWU-0) 207×16
+            SVG "SVG" (1PWV-0) 16×16
+              SVGVisualElement "Path" (1PWW-0) 13×13
+            Text "RFQ · quote promised…" (1PWX-0) 185×16 "RFQ · quote promised by Monday"
+          SVG "SVG" (1PWY-0) 16×16
+            SVGVisualElement "Path" (1PWZ-0) 6×11
+        Text "Men’s French terry h…" (1PX0-0) 316×22 "Men’s French terry hoodies, 420gsm"
+        Text "Thermax Woven Dyeing…" (1PX1-0) 316×18 "Thermax Woven Dyeing will quote by Monday."
+        Text "12,000 pieces · targ…" (1PX2-0) 316×16 "12,000 pieces · target US$8.95 · sent 18 Jul"
+      Frame "Item · Pyjamas" (1PX4-0) 348×149
+        Frame "Tag" (1PX5-0) 316×16
+          Frame "Frame" (1PX6-0) 104×16
+            SVG "SVG" (1PX7-0) 16×16
+              SVGVisualElement "Path" (1PX8-0) 12×13
+            Text "RFQ · 4 quotes" (1PX9-0) 82×16 "RFQ · 4 quotes"
+          SVG "SVG" (1PXA-0) 16×16
+            SVGVisualElement "Path" (1PXB-0) 6×11
+        Text "Kids’ cotton pyjama …" (1PXC-0) 316×22 "Kids’ cotton pyjama sets"
+        Frame "Frame" (1PXD-0) 316×30
+          Text "US$3.10" (1PXE-0) 94×30 "US$3.10"
+          Text "best of 4" (1PXF-0) 53×16 "best of 4"
+          Frame "Spacer" (1QDS-0) 39×?
+          Frame "Delta" (1QDT-0) 106×24
+            SVG "SVG" (1QDU-0) 14×14
+              SVGVisualElement "Path" (1QDV-0) 12×11
+            Text "US$0.15 over" (1QDW-0) 74×16 "US$0.15 over"
+        Frame "Frame" (1PXH-0) 316×18
+          SVG "SVG" (1PXI-0) 14×14
+            SVGVisualElement "Path" (1PXJ-0) 12×11
+          Text "Its MOQ is 30,000 se…" (1PXK-0) 257×18 "Its MOQ is 30,000 sets, above your 24,000"
+      Frame "Item · Dresses" (1PXM-0) 348×109
+        Frame "Tag" (1PXN-0) 316×16
+          Frame "Frame" (1PXO-0) 194×16
+            SVG "SVG" (1PXP-0) 16×16
+              SVGVisualElement "Path" (1PXQ-0) 13×13
+            Text "Quote accepted · ord…" (1PXR-0) 172×16 "Quote accepted · order started"
+          SVG "SVG" (1PXS-0) 16×16
+            SVGVisualElement "Path" (1PXT-0) 6×11
+        Text "Women’s knitted dres…" (1PXU-0) 316×22 "Women’s knitted dresses"
+        Text "Mondol Fabrics at US…" (1PXV-0) 316×18 "Mondol Fabrics at US$4.20 per piece"
+  Frame "Tab bar" (1PAH-0) 390×85
+    Frame "Tabs" (1PAI-0) 390×56
+      Frame "Tab · Messages" (1PAJ-0) 78×56
+        SVG "SVG" (1PAK-0) 24×24
+          SVGVisualElement "Path" (1PAL-0) 19×19
+        Text "Messages" (1PAM-0) 53×14 "Messages"
+      Frame "Tab · Quotes" (1PAN-0) 78×56
+        SVG "SVG" (1PAO-0) 24×24
+          SVGVisualElement "Path" (1PAP-0) 19×16
+        Text "Quotes" (1PAQ-0) 39×14 "Quotes"
+      Frame "Tab · Alerts" (1PAR-0) 78×56
+        SVG "SVG" (1PAS-0) 24×24
+          SVGVisualElement "Path" (1PAT-0) 17×19
+        Text "Alerts" (1PAU-0) 31×14 "Alerts"
+        Frame "Alert dot" (1PAV-0) 7×7
+      Frame "Tab · Saved" (1PAW-0) 78×56
+        SVG "SVG" (1PAX-0) 24×24
+          SVGVisualElement "Path" (1PAY-0) 13×18
+        Text "Saved" (1PAZ-0) 32×14 "Saved"
+      Frame "Tab · Search" (1PB0-0) 78×56
+        SVG "SVG" (1PB1-0) 24×24
+          SVGVisualElement "Path" (1PB2-0) 19×19
+        Text "Search" (1PB3-0) 37×14 "Search"
+    Frame "Home indicator" (1PB4-0) 390×28
+      Rectangle "Rectangle" (1PB5-0) 134×5

@@ -5,12 +5,13 @@
 // a row of its own with the menu at its end. The name opens the product; the menu has Open, Send an
 // RFQ (an active product only), Archive or Restore, and Delete. Client: the menu runs the actions.
 
-import { DotsThree } from "@phosphor-icons/react";
+import { CheckCircle, DotsThree, Package, PencilSimple } from "@phosphor-icons/react";
 import Link from "next/link";
 import { IconButton, Menu, MenuItem, Table, Td, Th, Tr, Unpublished, rowLinkClass } from "@/components/kit";
 import { cn } from "@/lib/utils";
+import { LinkPending } from "@/components/patterns/link-pending";
 import { useProductActions } from "./actions";
-import { STATUS_LABEL, moqWords, openHref, phoneUpdated, priceWords, rfqHref, styleLine, updatedWords, type ProductRow, type ProductStatus } from "./words";
+import { STATUS_LABEL, moqWords, openHref, phoneFigures, phoneUpdated, priceWords, rfqHref, styleLine, updatedWords, type ProductRow, type ProductStatus } from "./words";
 
 /** Active is a plain chip, a draft a dashed one, an archived product a quiet one (the Paper chips). */
 export function StatusChip({ status }: { status: ProductStatus }) {
@@ -83,27 +84,37 @@ export function ProductTable({ rows }: { rows: readonly ProductRow[] }) {
   );
 }
 
-/** The phone's row: name, the status and style, "US$4.20 per piece · MOQ 3,000 pieces", when it was updated. */
+const PHONE_STATUS: Record<ProductStatus, { icon: typeof CheckCircle; tone: string }> = {
+  active: { icon: CheckCircle, tone: "text-ink-2" },
+  draft: { icon: PencilSimple, tone: "text-ink-3" },
+  archived: { icon: Package, tone: "text-ink-3" },
+};
+
+/**
+ * The phone's cards (`11 · Products`): the status and style, the name, "US$4.20 per piece · MOQ 3,000
+ * pieces", when it was updated and what a draft or an archived product needs. Paper's caret is the
+ * row's menu here, so Archive, Restore and Delete stay on a phone; Paper's "in 1 order" is not here:
+ * the list returns no order or RFQ count.
+ */
 export function ProductPhoneList({ rows }: { rows: readonly ProductRow[] }) {
   return (
-    <ul className="md:hidden">
+    <ul className="mx-5 flex flex-col overflow-clip rounded-[10px] border border-line md:hidden">
       {rows.map((r) => {
-        const price = priceWords(r.price_usd);
-        const moq = moqWords(r.moq);
+        const { icon: G, tone } = PHONE_STATUS[r.status] ?? PHONE_STATUS.draft;
         return (
-          <li key={r.id} className="flex gap-1 border-b border-line py-3 pl-4 pr-1">
-            <Link href={openHref(r.id)} prefetch={false} className="flex min-h-11 min-w-0 flex-1 flex-col gap-1 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-              <span className="text-md font-medium text-ink">{r.name}</span>
-              <span className="flex flex-wrap items-center gap-2">
-                <StatusChip status={r.status} />
-                {r.product_number ? <span className="text-sm text-ink-3">Style {r.product_number}</span> : null}
+          <li key={r.id} className="relative border-t border-line first:border-t-0">
+            <Link href={openHref(r.id)} prefetch={false} className="flex flex-col gap-2.5 p-4 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus active:bg-sunken">
+              <span className="flex items-center gap-1.5 pr-9">
+                <G size={16} weight="thin" className={cn("shrink-0", tone)} aria-hidden />
+                <span className={cn("text-xs font-medium", tone)}>{STATUS_LABEL[r.status] ?? r.status}</span>
+                {r.product_number ? <span className="min-w-0 truncate font-mono text-xs text-ink-3">{`· ${r.product_number}`}</span> : null}
+                <LinkPending />
               </span>
-              <span className={cn("text-base", price || moq ? "text-ink-2" : "text-ink-3")}>
-                {price || moq ? [price, moq ? `MOQ ${moq}` : null].filter(Boolean).join(" · ") : "No price yet · No MOQ yet"}
-              </span>
-              <span className="text-sm text-ink-3">{phoneUpdated(r.updated_at)}</span>
+              <span className="text-md/[22px] font-medium text-ink">{r.name}</span>
+              <span className="text-sm text-ink-2">{phoneFigures(r)}</span>
+              <span className="text-xs text-ink-3">{phoneUpdated(r)}</span>
             </Link>
-            <RowMenu row={r} className="size-11 shrink-0" />
+            <RowMenu row={r} className="absolute right-1 top-1 size-11" />
           </li>
         );
       })}

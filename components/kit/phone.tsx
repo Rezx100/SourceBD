@@ -9,6 +9,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { ringInset } from "./classes";
+import { TabFace } from "./tab-face";
 
 export type TabBarItem = {
   href: string;
@@ -19,10 +20,13 @@ export type TabBarItem = {
   isNew?: boolean;
 };
 
-/** The bottom tab bar. Selected is a brand icon, a brand label and a 2px brand bar on top. */
+/**
+ * The bottom tab bar. Selected is a brand icon, a brand label and a 2px brand bar on top. A pressed
+ * tab darkens under the finger (phones never see hover), and the mark moves to it on the tap.
+ */
 export function TabBar({ items, label = "Main" }: { items: TabBarItem[]; label?: string }) {
   return (
-    <nav aria-label={label} className="border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]">
+    <nav aria-label={label} className="group/tabs border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]">
       <ul className="flex h-tabbar">
         {items.map(({ href, label: text, icon: G, current, isNew }) => (
           <li key={href} className="flex-1">
@@ -30,14 +34,12 @@ export function TabBar({ items, label = "Main" }: { items: TabBarItem[]; label?:
               href={href}
               aria-current={current ? "page" : undefined}
               aria-label={isNew ? `${text}, new` : undefined}
-              className={cn(
-                "relative flex h-tabbar flex-col items-center justify-center gap-0.5 text-xs outline-none",
-                current ? "font-semibold text-brand-ink [box-shadow:inset_0_2px_0_theme(colors.brand-ink)]" : "font-medium text-ink-2",
-                ringInset,
-              )}
+              className={cn("relative flex h-tabbar text-xs outline-none active:bg-sunken", ringInset)}
             >
-              <G size={24} className="shrink-0" aria-hidden />
-              {text}
+              <TabFace current={current}>
+                <G size={24} className="shrink-0" aria-hidden />
+                {text}
+              </TabFace>
               {isNew ? <span aria-hidden className="absolute left-1/2 top-2 ml-[5px] size-2 rounded-full border-2 border-surface bg-danger-solid" /> : null}
             </Link>
           </li>

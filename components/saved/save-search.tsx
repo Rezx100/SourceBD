@@ -10,7 +10,7 @@
 
 import { X } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
-import { useState, type KeyboardEvent } from "react";
+import { useState, type KeyboardEvent, type ReactNode } from "react";
 import { Button, Field, IconButton, Input, Sheet, Switch } from "@/components/kit";
 import { useIsPhone } from "@/components/kit/use-phone";
 import { saveSearchError } from "@/lib/saved-search-errors";
@@ -33,7 +33,10 @@ export function SaveSearchForm({
   autoFocus = false,
   inset = false,
   alerts = false,
+  between,
 }: {
+  /** Drawn between the name and the switch: the phone sheet's "What it looks for". */
+  between?: ReactNode;
   /** The serialized search: filters and sort, not the page. */
   search: string;
   defaultName: string;
@@ -88,9 +91,10 @@ export function SaveSearchForm({
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-4">
-      <Field label="Name" error={nameError ? error : undefined}>
+      <Field label="Name" help={between ? "Filled in from your filters. Only you see it." : undefined} error={nameError ? error : undefined}>
         {(a) => <Input {...a} name="name" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} required autoFocus={autoFocus} size={touch ? "touch" : "md"} />}
       </Field>
+      {between}
       {alerts ? (
         <div className="flex flex-col gap-1">
           <Switch size={touch ? "touch" : "md"} checked={alert} onChange={(e) => setAlert(e.currentTarget.checked)} hint={ALERT_HINT}>
@@ -126,6 +130,8 @@ export function SaveSearchPanel({
   closeHref,
   nextHref,
   alerts = false,
+  count = null,
+  filters = [],
 }: {
   search: string;
   defaultName: string;
@@ -135,17 +141,43 @@ export function SaveSearchPanel({
   nextHref: string;
   /** See `SaveSearchForm`. */
   alerts?: boolean;
+  /** How many suppliers the search finds today, for the phone sheet's line under its title; null when unread. */
+  count?: number | null;
+  /** The search's filters as the results bar names them, for the phone sheet's "What it looks for". */
+  filters?: readonly string[];
 }) {
   const phone = useIsPhone();
   const router = useRouter();
   const close = () => router.push(closeHref, { scroll: false });
   if (phone) {
+    // Paper page 36 `save-search`: the count under the title, the name, what it looks for, the weekly switch.
+    const looksFor = (
+      <div className="flex flex-col gap-3 border-y border-line py-5">
+        <div className="flex flex-col gap-0.5">
+          <p className="text-md/[22px] font-medium text-ink">What it looks for</p>
+          <p className="text-sm text-ink-3">{filters.length === 0 ? "Every published supplier" : `${filters.length} ${filters.length === 1 ? "filter" : "filters"}, from the search you just ran`}</p>
+        </div>
+        {filters.length > 0 ? (
+          <ul className="flex flex-wrap gap-2">
+            {filters.map((f) => (
+              <li key={f} className="flex h-9 items-center rounded-full border border-line px-3.5 text-base font-medium text-ink">
+                {f}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+    );
     return (
       <Sheet open onOpenChange={(next) => (next ? null : close())} title="Save this search" flush>
-        <div className="flex flex-col gap-4 pt-1">
-          <p className="px-4 text-base text-ink-2 [overflow-wrap:anywhere]">{summary}</p>
-          <div className="px-4">
-            <SaveSearchForm search={search} defaultName={defaultName} nextHref={nextHref} cancelHref={closeHref} touch alerts={alerts} />
+        <div className="flex min-h-0 flex-col overflow-y-auto">
+          {count === null ? null : (
+            <p className="border-b border-line px-5 pb-3.5 text-sm text-ink-3">
+              {new Intl.NumberFormat("en-GB").format(count)} {count === 1 ? "supplier matches" : "suppliers match"} it today
+            </p>
+          )}
+          <div className="px-5 pt-5">
+            <SaveSearchForm search={search} defaultName={defaultName} nextHref={nextHref} cancelHref={closeHref} touch alerts={alerts} between={looksFor} />
           </div>
         </div>
       </Sheet>

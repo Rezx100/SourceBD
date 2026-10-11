@@ -3,12 +3,14 @@
 // rows, the empty teaching state, the failed read and the loading skeleton. Server components;
 // the table itself is the client `OrdersTable`.
 
-import { Check, Clock, Plus } from "@phosphor-icons/react/dist/ssr";
+import type { Icon } from "@phosphor-icons/react";
+import { Boat, CaretRight, Check, CheckCircle, Clock, PencilSimple, Plus, XCircle } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { ButtonLink, ErrorPanel, Skeleton, TabLink, buttonClass } from "@/components/kit";
+import { LinkPending } from "@/components/patterns/link-pending";
 import { cn } from "@/lib/utils";
 import { OrderChip } from "./chip";
-import { ORDER_TABS, inTab, ordersHref, type OrderItem, type OrderRow, type OrderTab } from "./words";
+import { ORDER_STAGES, ORDER_TABS, inTab, ordersHref, type OrderItem, type OrderRow, type OrderTab } from "./words";
 
 export const NEW_ORDER_HREF = "/app/orders/new";
 
@@ -81,33 +83,71 @@ export function OrderPaneRows({ items, tab, currentId }: { items: readonly Order
   );
 }
 
-/** On a phone a row opens the order as a page: title and chip, supplier · value · quantity, a late ship-by in caution, the dates. */
+/** The tag over a phone row's title (Paper 36 `orders`): the status, in caution once a ship-by date has passed. */
+function rowTag(i: OrderItem): { icon: Icon; label: string; tone: "ink" | "caution" | "brand" } {
+  const tag = (icon: Icon, label: string, tone: "ink" | "caution" | "brand" = "ink") => ({ icon, label: i.asSupplier ? `${label} · as supplier` : label, tone });
+  if (i.status === "delivered") return tag(CheckCircle, i.dates.line, "brand");
+  if (i.status === "cancelled") return tag(XCircle, i.chip.label);
+  if (i.status === "draft") return tag(PencilSimple, i.chip.label, i.dates.late ? "caution" : "ink");
+  if (i.status === "in_production") return tag(Clock, i.chip.label, i.dates.late ? "caution" : "ink");
+  return tag(Boat, i.chip.label);
+}
+
+const TAG_TONE = { ink: "text-ink-3", caution: "text-caution", brand: "text-brand-ink" } as const;
+const ICON_TONE = { ink: "text-ink-3", caution: "text-caution-icon", brand: "text-brand-ink" } as const;
+
+/** On a phone a row opens the order as a page (Paper 36 `orders`): the tag, the title, supplier · value · quantity, and while it is live the road it is on. */
 export function OrderPhoneRows({ items }: { items: readonly OrderItem[] }) {
   return (
-    <ul>
-      {items.map((i) => (
-        <li key={i.id}>
-          <Link
-            href={`/app/orders/${i.id}`}
-            prefetch={false}
-            className="flex min-h-11 flex-col gap-1.5 border-b border-line px-4 py-4 outline-none hover:bg-brand-wash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
-          >
-            <span className="flex items-start justify-between gap-3">
-              <span className="text-md font-medium text-ink">{i.title}</span>
-              <OrderChip tone={i.chip.tone}>{i.chip.label}</OrderChip>
-            </span>
-            <span className="text-base text-ink-2">{i.phone}</span>
-            {i.dates.late ? (
-              <span className="flex items-center gap-1.5 text-sm font-medium text-caution">
-                <Clock size={16} className="shrink-0 text-caution-icon" aria-hidden />
-                {i.dates.late}
-              </span>
-            ) : null}
-            <span className="text-sm text-ink-3">{[i.dates.line, i.dates.sub].filter(Boolean).join(" · ")}</span>
-          </Link>
-        </li>
-      ))}
-    </ul>
+    <div className="px-5 pb-6 pt-4">
+      <ul className="flex flex-col overflow-clip rounded-[10px] border border-line">
+        {items.map((i) => {
+          const t = rowTag(i);
+          const at = ORDER_STAGES.indexOf(i.status);
+          const live = i.status === "in_production" || i.status === "shipped" || i.status === "in_transit";
+          return (
+            <li key={i.id} className="border-t border-line first:border-t-0">
+              <Link
+                href={`/app/orders/${i.id}`}
+                prefetch={false}
+                className="flex flex-col gap-2.5 p-4 outline-none active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
+              >
+                <span className="flex items-center justify-between gap-2">
+                  <span className={`flex min-w-0 items-center gap-1.5 text-xs font-medium ${TAG_TONE[t.tone]}`}>
+                    <t.icon size={16} weight="thin" className={`shrink-0 ${ICON_TONE[t.tone]}`} aria-hidden />
+                    {t.label}
+                  </span>
+                  <span className="flex shrink-0 items-center gap-1">
+                    <LinkPending />
+                    <CaretRight size={16} weight="thin" className="shrink-0 text-ink-3" aria-hidden />
+                  </span>
+                </span>
+                <span className="text-md/[22px] font-medium text-ink">{i.title}</span>
+                <span className="text-sm text-ink-2">{i.phone}</span>
+                {live ? (
+                  <>
+                    <span aria-hidden className="flex h-1 w-full shrink-0 gap-[3px]">
+                      {ORDER_STAGES.map((s, n) => (
+                        <span key={s} className={`grow basis-0 rounded-full ${n > at ? "bg-sunken" : n === at && i.dates.late ? "bg-caution-icon" : "bg-ink-2"}`} />
+                      ))}
+                    </span>
+                    <span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                      {i.dates.late ? <span className="text-sm/[16px] font-medium text-caution">{i.dates.late}</span> : <span className="text-sm/[16px] text-ink-2">{i.dates.line}</span>}
+                      <span className="text-right text-xs text-ink-3">{i.dates.late ? i.dates.line : i.dates.sub}</span>
+                    </span>
+                  </>
+                ) : i.status === "delivered" ? null : (
+                  <>
+                    {i.dates.late ? <span className="text-sm/[16px] font-medium text-caution">{i.dates.late}</span> : null}
+                    <span className="text-xs text-ink-3">{[i.dates.line, i.dates.sub].filter(Boolean).join(" · ")}</span>
+                  </>
+                )}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 

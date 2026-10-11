@@ -3,7 +3,7 @@
 // are no conversations at all. One place for the list page and the conversation page, so the two
 // agree on every word. Server component.
 
-import { InboxColumn, InboxError, InboxFoot, InboxHead, InboxNone, InboxRows } from "./list";
+import { InboxColumn, InboxError, InboxFoot, InboxHead, InboxNone, InboxRows, UnreadLine } from "./list";
 import type { InboxData } from "./load";
 import { buildThreadItems, filterItems, listHref, tabsKnown, type ListState } from "./words";
 
@@ -22,6 +22,7 @@ export function InboxView({ inbox, state, currentId, now, className }: { inbox: 
   const shown = filterItems(items, effective);
   return (
     <InboxColumn className={className} head={<InboxHead total={items.length} counts={counts} state={effective} Title={currentId ? "h2" : "h1"} />}>
+      {counts ? <UnreadLine unread={counts.unread} /> : null}
       {shown.length === 0 ? <InboxNone state={effective} /> : <InboxRows items={shown} state={effective} currentId={currentId} />}
       <InboxFoot shown={shown.length} total={items.length} />
     </InboxColumn>

@@ -1,0 +1,60 @@
+Frame "State · empty · not in RSC (Friends Knitwear) · phone" (1NMS-0) 390×844
+  Frame "Status bar" (1NO3-0) ?×?
+    Frame "Time" (1NOB-0) ?×?
+      Text "9:41" (1NOC-0) ?×? "9:41"
+    Frame "Icons" (1NO4-0) ?×?
+      SVG "SVG" (1NO5-0) ?×?
+        SVGVisualElement "Path" (1NOA-0) ?×?
+        SVGVisualElement "Path" (1NO9-0) ?×?
+        SVGVisualElement "Path" (1NO8-0) ?×?
+        SVGVisualElement "Path" (1NO7-0) ?×?
+        SVGVisualElement "Path" (1NO6-0) ?×?
+  Frame "Compact head · Friends" (1NN9-0) ?×?
+    Frame "Head" (1OPQ-0) ?×?
+      Frame "Bar" (1OPR-0) ?×?
+        Text "Name" (1OPS-0) ?×? "Friends Knitwear & Accessories Ltd."
+        Frame "Actions" (1OPT-0) ?×?
+          Frame "Share" (1OPU-0) 36×36
+            SVG "SVG" (1OPV-0) ?×?
+              SVGVisualElement "Path" (1OPW-0) ?×?
+          Frame "Close" (1OPX-0) 36×36
+            SVG "SVG" (1OPY-0) ?×?
+              SVGVisualElement "Path" (1OPZ-0) ?×?
+      Frame "Status strip" (1OQ0-0) ?×30
+        Frame "Status · Safety" (1OQ1-0) ?×?
+          SVG "SVG" (1OQ2-0) ?×?
+            SVGVisualElement "Path" (1OQ3-0) ?×?
+          Text "Not in RSC" (1OQ4-0) ?×? "Not in RSC"
+        Rectangle "Rectangle" (1OQ5-0) 1×14
+        Frame "Status · Sanctions" (1OQB-0) ?×?
+          SVG "SVG" (1OQC-0) ?×?
+            SVGVisualElement "Path" (1OQD-0) ?×?
+          Text "Not listed" (1OQE-0) ?×? "Not listed"
+    Frame "Tabs" (1NNA-0) ?×48
+      Frame "Frame" (1NNK-0) ?×?
+        Text "Overview" (1NNL-0) ?×? "Overview"
+      Frame "Tab · Exports (current)" (1NNH-0) ?×?
+        Text "Exports" (1NNJ-0) ?×? "Exports"
+      Frame "Frame" (1NNF-0) ?×?
+        Text "Certificates" (1NNG-0) ?×? "Certificates"
+      Frame "Frame" (1NND-0) ?×?
+        Text "Safety" (1NNE-0) ?×? "Safety"
+        Frame "Indicator" (1NZP-0) ?×2
+      Frame "Frame" (1NNB-0) ?×?
+        Text "Sites" (1NNC-0) ?×? "Sites"
+  Frame "Empty · safety" (1NMZ-0) ?×?
+    Frame "Frame" (1NN6-0) 56×56
+      SVG "SVG" (1NOD-0) ?×?
+        SVGVisualElement "Path" (1NOE-0) ?×?
+    Text "Not in the RSC progr…" (1NN5-0) ?×? "Not in the RSC programme"
+    Text "This factory is not …" (1NN4-0) ?×? "This factory is not on the RMG Sustainability Council’s list"
+    Text "RSC list · read 2 Oc…" (1NN3-0) ?×? "RSC list · read 2 Oct"
+    Frame "Next step" (1NN0-0) ?×?
+      Text "Not the same as unsa…" (1NN2-0) ?×? "Not the same as unsafe"
+      Text "RSC covers factories…" (1NN1-0) ?×? "RSC covers factories that brands signed up. Ask for fire and"
+  Frame "Action bar" (1NMT-0) ?×64
+    Frame "Frame" (1NMW-0) 48×48
+      SVG "SVG" (1NMX-0) ?×?
+        SVGVisualElement "Path" (1NMY-0) ?×?
+    Frame "Frame" (1NMU-0) ?×48
+      Text "Send RFQ" (1NMV-0) ?×? "Send RFQ"

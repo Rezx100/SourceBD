@@ -13,7 +13,7 @@
 // streamed 200.
 
 import { ProductActionsProvider } from "@/components/products/actions";
-import { ProductsEmpty, ProductsError, ProductsHead, ProductsTabEmpty, PhoneProductsHead } from "@/components/products/list";
+import { ProductsEmpty, ProductsError, ProductsHead, ProductsTabEmpty, PhoneProductsHead, PhoneProductsNote } from "@/components/products/list";
 import { loadProducts } from "@/components/products/load";
 import { SavedNote } from "@/components/products/saved-note";
 import { ProductPhoneList, ProductTable } from "@/components/products/table";
@@ -51,6 +51,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
                 <ProductTable rows={shown} />
               </div>
               <ProductPhoneList rows={shown} />
+              <PhoneProductsNote />
             </>
           ) : (
             <ProductsTabEmpty tab={tab} />

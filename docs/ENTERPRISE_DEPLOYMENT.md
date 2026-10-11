@@ -35,7 +35,7 @@ CI green on main → Deploy Production, waits for the founder's approval in GitH
 ```
 
 **Do not push directly to `main` or `development`.** Three GitHub settings make the flow real and
-the founder applies them once (agents are not allowed to): auto-merge on the repository, the five
+the founder applies them once (agents are not allowed to): auto-merge on the repository, the six
 CI checks required on both branches, and the founder as required reviewer of the `production`
 environment. Tags `vYYYY.MM.DD-N` stay optional pins.
 
@@ -44,7 +44,7 @@ gh api -X PATCH repos/Rezx100/SourceBD -F allow_auto_merge=true
 ```
 
 ```bash
-for b in development main; do printf '%s' '{"required_status_checks":{"strict":false,"contexts":["verify","unit-tests","http-boundary","migrations","python-tests"]},"enforce_admins":false,"required_pull_request_reviews":null,"restrictions":null,"allow_force_pushes":false,"allow_deletions":false}' | gh api -X PUT repos/Rezx100/SourceBD/branches/$b/protection --input -; done
+for b in development main; do printf '%s' '{"required_status_checks":{"strict":false,"contexts":["verify","unit-tests","unit-tests-slow","http-boundary","migrations","python-tests"]},"enforce_admins":false,"required_pull_request_reviews":null,"restrictions":null,"allow_force_pushes":false,"allow_deletions":false}' | gh api -X PUT repos/Rezx100/SourceBD/branches/$b/protection --input -; done
 ```
 
 ```bash

@@ -1,0 +1,57 @@
+Frame "Settings · emails · phone" (1RR2-0) 390×611
+  Frame "Status bar" (1RR3-0) 390×62
+    Frame "Time" (1RR4-0) 94×22
+      Text "9:41" (1RR5-0) 31×22 "9:41"
+    Frame "Icons" (1RR6-0) 94×22
+      SVG "SVG" (1RR7-0) 82×22
+        SVGVisualElement "Path" (1RR8-0) 19×12
+        SVGVisualElement "Path" (1RR9-0) 17×12
+        SVGVisualElement "Path" (1RRA-0) 25×13
+        SVGVisualElement "Path" (1RRB-0) 21×9
+        SVGVisualElement "Path" (1RRC-0) 1×4
+  Frame "Compact head" (1RRD-0) 390×64
+    Frame "Back" (1RRE-0) 36×36
+      SVG "SVG" (1RRF-0) 17×17
+        SVGVisualElement "Path" (1RRG-0) 12×10
+    Frame "Frame" (1RRH-0) 310×48
+      Text "Emails" (1RRI-0) 310×30 "Emails"
+      Text "What we email you ab…" (1RRJ-0) 310×18 "What we email you about"
+  Frame "Body" (1RRK-0) 390×485
+    Frame "Frame" (1RRL-0) 350×56
+      SVG "SVG" (1RRM-0) 16×16
+        SVGVisualElement "Path" (1RRN-0) 13×13
+      Text "Sending starts later…" (1RRO-0) 302×36 "Sending starts later in the beta. Your choices are saved now"
+    Frame "Switches" (1RRP-0) 350×321
+      Frame "Frame" (1RRQ-0) 350×72
+        Frame "Frame" (1RRR-0) 294×42
+          Text "Quotes" (1RRS-0) 294×22 "Quotes"
+          Text "When a supplier send…" (1RRT-0) 294×18 "When a supplier sends or changes a quote"
+        Frame "Frame" (1RRU-0) 44×26
+          Rectangle "Rectangle" (1RRV-0) 20×20
+      Frame "Frame" (1RRW-0) 350×72
+        Frame "Frame" (1RRX-0) 294×42
+          Text "Saved suppliers" (1RRY-0) 294×22 "Saved suppliers"
+          Text "Certificate expiry a…" (1RRZ-0) 294×18 "Certificate expiry and RSC safety updates"
+        Frame "Frame" (1RS0-0) 44×26
+          Rectangle "Rectangle" (1RS1-0) 20×20
+      Frame "Frame" (1RS2-0) 350×85
+        Frame "Frame" (1RS3-0) 294×60
+          Text "Weekly summary" (1RS4-0) 294×22 "Weekly summary"
+          Text "Every Monday: new su…" (1RS5-0) 294×36 "Every Monday: new suppliers, certificate and sanctions chang"
+        Frame "Frame" (1RS6-0) 44×26
+          Rectangle "Rectangle" (1RS7-0) 20×20
+      Frame "Frame" (1RS8-0) 350×84
+        Frame "Frame" (1RS9-0) 255×60
+          Text "Sanctions on a saved…" (1RSA-0) 255×22 "Sanctions on a saved supplier"
+          Text "Always sent, so a li…" (1RSB-0) 255×36 "Always sent, so a listing never goes unseen"
+        Frame "Frame" (1RSC-0) 83×18
+          SVG "SVG" (1RSD-0) 16×16
+            SVGVisualElement "Path" (1RSE-0) 12×13
+          Text "Always on" (1RSF-0) 61×18 "Always on"
+    Frame "Frame" (1RSG-0) 350×28
+      SVG "SVG" (1RSH-0) 14×14
+        SVGVisualElement "Path" (1RSI-0) 11×7
+      Text "Saved as you switch …" (1RSJ-0) 288×16 "Saved as you switch · to alex@exampleapparel.co.uk"
+    Frame "Frame" (1RUE-0) 350×24
+      Rectangle "Rectangle" (1RUF-0) 14×1
+      Text "Sample choices and a…" (1RUG-0) 158×16 "Sample choices and address"

@@ -23,9 +23,37 @@ const text = (s: string) => plain(s.replace(/<[^>]*>/g, " ")).replace(/\s+/g, " 
 
 const LINKS = { backHref: "/app/discover?q=knit&record=aboni-knitwear", closeHref: "/app/discover?q=knit", rfqHref: "/app/rfqs/new?supplier=id-1&hs=6105" };
 const sheet = (input = aboniInput(), hs = "6105", options: Parameters<typeof buildProductSheet>[2] = LINKS) => buildProductSheet(input, hs, options);
-const view = (m: ProductSheetModel, mode: "pane" | "page" = "pane") => renderToStaticMarkup(h(LineView, { model: m, mode }));
+// A phone's line (Paper page 36, `export-line`) is a second drawing of the same model, hidden from 640: `view` is the line without it.
+const PHONE = /<div data-line-phone=""[\s\S]*(?=<\/section>$)/;
+const both = (m: ProductSheetModel, mode: "pane" | "page" = "pane") => renderToStaticMarkup(h(LineView, { model: m, mode }));
+const view = (m: ProductSheetModel, mode: "pane" | "page" = "pane") => both(m, mode).replace(PHONE, "");
 /** The words of one fact row: from its label to the next row's. */
 const row = (out: string, label: string, next: string) => text(new RegExp(`${label.replace(/[·]/g, ".")}([\\s\\S]*?)${next.replace(/[·]/g, ".")}`).exec(out)?.[1] ?? "");
+
+describe("the line on a phone (Paper page 36, export-line)", () => {
+  const phone = (m: ProductSheetModel, mode: "pane" | "page" = "page") => PHONE.exec(both(m, mode))?.[0] ?? "";
+
+  it("has the way back, what the line is, and its two actions fixed to the foot of the screen", () => {
+    const out = plain(phone(sheet()));
+    assert.match(out, /^<div data-line-phone="" class="[^"]*\bsm:hidden\b/, "the phone's line is drawn from 640");
+    const back = /<a [^>]*aria-label="Back to the record"[^>]*>/.exec(out)?.[0] ?? "";
+    assert.ok(back.includes("active:bg-line") && back.includes("before:-inset-1"), "the way back has no pressed state or no 44 target");
+    assert.match(text(out), /HS 6105 · Men's or boys' shirts, knitted or crocheted One of \d+ lines on its EPB exporter page/);
+    const bar = /<div data-line-actions="" class="([^"]*)">/.exec(out)?.[1]?.split(" ") ?? [];
+    for (const c of ["fixed", "inset-x-0", "bottom-0", "z-sticky"]) assert.ok(bar.includes(c), `the bar lacks ${c}`);
+    assert.match(text(out), /Exporters 1,634 Send RFQ for this line/);
+    // In the drawer a narrow window gets, the bar sticks to the drawer's scroll.
+    assert.match(phone(sheet(), "pane"), /<div data-line-actions="" class="bottom-0 sticky">/);
+    // No customs record on the model: the line says nothing about customs.
+    assert.doesNotMatch(text(out), /Customs records|split by HS code/);
+  });
+
+  it("refuses a sanctioned record in words, with no Send RFQ", () => {
+    const out = plain(phone(sheet(sanctionedInput())));
+    assert.match(out, /You can't send this supplier an RFQ\./);
+    assert.doesNotMatch(out, /Send RFQ for this line|Exporters/);
+  });
+});
 
 describe("the line's heading and what it says it is", () => {
   it("the heading is the page's title (h2 beside the results, h1 on its own page) over the supplier and the code", () => {

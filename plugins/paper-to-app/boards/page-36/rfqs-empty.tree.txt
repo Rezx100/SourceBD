@@ -1,0 +1,74 @@
+Frame "Quotes · RFQs · empty · phone" (1RYJ-0) 390×844
+  Frame "Status bar" (1RYK-0) 390×62
+    Frame "Time" (1RYL-0) 94×22
+      Text "9:41" (1RYM-0) 31×22 "9:41"
+    Frame "Icons" (1RYN-0) 94×22
+      SVG "SVG" (1RYO-0) 82×22
+        SVGVisualElement "Path" (1RYP-0) 19×12
+        SVGVisualElement "Path" (1RYQ-0) 17×12
+        SVGVisualElement "Path" (1RYR-0) 25×13
+        SVGVisualElement "Path" (1RYS-0) 21×9
+        SVGVisualElement "Path" (1RYT-0) 1×4
+  Frame "Page head" (1RYU-0) 390×56
+    Text "Quotes" (1RYV-0) 105×36 "Quotes"
+    Frame "Frame" (1RYW-0) 152×36
+      Frame "New RFQ" (1RYX-0) 108×36
+        SVG "SVG" (1RYY-0) 16×16
+          SVGVisualElement "Path" (1RYZ-0) 12×12
+        Text "New RFQ" (1RZ0-0) 62×18 "New RFQ"
+      Frame "Frame" (1RZ1-0) 36×36
+        Text "AM" (1RZ2-0) 21×16 "AM"
+  Frame "Tabs" (1RZ3-0) 390×48
+    Frame "Tab · RFQs (current)" (1RZ4-0) 73×47
+      Text "RFQs" (1RZ5-0) 42×20 "RFQs"
+      Text "0" (1RZ6-0) 9×16 "0"
+      Frame "Indicator" (1RZ7-0) 57×2
+    Frame "Tab · Orders" (1RZ8-0) 82×47
+      Text "Orders" (1RZ9-0) 51×20 "Orders"
+      Text "0" (1RZA-0) 9×16 "0"
+  Frame "Body" (1RZB-0) 390×562
+    Frame "Frame" (1RZC-0) 48×48
+      SVG "SVG" (1RZD-0) 24×24
+        SVGVisualElement "Path" (1RZE-0) 19×16
+    Frame "Frame" (1RZF-0) 350×104
+      Text "No RFQs yet" (1RZG-0) 350×30 "No RFQs yet"
+      Text "Ask one supplier fro…" (1RZH-0) 350×66 "Ask one supplier from its record, or up to 50 at once from S"
+    Frame "Frame" (1RZI-0) 350×158
+      Frame "Frame" (1RZJ-0) 348×52
+        Text "1" (1RZK-0) 24×20 "1"
+        Text "Find suppliers in Se…" (1RZL-0) 280×22 "Find suppliers in Search"
+      Frame "Frame" (1RZM-0) 348×52
+        Text "2" (1RZN-0) 24×20 "2"
+        Text "Save the ones you li…" (1RZO-0) 280×22 "Save the ones you like"
+      Frame "Frame" (1RZP-0) 348×52
+        Text "3" (1RZQ-0) 24×20 "3"
+        Text "Send one RFQ to all …" (1RZR-0) 280×22 "Send one RFQ to all of them"
+    Frame "Frame" (1RZS-0) 350×48
+      SVG "SVG" (1RZT-0) 18×18
+        SVGVisualElement "Path" (1RZU-0) 14×14
+      Text "Search suppliers" (1RZV-0) 126×20 "Search suppliers"
+  Frame "Tab bar" (1RZW-0) 390×85
+    Frame "Tabs" (1RZX-0) 390×56
+      Frame "Tab · Messages" (1RZY-0) 78×56
+        SVG "SVG" (1RZZ-0) 24×24
+          SVGVisualElement "Path" (1S00-0) 19×19
+        Text "Messages" (1S01-0) 53×14 "Messages"
+      Frame "Tab · Quotes" (1S02-0) 78×56
+        SVG "SVG" (1S03-0) 24×24
+          SVGVisualElement "Path" (1S04-0) 19×16
+        Text "Quotes" (1S05-0) 39×14 "Quotes"
+      Frame "Tab · Alerts" (1S06-0) 78×56
+        SVG "SVG" (1S07-0) 24×24
+          SVGVisualElement "Path" (1S08-0) 17×19
+        Text "Alerts" (1S09-0) 31×14 "Alerts"
+        Frame "Alert dot" (1S0A-0) 7×7
+      Frame "Tab · Saved" (1S0B-0) 78×56
+        SVG "SVG" (1S0C-0) 24×24
+          SVGVisualElement "Path" (1S0D-0) 13×18
+        Text "Saved" (1S0E-0) 32×14 "Saved"
+      Frame "Tab · Search" (1S0F-0) 78×56
+        SVG "SVG" (1S0G-0) 24×24
+          SVGVisualElement "Path" (1S0H-0) 19×19
+        Text "Search" (1S0I-0) 37×14 "Search"
+    Frame "Home indicator" (1S0J-0) 390×28
+      Rectangle "Rectangle" (1S0K-0) 134×5

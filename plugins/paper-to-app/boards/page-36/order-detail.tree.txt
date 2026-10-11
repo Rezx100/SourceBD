@@ -1,0 +1,105 @@
+Frame "Order detail · timeline · Sample state · phone" (1PGC-0) 390×868
+  Frame "Status bar" (1PGD-0) 390×62
+    Frame "Time" (1PGE-0) 94×22
+      Text "9:41" (1PGF-0) 31×22 "9:41"
+    Frame "Icons" (1PGG-0) 94×22
+      SVG "SVG" (1PGH-0) 82×22
+        SVGVisualElement "Path" (1PGI-0) 19×12
+        SVGVisualElement "Path" (1PGJ-0) 17×12
+        SVGVisualElement "Path" (1PGK-0) 25×13
+        SVGVisualElement "Path" (1PGL-0) 21×9
+        SVGVisualElement "Path" (1PGM-0) 1×4
+  Frame "Bar" (1Q2X-0) 390×56
+    Frame "Back" (1Q2Y-0) 36×36
+      SVG "SVG" (1Q2Z-0) 17×17
+        SVGVisualElement "Path" (1Q30-0) 12×10
+    Frame "More" (1Q31-0) 36×36
+      SVG "SVG" (1Q32-0) 22×22
+        SVGVisualElement "Path" (1Q33-0) 13×1
+  Frame "Body" (1PGR-0) 390×750
+    Frame "Head" (1Q2H-0) 350×178
+      Frame "Status" (1Q2I-0) 191×28
+        SVG "SVG" (1Q2J-0) 16×16
+          SVGVisualElement "Path" (1Q2K-0) 13×13
+        Text "In production · 1 st…" (1Q2L-0) 151×18 "In production · 1 step late"
+      Text "Women’s knitted dres…" (1Q2M-0) 350×72 "Women’s knitted dresses"
+      Frame "Identity" (1Q2N-0) 350×50
+        Frame "Frame" (1Q2O-0) 350×22
+          SVG "SVG" (1Q2P-0) 18×18
+            SVGVisualElement "Path" (1Q2Q-0) 14×13
+          Text "Mondol Fabrics Ltd." (1Q2R-0) 134×22 "Mondol Fabrics Ltd."
+        Frame "Frame" (1Q2S-0) 350×22
+          SVG "SVG" (1Q2T-0) 18×18
+            SVGVisualElement "Path" (1Q2U-0) 12×14
+          Text "PO-2026-0917" (1Q2V-0) 94×22 "PO-2026-0917"
+    Frame "Tiles" (1PH2-0) 350×104
+      Frame "Frame" (1PH3-0) 348×102
+        Frame "Frame" (1PH4-0) 175×102
+          Text "Order value" (1PH5-0) 146×18 "Order value"
+          Text "US$84,000" (1PH6-0) 146×32 "US$84,000"
+          Text "20,000 at US$4.20" (1PJ8-0) 146×18 "20,000 at US$4.20"
+        Frame "Frame" (1PHE-0) 174×102
+          Text "Ship by" (1PHF-0) 146×18 "Ship by"
+          Text "14 Nov" (1PHG-0) 146×32 "14 Nov"
+          Text "in 34 days" (1PHH-0) 146×18 "in 34 days"
+    Frame "Timeline" (1PHI-0) 350×286
+      Frame "Frame" (1PHJ-0) 350×66
+        Text "Progress" (1PHK-0) 82×28 "Progress"
+        Text "1 late" (1PHL-0) 32×16 "1 late"
+      Frame "Step · done" (1PHM-0) 350×40
+        Frame "Frame" (1PHN-0) 20×40
+          Frame "Frame" (1PHO-0) 20×20
+            SVG "SVG" (1PHP-0) 12×12
+              SVGVisualElement "Path" (1PHQ-0) 9×6
+          Rectangle "Rectangle" (1PHR-0) 2×20
+        Frame "Frame" (1PHS-0) 318×40
+          Text "3 milestones done" (1PHT-0) 118×24 "3 milestones done"
+          Text "Show" (1PHU-0) 35×24 "Show"
+      Frame "Step · late" (1PHV-0) 350×52
+        Frame "Frame" (1PHW-0) 20×52
+          Rectangle "Rectangle" (1PHX-0) 20×20
+          Rectangle "Rectangle" (1PHY-0) 2×32
+        Frame "Frame" (1PHZ-0) 318×52
+          Frame "Frame" (1PI0-0) 318×18
+            Text "Trims in house" (1PI1-0) 101×18 "Trims in house"
+            Text "11 days late" (1PI2-0) 68×18 "11 days late"
+          Text "Planned 30 Sep · not…" (1PI3-0) 318×16 "Planned 30 Sep · not logged yet"
+      Frame "Step · logged" (1PI4-0) 350×52
+        Frame "Frame" (1PI5-0) 20×52
+          Frame "Frame" (1PI6-0) 20×20
+            SVG "SVG" (1PI7-0) 12×12
+              SVGVisualElement "Path" (1PI8-0) 9×6
+          Rectangle "Rectangle" (1PI9-0) 2×32
+        Frame "Frame" (1PIA-0) 318×52
+          Frame "Frame" (1PIB-0) 318×18
+            Text "Bulk cutting started" (1PIC-0) 140×18 "Bulk cutting started"
+            Text "2 Oct" (1PID-0) 33×18 "2 Oct"
+          Text "Logged by Mondol Fab…" (1PIE-0) 318×16 "Logged by Mondol Fabrics"
+      Frame "Step · planned" (1PIF-0) 350×40
+        Frame "Frame" (1PIG-0) 20×40
+          Rectangle "Rectangle" (1PIH-0) 20×20
+          Rectangle "Rectangle" (1PII-0) 2×20
+        Frame "Frame" (1PIJ-0) 318×40
+          Frame "Frame" (1PIK-0) 318×18
+            Text "Final inspection" (1PIL-0) 111×18 "Final inspection"
+            Text "6 Nov" (1PIM-0) 35×18 "6 Nov"
+      Frame "Step · planned 2" (1PIN-0) 350×36
+        Frame "Frame" (1PIO-0) 20×36
+          Rectangle "Rectangle" (1PIP-0) 20×20
+        Frame "Frame" (1PIQ-0) 318×36
+          Frame "Frame" (1PIR-0) 318×18
+            Text "Ex-factory, by sea" (1PIS-0) 126×18 "Ex-factory, by sea"
+            Text "14 Nov" (1PIT-0) 40×18 "14 Nov"
+          Text "From Chattogram" (1PIU-0) 318×16 "From Chattogram"
+    Frame "Sample note" (1Q39-0) 350×20
+      Rectangle "Rectangle" (1Q3A-0) 14×1
+      Text "Sample state: no rea…" (1Q3B-0) 294×16 "Sample state: no real orders yet, supplier name is real"
+  Frame "Action bar" (1PIV-0) 390×87
+    Frame "Frame" (1PIW-0) 390×64
+      Frame "Message" (1Q35-0) 48×48
+        SVG "SVG" (1Q36-0) 24×24
+          SVGVisualElement "Path" (1Q37-0) 19×19
+      Frame "Frame" (1PIZ-0) 302×48
+        Text "Add update" (1PJ0-0) 87×20 "Add update"
+    Frame "Frame" (1PJ1-0) 390×22
+      Rectangle "Rectangle" (1PJ2-0) 134×5

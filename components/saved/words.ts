@@ -149,7 +149,8 @@ export function buildSavedItems(rows: readonly SavedRow[], certs: CertsBySupplie
       cert: certCell(certs, r.id, today),
       savedOn: formatDay(r.saved_at),
       paneHref: savedHref({ ...view, open: r.slug, tab: null }),
-      pageHref: `/app/suppliers/${r.slug}?back=${encodeURIComponent(back)}`,
+      // `sid`: the record page starts its id-keyed reads beside the profile (11 Oct 2026, speed pass).
+      pageHref: `/app/suppliers/${r.slug}?back=${encodeURIComponent(back)}&sid=${r.id}`,
       rfqHref: rfqHref(back, [r.id]),
       listHref: back,
     };
@@ -162,12 +163,6 @@ export const typeAndPlace = (i: Pick<SavedItem, "type" | "place">) => [i.type, i
 /** "11 saved suppliers · only you see this list". */
 export function savedCaption(total: number | null): string {
   return total === null ? "Only you see this list" : `${formatCount(total)} saved ${total === 1 ? "supplier" : "suppliers"} · only you see this list`;
-}
-
-/** The two tab labels: "Suppliers · 11" and "Saved searches · 2"; a count that could not be read is left off. */
-export function tabLabels(suppliers: number | null, searches: number | null): { suppliers: string; searches: string; phoneSearches: string } {
-  const n = (label: string, c: number | null) => (c === null ? label : `${label} · ${formatCount(c)}`);
-  return { suppliers: n("Suppliers", suppliers), searches: n("Saved searches", searches), phoneSearches: n("Searches", searches) };
 }
 
 /** "Removed Aboni Knitwear Ltd. from saved", or "Removed 3 suppliers from saved". */

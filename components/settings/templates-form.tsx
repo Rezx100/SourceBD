@@ -8,13 +8,14 @@
 // own edit beside the OTHER section's last saved value, and saving the questions never saves a
 // half-written message. Paper's drag handles are not drawn: nothing here drags.
 
-import { ArrowDown, ArrowUp, CaretDown, X } from "@phosphor-icons/react";
+import { ArrowDown, ArrowUp, CaretDown, Plus, WarningCircle, X } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button, IconButton, Input, Menu, MenuItem, Select } from "@/components/kit";
 import { cn } from "@/lib/utils";
 import type { InquiryDoc } from "./doc";
 import { Flash, FormNote, textareaClass, useFlash } from "./form";
+import { PHONE_PILL } from "./phone";
 import { FILL_INS, MAX_QUESTIONS, MAX_QUESTION_CHARS, MAX_TEMPLATE, MESSAGE_SAVED, QUESTIONS_SAVED, TEMPLATE_FAILED, gapWords, inquiryPayload, insertAt, moveItem, previewOf, startOf } from "./templates";
 import { browserFetch, postSettings } from "./transport";
 
@@ -88,47 +89,72 @@ export function TemplatesForm({ initial, facts, suppliers = [] }: { initial: Inq
 
   const supplier = suppliers[pick] ?? suppliers[0] ?? null;
   const view = previewOf(template, { ...facts, supplier });
+  const addQuestion = () => {
+    setQuestions((l) => [...l, ""]);
+    setFocusRow(questions.length);
+  };
+  const fillIns = (trigger: React.ReactElement) => (
+    <Menu align="end" trigger={trigger}>
+      {FILL_INS.map((f) => (
+        <MenuItem key={f.token} hint={f.token} onSelect={() => insert(f.token)}>
+          {f.label}
+        </MenuItem>
+      ))}
+    </Menu>
+  );
 
+  // Paper `11 · RFQ template` orders the phone page message, preview, questions: the column of forms
+  // dissolves there (`contents`) so the preview can sit between them.
   return (
-    <div className="flex gap-8 max-xl:flex-col">
-      <div className="flex min-w-0 flex-1 flex-col gap-6">
-        <form aria-label="RFQ message" onSubmit={(e) => save("template", e)} className="flex flex-col gap-1.5">
+    <div className="flex gap-8 max-xl:flex-col max-md:gap-0">
+      <div className="flex min-w-0 flex-1 flex-col gap-6 max-md:contents">
+        <form aria-label="RFQ message" onSubmit={(e) => save("template", e)} className="flex flex-col gap-1.5 max-md:order-1 max-md:gap-3">
           <div className="flex items-center justify-between gap-2">
-            <label htmlFor="rfq-message" className="text-sm font-medium text-ink-2">
-              RFQ message
+            <label htmlFor="rfq-message" className="text-sm font-medium text-ink-2 max-md:pb-0.5 max-md:pt-4 max-md:text-lg max-md:tracking-tight max-md:text-ink">
+              <span className="max-md:hidden">RFQ message</span>
+              <span className="md:hidden">Opening message</span>
             </label>
-            <Menu
-              align="end"
-              trigger={
+            <span className="max-md:hidden">
+              {fillIns(
                 <Button iconRight={CaretDown} className="max-md:h-11">
                   Insert fill-in
-                </Button>
-              }
-            >
-              {FILL_INS.map((f) => (
-                <MenuItem key={f.token} hint={f.token} onSelect={() => insert(f.token)}>
-                  {f.label}
-                </MenuItem>
-              ))}
-            </Menu>
+                </Button>,
+              )}
+            </span>
           </div>
           <textarea id="rfq-message" ref={box} className={textareaClass} value={template} onChange={(e) => setTemplate(e.target.value)} maxLength={MAX_TEMPLATE} rows={13} />
+          <div className="flex flex-wrap items-center gap-2 md:hidden">
+            {fillIns(
+              <Button kind="quiet" icon={Plus} className="h-11 rounded-full bg-sunken px-3.5 text-ink hover:bg-sunken active:bg-line">
+                Insert fill-in
+              </Button>,
+            )}
+            <Button type="submit" disabled={!templateChanged} loading={saving === "template"} loadingLabel="Saving" className={PHONE_PILL}>
+              Save message
+            </Button>
+          </div>
           <p className="text-xs text-ink-3">Anything missing shows in [brackets], so you can fill it first.</p>
           <FormNote>{errors.template}</FormNote>
-          <div className="flex justify-end">
+          <div className="flex justify-end max-md:hidden">
             <Button kind="primary" type="submit" disabled={!templateChanged} loading={saving === "template"} loadingLabel="Saving" className="max-md:h-input-touch max-md:w-full">
               Save message
             </Button>
           </div>
         </form>
 
-        <form aria-label="RFQ questions" onSubmit={(e) => save("questions", e)} className="flex flex-col gap-1.5">
-          <h2 className="text-sm font-medium text-ink-2">RFQ questions</h2>
-          <p className="text-xs text-ink-3">Questions every new RFQ asks, in this order. Up to {MAX_QUESTIONS}.</p>
-          <ol className="flex flex-col rounded-md border border-line">
+        <form aria-label="RFQ questions" onSubmit={(e) => save("questions", e)} className="flex flex-col gap-1.5 max-md:order-3 max-md:gap-0">
+          <h2 className="text-sm font-medium text-ink-2 max-md:hidden">RFQ questions</h2>
+          <p className="text-xs text-ink-3 max-md:hidden">Questions every new RFQ asks, in this order. Up to {MAX_QUESTIONS}.</p>
+          <div className="flex items-baseline justify-between gap-3 pb-3.5 pt-6 md:hidden">
+            <h2 className="flex items-baseline gap-2 text-lg font-medium tracking-tight text-ink">
+              Questions <span className="font-normal tracking-normal text-ink-3">{questions.length}</span>
+            </h2>
+            <p className="text-sm text-ink-3">Up to {MAX_QUESTIONS}, in this order</p>
+          </div>
+          <ol className="flex flex-col rounded-md border border-line max-md:overflow-clip max-md:rounded-[10px]">
             {questions.map((q, i) => (
-              <li key={i} className={cn("flex min-h-11 items-center gap-1.5 px-2 py-1", i < questions.length - 1 && "border-b border-line")}>
-                <span aria-hidden className="w-5 shrink-0 text-right text-sm text-ink-3">
+              <li key={i} className={cn("flex min-h-11 items-center gap-1.5 px-2 py-1 max-md:min-h-[60px] max-md:gap-1 max-md:py-2 max-md:pl-4 max-md:pr-1", i < questions.length - 1 && "border-b border-line")}>
+                <span aria-hidden className="w-5 shrink-0 text-right text-sm text-ink-3 max-md:text-left max-md:text-base max-md:font-medium max-md:tabular-nums">
                   {i + 1}
                 </span>
                 <label htmlFor={`rfq-q-${i}`} className="sr-only">
@@ -148,31 +174,32 @@ export function TemplatesForm({ initial, facts, suppliers = [] }: { initial: Inq
                       move(i, e.key === "ArrowUp" ? -1 : 1);
                     }
                   }}
-                  className="min-w-0 flex-1 border-transparent hover:border-line-strong max-md:h-11"
+                  className="min-w-0 flex-1 border-transparent hover:border-line-strong max-md:h-11 max-md:px-1.5 max-md:text-md"
                 />
-                <IconButton icon={ArrowUp} label={`Move question ${i + 1} up`} kind="quiet" size={32} disabled={i === 0} onClick={() => move(i, -1)} className="max-md:size-11" />
-                <IconButton icon={ArrowDown} label={`Move question ${i + 1} down`} kind="quiet" size={32} disabled={i === questions.length - 1} onClick={() => move(i, 1)} className="max-md:size-11" />
+                {/* Paper `11 · RFQ template`: one arrow a row on a phone (down, and up on the last), which still reaches every order and leaves the words room. */}
+                <IconButton icon={ArrowUp} label={`Move question ${i + 1} up`} kind="quiet" size={32} disabled={i === 0} onClick={() => move(i, -1)} className={i === questions.length - 1 ? "max-md:size-11" : "max-md:hidden"} />
+                <IconButton icon={ArrowDown} label={`Move question ${i + 1} down`} kind="quiet" size={32} disabled={i === questions.length - 1} onClick={() => move(i, 1)} className={i === questions.length - 1 ? "max-md:hidden" : "max-md:size-11"} />
                 <IconButton icon={X} label={`Remove question ${i + 1}`} kind="quiet" size={32} onClick={() => setQuestions((l) => l.filter((_, j) => j !== i))} className="max-md:size-11" />
               </li>
             ))}
             {questions.length === 0 ? <li className="px-3 py-3 text-sm text-ink-3">No questions of your own: a new RFQ asks the five defaults.</li> : null}
           </ol>
-          <div className="flex items-center justify-between gap-3">
-            <Button
-              kind="link"
-              disabled={questions.length >= MAX_QUESTIONS}
-              onClick={() => {
-                setQuestions((l) => [...l, ""]);
-                setFocusRow(questions.length);
-              }}
-              className="max-md:flex max-md:h-11 max-md:items-center"
-            >
+          <div className="flex items-center justify-between gap-3 max-md:hidden">
+            <Button kind="link" disabled={questions.length >= MAX_QUESTIONS} onClick={addQuestion}>
               Add question
             </Button>
             <span className="text-xs text-ink-3">Use the arrows, or Alt and the arrow keys, to reorder</span>
           </div>
+          <div className="flex flex-wrap items-center gap-2 pt-3 md:hidden">
+            <Button kind="quiet" icon={Plus} disabled={questions.length >= MAX_QUESTIONS} onClick={addQuestion} className="h-11 rounded-full bg-sunken px-3.5 text-ink hover:bg-sunken active:bg-line disabled:bg-sunken">
+              Add question
+            </Button>
+            <Button type="submit" disabled={!questionsChanged} loading={saving === "questions"} loadingLabel="Saving" className={PHONE_PILL}>
+              Save questions
+            </Button>
+          </div>
           <FormNote>{errors.questions}</FormNote>
-          <div className="flex justify-end">
+          <div className="flex justify-end max-md:hidden">
             <Button kind="primary" type="submit" disabled={!questionsChanged} loading={saving === "questions"} loadingLabel="Saving" className="max-md:h-input-touch max-md:w-full">
               Save questions
             </Button>
@@ -180,9 +207,23 @@ export function TemplatesForm({ initial, facts, suppliers = [] }: { initial: Inq
         </form>
       </div>
 
-      <aside aria-label="Preview" className="flex w-[400px] shrink-0 flex-col gap-2 max-xl:w-auto">
+      <aside aria-label="Preview" className="flex w-[400px] shrink-0 flex-col gap-2 max-xl:w-auto max-md:order-2 max-md:gap-0">
+        <div className="flex items-center justify-between gap-3 pb-2 pt-6 md:hidden">
+          <h2 className="text-lg font-medium tracking-tight text-ink">Preview</h2>
+          {suppliers.length > 1 ? (
+            <Select
+              aria-label="Preview with"
+              value={String(pick)}
+              onValueChange={(v) => setPick(Number(v))}
+              options={suppliers.map((name, i) => ({ value: String(i), label: `with ${name}` }))}
+              className="h-11 w-auto min-w-0 gap-1 border-0 bg-transparent pl-2 pr-0 text-sm text-ink-3 hover:bg-transparent"
+            />
+          ) : supplier ? (
+            <p className="text-sm text-ink-3">with {supplier}</p>
+          ) : null}
+        </div>
         {suppliers.length > 1 ? (
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5 max-md:hidden">
             <h2 className="text-sm font-medium text-ink-2">Preview with</h2>
             <Select
               aria-label="Preview with"
@@ -193,10 +234,10 @@ export function TemplatesForm({ initial, facts, suppliers = [] }: { initial: Inq
             />
           </div>
         ) : (
-          <h2 className="text-sm font-medium text-ink-2">{supplier ? `Preview with ${supplier}` : "Preview"}</h2>
+          <h2 className="text-sm font-medium text-ink-2 max-md:hidden">{supplier ? `Preview with ${supplier}` : "Preview"}</h2>
         )}
-        <div className="flex flex-col gap-3 rounded-lg border border-line bg-subtle p-4">
-          <p className="whitespace-pre-wrap text-base leading-[22px] text-ink [overflow-wrap:anywhere]">
+        <div className="flex flex-col gap-3 rounded-lg border border-line bg-subtle p-4 max-md:rounded-[10px] max-md:border-0 max-md:py-3.5">
+          <p className="whitespace-pre-wrap text-base leading-[22px] text-ink [overflow-wrap:anywhere] max-md:text-ink-2">
             {view.pieces.map((p, i) =>
               p.gap ? (
                 <span key={i} className="rounded-sm border border-dashed border-caution-icon bg-caution-tint px-1 font-medium text-caution">
@@ -208,7 +249,10 @@ export function TemplatesForm({ initial, facts, suppliers = [] }: { initial: Inq
             )}
           </p>
         </div>
-        <p className="text-xs text-ink-3">{gapWords(view.gaps)}</p>
+        <p className={cn("text-xs text-ink-3", view.gaps.length > 0 && "max-md:flex max-md:gap-1.5 max-md:pt-2.5 max-md:font-medium max-md:text-caution")}>
+          {view.gaps.length > 0 ? <WarningCircle size={14} className="mt-px shrink-0 text-caution-icon md:hidden" aria-hidden /> : null}
+          <span>{gapWords(view.gaps)}</span>
+        </p>
       </aside>
       <Flash text={flash} />
     </div>

@@ -68,7 +68,7 @@ export function SupplierRow({
   // tap on them opens their words (a button cannot nest in a link) and a tap anywhere else opens the record.
   if (layout === "phone")
     return (
-      <div className={cn("relative min-h-11 gap-1 px-4 py-3 hover:bg-brand-wash has-[>a:focus-visible]:outline has-[>a:focus-visible]:outline-2 has-[>a:focus-visible]:outline-offset-[-2px] has-[>a:focus-visible]:outline-focus", box, selected && "bg-brand-tint")}>
+      <div className={cn("relative min-h-11 gap-1 px-4 py-3 hover:bg-brand-wash active:bg-sunken has-[>a:focus-visible]:outline has-[>a:focus-visible]:outline-2 has-[>a:focus-visible]:outline-offset-[-2px] has-[>a:focus-visible]:outline-focus", box, selected && "bg-brand-tint")}>
         <Link href={href} aria-current={selected ? "true" : undefined} className="flex flex-col gap-1 outline-none after:absolute after:inset-0 after:content-['']">
           <span className="flex justify-between gap-3">
             <span data-name="" title={name} className={cn(oneLine, "text-md font-medium text-ink")}>

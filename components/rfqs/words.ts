@@ -201,7 +201,7 @@ export type ListItem = {
   qty: string;
   /** The second line of a row beside a pane: "10,000 pieces · best US$8.55 per piece, US$0.35 under target". */
   paneLine: string;
-  /** The phone row's lines under the price: who it went to, the quantity and target. */
+  /** The phone row's lines: under the price, the quantity and reach; with no price, who it went to, the quantity and target. */
   phoneLines: string[];
   /** "Best price has MOQ 30,000 sets, above your 24,000": caution on the phone row. */
   moqNote: string | null;
@@ -244,7 +244,8 @@ function phoneLines(r: RfqRow, tab: ListItem["tab"], best: QuoteLite | null, nam
   const qty = quantityWords(r.quantity, r.quantity_unit);
   const who = best && names.get(best.supplier_id) ? shortName(names.get(best.supplier_id)!) : null;
   if (tab === "accepted") return [`${who ? `${who} at ` : ""}${best ? priceWords(best.unit_price, r.currency, r.quantity_unit) : "the accepted quote"} · ${order ? "order started" : "no order yet"}`];
-  if (best) return [["Sent to " + suppliersWords(r.target_supplier_count), who ? `best from ${who}` : null, qty].filter(Boolean).join(" · ")];
+  // The price row above names the supplier: the line under it is the quantity and the reach.
+  if (best) return [`${qty} · sent to ${suppliersWords(r.target_supplier_count)}`];
   return [`${r.quote_count === 0 ? "No quotes yet · s" : "S"}ent to ${suppliersWords(r.target_supplier_count)} on ${formatDay(r.created_at) ?? "—"}`, `${qty} · ${targetWords(r.target_unit_price, r.currency, r.quantity_unit)}`];
 }
 

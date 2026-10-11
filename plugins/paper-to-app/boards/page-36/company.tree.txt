@@ -1,0 +1,71 @@
+Frame "Settings · company · unsaved change · phone" (1RM6-0) 390×900
+  Frame "Status bar" (1RM7-0) 390×62
+    Frame "Time" (1RM8-0) 94×22
+      Text "9:41" (1RM9-0) 31×22 "9:41"
+    Frame "Icons" (1RMA-0) 94×22
+      SVG "SVG" (1RMB-0) 82×22
+        SVGVisualElement "Path" (1RMC-0) 19×12
+        SVGVisualElement "Path" (1RMD-0) 17×12
+        SVGVisualElement "Path" (1RME-0) 25×13
+        SVGVisualElement "Path" (1RMF-0) 21×9
+        SVGVisualElement "Path" (1RMG-0) 1×4
+  Frame "Compact head" (1RMH-0) 390×64
+    Frame "Back" (1RMI-0) 36×36
+      SVG "SVG" (1RMJ-0) 17×17
+        SVGVisualElement "Path" (1RMK-0) 12×10
+    Frame "Frame" (1RML-0) 310×48
+      Text "Company details" (1RMM-0) 310×30 "Company details"
+      Text "Suppliers see the na…" (1RMN-0) 310×18 "Suppliers see the name and website on every RFQ"
+  Frame "Body" (1RMO-0) 390×774
+    Frame "Frame" (1RMP-0) 350×72
+      Text "Company name" (1RMQ-0) 350×18 "Company name"
+      Frame "Frame" (1RMR-0) 350×48
+        Text "Example Apparel Ltd" (1RMS-0) 152×22 "Example Apparel Ltd"
+    Frame "Frame" (1RMT-0) 350×72
+      Text "Website" (1RMU-0) 350×18 "Website"
+      Frame "Frame" (1RMV-0) 350×48
+        Text "https://exampleappar…" (1RMW-0) 215×22 "https://exampleapparel.co.uk"
+        Rectangle "Rectangle" (1RMX-0) 2×20
+    Frame "Frame" (1RMY-0) 350×106
+      Text "Company type" (1RMZ-0) 350×18 "Company type"
+      Frame "Frame" (1RN0-0) 350×80
+        Frame "Frame" (1RN1-0) 85×36
+          SVG "SVG" (1RN2-0) 16×16
+            SVGVisualElement "Path" (1RN3-0) 12×9
+          Text "Brand" (1RN4-0) 39×20 "Brand"
+        Frame "Frame" (1RN5-0) 82×36
+          Text "Retailer" (1RN6-0) 52×20 "Retailer"
+        Frame "Frame" (1RN7-0) 87×36
+          Text "Importer" (1RN8-0) 57×20 "Importer"
+        Frame "Frame" (1RN9-0) 70×36
+          Text "Agent" (1RNA-0) 40×20 "Agent"
+        Frame "Frame" (1RNB-0) 68×36
+          Text "Other" (1RNC-0) 38×20 "Other"
+    Frame "Frame" (1RND-0) 350×120
+      Text "What you sell" (1RNE-0) 350×18 "What you sell"
+      Frame "Frame" (1RNF-0) 350×96
+        Text "Women’s jersey dress…" (1RNG-0) 320×44 "Women’s jersey dresses and loungewear, own label, about 40 s"
+    Frame "Frame" (1RNH-0) 350×72
+      Text "Who you sell to" (1RNI-0) 350×18 "Who you sell to"
+      Frame "Frame" (1RNJ-0) 350×48
+        Text "UK high-street retai…" (1RNK-0) 148×22 "UK high-street retail"
+    Frame "Frame" (1RNL-0) 350×72
+      Text "Employees" (1RNM-0) 350×18 "Employees"
+      Frame "Frame" (1RNN-0) 350×48
+        Text "11–50" (1RNO-0) 42×22 "11–50"
+        SVG "SVG" (1RNP-0) 16×16
+          SVGVisualElement "Path" (1RNQ-0) 11×6
+    Frame "Frame" (1RNR-0) 350×16
+      Rectangle "Rectangle" (1RNS-0) 14×1
+      Text "Sample company" (1RNT-0) 95×16 "Sample company"
+  Frame "Save bar" (1RNU-0) 390×113
+    Frame "Frame" (1RNV-0) 390×26
+      Rectangle "Rectangle" (1RNW-0) 8×8
+      Text "Unsaved change: webs…" (1RNX-0) 144×16 "Unsaved change: website"
+    Frame "Frame" (1RNY-0) 390×64
+      Frame "Frame" (1RNZ-0) 96×48
+        Text "Discard" (1RO0-0) 58×20 "Discard"
+      Frame "Frame" (1RO1-0) 254×48
+        Text "Save changes" (1RO2-0) 105×20 "Save changes"
+    Frame "Frame" (1RO3-0) 390×22
+      Rectangle "Rectangle" (1RO4-0) 134×5

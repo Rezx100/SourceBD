@@ -1,0 +1,138 @@
+Frame "State · error · RFQs didn't load · phone" (1NOG-0) 390×844
+  Frame "Status bar" (1NRJ-0) ?×?
+    Frame "Time" (1NRR-0) ?×?
+      Text "9:41" (1NRS-0) ?×? "9:41"
+    Frame "Icons" (1NRK-0) ?×?
+      SVG "SVG" (1NRL-0) ?×?
+        SVGVisualElement "Path" (1NRQ-0) ?×?
+        SVGVisualElement "Path" (1NRP-0) ?×?
+        SVGVisualElement "Path" (1NRO-0) ?×?
+        SVGVisualElement "Path" (1NRN-0) ?×?
+        SVGVisualElement "Path" (1NRM-0) ?×?
+  Frame "Compact head" (1NQI-0) ?×?
+    Frame "Head" (1OMU-0) ?×?
+      Frame "Bar" (1OMV-0) ?×?
+        Text "Name" (1OMW-0) ?×? "Square Apparels Limited"
+        Frame "Actions" (1OMX-0) ?×?
+          Frame "Share" (1OMY-0) 36×36
+            SVG "SVG" (1OMZ-0) ?×?
+              SVGVisualElement "Path" (1ON0-0) ?×?
+          Frame "Close" (1ON1-0) 36×36
+            SVG "SVG" (1ON2-0) ?×?
+              SVGVisualElement "Path" (1ON3-0) ?×?
+      Frame "Status strip" (1ON4-0) ?×30
+        Frame "Status · Safety" (1ON5-0) ?×?
+          SVG "SVG" (1ON6-0) ?×?
+            SVGVisualElement "Path" (1ON7-0) ?×?
+          Text "RSC behind" (1ON8-0) ?×? "RSC behind"
+        Rectangle "Rectangle" (1ON9-0) 1×14
+        Frame "Status · Certificates" (1ONA-0) ?×?
+          SVG "SVG" (1ONB-0) ?×?
+            SVGVisualElement "Path" (1ONC-0) ?×?
+          Text "GOTS 31 days" (1OND-0) ?×? "GOTS 31 days"
+        Rectangle "Rectangle" (1ONE-0) 1×14
+        Frame "Status · Sanctions" (1ONF-0) ?×?
+          SVG "SVG" (1ONG-0) ?×?
+            SVGVisualElement "Path" (1ONH-0) ?×?
+          Text "Not listed" (1ONI-0) ?×? "Not listed"
+    Frame "Tabs" (1NQJ-0) ?×48
+      Frame "Tab · Overview (current)" (1NQV-0) ?×?
+        Text "Overview" (1NQX-0) ?×? "Overview"
+        Frame "Indicator" (1NQW-0) ?×2
+      Frame "Tab · Exports" (1NQT-0) ?×?
+        Text "Exports" (1NQU-0) ?×? "Exports"
+      Frame "Tab · Certificates" (1NQQ-0) ?×?
+        Text "Certificates" (1NQS-0) ?×? "Certificates"
+      Frame "Tab · Safety" (1NQN-0) ?×?
+        Text "Safety" (1NQP-0) ?×? "Safety"
+      Frame "Tab · Sites" (1NQK-0) ?×?
+        Text "Sites" (1NQM-0) ?×? "Sites"
+        Text "2" (1NQL-0) ?×? "2"
+  Frame "Your RFQs · error" (1NRT-0) ?×?
+    Frame "Frame" (1NRU-0) ?×?
+      SVG "SVG" (1NRV-0) ?×?
+        SVGVisualElement "Path" (1NRW-0) ?×?
+      Text "Your RFQs didn’t loa…" (1NRX-0) ?×? "Your RFQs didn’t load."
+      Frame "Retry" (1NRY-0) ?×44
+        SVG "SVG" (1NRZ-0) ?×?
+          SVGVisualElement "Path" (1NS0-0) ?×?
+        Text "Retry" (1NS1-0) ?×? "Retry"
+  Frame "Needs a look" (1O3Y-0) ?×?
+    Frame "Section head" (1O3Z-0) ?×?
+      Frame "Frame" (1O40-0) ?×?
+        Text "Needs a look" (1O41-0) ?×? "Needs a look"
+        Text "3" (1O42-0) ?×? "3"
+      Text "Worst first" (1O43-0) ?×? "Worst first"
+    Frame "Items" (1O44-0) ?×?
+      Frame "Item · Safety" (1O45-0) ?×?
+        Frame "Tag" (1O46-0) ?×?
+          Frame "Frame" (1O47-0) ?×?
+            SVG "SVG" (1O48-0) ?×?
+              SVGVisualElement "Path" (1O49-0) ?×?
+            Text "Safety · Extension b…" (1O4A-0) ?×? "Safety · Extension building"
+          SVG "SVG" (1O4B-0) ?×?
+            SVGVisualElement "Path" (1O4C-0) ?×?
+        Text "One building is behi…" (1O4D-0) ?×? "One building is behind on repairs"
+        Frame "Meter" (1O4E-0) ?×?
+          Frame "Frame" (1O4F-0) ?×?
+            Text "Issues fixed" (1O4G-0) ?×? "Issues fixed"
+            Text "81%" (1O4H-0) ?×? "81%"
+          Frame "Frame" (1O4I-0) ?×6
+            Rectangle "Rectangle" (1O4J-0) ?×?
+        Text "Worker safety traini…" (1O4K-0) ?×? "Worker safety training has not started."
+        Text "Read 2 Oct" (1O4L-0) ?×? "Read 2 Oct"
+      Frame "Item · Certificate" (1O4M-0) ?×?
+        Frame "Tag" (1O4N-0) ?×?
+          Frame "Frame" (1O4O-0) ?×?
+            SVG "SVG" (1O4P-0) ?×?
+              SVGVisualElement "Path" (1O4Q-0) ?×?
+            Text "Certificate · GOTS" (1O4R-0) ?×? "Certificate · GOTS"
+          SVG "SVG" (1O4S-0) ?×?
+            SVGVisualElement "Path" (1O4T-0) ?×?
+        Text "Organic certificate …" (1O4U-0) ?×? "Organic certificate ends 11 Nov"
+        Frame "Countdown" (1O4V-0) ?×?
+          Text "31" (1O4W-0) ?×? "31"
+          Text "days left · no renew…" (1O4X-0) ?×? "days left · no renewal listed yet"
+        Frame "Frame" (1O4Y-0) ?×?
+          Text "Checked with GOTS 26…" (1O4Z-0) ?×? "Checked with GOTS 26 Jun ·"
+          Text "107 days ago" (1O50-0) ?×? "107 days ago"
+      Frame "Item · Sanctions" (1O51-0) ?×?
+        Frame "Tag" (1O52-0) ?×?
+          Frame "Frame" (1O53-0) ?×?
+            SVG "SVG" (1O54-0) ?×?
+              SVGVisualElement "Path" (1O55-0) ?×?
+            Text "Sanctions · freshnes…" (1O56-0) ?×? "Sanctions · freshness"
+          SVG "SVG" (1O57-0) ?×?
+            SVGVisualElement "Path" (1O58-0) ?×?
+        Text "The sanctions check …" (1O59-0) ?×? "The sanctions check is 5 days old"
+        Text "Not listed when the …" (1O5A-0) ?×? "Not listed when the UK and EU lists were last read on 6 Oct."
+        Text "OFSI, EU, OFAC, ILAB…" (1O5B-0) ?×? "OFSI, EU, OFAC, ILAB · 6 to 11 Oct"
+  Frame "Key facts" (1NON-0) ?×?
+    Frame "Frame" (1NP8-0) ?×?
+      Text "Key facts" (1NP9-0) ?×? "Key facts"
+    Frame "Fact · Makes" (1NP3-0) ?×?
+      Frame "Frame" (1NP5-0) ?×?
+        Text "Makes" (1NP7-0) ?×? "Makes"
+        Text "Woven garments, with…" (1NP6-0) ?×? "Woven garments, with its own dye house"
+      Text "BGMEA" (1NP4-0) 56×? "BGMEA"
+    Frame "Fact · Makes" (1NOY-0) ?×?
+      Frame "Frame" (1NP0-0) ?×?
+        Text "Established" (1NP2-0) ?×? "Established"
+        Text "2015 · 11 years ago" (1NP1-0) ?×? "2015 · 11 years ago"
+      Text "BGMEA" (1NOZ-0) 56×? "BGMEA"
+    Frame "Fact · Makes" (1NOT-0) ?×?
+      Frame "Frame" (1NOV-0) ?×?
+        Text "Workers" (1NOX-0) ?×? "Workers"
+        Text "4,624 across 2 build…" (1NOW-0) ?×? "4,624 across 2 buildings"
+      Text "RSC" (1NOU-0) 56×? "RSC"
+    Frame "Fact · Makes" (1NOO-0) ?×?
+      Frame "Frame" (1NOQ-0) ?×?
+        Text "Head office" (1NOS-0) ?×? "Head office"
+        Text "Square Centre, Mohak…" (1NOR-0) ?×? "Square Centre, Mohakhali, Dhaka"
+      Text "BGMEA" (1NOP-0) 56×? "BGMEA"
+  Frame "Action bar" (1NOH-0) ?×64
+    Frame "Save" (1NOK-0) 48×48
+      SVG "SVG" (1NOL-0) ?×?
+        SVGVisualElement "Path" (1NOM-0) ?×?
+    Frame "Send RFQ" (1NOI-0) ?×48
+      Text "Send RFQ" (1NOJ-0) ?×? "Send RFQ"

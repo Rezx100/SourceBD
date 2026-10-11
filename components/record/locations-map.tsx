@@ -402,8 +402,26 @@ function useMapInstance(
     if (!containerRef.current) return;
     let cancelled = false;
     let map: import("bkoi-gl").Map | undefined;
+    // The map library is large: it is fetched only once the map is about to scroll into view
+    // (11 Oct 2026, the phone speed pass), so a record opened to read its overview never pays for it.
+    let io: IntersectionObserver | undefined;
+    const el = containerRef.current;
+    const near = new Promise<void>((resolve) => {
+      if (typeof IntersectionObserver === "undefined") return resolve();
+      io = new IntersectionObserver(
+        (entries) => {
+          if (!entries.some((e) => e.isIntersecting)) return;
+          io?.disconnect();
+          resolve();
+        },
+        { rootMargin: "400px 0px" },
+      );
+      io.observe(el);
+    });
 
     (async () => {
+      await near;
+      if (cancelled || !containerRef.current) return;
       const bkoi = await import("bkoi-gl");
       if (cancelled || !containerRef.current) return;
 
@@ -527,6 +545,7 @@ function useMapInstance(
 
     return () => {
       cancelled = true;
+      io?.disconnect();
       popupsRef.current = [];
       pinElementsRef.current = [];
       map?.remove();

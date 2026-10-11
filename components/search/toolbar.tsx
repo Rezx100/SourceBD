@@ -5,7 +5,7 @@
 // link to the search with that value toggled, so the bar works before any script.
 // Server component; the menus are the kit's.
 
-import { BookmarkSimple, CaretDown, CaretUpDown, Check, MagnifyingGlass, Plus, SlidersHorizontal, X } from "@phosphor-icons/react/dist/ssr";
+import { Boat, BookmarkSimple, CaretDown, Check, MagnifyingGlass, Plus, SlidersHorizontal, X } from "@phosphor-icons/react/dist/ssr";
 import Form from "next/form";
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
@@ -353,46 +353,58 @@ export function PaneListToolbar({ state, title, hrefFor, filtersHref, saveHref, 
 }
 
 /**
- * The phone's bar (Paper `11 · Results`): the query in a 48-tall field with its ×, the count,
- * Filters and Sort as two 44-tall halves, and the standing filter. The field is a form to the
- * results that carries the other filters; the filter pane and the sort list open from here.
+ * The phone's bar (Paper page 36, `search-results`): the query in a 52-tall tonal field with its ×,
+ * a row of pills (Filters with how many are on, Ships to UK for a reader who may see customs
+ * figures, the sort), then the count and the standing filter in words. The field is a form to the
+ * results that carries the other filters; the filter sheet and the sort list open from here.
  */
 export function PhoneToolbar({ state, count, hrefFor, filtersHref, entitled = false }: { state: DiscoverState; count: string; hrefFor: (s: DiscoverState) => string; filtersHref: string; entitled?: boolean }) {
   const on = filterCount(state);
   const { options, current } = sortChoices(state, entitled);
-  const half = "flex h-touch grow items-center justify-center gap-2 whitespace-nowrap rounded-md border border-line-strong bg-surface px-3 max-[389px]:px-2 text-md font-medium text-ink outline-none hover:bg-subtle active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
+  // Paper page 36 `search-results`: 36 tall pills, each reaching 44 with its hit area.
+  const pill = "relative flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-line text-base font-medium text-ink outline-none before:absolute before:-inset-y-1 before:inset-x-0 before:content-[''] active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
+  // "4,645 suppliers": the figure, then its noun in grey.
+  const [figure, noun] = /^[\d,]+ /.test(count) ? [count.slice(0, count.indexOf(" ")), count.slice(count.indexOf(" ") + 1)] : [null, count];
+  const uk = state.ships === "uk";
   return (
-    <div className="flex flex-col gap-3 border-b border-line px-4 py-3 md:hidden">
+    <div className="flex flex-col gap-4 px-5 pt-2 md:hidden">
       <Form action={DISCOVER_PATH} role="search" aria-label="Search" prefetch={false} className="relative">
         {discoverHiddenParams(state, ["q"]).map(([k, v]) => (
           <input key={`${k}-${v}`} type="hidden" name={k} value={v} />
         ))}
-        <div className="flex h-input-touch items-center gap-3 rounded-md border border-line-strong bg-surface pl-3.5 pr-0.5 focus-within:border-brand-ink focus-within:[box-shadow:inset_0_0_0_1px_theme(colors.brand-ink)]">
-          <MagnifyingGlass size={20} className="shrink-0 text-ink-3" aria-hidden />
+        <div className="flex h-[52px] items-center gap-2.5 rounded-[12px] border border-transparent bg-sunken pl-4 pr-1 focus-within:border-brand-ink focus-within:[box-shadow:inset_0_0_0_1px_theme(colors.brand-ink)]">
+          <MagnifyingGlass size={20} className="shrink-0 text-ink-2" aria-hidden />
           <Suspense fallback={<input type="search" name="q" defaultValue={state.q} autoComplete="off" placeholder="Supplier, product or certificate" aria-label="Search" className="min-w-0 flex-1 bg-transparent text-md text-ink outline-none placeholder:text-ink-3" />}>
             <SearchCombobox variant="phone" defaultValue={state.q} placeholder="Supplier, product or certificate" />
           </Suspense>
           {state.q ? (
-            <Link href={hrefFor({ ...state, q: "", page: 1 })} aria-label="Clear the search" className="flex size-11 shrink-0 items-center justify-center rounded-sm text-ink-2 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
-              <X size={20} aria-hidden />
+            <Link href={hrefFor({ ...state, q: "", page: 1 })} aria-label="Clear the search" className="flex size-11 shrink-0 items-center justify-center rounded-full text-ink-2 outline-none active:bg-line focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
+              <X size={18} aria-hidden />
             </Link>
           ) : null}
         </div>
       </Form>
-      {/* Not an h1: the desktop bar's heading is the page's one, and this bar is on the page too (hidden by CSS from 768). */}
-      <p className="text-md font-semibold text-ink">{count}</p>
-      <div className="flex gap-2">
-        <Link href={filtersHref} prefetch={false} scroll={false} className={half}>
-          <SlidersHorizontal size={20} className="shrink-0 text-ink-2 max-[429px]:hidden" aria-hidden />
-          {on > 0 ? `Filters · ${on} on` : "Filters"}
+      <div className="flex gap-2 overflow-x-auto py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <Link href={filtersHref} prefetch={false} scroll={false} aria-label={on > 0 ? `Filters, ${on} on` : "Filters"} className={cn(pill, "w-11 justify-center border-transparent bg-sunken active:bg-line")}>
+          <SlidersHorizontal size={18} className="shrink-0 text-ink" aria-hidden />
+          {on > 0 ? (
+            <span aria-hidden className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-surface bg-ink px-[5px] text-[11px]/[14px] font-semibold text-surface">
+              {on}
+            </span>
+          ) : null}
         </Link>
+        {entitled ? (
+          <Link href={hrefFor(uk ? { ...state, ships: null, page: 1 } : { ...state, exports: true, ships: "uk", page: 1 })} scroll={false} aria-pressed={uk} className={cn(pill, "pl-2.5 pr-3", uk && "border-ink bg-ink text-surface active:bg-ink")}>
+            <Boat size={16} className={cn("shrink-0", uk ? "text-surface" : "text-ink-2")} aria-hidden />
+            Ships to UK
+          </Link>
+        ) : null}
         <Menu
           align="end"
           trigger={
-            <button type="button" aria-label={`Sort: ${SORT_WORDS[current]}`} className={half}>
-              <CaretUpDown size={20} className="shrink-0 text-ink-2 max-[429px]:hidden" aria-hidden />
-              <span className="max-[359px]:hidden">Sort: {SORT_WORDS[current]}</span>
-              <span aria-hidden className="hidden max-[359px]:inline">Sort</span>
+            <button type="button" aria-label={`Sort: ${SORT_WORDS[current]}`} className={cn(pill, "pl-3 pr-2.5")}>
+              {SORT_WORDS[current]!.charAt(0).toUpperCase() + SORT_WORDS[current]!.slice(1)}
+              <CaretDown size={14} className="shrink-0 text-ink-2" aria-hidden />
             </button>
           }
         >
@@ -411,18 +423,22 @@ export function PhoneToolbar({ state, count, hrefFor, filtersHref, entitled = fa
           {exportsWords(state)}
         </FilterChip>
       ) : null}
-      {state.sanctioned ? null : (
-        <StandingFilter
-          className="h-11 max-w-full self-start rounded-md px-3 text-base"
-          action={
-            <Link href={hrefFor({ ...state, sanctioned: true, page: 1 })} className={cn(linkClass, "text-base")}>
-              Show them
+      {/* Not an h1: the desktop bar's heading is the page's one, and this bar is on the page too (hidden by CSS from 768). */}
+      <div className="flex items-baseline justify-between gap-3 max-[359px]:flex-col max-[359px]:items-start max-[359px]:gap-0">
+        <p className="flex items-baseline gap-2 text-lg tracking-tight">
+          {figure ? <span className="font-medium tabular-nums text-ink">{figure}</span> : null}
+          <span className={figure ? "text-ink-3" : "font-medium text-ink"}>{noun}</span>
+        </p>
+        {/* The one filter the buyer did not choose, said, with the way to lift it. */}
+        {state.sanctioned ? null : (
+          <p className="flex shrink-0 items-baseline gap-1 text-sm text-ink-3">
+            <span>Sanctioned hidden ·</span>
+            <Link href={hrefFor({ ...state, sanctioned: true, page: 1 })} className="-my-3 rounded-sm py-3 font-medium text-ink outline-none active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus">
+              Show
             </Link>
-          }
-        >
-          Hiding sanctioned suppliers
-        </StandingFilter>
-      )}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

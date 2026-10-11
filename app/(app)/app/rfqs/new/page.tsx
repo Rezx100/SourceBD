@@ -79,21 +79,21 @@ export default async function NewRfqPage({
   const sp = await searchParams;
   const draftId = typeof sp.draft === "string" && UUID_RE.test(sp.draft) ? sp.draft : null;
   const supabase = await createSupabaseServerClient();
-  const draft = draftId ? await draftPrefill(supabase, draftId) : null;
-  const ids = [
-    ...new Set([...(sp.supplier ?? "").split(","), ...(draft?.targets ?? [])].map((x) => x.trim()).filter((x) => UUID_RE.test(x))),
-  ].slice(0, 50);
+  const idsOf = (d: { targets: string[] } | null) =>
+    [...new Set([...(sp.supplier ?? "").split(","), ...(d?.targets ?? [])].map((x) => x.trim()).filter((x) => UUID_RE.test(x)))].slice(0, 50);
   const hs = typeof sp.hs === "string" && /^\d{4}$/.test(sp.hs) ? sp.hs : null;
   const productId = typeof sp.product === "string" && UUID_RE.test(sp.product) ? sp.product : null;
+  // The draft, the settings and the product wait on nothing: they are read side by side. Only the
+  // suppliers wait, on the draft, whose targets they are.
+  const draftRead = draftId ? draftPrefill(supabase, draftId) : Promise.resolve(null);
   // No supplier is not a bad link: the composer opens empty and says how to add some ("New RFQ"
   // on the RFQ list lands here). Only suppliers that are all unlisted are a bad link, below.
-  const [{ data, error }, settings, product] = await Promise.all([
-    ids.length > 0
-      ? supabase
-          .from("suppliers")
-          .select(TARGET_COLUMNS)
-          .in("id", ids)
-      : Promise.resolve({ data: [], error: null }),
+  const [draft, { data, error }, settings, product] = await Promise.all([
+    draftRead,
+    draftRead.then(async (d) => {
+      const wanted = idsOf(d);
+      return wanted.length > 0 ? await supabase.from("suppliers").select(TARGET_COLUMNS).in("id", wanted) : { data: [], error: null };
+    }),
     (async () => {
       try {
         return (await supabase.rpc("settings_get")).data as unknown;
@@ -103,6 +103,7 @@ export default async function NewRfqPage({
     })(),
     productId ? productPrefill(supabase, productId) : Promise.resolve<ComposerPrefill>({}),
   ]);
+  const ids = idsOf(draft);
   const rows = ((Array.isArray(data) ? data : []) as SupplierRow[]).filter((r) => r.is_published);
   // A link to suppliers none of whom is listed is a bad link. A saved draft
   // whose suppliers have since left is still the buyer's draft: it opens with

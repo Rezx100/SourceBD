@@ -9,9 +9,9 @@
 // checked 14 Aug 2026" is not here: the read carries neither figure. The old photo column is gone
 // (Paper has none).
 
-import { CatalogueError, ChapterGrid, HeadingsHead, NoCatalogue, NoMatch, OpenChapter, PhoneChapters, SearchResults } from "@/components/headings/view";
+import { CatalogueError, ChapterGrid, HeadingsHead, NoCatalogue, NoMatch, OpenChapter, PhoneChapters, PhoneHeadingsNote, SearchResults } from "@/components/headings/view";
 import { loadHeadings } from "@/components/headings/load";
-import { SANCTION_NOTE, buildChapters, caption, headingsHref, openChapter, parseSort, searchCaption, splitChapters } from "@/components/headings/words";
+import { SANCTION_NOTE, buildChapters, caption, headingsHref, headingsWord, openChapter, parseSort, phoneCaption, searchCaption, splitChapters } from "@/components/headings/words";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -45,7 +45,11 @@ export default async function HeadingsPage({ searchParams }: { searchParams: Pro
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <HeadingsHead caption={needle ? searchCaption(matches.length) : headings.length === 0 ? `No HS headings · ${SANCTION_NOTE}` : caption({ headings: headings.length, chapters: chapters.length })} q={q} />
+      <HeadingsHead
+        caption={needle ? searchCaption(matches.length) : headings.length === 0 ? `No HS headings · ${SANCTION_NOTE}` : caption({ headings: headings.length, chapters: chapters.length })}
+        phoneCaption={needle ? `${headingsWord(matches.length)} match` : headings.length === 0 ? "No HS headings" : phoneCaption({ headings: headings.length, chapters: chapters.length })}
+        q={q}
+      />
       {needle ? (
         matches.length === 0 ? (
           <NoMatch q={q} />
@@ -58,9 +62,10 @@ export default async function HeadingsPage({ searchParams }: { searchParams: Pro
         <>
           <ChapterGrid primary={primary} more={rest} showMore={more} open={open} sort={sort} />
           {current ? <OpenChapter chapter={current} sort={sort} more={more} /> : null}
-          <PhoneChapters chapters={[...primary, ...rest]} open={open} sort={sort} />
+          <PhoneChapters chapters={[...primary, ...rest]} open={open} more={more} />
         </>
       )}
+      {headings.length > 0 ? <PhoneHeadingsNote /> : null}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 // Chat (`03 Patterns · 10`, a sample state): the supplier on the left in a white bubble with a
-// line, you on the right in brand-tint; the name and time under each bubble, the date once per
+// line, you on the right in brand-tint (ink under 640, `11 · thread`); the name and time under each bubble, the date once per
 // day, "Read" once under your last message. The composer is Messages' own (`components/messages`,
 // B6a). Server-safe.
 
@@ -43,21 +43,23 @@ export function FileChip({ name, detail }: { name: string; detail: string }) {
 export function Bubble({ from, meta, read, children }: { from: "them" | "you"; meta: ReactNode; read?: boolean; children: ReactNode }) {
   const you = from === "you";
   return (
-    <div className={cn("flex max-w-[440px] flex-col gap-1 max-sm:max-w-[300px]", you ? "items-end self-end" : "self-start")}>
+    <div className={cn("flex max-w-[440px] flex-col gap-1 max-sm:max-w-[280px]", you ? "items-end self-end" : "self-start")}>
       <div
         className={cn(
-          "flex flex-col gap-2 rounded-t-lg px-3 py-2.5 text-md text-ink sm:text-base",
-          you ? "rounded-bl-lg rounded-br-sm bg-brand-tint" : "rounded-bl-sm rounded-br-lg border border-line bg-surface",
+          "flex flex-col gap-2 rounded-t-lg px-3 py-2.5 text-md text-ink sm:text-base max-sm:rounded-t-pane-phone max-sm:px-3.5 max-sm:text-[15px]/[21px]",
+          you
+            ? "rounded-bl-lg rounded-br-sm bg-brand-tint max-sm:rounded-bl-pane-phone max-sm:bg-ink max-sm:text-surface"
+            : "rounded-bl-sm rounded-br-lg border border-line bg-surface max-sm:rounded-br-pane-phone",
         )}
       >
         {children}
       </div>
-      <p className="flex items-center gap-1 text-xs text-ink-3">
+      <p className="flex items-center gap-1 text-xs text-ink-3 max-sm:text-[11px]/[14px]">
         {meta}
         {read ? (
           <>
             {" "}
-            · Read <Checks size={14} className="shrink-0" aria-hidden />
+            · Read <Checks size={14} className="shrink-0 max-sm:hidden" aria-hidden />
           </>
         ) : null}
       </p>

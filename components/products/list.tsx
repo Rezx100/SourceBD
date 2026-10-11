@@ -3,7 +3,7 @@
 // the failed read, the loading skeleton. Server components; the table and its menu are client
 // (`table.tsx`, `actions.tsx`).
 
-import { Plus } from "@phosphor-icons/react/dist/ssr";
+import { Check, Plus } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { ErrorPanel, Skeleton, TabLink, buttonClass } from "@/components/kit";
 import { cn } from "@/lib/utils";
@@ -45,37 +45,40 @@ export function ProductsHead({ rows, tab }: { rows: readonly ProductRow[] | null
   );
 }
 
-/** On a phone the title is the frame's; this row has the caption, Add product, and the tabs as chips. */
+/**
+ * On a phone (`11 · Products`) the title is the frame's; under it the caption, a round Add, and the
+ * tabs as pills ("All 4"), the current one ink.
+ */
 export function PhoneProductsHead({ rows, tab }: { rows: readonly ProductRow[] | null; tab: ProductTab }) {
   const tabs = rows !== null && rows.length > 0;
   return (
-    <div className="flex flex-col gap-3 pb-2 pl-4 md:hidden">
-      <div className="flex items-center justify-between gap-2 pr-2">
+    <div className="flex flex-col gap-2 pb-3 pl-5 pr-3 md:hidden">
+      <div className="flex min-h-11 items-center justify-between gap-2">
         <p className="text-sm text-ink-3">{productsCaption(rows)}</p>
         {tabs ? (
-          <Link href={addHref} prefetch={false} className="flex h-11 items-center px-2 text-md font-semibold text-brand-ink outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
-            Add product
+          <Link href={addHref} aria-label="Add product" className="group flex size-11 shrink-0 items-center justify-center rounded-full outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
+            <span className="flex size-9 items-center justify-center rounded-full bg-sunken text-ink-2 group-active:bg-line">
+              <Plus size={17} weight="thin" aria-hidden />
+            </span>
           </Link>
         ) : null}
       </div>
       {tabs ? (
-        <nav aria-label="Product status" className="flex gap-2 overflow-x-auto pr-4">
+        <nav aria-label="Product status" className="-my-1 flex gap-1.5 overflow-x-auto pr-3">
           {PRODUCT_TABS.map((t) => {
             const on = t.key === tab;
             const n = tabCount(rows, t.key);
             return (
-              <Link
-                key={t.key}
-                href={tabHref(t.key)}
-                prefetch={false}
-                aria-current={on ? "page" : undefined}
-                className={cn(
-                  "flex h-11 shrink-0 items-center rounded-md border px-3.5 text-md outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
-                  on ? "border-brand-ink bg-brand-tint font-semibold text-brand-ink" : "border-line font-medium text-ink-2",
-                )}
-              >
-                {t.label}
-                {n === null ? "" : ` · ${n}`}
+              <Link key={t.key} href={tabHref(t.key)} prefetch={false} aria-current={on ? "page" : undefined} className="group flex h-11 shrink-0 items-center rounded-full outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
+                <span
+                  className={cn(
+                    "flex h-9 items-center gap-1.5 rounded-full text-base font-medium",
+                    on ? "bg-ink pl-2.5 pr-3 text-surface" : "border border-line px-3 text-ink group-active:bg-sunken",
+                  )}
+                >
+                  {on ? <Check size={16} weight="thin" className="shrink-0" aria-hidden /> : null}
+                  {n === null ? t.label : `${t.label} ${n}`}
+                </span>
               </Link>
             );
           })}
@@ -83,6 +86,11 @@ export function PhoneProductsHead({ rows, tab }: { rows: readonly ProductRow[] |
       ) : null}
     </div>
   );
+}
+
+/** Under the phone's cards. */
+export function PhoneProductsNote() {
+  return <p className="px-5 pb-12 pt-4 text-xs text-ink-3 md:hidden">Every RFQ from a product carries its size chart, materials and tech pack.</p>;
 }
 
 const CARRIES: readonly (readonly [string, string])[] = [

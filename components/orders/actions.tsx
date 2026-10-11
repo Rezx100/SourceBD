@@ -283,6 +283,7 @@ export function OrderMenu({
   cancelSummary,
   supplier,
   size = 32,
+  round = false,
 }: {
   orderId: string;
   initial: EditInitial;
@@ -292,13 +293,28 @@ export function OrderMenu({
   cancelSummary: string;
   supplier: string;
   size?: 32 | 44;
+  /** The phone bar's round button: a 44 target around a 36 face (Paper 36 `order-detail`). */
+  round?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   if (!edit && !cancel) return null;
   return (
     <>
-      <Menu align="end" trigger={<IconButton icon={DotsThree} label="More actions" size={size} />}>
+      <Menu
+        align="end"
+        trigger={
+          round ? (
+            <button type="button" aria-label="More actions" title="More actions" className="group flex size-11 shrink-0 items-center justify-center rounded-full outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
+              <span className="flex size-9 items-center justify-center rounded-full bg-sunken group-active:bg-line">
+                <DotsThree size={22} weight="thin" className="shrink-0 text-ink-2" aria-hidden />
+              </span>
+            </button>
+          ) : (
+            <IconButton icon={DotsThree} label="More actions" size={size} />
+          )
+        }
+      >
         {edit ? <MenuItem onSelect={() => setEditing(true)}>Edit details</MenuItem> : null}
         {cancel ? <MenuItem onSelect={() => setCancelling(true)}>Cancel order</MenuItem> : null}
       </Menu>

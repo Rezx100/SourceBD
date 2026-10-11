@@ -15,7 +15,7 @@
 // the message. A reply that arrives is announced politely. The composer grows to six rows, sends on
 // Ctrl or Command + Enter and shows its count only near the limit.
 
-import { Paperclip, X } from "@phosphor-icons/react";
+import { LockSimple, PaperPlaneTilt, Paperclip, Receipt, SpinnerGap, X } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
@@ -75,12 +75,31 @@ export function MessageList({ messages, supplierName, today }: { messages: reado
   );
 }
 
+/** Under the phone's composer (`11 · thread`). */
+export const PRIVATE_LINE = "Replies come here. Your email stays private.";
+
+const rfqCard = "flex items-center gap-3 rounded-[12px] border border-line bg-surface px-3.5 py-3 sm:hidden";
+
+function RfqCardBody({ card }: { card: { title: string; line: string } }) {
+  return (
+    <>
+      <span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-sunken">
+        <Receipt size={20} weight="thin" className="text-ink-2" />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="text-base/[18px] font-medium text-ink">{card.title}</span>
+        <span className="text-xs text-ink-3">{card.line}</span>
+      </span>
+    </>
+  );
+}
+
 export function ThreadLive({
   threadId,
   initialMessages,
   supplierName,
   today,
-  phoneLine,
+  phoneCard,
   phoneHref,
   readFailed,
 }: {
@@ -90,9 +109,9 @@ export function ThreadLive({
   supplierName?: string;
   /** The server's "now", so a day line says "Today" the same way on the server and in the browser. */
   today: string;
-  /** The phone's line over the conversation ("RFQ sent 18 Jul 2026 · 10,000 pieces · waiting for quote"). */
-  phoneLine?: string | null;
-  /** Where that line goes: the RFQ. A phone has no strip with a View RFQ link, so the line is the link. */
+  /** The phone's card over the conversation ("French terry hoodies · 10,000 pieces", "Sent 18 Jul 2026 · waiting for quote"). */
+  phoneCard?: { title: string; line: string } | null;
+  /** Where that card goes: the RFQ. A phone has no strip with a View RFQ link, so the card is the link. */
   phoneHref?: string | null;
   /** The newest messages could not be read: the page says so instead of drawing an empty thread. */
   readFailed?: boolean;
@@ -292,14 +311,16 @@ export function ThreadLive({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto bg-subtle max-md:min-h-[240px] max-md:overflow-visible">
-        <div className="flex min-h-full flex-col gap-3 p-5 max-md:justify-end max-md:p-4">
-          {phoneLine ? (
+        <div className="flex min-h-full flex-col gap-3 p-5 max-md:justify-end max-md:gap-3.5 max-md:p-4">
+          {phoneCard ? (
             phoneHref ? (
-              <Link href={phoneHref} prefetch={false} className="flex min-h-11 items-center justify-center text-center text-sm text-ink-2 underline decoration-1 [text-underline-position:from-font] sm:hidden">
-                {phoneLine}
+              <Link href={phoneHref} prefetch={false} className={cn(rfqCard, "outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus active:bg-sunken")}>
+                <RfqCardBody card={phoneCard} />
               </Link>
             ) : (
-              <p className="text-center text-sm text-ink-3 sm:hidden">{phoneLine}</p>
+              <div className={rfqCard}>
+                <RfqCardBody card={phoneCard} />
+              </div>
             )
           ) : null}
           {failed ? (
@@ -317,7 +338,7 @@ export function ThreadLive({
         {arrival}
       </p>
 
-      <form onSubmit={onSend} className="sticky bottom-0 flex shrink-0 flex-col gap-1.5 border-t border-line bg-surface px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] max-md:px-2 max-md:py-2">
+      <form onSubmit={onSend} className="sticky bottom-0 flex shrink-0 flex-col gap-1.5 border-t border-line bg-surface px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] max-md:gap-2 max-md:px-4 max-md:pb-[max(0.25rem,env(safe-area-inset-bottom))] max-md:pt-2.5">
         <label htmlFor={composerId} className="sr-only">
           Message
         </label>
@@ -332,9 +353,9 @@ export function ThreadLive({
             ))}
           </ul>
         ) : null}
-        <div className="flex items-end gap-2">
+        <div className="flex items-end gap-2 max-md:min-h-12 max-md:items-center max-md:gap-1 max-md:rounded-[24px] max-md:border max-md:border-line max-md:p-1 max-md:focus-within:border-brand-ink max-md:has-[[aria-invalid=true]]:border-danger">
           <input ref={fileInputRef} type="file" multiple accept={FILE_TYPES.join(",")} onChange={onPick} tabIndex={-1} aria-hidden className="hidden" />
-          <IconButton icon={Paperclip} label="Attach files" kind="quiet" size={32} disabled={sending} onClick={() => fileInputRef.current?.click()} className="max-md:size-12" />
+          <IconButton icon={Paperclip} label="Attach files" kind="quiet" size={32} disabled={sending} onClick={() => fileInputRef.current?.click()} className="max-md:size-10 max-md:rounded-full" />
           <textarea
             id={composerId}
             value={draft}
@@ -354,12 +375,21 @@ export function ThreadLive({
             className={cn(
               "max-h-[9.5rem] min-h-8 flex-1 resize-none overflow-y-auto rounded-sm border border-line-strong bg-surface px-2.5 py-1.5 text-base text-ink outline-none placeholder:text-ink-3 hover:border-ink-3 disabled:bg-sunken",
               "focus:border-brand-ink focus:[box-shadow:inset_0_0_0_1px_theme(colors.brand-ink)] aria-[invalid=true]:border-danger",
-              "max-md:min-h-12 max-md:rounded-md max-md:px-3 max-md:text-md",
+              "max-md:min-h-10 max-md:border-0 max-md:px-1 max-md:py-2 max-md:text-md max-md:focus:[box-shadow:none] max-md:disabled:bg-transparent",
             )}
           />
-          <Button type="submit" kind="primary" loading={sending} loadingLabel="Sending" disabled={draft.trim().length === 0 && files.length === 0 && !sending} className="max-md:h-12 max-md:rounded-md max-md:px-4 max-md:text-md max-md:font-semibold">
+          <Button type="submit" kind="primary" loading={sending} loadingLabel="Sending" disabled={draft.trim().length === 0 && files.length === 0 && !sending} className="max-md:hidden">
             Send
           </Button>
+          {/* The phone's round send (`11 · thread`): sunken until there is something to send. */}
+          <button
+            type="submit"
+            aria-label={sending ? "Sending" : "Send"}
+            disabled={sending || (draft.trim().length === 0 && files.length === 0)}
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand text-brand-on outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus active:bg-brand-active disabled:bg-sunken disabled:text-ink-3 md:hidden"
+          >
+            {sending ? <SpinnerGap size={18} className="animate-spin motion-reduce:animate-none" aria-hidden /> : <PaperPlaneTilt size={18} weight="thin" aria-hidden />}
+          </button>
         </div>
         {/* A phone has no hint line: the count and the error stand alone under the field. */}
         <p className={cn("flex min-h-4 flex-wrap items-center gap-x-3 px-0.5 text-xs text-ink-3 tabular-nums max-md:text-sm", !error && !counter && !sent && "max-md:hidden")}>
@@ -371,6 +401,10 @@ export function ThreadLive({
           ) : null}
           <span className="max-md:hidden">Ctrl or ⌘ + Enter to send</span>
           {sent ? <span role="status">Message sent</span> : null}
+        </p>
+        <p className="flex items-center justify-center gap-1.5 text-xs text-ink-3 md:hidden">
+          <LockSimple size={13} weight="thin" className="shrink-0" aria-hidden />
+          {PRIVATE_LINE}
         </p>
       </form>
     </div>

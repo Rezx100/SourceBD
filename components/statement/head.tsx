@@ -1,4 +1,5 @@
-// The top of the statement page and its failure states (B6c-2). Server components.
+// The top of the statement page and its failure states (B6c-2). Server components. A phone has
+// `PhoneSubHead` in its place (`app/(app)/app/compliance/msa/page.tsx`).
 
 import Link from "next/link";
 import { BackToHub } from "@/components/compliance/hub";
@@ -7,10 +8,10 @@ import { MSA_HREF } from "@/components/compliance/words";
 
 export function StatementHead() {
   return (
-    <header className="flex shrink-0 flex-col gap-2 border-b border-line px-6 py-4 max-md:border-b-0 max-md:px-4 max-md:pb-2 max-md:pt-1">
+    <header className="flex shrink-0 flex-col gap-2 border-b border-line px-6 py-4 max-md:hidden">
       <BackToHub />
       <div className="flex flex-col gap-0.5">
-        <h1 className="text-xl font-semibold tracking-tight text-ink max-md:hidden">Modern slavery statement</h1>
+        <h1 className="text-xl font-semibold tracking-tight text-ink">Modern slavery statement</h1>
         <p className="text-base text-ink-3">UK Modern Slavery Act 2015, section 54 · composed from your saved suppliers · nothing leaves your browser</p>
       </div>
     </header>
