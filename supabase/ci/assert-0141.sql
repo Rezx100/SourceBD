@@ -120,10 +120,18 @@ begin
 
   set local role authenticated;
   perform set_config('request.jwt.claim.sub', growth::text, true);
-  j := public.shipment_reveal_allowance();
-  if (j ->> 'limit')::int <> 30 or (j ->> 'used')::int <> 1 or (j ->> 'shown')::int <> 15 then raise exception 'allowance: %', j; end if;
+  j := public.supplier_shipment_reveal_state('ci-0141-b');
+  if j ->> 'state' <> 'offer' or (j ->> 'limit')::int <> 30 or (j ->> 'used')::int <> 1 or (j ->> 'shown')::int <> 15 then
+    raise exception 'offer state: %', j;
+  end if;
+  j := public.supplier_shipment_reveal_state('ci-0141-a');
+  if j ->> 'state' <> 'shown' or jsonb_array_length(j -> 'reveal' -> 'records') <> 15 then raise exception 'shown state: %', j; end if;
+  if public.supplier_shipment_reveal_state('ci-0141-c') is not null then raise exception 'a likely match has a state'; end if;
   perform set_config('request.jwt.claim.sub', starter::text, true);
-  if public.shipment_reveal_allowance() is not null then raise exception 'starter has an allowance'; end if;
+  if public.supplier_shipment_reveal_state('ci-0141-a') ->> 'state' <> 'upgrade' then raise exception 'starter is not offered the upgrade line'; end if;
+  if public.supplier_shipment_reveal_state('ci-0141-c') is not null then raise exception 'starter sees a likely match'; end if;
+  perform set_config('request.jwt.claim.sub', susp::text, true);
+  if public.supplier_shipment_reveal_state('ci-0141-a') ->> 'state' <> 'upgrade' then raise exception 'suspended is not shown the plans line'; end if;
   reset role;
 
   -- Allowance used up: no claim for a new supplier, the one already opened still serves.

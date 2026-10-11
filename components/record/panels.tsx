@@ -5,11 +5,12 @@
 
 import { CaretRight, FileText, Hourglass, WarningOctagon } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
-import { CertChip, Define, FactChip, Unpublished } from "@/components/kit";
+import { ButtonLink, CertChip, Define, FactChip, Unpublished } from "@/components/kit";
 import { ABSENT, CertTable, FactList, FactRow, PendingMark, RSC_REPORTS, RscBlock, SourceChip, SourceMark, certWords, type RscBlockData, type RscReportName } from "@/components/patterns";
 import { customsBand, customsRows, customsSource, marketRows } from "@/lib/dashboard/facts";
 import type { RecordRfqRow, SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
+import { ShipmentRevealSection } from "./shipment-reveal";
 import { SitesView } from "./sites-view";
 import { certRows, keyFacts, needsLook, pendingLegend, siteCards, staleWords, type Membership, type TabId } from "./words";
 
@@ -533,7 +534,7 @@ export function ProductsPanel({ model, level: H = "h3", open = false }: { model:
  * read first (critique of 11 Oct 2026, point 12). One source line, in its own head. Nothing for a
  * reader the database refused: the read answers null for a free plan and for no exact match alike.
  */
-export function ExportsBand({ model, href, level: H = "h3" }: { model: SupplierSheetModel; href: string; level?: Level }) {
+export function ExportsBand({ model, href, revealHref, level: H = "h3" }: { model: SupplierSheetModel; href: string; /** The Exports tab's Recent shipments section (board B's band button, K notes). */ revealHref?: string; level?: Level }) {
   const v = model.volza;
   if (!v) return null;
   const band = customsBand(v);
@@ -556,9 +557,16 @@ export function ExportsBand({ model, href, level: H = "h3" }: { model: SupplierS
           </div>
         ))}
       </dl>
-      <Link href={href} prefetch={false} scroll={false} className={cn(LINK, "w-fit text-sm")}>
-        All export facts
-      </Link>
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+        {revealHref && (model.shipments?.state === "offer" || model.shipments?.state === "shown") ? (
+          <ButtonLink href={revealHref} prefetch={false} scroll={false}>
+            Show recent shipments
+          </ButtonLink>
+        ) : null}
+        <Link href={href} prefetch={false} scroll={false} className={cn(LINK, "w-fit text-sm")}>
+          All export facts
+        </Link>
+      </div>
     </section>
   );
 }
@@ -599,6 +607,7 @@ export function ExportsPanel({ model, level: H = "h3" }: { model: SupplierSheetM
           </p>
         </section>
       ) : null}
+      {model.shipments ? <ShipmentRevealSection slug={model.slug} initial={model.shipments} level={H} /> : null}
       <section aria-label="Export lines" className="flex flex-col gap-2">
         <header className="flex flex-wrap items-baseline gap-x-3">
           <H className="text-base font-semibold text-ink">Export lines{p.lines > 0 ? ` · ${p.lines}` : ""}</H>

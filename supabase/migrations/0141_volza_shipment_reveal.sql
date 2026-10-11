@@ -29,7 +29,7 @@
 -- Also: rl_check accepts the route's own bucket, api_reveal (0119's live-definition patch).
 --
 -- Rollback:
---   drop function public.shipment_reveal_allowance();
+--   drop function public.supplier_shipment_reveal_state(text);
 --   drop function public.volza_reveal_abort(uuid, numeric);
 --   drop function public.volza_reveal_finish(uuid, jsonb, numeric, numeric);
 --   drop function public.volza_reveal_begin(text);
@@ -408,45 +408,67 @@ comment on function public.volza_reveal_abort(uuid, numeric) is
 revoke all on function public.volza_reveal_abort(uuid, numeric) from public, anon, authenticated;
 grant execute on function public.volza_reveal_abort(uuid, numeric) to service_role;
 
--- The caller's allowance, for the button's "18 of 30 left this month": null unless Growth or Enterprise and not
--- suspended; an admin has no limit (limit null).
-create or replace function public.shipment_reveal_allowance()
+-- What the record's "Recent shipments" section shows for this caller and supplier (Paper page 34, K1-K7), in one
+-- read: null (signed out, or no exact unexpired match: the section is not drawn); 'upgrade' (a plan without the
+-- reveal, or a suspended account: K5, which says a customs record is on file, as board D's free-plan state does); 'shown'
+-- (revealed this month: the table, through the read above); else 'offer' with how many shipments a reveal shows
+-- and this month's allowance (limit null for an admin). Used up is offer with used >= limit (K6).
+create or replace function public.supplier_shipment_reveal_state(p_slug text)
 returns jsonb
 language plpgsql
-stable
+volatile
 security definer
 set search_path = public
 as $$
 declare
-  v_uid   uuid := auth.uid();
-  v_admin boolean;
-  v_tier  text;
-  v_limit integer;
+  v_uid    uuid := auth.uid();
+  v_admin  boolean;
+  v_tier   text;
+  v_susp   boolean;
+  v_limit  integer;
+  v_reveal jsonb;
 begin
-  select coalesce(p.role = 'admin', false), p.plan_tier
-    into v_admin, v_tier
+  select coalesce(p.role = 'admin', false), p.plan_tier, coalesce(p.is_suspended, false)
+    into v_admin, v_tier, v_susp
     from public.profiles p
-   where p.id = v_uid
-     and not coalesce(p.is_suspended, false);
-  if not found or not (v_admin or v_tier in ('growth', 'enterprise')) then
+   where p.id = v_uid;
+  if not found then
     return null;
   end if;
+  if not exists (
+       select 1 from public.suppliers s
+         join public.volza_export_checks v on v.supplier_id = s.id
+        where s.slug = p_slug and s.is_published = true and v.match_class = 'exact' and v.expires_at > now()
+          and nullif(btrim(v.volza_supplier_name), '') is not null) then
+    return null;
+  end if;
+  -- A suspended account sees K5 as a plan without the reveal does (board notes); never a row.
+  if v_susp or not (v_admin or v_tier in ('growth', 'enterprise')) then
+    return jsonb_build_object('state', 'upgrade');
+  end if;
+
+  v_reveal := public.supplier_shipment_reveal(p_slug);   -- deletes expired copies first
+  if v_reveal is not null then
+    return jsonb_build_object('state', 'shown', 'reveal', v_reveal);
+  end if;
+
   select case when v_admin then null when v_tier = 'enterprise' then enterprise_per_month else growth_per_month end
     into v_limit from public.volza_reveal_settings;
   return jsonb_build_object(
+    'state', 'offer',
+    'shown', case when v_admin or v_tier = 'enterprise' then 25 else 15 end,
     'limit', v_limit,
     'used',  (select count(*) from public.volza_reveal_uses
-               where user_id = v_uid and month = (date_trunc('month', now() at time zone 'utc'))::date),
-    'shown', case when v_admin or v_tier = 'enterprise' then 25 else 15 end);
+               where user_id = v_uid and month = (date_trunc('month', now() at time zone 'utc'))::date));
 end;
 $$;
 
-comment on function public.shipment_reveal_allowance() is
-  'The caller''s shipment reveals this month: limit (null for admins), used, and how many shipments a reveal '
-  'shows (15 or 25). Null for anyone not entitled. 0141.';
+comment on function public.supplier_shipment_reveal_state(text) is
+  'What the Recent shipments section shows the caller for a supplier: null, upgrade, shown (+reveal) or offer '
+  '(+shown, limit, used). Only for an exact, unexpired customs match. 0141.';
 
-revoke all on function public.shipment_reveal_allowance() from public, anon;
-grant execute on function public.shipment_reveal_allowance() to authenticated;
+revoke all on function public.supplier_shipment_reveal_state(text) from public, anon;
+grant execute on function public.supplier_shipment_reveal_state(text) to authenticated;
 
 -- rl_check accepts the reveal route's bucket. 0119's pattern: patch the LIVE definition after 'api_export'.
 do $$

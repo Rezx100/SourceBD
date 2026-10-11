@@ -219,7 +219,7 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
             </p>
           ) : null}
           <Summary cells={cells} />
-          <ExportsBand model={model} href={`${tabHref("exports")}#record-exports`} level={level} />
+          <ExportsBand model={model} href={`${tabHref("exports")}#record-exports`} revealHref={`${tabHref("exports")}#recent-shipments`} level={level} />
 
           {/* Keyed by record: a pane that opens another supplier starts again at its tab. */}
           <SectionTabs
