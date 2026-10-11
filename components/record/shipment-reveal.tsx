@@ -20,7 +20,8 @@ type Phase =
   | { at: "shown"; reveal: ShipmentReveal }
   | { at: "used-up"; limit: number }
   | { at: "today"; limit: number }
-  | { at: "failed"; shown: number; limit: number | null; used: number };
+  | { at: "failed"; shown: number; limit: number | null; used: number }
+  | { at: "gone" };
 
 /** The first of next month, UTC, as "1 November": when a month's allowance starts again. */
 export function resetsOn(now: Date): string {
@@ -165,15 +166,20 @@ export function ShipmentRevealSection({ slug, initial, level = "h3" }: { slug: s
     setPhase({ at: "loading", shown, limit, used });
     try {
       const res = await fetch(`/api/v1/suppliers/${encodeURIComponent(slug)}/shipments`, { method: "POST" });
-      const body = (await res.json().catch(() => ({}))) as { reveal?: ShipmentReveal; error?: string; limit?: number };
+      const body = (await res.json().catch(() => ({}))) as { reveal?: ShipmentReveal; code?: string; limit?: number };
       if (res.ok && body.reveal && Array.isArray(body.reveal.records)) {
         setPhase({ at: "shown", reveal: body.reveal });
         // The button is gone: the reader lands on the table's heading, not at the top of the page.
         return requestAnimationFrame(() => document.getElementById("recent-shipments-title")?.focus());
       }
+      // Signed out since the page loaded: reload, and the app's own gate asks for the sign-in.
+      if (res.status === 401) return window.location.reload();
       if (res.status === 403) return setPhase({ at: "upgrade" });
+      // The match was withdrawn since the page loaded: nothing to offer, so no section.
+      if (res.status === 404) return setPhase({ at: "gone" });
       if (res.status === 429 && typeof body.limit === "number") {
-        return setPhase(/today/i.test(body.error ?? "") ? { at: "today", limit: body.limit } : { at: "used-up", limit: body.limit });
+        if (body.code === "daily_limit") return setPhase({ at: "today", limit: body.limit });
+        if (body.code === "allowance_used") return setPhase({ at: "used-up", limit: body.limit });
       }
       setPhase({ at: "failed", shown, limit, used });
     } catch {
@@ -181,6 +187,7 @@ export function ShipmentRevealSection({ slug, initial, level = "h3" }: { slug: s
     }
   }
 
+  if (phase.at === "gone") return null;
   let body: React.ReactNode;
   switch (phase.at) {
     case "shown":

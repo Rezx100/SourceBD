@@ -6,7 +6,7 @@
 // finish or abort as the service role; the read as the buyer, cut to 15 or 25 in SQL.
 //
 // Answers: 200 {reveal}; 401 signed out; 403 not on Growth or Enterprise (or suspended); 404 no exact match;
-// 429 allowance or daily limit used ({error, limit}); 503 "try again shortly" for anything else, with nothing
+// 429 allowance or daily limit used ({error, limit, code: allowance_used | daily_limit}); 503 "try again shortly" for anything else, with nothing
 // saved and no allowance used.
 
 import { NextResponse, type NextRequest } from "next/server";
@@ -59,9 +59,9 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ sl
     case "unavailable":
       return say("No shipments to show for this supplier.", 404);
     case "allowance_used":
-      return say("You've used this month's shipment reveals.", 429, { limit: begin.limit });
+      return say("You've used this month's shipment reveals.", 429, { limit: begin.limit, code: "allowance_used" });
     case "daily_limit":
-      return say("You've reached today's shipment reveals. Try again tomorrow.", 429, { limit: begin.limit });
+      return say("You've reached today's shipment reveals. Try again tomorrow.", 429, { limit: begin.limit, code: "daily_limit" });
     case "fetch":
       break;
     default:

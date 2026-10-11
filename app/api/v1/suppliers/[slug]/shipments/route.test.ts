@@ -163,10 +163,11 @@ describe("/api/v1/suppliers/:slug/shipments", () => {
     beginAnswers({ status: "allowance_used", limit: 30 });
     let res = await send();
     assert.equal(res.status, 429);
-    assert.deepEqual(await res.json(), { error: "You've used this month's shipment reveals.", limit: 30 });
+    assert.deepEqual(await res.json(), { error: "You've used this month's shipment reveals.", limit: 30, code: "allowance_used" });
     beginAnswers({ status: "daily_limit", limit: 20 });
     res = await send();
     assert.equal(res.status, 429);
+    assert.equal(((await res.json()) as { code: string }).code, "daily_limit");
     assert.equal(volzaCalls.length, 0);
   });
 

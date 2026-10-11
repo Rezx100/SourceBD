@@ -559,7 +559,7 @@ export function ExportsBand({ model, href, revealHref, level: H = "h3" }: { mode
       </dl>
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
         {revealHref && (model.shipments?.state === "offer" || model.shipments?.state === "shown") ? (
-          <ButtonLink href={revealHref} prefetch={false} scroll={false}>
+          <ButtonLink href={revealHref} prefetch={false}>
             Show recent shipments
           </ButtonLink>
         ) : null}
@@ -607,7 +607,7 @@ export function ExportsPanel({ model, level: H = "h3" }: { model: SupplierSheetM
           </p>
         </section>
       ) : null}
-      {model.shipments ? <ShipmentRevealSection slug={model.slug} initial={model.shipments} level={H} /> : null}
+      {model.shipments ? <ShipmentRevealSection key={model.slug} slug={model.slug} initial={model.shipments} level={H} /> : null}
       <section aria-label="Export lines" className="flex flex-col gap-2">
         <header className="flex flex-wrap items-baseline gap-x-3">
           <H className="text-base font-semibold text-ink">Export lines{p.lines > 0 ? ` · ${p.lines}` : ""}</H>
