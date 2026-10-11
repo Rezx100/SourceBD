@@ -176,7 +176,8 @@ describe("what the composer draws", () => {
     assert.equal(fieldNote(true, [], "quantity", "Add a quantity"), null);
     // Drawn: the words in ink, no inline message, and the live region present but empty.
     const out = draw([target(1)], { prefill: { title: "", quantity: "" } });
-    assert.match(out, /<p class="text-ink">Sends to 1 supplier: Aboni Knitwear Ltd\.<\/p>/);
+    assert.match(out, /<p class="text-ink max-sm:hidden">Sends to 1 supplier: Aboni Knitwear Ltd\.<\/p>/);
+    assert.ok(out.includes("Suppliers reply in Messages. Your email stays private."), "a phone says where the replies land");
     assert.match(out, /<p role="status" aria-live="polite" class="text-ink sr-only"><\/p>/, "the live region speaks on mount");
     assert.doesNotMatch(out, /text-danger|Add a product|Add a quantity/);
   });
@@ -318,14 +319,15 @@ describe("fifty recipients: one confirmation, and the sentence that matters in i
     assert.match(out, /aria-pressed="true"[^>]*>Sorted A to Z</);
     const src = readFileSync(path.join(process.cwd(), "components", "rfqs", "composer.tsx"), "utf8");
     assert.match(src, /const TONE = \{ ink: "text-ink",/);
-    assert.match(src, /<div className="min-w-0 text-base">/);
+    assert.match(src, /<div className="min-w-0 text-base[ "]/);
   });
 
   it("Send and Save draft are busy, never disabled, while a draft saves, so focus does not drop to the page", () => {
     const src = readFileSync(path.join(process.cwd(), "components", "rfqs", "composer.tsx"), "utf8");
     assert.doesNotMatch(src, /disabled=\{busy !== null\}/, "Save draft is disabled while busy");
     assert.match(src, /const blocked = sanctioned\.length > 0;/, "Send is disabled while a draft saves");
-    assert.equal((src.match(/aria-busy=\{busy !== null \|\| undefined\}/g) ?? []).length, 2);
+    // Send, Save draft, and the phone bar's Save draft (Paper 36 `rfq-new`).
+    assert.equal((src.match(/aria-busy=\{busy !== null \|\| undefined\}/g) ?? []).length, 3);
     assert.match(src, /if \(decision === "review"\) return setReviewing\("confirm"\);/, "Ctrl Enter and the click skip the confirmation");
   });
 });

@@ -6,7 +6,7 @@
 // (or an accepted quote seeds it) the form, with the order's value beside it as they type. A
 // supplier that is sanctioned or unpublished never reaches the form (the page refuses it).
 
-import { ArrowLeft, MagnifyingGlass } from "@phosphor-icons/react";
+import { ArrowLeft, Check, MagnifyingGlass, Storefront } from "@phosphor-icons/react";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import Link from "next/link";
 import { useContext, useEffect, useId, useState, useSyncExternalStore } from "react";
@@ -227,15 +227,25 @@ export function OrderForm({ seed, prefill, cancelHref, backLabel, changeHref }: 
     } else window.location.assign(next);
   }
 
-  const size = "max-sm:h-input-touch max-sm:text-md";
+  const size = "max-sm:h-12 max-sm:rounded-lg max-sm:text-md";
+  const head = "text-md font-semibold text-ink max-sm:pt-3 max-sm:text-lg max-sm:font-medium max-sm:tracking-tight";
   return (
     <section aria-label="New order" data-detail="" onKeyDown={(e) => ((e.metaKey || e.ctrlKey) && e.key === "Enter" ? (e.preventDefault(), void create()) : undefined)} className="flex min-h-0 flex-1 flex-col bg-surface">
-      <header className="flex flex-col gap-3 border-b border-line px-4 py-4 sm:px-6">
-        <Link href={cancelHref} prefetch={false} className="inline-flex min-h-11 w-fit items-center gap-1.5 rounded-sm text-base font-medium text-ink-2 outline-none hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:min-h-6">
+      <header className="flex flex-col gap-3 border-b border-line px-4 py-4 sm:px-6 max-sm:min-h-14 max-sm:flex-row max-sm:items-center max-sm:border-b-0 max-sm:pb-2.5 max-sm:pt-1.5">
+        <Link href={cancelHref} prefetch={false} className="inline-flex min-h-6 w-fit items-center gap-1.5 rounded-sm text-base font-medium text-ink-2 outline-none hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus max-sm:hidden">
           <ArrowLeft size={16} className="shrink-0" aria-hidden />
           {backLabel}
         </Link>
-        <h1 className="text-xl font-semibold tracking-tight text-ink">New order</h1>
+        {/* The phone's compact head (Paper 36 `new-order`): a round back, the title and where the order comes from. */}
+        <Link href={cancelHref} prefetch={false} aria-label={backLabel} className="group -ml-1 flex size-11 shrink-0 items-center justify-center rounded-full outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus sm:hidden">
+          <span className="flex size-9 items-center justify-center rounded-full bg-sunken group-active:bg-line">
+            <ArrowLeft size={17} weight="thin" className="shrink-0 text-ink-2" aria-hidden />
+          </span>
+        </Link>
+        <div className="flex min-w-0 flex-col max-sm:grow">
+          <h1 className="text-xl font-semibold tracking-tight text-ink max-sm:text-xl/[30px] max-sm:tracking-[-0.025em]">New order</h1>
+          <p className="text-sm text-ink-3 sm:hidden">{"quoteId" in seed.how ? "From the quote you accepted" : "An order placed outside SourceBD"}</p>
+        </div>
       </header>
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto xl:flex-row xl:overflow-visible">
         <form
@@ -244,18 +254,21 @@ export function OrderForm({ seed, prefill, cancelHref, backLabel, changeHref }: 
             e.preventDefault();
             void create();
           }}
-          className="flex min-w-0 flex-col gap-6 px-4 py-5 sm:px-6 xl:flex-1 xl:overflow-y-auto"
+          className="flex min-w-0 flex-col gap-6 px-5 py-5 max-sm:pt-1 sm:px-6 xl:flex-1 xl:overflow-y-auto"
         >
           <div className="flex w-full max-w-pane flex-col gap-6">
             <section aria-label="Supplier" className="flex flex-col gap-2">
-              <h2 className="text-md font-semibold text-ink">Supplier</h2>
-              <div className="flex items-center gap-3 rounded-md border border-line py-2 pl-3 pr-2">
+              <h2 className="text-md font-semibold text-ink max-sm:sr-only">Supplier</h2>
+              <div className="flex items-center gap-3 rounded-md border border-line py-2 pl-3 pr-2 max-sm:rounded-[10px] max-sm:px-4 max-sm:py-3.5">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-sunken sm:hidden">
+                  <Storefront size={20} weight="thin" className="shrink-0 text-ink-2" aria-hidden />
+                </span>
                 <div className="flex min-w-0 flex-1 flex-col">
-                  <span className="text-base font-medium text-ink [overflow-wrap:anywhere]">{seed.supplierName}</span>
+                  <span className="text-base font-medium text-ink [overflow-wrap:anywhere] max-sm:text-md/[22px]">{seed.supplierName}</span>
                   <span className="text-xs text-ink-3 max-sm:text-sm">{seed.supplierLine}</span>
                 </div>
                 {changeHref ? (
-                  <Link href={changeHref} prefetch={false} className={buttonClass({ kind: "secondary", className: "max-sm:h-input-touch" })}>
+                  <Link href={changeHref} prefetch={false} className={buttonClass({ kind: "secondary", className: "max-sm:h-11 max-sm:rounded-full max-sm:border-0 max-sm:bg-sunken max-sm:px-3.5 max-sm:active:bg-line" })}>
                     Change
                   </Link>
                 ) : null}
@@ -263,7 +276,7 @@ export function OrderForm({ seed, prefill, cancelHref, backLabel, changeHref }: 
             </section>
 
             <section aria-label="What you're ordering" className="flex flex-col gap-3">
-              <h2 className="text-md font-semibold text-ink">What you&apos;re ordering</h2>
+              <h2 className={head}>What you&apos;re ordering</h2>
               <Field label="Product · required">{(a) => <Input {...a} required value={f.title} onChange={(e) => set("title")(e.target.value)} maxLength={200} className={size} />}</Field>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                 <Field label="Quantity · required">
@@ -286,15 +299,48 @@ export function OrderForm({ seed, prefill, cancelHref, backLabel, changeHref }: 
               <Field label="PO number · optional" className="sm:max-w-[312px]">
                 {(a) => <Input {...a} value={f.po} onChange={(e) => set("po")(e.target.value)} maxLength={64} className={cn("font-mono", size)} />}
               </Field>
+              {/* On a phone the value sits under what is ordered (Paper 36 `new-order`); from 640 it is the column beside. */}
+              <div className="flex flex-col gap-1 rounded-[10px] border border-line bg-subtle px-4 pb-3 pt-3.5 sm:hidden">
+                <p className="text-sm text-ink-3">Order value</p>
+                <p className={cn("text-xl font-medium tracking-tighter tabular-nums", value ? "text-ink" : "text-ink-3")}>{value ?? "Not priced yet"}</p>
+                <p className="text-sm text-ink-2">{line ?? "Add a quantity and a price per piece and the value shows here."}</p>
+              </div>
             </section>
 
             <section aria-label="Shipping" className="flex flex-col gap-3">
-              <h2 className="text-md font-semibold text-ink">Shipping</h2>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-                <Field label="Incoterm">
+              <h2 className={head}>Shipping</h2>
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                <Field label="Incoterm" className="max-sm:hidden">
                   {(a) => <Select {...a} value={f.incoterm || "none"} onValueChange={(v) => set("incoterm")(v === "none" ? "" : v)} options={[{ value: "none", label: "Not set" }, ...INCOTERMS.map((v) => ({ value: v, label: v }))]} className={size} />}
                 </Field>
-                <Field label="Ship to">
+                {/* A phone picks the incoterm from chips (Paper 36 `new-order`); a second tap clears it. */}
+                <div className="col-span-2 flex flex-col gap-2 max-sm:order-1 sm:hidden">
+                  <span id={`${id}-incoterm`} className="text-sm font-medium text-ink-2">
+                    Incoterm
+                  </span>
+                  <div role="radiogroup" aria-labelledby={`${id}-incoterm`} className="flex flex-wrap gap-2">
+                    {INCOTERMS.map((v) => {
+                      const on = f.incoterm === v;
+                      return (
+                        <button
+                          key={v}
+                          type="button"
+                          role="radio"
+                          aria-checked={on}
+                          onClick={() => set("incoterm")(on ? "" : v)}
+                          className={cn(
+                            "relative flex h-9 items-center gap-1.5 rounded-full text-base font-medium outline-none before:absolute before:-inset-y-1 before:inset-x-0 before:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus",
+                            on ? "bg-ink pl-2.5 pr-3.5 text-surface active:bg-ink-2" : "border border-line px-3.5 text-ink active:bg-sunken",
+                          )}
+                        >
+                          {on ? <Check size={16} weight="thin" className="shrink-0" aria-hidden /> : null}
+                          {v}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <Field label="Ship to" className="max-sm:order-3">
                   {(a) => (
                     <>
                       <Input {...a} list={`${id}-countries`} value={f.shipTo} onChange={(e) => set("shipTo")(e.target.value)} maxLength={64} placeholder="Country" className={size} />
@@ -306,16 +352,17 @@ export function OrderForm({ seed, prefill, cancelHref, backLabel, changeHref }: 
                     </>
                   )}
                 </Field>
-                <Field label="From port">{(a) => <Input {...a} value={f.originPort} onChange={(e) => set("originPort")(e.target.value)} maxLength={128} className={size} />}</Field>
-                <Field label="To port">{(a) => <Input {...a} value={f.destinationPort} onChange={(e) => set("destinationPort")(e.target.value)} maxLength={128} className={size} />}</Field>
-                <Field label="Ship by">{(a) => <Input {...a} type="date" value={f.shipBy} onChange={(e) => set("shipBy")(e.target.value)} className={size} />}</Field>
-                <Field label="Deliver by">{(a) => <Input {...a} type="date" value={f.deliverBy} onChange={(e) => set("deliverBy")(e.target.value)} className={size} />}</Field>
+                <Field label="From port" className="max-sm:order-2">{(a) => <Input {...a} value={f.originPort} onChange={(e) => set("originPort")(e.target.value)} maxLength={128} className={size} />}</Field>
+                <Field label="To port" className="max-sm:order-4 max-sm:col-span-2">{(a) => <Input {...a} value={f.destinationPort} onChange={(e) => set("destinationPort")(e.target.value)} maxLength={128} className={size} />}</Field>
+                <Field label="Ship by" className="max-sm:order-5">{(a) => <Input {...a} type="date" value={f.shipBy} onChange={(e) => set("shipBy")(e.target.value)} className={size} />}</Field>
+                <Field label="Deliver by" className="max-sm:order-6">{(a) => <Input {...a} type="date" value={f.deliverBy} onChange={(e) => set("deliverBy")(e.target.value)} className={size} />}</Field>
               </div>
+              <p className="text-xs text-ink-3 sm:hidden">{seed.supplierName} sees this order and can log its own updates.</p>
               <Field label="Notes · optional">{(a) => <textarea {...a} className={textarea} value={f.notes} onChange={(e) => set("notes")(e.target.value)} maxLength={4000} rows={3} />}</Field>
             </section>
           </div>
         </form>
-        <aside aria-label="Order value" className="flex flex-col gap-3 border-t border-line bg-subtle px-4 py-5 sm:px-6 xl:w-details xl:shrink-0 xl:border-l xl:border-t-0">
+        <aside aria-label="Order value" className="flex flex-col gap-3 border-t border-line bg-subtle px-4 py-5 max-sm:hidden sm:px-6 xl:w-details xl:shrink-0 xl:border-l xl:border-t-0">
           <h2 className="text-md font-semibold text-ink">Order value</h2>
           <p className={cn("text-2xl font-semibold tracking-tight [font-variant-numeric:tabular-nums]", value ? "text-ink" : "text-ink-3")}>{value ?? "Not priced yet"}</p>
           <p className="text-sm text-ink-2">{line ?? "Add a quantity and a price per piece and the value shows here."}</p>
@@ -324,14 +371,14 @@ export function OrderForm({ seed, prefill, cancelHref, backLabel, changeHref }: 
         </aside>
       </div>
       <div className="flex shrink-0 flex-col gap-2 border-t border-line bg-surface px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] max-sm:sticky max-sm:bottom-0 max-sm:z-sticky sm:h-16 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-0">
-        <p role="status" aria-live="polite" className={cn("min-w-0 text-sm", error ? "text-danger" : missing.length ? "text-ink-3" : "text-ink-3")}>
+        <p role="status" aria-live="polite" className={cn("min-w-0 text-sm max-sm:text-center max-sm:text-xs", error ? "text-danger" : "text-ink-3", !error && missing.length === 0 && "max-sm:sr-only")}>
           {error ?? (missing.length > 0 ? `Add ${missing.join(", ")} to create it.` : value ? `Order value ${value}.` : "Ready to create.")}
         </p>
         <div className="flex items-center gap-2">
-          <Link href={cancelHref} prefetch={false} className={buttonClass({ kind: "secondary", size: "lg", className: "max-sm:h-12" })}>
+          <Link href={cancelHref} prefetch={false} className={buttonClass({ kind: "secondary", size: "lg", className: "max-sm:h-12 max-sm:rounded-lg max-sm:border-line max-sm:px-[18px] max-sm:text-md" })}>
             Cancel
           </Link>
-          <Button type="submit" form={`${id}-form`} kind="primary" size="lg" disabled={missing.length > 0 || busy} loading={busy} loadingLabel="Creating" className="max-sm:h-12 max-sm:flex-1">
+          <Button type="submit" form={`${id}-form`} kind="primary" size="lg" disabled={missing.length > 0 || busy} loading={busy} loadingLabel="Creating" className="max-sm:h-12 max-sm:flex-1 max-sm:rounded-lg max-sm:text-md">
             Create order
             <span className="text-xs font-medium opacity-85 max-sm:hidden">{apple ? "⌘↵" : "Ctrl+Enter"}</span>
           </Button>

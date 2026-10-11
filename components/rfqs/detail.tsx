@@ -6,14 +6,14 @@
 // 44-tall button. Only what `rfq_get` holds is drawn: there is no reminder, no source count and
 // no per-supplier state beyond "has a quote on file".
 
-import { ArrowLeft, ChatCircle, Warning, X } from "@phosphor-icons/react/dist/ssr";
+import { ArrowLeft, Boat, ChatCircle, CheckCircle, Package, PaperPlaneTilt, Warning, X } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { InlineError, Table, Td, Th, Tr, buttonClass } from "@/components/kit";
 import { cn } from "@/lib/utils";
 import { AcceptQuote } from "./accept";
 import { RfqChip } from "./chip";
-import { detailModel, type DetailModel, type NoReplyModel, type QuoteModel, type RfqDoc } from "./doc";
+import { CHART_TARGET_AT, detailModel, quoteChart, type DetailModel, type NoReplyModel, type QuoteChart, type QuoteModel, type RfqDoc } from "./doc";
 import { ShowMore } from "./show-more";
 import { shortName } from "./words";
 
@@ -188,41 +188,65 @@ function QuoteRows({ m, order, pageOnly }: { m: DetailModel; order: OrderRef; pa
   );
 }
 
-/** A phone's quotes: a card per supplier, the price and its difference first. */
-function QuoteCards({ m, order }: { m: DetailModel; order: OrderRef }) {
+/** What a phone card's pill says first: a caution, else that it is the cheapest of several. */
+function cardPill(q: QuoteModel, first: boolean, m: DetailModel): { text: string; caution: boolean } | null {
+  if (q.moqSentence) return { text: "Minimum order above yours", caution: true };
+  if (q.missWords) return { text: "Misses ship-by", caution: true };
+  if (first && m.comparable > 1 && q.status === "submitted") return { text: `Cheapest of ${m.comparable} quotes`, caution: false };
+  return null;
+}
+
+type Fact = [label: string, value: string, warn: boolean];
+
+/** A phone's quotes (Paper 36 `rfq-detail`): a card per supplier, its pill, the price large, the terms as rows, Accept, and a word about the MOQ. */
+function QuoteCards({ m, order, threadHref }: { m: DetailModel; order: OrderRef; threadHref: string | null }) {
   return (
-    <ul className="flex flex-col gap-3 sm:hidden">
-      {m.quotes.map((q, i) => (
-        <li key={q.id} className="flex flex-col gap-2 rounded-lg border border-line bg-surface p-4">
-          {/* A name, as the board draws it: the supplier's record is one tap away in "Sent to" below. */}
-          <h3 className="text-md font-medium text-ink">{q.supplier}</h3>
-          <p className="flex flex-wrap items-baseline gap-x-2">
-            <span className="text-xl font-semibold tracking-tight text-ink">{q.price}</span>
-            <span className="text-sm text-ink-2">
-              per {q.perUnit}
-              {q.versus ? ` · ${q.versus} target` : ""}
-            </span>
-          </p>
-          {q.moqSentence ? (
-            <p className="flex items-start gap-1.5 text-sm font-medium text-caution">
-              <Warning size={14} weight="fill" className="mt-0.5 shrink-0 text-caution-icon" aria-hidden />
-              {q.moqSentence}
-            </p>
-          ) : (
-            <p className="text-sm text-ink-2">
-              {[q.moq ? `MOQ ${q.moq}` : null, q.lead, q.valid ? `valid until ${q.valid}` : null].filter(Boolean).join(" · ")}
-            </p>
-          )}
-          {q.missWords ? (
-            <p className="flex items-start gap-1.5 text-sm font-medium text-caution">
-              <Warning size={14} weight="fill" className="mt-0.5 shrink-0 text-caution-icon" aria-hidden />
-              Misses ship-by: {q.missWords}
-            </p>
-          ) : null}
-          {q.notes ? <p className="whitespace-pre-wrap text-sm text-ink-2 [overflow-wrap:anywhere]">{q.notes}</p> : null}
-          <QuoteAction q={q} m={m} order={order} size="touch" full best={i === 0} />
-        </li>
-      ))}
+    <ul className={cn("flex flex-col gap-3 sm:hidden", TABULAR)}>
+      {m.quotes.map((q, i) => {
+        const pill = cardPill(q, i === 0, m);
+        const facts: Fact[] = [];
+        if (q.moq) facts.push(["Minimum order", q.moqSentence ? q.moqSentence.replace(/^MOQ /, "") : q.moq, Boolean(q.moqSentence)]);
+        if (q.lead) facts.push(["Lead time", q.missWords ? `${q.lead} · ends after ship-by` : q.lead, Boolean(q.missWords)]);
+        if (q.valid) facts.push(["Quote valid until", q.valid, false]);
+        return (
+          <li key={q.id} className="flex flex-col gap-3.5 rounded-lg border border-line bg-surface p-4">
+            {pill ? (
+              <span className={cn("flex h-7 shrink-0 items-center gap-1.5 self-start rounded-full pl-2 pr-2.5 text-sm font-medium", pill.caution ? "bg-caution-tint text-caution" : "bg-brand-tint text-brand")}>
+                {pill.caution ? <Warning size={16} weight="thin" className="shrink-0 text-caution-icon" aria-hidden /> : <CheckCircle size={16} weight="thin" className="shrink-0 text-brand" aria-hidden />}
+                {pill.text}
+              </span>
+            ) : null}
+            <div className="flex flex-col gap-0.5">
+              {/* A name, as the board draws it: the supplier's record is one tap away in "Sent to" below. */}
+              <h3 className="text-lg font-medium tracking-tight text-ink">{q.supplier}</h3>
+              <p className="flex items-baseline gap-1.5">
+                <span className="text-xl font-medium tracking-tighter text-ink">{q.price}</span>
+                <span className="text-base text-ink-2">per {q.perUnit}</span>
+              </p>
+            </div>
+            {facts.length > 0 ? (
+              <dl className="flex flex-col gap-2">
+                {facts.map(([k, v, warn]) => (
+                  <div key={k} className="flex justify-between gap-3">
+                    <dt className="text-sm text-ink-3">{k}</dt>
+                    <dd className={cn("text-right text-base font-medium", warn ? "text-caution" : "text-ink")}>{v}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : null}
+            {q.notes ? <p className="whitespace-pre-wrap text-sm text-ink-2 [overflow-wrap:anywhere]">{q.notes}</p> : null}
+            <QuoteAction q={q} m={m} order={order} size="touch" full best={i === 0} />
+            {q.moqSentence && threadHref && m.canAccept ? (
+              <div className="flex items-center justify-end gap-3 border-t border-line pt-3">
+                <Link href={threadHref} prefetch={false} className="flex h-11 items-center gap-1.5 rounded-full bg-sunken px-3.5 text-base font-medium text-ink outline-none active:bg-line focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+                  <ChatCircle size={16} weight="thin" className="shrink-0" aria-hidden />
+                  Ask about MOQ
+                </Link>
+              </div>
+            ) : null}
+          </li>
+        );
+      })}
       {m.noReply.map((n) => (
         <li key={n.id} className="flex flex-col gap-1 rounded-lg border border-line bg-subtle p-4">
           <h3 className="text-md font-medium text-ink">{n.supplier}</h3>
@@ -235,16 +259,59 @@ function QuoteCards({ m, order }: { m: DetailModel; order: OrderRef }) {
   );
 }
 
-export function QuotesSection({ m, order, mode }: { m: DetailModel; order: OrderRef; mode: "pane" | "page" }) {
+/** Where the target line and its label stand: the track starts after the 112 name and an 8 gap, and leaves 80 for the price. */
+const TARGET_X = "left-[calc(120px_+_(100%_-_200px)_*_0.56)]";
+
+/** The phone's price comparison (Paper 36 `rfq-detail`): a dot per quote against the dashed target, cheaper to the left. The cards say the same in words. */
+function PriceChart({ c }: { c: QuoteChart }) {
+  return (
+    <div aria-hidden className={cn("relative flex flex-col pt-6 sm:hidden", TABULAR)}>
+      <div className={cn("absolute bottom-[27px] top-5 w-0 border-l-[1.5px] border-dashed border-l-ink-2", TARGET_X)} />
+      <div className={cn("absolute top-0 w-max -translate-x-1/2 text-xs font-medium text-ink", TARGET_X)}>Your target {c.target}</div>
+      {c.rows.map((r, n) => (
+        <div key={r.id} className={cn("relative flex h-12 shrink-0 items-center gap-2", n > 0 && "border-t border-line")}>
+          <span className={cn("line-clamp-2 w-28 shrink-0 text-base", r.price ? "text-ink" : "text-ink-3")}>{r.name}</span>
+          <span className="relative h-full min-w-0 flex-1">
+            {r.at !== null ? (
+              <>
+                <span className="absolute inset-x-0 top-[23px] h-0.5 rounded-full bg-sunken" />
+                <span className={cn("absolute top-[23px] h-0.5", r.over ? "bg-caution-icon" : "bg-brand")} style={{ left: `${Math.min(r.at, CHART_TARGET_AT) * 100}%`, width: `${Math.abs(r.at - CHART_TARGET_AT) * 100}%` }} />
+                <span className={cn("absolute top-[18px] size-3 -translate-x-1/2 rounded-full border-2 border-surface", r.over ? "bg-caution-icon" : "bg-brand")} style={{ left: `${r.at * 100}%` }} />
+              </>
+            ) : null}
+          </span>
+          {r.price ? (
+            <span className="flex w-[72px] shrink-0 flex-col items-end">
+              <span className="text-base/[18px] font-medium text-ink">{r.price}</span>
+              {r.delta ? <span className={cn("text-xs font-medium", r.over ? "text-caution" : "text-brand")}>{r.delta}</span> : null}
+            </span>
+          ) : (
+            <span className="w-[72px] shrink-0 text-right text-xs text-ink-3">No quote yet</span>
+          )}
+        </div>
+      ))}
+      <div className="relative flex justify-between gap-3 border-t border-line pt-2.5 text-xs text-ink-3">
+        <span>Cheaper to the left</span>
+        <span className="text-right">{c.legend}</span>
+      </div>
+    </div>
+  );
+}
+
+export function QuotesSection({ m, order, mode, chart = null, threadHref = null }: { m: DetailModel; order: OrderRef; mode: "pane" | "page"; chart?: QuoteChart | null; threadHref?: string | null }) {
   const none = m.quotes.length === 0 && m.noReply.length === 0;
   return (
     <section aria-label="Quotes" className="flex min-w-0 flex-col gap-3">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <div className="flex flex-wrap items-baseline gap-x-2">
-          <h2 className="text-lg font-semibold text-ink">{m.quotesTitle}</h2>
-          {m.notReplied ? <p className="text-base text-ink-3">{m.notReplied}</p> : null}
+          <h2 className="text-lg font-semibold text-ink max-sm:font-medium max-sm:tracking-tight">
+            <span className="sm:hidden">Quotes</span>
+            <span className="max-sm:hidden">{m.quotesTitle}</span>
+          </h2>
+          <p className="text-lg text-ink-3 sm:hidden">{m.quotesOf}</p>
+          {m.notReplied ? <p className="text-base text-ink-3 max-sm:hidden">{m.notReplied}</p> : null}
         </div>
-        {m.quotes.length > 1 ? <p className="text-sm text-ink-3 max-sm:hidden">{m.sortWords}</p> : null}
+        {m.quotes.length > 1 ? <p className="text-sm text-ink-3">{m.sortWords}</p> : null}
       </div>
       {none ? (
         <p className="rounded-md border border-line p-5 text-base text-ink-2">No quotes yet. They appear here, lined up against your target, as suppliers answer.</p>
@@ -255,7 +322,8 @@ export function QuotesSection({ m, order, mode }: { m: DetailModel; order: Order
             <QuoteRows m={m} order={order} pageOnly={mode === "page"} />
             <p className="border-t border-line px-3 py-2 text-xs text-ink-3">{m.footnote}</p>
           </div>
-          <QuoteCards m={m} order={order} />
+          {chart ? <PriceChart c={chart} /> : null}
+          <QuoteCards m={m} order={order} threadHref={threadHref} />
           <p className="text-xs text-ink-3 sm:hidden">{m.footnote}</p>
         </>
       )}
@@ -363,6 +431,10 @@ function entityPlace(t: RfqDoc["targets"][number]): string {
   return [kind, [t.city, t.district].filter(Boolean).join(", ") || null].filter(Boolean).join(" · ");
 }
 
+/** The phone bar's round buttons: a 44 target around a 36 face, pressed a shade darker. */
+const PHONE_ROUND = "group flex size-11 shrink-0 items-center justify-center rounded-full outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus";
+const PHONE_ROUND_FACE = "flex size-9 items-center justify-center rounded-full bg-sunken group-active:bg-line";
+
 const ICON_LINK = "inline-flex size-8 shrink-0 items-center justify-center rounded-sm text-ink-2 outline-none hover:bg-sunken hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 export type RfqDetailProps = {
@@ -389,29 +461,39 @@ export function RfqDetail({ rfq, mode, today, closeHref, order = null, others = 
         Open messages
       </Link>
     ) : null;
-  const messagesPhone =
-    isBuyer && rfq.thread_id ? (
-      <Link href={`/app/messages/${rfq.thread_id}`} prefetch={false} className={buttonClass({ kind: "secondary", size: "touch", className: "gap-1.5 pl-3" })}>
-        <ChatCircle size={20} className="shrink-0 text-ink-2" aria-hidden />
-        Open messages
-      </Link>
-    ) : null;
+  const threadHref = isBuyer && rfq.thread_id ? `/app/messages/${rfq.thread_id}` : null;
   return (
     <section aria-label={`RFQ: ${rfq.product_title}`} data-record-pane={page ? undefined : ""} data-detail={page ? "" : undefined} tabIndex={page ? undefined : -1} className="flex min-h-0 flex-1 flex-col bg-surface outline-none">
       {page ? (
-        <div className="flex h-12 items-center px-4 sm:h-auto sm:px-6 sm:pt-4">
-          <Link href={closeHref} prefetch={false} className="inline-flex min-h-11 items-center gap-1.5 sm:min-h-6 rounded-sm text-md font-medium text-ink-2 outline-none hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:text-base">
-            <ArrowLeft size={16} className="shrink-0" aria-hidden />
-            <span className="sm:hidden">Quotes</span>
-            <span className="max-sm:hidden">Back to RFQs</span>
-          </Link>
-        </div>
+        <>
+          {/* The phone's bar (Paper 36 `rfq-detail`): back to Quotes, and the conversation when there is one. */}
+          <div className="flex h-14 items-center justify-between px-3 sm:hidden">
+            <Link href={closeHref} prefetch={false} aria-label="Back to Quotes" className={PHONE_ROUND}>
+              <span className={PHONE_ROUND_FACE}>
+                <ArrowLeft size={17} weight="thin" className="shrink-0 text-ink-2" aria-hidden />
+              </span>
+            </Link>
+            {threadHref ? (
+              <Link href={threadHref} prefetch={false} aria-label="Open messages" className={PHONE_ROUND}>
+                <span className={PHONE_ROUND_FACE}>
+                  <ChatCircle size={20} weight="thin" className="shrink-0 text-ink-2" aria-hidden />
+                </span>
+              </Link>
+            ) : null}
+          </div>
+          <div className="flex items-center px-6 pt-4 max-sm:hidden">
+            <Link href={closeHref} prefetch={false} className="inline-flex min-h-6 items-center gap-1.5 rounded-sm text-base font-medium text-ink-2 outline-none hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+              <ArrowLeft size={16} className="shrink-0" aria-hidden />
+              Back to RFQs
+            </Link>
+          </div>
+        </>
       ) : null}
-      <header className={cn("flex flex-col gap-1 border-b border-line px-4 pb-4 sm:px-6", page ? "pt-2 sm:pt-3" : "pt-4")}>
+      <header className={cn("flex flex-col gap-1 border-b border-line px-4 pb-4 sm:px-6", page ? "pt-2 max-sm:border-b-0 max-sm:px-5 max-sm:pb-1 sm:pt-3" : "pt-4")}>
         <div className="flex items-start justify-between gap-4">
-          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-            <Title className="text-xl font-semibold tracking-tight text-ink [overflow-wrap:anywhere] max-sm:text-lg">{rfq.product_title}</Title>
-            {page ? <RfqChip tone={m.chip.tone}>{m.chip.label}</RfqChip> : null}
+          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 max-sm:flex-col max-sm:items-start max-sm:gap-3">
+            <Title className="text-xl font-semibold tracking-tight text-ink [overflow-wrap:anywhere] max-sm:text-2xl/[36px] max-sm:font-medium max-sm:tracking-tighter">{rfq.product_title}</Title>
+            {page ? <RfqChip tone={m.chip.tone} className="max-sm:order-first">{m.chip.label}</RfqChip> : null}
           </div>
           <div className="flex shrink-0 items-center gap-2 pt-1">
             {page ? (
@@ -429,13 +511,29 @@ export function RfqDetail({ rfq, mode, today, closeHref, order = null, others = 
             )}
           </div>
         </div>
-        <p className="text-base text-ink-2 max-sm:text-md">{page ? m.facts : m.factsPane}</p>
-        <p className="text-sm text-ink-3">{page ? m.sentLine : m.sentLinePane}</p>
-        {page && messagesPhone ? <div className="pt-2 sm:hidden">{messagesPhone}</div> : null}
+        <p className="text-base text-ink-2 max-sm:hidden">{page ? m.facts : m.factsPane}</p>
+        <p className="text-sm text-ink-3 max-sm:hidden">{page ? m.sentLine : m.sentLinePane}</p>
+        {/* The phone's identity lines (Paper 36 `rfq-detail`): what and how many, where and by when, when it went. */}
+        <div className="flex flex-col gap-1.5 pt-3 sm:hidden">
+          {(
+            [
+              [Package, m.phoneFacts.order],
+              [Boat, m.phoneFacts.ship],
+              [PaperPlaneTilt, m.sentLine],
+            ] as const
+          ).map(([G, line]) =>
+            line ? (
+              <p key={line} className="flex items-start gap-2 text-[15px]/[22px] text-ink-2">
+                <G size={18} weight="thin" className="mt-0.5 shrink-0 text-ink-3" aria-hidden />
+                {line}
+              </p>
+            ) : null,
+          )}
+        </div>
       </header>
       <div className={cn("flex min-h-0 flex-1", page && "lg:items-stretch")}>
-        <div className="flex min-w-0 flex-1 flex-col gap-6 px-4 py-5 sm:px-6">
-          <QuotesSection m={m} order={order} mode={mode} />
+        <div className="flex min-w-0 flex-1 flex-col gap-6 px-5 py-5 sm:px-6">
+          <QuotesSection m={m} order={order} mode={mode} chart={quoteChart(rfq)} threadHref={threadHref} />
           {/* Beside the quotes from 1024 on the page; under them in the pane and on a phone. */}
           <div className={cn("flex flex-col gap-5", page && "lg:hidden")}>
             {!page ? <div className="h-px bg-line" /> : null}

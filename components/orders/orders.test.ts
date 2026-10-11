@@ -32,6 +32,7 @@ import {
   orderSteps,
   ordersHref,
   parseOrderTab,
+  phoneTiles,
   shipLate,
   startedLine,
   summaryCells,
@@ -395,6 +396,21 @@ describe("the detail view", () => {
     assert.match(detail(doc({ status: "cancelled", milestones: [] })), /This order was cancelled\. Nothing was logged on it\./);
   });
 
+  it("the phone's two tiles: the value with what it is made of, the ship-by date with how far off it is", () => {
+    assert.deepEqual(phoneTiles(doc(), TODAY), [
+      { label: "Order value", value: "US$84,000", sub: "20,000 at US$4.20", late: false },
+      { label: "Ship by", value: "20 Oct 2026", sub: "in 16 days", late: false },
+    ]);
+    const late = phoneTiles(doc({ target_ship_date: "2026-10-01" }), TODAY)[1]!;
+    assert.deepEqual(late, { label: "Ship by", value: "1 Oct 2026", sub: "3 days late", late: true });
+    const gone = phoneTiles(doc({ status: "shipped", target_ship_date: "2026-10-01", unit_price: null, total_value: null }), TODAY);
+    assert.deepEqual(gone[0], { label: "Order value", value: "No price yet", sub: "20,000 pieces", late: false });
+    assert.equal(gone[1]!.sub, "3 days ago", "a passed date on an order that has shipped is not late");
+    const page = detail(doc());
+    assert.ok(page.includes("20,000 at US$4.20") && page.includes("in 16 days"));
+    assert.match(page, /aria-label="Message Mondol Fabrics"/, "the phone's bar names who the message goes to");
+  });
+
   it("an order with no steps says how one gets logged; a late ship-by is in words above the steps", () => {
     const empty = detail(doc({ milestones: [], target_ship_date: "2026-10-01" }));
     assert.ok(empty.includes("Progress · 0 steps") && empty.includes("none logged yet"));
@@ -444,8 +460,11 @@ describe("the table, the pane rows and the phone rows", () => {
     const out = html(createElement(OrderPhoneRows, { items: items() }));
     assert.ok(out.includes(`href="/app/orders/${ID1}"`));
     assert.ok(out.includes("Mondol Fabrics Ltd. · US$84,000 · 20,000 pieces"));
-    assert.ok(out.includes("Ship by date passed: 3 days late"));
-    assert.ok(out.includes("Ship by 1 Oct 2026 · Production started · 20 Sep 2026"));
+    assert.ok(out.includes("Ship by date passed: 3 days late") && out.includes("Ship by 1 Oct 2026"));
+    assert.ok(out.includes("Shipped 28 Sep 2026") && out.includes("Due 20 Oct 2026"), "on its way: when it left and when it is due");
+    assert.ok(out.includes("Delivered 30 Sep 2026") && out.includes("No ship-by date yet · Saved 2 Oct 2026"));
+    // The road a live order is on: five segments, the late one in caution.
+    assert.equal((out.match(/bg-caution-icon"/g) ?? []).length, 1, "only the late order's current segment is caution");
   });
 
   it("an empty tab says what belongs there; no orders yet teaches where one starts; a failed read says so", () => {
@@ -478,8 +497,8 @@ describe("/app/orders", () => {
     assert.ok("html" in r);
     assert.ok(r.html.includes("6 orders · 3 in progress"));
     assert.ok(r.html.includes("Women's knitted dresses") && r.html.includes("Heavyweight hoodies"));
-    assert.match(r.html, /Orders · 6/, "the phone switch counts the orders");
-    assert.match(r.html, /RFQs · 4/, "and the RFQs with the drafts");
+    assert.match(r.html, /Orders<\/span><span[^>]*><span class="sr-only"> · <\/span>6<\/span>/, "the phone switch counts the orders");
+    assert.match(r.html, /RFQs<\/span><span[^>]*><span class="sr-only"> · <\/span>4<\/span>/, "and the RFQs with the drafts");
     assert.match(r.html, /In progress(?:<[^>]+>|[^<0-9])*3/);
     assert.ok(r.html.includes('href="/app/orders/new"') && r.html.includes("New order"));
   });

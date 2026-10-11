@@ -13,7 +13,7 @@
 // (the RFQ carries it), so the form says so instead of offering a switch the product cannot keep;
 // nothing here attaches a file, because no file is stored.
 
-import { ArrowLeft, LockSimple, Plus, X } from "@phosphor-icons/react";
+import { ArrowLeft, CaretRight, CheckCircle, LockSimple, Plus, X } from "@phosphor-icons/react";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import Link from "next/link";
 import { useContext, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent } from "react";
@@ -69,6 +69,29 @@ const shipToPickOf = (country: string): string => (!country.trim() ? NOT_SET : (
 
 const TONE = { ink: "text-ink", caution: "text-caution", danger: "text-danger", sanction: "text-sanction" } as const;
 
+/** The phone's small round-ended buttons on a tinted card: 34 drawn, 44 to the touch. */
+const PILL =
+  "relative flex h-[34px] shrink-0 items-center rounded-full border border-line bg-surface px-3 text-sm/[16px] font-medium text-ink outline-none before:absolute before:inset-x-0 before:-inset-y-[5px] before:content-[''] active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
+
+/** The phone's rows that open a part of the form in place (Paper 36 `rfq-new`: Questions, Message). */
+function PartRow({ title, line, open, controls, onToggle, last = false }: { title: string; line: string; open: boolean; controls: string; onToggle: () => void; last?: boolean }) {
+  return (
+    <button
+      type="button"
+      aria-expanded={open}
+      aria-controls={controls}
+      onClick={onToggle}
+      className={cn("flex min-h-14 w-full items-center justify-between gap-3 text-left outline-none active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus sm:hidden", !last && "border-b border-line")}
+    >
+      <span className="flex min-w-0 flex-col">
+        <span className="text-[15px]/[18px] font-medium text-ink">{title}</span>
+        <span className="truncate text-xs text-ink-3">{line}</span>
+      </span>
+      <CaretRight size={16} weight="thin" className={cn("shrink-0 text-ink-3 transition-transform duration-fast", open && "rotate-90")} aria-hidden />
+    </button>
+  );
+}
+
 function useApplePlatform(): boolean {
   return useSyncExternalStore(
     () => () => {},
@@ -93,9 +116,34 @@ function Targets({
 }) {
   const listed = targets.length > 0 && targets.length <= LISTED_TARGETS;
   const places = [...new Set(targets.map((t) => t.place).filter((p): p is string => Boolean(p)))].slice(0, 4);
+  const first = targets[0];
+  const initials = first ? splitQualifier(first.name).base.split(/\s+/).slice(0, 2).map((w) => w.charAt(0).toUpperCase()).join("") : "";
   return (
     <section aria-label="Suppliers" className="flex flex-col gap-2">
-      <div className="flex items-baseline gap-2">
+      {/* The phone's "To" card (Paper 36 `rfq-new`): who it goes to, Add, and Review once there is more than one to check. */}
+      {first ? (
+        <div className="flex items-center gap-3 rounded-[12px] bg-subtle px-3.5 py-3 sm:hidden">
+          <span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-[10px] border border-line bg-surface text-xs font-semibold text-ink-2">
+            {targets.length === 1 ? initials : targets.length}
+          </span>
+          <span className="flex min-w-0 grow basis-0 flex-col">
+            <span className="text-xs text-ink-3">
+              To {targets.length} {targets.length === 1 ? "supplier" : "suppliers"}
+            </span>
+            <span className="text-[15px]/[18px] font-medium text-ink [overflow-wrap:anywhere]">{targets.length === 1 ? first.name : targetSummary(targets)}</span>
+          </span>
+          {targets.length > 1 || first.sanctioned ? (
+            <button type="button" onClick={onReview} className={PILL}>
+              Review
+            </button>
+          ) : null}
+          <button type="button" onClick={onAdd} className={cn(PILL, "gap-1")}>
+            <Plus size={14} weight="thin" className="shrink-0" aria-hidden />
+            Add
+          </button>
+        </div>
+      ) : null}
+      <div className={cn("flex items-baseline gap-2", first && "max-sm:hidden")}>
         <h2 className="text-md font-semibold text-ink">To</h2>
         <p className="text-sm text-ink-3">
           {targets.length} {targets.length === 1 ? "supplier" : "suppliers"} · you can add up to {MAX_TARGETS}
@@ -110,7 +158,7 @@ function Targets({
           </Button>
         </div>
       ) : listed ? (
-        <div className="flex flex-col rounded-md border border-line">
+        <div className="flex flex-col rounded-md border border-line max-sm:hidden">
           {targets.map((t) => (
             <div key={t.slug} className="flex items-center gap-3 border-b border-line py-2 pl-3 pr-2 last:border-b-0">
               <div className="flex min-w-0 flex-1 flex-col">
@@ -140,7 +188,7 @@ function Targets({
           </div>
         </div>
       ) : (
-        <div className="flex items-start gap-3 rounded-md border border-line p-3">
+        <div className="flex items-start gap-3 rounded-md border border-line p-3 max-sm:hidden">
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
             <p className="text-base font-medium text-ink">{targetSummary(targets)}</p>
             <p className="text-sm text-ink-3">{[typeCounts(targets), places.length ? `in ${listAnd(places)}` : null].filter(Boolean).join(" · ")}</p>
@@ -316,6 +364,9 @@ export function RfqComposer({
   // "review": Review all, opened by the buyer; "confirm": the same list, opened by a send above five.
   const [reviewing, setReviewing] = useState<false | "review" | "confirm">(false);
   const [pickNote, setPickNote] = useState<string | null>(null);
+  // On a phone the questions and the message fold behind a row each; from 640 both are always open.
+  const [part, setPart] = useState<"questions" | "message" | null>(null);
+  const toggle = (p: "questions" | "message") => setPart((now) => (now === p ? null : p));
   const formRef = useRef<HTMLFormElement>(null);
 
   async function confirmPicked(picked: ComposerTarget[]) {
@@ -454,12 +505,29 @@ export function RfqComposer({
   return root(
     <>
       {page ? (
-        <header className="flex flex-col gap-3 border-b border-line px-4 py-4 sm:px-6">
-          <Link href={closeHref} prefetch={false} className="inline-flex min-h-11 w-fit items-center gap-1.5 rounded-sm text-base font-medium text-ink-2 outline-none hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:min-h-6">
+        <header className="flex flex-col gap-3 border-b border-line px-4 py-4 sm:px-6 max-sm:gap-1 max-sm:border-b-0 max-sm:px-5 max-sm:pb-0 max-sm:pt-0">
+          {/* The phone's bar (Paper 36 `rfq-new`): the draft on the left, Close on the right. */}
+          <div className="-mr-1 flex h-14 items-center justify-between sm:hidden">
+            <button
+              type="button"
+              onClick={() => void saveDraft()}
+              aria-busy={busy !== null || undefined}
+              className="-ml-2 flex min-h-11 items-center gap-1.5 rounded-full px-2 text-sm text-ink-3 outline-none active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus"
+            >
+              {draftSavedAt ? <CheckCircle size={14} weight="thin" className="shrink-0" aria-hidden /> : null}
+              {busy === "draft" ? "Saving draft" : draftSavedAt ? "Draft saved" : "Save draft"}
+            </button>
+            <Link href={closeHref} prefetch={false} aria-label={backLabel ?? "Close"} className="group flex size-11 shrink-0 items-center justify-center rounded-full outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus">
+              <span className="flex size-9 items-center justify-center rounded-full bg-sunken group-active:bg-line">
+                <X size={17} weight="thin" className="shrink-0 text-ink-2" aria-hidden />
+              </span>
+            </Link>
+          </div>
+          <Link href={closeHref} prefetch={false} className="inline-flex min-h-6 w-fit items-center gap-1.5 rounded-sm text-base font-medium text-ink-2 outline-none hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus max-sm:hidden">
             <ArrowLeft size={16} className="shrink-0" aria-hidden />
             {backLabel ?? "Back"}
           </Link>
-          <Heading className="text-xl font-semibold tracking-tight text-ink">New RFQ</Heading>
+          <Heading className="text-xl font-semibold tracking-tight text-ink max-sm:text-2xl/[36px] max-sm:font-medium max-sm:tracking-tighter">New RFQ</Heading>
         </header>
       ) : (
         <header className="flex items-start justify-between gap-3 border-b border-line px-4 py-4 sm:px-6">
@@ -494,7 +562,7 @@ export function RfqComposer({
             e.preventDefault();
             void send();
           }}
-          className={cn("flex min-w-0 flex-col gap-6 px-4 py-5 sm:px-6", page ? "xl:flex-1 xl:overflow-y-auto" : "")}
+          className={cn("flex min-w-0 flex-col gap-6 px-5 py-5 max-sm:pt-4 sm:px-6", page ? "xl:flex-1 xl:overflow-y-auto" : "")}
         >
           <div className="flex w-full max-w-pane flex-col gap-6">
             <Targets targets={targets} onRemove={remove} onAdd={() => setPicking(true)} onReview={() => setReviewing("review")} note={pickNote ?? note("a supplier", "Add at least one supplier.")} />
@@ -502,30 +570,30 @@ export function RfqComposer({
             <section aria-label="What you're asking for" className="flex flex-col gap-3">
               <h2 className="text-md font-semibold text-ink">What you&apos;re asking for</h2>
               <Field label="Product · required" error={note("product title", "Add a product")}>
-                {(a) => <Input {...a} required value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} placeholder="e.g. Men's knitted piqué polo, 220 gsm" />}
+                {(a) => <Input {...a} required value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} placeholder="e.g. Men's knitted piqué polo, 220 gsm" className="max-sm:h-[52px] max-sm:rounded-[10px] max-sm:text-md" />}
               </Field>
               <Field label="Details">
                 {(a) => <textarea {...a} className={textarea} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={4000} rows={3} />}
               </Field>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:gap-4">
-                <Field label="Quantity · required" error={note("quantity", "Add a quantity")}>
+              <div className="grid grid-cols-2 gap-x-2.5 gap-y-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:gap-4">
+                <Field label="Quantity · required" error={note("quantity", "Add a quantity")} className="max-sm:col-span-2">
                   {(a) => (
                     <div className="flex gap-2">
-                      <Input {...a} required inputMode="decimal" value={shownNumber(quantity, focused === "quantity", "count")} onChange={(e) => setQuantity(e.target.value.replace(/,/g, ""))} onFocus={() => setFocused("quantity")} onBlur={() => setFocused(null)} placeholder="e.g. 24,000" className="min-w-0 flex-1 text-right max-sm:h-input-touch max-sm:text-md" />
+                      <Input {...a} required inputMode="decimal" value={shownNumber(quantity, focused === "quantity", "count")} onChange={(e) => setQuantity(e.target.value.replace(/,/g, ""))} onFocus={() => setFocused("quantity")} onBlur={() => setFocused(null)} placeholder="e.g. 24,000" className="min-w-0 flex-1 text-right max-sm:h-[52px] max-sm:rounded-[10px] max-sm:text-md" />
                       <UnitSelect value={unit} onChange={setUnit} />
                     </div>
                   )}
                 </Field>
-                <Field label={`Target price per ${per}`} help="Suppliers see your target price." error={note("target price", "Enter a number, like 8.90")}>
+                <Field label={`Target price per ${per}`} help="Suppliers see your target price." error={note("target price", "Enter a number, like 8.90")} className="max-sm:col-span-2">
                   {(a) => (
                     <div className="flex gap-2">
-                      <Select aria-label="Currency" value={currency} onValueChange={setCurrency} options={CURRENCIES.map((c) => ({ value: c, label: c === "USD" ? "US$" : c }))} className="w-24 shrink-0 max-sm:h-input-touch max-sm:text-md" />
-                      <Input {...a} inputMode="decimal" value={shownNumber(targetPrice, focused === "price", "money")} onChange={(e) => setTargetPrice(e.target.value)} onFocus={() => setFocused("price")} onBlur={() => setFocused(null)} className="min-w-0 flex-1 text-right max-sm:h-input-touch max-sm:text-md" />
+                      <Select aria-label="Currency" value={currency} onValueChange={setCurrency} options={CURRENCIES.map((c) => ({ value: c, label: c === "USD" ? "US$" : c }))} className="w-24 shrink-0 max-sm:h-[52px] max-sm:rounded-[10px] max-sm:text-md" />
+                      <Input {...a} inputMode="decimal" value={shownNumber(targetPrice, focused === "price", "money")} onChange={(e) => setTargetPrice(e.target.value)} onFocus={() => setFocused("price")} onBlur={() => setFocused(null)} className="min-w-0 flex-1 text-right max-sm:h-[52px] max-sm:rounded-[10px] max-sm:text-md" />
                     </div>
                   )}
                 </Field>
                 <Field label="Ship by" help={shipBy ? undefined : "For example 15 Nov 2026"}>
-                  {(a) => <DateInput {...a} value={shipBy} onChange={setShipBy} className="max-sm:h-input-touch max-sm:text-md" />}
+                  {(a) => <DateInput {...a} value={shipBy} onChange={setShipBy} className="max-sm:h-[52px] max-sm:rounded-[10px] max-sm:text-md" />}
                 </Field>
                 {/* A list where the answer is a list (DESIGN.md, Inputs); another country is typed. */}
                 <Field label="Ship to">
@@ -540,9 +608,9 @@ export function RfqComposer({
                           setShipTo(v === NOT_SET || v === OTHER ? "" : v);
                         }}
                         options={[{ value: NOT_SET, label: "Not set" }, ...SHIP_TO.map((c) => ({ value: c, label: c })), { value: OTHER, label: "Another country…" }]}
-                        className="max-sm:h-input-touch max-sm:text-md"
+                        className="max-sm:h-[52px] max-sm:rounded-[10px] max-sm:text-md"
                       />
-                      {shipToPick === OTHER ? <Input aria-label="Country" value={shipTo} onChange={(e) => setShipTo(e.target.value)} maxLength={64} placeholder="Country" className="max-sm:h-input-touch max-sm:text-md" /> : null}
+                      {shipToPick === OTHER ? <Input aria-label="Country" value={shipTo} onChange={(e) => setShipTo(e.target.value)} maxLength={64} placeholder="Country" className="max-sm:h-[52px] max-sm:rounded-[10px] max-sm:text-md" /> : null}
                     </div>
                   )}
                 </Field>
@@ -579,39 +647,43 @@ export function RfqComposer({
               </section>
             ) : null}
 
-            <section aria-label="Questions" className="flex flex-col gap-2">
-              <h2 className="text-md font-semibold text-ink">Questions · {questions.length}</h2>
-              <ul className="flex flex-col gap-2">
-                {questions.map((q, i) => (
-                  <li key={`${i}-${q}`} className="flex min-h-10 items-center rounded-sm border border-line pl-3">
-                    <span className="min-w-0 flex-1 py-2 text-base text-ink [overflow-wrap:anywhere]">
-                      <Defined text={q} />
-                    </span>
-                    <span className="flex size-10 shrink-0 items-center justify-center max-sm:size-11">
-                      <IconButton icon={X} label={`Remove question: ${q}`} kind="quiet" size={32} onClick={() => setQuestions((qs) => qs.filter((_, j) => j !== i))} className="max-sm:size-11" />
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              <div className="flex gap-2">
-                <Input
-                  aria-label="Add a question"
-                  placeholder="e.g. Sample lead time and cost"
-                  value={newQuestion}
-                  onChange={(e) => setNewQuestion(e.target.value)}
-                  maxLength={200}
-                  className="min-w-0 flex-1 max-sm:h-input-touch max-sm:text-md"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && newQuestion.trim()) {
-                      e.preventDefault();
-                      addQuestion();
-                    }
-                  }}
-                />
-                <Button kind="secondary" disabled={!newQuestion.trim() || questions.length >= MAX_QUESTIONS} onClick={addQuestion} className="max-sm:h-input-touch max-sm:text-md">
-                  Add question
-                </Button>
+            <section aria-label="Questions" className="flex flex-col gap-2 max-sm:gap-0 max-sm:border-t max-sm:border-line">
+              <PartRow title={`Questions · ${questions.length}`} line={questions.join(", ") || "None yet. Add one."} open={part === "questions"} controls={`${id}-questions`} onToggle={() => toggle("questions")} />
+              <h2 className="text-md font-semibold text-ink max-sm:hidden">Questions · {questions.length}</h2>
+              <div id={`${id}-questions`} className={cn("flex flex-col gap-2 max-sm:border-b max-sm:border-line max-sm:py-3", part !== "questions" && "max-sm:hidden")}>
+                <ul className="flex flex-col gap-2">
+                  {questions.map((q, i) => (
+                    <li key={`${i}-${q}`} className="flex min-h-10 items-center rounded-sm border border-line pl-3">
+                      <span className="min-w-0 flex-1 py-2 text-base text-ink [overflow-wrap:anywhere]">
+                        <Defined text={q} />
+                      </span>
+                      <span className="flex size-10 shrink-0 items-center justify-center max-sm:size-11">
+                        <IconButton icon={X} label={`Remove question: ${q}`} kind="quiet" size={32} onClick={() => setQuestions((qs) => qs.filter((_, j) => j !== i))} className="max-sm:size-11" />
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex gap-2">
+                  <Input
+                    aria-label="Add a question"
+                    placeholder="e.g. Sample lead time and cost"
+                    value={newQuestion}
+                    onChange={(e) => setNewQuestion(e.target.value)}
+                    maxLength={200}
+                    className="min-w-0 flex-1 max-sm:h-input-touch max-sm:text-md"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && newQuestion.trim()) {
+                        e.preventDefault();
+                        addQuestion();
+                      }
+                    }}
+                  />
+                  <Button kind="secondary" disabled={!newQuestion.trim() || questions.length >= MAX_QUESTIONS} onClick={addQuestion} className="max-sm:h-input-touch max-sm:text-md">
+                    Add question
+                  </Button>
+                </div>
               </div>
+              <PartRow title="Message" line={messageEdited === null ? "From your RFQ template" : "Edited here"} open={part === "message"} controls={`${id}-preview`} onToggle={() => toggle("message")} last />
             </section>
           </div>
         </form>
@@ -622,7 +694,7 @@ export function RfqComposer({
           id={`${id}-preview`}
           aria-label="Preview"
           style={page ? ({ "--pane-w": `${side.width}px` } as CSSProperties) : undefined}
-          className={cn("flex flex-col gap-3 border-t border-line bg-subtle px-4 py-5 sm:px-6", page ? "xl:w-[var(--pane-w)] xl:min-w-[320px] xl:max-w-[calc(100%-480px)] xl:shrink-0 xl:overflow-y-auto xl:border-t-0" : "")}
+          className={cn("flex flex-col gap-3 border-t border-line bg-subtle px-4 py-5 sm:px-6", part !== "message" && "max-sm:hidden", page ? "xl:w-[var(--pane-w)] xl:min-w-[320px] xl:max-w-[calc(100%-480px)] xl:shrink-0 xl:overflow-y-auto xl:border-t-0" : "")}
         >
           <h2 className="text-md font-semibold text-ink">{single ? `What ${single} gets` : "What each supplier gets"}</h2>
           <div className="flex flex-col gap-3 rounded-lg bg-surface p-4">
@@ -694,17 +766,19 @@ export function RfqComposer({
         {/* The live region is on the page from the first paint but empty: a screen reader hears it only
             after an action (a send tried, a draft saved, a refusal), never an instruction on arrival. */}
         {/* Who this goes to, in ink at 14 (critique of 8 Oct 2026, round 3, item 3): it is the sentence that matters. */}
-        <div className="min-w-0 text-base">
-          {!status.live ? <p className={TONE[status.tone]}>{status.text}</p> : null}
+        <div className="min-w-0 text-base max-sm:text-center max-sm:text-xs">
+          {!status.live ? <p className={cn(TONE[status.tone], status.tone === "ink" && "max-sm:hidden")}>{status.text}</p> : null}
+          {/* A phone names who it goes to in the card at the top; the bar says where the replies land (Paper 36 `rfq-new`). */}
+          {!status.live && status.tone === "ink" ? <p className="text-ink-3 sm:hidden">Suppliers reply in Messages. Your email stays private.</p> : null}
           <p role="status" aria-live="polite" className={cn(TONE[status.tone], !status.live && "sr-only")}>
             {status.live ? status.text : ""}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button kind="secondary" size="lg" onClick={() => void saveDraft()} loading={busy === "draft"} loadingLabel="Saving" aria-busy={busy !== null || undefined} className="max-sm:h-12">
+          <Button kind="secondary" size="lg" onClick={() => void saveDraft()} loading={busy === "draft"} loadingLabel="Saving" aria-busy={busy !== null || undefined} className={cn("max-sm:h-12", page && "max-sm:hidden")}>
             Save draft
           </Button>
-          <Button type="submit" form={`${id}-form`} kind="primary" size="lg" disabled={blocked} loading={busy === "send"} loadingLabel="Sending" aria-busy={busy !== null || undefined} aria-describedby={`${id}-send-hint`} className="max-sm:h-12 max-sm:flex-1">
+          <Button type="submit" form={`${id}-form`} kind="primary" size="lg" disabled={blocked} loading={busy === "send"} loadingLabel="Sending" aria-busy={busy !== null || undefined} aria-describedby={`${id}-send-hint`} className="max-sm:h-12 max-sm:flex-1 max-sm:rounded-lg max-sm:text-md">
             {words.send}
             <span className="text-xs font-medium opacity-85 max-sm:hidden">{apple ? "⌘↵" : "Ctrl ↵"}</span>
           </Button>
@@ -733,5 +807,5 @@ function Defined({ text }: { text: string }) {
 }
 
 function UnitSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  return <Select aria-label="Unit" value={value} onValueChange={onChange} options={UNITS.map((u) => ({ value: u, label: unitWords(u) }))} className="w-[120px] shrink-0 max-sm:h-input-touch max-sm:text-md" />;
+  return <Select aria-label="Unit" value={value} onValueChange={onChange} options={UNITS.map((u) => ({ value: u, label: unitWords(u) }))} className="w-[120px] shrink-0 max-sm:h-[52px] max-sm:rounded-[10px] max-sm:text-md" />;
 }
