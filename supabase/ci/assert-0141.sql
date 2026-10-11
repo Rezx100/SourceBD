@@ -65,7 +65,8 @@ begin
 
   -- 25 records, dates shuffled: record k is 2026-08-(k+1), stored in reverse-ish order.
   select jsonb_agg(jsonb_build_object('shipment_date', format('2026-08-%sT00:00:00', lpad((k + 1)::text, 2, '0')),
-                                      'buyer_name', 'Buyer ' || k, 'unit_rate_usd', 1.5, 'trade_value_usd', k * 100)
+                                      'buyer_name', 'Buyer ' || k, 'unit_rate_usd', 1.5, 'trade_value_usd', k * 100,
+                                      'supplier_name', case when k % 2 = 0 then 'CI 0141 A LTD. ' else 'CI 0141 A Ltd.' end)
                    order by (k * 7) % 25)
     into recs from generate_series(1, 25) k;
 
@@ -195,11 +196,19 @@ begin
   j := public.volza_reveal_begin('ci-0141-b');
   reset role;
   set local role service_role;
-  perform public.volza_reveal_finish((j ->> 'claim')::uuid, '[]'::jsonb, 0.10, null);
+  -- 0144: a record filed under another exporter is never saved; the only one here is, so the copy is empty.
+  perform public.volza_reveal_finish((j ->> 'claim')::uuid,
+    '[{"supplier_name": "CI 0141 Other Ltd", "shipment_date": "2026-08-30T00:00:00", "buyer_name": "X"}]'::jsonb, 0.15, null);
   reset role;
   set local role authenticated;
   j := public.supplier_shipment_reveal('ci-0141-b');
   if j is null or jsonb_array_length(j -> 'records') <> 0 then raise exception 'empty fetch: %', j; end if;
+  reset role;
+  if not exists (select 1 from public.activity_ledger where kind = 'shipments.revealed' and supplier_id = b
+                  and (content ->> 'dropped_other_exporter')::int = 1 and (content ->> 'records')::int = 0) then
+    raise exception 'the dropped record was not written to the activity record';
+  end if;
+  set local role authenticated;
 
   -- Expired: deleted, not served (an admin reads without a use).
   perform set_config('request.jwt.claim.sub', admin::text, true);
