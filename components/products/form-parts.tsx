@@ -13,12 +13,12 @@ import { cleanValues, type RowColumn } from "@/components/product-form-model";
 import { cn } from "@/lib/utils";
 
 /** A section of the form. `shut` shows its name and an Add button instead of its fields. */
-export function FormSection({ id, title, name, caption, shut, onOpen, children }: { id: string; title: string; /** What "Add" adds, when the title says more than that. */ name?: string; caption?: ReactNode; shut?: boolean; onOpen?: () => void; children: ReactNode }) {
+export function FormSection({ id, title, name, caption, shut, onOpen, className, children }: { id: string; title: string; /** What "Add" adds, when the title says more than that. */ name?: string; caption?: ReactNode; shut?: boolean; onOpen?: () => void; className?: string; children: ReactNode }) {
   return (
-    <section id={id} aria-label={title} className="flex scroll-mt-6 flex-col gap-3 border-t border-line pt-6 first:border-t-0 first:pt-0">
+    <section id={id} aria-label={title} className={cn("flex scroll-mt-6 flex-col gap-3 border-t border-line pt-6 first:border-t-0 first:pt-0 max-md:gap-4 max-md:border-t-0 max-md:first:pt-4", className)}>
       <div className="flex items-center justify-between gap-3">
         <div className="flex flex-col gap-0.5">
-          <h2 className="text-md font-semibold text-ink">{title}</h2>
+          <h2 className="text-md font-semibold text-ink max-md:text-lg max-md:font-medium max-md:tracking-tight">{title}</h2>
           {caption && !shut ? <p className="text-base text-ink-2">{caption}</p> : null}
         </div>
         {shut ? (

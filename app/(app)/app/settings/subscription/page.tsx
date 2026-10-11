@@ -16,10 +16,11 @@ export const metadata = { title: "Plan and usage · SourceBD" };
 
 export default async function SettingsSubscriptionPage() {
   const supabase = await createSupabaseServerClient();
-  const [doc, packs] = await Promise.all([loadSettings(supabase), loadPackCount(supabase, new Date())]);
+  const now = new Date();
+  const [doc, packs] = await Promise.all([loadSettings(supabase), loadPackCount(supabase, now)]);
   return (
     <SettingsShell current="plan" doc={doc} title="Plan and usage" caption={PLAN_CAPTION}>
-      {doc ? <PlanPanel doc={doc} packs={packs} /> : <SettingsError retryHref="/app/settings/subscription" />}
+      {doc ? <PlanPanel doc={doc} packs={packs} now={now} /> : <SettingsError retryHref="/app/settings/subscription" />}
     </SettingsShell>
   );
 }

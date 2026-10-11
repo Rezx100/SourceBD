@@ -6,7 +6,7 @@
 // load (the pattern in `app/(app)/app/record-routes.test.ts`).
 
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
@@ -14,9 +14,9 @@ import { createElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { AcceptBody, acceptNext, postAccept } from "./accept";
-import { detailModel, otherRfqLine, type RfqDoc } from "./doc";
+import { CHART_TARGET_AT, detailModel, otherRfqLine, quoteChart, type RfqDoc } from "./doc";
 import { RfqDetail } from "./detail";
-import { RfqPhoneRows } from "./list";
+import { RFQ_EMPTY_PHONE, RfqPhoneRows } from "./list";
 import { RfqTable } from "./table";
 import {
   buildListItems,
@@ -320,6 +320,9 @@ describe("the detail model", () => {
     assert.equal(m.sentLinePane, "Sent 18 Jul 2026 to 3 suppliers · to the United Kingdom");
     assert.equal(m.chip.label, "2 quotes");
     assert.equal(m.quotesTitle, "Quotes · 2");
+    assert.equal(m.quotesOf, "2 of 3");
+    assert.equal(m.comparable, 2);
+    assert.deepEqual(m.phoneFacts, { order: "10,000 pieces · target US$8.90 per piece", ship: "Ship by 15 Oct 2026, to the United Kingdom" });
     assert.equal(m.notReplied, "1 supplier has not replied");
     assert.equal(m.targetHead, "vs US$8.90 target");
   });
@@ -362,6 +365,32 @@ describe("the detail model", () => {
 
   it("other RFQs as a line", () => {
     assert.equal(otherRfqLine({ ...ROWS[1]!, product_title: "Hoodies" }), "Hoodies, 4,500 pieces · waiting for quotes · sent 1 Oct 2026");
+  });
+});
+
+describe("the phone's price comparison", () => {
+  it("puts the target at its mark, the furthest quote at the reach and the rest in proportion; the quiet suppliers follow with no dot", () => {
+    const c = quoteChart(doc())!;
+    assert.equal(c.target, "US$8.90");
+    assert.equal(c.legend, "Price per piece, US dollars");
+    assert.deepEqual(
+      c.rows.map((r) => [r.name, r.price, r.delta, r.over]),
+      [
+        ["Aboni Knitwear", "US$8.55", "US$0.35 under", false],
+        ["S M Knitwears", "US$9.30", "US$0.40 over", true],
+        ["Thermax Woven Dyeing", null, null, false],
+      ],
+    );
+    const [aboni, sm, thermax] = c.rows;
+    assert.ok(Math.abs(sm!.at! - (CHART_TARGET_AT + 0.4)) < 1e-9, "the furthest quote sits at the reach");
+    assert.ok(aboni!.at! < CHART_TARGET_AT && aboni!.at! > CHART_TARGET_AT - 0.4, "cheaper is to the left, in proportion");
+    assert.equal(thermax!.at, null);
+  });
+
+  it("draws nothing without a target, or with no live quote in the RFQ's currency", () => {
+    assert.equal(quoteChart(doc({ target_unit_price: null })), null);
+    assert.equal(quoteChart(doc({ quotes: doc().quotes.map((q) => ({ ...q, currency: "EUR" })) })), null);
+    assert.equal(quoteChart(doc({ quotes: doc().quotes.map((q) => ({ ...q, status: "withdrawn" as const })) })), null);
   });
 });
 
@@ -451,9 +480,10 @@ describe("the table and the phone rows", () => {
     const phone = plain(renderToStaticMarkup(createElement(RfqPhoneRows, { items: items() })));
     assert.ok(phone.includes(`href="/app/rfqs/${ID1}"`));
     assert.ok(phone.includes('href="/app/rfqs/new?draft=d1"'));
-    assert.ok(phone.includes("US$8.55") && phone.includes("per piece · US$0.35 under your target"));
-    assert.ok(phone.includes("Sent to 3 suppliers · best from Aboni Knitwear · 10,000 pieces"));
+    assert.ok(phone.includes("US$8.55") && phone.includes("per piece · Aboni Knitwear") && phone.includes(">US$0.35 under<"));
+    assert.ok(phone.includes("10,000 pieces · sent to 3 suppliers"));
     assert.ok(phone.includes("Mondol Fabrics at US$4.20 per piece · order started"));
+    for (const tag of ["RFQ · 2 quotes", "RFQ · 0 of 3 replied", "Quote accepted", "Draft · saved 2 Oct 2026", "Cancelled"]) assert.ok(phone.includes(tag), tag);
   });
 });
 
@@ -481,7 +511,8 @@ describe("/app/rfqs", () => {
     assert.ok(r.html.includes("US$8.55 per piece") && r.html.includes("Aboni Knitwear"));
     assert.ok(r.html.includes("5 RFQs · 4 sent · 3 quotes received"));
     assert.match(r.html, /Draft<span class="[^"]*font-mono[^"]*"><span class="sr-only"> · <\/span>1<\/span>/);
-    assert.match(r.html, /Orders · 1/, "the phone switch counts the orders");
+    assert.match(r.html, /<nav aria-label="Quotes and orders"/);
+    assert.match(r.html, /Orders<\/span><span[^>]*><span class="sr-only"> · <\/span>1<\/span>/, "the phone switch counts the orders");
     const quoteRead = calls.find((c) => c.table === "rfq_quotes");
     assert.deepEqual((quoteRead?.ids as string[]).slice().sort(), [ID1, ID3].sort());
   });
@@ -537,6 +568,11 @@ describe("/app/rfqs", () => {
     assert.ok("html" in empty);
     assert.match(empty.html, /No RFQs yet/);
     assert.ok(empty.html.includes('href="/app/discover"') && empty.html.includes('href="/app/rfqs/new"'));
+    // The phone's teaching state (Paper 36 `rfqs-empty`): how a quote starts, and the search.
+    assert.ok(empty.html.includes(RFQ_EMPTY_PHONE.lead));
+    assert.ok(empty.html.includes("Ask one supplier from its record, or up to 50 at once from Saved."), "the phone's lead line");
+    for (const step of ["Find suppliers in Search", "Save the ones you like", "Send one RFQ to all of them"]) assert.ok(empty.html.includes(step), step);
+    assert.match(empty.html, /href="\/app\/discover"[^>]*>(?:<svg[\s\S]*?<\/svg>)?Search suppliers</);
     rpcs.rfq_draft_list = { data: DRAFTS, error: null };
     const draftOnly = await outcome(() => route(LIST)({ searchParams: Promise.resolve({}) }));
     assert.ok("html" in draftOnly);
@@ -596,6 +632,14 @@ describe("/app/rfqs/[id]", () => {
     assert.ok(r.html.includes("No reply yet · RFQ sent 18 Jul 2026"));
     assert.ok(r.html.includes("Each got its own copy. None sees the others."));
     assert.ok(r.html.includes("Your other RFQs"));
+    // The phone (Paper 36 `rfq-detail`): a round back, the price comparison against the target, a card per quote.
+    assert.match(r.html, /<a [^>]*aria-label="Back to Quotes"[^>]*href="\/app\/rfqs"|<a [^>]*href="\/app\/rfqs"[^>]*aria-label="Back to Quotes"/);
+    assert.ok(r.html.includes("Your target US$8.90") && r.html.includes("Cheaper to the left"));
+    assert.ok(r.html.includes("Minimum order above yours"), "a caution comes before 'cheapest'");
+    const later = plain(render(createElement(RfqDetail, { rfq: doc({ ship_by: "2027-01-15" }), mode: "page", today: TODAY, closeHref: "/app/rfqs" })));
+    assert.ok(later.includes("Cheapest of 2 quotes"), "the cheapest card says so when nothing cautions it");
+    assert.ok(r.html.includes("12,000 pieces, above your 10,000"));
+    assert.ok(r.html.includes("Ship by 15 Oct 2026, to the United Kingdom"));
     const accepted = doc({ status: "accepted", accepted_quote_id: "q-aboni", quotes: doc().quotes.map((q) => (q.id === "q-aboni" ? { ...q, status: "accepted" as const } : { ...q, status: "rejected" as const })) });
     rpcs.rfq_get = { data: accepted, error: null };
     const after = await outcome(() => route(PAGE)({ params: Promise.resolve({ id: ID1 }) }));
@@ -644,5 +688,12 @@ describe("/app/rfqs/[id]", () => {
     rpcs.rfq_list = { data: [], error: null };
     const unknown = await outcome(() => route(PAGE)({ params: Promise.resolve({ id: ID1 }) }));
     assert.ok("threw" in unknown, "an RFQ nobody can name and nobody could read is not found");
+  });
+
+  // Solid brand green is the primary button's (frame.test); the phone's price chart draws in the accent ink.
+  it("the phone's price chart spends no solid brand green", () => {
+    const chart = /function PriceChart[\s\S]*?\r?\n}\r?\n/.exec(readFileSync(path.join(process.cwd(), "components", "rfqs", "detail.tsx"), "utf8"))?.[0] ?? "";
+    assert.ok(chart.length > 0, "PriceChart not found");
+    assert.doesNotMatch(chart, /\bbg-brand\b(?!-)/);
   });
 });

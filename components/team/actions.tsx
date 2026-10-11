@@ -6,7 +6,7 @@
 // happened, quietly), and the remove question (a dialog; a sheet on a phone). A failure is said
 // beside the table, never as a toast.
 
-import { DotsThree } from "@phosphor-icons/react";
+import { DotsThree, Plus } from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button, Dialog, IconButton, Menu, MenuItem, Select, Sheet } from "@/components/kit";
@@ -190,8 +190,15 @@ export function TeamLines() {
   );
 }
 
-export function InviteButton({ className }: { className?: string }) {
+/** `phone`: the full-width button in the bar at the foot of the phone page (Paper `11 · Team and roles`). */
+export function InviteButton({ className, phone }: { className?: string; phone?: boolean }) {
   const { openInvite } = useTeamActions();
+  if (phone)
+    return (
+      <Button kind="primary" size="touch" full icon={Plus} onClick={openInvite} className="rounded-lg">
+        Invite people
+      </Button>
+    );
   return (
     <Button kind="primary" onClick={openInvite} className={cn("max-md:h-input-touch max-md:w-full max-md:text-md", className)}>
       Invite people
@@ -199,10 +206,10 @@ export function InviteButton({ className }: { className?: string }) {
   );
 }
 
-export function LeaveButton({ me }: { me: Member }) {
+export function LeaveButton({ me, phone }: { me: Member; phone?: boolean }) {
   const { askLeave } = useTeamActions();
   return (
-    <Button kind="secondary" onClick={() => askLeave(me)} className="max-md:h-input-touch max-md:w-full max-md:text-md">
+    <Button kind="secondary" size={phone ? "touch" : "md"} full={phone} onClick={() => askLeave(me)} className={phone ? "rounded-lg" : "max-md:h-input-touch max-md:w-full max-md:text-md"}>
       Leave team
     </Button>
   );
@@ -210,8 +217,8 @@ export function LeaveButton({ me }: { me: Member }) {
 
 const ROLE_OPTIONS = TEAM_ROLES.map((r) => ({ value: r, label: roleLabel(r) }));
 
-/** The owner's role chooser for one member (a 128 field on a desktop row). */
-export function RoleCell({ member }: { member: Member }) {
+/** The owner's role chooser for one member (a 128 field on a desktop row; on a phone row Paper's 44 "Approver ⌄"). */
+export function RoleCell({ member, phone }: { member: Member; phone?: boolean }) {
   const { changeRole, busy } = useTeamActions();
   return (
     <Select
@@ -220,21 +227,16 @@ export function RoleCell({ member }: { member: Member }) {
       onValueChange={(v) => v !== member.role && changeRole(member, v as TeamRole)}
       disabled={busy !== null}
       aria-label={`Role of ${memberName(member)}`}
-      className="w-32"
+      className={phone ? "h-11 w-auto gap-1 rounded-lg border-line pl-3 pr-2.5 font-medium" : "w-32"}
     />
   );
 }
 
-/** A member's menu: on a phone the roles too (the row has no chooser), on a desktop only Remove. */
-export function MemberMenu({ member, phone }: { member: Member; phone?: boolean }) {
-  const { changeRole, askRemove } = useTeamActions();
+/** A member's menu: Remove (the role is changed in the chooser beside it). */
+export function MemberMenu({ member }: { member: Member }) {
+  const { askRemove } = useTeamActions();
   return (
-    <Menu align="end" trigger={<IconButton icon={DotsThree} label={`More actions for ${memberName(member)}`} kind="quiet" className={phone ? "size-11 shrink-0" : undefined} />}>
-      {phone ? TEAM_ROLES.filter((r) => r !== member.role).map((r) => (
-        <MenuItem key={r} onSelect={() => changeRole(member, r)}>
-          Make {roleLabel(r)}
-        </MenuItem>
-      )) : null}
+    <Menu align="end" trigger={<IconButton icon={DotsThree} label={`More actions for ${memberName(member)}`} kind="quiet" className="max-md:size-11 max-md:shrink-0" />}>
       <MenuItem onSelect={() => askRemove(member)}>Remove from team</MenuItem>
     </Menu>
   );
@@ -258,12 +260,19 @@ export function InviteLinks({ invite }: { invite: Invite }) {
   );
 }
 
-export function InviteMenu({ invite }: { invite: Invite }) {
-  const { resend, cancel } = useTeamActions();
+/** Phone: "Resend invite" and "Cancel invite" as Paper's two 44 pills. Resend is left out when the invite has been sent five times. */
+export function InvitePills({ invite }: { invite: Invite }) {
+  const { resend, cancel, busy } = useTeamActions();
   return (
-    <Menu align="end" trigger={<IconButton icon={DotsThree} label={`More actions for the invite to ${invite.email}`} kind="quiet" className="size-11 shrink-0" />}>
-      {invite.canResend ? <MenuItem onSelect={() => resend(invite)}>Resend invite</MenuItem> : null}
-      <MenuItem onSelect={() => cancel(invite)}>Cancel invite</MenuItem>
-    </Menu>
+    <span className="flex flex-wrap gap-2">
+      {invite.canResend ? (
+        <Button kind="quiet" disabled={busy !== null} loading={busy === `resend:${invite.id}`} loadingLabel="Sending" onClick={() => resend(invite)} className="h-11 rounded-full bg-sunken px-3.5 text-ink hover:bg-sunken active:bg-line">
+          Resend invite<span className="sr-only"> to {invite.email}</span>
+        </Button>
+      ) : null}
+      <Button kind="quiet" disabled={busy !== null} loading={busy === `cancel:${invite.id}`} loadingLabel="Cancelling" onClick={() => cancel(invite)} className="h-11 rounded-full px-3.5">
+        Cancel invite<span className="sr-only"> to {invite.email}</span>
+      </Button>
+    </span>
   );
 }

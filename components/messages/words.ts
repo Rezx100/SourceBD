@@ -181,6 +181,8 @@ export type ThreadItem = {
   sub: string;
   /** The supplier has never written: nothing of theirs to answer, and no reply to yours. */
   noReply: boolean;
+  /** The phone's words for `noReply`: "No reply in 15 days" since your newest message, "No reply yet" within a day. */
+  waiting: string;
   /** The other side wrote something this person has not read, and this is not the conversation that is open. */
   unread: boolean;
   slug: string;
@@ -202,6 +204,13 @@ function lastLine(t: ThreadRow, count: number): string | null {
   return `${t.last_is_self ? "You: " : ""}${oneLine(t.last_body) || "Sent a file"}`;
 }
 
+/** "No reply in 15 days": whole days since `iso`; "No reply yet" under a day or without a date. */
+export function waitingWords(iso: string | null | undefined, now: Date): string {
+  const t = iso ? Date.parse(iso) : NaN;
+  const days = Number.isNaN(t) ? 0 : Math.floor((now.getTime() - t) / 86_400_000);
+  return days >= 1 ? `No reply in ${formatCount(days)} ${days === 1 ? "day" : "days"}` : "No reply yet";
+}
+
 /** `currentId` is the conversation that is open: it is being read, so it is not drawn unread. */
 export function buildThreadItems(rows: readonly ThreadRow[], now: Date, currentId: string | null = null): ThreadItem[] {
   return rows.map((t) => {
@@ -215,6 +224,7 @@ export function buildThreadItems(rows: readonly ThreadRow[], now: Date, currentI
       line: lastLine(t, count),
       sub: threadSub(t),
       noReply: count > 0 && t.has_reply === false,
+      waiting: waitingWords(at, now),
       unread: t.id !== currentId && (Number(t.unread_count) || 0) > 0,
       slug: t.supplier_slug,
     };
@@ -263,10 +273,12 @@ export function rfqStrip(rfq: RfqDoc | null, supplierId: string): RfqStrip | nul
   };
 }
 
-/** The phone's line over the conversation: "RFQ sent 18 Jul 2026 · 10,000 pieces · waiting for quote". */
-export function phoneStripLine(s: RfqStrip): string {
+/** The phone's card over the conversation (`11 · thread`): "French terry hoodies · 10,000 pieces", "Sent 18 Jul 2026 · waiting for quote". */
+export function phoneRfqCard(s: RfqStrip, title: string | null): { title: string; line: string } {
   const [sent, qty, , quote] = s.cells;
-  return [`RFQ sent ${sent!.value}`, qty!.value, quote!.value.charAt(0).toLowerCase() + quote!.value.slice(1)].join(" · ");
+  // "Waiting for quote" reads on as "waiting for quote"; "US$8.55 per piece" keeps its capitals.
+  const q = /^[A-Z][a-z]/.test(quote!.value) ? quote!.value.charAt(0).toLowerCase() + quote!.value.slice(1) : quote!.value;
+  return { title: [title?.trim() || "RFQ", qty!.value].join(" · "), line: `Sent ${sent!.value} · ${q}` };
 }
 
 /* ------------------------------------------------------------------- files */

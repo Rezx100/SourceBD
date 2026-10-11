@@ -2,44 +2,45 @@
 // name and the RFQ it is about with the control for the record, and the strip of that RFQ's four
 // facts. Server components.
 
-import { ArrowLeft } from "@phosphor-icons/react/dist/ssr";
+import { Storefront, X } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { listHref, threadHref, threadSub, type ListState, type RfqStrip, type ThreadRow } from "./words";
 
 const textLink = "rounded-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
+/** The phone's 36 round buttons in the thread's bar (`11 · thread`): 44 to the finger, 36 to the eye. */
+const roundButton =
+  "group flex size-11 shrink-0 items-center justify-center rounded-full outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus md:hidden";
+const roundFace = "flex size-9 items-center justify-center rounded-full bg-sunken text-ink-2 group-active:bg-line";
+
 export function ThreadHead({ thread, state, recordOpen }: { thread: ThreadRow; state: ListState; recordOpen: boolean }) {
+  const recordHref = recordOpen ? threadHref(thread.id, state) : threadHref(thread.id, state, thread.supplier_slug);
   return (
-    <header className="flex h-14 shrink-0 items-center gap-2 border-b border-line bg-surface px-5 max-md:sticky max-md:top-0 max-md:z-raised max-md:px-2">
-      <Link
-        href={listHref(state)}
-        prefetch={false}
-        aria-label="Back to messages"
-        className="flex size-11 shrink-0 items-center justify-center rounded-sm text-ink outline-none hover:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus md:hidden"
-      >
-        <ArrowLeft size={24} aria-hidden />
-      </Link>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <h1 className="truncate text-md font-semibold text-ink">{thread.supplier_name}</h1>
-        <p className="truncate text-xs text-ink-3">{threadSub(thread)}</p>
+    <header className="flex h-14 shrink-0 items-center gap-2 border-b border-line bg-surface px-5 max-md:sticky max-md:top-0 max-md:z-raised max-md:h-auto max-md:min-h-14 max-md:gap-0 max-md:pb-2.5 max-md:pl-5 max-md:pr-3 max-md:pt-1.5">
+      <div className="flex min-w-0 flex-1 flex-col max-md:pr-2">
+        <h1 className="truncate text-md font-semibold text-ink max-md:text-xl/[30px] max-md:tracking-[-0.025em]">{thread.supplier_name}</h1>
+        <p className="truncate text-xs text-ink-3 max-md:text-sm">{threadSub(thread)}</p>
       </div>
-      <Link
-        href={recordOpen ? threadHref(thread.id, state) : threadHref(thread.id, state, thread.supplier_slug)}
-        prefetch={false}
-        scroll={false}
-        aria-current={recordOpen ? "true" : undefined}
-        className={cn(textLink, "text-sm max-md:flex max-md:h-11 max-md:items-center max-md:px-3 max-md:text-md")}
-      >
+      <Link href={recordHref} prefetch={false} scroll={false} aria-current={recordOpen ? "true" : undefined} className={cn(textLink, "text-sm max-md:hidden")}>
         {recordOpen ? (
           "Hide record"
         ) : (
           <>
             <span className="max-xl:hidden">Show record beside</span>
-            <span className="max-md:hidden xl:hidden">Show record</span>
-            <span className="md:hidden">Record</span>
+            <span className="xl:hidden">Show record</span>
           </>
         )}
+      </Link>
+      <Link href={recordHref} prefetch={false} scroll={false} aria-current={recordOpen ? "true" : undefined} aria-label={recordOpen ? "Hide record" : "Show record"} className={roundButton}>
+        <span className={roundFace}>
+          <Storefront size={17} weight="thin" aria-hidden />
+        </span>
+      </Link>
+      <Link href={listHref(state)} prefetch={false} aria-label="Back to messages" className={roundButton}>
+        <span className={roundFace}>
+          <X size={17} weight="thin" aria-hidden />
+        </span>
       </Link>
     </header>
   );

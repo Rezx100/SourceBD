@@ -14,10 +14,10 @@
 // go first to `POST /api/v1/products/media` and the product keeps the URLs (`transport.ts`). The pure
 // half is `product-form-model.ts` and `edit.ts`.
 
-import { ArrowLeft, File, Paperclip, PaperPlaneTilt, Plus, Trash, UploadSimple, X } from "@phosphor-icons/react";
+import { ArrowLeft, CaretDown, CaretUp, File, Paperclip, PaperPlaneTilt, Plus, Trash, UploadSimple, X } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button, ButtonLink, Field, IconButton, Input, Select, Table, TableFrame, Td, Th, Tr } from "@/components/kit";
 import { fieldBox, fieldEdge } from "@/components/kit/classes";
 import {
@@ -39,7 +39,7 @@ import {
 } from "@/components/product-form-model";
 import { formatCount } from "@/lib/dashboard/facts";
 import { cn } from "@/lib/utils";
-import { FIX_FIELDS, NAME_NEEDED, NEW_CAPTION, NEW_TITLE, OPTIONAL_LINES, SECTIONS, changedLabels, editLine, footButtons, openSections, type Optional } from "./edit";
+import { ADD_LATER, FIX_FIELDS, NAME_NEEDED, NEW_CAPTION, NEW_CAPTION_PHONE, NEW_TITLE, OPTIONAL_LINES, SECTIONS, changedLabels, editLine, footButtons, openSections, type Optional } from "./edit";
 import { ChipInput, FormSection, RowsTable } from "./form-parts";
 import { browserFetch, releaseFile, saveProduct, uploadMedia } from "./transport";
 import { StatusChip } from "./table";
@@ -52,13 +52,23 @@ const NOT_SET = "none";
 const deps = { fetch: browserFetch };
 
 const textarea = cn(fieldBox, fieldEdge, "block min-h-16 px-2.5 py-1.5 text-base");
-const touch = "max-md:h-input-touch max-md:text-md";
+const touch = "max-md:h-input-touch max-md:rounded-lg max-md:px-3.5 max-md:text-md";
 
 export function ProductForm({ initial, updatedAt = null }: { initial: ProductValues; updatedAt?: string | null }) {
   const router = useRouter();
   const isNew = initial.id === null;
   const [v, setV] = useState(initial);
   const [open, setOpen] = useState(() => openSections(initial));
+  // The phone's "More: images, colour and size options" row (`11 · New product`).
+  const [more, setMore] = useState(false);
+  // The phone's product view links to a section by its anchor (`view.tsx`). A shut section is not
+  // drawn on a phone, so the one the address names opens, then scrolls into view.
+  useEffect(() => {
+    const id = window.location.hash.slice(1);
+    if (!ADD_LATER.some((r) => r.id === id)) return;
+    setOpen((o) => ({ ...o, [id]: true }));
+    requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView());
+  }, []);
   const [errors, setErrors] = useState<ProductErrors>({});
   const [busy, setBusy] = useState<ProductStatus | null>(null);
   const [uploading, setUploading] = useState<MediaKind | null>(null);
@@ -139,6 +149,8 @@ export function ProductForm({ initial, updatedAt = null }: { initial: ProductVal
 
   const removeMedia = (url: string) => set("media", v.media.filter((m) => m.url !== url));
   const shut = (s: Optional) => !open[s];
+  const laterRows = ADD_LATER.filter((r) => shut(r.id) && (!r.more || more));
+  const moreShut = ADD_LATER.some((r) => r.more && shut(r.id));
   const opener = (s: Optional) => () => setOpen((o) => ({ ...o, [s]: true }));
   const categories = v.category && !(PRODUCT_CATEGORIES as readonly string[]).includes(v.category) ? [...PRODUCT_CATEGORIES, v.category] : [...PRODUCT_CATEGORIES];
 
@@ -149,20 +161,34 @@ export function ProductForm({ initial, updatedAt = null }: { initial: ProductVal
       // Enter in a field does nothing: saving is the foot's, never an accident.
       onSubmit={(e) => e.preventDefault()}
       noValidate
+      // The editor draws its own bar and foot on a phone: the frame's bar and tabs give way (S-09).
+      data-detail=""
       className="flex min-h-0 flex-1 flex-col"
     >
-      <header className="flex flex-col gap-1 px-8 pb-5 pt-5 max-md:px-4 max-md:pt-2">
-        <Link href="/app/products" prefetch={false} className="-ml-2 flex h-9 w-fit items-center gap-1.5 rounded-sm px-2 text-base font-medium text-ink-2 outline-none hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus max-md:h-11">
+      <header className="flex flex-col gap-1 px-8 pb-5 pt-5 max-md:flex-row max-md:items-center max-md:gap-2 max-md:pb-2.5 max-md:pl-3 max-md:pr-4 max-md:pt-1.5">
+        <Link href="/app/products" prefetch={false} className="-ml-2 flex h-9 w-fit items-center gap-1.5 rounded-sm px-2 text-base font-medium text-ink-2 outline-none hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus max-md:hidden">
           <ArrowLeft size={16} aria-hidden />
           Products
         </Link>
-        <div className="flex items-start justify-between gap-4 max-sm:flex-col">
-          <div className="flex min-w-0 flex-col gap-1">
+        <Link href="/app/products" prefetch={false} aria-label="Back to products" className="group flex size-11 shrink-0 items-center justify-center self-start rounded-full outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus md:hidden">
+          <span className="flex size-9 items-center justify-center rounded-full bg-sunken text-ink-2 group-active:bg-line">
+            <ArrowLeft size={17} weight="thin" aria-hidden />
+          </span>
+        </Link>
+        <div className="flex items-start justify-between gap-4 max-md:min-w-0 max-md:flex-1 max-sm:flex-col">
+          <div className="flex min-w-0 flex-col gap-1 max-md:gap-0">
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-xl font-semibold tracking-tight text-ink [overflow-wrap:anywhere]">{isNew ? NEW_TITLE : initial.name || "Product"}</h1>
+              <h1 className="text-xl font-semibold tracking-tight text-ink [overflow-wrap:anywhere] max-md:text-xl/[30px] max-md:tracking-[-0.025em]">{isNew ? NEW_TITLE : initial.name || "Product"}</h1>
               {isNew ? null : <StatusChip status={initial.status} />}
             </div>
-            <p className="text-base text-ink-3">{isNew ? NEW_CAPTION : editLine(initial, updatedAt)}</p>
+            {isNew ? (
+              <p className="text-base text-ink-3 max-md:text-sm">
+                <span className="max-md:hidden">{NEW_CAPTION}</span>
+                <span className="md:hidden">{NEW_CAPTION_PHONE}</span>
+              </p>
+            ) : (
+              <p className="text-base text-ink-3 max-md:text-sm">{editLine(initial, updatedAt)}</p>
+            )}
           </div>
           {!isNew && initial.status === "active" ? (
             dirty ? (
@@ -176,7 +202,7 @@ export function ProductForm({ initial, updatedAt = null }: { initial: ProductVal
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1 gap-8 border-t border-line px-8 pb-8 pt-6 max-md:flex-col max-md:px-4">
+      <div className="flex min-h-0 flex-1 gap-8 border-t border-line px-8 pb-8 pt-6 max-md:flex-col max-md:gap-0 max-md:border-t-0 max-md:px-5 max-md:pt-1">
         <nav aria-label="Sections" className="sticky top-6 flex h-fit w-[184px] shrink-0 flex-col gap-0.5 max-md:hidden">
           {SECTIONS.map((s) => (
             <a key={s.id} href={`#${s.id}`} className="flex h-9 items-center rounded-sm px-2.5 text-base text-ink-2 outline-none hover:bg-sunken hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus">
@@ -209,7 +235,7 @@ export function ProductForm({ initial, updatedAt = null }: { initial: ProductVal
                 {(a) => <Input {...a} value={v.customer_product_number} onChange={(e) => set("customer_product_number", e.target.value)} className={touch} />}
               </Field>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-2 gap-4 max-md:gap-3">
               <Field label="Target price (US$)" help="Per piece, in US dollars." error={errors.price_usd}>
                 {(a) => <Input {...a} name="price_usd" value={v.price_usd} onChange={(e) => set("price_usd", e.target.value)} inputMode="decimal" placeholder="e.g. 8.50" className={touch} />}
               </Field>
@@ -242,7 +268,7 @@ export function ProductForm({ initial, updatedAt = null }: { initial: ProductVal
             </Field>
           </FormSection>
 
-          <FormSection id="options" name="options" title={shut("options") ? OPTIONAL_LINES.options : "Options"} caption="Options and their values; every combination is listed below." shut={shut("options")} onOpen={opener("options")}>
+          <FormSection id="options" name="options" title={shut("options") ? OPTIONAL_LINES.options : "Options"} caption="Options and their values; every combination is listed below." shut={shut("options")} onOpen={opener("options")} className={shut("options") ? "max-md:hidden" : undefined}>
             {v.options.map((o, i) => (
               <div key={i} className="grid items-start gap-3 sm:grid-cols-[12rem_1fr_auto]">
                 <Field label="Option">
@@ -300,15 +326,15 @@ export function ProductForm({ initial, updatedAt = null }: { initial: ProductVal
             )}
           </FormSection>
 
-          <FormSection id="size-chart" title={shut("size-chart") ? OPTIONAL_LINES["size-chart"] : "Size chart"} caption="Points of measure, in the unit your spec uses." shut={shut("size-chart")} onOpen={opener("size-chart")}>
+          <FormSection id="size-chart" title={shut("size-chart") ? OPTIONAL_LINES["size-chart"] : "Size chart"} caption="Points of measure, in the unit your spec uses." shut={shut("size-chart")} onOpen={opener("size-chart")} className={shut("size-chart") ? "max-md:hidden" : undefined}>
             <RowsTable label="Size chart" columns={SIZE_COLUMNS} rows={v.size_chart} onChange={(rows) => set("size_chart", rows)} blank={emptySizeRow} addLabel="Add measurement" />
           </FormSection>
 
-          <FormSection id="materials" title={shut("materials") ? OPTIONAL_LINES.materials : "Materials"} caption="Bill of materials: every fabric and trim that goes into one piece." shut={shut("materials")} onOpen={opener("materials")}>
+          <FormSection id="materials" title={shut("materials") ? OPTIONAL_LINES.materials : "Materials"} caption="Bill of materials: every fabric and trim that goes into one piece." shut={shut("materials")} onOpen={opener("materials")} className={shut("materials") ? "max-md:hidden" : undefined}>
             <RowsTable label="Bill of materials" columns={BOM_COLUMNS} rows={v.bom} onChange={(rows) => set("bom", rows)} blank={emptyBomRow} addLabel="Add material" />
           </FormSection>
 
-          <FormSection id="images" title={shut("images") ? OPTIONAL_LINES.images : "Images"} caption="The first image shows in your list. Use your own photos or sketches." shut={shut("images")} onOpen={opener("images")}>
+          <FormSection id="images" title={shut("images") ? OPTIONAL_LINES.images : "Images"} caption="The first image shows in your list. Use your own photos or sketches." shut={shut("images")} onOpen={opener("images")} className={shut("images") ? "max-md:hidden" : undefined}>
             <div className="flex flex-wrap gap-2">
               {images.map((m, i) => (
                 <div key={m.url} className="relative size-20 overflow-hidden rounded-md border border-line bg-sunken">
@@ -332,7 +358,7 @@ export function ProductForm({ initial, updatedAt = null }: { initial: ProductVal
             <p className="text-xs text-ink-3">JPG, PNG, WebP or GIF, up to 10 MB each.</p>
           </FormSection>
 
-          <FormSection id="tech-pack" title={shut("tech-pack") ? OPTIONAL_LINES["tech-pack"] : "Tech pack"} caption="A PDF or an image, up to 10 MB. Every RFQ from this product attaches it." shut={shut("tech-pack")} onOpen={opener("tech-pack")}>
+          <FormSection id="tech-pack" title={shut("tech-pack") ? OPTIONAL_LINES["tech-pack"] : "Tech pack"} caption="A PDF or an image, up to 10 MB. Every RFQ from this product attaches it." shut={shut("tech-pack")} onOpen={opener("tech-pack")} className={shut("tech-pack") ? "max-md:hidden" : undefined}>
             {techPack ? (
               <div className="flex min-w-0 items-center gap-3 rounded-md border border-line p-3">
                 <File size={24} className="shrink-0 text-ink-2" aria-hidden />
@@ -355,11 +381,47 @@ export function ProductForm({ initial, updatedAt = null }: { initial: ProductVal
             )}
             <input ref={techInput} type="file" accept="application/pdf,image/jpeg,image/png,image/webp" hidden onChange={(e) => void upload(e.target.files, "tech_pack")} />
           </FormSection>
+
+          {laterRows.length > 0 || moreShut ? (
+            <section aria-label="Add now or later" className="flex flex-col md:hidden">
+              <h2 className="pb-3.5 pt-6 text-lg font-medium tracking-tight text-ink">Add now or later</h2>
+              <div className="flex flex-col overflow-clip rounded-[10px] border border-line">
+                {laterRows.map((r) => (
+                  <div key={r.id} className="flex min-h-[60px] items-center gap-3 border-t border-line py-2 pl-4 pr-2 first:border-t-0">
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <span className="text-md/[22px] text-ink">{r.title}</span>
+                      <span className="text-sm text-ink-3">{r.line}</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={opener(r.id)}
+                      aria-label={`Add ${r.title.toLowerCase()}`}
+                      className="flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-sunken px-3.5 text-base font-medium text-ink outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus active:bg-line"
+                    >
+                      <Plus size={16} weight="thin" aria-hidden />
+                      Add
+                    </button>
+                  </div>
+                ))}
+                {moreShut ? (
+                  <button
+                    type="button"
+                    onClick={() => setMore((m) => !m)}
+                    aria-expanded={more}
+                    className={cn("flex min-h-12 items-center justify-between gap-3 bg-subtle px-4 py-3 text-left text-sm text-ink-2 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus active:bg-sunken", laterRows.length > 0 && "border-t border-line")}
+                  >
+                    {more ? "Fewer" : "More: images, colour and size options"}
+                    {more ? <CaretUp size={16} weight="thin" className="shrink-0 text-ink-3" aria-hidden /> : <CaretDown size={16} weight="thin" className="shrink-0 text-ink-3" aria-hidden />}
+                  </button>
+                ) : null}
+              </div>
+            </section>
+          ) : null}
         </div>
       </div>
 
       {buttons.length > 0 || error || isNew ? (
-        <div className="sticky bottom-0 z-raised flex flex-wrap items-center justify-between gap-3 border-t border-line bg-surface px-8 py-3 [box-shadow:0_-4px_12px_rgb(21_24_28_/_0.06)] max-md:bottom-[calc(theme(spacing.tabbar)+env(safe-area-inset-bottom))] max-md:flex-col max-md:items-stretch max-md:px-4">
+        <div className="sticky bottom-0 z-raised flex flex-wrap items-center justify-between gap-3 border-t border-line bg-surface px-8 py-3 [box-shadow:0_-4px_12px_rgb(21_24_28_/_0.06)] max-md:bottom-0 max-md:flex-col max-md:items-stretch max-md:gap-1.5 max-md:px-4 max-md:pb-[max(0.5rem,env(safe-area-inset-bottom))] max-md:pt-2.5 max-md:[box-shadow:none]">
           {error ? (
             <p role="alert" className="w-full text-sm text-danger">
               {error}
@@ -377,10 +439,13 @@ export function ProductForm({ initial, updatedAt = null }: { initial: ProductVal
                 <span className="min-w-0 text-sm text-ink-3 [overflow-wrap:anywhere]">{changed.join(", ")}</span>
               </>
             ) : (
-              <span className="text-sm text-ink-3">Only an active product can be sent in an RFQ. Only you can see your products.</span>
+              <span className="text-sm text-ink-3 max-md:text-xs">
+                <span className="max-md:hidden">Only an active product can be sent in an RFQ. Only you can see your products.</span>
+                <span className="md:hidden">Only an active product can go out in an RFQ.</span>
+              </span>
             )}
           </p>
-          <div className="flex gap-2 max-md:[&>*]:flex-1">
+          <div className="flex gap-2 max-md:h-16 max-md:items-center max-md:[&>*:last-child]:flex-1">
             {buttons.map((b) => (
               <Button
                 key={b.label}
@@ -389,7 +454,7 @@ export function ProductForm({ initial, updatedAt = null }: { initial: ProductVal
                 loadingLabel="Saving"
                 disabled={b.saves !== null && working}
                 onClick={() => (b.saves === null ? discard() : void save(b.saves))}
-                className="max-md:h-input-touch"
+                className="max-md:h-input-touch max-md:rounded-lg max-md:px-[18px] max-md:text-md"
               >
                 {b.label}
               </Button>

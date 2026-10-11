@@ -4,7 +4,7 @@
 // unknown id, a failed read that is an error and not a 404, Send RFQ for an active product only).
 
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
@@ -12,7 +12,7 @@ import { createElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { emptyProduct, fromProduct, type ProductValues } from "@/components/product-form-model";
-import { OPTIONAL_LINES, SECTIONS, changedLabels, editLine, footButtons, hasContent, openSections, refusal } from "./edit";
+import { ADD_LATER, OPTIONAL_LINES, SECTIONS, changedLabels, editLine, footButtons, hasContent, openSections, refusal } from "./edit";
 import { releaseFile, saveProduct, uploadMedia, type Fetch } from "./transport";
 import { FULL_EDITOR_LABEL, detailsPayload, viewCounts, viewFacts } from "./view";
 
@@ -178,7 +178,9 @@ describe("/app/products/new", () => {
     assert.match(t, /Add a name to save/);
     assert.match(r.html, /<button[^>]*>Save draft<\/button>/);
     assert.match(r.html, /<button[^>]*>Make active<\/button>/);
-    assert.equal(r.html.match(/aria-label="Add (options|size chart|materials|images|tech pack)"/g)?.length, 5, "the five other sections are Add");
+    assert.equal(r.html.match(/aria-label="Add (options|size chart|materials|images|tech pack)"/g)?.length, 8, "the five other sections are Add, and the phone's card offers the first three again");
+    assert.match(t, /Add now or later Size chart Points of measure, with tolerances/, "the phone's card (`11 · New product`)");
+    assert.match(r.html, /<form[^>]*data-detail=""/, "on a phone the editor draws its own bar and foot");
     assert.ok(!r.html.includes("/app/rfqs/new"), "a product that does not exist cannot be sent");
     assert.doesNotMatch(t, /HS code|Start manually|How do you want to start/);
     assert.match(r.html, /href="\/app\/products"[^>]*>[\s\S]*?Products/);
@@ -247,6 +249,14 @@ describe("/app/products/[id]", () => {
 });
 
 describe("the phone's Product view", () => {
+  it("every section a row links to is one the editor opens from the address (a shut section is not drawn on a phone)", () => {
+    const src = (f: string) => readFileSync(path.join(process.cwd(), "components", "products", f), "utf8");
+    const anchors = [...src("view.tsx").matchAll(/\$\{editor\}#([a-z-]+)/g)].map((m) => m[1]);
+    assert.ok(anchors.length >= 4);
+    for (const a of anchors) assert.ok(ADD_LATER.some((r) => r.id === a), `#${a} is not a section the editor can open`);
+    assert.match(src("form.tsx"), /window\.location\.hash[\s\S]{0,200}setOpen\(/, "the editor opens the section the address names");
+  });
+
   it("says what is set and 'Not set' for what is not; the sections it does not edit are counted", () => {
     const facts = Object.fromEntries(viewFacts(saved({ tags: ["SS27", "organic"] })).map((x) => [x.label, x.value]));
     assert.equal(facts["Style number"], "NW-702");
@@ -280,9 +290,13 @@ describe("the phone's Product view", () => {
     assert.match(r.html, /aria-label="Product view"[^>]*class="[^"]*md:hidden/);
     assert.match(text(r.html), /Edit details/);
     assert.match(text(r.html), /Target price US\$1\.20 per piece/);
-    assert.match(text(r.html), /Style number Not set/);
+    assert.match(text(r.html), /No style number/);
+    assert.match(text(r.html), /Customer ref\. Not set/);
+    assert.match(text(r.html), /Active · ready for RFQs/);
+    assert.match(r.html, /aria-label="Product view" data-detail=""/, "the view draws its own bar, so the frame's bar and tabs give way");
+    assert.ok(r.html.includes(`href="/app/products/${ID}?edit=full#size-chart"`), "the size chart row opens the editor there");
     assert.ok(r.html.includes(`href="/app/products/${ID}?edit=full"`));
-    assert.match(text(r.html), new RegExp(FULL_EDITOR_LABEL));
+    assert.match(r.html, new RegExp(`aria-label="${FULL_EDITOR_LABEL}"`));
     assert.match(r.html, /<form[^>]*aria-label="Product"/, "from 768 the editor is still the page");
     answer = { data: { id: ID, name: "Crew socks", status: "draft" }, error: null };
     const draft = await edit();

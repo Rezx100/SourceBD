@@ -28,20 +28,20 @@ export default async function NewOrderPage({ searchParams }: { searchParams: Pro
     if (!UUID_RE.test(sp.from_quote)) redirect("/app/orders");
     const { data: quote, error } = await supabase.from("rfq_quotes").select("id, rfq_id, supplier_id, unit_price, currency, status").eq("id", sp.from_quote).maybeSingle();
     if (error || !quote || quote.status !== "accepted") notFound();
-    const { data: doc, error: rErr } = await supabase.rpc("rfq_get", { p_id: quote.rfq_id });
+    // The RFQ and the buyer's orders both hang off the quote and not off each other: read side by side.
+    // The checks keep their order below: the RFQ, the supplier on it, then the order it already started.
+    const [{ data: doc, error: rErr }, made] = await Promise.all([
+      supabase.rpc("rfq_get", { p_id: quote.rfq_id }),
+      // Unreadable orders change nothing here: the form still opens, as before.
+      Promise.resolve(supabase.rpc("order_list", { p_status: null })).then((r) => r, () => null),
+    ]);
     if (rErr || doc == null) notFound();
     const rfq = doc as RfqDoc;
     const supplier = rfq.targets.find((t) => t.id === quote.supplier_id);
     if (!supplier) notFound();
     // An accepted quote starts one order. A second visit (Back, a saved link) opens that order instead of making a twin.
-    // Unreadable orders change nothing here: the form still opens, as before.
-    try {
-      const made = await supabase.rpc("order_list", { p_status: null });
-      const existing = !made.error && Array.isArray(made.data) ? (made.data as { id: string; rfq_id: string | null; supplier_id: string; status: string }[]).find((o) => o.rfq_id === quote.rfq_id && o.supplier_id === quote.supplier_id && o.status !== "cancelled") : undefined;
-      if (existing) redirect(`/app/orders/${existing.id}`);
-    } catch (err) {
-      if ((err as { digest?: string })?.digest?.startsWith("NEXT_REDIRECT")) throw err;
-    }
+    const existing = made && !made.error && Array.isArray(made.data) ? (made.data as { id: string; rfq_id: string | null; supplier_id: string; status: string }[]).find((o) => o.rfq_id === quote.rfq_id && o.supplier_id === quote.supplier_id && o.status !== "cancelled") : undefined;
+    if (existing) redirect(`/app/orders/${existing.id}`);
     const seed: OrderSeed = { supplierName: supplier.company_name, supplierLine: placeLine(supplier.entity_type, supplier.city, supplier.district), how: { quoteId: quote.id as string } };
     return (
       <OrderForm
