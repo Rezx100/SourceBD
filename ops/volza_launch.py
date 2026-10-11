@@ -11,7 +11,7 @@ Per supplier: starts-with search on each of our names until one finds shipments;
 more than one exporter, one exact search on our legal name in its suffix forms (only that counts
 from then on); if exact and shipping to 2+ countries, four searches filtered to the UK, the US, the
 27 EU countries and Canada; if every shipment is counted in pieces, one more search for those under
-1,000 pieces (a small-orders signal). One record per call, duplicates removed. The preview and exact
+1,000 pieces (a small-orders signal), if it has 10+ shipments. One record per call, duplicates removed. The preview and exact
 searches return the latest shipment (the card's "Latest shipment on record"; design session, 11 Oct
 2026); the market searches return the biggest shipment to that market. Volza does not charge again
 for a record already bought, so repeat calls cost $0.10.
@@ -56,6 +56,7 @@ MARKETS = [("United Kingdom", ["United Kingdom"]), ("United States", ["United St
            ("Canada", ["Canada"])]
 SHOWN_SHARE = 0.9  # an exact search must keep 90% of the swept-in shipments to be shown
 SMALL_PCS = 1000  # "N% of its shipments were under 1,000 pieces" (founder, 11 Oct 2026)
+SMALL_MIN = 10  # below 10 shipments a share means little; skipping saves $0.15 (founder, 11 Oct 2026)
 LATEST = {"sort_by": "date", "sort_order": "DESC"}  # Volza's spec: sort fields include "date"
 LATEST_CAP = 11.0  # refetch of the 73 shown suppliers' latest shipment (about $0.15 each)
 SUFFIXES = ("", " Ltd", " Ltd.", " Limited", " (Pvt) Ltd", " (Pvt.) Ltd.", " Pvt Ltd", " Pvt. Ltd.",
@@ -184,7 +185,8 @@ def fetch(v: Live, row: dict[str, Any], rec: dict[str, Any]) -> None:
     # Small-orders signal (batch 0: the quantity filter works). Only when every shipment is counted in
     # pieces: a line declared in kilos (720 KGS = 4,292 pieces on Aboni's) would count as "small".
     summary = rec.get("summary") or {}
-    if rec["class"] == "exact" and main and summary.get("count_of_units") == 1 and (rec.get("top") or {}).get("unit") == "PCS":
+    if (rec["class"] == "exact" and main and rec["shipments"] >= SMALL_MIN
+            and summary.get("count_of_units") == 1 and (rec.get("top") or {}).get("unit") == "PCS"):
         data = call("small:under 1000 pcs", {**main, "quantity": {"operator": "lt", "value": SMALL_PCS}})
         rec["small_orders"] = {"under_pcs": SMALL_PCS, "shipments": shipments(data), "of": rec["shipments"]}
     rec["partial"] = False
