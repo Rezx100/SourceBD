@@ -7,7 +7,7 @@
 import { ExpiryHead, ExpiryList, ExpiryNone, ExpiryPhone } from "@/components/compliance/expiry";
 import { PartialNote } from "@/components/compliance/hub";
 import { loadCompliance } from "@/components/compliance/load";
-import { readUflpaListDate, uflpaNotice } from "@/components/compliance/uflpa-read";
+import { uflpaNotice, uflpaReadAt } from "@/components/compliance/uflpa-read";
 import { expiryCounts, expiryGroups, parseShow } from "@/components/compliance/words";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -21,8 +21,8 @@ export default async function ExpiryPage({ searchParams }: { searchParams: Promi
   const supabase = await createSupabaseServerClient();
   const today = new Date();
   // A phone's Alerts opens on the UFLPA result of the saved suppliers, dated by the list's last full read.
-  const [d, uflpaRead] = await Promise.all([loadCompliance(supabase, { certs: true, msa: true, uflpa: true }), readUflpaListDate(supabase)]);
-  const uflpa = uflpaNotice(d.uflpa, uflpaRead, today);
+  const d = await loadCompliance(supabase, { certs: true, msa: true, uflpa: true, lists: true });
+  const uflpa = uflpaNotice(d.uflpa, uflpaReadAt(d.lists), today);
   const groups = expiryGroups(d.expired, d.expiring, today);
   const counts = expiryCounts(groups);
   const anyRead = d.expired !== null || d.expiring !== null;

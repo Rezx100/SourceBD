@@ -3,31 +3,14 @@
 // was last read in full (`sanctions_lists_read()`, 0120). Nothing here is hard-coded: a check that
 // was not read draws nothing, and a list with no read date says so.
 
-import { formatDay } from "@/lib/dashboard/facts";
 import { loadCompliance } from "./load";
+import { listRead, shortDay, type ListRead } from "./words";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the Supabase server client, as the other loaders take it.
 type Client = any;
 
-/** The last full read of the UFLPA Entity List; null when 0120 is missing, the read fails or the list was never read. */
-export async function readUflpaListDate(supabase: Client): Promise<string | null> {
-  try {
-    const { data, error } = await supabase.rpc("sanctions_lists_read", {});
-    if (error || !Array.isArray(data)) return null;
-    const at = (data as { list?: unknown; last_read?: unknown }[]).find((r) => r.list === "uflpa")?.last_read;
-    return typeof at === "string" && !Number.isNaN(Date.parse(at)) ? at : null;
-  } catch {
-    return null;
-  }
-}
-
-/** "8 Oct", with the year only when it is not this year. */
-export function shortDay(iso: string, today: Date): string | null {
-  const day = formatDay(iso);
-  if (!day) return null;
-  const year = ` ${today.getUTCFullYear()}`;
-  return day.endsWith(year) ? day.slice(0, -year.length) : day;
-}
+/** The last full read of the UFLPA Entity List out of `loadCompliance`'s lists; null when the read failed or the list was never read. */
+export const uflpaReadAt = (lists: readonly ListRead[] | null): string | null => listRead(lists, "uflpa")?.last_read ?? null;
 
 /**
  * "No link found · not a clearance · read 8 Oct" when no saved supplier is on the list or flagged,
@@ -68,6 +51,6 @@ export function uflpaSheetNotice(check: Check, readAt: string | null, today: Dat
 
 /** Both reads for the filters sheet, in one wave; neither throws. */
 export async function loadUflpaSheetNotice(supabase: Client, today: Date): Promise<UflpaNotice | null> {
-  const [d, readAt] = await Promise.all([loadCompliance(supabase, { uflpa: true }), readUflpaListDate(supabase)]);
-  return uflpaSheetNotice(d.uflpa, readAt, today);
+  const d = await loadCompliance(supabase, { uflpa: true, lists: true });
+  return uflpaSheetNotice(d.uflpa, uflpaReadAt(d.lists), today);
 }

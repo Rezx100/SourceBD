@@ -13,8 +13,8 @@ import { DownloadCsv } from "@/components/export/download-csv";
 import { LinkPending } from "@/components/patterns/link-pending";
 import { cn } from "@/lib/utils";
 import { BackToHub } from "./hub";
-import { shortDay, type UflpaNotice } from "./uflpa-read";
-import { certExportHref, expiredHeading, expiryCounts, expiryHref, expiryItems, expirySubline, expiryTabs, within30Heading, within90Heading, type CertItem, type ExpiryGroups, type ExpiryShow } from "./words";
+import { type UflpaNotice } from "./uflpa-read";
+import { certExportHref, expiredHeading, expiryCounts, expiryHref, expiryItems, expirySubline, expiryTabs, shortDay, within30Heading, within90Heading, type CertItem, type ExpiryGroups, type ExpiryShow } from "./words";
 
 export function ExpiryHead({ groups, saved, show, download }: { groups: ExpiryGroups; saved: number | null; show: ExpiryShow; download: boolean }) {
   const counts = expiryCounts(groups);
