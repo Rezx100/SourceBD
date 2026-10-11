@@ -7,10 +7,10 @@
 // thread: `data-detail`) hides both, as S-09 asks.
 
 import { CaretRight, ChatCircleText, GearSix, Hash, Package, ShieldCheck, SignOut, UserCircle } from "@phosphor-icons/react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Dialog as D } from "radix-ui";
+import dynamic from "next/dynamic";
 import { Suspense, useEffect, useState } from "react";
 import { ring, ringInset } from "@/components/kit/classes";
 import { TabBar } from "@/components/kit/phone";
