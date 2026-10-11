@@ -6,7 +6,7 @@
 
 import type { CertRowData } from "@/components/patterns";
 import { ABSENT, SITE_WORDS, rankCerts, isApproximate, type SiteKind } from "@/components/patterns/words";
-import { certCheckLine, certRowId, formatDay } from "@/lib/dashboard/facts";
+import { brandsInCustoms, certCheckLine, certRowId, customsBuyers, formatDay } from "@/lib/dashboard/facts";
 import type { CertState } from "@/components/kit";
 import type { FactRow, LocationRow, ProductSheetModel, SitePin, SupplierSheetModel } from "@/lib/dashboard/models";
 import type { SourceMarkModel } from "@/lib/dashboard/source-tiers";
@@ -260,13 +260,20 @@ export function keyFacts(model: SupplierSheetModel): KeyFact[] {
   if (p.productListCount === 0) out.push({ label: "Products", values: [], source: null, pending: false, empty: "Not published. Ask in your RFQ." });
   if (p.lines === 0) out.push({ label: "Exports", values: [], source: null, pending: false, empty: p.linesUnknown ? "The export lines could not be read." : p.onEpb ? "On the EPB exporter register · no lines on file" : "Not on the EPB exporter list" });
   const lists = model.products.buyerLists;
+  // A brand that a customs buyer on file also names is marked: two sources agreeing (founder, 11 Oct 2026).
+  const agreed = brandsInCustoms(lists, model.volza);
   out.push({
     label: "Brand supplier lists",
-    values: lists.length ? [{ text: lists.join(", "), mono: false }] : [],
+    values: lists.length ? [{ text: lists.map((b) => (agreed.has(b) ? `${b} (also in customs records)` : b)).join(", "), mono: false }] : [],
     source: lists.length ? "From the brands' disclosure lists" : null,
     pending: false,
     empty: lists.length ? null : model.products.buyerListsEmpty,
   });
+  // Paying readers only (the customs read returns nothing to anyone else): who imported, beside who disclosed.
+  const buyers = customsBuyers(model.volza);
+  if (buyers.length) {
+    out.push({ label: "Buyers in customs records", values: [{ text: buyers.join(", "), mono: false }], source: "From Bangladesh customs records", pending: false, empty: null });
+  }
   return out;
 }
 
