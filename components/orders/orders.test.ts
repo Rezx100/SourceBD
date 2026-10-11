@@ -7,7 +7,7 @@
 // (the pattern in `components/rfqs/rfqs.test.ts`).
 
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
@@ -818,6 +818,27 @@ describe("/app/orders/new", () => {
     assert.ok("html" in (await go({ from_quote: QUOTE })), "a cancelled order blocked a new one");
     rpcs.order_list = { data: null, error: { message: "boom" } };
     assert.ok("html" in (await go({ from_quote: QUOTE })), "an unreadable order list blocked the form");
+  });
+
+  it("the RFQ and the buyer's orders are read side by side, and an order list that throws still opens the form", async () => {
+    const src = readFileSync(path.join(process.cwd(), "app", "(app)", "app", "orders", "new", "page.tsx"), "utf8");
+    assert.match(src, /await Promise\.all\(\[\s*supabase\.rpc\("rfq_get"[\s\S]*?supabase\.rpc\("order_list"/);
+    // The checks keep their order: the quote, the RFQ, the supplier on it, then the order it already started.
+    const at = (s: string) => src.indexOf(s);
+    assert.ok(at('quote.status !== "accepted") notFound()') < at("Promise.all(["), "the quote is checked before anything is read off it");
+    assert.ok(at("if (rErr || doc == null) notFound()") < at("if (!supplier) notFound()") && at("if (!supplier) notFound()") < at("if (existing) redirect("));
+    tables = { rfq_quotes: { data: accepted, error: null } };
+    rpcs = { rfq_get: { data: rfqDoc(), error: null } };
+    const rpc = client.rpc;
+    client.rpc = async (fn: string) => {
+      if (fn === "order_list") throw new Error("offline");
+      return rpc(fn);
+    };
+    try {
+      assert.ok("html" in (await go({ from_quote: QUOTE })), "an order list that threw blocked the form");
+    } finally {
+      client.rpc = rpc;
+    }
   });
 
   it("the price label follows the unit the RFQ was in", async () => {

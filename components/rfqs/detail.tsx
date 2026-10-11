@@ -222,6 +222,8 @@ function QuoteCards({ m, order, threadHref }: { m: DetailModel; order: OrderRef;
               <p className="flex items-baseline gap-1.5">
                 <span className="text-xl font-medium tracking-tighter text-ink">{q.price}</span>
                 <span className="text-base text-ink-2">per {q.perUnit}</span>
+                {/* The chart above draws this and is hidden from a screen reader: the card says it. */}
+                {q.versus ? <span className="sr-only">, {q.versus} target</span> : null}
               </p>
             </div>
             {facts.length > 0 ? (
@@ -262,7 +264,7 @@ function QuoteCards({ m, order, threadHref }: { m: DetailModel; order: OrderRef;
 /** Where the target line and its label stand: the track starts after the 112 name and an 8 gap, and leaves 80 for the price. */
 const TARGET_X = "left-[calc(120px_+_(100%_-_200px)_*_0.56)]";
 
-/** The phone's price comparison (Paper 36 `rfq-detail`): a dot per quote against the dashed target, cheaper to the left. The cards say the same in words. */
+/** The phone's price comparison (Paper 36 `rfq-detail`): a dot per quote against the dashed target, cheaper to the left. Each card says the same in words for a screen reader. */
 function PriceChart({ c }: { c: QuoteChart }) {
   return (
     <div aria-hidden className={cn("relative flex flex-col pt-6 sm:hidden", TABULAR)}>

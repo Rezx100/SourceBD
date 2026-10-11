@@ -330,4 +330,12 @@ describe("fifty recipients: one confirmation, and the sentence that matters in i
     assert.equal((src.match(/aria-busy=\{busy !== null \|\| undefined\}/g) ?? []).length, 3);
     assert.match(src, /if \(decision === "review"\) return setReviewing\("confirm"\);/, "Ctrl Enter and the click skip the confirmation");
   });
+
+  it("the composer page reads the draft beside the settings and the product; only the suppliers wait on it", () => {
+    const src = readFileSync(path.join(process.cwd(), "app", "(app)", "app", "rfqs", "new", "page.tsx"), "utf8");
+    assert.doesNotMatch(src, /await draftPrefill\(/, "the draft is read before the rest starts");
+    assert.match(src, /await Promise\.all\(\[\s*draftRead,\s*draftRead\.then\(/);
+    // A link to suppliers none of whom is listed is still not found, a draft aside.
+    assert.match(src, /if \(error \|\| \(!draft && ids\.length > 0 && rows\.length === 0\)\) \{\s*notFound\(\);/);
+  });
 });
