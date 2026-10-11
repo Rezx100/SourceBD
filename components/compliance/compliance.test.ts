@@ -586,4 +586,24 @@ describe("the phone (Paper page 36)", () => {
     const bare = html(createElement(UflpaPhone, { uflpa: null, read: null, today: NOW }));
     assert.match(text(bare), /Entries added since our last read are not checked\. .*We couldn't load the UFLPA checks\./);
   });
+
+  it("/app/compliance/uflpa, the line a buyer reads: no link found is not a clearance, dated by the list's own read, never 'not read yet'", async () => {
+    const rows = [{ supplier_id: "s0", supplier_slug: "aboni", company_name: "Aboni Knitwear Ltd.", entity_type: "factory", city: "Dhaka", district: "Dhaka", country: "Bangladesh", parent_group_name: null, uflpa_hits: [], status: "clear" }];
+    const tracker = { data: { total: 1, hits: 0, flags: 0, clear: 1, rows }, error: null };
+    // Production on 11 Oct 2026: the list read on 8 Oct, 253 entries, no saved supplier on it.
+    given({ compliance_uflpa_tracker: tracker, sanctions_lists_read: { data: [{ list: "uflpa", entries_listed: 253, last_read: "2026-10-08T03:10:00+00:00" }], error: null } });
+    const read = text(await page("app/(app)/app/compliance/uflpa/page.js"));
+    assert.ok(rpcCalls.includes("sanctions_lists_read"), "the date is read, not written into the page");
+    assert.match(read, /Read 8 Oct\. Entries added since are not checked\./);
+    assert.match(read, /No link found Not a clearance; keep your due diligence 1 /);
+    assert.match(read, /UFLPA Entity List, US DHS · 253 entries · read 8 Oct/);
+    assert.doesNotMatch(read, /not read yet|is not read/i);
+    // The read dates not answering leaves the date out; it never turns into "not read".
+    given({ compliance_uflpa_tracker: tracker });
+    const undated = text(await page("app/(app)/app/compliance/uflpa/page.js"));
+    assert.match(undated, /Entries added since our last read are not checked\./);
+    assert.match(undated, /No link found Not a clearance; keep your due diligence 1 /);
+    assert.match(undated, /UFLPA Entity List, US DHS (?!·)/);
+    assert.doesNotMatch(undated, /Read \d+ [A-Z][a-z]{2}\.|· read |not read yet|is not read/i);
+  });
 });

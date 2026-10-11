@@ -36,7 +36,8 @@ export default async function MsaPage() {
         rows={[
           { key: "supply", icon: Buildings, label: "Supply chain", ledger: supplyLedger(inputs) },
           { key: "uflpa", icon: Scales, label: "UFLPA", ledger: uflpaLedger(screening, listRead(d.lists, "uflpa"), today) },
-          { key: "certs", icon: Hourglass, label: "Certificates", ledger: certLedger(d.expired, d.expiring, today) },
+          // What the draft says: the ones ending within 90 days. It never counts one already expired, so neither does this row.
+          { key: "certs", icon: Hourglass, label: "Certificates", ledger: certLedger(null, d.expiring, today) },
         ]}
       />
     </>

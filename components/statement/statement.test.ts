@@ -261,6 +261,13 @@ describe("/app/compliance/msa", () => {
     assert.match(text(out), /Certificates Did not load/, "the certificate reads failed here and say so");
     assert.match(text(out), /Confirm \d+ claims and your details to download/);
     assert.match(out, /aria-label="Copy draft"/);
+    // The certificates row says what the draft says: the ones ending within 90 days, never the ones already expired.
+    const cert = (expires_on: string) => ({ kind: "gots", certificate_no: "G-1", expires_on, supplier: { id: "s1", slug: "tex-town", company_name: "Tex Town Ltd." } });
+    const soon = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10);
+    rpcs = { ...rpcs, compliance_expired_certs: { data: { total: 7, rows: [cert("2026-01-01")] }, error: null }, compliance_expiring_certs: { data: { total: 1, rows: [cert(soon)] }, error: null } };
+    const dated = text(await page());
+    assert.match(dated, /Certificates 1 ends within 90 days Tex Town Ltd\. GOTS, /);
+    assert.doesNotMatch(dated, /of \d+ expired/);
   });
 
   it("a footprint that fails is an error and no editor", async () => {

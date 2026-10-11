@@ -231,13 +231,15 @@ function Rail({
   const rows = claims.filter((c) => openKeys.has(c.key) || c.key === editing);
   // A phone lists the section claims only (the details card answers the rest): three, then the others folded.
   const phoneRows = rows.filter((c) => !c.detail);
-  const folded = unfolded ? [] : phoneRows.slice(PHONE_SHOWN);
+  // A claim tapped in the draft opens its field here, so the fold opens with it: a hidden field cannot take the answer.
+  const beyond = phoneRows.slice(PHONE_SHOWN);
+  const folded = unfolded || beyond.some((c) => c.key === editing) ? [] : beyond;
   const foldedKeys = new Set(folded.map((c) => c.key));
   const firstShown = phoneRows[0]?.key;
   const phoneOpen = open.filter((c) => !c.detail).length;
   return (
     <section className="flex flex-col gap-3 max-md:gap-0">
-      <div className="flex items-baseline justify-between max-md:pb-3.5 max-md:pt-6">
+      <div className={cn("flex items-baseline justify-between max-md:pb-3.5 max-md:pt-6", phoneRows.length === 0 && "max-md:hidden")}>
         <h2 className="text-md font-semibold text-ink max-md:flex max-md:items-baseline max-md:gap-2 max-md:text-lg max-md:font-medium max-md:tracking-tight">
           Before you download<span className="max-md:hidden">{open.length > 0 ? ` · ${claimsToConfirm(open.length)}` : ""}</span>
           {phoneOpen > 0 ? <span className="font-normal text-ink-3 md:hidden">{phoneOpen}</span> : null}
@@ -316,14 +318,15 @@ function Rail({
       {/* A phone's bar, fixed to the foot (the frame's tabs step aside on this page): Copy beside Download, the reason over them. */}
       <div className="fixed inset-x-0 bottom-0 z-raised flex flex-col border-t border-line bg-surface md:hidden">
         {note || open.length > 0 ? (
-          <p id={phoneReason} className={cn("flex items-center gap-1.5 px-4 pt-2.5 text-xs font-medium", note ? "text-ink-2" : "text-caution")}>
+          <p id={phoneReason} role={note ? "status" : undefined} className={cn("flex items-center gap-1.5 px-4 pt-2.5 text-xs font-medium", note ? "text-ink-2" : "text-caution")}>
             {note ? null : <Clock size={14} weight="thin" className="shrink-0 text-caution-icon" aria-hidden />}
             {note || phoneBlocked(open)}
           </p>
         ) : null}
         <ActionBar className="border-t-0">
           <IconButton icon={Copy} label="Copy draft" size={48} onClick={onCopy} className="rounded-lg border-line" />
-          <Button kind="primary" size="touch" full disabled={open.length > 0} aria-describedby={open.length > 0 ? phoneReason : undefined} onClick={onDownload} className="h-12 rounded-lg">
+          {/* `flex-1`, not `full`: a full-width button beside the copy button runs off the screen's edge. */}
+          <Button kind="primary" size="touch" disabled={open.length > 0} aria-describedby={open.length > 0 ? phoneReason : undefined} onClick={onDownload} className="h-12 min-w-0 flex-1 rounded-lg">
             Download statement
           </Button>
         </ActionBar>
@@ -370,7 +373,7 @@ function Details({ details, setDetails, refs }: { details: Record<DetailKey, str
         </Field>
       ))}
       {/* Under the year on a phone (the grid's fourth row); nothing from 768. */}
-      <p className="col-span-2 row-start-4 -mt-3 text-xs text-ink-3 md:hidden">The year before this one, unless you change it</p>
+      <p className="col-span-2 row-start-4 -mt-2.5 text-xs text-ink-3 md:hidden">The year before this one, unless you change it</p>
     </section>
   );
 }

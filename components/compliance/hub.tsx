@@ -86,12 +86,14 @@ export function PhoneLedger({ rows }: { rows: readonly LedgerRow[] }) {
       {rows.map(({ key, icon: G, label, ledger: l, href }) => {
         const inner = (
           <>
-            <G size={18} weight="thin" className={cn("shrink-0", toneInk(l.tone, "text-ink-2"))} aria-hidden />
-            <span className="w-24 shrink-0 text-base text-ink-2">{label}</span>
+            <G size={18} weight="thin" className={cn("shrink-0", l.tone === "caution" ? "text-caution-icon" : toneInk(l.tone, "text-ink-2"))} aria-hidden />
+            {/* The board's 96 is the most a label takes, not a fixed column: values are right-aligned, and "11 suppliers, all Bangladesh" is 1.6px too wide beside a 96 column in a browser. */}
+            <span className="max-w-24 shrink-0 text-base text-ink-2">{label}</span>
             <span className="flex grow basis-0 flex-col items-end text-right">
               <span className={cn("text-base font-medium", toneInk(l.tone))}>{l.value}</span>
               <span className="text-xs text-ink-3">{l.sub}</span>
             </span>
+            {href ? <LinkPending /> : null}
           </>
         );
         const row = "flex min-h-12 items-center gap-2.5 px-4 py-3";
