@@ -376,6 +376,7 @@ describe("customs exports (critique of 11 Oct 2026)", () => {
     assert.equal(tidyBuyer("TJX UK"), "TJX UK");
     assert.equal(tidyBuyer("Action Service Distributie B V"), "Action Service Distributie B V");
     assert.equal(tidyBuyer("167081 Canada Inc"), "167081 Canada Inc");
+    assert.equal(tidyBuyer("SA FASHION TRADING LTD 12"), "SA Fashion Trading Ltd");
     assert.equal(tidyBuyer("  "), null);
   });
 
@@ -385,6 +386,7 @@ describe("customs exports (critique of 11 Oct 2026)", () => {
     assert.equal(formatUsdShort(4_965_812), "US$4.97m");
     assert.equal(formatUsdShort(999_600), "US$1m");
     assert.equal(formatUsdShort(51_920), "US$52k");
+    assert.equal(formatUsdShort(4_900_000), "US$4.9m");
   });
 
   const base: VolzaExports = { shipments: 9, fob_usd: 58627, buyers: 3, window_start: "2024-09-01", window_end: "2026-08-31", volza_name: null, top_shipments: [], fetched_at: "2026-10-10T20:36:01Z" };

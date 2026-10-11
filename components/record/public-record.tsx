@@ -49,10 +49,10 @@ export function PublicRecord({ model, today }: { model: SupplierSheetModel; toda
   const sitesHref = `/suppliers/${slug}`;
   const sections: { id: TabId; body: React.ReactNode }[] = [
     { id: "overview", body: <OverviewPanel model={model} today={today} /> },
+    { id: "exports", body: <ExportsPanel model={model} level="h3" /> },
     { id: "certificates", body: <CertificatesPanel model={model} today={today} /> },
     { id: "safety", body: <SafetyPanel model={model} /> },
     { id: "sites", body: <SitesPanel model={model} tabHref={() => sitesHref} site={null} wide /> },
-    { id: "exports", body: <ExportsPanel model={model} level="h3" /> },
     { id: "products", body: <ProductsPanel model={model} /> },
     { id: "sources", body: <SourcesPanel model={model} today={today} /> },
   ];

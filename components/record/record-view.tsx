@@ -1,7 +1,7 @@
 // The supplier record (B4c, Paper `10 · Record pane`, `Record full page`, `11 · Record`): one
 // view for the pane beside the results and the full page. A header with the name and the two
 // actions, a five-cell summary of what the registers hold, the customs band for a paying reader, seven tabs (each a link, so the tab
-// is in the address and the search behind a pane survives it), and the six sections stacked
+// is in the address and the search behind a pane survives it), and the seven sections stacked
 // under them: a tab jumps to its section and the scroll moves the marked tab. A sanctioned
 // record adds a solid band above everything and replaces Send RFQ with the refusal in words;
 // nothing here is scored and no contact value is in the model, only how many are on file.

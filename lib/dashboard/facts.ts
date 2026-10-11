@@ -213,7 +213,7 @@ export function formatUsdShort(n: number): string {
   if (n >= 999_500) {
     const m = n / 1e6;
     // Three figures at most, never "US$1000k": 191m, 21.7m, 4.97m.
-    return `US$${m.toFixed(m >= 99.95 ? 0 : m >= 9.995 ? 1 : 2).replace(/\.0+$/, "")}m`;
+    return `US$${m.toFixed(m >= 99.95 ? 0 : m >= 9.995 ? 1 : 2).replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "")}m`;
   }
   if (n >= 1e3) return `US$${Math.round(n / 1e3)}k`;
   return usd(n);
@@ -246,7 +246,8 @@ export function tidyBuyer(raw: string | null | undefined): string | null {
   const up = words.map((w) => w.toUpperCase().replace(/[.,]/g, ""));
   let cut = -1;
   for (let i = 0; i < up.length && cut < 0; i++) {
-    const e = ENDINGS.find((end) => end.every((t, j) => up[i + j] === t));
+    // Never the first word: "SA FASHION TRADING LTD" is cut at Ltd, not at "SA".
+    const e = i > 0 ? ENDINGS.find((end) => end.every((t, j) => up[i + j] === t)) : undefined;
     if (e) cut = i + e.length;
   }
   if (cut < 0) {
@@ -388,7 +389,8 @@ export function marketRows(v: VolzaExports): CustomsRow[] {
 
 /** The profile names the records, not the provider: Volza is named on /legal/data-sources only (founder, 11 Oct 2026). */
 export function customsSource(v: VolzaExports): string {
-  return `Bangladesh customs export records · fetched ${formatDay(v.fetched_at) ?? "date unknown"}`;
+  const filed = v.volza_name ? `, filed as ${v.volza_name.replace(/\.+$/, "")}` : "";
+  return `Garment exports (HS 61 and 62) cleared through Bangladesh customs${filed} · fetched ${formatDay(v.fetched_at) ?? "date unknown"}`;
 }
 
 /** Who publishes each scheme's list, and how stale a check may be (spec-etl-freshness §3). */

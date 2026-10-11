@@ -321,7 +321,7 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     assert.match(text, /Where it ships EU 236 shipments · US\$15\.6m · 10 buyers Biggest shipment there: Boys tee \(HS 6109\.10\) to Action Service Distributie B V, Netherlands/);
     assert.match(text, /United Kingdom 5 shipments · US\$52k · 4 buyers Biggest shipment there: Mens knitted sweatshirt \(HS 6109\.10\) to TJX UK/);
     assert.match(text, /Canada No shipments to Canada Sep 2024 – Aug 2026/);
-    assert.equal((text.match(/Bangladesh customs export records · fetched 10 Oct 2026/g) ?? []).length, 1, "the fetched date is not said once, in the tab");
+    assert.equal((text.match(/Garment exports \(HS 61 and 62\) cleared through Bangladesh customs, filed as Hamza Clothing Ltd · fetched 10 Oct 2026/g) ?? []).length, 1, "the scope, the matched name and the fetched date are not said once, in the tab");
     // Gone (critique of 11 Oct 2026): the placeholder row, the repeated band figures, a price before its check.
     assert.doesNotMatch(text, /Coming with the next update|Reach|What the customs records show|per pcs|a piece/);
     // The provider is named on /legal/data-sources only, never on the profile (founder, 11 Oct 2026).
