@@ -822,4 +822,9 @@ describe("the record's minors, round 3 (critique of 8 Oct 2026, round 3, item 7)
     assert.equal(onFileWords(1, 6, true, 2), "1 email on file · 6 phone numbers on file · Website on file · 2 contact people on file");
     assert.equal(onFileWords(2, 1, false, 1), "2 emails on file · 1 phone number on file · 1 contact person on file");
   });
+
+  // Solid brand green is the primary button's (frame.test reads text and borders; this reads the phone record's fills).
+  it("the phone record fills no bar or tile with solid brand green", () => {
+    for (const f of ["phone-record.tsx", "line-view.tsx"]) assert.doesNotMatch(readFileSync(path.join(process.cwd(), "components", "record", f), "utf8"), /\bbg-brand\b(?!-)/, f);
+  });
 });

@@ -13,10 +13,14 @@ export async function sessionUserId(supabase: AuthClient): Promise<string | null
   const auth = supabase.auth;
   // A test stub that only answers getUser keeps working, and is counted as the round trip it stands for.
   if (typeof auth.getClaims === "function") {
-    const { data, error } = await auth.getClaims();
-    if (!error) {
-      const sub = data?.claims?.sub;
-      return typeof sub === "string" && sub ? sub : null;
+    try {
+      const { data, error } = await auth.getClaims();
+      if (!error) {
+        const sub = data?.claims?.sub;
+        return typeof sub === "string" && sub ? sub : null;
+      }
+    } catch {
+      // getClaims rethrows what is not an Auth error: that is asked of Auth below too, never a 500.
     }
   }
   const { data } = await auth.getUser();

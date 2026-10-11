@@ -556,7 +556,7 @@ function Certificates({ model, today, level: H }: PanelProps) {
 
 const REPORT: Record<string, string> = { CAP: "Action plan" };
 const sentence = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-const rscTone = (c: RscCard) => (rscBehind(c) ? "bg-caution-icon" : c.progress === 100 ? "bg-brand" : "bg-line-strong");
+const rscTone = (c: RscCard) => (rscBehind(c) ? "bg-caution-icon" : c.progress === 100 ? "bg-brand-ink" : "bg-line-strong");
 const trainingTone = (t: string) => (/complete/i.test(t) ? "text-brand-ink" : /yet|not start/i.test(t) ? "text-caution" : "text-ink");
 
 /** What the register says under a building's figures: the training, the reports that open, the ones it does not hold, the read. */

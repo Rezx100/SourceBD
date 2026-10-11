@@ -33,6 +33,12 @@ describe("phone speed pass", () => {
     assert.equal(asked, 0);
     assert.equal(await sessionUserId({ auth: { getClaims: async () => ({ data: null, error: new Error("Invalid JWT") }), getUser } }), "from-auth");
     assert.equal(asked, 1);
+    // getClaims rethrows what is not an Auth error: Auth is asked then too, the request never fails on it.
+    const thrown = async () => {
+      throw new TypeError("no such algorithm");
+    };
+    assert.equal(await sessionUserId({ auth: { getClaims: thrown, getUser } }), "from-auth");
+    assert.equal(asked, 2);
     assert.equal(await sessionUserId({ auth: { getUser: async () => ({ data: { user: null } }) } }), null);
   });
 
@@ -85,6 +91,11 @@ describe("phone speed pass", () => {
     };
     assert.doesNotMatch(part("components/saved/list.tsx", "export function PhoneTabs", "\n}"), off, "the Saved tabs");
     assert.doesNotMatch(part("components/saved/searches.tsx", "<ButtonLink href={item.runHref} kind=\"quiet\"", "Run search"), off, "a saved search's Run on a phone");
-    assert.doesNotMatch(part("components/search/landing.tsx", "href={templateHref(t)}", "</Link>"), off, "the landing's common searches");
+    // The landing's recent and saved searches (the common searches are not drawn on a phone).
+    assert.doesNotMatch(part("components/search/rows.tsx", "export function LinkRow", "\n}"), off, "the landing's search rows");
+  });
+
+  it("the analytics library never starts for an answer that changed while it downloaded", () => {
+    assert.match(code("lib/posthog/provider.tsx"), /\.then\(\(\{ default: posthog \}\) => \{\s*if \(!yes\(\)\) \{[\s\S]*?return null;\s*\}\s*posthog\.init\(/);
   });
 });

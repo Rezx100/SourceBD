@@ -16,3 +16,14 @@
 - **REZ-73 — Facilities section + labelled group figures on mother profiles**,
   on branch `rez-73-facilities-lean`. Lean rewrite: migration `0097_` + thin
   UI; SQL owns the roll-up; under 400 product lines.
+
+## Buyer phone redesign from Paper pages 35 and 36 (11 Oct 2026)
+
+Two PRs into `development`, phone only (from 768 px every page draws as before), no migration.
+
+- **Part 1, branch `phone-redesign-1`**: search landing, results, filters sheet, saved suppliers, saved searches, save-search sheet, alerts, the compliance hub, the statement drafter, UFLPA checks, the supplier record as tabs (Paper page 35, 15 states) and the export line. Speed: the sign-in check reads the session token on the server (`lib/supabase/session-user.ts`, falls back to Auth), no page fade, pressed states, analytics and the feedback form loaded on demand, the map loaded when near view, prefetch on phone rows whose target has a skeleton. CI: the 25-minute address fixture runs in its own job, `unit-tests-slow`.
+- **Part 2, PR #474**: RFQs, orders, messages, products, HS codes, the account page, every settings page; `orders/new` and `rfqs/new` read side by side.
+- **Tools**: `plugins/paper-to-app` (pull, convert, pixel-check a Paper board).
+- **Facts kept against the boards**: the UFLPA list was read 8 Oct (the date comes from `sanctions_lists_read()`); customs figures are per supplier and per market, never per HS code; "no customs records" claims no lookup.
+- **Founder steps**: add `unit-tests-slow` as a required check (`docs/ENTERPRISE_DEPLOYMENT.md`); confirm the ES256 signing key is "current" in Supabase; approve Deploy Production.
+- **Left as found by the one review pass**: reads only a phone draws also run from 768 (filters sheet, expiry, statement, settings list); the record renders both drawings; a team row on a phone no longer prints the email.

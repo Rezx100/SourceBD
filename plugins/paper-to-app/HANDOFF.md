@@ -1,9 +1,14 @@
-# Handoff: buyer phone redesign (stopped 11 Oct 2026)
+# Handoff: buyer phone redesign (finished 11 Oct 2026)
+
+**Done.** Both PRs are open against `development` with auto-merge: part 1 from `phone-redesign-1`
+(search, saved, compliance, the supplier record, the speed work, this plugin) and part 2, PR #474
+(quotes, orders, messages, products, settings). Each had one review pass; what it found and what was
+left is in the PR bodies and in `context/archive/state-2026-oct.md`. What follows is the record of
+where the work stood when it stopped mid-way, kept for the board → route map and the facts.
 
 The founder asked for the phone redesign on Paper pages 35 and 36 in **at most two PRs**, with the
-CI split and the speed-and-touch fixes in PR 1. Work stopped when the account hit its weekly usage
-limit. Everything is on GitHub as branches off `development` at `951c905`; **no PR is open yet**.
-Every WIP commit is unreviewed and not fully tested.
+CI split and the speed-and-touch fixes in PR 1. Work first stopped when the account hit its weekly
+usage limit, with everything on GitHub as branches off `development` at `951c905`.
 
 ## Branches
 

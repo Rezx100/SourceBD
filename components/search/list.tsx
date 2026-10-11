@@ -29,7 +29,7 @@ export function PhoneRows({ rows }: { rows: readonly ResultRow[] }) {
       {rows.map((r) => {
         const { base, qualifier } = splitQualifier(r.name);
         return (
-          <li key={r.slug} className="relative flex gap-3 border-b border-line py-4 active:bg-sunken has-[>div>a:focus-visible]:outline has-[>div>a:focus-visible]:outline-2 has-[>div>a:focus-visible]:outline-offset-[-2px] has-[>div>a:focus-visible]:outline-focus">
+          <li key={r.slug} className="relative flex gap-3 border-b border-line py-4 has-[>div>a:active]:bg-sunken has-[>div>a:focus-visible]:outline has-[>div>a:focus-visible]:outline-2 has-[>div>a:focus-visible]:outline-offset-[-2px] has-[>div>a:focus-visible]:outline-focus">
             <div className="flex min-w-0 flex-1 flex-col gap-1.5">
               <Link href={r.pageHref} className="flex flex-col gap-0.5 outline-none after:absolute after:inset-0 after:content-['']">
                 <span data-name="" title={r.name} className="text-[19px]/[26px] font-semibold tracking-[-0.015em] text-ink [overflow-wrap:anywhere]">

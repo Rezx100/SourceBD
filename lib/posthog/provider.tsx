@@ -55,6 +55,11 @@ function ensureInit(): Promise<PostHog | null> {
   if (!key || !host) return Promise.resolve(null);
   loading ??= import("posthog-js")
     .then(({ default: posthog }) => {
+      // The answer may have changed while the library downloaded: no init, so no page view, without a yes.
+      if (!yes()) {
+        loading = null;
+        return null;
+      }
       posthog.init(key, {
         api_host: host,
         autocapture: true,
