@@ -99,7 +99,7 @@ def record_sort(r: dict[str, Any]) -> str:
     """'date' when the stored record is the latest shipment, 'value' when it is the biggest."""
     if r.get("top_is") == "latest":
         return "date"
-    defining = [c for c in r.get("calls") or [] if c["kind"] in ("preview", "exact")]
+    defining = [c for c in r.get("calls") or [] if c["kind"] in ("preview", "exact") or c["kind"].startswith("review:")]
     return "date" if defining and defining[-1]["filters"].get("sort_by") == "date" else "value"
 
 
