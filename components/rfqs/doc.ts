@@ -13,6 +13,7 @@ import {
   quoteTotal,
   quotesWords,
   shipByMissWords,
+  shortName,
   sortQuotes,
   suppliersWords,
   targetWords,
@@ -105,8 +106,14 @@ export type DetailModel = {
   /** Line two: when it was sent and to whom. */
   sentLine: string;
   sentLinePane: string;
+  /** The phone's two lines under the title: "10,000 pieces · target US$8.90 per piece", "Ship by 15 Jan 2027, to the United Kingdom". */
+  phoneFacts: { order: string; ship: string | null };
   /** "Quotes · 2" */
   quotesTitle: string;
+  /** The phone's "2 of 3": quotes in, of the suppliers asked. */
+  quotesOf: string;
+  /** Live quotes in the RFQ's currency: the first card is "Cheapest of N quotes" when N > 1. */
+  comparable: number;
   notReplied: string | null;
   sortWords: string;
   targetHead: string | null;
@@ -179,7 +186,13 @@ export function detailModel(rfq: RfqDoc, today: Date): DetailModel {
     factsPane: lines.filter(Boolean).join(" · "),
     sentLine: `Sent ${sent} to ${suppliersWords(rfq.targets.length)}, each on their own`,
     sentLinePane: [`Sent ${sent} to ${suppliersWords(rfq.targets.length)}`, to].filter(Boolean).join(" · "),
+    phoneFacts: {
+      order: `${quantityWords(rfq.quantity, rfq.quantity_unit)} · ${targetWords(rfq.target_unit_price, rfq.currency, rfq.quantity_unit)}`,
+      ship: rfq.ship_by ? `Ship by ${formatDay(rfq.ship_by)}${to ? `, ${to}` : ""}` : to ? `Ship ${to}` : null,
+    },
     quotesTitle: `Quotes · ${rfq.quotes.length}`,
+    quotesOf: `${rfq.quotes.length} of ${rfq.targets.length}`,
+    comparable: rfq.quotes.filter((q) => q.currency === rfq.currency && (q.status === "submitted" || q.status === "accepted")).length,
     notReplied: waitingOn === 0 ? null : `${waitingOn} ${waitingOn === 1 ? "supplier has" : "suppliers have"} not replied`,
     sortWords: rfq.target_unit_price === null ? "Cheapest first" : "Best against your target first",
     targetHead: rfq.target_unit_price === null ? null : `vs ${money(rfq.target_unit_price, rfq.currency)} target`,
@@ -188,6 +201,38 @@ export function detailModel(rfq: RfqDoc, today: Date): DetailModel {
     footnote: `Total is for your quantity, or the MOQ when it is higher.${rfq.ship_by && rfq.quotes.some((q) => missesShipBy(q.lead_time_days, rfq.ship_by, today)) ? ` Misses ship-by means the lead time ends after ${formatDay(rfq.ship_by)}.` : ""}`,
     canAccept: isBuyer && rfq.status === "open",
     isBuyer,
+  };
+}
+
+export type ChartRow = { id: string; name: string; price: string | null; delta: string | null; over: boolean; at: number | null };
+export type QuoteChart = { target: string; rows: ChartRow[]; legend: string };
+
+/** Where the target sits on a phone's price track (0 is the left end, 1 the right), and how far either side a quote may reach. */
+export const CHART_TARGET_AT = 0.56;
+const CHART_REACH = 0.4;
+
+/**
+ * The phone's price comparison (Paper 36 `rfq-detail`): each live quote in the RFQ's currency as a dot
+ * on one track, the target a dashed line, cheaper to the left; the furthest quote sits at the reach and
+ * the rest in proportion. The suppliers yet to quote follow, without a dot. Null without a target or a quote.
+ */
+export function quoteChart(rfq: RfqDoc): QuoteChart | null {
+  const target = rfq.target_unit_price;
+  if (target === null) return null;
+  const live = sortQuotes(rfq.quotes, rfq.currency).filter((q) => q.currency === rfq.currency && (q.status === "submitted" || q.status === "accepted"));
+  if (live.length === 0) return null;
+  const spread = Math.max(...live.map((q) => Math.abs(q.unit_price - target)), 0.01);
+  const replied = new Set(rfq.quotes.map((q) => q.supplier_id));
+  return {
+    target: money(target, rfq.currency),
+    rows: [
+      ...live.map((q) => {
+        const d = Math.round((q.unit_price - target) * 100) / 100;
+        return { id: q.id, name: shortName(q.supplier_name), price: money(q.unit_price, q.currency), delta: versusShort(q.unit_price, target, q.currency), over: d > 0, at: CHART_TARGET_AT + ((q.unit_price - target) / spread) * CHART_REACH };
+      }),
+      ...rfq.targets.filter((t) => !replied.has(t.id)).map((t) => ({ id: t.id, name: shortName(t.company_name), price: null, delta: null, over: false, at: null })),
+    ],
+    legend: `Price per ${perUnit(rfq.quantity_unit)}, ${rfq.currency === "USD" ? "US dollars" : rfq.currency}`,
   };
 }
 

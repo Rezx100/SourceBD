@@ -136,8 +136,12 @@ export function milestoneName(m: { kind: string; label: string | null }): string
 
 // ---- the list ----
 
+/** The order's road, as the phone row's segments draw it: one per status a live order passes through. */
+export const ORDER_STAGES: readonly OrderStatus[] = ["draft", "in_production", "shipped", "in_transit", "delivered"];
+
 export type OrderItem = {
   id: string;
+  status: OrderStatus;
   title: string;
   /** "PO-2026-0917" or "No PO number yet". */
   po: string | null;
@@ -189,6 +193,7 @@ export function buildOrderItems(rows: readonly OrderRow[], today: Date): OrderIt
     const dates = dateLines(o, today);
     return {
       id: o.id,
+      status: o.status,
       title: o.product_title,
       po: o.po_number,
       supplier: o.supplier_name,
@@ -222,6 +227,20 @@ export function summaryCells(o: OrderDoc): SummaryCell[] {
 }
 
 const entityLabel = (et: string) => (et === "factory" ? "Factory" : et === "buying_house" ? "Buying house" : "Supplier");
+
+export type PhoneTile = { label: string; value: string; sub: string | null; late: boolean };
+
+/** The phone's two tiles (Paper 36 `order-detail`): the order value with "20,000 at US$4.20", and the ship-by date with how far off it is. */
+export function phoneTiles(o: OrderDoc, today: Date): PhoneTile[] {
+  const qty = new Intl.NumberFormat("en-GB", { maximumFractionDigits: 4 }).format(o.quantity);
+  const d = o.target_ship_date ? daysUntil(o.target_ship_date, today) : null;
+  const late = shipLate(o, today) !== null;
+  const until = d === null ? null : d === 0 ? "today" : d > 0 ? `in ${d} ${d === 1 ? "day" : "days"}` : late ? `${-d} ${d === -1 ? "day" : "days"} late` : `${-d} ${d === -1 ? "day" : "days"} ago`;
+  return [
+    { label: "Order value", value: o.total_value !== null ? money(Number(o.total_value), o.currency) : "No price yet", sub: o.unit_price !== null ? `${qty} at ${money(Number(o.unit_price), o.currency)}` : quantityWords(o.quantity, o.quantity_unit), late: false },
+    { label: "Ship by", value: formatDay(o.target_ship_date) ?? "Not set", sub: until, late },
+  ];
+}
 
 /** "Factory · Kashimpur, Gazipur". */
 export function supplierLine(s: OrderDoc["supplier"]): string {

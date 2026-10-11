@@ -7,7 +7,7 @@
 // (the pattern in `components/rfqs/rfqs.test.ts`).
 
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
@@ -32,6 +32,7 @@ import {
   orderSteps,
   ordersHref,
   parseOrderTab,
+  phoneTiles,
   shipLate,
   startedLine,
   summaryCells,
@@ -395,6 +396,21 @@ describe("the detail view", () => {
     assert.match(detail(doc({ status: "cancelled", milestones: [] })), /This order was cancelled\. Nothing was logged on it\./);
   });
 
+  it("the phone's two tiles: the value with what it is made of, the ship-by date with how far off it is", () => {
+    assert.deepEqual(phoneTiles(doc(), TODAY), [
+      { label: "Order value", value: "US$84,000", sub: "20,000 at US$4.20", late: false },
+      { label: "Ship by", value: "20 Oct 2026", sub: "in 16 days", late: false },
+    ]);
+    const late = phoneTiles(doc({ target_ship_date: "2026-10-01" }), TODAY)[1]!;
+    assert.deepEqual(late, { label: "Ship by", value: "1 Oct 2026", sub: "3 days late", late: true });
+    const gone = phoneTiles(doc({ status: "shipped", target_ship_date: "2026-10-01", unit_price: null, total_value: null }), TODAY);
+    assert.deepEqual(gone[0], { label: "Order value", value: "No price yet", sub: "20,000 pieces", late: false });
+    assert.equal(gone[1]!.sub, "3 days ago", "a passed date on an order that has shipped is not late");
+    const page = detail(doc());
+    assert.ok(page.includes("20,000 at US$4.20") && page.includes("in 16 days"));
+    assert.match(page, /aria-label="Message Mondol Fabrics"/, "the phone's bar names who the message goes to");
+  });
+
   it("an order with no steps says how one gets logged; a late ship-by is in words above the steps", () => {
     const empty = detail(doc({ milestones: [], target_ship_date: "2026-10-01" }));
     assert.ok(empty.includes("Progress · 0 steps") && empty.includes("none logged yet"));
@@ -444,8 +460,11 @@ describe("the table, the pane rows and the phone rows", () => {
     const out = html(createElement(OrderPhoneRows, { items: items() }));
     assert.ok(out.includes(`href="/app/orders/${ID1}"`));
     assert.ok(out.includes("Mondol Fabrics Ltd. · US$84,000 · 20,000 pieces"));
-    assert.ok(out.includes("Ship by date passed: 3 days late"));
-    assert.ok(out.includes("Ship by 1 Oct 2026 · Production started · 20 Sep 2026"));
+    assert.ok(out.includes("Ship by date passed: 3 days late") && out.includes("Ship by 1 Oct 2026"));
+    assert.ok(out.includes("Shipped 28 Sep 2026") && out.includes("Due 20 Oct 2026"), "on its way: when it left and when it is due");
+    assert.ok(out.includes("Delivered 30 Sep 2026") && out.includes("No ship-by date yet · Saved 2 Oct 2026"));
+    // The road a live order is on: five segments, the late one in caution.
+    assert.equal((out.match(/bg-caution-icon"/g) ?? []).length, 1, "only the late order's current segment is caution");
   });
 
   it("an empty tab says what belongs there; no orders yet teaches where one starts; a failed read says so", () => {
@@ -478,8 +497,8 @@ describe("/app/orders", () => {
     assert.ok("html" in r);
     assert.ok(r.html.includes("6 orders · 3 in progress"));
     assert.ok(r.html.includes("Women's knitted dresses") && r.html.includes("Heavyweight hoodies"));
-    assert.match(r.html, /Orders · 6/, "the phone switch counts the orders");
-    assert.match(r.html, /RFQs · 4/, "and the RFQs with the drafts");
+    assert.match(r.html, /Orders<\/span><span[^>]*><span class="sr-only"> · <\/span>6<\/span>/, "the phone switch counts the orders");
+    assert.match(r.html, /RFQs<\/span><span[^>]*><span class="sr-only"> · <\/span>4<\/span>/, "and the RFQs with the drafts");
     assert.match(r.html, /In progress(?:<[^>]+>|[^<0-9])*3/);
     assert.ok(r.html.includes('href="/app/orders/new"') && r.html.includes("New order"));
   });
@@ -799,6 +818,27 @@ describe("/app/orders/new", () => {
     assert.ok("html" in (await go({ from_quote: QUOTE })), "a cancelled order blocked a new one");
     rpcs.order_list = { data: null, error: { message: "boom" } };
     assert.ok("html" in (await go({ from_quote: QUOTE })), "an unreadable order list blocked the form");
+  });
+
+  it("the RFQ and the buyer's orders are read side by side, and an order list that throws still opens the form", async () => {
+    const src = readFileSync(path.join(process.cwd(), "app", "(app)", "app", "orders", "new", "page.tsx"), "utf8");
+    assert.match(src, /await Promise\.all\(\[\s*supabase\.rpc\("rfq_get"[\s\S]*?supabase\.rpc\("order_list"/);
+    // The checks keep their order: the quote, the RFQ, the supplier on it, then the order it already started.
+    const at = (s: string) => src.indexOf(s);
+    assert.ok(at('quote.status !== "accepted") notFound()') < at("Promise.all(["), "the quote is checked before anything is read off it");
+    assert.ok(at("if (rErr || doc == null) notFound()") < at("if (!supplier) notFound()") && at("if (!supplier) notFound()") < at("if (existing) redirect("));
+    tables = { rfq_quotes: { data: accepted, error: null } };
+    rpcs = { rfq_get: { data: rfqDoc(), error: null } };
+    const rpc = client.rpc;
+    client.rpc = async (fn: string) => {
+      if (fn === "order_list") throw new Error("offline");
+      return rpc(fn);
+    };
+    try {
+      assert.ok("html" in (await go({ from_quote: QUOTE })), "an order list that threw blocked the form");
+    } finally {
+      client.rpc = rpc;
+    }
   });
 
   it("the price label follows the unit the RFQ was in", async () => {

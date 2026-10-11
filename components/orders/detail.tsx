@@ -4,15 +4,30 @@
 // from, notes). Both sides can log a step; only the buyer edits or cancels; the server enforces
 // both. There are no planned steps in the data, so the timeline holds what happened.
 
-import { ArrowLeft, ChatCircle, X } from "@phosphor-icons/react/dist/ssr";
+import { ArrowLeft, Boat, ChatCircle, CheckCircle, Clock, FileText, PencilSimple, Storefront, X, XCircle } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { Timeline } from "@/components/patterns";
-import { buttonClass } from "@/components/kit";
+import { ActionBar, buttonClass } from "@/components/kit";
 import { shortName } from "@/components/rfqs/words";
 import { cn } from "@/lib/utils";
 import { AddUpdate, OrderMenu } from "./actions";
 import { OrderChip } from "./chip";
-import { STATUS_WORDS, cancelSummary, cancelTitle, detailGroups, orderPowers, orderSteps, shipLate, startedLine, summaryCells, supplierLine, type OrderDoc } from "./words";
+import { STATUS_WORDS, cancelSummary, cancelTitle, detailGroups, orderPowers, orderSteps, phoneTiles, shipLate, startedLine, summaryCells, supplierLine, type OrderDoc, type OrderStatus } from "./words";
+
+/** The phone's status pill (Paper 36 `order-detail`): caution once the ship-by date has passed. */
+const PILL: Record<OrderStatus, { icon: typeof Clock; tone: string; glyph: string }> = {
+  draft: { icon: PencilSimple, tone: "bg-sunken text-ink-2", glyph: "text-ink-3" },
+  in_production: { icon: Clock, tone: "bg-sunken text-ink-2", glyph: "text-ink-3" },
+  shipped: { icon: Boat, tone: "bg-info-tint text-info", glyph: "text-info" },
+  in_transit: { icon: Boat, tone: "bg-info-tint text-info", glyph: "text-info" },
+  delivered: { icon: CheckCircle, tone: "bg-brand-tint text-brand", glyph: "text-brand" },
+  cancelled: { icon: XCircle, tone: "bg-sunken text-ink-3", glyph: "text-ink-3" },
+};
+const LATE_PILL = { tone: "bg-caution-tint text-caution", glyph: "text-caution-icon" };
+
+/** The phone bar's round buttons: a 44 target around a 36 face, pressed a shade darker. */
+const PHONE_ROUND = "group flex size-11 shrink-0 items-center justify-center rounded-full outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus";
+const PHONE_ROUND_FACE = "flex size-9 items-center justify-center rounded-full bg-sunken group-active:bg-line";
 
 const ICON_LINK = "inline-flex size-8 shrink-0 items-center justify-center rounded-sm text-ink-2 outline-none hover:bg-sunken hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 const NAME = "rounded-sm font-medium text-ink underline decoration-line-strong decoration-1 [text-underline-position:from-font] outline-none hover:decoration-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
@@ -53,9 +68,11 @@ export function OrderDetail({ order, mode, today, threadId, viewerId, closeHref 
     po_number: order.po_number,
     notes: order.notes,
   };
-  const menu = (size: 32 | 44) => (
-    <OrderMenu orderId={order.id} initial={edit} edit={powers.edit} cancel={powers.cancel} cancelTitle={cancelTitle(order)} cancelSummary={cancelSummary(order)} supplier={supplier} size={size} />
+  const menu = (size: 32 | 44, round = false) => (
+    <OrderMenu orderId={order.id} initial={edit} edit={powers.edit} cancel={powers.cancel} cancelTitle={cancelTitle(order)} cancelSummary={cancelSummary(order)} supplier={supplier} size={size} round={round} />
   );
+  const pill = PILL[order.status] ?? PILL.draft;
+  const pillTone = late ? LATE_PILL : pill;
   const message = threadId ? (
     <Link href={`/app/messages/${threadId}`} prefetch={false} className={buttonClass({ kind: "secondary", className: "gap-1.5 pl-2.5" })}>
       <ChatCircle size={16} className="shrink-0 text-ink-2" aria-hidden />
@@ -102,23 +119,38 @@ export function OrderDetail({ order, mode, today, threadId, viewerId, closeHref 
   return (
     <section aria-label={`Order: ${order.product_title}`} data-record-pane={page ? undefined : ""} data-detail={page ? "" : undefined} tabIndex={page ? undefined : -1} className="flex min-h-0 flex-1 flex-col bg-surface outline-none">
       {page ? (
-        <div className="flex h-12 items-center px-4 sm:h-auto sm:px-6 sm:pt-4">
-          <Link href={closeHref} prefetch={false} className="inline-flex min-h-11 items-center gap-1.5 rounded-sm text-md font-medium text-ink-2 outline-none hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:min-h-6 sm:text-base">
-            <ArrowLeft size={16} className="shrink-0" aria-hidden />
-            <span className="sm:hidden">Orders</span>
-            <span className="max-sm:hidden">Back to orders</span>
-          </Link>
-        </div>
+        <>
+          {/* The phone's bar (Paper 36 `order-detail`): back to Quotes, and the "..." menu when there is one. */}
+          <div className="flex h-14 items-center justify-between px-3 sm:hidden">
+            <Link href={closeHref} aria-label="Back to orders" className={PHONE_ROUND}>
+              <span className={PHONE_ROUND_FACE}>
+                <ArrowLeft size={17} weight="thin" className="shrink-0 text-ink-2" aria-hidden />
+              </span>
+            </Link>
+            {menu(44, true)}
+          </div>
+          <div className="flex items-center px-6 pt-4 max-sm:hidden">
+            <Link href={closeHref} prefetch={false} className="inline-flex min-h-6 items-center gap-1.5 rounded-sm text-base font-medium text-ink-2 outline-none hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+              <ArrowLeft size={16} className="shrink-0" aria-hidden />
+              Back to orders
+            </Link>
+          </div>
+        </>
       ) : null}
-      <header className={cn("flex flex-col gap-1 border-b border-line px-4 pb-4 sm:px-6", page ? "pt-2 sm:pt-3" : "pt-4")}>
+      <header className={cn("flex flex-col gap-1 border-b border-line px-4 pb-4 sm:px-6", page ? "pt-2 max-sm:border-b-0 max-sm:px-5 max-sm:pb-1 sm:pt-3" : "pt-4")}>
         <div className="flex items-start justify-between gap-4">
-          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-            <Title className="text-xl font-semibold tracking-tight text-ink [overflow-wrap:anywhere] max-sm:text-lg">{order.product_title}</Title>
-            <OrderChip tone={status.tone}>{status.label}</OrderChip>
+          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 max-sm:flex-col max-sm:items-start max-sm:gap-3">
+            <Title className="text-xl font-semibold tracking-tight text-ink [overflow-wrap:anywhere] max-sm:text-2xl/[36px] max-sm:font-medium max-sm:tracking-tighter">{order.product_title}</Title>
+            <OrderChip tone={status.tone} className="max-sm:hidden">
+              {status.label}
+            </OrderChip>
+            <span className={cn("flex h-7 shrink-0 items-center gap-1.5 self-start rounded-full pl-2 pr-2.5 text-sm font-medium sm:hidden max-sm:order-first", pillTone.tone)}>
+              <pill.icon size={16} weight="thin" className={cn("shrink-0", pillTone.glyph)} aria-hidden />
+              {status.label}
+            </span>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {page ? <span className="flex items-center gap-2 max-sm:hidden">{message}{powers.update ? <AddUpdate orderId={order.id} /> : null}{menu(32)}</span> : null}
-            {page ? <span className="sm:hidden">{menu(44)}</span> : null}
             {!page ? (
               <>
                 <Link href={`/app/orders/${order.id}`} prefetch={false} className="rounded-sm p-1.5 text-base font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus max-sm:hidden">
@@ -131,14 +163,29 @@ export function OrderDetail({ order, mode, today, threadId, viewerId, closeHref 
             ) : null}
           </div>
         </div>
-        <p className="text-base text-ink-2 max-sm:text-md">
+        <p className="text-base text-ink-2 max-sm:hidden">
           <Link href={`/app/suppliers/${order.supplier.slug}`} prefetch={false} className={NAME}>
             {order.supplier.company_name}
           </Link>
-          <span className="max-sm:hidden"> · {supplierLine(order.supplier)}</span>
+          <span> · {supplierLine(order.supplier)}</span>
           {order.po_number ? <span className="font-mono text-sm"> · {order.po_number}</span> : null}
         </p>
-        <p className="text-sm text-ink-3">{startedLine(order)}</p>
+        {/* The phone's identity lines (Paper 36 `order-detail`): who it is with, and the PO. */}
+        <div className="flex flex-col gap-1.5 pt-3 sm:hidden">
+          <p className="flex items-center gap-2 text-[15px]/[22px] text-ink-2">
+            <Storefront size={18} weight="thin" className="shrink-0 text-ink-3" aria-hidden />
+            <Link href={`/app/suppliers/${order.supplier.slug}`} prefetch={false} className={cn(NAME, "font-normal text-ink-2")}>
+              {order.supplier.company_name}
+            </Link>
+          </p>
+          {order.po_number ? (
+            <p className="flex items-center gap-2 font-mono text-sm/[22px] text-ink-2">
+              <FileText size={18} weight="thin" className="shrink-0 text-ink-3" aria-hidden />
+              {order.po_number}
+            </p>
+          ) : null}
+        </div>
+        <p className="text-sm text-ink-3 max-sm:pt-1">{startedLine(order)}</p>
         {!page ? (
           <div className="flex flex-wrap items-center gap-2 pt-2">
             {message}
@@ -149,8 +196,18 @@ export function OrderDetail({ order, mode, today, threadId, viewerId, closeHref 
       </header>
 
       <div className={cn("flex min-h-0 flex-1", page && "lg:items-stretch")}>
-        <div className="flex min-w-0 flex-1 flex-col gap-6 px-4 py-5 sm:px-6">
-          <dl aria-label="Summary" className="flex flex-col rounded-lg border border-line sm:flex-row [font-variant-numeric:tabular-nums]">
+        <div className="flex min-w-0 flex-1 flex-col gap-6 px-5 py-5 sm:px-6">
+          {/* The phone's two tiles (Paper 36 `order-detail`); price and quantity are under the value. */}
+          <dl aria-label="Summary" className="flex overflow-clip rounded-[10px] border border-line tabular-nums sm:hidden">
+            {phoneTiles(order, today).map((t) => (
+              <div key={t.label} className="flex grow basis-0 flex-col gap-1 border-r border-line px-3.5 pb-3 pt-3.5 last:border-r-0">
+                <dt className="text-sm text-ink-3">{t.label}</dt>
+                <dd className="text-xl font-medium tracking-tighter text-ink">{t.value}</dd>
+                {t.sub ? <dd className={cn("text-sm", t.late ? "font-medium text-caution" : "text-ink-2")}>{t.sub}</dd> : null}
+              </div>
+            ))}
+          </dl>
+          <dl aria-label="Summary" className="flex flex-col rounded-lg border border-line max-sm:hidden sm:flex-row [font-variant-numeric:tabular-nums]">
             {cells.map((c) => (
               <div key={c.label} className="flex items-start justify-between gap-3 border-t border-line px-3 py-3 first:border-t-0 sm:flex-1 sm:flex-col sm:justify-start sm:gap-0.5 sm:border-r sm:border-t-0 sm:last:border-r-0">
                 <dt className="text-md text-ink-2 sm:text-xs sm:text-ink-3">{c.label}</dt>
@@ -160,9 +217,12 @@ export function OrderDetail({ order, mode, today, threadId, viewerId, closeHref 
           </dl>
 
           <section aria-label="Progress" className="flex flex-col gap-3">
-            <div className="flex flex-wrap items-baseline gap-x-2">
-              <h2 className="text-lg font-semibold text-ink">Progress · {steps.length === 1 ? "1 step" : `${steps.length} steps`}</h2>
-              <p className="text-base text-ink-3">{steps.length === 0 ? "none logged yet" : `${steps.length} logged`}</p>
+            <div className="flex flex-wrap items-baseline gap-x-2 max-sm:justify-between">
+              <h2 className="text-lg font-semibold text-ink max-sm:font-medium max-sm:tracking-tight">
+                <span className="sm:hidden">Progress</span>
+                <span className="max-sm:hidden">Progress · {steps.length === 1 ? "1 step" : `${steps.length} steps`}</span>
+              </h2>
+              <p className="text-base text-ink-3 max-sm:text-sm">{steps.length === 0 ? "none logged yet" : `${steps.length} logged`}</p>
             </div>
             {late ? <p className="text-sm font-medium text-caution">{late}</p> : null}
             {steps.length === 0 ? (
@@ -170,7 +230,7 @@ export function OrderDetail({ order, mode, today, threadId, viewerId, closeHref 
                 {order.status === "cancelled" ? "This order was cancelled. Nothing was logged on it." : "Nothing logged yet. Add an update when something happens (PO issued, production started, shipped) and both sides see the same timeline."}
               </p>
             ) : (
-              <Timeline items={steps.map((s) => ({ name: s.name, status: s.status, on: s.on, byline: s.byline }))} today={today} />
+              <Timeline items={steps.map((s) => ({ name: s.name, status: s.status, on: s.on, byline: s.byline }))} today={today} className="max-sm:rounded-none max-sm:border-0 max-sm:p-0" />
             )}
           </section>
 
@@ -182,15 +242,23 @@ export function OrderDetail({ order, mode, today, threadId, viewerId, closeHref 
         {page ? <aside className="w-details shrink-0 border-l border-line px-6 py-5 max-lg:hidden">{details}</aside> : null}
       </div>
 
-      {page && (message || powers.update) ? (
-        <div className="sticky bottom-0 flex min-h-action-bar items-center gap-2 border-t border-line bg-surface px-4 pb-[env(safe-area-inset-bottom)] sm:hidden">
-          {message ? <div className="min-w-0 flex-1 [&>a]:h-input-touch [&>a]:w-full [&>a]:min-w-0 [&>a]:justify-center [&>a]:text-md">{message}</div> : null}
+      {page && (threadId || powers.update) ? (
+        <ActionBar className="sticky bottom-0 sm:hidden">
+          {threadId ? (
+            <Link
+              href={`/app/messages/${threadId}`}
+              aria-label={`Message ${supplier}`}
+              className="flex size-12 shrink-0 items-center justify-center rounded-lg border border-line text-ink outline-none active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            >
+              <ChatCircle size={24} weight="thin" aria-hidden />
+            </Link>
+          ) : null}
           {powers.update ? (
             <div className="min-w-0 flex-1">
               <AddUpdate orderId={order.id} size="touch" full />
             </div>
           ) : null}
-        </div>
+        </ActionBar>
       ) : null}
     </section>
   );
