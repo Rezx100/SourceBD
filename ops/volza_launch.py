@@ -3,14 +3,15 @@
 Spends real credit with the production key, so it runs only with --apply (the founder runs it), one
 numbered batch at a time, each approved separately; the cap is per batch and a rerun resumes it.
 
-Order: (1) the suppliers already held: markets for the exact ones, one exact-name search for the ones
+Order: (1) the suppliers already held: markets (and the small-orders search) for the exact ones, one exact-name search for the ones
 whose name swept in other "exporters" (batch 0: that is usually one company under several Volza IDs);
 (2) EPB-registered suppliers not yet checked, in a fixed shuffled order, until the cap.
 
 Per supplier: starts-with search on each of our names until one finds shipments; if it swept in
 more than one exporter, one exact search on our legal name in its suffix forms (only that counts
 from then on); if exact and shipping to 2+ countries, four searches filtered to the UK, the US, the
-27 EU countries and Canada. One record per call, biggest shipment first, duplicates removed. Volza
+27 EU countries and Canada; if every shipment is counted in pieces, one more search for those under
+1,000 pieces (a small-orders signal). One record per call, biggest shipment first, duplicates removed. Volza
 does not charge again for a record already bought, so repeat calls cost $0.10.
 
 Everything Volza sends is kept: each call's whole response and credit headers go into the row.
@@ -45,6 +46,7 @@ CAP_LIMIT = 50.0  # each batch is approved at up to $50
 SEED = 20261011
 MARKETS = [("United Kingdom", ["United Kingdom"]), ("United States", ["United States"]), ("EU", EU),
            ("Canada", ["Canada"])]
+SMALL_PCS = 1000  # "N% of its shipments were under 1,000 pieces" (founder, 11 Oct 2026)
 SUFFIXES = ("", " Ltd", " Ltd.", " Limited", " (Pvt) Ltd", " (Pvt.) Ltd.", " Pvt Ltd", " Pvt. Ltd.",
             " Private Limited")
 
@@ -157,6 +159,12 @@ def fetch(v: Live, row: dict[str, Any], rec: dict[str, Any]) -> None:
             s, top = data.get("api_summary") or {}, (data.get("api_records") or [None])[0]
             rec["markets"][label] = {"shipments": s.get("count_of_shipments"), "fob_usd": s.get("sum_of_trade_value_usd"),
                                      "buyers": s.get("count_of_buyers"), "top": top}
+    # Small-orders signal (batch 0: the quantity filter works). Only when every shipment is counted in
+    # pieces: a line declared in kilos (720 KGS = 4,292 pieces on Aboni's) would count as "small".
+    summary = rec.get("summary") or {}
+    if rec["class"] == "exact" and main and summary.get("count_of_units") == 1 and (rec.get("top") or {}).get("unit") == "PCS":
+        data = call("small:under 1000 pcs", {**main, "quantity": {"operator": "lt", "value": SMALL_PCS}})
+        rec["small_orders"] = {"under_pcs": SMALL_PCS, "shipments": shipments(data), "of": rec["shipments"]}
     rec["partial"] = False
 
 
