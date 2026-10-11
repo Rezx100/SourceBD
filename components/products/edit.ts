@@ -94,6 +94,16 @@ export function footButtons(status: ProductStatus, isNew: boolean, dirty: boolea
 
 export const NEW_TITLE = "New product";
 export const NEW_CAPTION = "Only the name is required. Add the rest now or later. Only you can see your products.";
+export const NEW_CAPTION_PHONE = "Only the name is required. Only you see it.";
+
+/** The phone's "Add now or later" card (`11 · New product`): the shut sections, the last two behind "More". */
+export const ADD_LATER: readonly { id: Optional; title: string; line: string; more: boolean }[] = [
+  { id: "size-chart", title: "Size chart", line: "Points of measure, with tolerances", more: false },
+  { id: "materials", title: "Materials", line: "Fabric and trims per piece", more: false },
+  { id: "tech-pack", title: "Tech pack", line: "One PDF or image, up to 10 MB", more: false },
+  { id: "images", title: "Images", line: "Your own photos or sketches", more: true },
+  { id: "options", title: "Colour and size options", line: "Every combination is listed", more: true },
+];
 export const NAME_NEEDED = "Add a name to save";
 export const FIX_FIELDS = "Fix the fields marked above";
 

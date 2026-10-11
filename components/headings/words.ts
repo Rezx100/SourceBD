@@ -172,6 +172,11 @@ export function caption(opts: { headings: number; chapters: number }): string {
   return `${headingsWord(opts.headings)} in ${opts.chapters} ${opts.chapters === 1 ? "chapter" : "chapters"} · ${SANCTION_NOTE}`;
 }
 
+/** The phone's caption (`11 · HS codes`): "210 headings in 46 chapters"; the sanctions note sits under the list. */
+export function phoneCaption(opts: { headings: number; chapters: number }): string {
+  return `${headingsWord(opts.headings)} in ${opts.chapters} ${opts.chapters === 1 ? "chapter" : "chapters"}`;
+}
+
 export function searchCaption(matches: number): string {
   return `${headingsWord(matches)} match · ${SANCTION_NOTE}`;
 }

@@ -22,7 +22,7 @@ import { InboxColumn, InboxError } from "@/components/messages/list";
 import { loadInbox, readMessages, readRfq } from "@/components/messages/load";
 import { ColumnNotice, RecordColumn } from "@/components/messages/record-column";
 import { ThreadLive } from "@/components/messages/thread-live";
-import { parseQuery, parseShow, phoneStripLine, quoteWords, rfqStrip, threadHref } from "@/components/messages/words";
+import { parseQuery, parseShow, phoneRfqCard, quoteWords, rfqStrip, threadHref } from "@/components/messages/words";
 import { ProfileReadTimeout, loadRecordSheet } from "@/lib/dashboard/load-record";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -98,7 +98,7 @@ export default async function ThreadPage({ params, searchParams }: { params: Pro
           initialMessages={messages.kind === "ok" ? messages.messages : []}
           supplierName={thread.supplier_name}
           today={now.toISOString()}
-          phoneLine={strip ? phoneStripLine(strip) : null}
+          phoneCard={strip ? phoneRfqCard(strip, rfq?.product_title ?? null) : null}
           phoneHref={strip ? `/app/rfqs?open=${encodeURIComponent(strip.rfqId)}` : null}
           readFailed={messages.kind === "error"}
         />

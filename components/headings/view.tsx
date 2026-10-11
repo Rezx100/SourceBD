@@ -6,6 +6,8 @@
 import { CaretDown, CaretRight, CaretUp, MagnifyingGlass } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { Empty, ErrorPanel, Segmented, Skeleton, Table, TableFrame, Td, Th, Tr, buttonClass, rowLinkClass } from "@/components/kit";
+import { LinkPending } from "@/components/patterns/link-pending";
+import { formatCount } from "@/lib/dashboard/facts";
 import { cn } from "@/lib/utils";
 import {
   CATALOGUE_ERROR_BODY,
@@ -27,13 +29,22 @@ import {
 const FOCUS = "outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 /** The title, what the counts mean, and the search. Named, because the top bar has a `search` landmark too. */
-export function HeadingsHead({ caption, q }: { caption: string; q: string }) {
+export function HeadingsHead({ caption, phoneCaption = caption, q }: { caption: string; /** The phone's shorter line (`11 · HS codes`): the sanctions note stands under the list there. */ phoneCaption?: string; q: string }) {
   return (
-    <header className="flex shrink-0 flex-col gap-3 px-6 pt-7 max-md:px-4 max-md:pt-4">
-      <div className="flex items-end justify-between gap-6 max-md:flex-col max-md:items-stretch max-md:gap-3">
+    <header className="flex shrink-0 flex-col gap-3 px-6 pt-7 max-md:px-5 max-md:pt-0">
+      <div className="flex items-end justify-between gap-6 max-md:flex-col max-md:items-stretch max-md:gap-4">
         <div className="flex min-w-0 flex-col gap-1">
           <h1 className="text-xl font-semibold tracking-tight text-ink max-md:sr-only">{HEADINGS_TITLE}</h1>
-          <p className="text-base text-ink-3">{caption}</p>
+          <p className="text-base text-ink-3 max-md:text-sm">
+            {phoneCaption === caption ? (
+              caption
+            ) : (
+              <>
+                <span className="max-md:hidden">{caption}</span>
+                <span className="md:hidden">{phoneCaption}</span>
+              </>
+            )}
+          </p>
         </div>
         <form aria-label="Search HS headings" action="/app/headings" method="get" role="search" className="relative w-[20rem] shrink-0 max-md:w-full">
           <MagnifyingGlass size={16} className="pointer-events-none absolute left-[9px] top-1/2 -translate-y-1/2 text-ink-3 max-md:left-3 max-md:size-5" aria-hidden />
@@ -43,7 +54,7 @@ export function HeadingsHead({ caption, q }: { caption: string; q: string }) {
             defaultValue={q}
             placeholder={SEARCH_PLACEHOLDER}
             aria-label={SEARCH_PLACEHOLDER}
-            className="h-control w-full rounded-sm border border-line-strong bg-surface pl-[34px] pr-2.5 text-base text-ink outline-none placeholder:text-ink-3 hover:border-ink-3 focus:border-brand-ink focus:[box-shadow:inset_0_0_0_1px_theme(colors.brand-ink)] max-md:h-input-touch max-md:pl-10 max-md:text-md"
+            className="h-control w-full rounded-sm border border-line-strong bg-surface pl-[34px] pr-2.5 text-base text-ink outline-none placeholder:text-ink-3 hover:border-ink-3 focus:border-brand-ink focus:[box-shadow:inset_0_0_0_1px_theme(colors.brand-ink)] max-md:h-input-touch max-md:rounded-lg max-md:pl-10 max-md:text-md"
           />
         </form>
       </div>
@@ -151,49 +162,91 @@ export function OpenChapter({ chapter, sort, more }: { chapter: Chapter; sort: S
   );
 }
 
-/** The phone's list: each chapter a row that opens in place, with its headings under it. */
-export function PhoneChapters({ chapters, open, sort }: { chapters: Chapter[]; open: string | null; sort: SortKey }) {
+/** How many chapters, and how many headings in the open one, the phone shows before "N more" (`11 · HS codes`). */
+export const PHONE_FIRST = 4;
+
+const phoneCard = "mx-5 flex flex-col overflow-clip rounded-[10px] border border-line md:hidden";
+const moreRow = cn("flex min-h-12 items-center justify-between gap-3 border-t border-line px-4 py-3 text-sm text-ink-2 active:bg-sunken", FOCUS);
+
+/**
+ * The phone's list (`11 · HS codes`): the first chapters in a card, each a row that opens in place
+ * with its headings by most suppliers, the first four of them and "N more headings"; then "N more
+ * chapters". `?more=1` shows every chapter and every heading of the open one.
+ */
+export function PhoneChapters({ chapters, open, more }: { chapters: Chapter[]; open: string | null; more: boolean }) {
+  // The open chapter is always in the list: a link to a later one (`?chapter=52`) must show it.
+  const shown = more ? chapters : chapters.filter((c, i) => i < PHONE_FIRST || c.code === open);
+  const hidden = chapters.length - shown.length;
   return (
-    <ul aria-label="Chapters" className="mt-3 border-t border-line md:hidden">
-      {chapters.map((c) => {
+    <ul aria-label="Chapters" className={cn(phoneCard, "mt-4")}>
+      {shown.map((c) => {
         const on = c.code === open;
+        const rows = sortHeadings(c.headings, "suppliers");
+        const first = more ? rows : rows.slice(0, PHONE_FIRST);
         return (
-          <li key={c.code} className="border-b border-line">
-            <Link href={on ? headingsHref({ sort }) : headingsHref({ chapter: c.code, sort })} prefetch={false} aria-expanded={on} className={cn("flex min-h-14 items-center gap-3 py-2 pl-4 pr-2", FOCUS)}>
-              <span className="w-8 shrink-0 font-mono text-sm text-ink-3">{c.code}</span>
+          <li key={c.code} className="border-t border-line first:border-t-0">
+            <Link
+              href={on ? headingsHref({ more }) : headingsHref({ chapter: c.code, more })}
+              prefetch={false}
+              aria-expanded={on}
+              className={cn("flex min-h-[60px] items-center gap-3 px-4 py-2 active:bg-sunken", on && "bg-subtle active:bg-line", FOCUS)}
+            >
+              <span className="w-8 shrink-0 font-mono text-[15px]/[22px] font-medium text-ink">{c.code}</span>
               <span className="flex min-w-0 flex-1 flex-col">
-                <span className="text-md font-medium text-ink">{c.name}</span>
-                <span className="text-sm text-ink-3">{headingsWord(c.headings.length)}</span>
+                <span className="text-md/[22px] font-medium text-ink">{c.name}</span>
+                <span className="text-sm text-ink-3">{on ? `${headingsWord(c.headings.length)} · most suppliers first` : headingsWord(c.headings.length)}</span>
               </span>
-              <span className="flex size-11 shrink-0 items-center justify-center">{on ? <CaretUp size={20} className="text-ink-3" aria-hidden /> : <CaretDown size={20} className="text-ink-3" aria-hidden />}</span>
+              {on ? <CaretUp size={16} weight="thin" className="shrink-0 text-ink-2" aria-hidden /> : <CaretDown size={16} weight="thin" className="shrink-0 text-ink-2" aria-hidden />}
             </Link>
-            {on ? <PhoneHeadings rows={sortHeadings(c.headings, sort)} /> : null}
+            {on ? (
+              <>
+                <PhoneHeadingRows rows={first} />
+                {rows.length > first.length ? (
+                  <Link href={headingsHref({ chapter: c.code, more: true })} prefetch={false} className={moreRow}>
+                    {`${formatCount(rows.length - first.length)} more ${rows.length - first.length === 1 ? "heading" : "headings"} in ${c.code}`}
+                    <CaretDown size={16} weight="thin" className="shrink-0 text-ink-3" aria-hidden />
+                  </Link>
+                ) : null}
+              </>
+            ) : null}
           </li>
         );
       })}
+      {hidden > 0 ? (
+        <li className="border-t border-line">
+          <Link href={headingsHref({ chapter: open, more: true })} prefetch={false} className={cn(moreRow, "border-t-0 bg-subtle")}>
+            {`${moreLine(hidden)}: trims, packaging, other`}
+            <CaretDown size={16} weight="thin" className="shrink-0 text-ink-3" aria-hidden />
+          </Link>
+        </li>
+      ) : null}
     </ul>
   );
 }
 
-function PhoneHeadings({ rows }: { rows: readonly Heading[] }) {
+function PhoneHeadingRows({ rows }: { rows: readonly Heading[] }) {
   return (
-    <ul className="bg-subtle">
+    <ul>
       {rows.map((h) => (
         <li key={h.hs} className="border-t border-line">
-          <Link href={searchHref(h.hs)} prefetch={false} className={cn("flex min-h-14 items-center gap-3 py-2 pl-4 pr-2", FOCUS)}>
-            <span className="w-10 shrink-0 font-mono text-md text-ink">{h.hs}</span>
+          <Link href={searchHref(h.hs)} prefetch={false} className={cn("flex min-h-14 items-center gap-3 px-4 py-2 active:bg-sunken", FOCUS)}>
+            <span className="w-11 shrink-0 font-mono text-base text-ink-2">{h.hs}</span>
             <span className="flex min-w-0 flex-1 flex-col">
-              <span className="text-md text-ink">{h.label ?? "No heading text"}</span>
-              <span className="text-sm text-ink-3">{suppliersWord(h.exporters)}</span>
+              <span className="text-base text-ink">{h.label ?? "No heading text"}</span>
+              <span className="text-xs tabular-nums text-ink-3">{suppliersWord(h.exporters)}</span>
             </span>
-            <span className="flex size-11 shrink-0 items-center justify-center">
-              <CaretRight size={20} className="text-ink-3" aria-hidden />
-            </span>
+            <LinkPending />
+            <CaretRight size={16} weight="thin" className="shrink-0 text-ink-3" aria-hidden />
           </Link>
         </li>
       ))}
     </ul>
   );
+}
+
+/** Under the phone's list. */
+export function PhoneHeadingsNote() {
+  return <p className="px-5 pb-12 pt-4 text-xs text-ink-3 md:hidden">Supplier counts leave out sanctioned suppliers, as search does.</p>;
 }
 
 /** A search: the matching headings from every chapter, in one table (a list on a phone). */
@@ -204,8 +257,8 @@ export function SearchResults({ rows, sort }: { rows: readonly Heading[]; sort: 
       <section aria-label="Matching headings" className="px-6 pb-8 pt-6 max-md:hidden">
         <HeadingRows rows={sorted} />
       </section>
-      <div className="mt-3 border-t border-line md:hidden">
-        <PhoneHeadings rows={sorted} />
+      <div className={cn(phoneCard, "mt-4 [&>ul>li:first-child]:border-t-0")}>
+        <PhoneHeadingRows rows={sortHeadings(rows, "suppliers")} />
       </div>
     </>
   );

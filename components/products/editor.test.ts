@@ -178,7 +178,9 @@ describe("/app/products/new", () => {
     assert.match(t, /Add a name to save/);
     assert.match(r.html, /<button[^>]*>Save draft<\/button>/);
     assert.match(r.html, /<button[^>]*>Make active<\/button>/);
-    assert.equal(r.html.match(/aria-label="Add (options|size chart|materials|images|tech pack)"/g)?.length, 5, "the five other sections are Add");
+    assert.equal(r.html.match(/aria-label="Add (options|size chart|materials|images|tech pack)"/g)?.length, 8, "the five other sections are Add, and the phone's card offers the first three again");
+    assert.match(t, /Add now or later Size chart Points of measure, with tolerances/, "the phone's card (`11 · New product`)");
+    assert.match(r.html, /<form[^>]*data-detail=""/, "on a phone the editor draws its own bar and foot");
     assert.ok(!r.html.includes("/app/rfqs/new"), "a product that does not exist cannot be sent");
     assert.doesNotMatch(t, /HS code|Start manually|How do you want to start/);
     assert.match(r.html, /href="\/app\/products"[^>]*>[\s\S]*?Products/);
@@ -280,9 +282,13 @@ describe("the phone's Product view", () => {
     assert.match(r.html, /aria-label="Product view"[^>]*class="[^"]*md:hidden/);
     assert.match(text(r.html), /Edit details/);
     assert.match(text(r.html), /Target price US\$1\.20 per piece/);
-    assert.match(text(r.html), /Style number Not set/);
+    assert.match(text(r.html), /No style number/);
+    assert.match(text(r.html), /Customer ref\. Not set/);
+    assert.match(text(r.html), /Active · ready for RFQs/);
+    assert.match(r.html, /aria-label="Product view" data-detail=""/, "the view draws its own bar, so the frame's bar and tabs give way");
+    assert.ok(r.html.includes(`href="/app/products/${ID}?edit=full#size-chart"`), "the size chart row opens the editor there");
     assert.ok(r.html.includes(`href="/app/products/${ID}?edit=full"`));
-    assert.match(text(r.html), new RegExp(FULL_EDITOR_LABEL));
+    assert.match(r.html, new RegExp(`aria-label="${FULL_EDITOR_LABEL}"`));
     assert.match(r.html, /<form[^>]*aria-label="Product"/, "from 768 the editor is still the page");
     answer = { data: { id: ID, name: "Crew socks", status: "draft" }, error: null };
     const draft = await edit();

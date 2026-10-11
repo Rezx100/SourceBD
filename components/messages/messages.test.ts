@@ -16,9 +16,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { aboniInput } from "@/lib/dashboard/fixtures";
 import type { RfqDoc } from "../rfqs/doc";
-import { InboxEmpty, InboxError, InboxHead, InboxNone, InboxRows } from "./list";
+import { EMPTY_PHONE, InboxEmpty, InboxError, InboxHead, InboxNone, InboxRows, UnreadLine } from "./list";
 import { loadInbox, readMessages, readRfq } from "./load";
-import { MessageList, ThreadLive } from "./thread-live";
+import { MessageList, PRIVATE_LINE, ThreadLive } from "./thread-live";
 import {
   COUNTER_FROM,
   arrivalText,
@@ -35,13 +35,14 @@ import {
   listWhen,
   parseQuery,
   parseShow,
-  phoneStripLine,
+  phoneRfqCard,
   quoteWords,
   rfqStrip,
   tabsKnown,
   threadHref,
   threadSub,
   uploadPath,
+  waitingWords,
   type ThreadMessage,
   type ThreadRow,
 } from "./words";
@@ -238,6 +239,19 @@ describe("the rows as drawn", () => {
     assert.doesNotMatch(open, /rounded-full bg-brand-ink|unread/, "the open conversation is not drawn unread");
   });
 
+  it("on a phone a row has the initials, the dot at its end, 'No reply in N days', and a pressed state; the inbox counts what is unread", () => {
+    const out = html(createElement(InboxRows, { items: items(), state, currentId: null }));
+    assert.match(out, />TW<\/span>/);
+    assert.equal(out.match(/rounded-full bg-ink md:hidden/g)?.length, 1, "one phone dot, on the one unread row");
+    assert.match(out, /active:bg-sunken/);
+    assert.equal(waitingWords("2026-09-19T10:00:00Z", new Date("2026-10-04T12:00:00Z")), "No reply in 15 days");
+    assert.equal(waitingWords("2026-10-03T10:00:00Z", new Date("2026-10-04T12:00:00Z")), "No reply in 1 day");
+    assert.equal(waitingWords("2026-10-04T10:00:00Z", new Date("2026-10-04T12:00:00Z")), "No reply yet");
+    assert.equal(waitingWords(null, NOW), "No reply yet");
+    assert.equal(text(html(createElement(UnreadLine, { unread: 2 }))).trim(), "2 unread");
+    assert.equal(html(createElement(UnreadLine, { unread: 0 })), "");
+  });
+
   it("'Sent a file' and 'You: ' show as the line under a name", () => {
     const rows = [thread(T1, { last_body: "", last_is_self: true }), thread(T2, { last_body: "Hello", last_is_self: true })];
     assert.match(text(html(createElement(InboxRows, { items: buildThreadItems(rows, NOW), state, currentId: null }))), /You: Sent a file.*You: Hello/);
@@ -263,7 +277,8 @@ describe("the rows as drawn", () => {
   it("the empty state says how the inbox fills; the failed one never says 'no conversations'", () => {
     const empty = html(createElement(InboxEmpty));
     assert.match(text(empty), /Talk to suppliers here, with their record beside you\./);
-    assert.match(text(empty), /Supplier replies land here\./, "the phone's words are in the page too");
+    for (const words of Object.values(EMPTY_PHONE)) assert.ok(text(empty).includes(words), `the phone's "${words}" is in the page too`);
+    assert.match(empty, /href="\/app\/saved"[^>]*>[\s\S]*?Open your saved suppliers/);
     assert.match(empty, /href="\/app"[^>]*>Search suppliers/);
     assert.match(empty, /href="\/app\/rfqs\/new"/);
     const err = html(createElement(InboxError, { retryHref: "/app/messages" }));
@@ -376,10 +391,13 @@ describe("the live conversation", () => {
     assert.doesNotMatch(live(), /could not be read/);
   });
 
-  it("on a phone the RFQ line is the way to the RFQ", () => {
-    const out = live({ phoneLine: "RFQ sent 18 Jul 2026 · 10,000 pieces · waiting for quote", phoneHref: `/app/rfqs?open=${RFQ1}` });
-    assert.match(out, new RegExp(`href="/app/rfqs\\?open=${RFQ1}"[^>]*>RFQ sent 18 Jul 2026`));
-    assert.match(live({ phoneLine: "RFQ sent" }), /<p class="text-center text-sm text-ink-3 sm:hidden">RFQ sent<\/p>/);
+  it("on a phone the RFQ card is the way to the RFQ, and the composer says replies stay private", () => {
+    const card = { title: "French terry hoodies · 10,000 pieces", line: "Sent 18 Jul 2026 · waiting for quote" };
+    const out = live({ phoneCard: card, phoneHref: `/app/rfqs?open=${RFQ1}` });
+    assert.match(out, new RegExp(`href="/app/rfqs\\?open=${RFQ1}"[^>]*>[\\s\\S]*?French terry hoodies · 10,000 pieces[\\s\\S]*?Sent 18 Jul 2026 · waiting for quote`));
+    assert.doesNotMatch(live({ phoneCard: card }), /href="\/app\/rfqs/);
+    assert.ok(text(out).includes(PRIVATE_LINE));
+    assert.match(out, /<button type="submit" aria-label="Send" disabled=""/, "the phone's round send waits for words");
   });
 });
 
@@ -431,7 +449,8 @@ describe("the strip over a conversation", () => {
       { label: "Quote", value: "Waiting for quote" },
     ]);
     assert.equal(s.rfqId, RFQ1);
-    assert.equal(phoneStripLine(s), "RFQ sent 18 Jul 2026 · 10,000 pieces · waiting for quote");
+    assert.deepEqual(phoneRfqCard(s, "French terry hoodies"), { title: "French terry hoodies · 10,000 pieces", line: "Sent 18 Jul 2026 · waiting for quote" });
+    assert.equal(phoneRfqCard(rfqStrip(rfq({ quotes: [quote()] }), "s-thermax")!, null).line, "Sent 18 Jul 2026 · US$8.55 per piece", "a price keeps its capitals");
     assert.equal(rfqStrip(null, "s-thermax"), null);
     assert.equal(rfqStrip(rfq({ ship_by: null }), "s-thermax")!.cells[2]!.value, "Not set");
   });
@@ -573,6 +592,8 @@ describe("/app/messages", () => {
     const out = (await page()) as { html: string };
     assert.match(text(out.html), /Talk to suppliers here, with their record beside you\./);
     assert.doesNotMatch(out.html, /Pick a conversation/);
+    // The phone's empty inbox (`11 · Messages empty`), as the page serves it.
+    assert.match(text(out.html), /No messages yet A thread opens when you send an RFQ\. Replies land here\. Only you and the supplier see a thread\. Open your saved suppliers/);
   });
 
   it("a failed read is an error where the list was and never 'no conversations'", async () => {
