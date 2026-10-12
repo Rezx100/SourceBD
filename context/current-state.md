@@ -116,8 +116,9 @@ Migration file headers are NOT live status. Check here or query the database.
 | `0123_source_freshness` | 6 Oct 2026 | ETL freshness S3, via MCP `20261006052420`; 30 sources (9 over limit), 14 schedules, certs off. `ops/plans/0123-dry-run.md`. |
 | `0124_register_schedules` | 6 Oct 2026 | ETL freshness S5, via MCP `20261006052539`; 5 register schedules off, RSC limit 336 h. `ops/plans/0124-dry-run.md`. |
 | `0125_sources_listed_brand_schedules` | 6 Oct 2026 | ETL freshness S6, via MCP `20261006052721`; public count 21, 4 brand schedules off. |
-| `0137_volza_export_checks` | 11 Oct 2026 | Via MCP on "apply 0137" (sha256 `416a1ac2…`); verified RLS on, anon cannot execute, table closed to `authenticated`. Volza customs shipments on the record, admins and Growth/Enterprise only, rows kept one year. Then the founder loads the 200-supplier sample (`ops/volza_load_sample.py`). `ops/plans/volza-export-dry-run.md` §8. |
+| `0137_volza_export_checks` | 11 Oct 2026 | Via MCP on "apply 0137"; Volza customs shipments on the record, admins and Growth/Enterprise only, rows kept one year. `ops/plans/volza-export-dry-run.md` §8. |
 | `0142_discover_customs_exports` | 11 Oct 2026 | Via MCP on "apply 0142"; search by customs exports, entitled readers only. `ops/plans/0142-dry-run.md`. |
+| `0146_volza_reveal_price_city` | **not applied** | Shipment reveal: checked price a piece, buyer city. `ops/plans/0146-dry-run.md`. |
 
 Deploy-order hazard, twice hit: code that queries a new table with no
 missing-table guard crashes every ETL run if shipped before its migration.

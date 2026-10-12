@@ -251,8 +251,8 @@ const productLine = (raw: string | null) => (raw ?? "").split("=")[0]!.replace(/
  * gross weight.
  *
  * A large exporter files one order as many shipments (Ananta Garments, 12 Oct 2026: 25 records, one day, 4
- * buyers), so shipments on the same day to the same buyer and country for the same product are one row, in the
- * place of the first, with the values and weights added up.
+ * buyers), so shipments on the same day to the same buyer and country for the same product and HS code are one
+ * row, in the place of the first, with the values and weights added up.
  *
  * Quantity and price (founder, 12 Oct 2026): the records carry no quantity, so it is the value over the price a
  * piece, printed as "About". Only where every shipment in the row has a price the database checked (0146); a
@@ -260,16 +260,17 @@ const productLine = (raw: string | null) => (raw ?? "").split("=")[0]!.replace(/
  */
 export function revealRows(records: readonly RevealRecord[]): RevealRow[] {
   const rows = new Map<string, { first: RevealRecord; n: number; value: number | null; weight: number; pcs: number | null }>();
-  for (const r of records) {
-    const key = [r.date, (r.buyer ?? "").replace(/\s+/g, " ").trim(), r.destination, productLine(r.product)].join("|").toUpperCase();
+  for (const [i, r] of records.entries()) {
     const value = typeof r.value_usd === "number" ? r.value_usd : null;
+    // A shipment with no date or no value stands alone: "the same day" and a total need both.
+    const key = r.date && value !== null ? [r.date, (r.buyer ?? "").replace(/\s+/g, " ").trim(), r.destination, r.hs_code, productLine(r.product)].join("|").toUpperCase() : `#${i}`;
     const pcs = value !== null && value > 0 && typeof r.unit_price_usd === "number" && r.unit_price_usd > 0 ? value / r.unit_price_usd : null;
     const weight = typeof r.weight_kg === "number" && r.weight_kg > 0 ? r.weight_kg : 0;
     const row = rows.get(key);
     if (!row) rows.set(key, { first: r, n: 1, value, weight, pcs });
     else {
       row.n += 1;
-      row.value = row.value === null && value === null ? null : (row.value ?? 0) + (value ?? 0);
+      row.value = row.value! + value!;
       row.weight += weight;
       row.pcs = row.pcs !== null && pcs !== null ? row.pcs + pcs : null;
     }

@@ -493,4 +493,9 @@ describe("the reveal's rows: one order is one row, a price only where the databa
     assert.deepEqual(rows.map((r) => [r.shipments, r.pieces, r.value, r.weight]), [[2, null, "US$1,292", "86 kg"], [1, null, null, null]]);
     assert.equal(rows[1]!.buyerTo, "H M Hennes Mauritz GBC AB · Netherlands");
   });
+
+  it("never merges shipments with no date, no value or another HS code: the same day and a total need all three", () => {
+    const rows = revealRows([{ ...rec, date: null }, { ...rec, date: null }, { ...rec, value_usd: null }, { ...rec, value_usd: null }, rec, { ...rec, hs_code: "62034300" }]);
+    assert.deepEqual(rows.map((r) => [r.shipments, r.date, r.value, r.hs]), [[1, "Date not filed", "US$646", "6203.42"], [1, "Date not filed", "US$646", "6203.42"], [1, "31 Aug 2026", null, "6203.42"], [1, "31 Aug 2026", null, "6203.42"], [1, "31 Aug 2026", "US$646", "6203.42"], [1, "31 Aug 2026", "US$646", "6203.43"]]);
+  });
 });
