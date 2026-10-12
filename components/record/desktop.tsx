@@ -558,7 +558,7 @@ const CERT_COLS =
 // 214px or more (at 760 it had none: a letter a line). Under that the table keeps four columns and says the
 // issuer under the name.
 const CERT_WIDE_CELL = "hidden [@container_(min-width:900px)]:block";
-const CERT_MARK: Record<string, string> = { "OEKO-TEX": "OEKO-TEX", GOTS: "GOTS", WRAP: "WRAP" };
+export const CERT_MARK: Record<string, string> = { "OEKO-TEX": "OEKO-TEX", GOTS: "GOTS", WRAP: "WRAP" };
 
 /**
  * One certificate: a row of the table, then its numbers on a second line. One grid for both, so the
