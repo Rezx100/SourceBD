@@ -209,17 +209,23 @@ export type VolzaExports = {
   record_sort?: "value" | "date" | null;
 };
 
-/** One shipment in a reveal, as `supplier_shipment_reveal` (0141) returns it: no unit price. */
+/**
+ * One shipment in a reveal, as `supplier_shipment_reveal` (0141) returns it. 0146 adds the buyer's city and
+ * the price a piece, which the database returns only where it passes its check (counted in pieces, a
+ * plausible price and weight a piece); both are absent until 0146 is applied.
+ */
 export type RevealRecord = {
   date: string | null;
   product: string | null;
   hs_code: string | null;
   buyer: string | null;
+  buyer_city?: string | null;
   buyer_country: string | null;
   destination: string | null;
   unit: string | null;
   value_usd: number | null;
   weight_kg: number | null;
+  unit_price_usd?: number | null;
 };
 /** `supplier_shipment_reveal` (0141): the saved latest shipments, cut to 15 or 25 by the database. */
 export type ShipmentReveal = { fetched_at: string; limit: number; records: RevealRecord[] };
@@ -229,26 +235,61 @@ export type ShipmentRevealState =
   | { state: "shown"; reveal: ShipmentReveal }
   | { state: "offer"; shown: number; limit: number | null; used: number };
 
-/** A reveal row as the table prints it (Paper page 34, K4, three columns after the founder's note of 11 Oct). */
-export type RevealRow = { key: string; date: string; product: string; hs: string | null; buyerTo: string | null; value: string | null; weight: string | null };
+/**
+ * A reveal row as the table prints it (Paper page 34, K4, three columns after the founder's note of 11 Oct).
+ * `shipments` is how many records the row stands for; `pieces` is the quantity and price line, null without
+ * a checked price.
+ */
+export type RevealRow = { key: string; date: string; product: string; hs: string | null; buyerTo: string | null; shipments: number; pieces: string | null; value: string | null; weight: string | null };
+
+/** The product without its quantity note: "BOYS WOVEN TROUSER= 124 PACK" is the same line as "Boys woven trouser". */
+const productLine = (raw: string | null) => (raw ?? "").split("=")[0]!.replace(/\s+/g, " ").trim();
 
 /**
  * The reveal's rows: the date, the product as filed in sentence case with its HS code (6109.10), the buyer tidied
- * as on the band ("The Haddad Apparel Group Ltd") with where it went, the value and the gross weight. Never a unit
- * price, and never a quantity: the records carry none (only value over unit price, which is a price).
+ * as on the band ("The Haddad Apparel Group Ltd") with its city and where the goods went, the value and the
+ * gross weight.
+ *
+ * A large exporter files one order as many shipments (Ananta Garments, 12 Oct 2026: 25 records, one day, 4
+ * buyers), so shipments on the same day to the same buyer and country for the same product and HS code are one
+ * row, in the place of the first, with the values and weights added up.
+ *
+ * Quantity and price (founder, 12 Oct 2026): the records carry no quantity, so it is the value over the price a
+ * piece, printed as "About". Only where every shipment in the row has a price the database checked (0146); a
+ * row of several shipments prints their average.
  */
 export function revealRows(records: readonly RevealRecord[]): RevealRow[] {
-  return records.map((r, i) => {
+  const rows = new Map<string, { first: RevealRecord; n: number; value: number | null; weight: number; pcs: number | null }>();
+  for (const [i, r] of records.entries()) {
+    const value = typeof r.value_usd === "number" ? r.value_usd : null;
+    // A shipment with no date or no value stands alone: "the same day" and a total need both.
+    const key = r.date && value !== null ? [r.date, (r.buyer ?? "").replace(/\s+/g, " ").trim(), r.destination, r.hs_code, productLine(r.product)].join("|").toUpperCase() : `#${i}`;
+    const pcs = value !== null && value > 0 && typeof r.unit_price_usd === "number" && r.unit_price_usd > 0 ? value / r.unit_price_usd : null;
+    const weight = typeof r.weight_kg === "number" && r.weight_kg > 0 ? r.weight_kg : 0;
+    const row = rows.get(key);
+    if (!row) rows.set(key, { first: r, n: 1, value, weight, pcs });
+    else {
+      row.n += 1;
+      row.value = row.value! + value!;
+      row.weight += weight;
+      row.pcs = row.pcs !== null && pcs !== null ? row.pcs + pcs : null;
+    }
+  }
+  return [...rows.values()].map(({ first: r, n, value, weight, pcs }, i) => {
     const hs = r.hs_code && /^\d{6,}$/.test(r.hs_code) ? `${r.hs_code.slice(0, 4)}.${r.hs_code.slice(4, 6)}` : null;
-    const buyerTo = [tidyBuyer(r.buyer), place(r.destination)].filter(Boolean).join(" · ") || null;
+    const buyer = [tidyBuyer(r.buyer), place(r.buyer_city?.trim())].filter(Boolean).join(", ");
+    const buyerTo = [buyer, place(r.destination)].filter(Boolean).join(" · ") || null;
+    const count = pcs !== null ? Math.round(pcs) : 0;
     return {
       key: `${i}`,
       date: formatDay(r.date) ?? "Date not filed",
-      product: productWords(r.product) ?? "Garments",
+      product: productWords(n > 1 ? productLine(r.product) : r.product) ?? "Garments",
       hs,
       buyerTo,
-      value: typeof r.value_usd === "number" ? usd(Math.round(r.value_usd)) : null,
-      weight: typeof r.weight_kg === "number" && r.weight_kg > 0 ? `${Math.round(r.weight_kg).toLocaleString("en-GB")} kg` : null,
+      shipments: n,
+      pieces: count > 0 && value !== null ? `About ${count.toLocaleString("en-GB")} pcs at ${usd(value / pcs!, 2)} a piece` : null,
+      value: value !== null ? usd(Math.round(value)) : null,
+      weight: weight > 0 ? `${Math.round(weight).toLocaleString("en-GB")} kg` : null,
     };
   });
 }
@@ -367,6 +408,81 @@ export function brandsInCustoms(brands: readonly string[], v: VolzaExports | nul
   return new Set(brands.filter((b) => CUSTOMS_BRANDS[b] && names.some((n) => CUSTOMS_BRANDS[b]!.test(n))));
 }
 
+// What the trade calls a customs buyer, where one distinctive word settles it. The brands' own
+// patterns come after Inditex's labels, so "INDITEX ZARA LELYSTAD" is Zara and a bare "INDITEX" is Inditex.
+// ponytail: a short hand-kept list; anything not on it falls back to the filed name without its legal
+// ending, and the filed name is always printed small beside it. Add a name when a buyer keeps appearing.
+const TRADE_NAMES: [RegExp, string][] = [
+  [/\bZARA\b/i, "Zara"],
+  [/\bBERSHKA\b/i, "Bershka"],
+  [/\bSTRADIVARIUS\b/i, "Stradivarius"],
+  [/\bMASSIMO\s+DUTTI\b/i, "Massimo Dutti"],
+  [/\bPULL\s*(&|AND)\s*BEAR\b/i, "Pull&Bear"],
+  ...Object.entries(CUSTOMS_BRANDS).map(([label, re]): [RegExp, string] => [re, label]),
+  [/\bPUNTO\s+FA\b/i, "Mango"],
+  [/\bHUGO\s+BOSS\b/i, "Hugo Boss"],
+  [/\bLEVI\s+STRAUSS\b/i, "Levi's"],
+  [/\bWAL-?MART\b/i, "Walmart"],
+  [/\bKIK\s+TEXTIL/i, "KiK"],
+  [/\bLIDL\b/i, "Lidl"],
+  [/\bALDI\b/i, "Aldi"],
+  [/\bTESCO\b/i, "Tesco"],
+  [/\bDECATHLON\b/i, "Decathlon"],
+  [/\bCARREFOUR\b/i, "Carrefour"],
+  [/\bTCHIBO\b/i, "Tchibo"],
+  [/\bUNIQLO\b/i, "Uniqlo"],
+];
+// Words a company's name ends in that nobody says: the legal endings, and what customs adds after them.
+const NAME_TAILS = [...ENDINGS, ["CO"], ["CORPORATION"], ["INCORPORATED"], ["COMPANY"], ["UNIT"], ["BRANCH"]];
+
+/** One buyer of a supplier: the name a reader knows it by, and where we hold it from. */
+export type Buyer = {
+  name: string;
+  /** The brand's own disclosure list names this supplier. */
+  listed: boolean;
+  /** A customs record on file names it as the importer. */
+  customs: boolean;
+  /** The customs record's own name for it, when that is not the name shown. */
+  filed: string | null;
+};
+
+/**
+ * A customs buyer under the name people use (founder, 12 Oct 2026: "Inditex Zara Lelystad Branch Nieu"
+ * set as large as a brand reads as the brand's name). "Zara" from the list above, else the filed name
+ * without its legal ending ("Canadian Tire Corporation Ltd" is "Canadian Tire"). `filed` keeps the
+ * record's own name whenever the two differ, to be printed small: the short name is ours, not customs'.
+ */
+export function knownBuyer(tidy: string): Pick<Buyer, "name" | "filed"> {
+  const words = tidy.split(" ");
+  const up = words.map((w) => w.toUpperCase().replace(/[.,]/g, ""));
+  let n = words.length;
+  // A whole ending at a time ("S A", "Corporation Ltd"), and never the name's last word standing.
+  for (let e; (e = NAME_TAILS.find((t) => t.length < n && t.every((x, j) => up[n - t.length + j] === x))); ) n -= e.length;
+  const name = TRADE_NAMES.find(([re]) => re.test(tidy))?.[1] ?? words.slice(0, n).join(" ");
+  return { name, filed: name.toLowerCase() === tidy.toLowerCase() ? null : tidy };
+}
+
+/**
+ * Who buys from a supplier, as one list: each brand whose own list names it, joined with the customs
+ * buyer that is the same company where the strict patterns above say so, then the customs buyers no
+ * list names. Both sources agreeing comes first. A name is never listed twice.
+ */
+export function buyersOf(brands: readonly string[], v: VolzaExports | null | undefined): Buyer[] {
+  const names = customsBuyerNames(v);
+  const listed: Buyer[] = brands.map((b) => {
+    const re = CUSTOMS_BRANDS[b];
+    const hit = re ? tidyBuyer(names.find((n) => re.test(n))) : null;
+    return { name: b, listed: true, customs: hit !== null, filed: hit && hit.toLowerCase() !== b.toLowerCase() ? hit : null };
+  });
+  const rows = [...listed.filter((r) => r.customs), ...listed.filter((r) => !r.customs)];
+  for (const c of customsBuyers(v)) {
+    if (brands.some((b) => CUSTOMS_BRANDS[b]?.test(c))) continue;
+    const k = knownBuyer(c);
+    if (!rows.some((r) => r.name.toLowerCase() === k.name.toLowerCase())) rows.push({ ...k, listed: false, customs: true });
+  }
+  return rows;
+}
+
 /**
  * A buyer as the customs record files it, tidied (Volza data session, 11 Oct 2026): up to and
  * including the first legal ending, else up to the first number; an all-capitals name in title case,
@@ -389,7 +505,8 @@ export function tidyBuyer(raw: string | null | undefined): string | null {
   }
   const kept = words.slice(0, cut);
   if (/[a-z]/.test(kept.join(" "))) return kept.join(" ");
-  return kept.map((w) => CASED[w] ?? (w.length > 3 ? w[0] + w.slice(1).toLowerCase() : w)).join(" ");
+  // Initials stay as filed: "S.L." is not "S.l.".
+  return kept.map((w) => CASED[w] ?? (w.length > 3 && !/^(\w\.)+$/.test(w) ? w[0] + w.slice(1).toLowerCase() : w)).join(" ");
 }
 
 /** "MEN'S BASIC T SHIRT" is "Men's basic t shirt": a product as filed, in sentence case. */

@@ -95,6 +95,7 @@ function Box({ title, line, action }: { title: string; line: string; action?: Re
 
 function Table({ reveal, level: H }: { reveal: ShipmentReveal; level: "h2" | "h3" }) {
   const rows = revealRows(reveal.records);
+  const count = reveal.records.length;
   const fetched = `Fetched ${formatDay(reveal.fetched_at) ?? "recently"} · shipment records`;
   if (rows.length === 0) {
     return (
@@ -111,7 +112,7 @@ function Table({ reveal, level: H }: { reveal: ShipmentReveal; level: "h2" | "h3
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
         <H id="recent-shipments-title" tabIndex={-1} className="text-md font-semibold text-ink focus:outline-none">
-          Latest {rows.length} {rows.length === 1 ? "shipment" : "shipments"}
+          Latest {count} {count === 1 ? "shipment" : "shipments"}
         </H>
         <p className="text-xs text-ink-3">{fetched}</p>
       </div>
@@ -142,6 +143,11 @@ function Table({ reveal, level: H }: { reveal: ShipmentReveal; level: "h2" | "h3
                     {r.hs ? <span className="ml-2 font-mono text-xs font-normal text-ink-3">{r.hs}</span> : null}
                   </span>
                   {r.buyerTo ? <span className="block text-xs text-ink-2 [overflow-wrap:anywhere]">{r.buyerTo}</span> : null}
+                  {r.shipments > 1 || r.pieces ? (
+                    <span className="block text-xs text-ink-3">
+                      {[r.shipments > 1 ? `${r.shipments} shipments` : null, r.pieces].filter(Boolean).join(" · ")}
+                    </span>
+                  ) : null}
                 </td>
                 <td className="px-3 py-2.5 text-right">
                   <span className="block text-sm font-semibold text-ink">{r.value ?? "Not filed"}</span>
@@ -152,7 +158,10 @@ function Table({ reveal, level: H }: { reveal: ShipmentReveal; level: "h2" | "h3
           </tbody>
         </table>
       </div>
-      <p className="text-xs text-ink-3">Buyer names as on the customs record, often an agent. Weight is gross, as declared.</p>
+      <p className="text-xs text-ink-3">
+        Buyer names as on the customs record, often an agent. Weight is gross, as declared. Shipments on the same day to the same buyer
+        for the same product are one row. Quantity is the value over the price a piece.
+      </p>
     </div>
   );
 }

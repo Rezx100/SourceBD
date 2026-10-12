@@ -14,7 +14,7 @@ import { CertChip, Skeleton, ring } from "@/components/kit";
 import { ABSENT, CONTACT_LIMIT_WORDS, onFileWords } from "@/components/patterns";
 import { certShort } from "@/components/patterns/words";
 import { LinkPending } from "@/components/patterns/link-pending";
-import { brandsInCustoms, customsBuyers, customsWindow, formatDay, formatUsdShort } from "@/lib/dashboard/facts";
+import { buyersOf, customsWindow, formatDay, formatUsdShort } from "@/lib/dashboard/facts";
 import type { SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
 import { ContactDetailsCard } from "./contact-card";
@@ -148,9 +148,10 @@ function Overview({ model, today, tabHref, level }: PanelProps) {
   const looks = lookCards(model, today);
   const facts = keyFacts(model);
   const members = facts.find((f) => f.label === "Memberships")?.values.flatMap((x) => (x.membership ? [x.membership] : [])) ?? [];
-  const brands = model.products.buyerLists;
-  const agreed = brandsInCustoms(brands, v);
-  // The brands' lists have a section of their own here, and the customs buyers are the Exports section's, a scroll away.
+  // Who buys from it, once: the brands whose own lists name it and the importers on its customs records,
+  // the same company joined into one row (founder, 12 Oct 2026: they were two sections, a scroll apart).
+  const buyers = buyersOf(model.products.buyerLists, v);
+  const fromCustoms = buyers.filter((b) => b.customs).length;
   const rows = facts.filter((f) => f.label !== "Memberships" && f.label !== "Brand supplier lists" && f.label !== "Buyers in shipment records");
   const readOf = (code: string | null) => model.sources.find((s) => s.mark.code === code || s.mark.label === code) ?? null;
   return (
@@ -215,8 +216,30 @@ function Overview({ model, today, tabHref, level }: PanelProps) {
           ))}
         </dl>
       </Section>
-      {members.length + brands.length > 0 ? (
-        <Section title="Memberships and brand lists" level={level}>
+      {buyers.length > 0 ? (
+        <Section title="Buyers" count={buyers.length} level={level}>
+          <ul data-phone-buyers="" className="-mt-2 flex flex-col">
+            {buyers.map((b) => {
+              const s = b.listed ? readOf(b.name) : null;
+              // The name people know is the row; the customs record's own name is small beside its source, so the short one is never read as the record's.
+              const customs = b.customs ? `${b.listed ? "customs" : "Customs"} records${b.filed ? ` as ${b.filed}` : ""}` : null;
+              return (
+                <Listed key={b.name} icon={b.listed ? Storefront : Package} title={b.name} href={s?.mark.href ?? null} opens={b.name}>
+                  <span>{[b.listed ? "Supplier list" : null, customs, !b.customs && s?.readDate ? `read ${s.readDate}` : null].filter(Boolean).join(" · ")}</span>
+                </Listed>
+              );
+            })}
+          </ul>
+          {fromCustoms > 0 ? (
+            <p className="pt-2 text-xs text-ink-3">
+              Customs records name the importer: often an agent or a buying house, not the brand.
+              {v && v.buyers !== null && v.buyers > fromCustoms ? ` ${fromCustoms} of ${v.buyers.toLocaleString("en-GB")} shown.` : ""}
+            </p>
+          ) : null}
+        </Section>
+      ) : null}
+      {members.length > 0 ? (
+        <Section title="Memberships" level={level}>
           <ul className="-mt-2 flex flex-col">
             {members.map((m) => {
               const s = readOf(m.mark);
@@ -226,14 +249,6 @@ function Overview({ model, today, tabHref, level }: PanelProps) {
                   {m.number ? <span className="font-mono text-ink-2">{m.number}</span> : null}
                   {s?.readDate && !stale ? <span>{m.number ? "· " : ""}read {s.readDate}</span> : null}
                   {stale ? <Stale>{stale}</Stale> : null}
-                </Listed>
-              );
-            })}
-            {brands.map((b) => {
-              const s = readOf(b);
-              return (
-                <Listed key={b} icon={Storefront} title={b} href={s?.mark.href ?? null} opens={b}>
-                  <span>{[agreed.has(b) ? "Also in shipment records" : "Supplier list", s?.readDate ? `read ${s.readDate}` : null].filter(Boolean).join(" · ")}</span>
                 </Listed>
               );
             })}
@@ -288,7 +303,7 @@ function Stale({ children }: { children: string }) {
   );
 }
 
-/** A membership or a brand's list: its glyph, its name, the number and the read, and the register's own page where the record carries it. */
+/** A membership or a buyer: its glyph, its name, what we hold it from in small words, and the register's own page where the record carries it. */
 function Listed({ icon: G, title, href, opens, children }: { icon: Icon; title: string; href: string | null; opens: string; children: ReactNode }) {
   return (
     <li className="flex items-center gap-3 border-t border-line py-3 first:border-t-0">
@@ -316,7 +331,6 @@ function Exports({ model, today, level }: PanelProps) {
   const v = model.volza;
   const p = model.products;
   const shares = v ? marketShares(v) : [];
-  const buyers = customsBuyers(v);
   const small = v?.small_orders ?? null;
   const lines = (
     <Section first={!v && !noCustoms(model) && !model.shipments} title="What it ships" count={p.lines > 0 ? p.lines : undefined} level={level}>
@@ -404,18 +418,6 @@ function Exports({ model, today, level }: PanelProps) {
               </li>
             ))}
           </ul>
-        </Section>
-      ) : null}
-      {buyers.length > 0 ? (
-        <Section title="Buyers" aside={v.buyers !== null ? <span className="text-sm text-ink-3">{buyers.length} of {v.buyers.toLocaleString("en-GB")} shown</span> : undefined} level={level}>
-          <ul className="-mt-1 flex flex-wrap gap-2">
-            {buyers.map((b) => (
-              <li key={b} className="flex min-h-8 items-center rounded-full bg-subtle px-3 py-1 text-base font-medium text-ink">
-                {b}
-              </li>
-            ))}
-          </ul>
-          <p className="pt-3 text-xs text-ink-3">As named on customs records: often an importer or an agent, not the brand.</p>
         </Section>
       ) : null}
       {lines}

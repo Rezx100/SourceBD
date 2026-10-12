@@ -422,14 +422,22 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     assert.match(used, /All 30 suppliers used this month Resets 1 [A-Z][a-z]+ Compare plans/);
     assert.doesNotMatch(used, /See the latest/);
 
-    // Revealed this month (K4, three columns): the table straight away, newest first, no price, no quantity.
+    // Revealed this month (K4, three columns): the table straight away, newest first. No price and no quantity
+    // for a record the database returned no checked price for (every record, until 0146 is applied).
     const rec = { date: "2026-08-31", product: "MEN'S BASIC T SHIRT (Men's T-Shirt)", hs_code: "61091000", buyer: "Action Service Distributie B V", buyer_country: "Netherlands", destination: "Netherlands", unit: "PCS", value_usd: 109209.096, weight_kg: 14817.6 };
     const shown = await open({ state: "shown", reveal: { fetched_at: "2026-10-11T04:00:00+00:00", limit: 15, records: [rec, { ...rec, date: "2026-08-20", destination: "Not Available", weight_kg: null }] } });
     const t = words(shown);
     assert.match(t, /Latest 2 shipments Fetched 11 Oct 2026 · shipment records/);
     assert.match(t, /Date Shipment Value 31 Aug 2026 31 Aug 2026 Men's basic t shirt \(men's t-shirt\) 6109\.10 Action Service Distributie B V · Netherlands US\$109,209 14,818 kg/);
     assert.match(t, /Action Service Distributie B V US\$109,209 Buyer names as on the customs record/, "an unknown destination is printed, or a missing weight is");
-    assert.doesNotMatch(t, /a piece|per pcs|pieces|Quantity|See the latest|Volza/i);
+    assert.doesNotMatch(t, /About \d|\d shipments ·|per pcs|See the latest|Volza/i);
+    // 0146: a checked price prints the quantity and the price; one order filed as three shipments is one row, in
+    // the heading still three shipments, with the buyer's city beside the buyer.
+    const priced = { ...rec, product: "BOYS WOVEN TROUSER= 124 PACK", hs_code: "62034200", buyer: "H M HENNES MAURITZ URUGUAY S A", buyer_city: "Montevideo", destination: "Uruguay", value_usd: 1137.308, weight_kg: 80.45, unit_price_usd: 4.59 };
+    const merged = words(await open({ state: "shown", reveal: { fetched_at: "2026-10-12T04:00:00+00:00", limit: 25, records: [priced, { ...priced, product: "Boys woven trouser", value_usd: 113.4, weight_kg: 9, unit_price_usd: 4.2 }, { ...priced, destination: "Brazil", buyer_city: "", unit_price_usd: null }] } }));
+    assert.match(merged, /Latest 3 shipments Fetched 12 Oct 2026/);
+    assert.match(merged, /Boys woven trouser 6203\.42 H M Hennes Mauritz Uruguay S A, Montevideo · Uruguay 2 shipments · About 275 pcs at US\$4\.55 a piece US\$1,251 89 kg/);
+    assert.match(merged, /Boys woven trouser= 124 pack 6203\.42 H M Hennes Mauritz Uruguay S A · Brazil US\$1,137 80 kg/, "a row without a checked price printed one, or an empty city was printed");
     // The band's button jumps to the section for a reader who can reveal, and only for them.
     const band = (state: unknown) => {
       const volza = { shipments: 406, fob_usd: 21698439.68, buyers: 43, window_start: "2024-09-01", window_end: "2026-08-31", volza_name: "Hamza Clothing Ltd.", fetched_at: "2026-10-10T21:33:30+00:00", top_shipments: [] };

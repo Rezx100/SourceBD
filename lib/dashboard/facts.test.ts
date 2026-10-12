@@ -3,8 +3,11 @@ import { describe, it } from "node:test";
 
 import {
   brandsInCustoms,
+  buyersOf,
   capacityNote,
   customsBuyers,
+  revealRows,
+  knownBuyer,
   certCheckLine,
   customsBand,
   customsRows,
@@ -469,10 +472,54 @@ describe("customs buyers sit beside the brands' own lists, never in place of the
   it("distinct, tidied buyers from the shipments on file; none for a reader the read refused", () => {
     assert.deepEqual(customsBuyers(v(["THE HADDAD APPAREL GROUP LTD 131 D", "TJX UK", "THE HADDAD APPAREL GROUP LTD 131 D"])), ["The Haddad Apparel Group Ltd", "TJX UK"]);
     assert.deepEqual(customsBuyers(null), []);
+    assert.equal(tidyBuyer("PUNTO FA S.L."), "Punto FA S.L.", "initials are not lower-cased");
   });
   it("a listed brand is marked only when a customs buyer names it, strictly", () => {
     const agreed = brandsInCustoms(["H&M", "NEXT", "Primark"], v(["H & M HENNES & MAURITZ GBC AB", "NEXT LEVEL APPAREL INC", "PENNEYS DUBLIN"]));
     assert.deepEqual([...agreed].sort(), ["H&M", "Primark"], "Next Level Apparel is not NEXT");
     assert.equal(brandsInCustoms(["H&M"], null).size, 0);
+  });
+  it("a customs buyer is shown under the name people use, with the record's own name kept beside it", () => {
+    assert.deepEqual(knownBuyer("Inditex Zara Lelystad Branch Nieu"), { name: "Zara", filed: "Inditex Zara Lelystad Branch Nieu" });
+    assert.deepEqual(knownBuyer("Punto Fa S.L."), { name: "Mango", filed: "Punto Fa S.L." });
+    assert.deepEqual(knownBuyer("Hugo Boss Ticino S A"), { name: "Hugo Boss", filed: "Hugo Boss Ticino S A" });
+    // No trade name on the list: the filed name without the endings nobody says.
+    assert.deepEqual(knownBuyer("Canadian Tire Corporation Ltd"), { name: "Canadian Tire", filed: "Canadian Tire Corporation Ltd" });
+    assert.deepEqual(knownBuyer("White Stuff Ltd"), { name: "White Stuff", filed: "White Stuff Ltd" });
+    assert.deepEqual(knownBuyer("Echo Sourcing"), { name: "Echo Sourcing", filed: null }, "nothing to print small when the name is the record's");
+    assert.deepEqual(knownBuyer("Next Level Apparel Inc"), { name: "Next Level Apparel", filed: "Next Level Apparel Inc" }, "not NEXT");
+    assert.equal(knownBuyer("SA Ltd").name, "SA", "a name is never cut to nothing");
+  });
+  it("one list of buyers: both sources agreeing first, then the brands' lists, then customs alone, no name twice", () => {
+    const rows = buyersOf(["ASOS", "H&M"], v(["H & M HENNES & MAURITZ GBC AB", "INDITEX ZARA LELYSTAD BRANCH NIEU 12", "ZARA HOME ESPANA S A"]));
+    assert.deepEqual(rows, [
+      { name: "H&M", listed: true, customs: true, filed: "H & M Hennes & Mauritz GBC AB" },
+      { name: "ASOS", listed: true, customs: false, filed: null },
+      { name: "Zara", listed: false, customs: true, filed: "Inditex Zara Lelystad Branch Nieu" },
+    ]);
+    assert.deepEqual(buyersOf(["ASOS"], null), [{ name: "ASOS", listed: true, customs: false, filed: null }]);
+    assert.deepEqual(buyersOf([], null), []);
+  });
+});
+
+describe("the reveal's rows: one order is one row, a price only where the database checked it (12 Oct 2026)", () => {
+  const rec = { date: "2026-08-31", product: "BABIES BOYS WOVEN TROUSER", hs_code: "62034200", buyer: "H M HENNES MAURITZ GBC AB", buyer_city: "Stockholm", buyer_country: "", destination: "Netherlands", unit: "PCS", value_usd: 646, weight_kg: 43, unit_price_usd: 3.4 };
+
+  it("adds up the shipments of one order and keeps another day, buyer, country or product apart", () => {
+    const rows = revealRows([rec, { ...rec, destination: "Spain" }, { ...rec, buyer: "h m hennes  mauritz gbc ab", value_usd: 1906, weight_kg: 127 }, { ...rec, date: "2026-08-30" }, { ...rec, product: "Babies girls woven trouser" }]);
+    assert.deepEqual(rows.map((r) => [r.shipments, r.value, r.weight]), [[2, "US$2,552", "170 kg"], [1, "US$646", "43 kg"], [1, "US$646", "43 kg"], [1, "US$646", "43 kg"]]);
+    assert.equal(rows[0]!.buyerTo, "H M Hennes Mauritz GBC AB, Stockholm · Netherlands");
+    assert.equal(rows[0]!.pieces, "About 751 pcs at US$3.40 a piece");
+  });
+
+  it("prints no quantity when any shipment in the row has no checked price, and no city that was not filed", () => {
+    const rows = revealRows([rec, { ...rec, unit_price_usd: null }, { ...rec, date: "2026-08-29", buyer_city: "Not Available", unit_price_usd: undefined, value_usd: null, weight_kg: null }]);
+    assert.deepEqual(rows.map((r) => [r.shipments, r.pieces, r.value, r.weight]), [[2, null, "US$1,292", "86 kg"], [1, null, null, null]]);
+    assert.equal(rows[1]!.buyerTo, "H M Hennes Mauritz GBC AB · Netherlands");
+  });
+
+  it("never merges shipments with no date, no value or another HS code: the same day and a total need all three", () => {
+    const rows = revealRows([{ ...rec, date: null }, { ...rec, date: null }, { ...rec, value_usd: null }, { ...rec, value_usd: null }, rec, { ...rec, hs_code: "62034300" }]);
+    assert.deepEqual(rows.map((r) => [r.shipments, r.date, r.value, r.hs]), [[1, "Date not filed", "US$646", "6203.42"], [1, "Date not filed", "US$646", "6203.42"], [1, "31 Aug 2026", null, "6203.42"], [1, "31 Aug 2026", null, "6203.42"], [1, "31 Aug 2026", "US$646", "6203.42"], [1, "31 Aug 2026", "US$646", "6203.43"]]);
   });
 });
