@@ -14,8 +14,10 @@ import { cn } from "@/lib/utils";
 import type { SiteLine } from "./desktop-words";
 import { SITE_PARAM, useSiteSelection } from "./sites-view";
 
-const WIDE_ROW = "[@container_(min-width:760px)]:flex-row [@container_(min-width:760px)]:items-start [@container_(min-width:760px)]:gap-6";
-const COLS = "grid grid-cols-[36px_96px_minmax(0,1fr)_96px] items-center gap-x-4 [@container_(min-width:760px)]:grid-cols-[36px_132px_minmax(0,1fr)_168px]";
+// The map sits beside the table only from 840px of column: the address then keeps 220px or more. Under
+// that the map is over the table, and the address has the row's whole width.
+const WIDE_ROW = "[@container_(min-width:840px)]:flex-row [@container_(min-width:840px)]:items-start [@container_(min-width:840px)]:gap-5";
+const COLS = "grid grid-cols-[28px_104px_minmax(0,1fr)_112px] items-center gap-x-3";
 const segment = "h-7 px-2.5 text-xs font-medium outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus";
 
 export function DesktopSites({ lines, slug, baseHref, initial = null, mapKey }: { lines: SiteLine[]; slug: string; /** The Sites tab's own link; a row adds `site=N` to it. */ baseHref: string; /** `?site=` as the server read it. */ initial?: number | null; /** The Barikoi key is public and bound to the domain; with none, the table stands alone. */ mapKey: boolean }) {
@@ -25,7 +27,7 @@ export function DesktopSites({ lines, slug, baseHref, initial = null, mapKey }: 
   return (
     <div className={cn("flex flex-col gap-3", WIDE_ROW)}>
       {mapped ? (
-        <div className="flex flex-col gap-2 px-3 [@container_(min-width:760px)]:w-[312px] [@container_(min-width:760px)]:shrink-0 [@container_(min-width:760px)]:pr-0">
+        <div className="flex flex-col gap-2 px-3 [@container_(min-width:840px)]:w-[292px] [@container_(min-width:840px)]:shrink-0 [@container_(min-width:840px)]:pr-0">
           <div className="overflow-clip rounded-[10px] border border-line">
             <MapWidget
               markers={markers}
