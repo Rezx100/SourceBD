@@ -66,19 +66,20 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
     { list: "us_wro", last_read: null },
   ];
 
-  it("draws every section on the one page in tab order, every tab a link, and the three statuses jump to their sections", () => {
+  it("draws the nine sections on the one page in tab order, every tab a link, and the three statuses as one strip that opens Checks", () => {
     // Founder, 12 Oct 2026: one tab's view at a time sent the reader back to the strip for each section.
     const out = plain(phone(model(), { mode: "page" }));
-    assert.deepEqual([...out.matchAll(/data-phone-panel="([a-z]+)"/g)].map((m) => m[1]), TABS.map((t) => t.id));
+    const NINE = ["Overview", "Exports", "Products", "Certificates", "Checks", "Safety", "Sites", "Sources", "Contact"];
+    assert.deepEqual([...out.matchAll(/data-phone-panel="([a-z]+)"/g)].map((m) => m[1]), NINE.map((l) => l.toLowerCase()));
     assert.doesNotMatch(out, /data-phone-panel="[a-z]+"[^>]* hidden=""/, "a section is hidden until its tab is tapped");
     // Each lands under the bar, the short statuses and the strip (56 + 42 + 48, less the 12px gap over it), and the foot marks the last tab.
-    assert.equal((out.match(/data-phone-panel="[a-z]+" class="[^"]*scroll-mt-\[134px\]/g) ?? []).length, TABS.length);
+    assert.equal((out.match(/data-phone-panel="[a-z]+" class="[^"]*scroll-mt-\[134px\]/g) ?? []).length, NINE.length);
     // What parts two sections is a gap of the page's ground between hairlines, not a solid grey bar (founder, 12 Oct 2026).
     const panels = /<div data-phone-panels="" class="([^"]*)"/.exec(out)![1]!.replace(/&gt;/g, ">");
     for (const c of ["[&>*+*]:before:h-3", "[&>*+*]:before:border-y", "[&>*+*]:before:border-line", "[&>*+*]:before:bg-subtle"]) assert.ok(panels.split(" ").includes(c), `the divider lacks ${c}`);
     assert.doesNotMatch(panels, /border-t-8|border-sunken/);
-    // Contact is the last card of the scroll, after Products, and no longer part of the Overview (founder, 12 Oct 2026).
-    assert.match(out, /data-phone-panel="products"[\s\S]*<section aria-label="Contact" data-phone-contact=""[\s\S]*<\/section><\/div><div data-phone-end=""/);
+    // Contact is the last section, with a tab of its own, and no part of the Overview (founder, 12 and 13 Oct 2026).
+    assert.match(out, /aria-label="Contact" data-phone-panel="contact"[^>]*><section data-phone-contact=""[\s\S]*<\/section><\/div><\/div><div data-phone-end=""/);
     assert.doesNotMatch(/data-phone-panel="overview"[\s\S]*?data-phone-panel="exports"/.exec(out)![0], />Contact</);
     assert.match(out, /<div data-phone-end="" aria-hidden="true"><\/div><\/div>$/);
     const tabsSrc = readFileSync(path.join(dir, "phone-tabs.tsx"), "utf8");
@@ -89,14 +90,30 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
     assert.doesNotMatch(tabsSrc, /scrollend|setTimeout/);
     assert.match(tabsSrc, /scrollY\) === 0\) panel\(initial\)\?\.scrollIntoView/);
     const strip = /<nav aria-label="Record sections"[^>]*>([\s\S]*?)<\/nav>/.exec(out)![1]!;
-    assert.equal((strip.match(/<a /g) ?? []).length, TABS.length);
+    // Paper page 35, 13 Oct 2026: the desktop's nine, in its order. Checks and Contact ride on a neighbour's `?tab=`.
+    assert.deepEqual([...strip.matchAll(/<a [^>]*>([\s\S]*?)<\/a>/g)].map((m) => text(m[1]!).trim().replace(/ · \d+$/, "")), NINE);
+    assert.equal((strip.match(/tab=certificates"/g) ?? []).length, 2);
     assert.match(strip, /aria-current="page"[^>]*>Overview/);
     assert.match(strip, /href="\/app\/discover\?q=knit&record=x&tab=sources"/);
-    // The statuses: a row each, pressed state and all, to Safety, Certificates and Sources.
-    const summary = /<ul aria-label="Summary"[^>]*>([\s\S]*?)<\/ul>/.exec(out)![1]!;
-    assert.deepEqual([...summary.matchAll(/href="[^"]*?(?:&tab=([a-z]+))?"/g)].map((m) => m[1]), ["safety", "certificates", "sources"]);
-    assert.equal((summary.match(/active:bg-sunken/g) ?? []).length, 3);
-    assert.match(text(summary), /Safety .* Certificates .* Sanctions Not listed/);
+    // The statuses: one short strip under the name from the start, a single link to Checks with a 44px target; the three rows are gone.
+    assert.doesNotMatch(out, /<ul aria-label="Summary"/);
+    const summary = /<a ([^>]*)><span data-phone-summary=""/.exec(out)![1]!;
+    assert.match(summary, /aria-label="Checks: [^"]*, Not listed"/);
+    assert.ok(summary.includes("before:-inset-y-[7px]") && summary.includes("tab=certificates"), "the strip is not a 44px link to Checks");
+    assert.equal((out.match(/data-phone-summary=""/g) ?? []).length, 1);
+    // Checks holds what "Needs a look" and the rows said: Safety, Certificates and Sanctions, once each, each a link with a pressed state.
+    assert.doesNotMatch(out, /Needs a look/);
+    const checks = /<ul data-phone-checks=""[^>]*>([\s\S]*?)<\/ul>/.exec(out)![1]!;
+    assert.doesNotMatch(checks, /worst/i);
+    assert.equal((checks.match(/<li /g) ?? []).length, checkRows(model(), TODAY).rows.length);
+    assert.equal((checks.match(/active:bg-sunken/g) ?? []).length, (checks.match(/<a /g) ?? []).length);
+    assert.match(text(checks), /Sanctions Not listed/);
+    // A sanctioned record: the matches are in the Sanctions row, which leads; the evidence is not drawn a second time.
+    const listed = phone(model(sanctionedInput()), { mode: "page" });
+    const row = /<ul data-phone-checks=""[^>]*><li [^>]*>([\s\S]*?)<\/li>/.exec(listed)![1]!;
+    assert.match(text(row), /Sanctions On the .* The record stays readable for due diligence\./);
+    assert.doesNotMatch(listed, /Sanctions matches/);
+    assert.match(listed, /aria-label="Checks: Sanctioned, /);
   });
 
   it("does not build the map, or repeat the desktop's anchors, until Sites is the tab shown", () => {
@@ -559,7 +576,7 @@ describe("the view's rules", () => {
 
     it("a phone draws them in its Contact section, the last of the scroll, under the section's one heading", () => {
       const out = phone(unlocked(), { mode: "page" });
-      const section = /<section aria-label="Contact" data-phone-contact=""[\s\S]*?<\/section><\/section>/.exec(out)?.[0] ?? "";
+      const section = /<section data-phone-contact=""[\s\S]*?<\/section><\/section>/.exec(out)?.[0] ?? "";
       assert.match(section, /<div data-contact-details="" class="[^"]*rounded-\[10px\]/, "the details are not in the phone's Contact section");
       assert.equal(text(section).trim(), "Contact Contact person Md. Karim Uddin Managing Director Emails sales@aboni.example md@aboni.example Phone numbers +880 1754392350 02-9876543 Website www.aboni.example/contact");
       assert.match(section, /<a href="tel:\+8801754392350"/);
@@ -635,7 +652,7 @@ describe("the view's rules", () => {
       // A count that could not be read still says why the card is locked.
       const unread = text(contactSection(view({ ...sheet, contact: { ...sheet.contact, counts: null } }, { mode: "page" }))).trim();
       assert.equal(unread, `Contact Contact details are locked Send an RFQ and the supplier replies in Messages. ${LIMIT}`);
-      const section = /<section aria-label="Contact" data-phone-contact=""[\s\S]*?<\/section><\/section>/.exec(phone(sheet, { mode: "page" }))?.[0] ?? "";
+      const section = /<section data-phone-contact=""[\s\S]*?<\/section><\/section>/.exec(phone(sheet, { mode: "page" }))?.[0] ?? "";
       assert.equal(text(section).trim(), `Contact ${ON_FILE} Locked. Send an RFQ and the supplier replies in Messages. ${LIMIT}`);
       // Nobody else is told about a limit: not a reader with no details, not one who sees them.
       for (const other of [unlocked(aboniInput(), null), unlocked()]) assert.doesNotMatch(text(both(other, { mode: "page" })), /today's limit/);

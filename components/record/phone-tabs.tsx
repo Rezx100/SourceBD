@@ -13,24 +13,27 @@ import { flushSync } from "react-dom";
 import { TabLink } from "@/components/kit";
 import { cn } from "@/lib/utils";
 import { scroller } from "./section-tabs";
-import { TABS, sectionInView, type TabId } from "./words";
+import { SECTIONS, type SectionId } from "./desktop-words";
+import { sectionInView } from "./words";
 
-type Go = (e: MouseEvent<HTMLAnchorElement>, tab: TabId, href: string) => void;
+type Go = (e: MouseEvent<HTMLAnchorElement>, tab: SectionId, href: string) => void;
 /** `built`: every section is drawn, the ones that wait for the reader included (a jump must not land short of a section that grows on the way). */
-const Tabs = createContext<{ active: TabId; built: boolean; go: Go } | null>(null);
+const Tabs = createContext<{ active: SectionId; built: boolean; go: Go } | null>(null);
 
-const ORDER = TABS.map((t) => t.id);
+// The nine sections the desktop record has, in its order (Paper page 35, 13 Oct 2026). Checks and Contact ride
+// on a neighbour's `?tab=`, as they do there: the address knows the seven tabs it always did.
+const ORDER = SECTIONS.map((t) => t.id);
 const reduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-export function PhoneTabs({ initial, className, children }: { initial: TabId; className?: string; children: ReactNode }) {
-  const [active, setActive] = useState<TabId>(initial);
+export function PhoneTabs({ initial, className, children }: { initial: SectionId; className?: string; children: ReactNode }) {
+  const [active, setActive] = useState<SectionId>(initial);
   const [built, setBuilt] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   // A tapped tab stays marked until the reader moves the page themselves: a short section near the foot
   // cannot reach the band under the strip, and the spy would hand its mark to a neighbour once the jump ended.
   const clicking = useRef(false);
   const release = useRef<(() => void) | null>(null);
-  const panel = (id: TabId) => root.current?.querySelector<HTMLElement>(`[data-phone-panel="${id}"]`) ?? null;
+  const panel = (id: SectionId) => root.current?.querySelector<HTMLElement>(`[data-phone-panel="${id}"]`) ?? null;
 
   // The marked tab is the first section crossing the band under the stuck strip; at the foot, the last.
   useEffect(() => {
@@ -38,7 +41,7 @@ export function PhoneTabs({ initial, className, children }: { initial: TabId; cl
     const strip = box?.querySelector<HTMLElement>("[data-phone-tabs]");
     if (!box || !strip) return;
     const within = scroller(box);
-    const inBand = new Set<TabId>();
+    const inBand = new Set<SectionId>();
     let atEnd = false;
     const pick = () => {
       if (!clicking.current) setActive((prev) => sectionInView(ORDER, inBand, atEnd, prev));
@@ -48,7 +51,7 @@ export function PhoneTabs({ initial, className, children }: { initial: TabId; cl
     const spy = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
-          const id = (e.target as HTMLElement).dataset.phonePanel as TabId;
+          const id = (e.target as HTMLElement).dataset.phonePanel as SectionId;
           if (e.isIntersecting) inBand.add(id);
           else inBand.delete(id);
         }
@@ -114,7 +117,7 @@ export function PhoneTabs({ initial, className, children }: { initial: TabId; cl
   );
 }
 
-export type PhoneTab = { id: TabId; label: string; href: string; count?: number };
+export type PhoneTab = { id: SectionId; label: string; href: string; count?: number };
 
 export function PhoneTabStrip({ tabs, className }: { tabs: PhoneTab[]; className?: string }) {
   const ctx = useContext(Tabs);
@@ -153,8 +156,8 @@ export function PhoneTabStrip({ tabs, className }: { tabs: PhoneTab[]; className
   );
 }
 
-/** A link to one of the record's sections from inside the record: a status row, a card under Needs a look, "All exports". */
-export function PhoneTabLink({ tab, href, className, children, ...rest }: { tab: TabId; href: string; className?: string; children: ReactNode; "aria-label"?: string }) {
+/** A link to one of the record's sections from inside the record: the status strip, a row under Checks, "All exports". */
+export function PhoneTabLink({ tab, href, className, children, ...rest }: { tab: SectionId; href: string; className?: string; children: ReactNode; "aria-label"?: string }) {
   const ctx = useContext(Tabs);
   return (
     <Link href={href} scroll={false} className={className} onClick={(e) => ctx?.go(e, tab, href)} {...rest}>
@@ -168,7 +171,7 @@ export function PhoneTabLink({ tab, href, className, children, ...rest }: { tab:
  * (the map), a tab is tapped, or the address names it or a section after it (it would grow above the
  * reader). Hidden from 640 with the rest of the phone's record, it never is.
  */
-export function PhonePanel({ id, label, lazy = false, className, children }: { id: TabId; label: string; lazy?: boolean; className?: string; children: ReactNode }) {
+export function PhonePanel({ id, label, lazy = false, className, children }: { id: SectionId; label: string; lazy?: boolean; className?: string; children: ReactNode }) {
   const ctx = useContext(Tabs);
   const ref = useRef<HTMLDivElement>(null);
   const [near, setNear] = useState(!lazy || !ctx || ORDER.indexOf(ctx.active) >= ORDER.indexOf(id));
@@ -190,7 +193,7 @@ export function PhonePanel({ id, label, lazy = false, className, children }: { i
 /**
  * The bar with Share and Close, stuck to the top. The name's first line shares its row; `data-stuck`
  * once the name has scrolled out of it (the bar then has a ground and says the name in one line), and
- * `data-past` once the three status rows have gone under it (it then says them in short).
+ * `data-past` once the head's status strip has gone under it (it then carries the strip itself).
  */
 export function PhoneBar({ className, children }: { className?: string; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
