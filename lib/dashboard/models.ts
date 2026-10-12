@@ -134,6 +134,10 @@ export type TableRowModel = {
   rfqHref?: string | null;
   /** As `SupplierCardModel.recordHref`. */
   recordHref?: string | null;
+  /** The product names it filed, contact details stripped as the record strips them; the results row shows the two that answer the search. */
+  products?: string[];
+  /** The brands whose own supplier lists name it ("H&M", "NEXT"), for the results row. */
+  brands?: string[];
 };
 
 export type FactRow = {

@@ -79,7 +79,7 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
 
 - **Home page film (6 Oct)** — v2 BUILT 9 Oct (`feature-specs/spec-home-film.md` §"v2"); behind `?film=1` since 10 Oct.
 - **Home page, Mercury direction (10 Oct)** — `/` is the Paper page 32; BUILT on `development` (PRs #421–#424), live once Deploy Production is approved; `.impeccable/handoff-home-mercury-build.md`.
-- **Desktop supplier record and search results, Paper page 37 (13 Oct)** — IN PROGRESS, `feature-specs/spec-desktop-record-page-37.md`. Slice a (the record, page and pane) on `desktop-record-a`; then b (results), c (rank, 0147).
+- **Desktop supplier record and search results, Paper page 37 (13 Oct)** — IN PROGRESS, `feature-specs/spec-desktop-record-page-37.md`. Slice a (the record) merged, PR #488; b (results table and list rows) on `desktop-record-b`; c (rank and the results export cells, 0147) next.
 
 ## Founder rules still in force (one line each; detail in archive)
 - EPB is a government register: show its evidence and HS codes whenever EPB has them, flagged or not. Never mint EPB-only suppliers. (15 Aug)

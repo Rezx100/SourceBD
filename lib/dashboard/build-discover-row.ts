@@ -17,6 +17,7 @@ import {
   sortCerts,
   type CertModel,
 } from "@/lib/dashboard/facts";
+import { productEntries } from "@/lib/dashboard/build-models";
 import { photoTiles } from "@/lib/dashboard/hs-photos";
 import { marksFromTags, topTier } from "@/lib/dashboard/source-tiers";
 
@@ -342,6 +343,9 @@ export function buildDiscoverTableRow(
     saved: Boolean(opts.saved),
     supplierId: row.id,
     rfqHref: card.rfqHref,
+    // Registers file websites and phone numbers as products; the row strips them as the record does.
+    products: productEntries(row.principal_products),
+    brands: (row.brand_codes ?? []).flatMap((code) => BRAND_LABEL[code] ?? []),
   };
 }
 

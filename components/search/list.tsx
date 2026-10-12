@@ -278,12 +278,12 @@ export function ResultsSkeleton({ title }: { title?: string }) {
       </div>
       {/* The table's head and its rows are the desktop's; a phone waits on the shape of its own list. */}
       <div className="mx-6 flex h-row-head items-center border-b border-line bg-subtle px-3 text-xs font-medium text-ink-3 max-md:hidden">
-        <span className="w-[360px] pl-10">Supplier</span>
-        <span className="w-[120px]">Type</span>
-        <span className="w-[140px]">Location</span>
-        <span className="w-[110px] text-right">Workers</span>
-        <span className="w-[90px] text-right">Sources</span>
-        <span className="flex-1 pl-6">Certificates</span>
+        <span className="min-w-0 flex-1 pl-10">Supplier</span>
+        <span className="w-[130px]">Location</span>
+        <span className="w-24 pr-3 text-right">Workers</span>
+        <span className="w-[150px] pl-3">On the supplier list of</span>
+        <span className="w-[250px] pl-3">Exported in 2 years · ships to</span>
+        <span className="w-[150px] pl-3">Certificates</span>
       </div>
       <div className="md:hidden" aria-hidden>
         {widths.map((w, i) => (
@@ -296,7 +296,7 @@ export function ResultsSkeleton({ title }: { title?: string }) {
       </div>
       <div className="mx-6 max-md:hidden" aria-hidden>
         {widths.map((w, i) => (
-          <div key={i} className="flex h-row items-center gap-6 border-b border-line pl-[52px] pr-3">
+          <div key={i} className="flex h-16 items-center gap-6 border-b border-line pl-[52px] pr-3">
             <Skeleton className="h-3 shrink-0" style={{ width: w }} />
             <Skeleton className="h-3 w-[70px] shrink-0" />
             <Skeleton className="h-3 shrink-0" style={{ width: 80 + (i % 3) * 15 }} />

@@ -82,31 +82,36 @@ describe("one certificate component", () => {
     assert.doesNotMatch(read("patterns", "certificate.tsx"), /rounded-full|rounded-sm px/);
   });
 
-  it("results, the pane list, the phone list and Saved all call CertSummaryCell; CertProblem is gone", () => {
-    for (const f of [["search", "table.tsx"], ["search", "pane-rows.tsx"], ["saved", "table.tsx"]] as const) {
+  it("Saved calls CertSummaryCell; the desktop results draw the marks held today and nothing else; CertProblem is gone", () => {
+    assert.match(read("saved", "table.tsx"), /CertSummaryCell/);
+    // Paper page 37 (founder, 12 Oct 2026): in the results a certificate's time left is the record's business,
+    // so the table and the list beside a pane draw marks only, with no state to light up and nothing to reveal.
+    for (const f of [["search", "table.tsx"], ["search", "pane-rows.tsx"]] as const) {
       const src = read(...f);
-      assert.match(src, /CertSummaryCell/, f.join("/"));
-      assert.doesNotMatch(src, /CertProblem/, f.join("/"));
+      assert.match(src, /<HeldMarks held=\{r\.held\}/, f.join("/"));
+      assert.doesNotMatch(src, /CertSummaryCell/, f.join("/"));
     }
+    for (const f of [["search", "table.tsx"], ["search", "pane-rows.tsx"], ["saved", "table.tsx"]] as const) assert.doesNotMatch(read(...f), /CertProblem/, f.join("/"));
     assert.doesNotMatch(read("patterns", "index.ts"), /CertProblem/);
     assert.doesNotMatch(read("patterns", "certificate.tsx"), /export function CertProblem/);
   });
 });
 
-describe("Saved is the same table as the results", () => {
+// Saved was the results' table, column for column, until the results were redrawn from Paper page 37
+// (12 Oct 2026). That job is the search results only: Saved keeps the ledger it had.
+describe("Saved keeps its ledger; the results are Paper page 37's table", () => {
   const widths = (src: string) => [...src.matchAll(/<Th([^>]*)>\s*([^<]+?)\s*</g)].map((m) => [m[2]!.trim(), /className="([^"]*)"/.exec(m[1]!)?.[1]?.split(" ").find((c) => /^w-/.test(c)) ?? null]);
-  it("copies the results' columns and widths exactly, and heads the certificate column 'Certificates'", () => {
-    // The exports view's head (`{exportsHead}`) stands in for Sources and has no counterpart in Saved.
+  it("Saved's columns and widths are unchanged, and both head the certificate column 'Certificates'", () => {
+    // The exports view's head (`{exportsHead}`) stands in for the exports column's own.
     const results = widths(read("search", "table.tsx")).filter(([h]) => !h!.startsWith("{"));
     const saved = widths(read("saved", "table.tsx"));
     assert.deepEqual(
       results.map(([h]) => h),
-      ["Supplier", "Type", "Location", "Workers", "Sources", "Certificates"],
+      ["Supplier", "Location", "Workers", "On the supplier list of", "Exported in 2 years · ships to", "Certificates"],
     );
-    assert.deepEqual(saved.slice(0, results.length), results, "Saved's first six columns are the results' six, width for width");
-    assert.deepEqual(saved.map(([h]) => h), ["Supplier", "Type", "Location", "Workers", "Sources", "Certificates", "Saved on"]);
-    // Workers is 110: at 100 "Not published" wrapped and the rows alternated 40 and 57px.
-    assert.equal(results.find(([h]) => h === "Workers")![1], "w-[110px]");
+    assert.deepEqual(saved, [["Supplier", "w-80"], ["Type", "w-[120px]"], ["Location", "w-[140px]"], ["Workers", "w-[110px]"], ["Sources", "w-[90px]"], ["Certificates", null], ["Saved on", saved.at(-1)![1]]]);
+    // Workers is 110 in Saved: at 100 "Not published" wrapped and the rows alternated 40 and 57px.
+    assert.equal(saved.find(([h]) => h === "Workers")![1], "w-[110px]");
   });
 
   it("results rows end in the ⋯ menu Saved's rows have, with the same three actions", () => {
