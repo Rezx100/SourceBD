@@ -1,6 +1,6 @@
-// The supplier record on a phone (Paper page 35, the supplier drawer, 15 boards): Share and Close in a
-// bar that sticks with the name beside them, the three statuses as rows that jump to their section,
-// the tabs, and every section under them on the one page (founder, 12 Oct 2026: the sections reveal
+// The supplier record on a phone (Paper page 35, the supplier drawer): Share and Close in a
+// bar that sticks with the name beside them, the three statuses as one short strip that opens Checks,
+// the nine tabs, and every section under them on the one page (founder, 12 Oct 2026: the sections reveal
 // as the reader scrolls). Drawn beside the desktop record and hidden from 640, so the desktop is untouched.
 // It says only what the record's model holds: the boards' placeholder figures (a yearly change, a
 // month-by-month chart, a buyer's share, a line's share) are not drawn, and customs figures are per
@@ -18,12 +18,13 @@ import { buyersOf, customsWindow, formatDay, formatUsdShort } from "@/lib/dashbo
 import type { SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
 import { ContactDetailsCard } from "./contact-card";
-import { ProductsPanel, RecordRfqs, SanctionEvidence, SitesPanel, sourceGroups, type Level } from "./panels";
+import { SECTIONS, checkRows, headStatuses, sectionCount, type CheckRow, type SectionId } from "./desktop-words";
+import { ProductsPanel, RecordRfqs, SitesPanel, sourceGroups, type Level } from "./panels";
 import { PhoneBar, PhonePanel, PhoneTabLink, PhoneTabStrip, PhoneTabs } from "./phone-tabs";
-import { NO_CUSTOMS, UFLPA_LABEL, certGroups, customsTiles, lookCards, marketShares, noCustoms, phoneStatus, recordsEnd, rscBehind, rscCards, sanctionListRows, shortDay, uflpaLine, type CertGroup, type LookCard, type RscCard, type StatusRow } from "./phone-words";
+import { NO_CUSTOMS, UFLPA_LABEL, certGroups, customsTiles, marketShares, noCustoms, recordsEnd, rscBehind, rscCards, sanctionListRows, shortDay, uflpaLine, type CertGroup, type RscCard, type StatusRow } from "./phone-words";
 import { ShareButton } from "./share-button";
 import { ShipmentRevealSection } from "./shipment-reveal";
-import { TABS, keyFacts, staleWords, tabCount, type TabId } from "./words";
+import { keyFacts, staleWords, type TabId } from "./words";
 
 const NUM = "[font-variant-numeric:tabular-nums]";
 const TITLE = "text-lg font-medium tracking-tight text-ink";
@@ -34,7 +35,6 @@ const ROUND = cn("relative flex size-9 shrink-0 items-center justify-center roun
 const PILL = cn("relative inline-flex h-9 items-center gap-1.5 rounded-full bg-sunken pl-2.5 pr-3 text-sm font-medium text-ink before:absolute before:inset-x-0 before:-inset-y-1 active:bg-line", ring);
 
 const STATUS_ICON: Record<StatusRow["key"], Icon> = { safety: HardHat, certificates: Hourglass, sanctions: ShieldCheck };
-const STATUS_TAB: Record<StatusRow["key"], TabId> = { safety: "safety", certificates: "certificates", sanctions: "sources" };
 const toneText = (t: StatusRow["tone"], plain = "text-ink") => (t === "caution" ? "text-caution" : t === "sanction" ? "text-sanction" : plain);
 const toneIcon = (t: StatusRow["tone"], plain = "text-ink-2") => (t === "caution" ? "text-caution-icon" : t === "sanction" ? "text-sanction" : plain);
 
@@ -84,43 +84,6 @@ function Bar({ pct, tone, className }: { pct: number; tone: string; className?: 
 
 /* ---------------------------------------------------------------- overview */
 
-const LOOK_ICON: Record<LookCard["kind"], Icon> = { safety: HardHat, certificate: Hourglass, sanctions: Clock };
-
-function Look({ card, href }: { card: LookCard; href: string }) {
-  const G = LOOK_ICON[card.kind];
-  return (
-    <li className="border-t border-line first:border-t-0">
-      <PhoneTabLink tab={card.tab} href={href} className={cn("flex flex-col gap-2.5 p-4 active:bg-sunken", ring)}>
-        <span className="flex items-center justify-between gap-3">
-          <span className="flex items-center gap-1.5 text-xs font-medium text-caution">
-            <G size={16} weight="thin" className="shrink-0 text-caution-icon" aria-hidden />
-            {card.tag}
-          </span>
-          <CaretRight size={16} weight="thin" className="shrink-0 text-ink-3" aria-hidden />
-        </span>
-        <span className="text-md/[22px] font-medium text-ink">{card.title}</span>
-        {card.progress ? (
-          <span className="flex flex-col gap-1.5">
-            <span className="flex justify-between gap-3 text-sm">
-              <span className="text-ink-2">{card.progress.label}</span>
-              <span className={cn("font-medium text-ink", NUM)}>{card.progress.pct}%</span>
-            </span>
-            <Bar pct={card.progress.pct} tone="bg-caution-icon" />
-          </span>
-        ) : null}
-        {card.figure ? (
-          <span className="flex items-baseline gap-1.5">
-            <span className={cn("text-xl/[28px] font-medium tracking-tighter text-caution", NUM)}>{card.figure.n}</span>
-            <span className="text-sm text-ink-2">{card.figure.words}</span>
-          </span>
-        ) : null}
-        {card.body ? <span className="text-sm text-ink-2">{card.body}</span> : null}
-        {card.foot ? <span className={cn("text-xs", card.footCaution ? "font-medium text-caution" : "text-ink-3")}>{card.foot}</span> : null}
-      </PhoneTabLink>
-    </li>
-  );
-}
-
 /** The customs footnotes: the window and the read, and how far behind the records are. */
 function CustomsFoot({ model, today, className }: { model: SupplierSheetModel; today: Date; className?: string }) {
   const v = model.volza;
@@ -142,10 +105,9 @@ function CustomsFoot({ model, today, className }: { model: SupplierSheetModel; t
   );
 }
 
-function Overview({ model, today, tabHref, level }: PanelProps) {
+function Overview({ model, today, sectionHref, level }: PanelProps) {
   const v = model.volza;
   const tiles = v ? customsTiles(v, today) : [];
-  const looks = lookCards(model, today);
   const facts = keyFacts(model);
   const members = facts.find((f) => f.label === "Memberships")?.values.flatMap((x) => (x.membership ? [x.membership] : [])) ?? [];
   // Who buys from it, once: the brands whose own lists name it and the importers on its customs records,
@@ -156,18 +118,13 @@ function Overview({ model, today, tabHref, level }: PanelProps) {
   const readOf = (code: string | null) => model.sources.find((s) => s.mark.code === code || s.mark.label === code) ?? null;
   return (
     <div className="flex flex-col pb-8">
-      {model.sanctioned ? (
-        <div className="px-5 pt-6">
-          <SanctionEvidence model={model} level={level} anchor={false} />
-        </div>
-      ) : null}
       {tiles.length > 0 ? (
         <Section
           first
           title="Exports"
           level={level}
           aside={
-            <PhoneTabLink tab="exports" href={tabHref("exports")} className={cn("-my-3 flex h-11 items-center gap-0.5 rounded-sm text-base/[18px] font-medium text-ink-2 active:bg-sunken", ring)}>
+            <PhoneTabLink tab="exports" href={sectionHref("exports")} className={cn("-my-3 flex h-11 items-center gap-0.5 rounded-sm text-base/[18px] font-medium text-ink-2 active:bg-sunken", ring)}>
               All exports
               <CaretRight size={16} weight="thin" className="shrink-0" aria-hidden />
             </PhoneTabLink>
@@ -187,16 +144,7 @@ function Overview({ model, today, tabHref, level }: PanelProps) {
           <CustomsFoot model={model} today={today} className="pt-3" />
         </Section>
       ) : null}
-      {looks.length > 0 ? (
-        <Section first={tiles.length === 0} title="Needs a look" count={looks.length} aside={<span className="text-sm text-ink-3">Worst first</span>} level={level}>
-          <ul className={CARD}>
-            {looks.map((c) => (
-              <Look key={c.key} card={c} href={tabHref(c.tab)} />
-            ))}
-          </ul>
-        </Section>
-      ) : null}
-      <Section first={tiles.length === 0 && looks.length === 0} title="Key facts" level={level}>
+      <Section first={tiles.length === 0} title="Key facts" level={level}>
         <dl className="-mt-1 flex flex-col">
           {rows.map((f) => (
             <div key={f.label} className="flex flex-col gap-0.5 border-t border-line py-2.5 first:border-t-0">
@@ -265,7 +213,7 @@ function Overview({ model, today, tabHref, level }: PanelProps) {
 }
 
 /**
- * Contact, the last card of the record's scroll (founder, 12 Oct 2026): a buyer reads what the registers
+ * Contact, the last section of the record and a tab of its own (founder, 12 and 13 Oct 2026): a buyer reads what the registers
  * hold, then how to reach the supplier. Locked, it says how many details are on file, never a value;
  * when the database returned the details (0145: an admin, or a Growth or Enterprise buyer) they are drawn.
  */
@@ -273,7 +221,7 @@ export function PhoneContact({ model, level }: { model: SupplierSheetModel; leve
   const counts = model.contact.counts;
   const onFile = counts ? onFileWords(counts.emails, counts.phones, counts.website, counts.representatives) : null;
   return (
-    <section aria-label="Contact" data-phone-contact="" className="flex flex-col pb-8">
+    <section data-phone-contact="" className="flex flex-col pb-8">
       <Section first title="Contact" level={level}>
         {model.contact.details ? (
           <ContactDetailsCard details={model.contact.details} className="rounded-[10px]" />
@@ -320,6 +268,85 @@ function Listed({ icon: G, title, href, opens, children }: { icon: Icon; title: 
         </a>
       ) : null}
     </li>
+  );
+}
+
+/* ------------------------------------------------------------------ checks */
+
+const CHECK_ICON: Record<CheckRow["kind"], Icon> = { safety: HardHat, certificates: Hourglass, sanctions: ShieldCheck };
+// The shared helpers say "Worst"; the phone's boards say the fact (founder, 13 Oct 2026). A quiet row has no
+// building behind, so the one it leads with is the least fixed.
+const furthest = (s: string | null) => s?.replace(/^Worst: /, "Furthest behind: ").replace(/^Worst of /, "Least fixed of ") ?? null;
+
+function CheckBody({ c, children }: { c: CheckRow; children?: ReactNode }) {
+  const G = c.tone === "sanction" ? WarningOctagon : c.kind === "sanctions" && !c.quiet ? Clock : CHECK_ICON[c.kind];
+  const body = furthest(c.body);
+  return (
+    <>
+      <span className="flex items-center justify-between gap-3">
+        <span className={cn("flex items-center gap-1.5 text-xs font-medium", toneText(c.tone, "text-ink-3"))}>
+          <G size={16} weight={c.tone === "sanction" ? "fill" : "thin"} className={cn("shrink-0", toneIcon(c.tone, "text-ink-3"))} aria-hidden />
+          {c.tag}
+        </span>
+        {children ? null : <CaretRight size={16} weight="thin" className="shrink-0 text-ink-3" aria-hidden />}
+      </span>
+      <span className={cn("text-md/[22px]", c.quiet ? "" : "font-medium", c.tone === "sanction" ? "text-sanction" : "text-ink")}>{c.title}</span>
+      {c.figure && "pct" in c.figure ? (
+        <span className="flex items-center gap-2.5">
+          <Bar pct={c.figure.pct} tone={c.quiet ? "bg-ink-2" : "bg-caution-icon"} className="min-w-0 flex-1" />
+          <span className={cn("shrink-0 text-sm font-medium text-ink", NUM)}>{c.figure.pct}% fixed</span>
+        </span>
+      ) : null}
+      {body ? <span className="text-sm text-ink-2">{body}</span> : null}
+      {children}
+      {c.foot ? <span className={cn("text-xs", c.footCaution ? "font-medium text-caution" : "text-ink-3")}>{c.foot}</span> : null}
+    </>
+  );
+}
+
+/**
+ * Checks: Safety, Certificates and Sanctions in one card, each said once. A full row where it needs a
+ * look, a quiet one where it does not; on a sanctioned record the matches are in the Sanctions row.
+ */
+function Checks({ model, today, sectionHref, level }: PanelProps) {
+  const { rows, looks } = checkRows(model, today);
+  const row = "flex flex-col gap-1.5 px-4 py-3";
+  return (
+    <div className="flex flex-col pb-8">
+      <Section first title="Checks" aside={looks > 0 ? <span className="shrink-0 text-sm font-medium text-caution">{looks === 1 ? "1 needs a look" : `${looks} need a look`}</span> : null} level={level}>
+        <ul data-phone-checks="" className={CARD}>
+          {rows.map((c) => (
+            <li key={c.key} className="border-t border-line first:border-t-0">
+              {c.tone === "sanction" ? (
+                <div className={row}>
+                  <CheckBody c={c}>
+                    {model.sanctions.length === 0 ? <span className="text-sm text-ink-2">{model.sanctionsEmpty}</span> : null}
+                    {model.sanctions.map((s, i) => (
+                      <span key={`${s.list}-${s.ref}-${i}`} className="flex flex-col gap-0.5 text-sm text-ink-2">
+                        <span className="font-medium text-ink">
+                          {s.list}: matched as {s.matchedName}
+                        </span>
+                        <span className={cn("text-xs text-ink-3", NUM)}>{[s.ref ? `Entry ${s.ref}` : null, s.listedOn ? `listed ${s.listedOn}` : null, s.screenedOn ? `checked ${s.screenedOn}` : null].filter(Boolean).join(" · ")}</span>
+                        {s.href ? (
+                          <a href={s.href} className={cn("relative w-fit rounded-sm text-sm font-medium text-ink underline decoration-line-strong underline-offset-2 before:absolute before:-inset-x-2 before:-inset-y-3 active:bg-sunken", ring)}>
+                            {s.opens === "entry" ? "Open the entry" : "Open the list"}
+                          </a>
+                        ) : null}
+                      </span>
+                    ))}
+                    <span className="text-sm text-ink-2">The record stays readable for due diligence. Save still works, so the supplier can be tracked.</span>
+                  </CheckBody>
+                </div>
+              ) : (
+                <PhoneTabLink tab={c.section} href={sectionHref(c.section)} className={cn(row, "active:bg-sunken", ring)}>
+                  <CheckBody c={c} />
+                </PhoneTabLink>
+              )}
+            </li>
+          ))}
+        </ul>
+      </Section>
+    </div>
   );
 }
 
@@ -802,7 +829,27 @@ function Sources({ model, today, level: H }: PanelProps) {
 
 /* --------------------------------------------------------------- the record */
 
-type PanelProps = { model: SupplierSheetModel; today: Date; tabHref: (tab: TabId) => string; level: Level };
+type PanelProps = { model: SupplierSheetModel; today: Date; /** A section's link: the `?tab=` it rides on. */ sectionHref: (id: SectionId) => string; level: Level };
+
+/** Safety, Certificates and Sanctions in a few words each: under the name, and again under the bar once that has scrolled away. */
+function StatusStrip({ status }: { status: StatusRow[] }) {
+  return (
+    <span className="flex h-[30px] overflow-clip rounded-lg bg-subtle">
+      {status.map((s, i) => {
+        const G = s.tone === "sanction" ? WarningOctagon : STATUS_ICON[s.key];
+        return (
+          <Fragment key={s.key}>
+            {i > 0 ? <span aria-hidden className="h-3.5 w-px shrink-0 self-center bg-line" /> : null}
+            <span className="flex flex-auto items-center justify-center gap-1.5 whitespace-nowrap px-2">
+              <G size={14} weight={s.tone === "sanction" ? "fill" : "thin"} className={cn("shrink-0", toneIcon(s.tone, "text-ink-3"))} aria-hidden />
+              <span className={cn("text-xs", s.tone ? "font-medium" : "", toneText(s.tone, "text-ink-3"))}>{s.short}</span>
+            </span>
+          </Fragment>
+        );
+      })}
+    </span>
+  );
+}
 
 export function PhoneRecord({
   model,
@@ -824,13 +871,15 @@ export function PhoneRecord({
 }) {
   const Title = page ? "h1" : "h2";
   const level: Level = page ? "h2" : "h3";
-  const status = phoneStatus(model, today);
+  // What is held today: a certificate that has ended is not in the head (the desktop's rule, `headStatuses`).
+  const status = headStatuses(model, today);
+  const sectionHref = (id: SectionId) => tabHref(SECTIONS.find((s) => s.id === id)!.tab);
   // The two lines under the name are the desktop's one (`recordSubline`): what it is, then where.
   const fact = (label: string) => model.facts.find((f) => f.label === label)?.value ?? null;
   const type = [model.meta[0]?.text ?? null, fact("Established") ? `founded ${fact("Established")}` : null, fact("Parent group") ? `part of ${fact("Parent group")}` : null].filter(Boolean).join(" · ");
   const place = model.meta.find((m) => m.icon === "address")?.text ?? null;
-  const props: PanelProps = { model, today, tabHref, level };
-  // What stays over the sections: on the page the bar (56) and the short statuses (42), then the strip (48).
+  const props: PanelProps = { model, today, sectionHref, level };
+  // What stays over the sections: on the page the bar (56) and the statuses (42), then the tabs (48).
   // A section lands with the 12px gap over it tucked under the strip, so the strip's hairline is not doubled.
   const under = page ? "scroll-mt-[134px]" : "scroll-mt-9";
   return (
@@ -849,20 +898,7 @@ export function PhoneRecord({
             <X size={17} weight="thin" aria-hidden />
           </Link>
           <div aria-hidden className="pointer-events-none invisible absolute inset-x-0 top-full bg-surface pb-3 pl-5 pr-4 group-data-[past]/bar:visible">
-            <div className="flex h-[30px] overflow-clip rounded-lg bg-subtle">
-              {status.map((s, i) => {
-                const G = STATUS_ICON[s.key];
-                return (
-                  <Fragment key={s.key}>
-                    {i > 0 ? <span className="h-3.5 w-px shrink-0 self-center bg-line" /> : null}
-                    <span className="flex flex-auto items-center justify-center gap-1.5 whitespace-nowrap px-2">
-                      <G size={14} weight="thin" className={cn("shrink-0", toneIcon(s.tone, "text-ink-3"))} aria-hidden />
-                      <span className={cn("text-xs", s.tone ? "font-medium" : "", toneText(s.tone, "text-ink-3"))}>{s.short}</span>
-                    </span>
-                  </Fragment>
-                );
-              })}
-            </div>
+            <StatusStrip status={status} />
           </div>
         </PhoneBar>
       ) : null}
@@ -888,28 +924,15 @@ export function PhoneRecord({
           ) : null}
         </div>
         {model.sanctionSample ? <p className="pb-3 text-xs text-ink-2">Sample state. No published supplier is on a sanctions list today; no real company is shown.</p> : null}
-        <ul aria-label="Summary" data-phone-summary="" className={CARD}>
-          {status.map((s) => {
-            const G = s.tone === "sanction" ? WarningOctagon : STATUS_ICON[s.key];
-            const to = s.tone === "sanction" ? "overview" : STATUS_TAB[s.key];
-            return (
-              <li key={s.key} className="border-t border-line first:border-t-0">
-                <PhoneTabLink tab={to} href={tabHref(to)} className={cn("flex min-h-12 items-center gap-2.5 pl-3.5 pr-2.5 active:bg-sunken", ring)}>
-                  <G size={18} weight="thin" className={cn("shrink-0", toneIcon(s.tone))} aria-hidden />
-                  <span className="w-24 shrink-0 text-base text-ink-3">{s.label}</span>
-                  <span className="flex min-w-0 flex-1 flex-col items-end py-[7px] text-right">
-                    <span className={cn("text-base font-medium", toneText(s.tone))}>{s.value}</span>
-                    {s.sub ? <span className="text-xs text-ink-3">{s.sub}</span> : null}
-                  </span>
-                  <CaretRight size={16} weight="thin" className="shrink-0 text-ink-3" aria-hidden />
-                </PhoneTabLink>
-              </li>
-            );
-          })}
-        </ul>
+        {/* The three statuses in one short strip from the start (founder, 13 Oct 2026: the three rows said what Checks says). It opens Checks. */}
+        <PhoneTabLink tab="checks" href={sectionHref("checks")} aria-label={`Checks: ${status.map((s) => s.short).join(", ")}`} className={cn("relative block rounded-lg before:absolute before:inset-x-0 before:-inset-y-[7px] active:opacity-70", ring)}>
+          <span data-phone-summary="" className="block">
+            <StatusStrip status={status} />
+          </span>
+        </PhoneTabLink>
       </header>
 
-      <PhoneTabStrip className={page ? "top-[98px]" : "top-0"} tabs={TABS.map((t) => ({ id: t.id, label: t.label, href: tabHref(t.id), count: tabCount(model, t.id) ?? undefined }))} />
+      <PhoneTabStrip className={page ? "top-[98px]" : "top-0"} tabs={SECTIONS.map((t) => ({ id: t.id, label: t.label, href: sectionHref(t.id), count: (t.id === "sites" || t.id === "sources" ? sectionCount(model, t.id) : null) ?? undefined }))} />
 
       {/* Every section, in tab order: a tab jumps to one and the strip follows the scroll through them. What parts
           one from the next is a gap of the page's own ground between two hairlines, edge to edge (founder, 12 Oct
@@ -921,8 +944,16 @@ export function PhoneRecord({
         <PhonePanel id="exports" label="Exports" className={under}>
           <Exports {...props} />
         </PhonePanel>
+        <PhonePanel id="products" label="Products" className={under}>
+          <div className="px-5 pb-8 pt-6">
+            <ProductsPanel model={model} level={level} open />
+          </div>
+        </PhonePanel>
         <PhonePanel id="certificates" label="Certificates" className={under}>
           <Certificates {...props} />
+        </PhonePanel>
+        <PhonePanel id="checks" label="Checks" className={under}>
+          <Checks {...props} />
         </PhonePanel>
         <PhonePanel id="safety" label="Safety" className={under}>
           <Safety {...props} />
@@ -936,12 +967,9 @@ export function PhoneRecord({
         <PhonePanel id="sources" label="Sources" className={under}>
           <Sources {...props} />
         </PhonePanel>
-        <PhonePanel id="products" label="Products" className={under}>
-          <div className="px-5 pb-8 pt-6">
-            <ProductsPanel model={model} level={level} open />
-          </div>
+        <PhonePanel id="contact" label="Contact" className={under}>
+          <PhoneContact model={model} level={level} />
         </PhonePanel>
-        <PhoneContact model={model} level={level} />
       </div>
       <div data-phone-end="" aria-hidden />
     </PhoneTabs>
