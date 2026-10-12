@@ -253,6 +253,21 @@ function CustomsFoot({ model, today }: { model: SupplierSheetModel; today: Date 
 
 export const FACT_ICON: Record<string, Icon> = { "Factory types": Factory, Type: Factory, Workers: UsersThree, "Women · men": UsersThree, "Sewing machines": Needle, "Capacity, as filed": Gauge, Founded: Buildings, Address: MapPin, Products: Tag, Exports: Package };
 
+/** Words that break between their " · " parts first: a part moves to the next line whole before it is split. */
+function Parts({ children }: { children: string }) {
+  const parts = children.split(" · ");
+  return (
+    <>
+      {parts.map((p, i) => (
+        <Fragment key={i}>
+          <span className="inline-block">{i < parts.length - 1 ? `${p} ·` : p}</span>
+          {i < parts.length - 1 ? " " : null}
+        </Fragment>
+      ))}
+    </>
+  );
+}
+
 function KeyFacts({ model, level }: Omit<SectionProps, "today">) {
   const cells = factCells(model);
   if (cells.length === 0) return null;
@@ -538,7 +553,11 @@ export function ProductsSection({ model, today, level, fold }: SectionProps & { 
 /* ------------------------------------------------------------ certificates */
 
 const CERT_COLS =
-  "grid grid-cols-[minmax(0,1fr)_132px_92px_64px] items-center gap-x-3 [@container_(min-width:560px)]:grid-cols-[minmax(0,1fr)_158px_104px_88px] [@container_(min-width:560px)]:gap-x-4 [@container_(min-width:760px)]:grid-cols-[minmax(0,1fr)_170px_112px_176px_104px_104px]";
+  "grid grid-cols-[minmax(0,1fr)_132px_92px_64px] items-center gap-x-3 [@container_(min-width:560px)]:grid-cols-[minmax(0,1fr)_158px_104px_88px] [@container_(min-width:560px)]:gap-x-4 [@container_(min-width:900px)]:grid-cols-[minmax(0,1fr)_150px_104px_164px_92px_92px] [@container_(min-width:900px)]:gap-x-3";
+// The fixed columns and their gaps take 686px, so the six start at 900px of column, where the name keeps
+// 214px or more (at 760 it had none: a letter a line). Under that the table keeps four columns and says the
+// issuer under the name.
+const CERT_WIDE_CELL = "hidden [@container_(min-width:900px)]:block";
 export const CERT_MARK: Record<string, string> = { "OEKO-TEX": "OEKO-TEX", GOTS: "GOTS", WRAP: "WRAP" };
 
 /**
