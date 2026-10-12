@@ -16,7 +16,7 @@ const sectionOf = (id: TabId) => document.getElementById(`record-${id}`);
 const reduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /** The nearest ancestor that scrolls vertically, or null for the window. */
-function scroller(el: HTMLElement): HTMLElement | null {
+export function scroller(el: HTMLElement): HTMLElement | null {
   for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
     const o = getComputedStyle(p).overflowY;
     if ((o === "auto" || o === "scroll") && p.scrollHeight > p.clientHeight) return p;

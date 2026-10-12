@@ -3,25 +3,52 @@
 // (nothing matches, it could not load, the page is past the end). Server component; the
 // words are Paper's (`10 · Results, empty`, `Errors`, `11 · Results`).
 
+import { Hourglass, Info, ShieldCheck } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { LinkPending } from "@/components/patterns/link-pending";
 import { RecordSave } from "@/components/record/save-button";
-import { ErrorPanel, Pagination, Skeleton, buttonClass } from "@/components/kit";
+import { ErrorPanel, Pagination, Skeleton, Unpublished, buttonClass } from "@/components/kit";
+import { ABSENT } from "@/components/patterns";
 import { PER_PAGE, discoverChips, discoverHref, filterCount, withoutFilterFamily, type DiscoverState } from "@/lib/discover-v32-state";
 import { formatCount, nameSecondLine, splitQualifier } from "@/lib/dashboard/facts";
 import { discoverFailureCopy } from "@/lib/discover-v32-rpc";
+import { cn } from "@/lib/utils";
 import type { ResultRow } from "./model";
-import { Problem } from "./pane-rows";
 import { PerPageMenu } from "./per-page";
 import { SlowHead } from "./slow";
 
 export { PaneRows } from "./pane-rows";
 
 /**
+ * The certificates of a phone's row in one line of words (Paper page 36, `search-results`): the worst
+ * one with its glyph, amber when it has lapsed or is about to, then how many more there are. The
+ * bodies' marks are the table's and the record's; a phone's row says it (founder, 12 Oct 2026).
+ */
+function CertWords({ r }: { r: ResultRow }) {
+  const c = r.certCell;
+  if (!c) return <Unpublished>{ABSENT.certificates}</Unpublished>;
+  const problem = c.state === "expired" || c.state === "expiring";
+  // "No expiry on file" has no date to count down to: the scheme is listed, and that is all the line says.
+  const dated = /\d/.test(c.short);
+  const G = problem ? Hourglass : dated ? ShieldCheck : Info;
+  return (
+    <span className="flex items-start gap-1.5 text-sm text-ink-3">
+      <G size={16} weight="thin" className={cn("mt-0.5 shrink-0", problem && "text-caution-icon")} aria-hidden />
+      <span>
+        <span className={problem ? "font-medium text-caution" : undefined}>
+          {c.first.scheme} {c.short.charAt(0).toLowerCase() + c.short.slice(1)}
+        </span>
+        {c.total > 1 ? ` · ${c.total - 1} more` : null}
+      </span>
+    </span>
+  );
+}
+
+/**
  * On a phone (Paper page 36, `search-results`) a row is the name large, where it is and its sources,
- * the customs figures for a reader who may see them, the certificates' cell, and a bookmark. The
- * link covers the row and opens the record as a page with the way back to this search; a tap on the
- * marks opens their words and the bookmark saves, both above the link.
+ * the customs figures for a reader who may see them, the certificates in a line of words, and a
+ * bookmark. The link covers the row and opens the record as a page with the way back to this search;
+ * the bookmark saves, above the link.
  */
 export function PhoneRows({ rows }: { rows: readonly ResultRow[] }) {
   return (
@@ -30,7 +57,7 @@ export function PhoneRows({ rows }: { rows: readonly ResultRow[] }) {
         const { base, qualifier } = splitQualifier(r.name);
         return (
           <li key={r.slug} className="relative flex gap-3 border-b border-line py-4 has-[>div>a:active]:bg-sunken has-[>div>a:focus-visible]:outline has-[>div>a:focus-visible]:outline-2 has-[>div>a:focus-visible]:outline-offset-[-2px] has-[>div>a:focus-visible]:outline-focus">
-            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+            <div className="flex min-w-0 flex-1 flex-col">
               <Link href={r.pageHref} className="flex flex-col gap-0.5 outline-none after:absolute after:inset-0 after:content-['']">
                 <span data-name="" title={r.name} className="text-[19px]/[26px] font-semibold tracking-[-0.015em] text-ink [overflow-wrap:anywhere]">
                   {qualifier ? (
@@ -51,10 +78,10 @@ export function PhoneRows({ rows }: { rows: readonly ResultRow[] }) {
                     <span className="font-medium tabular-nums text-ink-2">{r.exports.key}</span> · {r.exports.detail}
                   </span>
                 ) : null}
+                <span className="pt-1">
+                  <CertWords r={r} />
+                </span>
               </Link>
-              <span className="pointer-events-none relative z-raised self-start text-sm [&_button]:pointer-events-auto">
-                <Problem r={r} reveal />
-              </span>
             </div>
             {r.supplierId && !r.sanctioned ? (
               <RecordSave supplierId={r.supplierId} saved={r.saved} appearance="icon" className="relative z-raised -my-2 -mr-2 size-11 self-start border-transparent bg-transparent text-ink-2 hover:bg-sunken active:bg-sunken" />

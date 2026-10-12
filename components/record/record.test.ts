@@ -63,10 +63,15 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
     { list: "us_wro", last_read: null },
   ];
 
-  it("shows one tab's view at a time, every tab a link, and the three statuses open their tabs", () => {
+  it("draws every section on the one page in tab order, every tab a link, and the three statuses jump to their sections", () => {
+    // Founder, 12 Oct 2026: one tab's view at a time sent the reader back to the strip for each section.
     const out = plain(phone(model(), { mode: "page" }));
-    assert.deepEqual([...out.matchAll(/data-phone-panel="([a-z]+)"( hidden="")?/g)].map((m) => `${m[1]}${m[2] ? "" : "*"}`), ["overview*", "exports", "certificates", "safety", "sites", "sources", "products"]);
-    assert.match(plain(phone(model(), { mode: "page", tab: "safety" })), /data-phone-panel="safety">/);
+    assert.deepEqual([...out.matchAll(/data-phone-panel="([a-z]+)"/g)].map((m) => m[1]), TABS.map((t) => t.id));
+    assert.doesNotMatch(out, /data-phone-panel="[a-z]+"[^>]* hidden=""/, "a section is hidden until its tab is tapped");
+    // Each lands under the bar, the short statuses and the strip (56 + 42 + 48, less its own 8px band), and the foot marks the last tab.
+    assert.equal((out.match(/data-phone-panel="[a-z]+" class="[^"]*scroll-mt-\[138px\]/g) ?? []).length, TABS.length);
+    assert.match(out, /<div data-phone-end="" aria-hidden="true"><\/div><\/div>$/);
+    assert.match(readFileSync(path.join(dir, "phone-tabs.tsx"), "utf8"), /sectionInView\(ORDER, inBand, atEnd, prev\)/, "the strip does not follow the scroll");
     const strip = /<nav aria-label="Record sections"[^>]*>([\s\S]*?)<\/nav>/.exec(out)![1]!;
     assert.equal((strip.match(/<a /g) ?? []).length, TABS.length);
     assert.match(strip, /aria-current="page"[^>]*>Overview/);
@@ -115,11 +120,25 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
     assert.doesNotMatch(listed, /No link found|not listed/i);
   });
 
-  it("says a record outside the RSC programme is not the same as unsafe, and that the buyer's RFQs did not load", () => {
+  it("says a record outside the RSC programme is not the same as unsafe, and never shows a buyer that their RFQs did not load", () => {
     const out = text(phone(model(aboniInput(), { rsc: null, rscBuildings: [], rscBuildingBlocks: [], rfqs: { count: null, rows: [], empty: "", error: true } }), { mode: "page" }));
     assert.match(out, /Not in the RSC programme .* Not the same as unsafe RSC covers factories that brands signed up\./);
-    assert.match(out, /Your RFQs didn't load\. Retry/);
-    assert.doesNotMatch(text(phone(model(), { mode: "page" })), /didn't load/);
+    // Founder, 12 Oct 2026: a red "Your RFQs didn't load · Retry" over the record. A side read that failed is left out; it claims nothing.
+    assert.doesNotMatch(out, /didn't load|did not load|Retry|Your RFQs/);
+  });
+
+  it("leaves the certifier's scope text and the amber records notice out, and lists the customs buyers once, as pills", () => {
+    const m = model(aboniInput(), { volza: { ...VOLZA, window_end: "2026-05-31", top_record: { shipment_date: "2026-05-30", hsn_code: "620520", product_description: "MENS SHIRT", buyer_name: "HUGO BOSS TICINO S A VIA SANT APOLLONIA 32", destination_country: "Germany", trade_value_usd: 1000, unit_rate_usd: null, unit: "PCS" } } });
+    const scoped = { ...m, certs: m.certs.map((c) => ({ ...c, scope: "Operations: Dyeing, Embroidery | Products: Greige yarn" })) };
+    const out = text(phone(scoped, { mode: "page" }));
+    assert.ok(scoped.certs.length > 0, "guard: a certificate");
+    assert.doesNotMatch(out, /Operations: Dyeing|Greige yarn/, "a certificate card prints the scope");
+    assert.doesNotMatch(out, /Shipments after that date are not counted here yet/, "the amber notice is back on Exports");
+    assert.match(out, /The records end \d+ days ago/, "the footnote still says how far behind the records are");
+    assert.match(out, /Buyers of 43 Hugo Boss Ticino S A As named on customs records: often an importer or an agent, not the brand\./);
+    assert.doesNotMatch(out, /Buyers in shipment records/, "the buyers are said twice on one page");
+    // The desktop keeps its Key facts row.
+    assert.match(text(view(scoped, { mode: "page" })), /Buyers in shipment records/);
   });
 
   it("keeps the contact locked: how many are on file, never a value", () => {
@@ -306,7 +325,10 @@ describe("the view's rules", () => {
     assert.match(page, /^<div data-record-phone="" class="[^"]*\bsm:hidden\b/, "the phone's record is drawn from 640");
     const bar = /<div data-record-bar="" class="([^"]*)">/.exec(page);
     assert.ok(bar, "no bar");
-    for (const c of ["sticky", "top-0", "z-raised", "h-14", "bg-surface"]) assert.ok(bar[1]!.split(" ").includes(c), `the bar lacks ${c}`);
+    // No ground until the name has left its row (founder, 12 Oct 2026: an empty bar over the name wasted the top of the screen).
+    for (const c of ["sticky", "top-0", "z-raised", "h-14", "data-[stuck]:bg-surface"]) assert.ok(bar[1]!.split(" ").includes(c), `the bar lacks ${c}`);
+    assert.ok(!bar[1]!.split(" ").includes("bg-surface"), "the bar covers the name's row");
+    assert.match(page, /<header class="[^"]*-mt-14[^"]*"><h1 data-phone-name="" class="[^"]*pr-\[88px\]/, "the name does not share the bar's row, clear of the buttons");
     assert.match(page, /<button type="button" aria-label="Share"/);
     // The X is a link, 36 round with a 44 target, back to the search the record was opened from (a page has nothing to "close").
     const close = /<a aria-label="Back to search" class="([^"]*)" href="([^"]*)">/.exec(page);
@@ -320,8 +342,10 @@ describe("the view's rules", () => {
     assert.match(desk, /<header class="[^"]*\bmax-sm:hidden\b/);
     assert.match(desk, /<div class="[^"]*\bmax-sm:hidden\b[^"]*"><a [^>]*>(?:<svg[\s\S]*?<\/svg>)?Back to results/);
     assert.doesNotMatch(desk, /data-record-bar|data-phone-/);
-    // The drawer a narrow window gets has its own title and Close: no bar, no second name.
-    assert.doesNotMatch(phone(model(), { mode: "pane" }), /data-record-bar|data-phone-name|aria-label="Back to search"/);
+    // The drawer a narrow window gets has its own Close, and a title that says only "Supplier": no bar, and the name is said (founder, 12 Oct 2026).
+    const drawer = phone(model(), { mode: "pane" });
+    assert.doesNotMatch(drawer, /data-record-bar|aria-label="Back to search"|-mt-14/);
+    assert.match(drawer, /<h2 data-phone-name="" class="[^"]*">Aboni Knitwear Ltd<\/h2>/);
   });
 
   it("a phone's action bar is fixed to the foot of the screen on the page, and the record keeps room for it", () => {
@@ -350,6 +374,9 @@ describe("the view's rules", () => {
     const phoneTabs = /<div data-phone-tabs="" class="([^"]*)"><nav aria-label="Record sections" class="([^"]*)"/.exec(onPhone);
     assert.ok(phoneTabs && phoneTabs[1]!.split(" ").includes("sticky") && phoneTabs[1]!.split(" ").includes(layer) && !phoneTabs[1]!.includes("overflow"), "a phone's stuck tabs scroll sideways too");
     assert.ok(phoneTabs[2]!.split(" ").includes("overflow-x-auto"));
+    // Founder, 12 Oct 2026: the rail moved up and down under a finger. The hairline is the box's, so the strip is
+    // as tall as its tabs and has nothing to scroll by; it never scrolls on that axis.
+    assert.ok(phoneTabs[1]!.split(" ").includes("border-b") && phoneTabs[2]!.split(" ").includes("overflow-y-hidden") && !/\bborder-b\b/.test(phoneTabs[2]!), "the strip can move up and down");
     const stuck = /<div class="([^"]*)"><nav aria-label="Record sections" class="([^"]*)"/.exec(page);
     assert.ok(stuck, "the tabs have no sticky box of their own");
     assert.ok(stuck[1]!.split(" ").includes("sticky") && stuck[1]!.split(" ").includes(layer) && !stuck[1]!.includes("overflow"), "what sticks scrolls sideways too");

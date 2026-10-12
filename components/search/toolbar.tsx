@@ -367,7 +367,8 @@ export function PhoneToolbar({ state, count, hrefFor, filtersHref, entitled = fa
   const [figure, noun] = /^[\d,]+ /.test(count) ? [count.slice(0, count.indexOf(" ")), count.slice(count.indexOf(" ") + 1)] : [null, count];
   const uk = state.ships === "uk";
   return (
-    <div className="flex flex-col gap-4 px-5 pt-2 md:hidden">
+    // `data-own-top`: the results start at the field, as the board draws them; the frame hides its title bar over it.
+    <div data-own-top="" className="flex flex-col gap-4 px-5 pt-3 md:hidden">
       <Form action={DISCOVER_PATH} role="search" aria-label="Search" prefetch={false} className="relative">
         {discoverHiddenParams(state, ["q"]).map(([k, v]) => (
           <input key={`${k}-${v}`} type="hidden" name={k} value={v} />
