@@ -197,28 +197,22 @@ function Overview({ model, today, tabHref, level }: PanelProps) {
       ) : null}
       <Section first={tiles.length === 0 && looks.length === 0} title="Key facts" level={level}>
         <dl className="-mt-1 flex flex-col">
-          {rows.map((f) => {
-            const from = f.source?.replace(/^From /, "") ?? null;
-            const beside = from !== null && from.length <= 8;
-            return (
-              <div key={f.label} className="flex items-center gap-3 border-t border-line py-2.5 first:border-t-0">
-                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <dt className="text-sm text-ink-3">{f.label}</dt>
-                  {f.values.length ? (
-                    f.values.map((x) => (
-                      <dd key={x.text} className={cn("text-md text-ink", x.mono && "font-mono text-base")}>
-                        {x.text}
-                      </dd>
-                    ))
-                  ) : (
-                    <dd className="text-md text-ink-2">{f.empty}</dd>
-                  )}
-                  {from && !beside ? <dd className="text-xs text-ink-3">{from}</dd> : null}
-                </div>
-                {beside ? <dd className="w-14 shrink-0 text-right text-xs text-ink-3">{from}</dd> : null}
-              </div>
-            );
-          })}
+          {rows.map((f) => (
+            <div key={f.label} className="flex flex-col gap-0.5 border-t border-line py-2.5 first:border-t-0">
+              <dt className="text-sm text-ink-3">{f.label}</dt>
+              {f.values.length ? (
+                f.values.map((x) => (
+                  <dd key={x.text} className={cn("text-md text-ink", x.mono && "font-mono text-base")}>
+                    {x.text}
+                  </dd>
+                ))
+              ) : (
+                <dd className="text-md text-ink-2">{f.empty}</dd>
+              )}
+              {/* "From BKMEA": a bare "BKMEA" beside a figure does not say it is where the figure came from (founder, 12 Oct 2026). */}
+              {f.source ? <dd className="text-xs text-ink-3">{f.source}</dd> : null}
+            </div>
+          ))}
         </dl>
       </Section>
       {members.length + brands.length > 0 ? (
@@ -413,7 +407,7 @@ function Exports({ model, today, level }: PanelProps) {
         </Section>
       ) : null}
       {buyers.length > 0 ? (
-        <Section title="Buyers" count={v.buyers !== null ? `of ${v.buyers.toLocaleString("en-GB")}` : undefined} level={level}>
+        <Section title="Buyers" aside={v.buyers !== null ? <span className="text-sm text-ink-3">{buyers.length} of {v.buyers.toLocaleString("en-GB")} shown</span> : undefined} level={level}>
           <ul className="-mt-1 flex flex-wrap gap-2">
             {buyers.map((b) => (
               <li key={b} className="flex min-h-8 items-center rounded-full bg-subtle px-3 py-1 text-base font-medium text-ink">
@@ -460,14 +454,18 @@ function CertCard({ g, today }: { g: CertGroup; today: Date }) {
   const c = g.rows[0]!;
   const gots = /^gots/i.test(g.scheme);
   const day = formatDay(c.expiresOn);
+  const numbers = g.rows.flatMap((r) => (r.number ? [r.number] : []));
+  const kind = gots ? "Licence" : "Certificate";
+  // A listing has no date to show, only its numbers: one a line, under the same label a dated certificate's number has.
   const facts: [string, string, string][] = g.listed
-    ? []
+    ? numbers.length > 0
+      ? [[numbers.length > 1 ? `${kind}s` : kind, numbers.join("\n"), "whitespace-pre-line font-mono text-sm/[20px] text-ink"]]
+      : []
     : ([
         [g.state === "expired" ? "Expired on" : "Valid until", day ?? "", cn("text-base font-medium", g.state === "valid" ? "text-ink" : "text-caution")],
-        [gots ? "Licence" : "Certificate", c.number ?? "", "font-mono text-sm/[20px] text-ink"],
+        [kind, c.number ?? "", "font-mono text-sm/[20px] text-ink"],
         ["Issued by", c.issuer ?? "", "text-base text-ink"],
       ] satisfies [string, string, string][]).filter((f) => f[1]);
-  const numbers = g.rows.flatMap((r) => (r.number ? [r.number] : []));
   return (
     <li className="flex flex-col gap-3 rounded-lg border border-line px-4 pb-3 pt-3.5">
       <div className="flex items-start justify-between gap-3">
@@ -485,15 +483,6 @@ function CertCard({ g, today }: { g: CertGroup; today: Date }) {
             </div>
           ))}
         </dl>
-      ) : null}
-      {g.listed && numbers.length > 0 ? (
-        <ul className="flex flex-wrap gap-1.5">
-          {numbers.map((n) => (
-            <li key={n} className="flex h-7 items-center rounded-md bg-subtle px-2.5 font-mono text-sm/[16px] text-ink">
-              {n}
-            </li>
-          ))}
-        </ul>
       ) : null}
       {c.check || c.documentUrl ? (
         <div className="flex items-center justify-between gap-3 border-t border-line pt-2.5">
@@ -672,21 +661,15 @@ function Safety({ model, level: H }: PanelProps) {
     <div className="flex flex-col gap-3 px-5 pb-8 pt-6">
       <div className="flex flex-col gap-0.5 pb-1">
         <H className={TITLE}>{cards.length === 1 ? "In the RSC programme" : `${cards.length} buildings in the RSC programme`}</H>
-        {cards.length > 1 ? <p className="text-base text-ink-2">{behind ? `${behind} behind schedule. ` : ""}Worst first.</p> : null}
+        {/* The rows' figures are a bare percentage: what it is a percentage of is said once, over them. */}
+        {cards.length > 1 ? <p className="text-base text-ink-2">{many ? `Safety issues fixed, worst first.${behind ? ` ${behind} behind.` : ""}` : `${behind ? `${behind} behind schedule. ` : ""}Worst first.`}</p> : null}
       </div>
       {many ? (
-        <>
-          <div aria-hidden className="flex h-2 shrink-0 gap-1">
-            {cards.map((c, i) => (
-              <span key={i} className={cn("flex-1 rounded-full", rscTone(c))} />
-            ))}
-          </div>
-          <ul className={CARD}>
-            {cards.map((c, i) => (
-              <RscRow key={`${c.name}-${i}`} c={c} open={i === 0} />
-            ))}
-          </ul>
-        </>
+        <ul className={CARD}>
+          {cards.map((c, i) => (
+            <RscRow key={`${c.name}-${i}`} c={c} open={i === 0} />
+          ))}
+        </ul>
       ) : (
         <ul className="flex flex-col gap-3">
           {cards.map((c, i) => (
@@ -733,7 +716,15 @@ function Sources({ model, today, level: H }: PanelProps) {
   const lists = sanctionListRows(model, today);
   const uflpa = uflpaLine(model, today);
   const n = model.sources.length;
-  const kind = "pb-1 text-sm font-medium text-ink-3";
+  const groups = sourceGroups(model.sources);
+  // The dates down the right are each register's last read: said once, over the first of them, like a
+  // table's head (founder, 12 Oct 2026: "108 days ago" under a date said nothing about what the date was).
+  const kind = (words: string, first: boolean) => (
+    <p className="flex items-baseline justify-between gap-3 pb-1 text-sm font-medium text-ink-3">
+      {words}
+      {first ? <span data-phone-read-head="" className="text-xs font-normal">Last read</span> : null}
+    </p>
+  );
   return (
     <div className="flex flex-col px-5 pb-8 pt-6">
       <div className="flex flex-col gap-0.5 pb-2">
@@ -742,9 +733,9 @@ function Sources({ model, today, level: H }: PanelProps) {
         </H>
         <p className="text-base text-ink-2">{n === 0 ? "No register has filed a record for this company." : model.sourcesCaption}</p>
       </div>
-      {sourceGroups(model.sources).map((g) => (
+      {groups.map((g, i) => (
         <section key={g.kind} aria-label={g.kind} className="flex flex-col pt-4">
-          <p className={kind}>{g.kind}</p>
+          {kind(g.kind, i === 0)}
           <ul>
             {g.rows.map((s) => {
               const stale = staleWords(s.readDate, today);
@@ -769,7 +760,7 @@ function Sources({ model, today, level: H }: PanelProps) {
       ))}
       {v ? (
         <section aria-label="Customs records" className="flex flex-col pt-4">
-          <p className={kind}>Customs records</p>
+          {kind("Customs records", groups.length === 0)}
           <ul>
             <SourceLine title="Bangladesh customs exports" sub={`Shipment records, ${customsWindow(v)}`} day={shortDay(v.fetched_at, today)} note={behind !== null ? `ends ${behind} days ago` : null} />
           </ul>
@@ -782,7 +773,10 @@ function Sources({ model, today, level: H }: PanelProps) {
               {model.sanctioned ? <WarningOctagon size={16} weight="fill" className="shrink-0" aria-hidden /> : null}
               Sanctions lists · {model.sanctioned ? `on the ${model.sanctions[0]?.list ?? "sanctions list"}` : "not listed"}
             </p>
-            <p className="text-sm text-ink-2">Read for every supplier, not only this one</p>
+            <p className="flex items-baseline justify-between gap-3 text-sm text-ink-2">
+              Checked for every supplier
+              {lists.length > 0 ? <span className="shrink-0 text-xs text-ink-3">Last read</span> : null}
+            </p>
           </div>
           <dl className="flex flex-col gap-1.5 text-sm">
             {lists.map((l) => (

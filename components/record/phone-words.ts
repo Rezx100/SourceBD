@@ -300,7 +300,10 @@ export function sanctionListRows(model: Pick<SupplierSheetModel, "sanctionLists"
   return LISTS.flatMap((l) => {
     const at = reads.find((r) => r.list === l.code)?.last_read ?? null;
     const day = shortDay(at, today);
-    return at && day ? [{ label: l.label, day, old: l.daily && today.getTime() - Date.parse(at) > SANCTIONS_MAX_AGE_MS }] : [];
+    if (!at || !day) return [];
+    const old = l.daily && today.getTime() - Date.parse(at) > SANCTIONS_MAX_AGE_MS;
+    // A late read says how late: an amber date alone does not say why it is amber. Past 48 hours, so always "days".
+    return [{ label: l.label, day: old ? `${day} · ${Math.floor((today.getTime() - Date.parse(at)) / 86_400_000)} days ago` : day, old }];
   });
 }
 
