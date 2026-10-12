@@ -6,25 +6,26 @@
 // month-by-month chart, a buyer's share, a line's share) are not drawn, and customs figures are per
 // supplier and per market, never per HS code. Server-safe; the tabs are the only script.
 
-import { ArrowUpRight, CaretDown, CaretRight, Clock, Factory, FileText, HardHat, Hourglass, IdentificationBadge, ListChecks, Lock, MapPin, Package, ShieldCheck, Storefront, WarningOctagon, X } from "@phosphor-icons/react/dist/ssr";
+import { ArrowUpRight, CaretDown, CaretRight, Clock, Factory, FileText, HardHat, Hourglass, ListChecks, Lock, MapPin, Package, ShieldCheck, Storefront, WarningOctagon, X } from "@phosphor-icons/react/dist/ssr";
 import type { Icon } from "@phosphor-icons/react";
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 import { CertChip, Skeleton, ring } from "@/components/kit";
-import { ABSENT, CONTACT_LIMIT_WORDS, onFileWords } from "@/components/patterns";
+import { ABSENT, CONTACT_LIMIT_WORDS, SourceMark, onFileWords } from "@/components/patterns";
 import { certShort } from "@/components/patterns/words";
 import { LinkPending } from "@/components/patterns/link-pending";
 import { buyersOf, customsWindow, formatDay, formatUsdShort } from "@/lib/dashboard/facts";
 import type { SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
 import { ContactDetailsCard } from "./contact-card";
-import { SECTIONS, checkRows, headStatuses, sectionCount, type CheckRow, type SectionId } from "./desktop-words";
+import { FACT_ICON } from "./desktop";
+import { SECTIONS, checkRows, exportTiles, factCells, headStatuses, memberTiles, sectionCount, type BarPart, type CheckRow, type SectionId } from "./desktop-words";
 import { ProductsPanel, RecordRfqs, SitesPanel, sourceGroups, type Level } from "./panels";
 import { PhoneBar, PhonePanel, PhoneTabLink, PhoneTabStrip, PhoneTabs } from "./phone-tabs";
-import { NO_CUSTOMS, UFLPA_LABEL, certGroups, customsTiles, marketShares, noCustoms, recordsEnd, rscBehind, rscCards, sanctionListRows, shortDay, uflpaLine, type CertGroup, type RscCard, type StatusRow } from "./phone-words";
+import { NO_CUSTOMS, UFLPA_LABEL, biggestMarket, certGroups, marketShares, noCustoms, recordsEnd, rscBehind, rscCards, sanctionListRows, shortDay, uflpaLine, type CertGroup, type RscCard, type StatusRow } from "./phone-words";
 import { ShareButton } from "./share-button";
 import { ShipmentRevealSection } from "./shipment-reveal";
-import { keyFacts, staleWords, type TabId } from "./words";
+import { staleWords, type TabId } from "./words";
 
 const NUM = "[font-variant-numeric:tabular-nums]";
 const TITLE = "text-lg font-medium tracking-tight text-ink";
@@ -39,10 +40,10 @@ const toneText = (t: StatusRow["tone"], plain = "text-ink") => (t === "caution" 
 const toneIcon = (t: StatusRow["tone"], plain = "text-ink-2") => (t === "caution" ? "text-caution-icon" : t === "sanction" ? "text-sanction" : plain);
 
 /** A section under the first on a tab: a hairline, then its title. */
-function Section({ title, count, aside, level: H, children, first = false }: { title: string; count?: ReactNode; aside?: ReactNode; level: Level; children: ReactNode; first?: boolean }) {
+function Section({ title, count, aside, level: H, children, first = false, tight = false }: { title: string; count?: ReactNode; aside?: ReactNode; level: Level; children: ReactNode; first?: boolean; /** The Overview's sections: 20px above and below the hairline (Paper page 35, 13 Oct 2026). */ tight?: boolean }) {
   return (
-    <section className={cn("flex flex-col px-5", first ? "pt-6" : "pt-7")}>
-      <div className={cn("flex items-baseline justify-between gap-3 pb-3.5", !first && "border-t border-line pt-7")}>
+    <section className={cn("flex flex-col px-5", tight ? "pt-5" : first ? "pt-6" : "pt-7")}>
+      <div className={cn("flex items-baseline justify-between gap-3", tight && !first ? "pb-2" : "pb-3.5", !first && "border-t border-line", !first && (tight ? "pt-5" : "pt-7"))}>
         <div className="flex items-baseline gap-2">
           <H className={TITLE}>{title}</H>
           {count !== undefined && count !== null ? <span className="text-lg text-ink-3">{count}</span> : null}
@@ -82,6 +83,20 @@ function Bar({ pct, tone, className }: { pct: number; tone: string; className?: 
   );
 }
 
+const BAR_TONE: Record<BarPart["tone"], string> = { ink: "bg-ink", "ink-2": "bg-ink-2", "line-strong": "bg-line-strong", sunken: "bg-sunken" };
+
+/** An export tile's 6px bar: one figure against its whole as a meter, several shares as segments. The caption under it says what it shows. */
+function TileBar({ parts }: { parts: BarPart[] }) {
+  if (parts.some((p) => p.tone === "sunken")) return <Bar pct={parts[0]!.share} tone={BAR_TONE[parts[0]!.tone]} />;
+  return (
+    <span aria-hidden className="flex h-1.5 shrink-0 gap-0.5 overflow-clip rounded-full">
+      {parts.map((p, i) => (
+        <span key={i} className={cn("basis-0", BAR_TONE[p.tone])} style={{ flexGrow: p.share }} />
+      ))}
+    </span>
+  );
+}
+
 /* ---------------------------------------------------------------- overview */
 
 /** The customs footnotes: the window and the read, and how far behind the records are. */
@@ -107,20 +122,21 @@ function CustomsFoot({ model, today, className }: { model: SupplierSheetModel; t
 
 function Overview({ model, today, sectionHref, level }: PanelProps) {
   const v = model.volza;
-  const tiles = v ? customsTiles(v, today) : [];
-  const facts = keyFacts(model);
-  const members = facts.find((f) => f.label === "Memberships")?.values.flatMap((x) => (x.membership ? [x.membership] : [])) ?? [];
+  // The desktop's four worked-out figures. The fourth is always the biggest market, never the reader's own (founder, 13 Oct 2026).
+  const tiles = v ? exportTiles(v, { rank: model.exportRank ?? null, market: biggestMarket(v) }) : [];
+  const cells = factCells(model);
+  const members = memberTiles(model, today);
   // Who buys from it, once: the brands whose own lists name it and the importers on its customs records,
   // the same company joined into one row (founder, 12 Oct 2026: they were two sections, a scroll apart).
   const buyers = buyersOf(model.products.buyerLists, v);
   const fromCustoms = buyers.filter((b) => b.customs).length;
-  const rows = facts.filter((f) => f.label !== "Memberships" && f.label !== "Brand supplier lists" && f.label !== "Buyers in shipment records");
   const readOf = (code: string | null) => model.sources.find((s) => s.mark.code === code || s.mark.label === code) ?? null;
   return (
     <div className="flex flex-col pb-8">
       {tiles.length > 0 ? (
         <Section
           first
+          tight
           title="Exports"
           level={level}
           aside={
@@ -132,47 +148,64 @@ function Overview({ model, today, sectionHref, level }: PanelProps) {
         >
           <dl className={cn("grid grid-cols-2 overflow-clip rounded-lg border border-line", NUM)}>
             {tiles.map((t, i) => (
-              <div key={t.label} className={cn("flex min-h-[120px] flex-col justify-between gap-2.5 px-3.5 pb-3 pt-3.5", i % 2 === 0 && "border-r border-line", i > 1 && "border-t border-line")}>
-                <div className="flex flex-col gap-1.5">
-                  <dt className="text-sm text-ink-3">{t.label}</dt>
-                  <dd className="text-xl font-medium tracking-tighter text-ink">{t.value}</dd>
-                </div>
-                {t.sub ? <dd className="text-sm text-ink-2">{t.sub}</dd> : null}
+              <div key={t.key} className={cn("flex flex-col px-3.5 py-3", i % 2 === 0 && "border-r border-line", i > 1 && "border-t border-line")}>
+                <dt className="text-sm text-ink-3">{t.label}</dt>
+                <dd className="pt-1.5 text-xl font-medium tracking-tighter text-ink">{t.value}</dd>
+                {t.bar || t.sub ? (
+                  <dd className="flex flex-col gap-1.5 pt-2">
+                    {t.bar ? <TileBar parts={t.bar} /> : null}
+                    {t.sub ? <span className="text-sm text-ink-2">{t.sub}</span> : null}
+                  </dd>
+                ) : null}
               </div>
             ))}
           </dl>
           <CustomsFoot model={model} today={today} className="pt-3" />
         </Section>
       ) : null}
-      <Section first={tiles.length === 0} title="Key facts" level={level}>
-        <dl className="-mt-1 flex flex-col">
-          {rows.map((f) => (
-            <div key={f.label} className="flex flex-col gap-0.5 border-t border-line py-2.5 first:border-t-0">
-              <dt className="text-sm text-ink-3">{f.label}</dt>
-              {f.values.length ? (
-                f.values.map((x) => (
-                  <dd key={x.text} className={cn("text-md text-ink", x.mono && "font-mono text-base")}>
-                    {x.text}
-                  </dd>
-                ))
-              ) : (
-                <dd className="text-md text-ink-2">{f.empty}</dd>
-              )}
-              {/* "From BKMEA": a bare "BKMEA" beside a figure does not say it is where the figure came from (founder, 12 Oct 2026). */}
-              {f.source ? <dd className="text-xs text-ink-3">{f.source}</dd> : null}
-            </div>
-          ))}
-        </dl>
-      </Section>
+      {cells.length > 0 ? (
+        <Section first={tiles.length === 0} tight title="Key facts" level={level}>
+          <dl data-phone-facts="" className={cn("grid grid-cols-2 gap-x-4", NUM)}>
+            {cells.map((f, i) => {
+              const G = FACT_ICON[f.label] ?? FileText;
+              return (
+                // The hairline between two rows runs the section's width: each cell reaches half across the 16px gap.
+                <div key={f.label} className={cn("flex min-w-0 flex-col gap-0.5 py-2", i > 1 && "border-t border-line", i > 1 && (i % 2 === 1 ? "-ml-2 pl-2" : i === cells.length - 1 ? "col-span-2" : "-mr-2 pr-2"))}>
+                  <dt className="flex items-center gap-1.5 text-sm text-ink-3">
+                    <G size={18} weight="thin" className="shrink-0" aria-hidden />
+                    {f.label}
+                  </dt>
+                  <dd className={cn("text-md", f.empty ? "text-ink-2" : "text-ink")}>{f.value}</dd>
+                  {/* "From BKMEA": a bare "BKMEA" beside a figure does not say it is where the figure came from (founder, 12 Oct 2026). */}
+                  {f.from ? <dd className="text-xs text-ink-3">{f.from}</dd> : null}
+                </div>
+              );
+            })}
+          </dl>
+        </Section>
+      ) : null}
+      {members.length > 0 ? (
+        <Section tight title="Memberships" level={level}>
+          <ul className="flex flex-col">
+            {members.map((m) => (
+              <Listed key={`${m.name}-${m.number}`} lead={<SourceMark source={m.mark ?? m.name} lazy className="size-9 rounded-full [&>img]:max-h-[26px] [&>img]:max-w-[26px]" />} title={m.title} href={m.href} opens={m.name}>
+                {m.number ? <span className="font-mono text-ink-2">{m.number}</span> : null}
+                {m.read ? <span>{m.number ? "· " : ""}read {m.read}</span> : null}
+                {m.stale ? <Stale>{m.stale}</Stale> : null}
+              </Listed>
+            ))}
+          </ul>
+        </Section>
+      ) : null}
       {buyers.length > 0 ? (
-        <Section title="Buyers" count={buyers.length} level={level}>
-          <ul data-phone-buyers="" className="-mt-2 flex flex-col">
+        <Section tight title="Buyers" count={buyers.length} level={level}>
+          <ul data-phone-buyers="" className="flex flex-col">
             {buyers.map((b) => {
               const s = b.listed ? readOf(b.name) : null;
               // The name people know is the row; the customs record's own name is small beside its source, so the short one is never read as the record's.
               const customs = b.customs ? `${b.listed ? "customs" : "Customs"} records${b.filed ? ` as ${b.filed}` : ""}` : null;
               return (
-                <Listed key={b.name} icon={b.listed ? Storefront : Package} title={b.name} href={s?.mark.href ?? null} opens={b.name}>
+                <Listed key={b.name} lead={<Disc icon={b.listed ? Storefront : Package} />} title={b.name} href={s?.mark.href ?? null} opens={b.name}>
                   <span>{[b.listed ? "Supplier list" : null, customs, !b.customs && s?.readDate ? `read ${s.readDate}` : null].filter(Boolean).join(" · ")}</span>
                 </Listed>
               );
@@ -184,23 +217,6 @@ function Overview({ model, today, sectionHref, level }: PanelProps) {
               {v && v.buyers !== null && v.buyers > fromCustoms ? ` ${fromCustoms} of ${v.buyers.toLocaleString("en-GB")} shown.` : ""}
             </p>
           ) : null}
-        </Section>
-      ) : null}
-      {members.length > 0 ? (
-        <Section title="Memberships" level={level}>
-          <ul className="-mt-2 flex flex-col">
-            {members.map((m) => {
-              const s = readOf(m.mark);
-              const stale = staleWords(s?.readDate ?? null, today);
-              return (
-                <Listed key={`${m.name}-${m.number}`} icon={IdentificationBadge} title={[m.name, m.qualifier].filter(Boolean).join(" ")} href={s?.mark.href ?? null} opens={m.name}>
-                  {m.number ? <span className="font-mono text-ink-2">{m.number}</span> : null}
-                  {s?.readDate && !stale ? <span>{m.number ? "· " : ""}read {s.readDate}</span> : null}
-                  {stale ? <Stale>{stale}</Stale> : null}
-                </Listed>
-              );
-            })}
-          </ul>
         </Section>
       ) : null}
       {model.rfqs.rows.length > 0 ? (
@@ -251,13 +267,19 @@ function Stale({ children }: { children: string }) {
   );
 }
 
-/** A membership or a buyer: its glyph, its name, what we hold it from in small words, and the register's own page where the record carries it. */
-function Listed({ icon: G, title, href, opens, children }: { icon: Icon; title: string; href: string | null; opens: string; children: ReactNode }) {
+function Disc({ icon: G }: { icon: Icon }) {
   return (
-    <li className="flex items-center gap-3 border-t border-line py-3 first:border-t-0">
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-sunken">
-        <G size={20} weight="thin" className="text-ink-2" aria-hidden />
-      </span>
+    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-sunken">
+      <G size={20} weight="thin" className="text-ink-2" aria-hidden />
+    </span>
+  );
+}
+
+/** A membership or a buyer: the register's mark or a glyph, its name, what we hold it from in small words, and the register's own page where the record carries it. */
+function Listed({ lead, title, href, opens, children }: { lead: ReactNode; title: string; href: string | null; opens: string; children: ReactNode }) {
+  return (
+    <li className="flex items-center gap-3 border-t border-line py-2 first:border-t-0">
+      {lead}
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="text-md/[22px] font-medium text-ink">{title}</span>
         <span className="flex flex-wrap items-center gap-x-1.5 text-xs text-ink-3">{children}</span>

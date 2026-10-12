@@ -251,7 +251,7 @@ function CustomsFoot({ model, today }: { model: SupplierSheetModel; today: Date 
   );
 }
 
-const FACT_ICON: Record<string, Icon> = { "Factory types": Factory, Type: Factory, Workers: UsersThree, "Women · men": UsersThree, "Sewing machines": Needle, "Capacity, as filed": Gauge, Founded: Buildings, Address: MapPin, Products: Tag, Exports: Package };
+export const FACT_ICON: Record<string, Icon> = { "Factory types": Factory, Type: Factory, Workers: UsersThree, "Women · men": UsersThree, "Sewing machines": Needle, "Capacity, as filed": Gauge, Founded: Buildings, Address: MapPin, Products: Tag, Exports: Package };
 
 function KeyFacts({ model, level }: Omit<SectionProps, "today">) {
   const cells = factCells(model);

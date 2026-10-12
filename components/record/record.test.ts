@@ -181,7 +181,8 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
     const both = text(phone({ ...scoped, volza: { ...scoped.volza!, top_record: { ...scoped.volza!.top_record!, buyer_name: "H & M HENNES & MAURITZ GBC AB" } } }, { mode: "page" }));
     assert.match(both, /Buyers 3 H&M Supplier list · customs records as H & M Hennes & Mauritz GBC AB ASOS Supplier list/);
     // With no customs record to read, the brands' lists alone, and no word about customs.
-    assert.match(text(phone(model(), { mode: "page" })), /Buyers 3 ASOS Supplier list · read 30 Jul 2026 H&M .* NEXT Supplier list · read 18 May 2026 Memberships/);
+    // Memberships come before Buyers (Paper page 35, 13 Oct 2026), each register's own mark in its disc.
+    assert.match(text(phone(model(), { mode: "page" })), /Memberships EPB BD04293 · read 14 Aug .* Buyers 3 ASOS Supplier list · read 30 Jul 2026 H&M .* NEXT Supplier list · read 18 May 2026 We have no customs/);
     // The desktop says them once too, as tiles (Paper page 37): the old Key facts row is gone.
     assert.match(text(view(scoped, { mode: "page" })), /Buyers 4 /);
     assert.doesNotMatch(text(view(scoped, { mode: "page" })), /Buyers in shipment records/);
@@ -195,7 +196,12 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
     assert.match(out, /Government register Last read EPB/);
     assert.match(out, /NEXT 18 May 2026 123 days ago/, "a stale read still says how old it is, under its date");
     // Key facts: where a figure came from reads "From BKMEA", under it, never a bare code at the row's end.
-    assert.match(out, /Capacity 1,000,000 pcs\/day From BKMEA/);
+    assert.match(out, /Capacity, as filed 1,000,000 pcs\/day From BKMEA/);
+    // Key facts are icon cells, two by two; the export tiles are the desktop's worked-out four, the fourth always the biggest market.
+    assert.match(html, /<dl data-phone-facts="" class="grid grid-cols-2 /);
+    const tiles = text(phone(model(aboniInput(), { volza: VOLZA, exportRank: 89, market: "United States" }), { mode: "page" }));
+    assert.match(tiles, /Export value, 2 years US\$21\.7m Bigger than 89% of exporters on record Typical shipment US\$53,000 6% under 1,000 pieces Buyers 43 10 in the EU · 9 shipments each Ships to the EU US\$15\.6m 72% of exports · 236 shipments/);
+    assert.doesNotMatch(tiles, /Shipments a month|Latest shipment|Biggest shipment|Ships to the US/);
     assert.doesNotMatch(html, /w-14 shrink-0 text-right/);
     // A listing has no date, only its number: it carries the label a dated certificate's number has.
     assert.match(out, /OEKO-TEX Standard 100 Listed Certificate 32597-100/);
