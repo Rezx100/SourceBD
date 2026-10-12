@@ -41,6 +41,7 @@ import {
   type CertChecks,
   type ShipmentRevealState,
   type VolzaExports,
+  type VolzaMarketName,
   capacityNote,
   shippedPiecesPerYear,
   type CertModel,
@@ -1107,6 +1108,8 @@ export type SheetOptions = {
   volza?: VolzaExports | null;
   /** `supplier_shipment_reveal_state(slug)` (0141); null draws no Recent shipments section. */
   shipments?: ShipmentRevealState | null;
+  /** The reader's own customs market (their onboarding country), for the export grid. */
+  market?: VolzaMarketName | null;
 };
 
 /**
@@ -1442,6 +1445,7 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
       // Six tiles unless the caller asked for all of them, and a destination
       // for the rest when it did not.
       tiles: input.hscodesError ? [] : photoTiles(lines, options.allLines ? lines.length : 6),
+      lineTiles: input.hscodesError ? [] : photoTiles(lines, lines.length).sort((a, b) => a.hs.localeCompare(b.hs)),
       allLinesHref: options.allLines || lines.length <= 6 ? null : (options.allLinesHref ?? null),
     },
     certs: certList,
@@ -1501,6 +1505,7 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
     certChecks: options.certChecks ?? null,
     volza: options.volza ?? null,
     shipments: options.shipments ?? null,
+    market: options.market ?? null,
     // A flagged record whose payload carries no row is not "no match" — it is a
     // match whose receipt did not come back.
     sanctionsEmpty:
