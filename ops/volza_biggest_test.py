@@ -89,7 +89,8 @@ def main() -> None:
     missing = [s for s in a.slugs if s not in by_slug]
     if missing:
         p.error(f"not fetched, or nothing found: {missing}")
-    done = {r["slug"]: r for r in load(OUT)} if OUT.exists() else {}
+    saved = load(OUT) if OUT.exists() else []
+    done = {r["slug"]: r for r in saved if "response" in r}
     todo = [s for s in a.slugs if s not in done]
     if not a.apply:
         print(f"the {RECORDS} biggest shipments since {SINCE} for {len(todo)} suppliers ({len(a.slugs) - len(todo)} done), "
@@ -97,15 +98,19 @@ def main() -> None:
         for s in todo:
             print(f"  {by_slug[s]['name']}: {json.dumps(filters(by_slug[s]))}")
     else:
-        prior = sum(r["cost"] for r in done.values())
+        prior = sum(r["cost"] for r in saved)
         v = Live(CAP, prior, start_used=account_used(), records=RECORDS)
         with OUT.open("a", encoding="utf-8") as out:
             for s in todo:
                 r = by_slug[s]
+                before = v.tally
                 try:
                     st, data, cost = v.search(filters(r))
                 except Stop as e:
                     print(f"STOPPED at {r['name']!r}: {e}")
+                    if v.tally > before:  # counted as spent (a timeout, a 5xx): kept, so a rerun's cap sees it
+                        out.write(json.dumps({"slug": s, "name": r["name"], "cost": round(v.tally - before, 3),
+                                              "stopped": str(e)}) + "\n")
                     break
                 if st != 200:
                     print(f"  skipped {r['name']!r}: {st} {str(data)[:200]}")
