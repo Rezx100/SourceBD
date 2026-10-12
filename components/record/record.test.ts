@@ -141,7 +141,7 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
     assert.doesNotMatch(out, /didn't load|did not load|Retry|Your RFQs/);
   });
 
-  it("leaves the certifier's scope text and the amber records notice out, and lists the customs buyers once, as pills", () => {
+  it("leaves the certifier's scope text and the amber records notice out, and lists the buyers once, under the names people use", () => {
     const m = model(aboniInput(), { volza: { ...VOLZA, window_end: "2026-05-31", top_record: { shipment_date: "2026-05-30", hsn_code: "620520", product_description: "MENS SHIRT", buyer_name: "HUGO BOSS TICINO S A VIA SANT APOLLONIA 32", destination_country: "Germany", trade_value_usd: 1000, unit_rate_usd: null, unit: "PCS" } } });
     const scoped = { ...m, certs: m.certs.map((c) => ({ ...c, scope: "Operations: Dyeing, Embroidery | Products: Greige yarn" })) };
     const out = text(phone(scoped, { mode: "page" }));
@@ -149,8 +149,20 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
     assert.doesNotMatch(out, /Operations: Dyeing|Greige yarn/, "a certificate card prints the scope");
     assert.doesNotMatch(out, /Shipments after that date are not counted here yet/, "the amber notice is back on Exports");
     assert.match(out, /The records end \d+ days ago/, "the footnote still says how far behind the records are");
-    assert.match(out, /Buyers 1 of 43 shown Hugo Boss Ticino S A As named on customs records: often an importer or an agent, not the brand\./);
+    // Founder, 12 Oct 2026: the brands' lists and the customs buyers are one section. The name people use is the
+    // row; the customs record's own name is small beside its source, so the short one is not read as the record's.
+    assert.match(out, /Buyers 4 ASOS Supplier list · read 30 Jul 2026 H&M Supplier list · read 26 Jun 2026 NEXT Supplier list · read 18 May 2026 Hugo Boss Customs records as Hugo Boss Ticino S A Customs records name the importer: often an agent or a buying house, not the brand\. 1 of 43 shown\./);
+    const html = phone(scoped, { mode: "page" });
+    assert.match(html, /<span class="text-md\/\[22px\] font-medium text-ink">Hugo Boss<\/span><span class="[^"]*text-xs text-ink-3[^"]*"><span>Customs records as Hugo Boss Ticino S A<\/span>/);
+    assert.equal((html.match(/data-phone-buyers=""/g) ?? []).length, 1, "one list of buyers on the record");
+    assert.doesNotMatch(out, /Memberships and brand lists|As named on customs records/);
+    assert.match(out, /Memberships EPB BD04293/);
     assert.doesNotMatch(out, /Buyers in shipment records/, "the buyers are said twice on one page");
+    // A brand whose list names the supplier and whose company is on its customs records is one row, first.
+    const both = text(phone({ ...scoped, volza: { ...scoped.volza!, top_record: { ...scoped.volza!.top_record!, buyer_name: "H & M HENNES & MAURITZ GBC AB" } } }, { mode: "page" }));
+    assert.match(both, /Buyers 3 H&M Supplier list · customs records as H & M Hennes & Mauritz GBC AB ASOS Supplier list/);
+    // With no customs record to read, the brands' lists alone, and no word about customs.
+    assert.match(text(phone(model(), { mode: "page" })), /Buyers 3 ASOS Supplier list · read 30 Jul 2026 H&M .* NEXT Supplier list · read 18 May 2026 Memberships/);
     // The desktop keeps its Key facts row.
     assert.match(text(view(scoped, { mode: "page" })), /Buyers in shipment records/);
   });
