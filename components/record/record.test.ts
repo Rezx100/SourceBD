@@ -71,7 +71,13 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
     // Each lands under the bar, the short statuses and the strip (56 + 42 + 48, less its own 8px band), and the foot marks the last tab.
     assert.equal((out.match(/data-phone-panel="[a-z]+" class="[^"]*scroll-mt-\[138px\]/g) ?? []).length, TABS.length);
     assert.match(out, /<div data-phone-end="" aria-hidden="true"><\/div><\/div>$/);
-    assert.match(readFileSync(path.join(dir, "phone-tabs.tsx"), "utf8"), /sectionInView\(ORDER, inBand, atEnd, prev\)/, "the strip does not follow the scroll");
+    const tabsSrc = readFileSync(path.join(dir, "phone-tabs.tsx"), "utf8");
+    assert.match(tabsSrc, /sectionInView\(ORDER, inBand, atEnd, prev\)/, "the strip does not follow the scroll");
+    // A tapped tab keeps its mark until the reader moves the page (a short last section never reaches the band),
+    // and a reader the browser brought back to their place is not thrown to the section's top.
+    assert.match(tabsSrc, /MOVES = \["touchstart", "wheel", "keydown"\]/);
+    assert.doesNotMatch(tabsSrc, /scrollend|setTimeout/);
+    assert.match(tabsSrc, /scrollY\) === 0\) panel\(initial\)\?\.scrollIntoView/);
     const strip = /<nav aria-label="Record sections"[^>]*>([\s\S]*?)<\/nav>/.exec(out)![1]!;
     assert.equal((strip.match(/<a /g) ?? []).length, TABS.length);
     assert.match(strip, /aria-current="page"[^>]*>Overview/);

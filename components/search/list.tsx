@@ -258,10 +258,22 @@ export function PastEnd({ page, firstHref }: { page: number; firstHref: string }
 export function ResultsSkeleton({ title }: { title?: string }) {
   const widths = [220, 180, 240, 200, 160, 230, 190, 210];
   return (
-    <div role="status" aria-busy="true" aria-label="Loading suppliers" className="flex flex-col">
-      <div className="flex h-14 shrink-0 items-center gap-3 border-b border-line px-4 md:px-6">
+    // `data-own-top`: a phone's results start at the field, so the frame's title bar is hidden while they load too
+    // (it would be drawn over the skeleton and then vanish under the results, a 56px jump on every search).
+    <div role="status" aria-busy="true" aria-label="Loading suppliers" data-own-top="" className="flex flex-col">
+      <div className="flex h-14 shrink-0 items-center gap-3 border-b border-line px-6 max-md:hidden">
         <SlowHead>{title ?? ""}</SlowHead>
         <Skeleton className="h-3 w-24" />
+      </div>
+      {/* A phone waits on the shape of its own bar: the field, the pills, the count. */}
+      <div className="flex flex-col gap-4 px-5 pt-3 md:hidden" aria-hidden>
+        <Skeleton className="h-[52px] rounded-[12px]" />
+        <div className="flex gap-2 py-1">
+          <Skeleton className="h-9 w-11 rounded-full" />
+          <Skeleton className="h-9 w-28 rounded-full" />
+          <Skeleton className="h-9 w-32 rounded-full" />
+        </div>
+        <Skeleton className="h-5 w-32" />
       </div>
       {/* The table's head and its rows are the desktop's; a phone waits on the shape of its own list. */}
       <div className="mx-6 flex h-row-head items-center border-b border-line bg-subtle px-3 text-xs font-medium text-ink-3 max-md:hidden">
@@ -274,7 +286,7 @@ export function ResultsSkeleton({ title }: { title?: string }) {
       </div>
       <div className="md:hidden" aria-hidden>
         {widths.map((w, i) => (
-          <div key={i} className="flex flex-col gap-2.5 border-b border-line px-4 py-4">
+          <div key={i} className="mx-5 flex flex-col gap-2.5 border-b border-line py-4">
             <Skeleton className="h-4" style={{ width: w }} />
             <Skeleton className="h-3" style={{ width: 150 + (i % 3) * 20 }} />
             <Skeleton className="h-3 w-[190px]" />

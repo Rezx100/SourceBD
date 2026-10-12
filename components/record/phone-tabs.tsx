@@ -26,6 +26,8 @@ export function PhoneTabs({ initial, className, children }: { initial: TabId; cl
   const [active, setActive] = useState<TabId>(initial);
   const [built, setBuilt] = useState(false);
   const root = useRef<HTMLDivElement>(null);
+  // A tapped tab stays marked until the reader moves the page themselves: a short section near the foot
+  // cannot reach the band under the strip, and the spy would hand its mark to a neighbour once the jump ended.
   const clicking = useRef(false);
   const release = useRef<(() => void) | null>(null);
   const panel = (id: TabId) => root.current?.querySelector<HTMLElement>(`[data-phone-panel="${id}"]`) ?? null;
@@ -67,12 +69,13 @@ export function PhoneTabs({ initial, className, children }: { initial: TabId; cl
     );
     const end = box.querySelector("[data-phone-end]");
     if (end) foot.observe(end);
-    // A link that names a tab lands on its section.
+    // A link that names a tab lands on its section; a reader the browser brought back to where they were (Back) stays there.
     setActive(initial);
-    if (initial !== "overview") panel(initial)?.scrollIntoView({ block: "start" });
+    if (initial !== "overview" && (within ? within.scrollTop : window.scrollY) === 0) panel(initial)?.scrollIntoView({ block: "start" });
     return () => {
       spy.disconnect();
       foot.disconnect();
+      release.current?.();
     };
   }, [initial]);
 
@@ -88,15 +91,13 @@ export function PhoneTabs({ initial, className, children }: { initial: TabId; cl
     setActive(tab);
     history.replaceState(null, "", href);
     const within = scroller(target) ?? window;
+    const MOVES = ["touchstart", "wheel", "keydown"] as const;
     const done = () => {
       clicking.current = false;
       release.current = null;
-      clearTimeout(timer);
-      within.removeEventListener("scrollend", done);
+      for (const m of MOVES) window.removeEventListener(m, done);
     };
-    // `scrollend` where the browser has it; the timer where it does not, or when nothing moved.
-    const timer = setTimeout(done, 1000);
-    within.addEventListener("scrollend", done);
+    for (const m of MOVES) window.addEventListener(m, done, { passive: true });
     release.current = done;
     const behavior = reduced() ? "auto" : "smooth";
     // Overview is the record from its top: the name and the statuses, not the first section under the strip.

@@ -469,6 +469,8 @@ describe("the narrow list and the phone's rows", () => {
     const head = /<div[^>]*>(?=<span[^>]*>Supplier<)/.exec(out)![0];
     assert.match(head, /max-md:hidden/, "a phone shows the desktop's column head over its skeleton");
     assert.match(out, /<div class="md:hidden" aria-hidden="true">/, "a phone has no skeleton rows of its own");
+    // The frame's title bar is hidden over the results; it must be hidden while they load, or it flashes and the page jumps.
+    assert.match(out, /^<div role="status" aria-busy="true" aria-label="Loading suppliers" data-own-top=""/);
   });
 
   it("beside a pane: name, type and place, the first certificate problem, the count; the open row is marked", () => {
