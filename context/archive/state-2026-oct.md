@@ -36,3 +36,12 @@ Ten notes on the live phone site, one PR (`phone-fixes-1`), phone only, no migra
 - **Search**: the results start at the field (the frame's title bar is hidden over `data-own-top`); a row says its worst certificate in words, not marks; a suggested company opens the record page with the way back.
 - **"Your RFQs didn't load"**: the phone no longer draws it. Cause: migration 0126 (claimed-supplier policies) was never applied to production, so every direct read of `rfqs` as a buyer fails. Waits for the founder's "apply 0126".
 - **Not built**: the month-by-month exports chart on the board. The customs data holds a two-year total and four markets, no monthly figures; drawing it needs a new fetch.
+
+## Phone fixes, round 2 (12 Oct 2026)
+
+Three more notes from the founder once PR #477 was live; branch `phone-fixes-2`, phone only, no migration.
+
+- **Divider**: what parts two sections of the record is a 12px gap of the page's ground between two hairlines, not a solid grey band.
+- **Contact** is the last card of the record's scroll, after Products (`PhoneContact` in `phone-record.tsx`). Still the locked card here; the real details for Growth, Enterprise and admins are a separate branch (`contact-reveal`, a new database function that waits for the founder's "apply").
+- **HS line page**: cut to the line's own receipts (the EPB exporter page, the certificates whose scope covers it, anything the supplier attests), the supplier's customs total in one card, and the shipments coded to the heading. The desktop's fact list, the three tiles and "By market" are no longer drawn on a phone; they are on the record.
+- **Still not built**: the month-by-month exports chart (no monthly figures in the customs data).
