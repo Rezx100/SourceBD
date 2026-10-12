@@ -53,8 +53,8 @@ Every gate stays where it is, in the database:
    The reader's market is `buyer_settings.company_country` (0109, applied; filled at onboarding, 2 of 33
    buyers on 13 Oct 2026) mapped to UK / US / EU / Canada. Not stored, or outside those four: tile 3
    drops the "N in the UK" half and tile 4 is "Biggest market". No new setting is added.
-   Under the grid one line: "Customs records, Sep 2024 – Aug 2026 · latest shipment on record 30 Aug ·
-   read 11 Oct · the records end 42 days ago". Never "last shipped". Unit prices stay hidden. Money
+   Under the grid one line: "Customs records, Sep 2024 – Aug 2026 · latest on record 30 Aug ·
+   read 11 Oct" (shortened 13 Oct on the founder's note; the window's end says how far the records reach). Never "last shipped". Unit prices stay hidden. Money
    keeps the app's own form ("US$76.6m").
 6. Exports section: one line saying what the figure is, then "Where it goes" (share bar and table),
    then Recent shipments as shipped. No month-by-month chart.

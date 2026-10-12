@@ -9,7 +9,7 @@
 // grey stamp. Nothing is cut off with an ellipsis and nothing is scored. Server-safe; the map, Copy and
 // the paid reveal are the only script.
 
-import { ArrowUpRight, Buildings, CaretDown, CaretRight, Check, Clock, Envelope, Factory, FileText, Gauge, Globe, HardHat, Hourglass, ListChecks, Lock, MapPin, Needle, Package, Phone, ShieldCheck, Storefront, Tag, UsersThree, WarningOctagon } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, ArrowUpRight, Buildings, CaretDown, CaretRight, Check, Clock, Envelope, Factory, FileText, Gauge, Globe, HardHat, Hourglass, ListChecks, Lock, MapPin, Needle, Package, Phone, ShieldCheck, Storefront, Tag, UsersThree, WarningOctagon } from "@phosphor-icons/react/dist/ssr";
 import type { Icon } from "@phosphor-icons/react";
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
@@ -41,7 +41,7 @@ import {
   type SafetyLine,
 } from "./desktop-words";
 import { RecordRfqs, productItems, sourceGroups } from "./panels";
-import { NO_CUSTOMS, UFLPA_LABEL, marketShares, noCustoms, recordsEnd, sanctionListRows, shortDay, uflpaLine, type StatusRow } from "./phone-words";
+import { NO_CUSTOMS, UFLPA_LABEL, marketShares, noCustoms, recordsEnd, sanctionListRows, uflpaLine, type StatusRow } from "./phone-words";
 import { ShipmentRevealSection } from "./shipment-reveal";
 import { staleWords, type TabId } from "./words";
 
@@ -204,9 +204,10 @@ function ExportGrid({ model, today, level, href, revealHref, market, rank }: Sec
       label="Export figures"
       level={level}
       aside={
-        <a href={href} data-jump="exports" className={cn("flex shrink-0 items-center gap-0.5 rounded-sm text-sm font-medium text-ink-2 hover:text-ink", ring)}>
-          All exports
-          <CaretRight size={14} weight="thin" className="shrink-0" aria-hidden />
+        // Names what is there: the split by market and the latest shipments. Never "all": those are the latest 15 or 25.
+        <a href={href} data-jump="exports" className={cn("group/more flex shrink-0 items-center gap-1 rounded-sm text-sm font-medium text-brand-ink underline-offset-[3px] hover:underline", ring)}>
+          Markets and shipments
+          <ArrowRight size={14} weight="thin" className="shrink-0 transition-transform group-hover/more:translate-x-0.5 motion-reduce:transition-none" aria-hidden />
         </a>
       }
     >
@@ -232,7 +233,8 @@ function ExportGrid({ model, today, level, href, revealHref, market, rank }: Sec
         {revealHref && (model.shipments?.state === "offer" || model.shipments?.state === "shown") ? (
           <div className="px-3 pt-1">
             <ButtonLink href={revealHref} prefetch={false}>
-              Show recent shipments
+              {/* The count the reader's plan shows (15 or 25), as the button under Exports says it. */}
+              See the latest {model.shipments.state === "offer" ? `${model.shipments.shown} ` : ""}shipments
             </ButtonLink>
           </div>
         ) : null}
@@ -345,7 +347,6 @@ function Buyers({ model, today, level }: SectionProps) {
   const tiles = buyerTiles(model, buyersOf(model.products.buyerLists, v), today);
   if (tiles.length === 0) return null;
   const fromCustoms = tiles.filter((b) => b.customs).length;
-  const read = v ? shortDay(v.fetched_at, today) : null;
   return (
     <Block title="Buyers" count={tiles.length} level={level}>
       <div className="flex flex-col gap-2.5">
@@ -372,9 +373,8 @@ function Buyers({ model, today, level }: SectionProps) {
         </ul>
         {fromCustoms > 0 ? (
           <p className={cn("px-3 text-xs text-ink-3", NUM)}>
-            Customs records name the importer: often an agent or a buying house, not the brand.
-            {v && v.buyers !== null && v.buyers > fromCustoms ? ` ${fromCustoms} of ${v.buyers.toLocaleString("en-GB")} shown.` : ""}
-            {read ? ` Customs records read ${read}.` : ""}
+            {v && v.buyers !== null && v.buyers > fromCustoms ? `${fromCustoms} of ${v.buyers.toLocaleString("en-GB")} shown. ` : ""}
+            Customs name the importer, often an agent rather than the brand.
           </p>
         ) : null}
       </div>
