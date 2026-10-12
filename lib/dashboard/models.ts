@@ -175,6 +175,27 @@ export type ContactCounts = {
   website: boolean;
 };
 
+/**
+ * The contact details themselves (`supplier_contact_details`, 0145), as the registers filed them. The
+ * database returns them only to an admin or a Growth or Enterprise buyer who is not suspended, cleaned
+ * by the rules the counts use, so a list here is as long as the count beside it said.
+ */
+export type ContactDetails = {
+  emails: string[];
+  phones: string[];
+  website: string | null;
+  person: string | null;
+  /** The contact person's role; only ever beside a `person`. */
+  role?: string | null;
+};
+
+/**
+ * What the details read answered: the details, `"limited"` (the account has opened the contact details of
+ * its daily allowance of different suppliers; no value came back), or null (not entitled, sanctioned,
+ * unpublished, unread).
+ */
+export type ContactDetailsRead = ContactDetails | "limited" | null;
+
 /** One row of the Sources section: a register that filed something on this record. */
 export type SourceRow = {
   mark: SourceMarkModel;
@@ -263,12 +284,17 @@ export type SupplierSheetModel = {
   summary: string | null;
   facts: FactRow[];
   /**
-   * The locked card. `counts` is what `supplier_contact_counts` returned, or
+   * The contact card. `counts` is what `supplier_contact_counts` returned, or
    * null when that read failed — never zeros, because "no phone number on
    * file" is a claim about the record and a failed count does not support it.
-   * No contact VALUE ever reaches this model.
+   * `details` is the only place a contact VALUE reaches this model, and only
+   * when the database returned it for an entitled reader (`ContactDetails`);
+   * null for everyone else, and the card is then the locked one. Nothing the
+   * profile payload carries is ever copied here. `limited` is true when the
+   * reader may see details but their account has opened the day's allowance
+   * of suppliers: `details` is then null and the locked card says so.
    */
-  contact: { hidden: string; plan: string | null; counts: ContactCounts | null; held: string | null };
+  contact: { hidden: string; plan: string | null; counts: ContactCounts | null; held: string | null; details: ContactDetails | null; limited?: boolean };
   readDates: string | null;
   products: {
     lines: number;

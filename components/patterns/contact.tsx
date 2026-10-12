@@ -24,8 +24,14 @@ export function onFileWords(emails: number, phones: number, website = false, rep
   return parts.length ? parts.join(" · ") : null;
 }
 
-/** The details-panel block (344). `action` is the Send RFQ button; nothing on file has no action and no lock. */
-export function LockedContact({ emails, phones, website, representatives, action, className, level: H = "h3" }: OnFile & { action?: ReactNode; className?: string; level?: "h2" | "h3" }) {
+/**
+ * What a reader who may see contact details is told once their account has opened the day's allowance of
+ * suppliers (`supplier_contact_details`, 0145): the card stays locked and says so in this one line.
+ */
+export const CONTACT_LIMIT_WORDS = "You've reached today's limit for contact details. They open again tomorrow.";
+
+/** The details-panel block (344). `action` is the Send RFQ button; nothing on file has no action and no lock. `note` is one more plain line (the daily limit). */
+export function LockedContact({ emails, phones, website, representatives, action, note, className, level: H = "h3" }: OnFile & { action?: ReactNode; note?: string | null; className?: string; level?: "h2" | "h3" }) {
   const words = onFileWords(emails, phones, website, representatives);
   return (
     <section aria-label="Contact" className={cn("flex w-full max-w-details flex-col gap-3 rounded-lg border border-line p-4", className)}>
@@ -37,6 +43,7 @@ export function LockedContact({ emails, phones, website, representatives, action
         <>
           <p className="text-base font-medium text-ink">{words}</p>
           <p className="text-sm text-ink-2">Contact details are locked. Send an RFQ and the supplier replies here.</p>
+          {note ? <p className="text-sm text-ink-2">{note}</p> : null}
           {action ? <div className="self-start">{action}</div> : null}
         </>
       ) : (

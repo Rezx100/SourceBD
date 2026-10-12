@@ -11,12 +11,13 @@ import type { Icon } from "@phosphor-icons/react";
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 import { CertChip, Skeleton, ring } from "@/components/kit";
-import { ABSENT, onFileWords } from "@/components/patterns";
+import { ABSENT, CONTACT_LIMIT_WORDS, onFileWords } from "@/components/patterns";
 import { certShort } from "@/components/patterns/words";
 import { LinkPending } from "@/components/patterns/link-pending";
 import { brandsInCustoms, customsBuyers, customsWindow, formatDay, formatUsdShort } from "@/lib/dashboard/facts";
 import type { SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
+import { ContactDetailsCard } from "./contact-card";
 import { ProductsPanel, RecordRfqs, SanctionEvidence, SitesPanel, sourceGroups, type Level } from "./panels";
 import { PhoneBar, PhonePanel, PhoneTabLink, PhoneTabStrip, PhoneTabs } from "./phone-tabs";
 import { NO_CUSTOMS, UFLPA_LABEL, certGroups, customsTiles, lookCards, marketShares, noCustoms, phoneStatus, recordsEnd, rscBehind, rscCards, sanctionListRows, shortDay, uflpaLine, type CertGroup, type LookCard, type RscCard, type StatusRow } from "./phone-words";
@@ -256,7 +257,8 @@ function Overview({ model, today, tabHref, level }: PanelProps) {
 
 /**
  * Contact, the last card of the record's scroll (founder, 12 Oct 2026): a buyer reads what the registers
- * hold, then how to reach the supplier. Locked, it says how many details are on file, never a value.
+ * hold, then how to reach the supplier. Locked, it says how many details are on file, never a value;
+ * when the database returned the details (0145: an admin, or a Growth or Enterprise buyer) they are drawn.
  */
 export function PhoneContact({ model, level }: { model: SupplierSheetModel; level: Level }) {
   const counts = model.contact.counts;
@@ -264,14 +266,20 @@ export function PhoneContact({ model, level }: { model: SupplierSheetModel; leve
   return (
     <section aria-label="Contact" data-phone-contact="" className="flex flex-col pb-8">
       <Section first title="Contact" level={level}>
-        <div className="flex items-start gap-3 rounded-lg bg-sunken p-4">
-          <Lock size={20} weight="thin" className="shrink-0 text-ink-2" aria-hidden />
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            {/* An unread count says only that the details are locked: "none on file" would be a claim. */}
-            <p className="text-md font-medium text-ink">{onFile ?? "Contact details are locked"}</p>
-            <p className="text-base text-ink-2">{onFile ? "Locked. " : ""}Send an RFQ and the supplier replies in Messages.</p>
+        {model.contact.details ? (
+          <ContactDetailsCard details={model.contact.details} className="rounded-[10px]" />
+        ) : (
+          <div className="flex items-start gap-3 rounded-lg bg-sunken p-4">
+            <Lock size={20} weight="thin" className="shrink-0 text-ink-2" aria-hidden />
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              {/* An unread count says only that the details are locked: "none on file" would be a claim. */}
+              <p className="text-md font-medium text-ink">{onFile ?? "Contact details are locked"}</p>
+              <p className="text-base text-ink-2">{onFile ? "Locked. " : ""}Send an RFQ and the supplier replies in Messages.</p>
+              {/* A reader who may see details but has opened the day's allowance of suppliers (0145). */}
+              {model.contact.limited ? <p className="pt-1.5 text-base text-ink-2">{CONTACT_LIMIT_WORDS}</p> : null}
+            </div>
           </div>
-        </div>
+        )}
       </Section>
     </section>
   );

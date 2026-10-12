@@ -11,11 +11,14 @@
 // neither.
 
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, it } from "node:test";
 
 import {
   ProfileReadTimeout,
   fetchContactCounts,
+  fetchContactDetails,
   fetchRecordRfqs,
   fetchRecordSaved,
   fetchSanctionsRead,
@@ -147,6 +150,153 @@ describe("fetchContactCounts", () => {
   it("absorbs a thrown client", async () => {
     assert.equal(await fetchContactCounts({ rpc: async () => { throw new Error("network"); } }, "x"), null);
   });
+});
+
+describe("fetchContactDetails (0145: the database answers only an admin or a Growth or Enterprise buyer)", () => {
+  const details = (data: unknown, error: unknown = null) => fetchContactDetails({ rpc: async () => ({ data, error }) }, "x");
+
+  it("maps what the database returned, and asks by the name the SQL declares", async () => {
+    const calls: unknown[] = [];
+    const got = await fetchContactDetails(
+      {
+        rpc: async (fn, args) => (calls.push([fn, args]), { data: { emails: ["a@b.example", "c@d.example"], phones: ["+880 1754392350"], website: "http://b.example", person: "Md. Karim Uddin", role: "Managing Director" }, error: null }),
+      },
+      "aboni-knitwear",
+    );
+    assert.deepEqual(got, { emails: ["a@b.example", "c@d.example"], phones: ["+880 1754392350"], website: "http://b.example", person: "Md. Karim Uddin", role: "Managing Director" });
+    assert.deepEqual(calls, [["supplier_contact_details", { p_slug: "aboni-knitwear" }]]);
+  });
+
+  it("a record holding nothing is empty lists and nulls, which is a real answer", async () => {
+    assert.deepEqual(await details({ emails: [], phones: [], website: null, person: null, role: null }), { emails: [], phones: [], website: null, person: null, role: null });
+  });
+
+  it("keeps only strings, and a role only beside a person", async () => {
+    assert.deepEqual(await details({ emails: ["a@b.example", 7, null, " "], phones: "01700", website: 5, person: "", role: "Director" }), {
+      emails: ["a@b.example"],
+      phones: [],
+      website: null,
+      person: null,
+      role: null,
+    });
+  });
+
+  for (const [label, data, error] of [
+    ["an error (0145 not applied yet answers one)", null, { code: "PGRST202", message: "Could not find the function public.supplier_contact_details" }],
+    ["null: a reader the database does not entitle", null, null],
+    ["a string", "a@b.example", null],
+    ["a number", 7, null],
+    ["a list", ["a@b.example"], null],
+  ] as const) {
+    it(`returns null on ${label}`, async () => {
+      assert.equal(await details(data, error), null);
+    });
+  }
+
+  it("absorbs a thrown client", async () => {
+    assert.equal(await fetchContactDetails({ rpc: async () => { throw new Error("network"); } }, "x"), null);
+  });
+
+  // The account has opened the day's allowance of different suppliers: the database answers {"limit": n}.
+  for (const [label, data] of [
+    ["the limit alone", { limit: 200 }],
+    ["a limit of another size", { limit: 50 }],
+    ["a limit beside values (never read as details)", { limit: 200, emails: ["a@b.example"], phones: ["01700000000"], website: "b.example", person: "A Person" }],
+  ] as const) {
+    it(`maps ${label} to the limited state`, async () => {
+      assert.equal(await details(data), "limited");
+    });
+  }
+});
+
+describe("0145's text: the function trusts only the reveals it wrote itself", () => {
+  // What the function DOES is run in CI (supabase/ci/assert-0145.sql). This reads its text for the one thing a
+  // later edit could drop without any fixture noticing until an account walks past the limit: `ledger_note`
+  // (0134) takes the kind `contact.revealed` from any signed-in caller, so an entry counts here only when it
+  // carries the mark this function writes and `ledger_note` cannot.
+  const sql = readFileSync(path.join(process.cwd(), "supabase/migrations/0145_supplier_contact_details.sql"), "utf8")
+    .split(/\r?\n/)
+    .filter((line) => !line.trim().startsWith("--"))
+    .join("\n");
+
+  it("both lookups of the activity record read only marked entries of this kind by this account", () => {
+    // Each lookup, from its FROM to the end of its statement or condition.
+    const lookups = sql.split("from public.activity_ledger").slice(1).map((rest) => rest.slice(0, rest.search(/\)\s*then|;/)));
+    assert.equal(lookups.length, 2, "the re-open check and the count");
+    for (const lookup of lookups) {
+      for (const cond of ["l.actor_id = v_uid", "l.kind = 'contact.revealed'", "l.reason = c_written_by", "l.at > now() - interval '24 hours'"]) {
+        assert.ok(lookup.includes(cond), `a lookup is missing ${cond}:${lookup}`);
+      }
+    }
+    assert.ok(lookups[0]!.includes("l.supplier_id = v_supplier"), "the re-open check is not for this supplier");
+    assert.match(sql, /count\(distinct l\.supplier_id\)/, "the limit does not count different suppliers");
+  });
+
+  it("the function writes that mark on its own entry, and nothing else can", () => {
+    assert.match(sql, /c_written_by\s+constant text := 'supplier_contact_details';/);
+    assert.match(sql, /perform public\._ledger_write\('contact\.revealed', 'suppliers', v_supplier,[\s\S]*?p_supplier => v_supplier, p_reason => c_written_by\);/);
+    assert.equal(sql.match(/_ledger_write\(/g)?.length, 1, "one writer call, the marked one");
+    // `ledger_note` hands `_ledger_write` a null reason and has no parameter for one; `_ledger_write` stores what it is given.
+    const note = readFileSync(path.join(process.cwd(), "supabase/migrations/0134_ledger_accounts_reads.sql"), "utf8");
+    assert.match(note, /return public\._ledger_write\(p_kind, p_target_table, p_target_id, v_content, v_uid, null, v_supplier, p_thread, p_rfq, p_order, null, null\);/);
+    assert.doesNotMatch(/create or replace function public\.ledger_note\(([\s\S]*?)\)\s*returns/.exec(note)?.[1] ?? "p_reason", /reason/);
+    const writer = readFileSync(path.join(process.cwd(), "supabase/migrations/0131_activity_ledger.sql"), "utf8");
+    assert.match(writer, /v_content, v_hash, nullif\(btrim\(coalesce\(p_reason, ''\)\), ''\)/);
+  });
+
+  it("is gated, refuses a sanctioned supplier, keeps the limit in one place and is not anon's to call", () => {
+    assert.match(sql, /\(p\.role = 'admin' or p\.plan_tier in \('growth', 'enterprise'\)\)\s+and not coalesce\(p\.is_suspended, false\)/);
+    assert.match(sql, /and s\.is_published = true\s+and s\.is_sanctioned = false/);
+    assert.equal(sql.match(/\b200\b/g)?.length, 1, "the daily limit is written in more than one place");
+    assert.match(sql, /c_daily_limit constant integer := 200;/);
+    assert.match(sql, /language plpgsql\s+volatile\s+security definer\s+set search_path = public/);
+    assert.match(sql, /revoke all on function public\.supplier_contact_details\(text\) from anon;/);
+  });
+});
+
+describe("loadRecordSheet: the contact details", () => {
+  const DETAILS = { emails: ["sales@aboni.example"], phones: ["+880 1754392350"], website: "aboni.example", person: "Md. Karim Uddin", role: null };
+  function sheetClient(details: Rpc) {
+    const calls: { fn: string; args: Record<string, unknown> }[] = [];
+    const c = { select: () => c, eq: () => c, contains: () => c, order: () => c, limit: () => Promise.resolve({ data: [], error: null, count: 0 }), maybeSingle: () => Promise.resolve({ data: null }) };
+    return {
+      calls,
+      auth: { getUser: async () => ({ data: { user: { id: "buyer-1" } } }) },
+      from: () => c,
+      rpc: async (fn: string, args: Record<string, unknown>) => {
+        calls.push({ fn, args });
+        return fn === "buyer_supplier_profile" ? PROFILE : fn === "supplier_contact_details" ? details : { data: null, error: null };
+      },
+    };
+  }
+
+  it("what the database returned reaches the sheet; the database writes the reveal, so the loader writes none", async () => {
+    const c = sheetClient({ data: DETAILS, error: null });
+    const sheet = await loadRecordSheet(c, "aboni-knitwear", TODAY, {});
+    assert.deepEqual(sheet?.contact.details, DETAILS);
+    assert.equal(sheet?.contact.limited, false);
+    assert.equal(c.calls.filter((x) => x.fn === "supplier_contact_details").length, 1, "one read is one reveal in the database's count");
+    assert.ok(!c.calls.some((x) => x.fn === "ledger_note"), "the loader wrote a second reveal beside the database's own");
+  });
+
+  it("an account at its daily limit gets a sheet that is limited and holds no details", async () => {
+    const sheet = await loadRecordSheet(sheetClient({ data: { limit: 200, emails: ["a@b.example"] }, error: null }), "aboni-knitwear", TODAY, {});
+    assert.ok(sheet, "the record still loads");
+    assert.equal(sheet.contact.details, null);
+    assert.equal(sheet.contact.limited, true);
+  });
+
+  for (const [label, answer] of [
+    ["a reader the database does not entitle", { data: null, error: null }],
+    ["a database without 0145", { data: null, error: { code: "PGRST202", message: "Could not find the function" } }],
+  ] as const) {
+    it(`${label} gets a sheet with no details that is not limited`, async () => {
+      const sheet = await loadRecordSheet(sheetClient(answer), "aboni-knitwear", TODAY, {});
+      assert.ok(sheet, "the record still loads");
+      assert.equal(sheet.contact.details, null);
+      assert.equal(sheet.contact.limited, false);
+    });
+  }
 });
 
 describe("loadRecordSheet: the reads a row's id starts early", () => {

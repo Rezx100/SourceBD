@@ -9,6 +9,9 @@ import "server-only";
 // `supplier_contact_counts` (0105) is the fourth call, and it is the only one
 // the gallery does not need. It returns counts, never values — see the
 // migration's header for why the counts do not live on `buyer_supplier_profile`.
+// The values come from `supplier_contact_details` (0145), which answers only an
+// admin or a Growth or Enterprise buyer, writes each reveal to the activity
+// record itself, and stops at a daily limit of different suppliers per account.
 
 import { sessionUserId } from "@/lib/supabase/session-user";
 import { fetchDisplayWorkersBatch } from "@/lib/enrich-discover-workers";
@@ -19,7 +22,7 @@ import { buildProductSheet, buildSheet, locationTargets, type ProfilePayload, ty
 import { formatCount, formatDay, type CertChecks, type ShipmentRevealState, type VolzaExports } from "./facts";
 import { heading4, hsCatalogueRow } from "./hs-photos";
 import { sanitizeFacilityPanel, type FacilityPanel } from "@/lib/format-facility-group";
-import type { ContactCounts, ProductSheetModel, RecordRfqRow, SanctionListRead, SupplierSheetModel } from "./models";
+import type { ContactCounts, ContactDetailsRead, ProductSheetModel, RecordRfqRow, SanctionListRead, SupplierSheetModel } from "./models";
 
 /** The narrow slice of the Supabase client these loaders use. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the generated client type is not in scope here; gallery-data.ts uses the same shape.
@@ -133,6 +136,29 @@ export async function fetchContactCounts(supabase: RecordRpc, slug: string): Pro
     const representatives = count("representatives");
     if (emails === null || phones === null || representatives === null) return null;
     return { emails, phones, representatives, website: row.website === true };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The contact details themselves (`supplier_contact_details`, 0145). The database returns null unless
+ * the reader is an admin or on Growth/Enterprise and not suspended (founder, 12 Oct 2026), and for a
+ * sanctioned supplier, so a null here draws the locked card; so does a failed read, or 0145 not being
+ * applied yet. `{"limit": n}` is the account's daily limit reached: `"limited"`, and nothing else in
+ * that answer is ever read as a detail. The database writes the reveal to the activity record itself,
+ * so nothing is noted here. Only strings pass.
+ */
+export async function fetchContactDetails(supabase: RecordRpc, slug: string): Promise<ContactDetailsRead> {
+  try {
+    const { data, error } = await supabase.rpc("supplier_contact_details", { p_slug: slug });
+    if (error || !data || typeof data !== "object" || Array.isArray(data)) return null;
+    const row = data as Record<string, unknown>;
+    if ("limit" in row) return "limited";
+    const list = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && x.trim() !== "") : []);
+    const text = (v: unknown): string | null => (typeof v === "string" && v.trim() !== "" ? v : null);
+    const person = text(row.person);
+    return { emails: list(row.emails), phones: list(row.phones), website: text(row.website), person, role: person ? text(row.role) : null };
   } catch {
     return null;
   }
@@ -393,7 +419,8 @@ export type SheetView = {
 
 /**
  * Everything one record sheet needs, in one place: the profile, the export
- * lines, the worker figure, the contact COUNTS, whether the caller saved it,
+ * lines, the worker figure, the contact counts (and, for a reader the database
+ * entitles, the contact details), whether the caller saved it,
  * and the caller's own RFQs naming it.
  *
  * Returns null when the slug is not a published record — the caller renders
@@ -413,6 +440,7 @@ export async function loadRecordSheet(
   // trusting RLS alone (see `fetchRecordRfqs`).
   const buyerIdRead = callerId(supabase);
   const countsRead = fetchContactCounts(supabase, slug);
+  const detailsRead = fetchContactDetails(supabase, slug);
   const facilitiesRead = fetchFacilityPanel(supabase, slug);
   const sanctionsRead = fetchSanctionLists(supabase);
   const certChecksRead = fetchCertChecks(supabase, slug);
@@ -443,10 +471,11 @@ export async function loadRecordSheet(
         .then((found) => found?.map((g) => (g ? { latitude: g.latitude, longitude: g.longitude, confidencePct: g.confidencePct, addressStatus: g.addressStatus } : null)))
         .catch(() => undefined)
     : Promise.resolve(undefined);
-  const [workers, contactCounts, saved, rfqs, facilities, pins, sanctionLists, certChecks, volza, shipments] = await Promise.all([
+  const [workers, contactCounts, contactDetails, saved, rfqs, facilities, pins, sanctionLists, certChecks, volza, shipments] = await Promise.all([
     // A failed batch leaves the figure the record's own payload carries.
     reuse ? reuse.workers : fetchDisplayWorkersBatch(supabase, [supplierId]).catch(() => null),
     countsRead,
+    detailsRead,
     reuse ? reuse.saved : fetchRecordSaved(supabase, supplierId),
     reuse ? reuse.rfqs : buyerIdRead.then((buyerId) => fetchRecordRfqs(supabase, supplierId, buyerId)),
     facilitiesRead,
@@ -460,6 +489,7 @@ export async function loadRecordSheet(
   return buildSheet(record.input, {
     plan: view.plan ?? null,
     contactCounts,
+    contactDetails,
     facilities: { panel: facilities },
     pins,
     sanctionsReadAt: oldestDailyRead(sanctionLists),
