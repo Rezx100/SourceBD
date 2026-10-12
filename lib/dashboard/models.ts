@@ -126,6 +126,8 @@ export type TableRowModel = {
   workersSecond?: string | null;
   /** The second figure in a few words for the cell ("793 RSC"); shown under the first wherever the two differ. */
   workersSecondShort?: string | null;
+  /** Discover only: the one figure the record itself shows (the profile's where it differs from the headline). A phone's row says this one. */
+  workersRecord?: number | null;
   sanctioned: boolean;
   sanctionSample?: boolean;
   selected?: boolean;

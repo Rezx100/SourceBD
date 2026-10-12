@@ -338,6 +338,7 @@ export function buildDiscoverTableRow(
     workersCoverage: w.ownLabel,
     workersSecond: secondLine(w),
     workersSecondShort: workersSecondShort(w),
+    workersRecord: w.second ?? w.own,
     sanctioned: card.sanctioned,
     selected: false,
     saved: Boolean(opts.saved),
