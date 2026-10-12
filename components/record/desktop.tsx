@@ -12,7 +12,7 @@
 import { ArrowUpRight, Buildings, CaretDown, CaretRight, Check, Clock, Envelope, Factory, FileText, Gauge, Globe, HardHat, Hourglass, ListChecks, Lock, MapPin, Needle, Package, Phone, ShieldCheck, Storefront, Tag, UsersThree, WarningOctagon } from "@phosphor-icons/react/dist/ssr";
 import type { Icon } from "@phosphor-icons/react";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import { ButtonLink, Define, ring } from "@/components/kit";
 import { ABSENT, CONTACT_LIMIT_WORDS, SourceMark, onFileWords } from "@/components/patterns";
 import { hasSourceMark } from "@/components/patterns/source-mark";
@@ -251,14 +251,29 @@ function CustomsFoot({ model, today }: { model: SupplierSheetModel; today: Date 
   );
 }
 
-const FACT_ICON: Record<string, Icon> = { "Factory types": Factory, Type: Factory, Workers: UsersThree, "Women · men": UsersThree, "Sewing machines": Needle, "Capacity, as filed": Gauge, Founded: Buildings, Address: MapPin, Products: Tag, Exports: Package };
+export const FACT_ICON: Record<string, Icon> = { "Factory types": Factory, Type: Factory, Workers: UsersThree, "Women · men": UsersThree, "Sewing machines": Needle, "Capacity, as filed": Gauge, Founded: Buildings, Address: MapPin, Products: Tag, Exports: Package };
+
+/** Words that break between their " · " parts first: a part moves to the next line whole before it is split. */
+function Parts({ children }: { children: string }) {
+  const parts = children.split(" · ");
+  return (
+    <>
+      {parts.map((p, i) => (
+        <Fragment key={i}>
+          <span className="inline-block">{i < parts.length - 1 ? `${p} ·` : p}</span>
+          {i < parts.length - 1 ? " " : null}
+        </Fragment>
+      ))}
+    </>
+  );
+}
 
 function KeyFacts({ model, level }: Omit<SectionProps, "today">) {
   const cells = factCells(model);
   if (cells.length === 0) return null;
   return (
     <Block title="Key facts" level={level}>
-      <dl className={cn("grid grid-cols-2 gap-x-6 gap-y-3.5 px-3 [@container_(min-width:760px)]:grid-cols-[repeat(auto-fit,minmax(150px,1fr))]", NUM)}>
+      <dl className={cn("grid grid-cols-2 gap-x-6 gap-y-3.5 px-3 [@container_(min-width:840px)]:grid-cols-[repeat(auto-fit,minmax(180px,1fr))]", NUM)}>
         {cells.map((f) => {
           const G = FACT_ICON[f.label] ?? FileText;
           return (
@@ -268,8 +283,14 @@ function KeyFacts({ model, level }: Omit<SectionProps, "today">) {
               </span>
               <div className="flex min-w-0 flex-col gap-px">
                 <dt className="text-xs text-ink-3">{f.label}</dt>
-                <dd className={f.empty ? "text-base text-ink-2" : "text-[15px]/[22px] font-medium text-ink"}>{f.value}</dd>
-                {f.from ? <dd className="text-xs text-ink-3">{f.from}</dd> : null}
+                <dd className={f.empty ? "text-base text-ink-2" : "text-[15px]/[22px] font-medium text-ink"}>
+                  <Parts>{f.value}</Parts>
+                </dd>
+                {f.from ? (
+                  <dd className="text-xs text-ink-3">
+                    <Parts>{f.from}</Parts>
+                  </dd>
+                ) : null}
               </div>
             </div>
           );
@@ -532,7 +553,11 @@ export function ProductsSection({ model, today, level, fold }: SectionProps & { 
 /* ------------------------------------------------------------ certificates */
 
 const CERT_COLS =
-  "grid grid-cols-[minmax(0,1fr)_132px_92px_64px] items-center gap-x-3 [@container_(min-width:560px)]:grid-cols-[minmax(0,1fr)_158px_104px_88px] [@container_(min-width:560px)]:gap-x-4 [@container_(min-width:760px)]:grid-cols-[minmax(0,1fr)_170px_112px_176px_104px_104px]";
+  "grid grid-cols-[minmax(0,1fr)_132px_92px_64px] items-center gap-x-3 [@container_(min-width:560px)]:grid-cols-[minmax(0,1fr)_158px_104px_88px] [@container_(min-width:560px)]:gap-x-4 [@container_(min-width:900px)]:grid-cols-[minmax(0,1fr)_150px_104px_164px_92px_92px] [@container_(min-width:900px)]:gap-x-3";
+// The fixed columns and their gaps take 686px, so the six start at 900px of column, where the name keeps
+// 214px or more (at 760 it had none: a letter a line). Under that the table keeps four columns and says the
+// issuer under the name.
+const CERT_WIDE_CELL = "hidden [@container_(min-width:900px)]:block";
 const CERT_MARK: Record<string, string> = { "OEKO-TEX": "OEKO-TEX", GOTS: "GOTS", WRAP: "WRAP" };
 
 /**
@@ -543,27 +568,27 @@ function CertRow({ c }: { c: CertLine }) {
   const scheme = c.scheme.split(" ")[0]!;
   const ended = /^Ended/.test(c.state);
   return (
-    <div role="row" id={c.anchor ?? undefined} className={cn(CERT_COLS, "min-h-20 scroll-mt-[calc(var(--record-offset,0px)+12px)] content-center gap-y-2 border-b border-line px-3 py-2.5 last:border-b-0 target:bg-brand-tint hover:bg-subtle [@container_(min-width:760px)]:min-h-[84px]")}>
+    <div role="row" id={c.anchor ?? undefined} className={cn(CERT_COLS, "min-h-20 scroll-mt-[calc(var(--record-offset,0px)+12px)] content-center gap-y-2 border-b border-line px-3 py-2.5 last:border-b-0 target:bg-brand-tint hover:bg-subtle [@container_(min-width:900px)]:min-h-[84px]")}>
       <span role="cell" className="flex min-w-0 items-center gap-3">
         {CERT_MARK[scheme] ? <Mark source={CERT_MARK[scheme]} /> : <Letters size="sm">{initials(c.scheme)}</Letters>}
         <span className="flex min-w-0 flex-col gap-px">
-          <span className="text-base font-medium text-ink [@container_(min-width:760px)]:text-[15px]/[22px]">{c.scheme}</span>
-          {c.issuer ? <span className="text-xs text-ink-3 [@container_(min-width:760px)]:hidden">Issued by {c.issuer}</span> : null}
+          <span className="text-base font-medium text-ink [@container_(min-width:900px)]:text-[15px]/[22px]">{c.scheme}</span>
+          {c.issuer ? <span className="text-xs text-ink-3 [@container_(min-width:900px)]:hidden">Issued by {c.issuer}</span> : null}
         </span>
       </span>
       <span role="cell">{c.look ? <Look icon={Hourglass}>{c.state}</Look> : <span className={cn("text-base", ended ? "text-ink-3" : "text-ink")}>{c.state}</span>}</span>
       <span role="cell" className={c.until ? cn("whitespace-nowrap text-base", c.look ? "font-medium text-caution" : ended ? "text-ink-3" : "text-ink") : "text-xs text-ink-3"}>{c.until ?? "No end date published"}</span>
-      <span role="cell" className={cn("text-base text-ink [overflow-wrap:anywhere]", WIDE_CELL)}>
+      <span role="cell" className={cn("text-base text-ink [overflow-wrap:anywhere]", CERT_WIDE_CELL)}>
         {c.issuer ?? ""}
       </span>
       <span role="cell" className="flex flex-col">
         <span className="text-sm text-ink-2">{c.checked ?? ""}</span>
         {c.checkedNote ? <span className={cn("text-xs", c.look ? "font-medium text-caution" : "text-ink-3")}>{c.checkedNote}</span> : null}
       </span>
-      <span role="cell" className="col-start-4 row-start-2 flex justify-end [@container_(min-width:760px)]:col-start-6 [@container_(min-width:760px)]:row-start-1">
+      <span role="cell" className="col-start-4 row-start-2 flex justify-end [@container_(min-width:900px)]:col-start-6 [@container_(min-width:900px)]:row-start-1">
         {c.doc ? <DocLink c={c} /> : null}
       </span>
-      <span role="cell" className="col-span-3 col-start-1 row-start-2 flex flex-wrap items-center gap-1.5 pl-10 [@container_(min-width:760px)]:col-span-5 [@container_(min-width:760px)]:pl-11">
+      <span role="cell" className="col-span-3 col-start-1 row-start-2 flex flex-wrap items-center gap-1.5 pl-10 [@container_(min-width:900px)]:col-span-5 [@container_(min-width:900px)]:pl-11">
         {c.numbers.length > 0 ? <span className="shrink-0 text-xs text-ink-3">{c.numberLabel}</span> : null}
         {c.numbers.map((x) => (
           <Stamp key={x}>{x}</Stamp>
@@ -591,9 +616,9 @@ function CertHead() {
         <span role="columnheader">Certificate</span>
         <span role="columnheader">State</span>
         <span role="columnheader">Valid until</span>
-        <span role="columnheader" className={WIDE_CELL}>Issued by</span>
+        <span role="columnheader" className={CERT_WIDE_CELL}>Issued by</span>
         <span role="columnheader">Last checked</span>
-        <span role="columnheader" className={WIDE_CELL}>
+        <span role="columnheader" className={CERT_WIDE_CELL}>
           <span className="sr-only">Document</span>
         </span>
       </div>

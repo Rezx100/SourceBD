@@ -66,19 +66,20 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
     { list: "us_wro", last_read: null },
   ];
 
-  it("draws every section on the one page in tab order, every tab a link, and the three statuses jump to their sections", () => {
+  it("draws the nine sections on the one page in tab order, every tab a link, and the three statuses as one strip that opens Checks", () => {
     // Founder, 12 Oct 2026: one tab's view at a time sent the reader back to the strip for each section.
     const out = plain(phone(model(), { mode: "page" }));
-    assert.deepEqual([...out.matchAll(/data-phone-panel="([a-z]+)"/g)].map((m) => m[1]), TABS.map((t) => t.id));
+    const NINE = ["Overview", "Exports", "Products", "Certificates", "Checks", "Safety", "Sites", "Sources", "Contact"];
+    assert.deepEqual([...out.matchAll(/data-phone-panel="([a-z]+)"/g)].map((m) => m[1]), NINE.map((l) => l.toLowerCase()));
     assert.doesNotMatch(out, /data-phone-panel="[a-z]+"[^>]* hidden=""/, "a section is hidden until its tab is tapped");
     // Each lands under the bar, the short statuses and the strip (56 + 42 + 48, less the 12px gap over it), and the foot marks the last tab.
-    assert.equal((out.match(/data-phone-panel="[a-z]+" class="[^"]*scroll-mt-\[134px\]/g) ?? []).length, TABS.length);
+    assert.equal((out.match(/data-phone-panel="[a-z]+" class="[^"]*scroll-mt-\[134px\]/g) ?? []).length, NINE.length);
     // What parts two sections is a gap of the page's ground between hairlines, not a solid grey bar (founder, 12 Oct 2026).
     const panels = /<div data-phone-panels="" class="([^"]*)"/.exec(out)![1]!.replace(/&gt;/g, ">");
     for (const c of ["[&>*+*]:before:h-3", "[&>*+*]:before:border-y", "[&>*+*]:before:border-line", "[&>*+*]:before:bg-subtle"]) assert.ok(panels.split(" ").includes(c), `the divider lacks ${c}`);
     assert.doesNotMatch(panels, /border-t-8|border-sunken/);
-    // Contact is the last card of the scroll, after Products, and no longer part of the Overview (founder, 12 Oct 2026).
-    assert.match(out, /data-phone-panel="products"[\s\S]*<section aria-label="Contact" data-phone-contact=""[\s\S]*<\/section><\/div><div data-phone-end=""/);
+    // Contact is the last section, with a tab of its own, and no part of the Overview (founder, 12 and 13 Oct 2026).
+    assert.match(out, /aria-label="Contact" data-phone-panel="contact"[^>]*><section data-phone-contact=""[\s\S]*<\/section><\/div><\/div><div data-phone-end=""/);
     assert.doesNotMatch(/data-phone-panel="overview"[\s\S]*?data-phone-panel="exports"/.exec(out)![0], />Contact</);
     assert.match(out, /<div data-phone-end="" aria-hidden="true"><\/div><\/div>$/);
     const tabsSrc = readFileSync(path.join(dir, "phone-tabs.tsx"), "utf8");
@@ -89,14 +90,30 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
     assert.doesNotMatch(tabsSrc, /scrollend|setTimeout/);
     assert.match(tabsSrc, /scrollY\) === 0\) panel\(initial\)\?\.scrollIntoView/);
     const strip = /<nav aria-label="Record sections"[^>]*>([\s\S]*?)<\/nav>/.exec(out)![1]!;
-    assert.equal((strip.match(/<a /g) ?? []).length, TABS.length);
+    // Paper page 35, 13 Oct 2026: the desktop's nine, in its order. Checks and Contact ride on a neighbour's `?tab=`.
+    assert.deepEqual([...strip.matchAll(/<a [^>]*>([\s\S]*?)<\/a>/g)].map((m) => text(m[1]!).trim().replace(/ · \d+$/, "")), NINE);
+    assert.equal((strip.match(/tab=certificates"/g) ?? []).length, 2);
     assert.match(strip, /aria-current="page"[^>]*>Overview/);
     assert.match(strip, /href="\/app\/discover\?q=knit&record=x&tab=sources"/);
-    // The statuses: a row each, pressed state and all, to Safety, Certificates and Sources.
-    const summary = /<ul aria-label="Summary"[^>]*>([\s\S]*?)<\/ul>/.exec(out)![1]!;
-    assert.deepEqual([...summary.matchAll(/href="[^"]*?(?:&tab=([a-z]+))?"/g)].map((m) => m[1]), ["safety", "certificates", "sources"]);
-    assert.equal((summary.match(/active:bg-sunken/g) ?? []).length, 3);
-    assert.match(text(summary), /Safety .* Certificates .* Sanctions Not listed/);
+    // The statuses: one short strip under the name from the start, a single link to Checks with a 44px target; the three rows are gone.
+    assert.doesNotMatch(out, /<ul aria-label="Summary"/);
+    const summary = /<a ([^>]*)><span data-phone-summary=""/.exec(out)![1]!;
+    assert.match(summary, /aria-label="Checks: [^"]*, Not listed"/);
+    assert.ok(summary.includes("before:-inset-y-[7px]") && summary.includes("tab=certificates"), "the strip is not a 44px link to Checks");
+    assert.equal((out.match(/data-phone-summary=""/g) ?? []).length, 1);
+    // Checks holds what "Needs a look" and the rows said: Safety, Certificates and Sanctions, once each, each a link with a pressed state.
+    assert.doesNotMatch(out, /Needs a look/);
+    const checks = /<ul data-phone-checks=""[^>]*>([\s\S]*?)<\/ul>/.exec(out)![1]!;
+    assert.doesNotMatch(checks, /worst/i);
+    assert.equal((checks.match(/<li /g) ?? []).length, checkRows(model(), TODAY).rows.length);
+    assert.equal((checks.match(/active:bg-sunken/g) ?? []).length, (checks.match(/<a /g) ?? []).length);
+    assert.match(text(checks), /Sanctions Not listed/);
+    // A sanctioned record: the matches are in the Sanctions row, which leads; the evidence is not drawn a second time.
+    const listed = phone(model(sanctionedInput()), { mode: "page" });
+    const row = /<ul data-phone-checks=""[^>]*><li [^>]*>([\s\S]*?)<\/li>/.exec(listed)![1]!;
+    assert.match(text(row), /Sanctions On the .* The record stays readable for due diligence\./);
+    assert.doesNotMatch(listed, /Sanctions matches/);
+    assert.match(listed, /aria-label="Checks: Sanctioned, /);
   });
 
   it("does not build the map, or repeat the desktop's anchors, until Sites is the tab shown", () => {
@@ -164,7 +181,8 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
     const both = text(phone({ ...scoped, volza: { ...scoped.volza!, top_record: { ...scoped.volza!.top_record!, buyer_name: "H & M HENNES & MAURITZ GBC AB" } } }, { mode: "page" }));
     assert.match(both, /Buyers 3 H&M Supplier list · customs records as H & M Hennes & Mauritz GBC AB ASOS Supplier list/);
     // With no customs record to read, the brands' lists alone, and no word about customs.
-    assert.match(text(phone(model(), { mode: "page" })), /Buyers 3 ASOS Supplier list · read 30 Jul 2026 H&M .* NEXT Supplier list · read 18 May 2026 Memberships/);
+    // Memberships come before Buyers (Paper page 35, 13 Oct 2026), each register's own mark in its disc.
+    assert.match(text(phone(model(), { mode: "page" })), /Memberships EPB BD04293 · read 14 Aug .* Buyers 3 ASOS Supplier list · read 30 Jul 2026 H&M .* NEXT Supplier list · read 18 May 2026 We have no customs/);
     // The desktop says them once too, as tiles (Paper page 37): the old Key facts row is gone.
     assert.match(text(view(scoped, { mode: "page" })), /Buyers 4 /);
     assert.doesNotMatch(text(view(scoped, { mode: "page" })), /Buyers in shipment records/);
@@ -178,7 +196,12 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
     assert.match(out, /Government register Last read EPB/);
     assert.match(out, /NEXT 18 May 2026 123 days ago/, "a stale read still says how old it is, under its date");
     // Key facts: where a figure came from reads "From BKMEA", under it, never a bare code at the row's end.
-    assert.match(out, /Capacity 1,000,000 pcs\/day From BKMEA/);
+    assert.match(out, /Capacity, as filed 1,000,000 pcs\/day From BKMEA/);
+    // Key facts are icon cells, two by two; the export tiles are the desktop's worked-out four, the fourth always the biggest market.
+    assert.match(html, /<dl data-phone-facts="" class="grid grid-cols-2 /);
+    const tiles = text(phone(model(aboniInput(), { volza: VOLZA, exportRank: 89, market: "United States" }), { mode: "page" }));
+    assert.match(tiles, /Export value, 2 years US\$21\.7m Bigger than 89% of exporters on record Typical shipment US\$53,000 6% under 1,000 pieces Buyers 43 10 in the EU · 9 shipments each Ships to the EU US\$15\.6m 72% of exports · 236 shipments/);
+    assert.doesNotMatch(tiles, /Shipments a month|Latest shipment|Biggest shipment|Ships to the US/);
     assert.doesNotMatch(html, /w-14 shrink-0 text-right/);
     // A listing has no date, only its number: it carries the label a dated certificate's number has.
     assert.match(out, /OEKO-TEX Standard 100 Listed Certificate 32597-100/);
@@ -559,7 +582,7 @@ describe("the view's rules", () => {
 
     it("a phone draws them in its Contact section, the last of the scroll, under the section's one heading", () => {
       const out = phone(unlocked(), { mode: "page" });
-      const section = /<section aria-label="Contact" data-phone-contact=""[\s\S]*?<\/section><\/section>/.exec(out)?.[0] ?? "";
+      const section = /<section data-phone-contact=""[\s\S]*?<\/section><\/section>/.exec(out)?.[0] ?? "";
       assert.match(section, /<div data-contact-details="" class="[^"]*rounded-\[10px\]/, "the details are not in the phone's Contact section");
       assert.equal(text(section).trim(), "Contact Contact person Md. Karim Uddin Managing Director Emails sales@aboni.example md@aboni.example Phone numbers +880 1754392350 02-9876543 Website www.aboni.example/contact");
       assert.match(section, /<a href="tel:\+8801754392350"/);
@@ -635,7 +658,7 @@ describe("the view's rules", () => {
       // A count that could not be read still says why the card is locked.
       const unread = text(contactSection(view({ ...sheet, contact: { ...sheet.contact, counts: null } }, { mode: "page" }))).trim();
       assert.equal(unread, `Contact Contact details are locked Send an RFQ and the supplier replies in Messages. ${LIMIT}`);
-      const section = /<section aria-label="Contact" data-phone-contact=""[\s\S]*?<\/section><\/section>/.exec(phone(sheet, { mode: "page" }))?.[0] ?? "";
+      const section = /<section data-phone-contact=""[\s\S]*?<\/section><\/section>/.exec(phone(sheet, { mode: "page" }))?.[0] ?? "";
       assert.equal(text(section).trim(), `Contact ${ON_FILE} Locked. Send an RFQ and the supplier replies in Messages. ${LIMIT}`);
       // Nobody else is told about a limit: not a reader with no details, not one who sees them.
       for (const other of [unlocked(aboniInput(), null), unlocked()]) assert.doesNotMatch(text(both(other, { mode: "page" })), /today's limit/);
@@ -1144,6 +1167,39 @@ describe("the record's minors, round 3 (critique of 8 Oct 2026, round 3, item 7)
     assert.doesNotMatch(view(m, { mode: "pane" }), /data-record-stuck|data-record-head/);
     // The pane's two actions are a bar at its foot.
     assert.match(view(m, { mode: "pane" }), /<div class="sticky bottom-0 [^"]*max-sm:hidden[^"]*">(?:(?!<\/div>)[\s\S])*Send RFQ<\/a><\/div>/);
+  });
+
+  it("the stuck bar waits under the head, so the head sliding away uncovers it: nothing appears below the head or jumps", () => {
+    // Founder, 13 Oct 2026: the bar came after the head, so it showed under the last of it (the statuses twice) and then jumped to the top.
+    const out = view(model(), { mode: "page" });
+    const bar = out.indexOf("<div data-record-stuck=");
+    const head = out.indexOf("<header data-record-head=");
+    assert.ok(bar > 0 && bar < head, "the stuck bar is drawn before the head");
+    // Same layer, later in the page: the head is painted over the bar while any of it is in the way.
+    assert.match(out, /<div data-record-stuck="" class="sticky top-0 z-raised h-0 /);
+    assert.match(out, /<header data-record-head="" class="relative z-raised [^"]*\bbg-surface\b/);
+  });
+
+  it("a table takes its wide layout only where its flexible column keeps room: no column is crushed to a letter a line", () => {
+    // Founder, 13 Oct 2026: at 760px of column the certificate's name had 0px and a site's address 30px.
+    const room = (cols: string, at: number, gap: number, taken = 0) => {
+      const fixed = [...cols.matchAll(/(\d+)px/g)].reduce((n, m) => n + Number(m[1]), 0);
+      return at - taken - 24 - fixed - gap * (cols.split("_").length - 1);
+    };
+    const desktop = readFileSync(path.join(dir, "desktop.tsx"), "utf8");
+    const cert = /\[@container_\(min-width:(\d+)px\)\]:grid-cols-\[(minmax\(0,1fr\)(?:_\d+px){5})\] \[@container_\(min-width:\1px\)\]:gap-x-3/.exec(desktop);
+    assert.ok(cert, "the certificates' six columns");
+    assert.ok(room(cert[2]!.replace("minmax(0,1fr)", ""), Number(cert[1]), 12) >= 200, "a certificate's name keeps 200px in the six-column table");
+    assert.doesNotMatch(desktop.slice(desktop.indexOf("const CERT_COLS ="), desktop.indexOf("export function CertificatesSection")), /min-width:760px/, "one rule of the certificates' table still switches at 760");
+    const sites = readFileSync(path.join(dir, "desktop-sites.tsx"), "utf8");
+    const cols = /const COLS = "grid grid-cols-\[([^\]]+)\] items-center gap-x-3";/.exec(sites);
+    const beside = /\[@container_\(min-width:(\d+)px\)\]:flex-row/.exec(sites);
+    const map = /\[@container_\(min-width:\d+px\)\]:w-\[(\d+)px\]/.exec(sites);
+    assert.ok(cols && beside && map, "the sites' columns, and where the map goes beside them");
+    // The map, its 12px inset and the 20px between it and the table come off the column first.
+    assert.ok(room(cols[1]!.replace("minmax(0,1fr)", ""), Number(beside[1]), 12, Number(map[1]) + 12 + 20 - 24) >= 200, "a site's address keeps 200px beside the map");
+    // Key facts: a figure and its source break between their parts before a part is split.
+    assert.match(view(model(), { mode: "page" }), /<dd class="text-xs text-ink-3"><span class="inline-block">From RSC ·<\/span> <span class="inline-block">across 2 sites<\/span><\/dd>/);
   });
 
   it("a read date keeps its year unless it is this year's: a bare day and month must not make an old read look recent", () => {
