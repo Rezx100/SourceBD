@@ -97,13 +97,14 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
     assert.match(strip, /href="\/app\/discover\?q=knit&record=x&tab=sources"/);
     // The statuses: one short strip under the name from the start, a single link to Checks with a 44px target; the three rows are gone.
     assert.doesNotMatch(out, /<ul aria-label="Summary"/);
-    const summary = /<a aria-label="Checks: ([^"]*)"[^>]*class="([^"]*)"[^>]*><span data-phone-summary=""/.exec(out)!;
-    assert.match(summary[1]!, /, Not listed$/);
-    assert.ok(summary[2]!.includes("before:-inset-y-[7px]"), "the strip's target is under 44px");
+    const summary = /<a ([^>]*)><span data-phone-summary=""/.exec(out)![1]!;
+    assert.match(summary, /aria-label="Checks: [^"]*, Not listed"/);
+    assert.ok(summary.includes("before:-inset-y-[7px]") && summary.includes("tab=certificates"), "the strip is not a 44px link to Checks");
     assert.equal((out.match(/data-phone-summary=""/g) ?? []).length, 1);
     // Checks holds what "Needs a look" and the rows said: Safety, Certificates and Sanctions, once each, each a link with a pressed state.
-    assert.doesNotMatch(out, /Needs a look|Worst/);
+    assert.doesNotMatch(out, /Needs a look/);
     const checks = /<ul data-phone-checks=""[^>]*>([\s\S]*?)<\/ul>/.exec(out)![1]!;
+    assert.doesNotMatch(checks, /worst/i);
     assert.equal((checks.match(/<li /g) ?? []).length, checkRows(model(), TODAY).rows.length);
     assert.equal((checks.match(/active:bg-sunken/g) ?? []).length, (checks.match(/<a /g) ?? []).length);
     assert.match(text(checks), /Sanctions Not listed/);
@@ -112,7 +113,7 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
     const row = /<ul data-phone-checks=""[^>]*><li [^>]*>([\s\S]*?)<\/li>/.exec(listed)![1]!;
     assert.match(text(row), /Sanctions On the .* The record stays readable for due diligence\./);
     assert.doesNotMatch(listed, /Sanctions matches/);
-    assert.match(listed, /<a aria-label="Checks: Sanctioned, /);
+    assert.match(listed, /aria-label="Checks: Sanctioned, /);
   });
 
   it("does not build the map, or repeat the desktop's anchors, until Sites is the tab shown", () => {

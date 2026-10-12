@@ -1318,7 +1318,9 @@ describe("the sanctioned record, through the route", () => {
     assert.match(out.replace(/&#x27;/g, "'"), /You can't send this supplier an RFQ\./);
     // Its evidence is on the Overview, where the banner's claim is read.
     assert.match(out, /id="sanctions"/);
-    assert.match(out, /Sanctions matches/);
+    // On a phone it is the Sanctions row of Checks (Paper page 35, 13 Oct 2026), not a second block over the Overview.
+    assert.doesNotMatch(out, /Sanctions matches/);
+    assert.match(/<ul data-phone-checks=""[\s\S]*?<\/ul>/.exec(out)?.[0] ?? "", /On the [^<]*(?:list|List)[\s\S]*The record stays readable for due diligence\./);
     assert.ok(!out.includes('href="/app/rfqs/new'), "a sanctioned record's Send RFQ is a live link");
     assert.doesNotMatch(out, />Send RFQ</, "the button is greyed, not replaced");
   });
@@ -1488,10 +1490,12 @@ describe("cycle 3: the boundaries the first route tests did not reach", () => {
     const banner = out.indexOf('role="alert"', record);
     assert.ok(banner > -1, "the overlay serves a sanctioned record with no banner");
     // The band is above the header, the summary, the tabs and the panel.
-    for (const [what, at] of [["header", out.indexOf("<h2", banner)], ["summary", out.indexOf('aria-label="Summary"', banner)], ["tabs", out.indexOf('aria-label="Record sections"', banner)], ["evidence", out.indexOf('id="sanctions"', banner)]] as const) {
+    for (const [what, at] of [["header", out.indexOf("<h2", banner)], ["summary", out.indexOf('data-phone-summary=""', banner)], ["tabs", out.indexOf('aria-label="Record sections"', banner)], ["evidence", out.indexOf('id="sanctions"', banner)]] as const) {
       assert.ok(at > banner, `the ${what} is missing or above the banner`);
     }
-    assert.match(out.slice(out.indexOf('aria-label="Summary"', banner)), /On the [^<]*(?:list|List)/, "the summary cell does not say which list");
+    // The phone's strip says "Sanctioned" in short; which list is said in its Checks row.
+    assert.match(out.slice(out.indexOf('data-phone-summary=""', banner)), /Sanctioned/);
+    assert.match(out.slice(out.indexOf('data-phone-checks=""', banner)), /On the [^<]*(?:list|List)/, "the Checks row does not say which list");
     // The results behind it carry their own (unsanctioned) Send RFQ; only the sheet is this record's.
     const sheet = out.slice(out.indexOf('aria-label="Supplier record"'));
     assert.ok(!sheet.includes('href="/app/rfqs/new'), "a sanctioned record's Send RFQ is a live link in the overlay");
