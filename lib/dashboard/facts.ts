@@ -464,7 +464,8 @@ export function tidyBuyer(raw: string | null | undefined): string | null {
   }
   const kept = words.slice(0, cut);
   if (/[a-z]/.test(kept.join(" "))) return kept.join(" ");
-  return kept.map((w) => CASED[w] ?? (w.length > 3 ? w[0] + w.slice(1).toLowerCase() : w)).join(" ");
+  // Initials stay as filed: "S.L." is not "S.l.".
+  return kept.map((w) => CASED[w] ?? (w.length > 3 && !/^(\w\.)+$/.test(w) ? w[0] + w.slice(1).toLowerCase() : w)).join(" ");
 }
 
 /** "MEN'S BASIC T SHIRT" is "Men's basic t shirt": a product as filed, in sentence case. */

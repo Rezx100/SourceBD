@@ -471,6 +471,7 @@ describe("customs buyers sit beside the brands' own lists, never in place of the
   it("distinct, tidied buyers from the shipments on file; none for a reader the read refused", () => {
     assert.deepEqual(customsBuyers(v(["THE HADDAD APPAREL GROUP LTD 131 D", "TJX UK", "THE HADDAD APPAREL GROUP LTD 131 D"])), ["The Haddad Apparel Group Ltd", "TJX UK"]);
     assert.deepEqual(customsBuyers(null), []);
+    assert.equal(tidyBuyer("PUNTO FA S.L."), "Punto FA S.L.", "initials are not lower-cased");
   });
   it("a listed brand is marked only when a customs buyer names it, strictly", () => {
     const agreed = brandsInCustoms(["H&M", "NEXT", "Primark"], v(["H & M HENNES & MAURITZ GBC AB", "NEXT LEVEL APPAREL INC", "PENNEYS DUBLIN"]));
