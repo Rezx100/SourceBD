@@ -12,7 +12,7 @@ import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { buildSheet } from "@/lib/dashboard/build-models";
-import { TODAY, aboniInput, arFashionInput, longestNameInput, sanctionedInput, zaheenSampleInput } from "@/lib/dashboard/fixtures";
+import { TODAY, aboniInput, arFashionInput, buildingBrandListsInput, longestNameInput, sanctionedInput, zaheenSampleInput } from "@/lib/dashboard/fixtures";
 import type { ContactDetailsRead, LocationRow, SupplierSheetModel } from "@/lib/dashboard/models";
 import { onFileWords, rankCerts } from "@/components/patterns";
 import { GLOSSARY, define } from "@/lib/dashboard/glossary";
@@ -122,7 +122,7 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
 
   it("prints the UFLPA line with the list's own read date, and never that the list was not read", () => {
     const read = text(phone(model(aboniInput(), { sanctionLists: LISTS }), { mode: "page" }));
-    assert.match(read, /Sanctions lists · not listed Read for every supplier, not only this one US Treasury \(OFAC\) 17 Sep European Union 12 Sep US forced labour \(UFLPA\) No link found · not a clearance · read 8 Sep/);
+    assert.match(read, /Sanctions lists · not listed Checked for every supplier Last read US Treasury \(OFAC\) 17 Sep European Union 12 Sep · 6 days ago US forced labour \(UFLPA\) No link found · not a clearance · read 8 Sep/);
     // A list with no read on file is left out: nothing is said about it.
     assert.doesNotMatch(read, /not read|WRO/i);
     const unread = text(phone(model(aboniInput(), { sanctionLists: LISTS.filter((l) => l.list !== "uflpa") }), { mode: "page" }));
@@ -149,10 +149,30 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
     assert.doesNotMatch(out, /Operations: Dyeing|Greige yarn/, "a certificate card prints the scope");
     assert.doesNotMatch(out, /Shipments after that date are not counted here yet/, "the amber notice is back on Exports");
     assert.match(out, /The records end \d+ days ago/, "the footnote still says how far behind the records are");
-    assert.match(out, /Buyers of 43 Hugo Boss Ticino S A As named on customs records: often an importer or an agent, not the brand\./);
+    assert.match(out, /Buyers 1 of 43 shown Hugo Boss Ticino S A As named on customs records: often an importer or an agent, not the brand\./);
     assert.doesNotMatch(out, /Buyers in shipment records/, "the buyers are said twice on one page");
     // The desktop keeps its Key facts row.
     assert.match(text(view(scoped, { mode: "page" })), /Buyers in shipment records/);
+  });
+
+  it("says what every figure is: no date, code, number or percentage stands alone (founder, 12 Oct 2026)", () => {
+    const html = phone(model(aboniInput(), { sanctionLists: LISTS }), { mode: "page" });
+    const out = text(html);
+    // Sources: the dates down the right are the last read, said once, over the first of them.
+    assert.equal((html.match(/data-phone-read-head=""/g) ?? []).length, 1);
+    assert.match(out, /Government register Last read EPB/);
+    assert.match(out, /NEXT 18 May 2026 123 days ago/, "a stale read still says how old it is, under its date");
+    // Key facts: where a figure came from reads "From BKMEA", under it, never a bare code at the row's end.
+    assert.match(out, /Capacity 1,000,000 pcs\/day From BKMEA/);
+    assert.doesNotMatch(html, /w-14 shrink-0 text-right/);
+    // A listing has no date, only its number: it carries the label a dated certificate's number has.
+    assert.match(out, /OEKO-TEX Standard 100 Listed Certificate 32597-100/);
+    // A late read of a sanctions list says how late.
+    assert.match(out, /European Union 12 Sep · 6 days ago/);
+    // Three buildings or more are rows with a bare percentage: what it measures is said over them.
+    const many = text(phone(model(buildingBrandListsInput()), { mode: "page" }));
+    assert.match(many, /3 buildings in the RSC programme Safety issues fixed, worst first\. 2 behind\. /);
+    assert.doesNotMatch(out, /Safety issues fixed, worst first/, "two buildings are full cards: each says it beside its own figure");
   });
 
   it("keeps the contact locked: how many are on file, never a value", () => {
