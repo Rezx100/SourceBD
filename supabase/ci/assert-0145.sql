@@ -6,7 +6,8 @@
 -- file; each reveal is written to the activity record once per account and supplier, a re-open writes
 -- nothing more, and a refusal writes nothing; an account at 199 different suppliers in the last 24 hours
 -- opens its 200th, is refused the 201st with {"limit": 200} and no value, and still re-opens one it had;
--- entries older than 24 hours do not count; an admin is never limited.
+-- entries older than 24 hours do not count; a note the account writes itself through ledger_note neither
+-- makes a supplier a free re-open at the limit nor uses up the allowance; an admin is never limited.
 \set ON_ERROR_STOP on
 
 begin;
@@ -17,11 +18,13 @@ insert into auth.users (id, email, raw_user_meta_data) values
   ('00000000-0000-4000-8000-00000000c145', 'ent-0145@example.invalid',     '{"role":"buyer"}'::jsonb),
   ('00000000-0000-4000-8000-00000000d145', 'starter-0145@example.invalid', '{"role":"buyer"}'::jsonb),
   ('00000000-0000-4000-8000-00000000e145', 'susp-0145@example.invalid',    '{"role":"buyer"}'::jsonb),
-  ('00000000-0000-4000-8000-00000000f145', 'busy-0145@example.invalid',    '{"role":"buyer"}'::jsonb)
+  ('00000000-0000-4000-8000-00000000f145', 'busy-0145@example.invalid',    '{"role":"buyer"}'::jsonb),
+  ('00000000-0000-4000-8000-000000001145', 'noter-0145@example.invalid',   '{"role":"buyer"}'::jsonb)
 on conflict do nothing;
 
 update public.profiles set plan_tier = 'growth' where id in
-  ('00000000-0000-4000-8000-00000000b145', '00000000-0000-4000-8000-00000000e145', '00000000-0000-4000-8000-00000000f145');
+  ('00000000-0000-4000-8000-00000000b145', '00000000-0000-4000-8000-00000000e145', '00000000-0000-4000-8000-00000000f145',
+   '00000000-0000-4000-8000-000000001145');
 update public.profiles set plan_tier = 'enterprise' where id = '00000000-0000-4000-8000-00000000c145';
 update public.profiles set is_suspended = true where id = '00000000-0000-4000-8000-00000000e145';
 
@@ -56,8 +59,10 @@ declare
   starter constant uuid := '00000000-0000-4000-8000-00000000d145';
   susp    constant uuid := '00000000-0000-4000-8000-00000000e145';
   busy    constant uuid := '00000000-0000-4000-8000-00000000f145';
+  noter   constant uuid := '00000000-0000-4000-8000-000000001145';
   a       constant uuid := '00000000-0000-4000-8000-0000000a1145';
   b       constant uuid := '00000000-0000-4000-8000-0000000a2145';
+  e5      constant uuid := '00000000-0000-4000-8000-0000000a5145';
   j       jsonb;
   c       jsonb;
   e       record;
@@ -127,6 +132,7 @@ begin
   if n <> 4 then raise exception 'want 4 reveals written (growth A and B, Enterprise A, admin A), got %', n; end if;
   select * into e from public.activity_ledger where kind = 'contact.revealed' and actor_id = growth and supplier_id = a;
   if e.id is null or e.target_table <> 'suppliers' or e.target_id <> a or e.actor_email <> 'growth-0145@example.invalid'
+     or e.reason is distinct from 'supplier_contact_details'
      or e.content is distinct from '{"slug": "ci-0145-a", "emails": 2, "phones": 2, "website": true, "person": true}'::jsonb then
     raise exception 'growth''s reveal of A is written wrong: %', to_jsonb(e);
   end if;
@@ -139,12 +145,13 @@ begin
   end if;
 
   -- The daily limit. 199 different suppliers opened an hour ago, and five more over 24 hours ago that no
-  -- longer count (the writer stamps `at` itself, so these go in directly as the owner, as assert-0135 does).
-  insert into public.activity_ledger (at, actor_id, kind, target_table, target_id, supplier_id, content, content_hash)
-  select now() - interval '1 hour', busy, 'contact.revealed', 'suppliers', x.id, x.id, '{}'::jsonb, repeat('0', 64)
+  -- longer count (the writer stamps `at` itself, so these go in directly as the owner, as assert-0135 does,
+  -- carrying the mark the function puts on its own entries).
+  insert into public.activity_ledger (at, actor_id, kind, target_table, target_id, supplier_id, content, content_hash, reason)
+  select now() - interval '1 hour', busy, 'contact.revealed', 'suppliers', x.id, x.id, '{}'::jsonb, repeat('0', 64), 'supplier_contact_details'
     from (select gen_random_uuid() as id from generate_series(1, 199)) x;
-  insert into public.activity_ledger (at, actor_id, kind, target_table, target_id, supplier_id, content, content_hash)
-  select now() - interval '25 hours', busy, 'contact.revealed', 'suppliers', x.id, x.id, '{}'::jsonb, repeat('0', 64)
+  insert into public.activity_ledger (at, actor_id, kind, target_table, target_id, supplier_id, content, content_hash, reason)
+  select now() - interval '25 hours', busy, 'contact.revealed', 'suppliers', x.id, x.id, '{}'::jsonb, repeat('0', 64), 'supplier_contact_details'
     from (select gen_random_uuid() as id from generate_series(1, 5)) x;
 
   set local role authenticated;
@@ -155,18 +162,48 @@ begin
   -- At the limit: the 201st is refused, with the number and no value.
   j := public.supplier_contact_details('ci-0145-e');
   if j is distinct from '{"limit": 200}'::jsonb then raise exception 'the 201st supplier answered: %', j; end if;
-  -- One already opened in the window is free.
+  -- A note the account writes itself (ledger_note takes this kind from any signed-in caller, by slug or by
+  -- id) does not make that supplier a free "re-open": the 201st is still refused.
+  perform public.ledger_note('contact.revealed', null, null, '{"slug": "ci-0145-e"}'::jsonb);
+  perform public.ledger_note('contact.revealed', 'suppliers', e5, '{}'::jsonb, e5);
+  j := public.supplier_contact_details('ci-0145-e');
+  if j is distinct from '{"limit": 200}'::jsonb then raise exception 'a self-written note opened the 201st supplier: %', j; end if;
+  -- One the function itself opened in the window is free.
   j := public.supplier_contact_details('ci-0145-a');
   if j ->> 'person' is distinct from 'Md. Karim Uddin' then raise exception 'a re-open was refused at the limit: %', j; end if;
   reset role;
 
+  if (select count(*) from public.activity_ledger
+       where kind = 'contact.revealed' and actor_id = busy and supplier_id = e5 and reason is null) <> 2 then
+    raise exception 'guard: the two self-written notes for the 201st supplier are not in the record';
+  end if;
   select count(*) into n from public.activity_ledger
-   where kind = 'contact.revealed' and actor_id = busy and at > now() - interval '24 hours';
-  if n <> 200 then raise exception 'want 200 reveals in the window after one open, one refusal and one re-open, got %', n; end if;
+   where kind = 'contact.revealed' and actor_id = busy and reason = 'supplier_contact_details'
+     and at > now() - interval '24 hours';
+  if n <> 200 then raise exception 'want 200 reveals of the function''s own in the window after one open, two refusals and one re-open, got %', n; end if;
+
+  -- 200 self-written notes for 200 different suppliers do not use up the allowance: a real open still
+  -- works, and is written as the function's own even though a note for that supplier was already there.
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub', noter::text, true);
+  for n in 1..200 loop
+    perform public.ledger_note('contact.revealed', null, null, '{}'::jsonb, gen_random_uuid());
+  end loop;
+  perform public.ledger_note('contact.revealed', null, null, '{"slug": "ci-0145-a"}'::jsonb);
+  j := public.supplier_contact_details('ci-0145-a');
+  if j -> 'emails' ->> 0 is distinct from 'Sales@ci0145.example' or j ? 'limit' then
+    raise exception '200 self-written notes used up the allowance: %', j;
+  end if;
+  reset role;
+  if (select count(*) from public.activity_ledger where kind = 'contact.revealed' and actor_id = noter and reason is null) <> 201
+     or (select count(*) from public.activity_ledger
+          where kind = 'contact.revealed' and actor_id = noter and supplier_id = a and reason = 'supplier_contact_details') <> 1 then
+    raise exception 'the open after the self-written notes was not written as the function''s own';
+  end if;
 
   -- An admin is never limited.
-  insert into public.activity_ledger (at, actor_id, kind, target_table, target_id, supplier_id, content, content_hash)
-  select now() - interval '1 hour', admin, 'contact.revealed', 'suppliers', x.id, x.id, '{}'::jsonb, repeat('0', 64)
+  insert into public.activity_ledger (at, actor_id, kind, target_table, target_id, supplier_id, content, content_hash, reason)
+  select now() - interval '1 hour', admin, 'contact.revealed', 'suppliers', x.id, x.id, '{}'::jsonb, repeat('0', 64), 'supplier_contact_details'
     from (select gen_random_uuid() as id from generate_series(1, 200)) x;
   set local role authenticated;
   perform set_config('request.jwt.claim.sub', admin::text, true);

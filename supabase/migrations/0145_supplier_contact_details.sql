@@ -30,15 +30,24 @@
 -- IT WRITES, SO IT IS VOLATILE. The reveal is written to the activity record (0131) inside this
 -- function, the way 0141 writes `shipments.revealed`, so a call made straight to the API is recorded
 -- exactly as one made through the app: kind `contact.revealed`, target `suppliers` and the supplier's
--- id, the supplier in `supplier_id`, and in the content the slug and how many of each kind were shown
--- (never a value). One entry per account and supplier in any rolling 24 hours: opening the same
+-- id, the supplier in `supplier_id`, the mark described below in `reason`, and in the content the slug
+-- and how many of each kind were shown (never a value). One entry per account and supplier in any rolling 24 hours: opening the same
 -- supplier again inside that window returns the details and writes nothing more. An admin's opens
 -- are written the same way.
 --
+-- ONLY ITS OWN ENTRIES COUNT. `ledger_note` (0134) accepts the kind `contact.revealed` from any
+-- signed-in caller, for any supplier they name. If this function trusted every such entry, an
+-- account could note every supplier and then read each one as a free "re-open", past the limit; and
+-- a note written by the app would use up the allowance. So the function marks what it writes: the
+-- entry's `reason` is 'supplier_contact_details' (`c_written_by`). `ledger_note` always passes a
+-- null reason to `_ledger_write` and gives its caller no way to set one, and `_ledger_write` (0131)
+-- stores the reason as given (trimmed), so no caller can forge the mark. Both lookups below, the
+-- re-open check and the count, read only entries carrying it.
+--
 -- THE DAILY LIMIT. An account that is not an admin may open the contact details of at most 200
 -- DIFFERENT suppliers in a rolling 24 hours; one already opened in that window is free and is not
--- counted again. The count is taken from the activity record's own `contact.revealed` entries, so
--- there is no second table to keep in step. The number lives in one place, `c_daily_limit` below,
+-- counted again. The count is taken from the activity record's `contact.revealed` entries that this
+-- function wrote (see the mark below), so there is no second table to keep in step. The number lives in one place, `c_daily_limit` below,
 -- and is a starting value: the founder has not chosen one yet. A lock per account makes two opens
 -- at the same moment count one after the other, so the limit cannot be passed by racing it.
 --
@@ -59,6 +68,9 @@ as $$
 declare
   -- The one place the daily limit lives. A starting value: the founder has chosen nothing yet (12 Oct 2026).
   c_daily_limit constant integer := 200;
+  -- The mark on the entries this function writes (the ledger's `reason`). Only these are trusted:
+  -- `ledger_note` lets any caller write this kind, but never a reason.
+  c_written_by  constant text := 'supplier_contact_details';
   v_uid      uuid := auth.uid();
   v_admin    boolean;
   v_allowed  boolean;
@@ -124,6 +136,7 @@ begin
   if exists (
        select 1 from public.activity_ledger l
         where l.actor_id = v_uid and l.kind = 'contact.revealed' and l.supplier_id = v_supplier
+          and l.reason = c_written_by
           and l.at > now() - interval '24 hours') then
     return v_details;
   end if;
@@ -134,6 +147,7 @@ begin
     select count(distinct l.supplier_id) into v_count
       from public.activity_ledger l
      where l.actor_id = v_uid and l.kind = 'contact.revealed'
+       and l.reason = c_written_by
        and l.at > now() - interval '24 hours';
     if v_count >= c_daily_limit then
       return jsonb_build_object('limit', c_daily_limit);
@@ -147,7 +161,7 @@ begin
       'phones',  jsonb_array_length(v_details -> 'phones'),
       'website', jsonb_typeof(v_details -> 'website') = 'string',
       'person',  jsonb_typeof(v_details -> 'person') = 'string'),
-    null, null, v_supplier);
+    p_supplier => v_supplier, p_reason => c_written_by);
   return v_details;
 end;
 $$;

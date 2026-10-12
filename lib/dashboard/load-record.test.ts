@@ -11,6 +11,8 @@
 // neither.
 
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, it } from "node:test";
 
 import {
@@ -205,6 +207,51 @@ describe("fetchContactDetails (0145: the database answers only an admin or a Gro
       assert.equal(await details(data), "limited");
     });
   }
+});
+
+describe("0145's text: the function trusts only the reveals it wrote itself", () => {
+  // What the function DOES is run in CI (supabase/ci/assert-0145.sql). This reads its text for the one thing a
+  // later edit could drop without any fixture noticing until an account walks past the limit: `ledger_note`
+  // (0134) takes the kind `contact.revealed` from any signed-in caller, so an entry counts here only when it
+  // carries the mark this function writes and `ledger_note` cannot.
+  const sql = readFileSync(path.join(process.cwd(), "supabase/migrations/0145_supplier_contact_details.sql"), "utf8")
+    .split(/\r?\n/)
+    .filter((line) => !line.trim().startsWith("--"))
+    .join("\n");
+
+  it("both lookups of the activity record read only marked entries of this kind by this account", () => {
+    // Each lookup, from its FROM to the end of its statement or condition.
+    const lookups = sql.split("from public.activity_ledger").slice(1).map((rest) => rest.slice(0, rest.search(/\)\s*then|;/)));
+    assert.equal(lookups.length, 2, "the re-open check and the count");
+    for (const lookup of lookups) {
+      for (const cond of ["l.actor_id = v_uid", "l.kind = 'contact.revealed'", "l.reason = c_written_by", "l.at > now() - interval '24 hours'"]) {
+        assert.ok(lookup.includes(cond), `a lookup is missing ${cond}:${lookup}`);
+      }
+    }
+    assert.ok(lookups[0]!.includes("l.supplier_id = v_supplier"), "the re-open check is not for this supplier");
+    assert.match(sql, /count\(distinct l\.supplier_id\)/, "the limit does not count different suppliers");
+  });
+
+  it("the function writes that mark on its own entry, and nothing else can", () => {
+    assert.match(sql, /c_written_by\s+constant text := 'supplier_contact_details';/);
+    assert.match(sql, /perform public\._ledger_write\('contact\.revealed', 'suppliers', v_supplier,[\s\S]*?p_supplier => v_supplier, p_reason => c_written_by\);/);
+    assert.equal(sql.match(/_ledger_write\(/g)?.length, 1, "one writer call, the marked one");
+    // `ledger_note` hands `_ledger_write` a null reason and has no parameter for one; `_ledger_write` stores what it is given.
+    const note = readFileSync(path.join(process.cwd(), "supabase/migrations/0134_ledger_accounts_reads.sql"), "utf8");
+    assert.match(note, /return public\._ledger_write\(p_kind, p_target_table, p_target_id, v_content, v_uid, null, v_supplier, p_thread, p_rfq, p_order, null, null\);/);
+    assert.doesNotMatch(/create or replace function public\.ledger_note\(([\s\S]*?)\)\s*returns/.exec(note)?.[1] ?? "p_reason", /reason/);
+    const writer = readFileSync(path.join(process.cwd(), "supabase/migrations/0131_activity_ledger.sql"), "utf8");
+    assert.match(writer, /v_content, v_hash, nullif\(btrim\(coalesce\(p_reason, ''\)\), ''\)/);
+  });
+
+  it("is gated, refuses a sanctioned supplier, keeps the limit in one place and is not anon's to call", () => {
+    assert.match(sql, /\(p\.role = 'admin' or p\.plan_tier in \('growth', 'enterprise'\)\)\s+and not coalesce\(p\.is_suspended, false\)/);
+    assert.match(sql, /and s\.is_published = true\s+and s\.is_sanctioned = false/);
+    assert.equal(sql.match(/\b200\b/g)?.length, 1, "the daily limit is written in more than one place");
+    assert.match(sql, /c_daily_limit constant integer := 200;/);
+    assert.match(sql, /language plpgsql\s+volatile\s+security definer\s+set search_path = public/);
+    assert.match(sql, /revoke all on function public\.supplier_contact_details\(text\) from anon;/);
+  });
 });
 
 describe("loadRecordSheet: the contact details", () => {
