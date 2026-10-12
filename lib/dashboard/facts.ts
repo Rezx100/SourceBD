@@ -209,17 +209,23 @@ export type VolzaExports = {
   record_sort?: "value" | "date" | null;
 };
 
-/** One shipment in a reveal, as `supplier_shipment_reveal` (0141) returns it: no unit price. */
+/**
+ * One shipment in a reveal, as `supplier_shipment_reveal` (0141) returns it. 0146 adds the buyer's city and
+ * the price a piece, which the database returns only where it passes its check (counted in pieces, a
+ * plausible price and weight a piece); both are absent until 0146 is applied.
+ */
 export type RevealRecord = {
   date: string | null;
   product: string | null;
   hs_code: string | null;
   buyer: string | null;
+  buyer_city?: string | null;
   buyer_country: string | null;
   destination: string | null;
   unit: string | null;
   value_usd: number | null;
   weight_kg: number | null;
+  unit_price_usd?: number | null;
 };
 /** `supplier_shipment_reveal` (0141): the saved latest shipments, cut to 15 or 25 by the database. */
 export type ShipmentReveal = { fetched_at: string; limit: number; records: RevealRecord[] };
@@ -229,26 +235,60 @@ export type ShipmentRevealState =
   | { state: "shown"; reveal: ShipmentReveal }
   | { state: "offer"; shown: number; limit: number | null; used: number };
 
-/** A reveal row as the table prints it (Paper page 34, K4, three columns after the founder's note of 11 Oct). */
-export type RevealRow = { key: string; date: string; product: string; hs: string | null; buyerTo: string | null; value: string | null; weight: string | null };
+/**
+ * A reveal row as the table prints it (Paper page 34, K4, three columns after the founder's note of 11 Oct).
+ * `shipments` is how many records the row stands for; `pieces` is the quantity and price line, null without
+ * a checked price.
+ */
+export type RevealRow = { key: string; date: string; product: string; hs: string | null; buyerTo: string | null; shipments: number; pieces: string | null; value: string | null; weight: string | null };
+
+/** The product without its quantity note: "BOYS WOVEN TROUSER= 124 PACK" is the same line as "Boys woven trouser". */
+const productLine = (raw: string | null) => (raw ?? "").split("=")[0]!.replace(/\s+/g, " ").trim();
 
 /**
  * The reveal's rows: the date, the product as filed in sentence case with its HS code (6109.10), the buyer tidied
- * as on the band ("The Haddad Apparel Group Ltd") with where it went, the value and the gross weight. Never a unit
- * price, and never a quantity: the records carry none (only value over unit price, which is a price).
+ * as on the band ("The Haddad Apparel Group Ltd") with its city and where the goods went, the value and the
+ * gross weight.
+ *
+ * A large exporter files one order as many shipments (Ananta Garments, 12 Oct 2026: 25 records, one day, 4
+ * buyers), so shipments on the same day to the same buyer and country for the same product are one row, in the
+ * place of the first, with the values and weights added up.
+ *
+ * Quantity and price (founder, 12 Oct 2026): the records carry no quantity, so it is the value over the price a
+ * piece, printed as "About". Only where every shipment in the row has a price the database checked (0146); a
+ * row of several shipments prints their average.
  */
 export function revealRows(records: readonly RevealRecord[]): RevealRow[] {
-  return records.map((r, i) => {
+  const rows = new Map<string, { first: RevealRecord; n: number; value: number | null; weight: number; pcs: number | null }>();
+  for (const r of records) {
+    const key = [r.date, (r.buyer ?? "").replace(/\s+/g, " ").trim(), r.destination, productLine(r.product)].join("|").toUpperCase();
+    const value = typeof r.value_usd === "number" ? r.value_usd : null;
+    const pcs = value !== null && value > 0 && typeof r.unit_price_usd === "number" && r.unit_price_usd > 0 ? value / r.unit_price_usd : null;
+    const weight = typeof r.weight_kg === "number" && r.weight_kg > 0 ? r.weight_kg : 0;
+    const row = rows.get(key);
+    if (!row) rows.set(key, { first: r, n: 1, value, weight, pcs });
+    else {
+      row.n += 1;
+      row.value = row.value === null && value === null ? null : (row.value ?? 0) + (value ?? 0);
+      row.weight += weight;
+      row.pcs = row.pcs !== null && pcs !== null ? row.pcs + pcs : null;
+    }
+  }
+  return [...rows.values()].map(({ first: r, n, value, weight, pcs }, i) => {
     const hs = r.hs_code && /^\d{6,}$/.test(r.hs_code) ? `${r.hs_code.slice(0, 4)}.${r.hs_code.slice(4, 6)}` : null;
-    const buyerTo = [tidyBuyer(r.buyer), place(r.destination)].filter(Boolean).join(" · ") || null;
+    const buyer = [tidyBuyer(r.buyer), place(r.buyer_city?.trim())].filter(Boolean).join(", ");
+    const buyerTo = [buyer, place(r.destination)].filter(Boolean).join(" · ") || null;
+    const count = pcs !== null ? Math.round(pcs) : 0;
     return {
       key: `${i}`,
       date: formatDay(r.date) ?? "Date not filed",
-      product: productWords(r.product) ?? "Garments",
+      product: productWords(n > 1 ? productLine(r.product) : r.product) ?? "Garments",
       hs,
       buyerTo,
-      value: typeof r.value_usd === "number" ? usd(Math.round(r.value_usd)) : null,
-      weight: typeof r.weight_kg === "number" && r.weight_kg > 0 ? `${Math.round(r.weight_kg).toLocaleString("en-GB")} kg` : null,
+      shipments: n,
+      pieces: count > 0 && value !== null ? `About ${count.toLocaleString("en-GB")} pcs at ${usd(value / pcs!, 2)} a piece` : null,
+      value: value !== null ? usd(Math.round(value)) : null,
+      weight: weight > 0 ? `${Math.round(weight).toLocaleString("en-GB")} kg` : null,
     };
   });
 }
