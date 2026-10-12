@@ -546,14 +546,13 @@ describe("/app/suppliers/[slug]/lines/[hs] — the line page", () => {
     given({ profile: PROFILE, hscodes: HS, rpcs: { supplier_volza_exports: { data: volza, error: null } } });
     const held = words(html(await open()));
     assert.ok(rpcCalls.some((c) => c.fn === "supplier_volza_exports" && c.args?.p_slug === "aboni-knitwear"), "the line never asked for the customs read");
-    assert.match(held, /Customs records Sep 2024 – Aug 2026 Exported in 2 years US\$21\.7m Free on board, across (?:all \d+ lines|every line) Shipments 406 to 16 countries Buyers 43 named on the records/);
-    assert.match(held, /These totals are the supplier's, every line together: customs records are not split by HS code\. The shipments below are the ones coded 6105\./);
+    assert.match(held, /Supplier's exports Sep 2024 – Aug 2026 US\$21\.7m 406 shipments · 43 buyers · 16 countries Every line together: customs records are not split by HS code\. The shipments below are the ones coded 6105\./);
     // Only the stored shipment whose own code is this heading is listed under it: the EU's is a 6109.
     assert.match(held, /Shipments coded 6105 Top one per market The Haddad Apparel Group Ltd Mens polo shirt to United States 6105\.10 · 24 Mar 2026 US\$607,668/);
     assert.doesNotMatch(held, /6109\.10|a piece|Volza/i);
     // A reader the database refused sees no customs words on the line.
     given({ profile: PROFILE, hscodes: HS });
-    assert.doesNotMatch(words(html(await open())), /Customs records|not split by HS code|Shipments coded/);
+    assert.doesNotMatch(words(html(await open())), /Customs records|Supplier's exports|not split by HS code|Shipments coded/);
   });
 
   for (const bad of ["abcd", "61", "61059", "%", "6105a", ""]) {

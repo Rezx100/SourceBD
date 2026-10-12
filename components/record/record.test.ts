@@ -69,8 +69,15 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
     const out = plain(phone(model(), { mode: "page" }));
     assert.deepEqual([...out.matchAll(/data-phone-panel="([a-z]+)"/g)].map((m) => m[1]), TABS.map((t) => t.id));
     assert.doesNotMatch(out, /data-phone-panel="[a-z]+"[^>]* hidden=""/, "a section is hidden until its tab is tapped");
-    // Each lands under the bar, the short statuses and the strip (56 + 42 + 48, less its own 8px band), and the foot marks the last tab.
-    assert.equal((out.match(/data-phone-panel="[a-z]+" class="[^"]*scroll-mt-\[138px\]/g) ?? []).length, TABS.length);
+    // Each lands under the bar, the short statuses and the strip (56 + 42 + 48, less the 12px gap over it), and the foot marks the last tab.
+    assert.equal((out.match(/data-phone-panel="[a-z]+" class="[^"]*scroll-mt-\[134px\]/g) ?? []).length, TABS.length);
+    // What parts two sections is a gap of the page's ground between hairlines, not a solid grey bar (founder, 12 Oct 2026).
+    const panels = /<div data-phone-panels="" class="([^"]*)"/.exec(out)![1]!.replace(/&gt;/g, ">");
+    for (const c of ["[&>*+*]:before:h-3", "[&>*+*]:before:border-y", "[&>*+*]:before:border-line", "[&>*+*]:before:bg-subtle"]) assert.ok(panels.split(" ").includes(c), `the divider lacks ${c}`);
+    assert.doesNotMatch(panels, /border-t-8|border-sunken/);
+    // Contact is the last card of the scroll, after Products, and no longer part of the Overview (founder, 12 Oct 2026).
+    assert.match(out, /data-phone-panel="products"[\s\S]*<section aria-label="Contact" data-phone-contact=""[\s\S]*<\/section><\/div><div data-phone-end=""/);
+    assert.doesNotMatch(/data-phone-panel="overview"[\s\S]*?data-phone-panel="exports"/.exec(out)![0], />Contact</);
     assert.match(out, /<div data-phone-end="" aria-hidden="true"><\/div><\/div>$/);
     const tabsSrc = readFileSync(path.join(dir, "phone-tabs.tsx"), "utf8");
     assert.match(tabsSrc, /sectionInView\(ORDER, inBand, atEnd, prev\)/, "the strip does not follow the scroll");

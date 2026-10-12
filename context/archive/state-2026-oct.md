@@ -37,13 +37,22 @@ Ten notes on the live phone site, one PR (`phone-fixes-1`), phone only, no migra
 - **"Your RFQs didn't load"**: the phone no longer draws it. Cause: migration 0126 (claimed-supplier policies) was never applied to production, so every direct read of `rfqs` as a buyer fails. Waits for the founder's "apply 0126".
 - **Not built**: the month-by-month exports chart on the board. The customs data holds a two-year total and four markets, no monthly figures; drawing it needs a new fetch.
 
+## Phone fixes, round 2 (12 Oct 2026)
+
+Three more notes from the founder once PR #477 was live; branch `phone-fixes-2`, phone only, no migration.
+
+- **Divider**: what parts two sections of the record is a 12px gap of the page's ground between two hairlines, not a solid grey band.
+- **Contact** is the last card of the record's scroll, after Products (`PhoneContact` in `phone-record.tsx`). Still the locked card here; the real details for Growth, Enterprise and admins are a separate branch (`contact-reveal`, a new database function that waits for the founder's "apply").
+- **HS line page**: cut to the line's own receipts (the EPB exporter page, the certificates whose scope covers it, anything the supplier attests), the supplier's customs total in one card, and the shipments coded to the heading. The desktop's fact list, the three tiles and "By market" are no longer drawn on a phone; they are on the record.
+- **Still not built**: the month-by-month exports chart (no monthly figures in the customs data).
+
 ## Contact details shown from the Growth plan (12 Oct 2026)
 
 Founder, 12 Oct 2026: "we have decided to show contact details of the suppliers as it's stored on the database from growth plan". Branch `contact-reveal`; migration `0145_supplier_contact_details.sql` built, **not applied**.
 
 - **Who**: an admin, or a buyer on Growth or Enterprise, not suspended; the same gate as the customs records (0137). Everyone else keeps the locked card with the counts. The database decides, in `supplier_contact_details(slug)`; the contact columns stay revoked (0083).
 - **What**: emails, phone numbers, website, contact person and role from the register columns, cleaned by the rules the counts use (0105), so the card shows as many as the count said. Supplier-entered contact fields (0034) are not part of it.
-- **Where**: the full page's Contact box, and the same box at the end of the overview in the pane and under 1024 (`components/record/contact-card.tsx`). Emails write, numbers dial with the country code, the website opens apart.
+- **Where**: the full page's Contact box, the same box at the end of the overview in the pane and under 1024, and a phone's Contact section, the last of its scroll (`components/record/contact-card.tsx`, `PhoneContact`). Emails write, numbers dial with the country code, the website opens apart.
 - **Recorded**: every sheet that reads the details writes `contact.revealed` to the activity record (`loadRecordSheet`); `supplier.viewed` now says `contact_visible` truthfully. Until this change the code wrote `true` on every open, though no details were shown; those older entries overstate.
 - **Until 0145 is applied** the read fails soft and every reader sees the locked card. Guards: `supabase/ci/assert-0145.sql` (who gets what, and that details agree with the counts), `record.test.ts`, `load-record.test.ts`, `record-routes.test.ts`.
-- **Open**: the phone record's Contact box is not wired yet (another change was moving it); a sanctioned record shows its details to the same readers; nothing meters or rate-limits a direct call to the function.
+- **Open**: a sanctioned record shows its details to the same readers; nothing meters or rate-limits a direct call to the function.
