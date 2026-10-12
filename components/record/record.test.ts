@@ -871,11 +871,16 @@ describe("the record's first screen says each fact once, with its receipt", () =
     assert.equal((page.match(/<li class="relative flex items-center gap-2\.5/g) ?? []).length, lines.length);
     assert.doesNotMatch(page, /<details/);
     const pane = products("pane");
-    assert.match(pane, new RegExp(`<details class="group/lines[^"]*"><summary[^>]*>All ${lines.length} lines`));
+    // The expander stays where it is and says what it does next: focus is never lost and the lines fold again.
+    assert.match(pane, new RegExp(`<details class="group/lines[^"]*"><summary[^>]*><span class="group-open/lines:hidden">All ${lines.length} lines</span><span class="hidden group-open/lines:inline">Show the first 6</span>`));
     assert.equal((pane.slice(0, pane.indexOf("<details")).match(/<li class="relative flex items-center gap-2\.5/g) ?? []).length, 6);
     assert.match(text(page), /What it ships \d+ Product codes on its EPB exporter page\. Each opens the line\. Photos illustrate the code\./);
-    // The names it filed are a different claim, kept apart and not matched to the codes; the heading names the body the record holds.
-    assert.match(text(page), /As filed with BGMEA \d+ read \d{1,2} \w{3} /);
+    // The names it filed are a different claim, kept apart and not matched to the codes. The record does not say
+    // which register filed them: Aboni is on three trade bodies, so the heading names none.
+    assert.match(text(page), /As filed \d+ /);
+    assert.doesNotMatch(text(page), /As filed with/);
+    const one = model(aboniInput(), { sources: m.sources.filter((x) => !["BKMEA", "BGAPMEA"].includes(x.mark.code.toUpperCase())) });
+    assert.match(text(view(one, { mode: "page" })), /As filed with BGMEA \d+ read \d{1,2} \w{3} /, "the one trade body the record holds is not named");
     // The phone still reads its own six.
     assert.equal(m.products.tiles.length, 6);
   });
@@ -1094,6 +1099,8 @@ describe("the registrations and the sources read as columns (6 Oct 2026: 'scatte
     const kinds = [...out.matchAll(/<section aria-label="([^"]+)"[^>]*><h3/g)].map((m) => plain(m[1]!));
     assert.deepEqual(kinds, [...new Set(model().sources.map((s) => s.tier))]);
     assert.equal(kinds[0], "Government register");
+    // Each kind is a defined term: the glossary's help layer reaches the record (critique of 8 Oct 2026, item 6).
+    assert.match(out, /<h3 class="[^"]*"><span tabindex="0" data-define="Government register"/);
     const list = out.slice(out.indexOf('<section id="record-sources"'), out.indexOf('<section id="record-contact"'));
     assert.equal((list.match(/<li class="flex items-center gap-2">/g) ?? []).length, model().sources.length, "one entry per source");
     // The words come from a row's own tier slug, the order from its mark's rank: a kind can come back after another.
@@ -1137,6 +1144,24 @@ describe("the record's minors, round 3 (critique of 8 Oct 2026, round 3, item 7)
     assert.doesNotMatch(view(m, { mode: "pane" }), /data-record-stuck|data-record-head/);
     // The pane's two actions are a bar at its foot.
     assert.match(view(m, { mode: "pane" }), /<div class="sticky bottom-0 [^"]*max-sm:hidden[^"]*">(?:(?!<\/div>)[\s\S])*Send RFQ<\/a><\/div>/);
+  });
+
+  it("a read date keeps its year unless it is this year's: a bare day and month must not make an old read look recent", () => {
+    const m = model();
+    assert.match(text(view(m, { mode: "page" })), /ASOS Supplier list · read 30 Jul HM /);
+    const old = model(aboniInput(), { sources: m.sources.map((x) => (x.mark.label === "ASOS" ? { ...x, readDate: "30 Jul 2025" } : x)) });
+    assert.match(text(view(old, { mode: "page" })), /ASOS Supplier list · read 30 Jul 2025 HM /);
+  });
+
+  it("only the nav on screen owns the record's state: the page mounts the tabs and the rail, and the hidden one sets nothing", () => {
+    assert.equal((view(model(), { mode: "page" }).match(/<nav aria-label="(Record sections|On this page)"/g) ?? []).length, 2, "guard: the page mounts both");
+    const src = readFileSync(path.join(dir, "section-tabs.tsx"), "utf8").replace(/\r\n/g, "\n");
+    // At 1100px the hidden rail's observer cleared `data-stuck` after the tabs' set it, and the stuck bar never showed.
+    assert.match(src, /if \(bar\.offsetParent === null \|\| !e\) return;\s*record\.toggleAttribute\("data-stuck", !e\.isIntersecting\);/, "a hidden nav writes data-stuck");
+    assert.match(src, /const watch = \(\) => \{[\s\S]{0,400}?if \(bar\.offsetParent === null\) \{/, "a hidden nav measures and sets the offsets");
+    assert.match(src, /const onJump = \(e: MouseEvent\) => \{\s*if \(bar\.offsetParent === null \|\|/, "a hidden nav answers a jump");
+    // The bar shows once only its own height of the head is left, so nothing scrolls through over the page's tabs.
+    assert.match(src, /rootMargin: `-\$\{stuck\?\.offsetHeight \?\? 0\}px 0px 0px 0px`/);
   });
 
   it("a contact count leads with its noun", () => {

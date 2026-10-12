@@ -1583,7 +1583,7 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
     // The desktop's one line of them says the same two, and the same count.
     const filed = /<p data-filed-products=""[^>]*>([^<]*)<\/p>/.exec(pages.full)?.[1] ?? "";
     assert.deepEqual(filed.split("·").map((x) => x.trim()), ["Knit T-shirt 61091000", "Polo Shirt"]);
-    assert.match(pages.full.replace(/<[^>]*>/g, " ").replace(/\s+/g, " "), /As filed with BGMEA 2 /);
+    assert.match(pages.full.replace(/<[^>]*>/g, " ").replace(/\s+/g, " "), /As filed 2 /);
   });
 
   it("?lines=all rides INTO a line from the overlay, not only back out", async () => {

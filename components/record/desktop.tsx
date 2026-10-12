@@ -13,7 +13,7 @@ import { ArrowUpRight, Buildings, CaretDown, CaretRight, Check, Clock, Envelope,
 import type { Icon } from "@phosphor-icons/react";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ButtonLink, ring } from "@/components/kit";
+import { ButtonLink, Define, ring } from "@/components/kit";
 import { ABSENT, CONTACT_LIMIT_WORDS, SourceMark, onFileWords } from "@/components/patterns";
 import { hasSourceMark } from "@/components/patterns/source-mark";
 import { buyersOf, customsWindow, initials, type VolzaMarketName } from "@/lib/dashboard/facts";
@@ -321,7 +321,7 @@ function Memberships({ model, today, level }: SectionProps) {
 
 function Buyers({ model, today, level }: SectionProps) {
   const v = model.volza;
-  const tiles = buyerTiles(model, buyersOf(model.products.buyerLists, v));
+  const tiles = buyerTiles(model, buyersOf(model.products.buyerLists, v), today);
   if (tiles.length === 0) return null;
   const fromCustoms = tiles.filter((b) => b.customs).length;
   const read = v ? shortDay(v.fetched_at, today) : null;
@@ -460,12 +460,12 @@ const PANE_LINES = 6;
  * they are different claims: the export codes on its EPB page (photo, short name, code), then the names
  * it filed with its trade body. `fold`: the pane shows six lines and unfolds the rest.
  */
-export function ProductsSection({ model, level, fold }: Omit<SectionProps, "today"> & { fold: boolean }) {
+export function ProductsSection({ model, today, level, fold }: SectionProps & { fold: boolean }) {
   const p = model.products;
   const Sub = under(level);
   const lines = p.lineTiles ?? p.tiles;
   const items = productItems(p.productList);
-  const filed = filedWith(model);
+  const filed = filedWith(model, today);
   const tile = (t: (typeof lines)[number]) => (
     <li key={t.hs} className="relative flex items-center gap-2.5 rounded-md py-1 hover:bg-subtle">
       {t.thumb ? (
@@ -500,9 +500,10 @@ export function ProductsSection({ model, level, fold }: Omit<SectionProps, "toda
               </ul>
               {rest.length > 0 ? (
                 <details className="group/lines flex flex-col">
-                  <summary className={cn("mx-3 mt-3 flex h-9 cursor-pointer list-none items-center justify-center gap-1.5 rounded-lg border border-line text-base font-medium text-ink hover:bg-subtle group-open/lines:hidden [&::-webkit-details-marker]:hidden", ring)}>
-                    All {lines.length} lines
-                    <CaretDown size={14} weight="thin" className="shrink-0 text-ink-2" aria-hidden />
+                  <summary className={cn("mx-3 mt-3 flex h-9 cursor-pointer list-none items-center justify-center gap-1.5 rounded-lg border border-line text-base font-medium text-ink hover:bg-subtle [&::-webkit-details-marker]:hidden", ring)}>
+                    <span className="group-open/lines:hidden">All {lines.length} lines</span>
+                    <span className="hidden group-open/lines:inline">Show the first {PANE_LINES}</span>
+                    <CaretDown size={14} weight="thin" className="shrink-0 text-ink-2 group-open/lines:rotate-180" aria-hidden />
                   </summary>
                   <ul className={cn(GRID, "pt-2")}>{rest.map(tile)}</ul>
                 </details>
@@ -531,7 +532,7 @@ export function ProductsSection({ model, level, fold }: Omit<SectionProps, "toda
 /* ------------------------------------------------------------ certificates */
 
 const CERT_COLS =
-  "grid grid-cols-[minmax(0,1fr)_158px_104px_88px] items-center gap-x-4 [@container_(min-width:760px)]:grid-cols-[minmax(0,1fr)_170px_112px_176px_104px_104px]";
+  "grid grid-cols-[minmax(0,1fr)_132px_92px_64px] items-center gap-x-3 [@container_(min-width:560px)]:grid-cols-[minmax(0,1fr)_158px_104px_88px] [@container_(min-width:560px)]:gap-x-4 [@container_(min-width:760px)]:grid-cols-[minmax(0,1fr)_170px_112px_176px_104px_104px]";
 const CERT_MARK: Record<string, string> = { "OEKO-TEX": "OEKO-TEX", GOTS: "GOTS", WRAP: "WRAP" };
 
 /**
@@ -810,8 +811,8 @@ function SafetyRow({ b }: { b: SafetyLine }) {
   );
 }
 
-export function SafetySection({ model, level }: Omit<SectionProps, "today">) {
-  const lines = safetyLines(model);
+export function SafetySection({ model, today, level }: SectionProps) {
+  const lines = safetyLines(model, today);
   if (lines.length === 0) {
     return (
       <Section id="safety" title="Safety" level={level}>
@@ -906,7 +907,9 @@ export function SourcesSection({ model, today, level }: SectionProps) {
           <div className="flex flex-col border-y border-line">
             {groups.map((g) => (
               <section key={g.kind} aria-label={g.kind} className={SOURCE_LINE}>
-                <Sub className={SOURCE_KIND}>{g.kind}</Sub>
+                <Sub className={SOURCE_KIND}>
+                  <Define term={g.kind} />
+                </Sub>
                 <ul className="flex min-w-0 flex-1 flex-wrap gap-x-7 gap-y-2.5">
                   {g.rows.map((s) => {
                     const stale = staleWords(s.readDate, today);

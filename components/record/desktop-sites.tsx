@@ -4,49 +4,22 @@
 // from the ETL's geocode cache, no geocoding at runtime) beside a table of the premises, one row each.
 // A row's site is a link (`?site=2`), so the table works with no script; with one, a click selects the
 // row, the map flies to its pin, and a click on a pin selects its row. The address follows the
-// selection without a navigation, so a site can be shared. The same behaviour as the phone's `SitesView`,
-// drawn as the board's table.
+// selection without a navigation, so a site can be shared. The behaviour is `useSiteSelection`, shared with
+// the phone's `SitesView`; this draws it as the board's table.
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
 import { ring } from "@/components/kit";
-import { MAP_ATTRIBUTION, MapWidget, useNearbyLayer, type LocationMapMarker, type MapStyle } from "@/components/record/locations-map";
+import { MAP_ATTRIBUTION, MapWidget } from "@/components/record/locations-map";
 import { cn } from "@/lib/utils";
 import type { SiteLine } from "./desktop-words";
+import { SITE_PARAM, useSiteSelection } from "./sites-view";
 
-const SITE_PARAM = "site";
 const WIDE_ROW = "[@container_(min-width:760px)]:flex-row [@container_(min-width:760px)]:items-start [@container_(min-width:760px)]:gap-6";
 const COLS = "grid grid-cols-[36px_96px_minmax(0,1fr)_96px] items-center gap-x-4 [@container_(min-width:760px)]:grid-cols-[36px_132px_minmax(0,1fr)_168px]";
 const segment = "h-7 px-2.5 text-xs font-medium outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus";
 
 export function DesktopSites({ lines, slug, baseHref, initial = null, mapKey }: { lines: SiteLine[]; slug: string; /** The Sites tab's own link; a row adds `site=N` to it. */ baseHref: string; /** `?site=` as the server read it. */ initial?: number | null; /** The Barikoi key is public and bound to the domain; with none, the table stands alone. */ mapKey: boolean }) {
-  const markers = useMemo<LocationMapMarker[]>(
-    () =>
-      lines
-        .filter((l) => l.pin)
-        .map((l) => ({ latitude: l.pin!.latitude, longitude: l.pin!.longitude, label: l.address, kind: l.office ? "registered" : "factory", confidencePct: l.pin!.confidencePct, addressStatus: l.pin!.addressStatus })),
-    [lines],
-  );
-  const [selected, setSelected] = useState<number | null>(initial && initial >= 1 && initial <= lines.length ? initial : null);
-  // The row is selected on first paint, but the map is told only after mount: a map born already
-  // focused would not fly to the pin.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  const [mapStyle, setMapStyle] = useState<MapStyle>("street");
-  const focusedIndex = mounted && selected !== null && selected <= markers.length ? selected - 1 : null;
-  const nearby = useNearbyLayer(markers, focusedIndex, slug);
-
-  // The address follows the selection; no navigation, so the server component is not read again.
-  useEffect(() => {
-    const url = new URL(window.location.href);
-    const next = selected === null ? null : String(selected);
-    if (url.searchParams.get(SITE_PARAM) === next) return;
-    if (next === null) url.searchParams.delete(SITE_PARAM);
-    else url.searchParams.set(SITE_PARAM, next);
-    window.history.replaceState(null, "", url.toString());
-  }, [selected]);
-
-  const onPin = useCallback((index: number | null) => setSelected(index === null ? null : index + 1), []);
+  const { markers, selected, focusedIndex, nearby, mapStyle, setMapStyle, onPin, onSelect } = useSiteSelection(lines, slug, initial);
   const mapped = mapKey && markers.length > 0;
 
   return (
@@ -112,14 +85,14 @@ export function DesktopSites({ lines, slug, baseHref, initial = null, mapKey }: 
                     onClick={(e) => {
                       if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
                       e.preventDefault();
-                      setSelected((prev) => (prev === l.n ? null : l.n));
+                      onSelect(l.n);
                     }}
                     className="rounded-sm text-base font-medium text-ink outline-none after:absolute after:inset-0 focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:outline-offset-[-2px] focus-visible:after:outline-focus"
                   >
                     {l.site}
                     <span className="sr-only">, site {l.n}{l.pin ? ", show on the map" : ", not pinned yet"}</span>
                   </Link>
-                  {l.kind ? <span className="text-xs text-ink-3">{l.kind}</span> : null}
+                  {l.detail ? <span className="text-xs text-ink-3">{l.detail}</span> : null}
                 </span>
                 <span role="cell" className="flex min-w-0 flex-col text-base text-ink [overflow-wrap:anywhere]">
                   {l.address}

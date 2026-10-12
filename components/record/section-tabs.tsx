@@ -29,7 +29,7 @@ export function scroller(el: HTMLElement): HTMLElement | null {
   return null;
 }
 
-export function SectionTabs({ tabs, initial, variant = "tabs" }: { tabs: SectionTab[]; initial: string; /** `rail`: the full page's "On this page" list, which sits beside the sections, not over them. */ variant?: "tabs" | "rail" }) {
+export function SectionTabs({ tabs, initial, variant = "tabs" }: { tabs: SectionTab[]; initial: string; /** `rail`: the full page's "On this page" list, which sits beside the sections, not over them. `page-tabs`: the tabs on the full page, inset as its head is. */ variant?: "tabs" | "page-tabs" | "rail" }) {
   const [active, setActive] = useState(initial);
   const nav = useRef<HTMLElement>(null);
   const clicking = useRef(false);
@@ -132,7 +132,17 @@ export function SectionTabs({ tabs, initial, variant = "tabs" }: { tabs: Section
     if (end) foot.observe(end);
     // The page's head has left the screen: the record shows its stuck bar.
     const head = record.querySelector("[data-record-head]");
-    const gone = new IntersectionObserver(([e]) => record.toggleAttribute("data-stuck", Boolean(e) && !e!.isIntersecting && bar.offsetParent !== null), { root });
+    // Shown as soon as only the bar's own height of the head is left, so nothing scrolls through above the
+    // page's tabs (which stick under the bar). A nav that is not on screen leaves the record's state alone:
+    // the page mounts two, and the hidden one would undo what the shown one set.
+    const stuck = record.querySelector<HTMLElement>(":scope > [data-record-stuck] > *");
+    const gone = new IntersectionObserver(
+      ([e]) => {
+        if (bar.offsetParent === null || !e) return;
+        record.toggleAttribute("data-stuck", !e.isIntersecting);
+      },
+      { root, rootMargin: `-${stuck?.offsetHeight ?? 0}px 0px 0px 0px` },
+    );
     if (head) gone.observe(head);
     // A link to a section from inside the record scrolls there instead of loading the page again.
     const onJump = (e: MouseEvent) => {
@@ -196,7 +206,7 @@ export function SectionTabs({ tabs, initial, variant = "tabs" }: { tabs: Section
   return (
     // What sticks is a plain box on its own layer, and the strip that scrolls sideways sits inside it.
     <div className="sticky top-[var(--record-head,0px)] z-raised bg-surface [transform:translateZ(0)]">
-      <nav ref={nav} aria-label="Record sections" className="flex gap-[9px] overflow-x-auto overscroll-x-contain border-b border-line px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <nav ref={nav} aria-label="Record sections" className={cn("flex gap-[9px] overflow-x-auto overscroll-x-contain border-b border-line px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden", variant === "page-tabs" && "lg:px-8")}>
         {tabs.map((t) => {
           const on = t.id === active;
           return (

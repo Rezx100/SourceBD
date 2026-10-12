@@ -309,7 +309,7 @@ export type SafetyLine = {
 };
 
 /** The RSC buildings as table rows, worst first (the phone's order). */
-export function safetyLines(model: SupplierSheetModel): SafetyLine[] {
+export function safetyLines(model: SupplierSheetModel, today: Date): SafetyLine[] {
   return rscCards(model).map((c: RscCard, i) => {
     const training = c.training ? cap(c.training.replace(/^training /, "")) : null;
     const absent = c.links.filter((l) => !l.href).map((l) => (REPORT[l.label] ?? l.label).toLowerCase());
@@ -322,7 +322,7 @@ export function safetyLines(model: SupplierSheetModel): SafetyLine[] {
       progress: c.progress,
       training,
       trainingTone: training && /complete/i.test(training) ? "good" : training && /yet|not start/i.test(training) ? "look" : null,
-      read: c.readDate ? c.readDate.replace(/ \d{4}$/, "") : null,
+      read: dayOnly(c.readDate, today),
       reports: c.links.flatMap((l) => (l.href ? [{ label: REPORT[l.label] ?? l.label, href: l.href, plan: l.label === "CAP" }] : [])),
       missing: absent.length ? `No ${absent.join(", ")} report on the register` : null,
     };
@@ -345,7 +345,12 @@ export type BuyerTile = Buyer & { letters: string; read: string | null; href: st
 const NOT_CELLS = new Set(["Memberships", "Brand supplier lists", "Buyers in shipment records"]);
 
 const sourceOf = (model: SupplierSheetModel, code: string | null) => (code ? (model.sources.find((s) => s.mark.code === code || s.mark.label === code) ?? null) : null);
-const dayOnly = (words: string | null) => (words ? words.replace(/ \d{4}$/, "") : null);
+/** "24 Jul" for a day this year, "24 Jul 2025" for any other: a bare day and month must not make an old read look recent. */
+function dayOnly(words: string | null, today: Date): string | null {
+  if (!words) return null;
+  const year = ` ${today.getUTCFullYear()}`;
+  return words.endsWith(year) ? words.slice(0, -year.length) : words;
+}
 
 /** Key facts as cells: what it is, the figure, who filed it. Memberships and buyers have their own tiles. */
 export function factCells(model: SupplierSheetModel): FactCell[] {
@@ -360,27 +365,32 @@ export function memberTiles(model: SupplierSheetModel, today: Date): MemberTile[
   return members.map((m) => {
     const s = sourceOf(model, m.mark);
     const stale = staleWords(s?.readDate ?? null, today);
-    return { ...m, title: [m.name, m.qualifier].filter(Boolean).join(" "), read: stale ? null : dayOnly(s?.readDate ?? null), stale, href: s?.mark.href ?? null };
+    return { ...m, title: [m.name, m.qualifier].filter(Boolean).join(" "), read: stale ? null : dayOnly(s?.readDate ?? null, today), stale, href: s?.mark.href ?? null };
   });
 }
 
 /** Who buys from it, one tile each: the brand's own list where it names the supplier, else the customs record. */
-export function buyerTiles(model: SupplierSheetModel, buyers: readonly Buyer[]): BuyerTile[] {
+export function buyerTiles(model: SupplierSheetModel, buyers: readonly Buyer[], today: Date): BuyerTile[] {
   return buyers.map((b) => {
     const s = b.listed ? sourceOf(model, b.name) : null;
-    return { ...b, letters: initials(b.name), read: dayOnly(s?.readDate ?? null), href: s?.mark.href ?? null };
+    return { ...b, letters: initials(b.name), read: dayOnly(s?.readDate ?? null, today), href: s?.mark.href ?? null };
   });
 }
 
-/** The trade body the product names were filed with, and when it was read: the heading names it only when the record holds it. */
-export function filedWith(model: SupplierSheetModel): { body: string | null; read: string | null } {
-  const s = ["BGMEA", "BKMEA", "BGAPMEA", "BTMA"].map((code) => sourceOf(model, code)).find(Boolean) ?? null;
-  return { body: s?.mark.label ?? null, read: dayOnly(s?.readDate ?? null) };
+/**
+ * The trade body the product names were filed with, and when it was read. The record does not say which
+ * register filed them, so a body is named only when it is the one trade body the record holds; with
+ * several, or none, the heading says "As filed" and no more.
+ */
+export function filedWith(model: SupplierSheetModel, today: Date): { body: string | null; read: string | null } {
+  const held = ["BGMEA", "BKMEA", "BGAPMEA", "BTMA"].flatMap((code) => sourceOf(model, code) ?? []);
+  const s = held.length === 1 ? held[0]! : null;
+  return { body: s?.mark.label ?? null, read: dayOnly(s?.readDate ?? null, today) };
 }
 
 /* ------------------------------------------------------------------- sites */
 
-export type SiteLine = { n: number; site: string; /** What kind of office the registers call it ("registered and mailing"), or null. */ kind: string | null; address: string; from: string | null; approx: boolean; pin: SiteCard["pin"]; office: boolean };
+export type SiteLine = Pick<SiteCard, "n" | "kind" | "address" | "pin"> & { site: string; /** What kind of office the registers call it ("registered and mailing"), or null. */ detail: string | null; from: string | null; approx: boolean };
 
 /** The premises as table rows, numbered as the map's pins are (`siteCards`: pinned ones first). */
 export function siteLines(locations: readonly LocationRow[]): SiteLine[] {
@@ -389,6 +399,6 @@ export function siteLines(locations: readonly LocationRow[]): SiteLine[] {
   return siteCards(locations).map((c, i) => {
     const l = ordered[i]!;
     const office = c.kind === "office";
-    return { n: c.n, site: office ? "Office" : "Factory", kind: office && l.kind !== "Address" ? l.kind.toLowerCase().replace(/ · /g, " and ").replace(/ ?office$/, "") || null : null, address: c.address, from: l.marks.map((m) => m.label).join(", ") || null, approx: c.kind === "factory-approx", pin: c.pin, office };
+    return { n: c.n, kind: c.kind, address: c.address, pin: c.pin, site: office ? "Office" : "Factory", detail: office && l.kind !== "Address" ? l.kind.toLowerCase().replace(/ · /g, " and ").replace(/ ?office$/, "") || null : null, from: l.marks.map((m) => m.label).join(", ") || null, approx: c.kind === "factory-approx" };
   });
 }

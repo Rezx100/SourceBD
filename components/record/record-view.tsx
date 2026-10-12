@@ -236,7 +236,7 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
       {/* The pane's tabs; on the page they stand in for the rail where there is no room for it (under 1280).
           Keyed by record: a pane that opens another supplier starts again at its tab. */}
       <div className={cn("contents max-sm:hidden", page && "xl:hidden")}>
-        <SectionTabs key={model.fullHref} initial={tab} tabs={sections} />
+        <SectionTabs key={model.fullHref} variant={page ? "page-tabs" : "tabs"} initial={tab} tabs={sections} />
       </div>
 
       <div className={cn("flex items-start gap-8 max-sm:hidden", page ? "px-3 pb-[72px] pt-6 lg:pl-5 lg:pr-8" : "px-3 pb-8 pt-5")}>
@@ -244,10 +244,10 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
         <div className={cn("flex min-w-0 flex-1 flex-col [container-type:inline-size]", page ? "gap-9" : "gap-8")}>
           <OverviewSection model={model} today={today} level={level} exportsHref={hrefOf("exports")} revealHref={`${tabHref("exports")}#recent-shipments`} market={model.market ?? null} />
           <ExportsSection model={model} today={today} level={level} />
-          <ProductsSection model={model} level={level} fold={!page} />
+          <ProductsSection model={model} today={today} level={level} fold={!page} />
           <CertificatesSection model={model} today={today} level={level} />
           <ChecksSection model={model} today={today} level={level} hrefOf={hrefOf} />
-          <SafetySection model={model} level={level} />
+          <SafetySection model={model} today={today} level={level} />
           <SitesSection model={model} level={level} tabHref={tabHref} site={site} />
           <SourcesSection model={model} today={today} level={level} />
           <ContactSection model={model} level={level} />
