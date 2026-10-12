@@ -10,8 +10,9 @@
 import { X } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
-import { PaneSkeleton, Skeleton, buttonClass } from "@/components/kit";
+import { Skeleton, buttonClass } from "@/components/kit";
 import { PhoneRecordSkeleton } from "@/components/record/phone-record";
+import { cn } from "@/lib/utils";
 import { PaneFocus } from "./pane-focus";
 
 export function PaneFrame({ openKey, children }: { /** What the pane shows; focus moves whenever it changes. */ openKey: string; children: ReactNode }) {
@@ -24,11 +25,59 @@ export function PaneFrame({ openKey, children }: { /** What the pane shows; focu
   );
 }
 
-/** The record while it is read: the kit's pane silhouette (name, line, tabs, fact rows). */
+/**
+ * The record while it is read (Paper page 37, the pane's loading board): the head, the nine tabs, the
+ * export grid's four tiles, five rows, and the two actions at the foot.
+ */
 export function RecordSkeleton() {
   return (
-    <div className="flex min-h-0 flex-1 flex-col sm:p-6">
-      <PaneSkeleton className="max-sm:hidden" />
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div role="status" aria-label="Loading" className="flex min-h-0 flex-1 flex-col max-sm:hidden">
+        <div className="flex items-start gap-2 px-6 pb-3.5 pt-4">
+          <div className="flex flex-col gap-2.5">
+            <Skeleton className="h-5 w-[264px]" />
+            <Skeleton className="h-3 w-[220px]" />
+          </div>
+          <span className="flex-1" />
+          <Skeleton className="h-8 w-[124px] rounded-md" />
+          <Skeleton className="size-8 rounded-full" />
+        </div>
+        <div className="flex h-10 items-center gap-[18px] overflow-clip border-b border-line px-6">
+          {["w-14", "w-12", "w-[76px]", "w-11", "w-9", "w-[52px]", "w-14", "w-[52px]", "w-12"].map((w, i) => (
+            <Skeleton key={i} className={cn("h-3 shrink-0", w)} />
+          ))}
+        </div>
+        <div className="flex flex-col gap-[26px] px-3 pt-5">
+          <div className="flex flex-col gap-3.5">
+            <Skeleton className="mx-3 h-4 w-24" />
+            <div className="grid grid-cols-4 rounded-[10px] border border-line">
+              {["w-[70px]", "w-[50px]", "w-14", "w-[76px]"].map((w, i) => (
+                <div key={w} className={cn("flex min-h-24 flex-col gap-2.5 p-4", i > 0 && "border-l border-line")}>
+                  <Skeleton className="h-2.5 w-[88px] max-w-full" />
+                  <Skeleton className={cn("h-[22px]", w)} />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-col gap-3.5">
+            <Skeleton className="mx-3 h-4 w-[132px]" />
+            <div className="flex flex-col border-t border-line">
+              {["w-[260px]", "w-[200px]", "w-[232px]", "w-[180px]", "w-[216px]"].map((w, i) => (
+                <div key={w} className={cn("flex h-11 items-center gap-6 px-3", i > 0 && "border-t border-line")}>
+                  <Skeleton className={cn("h-3 shrink", w)} />
+                  <span className="flex-1" />
+                  <Skeleton className="h-3 w-[120px] shrink-0" />
+                  <Skeleton className="h-3 w-16 shrink-0" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="mt-auto flex h-16 shrink-0 items-center justify-end gap-2 border-t border-line px-6">
+          <Skeleton className="h-9 w-[84px] rounded-md" />
+          <Skeleton className="h-9 w-24 rounded-md" />
+        </div>
+      </div>
       {/* A phone's own silhouette (Paper page 35, `d-loading`): the statuses, the tabs' place, four tiles. */}
       <PhoneRecordSkeleton className="sm:hidden" />
     </div>

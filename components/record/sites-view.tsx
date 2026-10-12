@@ -13,9 +13,54 @@ import { MAP_ATTRIBUTION, MapWidget, useNearbyLayer, type LocationMapMarker, typ
 import { cn } from "@/lib/utils";
 import { siteSummary, type SiteCard } from "./words";
 
-const SITE_PARAM = "site";
+/** `site=`: the address's name for the selected site. */
+export const SITE_PARAM = "site";
 
 const segment = "min-h-11 px-3.5 text-sm font-medium outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus sm:min-h-9";
+
+/**
+ * The selection both drawings of the sites share (the phone's cards here, the desktop's table in
+ * `desktop-sites.tsx`): the pinned sites as the map's markers, the selected site, the map's style and its
+ * nearby layer. The address follows the selection without a navigation, so a site can be shared.
+ */
+export function useSiteSelection(sites: readonly Pick<SiteCard, "address" | "kind" | "pin">[], slug: string, initial: number | null) {
+  const markers = useMemo<LocationMapMarker[]>(
+    () =>
+      sites
+        .filter((c) => c.pin)
+        .map((c) => ({
+          latitude: c.pin!.latitude,
+          longitude: c.pin!.longitude,
+          label: c.address,
+          kind: c.kind === "office" ? "registered" : "factory",
+          confidencePct: c.pin!.confidencePct,
+          addressStatus: c.pin!.addressStatus,
+        })),
+    [sites],
+  );
+  const [selected, setSelected] = useState<number | null>(initial && initial >= 1 && initial <= sites.length ? initial : null);
+  // The site is selected on first paint (it works with no script), but the map is told only after
+  // mount: a map born already focused would not fly to the pin.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const [mapStyle, setMapStyle] = useState<MapStyle>("street");
+  const focusedIndex = mounted && selected !== null && selected <= markers.length ? selected - 1 : null;
+  const nearby = useNearbyLayer(markers, focusedIndex, slug);
+
+  // The URL follows the selection; no navigation, so the server component is not read again.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const next = selected === null ? null : String(selected);
+    if (url.searchParams.get(SITE_PARAM) === next) return;
+    if (next === null) url.searchParams.delete(SITE_PARAM);
+    else url.searchParams.set(SITE_PARAM, next);
+    window.history.replaceState(null, "", url.toString());
+  }, [selected]);
+
+  const onPin = useCallback((index: number | null) => setSelected(index === null ? null : index + 1), []);
+  const onSelect = useCallback((n: number) => setSelected((prev) => (prev === n ? null : n)), []);
+  return { markers, selected, focusedIndex, nearby, mapStyle, setMapStyle, onPin, onSelect };
+}
 
 export function SitesView({
   cards,
@@ -39,41 +84,7 @@ export function SitesView({
   /** The Barikoi key is public and bound to the domain; with none, the list stands alone. */
   mapKey: boolean;
 }) {
-  const markers = useMemo<LocationMapMarker[]>(
-    () =>
-      cards
-        .filter((c) => c.pin)
-        .map((c) => ({
-          latitude: c.pin!.latitude,
-          longitude: c.pin!.longitude,
-          label: c.address,
-          kind: c.kind === "office" ? "registered" : "factory",
-          confidencePct: c.pin!.confidencePct,
-          addressStatus: c.pin!.addressStatus,
-        })),
-    [cards],
-  );
-  const [selected, setSelected] = useState<number | null>(initial && initial >= 1 && initial <= cards.length ? initial : null);
-  // The card is selected on first paint (it works with no script), but the map is told only after
-  // mount: a map born already focused would not fly to the pin.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  const [mapStyle, setMapStyle] = useState<MapStyle>("street");
-  const focusedIndex = mounted && selected !== null && selected <= markers.length ? selected - 1 : null;
-  const nearby = useNearbyLayer(markers, focusedIndex, slug);
-
-  // The URL follows the selection; no navigation, so the server component is not read again.
-  useEffect(() => {
-    const url = new URL(window.location.href);
-    const next = selected === null ? null : String(selected);
-    if (url.searchParams.get(SITE_PARAM) === next) return;
-    if (next === null) url.searchParams.delete(SITE_PARAM);
-    else url.searchParams.set(SITE_PARAM, next);
-    window.history.replaceState(null, "", url.toString());
-  }, [selected]);
-
-  const onPin = useCallback((index: number | null) => setSelected(index === null ? null : index + 1), []);
-  const onSelect = useCallback((n: number) => setSelected((prev) => (prev === n ? null : n)), []);
+  const { markers, selected, focusedIndex, nearby, mapStyle, setMapStyle, onPin, onSelect } = useSiteSelection(cards, slug, initial);
 
   const sites: Site[] = cards.map((c) => ({ n: c.n, kind: c.kind, words: c.words, address: c.address, note: c.note, href: `${baseHref}${baseHref.includes("?") ? "&" : "?"}${SITE_PARAM}=${c.n}` }));
   const mapped = mapKey && markers.length > 0;

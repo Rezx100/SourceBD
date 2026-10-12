@@ -19,7 +19,7 @@ import { isProfileRpcTimeout } from "@/lib/public-supplier-profile";
 import { hscodesFromRpc } from "@/lib/epb-hscodes";
 import { geocodeTargets } from "@/lib/barikoi";
 import { buildProductSheet, buildSheet, locationTargets, type ProfilePayload, type RecordInput } from "./build-models";
-import { formatCount, formatDay, type CertChecks, type ShipmentRevealState, type VolzaExports } from "./facts";
+import { formatCount, formatDay, marketOfCountry, type CertChecks, type ShipmentRevealState, type VolzaExports, type VolzaMarketName } from "./facts";
 import { heading4, hsCatalogueRow } from "./hs-photos";
 import { sanitizeFacilityPanel, type FacilityPanel } from "@/lib/format-facility-group";
 import type { ContactCounts, ContactDetailsRead, ProductSheetModel, RecordRfqRow, SanctionListRead, SupplierSheetModel } from "./models";
@@ -224,6 +224,37 @@ export async function fetchVolzaExports(supabase: RecordRpc, slug: string): Prom
     const v = data as VolzaExports;
     const top = Array.isArray(v.top_shipments) ? v.top_shipments.filter((s) => s !== null && typeof s === "object") : [];
     return { ...v, top_shipments: top };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Where the supplier's two-year export value sits among the exporters on record (`supplier_export_rank`,
+ * 0147): the whole percent of them it is bigger than, 0 to 99. The database answers only a reader it
+ * entitles to customs figures. Null hides the line under the value: not entitled, no value to rank, too
+ * few exporters to compare, a failed read, or 0147 not applied yet.
+ */
+export async function fetchExportRank(supabase: RecordRpc, slug: string): Promise<number | null> {
+  try {
+    const { data, error } = await supabase.rpc("supplier_export_rank", { p_slug: slug });
+    return !error && typeof data === "number" && Number.isInteger(data) && data >= 0 && data <= 99 ? data : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The reader's own customs market, from the country they gave at onboarding (`onboarding_get_buyer`, 0109).
+ * Null when none was given, when it is outside the four markets the records split out, or when the read failed:
+ * the export grid then names the biggest market instead.
+ */
+export async function fetchReaderMarket(supabase: RecordRpc): Promise<VolzaMarketName | null> {
+  try {
+    const { data, error } = await supabase.rpc("onboarding_get_buyer", {});
+    if (error || !data || typeof data !== "object") return null;
+    const country = (data as { company_country?: unknown }).company_country;
+    return marketOfCountry(typeof country === "string" ? country : null);
   } catch {
     return null;
   }
@@ -446,6 +477,10 @@ export async function loadRecordSheet(
   const certChecksRead = fetchCertChecks(supabase, slug);
   const volzaRead = fetchVolzaExports(supabase, slug);
   const shipmentsRead = fetchShipmentRevealState(supabase, slug);
+  // The reader's market is drawn only on the export grid, so it is read only once the customs figures came back.
+  const marketRead = volzaRead.then((v) => (v ? fetchReaderMarket(supabase) : null));
+  // The rank is of the export value, so it is read only when the customs figures came back with one.
+  const rankRead = volzaRead.then((v) => (v && v.fob_usd !== null ? fetchExportRank(supabase, slug) : null));
   // Opened from a row that carries the id: the reads keyed by it start now,
   // beside the profile (founder's video, 29 Sep 2026: every open waited on a
   // second round trip after the first).
@@ -471,7 +506,7 @@ export async function loadRecordSheet(
         .then((found) => found?.map((g) => (g ? { latitude: g.latitude, longitude: g.longitude, confidencePct: g.confidencePct, addressStatus: g.addressStatus } : null)))
         .catch(() => undefined)
     : Promise.resolve(undefined);
-  const [workers, contactCounts, contactDetails, saved, rfqs, facilities, pins, sanctionLists, certChecks, volza, shipments] = await Promise.all([
+  const [workers, contactCounts, contactDetails, saved, rfqs, facilities, pins, sanctionLists, certChecks, volza, shipments, market, exportRank] = await Promise.all([
     // A failed batch leaves the figure the record's own payload carries.
     reuse ? reuse.workers : fetchDisplayWorkersBatch(supabase, [supplierId]).catch(() => null),
     countsRead,
@@ -484,6 +519,8 @@ export async function loadRecordSheet(
     certChecksRead,
     volzaRead,
     shipmentsRead,
+    marketRead,
+    rankRead,
   ]);
   if (workers) assignWorkers([record], workers);
   return buildSheet(record.input, {
@@ -497,6 +534,8 @@ export async function loadRecordSheet(
     certChecks,
     volza,
     shipments,
+    market,
+    exportRank,
     saved,
     supplierId,
     rfqs,

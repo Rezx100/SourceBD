@@ -47,12 +47,7 @@ same PR. Read once per session.
   the results): LIVE 27 Sep (`3f628b9`); hand-off `handoff-one-viewport-shell.md`.
 
 - **Search-first buyer app** (28 Sep, founder's walkthrough video): LIVE 28 Sep (`d7e6c42`, PRs #193/#194); detail in `current-state.md`.
-- **One-line names, fact icons and the video's leftovers** — slate since dropped
-  for greys and near-black (founder, 29 Sep). BUILT,
-  `handoff-dashboard-names-and-facts.md`: PRs #206 (PR 0, live bugs), #209 (A,
-  names on one line), #210 (B, fact icons, certificate rows), #211 (C, card
-  view), #212 (D, leftovers, sidebar foot). LIVE 29 Sep (`8e773eb`, #213);
-  no slate LIVE 29 Sep (`7d46e2b`, #215/#216). Migration 0107 applied 29 Sep.
+- **One-line names, fact icons** — LIVE 29 Sep (`7d46e2b`); `archive/specs-shipped-2026.md`.
 
 - **Buyer app on a phone** — BUILT, `handoff-dashboard-mobile.md`: M0–M5 on
   `development` (PRs #218, #220–#224); promotion to `main` next. Detail:
@@ -60,6 +55,9 @@ same PR. Read once per session.
 
 - **Home page film v2** — `spec-home-film.md` §"v2". BUILT 9 Oct (#384, #385, #414, #416); behind `?film=1` since the
   Mercury home page (10 Oct, `archive/specs-shipped-2026.md`).
+
+- **Desktop supplier record and search results (Paper page 37)** — `spec-desktop-record-page-37.md` (13 Oct).
+  ACTIVE. Slice a merged (PR #488); b the results (PR #489); c the rank and results read (0147, not applied).
 
 ## Queued
 - **ETL freshness: check each fact as often as it changes** (6 Oct) —

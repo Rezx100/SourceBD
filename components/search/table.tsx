@@ -1,7 +1,11 @@
 "use client";
 
-// The results table (Paper `10 · Results table`): select, Supplier, Type, Location, Workers,
-// Sources, then the certificates as marks and the worst one's state. A real <table>, head 36 and sticky, rows 40.
+// The results table with no record open (Paper page 37, board 07b): select, Supplier with the two
+// products that answer the search under its name, Location, Workers, the brands whose supplier lists
+// name it, what it exported in two years and where to, then the certificates it holds today as marks.
+// A real <table>, head 36 and sticky, rows 64. The column heads carry the words, the rows only values,
+// and an empty cell is a dash. Type and Sources are not columns (founder, 12 Oct 2026): the type is on
+// the record and the source count still orders the list from the Sort menu.
 // A name is one line (the One-Line Name Rule): the base name cut at the end with the whole name in
 // `title` and the row's accessible name, its qualifier (a shed, a building, a group) on the line
 // under. The name opens the record in the pane;
@@ -13,7 +17,7 @@ import { DotsThree } from "@phosphor-icons/react";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import Link from "next/link";
 import { startTransition, useContext, useEffect, useState, type ReactNode } from "react";
-import { ABSENT, CertSummaryCell, LinkPending, SanctionTag, sanctionRowClass } from "@/components/patterns";
+import { ABSENT, LinkPending, SanctionTag, sanctionRowClass } from "@/components/patterns";
 import { Define, IconButton, Menu, MenuItem, SelectCell, Table, Td, Th, Toast, Tr, Unpublished, oneLine, rowLinkClass, toastActionClass, type SortState } from "@/components/kit";
 import { splitQualifier } from "@/lib/dashboard/facts";
 import { define } from "@/lib/dashboard/glossary";
@@ -21,10 +25,11 @@ import { rowSaveMessage } from "@/lib/dashboard/selection";
 import { cn } from "@/lib/utils";
 import { onRowKey } from "./keys";
 import type { ResultRow } from "./model";
+import { ExportedLocked, HeldMarks, Products, ShipsTo } from "./row-parts";
 import { SELECT_ALL_ID, useSelection } from "./selection";
 
-/** The Sources column's head says what it counts (round 3, item 5). */
-export const SOURCES_TITLE = "Registers and certifiers that filed something on this company";
+/** What the exports column's figures are, said on its head. */
+export const EXPORTED_TITLE = "From customs records of the last two years on file: the export value, then the markets it ships to, biggest share first";
 
 /** "793 RSC": the figure, then its source as a defined term when the glossary holds it. */
 export function SecondFigure({ short }: { short: string }) {
@@ -62,22 +67,23 @@ export function ResultsTable({
   exportsHead,
 }: {
   rows: readonly ResultRow[];
-  /** The exports view: its column's head ("Average shipment"), drawn where Sources was. */
+  /** The exports view (an exports filter or sort is on): its column's head ("Average shipment") and the sorted figure, in the exports column. */
   exportsHead?: string | null;
   /** The record open beside the results, so its row is marked. */
   currentSlug?: string | null;
   sort: ResultSort;
-  /** The page sorted by Workers and by Sources: strings, since this is a client component and the page a server one. */
-  sortHrefs: { workers: string; sources: string; name?: string; cert_expiry?: string };
+  /** The page sorted by each column that sorts: strings, since this is a client component and the page a server one. */
+  sortHrefs: { workers: string; name?: string };
 }) {
   const sel = useSelection();
-  // Every column the search can order by sorts from its head (round 3, item 7); Type and Location have no sort in the search.
-  const state = (key: "workers" | "sources" | "name" | "cert_expiry"): SortState => (sort.key === key ? sort.dir : "none");
+  // A column sorts from its head when its cells show what it sorts by: the name and the workers. The source count and
+  // the soonest certificate expiry order the list from the Sort menu, which names them.
+  const state = (key: "workers" | "name"): SortState => (sort.key === key ? sort.dir : "none");
   const { save, toast } = useRowSave();
   // Not a tab stop (critique of 8 Oct 2026, item 7: two Tabs before the first name): the rows are.
   return (
     <div role="region" aria-label="Results table" className="relative min-w-0 overflow-x-auto xl:overflow-visible">
-      <Table className="min-w-[900px]">
+      <Table className="min-w-[980px]">
         <thead>
           <tr>
             <SelectCell
@@ -89,24 +95,26 @@ export function ResultsTable({
               disabled={!sel.interactive}
               onChange={sel.toggleAllOnPage}
             />
-            <Th className="w-80" sort={sortHrefs.name ? state("name") : undefined} href={sortHrefs.name}>
+            <Th sort={sortHrefs.name ? state("name") : undefined} href={sortHrefs.name}>
               Supplier
             </Th>
-            <Th className="w-[120px]">Type</Th>
-            <Th className="w-[140px]">Location</Th>
-            <Th align="right" className="w-[110px]" sort={state("workers")} href={sortHrefs.workers}>
+            <Th className="w-[130px]">Location</Th>
+            <Th align="right" className="w-24" sort={state("workers")} href={sortHrefs.workers}>
               Workers
             </Th>
+            <Th className="w-[150px]" title="The brands whose own published supplier lists name this company">
+              On the supplier list of
+            </Th>
             {exportsHead ? (
-              <Th align="right" className="w-[200px]" title="Export shipment records, Sep 2024 – Aug 2026">
+              <Th className="w-[250px]" title="Export shipment records, Sep 2024 – Aug 2026">
                 {exportsHead}
               </Th>
             ) : (
-              <Th align="right" className="w-[90px]" sort={state("sources")} href={sortHrefs.sources} title={SOURCES_TITLE}>
-                Sources
+              <Th className="w-[250px]" title={EXPORTED_TITLE}>
+                Exported in 2 years · ships to
               </Th>
             )}
-            <Th sort={sortHrefs.cert_expiry ? state("cert_expiry") : undefined} href={sortHrefs.cert_expiry} title={sortHrefs.cert_expiry ? "Sort by the certificate that expires soonest" : undefined}>
+            <Th className="w-[110px]" title="Certificates held today">
               Certificates
             </Th>
             <th scope="col" className="sticky top-0 z-raised h-row-head w-10 border-b border-line bg-subtle p-0">
@@ -128,7 +136,7 @@ export function ResultsTable({
                 tabIndex={0}
                 aria-current={current ? "true" : undefined}
                 selected={selected || current}
-                className={cn("outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus", r.sanctioned && !selected && !current && sanctionRowClass)}
+                className={cn("h-16 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus", r.sanctioned && !selected && !current && sanctionRowClass)}
               >
                 <SelectCell
                   label={`Select ${r.name}`}
@@ -138,7 +146,7 @@ export function ResultsTable({
                 />
                 {/* `max-w-0`: the column keeps the header's width and the name is cut inside it, instead of the cell growing to the name. */}
                 <Td className="max-w-0">
-                  <Link href={r.paneHref} prefetch={false} scroll={false} data-open="record" data-name="" title={r.name} className={cn(rowLinkClass, oneLine)}>
+                  <Link href={r.paneHref} prefetch={false} scroll={false} data-open="record" data-name="" title={r.name} className={cn(rowLinkClass, oneLine, "text-[15px]/[20px] font-semibold")}>
                     <WholeName name={r.name} base={base} />
                     <LinkPending className="ml-1.5 inline-block align-[-2px]" />
                   </Link>
@@ -147,14 +155,20 @@ export function ResultsTable({
                       {qualifier}
                     </span>
                   ) : null}
+                  {/* What it makes, the search's matches first: the reason to open the row. "Factory" goes unsaid; anything else is said first. */}
+                  {r.products || r.type !== "Factory" ? (
+                    <span className="flex items-baseline gap-x-[5px] pt-0.5">
+                      {r.type !== "Factory" ? <span className="shrink-0 whitespace-nowrap text-sm text-ink-3">{r.products ? `${r.type} ·` : r.type}</span> : null}
+                      {r.products ? <Products products={r.products} /> : null}
+                    </span>
+                  ) : null}
                   {r.sanctioned ? (
                     <div className="pt-0.5">
                       <SanctionTag list="sanctions list" />
                     </div>
                   ) : null}
                 </Td>
-                <Td>{r.type}</Td>
-                <Td>{r.place ?? <Unpublished />}</Td>
+                <Td className="text-ink">{r.place ?? <Unpublished />}</Td>
                 <Td align="right" className="tabular-nums text-ink">
                   {r.workers ?? <Unpublished />}
                   {r.workersSecond ? (
@@ -163,28 +177,30 @@ export function ResultsTable({
                     </span>
                   ) : null}
                 </Td>
-                {exportsHead ? (
-                  <Td align="right" className="tabular-nums text-ink">
-                    {r.exports ? (
+                <Td className="text-ink">{r.brands?.length ? r.brands.join(", ") : <Unpublished>On none of the brand lists read</Unpublished>}</Td>
+                <Td className="tabular-nums text-ink">
+                  {exportsHead ? (
+                    r.exports ? (
                       <>
                         {r.exports.key}
                         <span className="block text-xs text-ink-3">{r.exports.detail}</span>
                       </>
-                    ) : null}
-                  </Td>
-                ) : (
-                  <Td align="right" className="tabular-nums text-ink">
-                    {r.sources}
-                  </Td>
-                )}
-                {/* The 24px marks in a 40 row: 6 above and below, not the cell's 8. */}
-                <Td className="py-1.5">
-                  {r.certCell ? (
-                    <CertSummaryCell cert={r.certCell} reveal />
+                    ) : null
+                  ) : r.exported === "locked" ? (
+                    <ExportedLocked />
+                  ) : r.exported ? (
+                    <span className="flex items-center gap-2">
+                      {r.exported.value ? <span className="w-[76px] shrink-0 text-[15px]/[20px] font-medium">{r.exported.value}</span> : null}
+                      <ShipsTo to={r.exported.to} />
+                    </span>
+                  ) : r.exported === null ? (
+                    <Unpublished>No customs records on file</Unpublished>
                   ) : (
-                    <Unpublished>{ABSENT.certificates}</Unpublished>
+                    // Never read (or the read failed): the dash says that, never that there are none.
+                    <Unpublished>{ABSENT.unread}</Unpublished>
                   )}
                 </Td>
+                <Td>{r.held?.length ? <HeldMarks held={r.held} /> : <Unpublished>{ABSENT.certificates}</Unpublished>}</Td>
                 <td className="w-10 border-b border-line p-0 text-center align-middle">
                   <RowActions r={r} save={save} />
                 </td>

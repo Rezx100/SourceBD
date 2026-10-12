@@ -1,30 +1,31 @@
-// The supplier record (B4c, Paper `10 · Record pane`, `Record full page`, `11 · Record`): one
-// view for the pane beside the results and the full page. A header with the name and the two
-// actions, a five-cell summary of what the registers hold, the customs band for a paying reader, seven tabs (each a link, so the tab
-// is in the address and the search behind a pane survives it), and the seven sections stacked
-// under them: a tab jumps to its section and the scroll moves the marked tab. A sanctioned
-// record adds a solid band above everything and replaces Send RFQ with the refusal in words;
-// nothing here is scored. Contact is how many are on file, locked, unless the database returned
-// the details themselves (0145: an admin, or a Growth or Enterprise buyer), which are then drawn.
+// The supplier record: one view for the pane beside a list and the full page.
 //
-// Desktop pane: header, summary, tabs, panel, and a foot line that says what is locked. Full
-// page from 1024: the same, with Contact and Sources in a 344 column. Under 640 none of that is
-// drawn: a phone gets `PhoneRecord` (Paper page 35) and a 64-tall action bar fixed to the foot
-// of the screen.
+// From 640 it is Paper page 37 (the desktop redesign of 12 Oct 2026). Full page: a head with the name,
+// what it is, where, the three checks in short and Share / Save / Send RFQ; once that head has scrolled
+// away, a 56px bar with the same name, checks and actions; a main column of nine sections and a rail
+// that is only the "On this page" nav. Pane: head, tabs that stick, the same sections, and Save and
+// Send RFQ in a bar at the foot. A sanctioned record adds a solid band above everything and replaces
+// Send RFQ with the refusal in words; nothing here is scored. Contact is how many are on file, locked,
+// unless the database returned the details themselves (0145: an admin, or a Growth or Enterprise
+// buyer), which are then drawn.
+//
+// Under 640 none of that is drawn: a phone gets `PhoneRecord` (Paper page 35) and a 64-tall action bar
+// fixed to the foot of the screen. `Summary` is the public page's strip (`public-record.tsx`).
 
-import { CaretLeft, Clock, XCircle, X } from "@phosphor-icons/react/dist/ssr";
+import { ArrowsOutSimple, CaretLeft, Clock, Factory, MapPin, Storefront, XCircle, X } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { Define, buttonClass, ring } from "@/components/kit";
-import { CONTACT_LIMIT_WORDS, LockedContact, REFUSAL, SanctionBanner, onFileWords } from "@/components/patterns";
+import { REFUSAL, SanctionBanner } from "@/components/patterns";
 import type { SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
-import { ContactDetailsCard } from "./contact-card";
-import { CertificatesPanel, ExportsBand, ExportsPanel, NeedsLookAside, OverviewPanel, ProductsPanel, RecordRfqs, SafetyPanel, SitesPanel, SourcesPanel } from "./panels";
+import { CertificatesSection, ChecksSection, ContactSection, ExportsSection, OverviewSection, ProductsSection, SafetySection, SitesSection, SourcesSection, StatusStrip } from "./desktop";
+import { SECTIONS, headFacts, headStatuses, sectionCount } from "./desktop-words";
 import { SourceCheckListener } from "@/components/onboarding/source-check";
 import { PhoneRecord } from "./phone-record";
 import { RecordSave } from "./save-button";
 import { SectionTabs } from "./section-tabs";
-import { TABS, recordSubline, summaryCells, tabCount, type SummaryCell, type TabId } from "./words";
+import { ShareButton } from "./share-button";
+import { recordSubline, type SummaryCell, type TabId } from "./words";
 
 export type RecordViewProps = {
   model: SupplierSheetModel;
@@ -108,51 +109,30 @@ export function Summary({ cells }: { cells: SummaryCell[] }) {
   );
 }
 
-function Contact({ model, level: H }: { model: SupplierSheetModel; level: "h2" | "h3" }) {
-  // The database returned the details (an admin, or a Growth or Enterprise buyer): they are drawn, not locked.
-  if (model.contact.details) return <ContactDetailsCard details={model.contact.details} level={H} />;
-  const counts = model.contact.counts;
-  // A reader who may see details but has opened the day's allowance of suppliers: locked, and told why.
-  const note = model.contact.limited ? CONTACT_LIMIT_WORDS : null;
-  if (counts) return <LockedContact {...counts} note={note} level={H} />;
-  // An unread count says only that the details are locked: "none on file" would be a claim.
-  return (
-    <section aria-label="Contact" className="flex w-full max-w-details flex-col gap-2 rounded-lg border border-line p-4">
-      <H className="text-base font-semibold text-ink">Contact</H>
-      <p className="text-sm text-ink-2">Contact details are locked. Send an RFQ and the supplier replies here.</p>
-      {note ? <p className="text-sm text-ink-2">{note}</p> : null}
-    </section>
-  );
-}
-
 const sendClass = buttonClass({ kind: "primary" });
 
 export function RecordView({ model, mode, tab, tabHref, today, backHref = null, site = null }: RecordViewProps) {
   const page = mode === "page";
-  // The search's own title is the page's h1 beside a pane; the sections head one level under the name.
+  // The list's own title is the page's h1 beside a pane; the sections head one level under the name.
   const Title = page ? "h1" : "h2";
   const level = page ? "h2" : "h3";
-  // The Sources cell opens the Sources tab: the page says its sources once, there (critique of 8 Oct 2026, item 5).
-  // The two counts with a tab of their own link to it, one grammar (critique of 8 Oct 2026, round 3, item 7).
-  const cells = summaryCells(model, today).map((c) =>
-    c.key === "sources" ? { ...c, href: `${tabHref("sources")}#record-sources` } : c.key === "certificates" && model.certs.length > 0 ? { ...c, href: `${tabHref("certificates")}#record-certificates` } : c,
-  );
   const list = model.sanctions[0] ?? null;
   const listName = list?.list ?? "sanctions list";
   const expandHref = backHref ? `${model.fullHref}${model.fullHref.includes("?") ? "&" : "?"}back=${encodeURIComponent(backHref)}` : model.fullHref;
-  const counts = model.contact.counts;
-  // A reader the database entitles finds Contact at the end of the overview wherever the column is not drawn:
-  // the details, or the locked card saying the day's limit is reached. Everyone else has the foot line.
-  const entitled = model.contact.details !== null || model.contact.limited === true;
-  const locked = !entitled && counts ? onFileWords(counts.emails, counts.phones, counts.website, counts.representatives) : null;
+  // A section of this record: the tab its address carries, then its anchor (Checks and Contact have no tab of their own).
+  const hrefOf = (id: string) => `${tabHref(SECTIONS.find((x) => x.id === id)?.tab ?? "overview")}#record-${id}`;
+  const statuses = headStatuses(model, today);
+  const head = headFacts(model);
+  const TypeGlyph = head.buyingHouse ? Storefront : Factory;
+  const sections = SECTIONS.map((x) => ({ id: x.id, label: x.label, href: hrefOf(x.id), count: sectionCount(model, x.id) ?? undefined }));
 
   const actions = (
     <>
-      {model.supplierId ? <RecordSave supplierId={model.supplierId} saved={model.saved} className="max-sm:hidden" /> : null}
+      {model.supplierId ? <RecordSave supplierId={model.supplierId} saved={model.saved} /> : null}
       {model.sanctioned ? (
-        <span className="flex items-center gap-2 text-base font-medium text-sanction max-sm:hidden">{REFUSAL}</span>
+        <span className="flex items-center gap-2 pl-1 text-base font-medium text-sanction">{REFUSAL}</span>
       ) : model.rfqHref ? (
-        <Link href={model.rfqHref} prefetch={false} className={cn(sendClass, "max-sm:hidden")}>
+        <Link href={model.rfqHref} prefetch={false} className={sendClass}>
           Send RFQ
         </Link>
       ) : null}
@@ -165,10 +145,9 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
       data-record={mode}
       data-detail={page ? "" : undefined}
       // A phone's page: room at the foot for the fixed action bar, so nothing ends under it.
-      // The tabs stick under the phone's bar from the first paint; the tabs' script then measures it.
       // Never wider than its scroller: a long unbroken value wraps, and anything still too wide is clipped
       // rather than letting a phone pan the record sideways (`clip` keeps the sticky bars sticking, `hidden` would not).
-      className={cn("flex min-w-0 flex-1 flex-col overflow-x-clip bg-surface [overflow-wrap:break-word]", page && "max-sm:pb-[calc(theme(spacing.action-bar)_+_env(safe-area-inset-bottom))]")}
+      className={cn("group/record flex min-w-0 flex-1 flex-col overflow-x-clip bg-surface [overflow-wrap:break-word]", page && "max-sm:pb-[calc(theme(spacing.action-bar)_+_env(safe-area-inset-bottom))]")}
     >
       <SourceCheckListener />
       {model.sanctioned ? (
@@ -178,104 +157,115 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
         />
       ) : null}
 
-      {page && backHref ? (
-        <div className="px-6 pt-3 max-sm:hidden lg:px-8">
-          <Link href={backHref} className="inline-flex min-h-6 items-center gap-1.5 rounded-sm text-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] outline-none hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-            <CaretLeft size={14} className="shrink-0" aria-hidden />
-            Back to results
-          </Link>
-        </div>
-      ) : null}
-
-      {/* On a phone's page the name and its line are the record's plate: a tonal ground under the bar, closed by a line. */}
-      {/* 12px over the name in the pane too: its baseline then meets the list bar's title beside it (56 tall, centred), instead of sitting 7px under it. */}
-      <header className={cn("flex flex-col gap-1.5 px-4 pb-3 pt-3 max-sm:hidden sm:sticky sm:top-0 sm:z-raised sm:border-b sm:border-line sm:bg-surface sm:px-6", page ? "sm:pt-3 lg:px-8" : "sm:pt-3")}>
-        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
-          <Title className="min-w-0 flex-1 basis-60 text-xl font-semibold tracking-tight text-ink [overflow-wrap:anywhere]">{model.name}</Title>
-          <div className="flex shrink-0 items-center gap-2">
-            {!page ? (
-              <Link href={expandHref} className="rounded-sm p-1.5 text-sm font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font] hover:decoration-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus max-sm:hidden">
-                Open full page
+      {page ? (
+        <>
+          {/* The page's head scrolls away with the page; the bar under it takes over. */}
+          <header data-record-head="" className="flex flex-col gap-2 border-b border-line bg-surface px-6 pb-4 pt-3 max-sm:hidden lg:px-8">
+            {backHref ? (
+              <Link href={backHref} className={cn("flex min-h-6 w-fit items-center gap-1 rounded-sm text-sm font-medium text-brand-ink underline decoration-1 underline-offset-[3px] hover:decoration-2", ring)}>
+                <CaretLeft size={14} weight="thin" className="shrink-0" aria-hidden />
+                Back to results
               </Link>
             ) : null}
-            {actions}
-            {!page && model.closeHref ? (
+            <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+              <div className="flex min-w-0 flex-1 basis-80 flex-col gap-1.5">
+                <Title className="text-[28px]/[36px] font-medium tracking-tighter text-ink [overflow-wrap:anywhere]">{model.name}</Title>
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
+                  {head.type ? (
+                    <p className="flex items-center gap-2 text-base text-ink-2">
+                      <TypeGlyph size={18} weight="thin" className="shrink-0 text-ink-3" aria-hidden />
+                      {head.type}
+                    </p>
+                  ) : null}
+                  {head.place ? (
+                    <p className="flex items-center gap-2 text-base text-ink-2">
+                      <MapPin size={18} weight="thin" className="shrink-0 text-ink-3" aria-hidden />
+                      {head.place}
+                    </p>
+                  ) : null}
+                  <StatusStrip statuses={statuses} href={hrefOf("checks")} />
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <ShareButton href={model.fullHref} />
+                {actions}
+              </div>
+            </div>
+          </header>
+          {/* No height of its own, so showing it moves nothing: it is laid over the top of the scroll once the head is gone (`data-stuck`, set by the nav's script). */}
+          <div data-record-stuck="" className="sticky top-0 z-raised h-0 max-sm:hidden">
+            <div className="invisible absolute inset-x-0 top-0 flex h-14 items-center gap-3.5 border-b border-line bg-surface px-6 group-data-[stuck]/record:visible lg:px-8">
+              {backHref ? (
+                <Link href={backHref} aria-label="Back to results" className={cn("flex size-8 shrink-0 items-center justify-center rounded-full bg-sunken text-ink-2 hover:bg-line", ring)}>
+                  <CaretLeft size={16} weight="thin" aria-hidden />
+                </Link>
+              ) : null}
+              <p className="min-w-0 shrink text-[18px]/[26px] font-semibold tracking-tight text-ink [overflow-wrap:anywhere]">{model.name}</p>
+              <StatusStrip statuses={statuses} href={hrefOf("checks")} className="h-[30px] max-lg:hidden" />
+              <span className="min-w-0 flex-1" />
+              <div className="flex shrink-0 items-center gap-2">
+                <ShareButton href={model.fullHref} className="size-8" />
+                {actions}
+              </div>
+            </div>
+          </div>
+        </>
+      ) : (
+        // 14px over the name in the pane: its baseline then meets the list bar's title beside it (56 tall, centred).
+        <header className="flex items-start justify-between gap-4 bg-surface px-6 pb-2.5 pt-3.5 max-sm:hidden sm:sticky sm:top-0 sm:z-raised">
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <Title className="text-lg font-semibold tracking-tight text-ink [overflow-wrap:anywhere]">{model.name}</Title>
+            <p className="text-sm text-ink-2">{recordSubline(model)}</p>
+            <StatusStrip statuses={statuses} href={hrefOf("checks")} className="mt-1.5" />
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <Link href={expandHref} className={cn("flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md bg-sunken pl-2.5 pr-3 text-sm font-medium text-ink hover:bg-line", ring)}>
+              <ArrowsOutSimple size={16} weight="thin" className="shrink-0" aria-hidden />
+              Open full page
+            </Link>
+            {model.closeHref ? (
               // Under 1280 the pane is the kit's drawer, which draws its own close.
-              <Link href={model.closeHref} scroll={false} aria-label="Close" className={buttonClass({ kind: "quiet", size: "icon-32", className: "max-xl:hidden" })}>
-                <X size={20} aria-hidden />
+              <Link href={model.closeHref} scroll={false} aria-label="Close" className={cn("flex size-8 shrink-0 items-center justify-center rounded-full bg-sunken text-ink-2 hover:bg-line max-xl:hidden", ring)}>
+                <X size={16} weight="thin" aria-hidden />
               </Link>
             ) : null}
           </div>
-        </div>
-        <p className="text-base text-ink-2">{recordSubline(model)}</p>
-      </header>
+        </header>
+      )}
 
-      <div className={cn("flex gap-8 px-4 pb-8 pt-4 max-sm:hidden sm:px-6", page && "lg:px-8")}>
-        <div className="flex min-w-0 flex-1 flex-col gap-5">
-          {model.sanctionSample ? (
-            <p className="flex flex-wrap items-center gap-2 text-xs text-ink-2">
-              <span className="rounded-sm border border-dashed border-line-strong px-2 py-0.5 font-semibold text-ink">Sample state</span>
-              No published supplier is on a sanctions list today. Placeholders only; no real company is shown.
-            </p>
-          ) : null}
-          <Summary cells={cells} />
-          <ExportsBand model={model} href={`${tabHref("exports")}#record-exports`} revealHref={`${tabHref("exports")}#recent-shipments`} level={level} />
+      {/* The pane's tabs; on the page they stand in for the rail where there is no room for it (under 1280).
+          Keyed by record: a pane that opens another supplier starts again at its tab. */}
+      <div className={cn("contents max-sm:hidden", page && "xl:hidden")}>
+        <SectionTabs key={model.fullHref} variant={page ? "page-tabs" : "tabs"} initial={tab} tabs={sections} />
+      </div>
 
-          {/* Keyed by record: a pane that opens another supplier starts again at its tab. */}
-          <SectionTabs
-            key={model.fullHref}
-            initial={tab}
-            tabs={TABS.map((t) => ({ id: t.id, label: t.label, href: `${tabHref(t.id)}#record-${t.id}`, count: tabCount(model, t.id) ?? undefined }))}
-          />
-
-          {/* Every section, in tab order: the tabs jump to one and follow the scroll through them. */}
-          {TABS.map((t) => (
-            <div key={t.id} id={`record-${t.id}`} role="region" aria-label={t.label} className="scroll-mt-[var(--record-offset,0px)]">
-              {t.id === "overview" ? (
-                <div className="flex flex-col gap-5">
-                  <OverviewPanel model={model} today={today} level={level} lookAside={page} />
-                  <RecordRfqs model={model} level={level} />
-                  {/* Where the contact column is not (the pane, and the page under 1024): Contact closes the overview. */}
-                  {entitled ? (
-                    <div className={cn(page && "lg:hidden")}>
-                      <Contact model={model} level={level} />
-                    </div>
-                  ) : null}
-                </div>
-              ) : t.id === "exports" ? (
-                <ExportsPanel model={model} level={level} />
-              ) : t.id === "certificates" ? (
-                <CertificatesPanel model={model} today={today} compact={!page} level={level} />
-              ) : t.id === "safety" ? (
-                <SafetyPanel model={model} level={level} />
-              ) : t.id === "sites" ? (
-                <SitesPanel model={model} tabHref={tabHref} site={site} wide={page} level={level} />
-              ) : t.id === "sources" ? (
-                <SourcesPanel model={model} today={today} level={level} />
-              ) : (
-                <ProductsPanel model={model} level={level} open={tab === "products"} />
-              )}
-            </div>
-          ))}
+      <div className={cn("flex items-start gap-8 max-sm:hidden", page ? "px-3 pb-[72px] pt-6 lg:pl-5 lg:pr-8" : "px-3 pb-8 pt-5")}>
+        {/* The column the sections measure themselves by: their tables gain columns from 760px of it. */}
+        <div className={cn("flex min-w-0 flex-1 flex-col [container-type:inline-size]", page ? "gap-9" : "gap-8")}>
+          <OverviewSection model={model} today={today} level={level} exportsHref={hrefOf("exports")} revealHref={`${tabHref("exports")}#recent-shipments`} market={model.market ?? null} rank={model.exportRank ?? null} />
+          <ExportsSection model={model} today={today} level={level} />
+          <ProductsSection model={model} today={today} level={level} fold={!page} />
+          <CertificatesSection model={model} today={today} level={level} />
+          <ChecksSection model={model} today={today} level={level} hrefOf={hrefOf} />
+          <SafetySection model={model} today={today} level={level} />
+          <SitesSection model={model} level={level} tabHref={tabHref} site={site} />
+          <SourcesSection model={model} today={today} level={level} />
+          <ContactSection model={model} level={level} />
           <div data-record-end="" aria-hidden />
         </div>
 
         {page ? (
-          // The column sticks under the record's sticky head while the main column scrolls past it (the
-          // critique of 7 Oct 2026: four screens of facts beside a card that fits in one).
-          <aside aria-label="Contact and sources" className="hidden w-details shrink-0 flex-col gap-4 pt-1 lg:sticky lg:top-[var(--record-offset,0px)] lg:flex lg:self-start">
-            <Contact model={model} level={level} />
-            <NeedsLookAside model={model} today={today} level={level} />
-          </aside>
+          // The rail is only the page's own nav; it sticks under the stuck bar while the sections scroll past.
+          <div data-record-rail="" className="hidden w-[280px] shrink-0 xl:sticky xl:top-[calc(var(--record-offset,0px)+24px)] xl:block xl:self-start">
+            <SectionTabs key={model.fullHref} variant="rail" initial={tab} tabs={sections} />
+          </div>
         ) : null}
       </div>
 
-      {/* Where the contact column is not: what is locked, in one line (a phone says it in its Contact box). */}
-      {locked ? (
-        <p className={cn("flex min-h-16 items-center gap-1 border-t border-line px-4 text-sm text-ink-3 max-sm:hidden sm:sticky sm:bottom-0 sm:bg-surface sm:px-6", page && "lg:hidden")}>
-          Locked · {locked}
-        </p>
-      ) : null}
+      {/* The pane's two actions, at its foot whatever is scrolled: Save and Send RFQ, or the refusal in its place. */}
+      {page ? null : (
+        <div className={cn("sticky bottom-0 z-raised mt-auto flex h-16 shrink-0 items-center gap-2 px-6 max-sm:hidden", model.sanctioned ? "justify-start border-t-2 border-sanction bg-sanction-tint" : "justify-end border-t border-line bg-surface")}>{actions}</div>
+      )}
 
       {/* A phone's record (Paper page 35): its own bar, statuses, tabs and one tab's view at a time. After the
           desktop's in the page, so an anchor (`#record-certificates`) still lands on the desktop's section. */}
