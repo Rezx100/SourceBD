@@ -80,7 +80,7 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
 - **Home page film (6 Oct)** — v2 BUILT 9 Oct (`feature-specs/spec-home-film.md` §"v2"); behind `?film=1` since 10 Oct.
 - **Home page, Mercury direction (10 Oct)** — `/` is the Paper page 32; BUILT on `development` (PRs #421–#424), live once Deploy Production is approved; `.impeccable/handoff-home-mercury-build.md`.
 - **Desktop supplier record and search results, Paper page 37 (13 Oct)** — IN PROGRESS, `feature-specs/spec-desktop-record-page-37.md`. Slice a (the record) merged, PR #488; b (results table and list rows) PR #489; c (rank and the results' export cells) PR #490; released to main in PR #491; 0147 applied 13 Oct. Open: the founder's deploy click, then the live check.
-- **Phone record and search, Paper pages 35 and 36 (13 Oct)** — IN PROGRESS, `.impeccable/handoff-phone-boards-to-prod.md`: only the approved changed sections, over the live phone code, five slices (a tabs, head and Checks; b Overview; c certificates and safety; d sources, products, contact; e search rows). No migration.
+- **Phone record and search, Paper pages 35 and 36 (13 Oct)** — BUILT, `.impeccable/handoff-phone-boards-to-prod.md`: only the approved changed sections, over the live phone code. Slices a–c merged (PRs #494, #495, #498); d (sources, products, contact) and e (search rows) in their PRs. No migration. Open: the release to main, the founder's deploy click, the live check.
 
 ## Founder rules still in force (one line each; detail in archive)
 - EPB is a government register: show its evidence and HS codes whenever EPB has them, flagged or not. Never mint EPB-only suppliers. (15 Aug)

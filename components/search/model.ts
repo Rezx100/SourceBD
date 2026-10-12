@@ -39,6 +39,8 @@ export type ResultRow = {
   workers: string | null;
   /** The second figure where it differs from the record's own ("793 RSC"), and its whole words. */
   workersSecond: { short: string; words: string } | null;
+  /** The one figure the record itself shows, which a phone's row says (founder, 13 Oct 2026: Square Apparels reads 4,624 on both). */
+  workersRecord?: string | null;
   /** Registers and certifiers, the figure the Sources sort orders by. */
   sources: number;
   cert: CertLine | null;
@@ -88,6 +90,8 @@ export function matchedProducts(filed: readonly string[], q: string | null | und
   return { shown: ranked.slice(0, show), more: Math.max(0, ranked.length - show) };
 }
 
+const count = (n: number | null | undefined) => (n == null ? null : (formatCount(n) ?? String(n)));
+
 export function resultRow(t: TableRowModel, today: Date, pageHref: string, exports: ExportsCell | null = null, more: { q?: string | null; exported?: Exported } = {}): ResultRow {
   // Held today: its date has not passed. A body with one ended and one current certificate keeps its mark.
   const held = certSummary(t.certs.filter((c) => c.state !== "expired"), today);
@@ -97,8 +101,9 @@ export function resultRow(t: TableRowModel, today: Date, pageHref: string, expor
     name: t.name,
     type: t.type,
     place: t.place,
-    workers: t.workers == null ? null : (formatCount(t.workers) ?? String(t.workers)),
+    workers: count(t.workers),
     workersSecond: t.workersSecondShort ? { short: t.workersSecondShort, words: t.workersSecond ?? t.workersSecondShort } : null,
+    workersRecord: count(t.workersRecord ?? t.workers),
     sources: t.sourceCount,
     cert: certLine(t.certs, today),
     certCell: certSummary(t.certs, today),

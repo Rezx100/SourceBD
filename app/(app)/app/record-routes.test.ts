@@ -1473,7 +1473,7 @@ describe("cycle 3: the boundaries the first route tests did not reach", () => {
     const open = html(await overlay({ q: "knit", record: "aboni-knitwear" }));
     const results = open.slice(0, open.indexOf('data-record="pane"'));
     assert.match(results, /<a\b[^>]*aria-current="true"[^>]*href="[^"]*record=aboni-knitwear|<a\b[^>]*href="[^"]*record=aboni-knitwear[^>]*aria-current="true"/, "the record's row is not marked in the list beside it");
-    assert.match(results, /2 sources/, "not the narrow list");
+    assert.match(results, /<ul data-follow="record"/, "not the narrow list");
     assert.doesNotMatch(results, /<table\b/, "the wide table squeezed beside the record");
     assert.doesNotMatch(results, /<article\b/, "a card squeezed beside the record");
     given({ profile: PROFILE, hscodes: HS, discover: { data: [ROW], error: null } });

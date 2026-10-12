@@ -1,8 +1,8 @@
 // The small parts a result row is made of, shared by the table and the list beside a pane (Paper page
 // 37, boards 07b, 08 and 08b): what it makes, where its exports go, the certificates it holds today.
-// No hooks and no state, so both client lists draw them.
+// No hooks and no state, so both client lists and the phone's server-drawn rows draw them.
 
-import { Lock } from "@phosphor-icons/react";
+import { Lock } from "@phosphor-icons/react/dist/ssr";
 import type { ReactNode } from "react";
 import { SourceMark } from "@/components/patterns";
 import { hasSourceMark } from "@/components/patterns/source-mark";
@@ -19,7 +19,7 @@ const listed = (xs: string[]) => (xs.length <= 1 ? (xs[0] ?? "") : `${xs.slice(0
  * mark stands without its name (`context/logos.lock.md` section 1): a screen reader hears them. A body
  * with no approved mark is counted, never drawn.
  */
-export function HeldMarks({ held, className }: { held: readonly CertBody[]; className?: string }) {
+export function HeldMarks({ held, className, markClassName = "size-5 [&>img]:max-h-3.5 [&>img]:max-w-3.5" }: { held: readonly CertBody[]; className?: string; /** A mark's own frame, where a caller draws it at another size (a phone's row). */ markClassName?: string }) {
   const marked = held.filter((b) => hasSourceMark(b.code));
   const rest = held.length - marked.length;
   return (
@@ -27,7 +27,7 @@ export function HeldMarks({ held, className }: { held: readonly CertBody[]; clas
       <span className="sr-only">Certificates held: {listed(held.map((b) => b.scheme))}</span>
       <span aria-hidden className="inline-flex items-center gap-2" title={held.map((b) => b.scheme).join(" · ")}>
         {marked.map((b) => (
-          <SourceMark key={b.code} source={b.code} className="size-5 [&>img]:max-h-3.5 [&>img]:max-w-3.5" />
+          <SourceMark key={b.code} source={b.code} className={markClassName} />
         ))}
         {rest > 0 ? <span className="text-xs font-medium text-ink-3">+{rest}</span> : null}
       </span>

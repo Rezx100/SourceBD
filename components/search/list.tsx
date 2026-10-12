@@ -3,59 +3,49 @@
 // (nothing matches, it could not load, the page is past the end). Server component; the
 // words are Paper's (`10 · Results, empty`, `Errors`, `11 · Results`).
 
-import { Hourglass, Info, ShieldCheck } from "@phosphor-icons/react/dist/ssr";
+import { MapPin, Storefront, UsersThree } from "@phosphor-icons/react/dist/ssr";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { LinkPending } from "@/components/patterns/link-pending";
 import { RecordSave } from "@/components/record/save-button";
 import { ErrorPanel, Pagination, Skeleton, buttonClass } from "@/components/kit";
-import { ABSENT } from "@/components/patterns";
 import { PER_PAGE, discoverChips, discoverHref, filterCount, withoutFilterFamily, type DiscoverState } from "@/lib/discover-v32-state";
 import { formatCount, nameSecondLine, splitQualifier } from "@/lib/dashboard/facts";
 import { discoverFailureCopy } from "@/lib/discover-v32-rpc";
-import { cn } from "@/lib/utils";
 import type { ResultRow } from "./model";
 import { PerPageMenu } from "./per-page";
+import { ExportedLocked, HeldMarks, Products, ShipsTo } from "./row-parts";
 import { SlowHead } from "./slow";
 
 export { PaneRows } from "./pane-rows";
 
-/**
- * The certificates of a phone's row in one line of words (Paper page 36, `search-results`): the worst
- * one with its glyph, amber when it has lapsed or is about to, then how many more there are. The
- * bodies' marks are the table's and the record's; a phone's row says it (founder, 12 Oct 2026).
- */
-function CertWords({ r }: { r: ResultRow }) {
-  const c = r.certCell;
-  // In words: a dash alone on a phone row does not say what is missing.
-  if (!c) return <span className="text-sm text-ink-3">{ABSENT.certificates}</span>;
-  const problem = c.state === "expired" || c.state === "expiring";
-  // "No expiry on file" has no date to count down to: the scheme is listed, and that is all the line says.
-  const dated = /\d/.test(c.short);
-  const G = problem ? Hourglass : dated ? ShieldCheck : Info;
+/** One fact of a phone's row, led by its glyph: where it is, how many work there, whose supplier lists name it. */
+function Fact({ icon: G, children }: { icon: typeof MapPin; children: ReactNode }) {
   return (
-    <span className="flex items-start gap-1.5 text-sm text-ink-3">
-      <G size={16} weight="thin" className={cn("mt-0.5 shrink-0", problem && "text-caution-icon")} aria-hidden />
-      <span>
-        <span className={problem ? "font-medium text-caution" : undefined}>
-          {c.first.scheme} {c.short.charAt(0).toLowerCase() + c.short.slice(1)}
-        </span>
-        {c.total > 1 ? ` · ${c.total - 1} more` : null}
-      </span>
+    <span className="flex min-w-0 items-center gap-1 text-sm text-ink-2">
+      <G size={14} weight="thin" className="shrink-0 text-ink-3" aria-hidden />
+      <span className="min-w-0 [overflow-wrap:anywhere]">{children}</span>
     </span>
   );
 }
 
 /**
- * On a phone (Paper page 36, `search-results`) a row is the name large, where it is and its sources,
- * the customs figures for a reader who may see them, the certificates in a line of words, and a
- * bookmark. The link covers the row and opens the record as a page with the way back to this search;
- * the bookmark saves, above the link.
+ * On a phone (Paper page 36, `search-results`, 13 Oct 2026) a row is the name large; two of the products
+ * it filed, the search's matches first; where it is, the record's own worker figure and whose supplier
+ * lists name it, each led by a glyph; what it exported, only where customs records exist; then the
+ * markets it ships to as small codes, biggest first, with the marks of the certificates it holds today at
+ * the row's end. A certificate that has ended is not drawn, and nothing counts its sources. The link
+ * covers the row and opens the record as a page with the way back to this search; the bookmark saves,
+ * above the link.
  */
 export function PhoneRows({ rows }: { rows: readonly ResultRow[] }) {
   return (
     <ul className="px-5 pt-1">
       {rows.map((r) => {
         const { base, qualifier } = splitQualifier(r.name);
+        const workers = r.workersRecord ?? r.workers;
+        const locked = r.exported === "locked";
+        const exported = r.exported && r.exported !== "locked" ? r.exported : null;
         return (
           <li key={r.slug} className="relative flex gap-3 border-b border-line py-4 has-[>div>a:active]:bg-sunken has-[>div>a:focus-visible]:outline has-[>div>a:focus-visible]:outline-2 has-[>div>a:focus-visible]:outline-offset-[-2px] has-[>div>a:focus-visible]:outline-focus">
             <div className="flex min-w-0 flex-1 flex-col">
@@ -71,17 +61,28 @@ export function PhoneRows({ rows }: { rows: readonly ResultRow[] }) {
                   )}
                   <LinkPending className="ml-1.5 inline-block align-[-2px]" />
                 </span>
-                <span data-name="" className="text-sm text-ink-3">
-                  {[nameSecondLine(r.name, r.place ?? r.type), `${r.sources} ${r.sources === 1 ? "source" : "sources"}`].join(" · ")}
+                {r.products ? <Products products={r.products} className="flex-wrap" /> : null}
+                <span data-phone-facts="" className="flex flex-wrap items-center gap-x-3 gap-y-0.5 pt-1">
+                  <Fact icon={MapPin}>{nameSecondLine(r.name, r.place ?? r.type)}</Fact>
+                  {workers ? <Fact icon={UsersThree}>{workers} workers</Fact> : null}
+                  {r.brands?.length ? <Fact icon={Storefront}>{r.brands.join(", ")}</Fact> : null}
                 </span>
+                {/* The exports view's own figure where the list is sorted by it; else the two-year value, for a reader who may see it. */}
                 {r.exports ? (
-                  <span className="text-base text-ink-3">
+                  <span className="pt-1 text-base text-ink-3">
                     <span className="font-medium tabular-nums text-ink-2">{r.exports.key}</span> · {r.exports.detail}
                   </span>
+                ) : exported?.value ? (
+                  <span className="pt-1 text-base text-ink-3">
+                    <span className="font-medium tabular-nums text-ink-2">{exported.value}</span> exported, 2 years
+                  </span>
                 ) : null}
-                <span className="pt-1">
-                  <CertWords r={r} />
-                </span>
+                {locked || exported?.to.length || r.held?.length ? (
+                  <span className="flex items-center justify-between gap-1.5 pt-1">
+                    {locked ? <ExportedLocked /> : exported ? <ShipsTo to={exported.to} /> : null}
+                    {r.held?.length ? <HeldMarks held={r.held} className="ml-auto gap-1.5" markClassName="size-6 rounded-full [&>img]:max-h-4 [&>img]:max-w-4" /> : null}
+                  </span>
+                ) : null}
               </Link>
             </div>
             {r.supplierId && !r.sanctioned ? (
