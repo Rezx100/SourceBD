@@ -7,7 +7,7 @@ import { Hourglass, Info, ShieldCheck } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { LinkPending } from "@/components/patterns/link-pending";
 import { RecordSave } from "@/components/record/save-button";
-import { ErrorPanel, Pagination, Skeleton, Unpublished, buttonClass } from "@/components/kit";
+import { ErrorPanel, Pagination, Skeleton, buttonClass } from "@/components/kit";
 import { ABSENT } from "@/components/patterns";
 import { PER_PAGE, discoverChips, discoverHref, filterCount, withoutFilterFamily, type DiscoverState } from "@/lib/discover-v32-state";
 import { formatCount, nameSecondLine, splitQualifier } from "@/lib/dashboard/facts";
@@ -26,7 +26,8 @@ export { PaneRows } from "./pane-rows";
  */
 function CertWords({ r }: { r: ResultRow }) {
   const c = r.certCell;
-  if (!c) return <Unpublished>{ABSENT.certificates}</Unpublished>;
+  // In words: a dash alone on a phone row does not say what is missing.
+  if (!c) return <span className="text-sm text-ink-3">{ABSENT.certificates}</span>;
   const problem = c.state === "expired" || c.state === "expiring";
   // "No expiry on file" has no date to count down to: the scheme is listed, and that is all the line says.
   const dated = /\d/.test(c.short);

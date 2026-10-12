@@ -4,7 +4,8 @@
 // is in the address and the search behind a pane survives it), and the seven sections stacked
 // under them: a tab jumps to its section and the scroll moves the marked tab. A sanctioned
 // record adds a solid band above everything and replaces Send RFQ with the refusal in words;
-// nothing here is scored and no contact value is in the model, only how many are on file.
+// nothing here is scored. Contact is how many are on file, locked, unless the database returned
+// the details themselves (0145: an admin, or a Growth or Enterprise buyer), which are then drawn.
 //
 // Desktop pane: header, summary, tabs, panel, and a foot line that says what is locked. Full
 // page from 1024: the same, with Contact and Sources in a 344 column. Under 640 none of that is
@@ -14,9 +15,10 @@
 import { CaretLeft, Clock, XCircle, X } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { Define, buttonClass, ring } from "@/components/kit";
-import { LockedContact, REFUSAL, SanctionBanner, onFileWords } from "@/components/patterns";
+import { CONTACT_LIMIT_WORDS, LockedContact, REFUSAL, SanctionBanner, onFileWords } from "@/components/patterns";
 import type { SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
+import { ContactDetailsCard } from "./contact-card";
 import { CertificatesPanel, ExportsBand, ExportsPanel, NeedsLookAside, OverviewPanel, ProductsPanel, RecordRfqs, SafetyPanel, SitesPanel, SourcesPanel } from "./panels";
 import { SourceCheckListener } from "@/components/onboarding/source-check";
 import { PhoneRecord } from "./phone-record";
@@ -107,13 +109,18 @@ export function Summary({ cells }: { cells: SummaryCell[] }) {
 }
 
 function Contact({ model, level: H }: { model: SupplierSheetModel; level: "h2" | "h3" }) {
+  // The database returned the details (an admin, or a Growth or Enterprise buyer): they are drawn, not locked.
+  if (model.contact.details) return <ContactDetailsCard details={model.contact.details} level={H} />;
   const counts = model.contact.counts;
-  if (counts) return <LockedContact {...counts} level={H} />;
+  // A reader who may see details but has opened the day's allowance of suppliers: locked, and told why.
+  const note = model.contact.limited ? CONTACT_LIMIT_WORDS : null;
+  if (counts) return <LockedContact {...counts} note={note} level={H} />;
   // An unread count says only that the details are locked: "none on file" would be a claim.
   return (
     <section aria-label="Contact" className="flex w-full max-w-details flex-col gap-2 rounded-lg border border-line p-4">
       <H className="text-base font-semibold text-ink">Contact</H>
       <p className="text-sm text-ink-2">Contact details are locked. Send an RFQ and the supplier replies here.</p>
+      {note ? <p className="text-sm text-ink-2">{note}</p> : null}
     </section>
   );
 }
@@ -134,7 +141,10 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
   const listName = list?.list ?? "sanctions list";
   const expandHref = backHref ? `${model.fullHref}${model.fullHref.includes("?") ? "&" : "?"}back=${encodeURIComponent(backHref)}` : model.fullHref;
   const counts = model.contact.counts;
-  const locked = counts ? onFileWords(counts.emails, counts.phones, counts.website, counts.representatives) : null;
+  // A reader the database entitles finds Contact at the end of the overview wherever the column is not drawn:
+  // the details, or the locked card saying the day's limit is reached. Everyone else has the foot line.
+  const entitled = model.contact.details !== null || model.contact.limited === true;
+  const locked = !entitled && counts ? onFileWords(counts.emails, counts.phones, counts.website, counts.representatives) : null;
 
   const actions = (
     <>
@@ -225,6 +235,12 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
                 <div className="flex flex-col gap-5">
                   <OverviewPanel model={model} today={today} level={level} lookAside={page} />
                   <RecordRfqs model={model} level={level} />
+                  {/* Where the contact column is not (the pane, and the page under 1024): Contact closes the overview. */}
+                  {entitled ? (
+                    <div className={cn(page && "lg:hidden")}>
+                      <Contact model={model} level={level} />
+                    </div>
+                  ) : null}
                 </div>
               ) : t.id === "exports" ? (
                 <ExportsPanel model={model} level={level} />

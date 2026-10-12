@@ -6,7 +6,7 @@ export { ChatThread, Bubble, DateLine, FileChip } from "./chat";
 export { CertStateChip, CertTable, type CertRowData } from "./certificate";
 export { CertSummaryCell } from "./cert-summary";
 export { LinkPending } from "./link-pending";
-export { LockedContact, LockedContactRow, onFileWords } from "./contact";
+export { CONTACT_LIMIT_WORDS, LockedContact, LockedContactRow, onFileWords } from "./contact";
 export { NeedsAttention, type AttentionItem } from "./attention";
 export { ExportsFreshness, ExportsSummary, ExportsTable, type ExportRow, type ExportStat } from "./exports";
 export { FactList, FactRow, type FactValue } from "./fact";

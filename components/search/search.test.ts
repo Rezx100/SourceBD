@@ -496,6 +496,9 @@ describe("the narrow list and the phone's rows", () => {
     // The worst certificate is said, amber when it has lapsed, inside the row's link; no mark, no button.
     assert.match(out, /<span class="font-medium text-caution">WRAP expired 29 Sep<\/span>/);
     assert.doesNotMatch(out, /aria-haspopup="dialog"|<img/, "a phone's row draws the certificate marks");
+    // A supplier with no certificate says so in words: a dash alone on a phone row does not say what is missing.
+    assert.match(out, /<span class="text-sm text-ink-3">No certificates on file<\/span>/);
+    assert.doesNotMatch(out, />–</);
     assert.doesNotMatch(out, /<a [^>]*>(?:(?!<\/a>)[\s\S])*<button/, "a button inside the link");
     assert.match(out, /<a [^>]*class="[^"]*after:inset-0/, "the link does not cover the row");
   });
