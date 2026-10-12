@@ -533,7 +533,7 @@ export function ProductsSection({ model, today, level, fold }: SectionProps & { 
 
 const CERT_COLS =
   "grid grid-cols-[minmax(0,1fr)_132px_92px_64px] items-center gap-x-3 [@container_(min-width:560px)]:grid-cols-[minmax(0,1fr)_158px_104px_88px] [@container_(min-width:560px)]:gap-x-4 [@container_(min-width:760px)]:grid-cols-[minmax(0,1fr)_170px_112px_176px_104px_104px]";
-const CERT_MARK: Record<string, string> = { "OEKO-TEX": "OEKO-TEX", GOTS: "GOTS", WRAP: "WRAP" };
+export const CERT_MARK: Record<string, string> = { "OEKO-TEX": "OEKO-TEX", GOTS: "GOTS", WRAP: "WRAP" };
 
 /**
  * One certificate: a row of the table, then its numbers on a second line. One grid for both, so the

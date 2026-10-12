@@ -204,13 +204,30 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
     assert.doesNotMatch(tiles, /Shipments a month|Latest shipment|Biggest shipment|Ships to the US/);
     assert.doesNotMatch(html, /w-14 shrink-0 text-right/);
     // A listing has no date, only its number: it carries the label a dated certificate's number has.
-    assert.match(out, /OEKO-TEX Standard 100 Listed Certificate 32597-100/);
+    assert.match(out, /OEKO-TEX Standard 100 No end date published Listing 32597-100/);
+    // Paper page 35, 13 Oct 2026. A pill only where something needs a look; a certificate that has ended is grey, in a
+    // group of its own at the foot, not counted and never dropped; the issuer is named only when it is not the scheme.
+    const certs = /data-phone-panel="certificates"[\s\S]*?data-phone-panel="checks"/.exec(html)![0];
+    const t = certTable(model(), TODAY);
+    assert.ok(t.ended.length > 0 && t.held.some((c) => c.look) && t.held.some((c) => !c.look), "guard: an ended, a look and a plain certificate");
+    assert.match(text(certs), new RegExp(`^[^<]*${t.count} certifications Soonest expiry first\\.`));
+    assert.equal((certs.match(/bg-caution-tint/g) ?? []).length, t.held.filter((c) => c.look).length);
+    const ended = /<section data-phone-ended=""[\s\S]*?<\/section>/.exec(certs)![0];
+    assert.match(text(ended), /No longer current · not counted above .* Ended \d+ \w+ \d{4}/);
+    assert.doesNotMatch(ended, /bg-caution-tint|expired/i);
+    assert.doesNotMatch(text(certs), /Expired on|Issued by (WRAP|OEKO-TEX)/);
+    // Safety: the reports are underlined links on one line with a 44px target, not grey pills; "worst" is not said.
+    const safety = /data-phone-panel="safety"[\s\S]*?data-phone-panel="sites"/.exec(html)![0];
+    const reports = /<ul data-phone-reports=""[^>]*>([\s\S]*?)<\/ul>/.exec(safety)![1]!;
+    assert.ok((reports.match(/<a /g) ?? []).length > 1 && !/rounded-full|bg-sunken pl/.test(reports));
+    assert.equal((reports.match(/before:-inset-y-\[7px\]/g) ?? []).length, (reports.match(/<a /g) ?? []).length);
+    assert.doesNotMatch(text(phone(model(), { mode: "page" })) + text(phone(model(buildingBrandListsInput()), { mode: "page" })), /worst/i);
     // A late read of a sanctions list says how late.
     assert.match(out, /European Union 12 Sep · 6 days ago/);
     // Three buildings or more are rows with a bare percentage: what it measures is said over them.
     const many = text(phone(model(buildingBrandListsInput()), { mode: "page" }));
-    assert.match(many, /3 buildings in the RSC programme Safety issues fixed, worst first\. 2 behind\. /);
-    assert.doesNotMatch(out, /Safety issues fixed, worst first/, "two buildings are full cards: each says it beside its own figure");
+    assert.match(many, /3 buildings in the RSC programme Safety issues fixed, furthest behind first\. 2 behind\. /);
+    assert.doesNotMatch(out, /Safety issues fixed, (furthest|least)/, "two buildings are full cards: each says it beside its own figure");
   });
 
   it("keeps the contact locked: how many are on file, never a value", () => {
