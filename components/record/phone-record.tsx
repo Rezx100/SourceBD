@@ -1,16 +1,18 @@
 // The supplier record on a phone (Paper page 35, the supplier drawer, 15 boards): Share and Close in a
-// bar that sticks, the name, the three statuses as rows that open their tab, the tabs, and one tab's
-// view at a time. Drawn beside the desktop record and hidden from 640, so the desktop is untouched.
+// bar that sticks with the name beside them, the three statuses as rows that jump to their section,
+// the tabs, and every section under them on the one page (founder, 12 Oct 2026: the sections reveal
+// as the reader scrolls). Drawn beside the desktop record and hidden from 640, so the desktop is untouched.
 // It says only what the record's model holds: the boards' placeholder figures (a yearly change, a
 // month-by-month chart, a buyer's share, a line's share) are not drawn, and customs figures are per
 // supplier and per market, never per HS code. Server-safe; the tabs are the only script.
 
-import { ArrowUpRight, ArrowsClockwise, CaretDown, CaretRight, Clock, Factory, FileText, HardHat, Hourglass, IdentificationBadge, ListChecks, Lock, MapPin, Package, ShieldCheck, Storefront, WarningCircle, WarningOctagon, X } from "@phosphor-icons/react/dist/ssr";
+import { ArrowUpRight, CaretDown, CaretRight, Clock, Factory, FileText, HardHat, Hourglass, IdentificationBadge, ListChecks, Lock, MapPin, Package, ShieldCheck, Storefront, WarningOctagon, X } from "@phosphor-icons/react/dist/ssr";
 import type { Icon } from "@phosphor-icons/react";
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 import { CertChip, Skeleton, ring } from "@/components/kit";
 import { ABSENT, onFileWords } from "@/components/patterns";
+import { certShort } from "@/components/patterns/words";
 import { LinkPending } from "@/components/patterns/link-pending";
 import { brandsInCustoms, customsBuyers, customsWindow, formatDay, formatUsdShort } from "@/lib/dashboard/facts";
 import type { SupplierSheetModel } from "@/lib/dashboard/models";
@@ -147,24 +149,13 @@ function Overview({ model, today, tabHref, level }: PanelProps) {
   const members = facts.find((f) => f.label === "Memberships")?.values.flatMap((x) => (x.membership ? [x.membership] : [])) ?? [];
   const brands = model.products.buyerLists;
   const agreed = brandsInCustoms(brands, v);
-  const rows = facts.filter((f) => f.label !== "Memberships" && f.label !== "Brand supplier lists");
+  // The brands' lists have a section of their own here, and the customs buyers are the Exports section's, a scroll away.
+  const rows = facts.filter((f) => f.label !== "Memberships" && f.label !== "Brand supplier lists" && f.label !== "Buyers in shipment records");
   const counts = model.contact.counts;
   const onFile = counts ? onFileWords(counts.emails, counts.phones, counts.website, counts.representatives) : null;
   const readOf = (code: string | null) => model.sources.find((s) => s.mark.code === code || s.mark.label === code) ?? null;
   return (
     <div className="flex flex-col pb-8">
-      {model.rfqs.error ? (
-        <div className="px-5 pt-5">
-          <div role="alert" className="flex items-center gap-3 rounded-lg bg-danger-tint py-3 pl-3.5 pr-3">
-            <WarningCircle size={20} weight="thin" className="shrink-0 text-danger" aria-hidden />
-            <p className="flex-1 text-base font-medium text-danger">Your RFQs didn&apos;t load.</p>
-            <Link href={tabHref("overview")} scroll={false} className={cn("flex h-11 items-center gap-1.5 rounded-full bg-surface px-3.5 text-base font-medium text-ink active:bg-sunken", ring)}>
-              <ArrowsClockwise size={16} weight="thin" className="shrink-0" aria-hidden />
-              Retry
-            </Link>
-          </div>
-        </div>
-      ) : null}
       {model.sanctioned ? (
         <div className="px-5 pt-6">
           <SanctionEvidence model={model} level={level} anchor={false} />
@@ -311,7 +302,6 @@ const SHARE_TONES = ["bg-ink", "bg-ink-2", "bg-ink-3", "bg-line-strong", "bg-lin
 function Exports({ model, today, level }: PanelProps) {
   const v = model.volza;
   const p = model.products;
-  const behind = v ? recordsEnd(v, today) : null;
   const shares = v ? marketShares(v) : [];
   const buyers = customsBuyers(v);
   const small = v?.small_orders ?? null;
@@ -369,19 +359,6 @@ function Exports({ model, today, level }: PanelProps) {
   }
   return (
     <div className={cn("flex flex-col pb-8", NUM)}>
-      {behind !== null ? (
-        <div className="px-5 pt-5">
-          <div className="flex items-start gap-3 rounded-lg bg-caution-tint p-3.5">
-            <Clock size={20} weight="thin" className="shrink-0 text-caution-icon" aria-hidden />
-            <div className="flex flex-1 flex-col gap-0.5 text-caution">
-              <p className="text-[15px]/[22px] font-medium">
-                These records end {shortDay(v.window_end, today)}, {behind} days ago
-              </p>
-              <p className="text-base">Shipments after that date are not counted here yet.</p>
-            </div>
-          </div>
-        </div>
-      ) : null}
       <section aria-label="Customs exports" className="flex flex-col px-5 pt-6">
         <p className="text-sm text-ink-3">
           {v.fob_usd !== null ? "Export value" : "Shipments"}, {customsWindow(v)}
@@ -418,14 +395,14 @@ function Exports({ model, today, level }: PanelProps) {
       ) : null}
       {buyers.length > 0 ? (
         <Section title="Buyers" count={v.buyers !== null ? `of ${v.buyers.toLocaleString("en-GB")}` : undefined} level={level}>
-          <p className="-mt-3 pb-2.5 text-base text-ink-2">Buyer names are as written on the customs record: often a shipping arm or an agent, not the brand.</p>
-          <ul className="flex flex-col">
+          <ul className="-mt-1 flex flex-wrap gap-2">
             {buyers.map((b) => (
-              <li key={b} className="border-t border-line py-2.5 text-[15px]/[22px] font-medium text-ink first:border-t-0">
+              <li key={b} className="flex min-h-8 items-center rounded-full bg-subtle px-3 py-1 text-base font-medium text-ink">
                 {b}
               </li>
             ))}
           </ul>
+          <p className="pt-3 text-xs text-ink-3">As named on customs records: often an importer or an agent, not the brand.</p>
         </Section>
       ) : null}
       {lines}
@@ -455,7 +432,12 @@ function Exports({ model, today, level }: PanelProps) {
 
 /* ------------------------------------------------------------ certificates */
 
-function CertCard({ g }: { g: CertGroup }) {
+/**
+ * One certificate: its scheme and its state in a few words, then the three facts a buyer checks (the
+ * date, the number, who issued it) and when we last saw it. The certifier's scope text is left to the
+ * certificate itself: a buyer in this trade knows what the scheme covers (founder, 12 Oct 2026).
+ */
+function CertCard({ g, today }: { g: CertGroup; today: Date }) {
   const c = g.rows[0]!;
   const gots = /^gots/i.test(g.scheme);
   const day = formatDay(c.expiresOn);
@@ -468,16 +450,15 @@ function CertCard({ g }: { g: CertGroup }) {
       ] satisfies [string, string, string][]).filter((f) => f[1]);
   const numbers = g.rows.flatMap((r) => (r.number ? [r.number] : []));
   return (
-    <li className="flex flex-col gap-3.5 rounded-lg border border-line p-4">
-      <CertChip state={g.state} className="self-start">
-        {g.listed ? "Listed · no end date shown" : g.label}
-      </CertChip>
-      <div className="flex flex-col gap-0.5">
-        <p className={TITLE}>{g.scheme}</p>
-        {c.scope || g.rows.length > 1 ? <p className="text-base text-ink-2">{[g.rows.length > 1 ? `${g.rows.length} listings` : null, c.scope].filter(Boolean).join(" · ")}</p> : null}
+    <li className="flex flex-col gap-3 rounded-lg border border-line px-4 pb-3 pt-3.5">
+      <div className="flex items-start justify-between gap-3">
+        <p className="min-w-0 text-[17px]/[24px] font-medium tracking-tight text-ink">{g.scheme}</p>
+        <CertChip state={g.state} className="shrink-0">
+          {g.listed ? (g.rows.length > 1 ? `${g.rows.length} listings` : "Listed") : certShort(c.expiresOn, today, c.delistedOn)}
+        </CertChip>
       </div>
       {facts.length > 0 ? (
-        <dl className="flex flex-col gap-2">
+        <dl className="flex flex-col gap-1.5">
           {facts.map(([label, value, tone]) => (
             <div key={label} className="flex justify-between gap-3">
               <dt className="shrink-0 text-sm text-ink-3">{label}</dt>
@@ -496,11 +477,11 @@ function CertCard({ g }: { g: CertGroup }) {
         </ul>
       ) : null}
       {c.check || c.documentUrl ? (
-        <div className="flex items-center justify-between gap-3 border-t border-line pt-3">
+        <div className="flex items-center justify-between gap-3 border-t border-line pt-2.5">
           <p className={cn("text-xs", c.check?.caution ? "font-medium text-caution" : "text-ink-3")}>{c.check ? c.check.text.charAt(0).toUpperCase() + c.check.text.slice(1) : ""}</p>
           {c.documentUrl ? (
-            <a href={c.documentUrl} className={cn("flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-sunken px-3.5 text-base font-medium text-ink active:bg-line", ring)}>
-              {g.listed ? <ArrowUpRight size={16} weight="thin" className="shrink-0" aria-hidden /> : <FileText size={16} weight="thin" className="shrink-0" aria-hidden />}
+            <a href={c.documentUrl} className={cn(PILL, "shrink-0")}>
+              {g.listed ? <ArrowUpRight size={16} weight="thin" className="shrink-0 text-ink-2" aria-hidden /> : <FileText size={16} weight="thin" className="shrink-0 text-ink-2" aria-hidden />}
               {g.listed ? "Listing" : (c.documentLabel ?? "Certificate")}
             </a>
           ) : null}
@@ -532,7 +513,7 @@ function Certificates({ model, today, level: H }: PanelProps) {
           </div>
           <ul className="flex flex-col gap-3">
             {groups.map((g) => (
-              <CertCard key={`${g.scheme}-${g.rows[0]!.number}-${g.rows[0]!.expiresOn}`} g={g} />
+              <CertCard key={`${g.scheme}-${g.rows[0]!.number}-${g.rows[0]!.expiresOn}`} g={g} today={today} />
             ))}
           </ul>
         </>
@@ -543,7 +524,7 @@ function Certificates({ model, today, level: H }: PanelProps) {
           <p className="text-sm font-medium text-ink-3">Held by {b.building} · the building&apos;s own, not counted above</p>
           <ul className="flex flex-col gap-3">
             {certGroups({ ...model, certs: b.certs }, today).map((g) => (
-              <CertCard key={`${g.scheme}-${g.rows[0]!.number}-${g.rows[0]!.expiresOn}`} g={g} />
+              <CertCard key={`${g.scheme}-${g.rows[0]!.number}-${g.rows[0]!.expiresOn}`} g={g} today={today} />
             ))}
           </ul>
         </section>
@@ -834,11 +815,16 @@ export function PhoneRecord({
   const type = [model.meta[0]?.text ?? null, fact("Established") ? `founded ${fact("Established")}` : null, fact("Parent group") ? `part of ${fact("Parent group")}` : null].filter(Boolean).join(" · ");
   const place = model.meta.find((m) => m.icon === "address")?.text ?? null;
   const props: PanelProps = { model, today, tabHref, level };
+  // What stays over the sections: on the page the bar (56) and the short statuses (42), then the strip (48).
+  // A section lands with its 8px band tucked under the strip, so the strip's hairline is not doubled.
+  const under = page ? "scroll-mt-[138px]" : "scroll-mt-10";
   return (
     <PhoneTabs key={model.fullHref} initial={tab} className="flex flex-col sm:hidden">
       {page ? (
-        // Its own layer, so the phone moves it with the page instead of repainting it a beat late.
-        <PhoneBar className="sticky top-0 z-raised flex h-14 shrink-0 items-center gap-2 bg-surface pl-5 pr-4 [transform:translateZ(0)]">
+        // Its own layer, so the phone moves it with the page instead of repainting it a beat late. It has
+        // no ground until the name has left its row: the name's first line is read through it, beside
+        // the two buttons, so the record starts at the name and not at an empty bar (founder, 12 Oct 2026).
+        <PhoneBar className="sticky top-0 z-raised flex h-14 shrink-0 items-center gap-2 pl-5 pr-4 [transform:translateZ(0)] data-[stuck]:bg-surface">
           {/* The one cut line on the record: the name again, for the eye only. The whole name is the h1 under the bar. */}
           <p aria-hidden className="min-w-0 flex-1 truncate pr-1 text-xl/[30px] font-semibold tracking-[-0.025em] text-ink opacity-0 group-data-[stuck]/bar:opacity-100">
             {model.name}
@@ -847,7 +833,7 @@ export function PhoneRecord({
           <Link href={backHref ?? "/app"} aria-label="Back to search" className={ROUND}>
             <X size={17} weight="thin" aria-hidden />
           </Link>
-          <div aria-hidden className="pointer-events-none invisible absolute inset-x-0 top-full bg-surface pb-3 pl-5 pr-4 group-data-[stuck]/bar:visible">
+          <div aria-hidden className="pointer-events-none invisible absolute inset-x-0 top-full bg-surface pb-3 pl-5 pr-4 group-data-[past]/bar:visible">
             <div className="flex h-[30px] overflow-clip rounded-lg bg-subtle">
               {status.map((s, i) => {
                 const G = STATUS_ICON[s.key];
@@ -866,13 +852,13 @@ export function PhoneRecord({
         </PhoneBar>
       ) : null}
 
-      <header className={cn("flex flex-col px-5 pb-6", page ? "pt-2" : "pt-1")}>
-        {page ? (
-          <Title data-phone-name="" className="text-2xl/[36px] font-medium tracking-tighter text-ink [overflow-wrap:anywhere]">
-            {model.name}
-          </Title>
-        ) : null}
-        <div className={cn("flex flex-col gap-1.5 pb-5 text-[15px]/[22px] text-ink-2", page && "pt-3")}>
+      {/* On the page the header starts in the bar's own row: the name beside Share and Close, kept clear of them on every line. */}
+      <header className={cn("flex flex-col px-5 pb-6", page ? "-mt-14 pt-2.5" : "pt-1")}>
+        {/* In the drawer a narrow window gets, the drawer's own title says only "Supplier": the name is said here too (founder, 12 Oct 2026). */}
+        <Title data-phone-name="" className={cn("font-medium tracking-tighter text-ink [overflow-wrap:anywhere]", page ? "pr-[88px] text-2xl/[36px]" : "text-xl/[30px]")}>
+          {model.name}
+        </Title>
+        <div className="flex flex-col gap-1.5 pb-5 pt-2 text-[15px]/[22px] text-ink-2">
           {type ? (
             <p className="flex items-start gap-2">
               <Factory size={18} weight="thin" className="mt-0.5 shrink-0 text-ink-3" aria-hidden />
@@ -887,7 +873,7 @@ export function PhoneRecord({
           ) : null}
         </div>
         {model.sanctionSample ? <p className="pb-3 text-xs text-ink-2">Sample state. No published supplier is on a sanctions list today; no real company is shown.</p> : null}
-        <ul aria-label="Summary" className={CARD}>
+        <ul aria-label="Summary" data-phone-summary="" className={CARD}>
           {status.map((s) => {
             const G = s.tone === "sanction" ? WarningOctagon : STATUS_ICON[s.key];
             const to = s.tone === "sanction" ? "overview" : STATUS_TAB[s.key];
@@ -910,34 +896,36 @@ export function PhoneRecord({
 
       <PhoneTabStrip className={page ? "top-[98px]" : "top-0"} tabs={TABS.map((t) => ({ id: t.id, label: t.label, href: tabHref(t.id), count: tabCount(model, t.id) ?? undefined }))} />
 
-      <div data-phone-panels="" className={page ? "scroll-mt-[146px]" : "scroll-mt-12"}>
-        <PhonePanel id="overview" label="Overview">
+      {/* Every section, in tab order: a tab jumps to one and the strip follows the scroll through them. A tonal band parts each from the last. */}
+      <div data-phone-panels="" className="flex flex-col [&>*+*]:border-t-8 [&>*+*]:border-sunken">
+        <PhonePanel id="overview" label="Overview" className={under}>
           <Overview {...props} />
         </PhonePanel>
-        <PhonePanel id="exports" label="Exports">
+        <PhonePanel id="exports" label="Exports" className={under}>
           <Exports {...props} />
         </PhonePanel>
-        <PhonePanel id="certificates" label="Certificates">
+        <PhonePanel id="certificates" label="Certificates" className={under}>
           <Certificates {...props} />
         </PhonePanel>
-        <PhonePanel id="safety" label="Safety">
+        <PhonePanel id="safety" label="Safety" className={under}>
           <Safety {...props} />
         </PhonePanel>
-        {/* The map is not built until the tab is first shown. */}
-        <PhonePanel id="sites" label="Sites" lazy>
+        {/* The map is not built until the reader is a screen away from it. */}
+        <PhonePanel id="sites" label="Sites" lazy className={under}>
           <div className="px-5 pb-8 pt-6">
             <SitesPanel model={model} tabHref={tabHref} site={site} wide={false} level={level} />
           </div>
         </PhonePanel>
-        <PhonePanel id="sources" label="Sources">
+        <PhonePanel id="sources" label="Sources" className={under}>
           <Sources {...props} />
         </PhonePanel>
-        <PhonePanel id="products" label="Products">
+        <PhonePanel id="products" label="Products" className={under}>
           <div className="px-5 pb-8 pt-6">
             <ProductsPanel model={model} level={level} open />
           </div>
         </PhonePanel>
       </div>
+      <div data-phone-end="" aria-hidden />
     </PhoneTabs>
   );
 }

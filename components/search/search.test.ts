@@ -424,6 +424,9 @@ describe("the bar over the results", () => {
   it("a phone's bar is a 52-tall tonal field with its ×, a row of pills, then the count and the standing filter (Paper page 36, search-results)", () => {
     const phone = plain(h(PhoneToolbar, { state: { ...state, per: 50 as const }, count: "4,645 suppliers", hrefFor, filtersHref: "#" }));
     assert.match(phone, /role="search"/);
+    // The results start at the field: the frame's title bar is hidden over this bar (the board has none).
+    assert.match(phone, /^<div data-own-top=""/);
+    assert.match(readFileSync(path.join(process.cwd(), "components/frame/phone.tsx"), "utf8"), /max-md:group-has-\[\[data-own-top\]\]\/shell:hidden/);
     assert.ok(phone.includes('value="knit"') && phone.includes('aria-label="Clear the search"'));
     assert.match(phone, /<input[^>]*role="combobox"[^>]*aria-expanded="false"/, "a combobox, closed until the buyer types or focuses it");
     assert.match(phone, /type="hidden" name="per" value="50"/, "the field carries the other filters");
@@ -466,6 +469,8 @@ describe("the narrow list and the phone's rows", () => {
     const head = /<div[^>]*>(?=<span[^>]*>Supplier<)/.exec(out)![0];
     assert.match(head, /max-md:hidden/, "a phone shows the desktop's column head over its skeleton");
     assert.match(out, /<div class="md:hidden" aria-hidden="true">/, "a phone has no skeleton rows of its own");
+    // The frame's title bar is hidden over the results; it must be hidden while they load, or it flashes and the page jumps.
+    assert.match(out, /^<div role="status" aria-busy="true" aria-label="Loading suppliers" data-own-top=""/);
   });
 
   it("beside a pane: name, type and place, the first certificate problem, the count; the open row is marked", () => {
@@ -487,9 +492,10 @@ describe("the narrow list and the phone's rows", () => {
     // Paper page 36, `search-results`: where it is and its sources under the name, the bookmark at the row's end.
     assert.ok(out.includes("Dhaka · 11 sources"));
     assert.match(out, /<button[^>]*aria-pressed="false"[^>]*>/, "a row's bookmark saves it");
-    // Founder, 10 Oct 2026: a tap on the marks did nothing. They sit beside the row's link (a button
-    // cannot nest in one) as a button that opens their words; the rest of the row still opens the record.
-    assert.match(out, /<\/a><span class="pointer-events-none[^"]*\[&_button\]:pointer-events-auto[^"]*"><button type="button" aria-haspopup="dialog"/);
+    // Founder, 12 Oct 2026: the live rows drew the bodies' marks where the board has a line of words.
+    // The worst certificate is said, amber when it has lapsed, inside the row's link; no mark, no button.
+    assert.match(out, /<span class="font-medium text-caution">WRAP expired 29 Sep<\/span>/);
+    assert.doesNotMatch(out, /aria-haspopup="dialog"|<img/, "a phone's row draws the certificate marks");
     assert.doesNotMatch(out, /<a [^>]*>(?:(?!<\/a>)[\s\S])*<button/, "a button inside the link");
     assert.match(out, /<a [^>]*class="[^"]*after:inset-0/, "the link does not cover the row");
   });

@@ -27,3 +27,12 @@ Two PRs into `development`, phone only (from 768 px every page draws as before),
 - **Facts kept against the boards**: the UFLPA list was read 8 Oct (the date comes from `sanctions_lists_read()`); customs figures are per supplier and per market, never per HS code; "no customs records" claims no lookup.
 - **Founder steps**: add `unit-tests-slow` as a required check (`docs/ENTERPRISE_DEPLOYMENT.md`); confirm the ES256 signing key is "current" in Supabase; approve Deploy Production.
 - **Left as found by the one review pass**: reads only a phone draws also run from 768 (filters sheet, expiry, statement, settings list); the record renders both drawings; a team row on a phone no longer prints the email.
+
+## Phone fixes from the founder's live review (12 Oct 2026)
+
+Ten notes on the live phone site, one PR (`phone-fixes-1`), phone only, no migration.
+
+- **Record**: the name shares the bar's row with Share and Close (the bar has no ground until the name leaves it); every section is on the one page and the strip follows the scroll (`phone-tabs.tsx`, the desktop's `sectionInView`); the strip cannot move up or down (its hairline is the box's); the amber "records end" notice is gone from Exports (the footnote stays); customs buyers are pills in Exports only; a certificate card is scheme, state, date, number, issuer (no scope text); the drawer a narrow window gets says the name.
+- **Search**: the results start at the field (the frame's title bar is hidden over `data-own-top`); a row says its worst certificate in words, not marks; a suggested company opens the record page with the way back.
+- **"Your RFQs didn't load"**: the phone no longer draws it. Cause: migration 0126 (claimed-supplier policies) was never applied to production, so every direct read of `rfqs` as a buyer fails. Waits for the founder's "apply 0126".
+- **Not built**: the month-by-month exports chart on the board. The customs data holds a two-year total and four markets, no monthly figures; drawing it needs a new fetch.

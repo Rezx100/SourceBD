@@ -120,7 +120,7 @@ export function SearchCombobox({
   const rows = suggestionRows(value, fetched, recent);
   const shown = open && rows.length > 0;
   const phone = variant === "phone";
-  const at = { pathname, search: params?.toString() ?? "" };
+  const at = { pathname, search: params?.toString() ?? "", page: phone };
   const q = value.trim();
 
   function choose(i: number) {
