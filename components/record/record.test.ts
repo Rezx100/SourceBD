@@ -19,6 +19,8 @@ import { GLOSSARY, define } from "@/lib/dashboard/glossary";
 import { tierWords } from "@/lib/dashboard/source-tiers";
 import { mailHref, siteHref, telHref } from "@/components/record/contact-card";
 import { RecordView } from "@/components/record/record-view";
+import { SECTIONS, certTable, checkRows, exportTiles, headStatuses, sectionCount } from "@/components/record/desktop-words";
+import { marketOfCountry } from "@/lib/dashboard/facts";
 import { TABS, certRows, keyFacts, needsLook, parseSite, parseTab, recordSubline, sameName, sectionInView, siteCards, siteSummary, staleWords, summaryCells, tabCount } from "@/components/record/words";
 
 const h = createElement as (type: unknown, props: object | null, ...kids: unknown[]) => ReactNode & Parameters<typeof renderToStaticMarkup>[0];
@@ -163,8 +165,9 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
     assert.match(both, /Buyers 3 H&M Supplier list · customs records as H & M Hennes & Mauritz GBC AB ASOS Supplier list/);
     // With no customs record to read, the brands' lists alone, and no word about customs.
     assert.match(text(phone(model(), { mode: "page" })), /Buyers 3 ASOS Supplier list · read 30 Jul 2026 H&M .* NEXT Supplier list · read 18 May 2026 Memberships/);
-    // The desktop keeps its Key facts row.
-    assert.match(text(view(scoped, { mode: "page" })), /Buyers in shipment records/);
+    // The desktop says them once too, as tiles (Paper page 37): the old Key facts row is gone.
+    assert.match(text(view(scoped, { mode: "page" })), /Buyers 4 /);
+    assert.doesNotMatch(text(view(scoped, { mode: "page" })), /Buyers in shipment records/);
   });
 
   it("says what every figure is: no date, code, number or percentage stands alone (founder, 12 Oct 2026)", () => {
@@ -197,14 +200,17 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
 });
 
 describe("the record's tabs", () => {
-  it("are six links to the same record, the open one marked, and a stranger is the Overview", () => {
+  it("are nine links to the same record in the pane, the open one marked, and a stranger is the Overview", () => {
     const out = view(model());
     const nav = /<nav aria-label="Record sections"[\s\S]*?<\/nav>/.exec(out)?.[0] ?? "";
-    assert.deepEqual([...nav.matchAll(/<a\b[^>]*>([\s\S]*?)<\/a>/g)].map((m) => text(m[1]!).trim().replace(/ · \d+$/, "")), TABS.map((t) => t.label));
+    assert.deepEqual([...nav.matchAll(/<a\b[^>]*>([\s\S]*?)<\/a>/g)].map((m) => text(m[1]!).trim().replace(/ \d+$/, "")), SECTIONS.map((t) => t.label));
     assert.equal((nav.match(/aria-current="page"/g) ?? []).length, 1);
     assert.match(nav, /<a\b[^>]*aria-current="page"[^>]*>Overview/);
     for (const t of TABS.slice(1)) assert.ok(plain(nav).includes(`tab=${t.id}`), `no link to ${t.id}`);
+    // Checks and Contact have no tab of their own in the address: each rides on a neighbour's and lands by its anchor.
+    assert.ok(plain(nav).includes('tab=certificates#record-checks"') && plain(nav).includes('tab=sources#record-contact"'));
     assert.equal(parseTab("nonsense"), "overview");
+    assert.equal(parseTab("checks"), "overview", "the address knows the seven tabs it always did");
     assert.equal(parseTab(["safety", "x"]), "safety");
     assert.equal(parseTab(undefined), "overview");
   });
@@ -219,18 +225,25 @@ describe("the record's tabs", () => {
     assert.equal(tabCount(none, "sources"), 1);
   });
 
-  it("sit over all six sections, stacked in tab order, the address's tab the marked one", () => {
+  it("sit over all nine sections, stacked in page order, the address's tab the marked one; the page has the same list as a rail", () => {
     for (const t of TABS) {
       const out = view(model(), { tab: t.id });
-      const at = TABS.map((o) => out.search(new RegExp(`<div id="record-${o.id}" role="region" aria-label="${o.label}"`)));
-      assert.ok(at.every((i, n) => i > 0 && (n === 0 || i > at[n - 1]!)), `${t.id}: every section, in tab order`);
+      const at = SECTIONS.map((o) => out.search(new RegExp(`<section id="record-${o.id}" aria-label="${o.label}"`)));
+      assert.ok(at.every((i, n) => i > 0 && (n === 0 || i > at[n - 1]!)), `${t.id}: every section, in page order`);
       const nav = /<nav aria-label="Record sections"[\s\S]*?<\/nav>/.exec(out)?.[0] ?? "";
       assert.match(nav, new RegExp(`<a\\b[^>]*aria-current="page"[^>]*>${t.label}`), t.id);
       assert.ok(plain(nav).includes(`#record-${t.id}"`), `${t.id}: without script the link still lands on its section`);
     }
-    const out = view(model(), { mode: "page" });
-    const ids = [...out.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]);
-    assert.equal(new Set(ids).size, ids.length, "a certificate's anchor is on its row once, not in Overview and Certificates both");
+    const page = view(model(), { mode: "page" });
+    const ids = [...page.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]);
+    assert.equal(new Set(ids).size, ids.length, "a certificate's anchor is on its row once");
+    const rail = /<nav aria-label="On this page"[\s\S]*?<\/nav>/.exec(page)?.[0] ?? "";
+    assert.deepEqual([...rail.matchAll(/<a\b[^>]*>([\s\S]*?)<\/a>/g)].map((m) => text(m[1]!).trim().replace(/ \d+$/, "")), SECTIONS.map((x) => x.label));
+    assert.equal((rail.match(/aria-current="location"/g) ?? []).length, 1);
+    // The rail from 1280 and the tabs under it: never both, and neither on a phone.
+    assert.match(page, /<div data-record-rail="" class="hidden w-\[280px\][^"]*\bxl:block\b/);
+    assert.match(page, /<div class="contents max-sm:hidden xl:hidden"><div class="sticky/);
+    assert.doesNotMatch(view(model(), { mode: "pane" }), /On this page/);
   });
 
   it("follow the scroll: the first section in the reading band, the last at the foot, else where the reader was", () => {
@@ -273,7 +286,9 @@ describe("the summary", () => {
     assert.equal(cells.rsc!.value, "Not covered");
     assert.deepEqual([cells.workers!.value, cells.workers!.valueWords], ["–", "Not published"]);
     assert.equal(cells.workers!.sub, "Not published · ask in your RFQ");
-    assert.match(view(model(arFashionInput())), /<span aria-hidden="true" class="text-ink-3" title="Not published">–<\/span><span class="sr-only">Not published<\/span>/);
+    const thin = text(view(model(arFashionInput())));
+    assert.match(thin, /Certificates No certificates on file/);
+    assert.match(thin, /Safety Not in the RSC programme/);
     assert.equal(cells.sources!.value, "1");
     assert.match(cells.sources!.sub ?? "", /^BGMEA · \d{1,2} \w{3} 2026$/);
   });
@@ -303,6 +318,61 @@ describe("the summary", () => {
   });
 });
 
+// Paper page 37, the export grid (founder, 12 Oct 2026: totals alone decide nothing). Customs figures reach only a
+// reader the database entitles (`supplier_volza_exports`); for anyone else the model holds none and nothing is drawn.
+describe("the export grid works its figures out from the customs record", () => {
+  const ship = { shipment_date: "2026-08-30", hsn_code: "620520", product_description: "WOMENS SHIRTS", buyer_name: "PREMIER CLOTHING UNIT 4", destination_country: "United Kingdom", trade_value_usd: 220800, unit_rate_usd: 4.2, unit: "PCS" };
+  const V: NonNullable<SupplierSheetModel["volza"]> = {
+    shipments: 2830, fob_usd: 76578614, buyers: 254, window_start: "2024-09-01", window_end: "2026-08-31", volza_name: "Square Apparels Limited", fetched_at: "2026-09-11T10:00:00+00:00", top_shipments: [], top_record: ship, record_sort: "date",
+    markets: {
+      EU: { shipments: 1018, fob_usd: 43000000, buyers: 85, top: null },
+      "United States": { shipments: 394, fob_usd: 11500000, buyers: 40, top: null },
+      "United Kingdom": { shipments: 347, fob_usd: 7200000, buyers: 30, top: null },
+      Canada: { shipments: 323, fob_usd: 5900000, buyers: 27, top: null },
+    },
+    small_orders: { under_pcs: 1000, shipments: 1224, of: 2830 },
+  };
+
+  it("four tiles: the value and its rank, a typical shipment, the buyers, and the reader's own market", () => {
+    const tiles = exportTiles(V, { market: "United Kingdom", rank: 89 });
+    assert.deepEqual(tiles.map((x) => [x.label, x.value, x.sub]), [
+      ["Export value, 2 years", "US$76.6m", "Bigger than 89% of exporters on record"],
+      ["Typical shipment", "US$27,000", "43% under 1,000 pieces"],
+      ["Buyers", "254", "30 in the UK · 11 shipments each"],
+      ["Ships to the UK", "US$7.2m", "9% of exports · 347 shipments"],
+    ]);
+    assert.deepEqual(tiles[0]!.bar, [{ share: 89, tone: "ink-2" }, { share: 11, tone: "sunken" }]);
+    // Buyers by market, the reader's own dark, then the rest of the world.
+    assert.deepEqual(tiles[2]!.bar!.map((p) => [p.share, p.tone]), [[85, "line-strong"], [40, "line-strong"], [30, "ink"], [27, "line-strong"], [72, "line-strong"]]);
+    assert.deepEqual(tiles[3]!.bar!.map((p) => p.tone), ["line-strong", "line-strong", "ink", "line-strong", "line-strong"]);
+  });
+
+  it("fails soft: without the rank the first tile is the value alone; without a market the fourth names the biggest", () => {
+    const tiles = exportTiles(V);
+    assert.deepEqual([tiles[0]!.value, tiles[0]!.bar, tiles[0]!.sub], ["US$76.6m", null, null]);
+    assert.equal(tiles[2]!.sub, "11 shipments each");
+    assert.deepEqual([tiles[3]!.label, tiles[3]!.value, tiles[3]!.sub], ["Biggest market", "EU", "56% of exports · 1,018 shipments"]);
+    // A supplier that ships to one country has no market split: three tiles, and none invents one.
+    assert.deepEqual(exportTiles({ ...V, markets: null }).map((x) => x.key), ["value", "typical", "buyers"]);
+    // A market the supplier does not ship to is said, not left out.
+    const none = exportTiles({ ...V, markets: { ...V.markets, Canada: { shipments: 0, fob_usd: 0, buyers: 0, top: null } } }, { market: "Canada" })[3]!;
+    assert.deepEqual([none.label, none.value, none.sub], ["Ships to Canada", "No shipments", "in Sep 2024 – Aug 2026"]);
+    assert.deepEqual(["GB", "us", "DE", "CA", "AU", "", null].map((c) => marketOfCountry(c)), ["United Kingdom", "United States", "EU", "Canada", null, null, null]);
+  });
+
+  it("draws the grid, the market table and the customs buyers only when the model holds customs figures", () => {
+    for (const mode of ["page", "pane"] as const) {
+      const free = text(view(model(), { mode }));
+      assert.doesNotMatch(free, /Export value|Typical shipment|Where it goes|Customs records|US\$|All exports/, `${mode}: a reader with no customs figures sees one`);
+      const paid = text(view(model(aboniInput(), { volza: V, market: "United Kingdom" }), { mode }));
+      assert.match(paid, /Exports All exports Export value, 2 years US\$76\.6m Typical shipment US\$27,000 43% under 1,000 pieces Buyers 254 30 in the UK · 11 shipments each Ships to the UK US\$7\.2m 9% of exports · 347 shipments Customs records, Sep 2024 – Aug 2026 · latest shipment on record 30 Aug · read 11 Sep /, mode);
+      assert.match(paid, /Exports US\$76\.6m free on board across 2,830 shipments, every product line together\. Where it goes Share of export value, by market Market Share of value Value Shipments Buyers European Union 56% US\$43m 1,018 85 /, mode);
+      // Never "last shipped", and never a price a piece (the stored one is not checked).
+      assert.doesNotMatch(paid, /last shipped|a piece|per piece|4\.2\b/i, mode);
+    }
+  });
+});
+
 describe("a sanctioned record", () => {
   const sanctioned = () => model(sanctionedInput());
 
@@ -320,7 +390,7 @@ describe("a sanctioned record", () => {
   it("puts the match where it is read: which list, what it matched, when it was checked", () => {
     const m = sanctioned();
     const out = text(view(m));
-    assert.match(out, /Sanctions matches/);
+    assert.match(out, /Checks (?:\d+ needs? a look )?Sanctions On the /, "the match is not in the Sanctions row of Checks");
     assert.match(out, /The record stays readable for due diligence\. Save still works, so the supplier can be tracked\./);
     assert.match(out, /On the /);
   });
@@ -361,7 +431,7 @@ describe("the view's rules", () => {
     assert.match(page, /Back to results/);
     assert.doesNotMatch(page, /aria-label="Close"|>Open full page</);
     // The way back carries the search the record was opened from.
-    assert.match(plain(pane), /href="\/app\/suppliers\/aboni-knitwear\?back=%2Fapp%2Fdiscover%3Fq%3Dknit">Open full page/);
+    assert.equal(/<a [^>]*href="([^"]*)"[^>]*>(?:(?!<\/a>)[\s\S])*Open full page<\/a>/.exec(plain(pane))?.[1], "/app/suppliers/aboni-knitwear?back=%2Fapp%2Fdiscover%3Fq%3Dknit");
   });
 
   it("on a phone the page has a bar of its own, stuck to the top, with Share and the way back, and the name is the h1 under it", () => {
@@ -385,8 +455,8 @@ describe("the view's rules", () => {
     assert.match(page, /<h1 data-phone-name="" class="[^"]*text-2xl\/\[36px\][^"]*">Aboni Knitwear Ltd<\/h1>/);
     // The desktop's head, body and "Back to results" are not drawn on a phone, and the phone's are not drawn twice.
     const desk = view(model(), { mode: "page" });
-    assert.match(desk, /<header class="[^"]*\bmax-sm:hidden\b/);
-    assert.match(desk, /<div class="[^"]*\bmax-sm:hidden\b[^"]*"><a [^>]*>(?:<svg[\s\S]*?<\/svg>)?Back to results/);
+    assert.match(desk, /<header data-record-head="" class="[^"]*\bmax-sm:hidden\b/);
+    assert.match(desk, /<header data-record-head=""[^>]*><a [^>]*>(?:<svg[\s\S]*?<\/svg>)?Back to results/);
     assert.doesNotMatch(desk, /data-record-bar|data-phone-/);
     // The drawer a narrow window gets has its own Close, and a title that says only "Supplier": no bar, and the name is said (founder, 12 Oct 2026).
     const drawer = phone(model(), { mode: "pane" });
@@ -431,11 +501,15 @@ describe("the view's rules", () => {
     assert.doesNotMatch(readFileSync(path.join(dir, "section-tabs.tsx"), "utf8"), /bar\.scrollTo\(/);
   });
 
-  it("on the page, a phone hides the app's bars (data-detail) and the page has a contact column from 1024", () => {
+  it("on the page, a phone hides the app's bars (data-detail); the page's rail is its own nav and nothing else", () => {
     const page = view(model(), { mode: "page" });
     assert.match(page, /data-detail=""/);
-    assert.match(page, /<aside aria-label="Contact and sources" class="hidden w-details/);
-    assert.doesNotMatch(view(model(), { mode: "pane" }), /data-detail|<aside/);
+    const rail = /<div data-record-rail=""[^>]*>[\s\S]*?<\/nav><\/div>/.exec(page)?.[0] ?? "";
+    assert.match(rail, /^<div data-record-rail="" class="hidden w-\[280px\][^"]*"><nav aria-label="On this page"/);
+    assert.doesNotMatch(rail, /<section|on file|Needs a look/);
+    // The layout owns the page's asides: the record draws none.
+    assert.doesNotMatch(page, /<aside\b/);
+    assert.doesNotMatch(view(model(), { mode: "pane" }), /data-detail|data-record-rail|<aside/);
   });
 
   it("holds no contact value and no score, whatever the payload carried", () => {
@@ -458,28 +532,29 @@ describe("the view's rules", () => {
     const COUNTS = { emails: 2, phones: 2, website: true, representatives: 1 };
     const unlocked = (input = aboniInput(), details: ContactDetailsRead = DETAILS) =>
       buildSheet(input, { supplierId: "id-1", rfqHref: "/app/rfqs/new?supplier=id-1", contactCounts: COUNTS, contactDetails: details });
-    const cards = (html: string) => html.match(/<section aria-label="Contact" data-contact-details=""[\s\S]*?<\/section>/g) ?? [];
+    // Contact is the record's last section on a desktop (Paper page 37).
+    const contactSection = (html: string) => /<section id="record-contact"[\s\S]*?<\/section>/.exec(html)?.[0] ?? "";
 
-    it("draws each as a link that writes, dials or opens the site, in the page's column and in the pane", () => {
+    it("draws each as a link that writes, dials or opens the site, with Copy beside it, once on the page and once in the pane", () => {
       for (const mode of ["page", "pane"] as const) {
         const out = view(unlocked(), { mode });
-        // The page draws the column's card and, under 1024, the same card in the main column; the pane has the one.
-        assert.equal(cards(out).length, mode === "page" ? 2 : 1, mode);
-        const card = cards(out)[0]!;
+        assert.equal((out.match(/data-contact-details=""/g) ?? []).length, 1, mode);
+        const card = contactSection(out);
         assert.match(card, /<a href="mailto:sales@aboni\.example"[^>]*>sales@aboni\.example<\/a>/);
         assert.match(card, /<a href="mailto:md@aboni\.example"/);
         assert.match(card, /<a href="tel:\+8801754392350"[^>]*>\+880 1754392350<\/a>/);
         assert.match(card, /<a href="tel:\+88029876543"[^>]*>02-9876543<\/a>/);
         // No scheme was filed, so the link gains https; it opens apart and vouches for nothing.
-        assert.match(card, /<a href="https:\/\/www\.aboni\.example\/contact" target="_blank" rel="noopener noreferrer nofollow"[^>]*>www\.aboni\.example\/contact<\/a>/);
-        assert.match(text(card), /Contact Contact person Md\. Karim Uddin Managing Director Emails sales@aboni\.example md@aboni\.example Phone numbers \+880 1754392350 02-9876543 Website www\.aboni\.example\/contact/);
+        assert.match(card, /<a href="https:\/\/www\.aboni\.example\/contact" target="_blank" rel="noopener noreferrer nofollow"[^>]*>www\.aboni\.example\/contact/);
+        // The person on their own ground, then one line per way to reach them.
+        assert.match(text(card), /^ ?Contact MK Md\. Karim Uddin Managing Director Contact person Emails · 2 sales@aboni\.example Copy md@aboni\.example Copy Phone numbers · 2 \+880 1754392350 02-9876543 Website www\.aboni\.example\/contact ?$/);
+        assert.equal((card.match(/<button type="button" aria-label="Copy email /g) ?? []).length, 2, mode);
+        assert.equal((card.match(/<button type="button" aria-label="Copy phone number /g) ?? []).length, 2, mode);
         // Links are the brand's ink, never the solid brand.
         assert.doesNotMatch(card, /\btext-brand\b(?!-)|\bbg-brand\b(?!-)/);
-        // Nothing says locked: not the card, not the foot line.
-        assert.doesNotMatch(text(out), /Contact details are locked|Locked · |emails on file|phone numbers on file/, mode);
+        // Nothing says locked.
+        assert.doesNotMatch(text(out), /Contact details are locked|Locked\. |emails on file|phone numbers on file/, mode);
       }
-      // The page's second card is the main column's, hidden where the column is drawn.
-      assert.match(view(unlocked(), { mode: "page" }), /<div class="lg:hidden"><section aria-label="Contact" data-contact-details=""/);
     });
 
     it("a phone draws them in its Contact section, the last of the scroll, under the section's one heading", () => {
@@ -511,10 +586,10 @@ describe("the view's rules", () => {
     });
 
     it("only the kinds the record holds are drawn, and a record holding none says so without a lock", () => {
-      const phoneOnly = cards(view(unlocked(aboniInput(), { emails: [], phones: ["01754392350"], website: null, person: null }), { mode: "page" }))[0]!;
+      const phoneOnly = contactSection(view(unlocked(aboniInput(), { emails: [], phones: ["01754392350"], website: null, person: null }), { mode: "page" }));
       assert.equal(text(phoneOnly).trim(), "Contact Phone number 01754392350");
       assert.doesNotMatch(phoneOnly, /mailto:|target="_blank"/);
-      const none = cards(view(unlocked(aboniInput(), { emails: [], phones: [], website: null, person: null }), { mode: "page" }))[0]!;
+      const none = contactSection(view(unlocked(aboniInput(), { emails: [], phones: [], website: null, person: null }), { mode: "page" }));
       assert.equal(text(none).trim(), "Contact No email or phone on file");
       assert.doesNotMatch(none, /<a /);
     });
@@ -526,7 +601,7 @@ describe("the view's rules", () => {
         const locked = both(before, { mode });
         assert.equal(both(unlocked(aboniInput(), null), { mode }), locked, mode);
         assert.doesNotMatch(locked, /data-contact-details|mailto:|href="tel:/, mode);
-        assert.match(text(locked), /Locked · 2 emails on file · 2 phone numbers on file · Website on file · 1 contact person on file/, mode);
+        assert.match(text(locked), /2 emails on file · 2 phone numbers on file · Website on file · 1 contact person on file Locked\. Send an RFQ and the supplier replies in Messages\./, mode);
       }
     });
 
@@ -542,7 +617,7 @@ describe("the view's rules", () => {
           assert.doesNotMatch(out, /data-contact-details|mailto:|href="tel:|aboni\.example/, mode);
           assert.match(text(out), /2 emails on file · 2 phone numbers on file · Website on file · 1 contact person on file/, mode);
         }
-        assert.match(text(view(sheet, { mode: "page" })), /Contact details are locked\. Send an RFQ and the supplier replies here\./);
+        assert.match(text(view(sheet, { mode: "page" })), /Locked\. Send an RFQ and the supplier replies in Messages\./);
       }
     });
 
@@ -555,16 +630,11 @@ describe("the view's rules", () => {
       for (const mode of ["page", "pane"] as const) {
         const out = view(sheet, { mode });
         assert.doesNotMatch(out, /data-contact-details|mailto:|href="tel:|aboni\.example/, mode);
-        // The page's column and, where the column is not drawn, the end of the overview: one card in the pane, two on the page.
-        const cardTexts = (out.match(/<section aria-label="Contact"[\s\S]*?<\/section>/g) ?? []).map((c) => text(c).trim());
-        assert.equal(cardTexts.length, mode === "page" ? 2 : 1, mode);
-        for (const c of cardTexts) assert.equal(c, `Contact ${ON_FILE} Contact details are locked. Send an RFQ and the supplier replies here. ${LIMIT}`, mode);
-        // The card says it, so the foot line is not drawn beside it.
-        assert.doesNotMatch(text(out), /Locked · /, mode);
+        assert.equal(text(contactSection(out)).trim(), `Contact ${ON_FILE} Locked. Send an RFQ and the supplier replies in Messages. ${LIMIT}`, mode);
       }
       // A count that could not be read still says why the card is locked.
-      const unread = text(view({ ...sheet, contact: { ...sheet.contact, counts: null } }, { mode: "page" }));
-      assert.match(unread, /Contact Contact details are locked\. Send an RFQ and the supplier replies here\. You've reached today's limit for contact details\. They open again tomorrow\./);
+      const unread = text(contactSection(view({ ...sheet, contact: { ...sheet.contact, counts: null } }, { mode: "page" }))).trim();
+      assert.equal(unread, `Contact Contact details are locked Send an RFQ and the supplier replies in Messages. ${LIMIT}`);
       const section = /<section aria-label="Contact" data-phone-contact=""[\s\S]*?<\/section><\/section>/.exec(phone(sheet, { mode: "page" }))?.[0] ?? "";
       assert.equal(text(section).trim(), `Contact ${ON_FILE} Locked. Send an RFQ and the supplier replies in Messages. ${LIMIT}`);
       // Nobody else is told about a limit: not a reader with no details, not one who sees them.
@@ -581,36 +651,38 @@ describe("the view's rules", () => {
     });
   });
 
-  it("says the details are locked from the counts alone, and nothing when the count could not be read", () => {
-    const out = text(view(model(), { mode: "page" }));
-    assert.match(out, /1 email on file · 6 phone numbers on file · Website on file · 1 contact person on file/);
-    assert.match(out, /Contact details are locked\. Send an RFQ and the supplier replies here\./);
-    // Every kind the register holds is named in the column and again in the foot line; a kind that is absent is not.
-    const withTwo = text(view(model(aboniInput(), { contact: { hidden: "", plan: null, counts: { emails: 1, phones: 6, website: true, representatives: 2 }, held: null, details: null } }), { mode: "page" }));
-    assert.equal(withTwo.match(/1 email on file · 6 phone numbers on file · Website on file · 2 contact people on file/g)?.length, 2, "the column and the foot line");
-    const phonesOnly = text(view(model(aboniInput(), { contact: { hidden: "", plan: null, counts: { emails: 0, phones: 2, website: false, representatives: 0 }, held: null, details: null } }), { mode: "page" }));
-    assert.match(phonesOnly, /2 phone numbers on file/);
-    assert.doesNotMatch(phonesOnly, /Email \d|Website on file|Contact person/);
-    const none = text(view(model(aboniInput(), { contact: { hidden: "", plan: null, counts: { emails: 0, phones: 0, website: false, representatives: 0 }, held: null, details: null } }), { mode: "page" }));
-    assert.match(none, /No email or phone on file/);
-    assert.doesNotMatch(none, /Locked · /);
-    // The foot line leads with what it is (critique of 8 Oct 2026, item 7), and the two cards say "Last read" alike.
-    assert.match(out, /Locked · 1 email on file · 6 phone numbers on file · Website on file · 1 contact person on file/);
-    assert.doesNotMatch(out, /on file · locked/);
+  it("says the details are locked from the counts alone, once, and claims nothing when the count could not be read", () => {
+    type Counts = SupplierSheetModel["contact"]["counts"];
+    const contact = (m: SupplierSheetModel) => text(/<section id="record-contact"[\s\S]*?<\/section>/.exec(view(m, { mode: "page" }))?.[0] ?? "").trim();
+    const withCounts = (counts: Counts) => contact(model(aboniInput(), { contact: { hidden: "", plan: null, counts, held: null, details: null } }));
+    assert.equal(contact(model()), "Contact 1 email on file · 6 phone numbers on file · Website on file · 1 contact person on file Locked. Send an RFQ and the supplier replies in Messages.");
+    // Said once on the screen: the foot line that repeated it is gone (Paper page 37).
+    assert.equal(text(view(model(), { mode: "page" })).match(/1 email on file/g)?.length, 1);
+    assert.equal(text(view(model(), { mode: "pane" })).match(/1 email on file/g)?.length, 1);
+    assert.match(withCounts({ emails: 1, phones: 6, website: true, representatives: 2 }), /2 contact people on file Locked\./);
+    assert.match(withCounts({ emails: 0, phones: 2, website: false, representatives: 0 }), /^Contact 2 phone numbers on file Locked\./);
+    // A count that was read and holds nothing is not a lock.
+    assert.equal(withCounts({ emails: 0, phones: 0, website: false, representatives: 0 }), "Contact No email or phone on file Send an RFQ and the supplier replies in Messages.");
     assert.doesNotMatch(readFileSync(path.join(dir, "..", "patterns", "source-mark.tsx"), "utf8"), /Last checked/);
-    const unread = text(view(model(arFashionInput(), { contact: { hidden: "", plan: null, counts: null, held: null, details: null } }), { mode: "page" }));
-    assert.doesNotMatch(unread, /No email or phone on file|Locked · /, "an unread count claims none on file");
+    // An unread count says only that the details are locked: "none on file" would be a claim.
+    assert.equal(withCounts(null), "Contact Contact details are locked Send an RFQ and the supplier replies in Messages.");
   });
 
   // Critique of 8 Oct 2026, item 5: the page said its sources twice and "11" three times; "Needs a look"
   // kept model order while the strip ranked by date, so GOTS and WRAP swapped between the pane and Saved.
-  it("the page says its sources once: the strip's count opens the Sources tab, the aside keeps Contact only, the section stays", () => {
-    const page = view(model(), { mode: "page" });
-    assert.equal((page.match(/<h[23][^>]*>Sources · \d+<\/h[23]>/g) ?? []).length, 1, "the sources list is drawn twice");
-    assert.doesNotMatch(page, /<aside[^>]*>[\s\S]*?<section aria-label="Sources"/, "the aside still carries the source list");
-    const strip = /<dl aria-label="Summary"[\s\S]*?<\/dl>/.exec(page)?.[0] ?? "";
-    assert.match(strip, /data-define="Sources"[\s\S]*?<a[^>]*href="\/app\/discover\?q=knit&amp;record=x&amp;tab=sources#record-sources"[^>]*>\d+<\/a>/, "the Sources cell is not a link to the tab");
-    assert.ok((page.match(/Sources · \d+/g) ?? []).length <= 2, "the count said three times (strip, tab, aside)");
+  it("says its sources once: one Sources section, a mark and a name each, no reference number and no read date", () => {
+    const m = model();
+    const page = view(m, { mode: "page" });
+    assert.equal((page.match(/<section id="record-sources"/g) ?? []).length, 1);
+    assert.doesNotMatch(page, /<dl aria-label="Summary"/, "the five-cell strip is the public page's");
+    const sources = text(page.slice(page.indexOf('<section id="record-sources"'), page.indexOf('<section id="record-contact"')));
+    for (const x of m.sources) {
+      assert.ok(sources.includes(x.mark.label), x.mark.label);
+      // The numbers and read dates sit with the facts they back (founder, 12 Oct 2026).
+      for (const r of x.refs) assert.ok(!sources.includes(r), `${x.mark.code}: its number ${r} is repeated under Sources`);
+    }
+    assert.doesNotMatch(sources, /\d{1,2} \w{3} 2026/, "a read date under Sources");
+    assert.match(sources, /^ ?Sources \d+ \d+ of \d+ registers read hold a record for this company\. Highest trust first\./);
   });
 
   it("'Needs a look' and the strip lead with the worst lapse, in rankCerts's one order, everywhere", () => {
@@ -645,36 +717,50 @@ describe("the view's rules", () => {
     assert.match(composer, /<Defined text=\{q\} \/>/, "the questions list does not define its terms");
     const attention = readFileSync(path.join(process.cwd(), "components", "patterns", "attention.tsx"), "utf8");
     assert.match(attention, /<Define term=\{it\.scheme\}>/, "an attention row's scheme is not defined");
-    const page = view(m, { mode: "page", tab: "sources" });
-    const strip = /<dl aria-label="Summary" tabindex="0" aria-describedby="([^"]+)"/.exec(page);
-    assert.ok(strip, "the strip is not one tab stop");
-    assert.equal(strip[1]!.split(" ").length, 5, "the strip is not described by its five definitions");
-    for (const id of strip[1]!.split(" ")) assert.ok(page.includes(`<span id="${id}" class="sr-only">`), `${id} names no definition`);
-    const inStrip = page.slice(page.indexOf('<dl aria-label="Summary"'), page.indexOf("</dl>", page.indexOf('<dl aria-label="Summary"')));
-    assert.doesNotMatch(inStrip, /<span tabindex="0" data-define=/, "a label in the strip is a tab stop of its own");
-    for (const label of ["Sanctions", "Certificates", "RSC", "Workers", "Sources"]) {
-      // Round 3, item 6: the strip is the one tab stop; its labels are reached through it and by hover.
-      const m2 = new RegExp(`<span tabindex="-1" data-define="${label}" aria-describedby="([^"]+)"[^>]*>${label}</span>`).exec(page);
-      assert.ok(m2, `${label} is not a defined term in the strip`);
-      assert.ok(page.includes(`<span id="${m2![1]}" class="sr-only">${define(label)!.replace(/'/g, "&#x27;")}</span>`), `${label}'s definition is not read to a screen reader`);
-    }
-    assert.match(page, /data-define="Government register"|data-define="Industry body"/, "the Sources group headings are not defined");
-    if (/fixed</.test(page)) assert.match(page, /data-define="fixed"[^>]*>\d+% fixed</);
-    assert.match(page, /class="[^"]*decoration-dotted/, "a defined term is not marked by a dotted underline");
   });
 
-  it("the long captions wrap at 72 characters: the Sources caption and the RSC block's", () => {
-    const page = view(model(), { mode: "page" });
-    assert.match(page, /<p class="max-w-\[72ch\] text-xs text-ink-3">[^<]*registers?[^<]*<\/p>/, "the Sources caption runs the panel's width");
-    if (/RSC factory/.test(page)) assert.match(page, /<p class="max-w-\[72ch\] text-xs text-ink-3">RSC factory/, "the RSC caption runs the panel's width");
-  });
-
-  it("lists problems first: only expired and expiring certificates are under 'Needs a look'", () => {
+  it("Checks says Safety, Certificates and Sanctions once each: a full row when one needs a look, a quiet line when not", () => {
     const m = model();
-    const rows = needsLook(certRows(m), TODAY);
-    for (const r of rows) assert.match(text(view(m)), new RegExp(r.scheme.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")));
-    assert.equal(rows.length > 0, m.certs.some((c) => c.state === "expired" || c.state === "expiring"));
-    if (rows.length === 0) assert.doesNotMatch(view(m), /Needs a look/);
+    const { rows, looks } = checkRows(m, TODAY);
+    assert.deepEqual([...new Set(rows.map((r) => r.kind))], ["safety", "certificates", "sanctions"]);
+    assert.equal(looks, rows.filter((r) => !r.quiet).length);
+    assert.ok(looks > 0, "guard: Aboni's WRAP certificate is about to expire");
+    for (const mode of ["page", "pane"] as const) {
+      const out = view(m, { mode });
+      const checks = /<section id="record-checks"[\s\S]*?<\/section>/.exec(out)?.[0] ?? "";
+      assert.ok(text(checks).trim().startsWith(`Checks ${looks === 1 ? "1 needs a look" : `${looks} need a look`} `), mode);
+      for (const r of rows) assert.ok(text(checks).includes(`${r.tag} ${r.title}`), `${mode}: ${r.tag}`);
+      // Each row opens its section without loading the page again: a link that names the section it jumps to.
+      assert.equal((checks.match(/data-jump="(safety|certificates|sources)"/g) ?? []).length, rows.length, mode);
+      // The three-status block and the "Needs a look" list said the same thing twice; both are gone.
+      assert.doesNotMatch(out, /Needs a look|aria-label="Summary"/, mode);
+      // A line of prose wraps at 72 characters.
+      assert.doesNotMatch(checks, /<span class="text-sm text-ink-2">/, "a check's body runs the row's width");
+    }
+    // Nothing to look at is one quiet line, in grey, with no pill.
+    const quiet = /<section id="record-checks"[\s\S]*?<\/section>/.exec(view(model(arFashionInput()), { mode: "page" }))?.[0] ?? "";
+    assert.match(text(quiet), /^ ?Checks Safety Not in RSC Certificates None on file Sanctions Not listed/);
+    assert.doesNotMatch(quiet, /text-caution|bg-caution-tint|need a look/);
+  });
+
+  it("a certificate that has ended is its own quiet group: not counted, not in Checks, not in the head, no pill", () => {
+    // Its end date is our arithmetic on the last register read, which may predate it (founder, 12 Oct 2026).
+    const m = model();
+    const ended = m.certs.filter((c) => c.state === "expired");
+    assert.ok(ended.length > 0 && ended.length < m.certs.length, "guard: Aboni holds an ended GOTS licence beside live certificates");
+    const t = certTable(m, TODAY);
+    assert.equal(t.count, m.certs.length - ended.length);
+    assert.equal(sectionCount(m, "certificates"), t.count);
+    assert.deepEqual(t.ended.map((c) => [c.scheme, c.state, c.look]), [["GOTS", "Ended 4 Apr 2026", false]]);
+    const out = view(m, { mode: "page" });
+    const certs = /<section id="record-certificates"[\s\S]*?<\/section>/.exec(out)?.[0] ?? "";
+    assert.match(text(certs), new RegExp(`^ ?Certificates ${t.count} `));
+    assert.match(text(certs), /No longer current · not counted above GOTS Issued by GSCS International Ltd. Ended 4 Apr 2026 4 Apr 2026/);
+    assert.doesNotMatch(certs.slice(certs.indexOf("No longer current")), /bg-caution-tint|text-caution/, "an ended certificate is drawn as a warning");
+    assert.ok(checkRows(m, TODAY).rows.every((r) => !/expired|GOTS/i.test(`${r.tag} ${r.title}`)), "an ended certificate is in Checks");
+    assert.ok(headStatuses(m, TODAY).every((x) => !/expired/i.test(`${x.short} ${x.value}`)), "an ended certificate is in the head");
+    // One that needs a look is the only pill; a state that is fine is plain words.
+    assert.equal((certs.match(/bg-caution-tint/g) ?? []).length, t.held.filter((c) => c.look).length);
   });
 
   it("gives every key fact a source line or a sentence for its absence, never a bare dash", () => {
@@ -740,7 +826,8 @@ describe("the record's first screen says each fact once, with its receipt", () =
     const m = model();
     assert.equal(m.name, "Aboni Knitwear Ltd");
     assert.ok(!keyFacts(m).some((f) => f.label === "Registered name"), "ABONI KNITWEAR LTD. survives beside Aboni Knitwear Ltd");
-    assert.equal((text(view(m, { mode: "page" })).match(/aboni knitwear ltd/gi) ?? []).length, 1, "the name is on the screen once");
+    assert.equal((view(m, { mode: "page" }).match(/<h1\b/g) ?? []).length, 1, "one heading holds the name");
+    assert.doesNotMatch(text(view(m, { mode: "page" })), /Registered name|ABONI KNITWEAR/);
   });
 
   it("runs the headings in order: h1 then h2 on the page, h2 then h3 in the pane, never skipping a level", () => {
@@ -763,8 +850,10 @@ describe("the record's first screen says each fact once, with its receipt", () =
     const count = (m: SupplierSheetModel) => (text(view(m, { mode: "page", tab: "overview" })).match(/read \d+ days ago/g) ?? []).length;
     const fresh = model(aboniInput(), { sources: model().sources.map((s) => ({ ...s, readDate: "17 Sep 2026" })) });
     assert.equal(count(fresh), 0, "a fresh read is its date");
-    // One stale read, said once: in the Sources section (the aside no longer repeats the list; critique of 8 Oct 2026, item 5).
-    assert.equal(count(model(aboniInput(), { sources: fresh.sources.map((s, i) => (i === 0 ? { ...s, readDate: "26 Jun 2025" } : s)) })), 1);
+    // One stale read is said once under Sources (and on the membership it backs, when it is one).
+    const stale = view(model(aboniInput(), { sources: fresh.sources.map((s, i) => (i === 0 ? { ...s, readDate: "26 Jun 2025" } : s)) }), { mode: "page" });
+    const inSources = text(stale.slice(stale.indexOf('<section id="record-sources"'), stale.indexOf('<section id="record-contact"')));
+    assert.equal((inSources.match(/read \d+ days ago/g) ?? []).length, 1);
     assert.doesNotMatch(view(fresh, { mode: "page" }), /Not dated/);
     // The glyph is Phosphor's hourglass, not the clock the certificate rows use.
     assert.match(readFileSync(path.join(dir, "panels.tsx"), "utf8"), /Hourglass size=\{12\}/);
@@ -772,12 +861,23 @@ describe("the record's first screen says each fact once, with its receipt", () =
     assert.doesNotMatch(readFileSync(path.join(dir, "..", "patterns", "source-mark.tsx"), "utf8"), /\bClock\b/);
   });
 
-  it("folds 'Products as filed' by default and unfolds it on the Products tab; the Sources column sticks on the page", () => {
-    const overview = view(model(), { mode: "page", tab: "overview" });
-    assert.match(overview, /<details class="group\/filed[^"]*"><summary/);
-    assert.doesNotMatch(overview, /<details open="" class="group\/filed/);
-    assert.match(view(model(), { mode: "page", tab: "products" }), /<details open="" class="group\/filed/);
-    assert.match(overview, /<aside aria-label="Contact and sources" class="[^"]*lg:sticky[^"]*lg:self-start/);
+  it("the page draws every export line; the pane draws six and unfolds the rest; the filed names are one line under them", () => {
+    const m = model();
+    const lines = m.products.lineTiles ?? [];
+    assert.ok(lines.length > 6, "guard: Aboni exports more than six lines");
+    assert.deepEqual(lines.map((x) => x.hs), [...lines.map((x) => x.hs)].sort(), "by code");
+    const products = (mode: "page" | "pane") => /<section id="record-products"[\s\S]*?<section id="record-certificates"/.exec(view(m, { mode }))?.[0] ?? "";
+    const page = products("page");
+    assert.equal((page.match(/<li class="relative flex items-center gap-2\.5/g) ?? []).length, lines.length);
+    assert.doesNotMatch(page, /<details/);
+    const pane = products("pane");
+    assert.match(pane, new RegExp(`<details class="group/lines[^"]*"><summary[^>]*>All ${lines.length} lines`));
+    assert.equal((pane.slice(0, pane.indexOf("<details")).match(/<li class="relative flex items-center gap-2\.5/g) ?? []).length, 6);
+    assert.match(text(page), /What it ships \d+ Product codes on its EPB exporter page\. Each opens the line\. Photos illustrate the code\./);
+    // The names it filed are a different claim, kept apart and not matched to the codes; the heading names the body the record holds.
+    assert.match(text(page), /As filed with BGMEA \d+ read \d{1,2} \w{3} /);
+    // The phone still reads its own six.
+    assert.equal(m.products.tiles.length, 6);
   });
 });
 
@@ -798,9 +898,8 @@ describe("the small tidy", () => {
     assert.match(feedback, /role="alert" className=\{cn\("flex flex-col items-start gap-3 rounded-md bg-danger-tint p-5"/);
     const pane = view(model(), { mode: "pane" });
     const head = /<header class="([^"]*)">/.exec(pane)?.[1]?.split(" ") ?? [];
-    assert.ok(head.includes("sm:pt-3") && !head.includes("sm:pt-5"), "the pane head sits 7px under the list bar's title");
-    const withSummary = view(model(aboniInput(), { summary: "A".repeat(147) }), { mode: "page" });
-    assert.match(withSummary, /<p class="max-w-\[72ch\] text-base text-ink-2">A{147}<\/p>/);
+    // The name is 20/28 in the pane: 14 over it puts its middle on the list bar's (56 tall, centred).
+    assert.ok(head.includes("pt-3.5"), "the pane head's name is off the list bar's baseline");
   });
 });
 
@@ -839,7 +938,7 @@ describe("the Sites tab (B4d)", () => {
     const out = view(model(aboniInput(), { locations: rows }), { mode: "page", tab: "sites" });
     assert.doesNotMatch(out, /OLD SPELLING|Also filed as|registry spellings/);
     for (const r of rows) assert.ok(plain(out).includes(r.address), r.address);
-    assert.match(text(out), /Sites · 4 3 factory sites and 1 office/);
+    assert.match(text(out), /Sites 4 Pin Site Address From/);
   });
 
   it("links every card to its own site, so the list works with no script, and marks the selected one", () => {
@@ -850,7 +949,7 @@ describe("the Sites tab (B4d)", () => {
     assert.equal((out.match(/aria-current="true"/g) ?? []).length, 0);
     const picked = renderToStaticMarkup(h(RecordView, { model: model(aboniInput(), { locations: rows }), mode: "page", tab: "sites", tabHref, today: TODAY, site: 2 })).replace(PHONE, "");
     assert.equal((picked.match(/aria-current="true"/g) ?? []).length, 1);
-    assert.match(picked, /<li aria-current="true"[\s\S]*?Nayapara/);
+    assert.match(picked, /<div role="row" aria-current="true"[\s\S]*?Nayapara/);
   });
 
   it("draws the map controls only when there is a key and a pin, and never a map for a record with no pin", () => {
@@ -859,9 +958,9 @@ describe("the Sites tab (B4d)", () => {
       process.env.NEXT_PUBLIC_BARIKOI_API_KEY = "test-key";
       const mapped = text(view(model(aboniInput(), { locations: rows }), { mode: "page", tab: "sites" }));
       assert.match(mapped, /Street Satellite/);
-      assert.match(mapped, /Show nearby suppliers/);
+      assert.match(mapped, /Nearby suppliers/);
       const none = text(view(model(aboniInput(), { locations: rows.map((r) => ({ ...r, pin: null })) }), { mode: "page", tab: "sites" }));
-      assert.doesNotMatch(none, /Satellite|nearby suppliers/);
+      assert.doesNotMatch(none, /Satellite|nearby suppliers/i);
       delete process.env.NEXT_PUBLIC_BARIKOI_API_KEY;
       assert.doesNotMatch(text(view(model(aboniInput(), { locations: rows }), { mode: "page", tab: "sites" })), /Satellite/);
     } finally {
@@ -897,6 +996,11 @@ describe("the record components' rules", () => {
     assert.ok(use.length > 0, "guard: SitesView is used in panels.tsx");
     assert.doesNotMatch(use, /=>|function\s*\(/, "a function prop on a client component");
     assert.match(sources.find(([f]) => f === "sites-view.tsx")![1], /^"use client";/);
+    const desktop = sources.find(([f]) => f === "desktop.tsx")![1];
+    const sites = /<DesktopSites\b[\s\S]*?\/>/.exec(desktop)?.[0] ?? "";
+    assert.ok(sites.length > 0, "guard: DesktopSites is used in desktop.tsx");
+    assert.doesNotMatch(sites, /=>|function\s*\(/, "a function prop on a client component");
+    assert.match(sources.find(([f]) => f === "desktop-sites.tsx")![1], /^"use client";/);
   });
 
   it("have no typed colour, no cut-off text and no score, and take the old kit for nothing", () => {
@@ -924,13 +1028,14 @@ describe("a certificate links only to a page that opens (6 Oct 2026)", () => {
     const at = new Date(TODAY.getTime() - hoursAgo * 3_600_000).toISOString();
     return { ...m, certChecks: { reads: { gots: at }, certs: [{ kind: live.kind, certificate_no: "GOTS-31587", listing_status, checked_at: at, delisted_at: listing_status === "listed" ? null : at }] } };
   };
-  const GOTS_LINK = /<a\b[^>]*href="https:\/\/global-standards\.org\/suppliers\/certified-suppliers\/details\?gtbid=SCO039488"[^>]*>Open on GOTS<\/a>/;
+  // A document is an underlined link with a small glyph, never a pill (Paper page 37); its scheme is said to a screen reader.
+  const GOTS_LINK = /<a\b[^>]*href="https:\/\/global-standards\.org\/suppliers\/certified-suppliers\/details\?gtbid=SCO039488"[^>]*>(?:<svg[\s\S]*?<\/svg>)?Certificate<span class="sr-only">, GOTS<\/span><\/a>/;
 
   it("a GOTS certificate opens the directory's public page while our check of GOTS is in date", () => {
     for (const mode of ["pane", "page"] as const) {
       const certs = plain(view(checked(1), { mode, tab: "certificates" }));
       assert.match(certs, GOTS_LINK, mode);
-      assert.equal((certs.match(/Open on GOTS/g) ?? []).length, 1, `${mode}: the expired GOTS-27605 has no page left and no link`);
+      assert.equal((certs.match(/Certificate<span class="sr-only">, GOTS/g) ?? []).length, 1, `${mode}: the ended GOTS-27605 has no page left and no link`);
       assert.ok(!certs.includes("global-trace-base.org"), `${mode} still links to the login-walled document`);
     }
   });
@@ -953,10 +1058,10 @@ describe("a certificate links only to a page that opens (6 Oct 2026)", () => {
     }
   });
 
-  it("the Document column is drawn only when a certificate has a page to open", () => {
-    const head = (m: SupplierSheetModel) => text(/<section aria-label="Certificates"[\s\S]*?<ul>/.exec(view(m, { mode: "page", tab: "certificates" }))?.[0] ?? "");
-    assert.match(head(checked(1)), /Certificate Issued by State Document/);
-    assert.match(head(model()), /Certificate Issued by State\s*$/);
+  it("the table keeps its columns whether or not a certificate has a page to open, and draws no link without one", () => {
+    const head = (m: SupplierSheetModel) => text(/<div role="table" aria-label="Certificates"[\s\S]*?<\/div><\/div>/.exec(view(m, { mode: "page", tab: "certificates" }))?.[0] ?? "");
+    for (const m of [checked(1), model()]) assert.match(head(m), /^ ?Certificate State Valid until Issued by Last checked Document ?$/);
+    assert.doesNotMatch(/<section id="record-certificates"[\s\S]*?<\/section>/.exec(view(model(), { mode: "page" }))?.[0] ?? "<a ", /<a /);
   });
 });
 
@@ -968,7 +1073,7 @@ describe("the registrations and the sources read as columns (6 Oct 2026: 'scatte
     assert.doesNotMatch(fact.source ?? "", /^From /, "every line carries its register's mark, so 'From EPB, BGMEA' under them says it twice");
     assert.deepEqual(rows.find((r) => r.name === "EPB"), { mark: "EPB", name: "EPB", qualifier: null, number: "BD04293" });
     assert.ok(rows.every((r) => r.number && !/\breg\b/i.test(`${r.name} ${r.qualifier ?? ""}`)));
-    const out = text(/<div id="record-overview"[\s\S]*?<div id="record-certificates"/.exec(view(model(), { mode: "page" }))?.[0] ?? "");
+    const out = text(/<section id="record-overview"[\s\S]*?<section id="record-certificates"/.exec(view(model(), { mode: "page" }))?.[0] ?? "");
     assert.match(out, /EPB registration number BD04293/);
     assert.doesNotMatch(out, /reg\. no\./);
   });
@@ -989,7 +1094,8 @@ describe("the registrations and the sources read as columns (6 Oct 2026: 'scatte
     const kinds = [...out.matchAll(/<section aria-label="([^"]+)"[^>]*><h3/g)].map((m) => plain(m[1]!));
     assert.deepEqual(kinds, [...new Set(model().sources.map((s) => s.tier))]);
     assert.equal(kinds[0], "Government register");
-    assert.equal((out.match(/<li\b[^>]*@container/g) ?? []).length, model().sources.length, "one row per source");
+    const list = out.slice(out.indexOf('<section id="record-sources"'), out.indexOf('<section id="record-contact"'));
+    assert.equal((list.match(/<li class="flex items-center gap-2">/g) ?? []).length, model().sources.length, "one entry per source");
     // The words come from a row's own tier slug, the order from its mark's rank: a kind can come back after another.
     const [a, b, c] = model().sources;
     const split = view(model(aboniInput(), { sources: [{ ...a!, tier: "Foreign regulator" }, { ...b!, tier: "Cross-check only" }, { ...c!, tier: "Foreign regulator" }] }), { mode: "page", tab: "sources" });
@@ -1016,15 +1122,21 @@ describe("a record scrolled inside a pane (6 Oct 2026: no map on Sites, and the 
 });
 
 describe("the record's minors, round 3 (critique of 8 Oct 2026, round 3, item 7)", () => {
-  it("Certificates links to its tab as Sources does, and on the page Needs a look sits under Contact", () => {
+  it("the three checks sit in every head from the start, each a link that jumps to Checks: on the page, in its stuck bar and in the pane", () => {
     const m = model();
-    const page = view(m, { mode: "page" });
-    assert.match(page, /<a [^>]*href="[^"]*tab=certificates#record-certificates"/, "the Certificates value is not a link to its tab");
-    assert.match(page, /<a [^>]*href="[^"]*tab=sources#record-sources"/);
-    const aside = page.slice(page.indexOf('aria-label="Contact and sources"'));
-    assert.match(aside, /aria-label="Needs a look"/, "the page's right column has no Needs a look");
-    const pane = view(m);
-    assert.equal((pane.match(/aria-label="Needs a look"/g) ?? []).length, 1, "the pane keeps Needs a look in its column, once");
+    const statuses = headStatuses(m, TODAY);
+    for (const [mode, strips] of [["page", 2], ["pane", 1]] as const) {
+      const out = view(m, { mode });
+      assert.equal((out.match(/<ul aria-label="Checks, in short"/g) ?? []).length, strips, mode);
+      const strip = /<ul aria-label="Checks, in short"[\s\S]*?<\/ul>/.exec(out)?.[0] ?? "";
+      assert.equal((strip.match(/<a href="[^"]*#record-checks" data-jump="checks"/g) ?? []).length, 3, mode);
+      assert.equal(text(strip).trim(), statuses.map((x) => `${x.label}: ${x.short}`).join(" "), mode);
+    }
+    // The stuck bar has no height of its own and stays out of sight until the head has scrolled away.
+    assert.match(view(m, { mode: "page" }), /<div data-record-stuck="" class="sticky top-0 z-raised h-0 max-sm:hidden"><div class="invisible absolute [^"]*group-data-\[stuck\]\/record:visible/);
+    assert.doesNotMatch(view(m, { mode: "pane" }), /data-record-stuck|data-record-head/);
+    // The pane's two actions are a bar at its foot.
+    assert.match(view(m, { mode: "pane" }), /<div class="sticky bottom-0 [^"]*max-sm:hidden[^"]*">(?:(?!<\/div>)[\s\S])*Send RFQ<\/a><\/div>/);
   });
 
   it("a contact count leads with its noun", () => {

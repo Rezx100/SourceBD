@@ -186,6 +186,12 @@ export type VolzaShipment = {
   unit: string | null;
 };
 export type VolzaMarketName = "United Kingdom" | "United States" | "EU" | "Canada";
+const EU_COUNTRIES = new Set("AT BE BG HR CY CZ DK EE FI FR DE GR HU IE IT LV LT LU MT NL PL PT RO SK SI ES SE".split(" "));
+/** The customs market a country is in ("GB" is the United Kingdom, "DE" the EU), or null outside the four the records split out. */
+export function marketOfCountry(iso: string | null | undefined): VolzaMarketName | null {
+  const c = (iso ?? "").toUpperCase();
+  return c === "GB" ? "United Kingdom" : c === "US" ? "United States" : c === "CA" ? "Canada" : EU_COUNTRIES.has(c) ? "EU" : null;
+}
 export type VolzaMarket = { shipments: number; fob_usd: number | null; buyers: number | null; top: VolzaShipment | null };
 /** `supplier_volza_exports` (0137, 0139, 0140): null unless the reader is on a paying plan and there is an exact match. */
 export type VolzaExports = {

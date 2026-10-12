@@ -250,12 +250,12 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     // The contact block names every kind the register holds, as counts with their nouns. Paper's
     // board draws the first two only; the founder asked for all four (4 Oct 2026).
     const card = out.slice(out.indexOf('aria-label="Contact"'));
-    assert.match(card.replace(/<[^>]*>/g, " ").replace(/\s+/g, " "), /Contact .*1 email on file · 6 phone numbers on file · Website on file · 2 contact people on file .*Contact details are locked\. Send an RFQ and the supplier replies here\./);
+    assert.match(card.replace(/<[^>]*>/g, " ").replace(/\s+/g, " "), /Contact 1 email on file · 6 phone numbers on file · Website on file · 2 contact people on file Locked\. Send an RFQ and the supplier replies in Messages\./);
     // A count that could not be read claims nothing: no "none on file".
     given({ profile: PROFILE, hscodes: HS, contactCounts: { data: null, error: { message: "boom" } } });
     const unread = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({}) })));
     assert.doesNotMatch(unread, /No email or phone on file|on file · locked/);
-    assert.match(unread, /Contact details are locked\./);
+    assert.match(unread, />Contact details are locked</);
     for (const key of ["email_primary", "contact_name", "contact_role", "phones"]) {
       assert.ok(!out.includes(key), `the route put the ${key} column in the HTML`);
     }
@@ -293,7 +293,7 @@ describe("/app/suppliers/[slug] — the full record page", () => {
       given({ profile: PROFILE, hscodes: HS, contactCounts: counts, rpcs: { supplier_contact_details: answer } });
       const locked = await open();
       assert.doesNotMatch(locked, /mailto:|href="tel:|data-contact-details|today(&#x27;|')s limit/);
-      assert.match(locked, /Contact details are locked\. Send an RFQ and the supplier replies here\./);
+      assert.match(locked, /Locked\. <!-- -->Send an RFQ and the supplier replies in Messages\.|Locked\. Send an RFQ and the supplier replies in Messages\./);
       assert.equal(notes("contact.revealed").length, 0);
       assert.equal((notes("supplier.viewed")[0]?.args?.p_content as { contact_visible?: unknown })?.contact_visible, false, "the open claims contact details were on the record");
     }
@@ -303,8 +303,7 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     const limited = await open();
     assert.doesNotMatch(limited, /mailto:|href="tel:|data-contact-details|sales@aboni\.example/);
     const words = limited.replace(/<[^>]*>/g, " ").replace(/&#x27;/g, "'").replace(/\s+/g, " ");
-    assert.match(words, /Contact details are locked\. Send an RFQ and the supplier replies here\. You've reached today's limit for contact details\. They open again tomorrow\./);
-    assert.match(words, /Locked\. Send an RFQ and the supplier replies in Messages\. You've reached today's limit for contact details\. They open again tomorrow\./, "the phone's card does not say it");
+    assert.equal(words.match(/Locked\. Send an RFQ and the supplier replies in Messages\. You've reached today's limit for contact details\. They open again tomorrow\./g)?.length, 2, "the desktop's card and the phone's do not both say it");
     assert.equal((notes("supplier.viewed")[0]?.args?.p_content as { contact_visible?: unknown })?.contact_visible, false);
   });
 
@@ -329,15 +328,20 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     assert.doesNotMatch(out, /<main\b|<aside\b|href="#main-content"/, "the slow-read state draws a shell inside the layout's");
   });
 
-  it("customs exports show only when the database returns them: the band under the strip and the Exports tab (0137, 0139, 0140)", async () => {
+  it("customs exports show only when the database returns them: the export grid and the Exports section (0137, 0139, 0140)", async () => {
     // The plan gate is in `supplier_volza_exports`: a free reader gets null, and null must draw nothing.
     const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
     const open = () => Page({ params: Promise.resolve({ slug: "hamza-clothing" }), searchParams: Promise.resolve({ tab: "exports" }) });
+    // The desktop's drawing: a phone draws the same record again after it.
+    const desk = (s: string) => s.replace(/<div data-record-phone=""[\s\S]*?(?=<div data-record-actions="")/, "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
     given({ profile: PROFILE, hscodes: HS });
-    const refused = html(await outcome(open)).replace(/<[^>]*>/g, " ");
-    assert.doesNotMatch(refused, /Customs exports|Volza|not checked/i, "a reader the database refused still sees customs words");
-    assert.match(refused, /Export lines/, "the Exports tab lost the EPB export lines");
+    const refused = desk(html(await outcome(open)));
+    assert.doesNotMatch(refused, /Export value|Typical shipment|Where it goes|Customs records,|US\$|Volza|not checked/i, "a reader the database refused still sees customs words");
+    assert.match(refused, /Exports We have no customs records for this supplier yet That says nothing about whether it exports; it only means we have no receipt to show\./);
+    // The EPB export lines are Products' now, where "what does it make" is answered once.
+    assert.match(refused, /Products What it ships \d+ Product codes on its EPB exporter page\./, "the record lost the EPB export lines");
     assert.ok(rpcCalls.some((c) => c.fn === "supplier_volza_exports" && c.args?.p_slug === "hamza-clothing"), "the page never asked for the customs read");
+    assert.ok(!rpcCalls.some((c) => c.fn === "onboarding_get_buyer"), "the reader's market was read with no customs figures to draw it on");
 
     // Hamza Clothing's real row (launch batch, 10 Oct 2026), the biggest shipment stored (record_sort "value").
     const top = { shipment_date: "2026-03-24T00:00:00", hsn_code: "61091000", product_description: "BOYS TEE", buyer_name: "THE HADDAD APPAREL GROUP LTD 131 D", destination_country: "United States", trade_value_usd: 607667.888, unit_rate_usd: 1.71, unit: "PCS" };
@@ -355,41 +359,42 @@ describe("/app/suppliers/[slug] — the full record page", () => {
       ...extra,
     });
     given({ profile: PROFILE, hscodes: HS, rpcs: { supplier_volza_exports: { data: row({ record_sort: "value" }), error: null } } });
-    const text = html(await outcome(open)).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
-    // The band: one source line in its head, the markets line, the figures; no fetched date in it.
-    assert.match(text, /Customs exports Shipment records · Sep 2024 – Aug 2026 Ships to EU, US, UK · 16 countries in all/);
-    assert.match(text, /export value US\$21\.7m shipments 406 buyers 43 average shipment US\$53,400/);
+    const text = desk(html(await outcome(open)));
+    // The grid: each figure worked out from the stored record. No market is known for this reader, so the fourth names the biggest.
+    assert.match(text, /Exports All exports Export value, 2 years US\$21\.7m Typical shipment US\$53,000 6% under 1,000 pieces Buyers 43 9 shipments each Biggest market EU 72% of exports · 236 shipments Customs records, Sep 2024 – Aug 2026 · read 10 Oct(?: 2026)?/);
     assert.doesNotMatch(text, /latest shipment on record/i, "the biggest shipment's date passed off as the latest");
-    // The Exports tab says what the band cannot.
-    assert.match(text, /Shipping rhythm About 17 shipments a month/);
-    assert.match(text, /Product range 8 product codes 16 destination countries · 2 shipping modes/);
-    assert.match(text, /Biggest shipment US\$607,668 · 24 Mar 2026 Boys tee \(HS 6109\.10\) to The Haddad Apparel Group Ltd, United States/);
-    assert.match(text, /Small orders 26 of 406 shipments under 1,000 pieces 6%, counted in pieces\. Not a minimum order\./);
-    assert.match(text, /Where it ships EU 236 shipments · US\$15\.6m · 10 buyers Biggest shipment there: Boys tee \(HS 6109\.10\) to Action Service Distributie B V, Netherlands/);
-    assert.match(text, /United Kingdom 5 shipments · US\$52k · 4 buyers Biggest shipment there: Mens knitted sweatshirt \(HS 6109\.10\) to TJX UK/);
-    assert.match(text, /Canada No shipments to Canada Sep 2024 – Aug 2026/);
-    assert.equal((text.match(/Garment export shipments \(HS 61 and 62\), filed as Hamza Clothing Ltd · fetched 10 Oct 2026/g) ?? []).length, 1, "the scope, the matched name and the fetched date are not said once, in the tab");
-    // Gone (critique of 11 Oct 2026): the placeholder row, the repeated band figures, a price before its check.
-    assert.doesNotMatch(text, /Coming with the next update|Reach|What the customs records show|per pcs|a piece/);
-    // The provider is named on /legal/data-sources only, never on the profile (founder, 11 Oct 2026).
+    assert.doesNotMatch(text, /Bigger than \d+% of exporters/, "a rank was printed before it could be read");
+    // The Exports section says what the figure is, then where it goes; it does not repeat the grid.
+    assert.match(text, /Exports US\$21\.7m free on board across 406 shipments, every product line together\. Where it goes Share of export value, by market Market Share of value Value Shipments Buyers European Union 72% US\$15\.6m 236 10 United States 23% US\$4\.97m 100 11 United Kingdom 0% US\$52k 5 4 Rest of the world 5% US\$1\.13m 65 Not split out/);
+    // Gone: the band, the fact rows, a price before its check. The provider is named on /legal/data-sources only (founder, 11 Oct 2026).
+    assert.doesNotMatch(text, /Customs exports Shipment records|Shipping rhythm|Product range|Biggest shipment|Small orders|Where it ships|per pcs|a piece|1\.71|7\.05/);
     assert.doesNotMatch(text, /Volza/i, "the profile names the data provider");
+    // The reader's market is read once, beside the figures it is drawn on.
+    assert.equal(rpcCalls.filter((c) => c.fn === "onboarding_get_buyer").length, 1);
 
-    // 0140 says the stored shipment is the latest: the band dates it and the tab names it so.
+    // The country the reader gave at onboarding (0109) is their market: the fourth tile is theirs, and the buyers say how many are there.
+    given({ profile: PROFILE, hscodes: HS, rpcs: { supplier_volza_exports: { data: row({ record_sort: "value" }), error: null }, onboarding_get_buyer: { data: { company_country: "GB" }, error: null } } });
+    const uk = desk(html(await outcome(open)));
+    assert.match(uk, /Buyers 43 4 in the UK · 9 shipments each Ships to the UK US\$52k 0% of exports · 5 shipments/);
+    // A market it does not ship to is said in words.
+    given({ profile: PROFILE, hscodes: HS, rpcs: { supplier_volza_exports: { data: row({ record_sort: "value" }), error: null }, onboarding_get_buyer: { data: { company_country: "CA" }, error: null } } });
+    assert.match(desk(html(await outcome(open))), /Ships to Canada No shipments in Sep 2024 – Aug 2026/);
+
+    // 0140 says the stored shipment is the latest: the footnote dates it, and never calls it "last shipped".
     given({ profile: PROFILE, hscodes: HS, rpcs: { supplier_volza_exports: { data: row({ record_sort: "date", top_record: { ...top, shipment_date: "2026-08-29T00:00:00" } }), error: null } } });
-    const latest = html(await outcome(open)).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
-    assert.match(latest, /latest shipment on record 29 Aug 2026/);
-    assert.match(latest, /Latest shipment on record US\$607,668 · 29 Aug 2026/);
-    assert.doesNotMatch(latest, /Biggest shipment US/);
+    const latest = desk(html(await outcome(open)));
+    assert.match(latest, /Customs records, Sep 2024 – Aug 2026 · latest shipment on record 29 Aug(?: 2026)? · read 10 Oct(?: 2026)?/);
+    assert.doesNotMatch(latest, /last shipped/i);
 
-    // The Overview's capacity is the register's, never rewritten; against these exports (about 6.3m pieces
-    // a year) the fixture's 1,000,000 a day is noted. A reader the customs read refused sees no such note.
+    // The capacity is the register's, never rewritten; against these exports (about 6.3m pieces a year) the
+    // fixture's 1,000,000 a day is noted. A reader the customs read refused sees no such note.
     const overview = () => Page({ params: Promise.resolve({ slug: "hamza-clothing" }), searchParams: Promise.resolve({}) });
-    const capacity = html(await outcome(overview)).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
-    assert.match(capacity, /Capacity 1,000,000 pcs\/day From BKMEA · Filed figures look inconsistent; confirm with the supplier/);
-    // Who imported sits beside who disclosed: its own line, the brands' lists untouched.
-    assert.match(capacity, /Buyers in shipment records The Haddad Apparel Group Ltd, TJX UK, Action Service Distributie B V From export shipment records/);
+    const capacity = desk(html(await outcome(overview)));
+    assert.match(capacity, /Capacity, as filed 1,000,000 pcs\/day From BKMEA · Filed figures look inconsistent; confirm with the supplier/);
+    // Who imported sits beside who disclosed, one tile each: the name people use, the customs record's own name small.
+    assert.match(capacity, /Buyers \d+ .*Haddad Apparel Group Customs records as The Haddad Apparel Group Ltd .*TJX UK Customs records .*Customs records name the importer: often an agent or a buying house, not the brand\./);
     given({ profile: PROFILE, hscodes: HS });
-    assert.doesNotMatch(html(await outcome(overview)), /look inconsistent|Exports suggest|shipment records/, "customs data reached a reader without it on the Overview");
+    assert.doesNotMatch(html(await outcome(overview)), /look inconsistent|Exports suggest|Customs records/, "customs data reached a reader without it on the Overview");
   });
 
   it("Recent shipments draws what supplier_shipment_reveal_state says: nothing, the plans line, the offer, used up, or the table (0141, K1–K7)", async () => {
@@ -512,20 +517,23 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     assert.doesNotMatch(listed, /No link found|not listed/i);
   });
 
-  it("?lines=all expands the grid past six tiles", async () => {
+  it("the desktop page draws every export line; ?lines=all still expands a phone's six", async () => {
     given({ profile: PROFILE, hscodes: HS });
     const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
     const six = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({ tab: "products" }) })));
     const all = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({ tab: "products", lines: "all" }) })));
-    // Counted on the desktop's drawing: a phone draws the same lines again, as chips.
-    const tiles = (s: string) => (s.replace(/<div data-record-phone=""[\s\S]*?(?=<div data-record-actions="")/, "").match(/\/app\/suppliers\/aboni-knitwear\/lines\/\d{4}/g) ?? []).length;
-    assert.equal(tiles(six), 6, "the grid shows six tiles by default");
-    assert.ok(tiles(all) > 6, `?lines=all still shows only ${tiles(all)} of the record's lines`);
-    // And the six-tile view offers the way to the rest.
-    assert.match(six, /All \d+ lines/);
-    assert.ok(six.includes("lines=all"), "the six-tile view has no route to the other lines");
-    // It is the Products tab, expanded, so the tab is not lost on the way.
-    assert.match(six.replace(/&amp;/g, "&"), /href="\/app\/suppliers\/aboni-knitwear\?tab=exports&lines=all"/);
+    const PHONE = /<div data-record-phone=""[\s\S]*?(?=<div data-record-actions="")/;
+    const lines = (s: string) => (s.match(/\/app\/suppliers\/aboni-knitwear\/lines\/\d{4}/g) ?? []).length;
+    // Paper page 37: every heading is on the desktop page from the start, so nothing is a click away.
+    const total = lines(all.replace(PHONE, ""));
+    assert.ok(total > 6, "guard: the record exports more than six lines");
+    assert.equal(lines(six.replace(PHONE, "")), total, "the desktop page hides some of the record's lines");
+    // A phone draws six and offers the way to the rest, which is the Exports tab, expanded.
+    const phone = (s: string) => PHONE.exec(s)?.[0] ?? "";
+    assert.equal(lines(phone(six)), 6, "a phone shows six by default");
+    assert.ok(lines(phone(all)) > 6, "?lines=all does not expand a phone's six");
+    assert.match(phone(six), /All \d+ lines/);
+    assert.match(phone(six).replace(/&amp;/g, "&"), /href="\/app\/suppliers\/aboni-knitwear\?tab=exports&lines=all"/);
   });
 });
 
@@ -1277,9 +1285,8 @@ describe("the RFQs section is the caller's own", () => {
     given({ profile: PROFILE, hscodes: HS, userId: "buyer-42", rfqs: { data: null, error: { message: "boom" }, count: null } });
     const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
     const out = html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({}) })));
-    assert.match(out, /Your RFQs to this supplier did not load just now\. Reload to try again\./);
-    assert.doesNotMatch(out, /Your RFQs · \d/);
-    assert.doesNotMatch(out, /have not sent this supplier an RFQ/);
+    // A side read that failed is left out: no count, no "none", and no notice over the record (founder, 12 Oct 2026).
+    assert.doesNotMatch(out, /Your RFQs|did not load|have not sent this supplier an RFQ/);
   });
 });
 
@@ -1573,6 +1580,10 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
     assert.equal((list[1]!.match(/<li/g) ?? []).length, 2, `the product list: ${list[1]}`);
     assert.match(list[1]!, /Knit T-shirt 61091000/, "an HS code in a product name was cut as a phone number");
     assert.match(pages.full, /Products as filed · 2/, "the Products tab counts a contact value or a case variant as a product");
+    // The desktop's one line of them says the same two, and the same count.
+    const filed = /<p data-filed-products=""[^>]*>([^<]*)<\/p>/.exec(pages.full)?.[1] ?? "";
+    assert.deepEqual(filed.split("·").map((x) => x.trim()), ["Knit T-shirt 61091000", "Polo Shirt"]);
+    assert.match(pages.full.replace(/<[^>]*>/g, " ").replace(/\s+/g, " "), /As filed with BGMEA 2 /);
   });
 
   it("?lines=all rides INTO a line from the overlay, not only back out", async () => {

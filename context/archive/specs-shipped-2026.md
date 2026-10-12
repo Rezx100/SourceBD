@@ -602,3 +602,12 @@ Only open another file under `context/feature-specs/` when the user names that s
   Assets converted by `scripts/home-assets.mjs` (provenance in `public/site/home/PROVENANCE.md`). The film moved behind
   `?film=1`. PRs #421 (assets, icons), #422 (page), #423 (live sections), #424 (motion, loop); handoff
   `.impeccable/handoff-home-mercury-build.md`.
+
+## One-line names, fact icons and the video leftovers (moved from active.md on 13 Oct 2026)
+
+- **One-line names, fact icons and the video's leftovers** — slate since dropped
+  for greys and near-black (founder, 29 Sep). BUILT,
+  `handoff-dashboard-names-and-facts.md`: PRs #206 (PR 0, live bugs), #209 (A,
+  names on one line), #210 (B, fact icons, certificate rows), #211 (C, card
+  view), #212 (D, leftovers, sidebar foot). LIVE 29 Sep (`8e773eb`, #213);
+  no slate LIVE 29 Sep (`7d46e2b`, #215/#216). Migration 0107 applied 29 Sep.

@@ -3,7 +3,7 @@
 // them, so a boundary test can construct one and assert the rendered HTML.
 
 import type { TierRank } from "@/lib/design/tokens";
-import type { CertChecks, CertModel, CertState, ShipmentRevealState, VolzaExports } from "./facts";
+import type { CertChecks, CertModel, CertState, ShipmentRevealState, VolzaExports, VolzaMarketName } from "./facts";
 import type { PhotoTileModel } from "./hs-photos";
 import type { SourceMarkModel } from "./source-tiers";
 
@@ -315,6 +315,8 @@ export type SupplierSheetModel = {
     /** What to say when `buyerLists` is empty: the bare negative, or the building that is listed. */
     buyerListsEmpty: string;
     tiles: PhotoTileModel[];
+    /** Every heading the record exports, by code: the desktop record draws them all (Paper page 37). Absent on a model built before it. */
+    lineTiles?: PhotoTileModel[];
     /**
      * Where "All N lines ›" goes. The grid shows six tiles, so on a record with
      * more headings than that the rest were reachable from nowhere. Null when
@@ -400,6 +402,8 @@ export type SupplierSheetModel = {
   volza: VolzaExports | null;
   /** `supplier_shipment_reveal_state` (0141): the Recent shipments section; null draws nothing. */
   shipments?: ShipmentRevealState | null;
+  /** The reader's own customs market, from the country they gave at onboarding (0109); null or absent when it is not known. Read only beside customs figures. */
+  market?: VolzaMarketName | null;
 };
 
 export type ProductSheetModel = {

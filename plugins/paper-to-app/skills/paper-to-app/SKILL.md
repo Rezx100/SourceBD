@@ -15,8 +15,9 @@ root (they use `process.cwd()` as the repo; override with `SOURCEBD_ROOT`).
    Talks to `http://127.0.0.1:29979/mcp` (`PAPER_MCP` to override). Per board it writes
    `<name>.jsx` (Tailwind), `<name>.inline.jsx` (exact styles), `<name>.tree.txt` (layer names),
    `<name>.paper.jpg`, plus `tokens.css`. File "SourceBD v4" is `01M3Z77QNSZKYX715Y21B8RKC2`;
-   page 36 `p-L-0` (buyer phone screens), page 35 `p-K-0` (supplier drawer), page 33 `p-I-0`
-   (what shipped before). **No Paper here?** Pages 35 and 36 are already pulled into
+   page 37 `p-M-0` (desktop supplier record and search results; desktop only, the reverse of the
+   phone rule below, spec `context/feature-specs/spec-desktop-record-page-37.md`), page 36 `p-L-0`
+   (buyer phone screens), page 35 `p-K-0` (supplier drawer), page 33 `p-I-0` (what shipped before). **No Paper here?** Pages 35 and 36 are already pulled into
    `plugins/paper-to-app/boards/page-35|page-36` (11 Oct 2026) and converted into `boards/tsx35|tsx36`.
 2. **Convert**: `node plugins/paper-to-app/scripts/convert.cjs --all <pullDir> <outDir>` (all boards,
    ~2 s) or `convert.cjs <name>.jsx <name>.tsx <ComponentName>`. Paper `var(--color-x)` becomes

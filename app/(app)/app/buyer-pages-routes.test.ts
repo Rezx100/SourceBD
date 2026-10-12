@@ -145,7 +145,8 @@ describe("/app/compliance — the certificate row a compliance link names", () =
     const out = await render(() =>
       route("app/(app)/app/suppliers/[slug]/page.js").default({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({}) }),
     );
-    // On the Overview ("Needs a look" holds the expired and expiring ones the hub lists) and on the Certificates tab.
-    assert.match(out, /<li [^>]*id="cert-wrap-7865"[^>]*class="[^"]*target:bg-brand-tint|<li id="cert-wrap-7865" class="[^"]*target:bg-brand-tint/);
+    // The certificate's row in the Certificates table (Paper page 37), tinted when the link lands on it.
+    assert.match(out, /<div role="row" id="cert-wrap-7865" class="[^"]*target:bg-brand-tint/);
+    assert.equal((out.match(/id="cert-wrap-7865"/g) ?? []).length, 1, "the anchor is on the page twice");
   });
 });
