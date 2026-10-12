@@ -1,7 +1,10 @@
 # 0147 dry run (13 Oct 2026, production, rolled back)
 
 Migration `supabase/migrations/0147_export_rank_and_cells.sql`: two new readers, nothing else. No table,
-no column and no existing function changes. **Not applied.** The founder says "apply 0147".
+no column and no existing function changes. **Applied 13 Oct 2026** on the founder's "apply 0147". Read back straight after, as an admin, a Free
+buyer and signed out (read only): `rank square: admin 88 free null signed-out null`; cells for Square
+and Ducati: admin gets the value and `{EU,US,UK,CA}`, a Free buyer gets `has=t fob=null to=null`;
+neither function can be called signed out.
 
 - `supplier_export_rank(slug)`: the whole percent of exporters on record whose two-year export value is
   below this supplier's. It fills the line under the record's first export tile ("Bigger than 88% of
