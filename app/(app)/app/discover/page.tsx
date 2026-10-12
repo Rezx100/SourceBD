@@ -416,7 +416,7 @@ async function DiscoverRecord({
     );
     const record = read.value;
     if (record) {
-      // Says whether the company's contact details were on the record (0145: Growth, Enterprise, admins); `loadRecordSheet` writes the reveal itself.
+      // Says whether the company's contact details were on the record (0145: Growth, Enterprise, admins); the database function writes the reveal itself.
       void noteActivity(supabase, "supplier.viewed", { supplierId, content: { slug, via: "pane", tab, contact_visible: record.contact.details !== null } });
       return (
         <PaneFrame openKey={`record:${slug}:${allLines ? "all" : ""}`}>

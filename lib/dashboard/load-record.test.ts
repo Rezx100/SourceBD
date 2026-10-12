@@ -194,6 +194,17 @@ describe("fetchContactDetails (0145: the database answers only an admin or a Gro
   it("absorbs a thrown client", async () => {
     assert.equal(await fetchContactDetails({ rpc: async () => { throw new Error("network"); } }, "x"), null);
   });
+
+  // The account has opened the day's allowance of different suppliers: the database answers {"limit": n}.
+  for (const [label, data] of [
+    ["the limit alone", { limit: 200 }],
+    ["a limit of another size", { limit: 50 }],
+    ["a limit beside values (never read as details)", { limit: 200, emails: ["a@b.example"], phones: ["01700000000"], website: "b.example", person: "A Person" }],
+  ] as const) {
+    it(`maps ${label} to the limited state`, async () => {
+      assert.equal(await details(data), "limited");
+    });
+  }
 });
 
 describe("loadRecordSheet: the contact details", () => {
@@ -212,27 +223,31 @@ describe("loadRecordSheet: the contact details", () => {
     };
   }
 
-  it("what the database returned reaches the sheet, and the reveal is written to the activity record", async () => {
+  it("what the database returned reaches the sheet; the database writes the reveal, so the loader writes none", async () => {
     const c = sheetClient({ data: DETAILS, error: null });
     const sheet = await loadRecordSheet(c, "aboni-knitwear", TODAY, {});
     assert.deepEqual(sheet?.contact.details, DETAILS);
-    const notes = c.calls.filter((x) => x.fn === "ledger_note");
-    assert.equal(notes.length, 1);
-    assert.equal(notes[0]!.args.p_kind, "contact.revealed");
-    assert.equal(notes[0]!.args.p_supplier, String(ABONI.profile.supplier.id));
-    assert.deepEqual(notes[0]!.args.p_content, { slug: "aboni-knitwear" });
+    assert.equal(sheet?.contact.limited, false);
+    assert.equal(c.calls.filter((x) => x.fn === "supplier_contact_details").length, 1, "one read is one reveal in the database's count");
+    assert.ok(!c.calls.some((x) => x.fn === "ledger_note"), "the loader wrote a second reveal beside the database's own");
+  });
+
+  it("an account at its daily limit gets a sheet that is limited and holds no details", async () => {
+    const sheet = await loadRecordSheet(sheetClient({ data: { limit: 200, emails: ["a@b.example"] }, error: null }), "aboni-knitwear", TODAY, {});
+    assert.ok(sheet, "the record still loads");
+    assert.equal(sheet.contact.details, null);
+    assert.equal(sheet.contact.limited, true);
   });
 
   for (const [label, answer] of [
     ["a reader the database does not entitle", { data: null, error: null }],
     ["a database without 0145", { data: null, error: { code: "PGRST202", message: "Could not find the function" } }],
   ] as const) {
-    it(`${label} gets a sheet with no details, and no reveal is written`, async () => {
-      const c = sheetClient(answer);
-      const sheet = await loadRecordSheet(c, "aboni-knitwear", TODAY, {});
+    it(`${label} gets a sheet with no details that is not limited`, async () => {
+      const sheet = await loadRecordSheet(sheetClient(answer), "aboni-knitwear", TODAY, {});
       assert.ok(sheet, "the record still loads");
       assert.equal(sheet.contact.details, null);
-      assert.ok(!c.calls.some((x) => x.fn === "ledger_note"), "a reveal was written for a reader who saw no details");
+      assert.equal(sheet.contact.limited, false);
     });
   }
 });

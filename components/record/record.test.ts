@@ -13,7 +13,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { buildSheet } from "@/lib/dashboard/build-models";
 import { TODAY, aboniInput, arFashionInput, longestNameInput, sanctionedInput, zaheenSampleInput } from "@/lib/dashboard/fixtures";
-import type { LocationRow, SupplierSheetModel } from "@/lib/dashboard/models";
+import type { ContactDetailsRead, LocationRow, SupplierSheetModel } from "@/lib/dashboard/models";
 import { onFileWords, rankCerts } from "@/components/patterns";
 import { GLOSSARY, define } from "@/lib/dashboard/glossary";
 import { tierWords } from "@/lib/dashboard/source-tiers";
@@ -424,7 +424,7 @@ describe("the view's rules", () => {
       role: "Managing Director",
     };
     const COUNTS = { emails: 2, phones: 2, website: true, representatives: 1 };
-    const unlocked = (input = aboniInput(), details: SupplierSheetModel["contact"]["details"] = DETAILS) =>
+    const unlocked = (input = aboniInput(), details: ContactDetailsRead = DETAILS) =>
       buildSheet(input, { supplierId: "id-1", rfqHref: "/app/rfqs/new?supplier=id-1", contactCounts: COUNTS, contactDetails: details });
     const cards = (html: string) => html.match(/<section aria-label="Contact" data-contact-details=""[\s\S]*?<\/section>/g) ?? [];
 
@@ -498,8 +498,50 @@ describe("the view's rules", () => {
       }
     });
 
+    it("a sanctioned record never draws them, whatever the read returned: it keeps the locked card", () => {
+      // The database answers null for a sanctioned supplier (0145, run in supabase/ci/assert-0145.sql);
+      // the sheet holds the same line, so an older function could not put a mail link on this record.
+      for (const input of [sanctionedInput(), zaheenSampleInput()]) {
+        const sheet = unlocked(input);
+        assert.equal(sheet.sanctioned, true, "guard: the record is sanctioned");
+        assert.equal(sheet.contact.details, null);
+        for (const mode of ["page", "pane"] as const) {
+          const out = both(sheet, { mode });
+          assert.doesNotMatch(out, /data-contact-details|mailto:|href="tel:|aboni\.example/, mode);
+          assert.match(text(out), /2 emails on file · 2 phone numbers on file · Website on file · 1 contact person on file/, mode);
+        }
+        assert.match(text(view(sheet, { mode: "page" })), /Contact details are locked\. Send an RFQ and the supplier replies here\./);
+      }
+    });
+
+    it("an account at its daily limit keeps the locked card, with one line that says why, on the desktop and on a phone", () => {
+      const LIMIT = "You've reached today's limit for contact details. They open again tomorrow.";
+      const sheet = unlocked(aboniInput(), "limited");
+      assert.equal(sheet.contact.details, null);
+      assert.equal(sheet.contact.limited, true);
+      const ON_FILE = "2 emails on file · 2 phone numbers on file · Website on file · 1 contact person on file";
+      for (const mode of ["page", "pane"] as const) {
+        const out = view(sheet, { mode });
+        assert.doesNotMatch(out, /data-contact-details|mailto:|href="tel:|aboni\.example/, mode);
+        // The page's column and, where the column is not drawn, the end of the overview: one card in the pane, two on the page.
+        const cardTexts = (out.match(/<section aria-label="Contact"[\s\S]*?<\/section>/g) ?? []).map((c) => text(c).trim());
+        assert.equal(cardTexts.length, mode === "page" ? 2 : 1, mode);
+        for (const c of cardTexts) assert.equal(c, `Contact ${ON_FILE} Contact details are locked. Send an RFQ and the supplier replies here. ${LIMIT}`, mode);
+        // The card says it, so the foot line is not drawn beside it.
+        assert.doesNotMatch(text(out), /Locked · /, mode);
+      }
+      // A count that could not be read still says why the card is locked.
+      const unread = text(view({ ...sheet, contact: { ...sheet.contact, counts: null } }, { mode: "page" }));
+      assert.match(unread, /Contact Contact details are locked\. Send an RFQ and the supplier replies here\. You've reached today's limit for contact details\. They open again tomorrow\./);
+      const section = /<section aria-label="Contact" data-phone-contact=""[\s\S]*?<\/section><\/section>/.exec(phone(sheet, { mode: "page" }))?.[0] ?? "";
+      assert.equal(text(section).trim(), `Contact ${ON_FILE} Locked. Send an RFQ and the supplier replies in Messages. ${LIMIT}`);
+      // Nobody else is told about a limit: not a reader with no details, not one who sees them.
+      for (const other of [unlocked(aboniInput(), null), unlocked()]) assert.doesNotMatch(text(both(other, { mode: "page" })), /today's limit/);
+    });
+
     it("what the profile payload carried still never renders: only what came through details does", () => {
-      const leaky = zaheenSampleInput();
+      // The fixture is drawn as a sanctioned SAMPLE, which never shows details; here it is an ordinary record.
+      const leaky = { ...zaheenSampleInput(), sanctionSample: false };
       const out = both(unlocked(leaky), { mode: "page" });
       assert.match(out, /mailto:sales@aboni\.example/, "guard: the details are drawn");
       for (const v of Object.values(leaky.leaked).flat()) assert.ok(!out.includes(v), `a contact value from the payload reached the record: ${v}`);

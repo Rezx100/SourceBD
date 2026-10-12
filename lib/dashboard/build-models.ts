@@ -52,7 +52,7 @@ import { heading4, hsCatalogueRow, hsExporterCount, hsPhotoSrc, hsShortLabel, ph
 import { groupWorkers, type SiteWorkerInput } from "@/lib/profile-metrics";
 import type {
   ContactCounts,
-  ContactDetails,
+  ContactDetailsRead,
   SanctionListRead,
   SanctionRow,
   FactRow,
@@ -1069,9 +1069,10 @@ export type SheetOptions = {
   contactCounts?: ContactCounts | null;
   /**
    * `supplier_contact_details` (0145): the details themselves, which the database returns only to an
-   * admin or a Growth or Enterprise buyer. Absent or null draws the locked card.
+   * admin or a Growth or Enterprise buyer. Absent or null draws the locked card; `"limited"` draws it
+   * with the line that says the day's limit is reached.
    */
-  contactDetails?: ContactDetails | null;
+  contactDetails?: ContactDetailsRead;
   /** The record's buildings (`buyer_supplier_facility_panel`); `panel` null means not read. */
   facilities?: { panel: FacilityPanel | null };
   /**
@@ -1417,7 +1418,10 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
       held: contactHeldWords(options.contactCounts),
       // The values, from `supplier_contact_details` (0145) alone: Growth, Enterprise and admins
       // (founder, 12 Oct 2026). Never read from the profile payload, whatever it carries.
-      details: options.contactDetails ?? null,
+      // A sanctioned record never shows them: the database answers null for one (0145), and this holds
+      // the line here too, because SourceBD refuses to send it an RFQ and a mail link would undo that.
+      details: options.contactDetails && options.contactDetails !== "limited" && !s.is_sanctioned && !input.sanctionSample ? options.contactDetails : null,
+      limited: options.contactDetails === "limited",
     },
     readDates: readDates || null,
     products: {

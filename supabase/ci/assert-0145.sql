@@ -1,8 +1,12 @@
 -- 0145 asserted by running it: a signed-out caller, a Starter buyer and a suspended Growth buyer get nothing;
 -- Growth, Enterprise and an admin get the details of a published record, cleaned (two addresses out of one
 -- field, one number filed three ways shown once, the site without the e-mail filed beside it); a record
--- holding only junk answers empty lists and nulls, never the junk; an unpublished or unknown record answers
--- null; and what is returned always agrees with what supplier_contact_counts (0105) says is on file.
+-- holding only junk answers empty lists and nulls, never the junk; an unpublished, unknown or SANCTIONED
+-- record answers null; what is returned always agrees with what supplier_contact_counts (0105) says is on
+-- file; each reveal is written to the activity record once per account and supplier, a re-open writes
+-- nothing more, and a refusal writes nothing; an account at 199 different suppliers in the last 24 hours
+-- opens its 200th, is refused the 201st with {"limit": 200} and no value, and still re-opens one it had;
+-- entries older than 24 hours do not count; an admin is never limited.
 \set ON_ERROR_STOP on
 
 begin;
@@ -12,11 +16,12 @@ insert into auth.users (id, email, raw_user_meta_data) values
   ('00000000-0000-4000-8000-00000000b145', 'growth-0145@example.invalid',  '{"role":"buyer"}'::jsonb),
   ('00000000-0000-4000-8000-00000000c145', 'ent-0145@example.invalid',     '{"role":"buyer"}'::jsonb),
   ('00000000-0000-4000-8000-00000000d145', 'starter-0145@example.invalid', '{"role":"buyer"}'::jsonb),
-  ('00000000-0000-4000-8000-00000000e145', 'susp-0145@example.invalid',    '{"role":"buyer"}'::jsonb)
+  ('00000000-0000-4000-8000-00000000e145', 'susp-0145@example.invalid',    '{"role":"buyer"}'::jsonb),
+  ('00000000-0000-4000-8000-00000000f145', 'busy-0145@example.invalid',    '{"role":"buyer"}'::jsonb)
 on conflict do nothing;
 
 update public.profiles set plan_tier = 'growth' where id in
-  ('00000000-0000-4000-8000-00000000b145', '00000000-0000-4000-8000-00000000e145');
+  ('00000000-0000-4000-8000-00000000b145', '00000000-0000-4000-8000-00000000e145', '00000000-0000-4000-8000-00000000f145');
 update public.profiles set plan_tier = 'enterprise' where id = '00000000-0000-4000-8000-00000000c145';
 update public.profiles set is_suspended = true where id = '00000000-0000-4000-8000-00000000e145';
 
@@ -30,13 +35,18 @@ insert into public.suppliers
   ('00000000-0000-4000-8000-0000000a2145', 'ci-0145-b', 'CI 0145 B Ltd', 'ci 0145 b ltd', 'Dhaka', 'Dhaka', false, false,
    'no address', array['12345'], 'https://', 'Mr.', 'Director'),
   ('00000000-0000-4000-8000-0000000a3145', 'ci-0145-c', 'CI 0145 C Ltd', 'ci 0145 c ltd', 'Dhaka', 'Dhaka', false, false,
-   'hidden@ci0145.example', array['01811111111'], 'hidden.ci0145.example', 'Hidden Person', null);
+   'hidden@ci0145.example', array['01811111111'], 'hidden.ci0145.example', 'Hidden Person', null),
+  ('00000000-0000-4000-8000-0000000a4145', 'ci-0145-d', 'CI 0145 D Ltd', 'ci 0145 d ltd', 'Dhaka', 'Dhaka', false, true,
+   'listed@ci0145.example', array['01822222222'], 'listed.ci0145.example', 'Listed Person', null),
+  ('00000000-0000-4000-8000-0000000a5145', 'ci-0145-e', 'CI 0145 E Ltd', 'ci 0145 e ltd', 'Dhaka', 'Dhaka', false, false,
+   'e@ci0145.example', array[]::text[], null, null, null);
 
--- Published only once each holds a Tier 1 source (enforce_publish_tier). C stays unpublished.
+-- Published only once each holds a Tier 1 source (enforce_publish_tier). C stays unpublished; D is
+-- published and on a sanctions list.
 insert into public.source_records (supplier_id, source_id, source_tier, source_ref)
 select sp.id, s.id, s.tier, 'CI-0145-' || sp.slug from public.suppliers sp, public.sources s
- where sp.slug in ('ci-0145-a', 'ci-0145-b') and s.code = 'RSC';
-update public.suppliers set is_published = true where slug in ('ci-0145-a', 'ci-0145-b');
+ where sp.slug in ('ci-0145-a', 'ci-0145-b', 'ci-0145-d', 'ci-0145-e') and s.code = 'RSC';
+update public.suppliers set is_published = true where slug in ('ci-0145-a', 'ci-0145-b', 'ci-0145-d', 'ci-0145-e');
 
 do $$
 declare
@@ -45,8 +55,13 @@ declare
   ent     constant uuid := '00000000-0000-4000-8000-00000000c145';
   starter constant uuid := '00000000-0000-4000-8000-00000000d145';
   susp    constant uuid := '00000000-0000-4000-8000-00000000e145';
+  busy    constant uuid := '00000000-0000-4000-8000-00000000f145';
+  a       constant uuid := '00000000-0000-4000-8000-0000000a1145';
+  b       constant uuid := '00000000-0000-4000-8000-0000000a2145';
   j       jsonb;
   c       jsonb;
+  e       record;
+  n       int;
   v_slug  text;
 begin
   -- Who may call it.
@@ -83,7 +98,7 @@ begin
     raise exception 'junk read: %', j;
   end if;
 
-  -- What is shown agrees with what the locked card counted.
+  -- What is shown agrees with what the locked card counted. (Both are re-opens: nothing more is written.)
   foreach v_slug in array array['ci-0145-a', 'ci-0145-b'] loop
     j := public.supplier_contact_details(v_slug);
     c := public.supplier_contact_counts(v_slug);
@@ -95,16 +110,68 @@ begin
     end if;
   end loop;
 
-  -- Unpublished and unknown: null, even to Growth.
+  -- Unpublished, unknown and sanctioned: null, even to Growth.
   if public.supplier_contact_details('ci-0145-c') is not null then raise exception 'an unpublished record answered'; end if;
   if public.supplier_contact_details('ci-0145-no-such-record') is not null then raise exception 'an unknown slug answered'; end if;
+  if public.supplier_contact_details('ci-0145-d') is not null then raise exception 'a sanctioned record answered'; end if;
 
   -- Enterprise and an admin read it too.
   perform set_config('request.jwt.claim.sub', ent::text, true);
   if public.supplier_contact_details('ci-0145-a') -> 'emails' ->> 0 is distinct from 'Sales@ci0145.example' then raise exception 'Enterprise got no details'; end if;
   perform set_config('request.jwt.claim.sub', admin::text, true);
   if public.supplier_contact_details('ci-0145-a') ->> 'person' is distinct from 'Md. Karim Uddin' then raise exception 'an admin got no details'; end if;
+  reset role;
 
+  -- The activity record: one entry per account and supplier, whatever the number of opens; none for a refusal.
+  select count(*) into n from public.activity_ledger where kind = 'contact.revealed';
+  if n <> 4 then raise exception 'want 4 reveals written (growth A and B, Enterprise A, admin A), got %', n; end if;
+  select * into e from public.activity_ledger where kind = 'contact.revealed' and actor_id = growth and supplier_id = a;
+  if e.id is null or e.target_table <> 'suppliers' or e.target_id <> a or e.actor_email <> 'growth-0145@example.invalid'
+     or e.content is distinct from '{"slug": "ci-0145-a", "emails": 2, "phones": 2, "website": true, "person": true}'::jsonb then
+    raise exception 'growth''s reveal of A is written wrong: %', to_jsonb(e);
+  end if;
+  if (select content from public.activity_ledger where kind = 'contact.revealed' and actor_id = growth and supplier_id = b)
+     is distinct from '{"slug": "ci-0145-b", "emails": 0, "phones": 0, "website": false, "person": false}'::jsonb then
+    raise exception 'growth''s reveal of B is written wrong';
+  end if;
+  if exists (select 1 from public.activity_ledger where kind = 'contact.revealed' and actor_id in (starter, susp)) then
+    raise exception 'a refused account has a reveal written';
+  end if;
+
+  -- The daily limit. 199 different suppliers opened an hour ago, and five more over 24 hours ago that no
+  -- longer count (the writer stamps `at` itself, so these go in directly as the owner, as assert-0135 does).
+  insert into public.activity_ledger (at, actor_id, kind, target_table, target_id, supplier_id, content, content_hash)
+  select now() - interval '1 hour', busy, 'contact.revealed', 'suppliers', x.id, x.id, '{}'::jsonb, repeat('0', 64)
+    from (select gen_random_uuid() as id from generate_series(1, 199)) x;
+  insert into public.activity_ledger (at, actor_id, kind, target_table, target_id, supplier_id, content, content_hash)
+  select now() - interval '25 hours', busy, 'contact.revealed', 'suppliers', x.id, x.id, '{}'::jsonb, repeat('0', 64)
+    from (select gen_random_uuid() as id from generate_series(1, 5)) x;
+
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub', busy::text, true);
+  -- Under the limit: the 200th opens.
+  j := public.supplier_contact_details('ci-0145-a');
+  if j -> 'emails' ->> 0 is distinct from 'Sales@ci0145.example' or j ? 'limit' then raise exception 'the 200th supplier did not open: %', j; end if;
+  -- At the limit: the 201st is refused, with the number and no value.
+  j := public.supplier_contact_details('ci-0145-e');
+  if j is distinct from '{"limit": 200}'::jsonb then raise exception 'the 201st supplier answered: %', j; end if;
+  -- One already opened in the window is free.
+  j := public.supplier_contact_details('ci-0145-a');
+  if j ->> 'person' is distinct from 'Md. Karim Uddin' then raise exception 'a re-open was refused at the limit: %', j; end if;
+  reset role;
+
+  select count(*) into n from public.activity_ledger
+   where kind = 'contact.revealed' and actor_id = busy and at > now() - interval '24 hours';
+  if n <> 200 then raise exception 'want 200 reveals in the window after one open, one refusal and one re-open, got %', n; end if;
+
+  -- An admin is never limited.
+  insert into public.activity_ledger (at, actor_id, kind, target_table, target_id, supplier_id, content, content_hash)
+  select now() - interval '1 hour', admin, 'contact.revealed', 'suppliers', x.id, x.id, '{}'::jsonb, repeat('0', 64)
+    from (select gen_random_uuid() as id from generate_series(1, 200)) x;
+  set local role authenticated;
+  perform set_config('request.jwt.claim.sub', admin::text, true);
+  j := public.supplier_contact_details('ci-0145-e');
+  if j -> 'emails' ->> 0 is distinct from 'e@ci0145.example' then raise exception 'an admin was limited: %', j; end if;
   reset role;
 end
 $$;

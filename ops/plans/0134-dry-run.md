@@ -11,7 +11,7 @@ terms is recorded too (legal track 4.10).
 | -- | -- |
 | Results page (`/app/discover`) | `search.run` with the search and the count |
 | A record opened (pane or page) | `supplier.viewed`, with `contact_visible` true only when the contact details were on it (12 Oct 2026: before 0145 the code wrote `true` on every open, though none were shown) |
-| A record read with its contact details (0145: Growth, Enterprise, admins) | `contact.revealed` with the slug |
+| A record read with its contact details (0145: Growth, Enterprise, admins) | `contact.revealed`, written by the database function itself, once per account and supplier in a rolling 24 hours, with the slug and how many of each kind were shown |
 | A line opened | `supplier.line_viewed` |
 | An RFQ opened (buyer pane or page, supplier page) | `rfq.viewed` with the viewer's role |
 | An order opened | `order.viewed` |

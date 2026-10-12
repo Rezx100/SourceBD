@@ -15,7 +15,7 @@
 import { CaretLeft, Clock, XCircle, X } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import { Define, buttonClass, ring } from "@/components/kit";
-import { LockedContact, REFUSAL, SanctionBanner, onFileWords } from "@/components/patterns";
+import { CONTACT_LIMIT_WORDS, LockedContact, REFUSAL, SanctionBanner, onFileWords } from "@/components/patterns";
 import type { SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
 import { ContactDetailsCard } from "./contact-card";
@@ -112,12 +112,15 @@ function Contact({ model, level: H }: { model: SupplierSheetModel; level: "h2" |
   // The database returned the details (an admin, or a Growth or Enterprise buyer): they are drawn, not locked.
   if (model.contact.details) return <ContactDetailsCard details={model.contact.details} level={H} />;
   const counts = model.contact.counts;
-  if (counts) return <LockedContact {...counts} level={H} />;
+  // A reader who may see details but has opened the day's allowance of suppliers: locked, and told why.
+  const note = model.contact.limited ? CONTACT_LIMIT_WORDS : null;
+  if (counts) return <LockedContact {...counts} note={note} level={H} />;
   // An unread count says only that the details are locked: "none on file" would be a claim.
   return (
     <section aria-label="Contact" className="flex w-full max-w-details flex-col gap-2 rounded-lg border border-line p-4">
       <H className="text-base font-semibold text-ink">Contact</H>
       <p className="text-sm text-ink-2">Contact details are locked. Send an RFQ and the supplier replies here.</p>
+      {note ? <p className="text-sm text-ink-2">{note}</p> : null}
     </section>
   );
 }
@@ -138,8 +141,10 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
   const listName = list?.list ?? "sanctions list";
   const expandHref = backHref ? `${model.fullHref}${model.fullHref.includes("?") ? "&" : "?"}back=${encodeURIComponent(backHref)}` : model.fullHref;
   const counts = model.contact.counts;
-  const unlocked = model.contact.details !== null;
-  const locked = !unlocked && counts ? onFileWords(counts.emails, counts.phones, counts.website, counts.representatives) : null;
+  // A reader the database entitles finds Contact at the end of the overview wherever the column is not drawn:
+  // the details, or the locked card saying the day's limit is reached. Everyone else has the foot line.
+  const entitled = model.contact.details !== null || model.contact.limited === true;
+  const locked = !entitled && counts ? onFileWords(counts.emails, counts.phones, counts.website, counts.representatives) : null;
 
   const actions = (
     <>
@@ -230,8 +235,8 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
                 <div className="flex flex-col gap-5">
                   <OverviewPanel model={model} today={today} level={level} lookAside={page} />
                   <RecordRfqs model={model} level={level} />
-                  {/* Where the contact column is not (the pane, and the page under 1024): the unlocked details close the overview. */}
-                  {unlocked ? (
+                  {/* Where the contact column is not (the pane, and the page under 1024): Contact closes the overview. */}
+                  {entitled ? (
                     <div className={cn(page && "lg:hidden")}>
                       <Contact model={model} level={level} />
                     </div>

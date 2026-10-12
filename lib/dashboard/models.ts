@@ -189,6 +189,13 @@ export type ContactDetails = {
   role?: string | null;
 };
 
+/**
+ * What the details read answered: the details, `"limited"` (the account has opened the contact details of
+ * its daily allowance of different suppliers; no value came back), or null (not entitled, sanctioned,
+ * unpublished, unread).
+ */
+export type ContactDetailsRead = ContactDetails | "limited" | null;
+
 /** One row of the Sources section: a register that filed something on this record. */
 export type SourceRow = {
   mark: SourceMarkModel;
@@ -283,9 +290,11 @@ export type SupplierSheetModel = {
    * `details` is the only place a contact VALUE reaches this model, and only
    * when the database returned it for an entitled reader (`ContactDetails`);
    * null for everyone else, and the card is then the locked one. Nothing the
-   * profile payload carries is ever copied here.
+   * profile payload carries is ever copied here. `limited` is true when the
+   * reader may see details but their account has opened the day's allowance
+   * of suppliers: `details` is then null and the locked card says so.
    */
-  contact: { hidden: string; plan: string | null; counts: ContactCounts | null; held: string | null; details: ContactDetails | null };
+  contact: { hidden: string; plan: string | null; counts: ContactCounts | null; held: string | null; details: ContactDetails | null; limited?: boolean };
   readDates: string | null;
   products: {
     lines: number;

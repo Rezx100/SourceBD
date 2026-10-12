@@ -44,7 +44,9 @@ orders, watch certificate expiry and sanction flags in the Compliance hub.
 - Contact details (email, phones, website, contact name and role) are locked
   unless the server returns them. It returns them to buyers on Growth and
   Enterprise and to admins (founder, 12 Oct 2026), as the registers filed them;
-  everyone else sees how many are on file. The locked state is a real state,
+  everyone else sees how many are on file. Never for a sanctioned supplier,
+  and an account opens at most 200 different suppliers' details in 24 hours
+  (a starting value). The locked state is a real state,
   not a blur.
 - A sanctioned supplier carries a red warning on every surface, and Send RFQ is
   refused.

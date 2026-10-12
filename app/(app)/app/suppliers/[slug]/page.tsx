@@ -128,7 +128,7 @@ export default async function SupplierRecordPage({
   }
 
   // The open is written to the activity record as this buyer's (moderation plan 1d), saying whether the
-  // company's contact details were on it (0145; the reveal itself is written by `loadRecordSheet`).
+  // company's contact details were on it (0145; the reveal itself is written by the database function).
   // Not awaited, never failing the page.
   void noteActivity(supabase, "supplier.viewed", { content: { slug, via: "page", contact_visible: model.contact.details !== null } });
 

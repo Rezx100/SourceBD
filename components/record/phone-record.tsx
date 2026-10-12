@@ -11,7 +11,7 @@ import type { Icon } from "@phosphor-icons/react";
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 import { CertChip, Skeleton, ring } from "@/components/kit";
-import { ABSENT, onFileWords } from "@/components/patterns";
+import { ABSENT, CONTACT_LIMIT_WORDS, onFileWords } from "@/components/patterns";
 import { certShort } from "@/components/patterns/words";
 import { LinkPending } from "@/components/patterns/link-pending";
 import { brandsInCustoms, customsBuyers, customsWindow, formatDay, formatUsdShort } from "@/lib/dashboard/facts";
@@ -275,6 +275,8 @@ export function PhoneContact({ model, level }: { model: SupplierSheetModel; leve
               {/* An unread count says only that the details are locked: "none on file" would be a claim. */}
               <p className="text-md font-medium text-ink">{onFile ?? "Contact details are locked"}</p>
               <p className="text-base text-ink-2">{onFile ? "Locked. " : ""}Send an RFQ and the supplier replies in Messages.</p>
+              {/* A reader who may see details but has opened the day's allowance of suppliers (0145). */}
+              {model.contact.limited ? <p className="pt-1.5 text-base text-ink-2">{CONTACT_LIMIT_WORDS}</p> : null}
             </div>
           </div>
         )}

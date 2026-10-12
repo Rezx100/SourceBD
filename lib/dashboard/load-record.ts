@@ -10,7 +10,8 @@ import "server-only";
 // the gallery does not need. It returns counts, never values — see the
 // migration's header for why the counts do not live on `buyer_supplier_profile`.
 // The values come from `supplier_contact_details` (0145), which answers only an
-// admin or a Growth or Enterprise buyer.
+// admin or a Growth or Enterprise buyer, writes each reveal to the activity
+// record itself, and stops at a daily limit of different suppliers per account.
 
 import { sessionUserId } from "@/lib/supabase/session-user";
 import { fetchDisplayWorkersBatch } from "@/lib/enrich-discover-workers";
@@ -21,8 +22,7 @@ import { buildProductSheet, buildSheet, locationTargets, type ProfilePayload, ty
 import { formatCount, formatDay, type CertChecks, type ShipmentRevealState, type VolzaExports } from "./facts";
 import { heading4, hsCatalogueRow } from "./hs-photos";
 import { sanitizeFacilityPanel, type FacilityPanel } from "@/lib/format-facility-group";
-import { noteActivity } from "@/lib/ledger/note";
-import type { ContactCounts, ContactDetails, ProductSheetModel, RecordRfqRow, SanctionListRead, SupplierSheetModel } from "./models";
+import type { ContactCounts, ContactDetailsRead, ProductSheetModel, RecordRfqRow, SanctionListRead, SupplierSheetModel } from "./models";
 
 /** The narrow slice of the Supabase client these loaders use. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- the generated client type is not in scope here; gallery-data.ts uses the same shape.
@@ -143,14 +143,18 @@ export async function fetchContactCounts(supabase: RecordRpc, slug: string): Pro
 
 /**
  * The contact details themselves (`supplier_contact_details`, 0145). The database returns null unless
- * the reader is an admin or on Growth/Enterprise and not suspended (founder, 12 Oct 2026), so a null
- * here draws the locked card; so does a failed read, or 0145 not being applied yet. Only strings pass.
+ * the reader is an admin or on Growth/Enterprise and not suspended (founder, 12 Oct 2026), and for a
+ * sanctioned supplier, so a null here draws the locked card; so does a failed read, or 0145 not being
+ * applied yet. `{"limit": n}` is the account's daily limit reached: `"limited"`, and nothing else in
+ * that answer is ever read as a detail. The database writes the reveal to the activity record itself,
+ * so nothing is noted here. Only strings pass.
  */
-export async function fetchContactDetails(supabase: RecordRpc, slug: string): Promise<ContactDetails | null> {
+export async function fetchContactDetails(supabase: RecordRpc, slug: string): Promise<ContactDetailsRead> {
   try {
     const { data, error } = await supabase.rpc("supplier_contact_details", { p_slug: slug });
     if (error || !data || typeof data !== "object" || Array.isArray(data)) return null;
     const row = data as Record<string, unknown>;
+    if ("limit" in row) return "limited";
     const list = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && x.trim() !== "") : []);
     const text = (v: unknown): string | null => (typeof v === "string" && v.trim() !== "" ? v : null);
     const person = text(row.person);
@@ -482,9 +486,6 @@ export async function loadRecordSheet(
     shipmentsRead,
   ]);
   if (workers) assignWorkers([record], workers);
-  // The reveal is written to the activity record here, where the details are read, so every surface
-  // that draws this sheet (search, the page, Saved, Messages) writes it. Not awaited, never failing the read.
-  if (contactDetails) void noteActivity(supabase, "contact.revealed", { supplierId, content: { slug } });
   return buildSheet(record.input, {
     plan: view.plan ?? null,
     contactCounts,
