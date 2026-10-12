@@ -151,8 +151,6 @@ function Overview({ model, today, tabHref, level }: PanelProps) {
   const agreed = brandsInCustoms(brands, v);
   // The brands' lists have a section of their own here, and the customs buyers are the Exports section's, a scroll away.
   const rows = facts.filter((f) => f.label !== "Memberships" && f.label !== "Brand supplier lists" && f.label !== "Buyers in shipment records");
-  const counts = model.contact.counts;
-  const onFile = counts ? onFileWords(counts.emails, counts.phones, counts.website, counts.representatives) : null;
   const readOf = (code: string | null) => model.sources.find((s) => s.mark.code === code || s.mark.label === code) ?? null;
   return (
     <div className="flex flex-col pb-8">
@@ -252,7 +250,20 @@ function Overview({ model, today, tabHref, level }: PanelProps) {
           <RecordRfqs model={model} level={level} />
         </div>
       ) : null}
-      <Section title="Contact" level={level}>
+    </div>
+  );
+}
+
+/**
+ * Contact, the last card of the record's scroll (founder, 12 Oct 2026): a buyer reads what the registers
+ * hold, then how to reach the supplier. Locked, it says how many details are on file, never a value.
+ */
+export function PhoneContact({ model, level }: { model: SupplierSheetModel; level: Level }) {
+  const counts = model.contact.counts;
+  const onFile = counts ? onFileWords(counts.emails, counts.phones, counts.website, counts.representatives) : null;
+  return (
+    <section aria-label="Contact" data-phone-contact="" className="flex flex-col pb-8">
+      <Section first title="Contact" level={level}>
         <div className="flex items-start gap-3 rounded-lg bg-sunken p-4">
           <Lock size={20} weight="thin" className="shrink-0 text-ink-2" aria-hidden />
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -262,7 +273,7 @@ function Overview({ model, today, tabHref, level }: PanelProps) {
           </div>
         </div>
       </Section>
-    </div>
+    </section>
   );
 }
 
@@ -816,8 +827,8 @@ export function PhoneRecord({
   const place = model.meta.find((m) => m.icon === "address")?.text ?? null;
   const props: PanelProps = { model, today, tabHref, level };
   // What stays over the sections: on the page the bar (56) and the short statuses (42), then the strip (48).
-  // A section lands with its 8px band tucked under the strip, so the strip's hairline is not doubled.
-  const under = page ? "scroll-mt-[138px]" : "scroll-mt-10";
+  // A section lands with the 12px gap over it tucked under the strip, so the strip's hairline is not doubled.
+  const under = page ? "scroll-mt-[134px]" : "scroll-mt-9";
   return (
     <PhoneTabs key={model.fullHref} initial={tab} className="flex flex-col sm:hidden">
       {page ? (
@@ -896,8 +907,10 @@ export function PhoneRecord({
 
       <PhoneTabStrip className={page ? "top-[98px]" : "top-0"} tabs={TABS.map((t) => ({ id: t.id, label: t.label, href: tabHref(t.id), count: tabCount(model, t.id) ?? undefined }))} />
 
-      {/* Every section, in tab order: a tab jumps to one and the strip follows the scroll through them. A tonal band parts each from the last. */}
-      <div data-phone-panels="" className="flex flex-col [&>*+*]:border-t-8 [&>*+*]:border-sunken">
+      {/* Every section, in tab order: a tab jumps to one and the strip follows the scroll through them. What parts
+          one from the next is a gap of the page's own ground between two hairlines, edge to edge (founder, 12 Oct
+          2026: the solid grey band read as a bar, not as a pause). */}
+      <div data-phone-panels="" className="flex flex-col [&>*+*]:before:block [&>*+*]:before:h-3 [&>*+*]:before:border-y [&>*+*]:before:border-line [&>*+*]:before:bg-subtle [&>*+*]:before:content-['']">
         <PhonePanel id="overview" label="Overview" className={under}>
           <Overview {...props} />
         </PhonePanel>
@@ -924,6 +937,7 @@ export function PhoneRecord({
             <ProductsPanel model={model} level={level} open />
           </div>
         </PhonePanel>
+        <PhoneContact model={model} level={level} />
       </div>
       <div data-phone-end="" aria-hidden />
     </PhoneTabs>

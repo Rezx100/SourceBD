@@ -6,7 +6,7 @@
 // words in place of Send RFQ; nothing is scored and no contact value is in the model.
 
 /* eslint-disable @next/next/no-img-element -- static catalogue file under /public */
-import { ArrowLeft, ArrowSquareOut, CaretLeft, Clock, FileText, Globe, Info, Storefront, X } from "@phosphor-icons/react/dist/ssr";
+import { ArrowLeft, ArrowSquareOut, CaretLeft, Certificate, Clock, FileText, Storefront, X } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { CertChip, buttonClass, ring } from "@/components/kit";
@@ -14,7 +14,7 @@ import { FactList, FactRow, REFUSAL, Refusal, SanctionBanner } from "@/component
 import { customsWindow, formatCount, formatUsdShort } from "@/lib/dashboard/facts";
 import type { ProductSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
-import { lineShipments, marketShares, recordsEnd, shortDay, windowSpan } from "./phone-words";
+import { lineShipments, recordsEnd, shortDay } from "./phone-words";
 import { PHOTO_CAPTION, lineEyebrow, lineFacts, type LineFact } from "./words";
 
 const LINK =
@@ -163,7 +163,7 @@ export function LineView({ model, mode, today = new Date() }: { model: ProductSh
         </div>
       </div>
 
-      <PhoneLine model={model} page={page} today={today} factList={factList} />
+      <PhoneLine model={model} page={page} today={today} facts={facts} />
     </section>
   );
 }
@@ -173,19 +173,34 @@ const P_CARD = "flex flex-col overflow-clip rounded-[10px] border border-line";
 const P_NUM = "[font-variant-numeric:tabular-nums]";
 
 /**
- * One export line on a phone (Paper page 36, `export-line`): the way back and the supplier, what the line
- * is, then the supplier's customs totals and its markets. Those totals are the supplier's, every line
- * together: customs data is per supplier and per market, never per HS code, and the note says so. The
- * only per-line customs facts are the stored top shipments whose own code is this heading.
+ * One export line on a phone (Paper page 36, `export-line`), cut to what the line itself adds (founder,
+ * 12 Oct 2026: the page was noisy): the way back and the supplier, what the line is, its receipts (the
+ * EPB exporter page and the certificates whose scope covers it), the supplier's customs total in one
+ * card, and the stored shipments coded to this heading. That total is the supplier's, every line
+ * together: customs data is never split by HS code, and the card says so. The record's own facts
+ * (markets, product list, brand lists, the other lines) stay on the record, one tap back; a fact
+ * nothing is on file for is not listed here at all.
  */
-function PhoneLine({ model, page, today, factList }: { model: ProductSheetModel; page: boolean; today: Date; factList: ReactNode }) {
+function PhoneLine({ model, page, today, facts }: { model: ProductSheetModel; page: boolean; today: Date; facts: LineFact[] }) {
   const H = page ? "h2" : "h3";
   const v = model.volza ?? null;
-  const markets = v ? marketShares(v).filter((m) => m.buyers !== null) : [];
   const shipped = v ? lineShipments(v, model.hs) : [];
   const behind = v ? recordsEnd(v, today) : null;
   const countries = v?.summary?.count_of_unique_destination_countries ?? null;
   const lines = model.lines ?? 0;
+  // The line's receipts: its EPB exporter page where the record carries the link, and each certificate
+  // whose scope covers the line (its number is the first part of the fact; the scope's words are the certificate's own).
+  // What the supplier itself attests for the line is kept when there is any; "Not attested" is not a row.
+  const attested = facts.find((f) => f.label === "Price · MOQ · lead time")?.values[0]?.text ?? null;
+  const exporterPage = facts.find((f) => f.label === "Exporter page");
+  const link = exporterPage?.values.find((x) => x.href) ?? null;
+  const epb = link ? { href: link.href!, note: exporterPage?.note ?? null } : null;
+  const certs = facts
+    .filter((f) => f.label === "Certified scope" && f.values.length > 0)
+    .map((f) => {
+      const number = f.values[0]!.text.split(" · ")[0]!;
+      return { scheme: f.marks[0]?.label ?? number, number, badge: f.badge ? { state: f.badge.state, label: f.badge.label.split(" · ")[0]! } : null };
+    });
   const head = (title: string, aside: string | null) => (
     <div className="flex items-baseline justify-between gap-3 pb-3.5 pt-6">
       <H className={P_TITLE}>{title}</H>
@@ -223,62 +238,61 @@ function PhoneLine({ model, page, today, factList }: { model: ProductSheetModel;
           ) : null}
         </div>
 
+        {epb || certs.length > 0 || attested ? (
+          <ul data-line-receipts="" className={cn(P_CARD, "mt-5")}>
+            {epb ? (
+              <li>
+                <a href={epb.href} className={cn("flex min-h-14 items-center gap-3 px-4 py-2.5 active:bg-sunken", ring)}>
+                  <FileText size={20} weight="thin" className="shrink-0 text-ink-2" aria-hidden />
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="text-base font-medium text-ink">EPB exporter page</span>
+                    {epb.note ? <span className="text-xs text-ink-3">{epb.note}</span> : null}
+                  </span>
+                  <ArrowSquareOut size={16} weight="thin" className="shrink-0 text-ink-3" aria-hidden />
+                </a>
+              </li>
+            ) : null}
+            {certs.map((c) => (
+              <li key={`${c.scheme}-${c.number}`} className="flex min-h-14 items-center gap-3 border-t border-line px-4 py-2.5 first:border-t-0">
+                <Certificate size={20} weight="thin" className="shrink-0 text-ink-2" aria-hidden />
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="text-base font-medium text-ink">{c.scheme}</span>
+                  {c.number !== c.scheme ? <span className="font-mono text-xs text-ink-3 [overflow-wrap:anywhere]">{c.number}</span> : null}
+                </span>
+                {c.badge ? (
+                  <CertChip state={c.badge.state} className="shrink-0">
+                    {c.badge.label}
+                  </CertChip>
+                ) : null}
+              </li>
+            ))}
+            {attested ? (
+              <li className="flex min-h-14 flex-col justify-center gap-0.5 border-t border-line px-4 py-2.5 first:border-t-0">
+                <span className="text-xs text-ink-3">Price · MOQ · lead time, as the supplier attests</span>
+                <span className="text-base font-medium text-ink [overflow-wrap:anywhere]">{attested}</span>
+              </li>
+            ) : null}
+          </ul>
+        ) : null}
+
         {v ? (
           <section aria-label="Customs records" className={cn("flex flex-col", P_NUM)}>
-            {head("Customs records", customsWindow(v))}
-            <div className="flex flex-col gap-3">
-              <dl className={P_CARD}>
-                {v.fob_usd !== null ? (
-                  <div className="flex flex-col gap-1 border-b border-line px-3.5 pb-3 pt-3.5">
-                    <dt className="text-sm text-ink-3">Exported in {windowSpan(v)}</dt>
-                    <dd className="text-xl font-medium tracking-tighter text-ink">{formatUsdShort(v.fob_usd)}</dd>
-                    <dd className="text-sm text-ink-2">Free on board, across {lines > 1 ? `all ${lines} lines` : "every line"}</dd>
-                  </div>
-                ) : null}
-                <div className="flex">
-                  <div className="flex flex-1 flex-col gap-1 border-r border-line px-3.5 pb-3 pt-3.5">
-                    <dt className="text-sm text-ink-3">Shipments</dt>
-                    <dd className="text-xl font-medium tracking-tighter text-ink">{v.shipments.toLocaleString("en-GB")}</dd>
-                    {countries ? (
-                      <dd className="text-sm text-ink-2">
-                        to {countries} {countries === 1 ? "country" : "countries"}
-                      </dd>
-                    ) : null}
-                  </div>
-                  <div className="flex flex-1 flex-col gap-1 px-3.5 pb-3 pt-3.5">
-                    <dt className="text-sm text-ink-3">Buyers</dt>
-                    <dd className="text-xl font-medium tracking-tighter text-ink">{v.buyers !== null ? v.buyers.toLocaleString("en-GB") : "Not counted"}</dd>
-                    <dd className="text-sm text-ink-2">named on the records</dd>
-                  </div>
-                </div>
-              </dl>
-              <p data-line-customs-note="" className="flex gap-2 rounded-lg bg-subtle px-3 py-2.5 text-sm text-ink-2">
-                <Info size={16} weight="thin" className="mt-px shrink-0 text-ink-3" aria-hidden />
-                <span>
-                  These totals are the supplier&apos;s, every line together: customs records are not split by HS code.{shipped.length ? ` The shipments below are the ones coded ${model.hs}.` : ""}
-                </span>
+            {head("Supplier's exports", customsWindow(v))}
+            <div className={cn(P_CARD, "gap-1 px-4 pb-3 pt-3.5")}>
+              <p className="text-xl font-medium tracking-tighter text-ink">{v.fob_usd !== null ? formatUsdShort(v.fob_usd) : `${v.shipments.toLocaleString("en-GB")} shipments`}</p>
+              <p className="text-sm text-ink-2">
+                {[
+                  v.fob_usd !== null ? `${v.shipments.toLocaleString("en-GB")} shipments` : null,
+                  v.buyers !== null ? `${v.buyers.toLocaleString("en-GB")} buyers` : null,
+                  countries ? `${countries} ${countries === 1 ? "country" : "countries"}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+              <p data-line-customs-note="" className="pt-1.5 text-xs text-ink-3">
+                Every line together: customs records are not split by HS code.{shipped.length ? ` The shipments below are the ones coded ${model.hs}.` : ""}
               </p>
             </div>
-
-            {markets.length > 0 ? (
-              <>
-                {head("By market", "Largest first")}
-                <ul className={P_CARD}>
-                  {markets.map((m) => (
-                    <li key={m.name} className="flex min-h-12 items-center gap-2.5 border-t border-line px-4 py-3 first:border-t-0">
-                      <Globe size={18} weight="thin" className="shrink-0 text-ink-2" aria-hidden />
-                      <span className="min-w-0 flex-1 text-base text-ink-2">{m.name}</span>
-                      <span className="flex flex-col items-end">
-                        {m.value ? <span className="text-base font-medium text-ink">{m.value}</span> : null}
-                        <span className="text-xs text-ink-3">
-                          {m.shipments.toLocaleString("en-GB")} shipments · {m.buyers} buyers
-                        </span>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            ) : null}
 
             {shipped.length > 0 ? (
               <>
@@ -302,9 +316,6 @@ function PhoneLine({ model, page, today, factList }: { model: ProductSheetModel;
             ) : null}
           </section>
         ) : null}
-
-        {head("On the record", null)}
-        {factList}
 
         {v ? (
           <p className="flex flex-wrap items-center gap-1.5 pt-4 text-xs text-ink-3">
