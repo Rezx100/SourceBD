@@ -73,16 +73,17 @@ export function ResultsTable({
   currentSlug?: string | null;
   sort: ResultSort;
   /** The page sorted by each column that sorts: strings, since this is a client component and the page a server one. */
-  sortHrefs: { workers: string; name?: string; cert_expiry?: string };
+  sortHrefs: { workers: string; name?: string };
 }) {
   const sel = useSelection();
-  // Every column the search can order by sorts from its head (round 3, item 7); the source count orders from the Sort menu.
-  const state = (key: "workers" | "name" | "cert_expiry"): SortState => (sort.key === key ? sort.dir : "none");
+  // A column sorts from its head when its cells show what it sorts by: the name and the workers. The source count and
+  // the soonest certificate expiry order the list from the Sort menu, which names them.
+  const state = (key: "workers" | "name"): SortState => (sort.key === key ? sort.dir : "none");
   const { save, toast } = useRowSave();
   // Not a tab stop (critique of 8 Oct 2026, item 7: two Tabs before the first name): the rows are.
   return (
     <div role="region" aria-label="Results table" className="relative min-w-0 overflow-x-auto xl:overflow-visible">
-      <Table className="min-w-[900px]">
+      <Table className="min-w-[980px]">
         <thead>
           <tr>
             <SelectCell
@@ -113,7 +114,7 @@ export function ResultsTable({
                 Exported in 2 years · ships to
               </Th>
             )}
-            <Th className="w-[110px]" sort={sortHrefs.cert_expiry ? state("cert_expiry") : undefined} href={sortHrefs.cert_expiry} title={sortHrefs.cert_expiry ? "Sort by the certificate that expires soonest" : "Certificates held today"}>
+            <Th className="w-[110px]" title="Certificates held today">
               Certificates
             </Th>
             <th scope="col" className="sticky top-0 z-raised h-row-head w-10 border-b border-line bg-subtle p-0">
@@ -154,8 +155,13 @@ export function ResultsTable({
                       {qualifier}
                     </span>
                   ) : null}
-                  {/* What it makes, the search's matches first: the reason to open the row. */}
-                  {r.products ? <Products products={r.products} className="pt-0.5" /> : null}
+                  {/* What it makes, the search's matches first: the reason to open the row. "Factory" goes unsaid; anything else is said first. */}
+                  {r.products || r.type !== "Factory" ? (
+                    <span className="flex items-baseline gap-x-[5px] pt-0.5">
+                      {r.type !== "Factory" ? <span className="shrink-0 whitespace-nowrap text-sm text-ink-3">{r.products ? `${r.type} ·` : r.type}</span> : null}
+                      {r.products ? <Products products={r.products} /> : null}
+                    </span>
+                  ) : null}
                   {r.sanctioned ? (
                     <div className="pt-0.5">
                       <SanctionTag list="sanctions list" />
@@ -187,8 +193,11 @@ export function ResultsTable({
                       <span className="w-[76px] shrink-0 text-[15px]/[20px] font-medium">{r.exported.value}</span>
                       <ShipsTo to={r.exported.to} />
                     </span>
-                  ) : (
+                  ) : r.exported === null ? (
                     <Unpublished>No customs records on file</Unpublished>
+                  ) : (
+                    // Never read (or the read failed): the dash says that, never that there are none.
+                    <Unpublished>{ABSENT.unread}</Unpublished>
                   )}
                 </Td>
                 <Td>{r.held?.length ? <HeldMarks held={r.held} /> : <Unpublished>{ABSENT.certificates}</Unpublished>}</Td>

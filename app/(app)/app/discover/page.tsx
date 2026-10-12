@@ -235,7 +235,6 @@ export default async function BuyerDiscoverPage({
                       sortHrefs={{
                         workers: hrefFor({ ...state, sort: "workers", page: 1 }),
                         name: hrefFor({ ...state, sort: "name", page: 1 }),
-                        cert_expiry: hrefFor({ ...state, sort: "cert_expiry", page: 1 }),
                       }}
                     />
                     </div>

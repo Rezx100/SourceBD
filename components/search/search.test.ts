@@ -203,7 +203,7 @@ describe("the certificate line of a row", () => {
     assert.equal(r.pageHref, "/app/suppliers/aboni");
     // Its one certificate has ended: nothing is held today, and the row draws no mark for it (Paper page 37).
     assert.deepEqual(r.held, []);
-    assert.deepEqual([r.products, r.brands, r.exported], [null, [], null]);
+    assert.deepEqual([r.products, r.brands, r.exported], [null, [], undefined]);
   });
 
   it("a row says the two products that answer the search first, and how many more it filed", () => {
@@ -214,6 +214,9 @@ describe("the certificate line of a row", () => {
     // No words to answer: the first two as filed.
     assert.deepEqual(matchedProducts(filed, ""), { shown: ["Trousers", "Polo shirts"], more: 4 });
     assert.deepEqual(matchedProducts(["Knit"], "woven"), { shown: ["Knit"], more: 0 });
+    // A word answers at the start of a word: "men" is not in "Women's".
+    assert.deepEqual(matchedProducts(["Women's blouses", "Trousers", "Men's shirts"], "men shirts")?.shown, ["Men's shirts", "Women's blouses"]);
+    assert.deepEqual(matchedProducts(["Women's blouses", "Men's trousers"], "men")?.shown, ["Men's trousers", "Women's blouses"]);
     assert.equal(matchedProducts([], "knit"), null, "a supplier that filed none has no line, never an invented one");
     assert.equal(matchedProducts(["  "], null), null);
   });
@@ -304,6 +307,11 @@ describe("the results table", () => {
     assert.doesNotMatch(zaheen!, /data-products/, "a supplier that filed no product has an invented line");
     assert.match(out, /<td class="[^"]*">H&M, NEXT<\/td>/);
     assert.match(out, /<span class="text-sm text-ink-3" title="On none of the brand lists read"><span aria-hidden="true">–<\/span>/);
+    // "Factory" goes unsaid; a buying house is said before what it makes, in the table and in the list.
+    assert.doesNotMatch(out, />Factory</);
+    const house = row({ type: "Buying house" });
+    assert.match(words(plain(h(ResultsTable, { rows: [house], sort: { key: "workers", dir: "desc" }, sortHrefs }))), /Aboni Knitwear Ltd\. Buying house · Knit T-shirts, Polo shirts \+7/);
+    assert.match(words(plain(h(PaneRows, { rows: [house, row({ slug: "one", workers: "1" })], currentSlug: null }))), /Polo shirts \+7 Buying house Place: Dhaka 3,166 workers .* 1 worker On the supplier list of/);
     // The rows are 64 tall, so two lines under a head read as one row.
     assert.equal((out.match(/<tr [^>]*class="[^"]*\bh-16\b/g) ?? []).length, rows.length);
   });
@@ -317,6 +325,10 @@ describe("the results table", () => {
     assert.match(words(locked), /^ ?On Growth : customs records are on the Growth and Enterprise plans ?$/);
     assert.doesNotMatch(locked, /US\$|\bEU\b|\bUK\b|shipment/);
     assert.match(out, /<span class="text-sm text-ink-3" title="No customs records on file"><span aria-hidden="true">–<\/span>/);
+    // A row that was never read says only that: before 0147, or when its read fails, "none on file" would be a claim.
+    const unread = plain(h(ResultsTable, { rows: [row({ exported: undefined })], sort: { key: "workers", dir: "desc" }, sortHrefs }));
+    assert.match(unread, /title="Not read just now"/);
+    assert.doesNotMatch(unread, /No customs records on file/);
     // With an exports filter or sort on, the column is the figure the list is sorted by, as before.
     const view = plain(h(ResultsTable, { rows: [row({ exports: { key: "US$55,700 a shipment", detail: "406 shipments", shipments: "406 shipments" } })], exportsHead: "Average shipment", sort: { key: "avg_shipment", dir: "desc" }, sortHrefs }));
     assert.match(view, />Average shipment</);
@@ -1021,11 +1033,12 @@ describe("Sam's list: the keyboard and the screen reader (critique of 8 Oct 2026
 describe("the minors, round 3 (critique of 8 Oct 2026, round 3, item 7)", () => {
   const src = (...f: string[]) => readFileSync(path.join(process.cwd(), ...f), "utf8");
 
-  it("Supplier and Certificates sort from their heads, as Workers and Sources do", () => {
-    const out = plain(h(SelectionProvider, { pageIds: ["x"] }, h(ResultsTable, { rows: [row({ supplierId: "x" })], sort: { key: "name", dir: "asc" }, sortHrefs: { ...sortHrefs, name: "/app/discover?q=knit&sort=name", cert_expiry: "/app/discover?q=knit&sort=cert_expiry" } })));
+  it("a column sorts from its head when its cells show what it sorts by: Supplier and Workers; the rest order from the Sort menu", () => {
+    const out = plain(h(SelectionProvider, { pageIds: ["x"] }, h(ResultsTable, { rows: [row({ supplierId: "x" })], sort: { key: "name", dir: "asc" }, sortHrefs: { ...sortHrefs, name: "/app/discover?q=knit&sort=name" } })));
     assert.match(out, /<th scope="col" aria-sort="ascending"[^>]*>.*?href="\/app\/discover\?q=knit&sort=name"/);
-    assert.match(out, /href="\/app\/discover\?q=knit&sort=cert_expiry"/);
-    assert.match(src("app", "(app)", "app", "discover", "page.tsx"), /cert_expiry: hrefFor\(\{ \.\.\.state, sort: "cert_expiry", page: 1 \}\)/);
+    // Certificates shows what is held, never when it ends, so its head does not sort by expiry (Paper page 37).
+    assert.doesNotMatch(out, /sort=cert_expiry|expires soonest/);
+    assert.match(src("lib", "discover-v32-state.ts"), /value: "cert_expiry", rpc: "cert_expiry", label: "Certificate expiry soonest"/, "the Sort menu lost the order by expiry");
   });
 
   it("Save search folds under 1536, and the sanctioned line folds into the Filters pane once another filter is on", () => {

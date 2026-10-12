@@ -9,8 +9,8 @@ import type { TableRowModel } from "@/lib/dashboard/models";
 /**
  * A row's customs figures on a plain search (Paper page 37): the two-year export value and the markets it
  * ships to, biggest share first, for a reader the database entitles; `"locked"` where a record is on file
- * that the reader's plan does not include (no figure and no market reaches them); null where none is on
- * file, or it was not read.
+ * that the reader's plan does not include (no figure and no market reaches them); null where the read
+ * found none on file. A row that was never read carries no `exported` at all, and says only that.
  */
 export type Exported = { value: string; to: string[] } | "locked" | null;
 
@@ -51,9 +51,9 @@ export type ResultRow = {
 
 /**
  * Two of the product names it filed, those that answer the search first, and how many more there are.
- * A name answers by holding one of the search's words ("denim shirt" finds "Denim shirts" before "Polo
- * shirts" before "Trousers"); among equals the filed order stands. Spellings that differ only in case
- * are one name.
+ * A name answers by holding a word that starts with one of the search's ("denim shirt" finds "Denim
+ * shirts" before "Polo shirts" before "Trousers"; "men" does not find "Women's blouses"); among equals
+ * the filed order stands. Spellings that differ only in case are one name.
  */
 export function matchedProducts(filed: readonly string[], q: string | null | undefined, show = 2): { shown: string[]; more: number } | null {
   const seen = new Set<string>();
@@ -66,7 +66,8 @@ export function matchedProducts(filed: readonly string[], q: string | null | und
   }
   if (names.length === 0) return null;
   const words = (q ?? "").toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w.length > 1);
-  const hits = (p: string) => words.filter((w) => p.toLowerCase().includes(w)).length;
+  const starts = (p: string) => p.toLowerCase().split(/[^\p{L}\p{N}]+/u);
+  const hits = (p: string) => words.filter((w) => starts(p).some((x) => x.startsWith(w))).length;
   // A stable sort: the filed order among names that answer equally.
   const ranked = words.length ? names.map((p, i) => ({ p, i, n: hits(p) })).sort((a, b) => b.n - a.n || a.i - b.i).map((x) => x.p) : names;
   return { shown: ranked.slice(0, show), more: Math.max(0, ranked.length - show) };
@@ -95,6 +96,6 @@ export function resultRow(t: TableRowModel, today: Date, pageHref: string, expor
     products: matchedProducts(t.products ?? [], more.q),
     brands: t.brands ?? [],
     held: held ? [held.first, ...held.others] : [],
-    exported: more.exported ?? null,
+    exported: more.exported,
   };
 }

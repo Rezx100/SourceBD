@@ -1572,6 +1572,18 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
         assert.ok(!out.includes(value), `a contact value filed as a product reached the ${where} page: ${value}`);
       }
     }
+    // The results rows print what it makes (Paper page 37): the same names, stripped the same way, in the
+    // table with no record open and in the list beside a pane; and the brands that list it.
+    const leaky = { ...ROW, principal_products: ["shdeck.com", "Polo Shirt", "01711-528388", "Knit T-shirt 61091000", "Woven Trouser"], brand_codes: ["BRAND_HM", "BRAND_NEXT"] };
+    given({ profile: { data: profile, error: null }, hscodes: HS, discover: { data: [leaky], error: null } });
+    const results = { table: html(await overlay({ q: "knit" })), list: html(await overlay({ q: "knit", record: "aboni-knitwear" })) };
+    for (const [where, out] of Object.entries(results)) {
+      for (const value of ["shdeck.com", "01711-528388", "528388"]) assert.ok(!out.includes(value), `a contact value filed as a product reached the results ${where}: ${value}`);
+      const said = out.replace(/<[^>]*>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ");
+      assert.match(said, /Knit T-shirt 61091000, Polo Shirt \+1/, `the results ${where} does not lead with the product that answers "knit"`);
+      assert.match(said, /H&M, NEXT/, `the results ${where} does not say whose supplier lists name it`);
+    }
+    assert.match(results.table, /data-products=""/);
     // What is left is the real products, once each: "POLO SHIRT" is "Polo
     // Shirt" (founder, 25 Sep), and an HS code in a product name is not a
     // phone number. The count says the same.

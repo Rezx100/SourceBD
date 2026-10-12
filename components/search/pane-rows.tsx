@@ -13,7 +13,7 @@
 // suppliers and write one RFQ to them without closing the pane. The name opens the record; the open
 // one keeps `aria-current`. Client: it reads the selection.
 
-import { MapPin, Storefront, UsersThree } from "@phosphor-icons/react";
+import { Buildings, MapPin, Storefront, UsersThree } from "@phosphor-icons/react";
 import type { Icon } from "@phosphor-icons/react";
 import Link from "next/link";
 import { LinkPending, SanctionTag } from "@/components/patterns";
@@ -120,12 +120,14 @@ export function PaneRows({ rows, currentSlug }: { rows: readonly ResultRow[]; cu
                   ) : null}
                   <span className="col-start-1 row-start-3 flex min-w-0 items-center gap-x-3 gap-y-1 pt-1 [@container_(max-width:459px)]:flex-wrap [@container_(max-width:459px)]:pt-0.5">
                     {r.sanctioned ? <SanctionTag list="sanctions list" /> : null}
+                    {/* "Factory" goes unsaid; a buying house, or anything else, is said. */}
+                    {r.type && r.type !== "Factory" ? <Fact icon={Buildings}>{r.type}</Fact> : null}
                     {r.place ? (
                       <Fact icon={MapPin} label="Place">
                         {r.place}
                       </Fact>
                     ) : null}
-                    {r.workers ? <Fact icon={UsersThree}>{`${r.workers} workers`}</Fact> : null}
+                    {r.workers ? <Fact icon={UsersThree}>{`${r.workers} ${r.workers === "1" ? "worker" : "workers"}`}</Fact> : null}
                     {r.brands?.length ? (
                       <Fact icon={Storefront} label="On the supplier list of">
                         {r.brands.join(", ")}
