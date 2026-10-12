@@ -450,6 +450,19 @@ describe("the view's rules", () => {
       assert.match(view(unlocked(), { mode: "page" }), /<div class="lg:hidden"><section aria-label="Contact" data-contact-details=""/);
     });
 
+    it("a phone draws them in its Contact section, the last of the scroll, under the section's one heading", () => {
+      const out = phone(unlocked(), { mode: "page" });
+      const section = /<section aria-label="Contact" data-phone-contact=""[\s\S]*?<\/section><\/section>/.exec(out)?.[0] ?? "";
+      assert.match(section, /<div data-contact-details="" class="[^"]*rounded-\[10px\]/, "the details are not in the phone's Contact section");
+      assert.equal(text(section).trim(), "Contact Contact person Md. Karim Uddin Managing Director Emails sales@aboni.example md@aboni.example Phone numbers +880 1754392350 02-9876543 Website www.aboni.example/contact");
+      assert.match(section, /<a href="tel:\+8801754392350"/);
+      // As wide as the section, not the desktop column's 344; long values wrap; a row is 44 tall for a thumb.
+      assert.doesNotMatch(section, /max-w-details/);
+      const link = /<a href="mailto:sales@aboni\.example" class="([^"]*)"/.exec(section)?.[1]?.split(" ") ?? [];
+      for (const c of ["py-2.5", "text-md", "[overflow-wrap:anywhere]", "text-brand-ink"]) assert.ok(link.includes(c), c);
+      assert.doesNotMatch(text(out), /Locked\. Send an RFQ|Contact details are locked/);
+    });
+
     it("a scheme the register filed is kept only when it is http or https", () => {
       assert.equal(siteHref("http://aboni.example"), "http://aboni.example");
       assert.equal(siteHref("HTTPS://aboni.example"), "HTTPS://aboni.example");

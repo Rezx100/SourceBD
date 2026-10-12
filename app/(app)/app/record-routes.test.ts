@@ -281,7 +281,8 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     assert.match(shown, /<a href="tel:\+8801754392350"[^>]*>01754392350<\/a>/);
     assert.match(shown, /<a href="https:\/\/aboni\.example" target="_blank" rel="noopener noreferrer nofollow"/);
     assert.match(shown, /Md\. Karim Uddin/);
-    assert.doesNotMatch(shown.replace(/<[^>]*>/g, " "), /Locked · |Contact details are locked\. Send an RFQ and the supplier replies here\./);
+    // Nothing says locked, on the desktop's drawing or the phone's.
+    assert.doesNotMatch(shown.replace(/<[^>]*>/g, " "), /Locked · |Locked\. Send an RFQ|Contact details are locked/);
     assert.deepEqual(notes("contact.revealed").map((c) => c.args?.p_content), [{ slug: "aboni-knitwear" }]);
     assert.equal((notes("supplier.viewed")[0]?.args?.p_content as { contact_visible?: unknown })?.contact_visible, true);
 

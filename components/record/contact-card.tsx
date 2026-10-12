@@ -54,13 +54,16 @@ function Kind({ icon: G, name, children }: { icon: Icon; name: string; children:
 
 /**
  * The details, in the box the locked card holds. With a `level` it heads itself "Contact" (the page's
- * column and the pane); without one it is the rows alone, under a heading its caller already drew.
+ * column and the pane); without one it is the rows alone, as wide as its caller, under a heading the
+ * caller already drew (a phone's Contact section).
  */
 export function ContactDetailsCard({ details, level: H, className }: { details: ContactDetails; level?: "h2" | "h3"; className?: string }) {
   const { emails, phones, website, person, role } = details;
   const empty = emails.length + phones.length === 0 && !website && !person;
+  // Headed, it is the Contact region itself; under a caller's heading it is a box inside that caller's region.
+  const Box = H ? "section" : "div";
   return (
-    <section aria-label="Contact" data-contact-details="" className={cn("flex w-full max-w-details flex-col rounded-lg border border-line", className)}>
+    <Box aria-label={H ? "Contact" : undefined} data-contact-details="" className={cn("flex w-full flex-col rounded-lg border border-line", H && "max-w-details", className)}>
       {H ? <H className="px-4 pt-4 text-base font-semibold text-ink">Contact</H> : null}
       {empty ? (
         <p className="p-4 text-base font-medium text-ink-2">No email or phone on file</p>
@@ -101,6 +104,6 @@ export function ContactDetailsCard({ details, level: H, className }: { details: 
           ) : null}
         </ul>
       )}
-    </section>
+    </Box>
   );
 }
