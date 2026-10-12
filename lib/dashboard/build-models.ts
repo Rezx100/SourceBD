@@ -213,7 +213,8 @@ function withoutFiledContact(input: RecordInput): RecordInput {
   };
 }
 
-function productEntries(filed: readonly (string | null)[] | null | undefined): string[] {
+/** The product names a register filed, each stripped of contact details (a website or a phone number filed as a product) and said once. */
+export function productEntries(filed: readonly (string | null)[] | null | undefined): string[] {
   const seen = new Set<string>();
   return (filed ?? [])
     .map((raw) => withoutContactDetails((raw ?? "").trim(), { bareNumbers: false }))

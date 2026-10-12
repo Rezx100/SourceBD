@@ -45,7 +45,7 @@ const { ResultsTable } = require("@/components/search/table") as typeof import("
 const { PaneListToolbar, PhoneToolbar, ResultsToolbar, barMenus, resultsTitle } = require("@/components/search/toolbar") as typeof import("@/components/search/toolbar");
 const { PaneRows, PhoneRows, ResultsEmpty, ResultsError, ResultsSkeleton, familyWords } = require("@/components/search/list") as typeof import("@/components/search/list");
 const { onRowKey } = require("@/components/search/keys") as typeof import("@/components/search/keys");
-const { resultRow } = require("@/components/search/model") as typeof import("@/components/search/model");
+const { matchedProducts, resultRow } = require("@/components/search/model") as typeof import("@/components/search/model");
 const { EMPTY_STATE, discoverHref, parseDiscoverState } = require("@/lib/discover-v32-state") as typeof import("@/lib/discover-v32-state");
 const { appliedChips, clearedForm, countKey, formOf, groupsSet, searchOf, showLabel, summaryOf } = require("@/components/search/filter-model") as typeof import("@/components/search/filter-model");
 const { FilterPane, UflpaSheetNote } = require("@/components/search/filters") as typeof import("@/components/search/filters");
@@ -74,6 +74,11 @@ const ABONI_CERTS = [
   { markCode: "sa8000", scheme: "SA8000", expiresOn: null },
 ];
 const ZAHEEN = "Zaheen Knitwears Limited (Shed - 3, 4, 5, 10, 11, 12, 13) & (Building - Security, ETP and Fire Pump)";
+/** The bodies of the certificates held on `TODAY`, as `resultRow` works them out: one that has ended is left out. */
+const heldOf = (certs: typeof ABONI_CERTS): NonNullable<ResultRow["held"]> => {
+  const s = certSummary(certs.filter((c) => !c.expiresOn || Date.parse(c.expiresOn) >= TODAY.getTime()), TODAY);
+  return s ? [s.first, ...s.others] : [];
+};
 const row = (over: Partial<ResultRow> = {}): ResultRow => ({
   slug: "aboni-knitwear",
   supplierId: "id-aboni",
@@ -90,10 +95,22 @@ const row = (over: Partial<ResultRow> = {}): ResultRow => ({
   rfqHref: `/app/discover?q=knit&rfq=${over.supplierId ?? "id-aboni"}`,
   sanctioned: false,
   saved: false,
+  products: { shown: ["Knit T-shirts", "Polo shirts"], more: 7 },
+  brands: ["H&M", "NEXT"],
+  held: heldOf(ABONI_CERTS),
+  exported: null,
   ...over,
 });
-const rows = [row(), row({ slug: "zaheen", supplierId: "id-zaheen", name: ZAHEEN, cert: null, certCell: null, sources: 4 }), row({ slug: "sm", supplierId: "id-sm", name: "SM Sourcing", cert: { state: "valid", text: "WRAP valid until 8 Jan 2027", more: 0 }, certCell: certSummary([{ markCode: "wrap", scheme: "WRAP", expiresOn: "2027-01-08" }], TODAY) })];
-const sortHrefs = { workers: "/app/discover?q=knit&sort=workers", sources: "/app/discover?q=knit" };
+const SM_CERTS = [{ markCode: "wrap", scheme: "WRAP", expiresOn: "2027-01-08" }];
+const rows = [
+  row(),
+  // No certificate, no product and no brand list; a customs record its reader's plan does not include.
+  row({ slug: "zaheen", supplierId: "id-zaheen", name: ZAHEEN, cert: null, certCell: null, sources: 4, products: null, brands: [], held: [], exported: "locked" }),
+  // Customs figures, as an entitled reader gets them: the value, then the markets, biggest share first.
+  row({ slug: "sm", supplierId: "id-sm", name: "SM Sourcing", cert: { state: "valid", text: "WRAP valid until 8 Jan 2027", more: 0 }, certCell: certSummary(SM_CERTS, TODAY), held: heldOf(SM_CERTS), brands: [], exported: { value: "US$76.6m", to: ["EU", "US", "UK", "CA"] } }),
+];
+const sortHrefs = { workers: "/app/discover?q=knit&sort=workers" };
+const words = (s: string) => s.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
 
 describe("the certificate line of a row", () => {
   it("says the worst certificate first, in Paper's words, and counts the rest", () => {
@@ -184,16 +201,36 @@ describe("the certificate line of a row", () => {
     assert.equal(r.cert?.text, "WRAP expired 29 Sep 2026");
     assert.equal(r.paneHref, "/app/discover?record=aboni");
     assert.equal(r.pageHref, "/app/suppliers/aboni");
+    // Its one certificate has ended: nothing is held today, and the row draws no mark for it (Paper page 37).
+    assert.deepEqual(r.held, []);
+    assert.deepEqual([r.products, r.brands, r.exported], [null, [], null]);
+  });
+
+  it("a row says the two products that answer the search first, and how many more it filed", () => {
+    const filed = ["Trousers", "Polo shirts", "Women's denim apparel", "POLO SHIRTS", " Dress  shirts ", "Denim shirts", "Jackets"];
+    // "denim shirt": both words, then one, then none; among equals the filed order stands; a case variant is one name.
+    assert.deepEqual(matchedProducts(filed, "denim shirt"), { shown: ["Denim shirts", "Polo shirts"], more: 4 });
+    assert.deepEqual(matchedProducts(filed, "DENIM"), { shown: ["Women's denim apparel", "Denim shirts"], more: 4 });
+    // No words to answer: the first two as filed.
+    assert.deepEqual(matchedProducts(filed, ""), { shown: ["Trousers", "Polo shirts"], more: 4 });
+    assert.deepEqual(matchedProducts(["Knit"], "woven"), { shown: ["Knit"], more: 0 });
+    assert.equal(matchedProducts([], "knit"), null, "a supplier that filed none has no line, never an invented one");
+    assert.equal(matchedProducts(["  "], null), null);
   });
 });
 
 describe("the results table", () => {
-  const out = plain(h(SelectionProvider, { pageIds: rows.map((r) => r.supplierId) }, h(ResultsTable, { rows, sort: { key: "sources", dir: "desc" }, sortHrefs })));
+  const out = plain(h(SelectionProvider, { pageIds: rows.map((r) => r.supplierId) }, h(ResultsTable, { rows, sort: { key: "workers", dir: "desc" }, sortHrefs })));
 
   it("is a real table with Paper's columns, the sorted one marked, and the name opens the record in the pane", () => {
     assert.match(out, /<table/);
-    for (const col of ["Supplier", "Type", "Location", "Workers", "Sources", "Certificates"]) assert.ok(out.includes(`>${col}`), col);
+    // Paper page 37, board 07b: the heads carry the words. Type and Sources are not columns.
+    const heads = [...out.matchAll(/<th scope="col"[^>]*>([\s\S]*?)<\/th>/g)].map((m) => words(m[1]!).trim()).filter(Boolean);
+    assert.deepEqual(heads, ["Supplier", "Location", "Workers", "On the supplier list of", "Exported in 2 years · ships to", "Certificates", "Actions"]);
     assert.match(out, /aria-sort="descending"/);
+    // The source count still orders the list, from the Sort menu, with no column of its own.
+    assert.equal((out.match(/aria-sort="(ascending|descending)"/g) ?? []).length, 1);
+    assert.doesNotMatch(plain(h(ResultsTable, { rows, sort: { key: "sources", dir: "desc" }, sortHrefs })), /aria-sort="(ascending|descending)"/);
     assert.match(out, /href="\/app\/discover\?q=knit&sort=workers"/, "Workers sorts the search");
     assert.equal(hrefOf(out, "Aboni Knitwear Ltd."), "/app/discover?q=knit&record=aboni-knitwear");
     assert.ok(out.includes('data-open="record"'));
@@ -239,33 +276,52 @@ describe("the results table", () => {
     assert.ok(!/\btruncate\b|text-ellipsis|line-clamp/.test(out));
   });
 
-  it("certificates are the bodies' marks only; a mark with a problem lights up and the words open on hover or tap", () => {
-    // Founder, 9 Oct 2026: the pill beside the first mark read as a stray warning. Only the icon
-    // lights up; a hover on a desktop or a tap on a phone reveals the words.
-    const cells = [...out.matchAll(/<td class="([^"]*)">(<button type="button" aria-haspopup="dialog"[\s\S]*?)<\/td>/g)];
-    assert.equal(cells.length, 2, "one compact cell per row that has a certificate");
-    const [aboni, sm] = cells.map((c) => c[2]!);
-    // The worst one leads, then every other body with an approved mark, once; SA8000 has none
-    // (`context/logos.lock.md`: no row, no render), so it is counted.
-    assert.deepEqual([...aboni!.matchAll(/src="\/icons\/sources\/cert\/([a-z-]+)\.png"/g)].map((m) => m[1]), ["wrap", "gots", "oeko-tex"]);
+  it("certificates are the marks of what it holds today and nothing else: no state, no pill, and one that has ended is left out", () => {
+    // Founder, 12 Oct 2026: how long a certificate has left is the record's business; one that has ended is like one never held.
+    const cells = [...out.matchAll(/<td class="[^"]*">(<span class="inline-flex items-center gap-2"><span class="sr-only">Certificates held:[\s\S]*?)<\/td>/g)].map((m) => m[1]!);
+    assert.equal(cells.length, 2, "one cell of marks per row that holds a certificate");
+    const [aboni, sm] = cells;
+    // WRAP lapsed four days ago and is not drawn. GOTS (about to lapse) and OEKO-TEX are; SA8000 has no approved
+    // mark (`context/logos.lock.md`: no row, no render), so it is counted.
+    assert.deepEqual([...aboni!.matchAll(/src="\/icons\/sources\/cert\/([a-z-]+)\.png"/g)].map((m) => m[1]), ["gots", "oeko-tex"]);
     assert.match(aboni!, />\+1<\/span>/);
     assert.ok(!aboni!.includes(">SA8000<"), "a body with no approved mark is drawn");
-    // No pill: the short words are gone from the row.
-    assert.doesNotMatch(aboni!, /Expired 29 Sep</);
-    assert.doesNotMatch(sm!, /Valid to Jan 2027</);
-    // WRAP has lapsed and GOTS is lapsing: both marks light up, each with its own glyph; OEKO-TEX and the valid WRAP stay quiet.
-    assert.deepEqual([...aboni!.matchAll(/data-lit="(\w+)"/g)].map((m) => m[1]), ["expired", "expiring"]);
-    assert.doesNotMatch(sm!, /data-lit=/);
-    // The marks are one button that opens the details (a tap or a key; a mouse opens it on hover).
-    assert.match(aboni!, /<button type="button" aria-haspopup="dialog" aria-expanded="false"/);
-    // No mark stands without its name (`logos.lock.md` section 1): a screen reader hears every body as one sentence.
-    assert.match(aboni!, /<span class="sr-only">4 certificates: WRAP expired 29 Sep 2026; GOTS expires in 28 days · 31 Oct 2026; SA8000 listed as valid; OEKO-TEX Standard 100 valid until 1 May 2027<\/span><span aria-hidden="true"/);
-    assert.match(sm!, /<span class="sr-only">WRAP valid until 8 Jan 2027<\/span>/, "one certificate is its own sentence");
-    // The marks are 24 tall in a 40 row: the cell gives up 2px of padding above and below.
-    assert.ok(cells.every((c) => c[1]!.split(" ").includes("py-1.5")));
-    // Nothing on file is a dash in the cell, the words behind it for a screen reader.
+    // No mark stands without its name: a screen reader hears each body once.
+    assert.match(aboni!, /<span class="sr-only">Certificates held: GOTS, SA8000 and OEKO-TEX Standard 100<\/span>/);
+    assert.match(sm!, /<span class="sr-only">Certificates held: WRAP<\/span>/);
+    // Nothing about time left, on any row: no lit mark, no popover, no words of state.
+    assert.doesNotMatch(out, /data-lit=|aria-haspopup="dialog"|Expire[sd]|Valid (to|until)|lapsed/);
+    // Nothing held is a dash in the cell, the words behind it for a screen reader.
     assert.match(out, /<span class="text-sm text-ink-3" title="No certificates on file"><span aria-hidden="true">–<\/span><span class="sr-only">No certificates on file<\/span><\/span>/);
     assert.ok(!out.includes("No certificates found"));
+  });
+
+  it("a row answers before the click: what it makes under the name, the brands that list it, and an empty cell is a dash", () => {
+    const cell = /<td class="[^"]*max-w-0[^"]*">([\s\S]*?)<\/td>/g;
+    const [aboni, zaheen] = [...out.matchAll(cell)].map((m) => m[1]!);
+    assert.match(words(aboni!), /^ ?Aboni Knitwear Ltd\. Knit T-shirts, Polo shirts \+7 ?$/);
+    assert.match(aboni!, /<span data-products="" title="Knit T-shirts, Polo shirts"/);
+    assert.doesNotMatch(zaheen!, /data-products/, "a supplier that filed no product has an invented line");
+    assert.match(out, /<td class="[^"]*">H&M, NEXT<\/td>/);
+    assert.match(out, /<span class="text-sm text-ink-3" title="On none of the brand lists read"><span aria-hidden="true">–<\/span>/);
+    // The rows are 64 tall, so two lines under a head read as one row.
+    assert.equal((out.match(/<tr [^>]*class="[^"]*\bh-16\b/g) ?? []).length, rows.length);
+  });
+
+  it("the exports column: the value then the markets for a reader who may see them, a lock with no figure for one who may not, a dash for no record", () => {
+    const shown = /<td class="[^"]*">(<span class="flex items-center gap-2"><span class="w-\[76px\][\s\S]*?)<\/td>/.exec(out)?.[1] ?? "";
+    assert.match(words(shown), /^ ?US\$76\.6m Ships to the EU, the US, the UK and Canada EU US UK CA ?$/, "the value, then the four codes, biggest share first");
+    assert.equal((shown.match(/aria-hidden="true" class="flex h-\[18px\]/g) ?? []).length, 4, "the codes are for the eye; the sentence is for a screen reader");
+    // Free: the row says a record exists and where it is sold, and nothing of what it holds (founder, 13 Oct 2026).
+    const locked = /<td class="[^"]*">(<span title="Customs records are on the Growth and Enterprise plans"[\s\S]*?)<\/td>/.exec(out)?.[1] ?? "";
+    assert.match(words(locked), /^ ?On Growth : customs records are on the Growth and Enterprise plans ?$/);
+    assert.doesNotMatch(locked, /US\$|\bEU\b|\bUK\b|shipment/);
+    assert.match(out, /<span class="text-sm text-ink-3" title="No customs records on file"><span aria-hidden="true">–<\/span>/);
+    // With an exports filter or sort on, the column is the figure the list is sorted by, as before.
+    const view = plain(h(ResultsTable, { rows: [row({ exports: { key: "US$55,700 a shipment", detail: "406 shipments", shipments: "406 shipments" } })], exportsHead: "Average shipment", sort: { key: "avg_shipment", dir: "desc" }, sortHrefs }));
+    assert.match(view, />Average shipment</);
+    assert.doesNotMatch(view, /Exported in 2 years/);
+    assert.match(view, /US\$55,700 a shipment<span class="block text-xs text-ink-3">406 shipments<\/span>/);
   });
 
   it("a sanctioned supplier says so in words on its row, and keeps its place", () => {
@@ -473,17 +529,34 @@ describe("the narrow list and the phone's rows", () => {
     assert.match(out, /^<div role="status" aria-busy="true" aria-label="Loading suppliers" data-own-top=""/);
   });
 
-  it("beside a pane: name, type and place, the first certificate problem, the count; the open row is marked", () => {
+  it("beside a pane a row answers before the click, in three levels; the open row is marked", () => {
     const out = plain(h(PaneRows, { rows, currentSlug: "aboni-knitwear" }));
-    assert.ok(out.includes("Aboni Knitwear Ltd.") && out.includes("11 sources") && out.includes("Factory · Dhaka"));
+    const items = [...out.matchAll(/<li data-row="result"[\s\S]*?<\/li>/g)].map((m) => m[0]);
+    const [aboni, zaheen, sm] = items.map((i) => words(i));
+    // The name; what it makes, the search's matches first; small facts led by a glyph; the marks it holds today.
+    assert.match(aboni!, /Aboni Knitwear Ltd\. Knit T-shirts, Polo shirts \+7 Place: Dhaka 3,166 workers On the supplier list of: H&M, NEXT Certificates held: GOTS, SA8000 and OEKO-TEX Standard 100 /);
+    // Left out on purpose: the type, the source count, any certificate's time left.
+    assert.doesNotMatch(out.replace(/aria-label="[^"]*"/g, ""), /Factory|\d+ sources|Expire[sd]|data-lit=/);
+    // The export value and where it ships sit on the right of the first two levels; a locked one is said, with no figure.
+    assert.match(sm!, /SM Sourcing Knit T-shirts, Polo shirts \+7 US\$76\.6m exported, 2 years Ships to the EU, the US, the UK and Canada ships to EU US UK CA Place: Dhaka/);
+    assert.match(zaheen!, /On Growth : customs records are on the Growth and Enterprise plans/);
+    assert.doesNotMatch(zaheen!, /US\$|exported, 2 years/);
     assert.match(out, /aria-current="true"[^>]*href="\/app\/discover\?q=knit&record=aboni-knitwear"|href="\/app\/discover\?q=knit&record=aboni-knitwear"[^>]*aria-current="true"/);
-    assert.ok(out.includes(ZAHEEN) && out.includes("No certificates on file"));
-    // The pane list keeps the One-Line Name Rule too: base name on one line, the qualifier leading the line under.
-    // The whole name stays in the DOM (sr-only beside the hidden base), never as an aria-label that would silence the sources and certificate words.
+    // The open row is sunken behind an ink bar (board 08).
+    const rowClass = (i: number) => /^<li[^>]*><div class="([^"]*)"/.exec(items[i]!)?.[1]?.split(" ") ?? [];
+    assert.ok(rowClass(0).includes("border-l-ink") && rowClass(0).includes("bg-sunken"));
+    assert.ok(!rowClass(1).includes("border-l-ink") && !rowClass(1).includes("bg-sunken"));
+    // The pane list keeps the One-Line Name Rule too: base name on one line, the qualifier on the line under.
+    // The whole name stays in the DOM (sr-only beside the hidden base), never as an aria-label that would silence the row's words.
+    assert.ok(out.includes(ZAHEEN));
     assert.match(out, new RegExp(`<span aria-hidden="true">Zaheen Knitwears Limited</span><span class="sr-only">${ZAHEEN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}</span>`));
-    assert.doesNotMatch(out, /<a aria-label=/, "an aria-label on a row hides its sources and certificate words from a screen reader");
+    assert.doesNotMatch(out, /<a aria-label=/, "an aria-label on a row hides its words from a screen reader");
     assert.match(out, /data-name="" title="Aboni Knitwear Ltd\."[^>]*>Aboni Knitwear Ltd\.</, "a name without a qualifier is said once");
-    assert.match(out, /data-name="" title="Shed - 3, 4, 5, 10, 11, 12, 13 · Building - Security, ETP and Fire Pump · Factory · Dhaka"/);
+    assert.match(out, /data-name="" title="Shed - 3, 4, 5, 10, 11, 12, 13 · Building - Security, ETP and Fire Pump"/);
+    // At the list's narrowest it measures itself and every level wraps whole item by whole item: nothing is cut (board 08b).
+    assert.match(out, /<ul data-follow="record" class="\[container-type:inline-size\]">/);
+    for (const m of out.matchAll(/data-name=""[^>]*class="([^"]*)"/g)) assert.match(m[1]!, /\[@container_\(max-width:459px\)\]:whitespace-normal/, "a name is still cut at the list's narrowest");
+    assert.match(out, /<span data-products=""[^>]*class="[^"]*\[@container_\(max-width:459px\)\]:flex-wrap/);
   });
 
   it("on a phone a row opens the record as a page, and the way back is in the address", () => {
@@ -899,7 +972,7 @@ describe("the search components' rules", () => {
 describe("the pane list is a ledger too (critique of 8 Oct 2026, round 3, item 2)", () => {
   it("each pane row has its tick, the row's keys and the hidden r and s targets; the name still opens the record", () => {
     const out = plain(h(SelectionProvider, { pageIds: rows.map((r) => r.supplierId) }, h(PaneRows, { rows, currentSlug: "aboni-knitwear" })));
-    assert.match(out, /<ul data-follow="record">/, "the arrows do not follow the open record");
+    assert.match(out, /<ul data-follow="record"/, "the arrows do not follow the open record");
     assert.equal((out.match(/<li data-row="result" tabindex="0"/g) ?? []).length, rows.length, "a pane row is not a keyboard row");
     assert.match(out, /aria-label="Select Aboni Knitwear Ltd\."/);
     assert.match(out, /data-action="rfq"[^>]*href="\/app\/discover\?q=knit&(?:amp;)?rfq=id-aboni"|href="\/app\/discover\?q=knit&(?:amp;)?rfq=id-aboni"[^>]*data-action="rfq"/);
@@ -919,10 +992,11 @@ describe("the pane list is a ledger too (critique of 8 Oct 2026, round 3, item 2
 });
 
 describe("the help layer in the results (critique of 8 Oct 2026, round 3, item 5)", () => {
-  it("the Workers cell's second figure names its source as a defined term, and Sources says what it counts", () => {
+  it("the Workers cell's second figure names its source as a defined term, and the exports column says what its figures are", () => {
     const out = plain(h(SelectionProvider, { pageIds: ["x"] }, h(ResultsTable, { rows: [row({ supplierId: "x", workersSecond: { short: "793 RSC", words: "793 workers by RSC's count" } })], sort: { key: "sources", dir: "desc" }, sortHrefs })));
     assert.match(out, /793 <span tabindex="0" data-define="RSC"[^>]*>RSC<\/span>/);
-    assert.match(out, /<th [^>]*title="Registers and certifiers that filed something on this company"/);
+    assert.match(out, /<th [^>]*title="From customs records of the last two years on file: the export value, then the markets it ships to, biggest share first"/);
+    assert.match(out, /<th [^>]*title="The brands whose own published supplier lists name this company"/);
   });
 });
 
@@ -963,9 +1037,9 @@ describe("the minors, round 3 (critique of 8 Oct 2026, round 3, item 7)", () => 
     assert.ok(!toolbar({ ...EMPTY_STATE, q: "knit", district: ["Gazipur"] }).includes("Hiding sanctioned suppliers"));
   });
 
-  it("the pane list's count says what it counts, and a certificate pill carries its full sentence", () => {
+  it("the pane list prints no source count (the Sort menu names the order), and a certificate pill carries its full sentence", () => {
     const out = plain(h(PaneRows, { rows, currentSlug: null }));
-    assert.match(out, /title="Registers and certifiers that filed on this company; the record also counts brand lists"[^>]*>11 sources/);
+    assert.doesNotMatch(out, /\d+ sources/);
     assert.match(src("components", "patterns", "cert-summary.tsx"), /\{b\.words\}/, "the popover carries every body's full sentence");
     assert.match(src("lib", "dashboard", "build-models.ts"), /276 of 10,278 published suppliers had a source outside tiers 1-3/);
   });

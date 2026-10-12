@@ -138,7 +138,7 @@ export default async function BuyerDiscoverPage({
     }
     const rowOpts = { today, hsLines: hs.lines, hsError: hs.error, recordHref, rfqHref };
     return rows.map((row) =>
-      resultRow(buildDiscoverTableRow(row, { ...rowOpts, saved: savedSet.has(row.id) }), today, pageHref(row.slug), exportsOn && row.exports ? exportsCell(row.exports, rowSort) : null),
+      resultRow(buildDiscoverTableRow(row, { ...rowOpts, saved: savedSet.has(row.id) }), today, pageHref(row.slug), exportsOn && row.exports ? exportsCell(row.exports, rowSort) : null, { q: state.q }),
     );
   });
   // An empty or failed search never draws the rows; its rejection must not go unhandled. Drawn, it still throws.
@@ -234,7 +234,6 @@ export default async function BuyerDiscoverPage({
                       sort={exportsOn ? { key: rowSort, dir: rowSort === "name" ? "asc" : "desc" } : { key: state.sort, dir: state.sort === "name" || state.sort === "cert_expiry" || state.sort === "established" ? "asc" : "desc" }}
                       sortHrefs={{
                         workers: hrefFor({ ...state, sort: "workers", page: 1 }),
-                        sources: hrefFor({ ...state, sort: "sources", page: 1 }),
                         name: hrefFor({ ...state, sort: "name", page: 1 }),
                         cert_expiry: hrefFor({ ...state, sort: "cert_expiry", page: 1 }),
                       }}
