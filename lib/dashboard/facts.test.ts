@@ -6,6 +6,7 @@ import {
   buyersOf,
   capacityNote,
   customsBuyers,
+  revealRows,
   knownBuyer,
   certCheckLine,
   customsBand,
@@ -498,5 +499,27 @@ describe("customs buyers sit beside the brands' own lists, never in place of the
     ]);
     assert.deepEqual(buyersOf(["ASOS"], null), [{ name: "ASOS", listed: true, customs: false, filed: null }]);
     assert.deepEqual(buyersOf([], null), []);
+  });
+});
+
+describe("the reveal's rows: one order is one row, a price only where the database checked it (12 Oct 2026)", () => {
+  const rec = { date: "2026-08-31", product: "BABIES BOYS WOVEN TROUSER", hs_code: "62034200", buyer: "H M HENNES MAURITZ GBC AB", buyer_city: "Stockholm", buyer_country: "", destination: "Netherlands", unit: "PCS", value_usd: 646, weight_kg: 43, unit_price_usd: 3.4 };
+
+  it("adds up the shipments of one order and keeps another day, buyer, country or product apart", () => {
+    const rows = revealRows([rec, { ...rec, destination: "Spain" }, { ...rec, buyer: "h m hennes  mauritz gbc ab", value_usd: 1906, weight_kg: 127 }, { ...rec, date: "2026-08-30" }, { ...rec, product: "Babies girls woven trouser" }]);
+    assert.deepEqual(rows.map((r) => [r.shipments, r.value, r.weight]), [[2, "US$2,552", "170 kg"], [1, "US$646", "43 kg"], [1, "US$646", "43 kg"], [1, "US$646", "43 kg"]]);
+    assert.equal(rows[0]!.buyerTo, "H M Hennes Mauritz GBC AB, Stockholm · Netherlands");
+    assert.equal(rows[0]!.pieces, "About 751 pcs at US$3.40 a piece");
+  });
+
+  it("prints no quantity when any shipment in the row has no checked price, and no city that was not filed", () => {
+    const rows = revealRows([rec, { ...rec, unit_price_usd: null }, { ...rec, date: "2026-08-29", buyer_city: "Not Available", unit_price_usd: undefined, value_usd: null, weight_kg: null }]);
+    assert.deepEqual(rows.map((r) => [r.shipments, r.pieces, r.value, r.weight]), [[2, null, "US$1,292", "86 kg"], [1, null, null, null]]);
+    assert.equal(rows[1]!.buyerTo, "H M Hennes Mauritz GBC AB · Netherlands");
+  });
+
+  it("never merges shipments with no date, no value or another HS code: the same day and a total need all three", () => {
+    const rows = revealRows([{ ...rec, date: null }, { ...rec, date: null }, { ...rec, value_usd: null }, { ...rec, value_usd: null }, rec, { ...rec, hs_code: "62034300" }]);
+    assert.deepEqual(rows.map((r) => [r.shipments, r.date, r.value, r.hs]), [[1, "Date not filed", "US$646", "6203.42"], [1, "Date not filed", "US$646", "6203.42"], [1, "31 Aug 2026", null, "6203.42"], [1, "31 Aug 2026", null, "6203.42"], [1, "31 Aug 2026", "US$646", "6203.42"], [1, "31 Aug 2026", "US$646", "6203.43"]]);
   });
 });
