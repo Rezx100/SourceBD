@@ -17,6 +17,7 @@ import type { LocationRow, SupplierSheetModel } from "@/lib/dashboard/models";
 import { onFileWords, rankCerts } from "@/components/patterns";
 import { GLOSSARY, define } from "@/lib/dashboard/glossary";
 import { tierWords } from "@/lib/dashboard/source-tiers";
+import { mailHref, siteHref, telHref } from "@/components/record/contact-card";
 import { RecordView } from "@/components/record/record-view";
 import { TABS, certRows, keyFacts, needsLook, parseSite, parseTab, recordSubline, sameName, sectionInView, siteCards, siteSummary, staleWords, summaryCells, tabCount } from "@/components/record/words";
 
@@ -150,7 +151,7 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
   it("keeps the contact locked: how many are on file, never a value", () => {
     const out = text(phone(model(), { mode: "page" }));
     assert.match(out, /Contact 1 email on file · 6 phone numbers on file · Website on file · 1 contact person on file Locked\. Send an RFQ and the supplier replies in Messages\./);
-    const unread = text(phone(model(aboniInput(), { contact: { hidden: "", plan: null, counts: null, held: null } }), { mode: "page" }));
+    const unread = text(phone(model(aboniInput(), { contact: { hidden: "", plan: null, counts: null, held: null, details: null } }), { mode: "page" }));
     assert.match(unread, /Contact details are locked Send an RFQ/);
     assert.doesNotMatch(unread, /on file Locked/);
   });
@@ -405,24 +406,105 @@ describe("the view's rules", () => {
     for (const key of ["email_primary", "contact_name", "contact_role", "phones"]) assert.ok(!out.includes(key), key);
   });
 
+  // Founder, 12 Oct 2026: Growth, Enterprise and admins see the details. The database decides who (0145);
+  // the view draws what it was given and nothing else.
+  describe("the contact details, when the database returned them", () => {
+    const DETAILS = {
+      emails: ["sales@aboni.example", "md@aboni.example"],
+      phones: ["+880 1754392350", "02-9876543"],
+      website: "www.aboni.example/contact",
+      person: "Md. Karim Uddin",
+      role: "Managing Director",
+    };
+    const COUNTS = { emails: 2, phones: 2, website: true, representatives: 1 };
+    const unlocked = (input = aboniInput(), details: SupplierSheetModel["contact"]["details"] = DETAILS) =>
+      buildSheet(input, { supplierId: "id-1", rfqHref: "/app/rfqs/new?supplier=id-1", contactCounts: COUNTS, contactDetails: details });
+    const cards = (html: string) => html.match(/<section aria-label="Contact" data-contact-details=""[\s\S]*?<\/section>/g) ?? [];
+
+    it("draws each as a link that writes, dials or opens the site, in the page's column and in the pane", () => {
+      for (const mode of ["page", "pane"] as const) {
+        const out = view(unlocked(), { mode });
+        // The page draws the column's card and, under 1024, the same card in the main column; the pane has the one.
+        assert.equal(cards(out).length, mode === "page" ? 2 : 1, mode);
+        const card = cards(out)[0]!;
+        assert.match(card, /<a href="mailto:sales@aboni\.example"[^>]*>sales@aboni\.example<\/a>/);
+        assert.match(card, /<a href="mailto:md@aboni\.example"/);
+        assert.match(card, /<a href="tel:\+8801754392350"[^>]*>\+880 1754392350<\/a>/);
+        assert.match(card, /<a href="tel:\+88029876543"[^>]*>02-9876543<\/a>/);
+        // No scheme was filed, so the link gains https; it opens apart and vouches for nothing.
+        assert.match(card, /<a href="https:\/\/www\.aboni\.example\/contact" target="_blank" rel="noopener noreferrer nofollow"[^>]*>www\.aboni\.example\/contact<\/a>/);
+        assert.match(text(card), /Contact Contact person Md\. Karim Uddin Managing Director Emails sales@aboni\.example md@aboni\.example Phone numbers \+880 1754392350 02-9876543 Website www\.aboni\.example\/contact/);
+        // Links are the brand's ink, never the solid brand.
+        assert.doesNotMatch(card, /\btext-brand\b(?!-)|\bbg-brand\b(?!-)/);
+        // Nothing says locked: not the card, not the foot line.
+        assert.doesNotMatch(text(out), /Contact details are locked|Locked · |emails on file|phone numbers on file/, mode);
+      }
+      // The page's second card is the main column's, hidden where the column is drawn.
+      assert.match(view(unlocked(), { mode: "page" }), /<div class="lg:hidden"><section aria-label="Contact" data-contact-details=""/);
+    });
+
+    it("a scheme the register filed is kept only when it is http or https", () => {
+      assert.equal(siteHref("http://aboni.example"), "http://aboni.example");
+      assert.equal(siteHref("HTTPS://aboni.example"), "HTTPS://aboni.example");
+      assert.equal(siteHref("javascript:alert(1).example"), "https://javascript:alert(1).example");
+      // A filed "?bcc=" stays part of the address instead of becoming a header.
+      assert.equal(mailHref("a@b.example?bcc=x@y.example"), "mailto:a@b.example%3Fbcc%3Dx%40y.example");
+      // A local number gains the country code; a foreign one keeps its own.
+      assert.equal(telHref("01754-392350"), "tel:+8801754392350");
+      assert.equal(telHref("1754392350"), "tel:+8801754392350");
+      assert.equal(telHref("0088 02 9876543"), "tel:+88029876543");
+      assert.equal(telHref("+44 20 7946 0000"), "tel:+442079460000");
+      // A label before the number and an extension after it are not dialled.
+      assert.equal(telHref("Tel: +880-2-55012345, Ext 114"), "tel:+880255012345");
+    });
+
+    it("only the kinds the record holds are drawn, and a record holding none says so without a lock", () => {
+      const phoneOnly = cards(view(unlocked(aboniInput(), { emails: [], phones: ["01754392350"], website: null, person: null }), { mode: "page" }))[0]!;
+      assert.equal(text(phoneOnly).trim(), "Contact Phone number 01754392350");
+      assert.doesNotMatch(phoneOnly, /mailto:|target="_blank"/);
+      const none = cards(view(unlocked(aboniInput(), { emails: [], phones: [], website: null, person: null }), { mode: "page" }))[0]!;
+      assert.equal(text(none).trim(), "Contact No email or phone on file");
+      assert.doesNotMatch(none, /<a /);
+    });
+
+    it("without them the record is the locked one, byte for byte", () => {
+      const before = buildSheet(aboniInput(), { supplierId: "id-1", rfqHref: "/app/rfqs/new?supplier=id-1", contactCounts: COUNTS });
+      assert.equal(before.contact.details, null);
+      for (const mode of ["page", "pane"] as const) {
+        const locked = both(before, { mode });
+        assert.equal(both(unlocked(aboniInput(), null), { mode }), locked, mode);
+        assert.doesNotMatch(locked, /data-contact-details|mailto:|href="tel:/, mode);
+        assert.match(text(locked), /Locked · 2 emails on file · 2 phone numbers on file · Website on file · 1 contact person on file/, mode);
+      }
+    });
+
+    it("what the profile payload carried still never renders: only what came through details does", () => {
+      const leaky = zaheenSampleInput();
+      const out = both(unlocked(leaky), { mode: "page" });
+      assert.match(out, /mailto:sales@aboni\.example/, "guard: the details are drawn");
+      for (const v of Object.values(leaky.leaked).flat()) assert.ok(!out.includes(v), `a contact value from the payload reached the record: ${v}`);
+      for (const key of ["email_primary", "contact_name", "contact_role"]) assert.ok(!out.includes(key), key);
+    });
+  });
+
   it("says the details are locked from the counts alone, and nothing when the count could not be read", () => {
     const out = text(view(model(), { mode: "page" }));
     assert.match(out, /1 email on file · 6 phone numbers on file · Website on file · 1 contact person on file/);
     assert.match(out, /Contact details are locked\. Send an RFQ and the supplier replies here\./);
     // Every kind the register holds is named in the column and again in the foot line; a kind that is absent is not.
-    const withTwo = text(view(model(aboniInput(), { contact: { hidden: "", plan: null, counts: { emails: 1, phones: 6, website: true, representatives: 2 }, held: null } }), { mode: "page" }));
+    const withTwo = text(view(model(aboniInput(), { contact: { hidden: "", plan: null, counts: { emails: 1, phones: 6, website: true, representatives: 2 }, held: null, details: null } }), { mode: "page" }));
     assert.equal(withTwo.match(/1 email on file · 6 phone numbers on file · Website on file · 2 contact people on file/g)?.length, 2, "the column and the foot line");
-    const phonesOnly = text(view(model(aboniInput(), { contact: { hidden: "", plan: null, counts: { emails: 0, phones: 2, website: false, representatives: 0 }, held: null } }), { mode: "page" }));
+    const phonesOnly = text(view(model(aboniInput(), { contact: { hidden: "", plan: null, counts: { emails: 0, phones: 2, website: false, representatives: 0 }, held: null, details: null } }), { mode: "page" }));
     assert.match(phonesOnly, /2 phone numbers on file/);
     assert.doesNotMatch(phonesOnly, /Email \d|Website on file|Contact person/);
-    const none = text(view(model(aboniInput(), { contact: { hidden: "", plan: null, counts: { emails: 0, phones: 0, website: false, representatives: 0 }, held: null } }), { mode: "page" }));
+    const none = text(view(model(aboniInput(), { contact: { hidden: "", plan: null, counts: { emails: 0, phones: 0, website: false, representatives: 0 }, held: null, details: null } }), { mode: "page" }));
     assert.match(none, /No email or phone on file/);
     assert.doesNotMatch(none, /Locked · /);
     // The foot line leads with what it is (critique of 8 Oct 2026, item 7), and the two cards say "Last read" alike.
     assert.match(out, /Locked · 1 email on file · 6 phone numbers on file · Website on file · 1 contact person on file/);
     assert.doesNotMatch(out, /on file · locked/);
     assert.doesNotMatch(readFileSync(path.join(dir, "..", "patterns", "source-mark.tsx"), "utf8"), /Last checked/);
-    const unread = text(view(model(arFashionInput(), { contact: { hidden: "", plan: null, counts: null, held: null } }), { mode: "page" }));
+    const unread = text(view(model(arFashionInput(), { contact: { hidden: "", plan: null, counts: null, held: null, details: null } }), { mode: "page" }));
     assert.doesNotMatch(unread, /No email or phone on file|Locked · /, "an unread count claims none on file");
   });
 

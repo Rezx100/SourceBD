@@ -52,6 +52,7 @@ import { heading4, hsCatalogueRow, hsExporterCount, hsPhotoSrc, hsShortLabel, ph
 import { groupWorkers, type SiteWorkerInput } from "@/lib/profile-metrics";
 import type {
   ContactCounts,
+  ContactDetails,
   SanctionListRead,
   SanctionRow,
   FactRow,
@@ -1066,6 +1067,11 @@ export type SheetOptions = {
    * about kinds. Never a count of zero on a failed read.
    */
   contactCounts?: ContactCounts | null;
+  /**
+   * `supplier_contact_details` (0145): the details themselves, which the database returns only to an
+   * admin or a Growth or Enterprise buyer. Absent or null draws the locked card.
+   */
+  contactDetails?: ContactDetails | null;
   /** The record's buildings (`buyer_supplier_facility_panel`); `panel` null means not read. */
   facilities?: { panel: FacilityPanel | null };
   /**
@@ -1403,14 +1409,15 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
     summary: null,
     facts: withIcons(facts, s.entity_type),
     contact: {
-      // No plan unlocks them (founder, 25 Sep: counts only, to every role), so
-      // the card may not promise one.
       hidden: "Contact details are not shown on the record.",
       plan: options.plan ?? null,
       // Counts, never values: `supplier_contact_counts` (0105) selects no
       // contact column it does not count, so there is nothing to un-hide.
       counts: options.contactCounts ?? null,
       held: contactHeldWords(options.contactCounts),
+      // The values, from `supplier_contact_details` (0145) alone: Growth, Enterprise and admins
+      // (founder, 12 Oct 2026). Never read from the profile payload, whatever it carries.
+      details: options.contactDetails ?? null,
     },
     readDates: readDates || null,
     products: {

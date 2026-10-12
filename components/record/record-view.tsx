@@ -4,7 +4,8 @@
 // is in the address and the search behind a pane survives it), and the seven sections stacked
 // under them: a tab jumps to its section and the scroll moves the marked tab. A sanctioned
 // record adds a solid band above everything and replaces Send RFQ with the refusal in words;
-// nothing here is scored and no contact value is in the model, only how many are on file.
+// nothing here is scored. Contact is how many are on file, locked, unless the database returned
+// the details themselves (0145: an admin, or a Growth or Enterprise buyer), which are then drawn.
 //
 // Desktop pane: header, summary, tabs, panel, and a foot line that says what is locked. Full
 // page from 1024: the same, with Contact and Sources in a 344 column. Under 640 none of that is
@@ -17,6 +18,7 @@ import { Define, buttonClass, ring } from "@/components/kit";
 import { LockedContact, REFUSAL, SanctionBanner, onFileWords } from "@/components/patterns";
 import type { SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
+import { ContactDetailsCard } from "./contact-card";
 import { CertificatesPanel, ExportsBand, ExportsPanel, NeedsLookAside, OverviewPanel, ProductsPanel, RecordRfqs, SafetyPanel, SitesPanel, SourcesPanel } from "./panels";
 import { SourceCheckListener } from "@/components/onboarding/source-check";
 import { PhoneRecord } from "./phone-record";
@@ -107,6 +109,8 @@ export function Summary({ cells }: { cells: SummaryCell[] }) {
 }
 
 function Contact({ model, level: H }: { model: SupplierSheetModel; level: "h2" | "h3" }) {
+  // The database returned the details (an admin, or a Growth or Enterprise buyer): they are drawn, not locked.
+  if (model.contact.details) return <ContactDetailsCard details={model.contact.details} level={H} />;
   const counts = model.contact.counts;
   if (counts) return <LockedContact {...counts} level={H} />;
   // An unread count says only that the details are locked: "none on file" would be a claim.
@@ -134,7 +138,8 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
   const listName = list?.list ?? "sanctions list";
   const expandHref = backHref ? `${model.fullHref}${model.fullHref.includes("?") ? "&" : "?"}back=${encodeURIComponent(backHref)}` : model.fullHref;
   const counts = model.contact.counts;
-  const locked = counts ? onFileWords(counts.emails, counts.phones, counts.website, counts.representatives) : null;
+  const unlocked = model.contact.details !== null;
+  const locked = !unlocked && counts ? onFileWords(counts.emails, counts.phones, counts.website, counts.representatives) : null;
 
   const actions = (
     <>
@@ -225,6 +230,12 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
                 <div className="flex flex-col gap-5">
                   <OverviewPanel model={model} today={today} level={level} lookAside={page} />
                   <RecordRfqs model={model} level={level} />
+                  {/* Where the contact column is not (the pane, and the page under 1024): the unlocked details close the overview. */}
+                  {unlocked ? (
+                    <div className={cn(page && "lg:hidden")}>
+                      <Contact model={model} level={level} />
+                    </div>
+                  ) : null}
                 </div>
               ) : t.id === "exports" ? (
                 <ExportsPanel model={model} level={level} />

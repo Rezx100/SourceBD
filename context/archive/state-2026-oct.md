@@ -36,3 +36,14 @@ Ten notes on the live phone site, one PR (`phone-fixes-1`), phone only, no migra
 - **Search**: the results start at the field (the frame's title bar is hidden over `data-own-top`); a row says its worst certificate in words, not marks; a suggested company opens the record page with the way back.
 - **"Your RFQs didn't load"**: the phone no longer draws it. Cause: migration 0126 (claimed-supplier policies) was never applied to production, so every direct read of `rfqs` as a buyer fails. Waits for the founder's "apply 0126".
 - **Not built**: the month-by-month exports chart on the board. The customs data holds a two-year total and four markets, no monthly figures; drawing it needs a new fetch.
+
+## Contact details shown from the Growth plan (12 Oct 2026)
+
+Founder, 12 Oct 2026: "we have decided to show contact details of the suppliers as it's stored on the database from growth plan". Branch `contact-reveal`; migration `0145_supplier_contact_details.sql` built, **not applied**.
+
+- **Who**: an admin, or a buyer on Growth or Enterprise, not suspended; the same gate as the customs records (0137). Everyone else keeps the locked card with the counts. The database decides, in `supplier_contact_details(slug)`; the contact columns stay revoked (0083).
+- **What**: emails, phone numbers, website, contact person and role from the register columns, cleaned by the rules the counts use (0105), so the card shows as many as the count said. Supplier-entered contact fields (0034) are not part of it.
+- **Where**: the full page's Contact box, and the same box at the end of the overview in the pane and under 1024 (`components/record/contact-card.tsx`). Emails write, numbers dial with the country code, the website opens apart.
+- **Recorded**: every sheet that reads the details writes `contact.revealed` to the activity record (`loadRecordSheet`); `supplier.viewed` now says `contact_visible` truthfully. Until this change the code wrote `true` on every open, though no details were shown; those older entries overstate.
+- **Until 0145 is applied** the read fails soft and every reader sees the locked card. Guards: `supabase/ci/assert-0145.sql` (who gets what, and that details agree with the counts), `record.test.ts`, `load-record.test.ts`, `record-routes.test.ts`.
+- **Open**: the phone record's Contact box is not wired yet (another change was moving it); a sanctioned record shows its details to the same readers; nothing meters or rate-limits a direct call to the function.

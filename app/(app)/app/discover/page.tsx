@@ -416,8 +416,8 @@ async function DiscoverRecord({
     );
     const record = read.value;
     if (record) {
-      // A signed-in buyer's record carries the company's contact details, so the open is the reveal.
-      void noteActivity(supabase, "supplier.viewed", { supplierId, content: { slug, via: "pane", tab, contact_visible: true } });
+      // Says whether the company's contact details were on the record (0145: Growth, Enterprise, admins); `loadRecordSheet` writes the reveal itself.
+      void noteActivity(supabase, "supplier.viewed", { supplierId, content: { slug, via: "pane", tab, contact_visible: record.contact.details !== null } });
       return (
         <PaneFrame openKey={`record:${slug}:${allLines ? "all" : ""}`}>
           <RecordView model={record} mode="pane" tab={tab} tabHref={tabHref} today={today} backHref={withParams(recordParams)} />

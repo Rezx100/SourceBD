@@ -261,6 +261,41 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     }
   });
 
+  it("the details the database returns reach the page as links and are written to the activity record; without them the card stays locked", async () => {
+    // Founder, 12 Oct 2026: Growth, Enterprise and admins see the details. Who that is, is the database's
+    // answer (`supplier_contact_details`, 0145, run in supabase/ci/assert-0145.sql); this proves what the
+    // route does with each answer, and that it writes down what it showed.
+    const Page = route("app/(app)/app/suppliers/[slug]/page.js").default;
+    const open = async () => html(await outcome(() => Page({ params: Promise.resolve({ slug: "aboni-knitwear" }), searchParams: Promise.resolve({}) })));
+    const notes = (kind: string) => rpcCalls.filter((c) => c.fn === "ledger_note" && c.args?.p_kind === kind);
+    const counts = { data: { emails: 1, phones: 1, website: true, representatives: 1 }, error: null };
+
+    given({
+      profile: PROFILE,
+      hscodes: HS,
+      contactCounts: counts,
+      rpcs: { supplier_contact_details: { data: { emails: ["sales@aboni.example"], phones: ["01754392350"], website: "aboni.example", person: "Md. Karim Uddin", role: "Merchandising manager" }, error: null } },
+    });
+    const shown = await open();
+    assert.match(shown, /<a href="mailto:sales@aboni\.example"/);
+    assert.match(shown, /<a href="tel:\+8801754392350"[^>]*>01754392350<\/a>/);
+    assert.match(shown, /<a href="https:\/\/aboni\.example" target="_blank" rel="noopener noreferrer nofollow"/);
+    assert.match(shown, /Md\. Karim Uddin/);
+    assert.doesNotMatch(shown.replace(/<[^>]*>/g, " "), /Locked · |Contact details are locked\. Send an RFQ and the supplier replies here\./);
+    assert.deepEqual(notes("contact.revealed").map((c) => c.args?.p_content), [{ slug: "aboni-knitwear" }]);
+    assert.equal((notes("supplier.viewed")[0]?.args?.p_content as { contact_visible?: unknown })?.contact_visible, true);
+
+    // A reader the database gives nothing (Starter, suspended), and a database without 0145: today's locked card.
+    for (const answer of [{ data: null, error: null }, { data: null, error: { code: "PGRST202", message: "Could not find the function" } }]) {
+      given({ profile: PROFILE, hscodes: HS, contactCounts: counts, rpcs: { supplier_contact_details: answer } });
+      const locked = await open();
+      assert.doesNotMatch(locked, /mailto:|href="tel:|data-contact-details/);
+      assert.match(locked, /Contact details are locked\. Send an RFQ and the supplier replies here\./);
+      assert.equal(notes("contact.revealed").length, 0, "a reveal was written for a reader who saw no details");
+      assert.equal((notes("supplier.viewed")[0]?.args?.p_content as { contact_visible?: unknown })?.contact_visible, false, "the open claims contact details were on the record");
+    }
+  });
+
   it("a slow read says so; it does not answer not-found", async () => {
     // A statement timeout is not a missing record. Returning 404 for a busy
     // database tells the buyer the company is not on SourceBD.
@@ -1633,7 +1668,7 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
     const out = html(await overlay({ q: "knit", record: "aboni-knitwear", line: "6105" }));
     assert.match(out, /aria-label="Product line"/);
     assert.equal(rpcCalls.filter((c) => c.fn === "buyer_supplier_profile").length, 1, "the line read the profile twice");
-    for (const fn of ["supplier_contact_counts", "buyer_supplier_facility_panel"]) {
+    for (const fn of ["supplier_contact_counts", "supplier_contact_details", "buyer_supplier_facility_panel"]) {
       assert.ok(!rpcCalls.some((c) => c.fn === fn), `a line read the record sheet's ${fn}, which it never draws`);
     }
     assert.ok(!fromCalls.some((c) => c.table === "rfqs"), "a line read the record's RFQs, which it never draws");
@@ -1801,7 +1836,7 @@ describe("cycle 6: what the routes send, and the branches cycle 6 found untested
     // error on every read, rendered as "could not be read" on every record.
     given({ profile: PROFILE, hscodes: HS });
     html(await fullPage("aboni-knitwear"));
-    const bySlug = ["buyer_supplier_profile", "supplier_epb_hscodes", "supplier_contact_counts", "buyer_supplier_facility_panel"];
+    const bySlug = ["buyer_supplier_profile", "supplier_epb_hscodes", "supplier_contact_counts", "supplier_contact_details", "buyer_supplier_facility_panel"];
     for (const fn of bySlug) {
       const calls = rpcCalls.filter((c) => c.fn === fn);
       assert.ok(calls.length > 0, `${fn} was never called`);

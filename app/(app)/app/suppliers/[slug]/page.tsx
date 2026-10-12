@@ -7,10 +7,13 @@
 // `(public)/suppliers/[slug]` is a separate surface and is untouched.
 //
 // Contact PII hard contract (agent-brief, code-standards): the sheet receives
-// COUNTS from `supplier_contact_counts` (0105) and no value. There is nothing
-// in the payload to un-blur, and `components/record/record.test.ts` asserts
-// that none of `email_primary` / `phones` / `contact_name` / `contact_role`
-// reaches the HTML. Registers also write phone numbers and e-mails into
+// COUNTS from `supplier_contact_counts` (0105). The values reach it one way
+// only: `supplier_contact_details` (0145), which the database answers for an
+// admin or a Growth or Enterprise buyer and for nobody else (founder, 12 Oct
+// 2026). Nothing in the profile payload is ever un-blurred, and
+// `components/record/record.test.ts` asserts that none of `email_primary` /
+// `phones` / `contact_name` / `contact_role` reaches the HTML for a reader the
+// database gave no details. Registers also write phone numbers and e-mails into
 // address text; every record builder strips them first (`lib/contact-text.ts`),
 // and `app/(app)/app/record-routes.test.ts` asserts it through this route.
 //
@@ -124,9 +127,10 @@ export default async function SupplierRecordPage({
     notFound();
   }
 
-  // The open is written to the activity record as this buyer's (moderation plan 1d): a signed-in record
-  // carries the company's contact details, so the open is the reveal. Not awaited, never failing the page.
-  void noteActivity(supabase, "supplier.viewed", { content: { slug, via: "page", contact_visible: true } });
+  // The open is written to the activity record as this buyer's (moderation plan 1d), saying whether the
+  // company's contact details were on it (0145; the reveal itself is written by `loadRecordSheet`).
+  // Not awaited, never failing the page.
+  void noteActivity(supabase, "supplier.viewed", { content: { slug, via: "page", contact_visible: model.contact.details !== null } });
 
   // The record fills the content region: its bar at the top, its action bar
   // at the bottom, the body scrolling between them at the record's measure.

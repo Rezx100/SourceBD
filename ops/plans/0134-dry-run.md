@@ -10,7 +10,8 @@ terms is recorded too (legal track 4.10).
 | Where | What the record gets |
 | -- | -- |
 | Results page (`/app/discover`) | `search.run` with the search and the count |
-| A record opened (pane or page) | `supplier.viewed`, with `contact_visible: true` (a signed-in record shows the contact details) |
+| A record opened (pane or page) | `supplier.viewed`, with `contact_visible` true only when the contact details were on it (12 Oct 2026: before 0145 the code wrote `true` on every open, though none were shown) |
+| A record read with its contact details (0145: Growth, Enterprise, admins) | `contact.revealed` with the slug |
 | A line opened | `supplier.line_viewed` |
 | An RFQ opened (buyer pane or page, supplier page) | `rfq.viewed` with the viewer's role |
 | An order opened | `order.viewed` |

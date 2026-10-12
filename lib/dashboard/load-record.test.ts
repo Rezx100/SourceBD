@@ -16,6 +16,7 @@ import { describe, it } from "node:test";
 import {
   ProfileReadTimeout,
   fetchContactCounts,
+  fetchContactDetails,
   fetchRecordRfqs,
   fetchRecordSaved,
   fetchSanctionsRead,
@@ -147,6 +148,93 @@ describe("fetchContactCounts", () => {
   it("absorbs a thrown client", async () => {
     assert.equal(await fetchContactCounts({ rpc: async () => { throw new Error("network"); } }, "x"), null);
   });
+});
+
+describe("fetchContactDetails (0145: the database answers only an admin or a Growth or Enterprise buyer)", () => {
+  const details = (data: unknown, error: unknown = null) => fetchContactDetails({ rpc: async () => ({ data, error }) }, "x");
+
+  it("maps what the database returned, and asks by the name the SQL declares", async () => {
+    const calls: unknown[] = [];
+    const got = await fetchContactDetails(
+      {
+        rpc: async (fn, args) => (calls.push([fn, args]), { data: { emails: ["a@b.example", "c@d.example"], phones: ["+880 1754392350"], website: "http://b.example", person: "Md. Karim Uddin", role: "Managing Director" }, error: null }),
+      },
+      "aboni-knitwear",
+    );
+    assert.deepEqual(got, { emails: ["a@b.example", "c@d.example"], phones: ["+880 1754392350"], website: "http://b.example", person: "Md. Karim Uddin", role: "Managing Director" });
+    assert.deepEqual(calls, [["supplier_contact_details", { p_slug: "aboni-knitwear" }]]);
+  });
+
+  it("a record holding nothing is empty lists and nulls, which is a real answer", async () => {
+    assert.deepEqual(await details({ emails: [], phones: [], website: null, person: null, role: null }), { emails: [], phones: [], website: null, person: null, role: null });
+  });
+
+  it("keeps only strings, and a role only beside a person", async () => {
+    assert.deepEqual(await details({ emails: ["a@b.example", 7, null, " "], phones: "01700", website: 5, person: "", role: "Director" }), {
+      emails: ["a@b.example"],
+      phones: [],
+      website: null,
+      person: null,
+      role: null,
+    });
+  });
+
+  for (const [label, data, error] of [
+    ["an error (0145 not applied yet answers one)", null, { code: "PGRST202", message: "Could not find the function public.supplier_contact_details" }],
+    ["null: a reader the database does not entitle", null, null],
+    ["a string", "a@b.example", null],
+    ["a number", 7, null],
+    ["a list", ["a@b.example"], null],
+  ] as const) {
+    it(`returns null on ${label}`, async () => {
+      assert.equal(await details(data, error), null);
+    });
+  }
+
+  it("absorbs a thrown client", async () => {
+    assert.equal(await fetchContactDetails({ rpc: async () => { throw new Error("network"); } }, "x"), null);
+  });
+});
+
+describe("loadRecordSheet: the contact details", () => {
+  const DETAILS = { emails: ["sales@aboni.example"], phones: ["+880 1754392350"], website: "aboni.example", person: "Md. Karim Uddin", role: null };
+  function sheetClient(details: Rpc) {
+    const calls: { fn: string; args: Record<string, unknown> }[] = [];
+    const c = { select: () => c, eq: () => c, contains: () => c, order: () => c, limit: () => Promise.resolve({ data: [], error: null, count: 0 }), maybeSingle: () => Promise.resolve({ data: null }) };
+    return {
+      calls,
+      auth: { getUser: async () => ({ data: { user: { id: "buyer-1" } } }) },
+      from: () => c,
+      rpc: async (fn: string, args: Record<string, unknown>) => {
+        calls.push({ fn, args });
+        return fn === "buyer_supplier_profile" ? PROFILE : fn === "supplier_contact_details" ? details : { data: null, error: null };
+      },
+    };
+  }
+
+  it("what the database returned reaches the sheet, and the reveal is written to the activity record", async () => {
+    const c = sheetClient({ data: DETAILS, error: null });
+    const sheet = await loadRecordSheet(c, "aboni-knitwear", TODAY, {});
+    assert.deepEqual(sheet?.contact.details, DETAILS);
+    const notes = c.calls.filter((x) => x.fn === "ledger_note");
+    assert.equal(notes.length, 1);
+    assert.equal(notes[0]!.args.p_kind, "contact.revealed");
+    assert.equal(notes[0]!.args.p_supplier, String(ABONI.profile.supplier.id));
+    assert.deepEqual(notes[0]!.args.p_content, { slug: "aboni-knitwear" });
+  });
+
+  for (const [label, answer] of [
+    ["a reader the database does not entitle", { data: null, error: null }],
+    ["a database without 0145", { data: null, error: { code: "PGRST202", message: "Could not find the function" } }],
+  ] as const) {
+    it(`${label} gets a sheet with no details, and no reveal is written`, async () => {
+      const c = sheetClient(answer);
+      const sheet = await loadRecordSheet(c, "aboni-knitwear", TODAY, {});
+      assert.ok(sheet, "the record still loads");
+      assert.equal(sheet.contact.details, null);
+      assert.ok(!c.calls.some((x) => x.fn === "ledger_note"), "a reveal was written for a reader who saw no details");
+    });
+  }
 });
 
 describe("loadRecordSheet: the reads a row's id starts early", () => {
