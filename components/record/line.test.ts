@@ -45,7 +45,20 @@ describe("the line on a phone (Paper page 36, export-line)", () => {
     // In the drawer a narrow window gets, the bar sticks to the drawer's scroll.
     assert.match(phone(sheet(), "pane"), /<div data-line-actions="" class="bottom-0 sticky">/);
     // No customs record on the model: the line says nothing about customs.
-    assert.doesNotMatch(text(out), /Customs records|split by HS code/);
+    assert.doesNotMatch(text(out), /Customs records|Supplier's exports|split by HS code/);
+  });
+
+  it("lists only the line's own receipts: the record's facts and the ones nothing is on file for stay off the phone (founder, 12 Oct 2026)", () => {
+    const m = sheet();
+    const out = plain(phone(m));
+    // The EPB exporter page is a row that opens it; a certificate whose scope covers the line is its scheme, its number and its state.
+    const receipts = /<ul data-line-receipts=""[\s\S]*?<\/ul>/.exec(out)?.[0] ?? "";
+    assert.match(receipts, /<a href="https?:\/\/[^"]+"[^>]*>[\s\S]*?EPB exporter page/);
+    assert.doesNotMatch(text(receipts), /dyeing|products:|embroidery/i, "a certificate row prints the scope's words");
+    // The desktop's fact list is not drawn again under it.
+    for (const gone of ["On the record", "Exporting since", "Other lines", "Product list", "Buyer lists", "Price · MOQ", "Chapter", "By market", "Not attested"]) assert.ok(!text(out).includes(gone), `the phone's line still lists "${gone}"`);
+    // The desktop keeps every fact.
+    for (const kept of ["Exporting since", "Other lines", "Product list"]) assert.ok(text(view(m, "page")).includes(kept), `the desktop lost "${kept}"`);
   });
 
   it("refuses a sanctioned record in words, with no Send RFQ", () => {
