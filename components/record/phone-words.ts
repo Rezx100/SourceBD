@@ -109,8 +109,6 @@ export function windowSpan(v: Pick<VolzaExports, "window_start" | "window_end">)
   return months % 12 === 0 ? `${months / 12} ${months === 12 ? "year" : "years"}` : `${months} months`;
 }
 
-export type Tile = { label: string; value: string; sub: string | null };
-
 const SHORT: Record<VolzaMarketName, string> = { "United Kingdom": "the UK", "United States": "the US", EU: "the EU", Canada: "Canada" };
 const place = (raw: string | null | undefined) => (raw && raw !== "Not Available" ? raw : null);
 
@@ -123,28 +121,11 @@ export function shipmentLine(s: VolzaShipment): string {
   return to ? `${what} to ${to}` : what;
 }
 
-/** The Overview's four tiles: value, shipments a month, buyers, and the stored shipment (latest only when 0140 says so). */
-export function customsTiles(v: VolzaExports, today: Date): Tile[] {
-  const tiles: Tile[] = [];
-  if (v.fob_usd !== null) tiles.push({ label: `Export value, ${windowSpan(v)}`, value: formatUsdShort(v.fob_usd), sub: "Free on board, every line together" });
-  const a = new Date(`${v.window_start.slice(0, 10)}T00:00:00Z`);
-  const b = new Date(`${v.window_end.slice(0, 10)}T00:00:00Z`);
-  const months = (b.getUTCFullYear() - a.getUTCFullYear()) * 12 + b.getUTCMonth() - a.getUTCMonth() + 1;
-  if (months > 0 && v.shipments / months >= 1.5) {
-    tiles.push({ label: "Shipments a month", value: Math.round(v.shipments / months).toLocaleString("en-GB"), sub: `${v.shipments.toLocaleString("en-GB")} in all` });
-  } else {
-    tiles.push({ label: "Shipments", value: v.shipments.toLocaleString("en-GB"), sub: `in ${windowSpan(v)}` });
-  }
-  if (v.buyers !== null) tiles.push({ label: "Buyers", value: v.buyers.toLocaleString("en-GB"), sub: "named on the records" });
-  const s = v.top_record ?? v.top_shipments[0] ?? null;
-  if (s) {
-    const latest = v.record_sort === "date";
-    const day = formatDay(s.shipment_date?.slice(0, 10));
-    const ago = daysSince(s.shipment_date, today);
-    if (latest && day) tiles.push({ label: "Latest shipment", value: day.replace(/ \d{4}$/, ""), sub: `${shipmentLine(s)}${ago !== null ? `, ${ago} ${ago === 1 ? "day" : "days"} ago` : ""}` });
-    else if (!latest && s.trade_value_usd !== null) tiles.push({ label: "Biggest shipment", value: formatUsdShort(s.trade_value_usd), sub: [shipmentLine(s), day].filter(Boolean).join(", ") });
-  }
-  return tiles;
+/** The market that takes the most by value: the one the Overview's fourth tile is about, whoever is reading. */
+export function biggestMarket(v: Pick<VolzaExports, "markets">): VolzaMarketName | null {
+  const m = v.markets ?? {};
+  const held = (Object.keys(m) as VolzaMarketName[]).filter((k) => (m[k]?.shipments ?? 0) > 0);
+  return held.sort((a, b) => (m[b]!.fob_usd ?? 0) - (m[a]!.fob_usd ?? 0) || m[b]!.shipments - m[a]!.shipments)[0] ?? null;
 }
 
 export type MarketShare = { name: string; shipments: number; buyers: number | null; value: string | null; pct: number | null };
