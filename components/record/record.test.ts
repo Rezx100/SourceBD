@@ -1169,6 +1169,39 @@ describe("the record's minors, round 3 (critique of 8 Oct 2026, round 3, item 7)
     assert.match(view(m, { mode: "pane" }), /<div class="sticky bottom-0 [^"]*max-sm:hidden[^"]*">(?:(?!<\/div>)[\s\S])*Send RFQ<\/a><\/div>/);
   });
 
+  it("the stuck bar waits under the head, so the head sliding away uncovers it: nothing appears below the head or jumps", () => {
+    // Founder, 13 Oct 2026: the bar came after the head, so it showed under the last of it (the statuses twice) and then jumped to the top.
+    const out = view(model(), { mode: "page" });
+    const bar = out.indexOf("<div data-record-stuck=");
+    const head = out.indexOf("<header data-record-head=");
+    assert.ok(bar > 0 && bar < head, "the stuck bar is drawn before the head");
+    // Same layer, later in the page: the head is painted over the bar while any of it is in the way.
+    assert.match(out, /<div data-record-stuck="" class="sticky top-0 z-raised h-0 /);
+    assert.match(out, /<header data-record-head="" class="relative z-raised [^"]*\bbg-surface\b/);
+  });
+
+  it("a table takes its wide layout only where its flexible column keeps room: no column is crushed to a letter a line", () => {
+    // Founder, 13 Oct 2026: at 760px of column the certificate's name had 0px and a site's address 30px.
+    const room = (cols: string, at: number, gap: number, taken = 0) => {
+      const fixed = [...cols.matchAll(/(\d+)px/g)].reduce((n, m) => n + Number(m[1]), 0);
+      return at - taken - 24 - fixed - gap * (cols.split("_").length - 1);
+    };
+    const desktop = readFileSync(path.join(dir, "desktop.tsx"), "utf8");
+    const cert = /\[@container_\(min-width:(\d+)px\)\]:grid-cols-\[(minmax\(0,1fr\)(?:_\d+px){5})\] \[@container_\(min-width:\1px\)\]:gap-x-3/.exec(desktop);
+    assert.ok(cert, "the certificates' six columns");
+    assert.ok(room(cert[2]!.replace("minmax(0,1fr)", ""), Number(cert[1]), 12) >= 200, "a certificate's name keeps 200px in the six-column table");
+    assert.doesNotMatch(desktop.slice(desktop.indexOf("const CERT_COLS ="), desktop.indexOf("export function CertificatesSection")), /min-width:760px/, "one rule of the certificates' table still switches at 760");
+    const sites = readFileSync(path.join(dir, "desktop-sites.tsx"), "utf8");
+    const cols = /const COLS = "grid grid-cols-\[([^\]]+)\] items-center gap-x-3";/.exec(sites);
+    const beside = /\[@container_\(min-width:(\d+)px\)\]:flex-row/.exec(sites);
+    const map = /\[@container_\(min-width:\d+px\)\]:w-\[(\d+)px\]/.exec(sites);
+    assert.ok(cols && beside && map, "the sites' columns, and where the map goes beside them");
+    // The map, its 12px inset and the 20px between it and the table come off the column first.
+    assert.ok(room(cols[1]!.replace("minmax(0,1fr)", ""), Number(beside[1]), 12, Number(map[1]) + 12 + 20 - 24) >= 200, "a site's address keeps 200px beside the map");
+    // Key facts: a figure and its source break between their parts before a part is split.
+    assert.match(view(model(), { mode: "page" }), /<dd class="text-xs text-ink-3"><span class="inline-block">From RSC ·<\/span> <span class="inline-block">across 2 sites<\/span><\/dd>/);
+  });
+
   it("a read date keeps its year unless it is this year's: a bare day and month must not make an old read look recent", () => {
     const m = model();
     assert.match(text(view(m, { mode: "page" })), /ASOS Supplier list · read 30 Jul HM /);
