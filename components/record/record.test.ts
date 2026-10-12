@@ -403,9 +403,9 @@ describe("the export grid works its figures out from the customs record", () => 
   it("draws the grid, the market table and the customs buyers only when the model holds customs figures", () => {
     for (const mode of ["page", "pane"] as const) {
       const free = text(view(model(), { mode }));
-      assert.doesNotMatch(free, /Export value|Typical shipment|Where it goes|Customs records|US\$|All exports/, `${mode}: a reader with no customs figures sees one`);
+      assert.doesNotMatch(free, /Export value|Typical shipment|Where it goes|Markets and shipments|Customs records|US\$|All exports/, `${mode}: a reader with no customs figures sees one`);
       const paid = text(view(model(aboniInput(), { volza: V, market: "United Kingdom" }), { mode }));
-      assert.match(paid, /Exports All exports Export value, 2 years US\$76\.6m Typical shipment US\$27,000 43% under 1,000 pieces Buyers 254 30 in the UK · 11 shipments each Ships to the UK US\$7\.2m 9% of exports · 347 shipments Customs records, Sep 2024 – Aug 2026 · latest shipment on record 30 Aug · read 11 Sep /, mode);
+      assert.match(paid, /Exports Markets and shipments Export value, 2 years US\$76\.6m Typical shipment US\$27,000 43% under 1,000 pieces Buyers 254 30 in the UK · 11 shipments each Ships to the UK US\$7\.2m 9% of exports · 347 shipments Customs records, Sep 2024 – Aug 2026 · latest on record 30 Aug · read 11 Sep /, mode);
       assert.match(paid, /Exports US\$76\.6m free on board across 2,830 shipments, every product line together\. Where it goes Share of export value, by market Market Share of value Value Shipments Buyers European Union 56% US\$43m 1,018 85 /, mode);
       // Never "last shipped", and never a price a piece (the stored one is not checked).
       assert.doesNotMatch(paid, /last shipped|a piece|per piece|4\.2\b/i, mode);

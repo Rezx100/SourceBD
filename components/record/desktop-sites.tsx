@@ -58,7 +58,7 @@ export function DesktopSites({ lines, slug, baseHref, initial = null, mapKey }: 
           </div>
           {nearby.enabled && nearby.failed ? <p role="status" className="text-xs text-ink-2">Nearby suppliers could not be read. Switch it off and on to try again.</p> : null}
           {nearby.enabled && !nearby.failed && !nearby.pending && nearby.loaded && nearby.sites.length === 0 ? <p role="status" className="text-xs text-ink-2">No other published SourceBD site within 6 km of this view.</p> : null}
-          <p className="text-xs text-ink-3">{MAP_ATTRIBUTION[mapStyle]}. Pins are placed from the address text, so they are approximate.</p>
+          <p className="text-xs text-ink-3">{MAP_ATTRIBUTION[mapStyle]}. Pins are approximate.</p>
         </div>
       ) : null}
       <div role="table" aria-label="Sites" className="flex min-w-0 flex-1 flex-col">
