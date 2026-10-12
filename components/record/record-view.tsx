@@ -159,8 +159,29 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
 
       {page ? (
         <>
-          {/* The page's head scrolls away with the page; the bar under it takes over. */}
-          <header data-record-head="" className="flex flex-col gap-2 border-b border-line bg-surface px-6 pb-4 pt-3 max-sm:hidden lg:px-8">
+          {/* The stuck bar. Before the head and with no height of its own, so it sits at the top of the scroll from
+              the start, under the head: the head sliding away uncovers it, with nothing to appear or jump
+              (founder, 13 Oct 2026: it showed below the last of the head, the statuses twice, then jumped up).
+              `data-stuck` (the nav's script) only takes it out of reach while the head still covers it. */}
+          <div data-record-stuck="" className="sticky top-0 z-raised h-0 max-sm:hidden">
+            <div className="invisible absolute inset-x-0 top-0 flex h-14 items-center gap-3.5 border-b border-line bg-surface px-6 group-data-[stuck]/record:visible lg:px-8">
+              {backHref ? (
+                <Link href={backHref} aria-label="Back to results" className={cn("flex size-8 shrink-0 items-center justify-center rounded-full bg-sunken text-ink-2 hover:bg-line", ring)}>
+                  <CaretLeft size={16} weight="thin" aria-hidden />
+                </Link>
+              ) : null}
+              <p className="min-w-0 shrink text-[18px]/[26px] font-semibold tracking-tight text-ink [overflow-wrap:anywhere]">{model.name}</p>
+              <StatusStrip statuses={statuses} href={hrefOf("checks")} className="h-[30px] max-lg:hidden" />
+              <span className="min-w-0 flex-1" />
+              <div className="flex shrink-0 items-center gap-2">
+                <ShareButton href={model.fullHref} className="size-8" />
+                {actions}
+              </div>
+            </div>
+          </div>
+          {/* The page's head scrolls away with the page and uncovers the bar waiting under it: on the bar's own
+              layer and after it, so it is drawn over the bar for as long as any of it is in the way. */}
+          <header data-record-head="" className="relative z-raised flex flex-col gap-2 border-b border-line bg-surface px-6 pb-4 pt-3 max-sm:hidden lg:px-8">
             {backHref ? (
               <Link href={backHref} className={cn("flex min-h-6 w-fit items-center gap-1 rounded-sm text-sm font-medium text-brand-ink underline decoration-1 underline-offset-[3px] hover:decoration-2", ring)}>
                 <CaretLeft size={14} weight="thin" className="shrink-0" aria-hidden />
@@ -192,23 +213,6 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
               </div>
             </div>
           </header>
-          {/* No height of its own, so showing it moves nothing: it is laid over the top of the scroll once the head is gone (`data-stuck`, set by the nav's script). */}
-          <div data-record-stuck="" className="sticky top-0 z-raised h-0 max-sm:hidden">
-            <div className="invisible absolute inset-x-0 top-0 flex h-14 items-center gap-3.5 border-b border-line bg-surface px-6 group-data-[stuck]/record:visible lg:px-8">
-              {backHref ? (
-                <Link href={backHref} aria-label="Back to results" className={cn("flex size-8 shrink-0 items-center justify-center rounded-full bg-sunken text-ink-2 hover:bg-line", ring)}>
-                  <CaretLeft size={16} weight="thin" aria-hidden />
-                </Link>
-              ) : null}
-              <p className="min-w-0 shrink text-[18px]/[26px] font-semibold tracking-tight text-ink [overflow-wrap:anywhere]">{model.name}</p>
-              <StatusStrip statuses={statuses} href={hrefOf("checks")} className="h-[30px] max-lg:hidden" />
-              <span className="min-w-0 flex-1" />
-              <div className="flex shrink-0 items-center gap-2">
-                <ShareButton href={model.fullHref} className="size-8" />
-                {actions}
-              </div>
-            </div>
-          </div>
         </>
       ) : (
         // 14px over the name in the pane: its baseline then meets the list bar's title beside it (56 tall, centred).
