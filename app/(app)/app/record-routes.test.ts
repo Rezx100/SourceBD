@@ -342,6 +342,7 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     assert.match(refused, /Products What it ships \d+ Product codes on its EPB exporter page\./, "the record lost the EPB export lines");
     assert.ok(rpcCalls.some((c) => c.fn === "supplier_volza_exports" && c.args?.p_slug === "hamza-clothing"), "the page never asked for the customs read");
     assert.ok(!rpcCalls.some((c) => c.fn === "onboarding_get_buyer"), "the reader's market was read with no customs figures to draw it on");
+    assert.ok(!rpcCalls.some((c) => c.fn === "supplier_export_rank"), "the rank was read with no export value to rank");
 
     // Hamza Clothing's real row (launch batch, 10 Oct 2026), the biggest shipment stored (record_sort "value").
     const top = { shipment_date: "2026-03-24T00:00:00", hsn_code: "61091000", product_description: "BOYS TEE", buyer_name: "THE HADDAD APPAREL GROUP LTD 131 D", destination_country: "United States", trade_value_usd: 607667.888, unit_rate_usd: 1.71, unit: "PCS" };
@@ -371,6 +372,22 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     assert.doesNotMatch(text, /Volza/i, "the profile names the data provider");
     // The reader's market is read once, beside the figures it is drawn on.
     assert.equal(rpcCalls.filter((c) => c.fn === "onboarding_get_buyer").length, 1);
+
+    // 0147: the rank among exporters on record fills the line under the value. Before it is applied (the read
+    // answers nothing) and for any answer that is not a whole percent from 0 to 99, the tile is the value alone.
+    given({ profile: PROFILE, hscodes: HS, rpcs: { supplier_volza_exports: { data: row({ record_sort: "value" }), error: null }, supplier_export_rank: { data: 88, error: null } } });
+    assert.match(desk(html(await outcome(open))), /Export value, 2 years US\$21\.7m Bigger than 88% of exporters on record Typical shipment US\$53,000/);
+    assert.deepEqual(rpcCalls.filter((c) => c.fn === "supplier_export_rank").map((c) => c.args), [{ p_slug: "hamza-clothing" }]);
+    for (const answer of [{ data: 100, error: null }, { data: -1, error: null }, { data: 88.5, error: null }, { data: "88", error: null }, { data: null, error: { code: "PGRST202", message: "Could not find the function" } }]) {
+      given({ profile: PROFILE, hscodes: HS, rpcs: { supplier_volza_exports: { data: row({ record_sort: "value" }), error: null }, supplier_export_rank: answer } });
+      const out = desk(html(await outcome(open)));
+      assert.match(out, /Export value, 2 years US\$21\.7m Typical shipment/, `rank ${JSON.stringify(answer.data)}`);
+      assert.doesNotMatch(out, /Bigger than/, `rank ${JSON.stringify(answer.data)}`);
+    }
+    // A record with no export value has nothing to rank: the read is not made.
+    given({ profile: PROFILE, hscodes: HS, rpcs: { supplier_volza_exports: { data: row({ fob_usd: null }), error: null }, supplier_export_rank: { data: 88, error: null } } });
+    assert.doesNotMatch(desk(html(await outcome(open))), /Bigger than/);
+    assert.ok(!rpcCalls.some((c) => c.fn === "supplier_export_rank"));
 
     // The country the reader gave at onboarding (0109) is their market: the fourth tile is theirs, and the buyers say how many are there.
     given({ profile: PROFILE, hscodes: HS, rpcs: { supplier_volza_exports: { data: row({ record_sort: "value" }), error: null }, onboarding_get_buyer: { data: { company_country: "GB" }, error: null } } });
@@ -1596,6 +1613,39 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
     const filed = /<p data-filed-products=""[^>]*>([^<]*)<\/p>/.exec(pages.full)?.[1] ?? "";
     assert.deepEqual(filed.split("·").map((x) => x.trim()), ["Knit T-shirt 61091000", "Polo Shirt"]);
     assert.match(pages.full.replace(/<[^>]*>/g, " ").replace(/\s+/g, " "), /As filed 2 /);
+  });
+
+  it("a results row's customs cell is what discover_export_cells answered: figures for a reader it entitles, a lock for anyone else, and nothing claimed when it could not be read (0147)", async () => {
+    const cells = (fob: number | null, markets: string[] | null) => ({ data: [{ supplier_id: ROW.id, has_records: true, fob_usd: fob, markets }], error: null });
+    const open = async (rpcs: Record<string, { data: unknown; error: unknown }>, sp: Record<string, string> = { q: "knit" }) => {
+      given({ profile: PROFILE, hscodes: HS, discover: { data: [ROW], error: null }, rpcs });
+      return html(await overlay(sp));
+    };
+    const said = (s: string) => s.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
+    const yes = { data: true, error: null };
+
+    // Growth, Enterprise, an admin: the value, then the markets, biggest share first. Asked once, for the page's own suppliers.
+    const paid = await open({ volza_reader_entitled: yes, discover_export_cells: cells(76578613.86, ["EU", "US", "UK", "CA"]) });
+    assert.match(said(paid), /US\$76\.6m Ships to the EU, the US, the UK and Canada EU US UK CA/);
+    assert.deepEqual(rpcCalls.filter((c) => c.fn === "discover_export_cells").map((c) => c.args), [{ p_ids: [ROW.id] }]);
+    // Beside an open record the list row says it too.
+    assert.match(said(await open({ volza_reader_entitled: yes, discover_export_cells: cells(76578613.86, ["EU", "US"]) }, { q: "knit", record: "aboni-knitwear" })), /US\$76\.6m exported, 2 years Ships to the EU and the US ships to EU US/);
+
+    // Anyone else: a lock, and no figure or market even if one rode along in the answer.
+    const free = await open({ volza_reader_entitled: { data: false, error: null }, discover_export_cells: cells(76578613.86, ["EU", "US"]) });
+    assert.match(said(free), /On Growth : customs records are on the Growth and Enterprise plans/);
+    assert.doesNotMatch(free, /US\$76|76578613|Ships to/, "a reader the database does not entitle saw a customs figure in the results");
+
+    // The read found none for this supplier: a dash that says so. A market code the app does not know is dropped.
+    assert.match(await open({ volza_reader_entitled: yes, discover_export_cells: { data: [], error: null } }), /title="No customs records on file"/);
+    assert.match(said(await open({ volza_reader_entitled: yes, discover_export_cells: cells(1200000, ["EU", "ZZ"]) })), /US\$1\.2m Ships to the EU EU /);
+
+    // 0147 not applied, or the read failed: the row claims nothing about customs records.
+    for (const answer of [{ data: null, error: { code: "PGRST202", message: "Could not find the function" } }, { data: "nonsense", error: null }]) {
+      const unread = await open({ volza_reader_entitled: yes, discover_export_cells: answer });
+      assert.match(unread, /title="Not read just now"/);
+      assert.doesNotMatch(unread, /No customs records on file|On Growth/);
+    }
   });
 
   it("?lines=all rides INTO a line from the overlay, not only back out", async () => {

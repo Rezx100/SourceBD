@@ -242,7 +242,7 @@ export function RecordView({ model, mode, tab, tabHref, today, backHref = null, 
       <div className={cn("flex items-start gap-8 max-sm:hidden", page ? "px-3 pb-[72px] pt-6 lg:pl-5 lg:pr-8" : "px-3 pb-8 pt-5")}>
         {/* The column the sections measure themselves by: their tables gain columns from 760px of it. */}
         <div className={cn("flex min-w-0 flex-1 flex-col [container-type:inline-size]", page ? "gap-9" : "gap-8")}>
-          <OverviewSection model={model} today={today} level={level} exportsHref={hrefOf("exports")} revealHref={`${tabHref("exports")}#recent-shipments`} market={model.market ?? null} />
+          <OverviewSection model={model} today={today} level={level} exportsHref={hrefOf("exports")} revealHref={`${tabHref("exports")}#recent-shipments`} market={model.market ?? null} rank={model.exportRank ?? null} />
           <ExportsSection model={model} today={today} level={level} />
           <ProductsSection model={model} today={today} level={level} fold={!page} />
           <CertificatesSection model={model} today={today} level={level} />

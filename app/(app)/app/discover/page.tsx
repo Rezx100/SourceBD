@@ -39,7 +39,7 @@ import { FilterPane, UflpaSheetNote } from "@/components/search/filters";
 import { Flash } from "@/components/search/flash";
 import { ShortScroll } from "@/components/search/short-scroll";
 import { PastEnd, PaneRows, PhoneMore, PhoneRows, ResultsEmpty, ResultsError, ResultsFooter } from "@/components/search/list";
-import { resultRow } from "@/components/search/model";
+import { exportedOf, resultRow } from "@/components/search/model";
 import { MoreMenu } from "@/components/search/more-menu";
 import { ComposerSkeleton, LineSkeleton, PaneFrame, PaneNotice, RecordSkeleton } from "@/components/search/pane";
 import { RecordRecentSearch } from "@/components/search/record-recent-search";
@@ -50,7 +50,7 @@ import { buildDiscoverTableRow } from "@/lib/dashboard/build-discover-row";
 import { exportsCell, exportsHead } from "@/lib/dashboard/customs-search";
 import { ProfileReadTimeout, loadLineBeside, loadRecordSheet } from "@/lib/dashboard/load-record";
 import { readSearch } from "@/lib/dashboard/search-cache";
-import { fetchDiscoverExplain, fetchDiscoverExports, fetchDiscoverV32, fetchExportsEntitled, fetchHsBatch } from "@/lib/discover-v32-rpc";
+import { fetchDiscoverExplain, fetchDiscoverExports, fetchDiscoverV32, fetchExportCells, fetchExportsEntitled, fetchHsBatch } from "@/lib/discover-v32-rpc";
 import { fetchFacilityParentSlug } from "@/lib/facility-parent-redirect";
 import { DISCOVER_PATH, discoverChips, discoverHref, exportsSort, exportsView, filterCount, parseDiscoverState, queryTitle, serializeDiscoverState, withPaneParams, type DiscoverState } from "@/lib/discover-v32-state";
 import { noteActivity } from "@/lib/ledger/note";
@@ -129,7 +129,12 @@ export default async function BuyerDiscoverPage({
           )
           .then((r) => r.data ?? [])
       : Promise.resolve([] as unknown[]),
-  ]).then(([hs, savedRows]) => {
+    // Each row's customs cell (0147): asked with the reader's own session, so it never rides the shared search cache.
+    fetchExportCells(
+      supabase,
+      rows.map((r) => r.id),
+    ),
+  ]).then(([hs, savedRows, cells]) => {
     const savedSet = new Set<string>();
     for (const r of savedRows) {
       if (r && typeof r === "object" && typeof (r as { supplier_id?: unknown }).supplier_id === "string") {
@@ -138,7 +143,7 @@ export default async function BuyerDiscoverPage({
     }
     const rowOpts = { today, hsLines: hs.lines, hsError: hs.error, recordHref, rfqHref };
     return rows.map((row) =>
-      resultRow(buildDiscoverTableRow(row, { ...rowOpts, saved: savedSet.has(row.id) }), today, pageHref(row.slug), exportsOn && row.exports ? exportsCell(row.exports, rowSort) : null, { q: state.q }),
+      resultRow(buildDiscoverTableRow(row, { ...rowOpts, saved: savedSet.has(row.id) }), today, pageHref(row.slug), exportsOn && row.exports ? exportsCell(row.exports, rowSort) : null, { q: state.q, exported: exportedOf(cells, row.id, entitled) }),
     );
   });
   // An empty or failed search never draws the rows; its rejection must not go unhandled. Drawn, it still throws.

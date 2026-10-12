@@ -230,6 +230,21 @@ export async function fetchVolzaExports(supabase: RecordRpc, slug: string): Prom
 }
 
 /**
+ * Where the supplier's two-year export value sits among the exporters on record (`supplier_export_rank`,
+ * 0147): the whole percent of them it is bigger than, 0 to 99. The database answers only a reader it
+ * entitles to customs figures. Null hides the line under the value: not entitled, no value to rank, too
+ * few exporters to compare, a failed read, or 0147 not applied yet.
+ */
+export async function fetchExportRank(supabase: RecordRpc, slug: string): Promise<number | null> {
+  try {
+    const { data, error } = await supabase.rpc("supplier_export_rank", { p_slug: slug });
+    return !error && typeof data === "number" && Number.isInteger(data) && data >= 0 && data <= 99 ? data : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * The reader's own customs market, from the country they gave at onboarding (`onboarding_get_buyer`, 0109).
  * Null when none was given, when it is outside the four markets the records split out, or when the read failed:
  * the export grid then names the biggest market instead.
@@ -464,6 +479,8 @@ export async function loadRecordSheet(
   const shipmentsRead = fetchShipmentRevealState(supabase, slug);
   // The reader's market is drawn only on the export grid, so it is read only once the customs figures came back.
   const marketRead = volzaRead.then((v) => (v ? fetchReaderMarket(supabase) : null));
+  // The rank is of the export value, so it is read only when the customs figures came back with one.
+  const rankRead = volzaRead.then((v) => (v && v.fob_usd !== null ? fetchExportRank(supabase, slug) : null));
   // Opened from a row that carries the id: the reads keyed by it start now,
   // beside the profile (founder's video, 29 Sep 2026: every open waited on a
   // second round trip after the first).
@@ -489,7 +506,7 @@ export async function loadRecordSheet(
         .then((found) => found?.map((g) => (g ? { latitude: g.latitude, longitude: g.longitude, confidencePct: g.confidencePct, addressStatus: g.addressStatus } : null)))
         .catch(() => undefined)
     : Promise.resolve(undefined);
-  const [workers, contactCounts, contactDetails, saved, rfqs, facilities, pins, sanctionLists, certChecks, volza, shipments, market] = await Promise.all([
+  const [workers, contactCounts, contactDetails, saved, rfqs, facilities, pins, sanctionLists, certChecks, volza, shipments, market, exportRank] = await Promise.all([
     // A failed batch leaves the figure the record's own payload carries.
     reuse ? reuse.workers : fetchDisplayWorkersBatch(supabase, [supplierId]).catch(() => null),
     countsRead,
@@ -503,6 +520,7 @@ export async function loadRecordSheet(
     volzaRead,
     shipmentsRead,
     marketRead,
+    rankRead,
   ]);
   if (workers) assignWorkers([record], workers);
   return buildSheet(record.input, {
@@ -517,6 +535,7 @@ export async function loadRecordSheet(
     volza,
     shipments,
     market,
+    exportRank,
     saved,
     supplierId,
     rfqs,

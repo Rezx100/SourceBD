@@ -101,10 +101,12 @@ export function PaneRows({ rows, currentSlug }: { rows: readonly ResultRow[]; cu
                         <ExportedLocked className="h-5" />
                       ) : (
                         <>
-                          <span className="flex items-baseline gap-[5px] whitespace-nowrap">
-                            <span className="text-[15px]/[20px] font-medium text-ink [@container_(max-width:459px)]:text-xs [@container_(max-width:459px)]:font-semibold">{r.exported.value}</span>
-                            <span className="text-xs text-ink-3">exported, 2 years</span>
-                          </span>
+                          {r.exported.value ? (
+                            <span className="flex items-baseline gap-[5px] whitespace-nowrap">
+                              <span className="text-[15px]/[20px] font-medium text-ink [@container_(max-width:459px)]:text-xs [@container_(max-width:459px)]:font-semibold">{r.exported.value}</span>
+                              <span className="text-xs text-ink-3">exported, 2 years</span>
+                            </span>
+                          ) : null}
                           {/* "ships to", or "to" where the list is at its narrowest and the line must hold the value too. */}
                           <ShipsTo
                             to={r.exported.to}
