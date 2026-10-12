@@ -3,8 +3,10 @@ import { describe, it } from "node:test";
 
 import {
   brandsInCustoms,
+  buyersOf,
   capacityNote,
   customsBuyers,
+  knownBuyer,
   certCheckLine,
   customsBand,
   customsRows,
@@ -469,10 +471,32 @@ describe("customs buyers sit beside the brands' own lists, never in place of the
   it("distinct, tidied buyers from the shipments on file; none for a reader the read refused", () => {
     assert.deepEqual(customsBuyers(v(["THE HADDAD APPAREL GROUP LTD 131 D", "TJX UK", "THE HADDAD APPAREL GROUP LTD 131 D"])), ["The Haddad Apparel Group Ltd", "TJX UK"]);
     assert.deepEqual(customsBuyers(null), []);
+    assert.equal(tidyBuyer("PUNTO FA S.L."), "Punto FA S.L.", "initials are not lower-cased");
   });
   it("a listed brand is marked only when a customs buyer names it, strictly", () => {
     const agreed = brandsInCustoms(["H&M", "NEXT", "Primark"], v(["H & M HENNES & MAURITZ GBC AB", "NEXT LEVEL APPAREL INC", "PENNEYS DUBLIN"]));
     assert.deepEqual([...agreed].sort(), ["H&M", "Primark"], "Next Level Apparel is not NEXT");
     assert.equal(brandsInCustoms(["H&M"], null).size, 0);
+  });
+  it("a customs buyer is shown under the name people use, with the record's own name kept beside it", () => {
+    assert.deepEqual(knownBuyer("Inditex Zara Lelystad Branch Nieu"), { name: "Zara", filed: "Inditex Zara Lelystad Branch Nieu" });
+    assert.deepEqual(knownBuyer("Punto Fa S.L."), { name: "Mango", filed: "Punto Fa S.L." });
+    assert.deepEqual(knownBuyer("Hugo Boss Ticino S A"), { name: "Hugo Boss", filed: "Hugo Boss Ticino S A" });
+    // No trade name on the list: the filed name without the endings nobody says.
+    assert.deepEqual(knownBuyer("Canadian Tire Corporation Ltd"), { name: "Canadian Tire", filed: "Canadian Tire Corporation Ltd" });
+    assert.deepEqual(knownBuyer("White Stuff Ltd"), { name: "White Stuff", filed: "White Stuff Ltd" });
+    assert.deepEqual(knownBuyer("Echo Sourcing"), { name: "Echo Sourcing", filed: null }, "nothing to print small when the name is the record's");
+    assert.deepEqual(knownBuyer("Next Level Apparel Inc"), { name: "Next Level Apparel", filed: "Next Level Apparel Inc" }, "not NEXT");
+    assert.equal(knownBuyer("SA Ltd").name, "SA", "a name is never cut to nothing");
+  });
+  it("one list of buyers: both sources agreeing first, then the brands' lists, then customs alone, no name twice", () => {
+    const rows = buyersOf(["ASOS", "H&M"], v(["H & M HENNES & MAURITZ GBC AB", "INDITEX ZARA LELYSTAD BRANCH NIEU 12", "ZARA HOME ESPANA S A"]));
+    assert.deepEqual(rows, [
+      { name: "H&M", listed: true, customs: true, filed: "H & M Hennes & Mauritz GBC AB" },
+      { name: "ASOS", listed: true, customs: false, filed: null },
+      { name: "Zara", listed: false, customs: true, filed: "Inditex Zara Lelystad Branch Nieu" },
+    ]);
+    assert.deepEqual(buyersOf(["ASOS"], null), [{ name: "ASOS", listed: true, customs: false, filed: null }]);
+    assert.deepEqual(buyersOf([], null), []);
   });
 });
