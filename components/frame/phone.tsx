@@ -25,6 +25,8 @@ import { accountName, type FrameAccount } from "./topbar";
 const FeedbackDialog = dynamic(() => import("./feedback").then((m) => m.FeedbackDialog), { ssr: false });
 
 const HIDE_ON_DETAIL = "max-md:group-has-[[data-detail]]/shell:hidden";
+// A page that starts at its own field (the search results, Paper page 36 `search-results`) has no title over it.
+const HIDE_ON_OWN_TOP = "max-md:group-has-[[data-own-top]]/shell:hidden";
 
 /** A row of the account page's first group (`11 · Account`): an icon, a title and its line, a caret. */
 function SheetRow({ href, icon: G, title, line }: { href: string; icon: typeof Package; title: string; line: string }) {
@@ -149,7 +151,7 @@ export function PhoneBar({ account }: { account: FrameAccount | null }) {
   const title = phoneTitle(usePathname() ?? "");
   const [feedback, setFeedback] = useState(false);
   return (
-    <div className={cn("sticky top-0 z-raised flex h-topbar shrink-0 items-center justify-between bg-surface pl-4 pr-1 md:hidden", HIDE_ON_DETAIL)}>
+    <div className={cn("sticky top-0 z-raised flex h-topbar shrink-0 items-center justify-between bg-surface pl-4 pr-1 md:hidden", HIDE_ON_DETAIL, HIDE_ON_OWN_TOP)}>
       <span className="truncate text-xl font-semibold tracking-tight text-ink">{title}</span>
       {account ? <AccountSheet account={account} onFeedback={() => setFeedback(true)} /> : null}
       {feedback ? <FeedbackDialog onClose={() => setFeedback(false)} /> : null}

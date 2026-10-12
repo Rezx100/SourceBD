@@ -36,8 +36,12 @@ export const PANE_PARAMS = ["record", "tab", "site", "line", "lines", "rfq", "hs
  * On the results page that is the search the buyer is on, with `record=`
  * (the filters and the selection stay); anywhere else it is a search for the
  * company's name with its record open beside it.
+ *
+ * `page` (a phone's field): the record opens as its own page with the way back
+ * to that search, exactly as a phone's result rows open it. Beside the results
+ * a phone only has a drawer titled "Supplier", with no bar of its own.
  */
-export function suggestionHref(s: Suggestion, at: { pathname?: string | null; search?: string | null } = {}): string {
+export function suggestionHref(s: Suggestion, at: { pathname?: string | null; search?: string | null; page?: boolean } = {}): string {
   switch (s.type) {
     case "query":
       return `/app/discover?${new URLSearchParams({ q: s.label }).toString()}`;
@@ -46,13 +50,11 @@ export function suggestionHref(s: Suggestion, at: { pathname?: string | null; se
     case "heading":
       return `/app/discover?${new URLSearchParams({ hs: s.hs }).toString()}`;
     case "company": {
-      if (at.pathname === "/app/discover") {
-        const params = new URLSearchParams(at.search ?? "");
-        for (const k of PANE_PARAMS) params.delete(k);
-        params.set("record", s.slug);
-        return `/app/discover?${params.toString()}`;
-      }
-      return `/app/discover?${new URLSearchParams({ q: s.label, record: s.slug }).toString()}`;
+      const params = at.pathname === "/app/discover" ? new URLSearchParams(at.search ?? "") : new URLSearchParams({ q: s.label });
+      for (const k of PANE_PARAMS) params.delete(k);
+      if (at.page) return `/app/suppliers/${encodeURIComponent(s.slug)}?back=${encodeURIComponent(`/app/discover?${params.toString()}`)}`;
+      params.set("record", s.slug);
+      return `/app/discover?${params.toString()}`;
     }
     default: {
       const [key, value] = s.param ?? ["q", s.value];

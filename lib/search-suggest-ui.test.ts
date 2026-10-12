@@ -26,6 +26,15 @@ describe("where a row leads", () => {
     assert.equal(url.searchParams.get("record"), "aboni-knitwear");
   });
 
+  it("on a phone a supplier opens as its own page, with the way back to the search (founder, 12 Oct 2026: the drawer said only 'Supplier')", () => {
+    const here = new URL(suggestionHref(company, { pathname: "/app/discover", search: "q=knit&cert=gots&record=other&tab=sources", page: true }), "https://x.invalid");
+    assert.equal(here.pathname, "/app/suppliers/aboni-knitwear");
+    assert.equal(here.searchParams.get("back"), "/app/discover?q=knit&cert=gots", "the search is kept, the old pane is not");
+    const elsewhere = new URL(suggestionHref(company, { pathname: "/app", search: "", page: true }), "https://x.invalid");
+    assert.equal(elsewhere.pathname, "/app/suppliers/aboni-knitwear");
+    assert.equal(elsewhere.searchParams.get("back"), "/app/discover?q=Aboni+Knitwear+Ltd.");
+  });
+
   it("a category is its HS code, a certificate or a place sets its own filter, the words typed are `q`", () => {
     assert.equal(suggestionHref({ type: "heading", label: "Men's knit shirts", hs: "6105" }), "/app/discover?hs=6105");
     assert.equal(suggestionHref({ type: "cert", label: "GOTS certified", value: "GOTS", param: ["cert", "gots"] }), "/app/discover?cert=gots");
