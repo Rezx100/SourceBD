@@ -69,3 +69,11 @@ The founder's note on the live Sources section: a date with "108 days ago" under
 - **Safety, three buildings or more**: "Safety issues fixed, worst first. 2 behind." over the rows, whose figure is a bare percentage. The unlabelled strip of coloured segments over them is removed.
 - **Search rows**: a supplier with no certificate says "No certificates on file", not a dash.
 - Guards: `record.test.ts` ("says what every figure is"), `search.test.ts` (the phone row).
+
+## Phone record: one Buyers section, under the names people use (12 Oct 2026)
+
+The founder's note: the brands' lists (Overview) and the customs buyers (Exports) were two sections, and a customs name like "Inditex Zara Lelystad Branch Nieu" was set as large as a brand. Branch `phone-buyers`, phone only, no migration.
+
+- **One section, "Buyers", on the Overview** (`buyersOf` in `lib/dashboard/facts.ts`): each brand whose own list names the supplier, joined with the customs buyer that is the same company where the strict `CUSTOMS_BRANDS` patterns say so; then the customs buyers no list names. Both sources agreeing comes first. The Exports section no longer lists buyers; "Memberships" is its own section under it.
+- **The name people use is the row** (`knownBuyer`): "Zara", "Mango" for Punto Fa, from a short hand-kept list (`TRADE_NAMES`); any other buyer is its filed name without the legal ending ("Canadian Tire Corporation Ltd" is "Canadian Tire"). The customs record's own name is printed small beside its source ("Customs records as Inditex Zara Lelystad Branch Nieu"), so the short name is never read as the record's.
+- The desktop record keeps its two Key facts rows. Guards: `facts.test.ts` (the names, the merge), `record.test.ts` (one list, the small filed name).
