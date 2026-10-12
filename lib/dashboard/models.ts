@@ -408,6 +408,8 @@ export type SupplierSheetModel = {
   shipments?: ShipmentRevealState | null;
   /** The reader's own customs market, from the country they gave at onboarding (0109); null or absent when it is not known. Read only beside customs figures. */
   market?: VolzaMarketName | null;
+  /** `supplier_export_rank` (0147): the whole percent of exporters on record whose two-year export value is below this one's; null or absent until it is read. */
+  exportRank?: number | null;
 };
 
 export type ProductSheetModel = {

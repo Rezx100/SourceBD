@@ -190,7 +190,7 @@ export function ResultsTable({
                     <ExportedLocked />
                   ) : r.exported ? (
                     <span className="flex items-center gap-2">
-                      <span className="w-[76px] shrink-0 text-[15px]/[20px] font-medium">{r.exported.value}</span>
+                      {r.exported.value ? <span className="w-[76px] shrink-0 text-[15px]/[20px] font-medium">{r.exported.value}</span> : null}
                       <ShipsTo to={r.exported.to} />
                     </span>
                   ) : r.exported === null ? (

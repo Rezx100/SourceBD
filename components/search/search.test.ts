@@ -45,7 +45,7 @@ const { ResultsTable } = require("@/components/search/table") as typeof import("
 const { PaneListToolbar, PhoneToolbar, ResultsToolbar, barMenus, resultsTitle } = require("@/components/search/toolbar") as typeof import("@/components/search/toolbar");
 const { PaneRows, PhoneRows, ResultsEmpty, ResultsError, ResultsSkeleton, familyWords } = require("@/components/search/list") as typeof import("@/components/search/list");
 const { onRowKey } = require("@/components/search/keys") as typeof import("@/components/search/keys");
-const { matchedProducts, resultRow } = require("@/components/search/model") as typeof import("@/components/search/model");
+const { exportedOf, matchedProducts, resultRow } = require("@/components/search/model") as typeof import("@/components/search/model");
 const { EMPTY_STATE, discoverHref, parseDiscoverState } = require("@/lib/discover-v32-state") as typeof import("@/lib/discover-v32-state");
 const { appliedChips, clearedForm, countKey, formOf, groupsSet, searchOf, showLabel, summaryOf } = require("@/components/search/filter-model") as typeof import("@/components/search/filter-model");
 const { FilterPane, UflpaSheetNote } = require("@/components/search/filters") as typeof import("@/components/search/filters");
@@ -204,6 +204,27 @@ describe("the certificate line of a row", () => {
     // Its one certificate has ended: nothing is held today, and the row draws no mark for it (Paper page 37).
     assert.deepEqual(r.held, []);
     assert.deepEqual([r.products, r.brands, r.exported], [null, [], undefined]);
+  });
+
+  it("a row's customs cell: figures for an entitled reader, a lock for anyone else, null for none on file, nothing for a read that failed (0147)", () => {
+    const cells = new Map([
+      ["a", { fob_usd: 76578613.86, markets: ["EU", "US"] }],
+      ["b", { fob_usd: null, markets: null }],
+      ["c", { fob_usd: null, markets: ["EU"] }],
+    ]);
+    assert.deepEqual(exportedOf(cells, "a", true), { value: "US$76.6m", to: ["EU", "US"] });
+    // The database returns no figure to a reader it does not entitle; whatever the map holds, they see a lock.
+    assert.equal(exportedOf(cells, "a", false), "locked");
+    assert.equal(exportedOf(cells, "b", false), "locked");
+    assert.equal(exportedOf(cells, "not-there", true), null, "no row is none on file");
+    assert.equal(exportedOf(cells, "not-there", false), null);
+    assert.deepEqual(exportedOf(cells, "c", true), { value: null, to: ["EU"] });
+    assert.equal(exportedOf(cells, "b", true), null, "a record with neither a value nor a market has nothing to draw");
+    assert.equal(exportedOf(null, "a", true), undefined, "a read that failed claims nothing");
+    // The markets alone, when the record holds no value.
+    const out = plain(h(ResultsTable, { rows: [row({ exported: { value: null, to: ["EU"] } })], sort: { key: "workers", dir: "desc" }, sortHrefs }));
+    assert.match(words(out), /Ships to the EU EU /);
+    assert.doesNotMatch(out, /w-\[76px\]/);
   });
 
   it("a row says the two products that answer the search first, and how many more it filed", () => {

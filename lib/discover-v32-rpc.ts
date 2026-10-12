@@ -196,6 +196,37 @@ export async function fetchExportsEntitled(supabase: RpcClient): Promise<boolean
   }
 }
 
+/** One supplier's customs cell as `discover_export_cells` (0147) returns it: the value and markets only for an entitled reader. */
+export type ExportCell = { fob_usd: number | null; markets: string[] | null };
+
+const MARKET_CODES = new Set(["EU", "US", "UK", "CA"]);
+
+/**
+ * Which of the suppliers on a results page have a customs record (0147), by id. An entitled reader also
+ * gets the two-year export value and the markets shipped to, biggest share first; anyone else gets only
+ * that a record exists. A supplier that is not in the map has none on file. Null when the read failed or
+ * 0147 is not applied: the rows then claim nothing. Read with the reader's own session, never through the
+ * shared search cache.
+ */
+export async function fetchExportCells(supabase: RpcClient, ids: readonly string[]): Promise<Map<string, ExportCell> | null> {
+  if (ids.length === 0) return new Map();
+  try {
+    const { data, error } = await supabase.rpc("discover_export_cells", { p_ids: [...ids] });
+    if (error || !Array.isArray(data)) return null;
+    const cells = new Map<string, ExportCell>();
+    for (const row of data as unknown[]) {
+      if (!row || typeof row !== "object") continue;
+      const r = row as { supplier_id?: unknown; has_records?: unknown; fob_usd?: unknown; markets?: unknown };
+      if (typeof r.supplier_id !== "string" || r.has_records !== true) continue;
+      const fob = typeof r.fob_usd === "number" ? r.fob_usd : typeof r.fob_usd === "string" && r.fob_usd.trim() !== "" && Number.isFinite(Number(r.fob_usd)) ? Number(r.fob_usd) : null;
+      cells.set(r.supplier_id, { fob_usd: fob, markets: Array.isArray(r.markets) ? r.markets.filter((m): m is string => typeof m === "string" && MARKET_CODES.has(m)) : null });
+    }
+    return cells;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * The search narrowed to suppliers with a customs record, with their figures (0142). Read with the
  * reader's own session, never through the shared search cache: the database answers only an entitled

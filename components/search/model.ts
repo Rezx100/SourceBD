@@ -3,7 +3,7 @@
 
 import { certLine, certSummary, type CertBody, type CertLine, type CertSummary } from "@/components/patterns/words";
 import type { ExportsCell } from "@/lib/dashboard/customs-search";
-import { formatCount } from "@/lib/dashboard/facts";
+import { formatCount, formatUsdShort } from "@/lib/dashboard/facts";
 import type { TableRowModel } from "@/lib/dashboard/models";
 
 /**
@@ -12,7 +12,22 @@ import type { TableRowModel } from "@/lib/dashboard/models";
  * that the reader's plan does not include (no figure and no market reaches them); null where the read
  * found none on file. A row that was never read carries no `exported` at all, and says only that.
  */
-export type Exported = { value: string; to: string[] } | "locked" | null;
+export type Exported = { value: string | null; to: string[] } | "locked" | null;
+
+/**
+ * A row's customs cell from what `discover_export_cells` answered for the page (0147). `cells` null: the
+ * read failed or the function is not there, so the row claims nothing. No entry: none on file. An entry
+ * with no figure and no market for a reader the database does not entitle: locked.
+ */
+export function exportedOf(cells: ReadonlyMap<string, { fob_usd: number | null; markets: string[] | null }> | null, id: string, entitled: boolean): Exported | undefined {
+  if (!cells) return undefined;
+  const cell = cells.get(id);
+  if (!cell) return null;
+  if (!entitled) return "locked";
+  const to = cell.markets ?? [];
+  // A record with neither a value nor a market split has nothing to put in the cell.
+  return cell.fob_usd === null && to.length === 0 ? null : { value: cell.fob_usd !== null ? formatUsdShort(cell.fob_usd) : null, to };
+}
 
 export type ResultRow = {
   slug: string;

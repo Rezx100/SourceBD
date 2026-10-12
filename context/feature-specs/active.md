@@ -57,7 +57,7 @@ same PR. Read once per session.
   Mercury home page (10 Oct, `archive/specs-shipped-2026.md`).
 
 - **Desktop supplier record and search results (Paper page 37)** — `spec-desktop-record-page-37.md` (13 Oct).
-  ACTIVE. Slice a (the record) merged, PR #488; b the results; c the rank and results read (0147).
+  ACTIVE. Slice a merged (PR #488); b the results (PR #489); c the rank and results read (0147, not applied).
 
 ## Queued
 - **ETL freshness: check each fact as often as it changes** (6 Oct) —

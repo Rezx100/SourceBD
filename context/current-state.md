@@ -79,7 +79,7 @@ migrations, run the 30-day zero P1/P2 Sentry incident window.
 
 - **Home page film (6 Oct)** — v2 BUILT 9 Oct (`feature-specs/spec-home-film.md` §"v2"); behind `?film=1` since 10 Oct.
 - **Home page, Mercury direction (10 Oct)** — `/` is the Paper page 32; BUILT on `development` (PRs #421–#424), live once Deploy Production is approved; `.impeccable/handoff-home-mercury-build.md`.
-- **Desktop supplier record and search results, Paper page 37 (13 Oct)** — IN PROGRESS, `feature-specs/spec-desktop-record-page-37.md`. Slice a (the record) merged, PR #488; b (results table and list rows) on `desktop-record-b`; c (rank and the results export cells, 0147) next.
+- **Desktop supplier record and search results, Paper page 37 (13 Oct)** — IN PROGRESS, `feature-specs/spec-desktop-record-page-37.md`. Slice a (the record) merged, PR #488; b (results table and list rows) PR #489; c (rank and the results' export cells) on `desktop-record-c`, migration 0147 NOT applied.
 
 ## Founder rules still in force (one line each; detail in archive)
 - EPB is a government register: show its evidence and HS codes whenever EPB has them, flagged or not. Never mint EPB-only suppliers. (15 Aug)
@@ -116,6 +116,7 @@ Migration file headers are NOT live status. Check here or query the database.
 | `0122_certificate_listing` | 6 Oct 2026 | ETL freshness S2, via MCP `20261006052254`; 4 cols, 2,627 OEKO-TEX re-keyed. `ops/plans/0122-dry-run.md`. |
 | `0123_source_freshness` | 6 Oct 2026 | ETL freshness S3, via MCP `20261006052420`; 30 sources (9 over limit), 14 schedules, certs off. `ops/plans/0123-dry-run.md`. |
 | `0124_register_schedules` | 6 Oct 2026 | ETL freshness S5, via MCP `20261006052539`; 5 register schedules off, RSC limit 336 h. `ops/plans/0124-dry-run.md`. |
+| `0147_export_rank_and_cells` | **not applied** | Desktop record slice c: two readers, `supplier_export_rank` and `discover_export_cells`; nothing else changes. Dry run clean 13 Oct (rolled back): `ops/plans/0147-dry-run.md`. The screens fail soft without it. |
 | `0125_sources_listed_brand_schedules` | 6 Oct 2026 | ETL freshness S6, via MCP `20261006052721`; public count 21, 4 brand schedules off. |
 | `0137_volza_export_checks` | 11 Oct 2026 | Via MCP on "apply 0137"; Volza customs shipments on the record, admins and Growth/Enterprise only, rows kept one year. `ops/plans/volza-export-dry-run.md` §8. |
 | `0142_discover_customs_exports` | 11 Oct 2026 | Via MCP on "apply 0142"; search by customs exports, entitled readers only. `ops/plans/0142-dry-run.md`. |

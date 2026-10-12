@@ -1111,6 +1111,8 @@ export type SheetOptions = {
   shipments?: ShipmentRevealState | null;
   /** The reader's own customs market (their onboarding country), for the export grid. */
   market?: VolzaMarketName | null;
+  /** The export value's rank among exporters on record (0147), for the export grid's first tile. */
+  exportRank?: number | null;
 };
 
 /**
@@ -1507,6 +1509,7 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
     volza: options.volza ?? null,
     shipments: options.shipments ?? null,
     market: options.market ?? null,
+    exportRank: options.exportRank ?? null,
     // A flagged record whose payload carries no row is not "no match" — it is a
     // match whose receipt did not come back.
     sanctionsEmpty:
