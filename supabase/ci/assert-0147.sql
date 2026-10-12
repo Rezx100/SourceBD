@@ -75,6 +75,10 @@ begin
     from public.volza_export_checks v join public.suppliers s on s.id = v.supplier_id
    where s.is_published and v.match_class = 'exact' and v.expires_at > now() and v.fob_usd is not null;
   if n_all < 20 then raise exception 'guard: % exporters to compare', n_all; end if;
+  -- Counted here, as the owner: a signed-in reader cannot read the table itself, only the two functions.
+  select count(*) into n_below
+    from public.volza_export_checks v join public.suppliers s on s.id = v.supplier_id
+   where s.is_published and v.match_class = 'exact' and v.expires_at > now() and v.fob_usd < 20000;
 
   set local role authenticated;
 
@@ -103,9 +107,6 @@ begin
   end if;
 
   -- The entitled: the rank is the floored share of exporters below, for Growth, Enterprise and an admin alike.
-  select count(*) into n_below
-    from public.volza_export_checks v join public.suppliers s on s.id = v.supplier_id
-   where s.is_published and v.match_class = 'exact' and v.expires_at > now() and v.fob_usd < 20000;
   perform set_config('request.jwt.claim.sub', growth::text, true);
   if public.supplier_export_rank('ci-0147-20') is distinct from floor(100.0 * n_below / n_all)::int then
     raise exception 'rank of the largest: % (below %, all %)', public.supplier_export_rank('ci-0147-20'), n_below, n_all;
