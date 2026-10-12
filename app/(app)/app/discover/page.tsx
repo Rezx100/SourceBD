@@ -411,7 +411,7 @@ async function DiscoverRecord({
         closeHref,
         fullHref: `/app/suppliers/${slug}`,
         allLines,
-        allLinesHref: allLines ? null : withParams(`record=${encodeURIComponent(slug)}&tab=exports&lines=all`),
+        allLinesHref: allLines ? null : withParams(`record=${encodeURIComponent(slug)}&tab=products&lines=all`),
         lineHref: (hs) => withParams(`${recordParams}&line=${hs}`),
         rfqHref,
         supplierId,

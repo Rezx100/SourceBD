@@ -134,14 +134,18 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
     assert.doesNotMatch(held, /data-phone-empty="customs"/);
     assert.match(text(held), /Export value, 2 years US\$21\.7m/);
     assert.match(text(held), /Where it goes Share of export value, by market European Union 236 shipments · 10 buyers 72%/);
-    assert.match(text(held), /Shipments under 1,000 pieces 6%/);
+    // Paper page 35, 13 Oct 2026: the order size is the Overview's second tile and the lines are the Products
+    // section's; the Exports section says neither a second time.
+    const exportsOnly = text(/data-phone-panel="exports"[\s\S]*?data-phone-panel="products"/.exec(held)![0]);
+    assert.doesNotMatch(exportsOnly, /Shipments under|Order size|What it ships/);
+    assert.match(exportsOnly, /Free on board, 406 shipments, every line together/);
     // Customs figures are per supplier and per market: no line or code carries a share or a value.
     assert.doesNotMatch(text(held), /on the year before|Placeholder|Top 5 take/);
   });
 
   it("prints the UFLPA line with the list's own read date, and never that the list was not read", () => {
     const read = text(phone(model(aboniInput(), { sanctionLists: LISTS }), { mode: "page" }));
-    assert.match(read, /Sanctions lists · not listed Checked for every supplier Last read US Treasury \(OFAC\) 17 Sep European Union 12 Sep · 6 days ago US forced labour \(UFLPA\) No link found · not a clearance · read 8 Sep/);
+    assert.match(read, /Sanctions lists · not listed Read for every supplier, not only this one US Treasury \(OFAC\) 17 Sep European Union 12 Sep · 6 days ago US forced labour \(UFLPA\) No link found · not a clearance · read 8 Sep/);
     // A list with no read on file is left out: nothing is said about it.
     assert.doesNotMatch(read, /not read|WRO/i);
     const unread = text(phone(model(aboniInput(), { sanctionLists: LISTS.filter((l) => l.list !== "uflpa") }), { mode: "page" }));
@@ -191,10 +195,19 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
   it("says what every figure is: no date, code, number or percentage stands alone (founder, 12 Oct 2026)", () => {
     const html = phone(model(aboniInput(), { sanctionLists: LISTS }), { mode: "page" });
     const out = text(html);
-    // Sources: the dates down the right are the last read, said once, over the first of them.
-    assert.equal((html.match(/data-phone-read-head=""/g) ?? []).length, 1);
-    assert.match(out, /Government register Last read EPB/);
-    assert.match(out, /NEXT 18 May 2026 123 days ago/, "a stale read still says how old it is, under its date");
+    // Sources (Paper page 35, 13 Oct 2026): a 44px row a source, its mark and its name; a note only when its read is
+    // stale, which then says what the figure is. No descriptions, register numbers or read dates.
+    const sources = /data-phone-panel="sources"[\s\S]*?data-phone-panel="contact"/.exec(html)![0];
+    assert.match(text(sources), /Government register EPB .*NEXT read 123 days ago/);
+    assert.doesNotMatch(text(sources.slice(0, sources.indexOf("data-phone-sanctions"))), /Last read|\d{1,2} \w{3} 2026|BD04293|Volza/i);
+    assert.ok((sources.match(/min-h-11/g) ?? []).length >= model().sources.length);
+    // Products: the EPB lines as rows that open the line, six shown, then the names filed with the trade body, apart.
+    const products = /data-phone-panel="products"[\s\S]*?data-phone-panel="certificates"/.exec(html)![0];
+    const p = model().products;
+    assert.ok(p.lines > 6 && p.productListCount > 0, "guard: more than six lines and a filed list");
+    assert.match(text(products), new RegExp(`What it ships ${p.lines} EPB codes · photos illustrate .* As filed`));
+    assert.equal((/<ul data-phone-lines=""[^>]*>([\s\S]*?)<\/ul>/.exec(products)![1]!.match(/<li /g) ?? []).length, 6);
+    assert.equal((products.match(/data-phone-filed=""/g) ?? []).length, 1);
     // Key facts: where a figure came from reads "From BKMEA", under it, never a bare code at the row's end.
     assert.match(out, /Capacity, as filed 1,000,000 pcs\/day From BKMEA/);
     // Key facts are icon cells, two by two; the export tiles are the desktop's worked-out four, the fourth always the biggest market.
@@ -606,7 +619,11 @@ describe("the view's rules", () => {
       // As wide as the section, not the desktop column's 344; long values wrap; a row is 44 tall for a thumb.
       assert.doesNotMatch(section, /max-w-details/);
       const link = /<a href="mailto:sales@aboni\.example" class="([^"]*)"/.exec(section)?.[1]?.split(" ") ?? [];
-      for (const c of ["py-2.5", "text-md", "[overflow-wrap:anywhere]", "text-brand-ink"]) assert.ok(link.includes(c), c);
+      for (const c of ["py-2.5", "text-md", "[overflow-wrap:anywhere]", "underline"]) assert.ok(link.includes(c), c);
+      // Paper page 35, 13 Oct 2026: an email and each phone number carry a copy control with a 44px target; a
+      // phone number is a plain number that dials on a tap.
+      assert.equal((section.match(/<button type="button" aria-label="Copy (email|phone number) [^"]*" class="[^"]*\bh-11 w-11\b/g) ?? []).length, 4);
+      assert.doesNotMatch(/<a href="tel:\+8801754392350" class="([^"]*)"/.exec(section)![1]!, /underline/);
       assert.doesNotMatch(text(out), /Locked\. Send an RFQ|Contact details are locked/);
     });
 

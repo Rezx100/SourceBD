@@ -545,12 +545,12 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     const total = lines(all.replace(PHONE, ""));
     assert.ok(total > 6, "guard: the record exports more than six lines");
     assert.equal(lines(six.replace(PHONE, "")), total, "the desktop page hides some of the record's lines");
-    // A phone draws six and offers the way to the rest, which is the Exports tab, expanded.
+    // A phone draws six and offers the way to the rest, which is its Products section, expanded (Paper page 35, 13 Oct 2026).
     const phone = (s: string) => PHONE.exec(s)?.[0] ?? "";
     assert.equal(lines(phone(six)), 6, "a phone shows six by default");
     assert.ok(lines(phone(all)) > 6, "?lines=all does not expand a phone's six");
     assert.match(phone(six), /All \d+ lines/);
-    assert.match(phone(six).replace(/&amp;/g, "&"), /href="\/app\/suppliers\/aboni-knitwear\?tab=exports&lines=all"/);
+    assert.match(phone(six).replace(/&amp;/g, "&"), /href="\/app\/suppliers\/aboni-knitwear\?tab=products&lines=all"/);
   });
 });
 
@@ -1608,11 +1608,12 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
     // What is left is the real products, once each: "POLO SHIRT" is "Polo
     // Shirt" (founder, 25 Sep), and an HS code in a product name is not a
     // phone number. The count says the same.
-    const list = /data-product-list="true"[^>]*>([\s\S]*?)<\/ul>/.exec(pages.full);
+    const list = /data-phone-filed=""[^>]*>([\s\S]*?)<\/p>/.exec(pages.full);
     assert.ok(list, "guard: the full page draws the product list");
-    assert.equal((list[1]!.match(/<li/g) ?? []).length, 2, `the product list: ${list[1]}`);
+    assert.equal(list[1]!.split(" · ").length, 2, `the product list: ${list[1]}`);
     assert.match(list[1]!, /Knit T-shirt 61091000/, "an HS code in a product name was cut as a phone number");
-    assert.match(pages.full, /Products as filed · 2/, "the Products tab counts a contact value or a case variant as a product");
+    const onPhone = (/<div data-record-phone=""[\s\S]*?(?=<div data-record-actions="")/.exec(pages.full)?.[0] ?? "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
+    assert.match(onPhone, /As filed 2 /, "the phone's Products section counts a contact value or a case variant as a product");
     // The desktop's one line of them says the same two, and the same count.
     const filed = /<p data-filed-products=""[^>]*>([^<]*)<\/p>/.exec(pages.full)?.[1] ?? "";
     assert.deepEqual(filed.split("·").map((x) => x.trim()), ["Knit T-shirt 61091000", "Polo Shirt"]);

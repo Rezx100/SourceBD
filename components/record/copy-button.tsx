@@ -8,7 +8,7 @@ import { useState } from "react";
 import { ring } from "@/components/kit";
 import { cn } from "@/lib/utils";
 
-export function CopyButton({ value, name, words = false }: { value: string; /** What is copied, for a screen reader: "email", "phone number". */ name: string; /** Draw the word beside the glyph. */ words?: boolean }) {
+export function CopyButton({ value, name, words = false, glyph = 14, className }: { value: string; /** What is copied, for a screen reader: "email", "phone number". */ name: string; /** Draw the word beside the glyph. */ words?: boolean; /** The glyph's size; the phone's is 18 in a 44 target. */ glyph?: number; className?: string }) {
   const [copied, setCopied] = useState(false);
   async function copy() {
     try {
@@ -25,9 +25,9 @@ export function CopyButton({ value, name, words = false }: { value: string; /** 
       type="button"
       onClick={copy}
       aria-label={copied ? "Copied" : `Copy ${name} ${value}`}
-      className={cn("flex h-6 shrink-0 items-center gap-1 rounded-md text-xs font-medium text-ink-2 hover:bg-sunken hover:text-ink", words ? "bg-subtle px-2" : "w-6 justify-center", ring)}
+      className={cn("flex h-6 shrink-0 items-center gap-1 rounded-md text-xs font-medium text-ink-2 hover:bg-sunken hover:text-ink", words ? "bg-subtle px-2" : "w-6 justify-center", ring, className)}
     >
-      <Glyph size={14} weight="thin" aria-hidden />
+      <Glyph size={glyph} weight="thin" aria-hidden />
       {words ? (copied ? "Copied" : "Copy") : null}
       <span role="status" className="sr-only">
         {copied ? "Copied" : ""}
