@@ -95,6 +95,11 @@ missing. **S4** untidy. Inside a level, most published companies first.
 - **Smallest fix:** strip at the source: clean the 69 stored texts once, and run the same rule in the two
   public functions. Contact columns themselves are refused to a visitor (checked: 401 on all seven).
 - **Needs your yes:** yes (a data change and a migration).
+- **Fix built, 13 Oct 2026:** `supabase/migrations/0153_address_contact_strip.sql`. The database strips contact
+  details itself (`strip_contact_text()`): every public function now reads register addresses through a view that
+  strips them, the entries themselves stay as filed, and the company's own address is cleaned once (3 rows) and
+  kept clean by a trigger. Dry run on production, rolled back: 71 entry addresses carry a contact detail as filed,
+  0 through the public view; 3 company addresses cleaned, 0 left. Not applied: it waits for "apply 0153".
 
 ### S1-5. A safety-register entry filed under a different company's name
 

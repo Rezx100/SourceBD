@@ -777,8 +777,11 @@ def check_contact_text(d: Data) -> list[dict]:
         finding("K1", "S1", "A phone, mailbox or web address inside the address text a signed-out visitor can read", in_address,
                 "the database API (`suppliers.address_raw`, `discover_suppliers().primary_address`, `buyer_supplier_profile().supplier.address_raw`)",
                 _tally(kinds.elements())),
-        finding("K2", "S1", "The same inside a register entry's address, returned by the public profile function", in_entry_address,
-                "the database API (`buyer_supplier_profile().addresses`)"),
+        # The entry is evidence and stays as filed. Since migration 0153 every public function reads it through
+        # a view that strips it, so this is a count of what the strip has to catch, not of what a visitor reads:
+        # `audit_endpoints.py --only company` asks the database API for five of these and fails on a leak.
+        finding("K2", "S4", "The same inside a register entry's address as filed (stripped on the way out since 0153)", in_entry_address,
+                "nowhere while the strip holds; before 0153, the database API (`buyer_supplier_profile().addresses`)"),
         finding("K3", "S1", "The same inside the products list", products, "the database API and the company page (`principal_products`)"),
     ]
 
