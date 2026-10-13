@@ -106,7 +106,9 @@ from the buying-house filter in search to the factory one. Nothing else on the r
 record is written (that trigger only records edits made by a signed-in person).
 
 **To apply** (the founder's go-ahead, AGENTS rule 15): run the file with the line marked `REHEARSAL`
-deleted. If the count is no longer 519, re-run the report with `--sql` first and rehearse again.
+deleted. If the count is no longer 519, re-run the report with `--sql` first and rehearse again; the
+snapshot table then carries that day's date, so use the name printed at the top of the new file in the
+undo below.
 
 **Undo:**
 
