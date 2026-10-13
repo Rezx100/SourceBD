@@ -13,6 +13,8 @@
  *   - missing slug                  -> 404 (styled not-found body)
  *   - unpublished non-facility slug -> 404 (RPC miss, no facility mapping)
  *   - unpublished FACILITY slug     -> 308, Location: mother profile
+ *   - merged duplicate's old slug   -> 308, Location: the kept profile
+ *     (0149: the same RPC answers from supplier_slug_redirects)
  *   - facility RPC unavailable      -> 404, not 500 (PGRST202: migration
  *     0096 not yet applied — production's state until it is)
  *   - profile RPC statement timeout -> 307 to /temporarily-slow with
@@ -83,6 +85,9 @@ const TIMEOUT_IN_DATA = "profile-timeout-in-data";
 const OVERVIEW_TIMEOUT = "overview-statement-timeout";
 const STALE_SUCCESS = "inflight-success-then-timeout";
 const SELF = "self-parented-ltd";
+// 0149: a duplicate that was merged into MOTHER and deleted. Its old address
+// has no profile; facility_parent_slug answers the kept profile's slug.
+const MERGED = "mother-company-limited";
 const GUARD_TOKEN = "http-guard-access-token";
 /** A second session whose profile row is role "supplier" (see the profiles
  * mock), so a route's own role check can be exercised at the wire. */
@@ -601,7 +606,7 @@ function mockHandler(req, res) {
         // never a 308 to its own URL.
         return json(SELF);
       }
-      return json(slug === FACILITY ? MOTHER : null);
+      return json(slug === FACILITY || slug === MERGED ? MOTHER : null);
     }
     if (url.pathname === "/rest/v1/rpc/discover_suppliers") {
       let q = null;
@@ -641,13 +646,13 @@ function mockHandler(req, res) {
     }
     if (url.pathname === "/rest/v1/rpc/production_workers_display_batch") {
       // The two Discover rows, consistent with this file's profile fixture:
-      // Mother (own 1,200) is "500 across 1 of 2 sites", RSC only, so the RSC
-      // sum leaves Mother itself out; Overview Timeout (own 100) is a single
-      // site whose RSC headcount, 450, differs from its own figure. The page
-      // must headline the own figures and word the second line only from
-      // sites/includes_root.
+      // Mother filed 1,200 and its building holds 500 on the safety register,
+      // so the batch also sends `own` and `buildings` (0148) and every surface
+      // prints the range 1,200–1,700 (founder, 13 Oct 2026). Overview Timeout
+      // (own 100) is a single site whose RSC headcount, 450, differs from its
+      // own figure: it keeps its own figure with the second under it.
       return json({
-        "00000000-0000-4000-8000-000000000098": { value: 500, source: "RSC", fetched_at: null, sites: 1, includes_root: false },
+        "00000000-0000-4000-8000-000000000098": { value: 500, source: "RSC", fetched_at: null, sites: 1, includes_root: false, own: 1200, buildings: 500 },
         "00000000-0000-4000-8000-000000000099": { value: 450, source: "RSC", fetched_at: null, sites: 1, includes_root: true },
       });
     }
@@ -1183,6 +1188,17 @@ const CASES = [
     },
   },
   {
+    name: "public: merged duplicate's old slug -> 308 to the kept profile",
+    path: `/suppliers/${MERGED}`,
+    expect: {
+      status: 308,
+      location: `/suppliers/${MOTHER}`,
+      locationMustBeAbsolute: true,
+      locationOrigin: SITE_ORIGIN,
+      replayMustNotRpc: MISS_RPCS,
+    },
+  },
+  {
     name: "site: an unknown product page -> 404",
     path: "/product/not-a-page",
     expect: { status: 404 },
@@ -1462,6 +1478,17 @@ const CASES = [
     },
   },
   {
+    name: "app: merged duplicate's old slug -> 308 to the kept profile (authenticated)",
+    path: `/app/suppliers/${MERGED}`,
+    auth: true,
+    expect: {
+      status: 308,
+      location: `/app/suppliers/${MOTHER}`,
+      locationMustBeAbsolute: true,
+      locationOrigin: SITE_ORIGIN,
+    },
+  },
+  {
     name: "app: facility RPC unavailable -> 404, not 500 (authenticated)",
     path: `/app/suppliers/${RPC_DOWN}`,
     auth: true,
@@ -1717,6 +1744,7 @@ const CASES = [
     // Founder decision (24 Sep) at the boundary: the headline is the figure
     // the Workers sort orders on; the second line says what the profile's
     // figure covers, from the sites the batch summed, never a guess.
+    // 13 Oct: a company with buildings prints one range, the record's own.
     // The stub ignores the sort; the ORDER is asserted against a real
     // database by assert-0104.sql. This case asserts what each cell says.
     name: "rez-b: /app/discover table (sort=workers in the URL) headlines each supplier's own figure and words the second from its sites",
@@ -1731,11 +1759,11 @@ const CASES = [
       // Since 29 Sep the second line may break between its figure and its
       // words, never inside either.
       bodyIncludesAll: [
-        "1,200<span title=\"500 workers · across its buildings, not this record\" class=\"block text-xs text-ink-3\">500 in buildings</span>",
+        "1,200–1,700",
         // The second figure's source is a defined term (critique of 8 Oct 2026, round 3, item 5).
         "100<span title=\"450 workers · RSC inspection\" class=\"block text-xs text-ink-3\">450 <span tabindex=\"0\" data-define=\"RSC\"",
       ],
-      bodyExcludes: ["450 workers · across this record and its buildings", "Search is under heavy load"],
+      bodyExcludes: ["450 workers · across this record and its buildings", "500 in buildings", "Search is under heavy load"],
     },
   },
   {
@@ -1746,7 +1774,7 @@ const CASES = [
       status: 200,
       bodyIncludesAll: [
         "workers,workers_source,profile_workers,profile_workers_source",
-        "1200,on the supplier record,500,\"across its buildings, not this record\"",
+        "1200,on the supplier record,\"1,200–1,700\",the company and its buildings",
         "100,on the supplier record,450,RSC inspection",
       ],
     },

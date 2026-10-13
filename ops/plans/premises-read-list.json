@@ -1,0 +1,550 @@
+[
+ {
+  "n": 5,
+  "slug": "chorka-textile-ltd-new-building",
+  "main": [
+   "chorka",
+   "chorka-textile"
+  ]
+ },
+ {
+  "n": 6,
+  "slug": "chorka-textile-ltd-warehouse-extension",
+  "main": [
+   "chorka",
+   "chorka-textile"
+  ]
+ },
+ {
+  "n": 28,
+  "slug": "toptex-sweater-ltd-annex-building",
+  "main": [
+   "top-tex-sweater"
+  ]
+ },
+ {
+  "n": 7,
+  "slug": "chorka-textile-unit-3",
+  "main": [
+   "chorka",
+   "chorka-textile"
+  ]
+ },
+ {
+  "n": 16,
+  "slug": "hams-fashion-ltd-unit-1-and-2",
+  "main": [
+   "hams-fashion"
+  ]
+ },
+ {
+  "n": 29,
+  "slug": "hoplun-apparel-ltd-unit-2",
+  "main": [
+   "hop-lun-apparel"
+  ]
+ },
+ {
+  "n": 17,
+  "slug": "islam-garments-ltd-hosiery-div",
+  "main": [
+   "islam-garments"
+  ]
+ },
+ {
+  "n": 18,
+  "slug": "islam-garments-ltd-knitwear-division",
+  "main": [
+   "islam-garments"
+  ]
+ },
+ {
+  "n": 19,
+  "slug": "islam-garments-ltd-textile-division",
+  "main": [
+   "islam-garments"
+  ]
+ },
+ {
+  "n": 30,
+  "slug": "liz-fashion-industries-ltd-shafipur-unit",
+  "main": [
+   "liz-fashion-industries"
+  ]
+ },
+ {
+  "n": 20,
+  "slug": "mascom-composite-limited-garments-division",
+  "main": [
+   "mascom-composite"
+  ]
+ },
+ {
+  "n": 21,
+  "slug": "saturn-textiles-ltd-woven-division",
+  "main": [
+   "saturn-textiles"
+  ]
+ },
+ {
+  "n": 22,
+  "slug": "silver-composite-textile-mills-ltd-unit-3-textile",
+  "main": [
+   "silver-composite-textile-mills"
+  ]
+ },
+ {
+  "n": 23,
+  "slug": "square-denims-limited-garments-unit",
+  "main": [
+   "square-denims"
+  ]
+ },
+ {
+  "n": 24,
+  "slug": "standard-stitches-ltd-g-unit",
+  "main": [
+   "standard-stitches"
+  ]
+ },
+ {
+  "n": 1,
+  "slug": "kenpark-bangladesh-apparel-pvt-ltd-k-3",
+  "main": []
+ },
+ {
+  "n": 2,
+  "slug": "kenpark-bangladesh-apparel-pvt-ltd-k-5-extension",
+  "main": []
+ },
+ {
+  "n": 3,
+  "slug": "saad-musa-fabrics-ltd-u-2-home-tex",
+  "main": []
+ },
+ {
+  "n": 4,
+  "slug": "saad-musa-fabrics-ltd-u-3",
+  "main": []
+ },
+ {
+  "n": 31,
+  "slug": "advance-world-limited-new",
+  "main": [
+   "advance-world"
+  ]
+ },
+ {
+  "n": 32,
+  "slug": "akr-fashions-ltd-new",
+  "main": [
+   "akr-fashions"
+  ]
+ },
+ {
+  "n": 8,
+  "slug": "anowara-fashions-ltd-anowara-group",
+  "main": [
+   "anowara-fashions"
+  ]
+ },
+ {
+  "n": 9,
+  "slug": "anowara-fashions-ltd-habib-group",
+  "main": [
+   "anowara-fashions"
+  ]
+ },
+ {
+  "n": 44,
+  "slug": "apparels-village-ltd-shirts",
+  "main": [
+   "apparels-village"
+  ]
+ },
+ {
+  "n": 33,
+  "slug": "arrival-fashion-limited-bhaluka",
+  "main": [
+   "arrival-fashion"
+  ]
+ },
+ {
+  "n": 45,
+  "slug": "atashi-fashion-ltd-new",
+  "main": [
+   "atashi-fashion"
+  ]
+ },
+ {
+  "n": 46,
+  "slug": "badhan-knit-fashion-ltd-new",
+  "main": [
+   "badhan-knit-fashion"
+  ]
+ },
+ {
+  "n": 10,
+  "slug": "besta-apparels-new",
+  "main": [
+   "besta-apparels"
+  ]
+ },
+ {
+  "n": 11,
+  "slug": "besta-apparels-urf",
+  "main": [
+   "besta-apparels"
+  ]
+ },
+ {
+  "n": 34,
+  "slug": "bestec-bd-limited-new",
+  "main": [
+   "bestec-bd"
+  ]
+ },
+ {
+  "n": 47,
+  "slug": "bhuyan-warmtex-pvt-ltd-re-opened",
+  "main": [
+   "bhuyan-warmtex"
+  ]
+ },
+ {
+  "n": 39,
+  "slug": "bsa-garments-industries-pvt-ltd-hu",
+  "main": [
+   "bsa-garments-industries"
+  ]
+ },
+ {
+  "n": 48,
+  "slug": "ca-knitwear-ltd-relocation",
+  "main": [
+   "ca-knitwear"
+  ]
+ },
+ {
+  "n": 49,
+  "slug": "consumer-knitex-limited-cmt-bangladesh",
+  "main": [
+   "consumer-knitex"
+  ]
+ },
+ {
+  "n": 50,
+  "slug": "cosmopolitan-industries-pvt-ltd-epic",
+  "main": [
+   "cosmopolitan-industries"
+  ]
+ },
+ {
+  "n": 51,
+  "slug": "dana-sweater-industries-ltd-new",
+  "main": [
+   "dana-sweater-industries"
+  ]
+ },
+ {
+  "n": 52,
+  "slug": "dress-and-dismatic-pvt-ltd-al-muslim-group",
+  "main": [
+   "dress-and-dismatic"
+  ]
+ },
+ {
+  "n": 53,
+  "slug": "dressmen-fashion-wear-limited-new",
+  "main": [
+   "dressmen-fashion-wear"
+  ]
+ },
+ {
+  "n": 54,
+  "slug": "dynamic-sweater-industries-limited-dhaka-sweater",
+  "main": [
+   "dynamic-sweater-industries"
+  ]
+ },
+ {
+  "n": 25,
+  "slug": "epyllion-knitwear-limited-madanpur-project",
+  "main": [
+   "epyllion-knitwear"
+  ]
+ },
+ {
+  "n": 35,
+  "slug": "essential-clothing-ltd-nagchala-campus",
+  "main": [
+   "essential-clothing"
+  ]
+ },
+ {
+  "n": 55,
+  "slug": "export-printing-and-accessories-ltd-e-pac",
+  "main": [
+   "export-printing-and-accessories"
+  ]
+ },
+ {
+  "n": 56,
+  "slug": "fashion-asia-ltd-relocation",
+  "main": [
+   "fashion-asia"
+  ]
+ },
+ {
+  "n": 57,
+  "slug": "fashion-knit-garments-ltd-pride",
+  "main": [
+   "fashion-knit-garments"
+  ]
+ },
+ {
+  "n": 40,
+  "slug": "gtc-international-a-sister-concern-of-g-tex-link",
+  "main": [
+   "gtc-international"
+  ]
+ },
+ {
+  "n": 58,
+  "slug": "international-classic-composite-ltd-iccl",
+  "main": [
+   "international-classic-composite"
+  ]
+ },
+ {
+  "n": 59,
+  "slug": "intimate-attire-ltd-mahdeen-group",
+  "main": [
+   "intimate-attire"
+  ]
+ },
+ {
+  "n": 60,
+  "slug": "karupannya-rangpur-ltd-rmpc",
+  "main": [
+   "karupannya-rangpur"
+  ]
+ },
+ {
+  "n": 41,
+  "slug": "kc-apparels-ltd-bscic",
+  "main": [
+   "kc-apparels"
+  ]
+ },
+ {
+  "n": 12,
+  "slug": "knit-asia-limited-ratanpur",
+  "main": [
+   "knit-asia"
+  ]
+ },
+ {
+  "n": 13,
+  "slug": "knit-asia-limited-shafipur",
+  "main": [
+   "knit-asia"
+  ]
+ },
+ {
+  "n": 61,
+  "slug": "majumder-garments-ltd-relocation",
+  "main": [
+   "majumder-garments"
+  ]
+ },
+ {
+  "n": 42,
+  "slug": "masco-industries-ltd-composite-knit-garments",
+  "main": [
+   "masco-industries"
+  ]
+ },
+ {
+  "n": 62,
+  "slug": "mehnaz-styles-and-craft-ltd-new",
+  "main": [
+   "mehnaz-styles-and-craft"
+  ]
+ },
+ {
+  "n": 36,
+  "slug": "mg-shirtex-ltd-dhakkhin-khan-previously-the-rose-garments-designers",
+  "main": [
+   "mg-shirtex"
+  ]
+ },
+ {
+  "n": 63,
+  "slug": "mohsin-knitwear-limited-18169",
+  "main": [
+   "mohsin-knitwear"
+  ]
+ },
+ {
+  "n": 64,
+  "slug": "nafa-apparels-ltd-former-palmal-knitwear-factory",
+  "main": [
+   "nafa-apparels"
+  ]
+ },
+ {
+  "n": 37,
+  "slug": "nightingale-fashion-ltd-a75-76",
+  "main": [
+   "nightingale-fashion"
+  ]
+ },
+ {
+  "n": 65,
+  "slug": "noor-aowsaf-pvt-limited-brand-name-spider-interlining",
+  "main": [
+   "noor-aowsaf"
+  ]
+ },
+ {
+  "n": 66,
+  "slug": "northern-clothing-ltd-cidatex-apparel",
+  "main": [
+   "northern-clothing"
+  ]
+ },
+ {
+  "n": 67,
+  "slug": "ornate-international-ltd-lim",
+  "main": [
+   "ornate-international"
+  ]
+ },
+ {
+  "n": 43,
+  "slug": "reedisha-texstripe-ltd-yarn-dyeing",
+  "main": [
+   "reedisha-texstripe"
+  ]
+ },
+ {
+  "n": 68,
+  "slug": "regency-three-ltd-r-5",
+  "main": [
+   "regency-three"
+  ]
+ },
+ {
+  "n": 26,
+  "slug": "rehash-accessories-and-sourcing-ltd-a-sister-concern-of-sharif-enterprise",
+  "main": [
+   "rehash-accessories-and-sourcing"
+  ]
+ },
+ {
+  "n": 69,
+  "slug": "saadatia-sweater-ltd-new",
+  "main": [
+   "saadatia-sweater"
+  ]
+ },
+ {
+  "n": 70,
+  "slug": "safaa-sweater-ltd-safaa-sewing",
+  "main": [
+   "safaa-sweater"
+  ]
+ },
+ {
+  "n": 71,
+  "slug": "sb-knit-composite-6-storied-dyeing-and-printing",
+  "main": [
+   "sb-knit-composite"
+  ]
+ },
+ {
+  "n": 38,
+  "slug": "sewtech-fashions-limited-sfb-11",
+  "main": [
+   "sewtech-fashions"
+  ]
+ },
+ {
+  "n": 72,
+  "slug": "space-sweater-ltd-jogitala",
+  "main": [
+   "space-sweater"
+  ]
+ },
+ {
+  "n": 14,
+  "slug": "sq-celsius-limited-a-concern-of-sq-group",
+  "main": [
+   "sq-celsius"
+  ]
+ },
+ {
+  "n": 15,
+  "slug": "sq-celsius-ltd-auto",
+  "main": [
+   "sq-celsius"
+  ]
+ },
+ {
+  "n": 73,
+  "slug": "suhcheon-company-bd-ltd-new",
+  "main": [
+   "suhcheon-company-bd"
+  ]
+ },
+ {
+  "n": 74,
+  "slug": "sundry-wear-ltd-new",
+  "main": [
+   "sundry-wear"
+  ]
+ },
+ {
+  "n": 75,
+  "slug": "tanima-knit-composite-ltd-jk-group",
+  "main": [
+   "tanima-knit-composite"
+  ]
+ },
+ {
+  "n": 76,
+  "slug": "tusuka-apparels-ltd-relocation",
+  "main": [
+   "tusuka-apparels"
+  ]
+ },
+ {
+  "n": 27,
+  "slug": "utah-knitting-and-dyeing-ltd-gd",
+  "main": [
+   "utah-knitting-and-dyeing"
+  ]
+ },
+ {
+  "n": 77,
+  "slug": "waymart-apparels-limited-old-name-peninsula-dresses-international",
+  "main": [
+   "way-mart-apparels"
+  ]
+ },
+ {
+  "n": 78,
+  "slug": "yagi-bangladesh-garments-limited-ybg",
+  "main": [
+   "yagi-bangladesh-garments"
+  ]
+ },
+ {
+  "n": 79,
+  "slug": "za-apparels-ltd-jacket-fty",
+  "main": [
+   "za-apparels"
+  ]
+ }
+]

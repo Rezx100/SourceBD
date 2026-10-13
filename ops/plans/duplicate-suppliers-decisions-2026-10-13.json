@@ -1,0 +1,970 @@
+{
+ "1": {
+  "decision": "merge",
+  "keep": "513741ed-21ca-479e-b565-0dd1d47a2ac2",
+  "drop": "c56b7021-3f7a-4f61-8c02-068adce28149",
+  "keep_name": "M/S. SHOARA FASHION",
+  "drop_name": "Shoara Fashion",
+  "section": "certain"
+ },
+ "2": {
+  "decision": "merge",
+  "keep": "2099756b-9307-4378-a209-881ec0ad3201",
+  "drop": "61e54699-f8dd-4aab-b37d-675e259fef5e",
+  "keep_name": "Rey-Tex Fashion Wears Ltd.",
+  "drop_name": "Reytex Fashion Wears Ltd.",
+  "section": "certain"
+ },
+ "3": {
+  "decision": "merge",
+  "keep": "fe88b8b0-ce06-43aa-a261-49cf808fb006",
+  "drop": "a9cc6046-1d81-4a70-a0e3-325cabdeb2aa",
+  "keep_name": "SHAIKAT KNITWEAR",
+  "drop_name": "M/S. SHAIKAT KNITWEAR",
+  "section": "certain"
+ },
+ "4": {
+  "decision": "merge",
+  "keep": "3cd2cdd2-da80-41e4-82fc-0f92396002ec",
+  "drop": "072ecbd6-58d9-452a-bab2-df835667d804",
+  "keep_name": "Zisas  Fashion Ltd.",
+  "drop_name": "Zisa`s Fashion Ltd.",
+  "section": "certain"
+ },
+ "5": {
+  "decision": "merge",
+  "keep": "93d30ddc-f091-441e-8d53-724decafc4e6",
+  "drop": "99a0705a-ac49-47e6-862c-a73ba220e4e8",
+  "keep_name": "3-A FASHIONS LTD.",
+  "drop_name": "3A Fashions Ltd.",
+  "section": "same-name"
+ },
+ "6": {
+  "decision": "merge",
+  "keep": "b1f5f3ae-088f-447f-a3bd-6fa4687459b4",
+  "drop": "13e3b029-88ad-4476-955e-0e921182f8e7",
+  "keep_name": "AJ Fashions Limited",
+  "drop_name": "AJ Fashion's Ltd.",
+  "section": "same-name"
+ },
+ "7": {
+  "decision": "merge",
+  "keep": "e3ae05cb-1e66-4034-b4fd-fcddfc1fa5c8",
+  "drop": "2ec16c26-ea1f-48cc-bfb9-623c7c8fc15e",
+  "keep_name": "ALERT FASHION LTD",
+  "drop_name": "Alert Fashions Ltd.",
+  "section": "same-name"
+ },
+ "8": {
+  "decision": "merge",
+  "keep": "6e1cbc60-0c15-409c-9d87-a025d1c0bc2d",
+  "drop": "d1f12576-b638-4086-88cd-4a5e36fe7398",
+  "keep_name": "Amazing Fashions Ltd.",
+  "drop_name": "Amazing Fashion Ltd",
+  "section": "same-name"
+ },
+ "9": {
+  "decision": "merge",
+  "keep": "c9e7d6e0-64e8-47c2-b6fb-15c7faca1ccc",
+  "drop": "67789a09-2554-4e62-88ee-ea159904dba0",
+  "keep_name": "Angel Grace Fashion Ltd.",
+  "drop_name": "Angel Grace Fashions Ltd.",
+  "section": "same-name"
+ },
+ "10": {
+  "decision": "merge",
+  "keep": "a267e990-0494-4549-83a7-8f75d7a3d030",
+  "drop": "12b334bd-1692-4290-969b-c31c6ed6ce7f",
+  "keep_name": "Bonian Knit Fashions Ltd.",
+  "drop_name": "Bonian Knit Fashion Ltd",
+  "section": "same-name"
+ },
+ "11": {
+  "decision": "merge",
+  "keep": "57440b81-1940-4393-aebf-5d5b0553d532",
+  "drop": "f9aa03e0-657d-4f5f-a3c2-72575df83abc",
+  "keep_name": "Brothers Fashion Ltd",
+  "drop_name": "BROTHERS FASHIONS",
+  "section": "same-name"
+ },
+ "12": {
+  "decision": "merge",
+  "keep": "169cb734-a591-449a-805d-32b762c0bb97",
+  "drop": "d42dc7c7-cafa-4aa8-a58c-6f38d5314933",
+  "keep_name": "CADTEX GARMENTS LIMITED",
+  "drop_name": "Cad Tex Garments Limited",
+  "section": "same-name"
+ },
+ "13": {
+  "decision": "merge",
+  "keep": "ab4e42a6-449d-4910-92f9-01c4e0f6c8ee",
+  "drop": "4f439d27-07b4-4c5f-bc2e-422a38287471",
+  "keep_name": "CRONY FASHION LTD",
+  "drop_name": "Crony Fashions Ltd.",
+  "section": "same-name"
+ },
+ "14": {
+  "decision": "merge",
+  "keep": "da88b661-7d8c-473b-8cca-75736a459c13",
+  "drop": "feb906b2-d7f0-441f-baa5-69609edeaecb",
+  "keep_name": "Dharla Fashions Limited",
+  "drop_name": "Dharla Fashion Ltd.",
+  "section": "same-name"
+ },
+ "15": {
+  "decision": "merge",
+  "keep": "7f42d4f2-fdc6-44de-8374-4c0fab1e0afc",
+  "drop": "502e02db-3ecc-4281-91d1-d88dfeca0df6",
+  "keep_name": "EXCLUSIVE WOVEN KNITWEAR LTD.",
+  "drop_name": "The Exclusive Woven-Knit Wear Ltd.",
+  "section": "same-name"
+ },
+ "16": {
+  "decision": "merge",
+  "keep": "b95b61c8-d03c-4d01-bc7f-19ddba967bdd",
+  "drop": "53d1cdfb-9c81-4ae6-85d7-2e52ba99d3de",
+  "keep_name": "Fashion Trousers Ltd.",
+  "drop_name": "Fashion Trouser",
+  "section": "same-name"
+ },
+ "17": {
+  "decision": "merge",
+  "keep": "1e3ad489-9dcb-433c-8220-c983dac5f961",
+  "drop": "65500013-0684-4b41-89a9-d46bf6df73ed",
+  "keep_name": "GENETIC FASHIONS LTD.",
+  "drop_name": "Genetic Fashion Limited",
+  "section": "same-name"
+ },
+ "18": {
+  "decision": "merge",
+  "keep": "812bd4d2-0a04-471b-9606-8626366dd6e8",
+  "drop": "b1f7f005-042d-4d64-ba56-22093947e028",
+  "keep_name": "Giant Knit Fashions Ltd.",
+  "drop_name": "Giant Knit Fashion Ltd.",
+  "section": "same-name"
+ },
+ "19": {
+  "decision": "merge",
+  "keep": "05a84880-2eb2-4601-bdcc-5600ed5b9d93",
+  "drop": "e9c3d84c-313a-4abd-be93-2366f5968def",
+  "keep_name": "Goldstar Garments Ltd.",
+  "drop_name": "Gold Star Garments LTD",
+  "section": "same-name"
+ },
+ "20": {
+  "decision": "merge",
+  "keep": "aee42a46-0245-4d8a-9936-50f06810a046",
+  "drop": "d54b435f-4446-437b-9650-656e61ad69f3",
+  "keep_name": "GREEN LIFE KNITTEX LTD.",
+  "drop_name": "Greenlife Knittex Ltd",
+  "section": "same-name"
+ },
+ "21": {
+  "decision": "merge",
+  "keep": "d24df148-6a5a-40aa-8ef1-26fc40963abe",
+  "drop": "3d27d305-b00d-4757-9723-4cc9831bd971",
+  "keep_name": "Gumti Textiles Ltd.",
+  "drop_name": "Gumti Textile Ltd.",
+  "section": "same-name"
+ },
+ "22": {
+  "decision": "merge",
+  "keep": "d7d4624a-924b-4012-b278-cc8632d48802",
+  "drop": "2873fd19-8921-4439-8de6-f44f04248a02",
+  "keep_name": "HAMS FASHION LTD",
+  "drop_name": "HAMS FASHIONS LTD",
+  "section": "same-name"
+ },
+ "23": {
+  "decision": "merge",
+  "keep": "98d94a03-4dcb-4bc8-8501-300d72363689",
+  "drop": "3764f25e-77dd-423b-bdec-980df544b67f",
+  "keep_name": "Harry Fashion Ltd.",
+  "drop_name": "Harry Fashions Ltd",
+  "section": "same-name"
+ },
+ "24": {
+  "decision": "merge",
+  "keep": "3e32a230-3a94-4997-8ef7-a6a1de9d03d7",
+  "drop": "b294ce13-e3e0-4080-8845-7681a316616c",
+  "keep_name": "Hop Yick ( Bangladesh) limited",
+  "drop_name": "Hop Yick (BD) Ltd.",
+  "section": "same-name"
+ },
+ "25": {
+  "decision": "merge",
+  "keep": "e049eff1-0050-49bb-a803-7facbb90d22c",
+  "drop": "d25fd540-9e41-496b-a97e-e45dd8522b72",
+  "keep_name": "KDS Fashion Ltd.",
+  "drop_name": "KDS Fashions Ltd.",
+  "section": "same-name"
+ },
+ "26": {
+  "decision": "merge",
+  "keep": "228317f4-1d1a-4cff-9c8e-b2f58b1f198b",
+  "drop": "e59c0681-34dc-4124-9c83-f675631377e9",
+  "keep_name": "KDS Garments Industries Limited",
+  "drop_name": "KDS Garment Industries Ltd",
+  "section": "same-name"
+ },
+ "27": {
+  "decision": "merge",
+  "keep": "2c8266a1-7eae-4e6f-9707-bb357df6ca3b",
+  "drop": "13efc339-a1a9-442c-85a6-8e172badfca6",
+  "keep_name": "KM APPAREL KNIT ( Pvt) LTD.",
+  "drop_name": "KM Apparels Knit (Pvt.) Ltd.",
+  "section": "same-name"
+ },
+ "28": {
+  "decision": "merge",
+  "keep": "6d0fe0e2-26ac-44db-922d-06964ac3f96e",
+  "drop": "ee50b164-da8c-4472-b0ad-2456d3e14d58",
+  "keep_name": "KNIT MEN COMPOSITE LTD.",
+  "drop_name": "Knitmen Composite Ltd.",
+  "section": "same-name"
+ },
+ "29": {
+  "decision": "merge",
+  "keep": "41d6590a-2a4a-4129-968d-88122ead2b8b",
+  "drop": "c64b61ea-0fe5-49c4-a78d-4c3b6051285d",
+  "keep_name": "Knitmoon Ltd",
+  "drop_name": "Knit Moon Ltd.",
+  "section": "same-name"
+ },
+ "30": {
+  "decision": "merge",
+  "keep": "79edf170-c24e-46b6-a147-5b465f013c5a",
+  "drop": "d36a2413-e230-4dec-b919-5da15d18efcd",
+  "keep_name": "Kung Keng Textile (Bangladesh) Co. Ltd.",
+  "drop_name": "KUNG KENG TEXTILE (BD) CO., LTD.",
+  "section": "same-name"
+ },
+ "31": {
+  "decision": "merge",
+  "keep": "04646ab8-114a-49f1-84de-2aea9d9036e3",
+  "drop": "b7187394-45e2-46b5-9142-b53cd5124006",
+  "keep_name": "Lemond Fashion Ltd.",
+  "drop_name": "LEMOND FASHIONS LTD",
+  "section": "same-name"
+ },
+ "32": {
+  "decision": "merge",
+  "keep": "6d1c5f4d-5f47-40c7-879f-a613cc9371c8",
+  "drop": "63b3dd46-fafc-499c-8399-dd6a48f695b3",
+  "keep_name": "Mac-Tex Industries Ltd.",
+  "drop_name": "MACTEX INDUSTRIES LTD",
+  "section": "same-name"
+ },
+ "33": {
+  "decision": "merge",
+  "keep": "1334467c-2d5d-476f-a60a-aa4907cf2129",
+  "drop": "26bd0fc3-5f56-4e49-8e9b-458bd55808b2",
+  "keep_name": "MAM APPAREL & TEXTILES LTD.",
+  "drop_name": "Mam Apparel & Textile Ltd",
+  "section": "same-name"
+ },
+ "34": {
+  "decision": "merge",
+  "keep": "bb013bd2-7f81-47fc-81b3-ecee01624805",
+  "drop": "803eff69-265d-427f-8cbc-c0bac22d258f",
+  "keep_name": "Mavis Garments Ltd.",
+  "drop_name": "Mavis Garment Ltd.",
+  "section": "same-name"
+ },
+ "35": {
+  "decision": "merge",
+  "keep": "37563d81-b180-4b57-a854-d972ef91a84a",
+  "drop": "ec170a38-2a4c-4bc6-8abd-2145acf34bf8",
+  "keep_name": "MINAR TEXTILE",
+  "drop_name": "Minar Textiles Ltd.",
+  "section": "same-name"
+ },
+ "36": {
+  "decision": "merge",
+  "keep": "2a63d3a7-7f1f-495f-a75b-fc7f6d31ed79",
+  "drop": "0084a1a7-11d2-4be2-bf43-1cc7cdd1ad52",
+  "keep_name": "NABA EXPORTS LTD",
+  "drop_name": "Naba Export Ltd.",
+  "section": "same-name"
+ },
+ "37": {
+  "decision": "merge",
+  "keep": "55291d91-d7be-4710-a74e-39898aa94e0e",
+  "drop": "fe7f22f1-9548-4d2f-9c18-eac9aa1e46a9",
+  "keep_name": "NAFISA APPARELS LTD",
+  "drop_name": "Nafisa Apparels Ltd.",
+  "section": "same-name"
+ },
+ "38": {
+  "decision": "merge",
+  "keep": "90313cbd-8bab-4b45-99b2-2acfa46b9d51",
+  "drop": "8a6a82f2-20cc-46ca-bb36-962653deb2d5",
+  "keep_name": "OLD TOWN FASHIONS LTD",
+  "drop_name": "Old Town Fashion Ltd.",
+  "section": "same-name"
+ },
+ "39": {
+  "decision": "merge",
+  "keep": "0fb13e96-9b32-4426-9b68-082b79f8c730",
+  "drop": "6e82733c-24de-4e6d-88ed-00f1d170d603",
+  "keep_name": "Oli Knitting Fabrics Ltd.",
+  "drop_name": "Oli Knittings Fabrics Ltd.",
+  "section": "same-name"
+ },
+ "40": {
+  "decision": "merge",
+  "keep": "469bc50b-da90-46b4-b30b-2072f5c92f43",
+  "drop": "78ace947-a0f3-4be2-843f-7df69cf6af8a",
+  "keep_name": "Ornate Knit Garment Industries Ltd.",
+  "drop_name": "Ornate Knit Garments Industries Ltd",
+  "section": "same-name"
+ },
+ "41": {
+  "decision": "merge",
+  "keep": "e207b3d2-b099-4dca-aa80-ed081e1fe07e",
+  "drop": "8236ece6-2ef5-48cd-ba8d-f56deae5c725",
+  "keep_name": "P.Y. GARMENTS MANUFACTURING (BANGLADESH) COMPANY LIMITED",
+  "drop_name": "P.Y Garments Manufacturing. (BD) Co. Ltd.",
+  "section": "same-name"
+ },
+ "42": {
+  "decision": "merge",
+  "keep": "9c32a1ac-0ae9-4772-a692-9868c92374e4",
+  "drop": "80192b8a-a9b7-4a70-8a36-77dc9ac82f44",
+  "keep_name": "Reza Fashions Ltd.",
+  "drop_name": "Reza Fashion Ltd",
+  "section": "same-name"
+ },
+ "43": {
+  "decision": "merge",
+  "keep": "d7067c58-8373-476b-a76b-1557d8f936d5",
+  "drop": "d9f8fe7c-e1f5-4a02-9b5b-60856ca7da50",
+  "keep_name": "S.B. Designs Ltd.",
+  "drop_name": "S.B Design ltd",
+  "section": "same-name"
+ },
+ "44": {
+  "decision": "merge",
+  "keep": "05c9072f-5459-4fbc-89c5-6775980baebc",
+  "drop": "27c32f02-2957-45f3-a9a1-89a092fdf1f3",
+  "keep_name": "SHASHA DENIMS PLC",
+  "drop_name": "Shasha Denims ltd",
+  "section": "same-name"
+ },
+ "45": {
+  "decision": "merge",
+  "keep": "272a641b-3784-4fbd-9a5d-34679875253b",
+  "drop": "4c3666b1-79c9-4d86-8541-f6a2a9b204ac",
+  "keep_name": "Snowtex Outerwear Ltd.",
+  "drop_name": "Snowtex Outer Wear Ltd",
+  "section": "same-name"
+ },
+ "46": {
+  "decision": "merge",
+  "keep": "c689b5c0-f20e-4e7c-933d-230a605637e9",
+  "drop": "6e621f73-1582-46e9-af69-5614e392ec43",
+  "keep_name": "South End Sweater Co. Ltd.",
+  "drop_name": "Southend Sweater Co Ltd",
+  "section": "same-name"
+ },
+ "47": {
+  "decision": "merge",
+  "keep": "94a0f6e5-e8ba-499b-bc63-ced404468f5c",
+  "drop": "2e9eba2f-6360-4e61-9eb6-2f8bd8951639",
+  "keep_name": "SUNG KWANG APPARELS LTD",
+  "drop_name": "SungKwang Apparels Ltd",
+  "section": "same-name"
+ },
+ "48": {
+  "decision": "merge",
+  "keep": "58a3ab6b-d4c8-4256-a8ca-ba348ef01422",
+  "drop": "9427fd56-131d-47d8-9774-2622d2ef1601",
+  "keep_name": "Textrim Accessories",
+  "drop_name": "Tex Trims Accessories",
+  "section": "same-name"
+ },
+ "49": {
+  "decision": "merge",
+  "keep": "bb4f02f4-8cd2-4b9a-b9c0-25c84dcf06ce",
+  "drop": "d832c635-e44b-4d26-8b95-1caa6eb5ab56",
+  "keep_name": "The Plastic Man Ltd.",
+  "drop_name": "Plastic Man (Pvt.) Ltd",
+  "section": "same-name"
+ },
+ "50": {
+  "decision": "merge",
+  "keep": "bc5944ec-67a4-4098-81de-88e3a1f11292",
+  "drop": "a7d9e894-8756-494b-b2a5-febec195d158",
+  "keep_name": "ULTRA DESIGN & FASHIONS LTD.",
+  "drop_name": "ULTRA DESIGN & FASHION LTD.",
+  "section": "same-name"
+ },
+ "51": {
+  "decision": "merge",
+  "keep": "96cd7d85-8091-4e75-b53d-50969ea31d76",
+  "drop": "a3791315-151c-4afc-a90b-b9626752ecb4",
+  "keep_name": "USAMA TEXTILE LTD.",
+  "drop_name": "Usama Textiles Ltd.",
+  "section": "same-name"
+ },
+ "52": {
+  "decision": "merge",
+  "keep": "5a09650a-2619-4a51-9375-9ccdb968c7fd",
+  "drop": "05b24f15-bbd7-4970-9850-18726e36f970",
+  "keep_name": "VISUAL ECO STYLEWEAR LTD.",
+  "drop_name": "Visual Eco Style Wear Ltd.",
+  "section": "same-name"
+ },
+ "53": {
+  "decision": "merge",
+  "keep": "97c714c8-8070-44cb-b80a-8237eb25b922",
+  "drop": "21da635b-734a-4d88-b77d-b862be9a28a2",
+  "keep_name": "Whitex Garments (BD) PVT. LTD",
+  "drop_name": "Whitex Garments (Bangladesh) Pvt. Ltd.",
+  "section": "same-name"
+ },
+ "54": {
+  "decision": "merge",
+  "keep": "9c8de6d7-b3e6-441b-a159-17f5417b28c0",
+  "drop": "35718fa0-9dae-405a-985d-0ea9439a7512",
+  "keep_name": "YOUNG 4 EVER TEXTILES LTD.",
+  "drop_name": "Young4ever Textiles Ltd.",
+  "section": "same-name"
+ },
+ "55": {
+  "decision": "merge",
+  "keep": "062cdc9b-ba1e-4105-bac9-309dea0ac77a",
+  "drop": "5cb42491-7c38-4ad9-9bea-2d71f0e69c6e",
+  "keep_name": "Zakmars Fashion Ltd.",
+  "drop_name": "Zakmars Fashions Ltd.",
+  "section": "same-name"
+ },
+ "56": {
+  "decision": "merge",
+  "keep": "a87c805f-1357-45ed-ba2a-e94fd16fb7ba",
+  "drop": "81fd0871-54ce-4ff2-9a77-1b1409f5ebeb",
+  "keep_name": "AL YUSRA TEXTILE LTD.",
+  "drop_name": "Al Yusar Textiles Ltd.",
+  "section": "spelling"
+ },
+ "57": {
+  "decision": "merge",
+  "keep": "27401f65-86cf-420b-aed1-4a2ee8a4f6e8",
+  "drop": "a91ff0d0-b484-4277-bbc6-40c5ff4a26bf",
+  "keep_name": "GRAMTECH Knit Dyeing Finishing & Garments Ind. Ltd.",
+  "drop_name": "Gramtech Knit Dye. Finishing & Gmts. Ind. Ltd.",
+  "section": "spelling"
+ },
+ "58": {
+  "decision": "merge",
+  "keep": "5c82265e-774c-4c36-9194-f83a2678285d",
+  "drop": "4e376a3e-a461-4525-94c3-2907402554b1",
+  "keep_name": "KAPS FASHION LTD.",
+  "drop_name": "KAP'S Fashion Ltd.",
+  "section": "spelling"
+ },
+ "59": {
+  "decision": "merge",
+  "keep": "cb707fc6-f99f-419d-804e-18fc0c6f10bd",
+  "drop": "fdbe2031-573d-4374-a261-6c9495b44230",
+  "keep_name": "Lida Textile & Dyeing Limited",
+  "drop_name": "LIDA TEXTILE AND DYING LTD.",
+  "section": "spelling"
+ },
+ "60": {
+  "decision": "attach",
+  "keep": "086e65df-c69d-4403-a047-9cc3187d62b4",
+  "drop": "35b9c8a4-8de4-4b72-a656-378db1f1b54c",
+  "keep_name": "Omor Garments Accessories Industries",
+  "drop_name": "R.K. Garments Accessories  Industries Ltd.",
+  "section": "spelling"
+ },
+ "61": {
+  "decision": "merge",
+  "keep": "21728a97-f0dc-407e-963e-597fc87c5d01",
+  "drop": "1b078731-1ede-4db2-9aea-6fb63cc79981",
+  "keep_name": "Rafia Printing & Packaging",
+  "drop_name": "RUFA PACKAGING AND PRINTING LTD.",
+  "section": "spelling"
+ },
+ "62": {
+  "decision": "merge",
+  "keep": "371bb921-1db3-4c5c-88fb-84044cefc72e",
+  "drop": "c38b32bc-bc15-4b36-b974-731b6e560e1d",
+  "keep_name": "RAZ FASHION WEAR",
+  "drop_name": "Rao Fashion Wear Ltd.",
+  "section": "spelling"
+ },
+ "63": {
+  "decision": "merge",
+  "keep": "34f1da58-3068-4b19-a029-87be2dfbd25b",
+  "drop": "804033e5-fef7-4343-aa9b-1f82603f2959",
+  "keep_name": "Shinest Embroidery & Printing",
+  "drop_name": "SHINE EMBROIDERY & PRINTING LTD",
+  "section": "spelling"
+ },
+ "64": {
+  "decision": "leave",
+  "keep": "219aefe7-8a8d-4772-ae01-69a2e18b98ff",
+  "drop": "b4ec4894-7c47-4d52-b21f-7dd7aae99e3e",
+  "keep_name": "TAS FASHION WEAR LTD.",
+  "drop_name": "SAS Fashion Wear Ltd.",
+  "section": "spelling"
+ },
+ "65": {
+  "decision": "merge",
+  "keep": "ab4e42a6-449d-4910-92f9-01c4e0f6c8ee",
+  "drop": "e5a451c1-f5b9-41f2-bd4a-3b68704ae42a",
+  "keep_name": "CRONY FASHION LTD",
+  "drop_name": "CORNY FASHION LTD",
+  "section": "ruled"
+ },
+ "66": {
+  "decision": "leave",
+  "keep": "b969d2c4-7121-44ca-bbc6-87e513d01618",
+  "drop": "0b0241fe-b544-4ded-a033-147c2751bf81",
+  "keep_name": "AMS KNIT FASHION.",
+  "drop_name": "DAMS KNIT LTD.",
+  "section": "one-entry"
+ },
+ "67": {
+  "decision": "merge",
+  "keep": "118e0b73-7876-4cca-a9ce-755f8c6b0ade",
+  "drop": "ab4e42a6-449d-4910-92f9-01c4e0f6c8ee",
+  "keep_name": "CRONY APPARELS LTD",
+  "drop_name": "CRONY FASHION LTD",
+  "section": "one-entry"
+ },
+ "68": {
+  "decision": "leave",
+  "keep": "09db6fc6-5cf9-418e-bf26-4a9209f81171",
+  "drop": "13dfc5b5-8c82-4f26-85b7-b87c2c401596",
+  "keep_name": "EUPHORIA TEXTILE.",
+  "drop_name": "EUPHORIA APPARELS LTD.",
+  "section": "one-entry"
+ },
+ "69": {
+  "decision": "merge",
+  "keep": "c02909a7-a43c-4cb1-83e7-3bbf9b558e95",
+  "drop": "3a634f01-4ece-46fd-9dfa-07d27741900f",
+  "keep_name": "FAIR APPARELS LTD.",
+  "drop_name": "FAIR APPARELS (BD)",
+  "section": "one-entry"
+ },
+ "70": {
+  "decision": "leave",
+  "keep": "79880b55-3681-415f-b76b-275c92ec5111",
+  "drop": "f53f1303-92c9-482c-9387-4e6337d3b9fa",
+  "keep_name": "FATULLAH APPARELS LIMITED",
+  "drop_name": "FATULLAH FASHION LTD.",
+  "section": "one-entry"
+ },
+ "71": {
+  "decision": "merge",
+  "keep": "406fad2f-e879-496c-ba56-c03abe353c10",
+  "drop": "0ef398ac-10bd-49f4-84f3-3b10adc33a79",
+  "keep_name": "H. N FABRICS",
+  "drop_name": "H. N FABRICS (KNITTING ONLY)",
+  "section": "one-entry"
+ },
+ "72": {
+  "decision": "leave",
+  "keep": "00b35242-2d96-4bfb-80be-ea90f77b6f82",
+  "drop": "e36bc7cc-18cc-4c93-af90-9321515f291e",
+  "keep_name": "KNIT FASHION",
+  "drop_name": "SHATABDI APPARELS LTD",
+  "section": "one-entry"
+ },
+ "73": {
+  "decision": "leave",
+  "keep": "02975eaf-1627-4b72-b306-836a8004267f",
+  "drop": "561b9dd8-859c-48e5-904b-dcf2a1c87142",
+  "keep_name": "POLESTAR APPARELS (PVT) LTD.",
+  "drop_name": "H.R.S COMPOSITE TEX WEAR LTD.",
+  "section": "one-entry"
+ },
+ "74": {
+  "decision": "merge",
+  "keep": "4a2aaf76-a1cc-49f7-8515-fb5950e59e48",
+  "drop": "6b41b8a8-cb9a-4d41-905d-017b8e71eb23",
+  "keep_name": "RUPASHI FABRICS COMPLEX (PVT) LTD.",
+  "drop_name": "RUPASHI FABRICS COMPLEX (PVT) LTD (GARMENTS DIVISION)",
+  "section": "one-entry"
+ },
+ "75": {
+  "decision": "attach",
+  "keep": "f564c286-9e94-42f2-9f81-6b7a10d84832",
+  "drop": "3e11bd8b-a00d-47fd-9dd3-78463e2fa4ea",
+  "keep_name": "AMEX KNITTING & DYEING INDUSTRIES LTD.",
+  "drop_name": "Amex Knitting & Dyeing Inds. Ltd. (U-2) G.D.",
+  "section": "name-inside"
+ },
+ "76": {
+  "decision": "attach",
+  "keep": "81efb795-9aaa-44c3-a5a2-25d474bd2a4c",
+  "drop": "e7fec17f-2655-4d54-b665-23298184a6dc",
+  "keep_name": "B.Brothers Garments Co. Ltd.",
+  "drop_name": "B. BROTHERS GARMENTS CO. UNIT-2 LIMITED.",
+  "section": "name-inside"
+ },
+ "77": {
+  "decision": "attach",
+  "keep": "0cf3ee42-3c34-4e5e-afc7-6a6b50d30cf5",
+  "drop": "1a2e2521-6191-4c92-8667-d230634feade",
+  "keep_name": "Grameen Fabrics & Fashions Ltd.",
+  "drop_name": "Grameen Fabrics & Fashion Ltd. (Com. Unit)",
+  "section": "name-inside"
+ },
+ "78": {
+  "decision": "attach",
+  "keep": "64fa1cb4-999e-42db-a226-784c810c643d",
+  "drop": "40f47a3d-18da-46e3-9828-0b1eda3d2151",
+  "keep_name": "IMPRESS-NEWTEX COMPOSITE TEXTILES LTD",
+  "drop_name": "Impress-Newtex Composite Textile Ltd. (Embroidery Section)",
+  "section": "name-inside"
+ },
+ "79": {
+  "decision": "merge",
+  "keep": "082e80e1-2d51-42d5-88f5-0016dcd39653",
+  "drop": "58b74294-1947-4b7b-b2c4-016effee3d2c",
+  "keep_name": "Khan Accessories and Packaging Company Ltd.",
+  "drop_name": "Khan Accessories & Packaging Co. Ltd. (KAPCO)",
+  "section": "name-inside"
+ },
+ "80": {
+  "decision": "attach",
+  "keep": "20f48a06-eb05-4b70-a962-cbc5f2a705ce",
+  "drop": "a9296925-4e58-4241-94cb-960984ea5437",
+  "keep_name": "MAHEEN DIZAYN ETIKET (BD) UNIT – 2 LTD.",
+  "drop_name": "Maheen Dizayn Etiket (BD) Limited",
+  "section": "name-inside"
+ },
+ "81": {
+  "decision": "merge",
+  "keep": "fa5b906b-ad46-4614-90cf-23a54563834b",
+  "drop": "d6a87c00-6cf9-451d-b2bf-394550ae51f8",
+  "keep_name": "Siam Computerized Elastic Industries Ltd. (MUMTEX).",
+  "drop_name": "Siam Computerized Elastic Industries Ltd",
+  "section": "name-inside"
+ },
+ "82": {
+  "decision": "merge",
+  "keep": "b44e994e-5ea2-484e-9fd4-3ec82711d1a7",
+  "drop": "5cf71623-a395-4ca2-b954-820beb2bd279",
+  "keep_name": "Transworld  Ltd.",
+  "drop_name": "Transworld Sweaters Limited",
+  "section": "name-inside"
+ },
+ "83": {
+  "decision": "merge",
+  "keep": "63b8d9f3-f121-45d2-9535-c1004ff04248",
+  "drop": "46b06d84-a637-4b2a-89e8-d8262f8f82cd",
+  "keep_name": "ALIF TEXTILE",
+  "drop_name": "Alif Textiles Ltd.",
+  "section": "same-name-far"
+ },
+ "84": {
+  "decision": "merge",
+  "keep": "83e3166b-d795-48d4-ad76-07475580b576",
+  "drop": "c0da3be0-7842-4239-ba0b-f06f74a82334",
+  "keep_name": "ANIKA FASHION",
+  "drop_name": "Anika Fashions (Pvt.) Ltd.",
+  "section": "same-name-far"
+ },
+ "85": {
+  "decision": "attach",
+  "keep": "58999efb-fe28-4529-b9de-9cb69b5b19ed",
+  "drop": "ff24ffac-b851-46e0-9b15-20c52fa9a4b4",
+  "keep_name": "BAXTER BRENTON (BANGLADESH) CLOTHING MANUFACTURING CO., LTD.",
+  "drop_name": "Baxter Brenton (BD) Clothing Mfg. Co. Ltd.",
+  "section": "same-name-far"
+ },
+ "86": {
+  "decision": "merge",
+  "keep": "74ce87a5-0feb-4aa6-9eb1-c8a59a9fd2d9",
+  "drop": "14821b92-c950-432b-88d1-955bf47dea0c",
+  "keep_name": "BISWAS FASHION",
+  "drop_name": "Biswas Fashions Ltd.",
+  "section": "same-name-far"
+ },
+ "87": {
+  "decision": "merge",
+  "keep": "353a3d10-eca1-4222-b064-dcdc0f7c6b0f",
+  "drop": "64ecf491-8e2c-4aeb-9dfb-558cef2b7f17",
+  "keep_name": "CRC Textile Mills Ltd.",
+  "drop_name": "CRC Textiles Mills Ltd.",
+  "section": "same-name-far"
+ },
+ "88": {
+  "decision": "merge",
+  "keep": "5156d9d1-c94a-45e9-bf6e-904b0106459e",
+  "drop": "95adb48f-9c60-49b2-a6cc-483f0741d0d5",
+  "keep_name": "EURO KNIT SPIN GARMENTS LTD.",
+  "drop_name": "Euro Knitspin Garments Ltd",
+  "section": "same-name-far"
+ },
+ "89": {
+  "decision": "merge",
+  "keep": "22c18ad5-2237-49ee-9904-388bec29d94c",
+  "drop": "a1bda21f-843e-4396-8789-6b23794b4963",
+  "keep_name": "FASHION CRAFTS & DESIGN LTD.",
+  "drop_name": "Fashion Craft Design Ltd.",
+  "section": "same-name-far"
+ },
+ "90": {
+  "decision": "merge",
+  "keep": "fa11f258-c5a6-409e-a475-9b38465e4ae4",
+  "drop": "a8b4c753-c984-42c5-a395-d363c2447e70",
+  "keep_name": "GENIUS FASHION LTD.",
+  "drop_name": "Genius Fashions Ltd.",
+  "section": "same-name-far"
+ },
+ "91": {
+  "decision": "merge",
+  "keep": "f8deb9f8-0306-4054-bbc2-0bb315ee8cca",
+  "drop": "5328057c-1bfb-4b5c-86f5-949e38d2f064",
+  "keep_name": "Giant Textiles Ltd.",
+  "drop_name": "Giant Textile Ltd",
+  "section": "same-name-far"
+ },
+ "92": {
+  "decision": "merge",
+  "keep": "9791a67a-c588-4fbe-a490-ed5cf08a2b1b",
+  "drop": "4628c58e-2fa1-4a9e-95f3-19f83c9b847a",
+  "keep_name": "GLARE FASHIONS LTD.",
+  "drop_name": "Glare Fashion Ltd",
+  "section": "same-name-far"
+ },
+ "93": {
+  "decision": "merge",
+  "keep": "8716c423-25ed-4cef-b447-6cef6311b1cc",
+  "drop": "bf667a5f-dd61-4a37-b1c0-4dc7cfd15b3b",
+  "keep_name": "Hannan Fashions",
+  "drop_name": "Hannan Fashion's Ltd.",
+  "section": "same-name-far"
+ },
+ "94": {
+  "decision": "merge",
+  "keep": "7df6ad0d-2336-47d0-878c-fc8579cc6f45",
+  "drop": "2b27b1ef-72f9-4172-9216-f6348e44a607",
+  "keep_name": "K. A Fashions Ltd.",
+  "drop_name": "KA Fashion Ltd.",
+  "section": "same-name-far"
+ },
+ "95": {
+  "decision": "merge",
+  "keep": "e944ad48-ad40-4304-b5cb-122e2295efa8",
+  "drop": "503cb029-fcb3-4cfb-932d-a97c58b3dadc",
+  "keep_name": "LABIB FASHION",
+  "drop_name": "Labib Fashions Ltd.",
+  "section": "same-name-far"
+ },
+ "96": {
+  "decision": "merge",
+  "keep": "af87a532-7e93-453b-b7ad-239b54e1b115",
+  "drop": "7ed075a1-8d39-4dd4-8b15-e070cec8d8d1",
+  "keep_name": "LZ Textiles Ltd.",
+  "drop_name": "LZ TEXTILE LTD.",
+  "section": "same-name-far"
+ },
+ "97": {
+  "decision": "merge",
+  "keep": "cda44171-6552-4206-a376-ace85f9d7faa",
+  "drop": "bf75ffe7-8b9a-4525-8fcd-2e59474be24b",
+  "keep_name": "R. K FASHION LTD.",
+  "drop_name": "R.K. Fashions",
+  "section": "same-name-far"
+ },
+ "98": {
+  "decision": "attach",
+  "keep": "39e08c91-56fd-4d4e-a306-0eec365e99ae",
+  "drop": "b91634ec-7d86-42ae-895d-77c8a0722b17",
+  "keep_name": "Sayem Fashions Ltd",
+  "drop_name": "SAYEM FASHION",
+  "section": "same-name-far"
+ },
+ "99": {
+  "decision": "merge",
+  "keep": "fae8e16f-8338-42a6-98bb-af4b14f66831",
+  "drop": "ff2f5cde-f024-40f9-8d14-5f9880e8598c",
+  "keep_name": "SEIBU FASHION LTD",
+  "drop_name": "Seibu Fashions Ltd.",
+  "section": "same-name-far"
+ },
+ "100": {
+  "decision": "merge",
+  "keep": "169853ef-4cd7-4960-9ea9-5187de90bf1f",
+  "drop": "6c134ca7-0936-4819-8733-91de136103b0",
+  "keep_name": "TM FASHIONS LTD",
+  "drop_name": "T. M FASHION LTD",
+  "section": "same-name-far"
+ },
+ "101": {
+  "decision": "merge",
+  "keep": "031f12df-4718-4ae8-bdde-eb7ddb13ed25",
+  "drop": "2b468bde-a3bc-48dd-bd66-ed640ab1c089",
+  "keep_name": "AB APPARELS LTD",
+  "drop_name": "A & B Apparels",
+  "section": "buying-house"
+ },
+ "102": {
+  "decision": "leave",
+  "keep": "2df4d3eb-5c29-460d-a2c0-acc86519ae13",
+  "drop": "369860dc-2e6f-475e-8aba-ccb057f0bcde",
+  "keep_name": "Bodystretch Bangladesh Ltd.",
+  "drop_name": "Bodystretch (BD) Ltd.",
+  "section": "buying-house"
+ },
+ "103": {
+  "decision": "merge",
+  "keep": "cd1e83eb-30a3-469a-b591-9791b63d7bf7",
+  "drop": "b9053039-5d43-420f-85a9-02d92c686d9e",
+  "keep_name": "Dinatex International Ltd.",
+  "drop_name": "Dinatex Int'l Limited",
+  "section": "buying-house"
+ },
+ "104": {
+  "decision": "merge",
+  "keep": "40fae5fa-75b1-48dc-b009-45470a15f069",
+  "drop": "e9741d45-866f-4b70-b0fa-d48174d2086f",
+  "keep_name": "F. R. FASHION",
+  "drop_name": "FR Fashions Ltd.",
+  "section": "buying-house"
+ },
+ "105": {
+  "decision": "merge",
+  "keep": "1bd58534-f0fd-4590-be4b-7d65095a0a08",
+  "drop": "91b95111-8e0d-4b7c-8812-17940455ebec",
+  "keep_name": "Maisha Fashions",
+  "drop_name": "Maisha Fashion",
+  "section": "buying-house"
+ },
+ "106": {
+  "decision": "leave",
+  "keep": "f3a4ec44-a6d2-429d-a3f3-e002504a4f5c",
+  "drop": "6ad5e016-1160-4c9f-b4f5-c3221fb99c60",
+  "keep_name": "MINTEX FASHION LTD",
+  "drop_name": "Mintex Fashions",
+  "section": "buying-house"
+ },
+ "107": {
+  "decision": "merge",
+  "keep": "1c571d8a-f62c-4925-b8e1-39071c8f5796",
+  "drop": "ddece66b-0a6f-43d9-b1dd-e93b844892ac",
+  "keep_name": "Sadaf Fashions Limited",
+  "drop_name": "Sadaf Fashion Limited",
+  "section": "buying-house"
+ },
+ "108": {
+  "decision": "leave",
+  "keep": "6c134ca7-0936-4819-8733-91de136103b0",
+  "drop": "4736d036-6267-469e-b764-616d893fc3c2",
+  "keep_name": "T. M FASHION LTD",
+  "drop_name": "T & M Fashion",
+  "section": "buying-house"
+ },
+ "109": {
+  "decision": "leave",
+  "keep": "169853ef-4cd7-4960-9ea9-5187de90bf1f",
+  "drop": "4736d036-6267-469e-b764-616d893fc3c2",
+  "keep_name": "TM FASHIONS LTD",
+  "drop_name": "T & M Fashion",
+  "section": "buying-house"
+ },
+ "110": {
+  "decision": "leave",
+  "keep": "d3c5590e-9a22-477f-afb6-de7b201b399f",
+  "drop": "3df816ae-2856-4d57-beba-0deab59b1213",
+  "keep_name": "TS Apparels Ltd.",
+  "drop_name": "T & S Apparel",
+  "section": "buying-house"
+ },
+ "111": {
+  "decision": "leave",
+  "keep": "c6aee270-4468-4cd5-a8c1-95aa2041a375",
+  "drop": "55e6b20c-beec-4a1f-a7ec-2e50c5ee2eaa",
+  "keep_name": "UNION FASHION",
+  "drop_name": "Union Fashions",
+  "section": "buying-house"
+ },
+ "112": {
+  "decision": "leave",
+  "keep": "ce7ea74b-c7c5-4655-86a9-c5c475c92696",
+  "drop": "cc5602c5-0a46-420b-88e7-1c5cf64bf3e1",
+  "keep_name": "A M Fashion",
+  "drop_name": "A.M. Fashions Ltd.",
+  "section": "two-entries"
+ },
+ "113": {
+  "decision": "merge",
+  "keep": "daeba8e4-6848-4ea2-af23-1ac6e70e6e79",
+  "drop": "06739839-a3f2-4895-bc5b-c57fa4578a33",
+  "keep_name": "Abdullah Fashions",
+  "drop_name": "Abdullah Fashion",
+  "section": "two-entries"
+ },
+ "114": {
+  "decision": "leave",
+  "keep": "9ca887b1-b16d-4d53-bb5b-03609e064bc8",
+  "drop": "bde66905-65bc-45dc-af1f-9007b555c205",
+  "keep_name": "AMANA KNIT FASHION",
+  "drop_name": "AMANA KNIT & FASHION (PVT) LTD.",
+  "section": "two-entries"
+ },
+ "115": {
+  "decision": "merge",
+  "keep": "4d803a12-b2c3-4bc0-8598-c28b29beaa04",
+  "drop": "2ce84930-56f5-4047-9a2d-991c80b05a4f",
+  "keep_name": "Nak Fashion & Textiles Ltd.",
+  "drop_name": "Nak Fashion & Textile",
+  "section": "two-entries"
+ },
+ "116": {
+  "decision": "merge",
+  "keep": "ccd1d53b-2eb2-470c-a138-bbb9bad3c1d5",
+  "drop": "5c5122d0-5214-4f25-a0f3-b9bff11b5066",
+  "keep_name": "PERFECT FASHIONS",
+  "drop_name": "Perfect Fashion",
+  "section": "two-entries"
+ },
+ "117": {
+  "decision": "merge",
+  "keep": "8fd13eb8-344b-45e5-9db7-c56550a6f49e",
+  "drop": "d1e1a988-8b8f-4690-b7a1-f7ce1683e741",
+  "keep_name": "S.B. Fashions Garments",
+  "drop_name": "S.B. Fashion Garments Ltd.",
+  "section": "two-entries"
+ },
+ "118": {
+  "decision": "merge",
+  "keep": "788e5320-bec7-4f99-bff8-5ed374a0d793",
+  "drop": "4f0341e3-4836-4336-9f1f-3984b04869b6",
+  "keep_name": "SNS Fashions",
+  "drop_name": "SNS Fashion",
+  "section": "two-entries"
+ },
+ "119": {
+  "decision": "leave",
+  "keep": "b260a05b-10de-437f-beec-29541aa0444c",
+  "drop": "80997ef6-eda9-45ad-8561-4a7ab20dcd70",
+  "keep_name": "The National Apparels Ltd.",
+  "drop_name": "National Apparel Co. Ltd.",
+  "section": "two-entries"
+ },
+ "120": {
+  "decision": "merge",
+  "keep": "0d139336-b11a-4747-aca1-893d89214150",
+  "drop": "72791624-fc3b-48f8-a39b-4386fe08f2af",
+  "keep_name": "Trams International (Pvt.) Ltd.",
+  "drop_name": "Trams Int'l (Pvt.) Ltd.",
+  "section": "two-entries"
+ },
+ "121": {
+  "decision": "leave",
+  "keep": "878c1c11-d0d6-440d-a09c-70786c6ce8f4",
+  "drop": "6389fa61-9756-4f4c-895d-38c60d2a5433",
+  "keep_name": "Well Tex",
+  "drop_name": "The Well-Tex Ltd.",
+  "section": "two-entries"
+ }
+}

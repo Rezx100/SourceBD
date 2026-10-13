@@ -128,6 +128,8 @@ export type TableRowModel = {
   workersSecondShort?: string | null;
   /** Discover only: the one figure the record itself shows (the profile's where it differs from the headline). A phone's row says this one. */
   workersRecord?: number | null;
+  /** A company with buildings: the range printed in place of every figure above ("800–1,150"). */
+  workersRange?: string | null;
   sanctioned: boolean;
   sanctionSample?: boolean;
   selected?: boolean;

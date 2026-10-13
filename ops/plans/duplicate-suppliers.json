@@ -1,0 +1,8406 @@
+{
+ "suppliers": 10907,
+ "published": 10125,
+ "pairs_judged": 7765,
+ "merge": [
+  {
+   "keep": {
+    "id": "513741ed-21ca-479e-b565-0dd1d47a2ac2",
+    "slug": "ms-shoara-fashion",
+    "name": "M/S. SHOARA FASHION",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "Bangladesh\n1400 NARAYANGANJ",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "OEKO_TEX": [
+      "oeko-tex-61942"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "drop": {
+    "id": "c56b7021-3f7a-4f61-8c02-068adce28149",
+    "slug": "shoara-fashion",
+    "name": "Shoara Fashion",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayangonj",
+    "address": "Plot-127, Block-B, BSCIC I/A, Shasungaon, Fatullah, Narayangonj.",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGAPMEA": [
+      "720"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": true,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "shared mailbox",
+    "similar name"
+   ],
+   "own": [
+    "same mailbox (1)"
+   ],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": []
+  },
+  {
+   "keep": {
+    "id": "2099756b-9307-4378-a209-881ec0ad3201",
+    "slug": "rey-tex-fashion-wear",
+    "name": "Rey-Tex Fashion Wears Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Plot # 13-14, Chiriakhana Road, Mallik Housing (7th Floor), Section # 1\nDhaka\nMirpur",
+    "workers": 500,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:4399"
+     ],
+     "EPB": [
+      "4677"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "drop": {
+    "id": "61e54699-f8dd-4aab-b37d-675e259fef5e",
+    "slug": "reytex-fashion-wear",
+    "name": "Reytex Fashion Wears Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Bangladesh\n1216 Dhaka",
+    "workers": 650,
+    "group": "Reytex Fashion Wears Ltd.",
+    "website": "www.reytexfashion.com",
+    "registers": {
+     "OEKO_TEX": [
+      "oeko-tex-73274"
+     ],
+     "RSC": [
+      "9801"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "certain": true,
+   "score": 97,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "shared mailbox",
+    "similar name"
+   ],
+   "own": [
+    "same mailbox (1)"
+   ],
+   "place": [
+    "addresses share chiriakhana, housing, mirpur"
+   ],
+   "supporting": [
+    "same district Dhaka"
+   ],
+   "hard": [],
+   "soft": [],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": []
+  },
+  {
+   "keep": {
+    "id": "fe88b8b0-ce06-43aa-a261-49cf808fb006",
+    "slug": "shaikat-knitwear",
+    "name": "SHAIKAT KNITWEAR",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "KOTALER BAG, FATULLAH, NARAYANGANJ",
+    "workers": null,
+    "group": null,
+    "website": "https://www.shaikatknitwear.com",
+    "registers": {
+     "BKMEA": [
+      "1921"
+     ],
+     "GOTS": [
+      "gots-SCO006771"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "a9cc6046-1d81-4a70-a0e3-325cabdeb2aa",
+    "slug": "ms-shaikat-knitwear",
+    "name": "M/S. SHAIKAT KNITWEAR",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "Bangladesh\nNarayanganj - 1420",
+    "workers": null,
+    "group": null,
+    "website": "www.shaikatknit.com",
+    "registers": {
+     "OEKO_TEX": [
+      "oeko-tex-26055"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "certain": true,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "shared mailbox",
+    "similar name"
+   ],
+   "own": [
+    "same mailbox (1)"
+   ],
+   "place": [],
+   "supporting": [
+    "same district Narayanganj"
+   ],
+   "hard": [],
+   "soft": [],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": []
+  },
+  {
+   "keep": {
+    "id": "3cd2cdd2-da80-41e4-82fc-0f92396002ec",
+    "slug": "zisas-fashion",
+    "name": "Zisas  Fashion Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Bangladesh\n1219 Dhaka",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "EPB": [
+      "1085"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-84357"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "drop": {
+    "id": "072ecbd6-58d9-452a-bab2-df835667d804",
+    "slug": "zisa-s-fashion",
+    "name": "Zisa`s Fashion Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "66, Haji Para,  (2nd Floor), DIT Road, Rampura\nDhaka\nDhaka",
+    "workers": 380,
+    "group": null,
+    "website": "https://www.solargarmentsbd.com",
+    "registers": {
+     "BGMEA": [
+      "general:3334"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": true,
+   "score": 96,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "epb cross-reference",
+    "same name",
+    "shared mailbox domain",
+    "similar name"
+   ],
+   "own": [
+    "same mailbox domain zisasfashionltd.com.bd",
+    "one's BGMEA entry names the EPB number the other holds"
+   ],
+   "place": [],
+   "supporting": [
+    "same district Dhaka"
+   ],
+   "hard": [],
+   "soft": [],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": []
+  }
+ ],
+ "ask": [
+  {
+   "section": "buying-house",
+   "lean": "separate",
+   "keep": {
+    "id": "031f12df-4718-4ae8-bdde-eb7ddb13ed25",
+    "slug": "ab-apparels",
+    "name": "AB APPARELS LTD",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "225, Singair Road, Hemayetpur, Savar\nDhaka\nDhaka",
+    "workers": 2850,
+    "group": "AJI Group",
+    "website": "http://www.ab-group.co",
+    "registers": {
+     "BGMEA": [
+      "general:6077"
+     ],
+     "EPB": [
+      "313"
+     ],
+     "GOTS": [
+      "gots-SCO030289"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-37940"
+     ],
+     "RSC": [
+      "12589"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "drop": {
+    "id": "2b468bde-a3bc-48dd-bd66-ed640ab1c089",
+    "slug": "a-and-b-apparels",
+    "name": "A & B Apparels",
+    "kind": "buying house",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "House # 26, Road # 3, Block-C, Flat # 4A, Bonasree Project, Rampura, Dhaka",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA (associate)": [
+      "58"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 95,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [
+    "same district Dhaka"
+   ],
+   "hard": [
+    "one is a buying house (BGMEA associate member), the other a factory"
+   ],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 101
+  },
+  {
+   "section": "buying-house",
+   "lean": "separate",
+   "keep": {
+    "id": "2df4d3eb-5c29-460d-a2c0-acc86519ae13",
+    "slug": "bodystretch-bangladesh",
+    "name": "Bodystretch Bangladesh Ltd.",
+    "kind": "buying house",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "87, New Eskaton Road (5th Floor), New Eskaton, Dhaka",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA (associate)": [
+      "929",
+      "948"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "drop": {
+    "id": "369860dc-2e6f-475e-8aba-ccb057f0bcde",
+    "slug": "bodystretch-bd",
+    "name": "Bodystretch (BD) Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Plot # 80, Tengury, Zirani Bazar, BKSP, Ashulia\nDhaka\nSavar",
+    "workers": 450,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:5463"
+     ]
+    },
+    "created": "2026-08-03"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "shared phone",
+    "similar name"
+   ],
+   "own": [
+    "1 shared phone number"
+   ],
+   "place": [],
+   "supporting": [
+    "same district Dhaka"
+   ],
+   "hard": [
+    "one is a buying house (BGMEA associate member), the other a factory"
+   ],
+   "soft": [],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 102
+  },
+  {
+   "section": "buying-house",
+   "lean": "separate",
+   "keep": {
+    "id": "cd1e83eb-30a3-469a-b591-9791b63d7bf7",
+    "slug": "dinatex-international",
+    "name": "Dinatex International Ltd.",
+    "kind": "buying house",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "House # B/172, Road # 23, New DOHS, Mohakhali, Dhaka",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA (associate)": [
+      "60",
+      "698"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "drop": {
+    "id": "b9053039-5d43-420f-85a9-02d92c686d9e",
+    "slug": "dinatex-international-l",
+    "name": "Dinatex Int'l Limited",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Landmark Complex, Sadhur Para, Baro Ashulia\nDhaka\nSavar",
+    "workers": 834,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:5366"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "shared mailbox domain",
+    "similar name"
+   ],
+   "own": [
+    "same mailbox domain landmark-grp.com"
+   ],
+   "place": [],
+   "supporting": [
+    "same district Dhaka"
+   ],
+   "hard": [
+    "one is a buying house (BGMEA associate member), the other a factory"
+   ],
+   "soft": [],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 103
+  },
+  {
+   "section": "buying-house",
+   "lean": "separate",
+   "keep": {
+    "id": "40fae5fa-75b1-48dc-b009-45470a15f069",
+    "slug": "fr-fashion",
+    "name": "F. R. FASHION",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "182/6, DOGAIR CHOTO MORGIR FIRM, SARULIA-1361, DEMRA, DHAKA., DEMRA, DHAKA",
+    "workers": 420,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "2492"
+     ],
+     "EPB": [
+      "5389"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "e9741d45-866f-4b70-b0fa-d48174d2086f",
+    "slug": "fr-fashions",
+    "name": "FR Fashions Ltd.",
+    "kind": "buying house",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "CONTESSA, Plot 1/B, Block-CES (F), Road # 123, Flat # B-3, Gulshan-1, Dhaka",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA (associate)": [
+      "160"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [
+    "same district Dhaka"
+   ],
+   "hard": [
+    "one is a buying house (BGMEA associate member), the other a factory"
+   ],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 104
+  },
+  {
+   "section": "buying-house",
+   "lean": "separate",
+   "keep": {
+    "id": "1bd58534-f0fd-4590-be4b-7d65095a0a08",
+    "slug": "maisha-fashions",
+    "name": "Maisha Fashions",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Gouripur, Ashulia, Savar\nDhaka\nDhaka",
+    "workers": 150,
+    "group": null,
+    "website": "https://www.maishafashions.com",
+    "registers": {
+     "BGAPMEA": [
+      "1187"
+     ],
+     "BGMEA": [
+      "general:6669"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "drop": {
+    "id": "91b95111-8e0d-4b7c-8812-17940455ebec",
+    "slug": "maisha-fashion",
+    "name": "Maisha Fashion",
+    "kind": "buying house",
+    "published": true,
+    "building_of": null,
+    "district": "Chattogram",
+    "address": "Panama Plaza ,1st Floor, 3523, Arakahn Road, Baddarhat, Chittagong",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA (associate)": [
+      "859"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [
+    "one is a buying house (BGMEA associate member), the other a factory"
+   ],
+   "soft": [
+    "districts differ: Dhaka / Chattogram",
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 105
+  },
+  {
+   "section": "buying-house",
+   "lean": "separate",
+   "keep": {
+    "id": "f3a4ec44-a6d2-429d-a3f3-e002504a4f5c",
+    "slug": "mintex-fashion",
+    "name": "MINTEX FASHION LTD",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "PLOT-71/72, BSCIC HOSIERY SHILPA NAGARI, , NARAYANGANJ",
+    "workers": null,
+    "group": "Minar Group",
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "233",
+      "92"
+     ],
+     "RSC": [
+      "11579"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "6ad5e016-1160-4c9f-b4f5-c3221fb99c60",
+    "slug": "mintex-fashions",
+    "name": "Mintex Fashions",
+    "kind": "buying house",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "House # 530/A (4th Floor), Road # 10 (East side), DOHS, Baridhara DOHS, Dhaka",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA (associate)": [
+      "766"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [
+    "one is a buying house (BGMEA associate member), the other a factory"
+   ],
+   "soft": [
+    "districts differ: Dhaka / Narayanganj",
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 106
+  },
+  {
+   "section": "buying-house",
+   "lean": "separate",
+   "keep": {
+    "id": "1c571d8a-f62c-4925-b8e1-39071c8f5796",
+    "slug": "sadaf-fashions",
+    "name": "Sadaf Fashions Limited",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Chattogram",
+    "address": "768, Askarabad, D.T. Road\nChittagong\nNorth Agrabad",
+    "workers": 472,
+    "group": "Sadaf Fashions Limited",
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:2472"
+     ],
+     "RSC": [
+      "9803"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "drop": {
+    "id": "ddece66b-0a6f-43d9-b1dd-e93b844892ac",
+    "slug": "sadaf-fashion",
+    "name": "Sadaf Fashion Limited",
+    "kind": "buying house",
+    "published": true,
+    "building_of": null,
+    "district": "Chattogram",
+    "address": "768, Askarabad, DT Road, North, Agrabad, Chittagong",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA (associate)": [
+      "1023"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "shared mailbox",
+    "shared mailbox domain",
+    "shared phone",
+    "similar name"
+   ],
+   "own": [
+    "1 shared phone number",
+    "same mailbox domain sadaffashions.com",
+    "same mailbox (1)"
+   ],
+   "place": [
+    "addresses share agrabad, askarabad"
+   ],
+   "supporting": [
+    "same district Chattogram"
+   ],
+   "hard": [
+    "one is a buying house (BGMEA associate member), the other a factory"
+   ],
+   "soft": [],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 107
+  },
+  {
+   "section": "buying-house",
+   "lean": "separate",
+   "keep": {
+    "id": "6c134ca7-0936-4819-8733-91de136103b0",
+    "slug": "tm-fashion",
+    "name": "T. M FASHION LTD",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "NEW JAMIR MARKET (4TH FLOOR), ALI-AHMED CHUNKA ROAD, , NARAYANGANJ",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "153"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "4736d036-6267-469e-b764-616d893fc3c2",
+    "slug": "t-and-m-fashion",
+    "name": "T & M Fashion",
+    "kind": "buying house",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "House # 42/A, Flat # 1B, Road # 7, Sector # 3, Uttara, Dhaka",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA (associate)": [
+      "814"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 95,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [
+    "one is a buying house (BGMEA associate member), the other a factory"
+   ],
+   "soft": [
+    "districts differ: Dhaka / Narayanganj",
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 108
+  },
+  {
+   "section": "buying-house",
+   "lean": "separate",
+   "keep": {
+    "id": "169853ef-4cd7-4960-9ea9-5187de90bf1f",
+    "slug": "tm-fashions",
+    "name": "TM FASHIONS LTD",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Haji Ismail Chowdhury Bhaban, Chandana Chowrasta\nGazipur\nGazipur",
+    "workers": 2400,
+    "group": "TM Group",
+    "website": "http://www.tmdbd.com",
+    "registers": {
+     "BGMEA": [
+      "general:5128"
+     ],
+     "EPB": [
+      "2575"
+     ],
+     "GOTS": [
+      "gots-SCO009899"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-42997"
+     ],
+     "RSC": [
+      "9332"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "drop": {
+    "id": "4736d036-6267-469e-b764-616d893fc3c2",
+    "slug": "t-and-m-fashion",
+    "name": "T & M Fashion",
+    "kind": "buying house",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "House # 42/A, Flat # 1B, Road # 7, Sector # 3, Uttara, Dhaka",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA (associate)": [
+      "814"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 95,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [
+    "same district Dhaka"
+   ],
+   "hard": [
+    "one is a buying house (BGMEA associate member), the other a factory"
+   ],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 109
+  },
+  {
+   "section": "buying-house",
+   "lean": "separate",
+   "keep": {
+    "id": "d3c5590e-9a22-477f-afb6-de7b201b399f",
+    "slug": "ts-apparels",
+    "name": "TS Apparels Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Chattogram",
+    "address": "Kanupukur Star Building (2nd Floor), 1731, Mostafa Hakim College Road, North Kattali\nChittagong\nPahartali",
+    "workers": 200,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:6087"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "drop": {
+    "id": "3df816ae-2856-4d57-beba-0deab59b1213",
+    "slug": "t-and-s-apparel",
+    "name": "T & S Apparel",
+    "kind": "buying house",
+    "published": true,
+    "building_of": null,
+    "district": "Chattogram",
+    "address": "1019, Panwala Para, North Agrabad, Agrabad, Chittagong",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA (associate)": [
+      "1316"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 95,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [
+    "same district Chattogram"
+   ],
+   "hard": [
+    "one is a buying house (BGMEA associate member), the other a factory"
+   ],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 110
+  },
+  {
+   "section": "buying-house",
+   "lean": "separate",
+   "keep": {
+    "id": "c6aee270-4468-4cd5-a8c1-95aa2041a375",
+    "slug": "union-fashion",
+    "name": "UNION FASHION",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "BSCIC I/E, PLOT NO-A-25(1ST FLOOR), , GAZIPUR",
+    "workers": 250,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA (associate)": [
+      "331"
+     ],
+     "BKMEA": [
+      "1368"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "55e6b20c-beec-4a1f-a7ec-2e50c5ee2eaa",
+    "slug": "union-fashions",
+    "name": "Union Fashions",
+    "kind": "buying house",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "PBL Tower, (12th Floor), 17 North C/A, Gulshan, Dhaka",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA (associate)": [
+      "649"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [
+    "listed as two entries in BGMEA (associate)",
+    "one is a buying house (BGMEA associate member), the other a factory"
+   ],
+   "soft": [
+    "districts differ: Dhaka / Gazipur",
+    "only the name ties them"
+   ],
+   "notes": [
+    "BGMEA (associate) lists both, as entries 331 and 649"
+   ],
+   "two_entries": [
+    "BGMEA (associate)"
+   ],
+   "same_entry": [],
+   "n": 111
+  },
+  {
+   "section": "name-inside",
+   "lean": "link",
+   "keep": {
+    "id": "f564c286-9e94-42f2-9f81-6b7a10d84832",
+    "slug": "amex-knitting-and-dyeing-industries",
+    "name": "AMEX KNITTING & DYEING INDUSTRIES LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "ROAD-13, PLOT-19, RAJUK SHAMPUR, , DHAKA",
+    "workers": 670,
+    "group": "Amex Knitting & Dyeing Industries Ltd. (previously Amex Apparels Ltd.)",
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "117"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-67676"
+     ],
+     "RSC": [
+      "12551"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "3e11bd8b-a00d-47fd-9dd3-78463e2fa4ea",
+    "slug": "amex-knitting-and-dyeing-industries-ltd-u-2-gd",
+    "name": "Amex Knitting & Dyeing Inds. Ltd. (U-2) G.D.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "327/3/B-C, South Jatrabari, Sufia Plaza, Jatrabari\nDhaka\nDhaka",
+    "workers": 1650,
+    "group": null,
+    "website": "https://www.amexknitting.com",
+    "registers": {
+     "BGMEA": [
+      "general:3255"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 89,
+   "same_name": false,
+   "typo": false,
+   "signals": [
+    "shared mailbox domain",
+    "similar name"
+   ],
+   "own": [
+    "same mailbox domain amexknitting.com"
+   ],
+   "place": [],
+   "supporting": [
+    "same district Dhaka"
+   ],
+   "hard": [],
+   "soft": [
+    "names differ (alike 89%)"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 75
+  },
+  {
+   "section": "name-inside",
+   "lean": "link",
+   "keep": {
+    "id": "81efb795-9aaa-44c3-a5a2-25d474bd2a4c",
+    "slug": "b-brothers-garments",
+    "name": "B.Brothers Garments Co. Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "Holding # 90, Barpa, Rupshi\nNarayanganj\nRupganj",
+    "workers": 250,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:1737",
+      "general:3647"
+     ],
+     "EPB": [
+      "4343"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-76032"
+     ],
+     "RSC": [
+      "26054"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "drop": {
+    "id": "e7fec17f-2655-4d54-b665-23298184a6dc",
+    "slug": "b-brothers-garments-co-unit-2",
+    "name": "B. BROTHERS GARMENTS CO. UNIT-2 LIMITED.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "90. BORPA, RUPSHI, RUPGONJ, NARAYANGANJ., RUPGANJ, NARAYANGANJ",
+    "workers": 845,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "2472"
+     ],
+     "GOTS": [
+      "gots-SCO030323"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-1098"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "certain": false,
+   "score": 83,
+   "same_name": false,
+   "typo": false,
+   "signals": [
+    "shared mailbox domain"
+   ],
+   "own": [
+    "same mailbox domain bbrothersgroup.net"
+   ],
+   "place": [
+    "addresses share rupganj, rupshi"
+   ],
+   "supporting": [
+    "same district Narayanganj"
+   ],
+   "hard": [],
+   "soft": [
+    "names differ (alike 83%)"
+   ],
+   "notes": [
+    "OEKO_TEX lists both, as entries oeko-tex-1098 and oeko-tex-76032"
+   ],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 76
+  },
+  {
+   "section": "name-inside",
+   "lean": "link",
+   "keep": {
+    "id": "0cf3ee42-3c34-4e5e-afc7-6a6b50d30cf5",
+    "slug": "grameen-fabrics-and-fashions",
+    "name": "Grameen Fabrics & Fashions Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Bangladesh\nGazipur - 1700",
+    "workers": 1150,
+    "group": "Grameen Group",
+    "website": null,
+    "registers": {
+     "EPB": [
+      "3501"
+     ],
+     "GOTS": [
+      "gots-SCO029897"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-27671"
+     ],
+     "RSC": [
+      "11501"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "drop": {
+    "id": "1a2e2521-6191-4c92-8667-d230634feade",
+    "slug": "grameen-fabrics-and-fashion-ltd-com-unit",
+    "name": "Grameen Fabrics & Fashion Ltd. (Com. Unit)",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "Grameen Inds. Park, Sarabo\nGazipur\nGazipur",
+    "workers": 1400,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:5448"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 83,
+   "same_name": false,
+   "typo": false,
+   "signals": [
+    "shared mailbox domain"
+   ],
+   "own": [
+    "same mailbox domain grameenfashion.com"
+   ],
+   "place": [
+    "addresses share grameen, park, sarabo"
+   ],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "names differ (alike 83%)"
+   ],
+   "notes": [
+    "districts differ: Dhaka / Gazipur"
+   ],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 77
+  },
+  {
+   "section": "name-inside",
+   "lean": "link",
+   "keep": {
+    "id": "64fa1cb4-999e-42db-a226-784c810c643d",
+    "slug": "impress-newtex-composite-textiles",
+    "name": "IMPRESS-NEWTEX COMPOSITE TEXTILES LTD",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "GORAI, Mirzapur, Tangail",
+    "workers": 4278,
+    "group": "Impress-Newtex Group",
+    "website": "http://www.impress-newtex.com",
+    "registers": {
+     "BGMEA": [
+      "general:5424"
+     ],
+     "BKMEA": [
+      "2559"
+     ],
+     "BRAND_HM": [
+      "a347f866b22c03a0"
+     ],
+     "EPB": [
+      "4122"
+     ],
+     "GOTS": [
+      "gots-SCO024328"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-21140",
+      "oeko-tex-69172"
+     ],
+     "RSC": [
+      "9514"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "40f47a3d-18da-46e3-9828-0b1eda3d2151",
+    "slug": "impress-newtex-composite-textile-ltd-embroidery-section",
+    "name": "Impress-Newtex Composite Textile Ltd. (Embroidery Section)",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Bangladesh\n1941 Tangail, Dhaka",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "OEKO_TEX": [
+      "oeko-tex-66896"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "certain": false,
+   "score": 77,
+   "same_name": false,
+   "typo": false,
+   "signals": [
+    "shared mailbox domain"
+   ],
+   "own": [
+    "same mailbox domain impress-newtex.com"
+   ],
+   "place": [
+    "addresses share gorai, mirzapur"
+   ],
+   "supporting": [
+    "same district Dhaka"
+   ],
+   "hard": [],
+   "soft": [
+    "names differ (alike 77%)"
+   ],
+   "notes": [
+    "OEKO_TEX lists both, as entries oeko-tex-21140, oeko-tex-69172 and oeko-tex-66896"
+   ],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 78
+  },
+  {
+   "section": "name-inside",
+   "lean": "merge",
+   "keep": {
+    "id": "082e80e1-2d51-42d5-88f5-0016dcd39653",
+    "slug": "khan-accessories-and-packaging",
+    "name": "Khan Accessories and Packaging Company Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "Bangladesh\nGazipur - 1710",
+    "workers": null,
+    "group": null,
+    "website": "www.kapcobd.net",
+    "registers": {
+     "OEKO_TEX": [
+      "oeko-tex-28179"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "drop": {
+    "id": "58b74294-1947-4b7b-b2c4-016effee3d2c",
+    "slug": "khan-accessories-and-packaging-co-ltd-kapco",
+    "name": "Khan Accessories & Packaging Co. Ltd. (KAPCO)",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "Plot # B-72 & 73, BSCIC Industrial Estate, Tongi, Gazipur",
+    "workers": null,
+    "group": null,
+    "website": "http://www.kapcobd.com",
+    "registers": {
+     "BGAPMEA": [
+      "366"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 88,
+   "same_name": false,
+   "typo": false,
+   "signals": [
+    "shared phone",
+    "similar name"
+   ],
+   "own": [
+    "1 shared phone number"
+   ],
+   "place": [],
+   "supporting": [
+    "same district Gazipur"
+   ],
+   "hard": [],
+   "soft": [
+    "names differ (alike 88%)"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 79
+  },
+  {
+   "section": "name-inside",
+   "lean": "link",
+   "keep": {
+    "id": "20f48a06-eb05-4b70-a962-cbc5f2a705ce",
+    "slug": "maheen-dizayn-etiket-bd-unit-2",
+    "name": "MAHEEN DIZAYN ETIKET (BD) UNIT – 2 LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "Bangladesh\nNarayanganj - 1431",
+    "workers": null,
+    "group": null,
+    "website": "www.maheendizaynetiket.com",
+    "registers": {
+     "OEKO_TEX": [
+      "oeko-tex-60966"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "drop": {
+    "id": "a9296925-4e58-4241-94cb-960984ea5437",
+    "slug": "maheen-dizayn-etiket-bd",
+    "name": "Maheen Dizayn Etiket (BD) Limited",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "Bangladesh\nNarayanganj - 1430",
+    "workers": null,
+    "group": null,
+    "website": "www.maheendizaynetiket.com",
+    "registers": {
+     "OEKO_TEX": [
+      "oeko-tex-42068"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "certain": false,
+   "score": 86,
+   "same_name": false,
+   "typo": false,
+   "signals": [
+    "shared website"
+   ],
+   "own": [
+    "same website maheendizaynetiket.com"
+   ],
+   "place": [],
+   "supporting": [
+    "same district Narayanganj"
+   ],
+   "hard": [],
+   "soft": [
+    "names differ (alike 86%)"
+   ],
+   "notes": [
+    "OEKO_TEX lists both, as entries oeko-tex-42068 and oeko-tex-60966"
+   ],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 80
+  },
+  {
+   "section": "name-inside",
+   "lean": "merge",
+   "keep": {
+    "id": "fa5b906b-ad46-4614-90cf-23a54563834b",
+    "slug": "siam-computerized-elastic-industries-ltd-mumtex",
+    "name": "Siam Computerized Elastic Industries Ltd. (MUMTEX).",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "Bangladesh\nGazipur - 1700",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "OEKO_TEX": [
+      "oeko-tex-16781"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "drop": {
+    "id": "d6a87c00-6cf9-451d-b2bf-394550ae51f8",
+    "slug": "siam-computerized-elastic-industries",
+    "name": "Siam Computerized Elastic Industries Ltd",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "94, Surabari, Kashimpur, Gazipur Sadar, Gazipur",
+    "workers": null,
+    "group": null,
+    "website": "http://www.mumtex.com",
+    "registers": {
+     "BGAPMEA": [
+      "727"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 90,
+   "same_name": false,
+   "typo": false,
+   "signals": [
+    "shared mailbox domain",
+    "similar name"
+   ],
+   "own": [
+    "1 shared phone number",
+    "same mailbox domain mumtex.com"
+   ],
+   "place": [
+    "addresses share kashimpur, surabari"
+   ],
+   "supporting": [
+    "same district Gazipur"
+   ],
+   "hard": [],
+   "soft": [
+    "names differ (alike 90%)"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 81
+  },
+  {
+   "section": "name-inside",
+   "lean": "merge",
+   "keep": {
+    "id": "b44e994e-5ea2-484e-9fd4-3ec82711d1a7",
+    "slug": "transworld",
+    "name": "Transworld  Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "Mouza # Bahadurpur,Dag No. # 317, Bhawal, Mirzapur, Rajendrapur (Bangla Bazar), Gazipur Sadar\nGazipur\nGazipur",
+    "workers": 1368,
+    "group": null,
+    "website": "https://www.standardargroup.com",
+    "registers": {
+     "BGMEA": [
+      "general:3794"
+     ]
+    },
+    "created": "2026-08-03"
+   },
+   "drop": {
+    "id": "5cf71623-a395-4ca2-b954-820beb2bd279",
+    "slug": "transworld-sweater",
+    "name": "Transworld Sweaters Limited",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "Mouza-Bahadurpur, Dag No.317,Post-Bhawal Mirzapur, Rajendrapur(banglabazar), Gazipur Sadar, Gazipur",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "EPB": [
+      "3169"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 71,
+   "same_name": false,
+   "typo": false,
+   "signals": [
+    "epb cross-reference"
+   ],
+   "own": [
+    "one's BGMEA entry names the EPB number the other holds"
+   ],
+   "place": [
+    "addresses share bahadurpur, bhawal, mirzapur, mouza"
+   ],
+   "supporting": [
+    "same district Gazipur"
+   ],
+   "hard": [],
+   "soft": [
+    "names differ (alike 71%)"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 82
+  },
+  {
+   "section": "one-entry",
+   "lean": "separate",
+   "keep": {
+    "id": "b969d2c4-7121-44ca-bbc6-87e513d01618",
+    "slug": "ams-knit-fashion",
+    "name": "AMS KNIT FASHION.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "KATHERPUL, FATULLAH, NARAYANGANJ., FATULLAH, NARAYANGANJ",
+    "workers": 150,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "2178",
+      "2480"
+     ],
+     "EPB": [
+      "3505"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "0b0241fe-b544-4ded-a033-147c2751bf81",
+    "slug": "dams-knit",
+    "name": "DAMS KNIT LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "FAZELPUR, HARIAHARPARA, FATULLAH, SADAR, NARAYANGANJ",
+    "workers": 110,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "2178"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "certain": false,
+   "score": 64,
+   "same_name": false,
+   "typo": false,
+   "signals": [
+    "same register entry"
+   ],
+   "own": [
+    "both hold BKMEA entry 2178"
+   ],
+   "place": [],
+   "supporting": [
+    "same district Narayanganj"
+   ],
+   "hard": [],
+   "soft": [
+    "names differ (alike 64%)"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [
+    "BKMEA"
+   ],
+   "n": 66
+  },
+  {
+   "section": "one-entry",
+   "lean": "separate",
+   "keep": {
+    "id": "118e0b73-7876-4cca-a9ce-755f8c6b0ade",
+    "slug": "crony-apparels",
+    "name": "CRONY APPARELS LTD",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "CHOWDHURYGAON, KASHIPUR, HATKHOLA-1421,, FATULLAH, NARAYANGANJ",
+    "workers": 580,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:878"
+     ],
+     "BKMEA": [
+      "376"
+     ],
+     "EPB": [
+      "4956"
+     ]
+    },
+    "created": "2026-07-31"
+   },
+   "drop": {
+    "id": "ab4e42a6-449d-4910-92f9-01c4e0f6c8ee",
+    "slug": "crony-fashion",
+    "name": "CRONY FASHION LTD",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "S. A-646, SHAHANGOAN, ENAYETNAGAR, FATULLAH, NARAYANGANJ",
+    "workers": 580,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "376",
+      "377"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "certain": false,
+   "score": 53,
+   "same_name": false,
+   "typo": false,
+   "signals": [
+    "same register entry",
+    "shared mailbox",
+    "shared mailbox domain",
+    "shared phone"
+   ],
+   "own": [
+    "both hold BKMEA entry 376",
+    "same BKMEA number 376",
+    "2 shared phone numbers",
+    "same mailbox domain abanti.net",
+    "same mailbox (1)"
+   ],
+   "place": [
+    "addresses share chowdhurygaon, hatkhola, kashipur"
+   ],
+   "supporting": [
+    "same district Narayanganj"
+   ],
+   "hard": [],
+   "soft": [
+    "names differ (alike 53%)"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [
+    "BKMEA"
+   ],
+   "n": 67
+  },
+  {
+   "section": "one-entry",
+   "lean": "separate",
+   "keep": {
+    "id": "09db6fc6-5cf9-418e-bf26-4a9209f81171",
+    "slug": "euphoria-textile",
+    "name": "EUPHORIA TEXTILE.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "37, ESHA KHAN ROAD, HAZIGONJ,, SADAR, NARAYANGANJ",
+    "workers": 78,
+    "group": null,
+    "website": "https://www.euphoriaapparels.com",
+    "registers": {
+     "BKMEA": [
+      "2129",
+      "2133"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-29640"
+     ],
+     "WRAP": [
+      "wrap-19919"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "13dfc5b5-8c82-4f26-85b7-b87c2c401596",
+    "slug": "euphoria-apparels",
+    "name": "EUPHORIA APPARELS LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "JAMGARA,ASHULIA, SAVAR, DHAKA",
+    "workers": 2105,
+    "group": null,
+    "website": "https://www.euphoriaapparels.com",
+    "registers": {
+     "BGMEA": [
+      "general:6520"
+     ],
+     "BKMEA": [
+      "2129"
+     ],
+     "EPB": [
+      "3600"
+     ]
+    },
+    "created": "2026-07-31"
+   },
+   "certain": false,
+   "score": 68,
+   "same_name": false,
+   "typo": false,
+   "signals": [
+    "same register entry",
+    "shared phone",
+    "shared website"
+   ],
+   "own": [
+    "both hold BKMEA entry 2129",
+    "2 shared phone numbers",
+    "same website euphoriaapparels.com"
+   ],
+   "place": [
+    "addresses share jamgora, shimultola"
+   ],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "names differ (alike 68%)"
+   ],
+   "notes": [
+    "districts differ: Narayanganj / Dhaka"
+   ],
+   "two_entries": [],
+   "same_entry": [
+    "BKMEA"
+   ],
+   "n": 68
+  },
+  {
+   "section": "one-entry",
+   "lean": "merge",
+   "keep": {
+    "id": "c02909a7-a43c-4cb1-83e7-3bbf9b558e95",
+    "slug": "fair-apparels",
+    "name": "FAIR APPARELS LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "PLOT-A/28-29, BSCIC I/E, FATULLAH, NARAYANGANJ",
+    "workers": 1000,
+    "group": null,
+    "website": "www.fairapparels.com",
+    "registers": {
+     "BGMEA": [
+      "general:3061"
+     ],
+     "BKMEA": [
+      "557",
+      "827"
+     ],
+     "EPB": [
+      "4755"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-12230"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "3a634f01-4ece-46fd-9dfa-07d27741900f",
+    "slug": "fair-apparels-bd",
+    "name": "FAIR APPARELS (BD)",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "2-D, DARUS SALAM ROAD, , DHAKA",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "557"
+     ]
+    },
+    "created": "2026-07-31"
+   },
+   "certain": false,
+   "score": 88,
+   "same_name": false,
+   "typo": true,
+   "signals": [
+    "same register entry",
+    "similar name"
+   ],
+   "own": [
+    "both hold BKMEA entry 557"
+   ],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "districts differ: Dhaka / Narayanganj"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [
+    "BKMEA"
+   ],
+   "n": 69
+  },
+  {
+   "section": "one-entry",
+   "lean": "separate",
+   "keep": {
+    "id": "79880b55-3681-415f-b76b-275c92ec5111",
+    "slug": "fatullah-apparels",
+    "name": "FATULLAH APPARELS LIMITED",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "B-68/1, WAPDA ROAD, JALKURI, SIDDIRGONJ, NARAYANGANJ",
+    "workers": 454,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:5271"
+     ],
+     "BKMEA": [
+      "338",
+      "403"
+     ],
+     "EPB": [
+      "4474"
+     ],
+     "GOTS": [
+      "gots-SCO035017"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-3674"
+     ],
+     "RSC": [
+      "24155"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "f53f1303-92c9-482c-9387-4e6337d3b9fa",
+    "slug": "fatullah-fashion",
+    "name": "FATULLAH FASHION LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "POST OFFICE ROAD, , NARAYANGANJ",
+    "workers": 270,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "338"
+     ]
+    },
+    "created": "2026-07-31"
+   },
+   "certain": false,
+   "score": 62,
+   "same_name": false,
+   "typo": false,
+   "signals": [
+    "same register entry"
+   ],
+   "own": [
+    "both hold BKMEA entry 338"
+   ],
+   "place": [],
+   "supporting": [
+    "same district Narayanganj"
+   ],
+   "hard": [],
+   "soft": [
+    "names differ (alike 62%)"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [
+    "BKMEA"
+   ],
+   "n": 70
+  },
+  {
+   "section": "one-entry",
+   "lean": "merge",
+   "keep": {
+    "id": "406fad2f-e879-496c-ba56-c03abe353c10",
+    "slug": "hn-fabrics",
+    "name": "H. N FABRICS",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "41/1, WATER WORKS ROAD, SADAR, NARAYANGANJ",
+    "workers": 65,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "458"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "0ef398ac-10bd-49f4-84f3-3b10adc33a79",
+    "slug": "hn-fabrics-knitting-only",
+    "name": "H. N FABRICS (KNITTING ONLY)",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "41/1, EATER WORKS ROAD, , NARAYANGANJ",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "458"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "certain": false,
+   "score": 56,
+   "same_name": false,
+   "typo": false,
+   "signals": [
+    "same register entry"
+   ],
+   "own": [
+    "both hold BKMEA entry 458",
+    "same BKMEA number 458"
+   ],
+   "place": [],
+   "supporting": [
+    "same district Narayanganj"
+   ],
+   "hard": [],
+   "soft": [
+    "names differ (alike 56%)"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [
+    "BKMEA"
+   ],
+   "n": 71
+  },
+  {
+   "section": "one-entry",
+   "lean": "separate",
+   "keep": {
+    "id": "00b35242-2d96-4bfb-80be-ea90f77b6f82",
+    "slug": "knit-fashion",
+    "name": "KNIT FASHION",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "1 NO R. K DAS ROAD, , NARAYANGANJ",
+    "workers": 230,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:1438"
+     ],
+     "BKMEA": [
+      "511",
+      "675",
+      "page-511"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "e36bc7cc-18cc-4c93-af90-9321515f291e",
+    "slug": "shatabdi-apparels",
+    "name": "SHATABDI APPARELS LTD",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "B-61, BSCIC SHILPA NAGARI, SHASHONGOAN, FATULLAH, NARAYANGANJ",
+    "workers": 70,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "page-511"
+     ]
+    },
+    "created": "2026-07-31"
+   },
+   "certain": false,
+   "score": 28,
+   "same_name": false,
+   "typo": false,
+   "signals": [
+    "same register entry"
+   ],
+   "own": [
+    "both hold BKMEA entry page-511",
+    "same BKMEA number 511"
+   ],
+   "place": [
+    "addresses share bscic, nagari, shashongoan, shilpa"
+   ],
+   "supporting": [
+    "same district Narayanganj"
+   ],
+   "hard": [],
+   "soft": [
+    "names differ (alike 28%)"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [
+    "BKMEA"
+   ],
+   "n": 72
+  },
+  {
+   "section": "one-entry",
+   "lean": "separate",
+   "keep": {
+    "id": "02975eaf-1627-4b72-b306-836a8004267f",
+    "slug": "polestar-apparels",
+    "name": "POLESTAR APPARELS (PVT) LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "PLOT NO-B/58, BSCIC INDUSTRIAL ESTATE, KANCHPUR, , NARAYANGANJ",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "402"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "561b9dd8-859c-48e5-904b-dcf2a1c87142",
+    "slug": "hrs-composite-tex-wear",
+    "name": "H.R.S COMPOSITE TEX WEAR LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "LATIF MANSION, 38/4, ALLAMA IQBAL ROD, , NARAYANGANJ",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "402"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "certain": false,
+   "score": 36,
+   "same_name": false,
+   "typo": false,
+   "signals": [
+    "same register entry"
+   ],
+   "own": [
+    "both hold BKMEA entry 402",
+    "same BKMEA number 402"
+   ],
+   "place": [
+    "addresses share bscic, estate, kanchpur"
+   ],
+   "supporting": [
+    "same district Narayanganj"
+   ],
+   "hard": [],
+   "soft": [
+    "names differ (alike 36%)"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [
+    "BKMEA"
+   ],
+   "n": 73
+  },
+  {
+   "section": "one-entry",
+   "lean": "merge",
+   "keep": {
+    "id": "4a2aaf76-a1cc-49f7-8515-fb5950e59e48",
+    "slug": "rupashi-fabrics-complex",
+    "name": "RUPASHI FABRICS COMPLEX (PVT) LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "Lamapara, Kutubpur,\nNarayanganj\nFatullah",
+    "workers": 160,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:2221"
+     ],
+     "BKMEA": [
+      "496"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "6b41b8a8-cb9a-4d41-905d-017b8e71eb23",
+    "slug": "rupashi-fabrics-complex-pvt-ltd-garments-division",
+    "name": "RUPASHI FABRICS COMPLEX (PVT) LTD (GARMENTS DIVISION)",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "LAMAPARA, KUTUBPUR, FATULLAH, NARAYANGANJ",
+    "workers": 160,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "496"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "certain": false,
+   "score": 70,
+   "same_name": false,
+   "typo": false,
+   "signals": [
+    "same register entry",
+    "shared mailbox",
+    "shared mailbox domain"
+   ],
+   "own": [
+    "both hold BKMEA entry 496",
+    "same BKMEA number 496",
+    "same mailbox domain rupashigroup.com",
+    "same mailbox (1)"
+   ],
+   "place": [
+    "addresses share fatullah, kutubpur, lamapara"
+   ],
+   "supporting": [
+    "same district Narayanganj"
+   ],
+   "hard": [],
+   "soft": [
+    "names differ (alike 70%)"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [
+    "BKMEA"
+   ],
+   "n": 74
+  },
+  {
+   "section": "ruled",
+   "lean": "merge",
+   "keep": {
+    "id": "ab4e42a6-449d-4910-92f9-01c4e0f6c8ee",
+    "slug": "crony-fashion",
+    "name": "CRONY FASHION LTD",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "S. A-646, SHAHANGOAN, ENAYETNAGAR, FATULLAH, NARAYANGANJ",
+    "workers": 580,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "376",
+      "377"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "e5a451c1-f5b9-41f2-bd4a-3b68704ae42a",
+    "slug": "corny-fashion",
+    "name": "CORNY FASHION LTD",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "PLOT NO-S. A 646, SHAHANGOAN, ENAYETNAGAR, FATULLAH, NARAYANGANJ, , NARAYANGANJ",
+    "workers": 230,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "377"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "certain": false,
+   "score": 92,
+   "same_name": false,
+   "typo": true,
+   "signals": [
+    "same register entry",
+    "shared mailbox domain",
+    "similar name"
+   ],
+   "own": [
+    "both hold BKMEA entry 377",
+    "same mailbox domain abanti.net"
+   ],
+   "place": [
+    "addresses share enayetnagar, fatullah, shahangoan"
+   ],
+   "supporting": [
+    "same district Narayanganj"
+   ],
+   "hard": [
+    "ruled two companies by a person before"
+   ],
+   "soft": [],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [
+    "BKMEA"
+   ],
+   "n": 65
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "93d30ddc-f091-441e-8d53-724decafc4e6",
+    "slug": "3-a-fashions",
+    "name": "3-A FASHIONS LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "KHAJUR BAGAN, BARO ASHULIA, , DHAKA",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "911"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "99a0705a-ac49-47e6-862c-a73ba220e4e8",
+    "slug": "3a-fashions",
+    "name": "3A Fashions Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Khejur Bagar, Baro Ashulia\nDhaka\nSavar",
+    "workers": 350,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:5161"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 95,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [
+    "same district Dhaka"
+   ],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 5
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "b1f5f3ae-088f-447f-a3bd-6fa4687459b4",
+    "slug": "aj-fashions",
+    "name": "AJ Fashions Limited",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "234/4 , KACHUKHET,CANTONMENT, DHAKA-1206, BANGLADESH",
+    "workers": 830,
+    "group": "AJ Group",
+    "website": "https://www.ajgroupbd.com",
+    "registers": {
+     "BGMEA": [
+      "general:3236"
+     ],
+     "EPB": [
+      "5260"
+     ],
+     "RSC": [
+      "10953"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "drop": {
+    "id": "13e3b029-88ad-4476-955e-0e921182f8e7",
+    "slug": "aj-fashion",
+    "name": "AJ Fashion's Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Bangladesh\n1206 Dhaka",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "OEKO_TEX": [
+      "oeko-tex-37319"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [
+    "same district Dhaka"
+   ],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 6
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "e3ae05cb-1e66-4034-b4fd-fcddfc1fa5c8",
+    "slug": "alert-fashion",
+    "name": "ALERT FASHION LTD",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Chattogram",
+    "address": "J. ALAM TOWER, ABDUL LATIF ROAD, MIDDLE HALISHAR, BANDAR,, , CHATTOGRAM",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "1702"
+     ],
+     "EPB": [
+      "3157"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "2ec16c26-ea1f-48cc-bfb9-623c7c8fc15e",
+    "slug": "alert-fashions",
+    "name": "Alert Fashions Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Chattogram",
+    "address": "J. Alam Tower, Abdul Latif Road, Middle Halishahar\nChittagong\nBandar",
+    "workers": 350,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:4324"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [
+    "addresses share abdul, alam, bandar, latif"
+   ],
+   "supporting": [
+    "same district Chattogram"
+   ],
+   "hard": [],
+   "soft": [
+    "same area, but other companies have similar names"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 7
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "6e1cbc60-0c15-409c-9d87-a025d1c0bc2d",
+    "slug": "amazing-fashions",
+    "name": "Amazing Fashions Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "10, Dager Chala, National University\nGazipur\nBoard Bazar",
+    "workers": 1298,
+    "group": null,
+    "website": "www.amazingfashionsltd.com/",
+    "registers": {
+     "BGMEA": [
+      "general:4421"
+     ],
+     "EPB": [
+      "5057"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-65194"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "drop": {
+    "id": "d1f12576-b638-4086-88cd-4a5e36fe7398",
+    "slug": "amazing-fashion",
+    "name": "Amazing Fashion Ltd",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": null,
+    "address": null,
+    "workers": 2500,
+    "group": "Amazing Fashion Group",
+    "website": null,
+    "registers": {
+     "RSC": [
+      "9238"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 8
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "c9e7d6e0-64e8-47c2-b6fb-15c7faca1ccc",
+    "slug": "angel-grace-fashion",
+    "name": "Angel Grace Fashion Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "Holding # 98, Choydana, National University\nGazipur\nGazipur",
+    "workers": 765,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:7068"
+     ],
+     "EPB": [
+      "5899"
+     ],
+     "GOTS": [
+      "gots-SCO028289"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-80259"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "drop": {
+    "id": "67789a09-2554-4e62-88ee-ea159904dba0",
+    "slug": "angel-grace-fashions",
+    "name": "Angel Grace Fashions Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": null,
+    "address": null,
+    "workers": 500,
+    "group": "N&I Group",
+    "website": null,
+    "registers": {
+     "RSC": [
+      "12385"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [
+    "no address on the qualified profile"
+   ],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 9
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "a267e990-0494-4549-83a7-8f75d7a3d030",
+    "slug": "bonian-knit-fashions",
+    "name": "Bonian Knit Fashions Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Latifpur, Shardaganj\nGazipur\nGazipur",
+    "workers": 215,
+    "group": null,
+    "website": "www.bonianbd.com",
+    "registers": {
+     "BGMEA": [
+      "general:4391"
+     ],
+     "GOTS": [
+      "gots-SCO029810"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-40553"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "drop": {
+    "id": "12b334bd-1692-4290-969b-c31c6ed6ce7f",
+    "slug": "bonian-knit-fashion",
+    "name": "Bonian Knit Fashion Ltd",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": null,
+    "address": null,
+    "workers": 534,
+    "group": "Bonian Knit Fashion Ltd",
+    "website": null,
+    "registers": {
+     "EPB": [
+      "3198"
+     ],
+     "RSC": [
+      "11559"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [
+    "no address on the qualified profile"
+   ],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 10
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "57440b81-1940-4393-aebf-5d5b0553d532",
+    "slug": "brothers-fashion",
+    "name": "Brothers Fashion Ltd",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "21/27, Baizid Bostami Road, Nasirabad I/A\nChittagong\nNasirabad",
+    "workers": 2305,
+    "group": "Team Group",
+    "website": "https://www.teambd.com",
+    "registers": {
+     "BGMEA": [
+      "general:594"
+     ],
+     "BRAND_NEXT": [
+      "75c478a667c62f85"
+     ],
+     "EPB": [
+      "5039"
+     ],
+     "GOTS": [
+      "gots-SCO002051"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-30377"
+     ],
+     "RSC": [
+      "12620"
+     ],
+     "WRAP": [
+      "wrap-18012"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "drop": {
+    "id": "f9aa03e0-657d-4f5f-a3c2-72575df83abc",
+    "slug": "brothers-fashions",
+    "name": "BROTHERS FASHIONS",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "96/1, SIDDIQ BAZAR, , DHAKA",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "81"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [
+    "same district Dhaka"
+   ],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 11
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "169cb734-a591-449a-805d-32b762c0bb97",
+    "slug": "cadtex-garments",
+    "name": "CADTEX GARMENTS LIMITED",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "KUTUBAIL, , NARAYANGANJ",
+    "workers": 950,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "1105"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "d42dc7c7-cafa-4aa8-a58c-6f38d5314933",
+    "slug": "cad-tex-garments",
+    "name": "Cad Tex Garments Limited",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "Kutubail,\nNarayanganj\nFatullah",
+    "workers": 1200,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:2317"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 96,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [
+    "same district Narayanganj"
+   ],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 12
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "ab4e42a6-449d-4910-92f9-01c4e0f6c8ee",
+    "slug": "crony-fashion",
+    "name": "CRONY FASHION LTD",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "S. A-646, SHAHANGOAN, ENAYETNAGAR, FATULLAH, NARAYANGANJ",
+    "workers": 580,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "376",
+      "377"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "4f439d27-07b4-4c5f-bc2e-422a38287471",
+    "slug": "crony-fashions",
+    "name": "Crony Fashions Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "Crony Complex, S.A. 646, Shashangaon, Enayetnagar\nNarayanganj\nFatullah",
+    "workers": 300,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:2802"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "shared phone",
+    "similar name"
+   ],
+   "own": [
+    "1 shared phone number"
+   ],
+   "place": [],
+   "supporting": [
+    "same district Narayanganj"
+   ],
+   "hard": [],
+   "soft": [
+    "tangled with a third profile: CRONY FASHION LTD shares BKMEA entry 376 with CRONY APPARELS LTD"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 13
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "da88b661-7d8c-473b-8cca-75736a459c13",
+    "slug": "dharla-fashions",
+    "name": "Dharla Fashions Limited",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": null,
+    "address": null,
+    "workers": 500,
+    "group": "Not in a Group",
+    "website": null,
+    "registers": {
+     "EPB": [
+      "576"
+     ],
+     "RSC": [
+      "11905"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "drop": {
+    "id": "feb906b2-d7f0-441f-baa5-69609edeaecb",
+    "slug": "dharla-fashion",
+    "name": "Dharla Fashion Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "698/699, Sharifpur (3rd Floor), National University\nGazipur",
+    "workers": 370,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:4789"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [
+    "no address on the qualified profile"
+   ],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 14
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "7f42d4f2-fdc6-44de-8374-4c0fab1e0afc",
+    "slug": "exclusive-woven-knitwear",
+    "name": "EXCLUSIVE WOVEN KNITWEAR LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "FAIZ MANSION(7TH FLOOR), PLOT-6/A, MAIN ROAD-1, SECTION-1, , DHAKA",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "876"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "502e02db-3ecc-4281-91d1-d88dfeca0df6",
+    "slug": "the-exclusive-woven-knitwear",
+    "name": "The Exclusive Woven-Knit Wear Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "55, Mohakhali Plaza (9th Fl),\nDhaka\nMohakhali",
+    "workers": 180,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:5537"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [
+    "same district Dhaka"
+   ],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 15
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "b95b61c8-d03c-4d01-bc7f-19ddba967bdd",
+    "slug": "fashion-trousers",
+    "name": "Fashion Trousers Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "Chaydana,\nGazipur\nGazipur",
+    "workers": 757,
+    "group": null,
+    "website": "http://www.eastwestindpark.com",
+    "registers": {
+     "BGMEA": [
+      "general:727"
+     ],
+     "EPB": [
+      "2050"
+     ]
+    },
+    "created": "2026-08-03"
+   },
+   "drop": {
+    "id": "53d1cdfb-9c81-4ae6-85d7-2e52ba99d3de",
+    "slug": "fashion-trouser",
+    "name": "Fashion Trouser",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": null,
+    "address": null,
+    "workers": 458,
+    "group": "East West Industrial Park Group",
+    "website": null,
+    "registers": {
+     "RSC": [
+      "11650"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [
+    "no address on the qualified profile"
+   ],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 16
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "1e3ad489-9dcb-433c-8220-c983dac5f961",
+    "slug": "genetic-fashions",
+    "name": "GENETIC FASHIONS LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "HOLDING NO-01, WARD-07, UTTAR GAZIR CHAT, ALIA MADRASAH, ASHULIA, SAVAR, DHAKA",
+    "workers": 346,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "1266"
+     ],
+     "EPB": [
+      "536"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "65500013-0684-4b41-89a9-d46bf6df73ed",
+    "slug": "genetic-fashion",
+    "name": "Genetic Fashion Limited",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": null,
+    "address": null,
+    "workers": 524,
+    "group": "Not in a Group",
+    "website": null,
+    "registers": {
+     "RSC": [
+      "11664"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 17
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "812bd4d2-0a04-471b-9606-8626366dd6e8",
+    "slug": "giant-knit-fashions",
+    "name": "Giant Knit Fashions Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Mouza - Chandana, Chowrasta, Joydevpur\nGazipur\nGazipur",
+    "workers": 750,
+    "group": null,
+    "website": "https://www.giantbd.com",
+    "registers": {
+     "BGMEA": [
+      "general:3988"
+     ],
+     "EPB": [
+      "660"
+     ],
+     "GOTS": [
+      "gots-SCO026764"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-76586"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "drop": {
+    "id": "b1f7f005-042d-4d64-ba56-22093947e028",
+    "slug": "giant-knit-fashion",
+    "name": "Giant Knit Fashion Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": null,
+    "address": null,
+    "workers": 350,
+    "group": "Giant Group",
+    "website": null,
+    "registers": {
+     "RSC": [
+      "9242"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 18
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "05a84880-2eb2-4601-bdcc-5600ed5b9d93",
+    "slug": "goldstar-garments",
+    "name": "Goldstar Garments Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "MAB Point, Choto Kaliakoir , Birulia , Savar\nDhaka\nDhaka",
+    "workers": 450,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:1026"
+     ],
+     "EPB": [
+      "3642"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "drop": {
+    "id": "e9c3d84c-313a-4abd-be93-2366f5968def",
+    "slug": "gold-star-garments",
+    "name": "Gold Star Garments LTD",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": null,
+    "address": null,
+    "workers": 1253,
+    "group": "Gold Star Garments LTD",
+    "website": null,
+    "registers": {
+     "RSC": [
+      "9844"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "certain": false,
+   "score": 97,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 19
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "aee42a46-0245-4d8a-9936-50f06810a046",
+    "slug": "green-life-knittex",
+    "name": "GREEN LIFE KNITTEX LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "PLOT NO.-874, DEWAN IDDRES ROAD, KHATGHARA BAZAR, ASHULIA, SAVAR, DHAKA",
+    "workers": 750,
+    "group": "Green Life Knittex Ltd.",
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "1589"
+     ],
+     "EPB": [
+      "1416"
+     ],
+     "GOTS": [
+      "gots-SCO001952"
+     ],
+     "RSC": [
+      "10838"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "d54b435f-4446-437b-9650-656e61ad69f3",
+    "slug": "greenlife-knittex",
+    "name": "Greenlife Knittex Ltd",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Bangladesh\n1341 Dhaka",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "OEKO_TEX": [
+      "oeko-tex-30505"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "certain": false,
+   "score": 97,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [
+    "same district Dhaka"
+   ],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 20
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "d24df148-6a5a-40aa-8ef1-26fc40963abe",
+    "slug": "gumti-textiles",
+    "name": "Gumti Textiles Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Plot # 1163 (Opp. Ansar Academy), Chandra, Shafipur\nKaliakoir\nGazipur",
+    "workers": 900,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:2443"
+     ],
+     "EPB": [
+      "545"
+     ],
+     "GOTS": [
+      "gots-SCO010095",
+      "gots-SCO048918"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-37286"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "drop": {
+    "id": "3d27d305-b00d-4757-9723-4cc9831bd971",
+    "slug": "gumti-textile",
+    "name": "Gumti Textile Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": null,
+    "address": null,
+    "workers": 1798,
+    "group": "Gumti Group",
+    "website": null,
+    "registers": {
+     "RSC": [
+      "10974"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [
+    "no address on the qualified profile"
+   ],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 21
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "d7d4624a-924b-4012-b278-cc8632d48802",
+    "slug": "hams-fashion",
+    "name": "HAMS FASHION LTD",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "DAKKHIN VANGNAHATI, SREEPUR, GAZIPUR",
+    "workers": 1299,
+    "group": "HAMS Group",
+    "website": "https://",
+    "registers": {
+     "BKMEA": [
+      "1816"
+     ],
+     "BRAND_HM": [
+      "7a5376cf3f642887"
+     ],
+     "EPB": [
+      "5040"
+     ],
+     "GOTS": [
+      "gots-SCO002062",
+      "gots-SCO021606"
+     ],
+     "RSC": [
+      "23538"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "2873fd19-8921-4439-8de6-f44f04248a02",
+    "slug": "hams-fashions",
+    "name": "HAMS FASHIONS LTD",
+    "kind": "factory",
+    "published": false,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "South Vangahati, Boiragirchala, Sreepur,, GAZIPUR",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {},
+    "created": "2026-05-18"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [
+    "addresses share boiragirchala, vangahati"
+   ],
+   "supporting": [
+    "same district Gazipur"
+   ],
+   "hard": [],
+   "soft": [
+    "same area, but other companies have similar names"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 22
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "98d94a03-4dcb-4bc8-8501-300d72363689",
+    "slug": "harry-fashion",
+    "name": "Harry Fashion Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Mymensingh",
+    "address": "Varo Doba,\nMymensingh\nValuka",
+    "workers": 500,
+    "group": null,
+    "website": "www.experience-bd.com",
+    "registers": {
+     "BGMEA": [
+      "general:5315"
+     ],
+     "EPB": [
+      "4406"
+     ],
+     "GOTS": [
+      "gots-SCO034562"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-32817"
+     ],
+     "WRAP": [
+      "wrap-128511"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "drop": {
+    "id": "3764f25e-77dd-423b-bdec-980df544b67f",
+    "slug": "harry-fashions",
+    "name": "Harry Fashions Ltd",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": null,
+    "address": null,
+    "workers": 2994,
+    "group": "Experience Group",
+    "website": null,
+    "registers": {
+     "RSC": [
+      "9690"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [
+    "no address on the qualified profile"
+   ],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 23
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "3e32a230-3a94-4997-8ef7-a6a1de9d03d7",
+    "slug": "hop-yick-bangladesh",
+    "name": "Hop Yick ( Bangladesh) limited",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "(Level #1,2,3),SFB#6 (Level, #1,2,3), Pilot 61-65, Building 8 ,, DEPZ (West Zone), AshuliaSavart, dhaka",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BRAND_HM": [
+      "e8294b693c3c518f"
+     ],
+     "EPB": [
+      "4502"
+     ]
+    },
+    "created": "2026-05-18"
+   },
+   "drop": {
+    "id": "b294ce13-e3e0-4080-8845-7681a316616c",
+    "slug": "hop-yick-bd",
+    "name": "Hop Yick (BD) Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Plot # 61-68, DEPZ, Ganakbari\nDhaka\nDhaka",
+    "workers": 4692,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:5308"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [
+    "same district Dhaka"
+   ],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 24
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "e049eff1-0050-49bb-a803-7facbb90d22c",
+    "slug": "kds-fashion",
+    "name": "KDS Fashion Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Chattogram",
+    "address": "253-254, Nasirabad I/A,\nChittagong",
+    "workers": 1500,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:4680"
+     ]
+    },
+    "created": "2026-08-03"
+   },
+   "drop": {
+    "id": "d25fd540-9e41-496b-a97e-e45dd8522b72",
+    "slug": "kds-fashions",
+    "name": "KDS Fashions Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": null,
+    "address": null,
+    "workers": 3928,
+    "group": "KDS Group",
+    "website": null,
+    "registers": {
+     "RSC": [
+      "10361"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [
+    "no address on the qualified profile"
+   ],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 25
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "228317f4-1d1a-4cff-9c8e-b2f58b1f198b",
+    "slug": "kds-garments-industries",
+    "name": "KDS Garments Industries Limited",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Chattogram",
+    "address": "255, Nasirabad I/A,\nChittagong\nChittagong",
+    "workers": 7600,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:40"
+     ],
+     "EPB": [
+      "2130"
+     ],
+     "GOTS": [
+      "gots-SCO013059"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "drop": {
+    "id": "e59c0681-34dc-4124-9c83-f675631377e9",
+    "slug": "kds-garment-industries",
+    "name": "KDS Garment Industries Ltd",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": null,
+    "address": null,
+    "workers": 2100,
+    "group": "KDS Group",
+    "website": null,
+    "registers": {
+     "RSC": [
+      "11099"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 26
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "2c8266a1-7eae-4e6f-9707-bb357df6ca3b",
+    "slug": "km-apparel-knit",
+    "name": "KM APPAREL KNIT ( Pvt) LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Bangladesh\nDhaka - 1230",
+    "workers": 960,
+    "group": "Palmal Group",
+    "website": "www.palmalgarments.com",
+    "registers": {
+     "EPB": [
+      "2996"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-41093"
+     ],
+     "RSC": [
+      "12006"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "drop": {
+    "id": "13efc339-a1a9-442c-85a6-8e172badfca6",
+    "slug": "km-apparels-knit",
+    "name": "KM Apparels Knit (Pvt.) Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Holding # 8/A, Chandpara, Uttarkhan, Uttara\nDhaka\nDhaka",
+    "workers": 320,
+    "group": null,
+    "website": "http://www.palmalgarments.com",
+    "registers": {
+     "BGMEA": [
+      "general:4711"
+     ]
+    },
+    "created": "2026-08-03"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [
+    "addresses share uttara, uttarkhan"
+   ],
+   "supporting": [
+    "same district Dhaka"
+   ],
+   "hard": [],
+   "soft": [
+    "same area, but other companies have similar names"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 27
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "6d0fe0e2-26ac-44db-922d-06964ac3f96e",
+    "slug": "knit-men-composite",
+    "name": "KNIT MEN COMPOSITE LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "PLOT # B-139, BSCIC I/A, SHASONGAON, FATULLAH, NARAYANGANJ",
+    "workers": 2606,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "1964"
+     ],
+     "EPB": [
+      "1728"
+     ],
+     "GOTS": [
+      "gots-SCO029963"
+     ],
+     "RSC": [
+      "24450",
+      "9508"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "ee50b164-da8c-4472-b0ad-2456d3e14d58",
+    "slug": "knitmen-composite",
+    "name": "Knitmen Composite Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "Bangladesh\nNarayanganj - 1421",
+    "workers": null,
+    "group": null,
+    "website": "www.ribline.weebly.com",
+    "registers": {
+     "OEKO_TEX": [
+      "oeko-tex-31996"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "certain": false,
+   "score": 97,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [
+    "addresses share bscic, fatullah, shasongaon"
+   ],
+   "supporting": [
+    "same district Narayanganj"
+   ],
+   "hard": [],
+   "soft": [
+    "same area, but other companies have similar names"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 28
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "41d6590a-2a4a-4129-968d-88122ead2b8b",
+    "slug": "knitmoon",
+    "name": "Knitmoon Ltd",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Chattogram",
+    "address": "Bangladesh\nCHANDGAON-4212 CHITTAGONG",
+    "workers": 500,
+    "group": null,
+    "website": null,
+    "registers": {
+     "EPB": [
+      "3551"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-45085"
+     ],
+     "RSC": [
+      "11332"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "drop": {
+    "id": "c64b61ea-0fe5-49c4-a78d-4c3b6051285d",
+    "slug": "knit-moon",
+    "name": "Knit Moon Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Chattogram",
+    "address": "Plot # S-10, BSCIC I/A,\nChittagong\nKalurghat",
+    "workers": 300,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:4820"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 94,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [
+    "same district Chattogram"
+   ],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 29
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "79edf170-c24e-46b6-a147-5b465f013c5a",
+    "slug": "kung-keng-textile-bangladesh",
+    "name": "Kung Keng Textile (Bangladesh) Co. Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Dhaka EPZ (Ext) Plot #133-148 & 164, Ganakbari, Ashulia, Savar, Dhaka",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BTMA": [
+      "spinning-associate-member-a-spinning-yarn-manufacturer-32"
+     ]
+    },
+    "created": "2026-05-21"
+   },
+   "drop": {
+    "id": "d36a2413-e230-4dec-b919-5da15d18efcd",
+    "slug": "kung-keng-textile-bd",
+    "name": "KUNG KENG TEXTILE (BD) CO., LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Bangladesh\nDhaka - 1349",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "OEKO_TEX": [
+      "oeko-tex-14464"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [
+    "same district Dhaka"
+   ],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 30
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "04646ab8-114a-49f1-84de-2aea9d9036e3",
+    "slug": "lemond-fashion",
+    "name": "Lemond Fashion Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Chattogram",
+    "address": "545, East Madarbari,\nChittagong\nMajhirghat Road",
+    "workers": 352,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:1745"
+     ]
+    },
+    "created": "2026-08-03"
+   },
+   "drop": {
+    "id": "b7187394-45e2-46b5-9142-b53cd5124006",
+    "slug": "lemond-fashions",
+    "name": "LEMOND FASHIONS LTD",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": null,
+    "address": null,
+    "workers": null,
+    "group": "LEMOND FASHIONS LTD",
+    "website": null,
+    "registers": {
+     "RSC": [
+      "10725"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 31
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "6d1c5f4d-5f47-40c7-879f-a613cc9371c8",
+    "slug": "mac-tex-industries",
+    "name": "Mac-Tex Industries Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Bangladesh\nDhaka - 1340",
+    "workers": 415,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:4319"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-73725"
+     ],
+     "RSC": [
+      "25601"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "drop": {
+    "id": "63b3dd46-fafc-499c-8399-dd6a48f695b3",
+    "slug": "mactex-industries",
+    "name": "MACTEX INDUSTRIES LTD",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "77/20, DAGORMORA, CRP ROAD",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "EPB": [
+      "4852"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 96,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [
+    "same district Dhaka"
+   ],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 32
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "1334467c-2d5d-476f-a60a-aa4907cf2129",
+    "slug": "mam-apparel-and-textiles",
+    "name": "MAM APPAREL & TEXTILES LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Chattogram",
+    "address": "PRANHORIDAS ROAD, LOHARPOOL, SARAYPARA, PAHARTALI,, , CHATTOGRAM",
+    "workers": 340,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:4195"
+     ],
+     "BKMEA": [
+      "1550"
+     ],
+     "EPB": [
+      "3991"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "26bd0fc3-5f56-4e49-8e9b-458bd55808b2",
+    "slug": "mam-apparel-and-textile",
+    "name": "Mam Apparel & Textile Ltd",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": null,
+    "address": null,
+    "workers": 395,
+    "group": "MAM Group",
+    "website": null,
+    "registers": {
+     "RSC": [
+      "12196"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 33
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "bb013bd2-7f81-47fc-81b3-ecee01624805",
+    "slug": "mavis-garments",
+    "name": "Mavis Garments Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "Bangladesh\nGazipur - 1702",
+    "workers": 450,
+    "group": null,
+    "website": "www.giantbd.com",
+    "registers": {
+     "BGMEA": [
+      "general:242"
+     ],
+     "EPB": [
+      "3685"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-32476"
+     ],
+     "WRAP": [
+      "wrap-12774"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "drop": {
+    "id": "803eff69-265d-427f-8cbc-c0bac22d258f",
+    "slug": "mavis-garment",
+    "name": "Mavis Garment Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": null,
+    "address": null,
+    "workers": 603,
+    "group": "Giant Group",
+    "website": null,
+    "registers": {
+     "RSC": [
+      "9240"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [
+    "no address on the qualified profile"
+   ],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 34
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "37563d81-b180-4b57-a854-d972ef91a84a",
+    "slug": "minar-textile",
+    "name": "MINAR TEXTILE",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "70, NAYAMATI ROAD, , NARAYANGANJ",
+    "workers": 200,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:698"
+     ],
+     "BKMEA": [
+      "4"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "ec170a38-2a4c-4bc6-8abd-2145acf34bf8",
+    "slug": "minar-textiles",
+    "name": "Minar Textiles Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": null,
+    "address": null,
+    "workers": null,
+    "group": "Minar Group",
+    "website": null,
+    "registers": {
+     "RSC": [
+      "23490"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 35
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "2a63d3a7-7f1f-495f-a75b-fc7f6d31ed79",
+    "slug": "naba-exports",
+    "name": "NABA EXPORTS LTD",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Chattogram",
+    "address": "9125/9126 Shakpura (Military Pool) Boalkhali, Chittagong",
+    "workers": 650,
+    "group": null,
+    "website": null,
+    "registers": {
+     "EPB": [
+      "989"
+     ],
+     "RSC": [
+      "26558"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "drop": {
+    "id": "0084a1a7-11d2-4be2-bf43-1cc7cdd1ad52",
+    "slug": "naba-export",
+    "name": "Naba Export Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Chattogram",
+    "address": "9125/9126, Shakpura, Boalkhali\nChittagong",
+    "workers": 500,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:4759"
+     ]
+    },
+    "created": "2026-08-03"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [
+    "same district Chattogram"
+   ],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 36
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "55291d91-d7be-4710-a74e-39898aa94e0e",
+    "slug": "nafisa",
+    "name": "NAFISA APPARELS LTD",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Chattogram",
+    "address": "PLOT-A-9,10,11, BSCIC I/A, KALURGHAT, CHATTOGRAM",
+    "workers": 489,
+    "group": "Four H Group",
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:4541"
+     ],
+     "BKMEA": [
+      "1817"
+     ],
+     "BRAND_HM": [
+      "3c058303aa33acd0"
+     ],
+     "EPB": [
+      "4869"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-45822"
+     ],
+     "RSC": [
+      "11945"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "fe7f22f1-9548-4d2f-9c18-eac9aa1e46a9",
+    "slug": "nafisa-apparels",
+    "name": "Nafisa Apparels Ltd.",
+    "kind": "factory",
+    "published": false,
+    "building_of": null,
+    "district": "Chattogram",
+    "address": "A- 9/10/11, BSCIC Industrial Area, Kalurghat, Chittagong",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {},
+    "created": "2026-05-18"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [
+    "same district Chattogram"
+   ],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 37
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "90313cbd-8bab-4b45-99b2-2acfa46b9d51",
+    "slug": "old-town-fashions",
+    "name": "OLD TOWN FASHIONS LTD",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "SALIMA COMPLEX (3RD fLOOR), SILO ROAD, , NARAYANGANJ",
+    "workers": 210,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "1255"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "8a6a82f2-20cc-46ca-bb36-962653deb2d5",
+    "slug": "old-town-fashion",
+    "name": "Old Town Fashion Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": null,
+    "address": null,
+    "workers": 250,
+    "group": "Old Town Fashion Ltd.",
+    "website": null,
+    "registers": {
+     "RSC": [
+      "12365"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [
+    "no address on the qualified profile"
+   ],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 38
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "0fb13e96-9b32-4426-9b68-082b79f8c730",
+    "slug": "oli-knitting-fabrics",
+    "name": "Oli Knitting Fabrics Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "Ganakbari,\nDhaka\nSavar",
+    "workers": 1370,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:2283"
+     ],
+     "BTMA": [
+      "spinning-mills-under-suspension-4"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "drop": {
+    "id": "6e82733c-24de-4e6d-88ed-00f1d170d603",
+    "slug": "oli-knittings-fabrics",
+    "name": "Oli Knittings Fabrics Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": null,
+    "address": null,
+    "workers": 966,
+    "group": "Oli Knittings Fabrics Ltd.",
+    "website": null,
+    "registers": {
+     "RSC": [
+      "10996"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 39
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "469bc50b-da90-46b4-b30b-2072f5c92f43",
+    "slug": "ornate-knit-garment-industries",
+    "name": "Ornate Knit Garment Industries Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Bararangamtia, Dawan Idris Road, Zirabo\nDhaka\nDhaka",
+    "workers": 800,
+    "group": null,
+    "website": "www.textowngroup.com",
+    "registers": {
+     "BGMEA": [
+      "general:834"
+     ],
+     "EPB": [
+      "96"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-16623"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "drop": {
+    "id": "78ace947-a0f3-4be2-843f-7df69cf6af8a",
+    "slug": "ornate-knit-garments-industries",
+    "name": "Ornate Knit Garments Industries Ltd",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": null,
+    "address": null,
+    "workers": 852,
+    "group": "Textown Group",
+    "website": null,
+    "registers": {
+     "RSC": [
+      "9701"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 40
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "e207b3d2-b099-4dca-aa80-ed081e1fe07e",
+    "slug": "py-garments-manufacturing-bangladesh",
+    "name": "P.Y. GARMENTS MANUFACTURING (BANGLADESH) COMPANY LIMITED",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Cumilla",
+    "address": "Plot No: 55-57 & 75-77.Cumilla EPZ, Cumilla",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BRAND_HM": [
+      "1c52bf743c4c3c95"
+     ],
+     "EPB": [
+      "4647"
+     ]
+    },
+    "created": "2026-06-26"
+   },
+   "drop": {
+    "id": "8236ece6-2ef5-48cd-ba8d-f56deae5c725",
+    "slug": "py-garments-manufacturing-bd",
+    "name": "P.Y Garments Manufacturing. (BD) Co. Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Cumilla",
+    "address": null,
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "WRAP": [
+      "wrap-130144"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [
+    "same district Cumilla"
+   ],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [
+    "no address on the qualified profile"
+   ],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 41
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "9c32a1ac-0ae9-4772-a692-9868c92374e4",
+    "slug": "reza-fashions",
+    "name": "Reza Fashions Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Gorat, Ashulia\nDhaka\nSavar",
+    "workers": 500,
+    "group": null,
+    "website": "https://www.rezagroup-bd.com",
+    "registers": {
+     "BGMEA": [
+      "general:4965"
+     ],
+     "EPB": [
+      "5210"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "drop": {
+    "id": "80192b8a-a9b7-4a70-8a36-77dc9ac82f44",
+    "slug": "reza-fashion",
+    "name": "Reza Fashion Ltd",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": null,
+    "address": null,
+    "workers": 1290,
+    "group": "Reza Group",
+    "website": null,
+    "registers": {
+     "RSC": [
+      "9457"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [
+    "no address on the qualified profile"
+   ],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 42
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "d7067c58-8373-476b-a76b-1557d8f936d5",
+    "slug": "sb-designs",
+    "name": "S.B. Designs Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "A-3/2, Ward # 05, Talbag, Savar\nDhaka\nDhaka",
+    "workers": 180,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:3013"
+     ],
+     "EPB": [
+      "4183"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-53669"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "drop": {
+    "id": "d9f8fe7c-e1f5-4a02-9b5b-60856ca7da50",
+    "slug": "sb-design",
+    "name": "S.B Design ltd",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": null,
+    "address": null,
+    "workers": null,
+    "group": "S.B Design ltd",
+    "website": null,
+    "registers": {
+     "RSC": [
+      "12041"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 43
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "05c9072f-5459-4fbc-89c5-6775980baebc",
+    "slug": "shasha-denims-plc",
+    "name": "SHASHA DENIMS PLC",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Bangladesh\nDhaka - 1349",
+    "workers": null,
+    "group": null,
+    "website": "www.shashadenim.com",
+    "registers": {
+     "BRAND_HM": [
+      "bd7c6a02657b5a35"
+     ],
+     "GOTS": [
+      "gots-SCO028173"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-17739"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "drop": {
+    "id": "27c32f02-2957-45f3-a9a1-89a092fdf1f3",
+    "slug": "shasha-denims",
+    "name": "Shasha Denims ltd",
+    "kind": "factory",
+    "published": false,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "184-194,277, DEPZ, Savar, dhaka",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "EPB": [
+      "1127"
+     ]
+    },
+    "created": "2026-05-18"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [
+    "same district Dhaka"
+   ],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 44
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "272a641b-3784-4fbd-9a5d-34679875253b",
+    "slug": "snowtex-outerwear",
+    "name": "Snowtex Outerwear Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Bangladesh\n1350 Dhaka",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:5756"
+     ],
+     "EPB": [
+      "1488"
+     ],
+     "GOTS": [
+      "gots-SCO029942"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-39294"
+     ],
+     "WRAP": [
+      "wrap-16317"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "drop": {
+    "id": "4c3666b1-79c9-4d86-8541-f6a2a9b204ac",
+    "slug": "snowtex-outer-wear",
+    "name": "Snowtex Outer Wear Ltd",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": null,
+    "address": null,
+    "workers": 11000,
+    "group": "Snowtex Group",
+    "website": null,
+    "registers": {
+     "RSC": [
+      "11803"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "certain": false,
+   "score": 97,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 45
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "c689b5c0-f20e-4e7c-933d-230a605637e9",
+    "slug": "south-end-sweater",
+    "name": "South End Sweater Co. Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Bangladesh\nDhaka - 1230",
+    "workers": null,
+    "group": null,
+    "website": "https://www.teambd.com",
+    "registers": {
+     "BGMEA": [
+      "general:3778"
+     ],
+     "EPB": [
+      "3125"
+     ],
+     "GOTS": [
+      "gots-SCO029938"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-42430"
+     ],
+     "WRAP": [
+      "wrap-17742"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "drop": {
+    "id": "6e621f73-1582-46e9-af69-5614e392ec43",
+    "slug": "southend-sweater",
+    "name": "Southend Sweater Co Ltd",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": null,
+    "address": null,
+    "workers": 1755,
+    "group": "Team Group",
+    "website": null,
+    "registers": {
+     "RSC": [
+      "9939"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "certain": false,
+   "score": 96,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [
+    "no address on the qualified profile"
+   ],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 46
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "94a0f6e5-e8ba-499b-bc63-ced404468f5c",
+    "slug": "sung-kwang-apparels",
+    "name": "SUNG KWANG APPARELS LTD",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "PLOT-1384-86, 1420-21 VOGRA, BASON SHARAK, CHANDONA, SADAR, GAZIPUR",
+    "workers": 1584,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "758"
+     ],
+     "EPB": [
+      "3070"
+     ],
+     "GOTS": [
+      "gots-SCO018671"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-35122"
+     ],
+     "WRAP": [
+      "wrap-129778"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "2e9eba2f-6360-4e61-9eb6-2f8bd8951639",
+    "slug": "sungkwang-apparels",
+    "name": "SungKwang Apparels Ltd",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": null,
+    "address": null,
+    "workers": 1557,
+    "group": null,
+    "website": null,
+    "registers": {
+     "RSC": [
+      "10354"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "certain": false,
+   "score": 97,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [
+    "no address on the qualified profile"
+   ],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 47
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "58a3ab6b-d4c8-4256-a8ca-ba348ef01422",
+    "slug": "textrim-accessories",
+    "name": "Textrim Accessories",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Bangladesh\n1000 Dhaka",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "OEKO_TEX": [
+      "oeko-tex-67157"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "drop": {
+    "id": "9427fd56-131d-47d8-9774-2622d2ef1601",
+    "slug": "tex-trims-accessories",
+    "name": "Tex Trims Accessories",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Bangladesh\nDhaka - 1350",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "OEKO_TEX": [
+      "oeko-tex-62891"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "certain": false,
+   "score": 97,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [
+    "same district Dhaka"
+   ],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [
+    "OEKO_TEX lists both, as entries oeko-tex-62891 and oeko-tex-67157"
+   ],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 48
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "bb4f02f4-8cd2-4b9a-b9c0-25c84dcf06ce",
+    "slug": "the-plastic-man",
+    "name": "The Plastic Man Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "Bangladesh\nNarayanganj - 1430",
+    "workers": null,
+    "group": null,
+    "website": "www.chaity.com",
+    "registers": {
+     "OEKO_TEX": [
+      "oeko-tex-28850"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "drop": {
+    "id": "d832c635-e44b-4d26-8b95-1caa6eb5ab56",
+    "slug": "plastic-man",
+    "name": "Plastic Man (Pvt.) Ltd",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayangonj",
+    "address": "1, Nayamati Road, Narayangonj",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGAPMEA": [
+      "564"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 49
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "bc5944ec-67a4-4098-81de-88e3a1f11292",
+    "slug": "ultra-design-and-fashions",
+    "name": "ULTRA DESIGN & FASHIONS LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Chattogram",
+    "address": "SOUTH PAHARTOLI WORD NO:1, FATEHABAD, HATHAZARI, , CHATTOGRAM",
+    "workers": 500,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:4993"
+     ],
+     "BKMEA": [
+      "1664"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "a7d9e894-8756-494b-b2a5-febec195d158",
+    "slug": "ultra-design-and-fashion",
+    "name": "ULTRA DESIGN & FASHION LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Chattogram",
+    "address": "SOUTH PAHARTALI,WARD NO.: 1,FATEHABAD",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "EPB": [
+      "77"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [
+    "same district Chattogram"
+   ],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 50
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "96cd7d85-8091-4e75-b53d-50969ea31d76",
+    "slug": "usama-textile",
+    "name": "USAMA TEXTILE LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Mymensingh",
+    "address": "Ghadumia Hajeer Bazar, | Bhaluka,",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "GOTS": [
+      "gots-SCO010864"
+     ]
+    },
+    "created": "2026-05-19"
+   },
+   "drop": {
+    "id": "a3791315-151c-4afc-a90b-b9626752ecb4",
+    "slug": "usama-textiles",
+    "name": "Usama Textiles Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Mymensingh",
+    "address": "Bangladesh\n2240 Mymensing",
+    "workers": null,
+    "group": null,
+    "website": "usamatextileltd.com/",
+    "registers": {
+     "OEKO_TEX": [
+      "oeko-tex-78066"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [
+    "same district Mymensingh"
+   ],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 51
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "5a09650a-2619-4a51-9375-9ccdb968c7fd",
+    "slug": "visual-eco-stylewear",
+    "name": "VISUAL ECO STYLEWEAR LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Chattogram",
+    "address": "668/A, SHED NO- 03, 1NO WARD, SOUTH PAHARTALI, HATHAZARI, CHATTOGRAM",
+    "workers": 462,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:7226"
+     ],
+     "BKMEA": [
+      "2531"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "05b24f15-bbd7-4970-9850-18726e36f970",
+    "slug": "visual-eco-style-wear",
+    "name": "Visual Eco Style Wear Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": null,
+    "address": null,
+    "workers": null,
+    "group": "Supertex Group",
+    "website": null,
+    "registers": {
+     "RSC": [
+      "23523"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "certain": false,
+   "score": 97,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [
+    "no address on the qualified profile"
+   ],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 52
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "97c714c8-8070-44cb-b80a-8237eb25b922",
+    "slug": "whitex-garments-bd",
+    "name": "Whitex Garments (BD) PVT. LTD",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Chattogram",
+    "address": "Bangladesh\nChattogram - 4204",
+    "workers": 1805,
+    "group": null,
+    "website": "www.whitexgarments.com",
+    "registers": {
+     "EPB": [
+      "3057"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-31113"
+     ],
+     "RSC": [
+      "11350"
+     ],
+     "WRAP": [
+      "wrap-14868"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "drop": {
+    "id": "21da635b-734a-4d88-b77d-b862be9a28a2",
+    "slug": "whitex-garments-bangladesh",
+    "name": "Whitex Garments (Bangladesh) Pvt. Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Chattogram",
+    "address": "Plot # 86-90, KEPZ",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "GOTS": [
+      "gots-SCO009872"
+     ]
+    },
+    "created": "2026-05-19"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [
+    "same district Chattogram"
+   ],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 53
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "9c8de6d7-b3e6-441b-a159-17f5417b28c0",
+    "slug": "young-4-ever-textiles",
+    "name": "YOUNG 4 EVER TEXTILES LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "PLOT-B-89,90, BSCIC HOSIERY I/E, SHASANGAON, FATULLAH, NARAYANGANJ., FATULLAH, NARAYANGANJ",
+    "workers": 400,
+    "group": null,
+    "website": "https://www.young4evertex.com",
+    "registers": {
+     "BGMEA": [
+      "general:5090"
+     ],
+     "BKMEA": [
+      "1581"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "35718fa0-9dae-405a-985d-0ea9439a7512",
+    "slug": "young4ever-textiles",
+    "name": "Young4ever Textiles Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": null,
+    "address": null,
+    "workers": 470,
+    "group": "Not in a Group",
+    "website": null,
+    "registers": {
+     "EPB": [
+      "778"
+     ],
+     "RSC": [
+      "9366"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "certain": false,
+   "score": 94,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [
+    "no address on the qualified profile"
+   ],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 54
+  },
+  {
+   "section": "same-name",
+   "lean": "merge",
+   "keep": {
+    "id": "062cdc9b-ba1e-4105-bac9-309dea0ac77a",
+    "slug": "zakmars-fashion",
+    "name": "Zakmars Fashion Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Chattogram",
+    "address": "524, D.T. Road, Jan super Market , Kadamtali\nChittagong\nChittagong",
+    "workers": 982,
+    "group": null,
+    "website": "https://www.asianapparels.com",
+    "registers": {
+     "BGMEA": [
+      "general:1535"
+     ],
+     "EPB": [
+      "815"
+     ]
+    },
+    "created": "2026-08-03"
+   },
+   "drop": {
+    "id": "5cb42491-7c38-4ad9-9bea-2d71f0e69c6e",
+    "slug": "zakmars-fashions",
+    "name": "Zakmars Fashions Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": null,
+    "address": null,
+    "workers": null,
+    "group": "Imam Group",
+    "website": null,
+    "registers": {
+     "RSC": [
+      "23279"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 55
+  },
+  {
+   "section": "same-name-far",
+   "lean": "separate",
+   "keep": {
+    "id": "63b8d9f3-f121-45d2-9535-c1004ff04248",
+    "slug": "alif-textile",
+    "name": "ALIF TEXTILE",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "MOUSUMI SUPER MARKET (2ND & 3RD FLOOR), KUTUBAIL, SEBU MARKET, FATULLAH,, , NARAYANGANJ",
+    "workers": 130,
+    "group": "Alif Apparels Ltd.",
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "1765"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-83945"
+     ],
+     "RSC": [
+      "9813"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "46b06d84-a637-4b2a-89e8-d8262f8f82cd",
+    "slug": "alif-textiles",
+    "name": "Alif Textiles Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "74/A, Science Laboratary Road,\nDhaka\nDhanmondi",
+    "workers": 310,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:1907"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "districts differ: Dhaka / Narayanganj",
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 83
+  },
+  {
+   "section": "same-name-far",
+   "lean": "merge",
+   "keep": {
+    "id": "83e3166b-d795-48d4-ad76-07475580b576",
+    "slug": "anika-fashion",
+    "name": "ANIKA FASHION",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "73/A, BSCIC I/A, PANCHABATI, , NARAYANGANJ",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "865"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "c0da3be0-7842-4239-ba0b-f06f74a82334",
+    "slug": "anika-fashions",
+    "name": "Anika Fashions (Pvt.) Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Plot # I /1, Gha Part\nDhaka\nMirpur",
+    "workers": 440,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:5553"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "shared phone",
+    "similar name"
+   ],
+   "own": [
+    "1 shared phone number"
+   ],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "districts differ: Narayanganj / Dhaka"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 84
+  },
+  {
+   "section": "same-name-far",
+   "lean": "separate",
+   "keep": {
+    "id": "58999efb-fe28-4529-b9de-9cb69b5b19ed",
+    "slug": "baxter-brenton-bangladesh-clothing-manufacturing",
+    "name": "BAXTER BRENTON (BANGLADESH) CLOTHING MANUFACTURING CO., LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "93, AUCH PARA (GROUND & 2ND FLOOR), TONGI,, , GAZIPUR",
+    "workers": 185,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "1650"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "ff24ffac-b851-46e0-9b15-20c52fa9a4b4",
+    "slug": "baxter-brenton-bd-clothing-manufacturing",
+    "name": "Baxter Brenton (BD) Clothing Mfg. Co. Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "SFB # 7 (1st Floor), Ganakbari, Ashulia, DEPZ\nDhaka\nSavar",
+    "workers": 557,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:5523"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "districts differ: Gazipur / Dhaka",
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 85
+  },
+  {
+   "section": "same-name-far",
+   "lean": "separate",
+   "keep": {
+    "id": "74ce87a5-0feb-4aa6-9eb1-c8a59a9fd2d9",
+    "slug": "biswas-fashion",
+    "name": "BISWAS FASHION",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Chattogram",
+    "address": "NUR MANSION, HOUSE # 307, ROAD # 03, SHOLASHAHAR 2 NO GATE, CHASHMA HILL R/A, EAST NASIRABAD, NASIRABAD, CHATTOGRAM",
+    "workers": 3,
+    "group": "Biswas Group",
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "1973"
+     ],
+     "RSC": [
+      "12152"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "14821b92-c950-432b-88d1-955bf47dea0c",
+    "slug": "biswas-fashions",
+    "name": "Biswas Fashions Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Raj Fulbaria,\nDhaka\nSavar",
+    "workers": 225,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:2635"
+     ]
+    },
+    "created": "2026-08-03"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "districts differ: Dhaka / Chattogram",
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 86
+  },
+  {
+   "section": "same-name-far",
+   "lean": "separate",
+   "keep": {
+    "id": "353a3d10-eca1-4222-b064-dcdc0f7c6b0f",
+    "slug": "crc-textile-mills",
+    "name": "CRC Textile Mills Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "Bangladesh\nDhaka - 1000",
+    "workers": null,
+    "group": null,
+    "website": "https://www.crctextile.com",
+    "registers": {
+     "BTMA": [
+      "spinning-general-member-289",
+      "spinning-general-member-78"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-6103"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "drop": {
+    "id": "64ecf491-8e2c-4aeb-9dfb-558cef2b7f17",
+    "slug": "crc-textiles-mills",
+    "name": "CRC Textiles Mills Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "43,Sreepur,1744, Gazipur,Bangladesh",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "GOTS": [
+      "gots-SCO009921"
+     ]
+    },
+    "created": "2026-05-19"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "districts differ: Gazipur / Dhaka",
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 87
+  },
+  {
+   "section": "same-name-far",
+   "lean": "merge",
+   "keep": {
+    "id": "5156d9d1-c94a-45e9-bf6e-904b0106459e",
+    "slug": "euro-knit-spin-garments",
+    "name": "EURO KNIT SPIN GARMENTS LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "PLOT # B-94, 95, 96 & 111 BSCIC HOSIERY I/A, FATULLAH,, FATULLAH, NARAYANGANJ",
+    "workers": 860,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGAPMEA": [
+      "1729"
+     ],
+     "BKMEA": [
+      "2441"
+     ],
+     "GOTS": [
+      "gots-SCO031606",
+      "gots-SCO031616"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-32953"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "95adb48f-9c60-49b2-a6cc-483f0741d0d5",
+    "slug": "euro-knitspin-garments",
+    "name": "Euro Knitspin Garments Ltd",
+    "kind": "factory",
+    "published": false,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Bangladesh\n1400 Narayanganj",
+    "workers": null,
+    "group": null,
+    "website": "https://",
+    "registers": {
+     "EPB": [
+      "3459"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "certain": false,
+   "score": 97,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "shared mailbox",
+    "shared mailbox domain",
+    "similar name"
+   ],
+   "own": [
+    "same mailbox domain eurotexbd.net",
+    "same mailbox (1)"
+   ],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "districts differ: Narayanganj / Dhaka"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 88
+  },
+  {
+   "section": "same-name-far",
+   "lean": "separate",
+   "keep": {
+    "id": "22c18ad5-2237-49ee-9904-388bec29d94c",
+    "slug": "fashion-crafts-and-design",
+    "name": "FASHION CRAFTS & DESIGN LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "PLOT 47, TAGNOG PARA, CHANDONA,, , GAZIPUR",
+    "workers": 200,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "1668"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "a1bda21f-843e-4396-8789-6b23794b4963",
+    "slug": "fashion-craft-design",
+    "name": "Fashion Craft Design Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Beron, Zirabo, Ashulia\nDhaka\nSavar",
+    "workers": 250,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:5214"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "districts differ: Gazipur / Dhaka",
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 89
+  },
+  {
+   "section": "same-name-far",
+   "lean": "separate",
+   "keep": {
+    "id": "fa11f258-c5a6-409e-a475-9b38465e4ae4",
+    "slug": "genius-fashion",
+    "name": "GENIUS FASHION LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "DHAKA MUNSHIGONJ ROAD, , NARAYANGANJ",
+    "workers": 200,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "473"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "a8b4c753-c984-42c5-a395-d363c2447e70",
+    "slug": "genius-fashions",
+    "name": "Genius Fashions Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "Nabinagar Kaliakoir Road, South Panishail\nGazipur\nZirani",
+    "workers": 350,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:2622"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "districts differ: Gazipur / Dhaka",
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 90
+  },
+  {
+   "section": "same-name-far",
+   "lean": "merge",
+   "keep": {
+    "id": "f8deb9f8-0306-4054-bbc2-0bb315ee8cca",
+    "slug": "giant-textiles",
+    "name": "Giant Textiles Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Bangladesh\nGazipur - 1704",
+    "workers": 1800,
+    "group": null,
+    "website": "www.giantbd.com",
+    "registers": {
+     "BGMEA": [
+      "general:5199"
+     ],
+     "EPB": [
+      "4379"
+     ],
+     "GOTS": [
+      "gots-SCO035242"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-23958"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "drop": {
+    "id": "5328057c-1bfb-4b5c-86f5-949e38d2f064",
+    "slug": "giant-textile",
+    "name": "Giant Textile Ltd",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "Shahid Rowshan Sarak, Chandana\nGazipur\nJoydevpur",
+    "workers": 2204,
+    "group": "Giant Group",
+    "website": null,
+    "registers": {
+     "RSC": [
+      "12641"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "shared mailbox domain",
+    "similar name"
+   ],
+   "own": [
+    "same mailbox domain giantbd.com"
+   ],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "districts differ: Gazipur / Dhaka"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 91
+  },
+  {
+   "section": "same-name-far",
+   "lean": "separate",
+   "keep": {
+    "id": "9791a67a-c588-4fbe-a490-ed5cf08a2b1b",
+    "slug": "glare-fashions",
+    "name": "GLARE FASHIONS LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "793/120, KATHGORA, ASHULIA, SAVAR, DHAKA",
+    "workers": 230,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "1185"
+     ],
+     "EPB": [
+      "881"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "4628c58e-2fa1-4a9e-95f3-19f83c9b847a",
+    "slug": "glare-fashion",
+    "name": "Glare Fashion Ltd",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Chattogram",
+    "address": "56, Gosaildanga,\nChittagong\nDouble Mooring",
+    "workers": 250,
+    "group": "Glare Fashion Ltd",
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:1711"
+     ],
+     "RSC": [
+      "10973"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "districts differ: Chattogram / Dhaka",
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 92
+  },
+  {
+   "section": "same-name-far",
+   "lean": "separate",
+   "keep": {
+    "id": "8716c423-25ed-4cef-b447-6cef6311b1cc",
+    "slug": "hannan-fashions",
+    "name": "Hannan Fashions",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "1155, Shahid Siddique Road, Khailkur, Board Bazar, Joydevpur\nGazipur\nGazipur",
+    "workers": 2350,
+    "group": "Hannan Group",
+    "website": "http://www.fancybd.com",
+    "registers": {
+     "BGMEA": [
+      "general:3663"
+     ],
+     "EPB": [
+      "4136"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-10348"
+     ],
+     "RSC": [
+      "9195"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "drop": {
+    "id": "bf667a5f-dd61-4a37-b1c0-4dc7cfd15b3b",
+    "slug": "hannan-fashion",
+    "name": "Hannan Fashion's Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "581,Old 1155, Shahid Siddique Road, Khailkur, National Unive",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "GOTS": [
+      "gots-SCO017649"
+     ]
+    },
+    "created": "2026-05-19"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "districts differ: Gazipur / Dhaka",
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 93
+  },
+  {
+   "section": "same-name-far",
+   "lean": "merge",
+   "keep": {
+    "id": "7df6ad0d-2336-47d0-878c-fc8579cc6f45",
+    "slug": "ka-fashions",
+    "name": "K. A Fashions Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Bangladesh\n1346 Dhaka",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "EPB": [
+      "3841"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-76464"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "drop": {
+    "id": "2b27b1ef-72f9-4172-9216-f6348e44a607",
+    "slug": "ka-fashion",
+    "name": "KA Fashion Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "Holding No. 115, Surabari, Gazipur Sadar\nGazipur\nGazipur",
+    "workers": 750,
+    "group": null,
+    "website": "https://www.kafashionbd.com",
+    "registers": {
+     "BGMEA": [
+      "general:5392"
+     ]
+    },
+    "created": "2026-08-03"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "shared mailbox domain",
+    "similar name"
+   ],
+   "own": [
+    "same mailbox domain kafashionbd.com"
+   ],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "districts differ: Gazipur / Dhaka"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 94
+  },
+  {
+   "section": "same-name-far",
+   "lean": "separate",
+   "keep": {
+    "id": "e944ad48-ad40-4304-b5cb-122e2295efa8",
+    "slug": "labib-fashion",
+    "name": "LABIB FASHION",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "PLOT NO-A-11, BSCIC I/E, FATULLAH, NARAYANGANJ",
+    "workers": 170,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "1870"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "503cb029-fcb3-4cfb-932d-a97c58b3dadc",
+    "slug": "labib-fashions",
+    "name": "Labib Fashions Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "Vogra, Chandana Chowrasta\nGazipur\nGazipur Sadar",
+    "workers": 800,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:3459"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "districts differ: Gazipur / Narayanganj",
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 95
+  },
+  {
+   "section": "same-name-far",
+   "lean": "separate",
+   "keep": {
+    "id": "af87a532-7e93-453b-b7ad-239b54e1b115",
+    "slug": "lz-textiles",
+    "name": "LZ Textiles Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Dewallia Bari,\nGazipur\nKonabari",
+    "workers": 250,
+    "group": "LZ Group",
+    "website": "lzgroup-bd.com/",
+    "registers": {
+     "BGMEA": [
+      "general:6019"
+     ],
+     "EPB": [
+      "4177"
+     ],
+     "GOTS": [
+      "gots-SCO000193"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-67294"
+     ],
+     "RSC": [
+      "12112"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "drop": {
+    "id": "7ed075a1-8d39-4dd4-8b15-e070cec8d8d1",
+    "slug": "lz-textile",
+    "name": "LZ TEXTILE LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "DEOLIA BARI, KONABARI, MOUZA: MIRPUR,, , GAZIPUR",
+    "workers": 46,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "1586"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "districts differ: Gazipur / Dhaka",
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 96
+  },
+  {
+   "section": "same-name-far",
+   "lean": "separate",
+   "keep": {
+    "id": "cda44171-6552-4206-a376-ace85f9d7faa",
+    "slug": "rk-fashion",
+    "name": "R. K FASHION LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "CHOWDHURY BARI, GODNAIL, LK. N. C MILL, , NARAYANGANJ",
+    "workers": 120,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "483"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "bf75ffe7-8b9a-4525-8fcd-2e59474be24b",
+    "slug": "rk-fashions",
+    "name": "R.K. Fashions",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Bangladesh\n1230 Dhaka",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "OEKO_TEX": [
+      "oeko-tex-82095"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "districts differ: Dhaka / Narayanganj",
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 97
+  },
+  {
+   "section": "same-name-far",
+   "lean": "separate",
+   "keep": {
+    "id": "39e08c91-56fd-4d4e-a306-0eec365e99ae",
+    "slug": "sayem-fashions",
+    "name": "Sayem Fashions Ltd",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "Kamarjuri, National University\nGazipur\nBoard Bazar",
+    "workers": 1100,
+    "group": "Sayem Group",
+    "website": "www.sayem-group.com",
+    "registers": {
+     "BGMEA": [
+      "general:3684"
+     ],
+     "EPB": [
+      "3948"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-23534"
+     ],
+     "RSC": [
+      "11476"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "drop": {
+    "id": "b91634ec-7d86-42ae-895d-77c8a0722b17",
+    "slug": "sayem-fashion",
+    "name": "SAYEM FASHION",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "NORTH NORSHINGPUR, KASHIPUR-1421, FATULLAH,, FATULLAH, NARAYANGANJ",
+    "workers": 520,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "2304"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "districts differ: Gazipur / Narayanganj",
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 98
+  },
+  {
+   "section": "same-name-far",
+   "lean": "separate",
+   "keep": {
+    "id": "fae8e16f-8338-42a6-98bb-af4b14f66831",
+    "slug": "seibu-fashion",
+    "name": "SEIBU FASHION LTD",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "16, S. M MALEH ROAD, TANBAZAR, SADAR, NARAYANGANJ",
+    "workers": 300,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "319"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "ff2f5cde-f024-40f9-8d14-5f9880e8598c",
+    "slug": "seibu-fashions",
+    "name": "Seibu Fashions Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Mymensingh",
+    "address": "Kasorghar,\nMymensingh\nValuka",
+    "workers": 420,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:2509"
+     ]
+    },
+    "created": "2026-08-03"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "districts differ: Narayanganj / Mymensingh",
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 99
+  },
+  {
+   "section": "same-name-far",
+   "lean": "separate",
+   "keep": {
+    "id": "169853ef-4cd7-4960-9ea9-5187de90bf1f",
+    "slug": "tm-fashions",
+    "name": "TM FASHIONS LTD",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Haji Ismail Chowdhury Bhaban, Chandana Chowrasta\nGazipur\nGazipur",
+    "workers": 2400,
+    "group": "TM Group",
+    "website": "http://www.tmdbd.com",
+    "registers": {
+     "BGMEA": [
+      "general:5128"
+     ],
+     "EPB": [
+      "2575"
+     ],
+     "GOTS": [
+      "gots-SCO009899"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-42997"
+     ],
+     "RSC": [
+      "9332"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "drop": {
+    "id": "6c134ca7-0936-4819-8733-91de136103b0",
+    "slug": "tm-fashion",
+    "name": "T. M FASHION LTD",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "NEW JAMIR MARKET (4TH FLOOR), ALI-AHMED CHUNKA ROAD, , NARAYANGANJ",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "153"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "districts differ: Dhaka / Narayanganj",
+    "only the name ties them"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 100
+  },
+  {
+   "section": "spelling",
+   "lean": "merge",
+   "keep": {
+    "id": "a87c805f-1357-45ed-ba2a-e94fd16fb7ba",
+    "slug": "al-yusra-textile",
+    "name": "AL YUSRA TEXTILE LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Chattogram",
+    "address": "KESHABPUR, SITALPUR, SITAKONDA, CHATTOGRAM",
+    "workers": 323,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "2450"
+     ],
+     "EPB": [
+      "4154"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "81fd0871-54ce-4ff2-9a77-1b1409f5ebeb",
+    "slug": "al-yusar-textiles",
+    "name": "Al Yusar Textiles Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Chattogram",
+    "address": "Keshabpur, Sitalpur, Sitakunda\nChittagong\nChittagong",
+    "workers": 247,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:6665"
+     ]
+    },
+    "created": "2026-08-03"
+   },
+   "certain": false,
+   "score": 93,
+   "same_name": false,
+   "typo": false,
+   "signals": [
+    "shared mailbox",
+    "similar name"
+   ],
+   "own": [
+    "same mailbox (1)"
+   ],
+   "place": [
+    "addresses share keshabpur, sitalpur"
+   ],
+   "supporting": [
+    "same district Chattogram"
+   ],
+   "hard": [],
+   "soft": [
+    "names differ (alike 93%)"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 56
+  },
+  {
+   "section": "spelling",
+   "lean": "merge",
+   "keep": {
+    "id": "27401f65-86cf-420b-aed1-4a2ee8a4f6e8",
+    "slug": "gramtech-knit-dyeing-finishing-and-garments-industries",
+    "name": "GRAMTECH Knit Dyeing Finishing & Garments Ind. Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "Bangladesh\nNarayanganj - 1460",
+    "workers": 2971,
+    "group": "Team Group",
+    "website": "www.teambd.com",
+    "registers": {
+     "BRAND_NEXT": [
+      "4f3860732d2dfd24"
+     ],
+     "EPB": [
+      "638"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-7280"
+     ],
+     "RSC": [
+      "9962"
+     ],
+     "WRAP": [
+      "wrap-17487"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "drop": {
+    "id": "a91ff0d0-b484-4277-bbc6-40c5ff4a26bf",
+    "slug": "gramtech-knit-dye-finishing-and-garments-industries",
+    "name": "Gramtech Knit Dye. Finishing & Gmts. Ind. Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "Dahargaon, Baliapara, Rupganj\nNarayanganj\nNarayangonj",
+    "workers": 3094,
+    "group": null,
+    "website": "http://www.teambd.com",
+    "registers": {
+     "BGMEA": [
+      "general:4189"
+     ]
+    },
+    "created": "2026-08-03"
+   },
+   "certain": false,
+   "score": 96,
+   "same_name": false,
+   "typo": false,
+   "signals": [
+    "shared mailbox domain",
+    "shared website",
+    "similar name"
+   ],
+   "own": [
+    "same mailbox domain team.com.bd",
+    "same website teambd.com"
+   ],
+   "place": [
+    "addresses share dahargaon, rupganj"
+   ],
+   "supporting": [
+    "same district Narayanganj"
+   ],
+   "hard": [],
+   "soft": [
+    "names differ (alike 96%)"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 57
+  },
+  {
+   "section": "spelling",
+   "lean": "merge",
+   "keep": {
+    "id": "5c82265e-774c-4c36-9194-f83a2678285d",
+    "slug": "kaps-fashion",
+    "name": "KAPS FASHION LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "HOWRIACHALA, SHAKASHAR, KALIAKOIR, GAZIPUR",
+    "workers": 98,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:6987"
+     ],
+     "BKMEA": [
+      "1752"
+     ],
+     "EPB": [
+      "3666"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "4e376a3e-a461-4525-94c3-2907402554b1",
+    "slug": "kap-fashion",
+    "name": "KAP'S Fashion Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "MOUCHAK, KALIAKOIR, GAZIPUR, BANGLADESH, 1751, GAZIPUR, Bangladesh",
+    "workers": null,
+    "group": null,
+    "website": "www.kapsfashion.com",
+    "registers": {
+     "OEKO_TEX": [
+      "oeko-tex-53794"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "certain": false,
+   "score": 95,
+   "same_name": false,
+   "typo": false,
+   "signals": [
+    "shared mailbox domain",
+    "similar name"
+   ],
+   "own": [
+    "same mailbox domain kapsfashion.com"
+   ],
+   "place": [],
+   "supporting": [
+    "same district Gazipur"
+   ],
+   "hard": [],
+   "soft": [
+    "names differ (alike 95%)"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 58
+  },
+  {
+   "section": "spelling",
+   "lean": "merge",
+   "keep": {
+    "id": "cb707fc6-f99f-419d-804e-18fc0c6f10bd",
+    "slug": "lida-textile-and-dyeing",
+    "name": "Lida Textile & Dyeing Limited",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Holding # 100/2, Block # B, East Chandra, Ward-8, Sofipur, Kaliakoir, Gazipur-1751, Bangladesh.\nGazipur\nGazipur",
+    "workers": 6122,
+    "group": null,
+    "website": "www.lizfashion.com",
+    "registers": {
+     "BGMEA": [
+      "general:4467"
+     ],
+     "BRAND_NEXT": [
+      "5519aedc70c3978e"
+     ],
+     "EPB": [
+      "4299"
+     ],
+     "GOTS": [
+      "gots-SCO002131"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-33122"
+     ],
+     "RSC": [
+      "12111"
+     ],
+     "WRAP": [
+      "wrap-17072"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "drop": {
+    "id": "fdbe2031-573d-4374-a261-6c9495b44230",
+    "slug": "lida-textile-and-dying",
+    "name": "LIDA TEXTILE AND DYING LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "HOLDING NO # 100/2, BUILDING-1-4, BLOCK-B, EAST CHANDONA, KALIAKOIR, GAZIPUR",
+    "workers": 762,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "2182"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "certain": false,
+   "score": 97,
+   "same_name": false,
+   "typo": false,
+   "signals": [
+    "shared mailbox domain",
+    "similar name"
+   ],
+   "own": [
+    "same mailbox domain lizfashion.com"
+   ],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "districts differ: Dhaka / Gazipur",
+    "names differ (alike 97%)"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 59
+  },
+  {
+   "section": "spelling",
+   "lean": "merge",
+   "keep": {
+    "id": "086e65df-c69d-4403-a047-9cc3187d62b4",
+    "slug": "omor-garments-accessories-industries",
+    "name": "Omor Garments Accessories Industries",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayangonj",
+    "address": "Pachine, Jampur, Sonargaon, Narayangonj",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGAPMEA": [
+      "1080",
+      "600"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "drop": {
+    "id": "35b9c8a4-8de4-4b72-a656-378db1f1b54c",
+    "slug": "rk-garments-accessories-industries",
+    "name": "R.K. Garments Accessories  Industries Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Bangladesh\n1212 Dhaka",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "OEKO_TEX": [
+      "oeko-tex-41435"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "certain": false,
+   "score": 93,
+   "same_name": false,
+   "typo": false,
+   "signals": [
+    "shared mailbox",
+    "similar name"
+   ],
+   "own": [
+    "same mailbox (1)"
+   ],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "districts differ: Narayangonj / Dhaka",
+    "names differ (alike 93%)"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 60
+  },
+  {
+   "section": "spelling",
+   "lean": "merge",
+   "keep": {
+    "id": "21728a97-f0dc-407e-963e-597fc87c5d01",
+    "slug": "rafia-printing-and-packaging",
+    "name": "Rafia Printing & Packaging",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "S.A Polt No :1203, Tongabari, Boro Ashulia, Savar, Dhaka.",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGAPMEA": [
+      "609",
+      "655"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "drop": {
+    "id": "1b078731-1ede-4db2-9aea-6fb63cc79981",
+    "slug": "rufa-packaging-and-printing",
+    "name": "RUFA PACKAGING AND PRINTING LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "Bangladesh\n1700 Gazipur",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "OEKO_TEX": [
+      "oeko-tex-66066"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "certain": false,
+   "score": 93,
+   "same_name": false,
+   "typo": false,
+   "signals": [
+    "shared mailbox",
+    "shared mailbox domain",
+    "shared phone",
+    "similar name"
+   ],
+   "own": [
+    "1 shared phone number",
+    "same mailbox domain strimsbd.com",
+    "same mailbox (1)"
+   ],
+   "place": [
+    "addresses share baniarchala, bhabanipur"
+   ],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "names differ (alike 93%)"
+   ],
+   "notes": [
+    "districts differ: Gazipur / Dhaka"
+   ],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 61
+  },
+  {
+   "section": "spelling",
+   "lean": "merge",
+   "keep": {
+    "id": "371bb921-1db3-4c5c-88fb-84044cefc72e",
+    "slug": "raz-fashion-wear",
+    "name": "RAZ FASHION WEAR",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "KADAMTOLI, NABIGANJ, BANDAR, NARAYANGANJ, BANDAR, NARAYANGANJ",
+    "workers": 54,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "2599"
+     ],
+     "EPB": [
+      "5845"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "c38b32bc-bc15-4b36-b974-731b6e560e1d",
+    "slug": "rao-fashion-wear",
+    "name": "Rao Fashion Wear Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Chattogram",
+    "address": "226/A, Majhirghat Road,\nChittagong",
+    "workers": 193,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:2537"
+     ]
+    },
+    "created": "2026-08-03"
+   },
+   "certain": false,
+   "score": 93,
+   "same_name": false,
+   "typo": false,
+   "signals": [
+    "shared phone",
+    "similar name"
+   ],
+   "own": [
+    "2 shared phone numbers"
+   ],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "districts differ: Narayanganj / Chattogram",
+    "names differ (alike 93%)"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 62
+  },
+  {
+   "section": "spelling",
+   "lean": "merge",
+   "keep": {
+    "id": "34f1da58-3068-4b19-a029-87be2dfbd25b",
+    "slug": "shinest-embroidery-and-printing",
+    "name": "Shinest Embroidery & Printing",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Bangladesh\n1207 Dhaka",
+    "workers": null,
+    "group": null,
+    "website": "www.shinestgroup.com",
+    "registers": {
+     "BRAND_HM": [
+      "2e7cc2191e9e2870"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-74017"
+     ]
+    },
+    "created": "2026-05-16"
+   },
+   "drop": {
+    "id": "804033e5-fef7-4343-aa9b-1f82603f2959",
+    "slug": "shine-embroidery-and-printing",
+    "name": "SHINE EMBROIDERY & PRINTING LTD",
+    "kind": "factory",
+    "published": false,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "198 Gazir Chat, Maddhapara, Savar, dhaka",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BRAND_HM": [
+      "2e7cc2191e9e2870"
+     ]
+    },
+    "created": "2026-05-18"
+   },
+   "certain": false,
+   "score": 96,
+   "same_name": false,
+   "typo": false,
+   "signals": [
+    "same register entry",
+    "similar name"
+   ],
+   "own": [
+    "both hold BRAND_HM entry 2e7cc2191e9e2870"
+   ],
+   "place": [
+    "addresses share chat, gazir, maddhapara"
+   ],
+   "supporting": [
+    "same district Dhaka"
+   ],
+   "hard": [],
+   "soft": [
+    "names differ (alike 96%)"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 63
+  },
+  {
+   "section": "spelling",
+   "lean": "merge",
+   "keep": {
+    "id": "219aefe7-8a8d-4772-ae01-69a2e18b98ff",
+    "slug": "tas-fashion-wear",
+    "name": "TAS FASHION WEAR LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "HOUSE-4, WARD-2, MUNSHIGANJ, ROAD-1, , NARAYANGANJ",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "786"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "b4ec4894-7c47-4d52-b21f-7dd7aae99e3e",
+    "slug": "sas-fashion-wear",
+    "name": "SAS Fashion Wear Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "1, DIT Market Building (2nd Floor),\nDhaka\nKawran Bazar",
+    "workers": 820,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:3222"
+     ]
+    },
+    "created": "2026-08-03"
+   },
+   "certain": false,
+   "score": 93,
+   "same_name": false,
+   "typo": false,
+   "signals": [
+    "shared phone",
+    "similar name"
+   ],
+   "own": [
+    "2 shared phone numbers"
+   ],
+   "place": [],
+   "supporting": [],
+   "hard": [],
+   "soft": [
+    "districts differ: Narayanganj / Dhaka",
+    "names differ (alike 93%)"
+   ],
+   "notes": [],
+   "two_entries": [],
+   "same_entry": [],
+   "n": 64
+  },
+  {
+   "section": "two-entries",
+   "lean": "separate",
+   "keep": {
+    "id": "ce7ea74b-c7c5-4655-86a9-c5c475c92696",
+    "slug": "am-fashion",
+    "name": "A M Fashion",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Chattogram",
+    "address": "Panama Plaza, Arakan Road, Baddarhat, Chittagong",
+    "workers": 200,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:6146"
+     ],
+     "BGMEA (associate)": [
+      "231"
+     ],
+     "EPB": [
+      "1601"
+     ],
+     "RSC": [
+      "24040"
+     ]
+    },
+    "created": "2026-05-13"
+   },
+   "drop": {
+    "id": "cc5602c5-0a46-420b-88e7-1c5cf64bf3e1",
+    "slug": "am-fashions",
+    "name": "A.M. Fashions Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Riom Complex, 157, Berun (Jamghara), Savar\nDhaka\nDhaka",
+    "workers": 350,
+    "group": null,
+    "website": "https://www.sharmingroup.com",
+    "registers": {
+     "BGMEA": [
+      "general:3291"
+     ]
+    },
+    "created": "2026-08-03"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [
+    "listed as two entries in BGMEA"
+   ],
+   "soft": [
+    "districts differ: Dhaka / Chattogram",
+    "only the name ties them"
+   ],
+   "notes": [
+    "BGMEA lists both, as entries general:6146 and general:3291"
+   ],
+   "two_entries": [
+    "BGMEA"
+   ],
+   "same_entry": [],
+   "n": 112
+  },
+  {
+   "section": "two-entries",
+   "lean": "separate",
+   "keep": {
+    "id": "daeba8e4-6848-4ea2-af23-1ac6e70e6e79",
+    "slug": "abdullah-fashions",
+    "name": "Abdullah Fashions",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "Polli Biddut, Chandra, Kaliakoir\nGazipur\nGazipur",
+    "workers": 250,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:6400",
+      "general:6594"
+     ],
+     "EPB": [
+      "4433"
+     ],
+     "OEKO_TEX": [
+      "oeko-tex-71388"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "drop": {
+    "id": "06739839-a3f2-4895-bc5b-c57fa4578a33",
+    "slug": "abdullah-fashion",
+    "name": "Abdullah Fashion",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "Plot  # A-11, BSCIC Hosiery I/A, Shasongaon, Fatullah\nNarayanganj\nNarayangonj",
+    "workers": 101,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:7186"
+     ],
+     "EPB": [
+      "5349"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [
+    "listed as two entries in BGMEA, EPB"
+   ],
+   "soft": [
+    "districts differ: Narayanganj / Gazipur",
+    "only the name ties them"
+   ],
+   "notes": [
+    "BGMEA lists both, as entries general:6400, general:6594 and general:7186",
+    "EPB lists both, as entries 4433 and 5349"
+   ],
+   "two_entries": [
+    "BGMEA",
+    "EPB"
+   ],
+   "same_entry": [],
+   "n": 113
+  },
+  {
+   "section": "two-entries",
+   "lean": "separate",
+   "keep": {
+    "id": "9ca887b1-b16d-4d53-bb5b-03609e064bc8",
+    "slug": "amana-knit-fashion",
+    "name": "AMANA KNIT FASHION",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "MASDAIR GOROSTAN, GABTOLI MOR, FATULLAH, , NARAYANGANJ",
+    "workers": 520,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "2200"
+     ],
+     "EPB": [
+      "91"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "bde66905-65bc-45dc-af1f-9007b555c205",
+    "slug": "amana-knit-and-fashion",
+    "name": "AMANA KNIT & FASHION (PVT) LTD.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "SURABARI, KASHIMPUR,, NATIONAL UNIVERSITY, GAZIPUR",
+    "workers": 150,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BKMEA": [
+      "2098"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [
+    "listed as two entries in BKMEA"
+   ],
+   "soft": [
+    "districts differ: Narayanganj / Gazipur",
+    "only the name ties them"
+   ],
+   "notes": [
+    "BKMEA lists both, as entries 2098 and 2200"
+   ],
+   "two_entries": [
+    "BKMEA"
+   ],
+   "same_entry": [],
+   "n": 114
+  },
+  {
+   "section": "two-entries",
+   "lean": "separate",
+   "keep": {
+    "id": "4d803a12-b2c3-4bc0-8598-c28b29beaa04",
+    "slug": "nak-fashion-and-textiles",
+    "name": "Nak Fashion & Textiles Ltd.",
+    "kind": "buying house",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "House # 234, Lane # 3, Baridhara DOHS, Dhaka",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA (associate)": [
+      "752"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "drop": {
+    "id": "2ce84930-56f5-4047-9a2d-991c80b05a4f",
+    "slug": "nak-fashion-and-textile",
+    "name": "Nak Fashion & Textile",
+    "kind": "buying house",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "House # 234, Lane # 3, Baridhara DOHS, Dhaka",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA (associate)": [
+      "541"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [
+    "addresses share baridhara, dohs"
+   ],
+   "supporting": [
+    "same district Dhaka"
+   ],
+   "hard": [
+    "listed as two entries in BGMEA (associate)"
+   ],
+   "soft": [],
+   "notes": [
+    "BGMEA (associate) lists both, as entries 752 and 541"
+   ],
+   "two_entries": [
+    "BGMEA (associate)"
+   ],
+   "same_entry": [],
+   "n": 115
+  },
+  {
+   "section": "two-entries",
+   "lean": "separate",
+   "keep": {
+    "id": "ccd1d53b-2eb2-470c-a138-bbb9bad3c1d5",
+    "slug": "perfect-fashions",
+    "name": "PERFECT FASHIONS",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Narayanganj",
+    "address": "56, S. M MALEH ROAD, RIVER VIEW COMPLEX (5TH FLOOR), , NARAYANGANJ",
+    "workers": 500,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:3065"
+     ],
+     "BKMEA": [
+      "710"
+     ]
+    },
+    "created": "2026-05-12"
+   },
+   "drop": {
+    "id": "5c5122d0-5214-4f25-a0f3-b9bff11b5066",
+    "slug": "perfect-fashion",
+    "name": "Perfect Fashion",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "House # 3/Kha/1, Road # 1, Shamoli, Dhaka",
+    "workers": 300,
+    "group": null,
+    "website": "http://www.perfect.bd.com",
+    "registers": {
+     "BGMEA": [
+      "general:4602"
+     ],
+     "BGMEA (associate)": [
+      "25"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [
+    "listed as two entries in BGMEA"
+   ],
+   "soft": [
+    "districts differ: Dhaka / Narayanganj",
+    "only the name ties them"
+   ],
+   "notes": [
+    "BGMEA lists both, as entries general:3065 and general:4602"
+   ],
+   "two_entries": [
+    "BGMEA"
+   ],
+   "same_entry": [],
+   "n": 116
+  },
+  {
+   "section": "two-entries",
+   "lean": "separate",
+   "keep": {
+    "id": "8fd13eb8-344b-45e5-9db7-c56550a6f49e",
+    "slug": "sb-fashions-garments",
+    "name": "S.B. Fashions Garments",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "1/F, Folder Street,\nDhaka\nWari",
+    "workers": 110,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:2645"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "drop": {
+    "id": "d1e1a988-8b8f-4690-b7a1-f7ce1683e741",
+    "slug": "sb-fashion-garments",
+    "name": "S.B. Fashion Garments Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "1/F, Folder Street,\nDhaka\nWari",
+    "workers": 300,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:1123"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [
+    "addresses share folder, wari"
+   ],
+   "supporting": [
+    "same district Dhaka"
+   ],
+   "hard": [
+    "listed as two entries in BGMEA"
+   ],
+   "soft": [],
+   "notes": [
+    "BGMEA lists both, as entries general:1123 and general:2645"
+   ],
+   "two_entries": [
+    "BGMEA"
+   ],
+   "same_entry": [],
+   "n": 117
+  },
+  {
+   "section": "two-entries",
+   "lean": "separate",
+   "keep": {
+    "id": "788e5320-bec7-4f99-bff8-5ed374a0d793",
+    "slug": "sns-fashions",
+    "name": "SNS Fashions",
+    "kind": "buying house",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "House # 32, Kosaivita, Zinzira, Keranigonj, Dhaka",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA (associate)": [
+      "1516"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "drop": {
+    "id": "4f0341e3-4836-4336-9f1f-3984b04869b6",
+    "slug": "sns-fashion",
+    "name": "SNS Fashion",
+    "kind": "buying house",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "Flat # Northern, (1st Floor), House # 449/5, Side West, Road #, 8, DOHS, Baridhara DOHS, Dhaka",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA (associate)": [
+      "708"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [
+    "same district Dhaka"
+   ],
+   "hard": [
+    "listed as two entries in BGMEA (associate)"
+   ],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [
+    "BGMEA (associate) lists both, as entries 1516 and 708"
+   ],
+   "two_entries": [
+    "BGMEA (associate)"
+   ],
+   "same_entry": [],
+   "n": 118
+  },
+  {
+   "section": "two-entries",
+   "lean": "separate",
+   "keep": {
+    "id": "b260a05b-10de-437f-beec-29541aa0444c",
+    "slug": "the-national-apparels",
+    "name": "The National Apparels Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "Al-Haj Narul Islam Shopping Complex, Baliara, National University\nGazipur\nGazipur Sadar",
+    "workers": 430,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:824"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "drop": {
+    "id": "80997ef6-eda9-45ad-8561-4a7ab20dcd70",
+    "slug": "national-apparel",
+    "name": "National Apparel Co. Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "13, Ring Road,\nDhaka\nShamoli",
+    "workers": 350,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:156"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [],
+   "hard": [
+    "listed as two entries in BGMEA"
+   ],
+   "soft": [
+    "districts differ: Dhaka / Gazipur",
+    "only the name ties them"
+   ],
+   "notes": [
+    "BGMEA lists both, as entries general:824 and general:156"
+   ],
+   "two_entries": [
+    "BGMEA"
+   ],
+   "same_entry": [],
+   "n": 119
+  },
+  {
+   "section": "two-entries",
+   "lean": "separate",
+   "keep": {
+    "id": "0d139336-b11a-4747-aca1-893d89214150",
+    "slug": "trams-international",
+    "name": "Trams International (Pvt.) Ltd.",
+    "kind": "buying house",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "78/B, Purana Paltan Line, Ground Floor, Bijoy Nagar, Dhaka",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA (associate)": [
+      "161"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "drop": {
+    "id": "72791624-fc3b-48f8-a39b-4386fe08f2af",
+    "slug": "trams-international-l",
+    "name": "Trams Int'l (Pvt.) Ltd.",
+    "kind": "buying house",
+    "published": true,
+    "building_of": null,
+    "district": "Dhaka",
+    "address": "29/1, Purana Paltan, Paltan, Dhaka",
+    "workers": null,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA (associate)": [
+      "1508"
+     ]
+    },
+    "created": "2026-05-14"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "shared mailbox domain",
+    "similar name"
+   ],
+   "own": [
+    "same mailbox domain trams-group.com"
+   ],
+   "place": [
+    "addresses share paltan, purana"
+   ],
+   "supporting": [
+    "same district Dhaka"
+   ],
+   "hard": [
+    "listed as two entries in BGMEA (associate)"
+   ],
+   "soft": [],
+   "notes": [
+    "BGMEA (associate) lists both, as entries 1508 and 161"
+   ],
+   "two_entries": [
+    "BGMEA (associate)"
+   ],
+   "same_entry": [],
+   "n": 120
+  },
+  {
+   "section": "two-entries",
+   "lean": "separate",
+   "keep": {
+    "id": "878c1c11-d0d6-440d-a09c-70786c6ce8f4",
+    "slug": "well-tex",
+    "name": "Well Tex",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "53, Meher Super Market,\nGazipur\nTongi",
+    "workers": 450,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:1648"
+     ]
+    },
+    "created": "2026-08-03"
+   },
+   "drop": {
+    "id": "6389fa61-9756-4f4c-895d-38c60d2a5433",
+    "slug": "the-well-tex",
+    "name": "The Well-Tex Ltd.",
+    "kind": "factory",
+    "published": true,
+    "building_of": null,
+    "district": "Gazipur",
+    "address": "Milaid, Mowna,\nGazipur\nSreepur",
+    "workers": 5000,
+    "group": null,
+    "website": null,
+    "registers": {
+     "BGMEA": [
+      "general:4894"
+     ]
+    },
+    "created": "2026-08-03"
+   },
+   "certain": false,
+   "score": 100,
+   "same_name": true,
+   "typo": false,
+   "signals": [
+    "same name",
+    "similar name"
+   ],
+   "own": [],
+   "place": [],
+   "supporting": [
+    "same district Gazipur"
+   ],
+   "hard": [
+    "listed as two entries in BGMEA"
+   ],
+   "soft": [
+    "only the name ties them"
+   ],
+   "notes": [
+    "BGMEA lists both, as entries general:1648 and general:4894"
+   ],
+   "two_entries": [
+    "BGMEA"
+   ],
+   "same_entry": [],
+   "n": 121
+  }
+ ]
+}

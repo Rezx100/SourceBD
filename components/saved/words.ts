@@ -68,6 +68,7 @@ export type SavedRow = {
   total_count?: number | null;
   workers_own?: number | null;
   workers_basis?: WorkersBasis;
+  workers_range?: [number, number] | null;
   workers_source?: "RSC" | "registry";
 };
 
@@ -134,7 +135,7 @@ export type SavedItem = {
 
 export function buildSavedItems(rows: readonly SavedRow[], certs: CertsBySupplier | null, today: Date, view: SavedView): SavedItem[] {
   return rows.map((r) => {
-    const w = discoverWorkers({ employees_total: r.employees_total, workers_own: r.workers_own, workers_basis: r.workers_basis, workers_source: r.workers_source });
+    const w = discoverWorkers({ employees_total: r.employees_total, workers_own: r.workers_own, workers_basis: r.workers_basis, workers_source: r.workers_source, workers_range: r.workers_range });
     const second = workersSecondShort(w);
     const back = savedHref({ ...view, open: null });
     return {
@@ -143,7 +144,7 @@ export function buildSavedItems(rows: readonly SavedRow[], certs: CertsBySupplie
       name: displayName(r.company_name),
       type: entityLabel(r.entity_type),
       place: placeLabel(r.city, r.district),
-      workers: w.own == null ? null : (formatCount(w.own) ?? String(w.own)),
+      workers: w.range ?? (w.own == null ? null : (formatCount(w.own) ?? String(w.own))),
       workersSecond: second ? { short: second, words: w.second == null ? second : `${formatCount(w.second)} workers${w.secondLabel ? ` · ${w.secondLabel}` : ""}` } : null,
       sources: r.t13_source_count ?? 0,
       cert: certCell(certs, r.id, today),

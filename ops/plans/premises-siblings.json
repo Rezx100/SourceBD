@@ -45,7 +45,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "a",
@@ -92,7 +93,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "a",
@@ -175,7 +177,8 @@
    }
   ],
   "unpublished_same_base": [],
-  "action": "more than one main profile shares this name; resolve those first"
+  "action": "more than one main profile shares this name; resolve those first",
+  "plan": "read"
  },
  {
   "bucket": "a",
@@ -258,7 +261,8 @@
    }
   ],
   "unpublished_same_base": [],
-  "action": "more than one main profile shares this name; resolve those first"
+  "action": "more than one main profile shares this name; resolve those first",
+  "plan": "read"
  },
  {
   "bucket": "a",
@@ -305,7 +309,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "a",
@@ -351,7 +356,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "a",
@@ -397,7 +403,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "a",
@@ -442,7 +449,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "a",
@@ -491,7 +499,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "a",
@@ -539,7 +548,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "a",
@@ -587,7 +597,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "a",
@@ -635,7 +646,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "a",
@@ -684,7 +696,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "a",
@@ -731,7 +744,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "a",
@@ -777,7 +791,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "a",
@@ -822,7 +837,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "a",
@@ -870,7 +886,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "a",
@@ -919,7 +936,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "a",
@@ -966,7 +984,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "a",
@@ -1007,7 +1026,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile, after a look (name is the only evidence)"
+  "action": "link as a building of the main profile, after a look (name is the only evidence)",
+  "plan": "read"
  },
  {
   "bucket": "a",
@@ -1052,7 +1072,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "a",
@@ -1099,7 +1120,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "a",
@@ -1145,7 +1167,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "b1",
@@ -1187,7 +1210,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "b1",
@@ -1232,7 +1256,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "b1",
@@ -1274,7 +1299,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "b1",
@@ -1368,7 +1394,8 @@
    }
   ],
   "unpublished_same_base": [],
-  "action": "more than one main profile shares this name; resolve those first"
+  "action": "more than one main profile shares this name; resolve those first",
+  "plan": "read"
  },
  {
   "bucket": "b1",
@@ -1425,7 +1452,8 @@
    }
   ],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "b1",
@@ -1481,7 +1509,8 @@
    }
   ],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "b1",
@@ -1528,7 +1557,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "b1",
@@ -1574,7 +1604,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "b1",
@@ -1618,7 +1649,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "b1",
@@ -1659,7 +1691,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "b1",
@@ -1703,7 +1736,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "read"
  },
  {
   "bucket": "b1",
@@ -1743,7 +1777,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile, after a look (name is the only evidence)"
+  "action": "link as a building of the main profile, after a look (name is the only evidence)",
+  "plan": "read"
  },
  {
   "bucket": "b1",
@@ -1824,7 +1859,8 @@
    }
   ],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "read"
  },
  {
   "bucket": "b1",
@@ -1903,7 +1939,8 @@
    }
   ],
   "unpublished_same_base": [],
-  "action": "do not link until the conflict is read"
+  "action": "do not link until the conflict is read",
+  "plan": "read"
  },
  {
   "bucket": "b1",
@@ -1986,7 +2023,8 @@
    }
   ],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "read"
  },
  {
   "bucket": "b1",
@@ -2069,7 +2107,8 @@
    }
   ],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "b1",
@@ -2113,7 +2152,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile, after a look (name is the only evidence)"
+  "action": "link as a building of the main profile, after a look (name is the only evidence)",
+  "plan": "read"
  },
  {
   "bucket": "b1",
@@ -2163,7 +2203,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "b1",
@@ -2226,7 +2267,8 @@
    }
   ],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "b1",
@@ -2272,7 +2314,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "read"
  },
  {
   "bucket": "b1",
@@ -2313,7 +2356,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "b1",
@@ -2360,7 +2404,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "b1",
@@ -2404,7 +2449,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "duplicate of one register entry: ops/merge_duplicate_suppliers.py --pair, not a link"
+  "action": "duplicate of one register entry: ops/merge_duplicate_suppliers.py --pair, not a link",
+  "plan": "merge"
  },
  {
   "bucket": "b1",
@@ -2452,7 +2498,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "do not link until the conflict is read"
+  "action": "do not link until the conflict is read",
+  "plan": "read"
  },
  {
   "bucket": "b1",
@@ -2492,7 +2539,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "b1",
@@ -2539,7 +2587,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "b1",
@@ -2584,7 +2633,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "b1",
@@ -2641,7 +2691,8 @@
    }
   ],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "b1",
@@ -2698,7 +2749,8 @@
    }
   ],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "read"
  },
  {
   "bucket": "b1",
@@ -2743,7 +2795,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "b1",
@@ -2789,7 +2842,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "read"
  },
  {
   "bucket": "b1",
@@ -2835,7 +2889,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "read"
  },
  {
   "bucket": "b1",
@@ -2883,7 +2938,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "b1",
@@ -2927,7 +2983,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile (facility_of)",
+  "plan": "attach"
  },
  {
   "bucket": "b2",
@@ -2960,7 +3017,8 @@
    }
   ],
   "unpublished_same_base": [],
-  "action": "no main profile to link to; founder decides which profile is the company"
+  "action": "no main profile to link to; founder decides which profile is the company",
+  "plan": "read"
  },
  {
   "bucket": "b2",
@@ -2993,7 +3051,8 @@
    }
   ],
   "unpublished_same_base": [],
-  "action": "no main profile to link to; founder decides which profile is the company"
+  "action": "no main profile to link to; founder decides which profile is the company",
+  "plan": "read"
  },
  {
   "bucket": "b2",
@@ -3025,7 +3084,8 @@
    }
   ],
   "unpublished_same_base": [],
-  "action": "no main profile to link to; founder decides which profile is the company"
+  "action": "no main profile to link to; founder decides which profile is the company",
+  "plan": "read"
  },
  {
   "bucket": "b2",
@@ -3057,7 +3117,8 @@
    }
   ],
   "unpublished_same_base": [],
-  "action": "no main profile to link to; founder decides which profile is the company"
+  "action": "no main profile to link to; founder decides which profile is the company",
+  "plan": "read"
  },
  {
   "bucket": "c",
@@ -3078,7 +3139,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3099,7 +3161,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3120,7 +3183,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3141,7 +3205,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3162,7 +3227,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3183,7 +3249,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3204,7 +3271,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3225,7 +3293,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3248,7 +3317,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3269,7 +3339,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3291,7 +3362,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3312,7 +3384,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3333,7 +3406,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3354,7 +3428,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3375,7 +3450,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3396,7 +3472,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3417,7 +3494,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3438,7 +3516,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3459,7 +3538,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-keep"
  },
  {
   "bucket": "c",
@@ -3480,7 +3560,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3501,7 +3582,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3523,7 +3605,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3544,7 +3627,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3565,7 +3649,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3586,7 +3671,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3607,7 +3693,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3628,7 +3715,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3649,7 +3737,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3670,7 +3759,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3691,7 +3781,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3712,7 +3803,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3733,7 +3825,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3754,7 +3847,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3775,7 +3869,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3798,7 +3893,8 @@
   "unpublished_same_base": [
    "kazipur-fashion"
   ],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3820,7 +3916,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3842,7 +3939,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3863,7 +3961,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3885,7 +3984,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3906,7 +4006,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3927,7 +4028,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3948,7 +4050,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3970,7 +4073,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -3991,7 +4095,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -4012,7 +4117,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -4033,7 +4139,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -4058,7 +4165,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -4079,7 +4187,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -4100,7 +4209,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -4121,7 +4231,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -4142,7 +4253,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -4163,7 +4275,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -4184,7 +4297,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -4205,7 +4319,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -4226,7 +4341,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -4247,7 +4363,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -4268,7 +4385,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -4289,7 +4407,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -4310,7 +4429,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -4331,7 +4451,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -4352,7 +4473,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -4373,7 +4495,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -4394,7 +4517,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -4415,7 +4539,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -4436,7 +4561,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -4457,7 +4583,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -4478,7 +4605,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -4499,7 +4627,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -4520,7 +4649,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -4541,7 +4671,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -4562,7 +4693,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -4583,7 +4715,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "c",
@@ -4604,7 +4737,8 @@
   "main": [],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)"
+  "action": "no change to data; title may drop the qualifier once the founder picks how (section 5)",
+  "plan": "title-drop"
  },
  {
   "bucket": "d",
@@ -4651,7 +4785,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; RSC lists them as two, so a link if they are one company"
+  "action": "read first; RSC lists them as two, so a link if they are one company",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -4696,7 +4831,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "merge"
  },
  {
   "bucket": "d",
@@ -4741,7 +4877,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; RSC lists them as two, so a link if they are one company"
+  "action": "read first; RSC lists them as two, so a link if they are one company",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -4797,7 +4934,8 @@
    }
   ],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -4853,7 +4991,8 @@
    }
   ],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -4896,7 +5035,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -4942,7 +5082,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; RSC lists them as two, so a link if they are one company"
+  "action": "read first; RSC lists them as two, so a link if they are one company",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -4983,7 +5124,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "merge"
  },
  {
   "bucket": "d",
@@ -5026,7 +5168,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -5070,7 +5213,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -5123,7 +5267,8 @@
    }
   ],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -5176,7 +5321,8 @@
    }
   ],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -5219,7 +5365,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; RSC lists them as two, so a link if they are one company"
+  "action": "read first; RSC lists them as two, so a link if they are one company",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -5263,7 +5410,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -5307,7 +5455,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; BGMEA lists them as two, so a link if they are one company"
+  "action": "read first; BGMEA lists them as two, so a link if they are one company",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -5350,7 +5499,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -5396,7 +5546,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; RSC lists them as two, so a link if they are one company"
+  "action": "read first; RSC lists them as two, so a link if they are one company",
+  "plan": "attach"
  },
  {
   "bucket": "d",
@@ -5440,7 +5591,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -5483,7 +5635,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -5522,7 +5675,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -5562,7 +5716,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -5602,7 +5757,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -5645,7 +5801,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -5691,7 +5848,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; RSC lists them as two, so a link if they are one company"
+  "action": "read first; RSC lists them as two, so a link if they are one company",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -5737,7 +5895,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; RSC lists them as two, so a link if they are one company"
+  "action": "read first; RSC lists them as two, so a link if they are one company",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -5776,7 +5935,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -5821,7 +5981,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -5865,7 +6026,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -5909,7 +6071,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "merge"
  },
  {
   "bucket": "d",
@@ -5952,7 +6115,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; OEKO_TEX lists them as two, so a link if they are one company"
+  "action": "read first; OEKO_TEX lists them as two, so a link if they are one company",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -5994,7 +6158,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "duplicate of one register entry: ops/merge_duplicate_suppliers.py --pair, not a link"
+  "action": "duplicate of one register entry: ops/merge_duplicate_suppliers.py --pair, not a link",
+  "plan": "merge"
  },
  {
   "bucket": "d",
@@ -6038,7 +6203,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -6082,7 +6248,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -6129,7 +6296,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; RSC lists them as two, so a link if they are one company"
+  "action": "read first; RSC lists them as two, so a link if they are one company",
+  "plan": "attach"
  },
  {
   "bucket": "d",
@@ -6169,7 +6337,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -6216,7 +6385,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; BKMEA lists them as two, so a link if they are one company"
+  "action": "read first; BKMEA lists them as two, so a link if they are one company",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -6257,7 +6427,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "merge"
  },
  {
   "bucket": "d",
@@ -6306,7 +6477,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; RSC lists them as two, so a link if they are one company"
+  "action": "read first; RSC lists them as two, so a link if they are one company",
+  "plan": "attach"
  },
  {
   "bucket": "d",
@@ -6363,7 +6535,8 @@
    }
   ],
   "unpublished_same_base": [],
-  "action": "read first; RSC lists them as two, so a link if they are one company"
+  "action": "read first; RSC lists them as two, so a link if they are one company",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -6420,7 +6593,8 @@
    }
   ],
   "unpublished_same_base": [],
-  "action": "read first; RSC lists them as two, so a link if they are one company"
+  "action": "read first; RSC lists them as two, so a link if they are one company",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -6469,7 +6643,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; RSC lists them as two, so a link if they are one company"
+  "action": "read first; RSC lists them as two, so a link if they are one company",
+  "plan": "attach"
  },
  {
   "bucket": "d",
@@ -6513,7 +6688,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -6575,7 +6751,8 @@
    }
   ],
   "unpublished_same_base": [],
-  "action": "read first; BKMEA, OEKO_TEX lists them as two, so a link if they are one company"
+  "action": "read first; BKMEA, OEKO_TEX lists them as two, so a link if they are one company",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -6619,7 +6796,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -6661,7 +6839,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; RSC lists them as two, so a link if they are one company"
+  "action": "read first; RSC lists them as two, so a link if they are one company",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -6701,7 +6880,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -6751,7 +6931,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; RSC lists them as two, so a link if they are one company"
+  "action": "read first; RSC lists them as two, so a link if they are one company",
+  "plan": "attach"
  },
  {
   "bucket": "d",
@@ -6795,7 +6976,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -6838,7 +7020,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; RSC lists them as two, so a link if they are one company"
+  "action": "read first; RSC lists them as two, so a link if they are one company",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -6877,7 +7060,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -6919,7 +7103,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -6962,7 +7147,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -7010,7 +7196,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; RSC lists them as two, so a link if they are one company"
+  "action": "read first; RSC lists them as two, so a link if they are one company",
+  "plan": "attach"
  },
  {
   "bucket": "d",
@@ -7057,7 +7244,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; OEKO_TEX lists them as two, so a link if they are one company"
+  "action": "read first; OEKO_TEX lists them as two, so a link if they are one company",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -7099,7 +7287,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -7141,7 +7330,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -7185,7 +7375,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -7228,7 +7419,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -7270,7 +7462,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -7316,7 +7509,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; RSC lists them as two, so a link if they are one company"
+  "action": "read first; RSC lists them as two, so a link if they are one company",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -7359,7 +7553,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "merge"
  },
  {
   "bucket": "d",
@@ -7404,7 +7599,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -7459,7 +7655,8 @@
    }
   ],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -7517,7 +7714,8 @@
    }
   ],
   "unpublished_same_base": [],
-  "action": "read first; RSC lists them as two, so a link if they are one company"
+  "action": "read first; RSC lists them as two, so a link if they are one company",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -7561,7 +7759,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -7603,7 +7802,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -7647,7 +7847,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -7687,7 +7888,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -7728,7 +7930,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "merge"
  },
  {
   "bucket": "d",
@@ -7772,7 +7975,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -7821,7 +8025,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; RSC lists them as two, so a link if they are one company"
+  "action": "read first; RSC lists them as two, so a link if they are one company",
+  "plan": "attach"
  },
  {
   "bucket": "d",
@@ -7861,7 +8066,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -7905,7 +8111,8 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  },
  {
   "bucket": "d",
@@ -7947,6 +8154,7 @@
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes"
+  "action": "read first; no register holds both, so likely one company filed twice: merge only on the founder's yes",
+  "plan": "read"
  }
 ]

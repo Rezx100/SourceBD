@@ -4,7 +4,9 @@ import { describe, it } from "node:test";
 import {
   applyDiscoverWorkersSelection,
   enrichDiscoverWorkers,
+  familyRange,
   parseDisplayBatch,
+  rangeWords,
 } from "./enrich-discover-workers";
 
 describe("parseDisplayBatch", () => {
@@ -145,5 +147,40 @@ describe("what the display figure covers comes from the batch, never from the nu
     assert.equal(row?.workers_basis, undefined);
     assert.equal(row?.workers_source, undefined);
     assert.equal(row?.employees_total, 500);
+  });
+});
+
+// Founder, 13 Oct 2026: a company with buildings shows its workforce as a range, the same on the
+// record and in search. The live figures below are production's on that day (0148's dry run).
+describe("familyRange: the workforce of a company with buildings", () => {
+  it("runs from the larger of the two figures to their sum, rounded outwards", () => {
+    // Anowara Fashions filed 280; its two attached buildings hold 801 + 21 on the safety register.
+    assert.deepEqual(familyRange(280, 822), [800, 1150]);
+    assert.equal(rangeWords([800, 1150]), "800–1,150");
+    // Zaheen Knitwears filed 3,944; its sheds hold 1,634. The filing may already count them.
+    assert.deepEqual(familyRange(3944, 1634), [3900, 5600]);
+    // Under 500 the step is 10, so a small company's range is not swallowed by the rounding.
+    assert.deepEqual(familyRange(120, 44), [120, 170]);
+  });
+
+  it("is nothing without both figures: a company alone keeps its one figure", () => {
+    for (const [own, buildings] of [[280, null], [null, 822], [280, 0], [0, 822], [undefined, undefined]] as const) {
+      assert.equal(familyRange(own, buildings), null);
+    }
+  });
+
+  it("reaches a list row only when the database sent both figures", () => {
+    const batch = parseDisplayBatch({
+      a: { value: 822, source: "RSC", fetched_at: null, sites: 2, includes_root: false, own: 280, buildings: 822 },
+      b: { value: 500, source: "registry", fetched_at: null, sites: 1, includes_root: true },
+      c: { value: 900, source: "RSC", fetched_at: null, sites: 2, includes_root: true, own: 400 },
+    });
+    const rows = applyDiscoverWorkersSelection(
+      [{ id: "a", employees_total: 280 }, { id: "b", employees_total: 500 }, { id: "c", employees_total: 400 }],
+      batch,
+    );
+    assert.deepEqual(rows.map((r) => r.workers_range), [[800, 1150], null, null]);
+    // The row's own figure is still there for the Workers sort.
+    assert.equal(rows[0]?.workers_own, 280);
   });
 });
