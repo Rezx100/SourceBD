@@ -1,141 +1,96 @@
-# Factories that hold a BGMEA buying-house entry: the 77
+# Factories that hold a BGMEA buying-house entry
 
 Read from production 13 Oct 2026, after the 519 manufacturers were set back to factory
-(`ops/plans/bgmea-entity-type.md`). Read-only; nothing here has been changed.
+(`ops/plans/bgmea-entity-type.md`).
 
-These 77 rows are shown as a **factory**. Each holds an entry on BGMEA's associate (buying house)
-register and no entry on its general (manufacturer) register. Each also holds another register, which
-is why it reads as a factory.
+The founder's rule, 12 Aug 2026 (`ops/plans/bgmea-attribution-decisions.md`, section 2): a company on
+BGMEA's associate register is a buying house and must not keep a factory tag; an associate number
+sitting on a factory that is a different company comes off it and goes on the buying house's own
+profile, created if missing.
 
-BGMEA's associate list gives a number, an address and a phone. We attached each entry to the row with
-the same company name. So the question for every row is whether the buying house and the factory are
-one company or two that share a name. The address is the evidence we have:
+## Correction to the first version of this file
 
-| group | rows | what the address says |
+The first version (PR #522, the list of the 77) was wrong on two points, both fixed here:
+
+- It said BGMEA's associate list gives no company name. It does: the names were harvested on 5 Aug 2026
+  into `ops/plans/bgmea-names.json`. With them, many entries turn out to be in another company's name.
+- It compared each entry's address with the address on our profile. The loader fills an empty address
+  from the first record that has one, so on several rows that address *was* the BGMEA entry's. The
+  comparison now uses only what another register (BKMEA, RSC, OEKO-TEX, BGAPMEA) says.
+
+It named six rows as likely buying houses. Four stand; two do not (below).
+
+## Applied on production, 13 Oct 2026
+
+Founder: "yes, do both", to six rows named to him. Four of the six hold an associate entry in their own
+name, so they were set from factory to buying house, each with a lock on the type so the loader keeps
+it. (Mantrust Designer also holds a safety-register entry; it was changed because he approved it by
+name and the associate entry is its own.)
+
+| Company | Associate no. | BGMEA's name for the entry |
 | -- | -- | -- |
-| A. The associate entry's address is the row's own address | 13 | One company. Some of these look like buying houses, not factories. |
-| B. Several associate entries on one row, at other addresses | 11 | Likely more than one company folded into the row. |
-| C. One associate entry, at another address | 53 | Cannot tell: a namesake buying house, or the factory's own city office. |
+| MGB Metro Group Buying HK Ltd. | 639 | MGB Metro Group Buying HK Ltd. |
+| Tekstil Fashion | 845 | Tekstil Fashion |
+| Needle Thread Pvt. Limited | 1088 | Needle Thread Pvt. Ltd. |
+| Mantrust Designer Limited | 76 | Mantrust Designer Ltd. |
 
-Phones are no help here: the loader already copied the associate entry's phone onto the row.
-"Other registers" is what else the row holds. Workers and sewing machines are what the row shows today.
+Rehearsed first (`DRY RUN OK | snapshot 4 | set to buying house 4 | locks written 4`), then applied with
+the same count guard. Read after: all four are `buying_house`, four live locks, buying houses 1,462 to
+1,466. The rows as they were are in `public._snapshot_entity_type_20261013b` (RLS on, nothing granted).
 
-## A. Same address as the row (13)
+Undo:
 
-| Company | District | Other registers | Workers | Machines | Associate no. | Address on the associate entry |
-| -- | -- | -- | -- | -- | -- | -- |
-| Ags Apparels Ltd | Dhaka | RSC | | | 1204, 930 | House 11/B, Road 30, Gulshan-1 |
-| Apparels JB21 Ltd. | Chattogram | EPB, RSC, WRAP | 1,000 | | 1045 | House 1632/A, Mimi Housing Society, Panchlaish |
-| Authentic knitwear ltd. | Narayanganj | BKMEA, EPB, RSC | 380 | 63 | 840 | Road 1, House 143, Baridhara DOHS |
-| Hams Washing & Dyeing Ltd | Dhaka | BKMEA | 460 | | 646 | 190, Tejgaon I/A |
-| Mantrust Designer Limited | Dhaka | RSC | | | 76 | House 119, Road 11, Block E, Banani |
-| MGB Metro Group Buying HK Ltd. | Dhaka | BKMEA | 24 | | 639 | Uday Tower, 57 Gulshan Avenue |
-| Multi Style Custome | Dhaka | BKMEA | 200 | 150 | 74 | 41/1, Kazi Nazrul Islam Avenue, Kawran Bazar |
-| Needle Thread Pvt. Limited | Dhaka | BKMEA | 13 | | 1088, 1463 | House 61, Sector 12, Uttara; the second entry's text names "Welldone (BD) Ltd." |
-| Riviera Resources Ltd. | Dhaka | BKMEA | 152 | | 1128 | 385/1/A, East Rampura |
-| Shanta Washworks Limited | Dhaka | ASOS list, RSC | 140 | | 1615 | Plot 219, DEPZ, Savar |
-| Tandem Fashion Ltd | Dhaka | RSC | | | 69 | Road 28, House 21, Block K, Banani |
-| Tekstil Fashion | Dhaka | BKMEA | 9 | | 845 | House 447, Road 31, New DOHS, Mohakhali |
-| Universal Trims | Dhaka | BKMEA, OEKO-TEX | 85 | 36 | 846 | Rupnagar I/A, Mirpur |
+```sql
+update public.suppliers s set entity_type = t.entity_type
+  from public._snapshot_entity_type_20261013b t where t.id = s.id;
+update public.supplier_field_locks l set released_at = now()
+ where l.column_name = 'entity_type' and l.locked_by = 'ops:bgmea-entity-type' and l.released_at is null;
+```
 
-My reading, for the founder to confirm: MGB Metro Group Buying, Tekstil Fashion, Needle Thread, Tandem
-Fashion, Mantrust Designer and Ags Apparels look like buying houses (an office address in Gulshan,
-Banani, DOHS or Uttara, few or no workers, no machines). Shanta Washworks, Hams Washing, Universal
-Trims, Apparels JB21 and Multi Style Custome look like factories that also joined as associates.
+**Held back, not changed:**
 
-## B. Several associate entries on one row (11)
+- Ags Apparels Ltd: its two entries are in other names (930 Saint Martin Apparels, 1204 AGS Fashion Ltd.).
+- Tandem Fashion Ltd: its entry is in the name Tandem Limited.
 
-| Company | Factory district | Other registers | Workers | Machines | Associate no. and address |
-| -- | -- | -- | -- | -- | -- |
-| Classic Fashion | Narayanganj | BKMEA | 350 | 300 | 1256: Dakkhin Khan, Dhaka; 55: Dilu Road, New Eskaton; 67 and 68: House 73, Road 17A, Banani |
-| DK Knit Wear Ltd | Dhaka | BKMEA | 708 | 220 | 1314: House 15, Road 68/A, Gulshan-2; 35, 478, 778: three other addresses (one in New DOHS) |
-| Eurotex Fashion Ltd. | Gazipur | BKMEA, EPB, OEKO-TEX, RSC, WRAP | 493 | 182 | 1159 and 1392: House 343, Baridhara DOHS; 1451 and 697: House 16, Sector 3, Uttara; 695: House 542, Baridhara DOHS; 668: text names "Eurotex International", Chittagong |
-| Fariha Fashion Ltd. | Narayanganj | BGAPMEA, BKMEA, GOTS, OEKO-TEX | 500 | 80 | 1362: Shah Kabir Mazar Road; 1669: Sector 15, Uttara |
-| Fashion Tex Ltd. | Narayanganj | BKMEA | | 140 | 254: Mirpur; 699: New DOHS; 868: Naya Paltan |
-| Global Knitwear Ltd. | Dhaka | RSC | | | 543: Crescent Road, Kathal Bagan; 914: no address; 946: text names "Global Merchandising", House 457, Road 8, Baridhara DOHS (the row's own address) |
-| J. M. Knitwear Ltd. | Dhaka | BKMEA, EPB | 171 | 56 | 422: House 5, Road 6; 423: House 3, Road 17, Banani |
-| Next Apparels | Narayanganj | BKMEA | | 110 | 1115: East Shewrapara, Mirpur; 1523: Giant Business Tower, Uttara |
-| Pavel Fashion Ltd. | Dhaka | BKMEA | 369 | 200 | 1266 and 1273: House 119, Block F, Banani (two floors) |
-| R. A. Apparels Ltd | Narayanganj | BKMEA | 130 | 60 | 1114: 49 Motijheel; 601: Section 12, Mirpur |
-| Tex Mart Ltd. | Narayanganj | BKMEA | | 130 | 1581: Arifabad Housing, Rupnagar; 645: Arakan Housing Society |
+Both are on the page below. Needle Thread also still carries entry 1463, which BGMEA lists as
+WIKITEX - BD; it is not on the page (the page lists factories) and needs the same decision.
 
-One company does not hold four buying-house memberships at three addresses. These rows most likely
-carry the entries of other companies with the same name.
+## What is left: 73 factories, 95 entries
 
-## C. One associate entry, at another address (53)
+Written by `ops/report_bgmea_associate_on_factories.py` (read-only). Every row is in
+`ops/plans/bgmea-associate-on-factories.json`; the founder's page is
+`ops/plans/bgmea-associate-on-factories-review.html`, one row per entry.
 
-| Company | Factory district | Other registers | Workers | Machines | No. | Address on the associate entry |
-| -- | -- | -- | -- | -- | -- | -- |
-| Al-Baraka Apparels | Narayanganj | BKMEA | 250 | 76 | 504 | Concord Baksh Tower, Baridhara |
-| AMH Apparels Limited | Gazipur | BKMEA | 220 | | 1652 | Rashid House, House 1, Road 4 |
-| AR Sourcing | Dhaka | BGAPMEA, BKMEA, EPB | 35 | | 1604 | House 15, Road 5, Sector 9, Uttara |
-| Bay Cotton Excel Knit Ltd. | Narayanganj | BKMEA | | 210 | 558 | Chanmari, Fatullah, Narayanganj |
-| Coats Bangladesh Ltd. | Chattogram | BKMEA, OEKO-TEX | | 100 | 1143 | Novo Tower, 270 Tejgaon I/A, Dhaka |
-| Color City Ltd. | Gazipur | BKMEA, OEKO-TEX | 2,434 | | 687 | South Avenue Tower (6th floor), House 50 |
-| Cotton Connection Ltd. | Narayanganj | BKMEA | 143 | 75 | 112 | House 94, Road 23, Banani |
-| Dewaa Knit Composite Industries Ltd. | Narayanganj | BKMEA | 180 | 153 | 1438 | Hemayetpur, Savar |
-| Doel Associate Ltd. | Narayanganj | BKMEA | | | 1403 | 47, Central Basabo, Sabuj Bagh |
-| Dream Fashion | Narayanganj | BKMEA | | 125 | 1071 | Dendabor, Ashulia |
-| F. R. Fashion | Dhaka | BKMEA, EPB | 420 | 200 | 160 | Contessa, Plot 1/B, Road 123 |
-| Fashion Source | Narayanganj | BKMEA | 200 | | 556 | House 57, Road 5, Old DOHS, Banani |
-| H.P. Chemical Ltd | Narayanganj | BKMEA | 131 | | 1124 | House 33, Sector 9, Uttara |
-| Helix Garments Limited. | Dhaka | BKMEA | 253 | 154 | 142 | no address on the entry |
-| HM Textile | Narsingdi | OEKO-TEX | | | 460 | House 292, Road 19/B, New DOHS |
-| Jahan Fashion Wear | Narayanganj | BKMEA | 105 | 100 | 684 | 44/11, West Panthopath, Dhanmondi |
-| Just Knitwear Ltd | Narayanganj | BKMEA, EPB, OEKO-TEX | 633 | 163 | 1416 | no address on the entry |
-| Kader Knitwear | Narayanganj | BKMEA | 130 | 55 | 144 | House 61, Section 12, Mirpur |
-| M. H Apparels Ltd | Narayanganj | BKMEA, OEKO-TEX | 200 | | 1437 | 67/2, Mission Para, Narayanganj |
-| Mahatex Limited | Narayanganj | BKMEA | 20 | 150 | 359 | 1107/A, Ring Road, Shamoli |
-| Majestic Cotton Corporation Ltd. | Narayanganj | BKMEA | 505 | | 768 | Rahman Chamber, Motijheel C/A |
-| Manha Attires Composite Ltd. | Narayanganj | BKMEA, EPB | 170 | 220 | 1454 | House 5, Block G, Banasree |
-| Mars Fashion | Narayanganj | BKMEA, OEKO-TEX, WRAP | | 150 | 421 | House 366/5, Baridhara DOHS |
-| Mastex Designers Ltd. | Dhaka | BKMEA | | 120 | 293 | House 7, Road 7/2, Mirpur |
-| Modemakers Impression Ltd. | Dhaka | BKMEA, OEKO-TEX | 97 | | 1583 | House 8, Road 16, Sector 4, Uttara |
-| Moon Knitwear | Narayanganj | BKMEA, RSC | | 100 | 1081 | House 66, Sector 13, Uttara |
-| Natex of Scandinavia A/S Bangladesh | Dhaka | OEKO-TEX | | | 1464 | House 260, Road 3, Banani |
-| NRN Fashion | Dhaka | BKMEA, EPB | 70 | | 956 | 29/4, Pallabi; the text names "NZEL Corporation" |
-| P. A. Textile Ltd. | Narayanganj | BKMEA | 130 | | 1168 | House 41, Road 7, Block F, Banani |
-| Paragon Fashion | Narayanganj | BGAPMEA, BKMEA | | 140 | 855 | 471/1, South Paik Para |
-| Paramount Apparels Ltd | Narayanganj | BKMEA | 525 | 225 | 65 | 27 Dilkusha C/A |
-| Perfoace Knitwear Ltd. | Dhaka | BKMEA | 190 | | 871 | House 475, Road 8, Baridhara DOHS |
-| Red Dot Apparels Ltd. | Narayanganj | BKMEA, EPB | 130 | 78 | 1092 | House 4, Road 10, Sector 14, Uttara |
-| Rex Design (Pvt) Ltd. | Narayanganj | BKMEA | 500 | 140 | 532 | House 85, Road 2-GA, Shugandha |
-| S. R. Apparels. | Narayanganj | BKMEA, EPB | 253 | 154 | 1209 | 118, Middle Bashabo, Sabuj Bagh |
-| S. S Corporation | Narayanganj | BKMEA | | 140 | 1364 | House 25, Road 13, Nikunja-2 |
-| Sadia Knit Composite (Pvt) Ltd. | Narayanganj | BKMEA | 649 | 222 | 990 | 9, Motijheel C/A |
-| Sakib Knitwear | Narayanganj | BKMEA, EPB, GOTS | 80 | 81 | 1631 | 67, Motijheel C/A |
-| Sara Fashion (Pvt) Ltd. | Narayanganj | BKMEA | 100 | 60 | 1639 | House 21, Lake Drive Road, Sector 7, Uttara |
-| Sohel Knitwear (Pvt) Ltd | Dhaka | BKMEA | | 175 | 135 | Sobahanbagh, Savar |
-| Spicy Fashion Ltd. | Dhaka | BKMEA | | 93 | 227 | 133/1, New Baily Road, Kakrail |
-| Star Fashion House | Narayanganj | BKMEA | 125 | | 1084 | House 298, Road 4, Baridhara DOHS |
-| Stitch (BD) Knitwear Ltd. | Narayanganj | BKMEA, EPB, OEKO-TEX | 85 | 80 | 1249 | Shantibagh; the text names "Styelaa Fashion (Pvt.)" |
-| STM International Ltd | Chattogram | BKMEA | 26 | 5 | 1407 | House 136/EP, CDA R/A, Agrabad, Chattogram |
-| Sunrise Apparels | Narayanganj | BKMEA | | | 1556 | West High Level Road, Lalkhan Bazar, Chattogram |
-| Suntex Apparels (BD) Ltd | Narayanganj | BKMEA | 71 | | 1064 | 61/1, Meradia, Khilgaon |
-| Tamanna Apparels Ltd | Chattogram | BKMEA, EPB | 900 | 187 | 468 | House 2, Road 3, Sector 6, Uttara, Dhaka |
-| Target Fashion Ltd | Gazipur | BKMEA | 137 | | 1182 | 64, Siddheswari Circular Road, Malibagh |
-| Techno Knitwear (Pvt.) Limited. | Dhaka | BKMEA | 165 | | 310 | House 4, Road 1, Halishahar Housing |
-| Ten Cate Permess Interlining (BD) Ltd. | Dhaka | BKMEA | | 100 | 159 | 4/4, Block B, Lalmatia |
-| United Fashion Wear Ltd. | Narayanganj | BKMEA, EPB, OEKO-TEX | 350 | 300 | 371 | 410/C, Khilgaon Chowdhury Para |
-| Unitex Knitwear Ltd | Gazipur | BKMEA | 146 | 87 | 402 | PBL Tower, East Rampura |
-| Vogue Axis Associates Ltd. | Narayanganj | BKMEA, EPB | 200 | | 508 | 147/1, Green Road |
+```
+73 factories, 95 buying-house entries
+  Several buying-house entries on one factory: 34 (move 19, tag 0, leave 15)
+  The entry is in another company's name: 42 (move 20, tag 0, leave 22)
+  The entry is in this company's own name: 19 (move 0, tag 2, leave 17)
+```
 
-A different address does not prove a different company: many factories keep an office in Dhaka. A
-factory in Narayanganj with an entry in Chattogram (Sunrise Apparels), or a Chattogram factory with an
-entry in Uttara, Dhaka (Tamanna Apparels), is harder to explain as one company.
+The three answers on the page:
 
-## What could be done, for the founder to choose
+- **Move out**: another company's entry. It comes off this factory and goes on that buying house's own
+  profile (a new one if we have none).
+- **Buying house**: this company's own entry, and the company is a buying house. The profile stops
+  saying factory.
+- **Leave**: this company's own entry, or its group's, and it stays a factory.
 
-- **A:** mark the rows that are really buying houses as buying houses, by hand, with a lock so the
-  loader keeps it. Six candidates are named above.
-- **B and C:** if the buying house is another company, its entry belongs on its own row (a new
-  buying-house profile), not on the factory. That is a split, the reverse of the duplicate merge, and it
-  needs a decision per row.
+How a suggestion is reached:
+
+- BGMEA names another company and no other register ties the entry to the row: move (39 entries).
+- BGMEA names another company, but the phone, mailbox or premises on the row's BKMEA, OEKO-TEX or
+  BGAPMEA entry matches the entry, or BGMEA's name is close to the row's without being the same
+  ("Fashion Tex International" on Fashion Tex Ltd.): leave, for the founder to look at.
+- The entry is in the row's own name: buying house if nothing says the row makes garments (no sewing
+  machines, under 50 workers, no safety, export or audit register); otherwise leave. The rule of
+  12 Aug read strictly would make all 19 of these buying houses; that is the founder's call.
+
+Nothing on the page is applied until the founder pastes his decisions back.
 
 ## How this was read
 
-One query on production: suppliers with `entity_type = 'factory'` holding a BGMEA record with
-`bgmea_member_type = 'associate_buying_house'` and no live `general_manufacturer` record. The address
-comparison is `similarity()` between the row's address and the entry's `raw_address`; group A is 0.6
-and above. The count (77, all published) is the `factory / associate only` line of
-`ops/report_bgmea_entity_type.py`.
+One read of production: suppliers with `entity_type = 'factory'` holding a live BGMEA record with
+`bgmea_member_type = 'associate_buying_house'` and no live `general_manufacturer` record, with every
+live record on those rows. The tie test is the one `ops/split_bgmea_foreign_records.py` uses. On
+13 Oct 2026 the script ran with `--cache` on rows pulled through the Supabase SQL endpoint.
