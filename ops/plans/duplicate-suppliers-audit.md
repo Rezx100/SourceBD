@@ -235,7 +235,10 @@ Read after: 10,811 suppliers, 10,025 published, 744 linked buildings.
     its phone, products, founding year and yearly capacity. `knit-fashion` is now BKMEA member 675
     alone. Both of the day's splits are recorded as rulings (`founder:split-2026-10-13`), so neither
     the loader nor the duplicate audit rejoins them.
-  - Still open on `knit-fashion`: two of its three phone numbers are backed by no entry it holds.
+  - Two of `knit-fashion`'s three phone numbers were backed by no entry it holds. Both sit in the BGMEA
+    entry of another company, `knit-export-bd`, which already shows them. **Removed 13 Oct 2026** on the
+    founder's word (row copied to the same snapshot table, action `before-phones`); `knit-fashion`
+    keeps the one number its own BKMEA entry gives.
   - Seen while checking, not touched: 35 BKMEA detail pages sit under a company whose name the page
     does not carry. About half are spellings of the same company; the rest look like another
     company's page (F.M Knitwear under `fm-apparels`, Orion Fashions under `ripon-fashions`, Fame
