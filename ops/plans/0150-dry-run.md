@@ -23,6 +23,26 @@ an address: the full-table copy of 5 Aug 2026 (10,912 rows) and six later, small
 So no profile has been renamed since 5 Aug 2026, and there is no record of any earlier rename to
 repair. This change is for the next rename, not for a past one. Applying it writes no row.
 
+The query, to run again rather than write a new one (read only; the last line is the answer):
+
+```sql
+with snaps as (
+  select id, slug from public._rez91_employees_total_snapshot_20260805
+  union all select id, slug from public._snapshot_20260814_queue_release_suppliers
+  union all select id, slug from public._snapshot_dup_merge_20261013_suppliers
+  union all select id, slug from public._snapshot_dup_merge_20261013b_suppliers
+  union all select id, slug from public._snapshot_entity_type_20261013
+  union all select id, slug from public._snapshot_premises_attach_20261013
+  union all select id, slug from public._snapshot_premises_attach_20261013b
+)
+select count(*) as snapshot_rows,                                                           -- 11,942
+       count(distinct sn.id) as suppliers,                                                  -- 10,914
+       count(distinct sn.id) filter (where s.id is null) as no_longer_exist,                -- 166
+       count(distinct (sn.id, sn.slug)) filter (where s.slug <> sn.slug) as renamed_since   -- 0
+  from snaps sn left join public.suppliers s on s.id = sn.id
+ where sn.slug is not null and sn.slug <> '';
+```
+
 ## The design
 
 One trigger on the suppliers table and nothing else.
@@ -40,6 +60,19 @@ One trigger on the suppliers table and nothing else.
 - A profile that is not published is recorded too and answers nothing until it is published.
 - If a profile is deleted, its old addresses go with it (0149's rule). If it is merged, they move to
   the kept profile with everything else.
+
+## When a rename is a correction
+
+The trigger cannot tell a tidy-up ("oishi-fashions" to "oishi-fashion") from a correction (a profile
+that was wrongly filed under another company's name). After a correction the wrong name should not
+keep pointing at this profile. Remove its row by hand, as part of the correction:
+
+```sql
+delete from public.supplier_slug_redirects where old_slug = '<the wrong address>';
+```
+
+If the other company has, or later gets, a profile at that address, nothing needs doing: a live
+profile always owns its own address.
 
 ## Rehearsal
 

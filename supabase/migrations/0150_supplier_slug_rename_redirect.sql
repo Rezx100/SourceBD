@@ -16,6 +16,9 @@
 --   - If another row is later renamed away from the same slug, the address goes to that later
 --     holder: the most recent profile at an address keeps it.
 --   - An unpublished row is recorded too and answers nothing until it is published (0149's rule).
+--   - A rename that CORRECTS a profile filed under another company's name should not leave that
+--     name pointing here: delete its row from supplier_slug_redirects afterwards
+--     (ops/plans/0150-dry-run.md, "When a rename is a correction").
 --
 -- NO BACKFILL
 --   Read on production, 13 Oct 2026: against the full-table snapshot of 5 Aug 2026 and six later
@@ -48,7 +51,9 @@ revoke all on function public.record_supplier_slug_change() from public, anon, a
 
 drop trigger if exists trg_suppliers_slug_redirect on public.suppliers;
 create trigger trg_suppliers_slug_redirect
-  after update of slug on public.suppliers
+  -- Not "update of slug": that fires only when the statement itself sets slug, and would miss a
+  -- slug changed by another trigger. The WHEN clause is the whole test.
+  after update on public.suppliers
   for each row
   when (old.slug is distinct from new.slug)
   execute function public.record_supplier_slug_change();
