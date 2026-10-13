@@ -1611,7 +1611,11 @@ function workersNote(w: WorkersFact, buildingFigures = false): string | null {
       : "this record and its buildings together; the site breakdown is not on the record";
   }
   if (!w.coverage) return null;
-  return [`across ${w.coverage}`, w.excluded.length ? `excluded: ${w.excluded.join(", ")}` : null].filter(Boolean).join(" · ");
+  // Short on purpose (founder, 13 Oct 2026: the cell ran to four lines once sheds and units were
+  // attached to their company). The sites and their own figures are on the Sites tab; this cell
+  // only says how much of the family the figure covers, and whether the record itself is in it.
+  const cover = w.coverage.replace(" of the ", " of ").replace(" on file", "");
+  return w.excludesRecord ? `${cover}, main site not counted` : cover;
 }
 
 /**

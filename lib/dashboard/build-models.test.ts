@@ -188,8 +188,8 @@ describe("workersFact — a group figure says how many sites it covers", () => {
     });
     assert.equal(buildTableRow(smKnitwearInput()).workersCoverage, "1 of the 2 sites on file, none of them this record");
     const sheet = buildSheet(smKnitwearInput());
-    assert.match(sheet.facts.find((f) => f.label === "Workers")!.note ?? "", /1 of the 2 sites on file/);
-    assert.match(sheet.facts.find((f) => f.label === "Workers")!.note ?? "", /excluded: S M Knitwears Limited/);
+    // One short line in the Key facts cell: the sites are named on the Sites tab.
+    assert.equal(sheet.facts.find((f) => f.label === "Workers")!.note, "1 of 2 sites, main site not counted");
   });
 
   it("a single-site record claims no coverage, and a record with no figure claims nothing", () => {
@@ -1051,8 +1051,8 @@ describe("a mark is only drawn for a source the record itself holds", () => {
     assert.equal(workers.value, "6,703");
     assert.deepEqual(workers.marks ?? [], [], "an RSC square here is a seventh source the bar does not count");
     // The words are what attribute it, and they name whose figure it is.
-    assert.match(workers.note ?? "", /2 of the 3 sites on file/);
-    assert.match(workers.note ?? "", /excluded/);
+    assert.match(workers.note ?? "", /^2 of 3 sites/);
+    assert.match(workers.note ?? "", /main site not counted/);
     // The card agrees with the sheet.
     assert.equal(buildCard(input).meta.find((f) => /workers/.test(f.text))?.mark, null);
   });
