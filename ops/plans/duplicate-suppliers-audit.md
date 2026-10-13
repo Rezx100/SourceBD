@@ -256,12 +256,18 @@ Read after: 10,811 suppliers, 10,025 published, 744 linked buildings.
     - **8 are one company spelled two ways**, left as they are: `amana-knittex`,
       `apex-spinning-and-knitting-mills`, `badgetex-apparels`, `lida-textile-and-dyeing`,
       `polo-composite-knit-industries`, `sarada-knitwear`, `crony-apparels`, `fair-apparels`.
-    - **8 wait for the founder**, not touched. Sister names with no profile of their own: Dream
-      Apparels on `dream-fashion`, Fame Textile on `fame-apparels`, Fariha Apparels on
-      `fariha-fashion`. A letter apart, different addresses: Pritex (Pvt) on `printex`, TN Socks &
-      Tights on `tr-socks-and-tights`, M Star Knitting on `ma-star-knitting-fashion`. Word order:
-      Garden Knit Bangladesh on `knit-garden`. Two units: `knitex-dyeing-and-printing-ltd-2` also
-      holds LTD-1's membership and shows LTD-1's number.
+    - **8 waited for the founder; he had all eight split off as companies of their own** the same day
+      (the same block with eight new rows, snapshot `_snapshot_bkmea_pages_20261013b`):
+      `dream-apparels` (from `dream-fashion`), `fame-textile` (from `fame-apparels`),
+      `fariha-apparels` (from `fariha-fashion`), `pritex` (from `printex`), `tn-socks-and-tights`
+      (from `tr-socks-and-tights`), `m-star-knitting` (from `ma-star-knitting-fashion`),
+      `garden-knit-bangladesh` (from `knit-garden`) and `knitex-dyeing-and-printing-ltd-1` (from
+      `knitex-dyeing-and-printing-ltd-2`). Three profiles had been showing the other company's
+      membership number and now show their own: `tr-socks-and-tights`,
+      `ma-star-knitting-fashion`, `knitex-dyeing-and-printing-ltd-2`. Each pair is a ruling.
+    - Seen while doing this, not touched: BKMEA's "production capacity" goes into the pieces-per-day
+      figure, and several entries carry values no factory makes in a day (200,000 to 390,000). The
+      unit is not what the column says.
     - Figures on the profiles that gave a membership up come from their own newest BKMEA page; where
       that page has none the figure is now blank until the next register read.
 - **Internal scores of the 68 kept rows were not recomputed.** Admin-only; the next scoring run does it.

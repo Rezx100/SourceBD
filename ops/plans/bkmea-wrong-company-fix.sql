@@ -15,6 +15,17 @@
 -- profile it leaves gives up what only that membership backed (figures, phones, mailbox, contact,
 -- products) and shows its own membership number; the two are recorded as two companies.
 -- Rows changed are copied first to public._snapshot_bkmea_pages_20261013.
+-- Second run, the same day, on the founder's word ("split all 8 off as separate companies"): the same
+-- block with these rows in place of the fifteen below, and the snapshot table named ..._20261013b.
+--   ('dream-fashion', '525', null, 'dream-apparels', 'DREAM APPARELS LTD.', 'dream apparels', 'Narayanganj'),
+--   ('fame-apparels', '923', null, 'fame-textile', 'FAME TEXTILE LTD.', 'fame textile', 'Narayanganj'),
+--   ('fariha-fashion', '207', null, 'fariha-apparels', 'FARIHA APPARELS LTD.', 'fariha apparels', 'Narayanganj'),
+--   ('printex', '241', null, 'pritex', 'PRITEX (PVT) LTD', 'pritex', 'Narayanganj'),
+--   ('tr-socks-and-tights', '1919', null, 'tn-socks-and-tights', 'TN SOCKS & TIGHTS LTD', 'tn socks and tights', 'Dhaka'),
+--   ('ma-star-knitting-fashion', '1202', null, 'm-star-knitting', 'M STAR KNITTING LIMITED', 'm star knitting', 'Gazipur'),
+--   ('knit-garden', '884', null, 'garden-knit-bangladesh', 'GARDEN KNIT BANGLADESH LTD.', 'garden knit bangladesh', 'Narayanganj'),
+--   ('knitex-dyeing-and-printing-ltd-2', '138', null, 'knitex-dyeing-and-printing-ltd-1', 'KNITEX DYEING & PRINTING LTD-1', 'knitex dyeing and printing ltd 1', 'Dhaka')
+--
 -- AS WRITTEN THIS IS A REHEARSAL: the last statement raises. To apply, delete the line marked REHEARSAL.
 
 do $fix$
