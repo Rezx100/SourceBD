@@ -204,6 +204,8 @@ function TierTable({ tier, facts, now }: { tier: Tier; facts: SiteFacts; now: nu
                             {readDay(f.latest)}
                             {stale ? <span className="font-medium text-ink"> · over 90 days ago</span> : null}
                           </>
+                        ) : regs && f && f.records > 0 ? (
+                          "Read in part, no full read yet"
                         ) : (
                           "Not read yet"
                         )}

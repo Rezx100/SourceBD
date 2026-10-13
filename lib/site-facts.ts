@@ -27,8 +27,33 @@ export const NO_FACTS: SiteFacts = { suppliers: null, sourcesListed: null, sourc
 const count = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : typeof v === "string" && /^\d+$/.test(v) ? Number(v) : null);
 const day = (v: unknown): string | null => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test(v) && !Number.isNaN(Date.parse(v)) ? v.slice(0, 10) : null);
 
-/** `marketing_stats()` and `marketing_facts()` as read; either may be null (a failed read, or no 0117 yet). */
-export function parseFacts(stats: unknown, facts: unknown): SiteFacts {
+/** `sanctions_lists_read()` names a list its own way; the methodology table uses the source's code. */
+const LIST_CODE: Record<string, string> = { uflpa: "UFLPA", ofac_sdn: "OFAC", uk_ofsi: "UK_OFSI", eu_sanctions: "EU_SANC", us_wro: "US_WRO", ilab_tvpra: "ILAB" };
+
+/**
+ * A sanctions list never makes a supplier record, so `marketing_facts()` counts none for it and the
+ * methodology page said "Not read yet" of six lists every company page says were read (data audit,
+ * 13 Oct 2026). Their entries and last full read come from `sanctions_lists_read()` instead. A list with
+ * entries and no date has been read in part: no full read has completed.
+ */
+function withLists(rows: SourceFact[], lists: unknown): SourceFact[] {
+  if (!Array.isArray(lists)) return rows;
+  const read = new Map<string, { records: number; latest: string | null }>();
+  for (const r of lists) {
+    if (!r || typeof r !== "object") continue;
+    const o = r as Record<string, unknown>;
+    const code = typeof o.list === "string" ? LIST_CODE[o.list] : undefined;
+    const entries = count(o.entries_listed);
+    if (code && entries !== null) read.set(code, { records: entries, latest: day(o.last_read) });
+  }
+  return rows.map((r) => ({ ...r, ...read.get(r.code) }));
+}
+
+/**
+ * `marketing_stats()` and `marketing_facts()` as read; either may be null (a failed read, or no 0117 yet).
+ * `lists` is `sanctions_lists_read()`, or nothing when it was not read.
+ */
+export function parseFacts(stats: unknown, facts: unknown, lists?: unknown): SiteFacts {
   const s = stats && typeof stats === "object" ? (stats as Record<string, unknown>) : {};
   const f = facts && typeof facts === "object" && !Array.isArray(facts) ? (facts as Record<string, unknown>) : {};
   const rows = Array.isArray(f.sources)
@@ -50,7 +75,7 @@ export function parseFacts(stats: unknown, facts: unknown): SiteFacts {
     rscRecords: count(f.rsc_records),
     latestRead: day(f.latest_read) ?? day(s.last_refreshed_at),
     // A list that came back with rows we could not read is not a list.
-    sources: rows && rows.length === (f.sources as unknown[]).length ? rows : null,
+    sources: rows && rows.length === (f.sources as unknown[]).length ? withLists(rows, lists) : null,
   };
 }
 
@@ -88,8 +113,8 @@ async function readLive(): Promise<SiteFacts> {
       return null;
     }
   };
-  const [stats, facts] = await Promise.all([soft("marketing_stats"), soft("marketing_facts")]);
-  return parseFacts(stats, facts);
+  const [stats, facts, lists] = await Promise.all([soft("marketing_stats"), soft("marketing_facts"), soft("sanctions_lists_read")]);
+  return parseFacts(stats, facts, lists);
 }
 
 const cached = unstable_cache(readLive, ["site-facts"], { revalidate: 600 });
