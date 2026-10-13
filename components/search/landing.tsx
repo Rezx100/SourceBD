@@ -25,7 +25,7 @@ import { DISCOVER_PATH, EMPTY_STATE, discoverHref } from "@/lib/discover-v32-sta
 import type { SavedSearchJson } from "@/lib/saved-searches";
 import { cn } from "@/lib/utils";
 import { PendingNav } from "./pending-nav";
-import { FilterMenuButton, SanctionedStanding } from "./toolbar";
+import { FilterMenuButton } from "./toolbar";
 import { RecentSearches } from "./recent";
 import { SearchCombobox } from "./typeahead";
 import { Count, LinkRow, LinkRows, h2, supplierCount } from "./rows";
@@ -274,10 +274,6 @@ export function SearchLanding({
           {startMenus.map((m) => (
             <FilterMenuButton key={m.key} menu={m} hrefFor={discoverHref} icon={MENU_ICON[m.key]} />
           ))}
-          {/* The same quiet toggle the results bar carries, at the bar's end, with the way to lift it. */}
-          <span className="sm:ml-auto">
-            <SanctionedStanding state={EMPTY_STATE} hrefFor={discoverHref} />
-          </span>
         </div>
       </section>
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">

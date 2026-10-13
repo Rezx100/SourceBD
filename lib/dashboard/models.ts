@@ -363,6 +363,8 @@ export type SupplierSheetModel = {
   locations: LocationRow[];
   /** What the Locations section says when the payload carries no address. */
   locationsEmpty: string;
+  /** The buildings the registered name ends with ("Shed - 3, 4, 5"), which no title says; the Sites tab lists them. */
+  buildings: string[];
   /**
    * REZ-C: the record's extension buildings, from REZ-73's
    * `buyer_supplier_facility_panel` — the list the page this replaced and the

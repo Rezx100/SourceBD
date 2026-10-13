@@ -209,7 +209,8 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
     assert.equal((/<ul data-phone-lines=""[^>]*>([\s\S]*?)<\/ul>/.exec(products)![1]!.match(/<li /g) ?? []).length, 6);
     assert.equal((products.match(/data-phone-filed=""/g) ?? []).length, 1);
     // Key facts: where a figure came from reads "From BKMEA", under it, never a bare code at the row's end.
-    assert.match(out, /Capacity, as filed 1,000,000 pcs\/day From BKMEA/);
+    // Capacity is one figure in pieces a month, with no note under it (founder, 13 Oct 2026).
+    assert.match(out, /Capacity 25,000,000 pcs\/month From BKMEA (?!·)/);
     // Key facts are icon cells, two by two; the export tiles are the desktop's worked-out four, the fourth always the biggest market.
     assert.match(html, /<dl data-phone-facts="" class="grid grid-cols-2 /);
     const tiles = text(phone(model(aboniInput(), { volza: VOLZA, exportRank: 89, market: "United States" }), { mode: "page" }));
@@ -499,9 +500,12 @@ describe("the view's rules", () => {
     assert.ok(!bar[1]!.split(" ").includes("bg-surface"), "the bar covers the name's row");
     assert.match(page, /<header class="[^"]*-mt-14[^"]*"><h1 data-phone-name="" class="[^"]*pr-\[88px\]/, "the name does not share the bar's row, clear of the buttons");
     assert.match(page, /<button type="button" aria-label="Share"/);
-    // The X is a link, 36 round with a 44 target, back to the search the record was opened from (a page has nothing to "close").
+    // The X is a link back to the search the record was opened from (a page has nothing to "close"). It and Share are
+    // 44 boxes with the 36 circle drawn inside: the target is the button itself, not a ring hung outside it (founder, 13 Oct 2026).
     const close = /<a aria-label="Back to search" class="([^"]*)" href="([^"]*)">/.exec(page);
-    assert.ok(close && close[1]!.includes("before:-inset-1") && close[1]!.includes("active:bg-line"), "the way back has no 44 target or no pressed state");
+    assert.ok(close && close[1]!.split(" ").includes("size-11") && close[1]!.includes("before:inset-1") && close[1]!.includes("active:before:bg-line"), "the way back has no 44 target or no pressed state");
+    const share = /<button type="button" aria-label="Share" class="([^"]*)"/.exec(/data-record-bar=""[\s\S]*?<\/button>/.exec(page)?.[0] ?? "");
+    assert.ok(share && share[1]!.split(" ").includes("size-11") && !share[1]!.split(" ").includes("size-9"), "Share on the phone's bar is not a 44 target");
     assert.equal(close[2], "/app/discover?q=knit", "back is not the search the record was opened from");
     // Opened from a link there is no search behind it, and the app's bars are hidden: back is the search itself.
     assert.match(phone(model(), { mode: "page", backHref: null }), /<a aria-label="Back to search" class="[^"]*" href="\/app">/);
