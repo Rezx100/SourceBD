@@ -187,11 +187,12 @@ is a buying house.
 - **8 attached** as a building of the first company (`_snapshot_dup_attach_20261013`); each old address
   redirects to its company. Row 80 was attached the other way round from how the page showed it: the
   "Unit - 2" profile became the building of `Maheen Dizayn Etiket (BD) Limited`, not the reverse.
-- **1 held, row 95** (Labib Fashion / Labib Fashions Ltd.): answered merge with the note "sister concern
-  of Labib Group". Asked which he meant; nothing done.
+- **Row 95** (Labib Fashion / Labib Fashions Ltd.): answered merge with the note "sister concern of
+  Labib Group". Asked which he meant; he said attach. `Labib Fashions Ltd.` is now a building of
+  `LABIB FASHION` (ninth row of `_snapshot_dup_attach_20261013`); its old address redirects.
 - **16 left** as two companies. Not recorded as rulings in `resolution_edges`, so a re-run lists them again.
 
-Read after: 10,811 suppliers, 10,026 published, 743 linked buildings.
+Read after: 10,811 suppliers, 10,025 published, 744 linked buildings.
 
 ## 6. Found on the way, not fixed here
 
