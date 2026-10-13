@@ -102,6 +102,13 @@ begin
    where x.role = 'lose' and x.is_published
   on conflict (old_slug) do nothing;
   get diagnostics n = row_count;
+  -- All of them or none: a published merged row whose address did not get in
+  -- (its kept row is gone) stops the migration instead of staying a quiet 404.
+  if exists (select 1 from public._snapshot_dup_merge_20261013_suppliers x
+              where x.role = 'lose' and x.is_published
+                and not exists (select 1 from public.supplier_slug_redirects r where r.old_slug = x.slug)) then
+    raise exception '0149: a published merged row has no redirect; its kept row is missing';
+  end if;
   raise notice '0149: % old addresses recorded', n;
 end
 $fill$;

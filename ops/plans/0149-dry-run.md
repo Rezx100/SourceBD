@@ -21,7 +21,8 @@ buyers' bookmarks still hold the old addresses.
    migration is applied the old addresses redirect, within five minutes (the public page keeps a
    "not found" answer for 300 seconds).
 3. **The 61 addresses are filled** from the merge's own snapshot,
-   `_snapshot_dup_merge_20261013_suppliers`.
+   `_snapshot_dup_merge_20261013_suppliers`. All or none: if a published merged row cannot get its
+   redirect (its kept row has gone), the migration stops and changes nothing.
 
 Choices made, each one line to change:
 
@@ -109,6 +110,9 @@ yongtai-industries-bd -> yongtai-industries-bangladesh
 zeysha-fashion-wear -> zeysha-fashionwear
 ```
 
+Run twice, the second time with the file as it stands in this change (the all-or-none stop added
+after review): the same figures both times.
+
 Afterwards `to_regclass('public.supplier_slug_redirects')` answered null and the live function's text
 was still 0096's (md5 `d7acc1e72e04f93d67189f5846f19b11`, no mention of the new table): nothing was
 left behind.
@@ -124,6 +128,17 @@ left behind.
   published profile, and is refused on the table.
 - **A live profile's own address is not redirected**, and an unknown address still answers nothing.
 
+**One wording change on screen.** The search's side record asks the same function when a record is
+not found, and said "That is a building, not a company record". For a merged duplicate that would be
+false, so it now says "That address is filed under another record" and names both cases. This part
+ships with the next deploy; until then a saved search link holding a merged slug would show the
+building wording, with a working link to the kept record.
+
+Not covered, as for buildings today: an old address of a line sheet
+(`/app/suppliers/<old slug>/lines/<code>`) still answers "not found". And a supplier whose address is
+renamed rather than merged (the identity clean-up does this) still loses its old address; that is
+a separate piece of work.
+
 Found on the way: the migration ledger said 0096 (the buildings redirect) was not applied. It is live
 on production, text identical to the repo's file. The ledger row is corrected in this change.
 
@@ -136,8 +151,8 @@ on production, text identical to the repo's file. The ledger row is corrected in
    `oishi-fashion`; then, after five minutes, `https://sourcebd.net/suppliers/oishi-fashions` answers
    308 to `/suppliers/oishi-fashion`, and two more from the list.
 
-Order does not matter against the code: the pages already call this function, and the code in this
-change is tests and the merge scripts only.
+Order does not matter against the code: the pages already call this function. The code in this
+change is tests, the merge scripts and the one notice above.
 
 ## Undo
 

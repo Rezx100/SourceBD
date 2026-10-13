@@ -41,7 +41,8 @@ export function facilityParentPath(
  * Pure decision for the profile miss path.
  *
  * `parentSlug` is whatever `facility_parent_slug` returned (null when the slug
- * is not a facility, the mother is unpublished, or the slug does not exist).
+ * is neither a facility nor a merged supplier's retired slug, or its target is
+ * unpublished).
  * A published profile never reaches this with `profileFound: false`.
  */
 export function resolveUnpublishedProfileMiss(args: {

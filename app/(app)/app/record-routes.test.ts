@@ -1439,7 +1439,9 @@ describe("cycle 3: the boundaries the first route tests did not reach", () => {
       discover: { data: [{ ...ROW, slug: "other-factory", company_name: "OTHER FACTORY LTD." }], error: null },
     });
     const out = html(await overlay({ q: "knit", record: "aboni-knitwear-unit-2" }));
-    assert.match(out, /That is a building, not a company record/);
+    assert.match(out, /That address is filed under another record/);
+    // The same lookup answers for a merged duplicate (0149), so the notice must not call the address a building.
+    assert.doesNotMatch(out, /That is a building/);
     const at = out.indexOf("data-record-pane");
     assert.ok(at > -1, "the notice is not drawn in the record pane");
     assert.doesNotMatch(out.slice(0, at), /record=aboni-knitwear(?:&|")/, "guard: the results must not link the mother themselves");
