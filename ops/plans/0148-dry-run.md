@@ -1,6 +1,6 @@
 # 0148 — workforce of a company with buildings: dry run
 
-13 Oct 2026. **Not applied.** Waits for the founder's "apply 0148".
+**APPLIED 13 Oct 2026** on the founder's "apply 0148", through the Supabase MCP. Read after: 5,767 published suppliers with a figure, 501 with the two new keys, Anowara own 280 and buildings 822; anon and authenticated can still call it.
 
 ## What it changes
 
