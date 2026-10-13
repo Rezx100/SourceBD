@@ -147,7 +147,7 @@ def build(pull: dict[str, Any], names: dict[str, dict]) -> list[dict]:
         entries = sorted(
             (r for r in records if code[r["source_id"]] == "BGMEA"
              and (r["fields"] or {}).get("bgmea_member_type") == MEMBER_TYPE_ASSOCIATE),
-            key=lambda r: int(r["source_ref"]),
+            key=lambda r: (not r["source_ref"].isdigit(), int(r["source_ref"]) if r["source_ref"].isdigit() else 0, r["source_ref"]),
         )
         own_address = next(iter(anchor.addresses.values()), None)
         for e in entries:
