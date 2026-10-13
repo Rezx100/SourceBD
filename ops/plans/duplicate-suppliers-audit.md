@@ -209,7 +209,26 @@ Read after: 10,811 suppliers, 10,025 published, 744 linked buildings.
 - **541 general manufacturers are typed "buying house"** (the loader's default for BGMEA). Twelve rows on
   the page are a factory beside a real buying house of the same name; the 541 are a separate fix.
 - **Nine BKMEA membership numbers sit on two profiles each** (section "One membership number on two
-  profiles"). Where the names differ, one profile is holding the other's entry.
+  profiles"). Where the names differ, one profile is holding the other's entry. **Fixed 13 Oct 2026**
+  for the five pairs left after the merges, each checked against the live BKMEA list and pages
+  (`ops/plans/bkmea-shared-membership-fix.sql`, snapshot `_snapshot_bkmea_shared_20261013`, 90 rows):
+  - 2178, 2129 and 338 belong to Dams Knit, Euphoria Apparels and Fatullah Fashion. A stray copy of
+    each list row sat on AMS Knit Fashion, Euphoria Textile and Fatullah Apparels; the three copies
+    were removed. Nothing a buyer saw was wrong on those six, only an extra entry.
+  - 511 is Shatabdi Apparels (page 2293). `knit-fashion` showed 511 and now shows its own 675;
+    `shatabdi-apparels` showed "511 - B/2009" and now shows "511 - B/2000" with its page.
+  - 984 is H.R.S Composite Tex Wear (page 977). It showed Polestar's "402 - /2008" and 150 machines
+    from Polestar's old page; it now shows 984 and its own 110.
+  - Cause, fixed in `etl/scrapers/bkmea_web.py` with tests: a list row whose number did not read was
+    keyed on its bare page id, which is also somebody's membership number. Two rows of the live list
+    do this ("KNIT", no number, page 511; Polestar's old "402 - /2008", page 984).
+  - Still open: the row "KNIT" (no membership number, another address and owner) stays on
+    `knit-fashion`, whose workers (230), capacity and machines (90) come from that row, not from
+    Knit Fashion's own entry. Whether "KNIT" is Knit Fashion or a third company is the founder's call.
+  - Seen while checking, not touched: 35 BKMEA detail pages sit under a company whose name the page
+    does not carry. About half are spellings of the same company; the rest look like another
+    company's page (F.M Knitwear under `fm-apparels`, Orion Fashions under `ripon-fashions`, Fame
+    Textile under `fame-apparels`, Asia Composite Mills under `aswad-composite-mills`).
 - **Internal scores of the 68 kept rows were not recomputed.** Admin-only; the next scoring run does it.
 - **The address matcher misses plain respellings** ("Khajur Bagan" / "Khejur Bagar"), so some pairs on
   the page say "the name only" while the two addresses printed beside them plainly agree.

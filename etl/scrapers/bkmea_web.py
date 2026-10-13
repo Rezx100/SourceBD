@@ -40,7 +40,8 @@ _BROWSER_HEADERS = {
 }
 
 # Membership format: "2632 - C/2026" — the leading integer is the unique factory id.
-_MEMNO_RE = re.compile(r"^\s*(\d+)\s*-\s*([A-Z]+)\s*/\s*(\d{4})\s*$")
+# The category may be blank: BKMEA lists an old POLESTAR APPARELS row as "402 - /2008".
+_MEMNO_RE = re.compile(r"^\s*(\d+)\s*-\s*([A-Z]*)\s*/\s*(\d{4})\s*$")
 _DETAIL_ID_RE = re.compile(r"/member/details/(\d+)")
 
 
@@ -148,7 +149,7 @@ class BkmeaScraper(AcquiringScraper):
 
             mn = _MEMNO_RE.match(mem_no)
             mem_int = mn.group(1) if mn else None
-            mem_cat = mn.group(2) if mn else None
+            mem_cat = (mn.group(2) or None) if mn else None
             mem_year = mn.group(3) if mn else None
 
             # Stable key: prefer the detail page id (truly unique), fall back to membership no.
@@ -177,8 +178,11 @@ class BkmeaScraper(AcquiringScraper):
         # carrying the same membership number, so preferring detail_id (the old
         # code, despite this comment) minted a new source_records row per
         # re-listing — the REZ-34 Phase D re-listing treadmill. detail_id is
-        # only the fallback for a row whose membership number did not parse.
-        ref = c["membership_int"] or c["detail_id"] or c["membership_no"]
+        # only the fallback for a row whose membership number did not parse,
+        # and it is written "page-N" so it can never equal a membership number:
+        # the row "KNIT" (no number, page 511) was keyed "511" and wrote over
+        # member 511, SHATABDI APPARELS, on every run (13 Oct 2026).
+        ref = c["membership_int"] or (f"page-{c['detail_id']}" if c["detail_id"] else c["membership_no"])
         skip = _UNCITABLE_FIELDS
         if c["detail_id"]:
             skip = skip + _DETAIL_OWNED_FIELDS
