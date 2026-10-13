@@ -19,7 +19,6 @@ import {
   ownPill,
   pillBuildings,
   recordPage,
-  workersCoverageWords,
   workersFact,
 } from "./build-models";
 import type { RecordInput } from "./build-models";
