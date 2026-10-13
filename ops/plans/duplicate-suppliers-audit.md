@@ -191,7 +191,12 @@ is a buying house.
 - **Row 95** (Labib Fashion / Labib Fashions Ltd.): answered merge with the note "sister concern of
   Labib Group". Asked which he meant; he said attach. `Labib Fashions Ltd.` is now a building of
   `LABIB FASHION` (ninth row of `_snapshot_dup_attach_20261013`); its old address redirects.
-- **16 left** as two companies. Not recorded as rulings in `resolution_edges`, so a re-run lists them again.
+- **16 left** as two companies. On his word the same day, the 15 pairs that still exist were written
+  to `resolution_edges` as `different` (`decided_by = founder:duplicate-review-2026-10-13`, the row
+  number in the rationale). The sixteenth, row 108, no longer exists as a pair: one side was merged by
+  row 100, and row 109 covers what is left. Re-run on a fresh pull after that: 0 certain, 0 to ask.
+  Five of the 15 share one BKMEA membership entry between two differently named companies; ruling
+  them two companies does not say whose entry it is.
 
 Read after: 10,811 suppliers, 10,025 published, 744 linked buildings.
 
