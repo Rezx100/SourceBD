@@ -199,7 +199,8 @@ Read after: 10,811 suppliers, 10,025 published, 744 linked buildings.
 
 - **152 old web addresses now answer 404** (61 from the first merge, 91 from the second). A merged
   profile's address is gone, as with every earlier merge. The two `_suppliers` snapshot tables hold
-  what a redirect would need (`slug`, `merged_into`).
+  what a redirect would need (`slug`, `merged_into`). **Fixed 13 Oct 2026:** migration `0149` is
+  applied and each old address redirects to its kept profile (`ops/plans/0149-dry-run.md`).
 - **541 general manufacturers are typed "buying house"** (the loader's default for BGMEA). Twelve rows on
   the page are a factory beside a real buying house of the same name; the 541 are a separate fix.
 - **Nine BKMEA membership numbers sit on two profiles each** (section "One membership number on two
