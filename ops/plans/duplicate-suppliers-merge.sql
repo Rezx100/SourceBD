@@ -12,7 +12,11 @@
 --      same document, a score), the losing copy is dropped.
 --   3. The kept row takes what it lacks from the losing row (arrays joined,
 --      blanks filled, the larger workforce), keeps its own name and address.
---   4. Nothing may still point at the losing row; then it is deleted.
+--   4. Nothing may still point at the losing row; its public address is recorded
+--      in public.supplier_slug_redirects (migration 0149), so /suppliers/<old slug>
+--      redirects to the kept profile instead of answering 404; then it is deleted.
+--      Addresses that already redirected to the losing row moved to the kept row
+--      in step 2 with everything else. Without 0149 applied, this block raises.
 -- Every moved row id and every dropped or deleted row is written to
 -- public._snapshot_dup_merge_20261013_rows, and both supplier rows as they were
 -- to public._snapshot_dup_merge_20261013_suppliers, so a merge can be undone.
@@ -294,6 +298,9 @@ begin
     if n > 0 then
       raise exception 'pair % / %: % claims still cite the losing row', p.keep, p.lose, n;
     end if;
+    -- The losing row's address keeps working: it redirects to the kept profile.
+    insert into public.supplier_slug_redirects (old_slug, supplier_id) values (l.slug, p.keep)
+      on conflict (old_slug) do update set supplier_id = excluded.supplier_id;
     delete from public.suppliers where id = p.lose;
     n_deleted := n_deleted + 1;
   end loop;
@@ -306,6 +313,12 @@ begin
    where s.id in (select keep from public._snapshot_dup_merge_20261013_pairs) and s.is_published and s.facility_of is null;
   if n <> (select count(distinct keep) from public._snapshot_dup_merge_20261013_pairs) then
     raise exception 'after: only % kept rows are still published', n;
+  end if;
+  if exists (select 1 from public._snapshot_dup_merge_20261013_suppliers x
+              where x.role = 'lose'
+                and public.facility_parent_slug(x.slug) is distinct from
+                    (select k.slug from public.suppliers k where k.id = x.merged_into)) then
+    raise exception 'after: an old address does not redirect to its kept profile';
   end if;
 
   raise exception 'DRY RUN OK | pairs % | losing rows deleted % | rows moved % | duplicate copies dropped % | buildings re-linked % | kept rows published %',

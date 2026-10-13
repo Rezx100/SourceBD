@@ -5,7 +5,10 @@
  * `facility_parent_slug` before `notFound()`. Shared decision logic lives here
  * so the public and app routes cannot drift.
  *
- * SQL SoT: `supabase/migrations/0096_facility_parent_slug.sql`
+ * SQL SoT: `supabase/migrations/0096_facility_parent_slug.sql`, extended by
+ * `0149_supplier_slug_redirects.sql`: the same function also answers the kept
+ * profile for the old slug of a merged duplicate, so that address redirects
+ * through this path too.
  * Sitemap: unpublished facilities already drop out via `.eq("is_published", true)`.
  */
 
