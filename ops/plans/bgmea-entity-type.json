@@ -1,0 +1,7430 @@
+{
+ "suppliers": 10811,
+ "published": 10025,
+ "table": [
+  {
+   "entity_type": "buying_house",
+   "bgmea": "associate only",
+   "suppliers": 1427,
+   "published": 1427
+  },
+  {
+   "entity_type": "buying_house",
+   "bgmea": "both",
+   "suppliers": 27,
+   "published": 27
+  },
+  {
+   "entity_type": "buying_house",
+   "bgmea": "general only",
+   "suppliers": 519,
+   "published": 503
+  },
+  {
+   "entity_type": "buying_house",
+   "bgmea": "no BGMEA entry",
+   "suppliers": 8,
+   "published": 8
+  },
+  {
+   "entity_type": "factory",
+   "bgmea": "associate only",
+   "suppliers": 77,
+   "published": 77
+  },
+  {
+   "entity_type": "factory",
+   "bgmea": "both",
+   "suppliers": 44,
+   "published": 44
+  },
+  {
+   "entity_type": "factory",
+   "bgmea": "general only",
+   "suppliers": 3666,
+   "published": 3633
+  },
+  {
+   "entity_type": "factory",
+   "bgmea": "no BGMEA entry",
+   "suppliers": 5043,
+   "published": 4306
+  }
+ ],
+ "stays": 1454,
+ "fix": [
+  {
+   "id": "c1d878ad-c940-42b8-b850-71ed0b16410e",
+   "slug": "4-star-fashions",
+   "name": "4 Star Fashions Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 582,
+   "sewing_machines": 409,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3081"
+   ]
+  },
+  {
+   "id": "cc5602c5-0a46-420b-88e7-1c5cf64bf3e1",
+   "slug": "am-fashions",
+   "name": "A.M. Fashions Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 350,
+   "sewing_machines": 250,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3291"
+   ]
+  },
+  {
+   "id": "afff892b-19da-448f-9975-c5721bd4cea0",
+   "slug": "aba-garments",
+   "name": "ABA Garments Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 1050,
+   "sewing_machines": 396,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1404"
+   ]
+  },
+  {
+   "id": "816e096a-8d92-4bdb-add9-fd73cd541259",
+   "slug": "ably-garments",
+   "name": "Ably Garments Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 326,
+   "sewing_machines": 150,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1339"
+   ]
+  },
+  {
+   "id": "edad3519-e832-4328-8230-5540f46e3eb4",
+   "slug": "advance-design",
+   "name": "Advance Design",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 550,
+   "sewing_machines": 150,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5339"
+   ]
+  },
+  {
+   "id": "694cd471-6dc3-442a-b575-fe8544dfe7a8",
+   "slug": "aftabunnesa-textiles",
+   "name": "Aftabunnesa Textiles Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 450,
+   "sewing_machines": 215,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4944"
+   ]
+  },
+  {
+   "id": "7f134258-15ab-4927-bbb9-f1157f1fb30f",
+   "slug": "akh-knitwear",
+   "name": "AKH Knitwear Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 268,
+   "sewing_machines": 98,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4181"
+   ]
+  },
+  {
+   "id": "61947e85-501c-4c7f-86d3-6327bd08cd4f",
+   "slug": "al-muslim-fashions-wear",
+   "name": "Al-Muslim Fashions Wear Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 350,
+   "sewing_machines": 150,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2565"
+   ]
+  },
+  {
+   "id": "56022898-4201-4650-9b1a-249c1158afdd",
+   "slug": "al-muslim-garments",
+   "name": "Al-Muslim Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 600,
+   "sewing_machines": 250,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1309"
+   ]
+  },
+  {
+   "id": "96d15916-1c07-447d-974b-0b28097c1417",
+   "slug": "alauddin-garments",
+   "name": "Alauddin Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 562,
+   "sewing_machines": 152,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3891"
+   ]
+  },
+  {
+   "id": "1ae058d0-4b59-4bb3-ad9f-4d3e18c07925",
+   "slug": "alif-apparels",
+   "name": "Alif Apparels Limited",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 300,
+   "sewing_machines": 130,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1326"
+   ]
+  },
+  {
+   "id": "1f02bb31-074e-4457-a113-ac9ee94dc52f",
+   "slug": "allure-apparel",
+   "name": "Allure Apparel Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 250,
+   "sewing_machines": 125,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2499"
+   ]
+  },
+  {
+   "id": "b9902d1b-b15f-47c5-8f59-0c689684b2af",
+   "slug": "alvin-fashion",
+   "name": "Alvin Fashion Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 300,
+   "sewing_machines": 220,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5081"
+   ]
+  },
+  {
+   "id": "3522387d-fd1b-4f2d-bdeb-dcd916966f31",
+   "slug": "aman-green-village",
+   "name": "Aman Green Village Ltd.",
+   "published": true,
+   "district": "Manikganj",
+   "workers": 560,
+   "sewing_machines": 180,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6477"
+   ]
+  },
+  {
+   "id": "5aba6188-82bf-437b-9bb5-22683ac4b776",
+   "slug": "aman-sweater",
+   "name": "Aman Sweaters Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 885,
+   "sewing_machines": 559,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4657"
+   ]
+  },
+  {
+   "id": "d88fcf52-9239-4d25-8479-1500c321d10e",
+   "slug": "amex",
+   "name": "Amex Limited",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 762,
+   "sewing_machines": 158,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2890"
+   ]
+  },
+  {
+   "id": "5c709c7b-52d1-4373-9bcb-d71f9379d46e",
+   "slug": "amotex-ltd-woven-unit",
+   "name": "Amotex Ltd. (Woven Unit)",
+   "published": false,
+   "district": "Gazipur",
+   "workers": 2935,
+   "sewing_machines": 804,
+   "building_of_another": true,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4819"
+   ]
+  },
+  {
+   "id": "31aaf547-c5bd-4d7b-87a9-dadcb10e76ff",
+   "slug": "ananta-fashion",
+   "name": "Ananta Fashion Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 1949,
+   "sewing_machines": 1021,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2993"
+   ]
+  },
+  {
+   "id": "bd9e89d0-b0be-40d9-afe3-71cdcdce94f6",
+   "slug": "angel-fashion",
+   "name": "Angel Fashion",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 700,
+   "sewing_machines": 250,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1275"
+   ]
+  },
+  {
+   "id": "5febde44-8812-4e2b-bd6f-930a1c9b4041",
+   "slug": "angora-sweater",
+   "name": "Angora Sweaters Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 1000,
+   "sewing_machines": 436,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2074"
+   ]
+  },
+  {
+   "id": "5b74e6f1-c8e4-463b-9449-fc5edbdd66d8",
+   "slug": "anika-apparels",
+   "name": "Anika Apparels (Pvt) Ltd",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 450,
+   "sewing_machines": 225,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3189"
+   ]
+  },
+  {
+   "id": "47214685-6fab-4a43-9630-bdf9bd71ae4d",
+   "slug": "anowara-apparels",
+   "name": "Anowara Apparels Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 250,
+   "sewing_machines": 150,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1059"
+   ]
+  },
+  {
+   "id": "9c4e7dc1-3c85-4531-b55f-a9c74f43f64c",
+   "slug": "ar-rauf-style-core",
+   "name": "AR Rauf Style Core Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 1000,
+   "sewing_machines": 1079,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:7182"
+   ]
+  },
+  {
+   "id": "5d6c68bc-7efc-4512-8962-73edf843ab3f",
+   "slug": "arcadia-apparels",
+   "name": "Arcadia Apparels",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 300,
+   "sewing_machines": 128,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1663"
+   ]
+  },
+  {
+   "id": "5111df4e-2c8c-4e4a-94ce-31b87a3d656a",
+   "slug": "arh-knit-composite",
+   "name": "ARH Knit Composite Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 300,
+   "sewing_machines": 136,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5637"
+   ]
+  },
+  {
+   "id": "be92125c-ab62-45ff-aa1a-23608a1fd73a",
+   "slug": "aries-apparels",
+   "name": "Aries Apparels Limited",
+   "published": true,
+   "district": "Dhaka",
+   "workers": null,
+   "sewing_machines": 85,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2342"
+   ]
+  },
+  {
+   "id": "2bb465f7-504c-496e-8952-5fd849bfcf1b",
+   "slug": "arl-dresses",
+   "name": "ARL Dresses Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 147,
+   "sewing_machines": 52,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3125"
+   ]
+  },
+  {
+   "id": "57d8f06e-bb0a-4bf0-bbd0-be39fabd63c0",
+   "slug": "ashique-fashionwear",
+   "name": "Ashique Fashionwear Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 490,
+   "sewing_machines": 200,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3019"
+   ]
+  },
+  {
+   "id": "4cb77027-6374-466c-a29a-0e1dcc52e34d",
+   "slug": "ashique-jeans-apparels",
+   "name": "Ashique Jeans Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 478,
+   "sewing_machines": 250,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3047"
+   ]
+  },
+  {
+   "id": "744f8318-a1cf-4105-a72a-7071d6eafca8",
+   "slug": "asian-apparels",
+   "name": "Asian Apparels Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 850,
+   "sewing_machines": 417,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1231"
+   ]
+  },
+  {
+   "id": "5d47de33-2a69-498c-9383-951c4ac66e2d",
+   "slug": "astras-garments",
+   "name": "Astras Garments Ltd",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 260,
+   "sewing_machines": 194,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:74"
+   ]
+  },
+  {
+   "id": "4d98a603-0f9d-4af4-8093-633a969c6876",
+   "slug": "atd-garments",
+   "name": "ATD Garments Co. Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 250,
+   "sewing_machines": 217,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3258"
+   ]
+  },
+  {
+   "id": "6ca6c19b-909a-493f-a1ff-3c1e421e1b79",
+   "slug": "autumn-loop-apparels",
+   "name": "Autumn Loop Apparels Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 610,
+   "sewing_machines": 191,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6724"
+   ]
+  },
+  {
+   "id": "949b9fe2-f733-4368-a6f1-ce5e9d30ff04",
+   "slug": "azam-knitting",
+   "name": "Azam Knitting Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 675,
+   "sewing_machines": 250,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3810"
+   ]
+  },
+  {
+   "id": "04086b12-fc92-491c-b19e-17f288829144",
+   "slug": "bhis-fashions",
+   "name": "B.H.I.S. Fashions Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 410,
+   "sewing_machines": 247,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4788"
+   ]
+  },
+  {
+   "id": "429cf144-f77e-4b55-8a77-e747218896e0",
+   "slug": "bp-garments",
+   "name": "B.P. Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 450,
+   "sewing_machines": 210,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:64"
+   ]
+  },
+  {
+   "id": "564e47cb-a39e-4e66-88c6-cc4983412c3a",
+   "slug": "banalata-apparels",
+   "name": "Banalata Apparels Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 230,
+   "sewing_machines": 100,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1272"
+   ]
+  },
+  {
+   "id": "dee25b96-0630-440d-b847-e87dde76a032",
+   "slug": "banalata-garments",
+   "name": "Banalata Garments Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 230,
+   "sewing_machines": 200,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:336"
+   ]
+  },
+  {
+   "id": "547f8a80-5b45-42e8-aaf4-dcd7db23d916",
+   "slug": "bando-fashions",
+   "name": "Bando Fashions Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 500,
+   "sewing_machines": 218,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3522"
+   ]
+  },
+  {
+   "id": "a3b8360e-b75b-4d53-b78e-60f49d0547e7",
+   "slug": "bay-city-apparels",
+   "name": "Bay City Apparels Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 600,
+   "sewing_machines": 223,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6570"
+   ]
+  },
+  {
+   "id": "4d73abcf-a802-410d-8d35-46d9209e6263",
+   "slug": "beau-monde-garments",
+   "name": "Beau Monde Garments Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 320,
+   "sewing_machines": 106,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1491"
+   ]
+  },
+  {
+   "id": "3ecdd155-e239-4531-b97a-399e3b62ac55",
+   "slug": "bentex-apparels",
+   "name": "Bentex Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 335,
+   "sewing_machines": 300,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1351"
+   ]
+  },
+  {
+   "id": "4ebd0ebf-8e2e-450c-ab76-0fdb854280bd",
+   "slug": "bhusan-apparels",
+   "name": "Bhusan Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 200,
+   "sewing_machines": null,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:633"
+   ]
+  },
+  {
+   "id": "808a217a-385a-424c-8b6b-96f61d88a2f5",
+   "slug": "birds-apparels",
+   "name": "Birds Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 600,
+   "sewing_machines": 228,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1193"
+   ]
+  },
+  {
+   "id": "803f5564-9c6a-4a71-bf5d-9853b6aafcb3",
+   "slug": "birds-garments",
+   "name": "Birds Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 700,
+   "sewing_machines": 245,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:100"
+   ]
+  },
+  {
+   "id": "4acb25c4-22d5-46ae-bac5-1cdf15e0e013",
+   "slug": "birds-garments-ltd-unit-2",
+   "name": "Birds Garments Ltd. Unit-2",
+   "published": false,
+   "district": "Dhaka",
+   "workers": 605,
+   "sewing_machines": 226,
+   "building_of_another": true,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2455"
+   ]
+  },
+  {
+   "id": "0d442911-a5d4-42d3-9ddd-981bd4b85323",
+   "slug": "biswas-garments-ltd-u-2",
+   "name": "Biswas Garments Ltd. (U-2)",
+   "published": false,
+   "district": "Dhaka",
+   "workers": 180,
+   "sewing_machines": 100,
+   "building_of_another": true,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3544"
+   ]
+  },
+  {
+   "id": "e0a1ad0d-9fee-42bc-90b4-fa4f7a8191ae",
+   "slug": "blj-bangladesh",
+   "name": "BLJ Bangladesh Corporation Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 120,
+   "sewing_machines": 60,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6125"
+   ]
+  },
+  {
+   "id": "369860dc-2e6f-475e-8aba-ccb057f0bcde",
+   "slug": "bodystretch-bd",
+   "name": "Bodystretch (BD) Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 450,
+   "sewing_machines": 238,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5463"
+   ]
+  },
+  {
+   "id": "0ac7ed86-07dc-4043-bd24-61a12d6f775e",
+   "slug": "bright-apparels",
+   "name": "Bright Apparels Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 350,
+   "sewing_machines": 180,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:866"
+   ]
+  },
+  {
+   "id": "d8250a3a-b8cc-471a-9808-98862da8876d",
+   "slug": "brooks-bd-garments",
+   "name": "Brooks (BD) Garments Co. Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 300,
+   "sewing_machines": 100,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1661"
+   ]
+  },
+  {
+   "id": "673da429-90cb-43dd-8c81-8b5f1d375b12",
+   "slug": "brothers-apparels",
+   "name": "Brothers Apparels Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 400,
+   "sewing_machines": 200,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1185"
+   ]
+  },
+  {
+   "id": "87afa337-f2f8-4a89-a81f-dbfb87c45adc",
+   "slug": "bsa-garments-industries",
+   "name": "BSA Garments Inds. (Pvt) Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 561,
+   "sewing_machines": 209,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:305"
+   ]
+  },
+  {
+   "id": "bd00dfb5-773c-415c-84e1-5854fad71092",
+   "slug": "bunon-knitwear",
+   "name": "Bunon Knitwear Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 320,
+   "sewing_machines": 158,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5944"
+   ]
+  },
+  {
+   "id": "326da1f8-1987-4908-b7c1-8501944d2c05",
+   "slug": "capital-poshak",
+   "name": "Capital Poshak Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 616,
+   "sewing_machines": 287,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2784"
+   ]
+  },
+  {
+   "id": "96e5d000-b6b1-4d7f-88b1-ef31f1bfdbdc",
+   "slug": "capri-garments",
+   "name": "Capri Garments Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 450,
+   "sewing_machines": 225,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1067"
+   ]
+  },
+  {
+   "id": "090b0295-8b26-4069-b13c-203ab21407e5",
+   "slug": "cassiopea-dress",
+   "name": "Cassiopea Dress Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 600,
+   "sewing_machines": 400,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6355"
+   ]
+  },
+  {
+   "id": "d467770b-2ec2-45ae-af1e-12fb0aab8b8c",
+   "slug": "cd-spinning-mills",
+   "name": "CD Spinning Mills Ltd.",
+   "published": true,
+   "district": "Cumilla",
+   "workers": 207,
+   "sewing_machines": 180,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3772"
+   ]
+  },
+  {
+   "id": "3e69edd3-a57c-4d1b-ad02-532324202cdb",
+   "slug": "cdf-design-bd",
+   "name": "CDF Design (BD)",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 522,
+   "sewing_machines": 214,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4413"
+   ]
+  },
+  {
+   "id": "33fbe5c7-58ef-4244-ba9c-91894e597e70",
+   "slug": "chaity-apparels",
+   "name": "Chaity Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 508,
+   "sewing_machines": 100,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1739"
+   ]
+  },
+  {
+   "id": "f9cd70e6-7ecf-4500-9d2b-fc188b7087f6",
+   "slug": "chaity-classic-sportswear-manufacturing",
+   "name": "Chaity Classic Sportswear (MFG) Co. Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 645,
+   "sewing_machines": 200,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3617"
+   ]
+  },
+  {
+   "id": "18a91ef5-dbec-4b2e-85d2-c779f7c1c7e8",
+   "slug": "chaity-garments",
+   "name": "Chaity Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 490,
+   "sewing_machines": 100,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1256"
+   ]
+  },
+  {
+   "id": "6007bc33-1280-4133-b646-14718bf048f0",
+   "slug": "chaity-knit-composite",
+   "name": "Chaity Knit Composite Ltd.",
+   "published": true,
+   "district": "Narayanganj",
+   "workers": 1500,
+   "sewing_machines": 1000,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5518"
+   ]
+  },
+  {
+   "id": "59e07ef6-3f68-4399-bfb1-aefacba1e0a2",
+   "slug": "cherry",
+   "name": "Cherry (Pvt) Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 325,
+   "sewing_machines": 161,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1044"
+   ]
+  },
+  {
+   "id": "d9fb970b-a050-408e-9b78-f4fc749beb52",
+   "slug": "chowdhury-associates",
+   "name": "Chowdhury Associates Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 324,
+   "sewing_machines": null,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3254"
+   ]
+  },
+  {
+   "id": "3e6a7bb6-0590-4256-9340-525e4f61a30a",
+   "slug": "chowdhury-composite-tex-knit",
+   "name": "Chowdhury Composite Tex-Knit Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 450,
+   "sewing_machines": 105,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4313"
+   ]
+  },
+  {
+   "id": "803832c6-df0c-417d-bd61-596ec12ef1e3",
+   "slug": "chumki-knitwear",
+   "name": "Chumki Knitwears Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 200,
+   "sewing_machines": 120,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4138"
+   ]
+  },
+  {
+   "id": "b8c81930-a6d5-42b8-bcff-11366e141335",
+   "slug": "civic-fashion",
+   "name": "Civic Fashion Limited",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 570,
+   "sewing_machines": 167,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1365"
+   ]
+  },
+  {
+   "id": "ebe0d1af-4cae-4be8-88eb-bff08aa38c2f",
+   "slug": "cn-knitwear",
+   "name": "CN Knit Wears Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 280,
+   "sewing_machines": 224,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3616"
+   ]
+  },
+  {
+   "id": "66340ecb-ba73-454f-842a-ff8791fdf726",
+   "slug": "combined-knitting",
+   "name": "Combined Knitting Limited",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 192,
+   "sewing_machines": 152,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2491"
+   ]
+  },
+  {
+   "id": "8edef1b5-53e9-4104-8495-80e017b628b6",
+   "slug": "common-threads",
+   "name": "Common Threads Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 1332,
+   "sewing_machines": 700,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3719"
+   ]
+  },
+  {
+   "id": "641b6719-d999-4aea-9da2-f428c53581cb",
+   "slug": "cosmopolitan-apparels",
+   "name": "Cosmopolitan Apparels Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 650,
+   "sewing_machines": 205,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6636"
+   ]
+  },
+  {
+   "id": "2360a928-bbed-4699-a2c9-645e363e5a76",
+   "slug": "cozy-apparels",
+   "name": "Cozy Apparels Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 610,
+   "sewing_machines": 188,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6725"
+   ]
+  },
+  {
+   "id": "ce956efe-d237-460d-b768-f1e936b08b54",
+   "slug": "crazy-fashions",
+   "name": "Crazy Fashions Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 1068,
+   "sewing_machines": 160,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1560"
+   ]
+  },
+  {
+   "id": "94ef8d2b-dcd5-48ea-8b16-0b7d71592f65",
+   "slug": "creative-shirts-house",
+   "name": "Creative Shirts House Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": null,
+   "sewing_machines": 193,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4884"
+   ]
+  },
+  {
+   "id": "53f8defc-04a8-4080-8f39-328707492eab",
+   "slug": "creative-tex",
+   "name": "Creative Tex Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 350,
+   "sewing_machines": 225,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5027"
+   ]
+  },
+  {
+   "id": "5809ae22-9dc2-461c-9523-24514901ed74",
+   "slug": "crown-fashion-apparels",
+   "name": "Crown Fashion Apparels Limited",
+   "published": true,
+   "district": "Mymensingh",
+   "workers": 600,
+   "sewing_machines": 450,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6895"
+   ]
+  },
+  {
+   "id": "0191e538-7cef-47e0-b6c2-322d6b2f5fe7",
+   "slug": "crystal-martin-knitwear-bangladesh",
+   "name": "Crystal Martin Knitwear Bangladesh  Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 580,
+   "sewing_machines": 750,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4813"
+   ]
+  },
+  {
+   "id": "2799bd04-2751-4564-abf6-ddfa4427828b",
+   "slug": "dg-knitting",
+   "name": "D.G. Knitting Co.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 1500,
+   "sewing_machines": 820,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4473"
+   ]
+  },
+  {
+   "id": "3b7ad125-434c-4033-886d-58aafd7b3b93",
+   "slug": "daania-fashion",
+   "name": "Daania Fashion Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 570,
+   "sewing_machines": 320,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4645"
+   ]
+  },
+  {
+   "id": "29886e3d-89a9-4746-a033-6e8390c18fce",
+   "slug": "dah-yuan-bangladesh",
+   "name": "Dah Yuan Bangladesh Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 300,
+   "sewing_machines": 270,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1489"
+   ]
+  },
+  {
+   "id": "db565a23-874d-4c4b-b975-319c231c6704",
+   "slug": "decent-outerwear",
+   "name": "Decent Outerwear Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 300,
+   "sewing_machines": 350,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5484"
+   ]
+  },
+  {
+   "id": "a497b987-0a10-4611-92b1-1deae89a1498",
+   "slug": "dekko-apparels",
+   "name": "Dekko Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 390,
+   "sewing_machines": 220,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1135"
+   ]
+  },
+  {
+   "id": "e4fa5fb2-2969-4e93-8acc-8003d7c08af9",
+   "slug": "desh-lanka",
+   "name": "Desh Lanka Ltd.",
+   "published": true,
+   "district": "Manikganj",
+   "workers": 350,
+   "sewing_machines": 170,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3145"
+   ]
+  },
+  {
+   "id": "4253c63a-fb6c-4bb8-b67c-ce146e67cccd",
+   "slug": "design-gallery",
+   "name": "Design Gallery (PVt) Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 300,
+   "sewing_machines": 234,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6132"
+   ]
+  },
+  {
+   "id": "9607e30b-f0b8-48c5-9841-5aad7984ab41",
+   "slug": "designtex-sweater",
+   "name": "Designtex Sweaters Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 3200,
+   "sewing_machines": 1700,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3516"
+   ]
+  },
+  {
+   "id": "308c7590-460a-4816-945b-244d99617fe9",
+   "slug": "dessin-wear",
+   "name": "Dessin Wears Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 400,
+   "sewing_machines": 322,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3507"
+   ]
+  },
+  {
+   "id": "50079bc2-54f9-45b0-922b-9ef66ea4dd45",
+   "slug": "deva",
+   "name": "Deva Limited",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 800,
+   "sewing_machines": 600,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3827"
+   ]
+  },
+  {
+   "id": "9d1751f0-6929-4ad6-bd50-8a3aa48858eb",
+   "slug": "dipa-sweater",
+   "name": "Dipa Sweater Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 383,
+   "sewing_machines": null,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4060"
+   ]
+  },
+  {
+   "id": "27b70ce9-354c-4876-bebd-8e767355084d",
+   "slug": "dipta-garments",
+   "name": "Dipta Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 1604,
+   "sewing_machines": 892,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1530"
+   ]
+  },
+  {
+   "id": "67f2e00c-02eb-4069-9365-885551c2c64c",
+   "slug": "dird-garments",
+   "name": "Dird Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 969,
+   "sewing_machines": 664,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:236"
+   ]
+  },
+  {
+   "id": "63b0ba93-7d77-4a67-9e94-c9c7250eba48",
+   "slug": "divine-fashion",
+   "name": "Divine Fashion (Pvt.) Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 600,
+   "sewing_machines": 300,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4908"
+   ]
+  },
+  {
+   "id": "5a1dcf69-0c2b-44e4-9d2a-4fc3c8ce11d0",
+   "slug": "doreen-fashion",
+   "name": "Doreen Fashion Limited",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 750,
+   "sewing_machines": 350,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:951"
+   ]
+  },
+  {
+   "id": "e1d9442c-fd1a-48f9-8143-b46b12173fbd",
+   "slug": "dragon-sweater-and-spinning",
+   "name": "Dragon Sweater & Spinning Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 2000,
+   "sewing_machines": 1000,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2963"
+   ]
+  },
+  {
+   "id": "90cb3844-0d79-4854-8aee-e2a19771b72f",
+   "slug": "dragon-sweater-bd",
+   "name": "Dragon Sweater (BD) Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 3830,
+   "sewing_machines": 2830,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:792"
+   ]
+  },
+  {
+   "id": "ec507e10-dc9e-48fe-bc48-e86060ed506e",
+   "slug": "dress-shirts",
+   "name": "Dress Shirts Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 1400,
+   "sewing_machines": 900,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3893"
+   ]
+  },
+  {
+   "id": "65c65442-67a6-4f4b-8025-e29e65a1c490",
+   "slug": "dsl-sportwear",
+   "name": "DSL Sportwear Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 1150,
+   "sewing_machines": 473,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4175"
+   ]
+  },
+  {
+   "id": "7e5002bb-1bcc-488b-af24-d95e10438916",
+   "slug": "dynamic-fashions",
+   "name": "Dynamic Fashions Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 200,
+   "sewing_machines": 100,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2303"
+   ]
+  },
+  {
+   "id": "72be6ca9-6c54-4333-9ce9-1e2aa248f266",
+   "slug": "east-west-dress-pant",
+   "name": "East West Dress Pant Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 474,
+   "sewing_machines": 279,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1815"
+   ]
+  },
+  {
+   "id": "d515b4ef-059a-4bd5-ae0f-ed5f17b1e6ee",
+   "slug": "east-west-fashion-garments",
+   "name": "East West Fashion Garments Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 483,
+   "sewing_machines": 304,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:501"
+   ]
+  },
+  {
+   "id": "73cf5729-f33f-4236-9833-ee31783c9512",
+   "slug": "eco-knitwear",
+   "name": "Eco Knitwear LImited",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 150,
+   "sewing_machines": 100,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6621"
+   ]
+  },
+  {
+   "id": "f64ba640-b062-4ee8-b522-086f5b5b97f2",
+   "slug": "eden-apparels",
+   "name": "Eden Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 600,
+   "sewing_machines": 300,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1848"
+   ]
+  },
+  {
+   "id": "151b24b1-2828-4fb9-adce-15afc773663e",
+   "slug": "ekram-export",
+   "name": "Ekram Export Ltd.",
+   "published": true,
+   "district": "Narayanganj",
+   "workers": 1715,
+   "sewing_machines": 1316,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6948"
+   ]
+  },
+  {
+   "id": "2b63cb4b-24bc-434f-bec5-9076c41132f9",
+   "slug": "elham-fashion",
+   "name": "Elham Fashion Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 1650,
+   "sewing_machines": 257,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6198"
+   ]
+  },
+  {
+   "id": "a97407f7-ccdf-4070-a8b0-cc3b8ec91886",
+   "slug": "epcot-international",
+   "name": "Epcot International Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 547,
+   "sewing_machines": 282,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:882"
+   ]
+  },
+  {
+   "id": "46fd0901-e429-4624-954b-d517da043e08",
+   "slug": "epcot-jeans",
+   "name": "Epcot Jeans Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 450,
+   "sewing_machines": 332,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4239"
+   ]
+  },
+  {
+   "id": "a5a76c91-4e99-417d-94c2-b4320f05ccad",
+   "slug": "euro-apparels",
+   "name": "Euro Apparels Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 320,
+   "sewing_machines": 214,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1657"
+   ]
+  },
+  {
+   "id": "14d5d026-c829-4841-8324-1da97bf6a690",
+   "slug": "evertop-product-development",
+   "name": "Evertop Product Development Co. Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 570,
+   "sewing_machines": 1984,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6748"
+   ]
+  },
+  {
+   "id": "494a4105-41a2-4c71-be1b-5293160f3416",
+   "slug": "evitex-fashions",
+   "name": "Evitex Fashions Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 750,
+   "sewing_machines": 379,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3997"
+   ]
+  },
+  {
+   "id": "b753f5ab-2391-498f-8f5a-22ac302be93f",
+   "slug": "excel-industries",
+   "name": "Excel Industries Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 550,
+   "sewing_machines": 301,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1048"
+   ]
+  },
+  {
+   "id": "1a039bd2-d4ea-4cd2-9090-baf3a1d0a3e8",
+   "slug": "export-connection",
+   "name": "Export Connection Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 200,
+   "sewing_machines": 100,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:966"
+   ]
+  },
+  {
+   "id": "987c6c4a-96cd-4420-9ad8-c95b60780b48",
+   "slug": "export-knitwear",
+   "name": "Export Knitwear Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 590,
+   "sewing_machines": 270,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:881"
+   ]
+  },
+  {
+   "id": "60f534aa-da48-4ea7-9b2f-c11fae917f7d",
+   "slug": "fahami-dresses",
+   "name": "Fahami Dresses Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 549,
+   "sewing_machines": 660,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4322"
+   ]
+  },
+  {
+   "id": "4936cd23-78e1-498e-82ad-f730474c3457",
+   "slug": "fahami-industries",
+   "name": "Fahami Industries Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 1602,
+   "sewing_machines": 1568,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4044"
+   ]
+  },
+  {
+   "id": "b1962ef7-330f-4858-bdd2-5a932face988",
+   "slug": "fahami-knitwear",
+   "name": "Fahami Knitwear Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 661,
+   "sewing_machines": 339,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4153"
+   ]
+  },
+  {
+   "id": "faa5f3dc-c94f-4916-aded-6333f7db153c",
+   "slug": "fahami-shirts",
+   "name": "Fahami Shirts Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 540,
+   "sewing_machines": 829,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4321"
+   ]
+  },
+  {
+   "id": "bc6060d9-c5dc-47d5-b4f4-e30ecea42665",
+   "slug": "fairmonde-knitting",
+   "name": "Fairmonde Knitting Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 180,
+   "sewing_machines": 79,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3480"
+   ]
+  },
+  {
+   "id": "32ef01b9-7bd4-4b8a-a833-97e3d9665c03",
+   "slug": "fame-knitwear",
+   "name": "Fame Knitwears Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 400,
+   "sewing_machines": 205,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1630"
+   ]
+  },
+  {
+   "id": "6e052f32-e394-4719-9e70-ed79f637991a",
+   "slug": "fame-sweater",
+   "name": "Fame Sweaters Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": null,
+   "sewing_machines": 440,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3747"
+   ]
+  },
+  {
+   "id": "ff8be8ce-18b8-4bf6-981d-d16e6cb4e5e6",
+   "slug": "family-style-garments",
+   "name": "Family Style Garments Ltd.",
+   "published": true,
+   "district": "Narayanganj",
+   "workers": 280,
+   "sewing_machines": 160,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:953"
+   ]
+  },
+  {
+   "id": "4598e278-82d4-45d1-8903-62b5e52e549c",
+   "slug": "fashion-apparel-industries",
+   "name": "Fashion Apparel Industries",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 320,
+   "sewing_machines": 290,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1501"
+   ]
+  },
+  {
+   "id": "37e9c49f-815b-4968-a86c-0a1b9ef86d8f",
+   "slug": "fashion-enterprise",
+   "name": "Fashion Enterprise",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 500,
+   "sewing_machines": 300,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:938"
+   ]
+  },
+  {
+   "id": "2dd5689a-0749-428c-9ed5-d507ea3ae1dd",
+   "slug": "fashion-export-international",
+   "name": "Fashion Export International Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 450,
+   "sewing_machines": 200,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2805"
+   ]
+  },
+  {
+   "id": "18bb3f9e-00fc-479c-878a-1fd72741af91",
+   "slug": "fashion-exposure",
+   "name": "Fashion Exposure Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 998,
+   "sewing_machines": 424,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2703"
+   ]
+  },
+  {
+   "id": "38eae0f0-bf5b-440d-b1e9-d6f673b13898",
+   "slug": "fashion-innovation",
+   "name": "Fashion Innovation Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 665,
+   "sewing_machines": 272,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3689"
+   ]
+  },
+  {
+   "id": "5e347db9-bcfd-4e70-8bb7-962682096c9a",
+   "slug": "fashion-skirt-and-trousers",
+   "name": "Fashion Skirt & Trousers Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 488,
+   "sewing_machines": 279,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2407"
+   ]
+  },
+  {
+   "id": "10b5e3e0-d4ec-4506-9729-404e03f87b1f",
+   "slug": "fashions-suits-and-trousers",
+   "name": "Fashions Suits And Trousers Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 614,
+   "sewing_machines": 291,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2564"
+   ]
+  },
+  {
+   "id": "28b237ab-afe8-4ff5-939c-bfa24af90413",
+   "slug": "fashrobe-garments",
+   "name": "Fashrobe Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 499,
+   "sewing_machines": 193,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:547"
+   ]
+  },
+  {
+   "id": "5ece2fa6-d800-43ce-b6fe-f894f201b69b",
+   "slug": "feroza-apparels",
+   "name": "Feroza Apparels",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 400,
+   "sewing_machines": 200,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:7178"
+   ]
+  },
+  {
+   "id": "4512d51e-f97b-431b-afab-1e8bd123e2de",
+   "slug": "fnf-composite",
+   "name": "FNF Composite Ltd.",
+   "published": true,
+   "district": "Narayanganj",
+   "workers": 2000,
+   "sewing_machines": 609,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:7017"
+   ]
+  },
+  {
+   "id": "669a4adc-268b-49ec-934f-a40ed69625df",
+   "slug": "fontina-fashions",
+   "name": "Fontina Fashions Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 588,
+   "sewing_machines": 342,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3463"
+   ]
+  },
+  {
+   "id": "0cd752ff-794a-4ef9-bceb-ed994cfe8152",
+   "slug": "fortune-fashion",
+   "name": "Fortune Fashion Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 500,
+   "sewing_machines": 302,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1523"
+   ]
+  },
+  {
+   "id": "277c3fde-0453-465e-b556-a5fc10e99cc6",
+   "slug": "friends-and-friends-apparels",
+   "name": "Friends and Friends Apparels (Pvt) Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 998,
+   "sewing_machines": 530,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1060"
+   ]
+  },
+  {
+   "id": "0adb09d9-974a-4ae8-a356-893f66cc0a1a",
+   "slug": "galaxy-stitch",
+   "name": "Galaxy Stitch Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 2340,
+   "sewing_machines": 100,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5999"
+   ]
+  },
+  {
+   "id": "540a39ea-c894-46f6-b211-b267c4d26310",
+   "slug": "galaxy-sweater-and-yarn-dy",
+   "name": "Galaxy Sweaters & Yarn Dy. Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 310,
+   "sewing_machines": 462,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4777"
+   ]
+  },
+  {
+   "id": "77ff1bb9-0fa2-4b50-ab45-6327f027f264",
+   "slug": "gallant-fashions",
+   "name": "Gallant Fashions Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 498,
+   "sewing_machines": 255,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2725"
+   ]
+  },
+  {
+   "id": "93b67f1f-c38c-4030-bbe0-7eac8284577e",
+   "slug": "gemtex",
+   "name": "Gemtex Limited",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 1100,
+   "sewing_machines": 650,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4791"
+   ]
+  },
+  {
+   "id": "31db2043-1f0e-464d-96cf-5f527571a7af",
+   "slug": "giant-apparels",
+   "name": "Giant Apparels Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 690,
+   "sewing_machines": 391,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3831"
+   ]
+  },
+  {
+   "id": "3d668f6c-2d66-44e6-92ac-dad738b1406e",
+   "slug": "gitano-apparels",
+   "name": "Gitano Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 300,
+   "sewing_machines": 165,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:876"
+   ]
+  },
+  {
+   "id": "81bd22fa-0b31-46a4-b063-7493b3c1d005",
+   "slug": "glamour-apparel-bd",
+   "name": "Glamour Apparel (BD) Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": null,
+   "sewing_machines": null,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6064"
+   ]
+  },
+  {
+   "id": "2023fbff-54c5-42a1-b709-5eb69d5cfaa7",
+   "slug": "global-apparels",
+   "name": "Global Apparels Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 740,
+   "sewing_machines": 368,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1503"
+   ]
+  },
+  {
+   "id": "17a8868f-0f93-49ec-af04-c8433853be7b",
+   "slug": "global-garments",
+   "name": "Global Garments Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 1400,
+   "sewing_machines": 550,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:327"
+   ]
+  },
+  {
+   "id": "ae831346-4e9a-4ad6-9006-2d7698a4da84",
+   "slug": "glorious-apparels",
+   "name": "Glorious Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 208,
+   "sewing_machines": 152,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5042"
+   ]
+  },
+  {
+   "id": "780fa942-f852-4af7-9e76-0d95ccacebb9",
+   "slug": "glory-industries",
+   "name": "Glory Industries Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 958,
+   "sewing_machines": 598,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:456"
+   ]
+  },
+  {
+   "id": "ac16221e-ec2d-4e51-960e-22615041fbbc",
+   "slug": "gold-star-apparels",
+   "name": "Gold Star Apparels (Pvt) Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 250,
+   "sewing_machines": 166,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:987"
+   ]
+  },
+  {
+   "id": "6a4f661c-d784-4661-81ac-3fb389eed2a8",
+   "slug": "golden-heights",
+   "name": "Golden Heights Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 1692,
+   "sewing_machines": 1322,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5084"
+   ]
+  },
+  {
+   "id": "680c5c05-2a35-49f9-bded-55961410ab95",
+   "slug": "golden-horizon",
+   "name": "Golden Horizon Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 2917,
+   "sewing_machines": 2311,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4057"
+   ]
+  },
+  {
+   "id": "105df3b7-6e04-492c-9c41-37a5abb51946",
+   "slug": "golden-times-sweater-and-dyeing",
+   "name": "Golden Times Sweater & Dyeing Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": null,
+   "sewing_machines": null,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4204"
+   ]
+  },
+  {
+   "id": "e14aeb79-325f-4969-ad16-b7b590144c0f",
+   "slug": "gous-garments-industries",
+   "name": "Gous Garments Ind. Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 610,
+   "sewing_machines": 375,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3637"
+   ]
+  },
+  {
+   "id": "b676d1b0-e23f-4879-a9ed-f8fcd32cde6e",
+   "slug": "green-knit-apparels",
+   "name": "Green Knit Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 300,
+   "sewing_machines": 150,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2630"
+   ]
+  },
+  {
+   "id": "058fd064-7267-441e-a246-0c3a18d5e7dd",
+   "slug": "hr-style",
+   "name": "H.R. Style Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 120,
+   "sewing_machines": 84,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4337"
+   ]
+  },
+  {
+   "id": "52714810-ee18-4ae4-ad18-c2b62d796608",
+   "slug": "ha-meem-jeans",
+   "name": "Ha - Meem Jeans Limited",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 3430,
+   "sewing_machines": 1810,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6889"
+   ]
+  },
+  {
+   "id": "17de3233-3d1c-4568-aaee-b2fb61bc7bad",
+   "slug": "ha-meem-apparels",
+   "name": "Ha-Meem Apparels",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 425,
+   "sewing_machines": 150,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:803"
+   ]
+  },
+  {
+   "id": "dcd78c54-be4e-42fa-ac24-932c132d5d21",
+   "slug": "haesong",
+   "name": "Haesong Corporation Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 640,
+   "sewing_machines": 240,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2350"
+   ]
+  },
+  {
+   "id": "c0c57d4a-d712-423a-b4cc-6cec2ddc9b1b",
+   "slug": "hamid-apparels",
+   "name": "Hamid Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 275,
+   "sewing_machines": 150,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:891"
+   ]
+  },
+  {
+   "id": "125ec5f2-9d60-49b3-a30b-2cf43ac00b8d",
+   "slug": "hamid-fashion",
+   "name": "Hamid Fashion Limited",
+   "published": true,
+   "district": "Narayanganj",
+   "workers": 968,
+   "sewing_machines": 1112,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2311"
+   ]
+  },
+  {
+   "id": "61125f26-31c2-4b2f-9a7e-4d335faade40",
+   "slug": "hemal-sweater",
+   "name": "Hemal Sweater (Pvt) Ltd.",
+   "published": true,
+   "district": "Narayanganj",
+   "workers": 100,
+   "sewing_machines": 100,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6238"
+   ]
+  },
+  {
+   "id": "27a79cec-8bd3-4c71-824f-b26c0cc23294",
+   "slug": "heritage-apparels",
+   "name": "Heritage Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 281,
+   "sewing_machines": 126,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6101"
+   ]
+  },
+  {
+   "id": "71fa46b4-e316-49b3-a4cc-c272e96cbf00",
+   "slug": "hexa-garments",
+   "name": "Hexa Garments (Pvt) Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 350,
+   "sewing_machines": 165,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:207"
+   ]
+  },
+  {
+   "id": "8b10093c-653d-46cb-a026-aba63bc608d0",
+   "slug": "hi-fashion-composite-textiles",
+   "name": "Hi-Fashion Composite Textiles Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 700,
+   "sewing_machines": 286,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4581"
+   ]
+  },
+  {
+   "id": "4f54375f-b27b-4f86-9e67-b6fa6ed9f05f",
+   "slug": "hossains",
+   "name": "Hossains Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 200,
+   "sewing_machines": 100,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:387"
+   ]
+  },
+  {
+   "id": "3a986fb1-b81d-4f6a-943c-0a2dbf91a2ab",
+   "slug": "hossains-ltd-unit-2",
+   "name": "Hossains Ltd. (Unit-2)",
+   "published": false,
+   "district": "Dhaka",
+   "workers": 200,
+   "sewing_machines": 100,
+   "building_of_another": true,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1162"
+   ]
+  },
+  {
+   "id": "d321fdb8-1c80-4590-9841-7fafced94f5d",
+   "slug": "hossains-ltd-unit-3",
+   "name": "Hossains Ltd. (Unit-3)",
+   "published": false,
+   "district": "Dhaka",
+   "workers": 200,
+   "sewing_machines": 100,
+   "building_of_another": true,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1163"
+   ]
+  },
+  {
+   "id": "05d9da5d-a8f6-4b5a-9950-fc0bb71248f0",
+   "slug": "hotapara-garments",
+   "name": "Hotapara Garments Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 1960,
+   "sewing_machines": 582,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4151"
+   ]
+  },
+  {
+   "id": "898e827d-8fa3-42a3-9a62-edc2bc8d71ec",
+   "slug": "imperial-sweater-bd",
+   "name": "Imperial Sweaters (BD) Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 1300,
+   "sewing_machines": 650,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3902"
+   ]
+  },
+  {
+   "id": "47d47732-4517-4123-8f0a-ecd6155dc35e",
+   "slug": "international-l-knitwear-and-apparels-ltd-u-2",
+   "name": "Int'l Knitwear & Apparels Ltd. (U-2)",
+   "published": false,
+   "district": "Gazipur",
+   "workers": 700,
+   "sewing_machines": 255,
+   "building_of_another": true,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3724"
+   ]
+  },
+  {
+   "id": "7015271e-93a1-4809-8d8f-40c222727b89",
+   "slug": "integral-apparels",
+   "name": "Integral Apparels Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 470,
+   "sewing_machines": 420,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1958"
+   ]
+  },
+  {
+   "id": "1ec1b62e-8ff0-46f4-8df5-ce2de91c78b1",
+   "slug": "intraco-design",
+   "name": "Intraco Design Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 598,
+   "sewing_machines": 411,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4295"
+   ]
+  },
+  {
+   "id": "215d3d09-8772-486e-ac3a-3031967907d8",
+   "slug": "intramex-apparels",
+   "name": "Intramex Apparels Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 400,
+   "sewing_machines": 200,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4254"
+   ]
+  },
+  {
+   "id": "99bb2cde-3918-4b6e-99d3-4529ca897408",
+   "slug": "intramex-clothing",
+   "name": "Intramex Clothing",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 150,
+   "sewing_machines": 65,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5022"
+   ]
+  },
+  {
+   "id": "52830741-5716-4927-95d3-b78d5eba9916",
+   "slug": "intramex-fashions",
+   "name": "Intramex Fashions Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 400,
+   "sewing_machines": 200,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3256"
+   ]
+  },
+  {
+   "id": "ef97bfdc-a6d5-4788-ada5-ae1e8025db7e",
+   "slug": "intramex-sweater",
+   "name": "Intramex Sweater Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 1600,
+   "sewing_machines": 1450,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3877"
+   ]
+  },
+  {
+   "id": "a239fb0e-8669-4039-a4ef-68692990ee90",
+   "slug": "intramex-sweater-ltd-u-2",
+   "name": "Intramex Sweater Ltd. (U-2)",
+   "published": false,
+   "district": "Noakhali",
+   "workers": 550,
+   "sewing_machines": 202,
+   "building_of_another": true,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5827"
+   ]
+  },
+  {
+   "id": "a3c19135-4b9d-4cbb-8c7a-7e17a968e576",
+   "slug": "iqbal-enterprises",
+   "name": "Iqbal Enterprises Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 530,
+   "sewing_machines": 180,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:330"
+   ]
+  },
+  {
+   "id": "01754049-0b64-499a-8c47-6bdb5e871690",
+   "slug": "ishaqpur-sweater-industries",
+   "name": "Ishaqpur Sweater Inds. Ltd.",
+   "published": true,
+   "district": "Noakhali",
+   "workers": 507,
+   "sewing_machines": 811,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3739"
+   ]
+  },
+  {
+   "id": "88ee0a6f-b4e0-4fd8-98da-e7f4bfac1ce9",
+   "slug": "islam-garments-ltd-hosiery-div",
+   "name": "Islam Garments Ltd. (Hosiery Div.)",
+   "published": false,
+   "district": "Gazipur",
+   "workers": 1100,
+   "sewing_machines": 350,
+   "building_of_another": true,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1214"
+   ]
+  },
+  {
+   "id": "6a3d7ce8-34ab-4cd6-9e8a-ebffea9ed259",
+   "slug": "islam-products",
+   "name": "Islam Products Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": null,
+   "sewing_machines": null,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2218"
+   ]
+  },
+  {
+   "id": "59b32796-c844-4355-ab93-60c7afdd8ecb",
+   "slug": "jbs-garments",
+   "name": "J.B.S. Garments (Pvt.) Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 220,
+   "sewing_machines": 110,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1608"
+   ]
+  },
+  {
+   "id": "64250508-d936-4c0d-8443-bc25b4e80b6e",
+   "slug": "jf-sweater",
+   "name": "J.F. Sweaters Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 300,
+   "sewing_machines": 50,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3248"
+   ]
+  },
+  {
+   "id": "82dd3bfc-a016-475d-8bcd-0be3681b1985",
+   "slug": "jm-apparels",
+   "name": "J.M. Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 450,
+   "sewing_machines": 210,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3172"
+   ]
+  },
+  {
+   "id": "0e71dad1-f4e9-412b-b32a-f8062d4da073",
+   "slug": "jr-fashion",
+   "name": "J.R. Fashion Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 245,
+   "sewing_machines": 140,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3470"
+   ]
+  },
+  {
+   "id": "2a208cc9-fc00-40bd-835f-bba664900d14",
+   "slug": "jahura-kamal-fashion-and-sweater-industries",
+   "name": "Jahura Kamal Fashion & Sweater Ind. Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 550,
+   "sewing_machines": 491,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5367"
+   ]
+  },
+  {
+   "id": "2dfb3367-6f30-4248-aaee-204517f49058",
+   "slug": "jalal-ahmed-knit-composite",
+   "name": "Jalal Ahmed Knit Composite Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 480,
+   "sewing_machines": 301,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4702"
+   ]
+  },
+  {
+   "id": "c6134c71-735c-4180-8648-d1c03e2adf41",
+   "slug": "jams-knitwear",
+   "name": "Jams Knitwear (Pvt) Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 693,
+   "sewing_machines": 501,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3409"
+   ]
+  },
+  {
+   "id": "bdf8badb-8dbd-4b0c-8625-383a8df9bca1",
+   "slug": "jayed-garments",
+   "name": "Jayed Garments Ltd..",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 162,
+   "sewing_machines": 70,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3227"
+   ]
+  },
+  {
+   "id": "8b191ed6-9efc-4bcb-b9a6-31938e22a860",
+   "slug": "jeacon-garments",
+   "name": "Jeacon Garments Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 768,
+   "sewing_machines": 737,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:312"
+   ]
+  },
+  {
+   "id": "55619795-7b2c-4665-b357-5ac0310fdba8",
+   "slug": "jerkin-wear",
+   "name": "Jerkin Wears Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 220,
+   "sewing_machines": 385,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3157"
+   ]
+  },
+  {
+   "id": "6d2a1958-4ccd-4329-b40b-0878ced95232",
+   "slug": "jessica-apparels",
+   "name": "Jessica Apparels Limited",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 574,
+   "sewing_machines": 312,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1293"
+   ]
+  },
+  {
+   "id": "86abc8a5-03eb-45af-87e3-2728334f1538",
+   "slug": "jilani-rahbar-garments",
+   "name": "Jilani Rahbar Garments Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 650,
+   "sewing_machines": 270,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2138"
+   ]
+  },
+  {
+   "id": "4caa17fe-a001-41e3-9fa7-a37d7619b284",
+   "slug": "jp-garments",
+   "name": "JP Garments Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 320,
+   "sewing_machines": 135,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3426"
+   ]
+  },
+  {
+   "id": "37f72832-a836-4d27-9d7d-383d6502e2b9",
+   "slug": "kanak-impex",
+   "name": "Kanak Impex",
+   "published": true,
+   "district": "Narayanganj",
+   "workers": 270,
+   "sewing_machines": 98,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:939"
+   ]
+  },
+  {
+   "id": "a8064a7b-7e7b-4814-a28b-6ed1bb62a5b0",
+   "slug": "kanchpur-apparels",
+   "name": "Kanchpur Apparels Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 1645,
+   "sewing_machines": 523,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6630"
+   ]
+  },
+  {
+   "id": "1cb5f4fc-0a8f-4354-a2ec-5e37ba024705",
+   "slug": "kanta",
+   "name": "Kanta Corporation (Pvt) Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 495,
+   "sewing_machines": 200,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3134"
+   ]
+  },
+  {
+   "id": "ab193a7f-f97c-4d88-bf86-4a58af2a0350",
+   "slug": "karnaphuli-fabrics",
+   "name": "Karnaphuli Fabrics Ltd.",
+   "published": true,
+   "district": "Tangail",
+   "workers": 1154,
+   "sewing_machines": 591,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:777"
+   ]
+  },
+  {
+   "id": "265d428b-9344-415a-9657-37f35bf156f3",
+   "slug": "kaveri-sweater",
+   "name": "Kaveri Sweaters Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 960,
+   "sewing_machines": 400,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4264"
+   ]
+  },
+  {
+   "id": "a757dfdf-9728-4e99-8d9e-96cb8e1c91be",
+   "slug": "kc-fashion",
+   "name": "KC Fashion Ltd.",
+   "published": true,
+   "district": "Narayanganj",
+   "workers": 430,
+   "sewing_machines": 138,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6951"
+   ]
+  },
+  {
+   "id": "43b03d12-d42f-45cf-8473-fb4b746ae1ea",
+   "slug": "kds-hi-tech-garments-bd",
+   "name": "KDS Hi-Tech Garments (BD) Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 300,
+   "sewing_machines": 407,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2781"
+   ]
+  },
+  {
+   "id": "4d902f2e-8aa2-43cd-b980-7c6d9e99dc43",
+   "slug": "khalifa-apparels",
+   "name": "Khalifa Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 700,
+   "sewing_machines": 320,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4556"
+   ]
+  },
+  {
+   "id": "a9b27f0c-c7b9-44ff-a54e-bdec31016077",
+   "slug": "khan-fashion",
+   "name": "Khan Fashion Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 222,
+   "sewing_machines": 109,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6456"
+   ]
+  },
+  {
+   "id": "7587ed1c-6d32-40b8-a1e9-ea08af029599",
+   "slug": "kids-zone-apparels",
+   "name": "Kids Zone Apparels Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 180,
+   "sewing_machines": 70,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5052"
+   ]
+  },
+  {
+   "id": "fb1eefb7-ddf2-4144-ab80-815c20c00e61",
+   "slug": "kimberly-garments",
+   "name": "Kimberly Garments Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 650,
+   "sewing_machines": 225,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4700"
+   ]
+  },
+  {
+   "id": "784c7487-743e-41d2-8ead-299492ee42f0",
+   "slug": "kimia-apparels-industries",
+   "name": "Kimia Apparels Industry Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 1150,
+   "sewing_machines": 482,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2949"
+   ]
+  },
+  {
+   "id": "c15dc0f4-5b12-4342-8892-42027f09dce2",
+   "slug": "kimia-garments-industries",
+   "name": "Kimia Garments Ind. Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 1250,
+   "sewing_machines": 580,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2541"
+   ]
+  },
+  {
+   "id": "33ca0aa4-f3b3-4190-9de5-abded17fdadc",
+   "slug": "knit-and-knitwear",
+   "name": "Knit & Knitwears Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 250,
+   "sewing_machines": 204,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4453"
+   ]
+  },
+  {
+   "id": "bb417174-4ab3-41a1-9711-df28846b26e9",
+   "slug": "knit-export-bd",
+   "name": "Knit Export (BD) Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 210,
+   "sewing_machines": 95,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5077"
+   ]
+  },
+  {
+   "id": "6abd0ff0-693d-4dbb-b60f-a79ebfe0d0f0",
+   "slug": "knit-express",
+   "name": "Knit Express Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 700,
+   "sewing_machines": 153,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4250"
+   ]
+  },
+  {
+   "id": "703d0d40-50fa-49f7-80d4-1ecadc3b16c9",
+   "slug": "knitex-apparels",
+   "name": "Knitex Apparels Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 250,
+   "sewing_machines": 250,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2544"
+   ]
+  },
+  {
+   "id": "7023ac9e-8d4f-4985-8feb-9338d41f296d",
+   "slug": "knitexpo",
+   "name": "Knitexpo Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 860,
+   "sewing_machines": 736,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2729"
+   ]
+  },
+  {
+   "id": "6f0bb28f-598c-4b8e-a2d7-5ea9751da00e",
+   "slug": "kron-sweater",
+   "name": "Kron Sweater Limited",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 520,
+   "sewing_machines": 366,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2467"
+   ]
+  },
+  {
+   "id": "b9c55e28-f785-433a-8638-e3b3cb2b1a1f",
+   "slug": "la-fashion",
+   "name": "L.A. Fashion (Pvt.) Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 800,
+   "sewing_machines": 400,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1818"
+   ]
+  },
+  {
+   "id": "99e366f7-3104-4ae0-b311-0e77f4283739",
+   "slug": "lagoon-clothing",
+   "name": "Lagoon Clothing Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 350,
+   "sewing_machines": 168,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2650"
+   ]
+  },
+  {
+   "id": "c0b14d11-26e5-443c-b8df-10be1614cc99",
+   "slug": "lawyee-apparels",
+   "name": "Lawyee Apparels",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 350,
+   "sewing_machines": 227,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:7215"
+   ]
+  },
+  {
+   "id": "740c7555-0305-48ed-bc30-dd5bd8870d3e",
+   "slug": "leather-craftsman",
+   "name": "Leather Craftsman Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 320,
+   "sewing_machines": 265,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5469"
+   ]
+  },
+  {
+   "id": "93ea7692-44fd-4ded-b047-beff8b007693",
+   "slug": "legend-textiles",
+   "name": "Legend Textiles Limited",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 100,
+   "sewing_machines": 100,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5506"
+   ]
+  },
+  {
+   "id": "e3e2bcf4-bcac-4bb2-a3db-c82f7ba98b1a",
+   "slug": "lily-apparels",
+   "name": "Lily Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 525,
+   "sewing_machines": 156,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:419"
+   ]
+  },
+  {
+   "id": "5ec62c11-0912-406b-ac84-c11cc77d5a76",
+   "slug": "lm-masinara-asia",
+   "name": "LM Masinara Asia Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 1296,
+   "sewing_machines": 1004,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5866"
+   ]
+  },
+  {
+   "id": "d3707682-a852-4371-9a1b-823e3e43878d",
+   "slug": "luman-dresses",
+   "name": "Luman Dresses Limited",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 376,
+   "sewing_machines": 177,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2372"
+   ]
+  },
+  {
+   "id": "5f224441-d027-43d6-8350-77847b1f75a5",
+   "slug": "luman-fashions",
+   "name": "Luman Fashions Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 700,
+   "sewing_machines": 420,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3163"
+   ]
+  },
+  {
+   "id": "66a434a2-0306-468a-9964-c1477d0076fd",
+   "slug": "lushai-apparels",
+   "name": "Lushai Apparels",
+   "published": true,
+   "district": "Chattogram",
+   "workers": null,
+   "sewing_machines": null,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3883"
+   ]
+  },
+  {
+   "id": "fdc1dde2-7a46-4374-8e47-315ece5d62f4",
+   "slug": "lyceum-fabrics",
+   "name": "Lyceum Fabrics Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 450,
+   "sewing_machines": 245,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2653"
+   ]
+  },
+  {
+   "id": "9d98585c-e1f9-48e3-9cdc-c06b72b6a4c4",
+   "slug": "m-and-m-dresses",
+   "name": "M & M Dresses Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 450,
+   "sewing_machines": 174,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2799"
+   ]
+  },
+  {
+   "id": "9ae7b4e7-9415-4f99-860b-4a000c769267",
+   "slug": "m-and-m-shirts",
+   "name": "M & M Shirts Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 800,
+   "sewing_machines": 360,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2420"
+   ]
+  },
+  {
+   "id": "eea5f713-9d22-4aaf-bf25-37587e07221c",
+   "slug": "mn-sweater",
+   "name": "M N Sweaters Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 1000,
+   "sewing_machines": 436,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1694"
+   ]
+  },
+  {
+   "id": "370e4d00-3caf-4c3e-9260-7056705637c1",
+   "slug": "ms-apparels",
+   "name": "M S Apparels",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 135,
+   "sewing_machines": 95,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6713"
+   ]
+  },
+  {
+   "id": "1cbcc698-2454-4f2f-8723-3a24510211f9",
+   "slug": "mh-fashion",
+   "name": "M.H. Fashion",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 133,
+   "sewing_machines": 88,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5373"
+   ]
+  },
+  {
+   "id": "13fea7b6-201b-4ad4-aeba-95aac0f85ec5",
+   "slug": "mn-clothing",
+   "name": "M.N. Clothing Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 900,
+   "sewing_machines": 420,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4538"
+   ]
+  },
+  {
+   "id": "257c5864-daf2-4136-97ac-b5c8479a6536",
+   "slug": "mn-garments",
+   "name": "M.N. Garments Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 381,
+   "sewing_machines": 140,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:314"
+   ]
+  },
+  {
+   "id": "03038fe0-d470-4f9c-a302-6169373da045",
+   "slug": "mn-knitwear",
+   "name": "M.N. Knitwears Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 725,
+   "sewing_machines": 290,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3017"
+   ]
+  },
+  {
+   "id": "d316106b-03b5-4fa8-b5f8-97d2f1e12785",
+   "slug": "madina-establishments",
+   "name": "Madina Establishments Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 200,
+   "sewing_machines": 80,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1942"
+   ]
+  },
+  {
+   "id": "2b0e2350-25d4-4b42-b1b1-ddefdb572fe0",
+   "slug": "majumder-apparels",
+   "name": "Majumder Apparels Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 566,
+   "sewing_machines": 242,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1420"
+   ]
+  },
+  {
+   "id": "7a9d25d5-2bd7-4b91-9aff-1f7a5fe0d4ea",
+   "slug": "majumder-fashions",
+   "name": "Majumder Fashions Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 520,
+   "sewing_machines": 317,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4332"
+   ]
+  },
+  {
+   "id": "d0270696-076d-4286-88d2-08969402a067",
+   "slug": "mam-garments",
+   "name": "MAM Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 430,
+   "sewing_machines": 205,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1409"
+   ]
+  },
+  {
+   "id": "a9068ec5-7e74-4351-822d-cf78e8834de5",
+   "slug": "maria-attires",
+   "name": "Maria Attires",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 700,
+   "sewing_machines": 505,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:7214"
+   ]
+  },
+  {
+   "id": "0349fc3e-56dc-4cab-be40-dfe6be2ab759",
+   "slug": "mark-garments-industries",
+   "name": "Mark Garments Inds. Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 175,
+   "sewing_machines": 110,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:110"
+   ]
+  },
+  {
+   "id": "33f1564d-522f-42f5-91ee-776a562ae8c8",
+   "slug": "master-garments",
+   "name": "Master Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 500,
+   "sewing_machines": 225,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:423"
+   ]
+  },
+  {
+   "id": "2e436654-5e52-4195-bdc6-245d0108d8b6",
+   "slug": "matexport-bangladesh",
+   "name": "Matexport (Bangladesh) Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 790,
+   "sewing_machines": 260,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3121"
+   ]
+  },
+  {
+   "id": "37010710-2699-4078-8266-8b0899561e7e",
+   "slug": "matin-kntwears",
+   "name": "Matin Kntwears Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 1650,
+   "sewing_machines": 600,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5005"
+   ]
+  },
+  {
+   "id": "4ba73b0e-b153-4586-9306-cacf599e8718",
+   "slug": "maxim-fashions",
+   "name": "Maxim Fashions Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 350,
+   "sewing_machines": 170,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3213"
+   ]
+  },
+  {
+   "id": "cfe6f380-4d70-4758-b7c3-4596fb2b2a65",
+   "slug": "maxim",
+   "name": "Maxim Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 1000,
+   "sewing_machines": 500,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:377"
+   ]
+  },
+  {
+   "id": "9f373f9f-2350-4fdf-91c6-19b4450811d8",
+   "slug": "mazarine-fashion",
+   "name": "Mazarine Fashion",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 201,
+   "sewing_machines": 150,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6644"
+   ]
+  },
+  {
+   "id": "5911aed6-14f6-4dae-99eb-7241a1cbf570",
+   "slug": "meditex-sweater",
+   "name": "Meditex Sweater Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 505,
+   "sewing_machines": 650,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4133"
+   ]
+  },
+  {
+   "id": "c9c59117-5202-487c-86b8-42dc6f2d85f5",
+   "slug": "medlar-garments",
+   "name": "Medlar Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 670,
+   "sewing_machines": 309,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:499"
+   ]
+  },
+  {
+   "id": "2a19f293-017a-49df-8456-e737906cc70d",
+   "slug": "medona-garments",
+   "name": "Medona Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 350,
+   "sewing_machines": 134,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:386"
+   ]
+  },
+  {
+   "id": "7d979a13-5d92-4e74-96d7-164b1de993b1",
+   "slug": "men-apparels",
+   "name": "Men's Apparels Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 400,
+   "sewing_machines": 250,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:935"
+   ]
+  },
+  {
+   "id": "08148aab-3b1a-4c52-80c9-250af9991fca",
+   "slug": "meridian-fashions",
+   "name": "Meridian Fashions Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 350,
+   "sewing_machines": 161,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3423"
+   ]
+  },
+  {
+   "id": "8771911c-1720-450d-8108-cb42dff7e800",
+   "slug": "mexi-bangla-sweater",
+   "name": "Mexi-Bangla Sweater Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 250,
+   "sewing_machines": 150,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5431"
+   ]
+  },
+  {
+   "id": "f755f286-512a-48d8-b4d8-e95404e70c79",
+   "slug": "mg-niche-flair",
+   "name": "MG Niche Flair Ltd.",
+   "published": true,
+   "district": "Narayanganj",
+   "workers": 2350,
+   "sewing_machines": 600,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5429"
+   ]
+  },
+  {
+   "id": "9b14c839-38e3-4e0e-9d64-8765473c1dff",
+   "slug": "midwest-garments",
+   "name": "Midwest Garments Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 570,
+   "sewing_machines": 165,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6638"
+   ]
+  },
+  {
+   "id": "a35f6921-6dc1-44c3-91dd-215467f8f2db",
+   "slug": "millennium-sweater",
+   "name": "Millennium Sweater Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 1008,
+   "sewing_machines": 530,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3068"
+   ]
+  },
+  {
+   "id": "fc4dccd2-a45e-4d68-8f57-69736621e014",
+   "slug": "mim-fashion",
+   "name": "Mim Fashion",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 171,
+   "sewing_machines": 93,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6883"
+   ]
+  },
+  {
+   "id": "d09b4170-a43e-4729-84d4-7bec528d78c8",
+   "slug": "mim-sweater",
+   "name": "Mim Sweaters Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 1500,
+   "sewing_machines": 1150,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3212"
+   ]
+  },
+  {
+   "id": "01bd601a-bc4d-44c5-b710-404ca1c500c4",
+   "slug": "mirabella-dresses",
+   "name": "Mirabella Dresses Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 710,
+   "sewing_machines": 184,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1576"
+   ]
+  },
+  {
+   "id": "c6d1b1fe-1841-46f6-9861-81987fb9ed4e",
+   "slug": "mission-apparel-industries",
+   "name": "Mission Apparel Industries",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 360,
+   "sewing_machines": 340,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:507"
+   ]
+  },
+  {
+   "id": "d1c8ceb6-a15a-4ce9-8971-e1b2500e346d",
+   "slug": "mohammadi-apparels",
+   "name": "Mohammadi Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 624,
+   "sewing_machines": 290,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:273"
+   ]
+  },
+  {
+   "id": "6f789c79-1fab-44b4-b75c-0b4dfa4944f4",
+   "slug": "monde-apparels",
+   "name": "Monde Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 475,
+   "sewing_machines": 211,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3595"
+   ]
+  },
+  {
+   "id": "c47eb809-b364-4f6d-a22c-d64edd75f84b",
+   "slug": "mondetex-fashion",
+   "name": "Mondetex Fashion Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 330,
+   "sewing_machines": 186,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3411"
+   ]
+  },
+  {
+   "id": "6b9112f2-ebb2-4b6c-82f8-000b0e2ad322",
+   "slug": "monowara-apparels",
+   "name": "Monowara Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 490,
+   "sewing_machines": 310,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4972"
+   ]
+  },
+  {
+   "id": "2e58e5d4-5f11-4939-8052-678a20797d2d",
+   "slug": "moon-fashion",
+   "name": "Moon Fashion Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 450,
+   "sewing_machines": 250,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2780"
+   ]
+  },
+  {
+   "id": "37a33d88-2248-4b16-ad24-9d6cb4ae2ba8",
+   "slug": "moon-star-garments",
+   "name": "Moon Star Garments Ltd",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 220,
+   "sewing_machines": 123,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3191"
+   ]
+  },
+  {
+   "id": "1f90ce12-f844-45ec-ad2c-5809096e3373",
+   "slug": "moonlux-composite-knit-garments",
+   "name": "Moonlux Composite Knit Garments Ltd.",
+   "published": true,
+   "district": "Narayanganj",
+   "workers": 500,
+   "sewing_machines": 170,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4095"
+   ]
+  },
+  {
+   "id": "de183c34-d653-49f4-88c9-9d747804b8e0",
+   "slug": "mouchak-apparels",
+   "name": "Mouchak Apparels Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 140,
+   "sewing_machines": 100,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6798"
+   ]
+  },
+  {
+   "id": "a4dd4061-5d4c-4e81-9f29-372cf3c303e1",
+   "slug": "mousumi-towels",
+   "name": "Mousumi Towels Limited",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 200,
+   "sewing_machines": 40,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2398"
+   ]
+  },
+  {
+   "id": "26742f21-7d4e-4d98-9291-99f6345b4894",
+   "slug": "mts-garments",
+   "name": "MTS Garments Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 550,
+   "sewing_machines": 400,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:606"
+   ]
+  },
+  {
+   "id": "8051f668-5a60-40d1-b948-4766976f096c",
+   "slug": "muksudpur-apparels",
+   "name": "Muksudpur Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 600,
+   "sewing_machines": 309,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5138"
+   ]
+  },
+  {
+   "id": "fc06320e-7707-4ac4-b9cb-895c65c51c24",
+   "slug": "multiple-fashions",
+   "name": "Multiple Fashions Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 300,
+   "sewing_machines": 200,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2174"
+   ]
+  },
+  {
+   "id": "7d49b1df-276e-4d7c-84fe-4ddb11aa5101",
+   "slug": "multitex-knit-composite",
+   "name": "Multitex Knit Composite Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 850,
+   "sewing_machines": 868,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6203"
+   ]
+  },
+  {
+   "id": "7405ea06-c24c-43d8-b14a-b4d8c3cbbf41",
+   "slug": "my-choice-enterprise",
+   "name": "My Choice Enterprise Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 400,
+   "sewing_machines": 350,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1121"
+   ]
+  },
+  {
+   "id": "65897dec-a5de-4055-a929-f4c817bd8600",
+   "slug": "ni-design-wear",
+   "name": "N.I. Design Wear Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 350,
+   "sewing_machines": 114,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5438"
+   ]
+  },
+  {
+   "id": "e12c7d85-a4fe-4c24-8013-fa1de3ffba5f",
+   "slug": "nn-garments",
+   "name": "N.N. Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 450,
+   "sewing_machines": 250,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:259"
+   ]
+  },
+  {
+   "id": "97290ef1-38ce-4ae1-b904-981c3d20caa4",
+   "slug": "nadia-garments",
+   "name": "Nadia Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 295,
+   "sewing_machines": 140,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:646"
+   ]
+  },
+  {
+   "id": "0d091b20-3053-4a80-844a-47559200f3b5",
+   "slug": "nandan-apparels",
+   "name": "Nandan Apparels",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 610,
+   "sewing_machines": 600,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4275"
+   ]
+  },
+  {
+   "id": "80717ae6-4047-49aa-91d5-14c055044a01",
+   "slug": "narail-garments",
+   "name": "Narail Garments (Pvt) Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 425,
+   "sewing_machines": 250,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1465"
+   ]
+  },
+  {
+   "id": "f87e3f19-3915-4d62-a024-9bb6d5e373f5",
+   "slug": "nasrin-garments",
+   "name": "Nasrin Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 1000,
+   "sewing_machines": 800,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1695"
+   ]
+  },
+  {
+   "id": "7103ce1e-f3ca-4bdf-a555-844eb5f5d8a2",
+   "slug": "nassa-apparels-ltd-u-2",
+   "name": "Nassa Apparels Ltd. U-2",
+   "published": false,
+   "district": "Dhaka",
+   "workers": 405,
+   "sewing_machines": 220,
+   "building_of_another": true,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2910"
+   ]
+  },
+  {
+   "id": "a5f6add0-e885-4631-82f2-c96a6ef55dfc",
+   "slug": "nassa-fashions",
+   "name": "Nassa Fashions Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 2633,
+   "sewing_machines": 1280,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3453"
+   ]
+  },
+  {
+   "id": "528ae5a1-e1eb-4858-b800-36f5663f1863",
+   "slug": "nassa-hi-tech-wear",
+   "name": "Nassa Hi-Tech Wear Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 850,
+   "sewing_machines": 650,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4310"
+   ]
+  },
+  {
+   "id": "7adcb427-cdc0-4382-9ce0-fe7cad7a6c3c",
+   "slug": "need-fashion-wear-and-textile",
+   "name": "Need Fashion Wear & Textile Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 255,
+   "sewing_machines": 131,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:994"
+   ]
+  },
+  {
+   "id": "8cc80efe-7fa5-4bf3-813c-5ba2b910ed42",
+   "slug": "needle-fashion",
+   "name": "Needle Fashion Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 280,
+   "sewing_machines": 180,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5847"
+   ]
+  },
+  {
+   "id": "0ccdd961-0416-4d85-9a96-2bc7c7d126c3",
+   "slug": "new-world-apparels",
+   "name": "New World Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 2633,
+   "sewing_machines": 1280,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1080"
+   ]
+  },
+  {
+   "id": "0c4f1265-fcef-4174-a6b5-9a5c7ffd9165",
+   "slug": "news-style-garments",
+   "name": "News Style Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 582,
+   "sewing_machines": 400,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2511"
+   ]
+  },
+  {
+   "id": "7901d96d-5f8d-4dc9-9630-4712b37556a9",
+   "slug": "newtex-design",
+   "name": "Newtex Design Ltd.",
+   "published": true,
+   "district": "Tangail",
+   "workers": 1059,
+   "sewing_machines": 574,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3137"
+   ]
+  },
+  {
+   "id": "470e0ef6-4745-4f15-8d66-46eadcc25ab2",
+   "slug": "nexus-knitwear",
+   "name": "Nexus Knitwear Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 400,
+   "sewing_machines": 300,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5335"
+   ]
+  },
+  {
+   "id": "f5df02f3-14ff-4d5c-9a8e-4790e346e2b4",
+   "slug": "nowsin-garments-industries",
+   "name": "Nowsin Garments Inds. Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 523,
+   "sewing_machines": 379,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4068"
+   ]
+  },
+  {
+   "id": "352c22e5-e893-49b2-8d32-7e48cf529b0c",
+   "slug": "nufa-textile",
+   "name": "Nufa Textile Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 300,
+   "sewing_machines": 125,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5678"
+   ]
+  },
+  {
+   "id": "3bbd5075-bf15-4c06-a5ca-dc2af493b6af",
+   "slug": "nzn-fashion-wear",
+   "name": "NZN Fashion Wears Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 600,
+   "sewing_machines": 350,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:368"
+   ]
+  },
+  {
+   "id": "d444c5f2-b6d4-43e8-9021-15d028460555",
+   "slug": "nzn-garments",
+   "name": "NZN Garments Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 400,
+   "sewing_machines": 250,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:369"
+   ]
+  },
+  {
+   "id": "93e44ad6-9af4-4e5e-9ce4-d6cd5e2274bd",
+   "slug": "oba-apparels",
+   "name": "OBA Apparels Limited",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 269,
+   "sewing_machines": 172,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2492"
+   ]
+  },
+  {
+   "id": "8fd1d06a-712c-4115-b4d5-419d1e6493ce",
+   "slug": "ocean-trousers",
+   "name": "Ocean Trousers Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 400,
+   "sewing_machines": 200,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3983"
+   ]
+  },
+  {
+   "id": "33fb28b1-3222-4d4d-8247-50469ad41c4c",
+   "slug": "off-price-clothing",
+   "name": "Off Price Clothing",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 250,
+   "sewing_machines": 150,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:7002"
+   ]
+  },
+  {
+   "id": "794d8ca9-912e-4269-bd47-b546b696ef24",
+   "slug": "onus-apparels",
+   "name": "Onus Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 500,
+   "sewing_machines": 305,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1403"
+   ]
+  },
+  {
+   "id": "718242fb-be35-4804-9fd4-c4e59f56563c",
+   "slug": "opex-apparels",
+   "name": "Opex Apparels Ltd",
+   "published": true,
+   "district": "Narayanganj",
+   "workers": 630,
+   "sewing_machines": 378,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2777"
+   ]
+  },
+  {
+   "id": "196d05d0-85e4-428c-a891-c71ff10c3b80",
+   "slug": "opex-designers",
+   "name": "Opex Designers Ltd.",
+   "published": true,
+   "district": "Narayanganj",
+   "workers": 350,
+   "sewing_machines": 96,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2571"
+   ]
+  },
+  {
+   "id": "ff5bfd8e-d642-413f-b5fc-d573232f7ea3",
+   "slug": "opex-fashions",
+   "name": "Opex Fashions Limited",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 600,
+   "sewing_machines": 326,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2238"
+   ]
+  },
+  {
+   "id": "3fbf0152-e375-450a-b665-eab23a9aaf25",
+   "slug": "opex-garments",
+   "name": "Opex Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 2150,
+   "sewing_machines": 1765,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:203"
+   ]
+  },
+  {
+   "id": "70e052b2-de11-4f97-a2e1-03a74c9b3b82",
+   "slug": "opex-industries",
+   "name": "Opex Industries Ltd.",
+   "published": true,
+   "district": "Narayanganj",
+   "workers": 470,
+   "sewing_machines": 308,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3244"
+   ]
+  },
+  {
+   "id": "0921082a-d64d-47bd-8c4b-e857dd21cd8f",
+   "slug": "opex-readywears",
+   "name": "Opex Readywears Ltd.",
+   "published": true,
+   "district": "Narayanganj",
+   "workers": 300,
+   "sewing_machines": 149,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2776"
+   ]
+  },
+  {
+   "id": "23d56618-c1fd-4d77-96c9-97eccf4ea1f4",
+   "slug": "opex-stylewear",
+   "name": "Opex Stylewear Ltd..",
+   "published": true,
+   "district": "Dhaka",
+   "workers": null,
+   "sewing_machines": null,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3796"
+   ]
+  },
+  {
+   "id": "1078daa1-333d-4493-85c7-ba76fc14c835",
+   "slug": "opex-sweater",
+   "name": "Opex Sweaters Ltd.",
+   "published": true,
+   "district": "Narayanganj",
+   "workers": 5000,
+   "sewing_machines": 2522,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3574"
+   ]
+  },
+  {
+   "id": "acd3cf75-a992-47b4-84b0-a2acda6a45bb",
+   "slug": "optimum",
+   "name": "Optimum Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 800,
+   "sewing_machines": 350,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3169"
+   ]
+  },
+  {
+   "id": "10dd0390-8f51-491f-a8a7-7b5ae4b1a8a8",
+   "slug": "orient-dresses",
+   "name": "Orient Dresses Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 600,
+   "sewing_machines": 380,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1227"
+   ]
+  },
+  {
+   "id": "dd7529ed-cdf9-4869-a288-f2743a08c334",
+   "slug": "ornate-apparels",
+   "name": "Ornate Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 350,
+   "sewing_machines": 175,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2697"
+   ]
+  },
+  {
+   "id": "859324b0-32d3-4f8d-a671-68d95a25d717",
+   "slug": "outfit-apparels",
+   "name": "Outfit Apparels Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 370,
+   "sewing_machines": 250,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4137"
+   ]
+  },
+  {
+   "id": "70a98e7f-37be-49f2-afc9-342bba9469e2",
+   "slug": "outfit-dresses",
+   "name": "Outfit Dresses Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 230,
+   "sewing_machines": 120,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4780"
+   ]
+  },
+  {
+   "id": "11bf5e79-a52c-479a-bd29-b4b6aa518fc7",
+   "slug": "outwear-fashion",
+   "name": "Outwear Fashion Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 875,
+   "sewing_machines": 539,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3328"
+   ]
+  },
+  {
+   "id": "84ec7c6d-1280-4acb-8490-f2a57396195f",
+   "slug": "pacific-export",
+   "name": "Pacific Export",
+   "published": true,
+   "district": null,
+   "workers": 400,
+   "sewing_machines": 395,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5226"
+   ]
+  },
+  {
+   "id": "90a2888b-8f1b-4fd8-8b31-010992cbfdd5",
+   "slug": "pack-saas-bd",
+   "name": "Pack-Saas (BD) Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 199,
+   "sewing_machines": 100,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5139"
+   ]
+  },
+  {
+   "id": "e364e310-a34a-4a4a-b9f8-58389add19ee",
+   "slug": "pan-pacific-sweater",
+   "name": "Pan Pacific Sweaters Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 1260,
+   "sewing_machines": 400,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3730"
+   ]
+  },
+  {
+   "id": "299628d1-37cd-47fd-a278-75f34dfd25ee",
+   "slug": "panorama-garments",
+   "name": "Panorama Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 510,
+   "sewing_machines": 350,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:609"
+   ]
+  },
+  {
+   "id": "ae182e8c-9965-4e17-b067-2c64f28ec4a8",
+   "slug": "pantaloon-jeans",
+   "name": "Pantaloon Jeans Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 400,
+   "sewing_machines": 200,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4710"
+   ]
+  },
+  {
+   "id": "3c3c1075-fc8c-413f-938f-2eee26d24bb5",
+   "slug": "panwin-garments",
+   "name": "Panwin Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 838,
+   "sewing_machines": 592,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3308"
+   ]
+  },
+  {
+   "id": "d257efde-7435-4211-b85c-3ef912418b1e",
+   "slug": "paradise-fashions",
+   "name": "Paradise Fashions (Pvt). Ltd.",
+   "published": true,
+   "district": "Narayanganj",
+   "workers": 550,
+   "sewing_machines": 262,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:415"
+   ]
+  },
+  {
+   "id": "8deb648e-3d12-4721-949c-9af68cbe75c1",
+   "slug": "paradise-hi-design",
+   "name": "Paradise Hi-Design Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 564,
+   "sewing_machines": 298,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2576"
+   ]
+  },
+  {
+   "id": "21541fbc-1cb6-41e7-b541-0c3a53022150",
+   "slug": "parents-garments",
+   "name": "Parents Garments Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 210,
+   "sewing_machines": 120,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1065"
+   ]
+  },
+  {
+   "id": "67aa09bb-479c-41b3-a55c-8255e2b77aaf",
+   "slug": "pasha-denims",
+   "name": "Pasha Denims Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 300,
+   "sewing_machines": 166,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4118"
+   ]
+  },
+  {
+   "id": "e73ac57f-1276-4794-9cc3-215f6e55ab34",
+   "slug": "passion-jeans",
+   "name": "Passion Jeans Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 523,
+   "sewing_machines": 481,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3905"
+   ]
+  },
+  {
+   "id": "5d671eb5-dea0-43e6-b0a1-3d1fed355948",
+   "slug": "patrician-knitwear",
+   "name": "Patrician Knit Wears Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 275,
+   "sewing_machines": 140,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1892"
+   ]
+  },
+  {
+   "id": "469de3d5-4602-4753-aec0-5e7f377b80e6",
+   "slug": "peerless-garments",
+   "name": "Peerless Garments Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 610,
+   "sewing_machines": 259,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6639"
+   ]
+  },
+  {
+   "id": "76b301fb-6c9a-45bc-84c0-476baf21cad5",
+   "slug": "peerless-international",
+   "name": "Peerless International Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 470,
+   "sewing_machines": 203,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2918"
+   ]
+  },
+  {
+   "id": "53aee474-c1a3-45aa-b192-a889ddcb391b",
+   "slug": "peninsula-garments",
+   "name": "Peninsula Garments Limited",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 2848,
+   "sewing_machines": 2297,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:595"
+   ]
+  },
+  {
+   "id": "67ff96ce-0f80-44b8-ab60-8c0bc3948368",
+   "slug": "perag-sock-industries",
+   "name": "Perag Sock Inds. Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 225,
+   "sewing_machines": 150,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:713"
+   ]
+  },
+  {
+   "id": "e4651de5-7a60-410f-a80f-28ebfea62e5c",
+   "slug": "pinaki-seha-industries",
+   "name": "Pinaki-Seha Inds. Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 532,
+   "sewing_machines": 234,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3863"
+   ]
+  },
+  {
+   "id": "44505426-82a8-4d5d-8c90-85ebdd5515fb",
+   "slug": "pink-maker-garments",
+   "name": "Pink Maker Garments ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 600,
+   "sewing_machines": 166,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6723"
+   ]
+  },
+  {
+   "id": "21cf0eb4-5048-4303-81ad-cacb5e455327",
+   "slug": "pioneer-dresses",
+   "name": "Pioneer Dresses Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 798,
+   "sewing_machines": 607,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1413"
+   ]
+  },
+  {
+   "id": "5d40f15f-d378-4c20-bd83-e00cc94a2ffb",
+   "slug": "platinum-garments",
+   "name": "Platinum Garments Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 600,
+   "sewing_machines": 160,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6730"
+   ]
+  },
+  {
+   "id": "8ddde3fa-5d74-4e55-917f-d75d1dbc52a8",
+   "slug": "pole-star-fashion",
+   "name": "Pole Star Fashion Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 500,
+   "sewing_machines": 204,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3001"
+   ]
+  },
+  {
+   "id": "9298e72a-d6f8-4a0b-81ce-f3daf98ad2d4",
+   "slug": "pretty-dressers",
+   "name": "Pretty Dressers Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 194,
+   "sewing_machines": 87,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2680"
+   ]
+  },
+  {
+   "id": "e291f177-afe3-4400-a63e-81c4b82dd300",
+   "slug": "pritha-fashions",
+   "name": "Pritha Fashions Ltd.",
+   "published": true,
+   "district": "Narayanganj",
+   "workers": 405,
+   "sewing_machines": 140,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4242"
+   ]
+  },
+  {
+   "id": "567b8f9d-5bc7-49da-a121-b6dc96813777",
+   "slug": "priyam-fashion",
+   "name": "Priyam Fashion Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 600,
+   "sewing_machines": 271,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2539"
+   ]
+  },
+  {
+   "id": "c4671f0b-dd09-4578-a82d-5002e5b6fa88",
+   "slug": "prostar-knitted-hats-and-gloves-manufacturing",
+   "name": "Prostar Knitted Hats & Gloves Mfg. Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 500,
+   "sewing_machines": 300,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1486"
+   ]
+  },
+  {
+   "id": "f98a2ba4-d49f-40bc-b722-1d4dc7d0b59e",
+   "slug": "q-tex-apparels",
+   "name": "Q Tex Apparels",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 170,
+   "sewing_machines": 233,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6900"
+   ]
+  },
+  {
+   "id": "d57d66ea-3e60-4e36-922a-944c8449ca90",
+   "slug": "q-and-k-apparels",
+   "name": "Q&K Apparels",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 70,
+   "sewing_machines": 65,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6245"
+   ]
+  },
+  {
+   "id": "60e008b4-0bc8-43e6-ae2f-13dc6bc400ba",
+   "slug": "quality-assured",
+   "name": "Quality Assured Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 1405,
+   "sewing_machines": 114,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3734"
+   ]
+  },
+  {
+   "id": "517d0a75-a89e-45bc-92ed-338399ba5017",
+   "slug": "rj-garments",
+   "name": "R.J. Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 190,
+   "sewing_machines": 85,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2574"
+   ]
+  },
+  {
+   "id": "880e42a1-b5ad-4c0d-aeea-5bdc20d0b1a5",
+   "slug": "rr-sweater",
+   "name": "R.R. Sweaters Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 150,
+   "sewing_machines": 120,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2490"
+   ]
+  },
+  {
+   "id": "d92a9623-5fd4-484d-b2aa-1325ddd3b8ff",
+   "slug": "radix-garments",
+   "name": "Radix Garments",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 262,
+   "sewing_machines": 150,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5766"
+   ]
+  },
+  {
+   "id": "9d4e1887-8026-4bfd-9acf-149dc355326e",
+   "slug": "ranl-designer",
+   "name": "RANL Designer Limited",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 500,
+   "sewing_machines": 375,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2414"
+   ]
+  },
+  {
+   "id": "b167e9a7-199c-4334-aa12-9ef513f93753",
+   "slug": "rao-garments-pvt-ltd-u-1",
+   "name": "Rao Garments (Pvt) Ltd. (U-1)",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 250,
+   "sewing_machines": 115,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:553"
+   ]
+  },
+  {
+   "id": "91c76acf-59c0-42c0-8458-578ea6322789",
+   "slug": "raquef-apparels-washing-and-pack-industries",
+   "name": "Raquef Apparels Washing & Pack.Inds Ltd",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 2250,
+   "sewing_machines": 975,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2943"
+   ]
+  },
+  {
+   "id": "e1eef0ef-7823-43c8-9662-f12560987ec2",
+   "slug": "recent-fashions",
+   "name": "Recent Fashions Limited",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 170,
+   "sewing_machines": 100,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2345"
+   ]
+  },
+  {
+   "id": "de2ef37d-97da-4965-8c75-a7521fdb387b",
+   "slug": "regal-garments",
+   "name": "Regal Garments Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 270,
+   "sewing_machines": 205,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:867"
+   ]
+  },
+  {
+   "id": "2576b140-217a-489a-ac6a-2edc0ffe7d66",
+   "slug": "reliance-apparel",
+   "name": "Reliance Apparel Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 160,
+   "sewing_machines": 85,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1296"
+   ]
+  },
+  {
+   "id": "80b3b1ef-cf3f-4037-ad31-dfc6af94ab34",
+   "slug": "renaissance-barind-lt",
+   "name": "Renaissance Barind Lt.",
+   "published": true,
+   "district": "Pabna",
+   "workers": 3430,
+   "sewing_machines": 1171,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6076"
+   ]
+  },
+  {
+   "id": "55461ee2-9081-441c-b8d9-91df8c95f1ec",
+   "slug": "replica-creations",
+   "name": "Replica Creations Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 950,
+   "sewing_machines": 575,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3296"
+   ]
+  },
+  {
+   "id": "15ef5397-5e10-412b-879b-1870f614a865",
+   "slug": "rhythm-apparels",
+   "name": "Rhythm Apparels Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 350,
+   "sewing_machines": 252,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2510"
+   ]
+  },
+  {
+   "id": "7b599372-ab46-4105-9b87-63dcbab37efd",
+   "slug": "rhythm-garments",
+   "name": "Rhythm Garments Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 300,
+   "sewing_machines": 142,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2091"
+   ]
+  },
+  {
+   "id": "4d61651c-6b10-43b9-afd9-7c6dfb41e6ac",
+   "slug": "richway",
+   "name": "Richway Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 16,
+   "sewing_machines": 12,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5789"
+   ]
+  },
+  {
+   "id": "b07e2343-3d60-49d2-ae93-b53f9c720774",
+   "slug": "rising-apparels",
+   "name": "Rising Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 750,
+   "sewing_machines": 406,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3020"
+   ]
+  },
+  {
+   "id": "6ce14ef7-0ebc-42fe-9715-c0201fe54c79",
+   "slug": "rl-denim",
+   "name": "RL Denim Limited",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 500,
+   "sewing_machines": 287,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2554"
+   ]
+  },
+  {
+   "id": "68b67dde-9677-4429-8768-fa60d0c507bd",
+   "slug": "rm-knitwear",
+   "name": "RM Knitwear Pvt. Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 200,
+   "sewing_machines": 103,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:7004"
+   ]
+  },
+  {
+   "id": "3833841c-357f-4655-b0ed-c76c670fdca2",
+   "slug": "rose-fashion",
+   "name": "Rose Fashion Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 4600,
+   "sewing_machines": 1333,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2568"
+   ]
+  },
+  {
+   "id": "07fc4c0e-f25a-448c-ac9d-1b8487769504",
+   "slug": "rose-valley-fashion",
+   "name": "Rose Valley Fashion Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 129,
+   "sewing_machines": 57,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6618"
+   ]
+  },
+  {
+   "id": "5929d6da-4fd6-4fa5-a0d9-a60af8ce423d",
+   "slug": "rupa-apparels",
+   "name": "Rupa Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 515,
+   "sewing_machines": 465,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2662"
+   ]
+  },
+  {
+   "id": "cd9cfb6f-5a0c-4b94-bf90-79f6d1a96845",
+   "slug": "rupa-woolwear",
+   "name": "Rupa Woolwear Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 550,
+   "sewing_machines": 350,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4055"
+   ]
+  },
+  {
+   "id": "12447c48-3aa0-4b04-a7fb-8673ccffaaa9",
+   "slug": "s-plus-composite",
+   "name": "S Plus Composite Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 320,
+   "sewing_machines": 94,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5694"
+   ]
+  },
+  {
+   "id": "d439ca4f-177f-410c-8f6c-cb437efffe9d",
+   "slug": "sa-apparel",
+   "name": "S.A. Apparel Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 216,
+   "sewing_machines": 115,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2920"
+   ]
+  },
+  {
+   "id": "b84dd2bc-f60e-495d-90c4-91d22babaa7b",
+   "slug": "sa-rahman-sweater-factory",
+   "name": "S.A. Rahman Sweater Factory Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 820,
+   "sewing_machines": 400,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3652"
+   ]
+  },
+  {
+   "id": "43719a0b-53e0-4760-b6e3-557e77f70fdb",
+   "slug": "ss-international-bd",
+   "name": "S.S. International (BD)",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 100,
+   "sewing_machines": 125,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5106"
+   ]
+  },
+  {
+   "id": "46262ffc-548d-4e3c-b735-6fdfc05124ce",
+   "slug": "saad-musa-fabrics-ltd-u-2-home-tex",
+   "name": "Saad Musa Fabrics Ltd. U-2 (Home Tex)",
+   "published": false,
+   "district": "Chattogram",
+   "workers": 250,
+   "sewing_machines": 196,
+   "building_of_another": true,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5514"
+   ]
+  },
+  {
+   "id": "5ce85e28-7888-4d6c-b496-6507be57ed7f",
+   "slug": "saad-sewing",
+   "name": "Saad Sewing Ltd.",
+   "published": true,
+   "district": "Narayanganj",
+   "workers": 220,
+   "sewing_machines": 52,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1668"
+   ]
+  },
+  {
+   "id": "16ff4900-49cd-4fde-b371-36acbee47e51",
+   "slug": "saasco-garments",
+   "name": "Saasco Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 400,
+   "sewing_machines": 250,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2618"
+   ]
+  },
+  {
+   "id": "0ac88fff-730c-45f7-a642-36137bf42b9c",
+   "slug": "sababa-apparels",
+   "name": "Sababa Apparels",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 1550,
+   "sewing_machines": 650,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3067"
+   ]
+  },
+  {
+   "id": "2177e362-3374-49e6-80b3-d8c45f831dcf",
+   "slug": "saint-garments",
+   "name": "Saint Garments Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 300,
+   "sewing_machines": 120,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:509"
+   ]
+  },
+  {
+   "id": "758eec51-656f-4c79-b857-e9260ae1efa5",
+   "slug": "salam-apparels",
+   "name": "Salam Apparels Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 495,
+   "sewing_machines": 279,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3124"
+   ]
+  },
+  {
+   "id": "005637e9-1037-4915-91a2-ad5f97f986fb",
+   "slug": "salim-and-brothers-ltd-u-2",
+   "name": "Salim & Brothers Ltd. (U-2)",
+   "published": false,
+   "district": "Chattogram",
+   "workers": 1500,
+   "sewing_machines": 852,
+   "building_of_another": true,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4775"
+   ]
+  },
+  {
+   "id": "9438441e-cd8f-4c5a-bb19-5a0bb5933f41",
+   "slug": "samin-wintermate",
+   "name": "Samin Wintermate Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 1750,
+   "sewing_machines": 1266,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3815"
+   ]
+  },
+  {
+   "id": "7b40da8e-5778-4048-8b99-e35fb2187829",
+   "slug": "sanguine-apparels",
+   "name": "Sanguine Apparels Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": null,
+   "sewing_machines": 450,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4522"
+   ]
+  },
+  {
+   "id": "b4ec4894-7c47-4d52-b21f-7dd7aae99e3e",
+   "slug": "sas-fashion-wear",
+   "name": "SAS Fashion Wear Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 820,
+   "sewing_machines": 352,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3222"
+   ]
+  },
+  {
+   "id": "0e06e643-3de3-4153-b80b-991cafa39af8",
+   "slug": "satabdi-garments",
+   "name": "Satabdi Garments",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 135,
+   "sewing_machines": 115,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:642"
+   ]
+  },
+  {
+   "id": "169cfa29-120d-4012-b978-a5f497c46f07",
+   "slug": "savannah-fashion",
+   "name": "Savannah Fashion Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 450,
+   "sewing_machines": 200,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4738"
+   ]
+  },
+  {
+   "id": "63452b27-99b6-4e4e-a8e4-44543b95d1a0",
+   "slug": "savar-shirts",
+   "name": "Savar Shirts Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 767,
+   "sewing_machines": 347,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4198"
+   ]
+  },
+  {
+   "id": "88a69099-695e-4fc6-975f-aaf5fe304159",
+   "slug": "saville-row",
+   "name": "Saville Row Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 494,
+   "sewing_machines": 584,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3561"
+   ]
+  },
+  {
+   "id": "c271b2fa-5a17-46a0-8e1a-13c7170d07a2",
+   "slug": "scandex-knitwear",
+   "name": "Scandex Knitwear Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 1700,
+   "sewing_machines": 800,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3889"
+   ]
+  },
+  {
+   "id": "c1046267-3eaf-49aa-a696-1acfd9efc15e",
+   "slug": "scandex-knitwear-ltd-u-2",
+   "name": "Scandex Knitwear Ltd. (U-2)",
+   "published": false,
+   "district": "Narayanganj",
+   "workers": 2000,
+   "sewing_machines": 1200,
+   "building_of_another": true,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4982"
+   ]
+  },
+  {
+   "id": "0c062534-8ef5-4996-9631-0afa5d0ee4bb",
+   "slug": "secotex",
+   "name": "Secotex Limited.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 400,
+   "sewing_machines": 200,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2711"
+   ]
+  },
+  {
+   "id": "36993b6e-105e-4ffe-8a80-8ca69f821a44",
+   "slug": "seema-garments",
+   "name": "Seema Garments Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 368,
+   "sewing_machines": 134,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:644"
+   ]
+  },
+  {
+   "id": "0d2c4f28-9da2-4292-9aa7-5c11029bf2d2",
+   "slug": "seha-design-bd",
+   "name": "Seha Design (BD) Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 335,
+   "sewing_machines": 117,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2884"
+   ]
+  },
+  {
+   "id": "e613b7c6-aebf-4389-bc0d-5b790177831b",
+   "slug": "seha-fashion-bd",
+   "name": "Seha Fashion (BD) Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 350,
+   "sewing_machines": 195,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3435"
+   ]
+  },
+  {
+   "id": "a713e6af-29ae-4b60-a1d0-7097879e0f25",
+   "slug": "selina-trims",
+   "name": "Selina Trims Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 219,
+   "sewing_machines": 205,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6910"
+   ]
+  },
+  {
+   "id": "08f08e54-ee97-4357-8b51-cbf0ae05c428",
+   "slug": "seo-wan-bangladesh",
+   "name": "Seo Wan Bangladesh Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 1050,
+   "sewing_machines": 764,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1730"
+   ]
+  },
+  {
+   "id": "955217e4-d167-45c2-8aa5-31456064346f",
+   "slug": "sf-globalstich",
+   "name": "SF Globalstich Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 192,
+   "sewing_machines": 140,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6680"
+   ]
+  },
+  {
+   "id": "85663542-0bce-44a0-821c-f2c3527fae8f",
+   "slug": "shaarat-fashion-wear",
+   "name": "Shaarat Fashion Wear Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 480,
+   "sewing_machines": 240,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:269"
+   ]
+  },
+  {
+   "id": "f7f7c946-9b5a-4de2-aa22-e5154a05e73d",
+   "slug": "shade-fashions-international-l",
+   "name": "Shade Fashions Int`l Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 950,
+   "sewing_machines": 500,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3560"
+   ]
+  },
+  {
+   "id": "8fff91e1-f8a1-4b08-88a2-d96cb2caf045",
+   "slug": "shah-keramat-garments",
+   "name": "Shah Keramat Garments Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 250,
+   "sewing_machines": 210,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2301"
+   ]
+  },
+  {
+   "id": "ee931e28-f04f-43dd-9470-9c885d469ea1",
+   "slug": "shah-azam-textiles",
+   "name": "Shah-Azam Textiles (Pvt.) Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 250,
+   "sewing_machines": 200,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2487"
+   ]
+  },
+  {
+   "id": "b20f2cec-7b57-41a2-a761-212c7be9c8c1",
+   "slug": "sham-knitting-and-sweater-industries",
+   "name": "Sham's Knitting  & Sweater Ind. Ltd.",
+   "published": true,
+   "district": "Narayanganj",
+   "workers": 400,
+   "sewing_machines": 200,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2615"
+   ]
+  },
+  {
+   "id": "4bf7ee7e-d381-4bfb-b982-bd79962fcf84",
+   "slug": "shamima-apparels",
+   "name": "Shamima Apparels",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 510,
+   "sewing_machines": 353,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:7179"
+   ]
+  },
+  {
+   "id": "226a37ee-0656-4fe2-85b1-e9bd3f8fd6f8",
+   "slug": "shamroz-garments",
+   "name": "Shamroz Garments (Pvt.) Ltd",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 436,
+   "sewing_machines": 282,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1609"
+   ]
+  },
+  {
+   "id": "642de045-1266-4c15-b0ee-7d26398bd0e5",
+   "slug": "shams-designs",
+   "name": "Shams Designs Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 940,
+   "sewing_machines": 515,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6234"
+   ]
+  },
+  {
+   "id": "beac247d-af6f-4241-a634-6240bcd0443f",
+   "slug": "shanghai-apparel",
+   "name": "Shanghai Apparel Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 240,
+   "sewing_machines": 180,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1722"
+   ]
+  },
+  {
+   "id": "43e440ea-e7e2-4144-8e9e-36eb5a4d330a",
+   "slug": "shanta-apparel",
+   "name": "Shanta Apparel Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 502,
+   "sewing_machines": 309,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1607"
+   ]
+  },
+  {
+   "id": "bccde3e0-e97f-47d8-8bca-0da163fad67f",
+   "slug": "shanta-garments",
+   "name": "Shanta Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 1222,
+   "sewing_machines": 744,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:176"
+   ]
+  },
+  {
+   "id": "b04401a8-8261-4c88-8978-16db4e81295f",
+   "slug": "sharoj-garments",
+   "name": "Sharoj Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 595,
+   "sewing_machines": 308,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3000"
+   ]
+  },
+  {
+   "id": "1432c018-b662-4008-98f4-8751d9a09b4d",
+   "slug": "sharpe-knitting-and-dyeing",
+   "name": "Sharpe Knitting & Dyeing Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": null,
+   "sewing_machines": 246,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2797"
+   ]
+  },
+  {
+   "id": "130c938b-96df-4466-9e3f-acd2b456e36c",
+   "slug": "sheffield",
+   "name": "Sheffield Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 219,
+   "sewing_machines": 205,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1292"
+   ]
+  },
+  {
+   "id": "cd4cdbf5-e93e-40c3-af76-e6c2ae07c9d5",
+   "slug": "shezads-limited-unit-ii",
+   "name": "Shezads Limited (Unit-II)",
+   "published": false,
+   "district": "Gazipur",
+   "workers": 498,
+   "sewing_machines": 328,
+   "building_of_another": true,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2629"
+   ]
+  },
+  {
+   "id": "f2de8bc1-be1a-4be5-ae1a-ddad0078e178",
+   "slug": "shezads",
+   "name": "Shezads Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 491,
+   "sewing_machines": 375,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1724"
+   ]
+  },
+  {
+   "id": "3a2e031f-513c-49ec-b843-7da587dd6367",
+   "slug": "shifa-apparels",
+   "name": "Shifa Apparels (Pvt.) Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 260,
+   "sewing_machines": 153,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1245"
+   ]
+  },
+  {
+   "id": "cf73ea02-e04c-4e5a-84fd-00db2319ca48",
+   "slug": "shikha-garments",
+   "name": "Shikha Garments",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 185,
+   "sewing_machines": 115,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1331"
+   ]
+  },
+  {
+   "id": "5798af55-a8b4-4bce-ae9e-85b51b8dac9b",
+   "slug": "shireen-apparels",
+   "name": "Shireen Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 170,
+   "sewing_machines": 110,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2877"
+   ]
+  },
+  {
+   "id": "d9cd64f1-6ad1-440d-acc1-eb058df24f3c",
+   "slug": "shirin-apparels",
+   "name": "Shirin Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 200,
+   "sewing_machines": 100,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2916"
+   ]
+  },
+  {
+   "id": "465bea8e-566e-4a64-b514-b7f8c90a689e",
+   "slug": "sidko-ltd-garments-division",
+   "name": "Sidko Ltd. (Garments Division)",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 455,
+   "sewing_machines": 186,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:181"
+   ]
+  },
+  {
+   "id": "3e8a09ba-9133-4582-9c58-3856716a5445",
+   "slug": "sienkee-garments",
+   "name": "Sienkee Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 1200,
+   "sewing_machines": 470,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5210"
+   ]
+  },
+  {
+   "id": "98675b2f-c6d7-4bf6-9a17-08bc826f972d",
+   "slug": "simco-dresses",
+   "name": "Simco Dresses Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 825,
+   "sewing_machines": 425,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2972"
+   ]
+  },
+  {
+   "id": "4f5c89fa-ed30-4d9b-b1ac-0fbbce358486",
+   "slug": "sinha-denimwear",
+   "name": "Sinha Denimwear Ltd.",
+   "published": true,
+   "district": "Narayanganj",
+   "workers": 2000,
+   "sewing_machines": 2916,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4388"
+   ]
+  },
+  {
+   "id": "dba850ab-3d0b-4885-8850-8f7a85b72224",
+   "slug": "sinha-designers",
+   "name": "Sinha Designers Ltd.",
+   "published": true,
+   "district": "Narayanganj",
+   "workers": 960,
+   "sewing_machines": 330,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4345"
+   ]
+  },
+  {
+   "id": "cd343a25-0dd4-44d2-b973-9e6806dc265b",
+   "slug": "sinha-fashions",
+   "name": "Sinha Fashions Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 1315,
+   "sewing_machines": 470,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1526"
+   ]
+  },
+  {
+   "id": "a13963fb-b234-4ab1-a6ca-5e8138f3a383",
+   "slug": "sinha-industries",
+   "name": "Sinha Inds. Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 350,
+   "sewing_machines": 213,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3119"
+   ]
+  },
+  {
+   "id": "901b41fe-55f7-49e4-a133-7e97c632d55e",
+   "slug": "sinha-stylewears",
+   "name": "Sinha Stylewears Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 1000,
+   "sewing_machines": 868,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3932"
+   ]
+  },
+  {
+   "id": "d236c09c-c915-4262-843a-5706a2347b8d",
+   "slug": "sinha-wool-wear",
+   "name": "Sinha Wool Wears Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 370,
+   "sewing_machines": 314,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2493"
+   ]
+  },
+  {
+   "id": "a43aef63-879b-4495-8055-eb2a14489cf0",
+   "slug": "sirina-garments-and-textiles",
+   "name": "Sirina Garments & Textiles Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 1787,
+   "sewing_machines": 1348,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3835"
+   ]
+  },
+  {
+   "id": "2f1375de-5c6e-4f8d-8cff-c46f97bb110e",
+   "slug": "sister-knitwear",
+   "name": "Sister Knitwear Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 300,
+   "sewing_machines": 125,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5459"
+   ]
+  },
+  {
+   "id": "04e1c2a2-784c-48a3-a34f-fd50a80f8379",
+   "slug": "sisters-apparel",
+   "name": "Sisters Apparel Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 450,
+   "sewing_machines": 160,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1759"
+   ]
+  },
+  {
+   "id": "a2793717-6f16-4ccc-bf99-8b672e224d1a",
+   "slug": "sky-apparels",
+   "name": "Sky Apparels Ltd.",
+   "published": true,
+   "district": "Narayanganj",
+   "workers": 1000,
+   "sewing_machines": 100,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5762"
+   ]
+  },
+  {
+   "id": "97090cca-267d-40aa-a8ad-9f83b9e4f8cf",
+   "slug": "skyline-casual-apparels",
+   "name": "Skyline Casual Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 300,
+   "sewing_machines": 150,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2733"
+   ]
+  },
+  {
+   "id": "3236a109-09a2-4225-9d00-940f0449abe3",
+   "slug": "skynet-apparels",
+   "name": "Skynet Apparels Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 605,
+   "sewing_machines": 171,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6727"
+   ]
+  },
+  {
+   "id": "75638f52-a0bd-47f4-b73f-431b4342c3d7",
+   "slug": "sma-bags",
+   "name": "SMA Bags Limited",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 510,
+   "sewing_machines": 400,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2376"
+   ]
+  },
+  {
+   "id": "e28477a1-9d44-4eaf-8bad-6a198a8b896c",
+   "slug": "snow-sky-garments",
+   "name": "Snow Sky Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 470,
+   "sewing_machines": 187,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:7196"
+   ]
+  },
+  {
+   "id": "3d2fd90e-31be-484d-b73f-22b4048e93c2",
+   "slug": "sob-apparels",
+   "name": "Sob Apparels Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 125,
+   "sewing_machines": 45,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1804"
+   ]
+  },
+  {
+   "id": "958d47fc-6626-4695-b291-567f6c4fdcf5",
+   "slug": "space-garments-industries",
+   "name": "Space Garments Industry Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 215,
+   "sewing_machines": 119,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:810"
+   ]
+  },
+  {
+   "id": "cf4d656e-81e1-4cd4-bd6a-0a81306eee2c",
+   "slug": "speedwell",
+   "name": "Speedwell Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 500,
+   "sewing_machines": 283,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:620"
+   ]
+  },
+  {
+   "id": "2e644016-baa3-4aad-8f01-2e60de2e9265",
+   "slug": "sportswear-garments",
+   "name": "Sportswear Garments Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 764,
+   "sewing_machines": 440,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1061"
+   ]
+  },
+  {
+   "id": "6c8d7520-faeb-46f0-805d-e6826b4a3a12",
+   "slug": "springful-apparels",
+   "name": "Springful Apparels Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 600,
+   "sewing_machines": 137,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6728"
+   ]
+  },
+  {
+   "id": "2b294280-3018-418c-97cd-6913a7520a18",
+   "slug": "stage-ii",
+   "name": "Stage II Limited.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 1200,
+   "sewing_machines": 700,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3365"
+   ]
+  },
+  {
+   "id": "0bb0c733-000e-4977-a34b-46d72f5a4298",
+   "slug": "standard-stitches-ltd-g-unit",
+   "name": "Standard Stitches Ltd. (G-Unit)",
+   "published": false,
+   "district": "Gazipur",
+   "workers": 1525,
+   "sewing_machines": 380,
+   "building_of_another": true,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1913"
+   ]
+  },
+  {
+   "id": "a5b76835-abd8-4267-8a77-7b4b555e532d",
+   "slug": "star-apparels",
+   "name": "Star Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 435,
+   "sewing_machines": 207,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5356"
+   ]
+  },
+  {
+   "id": "ab03796a-7e75-4293-98a9-52a59e79220e",
+   "slug": "starlight-knitwear-ltd-unit-2",
+   "name": "Starlight Knitwear Ltd. Unit-2",
+   "published": false,
+   "district": "Dhaka",
+   "workers": 408,
+   "sewing_machines": 220,
+   "building_of_another": true,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3099"
+   ]
+  },
+  {
+   "id": "d9032338-b247-4ab8-901f-c68c711adf76",
+   "slug": "starlight-knitwear",
+   "name": "Starlight Knitwears Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 712,
+   "sewing_machines": 542,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:854"
+   ]
+  },
+  {
+   "id": "0e300eaf-1647-4458-a18d-c19bc02185fc",
+   "slug": "step-two-apparels",
+   "name": "Step Two Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 485,
+   "sewing_machines": 200,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1102"
+   ]
+  },
+  {
+   "id": "6a02977c-e770-45f9-b47c-f9d9199e85e7",
+   "slug": "stitchwell-designs",
+   "name": "Stitchwell Designs Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 1494,
+   "sewing_machines": 570,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1999"
+   ]
+  },
+  {
+   "id": "8329659e-ae73-49f1-94e3-9f2e9bd0c8ee",
+   "slug": "sun-seeds-apparel",
+   "name": "Sun-Seeds Apparel Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 1050,
+   "sewing_machines": 500,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1957"
+   ]
+  },
+  {
+   "id": "f47ad263-e2e7-4d96-bd50-c8a3c1304088",
+   "slug": "sunflower-garments",
+   "name": "Sunflower Garments Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 498,
+   "sewing_machines": 324,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:318"
+   ]
+  },
+  {
+   "id": "05e0c08c-0e47-463d-8cfe-b08ef40b65ae",
+   "slug": "supasox",
+   "name": "Supasox Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 300,
+   "sewing_machines": 165,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2149"
+   ]
+  },
+  {
+   "id": "1356fd1d-c268-40a2-8ff8-32d7363513c8",
+   "slug": "supreme-apparels",
+   "name": "Supreme Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 305,
+   "sewing_machines": 176,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1083"
+   ]
+  },
+  {
+   "id": "946e987c-dadf-442e-a37f-f3d49a6d71c1",
+   "slug": "supreme-fashion-wear",
+   "name": "Supreme Fashion Wear Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 250,
+   "sewing_machines": 100,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:731"
+   ]
+  },
+  {
+   "id": "aeb30aff-1ecf-4b58-a47e-d5d235e1b4e2",
+   "slug": "supreme-smartwear",
+   "name": "Supreme Smartwear Ltd.",
+   "published": true,
+   "district": "Narayanganj",
+   "workers": 500,
+   "sewing_machines": 430,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5007"
+   ]
+  },
+  {
+   "id": "a4e7c8e0-3f41-44b6-84c5-70e46a34f271",
+   "slug": "suravee-garments",
+   "name": "Suravee Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 600,
+   "sewing_machines": 225,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:250"
+   ]
+  },
+  {
+   "id": "6920f3cd-00b6-4c07-bb3f-5808c31a7bc8",
+   "slug": "surma-apparels",
+   "name": "Surma Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 353,
+   "sewing_machines": 218,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1801"
+   ]
+  },
+  {
+   "id": "766b8f03-6adb-417e-9bde-7555831e41e7",
+   "slug": "sweater-apparels",
+   "name": "Sweater Apparels Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 400,
+   "sewing_machines": 120,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2979"
+   ]
+  },
+  {
+   "id": "00a43d7d-04a0-40d8-aee7-db1373e07be8",
+   "slug": "sweater-fashions",
+   "name": "Sweater Fashions Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 800,
+   "sewing_machines": 400,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1807"
+   ]
+  },
+  {
+   "id": "7000979d-49db-44e5-a636-2de4c38bece3",
+   "slug": "sweater-zone",
+   "name": "Sweater Zone Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 2500,
+   "sewing_machines": 1361,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4576"
+   ]
+  },
+  {
+   "id": "be5de0d0-e84b-4cc6-8a6e-430e9d1da92f",
+   "slug": "synergy-design-fashion",
+   "name": "Synergy Design Fashion (Pvt) Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 260,
+   "sewing_machines": 132,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4363"
+   ]
+  },
+  {
+   "id": "2748c811-13ee-42e8-940b-74e809e55a19",
+   "slug": "t-design",
+   "name": "T-Design Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 730,
+   "sewing_machines": 365,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4348"
+   ]
+  },
+  {
+   "id": "963f155b-e851-4a23-974f-a0b924c48a80",
+   "slug": "tsr-fashion-and-design",
+   "name": "T.S.R. Fashion & Design Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 498,
+   "sewing_machines": 300,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4478"
+   ]
+  },
+  {
+   "id": "9b5a247f-069b-4d33-bf84-26b52bbcd001",
+   "slug": "taati-fashion-apparels",
+   "name": "Taati Fashion Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 452,
+   "sewing_machines": 300,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4585"
+   ]
+  },
+  {
+   "id": "cb514fc6-b62d-4ffe-b707-525b16c85387",
+   "slug": "tanay-sweater",
+   "name": "Tanay Sweater Ltd.",
+   "published": true,
+   "district": "Narayanganj",
+   "workers": 1800,
+   "sewing_machines": 1500,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3793"
+   ]
+  },
+  {
+   "id": "65d2864e-e271-4543-8bf2-cce93429ff5a",
+   "slug": "tanni-knitwear",
+   "name": "Tanni Knitwear Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 250,
+   "sewing_machines": 135,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:899"
+   ]
+  },
+  {
+   "id": "6708d9a3-bdf6-4a03-9e6f-d0e308490b8f",
+   "slug": "taratex-bd",
+   "name": "Taratex (BD) Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 700,
+   "sewing_machines": 350,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4615"
+   ]
+  },
+  {
+   "id": "dc1df2d6-6497-4999-a2de-3cf6a5607f90",
+   "slug": "target-sweater-industries",
+   "name": "Target Sweater Inds. Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 2100,
+   "sewing_machines": 1000,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3695"
+   ]
+  },
+  {
+   "id": "8f6ffeb4-27e0-499a-a1d8-5152a409db4b",
+   "slug": "tasmia-apparels",
+   "name": "Tasmia Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 350,
+   "sewing_machines": 205,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4214"
+   ]
+  },
+  {
+   "id": "2d4b7d04-7372-483a-b475-046c0ac9d879",
+   "slug": "tasmia-fashion",
+   "name": "Tasmia Fashion Limited",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 65,
+   "sewing_machines": 115,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:7150"
+   ]
+  },
+  {
+   "id": "22abe588-5fce-47d8-9461-18bd8a18d486",
+   "slug": "tazkia-fashions",
+   "name": "Tazkia Fashions Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 370,
+   "sewing_machines": 240,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6890"
+   ]
+  },
+  {
+   "id": "64acc66a-021e-494a-8f24-a0c62380ea0a",
+   "slug": "techno-fashion",
+   "name": "Techno Fashion",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 300,
+   "sewing_machines": 200,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2769"
+   ]
+  },
+  {
+   "id": "3bc0ddc1-0cd1-4bc3-913d-f47d23cf25b0",
+   "slug": "temacos-fashion-wear",
+   "name": "Temacos Fashion Wear Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 2000,
+   "sewing_machines": 615,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4701"
+   ]
+  },
+  {
+   "id": "fd323618-7cc0-499c-aa69-9ffb91d2792d",
+   "slug": "tex-knit-international",
+   "name": "Tex Knit International",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 600,
+   "sewing_machines": 300,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4104"
+   ]
+  },
+  {
+   "id": "0325e49c-facc-4509-91e9-c21cd7a88567",
+   "slug": "tex-tailor-export-bd",
+   "name": "Tex Tailor Export (BD) Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 200,
+   "sewing_machines": 102,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4987"
+   ]
+  },
+  {
+   "id": "cf6b64b7-cdfe-44e6-9b39-c9a57ab7c29c",
+   "slug": "texas-dresses",
+   "name": "Texas Dresses Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 588,
+   "sewing_machines": 372,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2950"
+   ]
+  },
+  {
+   "id": "fbd7e1ff-c3a5-482e-ac04-e8b931d23fd5",
+   "slug": "texas-fashions",
+   "name": "Texas Fashions",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 206,
+   "sewing_machines": 170,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1740"
+   ]
+  },
+  {
+   "id": "7212b3cd-385c-415d-8e23-8a8c2933144c",
+   "slug": "that-it-garments",
+   "name": "That's It Garments Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 1272,
+   "sewing_machines": 562,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3897"
+   ]
+  },
+  {
+   "id": "6bcf8160-1930-46ac-b3d1-c4536b9a07ab",
+   "slug": "the-bottom-collections",
+   "name": "The Bottom Collections Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 1086,
+   "sewing_machines": 470,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3401"
+   ]
+  },
+  {
+   "id": "31510af8-e0f5-4f93-ab07-f58068ff4b47",
+   "slug": "the-dacca-dying-garments",
+   "name": "The Dacca Dying Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 1350,
+   "sewing_machines": 500,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:447"
+   ]
+  },
+  {
+   "id": "460e148f-31e8-43b3-abc8-f2ebc0686480",
+   "slug": "the-lucky-apparel-internationall-pte",
+   "name": "The Lucky Apparel Int.l (Pte.) Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 300,
+   "sewing_machines": 120,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:363"
+   ]
+  },
+  {
+   "id": "6389fa61-9756-4f4c-895d-38c60d2a5433",
+   "slug": "the-well-tex",
+   "name": "The Well-Tex Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 5000,
+   "sewing_machines": 2579,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4894"
+   ]
+  },
+  {
+   "id": "e9c1451e-98bb-4553-8f30-4d9661d1fc2b",
+   "slug": "tiffiny-wear",
+   "name": "Tiffiny's Wear Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 479,
+   "sewing_machines": 580,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1317"
+   ]
+  },
+  {
+   "id": "8b9af367-d78c-4879-8701-1723b2bf3784",
+   "slug": "tillottama-fashions",
+   "name": "Tillottama Fashions Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 500,
+   "sewing_machines": 233,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2826"
+   ]
+  },
+  {
+   "id": "ae609b24-2dc1-4f77-9ffe-c10cf1c948c5",
+   "slug": "tinab-fashions",
+   "name": "Tinab Fashions Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 275,
+   "sewing_machines": 100,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1476"
+   ]
+  },
+  {
+   "id": "4787ea7c-86a5-4cb2-9dad-8f33ce848c86",
+   "slug": "tip-top-fashions",
+   "name": "Tip Top Fashions Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 1022,
+   "sewing_machines": 140,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1561"
+   ]
+  },
+  {
+   "id": "3ef34956-d441-45d2-a210-89f30a704110",
+   "slug": "total-textile",
+   "name": "Total Textile Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 620,
+   "sewing_machines": 250,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5320"
+   ]
+  },
+  {
+   "id": "3d291cb3-a5b4-41fb-988f-326f6eecd1f6",
+   "slug": "toyo-composite-knit-garments",
+   "name": "Toyo Composite Knit Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 930,
+   "sewing_machines": 554,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2248"
+   ]
+  },
+  {
+   "id": "fc4fa450-5f26-4b7a-a592-0db890485121",
+   "slug": "tradescan-ltd-garments-div",
+   "name": "Tradescan Ltd.(Garments Div.)",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 300,
+   "sewing_machines": 99,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1546"
+   ]
+  },
+  {
+   "id": "e30cf098-b6d8-4dbf-91a1-90d55521944b",
+   "slug": "tricotex-sweater",
+   "name": "Tricotex Sweaters Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 4500,
+   "sewing_machines": 2225,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4270"
+   ]
+  },
+  {
+   "id": "04de9d44-ff27-4a0c-9bac-03823cc1cf0c",
+   "slug": "tropical-fashions",
+   "name": "Tropical Fashions Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 600,
+   "sewing_machines": 226,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6571"
+   ]
+  },
+  {
+   "id": "19c21f52-71f5-481d-955d-427c0018fcaf",
+   "slug": "trust-trouser",
+   "name": "Trust Trouser Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 1000,
+   "sewing_machines": 250,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3400"
+   ]
+  },
+  {
+   "id": "7f0af70a-5d9c-4a8c-ab0e-5cd2026c4d44",
+   "slug": "trutex-apparel",
+   "name": "Trutex Apparel Ltd.",
+   "published": true,
+   "district": "Netrokona",
+   "workers": 355,
+   "sewing_machines": 183,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6863"
+   ]
+  },
+  {
+   "id": "466654cb-5f15-46c0-83bb-1e4507c91240",
+   "slug": "tulaga-sweater",
+   "name": "Tulaga Sweater Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 450,
+   "sewing_machines": 800,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5505"
+   ]
+  },
+  {
+   "id": "cc81a216-9686-422a-858f-1f0156154277",
+   "slug": "tulagaon-fashions",
+   "name": "Tulagaon Fashions Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 2117,
+   "sewing_machines": 380,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1924"
+   ]
+  },
+  {
+   "id": "d20495e3-a3dd-4264-a53c-6dfa2b52228f",
+   "slug": "tusuka-washing",
+   "name": "Tusuka Washing Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 1050,
+   "sewing_machines": 440,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6117"
+   ]
+  },
+  {
+   "id": "cc95ebaa-d2a7-4afc-9706-eab9a258c487",
+   "slug": "udayan-garments",
+   "name": "Udayan Garments (Pvt.) Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 190,
+   "sewing_machines": 100,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:356"
+   ]
+  },
+  {
+   "id": "7487c8f6-572d-4a88-953c-2d313fe369c0",
+   "slug": "ukn-apparels",
+   "name": "UKN Apparels Ltd.",
+   "published": true,
+   "district": "Narayanganj",
+   "workers": 360,
+   "sewing_machines": 160,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4497"
+   ]
+  },
+  {
+   "id": "977cf9c6-1fc4-466f-9a2a-5a9961c3dac9",
+   "slug": "unibra-wear",
+   "name": "Unibra Wear Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 800,
+   "sewing_machines": 450,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2160"
+   ]
+  },
+  {
+   "id": "ec3ca9c1-d845-4ee5-a5f8-9ac40cea3efd",
+   "slug": "union-apparel",
+   "name": "Union Apparel Ltd.",
+   "published": true,
+   "district": "Narayanganj",
+   "workers": 442,
+   "sewing_machines": 200,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:833"
+   ]
+  },
+  {
+   "id": "dd08c162-00d4-4580-9db7-0ce7f552e524",
+   "slug": "union-knitwear",
+   "name": "Union Knit Wear Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 420,
+   "sewing_machines": 250,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5156"
+   ]
+  },
+  {
+   "id": "f2e5c872-0ebb-40d5-977a-572bf3d7cfed",
+   "slug": "united-fashion-bd",
+   "name": "United Fashion (BD) Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 225,
+   "sewing_machines": 80,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1824"
+   ]
+  },
+  {
+   "id": "cc49c4a0-3a00-4f50-9fcb-2f09b012b57e",
+   "slug": "united-fashion-trousers",
+   "name": "United Fashion Trousers Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 495,
+   "sewing_machines": 318,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2478"
+   ]
+  },
+  {
+   "id": "df736c5a-c2d7-4747-b344-9c953248a307",
+   "slug": "united-shirts",
+   "name": "United Shirts Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 200,
+   "sewing_machines": 100,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:837"
+   ]
+  },
+  {
+   "id": "1231aa24-bc26-4296-924e-05e43ca1d096",
+   "slug": "unity-industrial-bd",
+   "name": "Unity Industrial (BD) Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 500,
+   "sewing_machines": 1013,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3402"
+   ]
+  },
+  {
+   "id": "23da96b0-2eb6-42cb-8a05-3b1e4836be98",
+   "slug": "update-fashions",
+   "name": "Update Fashions Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 450,
+   "sewing_machines": 250,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1220"
+   ]
+  },
+  {
+   "id": "ea0f440e-7713-4443-a675-535997098074",
+   "slug": "v-mark-fashion-wear",
+   "name": "V-Mark Fashion Wear (Pvt.) Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 230,
+   "sewing_machines": 202,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1119"
+   ]
+  },
+  {
+   "id": "e1fa6e78-41df-4f19-b59e-667ec8ea7cc2",
+   "slug": "valiant-fashion-wear",
+   "name": "Valiant Fashion Wear Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 230,
+   "sewing_machines": 100,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3106"
+   ]
+  },
+  {
+   "id": "d0154632-0285-4d80-b608-4d497e5f9ffd",
+   "slug": "valiant-garments",
+   "name": "Valiant Garments Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 300,
+   "sewing_machines": 275,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:364"
+   ]
+  },
+  {
+   "id": "c5aeda75-e629-4c66-9ea1-5aed08b77048",
+   "slug": "vanguard-designers",
+   "name": "Vanguard Designers Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 1850,
+   "sewing_machines": 1365,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:5693"
+   ]
+  },
+  {
+   "id": "d99138bd-8e9d-4dcd-9734-88598b55dfc2",
+   "slug": "vanguard-fashion",
+   "name": "Vanguard Fashion Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 579,
+   "sewing_machines": 203,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2831"
+   ]
+  },
+  {
+   "id": "a961b754-2084-49cb-8647-3e6acdff6c17",
+   "slug": "vertex-apparel",
+   "name": "Vertex Apparel Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 350,
+   "sewing_machines": 180,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2879"
+   ]
+  },
+  {
+   "id": "19123e18-19a0-4010-bb32-654658f07123",
+   "slug": "vertex-fashion",
+   "name": "Vertex Fashion Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 1800,
+   "sewing_machines": 979,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1186"
+   ]
+  },
+  {
+   "id": "598f2af9-0d94-4bdb-9e7b-945b60e88989",
+   "slug": "vintage-apparels",
+   "name": "Vintage Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 520,
+   "sewing_machines": 430,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2804"
+   ]
+  },
+  {
+   "id": "0a4098bc-d724-4841-8e43-8ae01747ef4b",
+   "slug": "water-denim",
+   "name": "Water Denim Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 300,
+   "sewing_machines": 220,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4526"
+   ]
+  },
+  {
+   "id": "26102e67-7cf1-4069-b9f7-ed2ff5d82a9d",
+   "slug": "wazhico-apparels",
+   "name": "Wazhico Apparels Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 270,
+   "sewing_machines": 140,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2847"
+   ]
+  },
+  {
+   "id": "878c1c11-d0d6-440d-a09c-70786c6ce8f4",
+   "slug": "well-tex",
+   "name": "Well Tex",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 450,
+   "sewing_machines": 200,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1648"
+   ]
+  },
+  {
+   "id": "655566fe-12b7-45b2-b881-60b9c12c5cdb",
+   "slug": "western-dresses-ltd-unit-2",
+   "name": "Western Dresses Ltd. Unit-2",
+   "published": false,
+   "district": "Dhaka",
+   "workers": 408,
+   "sewing_machines": 220,
+   "building_of_another": true,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3100"
+   ]
+  },
+  {
+   "id": "5fa3e601-9d03-4e66-b165-51389e5a3f4d",
+   "slug": "white-bay-apparels",
+   "name": "White Bay Apparels Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 600,
+   "sewing_machines": 188,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6729"
+   ]
+  },
+  {
+   "id": "ca8568f7-edc0-4bce-a6d0-d799fede6b70",
+   "slug": "winter-sprint-garments",
+   "name": "Winter Sprint Garments Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 600,
+   "sewing_machines": 191,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6726"
+   ]
+  },
+  {
+   "id": "a8a7bcc1-3a0f-4a31-99e7-35f34c23be22",
+   "slug": "wintex-apparels",
+   "name": "Wintex Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 490,
+   "sewing_machines": 170,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:780"
+   ]
+  },
+  {
+   "id": "2debb252-7494-41b0-8d2b-1d947ad3f4ee",
+   "slug": "wintex-garments",
+   "name": "Wintex Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 348,
+   "sewing_machines": 131,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1632"
+   ]
+  },
+  {
+   "id": "68b3bbba-e17d-4d9c-8b5c-d6329c85985f",
+   "slug": "winwear",
+   "name": "Winwear Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 400,
+   "sewing_machines": 300,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3711"
+   ]
+  },
+  {
+   "id": "41e5c026-705c-4356-92fb-2113e6c93ea3",
+   "slug": "wisteria-textiles",
+   "name": "Wisteria Textiles Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 3600,
+   "sewing_machines": 960,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4736"
+   ]
+  },
+  {
+   "id": "323c1989-f327-4859-a783-f26ce4d62df5",
+   "slug": "yb-garments",
+   "name": "Y.B. Garments Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 1196,
+   "sewing_machines": 317,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3614"
+   ]
+  },
+  {
+   "id": "2ae53312-13f6-46b9-974a-069bcc59ff46",
+   "slug": "yk-sweater",
+   "name": "Y.K. Sweaters Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 900,
+   "sewing_machines": 400,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3671"
+   ]
+  },
+  {
+   "id": "12a136f5-4c31-419c-a078-dbd894c7bff8",
+   "slug": "yolk-apparels",
+   "name": "Yolk Apparels Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 762,
+   "sewing_machines": 488,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4282"
+   ]
+  },
+  {
+   "id": "f28bcc6c-94a3-4d14-a841-c51b29ed4fac",
+   "slug": "youngones-bd-ltd-unit-2",
+   "name": "Youngones (BD) Ltd. Unit-2",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 660,
+   "sewing_machines": 405,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2282"
+   ]
+  },
+  {
+   "id": "8f6d4c3f-69b5-468a-ae0a-a618b20699f9",
+   "slug": "youth-fashion",
+   "name": "Youth Fashion Limited",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 352,
+   "sewing_machines": 131,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2305"
+   ]
+  },
+  {
+   "id": "2efd13b1-7e8d-487b-b482-3116c7031452",
+   "slug": "youth-garments",
+   "name": "Youth Garments Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 445,
+   "sewing_machines": 167,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:219"
+   ]
+  },
+  {
+   "id": "b737ba40-1d87-4f15-a665-66214e834489",
+   "slug": "yusuf-apparel",
+   "name": "Yusuf Apparel Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 850,
+   "sewing_machines": 448,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3844"
+   ]
+  },
+  {
+   "id": "d519e9f4-813c-4ed9-a10e-13b58ef25070",
+   "slug": "zaf-sweater-and-garments",
+   "name": "Zaf Sweater  And Garments Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 180,
+   "sewing_machines": 150,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:2536"
+   ]
+  },
+  {
+   "id": "06432ff4-80f0-4344-b6b1-f316e4a0220a",
+   "slug": "zafa-garments-and-textiles",
+   "name": "Zafa Garments & Textiles Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 374,
+   "sewing_machines": 90,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:396"
+   ]
+  },
+  {
+   "id": "ef6728b7-728a-4788-bbe7-2feb709bf1f0",
+   "slug": "zahintex-industries",
+   "name": "Zahintex Industries Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 11514,
+   "sewing_machines": 5695,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3608"
+   ]
+  },
+  {
+   "id": "faccc1f0-7c23-45ce-a1d7-39c22b7a03ea",
+   "slug": "zaman-garments",
+   "name": "Zaman Garments Ltd.",
+   "published": true,
+   "district": "Chattogram",
+   "workers": 150,
+   "sewing_machines": 80,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:294"
+   ]
+  },
+  {
+   "id": "465a9122-1961-46cf-ac42-a433650421d6",
+   "slug": "zara-denim",
+   "name": "Zara Denim Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 900,
+   "sewing_machines": 600,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:6004"
+   ]
+  },
+  {
+   "id": "9539c4fb-371e-4ec7-80e1-2663c2a54d3c",
+   "slug": "zenith-fashions",
+   "name": "Zenith Fashions Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": 296,
+   "sewing_machines": 151,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:1137"
+   ]
+  },
+  {
+   "id": "784527fb-5ba8-42fc-9754-c720d37811ee",
+   "slug": "zsb-garments",
+   "name": "ZSB Garments Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 500,
+   "sewing_machines": 243,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:3096"
+   ]
+  },
+  {
+   "id": "4ee1c8ac-6219-4e90-ad28-43a7c99296e8",
+   "slug": "zuma-fashions",
+   "name": "Zuma Fashions Ltd.",
+   "published": true,
+   "district": "Gazipur",
+   "workers": 850,
+   "sewing_machines": 300,
+   "building_of_another": false,
+   "created": "2026-08-03",
+   "entries": [
+    "general:4830"
+   ]
+  }
+ ],
+ "ask": [],
+ "buying_house_without_a_register": [
+  {
+   "id": "d5715658-3672-41c0-9374-af8601ba899a",
+   "slug": "bgs",
+   "name": "BGS Limited.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": null,
+   "sewing_machines": null,
+   "building_of_another": false,
+   "created": "2026-05-19",
+   "entries": [],
+   "bgmea": "no BGMEA entry"
+  },
+  {
+   "id": "3fd69f6d-ebce-45f1-9e3b-1a5dbcbf963f",
+   "slug": "clover-collections",
+   "name": "Clover Collections Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": null,
+   "sewing_machines": null,
+   "building_of_another": false,
+   "created": "2026-05-19",
+   "entries": [],
+   "bgmea": "no BGMEA entry"
+  },
+  {
+   "id": "e3ea6aa6-7aa9-42af-b83a-d7b968c2e39b",
+   "slug": "jdk-fashion-bd",
+   "name": "JDK Fashion BD",
+   "published": true,
+   "district": "Dhaka",
+   "workers": null,
+   "sewing_machines": null,
+   "building_of_another": false,
+   "created": "2026-05-19",
+   "entries": [],
+   "bgmea": "no BGMEA entry"
+  },
+  {
+   "id": "9964552c-37f1-46ae-8a0a-0a2bfb792ba5",
+   "slug": "ms-baltimore-sourcing-bangladesh",
+   "name": "M/s. BALTIMORE SOURCING BANGLADESH",
+   "published": true,
+   "district": "Dhaka",
+   "workers": null,
+   "sewing_machines": null,
+   "building_of_another": false,
+   "created": "2026-05-19",
+   "entries": [],
+   "bgmea": "no BGMEA entry"
+  },
+  {
+   "id": "4775e8d4-7e4c-48d3-85d9-1b3f38cfc414",
+   "slug": "orba-bangladesh",
+   "name": "ORBA BANGLADESH",
+   "published": true,
+   "district": "Dhaka",
+   "workers": null,
+   "sewing_machines": null,
+   "building_of_another": false,
+   "created": "2026-05-19",
+   "entries": [],
+   "bgmea": "no BGMEA entry"
+  },
+  {
+   "id": "658df6b8-cb3a-4a26-b92b-6a36deae5c18",
+   "slug": "taha-fashion",
+   "name": "Taha Fashion",
+   "published": true,
+   "district": "Dhaka",
+   "workers": null,
+   "sewing_machines": null,
+   "building_of_another": false,
+   "created": "2026-05-19",
+   "entries": [],
+   "bgmea": "no BGMEA entry"
+  },
+  {
+   "id": "396b1829-8f3c-4081-bc7a-dd7946a8ea71",
+   "slug": "team-manufacturing",
+   "name": "Team Manufacturing Company Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": null,
+   "sewing_machines": null,
+   "building_of_another": false,
+   "created": "2026-05-19",
+   "entries": [],
+   "bgmea": "no BGMEA entry"
+  },
+  {
+   "id": "cdd247db-c4cd-4d3e-bb91-6c6143afbbcc",
+   "slug": "tex-international",
+   "name": "Tex International Ltd.",
+   "published": true,
+   "district": "Dhaka",
+   "workers": null,
+   "sewing_machines": null,
+   "building_of_another": false,
+   "created": "2026-05-19",
+   "entries": [],
+   "bgmea": "no BGMEA entry"
+  }
+ ]
+}

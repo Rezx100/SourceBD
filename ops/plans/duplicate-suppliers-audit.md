@@ -44,6 +44,7 @@ Two things the audit had to learn first, both now in the script and its tests:
   2,400 unrelated pairs looked like "the same entry".
 - `entity_type = buying_house` is the loader's default for any BGMEA row: 541 rows that hold only a
   general (manufacturer) membership carry it. A real buying house is a row holding the associate entry.
+  (Re-measured after the merges, 13 Oct 2026: 519. Count, cause and repair: `ops/plans/bgmea-entity-type.md`.)
 
 ## 3. Applied on production, 13 Oct 2026
 

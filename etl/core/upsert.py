@@ -34,7 +34,12 @@ from etl.core.normalize import (
     normalize_company_name,
     normalize_phones,
 )
-from etl.core.bgmea_identity import identity_from_member_type, parse_identity
+from etl.core.bgmea_identity import (
+    MEMBER_TYPE_ASSOCIATE,
+    MEMBER_TYPE_GENERAL,
+    identity_from_member_type,
+    parse_identity,
+)
 from etl.core.hold import plan_new_supplier, write_hold
 from etl.core.resolution_edges import apply_same_edge_canonical, ruled_different, write_edge
 from etl.core.scraper import ScrapedRecord
@@ -488,7 +493,7 @@ def _insert_supplier(
            returning id""",
         (
             slug, rec.company_name, norm,
-            rec.entity_type or _entity_type_for(rec.source_code),
+            rec.entity_type or _entity_type_for(rec),
             rec.contact_name, rec.contact_role, email, phones, rec.website,
             rec.address_raw, rec.city, rec.district, rec.source_code,
             facility_of,
@@ -696,9 +701,11 @@ def _apply_source_specific(cur, *, supplier_id: str, rec: ScrapedRecord) -> None
                     (bgmea_src,),
                 ),
                 (
+                    # The register decides: a general member is a manufacturer.
+                    # Only the associate register lists buying houses.
                     "entity_type",
                     "entity_type = case when entity_type = 'unknown' "
-                    "then 'buying_house' else entity_type end",
+                    f"then '{_entity_type_for(rec)}' else entity_type end",
                     (),
                 ),
             ]
@@ -922,8 +929,9 @@ _TIER_MAP = {
     "US_WRO": "tier5_regulatory", "ILAB": "tier5_regulatory",
 }
 
+# BGMEA is absent on purpose: it keeps two registers, and which one a record
+# came from decides (_BGMEA_ENTITY_BY_REGISTER).
 _ENTITY_DEFAULT = {
-    "BGMEA": "buying_house",
     "BKMEA": "factory",
     "BTMA": "factory",
     "RSC": "factory",
@@ -936,8 +944,24 @@ def _tier_for(code: str) -> str:
     return _TIER_MAP.get(code, "tier6_crosscheck")
 
 
-def _entity_type_for(code: str) -> str:
-    return _ENTITY_DEFAULT.get(code, "unknown")
+# General members make garments; associate members are buying houses. A BGMEA
+# default of 'buying_house' for every record turned 519 manufacturers into
+# buying houses on production (ops/plans/bgmea-entity-type.md).
+_BGMEA_ENTITY_BY_REGISTER = {
+    MEMBER_TYPE_GENERAL: "factory",
+    MEMBER_TYPE_ASSOCIATE: "buying_house",
+}
+
+
+def _entity_type_for(rec: ScrapedRecord) -> str:
+    """The entity type a source implies when the record names none.
+
+    A BGMEA record with no member type says nothing: 'unknown', never a guess.
+    """
+    if rec.source_code == "BGMEA":
+        member_type = str(rec.payload.get("bgmea_member_type") or "")
+        return _BGMEA_ENTITY_BY_REGISTER.get(member_type, "unknown")
+    return _ENTITY_DEFAULT.get(rec.source_code, "unknown")
 
 
 def _to_jsonb(payload: dict[str, Any]) -> str:
