@@ -75,8 +75,8 @@ async function savedCsv(supabase: ExportRpcClient, search: URLSearchParams, toda
       district: r.district ?? "",
       workers: w.own == null ? "" : String(w.own),
       workers_source: w.own == null ? "" : (w.ownLabel ?? ""),
-      profile_workers: w.second == null ? "" : String(w.second),
-      profile_workers_source: w.second == null ? "" : (w.secondLabel ?? ""),
+      profile_workers: w.range ?? (w.second == null ? "" : String(w.second)),
+      profile_workers_source: w.range == null && w.second == null ? "" : (w.secondLabel ?? ""),
       sources: String(r.t13_source_count ?? 0),
       // An unread list cannot say "nothing to check": the cell says it was not read.
       certificates_to_check: own.length ? own.map((c) => `${c.scheme} ${c.expiresOn.slice(0, 10)}`).join("; ") : certs.complete ? "" : "not read",

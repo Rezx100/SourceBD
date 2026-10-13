@@ -98,7 +98,8 @@ export function discoverWorkers(row: Pick<DiscoverV32Row, "employees_total" | "w
   if (!basis) return { own: row.employees_total, ownLabel: register(row.employees_total), second: null, secondLabel: null };
   const own = row.workers_own ?? null;
   const shown = row.employees_total;
-  if (row.workers_range) return { own, ownLabel: "the company and its buildings", second: null, secondLabel: null, range: rangeWords(row.workers_range) };
+  // `own` stays the sort's figure under its own words; the range carries the words for what it covers.
+  if (row.workers_range) return { own, ownLabel: register(own), second: null, secondLabel: "the company and its buildings", range: rangeWords(row.workers_range) };
   if (basis === "own" && shown === own) {
     return { own, ownLabel: register(own), second: null, secondLabel: null };
   }
@@ -252,7 +253,7 @@ export function buildDiscoverCard(
     ...(place ? [{ text: place, mark: null, icon: "address" as const }] : []),
     ...(year ? [{ text: `Est. ${year}`, mark: null, icon: "established" as const }] : []),
     ...((w.range ?? w.own) != null
-      ? [{ text: `${w.range ?? formatCount(w.own)} workers`, title: `${w.range ?? formatCount(w.own)} workers${w.ownLabel ? ` · ${w.ownLabel}` : ""}`, mark: null, icon: "workers" as const }]
+      ? [{ text: `${w.range ?? formatCount(w.own)} workers`, title: `${w.range ?? formatCount(w.own)} workers${(w.range ? w.secondLabel : w.ownLabel) ? ` · ${w.range ? w.secondLabel : w.ownLabel}` : ""}`, mark: null, icon: "workers" as const }]
       : [{
           // "Workers not on file" directly above "907 workers · …" read as a
           // contradiction; with a second figure the gap is only the record's own.
@@ -382,8 +383,9 @@ export function discoverCsvValue(row: DiscoverV32Row, today: Date): Record<strin
     // beside it so the number columns stay plain numbers a spreadsheet sums.
     workers: w.own == null ? "" : String(w.own),
     workers_source: w.own == null ? "" : (w.ownLabel ?? "on the supplier record"),
-    profile_workers: w.second == null ? "" : String(w.second),
-    profile_workers_source: w.second == null ? "" : (w.secondLabel ?? ""),
+    // A company with buildings: the range the record and the row print, in the profile's column.
+    profile_workers: w.range ?? (w.second == null ? "" : String(w.second)),
+    profile_workers_source: w.range == null && w.second == null ? "" : (w.secondLabel ?? ""),
     established: row.established_date ?? "",
     sanctioned: row.is_sanctioned ? "yes" : "no",
   };

@@ -641,13 +641,13 @@ function mockHandler(req, res) {
     }
     if (url.pathname === "/rest/v1/rpc/production_workers_display_batch") {
       // The two Discover rows, consistent with this file's profile fixture:
-      // Mother (own 1,200) is "500 across 1 of 2 sites", RSC only, so the RSC
-      // sum leaves Mother itself out; Overview Timeout (own 100) is a single
-      // site whose RSC headcount, 450, differs from its own figure. The page
-      // must headline the own figures and word the second line only from
-      // sites/includes_root.
+      // Mother filed 1,200 and its building holds 500 on the safety register,
+      // so the batch also sends `own` and `buildings` (0148) and every surface
+      // prints the range 1,200–1,700 (founder, 13 Oct 2026). Overview Timeout
+      // (own 100) is a single site whose RSC headcount, 450, differs from its
+      // own figure: it keeps its own figure with the second under it.
       return json({
-        "00000000-0000-4000-8000-000000000098": { value: 500, source: "RSC", fetched_at: null, sites: 1, includes_root: false },
+        "00000000-0000-4000-8000-000000000098": { value: 500, source: "RSC", fetched_at: null, sites: 1, includes_root: false, own: 1200, buildings: 500 },
         "00000000-0000-4000-8000-000000000099": { value: 450, source: "RSC", fetched_at: null, sites: 1, includes_root: true },
       });
     }
@@ -1717,6 +1717,7 @@ const CASES = [
     // Founder decision (24 Sep) at the boundary: the headline is the figure
     // the Workers sort orders on; the second line says what the profile's
     // figure covers, from the sites the batch summed, never a guess.
+    // 13 Oct: a company with buildings prints one range, the record's own.
     // The stub ignores the sort; the ORDER is asserted against a real
     // database by assert-0104.sql. This case asserts what each cell says.
     name: "rez-b: /app/discover table (sort=workers in the URL) headlines each supplier's own figure and words the second from its sites",
@@ -1731,11 +1732,11 @@ const CASES = [
       // Since 29 Sep the second line may break between its figure and its
       // words, never inside either.
       bodyIncludesAll: [
-        "1,200<span title=\"500 workers · across its buildings, not this record\" class=\"block text-xs text-ink-3\">500 in buildings</span>",
+        "1,200–1,700",
         // The second figure's source is a defined term (critique of 8 Oct 2026, round 3, item 5).
         "100<span title=\"450 workers · RSC inspection\" class=\"block text-xs text-ink-3\">450 <span tabindex=\"0\" data-define=\"RSC\"",
       ],
-      bodyExcludes: ["450 workers · across this record and its buildings", "Search is under heavy load"],
+      bodyExcludes: ["450 workers · across this record and its buildings", "500 in buildings", "Search is under heavy load"],
     },
   },
   {
@@ -1746,7 +1747,7 @@ const CASES = [
       status: 200,
       bodyIncludesAll: [
         "workers,workers_source,profile_workers,profile_workers_source",
-        "1200,on the supplier record,500,\"across its buildings, not this record\"",
+        "1200,on the supplier record,\"1,200–1,700\",the company and its buildings",
         "100,on the supplier record,450,RSC inspection",
       ],
     },
