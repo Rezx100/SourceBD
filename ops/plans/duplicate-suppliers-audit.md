@@ -239,10 +239,31 @@ Read after: 10,811 suppliers, 10,025 published, 744 linked buildings.
     entry of another company, `knit-export-bd`, which already shows them. **Removed 13 Oct 2026** on the
     founder's word (row copied to the same snapshot table, action `before-phones`); `knit-fashion`
     keeps the one number its own BKMEA entry gives.
-  - Seen while checking, not touched: 35 BKMEA detail pages sit under a company whose name the page
-    does not carry. About half are spellings of the same company; the rest look like another
-    company's page (F.M Knitwear under `fm-apparels`, Orion Fashions under `ripon-fashions`, Fame
-    Textile under `fame-apparels`, Asia Composite Mills under `aswad-composite-mills`).
+  - BKMEA memberships sitting under a company the register files them apart from. A first count said
+    35 pages; a fresh read after the day's other fixes, by whole membership, gives **30 profiles**.
+    **Fixed 13 Oct 2026** on the founder's word where the register is clear
+    (`ops/plans/bkmea-wrong-company-fix.sql`, snapshot `_snapshot_bkmea_pages_20261013`):
+    - **15 memberships on 14 profiles were another company's** and moved. Ten went to the existing
+      profile of that exact name: Asia Composite Mills (from `aswad-composite-mills`), C.A Knitwear,
+      two memberships (from `ca-apparels`), Eurotex Knitwear, Knit Line Fashion, Masaha Knitting &
+      Dyeing, M. M. Fashion, R. S. Knit Wear, Sensible Fashion, S. B. Knit Wear. Five became companies
+      of their own: `fm-knitwear`, `hb-apparels`, `br-knitwear`, `orion-fashions`, `seam-knitwear`.
+      The profile each one left gave up what only that membership backed and shows its own number:
+      eight had been showing another company's membership number (`aswad-composite-mills`,
+      `ca-apparels`, `knit-line`, `maa-knitting-and-dyeing-industries`, `ssb-knitwear`, `fm-apparels`,
+      `ripon-fashions`, `sm-knitwear`), and several its workers, capacity or machine count. Each pair
+      is recorded as two companies (`founder:bkmea-pages-2026-10-13`).
+    - **8 are one company spelled two ways**, left as they are: `amana-knittex`,
+      `apex-spinning-and-knitting-mills`, `badgetex-apparels`, `lida-textile-and-dyeing`,
+      `polo-composite-knit-industries`, `sarada-knitwear`, `crony-apparels`, `fair-apparels`.
+    - **8 wait for the founder**, not touched. Sister names with no profile of their own: Dream
+      Apparels on `dream-fashion`, Fame Textile on `fame-apparels`, Fariha Apparels on
+      `fariha-fashion`. A letter apart, different addresses: Pritex (Pvt) on `printex`, TN Socks &
+      Tights on `tr-socks-and-tights`, M Star Knitting on `ma-star-knitting-fashion`. Word order:
+      Garden Knit Bangladesh on `knit-garden`. Two units: `knitex-dyeing-and-printing-ltd-2` also
+      holds LTD-1's membership and shows LTD-1's number.
+    - Figures on the profiles that gave a membership up come from their own newest BKMEA page; where
+      that page has none the figure is now blank until the next register read.
 - **Internal scores of the 68 kept rows were not recomputed.** Admin-only; the next scoring run does it.
 - **The address matcher misses plain respellings** ("Khajur Bagan" / "Khejur Bagar"), so some pairs on
   the page say "the name only" while the two addresses printed beside them plainly agree.
