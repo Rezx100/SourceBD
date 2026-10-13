@@ -12,7 +12,7 @@ import type { RecordRfqRow, SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
 import { ShipmentRevealSection } from "./shipment-reveal";
 import { SitesView } from "./sites-view";
-import { certRows, keyFacts, needsLook, siteCards, staleWords, type Membership, type TabId } from "./words";
+import { certRows, keyFacts, needsLook, rscListedWords, siteCards, staleWords, type Membership, type TabId } from "./words";
 
 /**
  * The level of a panel's headings: h3 beside the results (the search owns the h1, the record's name
@@ -268,10 +268,14 @@ export function SafetyPanel({ model, level: H = "h3" }: { model: SupplierSheetMo
         <div className="flex flex-col gap-2">
           <FactChip state="notOnFile">No active RSC record on file</FactChip>
           <p className="text-base text-ink-2">
-            {model.rscBuildings.length > 0 ? `RSC covers ${names(model.rscBuildings)}: the buildings, not this record.` : "RSC publishes inspection reports for the factories it covers. This company is not one of them."}
+            {model.rscBuildings.length > 0
+              ? `RSC covers ${names(model.rscBuildings)}: the buildings, not this record.`
+              : (rscListedWords(model) ?? "RSC publishes inspection reports for the factories it covers. This company is not one of them.")}
           </p>
         </div>
       )}
+      {/* An entry RSC lists but not as active, beside one it does: said, in the register's own word. */}
+      {(model.rsc || model.rscBuildings.length > 0) && rscListedWords(model) ? <p className="text-base text-ink-2">{rscListedWords(model)}</p> : null}
       {/* A building's own row, labelled as the building's: the register published a status and up to five reports for it. */}
       {model.rscBuildingBlocks.map((b) => {
         const d = rscData(b);

@@ -21,7 +21,7 @@ import { mailHref, siteHref, telHref } from "@/components/record/contact-card";
 import { RecordView } from "@/components/record/record-view";
 import { SECTIONS, certTable, checkRows, exportTiles, headStatuses, sectionCount } from "@/components/record/desktop-words";
 import { marketOfCountry } from "@/lib/dashboard/facts";
-import { TABS, certRows, keyFacts, needsLook, parseSite, parseTab, recordSubline, sameName, sectionInView, siteCards, siteSummary, staleWords, summaryCells, tabCount } from "@/components/record/words";
+import { TABS, certRows, keyFacts, needsLook, parseSite, parseTab, recordSubline, rscListedWords, rscOwnListed, sameName, sectionInView, siteCards, siteSummary, staleWords, summaryCells, tabCount } from "@/components/record/words";
 
 const h = createElement as (type: unknown, props: object | null, ...kids: unknown[]) => ReactNode & Parameters<typeof renderToStaticMarkup>[0];
 const plain = (s: string) => s.replace(/&#x27;/g, "'").replace(/&amp;/g, "&");
@@ -1266,5 +1266,49 @@ describe("the record's minors, round 3 (critique of 8 Oct 2026, round 3, item 7)
   // Solid brand green is the primary button's (frame.test reads text and borders; this reads the phone record's fills).
   it("the phone record fills no bar or tile with solid brand green", () => {
     for (const f of ["phone-record.tsx", "line-view.tsx"]) assert.doesNotMatch(readFileSync(path.join(process.cwd(), "components", "record", f), "utf8"), /\bbg-brand\b(?!-)/, f);
+  });
+});
+
+// Data audit, 13 Oct 2026 (S1-1): 372 pages said "no RSC record" and "not on the RMG Sustainability Council's
+// list" for a factory RSC lists as Ineligible, beside its RSC number under Sources. The profile now carries the
+// register's own word for every entry that is not active (0152), and the record says it.
+describe("a factory RSC lists but not as active", () => {
+  type Listed = NonNullable<ReturnType<typeof arFashionInput>["profile"]["rsc_listed"]>;
+  const withListed = (input: ReturnType<typeof arFashionInput>, rsc_listed: Listed) => ({ ...input, profile: { ...input.profile, rsc_listed } });
+  const Q = '(?:"|&quot;)';
+
+  it("says the register's own word wherever the record said there was no RSC record", () => {
+    const m = model(withListed(arFashionInput(), [{ status: " Ineligible ", rsc_factory_id: "23490", fetched_at: "2026-10-02T04:00:00+00:00" }]));
+    assert.deepEqual(m.rscListed, [{ name: null, status: "Ineligible", ref: "23490", readDate: "2 Oct 2026" }]);
+    assert.equal(rscListedWords(m), 'RSC lists this factory as "Ineligible" (read 2 Oct 2026).');
+    const cell = summaryCells(m, TODAY).find((c) => c.key === "rsc")!;
+    assert.deepEqual([cell.value, cell.sub], ["Ineligible", "RSC's own word for this factory"]);
+    const said = new RegExp(`RSC status: Ineligible RSC lists this factory as ${Q}Ineligible${Q} \\(read 2 Oct 2026\\)\\.`);
+    for (const [where, out] of [["desktop", text(view(m, { mode: "page" }))], ["phone", text(phone(m, { mode: "page" }))]] as const) {
+      assert.match(out, said, where);
+      assert.match(out, /RSC: Ineligible/, where);
+      // Neither the old claim nor a reassurance we cannot back beside the register's status.
+      assert.doesNotMatch(out, /not on the RMG Sustainability Council|no RSC record|Not in RSC|Not in the RSC programme|Not the same as unsafe/, where);
+    }
+  });
+
+  it("names a building RSC lists as not active beside the record it does cover", () => {
+    const m = model(withListed(aboniInput(), [{ status: "Pending Closure", rsc_factory_id: "9", fetched_at: null, building_name: "Shed 2" }, { status: "  ", rsc_factory_id: "10", fetched_at: null }]));
+    assert.ok(m.rsc, "the fixture has its own active RSC row");
+    assert.equal(rscOwnListed(m), null);
+    assert.equal(rscListedWords(m), 'RSC lists Shed 2 as "Pending Closure".');
+    const said = new RegExp(`RSC lists Shed 2 as ${Q}Pending Closure${Q}\\.`);
+    assert.match(text(view(m, { mode: "page" })), said);
+    assert.match(text(phone(m, { mode: "page" })), said);
+    // Its own second entry, beside the active one, is told apart by its RSC number.
+    const twice = model(withListed(aboniInput(), [{ status: "Ineligible", rsc_factory_id: "23490", fetched_at: null }]));
+    assert.equal(rscListedWords(twice), 'RSC lists this factory a second time (RSC no. 23490) as "Ineligible".');
+  });
+
+  it("leaves a record with no such entry, or a payload older than 0152, exactly as it was", () => {
+    const m = model(arFashionInput());
+    assert.deepEqual(m.rscListed, []);
+    assert.equal(rscListedWords(m), null);
+    assert.equal(summaryCells(m, TODAY).find((c) => c.key === "rsc")!.sub, "no RSC record");
   });
 });

@@ -25,7 +25,7 @@ import { PhoneBar, PhonePanel, PhoneTabLink, PhoneTabStrip, PhoneTabs } from "./
 import { NO_CUSTOMS, UFLPA_LABEL, biggestMarket, marketShares, noCustoms, recordsEnd, rscBehind, rscCards, sanctionListRows, shortDay, uflpaLine, type RscCard, type StatusRow } from "./phone-words";
 import { ShareButton } from "./share-button";
 import { ShipmentRevealSection } from "./shipment-reveal";
-import { staleWords, type TabId } from "./words";
+import { rscListedAbsent, rscListedWords, staleWords, type TabId } from "./words";
 
 const NUM = "[font-variant-numeric:tabular-nums]";
 const TITLE = "text-lg font-medium tracking-tight text-ink";
@@ -766,6 +766,11 @@ function RscRow({ c, open }: { c: RscCard; open: boolean }) {
 function Safety({ model, level: H }: PanelProps) {
   const cards = rscCards(model);
   const behind = cards.filter(rscBehind).length;
+  const listed = rscListedAbsent(model);
+  const listedWords = rscListedWords(model);
+  if (cards.length === 0 && listed) {
+    return <Empty testId="rsc" icon={HardHat} title={listed.title} body={listed.body} note={listed.note} level={H} />;
+  }
   if (cards.length === 0) {
     return (
       <Empty
@@ -790,6 +795,7 @@ function Safety({ model, level: H }: PanelProps) {
       <div className="flex flex-col gap-0.5 pb-1">
         <H className={TITLE}>{cards.length === 1 ? "In the RSC programme" : `${cards.length} buildings in the RSC programme`}</H>
         {/* The rows' figures are a bare percentage: what it is a percentage of is said once, over them. */}
+        {listedWords ? <p className="text-base text-ink-2">{listedWords}</p> : null}
         {cards.length > 1 ? <p className="text-base text-ink-2">{many ? `Safety issues fixed, ${lead.toLowerCase()}.${behind ? ` ${behind} behind.` : ""}` : `${lead}.${behind === 2 ? " Both are behind schedule." : behind ? " One is behind schedule." : ""}`}</p> : null}
       </div>
       {many ? (

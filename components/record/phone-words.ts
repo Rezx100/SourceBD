@@ -9,7 +9,7 @@ import type { CertRowData } from "@/components/patterns";
 import { certWords, rankCerts } from "@/components/patterns/words";
 import { customsWindow, daysUntil, formatDay, formatUsdShort, tidyBuyer, type VolzaExports, type VolzaMarketName, type VolzaShipment } from "@/lib/dashboard/facts";
 import type { SupplierSheetModel } from "@/lib/dashboard/models";
-import { SANCTIONS_MAX_AGE_MS, certRows, needsLook } from "./words";
+import { SANCTIONS_MAX_AGE_MS, certRows, needsLook, rscOwnListed } from "./words";
 
 export type Tone = "caution" | "sanction" | null;
 export type StatusRow = { key: "safety" | "certificates" | "sanctions"; label: string; value: string; sub: string | null; short: string; tone: Tone };
@@ -45,8 +45,11 @@ export function phoneStatus(model: SupplierSheetModel, today: Date): StatusRow[]
   const cards = rscCards(model);
   const behind = cards.filter(rscBehind);
   const worst = cards[0] ?? null;
+  const listed = rscOwnListed(model);
   const safety: StatusRow = !worst
-    ? { key: "safety", label: "Safety", value: "Not in RSC", sub: model.rscBuildings.length ? "its buildings have a record" : null, short: "Not in RSC", tone: null }
+    ? listed
+      ? { key: "safety", label: "Safety", value: `RSC: ${listed.status}`, sub: "RSC's own word", short: `RSC: ${listed.status}`, tone: null }
+      : { key: "safety", label: "Safety", value: "Not in RSC", sub: model.rscBuildings.length ? "its buildings have a record" : null, short: "Not in RSC", tone: null }
     : {
         key: "safety",
         label: "Safety",
