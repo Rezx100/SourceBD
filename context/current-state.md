@@ -104,7 +104,7 @@ Migration file headers are NOT live status. Check here or query the database.
 | `20260805_rez98_registry_ids_bgmea_backed_only` | 5 Aug 2026 | backed-only BGMEA display |
 | `0095_buyer_supplier_profile_facility_documents` | not applied | REZ-93 |
 | `0096_facility_parent_slug` | 10 Aug 2026 | REZ-72 |
-| `0149_supplier_slug_redirects` | **not applied** | Merged duplicates' old addresses redirect. `ops/plans/0149-dry-run.md`. |
+| `0149_supplier_slug_redirects` | 13 Oct 2026 | Merged duplicates' old addresses redirect. `ops/plans/0149-dry-run.md`. |
 | `0097`–`0101` | see archive per issue | REZ-73 / REZ-114 / REZ-115 |
 | `0102_admin_queue_release` | 14 Aug 2026 | 1,282 tickets released; 48 `needs_human` open |
 | `0103_epb_detail_url_and_hscodes` | 15 Aug 2026 | EPB Open = exporter page |
