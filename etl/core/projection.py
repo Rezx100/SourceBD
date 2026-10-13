@@ -22,7 +22,8 @@ Source-exclusivity (which payload feeds which column):
 - employees_total / employees_male / employees_female: BGMEA + BKMEA
 - production_capacity_pcs_day: BKMEA only (filed without a unit; see
   ``bkmea_capacity_pcs_day``)
-- production_capacity_dozen_yearly: BGMEA only (native dozen/year)
+- production_capacity_dozen_yearly: BGMEA only (native dozen/year; see
+  ``bgmea_capacity_dozen_yearly`` for the ceiling)
 - machines_sewing: BKMEA (``bkmea_machines_sewing``) + BGMEA (``num_machines``)
 
 Callers decide whether BGMEA ``num_machines`` also requires
@@ -223,7 +224,7 @@ def value_for_column(
         if column == "machines_sewing":
             return digits_int(fields.get("num_machines"))
         if column == "production_capacity_dozen_yearly":
-            return digits_int(fields.get("production_capacity_dozen_yearly"))
+            return bgmea_capacity_dozen_yearly(fields)
         return None
 
     if source == "BKMEA":
@@ -284,3 +285,23 @@ def bkmea_capacity_pcs_day(fields: dict[str, Any]) -> int | None:
     if unit == "day":
         return capacity
     return (capacity + BKMEA_WORKING_DAYS_MONTH // 2) // BKMEA_WORKING_DAYS_MONTH
+
+
+# BGMEA states its unit ("Yearly in dozen"), so there is no unit to read. But
+# 333 of 4,045 companies (13 Oct 2026) file more dozens a year than their own
+# sewing machines could make at 250 pieces a machine a day, the top of the
+# BKMEA day band: most look like pieces filed as dozens, and which ones cannot
+# be told. Such a figure is not projected.
+BGMEA_DOZEN_YEARLY_PER_MACHINE_MAX = 6250  # 250 pieces x 300 days / 12
+
+
+def bgmea_capacity_dozen_yearly(fields: dict[str, Any]) -> int | None:
+    """BGMEA's capacity, or None when the page's own machines could not make it.
+
+    The SQL in ``ops/backfill_profile_columns.py`` mirrors this.
+    """
+    capacity = digits_int(fields.get("production_capacity_dozen_yearly"))
+    machines = digits_int(fields.get("num_machines"))
+    if capacity and machines and capacity > BGMEA_DOZEN_YEARLY_PER_MACHINE_MAX * machines:
+        return None
+    return capacity

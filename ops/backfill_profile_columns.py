@@ -432,6 +432,15 @@ SQL_STATEMENTS: list[tuple[str, str]] = [
              and (sr.fields ? 'production_capacity_dozen_yearly')
              and (sr.fields ->> 'production_capacity_dozen_yearly') ~ '^[0-9]+$'
              and nullif((sr.fields ->> 'production_capacity_dozen_yearly')::bigint, 0) is not null
+             -- More than the page's own sewing machines could make (250 pieces a
+             -- machine a day) is no candidate. Mirrors
+             -- etl.core.projection.bgmea_capacity_dozen_yearly.
+             and coalesce(
+                   case when (sr.fields ->> 'num_machines') ~ '^[0-9]{1,9}$'
+                         and (sr.fields ->> 'production_capacity_dozen_yearly') ~ '^[0-9]+$'
+                        then (sr.fields ->> 'production_capacity_dozen_yearly')::numeric
+                             <= 6250 * nullif((sr.fields ->> 'num_machines')::numeric, 0) end,
+                   true)
            order by sr.supplier_id,
                     case sr.source_tier
               when 'tier1_gov' then 1

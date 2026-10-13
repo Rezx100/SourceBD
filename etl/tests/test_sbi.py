@@ -227,6 +227,23 @@ def test_hash_changes_on_progress_change():
     assert compute_inputs_hash(a, TODAY) != compute_inputs_hash(b, TODAY)
 
 
+def test_hash_changes_when_the_calendar_alone_moves_the_score():
+    """A certificate running out, or a year of tenure passing, changes the
+    score with no input changing: the stored hash must stop matching, or the
+    runner skips the row and the profile keeps the old points."""
+    from datetime import timedelta
+
+    expiring = _base(certs=(Cert("gots", TODAY),))
+    assert compute_inputs_hash(expiring, TODAY) != compute_inputs_hash(expiring, TODAY + timedelta(days=1))
+    assert compute_sbi(expiring, TODAY).pillar3_certs > compute_sbi(expiring, TODAY + timedelta(days=1)).pillar3_certs
+
+    founded = _base(established_date=TODAY.replace(year=TODAY.year - 5) + timedelta(days=1))
+    assert compute_inputs_hash(founded, TODAY) != compute_inputs_hash(founded, TODAY + timedelta(days=1))
+
+    still_valid = _base(certs=(Cert("gots", TODAY + timedelta(days=400)),))
+    assert compute_inputs_hash(still_valid, TODAY) == compute_inputs_hash(still_valid, TODAY + timedelta(days=1))
+
+
 def test_formula_version_bump_invalidates_stored_hashes(monkeypatch):
     """Same inputs hashed under two formula versions must differ — that is
     what makes a plain (non-force) runner pass recompute every row after a
