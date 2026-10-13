@@ -2,9 +2,10 @@
 --
 -- WHY
 -- ---
--- On 13 Oct 2026, 70 duplicate supplier rows were merged into the row kept
--- (ops/plans/duplicate-suppliers-audit.md, section 3) and deleted. 61 of them
--- were published, so /suppliers/<their slug> now answers 404 where Google and
+-- On 13 Oct 2026, 166 duplicate supplier rows were merged into the row kept
+-- and deleted, in two runs (ops/plans/duplicate-suppliers-audit.md, sections 3
+-- and 5a: 70, then 96 on the founder's decisions). 152 of them were
+-- published, so /suppliers/<their slug> now answers 404 where Google and
 -- buyers' bookmarks still point: /suppliers/oishi-fashions is gone, the kept
 -- profile is /suppliers/oishi-fashion.
 --
@@ -19,7 +20,8 @@
 --    building. Both profile routes and the search's ?record= already call it
 --    when a profile is not found and send a 308 to what it returns, so no
 --    route changes (lib/facility-parent-redirect.ts).
--- 3. The 61 published slugs of 13 Oct are filled from that merge's snapshot.
+-- 3. The 152 published slugs of 13 Oct are filled from the two merges'
+--    snapshots.
 --
 -- WHY THIS IS SAFE
 -- ----------------
@@ -85,30 +87,37 @@ grant execute on function public.facility_parent_slug(text) to anon, authenticat
 comment on function public.facility_parent_slug(text) is
   'Returns the published slug an unpublished building (REZ-72) or a merged supplier''s retired slug (0149) should redirect to, or NULL. Used by profile routes to permanentRedirect before notFound(). Returns only a slug — no PII.';
 
--- The merge of 13 Oct 2026. A database that never ran it (CI, a fresh local
--- one) has no snapshot and nothing to fill.
+-- The two merges of 13 Oct 2026. A database that never ran them (CI, a fresh
+-- local one) has no snapshot and nothing to fill.
 do $fill$
 declare
+  t text;
   n bigint;
+  total bigint := 0;
 begin
-  if to_regclass('public._snapshot_dup_merge_20261013_suppliers') is null then
-    raise notice '0149: no merge snapshot here, nothing to fill';
-    return;
-  end if;
-  insert into public.supplier_slug_redirects (old_slug, supplier_id)
-  select x.slug, x.merged_into
-    from public._snapshot_dup_merge_20261013_suppliers x
-    join public.suppliers k on k.id = x.merged_into
-   where x.role = 'lose' and x.is_published
-  on conflict (old_slug) do nothing;
-  get diagnostics n = row_count;
-  -- All of them or none: a published merged row whose address did not get in
-  -- (its kept row is gone) stops the migration instead of staying a quiet 404.
-  if exists (select 1 from public._snapshot_dup_merge_20261013_suppliers x
-              where x.role = 'lose' and x.is_published
-                and not exists (select 1 from public.supplier_slug_redirects r where r.old_slug = x.slug)) then
-    raise exception '0149: a published merged row has no redirect; its kept row is missing';
-  end if;
-  raise notice '0149: % old addresses recorded', n;
+  foreach t in array array['_snapshot_dup_merge_20261013_suppliers', '_snapshot_dup_merge_20261013b_suppliers']
+  loop
+    continue when to_regclass('public.' || t) is null;
+    execute format($q$
+      insert into public.supplier_slug_redirects (old_slug, supplier_id)
+      select x.slug, x.merged_into
+        from public.%1$I x
+        join public.suppliers k on k.id = x.merged_into
+       where x.role = 'lose' and x.is_published
+      on conflict (old_slug) do nothing$q$, t);
+    get diagnostics n = row_count;
+    total := total + n;
+    -- All of them or none: a published merged row whose address did not get in
+    -- (its kept row is gone) stops the migration instead of staying a quiet 404.
+    execute format($q$
+      select count(*) from public.%1$I x
+       where x.role = 'lose' and x.is_published
+         and not exists (select 1 from public.supplier_slug_redirects r where r.old_slug = x.slug)$q$, t)
+      into n;
+    if n > 0 then
+      raise exception '0149: % published merged rows of % have no redirect; their kept rows are missing', n, t;
+    end if;
+  end loop;
+  raise notice '0149: % old addresses recorded', total;
 end
 $fill$;

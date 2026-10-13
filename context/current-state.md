@@ -117,7 +117,7 @@ Migration file headers are NOT live status. Check here or query the database.
 | `0137_volza_export_checks` | 11 Oct 2026 | Via MCP on "apply 0137"; Volza customs shipments on the record, admins and Growth/Enterprise only, rows kept one year. `ops/plans/volza-export-dry-run.md` §8. |
 | `0142_discover_customs_exports` | 11 Oct 2026 | Via MCP on "apply 0142"; search by customs exports, entitled readers only. `ops/plans/0142-dry-run.md`. |
 | `0146_volza_reveal_price_city` | **not applied** | Shipment reveal: checked price a piece, buyer city. `ops/plans/0146-dry-run.md`. |
-| `0149_supplier_slug_redirects` | **not applied** | A merged supplier’s old address redirects to the kept profile: one table, `facility_parent_slug` reads it; 61 slugs of the 13 Oct merge. No deploy needed. `ops/plans/0149-dry-run.md`. |
+| `0149_supplier_slug_redirects` | **not applied** | A merged supplier’s old address redirects to the kept profile: one table, `facility_parent_slug` reads it; 152 slugs of the two 13 Oct merges. No deploy needed. `ops/plans/0149-dry-run.md`. |
 
 Deploy-order hazard, twice hit: code that queries a new table with no
 missing-table guard crashes every ETL run if shipped before its migration.
