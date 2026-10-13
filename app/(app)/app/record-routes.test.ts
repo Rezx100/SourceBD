@@ -460,13 +460,16 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     assert.match(merged, /Latest 3 shipments Fetched 12 Oct 2026/);
     assert.match(merged, /Boys woven trouser 6203\.42 H M Hennes Mauritz Uruguay S A, Montevideo · Uruguay 2 shipments · About 275 pcs at US\$4\.55 a piece US\$1,251 89 kg/);
     assert.match(merged, /Boys woven trouser= 124 pack 6203\.42 H M Hennes Mauritz Uruguay S A · Brazil US\$1,137 80 kg/, "a row without a checked price printed one, or an empty city was printed");
-    // The band's button jumps to the section for a reader who can reveal, and only for them.
+    // No shortcut to the reveal under the export figures (founder, 13 Oct 2026: not needed; "Markets and
+    // shipments" goes to the section). The section keeps its own button, with the reader's own number.
     const band = (state: unknown) => {
       const volza = { shipments: 406, fob_usd: 21698439.68, buyers: 43, window_start: "2024-09-01", window_end: "2026-08-31", volza_name: "Hamza Clothing Ltd.", fetched_at: "2026-10-10T21:33:30+00:00", top_shipments: [] };
       given({ profile: PROFILE, hscodes: HS, rpcs: { supplier_volza_exports: { data: volza, error: null }, supplier_shipment_reveal_state: { data: state, error: null } } });
       return outcome(() => Page({ params: Promise.resolve({ slug: "hamza-clothing" }), searchParams: Promise.resolve({}) })).then(html);
     };
-    assert.match((await band({ state: "offer", shown: 15, limit: 30, used: 12 })).replace(/&amp;/g, "&"), /href="[^"]*tab=exports#recent-shipments"[^>]*>(?:<!-- -->)?See the latest (?:<!-- -->)?15 (?:<!-- -->)?shipments/);
+    const offered = await band({ state: "offer", shown: 15, limit: 30, used: 12 });
+    assert.doesNotMatch(offered, /href="[^"]*#recent-shipments"/);
+    assert.match(offered, /<button[^>]*>(?:(?!<\/button>)[\s\S])*See the latest (?:<!-- -->)?15(?:<!-- -->)? shipments/);
     assert.doesNotMatch(await band(null), /See the latest/);
   });
 

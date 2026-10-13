@@ -13,7 +13,7 @@ import { ArrowRight, ArrowUpRight, Buildings, CaretDown, CaretRight, Check, Cloc
 import type { Icon } from "@phosphor-icons/react";
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
-import { ButtonLink, Define, ring } from "@/components/kit";
+import { Define, ring } from "@/components/kit";
 import { ABSENT, CONTACT_LIMIT_WORDS, SourceMark, onFileWords } from "@/components/patterns";
 import { hasSourceMark } from "@/components/patterns/source-mark";
 import { buyersOf, customsWindow, initials, type VolzaMarketName } from "@/lib/dashboard/facts";
@@ -194,7 +194,7 @@ export function StatusStrip({ statuses, href, className }: { statuses: StatusRow
 const GRID_COLS = ["", "grid-cols-1", "grid-cols-2", "grid-cols-3", "grid-cols-2 [@container_(min-width:520px)]:grid-cols-4"];
 
 /** The export grid: four figures worked out from the customs record, each with its bar and a few words. */
-function ExportGrid({ model, today, level, href, revealHref, market, rank }: SectionProps & { href: string; revealHref: string; market: VolzaMarketName | null; rank: number | null }) {
+function ExportGrid({ model, today, level, href, market, rank }: SectionProps & { href: string; market: VolzaMarketName | null; rank: number | null }) {
   const v = model.volza;
   if (!v) return null;
   const tiles = exportTiles(v, { market, rank });
@@ -229,15 +229,6 @@ function ExportGrid({ model, today, level, href, revealHref, market, rank }: Sec
           </dl>
         </div>
         <CustomsFoot model={model} today={today} />
-        {/* The paid reveal's shortcut, as shipped: only for a reader who can reveal or already has. */}
-        {revealHref && (model.shipments?.state === "offer" || model.shipments?.state === "shown") ? (
-          <div className="px-3 pt-1">
-            <ButtonLink href={revealHref} prefetch={false}>
-              {/* The count the reader's plan shows (15 or 25), as the button under Exports says it. */}
-              See the latest {model.shipments.state === "offer" ? `${model.shipments.shown} ` : ""}shipments
-            </ButtonLink>
-          </div>
-        ) : null}
       </div>
     </Block>
   );
@@ -383,10 +374,10 @@ function Buyers({ model, today, level }: SectionProps) {
 }
 
 /** The export grid first, then the facts. The checks sit lower, under the Certificates table. */
-export function OverviewSection({ model, today, level, exportsHref, revealHref, market = null, rank = null }: SectionProps & { exportsHref: string; /** The Exports section's Recent shipments. */ revealHref: string; /** The reader's own market, when the database holds it. */ market?: VolzaMarketName | null; /** The share of exporters on record this one is bigger than, when it has been read. */ rank?: number | null }) {
+export function OverviewSection({ model, today, level, exportsHref, market = null, rank = null }: SectionProps & { exportsHref: string; /** The reader's own market, when the database holds it. */ market?: VolzaMarketName | null; /** The share of exporters on record this one is bigger than, when it has been read. */ rank?: number | null }) {
   return (
     <section id="record-overview" aria-label="Overview" className="flex scroll-mt-[calc(var(--record-offset,0px)+12px)] flex-col gap-[26px] [@container_(min-width:760px)]:gap-8">
-      <ExportGrid model={model} today={today} level={level} href={exportsHref} revealHref={revealHref} market={market} rank={rank} />
+      <ExportGrid model={model} today={today} level={level} href={exportsHref} market={market} rank={rank} />
       {model.sanctionSample ? (
         <p className="flex flex-wrap items-center gap-2 px-3 text-xs text-ink-3">
           <span className="flex h-[22px] items-center rounded border border-dashed border-line-strong px-2 font-medium text-ink">Sample state</span>
