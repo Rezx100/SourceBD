@@ -211,7 +211,8 @@ def compute_pillar4_market(inputs: SbiInputs, today: date) -> int:
 # values can never match a payload from a different version, so a plain
 # (non-force) runner pass recomputes every row exactly once. Version 2 =
 # REZ-33 (rsc_progress_pct replaces the dead rsc_fire/structural inputs).
-_FORMULA_VERSION = 2
+# Version 3 = the calendar-driven inputs are hashed (13 Oct 2026).
+_FORMULA_VERSION = 3
 
 
 @dataclass(frozen=True)
@@ -248,7 +249,14 @@ def compute_inputs_hash(inputs: SbiInputs, today: date) -> str:
         "employees_total": inputs.employees_total,
         "capacity_pcs_day": inputs.capacity_pcs_day,
         "capacity_dozen_yearly": inputs.capacity_dozen_yearly,
-        "today_year": today.year,  # cert-expiry boundary moves once per year
+        # What the calendar alone changes: which certificates are still in
+        # date, and the years in operation. Hashing only the year here left
+        # 136 scores stale on 13 Oct 2026, 105 of them still crediting a
+        # certificate that had expired since the row was written.
+        "live_cert_kinds": sorted(
+            {c.kind for c in inputs.certs if c.expires_on is not None and c.expires_on >= today}
+        ),
+        "years_in_op": _years_in_op(inputs.established_date, today),
         "_formula_version": _FORMULA_VERSION,
     }
     blob = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)

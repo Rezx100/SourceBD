@@ -489,3 +489,22 @@ def test_bkmea_capacity_sql_carries_the_same_bands() -> None:
         for unit, (low, high) in bands.items():
             assert f"cap between {low} * {base} and {high} * {base} then '{unit}'" in pcs
     assert "(cap + 12) / 25" in pcs
+
+
+def test_bgmea_capacity_beyond_its_own_machines_is_not_projected() -> None:
+    from etl.core.projection import BGMEA_DOZEN_YEARLY_PER_MACHINE_MAX, bgmea_capacity_dozen_yearly
+
+    def cap(capacity: int, machines: int | None) -> int | None:
+        return bgmea_capacity_dozen_yearly(
+            {"production_capacity_dozen_yearly": capacity, "num_machines": machines}
+        )
+
+    assert cap(72_000, 155) == 72_000  # 19 pieces a machine a day
+    assert cap(625_000, 100) == 625_000  # exactly the ceiling
+    assert cap(625_001, 100) is None
+    assert cap(9_600_000, 100) is None  # pieces filed as dozens
+    assert cap(9_600_000, None) == 9_600_000  # no machines filed: nothing to hold it against
+    assert cap(9_600_000, 0) == 9_600_000
+
+    dozen = next(sql for label, sql in SQL_STATEMENTS if "dozen_yearly" in label)
+    assert f"<= {BGMEA_DOZEN_YEARLY_PER_MACHINE_MAX} * nullif((sr.fields ->> 'num_machines')::numeric, 0)" in dozen
