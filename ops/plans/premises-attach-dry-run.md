@@ -1,6 +1,6 @@
 # Attaching sheds and units to their main company: dry run
 
-13 Oct 2026. **Not applied.** Founder's instruction the same day: "must stay: buying house, and
+**APPLIED 13 Oct 2026** on the founder's "apply the attach" (see the last section). Founder's instruction the same day: "must stay: buying house, and
 everything else must merge smartly and carefully."
 
 The plan and every row behind it are in `premises-siblings-report.md` section 6, written by
@@ -50,3 +50,13 @@ then publish those rows again; the publish guard re-checks each.
   stored short title (report section 5, option 1) built first.
 - **The loader rule.** Until `extension_base_name` knows "shed", "warehouse" and "building-2", a new
   shed in the safety register is published as a company again.
+
+## Applied, 13 Oct 2026
+
+One block through the Supabase MCP that aborts unless every count is 48: snapshot
+`public._snapshot_premises_attach_20261013` (48 rows, RLS on, no grants to anon or authenticated),
+then the update. Read after: linked rows 610 to 658, published 10,311 to 10,263.
+
+Checked for Zaheen: the main record's reader returns the sheds and their safety-register entry
+24449; the sheds' own profile returns nothing; `https://sourcebd.net/suppliers/zaheen-knitwear-limited-shed-...`
+answers 308 to `/suppliers/zaheen-knitwear`.
