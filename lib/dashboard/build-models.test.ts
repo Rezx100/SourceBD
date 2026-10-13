@@ -22,6 +22,8 @@ import {
   workersFact,
 } from "./build-models";
 import type { RecordInput } from "./build-models";
+import { discoverWorkers } from "./build-discover-row";
+import { familyRange } from "@/lib/enrich-discover-workers";
 import {
   aboniInput,
   ASWAD_U2_EXT,
@@ -194,6 +196,23 @@ describe("workersFact — a company with buildings shows its own figure", () => 
     input.workers = { value: 4000, source: "RSC", fetched_at: null };
     assert.deepEqual(workersFact(input), own(3314, "registry"));
     assert.equal(buildCard(input).meta.find((f) => /workers/.test(f.text))?.text, "3,314 workers");
+  });
+
+  it("with the database's two figures the record prints the range, and a list row built from the same figures prints the same", () => {
+    const input = aboniInput();
+    input.workers = { value: 3166, source: "RSC", fetched_at: null, own: 3314, buildings: 504 };
+    const w = workersFact(input);
+    assert.equal(w.range, "3,300–3,850");
+    assert.equal(w.source, null, "a range is no register's figure, so it carries no mark");
+    const sheet = buildSheet(input).facts.find((f) => f.label === "Workers")!;
+    assert.equal(sheet.value, "3,300–3,850");
+    assert.equal(sheet.note, null);
+    assert.equal(buildCard(input).meta.find((f) => /workers/.test(f.text))?.text, "3,300–3,850 workers");
+    assert.equal(buildTableRow(input).workersRange, "3,300–3,850");
+    // Search and Saved go through `discoverWorkers`, from the same two figures.
+    const list = discoverWorkers({ employees_total: 3166, workers_own: 3314, workers_basis: "group", workers_source: "RSC", workers_range: familyRange(3314, 504) });
+    assert.equal(list.range, w.range);
+    assert.equal(list.second, null);
   });
 
   it("a company that filed nothing of its own still shows its buildings' figure, and says so", () => {

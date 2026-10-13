@@ -3,7 +3,7 @@
 // from the RPC return + the HS batch + saved membership.
 
 import { PII_KEYS, type DiscoverV32Row, type HsBatchLine } from "@/lib/discover-v32-rpc";
-import type { WorkersBasis } from "@/lib/enrich-discover-workers";
+import { rangeWords, type WorkersBasis } from "@/lib/enrich-discover-workers";
 import type { FactWithMark, HighlightChip, SupplierCardModel, TableRowModel } from "@/lib/dashboard/models";
 import {
   certChipLabel,
@@ -80,11 +80,13 @@ export function workersBasisLabel(
  *   with words that say what it covers — taken from the batch's own account of
  *   which sites it summed, never inferred from the numbers.
  */
-export function discoverWorkers(row: Pick<DiscoverV32Row, "employees_total" | "workers_basis" | "workers_own" | "workers_source">): {
+export function discoverWorkers(row: Pick<DiscoverV32Row, "employees_total" | "workers_basis" | "workers_own" | "workers_source" | "workers_range">): {
   own: number | null;
   ownLabel: string | null;
   second: number | null;
   secondLabel: string | null;
+  /** A company with buildings: the range every surface prints in place of one figure, the record included. */
+  range?: string;
 } {
   // The headline is always suppliers.employees_total: the registers' figure,
   // or an RSC headcount filled in where they had none
@@ -96,6 +98,7 @@ export function discoverWorkers(row: Pick<DiscoverV32Row, "employees_total" | "w
   if (!basis) return { own: row.employees_total, ownLabel: register(row.employees_total), second: null, secondLabel: null };
   const own = row.workers_own ?? null;
   const shown = row.employees_total;
+  if (row.workers_range) return { own, ownLabel: "the company and its buildings", second: null, secondLabel: null, range: rangeWords(row.workers_range) };
   if (basis === "own" && shown === own) {
     return { own, ownLabel: register(own), second: null, secondLabel: null };
   }
@@ -248,8 +251,8 @@ export function buildDiscoverCard(
     { text: entityLabel(row.entity_type), mark: null, icon: row.entity_type === "buying_house" ? "buying-house" : row.entity_type === "factory" ? "factory" : "company" },
     ...(place ? [{ text: place, mark: null, icon: "address" as const }] : []),
     ...(year ? [{ text: `Est. ${year}`, mark: null, icon: "established" as const }] : []),
-    ...(w.own != null
-      ? [{ text: `${formatCount(w.own)} workers`, title: `${formatCount(w.own)} workers${w.ownLabel ? ` · ${w.ownLabel}` : ""}`, mark: null, icon: "workers" as const }]
+    ...((w.range ?? w.own) != null
+      ? [{ text: `${w.range ?? formatCount(w.own)} workers`, title: `${w.range ?? formatCount(w.own)} workers${w.ownLabel ? ` · ${w.ownLabel}` : ""}`, mark: null, icon: "workers" as const }]
       : [{
           // "Workers not on file" directly above "907 workers · …" read as a
           // contradiction; with a second figure the gap is only the record's own.
@@ -344,6 +347,7 @@ export function buildDiscoverTableRow(
     workersSecond: secondLine(w),
     workersSecondShort: workersSecondShort(w),
     workersRecord: w.second ?? w.own,
+    workersRange: w.range ?? null,
     sanctioned: card.sanctioned,
     selected: false,
     saved: Boolean(opts.saved),

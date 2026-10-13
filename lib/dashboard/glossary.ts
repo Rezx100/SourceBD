@@ -10,7 +10,7 @@ export const GLOSSARY: Readonly<Record<string, string>> = {
   Sanctions: "Whether this company or its people appear on the sanctions and watch lists SourceBD reads; \u201cNot listed\u201d is what those lists held on the day they were read.",
   Certificates: "The certificates the certification bodies list for this company, each with its own expiry date; the count is how many, the words say which need a look.",
   RSC: "The RMG Sustainability Council, the industry-led programme that inspects Bangladesh garment factories for fire, electrical and structural safety and tracks what is fixed.",
-  Workforce: "The number of production workers the company itself filed, as its registers hold it; each of its buildings is listed with its own figure on the Sites tab.",
+  Workforce: "The production workers of the company and of every building attached to it; with buildings it is a range, because a company\u2019s filed figure may or may not already count them, and each site\u2019s own figure is on the Sites tab.",
   Workers: "The number of production workers the company itself filed; where a register holds a different figure it is shown under this one, with its source.",
   Sources: "The registers, certification bodies and brand lists that filed something about this company; every fact on the record names its source.",
   // Words inside the strip and the panels.

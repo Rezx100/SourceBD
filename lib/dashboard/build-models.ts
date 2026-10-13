@@ -51,6 +51,7 @@ import {
 import { formatCardLocation } from "@/lib/format-location";
 import { heading4, hsCatalogueRow, hsExporterCount, hsPhotoSrc, hsShortLabel, photoTiles, rarestFirst } from "./hs-photos";
 import { groupWorkers, type SiteWorkerInput } from "@/lib/profile-metrics";
+import { familyRange, rangeWords } from "@/lib/enrich-discover-workers";
 import type {
   ContactCounts,
   ContactDetailsRead,
@@ -172,7 +173,7 @@ export type ProfilePayload = {
 
 export type HsLine = { code: string; description: string | null; source_url: string | null };
 
-export type WorkersDisplay = { value: number; source: "RSC" | "registry"; fetched_at?: string | null } | null;
+export type WorkersDisplay = { value: number; source: "RSC" | "registry"; fetched_at?: string | null; own?: number; buildings?: number } | null;
 
 export type RecordInput = {
   profile: ProfilePayload;
@@ -477,6 +478,8 @@ export type WorkersFact = {
    * kit can only describe. Printed bare it reads as this site's headcount.
    */
   groupUnknown: boolean;
+  /** A company with buildings: the range printed in place of `value` ("800–1,150"). */
+  range?: string;
 };
 
 function workerSites(input: RecordInput): SiteWorkerInput[] {
@@ -503,7 +506,11 @@ export function workersFact(input: RecordInput): WorkersFact {
   const sites = workerSites(input);
   const group = groupWorkers(sites);
   const batch = input.workers;
-  // A company with buildings shows its own figure, the one the search row and
+  // The database says this company has buildings with figures of their own:
+  // the workforce is a range, the same one every list prints (`familyRange`).
+  const range = familyRange(batch?.own, batch?.buildings);
+  if (range) return { value: range[1], source: null, coverage: null, excluded: [], excludesRecord: false, groupUnknown: false, range: rangeWords(range) };
+  // Without that (a database before 0148), a company with buildings shows its own figure, the one the search row and
   // the Workers sort use; each building's figure is on the Sites tab (founder,
   // 13 Oct 2026: once sheds and units were attached to their company, Anowara
   // Fashions read "822 across 2 of the 3 sites, excluded: Anowara Fashions"
@@ -647,7 +654,7 @@ function metaFacts(input: RecordInput, options: { registerNumber?: boolean } = {
     // A group sum is never printed bare: "3,166 workers" on a mother whose
     // figure is mother + buildings reads as this site's headcount.
     const cover = workersCoverageWords(w);
-    facts.push({ text: `${formatCount(w.value)} workers${cover ? ` ${cover}` : ""}`, mark: workersMark, icon: "workers" });
+    facts.push({ text: `${w.range ?? formatCount(w.value)} workers${cover ? ` ${cover}` : ""}`, mark: workersMark, icon: "workers" });
   } else missing.push("workers");
   if (!place) missing.unshift("district");
   if (options.registerNumber) {
@@ -1061,6 +1068,7 @@ export function buildTableRow(filed: RecordInput): TableRowModel {
           : "not on EPB list",
     type: entityLabel(s.entity_type),
     workers: w.value,
+    workersRange: w.range ?? null,
     // The words, not the bare coverage: the row printed "1 of the 2 sites on
     // file" and dropped the half that says the figure is entirely a
     // building's, which the card has carried since cycle 6.
@@ -1353,7 +1361,7 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
     { label: "Established", ...pendingMarks(establishedYearOf(s.established_date), filedBy("BGMEA")) },
     {
       label: "Workers",
-      ...pending(w.value !== null ? formatCount(w.value) : null, workersMark, "registers and RSC checked"),
+      ...pending(w.range ?? (w.value !== null ? formatCount(w.value) : null), workersMark, "registers and RSC checked"),
       note: workersNote(w, Boolean(options.facilities?.panel?.facilities.some((f) => f.employees_total))),
     },
     // The split the capacity tab showed, under its rule: never against an RSC
