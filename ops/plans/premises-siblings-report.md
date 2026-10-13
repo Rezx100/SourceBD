@@ -1,6 +1,6 @@
 # Sheds, extensions and units published as their own profiles: dry run
 
-Generated 2026-10-13 03:44 UTC by `ops/report_premises_siblings.py`. **Nothing was changed.** Read-only against production; the script has no apply mode.
+Generated 2026-10-13 05:50 UTC by `ops/report_premises_siblings.py`. **Nothing was changed.** Read-only against production; the script has no apply mode.
 
 ## 1. Counts
 
@@ -289,4 +289,160 @@ Whether a qualifier can be dropped depends on the other rows, not on the name: "
 **Option 2: a flag worked out live.** Store each row's base name once and let the readers count other published rows with the same base. Never out of date, but it adds a column, an index and a count to every search row, and nobody can overrule a single title.
 
 Either way the founder also picks **which qualifiers go**. Of the 73: 6 name a building (already cut from titles by PR 505 where bracketed), 34 name a unit or division, and 33 are something else: a filing note ("FOR UD"), an abbreviation ("KSI"), a group or sister-concern line. Recommended: drop buildings and units by rule, and decide the others from the list above, since "(Buying House)" or "(Spinning Mills)" can be the only words saying what the company is.
+
+## 6. The plan (founder, 13 Oct 2026: "must stay: buying house, and everything else must merge smartly and carefully")
+
+| step | profiles | what happens |
+| -- | -- | -- |
+| attach | **48** | becomes a building of its main profile: one profile on the site, the old address redirects, its own registers show on the main record under the building's name |
+| merge | **8** | one company filed twice: the main profile absorbs it (`ops/merge_duplicate_suppliers.py --pair`), which cannot be undone |
+| read | **79** | left alone: a district that differs, two main profiles, no main profile, two rows claiming one company, or a name with nothing else behind it |
+| title drops the qualifier | **72** | no data change |
+| title keeps it | **1** | "Buying House" stays |
+
+Checked on production before proposing the attach: the live record reader already shows a linked building's memberships and certificates on the main record, labelled with the building; 69 of the 610 rows linked earlier rely on it.
+
+### attach
+
+- `anupam-hosiery-industries-pvt-ltd-steel-shed` becomes a building of `anupam-hosiery-industries`
+- `arunima-apparels-ltd-building-2` becomes a building of `arunima-apparels`
+- `designer-fashion-ltd-warehouse` becomes a building of `designer-fashion`
+- `diganta-sweater-ltd-building-3` becomes a building of `diganta-sweater`
+- `farkantex-ltd-new-shed-building` becomes a building of `farkantex`
+- `hannan-fashions-ltd-ext-1` becomes a building of `hannan-fashions`
+- `ilmeeyat-apparels-limited-new-shed-no-2` becomes a building of `ilmeeyat-apparels`
+- `jamuna-denims-ltd-building-2` becomes a building of `jamuna-denims`
+- `jk-knit-composite-limited-textile-and-utility-buildings` becomes a building of `jk-knit-composite`
+- `mondol-knitwear-limited-shed` becomes a building of `mondol-knitwear`
+- `muazuddin-textile-ltd-sheds` becomes a building of `muazuddin-textile`
+- `pioneer-knitwear-bd-ltd-section-2-extension` becomes a building of `pioneer-knitwear-bd`
+- `renaissance-barind-ltd-extention` becomes a building of `renaissance-barind`
+- `sf-sweater-ltd-building-2` becomes a building of `sf-sweater`
+- `simba-fashions-ltd-plot-124` becomes a building of `simba-fashions`
+- `textown-ltd-extension-building` becomes a building of `tex-town`
+- `tm-textiles-and-garments-limited-expansion-unit` becomes a building of `tm-textiles-and-garments`
+- `unimas-sportswear-ltd-new-expansion-building` becomes a building of `unimas-sportswear`
+- `united-costume-limited-building-02` becomes a building of `united-costume`
+- `zaheen-knitwear-limited-shed-3-4-5-10-11-12-13-and-building-security-etp-and-fire-pump` becomes a building of `zaheen-knitwear`
+- `alpha-product-development-company-bd-limited-socks-and-caps-unit` becomes a building of `alpha-product-development-company-bd`
+- `ayesha-clothing-company-ltd-printing-unit` becomes a building of `ayesha-clothing`
+- `birds-a-and-z-ltd-new-unit` becomes a building of `birds-a-and-z`
+- `clifton-apparels-limited-knitting-section` becomes a building of `clifton-apparels`
+- `clifton-apparels-ltd-composite-unit` becomes a building of `clifton-apparels`
+- `emon-fashion-ltd-new-unit-2` becomes a building of `emon-fashion`
+- `fair-apparels-ltd-dyeing-section` becomes a building of `fair-apparels`
+- `fashion-forum-ltd-washing-unit` becomes a building of `fashion-forum`
+- `flamingo-fashions-limited-unit-2` becomes a building of `flamingo-fashions`
+- `islam-garments-ltd-weaving-unit` becomes a building of `islam-garments`
+- `loyal-apparels-knitting-division` becomes a building of `loyal-apparels`
+- `masco-industries-ltd-composite-unit` becomes a building of `masco-industries`
+- `nurani-dyeing-and-sweater-ltd-sw-unit` becomes a building of `nurani-dyeing-and-sweater`
+- `pioneer-denim-limited-garments-division` becomes a building of `pioneer-denim`
+- `sds-international-ltd-a-prog-textile-spg-mill` becomes a building of `sds-international`
+- `sea-blue-textile-limited-garments-division` becomes a building of `sea-blue-textile`
+- `shezads-limited-unit-ii` becomes a building of `shezads`
+- `silver-composite-textile-mills-limited-unit-1-garments` becomes a building of `silver-composite-textile-mills`
+- `smug-sweater-ltd-knitting-unit` becomes a building of `smug-sweater`
+- `talisman-ltd-new-unit` becomes a building of `talisman`
+- `urmi-garments-ltd-new-factory` becomes a building of `urmi-garments`
+- `confidence-knitwear-ltd-new` becomes a building of `confidence-knitwear`
+- `jinnat-knitwear-limited-sreepur` becomes a building of `jinnat-knitwear`
+- `kimberley-design-new` becomes a building of `kimberley-design`
+- `madinaple-fashions-craft-ltd-jamgora` becomes a building of `madinaple-fashions-craft`
+- `muazuddin-knit-fashion-new` becomes a building of `muazuddin-knit-fashion`
+- `powertex-fashions-limited-relocation` becomes a building of `powertex-fashions`
+- `vintage-denim-apparels-ltd-wet-processing` becomes a building of `vintage-denim-apparels`
+
+### merge
+
+- `rupashi-fabrics-complex-pvt-ltd-garments-division` is absorbed by `rupashi-fabrics-complex`
+- `adzi-trims-ltd-indet-group` is absorbed by `adzi-trims`
+- `article-label-and-accessories-ltd-a-sister-concern-of-r-ph-label-and-accessories` is absorbed by `article-label-and-accessories`
+- `frm-fashion-house-limited-a-concern-of-aji-group` is absorbed by `frm-fashion-house`
+- `hn-fabrics-knitting-only` is absorbed by `hn-fabrics`
+- `khan-accessories-and-packaging-co-ltd-kapco` is absorbed by `khan-accessories-and-packaging`
+- `siam-computerized-elastic-industries-ltd-mumtex` is absorbed by `siam-computerized-elastic-industries`
+- `united-colors-ltd-nt-group` is absorbed by `united-colors`
+
+### read
+
+- `chorka-textile-ltd-new-building` (a): more than one main profile shares this name; resolve those first
+- `chorka-textile-ltd-warehouse-extension` (a): more than one main profile shares this name; resolve those first
+- `toptex-sweater-ltd-annex-building` (a): link as a building of the main profile, after a look (name is the only evidence)
+- `chorka-textile-unit-3` (b1): more than one main profile shares this name; resolve those first
+- `hams-fashion-ltd-unit-1-and-2` (b1): link as a building of the main profile (facility_of)
+- `hoplun-apparel-ltd-unit-2` (b1): link as a building of the main profile, after a look (name is the only evidence)
+- `islam-garments-ltd-hosiery-div` (b1): link as a building of the main profile (facility_of)
+- `islam-garments-ltd-knitwear-division` (b1): do not link until the conflict is read
+- `islam-garments-ltd-textile-division` (b1): link as a building of the main profile (facility_of)
+- `liz-fashion-industries-ltd-shafipur-unit` (b1): link as a building of the main profile, after a look (name is the only evidence)
+- `mascom-composite-limited-garments-division` (b1): link as a building of the main profile (facility_of)
+- `saturn-textiles-ltd-woven-division` (b1): do not link until the conflict is read
+- `silver-composite-textile-mills-ltd-unit-3-textile` (b1): link as a building of the main profile (facility_of)
+- `square-denims-limited-garments-unit` (b1): link as a building of the main profile (facility_of)
+- `standard-stitches-ltd-g-unit` (b1): link as a building of the main profile (facility_of)
+- `kenpark-bangladesh-apparel-pvt-ltd-k-3` (b2): no main profile to link to; founder decides which profile is the company
+- `kenpark-bangladesh-apparel-pvt-ltd-k-5-extension` (b2): no main profile to link to; founder decides which profile is the company
+- `saad-musa-fabrics-ltd-u-2-home-tex` (b2): no main profile to link to; founder decides which profile is the company
+- `saad-musa-fabrics-ltd-u-3` (b2): no main profile to link to; founder decides which profile is the company
+- `advance-world-limited-new` (d): read first; RSC lists them as two, so a link if they are one company
+- `akr-fashions-ltd-new` (d): read first; RSC lists them as two, so a link if they are one company
+- `anowara-fashions-ltd-anowara-group` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `anowara-fashions-ltd-habib-group` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `apparels-village-ltd-shirts` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `arrival-fashion-limited-bhaluka` (d): read first; RSC lists them as two, so a link if they are one company
+- `atashi-fashion-ltd-new` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `badhan-knit-fashion-ltd-new` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `besta-apparels-new` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `besta-apparels-urf` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `bestec-bd-limited-new` (d): read first; RSC lists them as two, so a link if they are one company
+- `bhuyan-warmtex-pvt-ltd-re-opened` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `bsa-garments-industries-pvt-ltd-hu` (d): read first; BGMEA lists them as two, so a link if they are one company
+- `ca-knitwear-ltd-relocation` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `consumer-knitex-limited-cmt-bangladesh` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `cosmopolitan-industries-pvt-ltd-epic` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `dana-sweater-industries-ltd-new` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `dress-and-dismatic-pvt-ltd-al-muslim-group` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `dressmen-fashion-wear-limited-new` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `dynamic-sweater-industries-limited-dhaka-sweater` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `epyllion-knitwear-limited-madanpur-project` (d): read first; RSC lists them as two, so a link if they are one company
+- `essential-clothing-ltd-nagchala-campus` (d): read first; RSC lists them as two, so a link if they are one company
+- `export-printing-and-accessories-ltd-e-pac` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `fashion-asia-ltd-relocation` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `fashion-knit-garments-ltd-pride` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `gtc-international-a-sister-concern-of-g-tex-link` (d): read first; OEKO_TEX lists them as two, so a link if they are one company
+- `international-classic-composite-ltd-iccl` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `intimate-attire-ltd-mahdeen-group` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `karupannya-rangpur-ltd-rmpc` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `kc-apparels-ltd-bscic` (d): read first; BKMEA lists them as two, so a link if they are one company
+- `knit-asia-limited-ratanpur` (d): read first; RSC lists them as two, so a link if they are one company
+- `knit-asia-limited-shafipur` (d): read first; RSC lists them as two, so a link if they are one company
+- `majumder-garments-ltd-relocation` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `masco-industries-ltd-composite-knit-garments` (d): read first; BKMEA, OEKO_TEX lists them as two, so a link if they are one company
+- `mehnaz-styles-and-craft-ltd-new` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `mg-shirtex-ltd-dhakkhin-khan-previously-the-rose-garments-designers` (d): read first; RSC lists them as two, so a link if they are one company
+- `mohsin-knitwear-limited-18169` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `nafa-apparels-ltd-former-palmal-knitwear-factory` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `nightingale-fashion-ltd-a75-76` (d): read first; RSC lists them as two, so a link if they are one company
+- `noor-aowsaf-pvt-limited-brand-name-spider-interlining` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `northern-clothing-ltd-cidatex-apparel` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `ornate-international-ltd-lim` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `reedisha-texstripe-ltd-yarn-dyeing` (d): read first; OEKO_TEX lists them as two, so a link if they are one company
+- `regency-three-ltd-r-5` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `rehash-accessories-and-sourcing-ltd-a-sister-concern-of-sharif-enterprise` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `saadatia-sweater-ltd-new` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `safaa-sweater-ltd-safaa-sewing` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `sb-knit-composite-6-storied-dyeing-and-printing` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `sewtech-fashions-limited-sfb-11` (d): read first; RSC lists them as two, so a link if they are one company
+- `space-sweater-ltd-jogitala` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `sq-celsius-limited-a-concern-of-sq-group` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `sq-celsius-ltd-auto` (d): read first; RSC lists them as two, so a link if they are one company
+- `suhcheon-company-bd-ltd-new` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `sundry-wear-ltd-new` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `tanima-knit-composite-ltd-jk-group` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `tusuka-apparels-ltd-relocation` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `utah-knitting-and-dyeing-ltd-gd` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `waymart-apparels-limited-old-name-peninsula-dresses-international` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `yagi-bangladesh-garments-limited-ybg` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
+- `za-apparels-ltd-jacket-fty` (d): read first; no register holds both, so likely one company filed twice: merge only on the founder's yes
 
