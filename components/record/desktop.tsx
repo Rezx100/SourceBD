@@ -43,7 +43,7 @@ import {
 import { RecordRfqs, productItems, sourceGroups } from "./panels";
 import { NO_CUSTOMS, UFLPA_LABEL, marketShares, noCustoms, recordsEnd, sanctionListRows, uflpaLine, type StatusRow } from "./phone-words";
 import { ShipmentRevealSection } from "./shipment-reveal";
-import { staleWords, type TabId } from "./words";
+import { rscListedAbsent, rscListedWords, staleWords, type TabId } from "./words";
 
 /** The level of a section's heading: h2 on the record's own page (the name is the h1), h3 in a pane. */
 export type Level = "h2" | "h3";
@@ -830,6 +830,14 @@ function SafetyRow({ b }: { b: SafetyLine }) {
 
 export function SafetySection({ model, today, level }: SectionProps) {
   const lines = safetyLines(model, today);
+  const listed = rscListedAbsent(model);
+  if (lines.length === 0 && listed) {
+    return (
+      <Section id="safety" title="Safety" level={level}>
+        <Absent title={listed.title} body={listed.body} note={listed.note} />
+      </Section>
+    );
+  }
   if (lines.length === 0) {
     return (
       <Section id="safety" title="Safety" level={level}>
@@ -842,7 +850,7 @@ export function SafetySection({ model, today, level }: SectionProps) {
     );
   }
   return (
-    <Section id="safety" title="Safety" count={lines.length} sub={safetyLead(lines)} level={level}>
+    <Section id="safety" title="Safety" count={lines.length} sub={[safetyLead(lines), rscListedWords(model)].filter(Boolean).join(" ") || null} level={level}>
       <div role="table" aria-label="RSC buildings" className={cn("flex flex-col", NUM)}>
         <div role="rowgroup">
           <div role="row" className={cn(RSC_COLS, "h-8 border-b border-line px-3 text-xs font-medium text-ink-3")}>

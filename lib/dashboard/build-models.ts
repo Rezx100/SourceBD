@@ -139,6 +139,8 @@ export type ProfileRsc = {
   fetched_at?: string | null;
   building_name?: string | null;
 };
+/** 0152: an RSC entry whose register status is not "active", with the register's own word. */
+export type ProfileRscListed = { status: string; rsc_factory_id: string | null; fetched_at: string | null; building_name?: string | null };
 export type ProfileBrand = {
   source_code: string;
   display_name: string;
@@ -165,6 +167,8 @@ export type ProfilePayload = {
   pills: ProfilePill[];
   certifications: ProfileCert[];
   rsc_remediation: ProfileRsc | ProfileRsc[] | null;
+  /** Absent from a payload older than 0152. */
+  rsc_listed?: ProfileRscListed[] | null;
   brand_attributions: ProfileBrand[];
   provenance: ProfileProvenance[];
   addresses?: ProfileAddress[];
@@ -1483,6 +1487,9 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
         }
       : null,
     rscBuildings: buildings.map((b) => b.building_name ?? "building"),
+    rscListed: (p.rsc_listed ?? [])
+      .filter((l) => Boolean(l.status?.trim()))
+      .map((l) => ({ name: l.building_name ?? null, status: l.status.trim(), ref: l.rsc_factory_id ?? null, readDate: formatDay(l.fetched_at) })),
     // Each building's own row, labelled. The mother's block stays the mother's
     // (cycle 4); showing nothing at all for a record whose only RSC record is a
     // building's hid every safety receipt the register published for it.
