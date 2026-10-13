@@ -1,7 +1,12 @@
 # 0149 dry run: old addresses of merged duplicates (13 Oct 2026, production, rolled back)
 
-Migration `supabase/migrations/0149_supplier_slug_redirects.sql`. **Not applied.** It waits for the
-founder's "apply 0149".
+Migration `supabase/migrations/0149_supplier_slug_redirects.sql`. **Applied 13 Oct 2026** on the
+founder's "apply 0149", through the Supabase MCP, recorded as `20261013090432`. The rehearsal was run
+once more just before, on the file as it stands on `development` (`7c975b9`), with the block below
+unchanged. Read straight after: 166 redirect rows, all 166 answer their kept profile, 0 of the 744
+linked buildings answer differently, the table is closed to the public key. On the live site, with
+no deploy: `/suppliers/oishi-fashions` answers 308 to `/suppliers/oishi-fashion`,
+`/suppliers/crony-fashions` 308 to `/suppliers/crony-apparels`, and `/suppliers/oishi-fashion` 200.
 
 ## The problem
 

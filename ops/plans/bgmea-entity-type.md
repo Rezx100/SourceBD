@@ -1,7 +1,8 @@
 # Manufacturers shown as buying houses: the count, the cause, the plan
 
 Found 13 Oct 2026 by the duplicate audit (`ops/plans/duplicate-suppliers-audit.md`, PR #511, the
-whole-table duplicate audit). Nothing in this file has been applied to production.
+whole-table duplicate audit). **Applied on production 13 Oct 2026** on the founder's go-ahead; see
+section 6. Sections 1 to 5 are as written before the apply.
 
 Measured by `ops/report_bgmea_entity_type.py` (read-only). The rows are in
 `ops/plans/bgmea-entity-type.json`; the fix is `ops/plans/bgmea-entity-type-fix.sql`.
@@ -126,3 +127,23 @@ python ops/report_bgmea_entity_type.py --sql ops/plans/bgmea-entity-type-fix.sql
 Needs `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (GET requests only). On 13 Oct 2026 it was run
 with `--cache` on rows pulled through the Supabase SQL endpoint instead: the same three reads
 (suppliers, BGMEA entries, live locks on the type), judged by the script.
+
+## 6. Applied on production, 13 Oct 2026
+
+Founder: "apply the buying house fix". One block through the Supabase SQL endpoint: the rehearsed block
+without its closing raise, the ids computed by the rule and required to equal the file's list (the same
+md5), and refusing unless the counts equalled the rehearsal's (519 rows, 1,981 buying houses before,
+1,454 of them holding an associate entry).
+
+Read after:
+
+- `_snapshot_entity_type_20261013`: 519 rows, every one a buying house as it was; RLS on, anon and
+  authenticated cannot read it.
+- all 519 are now `factory`; buying houses 1,981 to 1,462; factories 8,830 to 9,349; suppliers 10,811
+  and published 10,025, unchanged.
+- buying houses holding an associate entry: 1,454 before and after. Rows marked buying house on a
+  manufacturer's entry alone: 0.
+- the 8 GOTS traders and the 77 factories holding an associate entry were not touched.
+
+The loader fix merged the same day (PR #514, the register decides the type), so the next BGMEA read
+cannot undo this. The undo in section 4 still stands.
