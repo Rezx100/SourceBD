@@ -595,16 +595,23 @@ describe("the narrow list and the phone's rows", () => {
   it("on a phone a row opens the record as a page, and the way back is in the address", () => {
     const out = plain(h(PhoneRows, { rows }));
     assert.ok(out.includes('href="/app/suppliers/aboni-knitwear?back=%2Fapp%2Fdiscover%3Fq%3Dknit"'));
-    // Paper page 36, `search-results`: where it is and its sources under the name, the bookmark at the row's end.
-    assert.ok(out.includes("Dhaka · 11 sources"));
     assert.match(out, /<button[^>]*aria-pressed="false"[^>]*>/, "a row's bookmark saves it");
-    // Founder, 12 Oct 2026: the live rows drew the bodies' marks where the board has a line of words.
-    // The worst certificate is said, amber when it has lapsed, inside the row's link; no mark, no button.
-    assert.match(out, /<span class="font-medium text-caution">WRAP expired 29 Sep<\/span>/);
-    assert.doesNotMatch(out, /aria-haspopup="dialog"|<img/, "a phone's row draws the certificate marks");
-    // A supplier with no certificate says so in words: a dash alone on a phone row does not say what is missing.
-    assert.match(out, /<span class="text-sm text-ink-3">No certificates on file<\/span>/);
+    // Paper page 36, `search-results`, approved 13 Oct 2026: under the name, what it makes; then where it is, the
+    // record's own worker figure and whose supplier lists name it; the export value only where customs records
+    // exist; the markets as codes, biggest first, with the marks of the certificates held today at the row's end.
+    const said = (r: Partial<ResultRow>) => plain(h(PhoneRows, { rows: [row(r)] })).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
+    const full = { products: { shown: ["Knit T-shirt", "Polo shirt"], more: 8 }, brands: ["H&M", "NEXT"], exported: { value: "US$76.6m", to: ["EU", "US", "UK", "CA"] }, workers: "2,402", workersRecord: "4,624" };
+    assert.match(said(full), /Knit T-shirt, Polo shirt \+8 Dhaka 4,624 workers H&M, NEXT US\$76\.6m exported, 2 years Ships to the EU, the US, the UK and Canada .*Certificates held: \w/);
+    // Founder, 13 Oct 2026: the row shows the figure the record shows (Square Apparels: 4,624, never the list's 2,402).
+    assert.doesNotMatch(said(full), /2,402/);
+    assert.match(said({ ...full, workersRecord: undefined }), /2,402 workers/);
+    // Gone: the count of sources, the certificate status line, and any certificate that has ended.
+    assert.doesNotMatch(out, /\d+ sources?\b|expired|No certificates on file|aria-haspopup="dialog"/);
     assert.doesNotMatch(out, />–</);
+    // No customs record on file: no figure and no codes. A record the plan does not include: said so, with neither.
+    assert.doesNotMatch(said({ ...full, exported: null }), /exported|Ships to/);
+    assert.match(said({ ...full, exported: "locked" }), /On Growth/);
+    assert.doesNotMatch(said({ ...full, exported: "locked" }), /US\$|Ships to/);
     assert.doesNotMatch(out, /<a [^>]*>(?:(?!<\/a>)[\s\S])*<button/, "a button inside the link");
     assert.match(out, /<a [^>]*class="[^"]*after:inset-0/, "the link does not cover the row");
   });

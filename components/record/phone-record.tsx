@@ -6,23 +6,23 @@
 // month-by-month chart, a buyer's share, a line's share) are not drawn, and customs figures are per
 // supplier and per market, never per HS code. Server-safe; the tabs are the only script.
 
-import { ArrowUpRight, CaretDown, CaretRight, Clock, Factory, FileText, HardHat, Hourglass, ListChecks, Lock, MapPin, Package, ShieldCheck, Storefront, WarningOctagon, X } from "@phosphor-icons/react/dist/ssr";
+import { ArrowUpRight, CaretDown, CaretRight, Clock, Factory, FileText, HardHat, Hourglass, Lock, MapPin, Package, ShieldCheck, Storefront, WarningOctagon, X } from "@phosphor-icons/react/dist/ssr";
 import type { Icon } from "@phosphor-icons/react";
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
-import { CertChip, Skeleton, ring } from "@/components/kit";
+import { Skeleton, ring } from "@/components/kit";
 import { ABSENT, CONTACT_LIMIT_WORDS, SourceMark, onFileWords } from "@/components/patterns";
-import { certShort } from "@/components/patterns/words";
+import { hasSourceMark } from "@/components/patterns/source-mark";
 import { LinkPending } from "@/components/patterns/link-pending";
-import { buyersOf, customsWindow, formatDay, formatUsdShort } from "@/lib/dashboard/facts";
+import { buyersOf, customsWindow, formatUsdShort, initials } from "@/lib/dashboard/facts";
 import type { SupplierSheetModel } from "@/lib/dashboard/models";
 import { cn } from "@/lib/utils";
 import { ContactDetailsCard } from "./contact-card";
-import { FACT_ICON } from "./desktop";
-import { SECTIONS, checkRows, exportTiles, factCells, headStatuses, memberTiles, sectionCount, type BarPart, type CheckRow, type SectionId } from "./desktop-words";
-import { ProductsPanel, RecordRfqs, SitesPanel, sourceGroups, type Level } from "./panels";
+import { CERT_MARK, FACT_ICON } from "./desktop";
+import { SECTIONS, certTable, checkRows, exportTiles, factCells, filedWith, headStatuses, memberTiles, sectionCount, type BarPart, type CertLine, type CheckRow, type SectionId } from "./desktop-words";
+import { RecordRfqs, SitesPanel, productItems, sourceGroups, type Level } from "./panels";
 import { PhoneBar, PhonePanel, PhoneTabLink, PhoneTabStrip, PhoneTabs } from "./phone-tabs";
-import { NO_CUSTOMS, UFLPA_LABEL, biggestMarket, certGroups, marketShares, noCustoms, recordsEnd, rscBehind, rscCards, sanctionListRows, shortDay, uflpaLine, type CertGroup, type RscCard, type StatusRow } from "./phone-words";
+import { NO_CUSTOMS, UFLPA_LABEL, biggestMarket, marketShares, noCustoms, recordsEnd, rscBehind, rscCards, sanctionListRows, shortDay, uflpaLine, type RscCard, type StatusRow } from "./phone-words";
 import { ShareButton } from "./share-button";
 import { ShipmentRevealSection } from "./shipment-reveal";
 import { staleWords, type TabId } from "./words";
@@ -32,18 +32,28 @@ const TITLE = "text-lg font-medium tracking-tight text-ink";
 const CARD = "flex flex-col overflow-clip rounded-[10px] border border-line";
 /** A round 36 button with a 44 target (Share's own shape). */
 const ROUND = cn("relative flex size-9 shrink-0 items-center justify-center rounded-full bg-sunken text-ink-2 outline-none before:absolute before:-inset-1 active:bg-line", ring);
-/** A pill that opens a register's own page. */
-const PILL = cn("relative inline-flex h-9 items-center gap-1.5 rounded-full bg-sunken pl-2.5 pr-3 text-sm font-medium text-ink before:absolute before:inset-x-0 before:-inset-y-1 active:bg-line", ring);
+/** A document that opens: underlined words, on one line, with a 44 target (Paper page 35, 13 Oct 2026: links, not grey pills). */
+const DOC = cn("relative flex shrink-0 items-center gap-1.5 rounded-sm font-medium text-ink before:absolute before:-inset-x-1.5 active:bg-sunken [&>span]:underline [&>span]:decoration-line-strong [&>span]:decoration-1 [&>span]:underline-offset-[3px]", ring);
+
+/** The one pill on the record: this needs a look. Everything else is said in plain words. */
+function LookPill({ icon: G, children }: { icon: Icon; children: ReactNode }) {
+  return (
+    <span className="flex h-7 shrink-0 items-center gap-1.5 rounded-full bg-caution-tint pl-2 pr-2.5 text-sm font-medium text-caution">
+      <G size={16} weight="thin" className="shrink-0 text-caution-icon" aria-hidden />
+      {children}
+    </span>
+  );
+}
 
 const STATUS_ICON: Record<StatusRow["key"], Icon> = { safety: HardHat, certificates: Hourglass, sanctions: ShieldCheck };
 const toneText = (t: StatusRow["tone"], plain = "text-ink") => (t === "caution" ? "text-caution" : t === "sanction" ? "text-sanction" : plain);
 const toneIcon = (t: StatusRow["tone"], plain = "text-ink-2") => (t === "caution" ? "text-caution-icon" : t === "sanction" ? "text-sanction" : plain);
 
 /** A section under the first on a tab: a hairline, then its title. */
-function Section({ title, count, aside, level: H, children, first = false, tight = false }: { title: string; count?: ReactNode; aside?: ReactNode; level: Level; children: ReactNode; first?: boolean; /** The Overview's sections: 20px above and below the hairline (Paper page 35, 13 Oct 2026). */ tight?: boolean }) {
+function Section({ title, count, aside, level: H, children, first = false, tight = false, headClassName }: { title: string; count?: ReactNode; aside?: ReactNode; level: Level; children: ReactNode; first?: boolean; /** The Overview's and Products' sections: 20px above and below the hairline (Paper page 35, 13 Oct 2026). */ tight?: boolean; headClassName?: string }) {
   return (
     <section className={cn("flex flex-col px-5", tight ? "pt-5" : first ? "pt-6" : "pt-7")}>
-      <div className={cn("flex items-baseline justify-between gap-3", tight && !first ? "pb-2" : "pb-3.5", !first && "border-t border-line", !first && (tight ? "pt-5" : "pt-7"))}>
+      <div className={cn("flex items-baseline justify-between gap-3", tight && !first ? "pb-2" : "pb-3.5", !first && "border-t border-line", !first && (tight ? "pt-5" : "pt-7"), headClassName)}>
         <div className="flex items-baseline gap-2">
           <H className={TITLE}>{title}</H>
           {count !== undefined && count !== null ? <span className="text-lg text-ink-3">{count}</span> : null}
@@ -378,39 +388,7 @@ const SHARE_TONES = ["bg-ink", "bg-ink-2", "bg-ink-3", "bg-line-strong", "bg-lin
 
 function Exports({ model, today, level }: PanelProps) {
   const v = model.volza;
-  const p = model.products;
   const shares = v ? marketShares(v) : [];
-  const small = v?.small_orders ?? null;
-  const lines = (
-    <Section first={!v && !noCustoms(model) && !model.shipments} title="What it ships" count={p.lines > 0 ? p.lines : undefined} level={level}>
-      {p.linesUnknown ? (
-        <p className="text-base text-ink-2">The export lines could not be read.</p>
-      ) : p.lines === 0 ? (
-        <p className="text-base text-ink-2">{p.onEpb ? "On the EPB exporter register · no lines on file." : "Products they export: not on the EPB exporter list."}</p>
-      ) : (
-        <>
-          <p className="-mt-3 pb-3.5 text-base text-ink-2">Product codes on its EPB exporter page. Each opens the line.</p>
-          <ul className="flex flex-wrap gap-2">
-            {p.tiles.map((t) => (
-              <li key={t.hs}>
-                <Link href={model.lineHref(t.hs)} scroll={false} className={cn("relative flex h-9 items-center gap-2 rounded-full bg-sunken px-3 before:absolute before:inset-x-0 before:-inset-y-1 active:bg-line", ring)}>
-                  <span className="font-mono text-xs text-ink-3">{t.hs}</span>
-                  <span className="text-base font-medium text-ink">{t.short}</span>
-                  <LinkPending />
-                </Link>
-              </li>
-            ))}
-          </ul>
-          {p.allLinesHref ? (
-            <Link href={p.allLinesHref} scroll={false} className={cn("mt-3 flex h-11 items-center justify-center gap-1.5 rounded-lg border border-line text-base font-medium text-ink active:bg-sunken", ring)}>
-              All {p.lines} lines
-              <CaretDown size={16} weight="thin" className="shrink-0" aria-hidden />
-            </Link>
-          ) : null}
-        </>
-      )}
-    </Section>
-  );
   if (!v) {
     return (
       <div className="flex flex-col pb-8">
@@ -420,7 +398,7 @@ function Exports({ model, today, level }: PanelProps) {
             icon={Package}
             title={NO_CUSTOMS.title}
             body={NO_CUSTOMS.body}
-            note={p.onEpb ? { title: NO_CUSTOMS.epbTitle, body: NO_CUSTOMS.epbBody } : null}
+            note={model.products.onEpb ? { title: NO_CUSTOMS.epbTitle, body: NO_CUSTOMS.epbBody } : null}
             level={level}
           />
         ) : null}
@@ -429,7 +407,6 @@ function Exports({ model, today, level }: PanelProps) {
             <ShipmentRevealSection key={model.slug} slug={model.slug} initial={model.shipments} level={level} />
           </div>
         ) : null}
-        {lines}
       </div>
     );
   }
@@ -469,19 +446,6 @@ function Exports({ model, today, level }: PanelProps) {
           </ul>
         </Section>
       ) : null}
-      {lines}
-      {small && small.of > 0 ? (
-        <Section title="Order size" level={level}>
-          <div className="-mt-0.5 flex items-baseline justify-between gap-3 pb-2">
-            <p className="text-base text-ink-2">Shipments under {small.under_pcs.toLocaleString("en-GB")} pieces</p>
-            <p className="text-xl font-medium tracking-tighter text-ink">{Math.round((100 * small.shipments) / small.of)}%</p>
-          </div>
-          <Bar pct={(100 * small.shipments) / small.of} tone="bg-ink-2" className="h-2.5" />
-          <p className="pt-2 text-sm text-ink-3">
-            {small.shipments.toLocaleString("en-GB")} of {small.of.toLocaleString("en-GB")} shipments
-          </p>
-        </Section>
-      ) : null}
       {model.shipments ? (
         <div className="px-5 pt-7">
           <div className="border-t border-line pt-7">
@@ -496,52 +460,147 @@ function Exports({ model, today, level }: PanelProps) {
 
 /* ------------------------------------------------------------ certificates */
 
+/* ---------------------------------------------------------------- products */
+
 /**
- * One certificate: its scheme and its state in a few words, then the three facts a buyer checks (the
- * date, the number, who issued it) and when we last saw it. The certifier's scope text is left to the
- * certificate itself: a buyer in this trade knows what the scheme covers (founder, 12 Oct 2026).
+ * Products: what it makes, from the two registers that say so, kept apart because they are different
+ * claims and never merged (founder, 13 Oct 2026): the export codes on its EPB page, a row each that opens
+ * the line, six until the reader asks for all, then the names it filed with its trade body, as plain words.
  */
-function CertCard({ g, today }: { g: CertGroup; today: Date }) {
-  const c = g.rows[0]!;
-  const gots = /^gots/i.test(g.scheme);
-  const day = formatDay(c.expiresOn);
-  const numbers = g.rows.flatMap((r) => (r.number ? [r.number] : []));
-  const kind = gots ? "Licence" : "Certificate";
-  // A listing has no date to show, only its numbers: one a line, under the same label a dated certificate's number has.
-  const facts: [string, string, string][] = g.listed
-    ? numbers.length > 0
-      ? [[numbers.length > 1 ? `${kind}s` : kind, numbers.join("\n"), "whitespace-pre-line font-mono text-sm/[20px] text-ink"]]
-      : []
-    : ([
-        [g.state === "expired" ? "Expired on" : "Valid until", day ?? "", cn("text-base font-medium", g.state === "valid" ? "text-ink" : "text-caution")],
-        [kind, c.number ?? "", "font-mono text-sm/[20px] text-ink"],
-        ["Issued by", c.issuer ?? "", "text-base text-ink"],
-      ] satisfies [string, string, string][]).filter((f) => f[1]);
+function Products({ model, today, level }: PanelProps) {
+  const p = model.products;
+  // Six lines, and a link that draws them all (`?lines=all`): the page's own switch, so nothing is unfolded by script.
+  const lines = p.tiles;
+  const items = productItems(p.productList);
+  const filed = filedWith(model, today);
+  const row = (t: (typeof lines)[number]) => (
+    <li key={t.hs} className="border-t border-line first:border-t-0">
+      <Link href={model.lineHref(t.hs)} scroll={false} className={cn("flex items-center gap-3 py-1.5 active:bg-sunken", ring)}>
+        {t.thumb ? (
+          // eslint-disable-next-line @next/next/no-img-element -- a 40px catalogue thumbnail, already sized
+          <img src={t.thumb} alt="" width={40} height={40} loading="lazy" decoding="async" className="size-10 shrink-0 rounded-lg bg-subtle object-cover" />
+        ) : (
+          <span aria-hidden className="size-10 shrink-0 rounded-lg bg-subtle" />
+        )}
+        <span className="flex min-w-0 flex-1 items-baseline gap-2">
+          <span className="text-md/[22px] font-medium text-ink">{t.short}</span>
+          <span className="font-mono text-xs text-ink-3">{t.hs}</span>
+        </span>
+        <LinkPending />
+        <CaretRight size={16} weight="thin" className="shrink-0 text-ink-3" aria-hidden />
+      </Link>
+    </li>
+  );
+  const all = "mt-1.5 flex h-11 items-center justify-center gap-1.5 rounded-lg border border-line text-[15px]/[20px] font-medium text-ink active:bg-sunken";
+  if (!p.linesUnknown && lines.length === 0 && items.length === 0 && !p.onEpb) {
+    return <Empty testId="products" icon={Package} title="Not published. Ask in your RFQ." body="Products they export: not on the EPB exporter list." level={level} />;
+  }
   return (
-    <li className="flex flex-col gap-3 rounded-lg border border-line px-4 pb-3 pt-3.5">
-      <div className="flex items-start justify-between gap-3">
-        <p className="min-w-0 text-[17px]/[24px] font-medium tracking-tight text-ink">{g.scheme}</p>
-        <CertChip state={g.state} className="shrink-0">
-          {g.listed ? (g.rows.length > 1 ? `${g.rows.length} listings` : "Listed") : certShort(c.expiresOn, today, c.delistedOn)}
-        </CertChip>
+    <div className="flex flex-col pb-8">
+      {p.linesUnknown || lines.length > 0 || p.onEpb ? (
+        <Section first tight headClassName="pb-2" title="What it ships" count={lines.length > 0 && p.lines > 0 ? p.lines : undefined} aside={lines.length > 0 ? <span className="shrink-0 text-sm text-ink-3">EPB codes · photos illustrate</span> : null} level={level}>
+          {p.linesUnknown ? (
+            <p className="text-base text-ink-2">The export lines could not be read.</p>
+          ) : lines.length === 0 ? (
+            <p className="text-base text-ink-2">On the EPB exporter register · no lines on file.</p>
+          ) : (
+            <>
+              <ul data-phone-lines="" className="flex flex-col">
+                {lines.map(row)}
+              </ul>
+              {p.allLinesHref ? (
+                <Link href={p.allLinesHref} scroll={false} className={cn(all, ring)}>
+                  All {p.lines} lines
+                  <CaretDown size={16} weight="thin" className="shrink-0 text-ink-2" aria-hidden />
+                </Link>
+              ) : null}
+            </>
+          )}
+        </Section>
+      ) : null}
+      {items.length > 0 ? (
+        <Section first={!(p.linesUnknown || lines.length > 0 || p.onEpb)} tight headClassName="pb-2" title={filed.body ? `As filed with ${filed.body}` : "As filed"} count={items.length} aside={filed.read ? <span className={cn("shrink-0 text-sm text-ink-3", NUM)}>read {filed.read}</span> : null} level={level}>
+          <p data-phone-filed="" className="text-[15px]/[22px] text-ink">
+            {items.join(" · ")}
+          </p>
+        </Section>
+      ) : null}
+    </div>
+  );
+}
+
+const STAMP = "flex h-6 items-center rounded-md bg-subtle px-2 font-mono text-sm/[16px] text-ink";
+/** "WRAP" issued by WRAP says nothing: the issuer is named only when it is someone other than the scheme. */
+const issuedBy = (c: CertLine) => (c.issuer && c.issuer.split(/\s+/)[0]!.toLowerCase() !== c.scheme.split(/\s+/)[0]!.toLowerCase() ? c.issuer : null);
+
+/**
+ * One certificate: its scheme's mark and name, and its state. A pill only when it needs a look; else the
+ * state in plain words ("Valid to 13 Jul 2027", "No end date published", "Ended 5 Sep 2026"). Then its
+ * number as a stamp, who issued it when that is not the scheme, and when we last checked it beside the
+ * document. The certifier's scope text is left to the certificate itself (founder, 12 Oct 2026).
+ */
+function CertCard({ c, ended = false }: { c: CertLine; ended?: boolean }) {
+  const mark = CERT_MARK[c.scheme.split(" ")[0]!];
+  const issuer = issuedBy(c);
+  const stamps = c.numbers.map((x) => (
+    <span key={x} className={STAMP}>
+      {x}
+    </span>
+  ));
+  const row = "flex min-h-6 items-center justify-between gap-3";
+  const foot = Boolean(c.checked || c.doc);
+  return (
+    <li className={cn("flex flex-col gap-2 rounded-lg border border-line px-4 pt-3", foot ? "pb-1.5" : "pb-3")}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          {mark ? <SourceMark source={mark} lazy className="size-7 rounded-full [&>img]:max-h-[18px] [&>img]:max-w-[18px]" /> : null}
+          <p className={cn("min-w-0 text-[18px]/[26px] font-medium tracking-tight", ended ? "text-ink-2" : "text-ink")}>{c.scheme}</p>
+        </div>
+        {c.look ? <LookPill icon={Hourglass}>{c.state}</LookPill> : <p className={cn("text-right text-base", c.until && !ended ? "font-medium text-ink" : "text-ink-2")}>{ended ? c.state : c.until ? `Valid to ${c.until}` : "No end date published"}</p>}
       </div>
-      {facts.length > 0 ? (
-        <dl className="flex flex-col gap-1.5">
-          {facts.map(([label, value, tone]) => (
-            <div key={label} className="flex justify-between gap-3">
-              <dt className="shrink-0 text-sm text-ink-3">{label}</dt>
-              <dd className={cn("text-right", tone)}>{value}</dd>
+      {(c.look && c.until) || c.numbers.length > 0 || issuer ? (
+        <dl className="flex flex-col gap-1">
+          {c.look && c.until ? (
+            <div className={row}>
+              <dt className="shrink-0 text-sm text-ink-3">Valid until</dt>
+              <dd className="text-right text-base font-medium text-caution">{c.until}</dd>
             </div>
-          ))}
+          ) : null}
+          {c.numbers.length > 2 ? (
+            // Three or more: a line of stamps under the label.
+            <div className="flex flex-col gap-1.5 pb-0.5">
+              <dt className="text-sm text-ink-3">{c.numberLabel}</dt>
+              <dd className="flex flex-wrap gap-1.5">{stamps}</dd>
+            </div>
+          ) : c.numbers.length > 0 ? (
+            <div className={row}>
+              <dt className="shrink-0 text-sm text-ink-3">{c.numberLabel}</dt>
+              <dd className="flex flex-wrap justify-end gap-1.5">{stamps}</dd>
+            </div>
+          ) : null}
+          {issuer ? (
+            <div className={row}>
+              <dt className="shrink-0 text-sm text-ink-3">Issued by</dt>
+              <dd className={cn("text-right text-base", ended ? "text-ink-2" : "text-ink")}>{issuer}</dd>
+            </div>
+          ) : null}
         </dl>
       ) : null}
-      {c.check || c.documentUrl ? (
-        <div className="flex items-center justify-between gap-3 border-t border-line pt-2.5">
-          <p className={cn("text-xs", c.check?.caution ? "font-medium text-caution" : "text-ink-3")}>{c.check ? c.check.text.charAt(0).toUpperCase() + c.check.text.slice(1) : ""}</p>
-          {c.documentUrl ? (
-            <a href={c.documentUrl} className={cn(PILL, "shrink-0")}>
-              {g.listed ? <ArrowUpRight size={16} weight="thin" className="shrink-0 text-ink-2" aria-hidden /> : <FileText size={16} weight="thin" className="shrink-0 text-ink-2" aria-hidden />}
-              {g.listed ? "Listing" : (c.documentLabel ?? "Certificate")}
+      {foot ? (
+        <div className="flex min-h-10 items-center justify-between gap-3 border-t border-line">
+          <p className="flex flex-wrap items-center gap-1 text-xs text-ink-3">
+            {c.checked ? `Checked ${c.checked}` : null}
+            {c.checkedNote ? (
+              <span className="flex items-center gap-1 font-medium text-caution">
+                <Clock size={14} weight="thin" className="shrink-0 text-caution-icon" aria-hidden />
+                {c.checkedNote}
+              </span>
+            ) : null}
+          </p>
+          {c.doc ? (
+            <a href={c.doc.href} className={cn(DOC, "h-10 text-base before:-inset-y-0.5")}>
+              {c.doc.label === "Certificate" ? <FileText size={16} weight="thin" className="shrink-0 text-ink-2" aria-hidden /> : <ArrowUpRight size={16} weight="thin" className="shrink-0 text-ink-2" aria-hidden />}
+              <span>{c.doc.label}</span>
             </a>
           ) : null}
         </div>
@@ -551,12 +610,11 @@ function CertCard({ g, today }: { g: CertGroup; today: Date }) {
 }
 
 function Certificates({ model, today, level: H }: PanelProps) {
-  const groups = certGroups(model, today);
-  const n = model.certs.length;
-  const expired = groups.filter((g) => g.state === "expired").length;
+  // The desktop's table, as cards: those held today, then the ones that have ended in a group that is not counted.
+  const t = certTable(model, today);
   return (
     <div className="flex flex-col gap-3 px-5 pb-8 pt-6">
-      {n === 0 ? (
+      {t.held.length === 0 && t.ended.length === 0 ? (
         <div className="flex flex-col gap-0.5 pb-1">
           <H className={TITLE}>{ABSENT.certificates}</H>
           <p className="text-base text-ink-2">{model.certsEmpty}</p>
@@ -565,29 +623,46 @@ function Certificates({ model, today, level: H }: PanelProps) {
       ) : (
         <>
           <div className="flex flex-col gap-0.5 pb-1">
-            <H className={TITLE}>
-              {n} {n === 1 ? "certification" : "certifications"}
-            </H>
-            <p className="text-base text-ink-2">{expired ? `${expired} expired. Expired and expiring come first.` : `Soonest expiry first.${model.certChecks ? " Each one checked with its issuer." : ""}`}</p>
+            <H className={TITLE}>{t.count === 0 ? "None held today" : `${t.count} ${t.count === 1 ? "certification" : "certifications"}`}</H>
+            {t.held.length > 0 ? <p className="text-base text-ink-2">Soonest expiry first.{model.certChecks ? " Each one checked with its issuer." : ""}</p> : null}
           </div>
-          <ul className="flex flex-col gap-3">
-            {groups.map((g) => (
-              <CertCard key={`${g.scheme}-${g.rows[0]!.number}-${g.rows[0]!.expiresOn}`} g={g} today={today} />
-            ))}
-          </ul>
+          {t.held.length > 0 ? (
+            <ul className="flex flex-col gap-3">
+              {t.held.map((c) => (
+                <CertCard key={c.key} c={c} />
+              ))}
+            </ul>
+          ) : null}
+          {/* Ended: our arithmetic on the last register read, which may predate the end. Said plainly, never a warning, and it stays on the record. */}
+          {t.ended.length > 0 ? (
+            <section data-phone-ended="" className="flex flex-col gap-3 pt-2">
+              <p className="text-sm font-medium text-ink-3">No longer current · not counted above</p>
+              <ul className="flex flex-col gap-3">
+                {t.ended.map((c) => (
+                  <CertCard key={c.key} c={c} ended />
+                ))}
+              </ul>
+            </section>
+          ) : null}
         </>
       )}
       {/* A building's certificate is not this record's: it is shown under the building's name and is not counted above. */}
-      {model.buildingCerts.map((b) => (
-        <section key={b.building} className="flex flex-col gap-3 pt-2">
-          <p className="text-sm font-medium text-ink-3">Held by {b.building} · the building&apos;s own, not counted above</p>
-          <ul className="flex flex-col gap-3">
-            {certGroups({ ...model, certs: b.certs }, today).map((g) => (
-              <CertCard key={`${g.scheme}-${g.rows[0]!.number}-${g.rows[0]!.expiresOn}`} g={g} today={today} />
-            ))}
-          </ul>
-        </section>
-      ))}
+      {model.buildingCerts.map((b) => {
+        const own = certTable({ ...model, certs: b.certs }, today);
+        return (
+          <section key={b.building} className="flex flex-col gap-3 pt-2">
+            <p className="text-sm font-medium text-ink-3">Held by {b.building} · the building&apos;s own, not counted above</p>
+            <ul className="flex flex-col gap-3">
+              {own.held.map((c) => (
+                <CertCard key={c.key} c={c} />
+              ))}
+              {own.ended.map((c) => (
+                <CertCard key={c.key} c={c} ended />
+              ))}
+            </ul>
+          </section>
+        );
+      })}
     </div>
   );
 }
@@ -611,16 +686,15 @@ function RscDetail({ c }: { c: RscCard }) {
           <span className={cn("text-right font-medium", trainingTone(c.training))}>{sentence(c.training.replace(/^training /, ""))}</span>
         </p>
       ) : null}
-      <div className="flex flex-col gap-2 border-t border-line pt-3">
+      <div className="flex flex-col gap-0.5 border-t border-line pt-2">
         {open.length > 0 ? (
           <>
             <p className="text-xs text-ink-3">Inspection reports</p>
-            <ul className="flex flex-wrap gap-2">
+            <ul data-phone-reports="" className="flex flex-wrap gap-x-3.5">
               {open.map((l) => (
                 <li key={l.label}>
-                  <a href={l.href!} className={PILL}>
-                    {l.label === "CAP" ? <ListChecks size={16} weight="thin" className="shrink-0 text-ink-2" aria-hidden /> : <FileText size={16} weight="thin" className="shrink-0 text-ink-2" aria-hidden />}
-                    {REPORT[l.label] ?? l.label}
+                  <a href={l.href!} className={cn(DOC, "h-[30px] text-sm before:-inset-y-[7px]")}>
+                    <span>{REPORT[l.label] ?? l.label}</span>
                   </a>
                 </li>
               ))}
@@ -635,26 +709,22 @@ function RscDetail({ c }: { c: RscCard }) {
 
 function RscFull({ c }: { c: RscCard }) {
   return (
-    <li className="flex flex-col gap-3.5 rounded-lg border border-line p-4">
+    <li className="flex flex-col gap-2.5 rounded-lg border border-line px-4 pb-2.5 pt-3">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-0.5">
           <p className="text-[18px]/[26px] font-medium tracking-tight text-ink">{c.name}</p>
           {c.ref ? <p className="font-mono text-xs text-ink-2">RSC {c.ref}</p> : null}
         </div>
-        {c.status ? (
-          <span className={cn("flex h-7 shrink-0 items-center gap-1.5 rounded-full pl-2 pr-2.5 text-sm font-medium", rscBehind(c) ? "bg-caution-tint text-caution" : "bg-subtle text-ink-2")}>
-            {rscBehind(c) ? <Clock size={16} weight="thin" className="shrink-0 text-caution-icon" aria-hidden /> : null}
-            {sentence(c.status)}
-          </span>
-        ) : null}
+        {/* Only "Behind schedule" is a pill: any other status is the register's plain words. */}
+        {c.status ? rscBehind(c) ? <LookPill icon={Clock}>{sentence(c.status)}</LookPill> : <span className="shrink-0 pt-1 text-sm text-ink-2">{sentence(c.status)}</span> : null}
       </div>
       {c.progress !== null ? (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1.5">
           <p className="flex items-baseline justify-between gap-3">
             <span className="text-base text-ink-2">Safety issues fixed</span>
-            <span className={cn("text-lg font-medium tracking-tighter text-ink", NUM)}>{c.progress}%</span>
+            <span className={cn("text-[18px]/[24px] font-medium tracking-tighter text-ink", NUM)}>{c.progress}%</span>
           </p>
-          <Bar pct={c.progress} tone={rscTone(c)} className="h-2.5" />
+          <Bar pct={c.progress} tone={rscTone(c)} />
         </div>
       ) : null}
       <RscDetail c={c} />
@@ -708,12 +778,14 @@ function Safety({ model, level: H }: PanelProps) {
     );
   }
   const many = cards.length > 2;
+  // The order is behind schedule first, then the least fixed: said as the fact (founder, 13 Oct 2026).
+  const lead = behind ? "Furthest behind first" : "Least fixed first";
   return (
     <div className="flex flex-col gap-3 px-5 pb-8 pt-6">
       <div className="flex flex-col gap-0.5 pb-1">
         <H className={TITLE}>{cards.length === 1 ? "In the RSC programme" : `${cards.length} buildings in the RSC programme`}</H>
         {/* The rows' figures are a bare percentage: what it is a percentage of is said once, over them. */}
-        {cards.length > 1 ? <p className="text-base text-ink-2">{many ? `Safety issues fixed, worst first.${behind ? ` ${behind} behind.` : ""}` : `${behind ? `${behind} behind schedule. ` : ""}Worst first.`}</p> : null}
+        {cards.length > 1 ? <p className="text-base text-ink-2">{many ? `Safety issues fixed, ${lead.toLowerCase()}.${behind ? ` ${behind} behind.` : ""}` : `${lead}.${behind === 2 ? " Both are behind schedule." : behind ? " One is behind schedule." : ""}`}</p> : null}
       </div>
       {many ? (
         <ul className={CARD}>
@@ -734,20 +806,18 @@ function Safety({ model, level: H }: PanelProps) {
 
 /* ----------------------------------------------------------------- sources */
 
-function SourceLine({ title, sub, day, note, href }: { title: string; sub: ReactNode; day: string | null; note?: string | null; href?: string | null }) {
+function SourceLine({ lead, title, sub, note, href }: { lead: ReactNode; title: string; sub?: ReactNode; note?: string | null; href?: string | null }) {
   const body = (
     <>
+      {lead}
       <span className="flex min-w-0 flex-1 flex-col">
-        <span className="text-[15px]/[22px] font-medium text-ink">{title}</span>
-        <span className="text-xs text-ink-3 [overflow-wrap:anywhere]">{sub}</span>
+        <span className="text-[15px]/[20px] font-medium text-ink">{title}</span>
+        {sub ? <span className="text-xs text-ink-3">{sub}</span> : null}
       </span>
-      <span className="flex shrink-0 flex-col items-end">
-        {day ? <span className="text-sm text-ink-2">{day}</span> : null}
-        {note ? <span className="text-xs font-medium text-caution">{note}</span> : null}
-      </span>
+      {note ? <span className={cn("shrink-0 text-xs font-medium text-caution", NUM)}>{note}</span> : null}
     </>
   );
-  const box = "flex min-h-[60px] items-center gap-3 py-2";
+  const box = "flex min-h-11 items-center gap-2.5 py-1";
   return (
     <li className="border-b border-line">
       {href ? (
@@ -761,6 +831,15 @@ function SourceLine({ title, sub, day, note, href }: { title: string; sub: React
   );
 }
 
+/** A brand, and the customs records, have no mark of their own here: their letters on the sunken ground. */
+function Letters({ children }: { children: string }) {
+  return (
+    <span aria-hidden className="flex size-7 shrink-0 items-center justify-center rounded-full bg-sunken font-mono text-[10px]/[14px] font-medium text-ink-2">
+      {children}
+    </span>
+  );
+}
+
 function Sources({ model, today, level: H }: PanelProps) {
   const v = model.volza;
   const behind = v ? recordsEnd(v, today) : null;
@@ -768,14 +847,6 @@ function Sources({ model, today, level: H }: PanelProps) {
   const uflpa = uflpaLine(model, today);
   const n = model.sources.length;
   const groups = sourceGroups(model.sources);
-  // The dates down the right are each register's last read: said once, over the first of them, like a
-  // table's head (founder, 12 Oct 2026: "108 days ago" under a date said nothing about what the date was).
-  const kind = (words: string, first: boolean) => (
-    <p className="flex items-baseline justify-between gap-3 pb-1 text-sm font-medium text-ink-3">
-      {words}
-      {first ? <span data-phone-read-head="" className="text-xs font-normal">Last read</span> : null}
-    </p>
-  );
   return (
     <div className="flex flex-col px-5 pb-8 pt-6">
       <div className="flex flex-col gap-0.5 pb-2">
@@ -784,36 +855,37 @@ function Sources({ model, today, level: H }: PanelProps) {
         </H>
         <p className="text-base text-ink-2">{n === 0 ? "No register has filed a record for this company." : model.sourcesCaption}</p>
       </div>
-      {groups.map((g, i) => (
-        <section key={g.kind} aria-label={g.kind} className="flex flex-col pt-4">
-          {kind(g.kind, i === 0)}
+      {/* A row a source: its mark, its name, and a note only when its read is stale. Nothing else (Paper page 35, 13 Oct 2026). */}
+      {groups.map((g) => (
+        <section key={g.kind} aria-label={g.kind} className="flex flex-col pt-3">
+          <p className="text-sm font-medium text-ink-3">{g.kind}</p>
           <ul>
-            {g.rows.map((s) => {
-              const stale = staleWords(s.readDate, today);
-              return (
-                <SourceLine
-                  key={s.mark.code}
-                  title={s.mark.label}
-                  sub={
-                    <>
-                      {s.name !== s.mark.label ? s.name : null}
-                      {s.refs.length ? <span className="font-mono">{s.name !== s.mark.label ? " · " : ""}{s.refs.join(", ")}</span> : null}
-                    </>
-                  }
-                  day={s.readDate}
-                  note={stale?.replace(/^read /, "")}
-                  href={s.mark.href}
-                />
-              );
-            })}
+            {g.rows.map((s) => (
+              <SourceLine
+                key={s.mark.code}
+                lead={hasSourceMark(s.mark.code) ? <SourceMark source={s.mark.code} lazy className="size-7 rounded-full [&>img]:max-h-[18px] [&>img]:max-w-[18px]" /> : <Letters>{initials(s.mark.label)}</Letters>}
+                title={s.mark.label}
+                note={staleWords(s.readDate, today)}
+                href={s.mark.href}
+              />
+            ))}
           </ul>
         </section>
       ))}
       {v ? (
-        <section aria-label="Customs records" className="flex flex-col pt-4">
-          {kind("Customs records", groups.length === 0)}
+        <section aria-label="Customs records" className="flex flex-col pt-3">
+          <p className="text-sm font-medium text-ink-3">Customs records</p>
           <ul>
-            <SourceLine title="Bangladesh customs exports" sub={`Shipment records, ${customsWindow(v)}`} day={shortDay(v.fetched_at, today)} note={behind !== null ? `ends ${behind} days ago` : null} />
+            <SourceLine
+              lead={<Letters>CU</Letters>}
+              title="Bangladesh customs exports"
+              sub={
+                <>
+                  {customsWindow(v)}
+                  {behind !== null ? <span className="font-medium text-caution"> · ends {behind} days ago</span> : null}
+                </>
+              }
+            />
           </ul>
         </section>
       ) : null}
@@ -824,10 +896,7 @@ function Sources({ model, today, level: H }: PanelProps) {
               {model.sanctioned ? <WarningOctagon size={16} weight="fill" className="shrink-0" aria-hidden /> : null}
               Sanctions lists · {model.sanctioned ? `on the ${model.sanctions[0]?.list ?? "sanctions list"}` : "not listed"}
             </p>
-            <p className="flex items-baseline justify-between gap-3 text-sm text-ink-2">
-              Checked for every supplier
-              {lists.length > 0 ? <span className="shrink-0 text-xs text-ink-3">Last read</span> : null}
-            </p>
+            <p className="text-sm text-ink-2">Read for every supplier, not only this one</p>
           </div>
           <dl className="flex flex-col gap-1.5 text-sm">
             {lists.map((l) => (
@@ -967,9 +1036,7 @@ export function PhoneRecord({
           <Exports {...props} />
         </PhonePanel>
         <PhonePanel id="products" label="Products" className={under}>
-          <div className="px-5 pb-8 pt-6">
-            <ProductsPanel model={model} level={level} open />
-          </div>
+          <Products {...props} />
         </PhonePanel>
         <PhonePanel id="certificates" label="Certificates" className={under}>
           <Certificates {...props} />

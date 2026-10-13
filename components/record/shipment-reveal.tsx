@@ -159,8 +159,7 @@ function Table({ reveal, level: H }: { reveal: ShipmentReveal; level: "h2" | "h3
         </table>
       </div>
       <p className="text-xs text-ink-3">
-        Buyer names as on the customs record, often an agent. Weight is gross, as declared. Shipments on the same day to the same buyer
-        for the same product are one row. Quantity is the value over the price a piece.
+        As declared to customs. The buyer is often an agent; quantity is worked out from value and price.
       </p>
     </div>
   );

@@ -362,8 +362,8 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     given({ profile: PROFILE, hscodes: HS, rpcs: { supplier_volza_exports: { data: row({ record_sort: "value" }), error: null } } });
     const text = desk(html(await outcome(open)));
     // The grid: each figure worked out from the stored record. No market is known for this reader, so the fourth names the biggest.
-    assert.match(text, /Exports All exports Export value, 2 years US\$21\.7m Typical shipment US\$53,000 6% under 1,000 pieces Buyers 43 9 shipments each Biggest market EU 72% of exports · 236 shipments Customs records, Sep 2024 – Aug 2026 · read 10 Oct(?: 2026)?/);
-    assert.doesNotMatch(text, /latest shipment on record/i, "the biggest shipment's date passed off as the latest");
+    assert.match(text, /Exports Markets and shipments Export value, 2 years US\$21\.7m Typical shipment US\$53,000 6% under 1,000 pieces Buyers 43 9 shipments each Biggest market EU 72% of exports · 236 shipments Customs records, Sep 2024 – Aug 2026 · read 10 Oct(?: 2026)?/);
+    assert.doesNotMatch(text, /latest (shipment )?on record/i, "the biggest shipment's date passed off as the latest");
     assert.doesNotMatch(text, /Bigger than \d+% of exporters/, "a rank was printed before it could be read");
     // The Exports section says what the figure is, then where it goes; it does not repeat the grid.
     assert.match(text, /Exports US\$21\.7m free on board across 406 shipments, every product line together\. Where it goes Share of export value, by market Market Share of value Value Shipments Buyers European Union 72% US\$15\.6m 236 10 United States 23% US\$4\.97m 100 11 United Kingdom 0% US\$52k 5 4 Rest of the world 5% US\$1\.13m 65 Not split out/);
@@ -400,7 +400,7 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     // 0140 says the stored shipment is the latest: the footnote dates it, and never calls it "last shipped".
     given({ profile: PROFILE, hscodes: HS, rpcs: { supplier_volza_exports: { data: row({ record_sort: "date", top_record: { ...top, shipment_date: "2026-08-29T00:00:00" } }), error: null } } });
     const latest = desk(html(await outcome(open)));
-    assert.match(latest, /Customs records, Sep 2024 – Aug 2026 · latest shipment on record 29 Aug(?: 2026)? · read 10 Oct(?: 2026)?/);
+    assert.match(latest, /Customs records, Sep 2024 – Aug 2026 · latest on record 29 Aug(?: 2026)? · read 10 Oct(?: 2026)?(?! ·)/);
     assert.doesNotMatch(latest, /last shipped/i);
 
     // The capacity is the register's, never rewritten; against these exports (about 6.3m pieces a year) the
@@ -409,7 +409,7 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     const capacity = desk(html(await outcome(overview)));
     assert.match(capacity, /Capacity, as filed 1,000,000 pcs\/day From BKMEA · Filed figures look inconsistent; confirm with the supplier/);
     // Who imported sits beside who disclosed, one tile each: the name people use, the customs record's own name small.
-    assert.match(capacity, /Buyers \d+ .*Haddad Apparel Group Customs records as The Haddad Apparel Group Ltd .*TJX UK Customs records .*Customs records name the importer: often an agent or a buying house, not the brand\./);
+    assert.match(capacity, /Buyers \d+ .*Haddad Apparel Group Customs records as The Haddad Apparel Group Ltd .*TJX UK Customs records .*\d+ of \d+ shown\. Customs name the importer, often an agent rather than the brand\./);
     given({ profile: PROFILE, hscodes: HS });
     assert.doesNotMatch(html(await outcome(overview)), /look inconsistent|Exports suggest|Customs records/, "customs data reached a reader without it on the Overview");
   });
@@ -451,7 +451,7 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     const t = words(shown);
     assert.match(t, /Latest 2 shipments Fetched 11 Oct 2026 · shipment records/);
     assert.match(t, /Date Shipment Value 31 Aug 2026 31 Aug 2026 Men's basic t shirt \(men's t-shirt\) 6109\.10 Action Service Distributie B V · Netherlands US\$109,209 14,818 kg/);
-    assert.match(t, /Action Service Distributie B V US\$109,209 Buyer names as on the customs record/, "an unknown destination is printed, or a missing weight is");
+    assert.match(t, /Action Service Distributie B V US\$109,209 As declared to customs\. The buyer is often an agent/, "an unknown destination is printed, or a missing weight is");
     assert.doesNotMatch(t, /About \d|\d shipments ·|per pcs|See the latest|Volza/i);
     // 0146: a checked price prints the quantity and the price; one order filed as three shipments is one row, in
     // the heading still three shipments, with the buyer's city beside the buyer.
@@ -466,8 +466,8 @@ describe("/app/suppliers/[slug] — the full record page", () => {
       given({ profile: PROFILE, hscodes: HS, rpcs: { supplier_volza_exports: { data: volza, error: null }, supplier_shipment_reveal_state: { data: state, error: null } } });
       return outcome(() => Page({ params: Promise.resolve({ slug: "hamza-clothing" }), searchParams: Promise.resolve({}) })).then(html);
     };
-    assert.match((await band({ state: "offer", shown: 15, limit: 30, used: 12 })).replace(/&amp;/g, "&"), /href="[^"]*tab=exports#recent-shipments"[^>]*>Show recent shipments/);
-    assert.doesNotMatch(await band(null), /Show recent shipments/);
+    assert.match((await band({ state: "offer", shown: 15, limit: 30, used: 12 })).replace(/&amp;/g, "&"), /href="[^"]*tab=exports#recent-shipments"[^>]*>(?:<!-- -->)?See the latest (?:<!-- -->)?15 (?:<!-- -->)?shipments/);
+    assert.doesNotMatch(await band(null), /See the latest/);
   });
 
   it("a phone's record says there are no customs records only when none is on file, in words the read supports (Paper pages 35 and 36)", async () => {
@@ -545,12 +545,12 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     const total = lines(all.replace(PHONE, ""));
     assert.ok(total > 6, "guard: the record exports more than six lines");
     assert.equal(lines(six.replace(PHONE, "")), total, "the desktop page hides some of the record's lines");
-    // A phone draws six and offers the way to the rest, which is the Exports tab, expanded.
+    // A phone draws six and offers the way to the rest, which is its Products section, expanded (Paper page 35, 13 Oct 2026).
     const phone = (s: string) => PHONE.exec(s)?.[0] ?? "";
     assert.equal(lines(phone(six)), 6, "a phone shows six by default");
     assert.ok(lines(phone(all)) > 6, "?lines=all does not expand a phone's six");
     assert.match(phone(six), /All \d+ lines/);
-    assert.match(phone(six).replace(/&amp;/g, "&"), /href="\/app\/suppliers\/aboni-knitwear\?tab=exports&lines=all"/);
+    assert.match(phone(six).replace(/&amp;/g, "&"), /href="\/app\/suppliers\/aboni-knitwear\?tab=products&lines=all"/);
   });
 });
 
@@ -1473,7 +1473,7 @@ describe("cycle 3: the boundaries the first route tests did not reach", () => {
     const open = html(await overlay({ q: "knit", record: "aboni-knitwear" }));
     const results = open.slice(0, open.indexOf('data-record="pane"'));
     assert.match(results, /<a\b[^>]*aria-current="true"[^>]*href="[^"]*record=aboni-knitwear|<a\b[^>]*href="[^"]*record=aboni-knitwear[^>]*aria-current="true"/, "the record's row is not marked in the list beside it");
-    assert.match(results, /2 sources/, "not the narrow list");
+    assert.match(results, /<ul data-follow="record"/, "not the narrow list");
     assert.doesNotMatch(results, /<table\b/, "the wide table squeezed beside the record");
     assert.doesNotMatch(results, /<article\b/, "a card squeezed beside the record");
     given({ profile: PROFILE, hscodes: HS, discover: { data: [ROW], error: null } });
@@ -1608,11 +1608,12 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
     // What is left is the real products, once each: "POLO SHIRT" is "Polo
     // Shirt" (founder, 25 Sep), and an HS code in a product name is not a
     // phone number. The count says the same.
-    const list = /data-product-list="true"[^>]*>([\s\S]*?)<\/ul>/.exec(pages.full);
+    const list = /data-phone-filed=""[^>]*>([\s\S]*?)<\/p>/.exec(pages.full);
     assert.ok(list, "guard: the full page draws the product list");
-    assert.equal((list[1]!.match(/<li/g) ?? []).length, 2, `the product list: ${list[1]}`);
+    assert.equal(list[1]!.split(" · ").length, 2, `the product list: ${list[1]}`);
     assert.match(list[1]!, /Knit T-shirt 61091000/, "an HS code in a product name was cut as a phone number");
-    assert.match(pages.full, /Products as filed · 2/, "the Products tab counts a contact value or a case variant as a product");
+    const onPhone = (/<div data-record-phone=""[\s\S]*?(?=<div data-record-actions="")/.exec(pages.full)?.[0] ?? "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
+    assert.match(onPhone, /As filed 2 /, "the phone's Products section counts a contact value or a case variant as a product");
     // The desktop's one line of them says the same two, and the same count.
     const filed = /<p data-filed-products=""[^>]*>([^<]*)<\/p>/.exec(pages.full)?.[1] ?? "";
     assert.deepEqual(filed.split("·").map((x) => x.trim()), ["Knit T-shirt 61091000", "Polo Shirt"]);
