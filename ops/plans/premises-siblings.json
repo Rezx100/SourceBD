@@ -34,11 +34,13 @@
      "same parent group Al-Muslim Group"
     ],
     "supporting": [
-     "RSC lists both, as entries 9561 and 24336",
-     "no address on the qualified profile",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 9561 and 24336",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -79,11 +81,13 @@
      "same parent group Rising Group"
     ],
     "supporting": [
-     "RSC lists both, as entries 10091 and 23167",
-     "no address on the qualified profile",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 10091 and 23167",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -120,13 +124,14 @@
      "RSC",
      "WRAP"
     ],
-    "verdict": "name and district",
+    "verdict": "name only",
     "strong": [],
-    "supporting": [
+    "supporting": [],
+    "against": [],
+    "notes": [
      "RSC lists both, as entries 11554, 24278 and 22933",
      "no address on the qualified profile"
-    ],
-    "against": []
+    ]
    },
    {
     "id": "44bb40e6-64d4-4fb9-8674-21e843192245",
@@ -138,12 +143,13 @@
      "EPB",
      "OEKO_TEX"
     ],
-    "verdict": "name and district",
+    "verdict": "name only",
     "strong": [],
-    "supporting": [
+    "supporting": [],
+    "against": [],
+    "notes": [
      "no address on the qualified profile"
-    ],
-    "against": []
+    ]
    }
   ],
   "siblings": [
@@ -201,13 +207,14 @@
      "RSC",
      "WRAP"
     ],
-    "verdict": "name and district",
+    "verdict": "name only",
     "strong": [],
-    "supporting": [
+    "supporting": [],
+    "against": [],
+    "notes": [
      "RSC lists both, as entries 11554, 24278 and 23867",
      "no address on the qualified profile"
-    ],
-    "against": []
+    ]
    },
    {
     "id": "44bb40e6-64d4-4fb9-8674-21e843192245",
@@ -219,12 +226,13 @@
      "EPB",
      "OEKO_TEX"
     ],
-    "verdict": "name and district",
+    "verdict": "name only",
     "strong": [],
-    "supporting": [
+    "supporting": [],
+    "against": [],
+    "notes": [
      "no address on the qualified profile"
-    ],
-    "against": []
+    ]
    }
   ],
   "siblings": [
@@ -286,11 +294,13 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "RSC lists both, as entries 12782 and 24464",
-     "no address on the qualified profile",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 12782 and 24464",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -330,11 +340,13 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "RSC lists both, as entries 9482 and 26527",
-     "no address on the qualified profile",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 9482 and 26527",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -374,11 +386,13 @@
      "same parent group Farkantex Group"
     ],
     "supporting": [
-     "RSC lists both, as entries 10515 and 23815",
-     "no address on the qualified profile",
      "same district Chattogram"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 10515 and 23815",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -418,11 +432,12 @@
     "strong": [
      "same parent group Hannan Group"
     ],
-    "supporting": [
+    "supporting": [],
+    "against": [],
+    "notes": [
      "RSC lists both, as entries 9195 and 12176",
      "no address on the qualified profile"
-    ],
-    "against": []
+    ]
    }
   ],
   "siblings": [],
@@ -465,11 +480,13 @@
      "same parent group Sharmin Group"
     ],
     "supporting": [
-     "RSC lists both, as entries 9767 and 12398, 23067",
-     "no address on the qualified profile",
      "same district Mymensingh"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 9767 and 12398, 23067",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -511,11 +528,13 @@
      "same parent group Jamuna Group"
     ],
     "supporting": [
-     "RSC lists both, as entries 10128 and 12804",
-     "no address on the qualified profile",
      "same district Gazipur"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 10128 and 12804",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -558,11 +577,12 @@
     "strong": [
      "same parent group JK Group"
     ],
-    "supporting": [
+    "supporting": [],
+    "against": [],
+    "notes": [
      "RSC lists both, as entries 9309 and 24425",
      "no address on the qualified profile"
-    ],
-    "against": []
+    ]
    }
   ],
   "siblings": [],
@@ -604,11 +624,13 @@
      "same parent group Mondol Group"
     ],
     "supporting": [
-     "RSC lists both, as entries 10752 and 24649",
-     "no address on the qualified profile",
      "same district Gazipur"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 10752 and 24649",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -651,11 +673,13 @@
      "same parent group Muazuddin Group"
     ],
     "supporting": [
-     "RSC lists both, as entries 9998 and 24287",
-     "no address on the qualified profile",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 9998 and 24287",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -696,11 +720,13 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "RSC lists both, as entries 10311 and 24599",
-     "no address on the qualified profile",
      "same district Mymensingh"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 10311 and 24599",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -740,11 +766,13 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "RSC lists both, as entries 23738 and 26629",
-     "no address on the qualified profile",
      "same district Rajshahi"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 23738 and 26629",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -784,11 +812,12 @@
     "strong": [
      "same parent group SF Sweaters Group"
     ],
-    "supporting": [
+    "supporting": [],
+    "against": [],
+    "notes": [
      "RSC lists both, as entries 9879 and 12844",
      "no address on the qualified profile"
-    ],
-    "against": []
+    ]
    }
   ],
   "siblings": [],
@@ -830,11 +859,13 @@
      "same parent group Simba Fashions Group"
     ],
     "supporting": [
-     "RSC lists both, as entries 9715 and 24257",
-     "no address on the qualified profile",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 9715 and 24257",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -878,11 +909,12 @@
     "strong": [
      "same parent group Textown Group"
     ],
-    "supporting": [
+    "supporting": [],
+    "against": [],
+    "notes": [
      "RSC lists both, as entries 9704 and 24041",
      "no address on the qualified profile"
-    ],
-    "against": []
+    ]
    }
   ],
   "siblings": [],
@@ -923,11 +955,13 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "RSC lists both, as entries 11307 and 23737",
-     "no address on the qualified profile",
      "same district Mymensingh"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 11307 and 23737",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -962,17 +996,18 @@
      "EPB",
      "GOTS"
     ],
-    "verdict": "name and district",
+    "verdict": "name only",
     "strong": [],
-    "supporting": [
+    "supporting": [],
+    "against": [],
+    "notes": [
      "no address on the qualified profile"
-    ],
-    "against": []
+    ]
    }
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile, after a look (name is the only evidence)"
  },
  {
   "bucket": "a",
@@ -1006,11 +1041,13 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "RSC lists both, as entries 12350 and 24338",
-     "no address on the qualified profile",
      "same district Gazipur"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 12350 and 24338",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -1051,11 +1088,13 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "RSC lists both, as entries 23445 and 26006",
-     "no address on the qualified profile",
      "same district Narayanganj"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 23445 and 26006",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -1095,11 +1134,13 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "RSC lists both, as entries 11497 and 24449",
-     "no address on the qualified profile",
      "same district Narayanganj"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 11497 and 24449",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -1136,10 +1177,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Chattogram"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -1178,11 +1221,13 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "RSC lists both, as entries 9713 and 12499, 24787",
-     "no address on the qualified profile",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 9713 and 12499, 24787",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -1219,10 +1264,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -1264,13 +1311,15 @@
      "2 shared phone numbers",
      "same mailbox domain chorkatextile.com",
      "same website chorkatextile.com",
-     "addresses share danga, narsingdi, palash"
+     "addresses share danga, kazirchor, palash"
     ],
     "supporting": [
-     "OEKO_TEX lists both, as entries oeko-tex-22745:mig, oeko-tex-49737:organic-cotton, oeko-tex-52915:100 and oeko-tex-75613:100",
      "same district Narsingdi"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "OEKO_TEX lists both, as entries oeko-tex-22745:mig, oeko-tex-49737:organic-cotton, oeko-tex-52915 and oeko-tex-75613"
+    ]
    },
    {
     "id": "44bb40e6-64d4-4fb9-8674-21e843192245",
@@ -1285,13 +1334,15 @@
     "verdict": "strong",
     "strong": [
      "same website chorkatextile.com",
-     "addresses share danga, kazirchor, narsingdi"
+     "addresses share danga, kazirchor"
     ],
     "supporting": [
-     "OEKO_TEX lists both, as entries oeko-tex-22745:100, oeko-tex-22745:step, oeko-tex-49737:100, oeko-tex-49737:step and oeko-tex-75613:100",
      "same district Narsingdi"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "OEKO_TEX lists both, as entries oeko-tex-22745, oeko-tex-49737 and oeko-tex-75613"
+    ]
    }
   ],
   "siblings": [
@@ -1353,10 +1404,12 @@
      "same mailbox domain cliftongroupbd.com"
     ],
     "supporting": [
-     "GOTS lists both, as entries gots-SCO030309 and gots-SCO030308",
      "same district Chattogram"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "GOTS lists both, as entries gots-SCO030309 and gots-SCO030308"
+    ]
    }
   ],
   "siblings": [
@@ -1406,12 +1459,13 @@
     "verdict": "strong",
     "strong": [
      "same mailbox domain cliftongroupbd.com",
-     "addresses share baizid, bostami, nasirabad"
+     "addresses share bostami, nasirabad"
     ],
     "supporting": [
      "same district Chattogram"
     ],
-    "against": []
+    "against": [],
+    "notes": []
    }
   ],
   "siblings": [
@@ -1463,11 +1517,13 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "RSC lists both, as entries 23266 and 23653, 23989",
-     "no address on the qualified profile",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 23266 and 23653, 23989",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -1505,13 +1561,15 @@
     ],
     "verdict": "strong",
     "strong": [
-     "addresses share bscic, fatullah, narayanganj"
+     "addresses share bscic, fatullah"
     ],
     "supporting": [
-     "OEKO_TEX lists both, as entries oeko-tex-12230:100 and oeko-tex-79687:100",
      "same district Narayanganj"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "OEKO_TEX lists both, as entries oeko-tex-12230 and oeko-tex-79687"
+    ]
    }
   ],
   "siblings": [],
@@ -1554,7 +1612,8 @@
     "supporting": [
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": []
    }
   ],
   "siblings": [],
@@ -1589,14 +1648,13 @@
      "EPB",
      "OEKO_TEX"
     ],
-    "verdict": "strong",
-    "strong": [
-     "addresses share gazipur, joydebpur, mariali"
-    ],
+    "verdict": "name and district",
+    "strong": [],
     "supporting": [
      "same district Gazipur"
     ],
-    "against": []
+    "against": [],
+    "notes": []
    }
   ],
   "siblings": [],
@@ -1639,7 +1697,8 @@
     "supporting": [],
     "against": [
      "districts differ: Dhaka / Gazipur"
-    ]
+    ],
+    "notes": []
    }
   ],
   "siblings": [],
@@ -1673,17 +1732,18 @@
      "BGMEA",
      "EPB"
     ],
-    "verdict": "name and district",
+    "verdict": "name only",
     "strong": [],
-    "supporting": [
+    "supporting": [],
+    "against": [],
+    "notes": [
      "no address on the qualified profile"
-    ],
-    "against": []
+    ]
    }
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile, after a look (name is the only evidence)"
  },
  {
   "bucket": "b1",
@@ -1716,14 +1776,14 @@
     ],
     "verdict": "strong, but check",
     "strong": [
-     "1 shared phone number",
-     "addresses share gazipur, konabari"
+     "1 shared phone number"
     ],
-    "supporting": [
-     "BGMEA lists both, as entries general:186 and general:1214"
-    ],
+    "supporting": [],
     "against": [
      "districts differ: Gazipur / Dhaka"
+    ],
+    "notes": [
+     "BGMEA lists both, as entries general:186 and general:1214"
     ]
    }
   ],
@@ -1796,15 +1856,14 @@
      "EPB",
      "OEKO_TEX"
     ],
-    "verdict": "strong, but check",
-    "strong": [
-     "addresses share gazipur, konabari"
-    ],
-    "supporting": [
-     "BGMEA lists both, as entries general:186 and general:2756"
-    ],
+    "verdict": "check by hand",
+    "strong": [],
+    "supporting": [],
     "against": [
      "districts differ: Gazipur / Dhaka"
+    ],
+    "notes": [
+     "BGMEA lists both, as entries general:186 and general:2756"
     ]
    }
   ],
@@ -1844,7 +1903,7 @@
    }
   ],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "do not link until the conflict is read"
  },
  {
   "bucket": "b1",
@@ -1879,14 +1938,15 @@
     "verdict": "strong, but check",
     "strong": [
      "same website islam-garments.com",
-     "addresses share gazipur, konabari, zarun"
+     "addresses share konabari, zarun"
     ],
-    "supporting": [
-     "BGMEA lists both, as entries general:186 and general:2755",
-     "EPB lists both, as entries 4454 and 3751"
-    ],
+    "supporting": [],
     "against": [
      "districts differ: Gazipur / Dhaka"
+    ],
+    "notes": [
+     "BGMEA lists both, as entries general:186 and general:2755",
+     "EPB lists both, as entries 4454 and 3751"
     ]
    }
   ],
@@ -1965,11 +2025,13 @@
      "addresses share konabari, zarun"
     ],
     "supporting": [
-     "BGMEA lists both, as entries general:186 and general:3173",
-     "EPB lists both, as entries 4454 and 3918",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "BGMEA lists both, as entries general:186 and general:3173",
+     "EPB lists both, as entries 4454 and 3918"
+    ]
    }
   ],
   "siblings": [
@@ -2040,17 +2102,18 @@
      "OEKO_TEX",
      "WRAP"
     ],
-    "verdict": "name and district",
+    "verdict": "name only",
     "strong": [],
-    "supporting": [
+    "supporting": [],
+    "against": [],
+    "notes": [
      "no address on the qualified profile"
-    ],
-    "against": []
+    ]
    }
   ],
   "siblings": [],
   "unpublished_same_base": [],
-  "action": "link as a building of the main profile (facility_of)"
+  "action": "link as a building of the main profile, after a look (name is the only evidence)"
  },
  {
   "bucket": "b1",
@@ -2087,13 +2150,15 @@
     "verdict": "strong",
     "strong": [
      "same mailbox domain ritzygroupbd.com",
-     "addresses share bayazid, chattogram, hathazari, jalalabad"
+     "addresses share bayazid, hathazari, jalalabad, kulgaon"
     ],
     "supporting": [
-     "BKMEA lists both, as entries 1734, 1790 and 1914, 2376",
      "same district Chattogram"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "BKMEA lists both, as entries 1734, 1790 and 1914, 2376"
+    ]
    }
   ],
   "siblings": [],
@@ -2133,15 +2198,17 @@
     "verdict": "strong",
     "strong": [
      "2 shared phone numbers",
-     "addresses share gazipur, sataish, tongi",
+     "addresses share sataish, tongi",
      "same parent group Masco Group"
     ],
     "supporting": [
-     "BGMEA lists both, as entries general:3205 and general:4546",
-     "RSC lists both, as entries 9357 and 11869",
      "same district Gazipur"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "BGMEA lists both, as entries general:3205 and general:4546",
+     "RSC lists both, as entries 9357 and 11869"
+    ]
    }
   ],
   "siblings": [
@@ -2194,12 +2261,13 @@
     "verdict": "strong, but check",
     "strong": [
      "same mailbox domain radixbd.net",
-     "addresses share gazipur, gobindabari, kashimpur"
+     "addresses share gobindabari, kashimpur"
     ],
     "supporting": [],
     "against": [
      "districts differ: Dhaka / Gazipur"
-    ]
+    ],
+    "notes": []
    }
   ],
   "siblings": [],
@@ -2235,10 +2303,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "BGMEA lists both, as entries general:4761 and general:5153",
      "same district Feni"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "BGMEA lists both, as entries general:4761 and general:5153"
+    ]
    }
   ],
   "siblings": [],
@@ -2279,11 +2349,13 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "WRAP lists both, as entries wrap-131443 and wrap-131442",
-     "no address on the qualified profile",
      "same district Sylhet"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "WRAP lists both, as entries wrap-131443 and wrap-131442",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -2321,12 +2393,13 @@
     "strong": [
      "both hold BKMEA entry 496",
      "same BKMEA number 496",
-     "addresses share fatullah, kutubpur, lamapara, narayanganj"
+     "addresses share fatullah, kutubpur, lamapara"
     ],
     "supporting": [
      "same district Narayanganj"
     ],
-    "against": []
+    "against": [],
+    "notes": []
    }
   ],
   "siblings": [],
@@ -2367,12 +2440,13 @@
     ],
     "verdict": "check by hand",
     "strong": [],
-    "supporting": [
-     "OEKO_TEX lists both, as entries oeko-tex-16725:100 and oeko-tex-24160:100",
-     "RSC lists both, as entries 10936 and 10177"
-    ],
+    "supporting": [],
     "against": [
      "districts differ: Gazipur / Dhaka"
+    ],
+    "notes": [
+     "OEKO_TEX lists both, as entries oeko-tex-16725 and oeko-tex-24160",
+     "RSC lists both, as entries 10936 and 10177"
     ]
    }
   ],
@@ -2407,14 +2481,13 @@
      "BGMEA",
      "EPB"
     ],
-    "verdict": "strong",
-    "strong": [
-     "addresses share nayarhat, savar"
-    ],
+    "verdict": "name and district",
+    "strong": [],
     "supporting": [
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": []
    }
   ],
   "siblings": [],
@@ -2455,11 +2528,13 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "BGMEA lists both, as entries general:4372 and general:5696",
-     "EPB lists both, as entries 557 and 3648",
      "same district Chattogram"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "BGMEA lists both, as entries general:4372 and general:5696",
+     "EPB lists both, as entries 557 and 3648"
+    ]
    }
   ],
   "siblings": [],
@@ -2496,13 +2571,15 @@
     "strong": [
      "2 shared phone numbers",
      "same mailbox domain shezadgroup.com",
-     "addresses share gazipur, kaliakair, mouchak, telirchala"
+     "addresses share kaliakair, mouchak, telirchala"
     ],
     "supporting": [
-     "BGMEA lists both, as entries general:1724 and general:2629",
      "same district Gazipur"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "BGMEA lists both, as entries general:1724 and general:2629"
+    ]
    }
   ],
   "siblings": [],
@@ -2541,12 +2618,13 @@
     ],
     "verdict": "strong",
     "strong": [
-     "addresses share bari, gazipur, sadar, taltoly"
+     "addresses share bari, taltoly"
     ],
     "supporting": [
      "same district Gazipur"
     ],
-    "against": []
+    "against": [],
+    "notes": []
    }
   ],
   "siblings": [
@@ -2596,12 +2674,13 @@
     ],
     "verdict": "strong, but check",
     "strong": [
-     "addresses share bari, bazar, gazipur, mirzapur"
+     "addresses share bari, mirzapur, monipur, taltoly"
     ],
     "supporting": [],
     "against": [
      "districts differ: Dhaka / Gazipur"
-    ]
+    ],
+    "notes": []
    }
   ],
   "siblings": [
@@ -2653,11 +2732,13 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "RSC lists both, as entries 9521 and 24869",
-     "no address on the qualified profile",
      "same district Gazipur"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 9521 and 24869",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -2697,12 +2778,13 @@
     "verdict": "strong, but check",
     "strong": [
      "same mailbox domain squaregroup.com",
-     "addresses share bhaluka, dubaliapara, habirbari, mymensingh"
+     "addresses share bhaluka, dubaliapara, habirbari"
     ],
     "supporting": [],
     "against": [
      "districts differ: Mymensingh / Dhaka"
-    ]
+    ],
+    "notes": []
    }
   ],
   "siblings": [],
@@ -2742,11 +2824,12 @@
      "1 shared phone number",
      "same mailbox domain standard-group.com"
     ],
-    "supporting": [
-     "BGMEA lists both, as entries general:5350 and general:1913"
-    ],
+    "supporting": [],
     "against": [
      "districts differ: Gazipur / Dhaka"
+    ],
+    "notes": [
+     "BGMEA lists both, as entries general:5350 and general:1913"
     ]
    }
   ],
@@ -2787,13 +2870,15 @@
     ],
     "verdict": "strong",
     "strong": [
-     "addresses share area, extension, savar"
+     "addresses share ganakbari, savar"
     ],
     "supporting": [
-     "RSC lists both, as entries 9225 and 25742",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 9225 and 25742"
+    ]
    }
   ],
   "siblings": [],
@@ -2831,12 +2916,13 @@
     ],
     "verdict": "strong",
     "strong": [
-     "addresses share dailla, demra, quarter, staff"
+     "addresses share dailla, quarter, staff"
     ],
     "supporting": [
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": []
    }
   ],
   "siblings": [],
@@ -4554,11 +4640,13 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "RSC lists both, as entries 9648 and 25819",
-     "no address on the qualified profile",
      "same district Narayanganj"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 9648 and 25819",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -4602,7 +4690,8 @@
     "supporting": [
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": []
    }
   ],
   "siblings": [],
@@ -4641,11 +4730,13 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "RSC lists both, as entries 11610 and 24502",
-     "no address on the qualified profile",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 11610 and 24502",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -4685,10 +4776,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Narayanganj"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [
@@ -4739,10 +4832,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Narayanganj"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [
@@ -4791,10 +4886,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -4834,11 +4931,13 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "RSC lists both, as entries 9279 and 24980",
-     "no address on the qualified profile",
      "same district Mymensingh"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 9279 and 24980",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -4873,12 +4972,13 @@
     ],
     "verdict": "strong",
     "strong": [
-     "addresses share chanpara, uttara, uttarkhan, uzampur"
+     "addresses share chanpara, uttarkhan, uzampur"
     ],
     "supporting": [
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": []
    }
   ],
   "siblings": [],
@@ -4916,10 +5016,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -4958,10 +5060,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Narayanganj"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -4998,10 +5102,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Gazipur"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [
@@ -5048,12 +5154,13 @@
     ],
     "verdict": "strong",
     "strong": [
-     "addresses share bazar, board, gacha, gazipur"
+     "addresses share board, gacha"
     ],
     "supporting": [
      "same district Gazipur"
     ],
-    "against": []
+    "against": [],
+    "notes": []
    }
   ],
   "siblings": [
@@ -5100,13 +5207,14 @@
      "RSC",
      "WRAP"
     ],
-    "verdict": "name and district",
+    "verdict": "name only",
     "strong": [],
-    "supporting": [
+    "supporting": [],
+    "against": [],
+    "notes": [
      "RSC lists both, as entries 12808 and 26741",
      "no address on the qualified profile"
-    ],
-    "against": []
+    ]
    }
   ],
   "siblings": [],
@@ -5145,10 +5253,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -5184,13 +5294,15 @@
     "verdict": "strong",
     "strong": [
      "1 shared phone number",
-     "addresses share chattogram, double, gosaildanga, mooring"
+     "addresses share double, gosaildanga, mooring"
     ],
     "supporting": [
-     "BGMEA lists both, as entries general:305 and general:735",
      "same district Chattogram"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "BGMEA lists both, as entries general:305 and general:735"
+    ]
    }
   ],
   "siblings": [],
@@ -5228,10 +5340,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Gazipur"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -5272,11 +5386,12 @@
     "strong": [
      "same parent group Confidence Group"
     ],
-    "supporting": [
+    "supporting": [],
+    "against": [],
+    "notes": [
      "RSC lists both, as entries 9829 and 12471",
      "no address on the qualified profile"
-    ],
-    "against": []
+    ]
    }
   ],
   "siblings": [],
@@ -5315,10 +5430,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Mymensingh"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -5355,12 +5472,13 @@
      "OEKO_TEX",
      "WRAP"
     ],
-    "verdict": "name and district",
+    "verdict": "name only",
     "strong": [],
-    "supporting": [
+    "supporting": [],
+    "against": [],
+    "notes": [
      "no address on the qualified profile"
-    ],
-    "against": []
+    ]
    }
   ],
   "siblings": [],
@@ -5393,12 +5511,13 @@
     "sources": [
      "BGMEA"
     ],
-    "verdict": "name and district",
+    "verdict": "name only",
     "strong": [],
-    "supporting": [
+    "supporting": [],
+    "against": [],
+    "notes": [
      "no address on the qualified profile"
-    ],
-    "against": []
+    ]
    }
   ],
   "siblings": [],
@@ -5432,12 +5551,13 @@
      "BGMEA",
      "EPB"
     ],
-    "verdict": "name and district",
+    "verdict": "name only",
     "strong": [],
-    "supporting": [
+    "supporting": [],
+    "against": [],
+    "notes": [
      "no address on the qualified profile"
-    ],
-    "against": []
+    ]
    }
   ],
   "siblings": [],
@@ -5471,12 +5591,13 @@
      "BGMEA",
      "EPB"
     ],
-    "verdict": "name and district",
+    "verdict": "name only",
     "strong": [],
-    "supporting": [
+    "supporting": [],
+    "against": [],
+    "notes": [
      "no address on the qualified profile"
-    ],
-    "against": []
+    ]
    }
   ],
   "siblings": [],
@@ -5514,10 +5635,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -5557,11 +5680,12 @@
     "strong": [
      "same parent group Epyllion Group"
     ],
-    "supporting": [
-     "RSC lists both, as entries 10294 and 24226"
-    ],
+    "supporting": [],
     "against": [
      "districts differ: Narayanganj / Dhaka"
+    ],
+    "notes": [
+     "RSC lists both, as entries 10294 and 24226"
     ]
    }
   ],
@@ -5602,11 +5726,13 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "RSC lists both, as entries 12289 and 26640",
-     "no address on the qualified profile",
      "same district Gazipur"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 12289 and 26640",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -5644,7 +5770,8 @@
     "supporting": [
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": []
    }
   ],
   "siblings": [],
@@ -5684,10 +5811,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -5726,10 +5855,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -5772,7 +5903,8 @@
     "supporting": [
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": []
    }
   ],
   "siblings": [],
@@ -5810,10 +5942,12 @@
      "addresses share kazipara, mirpur"
     ],
     "supporting": [
-     "OEKO_TEX lists both, as entries oeko-tex-83799:100 and oeko-tex-36725:100",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "OEKO_TEX lists both, as entries oeko-tex-83799 and oeko-tex-36725"
+    ]
    }
   ],
   "siblings": [],
@@ -5849,13 +5983,13 @@
     "verdict": "same register entry",
     "strong": [
      "both hold BKMEA entry 458",
-     "same BKMEA number 458",
-     "addresses share eater, narayanganj, works"
+     "same BKMEA number 458"
     ],
     "supporting": [
      "same district Narayanganj"
     ],
-    "against": []
+    "against": [],
+    "notes": []
    }
   ],
   "siblings": [],
@@ -5894,10 +6028,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -5936,10 +6072,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Mymensingh"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -5980,11 +6118,13 @@
      "same parent group DBL Group"
     ],
     "supporting": [
-     "RSC lists both, as entries 12133 and 23754",
-     "no address on the qualified profile",
      "same district Gazipur"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 12133 and 23754",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -6023,7 +6163,8 @@
     "supporting": [
      "same district Rangpur"
     ],
-    "against": []
+    "against": [],
+    "notes": []
    }
   ],
   "siblings": [],
@@ -6065,10 +6206,12 @@
      "same mailbox domain knitconcern.com"
     ],
     "supporting": [
-     "BKMEA lists both, as entries 635, 641 and 2522, 2727",
      "same district Narayanganj"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "BKMEA lists both, as entries 635, 641 and 2522, 2727"
+    ]
    }
   ],
   "siblings": [],
@@ -6103,13 +6246,13 @@
     ],
     "verdict": "strong",
     "strong": [
-     "1 shared phone number",
-     "addresses share bscic, gazipur, tongi"
+     "1 shared phone number"
     ],
     "supporting": [
      "same district Gazipur"
     ],
-    "against": []
+    "against": [],
+    "notes": []
    }
   ],
   "siblings": [],
@@ -6152,11 +6295,13 @@
      "same parent group Kimberley Group"
     ],
     "supporting": [
-     "RSC lists both, as entries 12322 and 12863",
-     "no address on the qualified profile",
      "same district Gazipur"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 12322 and 12863",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -6197,11 +6342,12 @@
     "strong": [
      "same parent group New Asia Group"
     ],
-    "supporting": [
+    "supporting": [],
+    "against": [],
+    "notes": [
      "RSC lists both, as entries 9243 and 23180",
      "no address on the qualified profile"
-    ],
-    "against": []
+    ]
    }
   ],
   "siblings": [
@@ -6253,11 +6399,12 @@
     "strong": [
      "same parent group New Asia Group"
     ],
-    "supporting": [
+    "supporting": [],
+    "against": [],
+    "notes": [
      "RSC lists both, as entries 9243 and 12644",
      "no address on the qualified profile"
-    ],
-    "against": []
+    ]
    }
   ],
   "siblings": [
@@ -6311,11 +6458,13 @@
      "same parent group Madinaple Pantex Group"
     ],
     "supporting": [
-     "RSC lists both, as entries 12496 and 9925",
-     "no address on the qualified profile",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 12496 and 9925",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -6354,10 +6503,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -6398,14 +6549,16 @@
     "verdict": "strong",
     "strong": [
      "same mailbox domain mascoknit.com",
-     "addresses share gazipur, shataish, tongi"
+     "addresses share shataish, tongi"
     ],
     "supporting": [
-     "BKMEA lists both, as entries 1701, 1745 and 744, 751",
-     "OEKO_TEX lists both, as entries oeko-tex-86195:100 and oeko-tex-15524:100, oeko-tex-15524:mig, oeko-tex-15524:organic-cotton, oeko-tex-15524:step",
      "same district Gazipur"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "BKMEA lists both, as entries 1701, 1745 and 744, 751",
+     "OEKO_TEX lists both, as entries oeko-tex-86195 and oeko-tex-15524, oeko-tex-15524:mig, oeko-tex-15524:organic-cotton"
+    ]
    }
   ],
   "siblings": [
@@ -6456,10 +6609,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -6494,13 +6649,14 @@
      "OEKO_TEX",
      "RSC"
     ],
-    "verdict": "name and district",
+    "verdict": "name only",
     "strong": [],
-    "supporting": [
+    "supporting": [],
+    "against": [],
+    "notes": [
      "RSC lists both, as entries 9594 and 11636",
      "no address on the qualified profile"
-    ],
-    "against": []
+    ]
    }
   ],
   "siblings": [],
@@ -6534,12 +6690,13 @@
      "EPB",
      "OEKO_TEX"
     ],
-    "verdict": "name and district",
+    "verdict": "name only",
     "strong": [],
-    "supporting": [
+    "supporting": [],
+    "against": [],
+    "notes": [
      "no address on the qualified profile"
-    ],
-    "against": []
+    ]
    }
   ],
   "siblings": [],
@@ -6583,11 +6740,13 @@
      "same parent group Muazuddin Group"
     ],
     "supporting": [
-     "RSC lists both, as entries 10862 and 12622",
-     "no address on the qualified profile",
      "same district Gazipur"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 10862 and 12622",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -6626,10 +6785,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -6666,11 +6827,13 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "RSC lists both, as entries 9307 and 12807",
-     "no address on the qualified profile",
      "same district Gazipur"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 9307 and 12807",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -6708,7 +6871,8 @@
     "supporting": [
      "same district Chattogram"
     ],
-    "against": []
+    "against": [],
+    "notes": []
    }
   ],
   "siblings": [],
@@ -6745,10 +6909,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Gazipur"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -6786,10 +6952,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Manikganj"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -6831,11 +6999,13 @@
      "same parent group Powertex Fashions Group"
     ],
     "supporting": [
-     "RSC lists both, as entries 11880 and 23541",
-     "no address on the qualified profile",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 11880 and 23541",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -6877,10 +7047,12 @@
      "same website groupreedisha-bd.com"
     ],
     "supporting": [
-     "OEKO_TEX lists both, as entries oeko-tex-25565:100 and oeko-tex-41661:100",
      "same district Gazipur"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "OEKO_TEX lists both, as entries oeko-tex-25565 and oeko-tex-41661"
+    ]
    }
   ],
   "siblings": [],
@@ -6921,7 +7093,8 @@
     "supporting": [
      "same district Chattogram"
     ],
-    "against": []
+    "against": [],
+    "notes": []
    }
   ],
   "siblings": [],
@@ -6957,12 +7130,13 @@
     ],
     "verdict": "strong, but check",
     "strong": [
-     "addresses share boro, dewra, gazipur, noab"
+     "addresses share boro, dewra, noab"
     ],
     "supporting": [],
     "against": [
      "districts differ: Dhaka / Gazipur"
-    ]
+    ],
+    "notes": []
    }
   ],
   "siblings": [],
@@ -7001,10 +7175,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -7042,10 +7218,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Gazipur"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -7082,10 +7260,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Narayanganj"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -7125,11 +7305,13 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "RSC lists both, as entries 24504 and 26249",
-     "no address on the qualified profile",
      "same district Chattogram"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 24504 and 26249",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -7166,12 +7348,13 @@
     "strong": [
      "1 shared phone number",
      "same mailbox domain mumtex.com",
-     "addresses share gazipur, kashimpur, surabari"
+     "addresses share kashimpur, surabari"
     ],
     "supporting": [
      "same district Gazipur"
     ],
-    "against": []
+    "against": [],
+    "notes": []
    }
   ],
   "siblings": [],
@@ -7211,10 +7394,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -7257,7 +7442,8 @@
     "supporting": [],
     "against": [
      "districts differ: Mymensingh / Dhaka"
-    ]
+    ],
+    "notes": []
    }
   ],
   "siblings": [
@@ -7310,11 +7496,12 @@
     "strong": [
      "same parent group SQ Group"
     ],
-    "supporting": [
+    "supporting": [],
+    "against": [],
+    "notes": [
      "RSC lists both, as entries 9523 and 11532",
      "no address on the qualified profile"
-    ],
-    "against": []
+    ]
    }
   ],
   "siblings": [
@@ -7364,10 +7551,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Gazipur"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -7404,10 +7593,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Chattogram"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -7446,10 +7637,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -7483,12 +7676,13 @@
      "BGMEA",
      "EPB"
     ],
-    "verdict": "name and district",
+    "verdict": "name only",
     "strong": [],
-    "supporting": [
+    "supporting": [],
+    "against": [],
+    "notes": [
      "no address on the qualified profile"
-    ],
-    "against": []
+    ]
    }
   ],
   "siblings": [],
@@ -7523,12 +7717,13 @@
     ],
     "verdict": "strong",
     "strong": [
-     "addresses share aliganj, fatullah, narayanganj"
+     "addresses share aliganj, fatullah"
     ],
     "supporting": [
      "same district Narayanganj"
     ],
-    "against": []
+    "against": [],
+    "notes": []
    }
   ],
   "siblings": [],
@@ -7566,12 +7761,13 @@
     "verdict": "strong, but check",
     "strong": [
      "same mailbox domain utahgroup.net",
-     "addresses share bhabanipur, bokran, gazipur, monipur"
+     "addresses share bhabanipur, bokran, monipur"
     ],
     "supporting": [],
     "against": [
      "districts differ: Gazipur / Dhaka"
-    ]
+    ],
+    "notes": []
    }
   ],
   "siblings": [],
@@ -7614,11 +7810,13 @@
      "same parent group ABA Group"
     ],
     "supporting": [
-     "RSC lists both, as entries 10196, 12489 and 23076",
-     "no address on the qualified profile",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "RSC lists both, as entries 10196, 12489 and 23076",
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -7652,12 +7850,13 @@
      "BGMEA",
      "EPB"
     ],
-    "verdict": "name and district",
+    "verdict": "name only",
     "strong": [],
-    "supporting": [
+    "supporting": [],
+    "against": [],
+    "notes": [
      "no address on the qualified profile"
-    ],
-    "against": []
+    ]
    }
   ],
   "siblings": [],
@@ -7696,10 +7895,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],
@@ -7736,10 +7937,12 @@
     "verdict": "name and district",
     "strong": [],
     "supporting": [
-     "no address on the qualified profile",
      "same district Dhaka"
     ],
-    "against": []
+    "against": [],
+    "notes": [
+     "no address on the qualified profile"
+    ]
    }
   ],
   "siblings": [],

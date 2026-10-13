@@ -125,8 +125,8 @@ class Qualified:
     """A name that ends in a qualifier.
 
     `chain` is the name with one more qualifier taken off at each step,
-    nearest first: "X (Unit-2) (Extension)" gives ["X (Unit-2)", "X"], so the
-    extension of unit 2 looks for unit 2's profile before the company's.
+    nearest first: "X (Unit-2) (Extension)" gives ["X (Unit-2)", "X"]. The
+    company's profile is looked for first, the unit's only when it has none.
     """
 
     kind: str  # building | unit | other
@@ -200,6 +200,8 @@ class Evidence:
     strong: list[str] = field(default_factory=list)
     supporting: list[str] = field(default_factory=list)
     against: list[str] = field(default_factory=list)
+    # Said beside the evidence, never counted as evidence.
+    notes: list[str] = field(default_factory=list)
     same_entry: bool = False
     # A register that holds both profiles as separate entries: the register
     # itself says they are two things (for RSC, two buildings).
@@ -267,8 +269,18 @@ def _km(a: dict, b: dict) -> float | None:
 def _entry_refs(records: list[dict]) -> dict[str, set[str]]:
     out: dict[str, set[str]] = defaultdict(set)
     for rec in records:
-        out[rec["code"]].add((rec.get("source_ref") or "").split(":detail")[0])
+        # "1572:detail" is entry 1572 and "oeko-tex-21325:step" is certificate
+        # 21325. A leading "general:" (BGMEA's second register) is kept.
+        # A suffix follows a number; in "general:35" the number IS the entry.
+        out[rec["code"]].add(re.sub(r"(?<=\d):(?:detail|step|\d+)$", "", rec.get("source_ref") or ""))
     return out
+
+
+# Address words that place a town, not a building.
+_PLACE_NOISE = frozenset(
+    {"area", "bazar", "bazaar", "road", "sadar", "extension", "industrial", "works", "thana",
+     "upazila", "post", "union", "ward", "south", "north", "east", "west", "para", "nagar"}
+)
 
 
 def evidence(q: dict, p: dict, q_recs: list[dict], p_recs: list[dict]) -> Evidence:
@@ -282,7 +294,7 @@ def evidence(q: dict, p: dict, q_recs: list[dict], p_recs: list[dict]) -> Eviden
             ev.strong.append(f"both hold {code} entry {', '.join(shared)}")
         else:
             ev.listed_twice.append(code)
-            ev.supporting.append(
+            ev.notes.append(
                 f"{code} lists both, as entries {', '.join(sorted(p_refs[code]))} and {', '.join(sorted(q_refs[code]))}"
             )
 
@@ -307,6 +319,10 @@ def evidence(q: dict, p: dict, q_recs: list[dict], p_recs: list[dict]) -> Eviden
         ev.strong.append(f"same website {_site_host(q)}")
 
     q_addr, p_addr = _addresses(q, q_recs), _addresses(p, p_recs)
+    # A district or town both rows sit in is the district line below, not an address match.
+    towns = _PLACE_NOISE | {
+        w for s in (q, p) for col in ("district", "city") for w in area_tokens(s.get(col))
+    }
     address_hit = None
     for a in q_addr:
         for b in p_addr:
@@ -314,14 +330,14 @@ def evidence(q: dict, p: dict, q_recs: list[dict], p_recs: list[dict]) -> Eviden
             if ok:
                 address_hit = f"same house and road ({basis})"
             elif not address_hit:
-                ta, tb = area_tokens(a), area_tokens(b)
+                ta, tb = area_tokens(a) - towns, area_tokens(b) - towns
                 both = ta & tb
                 if len(both) >= 2 and len(both) / max(1, len(ta | tb)) >= 0.5:
                     address_hit = f"addresses share {', '.join(sorted(both)[:4])}"
     if address_hit:
         ev.strong.append(address_hit)
     elif not q_addr:
-        ev.supporting.append("no address on the qualified profile")
+        ev.notes.append("no address on the qualified profile")
 
     km = _km(q, p)
     if km is not None:
@@ -394,8 +410,11 @@ def build(suppliers: list[dict]) -> dict[str, Any]:
         q = qualified.get(s["id"])
         if not q:
             continue
+        # The company's own profile wins over a nearer unit's: a building
+        # linked to a unit that is itself linked would hang off an
+        # unpublished row, and the redirect (0096) does not follow two steps.
         mothers: list[dict] = []
-        for step in q.chain:
+        for step in reversed(q.chain):
             mothers = [m for m in by_key.get(identity_key(step), []) if m["id"] != s["id"]]
             if mothers:
                 break
@@ -618,7 +637,9 @@ def render(rows: list[dict], data: dict[str, Any], recs: dict[str, list[dict]], 
         for r in (x for x in rows if x["bucket"] == b):
             for i, pair in enumerate(r["pairs"]):
                 ev = pair["evidence"]
-                said = "; ".join(ev.strong + ev.supporting + [f"AGAINST: {x}" for x in ev.against]) or "the name only"
+                said = "; ".join(
+                    ev.strong + ev.supporting + [f"AGAINST: {x}" for x in ev.against] + [f"({x})" for x in ev.notes]
+                ) or "the name only"
                 add(f"| {_profile(r['supplier'], recs) if i == 0 else '(same)'} | {_profile(pair['main'], recs)} | "
                     f"{_cell(said)} | {ev.verdict if len(r['pairs']) == 1 else 'several main profiles'} | {r['action']} |")
         add("")
@@ -697,7 +718,8 @@ def to_json(rows: list[dict], recs: dict[str, list[dict]]) -> list[dict]:
                 "profile": slim(r["supplier"]),
                 "main": [
                     {**slim(p["main"]), "verdict": p["evidence"].verdict, "strong": p["evidence"].strong,
-                     "supporting": p["evidence"].supporting, "against": p["evidence"].against}
+                     "supporting": p["evidence"].supporting, "against": p["evidence"].against,
+                     "notes": p["evidence"].notes}
                     for p in r["pairs"]
                 ],
                 "siblings": [slim(x) for x in r["siblings"]],

@@ -62,10 +62,18 @@ def test_classify_leaves_plain_names_alone(name: str) -> None:
     assert classify(name) is None
 
 
-def test_the_extension_of_a_unit_looks_for_the_unit_first() -> None:
-    q = classify("Radial International Ltd. (Unit-2) (Extension)")
+def test_the_extension_of_a_unit_links_to_the_company_not_to_the_unit() -> None:
+    name = "Radial International Ltd. (Unit-2) (Extension)"
+    q = classify(name)
     assert q is not None
     assert q.chain == ("Radial International Ltd. (Unit-2)", "Radial International Ltd.")
+    unit = _sup("unit", "Radial International Ltd. (Unit-2)")
+    rows = {r["supplier"]["slug"]: r for r in build([_sup("main", "Radial International Ltd."), unit, _sup("ext", name)])["rows"]}
+    # A building linked to a unit that is itself linked would hang off an unpublished row.
+    assert [m["slug"] for m in rows["ext"]["mothers"]] == ["main"]
+    # With no company profile, the unit's is the nearest thing to a main profile.
+    rows = {r["supplier"]["slug"]: r for r in build([unit, _sup("ext", name)])["rows"]}
+    assert [m["slug"] for m in rows["ext"]["mothers"]] == ["unit"]
 
 
 def _sup(slug: str, name: str, **extra: object) -> dict:
@@ -126,6 +134,39 @@ def test_two_rsc_entries_and_a_district_are_not_called_strong() -> None:
     assert ev.verdict == "name and district"
     assert ev.listed_twice == ["RSC"]
     assert proposed_action("a", ev).startswith("link as a building")
+
+
+def test_a_note_is_not_evidence() -> None:
+    # No district on the building: "RSC lists both" and "no address" must not read as a district match.
+    ev = evidence(
+        _sup("annex", "Toptex Sweaters Ltd (Annex Building)", district=None), _sup("main", "Top Tex Sweaters Ltd."),
+        [_rec("RSC", "1")], [_rec("RSC", "2")],
+    )
+    assert ev.verdict == "name only"
+    assert len(ev.notes) == 2
+
+
+def test_one_certificate_under_two_suffixes_is_one_entry() -> None:
+    ev = evidence(
+        _sup("note", "X Ltd. (URF)"), _sup("main", "X Ltd."),
+        [_rec("OEKO_TEX", "oeko-tex-21325:step")], [_rec("OEKO_TEX", "oeko-tex-21325:100")],
+    )
+    assert ev.same_entry and not ev.listed_twice
+
+
+def test_two_general_members_are_two_entries() -> None:
+    # BGMEA's second register writes "general:35": the number is the entry, not a suffix.
+    ev = evidence(
+        _sup("unit", "X Ltd. (Unit-2)"), _sup("main", "X Ltd."),
+        [_rec("BGMEA", "general:35")], [_rec("BGMEA", "general:1204")],
+    )
+    assert not ev.same_entry and ev.listed_twice == ["BGMEA"]
+
+
+def test_sharing_a_town_is_not_sharing_an_address() -> None:
+    q = _sup("unit", "X Ltd. (Unit-2)", address_raw="Savar Extension Area, Savar, Dhaka", district="Dhaka", city="Savar")
+    p = _sup("main", "X Ltd.", address_raw="Extension Area, Savar, Dhaka", district="Dhaka", city="Savar")
+    assert evidence(q, p, [], []).verdict == "name and district"
 
 
 def test_one_register_entry_on_both_rows_is_a_duplicate_not_a_building() -> None:
