@@ -194,6 +194,45 @@ def test_a_phone_number_is_never_printed() -> None:
     assert ev.strong == ["1 shared phone number"]
 
 
+def _plan(bucket: str, name: str, ev: report.Evidence | None, claims: int = 1) -> str:
+    q = classify(name)
+    assert q is not None
+    return report.plan_for(bucket, q, [{"evidence": ev}] if ev else [], claims)
+
+
+def test_plan_buying_house_stays_and_every_other_lone_qualifier_goes() -> None:
+    assert _plan("c", "FASHION DIVISION (BUYING HOUSE)", None) == "title-keep"
+    assert _plan("c", "Youngones (BD) Ltd. Unit-2", None) == "title-drop"
+    assert _plan("c", "ARJON FASHIONS LTD. (FOR UD)", None) == "title-drop"
+
+
+def test_plan_attaches_a_building_and_merges_only_one_entry_filed_twice() -> None:
+    E = report.Evidence
+    assert _plan("a", ZAHEEN_SHEDS, E(supporting=["same district Narayanganj"])) == "attach"
+    assert _plan("b1", "X Ltd. (Unit-2)", E(strong=["x"], same_entry=True)) == "merge"
+    assert _plan("b1", "X Ltd. (Unit-2)", E(strong=["x"], against=["districts differ"])) == "read"
+    assert _plan("a", "X Ltd. (Shed)", E()) == "read"
+
+
+def test_plan_a_note_bracket_moves_only_on_evidence_beyond_the_name() -> None:
+    E = report.Evidence
+    new = "Advance World Limited (New)"
+    assert _plan("d", new, E(supporting=["same district Dhaka"])) == "read"
+    assert _plan("d", new, E(strong=["same website x.com"])) == "merge"
+    assert _plan("d", new, E(strong=["same parent group X"], listed_twice=["RSC"])) == "attach"
+    # Only the safety register lists buildings; two certificates are not a site.
+    assert _plan("d", new, E(strong=["same website x.com"], listed_twice=["OEKO_TEX"])) == "read"
+    # Two bracketed rows claiming one company are two owners until someone reads them.
+    assert _plan("d", new, E(strong=["same website x.com"]), claims=2) == "read"
+
+
+def test_the_attach_sql_cannot_commit() -> None:
+    row = {"plan": "attach", "supplier": {"id": "a" * 8}, "pairs": [{"main": {"id": "b" * 8}}]}
+    sql = report.attach_sql([row, {**row, "plan": "read"}])
+    assert sql.rstrip().endswith("end $dry$;") and "raise exception 'DRY RUN OK" in sql
+    assert sql.count("::uuid, ") == 1
+
+
 def test_the_script_cannot_write() -> None:
     source = inspect.getsource(report)
     for verb in (".patch(", ".insert(", ".post(", ".delete(", "add_argument(\"--apply\""):

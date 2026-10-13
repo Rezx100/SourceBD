@@ -383,6 +383,40 @@ def proposed_action(bucket: str, ev: Evidence | None) -> str:
     return "link as a building of the main profile (facility_of)"
 
 
+# Founder, 13 Oct 2026: "must stay: buying house". It says what the company
+# is, so no title drops it; every other lone qualifier goes.
+_TITLE_KEEPS_RE = re.compile(r"buying\s+house", re.IGNORECASE)
+
+
+def plan_for(bucket: str, q: Qualified, pairs: list[dict], claims: int) -> str:
+    """What the founder's "merge smartly and carefully" comes to for one row.
+
+    attach: becomes a building of the main profile (one profile on the site,
+            the building's own registers kept apart and labelled).
+    merge:  one company filed twice; the main profile absorbs the row.
+    read:   the evidence does not carry a change; a person decides.
+    """
+    if bucket == "c":
+        return "title-keep" if _TITLE_KEEPS_RE.search(q.qualifier) else "title-drop"
+    if len(pairs) != 1:
+        return "read"
+    ev: Evidence = pairs[0]["evidence"]
+    if ev.same_entry:
+        return "merge"
+    if bucket in ("a", "b1"):
+        return "attach" if ev.verdict in ("strong", "name and district") else "read"
+    # (d): the bracket names no site, so only evidence beyond the name moves a
+    # row, and never when two bracketed rows claim the same main profile
+    # ("Anowara Fashions (Anowara Group)" and "(Habib Group)" are two owners).
+    if ev.verdict != "strong" or claims > 1:
+        return "read"
+    if not ev.listed_twice:
+        return "merge"
+    # Only the safety register lists buildings. Two memberships or two
+    # certificates under one name are not a site, so a person reads those.
+    return "attach" if "RSC" in ev.listed_twice else "read"
+
+
 def build(suppliers: list[dict]) -> dict[str, Any]:
     """Bucket every published, unlinked profile whose name ends in a qualifier."""
     published = [s for s in suppliers if s.get("is_published") and not s.get("facility_of")]
@@ -524,6 +558,10 @@ def finish(data: dict[str, Any], recs: dict[str, list[dict]]) -> list[dict]:
             else proposed_action(row["bucket"], best)
         )
         out.append({**row, "pairs": pairs, "action": action})
+    claims = Counter(r["pairs"][0]["main"]["id"] for r in out if r["bucket"] == "d" and r["pairs"])
+    for r in out:
+        n = claims[r["pairs"][0]["main"]["id"]] if r["bucket"] == "d" and r["pairs"] else 1
+        r["plan"] = plan_for(r["bucket"], r["qualified"], r["pairs"], n)
     out.sort(key=lambda r: (r["bucket"], identity_key(r["qualified"].base), r["supplier"]["slug"]))
     return out
 
@@ -697,7 +735,69 @@ def render(rows: list[dict], data: dict[str, Any], recs: dict[str, list[dict]], 
         "buildings and units by rule, and decide the others from the list above, since \"(Buying House)\" "
         "or \"(Spinning Mills)\" can be the only words saying what the company is.")
     add("")
+
+    plans = Counter(r["plan"] for r in rows)
+    add("## 6. The plan (founder, 13 Oct 2026: \"must stay: buying house, and everything else must merge "
+        "smartly and carefully\")")
+    add("")
+    add("| step | profiles | what happens |")
+    add("| -- | -- | -- |")
+    add(f"| attach | **{plans['attach']}** | becomes a building of its main profile: one profile on the site, "
+        "the old address redirects, its own registers show on the main record under the building's name |")
+    add(f"| merge | **{plans['merge']}** | one company filed twice: the main profile absorbs it "
+        "(`ops/merge_duplicate_suppliers.py --pair`), which cannot be undone |")
+    add(f"| read | **{plans['read']}** | left alone: a district that differs, two main profiles, no main "
+        "profile, two rows claiming one company, or a name with nothing else behind it |")
+    add(f"| title drops the qualifier | **{plans['title-drop']}** | no data change |")
+    add(f"| title keeps it | **{plans['title-keep']}** | \"Buying House\" stays |")
+    add("")
+    add("Checked on production before proposing the attach: the live record reader already shows a linked "
+        "building's memberships and certificates on the main record, labelled with the building; 69 of the "
+        "610 rows linked earlier rely on it.")
+    add("")
+    for step, verb in (("attach", "becomes a building of"), ("merge", "is absorbed by")):
+        add(f"### {step}")
+        add("")
+        for r in (x for x in rows if x["plan"] == step):
+            add(f"- `{r['supplier']['slug']}` {verb} `{r['pairs'][0]['main']['slug']}`")
+        add("")
+    add("### read")
+    add("")
+    for r in (x for x in rows if x["plan"] == "read"):
+        add(f"- `{r['supplier']['slug']}` ({r['bucket']}): {r['action']}")
+    add("")
     return "\n".join(L)
+
+
+def attach_sql(rows: list[dict]) -> str:
+    """The attach step as SQL that cannot commit: it ends by raising.
+
+    The publish guard (0092) unpublishes a row when `facility_of` is set, and
+    `facility_parent_slug` (0096) is what the old address redirects through;
+    the last statement reports both and rolls everything back.
+    """
+    pairs = [(r["supplier"]["id"], r["pairs"][0]["main"]["id"]) for r in rows if r["plan"] == "attach"]
+    values = ",\n    ".join(f"('{c}'::uuid, '{m}'::uuid)" for c, m in pairs)
+    return f"""-- Generated by ops/report_premises_siblings.py. DRY RUN: the last statement raises, so nothing commits.
+do $dry$
+declare n_set int; n_hidden int; n_redirect int; n_main_bad int;
+begin
+  create temp table _attach(child uuid, main uuid) on commit drop;
+  insert into _attach values
+    {values};
+  select count(*) into n_main_bad from _attach a join public.suppliers m on m.id = a.main
+   where not m.is_published or m.facility_of is not null
+      or a.main in (select child from _attach);
+  update public.suppliers s set facility_of = a.main from _attach a
+   where s.id = a.child and s.facility_of is null and s.is_published;
+  get diagnostics n_set = row_count;
+  select count(*) into n_hidden from _attach a join public.suppliers s on s.id = a.child where not s.is_published;
+  select count(*) into n_redirect from _attach a join public.suppliers s on s.id = a.child
+   where public.facility_parent_slug(s.slug) is not null;
+  raise exception 'DRY RUN OK | pairs % | linked % | now unpublished % | old address redirects % | main not usable %',
+    {len(pairs)}, n_set, n_hidden, n_redirect, n_main_bad;
+end $dry$;
+"""
 
 
 def to_json(rows: list[dict], recs: dict[str, list[dict]]) -> list[dict]:
@@ -725,6 +825,7 @@ def to_json(rows: list[dict], recs: dict[str, list[dict]]) -> list[dict]:
                 "siblings": [slim(x) for x in r["siblings"]],
                 "unpublished_same_base": [x["slug"] for x in r["unpublished_same_base"]],
                 "action": r["action"],
+                "plan": r["plan"],
             }
         )
     return out
@@ -734,6 +835,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", default="ops/plans/premises-siblings-report.md", help="report markdown path")
     parser.add_argument("--json", type=Path, default=None, help="also write every row as JSON here")
+    parser.add_argument("--sql", type=Path, default=None, help="also write the attach step as a dry-run DO block")
     args = parser.parse_args()
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
@@ -758,6 +860,9 @@ def main() -> int:
     Path(args.out).write_text(text + "\n", encoding="utf-8")
     if args.json:
         args.json.write_text(json.dumps(to_json(rows, recs), indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+    if args.sql:
+        args.sql.write_text(attach_sql(rows), encoding="utf-8")
+    print("plan: " + ", ".join(f"{k}={v}" for k, v in sorted(Counter(r["plan"] for r in rows).items())))
     counts = Counter(r["bucket"] for r in rows)
     print(f"published {data['published']}; qualified {len(rows)}; " + ", ".join(f"{b}={counts[b]}" for b in ("a", "b1", "b2", "c", "d")))
     print(f"report: {args.out}")
