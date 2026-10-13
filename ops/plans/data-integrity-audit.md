@@ -37,7 +37,11 @@ missing. **S4** untidy. Inside a level, most published companies first.
 - **Fix built, 13 Oct 2026:** `supabase/migrations/0151_messages_key_lock.sql` closes the function to every
   client role, makes a new key and re-encrypts the messages under it, with one `messages.key_rotated` entry
   in the activity record. Dry run on production, rolled back: 5 of 5 messages re-encrypted, none open with
-  the old key, visitors and signed-in users refused. Not applied: it waits for "apply 0151".
+  the old key, visitors and signed-in users refused.
+- **Applied on production, 13 Oct 2026 (10:44 UTC), on the founder's "apply 0151":** 5 of 5 messages re-encrypted,
+  0 left unreadable; the same GET as a signed-out visitor now answers 401 (permission denied); one
+  `messages.key_rotated` entry in the activity record and no per-message entry. Still to do, by the founder:
+  the offline copy of the new key (`docs/runbooks/messages-key-offline-copy.md`, steps 1 to 4).
 
 ### S1-1. The safety register lists the factory as Ineligible; our page says there is no RSC record
 
@@ -53,6 +57,11 @@ missing. **S4** untidy. Inside a level, most published companies first.
 - **Smallest fix:** print the register's own status wherever RSC is shown: "RSC lists this factory as
   Ineligible · read 2 Oct 2026". One field added to what the profile returns, one line of wording.
 - **Needs your yes:** yes (the wording, and a migration for the field).
+- **Fix built and applied, 13 Oct 2026:** `supabase/migrations/0152_profile_rsc_listed_status.sql` adds `rsc_listed`
+  to the profile (every RSC entry that is not active, in the register's own word) and the record prints it
+  (PR 534). Applied on production on the founder's "apply 0152": for five companies the rest of the payload is
+  byte-for-byte what it was, and `minar-textile`, `4-stitch-knit-composite` and `eurotex-fashion` each carry their
+  Ineligible entry. The new words reach buyers with the next release; until then the page reads as before.
 
 ### S1-2. A trade-body membership shown on a company that the register files under another name
 
@@ -157,6 +166,8 @@ missing. **S4** untidy. Inside a level, most published companies first.
   (the last runs were partial: 48 and 8 entries not seen), so for those two the honest wording is "partly read".
 - **Smallest fix:** feed the Tier 5 table from `sanctions_lists_read()`. Front end only.
 - **Needs your yes:** no data change; yes to the wording for the two partial lists.
+- **Fix built, 13 Oct 2026:** PR 535 feeds the table from `sanctions_lists_read()`; UFLPA and US WRO read
+  "Read in part, no full read yet". Front end only: it reaches buyers with the next release.
 
 ### S2-2. Search and the company page give two worker figures, and the caption describes the wrong one
 
