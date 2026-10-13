@@ -208,9 +208,8 @@ describe("the record on a phone (Paper page 35, the supplier drawer)", () => {
     assert.match(text(products), new RegExp(`What it ships ${p.lines} EPB codes · photos illustrate .* As filed`));
     assert.equal((/<ul data-phone-lines=""[^>]*>([\s\S]*?)<\/ul>/.exec(products)![1]!.match(/<li /g) ?? []).length, 6);
     assert.equal((products.match(/data-phone-filed=""/g) ?? []).length, 1);
-    // Key facts: where a figure came from reads "From BKMEA", under it, never a bare code at the row's end.
     // Capacity is one figure in pieces a month, with no note under it (founder, 13 Oct 2026).
-    assert.match(out, /Capacity 25,000,000 pcs\/month From BKMEA (?!·)/);
+    assert.match(out, /Capacity 25,000,000 pcs\/month (?!From|·)/);
     // Key facts are icon cells, two by two; the export tiles are the desktop's worked-out four, the fourth always the biggest market.
     assert.match(html, /<dl data-phone-facts="" class="grid grid-cols-2 /);
     const tiles = text(phone(model(aboniInput(), { volza: VOLZA, exportRank: 89, market: "United States" }), { mode: "page" }));
@@ -857,7 +856,9 @@ describe("the record's first screen says each fact once, with its receipt", () =
     const by = Object.fromEntries(m.facts.map((f) => [f.label, f]));
     assert.deepEqual(by["Sewing machines"]!.marks?.map((x) => x.code), ["BGMEA", "BKMEA"]);
     assert.deepEqual(by["Capacity, as filed"]!.marks?.map((x) => x.code), ["BKMEA"]);
-    assert.match(text(view(m)), /Sewing machines 850 From BGMEA, BKMEA/);
+    // The marks stay on the model for the Sources tab; Key facts prints no "From ..." line (founder, 13 Oct 2026).
+    assert.match(text(view(m)), /Sewing machines 850 Capacity/);
+    assert.doesNotMatch(text(view(m)), /From BGMEA/);
   });
 
   it("starts Key facts after the subline: type, founded and parent group are said once, in the line under the name", () => {
@@ -875,7 +876,8 @@ describe("the record's first screen says each fact once, with its receipt", () =
 
   it("the summary strip's value is the figure alone under its label", () => {
     const cells = Object.fromEntries(summaryCells(model(), TODAY).map((c) => [c.key, c]));
-    assert.equal(cells.workers!.value, "3,166");
+    assert.equal(cells.workers!.value, "3,314");
+    assert.equal(cells.workers!.label, "Workforce");
     assert.equal(cells.sources!.value, String(model().sourceCount));
     assert.doesNotMatch(text(view(model())), /\d workers\b.*Sources|\d+ sources/);
   });
@@ -1236,8 +1238,6 @@ describe("the record's minors, round 3 (critique of 8 Oct 2026, round 3, item 7)
     assert.ok(cols && beside && map, "the sites' columns, and where the map goes beside them");
     // The map, its 12px inset and the 20px between it and the table come off the column first.
     assert.ok(room(cols[1]!.replace("minmax(0,1fr)", ""), Number(beside[1]), 12, Number(map[1]) + 12 + 20 - 24) >= 200, "a site's address keeps 200px beside the map");
-    // Key facts: a figure and its source break between their parts before a part is split.
-    assert.match(view(model(), { mode: "page" }), /<dd class="text-xs text-ink-3"><span class="inline-block">From RSC ·<\/span> <span class="inline-block">across 2 sites<\/span><\/dd>/);
   });
 
   it("a read date keeps its year unless it is this year's: a bare day and month must not make an old read look recent", () => {

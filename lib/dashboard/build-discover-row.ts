@@ -3,7 +3,7 @@
 // from the RPC return + the HS batch + saved membership.
 
 import { PII_KEYS, type DiscoverV32Row, type HsBatchLine } from "@/lib/discover-v32-rpc";
-import type { WorkersBasis } from "@/lib/enrich-discover-workers";
+import { rangeWords, type WorkersBasis } from "@/lib/enrich-discover-workers";
 import type { FactWithMark, HighlightChip, SupplierCardModel, TableRowModel } from "@/lib/dashboard/models";
 import {
   certChipLabel,
@@ -80,11 +80,13 @@ export function workersBasisLabel(
  *   with words that say what it covers — taken from the batch's own account of
  *   which sites it summed, never inferred from the numbers.
  */
-export function discoverWorkers(row: Pick<DiscoverV32Row, "employees_total" | "workers_basis" | "workers_own" | "workers_source">): {
+export function discoverWorkers(row: Pick<DiscoverV32Row, "employees_total" | "workers_basis" | "workers_own" | "workers_source" | "workers_range">): {
   own: number | null;
   ownLabel: string | null;
   second: number | null;
   secondLabel: string | null;
+  /** A company with buildings: the range every surface prints in place of one figure, the record included. */
+  range?: string;
 } {
   // The headline is always suppliers.employees_total: the registers' figure,
   // or an RSC headcount filled in where they had none
@@ -96,7 +98,14 @@ export function discoverWorkers(row: Pick<DiscoverV32Row, "employees_total" | "w
   if (!basis) return { own: row.employees_total, ownLabel: register(row.employees_total), second: null, secondLabel: null };
   const own = row.workers_own ?? null;
   const shown = row.employees_total;
+  // `own` stays the sort's figure under its own words; the range carries the words for what it covers.
+  if (row.workers_range) return { own, ownLabel: register(own), second: null, secondLabel: "the company and its buildings", range: rangeWords(row.workers_range) };
   if (basis === "own" && shown === own) {
+    return { own, ownLabel: register(own), second: null, secondLabel: null };
+  }
+  // A company with buildings shows its own figure alone, as its record does;
+  // the buildings' figures are on the record's Sites tab (founder, 13 Oct 2026).
+  if ((basis === "group" || basis === "excludes-record") && own != null) {
     return { own, ownLabel: register(own), second: null, secondLabel: null };
   }
   return {
@@ -243,8 +252,8 @@ export function buildDiscoverCard(
     { text: entityLabel(row.entity_type), mark: null, icon: row.entity_type === "buying_house" ? "buying-house" : row.entity_type === "factory" ? "factory" : "company" },
     ...(place ? [{ text: place, mark: null, icon: "address" as const }] : []),
     ...(year ? [{ text: `Est. ${year}`, mark: null, icon: "established" as const }] : []),
-    ...(w.own != null
-      ? [{ text: `${formatCount(w.own)} workers`, title: `${formatCount(w.own)} workers${w.ownLabel ? ` · ${w.ownLabel}` : ""}`, mark: null, icon: "workers" as const }]
+    ...((w.range ?? w.own) != null
+      ? [{ text: `${w.range ?? formatCount(w.own)} workers`, title: `${w.range ?? formatCount(w.own)} workers${(w.range ? w.secondLabel : w.ownLabel) ? ` · ${w.range ? w.secondLabel : w.ownLabel}` : ""}`, mark: null, icon: "workers" as const }]
       : [{
           // "Workers not on file" directly above "907 workers · …" read as a
           // contradiction; with a second figure the gap is only the record's own.
@@ -339,6 +348,7 @@ export function buildDiscoverTableRow(
     workersSecond: secondLine(w),
     workersSecondShort: workersSecondShort(w),
     workersRecord: w.second ?? w.own,
+    workersRange: w.range ?? null,
     sanctioned: card.sanctioned,
     selected: false,
     saved: Boolean(opts.saved),
@@ -373,8 +383,9 @@ export function discoverCsvValue(row: DiscoverV32Row, today: Date): Record<strin
     // beside it so the number columns stay plain numbers a spreadsheet sums.
     workers: w.own == null ? "" : String(w.own),
     workers_source: w.own == null ? "" : (w.ownLabel ?? "on the supplier record"),
-    profile_workers: w.second == null ? "" : String(w.second),
-    profile_workers_source: w.second == null ? "" : (w.secondLabel ?? ""),
+    // A company with buildings: the range the record and the row print, in the profile's column.
+    profile_workers: w.range ?? (w.second == null ? "" : String(w.second)),
+    profile_workers_source: w.range == null && w.second == null ? "" : (w.secondLabel ?? ""),
     established: row.established_date ?? "",
     sanctioned: row.is_sanctioned ? "yes" : "no",
   };

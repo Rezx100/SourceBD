@@ -13,7 +13,31 @@ export type DisplayWorkersEntry = {
   /** How many sites the figure sums, and whether this record is one (0104). */
   sites?: number;
   includes_root?: boolean;
+  /** The record's own figure and its buildings' figures added up (0148); both set only for a company with buildings. */
+  own?: number;
+  buildings?: number;
 };
+
+/**
+ * The workforce of a company with buildings, as a range (founder, 13 Oct 2026:
+ * "be on the safer side and give it a range"). A company's filed figure may or
+ * may not already count its sheds, and no register says which. If it does, the
+ * whole is the larger of the two figures; if it does not, the whole is their
+ * sum. The truth is between the two, so that is what is shown, rounded outwards.
+ * One rule for the record and for every list, so the two cannot disagree.
+ */
+export function familyRange(own: number | null | undefined, buildings: number | null | undefined): [number, number] | null {
+  if (!own || !buildings || own < 0 || buildings < 0) return null;
+  const step = (n: number) => (n >= 500 ? 50 : 10);
+  const low = Math.max(own, buildings);
+  const high = own + buildings;
+  return [Math.floor(low / step(low)) * step(low), Math.ceil(high / step(high)) * step(high)];
+}
+
+/** "800–1,150": the range as every surface prints it. */
+export function rangeWords(range: readonly [number, number]): string {
+  return `${range[0].toLocaleString("en-US")}–${range[1].toLocaleString("en-US")}`;
+}
 
 export type DisplayWorkersById = Record<string, DisplayWorkersEntry>;
 
@@ -57,6 +81,7 @@ export function parseDisplayBatch(raw: unknown): DisplayWorkersById {
       ...(typeof row.sites === "number" && typeof row.includes_root === "boolean"
         ? { sites: row.sites, includes_root: row.includes_root }
         : {}),
+      ...(typeof row.own === "number" && typeof row.buildings === "number" ? { own: row.own, buildings: row.buildings } : {}),
     };
   }
   return out;
@@ -85,6 +110,8 @@ export type WorkersSelection = {
   workers_basis?: WorkersBasis;
   /** The supplier row's own figure, before `employees_total` was overwritten. */
   workers_own?: number | null;
+  /** Set for a company with buildings: the range shown instead of one figure. */
+  workers_range?: [number, number] | null;
 };
 
 export function applyDiscoverWorkersSelection<T extends WithIdAndEmployees>(
@@ -115,7 +142,7 @@ export function applyDiscoverWorkersSelection<T extends WithIdAndEmployees>(
           : d.sites > 1
             ? "group"
             : "own";
-    return { ...r, employees_total: d.value, workers_source: d.source, workers_basis: basis, workers_own: own };
+    return { ...r, employees_total: d.value, workers_source: d.source, workers_basis: basis, workers_own: own, workers_range: familyRange(d.own, d.buildings) };
   });
 }
 
