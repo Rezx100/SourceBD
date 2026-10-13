@@ -124,3 +124,39 @@ def test_the_record_keys_on_the_membership_integer_not_the_detail_id():
     assert parsed["detail_id"] == "8817"
     rec = scraper._to_record(parsed)
     assert rec.source_ref == "2632"
+
+
+# ---- rows whose membership number does not read (13 Oct 2026) -----------
+#
+# Two rows of the live list were filed under another member's number: "KNIT"
+# has no number and sits on page 511, and an old POLESTAR APPARELS row is
+# written "402 - /2008" on page 984. Keyed on the bare page id, they wrote
+# over members 511 (SHATABDI APPARELS) and 984 (H.R.S COMPOSITE TEX WEAR).
+
+
+def parse_row(membership: str, company: str, detail_id: str) -> dict:
+    html = (
+        HEAD
+        + f"<tr><td>1</td><td>{membership}</td><td>{company}</td><td>Ordinary Member</td><td>C</td>"
+        + f"<td>An Owner</td><td><a href=\"https://member.bkmea.com/member/details/{detail_id}\">View Details</a></td></tr>"
+        + TAIL
+    )
+    rows = BkmeaScraper()._parse_table(html)
+    assert len(rows) == 1
+    return rows[0]
+
+
+def test_a_number_with_no_category_still_gives_its_membership_integer():
+    parsed = parse_row("402 - /2008", "POLESTAR APPARELS (PVT) LTD.", "984")
+    assert parsed["membership_int"] == "402"
+    assert parsed["membership_category"] is None
+    assert parsed["membership_year"] == "2008"
+    assert BkmeaScraper()._to_record(parsed).source_ref == "402"
+
+
+def test_a_row_with_no_number_is_keyed_on_its_page_and_never_as_a_member():
+    no_number = BkmeaScraper()._to_record(parse_row("- C/2009", "KNIT", "511"))
+    member_511 = BkmeaScraper()._to_record(parse_row("511 - B/2000", "SHATABDI APPARELS LTD", "2293"))
+    assert no_number.source_ref == "page-511"
+    assert member_511.source_ref == "511"
+    assert no_number.source_ref != member_511.source_ref
