@@ -19,7 +19,8 @@
 --   As in 0096: one published slug, or NULL. The table itself is closed to anon and authenticated
 --   (row level security on, no policy, no grant); only the function reads it. An old address whose
 --   kept row is unpublished answers NULL (404) unless that row is a building, in which case it
---   answers the building's published company, in one hop.
+--   answers the building's published company, in one hop. An old address that a live row holds
+--   again is that row's business, not the table's.
 --
 -- BACKFILL
 --   The 166 old slugs come from the two snapshot tables the merges left behind. They exist only on
@@ -85,12 +86,15 @@ as $$
         and p.is_published = true
       limit 1),
     -- A merged duplicate's old address: the kept profile, or the kept row's
-    -- company when the kept row has since been linked as a building.
+    -- company when the kept row has since been linked as a building. A live
+    -- row that holds the slug today wins: its own rules decide (0096: an
+    -- unpublished row that is no building stays a 404).
     (select case when k.is_published then k.slug when p.is_published then p.slug end
        from public.supplier_slug_redirects r
        join public.suppliers k on k.id = r.supplier_id
        left join public.suppliers p on p.id = k.facility_of
-      where r.old_slug = p_slug)
+      where r.old_slug = p_slug
+        and not exists (select 1 from public.suppliers s where s.slug = p_slug))
   );
 $$;
 

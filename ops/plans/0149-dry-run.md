@@ -28,7 +28,11 @@ One small table and no new code path.
 - **What a visitor can learn**: one published address or nothing, as before. The table cannot be
   read with the public key; only the function reads it. If a kept row is later unpublished, its old
   addresses go back to 404. If it is later linked as a building, they go straight to its company.
-  If it is deleted outright, its redirects are deleted with it.
+  If it is deleted outright, its redirects are deleted with it. If a live row ever holds an old
+  address again, that row decides what the address shows, not the table.
+- **Not covered: a profile that is renamed.** Only merges are recorded. A profile whose address is
+  changed by hand or by the name clean-up (`ops/backfill_supplier_identity.py`) loses its previous
+  address as it always has; recording that is one more insert in that script, not built here.
 
 ## What was run
 
@@ -48,6 +52,9 @@ DRY RUN OK | function before md5 d7acc1e72e04f93d67189f5846f19b11
  | table readable by anon f by authenticated f rls t
  | function callable signed out t
 ```
+
+Run twice with the same answer: once as first written, and again after the review added the rule
+that a live row holding an old address wins.
 
 Afterwards `to_regclass('public.supplier_slug_redirects')` answered null and the function's md5 was
 still `d7acc1e7…`: nothing was left behind.

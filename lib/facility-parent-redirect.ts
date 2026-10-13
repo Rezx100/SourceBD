@@ -23,7 +23,7 @@ export type UnpublishedProfileOutcome =
 
 /** Paths pinned by containment tests — relative to repo root. */
 export const FACILITY_PARENT_SLUG_MIGRATION =
-  "supabase/migrations/0096_facility_parent_slug.sql";
+  "supabase/migrations/0149_supplier_slug_redirects.sql";
 
 export const SITEMAP_SOURCE = "app/sitemap.ts";
 

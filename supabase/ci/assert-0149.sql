@@ -1,7 +1,8 @@
 -- 0149 asserted by running it. facility_parent_slug: a merged duplicate's old address answers the kept
 -- profile's slug; a linked building still answers its company (0096 unchanged); an old address whose kept
 -- row has become a building answers that building's company in one hop; an old address whose kept row is
--- unpublished and no building, and a slug nobody knows, answer null. Deleting the kept row deletes its
+-- unpublished and no building, a building or old address under an unpublished company, an old address a
+-- live unpublished row holds again, and a slug nobody knows, answer null. Deleting the kept row deletes its
 -- redirects. The table is closed to anon and authenticated; the function is not.
 \set ON_ERROR_STOP on
 
@@ -23,11 +24,18 @@ insert into public.suppliers (slug, company_name, company_name_norm, city, distr
 select 'ci-0149-shed', 'CI 0149 Shed', 'ci 0149 shed', 'Dhaka', 'Dhaka', false, false, p.id
   from public.suppliers p where p.slug = 'ci-0149-mother';
 
+insert into public.suppliers (slug, company_name, company_name_norm, city, district, is_published, is_sanctioned, facility_of)
+select 'ci-0149-lost-shed', 'CI 0149 Lost Shed', 'ci 0149 lost shed', 'Dhaka', 'Dhaka', false, false, p.id
+  from public.suppliers p where p.slug = 'ci-0149-unlisted';
+
+-- The last one is an old address that a live, unpublished row holds again.
 insert into public.supplier_slug_redirects (old_slug, supplier_id)
 select v.old_slug, s.id
-  from (values ('ci-0149-old',          'ci-0149-kept'),
-               ('ci-0149-old-shed',     'ci-0149-shed'),
-               ('ci-0149-old-unlisted', 'ci-0149-unlisted')) v(old_slug, kept)
+  from (values ('ci-0149-old',           'ci-0149-kept'),
+               ('ci-0149-old-shed',      'ci-0149-shed'),
+               ('ci-0149-old-unlisted',  'ci-0149-unlisted'),
+               ('ci-0149-old-lost-shed', 'ci-0149-lost-shed'),
+               ('ci-0149-unlisted',      'ci-0149-kept')) v(old_slug, kept)
   join public.suppliers s on s.slug = v.kept;
 
 do $$
@@ -50,6 +58,9 @@ begin
       ('ci-0149-shed',         'ci-0149-mother', 'a linked building still goes to its company'),
       ('ci-0149-old-shed',     'ci-0149-mother', 'an old address whose kept row is now a building goes to the company'),
       ('ci-0149-old-unlisted', null,             'an old address whose kept row is unpublished stays a 404'),
+      ('ci-0149-lost-shed',     null,            'a building of an unpublished company stays a 404'),
+      ('ci-0149-old-lost-shed', null,            'an old address never reaches an unpublished company'),
+      ('ci-0149-unlisted',      null,            'an old address a live unpublished row holds again stays a 404'),
       ('ci-0149-kept',         null,             'a published profile has nowhere to go'),
       ('ci-0149-nobody',       null,             'an unknown slug stays a 404')
     ) v(asked, want, why)
