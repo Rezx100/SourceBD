@@ -103,7 +103,8 @@ Migration file headers are NOT live status. Check here or query the database.
 | `0091`–`0094` | 4–5 Aug 2026 | facility_of, publish guard, resolution_edges, field locks — all additive |
 | `20260805_rez98_registry_ids_bgmea_backed_only` | 5 Aug 2026 | backed-only BGMEA display |
 | `0095_buyer_supplier_profile_facility_documents` | not applied | REZ-93 |
-| `0096_facility_parent_slug` | not applied | REZ-72 |
+| `0096_facility_parent_slug` | 10 Aug 2026 | REZ-72 |
+| `0149_supplier_slug_redirects` | **not applied** | Merged duplicates' old addresses redirect. `ops/plans/0149-dry-run.md`. |
 | `0097`–`0101` | see archive per issue | REZ-73 / REZ-114 / REZ-115 |
 | `0102_admin_queue_release` | 14 Aug 2026 | 1,282 tickets released; 48 `needs_human` open |
 | `0103_epb_detail_url_and_hscodes` | 15 Aug 2026 | EPB Open = exporter page |
@@ -117,7 +118,7 @@ Migration file headers are NOT live status. Check here or query the database.
 | `0122_certificate_listing` | 6 Oct 2026 | ETL freshness S2, via MCP `20261006052254`; 4 cols, 2,627 OEKO-TEX re-keyed. `ops/plans/0122-dry-run.md`. |
 | `0123_source_freshness` | 6 Oct 2026 | ETL freshness S3, via MCP `20261006052420`; 30 sources (9 over limit), 14 schedules, certs off. `ops/plans/0123-dry-run.md`. |
 | `0124_register_schedules` | 6 Oct 2026 | ETL freshness S5, via MCP `20261006052539`; 5 register schedules off, RSC limit 336 h. `ops/plans/0124-dry-run.md`. |
-| `0147_export_rank_and_cells` | **applied 13 Oct** | Desktop record slice c: two readers, `supplier_export_rank` and `discover_export_cells`; nothing else changes. Dry run and the check after the apply: `ops/plans/0147-dry-run.md`. |
+| `0147_export_rank_and_cells` | **applied 13 Oct** | Desktop record slice c: two readers. `ops/plans/0147-dry-run.md`. |
 | `0125_sources_listed_brand_schedules` | 6 Oct 2026 | ETL freshness S6, via MCP `20261006052721`; public count 21, 4 brand schedules off. |
 | `0137_volza_export_checks` | 11 Oct 2026 | Via MCP on "apply 0137"; Volza customs shipments on the record, admins and Growth/Enterprise only, rows kept one year. `ops/plans/volza-export-dry-run.md` §8. |
 | `0142_discover_customs_exports` | 11 Oct 2026 | Via MCP on "apply 0142"; search by customs exports, entitled readers only. `ops/plans/0142-dry-run.md`. |

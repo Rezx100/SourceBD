@@ -670,6 +670,14 @@ def main() -> int:
                             raise RuntimeError(
                                 f"loser {lid} still referenced: {', '.join(leftovers)} — refusing to delete"
                             )
+                        # The loser's public address keeps working: it redirects to
+                        # the winner (migration 0149, read by facility_parent_slug).
+                        cur.execute(
+                            """insert into public.supplier_slug_redirects (old_slug, supplier_id)
+                               values (%s, %s::uuid)
+                               on conflict (old_slug) do update set supplier_id = excluded.supplier_id""",
+                            (sup_rows[lid]["slug"], winner.id),
+                        )
                         cur.execute("delete from public.suppliers where id = %s::uuid", (lid,))
                 merged += 1
 

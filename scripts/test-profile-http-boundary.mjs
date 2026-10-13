@@ -13,6 +13,8 @@
  *   - missing slug                  -> 404 (styled not-found body)
  *   - unpublished non-facility slug -> 404 (RPC miss, no facility mapping)
  *   - unpublished FACILITY slug     -> 308, Location: mother profile
+ *   - merged duplicate's old slug   -> 308, Location: the kept profile
+ *     (0149: the same RPC answers from supplier_slug_redirects)
  *   - facility RPC unavailable      -> 404, not 500 (PGRST202: migration
  *     0096 not yet applied — production's state until it is)
  *   - profile RPC statement timeout -> 307 to /temporarily-slow with
@@ -83,6 +85,9 @@ const TIMEOUT_IN_DATA = "profile-timeout-in-data";
 const OVERVIEW_TIMEOUT = "overview-statement-timeout";
 const STALE_SUCCESS = "inflight-success-then-timeout";
 const SELF = "self-parented-ltd";
+// 0149: a duplicate that was merged into MOTHER and deleted. Its old address
+// has no profile; facility_parent_slug answers the kept profile's slug.
+const MERGED = "mother-company-limited";
 const GUARD_TOKEN = "http-guard-access-token";
 /** A second session whose profile row is role "supplier" (see the profiles
  * mock), so a route's own role check can be exercised at the wire. */
@@ -601,7 +606,7 @@ function mockHandler(req, res) {
         // never a 308 to its own URL.
         return json(SELF);
       }
-      return json(slug === FACILITY ? MOTHER : null);
+      return json(slug === FACILITY || slug === MERGED ? MOTHER : null);
     }
     if (url.pathname === "/rest/v1/rpc/discover_suppliers") {
       let q = null;
@@ -1183,6 +1188,17 @@ const CASES = [
     },
   },
   {
+    name: "public: merged duplicate's old slug -> 308 to the kept profile",
+    path: `/suppliers/${MERGED}`,
+    expect: {
+      status: 308,
+      location: `/suppliers/${MOTHER}`,
+      locationMustBeAbsolute: true,
+      locationOrigin: SITE_ORIGIN,
+      replayMustNotRpc: MISS_RPCS,
+    },
+  },
+  {
     name: "site: an unknown product page -> 404",
     path: "/product/not-a-page",
     expect: { status: 404 },
@@ -1453,6 +1469,17 @@ const CASES = [
   {
     name: "app: facility slug -> 308 to mother (authenticated)",
     path: `/app/suppliers/${FACILITY}`,
+    auth: true,
+    expect: {
+      status: 308,
+      location: `/app/suppliers/${MOTHER}`,
+      locationMustBeAbsolute: true,
+      locationOrigin: SITE_ORIGIN,
+    },
+  },
+  {
+    name: "app: merged duplicate's old slug -> 308 to the kept profile (authenticated)",
+    path: `/app/suppliers/${MERGED}`,
     auth: true,
     expect: {
       status: 308,
