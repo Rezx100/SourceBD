@@ -33,6 +33,8 @@ One small table and no new code path.
 - **Not covered: a profile that is renamed.** Only merges are recorded. A profile whose address is
   changed by hand or by the name clean-up (`ops/backfill_supplier_identity.py`) loses its previous
   address as it always has; recording that is one more insert in that script, not built here.
+  **Built 13 Oct 2026 as migration `0150`** (one trigger on the suppliers table, so every rename is
+  recorded whichever script makes it): `ops/plans/0150-dry-run.md`.
 
 ## What was run
 

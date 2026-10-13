@@ -77,3 +77,14 @@ The founder's note: the brands' lists (Overview) and the customs buyers (Exports
 - **One section, "Buyers", on the Overview** (`buyersOf` in `lib/dashboard/facts.ts`): each brand whose own list names the supplier, joined with the customs buyer that is the same company where the strict `CUSTOMS_BRANDS` patterns say so; then the customs buyers no list names. Both sources agreeing comes first. The Exports section no longer lists buyers; "Memberships" is its own section under it.
 - **The name people use is the row** (`knownBuyer`): "Zara", "Mango" for Punto Fa, from a short hand-kept list (`TRADE_NAMES`); any other buyer is its filed name without the legal ending ("Canadian Tire Corporation Ltd" is "Canadian Tire"). The customs record's own name is printed small beside its source ("Customs records as Inditex Zara Lelystad Branch Nieu"), so the short name is never read as the record's.
 - The desktop record keeps its two Key facts rows. Guards: `facts.test.ts` (the names, the merge), `record.test.ts` (one list, the small filed name).
+
+## Migration ledger rows 0120–0125, moved from current-state (13 Oct 2026)
+
+| Migration | Applied to production | Notes |
+| -- | -- | -- |
+| `0120_sanctions_daily_reconcile` | 6 Oct 2026 | ETL freshness S1, via MCP; dry run `ops/plans/0120-dry-run.md`. |
+| `0121_etl_hold_review` | 6 Oct 2026 | ETL freshness C2, via MCP `20261006052146`; old plans unchanged. `ops/plans/0121-dry-run.md`. |
+| `0122_certificate_listing` | 6 Oct 2026 | ETL freshness S2, via MCP `20261006052254`; 4 cols, 2,627 OEKO-TEX re-keyed. `ops/plans/0122-dry-run.md`. |
+| `0123_source_freshness` | 6 Oct 2026 | ETL freshness S3, via MCP `20261006052420`; 30 sources (9 over limit), 14 schedules, certs off. `ops/plans/0123-dry-run.md`. |
+| `0124_register_schedules` | 6 Oct 2026 | ETL freshness S5, via MCP `20261006052539`; 5 register schedules off, RSC limit 336 h. `ops/plans/0124-dry-run.md`. |
+| `0125_sources_listed_brand_schedules` | 6 Oct 2026 | ETL freshness S6, via MCP `20261006052721`; public count 21, 4 brand schedules off. |
