@@ -299,17 +299,21 @@ def check_figures(web: Web, api: Api, d: Data) -> None:
 # ---------------------------------------------------------------------------
 
 def sample_companies(d: Data) -> dict[str, list[dict]]:
-    """Forty, picked the same way for a given pull: ten rich, ten thin, ten with buildings, the five
-    changed most recently (on 13 Oct 2026 those were the day's merges), five with customs data."""
+    """Forty-five, picked the same way for a given pull: ten rich, ten thin, ten with buildings, the five
+    changed most recently (on 13 Oct 2026 those were the day's merges), five with customs data, and five
+    whose register entry files a phone, mailbox or web address inside its address (the database strips
+    those on the way out since migration 0153; these five are where a regression would show)."""
     rows = sorted(d.published, key=lambda s: s["slug"])
     with_buildings = {b["facility_of"] for b in d.buildings}
     customs = {v["supplier_id"] for v in d.volza if v.get("match_class") == "exact"}
     rich = sorted(rows, key=lambda s: -len(d.codes(s["id"])))[:10]
     thin = [s for s in rows if len(d.records[s["id"]]) == 1][::400][:10]
     changed = sorted((s for s in rows if len(d.codes(s["id"])) >= 3), key=lambda s: s.get("updated_at") or "", reverse=True)[:5]
+    filed = [s for s in rows if any(contact_shapes(v) for r in d.records[s["id"]] for k, v in r["fields"].items() if "address" in k and isinstance(v, str))]
     return {
         "rich": rich, "thin": thin, "buildings": [s for s in rows if s["id"] in with_buildings][::20][:10],
         "changed": changed, "customs": [s for s in rows if s["id"] in customs and s not in rich][::40][:5],
+        "contact filed in an address": filed[:5],
     }
 
 
@@ -362,7 +366,7 @@ def check_company(web: Web, api: Api, d: Data) -> None:
                 note += f"; the page carries {sorted(set(on_page))}"
                 differ["contact detail on the page"] += 1
             line("company", f"{group}: {slug}", "FAIL" if bad or found or on_page else "ok", note)
-    line("company", "summary", "note", "; ".join(f"{k} {n}" for k, n in differ.most_common()) or "all forty agree")
+    line("company", "summary", "note", "; ".join(f"{k} {n}" for k, n in differ.most_common()) or "all agree")
     if api.flaky:
         line("company", "a public function answered 500, then answered", "note", ", ".join(sorted(set(api.flaky))))
 
