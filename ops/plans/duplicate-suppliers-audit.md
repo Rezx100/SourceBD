@@ -228,10 +228,14 @@ Read after: 10,811 suppliers, 10,025 published, 744 linked buildings.
     BKMEA entries and the claims read from its page. `knit-fashion` now carries only what its own
     entries back: no worker or capacity figure, 140 machines, the products its BGMEA entry lists
     (the four it had taken from Shatabdi's page are gone), and one phone number fewer.
-  - Still open on `knit-fashion`: its BKMEA entry is a Narayanganj company (member 675) and its BGMEA
-    entry is "Knit Fashion (Pvt.) Ltd.", a sweater factory in Agrabad, Chattogram, founded 1993. Same
-    name, two cities: likely two companies on one profile. Two of its phone numbers are backed by no
-    entry it holds. Not touched.
+  - `knit-fashion` also joined two companies of one name: BKMEA member 675 in Narayanganj and BGMEA
+    general member 1438, "Knit Fashion (Pvt.) Ltd.", a sweater factory in Agrabad, Chattogram, founded
+    1993. **Split 13 Oct 2026** on the founder's word (`ops/plans/knit-fashion-chattogram-split.sql`):
+    the BGMEA member is its own company at `/suppliers/knit-fashion-2` with its entry, its 16 claims,
+    its phone, products, founding year and yearly capacity. `knit-fashion` is now BKMEA member 675
+    alone. Both of the day's splits are recorded as rulings (`founder:split-2026-10-13`), so neither
+    the loader nor the duplicate audit rejoins them.
+  - Still open on `knit-fashion`: two of its three phone numbers are backed by no entry it holds.
   - Seen while checking, not touched: 35 BKMEA detail pages sit under a company whose name the page
     does not carry. About half are spellings of the same company; the rest look like another
     company's page (F.M Knitwear under `fm-apparels`, Orion Fashions under `ripon-fashions`, Fame
