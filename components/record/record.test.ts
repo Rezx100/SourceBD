@@ -19,7 +19,7 @@ import { GLOSSARY, define } from "@/lib/dashboard/glossary";
 import { tierWords } from "@/lib/dashboard/source-tiers";
 import { mailHref, siteHref, telHref } from "@/components/record/contact-card";
 import { RecordView } from "@/components/record/record-view";
-import { SECTIONS, certTable, checkRows, exportTiles, headStatuses, sectionCount } from "@/components/record/desktop-words";
+import { SECTIONS, certTable, checkRows, exportTiles, headStatuses, memberTiles, sectionCount } from "@/components/record/desktop-words";
 import { marketOfCountry } from "@/lib/dashboard/facts";
 import { TABS, certRows, keyFacts, needsLook, parseSite, parseTab, recordSubline, rscListedWords, rscOwnListed, sameName, sectionInView, siteCards, siteSummary, staleWords, summaryCells, tabCount } from "@/components/record/words";
 
@@ -1310,5 +1310,35 @@ describe("a factory RSC lists but not as active", () => {
     assert.deepEqual(m.rscListed, []);
     assert.equal(rscListedWords(m), null);
     assert.equal(summaryCells(m, TODAY).find((c) => c.key === "rsc")!.sub, "no RSC record");
+  });
+});
+
+// Data audit, 13 Oct 2026 (S1-3): 87 mills BTMA files under "Mills Under Suspension" were shown as plain
+// members. The profile now carries the body's own status (0154) and the membership says it.
+describe("a mill BTMA files under suspension", () => {
+  const withBtma = (membership_status: NonNullable<ReturnType<typeof arFashionInput>["profile"]["membership_status"]> | undefined) => {
+    const input = arFashionInput();
+    return { ...input, profile: { ...input.profile, pills: [...input.profile.pills, { source_code: "BTMA", label: "BTMA Member #SL", value: "52", source_url: null }], membership_status } };
+  };
+  const memberships = (m: SupplierSheetModel) => keyFacts(m).find((f) => f.label === "Memberships")?.values.map((v) => v.text) ?? [];
+  const SUSPENDED = { source_code: "BTMA", status: "suspended", value: "52", fetched_at: "2026-05-21T00:00:00+00:00" };
+
+  it("says so on the membership itself, on the desktop and the phone record", () => {
+    const m = model(withBtma([SUSPENDED]));
+    assert.ok(memberships(m).includes("BTMA (under suspension) reg. no. 52"), memberships(m).join(" | "));
+    const tile = memberTiles(m, TODAY).find((x) => x.name === "BTMA")!;
+    assert.deepEqual([tile.title, tile.number], ["BTMA (under suspension)", "52"]);
+    assert.match(text(view(m, { mode: "page" })), /BTMA \(under suspension\)/);
+    assert.match(text(phone(m, { mode: "page" })), /BTMA \(under suspension\)/);
+    // The other memberships are untouched.
+    assert.ok(memberships(m).some((x) => /^BGMEA\b/.test(x) && !/suspension/.test(x)), memberships(m).join(" | "));
+  });
+
+  it("leaves a plain member, a building's suspended entry, another entry's suspension, and a payload older than 0154 as they were", () => {
+    for (const status of [undefined, [], [{ ...SUSPENDED, building_name: "Shed 2" }], [{ ...SUSPENDED, status: "member" }], [{ ...SUSPENDED, value: "99" }]]) {
+      const m = model(withBtma(status));
+      assert.ok(memberships(m).includes("BTMA reg. no. 52"), memberships(m).join(" | "));
+      assert.doesNotMatch(text(view(m, { mode: "page" })), /under suspension/);
+    }
   });
 });
