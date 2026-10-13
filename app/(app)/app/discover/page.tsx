@@ -437,7 +437,7 @@ async function DiscoverRecord({
   );
 }
 
-/** Why the pane holds no record: too slow, a building rather than a company, or no record for the link. */
+/** Why the pane holds no record: too slow, a building or a merged duplicate (filed under another record), or no record for the link. */
 function RecordNotice({
   slow,
   motherSlug,
@@ -464,8 +464,8 @@ function RecordNotice({
   if (motherSlug) {
     return (
       <PaneNotice
-        title="That is a building, not a company record"
-        body="SourceBD files this address under the company that operates it. Its record has the certificates, the registers and the export lines."
+        title="That address is filed under another record"
+        body="SourceBD files a building under the company that operates it, and a duplicate under the record that was kept. That record has the certificates, the registers and the export lines."
         action={{ label: "Open the company record", href: recordHref(motherSlug) }}
         closeHref={closeHref}
       />
