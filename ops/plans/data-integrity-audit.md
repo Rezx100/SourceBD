@@ -34,6 +34,10 @@ missing. **S4** untidy. Inside a level, most published companies first.
   (the functions that use it run as the owner and keep working), then a new key and the 5 messages re-encrypted,
   because the old key must be treated as known.
 - **Needs your yes:** yes (a migration on production).
+- **Fix built, 13 Oct 2026:** `supabase/migrations/0151_messages_key_lock.sql` closes the function to every
+  client role, makes a new key and re-encrypts the messages under it, with one `messages.key_rotated` entry
+  in the activity record. Dry run on production, rolled back: 5 of 5 messages re-encrypted, none open with
+  the old key, visitors and signed-in users refused. Not applied: it waits for "apply 0151".
 
 ### S1-1. The safety register lists the factory as Ineligible; our page says there is no RSC record
 

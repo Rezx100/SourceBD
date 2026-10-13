@@ -39,8 +39,15 @@ the same ciphertext. A record for a court that cannot be read is no record.
 4. Record the date and the md5 (not the key) in `context/current-state.md` under the production
    migration ledger, so the next person knows a copy exists.
 
-If the key is ever rotated (`ops/configure_messages_key.py --rotate`), the old messages stay
-encrypted under the OLD key: keep the old copy and add the new one. Rotation is not planned.
+To rotate the key, run `select public._messages_rotate_key('<why>');` in the SQL editor as the
+project owner (migration 0151). It makes a new key and re-encrypts every message under it, so the
+old copy opens nothing afterwards: repeat steps 1 to 4 for the new key the same day. Do not use
+`ops/configure_messages_key.py --rotate` once messages exist: it swaps the key without
+re-encrypting, and every earlier message becomes unreadable.
+
+The key was rotated by 0151 itself when that migration was applied (it had been readable by any
+visitor through the database API; `ops/plans/data-integrity-audit.md`, S1-0). No offline copy is
+recorded before that date, so the first copy to make is of the key 0151 left.
 
 ## 3. Point-in-time recovery (PITR)
 
