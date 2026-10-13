@@ -144,6 +144,9 @@ begin
       if not found then v_total := null; v_male := null; v_female := null; end if;
       update public.suppliers set employees_total = v_total, employees_male = v_male, employees_female = v_female where id = src;
     end if;
+    -- Before reusing: since the unit fix of 13 Oct 2026 (bkmea-capacity-unit-fix.sql)
+    -- this column is no longer the figure as filed, so this comparison and the
+    -- write below are out of date. Use etl.core.projection.bkmea_capacity_pcs_day.
     if w.production_capacity_pcs_day is not null
        and exists (select 1 from _m m where m.fields ->> 'bkmea_production_capacity' = w.production_capacity_pcs_day::text)
        and not exists (select 1 from public.source_records r where r.supplier_id = src and r.fields ->> 'bkmea_production_capacity' = w.production_capacity_pcs_day::text) then
