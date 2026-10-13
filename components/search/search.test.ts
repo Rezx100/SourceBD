@@ -73,7 +73,7 @@ const ABONI_CERTS = [
   { markCode: "gots", scheme: "GOTS", expiresOn: "2026-10-31" },
   { markCode: "sa8000", scheme: "SA8000", expiresOn: null },
 ];
-const ZAHEEN = "Zaheen Knitwears Limited (Shed - 3, 4, 5, 10, 11, 12, 13) & (Building - Security, ETP and Fire Pump)";
+const ZAHEEN = "Zaheen Knitwears Limited (Unit - 3, 4, 5, 10, 11, 12, 13) & (Division - Security, ETP and Fire Pump)";
 /** The bodies of the certificates held on `TODAY`, as `resultRow` works them out: one that has ended is left out. */
 const heldOf = (certs: typeof ABONI_CERTS): NonNullable<ResultRow["held"]> => {
   const s = certSummary(certs.filter((c) => !c.expiresOn || Date.parse(c.expiresOn) >= TODAY.getTime()), TODAY);
@@ -291,7 +291,7 @@ describe("the results table", () => {
     const zaheen = [...out.matchAll(cell)].map((m) => m[1]!).find((c) => c.includes("Zaheen"))!;
     assert.ok(zaheen, "no name cell for Zaheen");
     assert.match(zaheen, /data-name=""[^>]*><span aria-hidden="true">Zaheen Knitwears Limited</, "the link's visible words are the base name alone");
-    assert.match(zaheen, /<span data-name="" title="Shed - 3, 4, 5, 10, 11, 12, 13 · Building - Security, ETP and Fire Pump"[^>]*>Shed - 3/, "the qualifier leads the second line");
+    assert.match(zaheen, /<span data-name="" title="Unit - 3, 4, 5, 10, 11, 12, 13 · Division - Security, ETP and Fire Pump"[^>]*>Unit - 3/, "the qualifier leads the second line");
     assert.equal(zaheen.match(/data-name=""/g)?.length, 2, "two lines, never a third");
     for (const m of zaheen.matchAll(/data-name=""[^>]*class="([^"]*)"/g)) assert.match(m[1]!, /\boverflow-hidden\b.*\bwhitespace-nowrap\b.*\[text-overflow:ellipsis\]/, "the cut is the deliberate one-line cut");
     const aboni = [...out.matchAll(cell)].map((m) => m[1]!).find((c) => c.includes("Aboni"))!;
@@ -480,10 +480,8 @@ describe("the bar over the results", () => {
     assert.ok(!set.includes("Remove Certificate"), "a certificate a menu holds is not drawn twice");
   });
 
-  it("sanctioned suppliers are held back in words, with the way to lift it", () => {
-    assert.ok(bar.includes("Hiding sanctioned suppliers") && bar.includes("Show them"));
-    const shown = plain(h(ResultsToolbar, { state: { ...state, sanctioned: true }, title: "t", hrefFor: (s: { sanctioned: boolean }) => (s.sanctioned ? "X" : "Y"), filtersHref: "#", filtersOpen: false, saveHref: "#", more: null }));
-    assert.ok(!shown.includes("Hiding sanctioned suppliers"));
+  it("says nothing about sanctioned suppliers: they are held back, and nobody came for them (founder, 13 Oct 2026)", () => {
+    assert.ok(!bar.includes("anctioned"));
   });
 
   it("Save search, Sort, Filters and More are on the right; Filters names how many are on", () => {
@@ -500,7 +498,7 @@ describe("the bar over the results", () => {
 
   it("when nothing matches, or the search failed, there is nothing to save, sort or download: the filters alone", () => {
     const bare = plain(h(ResultsToolbar, { state, title: "knit · 0 suppliers", hrefFor, filtersHref: "#", filtersOpen: false, saveHref: "#", more: h("i", null, "MORE"), bare: true }));
-    assert.ok(bare.includes("Add filter") && bare.includes("Hiding sanctioned suppliers"));
+    assert.ok(bare.includes("Add filter"));
     assert.ok(!bare.includes("Save search") && !bare.includes("Sort:") && !bare.includes("MORE"));
   });
 
@@ -510,7 +508,7 @@ describe("the bar over the results", () => {
     assert.ok(narrow.includes('aria-label="Add filter · 2 on"') && narrow.includes("Sort: most sources"));
   });
 
-  it("a phone's bar is a 52-tall tonal field with its ×, a row of pills, then the count and the standing filter (Paper page 36, search-results)", () => {
+  it("a phone's bar is a 52-tall tonal field with its ×, a row of pills, then the count (Paper page 36, search-results)", () => {
     const phone = plain(h(PhoneToolbar, { state: { ...state, per: 50 as const }, count: "4,645 suppliers", hrefFor, filtersHref: "#" }));
     assert.match(phone, /role="search"/);
     // The results start at the field: the frame's title bar is hidden over this bar (the board has none).
@@ -522,11 +520,12 @@ describe("the bar over the results", () => {
     assert.ok(!/name="q" value=/.test(phone.replace('name="q" value="knit"', "")), "the query is the field, not also a hidden input");
     const words = phone.replace(/<[^>]*>/g, " ").replace(/ +/g, " ");
     assert.ok(words.includes("4,645 suppliers") && words.includes("Most sources") && phone.includes('aria-label="Sort: most sources"'));
-    // The one filter the buyer did not choose is said, with the way to lift it.
-    assert.ok(words.includes("Sanctioned hidden · Show"));
+    // Nothing is said about sanctioned suppliers, and the customs view has no second pill: Ships to UK is its switch (founder, 13 Oct 2026).
+    assert.ok(!words.includes("anctioned"));
     const bar = (st: typeof state, entitled = false) => plain(h(PhoneToolbar, { state: st, entitled, count: "4,645 suppliers", hrefFor: discoverHref, filtersHref: "#" }));
-    assert.equal(hrefOf(bar(state), "Show"), "/app/discover?q=knit&sanctioned=1");
-    assert.ok(!bar({ ...state, sanctioned: true }).includes("Sanctioned hidden"), "nothing is held back, so nothing to show");
+    const exportsOn = bar({ ...state, exports: true, ships: "uk" as const }, true);
+    assert.ok(!exportsOn.includes("Has customs exports") && !exportsOn.includes("Remove the customs exports filter"));
+    assert.equal(hrefOf(exportsOn, "Ships to UK"), "/app/discover?q=knit", "Ships to UK, pressed again, leaves the customs view whole");
     assert.match(phone, /h-\[52px\]/);
     // Filters is a 36-tall pill that says how many are on (the query is one, as the count on it always was).
     const filters = /<a[^>]*aria-label="Filters, 1 on"[^>]*>/.exec(phone)?.[0] ?? "";
@@ -585,7 +584,7 @@ describe("the narrow list and the phone's rows", () => {
     assert.match(out, new RegExp(`<span aria-hidden="true">Zaheen Knitwears Limited</span><span class="sr-only">${ZAHEEN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}</span>`));
     assert.doesNotMatch(out, /<a aria-label=/, "an aria-label on a row hides its words from a screen reader");
     assert.match(out, /data-name="" title="Aboni Knitwear Ltd\."[^>]*>Aboni Knitwear Ltd\.</, "a name without a qualifier is said once");
-    assert.match(out, /data-name="" title="Shed - 3, 4, 5, 10, 11, 12, 13 · Building - Security, ETP and Fire Pump"/);
+    assert.match(out, /data-name="" title="Unit - 3, 4, 5, 10, 11, 12, 13 · Division - Security, ETP and Fire Pump"/);
     // At the list's narrowest it measures itself and every level wraps whole item by whole item: nothing is cut (board 08b).
     assert.match(out, /<ul data-follow="record" class="\[container-type:inline-size\]">/);
     for (const m of out.matchAll(/data-name=""[^>]*class="([^"]*)"/g)) assert.match(m[1]!, /\[@container_\(max-width:459px\)\]:whitespace-normal/, "a name is still cut at the list's narrowest");
@@ -705,7 +704,7 @@ describe("the landing", () => {
     assert.ok(out.includes("10,268 suppliers"));
     // The marketing line beside the h1 went (round 3, item 4): the page says what it holds, not a slogan.
     assert.ok(!out.includes("every fact from a named source"));
-    assert.ok(out.includes("Products exported") && out.includes("Company type") && out.includes("Hiding sanctioned suppliers"));
+    assert.ok(out.includes("Products exported") && out.includes("Company type") && !out.includes("anctioned"));
     assert.match(out, /aria-labelledby="common-searches"/);
     assert.ok(out.includes("GOTS-certified knitwear"));
     assert.ok(out.indexOf('role="search"') < out.indexOf("Needs attention · 8"), "the field comes before the work queue");
@@ -742,14 +741,6 @@ describe("the landing", () => {
     assert.match(out, /<h2 id="saved-searches"[^>]*>Saved searches<\/h2>/);
     const failed = await streamedLanding({ published: 1, attention, counts: {}, saved: Promise.resolve(null) });
     assert.ok(failed.includes("Your saved searches could not be read just now."));
-  });
-
-  it("hides sanctioned suppliers with the same quiet toggle the results bar has, at the bar's end, with Show them", () => {
-    // The bar ends the search section now that the common searches lead the body (round 3, item 4).
-    const bar = /<div class="flex flex-wrap items-center gap-2 max-sm:hidden">[\s\S]*?<\/div><\/section>/.exec(out)?.[0] ?? "";
-    assert.ok(bar, "no filter bar");
-    assert.match(bar, /<span class="sm:ml-auto"><span class="[^"]*">Hiding sanctioned suppliers<a [^>]*href="\/app\/discover\?sanctioned=1"[^>]*>Show them<\/a><\/span><\/span><\/div><\/section>$/);
-    assert.ok(!out.includes("Hiding sanctioned suppliers</span></div>"), "a sentence with no control");
   });
 
   it("the way to the other certificates is in the card's foot at every width, and one supplier is one row with one Ask", () => {
@@ -932,7 +923,7 @@ describe("the filter pane (B4b)", () => {
     assert.ok(!out.includes('name="type"'), "a group nothing set opens closed");
   });
 
-  it("every chip's × and Show them keep the pane open and the search's query", () => {
+  it("every chip's × keeps the pane open and the search's query; nothing is said about sanctioned suppliers", () => {
     const out = pane();
     for (const label of ["Certificate: GOTS", "Location: Gazipur"]) {
       const m = new RegExp(`aria-label="Remove ${label}"[^>]*href="([^"]+)"|href="([^"]+)"[^>]*aria-label="Remove ${label}"`).exec(out);
@@ -940,10 +931,7 @@ describe("the filter pane (B4b)", () => {
       assert.match(to, /q=knit/, label);
       assert.match(to, /filters=1/, label);
     }
-    const show = hrefOf(out, "Show them") ?? "";
-    assert.match(show.replace(/&amp;/g, "&"), /sanctioned=1/);
-    assert.match(show.replace(/&amp;/g, "&"), /filters=1/);
-    assert.ok(!/Show them/.test(pane({ ...state, sanctioned: true })), "nothing is held back, so nothing to show");
+    assert.ok(!out.includes("Hiding sanctioned") && !out.includes("Show them"));
   });
 
   it("says Show suppliers, with no number, when the count could not be read", () => {
@@ -1069,13 +1057,8 @@ describe("the minors, round 3 (critique of 8 Oct 2026, round 3, item 7)", () => 
     assert.match(src("lib", "discover-v32-state.ts"), /value: "cert_expiry", rpc: "cert_expiry", label: "Certificate expiry soonest"/, "the Sort menu lost the order by expiry");
   });
 
-  it("Save search folds under 1536, and the sanctioned line folds into the Filters pane once another filter is on", () => {
-    const bar = src("components", "search", "toolbar.tsx");
-    assert.match(bar, /className: "px-2 max-2xl:hidden"/);
-    assert.match(bar, /\{on > \(state\.q \? 1 : 0\) \? null : <SanctionedStanding/);
-    const toolbar = (st: typeof EMPTY_STATE) => plain(h(ResultsToolbar, { state: st, title: "t", hrefFor: () => "#", filtersHref: "#", filtersOpen: false, saveHref: "#", more: null }));
-    assert.ok(toolbar({ ...EMPTY_STATE, q: "knit" }).includes("Hiding sanctioned suppliers"));
-    assert.ok(!toolbar({ ...EMPTY_STATE, q: "knit", district: ["Gazipur"] }).includes("Hiding sanctioned suppliers"));
+  it("Save search folds under 1536", () => {
+    assert.ok(src("components", "search", "toolbar.tsx").includes('className: "px-2 max-2xl:hidden"'));
   });
 
   it("the pane list prints no source count (the Sort menu names the order), and a certificate pill carries its full sentence", () => {

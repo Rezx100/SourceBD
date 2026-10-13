@@ -314,6 +314,8 @@ export function SitesPanel({ model, tabHref, site = null, wide = true, level: H 
   return (
     <div className="flex flex-col gap-5">
       <section id="locations" className="flex flex-col gap-2">
+        {/* The buildings the registered name ends with: no title says them (founder, 13 Oct 2026), so they are said here. */}
+        {model.buildings.length > 0 ? <p className="text-sm text-ink-2 [overflow-wrap:anywhere]">Buildings in the registered name: {model.buildings.join(" · ")}</p> : null}
         {locations.length === 0 ? (
           <>
             <H className="text-base font-semibold text-ink">Sites</H>

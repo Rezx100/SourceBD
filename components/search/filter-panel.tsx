@@ -15,7 +15,7 @@ import { CaretDown, CaretRight, Check, X } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
-import { Checkbox, Field, FilterChip, Input, Segmented, Select, StandingFilter, Switch, buttonClass, linkClass, ring, ringInset } from "@/components/kit";
+import { Checkbox, Field, FilterChip, Input, Segmented, Select, Switch, buttonClass, ring, ringInset } from "@/components/kit";
 import { usePaneTitled } from "@/components/frame/list-pane";
 import { REGISTRIES, discoverHref, serializeDiscoverState, type CertState, type DiscoverState } from "@/lib/discover-v32-state";
 import { countSuppliers } from "./filter-actions";
@@ -59,7 +59,6 @@ export function FilterPanel({
   state,
   count,
   chips,
-  showThemHref,
   hsOptions,
   closeHref,
   defaultOpen,
@@ -74,8 +73,6 @@ export function FilterPanel({
   /** How many suppliers that search finds; null when it could not be read. */
   count: number | null;
   chips: PanelChip[];
-  /** The search with sanctioned suppliers shown, or null when they are already. */
-  showThemHref: string | null;
   hsOptions: { hs: string; label: string }[];
   closeHref: string;
 }) {
@@ -148,24 +145,13 @@ export function FilterPanel({
           </Link>
         </div>
       )}
-      {chips.length > 0 || showThemHref ? (
+      {chips.length > 0 ? (
         <div className="flex flex-wrap gap-2 border-b border-line px-5 pb-3 pt-1 max-md:hidden">
           {chips.map((c) => (
             <FilterChip key={c.key} removeHref={c.href} removeLabel={`Remove ${c.label}`}>
               {c.label}
             </FilterChip>
           ))}
-          {showThemHref ? (
-            <StandingFilter
-              action={
-                <Link href={showThemHref} scroll={false} className={`${linkClass} text-sm`}>
-                  Show them
-                </Link>
-              }
-            >
-              Hiding sanctioned suppliers
-            </StandingFilter>
-          ) : null}
         </div>
       ) : null}
 

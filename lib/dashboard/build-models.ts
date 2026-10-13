@@ -42,8 +42,8 @@ import {
   type ShipmentRevealState,
   type VolzaExports,
   type VolzaMarketName,
-  capacityNote,
   shippedPiecesPerYear,
+  splitPremises,
   type CertModel,
   formatDayRange,
   placeLabel,
@@ -1308,21 +1308,19 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
   const locations = locationRows(p, options.pins);
   const addresses = locations.length;
   const addr = factoryAddress(p);
-  // Every figure the register filed: 376 published records file both, and
-  // showing only the daily one dropped the other (the capacity tab this folds
-  // in showed both).
-  // When the two disagree and the customs row is there, the one nearer what was shipped goes first.
+  // One capacity figure, in pieces a month (founder, 13 Oct 2026: two filed figures and a note under them
+  // was a paragraph). BKMEA files pieces a day (25 working days a month, the 300 a year used everywhere
+  // here); BGMEA files dozens a year, which is the same number of pieces a month. When both are filed and
+  // the customs row is there, the one nearer what was shipped is the one shown; else the daily figure.
   const shipped = shippedPiecesPerYear(options.volza);
-  const off = (pieces: number) => (shipped ? Math.abs(Math.log(pieces / shipped)) : 0);
-  const capacity =
-    [
-      s.production_capacity_pcs_day ? { text: `${formatCount(s.production_capacity_pcs_day)} pcs/day`, off: off(s.production_capacity_pcs_day * 300) } : null,
-      s.production_capacity_dozen_yearly ? { text: `${formatCount(s.production_capacity_dozen_yearly)} dozen/year`, off: off(s.production_capacity_dozen_yearly * 12) } : null,
-    ]
-      .filter((c): c is { text: string; off: number } => c !== null)
-      .sort((a, b) => a.off - b.off)
-      .map((c) => c.text)
-      .join(" · ") || null;
+  const off = (monthly: number) => (shipped ? Math.abs(Math.log((monthly * 12) / shipped)) : 0);
+  const capacityOf = [
+    s.production_capacity_pcs_day ? { monthly: s.production_capacity_pcs_day * 25, from: "BKMEA" } : null,
+    s.production_capacity_dozen_yearly ? { monthly: s.production_capacity_dozen_yearly, from: "BGMEA" } : null,
+  ]
+    .filter((c): c is { monthly: number; from: string } => c !== null)
+    .sort((a, b) => off(a.monthly) - off(b.monthly))[0];
+  const capacity = capacityOf ? `${formatCount(capacityOf.monthly)} pcs/month` : null;
 
   const pending = (value: string | null, m: SourceMarkModel | null = null, checked = "registers checked"): Pick<FactRow, "value" | "marks" | "pendingSource" | "checked"> =>
     pendingMarks(value, m ? [m] : [], checked);
@@ -1350,11 +1348,7 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
     // (within 10%) — the registers file the total and the split independently.
     ...(workforceSplit(w, s) ? [{ label: "Women · men", ...pending(workforceSplit(w, s)) }] : []),
     { label: "Sewing machines", ...pendingMarks(formatCount(s.machines_sewing), filedBy("BGMEA", "BKMEA")) },
-    {
-      label: "Capacity, as filed",
-      ...pendingMarks(capacity, filedBy(...(s.production_capacity_pcs_day ? ["BKMEA"] : []), ...(s.production_capacity_dozen_yearly ? ["BGMEA"] : []))),
-      note: capacityNote(s, options.volza),
-    },
+    { label: "Capacity, as filed", ...pendingMarks(capacity, capacityOf ? filedBy(capacityOf.from) : []) },
     ...(s.bepza_zone ? [{ label: "EPZ zone", ...pending(s.bepza_zone) }] : []),
     {
       label: "Registers",
@@ -1484,6 +1478,7 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
     locations,
     // `p.addresses` absent is a failed read; an empty array is a record with
     // no address filed. They are not the same sentence.
+    buildings: splitPremises(s.company_name).buildings.map(displayName),
     locationsEmpty: p.addresses
       ? "No address on any register that filed this record."
       : "The addresses could not be read.",

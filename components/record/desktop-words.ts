@@ -355,7 +355,7 @@ function dayOnly(words: string | null, today: Date): string | null {
 export function factCells(model: SupplierSheetModel): FactCell[] {
   return keyFacts(model)
     .filter((f: KeyFact) => !NOT_CELLS.has(f.label))
-    .map((f) => ({ label: f.label === "Capacity" ? "Capacity, as filed" : f.label, value: f.values.length ? f.values.map((x) => x.text).join(", ") : (f.empty ?? ""), from: f.source, empty: f.values.length === 0 }));
+    .map((f) => ({ label: f.label, value: f.values.length ? f.values.map((x) => x.text).join(", ") : (f.empty ?? ""), from: f.source, empty: f.values.length === 0 }));
 }
 
 /** The registers it is a member of: the register's mark, the membership, its number, when it was read. */

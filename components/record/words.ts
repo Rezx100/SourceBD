@@ -6,7 +6,7 @@
 
 import type { CertRowData } from "@/components/patterns";
 import { ABSENT, SITE_WORDS, rankCerts, isApproximate, type SiteKind } from "@/components/patterns/words";
-import { brandsInCustoms, certCheckLine, certRowId, customsBuyers, formatDay } from "@/lib/dashboard/facts";
+import { brandsInCustoms, certCheckLine, certRowId, customsBuyers, formatDay, splitPremises } from "@/lib/dashboard/facts";
 import type { CertState } from "@/components/kit";
 import type { FactRow, LocationRow, ProductSheetModel, SitePin, SupplierSheetModel } from "@/lib/dashboard/models";
 import type { SourceMarkModel } from "@/lib/dashboard/source-tiers";
@@ -224,7 +224,7 @@ export function keyFacts(model: SupplierSheetModel): KeyFact[] {
     .map((f) => (f.label === "Type" && f.value && type && f.value.startsWith(`${type} · `) ? { ...f, label: "Factory types", value: f.value.slice(type.length + 3) } : f))
     .filter(
     (f) =>
-      !(f.label === "Registered name" && f.value && sameName(f.value, model.name)) &&
+      !(f.label === "Registered name" && f.value && sameName(splitPremises(f.value).name, model.name)) &&
       !(optional.has(f.label) && !f.value && !f.items?.length) &&
       !(sited && f.label === "Factory address") &&
       // The subline said these (type · place · founded · group): Key facts starts at what it did not say.

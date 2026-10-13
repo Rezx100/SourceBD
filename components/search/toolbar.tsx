@@ -1,7 +1,6 @@
 // The filter bar over the results (Paper `10 · Results table` and `Results, empty`): the
 // search's title with its count, the filters that are on (a menu each, filled, with its value
-// on the button), "Add filter", the standing filter ("Hiding sanctioned suppliers · Show
-// them"), and on the right Save search, Sort, the Filters toggle and More. Every option is a
+// on the button), "Add filter", and on the right Save search, Sort, the Filters toggle and More. Every option is a
 // link to the search with that value toggled, so the bar works before any script.
 // Server component; the menus are the kit's.
 
@@ -9,7 +8,7 @@ import { Boat, BookmarkSimple, CaretDown, Check, MagnifyingGlass, Plus, SlidersH
 import Form from "next/form";
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
-import { FilterChip, Menu, MenuItem, MenuSeparator, StandingFilter, buttonClass, linkClass } from "@/components/kit";
+import { FilterChip, Menu, MenuItem, MenuSeparator, buttonClass } from "@/components/kit";
 import { SearchCombobox } from "./typeahead";
 import { formatCount } from "@/lib/dashboard/facts";
 import { filterMenus, inFilterMenu, menuSummary, type FilterMenu } from "@/lib/dashboard/search-templates";
@@ -66,11 +65,6 @@ export function sortChoices(state: DiscoverState, entitled: boolean): { options:
 }
 
 const SHIPS_SHORT: Record<ShipsTo, string> = { uk: "UK", us: "US", eu: "EU", ca: "Canada" };
-
-/** "Has customs exports · US$10m+ · UK": what the exports view is narrowed to. */
-export function exportsWords(state: DiscoverState): string {
-  return ["Has customs exports", state.exportsMin != null ? `US$${state.exportsMin}m+` : null, state.ships ? SHIPS_SHORT[state.ships] : null].filter(Boolean).join(" · ");
-}
 
 /** The Exports menu (Paper board H): has customs exports, an export value floor, one market. Entitled readers only. */
 export function ExportsMenu({ state, hrefFor }: { state: DiscoverState; hrefFor: (s: DiscoverState) => string }) {
@@ -180,22 +174,6 @@ export function OtherChips({ state, hrefFor }: { state: DiscoverState; hrefFor: 
   );
 }
 
-/** The one filter the buyer did not choose: sanctioned suppliers are held back, in words, with the way to lift it. */
-export function SanctionedStanding({ state, hrefFor }: { state: DiscoverState; hrefFor: (s: DiscoverState) => string }) {
-  if (state.sanctioned) return null;
-  return (
-    <StandingFilter
-      action={
-        <Link href={hrefFor({ ...state, sanctioned: true, page: 1 })} scroll={false} className={cn(linkClass, "text-sm")}>
-          Show them
-        </Link>
-      }
-    >
-      Hiding sanctioned suppliers
-    </StandingFilter>
-  );
-}
-
 export function SortMenu({ state, hrefFor, className, compact = false, entitled = false }: { state: DiscoverState; hrefFor: (s: DiscoverState) => string; className?: string; /** On a bar under 900 wide the button says "Sort" alone. */ compact?: boolean; /** The reader may see customs figures: the exports sorts are offered. */ entitled?: boolean }) {
   const { options, current } = sortChoices(state, entitled);
   return (
@@ -276,10 +254,7 @@ export function ResultsToolbar({
           <span className={cn("pr-1", words)}>Add filter</span>
         </Link>
       </div>
-      {/* The standing filter sits at the bar's end, as it does on the landing, not between the filters and the actions. */}
       <div className="ml-auto flex shrink-0 items-center gap-2">
-        {/* With another filter on, the line lives in the Filters pane's first row (round 3, item 7): the bar was eight controls. */}
-        {on > (state.q ? 1 : 0) ? null : <SanctionedStanding state={state} hrefFor={hrefFor} />}
       {bare ? null : (
       <>
         {/* Eight controls on one line was too many (critique of 8 Oct 2026, item 7, and round 3): under 1536 Save search is in the ⋯ menu. */}
@@ -355,7 +330,7 @@ export function PaneListToolbar({ state, title, hrefFor, filtersHref, saveHref, 
 /**
  * The phone's bar (Paper page 36, `search-results`): the query in a 52-tall tonal field with its ×,
  * a row of pills (Filters with how many are on, Ships to UK for a reader who may see customs
- * figures, the sort), then the count and the standing filter in words. The field is a form to the
+ * figures, the sort), then the count. The Ships to UK pill is the customs view's one switch here. The field is a form to the
  * results that carries the other filters; the filter sheet and the sort list open from here.
  */
 export function PhoneToolbar({ state, count, hrefFor, filtersHref, entitled = false }: { state: DiscoverState; count: string; hrefFor: (s: DiscoverState) => string; filtersHref: string; entitled?: boolean }) {
@@ -395,7 +370,7 @@ export function PhoneToolbar({ state, count, hrefFor, filtersHref, entitled = fa
           ) : null}
         </Link>
         {entitled ? (
-          <Link href={hrefFor(uk ? { ...state, ships: null, page: 1 } : { ...state, exports: true, ships: "uk", page: 1 })} scroll={false} aria-pressed={uk} className={cn(pill, "pl-2.5 pr-3", uk && "border-ink bg-ink text-surface active:bg-ink")}>
+          <Link href={hrefFor(uk ? withoutExports(state) : { ...state, exports: true, ships: "uk", page: 1 })} scroll={false} aria-pressed={uk} className={cn(pill, "pl-2.5 pr-3", uk && "border-ink bg-ink text-surface active:bg-ink")}>
             <Boat size={16} className={cn("shrink-0", uk ? "text-surface" : "text-ink-2")} aria-hidden />
             Ships to UK
           </Link>
@@ -419,27 +394,11 @@ export function PhoneToolbar({ state, count, hrefFor, filtersHref, entitled = fa
           ))}
         </Menu>
       </div>
-      {exportsView(state, entitled) ? (
-        <FilterChip removeHref={hrefFor(withoutExports(state))} removeLabel="Remove the customs exports filter">
-          {exportsWords(state)}
-        </FilterChip>
-      ) : null}
       {/* Not an h1: the desktop bar's heading is the page's one, and this bar is on the page too (hidden by CSS from 768). */}
-      <div className="flex items-baseline justify-between gap-3 max-[359px]:flex-col max-[359px]:items-start max-[359px]:gap-0">
-        <p className="flex items-baseline gap-2 text-lg tracking-tight">
-          {figure ? <span className="font-medium tabular-nums text-ink">{figure}</span> : null}
-          <span className={figure ? "text-ink-3" : "font-medium text-ink"}>{noun}</span>
-        </p>
-        {/* The one filter the buyer did not choose, said, with the way to lift it. */}
-        {state.sanctioned ? null : (
-          <p className="flex shrink-0 items-baseline gap-1 text-sm text-ink-3">
-            <span>Sanctioned hidden ·</span>
-            <Link href={hrefFor({ ...state, sanctioned: true, page: 1 })} className="-my-3 rounded-sm py-3 font-medium text-ink outline-none active:bg-sunken focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus">
-              Show
-            </Link>
-          </p>
-        )}
-      </div>
+      <p className="flex items-baseline gap-2 text-lg tracking-tight">
+        {figure ? <span className="font-medium tabular-nums text-ink">{figure}</span> : null}
+        <span className={figure ? "text-ink-3" : "font-medium text-ink"}>{noun}</span>
+      </p>
     </div>
   );
 }
