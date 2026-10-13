@@ -222,9 +222,16 @@ Read after: 10,811 suppliers, 10,025 published, 744 linked buildings.
   - Cause, fixed in `etl/scrapers/bkmea_web.py` with tests: a list row whose number did not read was
     keyed on its bare page id, which is also somebody's membership number. Two rows of the live list
     do this ("KNIT", no number, page 511; Polestar's old "402 - /2008", page 984).
-  - Still open: the row "KNIT" (no membership number, another address and owner) stays on
-    `knit-fashion`, whose workers (230), capacity and machines (90) come from that row, not from
-    Knit Fashion's own entry. Whether "KNIT" is Knit Fashion or a third company is the founder's call.
+  - The row "KNIT" (no membership number, another address and owner) sat on `knit-fashion`, whose
+    workers (230), capacity and machines (90) came from it. **Split off 13 Oct 2026** on the founder's
+    word (`ops/plans/knit-split.sql`): "KNIT" is its own company at `/suppliers/knit` with its two
+    BKMEA entries and the claims read from its page. `knit-fashion` now carries only what its own
+    entries back: no worker or capacity figure, 140 machines, the products its BGMEA entry lists
+    (the four it had taken from Shatabdi's page are gone), and one phone number fewer.
+  - Still open on `knit-fashion`: its BKMEA entry is a Narayanganj company (member 675) and its BGMEA
+    entry is "Knit Fashion (Pvt.) Ltd.", a sweater factory in Agrabad, Chattogram, founded 1993. Same
+    name, two cities: likely two companies on one profile. Two of its phone numbers are backed by no
+    entry it holds. Not touched.
   - Seen while checking, not touched: 35 BKMEA detail pages sit under a company whose name the page
     does not carry. About half are spellings of the same company; the rest look like another
     company's page (F.M Knitwear under `fm-apparels`, Orion Fashions under `ripon-fashions`, Fame
