@@ -91,7 +91,9 @@ What stands in for it:
 - What CI cannot show is the trigger beside production's own four triggers on that table. The
   rehearsal below shows it, and changes nothing that is kept.
 
-The rehearsal to run before applying, if the founder allows it (it ends in an error on purpose, so
+The rehearsal is saved as `ops/plans/0150-rehearsal.sql`, to paste into the Supabase SQL editor: it
+was declined at the approval prompt twice more after the founder asked for it (four times in all),
+so it has to be run by hand. The rehearsal to run before applying, if the founder allows it (it ends in an error on purpose, so
 nothing is kept): inside `do $dry$ … execute $m$ <the migration> $m$;`, insert a throwaway
 unpublished supplier `zz-rehearsal-0150-a`, rename it to `zz-rehearsal-0150-b`, and check that the
 redirect rows went from 166 to 167, that the new row points at the throwaway supplier, and that
