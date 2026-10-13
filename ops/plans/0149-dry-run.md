@@ -1,7 +1,7 @@
 # 0149 dry run: old addresses of merged duplicates (13 Oct 2026, production, rolled back)
 
-Migration `supabase/migrations/0149_supplier_slug_redirects.sql`. **Not applied.** It waits for the
-founder's "apply 0149".
+Migration `supabase/migrations/0149_supplier_slug_redirects.sql`. **Applied 13 Oct 2026**, recorded by
+the database as `20261013090432 0149_supplier_slug_redirects`. See "Applied" below.
 
 ## The problem
 
@@ -77,10 +77,27 @@ not a building, and no kept row that was itself merged away.
   after any deploy. Once applied, an old address redirects within five minutes (the public page's
   cache).
 
-## To apply
+## Applied (13 Oct 2026, 09:04 UTC)
 
-Say "apply 0149". It then goes in through the Supabase MCP as `0149_supplier_slug_redirects`, and
-the check straight after is:
+The founder said "apply 0149". When the session that wrote this migration went to apply it, three
+minutes later, it was already in: the table held its 166 rows, all stamped 09:04:32 UTC, and the
+function was the one in this file, comments included. That session did not apply it and did not
+apply it a second time. Read back afterwards (read only):
+
+```
+old addresses 166 | reach their kept profile 166 | of those, were published 152
+ | rows missing or pointing at the wrong profile 0 | rows not from the two snapshots 0
+ | live profiles that redirect 0 | linked buildings answering wrong 0
+ | table readable by anon f by authenticated f rls t | function callable signed out t
+```
+
+On the live site at 09:07 UTC: `/suppliers/oishi-fashions` answered 308 to
+`https://sourcebd.net/suppliers/oishi-fashion`, `/suppliers/sayem-fashion` still answered 308 to
+`/suppliers/sayem-fashions`, and `/suppliers/oishi-fashion` answered 200.
+
+## How it was to be applied
+
+Through the Supabase MCP as `0149_supplier_slug_redirects`, with this check straight after:
 
 ```sql
 select (select count(*) from public.supplier_slug_redirects) as redirect_rows,          -- 166
