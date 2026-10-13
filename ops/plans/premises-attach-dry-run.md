@@ -60,3 +60,27 @@ then the update. Read after: linked rows 610 to 658, published 10,311 to 10,263.
 Checked for Zaheen: the main record's reader returns the sheds and their safety-register entry
 24449; the sheds' own profile returns nothing; `https://sourcebd.net/suppliers/zaheen-knitwear-limited-shed-...`
 answers 308 to `/suppliers/zaheen-knitwear`.
+
+## The founder's decisions on the 79 held rows, applied 13 Oct 2026
+
+He answered through `premises-read-list.html` (numbering in `premises-read-list.md`): merge 1-8 and
+10-79, leave 9 (Anowara Fashions, Habib Group). His notes: rows 1 and 2 under "Kenpark Bangladesh
+Apparel (Pvt.) Ltd.", row 4 under Saad Musa Hometex & Clothing Ltd.
+
+What was done: **75 attached, not hard-merged** (pairs in `premises-decisions-2026-10-13.json`).
+`rsc_remediation` is unique per supplier, so a hard merge of the 15 pairs where both rows hold a
+safety record would delete one building's record; and the merge tool cannot reach the database from
+this network. An attach gives the same single profile, loses nothing and can be undone; a hard merge
+can still follow for the pairs where it loses nothing.
+
+Rehearsal: `DRY RUN OK | pairs 75 | found 75 | linked 75 | unpublished 75 | redirects 75 | main not
+usable 0 | both hold a safety record 15`. Apply: snapshot `public._snapshot_premises_attach_20261013b`
+(75 rows, RLS on), linked rows 658 to 733, published 10,263 to 10,188. Live check:
+`/suppliers/bhuyan-warmtex-pvt-ltd-re-opened` answers 308 to `/suppliers/bhuyan-warmtex`.
+
+Chorka's three rows went under `chorka` (the main profile with the most registers); the second
+Chorka main profile is still published and still a duplicate.
+
+Not done, waiting on his answer: rows 1 and 2 (no profile named "Kenpark Bangladesh Apparel (Pvt.)
+Ltd." exists; only K-3, K-5 (Extension) and the differently named Kenpark Bangladesh (Pvt) Ltd.), and
+row 3 (Saad Musa U-2, Home Tex: under Saad Musa Hometex & Clothing too?).
