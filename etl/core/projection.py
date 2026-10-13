@@ -20,7 +20,8 @@ is recognised and deliberately excluded.
 
 Source-exclusivity (which payload feeds which column):
 - employees_total / employees_male / employees_female: BGMEA + BKMEA
-- production_capacity_pcs_day: BKMEA only (native pcs/day)
+- production_capacity_pcs_day: BKMEA only (filed without a unit; see
+  ``bkmea_capacity_pcs_day``)
 - production_capacity_dozen_yearly: BGMEA only (native dozen/year)
 - machines_sewing: BKMEA (``bkmea_machines_sewing``) + BGMEA (``num_machines``)
 
@@ -235,7 +236,51 @@ def value_for_column(
         if column == "machines_sewing":
             return digits_int(fields.get("bkmea_machines_sewing"))
         if column == "production_capacity_pcs_day":
-            return digits_int(fields.get("bkmea_production_capacity"))
+            return bkmea_capacity_pcs_day(fields)
         return None
 
     return None
+
+
+# BKMEA's member page gives "Production Capacity" as a bare number with no
+# unit, and members fill it in either as pieces a day or as pieces a month.
+# Measured 13 Oct 2026 on 1,614 companies: capacity per sewing machine falls in
+# two humps about 25 times apart (56-178 and 1,000-3,162) with a dip between.
+# Reading every figure as pieces a day overstated a quarter of them 25 times.
+# The unit is read from the same filing: sewing machines first, workers when no
+# machines are filed (the two agree on 98% of the pages that carry both). A
+# figure in neither band, or one the two yardsticks read opposite ways, is not
+# projected at all. Bands are (low, high) pieces per machine or per worker.
+BKMEA_WORKING_DAYS_MONTH = 25  # the multiplier lib/dashboard/build-models.ts shows it with
+_BKMEA_PER_MACHINE = {"day": (5, 250), "month": (500, 6250)}
+_BKMEA_PER_WORKER = {"day": (2, 100), "month": (300, 2500)}
+
+
+def _capacity_unit(capacity: int, base: int | None, bands: dict[str, tuple[int, int]]) -> str | None:
+    if not base:
+        return None
+    for unit, (low, high) in bands.items():
+        if low * base <= capacity <= high * base:
+            return unit
+    return None
+
+
+def bkmea_capacity_pcs_day(fields: dict[str, Any]) -> int | None:
+    """BKMEA's unitless capacity as pieces a day, or None when the unit is unclear.
+
+    The SQL in ``ops/backfill_profile_columns.py`` mirrors this line for line.
+    """
+    capacity = digits_int(fields.get("bkmea_production_capacity"))
+    if capacity is None:
+        return None
+    machines = digits_int(fields.get("bkmea_machines_sewing"))
+    by_machine = _capacity_unit(capacity, machines, _BKMEA_PER_MACHINE)
+    by_worker = _capacity_unit(
+        capacity, digits_int(fields.get("bkmea_employees_total")), _BKMEA_PER_WORKER
+    )
+    unit = by_machine if machines else by_worker
+    if unit is None or (by_worker and by_worker != unit):
+        return None
+    if unit == "day":
+        return capacity
+    return (capacity + BKMEA_WORKING_DAYS_MONTH // 2) // BKMEA_WORKING_DAYS_MONTH
