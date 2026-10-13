@@ -90,6 +90,10 @@ missing. **S4** untidy. Inside a level, most published companies first.
 - **Smallest fix:** show "Under suspension (BTMA, read 21 May 2026)" beside the membership. Then your call:
   does a suspended membership alone keep a company published?
 - **Needs your yes:** yes.
+- **Fix built, 13 Oct 2026:** `supabase/migrations/0154_profile_membership_status.sql` adds `membership_status` to the
+  profile (BTMA's own status for each entry) and the membership reads "BTMA (under suspension)" beside its number and
+  read date, on the desktop, phone and public record. Not applied: it waits for "apply 0154". Still open, and yours:
+  whether the 80 companies published on a suspended BTMA entry alone stay published.
 
 ### S1-4. Phone numbers and mailboxes inside address text, open to a signed-out visitor through the database API
 
