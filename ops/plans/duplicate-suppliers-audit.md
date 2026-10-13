@@ -170,10 +170,35 @@ columns back from its `keep` snapshot.
 
 Nothing in this list has been changed.
 
+## 5a. The founder's decisions, applied 13 Oct 2026
+
+He answered all 121 rows the same day: **merge 97, attach 8, leave 16**
+(`duplicate-suppliers-decisions-2026-10-13.json`, row number to pair). He chose merge on 22 rows where
+the suggestion was leave, among them pairs a trade body lists as two members and five where one side
+is a buying house.
+
+- **96 merged** (`_snapshot_dup_merge_20261013b_pairs/_suppliers/_rows`), the same block as section 3,
+  rehearsed first with identical counts: 2,181 rows moved, 124 duplicate copies dropped, 4 buildings
+  re-linked, 94 kept rows still published. Four rows form one company by his answers (Crony Apparels,
+  Crony Fashion, Crony Fashions, Corny Fashion); Crony Apparels is kept. His decision replaced the
+  July ruling "two companies" on that group, so for this run the block deleted that ruling instead of
+  refusing. `Dinatex International Ltd.` (a buying-house member) absorbed its factory row and is now
+  typed factory.
+- **8 attached** as a building of the first company (`_snapshot_dup_attach_20261013`); each old address
+  redirects to its company. Row 80 was attached the other way round from how the page showed it: the
+  "Unit - 2" profile became the building of `Maheen Dizayn Etiket (BD) Limited`, not the reverse.
+- **Row 95** (Labib Fashion / Labib Fashions Ltd.): answered merge with the note "sister concern of
+  Labib Group". Asked which he meant; he said attach. `Labib Fashions Ltd.` is now a building of
+  `LABIB FASHION` (ninth row of `_snapshot_dup_attach_20261013`); its old address redirects.
+- **16 left** as two companies. Not recorded as rulings in `resolution_edges`, so a re-run lists them again.
+
+Read after: 10,811 suppliers, 10,025 published, 744 linked buildings.
+
 ## 6. Found on the way, not fixed here
 
-- **61 old web addresses now answer 404.** A merged profile's address is gone, as with every earlier
-  merge. The pairs table has what a redirect would need.
+- **152 old web addresses now answer 404** (61 from the first merge, 91 from the second). A merged
+  profile's address is gone, as with every earlier merge. The two `_suppliers` snapshot tables hold
+  what a redirect would need (`slug`, `merged_into`).
 - **541 general manufacturers are typed "buying house"** (the loader's default for BGMEA). Twelve rows on
   the page are a factory beside a real buying house of the same name; the 541 are a separate fix.
 - **Nine BKMEA membership numbers sit on two profiles each** (section "One membership number on two
