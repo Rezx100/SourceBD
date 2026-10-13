@@ -37,6 +37,7 @@ from pathlib import Path
 from typing import Any
 
 # What each check reads. Contact columns are pulled to be counted and compared, never printed.
+# Every table has an `order`: a table read in pages with none can repeat a row and drop another.
 TABLES: dict[str, dict[str, str]] = {
     "suppliers": {
         "select": "id,slug,company_name,name_display,entity_type,bgmea_reg_numbers,bgmea_verified,bkmea_reg_number,"
@@ -48,19 +49,16 @@ TABLES: dict[str, dict[str, str]] = {
                   "sanctions_reviewed_at,sanctions_cleared,sanctions_cleared_reason,t13_source_count,facility_of",
         "order": "id",
     },
-    "sources": {"select": "id,code,display_name,tier,base_url,listed"},
+    "sources": {"select": "id,code,display_name,tier,base_url,listed", "order": "code"},
     "records": {"path": "source_records", "select": "id,supplier_id,source_id,source_ref,status,fields,fetched_at", "order": "id"},
     "certifications": {"select": "id,supplier_id,kind,certificate_no,issuer,issued_on,expires_on,source_record_id,"
                                  "document_url,verified,rejected_at,last_seen_at,listing_status,created_at", "order": "id"},
     "rsc": {"path": "rsc_remediation", "select": "id,supplier_id,rsc_factory_id,rsc_factory_name,active,source_record_id,"
                                                  "fetched_at,progress_pct,workers_count,remediation_status", "order": "id"},
-    "screening": {"path": "sanctions_screening", "select": "supplier_id,list,match_score,list_entry_ref,screened_at,active"},
+    "screening": {"path": "sanctions_screening", "select": "supplier_id,list,match_score,list_entry_ref,screened_at,active", "order": "id"},
     "list_entries": {"path": "sanctions_list_entries", "select": "list,listing_status,fetched_at,last_seen_at", "order": "id"},
     "volza": {"path": "volza_export_checks", "select": "supplier_id,name_searched,match_class,volza_supplier_name,shipments,"
-                                                       "fetched_at,expires_at,window_end"},
-    "documents": {"path": "evidence_documents", "select": "id,source_id,scraper_code,url,http_status,fetch_status,fetched_at,"
-                                                          "last_verified_at,verify_status", "order": "id"},
-    "schedules": {"path": "etl_schedules", "select": "scraper_code,enabled,interval_minutes,next_run_at,last_enqueued_at"},
+                                                       "fetched_at,expires_at,window_end", "order": "supplier_id"},
 }
 
 
@@ -149,15 +147,15 @@ TIER_13 = ("tier1_gov", "tier2_industry", "tier3_cert")
 ONE_ENTRY_EACH = ("BGMEA", "BGMEA (associate)", "BKMEA", "BGAPMEA", "BTMA", "EPB", "RSC")
 STALE_DAYS = 90
 
-# The 64 districts as the government spells them now, and the old or loose spellings seen filed.
-DISTRICTS = frozenset(
+# The 64 districts as the government spells them now.
+DISTRICTS = frozenset((
     "Bagerhat Bandarban Barguna Barishal Bhola Bogura Brahmanbaria Chandpur Chapainawabganj Chattogram Chuadanga "
-    "Cox's_Bazar Cumilla Dhaka Dinajpur Faridpur Feni Gaibandha Gazipur Gopalganj Habiganj Jamalpur Jashore "
+    "Cumilla Dhaka Dinajpur Faridpur Feni Gaibandha Gazipur Gopalganj Habiganj Jamalpur Jashore "
     "Jhalokati Jhenaidah Joypurhat Khagrachhari Khulna Kishoreganj Kurigram Kushtia Lakshmipur Lalmonirhat "
     "Madaripur Magura Manikganj Meherpur Moulvibazar Munshiganj Mymensingh Naogaon Narail Narayanganj Narsingdi "
     "Natore Netrokona Nilphamari Noakhali Pabna Panchagarh Patuakhali Pirojpur Rajbari Rajshahi Rangamati Rangpur "
-    "Satkhira Shariatpur Sherpur Sirajganj Sunamganj Sylhet Tangail Thakurgaon".replace("_", " ").split()
-) | {"Cox's Bazar"}
+    "Satkhira Shariatpur Sherpur Sirajganj Sunamganj Sylhet Tangail Thakurgaon"
+).split()) | {"Cox's Bazar"}
 
 _CONTACT_SHAPES = {
     "an email address": re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+"),
@@ -211,7 +209,6 @@ class Data:
         self.screening = tables.get("screening", [])
         self.list_entries = tables.get("list_entries", [])
         self.volza = tables.get("volza", [])
-        self.documents = tables.get("documents", [])
         all_rows = list(self.suppliers.values())
         self.published = [s for s in all_rows if s.get("is_published")]
         self.buildings = [s for s in all_rows if s.get("facility_of")]
@@ -269,8 +266,8 @@ def check_counts(d: Data) -> list[dict]:
     ]
     if twice:
         out.append(finding(
-            "A4", "S2", "A register's public \"records\" figure counts each member more than once", [],
-            "the sources table on /legal/data-sources and /methodology (`marketing_facts().sources[].records`)",
+            "A4", "S4", "The public facts function counts a register's \"records\" more than once per member", [],
+            "`marketing_facts().sources[].records`, open to any visitor; no page prints it (/methodology prints suppliers)",
             "; ".join(f"{c}: {rows[c]} rows for {len(entries[c])} members" for c in sorted(twice)), count=sum(twice.values())))
     return out
 
@@ -432,7 +429,7 @@ def check_safety(d: Data) -> list[dict]:
         entries = [e for s in rows for e in d.of(s["id"], "RSC")]
         if not entries:
             continue
-        statuses = {str(e["fields"].get("rsc_status_name") or "").strip().lower() for e in entries}
+        statuses = {str(e["fields"].get("rsc_status_name") or "").strip().lower() for e in entries} - {""}
         active_rows = [d.rsc[s["id"]] for s in rows if d.rsc.get(s["id"], {}).get("active")]
         for status in statuses - {"active"}:
             by_status[status].append(page)
@@ -508,7 +505,7 @@ def check_dates(d: Data) -> list[dict]:
         for code, a in sorted(ages.items()))
     future = [d.page_slug(s) for s in d.shown for r in d.records[s["id"]] if (_day(r.get("fetched_at")) or d.today) > d.today]
 
-    years, shapes, odd_year = [], Counter(), []
+    shapes, odd_year = Counter(), []
     for s in d.published:
         value = (s.get("established_date") or "").strip()
         if not value:
@@ -517,7 +514,6 @@ def check_dates(d: Data) -> list[dict]:
         year = int(value[:4]) if re.match(r"\d{4}", value) else None
         if year is None or year < 1850 or year > d.today.year:
             odd_year.append(s)
-        years.append(year)
     return [
         finding("E4", "S3", f"Entries last read more than {STALE_DAYS} days ago", stale_rows,
                 "the \"read\" date beside each source (honest per row); the footer says \"updated\" with the newest read of any register",
@@ -723,7 +719,8 @@ def check_sanctions(d: Data) -> list[dict]:
         row["entries"] += e.get("listing_status") == "listed"
         row["seen"] = max(row["seen"], str(e.get("last_seen_at") or e.get("fetched_at") or "")[:10])
     table = "; ".join(f"{name}: {v['entries']} listed, last seen {v['seen']}" for name, v in sorted(lists.items()))
-    old = [name for name, v in lists.items() if (_day(v["seen"]) or d.today) < d.today.fromordinal(d.today.toordinal() - 7)]
+    week_ago = d.today.fromordinal(d.today.toordinal() - 7)
+    old = [name for name, v in lists.items() if _day(v["seen"]) is None or _day(v["seen"]) < week_ago]  # never seen is not fresh
     active = defaultdict(list)
     for m in d.screening:
         active[m["supplier_id"]].append(m)

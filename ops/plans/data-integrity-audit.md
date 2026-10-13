@@ -5,7 +5,7 @@ data-audit firm would. Read-only: nothing was changed, nothing was fixed.
 
 Measured by two scripts, both GET-only and re-runnable:
 
-- `ops/audit_data_integrity.py --cache DIR` (the database: 49 checks; finding ids below are its ids)
+- `ops/audit_data_integrity.py --cache DIR` (the database: 73 checks, 49 with something to report; the ids below are its ids)
 - `ops/audit_endpoints.py --cache DIR` (the live site and the database API as a signed-out visitor)
 
 Figures are as pulled at about 15:00 on 13 Oct 2026: **10,811 rows, 10,025 published, 744 buildings,
@@ -252,7 +252,7 @@ missing. **S4** untidy. Inside a level, most published companies first.
 | `F3b` | The safety register now lists the factory under a new name | 4 | the company name | rename, keep the old as "previously" |
 | `C10` | More than 50,000 workers on one record, and its men plus women do not match | 1 | `gc-fashion-wear` | read the register |
 | dbapi | `recompute_t13_source_count(id)` can be run by a signed-out visitor. It only recomputes a count, but it writes. | 1 function | database API | revoke from the public role |
-| receipts | Source links a script could not confirm: OEKO-TEX (10 of 10) and GOTS (8 of 8) are script-built pages; WRAP (8 of 8) answers 403 to a script; Next's list (4) did not connect and the M&S map (1) asks for a sign-in. BGMEA 21 of 22, EPB 18 of 18, BKMEA 8 of 8, BGAPMEA 5 of 6 and H&M open and name the company; RSC's 14 open as PDFs. Two open and show our number under another name: `iqbal-texwear` (BGMEA), `4-emeralds-accessories` (BGAPMEA). | 100 links | "Open the … page" under Sources | read the two; check OEKO-TEX, GOTS and WRAP by hand in a browser |
+| receipts | Source links a script could not confirm: OEKO-TEX (10 of 10) and GOTS (8 of 8) are script-built pages; WRAP (8 of 8) answers 403 to a script; H&M's list (1) opens as a file; Next's list (4) did not connect and the M&S map (1) asks for a sign-in. BGMEA 21 of 22, EPB 17 of 18, BKMEA 8 of 8 and BGAPMEA 5 of 6 open, with a valid certificate, and name the company; RSC's 14 open as PDFs. Two open and show our number under another name: `iqbal-texwear` (BGMEA), `4-emeralds-accessories` (BGAPMEA). | 100 links | "Open the … page" under Sources | read the two; check OEKO-TEX, GOTS and WRAP by hand in a browser |
 
 ---
 
@@ -321,7 +321,7 @@ the entries held for BGMEA, BKMEA, BGAPMEA, EPB, RSC and for all four certificat
 internal field name. All 22 `/api/v1` routes tried answer 401 signed out; the admin route answers 403 to a
 signed-in buyer. Signed in on the Starter plan: the company list, saved list, compliance view, the export and
 three record pages carry no contact detail, and the record says "Contact details are locked". At the database
-API as a visitor: of 91 tables and views, only the three meant to be public return rows; the seven contact and
+API as a visitor: of 91 tables and views (93 by the evening), only the three meant to be public return rows; the seven contact and
 admin columns of `suppliers` are refused; unpublished companies are not returned; all 206 functions were
 called: 28 admin functions refuse, the rest refuse, return nothing, or are public by design, except
 `_messages_key` (S1-0) and `_b6_authdebug` (S4). 19 functions that create or change something were not called;
@@ -375,4 +375,5 @@ python ops/check_supplier_conflations.py --rest
 python ops/report_bgmea_identity_gap.py
 ```
 
-Tests: `etl/tests/test_audit_data_integrity.py` (19, fixtures in, findings out).
+Tests: `etl/tests/test_audit_data_integrity.py` (23: fixtures in, findings out, and a guard that the database-API
+check only ever issues GET).

@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from datetime import date
 
-from ops.audit_data_integrity import contact_shapes, expected_completeness, former_name, run, same_company
-from ops.audit_endpoints import leaks_in_json, leaks_in_text
+from ops.audit_data_integrity import DISTRICTS, Data, contact_shapes, expected_completeness, former_name, run, same_company
+from ops.audit_endpoints import OUT, _nil_args, check_dbapi, leaks_in_json, leaks_in_text
 
 TODAY = date(2026, 10, 13)
 SOURCES = [
@@ -245,6 +245,73 @@ def test_a_match_switched_off_with_no_reason() -> None:
     assert out["J3"]["examples"] == ["quiet"]
     assert out["J1"]["examples"] == ["live"]
     assert out["J5"]["count"] == 0
+
+
+def test_a_list_never_seen_is_not_fresh() -> None:
+    out = found({"suppliers": [], "records": [],
+                 "list_entries": [{"list": "uflpa", "listing_status": "listed", "last_seen_at": None, "fetched_at": None},
+                                  {"list": "ofac_sdn", "listing_status": "listed", "last_seen_at": "2026-10-01"},
+                                  {"list": "uk_ofsi", "listing_status": "listed", "last_seen_at": "2026-10-10"}]}, "J")
+    assert out["J5"]["count"] == 2  # never seen, and seen twelve days ago
+
+
+def test_district_list_is_the_64() -> None:
+    assert len(DISTRICTS) == 64
+    assert "Cox's Bazar" in DISTRICTS and "Bazar" not in DISTRICTS and "Comilla" not in DISTRICTS
+
+
+class _Answer:
+    def __init__(self, status: int, data) -> None:
+        self.status_code, self._data, self.content, self.headers = status, data, b"x" * 20, {"content-range": "0-0/1"}
+
+    def json(self):
+        return self._data
+
+
+class _FakeApi:
+    """The database API as the script sees it: one guarded function, one that reaches a write, one that leaks."""
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, str]] = []
+
+    def description(self) -> dict:
+        fn = lambda **props: {"post": {"parameters": [{"in": "body", "schema": {"properties": props}}]}}  # noqa: E731
+        return {"definitions": {"profiles": {}}, "paths": {
+            "/rpc/admin_supplier_update": fn(p_id={"type": "string", "format": "uuid"}, p_patch={"type": "object", "format": "jsonb"}),
+            "/rpc/unguarded_writer": fn(), "/rpc/_messages_key": fn(), "/rpc/rfq_create": fn(p_input={"format": "jsonb"})}}
+
+    def call(self, method: str, path: str, **kw):
+        self.calls.append((method, path))
+        if path == "rpc/admin_supplier_update":
+            return _Answer(401, {"message": "admin only"})
+        if path == "rpc/unguarded_writer":
+            return _Answer(405, {"message": "cannot execute INSERT in a read-only transaction"})
+        if path == "rpc/_messages_key":
+            return _Answer(200, "k" * 64)
+        if path.startswith("suppliers") and "select" in kw.get("params", {}) and "," in kw["params"]["select"]:
+            return _Answer(401, {"message": "permission denied"})
+        return _Answer(200, [])
+
+
+def test_the_database_api_check_never_writes() -> None:
+    """GET only. A function that reaches a write is a finding, and is never tried again with POST;
+    a function that creates rows is not called at all."""
+    OUT.clear()
+    api = _FakeApi()
+    check_dbapi(api, Data({"sources": SOURCES, "suppliers": [], "records": []}))
+    assert {method for method, _ in api.calls} == {"GET"}
+    assert ("GET", "rpc/rfq_create") not in api.calls
+    verdict = {o["where"]: (o["verdict"], o["note"]) for o in OUT}
+    assert verdict["fn admin_supplier_update"][0] == "ok" and "admin only" in verdict["fn admin_supplier_update"][1]
+    assert verdict["fn unguarded_writer"][0] == "FAIL" and "reached a write" in verdict["fn unguarded_writer"][1]
+    assert verdict["fn _messages_key"][0] == "FAIL" and "k" * 8 not in verdict["fn _messages_key"][1]  # the value is never printed
+    assert verdict["fn rfq_create"][0] == "skip"
+
+
+def test_nil_arguments_cannot_name_a_real_row() -> None:
+    args = _nil_args({"p_id": {"type": "string", "format": "uuid"}, "p_ids": {"type": "array"}, "p_n": {"type": "integer"},
+                      "p_patch": {"format": "jsonb"}, "p_since": {"type": "string", "format": "timestamp with time zone"}, "p_q": {"type": "string"}})
+    assert args == {"p_id": "00000000-0000-0000-0000-000000000000", "p_ids": [], "p_n": 0, "p_patch": {}, "p_since": None, "p_q": ""}
 
 
 def test_contact_details_are_named_never_quoted() -> None:

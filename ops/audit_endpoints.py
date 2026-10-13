@@ -16,11 +16,11 @@ route per check. It reads; it changes nothing:
 HOW IT STAYS HARMLESS
 ---------------------
 One request at a time with a pause. The full export is never called. Database functions are
-called with GET, which the API runs in a read-only transaction: a function that would write
-answers 405 instead of running. Those are then called with POST only when a nil id makes the
-call a no-op even with its guard missing; functions that create something (an RFQ, a job, a
-message) are never called, only listed. Nothing found is printed: a leak is reported as its
-kind and the place, never the value.
+called with GET only, which the API runs in a read-only transaction: a function that reaches a
+write is stopped by the database and answers 405, and that answer is itself a finding (a
+visitor got past its guard). Nothing is ever retried with POST. Functions known to create
+something (an RFQ, a job, a message) are not called at all, only listed. Nothing found is
+printed: a leak is reported as its kind and the place, never the value.
 
 USAGE
 -----
@@ -76,6 +76,8 @@ PUBLIC_BY_DESIGN = frozenset({
     "marketing_facts", "supplier_epb_hscodes", "supplier_primary_address", "production_workers_display_batch",
     "rsc_workers_batch", "sanctions_lists_read", "facility_parent_slug", "supplier_search_candidates", "claim_search",
     "compute_completeness", "epb_record_is_foreign_to_host", "rsc_extension_base_name", "admin_etl_allowed_scraper_codes",
+    # Nothing of ours in the answer: arithmetic on its own arguments, a pg_trgm setting, a frame with zero rows.
+    "_facility_group_metric", "show_limit", "compliance_expiring_certs",
 })
 PUBLIC_TABLES = frozenset({"sources", "suppliers", "compliance_documents"})
 
@@ -139,7 +141,7 @@ class Api:
         base = os.environ.get("NEXT_PUBLIC_SUPABASE_URL") or os.environ.get("SUPABASE_URL", "")
         key = os.environ.get("NEXT_PUBLIC_SUPABASE_ANON_KEY", "")
         if not base or not key:
-            raise SystemExit("ERROR: NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY not set")
+            raise RuntimeError("NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY not set")
         pin_dns(urlparse(base).hostname or "")
         self.base = base.rstrip("/") + "/rest/v1"
         self.client = httpx.Client(headers={"apikey": key, "Authorization": f"Bearer {key}", "User-Agent": AGENT}, timeout=60)
@@ -172,9 +174,9 @@ class Api:
         while True:
             rows = self.call("GET", "suppliers", params={"select": "slug", "order": "slug"},
                              headers={"Range": f"{len(out)}-{len(out) + 999}"}).json()
-            out |= {r["slug"] for r in rows}
-            if len(rows) < 1000:
+            if not isinstance(rows, list) or not rows:
                 return out
+            out |= {r["slug"] for r in rows}
 
 
 # ---------------------------------------------------------------------------
@@ -229,9 +231,6 @@ def check_site(web: Web, d: Data) -> None:
         r = web.get(f"/api/v1/{route}")
         refused = r.status_code in (401, 403, 405) or (r.status_code in (302, 307) and "login" in r.headers.get("location", ""))
         line("site", f"/api/v1/{route}", "ok" if refused else "FAIL", f"{r.status_code} signed out")
-    # The export is called twice in a row, signed out, only to read the rate-limit headers: it never returns rows here.
-    codes = [web.get("/api/v1/discover/export").status_code for _ in range(2)]
-    line("site", "/api/v1/discover/export (rate limit)", "note", f"signed out answers {codes}; the limit itself is a signed-in check")
 
 
 # ---------------------------------------------------------------------------
@@ -276,7 +275,7 @@ def check_figures(web: Web, api: Api, d: Data) -> None:
     line("figures", "sources listed that hold nothing", "FAIL" if idle else "ok", f"{len(idle)} of {facts['sources_listed']}: {', '.join(idle)}")
     held = defaultdict(set)
     for sid, recs in d.records.items():
-        if d.suppliers[sid].get("is_published"):
+        if d.suppliers.get(sid, {}).get("is_published"):  # an entry pulled after its company was added has no row here
             for r in recs:
                 held[r["code"].split(" ")[0]].add(sid)
     for s in facts["sources"]:
@@ -300,16 +299,17 @@ def check_figures(web: Web, api: Api, d: Data) -> None:
 # ---------------------------------------------------------------------------
 
 def sample_companies(d: Data) -> dict[str, list[dict]]:
-    """Forty, picked the same way every run: ten rich, ten thin, ten with buildings, five merged, five with customs data."""
+    """Forty, picked the same way for a given pull: ten rich, ten thin, ten with buildings, the five
+    changed most recently (on 13 Oct 2026 those were the day's merges), five with customs data."""
     rows = sorted(d.published, key=lambda s: s["slug"])
     with_buildings = {b["facility_of"] for b in d.buildings}
     customs = {v["supplier_id"] for v in d.volza if v.get("match_class") == "exact"}
     rich = sorted(rows, key=lambda s: -len(d.codes(s["id"])))[:10]
     thin = [s for s in rows if len(d.records[s["id"]]) == 1][::400][:10]
-    merged = sorted((s for s in rows if (s.get("updated_at") or "") >= "2026-10-13" and len(d.codes(s["id"])) >= 3), key=lambda s: s["slug"])[:5]
+    changed = sorted((s for s in rows if len(d.codes(s["id"])) >= 3), key=lambda s: s.get("updated_at") or "", reverse=True)[:5]
     return {
         "rich": rich, "thin": thin, "buildings": [s for s in rows if s["id"] in with_buildings][::20][:10],
-        "merged": merged, "customs": [s for s in rows if s["id"] in customs and s not in rich][::40][:5],
+        "changed": changed, "customs": [s for s in rows if s["id"] in customs and s not in rich][::40][:5],
     }
 
 
@@ -469,8 +469,6 @@ def check_dbapi(api: Api, d: Data) -> None:
         query = {k: ("{}" if v == [] else json.dumps(v) if isinstance(v, (dict, bool)) else str(v)) for k, v in args.items() if v is not None}
         r = api.call("GET", f"rpc/{name}", params=query)
         how = "GET"
-        if r.status_code == 405:  # it may write: only as a no-op on a nil id
-            r, how = api.call("POST", f"rpc/{name}", json={k: v for k, v in args.items() if v is not None}), "POST nil"
         try:
             data = r.json()
         except ValueError:
@@ -478,7 +476,12 @@ def check_dbapi(api: Api, d: Data) -> None:
         refused = r.status_code >= 400
         message = (data or {}).get("message", "") if isinstance(data, dict) and refused else ""
         size = len(r.content)
-        if name in PUBLIC_BY_DESIGN:
+        if r.status_code == 405:
+            # The read-only call stopped it. Never retried with POST: that would let it write.
+            wrote = "read-only" in message
+            line("dbapi", f"fn {name}", "FAIL" if wrote else "skip",
+                 "a signed-out visitor reached a write; only the read-only call stopped it" if wrote else "not callable with GET; not called")
+        elif name in PUBLIC_BY_DESIGN:
             line("dbapi", f"fn {name}", "ok", f"{how} {r.status_code}; public by design; {size} bytes")
         elif refused:
             line("dbapi", f"fn {name}", "ok", f"{how} {r.status_code} refused: {message[:70]}")
@@ -528,18 +531,18 @@ def _links(d: Data, want: int) -> list[tuple[str, str, str, str, str]]:
 
 
 def check_receipts(d: Data, want: int) -> None:
-    client = httpx.Client(headers={"User-Agent": AGENT}, timeout=45, follow_redirects=True, verify=False)
+    client = httpx.Client(headers={"User-Agent": AGENT}, timeout=45, follow_redirects=True)
     tally: dict[str, Counter] = defaultdict(Counter)
     for code, slug, url, number, name in _links(d, want):
         time.sleep(1.5)
         try:
             r = client.get(url)
             status, body = r.status_code, r.text if "text" in r.headers.get("content-type", "") or "json" in r.headers.get("content-type", "") else ""
-        except Exception as exc:  # noqa: BLE001
-            status, body = type(exc).__name__, ""
+        except Exception as exc:  # noqa: BLE001  a bad certificate lands here too: a buyer's browser refuses it as well
+            status, body = ("bad certificate" if "CERTIFICATE" in str(exc).upper() else type(exc).__name__), ""
         text = page_text(body) if body else ""
         words = [w for w in re.findall(r"[A-Za-z]{4,}", name) if w.lower() not in ("limited", "private", "bangladesh", "company")][:2]
-        names_it = bool(text) and all(w.lower() in text.lower() for w in words)
+        names_it = bool(text) and bool(words) and all(w.lower() in text.lower() for w in words)
         numbers_it = bool(text) and bool(number) and number.strip() in text
         # Three answers. "unread" is not a pass: a script cannot tell, a person with a browser can.
         if status == 200 and names_it:
