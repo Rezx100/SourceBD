@@ -670,6 +670,15 @@ def main() -> int:
                             raise RuntimeError(
                                 f"loser {lid} still referenced: {', '.join(leftovers)} — refusing to delete"
                             )
+                        # A published loser's address keeps answering: 0149's
+                        # table redirects it to the winner's profile.
+                        cur.execute(
+                            """insert into public.supplier_slug_redirects (old_slug, supplier_id)
+                               select slug, %s::uuid from public.suppliers
+                                where id = %s::uuid and is_published
+                               on conflict (old_slug) do update set supplier_id = excluded.supplier_id""",
+                            (winner.id, lid),
+                        )
                         cur.execute("delete from public.suppliers where id = %s::uuid", (lid,))
                 merged += 1
 

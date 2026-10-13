@@ -173,7 +173,9 @@ Nothing in this list has been changed.
 ## 6. Found on the way, not fixed here
 
 - **61 old web addresses now answer 404.** A merged profile's address is gone, as with every earlier
-  merge. The pairs table has what a redirect would need.
+  merge. The pairs table has what a redirect would need. **Built 13 Oct 2026, not applied:** migration
+  `0149` sends each old address to the kept profile, and the merge now records the address itself.
+  Dry run and the founder's step: `ops/plans/0149-dry-run.md`.
 - **541 general manufacturers are typed "buying house"** (the loader's default for BGMEA). Twelve rows on
   the page are a factory beside a real buying house of the same name; the 541 are a separate fix.
 - **Nine BKMEA membership numbers sit on two profiles each** (section "One membership number on two

@@ -5,7 +5,11 @@
  * `facility_parent_slug` before `notFound()`. Shared decision logic lives here
  * so the public and app routes cannot drift.
  *
- * SQL SoT: `supabase/migrations/0096_facility_parent_slug.sql`
+ * The same lookup answers for the retired slug of a merged supplier (0149,
+ * `supplier_slug_redirects`), so an old address redirects to the kept profile.
+ *
+ * SQL SoT: `supabase/migrations/0149_supplier_slug_redirects.sql` (the
+ * function as it stands; 0096 first defined it)
  * Sitemap: unpublished facilities already drop out via `.eq("is_published", true)`.
  */
 
@@ -20,7 +24,7 @@ export type UnpublishedProfileOutcome =
 
 /** Paths pinned by containment tests — relative to repo root. */
 export const FACILITY_PARENT_SLUG_MIGRATION =
-  "supabase/migrations/0096_facility_parent_slug.sql";
+  "supabase/migrations/0149_supplier_slug_redirects.sql";
 
 export const SITEMAP_SOURCE = "app/sitemap.ts";
 

@@ -13,6 +13,8 @@
  *   - missing slug                  -> 404 (styled not-found body)
  *   - unpublished non-facility slug -> 404 (RPC miss, no facility mapping)
  *   - unpublished FACILITY slug     -> 308, Location: mother profile
+ *   - a MERGED supplier's old slug  -> 308, Location: the kept profile
+ *     (0149: the same lookup answers for a slug retired by a merge)
  *   - facility RPC unavailable      -> 404, not 500 (PGRST202: migration
  *     0096 not yet applied — production's state until it is)
  *   - profile RPC statement timeout -> 307 to /temporarily-slow with
@@ -69,6 +71,8 @@ const UNRESOLVED_BGMEA = "unresolved-bgmea-supplier";
 const HABITUS = "habitus-fashion";
 const FAKHRUDDIN = "fakhruddin-textile-mills";
 const FACILITY = "mother-company-ltd-extension";
+// A slug whose supplier row was merged into MOTHER and deleted (0149).
+const MERGED = "mother-company-ltds";
 const MISSING = "this-slug-cannot-possibly-exist-http-guard";
 const UNPUBLISHED = "unpublished-plain-supplier-ltd";
 const RPC_DOWN = "facility-rpc-unavailable";
@@ -601,7 +605,7 @@ function mockHandler(req, res) {
         // never a 308 to its own URL.
         return json(SELF);
       }
-      return json(slug === FACILITY ? MOTHER : null);
+      return json(slug === FACILITY || slug === MERGED ? MOTHER : null);
     }
     if (url.pathname === "/rest/v1/rpc/discover_suppliers") {
       let q = null;
@@ -1183,6 +1187,17 @@ const CASES = [
     },
   },
   {
+    name: "public: a merged supplier's old slug -> 308 to the kept profile",
+    path: `/suppliers/${MERGED}`,
+    expect: {
+      status: 308,
+      location: `/suppliers/${MOTHER}`,
+      locationMustBeAbsolute: true,
+      locationOrigin: SITE_ORIGIN,
+      replayMustNotRpc: MISS_RPCS,
+    },
+  },
+  {
     name: "site: an unknown product page -> 404",
     path: "/product/not-a-page",
     expect: { status: 404 },
@@ -1453,6 +1468,17 @@ const CASES = [
   {
     name: "app: facility slug -> 308 to mother (authenticated)",
     path: `/app/suppliers/${FACILITY}`,
+    auth: true,
+    expect: {
+      status: 308,
+      location: `/app/suppliers/${MOTHER}`,
+      locationMustBeAbsolute: true,
+      locationOrigin: SITE_ORIGIN,
+    },
+  },
+  {
+    name: "app: a merged supplier's old slug -> 308 to the kept profile (authenticated)",
+    path: `/app/suppliers/${MERGED}`,
     auth: true,
     expect: {
       status: 308,

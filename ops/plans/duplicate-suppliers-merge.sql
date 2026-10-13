@@ -12,7 +12,9 @@
 --      same document, a score), the losing copy is dropped.
 --   3. The kept row takes what it lacks from the losing row (arrays joined,
 --      blanks filled, the larger workforce), keeps its own name and address.
---   4. Nothing may still point at the losing row; then it is deleted.
+--   4. Nothing may still point at the losing row; then it is deleted. A published
+--      losing row's slug goes into public.supplier_slug_redirects (migration
+--      0149) first, so its public address redirects to the kept profile.
 -- Every moved row id and every dropped or deleted row is written to
 -- public._snapshot_dup_merge_20261013_rows, and both supplier rows as they were
 -- to public._snapshot_dup_merge_20261013_suppliers, so a merge can be undone.
@@ -23,7 +25,8 @@
 --
 -- AS WRITTEN THIS IS A REHEARSAL: the last statement raises, so nothing commits.
 -- To apply, delete the line marked REHEARSAL and put in its place a check that
--- the four counts equal the rehearsal's, as the apply of 13 Oct 2026 did:
+-- the counts equal the rehearsal's, as the apply of 13 Oct 2026 did (it ran
+-- before 0149, so it had no n_slugs; add that count to the check):
 --   if n_deleted <> 70 or n_moved <> 1813 or n_dropped <> 85 or n_buildings <> 6 then raise exception ...
 
 do $merge$
@@ -31,7 +34,7 @@ declare
   p record; r record; t record;
   w public.suppliers%rowtype; l public.suppliers%rowtype;
   n bigint; reg text; drop_id uuid; keep_id uuid;
-  n_moved bigint := 0; n_dropped bigint := 0; n_deleted int := 0; n_buildings bigint := 0;
+  n_moved bigint := 0; n_dropped bigint := 0; n_deleted int := 0; n_buildings bigint := 0; n_slugs int := 0;
   refs text[][];
 begin
   -- ---- guards ---------------------------------------------------------------
@@ -294,6 +297,13 @@ begin
     if n > 0 then
       raise exception 'pair % / %: % claims still cite the losing row', p.keep, p.lose, n;
     end if;
+    -- The losing row's public address keeps answering: it redirects to the kept
+    -- profile. Old addresses the losing row itself held moved to the kept row in 2b.
+    if l.is_published then
+      insert into public.supplier_slug_redirects (old_slug, supplier_id) values (l.slug, p.keep)
+        on conflict (old_slug) do update set supplier_id = excluded.supplier_id;
+      n_slugs := n_slugs + 1;
+    end if;
     delete from public.suppliers where id = p.lose;
     n_deleted := n_deleted + 1;
   end loop;
@@ -308,7 +318,7 @@ begin
     raise exception 'after: only % kept rows are still published', n;
   end if;
 
-  raise exception 'DRY RUN OK | pairs % | losing rows deleted % | rows moved % | duplicate copies dropped % | buildings re-linked % | kept rows published %',
-    (select count(*) from public._snapshot_dup_merge_20261013_pairs), n_deleted, n_moved, n_dropped, n_buildings, n;  -- REHEARSAL
+  raise exception 'DRY RUN OK | pairs % | losing rows deleted % | rows moved % | duplicate copies dropped % | buildings re-linked % | old addresses redirected % | kept rows published %',
+    (select count(*) from public._snapshot_dup_merge_20261013_pairs), n_deleted, n_moved, n_dropped, n_buildings, n_slugs, n;  -- REHEARSAL
 end
 $merge$;
