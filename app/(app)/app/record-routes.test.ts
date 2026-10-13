@@ -406,7 +406,8 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     // The capacity is one figure in pieces a month, with no note under it (founder, 13 Oct 2026).
     const overview = () => Page({ params: Promise.resolve({ slug: "hamza-clothing" }), searchParams: Promise.resolve({}) });
     const capacity = desk(html(await outcome(overview)));
-    assert.match(capacity, /Capacity 25,000,000 pcs\/month From BKMEA (?!·)/);
+    // No "From ..." line under a key fact either (founder, 13 Oct 2026).
+    assert.match(capacity, /Capacity 25,000,000 pcs\/month (?!From|·)/);
     // Who imported sits beside who disclosed, one tile each: the name people use, the customs record's own name small.
     assert.match(capacity, /Buyers \d+ .*Haddad Apparel Group Customs records as The Haddad Apparel Group Ltd .*TJX UK Customs records .*\d+ of \d+ shown\. Customs name the importer, often an agent rather than the brand\./);
     given({ profile: PROFILE, hscodes: HS });
@@ -1845,9 +1846,10 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
     given({ profile: { data: { ...ABONI.profile, supplier: { ...supplier, employees_female: null, employees_male: 380 }, rsc_remediation: null }, error: null }, hscodes: HS });
     assert.match(html(await fullPage("aboni-knitwear")), /620 women · 380 men \(women by subtraction\)/);
 
-    // The figure shown sums its buildings (production_workers_display_batch):
-    // the record's own halves do not split it. jk-fabrics, live 25 Sep: 44
-    // filed, all men, 1,604 shown — "1,560 women" was the building's headcount.
+    // The figure shown is the company's own (founder, 13 Oct 2026), never the family
+    // sum production_workers_display_batch returns, so the record's own halves split
+    // its own total and nothing else. jk-fabrics, live 25 Sep: 44 filed, all men,
+    // 1,604 across the family — "1,560 women" was the building's headcount.
     const family = (value: number) => ({ data: { [supplier.id]: { value, source: "registry", sites: 2 } }, error: null });
     given({
       profile: { data: { ...ABONI.profile, supplier: { ...supplier, employees_total: 44, employees_male: 44, employees_female: null }, rsc_remediation: null }, error: null },
@@ -1855,7 +1857,7 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
       workers: family(1604),
     });
     const jk = html(await fullPage("aboni-knitwear"));
-    assert.match(jk, /1,604/, "guard: the family figure is the one shown");
+    assert.doesNotMatch(jk, /1,604/, "the family sum shown as the company's workforce");
     assert.doesNotMatch(jk, /women ·/, "a building's workforce shown as one sex");
     // Both halves adding up to the record's own total, under a family figure
     // within 10% of it (epic-garments: 1,370 + 1,000 of 2,370, 2,626 shown).
@@ -1865,8 +1867,8 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
       workers: family(2626),
     });
     const epic = html(await fullPage("aboni-knitwear"));
-    assert.match(epic, /2,626/, "guard: the family figure is the one shown");
-    assert.doesNotMatch(epic, /women ·/, "the record's own split shown under its family's total");
+    assert.doesNotMatch(epic, /2,626/, "the family sum shown as the company's workforce");
+    assert.match(epic, /1,370 women · 1,000 men/, "the record's own halves split its own total");
     // …nor a SMALLER figure shown (ab-apparels: 2,850 filed, 577 shown), even
     // with halves that add up to it within 10%.
     given({
@@ -1875,7 +1877,7 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
       workers: family(577),
     });
     const small = html(await fullPage("aboni-knitwear"));
-    assert.match(small, /577/, "guard: the smaller figure is the one shown");
+    assert.doesNotMatch(small, /577/, "the family figure shown as the company's workforce");
     assert.doesNotMatch(small, /women ·/, "the record's own split shown against a smaller figure");
     // Both halves filed, against the record's own total, but 30% short of it.
     given({ profile: { data: { ...ABONI.profile, supplier: { ...supplier, employees_female: 400, employees_male: 300 }, rsc_remediation: null }, error: null }, hscodes: HS });

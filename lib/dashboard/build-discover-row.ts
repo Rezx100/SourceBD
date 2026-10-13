@@ -99,6 +99,11 @@ export function discoverWorkers(row: Pick<DiscoverV32Row, "employees_total" | "w
   if (basis === "own" && shown === own) {
     return { own, ownLabel: register(own), second: null, secondLabel: null };
   }
+  // A company with buildings shows its own figure alone, as its record does;
+  // the buildings' figures are on the record's Sites tab (founder, 13 Oct 2026).
+  if ((basis === "group" || basis === "excludes-record") && own != null) {
+    return { own, ownLabel: register(own), second: null, secondLabel: null };
+  }
   return {
     own,
     ownLabel: register(own),

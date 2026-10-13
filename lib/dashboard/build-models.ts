@@ -503,6 +503,19 @@ export function workersFact(input: RecordInput): WorkersFact {
   const sites = workerSites(input);
   const group = groupWorkers(sites);
   const batch = input.workers;
+  // A company with buildings shows its own figure, the one the search row and
+  // the Workers sort use; each building's figure is on the Sites tab (founder,
+  // 13 Oct 2026: once sheds and units were attached to their company, Anowara
+  // Fashions read "822 across 2 of the 3 sites, excluded: Anowara Fashions"
+  // beside a search row saying 280). A family this payload cannot enumerate,
+  // where the batch figure is not the site sum, is a company with buildings too.
+  if (sites.length > 1 || (batch != null && group.value !== batch.value)) {
+    const filed = input.profile.supplier.employees_total;
+    const own = filed ?? sites[0]?.rsc_workers_count ?? null;
+    if (own !== null) {
+      return { value: own, source: filed != null ? "registry" : "RSC", coverage: null, excluded: [], excludesRecord: false, groupUnknown: false };
+    }
+  }
   const value = batch?.value ?? group.value ?? input.profile.supplier.employees_total ?? null;
   if (value === null) return { value: null, source: null, coverage: null, excluded: [], excludesRecord: false, groupUnknown: false };
 

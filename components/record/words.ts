@@ -145,8 +145,8 @@ export function summaryCells(model: SupplierSheetModel, today: Date): SummaryCel
 
   const w = fact(model, "Workers");
   const workers: SummaryCell = w?.value
-    ? { key: "workers", label: "Workers", value: w.value, sub: w.note ?? (w.marks?.length ? `from ${w.marks.map((m) => m.label).join(", ")}` : null) }
-    : { key: "workers", label: "Workers", value: ABSENT.dash, valueWords: ABSENT.published, sub: `${ABSENT.published} · ask in your RFQ` };
+    ? { key: "workers", label: "Workforce", value: w.value, sub: w.note ?? (w.marks?.length ? `from ${w.marks.map((m) => m.label).join(", ")}` : null) }
+    : { key: "workers", label: "Workforce", value: ABSENT.dash, valueWords: ABSENT.published, sub: `${ABSENT.published} · ask in your RFQ` };
 
   const one = model.sources.length === 1 ? model.sources[0]! : null;
   const sources: SummaryCell = {
@@ -192,7 +192,8 @@ export function needsLook(rows: CertRowData[], today: Date): CertRowData[] {
 }
 
 /** The facts the Overview lists: the record's own, in its order, under the words Paper uses. */
-const LABEL: Record<string, string> = { Established: "Founded", Registers: "Memberships", "Capacity, as filed": "Capacity", "Factory address": "Address" };
+// "Workforce", not "Workers": the figure stands for the company (founder, 13 Oct 2026).
+const LABEL: Record<string, string> = { Workers: "Workforce", Established: "Founded", Registers: "Memberships", "Capacity, as filed": "Capacity", "Factory address": "Address" };
 
 /** One registration as its line draws it: the register's mark and short name, then its number. */
 export type Membership = { mark: string | null; name: string; qualifier: string | null; number: string | null };
@@ -231,9 +232,8 @@ export function keyFacts(model: SupplierSheetModel): KeyFact[] {
       !(SUBLINE_FACTS.has(f.label) && f.value),
   );
   const out: KeyFact[] = rows.map((f) => {
-    // A list of registrations names its register on every line, so "From EPB, BGMEA" under it would say it twice.
-    const from = f.items?.length ? null : f.marks?.length ? `From ${f.marks.map((m) => m.label).join(", ")}` : null;
-    const source = [from, f.note ?? null].filter(Boolean).join(" · ") || null;
+    // No "From BGMEA, BKMEA" under a key fact (founder, 13 Oct 2026): the Sources tab names who filed what.
+    const source = f.note ?? null;
     const values = f.items?.length
       ? f.items.map((i) => ({ text: [i.label, i.code].filter(Boolean).join(" reg. no. "), mono: Boolean(i.code), membership: membership(i) }))
       : f.value

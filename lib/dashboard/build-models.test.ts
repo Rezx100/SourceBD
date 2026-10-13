@@ -64,10 +64,10 @@ describe("buildCard — the 11-source record (Aboni)", () => {
     // review, 29 Sep 2026) and it joins the facts line, as on the record's head.
     assert.deepEqual(
       card.meta.map((f) => f.text),
-      ["Factory", "Dhaka", "Est. 1985", "3,166 workers across 2 sites", "BGMEA 3498"],
+      ["Factory", "Dhaka", "Est. 1985", "3,314 workers", "BGMEA 3498"],
     );
     assert.equal(card.meta[4]!.code, true);
-    assert.equal(card.meta[3]!.mark?.code, "RSC", "workers come from the RSC display batch");
+    assert.equal(card.meta[3]!.mark, null, "the company's own filed figure is not the RSC batch's");
     assert.equal(card.meta[1]!.mark, null, "city/district are derived fields — no register mark");
     assert.equal(card.meta[0]!.mark, null, "type is not attributed per field by the RPC — no best-guess mark");
     assert.equal(card.meta[2]!.mark, null);
@@ -164,32 +164,17 @@ describe("buildCard — the 11-source record (Aboni)", () => {
 // headcount: Aboni's 3,166 is 2,662 + 504 across two RSC sites, and S M
 // Knitwears' 907 belongs to the Extension building while the mother has no RSC
 // row at all.
-describe("workersFact — a group figure says how many sites it covers", () => {
-  it("Aboni: the mother and its shed, reconciled against the batch figure", () => {
-    assert.deepEqual(workersFact(aboniInput()), {
-      value: 3166,
-      source: "RSC",
-      coverage: "2 sites",
-      excluded: [],
-      excludesRecord: false,
-      groupUnknown: false,
-    });
+describe("workersFact — a company with buildings shows its own figure", () => {
+  const own = (value: number, source: "RSC" | "registry") => ({ value, source, coverage: null, excluded: [], excludesRecord: false, groupUnknown: false });
+
+  it("Aboni: its own 3,314, not 2,662 + 504 across its two RSC sites", () => {
+    assert.deepEqual(workersFact(aboniInput()), own(3314, "registry"));
   });
 
-  it("S M Knitwears: the figure is the Extension's, and the mother is named as excluded", () => {
-    assert.deepEqual(workersFact(smKnitwearInput()), {
-      value: 907,
-      source: "RSC",
-      coverage: "1 of the 2 sites on file",
-      excluded: ["S M Knitwears Limited"],
-      // The one site the figure leaves out is the record the buyer is reading.
-      excludesRecord: true,
-      groupUnknown: false,
-    });
-    assert.equal(buildTableRow(smKnitwearInput()).workersCoverage, "1 of the 2 sites on file, none of them this record");
-    const sheet = buildSheet(smKnitwearInput());
-    // One short line in the Key facts cell: the sites are named on the Sites tab.
-    assert.equal(sheet.facts.find((f) => f.label === "Workers")!.note, "1 of 2 sites, main site not counted");
+  it("S M Knitwears: its own 300, not the Extension building's 907", () => {
+    assert.deepEqual(workersFact(smKnitwearInput()), own(300, "registry"));
+    assert.equal(buildTableRow(smKnitwearInput()).workersCoverage, null);
+    assert.equal(buildSheet(smKnitwearInput()).facts.find((f) => f.label === "Workers")!.note, null);
   });
 
   it("a single-site record claims no coverage, and a record with no figure claims nothing", () => {
@@ -205,24 +190,26 @@ describe("workersFact — a group figure says how many sites it covers", () => {
     });
   });
 
-  it("a batch figure the RSC rows do not reconcile with is shown without a coverage claim", () => {
+  it("a family figure the payload cannot break down never replaces the company's own", () => {
     const input = aboniInput();
     input.workers = { value: 4000, source: "RSC", fetched_at: null };
-    // Cycle 6: it was shown bare under an RSC mark, which reads as "RSC says
-    // 4,000 for this site". The rows say 3,166 across two sites; what the
-    // figure covers is unknown, so the mark comes off and the words say so.
+    assert.deepEqual(workersFact(input), own(3314, "registry"));
+    assert.equal(buildCard(input).meta.find((f) => /workers/.test(f.text))?.text, "3,314 workers");
+  });
+
+  it("a company that filed nothing of its own still shows its buildings' figure, and says so", () => {
+    const input = smKnitwearInput();
+    input.profile.supplier.employees_total = null;
     assert.deepEqual(workersFact(input), {
-      value: 4000,
-      source: null,
-      coverage: null,
-      excluded: [],
-      excludesRecord: false,
-      groupUnknown: true,
+      value: 907,
+      source: "RSC",
+      coverage: "1 of the 2 sites on file",
+      excluded: ["S M Knitwears Limited"],
+      excludesRecord: true,
+      groupUnknown: false,
     });
-    assert.equal(workersCoverageWords(workersFact(input)), "across this record and its buildings");
-    const card = buildCard(input);
-    assert.equal(card.meta.find((f) => /workers/.test(f.text))?.text, "4,000 workers across this record and its buildings");
-    assert.equal(card.meta.find((f) => /workers/.test(f.text))?.mark, null);
+    assert.equal(buildTableRow(input).workersCoverage, "1 of the 2 sites on file, none of them this record");
+    assert.equal(buildSheet(input).facts.find((f) => f.label === "Workers")!.note, "1 of 2 sites, main site not counted");
   });
 });
 
@@ -480,8 +467,8 @@ describe("buildSheet — facts panel and contact card", () => {
 
   it("every fact row has a value or 'Not on file' with what was checked; a mark only where attributed, else 'source pending'", () => {
     const byLabel = Object.fromEntries(sheet.facts.map((f) => [f.label, f]));
-    assert.equal(byLabel["Workers"]!.value, "3,166");
-    assert.equal(byLabel["Workers"]!.marks?.[0]?.code, "RSC");
+    assert.equal(byLabel["Workers"]!.value, "3,314");
+    assert.deepEqual(byLabel["Workers"]!.marks ?? [], []);
     // The two `factory` rows whose text equals the address shown are BKMEA's;
     // the BGMEA row carries a different address. The builder names the row that
     // matches, not the first one.
@@ -1048,18 +1035,17 @@ describe("a mark is only drawn for a source the record itself holds", () => {
     assert.equal(sheet.sourceCount, 6);
     assert.equal(sheet.marks.length, 6);
     const workers = sheet.facts.find((f) => f.label === "Workers")!;
-    assert.equal(workers.value, "6,703");
+    assert.equal(workers.value, "924");
     assert.deepEqual(workers.marks ?? [], [], "an RSC square here is a seventh source the bar does not count");
     // The words are what attribute it, and they name whose figure it is.
-    assert.match(workers.note ?? "", /^2 of 3 sites/);
-    assert.match(workers.note ?? "", /main site not counted/);
+    assert.equal(workers.note, null, "the company's own figure needs no sentence");
     // The card agrees with the sheet.
     assert.equal(buildCard(input).meta.find((f) => /workers/.test(f.text))?.mark, null);
   });
 
-  it("Aboni does hold RSC, so its workers figure keeps the square", () => {
+  it("Aboni holds RSC, but the figure shown is the one it filed, so it carries no RSC square", () => {
     assert.ok(allSourceCodes(aboniInput().profile).includes("RSC"));
-    assert.equal(buildSheet(aboniInput()).facts.find((f) => f.label === "Workers")?.marks?.[0]?.code, "RSC");
+    assert.deepEqual(buildSheet(aboniInput()).facts.find((f) => f.label === "Workers")?.marks ?? [], []);
   });
 });
 
