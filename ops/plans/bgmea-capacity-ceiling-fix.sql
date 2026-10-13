@@ -16,9 +16,28 @@
 -- figure, which is what the backfill does. 290 of the 330 now show no
 -- capacity at all; 40 still show BKMEA's.
 --
--- Seen and left alone: 10 profiles whose shown figure is not the one on their
--- BGMEA page (the backfill has not run since their entries changed), and 1
--- with a figure that no active BGMEA page carries or that is locked.
+-- The 10 profiles whose shown figure was not the one on their BGMEA page were
+-- put right the same day on the founder's word ("fix the 10 profiles with the
+-- wrong BGMEA figure"). BGMEA was re-read in full on 10 and 11 Oct 2026 and
+-- the profile figures were never copied over again, so on these the workers
+-- and sewing machines were old as well. Nine profiles now carry what their
+-- BGMEA page says (39 values: capacity on 9, machines on 9, workers on 7;
+-- three live pages read to confirm): 4a-yarn-dyeing, bangladesh-dresses,
+-- cut-n-sew, incredible-fashions, section-seven-apparels, standard-stitches,
+-- univogue-garments, vintage-denim-apparels, ytex-garments. Old and new
+-- values are in _snapshot_bgmea_refresh_20261013; their nine scores were
+-- rewritten (three up a point, three down a point). The tenth,
+-- qsl-s-garment, was not wrong: it holds two BGMEA memberships and shows the
+-- figures of one of them.
+--
+-- Still open, measured with this file's sibling ops/backfill_profile_columns.py
+-- in its dry-run mode: 461 more profiles carry workers or machines older than
+-- their register page (machines 367, workers 233, men 239, women 234, plus
+-- 12 BGMEA and 2 BKMEA capacities that are blank and would be filled, and
+-- qsl-s-garment's switch to its other membership). Nothing done about those.
+--
+-- Also left alone: 1 profile with a BGMEA figure that no active page carries
+-- or that is locked.
 --
 -- Scores were recomputed afterwards for every supplier (see the end).
 --
