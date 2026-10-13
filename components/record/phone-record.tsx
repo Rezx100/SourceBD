@@ -30,8 +30,12 @@ import { staleWords, type TabId } from "./words";
 const NUM = "[font-variant-numeric:tabular-nums]";
 const TITLE = "text-lg font-medium tracking-tight text-ink";
 const CARD = "flex flex-col overflow-clip rounded-[10px] border border-line";
-/** A round 36 button with a 44 target (Share's own shape). */
-const ROUND = cn("relative flex size-9 shrink-0 items-center justify-center rounded-full bg-sunken text-ink-2 outline-none before:absolute before:-inset-1 active:bg-line", ring);
+/**
+ * A round 36 button in a 44 box. The box is the button and the circle is drawn inside it: with the
+ * target hung outside a 36 button, a thumb's touch on the edge did not always land (founder, 13 Oct 2026).
+ */
+const ROUND_44 = "size-11 bg-transparent active:bg-transparent before:absolute before:inset-1 before:rounded-full before:bg-sunken active:before:bg-line [&>svg]:relative";
+const ROUND = cn("relative flex shrink-0 items-center justify-center rounded-full text-ink-2 outline-none", ROUND_44, ring);
 /** A document that opens: underlined words, on one line, with a 44 target (Paper page 35, 13 Oct 2026: links, not grey pills). */
 const DOC = cn("relative flex shrink-0 items-center gap-1.5 rounded-sm font-medium text-ink before:absolute before:-inset-x-1.5 active:bg-sunken [&>span]:underline [&>span]:decoration-line-strong [&>span]:decoration-1 [&>span]:underline-offset-[3px]", ring);
 
@@ -182,7 +186,8 @@ function Overview({ model, today, sectionHref, level }: PanelProps) {
                 // The hairline between two rows runs the section's width: each cell reaches half across the 16px gap.
                 <div key={f.label} className={cn("flex min-w-0 flex-col gap-0.5 py-2", i > 1 && "border-t border-line", i > 1 && (i % 2 === 1 ? "-ml-2 pl-2" : i === cells.length - 1 ? "col-span-2" : "-mr-2 pr-2"))}>
                   <dt className="flex items-center gap-1.5 text-sm text-ink-3">
-                    <G size={18} weight="thin" className="shrink-0" aria-hidden />
+                    {/* Regular weight and the label's own size: a hairline glyph faded out over a 17px figure (founder, 13 Oct 2026). */}
+                    <G size={16} className="shrink-0 text-ink-2" aria-hidden />
                     {f.label}
                   </dt>
                   <dd className={cn("text-md", f.empty ? "text-ink-2" : "text-ink")}>{f.value}</dd>
@@ -979,12 +984,12 @@ export function PhoneRecord({
         // Its own layer, so the phone moves it with the page instead of repainting it a beat late. It has
         // no ground until the name has left its row: the name's first line is read through it, beside
         // the two buttons, so the record starts at the name and not at an empty bar (founder, 12 Oct 2026).
-        <PhoneBar className="sticky top-0 z-raised flex h-14 shrink-0 items-center gap-2 pl-5 pr-4 [transform:translateZ(0)] data-[stuck]:bg-surface">
+        <PhoneBar className="sticky top-0 z-raised flex h-14 shrink-0 items-center pl-5 pr-3 [transform:translateZ(0)] data-[stuck]:bg-surface">
           {/* The one cut line on the record: the name again, for the eye only. The whole name is the h1 under the bar. */}
-          <p aria-hidden className="min-w-0 flex-1 truncate pr-1 text-xl/[30px] font-semibold tracking-[-0.025em] text-ink opacity-0 group-data-[stuck]/bar:opacity-100">
+          <p aria-hidden className="min-w-0 flex-1 truncate pr-2 text-xl/[30px] font-semibold tracking-[-0.025em] text-ink opacity-0 group-data-[stuck]/bar:opacity-100">
             {model.name}
           </p>
-          <ShareButton href={model.fullHref} />
+          <ShareButton href={model.fullHref} className={ROUND_44} />
           <Link href={backHref ?? "/app"} aria-label="Back to search" className={ROUND}>
             <X size={17} weight="thin" aria-hidden />
           </Link>

@@ -61,7 +61,6 @@ export function FilterPane({
       state={state}
       count={count}
       chips={appliedChips(state).map((c) => ({ key: c.key, label: c.label, href: withPane(c.without) }))}
-      showThemHref={state.sanctioned ? null : withPane({ ...state, sanctioned: true, page: 1 })}
       hsOptions={HS_OPTIONS}
       closeHref={closeHref}
     />

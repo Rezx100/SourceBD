@@ -4,7 +4,6 @@ import { describe, it } from "node:test";
 import {
   brandsInCustoms,
   buyersOf,
-  capacityNote,
   customsBuyers,
   revealRows,
   knownBuyer,
@@ -37,6 +36,7 @@ import {
   rscStatusWords,
   rscTrainingWords,
   sortCerts,
+  splitPremises,
   splitQualifier,
 } from "./facts";
 
@@ -137,25 +137,31 @@ describe("plain formatting", () => {
     assert.equal(displayName("D.H. EURO HI-TECH CO. (BD) LTD."), "D.H. Euro Hi-Tech Co. (BD) Ltd");
     assert.equal(displayName("UNITED KNITWEAR (PVT)LTD."), "United Knitwear (Pvt)Ltd");
     const zaheen = "Zaheen Knitwears Limited (Shed - 3, 4, 5, 10, 11, 12, 13) & (Building - Security, ETP and Fire Pump)";
-    assert.equal(displayName(zaheen), zaheen);
+    // The buildings a name ends with are the Sites tab's (founder, 13 Oct 2026): a title ran to five lines on a phone.
+    assert.equal(displayName(zaheen), "Zaheen Knitwears Limited");
+    assert.deepEqual(splitPremises(zaheen), { name: "Zaheen Knitwears Limited", buildings: ["Shed - 3, 4, 5, 10, 11, 12, 13", "Building - Security, ETP and Fire Pump"] });
+    assert.equal(displayName("KENPARK BANGLADESH APPAREL (PVT.) LTD.(K-5) (EXTENSION)"), "Kenpark Bangladesh Apparel (Pvt.) Ltd.(K-5)");
+    assert.equal(displayName("CHORKA TEXTILE LTD. (NEW BUILDING)"), "Chorka Textile Ltd");
+    // A unit or a division is a sister company's mark, and a building word inside the name is the name.
+    for (const kept of ["Standard Stitches Ltd. (G-Unit)", "Islam Garments Ltd. (Weaving Unit)", "Indochine Apparel (Bangladesh) Limited, Unit 2 Building", "(Shed)"]) assert.equal(splitPremises(kept).name, kept);
   });
 
   it("the qualifier after a name moves to the second line; nothing that is part of the name moves", () => {
     // Real published names (production, 29 Sep 2026; the hand-off's list).
     const cases: [string, string, string | null][] = [
-      ["Zaheen Knitwears Limited (Shed - 3, 4, 5, 10, 11, 12, 13) & (Building - Security, ETP and Fire Pump)", "Zaheen Knitwears Limited", "Shed - 3, 4, 5, 10, 11, 12, 13 · Building - Security, ETP and Fire Pump"],
+      ["Zaheen Knitwears Limited (Unit - 3, 4, 5, 10, 11, 12, 13) & (Division - Security, ETP and Fire Pump)", "Zaheen Knitwears Limited", "Unit - 3, 4, 5, 10, 11, 12, 13 · Division - Security, ETP and Fire Pump"],
       ["Knit Softwear Ltd. (Unit-2)", "Knit Softwear Ltd.", "Unit-2"],
       ["Intramex Knit Wear Ltd. (Unit-2)", "Intramex Knit Wear Ltd.", "Unit-2"],
       ["Maitri Knitting Unit-2", "Maitri Knitting", "Unit-2"],
       ["MG Niche Flair Limited Unit-2", "MG Niche Flair Limited", "Unit-2"],
-      ["Aswad Composite Mills Ltd. ( U-2) (Extension)", "Aswad Composite Mills Ltd.", "U-2 · Extension"],
+      ["Aswad Composite Mills Ltd. ( U-2) (Knitting)", "Aswad Composite Mills Ltd.", "U-2 · Knitting"],
       ["Aswad Composite Mills Ltd.(unit-1)", "Aswad Composite Mills Ltd.", "unit-1"],
       ["Spectra Sweaters Ltd. (Previously Panache Knitted Creations Ltd.)", "Spectra Sweaters Ltd.", "Previously Panache Knitted Creations Ltd."],
       ["MG Shirtex Ltd (Dhakkhin Khan) (Previously THE ROSE GARMENTS DESIGNERS LTD)", "MG Shirtex Ltd", "Dhakkhin Khan · Previously THE ROSE GARMENTS DESIGNERS LTD"],
       ["Rehash Accessories & Sourcing Ltd. (A Sister Concern of Sharif Enterprise)", "Rehash Accessories & Sourcing Ltd.", "A Sister Concern of Sharif Enterprise"],
       ["M/S. Orba Traders (Concern of Orba Bangladesh)", "M/S. Orba Traders", "Concern of Orba Bangladesh"],
       ["Silver Composite Textile Mills Ltd. (Unit-3, Textile)", "Silver Composite Textile Mills Ltd.", "Unit-3, Textile"],
-      ["Aboni Knitwear (New Shed)", "Aboni Knitwear", "New Shed"],
+      ["Aboni Knitwear (New Section)", "Aboni Knitwear", "New Section"],
       // Part of the name, in the middle, or not balanced: left whole.
       ["Robintex (Bangladesh) Ltd.", "Robintex (Bangladesh) Ltd.", null],
       ["Indochine Apparel (Bangladesh) Limited, Unit 2 Building", "Indochine Apparel (Bangladesh) Limited, Unit 2 Building", null],
@@ -176,6 +182,9 @@ describe("plain formatting", () => {
       const words = (s: string) => s.replace(/[()&,·]/g, " ").split(/\s+/).filter(Boolean);
       assert.deepEqual(words(`${base} ${qualifier ?? ""}`), words(name), `${name} lost a word`);
     }
+    // The one thing dropped: buildings on the supplier's own site, which are no sister company's mark.
+    assert.deepEqual(splitQualifier("Zaheen Knitwears Limited (Shed - 3, 4) & (Building - ETP)"), { base: "Zaheen Knitwears Limited", qualifier: null });
+    assert.deepEqual(splitQualifier("Kenpark Apparel Ltd. (K-5) (Extension)"), { base: "Kenpark Apparel Ltd.", qualifier: "K-5" });
   });
 
   it("initials, place, type", () => {
@@ -422,42 +431,6 @@ describe("customs exports (critique of 11 Oct 2026)", () => {
   it("a product filed mostly in capitals reads in sentence case", () => {
     const v = { ...base, top_record: { ...top, product_description: "MEN'S BASIC T SHIRT (Men's T-Shirt)" } };
     assert.match(customsRows(v).find((r) => r.label === "Biggest shipment")!.note!, /^Men's basic t shirt \(men's t-shirt\) \(HS 6203\.42\) to Cheek S A, Argentina$/);
-  });
-});
-
-describe("capacityNote: a filed capacity that looks wrong gets one of two plain notes, never a rewrite (11 Oct 2026)", () => {
-  // Real figures from the first 73: each register's number and the supplier's own exports.
-  const top = { shipment_date: null, hsn_code: null, product_description: null, buyer_name: null, destination_country: null, trade_value_usd: null, unit: "PCS" };
-  const exports = (fob: number, rate: number, shipments = 500): VolzaExports => ({
-    shipments, fob_usd: fob, buyers: 10, window_start: "2024-09-01", window_end: "2026-08-31", volza_name: null,
-    top_shipments: [], top_record: { ...top, unit_rate_usd: rate }, fetched_at: "2026-10-10T20:36:01Z",
-  });
-  const cap = (day: number | null, dozen: number | null) => ({ production_capacity_pcs_day: day, production_capacity_dozen_yearly: dozen });
-  const ASK = "Filed figures look inconsistent; confirm with the supplier";
-
-  it("exports well over the filed figure: RAM Apparel ships about 14 times its 25,000 dozen", () => {
-    assert.equal(capacityNote(cap(null, 25000), exports(64369118, 7.77)), "Exports suggest more than this");
-  });
-  it("a filed figure far above exports: Hamza Clothing's 20,000,000 dozen a year", () => {
-    assert.equal(capacityNote(cap(null, 20000000), exports(21698440, 1.72)), ASK);
-    // A handful of shipments says too little; the size check alone still catches this one.
-    assert.equal(capacityNote(cap(null, 2000000), exports(21698440, 1.72, 12)), null);
-  });
-  it("exports that fit the larger figure: no note (Moon Readywears' daily figure fits)", () => {
-    assert.equal(capacityNote(cap(15000, null), exports(41243211, 4.02)), null);
-  });
-  it("the registers' own figures checked against each other, with or without exports", () => {
-    assert.equal(capacityNote(cap(15000, 90000), null), ASK, "Moon Readywears: 4.5m pieces a day's worth against 1.1m");
-    assert.equal(capacityNote(cap(8000, 8000), null), ASK, "the same number per day and per year");
-    assert.equal(capacityNote(cap(7000, 2120000), null), ASK, "a year of pieces filed as dozens");
-    assert.equal(capacityNote(cap(10000, 250000), null), null, "10,000 a day and 250,000 dozen a year are the same 3 million pieces");
-  });
-  it("more than one factory makes; nothing filed, nothing said; only pieces compared", () => {
-    assert.equal(capacityNote(cap(null, 15000000), null), ASK);
-    assert.equal(capacityNote(cap(1000000, null), null), null, "Aboni's 1,000,000 a day is at the line, not over it");
-    assert.equal(capacityNote(cap(null, null), exports(64369118, 7.77)), null);
-    const kilos = { ...exports(64369118, 7.77), top_record: { ...top, unit: "KGS", unit_rate_usd: 7.77 } };
-    assert.equal(capacityNote(cap(null, 25000), kilos), null);
   });
 });
 

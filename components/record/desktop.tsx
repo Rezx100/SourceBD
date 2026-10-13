@@ -244,7 +244,7 @@ function CustomsFoot({ model, today }: { model: SupplierSheetModel; today: Date 
   );
 }
 
-export const FACT_ICON: Record<string, Icon> = { "Factory types": Factory, Type: Factory, Workers: UsersThree, "Women · men": UsersThree, "Sewing machines": Needle, "Capacity, as filed": Gauge, Founded: Buildings, Address: MapPin, Products: Tag, Exports: Package };
+export const FACT_ICON: Record<string, Icon> = { "Factory types": Factory, Type: Factory, Workers: UsersThree, "Women · men": UsersThree, "Sewing machines": Needle, Capacity: Gauge, Founded: Buildings, Address: MapPin, Products: Tag, Exports: Package };
 
 /** Words that break between their " · " parts first: a part moves to the next line whole before it is split. */
 function Parts({ children }: { children: string }) {
@@ -272,7 +272,8 @@ function KeyFacts({ model, level }: Omit<SectionProps, "today">) {
           return (
             <div key={f.label} className="flex items-start gap-3">
               <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-subtle">
-                <G size={20} weight="thin" className="text-ink-2" aria-hidden />
+                {/* Not the hairline weight the rest of the record uses: beside a 15px medium figure it faded out (founder, 13 Oct 2026). */}
+                <G size={18} className="text-ink" aria-hidden />
               </span>
               <div className="flex min-w-0 flex-col gap-px">
                 <dt className="text-xs text-ink-3">{f.label}</dt>
@@ -872,6 +873,7 @@ export function SitesSection({ model, level, tabHref, site }: Omit<SectionProps,
     <Section id="sites" title="Sites" count={lines.length} level={level}>
       <div className="flex flex-col gap-6">
         <div id="locations">
+          {model.buildings.length > 0 ? <p className="px-3 pb-3 text-sm text-ink-2 [overflow-wrap:anywhere]">Buildings in the registered name: {model.buildings.join(" · ")}</p> : null}
           {lines.length === 0 ? <Absent title="No address on file" body={model.locationsEmpty} /> : <DesktopSites lines={lines} slug={model.slug} baseHref={tabHref("sites")} initial={site} mapKey={Boolean(process.env.NEXT_PUBLIC_BARIKOI_API_KEY)} />}
         </div>
         {/* The extension buildings: an unread list says so, and never says there are none. */}

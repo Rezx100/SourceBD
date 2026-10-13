@@ -255,7 +255,7 @@ describe("the table", () => {
 
   // Critique of 8 Oct 2026, item 4: the One-Line Name Rule in Saved too, and the table full-bleed like the results.
   it("a long name is the base on one line with the whole name in title and the qualifier under; the table has no frame", () => {
-    const ZAHEEN = "Zaheen Knitwears Limited (Shed - 3, 4, 5, 10, 11, 12, 13) & (Building - Security, ETP and Fire Pump)";
+    const ZAHEEN = "Zaheen Knitwears Limited (Unit - 3, 4, 5, 10, 11, 12, 13) & (Division - Security, ETP and Fire Pump)";
     const rows = [row(S1, { company_name: ZAHEEN, slug: "zaheen" })];
     const out = html(createElement(SavedTable, { items: buildSavedItems(rows, CERTS, NOW, { sort: "recent", page: 1 }) }));
     const esc = ZAHEEN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -263,12 +263,12 @@ describe("the table", () => {
     // Round 3, item 6: no aria-label on the row; the name link says the whole name.
     assert.doesNotMatch(out, /<tr [^>]*aria-label=/, "an aria-label on a row replaces its cells for a screen reader");
     assert.match(out, new RegExp(`<span aria-hidden="true">Zaheen Knitwears Limited</span><span class="sr-only">${esc}</span></a>`), "the link's visible words are the base name, its spoken words the whole name");
-    assert.match(out, /<span data-name="" title="Shed - 3, 4, 5, 10, 11, 12, 13 · Building - Security, ETP and Fire Pump"/, "the qualifier leads the second line");
+    assert.match(out, /<span data-name="" title="Unit - 3, 4, 5, 10, 11, 12, 13 · Division - Security, ETP and Fire Pump"/, "the qualifier leads the second line");
     assert.equal(out.match(/data-name=""/g)?.length, 2, "two lines, never a third");
     assert.ok(!/\btruncate\b|text-ellipsis|line-clamp/.test(out), "the cut is the deliberate CSS one");
     assert.doesNotMatch(/<div role="region"[^>]*>/.exec(out)?.[0] ?? "", /rounded-md|border border-line/, "Saved is framed where the results are full-bleed");
     // The phone row's line leads with the qualifier too.
-    assert.match(phoneLine(buildSavedItems(rows, CERTS, NOW, { sort: "recent", page: 1 })[0]!), /^Shed - 3, 4, 5, 10, 11, 12, 13 · Building - Security, ETP and Fire Pump · Factory · Dhaka · /);
+    assert.match(phoneLine(buildSavedItems(rows, CERTS, NOW, { sort: "recent", page: 1 })[0]!), /^Unit - 3, 4, 5, 10, 11, 12, 13 · Division - Security, ETP and Fire Pump · Factory · Dhaka · /);
   });
 
   it("a certificate that was not read says so, and never 'Nothing to check'", () => {

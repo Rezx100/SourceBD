@@ -45,7 +45,6 @@ import {
   sanctionedInput,
   smKnitwearInput,
   TODAY,
-  ZAHEEN_NAME,
   zaheenSampleInput,
 } from "./fixtures";
 
@@ -405,15 +404,17 @@ describe("a building's registrations are named, never counted and never denied",
   });
 });
 
-describe("buildCard / buildTableRow — the sanctioned sample keeps the full 100-character name", () => {
-  it("is marked sanctioned as a sample, and the name is never shortened", () => {
+describe("buildCard / buildTableRow — the sanctioned sample keeps its company name", () => {
+  it("is marked sanctioned as a sample, and the name loses only its buildings", () => {
     const input = zaheenSampleInput();
     const card = buildCard(input);
     const row = buildTableRow(input);
     assert.equal(card.sanctioned, true);
     assert.equal(card.sanctionSample, true);
-    assert.equal(card.name.length, ZAHEEN_NAME.length);
-    assert.equal(row.name.length, ZAHEEN_NAME.length);
+    // The sheds and buildings the name ends with are the Sites tab's; the company's own name is never shortened.
+    assert.equal(card.name, "Zaheen Knitwears Limited");
+    assert.equal(row.name, "Zaheen Knitwears Limited");
+    assert.deepEqual(buildSheet(input).buildings, ["Shed - 3, 4, 5, 10, 11, 12, 13", "Building - Security, ETP and Fire Pump"]);
     assert.equal(row.sanctioned, true);
     assert.equal(row.workers, 1634);
     assert.ok(card.chips.some((c) => c.tone === "caution" && /RSC active · 75 % · behind schedule/.test(c.label)));
@@ -485,7 +486,9 @@ describe("buildSheet — facts panel and contact card", () => {
     // the BGMEA row carries a different address. The builder names the row that
     // matches, not the first one.
     assert.equal(byLabel["Factory address"]!.marks?.[0]?.code, "BKMEA", "the factory row whose text is the address shown names its register");
-    assert.equal(byLabel["Capacity, as filed"]!.value, "1,000,000 pcs/day");
+    // One figure, in pieces a month: BKMEA's pieces a day over 25 working days.
+    assert.equal(byLabel["Capacity, as filed"]!.value, "25,000,000 pcs/month");
+    assert.equal(byLabel["Capacity, as filed"]!.note, undefined);
     // The ETL's projection map says who files what: founding year is BGMEA's, machines BGMEA's and
     // BKMEA's, pcs/day BKMEA's. Only a register the record holds is named; the name stays pending.
     assert.equal(byLabel["Established"]!.pendingSource, undefined);
@@ -541,7 +544,13 @@ describe("buildSheet — facts panel and contact card", () => {
     input.profile.supplier.supplier_moq = 500;
     input.profile.supplier.supplier_lead_time_days = 45;
     const s2 = buildSheet(input);
-    assert.equal(s2.facts.find((f) => f.label === "Capacity, as filed")?.value, "4,000,000 dozen/year");
+    // BGMEA's dozens a year are the same number of pieces a month, and BGMEA is the one named.
+    assert.equal(s2.facts.find((f) => f.label === "Capacity, as filed")?.value, "4,000,000 pcs/month");
+    assert.deepEqual(s2.facts.find((f) => f.label === "Capacity, as filed")?.marks?.map((m) => m.code), ["BGMEA"]);
+    // Both filed and no customs row: the daily figure is the one shown, never the two side by side.
+    input.profile.supplier.production_capacity_pcs_day = 13500;
+    input.profile.supplier.production_capacity_dozen_yearly = 159996;
+    assert.equal(buildSheet(input).facts.find((f) => f.label === "Capacity, as filed")?.value, "337,500 pcs/month");
     const ps = buildProductSheet(input, "6105");
     assert.equal(ps.facts.find((f) => f.label === "Price · MOQ · lead time")?.value, "MOQ 500 · lead time 45 days");
   });

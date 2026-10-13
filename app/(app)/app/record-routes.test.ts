@@ -403,11 +403,10 @@ describe("/app/suppliers/[slug] — the full record page", () => {
     assert.match(latest, /Customs records, Sep 2024 – Aug 2026 · latest on record 29 Aug(?: 2026)? · read 10 Oct(?: 2026)?(?! ·)/);
     assert.doesNotMatch(latest, /last shipped/i);
 
-    // The capacity is the register's, never rewritten; against these exports (about 6.3m pieces a year) the
-    // fixture's 1,000,000 a day is noted. A reader the customs read refused sees no such note.
+    // The capacity is one figure in pieces a month, with no note under it (founder, 13 Oct 2026).
     const overview = () => Page({ params: Promise.resolve({ slug: "hamza-clothing" }), searchParams: Promise.resolve({}) });
     const capacity = desk(html(await outcome(overview)));
-    assert.match(capacity, /Capacity, as filed 1,000,000 pcs\/day From BKMEA · Filed figures look inconsistent; confirm with the supplier/);
+    assert.match(capacity, /Capacity 25,000,000 pcs\/month From BKMEA (?!·)/);
     // Who imported sits beside who disclosed, one tile each: the name people use, the customs record's own name small.
     assert.match(capacity, /Buyers \d+ .*Haddad Apparel Group Customs records as The Haddad Apparel Group Ltd .*TJX UK Customs records .*\d+ of \d+ shown\. Customs name the importer, often an agent rather than the brand\./);
     given({ profile: PROFILE, hscodes: HS });
@@ -1013,10 +1012,8 @@ describe("/app/discover — the panes beside the results", () => {
     assert.match(remove, /filters=1/);
     assert.doesNotMatch(remove, /cert=/);
     assert.doesNotMatch(hrefOf(pane, /Close/), /filters=/);
-    // Sanctioned suppliers are held back by default, in words, with the way to lift it.
-    assert.match(pane, /Hiding sanctioned suppliers/);
-    const show = [...pane.matchAll(/<a\b([^>]*)>Show them<\/a>/g)].map((m) => /href="([^"]*)"/.exec(m[1]!)?.[1]?.replace(/&amp;/g, "&") ?? "");
-    assert.ok(show.some((h) => /sanctioned=1/.test(h) && /filters=1/.test(h)), `no Show them link keeps the pane: ${show.join(" ")}`);
+    // Nothing is said about sanctioned suppliers: they are held back (founder, 13 Oct 2026).
+    assert.ok(!pane.includes("Hiding sanctioned"));
   });
 
   it("the pane's count is read for a signed-in buyer only, and not for an address that is not a search's", async () => {
@@ -1815,7 +1812,7 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
     assert.match(html(await fullPage("aboni-knitwear", { tab: "sites" })), /The buildings could not be read\./);
   });
 
-  it("the Overview shows every capacity figure a register filed, the EPZ zone and the split", async () => {
+  it("the Overview shows one capacity figure in pieces a month, the EPZ zone and the split", async () => {
     const supplier = {
       ...ABONI.profile.supplier,
       production_capacity_pcs_day: 25000,
@@ -1827,7 +1824,8 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
     };
     given({ profile: { data: { ...ABONI.profile, supplier, rsc_remediation: null }, error: null }, hscodes: HS });
     const out = html(await fullPage("aboni-knitwear"));
-    assert.match(out, /25,000 pcs\/day · 600,000 dozen\/year/, "one of the two filed capacity figures is dropped");
+    // 25,000 a day over 25 working days; the 600,000 dozen a year is not printed beside it (founder, 13 Oct 2026).
+    assert.ok(out.includes("625,000 pcs/month") && !out.includes("dozen/year") && !out.includes("pcs/day"), "the capacity is not one monthly figure");
     assert.match(out, /Dhaka EPZ/);
     assert.match(out, /620 women · 380 men/);
 

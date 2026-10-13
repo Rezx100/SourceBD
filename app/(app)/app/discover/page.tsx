@@ -214,7 +214,7 @@ export default async function BuyerDiscoverPage({
       {error || filterCount(state) === 0 ? null : <RecordLastSearch search={serializeDiscoverState({ ...state, page: 1 }).toString()} />}
       {welcome && !error && total !== 0 ? <FirstResultsCoach supabase={supabase} closeHref={keepOpen} /> : null}
       <div className="flex min-h-0 flex-1 flex-col">
-        <PhoneToolbar state={state} entitled={entitled} count={resultsTitle("", error ? null : total, exportsOn)} hrefFor={hrefFor} filtersHref={filtersHref} />
+        <PhoneToolbar state={state} entitled={entitled} count={resultsTitle("", error ? null : total)} hrefFor={hrefFor} filtersHref={filtersHref} />
         {/* Beside a pane too: ticking turns the pane list's toolbar into the bulk bar, as it does the filter bar. */}
         <ResultsBar toolbar={toolbar} exportHref={exportHref} searchHref={closeHref} pageSize={rows.length} narrow={paneOpen} />
         {error ? (

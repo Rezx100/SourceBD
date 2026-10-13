@@ -312,38 +312,6 @@ export function shippedPiecesPerYear(v: VolzaExports | null | undefined): number
   return v.fob_usd / years / Math.max(one.unit_rate_usd, 1);
 }
 
-export const CAPACITY_EXPORTS_MORE = "Exports suggest more than this";
-export const CAPACITY_INCONSISTENT = "Filed figures look inconsistent; confirm with the supplier";
-
-/**
- * The registers' capacity stays as filed (no figure is rewritten from another source). A buyer gets
- * one of two notes (founder, 11 Oct 2026: one plain line, not a diagnosis); the checks behind the
- * second, in pieces a year (a day's figure counts 300 working days, a dozen 12 pieces):
- * - filed over 25 times exports, for a supplier with 50+ shipments (Hamza Clothing: 20,000,000 dozen);
- * - the same number filed per day and per year (17 published records);
- * - the two figures over 3 times apart, a year of pieces filed as dozens among them (247 of 376);
- * - over 1,000,000 pieces a day or 10,000,000 dozen a year: more than one factory makes.
- * The first: exports over 3 times the larger figure (RAM Apparel, about 14 times its 25,000 dozen).
- * Both export checks need the customs row, which only a reader on a paying plan gets.
- */
-export function capacityNote(
-  s: { production_capacity_pcs_day?: number | null; production_capacity_dozen_yearly?: number | null },
-  v: VolzaExports | null | undefined,
-): string | null {
-  const day = s.production_capacity_pcs_day ?? 0;
-  const dozen = s.production_capacity_dozen_yearly ?? 0;
-  const filed = Math.max(day * 300, dozen * 12);
-  if (!filed) return null;
-  const shipped = shippedPiecesPerYear(v);
-  if (shipped !== null && shipped > 3 * filed) return CAPACITY_EXPORTS_MORE;
-  const wrong =
-    (shipped !== null && v!.shipments >= 50 && filed > 25 * shipped) ||
-    (day > 0 && dozen > 0 && (day === dozen || filed > 3 * Math.min(day * 300, dozen * 12))) ||
-    day > 1_000_000 ||
-    dozen > 10_000_000;
-  return wrong ? CAPACITY_INCONSISTENT : null;
-}
-
 const usd = (n: number, digits = 0) =>
   `US$${n.toLocaleString("en-GB", { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
 
@@ -941,10 +909,11 @@ function caseWord(word: string): string {
  * LTD.") is re-cased letter-run by letter-run, so brackets, hyphens, digits and
  * "(PVT)LTD." keep their shape ("(Unit-3, Textile)", "Al-Falah", "(Pvt)Ltd"),
  * dotted initials stay as filed ("G.A.B.", "D.H."), and the trailing period
- * after the legal suffix is dropped. Nothing is ever cut (spec §3).
+ * after the legal suffix is dropped. The one cut is `splitPremises`: the
+ * buildings a name ends with are said on the Sites tab, not in a title.
  */
 export function displayName(stored: string): string {
-  const name = stored.trim().replace(/\s+/g, " ");
+  const name = splitPremises(stored).name;
   if (/[a-z]/.test(name)) return name;
   const cased = name
     .split(" ")
@@ -955,6 +924,38 @@ export function displayName(stored: string): string {
     })
     .join(" ");
   return cased.replace(/\b(Ltd|Limited|Inc|Plc|Co)\.$/, "$1");
+}
+
+/**
+ * A trailing bracket that names buildings on the supplier's own site ("(Shed - 3, 4)", "(Building-2)",
+ * "(Extension)"), never a sister company. No title says them (founder, 13 Oct 2026: a name ran to five
+ * lines on a phone, and to a second line of sheds in a list); the Sites tab does. 17 published names.
+ */
+const PREMISES = /\b(?:sheds?|buildings?|bldg|annex|extension|expansion|warehouse|floors?|block|plot)\b/i;
+
+function balanced(name: string): boolean {
+  let depth = 0;
+  for (const ch of name) {
+    depth += ch === "(" ? 1 : ch === ")" ? -1 : 0;
+    if (depth < 0) return false;
+  }
+  return depth === 0;
+}
+
+/** A filed name without the buildings it ends with, and those buildings in the register's own words. */
+export function splitPremises(stored: string): { name: string; buildings: string[] } {
+  let name = stored.trim().replace(/\s+/g, " ");
+  const buildings: string[] = [];
+  // Brackets that do not balance are left alone, as `splitQualifier` leaves them: the last one may not close what it seems to.
+  if (!balanced(name)) return { name, buildings };
+  for (;;) {
+    const m = /(?:\s*[&,]\s*|\s*)\(([^()]*)\)\.?$/.exec(name);
+    const rest = m ? name.slice(0, m.index).trim() : "";
+    if (!m || !rest || !PREMISES.test(m[1]!)) break;
+    buildings.unshift(m[1]!.trim());
+    name = rest;
+  }
+  return { name, buildings };
 }
 
 /** Bracketed words that are part of a company's name, never a qualifier after it. */
@@ -969,17 +970,12 @@ const PART_OF_NAME = /^(?:bangladesh|bd|pvt\.?|private)$/i;
  * dropped, inner spaces trimmed, several joined with " · ", also when "&" or a
  * comma joins them); a bare trailing "Unit-2" or "U-2" is one too. Never
  * split: "(Bangladesh)", "(BD)" and "(Pvt.)", a bracket in the middle of a
- * name, or brackets that do not balance. Nothing is dropped: base and
- * qualifier together are the whole name.
+ * name, or brackets that do not balance. Nothing is dropped but the buildings
+ * `splitPremises` takes: base and qualifier together are the rest of the name.
  */
 export function splitQualifier(name: string): { base: string; qualifier: string | null } {
-  const whole = name.trim().replace(/\s+/g, " ");
-  let depth = 0;
-  for (const ch of whole) {
-    depth += ch === "(" ? 1 : ch === ")" ? -1 : 0;
-    if (depth < 0) break;
-  }
-  if (depth !== 0) return { base: whole, qualifier: null };
+  const whole = splitPremises(name).name;
+  if (!balanced(whole)) return { base: whole, qualifier: null };
   let base = whole;
   const groups: string[] = [];
   for (;;) {
