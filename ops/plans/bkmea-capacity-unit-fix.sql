@@ -22,10 +22,19 @@
 --        block; four of the live pages were read to confirm)
 -- 1,357 companies carry a figure afterwards; the largest is 600,000 a day.
 --
--- Not done: sbi_scores are not recomputed (capacity counts only as present or
--- absent there), so the 200 companies left with no capacity from either
--- register keep the point until the next scoring run. Seven of the 411 month
--- figures do not divide by 25, so the profile shows them up to 12 pieces off.
+-- Scores: recomputed the same day on the founder's word ("recalculate the
+-- supplier scores"), for every supplier, with etl.scoring.sbi.compute_sbi run
+-- locally over a read of production (the database port is unreachable from
+-- the founder's machine, so etl.scoring.runner cannot run there) and written
+-- in one rehearsed upsert. 843 of 10,826 rows written: 15 new (the companies
+-- split off that day had no score), 346 changed in points (205 down, 141 up),
+-- 482 the same points with a new inputs hash. Of the 205 down, 197 are
+-- profiles whose capacity was blanked above; of the 141 up, 133 are profiles
+-- that kept a duplicate's records in that day's merges. Old rows are in
+-- _snapshot_sbi_rescore_20261013 (828).
+--
+-- Seven of the 411 month figures do not divide by 25, so the profile shows
+-- them up to 12 pieces off.
 --
 -- Undo: update suppliers s set production_capacity_pcs_day = b.old_value
 --       from _snapshot_bkmea_capacity_20261013 b where b.supplier_id = s.id;
