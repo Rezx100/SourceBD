@@ -3,7 +3,7 @@
 // The results table with no record open (founder's cut of 14 Oct 2026, from the Paper page 37 table,
 // and his round 2 of 15 Oct 2026): select, Supplier with the two products that answer the search under
 // its name, Location, Workers, the certificate schemes it holds today by name, what it exported in two
-// years and where it ships, how many sources hold it, then the row's ⋯ menu. The list only has to
+// years and where it ships, how many sources hold it, then Save and Open. The list only has to
 // answer "which of these do I open": the receipts (the second worker figure, the source marks, each
 // certificate's date, the brand lists) are the record's business, one click away in the pane. The
 // search's terms are lit where they match, in the name and in the products, so the reason a row is on
@@ -16,15 +16,18 @@
 // `title` and the row's accessible name, its qualifier (a shed, a building, a group) on the line
 // under. The name opens the record in the pane;
 // arrows move between rows, Enter opens, Space ticks. Hover is brand-wash, a ticked row
-// brand-tint with the 2px bar. Every row ends in the ⋯ menu Saved's rows have (Save, Send RFQ,
-// Open full page), so the two tables share one grammar. Client: it reads the selection and handles the keys.
+// brand-tint with the 2px bar. Every row ends in a Save bookmark and an Open-as-a-page link
+// (founder, 15 Oct 2026, in place of the ⋯ menu), seen while the row is hovered, focused or
+// selected and always on a touch screen; Send RFQ is the selection bar's. The pane list and
+// Saved keep the ⋯ menu. Client: it reads the selection and handles the keys.
 
-import { DotsThree } from "@phosphor-icons/react";
+import { ArrowSquareOut, DotsThree } from "@phosphor-icons/react";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import Link from "next/link";
 import { startTransition, useContext, useEffect, useState, type ReactNode } from "react";
 import { ABSENT, LinkPending, SanctionTag, sanctionRowClass } from "@/components/patterns";
-import { IconButton, Menu, MenuItem, SelectCell, Table, Td, Th, Toast, Tr, Unpublished, oneLine, rowLinkClass, toastActionClass, type SortState } from "@/components/kit";
+import { IconButton, Menu, MenuItem, SelectCell, Table, Td, Th, Toast, Tr, Unpublished, buttonClass, oneLine, rowLinkClass, toastActionClass, type SortState } from "@/components/kit";
+import { RecordSave } from "@/components/record/save-button";
 import { splitQualifier } from "@/lib/dashboard/facts";
 import { rowSaveMessage } from "@/lib/dashboard/selection";
 import { cn } from "@/lib/utils";
@@ -78,7 +81,6 @@ export function ResultsTable({
   const sel = useSelection();
   // A column sorts from its head when its cells show what it sorts by: the name, the workers and the source count.
   const state = (key: "workers" | "name" | "sources"): SortState => (sort.key === key ? sort.dir : "none");
-  const { save, toast } = useRowSave();
   // Not a tab stop (critique of 8 Oct 2026, item 7: two Tabs before the first name): the rows are.
   return (
     <div role="region" aria-label="Results table" className="relative min-w-0 overflow-x-auto xl:overflow-visible">
@@ -117,7 +119,7 @@ export function ResultsTable({
             <Th align="right" className="w-[90px]" title="Registers and certifiers that hold this company" sort={sortHrefs.sources ? state("sources") : undefined} href={sortHrefs.sources}>
               Sources
             </Th>
-            <th scope="col" className="sticky top-0 z-raised h-row-head w-10 border-b border-line bg-subtle p-0">
+            <th scope="col" className="sticky top-0 z-raised h-row-head w-[76px] border-b border-line bg-subtle p-0">
               <span className="sr-only">Actions</span>
             </th>
           </tr>
@@ -207,16 +209,39 @@ export function ResultsTable({
                 <Td align="right" className="tabular-nums text-ink">
                   {r.sources}
                 </Td>
-                <td className="w-10 border-b border-line p-0 text-center align-middle">
-                  <RowActions r={r} save={save} />
+                <td className="w-[76px] border-b border-line p-0 align-middle">
+                  <RowEnd r={r} />
                 </td>
               </Tr>
             );
           })}
         </tbody>
       </Table>
-      {toast}
     </div>
+  );
+}
+
+/**
+ * Seen while the row is hovered, holds focus, or is selected (`Tr` is `group/row` and sets
+ * `aria-selected` for a ticked row and the open record alike); never `hidden`, so a Tab stop and a
+ * screen reader always have them, and always shown where there is no hover to reveal them.
+ */
+const rowControl = "opacity-0 transition-opacity duration-fast group-hover/row:opacity-100 group-focus-within/row:opacity-100 group-aria-selected/row:opacity-100 [@media(hover:none)]:opacity-100";
+
+/**
+ * The row's end: Save (the record's own bookmark, saves and unsaves, `aria-pressed`, a toast) and Open
+ * (the record as a page; the name opens it in the pane). `data-action="save"` is the `s` key's target
+ * (keys.ts); the hidden RFQ link keeps `r` working, Send RFQ otherwise lives in the selection bar.
+ */
+function RowEnd({ r }: { r: ResultRow }) {
+  return (
+    <span className="flex items-center justify-center gap-1">
+      {r.supplierId ? <RecordSave supplierId={r.supplierId} saved={r.saved} appearance="icon" size={32} kind="quiet" data-action="save" className={rowControl} /> : null}
+      <Link href={r.pageHref} prefetch={false} aria-label={`Open ${r.name} as a page`} title="Open as a page" className={cn(buttonClass({ kind: "quiet", size: "icon-32" }), rowControl)}>
+        <ArrowSquareOut size={20} className="shrink-0" aria-hidden />
+      </Link>
+      {r.rfqHref ? <Link href={r.rfqHref} prefetch={false} scroll={false} data-action="rfq" tabIndex={-1} aria-hidden className="hidden" /> : null}
+    </span>
   );
 }
 
