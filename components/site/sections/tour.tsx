@@ -8,8 +8,7 @@
 // reduced motion, never past the last). Below 1024 nothing pins: each item stacks with its own demo, which plays in
 // view. The server draws Find open.
 
-import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { memo, useCallback, useEffect, useRef, useState, type ComponentType, type KeyboardEvent } from "react";
 import { DemoCompliance, DemoRecord, DemoRfq, DemoSearch } from "@/components/site/demos";
 import { stillPreferred } from "@/components/site/motion";
 import { motion } from "@/lib/design/tokens";
@@ -17,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { HomeIcon, type IconName } from "./icons";
 import { H2, TextLink, measure, ring } from "./ui";
 
-export type TourItem = { key: string; icon: IconName; title: string; body: string; href: string; Demo: (p: { className?: string }) => React.JSX.Element };
+export type TourItem = { key: string; icon: IconName; title: string; body: string; href: string; Demo: ComponentType<{ className?: string }> };
 
 export const TOUR: readonly TourItem[] = [
   { key: "find", icon: "search", title: "Find", body: "Search by product, district, certificate or source. Open a record beside the results and never lose your place.", href: "/product/search", Demo: DemoSearch },
@@ -36,6 +35,16 @@ function Heading({ id }: { id?: string }) {
     </H2>
   );
 }
+
+/** The open item's demo, swapping out then in. Memoised: the scroll re-renders the tour every frame for its bar, not the demo. */
+const TourDemo = memo(function TourDemo({ shown, leaving }: { shown: number; leaving: boolean }) {
+  const Shown = TOUR[shown]!.Demo;
+  return (
+    <div key={shown} className={cn(leaving ? "animate-swap-out" : "animate-swap-in", "motion-reduce:animate-none")}>
+      <Shown />
+    </div>
+  );
+});
 
 export function PinnedTour() {
   const section = useRef<HTMLElement>(null);
@@ -59,7 +68,8 @@ export function PinnedTour() {
     const wide = matchMedia("(min-width: 1024px)");
     let raf = 0;
     let timer = 0;
-    // The section's place is read on resize only, never in the scroll handler.
+    // The section's place is read when the window or the page changes size (a late image, a wrapped line), never in
+    // the scroll handler.
     const measure = () => {
       geometry.current = { top: el.getBoundingClientRect().top + scrollY, span: Math.max(1, el.offsetHeight - innerHeight) };
     };
@@ -95,12 +105,15 @@ export function PinnedTour() {
     addEventListener("scroll", onScroll, { passive: true });
     addEventListener("resize", onResize);
     document.addEventListener("visibilitychange", arm);
+    const grew = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(onResize);
+    grew?.observe(document.body);
     return () => {
       cancelAnimationFrame(raf);
       clearTimeout(timer);
       removeEventListener("scroll", onScroll);
       removeEventListener("resize", onResize);
       document.removeEventListener("visibilitychange", arm);
+      grew?.disconnect();
     };
   }, [go]);
 
@@ -125,8 +138,6 @@ export function PinnedTour() {
     go(to);
     (e.currentTarget.parentElement?.parentElement?.querySelectorAll<HTMLButtonElement>("button")[Math.max(0, Math.min(N - 1, to))])?.focus();
   };
-
-  const Shown = TOUR[shown]!.Demo;
 
   return (
     <section ref={section} data-tone="dark" aria-labelledby="home-tour" className="relative lg:h-[360vh]">
@@ -165,33 +176,29 @@ export function PinnedTour() {
             </ol>
           </div>
           <div className="col-span-7 min-w-0">
-            <div key={shown} className={cn(leaving ? "animate-swap-out" : "animate-swap-in", "motion-reduce:animate-none")}>
-              <Shown />
-            </div>
+            <TourDemo shown={shown} leaving={leaving} />
           </div>
         </div>
       </div>
       {/* Below 1024: each item with its own demo, in flow. */}
-      <ol className={cn(measure, "flex flex-col gap-14 py-14 lg:hidden")}>
-        <li className="flex flex-col gap-4">
-          <Heading />
-        </li>
-        {TOUR.map((t) => (
-          <li key={t.key} className="flex flex-col gap-5">
-            <div className="flex flex-col gap-2.5">
-              <h3 className="flex items-center gap-3 text-site-title font-medium text-ink-strong">
-                <HomeIcon name={t.icon} size={24} className="text-ink-strong" />
-                {t.title}
-              </h3>
-              <p className="text-md text-ink-muted">{t.body}</p>
-              <Link href={t.href} prefetch={false} className={cn("inline-flex min-h-11 w-fit items-center text-site-body font-medium text-ink-strong underline decoration-1 underline-offset-4 hover:decoration-2", ring)}>
-                See how
-              </Link>
-            </div>
-            <t.Demo />
-          </li>
-        ))}
-      </ol>
+      <div className={cn(measure, "flex flex-col gap-14 py-14 lg:hidden")}>
+        <Heading />
+        <ol className="flex flex-col gap-14">
+          {TOUR.map((t) => (
+            <li key={t.key} className="flex flex-col gap-5">
+              <div className="flex flex-col gap-2.5">
+                <h3 className="flex items-center gap-3 text-site-title font-medium text-ink-strong">
+                  <HomeIcon name={t.icon} size={24} className="text-ink-strong" />
+                  {t.title}
+                </h3>
+                <p className="text-md text-ink-muted">{t.body}</p>
+                <TextLink href={t.href}>See how</TextLink>
+              </div>
+              <t.Demo />
+            </li>
+          ))}
+        </ol>
+      </div>
     </section>
   );
 }

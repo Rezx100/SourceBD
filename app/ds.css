@@ -319,8 +319,9 @@
   }
 }
 @keyframes mk-hero-stage {
+  /* Starts under the copy whatever the window's height: at least 560px down (the copy's own height from 768 up). */
   from {
-    transform: translateY(44vh) scale(0.78);
+    transform: translateY(max(50vh, 560px)) scale(0.78);
     border-radius: 24px;
   }
   to {
