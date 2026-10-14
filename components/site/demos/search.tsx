@@ -6,6 +6,7 @@
 // selection and router context a marketing page does not have, so this is the same columns drawn still.
 
 import { MagnifyingGlass } from "@phosphor-icons/react";
+import type { ReactNode } from "react";
 import { FilterChip, SelectCell, Table, Td, Th, Tr, Unpublished } from "@/components/kit";
 import { ABSENT, certSummary } from "@/components/patterns/words";
 import { matchedProducts } from "@/components/search/model";
@@ -42,14 +43,99 @@ export const STEPS: Step<S>[] = [
   { at: t2 + motion.cursorMs + 100, state: still({ cursor: `row-${HOVER.slug}`, hover: true }) },
 ];
 
-const ROWS = search.rows.map((r) => {
+/** The snapshot's rows as the table draws them: the product writes the name, the words that answered the search are lit, the certificates held today. */
+export const ROWS = search.rows.map((r) => {
   const held = certSummary(r.certs.filter((c) => !c.expiresOn || c.expiresOn >= SNAPSHOT.readAt).map(certInput), TODAY);
   return { ...r, name: displayName(r.name), products: matchedProducts(r.products, search.q), held: held ? [held.first, ...held.others] : [] };
 });
+type Row = (typeof ROWS)[number];
 
-export function DemoSearch({ className }: { className?: string }) {
+/** The results table: the same columns at every width, the place and the workers hidden under 640 wide; `hot` is the hovered row's slug. */
+function Rows({ rows, hot }: { rows: readonly Row[]; hot?: string | null }) {
   return (
-    <Demo steps={STEPS} description={`A search for ${QUERY}: ${formatCount(search.total) ?? "the"} suppliers found, with their place, workers and the certificates they hold today.`} className={className}>
+    <Table>
+      <thead>
+        <tr>
+          <SelectCell header label="Select all on this page" disabled readOnly checked={false} />
+          <Th>Supplier</Th>
+          <Th className="w-28 [@container_(max-width:639px)]:hidden">Location</Th>
+          <Th align="right" className="w-20 [@container_(max-width:639px)]:hidden">
+            Workers
+          </Th>
+          <Th className="w-28">Certificates</Th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => {
+          const { base, qualifier } = splitQualifier(r.name);
+          return (
+            <Tr key={r.slug} data-cursor={`row-${r.slug}`} className={cn("h-16 animate-swap-in motion-reduce:animate-none", hot === r.slug && "bg-sunken")}>
+              <SelectCell label={`Select ${r.name}`} disabled readOnly checked={false} />
+              <Td className="max-w-0">
+                <span className="block truncate text-base font-semibold text-ink" title={r.name}>
+                  {base}
+                </span>
+                {qualifier ? <span className="block truncate text-xs text-ink-3">{qualifier}</span> : null}
+                {r.products ? <Products products={r.products} className="pt-0.5" /> : null}
+              </Td>
+              <Td className="text-ink [@container_(max-width:639px)]:hidden">{r.place ?? <Unpublished />}</Td>
+              <Td align="right" className="tabular-nums text-ink [@container_(max-width:639px)]:hidden">
+                {formatCount(r.workers) ?? <Unpublished />}
+              </Td>
+              <Td>{r.held.length ? <HeldMarks held={r.held} /> : <Unpublished>{ABSENT.certificates}</Unpublished>}</Td>
+            </Tr>
+          );
+        })}
+      </tbody>
+    </Table>
+  );
+}
+
+/** The chips under the bar, as the app draws them. */
+function Chips({ chips }: { chips: readonly string[] }) {
+  return (
+    <div className="flex h-10 shrink-0 items-center gap-2 border-b border-line px-4">
+      {chips.map((c) => (
+        <FilterChip key={c} removeHref="#" removeLabel={`Remove ${c}`}>
+          {c}
+        </FilterChip>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * The results as a still (M4, the search page's carousel): the chips in the bar and under it, `rows` of the
+ * snapshot, nothing moving, so no pause button. `right` is the bar's count; `description` is the one sentence a
+ * screen reader gets instead of the table, as a demo's stage gives.
+ */
+export function SearchStill({ chips, rows, right, description, className }: { chips: readonly string[]; rows: readonly Row[]; right?: ReactNode; description: string; className?: string }) {
+  return (
+    <figure data-ground="day" className={cn("rounded-frame shadow-lg", className)}>
+      <figcaption className="sr-only">{description}</figcaption>
+      <div aria-hidden className="select-none">
+      <Window>
+        <Bar
+          title={
+            <span className="flex items-center gap-2">
+              <MagnifyingGlass size={16} className="shrink-0 text-ink-3" aria-hidden />
+              <span className="truncate">{chips.join(" ")}</span>
+            </span>
+          }
+        >
+          {right ? <span className="shrink-0 text-sm text-ink-3">{right}</span> : null}
+        </Bar>
+        <Chips chips={chips} />
+        <Rows rows={rows} />
+      </Window>
+      </div>
+    </figure>
+  );
+}
+
+export function DemoSearch({ className, caption }: { className?: string; caption?: boolean }) {
+  return (
+    <Demo steps={STEPS} description={`A search for ${QUERY}: ${formatCount(search.total) ?? "the"} suppliers found, with their place, workers and the certificates they hold today.`} caption={caption} className={className}>
       {(s) => (
         <Window>
           <Bar
@@ -63,51 +149,8 @@ export function DemoSearch({ className }: { className?: string }) {
           >
             {s.chips ? <span className="shrink-0 text-sm text-ink-3">{formatCount(search.total)} suppliers</span> : null}
           </Bar>
-          <div className="flex h-10 shrink-0 items-center gap-2 border-b border-line px-4">
-            {s.chips
-              ? search.chips.map((c) => (
-                  <FilterChip key={c} removeHref="#" removeLabel={`Remove ${c}`}>
-                    {c}
-                  </FilterChip>
-                ))
-              : null}
-          </div>
-          <Table>
-            <thead>
-              <tr>
-                <SelectCell header label="Select all on this page" disabled readOnly checked={false} />
-                <Th>Supplier</Th>
-                <Th className="w-28 [@container_(max-width:639px)]:hidden">Location</Th>
-                <Th align="right" className="w-20 [@container_(max-width:639px)]:hidden">
-                  Workers
-                </Th>
-                <Th className="w-28">Certificates</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {ROWS.slice(0, s.rows).map((r) => {
-                const { base, qualifier } = splitQualifier(r.name);
-                const hot = s.hover && r.slug === HOVER.slug;
-                return (
-                  <Tr key={r.slug} data-cursor={`row-${r.slug}`} className={cn("h-16 animate-swap-in motion-reduce:animate-none", hot && "bg-sunken")}>
-                    <SelectCell label={`Select ${r.name}`} disabled readOnly checked={false} />
-                    <Td className="max-w-0">
-                      <span className="block truncate text-base font-semibold text-ink" title={r.name}>
-                        {base}
-                      </span>
-                      {qualifier ? <span className="block truncate text-xs text-ink-3">{qualifier}</span> : null}
-                      {r.products ? <Products products={r.products} className="pt-0.5" /> : null}
-                    </Td>
-                    <Td className="text-ink [@container_(max-width:639px)]:hidden">{r.place ?? <Unpublished />}</Td>
-                    <Td align="right" className="tabular-nums text-ink [@container_(max-width:639px)]:hidden">
-                      {formatCount(r.workers) ?? <Unpublished />}
-                    </Td>
-                    <Td>{r.held.length ? <HeldMarks held={r.held} /> : <Unpublished>{ABSENT.certificates}</Unpublished>}</Td>
-                  </Tr>
-                );
-              })}
-            </tbody>
-          </Table>
+          <Chips chips={s.chips ? search.chips : []} />
+          <Rows rows={ROWS.slice(0, s.rows)} hot={s.hover ? HOVER.slug : null} />
         </Window>
       )}
     </Demo>

@@ -77,10 +77,10 @@ export const PAGES: Record<string, Page> = {
     lede: "Filter by HS code, certificate, place and size. Open any supplier beside your results.",
     title: "Supplier search — SourceBD",
     description: "Search Bangladesh garment suppliers by name, product or HS code. Filter by certificate, district and size, and open each record beside your results.",
-    hero: shot("search-results", "The results for “knit”: a list of suppliers, each with its type, district, first certificate problem and how many sources name it.", "Real screen · results for “knit” · 4,645 suppliers"),
+    // The hero and the records row play the Find and Check demos (M4, `product/search.tsx`); only the filter panel still shows its 3 Oct screen.
     blocks: [
       { n: "01", label: "Filters", headline: "Filters that match how you buy.", lede: "HS code, certificate and its status, district, workers, brand supplier lists, BGMEA or BKMEA member. The button shows how many suppliers you will get.", shot: shot("search-filters", "The filter panel open over the results, showing the certificate, district and size filters.", "Real screen · knit, filters open · 4,645 suppliers") },
-      { n: "02", label: "Records", headline: "The record opens beside your list.", lede: "Check certificates, safety and sources, then move to the next row. You never lose your search.", shot: shot("search-pane", "A supplier’s record open in a panel beside the results list.", "Real screen · Aboni Knitwear open beside the results") },
+      { n: "02", label: "Records", headline: "The record opens beside your list.", lede: "Check certificates, safety and sources, then move to the next row. You never lose your search." },
       { n: "03", label: "Results", headline: "Every row says what needs a look.", lede: "The first certificate problem shows in the list, with its date. Sources counts the lists that name the supplier." },
     ],
     close: "Try it on your next product.",

@@ -6,7 +6,6 @@
 // the other three products, and the close. The ground runs paper → dark → paper → dark (`ToneShift`): the wrapper
 // divs carry `data-tone`, the sections do not.
 
-import type { ReactNode } from "react";
 import { DemoRecord, VignetteExpiry, VignetteReceipts } from "@/components/site/demos";
 import { ContactLocked } from "@/components/site/demos/record";
 import { ToneShift } from "@/components/site/motion";
@@ -14,30 +13,19 @@ import { Figure, PAGES } from "@/components/site/pages";
 import { Closing } from "@/components/site/sections/closing";
 import { CrossSell } from "@/components/site/sections/cross-sell";
 import { RealRecords } from "@/components/site/sections/real-records";
-import { FeatureRow, H2, HeroActions, HeroCentered, Lede, Section, Stage, measure, type StillName } from "@/components/site/sections/ui";
+import { FeatureRow, H2, HeroActions, HeroCentered, Lede, Section, measure } from "@/components/site/sections/ui";
 import { displayName } from "@/lib/dashboard/facts";
 import type { HomeRecord } from "@/lib/home-records";
-import { CAPTION, READ_AT, SNAPSHOT } from "@/lib/marketing/demo-snapshot";
+import { READ_AT, SNAPSHOT } from "@/lib/marketing/demo-snapshot";
 import { cn } from "@/lib/utils";
 import { RecordTabs } from "./records-tabs";
+import { Staged } from "./staged";
 
 export const RECORDS_KEY = "product/records";
 const P = PAGES[RECORDS_KEY]!;
 const NAME = displayName(SNAPSHOT.check.name);
 const row = (n: string) => P.blocks.find((b) => b.n === n)!;
 const label = (b: { n: string; label: string }) => `${b.n} · ${b.label}`;
-
-/** A demo on a textile stage, as the screenshots sit, with the snapshot's caption under the stage rather than on the cloth. */
-function Staged({ still, eager = false, children }: { still: StillName; eager?: boolean; children: ReactNode }) {
-  return (
-    <div className="flex flex-col gap-3">
-      <Stage still={still} eager={eager}>
-        {children}
-      </Stage>
-      <p className="text-sm text-ink-subtle">{CAPTION}</p>
-    </div>
-  );
-}
 
 /** `cards`: the home's three real records as read; with none read, that section is not drawn. The page prints no live figure. */
 export function RecordsPage({ cards }: { cards: HomeRecord[] }) {
