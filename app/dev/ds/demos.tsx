@@ -1,3 +1,5 @@
+"use client";
+
 // /dev/ds: the marketing demos (M2, handoff-mercury-m2-m3.md) as the home page's tour and the vignette grid will
 // draw them, each at the width it gets there (the tour's right column is 720 at 1440), on paper and on the night
 // ground, so a demo can be watched before any page carries it.
