@@ -112,9 +112,16 @@ missing. **S4** untidy. Inside a level, most published companies first.
   BTMA tile; ABM's page drops "under suspension" and shows no. 10. Counted again by entry, 14 Oct 2026: 87 companies
   hold a suspended entry; 76 hold nothing but suspended BTMA entries (70 of them published on BTMA alone, 69 after
   ABM); 11 also hold a plain BTMA entry (BTMA files them in both sections) and keep their membership. The "80" above
-  counted those 11 in. 0155, the ABM fix and the score rewrite each wait for "apply". Not re-run: btma_spinning on
+  counted those 11 in. Not re-run: btma_spinning on
   the May extract (it would put ABM back under suspension). Still counting a suspended-only mill: the card's top
   tier and source count (`source_tags`), the MSA statement's register counts and the marketing figures.
+- **Applied on production, 14 Oct 2026**, on the founder's "apply 0155, the ABM fix and the score run":
+  0155 through `apply_migration` in one piece; the ABM fix as `ops/plans/btma-abm-member-fix.sql`; the scores as
+  written at the end of that file. Read back: search's BTMA filter returns 346 (345 plus ABM), all 527 BTMA entries
+  still listed, `nm-spinning-mills` has no BTMA tile and keeps both suspended entries on its record, ABM shows no. 10
+  with no status. 75 scores rewritten: 70 down 3 points (to 0), 3 down 8, one down 4, one down 2; old rows in
+  `_snapshot_sbi_btma_20261014`. Until a release ships the new `etl/scoring/runner.py`, a scoring pass on the
+  deployed code would give the BTMA credit back.
 
 ### S1-4. Phone numbers and mailboxes inside address text, open to a signed-out visitor through the database API
 

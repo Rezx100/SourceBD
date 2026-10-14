@@ -50,3 +50,17 @@ begin
   get diagnostics n = row_count;
   if n <> 1 then raise exception 'count guard: touched %', n; end if;
 end $$;
+
+-- Applied on production 14 Oct 2026 on the founder's "apply 0155, the ABM fix and the score run".
+--
+-- Scores, the same day. The 75 companies whose only BTMA entries are suspended (ABM no longer among them)
+-- were scored with etl.scoring.sbi.compute_sbi over a read of production through the database API, with
+-- the inputs etl/scoring/runner.py now builds (no BTMA tag, no BTMA verified). The same read with the old
+-- inputs reproduced all 75 stored totals first. Written in one block with count guards (the database port
+-- is unreachable from the founder's machine, so the runner cannot run there): 70 down 3 points to 0, 3 down
+-- 8, one down 4, one down 2. Old rows in _snapshot_sbi_btma_20261014.
+--
+-- Undo: update sbi_scores e set pillar1_legal = b.pillar1_legal, pillar2_safety = b.pillar2_safety,
+--       pillar3_certs = b.pillar3_certs, pillar4_market = b.pillar4_market, total = b.total,
+--       inputs_hash = b.inputs_hash, computed_at = b.computed_at
+--       from _snapshot_sbi_btma_20261014 b where b.supplier_id = e.supplier_id;
