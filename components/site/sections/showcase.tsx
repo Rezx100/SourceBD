@@ -83,7 +83,7 @@ function Copy({ row, half }: { row: Row; half: boolean }) {
 
 export function Showcase() {
   return (
-    <section aria-labelledby="home-showcase" className="bg-subtle py-14 md:py-section">
+    <section aria-labelledby="home-showcase" className="bg-surface py-14 md:py-section">
       <div className={cn(measure, "flex flex-col items-center gap-14 md:gap-24")}>
         <H2 id="home-showcase" className="text-center">
           Vetting used to be a chase.

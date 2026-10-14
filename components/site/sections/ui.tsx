@@ -117,7 +117,7 @@ export type Tone = "paper" | "subtle" | "dark";
 /** A section of an inner page: label, headline, lede, then what it shows. `dark` is the night ground. */
 export function Section({ id, label, headline, lede, children, tone = "paper", className }: { id?: string; label?: ReactNode; headline: ReactNode; lede?: ReactNode; children?: ReactNode; tone?: Tone | "plain"; className?: string }) {
   return (
-    <section id={id} data-ground={tone === "dark" ? "night" : undefined} className={cn("py-14 md:py-section", tone === "subtle" && "bg-subtle", tone === "dark" && "bg-surface text-ink", className)}>
+    <section id={id} data-ground={tone === "dark" ? "night" : undefined} className={cn("py-14 md:py-section", tone === "subtle" && "bg-surface", tone === "dark" && "bg-surface text-ink", className)}>
       <div className={cn(measure, "flex flex-col gap-10 md:gap-14")}>
         <div className="flex flex-col gap-5">
           {label ? <Label>{label}</Label> : null}
@@ -133,7 +133,7 @@ export function Section({ id, label, headline, lede, children, tone = "paper", c
 /** Text on one side, the product on the other (the home page's showcase rows); `flip` puts the product first. */
 export function FeatureRow({ label, headline, lede, children, media, flip = false, tone = "paper" }: { label?: ReactNode; headline: ReactNode; lede?: ReactNode; children?: ReactNode; media: ReactNode; flip?: boolean; tone?: "paper" | "subtle" }) {
   return (
-    <section className={cn("py-14 md:py-section", tone === "subtle" && "bg-subtle")}>
+    <section className={cn("py-14 md:py-section", tone === "subtle" && "bg-surface")}>
       <div className={cn(measure, "grid items-center gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16")}>
         <div className={cn("flex flex-col gap-5", flip && "lg:order-2")}>
           {label ? <Label>{label}</Label> : null}

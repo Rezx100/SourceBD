@@ -67,7 +67,7 @@ export function Security({ facts }: { facts: SiteFacts }) {
     <main className="font-sans text-ink">
       <Hero label="Security" h1="Security, stated plainly." lede="What we do today. No badges, no promises." count={count} />
 
-      <section aria-labelledby="nine" className="bg-subtle py-14 md:py-section">
+      <section aria-labelledby="nine" className="bg-surface py-14 md:py-section">
         <div className={cn(measure, "flex flex-col gap-8")}>
           <div className="flex flex-col gap-2">
             <h2 id="nine" className="text-site-body font-medium text-ink-subtle">
@@ -416,7 +416,7 @@ export function About({ facts }: { facts: SiteFacts }) {
     <main className="font-sans text-ink">
       <Hero label="Company · About" h1="Built for buyers who check." lede="We make every fact about a Bangladesh garment supplier checkable: the source, the number, the date." count={count} />
 
-      <section aria-labelledby="where" className="bg-subtle py-14 md:py-section">
+      <section aria-labelledby="where" className="bg-surface py-14 md:py-section">
         <div className={cn(measure, "flex flex-col gap-8")}>
           <div className="flex flex-col gap-2">
             <h2 id="where" className="text-site-body font-medium text-ink-subtle">

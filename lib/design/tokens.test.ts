@@ -786,3 +786,13 @@ test("Paper's classes compile to Paper's values through the real Tailwind config
   assert.match(css, /@media \(min-width: 1440px\) \{\s*\.\\32xl\\:w-sidebar \{\s*width: 224px/);
   assert.match(rule(String.raw`.\[box-shadow\:theme\(colors\.line-strong\)_0px_-1px_0px\]`), /box-shadow: rgb\(var\(--ds-line-strong\) \/ 1\) 0px -1px 0px/);
 });
+
+// M1 (14 Oct 2026): `cn` read `text-site-body` as a colour and dropped the primary button's white label, so every
+// marketing Start free button showed dark text on green. Every named size must survive beside an ink, and every
+// radius must replace another radius, through the real `cn`.
+test("cn keeps every token size beside an ink and lets a token radius replace another", () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- the same module the components use
+  const { cn } = require("@/lib/utils") as typeof import("@/lib/utils");
+  for (const k of Object.keys(fontSize)) assert.equal(cn("text-surface", `text-${k}`), `text-surface text-${k}`, `text-${k}`);
+  for (const k of Object.keys(borderRadius).filter((k) => k !== "DEFAULT")) assert.equal(cn("rounded-full", `rounded-${k}`), `rounded-${k}`, `rounded-${k}`);
+});

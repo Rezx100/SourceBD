@@ -51,7 +51,7 @@ export function InsideRecord({ callouts }: { callouts: (HomeFact | null)[] }) {
   const placed = callouts.slice(0, AT.length).map((fact, i) => ({ fact, at: AT[i]! })).filter((c): c is { fact: HomeFact; at: (typeof AT)[number] } => c.fact !== null);
   const shown = placed.map((c) => c.fact);
   return (
-    <section aria-labelledby="home-inside" className="bg-subtle py-14 md:py-section">
+    <section aria-labelledby="home-inside" className="bg-surface py-14 md:py-section">
       <div className={cn(measure, "flex flex-col items-center gap-8 md:gap-14")}>
         <div className="flex flex-col items-center gap-4 text-center">
           <H2 id="home-inside">Inside one record.</H2>

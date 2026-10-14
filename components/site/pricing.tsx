@@ -97,7 +97,7 @@ export function Pricing({ facts }: { facts: SiteFacts }) {
         <HeroActions center tryLine={count ? `Search ${count} suppliers by name, product or HS code` : "Search suppliers by name, product or HS code"} />
       </HeroCentered>
 
-      <section aria-labelledby="plans" className="bg-subtle py-14 md:py-section">
+      <section aria-labelledby="plans" className="bg-surface py-14 md:py-section">
         <div className={cn(measure, "flex flex-col gap-8")}>
           <div className="flex flex-col gap-2">
             <h2 id="plans" className="text-site-body font-medium text-ink-subtle">
