@@ -115,7 +115,7 @@ export function useScene<S>(steps: readonly Step<S>[], ref: RefObject<Element | 
 /** What a demo step may say about the drawn cursor: the `data-cursor` name it rests on, and whether it clicks. */
 export type CursorState = { cursor?: string; click?: boolean };
 
-const ring = "outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
+import { ring } from "./sections/ui";
 
 /**
  * The frame a product demo plays in. `children` draws one step's state; elements the cursor visits carry

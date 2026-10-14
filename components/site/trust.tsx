@@ -9,7 +9,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { ButtonLink } from "@/components/kit";
-import { Close, Display, HeroActions, Label, Lede, Section, wrap } from "@/components/site/parts";
+import { HeroActions, HeroCentered, inkLink, measure, Section, Stage, TextLink } from "@/components/site/sections/ui";
+import { Closing } from "@/components/site/sections/closing";
 import { SOURCE_COUNT, TIERS, type Tier } from "@/components/site/sources";
 import { SUBPROCESSORS, subprocessorCount } from "@/components/site/subprocessors";
 import { readDay, withCommas, type SiteFacts, type SourceFact } from "@/lib/site-facts";
@@ -21,7 +22,7 @@ export function trustMetadata(path: string, title: string, description: string):
   return { title, description, alternates: { canonical: `${SITE_URL}${path}` }, openGraph: { title, description, url: `${SITE_URL}${path}`, siteName: "SourceBD", locale: "en_GB", type: "website" } };
 }
 
-const mailto = "font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]";
+const mailto = inkLink;
 const A = ({ href, children }: { href: string; children: ReactNode }) =>
   href.startsWith("mailto:") ? (
     <a href={href} className={mailto}>
@@ -33,19 +34,12 @@ const A = ({ href, children }: { href: string; children: ReactNode }) =>
     </Link>
   );
 
-function Hero({ label, h1, lede, children, actions = true, count }: { label: string; h1: ReactNode; lede: ReactNode; children?: ReactNode; actions?: boolean; count: string | null }) {
+function Hero({ label, h1, lede, children, actions = true, count, stage }: { label: string; h1: ReactNode; lede: ReactNode; children?: ReactNode; actions?: boolean; count: string | null; stage?: ReactNode }) {
   return (
-    <section className="pb-20 pt-20 max-md:pb-10 max-md:pt-10">
-      <div className={cn(wrap, "flex flex-col gap-6")}>
-        <Label>{label}</Label>
-        <Display level={1} as="h1" className="max-w-[880px]">
-          {h1}
-        </Display>
-        <Lede>{lede}</Lede>
-        {actions ? <HeroActions tryLine={count ? `Search ${count} suppliers by name, product or HS code` : "Search suppliers by name, product or HS code"} /> : null}
-        {children}
-      </div>
-    </section>
+    <HeroCentered label={label} title={h1} lede={lede} stage={stage}>
+      {actions ? <HeroActions center tryLine={count ? `Search ${count} suppliers by name, product or HS code` : "Search suppliers by name, product or HS code"} /> : null}
+      {children}
+    </HeroCentered>
   );
 }
 
@@ -73,10 +67,10 @@ export function Security({ facts }: { facts: SiteFacts }) {
     <main className="font-sans text-ink">
       <Hero label="Security" h1="Security, stated plainly." lede="What we do today. No badges, no promises." count={count} />
 
-      <section aria-labelledby="nine" className="bg-subtle py-20 max-md:py-12">
-        <div className={cn(wrap, "flex flex-col gap-8")}>
+      <section aria-labelledby="nine" className="bg-surface py-14 md:py-section">
+        <div className={cn(measure, "flex flex-col gap-8")}>
           <div className="flex flex-col gap-2">
-            <h2 id="nine" className="font-mono text-base text-ink-3 max-sm:text-sm">
+            <h2 id="nine" className="text-site-body font-medium text-ink-subtle">
               Nine answers for your security review
             </h2>
             <p className="text-sm text-ink-3">Checked against our own runbooks · 5 Oct 2026</p>
@@ -130,7 +124,7 @@ export function Security({ facts }: { facts: SiteFacts }) {
         </ul>
       </Section>
 
-      <Close headline="Questions for your review? Ask us." lede="Free during beta. No card needed." />
+      <Closing headline="Questions for your review? Ask us." lede="Free during beta. No card needed." />
     </main>
   );
 }
@@ -165,7 +159,7 @@ function TierTable({ tier, facts, now }: { tier: Tier; facts: SiteFacts; now: nu
         </h3>
         <p className="max-w-prose text-md text-ink-2">{tier.note}</p>
       </div>
-      <div tabIndex={0} role="region" aria-label={`Tier ${tier.n} sources, scrolls sideways`} className="overflow-x-auto outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus">
+      <div tabIndex={0} role="region" aria-label={`Tier ${tier.n} sources, scrolls sideways`} className="overflow-x-auto outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
         <table className="w-full min-w-[640px] border-collapse text-left">
           <caption className="sr-only">
             Tier {tier.n}, {tier.label}: each source{regs ? ", who keeps it" : " and what it gives us"}
@@ -287,14 +281,14 @@ export function Methodology({ facts, now = Date.now() }: { facts: SiteFacts; now
         <ol className="grid max-w-[800px] gap-4">
           {NEVER.map((n, i) => (
             <li key={n} className="flex gap-4 border-t border-line pt-3 text-lg text-ink">
-              <span className="font-mono text-base text-ink-3">{String(i + 1).padStart(2, "0")}</span>
+              <span className="text-site-body font-medium text-ink-subtle">{String(i + 1).padStart(2, "0")}</span>
               {n}
             </li>
           ))}
         </ol>
       </Section>
 
-      <Close headline="See the sources on a real record." lede="Free during beta. No card needed." />
+      <Closing headline="See the sources on a real record." lede="Free during beta. No card needed." />
     </main>
   );
 }
@@ -320,20 +314,32 @@ export function ForSuppliers({ facts }: { facts: SiteFacts }) {
   const updated = readDay(facts.latestRead);
   return (
     <main className="font-sans text-ink">
-      <Hero label="For suppliers" h1="Claim your factory's record." lede="Buyers in the UK, EU, US and Canada see it today. Check it, flag what is out of date, answer RFQs." actions={false} count={count}>
-        <div className="flex flex-wrap items-center gap-4">
-          <ButtonLink href="/signup?role=supplier" prefetch={false} kind="primary" size="lg" className="max-sm:h-input-touch">
+      <Hero
+        label="For suppliers"
+        h1="Claim your factory's record."
+        lede="Buyers in the UK, EU, US and Canada see it today. Check it, flag what is out of date, answer RFQs."
+        actions={false}
+        count={count}
+        stage={
+          <figure className="flex flex-col gap-3">
+            <Stage still="cutting-table" eager>
+              <Image src="/site/records-overview.png" alt="A supplier record as a buyer sees it: sanctions, certificates, safety, workers and sources at the top, then the key facts, each with where it came from." width={1440} height={900} sizes="(min-width: 1440px) 1152px, 100vw" priority className="h-auto w-full rounded-frame border border-ink-strong/10 shadow-lg" />
+            </Stage>
+            <figcaption className="text-sm text-ink-subtle">
+              Real screen · what buyers see today on Aboni Knitwear Ltd., a real public record
+              {count ? ` · ${count} published suppliers${updated ? ` · updated ${updated}` : ""}` : ""}
+            </figcaption>
+          </figure>
+        }
+      >
+        <div className="flex flex-wrap items-center justify-center gap-2.5">
+          <ButtonLink href="/signup?role=supplier" prefetch={false} kind="primary" size="lg" className="h-12 rounded-frame px-5 text-site-body">
             Start your claim
           </ButtonLink>
-          <A href="/contact">Book a demo</A>
+          <TextLink href="/contact" className="px-4">
+            Book a demo
+          </TextLink>
         </div>
-        <figure className="flex flex-col gap-3 pt-6">
-          <Image src="/site/records-overview.png" alt="A supplier record as a buyer sees it: sanctions, certificates, safety, workers and sources at the top, then the key facts, each with where it came from." width={1440} height={900} sizes="(min-width: 1200px) 1100px, 100vw" className="h-auto w-full rounded-lg border border-line shadow-dialog" />
-          <figcaption className="text-sm text-ink-3">
-            Real screen · what buyers see today on Aboni Knitwear Ltd., a real public record
-            {count ? ` · ${count} published suppliers${updated ? ` · updated ${updated}` : ""}` : ""}
-          </figcaption>
-        </figure>
       </Hero>
 
       <Section label="01 · Why claim" headline="Buyers already look you up." tone="subtle">
@@ -378,7 +384,7 @@ export function ForSuppliers({ facts }: { facts: SiteFacts }) {
         </div>
       </Section>
 
-      <Close headline="Your record is already public. Claim it." lede="Claiming is free. Buyers can also start here." />
+      <Closing headline="Your record is already public. Claim it." lede="Claiming is free. Buyers can also start here." />
     </main>
   );
 }
@@ -410,10 +416,10 @@ export function About({ facts }: { facts: SiteFacts }) {
     <main className="font-sans text-ink">
       <Hero label="Company · About" h1="Built for buyers who check." lede="We make every fact about a Bangladesh garment supplier checkable: the source, the number, the date." count={count} />
 
-      <section aria-labelledby="where" className="bg-subtle py-20 max-md:py-12">
-        <div className={cn(wrap, "flex flex-col gap-8")}>
+      <section aria-labelledby="where" className="bg-surface py-14 md:py-section">
+        <div className={cn(measure, "flex flex-col gap-8")}>
           <div className="flex flex-col gap-2">
-            <h2 id="where" className="font-mono text-base text-ink-3 max-sm:text-sm">
+            <h2 id="where" className="text-site-body font-medium text-ink-subtle">
               Bangladesh only · where the suppliers are
             </h2>
             <p className="text-sm text-ink-3">Published suppliers by district · counted 3 Oct 2026</p>

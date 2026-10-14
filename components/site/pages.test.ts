@@ -51,7 +51,8 @@ describe("the product and solutions pages", () => {
   it("every screen exists on disk and has alt text and a caption that says what kind of screen it is", () => {
     for (const [key, p] of Object.entries(PAGES)) {
       const out = page(key);
-      const imgs = [...out.matchAll(/<img[^>]*>/g)].map((m) => m[0]);
+      // The textile stills behind the screens are decoration (alt=""); every screen says what it shows.
+      const imgs = [...out.matchAll(/<img[^>]*>/g)].map((m) => m[0]).filter((i) => !/src="\/site\/home\//.test(i));
       assert.ok(imgs.length >= 1, key);
       for (const i of imgs) {
         assert.match(i, /alt="[^"]{20,}"/, `${key} alt`);

@@ -2,13 +2,15 @@
 // because Paper draws them as one: a label, a one-line promise, the search and the two calls to action, a real screen
 // of the product, then numbered sections that each say one thing and show the screen that proves it, and a close.
 // Every screen is a real v4 capture (`public/site/*.png`, taken 3 Oct 2026); the RFQ and quote screens hold sample
-// figures and say so under the picture. The statement draft is not in the product yet and is marked that way.
+// figures and say so under the picture. Laid out in the home page's look (M1): a centred hero over the product on a
+// textile stage, then rows of text beside the screen that proves it.
 // The figure and date in the hero come from the site's live facts and are left out when they were not read.
 
 import Image from "next/image";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Close, Display, HeroActions, Label, Lede, Section, wrap } from "@/components/site/parts";
+import { FeatureRow, HeroActions, HeroCentered, Label, Section, Stage, measure, type StillName } from "@/components/site/sections/ui";
+import { Closing } from "@/components/site/sections/closing";
 import { readDay, withCommas, type SiteFacts } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
 
@@ -29,14 +31,19 @@ type Page = {
   close: string;
 };
 
-function Figure({ shot }: { shot: Shot }) {
+/** A real screen on a textile stage, the caption under it. */
+function Figure({ shot, still, sizes = "(min-width: 1440px) 1152px, 100vw", eager = false }: { shot: Shot; still: StillName; sizes?: string; eager?: boolean }) {
   return (
     <figure className="flex flex-col gap-3">
-      <Image src={shot.src} alt={shot.alt} width={1440} height={900} sizes="(min-width: 1200px) 1100px, 100vw" className="h-auto w-full rounded-lg border border-line shadow-dialog" />
-      <figcaption className="text-sm text-ink-3">{shot.caption}</figcaption>
+      <Stage still={still} eager={eager}>
+        <Image src={shot.src} alt={shot.alt} width={1440} height={900} sizes={sizes} priority={eager} className="h-auto w-full rounded-frame border border-ink-strong/10 shadow-lg" />
+      </Stage>
+      <figcaption className="text-sm text-ink-subtle">{shot.caption}</figcaption>
     </figure>
   );
 }
+
+const STILLS: StillName[] = ["weave", "thread-cones", "selvedge", "carton"];
 
 const shot = (name: string, alt: string, caption: string): Shot => ({ src: `/site/${name}.png`, alt, caption });
 
@@ -235,44 +242,46 @@ export function SitePage({ pageKey, facts }: { pageKey: string; facts: SiteFacts
   const h1 = count ? p.h1.replace("{n}", count) : p.h1.includes("{n}") ? p.h1Plain : p.h1;
   return (
     <main className="font-sans text-ink">
-      <section className="pb-20 pt-20 max-md:pb-10 max-md:pt-10">
-        <div className={cn(wrap, "flex flex-col gap-10")}>
-          <div className="flex flex-col gap-6">
-            <Label>
-              {p.group} · {p.name}
-            </Label>
-            <Display level={1} as="h1" className="max-w-[880px]">
-              {h1}
-            </Display>
-            <Lede>{p.lede}</Lede>
-            <HeroActions />
+      <HeroCentered
+        label={`${p.group} · ${p.name}`}
+        title={h1}
+        lede={p.lede}
+        stage={
+          <div className="flex flex-col gap-3">
+            <Figure shot={p.hero} still="hero-cotton" eager />
+            {count ? (
+              <p className="text-sm text-ink-subtle">
+                {count} published suppliers{updated ? ` · updated ${updated}` : ""}
+              </p>
+            ) : null}
           </div>
-          <Figure shot={p.hero} />
-          {count ? (
-            <p className="text-sm text-ink-3">
-              {count} published suppliers{updated ? ` · updated ${updated}` : ""}
-            </p>
-          ) : null}
-        </div>
-      </section>
+        }
+      >
+        <HeroActions center />
+      </HeroCentered>
 
-      {p.blocks.map((b, i) => (
-        <Section key={b.headline} label={b.n ? `${b.n} · ${b.label}` : b.label} headline={b.headline} lede={b.lede} tone={i % 2 === 0 ? "subtle" : "plain"} className="py-20 max-md:py-12">
-          {b.shot ? <Figure shot={b.shot} /> : null}
-          {b.extra}
-        </Section>
-      ))}
+      {p.blocks.map((b, i) =>
+        b.shot ? (
+          <FeatureRow key={b.headline} label={b.n ? `${b.n} · ${b.label}` : b.label} headline={b.headline} lede={b.lede} flip={i % 2 === 1} tone={i % 2 === 0 ? "subtle" : "paper"} media={<Figure shot={b.shot} still={STILLS[i % STILLS.length]!} sizes="(min-width: 1440px) 720px, 100vw" />}>
+            {b.extra}
+          </FeatureRow>
+        ) : (
+          <Section key={b.headline} label={b.n ? `${b.n} · ${b.label}` : b.label} headline={b.headline} lede={b.lede} tone={i % 2 === 0 ? "subtle" : "paper"}>
+            {b.extra}
+          </Section>
+        ),
+      )}
 
       {p.outcome ? (
-        <section className="border-t border-line py-20 max-md:py-12">
-          <div className={cn(wrap, "flex flex-col gap-4")}>
+        <section className="py-14 md:py-section">
+          <div className={cn(measure, "flex flex-col items-center gap-4 text-center")}>
             <Label>The outcome</Label>
-            <p className="max-w-[880px] text-3xl font-semibold tracking-tighter text-ink [text-wrap:balance] max-sm:text-2xl">{p.outcome}</p>
+            <p className="max-w-[880px] text-site-h2-sm font-light text-ink-strong [text-wrap:balance] md:text-site-h2">{p.outcome}</p>
           </div>
         </section>
       ) : null}
 
-      <Close headline={p.close} lede="Free during beta. No card needed." />
+      <Closing headline={p.close} lede="Free during beta. No card needed." />
     </main>
   );
 }

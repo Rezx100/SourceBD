@@ -12,7 +12,8 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Button, ButtonLink, Sheet } from "@/components/kit";
 import { cn } from "@/lib/utils";
-import { HomeIcon } from "./home/icons";
+import { HomeIcon } from "./sections/icons";
+import { Wordmark, measure, ring } from "./sections/ui";
 import { PRODUCT, RESOURCES, SOLUTIONS, type NavItem } from "./map";
 
 type Menu = "product" | "solutions" | "resources";
@@ -22,14 +23,13 @@ const MENUS: { key: Menu; label: string }[] = [
   { key: "resources", label: "Resources" },
 ];
 
-const ring = "outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 /** One list per menu, drawn by the desktop panel and the phone sheet alike, so the two cannot send a visitor to different places. */
 export const MENU_ITEMS: Record<Menu, readonly NavItem[]> = { product: PRODUCT, solutions: SOLUTIONS, resources: RESOURCES };
 
 function Item({ item }: { item: NavItem }) {
   return (
-    <Link href={item.href} prefetch={false} className={cn("flex flex-col gap-0.5 rounded-lg p-3 hover:bg-brand-wash", ring)}>
+    <Link href={item.href} prefetch={false} className={cn("flex flex-col gap-0.5 rounded-lg p-3 hover:bg-sunken", ring)}>
       <span className="flex items-center gap-2.5 text-md font-medium text-ink">
         {item.icon ? <HomeIcon name={item.icon} size={20} className="text-ink" /> : null}
         {item.title}
@@ -41,7 +41,7 @@ function Item({ item }: { item: NavItem }) {
 
 function Panel({ menu }: { menu: Menu }) {
   return (
-    <div className="mx-auto flex max-w-[1440px] gap-1 px-10 pb-8 pt-6">
+    <div className={cn(measure, "flex gap-1 pb-8 pt-6")}>
       {MENU_ITEMS[menu].map((i) => (
         <Item key={i.href} item={i} />
       ))}
@@ -84,11 +84,9 @@ export function SiteNav() {
   return (
     <header className="relative z-raised border-b border-line bg-surface font-sans">
       <nav ref={bar} aria-label="Main" className="relative" onMouseLeave={() => setOpen(null)}>
-        <div className="mx-auto flex h-[72px] max-w-[1440px] items-center justify-between px-6 lg:px-10">
+        <div className={cn(measure, "flex h-[72px] items-center justify-between")}>
           <div className="flex items-center gap-12">
-            <Link href="/" className={cn("flex items-center text-lg font-semibold tracking-tight text-brand-ink max-sm:min-h-11", ring)}>
-              SourceBD
-            </Link>
+            <Wordmark className="flex items-center max-sm:min-h-11" />
             <ul className="flex items-center gap-1 max-lg:hidden">
               {MENUS.map((m) => (
                 <li key={m.key}>
