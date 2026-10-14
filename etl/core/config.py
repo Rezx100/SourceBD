@@ -48,6 +48,9 @@ class Settings(BaseSettings):
 
     # Barikoi location services (Rupantor geocode cache backfill).
     # Accepts the historical BRIKOI_API_KEY spelling as a fallback.
+    # Claude, for labelling supplier website pictures (etl/jobs/site_images_classify.py).
+    anthropic_api_key: str = Field(default="")
+
     barikoi_api_key: str = Field(default="")
     brikoi_api_key: str = Field(default="")
 
