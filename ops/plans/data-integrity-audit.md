@@ -115,8 +115,13 @@ missing. **S4** untidy. Inside a level, most published companies first.
   details itself (`strip_contact_text()`): every public function now reads register addresses through a view that
   strips them, the entries themselves stay as filed, and the company's own address is cleaned once (3 rows) and
   kept clean by a trigger. Dry run on production, rolled back: 71 entry addresses carry a contact detail as filed,
-  0 through the public view; 3 company addresses cleaned, 0 left. Not applied: the founder said "apply 0153"
-  three times on 14 Oct 2026 and the confirmation prompt for it was declined each time, so production is unchanged.
+  0 through the public view; 3 company addresses cleaned, 0 left.
+- **Applied on production, 14 Oct 2026** (the founder's "apply 0153"), through the Supabase connector's
+  `apply_migration` in one piece, after earlier attempts that day were declined at the confirmation prompt.
+  Read back: 71 entry addresses carry a contact as filed (`v_supplier_addresses_filed`), 0 through the public
+  view, 0 company addresses; a visitor can neither read `v_supplier_addresses_direct` nor call
+  `strip_contact_text()`; the trigger is on. Signed out against the live database API
+  (`ops/audit_endpoints.py --only company`): "contact filed in an address" ok on all five, 0 FAIL.
 
 ### S1-5. A safety-register entry filed under a different company's name
 
