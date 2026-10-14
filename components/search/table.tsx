@@ -59,6 +59,17 @@ export type ResultSort = { key: "workers" | "sources" | string; dir: "asc" | "de
 /** "Gazipur" from "Gazipur, Dhaka": the row's place is the town, then its district (`placeLabel`); the cell says the town. */
 const townOf = (place: string) => place.split(",")[0]!.trim();
 
+/** A plain figure as it is; a range ("1,050–1,900", `rangeWords`) as its low end with a plus, the range in `title` and for a screen reader. */
+function Workers({ figure }: { figure: string }) {
+  const dash = figure.indexOf("–");
+  if (dash < 0) return <>{figure}</>;
+  return (
+    <span title={`${figure} workers`}>
+      {figure.slice(0, dash)}+<span className="sr-only"> ({figure})</span>
+    </span>
+  );
+}
+
 export function ResultsTable({
   rows,
   currentSlug,
@@ -171,7 +182,7 @@ export function ResultsTable({
                 <Td className="max-w-0 text-ink">{r.place ? <span title={r.place} className={oneLine}>{townOf(r.place)}</span> : <Unpublished />}</Td>
                 {/* The record's own figure alone: a second source's figure is on the record (founder, 14 Oct 2026). A company with buildings has a range; the cell says its low end with a plus, the range in `title` (founder, 15 Oct 2026). */}
                 <Td align="right" className="whitespace-nowrap tabular-nums text-ink">
-                  {r.workers ? r.workers.includes("–") ? <span title={`${r.workers} workers`}>{r.workers.slice(0, r.workers.indexOf("–"))}+</span> : r.workers : <Unpublished />}
+                  {r.workers ? <Workers figure={r.workers} /> : <Unpublished />}
                 </Td>
                 {/* The schemes held today by name; one whose certificate has ended is not among them (founder, 15 Oct 2026: no state pill in the list, the record has every date). A holder whose every certificate has ended is a dash that says so; `r.cert` is null only when none is on file. */}
                 <Td className="py-1.5">{r.held?.length ? <HeldMarks held={r.held} words /> : <Unpublished>{r.cert ? ABSENT.certificatesLapsed : ABSENT.certificates}</Unpublished>}</Td>

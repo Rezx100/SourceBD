@@ -406,7 +406,7 @@ describe("the results table", () => {
   it("no cell wraps (founder, 15 Oct 2026: a range, a two-town place and the certificates each ran to two lines)", () => {
     const two = plain(h(ResultsTable, { rows: [row({ workers: "1,300–2,200", place: "Dhaka, Narayanganj" })], sort: { key: "workers", dir: "desc" }, sortHrefs }));
     // A company with buildings: the range's low end with a plus, the range in title (founder, 15 Oct 2026), in a cell that cannot break; the column is 112 wide. The HTTP-boundary guard pins the class string's tail (`tabular-nums text-ink">`) on a plain figure.
-    assert.match(two, /<td class="[^"]*whitespace-nowrap tabular-nums text-ink"><span title="1,300–2,200 workers">1,300\+<\/span><\/td>/);
+    assert.match(two, /<td class="[^"]*whitespace-nowrap tabular-nums text-ink"><span title="1,300–2,200 workers">1,300\+<span class="sr-only"> \(1,300–2,200\)<\/span><\/span><\/td>/);
     assert.match(out, /<td class="[^"]*whitespace-nowrap tabular-nums text-ink">3,166<\/td>/, "a plain figure is the cell's own words, no plus, no title");
     assert.match(two, /<th [^>]*class="[^"]*\bw-28\b/);
     // The town alone, the whole place in title (founder, 15 Oct 2026: "only show the place name the supplier actually resides on"); one line, cut at the cell's edge; the column is 160 wide.
