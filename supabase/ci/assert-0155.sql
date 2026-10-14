@@ -57,8 +57,17 @@ begin
     raise exception 'a mill with a plain entry beside a suspended one lost its BTMA tile';
   end if;
 
-  -- The registry filter and the match reason read the flag.
-  foreach fn in array array['discover_v32_passes', 'buyer_smart_match'] loop
+  -- The registry filter, run: the suspended mill is out, the plain member and the mill holding both are in.
+  if exists (select 1 from public.discover_suppliers(p_registries => array['BTMA'], p_limit => 1000) d where d.slug = 'ci-0155-suspended') then
+    raise exception 'the BTMA filter still returns a mill whose only entry is suspended';
+  end if;
+  if (select count(*) from public.discover_suppliers(p_registries => array['BTMA'], p_limit => 1000) d
+       where d.slug in ('ci-0155-member', 'ci-0155-both')) <> 2 then
+    raise exception 'the BTMA filter lost a member';
+  end if;
+
+  -- The match reason reads the same flag.
+  foreach fn in array array['buyer_smart_match'] loop
     if position('and vp.verified' in pg_get_functiondef(('public.' || fn)::regproc)) = 0 then
       raise exception '% counts a membership without reading verified', fn;
     end if;

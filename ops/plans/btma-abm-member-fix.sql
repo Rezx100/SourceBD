@@ -4,8 +4,13 @@
 -- btmadhaka.com/wp-content/uploads/2026/10/, page 3) files it as general member no. 10, with the same
 -- address, telephone, mailbox and capacity as our entry. The copy we read on 21 May 2026 had it alone
 -- under "Mills Under Implementation" (a mill still being built), inside the heading "Mills Under
--- Suspension / Mills Under Implementation", and the importer read both words as suspended
--- (etl/scrapers/btma_spinning.py, fixed in the same PR: implementation alone is no status).
+-- Suspension / Mills Under Implementation", and the importer read both words as suspended.
+-- (etl/scrapers/btma_spinning.py now reads implementation alone as no status, but that does not reach
+-- ABM: the May extract files it under the combined heading.)
+--
+-- DO NOT re-run btma_spinning on the May 2026 extract in etl/raw/btma_spinning/pages: the entry is
+-- latest-wins on the same source_ref and would come back suspended. The next BTMA load is a new
+-- extract of the 7 Oct 2026 list, which has no implementation heading.
 --
 -- The other 91 suspended entries are filed under "Mills Under Suspension" on the new list too; the
 -- new list adds one mill we do not hold (Humaira & Mahiya Rotor Spinning Mills). Comparison in

@@ -102,7 +102,8 @@ missing. **S4** untidy. Inside a level, most published companies first.
   `abm-spinning-mills` is general member no. 10 now (our copy had it alone under "Mills Under Implementation", which
   the importer read as suspended); Humaira & Mahiya Rotor Spinning Mills is newly suspended and not in our database.
   The 4 new general members and the associate list were not loaded: that needs a new extract of the scan.
-- **Your call, 14 Oct 2026: the 79 stay published, labelled, and stop counting as BTMA members.** Built:
+- **Your call, 14 Oct 2026: the mills published on a suspended entry alone stay published, labelled, and stop
+  counting as BTMA members** (asked as "the 79"; counted by entry below, 69 after ABM). Built:
   `supabase/migrations/0155_btma_suspended_not_member.sql` (a suspended entry is not `verified`; the card's tile, the
   registry filter and the match reason read that; the record still lists the entry with its status), the trust score
   (`etl/scoring/runner.py`: a company whose only BTMA entries are suspended gets no BTMA credit), the importer
@@ -111,7 +112,9 @@ missing. **S4** untidy. Inside a level, most published companies first.
   BTMA tile; ABM's page drops "under suspension" and shows no. 10. Counted again by entry, 14 Oct 2026: 87 companies
   hold a suspended entry; 76 hold nothing but suspended BTMA entries (70 of them published on BTMA alone, 69 after
   ABM); 11 also hold a plain BTMA entry (BTMA files them in both sections) and keep their membership. The "80" above
-  counted those 11 in. 0155, the ABM fix and the score rewrite each wait for "apply".
+  counted those 11 in. 0155, the ABM fix and the score rewrite each wait for "apply". Not re-run: btma_spinning on
+  the May extract (it would put ABM back under suspension). Still counting a suspended-only mill: the card's top
+  tier and source count (`source_tags`), the MSA statement's register counts and the marketing figures.
 
 ### S1-4. Phone numbers and mailboxes inside address text, open to a signed-out visitor through the database API
 
