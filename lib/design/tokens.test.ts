@@ -795,4 +795,6 @@ test("cn keeps every token size beside an ink and lets a token radius replace an
   const { cn } = require("@/lib/utils") as typeof import("@/lib/utils");
   for (const k of Object.keys(fontSize)) assert.equal(cn("text-surface", `text-${k}`), `text-surface text-${k}`, `text-${k}`);
   for (const k of Object.keys(borderRadius).filter((k) => k !== "DEFAULT")) assert.equal(cn("rounded-full", `rounded-${k}`), `rounded-${k}`, `rounded-${k}`);
+  // A named height gives way to a caller's (the marketing buttons measured 40px on a phone, not their 48).
+  for (const k of Object.keys(spacing)) assert.equal(cn(`h-${k}`, "h-12"), "h-12", `h-${k}`);
 });

@@ -134,7 +134,7 @@ export function Section({ id, label, headline, lede, children, tone = "paper", c
 export function FeatureRow({ label, headline, lede, children, media, flip = false, tone = "paper" }: { label?: ReactNode; headline: ReactNode; lede?: ReactNode; children?: ReactNode; media: ReactNode; flip?: boolean; tone?: "paper" | "subtle" }) {
   return (
     <section className={cn("py-14 md:py-section", tone === "subtle" && "bg-surface")}>
-      <div className={cn(measure, "grid items-center gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16")}>
+      <div className={cn(measure, "grid items-center gap-10 lg:gap-16", flip ? "lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]" : "lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]")}>
         <div className={cn("flex flex-col gap-5", flip && "lg:order-2")}>
           {label ? <Label>{label}</Label> : null}
           <H2>{headline}</H2>
