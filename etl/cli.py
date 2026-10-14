@@ -260,6 +260,24 @@ def site_images_cmd(
     )))
 
 
+@app.command("site-images-classify")
+def site_images_classify_cmd(
+    limit: int = typer.Option(0, help="Send only this many sites (0 = every site without a verdict)."),
+    domain: str = typer.Option("", help="Send just this one site."),
+    force: bool = typer.Option(False, help="Ask again for sites that already have a verdict."),
+) -> None:
+    """Claude labels each site's pictures: own logo, product photo, or neither.
+
+    Writes verdicts to Bunny only. Sure answers are approved or rejected; the
+    rest wait for the founder's review. Resumes sent batches on a rerun.
+    """
+    import argparse
+
+    from etl.jobs.site_images_classify import run as run_classify
+
+    asyncio.run(run_classify(argparse.Namespace(limit=limit, domain=domain or None, force=force)))
+
+
 @app.command("process-webhooks")
 def process_webhooks_cmd(
     limit: int = typer.Option(100, help="Process at most N pending deliveries."),
