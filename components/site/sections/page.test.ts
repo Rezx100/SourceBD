@@ -121,7 +121,7 @@ describe("the Mercury home page", () => {
     // The closed items' lines are hidden by class as well as by attribute: a display class would otherwise win (first recording, 14 Oct).
     const panels = [...out.matchAll(/<div id="tour-item-[a-z]+"( hidden="")? class="([^"]*)"/g)];
     assert.equal(panels.length, 4);
-    for (const [, hiddenAttr, cls] of panels) assert.equal(cls.split(" ").includes("hidden"), hiddenAttr !== undefined, cls);
+    for (const [, hiddenAttr, cls = ""] of panels) assert.equal(cls.split(" ").includes("hidden"), hiddenAttr !== undefined, cls);
     for (const w of ["Find", "Check", "Ask", "Watch"]) assert.match(t, new RegExp(`\\b${w}\\b`));
     assert.match(out, /href="\/product\/search"[^>]*>See how/);
     assert.ok((t.match(/Real records as read \d{1,2} [A-Z][a-z]{2} \d{4}/g) ?? []).length >= 5, "the pinned demo and the four stacked ones are dated");
