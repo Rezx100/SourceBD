@@ -221,10 +221,10 @@ describe("the certificate line of a row", () => {
     assert.deepEqual(exportedOf(cells, "c", true), { value: null, to: ["EU"] });
     assert.equal(exportedOf(cells, "b", true), null, "a record with neither a value nor a market has nothing to draw");
     assert.equal(exportedOf(null, "a", true), undefined, "a read that failed claims nothing");
-    // The markets alone, when the record holds no value.
+    // A record with markets but no value: the table says so in words (the markets are the record's business).
     const out = plain(h(ResultsTable, { rows: [row({ exported: { value: null, to: ["EU"] } })], sort: { key: "workers", dir: "desc" }, sortHrefs }));
-    assert.match(words(out), /Ships to the EU EU /);
-    assert.doesNotMatch(out, /w-\[76px\]/);
+    assert.match(words(out), /Value not on file/);
+    assert.doesNotMatch(out, /Ships to|w-\[76px\]/);
   });
 
   it("a row says the two products that answer the search first, and how many more it filed", () => {
@@ -244,17 +244,23 @@ describe("the certificate line of a row", () => {
 });
 
 describe("the results table", () => {
-  const out = plain(h(SelectionProvider, { pageIds: rows.map((r) => r.supplierId) }, h(ResultsTable, { rows, sort: { key: "workers", dir: "desc" }, sortHrefs })));
+  const out = plain(h(SelectionProvider, { pageIds: rows.map((r) => r.supplierId) }, h(ResultsTable, { rows, sort: { key: "workers", dir: "desc" }, sortHrefs, q: "knit" })));
+  /** The cell's words with the lit marks closed up, so "Knit|wear" reads as one word again. */
+  const text = (s: string) => words(s.replace(/<\/?mark[^>]*>/g, ""));
 
-  it("is a real table with Paper's columns, the sorted one marked, and the name opens the record in the pane", () => {
+  it("is a real table with the founder's columns of 14 Oct 2026, the sorted one marked, and the name opens the record in the pane", () => {
     assert.match(out, /<table/);
-    // Paper page 37, board 07b: the heads carry the words. Type and Sources are not columns.
+    // The list answers "which do I open": the brand lists and the markets are the record's business. Type is not a column.
     const heads = [...out.matchAll(/<th scope="col"[^>]*>([\s\S]*?)<\/th>/g)].map((m) => words(m[1]!).trim()).filter(Boolean);
-    assert.deepEqual(heads, ["Supplier", "Location", "Workers", "On the supplier list of", "Exported in 2 years · ships to", "Certificates", "Actions"]);
+    assert.deepEqual(heads, ["Supplier", "Location", "Workers", "Certificates", "Exported in 2 years", "Sources", "Actions"]);
     assert.match(out, /aria-sort="descending"/);
-    // The source count still orders the list, from the Sort menu, with no column of its own.
     assert.equal((out.match(/aria-sort="(ascending|descending)"/g) ?? []).length, 1);
+    // The source count is a column again, so the Sources sort is marked on its head once the page gives it a link.
     assert.doesNotMatch(plain(h(ResultsTable, { rows, sort: { key: "sources", dir: "desc" }, sortHrefs })), /aria-sort="(ascending|descending)"/);
+    const bySources = plain(h(ResultsTable, { rows, sort: { key: "sources", dir: "desc" }, sortHrefs: { ...sortHrefs, sources: "/app/discover?q=knit&sort=sources" } }));
+    assert.match(bySources, /aria-sort="descending"/);
+    assert.match(bySources, /href="\/app\/discover\?q=knit&sort=sources"/, "Sources sorts the search");
+    assert.match(out, /<td class="[^"]*text-right[^"]*">11<\/td>/, "the source count is a cell");
     assert.match(out, /href="\/app\/discover\?q=knit&sort=workers"/, "Workers sorts the search");
     assert.equal(hrefOf(out, "Aboni Knitwear Ltd."), "/app/discover?q=knit&record=aboni-knitwear");
     assert.ok(out.includes('data-open="record"'));
@@ -286,11 +292,12 @@ describe("the results table", () => {
     assert.equal(out.match(new RegExp(`title="${ZAHEEN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`, "g"))?.length, 1, "one title with the whole name");
     // Round 3, item 6: no aria-label on the row (it silenced the cells); the name link says the whole name.
     assert.doesNotMatch(out, /<tr [^>]*aria-label=/, "an aria-label on a row replaces its cells for a screen reader");
-    assert.match(out, new RegExp(`<span aria-hidden="true">Zaheen Knitwears Limited</span><span class="sr-only">${ZAHEEN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}</span>`), "the name link does not carry the whole name");
+    // The lit "Knit" sits inside the visible base name; the screen reader's copy is the whole name, unlit.
+    assert.match(out, new RegExp(`<span aria-hidden="true">Zaheen <mark [^>]*>Knit</mark>wears Limited</span><span class="sr-only">${ZAHEEN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}</span>`), "the name link does not carry the whole name");
     const cell = /<td class="[^"]*max-w-0[^"]*">([\s\S]*?)<\/td>/g;
     const zaheen = [...out.matchAll(cell)].map((m) => m[1]!).find((c) => c.includes("Zaheen"))!;
     assert.ok(zaheen, "no name cell for Zaheen");
-    assert.match(zaheen, /data-name=""[^>]*><span aria-hidden="true">Zaheen Knitwears Limited</, "the link's visible words are the base name alone");
+    assert.match(zaheen, /data-name=""[^>]*><span aria-hidden="true">Zaheen <mark [^>]*>Knit<\/mark>wears Limited</, "the link's visible words are the base name alone");
     assert.match(zaheen, /<span data-name="" title="Unit - 3, 4, 5, 10, 11, 12, 13 · Division - Security, ETP and Fire Pump"[^>]*>Unit - 3/, "the qualifier leads the second line");
     assert.equal(zaheen.match(/data-name=""/g)?.length, 2, "two lines, never a third");
     for (const m of zaheen.matchAll(/data-name=""[^>]*class="([^"]*)"/g)) assert.match(m[1]!, /\boverflow-hidden\b.*\bwhitespace-nowrap\b.*\[text-overflow:ellipsis\]/, "the cut is the deliberate one-line cut");
@@ -300,34 +307,49 @@ describe("the results table", () => {
     assert.ok(!/\btruncate\b|text-ellipsis|line-clamp/.test(out));
   });
 
-  it("certificates are the marks of what it holds today and nothing else: no state, no pill, and one that has ended is left out", () => {
-    // Founder, 12 Oct 2026: how long a certificate has left is the record's business; one that has ended is like one never held.
-    const cells = [...out.matchAll(/<td class="[^"]*">(<span class="inline-flex items-center gap-2"><span class="sr-only">Certificates held:[\s\S]*?)<\/td>/g)].map((m) => m[1]!);
-    assert.equal(cells.length, 2, "one cell of marks per row that holds a certificate");
-    const [aboni, sm] = cells;
-    // WRAP lapsed four days ago and is not drawn. GOTS (about to lapse) and OEKO-TEX are; SA8000 has no approved
-    // mark (`context/logos.lock.md`: no row, no render), so it is counted.
-    assert.deepEqual([...aboni!.matchAll(/src="\/icons\/sources\/cert\/([a-z-]+)\.png"/g)].map((m) => m[1]), ["gots", "oeko-tex"]);
-    assert.match(aboni!, />\+1<\/span>/);
-    assert.ok(!aboni!.includes(">SA8000<"), "a body with no approved mark is drawn");
-    // No mark stands without its name: a screen reader hears each body once.
-    assert.match(aboni!, /<span class="sr-only">Certificates held: GOTS, SA8000 and OEKO-TEX Standard 100<\/span>/);
-    assert.match(sm!, /<span class="sr-only">Certificates held: WRAP<\/span>/);
-    // Nothing about time left, on any row: no lit mark, no popover, no words of state.
-    assert.doesNotMatch(out, /data-lit=|aria-haspopup="dialog"|Expire[sd]|Valid (to|until)|lapsed/);
+  it("certificates: the worst one first, its body and its state in words, then how many more; nothing held is a dash", () => {
+    // Founder, 14 Oct 2026: "Expired 3 Aug 2026" is the one fact that decides whether a buyer opens a record at all.
+    const cells = [...out.matchAll(/<td class="[^"]*py-1\.5[^"]*">([\s\S]*?)<\/td>/g)].map((m) => m[1]!);
+    assert.equal(cells.length, rows.length, "one certificates cell per row");
+    const [aboni, zaheen, sm] = cells;
+    // Aboni's worst is WRAP, lapsed four days ago: its mark, then the state, then the three others as a count.
+    assert.deepEqual([...aboni!.matchAll(/src="\/icons\/sources\/cert\/([a-z-]+)\.png"/g)].map((m) => m[1]), ["wrap"]);
+    assert.match(aboni!, />Expired 29 Sep<\/span>/);
+    assert.match(aboni!, />\+3 more<\/span>/);
+    // The whole line for a screen reader and the title, once each; the marks say nothing on their own.
+    assert.match(aboni!, /<span class="sr-only">WRAP expired 29 Sep 2026 · 3 more certificates<\/span>/);
+    assert.match(aboni!, /title="WRAP expired 29 Sep 2026 · 3 more certificates"/);
+    // One certificate: its state and no count.
+    assert.match(sm!, />Valid to Jan 2027<\/span>/);
+    assert.doesNotMatch(sm!, /more</);
     // Nothing held is a dash in the cell, the words behind it for a screen reader.
-    assert.match(out, /<span class="text-sm text-ink-3" title="No certificates on file"><span aria-hidden="true">–<\/span><span class="sr-only">No certificates on file<\/span><\/span>/);
+    assert.match(zaheen!, /<span class="text-sm text-ink-3" title="No certificates on file"><span aria-hidden="true">–<\/span><span class="sr-only">No certificates on file<\/span><\/span>/);
     assert.ok(!out.includes("No certificates found"));
+    // No popover: the record's Certificates tab has every one with its date.
+    assert.doesNotMatch(out, /aria-haspopup="dialog"/);
   });
 
-  it("a row answers before the click: what it makes under the name, the brands that list it, and an empty cell is a dash", () => {
+  it("a row answers before the click: what it makes under the name with the search's words lit, and an empty cell is a dash", () => {
     const cell = /<td class="[^"]*max-w-0[^"]*">([\s\S]*?)<\/td>/g;
     const [aboni, zaheen] = [...out.matchAll(cell)].map((m) => m[1]!);
-    assert.match(words(aboni!), /^ ?Aboni Knitwear Ltd\. Knit T-shirts, Polo shirts \+7 ?$/);
+    // The lit name for the eye, then the whole name once for a screen reader, then what it makes.
+    assert.match(text(aboni!), /^ ?Aboni Knitwear Ltd\. Aboni Knitwear Ltd\. Knit T-shirts, Polo shirts \+7 ?$/);
+    assert.match(aboni!, /<span aria-hidden="true">Aboni <mark [^>]*>Knit<\/mark>wear Ltd\.<\/span><span class="sr-only">Aboni Knitwear Ltd\.<\/span>/);
     assert.match(aboni!, /<span data-products="" title="Knit T-shirts, Polo shirts"/);
+    // "knit" is lit where it answers: at a word start in the name and in a product, and nowhere else.
+    assert.match(aboni!, /<mark [^>]*>Knit<\/mark> T-shirts/);
+    assert.equal((aboni!.match(/<mark /g) ?? []).length, 2);
+    const unlit = plain(h(ResultsTable, { rows, sort: { key: "workers", dir: "desc" }, sortHrefs }));
+    assert.doesNotMatch(unlit, /<mark /, "no search, nothing lit");
+    assert.match(unlit, /data-open="record"[^>]*>Aboni Knitwear Ltd\.</, "with nothing lit a short name is the link's own words");
+    // One-letter terms are not terms (as `matchedProducts` ranks): "s m knit" lights "Knit" alone, never every S and M.
+    const sm = plain(h(ResultsTable, { rows, sort: { key: "workers", dir: "desc" }, sortHrefs, q: "s m knit" }));
+    assert.doesNotMatch(sm, /<mark [^>]*>(S|M|Sourcing|Polo|shirts)</);
+    assert.match(sm, /<mark [^>]*>Knit<\/mark> T-shirts/);
+    assert.doesNotMatch(plain(h(ResultsTable, { rows, sort: { key: "workers", dir: "desc" }, sortHrefs, q: "s" })), /<mark /);
     assert.doesNotMatch(zaheen!, /data-products/, "a supplier that filed no product has an invented line");
-    assert.match(out, /<td class="[^"]*">H&M, NEXT<\/td>/);
-    assert.match(out, /<span class="text-sm text-ink-3" title="On none of the brand lists read"><span aria-hidden="true">–<\/span>/);
+    // The brand lists are the record's business (founder, 14 Oct 2026): no column, no dash for them.
+    assert.doesNotMatch(out, /H&M, NEXT|brand lists/);
     // "Factory" goes unsaid; a buying house is said before what it makes, in the table and in the list.
     assert.doesNotMatch(out, />Factory</);
     const house = row({ type: "Buying house" });
@@ -337,10 +359,13 @@ describe("the results table", () => {
     assert.equal((out.match(/<tr [^>]*class="[^"]*\bh-16\b/g) ?? []).length, rows.length);
   });
 
-  it("the exports column: the value then the markets for a reader who may see them, a lock with no figure for one who may not, a dash for no record", () => {
-    const shown = /<td class="[^"]*">(<span class="flex items-center gap-2"><span class="w-\[76px\][\s\S]*?)<\/td>/.exec(out)?.[1] ?? "";
-    assert.match(words(shown), /^ ?US\$76\.6m Ships to the EU, the US, the UK and Canada EU US UK CA ?$/, "the value, then the four codes, biggest share first");
-    assert.equal((shown.match(/aria-hidden="true" class="flex h-\[18px\]/g) ?? []).length, 4, "the codes are for the eye; the sentence is for a screen reader");
+  it("the exports column: the value alone for a reader who may see it, a lock with no figure for one who may not, a dash for no record", () => {
+    const shown = /<td class="[^"]*">(<span class="text-\[15px\]\/\[20px\] font-medium">[\s\S]*?)<\/td>/.exec(out)?.[1] ?? "";
+    assert.match(words(shown), /^ ?US\$76\.6m ?$/, "the value, and nothing else");
+    // The markets are the record's business (founder, 14 Oct 2026): not a code, not a sentence.
+    assert.doesNotMatch(out, /Ships to/);
+    // A record with markets on file but no value says so, instead of a blank or a dash.
+    assert.match(plain(h(ResultsTable, { rows: [row({ exported: { value: null, to: ["EU"] } })], sort: { key: "workers", dir: "desc" }, sortHrefs })), />Value not on file</);
     // Free: the row says a record exists and where it is sold, and nothing of what it holds (founder, 13 Oct 2026).
     const locked = /<td class="[^"]*">(<span title="Customs records are on the Growth and Enterprise plans"[\s\S]*?)<\/td>/.exec(out)?.[1] ?? "";
     assert.match(words(locked), /^ ?On Growth : customs records are on the Growth and Enterprise plans ?$/);
@@ -363,9 +388,10 @@ describe("the results table", () => {
     assert.match(sanctioned, /Sample Garments Ltd/);
   });
 
-  it("two worker figures stay two: the record's own and the other beside it, with its source in the title", () => {
-    const two = plain(h(ResultsTable, { rows: [row({ workers: "3,314", workersSecond: { short: "3,166 RSC", words: "3,166 workers · RSC inspection" } })], sort: { key: "sources", dir: "desc" }, sortHrefs }));
-    assert.ok(two.includes("3,314") && /3,166 <span[^>]*data-define="RSC"[^>]*>RSC<\/span>/.test(two) && two.includes('title="3,166 workers · RSC inspection"'));
+  it("one worker figure: the record's own; a second source's figure is the record's business (founder, 14 Oct 2026)", () => {
+    const one = plain(h(ResultsTable, { rows: [row({ workers: "3,314", workersSecond: { short: "3,166 RSC", words: "3,166 workers · RSC inspection" } })], sort: { key: "sources", dir: "desc" }, sortHrefs }));
+    assert.ok(one.includes("3,314"));
+    assert.doesNotMatch(one, /3,166|RSC inspection/);
   });
 });
 
@@ -1020,11 +1046,11 @@ describe("the pane list is a ledger too (critique of 8 Oct 2026, round 3, item 2
 });
 
 describe("the help layer in the results (critique of 8 Oct 2026, round 3, item 5)", () => {
-  it("the Workers cell's second figure names its source as a defined term, and the exports column says what its figures are", () => {
-    const out = plain(h(SelectionProvider, { pageIds: ["x"] }, h(ResultsTable, { rows: [row({ supplierId: "x", workersSecond: { short: "793 RSC", words: "793 workers by RSC's count" } })], sort: { key: "sources", dir: "desc" }, sortHrefs })));
-    assert.match(out, /793 <span tabindex="0" data-define="RSC"[^>]*>RSC<\/span>/);
-    assert.match(out, /<th [^>]*title="From customs records of the last two years on file: the export value, then the markets it ships to, biggest share first"/);
-    assert.match(out, /<th [^>]*title="The brands whose own published supplier lists name this company"/);
+  it("the column heads say what their figures are: the exports value, the worst certificate, the source count", () => {
+    const out = plain(h(SelectionProvider, { pageIds: ["x"] }, h(ResultsTable, { rows: [row({ supplierId: "x" })], sort: { key: "sources", dir: "desc" }, sortHrefs })));
+    assert.match(out, /<th [^>]*title="From customs records of the last two years on file: the export value\. The record's Exports tab has the markets and the shipments"/);
+    assert.match(out, /<th [^>]*title="The certificate nearest to lapsing, or lapsed, and how many more it holds"/);
+    assert.match(out, /<th [^>]*title="Registers and certifiers that hold this company"/);
   });
 });
 

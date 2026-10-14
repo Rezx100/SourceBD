@@ -1,11 +1,15 @@
 "use client";
 
-// The results table with no record open (Paper page 37, board 07b): select, Supplier with the two
-// products that answer the search under its name, Location, Workers, the brands whose supplier lists
-// name it, what it exported in two years and where to, then the certificates it holds today as marks.
+// The results table with no record open (founder's cut of 14 Oct 2026, from the Paper page 37 table):
+// select, Supplier with the two products that answer the search under its name, Location, Workers,
+// the worst certificate in words, what it exported in two years, how many sources hold it, then the
+// row's ⋯ menu. The list only has to answer "which of these do I open": the receipts (the second
+// worker figure, the source marks, the markets, the brand lists) are the record's business, one click
+// away in the pane. The search's terms are lit where they match, in the name and in the products, so
+// the reason a row is on the page is seen, not said.
 // A real <table>, head 36 and sticky, rows 64. The column heads carry the words, the rows only values,
-// and an empty cell is a dash. Type and Sources are not columns (founder, 12 Oct 2026): the type is on
-// the record and the source count still orders the list from the Sort menu.
+// and an empty cell is a dash. Type is not a column: "Factory" goes unsaid, anything else is said
+// before what it makes.
 // A name is one line (the One-Line Name Rule): the base name cut at the end with the whole name in
 // `title` and the row's accessible name, its qualifier (a shed, a building, a group) on the line
 // under. The name opens the record in the pane;
@@ -18,40 +22,31 @@ import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared
 import Link from "next/link";
 import { startTransition, useContext, useEffect, useState, type ReactNode } from "react";
 import { ABSENT, LinkPending, SanctionTag, sanctionRowClass } from "@/components/patterns";
-import { Define, IconButton, Menu, MenuItem, SelectCell, Table, Td, Th, Toast, Tr, Unpublished, oneLine, rowLinkClass, toastActionClass, type SortState } from "@/components/kit";
+import { IconButton, Menu, MenuItem, SelectCell, Table, Td, Th, Toast, Tr, Unpublished, oneLine, rowLinkClass, toastActionClass, type SortState } from "@/components/kit";
 import { splitQualifier } from "@/lib/dashboard/facts";
-import { define } from "@/lib/dashboard/glossary";
 import { rowSaveMessage } from "@/lib/dashboard/selection";
 import { cn } from "@/lib/utils";
 import { onRowKey } from "./keys";
 import type { ResultRow } from "./model";
-import { ExportedLocked, HeldMarks, Products, ShipsTo } from "./row-parts";
+import { CertStateCell, ExportedLocked, Hit, Products } from "./row-parts";
 import { SELECT_ALL_ID, useSelection } from "./selection";
 
-/** What the exports column's figures are, said on its head. */
-export const EXPORTED_TITLE = "From customs records of the last two years on file: the export value, then the markets it ships to, biggest share first";
-
-/** "793 RSC": the figure, then its source as a defined term when the glossary holds it. */
-export function SecondFigure({ short }: { short: string }) {
-  const m = /^(.*\S)\s+(\S+)$/.exec(short);
-  if (!m || !define(m[2]!)) return <>{short}</>;
-  return (
-    <>
-      {`${m[1]} `}
-      <Define term={m[2]!} />
-    </>
-  );
-}
+/** What the exports column's figure is, said on its head. */
+export const EXPORTED_TITLE = "From customs records of the last two years on file: the export value. The record's Exports tab has the markets and the shipments";
 
 /**
  * The visible base name, with the whole name for a screen reader when they differ: the row has no
  * `aria-label` (it silenced the cells), so the name link carries the whole name (round 3, item 6).
+ * `q` lights the search's terms in the visible name.
  */
-export function WholeName({ name, base }: { name: string; base: string }) {
-  if (base === name) return <>{base}</>;
+export function WholeName({ name, base, q }: { name: string; base: string; q?: string | null }) {
+  // A lit name is for the eye: a screen reader hears the whole name once, with no "highlighted" mid-word.
+  if (base === name && !q) return <>{base}</>;
   return (
     <>
-      <span aria-hidden="true">{base}</span>
+      <span aria-hidden="true">
+        <Hit text={base} q={q} />
+      </span>
       <span className="sr-only">{name}</span>
     </>
   );
@@ -65,6 +60,7 @@ export function ResultsTable({
   sort,
   sortHrefs,
   exportsHead,
+  q,
 }: {
   rows: readonly ResultRow[];
   /** The exports view (an exports filter or sort is on): its column's head ("Average shipment") and the sorted figure, in the exports column. */
@@ -73,17 +69,18 @@ export function ResultsTable({
   currentSlug?: string | null;
   sort: ResultSort;
   /** The page sorted by each column that sorts: strings, since this is a client component and the page a server one. */
-  sortHrefs: { workers: string; name?: string };
+  sortHrefs: { workers: string; name?: string; sources?: string };
+  /** The search's words, lit where a name or a product answers them. */
+  q?: string | null;
 }) {
   const sel = useSelection();
-  // A column sorts from its head when its cells show what it sorts by: the name and the workers. The source count and
-  // the soonest certificate expiry order the list from the Sort menu, which names them.
-  const state = (key: "workers" | "name"): SortState => (sort.key === key ? sort.dir : "none");
+  // A column sorts from its head when its cells show what it sorts by: the name, the workers and the source count.
+  const state = (key: "workers" | "name" | "sources"): SortState => (sort.key === key ? sort.dir : "none");
   const { save, toast } = useRowSave();
   // Not a tab stop (critique of 8 Oct 2026, item 7: two Tabs before the first name): the rows are.
   return (
     <div role="region" aria-label="Results table" className="relative min-w-0 overflow-x-auto xl:overflow-visible">
-      <Table className="min-w-[980px]">
+      <Table className="min-w-[1000px]">
         <thead>
           <tr>
             <SelectCell
@@ -102,20 +99,20 @@ export function ResultsTable({
             <Th align="right" className="w-24" sort={state("workers")} href={sortHrefs.workers}>
               Workers
             </Th>
-            <Th className="w-[150px]" title="The brands whose own published supplier lists name this company">
-              On the supplier list of
+            <Th className="w-[260px]" title="The certificate nearest to lapsing, or lapsed, and how many more it holds">
+              Certificates
             </Th>
             {exportsHead ? (
               <Th className="w-[250px]" title="Export shipment records, Sep 2024 – Aug 2026">
                 {exportsHead}
               </Th>
             ) : (
-              <Th className="w-[250px]" title={EXPORTED_TITLE}>
-                Exported in 2 years · ships to
+              <Th className="w-[150px]" title={EXPORTED_TITLE}>
+                Exported in 2 years
               </Th>
             )}
-            <Th className="w-[110px]" title="Certificates held today">
-              Certificates
+            <Th align="right" className="w-[90px]" title="Registers and certifiers that hold this company" sort={sortHrefs.sources ? state("sources") : undefined} href={sortHrefs.sources}>
+              Sources
             </Th>
             <th scope="col" className="sticky top-0 z-raised h-row-head w-10 border-b border-line bg-subtle p-0">
               <span className="sr-only">Actions</span>
@@ -147,7 +144,7 @@ export function ResultsTable({
                 {/* `max-w-0`: the column keeps the header's width and the name is cut inside it, instead of the cell growing to the name. */}
                 <Td className="max-w-0">
                   <Link href={r.paneHref} prefetch={false} scroll={false} data-open="record" data-name="" title={r.name} className={cn(rowLinkClass, oneLine, "text-[15px]/[20px] font-semibold")}>
-                    <WholeName name={r.name} base={base} />
+                    <WholeName name={r.name} base={base} q={q} />
                     <LinkPending className="ml-1.5 inline-block align-[-2px]" />
                   </Link>
                   {qualifier ? (
@@ -159,7 +156,7 @@ export function ResultsTable({
                   {r.products || r.type !== "Factory" ? (
                     <span className="flex items-baseline gap-x-[5px] pt-0.5">
                       {r.type !== "Factory" ? <span className="shrink-0 whitespace-nowrap text-sm text-ink-3">{r.products ? `${r.type} ·` : r.type}</span> : null}
-                      {r.products ? <Products products={r.products} /> : null}
+                      {r.products ? <Products products={r.products} q={q} /> : null}
                     </span>
                   ) : null}
                   {r.sanctioned ? (
@@ -169,15 +166,11 @@ export function ResultsTable({
                   ) : null}
                 </Td>
                 <Td className="text-ink">{r.place ?? <Unpublished />}</Td>
+                {/* The record's own figure alone: a second source's figure is on the record (founder, 14 Oct 2026). */}
                 <Td align="right" className="tabular-nums text-ink">
                   {r.workers ?? <Unpublished />}
-                  {r.workersSecond ? (
-                    <span title={r.workersSecond.words} className="block text-xs text-ink-3">
-                      <SecondFigure short={r.workersSecond.short} />
-                    </span>
-                  ) : null}
                 </Td>
-                <Td className="text-ink">{r.brands?.length ? r.brands.join(", ") : <Unpublished>On none of the brand lists read</Unpublished>}</Td>
+                <Td className="py-1.5">{r.certCell ? <CertStateCell cert={r.certCell} /> : <Unpublished>{ABSENT.certificates}</Unpublished>}</Td>
                 <Td className="tabular-nums text-ink">
                   {exportsHead ? (
                     r.exports ? (
@@ -189,10 +182,12 @@ export function ResultsTable({
                   ) : r.exported === "locked" ? (
                     <ExportedLocked />
                   ) : r.exported ? (
-                    <span className="flex items-center gap-2">
-                      {r.exported.value ? <span className="w-[76px] shrink-0 text-[15px]/[20px] font-medium">{r.exported.value}</span> : null}
-                      <ShipsTo to={r.exported.to} />
-                    </span>
+                    r.exported.value ? (
+                      <span className="text-[15px]/[20px] font-medium">{r.exported.value}</span>
+                    ) : (
+                      // A record with markets but no value on file: it exported, and the record says where.
+                      <span className="text-sm text-ink-2">Value not on file</span>
+                    )
                   ) : r.exported === null ? (
                     <Unpublished>No customs records on file</Unpublished>
                   ) : (
@@ -200,7 +195,9 @@ export function ResultsTable({
                     <Unpublished>{ABSENT.unread}</Unpublished>
                   )}
                 </Td>
-                <Td>{r.held?.length ? <HeldMarks held={r.held} /> : <Unpublished>{ABSENT.certificates}</Unpublished>}</Td>
+                <Td align="right" className="tabular-nums text-ink">
+                  {r.sources}
+                </Td>
                 <td className="w-10 border-b border-line p-0 text-center align-middle">
                   <RowActions r={r} save={save} />
                 </td>

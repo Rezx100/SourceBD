@@ -82,15 +82,13 @@ describe("one certificate component", () => {
     assert.doesNotMatch(read("patterns", "certificate.tsx"), /rounded-full|rounded-sm px/);
   });
 
-  it("Saved calls CertSummaryCell; the desktop results draw the marks held today and nothing else; CertProblem is gone", () => {
+  it("Saved calls CertSummaryCell; the results table says the worst certificate, the list beside a pane draws the marks held today; CertProblem is gone", () => {
     assert.match(read("saved", "table.tsx"), /CertSummaryCell/);
-    // Paper page 37 (founder, 12 Oct 2026): in the results a certificate's time left is the record's business,
-    // so the table and the list beside a pane draw marks only, with no state to light up and nothing to reveal.
-    for (const f of [["search", "table.tsx"], ["search", "pane-rows.tsx"]] as const) {
-      const src = read(...f);
-      assert.match(src, /<HeldMarks held=\{r\.held\}/, f.join("/"));
-      assert.doesNotMatch(src, /CertSummaryCell/, f.join("/"));
-    }
+    // Founder, 14 Oct 2026: the table says the worst certificate's state in words (it decides whether a buyer opens
+    // the record). The list beside a pane keeps the marks held today (founder, 12 Oct 2026); neither reveals a popover.
+    assert.match(read("search", "table.tsx"), /<CertStateCell cert=\{r\.certCell\}/);
+    assert.match(read("search", "pane-rows.tsx"), /<HeldMarks held=\{r\.held\}/);
+    for (const f of [["search", "table.tsx"], ["search", "pane-rows.tsx"]] as const) assert.doesNotMatch(read(...f), /CertSummaryCell/, f.join("/"));
     for (const f of [["search", "table.tsx"], ["search", "pane-rows.tsx"], ["saved", "table.tsx"]] as const) assert.doesNotMatch(read(...f), /CertProblem/, f.join("/"));
     assert.doesNotMatch(read("patterns", "index.ts"), /CertProblem/);
     assert.doesNotMatch(read("patterns", "certificate.tsx"), /export function CertProblem/);
@@ -107,7 +105,8 @@ describe("Saved keeps its ledger; the results are Paper page 37's table", () => 
     const saved = widths(read("saved", "table.tsx"));
     assert.deepEqual(
       results.map(([h]) => h),
-      ["Supplier", "Location", "Workers", "On the supplier list of", "Exported in 2 years · ships to", "Certificates"],
+      // The founder's cut of 14 Oct 2026: the brand lists and the markets are the record's business; Sources is a column again.
+      ["Supplier", "Location", "Workers", "Certificates", "Exported in 2 years", "Sources"],
     );
     assert.deepEqual(saved, [["Supplier", "w-80"], ["Type", "w-[120px]"], ["Location", "w-[140px]"], ["Workers", "w-[110px]"], ["Sources", "w-[90px]"], ["Certificates", null], ["Saved on", saved.at(-1)![1]]]);
     // Workers is 110 in Saved: at 100 "Not published" wrapped and the rows alternated 40 and 57px.
