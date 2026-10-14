@@ -113,8 +113,8 @@ export function DemoRfq({ className }: { className?: string }) {
                       </span>
                     }
                   >
-                    <span className={bulkActionClass()}>Save</span>
-                    <span className={bulkActionClass()}>Download CSV</span>
+                    <span className={cn(bulkActionClass(), "[@container_(max-width:639px)]:hidden")}>Save</span>
+                    <span className={cn(bulkActionClass(), "[@container_(max-width:639px)]:hidden")}>Download CSV</span>
                     <span data-cursor="send-rfq" className={bulkActionClass(true)}>
                       Send RFQ to {s.ticked} {s.ticked === 1 ? "supplier" : "suppliers"}
                     </span>

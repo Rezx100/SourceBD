@@ -162,7 +162,8 @@ export function PinnedTour() {
                       <HomeIcon name={t.icon} size={20} className={on ? "text-ink-strong" : "text-ink-subtle"} />
                       {t.title}
                     </button>
-                    <div id={`tour-item-${t.key}`} hidden={!on} className="flex flex-col gap-3 pb-5 pl-8">
+                    {/* `hidden` alone loses to a display class, so the class says it too (seen in the first recording: all four open). */}
+                    <div id={`tour-item-${t.key}`} hidden={!on} className={cn("flex-col gap-3 pb-5 pl-8", on ? "flex" : "hidden")}>
                       <p className="max-w-[440px] text-site-body text-ink-muted">{t.body}</p>
                       <TextLink href={t.href} className="min-h-8">
                         See how
