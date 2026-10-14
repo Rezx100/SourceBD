@@ -17,7 +17,7 @@ import { ABSENT, certShort, certWords } from "@/components/patterns";
 const ROOTS = ["search", "saved", "record", "patterns", "kit", "compliance", "rfqs", "messages", "discover", "frame"];
 const RETIRED = ["No certificates found", "None found", "No expiry given", "No expiry date published", "Not set yet", "Source not linked", "Nothing on file yet"];
 /** Allowed only through `ABSENT`: a literal of these outside words.ts is a second spelling waiting to drift. */
-const ONLY_VIA_ABSENT = ["Issuer not published", "Nothing to check", "Not dated", "No certificates on file"];
+const ONLY_VIA_ABSENT = ["Issuer not published", "Nothing to check", "Not dated", "No certificates on file", "Every certificate on file has expired"];
 
 function sources(): [string, string][] {
   const out: [string, string][] = [];
@@ -64,6 +64,7 @@ describe("one word for nothing on file", () => {
   it("'Not listed' (a finding) and 'Not read just now' (a failed check) are kept, and are not in the absence set", () => {
     assert.equal(ABSENT.unread, "Not read just now");
     assert.ok(!Object.values(ABSENT).includes("Not listed" as never));
-    assert.equal(Object.keys(ABSENT).length, 10);
+    // Eleven since 15 Oct 2026: "Every certificate on file has expired" (the results table draws only those held today).
+    assert.equal(Object.keys(ABSENT).length, 11);
   });
 });

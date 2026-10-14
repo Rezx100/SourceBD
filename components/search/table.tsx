@@ -1,38 +1,43 @@
 "use client";
 
-// The results table with no record open (founder's cut of 14 Oct 2026, from the Paper page 37 table):
-// select, Supplier with the two products that answer the search under its name, Location, Workers,
-// the worst certificate in words, what it exported in two years, how many sources hold it, then the
-// row's ⋯ menu. The list only has to answer "which of these do I open": the receipts (the second
-// worker figure, the source marks, the markets, the brand lists) are the record's business, one click
-// away in the pane. The search's terms are lit where they match, in the name and in the products, so
-// the reason a row is on the page is seen, not said.
+// The results table with no record open (founder's cut of 14 Oct 2026, from the Paper page 37 table,
+// and his round 2 of 15 Oct 2026): select, Supplier with the two products that answer the search under
+// its name, Location, Workers, the certificate schemes it holds today by name, what it exported in two
+// years and where it ships, how many sources hold it, then Save and Open. The list only has to
+// answer "which of these do I open": the receipts (the second worker figure, the source marks, each
+// certificate's date, the brand lists) are the record's business, one click away in the pane. The
+// search's terms are lit where they match, in the name and in the products, so the reason a row is on
+// the page is seen, not said.
 // A real <table>, head 36 and sticky, rows 64. The column heads carry the words, the rows only values,
-// and an empty cell is a dash. Type is not a column: "Factory" goes unsaid, anything else is said
+// and an empty cell is a dash; no cell wraps (round 2: a place, a workers range and the certificates
+// each ran to two lines). Type is not a column: "Factory" goes unsaid, anything else is said
 // before what it makes.
 // A name is one line (the One-Line Name Rule): the base name cut at the end with the whole name in
 // `title` and the row's accessible name, its qualifier (a shed, a building, a group) on the line
 // under. The name opens the record in the pane;
 // arrows move between rows, Enter opens, Space ticks. Hover is brand-wash, a ticked row
-// brand-tint with the 2px bar. Every row ends in the ⋯ menu Saved's rows have (Save, Send RFQ,
-// Open full page), so the two tables share one grammar. Client: it reads the selection and handles the keys.
+// brand-tint with the 2px bar. Every row ends in a Save bookmark and an Open-as-a-page link
+// (founder, 15 Oct 2026, in place of the ⋯ menu), seen while the row is hovered, focused or
+// selected and always on a touch screen; Send RFQ is the selection bar's. The pane list and
+// Saved keep the ⋯ menu. Client: it reads the selection and handles the keys.
 
-import { DotsThree } from "@phosphor-icons/react";
+import { ArrowSquareOut, DotsThree } from "@phosphor-icons/react";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import Link from "next/link";
 import { startTransition, useContext, useEffect, useState, type ReactNode } from "react";
 import { ABSENT, LinkPending, SanctionTag, sanctionRowClass } from "@/components/patterns";
-import { IconButton, Menu, MenuItem, SelectCell, Table, Td, Th, Toast, Tr, Unpublished, oneLine, rowLinkClass, toastActionClass, type SortState } from "@/components/kit";
+import { IconButton, Menu, MenuItem, SelectCell, Table, Td, Th, Toast, Tr, Unpublished, buttonClass, oneLine, rowLinkClass, toastActionClass, type SortState } from "@/components/kit";
+import { RecordSave } from "@/components/record/save-button";
 import { splitQualifier } from "@/lib/dashboard/facts";
 import { rowSaveMessage } from "@/lib/dashboard/selection";
 import { cn } from "@/lib/utils";
 import { onRowKey } from "./keys";
 import type { ResultRow } from "./model";
-import { CertStateCell, ExportedLocked, Hit, Products } from "./row-parts";
+import { ExportedLocked, HeldMarks, Hit, Products, ShipsTo } from "./row-parts";
 import { SELECT_ALL_ID, useSelection } from "./selection";
 
 /** What the exports column's figure is, said on its head. */
-export const EXPORTED_TITLE = "From customs records of the last two years on file: the export value. The record's Exports tab has the markets and the shipments";
+export const EXPORTED_TITLE = "From customs records of the last two years on file: the export value and the markets it ships to. The record's Exports tab has the shipments";
 
 /**
  * The visible base name, with the whole name for a screen reader when they differ: the row has no
@@ -76,11 +81,11 @@ export function ResultsTable({
   const sel = useSelection();
   // A column sorts from its head when its cells show what it sorts by: the name, the workers and the source count.
   const state = (key: "workers" | "name" | "sources"): SortState => (sort.key === key ? sort.dir : "none");
-  const { save, toast } = useRowSave();
   // Not a tab stop (critique of 8 Oct 2026, item 7: two Tabs before the first name): the rows are.
   return (
     <div role="region" aria-label="Results table" className="relative min-w-0 overflow-x-auto xl:overflow-visible">
-      <Table className="min-w-[1000px]">
+      {/* The fixed columns sum to 918 (select 40, Location 160, Workers 112, Certificates 260, Exports 180, Sources 90, actions 76), so the floor keeps Supplier 240 or more. It is what fits at xl, where the region stops scrolling: 1280 − 64 (the rail below 2xl) − 48 (the page's px-6) = 1168; a floor over that would spill past the region instead of scrolling. */}
+      <Table className="min-w-[1160px]">
         <thead>
           <tr>
             <SelectCell
@@ -95,11 +100,11 @@ export function ResultsTable({
             <Th sort={sortHrefs.name ? state("name") : undefined} href={sortHrefs.name}>
               Supplier
             </Th>
-            <Th className="w-[130px]">Location</Th>
-            <Th align="right" className="w-24" sort={state("workers")} href={sortHrefs.workers}>
+            <Th className="w-[160px]">Location</Th>
+            <Th align="right" className="w-28" sort={state("workers")} href={sortHrefs.workers}>
               Workers
             </Th>
-            <Th className="w-[260px]" title="The certificate nearest to lapsing, or lapsed, and how many more it holds">
+            <Th className="w-[260px]" title="The certificate schemes it holds today; their dates are on the record's Certificates tab">
               Certificates
             </Th>
             {exportsHead ? (
@@ -107,14 +112,14 @@ export function ResultsTable({
                 {exportsHead}
               </Th>
             ) : (
-              <Th className="w-[150px]" title={EXPORTED_TITLE}>
+              <Th className="w-[180px]" title={EXPORTED_TITLE}>
                 Exported in 2 years
               </Th>
             )}
             <Th align="right" className="w-[90px]" title="Registers and certifiers that hold this company" sort={sortHrefs.sources ? state("sources") : undefined} href={sortHrefs.sources}>
               Sources
             </Th>
-            <th scope="col" className="sticky top-0 z-raised h-row-head w-10 border-b border-line bg-subtle p-0">
+            <th scope="col" className="sticky top-0 z-raised h-row-head w-[76px] border-b border-line bg-subtle p-0">
               <span className="sr-only">Actions</span>
             </th>
           </tr>
@@ -165,12 +170,14 @@ export function ResultsTable({
                     </div>
                   ) : null}
                 </Td>
-                <Td className="text-ink">{r.place ?? <Unpublished />}</Td>
+                {/* One line, the name cell's way (`max-w-0`: the column keeps the head's width): a long place ("Dhaka, Narayanganj") is cut at the cell's edge with the whole in `title`, never a second line. */}
+                <Td className="max-w-0 text-ink">{r.place ? <span title={r.place} className={oneLine}>{r.place}</span> : <Unpublished />}</Td>
                 {/* The record's own figure alone: a second source's figure is on the record (founder, 14 Oct 2026). */}
-                <Td align="right" className="tabular-nums text-ink">
+                <Td align="right" className="whitespace-nowrap tabular-nums text-ink">
                   {r.workers ?? <Unpublished />}
                 </Td>
-                <Td className="py-1.5">{r.certCell ? <CertStateCell cert={r.certCell} /> : <Unpublished>{ABSENT.certificates}</Unpublished>}</Td>
+                {/* The schemes held today by name; one whose certificate has ended is not among them (founder, 15 Oct 2026: no state pill in the list, the record has every date). A holder whose every certificate has ended is a dash that says so; `r.cert` is null only when none is on file. */}
+                <Td className="py-1.5">{r.held?.length ? <HeldMarks held={r.held} words /> : <Unpublished>{r.cert ? ABSENT.certificatesLapsed : ABSENT.certificates}</Unpublished>}</Td>
                 <Td className="tabular-nums text-ink">
                   {exportsHead ? (
                     r.exports ? (
@@ -182,12 +189,16 @@ export function ResultsTable({
                   ) : r.exported === "locked" ? (
                     <ExportedLocked />
                   ) : r.exported ? (
-                    r.exported.value ? (
-                      <span className="text-[15px]/[20px] font-medium">{r.exported.value}</span>
-                    ) : (
-                      // A record with markets but no value on file: it exported, and the record says where.
-                      <span className="text-sm text-ink-2">Value not on file</span>
-                    )
+                    <>
+                      {r.exported.value ? (
+                        <span className="text-[15px]/[20px] font-medium">{r.exported.value}</span>
+                      ) : (
+                        // A record with markets but no value on file: it exported, and the row says where.
+                        <span className="text-sm text-ink-2">Value not on file</span>
+                      )}
+                      {/* Where it ships, under the figure (founder, 15 Oct 2026: "include the ships to data"); only an entitled reader's row carries markets. */}
+                      <ShipsTo to={r.exported.to} label="ships to" className="mt-0.5 flex" />
+                    </>
                   ) : r.exported === null ? (
                     <Unpublished>No customs records on file</Unpublished>
                   ) : (
@@ -198,16 +209,39 @@ export function ResultsTable({
                 <Td align="right" className="tabular-nums text-ink">
                   {r.sources}
                 </Td>
-                <td className="w-10 border-b border-line p-0 text-center align-middle">
-                  <RowActions r={r} save={save} />
+                <td className="w-[76px] border-b border-line p-0 align-middle">
+                  <RowEnd r={r} />
                 </td>
               </Tr>
             );
           })}
         </tbody>
       </Table>
-      {toast}
     </div>
+  );
+}
+
+/**
+ * Seen while the row is hovered, holds focus, or is selected (`Tr` is `group/row` and sets
+ * `aria-selected` for a ticked row and the open record alike); never `hidden`, so a Tab stop and a
+ * screen reader always have them, and always shown where there is no hover to reveal them.
+ */
+const rowControl = "opacity-0 transition-opacity duration-fast group-hover/row:opacity-100 group-focus-within/row:opacity-100 group-aria-selected/row:opacity-100 [@media(hover:none)]:opacity-100";
+
+/**
+ * The row's end: Save (the record's own bookmark, saves and unsaves, `aria-pressed`, a toast) and Open
+ * (the record as a page; the name opens it in the pane). `data-action="save"` is the `s` key's target
+ * (keys.ts); the hidden RFQ link keeps `r` working, Send RFQ otherwise lives in the selection bar.
+ */
+function RowEnd({ r }: { r: ResultRow }) {
+  return (
+    <span className="flex items-center justify-center gap-1">
+      {r.supplierId ? <RecordSave supplierId={r.supplierId} saved={r.saved} appearance="icon" size={32} kind="quiet" data-action="save" className={rowControl} /> : null}
+      <Link href={r.pageHref} prefetch={false} aria-label={`Open ${r.name} as a page`} title="Open as a page" className={cn(buttonClass({ kind: "quiet", size: "icon-32" }), rowControl)}>
+        <ArrowSquareOut size={20} className="shrink-0" aria-hidden />
+      </Link>
+      {r.rfqHref ? <Link href={r.rfqHref} prefetch={false} scroll={false} data-action="rfq" tabIndex={-1} aria-hidden className="hidden" /> : null}
+    </span>
   );
 }
 
