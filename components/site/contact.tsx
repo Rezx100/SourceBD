@@ -1,10 +1,10 @@
-// Contact sales (B9e; Paper `30 Marketing · Contact sales`): what we can cover, beside the form that emails the founder.
+// Book a demo (B9e; Paper `30 Marketing · Contact sales`): what we can cover, beside the form that emails the founder.
 
 import { ContactForm } from "@/components/site/contact-form";
 import { Display, Label, Lede, wrap } from "@/components/site/parts";
 import { cn } from "@/lib/utils";
 
-export const CONTACT_META = { path: "/contact", title: "Contact sales — SourceBD", description: "Book a demo or ask a question. Your message goes to the founder by email: a walk through search and records, your compliance checks, or Enterprise terms." };
+export const CONTACT_META = { path: "/contact", title: "Book a demo — SourceBD", description: "Book a demo or ask a question. Your message goes to the founder by email: a walk through search and records, your compliance checks, or Enterprise terms." };
 
 const COVER: [string, string][] = [
   ["A walk through search and records", "On your own product and HS codes, with real suppliers."],
@@ -19,9 +19,9 @@ export function Contact() {
         <div className={cn(wrap, "grid gap-16 lg:grid-cols-[1fr_minmax(0,520px)] max-lg:gap-10")}>
           <div className="flex flex-col gap-10">
             <div className="flex flex-col gap-6">
-              <Label>Company · Contact sales</Label>
+              <Label>Company · Book a demo</Label>
               <Display level={1} as="h1">
-                Talk to us.
+                Book a demo or ask a question.
               </Display>
               <Lede>Tell us what you buy. Your message goes to the founder by email.</Lede>
             </div>
@@ -38,7 +38,7 @@ export function Contact() {
             </div>
           </div>
           <div className="flex flex-col gap-6 rounded-lg border border-line bg-surface p-8 max-sm:p-5">
-            <h2 className="text-xl font-semibold text-ink">Book a demo or ask a question</h2>
+            <h2 className="text-xl font-semibold text-ink">Your message</h2>
             <ContactForm />
           </div>
         </div>

@@ -311,7 +311,7 @@ const WHY: [string, string][] = [
 
 const STEPS: [string, string][] = [
   ["Find your company", "Search by name or registration number."],
-  ["Open the email we send", "We send a link to your company email. It works for 24 hours."],
+  ["Open the email we send", "You give us an email at your company and we send it a link. It works for 24 hours."],
   ["Approved, or a person checks", "If your email domain matches the company's, the claim is approved at once. If not, a person reviews it."],
 ];
 
@@ -325,7 +325,7 @@ export function ForSuppliers({ facts }: { facts: SiteFacts }) {
           <ButtonLink href="/signup?role=supplier" prefetch={false} kind="primary" size="lg" className="max-sm:h-input-touch">
             Start your claim
           </ButtonLink>
-          <A href="/contact">Talk to us</A>
+          <A href="/contact">Book a demo</A>
         </div>
         <figure className="flex flex-col gap-3 pt-6">
           <Image src="/site/records-overview.png" alt="A supplier record as a buyer sees it: sanctions, certificates, safety, workers and sources at the top, then the key facts, each with where it came from." width={1440} height={900} sizes="(min-width: 1200px) 1100px, 100vw" className="h-auto w-full rounded-lg border border-line shadow-dialog" />

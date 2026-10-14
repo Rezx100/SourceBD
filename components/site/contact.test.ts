@@ -1,4 +1,4 @@
-// The Contact sales page: what we can cover, the form's fields, a honeypot a person never reaches, and no promise of a reply time.
+// The Book a demo page: what we can cover, the form's fields, a honeypot a person never reaches, and no promise of a reply time.
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -13,12 +13,12 @@ const text = (m: string) => m.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded after the test build exists.
 const { Contact } = require("@/components/site/contact") as typeof import("@/components/site/contact");
 
-describe("the Contact sales page", () => {
+describe("the Book a demo page", () => {
   const html = draw(createElement(Contact));
   const t = text(html);
 
   it("says what we can cover and where the message goes", () => {
-    assert.match(t, /Talk to us\./);
+    assert.match(t, /Book a demo or ask a question\./);
     assert.match(t, /Your message goes to the founder by email/);
     for (const s of ["A walk through search and records", "Your compliance checks", "Enterprise terms"]) assert.match(t, new RegExp(s));
     assert.match(t, /Write to sales@sourcebd\.net/);

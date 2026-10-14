@@ -3,7 +3,7 @@
 // figures only when they were read.
 
 import assert from "node:assert/strict";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
@@ -16,6 +16,10 @@ import { NO_FACTS, parseFacts, type SiteFacts } from "@/lib/site-facts";
 const { HomeMercury } = require("@/components/site/home/index") as typeof import("@/components/site/home/index");
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
 const { MENU_ITEMS } = require("@/components/site/nav") as typeof import("@/components/site/nav");
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
+const { TIERS } = require("@/components/site/sources") as typeof import("@/components/site/sources");
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
+const { homeDescription } = require("@/components/site/home/hero") as typeof import("@/components/site/home/hero");
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
 const { Announcement } = require("@/components/site/home/announcement") as typeof import("@/components/site/home/announcement");
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
@@ -52,6 +56,12 @@ describe("the Mercury home page", () => {
     assert.doesNotMatch(signup, /<(input|select|textarea)[^>]*name=/);
     assert.match(out, /href="\/suppliers\/aboni-knitwear"[^>]*>See a real record/);
     assert.match(text(out), /Search is free\. No card needed\. Suppliers claim their record at no cost\./);
+  });
+
+  it("the meta description carries the live count, never a rounded one (audit P2, 14 Oct 2026)", () => {
+    assert.match(homeDescription(10278), /Search 10,278 factories and buying houses/);
+    assert.doesNotMatch(homeDescription(null), /\d/);
+    assert.doesNotMatch(readFileSync(join(process.cwd(), "app/(home)/page.tsx"), "utf8"), /\d+,\d{3}\+/);
   });
 
   it("without a read count the lede says the same thing with no number", () => {
@@ -93,6 +103,23 @@ describe("the Mercury home page", () => {
     const out = page();
     for (const c of ["EPB", "RSC", "BGMEA", "BKMEA", "BTMA", "BGAPMEA", "GOTS", "OEKO-TEX", "WRAP"]) assert.match(out, new RegExp(`>${c}</span>`), c);
     assert.doesNotMatch(out, /bepza|dife/i);
+  });
+
+  it("the ladder is the methodology page's tiers, source for source (audit P2, 14 Oct 2026)", () => {
+    const t = text(page());
+    for (const tier of TIERS) {
+      assert.match(t, new RegExp(`Tier ${tier.n} ${tier.label}`), tier.label);
+      for (const s of tier.ladder.split(", ")) assert.ok(t.includes(s), `${tier.label}: ${s}`);
+    }
+  });
+
+  it("says how a claim is really approved, offers no product editing, and the claim button starts a supplier account (audit P1)", () => {
+    const out = page();
+    const t = text(out);
+    assert.match(t, /If its domain matches the company's, opening our link approves the claim; if not, a person reviews it\./);
+    assert.doesNotMatch(t, /add products|an admin checks/i);
+    for (const m of out.matchAll(/<a [^>]*href="([^"]+)"[^>]*>(?:<[^>]+>)*\s*Claim your record/g)) assert.equal(m[1], "/signup?role=supplier");
+    assert.ok(/href="\/signup\?role=supplier"[^>]*>(?:<[^>]+>)*\s*Claim your record/.test(out), "a claim button");
   });
 
   it("every screen says what it shows, and every backdrop is decoration", () => {

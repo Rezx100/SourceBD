@@ -12,7 +12,7 @@ export const GRID: [IconName, string, string][] = [
   ["team", "Team and roles", "Owner, approver, editor and viewer; invites by email."],
   ["calendar", "Expiry dates", "Every certificate with a date, grouped by when it lapses."],
   ["receipt", "Modern slavery statement", "A section 54 draft composed from your saved suppliers, in your browser."],
-  ["shield", "Evidence pack", "The records behind your saved list, downloaded in one file."],
+  ["shield", "Evidence pack", "Certificates, UFLPA checks and sources for your saved list, in one CSV file."],
   ["bell", "Notifications", "Replies, quotes and expiry alerts by email, each one a setting."],
 ];
 

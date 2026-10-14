@@ -19,6 +19,12 @@ export function heroLede(suppliers: number | null): string {
     : "Search verified Bangladesh garment suppliers. Every fact on a record names the public register it came from and the day we read it.";
 }
 
+/** The home page's meta description: the live published count, as the hero says it, or no number at all (never "10,000+"). */
+export function homeDescription(suppliers: number | null): string {
+  const search = suppliers !== null ? `Search ${withCommas(suppliers)} factories and buying houses` : "Search factories and buying houses";
+  return `Every fact on a Bangladesh garment supplier, with its source and the date we read it. ${search} checked against the registers that list them. No scores. No paid placement.`;
+}
+
 export function HeroCopy({ suppliers, chips }: { suppliers: number | null; chips?: ReactNode }) {
   return (
     <section aria-labelledby="home-title" className={cn(measure, "flex flex-col items-center gap-[18px] pb-7 pt-10 text-center md:gap-7 md:pb-14 md:pt-[104px]")}>
