@@ -1,14 +1,16 @@
 "use client";
 
-// The results table with no record open (founder's cut of 14 Oct 2026, from the Paper page 37 table):
-// select, Supplier with the two products that answer the search under its name, Location, Workers,
-// the worst certificate in words, what it exported in two years, how many sources hold it, then the
-// row's ⋯ menu. The list only has to answer "which of these do I open": the receipts (the second
-// worker figure, the source marks, the markets, the brand lists) are the record's business, one click
-// away in the pane. The search's terms are lit where they match, in the name and in the products, so
-// the reason a row is on the page is seen, not said.
+// The results table with no record open (founder's cut of 14 Oct 2026, from the Paper page 37 table,
+// and his round 2 of 15 Oct 2026): select, Supplier with the two products that answer the search under
+// its name, Location, Workers, the certificate schemes it holds today by name, what it exported in two
+// years and where it ships, how many sources hold it, then the row's ⋯ menu. The list only has to
+// answer "which of these do I open": the receipts (the second worker figure, the source marks, each
+// certificate's date, the brand lists) are the record's business, one click away in the pane. The
+// search's terms are lit where they match, in the name and in the products, so the reason a row is on
+// the page is seen, not said.
 // A real <table>, head 36 and sticky, rows 64. The column heads carry the words, the rows only values,
-// and an empty cell is a dash. Type is not a column: "Factory" goes unsaid, anything else is said
+// and an empty cell is a dash; no cell wraps (round 2: a place, a workers range and the certificates
+// each ran to two lines). Type is not a column: "Factory" goes unsaid, anything else is said
 // before what it makes.
 // A name is one line (the One-Line Name Rule): the base name cut at the end with the whole name in
 // `title` and the row's accessible name, its qualifier (a shed, a building, a group) on the line
@@ -28,11 +30,11 @@ import { rowSaveMessage } from "@/lib/dashboard/selection";
 import { cn } from "@/lib/utils";
 import { onRowKey } from "./keys";
 import type { ResultRow } from "./model";
-import { CertStateCell, ExportedLocked, Hit, Products } from "./row-parts";
+import { ExportedLocked, HeldMarks, Hit, Products, ShipsTo } from "./row-parts";
 import { SELECT_ALL_ID, useSelection } from "./selection";
 
 /** What the exports column's figure is, said on its head. */
-export const EXPORTED_TITLE = "From customs records of the last two years on file: the export value. The record's Exports tab has the markets and the shipments";
+export const EXPORTED_TITLE = "From customs records of the last two years on file: the export value and the markets it ships to. The record's Exports tab has the shipments";
 
 /**
  * The visible base name, with the whole name for a screen reader when they differ: the row has no
@@ -80,7 +82,8 @@ export function ResultsTable({
   // Not a tab stop (critique of 8 Oct 2026, item 7: two Tabs before the first name): the rows are.
   return (
     <div role="region" aria-label="Results table" className="relative min-w-0 overflow-x-auto xl:overflow-visible">
-      <Table className="min-w-[1000px]">
+      {/* The fixed columns sum to 918 (select 40, Location 160, Workers 112, Certificates 260, Exports 180, Sources 90, actions 76), so the floor keeps Supplier 240 or more. It is what fits at xl, where the region stops scrolling: 1280 − 64 (the rail below 2xl) − 48 (the page's px-6) = 1168; a floor over that would spill past the region instead of scrolling. */}
+      <Table className="min-w-[1160px]">
         <thead>
           <tr>
             <SelectCell
@@ -95,11 +98,11 @@ export function ResultsTable({
             <Th sort={sortHrefs.name ? state("name") : undefined} href={sortHrefs.name}>
               Supplier
             </Th>
-            <Th className="w-[130px]">Location</Th>
-            <Th align="right" className="w-24" sort={state("workers")} href={sortHrefs.workers}>
+            <Th className="w-[160px]">Location</Th>
+            <Th align="right" className="w-28" sort={state("workers")} href={sortHrefs.workers}>
               Workers
             </Th>
-            <Th className="w-[260px]" title="The certificate nearest to lapsing, or lapsed, and how many more it holds">
+            <Th className="w-[260px]" title="The certificate schemes it holds today; their dates are on the record's Certificates tab">
               Certificates
             </Th>
             {exportsHead ? (
@@ -107,7 +110,7 @@ export function ResultsTable({
                 {exportsHead}
               </Th>
             ) : (
-              <Th className="w-[150px]" title={EXPORTED_TITLE}>
+              <Th className="w-[180px]" title={EXPORTED_TITLE}>
                 Exported in 2 years
               </Th>
             )}
@@ -165,12 +168,14 @@ export function ResultsTable({
                     </div>
                   ) : null}
                 </Td>
-                <Td className="text-ink">{r.place ?? <Unpublished />}</Td>
+                {/* One line, the name cell's way (`max-w-0`: the column keeps the head's width): a long place ("Dhaka, Narayanganj") is cut at the cell's edge with the whole in `title`, never a second line. */}
+                <Td className="max-w-0 text-ink">{r.place ? <span title={r.place} className={oneLine}>{r.place}</span> : <Unpublished />}</Td>
                 {/* The record's own figure alone: a second source's figure is on the record (founder, 14 Oct 2026). */}
-                <Td align="right" className="tabular-nums text-ink">
+                <Td align="right" className="whitespace-nowrap tabular-nums text-ink">
                   {r.workers ?? <Unpublished />}
                 </Td>
-                <Td className="py-1.5">{r.certCell ? <CertStateCell cert={r.certCell} /> : <Unpublished>{ABSENT.certificates}</Unpublished>}</Td>
+                {/* The schemes held today by name; one whose certificate has ended is not among them (founder, 15 Oct 2026: no state pill in the list, the record has every date). A holder whose every certificate has ended is a dash that says so; `r.cert` is null only when none is on file. */}
+                <Td className="py-1.5">{r.held?.length ? <HeldMarks held={r.held} words /> : <Unpublished>{r.cert ? ABSENT.certificatesLapsed : ABSENT.certificates}</Unpublished>}</Td>
                 <Td className="tabular-nums text-ink">
                   {exportsHead ? (
                     r.exports ? (
@@ -182,12 +187,16 @@ export function ResultsTable({
                   ) : r.exported === "locked" ? (
                     <ExportedLocked />
                   ) : r.exported ? (
-                    r.exported.value ? (
-                      <span className="text-[15px]/[20px] font-medium">{r.exported.value}</span>
-                    ) : (
-                      // A record with markets but no value on file: it exported, and the record says where.
-                      <span className="text-sm text-ink-2">Value not on file</span>
-                    )
+                    <>
+                      {r.exported.value ? (
+                        <span className="text-[15px]/[20px] font-medium">{r.exported.value}</span>
+                      ) : (
+                        // A record with markets but no value on file: it exported, and the row says where.
+                        <span className="text-sm text-ink-2">Value not on file</span>
+                      )}
+                      {/* Where it ships, under the figure (founder, 15 Oct 2026: "include the ships to data"); only an entitled reader's row carries markets. */}
+                      <ShipsTo to={r.exported.to} label="ships to" className="mt-0.5 flex" />
+                    </>
                   ) : r.exported === null ? (
                     <Unpublished>No customs records on file</Unpublished>
                   ) : (

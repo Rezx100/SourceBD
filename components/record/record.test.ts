@@ -772,7 +772,7 @@ describe("the view's rules", () => {
     // Round 3, item 5: the help layer reaches the results and the composer.
     assert.ok(define("FOB"), "FOB has no definition");
     const table = readFileSync(path.join(process.cwd(), "components", "search", "table.tsx"), "utf8");
-    assert.match(table, /<Th className="w-\[150px\]" title=\{EXPORTED_TITLE\}>/, "the exports column's head does not say what its figures are");
+    assert.match(table, /<Th className="w-\[180px\]" title=\{EXPORTED_TITLE\}>/, "the exports column's head does not say what its figures are");
     const composer = readFileSync(path.join(process.cwd(), "components", "rfqs", "composer.tsx"), "utf8");
     assert.match(composer, /<Defined text=\{q\} \/>/, "the questions list does not define its terms");
     const attention = readFileSync(path.join(process.cwd(), "components", "patterns", "attention.tsx"), "utf8");

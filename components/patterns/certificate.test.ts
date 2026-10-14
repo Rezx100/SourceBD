@@ -82,12 +82,13 @@ describe("one certificate component", () => {
     assert.doesNotMatch(read("patterns", "certificate.tsx"), /rounded-full|rounded-sm px/);
   });
 
-  it("Saved calls CertSummaryCell; the results table says the worst certificate, the list beside a pane draws the marks held today; CertProblem is gone", () => {
+  it("Saved calls CertSummaryCell; the results table names the schemes held today, the list beside a pane draws their marks; CertProblem is gone", () => {
     assert.match(read("saved", "table.tsx"), /CertSummaryCell/);
-    // Founder, 14 Oct 2026: the table says the worst certificate's state in words (it decides whether a buyer opens
-    // the record). The list beside a pane keeps the marks held today (founder, 12 Oct 2026); neither reveals a popover.
-    assert.match(read("search", "table.tsx"), /<CertStateCell cert=\{r\.certCell\}/);
+    // Founder, 15 Oct 2026: the table names the schemes held today with no state pill (the record has every date).
+    // The list beside a pane keeps the marks held today (founder, 12 Oct 2026); neither reveals a popover.
+    assert.match(read("search", "table.tsx"), /<HeldMarks held=\{r\.held\} words \/>/);
     assert.match(read("search", "pane-rows.tsx"), /<HeldMarks held=\{r\.held\}/);
+    assert.doesNotMatch(read("search", "row-parts.tsx"), /CertStateCell|CertChip/, "a state chip is back in a row part");
     for (const f of [["search", "table.tsx"], ["search", "pane-rows.tsx"]] as const) assert.doesNotMatch(read(...f), /CertSummaryCell/, f.join("/"));
     for (const f of [["search", "table.tsx"], ["search", "pane-rows.tsx"], ["saved", "table.tsx"]] as const) assert.doesNotMatch(read(...f), /CertProblem/, f.join("/"));
     assert.doesNotMatch(read("patterns", "index.ts"), /CertProblem/);
