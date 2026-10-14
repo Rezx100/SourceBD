@@ -18,6 +18,8 @@ export const ABSENT = {
   published: "Not published",
   onFile: "Not on file",
   certificates: "No certificates on file",
+  /** Certificates are on file and every one has ended (the results table, which draws only those held today). */
+  certificatesLapsed: "Every certificate on file has expired",
   issuer: "Issuer not published",
   dated: "Not dated",
   toCheck: "Nothing to check",

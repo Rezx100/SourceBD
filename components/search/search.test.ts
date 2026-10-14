@@ -323,11 +323,12 @@ describe("the results table", () => {
     assert.deepEqual([...sm!.matchAll(chip)].map((m) => m[1]), ["WRAP"]);
     assert.doesNotMatch(sm!, /more</);
     // Nothing held is a dash in the cell, the words behind it for a screen reader; a row whose certificates all lapsed is the same dash.
-    const dash = /<span class="text-sm text-ink-3" title="No certificates on file"><span aria-hidden="true">–<\/span><span class="sr-only">No certificates on file<\/span><\/span>/;
-    assert.match(zaheen!, dash);
+    const dash = (said: string) => new RegExp(`<span class="text-sm text-ink-3" title="${said}"><span aria-hidden="true">–</span><span class="sr-only">${said}</span></span>`);
+    assert.match(zaheen!, dash("No certificates on file"));
+    // Certificates on file, every one ended: the dash tells that truth, not "none on file" (the record's tab has them).
     const lapsed = plain(h(ResultsTable, { rows: [row({ held: heldOf([{ markCode: "wrap", scheme: "WRAP", expiresOn: "2026-09-29" }]) })], sort: { key: "workers", dir: "desc" }, sortHrefs }));
-    assert.match(lapsed, dash);
-    assert.doesNotMatch(lapsed, /WRAP/);
+    assert.match(lapsed, dash("Every certificate on file has expired"));
+    assert.doesNotMatch(lapsed, /WRAP|No certificates on file/);
     assert.ok(!out.includes("No certificates found"));
     // No popover: the record's Certificates tab has every one with its date.
     assert.doesNotMatch(out, /aria-haspopup="dialog"/);
@@ -336,8 +337,9 @@ describe("the results table", () => {
   });
 
   it("a row answers before the click: what it makes under the name with the search's words lit, and an empty cell is a dash", () => {
+    // The name cells (Location is cut the same way, so the cut's class alone does not pick them).
     const cell = /<td class="[^"]*max-w-0[^"]*">([\s\S]*?)<\/td>/g;
-    const [aboni, zaheen] = [...out.matchAll(cell)].map((m) => m[1]!);
+    const [aboni, zaheen] = [...out.matchAll(cell)].map((m) => m[1]!).filter((c) => c.includes('data-open="record"'));
     // The lit name for the eye, then the whole name once for a screen reader, then what it makes.
     assert.match(text(aboni!), /^ ?Aboni Knitwear Ltd\. Aboni Knitwear Ltd\. Knit T-shirts, Polo shirts \+7 ?$/);
     assert.match(aboni!, /<span aria-hidden="true">Aboni <mark [^>]*>Knit<\/mark>wear Ltd\.<\/span><span class="sr-only">Aboni Knitwear Ltd\.<\/span>/);
@@ -410,11 +412,12 @@ describe("the results table", () => {
     assert.match(two, /<td class="[^"]*whitespace-nowrap tabular-nums text-ink">1,300–2,200<\/td>/);
     assert.match(two, /<th [^>]*class="[^"]*\bw-28\b/);
     // The place on one line, cut at the cell's edge with the whole in title; the column is 160 wide.
-    assert.match(two, /<td class="[^"]*text-ink"><span title="Dhaka, Narayanganj" class="block min-w-0 overflow-hidden whitespace-nowrap \[text-overflow:ellipsis\] max-w-\[136px\]">Dhaka, Narayanganj<\/span><\/td>/);
+    assert.match(two, /<td class="[^"]*max-w-0 text-ink"><span title="Dhaka, Narayanganj" class="block min-w-0 overflow-hidden whitespace-nowrap \[text-overflow:ellipsis\]">Dhaka, Narayanganj<\/span><\/td>/);
     assert.match(two, /<th [^>]*class="[^"]*w-\[160px\][^"]*"[^>]*><div[^>]*>Location</);
-    // Exports 180 for "ships to" and four codes; the table's floor keeps Supplier at 320 with every fixed column at its width.
+    // Exports 180 for "ships to" and four codes; the table's floor is what fits beside the rail at xl (1280 − 64 − 48), where the region stops scrolling: a higher floor would spill past it.
     assert.match(two, /<th [^>]*class="[^"]*w-\[180px\][^"]*"[^>]*title="From customs/);
-    assert.match(two, /<table class="[^"]*min-w-\[1240px\]/);
+    assert.match(two, /<table class="[^"]*min-w-\[1160px\]/);
+    assert.match(two, /<div role="region" [^>]*class="[^"]*overflow-x-auto xl:overflow-visible"/);
   });
 });
 

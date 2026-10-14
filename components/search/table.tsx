@@ -82,8 +82,8 @@ export function ResultsTable({
   // Not a tab stop (critique of 8 Oct 2026, item 7: two Tabs before the first name): the rows are.
   return (
     <div role="region" aria-label="Results table" className="relative min-w-0 overflow-x-auto xl:overflow-visible">
-      {/* The fixed columns sum to 918 (select 40, Location 160, Workers 112, Certificates 260, Exports 180, Sources 90, actions 76): Supplier keeps 320 and a name is not cut at every width. */}
-      <Table className="min-w-[1240px]">
+      {/* The fixed columns sum to 918 (select 40, Location 160, Workers 112, Certificates 260, Exports 180, Sources 90, actions 76), so the floor keeps Supplier 240 or more. It is what fits at xl, where the region stops scrolling: 1280 − 64 (the rail below 2xl) − 48 (the page's px-6) = 1168; a floor over that would spill past the region instead of scrolling. */}
+      <Table className="min-w-[1160px]">
         <thead>
           <tr>
             <SelectCell
@@ -168,14 +168,14 @@ export function ResultsTable({
                     </div>
                   ) : null}
                 </Td>
-                {/* One line: a long place ("Dhaka, Narayanganj") is cut at the cell's edge with the whole in `title`, never a second line. */}
-                <Td className="text-ink">{r.place ? <span title={r.place} className={cn(oneLine, "max-w-[136px]")}>{r.place}</span> : <Unpublished />}</Td>
+                {/* One line, the name cell's way (`max-w-0`: the column keeps the head's width): a long place ("Dhaka, Narayanganj") is cut at the cell's edge with the whole in `title`, never a second line. */}
+                <Td className="max-w-0 text-ink">{r.place ? <span title={r.place} className={oneLine}>{r.place}</span> : <Unpublished />}</Td>
                 {/* The record's own figure alone: a second source's figure is on the record (founder, 14 Oct 2026). */}
                 <Td align="right" className="whitespace-nowrap tabular-nums text-ink">
                   {r.workers ?? <Unpublished />}
                 </Td>
-                {/* The schemes held today by name; one whose certificate has ended is not among them, so the row of a lapsed-only holder is a dash (founder, 15 Oct 2026: no state pill in the list, the record has every date). */}
-                <Td className="py-1.5">{r.held?.length ? <HeldMarks held={r.held} words /> : <Unpublished>{ABSENT.certificates}</Unpublished>}</Td>
+                {/* The schemes held today by name; one whose certificate has ended is not among them (founder, 15 Oct 2026: no state pill in the list, the record has every date). A holder whose every certificate has ended is a dash that says so; `r.cert` is null only when none is on file. */}
+                <Td className="py-1.5">{r.held?.length ? <HeldMarks held={r.held} words /> : <Unpublished>{r.cert ? ABSENT.certificatesLapsed : ABSENT.certificates}</Unpublished>}</Td>
                 <Td className="tabular-nums text-ink">
                   {exportsHead ? (
                     r.exports ? (
