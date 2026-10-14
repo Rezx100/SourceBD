@@ -92,7 +92,10 @@ missing. **S4** untidy. Inside a level, most published companies first.
 - **Needs your yes:** yes.
 - **Fix built, 13 Oct 2026:** `supabase/migrations/0154_profile_membership_status.sql` adds `membership_status` to the
   profile (BTMA's own status for each entry) and the membership reads "BTMA (under suspension)" beside its number and
-  read date, on the desktop, phone and public record. Not applied: it waits for "apply 0154". Still open, and yours:
+  read date, on the desktop, phone and public record. **Applied on production, 14 Oct 2026**, on the founder's
+  "apply 0154": the function on production is byte for byte the repo's, the rest of the payload is unchanged for five
+  companies compared before and after, and `nm-spinning-mills` carries both its suspended entries. The words reach
+  buyers with the next release. Still open, and yours:
   whether the 80 companies published on a suspended BTMA entry alone stay published.
 
 ### S1-4. Phone numbers and mailboxes inside address text, open to a signed-out visitor through the database API
@@ -112,7 +115,8 @@ missing. **S4** untidy. Inside a level, most published companies first.
   details itself (`strip_contact_text()`): every public function now reads register addresses through a view that
   strips them, the entries themselves stay as filed, and the company's own address is cleaned once (3 rows) and
   kept clean by a trigger. Dry run on production, rolled back: 71 entry addresses carry a contact detail as filed,
-  0 through the public view; 3 company addresses cleaned, 0 left. Not applied: it waits for "apply 0153".
+  0 through the public view; 3 company addresses cleaned, 0 left. Not applied: the founder said "apply 0153"
+  three times on 14 Oct 2026 and the confirmation prompt for it was declined each time, so production is unchanged.
 
 ### S1-5. A safety-register entry filed under a different company's name
 
