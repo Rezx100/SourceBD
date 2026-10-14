@@ -18,7 +18,7 @@ import type { CursorState, Step } from "@/components/site/motion";
 import { displayName, formatCount, formatDay } from "@/lib/dashboard/facts";
 import { certName } from "@/lib/dashboard/needs-attention";
 import { motion } from "@/lib/design/tokens";
-import { SNAPSHOT, TODAY } from "@/lib/marketing/demo-snapshot";
+import { BRAND_LIST, CERT_REGISTER, SNAPSHOT, TODAY } from "@/lib/marketing/demo-snapshot";
 import { sourceFullName } from "@/lib/source-full-names";
 import { cn } from "@/lib/utils";
 import { Bar, Demo, Window, endOf, streamed } from "./stage";
@@ -32,29 +32,24 @@ const LIST = [...(search.rows.some((r) => r.slug === check.slug) ? [] : [asRow({
 /** Every company the demo names. */
 export const NAMES = [NAME, ...LIST.map((r) => r.name)];
 
-/** The register each scheme is read from, for the row's receipt (the home page's names, lib/home-records.ts); any other scheme shows its name alone. */
-const REGISTER: Record<string, { mark: string; name: string }> = { gots: { mark: "GOTS", name: "GOTS database" }, wrap: { mark: "WRAP", name: "WRAP register" }, oeko_tex: { mark: "OEKO_TEX", name: "OEKO-TEX buying guide" } };
-
 const rows = check.certs
   .map((c) => {
-    const reg = REGISTER[c.kind] ?? { mark: c.kind.toUpperCase(), name: certName(c.kind, null) };
-    const read = check.read[reg.mark === "OEKO_TEX" ? "OEKO-TEX" : reg.mark] ?? null;
+    // A scheme with no register in the snapshot's set shows its name alone.
+    const reg = CERT_REGISTER[c.kind] ?? { mark: c.kind.toUpperCase(), code: c.kind.toUpperCase(), name: certName(c.kind, null) };
+    const read = check.read[reg.code] ?? null;
     const ended = Boolean(c.expiresOn && c.expiresOn < SNAPSHOT.readAt);
     // "GOTS · read 14 Oct 2026": the register's code (its mark stands beside it) and the day it was read; the pane is too narrow for the register's full name.
-    const code = reg.mark === "OEKO_TEX" ? "OEKO-TEX" : reg.mark;
-    return { key: `${c.kind}-${c.number}`, mark: reg.mark, scheme: certName(c.kind, null), number: c.number, issuer: c.issuer, ended, state: ended ? `Ended ${formatDay(c.expiresOn)}` : certShort(c.expiresOn, TODAY), look: !ended && c.expiresOn !== null && certShort(c.expiresOn, TODAY).startsWith("Expires"), until: formatDay(c.expiresOn), receipt: read ? `${code} · read ${formatDay(read)}` : reg.name, sort: c.expiresOn ?? "9999" };
+    return { key: `${c.kind}-${c.number}`, mark: reg.mark, scheme: certName(c.kind, null), number: c.number, issuer: c.issuer, ended, state: ended ? `Ended ${formatDay(c.expiresOn)}` : certShort(c.expiresOn, TODAY), look: !ended && c.expiresOn !== null && certShort(c.expiresOn, TODAY).startsWith("Expires"), until: formatDay(c.expiresOn), receipt: read ? `${reg.code} · read ${formatDay(read)}` : reg.name, sort: c.expiresOn ?? "9999" };
   })
   .sort((a, b) => a.sort.localeCompare(b.sort));
 const HELD = rows.filter((r) => !r.ended);
 const ENDED = rows.filter((r) => r.ended);
 const CERT_TAB = SECTIONS.find((s) => s.id === "certificates")!;
 
-/** A brand list's short name as the results row writes it (lib/dashboard/build-discover-row.ts); a register's code is its name. */
-const BRAND: Record<string, string> = { BRAND_HM: "H&M", BRAND_ASOS: "ASOS", BRAND_NEXT: "NEXT", BRAND_MS: "M&S", BRAND_INDITEX: "Inditex", BRAND_PRIMARK: "Primark" };
 /** The record's sources in trust order, each with its full name and the day it was read (a brand list carries no read day in the snapshot). */
 const SOURCES = [...check.sources]
   .sort((a, b) => tierOf(a) - tierOf(b))
-  .map((code) => ({ code, label: BRAND[code] ?? code, name: BRAND[code] ? `${BRAND[code]} supplier list` : (sourceFullName(code) ?? code), tier: TIER_LABEL[tierOf(code)], read: formatDay(check.read[code] ?? null) }));
+  .map((code) => ({ code, label: BRAND_LIST[code] ?? code, name: BRAND_LIST[code] ? `${BRAND_LIST[code]} supplier list` : (sourceFullName(code) ?? code), tier: TIER_LABEL[tierOf(code)], read: formatDay(check.read[code] ?? null) }));
 
 /** The sections the demo can open the record at; the tour's Check opens the certificates. */
 export type RecordTab = "certificates" | "sources" | "contact";
@@ -91,7 +86,7 @@ const SCENES: Record<RecordTab, Step<S>[]> = { certificates: STEPS, sources: ste
 const DESCRIPTION: Record<RecordTab, string> = {
   certificates: `${NAME}'s record opened beside the search results at its Certificates section: ${HELD.length} held today, ${ENDED.length} ended, each with the day its register was read.`,
   sources: `${NAME}'s record opened beside the search results at its Sources section: ${SOURCES.length} sources in trust order, each with its full name and the day it was read.`,
-  contact: `${NAME}'s record opened beside the search results at its Contact section: the details are locked until an RFQ is sent, and no value is shown.`,
+  contact: `${NAME}'s record opened beside the search results at its Contact section: the details are locked, the supplier replies to an RFQ in Messages, and no value is shown.`,
 };
 
 const COLS = "grid grid-cols-[minmax(0,1fr)_minmax(0,96px)_minmax(0,96px)] gap-x-3 [@container_(min-width:640px)]:grid-cols-[minmax(0,1fr)_minmax(0,120px)_minmax(0,96px)]";

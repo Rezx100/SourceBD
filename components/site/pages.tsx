@@ -249,14 +249,16 @@ export function SitePage({ pageKey, facts }: { pageKey: string; facts: SiteFacts
         title={h1}
         lede={p.lede}
         stage={
-          <div className="flex flex-col gap-3">
-            {p.hero ? <Figure shot={p.hero} still="hero-cotton" eager /> : null}
-            {count ? (
-              <p className="text-sm text-ink-subtle">
-                {count} published suppliers{updated ? ` · updated ${updated}` : ""}
-              </p>
-            ) : null}
-          </div>
+          p.hero || count ? (
+            <div className="flex flex-col gap-3">
+              {p.hero ? <Figure shot={p.hero} still="hero-cotton" eager /> : null}
+              {count ? (
+                <p className="text-sm text-ink-subtle">
+                  {count} published suppliers{updated ? ` · updated ${updated}` : ""}
+                </p>
+              ) : null}
+            </div>
+          ) : undefined
         }
       >
         <HeroActions center />

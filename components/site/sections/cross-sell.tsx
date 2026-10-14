@@ -9,12 +9,12 @@ import { cn } from "@/lib/utils";
 import { HomeIcon } from "./icons";
 import { H2, Lede, TextLink, measure } from "./ui";
 
-/** Each product's small loop: a search typed, the marks settling, two quotes landing, a certificate counting down. */
-const LOOP: Record<string, ComponentType<{ className?: string }>> = {
-  "/product/search": VignetteSearch,
-  "/product/records": VignetteMarks,
-  "/product/rfqs": VignetteQuotes,
-  "/product/compliance": VignetteExpiry,
+/** Each product's small loop (a search typed, the marks settling, two quotes landing, a certificate counting down) and the words of its link (the home's showcase links). */
+const LOOP: Record<string, { Loop: ComponentType<{ className?: string }>; link: string }> = {
+  "/product/search": { Loop: VignetteSearch, link: "See the search" },
+  "/product/records": { Loop: VignetteMarks, link: "See the record pane" },
+  "/product/rfqs": { Loop: VignetteQuotes, link: "How RFQs work" },
+  "/product/compliance": { Loop: VignetteExpiry, link: "Inside the Compliance hub" },
 };
 
 export function CrossSell({ current }: { /** The page's own address, left out of the three. */ current: string }) {
@@ -27,17 +27,17 @@ export function CrossSell({ current }: { /** The page's own address, left out of
       </div>
       <ul className="grid gap-8 md:grid-cols-3 md:gap-8">
         {others.map((p) => {
-          const Loop = LOOP[p.href];
+          const loop = LOOP[p.href];
           return (
             <li key={p.href} className="flex flex-col gap-4">
-              {Loop ? <Loop /> : null}
+              {loop ? <loop.Loop /> : null}
               <div className="flex flex-col gap-1.5">
                 <h3 className="flex items-center gap-2.5 text-site-title font-medium text-ink-strong">
                   {p.icon ? <HomeIcon name={p.icon} size={20} className="text-ink-strong" /> : null}
                   {p.title}
                 </h3>
                 {p.body ? <p className="text-site-body text-ink-muted">{p.body}</p> : null}
-                <TextLink href={p.href}>See {p.title.toLowerCase()}</TextLink>
+                <TextLink href={p.href}>{loop?.link ?? p.title}</TextLink>
               </div>
             </li>
           );

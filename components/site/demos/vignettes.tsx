@@ -15,7 +15,7 @@ import { certWords, usd, vsTarget } from "@/components/patterns/words";
 import type { CursorState, Step } from "@/components/site/motion";
 import { daysUntil, displayName, formatDay } from "@/lib/dashboard/facts";
 import { certName } from "@/lib/dashboard/needs-attention";
-import { SANCTIONED_SAMPLE, SNAPSHOT, TODAY } from "@/lib/marketing/demo-snapshot";
+import { BRAND_LIST, CERT_REGISTER, SANCTIONED_SAMPLE, SNAPSHOT, TODAY } from "@/lib/marketing/demo-snapshot";
 import { cn } from "@/lib/utils";
 import { Demo, endOf, streamed, typed } from "./stage";
 
@@ -58,8 +58,6 @@ export function VignetteExpiry({ className, caption }: { className?: string; cap
 /* ------------------------------------------------------------------ a source mark stack settling */
 
 const SOURCES = [...check.sources].sort((a, b) => tierOf(a) - tierOf(b));
-/** A brand list's short name as the results row writes it (lib/dashboard/build-discover-row.ts); a register's code is its name. */
-const BRAND: Record<string, string> = { BRAND_HM: "H&M", BRAND_ASOS: "ASOS", BRAND_NEXT: "NEXT", BRAND_MS: "M&S", BRAND_INDITEX: "Inditex", BRAND_PRIMARK: "Primark" };
 type M = CursorState & { shown: number };
 export const MARKS_STEPS: Step<M>[] = [{ at: 0, state: { shown: 0 } }, ...streamed(SOURCES.length, 500, (shown) => ({ shown }))];
 
@@ -75,7 +73,7 @@ export function VignetteMarks({ className }: { className?: string }) {
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
             {SOURCES.slice(0, s.shown).map((code) => (
               <span key={code} className="animate-swap-in motion-reduce:animate-none" title={TIER_LABEL[tierOf(code)]}>
-                <SourceChip source={code} name={BRAND[code] ?? code} />
+                <SourceChip source={code} name={BRAND_LIST[code] ?? code} />
               </span>
             ))}
           </div>
@@ -196,8 +194,6 @@ export function VignetteSearch({ className, caption }: { className?: string; cap
 
 /* ------------------------------------------------------------------ three facts landing with their receipts (M4) */
 
-/** The register a certificate is read from, and the key its read day is filed under. */
-const REGISTER: Record<string, { key: string; name: string }> = { gots: { key: "GOTS", name: "GOTS database" }, wrap: { key: "WRAP", name: "WRAP register" }, oeko_tex: { key: "OEKO-TEX", name: "OEKO-TEX buying guide" } };
 const dated = check.certs.filter((c) => c.expiresOn && c.expiresOn >= SNAPSHOT.readAt);
 /** The record's facts with a register and a read day in the snapshot: its BGMEA number, then one dated certificate per scheme. */
 const RECEIPTS = [
@@ -205,8 +201,8 @@ const RECEIPTS = [
   ...dated
     .filter((c, i) => dated.findIndex((d) => d.kind === c.kind) === i)
     .map((c) => {
-      const reg = REGISTER[c.kind];
-      const read = reg ? check.read[reg.key] : undefined;
+      const reg = CERT_REGISTER[c.kind];
+      const read = reg ? check.read[reg.code] : undefined;
       return reg && read ? { fact: `${certName(c.kind, c.number)} · valid to ${formatDay(c.expiresOn)}`, from: `From ${reg.name} · read ${formatDay(read)}` } : null;
     }),
 ]

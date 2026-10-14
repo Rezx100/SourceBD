@@ -85,7 +85,8 @@ export function RecordsPage({ cards }: { cards: HomeRecord[] }) {
         <Section label={label(disagree)} headline={disagree.headline} lede={disagree.lede} tone="subtle">
           {disagree.extra}
         </Section>
-        <FeatureRow label={label(safety)} headline={safety.headline} lede={safety.lede} media={<Figure shot={safety.shot!} still="selvedge" sizes="(min-width: 1440px) 720px, 100vw" />} />
+        {/* The one row still on its 3 Oct screen; when the words drop the shot for a demo, the row goes with them rather than drawing nothing. */}
+        {safety.shot ? <FeatureRow label={label(safety)} headline={safety.headline} lede={safety.lede} media={<Figure shot={safety.shot} still="selvedge" sizes="(min-width: 1440px) 720px, 100vw" />} /> : null}
         <FeatureRow
           label={label(contacts)}
           headline={contacts.headline}
@@ -107,7 +108,7 @@ export function RecordsPage({ cards }: { cards: HomeRecord[] }) {
           <div className="flex flex-col items-center gap-4 text-center">
             <H2 id="records-inside">Inside one record.</H2>
             <Lede className="mx-auto">
-              {NAME}, as read {READ_AT}. Open it at its certificates, its sources or its contact: every section says where each line came from.
+              {NAME}, as read {READ_AT}. Open it at its certificates, its sources or its contact: each plays as the record draws it, the dates and the locks included.
             </Lede>
           </div>
           <RecordTabs />
