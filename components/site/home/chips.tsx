@@ -24,7 +24,7 @@ export function Chips({ chips }: { chips: Chip[] }) {
     <ul aria-label="Common searches" className="flex w-full max-w-[900px] gap-2 pt-1 max-md:-mx-5 max-md:w-[calc(100%+40px)] max-md:overflow-x-auto max-md:px-5 md:flex-wrap md:justify-center md:pt-3">
       {chips.map((c) => (
         <li key={c.key} className="shrink-0">
-          <Link href={c.href} prefetch={false} className={cn("flex h-[34px] items-center gap-2 rounded-full border border-line bg-surface px-3.5 hover:border-line-strong", ring)}>
+          <Link href={c.href} prefetch={false} className={cn("flex h-[34px] items-center max-md:h-11 gap-2 rounded-full border border-line bg-surface px-3.5 hover:border-line-strong", ring)}>
             <span className="text-[14px] font-medium leading-4 text-ink-strong">{c.title}</span>
             {c.count !== null ? <span className="font-mono text-[12px] leading-[14px] text-ink-subtle">{withCommas(c.count)}</span> : null}
           </Link>

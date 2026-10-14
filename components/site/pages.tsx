@@ -32,7 +32,7 @@ type Page = {
 function Figure({ shot }: { shot: Shot }) {
   return (
     <figure className="flex flex-col gap-3">
-      <Image src={shot.src} alt={shot.alt} width={1440} height={900} className="h-auto w-full rounded-lg border border-line shadow-dialog" />
+      <Image src={shot.src} alt={shot.alt} width={1440} height={900} sizes="(min-width: 1200px) 1100px, 100vw" className="h-auto w-full rounded-lg border border-line shadow-dialog" />
       <figcaption className="text-sm text-ink-3">{shot.caption}</figcaption>
     </figure>
   );

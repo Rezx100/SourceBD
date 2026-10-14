@@ -33,7 +33,7 @@ describe("the legal pages", () => {
   });
 
   it("the four notices say when they were last updated, in words", () => {
-    assert.match(text(html("cookies")), /Last updated 3 Jun 2026/);
+    assert.match(text(html("cookies")), /Last updated 14 Oct 2026/);
     // Privacy (section 5, and the Stripe billing line gone) and Terms (no Stripe) were reworded on 6 Oct 2026;
     // Data sources gained section 8, the open data behind the home page's map, the same day, and said on 7 Oct
     // 2026 what the city's blocks are when the map became a city, and on 11 Oct 2026 gained section 9.

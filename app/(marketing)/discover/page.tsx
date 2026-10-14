@@ -24,6 +24,7 @@ import {
 import { FacetLists, PublicResults, ResponsiveFilters, filterCount } from "@/components/discover/public";
 import { DiscoverSearchBox } from "@/components/discover/search-box";
 import { Display, Label, Lede, wrap } from "@/components/site/parts";
+import { trustMetadata } from "@/components/site/trust";
 import { fetchDiscoverFacets } from "@/lib/discover-facets";
 import { fetchPublicDiscoverSuppliers } from "@/lib/discover-suppliers";
 import { resolveDiscoverSmartQuery } from "@/lib/discover-smart-query";
@@ -35,6 +36,8 @@ export const revalidate = 300;
 const BASE_PATH = "/discover";
 
 type SearchParams = Record<string, string | string[] | undefined>;
+
+export const metadata = trustMetadata("/discover", "Discover suppliers — SourceBD", "Search published Bangladesh garment suppliers by product, place or certificate. Every fact names its source and the day it was read.");
 
 export default async function PublicDiscoverPage({
   searchParams,
