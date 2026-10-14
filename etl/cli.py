@@ -233,6 +233,33 @@ def refresh_monitors_cmd(
     typer.echo(str(result))
 
 
+@app.command("site-images")
+def site_images_cmd(
+    firecrawl_credits: int = typer.Option(..., help="Most Firecrawl credits this run may spend."),
+    limit: int = typer.Option(0, help="Do only this many sites (0 = every site left)."),
+    domain: str = typer.Option("", help="Do just this one site, even if it was done before."),
+    max_pages: int = typer.Option(6, help="Product pages read per site."),
+    max_products: int = typer.Option(60, help="Photos kept per site."),
+    workers: int = typer.Option(24, help="Sites worked on at once."),
+    firecrawl_concurrency: int = typer.Option(10, help="Pages Firecrawl reads at once."),
+    force: bool = typer.Option(False, help="Redo sites already done."),
+) -> None:
+    """Store each supplier website's logo and product photos in Bunny for review.
+
+    Reads the database, writes only to Bunny under site-images/. A finished site
+    is skipped next time, so repeat in batches until the manifest says done.
+    """
+    import argparse
+
+    from etl.jobs.site_images import run as run_site_images
+
+    asyncio.run(run_site_images(argparse.Namespace(
+        firecrawl_credits=firecrawl_credits, limit=limit, domain=domain or None,
+        max_pages=max_pages, max_products=max_products, workers=workers,
+        firecrawl_concurrency=firecrawl_concurrency, force=force,
+    )))
+
+
 @app.command("process-webhooks")
 def process_webhooks_cmd(
     limit: int = typer.Option(100, help="Process at most N pending deliveries."),

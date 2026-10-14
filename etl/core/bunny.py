@@ -62,6 +62,18 @@ async def exists(path: str) -> bool:
     return resp.status_code == 200
 
 
+async def read(path: str) -> bytes | None:
+    """GET an object from the storage origin. None when it does not exist."""
+    _require_config()
+    headers = {"AccessKey": settings.bunny_storage_password}
+    async with httpx.AsyncClient(timeout=_PUT_TIMEOUT) as client:
+        resp = await client.get(_storage_url(path), headers=headers)
+    if resp.status_code == 404:
+        return None
+    resp.raise_for_status()
+    return resp.content
+
+
 async def upload(path: str, content: bytes, content_type: str | None = None) -> str:
     """PUT `content` to `path` in the storage zone. Returns public CDN URL."""
     _require_config()
