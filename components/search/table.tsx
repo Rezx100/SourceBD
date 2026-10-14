@@ -21,7 +21,7 @@
 // selected and always on a touch screen; Send RFQ is the selection bar's. The pane list and
 // Saved keep the ⋯ menu. Client: it reads the selection and handles the keys.
 
-import { ArrowSquareOut, DotsThree } from "@phosphor-icons/react";
+import { DotsThree, SidebarSimple } from "@phosphor-icons/react";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import Link from "next/link";
 import { startTransition, useContext, useEffect, useState, type ReactNode } from "react";
@@ -33,7 +33,7 @@ import { rowSaveMessage } from "@/lib/dashboard/selection";
 import { cn } from "@/lib/utils";
 import { onRowKey } from "./keys";
 import type { ResultRow } from "./model";
-import { ExportedLocked, HeldMarks, Hit, Products, ShipsTo } from "./row-parts";
+import { ExportedLocked, HeldMarks, Products, ShipsTo } from "./row-parts";
 import { SELECT_ALL_ID, useSelection } from "./selection";
 
 /** What the exports column's figure is, said on its head. */
@@ -42,16 +42,13 @@ export const EXPORTED_TITLE = "From customs records of the last two years on fil
 /**
  * The visible base name, with the whole name for a screen reader when they differ: the row has no
  * `aria-label` (it silenced the cells), so the name link carries the whole name (round 3, item 6).
- * `q` lights the search's terms in the visible name.
+ * The search's words are not lit in it (founder, 15 Oct 2026: the grey marks were visual noise).
  */
-export function WholeName({ name, base, q }: { name: string; base: string; q?: string | null }) {
-  // A lit name is for the eye: a screen reader hears the whole name once, with no "highlighted" mid-word.
-  if (base === name && !q) return <>{base}</>;
+export function WholeName({ name, base }: { name: string; base: string }) {
+  if (base === name) return <>{base}</>;
   return (
     <>
-      <span aria-hidden="true">
-        <Hit text={base} q={q} />
-      </span>
+      <span aria-hidden="true">{base}</span>
       <span className="sr-only">{name}</span>
     </>
   );
@@ -59,13 +56,26 @@ export function WholeName({ name, base, q }: { name: string; base: string; q?: s
 
 export type ResultSort = { key: "workers" | "sources" | string; dir: "asc" | "desc" };
 
+/** "Gazipur" from "Gazipur, Dhaka": the row's place is the town, then its district (`placeLabel`); the cell says the town. */
+const townOf = (place: string) => place.split(",")[0]!.trim();
+
+/** A plain figure as it is; a range ("1,050–1,900", `rangeWords`) as its low end with a plus, the range in `title` and for a screen reader. */
+function Workers({ figure }: { figure: string }) {
+  const dash = figure.indexOf("–");
+  if (dash < 0) return <>{figure}</>;
+  return (
+    <span title={`${figure} workers`}>
+      {figure.slice(0, dash)}+<span className="sr-only"> ({figure})</span>
+    </span>
+  );
+}
+
 export function ResultsTable({
   rows,
   currentSlug,
   sort,
   sortHrefs,
   exportsHead,
-  q,
 }: {
   rows: readonly ResultRow[];
   /** The exports view (an exports filter or sort is on): its column's head ("Average shipment") and the sorted figure, in the exports column. */
@@ -75,8 +85,6 @@ export function ResultsTable({
   sort: ResultSort;
   /** The page sorted by each column that sorts: strings, since this is a client component and the page a server one. */
   sortHrefs: { workers: string; name?: string; sources?: string };
-  /** The search's words, lit where a name or a product answers them. */
-  q?: string | null;
 }) {
   const sel = useSelection();
   // A column sorts from its head when its cells show what it sorts by: the name, the workers and the source count.
@@ -149,7 +157,7 @@ export function ResultsTable({
                 {/* `max-w-0`: the column keeps the header's width and the name is cut inside it, instead of the cell growing to the name. */}
                 <Td className="max-w-0">
                   <Link href={r.paneHref} prefetch={false} scroll={false} data-open="record" data-name="" title={r.name} className={cn(rowLinkClass, oneLine, "text-[15px]/[20px] font-semibold")}>
-                    <WholeName name={r.name} base={base} q={q} />
+                    <WholeName name={r.name} base={base} />
                     <LinkPending className="ml-1.5 inline-block align-[-2px]" />
                   </Link>
                   {qualifier ? (
@@ -161,7 +169,7 @@ export function ResultsTable({
                   {r.products || r.type !== "Factory" ? (
                     <span className="flex items-baseline gap-x-[5px] pt-0.5">
                       {r.type !== "Factory" ? <span className="shrink-0 whitespace-nowrap text-sm text-ink-3">{r.products ? `${r.type} ·` : r.type}</span> : null}
-                      {r.products ? <Products products={r.products} q={q} /> : null}
+                      {r.products ? <Products products={r.products} /> : null}
                     </span>
                   ) : null}
                   {r.sanctioned ? (
@@ -170,11 +178,11 @@ export function ResultsTable({
                     </div>
                   ) : null}
                 </Td>
-                {/* One line, the name cell's way (`max-w-0`: the column keeps the head's width): a long place ("Dhaka, Narayanganj") is cut at the cell's edge with the whole in `title`, never a second line. */}
-                <Td className="max-w-0 text-ink">{r.place ? <span title={r.place} className={oneLine}>{r.place}</span> : <Unpublished />}</Td>
-                {/* The record's own figure alone: a second source's figure is on the record (founder, 14 Oct 2026). */}
+                {/* The town alone ("Gazipur", not "Gazipur, Dhaka": founder, 15 Oct 2026), the whole place in `title`; one line, the name cell's way (`max-w-0`: the column keeps the head's width). */}
+                <Td className="max-w-0 text-ink">{r.place ? <span title={r.place} className={oneLine}>{townOf(r.place)}</span> : <Unpublished />}</Td>
+                {/* The record's own figure alone: a second source's figure is on the record (founder, 14 Oct 2026). A company with buildings has a range; the cell says its low end with a plus, the range in `title` (founder, 15 Oct 2026). */}
                 <Td align="right" className="whitespace-nowrap tabular-nums text-ink">
-                  {r.workers ?? <Unpublished />}
+                  {r.workers ? <Workers figure={r.workers} /> : <Unpublished />}
                 </Td>
                 {/* The schemes held today by name; one whose certificate has ended is not among them (founder, 15 Oct 2026: no state pill in the list, the record has every date). A holder whose every certificate has ended is a dash that says so; `r.cert` is null only when none is on file. */}
                 <Td className="py-1.5">{r.held?.length ? <HeldMarks held={r.held} words /> : <Unpublished>{r.cert ? ABSENT.certificatesLapsed : ABSENT.certificates}</Unpublished>}</Td>
@@ -230,15 +238,17 @@ const rowControl = "opacity-0 transition-opacity duration-fast group-hover/row:o
 
 /**
  * The row's end: Save (the record's own bookmark, saves and unsaves, `aria-pressed`, a toast) and Open
- * (the record as a page; the name opens it in the pane). `data-action="save"` is the `s` key's target
- * (keys.ts); the hidden RFQ link keeps `r` working, Send RFQ otherwise lives in the selection bar.
+ * (the record in the pane beside the results, as the name does: founder, 15 Oct 2026, in place of the
+ * page). `data-action="save"` is the `s` key's target (keys.ts); the hidden RFQ link keeps `r` working,
+ * Send RFQ otherwise lives in the selection bar.
  */
 function RowEnd({ r }: { r: ResultRow }) {
   return (
     <span className="flex items-center justify-center gap-1">
       {r.supplierId ? <RecordSave supplierId={r.supplierId} saved={r.saved} appearance="icon" size={32} kind="quiet" data-action="save" className={rowControl} /> : null}
-      <Link href={r.pageHref} prefetch={false} aria-label={`Open ${r.name} as a page`} title="Open as a page" className={cn(buttonClass({ kind: "quiet", size: "icon-32" }), rowControl)}>
-        <ArrowSquareOut size={20} className="shrink-0" aria-hidden />
+      <Link href={r.paneHref} prefetch={false} scroll={false} aria-label={`Open ${r.name} beside the results`} title="Open beside the results" className={cn(buttonClass({ kind: "quiet", size: "icon-32" }), rowControl)}>
+        {/* The glyph's panel sits on the left; the pane opens on the right, so it is mirrored. */}
+        <SidebarSimple size={20} className="shrink-0 -scale-x-100" aria-hidden />
       </Link>
       {r.rfqHref ? <Link href={r.rfqHref} prefetch={false} scroll={false} data-action="rfq" tabIndex={-1} aria-hidden className="hidden" /> : null}
     </span>

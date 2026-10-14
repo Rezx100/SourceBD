@@ -243,7 +243,7 @@ describe("the certificate line of a row", () => {
 });
 
 describe("the results table", () => {
-  const out = plain(h(SelectionProvider, { pageIds: rows.map((r) => r.supplierId) }, h(ResultsTable, { rows, sort: { key: "workers", dir: "desc" }, sortHrefs, q: "knit" })));
+  const out = plain(h(SelectionProvider, { pageIds: rows.map((r) => r.supplierId) }, h(ResultsTable, { rows, sort: { key: "workers", dir: "desc" }, sortHrefs })));
   /** The cell's words with the lit marks closed up, so "Knit|wear" reads as one word again. */
   const text = (s: string) => words(s.replace(/<\/?mark[^>]*>/g, ""));
 
@@ -291,12 +291,12 @@ describe("the results table", () => {
     assert.equal(out.match(new RegExp(`title="${ZAHEEN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}"`, "g"))?.length, 1, "one title with the whole name");
     // Round 3, item 6: no aria-label on the row (it silenced the cells); the name link says the whole name.
     assert.doesNotMatch(out, /<tr [^>]*aria-label=/, "an aria-label on a row replaces its cells for a screen reader");
-    // The lit "Knit" sits inside the visible base name; the screen reader's copy is the whole name, unlit.
-    assert.match(out, new RegExp(`<span aria-hidden="true">Zaheen <mark [^>]*>Knit</mark>wears Limited</span><span class="sr-only">${ZAHEEN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}</span>`), "the name link does not carry the whole name");
+    // The visible base name, then the screen reader's copy of the whole name.
+    assert.match(out, new RegExp(`<span aria-hidden="true">Zaheen Knitwears Limited</span><span class="sr-only">${ZAHEEN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}</span>`), "the name link does not carry the whole name");
     const cell = /<td class="[^"]*max-w-0[^"]*">([\s\S]*?)<\/td>/g;
     const zaheen = [...out.matchAll(cell)].map((m) => m[1]!).find((c) => c.includes("Zaheen"))!;
     assert.ok(zaheen, "no name cell for Zaheen");
-    assert.match(zaheen, /data-name=""[^>]*><span aria-hidden="true">Zaheen <mark [^>]*>Knit<\/mark>wears Limited</, "the link's visible words are the base name alone");
+    assert.match(zaheen, /data-name=""[^>]*><span aria-hidden="true">Zaheen Knitwears Limited</, "the link's visible words are the base name alone");
     assert.match(zaheen, /<span data-name="" title="Unit - 3, 4, 5, 10, 11, 12, 13 · Division - Security, ETP and Fire Pump"[^>]*>Unit - 3/, "the qualifier leads the second line");
     assert.equal(zaheen.match(/data-name=""/g)?.length, 2, "two lines, never a third");
     for (const m of zaheen.matchAll(/data-name=""[^>]*class="([^"]*)"/g)) assert.match(m[1]!, /\boverflow-hidden\b.*\bwhitespace-nowrap\b.*\[text-overflow:ellipsis\]/, "the cut is the deliberate one-line cut");
@@ -323,6 +323,11 @@ describe("the results table", () => {
     // One scheme: its chip and no count.
     assert.deepEqual([...sm!.matchAll(chip)].map((m) => m[1]), ["WRAP"]);
     assert.doesNotMatch(sm!, /more</);
+    // A chip says the body's short name (founder, 15 Oct 2026: "use short names of the cert entity"); the whole scheme stays in the title and for a screen reader.
+    const named = plain(h(ResultsTable, { rows: [row({ held: heldOf([ABONI_CERTS[0]!, { markCode: "wrap", scheme: "WRAP Gold", expiresOn: "2027-01-08" }]) })], sort: { key: "workers", dir: "desc" }, sortHrefs }));
+    assert.deepEqual([...named.matchAll(chip)].map((m) => m[1]), ["WRAP", "OEKO-TEX"]);
+    assert.match(named, /<span class="sr-only">Certificates held: WRAP Gold and OEKO-TEX Standard 100<\/span>/);
+    assert.match(named, /title="WRAP Gold · OEKO-TEX Standard 100"/);
     // Nothing held is a dash in the cell, the words behind it for a screen reader; a row whose certificates all lapsed is the same dash.
     const dash = (said: string) => new RegExp(`<span class="text-sm text-ink-3" title="${said}"><span aria-hidden="true">–</span><span class="sr-only">${said}</span></span>`);
     assert.match(zaheen!, dash("No certificates on file"));
@@ -337,25 +342,16 @@ describe("the results table", () => {
     assert.match(out, /<th [^>]*class="[^"]*w-\[260px\][^"]*"[^>]*title="The certificate schemes it holds today; their dates are on the record's Certificates tab"/);
   });
 
-  it("a row answers before the click: what it makes under the name with the search's words lit, and an empty cell is a dash", () => {
+  it("a row answers before the click: what it makes under the name, nothing lit, and an empty cell is a dash", () => {
     // The name cells (Location is cut the same way, so the cut's class alone does not pick them).
     const cell = /<td class="[^"]*max-w-0[^"]*">([\s\S]*?)<\/td>/g;
     const [aboni, zaheen] = [...out.matchAll(cell)].map((m) => m[1]!).filter((c) => c.includes('data-open="record"'));
-    // The lit name for the eye, then the whole name once for a screen reader, then what it makes.
-    assert.match(text(aboni!), /^ ?Aboni Knitwear Ltd\. Aboni Knitwear Ltd\. Knit T-shirts, Polo shirts \+7 ?$/);
-    assert.match(aboni!, /<span aria-hidden="true">Aboni <mark [^>]*>Knit<\/mark>wear Ltd\.<\/span><span class="sr-only">Aboni Knitwear Ltd\.<\/span>/);
+    // The name once (a short name is the link's own words), then what it makes.
+    assert.match(text(aboni!), /^ ?Aboni Knitwear Ltd\. Knit T-shirts, Polo shirts \+7 ?$/);
+    assert.match(aboni!, /data-open="record"[^>]*>Aboni Knitwear Ltd\.</);
     assert.match(aboni!, /<span data-products="" title="Knit T-shirts, Polo shirts"/);
-    // "knit" is lit where it answers: at a word start in the name and in a product, and nowhere else.
-    assert.match(aboni!, /<mark [^>]*>Knit<\/mark> T-shirts/);
-    assert.equal((aboni!.match(/<mark /g) ?? []).length, 2);
-    const unlit = plain(h(ResultsTable, { rows, sort: { key: "workers", dir: "desc" }, sortHrefs }));
-    assert.doesNotMatch(unlit, /<mark /, "no search, nothing lit");
-    assert.match(unlit, /data-open="record"[^>]*>Aboni Knitwear Ltd\.</, "with nothing lit a short name is the link's own words");
-    // One-letter terms are not terms (as `matchedProducts` ranks): "s m knit" lights "Knit" alone, never every S and M.
-    const sm = plain(h(ResultsTable, { rows, sort: { key: "workers", dir: "desc" }, sortHrefs, q: "s m knit" }));
-    assert.doesNotMatch(sm, /<mark [^>]*>(S|M|Sourcing|Polo|shirts)</);
-    assert.match(sm, /<mark [^>]*>Knit<\/mark> T-shirts/);
-    assert.doesNotMatch(plain(h(ResultsTable, { rows, sort: { key: "workers", dir: "desc" }, sortHrefs, q: "s" })), /<mark /);
+    // The search's words are not lit in the name or the products (founder, 15 Oct 2026: the grey marks on "shirt" were visual noise); the table takes no query.
+    assert.doesNotMatch(out, /<mark |bg-accent-tint-strong/);
     assert.doesNotMatch(zaheen!, /data-products/, "a supplier that filed no product has an invented line");
     // The brand lists are the record's business (founder, 14 Oct 2026): no column, no dash for them.
     assert.doesNotMatch(out, /H&M, NEXT|brand lists/);
@@ -409,11 +405,13 @@ describe("the results table", () => {
 
   it("no cell wraps (founder, 15 Oct 2026: a range, a two-town place and the certificates each ran to two lines)", () => {
     const two = plain(h(ResultsTable, { rows: [row({ workers: "1,300–2,200", place: "Dhaka, Narayanganj" })], sort: { key: "workers", dir: "desc" }, sortHrefs }));
-    // The workers range in a cell that cannot break; the column is 112 wide. The HTTP-boundary guard pins the class string's tail (`tabular-nums text-ink">`).
-    assert.match(two, /<td class="[^"]*whitespace-nowrap tabular-nums text-ink">1,300–2,200<\/td>/);
+    // A company with buildings: the range's low end with a plus, the range in title (founder, 15 Oct 2026), in a cell that cannot break; the column is 112 wide. The HTTP-boundary guard pins the class string's tail (`tabular-nums text-ink">`) on a plain figure.
+    assert.match(two, /<td class="[^"]*whitespace-nowrap tabular-nums text-ink"><span title="1,300–2,200 workers">1,300\+<span class="sr-only"> \(1,300–2,200\)<\/span><\/span><\/td>/);
+    assert.match(out, /<td class="[^"]*whitespace-nowrap tabular-nums text-ink">3,166<\/td>/, "a plain figure is the cell's own words, no plus, no title");
     assert.match(two, /<th [^>]*class="[^"]*\bw-28\b/);
-    // The place on one line, cut at the cell's edge with the whole in title; the column is 160 wide.
-    assert.match(two, /<td class="[^"]*max-w-0 text-ink"><span title="Dhaka, Narayanganj" class="block min-w-0 overflow-hidden whitespace-nowrap \[text-overflow:ellipsis\]">Dhaka, Narayanganj<\/span><\/td>/);
+    // The town alone, the whole place in title (founder, 15 Oct 2026: "only show the place name the supplier actually resides on"); one line, cut at the cell's edge; the column is 160 wide.
+    assert.match(two, /<td class="[^"]*max-w-0 text-ink"><span title="Dhaka, Narayanganj" class="block min-w-0 overflow-hidden whitespace-nowrap \[text-overflow:ellipsis\]">Dhaka<\/span><\/td>/);
+    assert.match(out, /<span title="Dhaka" class="[^"]*">Dhaka<\/span>/, "a one-word place is itself");
     assert.match(two, /<th [^>]*class="[^"]*w-\[160px\][^"]*"[^>]*><div[^>]*>Location</);
     // Exports 180 for "ships to" and four codes; the table's floor is what fits beside the rail at xl (1280 − 64 − 48), where the region stops scrolling: a higher floor would spill past it.
     assert.match(two, /<th [^>]*class="[^"]*w-\[180px\][^"]*"[^>]*title="From customs/);
@@ -433,11 +431,12 @@ describe("the results table", () => {
     assert.match(save, /data-action="save"/);
     assert.match(save, /class="[^"]*\bsize-8\b[^"]*"/);
     assert.doesNotMatch(save, /border-line-strong|bg-surface/, "the row's bookmark has the record button's chrome");
-    // Open: the record as a page, what "Open full page" in the menu did; the name still opens the pane.
-    const open = /<a [^>]*aria-label="Open Aboni Knitwear Ltd\. as a page"[^>]*>/.exec(aboni!)?.[0] ?? "";
+    // Open: the record in the pane beside the results, as the name does (founder, 15 Oct 2026: in place of the page); the page is nowhere in the row.
+    const open = /<a [^>]*aria-label="Open Aboni Knitwear Ltd\. beside the results"[^>]*>/.exec(aboni!)?.[0] ?? "";
     assert.ok(open, "no Open link at the row's end");
-    assert.match(open, /href="\/app\/suppliers\/aboni-knitwear\?back=%2Fapp%2Fdiscover%3Fq%3Dknit"/);
-    assert.match(open, /title="Open as a page"/);
+    assert.match(open, /href="\/app\/discover\?q=knit&record=aboni-knitwear"/);
+    assert.match(open, /title="Open beside the results"/);
+    assert.doesNotMatch(aboni!, /\/app\/suppliers\/aboni-knitwear|as a page/);
     // Both ride the row's hover, focus and selection by opacity (never `hidden`: a Tab stop and a screen reader keep them), and always show with no hover.
     for (const el of [save, open]) assert.match(el, /class="[^"]*opacity-0 transition-opacity duration-fast group-hover\/row:opacity-100 group-focus-within\/row:opacity-100 group-aria-selected\/row:opacity-100 \[@media\(hover:none\)\]:opacity-100/);
     // The keyboard's RFQ door stays hidden in the cell; the ⋯ menu and Send RFQ are gone from the row.
@@ -449,7 +448,7 @@ describe("the results table", () => {
     // A row with no supplier id (nothing to save) still has Open.
     const noId = plain(h(ResultsTable, { rows: [row({ supplierId: null })], sort: { key: "workers", dir: "desc" }, sortHrefs }));
     assert.doesNotMatch(noId, /data-save=/);
-    assert.match(noId, /aria-label="Open Aboni Knitwear Ltd\. as a page"/);
+    assert.match(noId, /aria-label="Open Aboni Knitwear Ltd\. beside the results"/);
     // The record's own Save button is as it was: 48, secondary, with its chrome.
     const record = plain(h(RecordSave, { supplierId: "id-aboni", saved: false, appearance: "icon" }));
     assert.match(record, /<button type="button" data-save="id-aboni" aria-pressed="false" aria-label="Save" title="Save" class="[^"]*border-line-strong bg-surface[^"]*size-12[^"]*">/);
