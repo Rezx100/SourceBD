@@ -10,7 +10,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 import type { HomeRecord } from "@/lib/home-records";
-import { CAPTION } from "@/lib/marketing/demo-snapshot";
+import { CAPTION, snapshotNames } from "@/lib/marketing/demo-snapshot";
 import { NO_FACTS, parseFacts } from "@/lib/site-facts";
 import { PRODUCT, SOLUTIONS } from "@/components/site/map";
 
@@ -22,10 +22,14 @@ const text = (m: string) => m.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
 const { PAGES, SitePage, siteMetadata } = require("@/components/site/pages") as typeof import("@/components/site/pages");
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
 const { RECORDS_KEY, RecordsPage } = require("@/components/site/product/records") as typeof import("@/components/site/product/records");
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
+const { SEARCH_KEY, SearchPage } = require("@/components/site/product/search") as typeof import("@/components/site/product/search");
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
+const { SLIDE_NAMES } = require("@/components/site/product/search-slides") as typeof import("@/components/site/product/search-slides");
 
 const FACTS = parseFacts({ suppliers_indexed: 10268, last_refreshed_at: "2026-10-02T05:48:07Z" }, null);
-/** A page as its route draws it: the records page in the home's frame (M4), every other on the template. */
-const page = (key: string, facts = FACTS, cards: HomeRecord[] = []) => draw(key === RECORDS_KEY ? createElement(RecordsPage, { cards }) : createElement(SitePage, { pageKey: key, facts }));
+/** A page as its route draws it: the records and search pages in the home's frame (M4), every other on the template. */
+const page = (key: string, facts = FACTS, cards: HomeRecord[] = []) => draw(key === RECORDS_KEY ? createElement(RecordsPage, { cards }) : key === SEARCH_KEY ? createElement(SearchPage, { facts }) : createElement(SitePage, { pageKey: key, facts }));
 
 describe("the product and solutions pages", () => {
   it("every page the menus link to is built, and nothing else is", () => {
@@ -184,6 +188,89 @@ describe("the records page in the home's frame (M4, handoff-mercury-m4-onward.md
   });
 
   it("keeps the template's pins: the search, the two calls to action, the four states and the free-during-beta close", () => {
+    const out = page(RECORDS_KEY);
+    const t = text(out);
+    assert.equal((out.match(/<h1[ >]/g) ?? []).length, 1);
+    assert.match(out, /<form[^>]*action="\/discover"/);
+    assert.match(out, /href="\/signup"[^>]*>Start free/);
+    assert.match(out, /href="\/contact"[^>]*>Book a demo/);
+    for (const s of ["Expired", "Expires in N days", "Valid until", "Listed as valid", "2 sources differ", "Check one supplier now."]) assert.ok(t.includes(s), s);
+    assert.match(t, /Free during beta\. No card needed\./);
+    assert.doesNotMatch(t, /undefined|NaN|\[object/);
+  });
+});
+
+describe("the search page in the home's frame (M4, handoff-mercury-m4-onward.md §4.2)", () => {
+  it("opens on the Find demo, not a screenshot, with the dated caption and the live count under the stage", () => {
+    const out = page(SEARCH_KEY);
+    const hero = out.slice(0, out.indexOf("<h2"));
+    assert.match(hero, /<h1[^>]*>Search 10,268 garment suppliers\.<\/h1>/);
+    assert.match(hero, /A search for knit GOTS/);
+    assert.doesNotMatch(hero, /search-results\.png/);
+    assert.match(text(hero), /Real records as read \d{1,2} [A-Z][a-z]{2} \d{4} 10,268 published suppliers · updated 2 Oct 2026/);
+  });
+
+  it("names six filters, each one the page's own words already claim, in a grid that reveals", () => {
+    const out = page(SEARCH_KEY);
+    const grid = /<section aria-labelledby="search-filters"[\s\S]*?<\/section>/.exec(out)![0];
+    assert.equal((grid.match(/<li /g) ?? []).length, 6);
+    assert.match(grid, /<ul class="group\/reveal/);
+    for (const w of ["Product or HS code", "Certificate and its state", "District", "Workers", "Brand supplier lists", "BGMEA or BKMEA member"]) assert.ok(text(grid).includes(w), w);
+    assert.match(text(grid), /how many suppliers you will get/);
+  });
+
+  it("the record row plays Check beside the results; the filters row keeps its 3 Oct screen", () => {
+    const out = page(SEARCH_KEY);
+    assert.match(out, /record opened beside the search results at its Certificates section/);
+    assert.match(out, /search-filters\.png/);
+    assert.doesNotMatch(out, /search-pane\.png/);
+  });
+
+  it("the carousel shows one search narrowed twice: three slides, the first drawn, every row the snapshot's", () => {
+    const out = page(SEARCH_KEY);
+    assert.match(out, /aria-roledescription="carousel" aria-label="One search narrowed step by step"/);
+    assert.equal((out.match(/aria-roledescription="slide"/g) ?? []).length, 3);
+    assert.match(out, /aria-label="01 \/ 03 · By product and certificate" aria-hidden="false"/);
+    assert.equal((out.match(/aria-roledescription="slide"[^>]*aria-hidden="true"/g) ?? []).length, 2);
+    assert.match(text(out), /01 \/ 03/);
+    for (const w of ["The first page of the search", "Narrowed to Gazipur from the first page", "Narrowed to 1,000 workers or more from the first page", "Previous slide", "Next slide"]) assert.ok(text(out).includes(w) || out.includes(w), w);
+    const allowed = new Set(snapshotNames());
+    for (const n of SLIDE_NAMES) assert.ok(allowed.has(n), n);
+    // A still moves nothing, so it offers no pause button: the page's pause buttons are the hero's, the record row's and the cross-sell's three.
+    assert.equal((out.match(/aria-label="Pause demo"/g) ?? []).length, 5);
+  });
+
+  it("the ground runs paper, dark, paper, dark: the rows, the carousel and cross-sell, the FAQ, the close", () => {
+    const out = page(SEARCH_KEY);
+    assert.match(out, /^(?:<link [^>]*>)*<main data-tone="paper" class="[^"]*bg-canvas/);
+    const tones = [...out.matchAll(/data-tone="(photo|dark|paper)"/g)].map((m) => m[1]).slice(1);
+    assert.deepEqual(tones, ["paper", "dark", "paper", "dark"]);
+    const cross = out.slice(out.indexOf('aria-labelledby="site-cross-sell"'), out.indexOf('aria-labelledby="search-faq"'));
+    for (const href of ["/product/records", "/product/rfqs", "/product/compliance"]) assert.match(cross, new RegExp(`href="${href}"`), href);
+    assert.doesNotMatch(cross, /href="\/product\/search"/);
+    assert.equal((out.match(/<details /g) ?? []).length, 4, "four answers about search");
+    for (const q of ["Where do the facts come from?", "Can a supplier pay to appear higher?", "How fresh is each fact?", "Do you list buying houses too?"]) assert.ok(text(out).includes(q), q);
+  });
+
+  it("keeps the template's pins: the search, the two calls to action, the results row's words and the free-during-beta close", () => {
+    const out = page(SEARCH_KEY);
+    const t = text(out);
+    assert.equal((out.match(/<h1[ >]/g) ?? []).length, 1);
+    assert.match(out, /<form[^>]*action="\/discover"/);
+    assert.match(out, /href="\/signup"[^>]*>Start free/);
+    assert.match(out, /href="\/contact"[^>]*>Book a demo/);
+    for (const s of ["Filters that match how you buy.", "The record opens beside your list.", "Every row says what needs a look.", "Try it on your next product."]) assert.ok(t.includes(s), s);
+    assert.match(t, /Free during beta\. No card needed\./);
+    assert.doesNotMatch(t, /undefined|NaN|\[object/);
+  });
+
+  it("without the live figures the page still stands: the plain headline, no count, no updated day", () => {
+    const out = page(SEARCH_KEY, NO_FACTS);
+    assert.match(out, /<h1[^>]*>Search Bangladesh garment suppliers\.<\/h1>/);
+    assert.doesNotMatch(text(out), /10,268|published suppliers · updated/);
+  });
+
+  it("the records page's pins still hold after the stage helper moved", () => {
     const out = page(RECORDS_KEY);
     const t = text(out);
     assert.equal((out.match(/<h1[ >]/g) ?? []).length, 1);

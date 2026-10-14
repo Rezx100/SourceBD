@@ -1,0 +1,107 @@
+// /product/search (M4, handoff-mercury-m4-onward.md §4.2): the words of `PAGES["product/search"]`, pinned by
+// `pages.test.ts`, in the home page's frame. The hero's screenshot is now the Find demo on the cotton stage, with the
+// live count under it; the six filters the page's own words name sit in an icon grid; the filters row keeps its
+// 3 Oct screen (no demo draws the panel yet), the record row plays Check beside the results, the results row keeps
+// its words; then, on the night ground, one search narrowed twice in a carousel and the other three products; the
+// FAQ's four answers about search; the close.
+
+import { DemoRecord, DemoSearch } from "@/components/site/demos";
+import { ToneShift } from "@/components/site/motion";
+import { Figure, PAGES } from "@/components/site/pages";
+import { Carousel3 } from "@/components/site/sections/carousel";
+import { Closing } from "@/components/site/sections/closing";
+import { CrossSell } from "@/components/site/sections/cross-sell";
+import { FAQ_ITEMS } from "@/components/site/sections/faq-items";
+import { Faq } from "@/components/site/sections/faq";
+import { IconGrid, type IconItem } from "@/components/site/sections/icon-grid";
+import { FeatureRow, H2, HeroActions, HeroCentered, Lede, Section, measure } from "@/components/site/sections/ui";
+import { readDay, withCommas, type SiteFacts } from "@/lib/site-facts";
+import { cn } from "@/lib/utils";
+import { SEARCH_SLIDES } from "./search-slides";
+import { Staged } from "./staged";
+
+export const SEARCH_KEY = "product/search";
+const P = PAGES[SEARCH_KEY]!;
+const row = (n: string) => P.blocks.find((b) => b.n === n)!;
+const label = (b: { n: string; label: string }) => `${b.n} · ${b.label}`;
+
+/** The six filters the page's own words name (row 01): nothing here the product does not have. */
+const FILTERS: IconItem[] = [
+  { icon: "ledger", title: "Product or HS code", body: "A word from the products a supplier files, or the heading it exports under." },
+  { icon: "rosette", title: "Certificate and its state", body: "GOTS, WRAP, OEKO-TEX and the rest, held today or lapsed, each with its date." },
+  { icon: "pin", title: "District", body: "Dhaka, Gazipur, Narayanganj, Chattogram: where the factory stands." },
+  { icon: "team", title: "Workers", body: "From a minimum to a maximum, the figure the supplier filed with its register." },
+  { icon: "flag", title: "Brand supplier lists", body: "Named on a brand's published list, and by which brands." },
+  { icon: "factory", title: "BGMEA or BKMEA member", body: "A member of the trade body, by the number it filed." },
+];
+
+export function SearchPage({ facts }: { facts: SiteFacts }) {
+  const count = facts.suppliers !== null ? withCommas(facts.suppliers) : null;
+  const updated = readDay(facts.latestRead);
+  const h1 = count ? P.h1.replace("{n}", count) : P.h1Plain;
+  const [filters, records, results] = [row("01"), row("02"), row("03")];
+  return (
+    <ToneShift id={null} initial="paper" className="bg-canvas font-sans text-ink-strong antialiased">
+      <div data-tone="paper">
+        <HeroCentered
+          label={`${P.group} · ${P.name}`}
+          title={h1}
+          lede={P.lede}
+          stage={
+            <Staged
+              still="hero-cotton"
+              eager
+              after={
+                count ? (
+                  <p className="text-sm text-ink-subtle">
+                    {count} published suppliers{updated ? ` · updated ${updated}` : ""}
+                  </p>
+                ) : null
+              }
+            >
+              <DemoSearch caption={false} />
+            </Staged>
+          }
+        >
+          <HeroActions center />
+        </HeroCentered>
+
+        <IconGrid id="search-filters" title="Six ways to narrow." lede="Each filter says how many suppliers you will get before you apply it." items={FILTERS} tone="subtle" />
+        {filters.shot ? <FeatureRow label={label(filters)} headline={filters.headline} lede={filters.lede} media={<Figure shot={filters.shot} still="weave" sizes="(min-width: 1440px) 720px, 100vw" />} /> : null}
+        <FeatureRow
+          label={label(records)}
+          headline={records.headline}
+          lede={records.lede}
+          flip
+          tone="subtle"
+          media={
+            <Staged still="thread-cones">
+              <DemoRecord caption={false} />
+            </Staged>
+          }
+        />
+        <Section label={label(results)} headline={results.headline} lede={results.lede} />
+      </div>
+
+      <div data-tone="dark">
+        <section aria-labelledby="search-common" className={cn(measure, "flex flex-col gap-10 py-14 md:gap-14 md:py-section")}>
+          <div className="flex flex-col gap-4">
+            <H2 id="search-common">One search, narrowed twice.</H2>
+            <Lede>The words first, then a district, then a size. Each chip keeps the rows that answer it; the count and the pages follow.</Lede>
+          </div>
+          <Carousel3 slides={SEARCH_SLIDES} label="One search narrowed step by step" />
+        </section>
+        <CrossSell current={`/${SEARCH_KEY}`} />
+      </div>
+
+      <div data-tone="paper">
+        {/* Four of the home's answers: where the facts come from, paid placement, freshness, buying houses (the scoring answer names what we never do, which the no-score guard reads as a claim). */}
+        <Faq id="search-faq" title="Questions about search." items={FAQ_ITEMS(facts).filter((i) => /facts come from|pay|fresh|buying houses/.test(i.q))} />
+      </div>
+
+      <div data-tone="dark">
+        <Closing headline={P.close} lede="Free during beta. No card needed." />
+      </div>
+    </ToneShift>
+  );
+}
