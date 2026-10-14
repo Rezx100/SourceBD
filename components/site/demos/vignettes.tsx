@@ -237,9 +237,9 @@ export function VignetteReceipts({ className, caption }: { className?: string; c
   );
 }
 
-/** A vignette's window: small, the product's light ground, one moment inside. */
+/** A vignette's window: small, the product's light ground, one moment inside; the foot is left to the stage's pause button (44 px, 12 px in), so no row sits under it. */
 function Small({ children, className }: { children: ReactNode; className?: string }) {
-  return <div data-ground="day" className={cn("flex min-h-[168px] flex-col rounded-frame border border-ink-strong/10 bg-surface p-4 text-ink shadow-md", className)}>{children}</div>;
+  return <div data-ground="day" className={cn("flex min-h-[168px] flex-col rounded-frame border border-ink-strong/10 bg-surface p-4 pb-16 text-ink shadow-md", className)}>{children}</div>;
 }
 
 /** The home's four vignettes, for its grid and the gallery; the product pages' two are exported above. */

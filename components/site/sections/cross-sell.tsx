@@ -25,11 +25,12 @@ export function CrossSell({ current }: { /** The page's own address, left out of
         <H2 id="site-cross-sell">The rest of the desk, on the same records.</H2>
         <Lede>Find suppliers, ask them for quotes and watch what changes. Each one reads the record you just saw.</Lede>
       </div>
-      <ul className="grid gap-8 md:grid-cols-3 md:gap-8">
+      {/* Each card spans the two shared rows (loop, words), so the three titles line up whatever each loop's height. */}
+      <ul className="grid gap-8 md:grid-cols-3 md:grid-rows-[auto_auto]">
         {others.map((p) => {
           const loop = LOOP[p.href];
           return (
-            <li key={p.href} className="flex flex-col gap-4">
+            <li key={p.href} className="row-span-2 grid grid-rows-subgrid gap-4">
               {loop ? <loop.Loop /> : null}
               <div className="flex flex-col gap-1.5">
                 <h3 className="flex items-center gap-2.5 text-site-title font-medium text-ink-strong">
