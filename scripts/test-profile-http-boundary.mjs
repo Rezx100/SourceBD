@@ -1747,23 +1747,21 @@ const CASES = [
     // 13 Oct: a company with buildings prints one range, the record's own.
     // The stub ignores the sort; the ORDER is asserted against a real
     // database by assert-0104.sql. This case asserts what each cell says.
-    name: "rez-b: /app/discover table (sort=workers in the URL) headlines each supplier's own figure and words the second from its sites",
+    name: "rez-b: /app/discover table (sort=workers in the URL) headlines each supplier's own figure, and nothing else in the cell",
     path: "/app/discover?view=table&sort=workers",
     auth: true,
     expect: {
       status: 200,
-      // The ledger grid prints the record's own figure and, since 28 Sep,
-      // the profile's figure under it in a few words wherever the two differ
-      // (the list read 770 beside a record reading 793); the full words for
-      // both are in the cell's title. Each figure is pinned to its own words.
-      // Since 29 Sep the second line may break between its figure and its
-      // words, never inside either.
+      // The ledger grid prints the record's own figure. From 28 Sep to 14 Oct
+      // 2026 the profile's figure sat under it wherever the two differed (the
+      // list read 770 beside a record reading 793); the founder's cut of 14
+      // Oct 2026 (PR #555) leaves that to the record, so the cell is the one
+      // figure and the CSV export (below) still carries both.
       bodyIncludesAll: [
         "1,200–1,700",
-        // The second figure's source is a defined term (critique of 8 Oct 2026, round 3, item 5).
-        "100<span title=\"450 workers · RSC inspection\" class=\"block text-xs text-ink-3\">450 <span tabindex=\"0\" data-define=\"RSC\"",
+        'tabular-nums text-ink">100</td>',
       ],
-      bodyExcludes: ["450 workers · across this record and its buildings", "500 in buildings", "Search is under heavy load"],
+      bodyExcludes: ['title="450 workers · RSC inspection"', "450 workers · across this record and its buildings", "500 in buildings", "Search is under heavy load"],
     },
   },
   {

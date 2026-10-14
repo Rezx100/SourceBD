@@ -3,10 +3,12 @@
 // No hooks and no state, so both client lists and the phone's server-drawn rows draw them.
 
 import { Lock } from "@phosphor-icons/react/dist/ssr";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
+import { CertChip } from "@/components/kit";
 import { SourceMark } from "@/components/patterns";
 import { hasSourceMark } from "@/components/patterns/source-mark";
-import type { CertBody } from "@/components/patterns/words";
+import type { CertBody, CertSummary } from "@/components/patterns/words";
+import { highlightParts } from "@/lib/search-suggest-ui";
 import { cn } from "@/lib/utils";
 import type { ResultRow } from "./model";
 
@@ -74,16 +76,72 @@ export function ExportedLocked({ className }: { className?: string }) {
  * clipped at the cell's edge with the names in `title`; a caller with room to wrap adds `flex-wrap` and
  * the names then wrap whole, one by one.
  */
-export function Products({ products, className }: { products: NonNullable<ResultRow["products"]>; className?: string }) {
+export function Products({ products, className, q }: { products: NonNullable<ResultRow["products"]>; className?: string; /** The search's words, lit in the names that answer them. */ q?: string | null }) {
   return (
     <span data-products="" title={products.shown.join(", ")} className={cn("flex min-w-0 items-baseline gap-x-[5px] overflow-clip text-sm text-ink-2", className)}>
       {products.shown.map((p, i) => (
         <span key={p} className="whitespace-nowrap">
-          {p}
+          <Hit text={p} q={q} />
           {i < products.shown.length - 1 ? "," : ""}
         </span>
       ))}
       {products.more > 0 ? <span className="whitespace-nowrap text-ink-3">+{products.more}</span> : null}
+    </span>
+  );
+}
+
+/**
+ * Words with the search's terms lit: a word start that begins with a typed term is marked, as the
+ * typeahead does it. The reason a row is on the page, shown where it is, instead of said in a line.
+ */
+export function Hit({ text, q }: { text: string; q?: string | null }) {
+  // The ranking's terms (`matchedProducts` in model.ts): two characters or more, so "s m knit" lights "knit" alone.
+  const terms = (q ?? "")
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((w) => w.length > 1)
+    .join(" ");
+  if (!terms) return <>{text}</>;
+  return (
+    <>
+      {highlightParts(text, terms).map((p, k) =>
+        p.hit ? (
+          <mark key={k} className="rounded-[2px] bg-accent-tint-strong px-px text-ink">
+            {p.text}
+          </mark>
+        ) : (
+          <Fragment key={k}>{p.text}</Fragment>
+        ),
+      )}
+    </>
+  );
+}
+
+/**
+ * The certificates of a results row, the worst one first (founder, 14 Oct 2026: "Expired 3 Aug 2026"
+ * is the one fact that decides whether a buyer opens a record at all): its body's mark, its state in
+ * a few words, then how many more it holds. The record's Certificates tab has every one with its date.
+ */
+export function CertStateCell({ cert }: { cert: CertSummary }) {
+  const more = cert.total - 1;
+  return (
+    <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1" title={cert.words}>
+      <span className="sr-only">{cert.words}</span>
+      <span aria-hidden className="inline-flex items-center gap-1.5">
+        {hasSourceMark(cert.first.code) ? (
+          <SourceMark source={cert.first.code} className="size-5 [&>img]:max-h-3.5 [&>img]:max-w-3.5" />
+        ) : (
+          // A body with no approved mark (`context/logos.lock.md`: no row, no render) is its name, the same chip the pane list draws it in.
+          <span className="inline-flex h-5 items-center rounded-md border border-line px-1.5 text-xs font-medium text-ink-2">{cert.first.scheme}</span>
+        )}
+        <CertChip state={cert.state} className="h-5 whitespace-nowrap px-1.5 text-xs">
+          {cert.short}
+        </CertChip>
+      </span>
+      {more > 0 ? (
+        <span aria-hidden className="whitespace-nowrap text-xs text-ink-3">
+          +{more} more
+        </span>
+      ) : null}
     </span>
   );
 }
