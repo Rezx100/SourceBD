@@ -332,13 +332,21 @@ describe("the results table", () => {
   it("a row answers before the click: what it makes under the name with the search's words lit, and an empty cell is a dash", () => {
     const cell = /<td class="[^"]*max-w-0[^"]*">([\s\S]*?)<\/td>/g;
     const [aboni, zaheen] = [...out.matchAll(cell)].map((m) => m[1]!);
-    assert.match(text(aboni!), /^ ?Aboni Knitwear Ltd\. Knit T-shirts, Polo shirts \+7 ?$/);
+    // The lit name for the eye, then the whole name once for a screen reader, then what it makes.
+    assert.match(text(aboni!), /^ ?Aboni Knitwear Ltd\. Aboni Knitwear Ltd\. Knit T-shirts, Polo shirts \+7 ?$/);
+    assert.match(aboni!, /<span aria-hidden="true">Aboni <mark [^>]*>Knit<\/mark>wear Ltd\.<\/span><span class="sr-only">Aboni Knitwear Ltd\.<\/span>/);
     assert.match(aboni!, /<span data-products="" title="Knit T-shirts, Polo shirts"/);
     // "knit" is lit where it answers: at a word start in the name and in a product, and nowhere else.
-    assert.match(aboni!, /<mark [^>]*>Knit<\/mark>wear Ltd\./);
     assert.match(aboni!, /<mark [^>]*>Knit<\/mark> T-shirts/);
     assert.equal((aboni!.match(/<mark /g) ?? []).length, 2);
-    assert.doesNotMatch(plain(h(ResultsTable, { rows, sort: { key: "workers", dir: "desc" }, sortHrefs })), /<mark /, "no search, nothing lit");
+    const unlit = plain(h(ResultsTable, { rows, sort: { key: "workers", dir: "desc" }, sortHrefs }));
+    assert.doesNotMatch(unlit, /<mark /, "no search, nothing lit");
+    assert.match(unlit, /data-open="record"[^>]*>Aboni Knitwear Ltd\.</, "with nothing lit a short name is the link's own words");
+    // One-letter terms are not terms (as `matchedProducts` ranks): "s m knit" lights "Knit" alone, never every S and M.
+    const sm = plain(h(ResultsTable, { rows, sort: { key: "workers", dir: "desc" }, sortHrefs, q: "s m knit" }));
+    assert.doesNotMatch(sm, /<mark [^>]*>(S|M|Sourcing|Polo|shirts)</);
+    assert.match(sm, /<mark [^>]*>Knit<\/mark> T-shirts/);
+    assert.doesNotMatch(plain(h(ResultsTable, { rows, sort: { key: "workers", dir: "desc" }, sortHrefs, q: "s" })), /<mark /);
     assert.doesNotMatch(zaheen!, /data-products/, "a supplier that filed no product has an invented line");
     // The brand lists are the record's business (founder, 14 Oct 2026): no column, no dash for them.
     assert.doesNotMatch(out, /H&M, NEXT|brand lists/);

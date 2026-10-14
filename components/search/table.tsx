@@ -40,7 +40,8 @@ export const EXPORTED_TITLE = "From customs records of the last two years on fil
  * `q` lights the search's terms in the visible name.
  */
 export function WholeName({ name, base, q }: { name: string; base: string; q?: string | null }) {
-  if (base === name) return <Hit text={base} q={q} />;
+  // A lit name is for the eye: a screen reader hears the whole name once, with no "highlighted" mid-word.
+  if (base === name && !q) return <>{base}</>;
   return (
     <>
       <span aria-hidden="true">
@@ -79,7 +80,7 @@ export function ResultsTable({
   // Not a tab stop (critique of 8 Oct 2026, item 7: two Tabs before the first name): the rows are.
   return (
     <div role="region" aria-label="Results table" className="relative min-w-0 overflow-x-auto xl:overflow-visible">
-      <Table className="min-w-[920px]">
+      <Table className="min-w-[1000px]">
         <thead>
           <tr>
             <SelectCell
@@ -102,7 +103,7 @@ export function ResultsTable({
               Certificates
             </Th>
             {exportsHead ? (
-              <Th className="w-[170px]" title="Export shipment records, Sep 2024 – Aug 2026">
+              <Th className="w-[250px]" title="Export shipment records, Sep 2024 – Aug 2026">
                 {exportsHead}
               </Th>
             ) : (
@@ -169,7 +170,7 @@ export function ResultsTable({
                 <Td align="right" className="tabular-nums text-ink">
                   {r.workers ?? <Unpublished />}
                 </Td>
-                <Td className="py-1.5">{r.certCell ? <CertStateCell cert={r.certCell} q={q} /> : <Unpublished>{ABSENT.certificates}</Unpublished>}</Td>
+                <Td className="py-1.5">{r.certCell ? <CertStateCell cert={r.certCell} /> : <Unpublished>{ABSENT.certificates}</Unpublished>}</Td>
                 <Td className="tabular-nums text-ink">
                   {exportsHead ? (
                     r.exports ? (

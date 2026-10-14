@@ -95,10 +95,15 @@ export function Products({ products, className, q }: { products: NonNullable<Res
  * typeahead does it. The reason a row is on the page, shown where it is, instead of said in a line.
  */
 export function Hit({ text, q }: { text: string; q?: string | null }) {
-  if (!q) return <>{text}</>;
+  // The ranking's terms (`matchedProducts` in model.ts): two characters or more, so "s m knit" lights "knit" alone.
+  const terms = (q ?? "")
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((w) => w.length > 1)
+    .join(" ");
+  if (!terms) return <>{text}</>;
   return (
     <>
-      {highlightParts(text, q).map((p, k) =>
+      {highlightParts(text, terms).map((p, k) =>
         p.hit ? (
           <mark key={k} className="rounded-[2px] bg-accent-tint-strong px-px text-ink">
             {p.text}
@@ -116,7 +121,7 @@ export function Hit({ text, q }: { text: string; q?: string | null }) {
  * is the one fact that decides whether a buyer opens a record at all): its body's mark, its state in
  * a few words, then how many more it holds. The record's Certificates tab has every one with its date.
  */
-export function CertStateCell({ cert, q }: { cert: CertSummary; q?: string | null }) {
+export function CertStateCell({ cert }: { cert: CertSummary }) {
   const more = cert.total - 1;
   return (
     <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1" title={cert.words}>
@@ -125,9 +130,8 @@ export function CertStateCell({ cert, q }: { cert: CertSummary; q?: string | nul
         {hasSourceMark(cert.first.code) ? (
           <SourceMark source={cert.first.code} className="size-5 [&>img]:max-h-3.5 [&>img]:max-w-3.5" />
         ) : (
-          <span className="inline-flex h-5 items-center rounded-md border border-line px-1.5 text-xs font-medium text-ink-2">
-            <Hit text={cert.first.scheme} q={q} />
-          </span>
+          // A body with no approved mark (`context/logos.lock.md`: no row, no render) is its name, the same chip the pane list draws it in.
+          <span className="inline-flex h-5 items-center rounded-md border border-line px-1.5 text-xs font-medium text-ink-2">{cert.first.scheme}</span>
         )}
         <CertChip state={cert.state} className="h-5 whitespace-nowrap px-1.5 text-xs">
           {cert.short}

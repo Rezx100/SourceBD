@@ -1637,6 +1637,10 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
     assert.match(said(paid), /US\$76\.6m \d+ /, "the value, then the source count, and nothing between");
     // The phone's rows on the same page still say where it ships; the table cell is the figure alone.
     assert.match(paid, /<span class="text-\[15px\]\/\[20px\] font-medium">US\$76\.6m<\/span><\/td>/);
+    // The page hands the table the query (the name's "Knit" is lit) and the Sources sort link (founder's cut, 14 Oct 2026).
+    assert.match(paid, /<mark [^>]*>Knit<\/mark>/i, "the search's words are not lit in the results");
+    // Most sources is the default order, so its head is the sorted one and its link is the plain search.
+    assert.match(paid, /<th [^>]*aria-sort="descending"[^>]*><a [^>]*href="\/app\/discover\?q=knit"[^>]*>Sources/, "the Sources head does not sort the search");
     assert.deepEqual(rpcCalls.filter((c) => c.fn === "discover_export_cells").map((c) => c.args), [{ p_ids: [ROW.id] }]);
     // Beside an open record the list row says it too.
     assert.match(said(await open({ volza_reader_entitled: yes, discover_export_cells: cells(76578613.86, ["EU", "US"]) }, { q: "knit", record: "aboni-knitwear" })), /US\$76\.6m exported, 2 years Ships to the EU and the US ships to EU US/);
