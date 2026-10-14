@@ -22,13 +22,19 @@ export function stillPreferred(): boolean {
   return saveData || matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-/** Whether `ref` is at least `threshold` in view. False on the server and until the observer reports. */
+/**
+ * Whether `ref` is at least `threshold` in view, or fills that share of the viewport (an element taller than the
+ * screen can never be half visible). False on the server and until the observer reports.
+ */
 export function useInView(ref: RefObject<Element | null>, threshold = 0.5): boolean {
   const [inView, setInView] = useState(false);
   useEffect(() => {
     const el = ref.current;
     if (!el || typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver(([e]) => setInView(e?.isIntersecting === true), { threshold });
+    const io = new IntersectionObserver(
+      ([e]) => setInView(!!e && e.isIntersecting && (e.intersectionRatio >= threshold || e.intersectionRect.height >= innerHeight * threshold)),
+      { threshold: [0, 0.1, 0.25, threshold, 0.75, 1] },
+    );
     io.observe(el);
     return () => io.disconnect();
   }, [ref, threshold]);
@@ -69,6 +75,7 @@ export function useScene<S>(steps: readonly Step<S>[], ref: RefObject<Element | 
     const still = matchMedia("(prefers-reduced-motion: reduce)");
     const onStill = (e: MediaQueryListEvent) => e.matches && setPaused(true);
     const onVis = () => setHidden(document.hidden);
+    onVis(); // a page opened in a background tab starts hidden
     still.addEventListener("change", onStill);
     document.addEventListener("visibilitychange", onVis);
     return () => {
@@ -162,9 +169,11 @@ export type Tone = "paper" | "dark" | "photo";
 /**
  * The page's `<main>`. Each section says its tone with `data-tone`; the one crossing the middle of the viewport sets
  * the ground. Dark swaps in the night colour set (`data-ground="night"`, tailwind.config.ts), so every token reads
- * dark; the ground and text fade over `duration-tone`. Sections under it keep a transparent ground.
+ * dark; the ground fades over `duration-tone`, and so does every colour inside that sets no transition of its own
+ * (the zero-specificity rule in tailwind.config.ts), so text never flips ahead of its ground. Sections under it keep
+ * a transparent ground.
  */
-export function ToneShift({ initial = "paper", className, children }: { initial?: Tone; className?: string; children: ReactNode }) {
+export function ToneShift({ initial = "paper", className, children }: { initial?: Tone; className?: string; children?: ReactNode }) {
   const main = useRef<HTMLElement>(null);
   const [tone, setTone] = useState<Tone>(initial);
   useEffect(() => {

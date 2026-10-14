@@ -18,6 +18,7 @@ const STEPS: { at: number; state: S }[] = [
   { at: 1800, state: { label: "open", cursor: "row-1", click: true } },
 ];
 const stage = (description = "A search for knit suppliers in Gazipur.") =>
+  // eslint-disable-next-line react/no-children-prop -- a render function, which createElement's child list does not type.
   renderToStaticMarkup(createElement(M.DemoStage<S>, { steps: STEPS, description, children: (s: S) => createElement("p", { "data-cursor": "row-1" }, `step ${s.label}`) }));
 
 describe("motion", () => {
@@ -50,8 +51,8 @@ describe("motion", () => {
   });
 
   it("the tone shift renders the page's main landmark with its first tone", () => {
-    const out = renderToStaticMarkup(createElement(M.ToneShift, { initial: "dark", children: createElement("section", { "data-tone": "dark" }) }));
+    const out = renderToStaticMarkup(createElement(M.ToneShift, { initial: "dark" }, createElement("section", { "data-tone": "dark" })));
     assert.match(out, /^<main id="main-content" data-tone="dark" data-ground="night"/);
-    assert.match(renderToStaticMarkup(createElement(M.ToneShift, { children: null })), /^<main id="main-content" data-tone="paper" class=/);
+    assert.match(renderToStaticMarkup(createElement(M.ToneShift, null, null)), /^<main id="main-content" data-tone="paper" class=/);
   });
 });

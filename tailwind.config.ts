@@ -155,6 +155,13 @@ const config: Config = {
         ":root": { ...colorVars(light), ...paneMaterial.light },
         "@media (prefers-color-scheme: dark)": { ":root:has([data-theme-auto])": darkSet },
         '[data-ground="night"]': night,
+        // ToneShift (components/site/motion.tsx): under a page whose ground changes tone, colours fade with it. No
+        // specificity, so an element's own transition class wins; app/ds.css stills it under reduced motion.
+        ":where(main[data-tone]) *": {
+          transitionProperty: "color, background-color, border-color, fill, stroke",
+          transitionDuration: transitionDuration.tone,
+          transitionTimingFunction: transitionTimingFunction.reveal,
+        },
         // The product's own pieces, staged in the film on a night ground: the app has no dark theme, so a window
         // of it is light in either theme and inside any night scene.
         '[data-ground="day"]': { ...colorVars(light), ...paneMaterial.light, "color-scheme": "light" },
