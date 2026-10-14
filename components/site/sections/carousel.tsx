@@ -49,9 +49,10 @@ export function Carousel3({ slides, label, className }: { slides: readonly Slide
           {pad(at + 1)} / {pad(n)}
         </p>
         <div className="flex items-center gap-2">
-          <div role="tablist" aria-label="Slides" className="mr-2 flex">
+          {/* The basic carousel pattern: a plain button per slide, the current one marked, never a tablist over slides that are not tabpanels. */}
+          <div className="mr-2 flex">
             {slides.map((s, i) => (
-              <button key={s.key} type="button" role="tab" aria-selected={i === at} aria-controls={`${id}-slide-${i}`} aria-label={`Slide ${pad(i + 1)}: ${s.title}`} onClick={() => go(i)} className={cn("flex size-11 items-center justify-center", ring)}>
+              <button key={s.key} type="button" aria-current={i === at ? "true" : undefined} aria-label={`Slide ${pad(i + 1)}: ${s.title}`} onClick={() => go(i)} className={cn("flex size-11 items-center justify-center", ring)}>
                 <span aria-hidden className={cn("size-2 rounded-full", i === at ? "bg-ink-strong" : "bg-line-strong")} />
               </button>
             ))}

@@ -106,11 +106,14 @@ function Chips({ chips }: { chips: readonly string[] }) {
 
 /**
  * The results as a still (M4, the search page's carousel): the chips in the bar and under it, `rows` of the
- * snapshot, nothing moving, so no pause button. `right` is the bar's count.
+ * snapshot, nothing moving, so no pause button. `right` is the bar's count; `description` is the one sentence a
+ * screen reader gets instead of the table, as a demo's stage gives.
  */
-export function SearchStill({ chips, rows, right, className }: { chips: readonly string[]; rows: readonly Row[]; right?: ReactNode; className?: string }) {
+export function SearchStill({ chips, rows, right, description, className }: { chips: readonly string[]; rows: readonly Row[]; right?: ReactNode; description: string; className?: string }) {
   return (
-    <div data-ground="day" className={cn("rounded-frame shadow-lg", className)}>
+    <figure data-ground="day" className={cn("rounded-frame shadow-lg", className)}>
+      <figcaption className="sr-only">{description}</figcaption>
+      <div aria-hidden className="select-none">
       <Window>
         <Bar
           title={
@@ -125,7 +128,8 @@ export function SearchStill({ chips, rows, right, className }: { chips: readonly
         <Chips chips={chips} />
         <Rows rows={rows} />
       </Window>
-    </div>
+      </div>
+    </figure>
   );
 }
 

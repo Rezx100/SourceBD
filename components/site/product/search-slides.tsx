@@ -2,7 +2,8 @@
 
 // The search page's carousel (M4): the snapshot's one search, "knit GOTS", then its first page narrowed twice with a
 // chip, by district and by size, the way a buyer narrows a search. Every row is the snapshot's, so no narrowed slide
-// claims a count of its own: it says how many of this page remain. A client file because the slides hold components.
+// claims a count of its own: it says how many of this page remain; the two narrowing chips are this page's words for
+// the filters, not chips the product wrote. A client file because the slides hold components.
 
 import { ROWS, SearchStill } from "@/components/site/demos/search";
 import type { Slide } from "@/components/site/sections/carousel";
@@ -19,7 +20,7 @@ const still = (more: string[], rows: readonly Row[], right: string, note: string
   function SearchSlide() {
     return (
       <div className="flex flex-col gap-3">
-        <SearchStill chips={[...chips, ...more]} rows={rows} right={right} />
+        <SearchStill chips={[...chips, ...more]} rows={rows} right={right} description={`${note}: ${rows.length} ${rows.length === 1 ? "supplier" : "suppliers"}, with their place, workers and the certificates they hold today.`} />
         <p className="text-sm text-ink-subtle">
           {note} · {CAPTION}
         </p>

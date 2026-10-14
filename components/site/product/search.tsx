@@ -31,8 +31,8 @@ const FILTERS: IconItem[] = [
   { icon: "rosette", title: "Certificate and its state", body: "GOTS, WRAP, OEKO-TEX and the rest, held today or lapsed, each with its date." },
   { icon: "pin", title: "District", body: "Dhaka, Gazipur, Narayanganj, Chattogram: where the factory stands." },
   { icon: "team", title: "Workers", body: "From a minimum to a maximum, the figure the supplier filed with its register." },
-  { icon: "flag", title: "Brand supplier lists", body: "Named on a brand's published list, and by which brands." },
-  { icon: "factory", title: "BGMEA or BKMEA member", body: "A member of the trade body, by the number it filed." },
+  { icon: "flag", title: "Brand supplier lists", body: "Named on a brand's published supplier list, as the brand filed it." },
+  { icon: "factory", title: "BGMEA or BKMEA member", body: "Listed by the trade body as a member, with the day its register was read." },
 ];
 
 export function SearchPage({ facts }: { facts: SiteFacts }) {
