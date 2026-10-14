@@ -1,20 +1,25 @@
 "use client";
 
 // Check (handoff-mercury-motion-sitewide.md §4.3): the cursor opens Aboni Knitwear beside the list, the record pane
-// slides in, the Certificates tab is chosen, and its rows arrive: the certificates held today, soonest expiry first,
-// then the one that ended, each with the day its register was read. The pane is drawn as the record draws it
-// (Paper page 37: name, type and place, the section tabs, the Certificates table's columns), from the snapshot.
+// slides in, a section's tab is chosen, and its rows arrive. At Certificates (the home tour's Check): the
+// certificates held today, soonest expiry first, then the one that ended, each with the day its register was read.
+// At Sources (M4, the records page's tabs): every register that lists the record, in trust order, with its full name
+// and the day it was read. At Contact: the locked card, as a reader the database has not entitled sees it; the
+// snapshot holds no contact value, so nothing here could show one. The pane is drawn as the record draws it (Paper
+// page 37: name, type and place, the section tabs, the Certificates table's columns), from the snapshot.
 
-import { Factory, MapPin } from "@phosphor-icons/react";
-import { Fragment } from "react";
-import { SourceMark } from "@/components/patterns";
-import { certShort } from "@/components/patterns/words";
+import { Factory, LockSimple, MapPin } from "@phosphor-icons/react";
+import { Fragment, useLayoutEffect, useRef } from "react";
+import { Unpublished } from "@/components/kit";
+import { SourceMark, TIER_LABEL, tierOf } from "@/components/patterns";
+import { ABSENT, certShort } from "@/components/patterns/words";
 import { SECTIONS } from "@/components/record/desktop-words";
 import type { CursorState, Step } from "@/components/site/motion";
 import { displayName, formatCount, formatDay } from "@/lib/dashboard/facts";
 import { certName } from "@/lib/dashboard/needs-attention";
 import { motion } from "@/lib/design/tokens";
 import { SNAPSHOT, TODAY } from "@/lib/marketing/demo-snapshot";
+import { sourceFullName } from "@/lib/source-full-names";
 import { cn } from "@/lib/utils";
 import { Bar, Demo, Window, endOf, streamed } from "./stage";
 
@@ -44,32 +49,96 @@ const HELD = rows.filter((r) => !r.ended);
 const ENDED = rows.filter((r) => r.ended);
 const CERT_TAB = SECTIONS.find((s) => s.id === "certificates")!;
 
+/** A brand list's short name as the results row writes it (lib/dashboard/build-discover-row.ts); a register's code is its name. */
+const BRAND: Record<string, string> = { BRAND_HM: "H&M", BRAND_ASOS: "ASOS", BRAND_NEXT: "NEXT", BRAND_MS: "M&S", BRAND_INDITEX: "Inditex", BRAND_PRIMARK: "Primark" };
+/** The record's sources in trust order, each with its full name and the day it was read (a brand list carries no read day in the snapshot). */
+const SOURCES = [...check.sources]
+  .sort((a, b) => tierOf(a) - tierOf(b))
+  .map((code) => ({ code, label: BRAND[code] ?? code, name: BRAND[code] ? `${BRAND[code]} supplier list` : (sourceFullName(code) ?? code), tier: TIER_LABEL[tierOf(code)], read: formatDay(check.read[code] ?? null) }));
+
+/** The sections the demo can open the record at; the tour's Check opens the certificates. */
+export type RecordTab = "certificates" | "sources" | "contact";
+
 type S = CursorState & { open: boolean; tab: string; rows: number };
 
-const still = (over: Partial<S>): S => ({ open: true, tab: "certificates", rows: rows.length, ...over });
 const t0 = 700;
 const t1 = t0 + motion.cursorMs + motion.clickMs + 600;
 const t2 = t1 + motion.cursorMs + motion.clickMs + 300;
-const streaming = streamed(rows.length, t2, (n) => still({ rows: n, cursor: `tab-${CERT_TAB.id}` }));
-const t3 = endOf(streaming) + 600;
 const LAST = ENDED[0] ?? HELD[HELD.length - 1];
+const COUNT: Record<RecordTab, number> = { certificates: rows.length, sources: SOURCES.length, contact: 1 };
 
-export const STEPS: Step<S>[] = [
-  { at: 0, state: still({ open: false, tab: "overview", rows: 0 }) },
-  { at: t0, state: still({ open: false, tab: "overview", rows: 0, cursor: `row-${check.slug}` }) },
-  { at: t0 + motion.cursorMs, state: still({ open: false, tab: "overview", rows: 0, cursor: `row-${check.slug}`, click: true }) },
-  { at: t0 + motion.cursorMs + motion.clickMs, state: still({ tab: "overview", rows: 0, cursor: `row-${check.slug}` }) },
-  { at: t1, state: still({ tab: "overview", rows: 0, cursor: `tab-${CERT_TAB.id}` }) },
-  { at: t1 + motion.cursorMs, state: still({ tab: "overview", rows: 0, cursor: `tab-${CERT_TAB.id}`, click: true }) },
-  ...streaming,
-  ...(LAST ? [{ at: t3, state: still({ cursor: `cert-${LAST.key}` }) }] : []),
-];
+/** The scene for one section: open the record, choose the tab, let its rows arrive, then rest on the last one. */
+function stepsFor(tab: RecordTab): Step<S>[] {
+  const n = COUNT[tab];
+  const still = (over: Partial<S>): S => ({ open: true, tab, rows: n, ...over });
+  const streaming = streamed(n, t2, (shown) => still({ rows: shown, cursor: `tab-${tab}` }));
+  const t3 = endOf(streaming) + 600;
+  return [
+    { at: 0, state: still({ open: false, tab: "overview", rows: 0 }) },
+    { at: t0, state: still({ open: false, tab: "overview", rows: 0, cursor: `row-${check.slug}` }) },
+    { at: t0 + motion.cursorMs, state: still({ open: false, tab: "overview", rows: 0, cursor: `row-${check.slug}`, click: true }) },
+    { at: t0 + motion.cursorMs + motion.clickMs, state: still({ tab: "overview", rows: 0, cursor: `row-${check.slug}` }) },
+    { at: t1, state: still({ tab: "overview", rows: 0, cursor: `tab-${tab}` }) },
+    { at: t1 + motion.cursorMs, state: still({ tab: "overview", rows: 0, cursor: `tab-${tab}`, click: true }) },
+    ...streaming,
+    ...(tab === "certificates" && LAST ? [{ at: t3, state: still({ cursor: `cert-${LAST.key}` }) }] : []),
+  ];
+}
+
+export const STEPS: Step<S>[] = stepsFor("certificates");
+const SCENES: Record<RecordTab, Step<S>[]> = { certificates: STEPS, sources: stepsFor("sources"), contact: stepsFor("contact") };
+
+const DESCRIPTION: Record<RecordTab, string> = {
+  certificates: `${NAME}'s record opened beside the search results at its Certificates section: ${HELD.length} held today, ${ENDED.length} ended, each with the day its register was read.`,
+  sources: `${NAME}'s record opened beside the search results at its Sources section: ${SOURCES.length} sources in trust order, each with its full name and the day it was read.`,
+  contact: `${NAME}'s record opened beside the search results at its Contact section: the details are locked until an RFQ is sent, and no value is shown.`,
+};
 
 const COLS = "grid grid-cols-[minmax(0,1fr)_minmax(0,96px)_minmax(0,96px)] gap-x-3 [@container_(min-width:640px)]:grid-cols-[minmax(0,1fr)_minmax(0,120px)_minmax(0,96px)]";
 
-export function DemoRecord({ className }: { className?: string }) {
+/**
+ * The record's section tabs. The strip clips what does not fit (a phone's pane, the tour's), so it scrolls itself to
+ * the tab the cursor is heading for before the stage measures the cursor's target: a child's layout effect runs
+ * before its parent's.
+ */
+function SectionNav({ active, toward }: { active: string; toward: string }) {
+  const nav = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    const el = nav.current;
+    const tab = el?.querySelector<HTMLElement>(`[data-cursor="tab-${toward}"]`);
+    if (el && tab) el.scrollLeft = Math.max(0, tab.offsetLeft - el.offsetLeft - 20);
+  }, [toward]);
   return (
-    <Demo steps={STEPS} description={`${NAME}'s record opened beside the search results at its Certificates section: ${HELD.length} held today, ${ENDED.length} ended, each with the day its register was read.`} className={className}>
+    <nav ref={nav} aria-label="Record sections" className="flex shrink-0 gap-2.5 overflow-hidden border-b border-line px-5">
+      {SECTIONS.map((t) => {
+        const on = t.id === active;
+        return (
+          <span key={t.id} data-cursor={`tab-${t.id}`} className={cn("flex h-10 shrink-0 items-center gap-1 whitespace-nowrap text-sm font-medium", on ? "text-ink [box-shadow:inset_0_-2px_0_theme(colors.ink)]" : "text-ink-3")}>
+            {t.label}
+            {t.id === CERT_TAB.id ? <span className="text-xs font-normal text-ink-3 tabular-nums">{HELD.length}</span> : null}
+          </span>
+        );
+      })}
+    </nav>
+  );
+}
+
+/** The Contact section as a reader the database has not entitled sees it (components/record/desktop.tsx): locked, with no count claimed. */
+export function ContactLocked({ className }: { className?: string }) {
+  return (
+    <div className={cn("flex items-start gap-3 rounded-lg bg-sunken p-4", className)}>
+      <LockSimple size={20} weight="thin" className="shrink-0 text-ink-2" aria-hidden />
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <p className="text-md font-medium text-ink">Contact details are locked</p>
+        <p className="text-base text-ink-2">Send an RFQ and the supplier replies in Messages.</p>
+      </div>
+    </div>
+  );
+}
+
+export function DemoRecord({ tab = "certificates", caption, className }: { tab?: RecordTab; caption?: boolean; className?: string }) {
+  return (
+    <Demo steps={SCENES[tab]} description={DESCRIPTION[tab]} caption={caption} className={className}>
       {(s) => (
         <Window>
           <Bar title={`${search.chips.join(" · ")} · ${formatCount(search.total)} suppliers`} />
@@ -108,17 +177,7 @@ export function DemoRecord({ className }: { className?: string }) {
                   <span>{check.sources.length} sources</span>
                 </p>
               </header>
-              <nav aria-label="Record sections" className="flex shrink-0 gap-2.5 overflow-hidden border-b border-line px-5">
-                {SECTIONS.map((t) => {
-                  const on = t.id === s.tab;
-                  return (
-                    <span key={t.id} data-cursor={`tab-${t.id}`} className={cn("flex h-10 shrink-0 items-center gap-1 whitespace-nowrap text-sm font-medium", on ? "text-ink [box-shadow:inset_0_-2px_0_theme(colors.ink)]" : "text-ink-3")}>
-                      {t.label}
-                      {t.id === CERT_TAB.id ? <span className="text-xs font-normal text-ink-3 tabular-nums">{HELD.length}</span> : null}
-                    </span>
-                  );
-                })}
-              </nav>
+              <SectionNav active={s.tab} toward={s.cursor?.startsWith("tab-") ? s.cursor.slice(4) : s.tab} />
               {s.tab === CERT_TAB.id ? (
                 <div role="table" aria-label="Certificates" className="flex flex-col px-2 pt-3 tabular-nums">
                   <div role="row" className={cn(COLS, "h-8 border-b border-line px-3 text-xs font-medium text-ink-3")}>
@@ -153,6 +212,39 @@ export function DemoRecord({ className }: { className?: string }) {
                       </div>
                     </Fragment>
                   ))}
+                </div>
+              ) : s.tab === "sources" ? (
+                <div role="table" aria-label="Sources" className="flex flex-col px-2 pt-3">
+                  <div role="row" className="flex h-8 items-center justify-between border-b border-line px-3 text-xs font-medium text-ink-3">
+                    <span role="columnheader">Source · highest trust first</span>
+                    <span role="columnheader">Last read</span>
+                  </div>
+                  {SOURCES.slice(0, s.rows).map((src, i) => (
+                    <Fragment key={src.code}>
+                      {i === 0 || SOURCES[i - 1]!.tier !== src.tier ? (
+                        <div role="row" className="flex h-8 items-end px-3 pb-1 text-xs font-medium text-ink-3">
+                          <span role="cell">{src.tier}</span>
+                        </div>
+                      ) : null}
+                      <div role="row" className="flex min-h-12 animate-swap-in items-center justify-between gap-3 border-b border-line px-3 py-2 motion-reduce:animate-none">
+                        <span role="cell" className="flex min-w-0 items-center gap-2.5">
+                          <SourceMark source={src.code} />
+                          <span className="flex min-w-0 flex-col">
+                            <span className="text-base font-medium text-ink">{src.label}</span>
+                            <span className="truncate text-xs text-ink-2">{src.name}</span>
+                          </span>
+                        </span>
+                        <span role="cell" className="shrink-0 text-sm text-ink tabular-nums">
+                          {src.read ?? <Unpublished>{ABSENT.dated}</Unpublished>}
+                        </span>
+                      </div>
+                    </Fragment>
+                  ))}
+                </div>
+              ) : s.tab === "contact" ? (
+                <div className="flex flex-col gap-3 px-5 pt-4">
+                  <p className="text-base font-semibold text-ink">Contact</p>
+                  {s.rows > 0 ? <ContactLocked className="animate-swap-in motion-reduce:animate-none" /> : null}
                 </div>
               ) : (
                 <div className="flex flex-col gap-3 px-5 pt-4">
