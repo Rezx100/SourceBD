@@ -42,6 +42,7 @@ const { ResultsBar, TOO_MANY } = require("@/components/search/bulk-bar") as type
 const { rfqHref } = require("@/lib/dashboard/selection") as typeof import("@/lib/dashboard/selection");
 const { SelectionContext, SelectionProvider } = require("@/components/search/selection") as typeof import("@/components/search/selection");
 const { ResultsTable } = require("@/components/search/table") as typeof import("@/components/search/table");
+const { RecordSave } = require("@/components/record/save-button") as typeof import("@/components/record/save-button");
 const { PaneListToolbar, PhoneToolbar, ResultsToolbar, barMenus, resultsTitle } = require("@/components/search/toolbar") as typeof import("@/components/search/toolbar");
 const { PaneRows, PhoneRows, ResultsEmpty, ResultsError, ResultsSkeleton, familyWords } = require("@/components/search/list") as typeof import("@/components/search/list");
 const { onRowKey } = require("@/components/search/keys") as typeof import("@/components/search/keys");
@@ -418,6 +419,41 @@ describe("the results table", () => {
     assert.match(two, /<th [^>]*class="[^"]*w-\[180px\][^"]*"[^>]*title="From customs/);
     assert.match(two, /<table class="[^"]*min-w-\[1160px\]/);
     assert.match(two, /<div role="region" [^>]*class="[^"]*overflow-x-auto xl:overflow-visible"/);
+  });
+
+  it("a row ends in Save and Open, seen on hover, focus and selection and always on a touch screen; Send RFQ is the bar's (founder, 15 Oct 2026)", () => {
+    const ends = [...out.matchAll(/<td class="w-\[76px\] [^"]*">([\s\S]*?)<\/td>/g)].map((m) => m[1]!);
+    assert.equal(ends.length, rows.length, "one actions cell per row, 76 wide for two 32px controls");
+    assert.match(out, /<th [^>]*class="[^"]*w-\[76px\][^"]*"><span class="sr-only">Actions<\/span><\/th>/);
+    const [aboni] = ends;
+    // Save: the record's own bookmark at 32, quiet, the `s` key's target; not saved, so not pressed and the glyph outlined.
+    const save = /<button type="button" data-save="id-aboni" aria-pressed="false"[^>]*>/.exec(aboni!)?.[0] ?? "";
+    assert.ok(save, "no Save button at the row's end");
+    assert.match(save, /aria-label="Save"/);
+    assert.match(save, /data-action="save"/);
+    assert.match(save, /class="[^"]*\bsize-8\b[^"]*"/);
+    assert.doesNotMatch(save, /border-line-strong|bg-surface/, "the row's bookmark has the record button's chrome");
+    // Open: the record as a page, what "Open full page" in the menu did; the name still opens the pane.
+    const open = /<a [^>]*aria-label="Open Aboni Knitwear Ltd\. as a page"[^>]*>/.exec(aboni!)?.[0] ?? "";
+    assert.ok(open, "no Open link at the row's end");
+    assert.match(open, /href="\/app\/suppliers\/aboni-knitwear\?back=%2Fapp%2Fdiscover%3Fq%3Dknit"/);
+    assert.match(open, /title="Open as a page"/);
+    // Both ride the row's hover, focus and selection by opacity (never `hidden`: a Tab stop and a screen reader keep them), and always show with no hover.
+    for (const el of [save, open]) assert.match(el, /class="[^"]*opacity-0 transition-opacity duration-fast group-hover\/row:opacity-100 group-focus-within\/row:opacity-100 group-aria-selected\/row:opacity-100 \[@media\(hover:none\)\]:opacity-100/);
+    // The keyboard's RFQ door stays hidden in the cell; the ⋯ menu and Send RFQ are gone from the row.
+    assert.match(aboni!, /<a [^>]*data-action="rfq"[^>]*class="hidden"/);
+    assert.doesNotMatch(out, /More actions for|Open full page|>Send RFQ</);
+    // A saved row's bookmark is pressed and filled.
+    const saved = plain(h(ResultsTable, { rows: [row({ saved: true })], sort: { key: "workers", dir: "desc" }, sortHrefs }));
+    assert.match(saved, /<button type="button" data-save="id-aboni" aria-pressed="true"[^>]*aria-label="Saved"[^>]*title="Saved · press to remove"/);
+    // A row with no supplier id (nothing to save) still has Open.
+    const noId = plain(h(ResultsTable, { rows: [row({ supplierId: null })], sort: { key: "workers", dir: "desc" }, sortHrefs }));
+    assert.doesNotMatch(noId, /data-save=/);
+    assert.match(noId, /aria-label="Open Aboni Knitwear Ltd\. as a page"/);
+    // The record's own Save button is as it was: 48, secondary, with its chrome.
+    const record = plain(h(RecordSave, { supplierId: "id-aboni", saved: false, appearance: "icon" }));
+    assert.match(record, /<button type="button" data-save="id-aboni" aria-pressed="false" aria-label="Save" title="Save" class="[^"]*border-line-strong bg-surface[^"]*size-12[^"]*">/);
+    assert.doesNotMatch(record, /opacity-0|data-action/);
   });
 });
 
