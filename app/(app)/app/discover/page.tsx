@@ -242,7 +242,6 @@ export default async function BuyerDiscoverPage({
                         name: hrefFor({ ...state, sort: "name", page: 1 }),
                         sources: hrefFor({ ...state, sort: "sources", page: 1 }),
                       }}
-                      q={state.q}
                     />
                     </div>
                   )

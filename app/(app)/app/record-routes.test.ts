@@ -1636,8 +1636,8 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
     const paid = await open({ volza_reader_entitled: yes, discover_export_cells: cells(76578613.86, ["EU", "US", "UK", "CA"]) });
     assert.match(said(paid), /US\$76\.6m Ships to the EU, the US, the UK and Canada ships to EU US UK CA \d+ /, "the value, the markets, then the source count, and nothing between");
     assert.match(paid, /<span class="text-\[15px\]\/\[20px\] font-medium">US\$76\.6m<\/span><span class="[^"]*\bflex\b[^"]*"><span class="sr-only">Ships to/);
-    // The page hands the table the query (the name's "Knit" is lit) and the Sources sort link (founder's cut, 14 Oct 2026).
-    assert.match(paid, /<mark [^>]*>Knit<\/mark>/i, "the search's words are not lit in the results");
+    // The search's words are not lit in the results (founder, 15 Oct 2026: visual noise); the page hands the table the Sources sort link (founder's cut, 14 Oct 2026).
+    assert.doesNotMatch(paid, /<mark /i, "the search's words are lit in the results");
     // Most sources is the default order, so its head is the sorted one and its link is the plain search.
     assert.match(paid, /<th [^>]*aria-sort="descending"[^>]*><a [^>]*href="\/app\/discover\?q=knit"[^>]*>Sources/, "the Sources head does not sort the search");
     assert.deepEqual(rpcCalls.filter((c) => c.fn === "discover_export_cells").map((c) => c.args), [{ p_ids: [ROW.id] }]);

@@ -118,7 +118,9 @@ describe("Saved keeps its ledger; the results are Paper page 37's table", () => 
     const src = read("search", "table.tsx");
     assert.match(src, /<RowEnd r=\{r\} \/>/);
     assert.match(src, /<RecordSave supplierId=\{r\.supplierId\} saved=\{r\.saved\} appearance="icon" size=\{32\} kind="quiet" data-action="save"/);
-    assert.match(src, /href=\{r\.pageHref\}[^>]*aria-label=\{`Open \$\{r\.name\} as a page`\}/);
+    assert.match(src, /href=\{r\.paneHref\}[^>]*aria-label=\{`Open \$\{r\.name\} beside the results`\}/);
+    // The search's words are lit nowhere in a row (founder, 15 Oct 2026: visual noise); the typeahead keeps its own lighting.
+    assert.doesNotMatch(src + read("search", "row-parts.tsx"), /highlightParts|<mark/);
     // The ⋯ menu stays for the pane list, drawn from the same file.
     assert.match(src, /label=\{`More actions for \$\{r\.name\}`\}/);
     for (const item of ["Save", "Send RFQ", "Open full page"]) assert.match(src, new RegExp(">[^<]*" + item + "[^<]*<"), item);
