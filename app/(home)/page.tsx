@@ -8,19 +8,14 @@ import { filmOn } from "@/components/site/film/engine/tier";
 import { SiteFooter } from "@/components/site/footer";
 import { Home } from "@/components/site/home";
 import { loadChips } from "@/components/site/home/chips";
+import { homeDescription } from "@/components/site/home/hero";
 import { HomeMercury } from "@/components/site/home/index";
 import { loadHomeRecords } from "@/lib/home-records";
-import { loadSiteFacts, withCommas } from "@/lib/site-facts";
+import { loadSiteFacts } from "@/lib/site-facts";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sourcebd.net";
 
 export const dynamic = "force-dynamic";
-
-/** The live published count, as the hero says it; with no read count the sentence has no number (never a rounded "10,000+"). */
-function homeDescription(suppliers: number | null): string {
-  const search = suppliers !== null ? `Search ${withCommas(suppliers)} factories and buying houses` : "Search factories and buying houses";
-  return `Every fact on a Bangladesh garment supplier, with its source and the date we read it. ${search} checked against the registers that list them. No scores. No paid placement.`;
-}
 
 export async function generateMetadata(): Promise<Metadata> {
   return { ...HOME_METADATA, description: homeDescription((await loadSiteFacts()).suppliers) };

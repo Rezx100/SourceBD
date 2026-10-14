@@ -1,6 +1,6 @@
 "use client";
 
-// The Contact sales form (Paper `30 Marketing · Contact sales`): name, work email, company, role, markets, pieces a
+// The Book a demo form (Paper `30 Marketing · Contact sales`): name, work email, company, role, markets, pieces a
 // year, and a line about what they buy. Native fields, so it posts with no script; each refusal sits under its own
 // field in words, and a send that failed says where else to write. Sent, the form is replaced by one plain sentence.
 

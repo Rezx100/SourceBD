@@ -127,7 +127,7 @@ export function Pricing({ facts }: { facts: SiteFacts }) {
             <Plan
               name="Enterprise"
               tag="For teams with paperwork"
-              headline="Talk to us"
+              headline="Terms agreed with you"
               lede="The same product, with the agreements your company needs."
               cta={
                 <ButtonLink href="/contact" prefetch={false} kind="secondary" size="lg" className="max-sm:h-input-touch">

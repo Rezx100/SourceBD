@@ -3,7 +3,7 @@
 // figures only when they were read.
 
 import assert from "node:assert/strict";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
@@ -18,6 +18,8 @@ const { HomeMercury } = require("@/components/site/home/index") as typeof import
 const { PRODUCT_GROUPS } = require("@/components/site/map") as typeof import("@/components/site/map");
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
 const { TIERS } = require("@/components/site/sources") as typeof import("@/components/site/sources");
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
+const { homeDescription } = require("@/components/site/home/hero") as typeof import("@/components/site/home/hero");
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
 const { Announcement } = require("@/components/site/home/announcement") as typeof import("@/components/site/home/announcement");
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
@@ -50,6 +52,12 @@ describe("the Mercury home page", () => {
     assert.match(out, /<form [^>]*action="\/signup" method="get"/);
     assert.match(out, /href="\/suppliers\/aboni-knitwear"[^>]*>See a real record/);
     assert.match(text(out), /Search is free\. No card needed\. Suppliers claim their record at no cost\./);
+  });
+
+  it("the meta description carries the live count, never a rounded one (audit P2, 14 Oct 2026)", () => {
+    assert.match(homeDescription(10278), /Search 10,278 factories and buying houses/);
+    assert.doesNotMatch(homeDescription(null), /\d/);
+    assert.doesNotMatch(readFileSync(join(process.cwd(), "app/(home)/page.tsx"), "utf8"), /\d+,\d{3}\+/);
   });
 
   it("without a read count the lede says the same thing with no number", () => {

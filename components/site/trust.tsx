@@ -311,7 +311,7 @@ const WHY: [string, string][] = [
 
 const STEPS: [string, string][] = [
   ["Find your company", "Search by name or registration number."],
-  ["Open the email we send", "We send a link to your company email. It works for 24 hours."],
+  ["Open the email we send", "You give us an email at your company and we send it a link. It works for 24 hours."],
   ["Approved, or a person checks", "If your email domain matches the company's, the claim is approved at once. If not, a person reviews it."],
 ];
 
