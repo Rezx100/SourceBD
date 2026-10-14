@@ -541,14 +541,37 @@ export const transitionDuration = {
   fast: "120ms",
   DEFAULT: "200ms",
   slow: "320ms",
-  reveal: "640ms",
+  reveal: "700ms", // marketing: a block rising into view (handoff-mercury-motion-sitewide.md §4)
+  tone: "600ms", // marketing: the page's ground crossfading between paper and dark
 };
 
 export const transitionTimingFunction = {
   DEFAULT: "cubic-bezier(0.2, 0, 0, 1)",
   in: "cubic-bezier(0.4, 0, 1, 1)",
   out: "cubic-bezier(0, 0, 0.2, 1)",
+  reveal: "cubic-bezier(0.2, 0.7, 0.2, 1)", // slow and smooth, never bouncy
 };
+
+/**
+ * The marketing site's motion (handoff-mercury-motion-sitewide.md §4), for the scripts that time a scene. CSS reads
+ * the same values through Tailwind (`duration-reveal`, `ease-reveal`, `duration-tone`, `animate-swap-in|out`).
+ * Transforms and opacity only; every value is stilled by `prefers-reduced-motion` (app/ds.css and `useScene`).
+ */
+export const motion = {
+  revealMs: 700,
+  risePx: 24,
+  staggerMs: 70,
+  swapOutMs: 200,
+  swapInMs: 320,
+  swapRisePx: 8,
+  swapBlurPx: 4,
+  toneMs: 600,
+  tourItemMs: 7000,
+  cursorMs: 600,
+  clickMs: 200,
+  typeMs: 45,
+  streamMs: 60,
+} as const;
 
 export const zIndex = {
   base: "0",
