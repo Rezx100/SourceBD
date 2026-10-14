@@ -26,10 +26,13 @@ const { RECORDS_KEY, RecordsPage } = require("@/components/site/product/records"
 const { SEARCH_KEY, SearchPage } = require("@/components/site/product/search") as typeof import("@/components/site/product/search");
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
 const { SLIDE_NAMES } = require("@/components/site/product/search-slides") as typeof import("@/components/site/product/search-slides");
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
+const { RFQS_KEY, RfqsPage } = require("@/components/site/product/rfqs") as typeof import("@/components/site/product/rfqs");
 
 const FACTS = parseFacts({ suppliers_indexed: 10268, last_refreshed_at: "2026-10-02T05:48:07Z" }, null);
-/** A page as its route draws it: the records and search pages in the home's frame (M4), every other on the template. */
-const page = (key: string, facts = FACTS, cards: HomeRecord[] = []) => draw(key === RECORDS_KEY ? createElement(RecordsPage, { cards }) : key === SEARCH_KEY ? createElement(SearchPage, { facts }) : createElement(SitePage, { pageKey: key, facts }));
+/** A page as its route draws it: the records, search and RFQs pages in the home's frame (M4), every other on the template. */
+const page = (key: string, facts = FACTS, cards: HomeRecord[] = []) =>
+  draw(key === RECORDS_KEY ? createElement(RecordsPage, { cards }) : key === SEARCH_KEY ? createElement(SearchPage, { facts }) : key === RFQS_KEY ? createElement(RfqsPage) : createElement(SitePage, { pageKey: key, facts }));
 
 describe("the product and solutions pages", () => {
   it("every page the menus link to is built, and nothing else is", () => {
@@ -271,14 +274,53 @@ describe("the search page in the home's frame (M4, handoff-mercury-m4-onward.md 
   });
 
   it("the records page's pins still hold after the stage helper moved", () => {
-    const out = page(RECORDS_KEY);
+    const t = text(page(RECORDS_KEY));
+    for (const s of ["Every fact, with its receipt.", "2 sources differ", "Check one supplier now."]) assert.ok(t.includes(s), s);
+  });
+});
+
+describe("the RFQs page in the home's frame (M4, handoff-mercury-m4-onward.md §4.2)", () => {
+  it("opens on the Ask demo, not a screenshot; the quotes row plays the quotes vignette; the thread and the 50-supplier form keep their screens", () => {
+    const out = page(RFQS_KEY);
+    const hero = out.slice(0, out.indexOf("<h2"));
+    assert.match(hero, /<h1[^>]*>One RFQ, up to 50 suppliers\.<\/h1>/);
+    assert.match(hero, /Three suppliers ticked from the results and one example RFQ/);
+    assert.doesNotMatch(out, /rfq-one\.png|rfq-quotes\.png/);
+    assert.match(out, /rfq-thread\.png/);
+    assert.match(out, /rfq-fifty\.png/);
+    const t = text(out);
+    assert.match(t, /Example quotes/);
+    assert.match(t, /the suppliers are real, the figures are examples/);
+    assert.match(t, /Sample state · review all 50 suppliers before sending/);
+  });
+
+  it("the ground runs paper then dark, every demo has a pause button and a dated caption, and the cross-sell links to the three other products", () => {
+    const out = page(RFQS_KEY);
+    const tones = [...out.matchAll(/data-tone="(photo|dark|paper)"/g)].map((m) => m[1]).slice(1);
+    assert.deepEqual(tones, ["paper", "dark"]);
+    const pauses = (out.match(/aria-label="Pause demo"/g) ?? []).length;
+    assert.equal(pauses, 5, "the hero, the quotes vignette and the cross-sell's three loops");
+    assert.ok((text(out).match(new RegExp(CAPTION.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")) ?? []).length >= pauses);
+    const cross = out.slice(out.indexOf('aria-labelledby="site-cross-sell"'), out.indexOf('aria-labelledby="site-close"'));
+    for (const href of ["/product/search", "/product/records", "/product/compliance"]) assert.match(cross, new RegExp(`href="${href}"`), href);
+    assert.doesNotMatch(cross, /href="\/product\/rfqs"/);
+  });
+
+  it("keeps the template's pins: the search, the two calls to action, the three rows' words and the free-during-beta close", () => {
+    const out = page(RFQS_KEY);
     const t = text(out);
     assert.equal((out.match(/<h1[ >]/g) ?? []).length, 1);
     assert.match(out, /<form[^>]*action="\/discover"/);
     assert.match(out, /href="\/signup"[^>]*>Start free/);
     assert.match(out, /href="\/contact"[^>]*>Book a demo/);
-    for (const s of ["Expired", "Expires in N days", "Valid until", "Listed as valid", "2 sources differ", "Check one supplier now."]) assert.ok(t.includes(s), s);
+    for (const s of ["Quotes side by side.", "Replies in one thread per supplier.", "Write it once, send it to 50.", "Send your first RFQ today."]) assert.ok(t.includes(s), s);
     assert.match(t, /Free during beta\. No card needed\./);
     assert.doesNotMatch(t, /undefined|NaN|\[object/);
+  });
+
+  it("the search page's pins still hold beside it", () => {
+    const t = text(page(SEARCH_KEY));
+    for (const s of ["Filters that match how you buy.", "Six ways to narrow.", "01 / 03", "Try it on your next product."]) assert.ok(t.includes(s), s);
+    assert.match(t, /10,268 published suppliers · updated 2 Oct 2026/);
   });
 });

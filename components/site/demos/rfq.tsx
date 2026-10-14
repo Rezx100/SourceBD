@@ -68,9 +68,9 @@ const QUOTES = [
   { supplier: TARGETS[1]!.name, price: 6.9, moq: 12000, leadDays: 38, validUntil: "22 Nov 2026", best: false },
 ];
 
-export function DemoRfq({ className }: { className?: string }) {
+export function DemoRfq({ className, caption }: { className?: string; caption?: boolean }) {
   return (
-    <Demo steps={STEPS} description={`Three suppliers ticked from the results and one example RFQ sent to them from the pane beside the list; two example quotes come back side by side, labelled as examples.`} className={className}>
+    <Demo steps={STEPS} description={`Three suppliers ticked from the results and one example RFQ sent to them from the pane beside the list; two example quotes come back side by side, labelled as examples.`} caption={caption} className={className}>
       {(s) => (
         <Window>
           {s.quotes ? (

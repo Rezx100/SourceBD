@@ -138,9 +138,9 @@ export const PAGES: Record<string, Page> = {
     lede: "Send one request, compare quotes side by side, keep every reply in one place.",
     title: "RFQs and messages — SourceBD",
     description: "Send one RFQ to up to 50 Bangladesh suppliers, compare FOB, MOQ and lead time side by side, and keep every reply in one thread per supplier.",
-    hero: shot("rfq-one", "The new RFQ form: the supplier, the product, quantity, target price, ship-by date and questions, with a preview of what the supplier receives.", "Real screen · RFQ to Aboni Knitwear Ltd., ready to send"),
+    // The hero and the quotes row play the Ask demo and the quotes vignette (M4, `product/rfqs.tsx`); the thread and the 50-supplier form keep their 3 Oct screens.
     blocks: [
-      { n: "01", label: "Quotes", headline: "Quotes side by side.", lede: "FOB per piece, MOQ, lead time and valid until. Suppliers that have not replied stay on the list.", shot: shot("rfq-quotes", "An RFQ with two quotes listed best first, each with price per piece, MOQ, lead time and valid-until date, and a third supplier that has not replied.", "Sample state · figures are examples; supplier names and the RFQ are real") },
+      { n: "01", label: "Quotes", headline: "Quotes side by side.", lede: "FOB per piece, MOQ, lead time and valid until. Suppliers that have not replied stay on the list." },
       { n: "02", label: "Messages", headline: "Replies in one thread per supplier.", lede: "Files, read receipts and the supplier’s record, one click away.", shot: shot("rfq-thread", "A message thread with one supplier, with the supplier’s record beside it.", "Real screen · thread with Thermax Woven Dyeing") },
       { n: "03", label: "Many at once", headline: "Write it once, send it to 50.", lede: "Product, quantity, target FOB, tech pack. Review every supplier before it goes. A supplier on the UFLPA Entity List can’t receive an RFQ.", shot: shot("rfq-fifty", "The new RFQ form addressed to 50 suppliers, with a button to review all 50 before sending.", "Sample state · review all 50 suppliers before sending") },
     ],

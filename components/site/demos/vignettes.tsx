@@ -98,9 +98,9 @@ export const QUOTES_STEPS: Step<Q>[] = [
   { at: 2200, state: { landed: 2 } },
 ];
 
-export function VignetteQuotes({ className }: { className?: string }) {
+export function VignetteQuotes({ className, caption }: { className?: string; caption?: boolean }) {
   return (
-    <Demo steps={QUOTES_STEPS} description="Two example quotes landing beside each other, each against the target price." className={className}>
+    <Demo steps={QUOTES_STEPS} description="Two example quotes landing beside each other, each against the target price." caption={caption} className={className}>
       {(s) => (
         <Small>
           <p className="text-sm font-medium text-ink">Example quotes</p>

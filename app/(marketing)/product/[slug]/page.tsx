@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { PAGES, SitePage, siteMetadata } from "@/components/site/pages";
 import { RECORDS_KEY, RecordsPage } from "@/components/site/product/records";
+import { RFQS_KEY, RfqsPage } from "@/components/site/product/rfqs";
 import { SEARCH_KEY, SearchPage } from "@/components/site/product/search";
 import { loadHomeRecords } from "@/lib/home-records";
 import { loadSiteFacts } from "@/lib/site-facts";
@@ -19,6 +20,7 @@ export const generateStaticParams = () => Object.keys(PAGES).filter((k) => k.sta
 const REBUILT: Record<string, () => Promise<ReactNode>> = {
   [RECORDS_KEY]: async () => <RecordsPage cards={(await loadHomeRecords()).cards} />,
   [SEARCH_KEY]: async () => <SearchPage facts={await loadSiteFacts()} />,
+  [RFQS_KEY]: async () => <RfqsPage />,
 };
 
 type Props = { params: Promise<{ slug: string }> };
