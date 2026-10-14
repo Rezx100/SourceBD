@@ -7,6 +7,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "jsx": "react-jsx",
+    "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
       "server-only": [
@@ -173,6 +174,7 @@
     "components/admin/queues.test.ts",
     "components/site/site.test.ts",
     "components/site/motion.test.ts",
+    "components/site/demos/demos.test.ts",
     "components/site/type.test.ts",
     "components/site/sections/icons.test.ts",
     "components/site/sections/page.test.ts",
