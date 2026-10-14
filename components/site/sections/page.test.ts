@@ -71,17 +71,19 @@ describe("the Mercury home page", () => {
 
   it("draws the sections in the board's order", () => {
     const t = text(page());
+    // M3 (14 Oct 2026): the dark tour follows the hero (its end frame hands over to the tour's first), the marks strip
+    // opens the paper proof after it, and the vignette grid stands where "Start in a minute" stood.
     const order = [
       "Bangladesh sourcing,",
-      "Read from the registers that matter",
       "Everything you do to vet a factory.",
+      "Read from the registers that matter",
       "Vetting used to be a chase.",
       "Shortlist. Ask once. Compare.",
       "Quotes beside the facts.",
       "The list changes. We check again.",
       "Search, and never lose your place.",
       "Every message beside its RFQ.",
-      "Start in a minute.",
+      "Four moments from a day's sourcing.",
       "Everything else a sourcing desk needs.",
       "Receipts, not opinions.",
       "Your record is already here.",
@@ -95,6 +97,47 @@ describe("the Mercury home page", () => {
       assert.ok(i > at, `"${s}" comes after the one before it`);
       at = i;
     }
+  });
+
+  it("the hero scrubs by CSS alone: the copy, the dimming cloth and the results screen in one pinned scene, with no scrub classes the stylesheet does not define", () => {
+    const out = page();
+    const css = readFileSync(join(process.cwd(), "app/ds.css"), "utf8");
+    assert.match(out, /<section data-tone="photo" aria-labelledby="home-title" class="mk-hero/);
+    for (const c of ["mk-hero", "mk-hero-pin", "mk-hero-copy", "mk-hero-stage-wrap", "mk-hero-stage", "mk-hero-cloth", "mk-hero-dim"]) {
+      assert.match(out, new RegExp(`class="[^"]*\\b${c}\\b`), `${c} in the page`);
+      assert.match(css, new RegExp(`\\.${c}\\s*[,{]`), `${c} in app/ds.css`);
+    }
+    assert.match(css, /@supports \(animation-timeline: view\(\)\)/);
+    assert.match(css, /prefers-reduced-motion: no-preference/, "the scrub is off under reduced motion");
+    assert.match(css, /animation-range: contain 0% contain 30%/, "the copy fades over the first 30%");
+  });
+
+  it("the tour follows the hero on the dark ground: four items, Find open, each with its demo on real records", () => {
+    const out = page();
+    const t = text(out);
+    assert.match(out, /<section data-tone="dark" aria-labelledby="home-tour"/);
+    assert.equal((out.match(/aria-expanded="true"/g) ?? []).length, 1, "one item open");
+    assert.equal((out.match(/aria-expanded="false"/g) ?? []).length, 3);
+    for (const w of ["Find", "Check", "Ask", "Watch"]) assert.match(t, new RegExp(`\\b${w}\\b`));
+    assert.match(out, /href="\/product\/search"[^>]*>See how/);
+    assert.ok((t.match(/Real records as read \d{1,2} [A-Z][a-z]{2} \d{4}/g) ?? []).length >= 5, "the pinned demo and the four stacked ones are dated");
+    assert.ok((out.match(/aria-label="Pause demo"/g) ?? []).length >= 9, "every demo and vignette has its pause button");
+  });
+
+  it("the ground crossfades section by section: the main landmark carries the hero's tone and no second skip anchor", () => {
+    const out = page();
+    // React hoists the marks' image preloads ahead of the tree, so the landmark is the first element, not the first tag.
+    assert.match(out, /^(?:<link [^>]*>)*<main data-tone="photo" class="[^"]*bg-canvas/);
+    assert.doesNotMatch(out, /id="main-content"/, "the shell carries the skip link's anchor");
+    const tones = [...out.matchAll(/data-tone="(photo|dark|paper)"/g)].map((m) => m[1]).slice(1);
+    assert.deepEqual(tones, ["photo", "dark", "paper", "dark", "paper", "photo", "paper", "dark"]);
+  });
+
+  it("the vignette grid draws its four moments where Start in a minute stood", () => {
+    const t = text(page());
+    assert.match(t, /Four moments from a day's sourcing\./);
+    for (const w of ["Every certificate carries its date", "Every source, in trust order", "Quotes land beside each other", "A listing is never hidden by layout"]) assert.match(t, new RegExp(w));
+    assert.doesNotMatch(t, /Start in a minute/);
   });
 
   it("frames only the marks the logos lock allows, with the code under each", () => {
@@ -199,7 +242,8 @@ describe("the live sections", () => {
     assert.match(t, /GOTS-27605 · expired 4 Apr 2026 GSCS International Ltd\. · GOTS database · read 26 Jun 2026/);
     assert.match(live(), /href="\/suppliers\/aboni-knitwear"[^>]*>Aboni Knitwear Ltd</);
     const none = text(live({ cards: [], callouts: [] }));
-    assert.doesNotMatch(none, /Real records, not reviews|GOTS-27605|What the record shows/);
+    // The Watch demo lists the same lapsed certificate from the snapshot; the callout's own wording is what must go.
+    assert.doesNotMatch(none, /Real records, not reviews|GOTS-27605 · expired|What the record shows/);
     assert.match(none, /Inside one record\./, "the dated screen still stands");
   });
 
