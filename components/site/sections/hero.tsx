@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 import { HeroEmailForm } from "./hero-email";
 import { HeroLoop } from "./hero-loop";
-import { Screen, Still, TextLink, measure } from "./ui";
+import { Screen, TextLink, measure } from "./ui";
 
 export const RECORD_HREF = "/suppliers/aboni-knitwear";
 
@@ -27,7 +27,7 @@ export function homeDescription(suppliers: number | null): string {
 
 export function HeroCopy({ suppliers, chips }: { suppliers: number | null; chips?: ReactNode }) {
   return (
-    <section aria-labelledby="home-title" className={cn(measure, "flex flex-col items-center gap-[18px] pb-7 pt-10 text-center md:gap-7 md:pb-14 md:pt-[104px]")}>
+    <div className={cn(measure, "flex flex-col items-center gap-[18px] pb-7 pt-10 text-center md:gap-7 md:pb-14 md:pt-[104px]")}>
       <h1 id="home-title" className="text-site-hero-sm font-light text-ink-strong md:text-site-hero">
         Bangladesh sourcing,
         <br />
@@ -54,19 +54,32 @@ export function HeroCopy({ suppliers, chips }: { suppliers: number | null; chips
       </HeroEmailForm>
       {chips}
       <p className="text-sm text-ink-subtle">Search is free. No card needed. Suppliers claim their record at no cost.</p>
-    </section>
+    </div>
   );
 }
 
-/** The cotton backdrop, the loop over it once the page has loaded, and the results screen on top. */
-export function HeroStage() {
+/**
+ * The hero (M3, handoff-mercury-motion-sitewide.md §4.1, phase 1): the copy, then the results screen on the cotton
+ * stage. From 768 up, where the browser scrubs animations by scroll and nothing asks for reduced motion, app/ds.css
+ * makes it a 220vh scene: the copy fades over the first 30% of the scroll while the stage rises to the content
+ * width, its cloth zooming and dimming towards the night tone, so the dark tour's first frame follows (`.mk-hero-*`).
+ * Everywhere else, and with no script, the page is this markup in flow.
+ */
+export function HeroScrub({ suppliers, chips }: { suppliers: number | null; chips?: ReactNode }) {
   return (
-    <div className={cn(measure, "pb-14 md:pb-section")}>
-      <div className="relative isolate mx-auto flex max-w-[350px] items-center justify-center overflow-hidden rounded-card px-4 py-6 md:max-w-none md:rounded-stage md:px-16 md:py-[68px]">
-        <Still name="hero-cotton" eager />
-        <HeroLoop />
-        <Screen name="results" eager alt="SourceBD search results: suppliers with their source marks, one record open beside the list" className="mx-auto max-w-[1152px]" />
+    <section data-tone="photo" aria-labelledby="home-title" className="mk-hero relative">
+      <div className="mk-hero-pin">
+        <div className="mk-hero-copy w-full">
+          <HeroCopy suppliers={suppliers} chips={chips} />
+        </div>
+        <div className={cn(measure, "mk-hero-stage-wrap pb-14 md:pb-section")}>
+          <div className="mk-hero-stage relative isolate mx-auto flex max-w-[350px] items-center justify-center overflow-hidden rounded-card px-4 py-6 md:max-w-none md:rounded-stage md:px-16 md:py-[68px]">
+            <HeroLoop />
+            <div aria-hidden className="mk-hero-dim pointer-events-none absolute inset-0 bg-ink opacity-0" />
+            <Screen name="results" eager alt="SourceBD search results: suppliers with their source marks, one record open beside the list" className="mx-auto max-w-[1152px]" />
+          </div>
+        </div>
       </div>
-    </div>
+    </section>
   );
 }

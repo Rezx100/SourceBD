@@ -173,7 +173,7 @@ export type Tone = "paper" | "dark" | "photo";
  * (the zero-specificity rule in tailwind.config.ts), so text never flips ahead of its ground. Sections under it keep
  * a transparent ground.
  */
-export function ToneShift({ initial = "paper", className, children }: { initial?: Tone; className?: string; children?: ReactNode }) {
+export function ToneShift({ initial = "paper", id = "main-content", className, children }: { initial?: Tone; /** The skip link's anchor; null where the shell around the page already carries it. */ id?: string | null; className?: string; children?: ReactNode }) {
   const main = useRef<HTMLElement>(null);
   const [tone, setTone] = useState<Tone>(initial);
   useEffect(() => {
@@ -189,7 +189,7 @@ export function ToneShift({ initial = "paper", className, children }: { initial?
     return () => io.disconnect();
   }, []);
   return (
-    <main ref={main} id="main-content" data-tone={tone} data-ground={tone === "dark" ? "night" : undefined} className={cn("bg-surface text-ink transition-colors duration-tone ease-reveal", className)}>
+    <main ref={main} id={id ?? undefined} data-tone={tone} data-ground={tone === "dark" ? "night" : undefined} className={cn("bg-surface text-ink transition-colors duration-tone ease-reveal", className)}>
       {children}
     </main>
   );
