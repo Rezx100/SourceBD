@@ -25,7 +25,6 @@ import {
   transitionDuration,
   type TierRank,
 } from "@/lib/design/tokens";
-import { V4Film } from "./v4-film";
 import { V4Kit } from "./v4-kit";
 import { V4Patterns } from "./v4-patterns";
 import { V4Tokens } from "./v4-tokens";
@@ -56,12 +55,19 @@ const SIZE_CLASS: Record<string, string> = {
   "display-1": "text-display-1",
   "display-2": "text-display-2",
   "display-3": "text-display-3",
-  "film-hero": "text-film-hero",
-  "film-hero-phone": "text-film-hero-phone",
-  "film-figure": "text-film-figure",
-  "film-figure-phone": "text-film-figure-phone",
-  "film-scene": "text-film-scene",
-  "film-scene-phone": "text-film-scene-phone",
+  "site-hero": "text-site-hero font-light",
+  "site-hero-sm": "text-site-hero-sm font-light",
+  "site-h1": "text-site-h1 font-light",
+  "site-h1-sm": "text-site-h1-sm font-light",
+  "site-h2": "text-site-h2",
+  "site-h2-sm": "text-site-h2-sm",
+  "site-h3": "text-site-h3",
+  "site-figure": "text-site-figure",
+  "site-figure-sm": "text-site-figure-sm",
+  "site-title": "text-site-title",
+  "site-lede": "text-site-lede",
+  "site-body": "text-site-body",
+  "site-wordmark": "text-site-wordmark",
   title: "text-title",
   lg: "text-lg",
   xl: "text-xl",
@@ -221,14 +227,6 @@ export default async function DesignSystemGallery() {
         note="components/patterns: source marks, fact and certificate rows, RSC block, sanction banner, locked contact, supplier rows, quotes, timeline, chat, needs attention, locations, statement claim, exports. Shrink the window under 640px for the phone forms."
       >
         <V4Patterns />
-      </Section>
-
-      <Section
-        id="v4-film"
-        title="Home film (the dark set, the Pane, the thread, the rail)"
-        note="components/site/film: what the home film adds to v4. Dark follows the system setting on a page that carries data-theme-auto; a night scene is dark in either theme, and each board below is drawn in both."
-      >
-        <V4Film />
       </Section>
 
       <Section

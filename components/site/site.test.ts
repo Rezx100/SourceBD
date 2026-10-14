@@ -18,7 +18,7 @@ const currentPath = "/";
   require.cache[navId] = { id: navId, filename: navId, loaded: true, children: [], paths: [], exports: { ...realNav, usePathname: () => currentPath, useRouter: () => ({ push() {}, replace() {}, refresh() {}, back() {}, forward() {}, prefetch() {} }) } } as unknown as NodeJS.Module;
 }
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- after the stub.
-const site = () => ({ nav: require("@/components/site/nav") as typeof import("@/components/site/nav"), footer: require("@/components/site/footer") as typeof import("@/components/site/footer"), banner: require("@/components/site/cookie-banner") as typeof import("@/components/site/cookie-banner"), map: require("@/components/site/map") as typeof import("@/components/site/map") });
+const site = () => ({ nav: require("@/components/site/nav") as typeof import("@/components/site/nav"), footer: require("@/components/site/sections/footer") as typeof import("@/components/site/sections/footer"), banner: require("@/components/site/cookie-banner") as typeof import("@/components/site/cookie-banner"), map: require("@/components/site/map") as typeof import("@/components/site/map") });
 const router = { push() {}, replace() {}, refresh() {}, back() {}, forward() {}, prefetch() {} };
 const plain = (s: string) => s.replace(/&#x27;/g, "'").replace(/&amp;/g, "&").replace(/&quot;/g, '"');
 const draw = (el: ReactElement) => plain(renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router as never }, el)));
@@ -104,7 +104,7 @@ describe("the navigation", () => {
 describe("the mega footer", () => {
   it("six columns, the live line, the promise, and Cookie settings", () => {
     const f = parseFacts({ suppliers_indexed: 10268, last_refreshed_at: "2026-10-02T05:48:07Z" }, { sources_listed: 25, sources_with_records: 14 });
-    const out = draw(createElement(site().footer.SiteFooter, { facts: f, year: 2026 }));
+    const out = draw(createElement(site().footer.Footer, { facts: f, year: 2026 }));
     const t = text(out);
     for (const h of ["Product", "Data & methodology", "Compliance guides", "Company", "Legal", "Status"]) assert.match(t, new RegExp(h));
     assert.match(t, /10,268 suppliers · 25 sources listed · 14 hold supplier records · updated 2 Oct 2026/);
@@ -117,7 +117,7 @@ describe("the mega footer", () => {
   });
 
   it("without facts it still stands: the links and the promise, no figures line", () => {
-    const t = text(draw(createElement(site().footer.SiteFooter, { facts: NO_FACTS, year: 2026 })));
+    const t = text(draw(createElement(site().footer.Footer, { facts: NO_FACTS, year: 2026 })));
     assert.doesNotMatch(t, /suppliers ·/);
     assert.match(t, /The sources/);
     assert.match(t, /No scores/);
@@ -177,5 +177,42 @@ describe("the skip link", () => {
     const config = loadConfig(join(process.cwd(), "tailwind.config.ts"));
     const { css } = await postcss([tailwind({ ...config, content: [{ raw: classes.join(" "), extension: "html" }] })]).process("@tailwind utilities;", { from: undefined });
     for (const c of classes) assert.ok(css.includes("." + c.replace(/[:./[\]]/g, (m) => "\\" + m)), `no rule for ${c}`);
+  });
+});
+
+describe("one site (M1, handoff-mercury-motion-sitewide.md §3)", () => {
+  /* eslint-disable @typescript-eslint/no-require-imports -- node built-ins, loaded where they are used */
+  const { readFileSync, readdirSync } = require("node:fs") as typeof import("node:fs");
+  const { join } = require("node:path") as typeof import("node:path");
+  /* eslint-enable @typescript-eslint/no-require-imports */
+  const dir = join(process.cwd(), "components/site");
+  const sources = readdirSync(dir, { recursive: true })
+    .map(String)
+    .filter((f) => f.endsWith(".tsx"))
+    .map((f) => ({ f: f.replace(/\\/g, "/"), src: readFileSync(join(dir, f), "utf8") }));
+
+  it("sets no size, line height or radius by hand: every page uses the token scale", () => {
+    assert.ok(sources.length > 20);
+    for (const { f, src } of sources) assert.doesNotMatch(src, /\b(?:text|leading|rounded)-\[/, f);
+  });
+
+  it("has one footer, one FAQ and one focus ring", () => {
+    assert.deepEqual(sources.filter((s) => /<footer\b/.test(s.src)).map((s) => s.f), ["sections/footer.tsx"]);
+    assert.deepEqual(sources.filter((s) => /<details\b/.test(s.src)).map((s) => s.f), ["sections/faq.tsx"]);
+    const importers = readdirSync(join(process.cwd(), "components"), { recursive: true })
+      .map(String)
+      .filter((f) => /\.tsx?$/.test(f) && !f.endsWith(".test.ts"))
+      .filter((f) => /sections\/footer"/.test(readFileSync(join(process.cwd(), "components", f), "utf8")));
+    assert.deepEqual(importers.map((f) => f.replace(/\\/g, "/")), ["site/chrome.tsx"]);
+    // The skip link is the app shell's too, so it keeps the shell's ring.
+    for (const { f, src } of sources) if (f !== "skip-link.tsx") assert.doesNotMatch(src, /outline-focus\b/, f);
+  });
+
+  it("spends green on the main button, the wordmark and the icons' one detail only: every link is ink", () => {
+    for (const { f, src } of sources) {
+      if (f === "sections/icons.tsx") continue;
+      const green = src.match(/\b(?:text|bg|border|decoration)-brand(?!-on\b)[\w-]*/g) ?? [];
+      assert.deepEqual(green, f === "sections/ui.tsx" ? ["text-brand"] : [], f);
+    }
   });
 });

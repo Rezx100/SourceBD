@@ -1,7 +1,7 @@
 // Book a demo (B9e; Paper `30 Marketing · Contact sales`): what we can cover, beside the form that emails the founder.
 
 import { ContactForm } from "@/components/site/contact-form";
-import { Display, Label, Lede, wrap } from "@/components/site/parts";
+import { Display, Label, Lede, measure } from "@/components/site/sections/ui";
 import { cn } from "@/lib/utils";
 
 export const CONTACT_META = { path: "/contact", title: "Book a demo — SourceBD", description: "Book a demo or ask a question. Your message goes to the founder by email: a walk through search and records, your compliance checks, or Enterprise terms." };
@@ -15,8 +15,8 @@ const COVER: [string, string][] = [
 export function Contact() {
   return (
     <main className="font-sans text-ink">
-      <section className="py-20 max-md:py-10">
-        <div className={cn(wrap, "grid gap-16 lg:grid-cols-[1fr_minmax(0,520px)] max-lg:gap-10")}>
+      <section className="pb-14 pt-10 md:pb-section md:pt-24">
+        <div className={cn(measure, "grid gap-16 lg:grid-cols-[1fr_minmax(0,520px)] max-lg:gap-10")}>
           <div className="flex flex-col gap-10">
             <div className="flex flex-col gap-6">
               <Label>Company · Book a demo</Label>
@@ -26,7 +26,7 @@ export function Contact() {
               <Lede>Tell us what you buy. Your message goes to the founder by email.</Lede>
             </div>
             <div className="flex flex-col gap-4">
-              <p className="font-mono text-base text-ink-3">What we can cover</p>
+              <p className="text-site-body font-medium text-ink-subtle">What we can cover</p>
               <dl className="flex flex-col gap-5">
                 {COVER.map(([t, b]) => (
                   <div key={t} className="flex flex-col gap-1 border-t border-ink pt-3">

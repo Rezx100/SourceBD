@@ -23,7 +23,7 @@ import {
 } from "@/components/discover/filter-rail";
 import { FacetLists, PublicResults, ResponsiveFilters, filterCount } from "@/components/discover/public";
 import { DiscoverSearchBox } from "@/components/discover/search-box";
-import { Display, Label, Lede, wrap } from "@/components/site/parts";
+import { Display, Label, Lede, measure } from "@/components/site/sections/ui";
 import { trustMetadata } from "@/components/site/trust";
 import { fetchDiscoverFacets } from "@/lib/discover-facets";
 import { fetchPublicDiscoverSuppliers } from "@/lib/discover-suppliers";
@@ -141,7 +141,7 @@ export default async function PublicDiscoverPage({
   return (
     <main className="font-sans text-ink">
       <section className="pb-10 pt-20 max-md:pb-6 max-md:pt-10">
-        <div className={cn(wrap, "flex flex-col gap-6")}>
+        <div className={cn(measure, "flex flex-col gap-6")}>
           <Label>Discover</Label>
           <Display level={1} as="h1" className="max-w-[880px]">
             Find a verified factory
@@ -156,7 +156,7 @@ export default async function PublicDiscoverPage({
 
       {hasSearchQuery ? (
         <section className="pb-24 max-md:pb-14">
-          <div className={cn(wrap, "flex flex-col gap-6")}>
+          <div className={cn(measure, "flex flex-col gap-6")}>
             <ResponsiveFilters basePath={BASE_PATH} {...filters} />
             <FacetLists facets={facets} />
             <PublicResults

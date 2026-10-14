@@ -6,13 +6,13 @@
 //     in the chain flushes the shell early and turns the profile's 404/308
 //     into a soft-200).
 //
-// Keep the two groups rendering identical chrome by changing it here only. B9a: the v4 navigation, mega
-// footer and cookie banner (`components/site/`); analytics start only after the visitor's yes.
+// Keep the two groups rendering identical chrome by changing it here only. B9a: the v4 navigation, the
+// one footer (M1) and cookie banner (`components/site/`); analytics start only after the visitor's yes.
 
 import type { Metadata } from "next";
 
 import { CookieBanner } from "@/components/site/cookie-banner";
-import { SiteFooter } from "@/components/site/footer";
+import { Footer } from "@/components/site/sections/footer";
 import { SiteNav } from "@/components/site/nav";
 import { ScrollToTop } from "@/components/site/scroll-to-top";
 import { SkipLink } from "@/components/site/skip-link";
@@ -71,7 +71,7 @@ export async function MarketingChrome({
         >
           {children}
         </div>
-        {facts ? <SiteFooter facts={facts} year={new Date().getUTCFullYear()} /> : null}
+        {facts ? <Footer facts={facts} year={new Date().getUTCFullYear()} /> : null}
         <CookieBanner />
       </div>
     </PostHogProvider>

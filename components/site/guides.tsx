@@ -4,7 +4,8 @@
 // sections in their fixed order beside an "On this page" list, the sources, and the one call to action.
 
 import Link from "next/link";
-import { Close, Display, HeroActions, Label, Lede, wrap } from "@/components/site/parts";
+import { Display, HeroActions, HeroCentered, Lede, measure } from "@/components/site/sections/ui";
+import { Closing } from "@/components/site/sections/closing";
 import { COMPLIANCE_PAGES, DISCLAIMER, SECTION_ORDER, oldestReviewedAt, type CompliancePage } from "@/lib/marketing/compliance-pages";
 import { readDay } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
@@ -22,19 +23,12 @@ export function GuidesIndex() {
   const pages = inOrder();
   return (
     <main className="font-sans text-ink">
-      <section className="pb-12 pt-20 max-md:pb-8 max-md:pt-10">
-        <div className={cn(wrap, "flex flex-col gap-6")}>
-          <Label>Resources · Compliance guides</Label>
-          <Display level={1} as="h1" className="max-w-[880px]">
-            Compliance guides, in plain words.
-          </Display>
-          <Lede>Five laws a buyer of Bangladesh clothing meets, each with its sources and the date we last reviewed it.</Lede>
-          <HeroActions tryLine="Search suppliers by name, product or HS code" />
-        </div>
-      </section>
+      <HeroCentered label="Resources · Compliance guides" title="Compliance guides, in plain words." lede="Five laws a buyer of Bangladesh clothing meets, each with its sources and the date we last reviewed it.">
+        <HeroActions center tryLine="Search suppliers by name, product or HS code" />
+      </HeroCentered>
 
-      <section className="pb-24 max-md:pb-14">
-        <div className={cn(wrap, "flex flex-col gap-6")}>
+      <section className="pb-14 md:pb-section">
+        <div className={cn(measure, "flex flex-col gap-6")}>
           <p className="text-sm text-ink-3">
             {pages.length} guides · not legal advice · all last reviewed {reviewed}
           </p>
@@ -42,11 +36,11 @@ export function GuidesIndex() {
             {pages.map((p) => (
               <li key={p.slug}>
                 <Link href={`/compliance/${p.slug}`} prefetch={false} className="flex h-full flex-col gap-3 rounded-lg border border-line bg-surface p-6 hover:border-line-strong max-sm:p-5">
-                  <span className="font-mono text-base text-ink-3">{REGION[p.slug]}</span>
+                  <span className="text-site-body font-medium text-ink-subtle">{REGION[p.slug]}</span>
                   <span className="text-xl font-semibold tracking-tight text-ink">{p.shortName}</span>
                   <span className="flex-1 text-md text-ink-2">{p.headline}</span>
                   <span className="text-sm text-ink-3">Last reviewed {readDay(p.last_reviewed_at)}</span>
-                  <span className="text-md font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]">Read the guide</span>
+                  <span className="text-md font-medium text-ink-strong underline decoration-1 underline-offset-4 hover:decoration-2">Read the guide</span>
                 </Link>
               </li>
             ))}
@@ -55,7 +49,7 @@ export function GuidesIndex() {
         </div>
       </section>
 
-      <Close headline="Check your suppliers against the lists." lede="Free during beta. No card needed." />
+      <Closing headline="Check your suppliers against the lists." lede="Free during beta. No card needed." />
     </main>
   );
 }
@@ -65,8 +59,8 @@ export function GuideArticle({ page }: { page: CompliancePage }) {
   const toc = [...sections.map((s) => s.heading), "References"];
   return (
     <main className="font-sans text-ink">
-      <section className="pb-12 pt-16 max-md:pb-8 max-md:pt-8">
-        <div className={cn(wrap, "flex flex-col gap-6")}>
+      <section className="pb-10 pt-10 md:pb-12 md:pt-24">
+        <div className={cn(measure, "flex flex-col gap-6")}>
           <nav aria-label="Breadcrumb" className="text-base text-ink-3">
             <Link href="/compliance" prefetch={false} className="hover:text-ink">
               Compliance guides
@@ -89,8 +83,8 @@ export function GuideArticle({ page }: { page: CompliancePage }) {
         </div>
       </section>
 
-      <section className="pb-20 max-md:pb-12">
-        <div className={cn(wrap, "grid gap-12 lg:grid-cols-[minmax(0,720px)_240px] lg:justify-between")}>
+      <section className="pb-14 md:pb-section">
+        <div className={cn(measure, "grid gap-12 lg:grid-cols-[minmax(0,720px)_240px] lg:justify-between")}>
           <article className="flex min-w-0 flex-col gap-12 max-lg:order-2">
             {sections.map((s) => (
               <section key={s.heading} id={sectionId(s.heading)} className="flex scroll-mt-24 flex-col gap-3">
@@ -114,7 +108,7 @@ export function GuideArticle({ page }: { page: CompliancePage }) {
               <ul className="flex flex-col gap-3 text-md">
                 {page.references.map((r) => (
                   <li key={r.url} className="flex flex-col gap-0.5 [overflow-wrap:anywhere]">
-                    <a href={r.url} rel="noopener noreferrer external" target="_blank" className="font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]">
+                    <a href={r.url} rel="noopener noreferrer external" target="_blank" className="font-medium text-ink-strong underline decoration-1 underline-offset-4 hover:decoration-2">
                       {r.label}
                     </a>
                     <span className="text-sm text-ink-3">
@@ -140,11 +134,11 @@ export function GuideArticle({ page }: { page: CompliancePage }) {
         </div>
       </section>
 
-      <Close
+      <Closing
         headline={page.slug === "uflpa" ? "Check your saved suppliers" : "See the sources on a real supplier record"}
         lede={page.slug === "uflpa" ? "See each one against the UFLPA Entity List, with the date of the list. Free during beta." : "Every fact on a supplier names its source and the date we read it. Free during beta."}
       />
-      <p className={cn(wrap, "pb-12 text-sm text-ink-3")}>
+      <p className={cn(measure, "pb-12 text-sm text-ink-3")}>
         {DISCLAIMER} Last reviewed {readDay(page.last_reviewed_at)}.
       </p>
     </main>
