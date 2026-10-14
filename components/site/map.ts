@@ -2,22 +2,13 @@
 // one list so the two cannot drift. Every address here is a page of the site; a page that is not built yet is not
 // linked (the footer says nothing about it), so no link on the site goes nowhere.
 
-export type NavItem = { title: string; body?: string; href: string };
+export type NavItem = { title: string; body?: string; href: string; icon?: "search" | "receipt" | "send" | "bell" };
 
 export const PRODUCT: readonly NavItem[] = [
-  { title: "Supplier search", body: "Filter by HS code, certificate, place and size.", href: "/product/search" },
-  { title: "Supplier records", body: "Every fact with its source and date.", href: "/product/records" },
-  { title: "RFQs and messages", body: "Send one RFQ to up to 50 suppliers.", href: "/product/rfqs" },
-  { title: "Compliance", body: "Expiry alerts and Entity List checks.", href: "/product/compliance" },
-];
-
-/** The Product menu on a wide screen (Paper "Home · Nav · Product menu open"): four groups, each a route of the app.
- * The board's "Supplier records" (/app/suppliers) has no index page, a record opens from a search, so it is not listed. */
-export const PRODUCT_GROUPS: readonly { title: string; icon: "search" | "receipt" | "send" | "bell"; items: readonly NavItem[] }[] = [
-  { title: "Find", icon: "search", items: [{ title: "Search", href: "/app" }, { title: "Saved suppliers", href: "/app/saved" }, { title: "Saved searches", href: "/app/searches" }, { title: "HS headings", href: "/app/headings" }] },
-  { title: "Check", icon: "receipt", items: [{ title: "Compliance hub", href: "/app/compliance" }, { title: "UFLPA checks", href: "/app/compliance/uflpa" }, { title: "Expiry dates", href: "/app/compliance/expiry" }, { title: "Modern slavery statement", href: "/app/compliance/msa" }] },
-  { title: "Ask", icon: "send", items: [{ title: "RFQs and quotes", href: "/app/rfqs" }, { title: "Messages", href: "/app/messages" }, { title: "Orders", href: "/app/orders" }, { title: "Your products", href: "/app/products" }] },
-  { title: "Watch", icon: "bell", items: [{ title: "Alerts and notifications", href: "/app/settings/notifications" }, { title: "Team and roles", href: "/app/settings/members" }, { title: "Methodology", href: "/methodology" }, { title: "Data status", href: "/status" }] },
+  { title: "Supplier search", body: "Filter by HS code, certificate, place and size.", href: "/product/search", icon: "search" },
+  { title: "Supplier records", body: "Every fact with its source and date.", href: "/product/records", icon: "receipt" },
+  { title: "RFQs and messages", body: "Send one RFQ to up to 50 suppliers.", href: "/product/rfqs", icon: "send" },
+  { title: "Compliance", body: "Expiry alerts and Entity List checks.", href: "/product/compliance", icon: "bell" },
 ];
 
 export const SOLUTIONS: readonly NavItem[] = [
@@ -69,7 +60,6 @@ export const FOOTER: readonly { title: string; links: readonly { label: string; 
     title: "Company",
     links: [
       { label: "About", href: "/about" },
-      { label: "Contact sales", href: "/contact" },
       { label: "Book a demo", href: "/contact" },
       { label: "Security", href: "/security" },
     ],

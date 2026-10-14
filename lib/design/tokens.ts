@@ -415,13 +415,21 @@ export const fontSize: Record<string, FontSize> = {
   "display-1": ["72px", {}], // marketing only, from here down
   "display-2": ["56px", {}],
   "display-3": ["40px", {}],
-  // The home film only (handoff-home-film §3.2), desktop then phone.
-  "film-hero": ["104px", { lineHeight: "1.02" }],
-  "film-hero-phone": ["44px", { lineHeight: "1.04" }],
-  "film-figure": ["200px", { lineHeight: "0.9" }],
-  "film-figure-phone": ["96px", { lineHeight: "0.9" }],
-  "film-scene": ["64px", { lineHeight: "1.06" }],
-  "film-scene-phone": ["32px", { lineHeight: "1.06" }],
+  // The marketing site (handoff-mercury-motion-sitewide.md §3, M1): light display type, each size with its phone
+  // step (`-sm`). One scale for every page, so no page sets a size by hand (site.test.ts bans `text-[`).
+  "site-hero": ["76px", { lineHeight: "84px", letterSpacing: "-0.03em" }], // the home page's headline
+  "site-hero-sm": ["42px", { lineHeight: "46px", letterSpacing: "-0.03em" }],
+  "site-h1": ["56px", { lineHeight: "62px", letterSpacing: "-0.03em" }], // every other page's headline
+  "site-h1-sm": ["36px", { lineHeight: "42px", letterSpacing: "-0.03em" }],
+  "site-h2": ["48px", { lineHeight: "56px", letterSpacing: "-0.025em" }],
+  "site-h2-sm": ["30px", { lineHeight: "38px", letterSpacing: "-0.025em" }],
+  "site-h3": ["28px", { lineHeight: "34px", letterSpacing: "-0.02em" }],
+  "site-figure": ["52px", { lineHeight: "60px", letterSpacing: "-0.035em" }],
+  "site-figure-sm": ["44px", { lineHeight: "52px", letterSpacing: "-0.03em" }],
+  "site-title": ["19px", { lineHeight: "26px" }], // a question, a card's name
+  "site-lede": ["17px", { lineHeight: "27px" }],
+  "site-body": ["15px", { lineHeight: "22px" }],
+  "site-wordmark": ["clamp(88px, 19vw, 288px)", { lineHeight: "0.78", letterSpacing: "-0.055em" }],
   // legacy (v3)
   eyebrow: ["0.6875rem", { lineHeight: "1rem", letterSpacing: "0.08em" }],
   title: ["0.9375rem", { lineHeight: "1.375rem", letterSpacing: "-0.005em" }],
@@ -456,8 +464,12 @@ export const borderRadius = {
   md: "6px",
   lg: "8px",
   full: "9999px",
-  pane: "20px", // the film's Pane; `pane-phone` below 640
+  pane: "20px",
   "pane-phone": "16px",
+  // The marketing site's three (M1): a product screen or a field, a card, a photo stage.
+  frame: "12px",
+  card: "16px",
+  stage: "24px",
   // legacy (v3)
   xs: "0.1875rem",
   DEFAULT: "0.375rem",
@@ -541,14 +553,37 @@ export const transitionDuration = {
   fast: "120ms",
   DEFAULT: "200ms",
   slow: "320ms",
-  reveal: "640ms",
+  reveal: "700ms", // marketing: a block rising into view (handoff-mercury-motion-sitewide.md §4)
+  tone: "600ms", // marketing: the page's ground crossfading between paper and dark
 };
 
 export const transitionTimingFunction = {
   DEFAULT: "cubic-bezier(0.2, 0, 0, 1)",
   in: "cubic-bezier(0.4, 0, 1, 1)",
   out: "cubic-bezier(0, 0, 0.2, 1)",
+  reveal: "cubic-bezier(0.2, 0.7, 0.2, 1)", // slow and smooth, never bouncy
 };
+
+/**
+ * The marketing site's motion (handoff-mercury-motion-sitewide.md §4), for the scripts that time a scene. CSS reads
+ * the same values through Tailwind (`duration-reveal`, `ease-reveal`, `duration-tone`, `animate-swap-in|out`).
+ * Transforms and opacity only; every value is stilled by `prefers-reduced-motion` (app/ds.css and `useScene`).
+ */
+export const motion = {
+  revealMs: 700,
+  risePx: 24,
+  staggerMs: 70,
+  swapOutMs: 200,
+  swapInMs: 320,
+  swapRisePx: 8,
+  swapBlurPx: 4,
+  toneMs: 600,
+  tourItemMs: 7000,
+  cursorMs: 600,
+  clickMs: 200,
+  typeMs: 45,
+  streamMs: 60,
+} as const;
 
 export const zIndex = {
   base: "0",
@@ -577,6 +612,7 @@ export const containers = {
 export const maxWidth = {
   ...containers, // Paper's `prose` (544px) replaces Tailwind's 65ch
   content: "75rem", // 1200 (v3)
+  site: "1440px", // the marketing measure: 1280 of content and 80 a side at 1440
 };
 
 /**
@@ -596,6 +632,7 @@ export const spacing = {
   topbar: "56px",
   tabbar: "56px",
   "action-bar": "64px",
+  section: "120px", // the marketing rhythm: a section's top and bottom from 768 up (56 below)
 };
 
 /** Paper's breakpoints. They REPLACE Tailwind's (whose `2xl` is 1536). */

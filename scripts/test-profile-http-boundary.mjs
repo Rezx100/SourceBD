@@ -1219,7 +1219,7 @@ const CASES = [
   { name: "site: /methodology is 200", path: "/methodology", expect: { status: 200, bodyIncludes: "How we check every supplier." } },
   { name: "site: /suppliers (the claim page) is 200 and /suppliers/<slug> is untouched", path: "/suppliers", expect: { status: 200, bodyIncludes: "Claim your factory" } },
   { name: "site: /about is 200", path: "/about", expect: { status: 200, bodyIncludes: "Built for buyers who check." } },
-  { name: "site: /contact is 200", path: "/contact", expect: { status: 200, bodyIncludes: "Talk to us." } },
+  { name: "site: /contact is 200", path: "/contact", expect: { status: 200, bodyIncludes: "Book a demo or ask a question." } },
   { name: "site: /compliance (the guides) is 200", path: "/compliance", expect: { status: 200, bodyIncludes: "Compliance guides, in plain words." } },
   { name: "site: /compliance/uflpa is 200", path: "/compliance/uflpa", expect: { status: 200, bodyIncludes: "On this page" } },
   { name: "site: an unknown compliance guide -> 404", path: "/compliance/not-a-law", expect: { status: 404 } },

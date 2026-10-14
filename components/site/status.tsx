@@ -3,7 +3,7 @@
 // file", and how old a date is said in words (not only by a colour). No score, no uptime percentage.
 
 import Link from "next/link";
-import { Display, Label, Lede, wrap } from "@/components/site/parts";
+import { Display, inkLink, Label, Lede, measure } from "@/components/site/sections/ui";
 import { readDay, withCommas } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
 
@@ -49,14 +49,14 @@ function When({ ts, now }: { ts: string | null; now: number }) {
 export function StatusView({ doc, error, now = Date.now() }: { doc: StatusDoc | null; error: string | null; now?: number }) {
   return (
     <main className="font-sans text-ink">
-      <section className="py-20 max-md:py-10">
-        <div className={cn(wrap, "flex flex-col gap-10")}>
+      <section className="pb-14 pt-10 md:pb-section md:pt-24">
+        <div className={cn(measure, "flex flex-col gap-10")}>
           <div className="flex flex-col gap-4">
             <Label>Status</Label>
             <Display level={2} as="h1">
               System status
             </Display>
-            <Lede>When we last read each source. Built live on each visit{doc ? `, as of ${readDay(doc.generated_at)}` : ""}. Per-source dates are on the <Link href="/methodology" prefetch={false} className="font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]">Data and methodology</Link> page.</Lede>
+            <Lede>When we last read each source. Built live on each visit{doc ? `, as of ${readDay(doc.generated_at)}` : ""}. Per-source dates are on the <Link href="/methodology" prefetch={false} className={inkLink}>Data and methodology</Link> page.</Lede>
           </div>
 
           {error || !doc ? (
@@ -64,7 +64,7 @@ export function StatusView({ doc, error, now = Date.now() }: { doc: StatusDoc | 
               <p className="text-md font-semibold text-ink">We could not load the status just now.</p>
               <p className="mt-1 text-md text-ink-2">
                 If this keeps happening, write to{" "}
-                <a href="mailto:support@sourcebd.net" className="font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]">
+                <a href="mailto:support@sourcebd.net" className={inkLink}>
                   support@sourcebd.net
                 </a>
                 .
@@ -73,13 +73,13 @@ export function StatusView({ doc, error, now = Date.now() }: { doc: StatusDoc | 
           ) : (
             <>
               <dl className="grid gap-8 sm:grid-cols-2">
-                <div className="flex flex-col gap-1 border-t border-ink pt-3">
-                  <dd className="font-mono text-3xl font-semibold tracking-tight text-ink">{withCommas(doc.published_suppliers)}</dd>
+                <div className="flex flex-col-reverse gap-1 border-t border-ink pt-3">
                   <dt className="text-md text-ink-2">published suppliers</dt>
+                  <dd className="font-mono text-3xl font-semibold tracking-tight text-ink">{withCommas(doc.published_suppliers)}</dd>
                 </div>
-                <div className="flex flex-col gap-1 border-t border-ink pt-3">
-                  <dd className="font-mono text-3xl font-semibold tracking-tight text-ink">{readDay(doc.last_source_refresh) ?? "No date on file"}</dd>
+                <div className="flex flex-col-reverse gap-1 border-t border-ink pt-3">
                   <dt className="text-md text-ink-2">latest register read</dt>
+                  <dd className="font-mono text-3xl font-semibold tracking-tight text-ink">{readDay(doc.last_source_refresh) ?? "No date on file"}</dd>
                 </div>
               </dl>
 

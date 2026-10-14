@@ -1,13 +1,15 @@
 // Pricing (B9d; Paper `30 Marketing · Pricing`): two plans as they really are today, what the product holds now and
 // nothing designed-but-unbuilt, and the questions buyers ask. There is no price anywhere because there is none yet; the
-// page says so. Enterprise lists only what exists (the agreements and a call), never SSO, an audit log or evidence packs.
+// page says so. Enterprise lists only what exists (the agreements and a call), never SSO or an audit log.
 // The supplier count comes from the site's live facts and is left out when it was not read.
 
 import Link from "next/link";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { ButtonLink } from "@/components/kit";
-import { Close, Display, Faq, HeroActions, Label, Lede, Section, wrap } from "@/components/site/parts";
+import { HeroActions, HeroCentered, inkLink, measure, Section, TextLink } from "@/components/site/sections/ui";
+import { Closing } from "@/components/site/sections/closing";
+import { Faq } from "@/components/site/sections/faq";
 import { withCommas, type SiteFacts } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +37,8 @@ const COMPARE: [string, string, string][] = [
   ["RFQs and messages with suppliers", "Up to 50 suppliers per RFQ", "Up to 50 suppliers per RFQ"],
   ["Certificate expiry watch", "Included", "Included"],
   ["UFLPA Entity List and sanctions list checks", "Included", "Included"],
+  ["Modern slavery statement draft from your saved suppliers", "Included", "Included"],
+  ["Evidence pack: certificates, UFLPA checks and sources as one CSV", "Included", "Included"],
   ["Data processing agreement", "Enterprise only", "On request"],
   ["Terms and invoicing", "Standard terms", "Agreed with you"],
 ];
@@ -48,7 +52,7 @@ const FAQ = [
     a: (
       <>
         In our Supabase database, AWS region us-west-1, in the United States. See{" "}
-        <Link href="/security" prefetch={false} className="font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]">
+        <Link href="/security" prefetch={false} className={inkLink}>
           Security
         </Link>
         .
@@ -60,13 +64,13 @@ const FAQ = [
 
 function Plan({ name, tag, headline, lede, cta, listLabel, items, className }: { name: string; tag: string; headline: string; lede: string; cta: ReactNode; listLabel: string; items: string[]; className?: string }) {
   return (
-    <article className={cn("flex flex-col gap-6 rounded-lg border border-line bg-surface p-8 max-sm:p-5", className)}>
+    <article className={cn("flex flex-col gap-6 rounded-card border border-line bg-surface p-8 max-sm:p-5", className)}>
       <div className="flex flex-col gap-2">
-        <h2 className="text-lg font-semibold text-ink">{name}</h2>
+        <h3 className="text-lg font-semibold text-ink">{name}</h3>
         <p className="font-mono text-sm text-ink-3">{tag}</p>
       </div>
       <div className="flex flex-col gap-2">
-        <p className="text-display-2 font-semibold leading-[1.1] tracking-tighter text-ink max-md:text-3xl">{headline}</p>
+        <p className="text-site-h2-sm font-light text-ink-strong md:text-site-h2">{headline}</p>
         <p className="text-md text-ink-2">{lede}</p>
       </div>
       <div>{cta}</div>
@@ -89,21 +93,14 @@ export function Pricing({ facts }: { facts: SiteFacts }) {
   const beta = BETA.map((b) => (count ? b.replace("{n}", count) : b.replace("Search {n} suppliers", "Search suppliers")));
   return (
     <main className="font-sans text-ink">
-      <section className="pb-20 pt-20 max-md:pb-10 max-md:pt-10">
-        <div className={cn(wrap, "flex flex-col gap-6")}>
-          <Label>Pricing</Label>
-          <Display level={1} as="h1" className="max-w-[880px]">
-            Free during beta.
-          </Display>
-          <Lede>Everything in SourceBD is free while we are in beta. No card needed.</Lede>
-          <HeroActions tryLine={count ? `Search ${count} suppliers by name, product or HS code` : "Search suppliers by name, product or HS code"} />
-        </div>
-      </section>
+      <HeroCentered label="Pricing" title="Free during beta." lede="Everything in SourceBD is free while we are in beta. No card needed.">
+        <HeroActions center tryLine={count ? `Search ${count} suppliers by name, product or HS code` : "Search suppliers by name, product or HS code"} />
+      </HeroCentered>
 
-      <section aria-labelledby="plans" className="bg-subtle py-20 max-md:py-12">
-        <div className={cn(wrap, "flex flex-col gap-8")}>
+      <section aria-labelledby="plans" className="bg-surface py-14 md:py-section">
+        <div className={cn(measure, "flex flex-col gap-8")}>
           <div className="flex flex-col gap-2">
-            <h2 id="plans" className="font-mono text-base text-ink-3 max-sm:text-sm">
+            <h2 id="plans" className="text-site-body font-medium text-ink-subtle">
               Two plans, as they really are today
             </h2>
             <p className="text-sm text-ink-3">No prices yet · updated 3 Oct 2026</p>
@@ -125,11 +122,11 @@ export function Pricing({ facts }: { facts: SiteFacts }) {
             <Plan
               name="Enterprise"
               tag="For teams with paperwork"
-              headline="Talk to us"
+              headline="Terms agreed with you"
               lede="The same product, with the agreements your company needs."
               cta={
                 <ButtonLink href="/contact" prefetch={false} kind="secondary" size="lg" className="max-sm:h-input-touch">
-                  Contact sales
+                  Book a demo
                 </ButtonLink>
               }
               listLabel="Everything in Beta, plus"
@@ -140,7 +137,7 @@ export function Pricing({ facts }: { facts: SiteFacts }) {
       </section>
 
       <Section label="01 · Compare" headline="What is in the product today." lede="Only what ships now. Designs that are not built yet are not on this list.">
-        <div className="overflow-x-auto">
+        <div tabIndex={0} role="region" aria-label="What each plan includes, scrolls sideways" className="overflow-x-auto outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
           <table className="w-full min-w-[640px] border-collapse text-left">
             <caption className="sr-only">What each plan includes today</caption>
             <thead>
@@ -165,14 +162,9 @@ export function Pricing({ facts }: { facts: SiteFacts }) {
         </div>
       </Section>
 
-      <Section label="02 · Questions" headline="Questions buyers ask." tone="subtle">
-        <Faq items={FAQ} />
-        <Link href="/contact" prefetch={false} className="w-fit text-md font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]">
-          Contact sales
-        </Link>
-      </Section>
+      <Faq items={FAQ} after={<TextLink href="/contact">Book a demo</TextLink>} />
 
-      <Close headline="Start free today." lede="Free during beta. No card needed." />
+      <Closing headline="Start free today." lede="Free during beta. No card needed." />
     </main>
   );
 }

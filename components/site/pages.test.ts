@@ -1,5 +1,5 @@
 // The product and solutions pages (B9c): Paper's headlines and copy, one real screen per claim with alt text, the
-// live figure only when it was read, the sample-state and in-design marks, and every page the menus link to exists.
+// live figure only when it was read, the sample-state marks, and every page the menus link to exists.
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -51,7 +51,8 @@ describe("the product and solutions pages", () => {
   it("every screen exists on disk and has alt text and a caption that says what kind of screen it is", () => {
     for (const [key, p] of Object.entries(PAGES)) {
       const out = page(key);
-      const imgs = [...out.matchAll(/<img[^>]*>/g)].map((m) => m[0]);
+      // The textile stills behind the screens are decoration (alt=""); every screen says what it shows.
+      const imgs = [...out.matchAll(/<img[^>]*>/g)].map((m) => m[0]).filter((i) => !/src="\/site\/home\//.test(i));
       assert.ok(imgs.length >= 1, key);
       for (const i of imgs) {
         assert.match(i, /alt="[^"]{20,}"/, `${key} alt`);
@@ -73,9 +74,10 @@ describe("the product and solutions pages", () => {
     for (const key of ["product/rfqs", "solutions/sourcing"]) assert.match(text(page(key)), /Sample state · figures are examples|Sample state · review all 50/);
   });
 
-  it("the statement draft is marked as not in the product yet, never presented as a feature that ships", () => {
-    for (const key of ["product/compliance", "solutions/compliance"]) assert.match(text(page(key)), /In design · not in the product yet/);
-    assert.equal((text(page("product/search")).match(/In design/g) ?? []).length, 0);
+  it("the statement draft ships, so no page calls it in design (audit P1, 14 Oct 2026)", () => {
+    assert.ok(existsSync(join(process.cwd(), "app/(app)/app/compliance/msa/page.tsx")), "the statement's route");
+    for (const key of ["product/compliance", "solutions/compliance"]) assert.match(text(page(key)), /modern slavery statement/i, key);
+    for (const key of Object.keys(PAGES)) assert.doesNotMatch(text(page(key)), /in design/i, key);
   });
 
   it("UFLPA copy says what was found, and that 'no link found' is not a clearance", () => {

@@ -56,6 +56,7 @@ const GUARDED = [
   "app/layout.tsx",
   "app/dev/ds",
   "components/ds",
+  "components/site", // the marketing site (M1, 14 Oct 2026)
   "lib/dashboard",
   // Generated and tooling files the rebuild owns. `lib/hs-catalogue.ts` is
   // written by `scripts/build-hs-photos.mjs`, and both were outside the guard.
@@ -374,13 +375,16 @@ test("the radius scale is Paper's, with the old pages' extra names until B11", (
       md: "6px", // Paper: tables, source-mark frames
       lg: "8px", // Paper: panels, dialogs, cards
       full: "9999px",
-      pane: "20px", // the home film's Pane
+      pane: "20px",
       "pane-phone": "16px",
+      frame: "12px", // marketing: a product screen, a field
+      card: "16px", // marketing: a card
+      stage: "24px", // marketing: a photo stage
       xs: "0.1875rem", // v3
       DEFAULT: "0.375rem", // v3
       xl: "1.25rem", // v3
     },
-    "Paper's --radius-sm/md/lg/full (4 Oct 2026) and the film's pane (6 Oct); xs, DEFAULT and xl go with the old pages",
+    "Paper's --radius-sm/md/lg/full (4 Oct 2026), the pane (6 Oct) and the marketing three (14 Oct); xs, DEFAULT and xl go with the old pages",
   );
 });
 
@@ -635,16 +639,10 @@ test("the type scale, the widths and the durations are the approved ones", () =>
     assert.equal(fontSize[key]?.[1].lineHeight, lh, `text-${key} line height`);
     assert.equal(fontSize[key]?.[1].letterSpacing, undefined, `text-${key}: Paper puts tracking on the element, not the size`);
   }
-  // The home film's six, for that page only (handoff-home-film §3.2, approved 6 Oct 2026).
-  const film: Record<string, [string, string]> = {
-    "film-hero": ["104px", "1.02"], "film-hero-phone": ["44px", "1.04"], "film-figure": ["200px", "0.9"],
-    "film-figure-phone": ["96px", "0.9"], "film-scene": ["64px", "1.06"], "film-scene-phone": ["32px", "1.06"],
-  };
-  for (const [key, [size, lh]] of Object.entries(film)) {
-    assert.equal(fontSize[key]?.[0], size, `text-${key}`);
-    assert.equal(fontSize[key]?.[1].lineHeight, lh, `text-${key} line height`);
-  }
-  assert.deepEqual(Object.keys(fontSize).filter((k) => k.startsWith("film-")).sort(), Object.keys(film).sort());
+  // The marketing scale (M1, 14 Oct 2026): every size has its line height; the film's sizes went with the film.
+  assert.deepEqual(Object.keys(fontSize).filter((k) => k.startsWith("film-")), []);
+  for (const key of Object.keys(fontSize).filter((k) => k.startsWith("site-"))) assert.ok(fontSize[key]?.[1].lineHeight, `text-${key} line height`);
+  assert.equal(fontSize["site-h1"]?.[0], "56px", "a page headline stays at 56 or under (§3 HeroCentered)");
   assert.deepEqual({ ...letterSpacing }, { tight: "-0.01em", tighter: "-0.02em" });
   assert.deepEqual({ ...containers }, { sidebar: "224px", details: "344px", panel: "360px", dialog: "480px", prose: "544px", pane: "640px" });
   assert.equal(maxWidth.prose, "544px", "Paper's prose, not Tailwind's 65ch");
@@ -652,9 +650,9 @@ test("the type scale, the widths and the durations are the approved ones", () =>
   assert.deepEqual({ ...screens }, { xs: "320px", sm: "640px", md: "768px", lg: "1024px", xl: "1280px", "2xl": "1440px" });
   assert.deepEqual({ ...spacing }, {
     "control-sm": "24px", control: "32px", "row-head": "36px", row: "40px", "control-lg": "40px", touch: "44px",
-    "input-touch": "48px", "row-tall": "56px", topbar: "56px", tabbar: "56px", "action-bar": "64px",
+    "input-touch": "48px", "row-tall": "56px", topbar: "56px", tabbar: "56px", "action-bar": "64px", section: "120px",
   });
-  assert.deepEqual({ ...transitionDuration }, { fast: "120ms", DEFAULT: "200ms", slow: "320ms", reveal: "640ms" });
+  assert.deepEqual({ ...transitionDuration }, { fast: "120ms", DEFAULT: "200ms", slow: "320ms", reveal: "700ms", tone: "600ms" });
 });
 
 // B0: Paper's colour tokens as literals, so a value changed here and in the
@@ -787,4 +785,16 @@ test("Paper's classes compile to Paper's values through the real Tailwind config
   assert.match(rule(".grow-2"), /flex-grow: 2/);
   assert.match(css, /@media \(min-width: 1440px\) \{\s*\.\\32xl\\:w-sidebar \{\s*width: 224px/);
   assert.match(rule(String.raw`.\[box-shadow\:theme\(colors\.line-strong\)_0px_-1px_0px\]`), /box-shadow: rgb\(var\(--ds-line-strong\) \/ 1\) 0px -1px 0px/);
+});
+
+// M1 (14 Oct 2026): `cn` read `text-site-body` as a colour and dropped the primary button's white label, so every
+// marketing Start free button showed dark text on green. Every named size must survive beside an ink, and every
+// radius must replace another radius, through the real `cn`.
+test("cn keeps every token size beside an ink and lets a token radius replace another", () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- the same module the components use
+  const { cn } = require("@/lib/utils") as typeof import("@/lib/utils");
+  for (const k of Object.keys(fontSize)) assert.equal(cn("text-surface", `text-${k}`), `text-surface text-${k}`, `text-${k}`);
+  for (const k of Object.keys(borderRadius).filter((k) => k !== "DEFAULT")) assert.equal(cn("rounded-full", `rounded-${k}`), `rounded-${k}`, `rounded-${k}`);
+  // A named height gives way to a caller's (the marketing buttons measured 40px on a phone, not their 48).
+  for (const k of Object.keys(spacing)) assert.equal(cn(`h-${k}`, "h-12"), "h-12", `h-${k}`);
 });
