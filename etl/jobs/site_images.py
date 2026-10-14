@@ -29,6 +29,7 @@ import asyncio
 import csv
 import hashlib
 import io
+import ipaddress
 import json
 import re
 import time
@@ -79,22 +80,28 @@ PRODUCT_BAD_TOKENS = BAD_TOKENS | {
 }
 PRODUCT_LINK_RE = re.compile(
     r"product|collection|gallery|portfolio|catalog|categor|our-?work|garment|"
-    r"apparel|knit|woven|sweater|denim|jean|jacket|shirt|polo|trouser|pant|"
+    r"apparel|knit|woven|sweater|denim|jean|jacket|shirt|polo|trouser|(?<![a-z])pants?(?![a-z])|"
     r"kids|child|baby|ladies|women|\bmen'?s?\b|outerwear|lingerie|intimate|"
-    r"swim|sportswear|activewear|hoodie|fleece|uniform|workwear|dress|towel|"
+    r"swim|sportswear|activewear|hoodie|fleece|uniform|workwear|(?<![a-z])dress|towel|"
     r"home-?textile|yarn|fabric|accessor|label|trims?\b|button|zipper|packag|"
     r"carton|hanger|thread"
 )
 STRONG_PRODUCT_LINK_RE = re.compile(r"product|collection|gallery|catalog|portfolio")
-LINK_SKIP_RE = re.compile(
-    r"\.(pdf|docx?|xlsx?|zip|rar|jpe?g|png|gif|webp|svg|mp4)(\?|$)|^(mailto|tel|javascript):|"
-    r"login|signin|sign-in|register|cart|checkout|my-account|wp-admin|wp-login|/feed|"
-    r"/tag/|add-to-cart|career|job|news|blog|contact|about|certif|compliance|csr|"
-    r"privacy|terms|policy|sitemap"
+FILE_OR_SCHEME_RE = re.compile(
+    r"\.(pdf|docx?|xlsx?|zip|rar|jpe?g|png|gif|webp|svg|mp4)(\?|$)|^(mailto|tel|javascript):"
+)
+# Whole words only: "cart" must not catch "carton", nor "dress" in "address".
+PAGE_SKIP_RE = re.compile(
+    r"(?<![a-z])(login|signin|sign-in|register|cart|checkout|my-account|wp-admin|wp-login|"
+    r"feed|tag|add-to-cart|careers?|jobs?|news|blog|contact|about|certificates?|"
+    r"certifications?|compliance|csr|privacy|terms|policy|sitemap|address)(?![a-z])"
 )
 HOME_PATHS = {"", "/", "/index.html", "/index.htm", "/index.php", "/home"}
 EXT = {"JPEG": "jpg", "MPO": "jpg", "PNG": "png", "WEBP": "webp", "GIF": "gif",
        "BMP": "bmp", "ICO": "ico", "AVIF": "avif", "TIFF": "tif"}
+CONTENT_TYPE = {"jpg": "image/jpeg", "png": "image/png", "webp": "image/webp", "gif": "image/gif",
+                "bmp": "image/bmp", "ico": "image/x-icon", "avif": "image/avif", "tif": "image/tiff",
+                "svg": "image/svg+xml"}
 
 
 # --------------------------------------------------------------------- urls
@@ -113,6 +120,27 @@ def site_host(raw: str | None) -> str | None:
     if "." not in host or not re.fullmatch(r"[a-z0-9.-]+", host):
         return None
     return host
+
+
+def absolute(base: str, raw: str) -> str:
+    """Resolve a link the way a browser does, which reads \\ as / in web URLs."""
+    return urljoin(base, raw.strip().replace("\\", "/"))
+
+
+def public_host(host: str | None) -> bool:
+    """False for loopback, private, link-local and single-label names.
+
+    Image URLs come from supplier HTML and are fetched from our server, so a
+    page must not be able to point us at the server's own services.
+    """
+    host = (host or "").lower().strip("[]")
+    if not host or "." not in host or host.endswith((".localhost", ".internal", ".local")):
+        return False
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        return True
+    return ip.is_global
 
 
 def domain_key(host: str) -> str:
@@ -155,7 +183,7 @@ def best_src(el: Any, base: str) -> str | None:
             break
     if not best or best.startswith("data:"):
         return None
-    url = urljoin(base, best)
+    url = absolute(base, best)
     return url if url.startswith(("http://", "https://")) else None
 
 
@@ -214,12 +242,12 @@ def parse_page(html: bytes | str, url: str) -> Page:
     except (ValueError, lxml.etree.ParserError):
         return page
     base_el = doc.find(".//base[@href]")
-    base = urljoin(url, base_el.get("href")) if base_el is not None else url
+    base = absolute(url, base_el.get("href")) if base_el is not None else url
     root = urlsplit(base)
 
     def add(el: Any, src: str, kind: str, extra: str = "") -> None:
         parent_a = el if el.tag == "a" else next((a for a in el.iterancestors("a")), None)
-        href = urljoin(base, parent_a.get("href") or "") if parent_a is not None else ""
+        href = absolute(base, parent_a.get("href") or "") if parent_a is not None else ""
         hs = urlsplit(href) if href else None
         own = " ".join([
             unquote(urlsplit(src).path), el.get("alt") or "", el.get("title") or "",
@@ -245,17 +273,17 @@ def parse_page(html: bytes | str, url: str) -> Page:
             continue
         # Galleries link the full-size photo; sliders and grids often paint it.
         if el.tag == "a" and IMAGE_FILE_RE.search(el.get("href") or ""):
-            add(el, urljoin(base, el.get("href").strip()), "link")
+            add(el, absolute(base, el.get("href")), "link")
         painted = el.get("data-bg") or el.get("data-background") or el.get("data-background-image")
         m = re.search(r"background(?:-image)?\s*:[^;]*url\(\s*['\"]?([^'\")]+)", el.get("style") or "")
         for raw in (painted, m.group(1) if m else None):
             if raw and not raw.startswith("data:"):
-                add(el, urljoin(base, raw.strip()), "bg")
+                add(el, absolute(base, raw), "bg")
 
     for a in doc.iter("a"):
         href = (a.get("href") or "").strip()
         if href and not href.startswith("#"):
-            page.links.append((urljoin(base, href).split("#")[0], (a.text_content() or "").strip().lower()))
+            page.links.append((absolute(base, href).split("#")[0], (a.text_content() or "").strip().lower()))
 
     for script in doc.iter("script"):
         if (script.get("type") or "").lower() == "application/ld+json" and script.text:
@@ -264,15 +292,31 @@ def parse_page(html: bytes | str, url: str) -> Page:
 
     for meta in doc.iter("meta"):
         if (meta.get("property") or meta.get("name") or "").lower() == "og:image" and meta.get("content"):
-            page.og_image = urljoin(base, meta.get("content").strip())
+            page.og_image = absolute(base, meta.get("content"))
 
     for link in doc.iter("link"):
         rel = (link.get("rel") or "").lower()
         if "icon" in rel and link.get("href"):
             m = re.match(r"(\d+)", link.get("sizes") or "")
             size = int(m.group(1)) if m else (180 if "apple-touch" in rel else 16)
-            page.icons.append((size, urljoin(base, link.get("href").strip())))
+            page.icons.append((size, absolute(base, link.get("href"))))
     return page
+
+
+LOGO_WALL_TOKENS = {"logos", "brands", "clients", "partners", "buyers", "customers",
+                    "certificates", "certifications"}
+CAROUSEL_SUBSTR = ("carousel", "swiper", "owl-", "slick", "marquee", "slider", "ticker")
+GENERIC_NAME_RE = re.compile(
+    r"group|fashions?|apparels?|garments?|textiles?|knit(?:wear|ting|s)?|sweaters?|"
+    r"industr(?:y|ies|ial)|limited|ltd|global|international|intl|corporation|company|bd$"
+)
+
+
+def site_name(url: str) -> str | None:
+    """The distinctive part of a site's name: valmontsweater.com -> "valmon"."""
+    label = domain_key((urlsplit(url).hostname or "").lower()).split(".")[0]
+    core = GENERIC_NAME_RE.sub("", re.sub(r"[^a-z0-9]", "", label))
+    return core[:6] if len(core) >= 4 else None
 
 
 def logo_candidates(page: Page) -> list[tuple[int, str]]:
@@ -280,14 +324,22 @@ def logo_candidates(page: Page) -> list[tuple[int, str]]:
     scored: dict[str, int] = {}
     imgs = [im for im in page.imgs if im.kind == "img"]
     first_chrome = next((im.order for im in imgs if im.chrome), None)
+    name = site_name(page.url)
     for im in imgs:
-        if is_foreign(im.own, BAD_TOKENS) or any(s in im.around for s in BAD_SUBSTR):
+        if is_foreign(im.own, BAD_TOKENS) or any(s in im.around for s in BAD_SUBSTR) \
+                or tokens(im.around) & LOGO_WALL_TOKENS:
             continue
         score = 0
         if "logo" in im.own:
             score += 10
         elif "logo" in im.around:
             score += 6
+        # Buyers' marks carry "logo" too ("US-Polo-Assn-logo"); the image named
+        # like the site is the company's own, and a scrolling strip never is.
+        if name and name in re.sub(r"[^a-z0-9]", "", im.own):
+            score += 5
+        if any(s in im.around for s in CAROUSEL_SUBSTR):
+            score -= 6
         if im.chrome:
             score += 4
         if im.order == first_chrome:
@@ -316,8 +368,11 @@ def product_links(page: Page, domain: str, limit: int) -> list[str]:
     for i, (url, text) in enumerate(page.links):
         if key(url) in seen or not same_site(url, domain):
             continue
-        hay = (unquote(urlsplit(url).path) + "?" + (urlsplit(url).query) + " " + text).lower()
-        if LINK_SKIP_RE.search(hay.split(" ")[0]) or not PRODUCT_LINK_RE.search(hay):
+        where = (unquote(urlsplit(url).path) + "?" + urlsplit(url).query).lower()
+        hay = f"{where} {text}"
+        if FILE_OR_SCHEME_RE.search(url.lower()) or PAGE_SKIP_RE.search(where):
+            continue
+        if not PRODUCT_LINK_RE.search(hay):
             continue
         seen.add(key(url))
         ranked.append((0 if STRONG_PRODUCT_LINK_RE.search(hay) else 1, i, url))
@@ -363,7 +418,10 @@ def identify(data: bytes) -> Picture | None:
             if im.mode in ("RGBA", "LA", "P"):
                 raw = im.convert("RGBA").resize((48, 48)).tobytes()
                 px = [raw[i:i + 4] for i in range(0, len(raw), 4) if raw[i + 3] > 32]
-                if px:
+                # Only a logo that is white *on transparency* is invisible on a
+                # light page; an opaque one with a white background is fine.
+                see_through = len(px) < 0.9 * (len(raw) // 4)
+                if px and see_through:
                     whiteish = sum(0.299 * p[0] + 0.587 * p[1] + 0.114 * p[2] for p in px) / len(px) > 235
     except Exception:  # noqa: BLE001 - Pillow raises many types for bad bytes
         return None
@@ -406,9 +464,17 @@ class Crawler:
             limits=httpx.Limits(max_connections=args.workers * 8, max_keepalive_connections=args.workers * 2),
             follow_redirects=True,
             verify=False,
+            event_hooks={"request": [self._only_public]},  # checked on every redirect too
         )
-        self.firecrawl = FirecrawlAdapter(max_concurrency=args.firecrawl_concurrency)
+        self.firecrawl =FirecrawlAdapter(max_concurrency=args.firecrawl_concurrency)
         self.credits_left = args.firecrawl_credits
+
+    @staticmethod
+    async def _only_public(request: httpx.Request) -> None:
+        # ponytail: checks the name, not what it resolves to; a public name
+        # pointing at a private address still gets through.
+        if not public_host(request.url.host):
+            raise ValueError(f"refusing non-public address {request.url.host}")
 
     async def aclose(self) -> None:
         await self.client.aclose()
@@ -419,10 +485,13 @@ class Crawler:
         from etl.acquire.models import AcquireRequest, FetchStatus
 
         if self.credits_left <= 0:
-            raise BudgetSpent
+            raise BudgetSpent("the credits this run may spend are used up")
         self.credits_left -= 1
         doc = await self.firecrawl.fetch(AcquireRequest(url=url, formats=("rawHtml",), parse_pdf=False))
         self.credits_left -= max(0, doc.credits_used - 1)
+        if doc.final_url is None and doc.http_status in (401, 402):
+            # Firecrawl refused us (bad key, no balance): not the site's fault.
+            raise BudgetSpent(f"Firecrawl refused the request: HTTP {doc.http_status} {doc.error_message or ''}")
         if doc.fetch_status != FetchStatus.OK or not doc.raw_html:
             return None
         return doc.final_url or url, doc.raw_html
@@ -562,9 +631,14 @@ async def read_metas(domains: list[str]) -> dict[str, dict[str, Any]]:
     sem = asyncio.Semaphore(32)
 
     async def one(d: str) -> tuple[str, dict[str, Any]]:
-        async with sem:
-            raw = await bunny.read(f"{PREFIX}/{d}/meta.json")
-        return d, json.loads(raw) if raw else {}
+        # An unreadable record (a run cut off mid-write, a Bunny hiccup) just
+        # means the site is done again.
+        try:
+            async with sem:
+                raw = await bunny.read(f"{PREFIX}/{d}/meta.json")
+            return d, json.loads(raw) if raw else {}
+        except (httpx.HTTPError, ValueError):
+            return d, {}
 
     return dict(await asyncio.gather(*(one(d) for d in domains)))
 
@@ -577,7 +651,10 @@ async def run(args: argparse.Namespace) -> None:
     metas = await read_metas(sorted(domains))
     todo = sorted(domains.items())
     if args.domain:
-        todo = [(d, h) for d, h in todo if d == domain_key(args.domain.lower())]
+        wanted = domain_key(site_host(args.domain) or args.domain.lower())
+        todo = [(d, h) for d, h in todo if d == wanted]
+        if not todo:
+            raise SystemExit(f"{args.domain} is not the website of any supplier")
     elif not args.force:  # a site that failed last time is tried again
         todo = [(d, h) for d, h in todo if metas[d].get("status") not in FINISHED]
     if args.limit:
@@ -599,8 +676,8 @@ async def run(args: argparse.Namespace) -> None:
             t0 = time.monotonic()
             try:
                 meta = await asyncio.wait_for(crawler.crawl(domain, host), DOMAIN_TIMEOUT_SEC)
-            except BudgetSpent:
-                print(f"credits used up; {domain} and the rest wait for the next run", flush=True)
+            except BudgetSpent as exc:
+                print(f"stopping: {exc}; {domain} and the rest wait for the next run", flush=True)
                 while not queue.empty():
                     queue.get_nowait()
                 return
