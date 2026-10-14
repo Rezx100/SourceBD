@@ -7,6 +7,8 @@ export const PASSWORD_MIN = 8;
 export const AUTH_EMAIL_COOKIE = "sbd_auth_email";
 /** Where a confirmation email should lead, kept beside the address (an invite link, a record); only a same-origin path is ever stored. */
 export const AUTH_NEXT_COOKIE = "sbd_auth_next";
+/** The home page's email field hands its address to sign-up here (sessionStorage, this tab only), so it is never in a URL. */
+export const SIGNUP_EMAIL_KEY = "sbd_signup_email";
 /** How long a sent link or email waits before it can be sent again. */
 export const RESEND_SECONDS = 60;
 

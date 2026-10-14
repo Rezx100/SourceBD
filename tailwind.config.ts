@@ -13,6 +13,7 @@ import {
   letterSpacing,
   light,
   maxWidth,
+  motion,
   NIGHT_INHERITS,
   paneMaterial,
   screens,
@@ -116,6 +117,11 @@ const config: Config = {
         "ds-sheet-in": { from: { opacity: "0", transform: "translateX(32px)" }, to: { opacity: "1", transform: "none" } },
         "ds-scrim-in": { from: { opacity: "0" }, to: { opacity: "0.32" } },
         "ds-pending": { from: { transform: "translateX(-100%)" }, to: { transform: "translateX(300%)" } },
+        // Marketing (`motion` in the token file): a block rising into view, and a tab's content swapping.
+        "mk-reveal": { from: { opacity: "0", transform: `translateY(${motion.risePx}px)` }, to: { opacity: "1", transform: "none" } },
+        "mk-swap-out": { from: { opacity: "1", filter: "blur(0)" }, to: { opacity: "0", filter: `blur(${motion.swapBlurPx}px)` } },
+        "mk-click": { from: { opacity: "1", transform: "scale(0.4)" }, to: { opacity: "0", transform: "scale(1.4)" } },
+        "mk-swap-in": { from: { opacity: "0", transform: `translateY(${motion.swapRisePx}px)` }, to: { opacity: "1", transform: "none" } },
       },
       animation: {
         fade: `ds-fade ${transitionDuration.DEFAULT} ${transitionTimingFunction.out} both`,
@@ -123,6 +129,10 @@ const config: Config = {
         "sheet-in": `ds-sheet-in ${transitionDuration.slow} cubic-bezier(0.16, 1, 0.3, 1) both`,
         "scrim-in": `ds-scrim-in ${transitionDuration.DEFAULT} ${transitionTimingFunction.out} both`,
         pending: "ds-pending 1.1s ease-in-out infinite",
+        reveal: `mk-reveal ${transitionDuration.reveal} ${transitionTimingFunction.reveal} both`,
+        "swap-out": `mk-swap-out ${motion.swapOutMs}ms ${transitionTimingFunction.in} both`,
+        click: `mk-click ${motion.clickMs}ms ${transitionTimingFunction.out} both`,
+        "swap-in": `mk-swap-in ${motion.swapInMs}ms ${transitionTimingFunction.reveal} both`,
       },
     },
   },
@@ -145,6 +155,13 @@ const config: Config = {
         ":root": { ...colorVars(light), ...paneMaterial.light },
         "@media (prefers-color-scheme: dark)": { ":root:has([data-theme-auto])": darkSet },
         '[data-ground="night"]': night,
+        // ToneShift (components/site/motion.tsx): under a page whose ground changes tone, colours fade with it. No
+        // specificity, so an element's own transition class wins; app/ds.css stills it under reduced motion.
+        ":where(main[data-tone]) *": {
+          transitionProperty: "color, background-color, border-color, fill, stroke",
+          transitionDuration: transitionDuration.tone,
+          transitionTimingFunction: transitionTimingFunction.reveal,
+        },
         // The product's own pieces, staged in the film on a night ground: the app has no dark theme, so a window
         // of it is light in either theme and inside any night scene.
         '[data-ground="day"]': { ...colorVars(light), ...paneMaterial.light, "color-scheme": "light" },

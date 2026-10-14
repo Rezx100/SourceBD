@@ -654,7 +654,7 @@ test("the type scale, the widths and the durations are the approved ones", () =>
     "control-sm": "24px", control: "32px", "row-head": "36px", row: "40px", "control-lg": "40px", touch: "44px",
     "input-touch": "48px", "row-tall": "56px", topbar: "56px", tabbar: "56px", "action-bar": "64px",
   });
-  assert.deepEqual({ ...transitionDuration }, { fast: "120ms", DEFAULT: "200ms", slow: "320ms", reveal: "640ms" });
+  assert.deepEqual({ ...transitionDuration }, { fast: "120ms", DEFAULT: "200ms", slow: "320ms", reveal: "700ms", tone: "600ms" });
 });
 
 // B0: Paper's colour tokens as literals, so a value changed here and in the

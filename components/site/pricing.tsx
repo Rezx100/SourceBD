@@ -64,7 +64,7 @@ function Plan({ name, tag, headline, lede, cta, listLabel, items, className }: {
   return (
     <article className={cn("flex flex-col gap-6 rounded-lg border border-line bg-surface p-8 max-sm:p-5", className)}>
       <div className="flex flex-col gap-2">
-        <h2 className="text-lg font-semibold text-ink">{name}</h2>
+        <h3 className="text-lg font-semibold text-ink">{name}</h3>
         <p className="font-mono text-sm text-ink-3">{tag}</p>
       </div>
       <div className="flex flex-col gap-2">
@@ -142,7 +142,7 @@ export function Pricing({ facts }: { facts: SiteFacts }) {
       </section>
 
       <Section label="01 · Compare" headline="What is in the product today." lede="Only what ships now. Designs that are not built yet are not on this list.">
-        <div className="overflow-x-auto">
+        <div tabIndex={0} role="region" aria-label="What each plan includes, scrolls sideways" className="overflow-x-auto outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus">
           <table className="w-full min-w-[640px] border-collapse text-left">
             <caption className="sr-only">What each plan includes today</caption>
             <thead>

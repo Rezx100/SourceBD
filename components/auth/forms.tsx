@@ -10,7 +10,7 @@ import { useActionState, useEffect, useState, type ReactNode } from "react";
 import { Button, Field, Input } from "@/components/kit";
 import { requestPasswordReset, resendSignupEmail, signInWithMagicLink, signInWithPassword, signUp, updatePassword, verifyLoginCode } from "@/app/(auth)/actions";
 import { AuthLink } from "./link";
-import { RESEND_SECONDS, personalProvider, resendLabel, type AuthActionState } from "./words";
+import { RESEND_SECONDS, SIGNUP_EMAIL_KEY, emailRefusal, personalProvider, resendLabel, type AuthActionState } from "./words";
 
 const INITIAL: AuthActionState = {};
 /** Paper's auth fields are 40 tall (48 and 16px on a phone). */
@@ -124,11 +124,25 @@ export function LinkForm({ next }: { next: string }) {
 
 /** Sign up. The terms are accepted in words, not a ticked box; a supplier signs up with a password only. */
 /** `email`: the address typed on the home page's hero, carried here so nobody types it twice. */
-export function SignUpForm({ role, next, email: typed = "" }: { role: "buyer" | "supplier"; next: string; email?: string }) {
+export function SignUpForm({ role, next }: { role: "buyer" | "supplier"; next: string }) {
   const [up, upAction, upPending] = useActionState(signUp, INITIAL);
   const [link, linkAction, linkPending] = useActionState(signInWithMagicLink, INITIAL);
   const [last, setLast] = useState<"up" | "link">("up");
-  const [email, setEmail] = useState(typed);
+  const [typed, setTyped] = useState("");
+  const [email, setEmail] = useState("");
+  // The home page's email, handed over in this tab's storage (never the URL), read once and forgotten.
+  useEffect(() => {
+    try {
+      const v = sessionStorage.getItem(SIGNUP_EMAIL_KEY)?.trim() ?? "";
+      sessionStorage.removeItem(SIGNUP_EMAIL_KEY);
+      if (v.length <= 254 && !emailRefusal(v)) {
+        setTyped(v);
+        setEmail(v);
+      }
+    } catch {
+      // Storage refused: the field starts empty.
+    }
+  }, []);
   const state = last === "link" ? link : up;
   const provider = personalProvider(email);
   const exists = state.kind === "exists" && state.field === "email";
@@ -138,7 +152,7 @@ export function SignUpForm({ role, next, email: typed = "" }: { role: "buyer" | 
       <input type="hidden" name="next" value={next} />
       <Banner state={state} />
       <div className="flex flex-col gap-2">
-        <EmailField state={state} defaultValue={typed || undefined} onChange={setEmail} />
+        <EmailField key={typed} state={state} defaultValue={typed || undefined} onChange={setEmail} />
         {exists ? (
           <p className="flex gap-4 text-base">
             <AuthLink href="/login">Sign in</AuthLink>

@@ -1,12 +1,13 @@
 // 3 · Hero copy (Paper `Z05-0` / `Z5H-0`) and 4 · Hero stage (`Z0H-0` / `Z5R-0`). The lede carries the live
 // published count when it was read and says the same thing without a number when it was not. The email field
-// hands its address to sign-up; the record link opens Aboni Knitwear's public record. The chips under the form
+// hands its address to sign-up in this tab's storage, never the URL; the record link opens Aboni Knitwear's public record. The chips under the form
 // are the nine common searches (PR 3 gives them their live counts).
 
 import { buttonClass } from "@/components/kit/button-class";
 import { withCommas } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
+import { HeroEmailForm } from "./hero-email";
 import { HeroLoop } from "./hero-loop";
 import { Screen, Still, TextLink, measure } from "./ui";
 
@@ -33,13 +34,12 @@ export function HeroCopy({ suppliers, chips }: { suppliers: number | null; chips
         on the record.
       </h1>
       <p className="max-w-[330px] text-[16px] leading-6 text-ink-muted md:max-w-[620px] md:text-[19px] md:leading-7">{heroLede(suppliers)}</p>
-      <form action="/signup" method="get" className="flex w-full max-w-[350px] flex-col gap-2.5 pt-1.5 md:w-auto md:max-w-none md:flex-row md:items-center md:pt-2">
+      <HeroEmailForm className="flex w-full max-w-[350px] flex-col gap-2.5 pt-1.5 md:w-auto md:max-w-none md:flex-row md:items-center md:pt-2">
         <label htmlFor="home-email" className="sr-only">
           Work email
         </label>
         <input
           id="home-email"
-          name="email"
           type="email"
           autoComplete="email"
           placeholder="Work email"
@@ -51,7 +51,7 @@ export function HeroCopy({ suppliers, chips }: { suppliers: number | null; chips
         <TextLink href={RECORD_HREF} className="h-12 justify-center px-3.5">
           See a real record
         </TextLink>
-      </form>
+      </HeroEmailForm>
       {chips}
       <p className="text-[13px] leading-4 text-ink-subtle">Search is free. No card needed. Suppliers claim their record at no cost.</p>
     </section>

@@ -29,8 +29,9 @@ const view = (doc: typeof DOC | null, error: string | null) => draw(createElemen
 describe("the status page", () => {
   it("prints the read's figures and dates in words", () => {
     const t = text(view(DOC, null));
-    assert.match(t, /10,268 published suppliers/);
-    assert.match(t, /2 Oct 2026 latest register read/);
+    // The term comes before its value, so a screen reader hears "published suppliers, 10,268" (audit P2, 14 Oct 2026).
+    assert.match(t, /published suppliers 10,268/);
+    assert.match(t, /latest register read 2 Oct 2026/);
     assert.match(t, /rsc_weekly/);
     assert.match(t, /as of 5 Oct 2026/);
   });

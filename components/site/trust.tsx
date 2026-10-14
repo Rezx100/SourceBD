@@ -165,7 +165,7 @@ function TierTable({ tier, facts, now }: { tier: Tier; facts: SiteFacts; now: nu
         </h3>
         <p className="max-w-prose text-md text-ink-2">{tier.note}</p>
       </div>
-      <div className="overflow-x-auto">
+      <div tabIndex={0} role="region" aria-label={`Tier ${tier.n} sources, scrolls sideways`} className="overflow-x-auto outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus">
         <table className="w-full min-w-[640px] border-collapse text-left">
           <caption className="sr-only">
             Tier {tier.n}, {tier.label}: each source{regs ? ", who keeps it" : " and what it gives us"}
@@ -328,7 +328,7 @@ export function ForSuppliers({ facts }: { facts: SiteFacts }) {
           <A href="/contact">Book a demo</A>
         </div>
         <figure className="flex flex-col gap-3 pt-6">
-          <Image src="/site/records-overview.png" alt="A supplier record as a buyer sees it: sanctions, certificates, safety, workers and sources at the top, then the key facts, each with where it came from." width={1440} height={900} className="h-auto w-full rounded-lg border border-line shadow-dialog" />
+          <Image src="/site/records-overview.png" alt="A supplier record as a buyer sees it: sanctions, certificates, safety, workers and sources at the top, then the key facts, each with where it came from." width={1440} height={900} sizes="(min-width: 1200px) 1100px, 100vw" className="h-auto w-full rounded-lg border border-line shadow-dialog" />
           <figcaption className="text-sm text-ink-3">
             Real screen · what buyers see today on Aboni Knitwear Ltd., a real public record
             {count ? ` · ${count} published suppliers${updated ? ` · updated ${updated}` : ""}` : ""}

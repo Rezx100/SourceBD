@@ -159,3 +159,23 @@ describe("the cookie banner", () => {
     assert.match(text(off), /Save choice/);
   });
 });
+
+describe("the skip link", () => {
+  // It once named four classes the token theme does not have, so Tailwind dropped them and the link showed nothing
+  // on focus (audit P1, 14 Oct 2026). Every class it uses must compile through the real config.
+  it("uses only classes the token theme compiles", async () => {
+    /* eslint-disable @typescript-eslint/no-require-imports -- tailwind's loader and postcss are CommonJS tools */
+    const { readFileSync } = require("node:fs") as typeof import("node:fs");
+    const { join } = require("node:path") as typeof import("node:path");
+    const postcss = require("postcss") as typeof import("postcss").default;
+    const tailwind = require("tailwindcss") as (config: object) => import("postcss").AcceptedPlugin;
+    const loadConfig = require("tailwindcss/loadConfig") as (file: string) => Record<string, unknown>;
+    /* eslint-enable @typescript-eslint/no-require-imports */
+    const src = readFileSync(join(process.cwd(), "components/site/skip-link.tsx"), "utf8");
+    const classes = /className="([^"]+)"/.exec(src)![1]!.split(/\s+/);
+    assert.ok(classes.length > 10);
+    const config = loadConfig(join(process.cwd(), "tailwind.config.ts"));
+    const { css } = await postcss([tailwind({ ...config, content: [{ raw: classes.join(" "), extension: "html" }] })]).process("@tailwind utilities;", { from: undefined });
+    for (const c of classes) assert.ok(css.includes("." + c.replace(/[:./[\]]/g, (m) => "\\" + m)), `no rule for ${c}`);
+  });
+});

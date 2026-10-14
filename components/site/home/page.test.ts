@@ -15,7 +15,7 @@ import { NO_FACTS, parseFacts, type SiteFacts } from "@/lib/site-facts";
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded after the test build exists.
 const { HomeMercury } = require("@/components/site/home/index") as typeof import("@/components/site/home/index");
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
-const { PRODUCT_GROUPS } = require("@/components/site/map") as typeof import("@/components/site/map");
+const { MENU_ITEMS } = require("@/components/site/nav") as typeof import("@/components/site/nav");
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
 const { TIERS } = require("@/components/site/sources") as typeof import("@/components/site/sources");
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
@@ -50,6 +50,10 @@ describe("the Mercury home page", () => {
     assert.match(out, /<h1[^>]*>Bangladesh sourcing,<br\/>on the record\.<\/h1>/);
     assert.match(text(out), /Search 10,278 verified garment suppliers\. Every fact on a record names the public register it came from and the day we read it\./);
     assert.match(out, /<form [^>]*action="\/signup" method="get"/);
+    // No field of the sign-up form has a name, so not even a script-less submit puts the email in the URL (audit P1).
+    const signup = /<form [^>]*action="\/signup"[^>]*>([\s\S]*?)<\/form>/.exec(out)![1]!;
+    assert.match(signup, /type="email"/);
+    assert.doesNotMatch(signup, /<(input|select|textarea)[^>]*name=/);
     assert.match(out, /href="\/suppliers\/aboni-knitwear"[^>]*>See a real record/);
     assert.match(text(out), /Search is free\. No card needed\. Suppliers claim their record at no cost\./);
   });
@@ -134,9 +138,13 @@ describe("the Mercury home page", () => {
     for (const [, links] of FOOT) for (const [label, h] of links) assert.ok(routeExists(h), `${label} → ${h}`);
   });
 
-  it("the nav's Product menu is the board's four groups, every item a route of the site", () => {
-    assert.deepEqual(PRODUCT_GROUPS.map((g) => g.title), ["Find", "Check", "Ask", "Watch"]);
-    for (const i of PRODUCT_GROUPS.flatMap((g) => g.items)) assert.ok(routeExists(i.href), `${i.title} → ${i.href}`);
+  it("the nav's menus link pages a visitor can open, never an app screen behind sign-in (audit P1, 14 Oct 2026)", () => {
+    // The desktop panel and the phone sheet both draw MENU_ITEMS, so one list answers for both.
+    assert.deepEqual(MENU_ITEMS.product.map((i) => i.href), ["/product/search", "/product/records", "/product/rfqs", "/product/compliance"]);
+    for (const i of Object.values(MENU_ITEMS).flat()) {
+      assert.ok(routeExists(i.href), `${i.title} → ${i.href}`);
+      assert.doesNotMatch(i.href, /^\/(app|supplier|admin)(\/|$)/, i.title);
+    }
     assert.ok(!routeExists("/no-such-page") && !routeExists("/app/no-such-page"), "the check can fail");
   });
 
