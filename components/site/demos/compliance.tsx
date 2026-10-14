@@ -45,9 +45,9 @@ const checking = streamed(SAVED.length, 600, (checked) => still({ checked, done:
 const t1 = endOf(checking) + 500;
 export const STEPS: Step<S>[] = [{ at: 0, state: still({ checked: 0, done: false, expiry: false }) }, ...checking, { at: t1, state: still({ expiry: false }) }, { at: t1 + 2200, state: still({}) }];
 
-export function DemoCompliance({ className }: { className?: string }) {
+export function DemoCompliance({ className, caption }: { className?: string; caption?: boolean }) {
   return (
-    <Demo steps={STEPS} description={`The ${SAVED.length} saved suppliers checked against the UFLPA Entity List, no link found, and their certificates grouped by when they end.`} className={className}>
+    <Demo steps={STEPS} description={`The ${SAVED.length} saved suppliers checked against the UFLPA Entity List, no link found, and their certificates grouped by when they end.`} caption={caption} className={className}>
       {(s) => (
         <Window>
           <Bar title="Compliance">

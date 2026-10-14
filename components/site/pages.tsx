@@ -154,9 +154,9 @@ export const PAGES: Record<string, Page> = {
     lede: "Watch your saved suppliers for expiry and Entity List changes, with the date of every check.",
     title: "Compliance — SourceBD",
     description: "Watch your saved Bangladesh suppliers for certificate expiry and UFLPA Entity List changes, with the date of every check. “No link found” is never a clearance.",
-    hero: shot("comp-expiry", "The Compliance page listing certificates on saved suppliers, expired first, with a request for the renewal on each.", "Real screen · certificate expiry, expired first"),
+    // The hero and the needs-attention row play the Watch demo and the expiry vignette (M4, `product/compliance.tsx`); the UFLPA row keeps its 3 Oct screen.
     blocks: [
-      { n: "01", label: "Needs attention", headline: "Expired first, then expiring.", lede: "“Expires in 5 days · 8 Oct 2026.” One action on each: ask for the renewal.", shot: shot("compliance-hub", "The Compliance page: certificates that need a look, expired first, with an ask for the new certificate on each.", "Real screen · needs attention, from your saved suppliers") },
+      { n: "01", label: "Needs attention", headline: "Expired first, then expiring.", lede: "“Expires in 5 days · 8 Oct 2026.” One action on each: ask for the renewal." },
       { n: "02", label: "UFLPA", headline: "UFLPA screening, with the list and its date.", lede: "We check supplier names against the UFLPA Entity List. Three answers: on the list, possible Xinjiang link, no link found. “No link found” is not a clearance.", shot: shot("comp-uflpa", "UFLPA checks on saved suppliers: how many are on the list, how many have a possible Xinjiang link, and how many have no link found, with each supplier’s result.", "Real screen · UFLPA checks on your saved suppliers") },
       {
         n: "",
