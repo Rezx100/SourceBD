@@ -30,15 +30,19 @@ const { SLIDE_NAMES } = require("@/components/site/product/search-slides") as ty
 const { RFQS_KEY, RfqsPage } = require("@/components/site/product/rfqs") as typeof import("@/components/site/product/rfqs");
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
 const { COMPLIANCE_KEY, CompliancePage } = require("@/components/site/product/compliance") as typeof import("@/components/site/product/compliance");
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
+const { COMPLIANCE_TEAMS_KEY, SOURCING_KEY, SolutionsCompliancePage, SolutionsSourcingPage } = require("@/components/site/product/solutions") as typeof import("@/components/site/product/solutions");
 
 const FACTS = parseFacts({ suppliers_indexed: 10268, last_refreshed_at: "2026-10-02T05:48:07Z" }, null);
-/** A page as its route draws it: the four product pages in the home's frame (M4), the solutions pages on the template. */
+/** A page as its route draws it: every page in the home's frame (M4); `SitePage` stays for a page not rebuilt. */
 const page = (key: string, facts = FACTS, cards: HomeRecord[] = []) => {
   const rebuilt: Record<string, () => ReactElement> = {
     [RECORDS_KEY]: () => createElement(RecordsPage, { cards }),
     [SEARCH_KEY]: () => createElement(SearchPage, { facts }),
     [RFQS_KEY]: () => createElement(RfqsPage),
     [COMPLIANCE_KEY]: () => createElement(CompliancePage),
+    [SOURCING_KEY]: () => createElement(SolutionsSourcingPage),
+    [COMPLIANCE_TEAMS_KEY]: () => createElement(SolutionsCompliancePage),
   };
   return draw(rebuilt[key]?.() ?? createElement(SitePage, { pageKey: key, facts }));
 };
@@ -331,6 +335,53 @@ describe("the RFQs page in the home's frame (M4, handoff-mercury-m4-onward.md §
     const t = text(page(SEARCH_KEY));
     for (const s of ["Filters that match how you buy.", "Six ways to narrow.", "01 / 03", "Try it on your next product."]) assert.ok(t.includes(s), s);
     assert.match(t, /10,268 published suppliers · updated 2 Oct 2026/);
+  });
+});
+
+describe("the solutions pages in the home's frame (M4, handoff-mercury-m4-onward.md §4.2)", () => {
+  it("sourcing: the Saved screen as the hero's still, a pinned tour of Find, Check and Ask, the three rows with their screens, the outcome, three products, the close", () => {
+    const out = page(SOURCING_KEY);
+    assert.match(out, /<h1[^>]*>From search to RFQ in one sitting\.<\/h1>/);
+    assert.match(out, /saved-selected\.png/);
+    assert.match(out, /<section data-tone="dark" aria-labelledby="sourcing-tour" class="[^"]*lg:h-\[calc\(var\(--tour-n\)\*90vh\)\]" style="--tour-n:3"/);
+    assert.equal((out.match(/aria-expanded="true"/g) ?? []).length, 1);
+    assert.equal((out.match(/aria-expanded="false"/g) ?? []).length, 2);
+    for (const k of ["find", "check", "ask"]) assert.match(out, new RegExp(`id="tour-item-${k}"`), k);
+    assert.doesNotMatch(out, /id="tour-item-watch"/);
+    const t = text(out);
+    assert.match(t, /Find, check, ask\. One sitting\./);
+    for (const s of ["Find factories that make your product.", "Check them before you ask.", "Ask many at once.", "A shortlist your compliance team can check, source by source.", "Build your shortlist today.", "Sample state · figures are examples"]) assert.ok(t.includes(s), s);
+    const tones = [...out.matchAll(/data-tone="(photo|dark|paper)"/g)].map((m) => m[1]).slice(1);
+    assert.deepEqual(tones, ["paper", "dark", "paper", "dark"]);
+    const cross = out.slice(out.indexOf('aria-labelledby="site-cross-sell"'), out.indexOf('aria-labelledby="site-close"'));
+    for (const href of ["/product/search", "/product/records", "/product/rfqs"]) assert.match(cross, new RegExp(`href="${href}"`), href);
+    assert.doesNotMatch(cross, /href="\/product\/compliance"/);
+    assert.match(t, /Free during beta\. No card needed\./);
+  });
+
+  it("compliance teams: the hub as the hero's still, a pinned tour of Check, Watch and Screen (the sanction vignette), four rows, the outcome, three products, the close", () => {
+    const out = page(COMPLIANCE_TEAMS_KEY);
+    assert.match(out, /<h1[^>]*>Show where every fact came from\.<\/h1>/);
+    assert.match(out, /compliance-hub\.png/);
+    assert.match(out, /aria-labelledby="compliance-tour"[^>]*style="--tour-n:3"/);
+    for (const k of ["check", "watch", "screen"]) assert.match(out, new RegExp(`id="tour-item-${k}"`), k);
+    const t = text(out);
+    assert.match(t, /Check, watch, screen\. Every fact dated\./);
+    assert.match(t, /Example Apparel Ltd/);
+    for (const s of ["Check certificates and their dates.", "Screen against the UFLPA Entity List.", "Watch for expiry.", "Draft the modern slavery statement.", "Evidence you can show an auditor: the source, the number, the date.", "Check your suppliers today."]) assert.ok(t.includes(s), s);
+    assert.match(t, /No link found. is not a clearance\./);
+    const cross = out.slice(out.indexOf('aria-labelledby="site-cross-sell"'), out.indexOf('aria-labelledby="site-close"'));
+    for (const href of ["/product/records", "/product/compliance", "/product/search"]) assert.match(cross, new RegExp(`href="${href}"`), href);
+    assert.doesNotMatch(t, /undefined|NaN|\[object/);
+  });
+
+  it("every tour demo has its pause button; the phone's stacked list names the same three", () => {
+    for (const key of [SOURCING_KEY, COMPLIANCE_TEAMS_KEY]) {
+      const out = page(key);
+      // The pinned box draws one demo and the stacked list three, plus the cross-sell's three loops.
+      assert.equal((out.match(/aria-label="Pause demo"/g) ?? []).length, 7, key);
+      assert.equal((out.match(/<h3 class="flex items-center gap-3/g) ?? []).length, 3, key);
+    }
   });
 });
 

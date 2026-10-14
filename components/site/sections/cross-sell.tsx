@@ -17,8 +17,8 @@ const LOOP: Record<string, { Loop: ComponentType<{ className?: string }>; link: 
   "/product/compliance": { Loop: VignetteExpiry, link: "Inside the Compliance hub" },
 };
 
-export function CrossSell({ current }: { /** The page's own address, left out of the three. */ current: string }) {
-  const others = PRODUCT.filter((p) => p.href !== current);
+export function CrossSell({ current, only }: { /** The page's own address, left out of the three. */ current: string; /** A solutions page names its three, in order. */ only?: readonly string[] }) {
+  const others = only ? only.map((href) => PRODUCT.find((p) => p.href === href)).filter((p): p is (typeof PRODUCT)[number] => p !== undefined) : PRODUCT.filter((p) => p.href !== current);
   return (
     <section aria-labelledby="site-cross-sell" className={cn(measure, "flex flex-col gap-10 py-14 md:gap-14 md:py-section")}>
       <div className="flex flex-col gap-4">
