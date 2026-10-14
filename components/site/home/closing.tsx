@@ -8,7 +8,7 @@ import { Still, TextLink, measure } from "./ui";
 
 const CARDS = [
   { who: "For buyers", line: "Free while we are in beta. No card needed.", body: "UK, US, EU and Canadian brands and retailers. Shortlist, vet and message verified factories in one sitting.", cta: ["Start free", "/signup"], link: ["See what is included", "/pricing"], primary: true },
-  { who: "For suppliers", line: "Your record is already here. Claim it.", body: "Bangladesh factories and buying houses. Correct your details, add products and answer RFQs at no cost.", cta: ["Claim your record", "/suppliers"], link: ["Talk to us", "/contact"], primary: false },
+  { who: "For suppliers", line: "Your record is already here. Claim it.", body: "Bangladesh factories and buying houses. Keep your profile current and answer RFQs at no cost.", cta: ["Claim your record", "/signup?role=supplier"], link: ["How claiming works", "/suppliers"], primary: false },
 ] as const;
 
 export function Closing() {

@@ -1,5 +1,6 @@
 // 15 · For suppliers (Paper `1FXA-0` / `1G0M-0`): the cutting table, the copy panel and the three steps to a claimed
-// record. Claiming is free; the claim is checked against the registers before the record changes hands.
+// record. Claiming is free: an email at the company's own domain approves it when the link is opened, any other
+// address goes to a person (`supabase/migrations/0032_supplier_claims.sql`, `claim_initiate`).
 
 import { ButtonLink } from "@/components/kit";
 import { cn } from "@/lib/utils";
@@ -9,8 +10,8 @@ import { Still, TextLink, measure } from "./ui";
 
 export const STEPS: [IconName, string, string][] = [
   ["search", "Find your company", "Search by name, BGMEA number or EPB number. Buildings and units are listed under their mother company."],
-  ["receipt", "Ask to claim it", "A short form; an admin checks the request against the registers before the record is yours."],
-  ["send", "Correct it and answer RFQs", "Fix your details, add products, and reply to buyers in Messages at no cost."],
+  ["receipt", "Ask to claim it", "Give an email at your company. If its domain matches the company's, opening our link approves the claim; if not, a person reviews it."],
+  ["send", "Keep it current and answer RFQs", "Update your profile and contacts, quote on buyers' RFQs and reply in Messages, at no cost."],
 ];
 
 export function ForSuppliers() {
@@ -24,10 +25,10 @@ export function ForSuppliers() {
             Your record is already here.
           </h2>
           <p className="text-[16px] leading-6 text-ink-muted md:text-[17px] md:leading-[27px]">
-            Bangladesh factories and buying houses are listed from the registers already. Claim your record, correct it and answer RFQs, at no cost.
+            Bangladesh factories and buying houses are listed from the registers already. Claim your record, keep your profile current and answer RFQs, at no cost.
           </p>
           <div className="flex flex-wrap items-center gap-2.5 pt-2">
-            <ButtonLink href="/suppliers" prefetch={false} kind="primary" size="lg" className="h-11 rounded-[10px] px-5 text-[15px]">
+            <ButtonLink href="/signup?role=supplier" prefetch={false} kind="primary" size="lg" className="h-11 rounded-[10px] px-5 text-[15px]">
               Claim your record
             </ButtonLink>
             <TextLink href="/suppliers" className="px-4">

@@ -1,6 +1,6 @@
 // Pricing (B9d; Paper `30 Marketing · Pricing`): two plans as they really are today, what the product holds now and
 // nothing designed-but-unbuilt, and the questions buyers ask. There is no price anywhere because there is none yet; the
-// page says so. Enterprise lists only what exists (the agreements and a call), never SSO, an audit log or evidence packs.
+// page says so. Enterprise lists only what exists (the agreements and a call), never SSO or an audit log.
 // The supplier count comes from the site's live facts and is left out when it was not read.
 
 import Link from "next/link";
@@ -35,6 +35,8 @@ const COMPARE: [string, string, string][] = [
   ["RFQs and messages with suppliers", "Up to 50 suppliers per RFQ", "Up to 50 suppliers per RFQ"],
   ["Certificate expiry watch", "Included", "Included"],
   ["UFLPA Entity List and sanctions list checks", "Included", "Included"],
+  ["Modern slavery statement draft from your saved suppliers", "Included", "Included"],
+  ["Evidence pack: certificates, UFLPA checks and sources as one CSV", "Included", "Included"],
   ["Data processing agreement", "Enterprise only", "On request"],
   ["Terms and invoicing", "Standard terms", "Agreed with you"],
 ];
@@ -129,7 +131,7 @@ export function Pricing({ facts }: { facts: SiteFacts }) {
               lede="The same product, with the agreements your company needs."
               cta={
                 <ButtonLink href="/contact" prefetch={false} kind="secondary" size="lg" className="max-sm:h-input-touch">
-                  Contact sales
+                  Book a demo
                 </ButtonLink>
               }
               listLabel="Everything in Beta, plus"
@@ -168,7 +170,7 @@ export function Pricing({ facts }: { facts: SiteFacts }) {
       <Section label="02 · Questions" headline="Questions buyers ask." tone="subtle">
         <Faq items={FAQ} />
         <Link href="/contact" prefetch={false} className="w-fit text-md font-medium text-brand-ink underline decoration-1 [text-underline-position:from-font]">
-          Contact sales
+          Book a demo
         </Link>
       </Section>
 

@@ -17,6 +17,8 @@ const { HomeMercury } = require("@/components/site/home/index") as typeof import
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
 const { PRODUCT_GROUPS } = require("@/components/site/map") as typeof import("@/components/site/map");
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
+const { TIERS } = require("@/components/site/sources") as typeof import("@/components/site/sources");
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
 const { Announcement } = require("@/components/site/home/announcement") as typeof import("@/components/site/home/announcement");
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
 const { FOOT } = require("@/components/site/home/footer") as typeof import("@/components/site/home/footer");
@@ -89,6 +91,23 @@ describe("the Mercury home page", () => {
     const out = page();
     for (const c of ["EPB", "RSC", "BGMEA", "BKMEA", "BTMA", "BGAPMEA", "GOTS", "OEKO-TEX", "WRAP"]) assert.match(out, new RegExp(`>${c}</span>`), c);
     assert.doesNotMatch(out, /bepza|dife/i);
+  });
+
+  it("the ladder is the methodology page's tiers, source for source (audit P2, 14 Oct 2026)", () => {
+    const t = text(page());
+    for (const tier of TIERS) {
+      assert.match(t, new RegExp(`Tier ${tier.n} ${tier.label}`), tier.label);
+      for (const s of tier.ladder.split(", ")) assert.ok(t.includes(s), `${tier.label}: ${s}`);
+    }
+  });
+
+  it("says how a claim is really approved, offers no product editing, and the claim button starts a supplier account (audit P1)", () => {
+    const out = page();
+    const t = text(out);
+    assert.match(t, /If its domain matches the company's, opening our link approves the claim; if not, a person reviews it\./);
+    assert.doesNotMatch(t, /add products|an admin checks/i);
+    for (const m of out.matchAll(/<a [^>]*href="([^"]+)"[^>]*>(?:<[^>]+>)*\s*Claim your record/g)) assert.equal(m[1], "/signup?role=supplier");
+    assert.ok(/href="\/signup\?role=supplier"[^>]*>(?:<[^>]+>)*\s*Claim your record/.test(out), "a claim button");
   });
 
   it("every screen says what it shows, and every backdrop is decoration", () => {

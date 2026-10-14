@@ -69,7 +69,6 @@ export const FOOTER: readonly { title: string; links: readonly { label: string; 
     title: "Company",
     links: [
       { label: "About", href: "/about" },
-      { label: "Contact sales", href: "/contact" },
       { label: "Book a demo", href: "/contact" },
       { label: "Security", href: "/security" },
     ],

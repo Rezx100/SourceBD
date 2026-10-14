@@ -13,7 +13,7 @@ import { readDay, withCommas, type SiteFacts } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
 
 type Shot = { src: string; alt: string; caption: string };
-type Block = { n: string; label: string; headline: string; lede: string; shot?: Shot; extra?: ReactNode; tag?: string };
+type Block = { n: string; label: string; headline: string; lede: string; shot?: Shot; extra?: ReactNode };
 type Page = {
   group: "Product" | "Solutions";
   name: string;
@@ -57,7 +57,6 @@ const LISTS: [string, string, string, string][] = [
   ["List of Goods Produced by Child Labor or Forced Labor", "US Department of Labor, ILAB", "457", "26 Jun 2026"],
 ];
 
-const InDesign = () => <p className="w-fit rounded-sm border border-dashed border-line-strong px-2 py-1 text-sm font-semibold text-ink-2">In design · not in the product yet</p>;
 
 export const PAGES: Record<string, Page> = {
   "product/search": {
@@ -181,7 +180,7 @@ export const PAGES: Record<string, Page> = {
           </div>
         ),
       },
-      { n: "03", label: "Modern slavery statement", headline: "A statement you confirm, line by line.", lede: "A draft built from your saved suppliers. Every claim we can’t confirm is marked “[Confirm: …]”. You can’t download until you confirm each one.", tag: "design" },
+      { n: "03", label: "Modern slavery statement", headline: "A statement you confirm, line by line.", lede: "A draft built from your saved suppliers. Every claim we can’t confirm is marked “[Confirm: …]”. You can’t download until you confirm each one." },
     ],
     close: "Watch your saved suppliers.",
   },
@@ -215,7 +214,7 @@ export const PAGES: Record<string, Page> = {
       { n: "01", label: "Certificates", headline: "Check certificates and their dates.", lede: "Number, issued by, valid until. Expired first. Each one links to the issuer’s own page.", shot: shot("records-certs", "The certificates tab: four certificates, one expired.", "Real screen · Aboni Knitwear Ltd. · 4 certificates, 1 expired") },
       { n: "02", label: "Screening", headline: "Screen against the UFLPA Entity List.", lede: "And five more sanctions and forced labour lists, each with the date we read it. “No link found” is not a clearance.", shot: shot("comp-uflpa", "UFLPA checks on saved suppliers, each with its result.", "Real screen · UFLPA checks on your saved suppliers") },
       { n: "03", label: "Watch", headline: "Watch for expiry.", lede: "Expired and expiring certificates on your saved suppliers, with one action each: ask for the renewal.", shot: shot("comp-expiry", "Certificates on saved suppliers, expired first, with a request for the renewal on each.", "Real screen · certificate expiry, expired first") },
-      { n: "04", label: "Statement", headline: "Draft the modern slavery statement.", lede: "Built from your saved suppliers. Every claim we can’t confirm stays marked until you confirm it.", tag: "design" },
+      { n: "04", label: "Statement", headline: "Draft the modern slavery statement.", lede: "Built from your saved suppliers. Every claim we can’t confirm stays marked until you confirm it." },
     ],
     outcome: "Evidence you can show an auditor: the source, the number, the date.",
     close: "Check your suppliers today.",
@@ -259,7 +258,6 @@ export function SitePage({ pageKey, facts }: { pageKey: string; facts: SiteFacts
 
       {p.blocks.map((b, i) => (
         <Section key={b.headline} label={b.n ? `${b.n} · ${b.label}` : b.label} headline={b.headline} lede={b.lede} tone={i % 2 === 0 ? "subtle" : "plain"} className="py-20 max-md:py-12">
-          {b.tag ? <InDesign /> : null}
           {b.shot ? <Figure shot={b.shot} /> : null}
           {b.extra}
         </Section>

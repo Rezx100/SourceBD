@@ -325,7 +325,7 @@ export function ForSuppliers({ facts }: { facts: SiteFacts }) {
           <ButtonLink href="/signup?role=supplier" prefetch={false} kind="primary" size="lg" className="max-sm:h-input-touch">
             Start your claim
           </ButtonLink>
-          <A href="/contact">Talk to us</A>
+          <A href="/contact">Book a demo</A>
         </div>
         <figure className="flex flex-col gap-3 pt-6">
           <Image src="/site/records-overview.png" alt="A supplier record as a buyer sees it: sanctions, certificates, safety, workers and sources at the top, then the key facts, each with where it came from." width={1440} height={900} className="h-auto w-full rounded-lg border border-line shadow-dialog" />

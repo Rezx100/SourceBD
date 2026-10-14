@@ -1,15 +1,14 @@
 // 13 · Sources ladder (Paper `Z1V-0` / `Z6R-0`): the trust hierarchy, top rung first, with the framed marks on
 // tiers 1 to 3. Tier 6 is set quiet: it never enters a record on its own (AGENTS.md rules 5 and 6).
 
+import { hasSourceMark } from "@/components/patterns/source-mark";
 import { cn } from "@/lib/utils";
+import { TIERS } from "../sources";
 import { H2, Lede, Mark, TextLink, measure } from "./ui";
 
+/** The methodology page's tiers (`sources.ts`), so the two pages cannot list different sources; approved marks on tiers 1–3 (`context/logos.lock.md`: no mark, no render). */
 export const LADDER: { tier: string; name: string; what: string; marks: string[] }[] = [
-  { tier: "Tier 1", name: "Government and RSC", what: "EPB export register · RMG Sustainability Council", marks: ["EPB", "RSC"] },
-  { tier: "Tier 2", name: "Trade bodies", what: "BGMEA · BKMEA · BTMA · BGAPMEA", marks: ["BGMEA", "BKMEA", "BTMA", "BGAPMEA"] },
-  { tier: "Tier 3", name: "Certification bodies", what: "GOTS · OEKO-TEX · WRAP", marks: ["GOTS", "OEKO-TEX", "WRAP"] },
-  { tier: "Tier 4", name: "Brand supplier lists", what: "Public disclosures from the brands themselves", marks: [] },
-  { tier: "Tier 5", name: "Foreign regulators", what: "UFLPA Entity List · US DHS", marks: [] },
+  ...TIERS.map((t) => ({ tier: `Tier ${t.n}`, name: t.label, what: t.ladder.split(", ").join(" · "), marks: t.n <= 3 ? t.sources.map((s) => s.code).filter(hasSourceMark) : [] })),
   { tier: "Tier 6", name: "Cross-check only", what: "Never enters a record on its own", marks: [] },
 ];
 

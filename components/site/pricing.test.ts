@@ -32,8 +32,10 @@ describe("the pricing page", () => {
     assert.doesNotMatch(t, /Singapore/i);
   });
 
-  it("lists only what exists: no SSO, audit log or evidence packs", () => {
-    assert.doesNotMatch(text(page()), /\bSSO\b|single sign-on|audit log|evidence pack/i);
+  it("lists only what exists: no SSO or audit log; the shipped statement and evidence pack are listed", () => {
+    assert.doesNotMatch(text(page()), /\bSSO\b|single sign-on|audit log/i);
+    assert.match(text(page()), /Modern slavery statement draft/);
+    assert.match(text(page()), /Evidence pack/);
   });
 
   it("the count is printed when read and left out when not", () => {
