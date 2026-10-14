@@ -1,22 +1,25 @@
 "use client";
 
-// The four vignettes (handoff-mercury-motion-sitewide.md §4.3): each loops one small moment of the product. An expiry
-// chip counting down a real certificate's days (the chip's own words at each day); a record's source marks settling
-// in tier order; two example quotes landing; a sanctioned row turning maroon as Send RFQ is refused. The certificate
-// and the sources are the snapshot's; the sanctioned company is the site's placeholder, never a real one.
+// The vignettes (handoff-mercury-motion-sitewide.md §4.3): each loops one small moment of the product. The home's four:
+// an expiry chip counting down a real certificate's days (the chip's own words at each day); a record's source marks
+// settling in tier order; two example quotes landing; a sanctioned row turning maroon as Send RFQ is refused. Two
+// more for the product pages (M4): a search typed and its first rows arriving (the cross-sell's loop for search), and
+// three of a record's facts landing with their receipts (the records page's "sources in words"). The certificate,
+// the sources and the facts are the snapshot's; the sanctioned company is the site's placeholder, never a real one.
 
+import { MagnifyingGlass } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
-import { CertChip, buttonClass } from "@/components/kit";
-import { Refusal, SanctionTag, SourceChip, TIER_LABEL, tierOf } from "@/components/patterns";
+import { CertChip, FilterChip, buttonClass } from "@/components/kit";
+import { Refusal, SanctionTag, SourceChip, SourceLine, TIER_LABEL, tierOf } from "@/components/patterns";
 import { certWords, usd, vsTarget } from "@/components/patterns/words";
 import type { CursorState, Step } from "@/components/site/motion";
 import { daysUntil, displayName, formatDay } from "@/lib/dashboard/facts";
 import { certName } from "@/lib/dashboard/needs-attention";
-import { SANCTIONED_SAMPLE, SNAPSHOT, TODAY } from "@/lib/marketing/demo-snapshot";
+import { BRAND_LIST, CERT_REGISTER, SANCTIONED_SAMPLE, SNAPSHOT, TODAY } from "@/lib/marketing/demo-snapshot";
 import { cn } from "@/lib/utils";
-import { Demo, streamed } from "./stage";
+import { Demo, endOf, streamed, typed } from "./stage";
 
-const { check, saved } = SNAPSHOT;
+const { check, saved, search } = SNAPSHOT;
 
 /* ------------------------------------------------------------------ an expiry chip counting days */
 
@@ -32,10 +35,10 @@ const DAYS = [...[30, 21, 14, 7, 3, 1].filter((d) => d > LEFT), LEFT];
 const dayBefore = (iso: string, days: number) => new Date(Date.parse(`${iso}T00:00:00Z`) - days * 86_400_000);
 export const EXPIRY_STEPS: Step<E>[] = DAYS.map((d, i) => ({ at: i * 900, state: { daysLeft: d } }));
 
-export function VignetteExpiry({ className }: { className?: string }) {
+export function VignetteExpiry({ className, caption }: { className?: string; caption?: boolean }) {
   if (!SOON) return null;
   return (
-    <Demo steps={EXPIRY_STEPS} description={`${SOON.supplier}'s ${SOON.cert} ends ${formatDay(SOON.expiresOn)}: the chip counts the days down as they pass.`} className={className}>
+    <Demo steps={EXPIRY_STEPS} description={`${SOON.supplier}'s ${SOON.cert} ends ${formatDay(SOON.expiresOn)}: the chip counts the days down as they pass.`} caption={caption} className={className}>
       {(s) => {
         const w = certWords(SOON.expiresOn, dayBefore(SOON.expiresOn, s.daysLeft));
         return (
@@ -55,8 +58,6 @@ export function VignetteExpiry({ className }: { className?: string }) {
 /* ------------------------------------------------------------------ a source mark stack settling */
 
 const SOURCES = [...check.sources].sort((a, b) => tierOf(a) - tierOf(b));
-/** A brand list's short name as the results row writes it (lib/dashboard/build-discover-row.ts); a register's code is its name. */
-const BRAND: Record<string, string> = { BRAND_HM: "H&M", BRAND_ASOS: "ASOS", BRAND_NEXT: "NEXT", BRAND_MS: "M&S", BRAND_INDITEX: "Inditex", BRAND_PRIMARK: "Primark" };
 type M = CursorState & { shown: number };
 export const MARKS_STEPS: Step<M>[] = [{ at: 0, state: { shown: 0 } }, ...streamed(SOURCES.length, 500, (shown) => ({ shown }))];
 
@@ -72,7 +73,7 @@ export function VignetteMarks({ className }: { className?: string }) {
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
             {SOURCES.slice(0, s.shown).map((code) => (
               <span key={code} className="animate-swap-in motion-reduce:animate-none" title={TIER_LABEL[tierOf(code)]}>
-                <SourceChip source={code} name={BRAND[code] ?? code} />
+                <SourceChip source={code} name={BRAND_LIST[code] ?? code} />
               </span>
             ))}
           </div>
@@ -145,12 +146,103 @@ export function VignetteSanction({ className }: { className?: string }) {
   );
 }
 
-/** A vignette's window: small, the product's light ground, one moment inside. */
-function Small({ children, className }: { children: ReactNode; className?: string }) {
-  return <div data-ground="day" className={cn("flex min-h-[168px] flex-col rounded-frame border border-ink-strong/10 bg-surface p-4 text-ink shadow-md", className)}>{children}</div>;
+/* ------------------------------------------------------------------ a search typed, its first rows arriving (M4) */
+
+const QUERY = search.chips.join(" ");
+const FOUND = search.rows.slice(0, 3).map((r) => ({ slug: r.slug, name: displayName(r.name), line: [r.type, r.place].filter(Boolean).join(" · ") }));
+type F = CursorState & { typed: string; chips: boolean; rows: number };
+const found = (over: Partial<F>): F => ({ typed: QUERY, chips: true, rows: FOUND.length, ...over });
+const typing = typed(QUERY, 400, (t) => found({ typed: t, chips: false, rows: 0 }));
+const foundAt = endOf(typing) + 500;
+export const SEARCH_STEPS: Step<F>[] = [{ at: 0, state: found({ typed: "", chips: false, rows: 0 }) }, ...typing, { at: foundAt, state: found({ rows: 0 }) }, ...streamed(FOUND.length, foundAt + 400, (rows) => found({ rows }))];
+
+/** Every company the search vignette names. */
+export const SEARCH_NAMES = FOUND.map((r) => r.name);
+
+export function VignetteSearch({ className, caption }: { className?: string; caption?: boolean }) {
+  return (
+    <Demo steps={SEARCH_STEPS} description={`A search for ${QUERY} typed, its filter chips, and the first three suppliers found.`} caption={caption} className={className}>
+      {(s) => (
+        <Small>
+          <p className="flex items-center gap-2 text-sm">
+            <MagnifyingGlass size={14} className="shrink-0 text-ink-3" aria-hidden />
+            <span className={cn("truncate", s.typed ? "font-medium text-ink" : "text-ink-3")}>{s.typed || "Supplier, product or certificate"}</span>
+            {s.typed && !s.chips ? <span aria-hidden className="h-4 w-px animate-pulse bg-ink" /> : null}
+          </p>
+          <div className="mt-2 flex min-h-6 flex-wrap gap-1.5">
+            {s.chips
+              ? search.chips.map((c) => (
+                  <FilterChip key={c} removeHref="#" removeLabel={`Remove ${c}`}>
+                    {c}
+                  </FilterChip>
+                ))
+              : null}
+          </div>
+          <ul className="mt-2 flex flex-col">
+            {FOUND.slice(0, s.rows).map((r) => (
+              <li key={r.slug} className="flex animate-swap-in items-baseline justify-between gap-3 border-t border-line py-1.5 motion-reduce:animate-none">
+                <span className="truncate text-sm font-medium text-ink">{r.name}</span>
+                <span className="shrink-0 text-xs text-ink-3">{r.line}</span>
+              </li>
+            ))}
+          </ul>
+        </Small>
+      )}
+    </Demo>
+  );
 }
 
-/** Every vignette, for the grid and the gallery. */
+/* ------------------------------------------------------------------ three facts landing with their receipts (M4) */
+
+const dated = check.certs.filter((c) => c.expiresOn && c.expiresOn >= SNAPSHOT.readAt);
+/** The record's facts with a register and a read day in the snapshot: its BGMEA number, then one dated certificate per scheme. */
+const RECEIPTS = [
+  check.bgmea && check.read.BGMEA ? { fact: `BGMEA member no. ${check.bgmea}`, from: `From BGMEA · read ${formatDay(check.read.BGMEA)}` } : null,
+  ...dated
+    .filter((c, i) => dated.findIndex((d) => d.kind === c.kind) === i)
+    .map((c) => {
+      const reg = CERT_REGISTER[c.kind];
+      const read = reg ? check.read[reg.code] : undefined;
+      return reg && read ? { fact: `${certName(c.kind, c.number)} · valid to ${formatDay(c.expiresOn)}`, from: `From ${reg.name} · read ${formatDay(read)}` } : null;
+    }),
+]
+  .filter((r): r is { fact: string; from: string } => r !== null)
+  .slice(0, 3);
+type R = CursorState & { shown: number };
+export const RECEIPT_STEPS: Step<R>[] = [{ at: 0, state: { shown: 0 } }, ...RECEIPTS.map((_, i) => ({ at: 600 + i * 1100, state: { shown: i + 1 } }))];
+
+/** Every company the receipts vignette names. */
+export const RECEIPT_NAMES = [displayName(check.name)];
+
+export function VignetteReceipts({ className, caption }: { className?: string; caption?: boolean }) {
+  return (
+    <Demo steps={RECEIPT_STEPS} description={`${displayName(check.name)}'s record: ${RECEIPTS.length} facts landing, each with the register it came from and the day it was read.`} caption={caption} className={className}>
+      {(s) => (
+        <Small>
+          <p className="text-sm font-medium text-ink">{displayName(check.name)}</p>
+          <p className="text-xs text-ink-3">
+            {s.shown} of {RECEIPTS.length} facts, each with its receipt
+          </p>
+          <ul className="mt-2 flex flex-col">
+            {RECEIPTS.slice(0, s.shown).map((r) => (
+              <li key={r.fact} className="flex animate-swap-in flex-col gap-0.5 border-t border-line py-2 motion-reduce:animate-none">
+                <span className="text-sm font-medium text-ink">{r.fact}</span>
+                <SourceLine>{r.from}</SourceLine>
+              </li>
+            ))}
+          </ul>
+        </Small>
+      )}
+    </Demo>
+  );
+}
+
+/** A vignette's window: small, the product's light ground, one moment inside; the foot is left to the stage's pause button (44 px, 12 px in), so no row sits under it. */
+function Small({ children, className }: { children: ReactNode; className?: string }) {
+  return <div data-ground="day" className={cn("flex min-h-[168px] flex-col rounded-frame border border-ink-strong/10 bg-surface p-4 pb-16 text-ink shadow-md", className)}>{children}</div>;
+}
+
+/** The home's four vignettes, for its grid and the gallery; the product pages' two are exported above. */
 export const VIGNETTES = [
   { key: "expiry", title: "Every certificate carries its date", body: "The chip counts down; at 90 days the record and the Compliance hub both say so.", Demo: VignetteExpiry, names: SOON ? [SOON.supplier] : [] },
   { key: "marks", title: "Every source, in trust order", body: "Government and RSC first, then the trade bodies, then the certifiers, then brand lists.", Demo: VignetteMarks, names: [displayName(check.name)] },

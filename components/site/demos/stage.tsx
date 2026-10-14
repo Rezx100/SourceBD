@@ -33,8 +33,8 @@ export function Window({ children, className }: { children: ReactNode; className
   );
 }
 
-/** A demo: the stage with its pause button, and the caption that dates what it shows. */
-export function Demo<S extends CursorState>({ steps, description, className, children }: { steps: readonly Step<S>[]; description: string; className?: string; children: (state: S) => ReactNode }) {
+/** A demo: the stage with its pause button, and the caption that dates what it shows (`caption={false}` where the page draws the caption itself, under a textile stage). */
+export function Demo<S extends CursorState>({ steps, description, className, caption = true, children }: { steps: readonly Step<S>[]; description: string; className?: string; caption?: boolean; children: (state: S) => ReactNode }) {
   return (
     <div className={cn("flex flex-col gap-3", className)}>
       <div data-ground="day" className="rounded-frame shadow-lg">
@@ -42,7 +42,7 @@ export function Demo<S extends CursorState>({ steps, description, className, chi
           {children}
         </DemoStage>
       </div>
-      <p className="text-sm text-ink-subtle">{CAPTION}</p>
+      {caption ? <p className="text-sm text-ink-subtle">{CAPTION}</p> : null}
     </div>
   );
 }

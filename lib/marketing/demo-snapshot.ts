@@ -37,6 +37,19 @@ export const CAPTION = `Real records as read ${READ_AT}`;
 /** The placeholder the sanctioned sample uses everywhere on the site; never a real company. */
 export const SANCTIONED_SAMPLE = "Example Apparel Ltd";
 
+/** A brand supplier list's short name as the results row writes it (lib/dashboard/build-discover-row.ts); a register's code is its own name. */
+export const BRAND_LIST: Record<string, string> = { BRAND_HM: "H&M", BRAND_ASOS: "ASOS", BRAND_NEXT: "NEXT", BRAND_MS: "M&S", BRAND_INDITEX: "Inditex", BRAND_PRIMARK: "Primark" };
+
+/**
+ * The register a certificate scheme is read from (the home page's names, lib/home-records.ts): the mark's code for
+ * `SourceMark`, the code the record's read day is filed under (and the receipt is written with), and the register's name.
+ */
+export const CERT_REGISTER: Record<string, { mark: string; code: string; name: string }> = {
+  gots: { mark: "GOTS", code: "GOTS", name: "GOTS database" },
+  wrap: { mark: "WRAP", code: "WRAP", name: "WRAP register" },
+  oeko_tex: { mark: "OEKO_TEX", code: "OEKO-TEX", name: "OEKO-TEX buying guide" },
+};
+
 /** A snapshot certificate as the patterns' words take it: the scheme in words, its mark code, its date. */
 export function certInput(c: { kind: string; expiresOn: string | null }): CertInput {
   return { scheme: certName(c.kind, null), expiresOn: c.expiresOn, markCode: c.kind.toUpperCase() };
