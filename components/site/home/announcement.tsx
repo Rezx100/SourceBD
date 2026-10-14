@@ -32,7 +32,7 @@ export function Announcement() {
           </svg>
         </Link>
       </div>
-      <button type="button" onClick={dismiss} aria-label="Dismiss announcement" className={`absolute right-2 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-md text-ink-muted hover:bg-ink-strong/5 ${ring}`}>
+      <button type="button" onClick={dismiss} aria-label="Dismiss announcement" className={`absolute right-2 top-1/2 flex size-9 -translate-y-1/2 max-md:size-11 items-center justify-center rounded-md text-ink-muted hover:bg-ink-strong/5 ${ring}`}>
         <svg aria-hidden width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round">
           <path d="M6 6l12 12M18 6L6 18" />
         </svg>
