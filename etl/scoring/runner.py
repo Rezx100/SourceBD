@@ -22,7 +22,9 @@ log = get_logger("etl.scoring.runner")
 _FETCH_SQL = """
 select
   s.id                          as supplier_id,
-  s.source_tags                 as source_tags,
+  -- A BTMA entry filed under suspension is not a membership (S1-3, 14 Oct 2026): a company whose
+  -- only BTMA entries are suspended scores as if it held none.
+  case when b.suspended_only then array_remove(s.source_tags, 'BTMA') else s.source_tags end as source_tags,
   s.bgmea_reg_numbers           as bgmea_reg_numbers,
   s.bkmea_reg_number            as bkmea_reg_number,
   s.rjsc_reg_number             as rjsc_reg_number,
@@ -30,7 +32,7 @@ select
   s.bgmea_verified              as bgmea_verified,
   s.bkmea_verified              as bkmea_verified,
   s.bgapmea_verified            as bgapmea_verified,
-  s.btma_verified               as btma_verified,
+  (coalesce(s.btma_verified, false) and not coalesce(b.suspended_only, false)) as btma_verified,
   s.established_date            as established_date,
   s.employees_total             as employees_total,
   s.production_capacity_pcs_day as capacity_pcs_day,
@@ -49,6 +51,14 @@ left join public.rsc_remediation r
        on r.supplier_id = s.id and r.active is true
 left join public.sbi_scores e
        on e.supplier_id = s.id
+left join (
+  select sr.supplier_id,
+         bool_and(lower(btrim(coalesce(sr.fields ->> 'btma_status', ''))) = 'suspended') as suspended_only
+    from public.source_records sr
+    join public.sources so on so.id = sr.source_id and so.code = 'BTMA'
+   where sr.status = 'active'
+   group by sr.supplier_id
+) b on b.supplier_id = s.id
 """
 
 _UPSERT_SQL = """

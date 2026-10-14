@@ -57,6 +57,15 @@ def _row(**over: Any) -> dict[str, Any]:
     return row
 
 
+def test_fetch_sql_drops_a_suspended_only_btma_membership():
+    # A company whose every active BTMA entry is filed under suspension gets no BTMA credit (S1-3).
+    sql = runner._FETCH_SQL
+    assert "bool_and(lower(btrim(coalesce(sr.fields ->> 'btma_status', ''))) = 'suspended') as suspended_only" in sql
+    assert "sr.status = 'active'" in sql
+    assert "array_remove(s.source_tags, 'BTMA')" in sql
+    assert "not coalesce(b.suspended_only, false)) as btma_verified" in sql
+
+
 def test_row_to_inputs_maps_progress_pct():
     inputs = runner._row_to_inputs(_row())
     assert inputs.rsc_progress_pct == 42.5
