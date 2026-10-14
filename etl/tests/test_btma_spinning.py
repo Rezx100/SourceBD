@@ -80,6 +80,10 @@ def test_btma_status_suspended_implementation():
     assert _btma_status("Mills Under Suspension / Mills Under Implementation") == "suspended"
 
 
+def test_btma_status_none_under_implementation_alone():
+    assert _btma_status("Mills Under Implementation") is None
+
+
 def test_btma_status_none_for_active_sections():
     assert _btma_status("General Member") is None
     assert _btma_status("Associate Member - A Spinning (Yarn Manufacturer)") is None
