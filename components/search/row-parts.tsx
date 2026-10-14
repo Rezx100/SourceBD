@@ -4,10 +4,9 @@
 
 import { Lock } from "@phosphor-icons/react/dist/ssr";
 import { Fragment, type ReactNode } from "react";
-import { CertChip } from "@/components/kit";
 import { SourceMark } from "@/components/patterns";
 import { hasSourceMark } from "@/components/patterns/source-mark";
-import type { CertBody, CertSummary } from "@/components/patterns/words";
+import type { CertBody } from "@/components/patterns/words";
 import { highlightParts } from "@/lib/search-suggest-ui";
 import { cn } from "@/lib/utils";
 import type { ResultRow } from "./model";
@@ -19,19 +18,27 @@ const listed = (xs: string[]) => (xs.length <= 1 ? (xs[0] ?? "") : `${xs.slice(0
  * The certificates it holds today, as the bodies' marks and nothing else (founder, 12 Oct 2026): how long
  * each has left is the record's business, and one that has ended is not drawn, like one never held. No
  * mark stands without its name (`context/logos.lock.md` section 1): a screen reader hears them. A body
- * with no approved mark is counted, never drawn.
+ * with no approved mark is counted, never drawn. In `words` mode (the results table, founder, 15 Oct
+ * 2026: "use the scheme words") the schemes are named in chips instead, the first two, and the rest
+ * counted; no mark, no state, no colour, on one line.
  */
-export function HeldMarks({ held, className, markClassName = "size-5 [&>img]:max-h-3.5 [&>img]:max-w-3.5" }: { held: readonly CertBody[]; className?: string; /** A mark's own frame, where a caller draws it at another size (a phone's row). */ markClassName?: string }) {
-  const marked = held.filter((b) => hasSourceMark(b.code));
-  const rest = held.length - marked.length;
+export function HeldMarks({ held, className, markClassName = "size-5 [&>img]:max-h-3.5 [&>img]:max-w-3.5", words = false }: { held: readonly CertBody[]; className?: string; /** A mark's own frame, where a caller draws it at another size (a phone's row). */ markClassName?: string; /** The schemes' names in chips, two then "+N more", instead of their marks. */ words?: boolean }) {
+  const shown = words ? held.slice(0, 2) : held.filter((b) => hasSourceMark(b.code));
+  const rest = held.length - shown.length;
   return (
-    <span className={cn("inline-flex items-center gap-2", className)}>
+    <span className={cn("inline-flex items-center gap-2", words && "whitespace-nowrap", className)}>
       <span className="sr-only">Certificates held: {listed(held.map((b) => b.scheme))}</span>
       <span aria-hidden className="inline-flex items-center gap-2" title={held.map((b) => b.scheme).join(" · ")}>
-        {marked.map((b) => (
-          <SourceMark key={b.code} source={b.code} className={markClassName} />
-        ))}
-        {rest > 0 ? <span className="text-xs font-medium text-ink-3">+{rest}</span> : null}
+        {shown.map((b) =>
+          words ? (
+            <span key={b.code} className="inline-flex h-5 items-center rounded-md border border-line px-1.5 text-xs font-medium text-ink-2">
+              {b.scheme}
+            </span>
+          ) : (
+            <SourceMark key={b.code} source={b.code} className={markClassName} />
+          ),
+        )}
+        {rest > 0 ? <span className="text-xs font-medium text-ink-3">{words ? `+${rest} more` : `+${rest}`}</span> : null}
       </span>
     </span>
   );
@@ -113,35 +120,5 @@ export function Hit({ text, q }: { text: string; q?: string | null }) {
         ),
       )}
     </>
-  );
-}
-
-/**
- * The certificates of a results row, the worst one first (founder, 14 Oct 2026: "Expired 3 Aug 2026"
- * is the one fact that decides whether a buyer opens a record at all): its body's mark, its state in
- * a few words, then how many more it holds. The record's Certificates tab has every one with its date.
- */
-export function CertStateCell({ cert }: { cert: CertSummary }) {
-  const more = cert.total - 1;
-  return (
-    <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1" title={cert.words}>
-      <span className="sr-only">{cert.words}</span>
-      <span aria-hidden className="inline-flex items-center gap-1.5">
-        {hasSourceMark(cert.first.code) ? (
-          <SourceMark source={cert.first.code} className="size-5 [&>img]:max-h-3.5 [&>img]:max-w-3.5" />
-        ) : (
-          // A body with no approved mark (`context/logos.lock.md`: no row, no render) is its name, the same chip the pane list draws it in.
-          <span className="inline-flex h-5 items-center rounded-md border border-line px-1.5 text-xs font-medium text-ink-2">{cert.first.scheme}</span>
-        )}
-        <CertChip state={cert.state} className="h-5 whitespace-nowrap px-1.5 text-xs">
-          {cert.short}
-        </CertChip>
-      </span>
-      {more > 0 ? (
-        <span aria-hidden className="whitespace-nowrap text-xs text-ink-3">
-          +{more} more
-        </span>
-      ) : null}
-    </span>
   );
 }

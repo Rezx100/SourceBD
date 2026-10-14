@@ -8,12 +8,30 @@
 import { BookmarkSimple } from "@phosphor-icons/react";
 import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import Link from "next/link";
-import { startTransition, useContext, useEffect, useId, useState } from "react";
+import { startTransition, useContext, useEffect, useId, useState, type ComponentProps } from "react";
 import { Toast, buttonClass, toastActionClass } from "@/components/kit";
+import { ICON_PX } from "@/components/kit/button-class";
 import { onBulkSaved, rowSaveMessage } from "@/lib/dashboard/selection";
 import { cn } from "@/lib/utils";
 
-export function RecordSave({ supplierId, saved, appearance = "button", className }: { supplierId: string; saved: boolean; appearance?: "button" | "icon"; className?: string }) {
+export function RecordSave({
+  supplierId,
+  saved,
+  appearance = "button",
+  size = 48,
+  kind = "secondary",
+  className,
+  ...rest
+}: {
+  supplierId: string;
+  saved: boolean;
+  appearance?: "button" | "icon";
+  /** The icon appearance's box: 48 on the record, 32 at the end of a results row. */
+  size?: 32 | 48;
+  /** The record's button has chrome; a row's end is quiet, shown by the row (its `data-action="save"` rides in `rest` for the `s` key). */
+  kind?: "secondary" | "quiet";
+  className?: string;
+} & Omit<ComponentProps<"button">, "type" | "onClick" | "children" | "className">) {
   const [on, setOn] = useState(saved);
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState("");
@@ -66,10 +84,11 @@ export function RecordSave({ supplierId, saved, appearance = "button", className
         aria-label={appearance === "icon" ? label : undefined}
         aria-describedby={status ? statusId : undefined}
         title={appearance === "icon" ? (on ? "Saved · press to remove" : "Save") : undefined}
+        {...rest}
         onClick={press}
-        className={cn(appearance === "icon" ? buttonClass({ kind: "secondary", size: "icon-48" }) : buttonClass({ kind: "secondary", className: "pl-2.5 pr-3" }), on && "border-ink-3 bg-subtle", className)}
+        className={cn(appearance === "icon" ? buttonClass({ kind, size: `icon-${size}` }) : buttonClass({ kind, className: "pl-2.5 pr-3" }), on && kind === "secondary" && "border-ink-3 bg-subtle", className)}
       >
-        <BookmarkSimple size={appearance === "icon" ? 24 : 16} weight={on ? "fill" : "regular"} className="shrink-0" aria-hidden />
+        <BookmarkSimple size={appearance === "icon" ? ICON_PX[`icon-${size}`] : 16} weight={on ? "fill" : "regular"} className="shrink-0" aria-hidden />
         {appearance === "icon" ? null : label}
       </button>
       <span id={statusId} role="status" aria-live="polite" className="sr-only">
