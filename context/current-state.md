@@ -113,13 +113,9 @@ Migration file headers are NOT live status. Check here or query the database.
 | `0107_buyer_supplier_profile_one_supplier` | 29 Sep 2026 | 29 Sep video. Two FROM clauses: the profile's two views filtered on the one id instead of joined. Applied through the Supabase MCP on the founder's go-ahead (the pooler times out here), gated on the text's md5 and the live base (`63ee7ea0…`); dry run 45 records identical, 967 → 171 ms median; live md5 now `8648d817…`, recorded `20260929083008`. Evidence, rollback: `ops/plans/0107-profile-one-supplier.md`. |
 | `0108_compliance_expired_certs` | 5 Oct 2026 | Applied as `20261005091012` (found 6 Oct; this row said not applied). 0116 re-scoped it to `workspace_owner()`; 0122 replaces its body. |
 | `0110_order_cancel_before_shipping` | **not applied** | OR-02: shipped/in-transit orders refuse a cancel. Dry run clean 4 Oct (0 live orders): `ops/plans/0110-dry-run.md`. |
-| `0120_sanctions_daily_reconcile` | 6 Oct 2026 | ETL freshness S1, via MCP; dry run `ops/plans/0120-dry-run.md`. |
-| `0121_etl_hold_review` | 6 Oct 2026 | ETL freshness C2, via MCP `20261006052146`; old plans unchanged. `ops/plans/0121-dry-run.md`. |
-| `0122_certificate_listing` | 6 Oct 2026 | ETL freshness S2, via MCP `20261006052254`; 4 cols, 2,627 OEKO-TEX re-keyed. `ops/plans/0122-dry-run.md`. |
-| `0123_source_freshness` | 6 Oct 2026 | ETL freshness S3, via MCP `20261006052420`; 30 sources (9 over limit), 14 schedules, certs off. `ops/plans/0123-dry-run.md`. |
-| `0124_register_schedules` | 6 Oct 2026 | ETL freshness S5, via MCP `20261006052539`; 5 register schedules off, RSC limit 336 h. `ops/plans/0124-dry-run.md`. |
+| `0120`–`0125` | 6 Oct 2026 | ETL freshness, six migrations via MCP; rows in `archive/state-2026-oct.md`, dry runs `ops/plans/0120`…`0125-dry-run.md`. |
 | `0147_export_rank_and_cells` | **applied 13 Oct** | Desktop record slice c: two readers. `ops/plans/0147-dry-run.md`. |
-| `0125_sources_listed_brand_schedules` | 6 Oct 2026 | ETL freshness S6, via MCP `20261006052721`; public count 21, 4 brand schedules off. |
+| `0150_supplier_slug_rename_redirect` | **not applied** | A renamed profile keeps its old address: one trigger writes the old slug into 0149's table. Writes no row when applied. `ops/plans/0150-dry-run.md`. |
 | `0137_volza_export_checks` | 11 Oct 2026 | Via MCP on "apply 0137"; Volza customs shipments on the record, admins and Growth/Enterprise only, rows kept one year. `ops/plans/volza-export-dry-run.md` §8. |
 | `0142_discover_customs_exports` | 11 Oct 2026 | Via MCP on "apply 0142"; search by customs exports, entitled readers only. `ops/plans/0142-dry-run.md`. |
 | `0146_volza_reveal_price_city` | **not applied** | Shipment reveal: checked price a piece, buyer city. `ops/plans/0146-dry-run.md`. |

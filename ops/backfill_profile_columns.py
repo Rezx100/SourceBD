@@ -272,17 +272,46 @@ SQL_STATEMENTS: list[tuple[str, str]] = [
     (
         "BKMEA production_capacity_pcs_day",
         """
-        with x as (
-          select distinct on (sr.supplier_id)
-                 sr.supplier_id,
-                 nullif((sr.fields ->> 'bkmea_production_capacity')::int, 0) as val
+        -- BKMEA files the figure with no unit: pieces a day or pieces a month.
+        -- The unit is read off the same page (sewing machines, else workers);
+        -- an unclear page is no candidate. Mirrors
+        -- etl.core.projection.bkmea_capacity_pcs_day line for line.
+        with c as (
+          select sr.supplier_id, sr.source_tier, sr.fetched_at, sr.id,
+                 (sr.fields ->> 'bkmea_production_capacity')::bigint as cap,
+                 case when (sr.fields ->> 'bkmea_machines_sewing') ~ '^[0-9]{1,9}$'
+                      then nullif((sr.fields ->> 'bkmea_machines_sewing')::bigint, 0) end as m,
+                 case when (sr.fields ->> 'bkmea_employees_total') ~ '^[0-9]{1,9}$'
+                      then nullif((sr.fields ->> 'bkmea_employees_total')::bigint, 0) end as e
             from source_records sr
             join sources src on src.id = sr.source_id
            where src.code = 'BKMEA'
              and sr.status = 'active'
-             and (sr.fields ? 'bkmea_production_capacity')
-             and (sr.fields ->> 'bkmea_production_capacity') ~ '^[0-9]+$'
-             and nullif((sr.fields ->> 'bkmea_production_capacity')::int, 0) is not null
+             and (sr.fields ->> 'bkmea_production_capacity') ~ '^[0-9]{1,12}$'
+        ),
+        u as (
+          select c.*,
+                 case when cap between 5 * m and 250 * m then 'day'
+                      when cap between 500 * m and 6250 * m then 'month' end as by_m,
+                 case when cap between 2 * e and 100 * e then 'day'
+                      when cap between 300 * e and 2500 * e then 'month' end as by_e
+            from c
+        ),
+        v as (
+          select u.*,
+                 case case when m is null then by_e
+                           when by_e is null or by_e = by_m then by_m end
+                   when 'day' then cap
+                   when 'month' then (cap + 12) / 25
+                 end as val
+            from u
+        ),
+        x as (
+          select distinct on (sr.supplier_id)
+                 sr.supplier_id,
+                 sr.val::int as val
+            from v sr
+           where sr.val between 1 and 10000000
            order by sr.supplier_id,
                     case sr.source_tier
               when 'tier1_gov' then 1
@@ -403,6 +432,15 @@ SQL_STATEMENTS: list[tuple[str, str]] = [
              and (sr.fields ? 'production_capacity_dozen_yearly')
              and (sr.fields ->> 'production_capacity_dozen_yearly') ~ '^[0-9]+$'
              and nullif((sr.fields ->> 'production_capacity_dozen_yearly')::bigint, 0) is not null
+             -- More than the page's own sewing machines could make (250 pieces a
+             -- machine a day) is no candidate. Mirrors
+             -- etl.core.projection.bgmea_capacity_dozen_yearly.
+             and coalesce(
+                   case when (sr.fields ->> 'num_machines') ~ '^[0-9]{1,9}$'
+                         and (sr.fields ->> 'production_capacity_dozen_yearly') ~ '^[0-9]+$'
+                        then (sr.fields ->> 'production_capacity_dozen_yearly')::numeric
+                             <= 6250 * nullif((sr.fields ->> 'num_machines')::numeric, 0) end,
+                   true)
            order by sr.supplier_id,
                     case sr.source_tier
               when 'tier1_gov' then 1

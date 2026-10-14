@@ -443,3 +443,68 @@ def test_worker_cohort_keys_constant_is_explicit() -> None:
     # Management is known and deliberately excluded — not merely unrecognised.
     assert BGMEA_NON_WORKER_EMPLOYEE_KEYS == frozenset({"Management"})
     assert not (BGMEA_WORKER_COHORT_KEYS & BGMEA_NON_WORKER_EMPLOYEE_KEYS)
+
+# ---------------------------------------------------------------------------
+# BKMEA capacity is filed without a unit (13 Oct 2026)
+# ---------------------------------------------------------------------------
+
+
+def _cap(capacity: int, machines: int | None = None, workers: int | None = None) -> int | None:
+    from etl.core.projection import bkmea_capacity_pcs_day
+
+    return bkmea_capacity_pcs_day(
+        {
+            "bkmea_production_capacity": capacity,
+            "bkmea_machines_sewing": machines,
+            "bkmea_employees_total": workers,
+        }
+    )
+
+
+def test_bkmea_capacity_unit_is_read_off_the_same_filing() -> None:
+    # 80 pieces a machine: a day's work, kept as filed.
+    assert _cap(8_000, machines=100) == 8_000
+    # 2,500 pieces a machine: a month's work, shown as a day's share of it.
+    assert _cap(250_000, machines=100) == 10_000
+    # Workers stand in only when no sewing machines are filed.
+    assert _cap(8_000, workers=300) == 8_000
+    assert _cap(250_000, workers=300) == 10_000
+    assert _cap(250_000, machines=100, workers=5) == 10_000  # workers unclear: machines decide
+
+
+def test_bkmea_capacity_with_an_unclear_unit_is_not_projected() -> None:
+    assert _cap(250_000) is None  # nothing on the page to read it against
+    assert _cap(35_000, machines=100) is None  # between the two bands
+    assert _cap(900_000, machines=100) is None  # 360 a machine a day: neither
+    assert _cap(100, machines=100) is None  # one piece a machine
+    assert _cap(20_000, machines=100, workers=40) is None  # machines say day, workers say month
+    assert _cap(35_000, machines=100, workers=1_000) is None  # machines filed and unclear
+
+
+def test_bkmea_capacity_sql_carries_the_same_bands() -> None:
+    from etl.core.projection import _BKMEA_PER_MACHINE, _BKMEA_PER_WORKER
+
+    pcs = next(sql for label, sql in SQL_STATEMENTS if "pcs_day" in label)
+    for base, bands in (("m", _BKMEA_PER_MACHINE), ("e", _BKMEA_PER_WORKER)):
+        for unit, (low, high) in bands.items():
+            assert f"cap between {low} * {base} and {high} * {base} then '{unit}'" in pcs
+    assert "(cap + 12) / 25" in pcs
+
+
+def test_bgmea_capacity_beyond_its_own_machines_is_not_projected() -> None:
+    from etl.core.projection import BGMEA_DOZEN_YEARLY_PER_MACHINE_MAX, bgmea_capacity_dozen_yearly
+
+    def cap(capacity: int, machines: int | None) -> int | None:
+        return bgmea_capacity_dozen_yearly(
+            {"production_capacity_dozen_yearly": capacity, "num_machines": machines}
+        )
+
+    assert cap(72_000, 155) == 72_000  # 19 pieces a machine a day
+    assert cap(625_000, 100) == 625_000  # exactly the ceiling
+    assert cap(625_001, 100) is None
+    assert cap(9_600_000, 100) is None  # pieces filed as dozens
+    assert cap(9_600_000, None) == 9_600_000  # no machines filed: nothing to hold it against
+    assert cap(9_600_000, 0) == 9_600_000
+
+    dozen = next(sql for label, sql in SQL_STATEMENTS if "dozen_yearly" in label)
+    assert f"<= {BGMEA_DOZEN_YEARLY_PER_MACHINE_MAX} * nullif((sr.fields ->> 'num_machines')::numeric, 0)" in dozen

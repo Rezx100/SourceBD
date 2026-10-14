@@ -115,6 +115,37 @@ function notListed(readAt: string | null, today: Date): SummaryCell {
 }
 
 /** The summary strip. Nothing is scored: each cell is a count or a state the registers hold. */
+/**
+ * What RSC lists but not as active, as sentences, in the register's own word (never ours):
+ * `RSC lists this factory as "Ineligible" (read 2 Oct 2026).` Null when there is no such entry.
+ * A page that printed "no RSC record" beside one of these contradicted its own Sources list.
+ */
+export function rscListedWords(model: Pick<SupplierSheetModel, "rscListed"> & Partial<Pick<SupplierSheetModel, "rsc">>): string | null {
+  if (model.rscListed.length === 0) return null;
+  // 63 suppliers hold two RSC entries: beside its own active record, the second is told apart by its RSC number.
+  const who = (l: SupplierSheetModel["rscListed"][number]) => l.name ?? (model.rsc && l.ref ? `this factory a second time (RSC no. ${l.ref})` : "this factory");
+  return model.rscListed.map((l) => `RSC lists ${who(l)} as "${l.status}"${l.readDate ? ` (read ${l.readDate})` : ""}.`).join(" ");
+}
+
+/** The company's own such entry, never a building's. */
+export function rscOwnListed(model: Pick<SupplierSheetModel, "rscListed">): SupplierSheetModel["rscListed"][number] | null {
+  return model.rscListed.find((l) => l.name === null) ?? null;
+}
+
+/** The empty Safety state of a record RSC lists but not as active: the status, and no word of ours on what it means. */
+export function rscListedAbsent(model: Pick<SupplierSheetModel, "rscListed">): { title: string; body: string; note: { title: string; body: string } } | null {
+  const words = rscListedWords(model);
+  if (!words) return null;
+  const own = rscOwnListed(model);
+  return {
+    title: own ? `RSC status: ${own.status}` : "Not in the RSC programme",
+    // RSC still publishes progress and reports for most of these (634 rows, 493 with a report, 13 Oct 2026):
+    // the sentence is about this page, never about what RSC holds.
+    body: `${words} Inspection reports and repair progress are shown here only for a factory RSC lists as active.`,
+    note: { title: "Ask the factory", body: "Ask why RSC lists it this way, and for its fire and building reports, in your RFQ." },
+  };
+}
+
 export function summaryCells(model: SupplierSheetModel, today: Date): SummaryCell[] {
   const hit = model.sanctions[0] ?? null;
   const list = hit?.list ?? "sanctions list";
@@ -141,7 +172,9 @@ export function summaryCells(model: SupplierSheetModel, today: Date): SummaryCel
 
   const rsc: SummaryCell = model.rsc
     ? { key: "rsc", label: "RSC", value: "Covered", sub: model.rsc.progress !== null ? `${model.rsc.progress}% fixed` : model.rsc.status, subTerm: model.rsc.progress !== null ? "fixed" : undefined }
-    : { key: "rsc", label: "RSC", value: "Not covered", sub: model.rscBuildings.length > 0 ? "its buildings have a record" : "no RSC record" };
+    : rscOwnListed(model)
+      ? { key: "rsc", label: "RSC", value: rscOwnListed(model)!.status, sub: "RSC's own word for this factory" }
+      : { key: "rsc", label: "RSC", value: "Not covered", sub: model.rscBuildings.length > 0 ? "its buildings have a record" : model.rscListed.length > 0 ? "a building is listed, not as active" : "no RSC record" };
 
   const w = fact(model, "Workers");
   const workers: SummaryCell = w?.value

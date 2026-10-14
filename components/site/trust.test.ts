@@ -79,6 +79,39 @@ describe("the methodology page", () => {
     assert.match(t, /Not read yet/);
   });
 
+  // Data audit, 13 Oct 2026: the table said "Not read yet" of six lists every company page says were read.
+  it("draws a sanctions list's entries and last full read, and says so when it was only read in part", () => {
+    const facts = parseFacts(
+      { suppliers_indexed: 10025 },
+      { sources_listed: 21, sources_with_records: 14, sources: [
+        { code: "OFAC", tier: "tier5_regulatory", records: 0, suppliers: 0, latest: null },
+        { code: "UFLPA", tier: "tier5_regulatory", records: 0, suppliers: 0, latest: null },
+        { code: "ILAB", tier: "tier5_regulatory", records: 0, suppliers: 0, latest: null },
+        { code: "RSC", tier: "tier1_gov", records: 1714, suppliers: 1714, latest: "2026-10-02" },
+      ] },
+      [
+        { list: "ofac_sdn", entries_listed: 9990, last_read: "2026-10-08T22:58:01.519901+00:00" },
+        { list: "uflpa", entries_listed: 253, last_read: null },
+        { list: "a_list_we_do_not_show", entries_listed: 5, last_read: null },
+      ],
+    );
+    const of = (code: string) => facts.sources!.find((s) => s.code === code)!;
+    assert.deepEqual([of("OFAC").records, of("OFAC").latest], [9990, "2026-10-08"]);
+    assert.deepEqual([of("UFLPA").records, of("UFLPA").latest], [253, null]);
+    // A list the read did not return, and a supplier source, keep what `marketing_facts()` said.
+    assert.deepEqual([of("ILAB").records, of("ILAB").latest], [0, null]);
+    assert.deepEqual([of("RSC").records, of("RSC").suppliers], [1714, 1714]);
+    assert.equal(facts.sources!.length, 4);
+    const row = (name: string) => new RegExp(`<th scope="row"[^>]*>${name}[^]*?</tr>`).exec(method(facts))?.[0] ?? "";
+    assert.match(text(row("SDN list")), /9,990 8 Oct 2026/);
+    assert.match(text(row("UFLPA Entity List")), /253 Read in part, no full read yet/);
+    assert.match(text(row("Goods made with child or forced labour")), /Listed, no records yet Not read yet/);
+    // No read of the lists at all leaves the table as `marketing_facts()` drew it.
+    assert.deepEqual(parseFacts(null, { sources: [{ code: "OFAC", tier: "tier5_regulatory", records: 0, suppliers: 0, latest: null }] }).sources, [
+      { code: "OFAC", tier: "tier5_regulatory", records: 0, suppliers: 0, latest: null },
+    ]);
+  });
+
   it("keeps the anchors the footer links to, and never says a score", () => {
     const m = method();
     for (const id of ["sources", "tiers", "matching", "corrections"]) assert.match(m, new RegExp(`id="${id}"`), id);

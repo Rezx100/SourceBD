@@ -209,7 +209,67 @@ Read after: 10,811 suppliers, 10,025 published, 744 linked buildings.
 - **541 general manufacturers are typed "buying house"** (the loader's default for BGMEA). Twelve rows on
   the page are a factory beside a real buying house of the same name; the 541 are a separate fix.
 - **Nine BKMEA membership numbers sit on two profiles each** (section "One membership number on two
-  profiles"). Where the names differ, one profile is holding the other's entry.
+  profiles"). Where the names differ, one profile is holding the other's entry. **Fixed 13 Oct 2026**
+  for the five pairs left after the merges, each checked against the live BKMEA list and pages
+  (`ops/plans/bkmea-shared-membership-fix.sql`, snapshot `_snapshot_bkmea_shared_20261013`, 90 rows):
+  - 2178, 2129 and 338 belong to Dams Knit, Euphoria Apparels and Fatullah Fashion. A stray copy of
+    each list row sat on AMS Knit Fashion, Euphoria Textile and Fatullah Apparels; the three copies
+    were removed. Nothing a buyer saw was wrong on those six, only an extra entry.
+  - 511 is Shatabdi Apparels (page 2293). `knit-fashion` showed 511 and now shows its own 675;
+    `shatabdi-apparels` showed "511 - B/2009" and now shows "511 - B/2000" with its page.
+  - 984 is H.R.S Composite Tex Wear (page 977). It showed Polestar's "402 - /2008" and 150 machines
+    from Polestar's old page; it now shows 984 and its own 110.
+  - Cause, fixed in `etl/scrapers/bkmea_web.py` with tests: a list row whose number did not read was
+    keyed on its bare page id, which is also somebody's membership number. Two rows of the live list
+    do this ("KNIT", no number, page 511; Polestar's old "402 - /2008", page 984).
+  - The row "KNIT" (no membership number, another address and owner) sat on `knit-fashion`, whose
+    workers (230), capacity and machines (90) came from it. **Split off 13 Oct 2026** on the founder's
+    word (`ops/plans/knit-split.sql`): "KNIT" is its own company at `/suppliers/knit` with its two
+    BKMEA entries and the claims read from its page. `knit-fashion` now carries only what its own
+    entries back: no worker or capacity figure, 140 machines, the products its BGMEA entry lists
+    (the four it had taken from Shatabdi's page are gone), and one phone number fewer.
+  - `knit-fashion` also joined two companies of one name: BKMEA member 675 in Narayanganj and BGMEA
+    general member 1438, "Knit Fashion (Pvt.) Ltd.", a sweater factory in Agrabad, Chattogram, founded
+    1993. **Split 13 Oct 2026** on the founder's word (`ops/plans/knit-fashion-chattogram-split.sql`):
+    the BGMEA member is its own company at `/suppliers/knit-fashion-2` with its entry, its 16 claims,
+    its phone, products, founding year and yearly capacity. `knit-fashion` is now BKMEA member 675
+    alone. Both of the day's splits are recorded as rulings (`founder:split-2026-10-13`), so neither
+    the loader nor the duplicate audit rejoins them.
+  - Two of `knit-fashion`'s three phone numbers were backed by no entry it holds. Both sit in the BGMEA
+    entry of another company, `knit-export-bd`, which already shows them. **Removed 13 Oct 2026** on the
+    founder's word (row copied to the same snapshot table, action `before-phones`); `knit-fashion`
+    keeps the one number its own BKMEA entry gives.
+  - BKMEA memberships sitting under a company the register files them apart from. A first count said
+    35 pages; a fresh read after the day's other fixes, by whole membership, gives **30 profiles**.
+    **Fixed 13 Oct 2026** on the founder's word where the register is clear
+    (`ops/plans/bkmea-wrong-company-fix.sql`, snapshot `_snapshot_bkmea_pages_20261013`):
+    - **15 memberships on 14 profiles were another company's** and moved. Ten went to the existing
+      profile of that exact name: Asia Composite Mills (from `aswad-composite-mills`), C.A Knitwear,
+      two memberships (from `ca-apparels`), Eurotex Knitwear, Knit Line Fashion, Masaha Knitting &
+      Dyeing, M. M. Fashion, R. S. Knit Wear, Sensible Fashion, S. B. Knit Wear. Five became companies
+      of their own: `fm-knitwear`, `hb-apparels`, `br-knitwear`, `orion-fashions`, `seam-knitwear`.
+      The profile each one left gave up what only that membership backed and shows its own number:
+      eight had been showing another company's membership number (`aswad-composite-mills`,
+      `ca-apparels`, `knit-line`, `maa-knitting-and-dyeing-industries`, `ssb-knitwear`, `fm-apparels`,
+      `ripon-fashions`, `sm-knitwear`), and several its workers, capacity or machine count. Each pair
+      is recorded as two companies (`founder:bkmea-pages-2026-10-13`).
+    - **8 are one company spelled two ways**, left as they are: `amana-knittex`,
+      `apex-spinning-and-knitting-mills`, `badgetex-apparels`, `lida-textile-and-dyeing`,
+      `polo-composite-knit-industries`, `sarada-knitwear`, `crony-apparels`, `fair-apparels`.
+    - **8 waited for the founder; he had all eight split off as companies of their own** the same day
+      (the same block with eight new rows, snapshot `_snapshot_bkmea_pages_20261013b`):
+      `dream-apparels` (from `dream-fashion`), `fame-textile` (from `fame-apparels`),
+      `fariha-apparels` (from `fariha-fashion`), `pritex` (from `printex`), `tn-socks-and-tights`
+      (from `tr-socks-and-tights`), `m-star-knitting` (from `ma-star-knitting-fashion`),
+      `garden-knit-bangladesh` (from `knit-garden`) and `knitex-dyeing-and-printing-ltd-1` (from
+      `knitex-dyeing-and-printing-ltd-2`). Three profiles had been showing the other company's
+      membership number and now show their own: `tr-socks-and-tights`,
+      `ma-star-knitting-fashion`, `knitex-dyeing-and-printing-ltd-2`. Each pair is a ruling.
+    - Seen while doing this, not touched: BKMEA's "production capacity" goes into the pieces-per-day
+      figure, and several entries carry values no factory makes in a day (200,000 to 390,000). The
+      unit is not what the column says.
+    - Figures on the profiles that gave a membership up come from their own newest BKMEA page; where
+      that page has none the figure is now blank until the next register read.
 - **Internal scores of the 68 kept rows were not recomputed.** Admin-only; the next scoring run does it.
 - **The address matcher misses plain respellings** ("Khajur Bagan" / "Khejur Bagar"), so some pairs on
   the page say "the name only" while the two addresses printed beside them plainly agree.

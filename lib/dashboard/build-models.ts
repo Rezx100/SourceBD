@@ -139,6 +139,10 @@ export type ProfileRsc = {
   fetched_at?: string | null;
   building_name?: string | null;
 };
+/** 0154: the status a trade body files with a membership, as filed. Today only BTMA's "suspended". */
+export type ProfileMembershipStatus = { source_code: string; status: string; value: string | null; fetched_at: string | null; building_name?: string | null };
+/** 0152: an RSC entry whose register status is not "active", with the register's own word. */
+export type ProfileRscListed = { status: string; rsc_factory_id: string | null; fetched_at: string | null; building_name?: string | null };
 export type ProfileBrand = {
   source_code: string;
   display_name: string;
@@ -165,6 +169,10 @@ export type ProfilePayload = {
   pills: ProfilePill[];
   certifications: ProfileCert[];
   rsc_remediation: ProfileRsc | ProfileRsc[] | null;
+  /** Absent from a payload older than 0152. */
+  rsc_listed?: ProfileRscListed[] | null;
+  /** Absent from a payload older than 0154. */
+  membership_status?: ProfileMembershipStatus[] | null;
   brand_attributions: ProfileBrand[];
   provenance: ProfileProvenance[];
   addresses?: ProfileAddress[];
@@ -1315,6 +1323,12 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
   const w = workersFact(input);
   const workersMark = w.source === "RSC" && !w.groupUnknown ? ownMark(p, "RSC") : null;
   const registerRows = registers.filter((r) => r.value);
+  // 0154: BTMA files some mills under "Mills Under Suspension". The membership says so itself, beside its
+  // number and read date; a plain "BTMA 52" for a suspended mill was the audit's S1-3 (13 Oct 2026).
+  // Entry by entry, by its list number (the pill's value is BTMA's own serial on all 527): one mill holds two.
+  const entryKey = (code: string, value: string | null | undefined) => `${code.toUpperCase()}|${value ?? ""}`;
+  const suspended = new Set((p.membership_status ?? []).filter((m) => !m.building_name && m.status === "suspended").map((m) => entryKey(m.source_code, m.value)));
+  const membershipLabel = (r: ProfilePill) => `${registerLabel(r.label).replace(/\s+member$/i, "")}${suspended.has(entryKey(r.source_code, r.value)) ? " (under suspension)" : ""}`;
   const scoped = scopeCert(certList);
   // Distinct premises, not rows and not spellings. Aboni files nine address
   // rows; an exact-text dedupe called them seven, and the registers write the
@@ -1373,7 +1387,7 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
     ...(s.bepza_zone ? [{ label: "EPZ zone", ...pending(s.bepza_zone) }] : []),
     {
       label: "Registers",
-      value: registerRows.length ? registerRows.map((r) => `${registerLabel(r.label).replace(/\s+member$/i, "")} ${r.value}`).join(" · ") : null,
+      value: registerRows.length ? registerRows.map((r) => `${membershipLabel(r)} ${r.value}`).join(" · ") : null,
       code: true,
       checked: registersEmptyWords(p),
       marks: registerCodes(registerRows).map((c) => mark(p, c)),
@@ -1381,7 +1395,7 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
       // run-on string of numbers it wrapped a word a line in the pane
       // (founder's walkthrough, 28 Sep 2026).
       items: registerRows.map((r) => ({
-        label: registerLabel(r.label).replace(/\s+member$/i, ""),
+        label: membershipLabel(r),
         code: r.value ?? null,
         mark: mark(p, r.source_code),
       })),
@@ -1483,6 +1497,9 @@ export function buildSheet(filed: RecordInput, options: SheetOptions = {}): Supp
         }
       : null,
     rscBuildings: buildings.map((b) => b.building_name ?? "building"),
+    rscListed: (p.rsc_listed ?? [])
+      .filter((l) => Boolean(l.status?.trim()))
+      .map((l) => ({ name: l.building_name ?? null, status: l.status.trim(), ref: l.rsc_factory_id ?? null, readDate: formatDay(l.fetched_at) })),
     // Each building's own row, labelled. The mother's block stays the mother's
     // (cycle 4); showing nothing at all for a record whose only RSC record is a
     // building's hid every safety receipt the register published for it.

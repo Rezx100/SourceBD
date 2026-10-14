@@ -358,6 +358,11 @@ export type SupplierSheetModel = {
     training: string | null;
     links: { label: string; href: string | null }[];
   }[];
+  /**
+   * What RSC lists but not as active (0152), in the register's own word: "Ineligible", "No brand",
+   * "Pending Closure", "inactive". `name` is null for the company's own entry, a building's name otherwise.
+   */
+  rscListed: { name: string | null; status: string; ref: string | null; readDate: string | null }[];
   /** REZ-C: every register that filed something on this record, best rank first. */
   sources: SourceRow[];
   sourcesCaption: string;
