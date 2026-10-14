@@ -1632,9 +1632,11 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
     const said = (s: string) => s.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
     const yes = { data: true, error: null };
 
-    // Growth, Enterprise, an admin: the value, then the markets, biggest share first. Asked once, for the page's own suppliers.
+    // Growth, Enterprise, an admin: the value alone in the table (the markets are the record's business, founder, 14 Oct 2026). Asked once, for the page's own suppliers.
     const paid = await open({ volza_reader_entitled: yes, discover_export_cells: cells(76578613.86, ["EU", "US", "UK", "CA"]) });
-    assert.match(said(paid), /US\$76\.6m Ships to the EU, the US, the UK and Canada EU US UK CA/);
+    assert.match(said(paid), /US\$76\.6m \d+ /, "the value, then the source count, and nothing between");
+    // The phone's rows on the same page still say where it ships; the table cell is the figure alone.
+    assert.match(paid, /<span class="text-\[15px\]\/\[20px\] font-medium">US\$76\.6m<\/span><\/td>/);
     assert.deepEqual(rpcCalls.filter((c) => c.fn === "discover_export_cells").map((c) => c.args), [{ p_ids: [ROW.id] }]);
     // Beside an open record the list row says it too.
     assert.match(said(await open({ volza_reader_entitled: yes, discover_export_cells: cells(76578613.86, ["EU", "US"]) }, { q: "knit", record: "aboni-knitwear" })), /US\$76\.6m exported, 2 years Ships to the EU and the US ships to EU US/);
@@ -1646,7 +1648,7 @@ describe("cycle 4: the boundaries cycle 4 found open", () => {
 
     // The read found none for this supplier: a dash that says so. A market code the app does not know is dropped.
     assert.match(await open({ volza_reader_entitled: yes, discover_export_cells: { data: [], error: null } }), /title="No customs records on file"/);
-    assert.match(said(await open({ volza_reader_entitled: yes, discover_export_cells: cells(1200000, ["EU", "ZZ"]) })), /US\$1\.2m Ships to the EU EU /);
+    assert.match(said(await open({ volza_reader_entitled: yes, discover_export_cells: cells(1200000, ["EU", "ZZ"]) })), /US\$1\.2m /);
 
     // 0147 not applied, or the read failed: the row claims nothing about customs records.
     for (const answer of [{ data: null, error: { code: "PGRST202", message: "Could not find the function" } }, { data: "nonsense", error: null }]) {

@@ -240,7 +240,9 @@ export default async function BuyerDiscoverPage({
                       sortHrefs={{
                         workers: hrefFor({ ...state, sort: "workers", page: 1 }),
                         name: hrefFor({ ...state, sort: "name", page: 1 }),
+                        sources: hrefFor({ ...state, sort: "sources", page: 1 }),
                       }}
+                      q={state.q}
                     />
                     </div>
                   )
