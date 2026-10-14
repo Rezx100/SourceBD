@@ -94,9 +94,24 @@ missing. **S4** untidy. Inside a level, most published companies first.
   profile (BTMA's own status for each entry) and the membership reads "BTMA (under suspension)" beside its number and
   read date, on the desktop, phone and public record. **Applied on production, 14 Oct 2026**, on the founder's
   "apply 0154": the function on production is byte for byte the repo's, the rest of the payload is unchanged for five
-  companies compared before and after, and `nm-spinning-mills` carries both its suspended entries. The words reach
-  buyers with the next release. Still open, and yours:
-  whether the 80 companies published on a suspended BTMA entry alone stay published.
+  companies compared before and after, and `nm-spinning-mills` carries both its suspended entries. Live since the
+  deploy of 14 Oct 2026.
+- **BTMA re-read, 14 Oct 2026:** BTMA posted new lists on 7 Oct 2026 ("A Yarn Manufacturing (General Spinning Mill
+  List) 2025-26.pdf", 103 scanned pages; the associate list beside it). Read by OCR and by eye against our copy of
+  21 May: 375 general members (we hold 371) and 92 "Mills Under Suspension", the same 92 as ours with two changes.
+  `abm-spinning-mills` is general member no. 10 now (our copy had it alone under "Mills Under Implementation", which
+  the importer read as suspended); Humaira & Mahiya Rotor Spinning Mills is newly suspended and not in our database.
+  The 4 new general members and the associate list were not loaded: that needs a new extract of the scan.
+- **Your call, 14 Oct 2026: the 79 stay published, labelled, and stop counting as BTMA members.** Built:
+  `supabase/migrations/0155_btma_suspended_not_member.sql` (a suspended entry is not `verified`; the card's tile, the
+  registry filter and the match reason read that; the record still lists the entry with its status), the trust score
+  (`etl/scoring/runner.py`: a company whose only BTMA entries are suspended gets no BTMA credit), the importer
+  (implementation alone is no status) and `ops/plans/btma-abm-member-fix.sql` (ABM's entry). Dry runs on production,
+  rolled back: the BTMA filter goes from 421 companies to 345, every entry still listed; `nm-spinning-mills` loses its
+  BTMA tile; ABM's page drops "under suspension" and shows no. 10. Counted again by entry, 14 Oct 2026: 87 companies
+  hold a suspended entry; 76 hold nothing but suspended BTMA entries (70 of them published on BTMA alone, 69 after
+  ABM); 11 also hold a plain BTMA entry (BTMA files them in both sections) and keep their membership. The "80" above
+  counted those 11 in. 0155, the ABM fix and the score rewrite each wait for "apply".
 
 ### S1-4. Phone numbers and mailboxes inside address text, open to a signed-out visitor through the database API
 

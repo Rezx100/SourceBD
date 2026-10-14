@@ -42,7 +42,9 @@ if TYPE_CHECKING:
 DEFAULT_DATA_DIR = settings.etl_raw_dir / "btma_spinning" / "pages"
 
 def _is_suspended_section(section: str) -> bool:
-    return "suspension" in section.lower() or "implementation" in section.lower()
+    # "Mills Under Implementation" alone is a mill still being built, not a suspended one: ABM Spinning
+    # Mills sat there on the May 2026 list and is a general member on the October one.
+    return "suspension" in section.lower()
 
 _EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 _URL_RE = re.compile(r"(?:https?://)?(?:www\.)[A-Za-z0-9.-]+\.[A-Za-z]{2,}[/\w.\-]*", re.IGNORECASE)
