@@ -10,6 +10,7 @@ import { Button, Checkbox, Field, Input, Select } from "@/components/kit";
 import { fieldBox, fieldEdge } from "@/components/kit/classes";
 import { sendContact } from "@/app/(marketing)/contact/actions";
 import { CONTACT_TO, MARKETS, PIECES, ROLES, type ContactState } from "@/lib/contact";
+import { inkLink } from "@/components/site/sections/ui";
 import { cn } from "@/lib/utils";
 
 const INITIAL: ContactState = {};
@@ -86,11 +87,11 @@ export function ContactForm() {
         </Button>
         <p className="text-sm text-ink-3">
           We use these details only to reply. See the{" "}
-          <a href="/legal/privacy" className="font-medium text-ink-strong underline decoration-1 underline-offset-4 hover:decoration-2">
+          <a href="/legal/privacy" className={inkLink}>
             privacy notice
           </a>
           . Prefer email? Write to{" "}
-          <a href={`mailto:${CONTACT_TO}`} className="font-medium text-ink-strong underline decoration-1 underline-offset-4 hover:decoration-2">
+          <a href={`mailto:${CONTACT_TO}`} className={inkLink}>
             {CONTACT_TO}
           </a>
           .

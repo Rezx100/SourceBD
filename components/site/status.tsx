@@ -3,7 +3,7 @@
 // file", and how old a date is said in words (not only by a colour). No score, no uptime percentage.
 
 import Link from "next/link";
-import { Display, Label, Lede, measure } from "@/components/site/sections/ui";
+import { Display, inkLink, Label, Lede, measure } from "@/components/site/sections/ui";
 import { readDay, withCommas } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
 
@@ -56,7 +56,7 @@ export function StatusView({ doc, error, now = Date.now() }: { doc: StatusDoc | 
             <Display level={2} as="h1">
               System status
             </Display>
-            <Lede>When we last read each source. Built live on each visit{doc ? `, as of ${readDay(doc.generated_at)}` : ""}. Per-source dates are on the <Link href="/methodology" prefetch={false} className="font-medium text-ink-strong underline decoration-1 underline-offset-4 hover:decoration-2">Data and methodology</Link> page.</Lede>
+            <Lede>When we last read each source. Built live on each visit{doc ? `, as of ${readDay(doc.generated_at)}` : ""}. Per-source dates are on the <Link href="/methodology" prefetch={false} className={inkLink}>Data and methodology</Link> page.</Lede>
           </div>
 
           {error || !doc ? (
@@ -64,7 +64,7 @@ export function StatusView({ doc, error, now = Date.now() }: { doc: StatusDoc | 
               <p className="text-md font-semibold text-ink">We could not load the status just now.</p>
               <p className="mt-1 text-md text-ink-2">
                 If this keeps happening, write to{" "}
-                <a href="mailto:support@sourcebd.net" className="font-medium text-ink-strong underline decoration-1 underline-offset-4 hover:decoration-2">
+                <a href="mailto:support@sourcebd.net" className={inkLink}>
                   support@sourcebd.net
                 </a>
                 .

@@ -59,7 +59,7 @@ export async function MarketingChrome({
   const facts = footer ? await loadSiteFacts() : null;
   return (
     <PostHogProvider userId={null}>
-      <div className="flex min-h-dvh flex-col bg-surface font-sans text-ink antialiased">
+      <div className="flex min-h-dvh flex-col bg-canvas font-sans text-ink antialiased">
         <ScrollToTop />
         <SkipLink />
         {top}

@@ -204,10 +204,10 @@ export function Screen({ name, phone, alt, sizes = "(min-width: 1440px) 1152px, 
 }
 
 /** A screenshot on a photo stage, the home page's way of showing the product (the textile still behind it). */
-export function Stage({ still = "weave", children, className }: { still?: StillName; children: ReactNode; className?: string }) {
+export function Stage({ still = "weave", children, className, eager = false }: { still?: StillName; children: ReactNode; className?: string; eager?: boolean }) {
   return (
     <div className={cn("relative isolate flex items-center justify-center overflow-hidden rounded-card px-4 py-6 md:rounded-stage md:px-16 md:py-16", className)}>
-      <Still name={still} />
+      <Still name={still} eager={eager} />
       <div className="relative w-full">{children}</div>
     </div>
   );

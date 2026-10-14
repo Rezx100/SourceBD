@@ -9,7 +9,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { ButtonLink } from "@/components/kit";
-import { HeroActions, HeroCentered, measure, Section, Stage, TextLink } from "@/components/site/sections/ui";
+import { HeroActions, HeroCentered, inkLink, measure, Section, Stage, TextLink } from "@/components/site/sections/ui";
 import { Closing } from "@/components/site/sections/closing";
 import { SOURCE_COUNT, TIERS, type Tier } from "@/components/site/sources";
 import { SUBPROCESSORS, subprocessorCount } from "@/components/site/subprocessors";
@@ -22,7 +22,7 @@ export function trustMetadata(path: string, title: string, description: string):
   return { title, description, alternates: { canonical: `${SITE_URL}${path}` }, openGraph: { title, description, url: `${SITE_URL}${path}`, siteName: "SourceBD", locale: "en_GB", type: "website" } };
 }
 
-const mailto = "font-medium text-ink-strong underline decoration-1 underline-offset-4 hover:decoration-2";
+const mailto = inkLink;
 const A = ({ href, children }: { href: string; children: ReactNode }) =>
   href.startsWith("mailto:") ? (
     <a href={href} className={mailto}>
@@ -322,7 +322,7 @@ export function ForSuppliers({ facts }: { facts: SiteFacts }) {
         count={count}
         stage={
           <figure className="flex flex-col gap-3">
-            <Stage still="cutting-table">
+            <Stage still="cutting-table" eager>
               <Image src="/site/records-overview.png" alt="A supplier record as a buyer sees it: sanctions, certificates, safety, workers and sources at the top, then the key facts, each with where it came from." width={1440} height={900} sizes="(min-width: 1440px) 1152px, 100vw" priority className="h-auto w-full rounded-frame border border-ink-strong/10 shadow-lg" />
             </Stage>
             <figcaption className="text-sm text-ink-subtle">

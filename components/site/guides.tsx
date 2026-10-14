@@ -4,7 +4,7 @@
 // sections in their fixed order beside an "On this page" list, the sources, and the one call to action.
 
 import Link from "next/link";
-import { Display, HeroActions, HeroCentered, Lede, measure } from "@/components/site/sections/ui";
+import { Display, HeroActions, HeroCentered, inkLink, Lede, measure } from "@/components/site/sections/ui";
 import { Closing } from "@/components/site/sections/closing";
 import { COMPLIANCE_PAGES, DISCLAIMER, SECTION_ORDER, oldestReviewedAt, type CompliancePage } from "@/lib/marketing/compliance-pages";
 import { readDay } from "@/lib/site-facts";
@@ -40,7 +40,7 @@ export function GuidesIndex() {
                   <span className="text-xl font-semibold tracking-tight text-ink">{p.shortName}</span>
                   <span className="flex-1 text-md text-ink-2">{p.headline}</span>
                   <span className="text-sm text-ink-3">Last reviewed {readDay(p.last_reviewed_at)}</span>
-                  <span className="text-md font-medium text-ink-strong underline decoration-1 underline-offset-4 hover:decoration-2">Read the guide</span>
+                  <span className={cn("text-md", inkLink)}>Read the guide</span>
                 </Link>
               </li>
             ))}
@@ -108,7 +108,7 @@ export function GuideArticle({ page }: { page: CompliancePage }) {
               <ul className="flex flex-col gap-3 text-md">
                 {page.references.map((r) => (
                   <li key={r.url} className="flex flex-col gap-0.5 [overflow-wrap:anywhere]">
-                    <a href={r.url} rel="noopener noreferrer external" target="_blank" className="font-medium text-ink-strong underline decoration-1 underline-offset-4 hover:decoration-2">
+                    <a href={r.url} rel="noopener noreferrer external" target="_blank" className={inkLink}>
                       {r.label}
                     </a>
                     <span className="text-sm text-ink-3">

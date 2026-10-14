@@ -314,7 +314,7 @@ components:
 
 # Design System: SourceBD buyer app
 
-Scope: the buyer app under `/app/*` as drawn by the v3 dashboard kit (deleted in B11; the v4 kit is `components/kit`), with every value read from `lib/design/tokens.ts`. The marketing site, supplier portal and admin still run on the older `components/ui/*` system and are not described here.
+Scope: the buyer app under `/app/*` as drawn by the v3 dashboard kit (deleted in B11; the v4 kit is `components/kit`), with every value read from `lib/design/tokens.ts`. The supplier portal and admin still run on the older `components/ui/*` system and are not described here. The marketing site has its own section at the end of this file.
 
 ## Overview
 
@@ -549,3 +549,15 @@ A `surface-inverse` pill (10px radius, 10px by 14px padding, `lg` shadow) with `
 - **Don't** let a company's name wrap inside a list row, or cut anything that is not a name: never cap a chip's height, or set `white-space: nowrap` on a register's words.
 - **Don't** set mono on body text, or 600 on a heading that the `Heading` component draws at 500.
 - **Don't** add a package for anything the kit already draws (icons are Phosphor, fonts are self-hosted Geist, illustrations are cleaned SVGs in `public/illustrations/`).
+
+## Marketing site (M1, 14 Oct 2026)
+
+Every marketing page is one design in the home page's direction (founder, 14 Oct 2026; brief at
+`.impeccable/surfaces/marketing.md`). Warm paper (`canvas`) with white and `subtle` bands, light display type
+from the `site-*` scale (`site-hero` 76 on home, `site-h1` 56 on every other page, `site-h2` 48, each with a `-sm`
+phone step), ledes at 17/27, ink links, one near-black focus ring. Green is the primary button, the wordmark and the
+icons' one detail, nothing else. One measure (`max-w-site`, 1280 of content at 1440, 20 a side on a phone), one
+rhythm (`py-section`, 120 from 768 up, 56 below). Three radii: `frame` 12 (a product screen, a field, a button on
+the site), `card` 16, `stage` 24 (a photo stage). One footer, one FAQ, one closing band, all in
+`components/site/sections`. Motion follows `motion` in the token file (reveal 700 ms on a slow ease, tone 600 ms);
+anything that moves for more than five seconds has a pause button, and reduced motion shows every scene's last step.

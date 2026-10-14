@@ -53,8 +53,8 @@ same PR. Read once per session.
   `development` (PRs #218, #220–#224); promotion to `main` next. Detail:
   `archive/specs-shipped-2026.md`.
 
-- **Home page film v2** — `spec-home-film.md` §"v2". BUILT 9 Oct (#384, #385, #414, #416); behind `?film=1` since the
-  Mercury home page (10 Oct, `archive/specs-shipped-2026.md`).
+- **Marketing site, one design** (14 Oct) — `handoff-mercury-motion-sitewide.md`. Audit slices 1–2 (#549, #550), M0
+  (#551), M1 (section library; film home retired) built. M2–M3 wait on the founder's dashboard screens.
 
 - **Desktop supplier record and search results (Paper page 37)** — `spec-desktop-record-page-37.md` (13 Oct).
 - **Phone record and search (Paper pages 35, 36)** — the changed sections only, five slices; no spec file, the boards are the spec (13 Oct).

@@ -35,7 +35,7 @@ type Page = {
 function Figure({ shot, still, sizes = "(min-width: 1440px) 1152px, 100vw", eager = false }: { shot: Shot; still: StillName; sizes?: string; eager?: boolean }) {
   return (
     <figure className="flex flex-col gap-3">
-      <Stage still={still}>
+      <Stage still={still} eager={eager}>
         <Image src={shot.src} alt={shot.alt} width={1440} height={900} sizes={sizes} priority={eager} className="h-auto w-full rounded-frame border border-ink-strong/10 shadow-lg" />
       </Stage>
       <figcaption className="text-sm text-ink-subtle">{shot.caption}</figcaption>

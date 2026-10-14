@@ -7,7 +7,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { ButtonLink } from "@/components/kit";
-import { HeroActions, HeroCentered, measure, Section, TextLink } from "@/components/site/sections/ui";
+import { HeroActions, HeroCentered, inkLink, measure, Section, TextLink } from "@/components/site/sections/ui";
 import { Closing } from "@/components/site/sections/closing";
 import { Faq } from "@/components/site/sections/faq";
 import { withCommas, type SiteFacts } from "@/lib/site-facts";
@@ -52,7 +52,7 @@ const FAQ = [
     a: (
       <>
         In our Supabase database, AWS region us-west-1, in the United States. See{" "}
-        <Link href="/security" prefetch={false} className="font-medium text-ink-strong underline decoration-1 underline-offset-4 hover:decoration-2">
+        <Link href="/security" prefetch={false} className={inkLink}>
           Security
         </Link>
         .
