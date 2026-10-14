@@ -1,0 +1,902 @@
+{
+ "readAt": "2026-10-14",
+ "search": {
+  "q": "knit",
+  "chips": [
+   "knit",
+   "GOTS"
+  ],
+  "total": 388,
+  "rows": [
+   {
+    "slug": "modele-de-capital-industries",
+    "name": "Modele De Capital Ind Ltd",
+    "type": "Factory",
+    "place": "Narayanganj",
+    "workers": 1300,
+    "sources": 9,
+    "products": [
+     "Babies' apparel",
+     "Children's apparel",
+     "Corrugated Carton",
+     "Glu Gum",
+     "Inner Carton",
+     "Jackets"
+    ],
+    "brands": [],
+    "certs": [
+     {
+      "kind": "sa8000",
+      "expiresOn": "2021-07-23"
+     },
+     {
+      "kind": "gots",
+      "expiresOn": "2027-02-28"
+     },
+     {
+      "kind": "wrap",
+      "expiresOn": "2027-09-08"
+     },
+     {
+      "kind": "oeko_tex",
+      "expiresOn": null
+     },
+     {
+      "kind": "oeko_tex",
+      "expiresOn": null
+     },
+     {
+      "kind": "oeko_tex",
+      "expiresOn": null
+     }
+    ]
+   },
+   {
+    "slug": "tex-town",
+    "name": "TEX TOWN LTD.",
+    "type": "Factory",
+    "place": "Dhaka",
+    "workers": 4005,
+    "sources": 8,
+    "products": [
+     "All Kind of Knit Item",
+     "Babies' Apparel",
+     "Backboard",
+     "Carton",
+     "Children's Apparel",
+     "Interlining"
+    ],
+    "brands": [],
+    "certs": [
+     {
+      "kind": "gots",
+      "expiresOn": "2026-10-15"
+     },
+     {
+      "kind": "wrap",
+      "expiresOn": "2027-06-17"
+     },
+     {
+      "kind": "oeko_tex",
+      "expiresOn": null
+     },
+     {
+      "kind": "oeko_tex",
+      "expiresOn": null
+     }
+    ]
+   },
+   {
+    "slug": "aboni-knitwear",
+    "name": "ABONI KNITWEAR LTD.",
+    "type": "Factory",
+    "place": "Dhaka",
+    "workers": 3314,
+    "sources": 8,
+    "products": [
+     "All Kind of Knit Item",
+     "Babies' apparel",
+     "Back Board",
+     "Blouses",
+     "Children's apparel",
+     "Children's denim apparel"
+    ],
+    "brands": [
+     "BRAND_ASOS",
+     "BRAND_HM",
+     "BRAND_NEXT"
+    ],
+    "certs": [
+     {
+      "kind": "gots",
+      "expiresOn": "2026-04-04"
+     },
+     {
+      "kind": "gots",
+      "expiresOn": "2027-03-30"
+     },
+     {
+      "kind": "gots",
+      "expiresOn": "2027-05-12"
+     },
+     {
+      "kind": "wrap",
+      "expiresOn": "2027-08-25"
+     },
+     {
+      "kind": "oeko_tex",
+      "expiresOn": null
+     }
+    ]
+   },
+   {
+    "slug": "clifton-textiles-and-apparels",
+    "name": "CLIFTON TEXTILES AND APPARELS LTD.",
+    "type": "Factory",
+    "place": "Chattogram",
+    "workers": 2964,
+    "sources": 8,
+    "products": [
+     "(B)",
+     "Babies` apparel",
+     "Back Board",
+     "Children`s apparel",
+     "Corrugated Carton",
+     "Elastic"
+    ],
+    "brands": [],
+    "certs": [
+     {
+      "kind": "wrap",
+      "expiresOn": "2026-11-17"
+     },
+     {
+      "kind": "gots",
+      "expiresOn": "2027-01-27"
+     },
+     {
+      "kind": "oeko_tex",
+      "expiresOn": null
+     }
+    ]
+   },
+   {
+    "slug": "logos-apparels",
+    "name": "LOGOS APPARELS LIMITED",
+    "type": "Factory",
+    "place": "Gazipur",
+    "workers": 2030,
+    "sources": 8,
+    "products": [
+     "All Kind of Knit Item",
+     "Babies Apparel",
+     "Children's Apparel",
+     "Dyed fabrics",
+     "Kids Item",
+     "Knitted Garments"
+    ],
+    "brands": [],
+    "certs": [
+     {
+      "kind": "wrap",
+      "expiresOn": "2027-01-26"
+     },
+     {
+      "kind": "gots",
+      "expiresOn": "2027-05-03"
+     },
+     {
+      "kind": "oeko_tex",
+      "expiresOn": null
+     }
+    ]
+   },
+   {
+    "slug": "sm-sourcing",
+    "name": "SM Sourcing",
+    "type": "Factory",
+    "place": "Gazipur",
+    "workers": 770,
+    "sources": 8,
+    "products": [
+     "(B)",
+     "All Knit Item",
+     "All types of printing",
+     "Babies' apparel",
+     "Back Board",
+     "Black Board"
+    ],
+    "brands": [],
+    "certs": [
+     {
+      "kind": "wrap",
+      "expiresOn": "2027-01-08"
+     },
+     {
+      "kind": "gots",
+      "expiresOn": "2027-02-15"
+     },
+     {
+      "kind": "oeko_tex",
+      "expiresOn": null
+     },
+     {
+      "kind": "oeko_tex",
+      "expiresOn": null
+     },
+     {
+      "kind": "oeko_tex",
+      "expiresOn": null
+     },
+     {
+      "kind": "oeko_tex",
+      "expiresOn": null
+     }
+    ]
+   },
+   {
+    "slug": "benchmark-apparels",
+    "name": "BENCHMARK APPARELS LTD.",
+    "type": "Factory",
+    "place": "Chattogram",
+    "workers": 666,
+    "sources": 8,
+    "products": [
+     "All Kind of Knit Item",
+     "Babies` apparel",
+     "Bikini",
+     "Boxers",
+     "Bra",
+     "Cami"
+    ],
+    "brands": [],
+    "certs": [
+     {
+      "kind": "gots",
+      "expiresOn": "2027-01-09"
+     },
+     {
+      "kind": "wrap",
+      "expiresOn": "2027-06-12"
+     },
+     {
+      "kind": "oeko_tex",
+      "expiresOn": null
+     }
+    ]
+   },
+   {
+    "slug": "sm-knitwear",
+    "name": "S M KNITWEARS LIMITED",
+    "type": "Factory",
+    "place": "Gazipur",
+    "workers": 300,
+    "sources": 8,
+    "products": [
+     "All Kind of Knit Item",
+     "Babies` apparel",
+     "Band Roll",
+     "Care Label",
+     "Children`s apparel",
+     "Croset"
+    ],
+    "brands": [
+     "BRAND_ASOS",
+     "BRAND_NEXT"
+    ],
+    "certs": [
+     {
+      "kind": "wrap",
+      "expiresOn": "2026-07-21"
+     },
+     {
+      "kind": "gots",
+      "expiresOn": "2027-05-24"
+     },
+     {
+      "kind": "oeko_tex",
+      "expiresOn": null
+     },
+     {
+      "kind": "oeko_tex",
+      "expiresOn": null
+     },
+     {
+      "kind": "oeko_tex",
+      "expiresOn": null
+     },
+     {
+      "kind": "oeko_tex",
+      "expiresOn": null
+     }
+    ]
+   }
+  ]
+ },
+ "check": {
+  "slug": "aboni-knitwear",
+  "name": "ABONI KNITWEAR LTD.",
+  "type": "Factory",
+  "place": "Dhaka",
+  "workers": 3314,
+  "sources": [
+   "EPB",
+   "RSC",
+   "BGAPMEA",
+   "BGMEA",
+   "BKMEA",
+   "GOTS",
+   "OEKO-TEX",
+   "WRAP",
+   "BRAND_ASOS",
+   "BRAND_HM",
+   "BRAND_NEXT"
+  ],
+  "read": {
+   "EPB": "2026-08-14",
+   "RSC": "2026-10-02",
+   "BGMEA": "2026-10-14",
+   "BKMEA": "2026-08-02",
+   "BGAPMEA": "2026-06-26",
+   "GOTS": "2026-10-14",
+   "OEKO-TEX": "2026-10-10",
+   "WRAP": "2026-10-10"
+  },
+  "bgmea": "3498",
+  "certs": [
+   {
+    "kind": "gots",
+    "number": "GOTS-31587",
+    "issuer": "TÜV Rheinland (China) Ltd.",
+    "expiresOn": "2027-05-12",
+    "documentUrl": "https://www.global-trace-base.org/SCO039488/certificate-document"
+   },
+   {
+    "kind": "gots",
+    "number": "GOTS-33219",
+    "issuer": "TÜV Rheinland (China) Ltd.",
+    "expiresOn": "2027-03-30",
+    "documentUrl": "https://global-standards.org/suppliers/certified-suppliers/details?gtbid=SCO057206"
+   },
+   {
+    "kind": "gots",
+    "number": "GOTS-27605",
+    "issuer": "GSCS International Ltd.",
+    "expiresOn": "2026-04-04",
+    "documentUrl": "https://www.global-trace-base.org/SCO029726/certificate-document"
+   },
+   {
+    "kind": "oeko_tex",
+    "number": "32597-100",
+    "issuer": "OEKO-TEX",
+    "expiresOn": null,
+    "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+   },
+   {
+    "kind": "wrap",
+    "number": "7865",
+    "issuer": "WRAP",
+    "expiresOn": "2027-08-25",
+    "documentUrl": "https://wrapcompliance.org/en/certification/facility-monitor-list/"
+   }
+  ]
+ },
+ "saved": [
+  {
+   "slug": "modele-de-capital-industries",
+   "name": "Modele De Capital Ind Ltd",
+   "type": "Factory",
+   "place": "Narayanganj",
+   "workers": 1300,
+   "sources": [
+    "EPB",
+    "RSC",
+    "BGAPMEA",
+    "BGMEA",
+    "BKMEA",
+    "GOTS",
+    "OEKO-TEX",
+    "SA8000",
+    "WRAP"
+   ],
+   "read": {
+    "EPB": "2026-08-14",
+    "RSC": "2026-10-02",
+    "BGMEA": "2026-10-14",
+    "BKMEA": "2026-08-02",
+    "BGAPMEA": "2026-06-27",
+    "GOTS": "2026-06-26",
+    "OEKO-TEX": "2026-10-10",
+    "WRAP": "2026-10-10"
+   },
+   "bgmea": "4914",
+   "certs": [
+    {
+     "kind": "gots",
+     "number": "GOTS-29200",
+     "issuer": "GSCS International Ltd.",
+     "expiresOn": "2027-02-28",
+     "documentUrl": "https://www.global-trace-base.org/SCO030039/certificate-document"
+    },
+    {
+     "kind": "oeko_tex",
+     "number": "14554-100",
+     "issuer": "OEKO-TEX",
+     "expiresOn": null,
+     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+    },
+    {
+     "kind": "oeko_tex",
+     "number": "14554-mig",
+     "issuer": "OEKO-TEX",
+     "expiresOn": null,
+     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+    },
+    {
+     "kind": "oeko_tex",
+     "number": "14554-step",
+     "issuer": "OEKO-TEX",
+     "expiresOn": null,
+     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+    },
+    {
+     "kind": "sa8000",
+     "number": "IND.18.10562",
+     "issuer": "Bureau Veritas Certification",
+     "expiresOn": "2021-07-23",
+     "documentUrl": "https://sa-intl.org/sa8000-search/"
+    },
+    {
+     "kind": "wrap",
+     "number": "13604",
+     "issuer": "WRAP",
+     "expiresOn": "2027-09-08",
+     "documentUrl": "https://wrapcompliance.org/en/certification/facility-monitor-list/"
+    },
+    {
+     "kind": "oeko_tex",
+     "number": "66550-100",
+     "issuer": "OEKO-TEX",
+     "expiresOn": null,
+     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+    },
+    {
+     "kind": "wrap",
+     "number": "131492",
+     "issuer": "WRAP",
+     "expiresOn": "2027-07-28",
+     "documentUrl": "https://wrapcompliance.org/en/certification/facility-monitor-list/"
+    }
+   ]
+  },
+  {
+   "slug": "tex-town",
+   "name": "TEX TOWN LTD.",
+   "type": "Factory",
+   "place": "Dhaka",
+   "workers": 4005,
+   "sources": [
+    "EPB",
+    "RSC",
+    "BGAPMEA",
+    "BGMEA",
+    "BKMEA",
+    "GOTS",
+    "OEKO-TEX",
+    "WRAP"
+   ],
+   "read": {
+    "EPB": "2026-08-14",
+    "RSC": "2026-10-02",
+    "BGMEA": "2026-10-14",
+    "BKMEA": "2026-08-02",
+    "BGAPMEA": "2026-06-27",
+    "GOTS": "2026-06-26",
+    "OEKO-TEX": "2026-10-10",
+    "WRAP": "2026-10-10"
+   },
+   "bgmea": "3916",
+   "certs": [
+    {
+     "kind": "gots",
+     "number": "GOTS-27401",
+     "issuer": "IDFL Laboratory and Institute Inc.",
+     "expiresOn": "2026-10-15",
+     "documentUrl": "https://www.global-trace-base.org/SCO029538/certificate-document"
+    },
+    {
+     "kind": "oeko_tex",
+     "number": "15850-100",
+     "issuer": "OEKO-TEX",
+     "expiresOn": null,
+     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+    },
+    {
+     "kind": "oeko_tex",
+     "number": "15850-step",
+     "issuer": "OEKO-TEX",
+     "expiresOn": null,
+     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+    },
+    {
+     "kind": "wrap",
+     "number": "131582",
+     "issuer": "WRAP",
+     "expiresOn": "2027-06-17",
+     "documentUrl": "https://wrapcompliance.org/en/certification/facility-monitor-list/"
+    }
+   ]
+  },
+  {
+   "slug": "aboni-knitwear",
+   "name": "ABONI KNITWEAR LTD.",
+   "type": "Factory",
+   "place": "Dhaka",
+   "workers": 3314,
+   "sources": [
+    "EPB",
+    "RSC",
+    "BGAPMEA",
+    "BGMEA",
+    "BKMEA",
+    "GOTS",
+    "OEKO-TEX",
+    "WRAP",
+    "BRAND_ASOS",
+    "BRAND_HM",
+    "BRAND_NEXT"
+   ],
+   "read": {
+    "EPB": "2026-08-14",
+    "RSC": "2026-10-02",
+    "BGMEA": "2026-10-14",
+    "BKMEA": "2026-08-02",
+    "BGAPMEA": "2026-06-26",
+    "GOTS": "2026-10-14",
+    "OEKO-TEX": "2026-10-10",
+    "WRAP": "2026-10-10"
+   },
+   "bgmea": "3498",
+   "certs": [
+    {
+     "kind": "gots",
+     "number": "GOTS-31587",
+     "issuer": "TÜV Rheinland (China) Ltd.",
+     "expiresOn": "2027-05-12",
+     "documentUrl": "https://www.global-trace-base.org/SCO039488/certificate-document"
+    },
+    {
+     "kind": "gots",
+     "number": "GOTS-33219",
+     "issuer": "TÜV Rheinland (China) Ltd.",
+     "expiresOn": "2027-03-30",
+     "documentUrl": "https://global-standards.org/suppliers/certified-suppliers/details?gtbid=SCO057206"
+    },
+    {
+     "kind": "gots",
+     "number": "GOTS-27605",
+     "issuer": "GSCS International Ltd.",
+     "expiresOn": "2026-04-04",
+     "documentUrl": "https://www.global-trace-base.org/SCO029726/certificate-document"
+    },
+    {
+     "kind": "oeko_tex",
+     "number": "32597-100",
+     "issuer": "OEKO-TEX",
+     "expiresOn": null,
+     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+    },
+    {
+     "kind": "wrap",
+     "number": "7865",
+     "issuer": "WRAP",
+     "expiresOn": "2027-08-25",
+     "documentUrl": "https://wrapcompliance.org/en/certification/facility-monitor-list/"
+    }
+   ]
+  },
+  {
+   "slug": "clifton-textiles-and-apparels",
+   "name": "CLIFTON TEXTILES AND APPARELS LTD.",
+   "type": "Factory",
+   "place": "Chattogram",
+   "workers": 2964,
+   "sources": [
+    "EPB",
+    "RSC",
+    "BGAPMEA",
+    "BGMEA",
+    "BKMEA",
+    "GOTS",
+    "OEKO-TEX",
+    "WRAP"
+   ],
+   "read": {
+    "EPB": "2026-07-30",
+    "RSC": "2026-10-02",
+    "BGMEA": "2026-10-14",
+    "BKMEA": "2026-08-02",
+    "BGAPMEA": "2026-06-26",
+    "GOTS": "2026-10-14",
+    "OEKO-TEX": "2026-10-10",
+    "WRAP": "2026-10-10"
+   },
+   "bgmea": "3856",
+   "certs": [
+    {
+     "kind": "gots",
+     "number": "GOTS-21255",
+     "issuer": "USB Certification Denetim Gözetim ve Belgelendirme Hizmetleri A.Ş.",
+     "expiresOn": "2027-01-27",
+     "documentUrl": "https://global-standards.org/suppliers/certified-suppliers/details?gtbid=SCO017465"
+    },
+    {
+     "kind": "oeko_tex",
+     "number": "39532-100",
+     "issuer": "OEKO-TEX",
+     "expiresOn": null,
+     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+    },
+    {
+     "kind": "wrap",
+     "number": "10339",
+     "issuer": "WRAP",
+     "expiresOn": "2026-11-17",
+     "documentUrl": "https://wrapcompliance.org/en/certification/facility-monitor-list/"
+    }
+   ]
+  },
+  {
+   "slug": "logos-apparels",
+   "name": "LOGOS APPARELS LIMITED",
+   "type": "Factory",
+   "place": "Gazipur",
+   "workers": 2030,
+   "sources": [
+    "EPB",
+    "RSC",
+    "BGMEA",
+    "BKMEA",
+    "BTMA",
+    "GOTS",
+    "OEKO-TEX",
+    "WRAP"
+   ],
+   "read": {
+    "EPB": "2026-08-14",
+    "RSC": "2026-10-02",
+    "BGMEA": "2026-10-14",
+    "BKMEA": "2026-08-02",
+    "BTMA": "2026-05-21",
+    "GOTS": "2026-06-26",
+    "OEKO-TEX": "2026-10-10",
+    "WRAP": "2026-10-10"
+   },
+   "bgmea": "2812",
+   "certs": [
+    {
+     "kind": "gots",
+     "number": "GOTS-20077",
+     "issuer": "GCL International Ltd",
+     "expiresOn": "2027-05-03",
+     "documentUrl": null
+    },
+    {
+     "kind": "oeko_tex",
+     "number": "18465-100",
+     "issuer": "OEKO-TEX",
+     "expiresOn": null,
+     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+    },
+    {
+     "kind": "wrap",
+     "number": "132222",
+     "issuer": "WRAP",
+     "expiresOn": "2027-01-26",
+     "documentUrl": "https://wrapcompliance.org/en/certification/facility-monitor-list/"
+    }
+   ]
+  },
+  {
+   "slug": "sm-sourcing",
+   "name": "SM Sourcing",
+   "type": "Factory",
+   "place": "Gazipur",
+   "workers": 770,
+   "sources": [
+    "EPB",
+    "RSC",
+    "BGAPMEA",
+    "BGMEA",
+    "BKMEA",
+    "GOTS",
+    "OEKO-TEX",
+    "WRAP"
+   ],
+   "read": {
+    "EPB": "2026-07-30",
+    "RSC": "2026-10-02",
+    "BGMEA": "2026-10-14",
+    "BKMEA": "2026-08-02",
+    "BGAPMEA": "2026-06-27",
+    "GOTS": "2026-06-26",
+    "OEKO-TEX": "2026-10-10",
+    "WRAP": "2026-10-10"
+   },
+   "bgmea": "6843",
+   "certs": [
+    {
+     "kind": "gots",
+     "number": "GOTS-29209",
+     "issuer": "Clean Globe Globe International (Pty) Ltd",
+     "expiresOn": "2027-02-15",
+     "documentUrl": "https://www.global-trace-base.org/SCO029790/certificate-document"
+    },
+    {
+     "kind": "oeko_tex",
+     "number": "36103-step",
+     "issuer": "OEKO-TEX",
+     "expiresOn": null,
+     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+    },
+    {
+     "kind": "oeko_tex",
+     "number": "36103-100",
+     "issuer": "OEKO-TEX",
+     "expiresOn": null,
+     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+    },
+    {
+     "kind": "oeko_tex",
+     "number": "86704-100",
+     "issuer": "OEKO-TEX",
+     "expiresOn": null,
+     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+    },
+    {
+     "kind": "oeko_tex",
+     "number": "88301-100",
+     "issuer": "OEKO-TEX",
+     "expiresOn": null,
+     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+    },
+    {
+     "kind": "wrap",
+     "number": "130090",
+     "issuer": "WRAP",
+     "expiresOn": "2027-01-08",
+     "documentUrl": "https://wrapcompliance.org/en/certification/facility-monitor-list/"
+    }
+   ]
+  },
+  {
+   "slug": "benchmark-apparels",
+   "name": "BENCHMARK APPARELS LTD.",
+   "type": "Factory",
+   "place": "Chattogram",
+   "workers": 666,
+   "sources": [
+    "EPB",
+    "RSC",
+    "BGAPMEA",
+    "BGMEA",
+    "BKMEA",
+    "GOTS",
+    "OEKO-TEX",
+    "WRAP"
+   ],
+   "read": {
+    "EPB": "2026-08-14",
+    "RSC": "2026-10-02",
+    "BGMEA": "2026-10-14",
+    "BKMEA": "2026-08-02",
+    "BGAPMEA": "2026-06-26",
+    "GOTS": "2026-10-14",
+    "OEKO-TEX": "2026-10-10",
+    "WRAP": "2026-10-10"
+   },
+   "bgmea": "4758",
+   "certs": [
+    {
+     "kind": "gots",
+     "number": "GOTS-17531",
+     "issuer": "USB Certification Denetim Gözetim ve Belgelendirme Hizmetleri A.Ş.",
+     "expiresOn": "2027-01-09",
+     "documentUrl": "https://global-standards.org/suppliers/certified-suppliers/details?gtbid=SCO011282"
+    },
+    {
+     "kind": "oeko_tex",
+     "number": "39382-100",
+     "issuer": "OEKO-TEX",
+     "expiresOn": null,
+     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+    },
+    {
+     "kind": "wrap",
+     "number": "15884",
+     "issuer": "WRAP",
+     "expiresOn": "2027-06-12",
+     "documentUrl": "https://wrapcompliance.org/en/certification/facility-monitor-list/"
+    }
+   ]
+  },
+  {
+   "slug": "sm-knitwear",
+   "name": "S M KNITWEARS LIMITED",
+   "type": "Factory",
+   "place": "Gazipur",
+   "workers": 300,
+   "sources": [
+    "EPB",
+    "RSC",
+    "BGAPMEA",
+    "BGMEA",
+    "BKMEA",
+    "GOTS",
+    "OEKO-TEX",
+    "WRAP",
+    "BRAND_ASOS",
+    "BRAND_NEXT"
+   ],
+   "read": {
+    "EPB": "2026-08-14",
+    "RSC": "2026-10-02",
+    "BGMEA": "2026-10-14",
+    "BKMEA": "2026-08-02",
+    "BGAPMEA": "2026-06-27",
+    "GOTS": "2026-06-26",
+    "OEKO-TEX": "2026-10-10",
+    "WRAP": "2026-07-24"
+   },
+   "bgmea": "3532",
+   "certs": [
+    {
+     "kind": "gots",
+     "number": "GOTS-28946",
+     "issuer": "USB Certification Denetim Gözetim ve Belgelendirme Hizmetleri A.Ş.",
+     "expiresOn": "2027-05-24",
+     "documentUrl": "https://www.global-trace-base.org/SCO031435/certificate-document"
+    },
+    {
+     "kind": "oeko_tex",
+     "number": "9741-mig",
+     "issuer": "OEKO-TEX",
+     "expiresOn": null,
+     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+    },
+    {
+     "kind": "oeko_tex",
+     "number": "9741-step",
+     "issuer": "OEKO-TEX",
+     "expiresOn": null,
+     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+    },
+    {
+     "kind": "oeko_tex",
+     "number": "9741-organic-cotton",
+     "issuer": "OEKO-TEX",
+     "expiresOn": null,
+     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+    },
+    {
+     "kind": "oeko_tex",
+     "number": "9741-100",
+     "issuer": "OEKO-TEX",
+     "expiresOn": null,
+     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+    },
+    {
+     "kind": "wrap",
+     "number": "124992",
+     "issuer": "WRAP",
+     "expiresOn": "2026-07-21",
+     "documentUrl": "https://wrapcompliance.org/certified-facility/124992/"
+    }
+   ]
+  }
+ ],
+ "uflpa": {
+  "entries": 253,
+  "lastRead": null
+ }
+}
