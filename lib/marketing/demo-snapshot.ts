@@ -11,8 +11,8 @@ import { certName } from "@/lib/dashboard/needs-attention";
 import type { CertInput } from "@/components/patterns/words";
 import raw from "./demo-snapshot.json";
 
-export type SnapshotCert = { kind: string; number: string | null; issuer: string | null; expiresOn: string | null; documentUrl: string | null };
-export type SnapshotRow = { slug: string; name: string; type: string; place: string | null; workers: number | null; sources: number; products: string[]; brands: string[]; certs: { kind: string; expiresOn: string | null }[] };
+export type SnapshotCert = { kind: string; number: string | null; issuer: string | null; expiresOn: string | null };
+export type SnapshotRow = { slug: string; name: string; type: string; place: string | null; workers: number | null; sources: number; products: string[]; certs: { kind: string; expiresOn: string | null }[] };
 export type SnapshotRecord = { slug: string; name: string; type: string; place: string | null; workers: number | null; sources: string[]; read: Record<string, string>; bgmea: string | null; certs: SnapshotCert[] };
 export type DemoSnapshot = {
   readAt: string;
@@ -22,7 +22,8 @@ export type DemoSnapshot = {
   uflpa: { entries: number | null; lastRead: string | null } | null;
 };
 
-export const SNAPSHOT = raw as DemoSnapshot;
+// Through `unknown`: the JSON's inferred shape has optional keys where the type has an index signature.
+export const SNAPSHOT = raw as unknown as DemoSnapshot;
 
 /** The demos' "today": the day the snapshot was read. */
 export const TODAY = new Date(`${SNAPSHOT.readAt}T00:00:00Z`);

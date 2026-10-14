@@ -6,6 +6,7 @@
 // (Paper page 37: name, type and place, the section tabs, the Certificates table's columns), from the snapshot.
 
 import { Factory, MapPin } from "@phosphor-icons/react";
+import { Fragment } from "react";
 import { SourceMark } from "@/components/patterns";
 import { certShort } from "@/components/patterns/words";
 import { SECTIONS } from "@/components/record/desktop-words";
@@ -19,20 +20,24 @@ import { Bar, Demo, Window, endOf, streamed } from "./stage";
 
 const { check, search } = SNAPSHOT;
 const NAME = displayName(check.name);
-const LIST = search.rows.slice(0, 5).map((r) => ({ slug: r.slug, name: displayName(r.name), line: [r.type, r.place].filter(Boolean).join(" · "), sources: r.sources }));
+const asRow = (r: { slug: string; name: string; type: string; place: string | null; sources: number }) => ({ slug: r.slug, name: displayName(r.name), line: [r.type, r.place].filter(Boolean).join(" · "), sources: r.sources });
+// The five rows beside the pane, the record's own among them whatever page of the search it sits on.
+const LIST = [...(search.rows.some((r) => r.slug === check.slug) ? [] : [asRow({ ...check, sources: check.sources.length })]), ...search.rows.map(asRow)].slice(0, 5);
 
 /** Every company the demo names. */
 export const NAMES = [NAME, ...LIST.map((r) => r.name)];
 
-/** The register each scheme is read from, for the row's receipt. */
-const REGISTER: Record<string, { mark: string; name: string }> = { gots: { mark: "GOTS", name: "GOTS database" }, wrap: { mark: "WRAP", name: "WRAP register" }, oeko_tex: { mark: "OEKO_TEX", name: "OEKO-TEX buying guide" }, sa8000: { mark: "SA8000", name: "SAI register" } };
+/** The register each scheme is read from, for the row's receipt (the home page's names, lib/home-records.ts); any other scheme shows its name alone. */
+const REGISTER: Record<string, { mark: string; name: string }> = { gots: { mark: "GOTS", name: "GOTS database" }, wrap: { mark: "WRAP", name: "WRAP register" }, oeko_tex: { mark: "OEKO_TEX", name: "OEKO-TEX buying guide" } };
 
 const rows = check.certs
   .map((c) => {
     const reg = REGISTER[c.kind] ?? { mark: c.kind.toUpperCase(), name: certName(c.kind, null) };
     const read = check.read[reg.mark === "OEKO_TEX" ? "OEKO-TEX" : reg.mark] ?? null;
     const ended = Boolean(c.expiresOn && c.expiresOn < SNAPSHOT.readAt);
-    return { key: `${c.kind}-${c.number}`, mark: reg.mark, scheme: certName(c.kind, null), number: c.number, issuer: c.issuer, ended, state: ended ? `Ended ${formatDay(c.expiresOn)}` : certShort(c.expiresOn, TODAY), look: !ended && c.expiresOn !== null && certShort(c.expiresOn, TODAY).startsWith("Expires"), until: formatDay(c.expiresOn), receipt: read ? `${reg.name} · read ${formatDay(read)}` : reg.name, sort: c.expiresOn ?? "9999" };
+    // "GOTS · read 14 Oct 2026": the register's code (its mark stands beside it) and the day it was read; the pane is too narrow for the register's full name.
+    const code = reg.mark === "OEKO_TEX" ? "OEKO-TEX" : reg.mark;
+    return { key: `${c.kind}-${c.number}`, mark: reg.mark, scheme: certName(c.kind, null), number: c.number, issuer: c.issuer, ended, state: ended ? `Ended ${formatDay(c.expiresOn)}` : certShort(c.expiresOn, TODAY), look: !ended && c.expiresOn !== null && certShort(c.expiresOn, TODAY).startsWith("Expires"), until: formatDay(c.expiresOn), receipt: read ? `${code} · read ${formatDay(read)}` : reg.name, sort: c.expiresOn ?? "9999" };
   })
   .sort((a, b) => a.sort.localeCompare(b.sort));
 const HELD = rows.filter((r) => !r.ended);
@@ -60,7 +65,7 @@ export const STEPS: Step<S>[] = [
   ...(LAST ? [{ at: t3, state: still({ cursor: `cert-${LAST.key}` }) }] : []),
 ];
 
-const COLS = "grid grid-cols-[minmax(0,1fr)_minmax(0,112px)_minmax(0,120px)] gap-x-4 [@container_(min-width:640px)]:grid-cols-[minmax(0,1fr)_minmax(0,124px)_minmax(0,120px)_minmax(0,1fr)]";
+const COLS = "grid grid-cols-[minmax(0,1fr)_minmax(0,96px)_minmax(0,96px)] gap-x-3 [@container_(min-width:640px)]:grid-cols-[minmax(0,1fr)_minmax(0,120px)_minmax(0,96px)]";
 
 export function DemoRecord({ className }: { className?: string }) {
   return (
@@ -120,10 +125,9 @@ export function DemoRecord({ className }: { className?: string }) {
                     <span role="columnheader">Certificate</span>
                     <span role="columnheader">State</span>
                     <span role="columnheader">Valid until</span>
-                    <span role="columnheader" className="[@container_(max-width:639px)]:hidden">Read</span>
                   </div>
                   {[...HELD, ...ENDED].slice(0, s.rows).map((c, i) => (
-                    <div key={c.key} role="rowgroup" className="contents">
+                    <Fragment key={c.key}>
                       {i === HELD.length ? (
                         <div role="row" className="flex h-9 items-end border-b border-line px-3 pb-1.5 text-xs font-medium text-ink-3">
                           <span role="cell">No longer current · not counted above</span>
@@ -133,8 +137,11 @@ export function DemoRecord({ className }: { className?: string }) {
                         <span role="cell" className="flex min-w-0 items-center gap-2.5">
                           <SourceMark source={c.mark} />
                           <span className="flex min-w-0 flex-col">
-                            <span className="truncate text-base font-medium text-ink">{c.scheme}</span>
-                            {c.number ? <span className="truncate font-mono text-xs text-ink-3">{c.number}</span> : null}
+                            <span className="flex min-w-0 items-baseline gap-1.5">
+                              <span className="text-base font-medium text-ink">{c.scheme}</span>
+                              {c.number ? <span className="truncate font-mono text-xs text-ink-3">{c.number}</span> : null}
+                            </span>
+                            <span className="truncate text-xs text-ink-2">{c.receipt}</span>
                           </span>
                         </span>
                         <span role="cell" className={cn("text-sm", c.look ? "font-medium text-caution" : c.ended ? "text-ink-3" : "text-ink")}>
@@ -143,11 +150,8 @@ export function DemoRecord({ className }: { className?: string }) {
                         <span role="cell" className={cn("text-sm", c.ended ? "text-ink-3" : "text-ink")}>
                           {c.until ?? <span className="text-xs text-ink-3">No end date published</span>}
                         </span>
-                        <span role="cell" className="truncate text-xs text-ink-2 [@container_(max-width:639px)]:hidden">
-                          {c.receipt}
-                        </span>
                       </div>
-                    </div>
+                    </Fragment>
                   ))}
                 </div>
               ) : (

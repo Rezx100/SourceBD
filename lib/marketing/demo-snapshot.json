@@ -23,7 +23,6 @@
      "Inner Carton",
      "Jackets"
     ],
-    "brands": [],
     "certs": [
      {
       "kind": "sa8000",
@@ -66,7 +65,6 @@
      "Children's Apparel",
      "Interlining"
     ],
-    "brands": [],
     "certs": [
      {
       "kind": "gots",
@@ -100,11 +98,6 @@
      "Blouses",
      "Children's apparel",
      "Children's denim apparel"
-    ],
-    "brands": [
-     "BRAND_ASOS",
-     "BRAND_HM",
-     "BRAND_NEXT"
     ],
     "certs": [
      {
@@ -144,7 +137,6 @@
      "Corrugated Carton",
      "Elastic"
     ],
-    "brands": [],
     "certs": [
      {
       "kind": "wrap",
@@ -175,7 +167,6 @@
      "Kids Item",
      "Knitted Garments"
     ],
-    "brands": [],
     "certs": [
      {
       "kind": "wrap",
@@ -206,7 +197,6 @@
      "Back Board",
      "Black Board"
     ],
-    "brands": [],
     "certs": [
      {
       "kind": "wrap",
@@ -249,7 +239,6 @@
      "Bra",
      "Cami"
     ],
-    "brands": [],
     "certs": [
      {
       "kind": "gots",
@@ -279,10 +268,6 @@
      "Care Label",
      "Children`s apparel",
      "Croset"
-    ],
-    "brands": [
-     "BRAND_ASOS",
-     "BRAND_NEXT"
     ],
     "certs": [
      {
@@ -348,36 +333,31 @@
     "kind": "gots",
     "number": "GOTS-31587",
     "issuer": "TÜV Rheinland (China) Ltd.",
-    "expiresOn": "2027-05-12",
-    "documentUrl": "https://www.global-trace-base.org/SCO039488/certificate-document"
+    "expiresOn": "2027-05-12"
    },
    {
     "kind": "gots",
     "number": "GOTS-33219",
     "issuer": "TÜV Rheinland (China) Ltd.",
-    "expiresOn": "2027-03-30",
-    "documentUrl": "https://global-standards.org/suppliers/certified-suppliers/details?gtbid=SCO057206"
+    "expiresOn": "2027-03-30"
    },
    {
     "kind": "gots",
     "number": "GOTS-27605",
     "issuer": "GSCS International Ltd.",
-    "expiresOn": "2026-04-04",
-    "documentUrl": "https://www.global-trace-base.org/SCO029726/certificate-document"
+    "expiresOn": "2026-04-04"
    },
    {
     "kind": "oeko_tex",
     "number": "32597-100",
     "issuer": "OEKO-TEX",
-    "expiresOn": null,
-    "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+    "expiresOn": null
    },
    {
     "kind": "wrap",
     "number": "7865",
     "issuer": "WRAP",
-    "expiresOn": "2027-08-25",
-    "documentUrl": "https://wrapcompliance.org/en/certification/facility-monitor-list/"
+    "expiresOn": "2027-08-25"
    }
   ]
  },
@@ -415,57 +395,49 @@
      "kind": "gots",
      "number": "GOTS-29200",
      "issuer": "GSCS International Ltd.",
-     "expiresOn": "2027-02-28",
-     "documentUrl": "https://www.global-trace-base.org/SCO030039/certificate-document"
+     "expiresOn": "2027-02-28"
     },
     {
      "kind": "oeko_tex",
      "number": "14554-100",
      "issuer": "OEKO-TEX",
-     "expiresOn": null,
-     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+     "expiresOn": null
     },
     {
      "kind": "oeko_tex",
      "number": "14554-mig",
      "issuer": "OEKO-TEX",
-     "expiresOn": null,
-     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+     "expiresOn": null
     },
     {
      "kind": "oeko_tex",
      "number": "14554-step",
      "issuer": "OEKO-TEX",
-     "expiresOn": null,
-     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+     "expiresOn": null
     },
     {
      "kind": "sa8000",
      "number": "IND.18.10562",
      "issuer": "Bureau Veritas Certification",
-     "expiresOn": "2021-07-23",
-     "documentUrl": "https://sa-intl.org/sa8000-search/"
+     "expiresOn": "2021-07-23"
     },
     {
      "kind": "wrap",
      "number": "13604",
      "issuer": "WRAP",
-     "expiresOn": "2027-09-08",
-     "documentUrl": "https://wrapcompliance.org/en/certification/facility-monitor-list/"
+     "expiresOn": "2027-09-08"
     },
     {
      "kind": "oeko_tex",
      "number": "66550-100",
      "issuer": "OEKO-TEX",
-     "expiresOn": null,
-     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+     "expiresOn": null
     },
     {
      "kind": "wrap",
      "number": "131492",
      "issuer": "WRAP",
-     "expiresOn": "2027-07-28",
-     "documentUrl": "https://wrapcompliance.org/en/certification/facility-monitor-list/"
+     "expiresOn": "2027-07-28"
     }
    ]
   },
@@ -501,29 +473,25 @@
      "kind": "gots",
      "number": "GOTS-27401",
      "issuer": "IDFL Laboratory and Institute Inc.",
-     "expiresOn": "2026-10-15",
-     "documentUrl": "https://www.global-trace-base.org/SCO029538/certificate-document"
+     "expiresOn": "2026-10-15"
     },
     {
      "kind": "oeko_tex",
      "number": "15850-100",
      "issuer": "OEKO-TEX",
-     "expiresOn": null,
-     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+     "expiresOn": null
     },
     {
      "kind": "oeko_tex",
      "number": "15850-step",
      "issuer": "OEKO-TEX",
-     "expiresOn": null,
-     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+     "expiresOn": null
     },
     {
      "kind": "wrap",
      "number": "131582",
      "issuer": "WRAP",
-     "expiresOn": "2027-06-17",
-     "documentUrl": "https://wrapcompliance.org/en/certification/facility-monitor-list/"
+     "expiresOn": "2027-06-17"
     }
    ]
   },
@@ -562,36 +530,31 @@
      "kind": "gots",
      "number": "GOTS-31587",
      "issuer": "TÜV Rheinland (China) Ltd.",
-     "expiresOn": "2027-05-12",
-     "documentUrl": "https://www.global-trace-base.org/SCO039488/certificate-document"
+     "expiresOn": "2027-05-12"
     },
     {
      "kind": "gots",
      "number": "GOTS-33219",
      "issuer": "TÜV Rheinland (China) Ltd.",
-     "expiresOn": "2027-03-30",
-     "documentUrl": "https://global-standards.org/suppliers/certified-suppliers/details?gtbid=SCO057206"
+     "expiresOn": "2027-03-30"
     },
     {
      "kind": "gots",
      "number": "GOTS-27605",
      "issuer": "GSCS International Ltd.",
-     "expiresOn": "2026-04-04",
-     "documentUrl": "https://www.global-trace-base.org/SCO029726/certificate-document"
+     "expiresOn": "2026-04-04"
     },
     {
      "kind": "oeko_tex",
      "number": "32597-100",
      "issuer": "OEKO-TEX",
-     "expiresOn": null,
-     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+     "expiresOn": null
     },
     {
      "kind": "wrap",
      "number": "7865",
      "issuer": "WRAP",
-     "expiresOn": "2027-08-25",
-     "documentUrl": "https://wrapcompliance.org/en/certification/facility-monitor-list/"
+     "expiresOn": "2027-08-25"
     }
    ]
   },
@@ -627,22 +590,19 @@
      "kind": "gots",
      "number": "GOTS-21255",
      "issuer": "USB Certification Denetim Gözetim ve Belgelendirme Hizmetleri A.Ş.",
-     "expiresOn": "2027-01-27",
-     "documentUrl": "https://global-standards.org/suppliers/certified-suppliers/details?gtbid=SCO017465"
+     "expiresOn": "2027-01-27"
     },
     {
      "kind": "oeko_tex",
      "number": "39532-100",
      "issuer": "OEKO-TEX",
-     "expiresOn": null,
-     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+     "expiresOn": null
     },
     {
      "kind": "wrap",
      "number": "10339",
      "issuer": "WRAP",
-     "expiresOn": "2026-11-17",
-     "documentUrl": "https://wrapcompliance.org/en/certification/facility-monitor-list/"
+     "expiresOn": "2026-11-17"
     }
    ]
   },
@@ -678,22 +638,19 @@
      "kind": "gots",
      "number": "GOTS-20077",
      "issuer": "GCL International Ltd",
-     "expiresOn": "2027-05-03",
-     "documentUrl": null
+     "expiresOn": "2027-05-03"
     },
     {
      "kind": "oeko_tex",
      "number": "18465-100",
      "issuer": "OEKO-TEX",
-     "expiresOn": null,
-     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+     "expiresOn": null
     },
     {
      "kind": "wrap",
      "number": "132222",
      "issuer": "WRAP",
-     "expiresOn": "2027-01-26",
-     "documentUrl": "https://wrapcompliance.org/en/certification/facility-monitor-list/"
+     "expiresOn": "2027-01-26"
     }
    ]
   },
@@ -729,43 +686,37 @@
      "kind": "gots",
      "number": "GOTS-29209",
      "issuer": "Clean Globe Globe International (Pty) Ltd",
-     "expiresOn": "2027-02-15",
-     "documentUrl": "https://www.global-trace-base.org/SCO029790/certificate-document"
+     "expiresOn": "2027-02-15"
     },
     {
      "kind": "oeko_tex",
      "number": "36103-step",
      "issuer": "OEKO-TEX",
-     "expiresOn": null,
-     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+     "expiresOn": null
     },
     {
      "kind": "oeko_tex",
      "number": "36103-100",
      "issuer": "OEKO-TEX",
-     "expiresOn": null,
-     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+     "expiresOn": null
     },
     {
      "kind": "oeko_tex",
      "number": "86704-100",
      "issuer": "OEKO-TEX",
-     "expiresOn": null,
-     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+     "expiresOn": null
     },
     {
      "kind": "oeko_tex",
      "number": "88301-100",
      "issuer": "OEKO-TEX",
-     "expiresOn": null,
-     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+     "expiresOn": null
     },
     {
      "kind": "wrap",
      "number": "130090",
      "issuer": "WRAP",
-     "expiresOn": "2027-01-08",
-     "documentUrl": "https://wrapcompliance.org/en/certification/facility-monitor-list/"
+     "expiresOn": "2027-01-08"
     }
    ]
   },
@@ -801,22 +752,19 @@
      "kind": "gots",
      "number": "GOTS-17531",
      "issuer": "USB Certification Denetim Gözetim ve Belgelendirme Hizmetleri A.Ş.",
-     "expiresOn": "2027-01-09",
-     "documentUrl": "https://global-standards.org/suppliers/certified-suppliers/details?gtbid=SCO011282"
+     "expiresOn": "2027-01-09"
     },
     {
      "kind": "oeko_tex",
      "number": "39382-100",
      "issuer": "OEKO-TEX",
-     "expiresOn": null,
-     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+     "expiresOn": null
     },
     {
      "kind": "wrap",
      "number": "15884",
      "issuer": "WRAP",
-     "expiresOn": "2027-06-12",
-     "documentUrl": "https://wrapcompliance.org/en/certification/facility-monitor-list/"
+     "expiresOn": "2027-06-12"
     }
    ]
   },
@@ -854,43 +802,37 @@
      "kind": "gots",
      "number": "GOTS-28946",
      "issuer": "USB Certification Denetim Gözetim ve Belgelendirme Hizmetleri A.Ş.",
-     "expiresOn": "2027-05-24",
-     "documentUrl": "https://www.global-trace-base.org/SCO031435/certificate-document"
+     "expiresOn": "2027-05-24"
     },
     {
      "kind": "oeko_tex",
      "number": "9741-mig",
      "issuer": "OEKO-TEX",
-     "expiresOn": null,
-     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+     "expiresOn": null
     },
     {
      "kind": "oeko_tex",
      "number": "9741-step",
      "issuer": "OEKO-TEX",
-     "expiresOn": null,
-     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+     "expiresOn": null
     },
     {
      "kind": "oeko_tex",
      "number": "9741-organic-cotton",
      "issuer": "OEKO-TEX",
-     "expiresOn": null,
-     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+     "expiresOn": null
     },
     {
      "kind": "oeko_tex",
      "number": "9741-100",
      "issuer": "OEKO-TEX",
-     "expiresOn": null,
-     "documentUrl": "https://services.oeko-tex.com/buying-guide/"
+     "expiresOn": null
     },
     {
      "kind": "wrap",
      "number": "124992",
      "issuer": "WRAP",
-     "expiresOn": "2026-07-21",
-     "documentUrl": "https://wrapcompliance.org/certified-facility/124992/"
+     "expiresOn": "2026-07-21"
     }
    ]
   }

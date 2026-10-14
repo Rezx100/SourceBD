@@ -70,7 +70,7 @@ export function DemoCompliance({ className }: { className?: string }) {
                     <p className="text-sm font-semibold text-caution">{g.heading(g.items.length)}</p>
                   </div>
                   <ul>
-                    {g.items.slice(0, 3).map((i) => (
+                    {g.items.map((i) => (
                       <li key={i.key} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 border-b border-line px-4 py-2 [@container_(min-width:640px)]:grid-cols-[150px_minmax(0,1fr)_minmax(0,1fr)_auto]">
                         <span className="text-sm font-medium text-caution">{i.when}</span>
                         <span className="text-sm text-ink">{i.cert}</span>

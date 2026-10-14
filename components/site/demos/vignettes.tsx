@@ -10,9 +10,9 @@ import { CertChip, buttonClass } from "@/components/kit";
 import { Refusal, SanctionTag, SourceChip, TIER_LABEL, tierOf } from "@/components/patterns";
 import { certWords, usd, vsTarget } from "@/components/patterns/words";
 import type { CursorState, Step } from "@/components/site/motion";
-import { displayName, formatDay } from "@/lib/dashboard/facts";
+import { daysUntil, displayName, formatDay } from "@/lib/dashboard/facts";
 import { certName } from "@/lib/dashboard/needs-attention";
-import { SANCTIONED_SAMPLE, SNAPSHOT } from "@/lib/marketing/demo-snapshot";
+import { SANCTIONED_SAMPLE, SNAPSHOT, TODAY } from "@/lib/marketing/demo-snapshot";
 import { cn } from "@/lib/utils";
 import { Demo, streamed } from "./stage";
 
@@ -26,7 +26,9 @@ const SOON = saved
   .sort((a, b) => a.expiresOn.localeCompare(b.expiresOn))[0] ?? null;
 
 type E = CursorState & { daysLeft: number };
-const DAYS = [30, 21, 14, 7, 3, 1, 0];
+/** The days the chip counts down through, ending on the certificate's real state on the day of the read (the server's step). */
+const LEFT = SOON ? (daysUntil(SOON.expiresOn, TODAY) ?? 0) : 0;
+const DAYS = [...[30, 21, 14, 7, 3, 1].filter((d) => d > LEFT), LEFT];
 const dayBefore = (iso: string, days: number) => new Date(Date.parse(`${iso}T00:00:00Z`) - days * 86_400_000);
 export const EXPIRY_STEPS: Step<E>[] = DAYS.map((d, i) => ({ at: i * 900, state: { daysLeft: d } }));
 
@@ -53,6 +55,8 @@ export function VignetteExpiry({ className }: { className?: string }) {
 /* ------------------------------------------------------------------ a source mark stack settling */
 
 const SOURCES = [...check.sources].sort((a, b) => tierOf(a) - tierOf(b));
+/** A brand list's short name as the results row writes it (lib/dashboard/build-discover-row.ts); a register's code is its name. */
+const BRAND: Record<string, string> = { BRAND_HM: "H&M", BRAND_ASOS: "ASOS", BRAND_NEXT: "NEXT", BRAND_MS: "M&S", BRAND_INDITEX: "Inditex", BRAND_PRIMARK: "Primark" };
 type M = CursorState & { shown: number };
 export const MARKS_STEPS: Step<M>[] = [{ at: 0, state: { shown: 0 } }, ...streamed(SOURCES.length, 500, (shown) => ({ shown }))];
 
@@ -68,7 +72,7 @@ export function VignetteMarks({ className }: { className?: string }) {
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
             {SOURCES.slice(0, s.shown).map((code) => (
               <span key={code} className="animate-swap-in motion-reduce:animate-none" title={TIER_LABEL[tierOf(code)]}>
-                <SourceChip source={code} name={code.replace(/^BRAND_/, "").replace("HM", "H&M")} />
+                <SourceChip source={code} name={BRAND[code] ?? code} />
               </span>
             ))}
           </div>

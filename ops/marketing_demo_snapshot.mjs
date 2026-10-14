@@ -55,9 +55,11 @@ const row = (r) => ({
   workers: num(r.employees_total),
   sources: num(r.t13_source_count) ?? 0,
   products: Array.isArray(r.principal_products) ? r.principal_products.filter((p) => typeof p === "string").slice(0, 6) : [],
-  brands: Array.isArray(r.brand_codes) ? r.brand_codes : [],
   certs: list(r.cert_summary).map((c) => ({ kind: str(c.kind) ?? str(c.scheme) ?? "", expiresOn: day(c.expires_on ?? c.expiresOn) })),
 });
+
+/** The Watch demo says "No link found" of every saved supplier: a record that so much as mentions the region is left out. */
+const XINJIANG = /xinjiang|xuar|uyghur/i;
 
 /** A record as the demos draw it: the head, the sources read, every certificate with its issuer and date. */
 const record = (p) => {
@@ -73,7 +75,7 @@ const record = (p) => {
     sources: [...new Set(prov.map((x) => String(x.source_code).toUpperCase().replace("OEKO_TEX", "OEKO-TEX")))],
     read: Object.fromEntries(["EPB", "RSC", "BGMEA", "BKMEA", "BTMA", "BGAPMEA", "GOTS", "OEKO-TEX", "WRAP"].map((c) => [c, readOn(c === "OEKO-TEX" ? "OEKO_TEX" : c)]).filter(([, d]) => d)),
     bgmea: str(list(p.pills).find((x) => String(x.source_code).toUpperCase() === "BGMEA" && /member/i.test(String(x.label)))?.value),
-    certs: list(p.certifications).map((c) => ({ kind: str(c.kind) ?? "", number: str(c.certificate_no), issuer: str(c.issuer), expiresOn: day(c.expires_on), documentUrl: str(c.source_url) ?? str(c.document_url) })),
+    certs: list(p.certifications).map((c) => ({ kind: str(c.kind) ?? "", number: str(c.certificate_no), issuer: str(c.issuer), expiresOn: day(c.expires_on) })),
   };
 };
 
@@ -81,11 +83,18 @@ const raw = await rpc("discover_suppliers", args);
 const rows = raw.map(row);
 const total = num(raw[0]?.total_count);
 if (!rows.some((r) => r.slug === "aboni-knitwear")) console.warn("Aboni Knitwear is not on the first page of this search; the Find demo hovers the first row instead");
-const profileOf = async (slug) => record(await rpc("buyer_supplier_profile", { p_slug: slug }));
-// The Check demo's record, then the first eleven rows' records for the Watch demo (their certificates) and the Ask demo (three of them).
-const check = await profileOf("aboni-knitwear");
+const profileOf = async (slug) => {
+  const p = await rpc("buyer_supplier_profile", { p_slug: slug });
+  return { record: record(p), mentionsRegion: XINJIANG.test(JSON.stringify(p)) };
+};
+// The Check demo's record, then every row's record for the Watch demo (their certificates) and the Ask demo (three of them).
+const check = (await profileOf("aboni-knitwear")).record;
 const saved = [];
-for (const r of rows.slice(0, 11)) saved.push(await profileOf(r.slug));
+for (const r of rows) {
+  const p = await profileOf(r.slug);
+  if (p.mentionsRegion) console.warn(`${r.slug} mentions the region; left out of the saved list`);
+  else saved.push(p.record);
+}
 const lists = await rpc("sanctions_lists_read").catch(() => []);
 const uflpa = list(lists).find((l) => l.list === "uflpa") ?? null;
 

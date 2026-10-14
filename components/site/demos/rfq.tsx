@@ -7,11 +7,12 @@
 
 import { Check, X } from "@phosphor-icons/react";
 import { BulkBar, bulkActionClass, bulkCloseClass, buttonClass } from "@/components/kit";
-import { QuoteComparison, SampleLabel } from "@/components/patterns";
+import { SampleLabel } from "@/components/patterns";
+import { usd, vsTarget } from "@/components/patterns/words";
 import type { CursorState, Step } from "@/components/site/motion";
 import { displayName } from "@/lib/dashboard/facts";
 import { motion } from "@/lib/design/tokens";
-import { SNAPSHOT } from "@/lib/marketing/demo-snapshot";
+import { READ_AT, SNAPSHOT } from "@/lib/marketing/demo-snapshot";
 import { cn } from "@/lib/utils";
 import { Bar, Demo, Field, Window, endOf, typed } from "./stage";
 
@@ -59,10 +60,12 @@ steps.push({ at: t + motion.cursorMs + motion.clickMs, state: still({ quotes: fa
 steps.push({ at: t + motion.cursorMs + motion.clickMs + 1200, state: still({}) });
 export const STEPS = steps;
 
+/** The example quotes, in the comparison's own words (`QuoteComparison`'s phone cards; its table needs a wider page than a demo gets). */
+const TARGET = 6.5;
+const QUANTITY = 12000;
 const QUOTES = [
-  { status: "quoted" as const, supplier: TARGETS[0]!.name, price: 6.15, moq: 10000, leadDays: 45, validUntil: "30 Nov 2026", action: <span className={buttonClass({ kind: "primary" })}>Accept quote</span> },
-  { status: "quoted" as const, supplier: TARGETS[1]!.name, price: 6.9, moq: 15000, leadDays: 38, validUntil: "22 Nov 2026", action: <span className={buttonClass()}>Accept quote</span> },
-  { status: "no-reply" as const, supplier: TARGETS[2]!.name, sentOn: "14 Oct 2026" },
+  { supplier: TARGETS[0]!.name, price: 6.15, moq: 10000, leadDays: 45, validUntil: "30 Nov 2026", best: true },
+  { supplier: TARGETS[1]!.name, price: 6.9, moq: 12000, leadDays: 38, validUntil: "22 Nov 2026", best: false },
 ];
 
 export function DemoRfq({ className }: { className?: string }) {
@@ -71,10 +74,33 @@ export function DemoRfq({ className }: { className?: string }) {
       {(s) => (
         <Window>
           {s.quotes ? (
-            <div className="flex flex-col gap-4 p-5">
+            <section aria-label="Quotes" className="flex flex-col gap-4 p-5">
               <SampleLabel>Example quotes · the suppliers are real, every figure is an example</SampleLabel>
-              <QuoteComparison title={RFQ.product} quantity={12000} shipBy={RFQ.shipBy} target={6.5} quotes={QUOTES} />
-            </div>
+              <header className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                <h3 className="text-lg font-semibold text-ink">{RFQ.product}</h3>
+                <p className="text-sm text-ink-2">
+                  {QUANTITY.toLocaleString("en-GB")} pieces · ship by {RFQ.shipBy} · target {usd(TARGET)} per piece
+                </p>
+              </header>
+              <div className="grid grid-cols-1 gap-3 [@container_(min-width:640px)]:grid-cols-2">
+                {QUOTES.map((q) => (
+                  <article key={q.supplier} className="flex animate-swap-in flex-col gap-2 rounded-lg border border-line bg-surface p-4 motion-reduce:animate-none">
+                    <h4 className="text-md font-medium text-ink">{q.supplier}</h4>
+                    <p className="flex items-baseline gap-2">
+                      <span className="text-xl font-semibold tracking-tight text-ink">{usd(q.price)}</span>
+                      <span className="text-sm text-ink-2">per piece · {vsTarget(q.price, TARGET).replace(/^On target$/, "on target").replace(/ (under|over)$/, " $1 target")}</span>
+                    </p>
+                    <p className="text-sm text-ink-2">
+                      MOQ {q.moq.toLocaleString("en-GB")} pieces · {q.leadDays} days · valid until {q.validUntil}
+                    </p>
+                    <span className={buttonClass({ kind: q.best ? "primary" : "secondary", className: "self-start" })}>Accept quote</span>
+                  </article>
+                ))}
+              </div>
+              <p className="text-sm text-ink-3">
+                {TARGETS[2]!.name} · No reply yet · RFQ sent {READ_AT}
+              </p>
+            </section>
           ) : (
             <>
               {s.ticked > 0 ? (

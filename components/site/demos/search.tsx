@@ -77,8 +77,8 @@ export function DemoSearch({ className }: { className?: string }) {
               <tr>
                 <SelectCell header label="Select all on this page" disabled readOnly checked={false} />
                 <Th>Supplier</Th>
-                <Th className="w-28">Location</Th>
-                <Th align="right" className="w-20">
+                <Th className="w-28 [@container_(max-width:639px)]:hidden">Location</Th>
+                <Th align="right" className="w-20 [@container_(max-width:639px)]:hidden">
                   Workers
                 </Th>
                 <Th className="w-28">Certificates</Th>
@@ -98,8 +98,8 @@ export function DemoSearch({ className }: { className?: string }) {
                       {qualifier ? <span className="block truncate text-xs text-ink-3">{qualifier}</span> : null}
                       {r.products ? <Products products={r.products} className="pt-0.5" /> : null}
                     </Td>
-                    <Td className="text-ink">{r.place ?? <Unpublished />}</Td>
-                    <Td align="right" className="tabular-nums text-ink">
+                    <Td className="text-ink [@container_(max-width:639px)]:hidden">{r.place ?? <Unpublished />}</Td>
+                    <Td align="right" className="tabular-nums text-ink [@container_(max-width:639px)]:hidden">
                       {formatCount(r.workers) ?? <Unpublished />}
                     </Td>
                     <Td>{r.held.length ? <HeldMarks held={r.held} /> : <Unpublished>{ABSENT.certificates}</Unpublished>}</Td>
