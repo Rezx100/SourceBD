@@ -27,13 +27,23 @@ const plain = (s: string) => s.replace(/&#x27;/g, "'").replace(/&amp;/g, "&").re
 const draw = (C: ComponentType<{ className?: string }>) => plain(renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router as never }, createElement(C))));
 const text = (m: string) => m.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
 
+/** Check opened at another of the record's sections (M4). */
+const checkAt = (tab: import("@/components/site/demos/record").RecordTab): ComponentType<{ className?: string }> =>
+  function CheckAt(p) {
+    return createElement(record.DemoRecord, { ...p, tab });
+  };
+
 const DEMOS: { name: string; C: ComponentType<{ className?: string }>; names: readonly string[] }[] = [
   { name: "Find", C: search.DemoSearch, names: search.NAMES },
   { name: "Check", C: record.DemoRecord, names: record.NAMES },
+  { name: "Check at Sources", C: checkAt("sources"), names: record.NAMES },
+  { name: "Check at Contact", C: checkAt("contact"), names: record.NAMES },
   { name: "Ask", C: rfq.DemoRfq, names: rfq.NAMES },
   { name: "Watch", C: compliance.DemoCompliance, names: compliance.NAMES },
   { name: "Claim", C: claim.DemoClaim, names: claim.NAMES },
   ...vignettes.VIGNETTES.map((v) => ({ name: `vignette ${v.key}`, C: v.Demo as ComponentType<{ className?: string }>, names: v.names })),
+  { name: "vignette search", C: vignettes.VignetteSearch, names: vignettes.SEARCH_NAMES },
+  { name: "vignette receipts", C: vignettes.VignetteReceipts, names: vignettes.RECEIPT_NAMES },
 ];
 
 describe("the demo snapshot", () => {
@@ -78,6 +88,33 @@ describe("the demos", () => {
     assert.match(t, /Certificate State Valid until/);
     assert.match(t, /read \d{1,2} [A-Z][a-z]{2} \d{4}/);
     if (SNAPSHOT.check.certs.some((c) => c.expiresOn && c.expiresOn < SNAPSHOT.readAt)) assert.match(t, /No longer current · not counted above/);
+  });
+
+  it("Check at Sources lists every source in trust order with its full name and read day; at Contact the card is locked and no value is drawn (M4)", () => {
+    const sources = text(draw(checkAt("sources")));
+    assert.match(sources, /Source · highest trust first Last read/);
+    assert.match(sources, /Tier 1 · government and RSC/);
+    for (const code of SNAPSHOT.check.sources) if (/^BRAND_/.test(code)) assert.match(sources, /supplier list/);
+    assert.match(sources, /Export Promotion Bureau|Bangladesh Garment Manufacturers/);
+    assert.match(sources, /\d{1,2} [A-Z][a-z]{2} \d{4}/);
+    const contact = text(draw(checkAt("contact")));
+    assert.match(contact, /Contact details are locked/);
+    assert.match(contact, /Send an RFQ and the supplier replies in Messages\./);
+    assert.doesNotMatch(contact, /@|\+880|on file/);
+    // The caption can be left to the page (a demo on a textile stage draws it under the cloth), never dropped.
+    const bare = text(renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router as never }, createElement(record.DemoRecord, { caption: false }))));
+    assert.ok(!bare.includes(CAPTION));
+  });
+
+  it("the search vignette ends on the first three rows of the search; the receipts vignette on three facts, each from a register with a read day (M4)", () => {
+    const found = text(draw(vignettes.VignetteSearch));
+    assert.match(found, /knit GOTS/);
+    for (const n of vignettes.SEARCH_NAMES) assert.ok(found.includes(n), n);
+    assert.equal(vignettes.SEARCH_NAMES.length, 3);
+    const receipts = text(draw(vignettes.VignetteReceipts));
+    assert.match(receipts, /3 of 3 facts, each with its receipt/);
+    assert.equal((receipts.match(/From [A-Za-z -]+ · read \d{1,2} [A-Z][a-z]{2} \d{4}/g) ?? []).length, 3);
+    if (SNAPSHOT.check.bgmea) assert.match(receipts, new RegExp(`BGMEA member no\\. ${SNAPSHOT.check.bgmea} From BGMEA · read`));
   });
 
   it("Ask labels the RFQ and every quote as examples; Watch says the UFLPA list's own entry count", () => {

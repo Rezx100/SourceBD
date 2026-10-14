@@ -9,6 +9,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
+import type { HomeRecord } from "@/lib/home-records";
+import { CAPTION } from "@/lib/marketing/demo-snapshot";
 import { NO_FACTS, parseFacts } from "@/lib/site-facts";
 import { PRODUCT, SOLUTIONS } from "@/components/site/map";
 
@@ -18,9 +20,12 @@ const draw = (el: ReactElement) => plain(renderToStaticMarkup(createElement(AppR
 const text = (m: string) => m.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded after the test build exists.
 const { PAGES, SitePage, siteMetadata } = require("@/components/site/pages") as typeof import("@/components/site/pages");
+// eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
+const { RECORDS_KEY, RecordsPage } = require("@/components/site/product/records") as typeof import("@/components/site/product/records");
 
 const FACTS = parseFacts({ suppliers_indexed: 10268, last_refreshed_at: "2026-10-02T05:48:07Z" }, null);
-const page = (key: string, facts = FACTS) => draw(createElement(SitePage, { pageKey: key, facts }));
+/** A page as its route draws it: the records page in the home's frame (M4), every other on the template. */
+const page = (key: string, facts = FACTS, cards: HomeRecord[] = []) => draw(key === RECORDS_KEY ? createElement(RecordsPage, { cards }) : createElement(SitePage, { pageKey: key, facts }));
 
 describe("the product and solutions pages", () => {
   it("every page the menus link to is built, and nothing else is", () => {
@@ -51,16 +56,20 @@ describe("the product and solutions pages", () => {
   it("every screen exists on disk and has alt text and a caption that says what kind of screen it is", () => {
     for (const [key, p] of Object.entries(PAGES)) {
       const out = page(key);
-      // The textile stills behind the screens are decoration (alt=""); every screen says what it shows.
-      const imgs = [...out.matchAll(/<img[^>]*>/g)].map((m) => m[0]).filter((i) => !/src="\/site\/home\//.test(i));
-      assert.ok(imgs.length >= 1, key);
-      for (const i of imgs) {
+      // The textile stills behind the screens are decoration (alt=""), and a source mark is the register's; every screen says what it shows.
+      const shots = [...out.matchAll(/<img[^>]*>/g)]
+        .map((m) => m[0])
+        .map((i) => {
+          const src = /src="([^"]+)"/.exec(i)![1]!;
+          return { i, file: decodeURIComponent(/url=([^&]+)/.exec(src)?.[1] ?? src) };
+        })
+        .filter(({ file }) => file.startsWith("/site/") && !file.startsWith("/site/home/"));
+      assert.ok(shots.length >= 1, key);
+      for (const { i, file } of shots) {
         assert.match(i, /alt="[^"]{20,}"/, `${key} alt`);
-        const src = /src="([^"]+)"/.exec(i)![1]!;
-        const file = decodeURIComponent(/url=([^&]+)/.exec(src)?.[1] ?? src);
         assert.ok(existsSync(join(process.cwd(), "public", file)), `${key}: ${file}`);
       }
-      for (const b of [...p.blocks.filter((x) => x.shot).map((x) => x.shot!), p.hero]) assert.match(b.caption, /^(Real screen|Sample state) · /, key);
+      for (const b of [...p.blocks.filter((x) => x.shot).map((x) => x.shot!), ...(p.hero ? [p.hero] : [])]) assert.match(b.caption, /^(Real screen|Sample state) · /, key);
     }
   });
 
@@ -120,5 +129,69 @@ describe("the product and solutions pages", () => {
       assert.match(String(m.alternates?.canonical), new RegExp(`/${key}$`));
     }
     assert.equal(siteMetadata("product/nope"), null);
+  });
+});
+
+const CARD: HomeRecord = { slug: "aboni-knitwear", name: "Aboni Knitwear Ltd", meta: "Factory · Dhaka · 3,314 workers", marks: ["EPB", "BGMEA"], facts: [{ icon: "rosette", title: "WRAP 7865 · valid to 25 Aug 2027", sub: "WRAP register · read 10 Oct 2026" }] };
+
+describe("the records page in the home's frame (M4, handoff-mercury-m4-onward.md §4.2)", () => {
+  it("opens on the record demo at its Certificates section, not a screenshot, with the dated caption under the stage", () => {
+    const out = page(RECORDS_KEY);
+    const hero = out.slice(0, out.indexOf("<h2"));
+    assert.match(hero, /<h1[^>]*>Every fact, with its receipt\.<\/h1>/);
+    assert.match(hero, /record opened beside the search results at its Certificates section/);
+    assert.doesNotMatch(hero, /records-overview\.png/);
+    assert.ok(text(hero).includes(CAPTION), "the caption under the cotton stage");
+  });
+
+  it("the ground runs paper, dark, paper, dark: the rows, the tabbed record, the real records, the cross-sell and the close", () => {
+    const out = page(RECORDS_KEY, FACTS, [CARD]);
+    assert.match(out, /^(?:<link [^>]*>)*<main data-tone="paper" class="[^"]*bg-canvas/);
+    const tones = [...out.matchAll(/data-tone="(photo|dark|paper)"/g)].map((m) => m[1]).slice(1);
+    assert.deepEqual(tones, ["paper", "dark", "paper", "dark"]);
+    assert.match(text(out), /Real records, not reviews\. .*Aboni Knitwear Ltd/);
+    // With no record read, the paper band between the two dark ones is not drawn, and nothing else moves.
+    const bare = [...page(RECORDS_KEY).matchAll(/data-tone="(photo|dark|paper)"/g)].map((m) => m[1]).slice(1);
+    assert.deepEqual(bare, ["paper", "dark", "dark"]);
+  });
+
+  it("every demo on the page has its pause button and its dated caption; the safety row keeps its 3 Oct screen", () => {
+    const out = page(RECORDS_KEY);
+    const pauses = (out.match(/aria-label="Pause demo"/g) ?? []).length;
+    // The hero, the receipts, the certificate, the open tab, and the three loops of the cross-sell.
+    assert.ok(pauses >= 7, `${pauses} pause buttons`);
+    assert.ok((text(out).match(new RegExp(CAPTION.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")) ?? []).length >= pauses, "a dated caption for every demo");
+    assert.match(out, /records-safety\.png/);
+    assert.match(text(out), /Contact details are locked/);
+  });
+
+  it("Inside one record is a tablist of three sections with Certificates open, swapping by the motion tokens", () => {
+    const out = page(RECORDS_KEY);
+    assert.match(out, /role="tablist" aria-label="Sections of the record"/);
+    assert.equal((out.match(/role="tab"/g) ?? []).length, 3);
+    assert.equal((out.match(/aria-selected="true"/g) ?? []).length, 1);
+    assert.match(out, /aria-selected="true"[^>]*>Certificates/);
+    assert.match(out, /role="tabpanel"[^>]*><div class="animate-swap-in/);
+    for (const w of ["Certificates", "Sources", "Contact"]) assert.match(out, new RegExp(`role="tab"[^>]*>${w}<`), w);
+  });
+
+  it("the cross-sell links to the three other product pages, each with its loop, and never to this one", () => {
+    const out = page(RECORDS_KEY);
+    const cross = out.slice(out.indexOf('aria-labelledby="site-cross-sell"'), out.indexOf('aria-labelledby="site-close"'));
+    for (const href of ["/product/search", "/product/rfqs", "/product/compliance"]) assert.match(cross, new RegExp(`href="${href}"`), href);
+    assert.doesNotMatch(cross, /href="\/product\/records"/);
+    assert.equal((cross.match(/aria-label="Pause demo"/g) ?? []).length, 3);
+  });
+
+  it("keeps the template's pins: the search, the two calls to action, the four states and the free-during-beta close", () => {
+    const out = page(RECORDS_KEY);
+    const t = text(out);
+    assert.equal((out.match(/<h1[ >]/g) ?? []).length, 1);
+    assert.match(out, /<form[^>]*action="\/discover"/);
+    assert.match(out, /href="\/signup"[^>]*>Start free/);
+    assert.match(out, /href="\/contact"[^>]*>Book a demo/);
+    for (const s of ["Expired", "Expires in N days", "Valid until", "Listed as valid", "2 sources differ", "Check one supplier now."]) assert.ok(t.includes(s), s);
+    assert.match(t, /Free during beta\. No card needed\./);
+    assert.doesNotMatch(t, /undefined|NaN|\[object/);
   });
 });

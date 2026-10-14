@@ -5,6 +5,8 @@
 // figures and say so under the picture. Laid out in the home page's look (M1): a centred hero over the product on a
 // textile stage, then rows of text beside the screen that proves it.
 // The figure and date in the hero come from the site's live facts and are left out when they were not read.
+// M4 (15 Oct 2026): the pages move one by one into the home's frame with the demos as their proof, each keeping its
+// words here; `/product/records` is `components/site/product/records.tsx`, which the route draws instead of `SitePage`.
 
 import Image from "next/image";
 import type { Metadata } from "next";
@@ -14,9 +16,9 @@ import { Closing } from "@/components/site/sections/closing";
 import { readDay, withCommas, type SiteFacts } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
 
-type Shot = { src: string; alt: string; caption: string };
-type Block = { n: string; label: string; headline: string; lede: string; shot?: Shot; extra?: ReactNode };
-type Page = {
+export type Shot = { src: string; alt: string; caption: string };
+export type Block = { n: string; label: string; headline: string; lede: string; shot?: Shot; extra?: ReactNode };
+export type Page = {
   group: "Product" | "Solutions";
   name: string;
   /** The headline; `{n}` is the live supplier count when it was read. */
@@ -25,14 +27,15 @@ type Page = {
   lede: string;
   title: string;
   description: string;
-  hero: Shot;
+  /** The hero's screen; a page rebuilt on a demo (M4) has none. */
+  hero?: Shot;
   blocks: Block[];
   outcome?: string;
   close: string;
 };
 
 /** A real screen on a textile stage, the caption under it. */
-function Figure({ shot, still, sizes = "(min-width: 1440px) 1152px, 100vw", eager = false }: { shot: Shot; still: StillName; sizes?: string; eager?: boolean }) {
+export function Figure({ shot, still, sizes = "(min-width: 1440px) 1152px, 100vw", eager = false }: { shot: Shot; still: StillName; sizes?: string; eager?: boolean }) {
   return (
     <figure className="flex flex-col gap-3">
       <Stage still={still} eager={eager}>
@@ -90,7 +93,7 @@ export const PAGES: Record<string, Page> = {
     lede: "Each fact names its source and the date we checked it.",
     title: "Supplier records — SourceBD",
     description: "Every fact on a Bangladesh garment supplier names its source and the date we read it. Certificates with dates, safety inspections as text, and both numbers when sources disagree.",
-    hero: shot("records-overview", "A supplier record: sanctions, certificates, safety, workers and sources at the top, then the key facts, each with where it came from.", "Real screen · Aboni Knitwear Ltd. · 11 sources"),
+    // The hero and the certificates row play the record demo and the vignettes (M4, `product/records.tsx`); only safety still shows its 3 Oct screen.
     blocks: [
       { n: "01", label: "Sources", headline: "Sources in words, not badges.", lede: "“From BGMEA · checked 24 Jul 2026.” When a fact has no source linked yet, we say so." },
       {
@@ -98,7 +101,6 @@ export const PAGES: Record<string, Page> = {
         label: "Certificates",
         headline: "Four certificate states, each with a date.",
         lede: "Expired comes first. We never call a certificate “active”.",
-        shot: shot("records-certs", "The certificates tab: four certificates, one expired, one expiring soon, one valid until a date and one with no expiry date published.", "Real screen · Aboni Knitwear Ltd. · certificates"),
         extra: (
           <dl className="grid max-w-[720px] gap-x-10 gap-y-3 sm:grid-cols-2">
             {STATES.map(([a, b]) => (
@@ -247,14 +249,16 @@ export function SitePage({ pageKey, facts }: { pageKey: string; facts: SiteFacts
         title={h1}
         lede={p.lede}
         stage={
-          <div className="flex flex-col gap-3">
-            <Figure shot={p.hero} still="hero-cotton" eager />
-            {count ? (
-              <p className="text-sm text-ink-subtle">
-                {count} published suppliers{updated ? ` · updated ${updated}` : ""}
-              </p>
-            ) : null}
-          </div>
+          p.hero || count ? (
+            <div className="flex flex-col gap-3">
+              {p.hero ? <Figure shot={p.hero} still="hero-cotton" eager /> : null}
+              {count ? (
+                <p className="text-sm text-ink-subtle">
+                  {count} published suppliers{updated ? ` · updated ${updated}` : ""}
+                </p>
+              ) : null}
+            </div>
+          ) : undefined
         }
       >
         <HeroActions center />
