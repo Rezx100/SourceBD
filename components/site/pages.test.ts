@@ -33,18 +33,15 @@ const { COMPLIANCE_KEY, CompliancePage } = require("@/components/site/product/co
 
 const FACTS = parseFacts({ suppliers_indexed: 10268, last_refreshed_at: "2026-10-02T05:48:07Z" }, null);
 /** A page as its route draws it: the four product pages in the home's frame (M4), the solutions pages on the template. */
-const page = (key: string, facts = FACTS, cards: HomeRecord[] = []) =>
-  draw(
-    key === RECORDS_KEY
-      ? createElement(RecordsPage, { cards })
-      : key === SEARCH_KEY
-        ? createElement(SearchPage, { facts })
-        : key === RFQS_KEY
-          ? createElement(RfqsPage)
-          : key === COMPLIANCE_KEY
-            ? createElement(CompliancePage)
-            : createElement(SitePage, { pageKey: key, facts }),
-  );
+const page = (key: string, facts = FACTS, cards: HomeRecord[] = []) => {
+  const rebuilt: Record<string, () => ReactElement> = {
+    [RECORDS_KEY]: () => createElement(RecordsPage, { cards }),
+    [SEARCH_KEY]: () => createElement(SearchPage, { facts }),
+    [RFQS_KEY]: () => createElement(RfqsPage),
+    [COMPLIANCE_KEY]: () => createElement(CompliancePage),
+  };
+  return draw(rebuilt[key]?.() ?? createElement(SitePage, { pageKey: key, facts }));
+};
 
 describe("the product and solutions pages", () => {
   it("every page the menus link to is built, and nothing else is", () => {
@@ -348,7 +345,10 @@ describe("the compliance page in the home's frame (M4, handoff-mercury-m4-onward
     const t = text(out);
     assert.match(t, /Four moments from a day's sourcing\./);
     assert.ok(t.indexOf("Four moments") < t.indexOf("Expired first, then expiring."), "the moments come before the rows");
-    assert.match(t, /the chip counts the days down as they pass/);
+    // The grid plays the same vignette first, so look inside the row itself (its media follows its words).
+    const attention = out.slice(out.indexOf("Expired first, then expiring."), out.indexOf("UFLPA screening, with the list and its date."));
+    assert.match(attention, /the chip counts the days down as they pass/);
+    assert.match(attention, /aria-label="Pause demo"/);
   });
 
   it("the ground runs paper then dark; nine demos, each with a pause button and a dated caption; the cross-sell links to the three other products", () => {
@@ -371,7 +371,7 @@ describe("the compliance page in the home's frame (M4, handoff-mercury-m4-onward
     assert.match(out, /href="\/signup"[^>]*>Start free/);
     assert.match(out, /href="\/contact"[^>]*>Book a demo/);
     for (const s of ["Expired first, then expiring.", "UFLPA screening, with the list and its date.", "The lists we check, and when we read them.", "A statement you confirm, line by line.", "Watch your saved suppliers."]) assert.ok(t.includes(s), s);
-    assert.equal((out.match(/<tbody[\s\S]*<\/tbody>/)![0].match(/<tr /g) ?? []).length, 6);
+    assert.equal((out.match(/<tbody[\s\S]*?<\/tbody>/)![0].match(/<tr /g) ?? []).length, 6);
     assert.match(t, /Free during beta\. No card needed\./);
     assert.doesNotMatch(t, /undefined|NaN|\[object/);
   });

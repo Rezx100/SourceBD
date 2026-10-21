@@ -6,7 +6,7 @@
 // textile stage, then rows of text beside the screen that proves it.
 // The figure and date in the hero come from the site's live facts and are left out when they were not read.
 // M4 (15 Oct 2026): the pages move one by one into the home's frame with the demos as their proof, each keeping its
-// words here; `/product/records` is `components/site/product/records.tsx`, which the route draws instead of `SitePage`.
+// words here; the four product pages are `components/site/product/*.tsx`, which the route draws instead of `SitePage`.
 
 import Image from "next/image";
 import type { Metadata } from "next";
