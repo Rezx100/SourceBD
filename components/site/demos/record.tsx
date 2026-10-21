@@ -21,7 +21,7 @@ import type { CursorState, Step } from "@/components/site/motion";
 import { displayName, formatCount, formatDay, rscStatusWords, rscTrainingWords } from "@/lib/dashboard/facts";
 import { certName } from "@/lib/dashboard/needs-attention";
 import { motion } from "@/lib/design/tokens";
-import { BRAND_LIST, CERT_REGISTER, SNAPSHOT, TODAY, registerCount } from "@/lib/marketing/demo-snapshot";
+import { BRAND_LIST, CERT_REGISTER, SNAPSHOT, TODAY, brandCount, registerCount } from "@/lib/marketing/demo-snapshot";
 import { sourceFullName } from "@/lib/source-full-names";
 import { cn } from "@/lib/utils";
 import { Bar, Demo, Window, endOf, streamed, type Frame } from "./stage";
@@ -33,7 +33,7 @@ const asRow = (r: { slug: string; name: string; type: string; place: string | nu
 const LIST = [...(search.rows.some((r) => r.slug === check.slug) ? [] : [asRow({ ...check, sources: registerCount(check) })]), ...search.rows.map(asRow)].slice(0, 5);
 /** The record's sources as the product counts them. */
 const REGISTERS = registerCount(check);
-const BRANDS = check.sources.filter((s) => s.startsWith("BRAND_")).length;
+const BRANDS = brandCount(check);
 
 /** Every company the demo names. */
 export const NAMES = [NAME, ...LIST.map((r) => r.name)];
@@ -60,9 +60,11 @@ const SOURCES = [...check.sources]
 /** The record's RSC rows as its Safety section words them: the mother's row under the record's own name. */
 const REPORT_WORDS: Record<string, string> = { fire: "Fire", structural: "Structural", electrical: "Electrical", boiler: "Boiler", cap: "Action plan" };
 const cap = (s: string | null) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : null);
-const SAFETY = (check.rsc ?? []).map((r, i) => ({
+// The record's own row (no building name) first, as the app's `motherRsc` picks it; a building keeps its register name ("Aboni Knitwear (New Shed)").
+const SAFETY = [...(check.rsc ?? [])].sort((a, b) => Number(a.building !== null) - Number(b.building !== null)).map((r, i) => ({
   key: `${r.building ?? "main"}-${i}`,
-  name: r.building ? displayName(r.building) : NAME,
+  main: r.building === null,
+  name: r.building?.trim() || NAME,
   status: cap(rscStatusWords(r.status)),
   fixed: r.progress,
   training: cap(rscTrainingWords(r.training)?.replace(/^training /, "") ?? null),
@@ -281,7 +283,7 @@ export function DemoRecord({ tab = "certificates", ...frame }: Frame & { tab?: R
                   ) : (
                     <p className="px-3 py-3 text-sm text-ink-3">Not in the RSC programme</p>
                   )}
-                  {SAFETY[0]?.reports.length && s.rows >= SAFETY.length ? (
+                  {SAFETY[0]?.main && SAFETY[0].reports.length && s.rows >= SAFETY.length ? (
                     <p className="animate-swap-in px-3 pt-2.5 text-xs text-ink-3 motion-reduce:animate-none">Inspection reports on the register: {SAFETY[0].reports.join(", ")}</p>
                   ) : null}
                 </div>
@@ -295,7 +297,7 @@ export function DemoRecord({ tab = "certificates", ...frame }: Frame & { tab?: R
                   <div className="grid grid-cols-3 overflow-hidden rounded-lg border border-line">
                     {[
                       ["Workers", formatCount(check.workers) ?? "Not published"],
-                      ["Sources", String(check.sources.length)],
+                      ["Sources", String(REGISTERS)],
                       ["Certificates", String(HELD.length)],
                     ].map(([k, v], i) => (
                       <div key={k} className={cn("flex flex-col gap-1 px-3 py-3", i > 0 && "border-l border-line")}>

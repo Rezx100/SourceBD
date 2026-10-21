@@ -111,7 +111,8 @@ export function Confidence() {
                   </ul>
                 ) : null}
               </div>
-              {p.demo ? <div className="min-w-0 flex-1">{p.demo}</div> : null}
+              {/* Only the open panel draws its demo: the words of every panel stay in the page. */}
+              {p.demo && on === i ? <div className="min-w-0 flex-1">{p.demo}</div> : null}
             </div>
           </div>
         ))}

@@ -3,13 +3,10 @@
 // elsewhere), the product, then sections that each say one thing and show what proves it, and a close.
 // M4 (15 Oct 2026): every page moved into the home's frame with the demos as its proof (`components/site/product/*.tsx`,
 // which the routes draw); the words stay here. Since the 22 Oct critique no page shows a 3 Oct screenshot: each row's
-// picture is a demo the page chooses. `SitePage` is the plain template a page not rebuilt would fall back to.
+// picture is a demo the page chooses.
 
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { HeroActions, HeroCentered, Section } from "@/components/site/sections/ui";
-import { Closing } from "@/components/site/sections/closing";
-import { withCommas, type SiteFacts } from "@/lib/site-facts";
 
 /** A section of a page: `n` finds it in the page's code, `label` is its name above the headline (never its number: critique 22 Oct, S13). */
 export type Block = { n: string; label: string; headline: string; lede: string; extra?: ReactNode };
@@ -44,7 +41,6 @@ export const PAGES: Record<string, Page> = {
     lede: "Filter by HS code, certificate, place and size. Open any supplier beside your results.",
     title: "Supplier search — SourceBD",
     description: "Search Bangladesh garment suppliers by name, product or HS code. Filter by certificate, district and size, and open each record beside your results.",
-    // The hero and the records row play the Find and Check demos (M4, `product/search.tsx`); only the filter panel still shows its 3 Oct screen.
     blocks: [
       { n: "01", label: "Filters", headline: "Filters that match how you buy.", lede: "HS code, certificate and its status, district, workers, brand supplier lists, BGMEA or BKMEA member. The button shows how many suppliers you will get." },
       { n: "02", label: "Records", headline: "The record opens beside your list.", lede: "Check certificates, safety and sources, then move to the next row. You never lose your search." },
@@ -60,7 +56,6 @@ export const PAGES: Record<string, Page> = {
     lede: "Each fact names its source and the date we checked it.",
     title: "Supplier records — SourceBD",
     description: "Every fact on a Bangladesh garment supplier names its source and the date we read it. Certificates with dates, safety inspections as text, and both numbers when sources disagree.",
-    // The hero and the certificates row play the record demo and the vignettes (M4, `product/records.tsx`); only safety still shows its 3 Oct screen.
     blocks: [
       { n: "01", label: "Sources", headline: "Sources in words, not badges.", lede: "“From BGMEA · checked 24 Jul 2026.” When a fact has no source linked yet, we say so." },
       {
@@ -105,7 +100,6 @@ export const PAGES: Record<string, Page> = {
     lede: "Send one request, compare quotes side by side, keep every reply in one place.",
     title: "RFQs and messages — SourceBD",
     description: "Send one RFQ to up to 50 Bangladesh suppliers, compare FOB, MOQ and lead time side by side, and keep every reply in one thread per supplier.",
-    // The hero and the quotes row play the Ask demo and the quotes vignette (M4, `product/rfqs.tsx`); the thread and the 50-supplier form keep their 3 Oct screens.
     blocks: [
       { n: "01", label: "Quotes", headline: "Quotes side by side.", lede: "FOB per piece, MOQ, lead time and valid until. Suppliers that have not replied stay on the list." },
       { n: "02", label: "Messages", headline: "Replies in one thread per supplier.", lede: "Files, read receipts and the supplier’s record, one click away." },
@@ -121,7 +115,6 @@ export const PAGES: Record<string, Page> = {
     lede: "Watch your saved suppliers for expiry and Entity List changes, with the date of every check.",
     title: "Compliance — SourceBD",
     description: "Watch your saved Bangladesh suppliers for certificate expiry and UFLPA Entity List changes, with the date of every check. “No link found” is never a clearance.",
-    // The hero and the needs-attention row play the Watch demo and the expiry vignette (M4, `product/compliance.tsx`); the UFLPA row keeps its 3 Oct screen.
     blocks: [
       { n: "01", label: "Needs attention", headline: "Expired first, then expiring.", lede: "“Expires in 5 days · 8 Oct 2026.” One action on each: ask for the renewal." },
       { n: "02", label: "UFLPA", headline: "UFLPA screening, with the list and its date.", lede: "We check supplier names against the UFLPA Entity List. Three answers: on the list, possible Xinjiang link, no link found. “No link found” is not a clearance." },
@@ -172,22 +165,3 @@ export const siteMetadata = (key: string): Metadata | null => {
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sourcebd.net";
   return { title: p.title, description: p.description, alternates: { canonical: `${site}/${key}` }, openGraph: { title: p.title, description: p.description, url: `${site}/${key}`, siteName: "SourceBD", locale: "en_GB", type: "website" } };
 };
-
-export function SitePage({ pageKey, facts }: { pageKey: string; facts: SiteFacts }) {
-  const p = PAGES[pageKey]!;
-  const count = facts.suppliers !== null ? withCommas(facts.suppliers) : null;
-  const h1 = count ? p.h1.replace("{n}", count) : p.h1.includes("{n}") ? p.h1Plain : p.h1;
-  return (
-    <main className="font-sans text-ink">
-      <HeroCentered label={`${p.group} · ${p.name}`} title={h1} lede={p.lede}>
-        <HeroActions center />
-      </HeroCentered>
-      {p.blocks.map((b, i) => (
-        <Section key={b.headline} label={b.label} headline={b.headline} lede={b.lede} tone={i % 2 === 0 ? "subtle" : "paper"}>
-          {b.extra}
-        </Section>
-      ))}
-      <Closing headline={p.close} lede="Free during beta. No card needed." />
-    </main>
-  );
-}

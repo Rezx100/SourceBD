@@ -10,15 +10,15 @@
 
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
-import { CertChip, FilterChip, buttonClass } from "@/components/kit";
+import { CertChip, buttonClass } from "@/components/kit";
 import { Refusal, SanctionTag, SourceChip, SourceLine, TIER_LABEL, tierOf } from "@/components/patterns";
 import { certWords, usd, vsTarget } from "@/components/patterns/words";
 import type { CursorState, Step } from "@/components/site/motion";
 import { daysUntil, displayName, formatDay } from "@/lib/dashboard/facts";
 import { certName } from "@/lib/dashboard/needs-attention";
-import { BRAND_LIST, CERT_REGISTER, SANCTIONED_SAMPLE, SNAPSHOT, TODAY, registerCount } from "@/lib/marketing/demo-snapshot";
+import { BRAND_LIST, CERT_REGISTER, SANCTIONED_SAMPLE, SNAPSHOT, TODAY, sourcesCaption } from "@/lib/marketing/demo-snapshot";
 import { cn } from "@/lib/utils";
-import { Demo, endOf, streamed, typed, type Frame } from "./stage";
+import { Chip, Demo, endOf, streamed, typed, type Frame } from "./stage";
 
 const { check, saved, search } = SNAPSHOT;
 
@@ -59,10 +59,8 @@ export function VignetteExpiry(frame: Frame) {
 /* ------------------------------------------------------------------ a source mark stack settling */
 
 const SOURCES = [...check.sources].sort((a, b) => tierOf(a) - tierOf(b));
-/** The product's caption for a record's sources (lib/dashboard/build-discover-row.ts): registers and certifiers, brand lists apart. */
-const REGISTERS = registerCount(check);
-const BRANDS = check.sources.filter((s) => s.startsWith("BRAND_")).length;
-const SOURCES_CAPTION = [`${REGISTERS} ${REGISTERS === 1 ? "register or certifier" : "registers & certifiers"}`, BRANDS ? `${BRANDS} brand ${BRANDS === 1 ? "list" : "lists"}` : null].filter(Boolean).join(" · ");
+/** The product's caption for a record's sources: registers and certifiers, brand lists apart. */
+const SOURCES_CAPTION = sourcesCaption(check);
 type M = CursorState & { shown: number };
 export const MARKS_STEPS: Step<M>[] = [{ at: 0, state: { shown: 0 } }, ...streamed(SOURCES.length, 500, (shown) => ({ shown }))];
 
@@ -178,11 +176,7 @@ export function VignetteSearch(frame: Frame) {
           </p>
           <div className="mt-2 flex min-h-6 flex-wrap gap-1.5">
             {s.chips
-              ? search.chips.map((c) => (
-                  <FilterChip key={c} removeHref="#" removeLabel={`Remove ${c}`}>
-                    {c}
-                  </FilterChip>
-                ))
+              ? search.chips.map((c) => <Chip key={c}>{c}</Chip>)
               : null}
           </div>
           <ul className="mt-2 flex flex-col">

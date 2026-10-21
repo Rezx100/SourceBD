@@ -65,7 +65,7 @@ export const STEPS = SCENES.all;
 
 const DESCRIPTION: Record<ComplianceView, string> = {
   all: `The ${SAVED.length} saved suppliers checked against the UFLPA Entity List, no link found, and their certificates grouped by when they end.`,
-  uflpa: `The ${SAVED.length} saved suppliers checked one by one against the UFLPA Entity List: no link found, which is not a clearance, with the list's entry count and the day it was read.`,
+  uflpa: `The ${SAVED.length} saved suppliers checked one by one against the UFLPA Entity List: no link found, which is not a clearance, with the list's entry count${SNAPSHOT.uflpa?.lastRead ? " and the day it was read" : ""}.`,
   expiry: `The saved suppliers' certificates grouped by when they end, the expired ones first, each with one action: ask for the renewal.`,
   screen: `The saved suppliers checked against the UFLPA Entity List, with ${SANCTIONED_SAMPLE}, an example company, among them: its row turns maroon as it is found on the list, and it cannot be sent an RFQ.`,
 };

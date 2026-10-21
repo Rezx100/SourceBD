@@ -4,18 +4,18 @@
 // filter pane open over a search for "knit", as the app draws it (components/search/filter-panel.tsx and the words of
 // filter-model.ts): Certificates open with its four schemes and the status that waits for one to be ticked, Location
 // closed, Clear all and the button that says how many suppliers the draft will show. The cursor ticks GOTS and the
-// button counts: the figure is the snapshot's own search, "knit" with GOTS held, as read on the snapshot's day. The
-// pane's controls are drawn, not real inputs: nothing in a demo takes focus.
+// button counts: both figures are the snapshot's own searches ("knit", then "knit" with GOTS), as read on the
+// snapshot's day. The pane's controls are drawn, not real inputs: nothing in a demo takes focus.
 
 import { CaretDown, Check } from "@phosphor-icons/react";
-import { FilterChip, buttonClass } from "@/components/kit";
+import { buttonClass } from "@/components/kit";
 import { CERT_NAME, CERT_ORDER, CERT_STATES, showLabel } from "@/components/search/filter-model";
 import type { CursorState, Step } from "@/components/site/motion";
 import { formatCount } from "@/lib/dashboard/facts";
 import { motion } from "@/lib/design/tokens";
 import { SNAPSHOT } from "@/lib/marketing/demo-snapshot";
 import { cn } from "@/lib/utils";
-import { Bar, Demo, Window, type Frame } from "./stage";
+import { Bar, Chip, Demo, Window, type Frame } from "./stage";
 
 const { search } = SNAPSHOT;
 
@@ -49,19 +49,15 @@ function Head({ title, open }: { title: string; open: boolean }) {
 
 export function DemoFilters(frame: Frame) {
   return (
-    <Demo {...frame} steps={STEPS} description={`The filter pane open over a search for knit: GOTS is ticked under Certificates and the button counts ${formatCount(search.total) ?? "the"} suppliers before the filter is applied.`}>
+    <Demo {...frame} steps={STEPS} description={`The filter pane open over a search for knit${search.qTotal != null ? ` (${formatCount(search.qTotal)} suppliers)` : ""}: GOTS is ticked under Certificates and the button counts ${formatCount(search.total) ?? "the"} suppliers before the filter is applied.`}>
       {(s) => (
         <Window>
           <Bar title="Filters" />
           <div className="flex flex-wrap gap-2 border-b border-line px-5 py-3">
-            <FilterChip removeHref="#" removeLabel="Remove knit">
-              knit
-            </FilterChip>
+            <Chip>knit</Chip>
             {s.gots ? (
               <span className="animate-swap-in motion-reduce:animate-none">
-                <FilterChip removeHref="#" removeLabel="Remove GOTS">
-                  GOTS
-                </FilterChip>
+                <Chip>GOTS</Chip>
               </span>
             ) : null}
           </div>
@@ -96,7 +92,7 @@ export function DemoFilters(frame: Frame) {
           <div className="flex h-16 shrink-0 items-center justify-between gap-3 border-t border-line px-5">
             <span className="text-base font-medium text-ink-2 underline decoration-1">Clear all</span>
             <span data-cursor="show" className={buttonClass({ kind: "primary", size: "lg" })}>
-              {showLabel(s.gots ? search.total : null)}
+              {showLabel(s.gots ? search.total : (search.qTotal ?? null))}
             </span>
           </div>
         </Window>

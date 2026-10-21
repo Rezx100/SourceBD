@@ -10,16 +10,16 @@
 
 import { BookmarkSimple, MagnifyingGlass, SidebarSimple } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
-import { FilterChip, SelectCell, Table, Td, Th, Tr, Unpublished, buttonClass } from "@/components/kit";
+import { SelectCell, Table, Td, Th, Tr, Unpublished, buttonClass } from "@/components/kit";
 import { ABSENT, certSummary } from "@/components/patterns/words";
 import { matchedProducts } from "@/components/search/model";
 import { HeldMarks, Products } from "@/components/search/row-parts";
 import type { CursorState, Step } from "@/components/site/motion";
-import { certScheme, daysUntil, displayName, formatCount, splitQualifier } from "@/lib/dashboard/facts";
+import { daysUntil, displayName, formatCount, splitQualifier } from "@/lib/dashboard/facts";
 import { motion } from "@/lib/design/tokens";
-import { SNAPSHOT, TODAY } from "@/lib/marketing/demo-snapshot";
+import { SNAPSHOT, TODAY, certInput } from "@/lib/marketing/demo-snapshot";
 import { cn } from "@/lib/utils";
-import { Bar, Demo, Window, endOf, streamed, typed, type Frame } from "./stage";
+import { Bar, Chip, Demo, Window, endOf, streamed, typed, type Frame } from "./stage";
 
 const { search } = SNAPSHOT;
 const QUERY = search.chips.join(" ");
@@ -52,18 +52,19 @@ export const STEPS: Step<S>[] = [
  * them; a supplier whose every certificate has ended says so).
  */
 export const ROWS = search.rows.map((r) => {
-  const held = certSummary(r.certs.filter((c) => (daysUntil(c.expiresOn, TODAY) ?? 0) >= 0).map((c) => ({ scheme: certScheme(c.kind), expiresOn: c.expiresOn, markCode: c.kind })), TODAY);
+  const held = certSummary(r.certs.filter((c) => (daysUntil(c.expiresOn, TODAY) ?? 0) >= 0).map(certInput), TODAY);
   return { ...r, name: displayName(r.name), products: matchedProducts(r.products, search.q), held: held ? [held.first, ...held.others] : [], anyOnFile: r.certs.length > 0 };
 });
 type Row = (typeof ROWS)[number];
 
-/** Where a column steps out as the window narrows: the place and the workers under 560, the sources and the row's end under 720. */
-const narrow = "[@container_(max-width:559px)]:hidden";
-const mid = "[@container_(max-width:719px)]:hidden";
+/** Where a column steps out as the window narrows: the place under 640, the sources and the row's end under 520, the workers under 480. */
+const place = "[@container_(max-width:639px)]:hidden";
+const tail = "[@container_(max-width:519px)]:hidden";
+const workers = "[@container_(max-width:479px)]:hidden";
 
 /**
- * The results table: the app's columns, the place and the workers hidden under 560 wide, the sources and the row's end
- * under 720. `hot` is the hovered row, whose Save and Open show. Rows from `lit` on stand under a fade until the search
+ * The results table: the app's columns, each stepping out as the window narrows (`place`, `tail`, `workers`), the
+ * supplier and its certificates always drawn. `hot` is the hovered row, whose Save and Open show. Rows from `lit` on stand under a fade until the search
  * reaches them, so the table is never headers with no rows (critique 22 Oct, S5).
  */
 function Rows({ rows, hot, lit = rows.length }: { rows: readonly Row[]; hot?: string | null; lit?: number }) {
@@ -73,15 +74,15 @@ function Rows({ rows, hot, lit = rows.length }: { rows: readonly Row[]; hot?: st
         <tr>
           <SelectCell header label="Select all on this page" disabled readOnly checked={false} />
           <Th>Supplier</Th>
-          <Th className={cn("w-28", narrow)}>Location</Th>
-          <Th align="right" className={cn("w-20", narrow)}>
+          <Th className={cn("w-28", place)}>Location</Th>
+          <Th align="right" className={cn("w-20", workers)}>
             Workers
           </Th>
           <Th className="w-[150px]">Certificates</Th>
-          <Th align="right" className={cn("w-[72px]", mid)}>
+          <Th align="right" className={cn("w-[72px]", tail)}>
             Sources
           </Th>
-          <th scope="col" className={cn("h-row-head w-[76px] border-b border-line bg-subtle p-0", mid)}>
+          <th scope="col" className={cn("h-row-head w-[76px] border-b border-line bg-subtle p-0", tail)}>
             <span className="sr-only">Actions</span>
           </th>
         </tr>
@@ -104,15 +105,15 @@ function Rows({ rows, hot, lit = rows.length }: { rows: readonly Row[]; hot?: st
                   </span>
                 ) : null}
               </Td>
-              <Td className={cn("max-w-0 text-ink", narrow)}>{r.place ? <span className="block truncate">{r.place.split(",")[0]}</span> : <Unpublished />}</Td>
-              <Td align="right" className={cn("whitespace-nowrap tabular-nums text-ink", narrow)}>
+              <Td className={cn("max-w-0 text-ink", place)}>{r.place ? <span className="block truncate">{r.place.split(",")[0]}</span> : <Unpublished />}</Td>
+              <Td align="right" className={cn("whitespace-nowrap tabular-nums text-ink", workers)}>
                 {formatCount(r.workers) ?? <Unpublished />}
               </Td>
               <Td className="py-1.5">{r.held.length ? <HeldMarks held={r.held} words /> : <Unpublished>{r.anyOnFile ? ABSENT.certificatesLapsed : ABSENT.certificates}</Unpublished>}</Td>
-              <Td align="right" className={cn("tabular-nums text-ink", mid)}>
+              <Td align="right" className={cn("tabular-nums text-ink", tail)}>
                 {r.sources}
               </Td>
-              <td className={cn("w-[76px] border-b border-line p-0 align-middle", mid)}>
+              <td className={cn("w-[76px] border-b border-line p-0 align-middle", tail)}>
                 <span className={cn("flex items-center justify-center gap-1 transition-opacity duration-fast", hot === r.slug ? "opacity-100" : "opacity-0")}>
                   <span className={buttonClass({ kind: "quiet", size: "icon-32" })}>
                     <BookmarkSimple size={20} className="shrink-0" aria-hidden />
@@ -135,9 +136,7 @@ function Chips({ chips }: { chips: readonly string[] }) {
   return (
     <div className="flex h-10 shrink-0 items-center gap-2 border-b border-line px-4">
       {chips.map((c) => (
-        <FilterChip key={c} removeHref="#" removeLabel={`Remove ${c}`}>
-          {c}
-        </FilterChip>
+        <Chip key={c}>{c}</Chip>
       ))}
     </div>
   );
@@ -150,9 +149,9 @@ function Chips({ chips }: { chips: readonly string[] }) {
  */
 export function SearchStill({ chips, rows, right, description, className, hot }: { chips: readonly string[]; rows: readonly Row[]; right?: ReactNode; description: string; className?: string; hot?: string | null }) {
   return (
-    <figure data-ground="day" className={cn("rounded-frame shadow-lg", className)}>
+    <figure data-ground="day" className={cn("w-full rounded-frame shadow-lg", className)}>
       <figcaption className="sr-only">{description}</figcaption>
-      <div aria-hidden className="select-none">
+      <div aria-hidden className="pointer-events-none select-none">
         <Window>
           <Bar
             title={
@@ -169,6 +168,19 @@ export function SearchStill({ chips, rows, right, description, className, hot }:
         </Window>
       </div>
     </figure>
+  );
+}
+
+/** The search's first rows as a still, the second hovered (the search page's results row). A client export, so a server page draws it without reading the rows itself. */
+export function SearchFirst({ n = 3, className }: { n?: number; className?: string }) {
+  return (
+    <SearchStill
+      chips={search.chips}
+      rows={ROWS.slice(0, n)}
+      hot={ROWS[1]?.slug}
+      className={className}
+      description={`${Math.min(n, ROWS.length)} rows of the search results: each supplier's products, place, workers, the certificate schemes it holds today and how many sources hold it, with Save and Open on the hovered row.`}
+    />
   );
 }
 

@@ -19,7 +19,7 @@ const plain = (s: string) => s.replace(/&#x27;/g, "'").replace(/&amp;/g, "&").re
 const draw = (el: ReactElement) => plain(renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router as never }, el)));
 const text = (m: string) => m.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded after the test build exists.
-const { PAGES, SitePage, siteMetadata } = require("@/components/site/pages") as typeof import("@/components/site/pages");
+const { PAGES, siteMetadata } = require("@/components/site/pages") as typeof import("@/components/site/pages");
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
 const { RECORDS_KEY, RecordsPage } = require("@/components/site/product/records") as typeof import("@/components/site/product/records");
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- the same.
@@ -48,7 +48,7 @@ const LIST_FACTS = parseFacts(
     { list: "ilab_tvpra", entries_listed: 457, last_read: "2026-10-16T00:08:23Z" },
   ],
 );
-/** A page as its route draws it: every page in the home's frame (M4); `SitePage` stays for a page not rebuilt. */
+/** A page as its route draws it: every page in the home's frame (M4). */
 const page = (key: string, facts = FACTS) => {
   const rebuilt: Record<string, () => ReactElement> = {
     [RECORDS_KEY]: () => createElement(RecordsPage),
@@ -58,7 +58,9 @@ const page = (key: string, facts = FACTS) => {
     [SOURCING_KEY]: () => createElement(SolutionsSourcingPage),
     [COMPLIANCE_TEAMS_KEY]: () => createElement(SolutionsCompliancePage),
   };
-  return draw(rebuilt[key]?.() ?? createElement(SitePage, { pageKey: key, facts }));
+  const build = rebuilt[key];
+  if (!build) throw new Error(`${key} is not built`);
+  return draw(build());
 };
 
 describe("the product and solutions pages", () => {
@@ -267,7 +269,7 @@ describe("the search page in the home's frame (M4, handoff-mercury-m4-onward.md 
     assert.match(out, /record opened beside the search results at its Certificates section/);
     assert.match(out, /The filter pane open over a search for knit/);
     assert.match(t, /Certificates GOTS OEKO-TEX WRAP SA8000 Certificate status Any Valid Expiring Expired/);
-    assert.match(out, /Three rows of the search results/);
+    assert.match(out, /3 rows of the search results/);
     assert.doesNotMatch(out, /\/site\/[a-z-]+\.png/);
     // The table as it stands: no certificate state in the list, so the row's words say the dates are on the record.
     assert.match(t, /Every row says which to open\. What it makes, where it is, its workers, the certificate schemes it holds today and how many sources hold it\./);

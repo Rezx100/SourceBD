@@ -4,7 +4,7 @@
 
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
-import { PAGES, SitePage, siteMetadata } from "@/components/site/pages";
+import { PAGES, siteMetadata } from "@/components/site/pages";
 import { COMPLIANCE_KEY, CompliancePage } from "@/components/site/product/compliance";
 import { RECORDS_KEY, RecordsPage } from "@/components/site/product/records";
 import { RFQS_KEY, RfqsPage } from "@/components/site/product/rfqs";
@@ -35,7 +35,8 @@ export default async function ProductPage({ params }: Props) {
   const { slug } = await params;
   const key = `product/${slug}`;
   if (!Object.hasOwn(PAGES, key)) notFound();
+  // Every page is rebuilt in the home's frame (M4); one that is not has no page to draw.
   const rebuilt = REBUILT[key];
-  if (rebuilt) return rebuilt();
-  return <SitePage pageKey={key} facts={await loadSiteFacts()} />;
+  if (!rebuilt) notFound();
+  return rebuilt();
 }

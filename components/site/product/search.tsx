@@ -6,7 +6,7 @@
 // answers about search; the close.
 
 import { DemoFilters, DemoRecord, DemoSearch } from "@/components/site/demos";
-import { ROWS, SearchStill } from "@/components/site/demos/search";
+import { SearchFirst } from "@/components/site/demos/search";
 import { ToneShift } from "@/components/site/motion";
 import { PAGES } from "@/components/site/pages";
 import { Carousel3 } from "@/components/site/sections/carousel";
@@ -16,7 +16,6 @@ import { FAQ_ITEMS } from "@/components/site/sections/faq-items";
 import { Faq } from "@/components/site/sections/faq";
 import { IconGrid, type IconItem } from "@/components/site/sections/icon-grid";
 import { FeatureRow, H2, HeroActions, HeroCentered, Lede, measure } from "@/components/site/sections/ui";
-import { SNAPSHOT } from "@/lib/marketing/demo-snapshot";
 import { readDay, withCommas, type SiteFacts } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
 import { SEARCH_SLIDES } from "./search-slides";
@@ -81,7 +80,7 @@ export function SearchPage({ facts }: { facts: SiteFacts }) {
           lede={results.lede}
           media={
             <Staged still="weave">
-              <SearchStill chips={SNAPSHOT.search.chips} rows={ROWS.slice(0, 3)} hot={ROWS[1]?.slug} description="Three rows of the search results: each supplier's products, place, workers, the certificate schemes it holds today and how many sources hold it, with Save and Open on the hovered row." />
+              <SearchFirst />
             </Staged>
           }
         />

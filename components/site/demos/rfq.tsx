@@ -26,7 +26,7 @@ const TARGETS = ROWS.slice(0, 3);
 export const NAMES = ROWS.map((r) => r.name);
 
 /** The example RFQ: labelled as such wherever it is drawn. */
-const RFQ = { product: "Men's cotton trousers", quantity: "12,000 pieces", target: "US$6.50 per piece", shipBy: "15 Jan 2027" };
+export const RFQ = { product: "Men's cotton trousers", quantity: "12,000 pieces", target: "US$6.50 per piece", shipBy: "15 Jan 2027" };
 const FIELDS: [string, string][] = [
   ["Product", RFQ.product],
   ["Quantity", RFQ.quantity],
@@ -66,7 +66,7 @@ export const STEPS = steps;
 /** The example quotes, in the comparison's own words (`QuoteComparison`'s phone cards; its table needs a wider page than a demo gets). */
 const TARGET = 6.5;
 const QUANTITY = 12000;
-const QUOTES = [
+export const QUOTES = [
   { supplier: TARGETS[0]!.name, price: 6.15, moq: 10000, leadDays: 45, validUntil: "30 Nov 2026", best: true },
   { supplier: TARGETS[1]!.name, price: 6.9, moq: 12000, leadDays: 38, validUntil: "22 Nov 2026", best: false },
 ];

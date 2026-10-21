@@ -86,6 +86,8 @@ const record = (p) => {
 const raw = await rpc("discover_suppliers", args);
 const rows = raw.map(row);
 const total = num(raw[0]?.total_count);
+// The words alone, before GOTS is ticked: the filter pane's first count.
+const qTotal = num((await rpc("discover_suppliers", { ...args, p_cert_kinds: null, p_limit: 1 }))[0]?.total_count);
 if (!rows.some((r) => r.slug === "aboni-knitwear")) console.warn("Aboni Knitwear is not on the first page of this search; the Find demo hovers the first row instead");
 const profileOf = async (slug) => {
   const p = await rpc("buyer_supplier_profile", { p_slug: slug });
@@ -110,7 +112,7 @@ const uflpa = list(lists).find((l) => l.list === "uflpa") ?? null;
 
 const out = {
   readAt: new Date().toISOString().slice(0, 10),
-  search: { ...SEARCH, total, rows },
+  search: { ...SEARCH, total, qTotal, rows },
   check,
   saved,
   uflpa: uflpa ? { entries: num(uflpa.entries_listed), lastRead: day(uflpa.last_read) } : null,

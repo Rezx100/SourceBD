@@ -11,7 +11,7 @@ import { createElement, type ComponentType } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { displayName } from "@/lib/dashboard/facts";
 import { PII_KEYS } from "@/lib/discover-v32-rpc";
-import { CAPTION, READ_AT, SANCTIONED_SAMPLE, SNAPSHOT, snapshotNames } from "@/lib/marketing/demo-snapshot";
+import { CAPTION, READ_AT, SANCTIONED_SAMPLE, SNAPSHOT, registerCount, snapshotNames, sourcesCaption } from "@/lib/marketing/demo-snapshot";
 
 /* eslint-disable @typescript-eslint/no-require-imports -- loaded after the test build exists. */
 const search = require("@/components/site/demos/search") as typeof import("@/components/site/demos/search");
@@ -92,6 +92,7 @@ describe("the demos", () => {
       assert.match(out, /<figcaption class="sr-only">[^<]{20,}<\/figcaption>/, "one sentence for a screen reader");
       assert.match(out, /data-ground="day"/, "the product stays light on any ground");
       assert.match(out, /border-line-strong/, "the window has a real edge on paper (critique 22 Oct, S4)");
+      assert.doesNotMatch(out, /<a [^>]*href=|<(?:input|select|textarea)(?![^>]*disabled)[^>]*>/, "nothing in a demo takes focus: it is hidden from assistive tech (critique 22 Oct review)");
       assert.doesNotMatch(t, /undefined|NaN|\[object/);
     });
   }
@@ -175,9 +176,11 @@ describe("the demos", () => {
   });
 
   it("one source count everywhere: the record and the marks say the product's registers and certifiers, brand lists apart (critique 22 Oct)", () => {
-    const registers = SNAPSHOT.check.registers ?? SNAPSHOT.check.sources.filter((s) => !s.startsWith("BRAND_")).length;
-    assert.match(text(draw(record.DemoRecord)), new RegExp(`${registers} sources`));
-    assert.match(text(draw(vignettes.VignetteMarks)), new RegExp(`${registers} registers & certifiers`));
+    const registers = registerCount(SNAPSHOT.check);
+    const pane = text(draw(record.DemoRecord));
+    assert.match(pane, new RegExp(`${registers} sources`));
+    assert.doesNotMatch(pane, new RegExp(`\b${SNAPSHOT.check.sources.length} sources`), "never the count with the brand lists in it");
+    assert.ok(text(draw(vignettes.VignetteMarks)).includes(sourcesCaption(SNAPSHOT.check)));
     const row = SNAPSHOT.search.rows.find((r) => r.slug === SNAPSHOT.check.slug);
     if (row) assert.equal(row.sources, registers, "the search row and the record count the same sources");
     // A brand list is named in a chip, never drawn as a placeholder glyph.
