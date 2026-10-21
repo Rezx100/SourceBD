@@ -28,12 +28,13 @@ export function InsideRecord({ callouts }: { callouts: (HomeFact | null)[] }) {
           <H2 id="home-inside">Inside one record.</H2>
           <Lede className="max-w-[720px]">Aboni Knitwear Ltd, opened beside the search at its certificates. Each fact names its source and the day we read it.</Lede>
         </div>
-        <div className={cn("grid w-full gap-8 lg:items-center lg:gap-16", shown.length && "lg:grid-cols-[minmax(0,8fr)_minmax(0,4fr)]")}>
+        {/* The record at the width it is read, the facts in a row under it. */}
+        <div className="flex w-full flex-col gap-8">
           <DemoRecord stage="weave" />
           {shown.length ? (
             <div className="flex flex-col gap-3">
               <p className="text-site-body font-medium text-ink-subtle">What the record shows today</p>
-              <ul aria-label="What the record shows" className="w-full border-t border-line">
+              <ul aria-label="What the record shows" className="grid w-full border-t border-line md:grid-cols-3 md:gap-x-8">
                 {shown.map((f) => (
                   <li key={f.title} className="flex gap-2.5 border-b border-line-subtle py-3">
                     <span aria-hidden className="mt-1.5 size-[7px] shrink-0 rounded-full bg-ink-strong" />

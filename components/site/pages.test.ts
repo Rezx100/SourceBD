@@ -117,7 +117,7 @@ describe("the product and solutions pages", () => {
 
   it("every quote and RFQ the demos draw says it is an example", () => {
     for (const key of ["product/rfqs", "solutions/sourcing"]) assert.match(text(page(key)), /Example quotes · the suppliers are real, every figure is an example/, key);
-    assert.match(text(page("product/rfqs")), /Example RFQ · Example Apparel Ltd is an example company/);
+    assert.match(text(page("product/rfqs")), /Example RFQ .*Example Apparel Ltd is an example company, not a real supplier/);
   });
 
   it("the statement draft ships, so no page calls it in design (audit P1, 14 Oct 2026)", () => {

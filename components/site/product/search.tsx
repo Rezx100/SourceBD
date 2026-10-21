@@ -15,7 +15,7 @@ import { CrossSell } from "@/components/site/sections/cross-sell";
 import { FAQ_ITEMS } from "@/components/site/sections/faq-items";
 import { Faq } from "@/components/site/sections/faq";
 import { IconGrid, type IconItem } from "@/components/site/sections/icon-grid";
-import { FeatureRow, H2, HeroActions, HeroCentered, Lede, measure } from "@/components/site/sections/ui";
+import { FeatureRow, H2, HeroActions, HeroCentered, Lede, Section, measure } from "@/components/site/sections/ui";
 import { readDay, withCommas, type SiteFacts } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
 import { SEARCH_SLIDES } from "./search-slides";
@@ -74,16 +74,12 @@ export function SearchPage({ facts }: { facts: SiteFacts }) {
           tone="subtle"
           media={<DemoRecord stage="weave" />}
         />
-        <FeatureRow
-          label={results.label}
-          headline={results.headline}
-          lede={results.lede}
-          media={
-            <Staged still="weave">
-              <SearchFirst />
-            </Staged>
-          }
-        />
+        {/* The rows at the table's own width, so every column the words name is drawn. */}
+        <Section label={results.label} headline={results.headline} lede={results.lede}>
+          <Staged still="weave">
+            <SearchFirst />
+          </Staged>
+        </Section>
       </div>
 
       <div data-tone="dark">

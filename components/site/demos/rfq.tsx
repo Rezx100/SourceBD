@@ -15,7 +15,7 @@ import { usd, vsTarget } from "@/components/patterns/words";
 import type { CursorState, Step } from "@/components/site/motion";
 import { displayName } from "@/lib/dashboard/facts";
 import { motion } from "@/lib/design/tokens";
-import { READ_AT, SANCTIONED_SAMPLE, SNAPSHOT } from "@/lib/marketing/demo-snapshot";
+import { CAPTION, READ_AT, SANCTIONED_SAMPLE, SNAPSHOT } from "@/lib/marketing/demo-snapshot";
 import { cn } from "@/lib/utils";
 import { Bar, Demo, Field, Window, endOf, typed, type Frame } from "./stage";
 
@@ -231,13 +231,13 @@ export const REVIEW_STEPS: Step<R>[] = [
 export function DemoReview(frame: Frame) {
   const n = RECIPIENTS.length;
   return (
-    <Demo {...frame} steps={REVIEW_STEPS} description={`An example RFQ to ${n} suppliers from a search, reviewed before it goes: ${SANCTIONED_SAMPLE}, an example company on a sanctions screen, blocks the send until it is removed.`}>
+    <Demo {...frame} caption={frame.caption === false ? false : `${CAPTION} · ${SANCTIONED_SAMPLE} is an example company, not a real supplier`} steps={REVIEW_STEPS} description={`An example RFQ to ${n} suppliers from a search, reviewed before it goes: ${SANCTIONED_SAMPLE}, an example company on a sanctions screen, blocks the send until it is removed.`}>
       {(s) => {
         const to = s.removed ? n : n + 1;
         return (
           <Window>
             <Bar title="New RFQ">
-              <SampleLabel>Example RFQ · {SANCTIONED_SAMPLE} is an example company</SampleLabel>
+              <SampleLabel>Example RFQ</SampleLabel>
             </Bar>
             {s.removed ? null : <SanctionBanner title={`This supplier is on a sanctions screen: ${SANCTIONED_SAMPLE}.`} detail="Remove them to send this RFQ. RFQs cannot be sent to a sanctioned supplier." />}
             <div className="flex flex-1 flex-col gap-3 p-5">

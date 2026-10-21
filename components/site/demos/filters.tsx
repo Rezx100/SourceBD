@@ -79,7 +79,8 @@ export function DemoFilters(frame: Frame) {
                     </span>
                   ))}
                 </span>
-                {s.gots ? null : <p className="text-xs text-ink-3">Tick a certificate to choose its status.</p>}
+                {/* Kept in place once a scheme is ticked, so the pane does not move under the cursor. */}
+                <p className={cn("text-xs text-ink-3", s.gots && "invisible")}>Tick a certificate to choose its status.</p>
               </div>
             </section>
             <section className="border-b border-line">
