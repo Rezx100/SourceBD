@@ -32,7 +32,7 @@ const READ = parseFacts(
   },
 );
 const FACTS = parseFacts({ suppliers_indexed: 10268 }, null);
-const security = (f = FACTS) => draw(createElement(T.Security, { facts: f }));
+const security = () => draw(createElement(T.Security));
 const method = (f = FACTS) => draw(createElement(T.Methodology, { facts: f, now: NOW }));
 const suppliers = (f = FACTS) => draw(createElement(T.ForSuppliers, { facts: f }));
 const about = (f = FACTS) => draw(createElement(T.About, { facts: f }));
@@ -131,9 +131,20 @@ describe("the supplier page", () => {
 describe("the About page", () => {
   it("holds the district counts, dated, and no 48", () => {
     const t = text(about());
-    assert.match(t, /counted 3 Oct 2026/);
-    assert.match(t, /43 more districts/);
+    // Re-read by ops/about_district_counts.sql and dated with the day of the read (critique 22 Oct, S12).
+    assert.match(t, new RegExp(`counted ${T.DISTRICTS_READ}`));
+    assert.doesNotMatch(t, /3 Oct 2026/);
+    assert.match(t, /35 more districts/);
     assert.doesNotMatch(t, /\b48 districts\b/);
+    assert.doesNotMatch(about(), /font-mono/, "a figure that is not code is set in the sans (S14)");
+  });
+
+  it("says how often the registers are read and how to report a wrong fact, in the methodology page's words", () => {
+    const t = text(about(parseFacts({ suppliers_indexed: 10268 }, { latest_read: "2026-10-19" })));
+    assert.match(t, /RSC is read every week\. Every day we re-open a batch of source pages to check the fact is still there\./);
+    assert.match(t, /The latest register read was 19 Oct 2026\./);
+    assert.match(t, /Write to data@sourcebd\.net ?\. We read the source again\. The source wins\./);
+    assert.doesNotMatch(text(about(NO_FACTS)), /latest register read/);
   });
 
   it("prints no supplier count when none was read", () => {

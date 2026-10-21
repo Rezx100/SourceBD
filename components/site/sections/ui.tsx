@@ -37,7 +37,7 @@ export function Lede({ children, className }: { children: ReactNode; className?:
   return <p className={cn("max-w-[680px] text-md text-ink-muted md:text-site-lede", className)}>{children}</p>;
 }
 
-/** The small label above a headline: "02 · Who are they?". */
+/** The small label above a headline: a hero's breadcrumb ("Product · Supplier search") or a row's name ("Filters"); never a number (critique 22 Oct, S13). */
 export function Label({ children, className }: { children: ReactNode; className?: string }) {
   return <p className={cn("text-site-body font-medium text-ink-subtle", className)}>{children}</p>;
 }
@@ -60,8 +60,23 @@ export function TextLink({ href, children, className }: { href: string; children
   );
 }
 
-/** The search that runs on public Discover, then Start free and Book a demo: every inner page's hero actions. */
-export function HeroActions({ tryLine = "Try “knit dresses Gazipur” or “GOTS”", center = false }: { tryLine?: string; center?: boolean }) {
+/**
+ * An inner page's one hero action (critique 22 Oct, S8): the green Start free with Book a demo as a text link, or, on
+ * the search page alone (`search`), the search that runs on public Discover, its button drawn secondary.
+ */
+export function HeroActions({ search = false, tryLine = "Try “knit dresses Gazipur” or “GOTS”", center = false }: { search?: boolean; tryLine?: string; center?: boolean }) {
+  if (!search) {
+    return (
+      <div className={cn("flex flex-wrap items-center gap-2.5", center && "justify-center")}>
+        <ButtonLink href="/signup" prefetch={false} kind="primary" size="lg" className="h-12 rounded-frame px-5 text-site-body">
+          Start free
+        </ButtonLink>
+        <TextLink href="/contact" className="px-4">
+          Book a demo
+        </TextLink>
+      </div>
+    );
+  }
   return (
     <div className={cn("flex w-full flex-col gap-4", center && "items-center")}>
       <form action="/discover" method="get" role="search" className="flex w-full max-w-[560px] flex-col gap-2">
@@ -83,14 +98,6 @@ export function HeroActions({ tryLine = "Try “knit dresses Gazipur” or “GO
         </div>
         <p className={cn("text-sm text-ink-subtle", center && "text-center")}>{tryLine}</p>
       </form>
-      <div className="flex flex-wrap items-center gap-2.5">
-        <ButtonLink href="/signup" prefetch={false} kind="primary" size="lg" className="h-12 rounded-frame px-5 text-site-body">
-          Start free
-        </ButtonLink>
-        <TextLink href="/contact" className="px-4">
-          Book a demo
-        </TextLink>
-      </div>
     </div>
   );
 }

@@ -25,7 +25,7 @@ export const RECORDS_KEY = "product/records";
 const P = PAGES[RECORDS_KEY]!;
 const NAME = displayName(SNAPSHOT.check.name);
 const row = (n: string) => P.blocks.find((b) => b.n === n)!;
-const label = (b: { n: string; label: string }) => `${b.n} · ${b.label}`;
+const label = (b: { label: string }) => b.label;
 
 /** `cards`: the home's three real records as read; with none read, that section is not drawn. The page prints no live figure. */
 export function RecordsPage({ cards }: { cards: HomeRecord[] }) {

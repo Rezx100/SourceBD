@@ -12,6 +12,7 @@ import { join } from "node:path";
 import type { HomeRecord } from "@/lib/home-records";
 import { CAPTION, snapshotNames } from "@/lib/marketing/demo-snapshot";
 import { NO_FACTS, parseFacts } from "@/lib/site-facts";
+import { SAMPLE_CAPTION } from "@/components/site/demos/vignettes";
 import { PRODUCT, SOLUTIONS } from "@/components/site/map";
 
 const router = { push() {}, replace() {}, refresh() {}, back() {}, forward() {}, prefetch() {} };
@@ -34,13 +35,27 @@ const { COMPLIANCE_KEY, CompliancePage } = require("@/components/site/product/co
 const { COMPLIANCE_TEAMS_KEY, SOURCING_KEY, SolutionsCompliancePage, SolutionsSourcingPage } = require("@/components/site/product/solutions") as typeof import("@/components/site/product/solutions");
 
 const FACTS = parseFacts({ suppliers_indexed: 10268, last_refreshed_at: "2026-10-02T05:48:07Z" }, null);
+/** The facts with the six sanctions lists read, as `sanctions_lists_read()` gives them (UFLPA in part, no full read). */
+const LIST_CODES = ["UFLPA", "OFAC", "UK_OFSI", "EU_SANC", "US_WRO", "ILAB"];
+const LIST_FACTS = parseFacts(
+  { suppliers_indexed: 10268 },
+  { sources: LIST_CODES.map((code) => ({ code, tier: "tier5_regulatory", records: 0, suppliers: 0, latest: null })) },
+  [
+    { list: "uflpa", entries_listed: 253, last_read: null },
+    { list: "ofac_sdn", entries_listed: 9990, last_read: "2026-10-08T22:58:01Z" },
+    { list: "uk_ofsi", entries_listed: 1286, last_read: "2026-10-06T09:33:33Z" },
+    { list: "eu_sanctions", entries_listed: 1776, last_read: "2026-10-06T10:49:41Z" },
+    { list: "us_wro", entries_listed: 75, last_read: null },
+    { list: "ilab_tvpra", entries_listed: 457, last_read: "2026-10-16T00:08:23Z" },
+  ],
+);
 /** A page as its route draws it: every page in the home's frame (M4); `SitePage` stays for a page not rebuilt. */
 const page = (key: string, facts = FACTS, cards: HomeRecord[] = []) => {
   const rebuilt: Record<string, () => ReactElement> = {
     [RECORDS_KEY]: () => createElement(RecordsPage, { cards }),
     [SEARCH_KEY]: () => createElement(SearchPage, { facts }),
     [RFQS_KEY]: () => createElement(RfqsPage),
-    [COMPLIANCE_KEY]: () => createElement(CompliancePage),
+    [COMPLIANCE_KEY]: () => createElement(CompliancePage, { facts }),
     [SOURCING_KEY]: () => createElement(SolutionsSourcingPage),
     [COMPLIANCE_TEAMS_KEY]: () => createElement(SolutionsCompliancePage),
   };
@@ -53,7 +68,7 @@ describe("the product and solutions pages", () => {
     assert.deepEqual(Object.keys(PAGES).sort(), hrefs);
   });
 
-  it("each opens with Paper's headline, the search that runs on public Discover and the two calls to action", () => {
+  it("each opens with Paper's headline and one way in: the search on the search page alone, Start free and Book a demo on every other (critique 22 Oct, S8)", () => {
     const heads: Record<string, string> = {
       "product/search": "Search 10,268 garment suppliers.",
       "product/records": "Every fact, with its receipt.",
@@ -66,7 +81,15 @@ describe("the product and solutions pages", () => {
       const out = page(key);
       assert.equal((out.match(/<h1[ >]/g) ?? []).length, 1, key);
       assert.ok(text(out).includes(h), key);
-      assert.match(out, /<form[^>]*action="\/discover"/, key);
+      const hero = out.slice(0, out.indexOf("</section>"));
+      if (key === "product/search") {
+        assert.match(hero, /<form[^>]*action="\/discover"/, key);
+        assert.doesNotMatch(hero, /href="\/signup"/, `${key}: the search is the hero's one action`);
+      } else {
+        assert.doesNotMatch(out, /<form[^>]*action="\/discover"/, key);
+        assert.match(hero, /href="\/signup"[^>]*>Start free/, key);
+        assert.match(hero, /href="\/contact"[^>]*>Book a demo/, key);
+      }
       assert.match(out, /href="\/signup"[^>]*>Start free/, key);
       assert.match(out, /href="\/contact"[^>]*>Book a demo/, key);
       assert.match(text(out), /Free during beta\. No card needed\./, key);
@@ -114,10 +137,18 @@ describe("the product and solutions pages", () => {
     assert.doesNotMatch(text(page("product/compliance")), /UFLPA[^.]{0,80}\bcleared\b/i);
   });
 
-  it("the compliance page lists six lists with who keeps them and the day each was read", () => {
-    const t = text(page("product/compliance"));
-    for (const w of ["UFLPA Entity List", "US Treasury, OFAC", "9,799", "UK Treasury, OFSI", "EU sanctions map", "30 Jul 2026"]) assert.ok(t.includes(w), w);
-    assert.equal((page("product/compliance").match(/<tbody[\s\S]*<\/tbody>/)![0].match(/<tr /g) ?? []).length, 6);
+  it("the compliance page lists six lists with who keeps them, and their entries and last full read from the live facts, never a date of its own (critique 22 Oct, S12)", () => {
+    const out = page("product/compliance", LIST_FACTS);
+    const t = text(out);
+    for (const w of ["UFLPA Entity List", "US Treasury, OFAC", "9,990", "8 Oct 2026", "UK Treasury, OFSI", "EU sanctions map", "16 Oct 2026"]) assert.ok(t.includes(w), w);
+    assert.match(t, /UFLPA Entity List US Department of Homeland Security 253 Read in part, no full read yet/);
+    assert.match(t, /Each list's entries and the day of its last full read, as the product holds them now\./);
+    assert.equal((out.match(/<tbody[\s\S]*?<\/tbody>/)![0].match(/<tr /g) ?? []).length, 6);
+    assert.doesNotMatch(t, /as of 3 Oct|3 Oct 2026/);
+    // Not read: the names and keepers only, and no figure or day.
+    const bare = text(page("product/compliance", NO_FACTS));
+    assert.match(bare, /The lists we screen against, and who keeps them\./);
+    assert.doesNotMatch(bare, /Last full read|9,990|Read in part/);
   });
 
   it("certificates are never 'active': four states, each with a date", () => {
@@ -180,7 +211,7 @@ describe("the records page in the home's frame (M4, handoff-mercury-m4-onward.md
     const pauses = (out.match(/aria-label="Pause demo"/g) ?? []).length;
     // The hero, the receipts, the certificate, the open tab, and the three loops of the cross-sell.
     assert.ok(pauses >= 7, `${pauses} pause buttons`);
-    assert.ok((text(out).match(new RegExp(CAPTION.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")) ?? []).length >= pauses, "a dated caption for every demo");
+    assert.ok((text(out).match(new RegExp(`${CAPTION}|${SAMPLE_CAPTION}`.replace(/[.*+?^${}()[\]\\]/g, "\\$&"), "g")) ?? []).length >= pauses, "a dated caption for every demo");
     assert.match(out, /records-safety\.png/);
     assert.match(text(out), /Contact details are locked/);
   });
@@ -207,7 +238,7 @@ describe("the records page in the home's frame (M4, handoff-mercury-m4-onward.md
     const out = page(RECORDS_KEY);
     const t = text(out);
     assert.equal((out.match(/<h1[ >]/g) ?? []).length, 1);
-    assert.match(out, /<form[^>]*action="\/discover"/);
+    assert.doesNotMatch(out, /<form[^>]*action="\/discover"/);
     assert.match(out, /href="\/signup"[^>]*>Start free/);
     assert.match(out, /href="\/contact"[^>]*>Book a demo/);
     for (const s of ["Expired", "Expires in N days", "Valid until", "Listed as valid", "2 sources differ", "Check one supplier now."]) assert.ok(t.includes(s), s);
@@ -268,7 +299,7 @@ describe("the search page in the home's frame (M4, handoff-mercury-m4-onward.md 
     for (const q of ["Where do the facts come from?", "Can a supplier pay to appear higher?", "How fresh is each fact?", "Do you list buying houses too?"]) assert.ok(text(out).includes(q), q);
   });
 
-  it("keeps the template's pins: the search, the two calls to action, the results row's words and the free-during-beta close", () => {
+  it("keeps the template's pins: the search, the results row's words and the free-during-beta close", () => {
     const out = page(SEARCH_KEY);
     const t = text(out);
     assert.equal((out.match(/<h1[ >]/g) ?? []).length, 1);
@@ -313,7 +344,7 @@ describe("the RFQs page in the home's frame (M4, handoff-mercury-m4-onward.md §
     assert.deepEqual(tones, ["paper", "dark"]);
     const pauses = (out.match(/aria-label="Pause demo"/g) ?? []).length;
     assert.equal(pauses, 5, "the hero, the quotes vignette and the cross-sell's three loops");
-    assert.ok((text(out).match(new RegExp(CAPTION.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")) ?? []).length >= pauses);
+    assert.ok((text(out).match(new RegExp(`${CAPTION}|${SAMPLE_CAPTION}`.replace(/[.*+?^${}()[\]\\]/g, "\\$&"), "g")) ?? []).length >= pauses);
     const cross = out.slice(out.indexOf('aria-labelledby="site-cross-sell"'), out.indexOf('aria-labelledby="site-close"'));
     for (const href of ["/product/search", "/product/records", "/product/compliance"]) assert.match(cross, new RegExp(`href="${href}"`), href);
     assert.doesNotMatch(cross, /href="\/product\/rfqs"/);
@@ -323,7 +354,7 @@ describe("the RFQs page in the home's frame (M4, handoff-mercury-m4-onward.md §
     const out = page(RFQS_KEY);
     const t = text(out);
     assert.equal((out.match(/<h1[ >]/g) ?? []).length, 1);
-    assert.match(out, /<form[^>]*action="\/discover"/);
+    assert.doesNotMatch(out, /<form[^>]*action="\/discover"/);
     assert.match(out, /href="\/signup"[^>]*>Start free/);
     assert.match(out, /href="\/contact"[^>]*>Book a demo/);
     for (const s of ["Quotes side by side.", "Replies in one thread per supplier.", "Write it once, send it to 50.", "Send your first RFQ today."]) assert.ok(t.includes(s), s);
@@ -408,7 +439,7 @@ describe("the compliance page in the home's frame (M4, handoff-mercury-m4-onward
     assert.deepEqual(tones, ["paper", "dark"]);
     const pauses = (out.match(/aria-label="Pause demo"/g) ?? []).length;
     assert.equal(pauses, 9, "the hero, the four moments, the expiry vignette and the cross-sell's three loops");
-    assert.ok((text(out).match(new RegExp(CAPTION.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")) ?? []).length >= pauses);
+    assert.ok((text(out).match(new RegExp(`${CAPTION}|${SAMPLE_CAPTION}`.replace(/[.*+?^${}()[\]\\]/g, "\\$&"), "g")) ?? []).length >= pauses);
     const cross = out.slice(out.indexOf('aria-labelledby="site-cross-sell"'), out.indexOf('aria-labelledby="site-close"'));
     for (const href of ["/product/search", "/product/records", "/product/rfqs"]) assert.match(cross, new RegExp(`href="${href}"`), href);
     assert.doesNotMatch(cross, /href="\/product\/compliance"/);
@@ -418,7 +449,7 @@ describe("the compliance page in the home's frame (M4, handoff-mercury-m4-onward
     const out = page(COMPLIANCE_KEY);
     const t = text(out);
     assert.equal((out.match(/<h1[ >]/g) ?? []).length, 1);
-    assert.match(out, /<form[^>]*action="\/discover"/);
+    assert.doesNotMatch(out, /<form[^>]*action="\/discover"/);
     assert.match(out, /href="\/signup"[^>]*>Start free/);
     assert.match(out, /href="\/contact"[^>]*>Book a demo/);
     for (const s of ["Expired first, then expiring.", "UFLPA screening, with the list and its date.", "The lists we check, and when we read them.", "A statement you confirm, line by line.", "Watch your saved suppliers."]) assert.ok(t.includes(s), s);

@@ -1,5 +1,5 @@
-// 3 · The common-search chips under the hero form (Paper `Z05-0`): the nine searches the app offers before a buyer has
-// typed (`SEARCH_TEMPLATES`), each a link to that search, with its live count (`readTemplateCounts`, cached an hour, waited for 1.5 s at most)
+// 3 · The common-search chips under the hero form (Paper `Z05-0`): the first five of the nine searches the app offers
+// before a buyer has typed (`SEARCH_TEMPLATES`; five, not nine: critique 22 Oct, S8), each a link to that search, with its live count (`readTemplateCounts`, cached an hour, waited for 1.5 s at most)
 // when the count was read and no number at all when it was not. The searches set HS headings and certificate states,
 // which public Discover cannot express, so each opens in the app (sign-in first for a visitor). On a phone the chips are
 // one strip that scrolls sideways, fading over its last 24 px, with more room than that after the last chip, so the
@@ -16,13 +16,16 @@ import { ring } from "./ui";
 export type Chip = { key: string; title: string; href: string; count: number | null };
 
 /** Every template with its count from `counts`, or null where none was read: with no counts, the chips the first paint draws. */
+/** The searches the hero offers. */
+const HERO = SEARCH_TEMPLATES.slice(0, 5);
+
 export function chipsOf(counts: Record<string, number | null> = {}): Chip[] {
-  return SEARCH_TEMPLATES.map((t) => ({ key: t.key, title: t.title, href: discoverHref(t.state), count: counts[t.key] ?? null }));
+  return HERO.map((t) => ({ key: t.key, title: t.title, href: discoverHref(t.state), count: counts[t.key] ?? null }));
 }
 
 /** Every template with its count, or null for a count that was not read in time. Never throws. */
 export async function loadChips(): Promise<Chip[]> {
-  return chipsOf(await readTemplateCounts(SEARCH_TEMPLATES).catch((): Record<string, number | null> => ({})));
+  return chipsOf(await readTemplateCounts(HERO).catch((): Record<string, number | null> => ({})));
 }
 
 /** `pending`: the counts are still being read, so each chip keeps a count's room and the strip does not grow when they land. */
@@ -33,7 +36,7 @@ export function Chips({ chips, pending = false }: { chips: Chip[]; pending?: boo
         <li key={c.key} className="shrink-0">
           <Link href={c.href} prefetch={false} className={cn("flex h-[34px] items-center max-md:h-11 gap-2 rounded-full border border-line bg-surface px-3.5 hover:border-line-strong", ring)}>
             <span className="text-base font-medium text-ink-strong">{c.title}</span>
-            {c.count !== null ? <span className="font-mono text-xs text-ink-subtle">{withCommas(c.count)}</span> : pending ? <span aria-hidden className="invisible font-mono text-xs">0,000</span> : null}
+            {c.count !== null ? <span className="text-xs tabular-nums text-ink-subtle">{withCommas(c.count)}</span> : pending ? <span aria-hidden className="invisible text-xs tabular-nums">0,000</span> : null}
           </Link>
         </li>
       ))}

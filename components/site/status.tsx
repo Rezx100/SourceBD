@@ -75,11 +75,11 @@ export function StatusView({ doc, error, now = Date.now() }: { doc: StatusDoc | 
               <dl className="grid gap-8 sm:grid-cols-2">
                 <div className="flex flex-col-reverse gap-1 border-t border-ink pt-3">
                   <dt className="text-md text-ink-2">published suppliers</dt>
-                  <dd className="font-mono text-3xl font-semibold tracking-tight text-ink">{withCommas(doc.published_suppliers)}</dd>
+                  <dd className="text-3xl font-semibold tabular-nums tracking-tight text-ink">{withCommas(doc.published_suppliers)}</dd>
                 </div>
                 <div className="flex flex-col-reverse gap-1 border-t border-ink pt-3">
                   <dt className="text-md text-ink-2">latest register read</dt>
-                  <dd className="font-mono text-3xl font-semibold tracking-tight text-ink">{readDay(doc.last_source_refresh) ?? "No date on file"}</dd>
+                  <dd className="text-3xl font-semibold tabular-nums tracking-tight text-ink">{readDay(doc.last_source_refresh) ?? "No date on file"}</dd>
                 </div>
               </dl>
 

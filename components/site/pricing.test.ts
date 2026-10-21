@@ -22,6 +22,9 @@ describe("the pricing page", () => {
     const t = text(page());
     assert.match(t, /Free during beta\./);
     assert.match(t, /No prices yet/);
+    // One action in the hero (critique 22 Oct, S8) and no date of its own (S12).
+    assert.doesNotMatch(page(), /<form[^>]*action="\/discover"/);
+    assert.doesNotMatch(t, /updated \d{1,2} [A-Z][a-z]{2} \d{4}/);
     assert.doesNotMatch(t, /[$£€]\s?\d|per month|\/mo\b/i);
     assert.equal((page().match(/<article/g) ?? []).length, 2);
   });
@@ -39,10 +42,10 @@ describe("the pricing page", () => {
   });
 
   it("the count is printed when read and left out when not", () => {
-    assert.match(text(page()), /Search 10,268 suppliers by name, product or HS code/);
+    assert.match(text(page()), /Search 10,268 suppliers with filters/);
     const none = text(page(NO_FACTS));
     assert.doesNotMatch(none, /\d,\d{3} suppliers/);
-    assert.match(none, /Search suppliers by name, product or HS code/);
+    assert.match(none, /Search suppliers with filters/);
   });
 
   it("is indexable with a canonical address", () => {

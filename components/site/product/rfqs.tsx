@@ -14,7 +14,7 @@ import { FeatureRow, HeroActions, HeroCentered } from "@/components/site/section
 export const RFQS_KEY = "product/rfqs";
 const P = PAGES[RFQS_KEY]!;
 const row = (n: string) => P.blocks.find((b) => b.n === n)!;
-const label = (b: { n: string; label: string }) => `${b.n} · ${b.label}`;
+const label = (b: { label: string }) => b.label;
 
 export function RfqsPage() {
   const [quotes, messages, many] = [row("01"), row("02"), row("03")];

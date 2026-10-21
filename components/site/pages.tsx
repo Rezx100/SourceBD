@@ -17,6 +17,7 @@ import { readDay, withCommas, type SiteFacts } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
 
 export type Shot = { src: string; alt: string; caption: string };
+/** A section of a page: `n` finds it in the page's code, `label` is its name above the headline (never its number: critique 22 Oct, S13). */
 export type Block = { n: string; label: string; headline: string; lede: string; shot?: Shot; extra?: ReactNode };
 export type Page = {
   group: "Product" | "Solutions";
@@ -53,16 +54,6 @@ const STATES: [string, string][] = [
   ["Expires in N days", "with the date it ends"],
   ["Valid until", "with the date"],
   ["Listed as valid", "when the body publishes no date"],
-];
-
-/** The lists the Compliance page screens against, as read on the days shown (captured 3 Oct 2026; the product shows today's). */
-const LISTS: [string, string, string, string][] = [
-  ["UFLPA Entity List", "US Department of Homeland Security", "160", "14 May 2026"],
-  ["Specially Designated Nationals (SDN) list", "US Treasury, OFAC", "9,799", "27 Jun 2026"],
-  ["Consolidated list of financial sanctions targets", "UK Treasury, OFSI", "1,286", "26 Jun 2026"],
-  ["EU sanctions map", "European Union", "1,589", "26 Jun 2026"],
-  ["Withhold Release Orders and Findings", "US Customs and Border Protection", "75", "30 Jul 2026"],
-  ["List of Goods Produced by Child Labor or Forced Labor", "US Department of Labor, ILAB", "457", "26 Jun 2026"],
 ];
 
 
@@ -156,37 +147,8 @@ export const PAGES: Record<string, Page> = {
     blocks: [
       { n: "01", label: "Needs attention", headline: "Expired first, then expiring.", lede: "“Expires in 5 days · 8 Oct 2026.” One action on each: ask for the renewal." },
       { n: "02", label: "UFLPA", headline: "UFLPA screening, with the list and its date.", lede: "We check supplier names against the UFLPA Entity List. Three answers: on the list, possible Xinjiang link, no link found. “No link found” is not a clearance.", shot: shot("comp-uflpa", "UFLPA checks on saved suppliers: how many are on the list, how many have a possible Xinjiang link, and how many have no link found, with each supplier’s result.", "Real screen · UFLPA checks on your saved suppliers") },
-      {
-        n: "",
-        label: "The lists",
-        headline: "The lists we check, and when we read them.",
-        lede: "Entries and read dates as of 3 Oct 2026. The product shows the day each list was last read.",
-        extra: (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] border-collapse text-left">
-              <caption className="sr-only">The lists we check, who keeps them, how many entries and when we last read them</caption>
-              <thead>
-                <tr className="border-b border-ink text-sm text-ink-3">
-                  <th scope="col" className="py-2 pr-4 font-medium">List</th>
-                  <th scope="col" className="py-2 pr-4 font-medium">Kept by</th>
-                  <th scope="col" className="py-2 pr-4 text-right font-medium">Entries</th>
-                  <th scope="col" className="py-2 font-medium">Last read</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {LISTS.map(([l, by, n, d]) => (
-                  <tr key={l} className="align-top text-md">
-                    <th scope="row" className="py-3 pr-4 font-semibold text-ink">{l}</th>
-                    <td className="py-3 pr-4 text-ink-2">{by}</td>
-                    <td className="py-3 pr-4 text-right font-mono text-ink">{n}</td>
-                    <td className="py-3 text-ink-2">{d}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ),
-      },
+      // The table is drawn from the live facts by the page (`product/compliance.tsx`); with none read, the lede says so instead.
+      { n: "", label: "The lists", headline: "The lists we check, and when we read them.", lede: "Each list's entries and the day of its last full read, as the product holds them now." },
       { n: "03", label: "Modern slavery statement", headline: "A statement you confirm, line by line.", lede: "A draft built from your saved suppliers. Every claim we can’t confirm is marked “[Confirm: …]”. You can’t download until you confirm each one." },
     ],
     close: "Watch your saved suppliers.",
@@ -264,11 +226,11 @@ export function SitePage({ pageKey, facts }: { pageKey: string; facts: SiteFacts
 
       {p.blocks.map((b, i) =>
         b.shot ? (
-          <FeatureRow key={b.headline} label={b.n ? `${b.n} · ${b.label}` : b.label} headline={b.headline} lede={b.lede} flip={i % 2 === 1} tone={i % 2 === 0 ? "subtle" : "paper"} media={<Figure shot={b.shot} still="weave" sizes="(min-width: 1440px) 720px, 100vw" />}>
+          <FeatureRow key={b.headline} label={b.label} headline={b.headline} lede={b.lede} flip={i % 2 === 1} tone={i % 2 === 0 ? "subtle" : "paper"} media={<Figure shot={b.shot} still="weave" sizes="(min-width: 1440px) 720px, 100vw" />}>
             {b.extra}
           </FeatureRow>
         ) : (
-          <Section key={b.headline} label={b.n ? `${b.n} · ${b.label}` : b.label} headline={b.headline} lede={b.lede} tone={i % 2 === 0 ? "subtle" : "paper"}>
+          <Section key={b.headline} label={b.label} headline={b.headline} lede={b.lede} tone={i % 2 === 0 ? "subtle" : "paper"}>
             {b.extra}
           </Section>
         ),

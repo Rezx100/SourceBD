@@ -22,7 +22,7 @@ import { SEARCH_SLIDES } from "./search-slides";
 export const SEARCH_KEY = "product/search";
 const P = PAGES[SEARCH_KEY]!;
 const row = (n: string) => P.blocks.find((b) => b.n === n)!;
-const label = (b: { n: string; label: string }) => `${b.n} · ${b.label}`;
+const label = (b: { label: string }) => b.label;
 
 /** The six filters the page's own words name (row 01): nothing here the product does not have. */
 const FILTERS: IconItem[] = [
@@ -60,7 +60,7 @@ export function SearchPage({ facts }: { facts: SiteFacts }) {
             />
           }
         >
-          <HeroActions center />
+          <HeroActions center search />
         </HeroCentered>
 
         <IconGrid id="search-filters" title="Six ways to narrow." lede="Each filter says how many suppliers you will get before you apply it." items={FILTERS} tone="subtle" />
