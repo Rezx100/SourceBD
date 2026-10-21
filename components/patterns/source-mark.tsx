@@ -42,9 +42,20 @@ export const tierOf = (c: string): Tier => MARKS[norm(c)]?.tier ?? 4;
 /** Whether a source has an approved mark (`context/logos.lock.md`: no row, no render). */
 export const hasSourceMark = (c: string): boolean => norm(c) in MARKS;
 
-/** The 24px frame. A source with a mark shows it; any other shows the dashed document glyph. `lazy`: a mark far down a page is fetched when it nears, not with the first screen. */
-export function SourceMark({ source, className, lazy }: { source: string; className?: string; lazy?: boolean }) {
+/**
+ * The 24px frame. A source with a mark shows it; any other shows the dashed document glyph. `lazy`: a mark far down a
+ * page is fetched when it nears, not with the first screen. `bare`: the mark alone at 32px with no frame (the marketing
+ * site's strip of registers).
+ */
+export function SourceMark({ source, className, lazy, bare = false }: { source: string; className?: string; lazy?: boolean; bare?: boolean }) {
   const m = MARKS[norm(source)];
+  if (m && bare)
+    return (
+      <span className={cn("flex size-8 shrink-0 items-center justify-center", className)} aria-hidden>
+        {/* eslint-disable-next-line @next/next/no-img-element -- a locked one-colour mark, 32px at most */}
+        <img src={`/icons/sources/${m.file}.png`} alt="" width={32} height={32} className="h-auto max-h-8 w-auto max-w-8 object-contain" />
+      </span>
+    );
   if (!m)
     return (
       <span className={cn("flex size-6 shrink-0 items-center justify-center rounded-md border border-dashed border-line-strong bg-subtle", className)} aria-hidden>

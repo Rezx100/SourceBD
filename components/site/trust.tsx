@@ -446,6 +446,19 @@ const DISTRICTS: [string, string, string][] = [
   ["District not on file", "165", "suppliers whose register gives no district"],
 ];
 
+/**
+ * Who runs SourceBD, in the words of pages the site already carries (critique 22 Oct, About): the Book a demo page
+ * (a message goes to the founder by email), the terms (what we are not; the law they are under), the Security page
+ * (UK GDPR, the ICO registration pending, where the data is hosted). Nothing here is new: where the team works and
+ * who the founder is are not said anywhere on the site, so About does not say them either.
+ */
+const WHO: [string, ReactNode][] = [
+  ["Run by its founder", <>A message from the <A href="/contact">Book a demo</A> page goes to the founder by email.</>],
+  ["What we are not", "We do not manufacture goods, and we are not a broker or buying agent."],
+  ["The rules we work under", <>Our <A href="/legal/terms">terms</A> are governed by the laws of England and Wales. We follow UK GDPR for buyer accounts; our UK ICO registration is pending.</>],
+  ["Where the data lives", <>In our Supabase database, AWS region us-west-1, in the United States. See <A href="/security">Security</A>.</>],
+];
+
 const HOW: [string, string][] = [
   ["Every fact shows its source.", "In words, with the date we read it."],
   ["Nothing fake.", "Real records or nothing. Examples are labelled as samples."],
@@ -509,6 +522,20 @@ export function About({ facts }: { facts: SiteFacts }) {
           </div>
         </dl>
       </Section>
+
+      <Section label="The company" headline="Who runs SourceBD.">
+        <dl className="grid max-w-[900px] gap-x-10 gap-y-6 md:grid-cols-2">
+          {WHO.map(([t, b]) => (
+            <div key={t} className="flex flex-col gap-1 border-t border-ink pt-3">
+              <dt className="text-lg font-semibold text-ink">{t}</dt>
+              <dd className="text-md text-ink-2">{b}</dd>
+            </div>
+          ))}
+        </dl>
+      </Section>
+
+      {/* The closing band every other page ends on (critique 22 Oct). */}
+      <Closing headline="Check your first supplier today." lede="Free during beta. No card needed." />
     </main>
   );
 }

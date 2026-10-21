@@ -176,6 +176,20 @@ describe("the Mercury home page", () => {
     assert.match(hero, /hero-cotton-1600\.webp"[^>]*fetchPriority="high"|fetchPriority="high"[^>]*hero-cotton/);
   });
 
+  it("everything else a sourcing desk needs: a two-column hairline list, no icons, no bordered cards (critique 22 Oct)", () => {
+    const out = page();
+    const grid = /<section aria-labelledby="home-grid"[\s\S]*?<\/section>/.exec(out)![0];
+    assert.equal((grid.match(/<li /g) ?? []).length, 8);
+    assert.match(grid, /md:grid-cols-2/);
+    assert.doesNotMatch(grid, /<svg|rounded-card/);
+  });
+
+  it("the strip of registers draws each mark at 32 px with no box, loaded with the page (critique 22 Oct)", () => {
+    const strip = /<section aria-labelledby="home-marks"[\s\S]*?<\/section>/.exec(page())![0];
+    assert.equal((strip.match(/<img [^>]*width="32"/g) ?? []).length, 9);
+    assert.doesNotMatch(strip, /loading="lazy"|rounded-md border/);
+  });
+
   it("one material system: the backdrops are cotton and weave only, and the night is drawn, never photographed (critique 22 Oct, S3)", () => {
     const stills = new Set([...page().matchAll(/\/site\/home\/([a-z-]+)-1600\.(?:avif|webp)/g)].map((m) => m[1]));
     for (const s of stills) assert.ok(s === "hero-cotton" || s === "weave", s);

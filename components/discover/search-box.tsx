@@ -282,7 +282,8 @@ export function DiscoverSearchBox({ basePath, profileBase, q, sort }: Props) {
         ) : null}
       </div>
 
-      <Button type="submit" kind="primary" size="lg" className="h-12 px-6 max-sm:h-input-touch">
+      {/* Secondary, as every hero draws Search: green is the site's Start free alone (critique 22 Oct). */}
+      <Button type="submit" kind="secondary" size="lg" className="h-12 px-6 max-sm:h-input-touch">
         Search
       </Button>
     </form>

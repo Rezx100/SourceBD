@@ -18,14 +18,14 @@ export type Chip = { key: string; title: string; href: string; count: number | n
 /** The searches the hero offers. */
 const HERO = SEARCH_TEMPLATES.slice(0, 5);
 
-/** The hero's five with their counts from `counts`, or null where none was read: with no counts, the chips the first paint draws. */
-export function chipsOf(counts: Record<string, number | null> = {}): Chip[] {
-  return HERO.map((t) => ({ key: t.key, title: t.title, href: discoverHref(t.state), count: counts[t.key] ?? null }));
+/** The searches with their counts from `counts` (the hero's five unless `templates` names others), null where none was read: with no counts, the chips the first paint draws. */
+export function chipsOf(counts: Record<string, number | null> = {}, templates: typeof SEARCH_TEMPLATES = HERO): Chip[] {
+  return templates.map((t) => ({ key: t.key, title: t.title, href: discoverHref(t.state), count: counts[t.key] ?? null }));
 }
 
-/** The hero's five with their counts, or null for a count that was not read in time. Never throws. */
-export async function loadChips(): Promise<Chip[]> {
-  return chipsOf(await readTemplateCounts(HERO).catch((): Record<string, number | null> => ({})));
+/** The searches with their counts (the hero's five unless `templates` names others), or null for a count not read in time. Never throws. */
+export async function loadChips(templates: typeof SEARCH_TEMPLATES = HERO): Promise<Chip[]> {
+  return chipsOf(await readTemplateCounts(templates).catch((): Record<string, number | null> => ({})), templates);
 }
 
 /** `pending`: the counts are still being read, so each chip keeps a count's room and the strip does not grow when they land. */

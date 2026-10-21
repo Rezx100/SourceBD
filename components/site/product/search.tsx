@@ -2,23 +2,22 @@
 // `pages.test.ts`, in the home page's frame. The hero plays the Find demo on the cotton stage with the live count under
 // it; the six filters the page's own words name sit in a grid; the filters row draws the filter pane, the record row
 // plays Check beside the results, the results row shows three of the table's rows (critique 22 Oct: no 3 Oct
-// screenshot); then, on the night ground, one search narrowed twice and the other three products; the FAQ's four
-// answers about search; the close.
+// screenshot); then, on the night ground, one search narrowed twice in three stacked steps and the other three
+// products; the FAQ's four answers about search; the close.
 
 import { DemoFilters, DemoRecord, DemoSearch } from "@/components/site/demos";
 import { SearchFirst } from "@/components/site/demos/search";
 import { ToneShift } from "@/components/site/motion";
 import { PAGES } from "@/components/site/pages";
-import { Carousel3 } from "@/components/site/sections/carousel";
 import { Closing } from "@/components/site/sections/closing";
 import { CrossSell } from "@/components/site/sections/cross-sell";
 import { FAQ_ITEMS } from "@/components/site/sections/faq-items";
 import { Faq } from "@/components/site/sections/faq";
-import { IconGrid, type IconItem } from "@/components/site/sections/icon-grid";
+import { HairlineGrid, type GridItem } from "@/components/site/sections/hairline-grid";
 import { FeatureRow, H2, HeroActions, HeroCentered, Lede, Section, measure } from "@/components/site/sections/ui";
 import { readDay, withCommas, type SiteFacts } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
-import { SEARCH_SLIDES } from "./search-slides";
+import { SearchSteps } from "./search-slides";
 import { Staged } from "./staged";
 
 export const SEARCH_KEY = "product/search";
@@ -26,13 +25,13 @@ const P = PAGES[SEARCH_KEY]!;
 const row = (n: string) => P.blocks.find((b) => b.n === n)!;
 
 /** The six filters the page's own words name (row 01): nothing here the product does not have. */
-const FILTERS: IconItem[] = [
-  { icon: "ledger", title: "Product or HS code", body: "A word from the products a supplier files, or the heading it exports under." },
-  { icon: "rosette", title: "Certificate and its state", body: "GOTS, WRAP, OEKO-TEX and the rest, held today or lapsed, each with its date." },
-  { icon: "pin", title: "District", body: "Dhaka, Gazipur, Narayanganj, Chattogram: where the factory stands." },
-  { icon: "team", title: "Workers", body: "From a minimum to a maximum, the figure the supplier filed with its register." },
-  { icon: "flag", title: "Brand supplier lists", body: "Named on a brand's published supplier list, as the brand filed it." },
-  { icon: "factory", title: "BGMEA or BKMEA member", body: "Listed by the trade body as a member, with the day its register was read." },
+const FILTERS: GridItem[] = [
+  { title: "Product or HS code", body: "A word from the products a supplier files, or the heading it exports under." },
+  { title: "Certificate and its state", body: "GOTS, WRAP, OEKO-TEX and the rest, held today or lapsed, each with its date." },
+  { title: "District", body: "Dhaka, Gazipur, Narayanganj, Chattogram: where the factory stands." },
+  { title: "Workers", body: "From a minimum to a maximum, the figure the supplier filed with its register." },
+  { title: "Brand supplier lists", body: "Named on a brand's published supplier list, as the brand filed it." },
+  { title: "BGMEA or BKMEA member", body: "Listed by the trade body as a member, with the day its register was read." },
 ];
 
 export function SearchPage({ facts }: { facts: SiteFacts }) {
@@ -64,7 +63,7 @@ export function SearchPage({ facts }: { facts: SiteFacts }) {
           <HeroActions center search />
         </HeroCentered>
 
-        <IconGrid id="search-filters" title="Six ways to narrow." lede="Each filter says how many suppliers you will get before you apply it." items={FILTERS} tone="subtle" />
+        <HairlineGrid id="search-filters" title="Six ways to narrow." lede="Each filter says how many suppliers you will get before you apply it." items={FILTERS} tone="subtle" />
         <FeatureRow label={filters.label} headline={filters.headline} lede={filters.lede} media={<DemoFilters stage="weave" />} />
         <FeatureRow
           label={records.label}
@@ -88,7 +87,7 @@ export function SearchPage({ facts }: { facts: SiteFacts }) {
             <H2 id="search-common">One search, narrowed twice.</H2>
             <Lede>The words first, then a district, then a size. Each chip keeps the rows that answer it; the count and the pages follow.</Lede>
           </div>
-          <Carousel3 slides={SEARCH_SLIDES} label="One search narrowed step by step" />
+          <SearchSteps />
         </section>
         <CrossSell current={`/${SEARCH_KEY}`} />
       </div>

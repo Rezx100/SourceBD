@@ -254,11 +254,12 @@ describe("the search page in the home's frame (M4, handoff-mercury-m4-onward.md 
     assert.match(text(hero), /Real records as read \d{1,2} [A-Z][a-z]{2} \d{4} 10,268 published suppliers · updated 2 Oct 2026/);
   });
 
-  it("names six filters, each one the page's own words already claim, in a grid that reveals", () => {
+  it("names six filters, each one the page's own words already claim, in a hairline list with no icons (critique 22 Oct)", () => {
     const out = page(SEARCH_KEY);
     const grid = /<section aria-labelledby="search-filters"[\s\S]*?<\/section>/.exec(out)![0];
     assert.equal((grid.match(/<li /g) ?? []).length, 6);
     assert.match(grid, /<ul class="group\/reveal/);
+    assert.doesNotMatch(grid, /<svg/, "no icon");
     for (const w of ["Product or HS code", "Certificate and its state", "District", "Workers", "Brand supplier lists", "BGMEA or BKMEA member"]) assert.ok(text(grid).includes(w), w);
     assert.match(text(grid), /how many suppliers you will get/);
   });
@@ -276,14 +277,12 @@ describe("the search page in the home's frame (M4, handoff-mercury-m4-onward.md 
     assert.doesNotMatch(t, /first certificate problem/);
   });
 
-  it("the carousel shows one search narrowed twice: three slides, the first drawn, every row the snapshot's", () => {
+  it("one search narrowed twice, in three steps stacked one under the other: nothing hidden behind a carousel, every row the snapshot's (critique 22 Oct)", () => {
     const out = page(SEARCH_KEY);
-    assert.match(out, /aria-roledescription="carousel" aria-label="One search narrowed step by step"/);
-    assert.equal((out.match(/aria-roledescription="slide"/g) ?? []).length, 3);
-    assert.match(out, /aria-label="01 \/ 03 · By product and certificate" aria-hidden="false"/);
-    assert.equal((out.match(/aria-roledescription="slide"[^>]*aria-hidden="true"/g) ?? []).length, 2);
-    assert.match(text(out), /01 \/ 03/);
-    for (const w of ["The first page of the search", "Narrowed to Gazipur from the first page", "Narrowed to 1,000 workers or more from the first page", "Previous slide", "Next slide"]) assert.ok(text(out).includes(w) || out.includes(w), w);
+    assert.doesNotMatch(out, /aria-roledescription="carousel"|Previous slide|Next slide/);
+    const steps = /<ol aria-label="One search narrowed step by step"[\s\S]*?<\/ol>/.exec(out)![0];
+    assert.equal((steps.match(/<li /g) ?? []).length, 3);
+    for (const w of ["By product and certificate", "Then by district", "Then by size", "The first page of the search", "Narrowed to Gazipur from the first page", "Narrowed to 1,000 workers or more from the first page"]) assert.ok(text(steps).includes(w), w);
     const allowed = new Set(snapshotNames());
     for (const n of SLIDE_NAMES) assert.ok(allowed.has(n), n);
     // A still moves nothing, so it offers no pause button: the page's pause buttons are the hero's, the filter pane's, the record row's and the cross-sell's three.
@@ -367,7 +366,7 @@ describe("the RFQs page in the home's frame (M4, handoff-mercury-m4-onward.md §
 
   it("the search page's pins still hold beside it", () => {
     const t = text(page(SEARCH_KEY));
-    for (const s of ["Filters that match how you buy.", "Six ways to narrow.", "01 / 03", "Try it on your next product."]) assert.ok(t.includes(s), s);
+    for (const s of ["Filters that match how you buy.", "Six ways to narrow.", "Then by district", "Try it on your next product."]) assert.ok(t.includes(s), s);
     assert.match(t, /10,268 published suppliers · updated 2 Oct 2026/);
   });
 });
@@ -385,7 +384,10 @@ describe("the solutions pages in the home's frame (M4, handoff-mercury-m4-onward
     assert.doesNotMatch(out, /id="tour-item-watch"/);
     const t = text(out);
     assert.match(t, /Find, check, ask\. One sitting\./);
-    for (const s of ["Find factories that make your product.", "Check them before you ask.", "Ask many at once.", "A shortlist your compliance team can check, source by source.", "Build your shortlist today.", "every figure is an example"]) assert.ok(t.includes(s), s);
+    for (const s of ["Find factories that make your product.", "Check them before you ask.", "Ask many at once.", "Build your shortlist today.", "every figure is an example"]) assert.ok(t.includes(s), s);
+    // The outcome is the close's own line, not a section with a kicker (critique 22 Oct).
+    assert.match(t, /Build your shortlist today\. A shortlist your compliance team can check, source by source\. Free during beta\./);
+    assert.doesNotMatch(t, /The outcome/);
     assert.doesNotMatch(t, /first certificate problem/);
     const tones = [...out.matchAll(/data-tone="(photo|dark|paper)"/g)].map((m) => m[1]).slice(1);
     assert.deepEqual(tones, ["paper", "dark", "paper", "dark"]);

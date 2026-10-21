@@ -27,6 +27,9 @@ describe("the pricing page", () => {
     assert.doesNotMatch(t, /updated \d{1,2} [A-Z][a-z]{2} \d{4}/);
     assert.doesNotMatch(t, /[$£€]\s?\d|per month|\/mo\b/i);
     assert.equal((page().match(/<article/g) ?? []).length, 2);
+    // The plans follow the hero at once, on the product window's surface (critique 22 Oct).
+    assert.match(page(), /<section aria-labelledby="plans" class="pb-14 md:pb-section">/);
+    assert.equal((page().match(/<article class="[^"]*border-line-strong[^"]*shadow-sm/g) ?? []).length, 2);
   });
 
   it("says where the data is stored as it is: AWS us-west-1, never Singapore", () => {
