@@ -56,7 +56,7 @@ function SolutionsPage({ p, tour, products }: { p: Page; tour: ReactNode; produc
       </div>
 
       <div data-tone="dark">
-        <CrossSell current="" only={products} />
+        <CrossSell only={products} />
         <Closing headline={p.close} lede="Free during beta. No card needed." />
       </div>
     </ToneShift>
