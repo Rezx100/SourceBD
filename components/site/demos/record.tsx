@@ -5,8 +5,11 @@
 // certificates held today, soonest expiry first, then the one that ended, each with the day its register was read.
 // At Sources (M4, the records page's tabs): every register that lists the record, in trust order, with its full name
 // and the day it was read. At Contact: the locked card, as a reader the database has not entitled sees it; the
-// snapshot holds no contact value, so nothing here could show one. The pane is drawn as the record draws it (Paper
-// page 37: name, type and place, the section tabs, the Certificates table's columns), from the snapshot.
+// snapshot holds no contact value, so nothing here could show one. At Safety (critique 22 Oct: the records page's
+// safety row, a 3 Oct screenshot until now): each RSC row of the record, its status, the share of issues fixed, the
+// training and the day the register was read, and the reports the register published. The pane is drawn as the
+// record draws it (Paper page 37: name, type and place, the section tabs, the Certificates table's columns), from the
+// snapshot. Its source count is the product's: the registers and certifiers that hold it, brand lists apart.
 
 import { Factory, LockSimple, MapPin } from "@phosphor-icons/react";
 import { Fragment, useLayoutEffect, useRef } from "react";
@@ -15,10 +18,10 @@ import { SourceMark, TIER_LABEL, tierOf } from "@/components/patterns";
 import { ABSENT, certShort } from "@/components/patterns/words";
 import { SECTIONS } from "@/components/record/desktop-words";
 import type { CursorState, Step } from "@/components/site/motion";
-import { displayName, formatCount, formatDay } from "@/lib/dashboard/facts";
+import { displayName, formatCount, formatDay, rscStatusWords, rscTrainingWords } from "@/lib/dashboard/facts";
 import { certName } from "@/lib/dashboard/needs-attention";
 import { motion } from "@/lib/design/tokens";
-import { BRAND_LIST, CERT_REGISTER, SNAPSHOT, TODAY } from "@/lib/marketing/demo-snapshot";
+import { BRAND_LIST, CERT_REGISTER, SNAPSHOT, TODAY, registerCount } from "@/lib/marketing/demo-snapshot";
 import { sourceFullName } from "@/lib/source-full-names";
 import { cn } from "@/lib/utils";
 import { Bar, Demo, Window, endOf, streamed, type Frame } from "./stage";
@@ -27,7 +30,10 @@ const { check, search } = SNAPSHOT;
 const NAME = displayName(check.name);
 const asRow = (r: { slug: string; name: string; type: string; place: string | null; sources: number }) => ({ slug: r.slug, name: displayName(r.name), line: [r.type, r.place].filter(Boolean).join(" · "), sources: r.sources });
 // The five rows beside the pane, the record's own among them whatever page of the search it sits on.
-const LIST = [...(search.rows.some((r) => r.slug === check.slug) ? [] : [asRow({ ...check, sources: check.sources.length })]), ...search.rows.map(asRow)].slice(0, 5);
+const LIST = [...(search.rows.some((r) => r.slug === check.slug) ? [] : [asRow({ ...check, sources: registerCount(check) })]), ...search.rows.map(asRow)].slice(0, 5);
+/** The record's sources as the product counts them. */
+const REGISTERS = registerCount(check);
+const BRANDS = check.sources.filter((s) => s.startsWith("BRAND_")).length;
 
 /** Every company the demo names. */
 export const NAMES = [NAME, ...LIST.map((r) => r.name)];
@@ -51,8 +57,21 @@ const SOURCES = [...check.sources]
   .sort((a, b) => tierOf(a) - tierOf(b))
   .map((code) => ({ code, label: BRAND_LIST[code] ?? code, name: BRAND_LIST[code] ? `${BRAND_LIST[code]} supplier list` : (sourceFullName(code) ?? code), tier: TIER_LABEL[tierOf(code)], read: formatDay(check.read[code] ?? null) }));
 
+/** The record's RSC rows as its Safety section words them: the mother's row under the record's own name. */
+const REPORT_WORDS: Record<string, string> = { fire: "Fire", structural: "Structural", electrical: "Electrical", boiler: "Boiler", cap: "Action plan" };
+const cap = (s: string | null) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : null);
+const SAFETY = (check.rsc ?? []).map((r, i) => ({
+  key: `${r.building ?? "main"}-${i}`,
+  name: r.building ? displayName(r.building) : NAME,
+  status: cap(rscStatusWords(r.status)),
+  fixed: r.progress,
+  training: cap(rscTrainingWords(r.training)?.replace(/^training /, "") ?? null),
+  read: formatDay(r.readOn),
+  reports: r.reports.map((x) => REPORT_WORDS[x] ?? x),
+}));
+
 /** The sections the demo can open the record at; the tour's Check opens the certificates. */
-export type RecordTab = "certificates" | "sources" | "contact";
+export type RecordTab = "certificates" | "sources" | "contact" | "safety";
 
 type S = CursorState & { open: boolean; tab: string; rows: number };
 
@@ -60,7 +79,7 @@ const t0 = 700;
 const t1 = t0 + motion.cursorMs + motion.clickMs + 600;
 const t2 = t1 + motion.cursorMs + motion.clickMs + 300;
 const LAST = ENDED[0] ?? HELD[HELD.length - 1];
-const COUNT: Record<RecordTab, number> = { certificates: rows.length, sources: SOURCES.length, contact: 1 };
+const COUNT: Record<RecordTab, number> = { certificates: rows.length, sources: SOURCES.length, contact: 1, safety: Math.max(1, SAFETY.length) };
 
 /** The scene for one section: open the record, choose the tab, let its rows arrive, then rest on the last one. */
 function stepsFor(tab: RecordTab): Step<S>[] {
@@ -81,15 +100,17 @@ function stepsFor(tab: RecordTab): Step<S>[] {
 }
 
 export const STEPS: Step<S>[] = stepsFor("certificates");
-const SCENES: Record<RecordTab, Step<S>[]> = { certificates: STEPS, sources: stepsFor("sources"), contact: stepsFor("contact") };
+const SCENES: Record<RecordTab, Step<S>[]> = { certificates: STEPS, sources: stepsFor("sources"), contact: stepsFor("contact"), safety: stepsFor("safety") };
 
 const DESCRIPTION: Record<RecordTab, string> = {
   certificates: `${NAME}'s record opened beside the search results at its Certificates section: ${HELD.length} held today, ${ENDED.length} ended, each with the day its register was read.`,
-  sources: `${NAME}'s record opened beside the search results at its Sources section: ${SOURCES.length} sources in trust order, each with its full name and the day it was read.`,
+  sources: `${NAME}'s record opened beside the search results at its Sources section: ${REGISTERS} registers and certifiers and ${BRANDS} brand lists in trust order, each with its full name and the day it was read.`,
+  safety: `${NAME}'s record opened beside the search results at its Safety section: ${SAFETY.length} RSC ${SAFETY.length === 1 ? "record" : "records"}, each with its status, the share of safety issues fixed, the worker safety training and the day the RSC was read.`,
   contact: `${NAME}'s record opened beside the search results at its Contact section: the details are locked, the supplier replies to an RFQ in Messages, and no value is shown.`,
 };
 
 const COLS = "grid grid-cols-[minmax(0,1fr)_minmax(0,96px)_minmax(0,96px)] gap-x-3 [@container_(min-width:640px)]:grid-cols-[minmax(0,1fr)_minmax(0,120px)_minmax(0,96px)]";
+const SAFETY_COLS = "grid grid-cols-[minmax(0,1fr)_minmax(0,80px)_minmax(0,88px)] gap-x-3";
 
 /**
  * The record's section tabs. The strip clips what does not fit (a phone's pane, the tour's), so it scrolls itself to
@@ -169,7 +190,7 @@ export function DemoRecord({ tab = "certificates", ...frame }: Frame & { tab?: R
                       {check.place}
                     </span>
                   ) : null}
-                  <span>{check.sources.length} sources</span>
+                  <span>{REGISTERS} sources</span>
                 </p>
               </header>
               <SectionNav active={s.tab} toward={s.cursor?.startsWith("tab-") ? s.cursor.slice(4) : s.tab} />
@@ -235,6 +256,34 @@ export function DemoRecord({ tab = "certificates", ...frame }: Frame & { tab?: R
                       </div>
                     </Fragment>
                   ))}
+                </div>
+              ) : s.tab === "safety" ? (
+                <div role="table" aria-label="Safety" className="flex flex-col px-2 pt-3">
+                  <div role="row" className={cn(SAFETY_COLS, "h-8 border-b border-line px-3 text-xs font-medium text-ink-3")}>
+                    <span role="columnheader">Building · RSC</span>
+                    <span role="columnheader">Issues fixed</span>
+                    <span role="columnheader">Training</span>
+                  </div>
+                  {SAFETY.length ? (
+                    SAFETY.slice(0, s.rows).map((b) => (
+                      <div key={b.key} role="row" className={cn(SAFETY_COLS, "min-h-14 animate-swap-in items-center border-b border-line px-3 py-2 motion-reduce:animate-none")}>
+                        <span role="cell" className="flex min-w-0 items-center gap-2.5">
+                          <SourceMark source="RSC" />
+                          <span className="flex min-w-0 flex-col">
+                            <span className="truncate text-base font-medium text-ink">{b.name}</span>
+                            <span className="truncate text-xs text-ink-2">{[b.status, b.read ? `read ${b.read}` : null].filter(Boolean).join(" · ")}</span>
+                          </span>
+                        </span>
+                        <span role="cell" className="text-sm tabular-nums text-ink">{b.fixed !== null ? `${b.fixed}%` : <Unpublished />}</span>
+                        <span role="cell" className="text-sm text-ink">{b.training ?? <Unpublished />}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="px-3 py-3 text-sm text-ink-3">Not in the RSC programme</p>
+                  )}
+                  {SAFETY[0]?.reports.length && s.rows >= SAFETY.length ? (
+                    <p className="animate-swap-in px-3 pt-2.5 text-xs text-ink-3 motion-reduce:animate-none">Inspection reports on the register: {SAFETY[0].reports.join(", ")}</p>
+                  ) : null}
                 </div>
               ) : s.tab === "contact" ? (
                 <div className="flex flex-col gap-3 px-5 pt-4">

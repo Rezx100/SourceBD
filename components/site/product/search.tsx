@@ -1,23 +1,26 @@
 // /product/search (M4, handoff-mercury-m4-onward.md §4.2): the words of `PAGES["product/search"]`, pinned by
-// `pages.test.ts`, in the home page's frame. The hero's screenshot is now the Find demo on the cotton stage, with the
-// live count under it; the six filters the page's own words name sit in an icon grid; the filters row keeps its
-// 3 Oct screen (no demo draws the panel yet), the record row plays Check beside the results, the results row keeps
-// its words; then, on the night ground, one search narrowed twice in a carousel and the other three products; the
-// FAQ's four answers about search; the close.
+// `pages.test.ts`, in the home page's frame. The hero plays the Find demo on the cotton stage with the live count under
+// it; the six filters the page's own words name sit in a grid; the filters row draws the filter pane, the record row
+// plays Check beside the results, the results row shows three of the table's rows (critique 22 Oct: no 3 Oct
+// screenshot); then, on the night ground, one search narrowed twice and the other three products; the FAQ's four
+// answers about search; the close.
 
-import { DemoRecord, DemoSearch } from "@/components/site/demos";
+import { DemoFilters, DemoRecord, DemoSearch } from "@/components/site/demos";
+import { ROWS, SearchStill } from "@/components/site/demos/search";
 import { ToneShift } from "@/components/site/motion";
-import { Figure, PAGES } from "@/components/site/pages";
+import { PAGES } from "@/components/site/pages";
 import { Carousel3 } from "@/components/site/sections/carousel";
 import { Closing } from "@/components/site/sections/closing";
 import { CrossSell } from "@/components/site/sections/cross-sell";
 import { FAQ_ITEMS } from "@/components/site/sections/faq-items";
 import { Faq } from "@/components/site/sections/faq";
 import { IconGrid, type IconItem } from "@/components/site/sections/icon-grid";
-import { FeatureRow, H2, HeroActions, HeroCentered, Lede, Section, measure } from "@/components/site/sections/ui";
+import { FeatureRow, H2, HeroActions, HeroCentered, Lede, measure } from "@/components/site/sections/ui";
+import { SNAPSHOT } from "@/lib/marketing/demo-snapshot";
 import { readDay, withCommas, type SiteFacts } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
 import { SEARCH_SLIDES } from "./search-slides";
+import { Staged } from "./staged";
 
 export const SEARCH_KEY = "product/search";
 const P = PAGES[SEARCH_KEY]!;
@@ -63,7 +66,7 @@ export function SearchPage({ facts }: { facts: SiteFacts }) {
         </HeroCentered>
 
         <IconGrid id="search-filters" title="Six ways to narrow." lede="Each filter says how many suppliers you will get before you apply it." items={FILTERS} tone="subtle" />
-        {filters.shot ? <FeatureRow label={filters.label} headline={filters.headline} lede={filters.lede} media={<Figure shot={filters.shot} still="weave" sizes="(min-width: 1440px) 720px, 100vw" />} /> : null}
+        <FeatureRow label={filters.label} headline={filters.headline} lede={filters.lede} media={<DemoFilters stage="weave" />} />
         <FeatureRow
           label={records.label}
           headline={records.headline}
@@ -72,7 +75,16 @@ export function SearchPage({ facts }: { facts: SiteFacts }) {
           tone="subtle"
           media={<DemoRecord stage="weave" />}
         />
-        <Section label={results.label} headline={results.headline} lede={results.lede} />
+        <FeatureRow
+          label={results.label}
+          headline={results.headline}
+          lede={results.lede}
+          media={
+            <Staged still="weave">
+              <SearchStill chips={SNAPSHOT.search.chips} rows={ROWS.slice(0, 3)} hot={ROWS[1]?.slug} description="Three rows of the search results: each supplier's products, place, workers, the certificate schemes it holds today and how many sources hold it, with Save and Open on the hovered row." />
+            </Staged>
+          }
+        />
       </div>
 
       <div data-tone="dark">

@@ -1,12 +1,12 @@
 // /product/rfqs (M4, handoff-mercury-m4-onward.md §4.2): the words of `PAGES["product/rfqs"]`, pinned by
-// `pages.test.ts`, in the home page's frame. The hero's screenshot is now the Ask demo on the cotton stage (three
-// suppliers ticked, one example RFQ sent, two example quotes back); the quotes row plays the quotes vignette; the
-// thread and the 50-supplier form keep their 3 Oct screens, since no demo draws a thread or the review step yet. Then
-// the other three products and the close on the night ground.
+// `pages.test.ts`, in the home page's frame. The hero plays the Ask demo on the cotton stage (three suppliers ticked,
+// one example RFQ sent, two example quotes back); the rows play the quotes at full size, a reply under the RFQ it
+// answers, and one RFQ reviewed before it goes with a sanctioned example refused (critique 22 Oct: no 3 Oct
+// screenshot). Then the other three products and the close on the night ground.
 
-import { DemoRfq, VignetteQuotes } from "@/components/site/demos";
+import { DemoQuotes, DemoReview, DemoRfq, DemoThread } from "@/components/site/demos";
 import { ToneShift } from "@/components/site/motion";
-import { Figure, PAGES } from "@/components/site/pages";
+import { PAGES } from "@/components/site/pages";
 import { Closing } from "@/components/site/sections/closing";
 import { CrossSell } from "@/components/site/sections/cross-sell";
 import { FeatureRow, HeroActions, HeroCentered } from "@/components/site/sections/ui";
@@ -34,10 +34,10 @@ export function RfqsPage() {
           headline={quotes.headline}
           lede={quotes.lede}
           tone="subtle"
-          media={<VignetteQuotes stage="weave" />}
+          media={<DemoQuotes stage="weave" />}
         />
-        {messages.shot ? <FeatureRow label={messages.label} headline={messages.headline} lede={messages.lede} flip media={<Figure shot={messages.shot} still="weave" sizes="(min-width: 1440px) 720px, 100vw" />} /> : null}
-        {many.shot ? <FeatureRow label={many.label} headline={many.headline} lede={many.lede} tone="subtle" media={<Figure shot={many.shot} still="weave" sizes="(min-width: 1440px) 720px, 100vw" />} /> : null}
+        <FeatureRow label={messages.label} headline={messages.headline} lede={messages.lede} flip media={<DemoThread stage="weave" />} />
+        <FeatureRow label={many.label} headline={many.headline} lede={many.lede} tone="subtle" media={<DemoReview stage="weave" />} />
       </div>
 
       <div data-tone="dark">

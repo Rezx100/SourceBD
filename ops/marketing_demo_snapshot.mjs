@@ -7,7 +7,9 @@
 // It reads: `discover_suppliers` for the Find demo's rows (the same call the search makes, "knit" with GOTS held);
 // `buyer_supplier_profile` for the Check demo's record and for every supplier the Ask and Watch demos name;
 // `sanctions_lists_read` for the day the UFLPA list was last read. No contact field is in the anon answers, and
-// the script refuses to write if one appears. Only what the demos draw is kept, so the file stays small.
+// the script refuses to write if one appears. Only what the demos draw is kept, so the file stays small. The Check
+// record also keeps its RSC safety rows (status, share fixed, training, the day read, which reports the register
+// published), for the records page's safety demo (critique 22 Oct).
 
 import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -73,6 +75,8 @@ const record = (p) => {
     place: str(s.district) ?? str(s.city),
     workers: num(s.employees_total),
     sources: [...new Set(prov.map((x) => String(x.source_code).toUpperCase().replace("OEKO_TEX", "OEKO-TEX")))],
+    // The registers and certifiers that hold it (tiers 1 to 3), the count the product prints as "N sources".
+    registers: num(p.t13_source_count),
     read: Object.fromEntries(["EPB", "RSC", "BGMEA", "BKMEA", "BTMA", "BGAPMEA", "GOTS", "OEKO-TEX", "WRAP"].map((c) => [c, readOn(c === "OEKO-TEX" ? "OEKO_TEX" : c)]).filter(([, d]) => d)),
     bgmea: str(list(p.pills).find((x) => String(x.source_code).toUpperCase() === "BGMEA" && /member/i.test(String(x.label)))?.value),
     certs: list(p.certifications).map((c) => ({ kind: str(c.kind) ?? "", number: str(c.certificate_no), issuer: str(c.issuer), expiresOn: day(c.expires_on) })),
@@ -88,7 +92,13 @@ const profileOf = async (slug) => {
   return { record: record(p), mentionsRegion: XINJIANG.test(JSON.stringify(p)) };
 };
 // The Check demo's record, then every row's record for the Watch demo (their certificates) and the Ask demo (three of them).
-const check = (await profileOf("aboni-knitwear")).record;
+const checkProfile = await rpc("buyer_supplier_profile", { p_slug: "aboni-knitwear" });
+/** The record's RSC rows: the mother's (no building name) and each building's, as the record's Safety section draws them. */
+const REPORTS = [["fire_inspection_url", "fire"], ["structural_inspection_url", "structural"], ["electrical_inspection_url", "electrical"], ["boiler_inspection_url", "boiler"], ["cap_url", "cap"]];
+const rsc = (Array.isArray(checkProfile.rsc_remediation) ? checkProfile.rsc_remediation : checkProfile.rsc_remediation ? [checkProfile.rsc_remediation] : [])
+  .filter((x) => x && typeof x === "object")
+  .map((x) => ({ building: str(x.building_name), status: str(x.remediation_status), progress: typeof x.progress_pct === "number" ? Math.round(x.progress_pct) : num(x.progress_pct), training: str(x.training_status), readOn: day(x.fetched_at), workers: num(x.workers_count), reports: REPORTS.filter(([k]) => str(x[k])).map(([, name]) => name) }));
+const check = { ...record(checkProfile), rsc };
 const saved = [];
 for (const r of rows) {
   const p = await profileOf(r.slug);

@@ -1,24 +1,18 @@
 // The four product pages and the two solutions pages (Paper `30 Marketing · Product` and `Solutions`): one template,
 // because Paper draws them as one: a label, a one-line promise, one way in (the search on the search page, Start free
 // elsewhere), the product, then sections that each say one thing and show what proves it, and a close.
-// Every screen is a real v4 capture (`public/site/*.png`, taken 3 Oct 2026); the RFQ and quote screens hold sample
-// figures and say so under the picture. Laid out in the home page's look (M1): a centred hero over the product on a
-// textile stage, then rows of text beside the screen that proves it.
-// The figure and date in the hero come from the site's live facts and are left out when they were not read.
-// M4 (15 Oct 2026): the pages move one by one into the home's frame with the demos as their proof, each keeping its
-// words here; the four product pages are `components/site/product/*.tsx`, which the route draws instead of `SitePage`.
+// M4 (15 Oct 2026): every page moved into the home's frame with the demos as its proof (`components/site/product/*.tsx`,
+// which the routes draw); the words stay here. Since the 22 Oct critique no page shows a 3 Oct screenshot: each row's
+// picture is a demo the page chooses. `SitePage` is the plain template a page not rebuilt would fall back to.
 
-import Image from "next/image";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { FeatureRow, HeroActions, HeroCentered, Label, Section, Stage, measure, type StillName } from "@/components/site/sections/ui";
+import { HeroActions, HeroCentered, Section } from "@/components/site/sections/ui";
 import { Closing } from "@/components/site/sections/closing";
-import { readDay, withCommas, type SiteFacts } from "@/lib/site-facts";
-import { cn } from "@/lib/utils";
+import { withCommas, type SiteFacts } from "@/lib/site-facts";
 
-export type Shot = { src: string; alt: string; caption: string };
 /** A section of a page: `n` finds it in the page's code, `label` is its name above the headline (never its number: critique 22 Oct, S13). */
-export type Block = { n: string; label: string; headline: string; lede: string; shot?: Shot; extra?: ReactNode };
+export type Block = { n: string; label: string; headline: string; lede: string; extra?: ReactNode };
 export type Page = {
   group: "Product" | "Solutions";
   name: string;
@@ -28,26 +22,10 @@ export type Page = {
   lede: string;
   title: string;
   description: string;
-  /** The hero's screen; a page rebuilt on a demo (M4) has none. */
-  hero?: Shot;
   blocks: Block[];
   outcome?: string;
   close: string;
 };
-
-/** A real screen on a textile stage, the caption under it. */
-export function Figure({ shot, still, sizes = "(min-width: 1440px) 1152px, 100vw", eager = false }: { shot: Shot; still: StillName; sizes?: string; eager?: boolean }) {
-  return (
-    <figure className="flex flex-col gap-3">
-      <Stage still={still} eager={eager}>
-        <Image src={shot.src} alt={shot.alt} width={1440} height={900} sizes={sizes} priority={eager} className="h-auto w-full rounded-frame border border-ink-strong/10 shadow-lg" />
-      </Stage>
-      <figcaption className="text-sm text-ink-subtle">{shot.caption}</figcaption>
-    </figure>
-  );
-}
-
-const shot = (name: string, alt: string, caption: string): Shot => ({ src: `/site/${name}.png`, alt, caption });
 
 const STATES: [string, string][] = [
   ["Expired", "with the date it ended"],
@@ -68,9 +46,9 @@ export const PAGES: Record<string, Page> = {
     description: "Search Bangladesh garment suppliers by name, product or HS code. Filter by certificate, district and size, and open each record beside your results.",
     // The hero and the records row play the Find and Check demos (M4, `product/search.tsx`); only the filter panel still shows its 3 Oct screen.
     blocks: [
-      { n: "01", label: "Filters", headline: "Filters that match how you buy.", lede: "HS code, certificate and its status, district, workers, brand supplier lists, BGMEA or BKMEA member. The button shows how many suppliers you will get.", shot: shot("search-filters", "The filter panel open over the results, showing the certificate, district and size filters.", "Real screen · knit, filters open · 4,645 suppliers") },
+      { n: "01", label: "Filters", headline: "Filters that match how you buy.", lede: "HS code, certificate and its status, district, workers, brand supplier lists, BGMEA or BKMEA member. The button shows how many suppliers you will get." },
       { n: "02", label: "Records", headline: "The record opens beside your list.", lede: "Check certificates, safety and sources, then move to the next row. You never lose your search." },
-      { n: "03", label: "Results", headline: "Every row says what needs a look.", lede: "The first certificate problem shows in the list, with its date. Sources counts the lists that name the supplier." },
+      { n: "03", label: "Results", headline: "Every row says which to open.", lede: "What it makes, where it is, its workers, the certificate schemes it holds today and how many sources hold it. The dates are on the record, one click away." },
     ],
     close: "Try it on your next product.",
   },
@@ -114,7 +92,7 @@ export const PAGES: Record<string, Page> = {
           </div>
         ),
       },
-      { n: "04", label: "Safety", headline: "Safety inspections, as text.", lede: "RSC reports as figures with their date. Never a progress bar.", shot: shot("records-safety", "The safety tab: RSC inspections covered, 100% of initial items fixed, training completed, and links to the fire, electrical, structural and boiler reports.", "Real screen · Aboni Knitwear Ltd. · certificates and safety") },
+      { n: "04", label: "Safety", headline: "Safety inspections, as text.", lede: "RSC reports as figures with their date. Never a progress bar." },
       { n: "05", label: "Contacts", headline: "Contact details are locked.", lede: "You see what is on file. Send an RFQ and the supplier replies in SourceBD." },
     ],
     close: "Check one supplier now.",
@@ -130,8 +108,8 @@ export const PAGES: Record<string, Page> = {
     // The hero and the quotes row play the Ask demo and the quotes vignette (M4, `product/rfqs.tsx`); the thread and the 50-supplier form keep their 3 Oct screens.
     blocks: [
       { n: "01", label: "Quotes", headline: "Quotes side by side.", lede: "FOB per piece, MOQ, lead time and valid until. Suppliers that have not replied stay on the list." },
-      { n: "02", label: "Messages", headline: "Replies in one thread per supplier.", lede: "Files, read receipts and the supplier’s record, one click away.", shot: shot("rfq-thread", "A message thread with one supplier, with the supplier’s record beside it.", "Real screen · thread with Thermax Woven Dyeing") },
-      { n: "03", label: "Many at once", headline: "Write it once, send it to 50.", lede: "Product, quantity, target FOB, tech pack. Review every supplier before it goes. A supplier on the UFLPA Entity List can’t receive an RFQ.", shot: shot("rfq-fifty", "The new RFQ form addressed to 50 suppliers, with a button to review all 50 before sending.", "Sample state · review all 50 suppliers before sending") },
+      { n: "02", label: "Messages", headline: "Replies in one thread per supplier.", lede: "Files, read receipts and the supplier’s record, one click away." },
+      { n: "03", label: "Many at once", headline: "Write it once, send it to 50.", lede: "Product, quantity, target FOB, tech pack. Review every supplier before it goes. A supplier on the UFLPA Entity List can’t receive an RFQ." },
     ],
     close: "Send your first RFQ today.",
   },
@@ -146,7 +124,7 @@ export const PAGES: Record<string, Page> = {
     // The hero and the needs-attention row play the Watch demo and the expiry vignette (M4, `product/compliance.tsx`); the UFLPA row keeps its 3 Oct screen.
     blocks: [
       { n: "01", label: "Needs attention", headline: "Expired first, then expiring.", lede: "“Expires in 5 days · 8 Oct 2026.” One action on each: ask for the renewal." },
-      { n: "02", label: "UFLPA", headline: "UFLPA screening, with the list and its date.", lede: "We check supplier names against the UFLPA Entity List. Three answers: on the list, possible Xinjiang link, no link found. “No link found” is not a clearance.", shot: shot("comp-uflpa", "UFLPA checks on saved suppliers: how many are on the list, how many have a possible Xinjiang link, and how many have no link found, with each supplier’s result.", "Real screen · UFLPA checks on your saved suppliers") },
+      { n: "02", label: "UFLPA", headline: "UFLPA screening, with the list and its date.", lede: "We check supplier names against the UFLPA Entity List. Three answers: on the list, possible Xinjiang link, no link found. “No link found” is not a clearance." },
       // The table is drawn from the live facts by the page (`product/compliance.tsx`); with none read, the lede says so instead.
       { n: "", label: "The lists", headline: "The lists we check, and when we read them.", lede: "Each list's entries and the day of its last full read, as the product holds them now." },
       { n: "03", label: "Modern slavery statement", headline: "A statement you confirm, line by line.", lede: "A draft built from your saved suppliers. Every claim we can’t confirm is marked “[Confirm: …]”. You can’t download until you confirm each one." },
@@ -161,11 +139,10 @@ export const PAGES: Record<string, Page> = {
     lede: "For sourcing managers buying clothing from Bangladesh.",
     title: "For sourcing teams — SourceBD",
     description: "For sourcing managers buying clothing from Bangladesh: find factories by HS code and district, check certificates and safety, and send one RFQ to up to 50 suppliers.",
-    hero: shot("saved-selected", "The Saved page with three suppliers picked, and the bar offering one RFQ to all three.", "Real screen · sample list, live facts · 3 suppliers chosen for one RFQ"),
     blocks: [
-      { n: "01", label: "Find", headline: "Find factories that make your product.", lede: "Search by HS code, district and workers. Each row shows the first certificate problem and how many sources name the supplier.", shot: shot("search-filters", "The filter panel open over the results for “knit”.", "Real screen · knit, filters open · 4,645 suppliers") },
-      { n: "02", label: "Check", headline: "Check them before you ask.", lede: "Certificates with dates, safety inspections, and the source of every fact. Save the ones that pass.", shot: shot("search-pane", "A supplier’s record open in a panel beside the results list.", "Real screen · Aboni Knitwear Ltd. open beside the results") },
-      { n: "03", label: "Ask", headline: "Ask many at once.", lede: "One RFQ to up to 50 suppliers. Quotes come back side by side: FOB per piece, MOQ, lead time.", shot: shot("rfq-quotes", "An RFQ with two quotes listed best first, and a third supplier that has not replied.", "Sample state · figures are examples; supplier names and the RFQ are real") },
+      { n: "01", label: "Find", headline: "Find factories that make your product.", lede: "Search by HS code, district and workers. Each row shows the certificate schemes a supplier holds today and how many sources name it." },
+      { n: "02", label: "Check", headline: "Check them before you ask.", lede: "Certificates with dates, safety inspections, and the source of every fact. Save the ones that pass." },
+      { n: "03", label: "Ask", headline: "Ask many at once.", lede: "One RFQ to up to 50 suppliers. Quotes come back side by side: FOB per piece, MOQ, lead time." },
     ],
     outcome: "A shortlist your compliance team can check, source by source.",
     close: "Build your shortlist today.",
@@ -178,11 +155,10 @@ export const PAGES: Record<string, Page> = {
     lede: "For compliance and due diligence staff checking Bangladesh suppliers.",
     title: "For compliance teams — SourceBD",
     description: "For compliance and due diligence staff: certificates with dates, UFLPA and sanctions screening with the day each list was read, expiry watch, and the source of every fact.",
-    hero: shot("compliance-hub", "The Compliance page: certificates that need a look, expired first, with an ask for the new certificate on each.", "Real screen · needs attention across your saved suppliers"),
     blocks: [
-      { n: "01", label: "Certificates", headline: "Check certificates and their dates.", lede: "Number, issued by, valid until. Expired first. Each one links to the issuer’s own page.", shot: shot("records-certs", "The certificates tab: four certificates, one expired.", "Real screen · Aboni Knitwear Ltd. · 4 certificates, 1 expired") },
-      { n: "02", label: "Screening", headline: "Screen against the UFLPA Entity List.", lede: "And five more sanctions and forced labour lists, each with the date we read it. “No link found” is not a clearance.", shot: shot("comp-uflpa", "UFLPA checks on saved suppliers, each with its result.", "Real screen · UFLPA checks on your saved suppliers") },
-      { n: "03", label: "Watch", headline: "Watch for expiry.", lede: "Expired and expiring certificates on your saved suppliers, with one action each: ask for the renewal.", shot: shot("comp-expiry", "Certificates on saved suppliers, expired first, with a request for the renewal on each.", "Real screen · certificate expiry, expired first") },
+      { n: "01", label: "Certificates", headline: "Check certificates and their dates.", lede: "Number, issued by, valid until. Expired first. Each one links to the issuer’s own page." },
+      { n: "02", label: "Screening", headline: "Screen against the UFLPA Entity List.", lede: "And five more sanctions and forced labour lists, each with the date we read it. “No link found” is not a clearance." },
+      { n: "03", label: "Watch", headline: "Watch for expiry.", lede: "Expired and expiring certificates on your saved suppliers, with one action each: ask for the renewal." },
       { n: "04", label: "Statement", headline: "Draft the modern slavery statement.", lede: "Built from your saved suppliers. Every claim we can’t confirm stays marked until you confirm it." },
     ],
     outcome: "Evidence you can show an auditor: the source, the number, the date.",
@@ -200,51 +176,17 @@ export const siteMetadata = (key: string): Metadata | null => {
 export function SitePage({ pageKey, facts }: { pageKey: string; facts: SiteFacts }) {
   const p = PAGES[pageKey]!;
   const count = facts.suppliers !== null ? withCommas(facts.suppliers) : null;
-  const updated = readDay(facts.latestRead);
   const h1 = count ? p.h1.replace("{n}", count) : p.h1.includes("{n}") ? p.h1Plain : p.h1;
   return (
     <main className="font-sans text-ink">
-      <HeroCentered
-        label={`${p.group} · ${p.name}`}
-        title={h1}
-        lede={p.lede}
-        stage={
-          p.hero || count ? (
-            <div className="flex flex-col gap-3">
-              {p.hero ? <Figure shot={p.hero} still="hero-cotton" eager /> : null}
-              {count ? (
-                <p className="text-sm text-ink-subtle">
-                  {count} published suppliers{updated ? ` · updated ${updated}` : ""}
-                </p>
-              ) : null}
-            </div>
-          ) : undefined
-        }
-      >
+      <HeroCentered label={`${p.group} · ${p.name}`} title={h1} lede={p.lede}>
         <HeroActions center />
       </HeroCentered>
-
-      {p.blocks.map((b, i) =>
-        b.shot ? (
-          <FeatureRow key={b.headline} label={b.label} headline={b.headline} lede={b.lede} flip={i % 2 === 1} tone={i % 2 === 0 ? "subtle" : "paper"} media={<Figure shot={b.shot} still="weave" sizes="(min-width: 1440px) 720px, 100vw" />}>
-            {b.extra}
-          </FeatureRow>
-        ) : (
-          <Section key={b.headline} label={b.label} headline={b.headline} lede={b.lede} tone={i % 2 === 0 ? "subtle" : "paper"}>
-            {b.extra}
-          </Section>
-        ),
-      )}
-
-      {p.outcome ? (
-        <section className="py-14 md:py-section">
-          <div className={cn(measure, "flex flex-col items-center gap-4 text-center")}>
-            <Label>The outcome</Label>
-            <p className="max-w-[880px] text-site-h2-sm font-light text-ink-strong [text-wrap:balance] md:text-site-h2">{p.outcome}</p>
-          </div>
-        </section>
-      ) : null}
-
+      {p.blocks.map((b, i) => (
+        <Section key={b.headline} label={b.label} headline={b.headline} lede={b.lede} tone={i % 2 === 0 ? "subtle" : "paper"}>
+          {b.extra}
+        </Section>
+      ))}
       <Closing headline={p.close} lede="Free during beta. No card needed." />
     </main>
   );

@@ -13,7 +13,24 @@ import raw from "./demo-snapshot.json";
 
 export type SnapshotCert = { kind: string; number: string | null; issuer: string | null; expiresOn: string | null };
 export type SnapshotRow = { slug: string; name: string; type: string; place: string | null; workers: number | null; sources: number; products: string[]; certs: { kind: string; expiresOn: string | null }[] };
-export type SnapshotRecord = { slug: string; name: string; type: string; place: string | null; workers: number | null; sources: string[]; read: Record<string, string>; bgmea: string | null; certs: SnapshotCert[] };
+/** One RSC row of a record: the mother's (no building name) or a building's, as `buyer_supplier_profile` files it; the report names the register published. */
+export type SnapshotRsc = { building: string | null; status: string | null; progress: number | null; training: string | null; readOn: string | null; workers: number | null; reports: string[] };
+export type SnapshotRecord = {
+  slug: string;
+  name: string;
+  type: string;
+  place: string | null;
+  workers: number | null;
+  /** Every source that files the record, brand lists included. */
+  sources: string[];
+  /** The registers and certifiers that hold it (tiers 1 to 3): the count the product prints as "N sources". */
+  registers: number | null;
+  read: Record<string, string>;
+  bgmea: string | null;
+  certs: SnapshotCert[];
+  /** The Check record only: its RSC rows. */
+  rsc?: SnapshotRsc[];
+};
 export type DemoSnapshot = {
   readAt: string;
   search: { q: string; chips: string[]; total: number | null; rows: SnapshotRow[] };
@@ -36,6 +53,11 @@ export const CAPTION = `Real records as read ${READ_AT}`;
 
 /** The placeholder the sanctioned sample uses everywhere on the site; never a real company. */
 export const SANCTIONED_SAMPLE = "Example Apparel Ltd";
+
+/** How many registers and certifiers hold a record, as the product counts its sources (tiers 1 to 3, brand lists apart). */
+export function registerCount(r: Pick<SnapshotRecord, "sources" | "registers">): number {
+  return r.registers ?? r.sources.filter((s) => !s.startsWith("BRAND_")).length;
+}
 
 /** A brand supplier list's short name as the results row writes it (lib/dashboard/build-discover-row.ts); a register's code is its own name. */
 export const BRAND_LIST: Record<string, string> = { BRAND_HM: "H&M", BRAND_ASOS: "ASOS", BRAND_NEXT: "NEXT", BRAND_MS: "M&S", BRAND_INDITEX: "Inditex", BRAND_PRIMARK: "Primark" };

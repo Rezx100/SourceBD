@@ -167,13 +167,13 @@ describe("the Mercury home page", () => {
     assert.ok(/href="\/signup\?role=supplier"[^>]*>(?:<[^>]+>)*\s*Claim your record/.test(out), "a claim button");
   });
 
-  it("every screen says what it shows, and every backdrop is decoration", () => {
+  it("no screenshot anywhere: every backdrop is decoration and the hero is the search's end frame, drawn from the snapshot (critique 22 Oct, S2)", () => {
     const out = page();
-    for (const img of out.match(/<img [^>]*>/g) ?? []) {
-      if (/\/site\/home\/screen-/.test(img)) assert.match(img, /alt="[^"]{12,}"/, img);
-      else if (/\/site\/home\//.test(img)) assert.match(img, /alt=""/, img);
-    }
-    assert.match(out, /alt="SourceBD search results[^"]*"[^>]*fetchPriority="high"|fetchPriority="high"[^>]*alt="SourceBD search results/);
+    for (const img of out.match(/<img [^>]*>/g) ?? []) if (/\/site\/home\//.test(img)) assert.match(img, /alt=""/, img);
+    assert.doesNotMatch(out, /\/site\/home\/screen-|\/site\/[a-z-]+\.png/);
+    const hero = out.slice(out.indexOf('class="mk-hero'), out.indexOf('aria-labelledby="home-tour"'));
+    assert.match(hero, /<figcaption class="sr-only">A search for knit GOTS: /);
+    assert.match(hero, /hero-cotton-1600\.webp"[^>]*fetchPriority="high"|fetchPriority="high"[^>]*hero-cotton/);
   });
 
   it("one material system: the backdrops are cotton and weave only, and the night is drawn, never photographed (critique 22 Oct, S3)", () => {
@@ -286,21 +286,22 @@ describe("the live sections", () => {
     assert.match(none, /Inside one record\./, "the dated screen still stands");
   });
 
-  it("Buy with confidence: four tabs, every panel in the page, the sanctioned company a placeholder", () => {
+  it("Buy with confidence: four tabs, every panel in the page, the sanctioned company the site's example, captioned as one", () => {
     const out = live();
     assert.equal((out.match(/role="tab"/g) ?? []).length, 4);
     assert.equal((out.match(/role="tabpanel"/g) ?? []).length, 4);
     assert.equal((out.match(/aria-selected="true"/g) ?? []).length, 1);
     assert.match(text(out), /A sanctioned supplier is marked on every surface\./);
-    assert.match(out, /alt="A placeholder supplier, Example Apparel Ltd, marked sanctioned/);
+    assert.match(out, /Example Apparel Ltd, an example company, among them: its row turns maroon/);
+    assert.match(text(out), /Example Apparel Ltd is an example company, not a real supplier/);
     assert.match(text(out), /“No link found” is not a clearance/);
   });
 
-  it("a callout the record no longer holds leaves its slot empty: the others keep their own rows", () => {
-    const out = live({ callouts: [null, { ...CALLOUT, title: "GOTS-31587 · valid to 12 May 2027", tone: undefined }, null] });
-    // Slot 2 of the board: the card at (880, 290) of the 1280×830 stage.
-    assert.match(out, /left:68\.75%;top:34\.93975903614458%"><span[^>]*>GOTS-31587/);
-    assert.doesNotMatch(out, /top:22\.89156626506024%/, "slot 1 is empty");
+  it("a fact the record no longer holds is left out; the others keep their order beside the record", () => {
+    const out = live({ callouts: [null, { ...CALLOUT, title: "GOTS-31587 · valid to 12 May 2027", tone: undefined }, CALLOUT] });
+    const list = text(out.slice(out.indexOf('aria-label="What the record shows"'), out.indexOf("</ul>", out.indexOf('aria-label="What the record shows"'))));
+    assert.ok(list.indexOf("GOTS-31587") < list.indexOf("GOTS-27605"), "the order of the callouts");
+    assert.equal((out.match(/aria-label="What the record shows"/g) ?? []).length, 1);
   });
 
   it("the real records say how many were read", () => {

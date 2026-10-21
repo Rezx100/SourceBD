@@ -16,7 +16,7 @@ import { certWords, usd, vsTarget } from "@/components/patterns/words";
 import type { CursorState, Step } from "@/components/site/motion";
 import { daysUntil, displayName, formatDay } from "@/lib/dashboard/facts";
 import { certName } from "@/lib/dashboard/needs-attention";
-import { BRAND_LIST, CERT_REGISTER, SANCTIONED_SAMPLE, SNAPSHOT, TODAY } from "@/lib/marketing/demo-snapshot";
+import { BRAND_LIST, CERT_REGISTER, SANCTIONED_SAMPLE, SNAPSHOT, TODAY, registerCount } from "@/lib/marketing/demo-snapshot";
 import { cn } from "@/lib/utils";
 import { Demo, endOf, streamed, typed, type Frame } from "./stage";
 
@@ -59,22 +59,25 @@ export function VignetteExpiry(frame: Frame) {
 /* ------------------------------------------------------------------ a source mark stack settling */
 
 const SOURCES = [...check.sources].sort((a, b) => tierOf(a) - tierOf(b));
+/** The product's caption for a record's sources (lib/dashboard/build-discover-row.ts): registers and certifiers, brand lists apart. */
+const REGISTERS = registerCount(check);
+const BRANDS = check.sources.filter((s) => s.startsWith("BRAND_")).length;
+const SOURCES_CAPTION = [`${REGISTERS} ${REGISTERS === 1 ? "register or certifier" : "registers & certifiers"}`, BRANDS ? `${BRANDS} brand ${BRANDS === 1 ? "list" : "lists"}` : null].filter(Boolean).join(" · ");
 type M = CursorState & { shown: number };
 export const MARKS_STEPS: Step<M>[] = [{ at: 0, state: { shown: 0 } }, ...streamed(SOURCES.length, 500, (shown) => ({ shown }))];
 
 export function VignetteMarks(frame: Frame) {
   return (
-    <Demo {...frame} steps={MARKS_STEPS} description={`${displayName(check.name)} is listed by ${SOURCES.length} sources, each mark arriving in tier order.`}>
+    <Demo {...frame} steps={MARKS_STEPS} description={`${displayName(check.name)} is listed by ${SOURCES_CAPTION}, each arriving in tier order.`}>
       {(s) => (
         <Small>
           <p className="text-sm font-medium text-ink">{displayName(check.name)}</p>
-          <p className="text-xs text-ink-3">
-            {s.shown} of {SOURCES.length} sources
-          </p>
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
+          <p className="text-xs text-ink-3">{SOURCES_CAPTION}</p>
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
             {SOURCES.map((code, i) => (
               <span key={code} className={cn(fading, i >= s.shown && "opacity-40")} title={TIER_LABEL[tierOf(code)]}>
-                <SourceChip source={code} name={BRAND_LIST[code] ?? code} />
+                {/* A brand list has no mark of its own: its name in a chip, never a placeholder glyph (critique 22 Oct). */}
+                {BRAND_LIST[code] ? <span className="inline-flex h-6 items-center rounded-md border border-line px-2 text-xs font-medium text-ink-2">{BRAND_LIST[code]}</span> : <SourceChip source={code} name={code} />}
               </span>
             ))}
           </div>
@@ -241,9 +244,9 @@ export function VignetteReceipts(frame: Frame) {
   );
 }
 
-/** A vignette's window: small, the product's light ground and a real edge, one moment inside (critique 22 Oct, S4). */
+/** A vignette's window: small, the product's light ground and a real edge, one moment inside (critique 22 Oct, S4). One height for every vignette, so cards side by side stand level. */
 function Small({ children, className }: { children: ReactNode; className?: string }) {
-  return <div data-ground="day" className={cn("flex min-h-[168px] flex-col rounded-frame border border-line-strong bg-surface p-4 text-ink", className)}>{children}</div>;
+  return <div data-ground="day" className={cn("flex min-h-[204px] flex-col rounded-frame border border-line-strong bg-surface p-4 text-ink", className)}>{children}</div>;
 }
 
 /** A row of a list that streams: it stands under a fade until the moment reaches it, so the list is never empty (critique 22 Oct, S5). */

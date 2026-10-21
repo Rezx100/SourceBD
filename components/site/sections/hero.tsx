@@ -4,12 +4,13 @@
 // are the nine common searches (PR 3 gives them their live counts).
 
 import { buttonClass } from "@/components/kit/button-class";
+import { SearchEnd } from "@/components/site/demos";
 import { withCommas } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 import { HeroEmailForm } from "./hero-email";
 import { HeroLoop } from "./hero-loop";
-import { Screen, TextLink, measure } from "./ui";
+import { TextLink, measure } from "./ui";
 
 export const RECORD_HREF = "/suppliers/aboni-knitwear";
 
@@ -59,8 +60,8 @@ export function HeroCopy({ suppliers, chips }: { suppliers: number | null; chips
 }
 
 /**
- * The hero (M3, handoff-mercury-motion-sitewide.md §4.1, phase 1): the copy, then the results screen on the cotton
- * stage. From 768 up, where the browser scrubs animations by scroll and nothing asks for reduced motion, app/ds.css
+ * The hero (M3, handoff-mercury-motion-sitewide.md §4.1, phase 1): the copy, then the search's end frame on the cotton
+ * stage, drawn from the snapshot's real records as the tour's Find plays them (critique 22 Oct: no 3 Oct screenshot). From 768 up, where the browser scrubs animations by scroll and nothing asks for reduced motion, app/ds.css
  * makes it a 220vh scene: the copy fades over the first 30% of the scroll while the stage rises to the content
  * width, its cloth zooming and dimming towards the night tone, so the dark tour's first frame follows (`.mk-hero-*`).
  * Everywhere else, and with no script, the page is this markup in flow.
@@ -76,7 +77,7 @@ export function HeroScrub({ suppliers, chips }: { suppliers: number | null; chip
           <div className="mk-hero-stage relative isolate mx-auto flex max-w-[350px] items-center justify-center overflow-hidden rounded-card px-4 py-6 md:max-w-none md:rounded-stage md:px-16 md:py-[68px]">
             <HeroLoop />
             <div aria-hidden className="mk-hero-dim pointer-events-none absolute inset-0 bg-ink opacity-0" />
-            <Screen name="results" eager alt="SourceBD search results: suppliers with their source marks, one record open beside the list" className="mx-auto max-w-[1152px]" />
+            <SearchEnd className="relative mx-auto max-w-[1152px]" />
           </div>
         </div>
       </div>

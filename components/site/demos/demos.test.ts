@@ -20,12 +20,21 @@ const rfq = require("@/components/site/demos/rfq") as typeof import("@/component
 const compliance = require("@/components/site/demos/compliance") as typeof import("@/components/site/demos/compliance");
 const claim = require("@/components/site/demos/claim") as typeof import("@/components/site/demos/claim");
 const vignettes = require("@/components/site/demos/vignettes") as typeof import("@/components/site/demos/vignettes");
+const thread = require("@/components/site/demos/thread") as typeof import("@/components/site/demos/thread");
+const filters = require("@/components/site/demos/filters") as typeof import("@/components/site/demos/filters");
+const statement = require("@/components/site/demos/statement") as typeof import("@/components/site/demos/statement");
 /* eslint-enable @typescript-eslint/no-require-imports */
 
 const router = { push() {}, replace() {}, refresh() {}, back() {}, forward() {}, prefetch() {} };
 const plain = (s: string) => s.replace(/&#x27;/g, "'").replace(/&amp;/g, "&").replace(/&quot;/g, '"');
 const draw = (C: ComponentType<{ className?: string }>) => plain(renderToStaticMarkup(createElement(AppRouterContext.Provider, { value: router as never }, createElement(C))));
 const text = (m: string) => m.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
+
+/** Watch played as one of its parts (critique 22 Oct). */
+const watchAs = (view: import("@/components/site/demos/compliance").ComplianceView): ComponentType<{ className?: string }> =>
+  function WatchAs(p) {
+    return createElement(compliance.DemoCompliance, { ...p, view });
+  };
 
 /** Check opened at another of the record's sections (M4). */
 const checkAt = (tab: import("@/components/site/demos/record").RecordTab): ComponentType<{ className?: string }> =>
@@ -38,6 +47,13 @@ const DEMOS: { name: string; C: ComponentType<{ className?: string }>; names: re
   { name: "Check", C: record.DemoRecord, names: record.NAMES },
   { name: "Check at Sources", C: checkAt("sources"), names: record.NAMES },
   { name: "Check at Contact", C: checkAt("contact"), names: record.NAMES },
+  { name: "Check at Safety", C: checkAt("safety"), names: record.NAMES },
+  { name: "Quotes", C: rfq.DemoQuotes, names: rfq.NAMES },
+  { name: "Review", C: rfq.DemoReview, names: [...search.NAMES, SANCTIONED_SAMPLE] },
+  { name: "Thread", C: thread.DemoThread, names: thread.NAMES },
+  { name: "Watch: the checks", C: watchAs("uflpa"), names: compliance.NAMES },
+  { name: "Watch: the expiry list", C: watchAs("expiry"), names: compliance.NAMES },
+  { name: "Watch: screening", C: watchAs("screen"), names: [...compliance.NAMES, SANCTIONED_SAMPLE] },
   { name: "Ask", C: rfq.DemoRfq, names: rfq.NAMES },
   { name: "Watch", C: compliance.DemoCompliance, names: compliance.NAMES },
   { name: "Claim", C: claim.DemoClaim, names: claim.NAMES },
@@ -128,6 +144,44 @@ describe("the demos", () => {
     assert.match(ask, /every figure is an example/);
     const watch = text(draw(compliance.DemoCompliance));
     assert.match(watch, /Expired · \d+ certificates?|Expires within 30 days · \d+ certificates?|Expires in 31–90 days/);
+  });
+
+  it("the parts that replaced the 3 Oct screenshots say what is real and what is an example (critique 22 Oct)", () => {
+    // The filter pane counts the snapshot's own search; the statement's answers are examples; nothing names a company it should not.
+    const pane = text(draw(filters.DemoFilters));
+    assert.match(pane, new RegExp(`Show ${(SNAPSHOT.search.total ?? 0).toLocaleString("en-GB")} suppliers`));
+    assert.match(pane, /Certificate status Any Valid Expiring Expired/);
+    assert.ok(pane.includes(CAPTION));
+    const draft = text(draw(statement.DemoStatement));
+    assert.match(draft, /Example answers/);
+    assert.match(draft, /Download statement/);
+    assert.ok(draft.includes(CAPTION));
+    for (const C of [filters.DemoFilters, statement.DemoStatement]) assert.match(draw(C), /<button type="button" aria-label="Pause demo"/);
+    // The review ends with the sanctioned example removed: the RFQ goes to the search's suppliers only.
+    const review = text(draw(rfq.DemoReview));
+    assert.match(review, new RegExp(`Sends to ${SNAPSHOT.search.rows.length} suppliers\\.`));
+    assert.match(review, /you can add up to 50/);
+    assert.doesNotMatch(review, /RFQs cannot be sent to a sanctioned supplier/);
+    // The thread's RFQ and messages are labelled; its supplier is the snapshot's.
+    assert.match(text(draw(thread.DemoThread)), /Example messages/);
+    // Screening names the sanctioned example only as an example, and its caption says so.
+    const screen = text(draw(watchAs("screen")));
+    assert.match(screen, /On the UFLPA Entity List/);
+    assert.match(screen, /Example Apparel Ltd is an example company, not a real supplier/);
+    for (const n of snapshotNames()) assert.ok(!new RegExp(`${n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} On the UFLPA`).test(screen), `${n} is never shown on the list`);
+    // Safety reads the record's own RSC rows.
+    const safety = text(draw(checkAt("safety")));
+    if ((SNAPSHOT.check.rsc ?? []).length) assert.match(safety, /Building · RSC Issues fixed Training/);
+  });
+
+  it("one source count everywhere: the record and the marks say the product's registers and certifiers, brand lists apart (critique 22 Oct)", () => {
+    const registers = SNAPSHOT.check.registers ?? SNAPSHOT.check.sources.filter((s) => !s.startsWith("BRAND_")).length;
+    assert.match(text(draw(record.DemoRecord)), new RegExp(`${registers} sources`));
+    assert.match(text(draw(vignettes.VignetteMarks)), new RegExp(`${registers} registers & certifiers`));
+    const row = SNAPSHOT.search.rows.find((r) => r.slug === SNAPSHOT.check.slug);
+    if (row) assert.equal(row.sources, registers, "the search row and the record count the same sources");
+    // A brand list is named in a chip, never drawn as a placeholder glyph.
+    assert.doesNotMatch(draw(vignettes.VignetteMarks), /BRAND_/);
   });
 
   it("Claim says how a claim is approved, offers no product editing, and ends on Claimed", () => {

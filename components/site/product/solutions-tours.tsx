@@ -1,11 +1,17 @@
 "use client";
 
 // The two solutions pages' pinned tours (M4, handoff-mercury-m4-onward.md §4.2): three of the home tour's items for
-// a sourcing team (Find, Check, Ask) and, for a compliance team, Check, Watch and Screen, where Screen is the
-// sanction vignette with a two-line body. A client file because the item lists hold components.
+// a sourcing team (Find, Check, Ask) and, for a compliance team, Check, Watch and Screen, where Screen plays the
+// UFLPA checks on the saved suppliers with the site's sanctioned example among them, its one row turning maroon
+// (critique 22 Oct: the small vignette floated in the column). A client file because the item lists hold components.
 
-import { VignetteSanction } from "@/components/site/demos";
+import { DemoCompliance } from "@/components/site/demos";
+import type { Frame } from "@/components/site/demos/stage";
 import { PinnedTour, TOUR, type TourItem } from "@/components/site/sections/tour";
+
+function Screen(frame: Frame) {
+  return <DemoCompliance view="screen" {...frame} />;
+}
 
 const of = (key: string): TourItem => TOUR.find((t) => t.key === key)!;
 
@@ -13,7 +19,7 @@ const SOURCING: readonly TourItem[] = [of("find"), of("check"), of("ask")];
 const COMPLIANCE: readonly TourItem[] = [
   of("check"),
   of("watch"),
-  { key: "screen", icon: "shield", title: "Screen", body: "Every saved supplier is checked against the UFLPA Entity List and five more lists, each with the day it was read. A listing turns the row maroon on every surface and Send RFQ is refused.", href: "/product/compliance", Demo: VignetteSanction },
+  { key: "screen", icon: "shield", title: "Screen", body: "Every saved supplier is checked against the UFLPA Entity List and five more lists, each with the day it was read. A listing turns the row maroon on every surface and Send RFQ is refused.", href: "/product/compliance", Demo: Screen },
 ];
 
 export function SourcingTour() {

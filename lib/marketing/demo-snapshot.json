@@ -1,12 +1,12 @@
 {
- "readAt": "2026-10-14",
+ "readAt": "2026-10-21",
  "search": {
   "q": "knit",
   "chips": [
    "knit",
    "GOTS"
   ],
-  "total": 388,
+  "total": 524,
   "rows": [
    {
     "slug": "modele-de-capital-industries",
@@ -39,40 +39,6 @@
      {
       "kind": "oeko_tex",
       "expiresOn": null
-     },
-     {
-      "kind": "oeko_tex",
-      "expiresOn": null
-     },
-     {
-      "kind": "oeko_tex",
-      "expiresOn": null
-     }
-    ]
-   },
-   {
-    "slug": "tex-town",
-    "name": "TEX TOWN LTD.",
-    "type": "Factory",
-    "place": "Dhaka",
-    "workers": 4005,
-    "sources": 8,
-    "products": [
-     "All Kind of Knit Item",
-     "Babies' Apparel",
-     "Backboard",
-     "Carton",
-     "Children's Apparel",
-     "Interlining"
-    ],
-    "certs": [
-     {
-      "kind": "gots",
-      "expiresOn": "2026-10-15"
-     },
-     {
-      "kind": "wrap",
-      "expiresOn": "2027-06-17"
      },
      {
       "kind": "oeko_tex",
@@ -295,6 +261,48 @@
       "expiresOn": null
      }
     ]
+   },
+   {
+    "slug": "fariha-knit-tex",
+    "name": "FARIHA KNIT TEX LIMITED.",
+    "type": "Factory",
+    "place": "Narayanganj",
+    "workers": 7305,
+    "sources": 7,
+    "products": [
+     "All Kind of Knit Item",
+     "Babies Apparel",
+     "Children's Apparel",
+     "Dyed fabrics",
+     "Jackets",
+     "Knitted Garments"
+    ],
+    "certs": [
+     {
+      "kind": "gots",
+      "expiresOn": "2027-04-04"
+     },
+     {
+      "kind": "wrap",
+      "expiresOn": "2027-05-21"
+     },
+     {
+      "kind": "oeko_tex",
+      "expiresOn": null
+     },
+     {
+      "kind": "oeko_tex",
+      "expiresOn": null
+     },
+     {
+      "kind": "oeko_tex",
+      "expiresOn": null
+     },
+     {
+      "kind": "oeko_tex",
+      "expiresOn": null
+     }
+    ]
    }
   ]
  },
@@ -317,10 +325,11 @@
    "BRAND_HM",
    "BRAND_NEXT"
   ],
+  "registers": 8,
   "read": {
    "EPB": "2026-08-14",
    "RSC": "2026-10-02",
-   "BGMEA": "2026-10-14",
+   "BGMEA": "2026-10-19",
    "BKMEA": "2026-08-02",
    "BGAPMEA": "2026-06-26",
    "GOTS": "2026-10-14",
@@ -359,6 +368,38 @@
     "issuer": "WRAP",
     "expiresOn": "2027-08-25"
    }
+  ],
+  "rsc": [
+   {
+    "building": null,
+    "status": "initialcompleted",
+    "progress": 100,
+    "training": "completed",
+    "readOn": "2026-07-30",
+    "workers": 2662,
+    "reports": [
+     "fire",
+     "structural",
+     "electrical",
+     "boiler",
+     "cap"
+    ]
+   },
+   {
+    "building": "Aboni Knitwear (New Shed)",
+    "status": "initialcompleted",
+    "progress": 100,
+    "training": "completed",
+    "readOn": "2026-07-30",
+    "workers": 504,
+    "reports": [
+     "fire",
+     "structural",
+     "electrical",
+     "boiler",
+     "cap"
+    ]
+   }
   ]
  },
  "saved": [
@@ -379,13 +420,14 @@
     "SA8000",
     "WRAP"
    ],
+   "registers": 9,
    "read": {
     "EPB": "2026-08-14",
     "RSC": "2026-10-02",
-    "BGMEA": "2026-10-14",
+    "BGMEA": "2026-10-19",
     "BKMEA": "2026-08-02",
     "BGAPMEA": "2026-06-27",
-    "GOTS": "2026-06-26",
+    "GOTS": "2026-10-14",
     "OEKO-TEX": "2026-10-10",
     "WRAP": "2026-10-10"
    },
@@ -442,60 +484,6 @@
    ]
   },
   {
-   "slug": "tex-town",
-   "name": "TEX TOWN LTD.",
-   "type": "Factory",
-   "place": "Dhaka",
-   "workers": 4005,
-   "sources": [
-    "EPB",
-    "RSC",
-    "BGAPMEA",
-    "BGMEA",
-    "BKMEA",
-    "GOTS",
-    "OEKO-TEX",
-    "WRAP"
-   ],
-   "read": {
-    "EPB": "2026-08-14",
-    "RSC": "2026-10-02",
-    "BGMEA": "2026-10-14",
-    "BKMEA": "2026-08-02",
-    "BGAPMEA": "2026-06-27",
-    "GOTS": "2026-06-26",
-    "OEKO-TEX": "2026-10-10",
-    "WRAP": "2026-10-10"
-   },
-   "bgmea": "3916",
-   "certs": [
-    {
-     "kind": "gots",
-     "number": "GOTS-27401",
-     "issuer": "IDFL Laboratory and Institute Inc.",
-     "expiresOn": "2026-10-15"
-    },
-    {
-     "kind": "oeko_tex",
-     "number": "15850-100",
-     "issuer": "OEKO-TEX",
-     "expiresOn": null
-    },
-    {
-     "kind": "oeko_tex",
-     "number": "15850-step",
-     "issuer": "OEKO-TEX",
-     "expiresOn": null
-    },
-    {
-     "kind": "wrap",
-     "number": "131582",
-     "issuer": "WRAP",
-     "expiresOn": "2027-06-17"
-    }
-   ]
-  },
-  {
    "slug": "aboni-knitwear",
    "name": "ABONI KNITWEAR LTD.",
    "type": "Factory",
@@ -514,10 +502,11 @@
     "BRAND_HM",
     "BRAND_NEXT"
    ],
+   "registers": 8,
    "read": {
     "EPB": "2026-08-14",
     "RSC": "2026-10-02",
-    "BGMEA": "2026-10-14",
+    "BGMEA": "2026-10-19",
     "BKMEA": "2026-08-02",
     "BGAPMEA": "2026-06-26",
     "GOTS": "2026-10-14",
@@ -574,10 +563,11 @@
     "OEKO-TEX",
     "WRAP"
    ],
+   "registers": 8,
    "read": {
     "EPB": "2026-07-30",
     "RSC": "2026-10-02",
-    "BGMEA": "2026-10-14",
+    "BGMEA": "2026-10-19",
     "BKMEA": "2026-08-02",
     "BGAPMEA": "2026-06-26",
     "GOTS": "2026-10-14",
@@ -622,13 +612,14 @@
     "OEKO-TEX",
     "WRAP"
    ],
+   "registers": 8,
    "read": {
     "EPB": "2026-08-14",
     "RSC": "2026-10-02",
-    "BGMEA": "2026-10-14",
+    "BGMEA": "2026-10-19",
     "BKMEA": "2026-08-02",
     "BTMA": "2026-05-21",
-    "GOTS": "2026-06-26",
+    "GOTS": "2026-10-14",
     "OEKO-TEX": "2026-10-10",
     "WRAP": "2026-10-10"
    },
@@ -670,13 +661,14 @@
     "OEKO-TEX",
     "WRAP"
    ],
+   "registers": 8,
    "read": {
     "EPB": "2026-07-30",
     "RSC": "2026-10-02",
-    "BGMEA": "2026-10-14",
+    "BGMEA": "2026-10-19",
     "BKMEA": "2026-08-02",
     "BGAPMEA": "2026-06-27",
-    "GOTS": "2026-06-26",
+    "GOTS": "2026-10-14",
     "OEKO-TEX": "2026-10-10",
     "WRAP": "2026-10-10"
    },
@@ -736,10 +728,11 @@
     "OEKO-TEX",
     "WRAP"
    ],
+   "registers": 8,
    "read": {
     "EPB": "2026-08-14",
     "RSC": "2026-10-02",
-    "BGMEA": "2026-10-14",
+    "BGMEA": "2026-10-19",
     "BKMEA": "2026-08-02",
     "BGAPMEA": "2026-06-26",
     "GOTS": "2026-10-14",
@@ -786,13 +779,14 @@
     "BRAND_ASOS",
     "BRAND_NEXT"
    ],
+   "registers": 8,
    "read": {
     "EPB": "2026-08-14",
     "RSC": "2026-10-02",
-    "BGMEA": "2026-10-14",
+    "BGMEA": "2026-10-19",
     "BKMEA": "2026-08-02",
     "BGAPMEA": "2026-06-27",
-    "GOTS": "2026-06-26",
+    "GOTS": "2026-10-14",
     "OEKO-TEX": "2026-10-10",
     "WRAP": "2026-07-24"
    },
@@ -833,6 +827,72 @@
      "number": "124992",
      "issuer": "WRAP",
      "expiresOn": "2026-07-21"
+    }
+   ]
+  },
+  {
+   "slug": "fariha-knit-tex",
+   "name": "FARIHA KNIT TEX LIMITED.",
+   "type": "Factory",
+   "place": "Narayanganj",
+   "workers": 7305,
+   "sources": [
+    "EPB",
+    "RSC",
+    "BGMEA",
+    "BKMEA",
+    "GOTS",
+    "OEKO-TEX",
+    "WRAP",
+    "BRAND_NEXT"
+   ],
+   "registers": 7,
+   "read": {
+    "EPB": "2026-08-14",
+    "RSC": "2026-10-02",
+    "BGMEA": "2026-10-19",
+    "BKMEA": "2026-08-02",
+    "GOTS": "2026-10-14",
+    "OEKO-TEX": "2026-10-10",
+    "WRAP": "2026-10-10"
+   },
+   "bgmea": "3645",
+   "certs": [
+    {
+     "kind": "gots",
+     "number": "GOTS-16693",
+     "issuer": "GCL International Ltd",
+     "expiresOn": "2027-04-04"
+    },
+    {
+     "kind": "oeko_tex",
+     "number": "25521-100",
+     "issuer": "OEKO-TEX",
+     "expiresOn": null
+    },
+    {
+     "kind": "oeko_tex",
+     "number": "25521-mig",
+     "issuer": "OEKO-TEX",
+     "expiresOn": null
+    },
+    {
+     "kind": "oeko_tex",
+     "number": "25521-step",
+     "issuer": "OEKO-TEX",
+     "expiresOn": null
+    },
+    {
+     "kind": "oeko_tex",
+     "number": "25521-organic-cotton",
+     "issuer": "OEKO-TEX",
+     "expiresOn": null
+    },
+    {
+     "kind": "wrap",
+     "number": "16793",
+     "issuer": "WRAP",
+     "expiresOn": "2027-05-21"
     }
    ]
   }

@@ -1,14 +1,15 @@
 // /product/compliance (M4, handoff-mercury-m4-onward.md §4.2): the words of `PAGES["product/compliance"]`, pinned by
 // `pages.test.ts`, in the home page's frame. The hero's screenshot is now the Watch demo on the cotton stage (the
 // saved suppliers checked against the UFLPA Entity List, the certificates grouped by when they end); the four
-// moments follow as on the home; the needs-attention row plays the expiry vignette, the UFLPA row keeps its 3 Oct
-// screen, the lists table reads its figures and dates from the site's live facts, the statement keeps its words; then
-// the other three products and the close on the night ground. No sanctions row: the page's words hold none.
+// moments follow as on the home; the needs-attention row plays the expiry vignette, the UFLPA row the checks, the lists
+// table reads its figures and dates from the site's live facts, and the statement row draws the draft with its claims
+// to confirm (critique 22 Oct: no 3 Oct screenshot); then the other three products and the close on the night ground.
+// No sanctions row: the page's words hold none.
 
-import { DemoCompliance, VignetteExpiry } from "@/components/site/demos";
+import { DemoCompliance, DemoStatement, VignetteExpiry } from "@/components/site/demos";
 import { TIERS } from "@/components/site/sources";
 import { ToneShift } from "@/components/site/motion";
-import { Figure, PAGES } from "@/components/site/pages";
+import { PAGES } from "@/components/site/pages";
 import { Closing } from "@/components/site/sections/closing";
 import { CrossSell } from "@/components/site/sections/cross-sell";
 import { FeatureRow, HeroActions, HeroCentered, Section } from "@/components/site/sections/ui";
@@ -98,11 +99,11 @@ export function CompliancePage({ facts, now = Date.now() }: { facts: SiteFacts; 
           tone="subtle"
           media={<VignetteExpiry stage="weave" />}
         />
-        {uflpa.shot ? <FeatureRow label={uflpa.label} headline={uflpa.headline} lede={uflpa.lede} flip media={<Figure shot={uflpa.shot} still="weave" sizes="(min-width: 1440px) 720px, 100vw" />} /> : null}
+        <FeatureRow label={uflpa.label} headline={uflpa.headline} lede={uflpa.lede} flip media={<DemoCompliance view="uflpa" stage="weave" />} />
         <Section label={lists.label} headline={lists.headline} lede={listsRead(facts) ? lists.lede : "The lists we screen against, and who keeps them. The product shows the day each list was last read."} tone="subtle">
           <ListsTable facts={facts} now={now} />
         </Section>
-        <Section label={statement.label} headline={statement.headline} lede={statement.lede} />
+        <FeatureRow label={statement.label} headline={statement.headline} lede={statement.lede} media={<DemoStatement stage="weave" />} />
       </div>
 
       <div data-tone="dark">

@@ -5,12 +5,12 @@
 // (re-read by `ops/about_district_counts.sql`, the result in `ops/plans/about-district-counts.md`).
 // Nothing here is a score, a badge, or a promise the product does not keep.
 
-import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { ButtonLink } from "@/components/kit";
-import { HeroActions, HeroCentered, inkLink, measure, Section, Stage, TextLink } from "@/components/site/sections/ui";
+import { DemoClaim } from "@/components/site/demos";
+import { HeroActions, HeroCentered, inkLink, measure, Section, TextLink } from "@/components/site/sections/ui";
 import { Closing } from "@/components/site/sections/closing";
 import { SOURCE_COUNT, TIERS, type Tier } from "@/components/site/sources";
 import { SUBPROCESSORS, subprocessorCount } from "@/components/site/subprocessors";
@@ -364,15 +364,12 @@ export function ForSuppliers({ facts }: { facts: SiteFacts }) {
         lede="Buyers in the UK, EU, US and Canada see it today. Check it, flag what is out of date, answer RFQs."
         actions={false}
         stage={
-          <figure className="flex flex-col gap-3">
-            <Stage still="hero-cotton" eager>
-              <Image src="/site/records-overview.png" alt="A supplier record as a buyer sees it: sanctions, certificates, safety, workers and sources at the top, then the key facts, each with where it came from." width={1440} height={900} sizes="(min-width: 1440px) 1152px, 100vw" priority className="h-auto w-full rounded-frame border border-ink-strong/10 shadow-lg" />
-            </Stage>
-            <figcaption className="text-sm text-ink-subtle">
-              Real screen · what buyers see today on Aboni Knitwear Ltd., a real public record
-              {count ? ` · ${count} published suppliers${updated ? ` · updated ${updated}` : ""}` : ""}
-            </figcaption>
-          </figure>
+          // The claim, played on the snapshot's real record (critique 22 Oct: the 3 Oct screenshot on concrete is gone).
+          <DemoClaim
+            stage="hero-cotton"
+            eager
+            after={count ? <p className="text-sm text-ink-subtle">{count} published suppliers{updated ? ` · updated ${updated}` : ""}</p> : null}
+          />
         }
       >
         <div className="flex flex-wrap items-center justify-center gap-2.5">
