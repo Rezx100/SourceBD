@@ -218,17 +218,17 @@ export function Stage({ still = "weave", children, className, eager = false }: {
 }
 
 /** The night material's one soft glow: light from above (`top`) or a horizon rising from below (`bottom`). */
-export const nightGlow = { top: "bg-[radial-gradient(120%_70%_at_50%_0%,rgb(var(--ds-ink)/0.12),transparent_65%)]", bottom: "bg-[radial-gradient(90%_60%_at_50%_100%,rgb(var(--ds-ink)/0.14),transparent_70%)]" };
+const GLOW = { top: "bg-[radial-gradient(120%_70%_at_50%_0%,rgb(var(--ds-ink)/0.12),transparent_65%)]", bottom: "bg-[radial-gradient(90%_60%_at_50%_100%,rgb(var(--ds-ink)/0.14),transparent_70%)]" };
 
 /**
  * The night material (critique 22 Oct, S3, S4): the night ground, a hairline and one soft glow, never a photograph. A
- * demo on the tour or in the cross-sell stands on it, so a light window is never a bare rectangle on black. Night in
- * either page tone.
+ * demo on the tour or in the cross-sell stands on it under a light from above, so a light window is never a bare
+ * rectangle on black; the closing band stands on it over a horizon. Night in either page tone.
  */
-export function NightStage({ children, className }: { children: ReactNode; className?: string }) {
+export function NightStage({ children, className, glow = "top" }: { children: ReactNode; className?: string; glow?: keyof typeof GLOW }) {
   return (
     <div data-ground="night" className={cn("relative isolate overflow-hidden rounded-card border border-ink/10 bg-surface p-3 md:rounded-stage md:p-6", className)}>
-      <div aria-hidden className={cn("pointer-events-none absolute inset-0 -z-10", nightGlow.top)} />
+      <div aria-hidden className={cn("pointer-events-none absolute inset-0 -z-10", GLOW[glow])} />
       {children}
     </div>
   );

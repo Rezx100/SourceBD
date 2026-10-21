@@ -131,7 +131,7 @@ describe("the Mercury home page", () => {
   it("the ground crossfades section by section: the main landmark carries the hero's tone and no second skip anchor", () => {
     const out = page();
     // React hoists the marks' image preloads ahead of the tree, so the landmark is the first element, not the first tag.
-    assert.match(out, /^(?:<link [^>]*>)*<main data-tone="photo" class="[^"]*bg-canvas/);
+    assert.match(out, /^(?:<link [^>]*>)*<main data-tone="photo" class="[^"]*bg-\[rgb\(var\(--mk-ground-paper\)\)\]/);
     assert.doesNotMatch(out, /id="main-content"/, "the shell carries the skip link's anchor");
     const tones = [...out.matchAll(/data-tone="(photo|dark|paper)"/g)].map((m) => m[1]).slice(1);
     assert.deepEqual(tones, ["photo", "dark", "paper", "dark", "paper", "photo", "paper", "dark"]);
@@ -184,10 +184,23 @@ describe("the Mercury home page", () => {
 
   it("the first paint waits for no slow read: the chips' counts and the three records stream in (critique 22 Oct, S9)", () => {
     const route = readFileSync(join(process.cwd(), "app/(home)/page.tsx"), "utf8");
-    assert.match(route, /<Suspense fallback=\{<Chips chips=\{chipsOf\(\)\} \/>\}>/);
+    assert.match(route, /<Suspense fallback=\{<Chips chips=\{chipsOf\(\)\} pending \/>\}>/);
     const body = route.slice(route.indexOf("export default async function HomePage"));
     assert.ok(body.length < route.length, "the page function");
     assert.doesNotMatch(body, /loadChips|await loadHomeRecords|await Promise\.all/);
+  });
+
+  it("the streamed parts land in their own places: the chips in the hero, the record and the three cards in the proof", () => {
+    const mark = (id: string) => createElement("p", { "data-slot": id }, id);
+    const t = text(draw(createElement(HomeMercury, { facts: LIVE, slots: { chips: mark("chips-slot"), inside: mark("inside-slot"), records: mark("records-slot") } })));
+    const order = ["on the record.", "chips-slot", "Everything you do to vet a factory.", "Vetting used to be a chase.", "inside-slot", "records-slot", "Four moments from a day's sourcing."];
+    let at = -1;
+    for (const s of order) {
+      const i = t.indexOf(s, at + 1);
+      assert.ok(i > at, `"${s}" comes after the one before it`);
+      at = i;
+    }
+    assert.doesNotMatch(t, /Inside one record\./, "a slot takes the section's place");
   });
 
   it("every link on the page and in its footer is a route of the site", () => {
@@ -223,8 +236,9 @@ describe("the Mercury home page", () => {
     for (const a of page().match(/<a [^>]*>/g) ?? []) if (/text-brand(?![-\w])/.test(a)) assert.match(a, /href="\/"/, a);
   });
 
-  it("the announcement links to the Compliance hub", () => {
+  it("the announcement links to the Compliance hub, in one line on a phone with the sentence kept for a screen reader (critique 22 Oct, S10)", () => {
     const bar = draw(createElement(Announcement));
+    assert.match(bar, /<span class="max-md:sr-only">UFLPA and sanctions checks now run on every saved supplier<\/span>/);
     assert.match(text(bar), /UFLPA and sanctions checks now run on every saved supplier See the Compliance hub/);
     assert.match(bar, /href="\/compliance"/);
     assert.match(bar, /aria-label="Dismiss announcement"/);

@@ -31,13 +31,13 @@ const label = (b: { n: string; label: string }) => `${b.n} · ${b.label}`;
 export function RecordsPage({ cards }: { cards: HomeRecord[] }) {
   const [sources, certificates, disagree, safety, contacts] = [row("01"), row("02"), row("03"), row("04"), row("05")];
   return (
-    <ToneShift id={null} initial="paper" className="bg-canvas font-sans text-ink-strong antialiased">
+    <ToneShift id={null} initial="paper" className="font-sans text-ink-strong antialiased">
       <div data-tone="paper">
         <HeroCentered
           label={`${P.group} · ${P.name}`}
           title={P.h1}
           lede={P.lede}
-          stage={<DemoRecord stage="hero-cotton" lead />}
+          stage={<DemoRecord stage="hero-cotton" eager />}
         >
           <HeroActions center />
         </HeroCentered>

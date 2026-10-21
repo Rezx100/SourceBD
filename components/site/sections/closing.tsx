@@ -7,7 +7,7 @@
 import type { ReactNode } from "react";
 import { ButtonLink } from "@/components/kit";
 import { cn } from "@/lib/utils";
-import { TextLink, measure, nightGlow } from "./ui";
+import { NightStage, TextLink, measure } from "./ui";
 
 export const HOME_CARDS = [
   { who: "For buyers", line: "Free while we are in beta. No card needed.", body: "UK, US, EU and Canadian brands and retailers. Shortlist, vet and message verified factories in one sitting.", cta: ["Start free", "/signup"], link: ["See what is included", "/pricing"], primary: true },
@@ -21,8 +21,7 @@ const primary = "h-11 rounded-frame px-5 text-site-body text-brand-on";
 export function Closing({ headline, lede, cards }: { headline: ReactNode; lede?: ReactNode; cards?: readonly Card[] }) {
   return (
     <section aria-labelledby="site-close" className={cn(measure, "py-14 md:py-section")}>
-      <div data-ground="night" className="relative isolate flex flex-col items-center gap-8 overflow-hidden rounded-card border border-ink/10 bg-surface px-4 py-10 md:gap-14 md:rounded-stage md:px-20 md:py-24">
-        <div aria-hidden className={cn("pointer-events-none absolute inset-0 -z-10", nightGlow.bottom)} />
+      <NightStage glow="bottom" className="flex flex-col items-center gap-8 px-4 py-10 md:gap-14 md:px-20 md:py-24">
         <div className="relative flex flex-col items-center gap-5 text-center">
           <h2 id="site-close" className="max-w-[880px] text-site-h1-sm font-light text-ink [text-wrap:balance] md:text-site-h1">
             {headline}
@@ -57,7 +56,7 @@ export function Closing({ headline, lede, cards }: { headline: ReactNode; lede?:
             </TextLink>
           </div>
         )}
-      </div>
+      </NightStage>
     </section>
   );
 }

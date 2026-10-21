@@ -6,15 +6,15 @@
 // in: a visible pause button, a drawn cursor, and a sentence for screen readers) and `ToneShift` (the page's ground
 // crossfading between paper and dark as sections reach the middle of the viewport).
 //
-// The server renders every scene's LAST step, so the page reads complete with no script and paints fast. A demo in
-// the first screen (`lead`) holds that step, then loops; any other is set to its first step as soon as the script
-// runs, while it is still out of sight, so no visitor sees a finished demo empty itself (critique 22 Oct, S5).
+// The server renders every scene's LAST step, so the page reads complete with no script and paints fast. A demo on
+// screen when it mounts holds that step, then loops; one out of sight is set to its first step before it is seen,
+// so no visitor sees a finished demo empty itself (critique 22 Oct, S5).
 // Reduced motion and Save-Data keep the last step and offer play instead; app/ds.css stills every CSS transition
 // under reduced motion.
 
 import { Pause, Play } from "@phosphor-icons/react";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
-import { dark, light, motion, resolve, toChannels } from "@/lib/design/tokens";
+import { motion } from "@/lib/design/tokens";
 import { cn } from "@/lib/utils";
 
 /** Reduced motion asked for, or Save-Data on: nothing plays by itself. */
@@ -56,14 +56,17 @@ export function stepAt<S>(steps: readonly Step<S>[], ms: number): number {
 /** How long the last step holds before a looping scene starts again. */
 export const HOLD_MS = 2400;
 
+/** Whether a box is in the window: any part of it between the top and the bottom edge. */
+export const onScreen = (box: { top: number; bottom: number }, height: number): boolean => box.top < height && box.bottom > 0;
+
 /**
  * Plays `steps` while `ref` is half in view, the tab is visible and the visitor has not paused it; loops after the
- * last step holds for `HOLD_MS`. The server draws the last step. With `lead` (a demo in the first screen) the clock
- * starts there, so the finished demo holds before it loops; otherwise the scene moves to its first step at once and
- * plays from there when it comes into view. Under reduced motion it stays on the last step, paused, until the
- * visitor presses play.
+ * last step holds for `HOLD_MS`. The server draws the last step. A scene on screen when it mounts starts its clock
+ * there, so the finished demo holds before it loops; one out of sight moves to its first step before the browser
+ * paints and plays from there when it comes into view. Under reduced motion it stays on the last step, paused, until
+ * the visitor presses play.
  */
-export function useScene<S>(steps: readonly Step<S>[], ref: RefObject<Element | null>, lead = false): { state: S; index: number; paused: boolean; looping: boolean; toggle: () => void } {
+export function useScene<S>(steps: readonly Step<S>[], ref: RefObject<Element | null>): { state: S; index: number; paused: boolean; looping: boolean; toggle: () => void } {
   const last = steps.length - 1;
   const [index, setIndex] = useState(last);
   const [paused, setPaused] = useState(false);
@@ -74,10 +77,14 @@ export function useScene<S>(steps: readonly Step<S>[], ref: RefObject<Element | 
   // Where the clock stood when it last stopped; null until the scene first runs (it then starts from its first step).
   const elapsed = useRef<number | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    const box = ref.current?.getBoundingClientRect();
     if (stillPreferred()) setPaused(true);
-    else if (lead) elapsed.current = latest.current[latest.current.length - 1]!.at;
+    else if (box && onScreen(box, innerHeight)) elapsed.current = latest.current[latest.current.length - 1]!.at;
     else setIndex(0);
+  }, [ref]);
+
+  useEffect(() => {
     const still = matchMedia("(prefers-reduced-motion: reduce)");
     const onStill = (e: MediaQueryListEvent) => e.matches && setPaused(true);
     const onVis = () => setHidden(document.hidden);
@@ -88,7 +95,7 @@ export function useScene<S>(steps: readonly Step<S>[], ref: RefObject<Element | 
       still.removeEventListener("change", onStill);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, [lead]);
+  }, []);
 
   // True for a moment after the scene starts again, while the last step fades away over the first.
   const [looping, setLooping] = useState(false);
@@ -105,9 +112,12 @@ export function useScene<S>(steps: readonly Step<S>[], ref: RefObject<Element | 
       if (ms >= total) {
         t0 += total * Math.floor(ms / total);
         ms = performance.now() - t0;
-        setLooping(true);
-        window.clearTimeout(fade);
-        fade = window.setTimeout(() => setLooping(false), motion.swapOutMs);
+        // A scene of one step has nothing to fade between.
+        if (s.length > 1) {
+          setLooping(true);
+          window.clearTimeout(fade);
+          fade = window.setTimeout(() => setLooping(false), motion.swapOutMs);
+        }
       }
       elapsed.current = ms;
       const i = stepAt(s, ms);
@@ -139,12 +149,10 @@ import { ring } from "./sections/ui";
  * always there (WCAG 2.2.2), pressed while the demo is stopped (critique 22 Oct, S6). When the scene starts again,
  * its last step fades away over the first.
  */
-export function DemoStage<S extends CursorState>({ steps, description, className, lead = false, frame, windowClass, foot, children }: {
+export function DemoStage<S extends CursorState>({ steps, description, className, frame, windowClass, foot, children }: {
   steps: readonly Step<S>[];
   description: string;
   className?: string;
-  /** In the first screen: holds the server's last step before it loops, rather than starting at once from the first. */
-  lead?: boolean;
   frame?: (win: ReactNode) => ReactNode;
   windowClass?: string;
   foot?: ReactNode;
@@ -152,7 +160,7 @@ export function DemoStage<S extends CursorState>({ steps, description, className
 }) {
   const stage = useRef<HTMLElement>(null);
   const box = useRef<HTMLDivElement>(null);
-  const { state, paused, looping, toggle } = useScene(steps, stage, lead);
+  const { state, paused, looping, toggle } = useScene(steps, stage);
   const [at, setAt] = useState<{ x: number; y: number } | null>(null);
 
   // The cursor moves to the centre of its target, measured once per step (never in a scroll handler).
@@ -208,9 +216,6 @@ export function DemoStage<S extends CursorState>({ steps, description, className
 
 export type Tone = "paper" | "dark" | "photo";
 
-/** The two grounds the page fades between, as channels: the paper canvas and the night one. */
-const GROUND = { paper: toChannels(resolve(light, "canvas")), night: toChannels(resolve(dark, "canvas")) };
-
 /**
  * The page's `<main>`. Each section says its tone with `data-tone`; the one crossing the middle of the viewport sets
  * the ground. Only the ground fades, over `duration-tone`, evenly, so it is mid-grey half way; the ink, the lines and
@@ -224,7 +229,8 @@ export function ToneShift({ initial = "paper", id = "main-content", className, c
   const [ink, setInk] = useState<Tone>(initial);
   useEffect(() => {
     if (ink === tone) return;
-    const t = window.setTimeout(() => setInk(tone), stillPreferred() ? 0 : motion.toneMs / 2);
+    // Only reduced motion stills the ground's fade (app/ds.css), so only it moves the ink at once.
+    const t = window.setTimeout(() => setInk(tone), matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : motion.toneMs / 2);
     return () => window.clearTimeout(t);
   }, [tone, ink]);
   useEffect(() => {
@@ -245,8 +251,7 @@ export function ToneShift({ initial = "paper", id = "main-content", className, c
       id={id ?? undefined}
       data-tone={tone}
       data-ground={ink === "dark" ? "night" : undefined}
-      className={cn("text-ink transition-[background-color] duration-tone ease-[cubic-bezier(0.45,0,0.55,1)]", className)}
-      style={{ backgroundColor: `rgb(${tone === "dark" ? GROUND.night : GROUND.paper})` }}
+      className={cn("text-ink transition-[background-color] duration-tone ease-[cubic-bezier(0.45,0,0.55,1)]", className, tone === "dark" ? "bg-[rgb(var(--mk-ground-night))]" : "bg-[rgb(var(--mk-ground-paper))]")}
     >
       {children}
     </main>

@@ -15,7 +15,7 @@ const OUT = join(import.meta.dirname, "..", "public", "site", "home");
 mkdirSync(OUT, { recursive: true });
 
 /** The backdrops, by their name in the page (`hf-<name>.png` in the source folder). */
-const STILLS = ["hero-cotton", "thread-cones", "weave", "thread-cone", "carton", "paper-seal", "hangtags-fanned", "selvedge", "night-eyelet", "cutting-table", "hangtag", "night-floor"];
+const STILLS = ["hero-cotton", "weave"];
 /** The desktop screens (`paper-<name>@2x.png`, 2880×1800). */
 const SCREENS = ["results", "saved-selected", "rfq-detail", "compliance", "record", "messages-thread", "full-certs2", "record-sanctioned", "full", "settings-members", "landing"];
 /** The phone screens (`paper-<name>-m@2x.png`, 780 wide; the record at Certificates is cut to one 390×844 screen). */

@@ -18,7 +18,7 @@ export const COMPLIANCE_TEAMS_KEY = "solutions/compliance";
 /** One solutions page: the template's shape with the tour after the hero and the chosen three products before the close. */
 function SolutionsPage({ p, tour, products }: { p: Page; tour: ReactNode; products: string[] }) {
   return (
-    <ToneShift id={null} initial="paper" className="bg-canvas font-sans text-ink-strong antialiased">
+    <ToneShift id={null} initial="paper" className="font-sans text-ink-strong antialiased">
       <div data-tone="paper">
         <HeroCentered label={`${p.group} · ${p.name}`} title={p.h1} lede={p.lede} stage={p.hero ? <Figure shot={p.hero} still="hero-cotton" eager /> : undefined}>
           <HeroActions center />

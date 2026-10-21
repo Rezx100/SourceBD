@@ -32,6 +32,13 @@ describe("motion", () => {
     assert.equal(M.stepAt([{ at: 0, state: 1 }], 10), 0);
   });
 
+  it("a scene starts from its finished step only when it is on screen as it mounts; out of sight it starts from its first (critique 22 Oct, S5)", () => {
+    assert.equal(M.onScreen({ top: 120, bottom: 600 }, 900), true);
+    assert.equal(M.onScreen({ top: 880, bottom: 1300 }, 900), true, "a sliver in view is on screen");
+    assert.equal(M.onScreen({ top: 900, bottom: 1300 }, 900), false, "below the fold");
+    assert.equal(M.onScreen({ top: -500, bottom: 0 }, 900), false, "scrolled past");
+  });
+
   it("the server draws the last step: the page reads complete with no script and under reduced motion", () => {
     const out = stage();
     assert.match(out, /step open/);
@@ -61,11 +68,12 @@ describe("motion", () => {
   it("only the ground fades; nothing inside carries a tone transition, so text never passes through grey on grey (critique 22 Oct, S1)", () => {
     const night = renderToStaticMarkup(createElement(M.ToneShift, { initial: "dark" }, null));
     const paper = renderToStaticMarkup(createElement(M.ToneShift, null, null));
-    assert.match(night, /class="[^"]*transition-\[background-color\][^"]*" style="background-color:rgb\(\d+ \d+ \d+\)"/);
-    assert.notEqual(/style="([^"]*)"/.exec(night)?.[1], /style="([^"]*)"/.exec(paper)?.[1], "the two grounds differ");
+    assert.match(night, /class="[^"]*transition-\[background-color\][^"]*bg-\[rgb\(var\(--mk-ground-night\)\)\]"/);
+    assert.match(paper, /class="[^"]*bg-\[rgb\(var\(--mk-ground-paper\)\)\]"/);
     assert.doesNotMatch(night, /transition-colors/);
     const config = readFileSync(join(process.cwd(), "tailwind.config.ts"), "utf8");
     assert.doesNotMatch(config, /main\[data-tone\]\) \*/, "no rule fades every colour under the page");
+    assert.match(config, /"--mk-ground-paper": toChannels\(resolve\(light, "canvas"\)\), "--mk-ground-night": toChannels\(resolve\(dark, "canvas"\)\)/, "both grounds come from the tokens");
   });
 
   it("the pause button sits under the demo's window, beside its caption, never over the product (critique 22 Oct, S6)", () => {

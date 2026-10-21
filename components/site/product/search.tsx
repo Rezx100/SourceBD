@@ -40,7 +40,7 @@ export function SearchPage({ facts }: { facts: SiteFacts }) {
   const h1 = count ? P.h1.replace("{n}", count) : P.h1Plain;
   const [filters, records, results] = [row("01"), row("02"), row("03")];
   return (
-    <ToneShift id={null} initial="paper" className="bg-canvas font-sans text-ink-strong antialiased">
+    <ToneShift id={null} initial="paper" className="font-sans text-ink-strong antialiased">
       <div data-tone="paper">
         <HeroCentered
           label={`${P.group} · ${P.name}`}
@@ -49,7 +49,7 @@ export function SearchPage({ facts }: { facts: SiteFacts }) {
           stage={
             <DemoSearch
               stage="hero-cotton"
-              lead
+              eager
               after={
                 count ? (
                   <p className="text-sm text-ink-subtle">

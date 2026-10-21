@@ -74,7 +74,7 @@ export default async function HomePage() {
         facts={facts}
         slots={{
           chips: (
-            <Suspense fallback={<Chips chips={chipsOf()} />}>
+            <Suspense fallback={<Chips chips={chipsOf()} pending />}>
               <LiveChips />
             </Suspense>
           ),

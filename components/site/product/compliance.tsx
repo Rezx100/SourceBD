@@ -21,13 +21,13 @@ const label = (b: { n: string; label: string }) => (b.n ? `${b.n} · ${b.label}`
 export function CompliancePage() {
   const [attention, uflpa, lists, statement] = [row("01"), row("02"), row(""), row("03")];
   return (
-    <ToneShift id={null} initial="paper" className="bg-canvas font-sans text-ink-strong antialiased">
+    <ToneShift id={null} initial="paper" className="font-sans text-ink-strong antialiased">
       <div data-tone="paper">
         <HeroCentered
           label={`${P.group} · ${P.name}`}
           title={P.h1}
           lede={P.lede}
-          stage={<DemoCompliance stage="hero-cotton" lead />}
+          stage={<DemoCompliance stage="hero-cotton" eager />}
         >
           <HeroActions center />
         </HeroCentered>

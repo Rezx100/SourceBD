@@ -16,6 +16,7 @@ import {
   motion,
   NIGHT_INHERITS,
   paneMaterial,
+  resolve,
   screens,
   spacing,
   toChannels,
@@ -148,7 +149,9 @@ const config: Config = {
       const darkSet = { ...colorVars(dark), ...paneMaterial.dark, "color-scheme": "dark" };
       const night = Object.fromEntries(Object.entries(darkSet).filter(([name]) => !NIGHT_INHERITS.includes(name)));
       addBase({
-        ":root": { ...colorVars(light), ...paneMaterial.light },
+        // `--mk-ground-*`: the two grounds a marketing page fades between (ToneShift), fixed in either scene, so the
+        // fade starts the moment the tone changes while the night set comes in only half way through.
+        ":root": { ...colorVars(light), ...paneMaterial.light, "--mk-ground-paper": toChannels(resolve(light, "canvas")), "--mk-ground-night": toChannels(resolve(dark, "canvas")) },
         "@media (prefers-color-scheme: dark)": { ":root:has([data-theme-auto])": darkSet },
         '[data-ground="night"]': night,
         // ToneShift (components/site/motion.tsx) fades the page's ground alone and steps every other colour half way

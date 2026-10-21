@@ -14,11 +14,10 @@ import { cn } from "@/lib/utils";
 
 /**
  * Where a demo sits on its page (critique 22 Oct): `stage` puts it on a cloth (`hero-cotton` in a hero, `weave` in a
- * row) or on the night material (the tour, the cross-sell); `lead` says it is in the first screen, so it holds its
- * finished step before it loops and its cloth loads first; `after` is a line under the caption (the search page's
- * live count). `caption={false}` leaves the caption to the page.
+ * row) or on the night material (the tour, the cross-sell); `eager` loads its cloth first (a hero's); `after` is a line
+ * under the caption (the search page's live count). `caption={false}` leaves the caption to the page.
  */
-export type Frame = { className?: string; caption?: boolean; stage?: StillName | "night"; lead?: boolean; after?: ReactNode };
+export type Frame = { className?: string; caption?: boolean; stage?: StillName | "night"; eager?: boolean; after?: ReactNode };
 
 /** Steps that type `text` one character at a time from `from` ms, each drawing what has been typed so far. */
 export function typed<S>(text: string, from: number, draw: (typed: string) => S): Step<S>[] {
@@ -43,11 +42,11 @@ export function Window({ children, className }: { children: ReactNode; className
 }
 
 /** A demo: the window on its stage, then the caption that dates what it shows with the pause button beside it. */
-export function Demo<S extends CursorState>({ steps, description, className, caption = true, stage, lead = false, after, children }: Frame & { steps: readonly Step<S>[]; description: string; children: (state: S) => ReactNode }) {
-  const frame = stage === "night" ? (win: ReactNode) => <NightStage>{win}</NightStage> : stage ? (win: ReactNode) => <Stage still={stage} eager={lead}>{win}</Stage> : undefined;
+export function Demo<S extends CursorState>({ steps, description, className, caption = true, stage, eager = false, after, children }: Frame & { steps: readonly Step<S>[]; description: string; children: (state: S) => ReactNode }) {
+  const frame = stage === "night" ? (win: ReactNode) => <NightStage>{win}</NightStage> : stage ? (win: ReactNode) => <Stage still={stage} eager={eager}>{win}</Stage> : undefined;
   return (
     <div className={cn("flex flex-col gap-3", className)}>
-      <DemoStage steps={steps} description={description} lead={lead} frame={frame} windowClass={stage ? "shadow-lg" : "shadow-sm"} foot={caption ? <p className="text-sm text-ink-subtle">{CAPTION}</p> : null}>
+      <DemoStage steps={steps} description={description} frame={frame} windowClass={stage ? "shadow-lg" : "shadow-sm"} foot={caption ? <p className="text-sm text-ink-subtle">{CAPTION}</p> : null}>
         {children}
       </DemoStage>
       {after}

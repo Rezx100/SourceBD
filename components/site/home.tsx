@@ -31,7 +31,7 @@ import { VignetteGrid } from "./sections/vignettes";
 export function HomeMercury({ facts, chips = [], cards = [], callouts = [], slots = {} }: { facts: SiteFacts; chips?: Chip[]; cards?: HomeRecord[]; callouts?: (HomeFact | null)[]; slots?: { chips?: ReactNode; inside?: ReactNode; records?: ReactNode } }) {
   // The shell around the page carries the skip link's anchor, so the main landmark here carries none.
   return (
-    <ToneShift id={null} initial="photo" className="bg-canvas font-sans text-ink-strong antialiased">
+    <ToneShift id={null} initial="photo" className="font-sans text-ink-strong antialiased">
       <HeroScrub suppliers={facts.suppliers} chips={slots.chips ?? (chips.length ? <Chips chips={chips} /> : null)} />
       <PinnedTour />
       <div data-tone="paper">
