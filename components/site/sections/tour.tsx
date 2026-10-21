@@ -10,13 +10,14 @@
 
 import { memo, useCallback, useEffect, useRef, useState, type CSSProperties, type ComponentType, type KeyboardEvent, type ReactNode } from "react";
 import { DemoCompliance, DemoRecord, DemoRfq, DemoSearch } from "@/components/site/demos";
+import type { Frame } from "@/components/site/demos/stage";
 import { stillPreferred } from "@/components/site/motion";
 import { motion } from "@/lib/design/tokens";
 import { cn } from "@/lib/utils";
 import { HomeIcon, type IconName } from "./icons";
 import { H2, TextLink, measure, ring } from "./ui";
 
-export type TourItem = { key: string; icon: IconName; title: string; body: string; href: string; Demo: ComponentType<{ className?: string }> };
+export type TourItem = { key: string; icon: IconName; title: string; body: string; href: string; Demo: ComponentType<Frame> };
 
 export const TOUR: readonly TourItem[] = [
   { key: "find", icon: "search", title: "Find", body: "Search by product, district, certificate or source. Open a record beside the results and never lose your place.", href: "/product/search", Demo: DemoSearch },
@@ -37,11 +38,11 @@ function Heading({ id, children }: { id?: string; children: ReactNode }) {
   return <H2 id={id}>{children}</H2>;
 }
 
-/** The open item's demo, swapping out then in. Memoised: the scroll re-renders the tour every frame for its bar, not the demo. */
-const TourDemo = memo(function TourDemo({ Shown, shown, leaving }: { Shown: ComponentType<{ className?: string }>; shown: number; leaving: boolean }) {
+/** The open item's demo on the night material, swapping out then in. Memoised: the scroll re-renders the tour every frame for its bar, not the demo. */
+const TourDemo = memo(function TourDemo({ Shown, shown, leaving }: { Shown: ComponentType<Frame>; shown: number; leaving: boolean }) {
   return (
     <div key={shown} className={cn(leaving ? "animate-swap-out" : "animate-swap-in", "motion-reduce:animate-none")}>
-      <Shown />
+      <Shown stage="night" />
     </div>
   );
 });
@@ -200,7 +201,7 @@ export function PinnedTour({ items = TOUR, id = "home-tour", heading = HOME_HEAD
                 <p className="text-md text-ink-muted">{t.body}</p>
                 <TextLink href={t.href}>See how</TextLink>
               </div>
-              <t.Demo />
+              <t.Demo stage="night" />
             </li>
           ))}
         </ol>

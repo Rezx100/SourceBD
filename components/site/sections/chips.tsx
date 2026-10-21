@@ -1,7 +1,8 @@
 // 3 · The common-search chips under the hero form (Paper `Z05-0`): the nine searches the app offers before a buyer has
 // typed (`SEARCH_TEMPLATES`), each a link to that search, with its live count (`readTemplateCounts`, cached an hour, waited for 1.5 s at most)
 // when the count was read and no number at all when it was not. The searches set HS headings and certificate states,
-// which public Discover cannot express, so each opens in the app (sign-in first for a visitor).
+// which public Discover cannot express, so each opens in the app (sign-in first for a visitor). On a phone the chips are
+// one strip that scrolls sideways, fading at its right edge with room after the last chip (critique 22 Oct, S10).
 
 import Link from "next/link";
 import { readTemplateCounts } from "@/lib/dashboard/search-cache";
@@ -13,15 +14,19 @@ import { ring } from "./ui";
 
 export type Chip = { key: string; title: string; href: string; count: number | null };
 
+/** Every template with its count from `counts`, or null where none was read: with no counts, the chips the first paint draws. */
+export function chipsOf(counts: Record<string, number | null> = {}): Chip[] {
+  return SEARCH_TEMPLATES.map((t) => ({ key: t.key, title: t.title, href: discoverHref(t.state), count: counts[t.key] ?? null }));
+}
+
 /** Every template with its count, or null for a count that was not read in time. Never throws. */
 export async function loadChips(): Promise<Chip[]> {
-  const counts = await readTemplateCounts(SEARCH_TEMPLATES).catch((): Record<string, number | null> => ({}));
-  return SEARCH_TEMPLATES.map((t) => ({ key: t.key, title: t.title, href: discoverHref(t.state), count: counts[t.key] ?? null }));
+  return chipsOf(await readTemplateCounts(SEARCH_TEMPLATES).catch((): Record<string, number | null> => ({})));
 }
 
 export function Chips({ chips }: { chips: Chip[] }) {
   return (
-    <ul aria-label="Common searches" className="flex w-full max-w-[900px] gap-2 pt-1 max-md:-mx-5 max-md:w-[calc(100%+40px)] max-md:overflow-x-auto max-md:px-5 md:flex-wrap md:justify-center md:pt-3">
+    <ul aria-label="Common searches" className="flex w-full max-w-[900px] gap-2 pt-1 max-md:-mx-5 max-md:w-[calc(100%+40px)] max-md:overflow-x-auto max-md:px-5 max-md:[mask-image:linear-gradient(to_right,black_85%,transparent)] max-md:after:w-5 max-md:after:shrink-0 max-md:after:content-[''] md:flex-wrap md:justify-center md:pt-3">
       {chips.map((c) => (
         <li key={c.key} className="shrink-0">
           <Link href={c.href} prefetch={false} className={cn("flex h-[34px] items-center max-md:h-11 gap-2 rounded-full border border-line bg-surface px-3.5 hover:border-line-strong", ring)}>

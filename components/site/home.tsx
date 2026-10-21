@@ -1,11 +1,12 @@
 // The home page at `/` (Paper "32 Home · Mercury direction", approved 10 Oct 2026; the motion plan of 14 Oct, M3): one
 // tree for the 1440 board and the 390 board. The hero scrubs on scroll into the dark pinned tour, whose demos play
 // real records; the ground then crossfades section by section (`ToneShift`): paper for the proof and the features,
-// dark for Buy with confidence, paper for the ladder and the figures, the cutting-table photo for suppliers, dark for
-// the closing. The announcement bar and the navigation sit above it in the (home) layout; the footer is the page's
-// own. Figures come from the site's live facts (`lib/site-facts.ts`): a figure that was not read is left out, never
-// guessed.
+// dark for Buy with confidence, paper for the ladder and the figures, the weave for suppliers, dark for the closing.
+// The announcement bar and the navigation sit above it in the (home) layout; the footer is the page's own. Figures come from the site's live facts (`lib/site-facts.ts`): a figure that was not read is left out, never
+// guessed. `slots` lets the route stream the chips' counts and the three records in after the first paint (critique
+// 22 Oct, S9); without them the page draws the data it is given.
 
+import type { ReactNode } from "react";
 import type { HomeFact, HomeRecord } from "@/lib/home-records";
 import type { SiteFacts } from "@/lib/site-facts";
 import { ToneShift } from "./motion";
@@ -27,17 +28,17 @@ import { ForSuppliers } from "./sections/suppliers";
 import { PinnedTour } from "./sections/tour";
 import { VignetteGrid } from "./sections/vignettes";
 
-export function HomeMercury({ facts, chips = [], cards = [], callouts = [] }: { facts: SiteFacts; chips?: Chip[]; cards?: HomeRecord[]; callouts?: (HomeFact | null)[] }) {
+export function HomeMercury({ facts, chips = [], cards = [], callouts = [], slots = {} }: { facts: SiteFacts; chips?: Chip[]; cards?: HomeRecord[]; callouts?: (HomeFact | null)[]; slots?: { chips?: ReactNode; inside?: ReactNode; records?: ReactNode } }) {
   // The shell around the page carries the skip link's anchor, so the main landmark here carries none.
   return (
     <ToneShift id={null} initial="photo" className="bg-canvas font-sans text-ink-strong antialiased">
-      <HeroScrub suppliers={facts.suppliers} chips={chips.length ? <Chips chips={chips} /> : null} />
+      <HeroScrub suppliers={facts.suppliers} chips={slots.chips ?? (chips.length ? <Chips chips={chips} /> : null)} />
       <PinnedTour />
       <div data-tone="paper">
         <MarksStrip />
         <Showcase />
-        <InsideRecord callouts={callouts} />
-        <RealRecords cards={cards} />
+        {slots.inside ?? <InsideRecord callouts={callouts} />}
+        {slots.records ?? <RealRecords cards={cards} />}
         <VignetteGrid />
         <PlatformGrid />
       </div>

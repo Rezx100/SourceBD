@@ -14,7 +14,7 @@ export function NeverDo() {
     <section aria-labelledby="home-never" className="border-y border-line-subtle bg-surface py-14 md:py-section">
       <div className={cn(measure, "flex flex-col gap-10 lg:flex-row lg:items-center lg:gap-20")}>
         <div className="relative isolate flex items-center justify-center overflow-hidden rounded-card px-4 py-6 max-lg:order-2 md:rounded-stage md:p-10 lg:h-[560px] lg:w-[720px] lg:shrink-0">
-          <Still name="hangtag" className="object-[50%_40%]" sizes="(min-width: 1440px) 720px, 100vw" />
+          <Still name="weave" className="object-[50%_40%]" sizes="(min-width: 1440px) 720px, 100vw" />
           <Screen name="full" phone={null} alt="A supplier's full record: every row with its source and the day it was read" sizes="(min-width: 1440px) 640px, 90vw" className="mx-auto max-w-[640px]" />
         </div>
         <div className="flex flex-col gap-8 md:gap-10 lg:w-[480px]">

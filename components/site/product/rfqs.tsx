@@ -10,7 +10,6 @@ import { Figure, PAGES } from "@/components/site/pages";
 import { Closing } from "@/components/site/sections/closing";
 import { CrossSell } from "@/components/site/sections/cross-sell";
 import { FeatureRow, HeroActions, HeroCentered } from "@/components/site/sections/ui";
-import { Staged } from "./staged";
 
 export const RFQS_KEY = "product/rfqs";
 const P = PAGES[RFQS_KEY]!;
@@ -26,11 +25,7 @@ export function RfqsPage() {
           label={`${P.group} · ${P.name}`}
           title={P.h1}
           lede={P.lede}
-          stage={
-            <Staged still="hero-cotton" eager>
-              <DemoRfq caption={false} />
-            </Staged>
-          }
+          stage={<DemoRfq stage="hero-cotton" lead />}
         >
           <HeroActions center />
         </HeroCentered>
@@ -40,14 +35,10 @@ export function RfqsPage() {
           headline={quotes.headline}
           lede={quotes.lede}
           tone="subtle"
-          media={
-            <Staged still="thread-cones">
-              <VignetteQuotes caption={false} />
-            </Staged>
-          }
+          media={<VignetteQuotes stage="weave" />}
         />
         {messages.shot ? <FeatureRow label={label(messages)} headline={messages.headline} lede={messages.lede} flip media={<Figure shot={messages.shot} still="weave" sizes="(min-width: 1440px) 720px, 100vw" />} /> : null}
-        {many.shot ? <FeatureRow label={label(many)} headline={many.headline} lede={many.lede} tone="subtle" media={<Figure shot={many.shot} still="carton" sizes="(min-width: 1440px) 720px, 100vw" />} /> : null}
+        {many.shot ? <FeatureRow label={label(many)} headline={many.headline} lede={many.lede} tone="subtle" media={<Figure shot={many.shot} still="weave" sizes="(min-width: 1440px) 720px, 100vw" />} /> : null}
       </div>
 
       <div data-tone="dark">

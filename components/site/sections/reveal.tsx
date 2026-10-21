@@ -42,32 +42,3 @@ export function Reveal({ children, className, as: As = "div" }: { children: Reac
     </As>
   );
 }
-
-/** A figure that counts up from 0 over 900 ms when it scrolls in; otherwise, and on the server, the figure itself. */
-export function CountUp({ value }: { value: string }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const [shown, setShown] = useState(value);
-  useEffect(() => {
-    const el = ref.current;
-    const target = Number(value.replace(/,/g, ""));
-    if (!el || !Number.isFinite(target) || target === 0) return;
-    const fmt = new Intl.NumberFormat("en-GB");
-    let frame = 0;
-    const stop = onceInView(el, () => {
-      const t0 = performance.now();
-      const tick = (t: number) => {
-        const p = Math.min(1, (t - t0) / 900);
-        setShown(fmt.format(Math.round(target * (1 - (1 - p) ** 3))));
-        if (p < 1) frame = requestAnimationFrame(tick);
-      };
-      frame = requestAnimationFrame(tick);
-    });
-    if (!stop) return;
-    setShown("0");
-    return () => {
-      stop();
-      cancelAnimationFrame(frame);
-    };
-  }, [value]);
-  return <span ref={ref}>{shown}</span>;
-}

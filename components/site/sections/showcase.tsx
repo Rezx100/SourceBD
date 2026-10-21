@@ -1,11 +1,12 @@
 // 7 · Showcase (Paper `Z12-0` / `Z6A-0`): three rows that alternate copy and screen, then rows 4 and 5 side by side.
-// On a phone every row is the screen first, then its words. Each screen is the app as shipped (b4b85e8).
+// On a phone every row is the screen first, then its words. Each screen is the app as shipped (b4b85e8), on the weave
+// every feature row stands on (critique 22 Oct, S3).
 
 import { cn } from "@/lib/utils";
 import { Reveal } from "./reveal";
-import { H2, Screen, Still, TextLink, measure, type ScreenName, type StillName } from "./ui";
+import { H2, Screen, Still, TextLink, measure, type ScreenName } from "./ui";
 
-type Row = { title: string; body: string; link: [string, string]; screen: ScreenName; phone?: ScreenName; alt: string; still: StillName; at: string };
+type Row = { title: string; body: string; link: [string, string]; screen: ScreenName; phone?: ScreenName; alt: string; at: string };
 
 export const ROWS: Row[] = [
   {
@@ -14,7 +15,6 @@ export const ROWS: Row[] = [
     link: ["How RFQs work", "/product/rfqs"],
     screen: "saved-selected",
     alt: "Saved suppliers with three picked and Send one RFQ ready",
-    still: "hero-cotton",
     at: "object-left-bottom",
   },
   {
@@ -23,7 +23,6 @@ export const ROWS: Row[] = [
     link: ["See a quote comparison", "/product/rfqs"],
     screen: "rfq-detail",
     alt: "An RFQ for men's cotton trousers with two quotes side by side",
-    still: "thread-cones",
     at: "object-[50%_78%]",
   },
   {
@@ -32,7 +31,6 @@ export const ROWS: Row[] = [
     link: ["Inside the Compliance hub", "/product/compliance"],
     screen: "compliance",
     alt: "The Compliance hub: certificates that need attention, UFLPA checks and expiry dates",
-    still: "weave",
     at: "object-center",
   },
 ];
@@ -45,7 +43,6 @@ export const HALVES: Row[] = [
     screen: "record",
     phone: "results",
     alt: "Search results with Aboni Knitwear Ltd's record open in the pane beside them",
-    still: "thread-cone",
     at: "object-center",
   },
   {
@@ -54,7 +51,6 @@ export const HALVES: Row[] = [
     link: ["How messages work", "/product/rfqs"],
     screen: "messages-thread",
     alt: "A message thread with a supplier under the RFQ it answers",
-    still: "carton",
     at: "object-[50%_40%]",
   },
 ];
@@ -63,7 +59,7 @@ function Stage({ row, wide, delay = 0 }: { row: Row; wide: boolean; delay?: numb
   // The screen rises 16 px and fades in once as its row scrolls in.
   return (
     <Reveal className={cn("relative isolate flex items-center justify-center overflow-hidden rounded-card px-4 py-6 md:rounded-stage", wide ? "md:p-12 lg:h-[560px]" : "md:p-8 lg:h-[420px]")}>
-      <Still name={row.still} className={row.at} sizes={wide ? "(min-width: 1440px) 816px, 100vw" : "(min-width: 1440px) 608px, 100vw"} />
+      <Still name="weave" className={row.at} sizes={wide ? "(min-width: 1440px) 816px, 100vw" : "(min-width: 1440px) 608px, 100vw"} />
       <Screen name={row.screen} phone={row.phone} alt={row.alt} sizes={wide ? "(min-width: 1440px) 720px, 90vw" : "(min-width: 1440px) 544px, 90vw"} className={cn("mx-auto transition duration-reveal ease-out motion-reduce:transition-none max-md:max-w-[318px] group-data-[reveal=wait]/reveal:translate-y-4 group-data-[reveal=wait]/reveal:opacity-0", delay ? "delay-[120ms]" : "", wide ? "max-w-[720px]" : "max-w-[544px]")} />
     </Reveal>
   );

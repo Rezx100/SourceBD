@@ -176,6 +176,20 @@ describe("the Mercury home page", () => {
     assert.match(out, /alt="SourceBD search results[^"]*"[^>]*fetchPriority="high"|fetchPriority="high"[^>]*alt="SourceBD search results/);
   });
 
+  it("one material system: the backdrops are cotton and weave only, and the night is drawn, never photographed (critique 22 Oct, S3)", () => {
+    const stills = new Set([...page().matchAll(/\/site\/home\/([a-z-]+)-1600\.(?:avif|webp)/g)].map((m) => m[1]));
+    for (const s of stills) assert.ok(s === "hero-cotton" || s === "weave", s);
+    assert.ok(stills.has("weave"));
+  });
+
+  it("the first paint waits for no slow read: the chips' counts and the three records stream in (critique 22 Oct, S9)", () => {
+    const route = readFileSync(join(process.cwd(), "app/(home)/page.tsx"), "utf8");
+    assert.match(route, /<Suspense fallback=\{<Chips chips=\{chipsOf\(\)\} \/>\}>/);
+    const body = route.slice(route.indexOf("export default async function HomePage"));
+    assert.ok(body.length < route.length, "the page function");
+    assert.doesNotMatch(body, /loadChips|await loadHomeRecords|await Promise\.all/);
+  });
+
   it("every link on the page and in its footer is a route of the site", () => {
     const hrefs = [...page().matchAll(/href="([^"]+)"/g)].map((m) => m[1]!).filter((h) => h.startsWith("/") && !h.startsWith("/site/") && !h.startsWith("/icons/"));
     assert.ok(hrefs.length > 10);
@@ -275,6 +289,9 @@ describe("the live sections", () => {
 
   it("motion never hides anything on the server: no element waits, the figures are final, and the loop is not in the first paint", () => {
     const out = live();
+    // No figure counts up under "Not rounded" (critique 22 Oct, S7).
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded after the test build exists.
+    assert.equal("CountUp" in require("@/components/site/sections/reveal"), false);
     assert.doesNotMatch(out, /data-reveal=/, "only the browser holds a section back, and only one below the fold");
     assert.doesNotMatch(out, /<video/, "the loop is added after load, never under reduced motion or Save-Data");
     assert.match(text(out), /10,278 Bangladesh garment suppliers published/);

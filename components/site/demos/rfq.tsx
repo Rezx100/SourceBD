@@ -14,7 +14,7 @@ import { displayName } from "@/lib/dashboard/facts";
 import { motion } from "@/lib/design/tokens";
 import { READ_AT, SNAPSHOT } from "@/lib/marketing/demo-snapshot";
 import { cn } from "@/lib/utils";
-import { Bar, Demo, Field, Window, endOf, typed } from "./stage";
+import { Bar, Demo, Field, Window, endOf, typed, type Frame } from "./stage";
 
 const ROWS = SNAPSHOT.search.rows.slice(0, 5).map((r) => ({ slug: r.slug, name: displayName(r.name), line: [r.type, r.place].filter(Boolean).join(" · ") }));
 const TARGETS = ROWS.slice(0, 3);
@@ -68,9 +68,9 @@ const QUOTES = [
   { supplier: TARGETS[1]!.name, price: 6.9, moq: 12000, leadDays: 38, validUntil: "22 Nov 2026", best: false },
 ];
 
-export function DemoRfq({ className, caption }: { className?: string; caption?: boolean }) {
+export function DemoRfq(frame: Frame) {
   return (
-    <Demo steps={STEPS} description={`Three suppliers ticked from the results and one example RFQ sent to them from the pane beside the list; two example quotes come back side by side, labelled as examples.`} caption={caption} className={className}>
+    <Demo {...frame} steps={STEPS} description={`Three suppliers ticked from the results and one example RFQ sent to them from the pane beside the list; two example quotes come back side by side, labelled as examples.`}>
       {(s) => (
         <Window>
           {s.quotes ? (

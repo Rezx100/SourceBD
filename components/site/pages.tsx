@@ -46,8 +46,6 @@ export function Figure({ shot, still, sizes = "(min-width: 1440px) 1152px, 100vw
   );
 }
 
-const STILLS: StillName[] = ["weave", "thread-cones", "selvedge", "carton"];
-
 const shot = (name: string, alt: string, caption: string): Shot => ({ src: `/site/${name}.png`, alt, caption });
 
 const STATES: [string, string][] = [
@@ -266,7 +264,7 @@ export function SitePage({ pageKey, facts }: { pageKey: string; facts: SiteFacts
 
       {p.blocks.map((b, i) =>
         b.shot ? (
-          <FeatureRow key={b.headline} label={b.n ? `${b.n} · ${b.label}` : b.label} headline={b.headline} lede={b.lede} flip={i % 2 === 1} tone={i % 2 === 0 ? "subtle" : "paper"} media={<Figure shot={b.shot} still={STILLS[i % STILLS.length]!} sizes="(min-width: 1440px) 720px, 100vw" />}>
+          <FeatureRow key={b.headline} label={b.n ? `${b.n} · ${b.label}` : b.label} headline={b.headline} lede={b.lede} flip={i % 2 === 1} tone={i % 2 === 0 ? "subtle" : "paper"} media={<Figure shot={b.shot} still="weave" sizes="(min-width: 1440px) 720px, 100vw" />}>
             {b.extra}
           </FeatureRow>
         ) : (

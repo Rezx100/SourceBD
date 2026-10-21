@@ -147,7 +147,11 @@ export function FeatureRow({ label, headline, lede, children, media, flip = fals
   );
 }
 
-export type StillName = "hero-cotton" | "thread-cones" | "weave" | "thread-cone" | "carton" | "paper-seal" | "hangtags-fanned" | "selvedge" | "night-eyelet" | "cutting-table" | "hangtag" | "night-floor";
+/**
+ * The site's cloths (critique 22 Oct, S3): cotton under a hero, weave under every feature row. The third material,
+ * night, is no photograph: `NightStage` and the closing band draw it.
+ */
+export type StillName = "hero-cotton" | "weave";
 
 const set = (name: StillName, ext: "avif" | "webp") => `/site/home/${name}-1600.${ext} 1600w, /site/home/${name}-2560.${ext} 2560w`;
 
@@ -209,6 +213,23 @@ export function Stage({ still = "weave", children, className, eager = false }: {
     <div className={cn("relative isolate flex items-center justify-center overflow-hidden rounded-card px-4 py-6 md:rounded-stage md:px-16 md:py-16", className)}>
       <Still name={still} eager={eager} />
       <div className="relative w-full">{children}</div>
+    </div>
+  );
+}
+
+/** The night material's one soft glow: light from above (`top`) or a horizon rising from below (`bottom`). */
+export const nightGlow = { top: "bg-[radial-gradient(120%_70%_at_50%_0%,rgb(var(--ds-ink)/0.12),transparent_65%)]", bottom: "bg-[radial-gradient(90%_60%_at_50%_100%,rgb(var(--ds-ink)/0.14),transparent_70%)]" };
+
+/**
+ * The night material (critique 22 Oct, S3, S4): the night ground, a hairline and one soft glow, never a photograph. A
+ * demo on the tour or in the cross-sell stands on it, so a light window is never a bare rectangle on black. Night in
+ * either page tone.
+ */
+export function NightStage({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <div data-ground="night" className={cn("relative isolate overflow-hidden rounded-card border border-ink/10 bg-surface p-3 md:rounded-stage md:p-6", className)}>
+      <div aria-hidden className={cn("pointer-events-none absolute inset-0 -z-10", nightGlow.top)} />
+      {children}
     </div>
   );
 }

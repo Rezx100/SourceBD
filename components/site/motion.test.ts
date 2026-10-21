@@ -3,6 +3,8 @@
 // pause button.
 
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -54,5 +56,24 @@ describe("motion", () => {
     const out = renderToStaticMarkup(createElement(M.ToneShift, { initial: "dark" }, createElement("section", { "data-tone": "dark" })));
     assert.match(out, /^<main id="main-content" data-tone="dark" data-ground="night"/);
     assert.match(renderToStaticMarkup(createElement(M.ToneShift, null, null)), /^<main id="main-content" data-tone="paper" class=/);
+  });
+
+  it("only the ground fades; nothing inside carries a tone transition, so text never passes through grey on grey (critique 22 Oct, S1)", () => {
+    const night = renderToStaticMarkup(createElement(M.ToneShift, { initial: "dark" }, null));
+    const paper = renderToStaticMarkup(createElement(M.ToneShift, null, null));
+    assert.match(night, /class="[^"]*transition-\[background-color\][^"]*" style="background-color:rgb\(\d+ \d+ \d+\)"/);
+    assert.notEqual(/style="([^"]*)"/.exec(night)?.[1], /style="([^"]*)"/.exec(paper)?.[1], "the two grounds differ");
+    assert.doesNotMatch(night, /transition-colors/);
+    const config = readFileSync(join(process.cwd(), "tailwind.config.ts"), "utf8");
+    assert.doesNotMatch(config, /main\[data-tone\]\) \*/, "no rule fades every colour under the page");
+  });
+
+  it("the pause button sits under the demo's window, beside its caption, never over the product (critique 22 Oct, S6)", () => {
+    const out = stage();
+    const win = out.indexOf('data-ground="day"');
+    const button = out.indexOf('aria-label="Pause demo"');
+    assert.ok(win >= 0 && button > win);
+    // The window closes before the row that holds the caption and the button opens.
+    assert.match(out, /<\/div><\/div><div class="flex min-h-11[^"]*"><div class="min-w-0"><\/div><button type="button" aria-label="Pause demo"/);
   });
 });

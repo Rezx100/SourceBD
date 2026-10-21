@@ -18,7 +18,6 @@ import { FeatureRow, H2, HeroActions, HeroCentered, Lede, Section, measure } fro
 import { readDay, withCommas, type SiteFacts } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
 import { SEARCH_SLIDES } from "./search-slides";
-import { Staged } from "./staged";
 
 export const SEARCH_KEY = "product/search";
 const P = PAGES[SEARCH_KEY]!;
@@ -48,9 +47,9 @@ export function SearchPage({ facts }: { facts: SiteFacts }) {
           title={h1}
           lede={P.lede}
           stage={
-            <Staged
-              still="hero-cotton"
-              eager
+            <DemoSearch
+              stage="hero-cotton"
+              lead
               after={
                 count ? (
                   <p className="text-sm text-ink-subtle">
@@ -58,9 +57,7 @@ export function SearchPage({ facts }: { facts: SiteFacts }) {
                   </p>
                 ) : null
               }
-            >
-              <DemoSearch caption={false} />
-            </Staged>
+            />
           }
         >
           <HeroActions center />
@@ -74,11 +71,7 @@ export function SearchPage({ facts }: { facts: SiteFacts }) {
           lede={records.lede}
           flip
           tone="subtle"
-          media={
-            <Staged still="thread-cones">
-              <DemoRecord caption={false} />
-            </Staged>
-          }
+          media={<DemoRecord stage="weave" />}
         />
         <Section label={label(results)} headline={results.headline} lede={results.lede} />
       </div>

@@ -1,7 +1,8 @@
 "use client";
 
 // 1 · The announcement bar (Paper `1EU6-0` / `1EV3-0`). Dismissing it keeps a cookie for 30 days, the one cookie
-// the home page sets; the page reads it on the server, so a dismissed bar never flashes back.
+// the home page sets; the page reads it on the server, so a dismissed bar never flashes back. Under 768 it is one
+// line, the link alone; the sentence stays for a screen reader (critique 22 Oct, S10).
 
 import Link from "next/link";
 import { useState } from "react";
@@ -19,7 +20,7 @@ export function Announcement() {
   return (
     <div role="region" aria-label="Announcement" className="relative border-b border-line-subtle bg-subtle">
       <div className="mx-auto flex min-h-9 max-w-site flex-wrap items-center justify-center gap-x-2.5 gap-y-1 px-12 py-2 text-center text-base text-ink-strong">
-        <span>UFLPA and sanctions checks now run on every saved supplier</span>
+        <span className="max-md:sr-only">UFLPA and sanctions checks now run on every saved supplier</span>
         <Link href="/compliance" prefetch={false} className={`inline-flex items-center gap-1 font-medium underline decoration-1 underline-offset-4 ${ring}`}>
           See the Compliance hub
           <svg aria-hidden width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">

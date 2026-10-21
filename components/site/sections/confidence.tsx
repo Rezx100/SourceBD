@@ -9,7 +9,7 @@
 import { useRef, useState, type KeyboardEvent } from "react";
 import { cn } from "@/lib/utils";
 import { HomeIcon, type IconName } from "./icons";
-import { Screen, Still, measure, type ScreenName } from "./ui";
+import { NightStage, Screen, measure, type ScreenName } from "./ui";
 
 type Panel = { tab: string; title: string; body: string; points?: [IconName, string][]; screen: ScreenName; alt: string };
 
@@ -111,10 +111,9 @@ export function Confidence() {
                   </ul>
                 ) : null}
               </div>
-              <div className="relative isolate flex min-w-0 flex-1 items-center justify-center overflow-hidden rounded-card px-4 py-6 md:rounded-stage md:p-8 lg:h-[500px]">
-                <Still name="night-eyelet" sizes="(min-width: 1440px) 736px, 100vw" />
+              <NightStage className="flex min-w-0 flex-1 items-center justify-center px-4 py-6 md:p-8 lg:h-[500px]">
                 <Screen name={p.screen} alt={p.alt} sizes="(min-width: 1440px) 672px, 90vw" className="mx-auto max-w-[672px] max-md:max-w-[318px]" />
-              </div>
+              </NightStage>
             </div>
           </div>
         ))}

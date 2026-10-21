@@ -1,10 +1,10 @@
 // 14 · Figures (Paper `Z2R-0` / `1FBV-0`): counted straight from the records, through the site's live facts
 // (`lib/site-facts.ts`). A figure that was not read is left out, never guessed; "50 per RFQ" and "0 scores" are true
-// by definition and always shown. The line under the row dates the read.
+// by definition and always shown. The line under the row dates the read. Each figure is final at paint: no count-up
+// runs under "Not rounded" (critique 22 Oct, S7).
 
 import { readDay, withCommas, type SiteFacts } from "@/lib/site-facts";
 import { cn } from "@/lib/utils";
-import { CountUp } from "./reveal";
 import { measure } from "./ui";
 
 /** The figures as [number, what it counts], each only when it was read. */
@@ -31,9 +31,7 @@ export function Figures({ facts }: { facts: SiteFacts }) {
       <ul className="grid w-full border-y border-line sm:grid-cols-2 lg:flex">
         {cells.map(([n, what], i) => (
           <li key={what} className={cn("flex flex-col gap-1.5 py-6 md:py-9 lg:flex-1", i > 0 && "max-sm:border-t max-sm:border-line-subtle lg:border-l lg:border-line-subtle lg:pl-8")}>
-            <span className="text-site-figure-sm font-light text-ink-strong md:text-site-figure">
-              <CountUp value={n} />
-            </span>
+            <span className="text-site-figure-sm font-light tabular-nums text-ink-strong md:text-site-figure">{n}</span>
             <span className="text-site-body text-ink-muted">{what}</span>
           </li>
         ))}

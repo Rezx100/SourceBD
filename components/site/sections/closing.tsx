@@ -1,4 +1,5 @@
-// The closing band every page ends on (Paper `Z3Q-0` / `Z7Q-0`): the night floor, a light headline and the ways in.
+// The closing band every page ends on (Paper `Z3Q-0` / `Z7Q-0`): the night ground with one soft horizon glow (the
+// night material, critique 22 Oct S3; the night-floor photograph is retired), a light headline and the ways in.
 // The home page shows its two cards, one for buyers and one for suppliers; every other page its own line with Start
 // free and Book a demo. Drawn on the night ground, so the tokens are the dark set's; the primary button keeps the
 // nav's green with its white label (the kit's label is `surface`, which is dark on a night ground).
@@ -6,7 +7,7 @@
 import type { ReactNode } from "react";
 import { ButtonLink } from "@/components/kit";
 import { cn } from "@/lib/utils";
-import { Still, TextLink, measure } from "./ui";
+import { TextLink, measure, nightGlow } from "./ui";
 
 export const HOME_CARDS = [
   { who: "For buyers", line: "Free while we are in beta. No card needed.", body: "UK, US, EU and Canadian brands and retailers. Shortlist, vet and message verified factories in one sitting.", cta: ["Start free", "/signup"], link: ["See what is included", "/pricing"], primary: true },
@@ -20,8 +21,8 @@ const primary = "h-11 rounded-frame px-5 text-site-body text-brand-on";
 export function Closing({ headline, lede, cards }: { headline: ReactNode; lede?: ReactNode; cards?: readonly Card[] }) {
   return (
     <section aria-labelledby="site-close" className={cn(measure, "py-14 md:py-section")}>
-      <div data-ground="night" className="relative isolate flex flex-col items-center gap-8 overflow-hidden rounded-card px-4 py-10 md:gap-14 md:rounded-stage md:px-20 md:py-24">
-        <Still name="night-floor" className="object-bottom" />
+      <div data-ground="night" className="relative isolate flex flex-col items-center gap-8 overflow-hidden rounded-card border border-ink/10 bg-surface px-4 py-10 md:gap-14 md:rounded-stage md:px-20 md:py-24">
+        <div aria-hidden className={cn("pointer-events-none absolute inset-0 -z-10", nightGlow.bottom)} />
         <div className="relative flex flex-col items-center gap-5 text-center">
           <h2 id="site-close" className="max-w-[880px] text-site-h1-sm font-light text-ink [text-wrap:balance] md:text-site-h1">
             {headline}
@@ -31,7 +32,7 @@ export function Closing({ headline, lede, cards }: { headline: ReactNode; lede?:
         {cards ? (
           <div className="relative grid w-full max-w-[1120px] gap-4 md:gap-6 lg:grid-cols-2">
             {cards.map((c) => (
-              <div key={c.who} className="flex flex-col gap-5 rounded-card border border-ink/10 bg-surface/70 p-6 md:p-9">
+              <div key={c.who} className="flex flex-col gap-5 rounded-card border border-ink/10 bg-ink/[0.04] p-6 md:p-9">
                 <p className="text-base font-medium text-ink-2">{c.who}</p>
                 <h3 className="text-xl text-ink md:text-site-h3">{c.line}</h3>
                 <p className="text-md text-ink-2">{c.body}</p>

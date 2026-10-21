@@ -7,9 +7,18 @@
 
 import type { ReactNode } from "react";
 import { DemoStage, type CursorState, type Step } from "@/components/site/motion";
+import { NightStage, Stage, type StillName } from "@/components/site/sections/ui";
 import { motion } from "@/lib/design/tokens";
 import { CAPTION } from "@/lib/marketing/demo-snapshot";
 import { cn } from "@/lib/utils";
+
+/**
+ * Where a demo sits on its page (critique 22 Oct): `stage` puts it on a cloth (`hero-cotton` in a hero, `weave` in a
+ * row) or on the night material (the tour, the cross-sell); `lead` says it is in the first screen, so it holds its
+ * finished step before it loops and its cloth loads first; `after` is a line under the caption (the search page's
+ * live count). `caption={false}` leaves the caption to the page.
+ */
+export type Frame = { className?: string; caption?: boolean; stage?: StillName | "night"; lead?: boolean; after?: ReactNode };
 
 /** Steps that type `text` one character at a time from `from` ms, each drawing what has been typed so far. */
 export function typed<S>(text: string, from: number, draw: (typed: string) => S): Step<S>[] {
@@ -24,25 +33,24 @@ export function streamed<S>(n: number, from: number, draw: (count: number) => S)
 /** When the last of `steps` starts. */
 export const endOf = (steps: readonly Step<unknown>[]): number => steps[steps.length - 1]?.at ?? 0;
 
-/** A product window: the app's light ground whatever the page's tone, the frame radius, a hairline and a soft drop. */
+/** A product window: the app's light ground whatever the page's tone, the frame radius and a real edge, so it reads as a card on paper (critique 22 Oct, S4). */
 export function Window({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div data-ground="day" className={cn("relative flex min-h-[420px] flex-col overflow-hidden rounded-frame border border-ink-strong/10 bg-surface text-base text-ink [container-type:inline-size]", className)}>
+    <div data-ground="day" className={cn("relative flex min-h-[420px] flex-col overflow-hidden rounded-frame border border-line-strong bg-surface text-base text-ink [container-type:inline-size]", className)}>
       {children}
     </div>
   );
 }
 
-/** A demo: the stage with its pause button, and the caption that dates what it shows (`caption={false}` where the page draws the caption itself, under a textile stage). */
-export function Demo<S extends CursorState>({ steps, description, className, caption = true, children }: { steps: readonly Step<S>[]; description: string; className?: string; caption?: boolean; children: (state: S) => ReactNode }) {
+/** A demo: the window on its stage, then the caption that dates what it shows with the pause button beside it. */
+export function Demo<S extends CursorState>({ steps, description, className, caption = true, stage, lead = false, after, children }: Frame & { steps: readonly Step<S>[]; description: string; children: (state: S) => ReactNode }) {
+  const frame = stage === "night" ? (win: ReactNode) => <NightStage>{win}</NightStage> : stage ? (win: ReactNode) => <Stage still={stage} eager={lead}>{win}</Stage> : undefined;
   return (
     <div className={cn("flex flex-col gap-3", className)}>
-      <div data-ground="day" className="rounded-frame shadow-lg">
-        <DemoStage steps={steps} description={description} className="rounded-frame">
-          {children}
-        </DemoStage>
-      </div>
-      {caption ? <p className="text-sm text-ink-subtle">{CAPTION}</p> : null}
+      <DemoStage steps={steps} description={description} lead={lead} frame={frame} windowClass={stage ? "shadow-lg" : "shadow-sm"} foot={caption ? <p className="text-sm text-ink-subtle">{CAPTION}</p> : null}>
+        {children}
+      </DemoStage>
+      {after}
     </div>
   );
 }

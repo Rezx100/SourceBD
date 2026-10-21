@@ -1,4 +1,4 @@
-// 15 · For suppliers (Paper `1FXA-0` / `1G0M-0`): the cutting table, the copy panel and the three steps to a claimed
+// 15 · For suppliers (Paper `1FXA-0` / `1G0M-0`): the weave (critique 22 Oct, S3: the cutting table is retired), the copy panel and the three steps to a claimed
 // record. Claiming is free: an email at the company's own domain approves it when the link is opened, any other
 // address goes to a person (`supabase/migrations/0032_supplier_claims.sql`, `claim_initiate`).
 
@@ -18,7 +18,7 @@ export function ForSuppliers() {
   return (
     <section aria-labelledby="home-suppliers" className={cn(measure, "pb-14 md:pb-section")}>
       <div className="relative isolate flex flex-col gap-5 overflow-hidden rounded-card p-4 md:rounded-stage md:p-16 lg:flex-row lg:items-center lg:gap-16">
-        <Still name="cutting-table" />
+        <Still name="weave" />
         <div className="relative flex flex-col gap-5 rounded-card border border-ink-strong/10 bg-surface/90 p-6 md:p-8 lg:w-[480px] lg:shrink-0">
           <p className="text-site-body font-medium text-ink-subtle">For suppliers</p>
           <h2 id="home-suppliers" className="text-site-h2-sm font-light text-ink-strong md:text-site-h2">

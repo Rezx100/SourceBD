@@ -1,9 +1,9 @@
-// 11 · Platform grid (Paper `1EXN-0` / `1F9A-0`): eight things a sourcing desk needs, ruled, over the selvedge at
-// 16 %. Four across at 1440, two on a tablet, one on a phone.
+// 11 · Platform grid (Paper `1EXN-0` / `1F9A-0`): eight things a sourcing desk needs, ruled, on the paper ground (the
+// selvedge under it is retired, critique 22 Oct S3). Four across at 1440, two on a tablet, one on a phone.
 
 import { cn } from "@/lib/utils";
 import { HomeIcon, type IconName } from "./icons";
-import { H2, Still, measure } from "./ui";
+import { H2, measure } from "./ui";
 
 export const GRID: [IconName, string, string][] = [
   ["bookmark", "Saved searches and alerts", "Save a search; new matches arrive by email every Monday."],
@@ -18,9 +18,8 @@ export const GRID: [IconName, string, string][] = [
 
 export function PlatformGrid() {
   return (
-    <section aria-labelledby="home-grid" className="relative isolate overflow-hidden py-14 md:py-section">
-      <Still name="selvedge" className="opacity-[0.16]" sizes="100vw" />
-      <div className={cn(measure, "relative flex flex-col items-center gap-10 md:gap-14")}>
+    <section aria-labelledby="home-grid" className="py-14 md:py-section">
+      <div className={cn(measure, "flex flex-col items-center gap-10 md:gap-14")}>
         <H2 id="home-grid" className="text-center">
           Everything else a sourcing desk needs.
         </H2>

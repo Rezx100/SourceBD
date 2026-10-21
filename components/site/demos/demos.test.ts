@@ -73,6 +73,7 @@ describe("the demos", () => {
       assert.match(out, /<button type="button" aria-label="Pause demo" aria-pressed="false"/);
       assert.match(out, /<figcaption class="sr-only">[^<]{20,}<\/figcaption>/, "one sentence for a screen reader");
       assert.match(out, /data-ground="day"/, "the product stays light on any ground");
+      assert.match(out, /border-line-strong/, "the window has a real edge on paper (critique 22 Oct, S4)");
       assert.doesNotMatch(t, /undefined|NaN|\[object/);
     });
   }
