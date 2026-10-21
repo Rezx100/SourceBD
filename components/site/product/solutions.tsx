@@ -15,12 +15,10 @@ import { ComplianceTour, SourcingTour } from "./solutions-tours";
 export const SOURCING_KEY = "solutions/sourcing";
 export const COMPLIANCE_TEAMS_KEY = "solutions/compliance";
 
-const STILLS = ["weave", "thread-cones", "selvedge", "carton"] as const;
-
 /** One solutions page: the template's shape with the tour after the hero and the chosen three products before the close. */
 function SolutionsPage({ p, tour, products }: { p: Page; tour: ReactNode; products: string[] }) {
   return (
-    <ToneShift id={null} initial="paper" className="bg-canvas font-sans text-ink-strong antialiased">
+    <ToneShift id={null} initial="paper" className="font-sans text-ink-strong antialiased">
       <div data-tone="paper">
         <HeroCentered label={`${p.group} · ${p.name}`} title={p.h1} lede={p.lede} stage={p.hero ? <Figure shot={p.hero} still="hero-cotton" eager /> : undefined}>
           <HeroActions center />
@@ -34,7 +32,7 @@ function SolutionsPage({ p, tour, products }: { p: Page; tour: ReactNode; produc
           const label = b.n ? `${b.n} · ${b.label}` : b.label;
           const tone = i % 2 === 0 ? "subtle" : "paper";
           return b.shot ? (
-            <FeatureRow key={b.headline} label={label} headline={b.headline} lede={b.lede} flip={i % 2 === 1} tone={tone} media={<Figure shot={b.shot} still={STILLS[i % STILLS.length]!} sizes="(min-width: 1440px) 720px, 100vw" />}>
+            <FeatureRow key={b.headline} label={label} headline={b.headline} lede={b.lede} flip={i % 2 === 1} tone={tone} media={<Figure shot={b.shot} still="weave" sizes="(min-width: 1440px) 720px, 100vw" />}>
               {b.extra}
             </FeatureRow>
           ) : (

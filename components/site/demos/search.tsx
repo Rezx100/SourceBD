@@ -16,7 +16,7 @@ import { displayName, formatCount, splitQualifier } from "@/lib/dashboard/facts"
 import { motion } from "@/lib/design/tokens";
 import { SNAPSHOT, TODAY, certInput } from "@/lib/marketing/demo-snapshot";
 import { cn } from "@/lib/utils";
-import { Bar, Demo, Window, endOf, streamed, typed } from "./stage";
+import { Bar, Demo, Window, endOf, streamed, typed, type Frame } from "./stage";
 
 const { search } = SNAPSHOT;
 const QUERY = search.chips.join(" ");
@@ -50,8 +50,12 @@ export const ROWS = search.rows.map((r) => {
 });
 type Row = (typeof ROWS)[number];
 
-/** The results table: the same columns at every width, the place and the workers hidden under 640 wide; `hot` is the hovered row's slug. */
-function Rows({ rows, hot }: { rows: readonly Row[]; hot?: string | null }) {
+/**
+ * The results table: the same columns at every width, the place and the workers hidden under 640 wide; `hot` is the
+ * hovered row's slug. Rows from `lit` on stand under a fade until the search reaches them, so the table is never
+ * headers with no rows (critique 22 Oct, S5).
+ */
+function Rows({ rows, hot, lit = rows.length }: { rows: readonly Row[]; hot?: string | null; lit?: number }) {
   return (
     <Table>
       <thead>
@@ -66,10 +70,10 @@ function Rows({ rows, hot }: { rows: readonly Row[]; hot?: string | null }) {
         </tr>
       </thead>
       <tbody>
-        {rows.map((r) => {
+        {rows.map((r, i) => {
           const { base, qualifier } = splitQualifier(r.name);
           return (
-            <Tr key={r.slug} data-cursor={`row-${r.slug}`} className={cn("h-16 animate-swap-in motion-reduce:animate-none", hot === r.slug && "bg-sunken")}>
+            <Tr key={r.slug} data-cursor={`row-${r.slug}`} className={cn("h-16 transition-opacity duration-slow motion-reduce:transition-none", i >= lit && "opacity-40", hot === r.slug && "bg-sunken")}>
               <SelectCell label={`Select ${r.name}`} disabled readOnly checked={false} />
               <Td className="max-w-0">
                 <span className="block truncate text-base font-semibold text-ink" title={r.name}>
@@ -133,9 +137,9 @@ export function SearchStill({ chips, rows, right, description, className }: { ch
   );
 }
 
-export function DemoSearch({ className, caption }: { className?: string; caption?: boolean }) {
+export function DemoSearch(frame: Frame) {
   return (
-    <Demo steps={STEPS} description={`A search for ${QUERY}: ${formatCount(search.total) ?? "the"} suppliers found, with their place, workers and the certificates they hold today.`} caption={caption} className={className}>
+    <Demo {...frame} steps={STEPS} description={`A search for ${QUERY}: ${formatCount(search.total) ?? "the"} suppliers found, with their place, workers and the certificates they hold today.`}>
       {(s) => (
         <Window>
           <Bar
@@ -150,7 +154,7 @@ export function DemoSearch({ className, caption }: { className?: string; caption
             {s.chips ? <span className="shrink-0 text-sm text-ink-3">{formatCount(search.total)} suppliers</span> : null}
           </Bar>
           <Chips chips={s.chips ? search.chips : []} />
-          <Rows rows={ROWS.slice(0, s.rows)} hot={s.hover ? HOVER.slug : null} />
+          <Rows rows={ROWS} lit={s.rows} hot={s.hover ? HOVER.slug : null} />
         </Window>
       )}
     </Demo>

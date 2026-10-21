@@ -13,7 +13,7 @@ import { daysUntil, displayName, formatDay } from "@/lib/dashboard/facts";
 import { certName } from "@/lib/dashboard/needs-attention";
 import { SNAPSHOT, TODAY } from "@/lib/marketing/demo-snapshot";
 import { cn } from "@/lib/utils";
-import { Bar, Demo, Window, endOf, streamed } from "./stage";
+import { Bar, Demo, Window, endOf, streamed, type Frame } from "./stage";
 
 const SAVED = SNAPSHOT.saved.map((r) => ({ slug: r.slug, name: displayName(r.name), place: r.place, certs: r.certs }));
 
@@ -45,9 +45,9 @@ const checking = streamed(SAVED.length, 600, (checked) => still({ checked, done:
 const t1 = endOf(checking) + 500;
 export const STEPS: Step<S>[] = [{ at: 0, state: still({ checked: 0, done: false, expiry: false }) }, ...checking, { at: t1, state: still({ expiry: false }) }, { at: t1 + 2200, state: still({}) }];
 
-export function DemoCompliance({ className, caption }: { className?: string; caption?: boolean }) {
+export function DemoCompliance(frame: Frame) {
   return (
-    <Demo steps={STEPS} description={`The ${SAVED.length} saved suppliers checked against the UFLPA Entity List, no link found, and their certificates grouped by when they end.`} caption={caption} className={className}>
+    <Demo {...frame} steps={STEPS} description={`The ${SAVED.length} saved suppliers checked against the UFLPA Entity List, no link found, and their certificates grouped by when they end.`}>
       {(s) => (
         <Window>
           <Bar title="Compliance">

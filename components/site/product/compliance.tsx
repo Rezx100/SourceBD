@@ -12,7 +12,6 @@ import { Closing } from "@/components/site/sections/closing";
 import { CrossSell } from "@/components/site/sections/cross-sell";
 import { FeatureRow, HeroActions, HeroCentered, Section } from "@/components/site/sections/ui";
 import { VignetteGrid } from "@/components/site/sections/vignettes";
-import { Staged } from "./staged";
 
 export const COMPLIANCE_KEY = "product/compliance";
 const P = PAGES[COMPLIANCE_KEY]!;
@@ -22,17 +21,13 @@ const label = (b: { n: string; label: string }) => (b.n ? `${b.n} · ${b.label}`
 export function CompliancePage() {
   const [attention, uflpa, lists, statement] = [row("01"), row("02"), row(""), row("03")];
   return (
-    <ToneShift id={null} initial="paper" className="bg-canvas font-sans text-ink-strong antialiased">
+    <ToneShift id={null} initial="paper" className="font-sans text-ink-strong antialiased">
       <div data-tone="paper">
         <HeroCentered
           label={`${P.group} · ${P.name}`}
           title={P.h1}
           lede={P.lede}
-          stage={
-            <Staged still="hero-cotton" eager>
-              <DemoCompliance caption={false} />
-            </Staged>
-          }
+          stage={<DemoCompliance stage="hero-cotton" eager />}
         >
           <HeroActions center />
         </HeroCentered>
@@ -44,11 +39,7 @@ export function CompliancePage() {
           headline={attention.headline}
           lede={attention.lede}
           tone="subtle"
-          media={
-            <Staged still="thread-cones">
-              <VignetteExpiry caption={false} />
-            </Staged>
-          }
+          media={<VignetteExpiry stage="weave" />}
         />
         {uflpa.shot ? <FeatureRow label={label(uflpa)} headline={uflpa.headline} lede={uflpa.lede} flip media={<Figure shot={uflpa.shot} still="weave" sizes="(min-width: 1440px) 720px, 100vw" />} /> : null}
         <Section label={label(lists)} headline={lists.headline} lede={lists.lede} tone="subtle">

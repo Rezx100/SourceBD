@@ -166,7 +166,7 @@ describe("the records page in the home's frame (M4, handoff-mercury-m4-onward.md
 
   it("the ground runs paper, dark, paper, dark: the rows, the tabbed record, the real records, the cross-sell and the close", () => {
     const out = page(RECORDS_KEY, FACTS, [CARD]);
-    assert.match(out, /^(?:<link [^>]*>)*<main data-tone="paper" class="[^"]*bg-canvas/);
+    assert.match(out, /^(?:<link [^>]*>)*<main data-tone="paper" class="[^"]*bg-\[rgb\(var\(--mk-ground-paper\)\)\]/);
     const tones = [...out.matchAll(/data-tone="(photo|dark|paper)"/g)].map((m) => m[1]).slice(1);
     assert.deepEqual(tones, ["paper", "dark", "paper", "dark"]);
     assert.match(text(out), /Real records, not reviews\. .*Aboni Knitwear Ltd/);
@@ -258,7 +258,7 @@ describe("the search page in the home's frame (M4, handoff-mercury-m4-onward.md 
 
   it("the ground runs paper, dark, paper, dark: the rows, the carousel and cross-sell, the FAQ, the close", () => {
     const out = page(SEARCH_KEY);
-    assert.match(out, /^(?:<link [^>]*>)*<main data-tone="paper" class="[^"]*bg-canvas/);
+    assert.match(out, /^(?:<link [^>]*>)*<main data-tone="paper" class="[^"]*bg-\[rgb\(var\(--mk-ground-paper\)\)\]/);
     const tones = [...out.matchAll(/data-tone="(photo|dark|paper)"/g)].map((m) => m[1]).slice(1);
     assert.deepEqual(tones, ["paper", "dark", "paper", "dark"]);
     const cross = out.slice(out.indexOf('aria-labelledby="site-cross-sell"'), out.indexOf('aria-labelledby="search-faq"'));

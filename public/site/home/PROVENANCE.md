@@ -11,22 +11,14 @@ on 10 Oct 2026. sharp is not a dependency; nothing here was resized in the brows
 Made on the founder's Higgsfield account. No people, faces, text, logos or products: cloth, thread, paper and a
 factory floor at night, so they claim nothing about any supplier. Round 1 (9 Oct 2026) made six and the hero
 loop; round 2 (10 Oct 2026) made six with `gpt_image_2` at 2k (6.5 credits each). Round 1's job ids and still
-model were not recorded. Each is AVIF (crf 30) and WebP (quality 78) at 1600 and 2560 wide.
+model were not recorded. Each is AVIF (crf 30) and WebP (quality 78) at 1600 and 2560 wide. Since 22 Oct 2026
+(the marketing critique, S3) the site keeps two cloths, cotton under a hero and weave under every feature row; the
+other ten stills were deleted, and the night is drawn rather than photographed.
 
 | Source | Round | Where it is drawn | Files |
 | -- | -- | -- | -- |
-| `hf-hero-cotton.png` | 1 | Hero stage, the loop's poster; showcase row 1 | `hero-cotton-1600.avif` · `hero-cotton-1600.webp` · `hero-cotton-2560.avif` · `hero-cotton-2560.webp` |
-| `hf-thread-cones.png` | 1 | Showcase row 2 (quotes) | `thread-cones-1600.avif` · `thread-cones-1600.webp` · `thread-cones-2560.avif` · `thread-cones-2560.webp` |
-| `hf-weave.png` | 1 | Showcase row 3 (compliance) | `weave-1600.avif` · `weave-1600.webp` · `weave-2560.avif` · `weave-2560.webp` |
-| `hf-thread-cone.png` | 2 | Showcase row 4 (record pane) | `thread-cone-1600.avif` · `thread-cone-1600.webp` · `thread-cone-2560.avif` · `thread-cone-2560.webp` |
-| `hf-carton.png` | 2 | Showcase row 5 (messages) | `carton-1600.avif` · `carton-1600.webp` · `carton-2560.avif` · `carton-2560.webp` |
-| `hf-paper-seal.png` | 1 | Inside one record | `paper-seal-1600.avif` · `paper-seal-1600.webp` · `paper-seal-2560.avif` · `paper-seal-2560.webp` |
-| `hf-hangtags-fanned.png` | 2 | Real records, not reviews | `hangtags-fanned-1600.avif` · `hangtags-fanned-1600.webp` · `hangtags-fanned-2560.avif` · `hangtags-fanned-2560.webp` |
-| `hf-selvedge.png` | 2 | Platform grid, at 16 % | `selvedge-1600.avif` · `selvedge-1600.webp` · `selvedge-2560.avif` · `selvedge-2560.webp` |
-| `hf-night-eyelet.png` | 2 | Buy with confidence | `night-eyelet-1600.avif` · `night-eyelet-1600.webp` · `night-eyelet-2560.avif` · `night-eyelet-2560.webp` |
-| `hf-cutting-table.png` | 2 | For suppliers | `cutting-table-1600.avif` · `cutting-table-1600.webp` · `cutting-table-2560.avif` · `cutting-table-2560.webp` |
-| `hf-hangtag.png` | 1 | Three things we never do | `hangtag-1600.avif` · `hangtag-1600.webp` · `hangtag-2560.avif` · `hangtag-2560.webp` |
-| `hf-night-floor.png` | 1 | Closing split | `night-floor-1600.avif` · `night-floor-1600.webp` · `night-floor-2560.avif` · `night-floor-2560.webp` |
+| `hf-hero-cotton.png` | 1 | Every hero stage, the loop's poster | `hero-cotton-1600.avif` · `hero-cotton-1600.webp` · `hero-cotton-2560.avif` · `hero-cotton-2560.webp` |
+| `hf-weave.png` | 1 | Every feature row's stage | `weave-1600.avif` · `weave-1600.webp` · `weave-2560.avif` · `weave-2560.webp` |
 
 ## The hero loop
 

@@ -31,17 +31,13 @@ const label = (b: { n: string; label: string }) => `${b.n} · ${b.label}`;
 export function RecordsPage({ cards }: { cards: HomeRecord[] }) {
   const [sources, certificates, disagree, safety, contacts] = [row("01"), row("02"), row("03"), row("04"), row("05")];
   return (
-    <ToneShift id={null} initial="paper" className="bg-canvas font-sans text-ink-strong antialiased">
+    <ToneShift id={null} initial="paper" className="font-sans text-ink-strong antialiased">
       <div data-tone="paper">
         <HeroCentered
           label={`${P.group} · ${P.name}`}
           title={P.h1}
           lede={P.lede}
-          stage={
-            <Staged still="hero-cotton" eager>
-              <DemoRecord caption={false} />
-            </Staged>
-          }
+          stage={<DemoRecord stage="hero-cotton" eager />}
         >
           <HeroActions center />
         </HeroCentered>
@@ -51,22 +47,14 @@ export function RecordsPage({ cards }: { cards: HomeRecord[] }) {
           headline={sources.headline}
           lede={sources.lede}
           tone="subtle"
-          media={
-            <Staged still="weave">
-              <VignetteReceipts caption={false} />
-            </Staged>
-          }
+          media={<VignetteReceipts stage="weave" />}
         />
         <FeatureRow
           label={label(certificates)}
           headline={certificates.headline}
           lede={certificates.lede}
           flip
-          media={
-            <Staged still="thread-cones">
-              <VignetteExpiry caption={false} />
-            </Staged>
-          }
+          media={<VignetteExpiry stage="weave" />}
         >
           {certificates.extra}
         </FeatureRow>
@@ -74,7 +62,7 @@ export function RecordsPage({ cards }: { cards: HomeRecord[] }) {
           {disagree.extra}
         </Section>
         {/* The one row still on its 3 Oct screen; when the words drop the shot for a demo, the row goes with them rather than drawing nothing. */}
-        {safety.shot ? <FeatureRow label={label(safety)} headline={safety.headline} lede={safety.lede} media={<Figure shot={safety.shot} still="selvedge" sizes="(min-width: 1440px) 720px, 100vw" />} /> : null}
+        {safety.shot ? <FeatureRow label={label(safety)} headline={safety.headline} lede={safety.lede} media={<Figure shot={safety.shot} still="weave" sizes="(min-width: 1440px) 720px, 100vw" />} /> : null}
         <FeatureRow
           label={label(contacts)}
           headline={contacts.headline}
@@ -82,8 +70,8 @@ export function RecordsPage({ cards }: { cards: HomeRecord[] }) {
           flip
           tone="subtle"
           media={
-            <Staged still="carton">
-              <div data-ground="day" className="rounded-frame border border-ink-strong/10 bg-surface p-4 text-ink shadow-lg">
+            <Staged still="weave">
+              <div data-ground="day" className="rounded-frame border border-line-strong bg-surface p-4 text-ink shadow-lg">
                 <ContactLocked />
               </div>
             </Staged>

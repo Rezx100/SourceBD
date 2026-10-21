@@ -148,6 +148,13 @@ describe("the cookie banner", () => {
     assert.ok(buttons.some((b) => b.label === "Choose cookies"));
   });
 
+  it("on a phone it is a compact sheet along the bottom edge: no heading line, Choose cookies at the end of the sentence (critique 22 Oct, S10)", () => {
+    const out = card("ask");
+    assert.match(out, /<section [^>]*class="[^"]*max-sm:inset-x-0[^"]*max-sm:bottom-0[^"]*"/);
+    assert.match(out, /<h2 [^>]*class="[^"]*max-sm:sr-only[^"]*">Cookies<\/h2>/);
+    assert.match(out, /Nothing is set until you choose\.(?: |<!-- -->)*<button type="button" class="[^"]*sm:hidden[^"]*">Choose cookies<\/button><\/p>/);
+  });
+
   it("Choose cookies: the necessary one is always on and cannot be turned off; page counts is a switch that starts off", () => {
     const off = card("choose");
     assert.match(text(off), /Needed to run the site/);

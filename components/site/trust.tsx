@@ -322,7 +322,7 @@ export function ForSuppliers({ facts }: { facts: SiteFacts }) {
         count={count}
         stage={
           <figure className="flex flex-col gap-3">
-            <Stage still="cutting-table" eager>
+            <Stage still="hero-cotton" eager>
               <Image src="/site/records-overview.png" alt="A supplier record as a buyer sees it: sanctions, certificates, safety, workers and sources at the top, then the key facts, each with where it came from." width={1440} height={900} sizes="(min-width: 1440px) 1152px, 100vw" priority className="h-auto w-full rounded-frame border border-ink-strong/10 shadow-lg" />
             </Stage>
             <figcaption className="text-sm text-ink-subtle">

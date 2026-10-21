@@ -21,7 +21,7 @@ import { motion } from "@/lib/design/tokens";
 import { BRAND_LIST, CERT_REGISTER, SNAPSHOT, TODAY } from "@/lib/marketing/demo-snapshot";
 import { sourceFullName } from "@/lib/source-full-names";
 import { cn } from "@/lib/utils";
-import { Bar, Demo, Window, endOf, streamed } from "./stage";
+import { Bar, Demo, Window, endOf, streamed, type Frame } from "./stage";
 
 const { check, search } = SNAPSHOT;
 const NAME = displayName(check.name);
@@ -131,9 +131,9 @@ export function ContactLocked({ className }: { className?: string }) {
   );
 }
 
-export function DemoRecord({ tab = "certificates", caption, className }: { tab?: RecordTab; caption?: boolean; className?: string }) {
+export function DemoRecord({ tab = "certificates", ...frame }: Frame & { tab?: RecordTab }) {
   return (
-    <Demo steps={SCENES[tab]} description={DESCRIPTION[tab]} caption={caption} className={className}>
+    <Demo {...frame} steps={SCENES[tab]} description={DESCRIPTION[tab]}>
       {(s) => (
         <Window>
           <Bar title={`${search.chips.join(" · ")} · ${formatCount(search.total)} suppliers`} />

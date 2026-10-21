@@ -66,7 +66,7 @@ export function InsideRecord({ callouts }: { callouts: (HomeFact | null)[] }) {
           ))}
         </div>
         <div className="relative isolate w-full overflow-hidden rounded-card px-4 py-6 md:rounded-stage lg:aspect-[1280/830] lg:p-0">
-          <Still name="paper-seal" />
+          <Still name="weave" />
           <div className="relative mx-auto max-w-[318px] md:max-w-none lg:absolute lg:left-[3.125%] lg:right-[3.125%] lg:top-[4.82%]">
             <Screen name="full-certs2" alt="Aboni Knitwear Ltd's record at its Certificates section: one GOTS certificate expired 4 Apr 2026, shown amber; GOTS and WRAP certificates valid" sizes="(min-width: 1440px) 1200px, 90vw" />
           </div>

@@ -73,11 +73,14 @@ describe("the demos", () => {
       assert.match(out, /<button type="button" aria-label="Pause demo" aria-pressed="false"/);
       assert.match(out, /<figcaption class="sr-only">[^<]{20,}<\/figcaption>/, "one sentence for a screen reader");
       assert.match(out, /data-ground="day"/, "the product stays light on any ground");
+      assert.match(out, /border-line-strong/, "the window has a real edge on paper (critique 22 Oct, S4)");
       assert.doesNotMatch(t, /undefined|NaN|\[object/);
     });
   }
 
   it("Find ends on the rows the search found, with the hovered record among them", () => {
+    // Rows the search has not reached yet stand under a fade (critique 22 Oct, S5); on the last step it has reached them all.
+    assert.doesNotMatch(draw(search.DemoSearch), /<tr[^>]*opacity-40/);
     const t = text(draw(search.DemoSearch));
     for (const r of SNAPSHOT.search.rows) assert.ok(t.includes(displayName(r.name).split(" ")[0]!), r.name);
     assert.match(t, /knit GOTS/);

@@ -16,6 +16,7 @@ import {
   motion,
   NIGHT_INHERITS,
   paneMaterial,
+  resolve,
   screens,
   spacing,
   toChannels,
@@ -148,16 +149,13 @@ const config: Config = {
       const darkSet = { ...colorVars(dark), ...paneMaterial.dark, "color-scheme": "dark" };
       const night = Object.fromEntries(Object.entries(darkSet).filter(([name]) => !NIGHT_INHERITS.includes(name)));
       addBase({
-        ":root": { ...colorVars(light), ...paneMaterial.light },
+        // `--mk-ground-*`: the two grounds a marketing page fades between (ToneShift), fixed in either scene, so the
+        // fade starts the moment the tone changes while the night set comes in only half way through.
+        ":root": { ...colorVars(light), ...paneMaterial.light, "--mk-ground-paper": toChannels(resolve(light, "canvas")), "--mk-ground-night": toChannels(resolve(dark, "canvas")) },
         "@media (prefers-color-scheme: dark)": { ":root:has([data-theme-auto])": darkSet },
         '[data-ground="night"]': night,
-        // ToneShift (components/site/motion.tsx): under a page whose ground changes tone, colours fade with it. No
-        // specificity, so an element's own transition class wins; app/ds.css stills it under reduced motion.
-        ":where(main[data-tone]) *": {
-          transitionProperty: "color, background-color, border-color, fill, stroke",
-          transitionDuration: transitionDuration.tone,
-          transitionTimingFunction: transitionTimingFunction.reveal,
-        },
+        // ToneShift (components/site/motion.tsx) fades the page's ground alone and steps every other colour half way
+        // through, so nothing inside carries a tone transition of its own (critique 22 Oct, S1).
         // The product's own pieces, staged in the film on a night ground: the app has no dark theme, so a window
         // of it is light in either theme and inside any night scene.
         '[data-ground="day"]': { ...colorVars(light), ...paneMaterial.light, "color-scheme": "light" },
