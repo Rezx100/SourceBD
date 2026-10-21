@@ -69,7 +69,9 @@ describe("the demos", () => {
       const out = draw(d.C);
       const t = text(out);
       assert.ok(d.names.some((n) => t.includes(n)), "a named company is drawn on the last step");
-      assert.ok(t.includes(CAPTION), `the caption "${CAPTION}"`);
+      // The sanctioned example is captioned as an example, never as a real record (critique 22 Oct).
+      const caption = d.name === "vignette sanction" ? vignettes.SAMPLE_CAPTION : CAPTION;
+      assert.ok(t.includes(caption), `the caption "${caption}"`);
       assert.match(out, /<button type="button" aria-label="Pause demo" aria-pressed="false"/);
       assert.match(out, /<figcaption class="sr-only">[^<]{20,}<\/figcaption>/, "one sentence for a screen reader");
       assert.match(out, /data-ground="day"/, "the product stays light on any ground");
@@ -138,6 +140,8 @@ describe("the demos", () => {
   it("the sanctioned vignette names the placeholder only, and the last step is the refusal", () => {
     const t = text(draw(vignettes.VignetteSanction));
     assert.match(t, /Example Apparel Ltd/);
+    assert.ok(t.includes(vignettes.SAMPLE_CAPTION) && !t.includes(CAPTION), "captioned as an example, never as a real record");
+    assert.doesNotMatch(t, /placeholder/);
     assert.match(t, /You can't send this supplier an RFQ\./);
     for (const n of snapshotNames()) assert.ok(!t.includes(n), `${n} is never shown sanctioned`);
   });

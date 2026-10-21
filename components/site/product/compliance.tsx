@@ -2,23 +2,80 @@
 // `pages.test.ts`, in the home page's frame. The hero's screenshot is now the Watch demo on the cotton stage (the
 // saved suppliers checked against the UFLPA Entity List, the certificates grouped by when they end); the four
 // moments follow as on the home; the needs-attention row plays the expiry vignette, the UFLPA row keeps its 3 Oct
-// screen, the lists table and the statement keep their words; then the other three products and the close on the
-// night ground. No sanctions row: the page's words hold none.
+// screen, the lists table reads its figures and dates from the site's live facts, the statement keeps its words; then
+// the other three products and the close on the night ground. No sanctions row: the page's words hold none.
 
 import { DemoCompliance, VignetteExpiry } from "@/components/site/demos";
+import { TIERS } from "@/components/site/sources";
 import { ToneShift } from "@/components/site/motion";
 import { Figure, PAGES } from "@/components/site/pages";
 import { Closing } from "@/components/site/sections/closing";
 import { CrossSell } from "@/components/site/sections/cross-sell";
 import { FeatureRow, HeroActions, HeroCentered, Section } from "@/components/site/sections/ui";
+import { listCells, listsRead } from "@/components/site/trust";
+import type { SiteFacts } from "@/lib/site-facts";
 import { VignetteGrid } from "@/components/site/sections/vignettes";
 
 export const COMPLIANCE_KEY = "product/compliance";
 const P = PAGES[COMPLIANCE_KEY]!;
 const row = (n: string) => P.blocks.find((b) => b.n === n)!;
-const label = (b: { n: string; label: string }) => (b.n ? `${b.n} · ${b.label}` : b.label);
+/** The page's names for the six lists (longer than the methodology table's), each with its source code in the live facts. */
+const LIST_NAMES: Record<string, string> = {
+  UFLPA: "UFLPA Entity List",
+  OFAC: "Specially Designated Nationals (SDN) list",
+  UK_OFSI: "Consolidated list of financial sanctions targets",
+  EU_SANC: "EU sanctions map",
+  US_WRO: "Withhold Release Orders and Findings",
+  ILAB: "List of Goods Produced by Child Labor or Forced Labor",
+};
+const LISTS = (TIERS.find((t) => t.key === "tier5_regulatory")?.sources ?? []).map((s) => ({ code: s.code, name: LIST_NAMES[s.code] ?? s.name, by: s.full }));
 
-export function CompliancePage() {
+/**
+ * The lists we screen against, who keeps them and, from the site's live facts, each one's entries and the day of its
+ * last full read, in the methodology table's words (`listCells`): the page prints no date of its own (critique
+ * 22 Oct, S12). When the lists were not read, only the names and keepers are drawn.
+ */
+function ListsTable({ facts, now }: { facts: SiteFacts; now: number }) {
+  const read = listsRead(facts);
+  return (
+    <div tabIndex={0} role="region" aria-label="The lists we check, scrolls sideways" className="overflow-x-auto outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent">
+      <table className="w-full min-w-[640px] border-collapse text-left">
+        <caption className="sr-only">The lists we check, who keeps them{read ? ", how many entries and when we last read them" : ""}</caption>
+        <thead>
+          <tr className="border-b border-ink text-sm text-ink-3">
+            <th scope="col" className="py-2 pr-4 font-medium">List</th>
+            <th scope="col" className="py-2 pr-4 font-medium">Kept by</th>
+            {read ? (
+              <>
+                <th scope="col" className="py-2 pr-4 text-right font-medium">Entries</th>
+                <th scope="col" className="py-2 font-medium">Last read</th>
+              </>
+            ) : null}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-line">
+          {LISTS.map((l) => {
+            const cells = read ? listCells(facts.sources?.find((s) => s.code === l.code) ?? null, now) : null;
+            return (
+              <tr key={l.code} className="align-top text-md">
+                <th scope="row" className="py-3 pr-4 font-semibold text-ink">{l.name}</th>
+                <td className="py-3 pr-4 text-ink-2">{l.by}</td>
+                {cells ? (
+                  <>
+                    <td className="py-3 pr-4 text-right tabular-nums text-ink">{cells.entries}</td>
+                    <td className="py-3 text-ink-2">{cells.read}</td>
+                  </>
+                ) : null}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export function CompliancePage({ facts, now = Date.now() }: { facts: SiteFacts; now?: number }) {
   const [attention, uflpa, lists, statement] = [row("01"), row("02"), row(""), row("03")];
   return (
     <ToneShift id={null} initial="paper" className="font-sans text-ink-strong antialiased">
@@ -35,17 +92,17 @@ export function CompliancePage() {
         <VignetteGrid />
 
         <FeatureRow
-          label={label(attention)}
+          label={attention.label}
           headline={attention.headline}
           lede={attention.lede}
           tone="subtle"
           media={<VignetteExpiry stage="weave" />}
         />
-        {uflpa.shot ? <FeatureRow label={label(uflpa)} headline={uflpa.headline} lede={uflpa.lede} flip media={<Figure shot={uflpa.shot} still="weave" sizes="(min-width: 1440px) 720px, 100vw" />} /> : null}
-        <Section label={label(lists)} headline={lists.headline} lede={lists.lede} tone="subtle">
-          {lists.extra}
+        {uflpa.shot ? <FeatureRow label={uflpa.label} headline={uflpa.headline} lede={uflpa.lede} flip media={<Figure shot={uflpa.shot} still="weave" sizes="(min-width: 1440px) 720px, 100vw" />} /> : null}
+        <Section label={lists.label} headline={lists.headline} lede={listsRead(facts) ? lists.lede : "The lists we screen against, and who keeps them. The product shows the day each list was last read."} tone="subtle">
+          <ListsTable facts={facts} now={now} />
         </Section>
-        <Section label={label(statement)} headline={statement.headline} lede={statement.lede} />
+        <Section label={statement.label} headline={statement.headline} lede={statement.lede} />
       </div>
 
       <div data-tone="dark">

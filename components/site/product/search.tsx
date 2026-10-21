@@ -22,7 +22,6 @@ import { SEARCH_SLIDES } from "./search-slides";
 export const SEARCH_KEY = "product/search";
 const P = PAGES[SEARCH_KEY]!;
 const row = (n: string) => P.blocks.find((b) => b.n === n)!;
-const label = (b: { n: string; label: string }) => `${b.n} · ${b.label}`;
 
 /** The six filters the page's own words name (row 01): nothing here the product does not have. */
 const FILTERS: IconItem[] = [
@@ -60,20 +59,20 @@ export function SearchPage({ facts }: { facts: SiteFacts }) {
             />
           }
         >
-          <HeroActions center />
+          <HeroActions center search />
         </HeroCentered>
 
         <IconGrid id="search-filters" title="Six ways to narrow." lede="Each filter says how many suppliers you will get before you apply it." items={FILTERS} tone="subtle" />
-        {filters.shot ? <FeatureRow label={label(filters)} headline={filters.headline} lede={filters.lede} media={<Figure shot={filters.shot} still="weave" sizes="(min-width: 1440px) 720px, 100vw" />} /> : null}
+        {filters.shot ? <FeatureRow label={filters.label} headline={filters.headline} lede={filters.lede} media={<Figure shot={filters.shot} still="weave" sizes="(min-width: 1440px) 720px, 100vw" />} /> : null}
         <FeatureRow
-          label={label(records)}
+          label={records.label}
           headline={records.headline}
           lede={records.lede}
           flip
           tone="subtle"
           media={<DemoRecord stage="weave" />}
         />
-        <Section label={label(results)} headline={results.headline} lede={results.lede} />
+        <Section label={results.label} headline={results.headline} lede={results.lede} />
       </div>
 
       <div data-tone="dark">

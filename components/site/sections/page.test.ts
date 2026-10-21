@@ -260,6 +260,13 @@ describe("the live sections", () => {
     assert.match(bare, /0 scores, grades or stars on any supplier/);
   });
 
+  it("the hero offers five common searches, not nine (critique 22 Oct, S8)", () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded after the test build exists.
+    const { chipsOf } = require("@/components/site/sections/chips") as typeof import("@/components/site/sections/chips");
+    assert.equal(chipsOf().length, 5);
+    assert.ok(chipsOf().every((c) => c.count === null), "with no counts read, none is drawn");
+  });
+
   it("a chip shows its count only when the count was read, and links to its search", () => {
     const out = live();
     assert.match(out, /href="\/app\/discover\?hs=6109"[^>]*>.*?GOTS-certified knitwear<\/span><span[^>]*>205<\/span>/);

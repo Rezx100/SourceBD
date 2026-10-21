@@ -22,7 +22,7 @@ const REBUILT: Record<string, () => Promise<ReactNode>> = {
   [RECORDS_KEY]: async () => <RecordsPage cards={(await loadHomeRecords()).cards} />,
   [SEARCH_KEY]: async () => <SearchPage facts={await loadSiteFacts()} />,
   [RFQS_KEY]: async () => <RfqsPage />,
-  [COMPLIANCE_KEY]: async () => <CompliancePage />,
+  [COMPLIANCE_KEY]: async () => <CompliancePage facts={await loadSiteFacts()} />,
 };
 
 type Props = { params: Promise<{ slug: string }> };

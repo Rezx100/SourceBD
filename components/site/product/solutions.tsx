@@ -29,14 +29,13 @@ function SolutionsPage({ p, tour, products }: { p: Page; tour: ReactNode; produc
 
       <div data-tone="paper">
         {p.blocks.map((b, i) => {
-          const label = b.n ? `${b.n} · ${b.label}` : b.label;
           const tone = i % 2 === 0 ? "subtle" : "paper";
           return b.shot ? (
-            <FeatureRow key={b.headline} label={label} headline={b.headline} lede={b.lede} flip={i % 2 === 1} tone={tone} media={<Figure shot={b.shot} still="weave" sizes="(min-width: 1440px) 720px, 100vw" />}>
+            <FeatureRow key={b.headline} label={b.label} headline={b.headline} lede={b.lede} flip={i % 2 === 1} tone={tone} media={<Figure shot={b.shot} still="weave" sizes="(min-width: 1440px) 720px, 100vw" />}>
               {b.extra}
             </FeatureRow>
           ) : (
-            <Section key={b.headline} label={label} headline={b.headline} lede={b.lede} tone={tone}>
+            <Section key={b.headline} label={b.label} headline={b.headline} lede={b.lede} tone={tone}>
               {b.extra}
             </Section>
           );

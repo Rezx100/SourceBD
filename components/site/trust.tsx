@@ -1,7 +1,8 @@
 // The trust pages (B9e; Paper `30 Marketing`): Security, Data & methodology, For suppliers and About. They share the
 // marketing parts and say what is true today: the security answers come from the runbooks and the live database, the
 // source table comes from `public.sources` and is drawn with figures only when they were read, the supplier page
-// sends a claim to the sign-up that makes a supplier account, and the About district counts are dated and static.
+// sends a claim to the sign-up that makes a supplier account, and the About district counts are dated and static
+// (re-read by `ops/about_district_counts.sql`, the result in `ops/plans/about-district-counts.md`).
 // Nothing here is a score, a badge, or a promise the product does not keep.
 
 import Image from "next/image";
@@ -34,16 +35,32 @@ const A = ({ href, children }: { href: string; children: ReactNode }) =>
     </Link>
   );
 
-function Hero({ label, h1, lede, children, actions = true, count, stage }: { label: string; h1: ReactNode; lede: ReactNode; children?: ReactNode; actions?: boolean; count: string | null; stage?: ReactNode }) {
+function Hero({ label, h1, lede, children, actions = true, stage }: { label: string; h1: ReactNode; lede: ReactNode; children?: ReactNode; actions?: boolean; stage?: ReactNode }) {
   return (
     <HeroCentered label={label} title={h1} lede={lede} stage={stage}>
-      {actions ? <HeroActions center tryLine={count ? `Search ${count} suppliers by name, product or HS code` : "Search suppliers by name, product or HS code"} /> : null}
+      {actions ? <HeroActions center /> : null}
       {children}
     </HeroCentered>
   );
 }
 
 const countOf = (f: SiteFacts) => (f.suppliers !== null ? withCommas(f.suppliers) : null);
+
+/**
+ * How often the sources are read, as it is today: every scheduled read has been switched off since 6 Oct 2026
+ * (`etl_schedules.enabled` is false for every register, read 22 Oct), so no page claims a weekly or daily read.
+ * Methodology and About say the same.
+ */
+const FRESH = "There is no fixed schedule for re-reading the registers yet. Every fact shows the day its source was last read.";
+
+/** How to report a wrong fact, in one place: Methodology's corrections and About say the same. */
+function Correction() {
+  return (
+    <>
+      Write to <A href="mailto:data@sourcebd.net">data@sourcebd.net</A>. We read the source again. The source wins.
+    </>
+  );
+}
 
 // ---- Security ----------------------------------------------------------------------------------------------------
 
@@ -61,11 +78,10 @@ const ANSWERS: [string, string][] = [
   ["Contact", "support@sourcebd.net"],
 ];
 
-export function Security({ facts }: { facts: SiteFacts }) {
-  const count = countOf(facts);
+export function Security() {
   return (
     <main className="font-sans text-ink">
-      <Hero label="Security" h1="Security, stated plainly." lede="What we do today. No badges, no promises." count={count} />
+      <Hero label="Security" h1="Security, stated plainly." lede="What we do today. No badges, no promises." />
 
       <section aria-labelledby="nine" className="bg-surface py-14 md:py-section">
         <div className={cn(measure, "flex flex-col gap-8")}>
@@ -148,6 +164,31 @@ function sourceFigures(facts: SiteFacts, code: string): SourceFact | null {
   return facts.sources?.find((s) => s.code === code) ?? null;
 }
 
+/**
+ * A sanctions list's two cells, the same on Methodology and the compliance product page: its entries, and the day of
+ * its last full read with a mark when that was over 90 days ago, or "read in part" when no full read has finished.
+ */
+export function listCells(f: SourceFact | null, now: number): { entries: ReactNode; read: ReactNode } {
+  const stale = f?.latest ? now - Date.parse(f.latest) > NINETY_DAYS : false;
+  return {
+    entries: f && f.records > 0 ? withCommas(f.records) : <span className="text-ink-3">{f ? "Listed, no records yet" : "Not read yet"}</span>,
+    read:
+      f && f.records > 0 && f.latest ? (
+        <>
+          {readDay(f.latest)}
+          {stale ? <span className="font-medium text-ink"> · over 90 days ago</span> : null}
+        </>
+      ) : f && f.records > 0 ? (
+        "Read in part, no full read yet"
+      ) : (
+        "Not read yet"
+      ),
+  };
+}
+
+/** Whether the sanctions lists were read: `sanctions_lists_read()` can fail while the other facts do not, and then every list would wrongly say "not read". */
+export const listsRead = (facts: SiteFacts): boolean => (facts.sources ?? []).some((s) => s.tier === "tier5_regulatory" && s.records > 0);
+
 function TierTable({ tier, facts, now }: { tier: Tier; facts: SiteFacts; now: number }) {
   const read = facts.sources !== null;
   const regs = tier.key === "tier5_regulatory";
@@ -182,6 +223,7 @@ function TierTable({ tier, facts, now }: { tier: Tier; facts: SiteFacts; now: nu
               const f = sourceFigures(facts, s.code);
               const figure = f ? (regs ? f.records : f.suppliers) : null;
               const stale = f?.latest ? now - Date.parse(f.latest) > NINETY_DAYS : false;
+              const list = regs ? listCells(f, now) : null;
               return (
                 <tr key={s.code} className="align-top text-md">
                   <th scope="row" className="py-3 pr-4 font-semibold text-ink">
@@ -189,17 +231,20 @@ function TierTable({ tier, facts, now }: { tier: Tier; facts: SiteFacts; now: nu
                     {regs ? null : <span className="block text-sm font-normal text-ink-3">{s.full}</span>}
                   </th>
                   <td className="py-3 pr-4 text-ink-2">{regs ? s.full : s.gives}</td>
-                  {read ? (
+                  {read && list ? (
                     <>
-                      <td className="py-3 pr-4 text-right font-mono text-ink">{f && f.records > 0 && figure !== null ? withCommas(figure) : <span className="font-sans text-ink-3">{f ? "Listed, no records yet" : "Not read yet"}</span>}</td>
+                      <td className="py-3 pr-4 text-right tabular-nums text-ink">{list.entries}</td>
+                      <td className="py-3 text-ink-2">{list.read}</td>
+                    </>
+                  ) : read ? (
+                    <>
+                      <td className="py-3 pr-4 text-right tabular-nums text-ink">{f && f.records > 0 && figure !== null ? withCommas(figure) : <span className="text-ink-3">{f ? "Listed, no records yet" : "Not read yet"}</span>}</td>
                       <td className="py-3 text-ink-2">
                         {f && f.records > 0 && f.latest ? (
                           <>
                             {readDay(f.latest)}
                             {stale ? <span className="font-medium text-ink"> · over 90 days ago</span> : null}
                           </>
-                        ) : regs && f && f.records > 0 ? (
-                          "Read in part, no full read yet"
                         ) : (
                           "Not read yet"
                         )}
@@ -220,19 +265,18 @@ const MATCH = ["Records that share a registration number are one supplier.", "Wi
 const NEVER = ["No scores, grades or stars on a supplier.", "No paid placement. A supplier can't pay to rank higher.", "No fact without a source and a date.", "A lower tier never overwrites a higher one.", "A cross-check source never puts a supplier on SourceBD alone."];
 
 export function Methodology({ facts, now = Date.now() }: { facts: SiteFacts; now?: number }) {
-  const count = countOf(facts);
   const listed = facts.sourcesListed ?? SOURCE_COUNT;
   const sub = facts.sourcesWithRecords !== null ? `${listed} sources listed · ${facts.sourcesWithRecords} hold supplier records. Read in order of trust. No scores.` : `${listed} sources listed. Read in order of trust. No scores.`;
   const updated = readDay(facts.latestRead);
   return (
     <main className="font-sans text-ink">
-      <Hero label="Data & methodology" h1="How we check every supplier." lede={sub} count={count}>
+      <Hero label="Data & methodology" h1="How we check every supplier." lede={sub}>
         <div id="tiers" className="flex scroll-mt-24 flex-col gap-4 pt-6">
           <p className="text-sm text-ink-3">The source ladder · a higher tier is never overwritten by a lower one</p>
           <ol className="grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-5">
             {TIERS.map((t) => (
               <li key={t.key} className="flex flex-col gap-1 border-t border-ink pt-3">
-                <span className="font-mono text-sm text-ink-3">
+                <span className="text-sm tabular-nums text-ink-3">
                   Tier {t.n} · {t.sources.length} {t.n === 5 ? "lists" : "sources"}
                 </span>
                 <span className="text-xl font-semibold text-ink">{t.label}</span>
@@ -243,7 +287,7 @@ export function Methodology({ facts, now = Date.now() }: { facts: SiteFacts; now
         </div>
       </Hero>
 
-      <Section id="sources" label={`01 · The ${SOURCE_COUNT} sources`} headline="Every source, what it gives, and when we read it." lede={facts.sources !== null ? "Counts are published suppliers with a record from that source. A date marked “over 90 days ago” was read more than 90 days ago." : "Every source we list, and what it gives us. The counts and dates appear here when the register has been read."} tone="subtle">
+      <Section id="sources" label={`The ${SOURCE_COUNT} sources`} headline="Every source, what it gives, and when we read it." lede={facts.sources !== null ? "Counts are published suppliers with a record from that source. A date marked “over 90 days ago” was read more than 90 days ago." : "Every source we list, and what it gives us. The counts and dates appear here when the register has been read."} tone="subtle">
         <div className="flex flex-col gap-14">
           {TIERS.map((t) => (
             <TierTable key={t.key} tier={t} facts={facts} now={now} />
@@ -252,11 +296,11 @@ export function Methodology({ facts, now = Date.now() }: { facts: SiteFacts; now
         </div>
       </Section>
 
-      <Section label="02 · How fresh" headline="Every fact carries the date we read it.">
-        <p className="max-w-prose text-md text-ink-2">RSC is read every week. Every day we re-open a batch of source pages to check the fact is still there. The other registers have no fixed schedule yet.</p>
+      <Section label="How fresh" headline="Every fact carries the date we read it.">
+        <p className="max-w-prose text-md text-ink-2">{FRESH}</p>
       </Section>
 
-      <Section id="matching" label="03 · How we match" headline="One factory, one record." tone="subtle" className="scroll-mt-24">
+      <Section id="matching" label="How we match" headline="One factory, one record." tone="subtle" className="scroll-mt-24">
         <ol className="flex max-w-[800px] flex-col gap-3 text-md text-ink-2">
           {MATCH.map((m, i) => (
             <li key={m}>
@@ -266,9 +310,9 @@ export function Methodology({ facts, now = Date.now() }: { facts: SiteFacts; now
         </ol>
       </Section>
 
-      <Section id="corrections" label="04 · Corrections" headline="Spot a wrong fact? Tell us." className="scroll-mt-24">
+      <Section id="corrections" label="Corrections" headline="Spot a wrong fact? Tell us." className="scroll-mt-24">
         <p className="max-w-prose text-md text-ink-2">
-          Write to <A href="mailto:data@sourcebd.net">data@sourcebd.net</A>. We read the source again. The source wins.
+          <Correction />
         </p>
         <div>
           <ButtonLink href="mailto:data@sourcebd.net?subject=Correction" kind="secondary" size="lg" className="max-sm:h-input-touch">
@@ -277,7 +321,7 @@ export function Methodology({ facts, now = Date.now() }: { facts: SiteFacts; now
         </div>
       </Section>
 
-      <Section label="05 · What we never do" headline="Receipts, not opinions." tone="subtle">
+      <Section label="What we never do" headline="Receipts, not opinions." tone="subtle">
         <ol className="grid max-w-[800px] gap-4">
           {NEVER.map((n, i) => (
             <li key={n} className="flex gap-4 border-t border-line pt-3 text-lg text-ink">
@@ -319,7 +363,6 @@ export function ForSuppliers({ facts }: { facts: SiteFacts }) {
         h1="Claim your factory's record."
         lede="Buyers in the UK, EU, US and Canada see it today. Check it, flag what is out of date, answer RFQs."
         actions={false}
-        count={count}
         stage={
           <figure className="flex flex-col gap-3">
             <Stage still="hero-cotton" eager>
@@ -342,7 +385,7 @@ export function ForSuppliers({ facts }: { facts: SiteFacts }) {
         </div>
       </Hero>
 
-      <Section label="01 · Why claim" headline="Buyers already look you up." tone="subtle">
+      <Section label="Why claim" headline="Buyers already look you up." tone="subtle">
         <dl className="grid gap-x-10 gap-y-6 md:grid-cols-3">
           {WHY.map(([t, b]) => (
             <div key={t} className="flex flex-col gap-1 border-t border-ink pt-3">
@@ -353,7 +396,7 @@ export function ForSuppliers({ facts }: { facts: SiteFacts }) {
         </dl>
       </Section>
 
-      <Section label="02 · What you can change" headline="Your answers. Not your receipts.">
+      <Section label="What you can change" headline="Your answers. Not your receipts.">
         <div className="grid max-w-[900px] gap-8 md:grid-cols-2">
           <div className="flex flex-col gap-2">
             <h3 className="text-base font-semibold text-ink">You can</h3>
@@ -367,11 +410,11 @@ export function ForSuppliers({ facts }: { facts: SiteFacts }) {
         <p className="w-fit rounded-sm border border-dashed border-line-strong px-2 py-1 text-sm font-semibold text-ink-2">Editing your own products: in design, not in the product yet</p>
       </Section>
 
-      <Section label="03 · How we check it is you" headline="Three steps to claim your record." tone="subtle">
+      <Section label="How we check it is you" headline="Three steps to claim your record." tone="subtle">
         <ol className="grid gap-x-10 gap-y-6 md:grid-cols-3">
           {STEPS.map(([t, b], i) => (
             <li key={t} className="flex flex-col gap-2 border-t border-ink pt-3">
-              <span className="font-mono text-2xl text-ink-3">{i + 1}</span>
+              <span className="text-2xl tabular-nums text-ink-3">{i + 1}</span>
               <span className="text-lg font-semibold text-ink">{t}</span>
               <span className="text-md text-ink-2">{b}</span>
             </li>
@@ -393,14 +436,17 @@ export function ForSuppliers({ facts }: { facts: SiteFacts }) {
 
 export const ABOUT_META = { path: "/about", title: "About — SourceBD", description: "SourceBD makes every fact about a Bangladesh garment supplier checkable: the source, the number, the date. Bangladesh only, with receipts instead of opinions." };
 
-/** Published suppliers by district as counted on 3 Oct 2026; the page says the day, and a count is never read live here. */
+/** The day the district counts were read (`ops/about_district_counts.sql`); the page says it, and a count is never read live here. */
+export const DISTRICTS_READ = "21 Oct 2026";
+
+/** Published suppliers by district as counted on `DISTRICTS_READ` (`ops/plans/about-district-counts.md`). */
 const DISTRICTS: [string, string, string][] = [
-  ["Dhaka", "4,421", "suppliers, 874 of them with Savar in the address"],
-  ["Gazipur", "1,819", "suppliers"],
-  ["Narayanganj", "1,628", "suppliers"],
-  ["Chattogram", "1,080", "suppliers"],
-  ["43 more districts", "445", "suppliers, from Mymensingh (134) and Narsingdi (91) down"],
-  ["District not on file", "875", "suppliers whose register gives no district"],
+  ["Dhaka", "4,651", "suppliers, 854 of them with Savar in the address"],
+  ["Gazipur", "1,957", "suppliers"],
+  ["Narayanganj", "1,647", "suppliers"],
+  ["Chattogram", "1,195", "suppliers"],
+  ["35 more districts", "433", "suppliers, from Mymensingh (130) and Narsingdi (94) down"],
+  ["District not on file", "165", "suppliers whose register gives no district"],
 ];
 
 const HOW: [string, string][] = [
@@ -411,10 +457,10 @@ const HOW: [string, string][] = [
 ];
 
 export function About({ facts }: { facts: SiteFacts }) {
-  const count = countOf(facts);
+  const latest = readDay(facts.latestRead);
   return (
     <main className="font-sans text-ink">
-      <Hero label="Company · About" h1="Built for buyers who check." lede="We make every fact about a Bangladesh garment supplier checkable: the source, the number, the date." count={count} />
+      <Hero label="Company · About" h1="Built for buyers who check." lede="We make every fact about a Bangladesh garment supplier checkable: the source, the number, the date." />
 
       <section aria-labelledby="where" className="bg-surface py-14 md:py-section">
         <div className={cn(measure, "flex flex-col gap-8")}>
@@ -422,13 +468,13 @@ export function About({ facts }: { facts: SiteFacts }) {
             <h2 id="where" className="text-site-body font-medium text-ink-subtle">
               Bangladesh only · where the suppliers are
             </h2>
-            <p className="text-sm text-ink-3">Published suppliers by district · counted 3 Oct 2026</p>
+            <p className="text-sm text-ink-3">Published suppliers by district · counted {DISTRICTS_READ}</p>
           </div>
           <dl className="grid gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
             {DISTRICTS.map(([place, n, what]) => (
               <div key={place} className="flex flex-col gap-1 border-t border-ink pt-3">
                 <dt className="text-xl font-semibold text-ink">{place}</dt>
-                <dd className="font-mono text-xl text-ink">{n}</dd>
+                <dd className="text-xl tabular-nums text-ink">{n}</dd>
                 <dd className="text-md text-ink-2">{what}</dd>
               </div>
             ))}
@@ -446,6 +492,25 @@ export function About({ facts }: { facts: SiteFacts }) {
           ))}
         </dl>
         <A href="/methodology">Read the methodology</A>
+      </Section>
+
+      {/* How often the registers are read and how to report a wrong fact, in the methodology page's own words (critique 22 Oct, About). */}
+      <Section label="Freshness and corrections" headline="How often we read, and how to correct us." tone="subtle">
+        <dl className="grid max-w-[900px] gap-x-10 gap-y-6 md:grid-cols-2">
+          <div className="flex flex-col gap-1 border-t border-ink pt-3">
+            <dt className="text-lg font-semibold text-ink">How often we read</dt>
+            <dd className="text-md text-ink-2">
+              {FRESH}
+              {latest ? ` The latest register read was ${latest}.` : ""}
+            </dd>
+          </div>
+          <div className="flex flex-col gap-1 border-t border-ink pt-3">
+            <dt className="text-lg font-semibold text-ink">A wrong fact</dt>
+            <dd className="text-md text-ink-2">
+              <Correction />
+            </dd>
+          </div>
+        </dl>
       </Section>
     </main>
   );

@@ -9,7 +9,6 @@ import { AppRouterContext } from "next/dist/shared/lib/app-router-context.shared
 import { createElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { NO_FACTS } from "@/lib/site-facts";
 
 const router = { push() {}, replace() {}, refresh() {}, back() {}, forward() {}, prefetch() {} };
 const plain = (s: string) => s.replace(/&#x27;/g, "'").replace(/&amp;/g, "&").replace(/&quot;/g, '"');
@@ -38,7 +37,7 @@ describe("sub-processors: one list", () => {
   });
 
   it("the Security page prints the same names, in the same order", () => {
-    const t = text(draw(createElement(T.Security, { facts: NO_FACTS })));
+    const t = text(draw(createElement(T.Security)));
     let at = 0;
     for (const [n, w] of L.SUBPROCESSORS) {
       const i = t.indexOf(`${n} · ${w}`, at);

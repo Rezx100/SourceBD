@@ -5,7 +5,8 @@
 // settling in tier order; two example quotes landing; a sanctioned row turning maroon as Send RFQ is refused. Two
 // more for the product pages (M4): a search typed and its first rows arriving (the cross-sell's loop for search), and
 // three of a record's facts landing with their receipts (the records page's "sources in words"). The certificate,
-// the sources and the facts are the snapshot's; the sanctioned company is the site's placeholder, never a real one.
+// the sources and the facts are the snapshot's; the sanctioned company is the site's example, never a real one, and
+// its caption says so in place of "Real records as read" (critique 22 Oct).
 
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
@@ -129,13 +130,16 @@ export const SANCTION_STEPS: Step<X>[] = [
   { at: 1800, state: { listed: true } },
 ];
 
+/** The sanctioned vignette's caption: its company is an example, so it is never dated as a real record. */
+export const SAMPLE_CAPTION = "Example company, not a real supplier";
+
 export function VignetteSanction(frame: Frame) {
   return (
-    <Demo {...frame} steps={SANCTION_STEPS} description={`A placeholder supplier, ${SANCTIONED_SAMPLE}, turning maroon as it appears on the UFLPA Entity List, with Send RFQ refused.`}>
+    <Demo {...frame} caption={frame.caption === false ? false : SAMPLE_CAPTION} steps={SANCTION_STEPS} description={`An example company, ${SANCTIONED_SAMPLE}, turning maroon as it appears on the UFLPA Entity List, with Send RFQ refused.`}>
       {(s) => (
         <Small className={cn("transition-colors duration-slow", s.listed && "border-l-2 border-l-sanction bg-sanction-tint")}>
           <p className="text-sm font-medium text-ink">{SANCTIONED_SAMPLE}</p>
-          <p className="text-xs text-ink-3">Factory · placeholder</p>
+          <p className="text-xs text-ink-3">Factory</p>
           <div className="mt-2 flex min-h-8 flex-wrap items-center justify-between gap-2">
             {s.listed ? <SanctionTag list="UFLPA Entity List" /> : <span className="text-xs text-ink-3">Not on any list read</span>}
             {s.listed ? <Refusal className="text-sm" /> : <span className={buttonClass({ kind: "primary" })}>Send RFQ</span>}

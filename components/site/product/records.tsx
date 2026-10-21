@@ -25,7 +25,6 @@ export const RECORDS_KEY = "product/records";
 const P = PAGES[RECORDS_KEY]!;
 const NAME = displayName(SNAPSHOT.check.name);
 const row = (n: string) => P.blocks.find((b) => b.n === n)!;
-const label = (b: { n: string; label: string }) => `${b.n} · ${b.label}`;
 
 /** `cards`: the home's three real records as read; with none read, that section is not drawn. The page prints no live figure. */
 export function RecordsPage({ cards }: { cards: HomeRecord[] }) {
@@ -43,14 +42,14 @@ export function RecordsPage({ cards }: { cards: HomeRecord[] }) {
         </HeroCentered>
 
         <FeatureRow
-          label={label(sources)}
+          label={sources.label}
           headline={sources.headline}
           lede={sources.lede}
           tone="subtle"
           media={<VignetteReceipts stage="weave" />}
         />
         <FeatureRow
-          label={label(certificates)}
+          label={certificates.label}
           headline={certificates.headline}
           lede={certificates.lede}
           flip
@@ -58,13 +57,13 @@ export function RecordsPage({ cards }: { cards: HomeRecord[] }) {
         >
           {certificates.extra}
         </FeatureRow>
-        <Section label={label(disagree)} headline={disagree.headline} lede={disagree.lede} tone="subtle">
+        <Section label={disagree.label} headline={disagree.headline} lede={disagree.lede} tone="subtle">
           {disagree.extra}
         </Section>
         {/* The one row still on its 3 Oct screen; when the words drop the shot for a demo, the row goes with them rather than drawing nothing. */}
-        {safety.shot ? <FeatureRow label={label(safety)} headline={safety.headline} lede={safety.lede} media={<Figure shot={safety.shot} still="weave" sizes="(min-width: 1440px) 720px, 100vw" />} /> : null}
+        {safety.shot ? <FeatureRow label={safety.label} headline={safety.headline} lede={safety.lede} media={<Figure shot={safety.shot} still="weave" sizes="(min-width: 1440px) 720px, 100vw" />} /> : null}
         <FeatureRow
-          label={label(contacts)}
+          label={contacts.label}
           headline={contacts.headline}
           lede={contacts.lede}
           flip

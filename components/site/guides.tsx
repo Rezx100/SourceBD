@@ -24,7 +24,7 @@ export function GuidesIndex() {
   return (
     <main className="font-sans text-ink">
       <HeroCentered label="Resources · Compliance guides" title="Compliance guides, in plain words." lede="Five laws a buyer of Bangladesh clothing meets, each with its sources and the date we last reviewed it.">
-        <HeroActions center tryLine="Search suppliers by name, product or HS code" />
+        <HeroActions center />
       </HeroCentered>
 
       <section className="pb-14 md:pb-section">

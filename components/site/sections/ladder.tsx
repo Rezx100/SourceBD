@@ -32,7 +32,7 @@ export function Ladder() {
           const quiet = i === LADDER.length - 1;
           return (
             <li key={r.tier} className="flex flex-wrap items-baseline gap-x-6 gap-y-1 border-b border-line-subtle py-4 last:border-b-0 xl:flex-nowrap md:py-[22px]">
-              <span className="w-[72px] shrink-0 font-mono text-sm text-ink-subtle">{r.tier}</span>
+              <span className="w-[72px] shrink-0 text-sm tabular-nums text-ink-subtle">{r.tier}</span>
               <span className={cn("shrink-0 text-site-title font-medium xl:w-[260px]", quiet ? "text-ink-subtle" : "text-ink-strong")}>{r.name}</span>
               <span className={cn("basis-full text-site-body xl:basis-auto", quiet ? "text-ink-subtle" : "text-ink-muted")}>{r.what}</span>
               {r.marks.length ? (

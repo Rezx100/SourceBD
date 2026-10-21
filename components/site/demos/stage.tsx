@@ -15,9 +15,10 @@ import { cn } from "@/lib/utils";
 /**
  * Where a demo sits on its page (critique 22 Oct): `stage` puts it on a cloth (`hero-cotton` in a hero, `weave` in a
  * row) or on the night material (the tour, the cross-sell); `eager` loads its cloth first (a hero's); `after` is a line
- * under the caption (the search page's live count). `caption={false}` leaves the caption to the page.
+ * under the caption (the search page's live count). `caption={false}` leaves the caption to the page; a string is a
+ * caption of its own (the sanctioned example's, which is not a real record).
  */
-export type Frame = { className?: string; caption?: boolean; stage?: StillName | "night"; eager?: boolean; after?: ReactNode };
+export type Frame = { className?: string; caption?: boolean | string; stage?: StillName | "night"; eager?: boolean; after?: ReactNode };
 
 /** Steps that type `text` one character at a time from `from` ms, each drawing what has been typed so far. */
 export function typed<S>(text: string, from: number, draw: (typed: string) => S): Step<S>[] {
@@ -46,7 +47,7 @@ export function Demo<S extends CursorState>({ steps, description, className, cap
   const frame = stage === "night" ? (win: ReactNode) => <NightStage>{win}</NightStage> : stage ? (win: ReactNode) => <Stage still={stage} eager={eager}>{win}</Stage> : undefined;
   return (
     <div className={cn("flex flex-col gap-3", className)}>
-      <DemoStage steps={steps} description={description} frame={frame} windowClass={stage ? "shadow-lg" : "shadow-sm"} foot={caption ? <p className="text-sm text-ink-subtle">{CAPTION}</p> : null}>
+      <DemoStage steps={steps} description={description} frame={frame} windowClass={stage ? "shadow-lg" : "shadow-sm"} foot={caption ? <p className="text-sm text-ink-subtle">{caption === true ? CAPTION : caption}</p> : null}>
         {children}
       </DemoStage>
       {after}
