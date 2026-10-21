@@ -183,38 +183,7 @@ export function Still({ name, className, eager = false, sizes = "(min-width: 144
   );
 }
 
-/** The screens with a phone export of their own; the rest draw the desktop screen at every width. */
-const PHONE = new Set(["results", "saved-selected", "rfq-detail", "compliance", "messages-thread", "full-certs2"]);
-
-export type ScreenName = "results" | "saved-selected" | "rfq-detail" | "compliance" | "record" | "messages-thread" | "full-certs2" | "record-sanctioned" | "full" | "settings-members" | "landing";
-
-/**
- * A product screen as shipped, framed as Paper frames it (12 px corner, hairline, soft drop). Below 768 the phone
- * export when there is one (`phone` names a different one, as the board does). `alt` says what it shows.
- */
-export function Screen({ name, phone, alt, sizes = "(min-width: 1440px) 1152px, 90vw", className, eager = false }: { name: ScreenName; phone?: ScreenName | null; alt: string; sizes?: string; className?: string; eager?: boolean }) {
-  const p = phone === null ? null : (phone ?? name);
-  const hasPhone = p !== null && PHONE.has(p);
-  return (
-    <picture>
-      {hasPhone ? <source media="(max-width: 767px)" type="image/webp" srcSet={`/site/home/screen-${p}-m-390.webp 390w, /site/home/screen-${p}-m-780.webp 780w`} sizes="calc(100vw - 72px)" width={390} height={844} /> : null}
-      <source type="image/webp" srcSet={`/site/home/screen-${name}-1440.webp 1440w, /site/home/screen-${name}-2880.webp 2880w`} sizes={sizes} width={1440} height={900} />
-      {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized in public/site/home (PROVENANCE.md) */}
-      <img
-        src={`/site/home/screen-${name}-1440.webp`}
-        alt={alt}
-        width={1440}
-        height={900}
-        loading={eager ? "eager" : "lazy"}
-        fetchPriority={eager ? "high" : undefined}
-        decoding="async"
-        className={cn("relative block h-auto w-full rounded-frame border border-ink-strong/10 object-cover object-left-top shadow-lg", className)}
-      />
-    </picture>
-  );
-}
-
-/** A screenshot on a photo stage, the home page's way of showing the product (the textile still behind it). */
+/** The product on a cloth stage, the home page's way of showing it (the textile still behind it). */
 export function Stage({ still = "weave", children, className, eager = false }: { still?: StillName; children: ReactNode; className?: string; eager?: boolean }) {
   return (
     <div className={cn("relative isolate flex items-center justify-center overflow-hidden rounded-card px-4 py-6 md:rounded-stage md:px-16 md:py-16", className)}>

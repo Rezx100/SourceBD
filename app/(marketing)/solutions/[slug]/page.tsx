@@ -4,9 +4,8 @@
 
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
-import { PAGES, SitePage, siteMetadata } from "@/components/site/pages";
+import { PAGES, siteMetadata } from "@/components/site/pages";
 import { COMPLIANCE_TEAMS_KEY, SOURCING_KEY, SolutionsCompliancePage, SolutionsSourcingPage } from "@/components/site/product/solutions";
-import { loadSiteFacts } from "@/lib/site-facts";
 
 export const dynamic = "force-dynamic";
 // An unknown slug is a 404 decided by the router, not by the page: a page-level notFound() under a loading boundary would answer 200, so no loading.tsx may sit above this folder.
@@ -29,7 +28,8 @@ export default async function SolutionsPage({ params }: Props) {
   const { slug } = await params;
   const key = `solutions/${slug}`;
   if (!Object.hasOwn(PAGES, key)) notFound();
+  // Every page is rebuilt in the home's frame (M4); one that is not has no page to draw.
   const rebuilt = REBUILT[key];
-  if (rebuilt) return rebuilt();
-  return <SitePage pageKey={key} facts={await loadSiteFacts()} />;
+  if (!rebuilt) notFound();
+  return rebuilt();
 }

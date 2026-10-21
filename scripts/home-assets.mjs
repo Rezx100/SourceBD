@@ -1,5 +1,5 @@
-// Converts the home page's source assets (Higgsfield stills, Paper exports of the as-shipped screens, the hero loop)
-// into the web sizes under public/site/home/. Run once by hand when a source changes; the outputs are committed and
+// Converts the home page's source assets (Higgsfield stills and the hero loop) into the web sizes under
+// public/site/home/. The screens it once converted were retired on 22 Oct 2026: the site draws the product as demos. Run once by hand when a source changes; the outputs are committed and
 // public/site/home/PROVENANCE.md says what each one is. Needs ffmpeg on the PATH (built against libwebp, libaom and
 // libx264, libvpx: the gyan.dev full build has all four); sharp is not a dependency of this repo.
 //
@@ -16,10 +16,6 @@ mkdirSync(OUT, { recursive: true });
 
 /** The backdrops, by their name in the page (`hf-<name>.png` in the source folder). */
 const STILLS = ["hero-cotton", "weave"];
-/** The desktop screens (`paper-<name>@2x.png`, 2880×1800). */
-const SCREENS = ["results", "saved-selected", "rfq-detail", "compliance", "record", "messages-thread", "full-certs2", "record-sanctioned", "full", "settings-members", "landing"];
-/** The phone screens (`paper-<name>-m@2x.png`, 780 wide; the record at Certificates is cut to one 390×844 screen). */
-const PHONE = ["results", "saved-selected", "rfq-detail", "compliance", "messages-thread", "full-certs2"];
 
 const ff = (...args) => execFileSync("ffmpeg", ["-v", "error", "-y", ...args], { stdio: "inherit" });
 const kb = (f) => `${Math.round(statSync(f).size / 1024)} KB`;
@@ -31,24 +27,6 @@ for (const name of STILLS) {
     ff("-i", src, "-vf", `scale=${w}:-2:flags=lanczos`, "-c:v", "libwebp", "-quality", "78", "-compression_level", "6", `${base}.webp`);
     ff("-i", src, "-vf", `scale=${w}:-2:flags=lanczos,format=yuv420p`, "-c:v", "libaom-av1", "-still-picture", "1", "-crf", "30", "-cpu-used", "4", `${base}.avif`);
     console.log(name, w, kb(`${base}.webp`), kb(`${base}.avif`));
-  }
-}
-
-for (const name of SCREENS) {
-  const src = join(SRC, `paper-${name}@2x.png`);
-  for (const w of [1440, 2880]) {
-    const out = join(OUT, `screen-${name}-${w}.webp`);
-    ff("-i", src, "-vf", `scale=${w}:-2:flags=lanczos`, "-c:v", "libwebp", "-quality", "82", "-compression_level", "6", out);
-    console.log("screen", name, w, kb(out));
-  }
-}
-
-for (const name of PHONE) {
-  const src = join(SRC, `paper-${name}-m@2x.png`);
-  for (const w of [390, 780]) {
-    const out = join(OUT, `screen-${name}-m-${w}.webp`);
-    ff("-i", src, "-vf", `crop=780:1688:0:0,scale=${w}:-2:flags=lanczos`, "-c:v", "libwebp", "-quality", "82", "-compression_level", "6", out);
-    console.log("phone", name, w, kb(out));
   }
 }
 

@@ -5,6 +5,7 @@
 // (the app has no dark theme: `data-ground="day"` keeps the window light inside any tone). `typed` and `streamed`
 // write the steps a scene needs to type a search or let rows arrive one at a time, at the motion tokens' pace.
 
+import { X } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 import { DemoStage, type CursorState, type Step } from "@/components/site/motion";
 import { NightStage, Stage, type StillName } from "@/components/site/sections/ui";
@@ -62,6 +63,18 @@ export function Bar({ title, children }: { title: ReactNode; children?: ReactNod
       <p className="min-w-0 truncate text-base font-semibold text-ink">{title}</p>
       {children}
     </div>
+  );
+}
+
+/** A filter chip as the kit's `FilterChip` draws it, its remove control drawn, not a link: nothing in a demo takes focus. */
+export function Chip({ children }: { children: ReactNode }) {
+  return (
+    <span className="inline-flex h-6 items-center gap-0.5 rounded-md border border-line-strong bg-surface pl-2 text-sm font-medium text-ink">
+      {children}
+      <span className="flex size-6 shrink-0 items-center justify-center text-ink-2">
+        <X size={12} aria-hidden />
+      </span>
+    </span>
   );
 }
 
